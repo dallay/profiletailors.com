@@ -1,0 +1,34 @@
+databaseChangeLog:
+  - changeSet:
+      id: tenancy-002-create-workspace-ownerships
+      author: opencode
+      changes:
+        - createTable:
+            tableName: workspace_ownerships
+            columns:
+              - column:
+                  name: workspace_id
+                  type: varchar(64)
+                  constraints:
+                    primaryKey: true
+                    nullable: false
+                    foreignKeyName: fk_workspace_ownerships_workspace
+                    references: workspaces(id)
+              - column:
+                  name: owner_principal_id
+                  type: varchar(64)
+                  constraints:
+                    nullable: false
+                    foreignKeyName: fk_workspace_ownerships_principal
+                    references: principals(id)
+              - column:
+                  name: owner_principal_type
+                  type: varchar(32)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: created_at
+                  type: timestamp with time zone
+                  defaultValueComputed: CURRENT_TIMESTAMP
+                  constraints:
+                    nullable: false
