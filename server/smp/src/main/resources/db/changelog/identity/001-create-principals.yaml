@@ -1,0 +1,40 @@
+databaseChangeLog:
+  - changeSet:
+      id: identity-001-create-principals
+      author: opencode
+      changes:
+        - createTable:
+            tableName: principals
+            columns:
+              - column:
+                  name: id
+                  type: varchar(64)
+                  constraints:
+                    primaryKey: true
+                    nullable: false
+              - column:
+                  name: principal_type
+                  type: varchar(32)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: subject
+                  type: varchar(255)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: provider
+                  type: varchar(255)
+              - column:
+                  name: display_identity
+                  type: varchar(255)
+              - column:
+                  name: created_at
+                  type: timestamp with time zone
+                  defaultValueComputed: CURRENT_TIMESTAMP
+                  constraints:
+                    nullable: false
+        - addUniqueConstraint:
+            tableName: principals
+            columnNames: principal_type, subject, provider
+            constraintName: uq_principals_type_subject_provider
