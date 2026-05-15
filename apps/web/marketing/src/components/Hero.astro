@@ -1,0 +1,47 @@
+---
+import { Icon } from 'astro-icon/components'
+import WaitlistForm from './WaitlistForm.astro'
+
+interface Props {
+  label: string
+  headline: string
+  sub: string
+  inputPlaceholder: string
+  cta: string
+  waiting: string
+  successSuffix: string
+}
+
+const { label, headline, sub, inputPlaceholder, cta, waiting, successSuffix } = Astro.props
+---
+
+<section class="px-6 pt-20 pb-24 max-w-4xl mx-auto">
+  <p class="font-mono text-xs tracking-[0.2em] text-text-muted mb-8">
+    {label}
+  </p>
+
+  <div class="flex items-center gap-5 mb-10">
+    <Icon name="lucide:linkedin" />
+    <Icon name="lucide:twitter" />
+    <Icon name="lucide:instagram" />
+    <Icon name="lucide:facebook" />
+    <span class="font-mono text-xs text-text-muted ml-1 tracking-widest">+ more</span>
+  </div>
+
+  <h1
+    class="font-display text-5xl sm:text-6xl lg:text-7xl font-semibold text-text-display leading-[1.05] tracking-tight mb-6 whitespace-pre-line"
+  >
+    {headline}
+  </h1>
+
+  <p class="font-display text-lg text-text-secondary max-w-xl leading-relaxed mb-12">
+    {sub}
+  </p>
+
+  <WaitlistForm
+    inputPlaceholder={inputPlaceholder}
+    cta={cta}
+    waiting={waiting}
+    successSuffix={successSuffix}
+  />
+</section>

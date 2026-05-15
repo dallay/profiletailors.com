@@ -1,0 +1,28 @@
+---
+import ThemeToggle from './ThemeToggle.astro'
+
+interface Props {
+  name: string
+  langSwitch: string
+  langHref: string
+  langLabel: string
+}
+
+const { name, langSwitch, langHref, langLabel } = Astro.props
+---
+
+<nav class="flex items-center justify-between px-6 py-5 max-w-4xl mx-auto">
+  <span class="font-mono text-sm tracking-widest text-text-display">
+    {name}
+  </span>
+  <div class="flex items-center gap-6">
+    <ThemeToggle />
+    <a
+      href={langHref}
+      class="font-mono text-xs tracking-widest text-text-muted hover:text-text-display transition-colors duration-200"
+      aria-label={langLabel}
+    >
+      {langSwitch}
+    </a>
+  </div>
+</nav>
