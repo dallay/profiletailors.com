@@ -15,8 +15,8 @@ import {Icon} from "astro-icon/components";
 
 <script>
   const toggle = document.getElementById('theme-toggle') as HTMLButtonElement;
-  const iconMoon = document.getElementById('icon-moon') as SVGElement;
-  const iconSun = document.getElementById('icon-sun') as SVGElement;
+  const iconMoon = document.getElementById('icon-moon') as unknown as SVGElement;
+  const iconSun = document.getElementById('icon-sun') as unknown as SVGElement;
 
   function getTheme(): 'dark' | 'light' {
     return document.documentElement.getAttribute('data-theme') === 'light' ? 'light' : 'dark';

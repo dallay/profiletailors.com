@@ -7,7 +7,7 @@ interface FeatureItem {
 
 interface Props {
   label: string
-  items: FeatureItem[]
+  items: readonly FeatureItem[]
 }
 
 const { label, items } = Astro.props

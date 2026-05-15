@@ -12,5 +12,5 @@ const translations = { en, es } as const
 export type Translations = typeof en
 
 export function useTranslations(lang: Locale): Translations {
-  return translations[lang]
+  return translations[lang] as Translations
 }
