@@ -1,0 +1,26 @@
+{
+  "name": "marketing",
+  "type": "module",
+  "version": "0.0.1",
+  "portless": {
+    "name": "profile-tailors",
+    "script": "dev:app"
+  },
+  "engines": {
+    "node": ">=22.12.0"
+  },
+  "scripts": {
+    "dev": "portless",
+    "dev:app": "astro dev",
+    "build": "astro build",
+    "preview": "astro preview",
+    "astro": "astro"
+  },
+  "dependencies": {
+    "@iconify-json/lucide": "^1.2.107",
+    "@tailwindcss/vite": "^4.3.0",
+    "astro": "^6.3.2",
+    "astro-icon": "^1.1.5",
+    "tailwindcss": "^4.3.0"
+  }
+}
