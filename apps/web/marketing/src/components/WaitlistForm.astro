@@ -34,7 +34,7 @@ const { inputPlaceholder, cta, waiting, successSuffix } = Astro.props
   {waiting}
 </p>
 
-<script define:vars={{ successSuffix }}>
+<script is:inline define:vars={{ successSuffix }}>
   document.getElementById('waitlist-form')?.addEventListener('submit', (e) => {
     e.preventDefault()
     const input = /** @type {HTMLInputElement} */ (document.getElementById('email-input'))
