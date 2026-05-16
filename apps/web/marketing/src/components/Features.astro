@@ -14,13 +14,20 @@ const { label, items } = Astro.props
 ---
 
 <section class="px-6 pt-20 pb-24 max-w-4xl mx-auto">
-  <p class="font-mono text-xs tracking-[0.2em] text-text-muted mb-16">
+  <p
+    data-animate-scroll
+    class="font-mono text-xs tracking-[0.2em] text-text-muted mb-16"
+  >
     {label}
   </p>
 
   <div class="flex flex-col gap-14">
-    {items.map((feature) => (
-      <div class="grid grid-cols-1 sm:grid-cols-[1fr_2fr] gap-4 sm:gap-12">
+    {items.map((feature, i) => (
+      <div
+        data-animate-scroll
+        class="grid grid-cols-1 sm:grid-cols-[1fr_2fr] gap-4 sm:gap-12"
+        style={`transition-delay: ${i * 80}ms`}
+      >
         <p class="font-mono text-xs tracking-widest text-text-muted pt-1">
           {feature.tag}
         </p>
