@@ -1,5 +1,5 @@
 ---
-import { Icon } from 'astro-icon/components'
+import { Icon } from '@dallay/astro-icon/components'
 import WaitlistForm from './WaitlistForm.astro'
 
 interface Props {
@@ -16,11 +16,15 @@ const { label, headline, sub, inputPlaceholder, cta, waiting, successSuffix } = 
 ---
 
 <section class="px-6 pt-20 pb-24 max-w-4xl mx-auto">
-  <p class="font-mono text-xs tracking-[0.2em] text-text-muted mb-8">
+  <p
+    data-hero-label
+    class="font-mono text-xs tracking-[0.2em] text-text-muted mb-8"
+    style="opacity:0"
+  >
     {label}
   </p>
 
-  <div class="flex items-center gap-5 mb-10">
+  <div data-hero-icons class="flex items-center gap-5 mb-10" style="opacity:0">
     <Icon name="lucide:linkedin" />
     <Icon name="lucide:twitter" />
     <Icon name="lucide:instagram" />
@@ -29,19 +33,37 @@ const { label, headline, sub, inputPlaceholder, cta, waiting, successSuffix } = 
   </div>
 
   <h1
+    data-hero-headline
     class="font-display text-5xl sm:text-6xl lg:text-7xl font-semibold text-text-display leading-[1.05] tracking-tight mb-6 whitespace-pre-line"
+    style="opacity:0"
   >
     {headline}
   </h1>
 
-  <p class="font-display text-lg text-text-secondary max-w-xl leading-relaxed mb-12">
+  <p
+    data-hero-sub
+    class="font-display text-lg text-text-secondary max-w-xl leading-relaxed mb-12"
+    style="opacity:0"
+  >
     {sub}
   </p>
 
-  <WaitlistForm
-    inputPlaceholder={inputPlaceholder}
-    cta={cta}
-    waiting={waiting}
-    successSuffix={successSuffix}
-  />
+  <div data-hero-form style="opacity:0">
+    <WaitlistForm
+      inputPlaceholder={inputPlaceholder}
+      cta={cta}
+      waiting={waiting}
+      successSuffix={successSuffix}
+    />
+  </div>
 </section>
+
+<script>
+  import { initHeroAnimations } from '../scripts/hero-animations'
+  import { initScrollReveal } from '../scripts/scroll-reveal'
+
+  document.addEventListener('DOMContentLoaded', () => {
+    initHeroAnimations()
+    initScrollReveal()
+  })
+</script>
