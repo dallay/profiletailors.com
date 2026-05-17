@@ -74,10 +74,13 @@ class WorkspaceAuthorizationService(
         val resourceContext = resourceContextProvider.require()
         val membership = workspaceMembershipResolver.resolve(principalContext, resourceContext)
             ?.takeIf { it.isActive() }
-            ?: return AuthorizationDecisionResult(
+
+        if (membership == null) {
+            return AuthorizationDecisionResult(
                 decision = AuthorizationDecision.DENY,
                 reasonCode = AuthorizationReasonCode.MISSING_MEMBERSHIP,
             )
+        }
 
         val roles = workspaceMembershipRoleResolver.resolve(membership)
         val rolePermissions = roles
@@ -91,35 +94,22 @@ class WorkspaceAuthorizationService(
         scopeResolver.resolve(principalContext, resourceContext)
         entitlementResolver.resolve(resourceContext)
 
-        if (directGrants.any { grant -> grant.effect == GrantEffect.DENY }) {
-            return AuthorizationDecisionResult(
-                decision = AuthorizationDecision.DENY,
-                reasonCode = AuthorizationReasonCode.DIRECT_DENY,
-                roleKeys = roles.mapTo(sortedSetOf()) { role -> role.key },
-            )
+        val (decision, reasonCode) = when {
+            directGrants.any { it.effect == GrantEffect.DENY } ->
+                AuthorizationDecision.DENY to AuthorizationReasonCode.DIRECT_DENY
+            directGrants.any { it.effect == GrantEffect.ALLOW } ->
+                AuthorizationDecision.ALLOW to AuthorizationReasonCode.DIRECT_ALLOW
+            requiredPermission in rolePermissions ->
+                AuthorizationDecision.ALLOW to AuthorizationReasonCode.ROLE_PERMISSION
+            else ->
+                AuthorizationDecision.DENY to AuthorizationReasonCode.MISSING_PERMISSION
         }
 
-        if (directGrants.any { grant -> grant.effect == GrantEffect.ALLOW }) {
-            return AuthorizationDecisionResult(
-                decision = AuthorizationDecision.ALLOW,
-                reasonCode = AuthorizationReasonCode.DIRECT_ALLOW,
-                roleKeys = roles.mapTo(sortedSetOf()) { role -> role.key },
-            )
-        }
-
-        return if (requiredPermission in rolePermissions) {
-            AuthorizationDecisionResult(
-                decision = AuthorizationDecision.ALLOW,
-                reasonCode = AuthorizationReasonCode.ROLE_PERMISSION,
-                roleKeys = roles.mapTo(sortedSetOf()) { role -> role.key },
-            )
-        } else {
-            AuthorizationDecisionResult(
-                decision = AuthorizationDecision.DENY,
-                reasonCode = AuthorizationReasonCode.MISSING_PERMISSION,
-                roleKeys = roles.mapTo(sortedSetOf()) { role -> role.key },
-            )
-        }
+        return AuthorizationDecisionResult(
+            decision = decision,
+            reasonCode = reasonCode,
+            roleKeys = roles.mapTo(sortedSetOf()) { it.key },
+        )
     }
 }
 

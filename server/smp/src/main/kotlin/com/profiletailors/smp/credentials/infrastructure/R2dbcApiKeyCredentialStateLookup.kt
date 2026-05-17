@@ -16,31 +16,31 @@ class R2dbcApiKeyCredentialStateLookup(
 ) : ApiKeyCredentialStateLookup {
 
     override suspend fun requireActive(presentedApiKey: String): ActiveApiKeyCredential {
-        val segments = presentedApiKey.split(API_KEY_DELIMITER, limit = 2)
+        val (lookupKey, presentedSecret) = parseApiKey(presentedApiKey)
+        val record = lookupCredential(lookupKey)
+        validateCredentialState(record, presentedSecret)
+
+        return ActiveApiKeyCredential(
+            principalId = record.principalId,
+            credentialReference = record.credentialReference,
+            subject = record.subject,
+            provider = record.provider,
+        )
+    }
+
+    private fun parseApiKey(key: String): Pair<String, String> {
+        val segments = key.split(API_KEY_DELIMITER, limit = 2)
         if (segments.size != 2 || segments.any { it.isBlank() }) {
             throw ApiKeyCredentialNotActiveException(
                 credentialReference = "invalid",
                 reason = ApiKeyCredentialFailureReason.INVALID,
             )
         }
+        return segments[0] to segments[1]
+    }
 
-        val lookupKey = segments[0]
-        val presentedSecret = segments[1]
-
-        val record = databaseClient.sql(
-            """
-            SELECT akc.principal_id,
-                   akc.id,
-                   akc.secret_verifier,
-                   akc.status,
-                   p.subject,
-                   p.provider
-            FROM api_key_credentials akc
-            INNER JOIN principals p ON p.id = akc.principal_id
-            WHERE akc.lookup_key = :lookupKey
-              AND p.principal_type = 'API_KEY'
-            """.trimIndent(),
-        )
+    private suspend fun lookupCredential(lookupKey: String): ApiKeyCredentialRecord {
+        return databaseClient.sql(LOOKUP_SQL)
             .bind("lookupKey", lookupKey)
             .map { row, _ ->
                 ApiKeyCredentialRecord(
@@ -48,6 +48,7 @@ class R2dbcApiKeyCredentialStateLookup(
                     credentialReference = requireNotNull(row.get("id", String::class.java)),
                     secretVerifier = requireNotNull(row.get("secret_verifier", String::class.java)),
                     status = requireNotNull(row.get("status", String::class.java)),
+                    replacedAt = row.get("replaced_at", java.time.OffsetDateTime::class.java),
                     subject = requireNotNull(row.get("subject", String::class.java)),
                     provider = row.get("provider", String::class.java),
                 )
@@ -58,32 +59,19 @@ class R2dbcApiKeyCredentialStateLookup(
                 credentialReference = lookupKey,
                 reason = ApiKeyCredentialFailureReason.MISSING,
             )
+    }
 
-        if (record.status != ACTIVE_STATUS) {
-            throw ApiKeyCredentialNotActiveException(
-                credentialReference = record.credentialReference,
-                principalId = record.principalId,
-                reason = if (record.status == REVOKED_STATUS) {
-                    ApiKeyCredentialFailureReason.REVOKED
-                } else {
-                    ApiKeyCredentialFailureReason.INACTIVE
-                },
-            )
+    private fun validateCredentialState(record: ApiKeyCredentialRecord, presentedSecret: String) {
+        val reason = when {
+            record.status != ACTIVE_STATUS && record.status == REVOKED_STATUS -> ApiKeyCredentialFailureReason.REVOKED
+            record.status != ACTIVE_STATUS -> ApiKeyCredentialFailureReason.INACTIVE
+            !secretVerifier.matches(presentedSecret, record.secretVerifier) -> ApiKeyCredentialFailureReason.INVALID
+            else -> return
         }
-
-        if (!secretVerifier.matches(presentedSecret, record.secretVerifier)) {
-            throw ApiKeyCredentialNotActiveException(
-                credentialReference = record.credentialReference,
-                principalId = record.principalId,
-                reason = ApiKeyCredentialFailureReason.INVALID,
-            )
-        }
-
-        return ActiveApiKeyCredential(
-            principalId = record.principalId,
+        throw ApiKeyCredentialNotActiveException(
             credentialReference = record.credentialReference,
-            subject = record.subject,
-            provider = record.provider,
+            principalId = record.principalId,
+            reason = reason,
         )
     }
 
@@ -100,5 +88,18 @@ class R2dbcApiKeyCredentialStateLookup(
         private const val API_KEY_DELIMITER = "."
         private const val ACTIVE_STATUS = "ACTIVE"
         private const val REVOKED_STATUS = "REVOKED"
+
+        private val LOOKUP_SQL = """
+            SELECT akc.principal_id,
+                   akc.id,
+                   akc.secret_verifier,
+                   akc.status,
+                   p.subject,
+                   p.provider
+            FROM api_key_credentials akc
+            INNER JOIN principals p ON p.id = akc.principal_id
+            WHERE akc.lookup_key = :lookupKey
+              AND p.principal_type = 'API_KEY'
+        """.trimIndent()
     }
 }

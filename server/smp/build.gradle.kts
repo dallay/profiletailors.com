@@ -68,6 +68,9 @@ kotlin {
 
 detekt {
     config.setFrom(files("detekt.yml"))
+    buildUponDefaultConfig = true
+    allRules = false
+    debug.set(false)
 }
 
 tasks.check {
