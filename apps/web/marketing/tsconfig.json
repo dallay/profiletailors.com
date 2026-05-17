@@ -10,7 +10,9 @@
       "@layouts/*": ["src/layouts/*"],
       "@i18n/*": ["src/i18n/*"],
       "@pages/*": ["src/pages/*"],
-      "@styles/*": ["src/styles/*"]
+      "@styles/*": ["src/styles/*"],
+      "@shared/assets": ["../../shared/assets"],
+      "@shared/assets/*": ["../../shared/assets/*"]
     }
   }
 }

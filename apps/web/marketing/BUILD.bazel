@@ -28,7 +28,7 @@ filegroup(
     srcs = glob(
         [
             "src/**/*",
-            "public/**/*",
+            "public/**/*",  # may be empty — web assets come from //shared/assets via Vite plugin
         ],
         exclude = [
             "**/*.DS_Store",
@@ -36,6 +36,7 @@ filegroup(
             ".astro/**",
             "node_modules/**",
         ],
+        allow_empty = True,
     ),
 )
 
