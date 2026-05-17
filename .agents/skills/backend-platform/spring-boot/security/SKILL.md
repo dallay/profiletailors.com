@@ -4,386 +4,275 @@ description: Use when implementing reactive authentication or authorization in S
 allowed-tools: Read, Write, Edit, Bash, Glob, Grep
 ---
 
-# Spring Boot JWT Security
+# Spring Boot Reactive Security
 
-JWT authentication and authorization patterns for Spring Boot 3.5.x using Spring Security 6.x and
-JJWT. Covers token generation, validation, refresh strategies, RBAC/ABAC, and OAuth2 integration.
+Reactive authentication and authorization patterns for **Spring Boot 4 + WebFlux + Kotlin
+coroutines**.
 
-## Overview
+This skill is the canonical security companion for the backend stack. It covers reactive security
+configuration, JWT/resource-server flows, role/permission checks, token lifecycle concerns, and test
+strategies that align with `WebFlux` instead of the servlet stack.
 
-This skill provides implementation patterns for stateless JWT authentication in Spring Boot
-applications. It covers the complete authentication flow including token generation with JJWT
-0.12.6, Bearer/cookie-based authentication, refresh token rotation, and method-level authorization
-with `@PreAuthorize` expressions.
+## Stack Baseline
 
-Key capabilities:
+These assumptions are canonical unless a project documents an explicit exception:
 
-- Access and refresh token generation with configurable expiration
-- Bearer token and HttpOnly cookie authentication strategies
-- Integration with Spring Data JPA and OAuth2 providers
-- RBAC with role/permission-based `@PreAuthorize` rules
-- Token revocation and blacklisting for logout/rotation
+- **Spring Security model:** WebFlux security
+- **HTTP security chain:** `SecurityWebFilterChain`
+- **Configuration API:** `ServerHttpSecurity`
+- **Primary auth strategy:** Bearer JWT or OAuth2 resource server
+- **Testing baseline:** `WebTestClient` and reactive security test support
+- **Persistence note:** if refresh tokens or revocation state are stored, prefer reactive adapters
 
 ## When to Use
 
-Activate when user requests involve:
+Use this skill when requests involve:
 
-- "Implement JWT authentication", "secure REST API with tokens"
-- "Spring Security 6.x configuration", "SecurityFilterChain setup"
-- "Role-based access control", "RBAC", `` `@PreAuthorize` ``
-- "Refresh token", "token rotation", "token revocation"
-- "OAuth2 integration", "social login", "Google/GitHub auth"
-- "Stateless authentication", "SPA backend security"
-- "JWT filter", "OncePerRequestFilter", "Bearer token"
-- "Cookie-based JWT", "HttpOnly cookie"
-- "Permission-based access control", "custom PermissionEvaluator"
+- implementing JWT authentication in a reactive API
+- securing WebFlux endpoints
+- configuring `SecurityWebFilterChain`
+- role-based or permission-based access control
+- token rotation, revocation, or refresh flows
+- OAuth2 resource server integration
+- reactive method security
+- cookie-vs-bearer token tradeoffs for SPA/backend integrations
 
-## Quick Reference
+## What This Skill Does Not Own
 
-### Dependencies (JJWT 0.12.6)
+Use companion skills instead when the main concern is:
+
+- core DTO/controller/infrastructure boundaries → `spring-boot`
+- HTTP contract and status design → `spring-boot-api-standards`
+- reactive controller/security verification → `spring-boot-testing-webflux`
+
+## Core Rules
+
+- Use `SecurityWebFilterChain`, not servlet `SecurityFilterChain`.
+- Use `ServerHttpSecurity`, not `HttpSecurity`.
+- Do **not** use `OncePerRequestFilter` as the default JWT pattern in WebFlux.
+- Keep authn/authz concerns in infrastructure.
+- Use `oauth2ResourceServer().jwt()` when bearer JWT is the primary model.
+- Use method security intentionally; do not hide API-level authorization mistakes behind service
+  annotations alone.
+- Treat refresh tokens, blacklisting, and revocation as persistence problems as much as security
+  problems.
+
+## Dependencies
 
 | Artifact                                     | Scope   |
 |----------------------------------------------|---------|
 | `spring-boot-starter-security`               | compile |
 | `spring-boot-starter-oauth2-resource-server` | compile |
-| `io.jsonwebtoken:jjwt-api:0.12.6`            | compile |
-| `io.jsonwebtoken:jjwt-impl:0.12.6`           | runtime |
-| `io.jsonwebtoken:jjwt-jackson:0.12.6`        | runtime |
 | `spring-security-test`                       | test    |
+| `io.jsonwebtoken:jjwt-api`                   | compile |
+| `io.jsonwebtoken:jjwt-impl`                  | runtime |
+| `io.jsonwebtoken:jjwt-jackson`               | runtime |
 
-See [references/jwt-quick-reference.md](references/jwt-quick-reference.md) for Maven and Gradle
-snippets.
+Use JJWT only if the application is responsible for minting tokens. If the application only validates
+bearer JWTs from an external issuer, the resource-server stack may be enough.
 
-### Key Configuration Properties
-
-| Property                       | Example Value   | Notes                        |
-|--------------------------------|-----------------|------------------------------|
-| `jwt.secret`                   | `${JWT_SECRET}` | Min 256 bits, never hardcode |
-| `jwt.access-token-expiration`  | `900000`        | 15 min in milliseconds       |
-| `jwt.refresh-token-expiration` | `604800000`     | 7 days in milliseconds       |
-| `jwt.issuer`                   | `my-app`        | Validated on every token     |
-| `jwt.cookie-name`              | `jwt-token`     | For cookie-based auth        |
-| `jwt.cookie-http-only`         | `true`          | Always true in production    |
-| `jwt.cookie-secure`            | `true`          | Always true with HTTPS       |
-
-### Authorization Annotations
-
-| Annotation                                           | Example             |
-|------------------------------------------------------|---------------------|
-| `@PreAuthorize("hasRole('ADMIN')")`                  | Role check          |
-| `@PreAuthorize("hasAuthority('USER_READ')")`         | Permission check    |
-| `@PreAuthorize("hasPermission(#id, 'Doc', 'READ')")` | Domain object check |
-| `@PreAuthorize("@myService.canAccess(#id)")`         | Spring bean check   |
-
-## Instructions
-
-### Step 1 — Add Dependencies
-
-Include `spring-boot-starter-security`, `spring-boot-starter-oauth2-resource-server`, and the three
-JJWT artifacts in your build file.
-See [references/jwt-quick-reference.md](references/jwt-quick-reference.md) for exact Maven/Gradle
-snippets.
-
-### Step 2 — Configure application.yml
+## Configuration Properties
 
 ```yaml
 jwt:
-  secret: ${JWT_SECRET:change-me-min-32-chars-in-production}
+  issuer: profile-tailors
   access-token-expiration: 900000
   refresh-token-expiration: 604800000
-  issuer: my-app
-  cookie-name: jwt-token
+  cookie-name: pt-access-token
   cookie-http-only: true
-  cookie-secure: false   # true in production
+  cookie-secure: true
 ```
 
-See [references/jwt-complete-configuration.md](references/jwt-complete-configuration.md) for the
-full properties reference.
+### Rules
 
-### Step 3 — Implement JwtService
+- Never hardcode secrets.
+- Use secure cookies in production.
+- Validate issuer/audience consistently.
+- Keep expiration settings explicit and environment-aware.
 
-Core operations: generate access token, generate refresh token, extract username, validate token.
+## Reactive Security Configuration
 
-```java
-@Service
-public class JwtService {
+Use a reactive security chain as the default baseline.
 
-    public String generateAccessToken(UserDetails userDetails) {
-        return Jwts.builder()
-            .subject(userDetails.getUsername())
-            .issuer(issuer)
-            .issuedAt(new Date())
-            .expiration(new Date(System.currentTimeMillis() + accessTokenExpiration))
-            .claim("authorities", getAuthorities(userDetails))
-            .signWith(getSigningKey())
-            .compact();
-    }
-
-    public boolean isTokenValid(String token, UserDetails userDetails) {
-        try {
-            String username = extractUsername(token);
-            return username.equals(userDetails.getUsername()) && !isTokenExpired(token);
-        } catch (JwtException e) {
-            return false;
-        }
-    }
-}
-```
-
-See [references/jwt-complete-configuration.md](references/jwt-complete-configuration.md) for the
-complete JwtService including key management and claim extraction.
-
-### Step 4 — Create JwtAuthenticationFilter
-
-Extend `OncePerRequestFilter` to extract a JWT from the `Authorization: Bearer` header (or HttpOnly
-cookie), validate it, and set the `SecurityContext`.
-
-```java
-@Component
-public class JwtAuthenticationFilter extends OncePerRequestFilter {
-
-    @Override
-    protected void doFilterInternal(HttpServletRequest request,
-            HttpServletResponse response, FilterChain chain)
-            throws ServletException, IOException {
-        String authHeader = request.getHeader("Authorization");
-        if (authHeader == null || !authHeader.startsWith("Bearer ")) {
-            chain.doFilter(request, response);
-            return;
-        }
-        String jwt = authHeader.substring(7);
-        String username = jwtService.extractUsername(jwt);
-        if (username != null && SecurityContextHolder.getContext().getAuthentication() == null) {
-            UserDetails userDetails = userDetailsService.loadUserByUsername(username);
-            if (jwtService.isTokenValid(jwt, userDetails)) {
-                UsernamePasswordAuthenticationToken authToken =
-                    new UsernamePasswordAuthenticationToken(
-                        userDetails, null, userDetails.getAuthorities());
-                authToken.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
-                SecurityContextHolder.getContext().setAuthentication(authToken);
-            }
-        }
-        chain.doFilter(request, response);
-    }
-}
-```
-
-See [references/configuration.md](references/configuration.md) for the cookie-based variant.
-
-### Step 5 — Configure SecurityFilterChain
-
-```java
+```kotlin
 @Configuration
-@EnableWebSecurity
-@EnableMethodSecurity
-public class SecurityConfig {
+@EnableWebFluxSecurity
+@EnableReactiveMethodSecurity
+class SecurityConfiguration {
 
     @Bean
-    public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
-        return http
-            .csrf(AbstractHttpConfigurer::disable)
-            .sessionManagement(s -> s.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
-            .authorizeHttpRequests(auth -> auth
-                .requestMatchers("/api/auth/**", "/swagger-ui/**").permitAll()
-                .anyRequest().authenticated()
-            )
-            .authenticationProvider(authenticationProvider)
-            .addFilterBefore(jwtAuthFilter, UsernamePasswordAuthenticationFilter.class)
-            .build();
-    }
+    fun securityWebFilterChain(http: ServerHttpSecurity): SecurityWebFilterChain =
+        http
+            .csrf { it.disable() }
+            .authorizeExchange {
+                it.pathMatchers(
+                    "/actuator/health",
+                    "/api/auth/**",
+                    "/swagger-ui/**",
+                    "/v3/api-docs/**",
+                ).permitAll()
+                it.anyExchange().authenticated()
+            }
+            .oauth2ResourceServer { resourceServer ->
+                resourceServer.jwt()
+            }
+            .build()
 }
 ```
 
-See [references/jwt-complete-configuration.md](references/jwt-complete-configuration.md) for CORS,
-logout handler, and OAuth2 login integration.
+## Token Strategies
 
-### Step 6 — Create Authentication Endpoints
+## 1. Bearer JWT in Authorization Header
 
-Expose `/register`, `/authenticate`, `/refresh`, and `/logout` via `@RestController`. Return
-`accessToken` + `refreshToken` in the response body (and optionally set an HttpOnly cookie).
+Use this when:
+- clients are API-first
+- mobile/native integrations dominate
+- token transport should stay explicit
 
-See [references/examples.md](references/examples.md) for the complete `AuthenticationController` and
-`AuthenticationService`.
+### Rules
 
-### Step 7 — Implement Refresh Token Strategy
+- Expect `Authorization: Bearer <token>`.
+- Reject malformed or expired tokens consistently.
+- Keep claims minimal and stable.
 
-Store refresh tokens in the database with `user_id`, `expiry_date`, `revoked`, and `expired`
-columns. On `/refresh`, verify the stored token, revoke it, and issue a new pair (token rotation).
+## 2. HttpOnly Cookie Token Transport
 
-See [references/token-management.md](references/token-management.md) for `RefreshToken` entity,
-rotation logic, and Redis-based blacklisting.
+Use this when:
+- browser clients dominate
+- you want to reduce token handling in JavaScript
+- CSRF implications are understood and handled intentionally
 
-### Step 8 — Add Authorization Rules
+### Rules
 
-Use `@EnableMethodSecurity` and `@PreAuthorize` annotations for fine-grained control:
+- Use `HttpOnly`, `Secure`, and appropriate `SameSite` settings.
+- Document how browser and API clients differ.
+- Do not pretend cookie transport removes all security concerns.
 
-```java
+## JWT Service Pattern
+
+If the application issues JWTs itself, centralize signing and claim rules.
+
+```kotlin
+@Service
+class JwtService(
+    private val jwtProperties: JwtProperties,
+) {
+    fun generateAccessToken(subject: String, authorities: Collection<String>): String =
+        Jwts.builder()
+            .subject(subject)
+            .issuer(jwtProperties.issuer)
+            .issuedAt(Date())
+            .expiration(Date(System.currentTimeMillis() + jwtProperties.accessTokenExpiration))
+            .claim("authorities", authorities)
+            .signWith(signingKey())
+            .compact()
+}
+```
+
+### Rules
+
+- Keep claim names stable.
+- Do not put sensitive data in JWT payloads.
+- Prefer short-lived access tokens.
+- If refresh is needed, rotate refresh tokens instead of reusing them forever.
+
+## Refresh Token and Revocation Guidance
+
+### Rules
+
+- Store refresh-token state server-side if revocation matters.
+- Prefer rotation on refresh.
+- Mark tokens revoked on logout or compromise.
+- If using Redis or a database for revocation, keep that adapter reactive when possible.
+
+### Minimal persistence model
+
+Track fields such as:
+- token identifier (`jti`)
+- subject/user id
+- expiry
+- revoked flag
+- issued-at metadata
+
+## Authorization Patterns
+
+### Role-based checks
+
+```kotlin
 @PreAuthorize("hasRole('ADMIN')")
-public Page<UserResponse> getAllUsers(Pageable pageable) { ... }
-
-@PreAuthorize("hasPermission(#documentId, 'Document', 'READ')")
-public Document getDocument(Long documentId) { ... }
+suspend fun listAllUsers(): List<UserResponse> = TODO()
 ```
 
-See [references/authorization-patterns.md](references/authorization-patterns.md) for RBAC entity
-model, `PermissionEvaluator`, and ABAC patterns.
+### Permission-based checks
 
-### Step 9 — Write Security Tests
+```kotlin
+@PreAuthorize("hasAuthority('WORKSPACE_READ')")
+suspend fun getWorkspace(id: UUID): WorkspaceResponse = TODO()
+```
 
-```java
-@SpringBootTest
-@AutoConfigureMockMvc
-class AuthControllerTest {
+### Rules
 
+- Prefer coarse-grained endpoint rules first.
+- Use method security for deeper business authorization only when it adds clarity.
+- Keep authority naming explicit and grep-friendly.
+
+## Reactive User Lookup Guidance
+
+If security depends on application-managed users/permissions:
+
+- prefer reactive data access
+- avoid bridging to blocking JPA inside request-time auth flows
+- isolate blocking lookups if a legacy adapter is unavoidable
+
+## OAuth2 / Resource Server Guidance
+
+Use resource-server mode when tokens come from an identity provider.
+
+### Rules
+
+- Prefer issuer/jwk-set based validation over custom parsing when possible.
+- Keep audience and issuer validation explicit.
+- Separate identity-provider config from business authorization rules.
+
+## Security Testing Baseline
+
+Use reactive HTTP tests for endpoint-level access control.
+
+```kotlin
+@WebFluxTest(AdminController::class)
+@Import(SecurityConfiguration::class)
+class AdminControllerSecurityTest(
+    @Autowired private val webTestClient: WebTestClient,
+) {
     @Test
-    void shouldDenyAccessWithoutToken() throws Exception {
-        mockMvc.perform(get("/api/orders"))
-            .andExpect(status().isUnauthorized());
-    }
-
-    @Test
-    @WithMockUser(roles = "ADMIN")
-    void shouldAllowAdminAccess() throws Exception {
-        mockMvc.perform(get("/api/admin/users"))
-            .andExpect(status().isOk());
+    fun `rejects anonymous access`() {
+        webTestClient.get()
+            .uri("/api/admin/users")
+            .exchange()
+            .expectStatus().isUnauthorized
     }
 }
 ```
 
-See [references/testing.md](references/testing.md)
-and [references/jwt-testing-guide.md](references/jwt-testing-guide.md) for full test suites,
-Testcontainers setup, and a security test checklist.
+### Testing Rules
 
-## Best Practices
+- Test anonymous, forbidden, and authorized paths.
+- Use `WebTestClient`, not `MockMvc`.
+- Keep HTTP security tests and method-security tests distinct when useful.
+- Verify error status and body shape for denied access when the API contract exposes them.
 
-### Token Security
+## Common Mistakes
 
-- Use minimum 256-bit secret keys — load from environment variables, never hardcode
-- Set short access token lifetimes (15 min); use refresh tokens for longer sessions
-- Implement token rotation: revoke old refresh token when issuing a new one
-- Use `jti` (JWT ID) claim for blacklisting on logout
-
-### Cookie vs Bearer Header
-
-- Prefer HttpOnly cookies for browser clients (XSS-safe)
-- Use `Authorization: Bearer` header for mobile/API clients
-- Set `Secure`, `SameSite=Lax` or `Strict` on cookies in production
-
-### Spring Security 6.x
-
-- Use `SecurityFilterChain` bean — never extend `WebSecurityConfigurerAdapter`
-- Disable CSRF only for stateless APIs; keep it enabled for session-based flows
-- Use `@EnableMethodSecurity` instead of deprecated `@EnableGlobalMethodSecurity`
-- Validate `iss` and `aud` claims; reject tokens from untrusted issuers
-
-### Performance
-
-- Cache `UserDetails` with `@Cacheable` to avoid DB lookup on every request
-- Cache signing key derivation (avoid re-computing HMAC key per request)
-- Use Redis for refresh token storage at scale
-
-### What NOT to Do
-
-- Do not store sensitive data (passwords, PII) in JWT claims — claims are only signed, not encrypted
-- Do not issue tokens with infinite lifetime
-- Do not accept tokens without validating signature and expiration
-- Do not share signing keys across environments
-
-## Examples
-
-### Basic Authentication Flow
-
-```java
-@RestController
-@RequestMapping("/api/auth")
-@RequiredArgsConstructor
-public class AuthController {
-
-    private final AuthService authService;
-
-    @PostMapping("/authenticate")
-    public ResponseEntity<AuthResponse> authenticate(
-            @RequestBody LoginRequest request) {
-        return ResponseEntity.ok(authService.authenticate(request));
-    }
-
-    @PostMapping("/refresh")
-    public ResponseEntity<AuthResponse> refresh(@RequestBody RefreshRequest request) {
-        return ResponseEntity.ok(authService.refreshToken(request.refreshToken()));
-    }
-
-    @PostMapping("/logout")
-    public ResponseEntity<Void> logout() {
-        authService.logout();
-        return ResponseEntity.ok().build();
-    }
-}
-```
-
-### JWT Authorization on Controller Method
-
-```java
-@RestController
-@RequestMapping("/api/admin")
-@PreAuthorize("hasRole('ADMIN')")
-public class AdminController {
-
-    @GetMapping("/users")
-    public ResponseEntity<List<UserResponse>> getAllUsers() {
-        return ResponseEntity.ok(adminService.getAllUsers());
-    }
-}
-```
-
-See [references/examples.md](references/examples.md) for complete entity models and service
-implementations.
-
-## References
-
-| File                                                                                     | Content                                                             |
-|------------------------------------------------------------------------------------------|---------------------------------------------------------------------|
-| [references/jwt-quick-reference.md](references/jwt-quick-reference.md)                   | Dependencies, minimal service, common patterns                      |
-| [references/jwt-complete-configuration.md](references/jwt-complete-configuration.md)     | Full config: properties, SecurityFilterChain, JwtService, OAuth2 RS |
-| [references/configuration.md](references/configuration.md)                               | JWT config beans, CORS, CSRF, error handling, session options       |
-| [references/examples.md](references/examples.md)                                         | Complete application setup: controllers, services, entities         |
-| [references/authorization-patterns.md](references/authorization-patterns.md)             | RBAC/ABAC entity model, PermissionEvaluator, SpEL expressions       |
-| [references/token-management.md](references/token-management.md)                         | Refresh token entity, rotation, blacklisting with Redis             |
-| [references/testing.md](references/testing.md)                                           | Unit and MockMvc tests, test utilities                              |
-| [references/jwt-testing-guide.md](references/jwt-testing-guide.md)                       | Testcontainers, load testing, security test checklist               |
-| [references/security-hardening.md](references/security-hardening.md)                     | Security headers, HSTS, rate limiting, audit logging                |
-| [references/performance-optimization.md](references/performance-optimization.md)         | Caffeine cache config, async validation, connection pooling         |
-| [references/oauth2-integration.md](references/oauth2-integration.md)                     | Google/GitHub OAuth2 login, OAuth2UserService                       |
-| [references/microservices-security.md](references/microservices-security.md)             | Inter-service JWT propagation, resource server config               |
-| [references/migration-spring-security-6x.md](references/migration-spring-security-6x.md) | Migration from Spring Security 5.x                                  |
-| [references/troubleshooting.md](references/troubleshooting.md)                           | Common errors, debugging tips                                       |
-
-## Constraints and Warnings
-
-### Security Constraints
-
-- JWT tokens are signed but not encrypted — do not include sensitive data in claims
-- Always validate `exp`, `iss`, and `aud` claims before trusting the token
-- Signing keys must be at least 256 bits; never use weak keys in production
-- Load secrets from environment variables or secure vaults, never from config files
-- SameSite cookie attribute is essential for CSRF protection in cookie-based flows
-
-### Spring Security 6.x Constraints
-
-- `WebSecurityConfigurerAdapter` is removed — use `SecurityFilterChain` beans only
-- `@EnableGlobalMethodSecurity` is deprecated — use `@EnableMethodSecurity`
-- Lambda DSL is required for `HttpSecurity` configuration (no method chaining)
-- `WebSecurityConfigurerAdapter.order()` replaced by `@Order` on `@Configuration` classes
-
-### Token Constraints
-
-- Access tokens should expire in 5-15 minutes for security
-- Refresh tokens should be stored server-side (DB or Redis), never in localStorage
-- Implement token blacklisting for immediate revocation on logout
-- `jti` claim is required for token blacklisting to work correctly
+- ❌ Using `OncePerRequestFilter` as the default JWT model in WebFlux
+- ❌ Configuring `HttpSecurity` in a reactive application
+- ❌ Doing blocking repository lookups in the hot authentication path
+- ❌ Treating refresh-token storage as an afterthought
+- ❌ Relying only on `@PreAuthorize` while endpoint rules remain too broad
+- ❌ Testing security only with `MockMvc`
+- ❌ Returning internal auth failure details to clients
 
 ## Related Skills
 
-- `spring-boot` — Core reactive Spring Boot wiring and boundary rules
-- `spring-boot/testing-webflux` — Testing reactive security configurations
-- `spring-boot/data-jpa-legacy` — Legacy blocking user entity and repository patterns
-- `spring-boot/actuator` — Security monitoring and health endpoints
+- [`../SKILL.md`](../SKILL.md) — Core reactive Spring Boot boundaries and wiring
+- `spring-boot-api-standards` — HTTP contract, status code, and error response design
+- `spring-boot-testing-webflux` — Reactive controller and security verification
