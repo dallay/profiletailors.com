@@ -1,0 +1,71 @@
+databaseChangeLog:
+  - changeSet:
+      id: authorization-005-create-workspace-direct-grants
+      author: opencode
+      changes:
+        - createTable:
+            tableName: workspace_direct_grants
+            columns:
+              - column:
+                  name: id
+                  type: varchar(64)
+                  constraints:
+                    primaryKey: true
+                    nullable: false
+              - column:
+                  name: workspace_id
+                  type: varchar(64)
+                  constraints:
+                    nullable: false
+                    foreignKeyName: fk_workspace_direct_grants_workspace
+                    references: workspaces(id)
+              - column:
+                  name: principal_id
+                  type: varchar(64)
+                  constraints:
+                    nullable: false
+                    foreignKeyName: fk_workspace_direct_grants_principal
+                    references: principals(id)
+              - column:
+                  name: principal_type
+                  type: varchar(32)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: permission_id
+                  type: varchar(64)
+                  constraints:
+                    nullable: false
+                    foreignKeyName: fk_workspace_direct_grants_permission
+                    references: permissions(id)
+              - column:
+                  name: effect
+                  type: varchar(16)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: expires_at
+                  type: timestamp with time zone
+              - column:
+                  name: conditions_json
+                  type: text
+              - column:
+                  name: created_at
+                  type: timestamp with time zone
+                  defaultValueComputed: CURRENT_TIMESTAMP
+                  constraints:
+                    nullable: false
+        - addUniqueConstraint:
+            tableName: workspace_direct_grants
+            columnNames: workspace_id, principal_id, principal_type, permission_id, effect
+            constraintName: uq_workspace_direct_grants_workspace_principal_permission_effect
+        - createIndex:
+            tableName: workspace_direct_grants
+            indexName: idx_workspace_direct_grants_lookup
+            columns:
+              - column:
+                  name: workspace_id
+              - column:
+                  name: principal_id
+              - column:
+                  name: principal_type

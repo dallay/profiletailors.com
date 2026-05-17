@@ -27,6 +27,8 @@ class LiquibaseBaselineChangelogTest {
         assertTrue(resourceText("db/changelog/authorization/002-create-roles.yaml").contains("tableName: roles"))
         assertTrue(resourceText("db/changelog/authorization/003-create-role-permissions.yaml").contains("tableName: role_permissions"))
         assertTrue(resourceText("db/changelog/authorization/004-create-membership-roles.yaml").contains("tableName: membership_roles"))
+        assertTrue(resourceText("db/changelog/authorization/005-create-workspace-direct-grants.yaml").contains("tableName: workspace_direct_grants"))
+        assertTrue(resourceText("db/changelog/credentials/002-create-api-key-credentials.yaml").contains("tableName: api_key_credentials"))
     }
 
     private fun resourceText(path: String): String =
@@ -44,5 +46,7 @@ class LiquibaseBaselineChangelogTest {
         "db/changelog/authorization/002-create-roles.yaml",
         "db/changelog/authorization/003-create-role-permissions.yaml",
         "db/changelog/authorization/004-create-membership-roles.yaml",
+        "db/changelog/authorization/005-create-workspace-direct-grants.yaml",
+        "db/changelog/credentials/002-create-api-key-credentials.yaml",
     )
 }

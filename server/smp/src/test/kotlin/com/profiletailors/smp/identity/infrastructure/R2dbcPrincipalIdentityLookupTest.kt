@@ -69,6 +69,52 @@ class R2dbcPrincipalIdentityLookupTest {
     }
 
     @Test
+    fun `loads service-account principal facts without requiring user identity row`() = runTest {
+        databaseClient.sql(
+            """
+            INSERT INTO principals (id, principal_type, subject, provider, display_identity)
+            VALUES ('service-principal-1', 'SERVICE_ACCOUNT', 'service-account-subject', 'https://issuer.example', 'scheduler-bot')
+            """.trimIndent(),
+        ).fetch().rowsUpdated().awaitSingle()
+
+        val facts = lookup.findBySubject(
+            principalType = PrincipalType.SERVICE_ACCOUNT,
+            subject = "service-account-subject",
+            provider = "https://issuer.example",
+        )
+
+        requireNotNull(facts)
+        assertEquals("service-principal-1", facts.principalId)
+        assertEquals(PrincipalType.SERVICE_ACCOUNT, facts.principalType)
+        assertEquals("scheduler-bot", facts.displayIdentity)
+        assertNull(facts.email)
+        assertNull(facts.username)
+    }
+
+    @Test
+    fun `loads api key principal facts without requiring user identity row`() = runTest {
+        databaseClient.sql(
+            """
+            INSERT INTO principals (id, principal_type, subject, provider, display_identity)
+            VALUES ('api-key-principal-1', 'API_KEY', 'api-key-subject', NULL, 'integration-key')
+            """.trimIndent(),
+        ).fetch().rowsUpdated().awaitSingle()
+
+        val facts = lookup.findBySubject(
+            principalType = PrincipalType.API_KEY,
+            subject = "api-key-subject",
+            provider = null,
+        )
+
+        requireNotNull(facts)
+        assertEquals("api-key-principal-1", facts.principalId)
+        assertEquals(PrincipalType.API_KEY, facts.principalType)
+        assertEquals("integration-key", facts.displayIdentity)
+        assertNull(facts.email)
+        assertNull(facts.username)
+    }
+
+    @Test
     fun `returns null when no principal facts exist for subject`() = runTest {
         val facts = lookup.findBySubject(
             principalType = PrincipalType.USER,
@@ -93,6 +139,7 @@ class R2dbcPrincipalIdentityLookupTest {
 
     private fun deleteAllRows() = runTest {
         listOf(
+            "DELETE FROM service_account_credentials",
             "DELETE FROM user_identities",
             "DELETE FROM principals",
         ).forEach { statement ->

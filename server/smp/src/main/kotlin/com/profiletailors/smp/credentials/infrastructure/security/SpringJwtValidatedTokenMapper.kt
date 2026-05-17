@@ -3,12 +3,16 @@ package com.profiletailors.smp.credentials.infrastructure.security
 import com.profiletailors.smp.credentials.application.FederatedTokenValidator
 import com.profiletailors.smp.credentials.domain.CredentialType
 import com.profiletailors.smp.credentials.domain.ValidatedToken
+import com.profiletailors.smp.identity.domain.PrincipalType
 import org.springframework.security.oauth2.jwt.Jwt
 
 class SpringJwtValidatedTokenMapper : FederatedTokenValidator<Jwt> {
-    override suspend fun validate(token: Jwt): ValidatedToken =
-        ValidatedToken(
-            credentialType = CredentialType.JWT,
+    override suspend fun validate(token: Jwt): ValidatedToken {
+        val principalTypeHint = resolvePrincipalTypeHint(token)
+        val credentialReference = token.getClaimAsString("credential_reference") ?: token.id
+
+        return ValidatedToken(
+            credentialType = if (principalTypeHint == PrincipalType.SERVICE_ACCOUNT) CredentialType.SERVICE_ACCOUNT else CredentialType.JWT,
             tokenValue = token.tokenValue,
             subject = token.subject,
             issuer = token.issuer?.toString().orEmpty(),
@@ -19,5 +23,22 @@ class SpringJwtValidatedTokenMapper : FederatedTokenValidator<Jwt> {
             claims = token.claims
                 .filterValues { value -> value is String }
                 .mapValues { (_, value) -> value as String },
+            principalTypeHint = principalTypeHint,
+            credentialReference = credentialReference,
         )
+    }
+
+    private fun resolvePrincipalTypeHint(token: Jwt): PrincipalType {
+        val principalTypeClaim = token.getClaimAsString("principal_type")?.uppercase()
+        if (principalTypeClaim == PrincipalType.SERVICE_ACCOUNT.name) {
+            return PrincipalType.SERVICE_ACCOUNT
+        }
+
+        val actorTypeClaim = token.getClaimAsString("actor_type")?.lowercase()
+        if (actorTypeClaim == "service_account") {
+            return PrincipalType.SERVICE_ACCOUNT
+        }
+
+        return PrincipalType.USER
+    }
 }

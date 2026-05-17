@@ -19,4 +19,8 @@ class CapturingAuditHook : AuditHook {
     fun reset() {
         capturedFacts.clear()
     }
+
+    fun addFact(fact: AuthorizationDecisionAuditFact) {
+        capturedFacts += fact
+    }
 }

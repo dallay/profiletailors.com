@@ -1,5 +1,6 @@
 package com.profiletailors.smp.platform.infrastructure.http
 
+import com.profiletailors.smp.credentials.application.ApiKeyCredentialNotActiveException
 import com.profiletailors.smp.platform.application.MissingPrincipalContextException
 import com.profiletailors.smp.platform.application.MissingResourceContextException
 import com.profiletailors.smp.tenancy.application.MissingActiveWorkspaceException
@@ -15,6 +16,12 @@ class PlatformProblemDetailsHandler {
     fun handle(exception: MissingPrincipalContextException): ProblemDetail =
         ProblemDetail.forStatusAndDetail(HttpStatus.UNAUTHORIZED, exception.message ?: "Unauthorized").apply {
             title = "Principal context missing"
+        }
+
+    @ExceptionHandler(ApiKeyCredentialNotActiveException::class)
+    fun handle(exception: ApiKeyCredentialNotActiveException): ProblemDetail =
+        ProblemDetail.forStatusAndDetail(HttpStatus.UNAUTHORIZED, exception.message ?: "Unauthorized").apply {
+            title = "API key credential invalid"
         }
 
     @ExceptionHandler(MissingResourceContextException::class)

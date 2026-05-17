@@ -1,5 +1,6 @@
 package com.profiletailors.smp.credentials.domain
 
+import com.profiletailors.smp.identity.domain.PrincipalType
 import java.time.Instant
 
 data class ValidatedToken(
@@ -12,4 +13,6 @@ data class ValidatedToken(
     val expiresAt: Instant?,
     val tokenId: String? = null,
     val claims: Map<String, String> = emptyMap(),
+    val principalTypeHint: PrincipalType = PrincipalType.USER,
+    val credentialReference: String? = tokenId,
 )

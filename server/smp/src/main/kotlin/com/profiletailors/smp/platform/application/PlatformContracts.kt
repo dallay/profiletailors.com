@@ -1,5 +1,9 @@
 package com.profiletailors.smp.platform.application
 
+import com.profiletailors.smp.authorization.domain.AuthorizationDecision
+import com.profiletailors.smp.identity.domain.PrincipalContext
+import com.profiletailors.smp.platform.domain.ResourceContext
+
 interface Request<out RESPONSE>
 
 interface Command<out RESPONSE> : Request<RESPONSE>
@@ -19,16 +23,16 @@ interface QueryHandler<in QUERY : Query<RESPONSE>, RESPONSE> {
 }
 
 interface PrincipalContextProvider {
-    suspend fun current(): com.profiletailors.smp.identity.domain.PrincipalContext?
+    suspend fun current(): PrincipalContext?
 
-    suspend fun require(): com.profiletailors.smp.identity.domain.PrincipalContext =
+    suspend fun require(): PrincipalContext =
         current() ?: throw MissingPrincipalContextException()
 }
 
 interface ResourceContextProvider {
-    fun current(): com.profiletailors.smp.platform.domain.ResourceContext?
+    fun current(): ResourceContext?
 
-    fun require(): com.profiletailors.smp.platform.domain.ResourceContext =
+    fun require(): ResourceContext =
         current() ?: throw MissingResourceContextException()
 }
 
@@ -57,7 +61,7 @@ data class AuthorizationDecisionAuditFact(
     val permission: String,
     val principalId: String,
     val workspaceId: String?,
-    val decision: com.profiletailors.smp.authorization.domain.AuthorizationDecision,
+    val decision: AuthorizationDecision,
     val reasonCode: AuthorizationReasonCode,
     val roleKeys: List<String> = emptyList(),
 )
@@ -68,6 +72,7 @@ enum class AuthorizationReasonCode {
     DIRECT_DENY,
     MISSING_MEMBERSHIP,
     MISSING_PERMISSION,
+    REVOKED_CREDENTIAL,
 }
 
 class MissingPrincipalContextException(
