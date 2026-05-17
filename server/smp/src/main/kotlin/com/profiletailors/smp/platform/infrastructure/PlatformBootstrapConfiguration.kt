@@ -1,5 +1,6 @@
 package com.profiletailors.smp.platform.infrastructure
 
+import com.fasterxml.jackson.databind.ObjectMapper
 import com.profiletailors.smp.platform.application.AuditHook
 import com.profiletailors.smp.platform.application.AuthorizationDecisionAuditFact
 import com.profiletailors.smp.platform.application.Mediator
@@ -27,6 +28,9 @@ class PlatformBootstrapConfiguration {
 
     @Bean
     fun mediator(context: org.springframework.context.ApplicationContext): Mediator = SpringMediator(context)
+
+    @Bean
+    fun objectMapper(): ObjectMapper = ObjectMapper()
 
     @Bean
     fun auditHook(): AuditHook = NoOpAuditHook()

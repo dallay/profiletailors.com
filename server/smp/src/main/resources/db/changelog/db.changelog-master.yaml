@@ -4,6 +4,10 @@ databaseChangeLog:
   - include:
       file: db/changelog/identity/002-create-user-identities.yaml
   - include:
+      file: db/changelog/credentials/001-create-service-account-credentials.yaml
+  - include:
+      file: db/changelog/credentials/002-create-api-key-credentials.yaml
+  - include:
       file: db/changelog/tenancy/001-create-workspaces.yaml
   - include:
       file: db/changelog/tenancy/002-create-workspace-ownerships.yaml
@@ -17,3 +21,5 @@ databaseChangeLog:
       file: db/changelog/authorization/003-create-role-permissions.yaml
   - include:
       file: db/changelog/authorization/004-create-membership-roles.yaml
+  - include:
+      file: db/changelog/authorization/005-create-workspace-direct-grants.yaml

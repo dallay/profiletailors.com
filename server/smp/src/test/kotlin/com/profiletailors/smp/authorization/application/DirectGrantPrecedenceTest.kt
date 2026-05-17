@@ -1,15 +1,14 @@
 package com.profiletailors.smp.authorization.application
 
+import com.profiletailors.smp.authorization.domain.AuthorizationDecision
 import com.profiletailors.smp.authorization.domain.DirectGrant
 import com.profiletailors.smp.authorization.domain.GrantEffect
 import com.profiletailors.smp.authorization.domain.PermissionKey
 import com.profiletailors.smp.authorization.domain.Role
 import com.profiletailors.smp.authorization.domain.RoleCategory
 import com.profiletailors.smp.identity.domain.PrincipalContext
-import java.time.Clock
-import java.time.Instant
-import java.time.ZoneOffset
 import com.profiletailors.smp.identity.domain.PrincipalType
+import com.profiletailors.smp.platform.application.AuthorizationReasonCode
 import com.profiletailors.smp.platform.application.PrincipalContextProvider
 import com.profiletailors.smp.platform.application.ResourceContextProvider
 import com.profiletailors.smp.platform.domain.ResourceContext
@@ -19,6 +18,9 @@ import com.profiletailors.smp.tenancy.domain.WorkspaceMembershipStatus
 import kotlinx.coroutines.test.runTest
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Test
+import java.time.Clock
+import java.time.Instant
+import java.time.ZoneOffset
 
 class DirectGrantPrecedenceTest {
 
@@ -72,9 +74,10 @@ class DirectGrantPrecedenceTest {
             clock = Clock.fixed(Instant.parse("2026-05-15T10:00:00Z"), ZoneOffset.UTC),
         )
 
-        val decision = service.decide(requiredPermission)
+        val detailedDecision = service.decideDetailed(requiredPermission)
 
-        assertEquals(com.profiletailors.smp.authorization.domain.AuthorizationDecision.DENY, decision)
+        assertEquals(AuthorizationDecision.DENY, detailedDecision.decision)
+        assertEquals(AuthorizationReasonCode.MISSING_PERMISSION, detailedDecision.reasonCode)
     }
 
     @Test
@@ -131,8 +134,9 @@ class DirectGrantPrecedenceTest {
             },
         )
 
-        val decision = service.decide(requiredPermission)
+        val detailedDecision = service.decideDetailed(requiredPermission)
 
-        assertEquals(com.profiletailors.smp.authorization.domain.AuthorizationDecision.DENY, decision)
+        assertEquals(AuthorizationDecision.DENY, detailedDecision.decision)
+        assertEquals(AuthorizationReasonCode.DIRECT_DENY, detailedDecision.reasonCode)
     }
 }

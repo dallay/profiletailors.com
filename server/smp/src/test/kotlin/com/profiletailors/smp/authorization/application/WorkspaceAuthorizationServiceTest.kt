@@ -194,6 +194,41 @@ class WorkspaceAuthorizationServiceTest {
     }
 
     @Test
+    fun `expired direct allow is ignored and falls back to missing permission`() = runTest {
+        val service = WorkspaceAuthorizationService(
+            principalContextProvider = FixedPrincipalContextProvider(principalContext),
+            resourceContextProvider = FixedResourceContextProvider(resourceContext),
+            workspaceMembershipResolver = FixedWorkspaceMembershipResolver(
+                WorkspaceMembership(
+                    workspaceId = "workspace-1",
+                    principalId = "principal-1",
+                    principalType = PrincipalType.USER,
+                    status = WorkspaceMembershipStatus.ACTIVE,
+                    roleKeys = setOf("member"),
+                ),
+            ),
+            workspaceMembershipRoleResolver = FixedWorkspaceMembershipRoleResolver(emptySet()),
+            directGrantResolver = FixedDirectGrantResolver(
+                setOf(
+                    DirectGrant(
+                        permission = requiredPermission,
+                        effect = GrantEffect.ALLOW,
+                        resourceContext = resourceContext,
+                        expiresAt = Instant.parse("2026-05-15T09:00:00Z"),
+                    ),
+                ),
+            ),
+            clock = Clock.fixed(Instant.parse("2026-05-15T10:00:00Z"), ZoneOffset.UTC),
+        )
+
+        val detailedDecision = service.decideDetailed(requiredPermission)
+
+        assertEquals(AuthorizationDecision.DENY, detailedDecision.decision)
+        assertEquals(AuthorizationReasonCode.MISSING_PERMISSION, detailedDecision.reasonCode)
+        assertEquals(emptySet<String>(), detailedDecision.roleKeys)
+    }
+
+    @Test
     fun `direct deny reason is surfaced when explicit deny grant applies`() = runTest {
         val service = WorkspaceAuthorizationService(
             principalContextProvider = FixedPrincipalContextProvider(principalContext),

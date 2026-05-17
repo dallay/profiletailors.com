@@ -86,6 +86,7 @@ class WorkspaceAuthorizationService(
 
         val directGrants = directGrantResolver.resolve(principalContext, resourceContext)
             .filter { grant -> grant.permission == requiredPermission && grant.isActive(clock.instant()) }
+            .toSet()
 
         scopeResolver.resolve(principalContext, resourceContext)
         entitlementResolver.resolve(resourceContext)
