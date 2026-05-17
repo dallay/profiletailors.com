@@ -1,5 +1,6 @@
 plugins {
     kotlin("jvm") version "2.2.21"
+    id("io.gitlab.arturbosch.detekt") version "1.23.8"
 }
 
 group = "com.profiletailors"
@@ -28,6 +29,16 @@ dependencies {
 kotlin {
     compilerOptions {
         freeCompilerArgs.addAll("-Xjsr305=strict", "-Xannotation-default-target=param-property")
+    }
+}
+
+detekt {
+    toolVersion.set("1.23.8")
+    config.setFrom(files("../../server/smp/detekt.yml"))
+    baseline.set(file("../../server/smp/config/detekt/baseline.xml"))
+    reports {
+        html.required.set(true)
+        xml.required.set(true)
     }
 }
 
