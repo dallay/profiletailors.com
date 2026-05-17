@@ -38,12 +38,14 @@ class R2dbcWorkspaceMembershipResolver(
             .bind("workspaceId", resourceContext.workspaceId)
             .bind("principalId", principalId)
             .map { row, _ ->
+                val principalTypeValue = requireNotNull(row.get("principal_type", String::class.java))
+                val statusValue = requireNotNull(row.get("status", String::class.java))
                 WorkspaceMembership(
                     id = requireNotNull(row.get("id", String::class.java)),
                     workspaceId = requireNotNull(row.get("workspace_id", String::class.java)),
                     principalId = requireNotNull(row.get("principal_id", String::class.java)),
-                    principalType = PrincipalType.valueOf(requireNotNull(row.get("principal_type", String::class.java))),
-                    status = WorkspaceMembershipStatus.valueOf(requireNotNull(row.get("status", String::class.java))),
+                    principalType = PrincipalType.valueOf(principalTypeValue),
+                    status = WorkspaceMembershipStatus.valueOf(statusValue),
                 )
             }
             .one()

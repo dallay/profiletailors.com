@@ -12,7 +12,11 @@ class SpringJwtValidatedTokenMapper : FederatedTokenValidator<Jwt> {
         val credentialReference = token.getClaimAsString("credential_reference") ?: token.id
 
         return ValidatedToken(
-            credentialType = if (principalTypeHint == PrincipalType.SERVICE_ACCOUNT) CredentialType.SERVICE_ACCOUNT else CredentialType.JWT,
+            credentialType = if (principalTypeHint == PrincipalType.SERVICE_ACCOUNT) {
+                CredentialType.SERVICE_ACCOUNT
+            } else {
+                CredentialType.JWT
+            },
             tokenValue = token.tokenValue,
             subject = token.subject,
             issuer = token.issuer?.toString().orEmpty(),
@@ -30,15 +34,12 @@ class SpringJwtValidatedTokenMapper : FederatedTokenValidator<Jwt> {
 
     private fun resolvePrincipalTypeHint(token: Jwt): PrincipalType {
         val principalTypeClaim = token.getClaimAsString("principal_type")?.uppercase()
-        if (principalTypeClaim == PrincipalType.SERVICE_ACCOUNT.name) {
-            return PrincipalType.SERVICE_ACCOUNT
-        }
-
         val actorTypeClaim = token.getClaimAsString("actor_type")?.lowercase()
-        if (actorTypeClaim == "service_account") {
-            return PrincipalType.SERVICE_ACCOUNT
-        }
 
-        return PrincipalType.USER
+        return when {
+            principalTypeClaim == PrincipalType.SERVICE_ACCOUNT.name -> PrincipalType.SERVICE_ACCOUNT
+            actorTypeClaim == "service_account" -> PrincipalType.SERVICE_ACCOUNT
+            else -> PrincipalType.USER
+        }
     }
 }

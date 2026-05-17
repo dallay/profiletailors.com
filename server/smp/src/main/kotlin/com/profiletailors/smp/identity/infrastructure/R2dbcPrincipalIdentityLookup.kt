@@ -58,9 +58,10 @@ class R2dbcPrincipalIdentityLookup(
 
         return spec
             .map { row, _ ->
+                val principalTypeValue = requireNotNull(row.get("principal_type", String::class.java))
                 PrincipalIdentityFacts(
                     principalId = requireNotNull(row.get("id", String::class.java)),
-                    principalType = PrincipalType.valueOf(requireNotNull(row.get("principal_type", String::class.java))),
+                    principalType = PrincipalType.valueOf(principalTypeValue),
                     subject = requireNotNull(row.get("subject", String::class.java)),
                     provider = row.get("provider", String::class.java),
                     displayIdentity = row.get("display_identity", String::class.java),

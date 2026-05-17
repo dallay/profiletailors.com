@@ -15,31 +15,34 @@ class ApiKeyAuthenticationWebFilter(
     private val authenticationEntryPoint: ServerAuthenticationEntryPoint,
 ) : WebFilter {
     override fun filter(exchange: ServerWebExchange, chain: WebFilterChain): Mono<Void> {
-        if (!exchange.request.path.pathWithinApplication().value().equals(WORKSPACE_ACCESS_PATH)) {
+        val path = exchange.request.path.pathWithinApplication().value()
+        if (path != WORKSPACE_ACCESS_PATH) {
             return chain.filter(exchange)
         }
 
-        val bearerValue = exchange.request.headers.getFirst(HttpHeaders.AUTHORIZATION)
+        return exchange.request.headers.getFirst(HttpHeaders.AUTHORIZATION)
             ?.takeIf { it.startsWith(BEARER_PREFIX) }
             ?.removePrefix(BEARER_PREFIX)
             ?.trim()
-            ?: return chain.filter(exchange)
-
-        if (!looksLikeApiKey(bearerValue)) {
-            return chain.filter(exchange)
-        }
-
-        return converter.convert(bearerValue)
-            .flatMap { authentication ->
-                val filteredExchange = exchange.mutate()
-                    .request { builder -> builder.headers { headers -> headers.remove(HttpHeaders.AUTHORIZATION) } }
-                    .build()
-                chain.filter(filteredExchange)
-                    .contextWrite(ReactiveSecurityContextHolder.withAuthentication(authentication))
+            ?.takeIf { looksLikeApiKey(it) }
+            ?.let { bearerValue ->
+                converter.convert(bearerValue)
+                    .flatMap { authentication ->
+                        val filteredExchange = exchange.mutate()
+                            .request { builder ->
+                                builder.headers { headers ->
+                                    headers.remove(HttpHeaders.AUTHORIZATION)
+                                }
+                            }
+                            .build()
+                        chain.filter(filteredExchange)
+                            .contextWrite(ReactiveSecurityContextHolder.withAuthentication(authentication))
+                    }
+                    .onErrorResume(BadCredentialsException::class.java) { exception ->
+                        authenticationEntryPoint.commence(exchange, exception)
+                    }
             }
-            .onErrorResume(BadCredentialsException::class.java) { exception ->
-                authenticationEntryPoint.commence(exchange, exception)
-            }
+            ?: chain.filter(exchange)
     }
 
     private fun looksLikeApiKey(bearerValue: String): Boolean =

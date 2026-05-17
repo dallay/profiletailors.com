@@ -15,7 +15,8 @@ import com.profiletailors.smp.platform.application.MissingPrincipalContextExcept
 
 class JwtAuthenticatedPrincipalMaterializer(
     private val principalIdentityLookup: PrincipalIdentityLookup = NoOpPrincipalIdentityLookup(),
-    private val serviceAccountCredentialStateLookup: ServiceAccountCredentialStateLookup = NoOpServiceAccountCredentialStateLookup(),
+    private val serviceAccountCredentialStateLookup:
+        ServiceAccountCredentialStateLookup = NoOpServiceAccountCredentialStateLookup(),
 ) {
     suspend fun materialize(token: ValidatedToken): AuthenticatedPrincipal =
         if (token.principalTypeHint == PrincipalType.SERVICE_ACCOUNT) {
@@ -69,7 +70,9 @@ class JwtAuthenticatedPrincipalMaterializer(
             principalType = PrincipalType.SERVICE_ACCOUNT,
             subject = token.subject,
             provider = token.issuer,
-        ) ?: throw MissingPrincipalContextException("Authenticated service-account principal could not be materialized.")
+        ) ?: throw MissingPrincipalContextException(
+            "Authenticated service-account principal could not be materialized.",
+        )
 
         return AuthenticatedPrincipal(
             context = PrincipalContext(

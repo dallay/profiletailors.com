@@ -109,7 +109,8 @@ class IdentitySecurityConfiguration {
                                 requestName = WORKSPACE_ACCESS_REQUEST_NAME,
                                 requestPath = WORKSPACE_ACCESS_PATH,
                                 permission = WORKSPACE_ACCESS_PERMISSION,
-                                principalId = serviceAccountCredentialException.principalId ?: serviceAccountCredentialException.subject,
+                                principalId = serviceAccountCredentialException.principalId
+                                    ?: serviceAccountCredentialException.subject,
                                 workspaceId = exchange.request.headers.getFirst(WORKSPACE_HEADER_NAME),
                                 decision = AuthorizationDecision.DENY,
                                 reasonCode = AuthorizationReasonCode.REVOKED_CREDENTIAL,
@@ -152,16 +153,16 @@ private class RevokedCredentialAuditWebFilter(
             .onErrorResume(ServiceAccountCredentialNotActiveException::class.java) { exception ->
                 if (
                     exception.reason == ServiceAccountCredentialFailureReason.REVOKED &&
-                    exchange.request.path.pathWithinApplication().value() == IdentitySecurityConfiguration.WORKSPACE_ACCESS_PATH
+                    exchange.request.path.pathWithinApplication().value() == WORKSPACE_ACCESS_PATH
                 ) {
                     mono {
                         auditHook.onAuthorizationDecision(
                             AuthorizationDecisionAuditFact(
-                                requestName = IdentitySecurityConfiguration.WORKSPACE_ACCESS_REQUEST_NAME,
-                                requestPath = IdentitySecurityConfiguration.WORKSPACE_ACCESS_PATH,
-                                permission = IdentitySecurityConfiguration.WORKSPACE_ACCESS_PERMISSION,
+                                requestName = WORKSPACE_ACCESS_REQUEST_NAME,
+                                requestPath = WORKSPACE_ACCESS_PATH,
+                                permission = WORKSPACE_ACCESS_PERMISSION,
                                 principalId = exception.principalId ?: exception.subject,
-                                workspaceId = exchange.request.headers.getFirst(IdentitySecurityConfiguration.WORKSPACE_HEADER_NAME),
+                                workspaceId = exchange.request.headers.getFirst(WORKSPACE_HEADER_NAME),
                                 decision = AuthorizationDecision.DENY,
                                 reasonCode = AuthorizationReasonCode.REVOKED_CREDENTIAL,
                             ),
@@ -177,16 +178,16 @@ private class RevokedCredentialAuditWebFilter(
                         ApiKeyCredentialFailureReason.REVOKED,
                         ApiKeyCredentialFailureReason.INACTIVE,
                     ) &&
-                    exchange.request.path.pathWithinApplication().value() == IdentitySecurityConfiguration.WORKSPACE_ACCESS_PATH
+                    exchange.request.path.pathWithinApplication().value() == WORKSPACE_ACCESS_PATH
                 ) {
                     mono {
                         auditHook.onAuthorizationDecision(
                             AuthorizationDecisionAuditFact(
-                                requestName = IdentitySecurityConfiguration.WORKSPACE_ACCESS_REQUEST_NAME,
-                                requestPath = IdentitySecurityConfiguration.WORKSPACE_ACCESS_PATH,
-                                permission = IdentitySecurityConfiguration.WORKSPACE_ACCESS_PERMISSION,
+                                requestName = WORKSPACE_ACCESS_REQUEST_NAME,
+                                requestPath = WORKSPACE_ACCESS_PATH,
+                                permission = WORKSPACE_ACCESS_PERMISSION,
                                 principalId = exception.principalId ?: "API_KEY",
-                                workspaceId = exchange.request.headers.getFirst(IdentitySecurityConfiguration.WORKSPACE_HEADER_NAME),
+                                workspaceId = exchange.request.headers.getFirst(WORKSPACE_HEADER_NAME),
                                 decision = AuthorizationDecision.DENY,
                                 reasonCode = AuthorizationReasonCode.REVOKED_CREDENTIAL,
                             ),
