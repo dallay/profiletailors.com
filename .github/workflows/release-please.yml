@@ -5,23 +5,30 @@ on:
     branches:
       - main
 
-permissions:
-  contents: write
-  pull-requests: write
+# No default GITHUB_TOKEN permissions — the App token carries its own scopes.
+permissions: {}
 
 jobs:
   release-please:
     runs-on: ubuntu-latest
     outputs:
-      releases_created:        ${{ steps.release.outputs.releases_created }}
+      releases_created:         ${{ steps.release.outputs.releases_created }}
       landing--release_created: ${{ steps.release.outputs['apps/web/marketing--release_created'] }}
       landing--tag_name:        ${{ steps.release.outputs['apps/web/marketing--tag_name'] }}
       smp--release_created:     ${{ steps.release.outputs['server/smp--release_created'] }}
       smp--tag_name:            ${{ steps.release.outputs['server/smp--tag_name'] }}
     steps:
+      - name: Generate GitHub App token
+        id: app-token
+        uses: actions/create-github-app-token@1b10c78c7865c340bc4f6099eb2f838309f1e8c3 # v1
+        with:
+          app-id: ${{ secrets.APP_ID }}
+          private-key: ${{ secrets.APP_PRIVATE_KEY }}
+
       - uses: googleapis/release-please-action@v4
         id: release
         with:
+          token: ${{ steps.app-token.outputs.token }}
           config-file: release-please-config.json
           manifest-file: .release-please-manifest.json
 
