@@ -1,8 +1,8 @@
 plugins {
-    kotlin("jvm") version "2.2.21"
-    kotlin("plugin.spring") version "2.2.21"
+    kotlin("jvm") version "2.3.21"
+    kotlin("plugin.spring") version "2.3.21"
     id("io.spring.dependency-management") version "1.1.7"
-    id("io.gitlab.arturbosch.detekt") version "1.23.8"
+    id("dev.detekt") version "2.0.0-alpha.3"
 }
 
 group = "com.profiletailors"
@@ -47,13 +47,7 @@ kotlin {
 }
 
 detekt {
-    toolVersion.set("1.23.8")
     config.setFrom(files("../../server/smp/detekt.yml"))
-    baseline.set(file("../../server/smp/config/detekt/baseline.xml"))
-    reports {
-        html.required.set(true)
-        xml.required.set(true)
-    }
 }
 
 tasks.withType<Test> {
