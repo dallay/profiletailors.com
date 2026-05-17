@@ -1,0 +1,76 @@
+# tools/bazel/BUILD.bazel
+# ─────────────────────────────────────────────────────────────────────────────
+# Shared Bazel tooling — helpers, transitions, platform definitions
+# ─────────────────────────────────────────────────────────────────────────────
+
+load("@rules_shell//shell:sh_binary.bzl", "sh_binary")
+
+package(default_visibility = ["//visibility:public"])
+
+# ── Shell helper used by sh_test and sh_binary rules across the monorepo ──────
+exports_files(["run_in_package.sh"])
+
+sh_binary(
+    name = "run_in_package",
+    srcs = ["run_in_package.sh"],
+)
+
+# ─────────────────────────────────────────────────────────────────────────────
+# Platform definitions
+# These become relevant when targeting Android, iOS, or cross-compiling KMP.
+# Add them now so BUILD files can reference them without cyclic bootstrapping.
+# ─────────────────────────────────────────────────────────────────────────────
+
+# macOS — development host (Apple Silicon)
+platform(
+    name = "macos_arm64",
+    constraint_values = [
+        "@platforms//os:macos",
+        "@platforms//cpu:arm64",
+    ],
+)
+
+# macOS — development host (Intel, kept for CI compatibility)
+platform(
+    name = "macos_x86_64",
+    constraint_values = [
+        "@platforms//os:macos",
+        "@platforms//cpu:x86_64",
+    ],
+)
+
+# Linux — CI workers (x86_64)
+platform(
+    name = "linux_x86_64",
+    constraint_values = [
+        "@platforms//os:linux",
+        "@platforms//cpu:x86_64",
+    ],
+)
+
+# Linux — ARM64 (e.g. Graviton CI, Raspberry Pi)
+platform(
+    name = "linux_arm64",
+    constraint_values = [
+        "@platforms//os:linux",
+        "@platforms//cpu:arm64",
+    ],
+)
+
+# Android (arm64-v8a) — activate once rules_android is added to MODULE.bazel
+# platform(
+#     name = "android_arm64",
+#     constraint_values = [
+#         "@platforms//os:android",
+#         "@platforms//cpu:arm64",
+#     ],
+# )
+
+# iOS (arm64) — activate once rules_apple is added to MODULE.bazel
+# platform(
+#     name = "ios_arm64",
+#     constraint_values = [
+#         "@platforms//os:ios",
+#         "@platforms//cpu:arm64",
+#     ],
+# )

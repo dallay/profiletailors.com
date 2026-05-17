@@ -1,0 +1,102 @@
+# apps/web/marketing/BUILD.bazel
+# ─────────────────────────────────────────────────────────────────────────────
+# Astro 6 static site — Profile Tailors marketing / landing page
+#
+# Strategy: Astro's build pipeline runs through Vite, which is deeply tied to
+# Node's module resolution. Rather than rewriting Vite internals as Bazel
+# rules, we use a genrule that calls `pnpm build` inside a Bazel sandbox.
+# This gives us:
+#   • Hermetic inputs (all src/ + config files declared explicitly)
+#   • Cached outputs (Bazel won't rebuild unless inputs change)
+#   • A clear migration path: swap genrule for native rules_js targets once
+#     rules_astro matures or we write our own Starlark rules.
+#
+# Targets:
+#   //apps/web/marketing:build    — produce dist/ artefact
+#   //apps/web/marketing:preview  — dev preview (run, not build)
+#   //apps/web/marketing:check    — astro check (type check)
+# ─────────────────────────────────────────────────────────────────────────────
+
+load("@bazel_skylib//rules:native_binary.bzl", "native_binary")
+load("@rules_shell//shell:sh_test.bzl", "sh_test")
+
+package(default_visibility = ["//visibility:public"])
+
+# ── Declare all source inputs so Bazel can track changes ──────────────────────
+filegroup(
+    name = "srcs",
+    srcs = glob(
+        [
+            "src/**/*",
+            "public/**/*",
+        ],
+        exclude = [
+            "**/*.DS_Store",
+            "dist/**",
+            ".astro/**",
+            "node_modules/**",
+        ],
+    ),
+)
+
+filegroup(
+    name = "config_files",
+    srcs = [
+        "astro.config.mjs",
+        "tsconfig.json",
+        "package.json",
+        "pnpm-lock.yaml",
+        "pnpm-workspace.yaml",
+    ],
+)
+
+# ── Main build target ─────────────────────────────────────────────────────────
+# Runs `pnpm install --frozen-lockfile && pnpm build` inside the package dir.
+# Output is the dist/ directory, packaged as a tar for Bazel to cache.
+genrule(
+    name = "build",
+    srcs = [
+        ":srcs",
+        ":config_files",
+    ],
+    outs = ["marketing_dist.tar.gz"],
+    cmd = """
+        set -euo pipefail
+        export PATH="/opt/homebrew/bin:/usr/local/bin:/usr/bin:/bin:$$PATH"
+        OUT="$$PWD/$(OUTS)"
+        PKG_DIR=$$(realpath $$(pwd)/apps/web/marketing)
+        cd $$PKG_DIR
+
+        # Install deps if node_modules is missing (hermetic: uses frozen lockfile)
+        if [ ! -d node_modules ]; then
+            pnpm install --frozen-lockfile --prefer-offline
+        fi
+
+        # Build
+        pnpm build
+
+        # Package dist/ so Bazel can cache it as a single output artefact
+        tar -czf "$$OUT" -C dist .
+    """,
+    local = True,  # Runs on the local machine (no remote sandbox for Node builds yet)
+    tags = [
+        "no-cache",   # Remove this once a remote cache is configured
+        "requires-network",
+    ],
+)
+
+# ── Type check (astro check) ──────────────────────────────────────────────────
+sh_test(
+    name = "check",
+    srcs = ["//tools/bazel:run_in_package.sh"],
+    args = [
+        "apps/web/marketing",
+        "pnpm",
+        "check",
+    ],
+    data = [
+        ":srcs",
+        ":config_files",
+    ],
+    tags = ["manual"],
+)
