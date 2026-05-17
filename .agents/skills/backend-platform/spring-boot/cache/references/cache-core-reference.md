@@ -519,7 +519,7 @@ spring.cache.redis.time-to-live=600000
 
 - **spring-boot-performance-tuning** - Comprehensive performance optimization
 - **spring-boot-data-persistence** - Database optimization patterns
-- **spring-boot-rest-api-standards** - API design with caching headers
+- **spring-boot-api-standards** - API design with caching headers
 
 ### Useful Articles
 

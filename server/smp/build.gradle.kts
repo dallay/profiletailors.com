@@ -21,6 +21,8 @@ repositories {
 extra["springModulithVersion"] = "2.0.6"
 
 dependencies {
+	implementation(project(":shared-common"))
+	implementation(project(":shared-spring-boot-common"))
 	implementation("org.springframework.boot:spring-boot-starter-data-r2dbc")
 	implementation("org.springframework.boot:spring-boot-starter-oauth2-resource-server")
 	implementation("org.springframework.boot:spring-boot-starter-security")

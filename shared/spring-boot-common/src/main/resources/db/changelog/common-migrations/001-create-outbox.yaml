@@ -1,0 +1,92 @@
+databaseChangeLog:
+  - changeSet:
+      id: create-outbox-table
+      author: system
+      comment: Create outbox table for transactional messaging
+      changes:
+        - createTable:
+            tableName: outbox
+            columns:
+              - column:
+                  name: id
+                  type: uuid
+                  constraints:
+                    primaryKey: true
+                    nullable: false
+              - column:
+                  name: aggregate_type
+                  type: varchar(100)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: aggregate_id
+                  type: varchar(100)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: event_type
+                  type: varchar(100)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: payload
+                  type: text
+                  constraints:
+                    nullable: false
+              - column:
+                  name: occurred_at
+                  type: timestamp with time zone
+                  constraints:
+                    nullable: false
+              - column:
+                  name: processed_at
+                  type: timestamp with time zone
+              - column:
+                  name: status
+                  type: varchar(20)
+                  defaultValue: 'PENDING'
+                  constraints:
+                    nullable: false
+              - column:
+                  name: attempts
+                  type: int
+                  defaultValue: 0
+                  constraints:
+                    nullable: false
+              - column:
+                  name: last_attempt_at
+                  type: timestamp with time zone
+              - column:
+                  name: error_message
+                  type: text
+              - column:
+                  name: created_by
+                  type: varchar(50)
+                  defaultValue: 'system'
+                  constraints:
+                    nullable: false
+              - column:
+                  name: created_at
+                  type: timestamp with time zone
+                  defaultValueComputed: CURRENT_TIMESTAMP
+                  constraints:
+                    nullable: false
+              - column:
+                  name: updated_by
+                  type: varchar(50)
+              - column:
+                  name: updated_at
+                  type: timestamp with time zone
+
+        - createIndex:
+            indexName: idx_outbox_status_occurred
+            tableName: outbox
+            columns:
+              - column:
+                  name: status
+              - column:
+                  name: occurred_at
+
+      rollback:
+        - dropTable:
+            tableName: outbox

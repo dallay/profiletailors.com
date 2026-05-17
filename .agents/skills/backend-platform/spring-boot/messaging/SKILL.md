@@ -4,242 +4,261 @@ description: Use when implementing event-driven or message-based integration in 
 allowed-tools: Read, Write, Edit, Bash
 ---
 
-# Spring Boot Event-Driven Patterns
+# Spring Boot Reactive Messaging
 
-## Overview
+Messaging and event-driven integration patterns for **Spring Boot 4 + Spring Framework 7 + WebFlux +
+Kotlin coroutines**.
 
-Implement Event-Driven Architecture (EDA) patterns in Spring Boot 3.x using domain events,
-ApplicationEventPublisher, `@TransactionalEventListener`, and distributed messaging with Kafka and
-Spring Cloud Stream.
+This skill covers application events, transaction-bound events, asynchronous listeners, reliable
+publication patterns, and broker-oriented integration guidance with a reactive-first mindset.
 
-## When to Use
+## Official Baseline
 
-- Implementing event-driven microservices with Kafka messaging
-- Publishing domain events from aggregate roots in DDD architectures
-- Setting up transactional event listeners that fire after database commits
-- Adding async messaging with producers and consumers via Spring Kafka
-- Ensuring reliable event delivery using the transactional outbox pattern
-- Replacing synchronous calls with event-based communication between services
+From the official Spring Framework documentation:
 
-## Quick Reference
+- `@EventListener` remains the base model for application events
+- `@TransactionalEventListener` supports both imperative and reactive transaction models
+- for **reactive transactions**, the transaction context must be included in the published event
+  source/context model
+- `@EventListener @Async` is supported, but has important limitations around exception propagation,
+  return-value event publication, and context propagation
+- `TransactionalOperator` is the official reactive transaction tool
 
-| Concept                 | Description                                                                                 |
-|-------------------------|---------------------------------------------------------------------------------------------|
-| **Domain Events**       | Immutable events extending `DomainEvent` base class with eventId, occurredAt, correlationId |
-| **Event Publishing**    | `ApplicationEventPublisher.publishEvent()` for local, `KafkaTemplate` for distributed       |
-| **Event Listening**     | `@TransactionalEventListener(phase = AFTER_COMMIT)` for reliable handling                   |
-| **Kafka**               | `@KafkaListener(topics = "...")` for distributed event consumption                          |
-| **Spring Cloud Stream** | Functional programming model with `Consumer` beans                                          |
-| **Outbox Pattern**      | Atomic event storage with business data, scheduled publisher                                |
+## What This Skill Owns
 
-## Examples
+- application events inside a Spring Boot service
+- transaction-bound event publication patterns
+- event-driven side effects and listener design
+- outbox and idempotency guidance
+- when to use in-process events vs external brokers
+- async listener caveats in reactive applications
 
-### Monolithic to Event-Driven Refactoring
+## What This Skill Does Not Own
 
-**Before (Anti-Pattern):**
+Use companion skills instead when the main concern is:
 
-```java
-@Transactional
-public Order processOrder(OrderRequest request) {
-    Order order = orderRepository.save(request);
-    inventoryService.reserve(order.getItems()); // Blocking
-    paymentService.charge(order.getPayment()); // Blocking
-    emailService.sendConfirmation(order); // Blocking
-    return order;
-}
-```
+- core WebFlux/controller/persistence rules → `spring-boot`
+- resilience/timeouts/retries for downstream HTTP → `spring-boot-resilience`
+- API/webhook contract design → `spring-boot-api-standards`
+- event and integration verification → `spring-boot-testing-integrations`
 
-**After (Event-Driven):**
+## Event Model Selection
 
-```java
-@Transactional
-public Order processOrder(OrderRequest request) {
-    Order order = Order.create(request);
-    orderRepository.save(order);
+### Use in-process application events when:
 
-    // Publish event after transaction commits
-    eventPublisher.publishEvent(new OrderCreatedEvent(order.getId(), order.getItems()));
+- the side effect is local to the same service boundary
+- you want loose coupling between internal components
+- reliability requirements do not require external durable transport by themselves
 
-    return order;
-}
+### Use an external broker or outbox-based integration when:
 
+- another service must consume the event
+- durability and replay matter
+- you need cross-service decoupling
+- delivery cannot depend on the lifecycle of one process only
+
+## Core Rules
+
+- Distinguish **domain events**, **application events**, and **integration events**.
+- Do not use in-process Spring events as if they were durable distributed messaging.
+- Keep listener work small and explicit.
+- Prefer idempotent event handlers.
+- For cross-service delivery, outbox + broker is safer than direct hope-driven publishing.
+- In reactive applications, do not blindly copy imperative transaction-event patterns.
+
+## `@EventListener` Basics
+
+Use `@EventListener` for in-process event reactions inside a service boundary.
+
+```kotlin
 @Component
-public class OrderEventHandler {
-    @TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT)
-    public void handleOrderCreated(OrderCreatedEvent event) {
-        // Execute asynchronously after the order is saved
-        inventoryService.reserve(event.getItems());
-        paymentService.charge(event.getPayment());
+class WorkspaceNotificationListener {
+
+    @EventListener
+    fun handleWorkspaceCreated(event: WorkspaceCreatedEvent) {
+        // trigger lightweight local side effect
     }
 }
 ```
 
-See [examples.md](references/examples.md) for complete working examples.
+### Rules
 
-## Instructions
+- Keep listeners focused on one side effect.
+- Avoid hidden business orchestration in listeners.
+- Prefer explicit event classes over generic maps or string payloads.
 
-### 1. Design Domain Events
+## Event Publication by Return Value
 
-Create immutable event classes extending a base `DomainEvent` class:
+Spring supports publishing a new event by returning it from an `@EventListener`.
 
-```java
-public abstract class DomainEvent {
-    private final UUID eventId;
-    private final LocalDateTime occurredAt;
-    private final UUID correlationId;
-}
-
-public class ProductCreatedEvent extends DomainEvent {
-    private final ProductId productId;
-    private final String name;
-    private final BigDecimal price;
+```kotlin
+@EventListener
+fun handleWorkspaceCreated(event: WorkspaceCreatedEvent): WorkspaceAuditEvent {
+    return WorkspaceAuditEvent(event.workspaceId)
 }
 ```
 
-See [domain-events-design.md](references/domain-events-design.md) for patterns.
+### Important caveat
 
-### 2. Publish Events from Aggregates
+This is convenient for simple in-process event chaining, but do **not** use it as a substitute for a
+real durable integration flow.
 
-Add domain events to aggregate roots, publish via `ApplicationEventPublisher`:
+## Transaction-Bound Events
 
-```java
+Use `@TransactionalEventListener` when event handling semantics must depend on transaction outcome.
+
+```kotlin
+@Component
+class WorkspaceCreatedTransactionalListener {
+
+    @TransactionalEventListener
+    fun handleWorkspaceCreated(event: WorkspaceCreatedEvent) {
+        // runs after commit by default when transaction semantics are available
+    }
+}
+```
+
+### Reactive Transaction Warning
+
+This is where many teams get burned.
+
+According to the official docs:
+- `@TransactionalEventListener` supports reactive transactions too
+- reactive transactions use **Reactor context**, not thread-local transaction state
+- therefore, the transaction context must be available in the published event/source model
+
+### Guidance
+
+- In imperative/JPA systems, `@TransactionalEventListener` often feels straightforward.
+- In reactive systems, treat it as an advanced feature, not the default hammer.
+- If correctness depends on durable publication after commit, strongly consider an explicit outbox
+  pattern.
+
+## Reactive Transaction Pattern
+
+For write flows in reactive systems, prefer explicit transaction boundaries with
+`TransactionalOperator`.
+
+```kotlin
 @Service
-@Transactional
-public class ProductService {
-    public Product createProduct(CreateProductRequest request) {
-        Product product = Product.create(request.getName(), request.getPrice(), request.getStock());
-        repository.save(product);
-
-        product.getDomainEvents().forEach(eventPublisher::publishEvent);
-        product.clearDomainEvents();
-
-        return product;
-    }
+class WorkspaceLifecycleService(
+    private val repository: WorkspaceRepository,
+    private val eventPublisher: ApplicationEventPublisher,
+    private val transactionalOperator: TransactionalOperator,
+) {
+    suspend fun createWorkspace(name: String): Workspace =
+        transactionalOperator.executeAndAwait {
+            val workspace = repository.save(Workspace.create(name))
+            eventPublisher.publishEvent(WorkspaceCreatedEvent(workspace.id, workspace))
+            workspace
+        }!!
 }
 ```
 
-See [aggregate-root-patterns.md](references/aggregate-root-patterns.md) for DDD patterns.
+### Rules
 
-### 3. Handle Events Transactionally
+- Make the transaction boundary explicit.
+- Keep event publication close to the state change when semantics require it.
+- Be very careful assuming post-commit semantics behave the same in imperative and reactive flows.
 
-Use `@TransactionalEventListener` for reliable event handling:
+## Async Event Listeners
 
-```java
+Spring supports asynchronous listeners via `@EventListener` + `@Async`.
+
+```kotlin
 @Component
-public class ProductEventHandler {
-    @TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT)
-    public void onProductCreated(ProductCreatedEvent event) {
-        notificationService.sendProductCreatedNotification(event.getName());
+class EmailNotificationListener {
+
+    @Async
+    @EventListener
+    fun handleWorkspaceCreated(event: WorkspaceCreatedEvent) {
+        // asynchronous side effect
     }
 }
 ```
 
-**Validate:** Confirm the event handler fires only after the transaction commits by checking that
-the database state is committed before the handler executes.
+### Official caveats
 
-See [event-handling.md](references/event-handling.md) for handling patterns.
+The Spring docs explicitly call out that async listeners:
 
-### 4. Configure Kafka Infrastructure
+- do **not** propagate exceptions back to the publisher
+- cannot publish a follow-up event by returning a value
+- do not automatically propagate ThreadLocals/logging context
 
-Configure KafkaTemplate for publishing, `@KafkaListener` for consuming:
+### Guidance
 
-```yaml
-spring:
-  kafka:
-    bootstrap-servers: localhost:9092
-    producer:
-      value-serializer: org.springframework.kafka.support.serializer.JsonSerializer
-```
+- Use async listeners for non-critical side effects that tolerate decoupled execution.
+- If tracing/logging context matters, configure context propagation intentionally.
+- Do not rely on async listeners for critical state transitions without stronger guarantees.
 
-**Validate:** Send a test event via `KafkaTemplate` and confirm it appears in the consumer logs
-before proceeding to production patterns.
+## Outbox Pattern
 
-See [dependency-setup.md](references/dependency-setup.md)
-and [configuration.md](references/configuration.md).
+When another service must consume the event reliably, prefer an explicit outbox.
 
-### 5. Implement Outbox Pattern
+### Pattern
 
-Create `OutboxEvent` entity for atomic event storage:
+1. write domain state
+2. write outbox record in the same transaction boundary
+3. publish from outbox to broker asynchronously
+4. mark outbox record processed
 
-```java
-@Entity
-public class OutboxEvent {
-    private UUID id;
-    private String aggregateId;
-    private String eventType;
-    private String payload;
-    private LocalDateTime publishedAt;
-}
-```
+### Why it matters
 
-**Validate:** Confirm the scheduled processor picks up pending events by checking the `publishedAt`
-timestamp is set after the scheduled run.
+- avoids dual-write inconsistencies
+- works better across service boundaries
+- is easier to reason about than pretending in-process events are durable
 
-Scheduled processor publishes pending events. See [outbox-pattern.md](references/outbox-pattern.md).
+## Idempotency Rules
 
-### 6. Handle Failure Scenarios
+Every serious message-driven system needs idempotency.
 
-Implement retry logic, dead-letter queues, idempotent handlers:
+- consumers should tolerate duplicate delivery
+- handlers should detect already-processed messages when correctness requires it
+- message keys or event ids should be stable and explicit
+- retries without idempotency are just duplicate side effects with better marketing
 
-```java
-@RetryableTopic(attempts = "3")
-@KafkaListener(topics = "product-events")
-public void handleProductEvent(ProductCreatedEventDto event) {
-    orderService.onProductCreated(event);
-}
-```
+## Broker Guidance
 
-**Validate:** Confirm messages reach the dead-letter topic after exhausting retries before moving to
-observability.
+If using Kafka, RabbitMQ, or another broker:
 
-### 7. Add Observability
+- separate domain events from integration events
+- keep broker payloads stable and versionable
+- define retry/dead-letter behavior deliberately
+- keep consumer side effects observable and bounded
+- document ordering expectations explicitly; do not assume global ordering
 
-Enable Spring Cloud Sleuth for distributed tracing, monitor metrics.
+## Observability
 
-## Best Practices
+### Rules
 
-- **Use past tense naming**: `ProductCreated` (not `CreateProduct`)
-- **Keep events immutable**: All fields should be final
-- **Include correlation IDs**: For tracing events across services
-- **Use AFTER_COMMIT phase**: Ensures events are published after successful database transaction
-- **Implement idempotent handlers**: Handle duplicate events gracefully
-- **Add retry mechanisms**: For failed event processing with exponential backoff
-- **Implement dead-letter queues**: For events that fail processing after retries
-- **Log all failures**: Include sufficient context for debugging
-- **Make handlers order-independent**: Event ordering is not guaranteed in distributed systems
-- **Batch event processing**: When handling high volumes
-- **Monitor event latencies**: Set up alerts for slow processing
+- log publication and consumption with correlation identifiers when possible
+- monitor lag/backlog on broker consumers
+- instrument outbox processing and repeated failure loops
+- if async listeners or multicaster executors cross thread boundaries, configure context propagation
+  intentionally
 
-## References
+## Decision Guide
 
-- **[dependency-setup.md](references/dependency-setup.md)** — Maven/Gradle dependencies
-- **[configuration.md](references/configuration.md)** — Kafka and Spring Cloud Stream configuration
-- **[domain-events-design.md](references/domain-events-design.md)** — Domain event design patterns
-- **[aggregate-root-patterns.md](references/aggregate-root-patterns.md)** — Aggregate root with
-  event publishing
-- **[event-publishing.md](references/event-publishing.md)** — Local and distributed event publishing
-- **[event-handling.md](references/event-handling.md)** — Event handling and consumption patterns
-- **[outbox-pattern.md](references/outbox-pattern.md)** — Transactional outbox pattern for
-  reliability
-- **[testing-strategies.md](references/testing-strategies.md)** — Unit and integration testing
-  approaches
-- **[examples.md](references/examples.md)** — Complete working examples
-- **[event-driven-patterns-reference.md](references/event-driven-patterns-reference.md)** — Detailed
-  reference documentation
+| Need | Preferred approach |
+|---|---|
+| Local in-process decoupling | `@EventListener` |
+| Transaction-outcome-sensitive local handling | `@TransactionalEventListener` with care |
+| Reactive write-flow transaction control | `TransactionalOperator` |
+| Cross-service reliable delivery | Outbox + broker |
+| Fire-and-forget non-critical side effect | `@EventListener` + `@Async` |
 
-## Constraints and Warnings
+## Common Mistakes
 
-- Events published with `@TransactionalEventListener` only fire after transaction commit
-- Avoid publishing large objects in events (memory pressure, serialization issues)
-- Be cautious with async event handlers (separate threads, concurrency issues)
-- Kafka consumers must handle duplicate messages (implement idempotent processing)
-- Event ordering is not guaranteed in distributed systems (design handlers to be order-independent)
-- Never perform blocking operations in event listeners on the main transaction thread
-- Monitor for event processing backlogs (indicate system capacity issues)
+- ❌ Treating Spring application events as durable distributed messaging
+- ❌ Assuming `@TransactionalEventListener` works identically in imperative and reactive flows
+- ❌ Hiding critical business orchestration inside scattered listeners
+- ❌ Ignoring duplicate delivery/idempotency
+- ❌ Using async listeners without understanding exception/context propagation limits
+- ❌ Publishing cross-service integration events directly from volatile in-process logic without an
+  outbox or equivalent reliability strategy
 
 ## Related Skills
 
-- `spring-boot/security` — JWT authentication for secure event publishing
-- `spring-boot/testing-integrations` — Testing event-driven applications
-- `aws-sdk-java-v2-lambda` — Event-driven processing with AWS Lambda
-- `langchain4j-tool-function-calling-patterns` — AI-driven event processing
+- [`../SKILL.md`](../SKILL.md) — Core reactive persistence and transaction boundary rules
+- `spring-boot-testing-integrations` — Event-driven and outbox verification patterns
+- `spring-boot-resilience` — Retry, timeout, and downstream protection patterns
