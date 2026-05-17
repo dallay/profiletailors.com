@@ -2,25 +2,29 @@
 
 ## HTTP Methods
 
-| Method | Idempotent | Safe | Purpose | Typical Status |
-|--------|-----------|------|---------|----------------|
-| GET | Yes | Yes | Retrieve resource | 200, 304, 404 |
-| POST | No | No | Create resource | 201, 400, 409 |
-| PUT | Yes | No | Replace resource | 200, 204, 404 |
-| PATCH | No | No | Partial update | 200, 204, 400 |
-| DELETE | Yes | No | Remove resource | 204, 404 |
-| HEAD | Yes | Yes | Like GET, no body | 200, 304, 404 |
-| OPTIONS | Yes | Yes | Describe communication options | 200 |
+| Method  | Idempotent | Safe | Purpose                        | Typical Status |
+|---------|------------|------|--------------------------------|----------------|
+| GET     | Yes        | Yes  | Retrieve resource              | 200, 304, 404  |
+| POST    | No         | No   | Create resource                | 201, 400, 409  |
+| PUT     | Yes        | No   | Replace resource               | 200, 204, 404  |
+| PATCH   | No         | No   | Partial update                 | 200, 204, 400  |
+| DELETE  | Yes        | No   | Remove resource                | 204, 404       |
+| HEAD    | Yes        | Yes  | Like GET, no body              | 200, 304, 404  |
+| OPTIONS | Yes        | Yes  | Describe communication options | 200            |
 
 ### Idempotent Operations
-An operation is idempotent if making the same request multiple times produces the same result as making it once.
+
+An operation is idempotent if making the same request multiple times produces the same result as
+making it once.
 
 ### Safe Operations
+
 A safe operation doesn't change the state of the server. Safe operations are always idempotent.
 
 ## HTTP Status Codes
 
 ### 2xx Success
+
 - `200 OK`: Successful GET/PUT/PATCH
 - `201 Created`: Successful POST (include Location header)
 - `202 Accepted`: Async processing accepted
@@ -28,11 +32,13 @@ A safe operation doesn't change the state of the server. Safe operations are alw
 - `206 Partial Content`: Range request successful
 
 ### 3xx Redirection
+
 - `301 Moved Permanently`: Resource permanently moved
 - `304 Not Modified`: Cache valid, use local copy
 - `307 Temporary Redirect`: Temporary redirect
 
 ### 4xx Client Errors
+
 - `400 Bad Request`: Invalid format or parameters
 - `401 Unauthorized`: Authentication required
 - `403 Forbidden`: Authenticated but not authorized
@@ -42,6 +48,7 @@ A safe operation doesn't change the state of the server. Safe operations are alw
 - `429 Too Many Requests`: Rate limit exceeded
 
 ### 5xx Server Errors
+
 - `500 Internal Server Error`: Unexpected server error
 - `502 Bad Gateway`: External service unavailable
 - `503 Service Unavailable`: Server temporarily down
@@ -50,6 +57,7 @@ A safe operation doesn't change the state of the server. Safe operations are alw
 ## Common REST API Patterns
 
 ### Resource URLs
+
 ```
 GET    /users              # List all users
 GET    /users/123           # Get specific user
@@ -60,6 +68,7 @@ GET    /users/123/orders   # Get user's orders
 ```
 
 ### Query Parameters
+
 ```
 GET /users?page=0&size=20&sort=createdAt,desc
 - page: Page number (0-based)
@@ -68,6 +77,7 @@ GET /users?page=0&size=20&sort=createdAt,desc
 ```
 
 ### Response Headers
+
 ```
 Location: /api/users/123           # For 201 Created responses
 X-Total-Count: 45                 # Total items count

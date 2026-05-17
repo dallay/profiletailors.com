@@ -3,6 +3,7 @@
 ## Complete CRUD REST API with Validation
 
 ### Entity with Validation
+
 ```java
 @Entity
 @Table(name = "users")
@@ -47,6 +48,7 @@ public class User {
 ```
 
 ### Service with Transaction Management
+
 ```java
 @Service
 @RequiredArgsConstructor
@@ -141,6 +143,7 @@ public class UserService {
 ```
 
 ### Controller with Proper HTTP Methods
+
 ```java
 @RestController
 @RequestMapping("/api/users")
@@ -210,6 +213,7 @@ public class UserController {
 ## API Versioning Examples
 
 ### URL Versioning
+
 ```java
 @RestController
 @RequestMapping("/api/v1/users")
@@ -225,6 +229,7 @@ public class UserControllerV2 {
 ```
 
 ### Header Versioning
+
 ```java
 @RestController
 @RequestMapping("/api/users")
@@ -243,6 +248,7 @@ public class UserController {
 ```
 
 ### Media Type Versioning
+
 ```java
 @GetMapping(produces = {
     "application/vnd.company.v1+json",
@@ -261,6 +267,7 @@ public ResponseEntity<UserResponse> getUsers(
 ## HATEOAS Implementation
 
 ### Response with Links
+
 ```java
 @Data
 @NoArgsConstructor
@@ -293,6 +300,7 @@ public ResponseEntity<UserResponseWithLinks> getUserWithLinks(@PathVariable Long
 ```
 
 ### Advanced HATEOAS with Spring HATEOAS
+
 ```java
 @RestController
 @RequestMapping("/api/users")
@@ -342,6 +350,7 @@ public class UserController {
 ## Async Processing
 
 ### Asynchronous Controller
+
 ```java
 @RestController
 @RequestMapping("/api/users")
@@ -376,6 +385,7 @@ public class AsyncUserController {
 ```
 
 ### Async Service Implementation
+
 ```java
 @Service
 @RequiredArgsConstructor
@@ -399,6 +409,7 @@ public class AsyncUserService {
 ## File Upload and Download
 
 ### File Upload Controller
+
 ```java
 @RestController
 @RequestMapping("/api/files")
@@ -439,6 +450,7 @@ public class FileController {
 ```
 
 ### File Storage Service
+
 ```java
 @Service
 public class FileStorageService {
@@ -494,6 +506,7 @@ public class FileStorageService {
 ## WebSocket Integration
 
 ### WebSocket Configuration
+
 ```java
 @Configuration
 @EnableWebSocketMessageBroker
@@ -515,6 +528,7 @@ public class WebSocketConfig implements WebSocketMessageBrokerConfigurer {
 ```
 
 ### WebSocket Controller
+
 ```java
 @Controller
 @RequiredArgsConstructor
@@ -545,6 +559,7 @@ public class WebSocketController {
 ```
 
 ### Frontend Integration Example
+
 ```javascript
 // JavaScript WebSocket client
 class WebSocketClient {

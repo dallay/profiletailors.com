@@ -5,6 +5,7 @@ Complete API reference for dependency injection in Spring Boot applications.
 ## Core Interfaces and Classes
 
 ### ApplicationContext
+
 Root interface for Spring IoC container.
 
 ```java
@@ -27,6 +28,7 @@ public interface ApplicationContext extends EnvironmentCapable, ListableBeanFact
 ```
 
 ### BeanFactory
+
 Lower-level interface for accessing beans (used internally).
 
 ```java
@@ -41,6 +43,7 @@ public interface BeanFactory {
 ## Dependency Injection Annotations
 
 ### `@`Autowired
+
 Auto-wire dependencies (property, constructor, or method injection).
 
 ```java
@@ -50,6 +53,7 @@ Auto-wire dependencies (property, constructor, or method injection).
 ```
 
 ### `@`Qualifier
+
 Disambiguate when multiple beans of same type exist.
 
 ```java
@@ -63,6 +67,7 @@ public CacheService cacheService() { }
 ```
 
 ### `@`Primary
+
 Mark bean as preferred when multiple exist.
 
 ```java
@@ -75,6 +80,7 @@ public DataSource secondaryDataSource() { }
 ```
 
 ### `@`Value
+
 Inject properties and SpEL expressions.
 
 ```java
@@ -86,6 +92,7 @@ private String value;
 ```
 
 ### `@`Lazy
+
 Delay bean initialization until first access.
 
 ```java
@@ -99,6 +106,7 @@ private ExpensiveBean bean;  // Lazy proxy
 ```
 
 ### `@`Scope
+
 Define bean lifecycle scope.
 
 ```java
@@ -111,6 +119,7 @@ Define bean lifecycle scope.
 ```
 
 ### `@`Configuration
+
 Mark class as providing bean definitions.
 
 ```java
@@ -122,6 +131,7 @@ public class AppConfig {
 ```
 
 ### `@`Bean
+
 Define a bean in configuration class.
 
 ```java
@@ -138,6 +148,7 @@ public UserService userService() { }
 ```
 
 ### `@`Component / `@`Service / `@`Repository / `@`Controller
+
 Stereotype annotations for component scanning.
 
 ```java
@@ -152,6 +163,7 @@ public class UserService { }
 ## Conditional Bean Registration
 
 ### `@`ConditionalOnProperty
+
 Create bean only if property exists.
 
 ```java
@@ -168,6 +180,7 @@ public NotificationService notificationService() { }
 ```
 
 ### `@`ConditionalOnClass / `@`ConditionalOnMissingClass
+
 Create bean based on classpath availability.
 
 ```java
@@ -181,6 +194,7 @@ public LocalCacheService fallbackCacheService() { }
 ```
 
 ### `@`ConditionalOnBean / `@`ConditionalOnMissingBean
+
 Create bean based on other beans.
 
 ```java
@@ -194,6 +208,7 @@ public UserService defaultUserService() { }
 ```
 
 ### `@`ConditionalOnExpression
+
 Create bean based on SpEL expression.
 
 ```java
@@ -205,6 +220,7 @@ public SecurityService securityService() { }
 ## Profile-Based Configuration
 
 ### `@`Profile
+
 Activate bean only in specific profiles.
 
 ```java
@@ -222,6 +238,7 @@ public DebugService debugService() { }
 ```
 
 **Activate profiles:**
+
 ```properties
 # application.properties
 spring.profiles.active=production
@@ -234,6 +251,7 @@ spring.datasource.url=jdbc:postgresql://prod-db:5432/prod
 ## Component Scanning
 
 ### `@`ComponentScan
+
 Configure component scanning.
 
 ```java
@@ -253,6 +271,7 @@ public class AppConfig { }
 ```
 
 ### Filter Types
+
 - `FilterType.ANNOTATION` - By annotation
 - `FilterType.ASSIGNABLE_TYPE` - By class type
 - `FilterType.ASPECTJ` - By AspectJ pattern
@@ -606,35 +625,39 @@ class UserControllerTest {
 
 ## Best Practices Summary
 
-| Practice | Recommendation | Why |
-|----------|---|---|
-| Constructor injection | ✅ Mandatory | Explicit, immutable, testable |
-| Setter injection | ⚠️ Optional deps | Clear optionality |
-| Field injection | ❌ Never | Hidden, untestable |
-| `@`Autowired on constructor | ✅ Implicit (4.3+) | Clear intent |
-| Lombok `@`RequiredArgsConstructor | ✅ Recommended | Reduces boilerplate |
-| Circular dependencies | ❌ Avoid | Use events instead |
-| Too many dependencies | ❌ Avoid | SRP violation |
-| `@`Lazy for expensive beans | ✅ Appropriate | Faster startup |
-| Profiles for environments | ✅ Recommended | Environment-specific config |
-| `@`Value for properties | ✅ Recommended | Type-safe injection |
+| Practice                          | Recommendation    | Why                           |
+|-----------------------------------|-------------------|-------------------------------|
+| Constructor injection             | ✅ Mandatory       | Explicit, immutable, testable |
+| Setter injection                  | ⚠️ Optional deps  | Clear optionality             |
+| Field injection                   | ❌ Never           | Hidden, untestable            |
+| `@`Autowired on constructor       | ✅ Implicit (4.3+) | Clear intent                  |
+| Lombok `@`RequiredArgsConstructor | ✅ Recommended     | Reduces boilerplate           |
+| Circular dependencies             | ❌ Avoid           | Use events instead            |
+| Too many dependencies             | ❌ Avoid           | SRP violation                 |
+| `@`Lazy for expensive beans       | ✅ Appropriate     | Faster startup                |
+| Profiles for environments         | ✅ Recommended     | Environment-specific config   |
+| `@`Value for properties           | ✅ Recommended     | Type-safe injection           |
 
 ## External Resources
 
 ### Official Documentation
+
 - [Spring IoC Container](https://docs.spring.io/spring-framework/reference/core/beans.html)
 - [Spring Boot Auto-Configuration](https://docs.spring.io/spring-boot/docs/current/reference/html/using.html#using.auto-configuration)
 - [Conditional Bean Registration](https://docs.spring.io/spring-boot/docs/current/reference/html/features.html#features.developing-auto-configuration.condition-annotations)
 
 ### Related Skills
+
 - **spring-boot-crud-patterns/SKILL.md** - DI in CRUD applications
 - **spring-boot-test-patterns/SKILL.md** - Testing with DI
 - **spring-boot-rest-api-standards/SKILL.md** - REST layer with DI
 
 ### Books
+
 - "Spring in Action" (latest edition)
 - "Spring Microservices in Action"
 
 ### Articles
+
 - [Baeldung Spring Dependency Injection](https://www.baeldung.com/spring-dependency-injection)
 - [Martin Fowler IoC](https://www.martinfowler.com/articles/injection.html)

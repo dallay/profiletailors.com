@@ -1,6 +1,7 @@
 # Product Feature Examples (Skeleton)
 
 Feature structure:
+
 - domain/model/Product.java
 - domain/repository/ProductRepository.java
 - infrastructure/persistence/ProductEntity.java

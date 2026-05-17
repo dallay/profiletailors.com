@@ -3,6 +3,7 @@
 ## Controller and Mapping Annotations
 
 ### `@`RestController
+
 ```java
 @RestController
 @RequestMapping("/api/users")
@@ -12,6 +13,7 @@ public class UserController {
 ```
 
 ### `@`Controller
+
 ```java
 @Controller
 @RequestMapping("/users")
@@ -21,6 +23,7 @@ public class UserController {
 ```
 
 ### `@`RequestMapping
+
 ```java
 // Class level
 @RequestMapping("/api")
@@ -59,6 +62,7 @@ public ResponseEntity<Void> optionsUsers() { ... }
 ## Parameter Binding Annotations
 
 ### `@`PathVariable
+
 ```java
 @GetMapping("/users/{id}")
 public User getUser(@PathVariable Long id) { ... }
@@ -73,6 +77,7 @@ public User getUser(@PathVariable("userId") Long id) { ... }
 ```
 
 ### `@`RequestParam
+
 ```java
 @GetMapping("/users")
 public List<User> getUsers(
@@ -86,6 +91,7 @@ public List<User> getUsers(
 ```
 
 ### `@`RequestBody
+
 ```java
 @PostMapping("/users")
 public User createUser(@RequestBody User user) { ... }
@@ -96,6 +102,7 @@ public User createUser(@Valid @RequestBody User user) { ... }
 ```
 
 ### `@`RequestHeader
+
 ```java
 @GetMapping("/users")
 public List<User> getUsers(@RequestHeader("Authorization") String authHeader) { ... }
@@ -108,12 +115,14 @@ public User createUser(
 ```
 
 ### `@`CookieValue
+
 ```java
 @GetMapping("/users")
 public List<User> getUsers(@CookieValue("JSESSIONID") String sessionId) { ... }
 ```
 
 ### `@`MatrixVariable
+
 ```java
 @GetMapping("/users/{id}")
 public User getUser(
@@ -126,6 +135,7 @@ public User getUser(
 ## Response Annotations
 
 ### `@`ResponseStatus
+
 ```java
 @PostMapping("/users")
 @ResponseStatus(HttpStatus.CREATED)
@@ -133,6 +143,7 @@ public User createUser(@RequestBody User user) { ... }
 ```
 
 ### `@`ResponseBody
+
 ```java
 @Controller
 public class UserController {
@@ -143,6 +154,7 @@ public class UserController {
 ```
 
 ### ResponseEntity
+
 ```java
 @GetMapping("/users/{id}")
 public ResponseEntity<User> getUser(@PathVariable Long id) {
@@ -163,6 +175,7 @@ public ResponseEntity<User> createUser(@RequestBody User user) {
 ## Content Negotiation
 
 ### Produces and Consumes
+
 ```java
 @GetMapping(value = "/users", produces = MediaType.APPLICATION_JSON_VALUE)
 public List<User> getUsers() { ... }
@@ -179,6 +192,7 @@ public List<User> getUsers() { ... }
 ```
 
 ### `@`RequestBody with Content-Type
+
 ```java
 @PostMapping(value = "/users", consumes = "application/json")
 public User createUserJson(@RequestBody User user) { ... }
@@ -190,6 +204,7 @@ public User createUserXml(@RequestBody User user) { ... }
 ## Validation Annotations
 
 ### `@`Valid
+
 ```java
 @PostMapping("/users")
 public User createUser(@Valid @RequestBody User user) { ... }
@@ -201,6 +216,7 @@ public User getUser(
 ```
 
 ### Jakarta Bean Validation Annotations
+
 ```java
 public class UserRequest {
     @NotBlank(message = "Name is required")
@@ -239,6 +255,7 @@ public class UserRequest {
 ## Specialized Annotations
 
 ### `@`RestControllerAdvice
+
 ```java
 @RestControllerAdvice
 public class GlobalExceptionHandler {
@@ -251,6 +268,7 @@ public class GlobalExceptionHandler {
 ```
 
 ### `@`ExceptionHandler
+
 ```java
 @RestControllerAdvice
 public class GlobalExceptionHandler {
@@ -268,6 +286,7 @@ public class GlobalExceptionHandler {
 ```
 
 ### `@`CrossOrigin
+
 ```java
 @CrossOrigin(origins = "http://localhost:3000")
 @RestController
@@ -285,6 +304,7 @@ public List<User> getUsers() { ... }
 ## Async Processing
 
 ### `@`Async
+
 ```java
 @Service
 public class AsyncService {

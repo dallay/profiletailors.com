@@ -8,9 +8,9 @@ services:
       - "8080:8080"
     volumes:
       - ./wiremock:/home/wiremock
-    command: ["--global-response-templating"]
+    command: [ "--global-response-templating" ]
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:8080/__healthcheck"]
+      test: [ "CMD", "curl", "-f", "http://localhost:8080/__healthcheck" ]
       interval: 10s
       timeout: 5s
       retries: 5

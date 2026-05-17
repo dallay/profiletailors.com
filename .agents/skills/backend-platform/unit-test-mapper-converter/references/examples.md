@@ -3,6 +3,7 @@
 ## Setup
 
 ### Maven
+
 ```xml
 <dependency>
   <groupId>org.mapstruct</groupId>
@@ -22,6 +23,7 @@
 ```
 
 ### Gradle
+
 ```kotlin
 dependencies {
   implementation("org.mapstruct:mapstruct:1.5.5.Final")

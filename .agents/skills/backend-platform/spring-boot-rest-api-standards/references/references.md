@@ -6,19 +6,20 @@ Complete reference for REST API development with Spring Boot.
 
 ### HTTP Methods
 
-| Method | Idempotent | Safe | Purpose | Typical Status |
-|--------|-----------|------|---------|----------------|
-| GET | Yes | Yes | Retrieve resource | 200, 304, 404 |
-| POST | No | No | Create resource | 201, 400, 409 |
-| PUT | Yes | No | Replace resource | 200, 204, 404 |
-| PATCH | No | No | Partial update | 200, 204, 400 |
-| DELETE | Yes | No | Remove resource | 204, 404 |
-| HEAD | Yes | Yes | Like GET, no body | 200, 304, 404 |
-| OPTIONS | Yes | Yes | Describe communication options | 200 |
+| Method  | Idempotent | Safe | Purpose                        | Typical Status |
+|---------|------------|------|--------------------------------|----------------|
+| GET     | Yes        | Yes  | Retrieve resource              | 200, 304, 404  |
+| POST    | No         | No   | Create resource                | 201, 400, 409  |
+| PUT     | Yes        | No   | Replace resource               | 200, 204, 404  |
+| PATCH   | No         | No   | Partial update                 | 200, 204, 400  |
+| DELETE  | Yes        | No   | Remove resource                | 204, 404       |
+| HEAD    | Yes        | Yes  | Like GET, no body              | 200, 304, 404  |
+| OPTIONS | Yes        | Yes  | Describe communication options | 200            |
 
 ### HTTP Status Codes
 
 **2xx Success:**
+
 - `200 OK` - Successful GET/PUT/PATCH
 - `201 Created` - Successful POST (include Location header)
 - `202 Accepted` - Async processing accepted
@@ -26,11 +27,13 @@ Complete reference for REST API development with Spring Boot.
 - `206 Partial Content` - Range request successful
 
 **3xx Redirection:**
+
 - `301 Moved Permanently` - Resource permanently moved
 - `304 Not Modified` - Cache valid, use local copy
 - `307 Temporary Redirect` - Temporary redirect
 
 **4xx Client Errors:**
+
 - `400 Bad Request` - Invalid format or parameters
 - `401 Unauthorized` - Authentication required
 - `403 Forbidden` - Authenticated but not authorized
@@ -39,6 +42,7 @@ Complete reference for REST API development with Spring Boot.
 - `422 Unprocessable Entity` - Validation failed (semantic error)
 
 **5xx Server Errors:**
+
 - `500 Internal Server Error` - Unexpected server error
 - `502 Bad Gateway` - External service unavailable
 - `503 Service Unavailable` - Server temporarily down
@@ -362,15 +366,18 @@ class ProductIntegrationTest {
 ## External Resources
 
 ### Official Documentation
+
 - [Spring Web MVC Documentation](https://docs.spring.io/spring-framework/reference/web/webmvc.html)
 - [Spring REST Documentation](https://spring.io/guides/gs/rest-service/)
 - [REST API Best Practices](https://restfulapi.net/)
 
 ### Related Standards
+
 - [JSON:API Specification](https://jsonapi.org/)
 - [OpenAPI Specification](https://www.openapis.org/)
 - [RFC 7231 - HTTP Semantics](https://tools.ietf.org/html/rfc7231)
 
 ### Books
+
 - "RESTful Web Services" by Leonard Richardson & Sam Ruby
 - "Spring in Action" (latest edition)

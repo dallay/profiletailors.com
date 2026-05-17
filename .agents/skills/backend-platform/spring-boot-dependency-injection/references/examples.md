@@ -1,6 +1,7 @@
 # Spring Boot Dependency Injection - Examples
 
-Comprehensive examples demonstrating dependency injection patterns, from basic to advanced scenarios.
+Comprehensive examples demonstrating dependency injection patterns, from basic to advanced
+scenarios.
 
 ## Example 1: Constructor Injection (Recommended)
 
@@ -333,6 +334,7 @@ public class DevelopmentConfig {
 ```
 
 **Usage:**
+
 ```bash
 export SPRING_PROFILES_ACTIVE=production
 # or in application.properties:
@@ -537,4 +539,5 @@ class UserServiceIntegrationTest {
 }
 ```
 
-These examples cover constructor injection (recommended), setter injection (optional dependencies), configuration, testing patterns, and common best practices for dependency injection in Spring Boot.
+These examples cover constructor injection (recommended), setter injection (optional dependencies),
+configuration, testing patterns, and common best practices for dependency injection in Spring Boot.

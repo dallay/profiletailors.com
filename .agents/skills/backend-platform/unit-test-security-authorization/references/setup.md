@@ -59,6 +59,7 @@ public class SecurityConfig {
 ```
 
 **Configuration Options:**
+
 - `prePostEnabled = true` — Enables `@PreAuthorize` and `@PostAuthorize` annotations
 - `securedEnabled = true` — Enables `@Secured` annotation
 - `jsr250Enabled = true` — Enables `@RolesAllowed` annotation (JSR-250)
@@ -66,6 +67,7 @@ public class SecurityConfig {
 ## Test Dependencies Included
 
 When you add `spring-boot-starter-test`, you automatically get:
+
 - **JUnit 5** (Jupiter) - Testing framework
 - **AssertJ** - Fluent assertion library
 - **Mockito** - Mocking framework

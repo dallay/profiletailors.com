@@ -338,6 +338,8 @@ class ProfileServiceSecurityTest {
 1. **Move from imperative to declarative security** - Use annotations instead of manual checks
 2. **Separate security logic from business logic** - Keep code focused on business requirements
 3. **Test both positive and negative cases** - Verify both access granted and denied scenarios
-4. **Use appropriate test annotations** - `@WithMockUser` for most cases, custom setup for complex scenarios
+4. **Use appropriate test annotations** - `@WithMockUser` for most cases, custom setup for complex
+   scenarios
 5. **Test with MockMvc for controllers** - Verifies security filters are properly configured
-6. **Create reusable permission evaluators** - Extract complex permission logic into dedicated components
+6. **Create reusable permission evaluators** - Extract complex permission logic into dedicated
+   components
