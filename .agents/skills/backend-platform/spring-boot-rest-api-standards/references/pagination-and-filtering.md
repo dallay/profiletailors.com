@@ -3,6 +3,7 @@
 ## Pagination with Spring Data
 
 ### Basic Pagination
+
 ```java
 @RestController
 @RequestMapping("/api/users")
@@ -22,6 +23,7 @@ public class UserController {
 ```
 
 ### Pagination with Sorting
+
 ```java
 @GetMapping("/users")
 public ResponseEntity<Page<UserResponse>> getAllUsers(
@@ -38,6 +40,7 @@ public ResponseEntity<Page<UserResponse>> getAllUsers(
 ```
 
 ### Multi-field Sorting
+
 ```java
 @GetMapping("/users")
 public ResponseEntity<Page<UserResponse>> getAllUsers(
@@ -63,6 +66,7 @@ public ResponseEntity<Page<UserResponse>> getAllUsers(
 ## Response Format
 
 ### Standard Page Response
+
 ```json
 {
   "content": [
@@ -102,6 +106,7 @@ public ResponseEntity<Page<UserResponse>> getAllUsers(
 ```
 
 ### Custom Page Response Wrapper
+
 ```java
 @Data
 @NoArgsConstructor
@@ -153,6 +158,7 @@ public ResponseEntity<PageResponse<UserResponse>> getAllUsers(
 ## Filtering
 
 ### Query Parameter Filtering
+
 ```java
 @GetMapping("/users")
 public ResponseEntity<Page<UserResponse>> getUsers(
@@ -181,6 +187,7 @@ public ResponseEntity<Page<UserResponse>> getUsers(
 ```
 
 ### Dynamic Specification Builder
+
 ```java
 public class UserSpecifications {
 
@@ -229,6 +236,7 @@ public ResponseEntity<Page<UserResponse>> getUsers(
 ```
 
 ### Date Range Filtering
+
 ```java
 @GetMapping("/orders")
 public ResponseEntity<Page<OrderResponse>> getOrders(
@@ -256,6 +264,7 @@ public ResponseEntity<Page<OrderResponse>> getOrders(
 ## Advanced Filtering
 
 ### Filter DTO Pattern
+
 ```java
 @Data
 @NoArgsConstructor
@@ -350,6 +359,7 @@ private String buildLinkHeader(int page, int size) {
 ## Performance Considerations
 
 ### Database Optimization
+
 ```java
 @Service
 @RequiredArgsConstructor
@@ -368,6 +378,7 @@ public class UserService {
 ```
 
 ### Cache Pagination Results
+
 ```java
 @Service
 @RequiredArgsConstructor

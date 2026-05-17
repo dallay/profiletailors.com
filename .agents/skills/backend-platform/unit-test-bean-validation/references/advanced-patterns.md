@@ -132,9 +132,9 @@ void debugFailedValidation() {
 
 ### Common Issues
 
-| Issue | Cause | Solution |
-|-------|-------|----------|
-| `ConstraintViolation` null | Object is valid or constraint doesn't fire | Check annotation parameters |
-| Wrong property path | Wrong field annotated | Verify `@Constraint(validatedBy=)` |
-| Null passes validation | Constraint allows null | Add `@NotNull` |
-| Multiple violations | Multiple constraints fail | Use `hasSize()` to verify count |
+| Issue                      | Cause                                      | Solution                           |
+|----------------------------|--------------------------------------------|------------------------------------|
+| `ConstraintViolation` null | Object is valid or constraint doesn't fire | Check annotation parameters        |
+| Wrong property path        | Wrong field annotated                      | Verify `@Constraint(validatedBy=)` |
+| Null passes validation     | Constraint allows null                     | Add `@NotNull`                     |
+| Multiple violations        | Multiple constraints fail                  | Use `hasSize()` to verify count    |

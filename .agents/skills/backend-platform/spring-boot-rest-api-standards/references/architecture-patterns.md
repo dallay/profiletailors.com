@@ -3,6 +3,7 @@
 ## Layered Architecture
 
 ### Feature-Based Structure
+
 ```
 feature-name/
 ├── domain/
@@ -31,6 +32,7 @@ feature-name/
 ### Domain Layer (Clean Architecture)
 
 #### Domain Entity
+
 ```java
 package com.example.domain.model;
 
@@ -105,6 +107,7 @@ public class Email {
 ```
 
 #### Domain Repository Port
+
 ```java
 package com.example.domain.repository;
 
@@ -121,6 +124,7 @@ public interface UserRepository {
 ```
 
 #### Domain Service
+
 ```java
 package com.example.domain.service;
 
@@ -150,6 +154,7 @@ public class UserDomainService {
 ### Application Layer (Use Cases)
 
 #### Application Service
+
 ```java
 package com.example.application.service;
 
@@ -212,6 +217,7 @@ public class UserApplicationService {
 ```
 
 #### DTOs
+
 ```java
 package com.example.application.dto;
 
@@ -242,6 +248,7 @@ public class UserResponse {
 ### Presentation Layer (REST API)
 
 #### Controller
+
 ```java
 package com.example.presentation.rest;
 
@@ -299,6 +306,7 @@ public class UserController {
 ```
 
 #### Mapper
+
 ```java
 package com.example.application.mapper;
 
@@ -332,6 +340,7 @@ public interface UserMapper {
 ### Infrastructure Layer (Adapters)
 
 #### JPA Repository Adapter
+
 ```java
 package com.example.infrastructure.persistence;
 
@@ -375,6 +384,7 @@ public class JpaUserRepository implements UserRepository {
 ```
 
 #### Spring Data Repository
+
 ```java
 package com.example.infrastructure.persistence;
 
@@ -396,6 +406,7 @@ public interface SpringDataUserRepository extends JpaRepository<UserEntity, Long
 ## CQRS Pattern (Command Query Responsibility Segregation)
 
 ### Commands
+
 ```java
 package com.example.application.command;
 
@@ -425,6 +436,7 @@ public class UpdateUserCommand {
 ```
 
 ### Command Handlers
+
 ```java
 package com.example.application.command.handler;
 
@@ -462,6 +474,7 @@ public class UserCommandHandler {
 ```
 
 ### Queries
+
 ```java
 package com.example.application.query;
 
@@ -483,6 +496,7 @@ public class FindUserByIdQuery {
 ```
 
 ### Query Handlers
+
 ```java
 package com.example.application.query.handler;
 
@@ -538,6 +552,7 @@ public class UserQueryHandler {
 ## Event-Driven Architecture
 
 ### Domain Events
+
 ```java
 package com.example.domain.event;
 
@@ -561,6 +576,7 @@ public class UserUpdatedEvent {
 ```
 
 ### Event Publisher
+
 ```java
 package com.example.domain.service;
 
@@ -593,6 +609,7 @@ public class UserEventPublisher {
 ```
 
 ### Event Listeners
+
 ```java
 package com.example.application.event.listener;
 
@@ -625,6 +642,7 @@ public class UserEventListener {
 ## Microservices Architecture
 
 ### API Gateway Pattern
+
 ```java
 package com.example.gateway;
 
@@ -652,6 +670,7 @@ public class GatewayConfig {
 ```
 
 ### Service Communication
+
 ```java
 package com.example.application.client;
 
@@ -674,6 +693,7 @@ public interface UserServiceClient {
 ## Testing Strategy
 
 ### Unit Tests
+
 ```java
 package com.example.application.service;
 
@@ -718,6 +738,7 @@ class UserApplicationServiceTest {
 ```
 
 ### Integration Tests
+
 ```java
 package com.example.presentation.rest;
 

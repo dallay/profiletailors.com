@@ -82,7 +82,8 @@ public class UserControllerIntegrationTest {
 }
 ```
 
-**Note**: Be aware that `@Transactional` test behavior may differ from production due to lazy loading and flush semantics.
+**Note**: Be aware that `@Transactional` test behavior may differ from production due to lazy
+loading and flush semantics.
 
 ## Organize Tests by Layer
 
@@ -243,15 +244,18 @@ public class ProperTest { }
 
 ## Test Naming Conventions
 
-Convention: Use descriptive method names that start with `should` or `test` to make test intent explicit.
+Convention: Use descriptive method names that start with `should` or `test` to make test intent
+explicit.
 
 **Naming Rules:**
+
 - **Prefix**: Start with `should` or `test` to clearly indicate test purpose
 - **Structure**: Use camelCase for readability (no underscores)
 - **Clarity**: Name should indicate what is being tested and the expected outcome
 - **Example pattern**: `should[ExpectedBehavior]When[Condition]()`
 
 **Examples:**
+
 ```
 shouldReturnUsersJson()
 shouldThrowNotFoundWhenIdDoesntExist()

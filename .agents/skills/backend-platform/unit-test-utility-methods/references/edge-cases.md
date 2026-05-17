@@ -123,8 +123,8 @@ class ValidatorUtilsEdgeCasesTest {
 
 ## Floating Point Precision Rules
 
-| Operation | Use | Example |
-|-----------|-----|---------|
-| Addition | `isCloseTo(delta)` | `isCloseTo(0.3, within(0.001))` |
-| Comparison | `isEqualTo()` | Use `BigDecimal` for exact decimals |
-| Percentage | Tolerance-based | `isCloseTo(expected, within(0.01))` |
+| Operation  | Use                | Example                             |
+|------------|--------------------|-------------------------------------|
+| Addition   | `isCloseTo(delta)` | `isCloseTo(0.3, within(0.001))`     |
+| Comparison | `isEqualTo()`      | Use `BigDecimal` for exact decimals |
+| Percentage | Tolerance-based    | `isCloseTo(expected, within(0.01))` |

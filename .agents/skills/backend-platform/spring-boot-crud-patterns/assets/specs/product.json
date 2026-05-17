@@ -1,9 +1,22 @@
 {
   "entity": "Product",
-  "id": { "name": "id", "type": "Long", "generated": true },
+  "id": {
+    "name": "id",
+    "type": "Long",
+    "generated": true
+  },
   "fields": [
-    { "name": "name", "type": "String" },
-    { "name": "price", "type": "BigDecimal" },
-    { "name": "inStock", "type": "Boolean" }
+    {
+      "name": "name",
+      "type": "String"
+    },
+    {
+      "name": "price",
+      "type": "BigDecimal"
+    },
+    {
+      "name": "inStock",
+      "type": "Boolean"
+    }
   ]
 }

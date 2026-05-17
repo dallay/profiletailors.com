@@ -35,6 +35,7 @@ mockMvc.perform(get("/api/users/1"))
 **Symptom**: Expected 200 but got 404/500
 
 **Solution**:
+
 1. Check controller `@RequestMapping` paths match test URLs
 2. Verify error handling returns expected status
 3. Ensure service mocks are set up before request
@@ -53,6 +54,7 @@ mockMvc.perform(get("/api/users/1"))...
 **Symptom**: `verify()` fails with "never invoked"
 
 **Solution**:
+
 1. Check mock setup happens before `perform()`
 2. Verify mock parameters match actual call parameters
 3. Use `any()` for flexible matching
@@ -68,6 +70,7 @@ verify(userService).createUser(any());  // Not exact argument
 **Symptom**: JsonPath finds nothing in response
 
 **Solution**:
+
 1. Verify controller returns response body
 2. Check `@ResponseBody` or `@RestController` annotation
 3. Ensure object serialization works

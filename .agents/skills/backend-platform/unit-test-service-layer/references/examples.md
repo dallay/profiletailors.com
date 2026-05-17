@@ -5,6 +5,7 @@ Complete code examples for unit testing `@Service` classes with Mockito.
 ## Setup with Mockito and JUnit 5
 
 ### Maven
+
 ```xml
 <dependency>
   <groupId>org.junit.jupiter</groupId>
@@ -29,6 +30,7 @@ Complete code examples for unit testing `@Service` classes with Mockito.
 ```
 
 ### Gradle
+
 ```kotlin
 dependencies {
   testImplementation("org.junit.jupiter:junit-jupiter")
@@ -324,6 +326,7 @@ void test() {
 ## Common Patterns
 
 **Partial Mock with Spy**:
+
 ```java
 @Spy
 @InjectMocks
@@ -337,6 +340,7 @@ void shouldUseRealMethodButMockDependency() {
 ```
 
 **Constructor Injection for Testing**:
+
 ```java
 // In your service (production code)
 public class UserService {
@@ -357,8 +361,12 @@ void test() {
 
 ## Troubleshooting
 
-**UnfinishedStubbingException**: Ensure all `when()` calls are completed with `thenReturn()`, `thenThrow()`, or `thenAnswer()`.
+**UnfinishedStubbingException**: Ensure all `when()` calls are completed with `thenReturn()`,
+`thenThrow()`, or `thenAnswer()`.
 
-**UnnecessaryStubbingException**: Remove unused stub definitions. Use `@ExtendWith(MockitoExtension.class)` with `MockitoExtension.LENIENT` if you intentionally have unused stubs.
+**UnnecessaryStubbingException**: Remove unused stub definitions. Use
+`@ExtendWith(MockitoExtension.class)` with `MockitoExtension.LENIENT` if you intentionally have
+unused stubs.
 
-**NullPointerException in test**: Verify `@InjectMocks` correctly injects all mocked dependencies into the service constructor.
+**NullPointerException in test**: Verify `@InjectMocks` correctly injects all mocked dependencies
+into the service constructor.

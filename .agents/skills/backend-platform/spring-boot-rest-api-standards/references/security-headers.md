@@ -3,6 +3,7 @@
 ## Security Headers Configuration
 
 ### Basic Security Headers
+
 ```java
 @Configuration
 public class SecurityConfig {
@@ -59,6 +60,7 @@ public class SecurityConfig {
 ```
 
 ### Enhanced Security Configuration
+
 ```java
 @Configuration
 @EnableWebSecurity
@@ -158,6 +160,7 @@ public class EnhancedSecurityConfig {
 ## Content Security Policy (CSP)
 
 ### Basic CSP Configuration
+
 ```java
 @Configuration
 public class ContentSecurityPolicyConfig {
@@ -208,6 +211,7 @@ public class ContentSecurityPolicyInterceptor implements HandlerInterceptor {
 ```
 
 ### Advanced CSP with Nonce
+
 ```java
 @Component
 @RequiredArgsConstructor
@@ -253,6 +257,7 @@ public class SecurityHeadersFilter extends OncePerRequestFilter {
 ## CORS Configuration
 
 ### Method-level CORS
+
 ```java
 @RestController
 @RequestMapping("/api/users")
@@ -275,6 +280,7 @@ public class UserController {
 ```
 
 ### Dynamic CORS Configuration
+
 ```java
 @Configuration
 public class DynamicCorsConfig {
@@ -317,6 +323,7 @@ public class DynamicCorsConfig {
 ## Security Headers Best Practices
 
 ### Essential Headers for Production
+
 1. **Content-Security-Policy**: Mitigates XSS attacks
 2. **X-Content-Type-Options**: Prevents MIME type sniffing
 3. **X-Frame-Options**: Prevents clickjacking
@@ -327,6 +334,7 @@ public class DynamicCorsConfig {
 ### CSP Examples by Application Type
 
 #### Blog/Content Site
+
 ```java
 response.setHeader("Content-Security-Policy",
     "default-src 'self'; " +
@@ -340,6 +348,7 @@ response.setHeader("Content-Security-Policy",
 ```
 
 #### Single Page Application (SPA)
+
 ```java
 response.setHeader("Content-Security-Policy",
     "default-src 'self'; " +
@@ -353,6 +362,7 @@ response.setHeader("Content-Security-Policy",
 ```
 
 #### API Only
+
 ```java
 response.setHeader("Content-Security-Policy",
     "default-src 'self'; " +
@@ -394,6 +404,7 @@ class SecurityHeadersTest {
 ## Rate Limiting
 
 ### Basic Rate Limiting
+
 ```java
 @Component
 public class RateLimitingFilter extends OncePerRequestFilter {
