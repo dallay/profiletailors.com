@@ -1,90 +1,11 @@
-version: 1.23.8
-
-build:
-  maxIssueSeverity: error
-  failOnSeverity: error
-
 config:
   validation: true
-  excludes: ''
 
-processors:
-  active: true
-  excludes:
-    - '**/resources/**'
-    - '**/generated/**'
-
-console-reports:
-  active: true
-  excludes:
-    - 'ProjectStatisticsReport'
-    - 'ComplexityReport'
-    - 'NotificationReport'
-    - 'FindingsReport'
-    - 'FileProcessReport'
-
-output-reports:
-  active: true
-  excludes:
-    - 'HtmlOutputReport'
-    - 'XmlOutputReport'
-    - 'SarifOutputReport'
-    - 'MdOutputReport'
-
-# Style rules
 style:
   active: true
-  excludes:
-    - '**/test/**'
-  ForbiddenComment:
-    values:
-      - 'TODO'
-      - 'FIXME'
-      - 'XXX'
-    allowedDefinitions:
-      - '.*kotlin\.kotlin\.io\.AnnotationsKt'
-  MagicNumber:
-    ignorePropertyDeclaration: true
-    ignoreNumbers:
-      - '-1'
-      - '0'
-      - '1'
-      - '2'
 
-# Performance rules
 performance:
   active: true
-  excludes:
-    - '**/test/**'
-  AvoidObjectCreation:
-    active: true
-  SpreadOperatorUseSpreadOperator:
-    active: false  # Too strict initially
 
-# Best practices rules
-best practices:
-  active: true
-  excludes:
-    - '**/test/**'
-  UnusedPrivateFunction:
-    active: true
-  ElseCaseInsteadOfExhaustiveWhen:
-    active: true
-  ThrowsException:
-    active: false  # Review later
-
-# Potential bugs
 potential-bugs:
   active: true
-  excludes:
-    - '**/test/**'
-  IgnoredReturnValue:
-    active: true
-
-# Complexity (disabled initially - too strict)
-complexity:
-  active: false
-
-# Empty code (disabled initially)
-empty-code:
-  active: false
