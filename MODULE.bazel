@@ -41,9 +41,21 @@ node.toolchain(node_version = "22.12.0")
 # ─────────────────────────────────────────────────────────────────────────────
 # JVM / Kotlin / Spring Boot — server/*
 # ─────────────────────────────────────────────────────────────────────────────
-bazel_dep(name = "rules_java", version = "9.1.0")
+bazel_dep(name = "rules_java", version = "9.3.0")
 bazel_dep(name = "rules_kotlin", version = "2.2.0")
-bazel_dep(name = "rules_jvm_external", version = "6.7")
+bazel_dep(name = "rules_jvm_external", version = "6.9")
+
+# Activate the rules_java toolchains extension so it registers the hermetic
+# remotejdk repos (8, 11, 17, 21, 25). Without this use_extension call the
+# repos are not wired into the module graph and BSP / IDE builds fail with
+# "No matching toolchains found for @@bazel_tools//tools/jdk:toolchain_type".
+java_toolchains = use_extension("@rules_java//java:extensions.bzl", "toolchains")
+use_repo(
+    java_toolchains,
+    "remotejdk21_macos_aarch64",
+    "remote_java_tools",
+    "remote_java_tools_darwin_arm64",
+)
 
 # Maven artifact resolution
 maven = use_extension("@rules_jvm_external//:extensions.bzl", "maven")

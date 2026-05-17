@@ -9,7 +9,8 @@ is no domain model, no package-by-feature structure, no Liquibase setup yet, no 
 configuration, no JWT resource-server wiring, no tenant/workspace context propagation, no
 persistence adapters, and no module boundaries beyond the root package.
 
-The repo already carries strong internal guidance in `.agents/skills/spring-boot/` that assumes
+The repo already carries strong internal guidance in `.agents/skills/backend-platform/spring-boot/`
+that assumes
 hexagonal architecture, CQRS handlers, thin HTTP adapters, framework-agnostic application/domain
 layers, and mediator-driven dispatch. That guidance aligns with the external CVIX shared libraries
 and gives a useful target style for the new backend foundation.
@@ -37,29 +38,43 @@ are still too narrow for the target auth foundation.
   Liquibase, JWT, multitenancy, and app settings.
 - `server/smp/src/test/kotlin/com/profiletailors/smp/SmpApplicationTests.kt` — only smoke test; no
   architecture, security, or module tests.
-- `/Users/acosta/Downloads/cvix-main/shared/common/src/main/kotlin/com/cvix/common/domain/bus/*` —
-  source of reusable mediator/CQRS contracts and pipeline behavior ideas.
 -
-`/Users/acosta/Downloads/cvix-main/shared/common/src/main/kotlin/com/cvix/common/domain/security/WorkspaceAuthorization.kt` —
+`/Users/acosta/Downloads/profiletailors-main/shared/common/src/main/kotlin/com/profiletailors/common/domain/bus/*` —
+source of reusable mediator/CQRS contracts and pipeline behavior ideas.
+-
+
+`/Users/acosta/Downloads/profiletailors-main/shared/common/src/main/kotlin/com/profiletailors/common/domain/security/WorkspaceAuthorization.kt` —
 important seam, but too narrow alone for granular permission authorization.
+
 -
-`/Users/acosta/Downloads/cvix-main/shared/common/src/main/kotlin/com/cvix/common/domain/model/WorkspaceId.kt` —
+
+`/Users/acosta/Downloads/profiletailors-main/shared/common/src/main/kotlin/com/profiletailors/common/domain/model/WorkspaceId.kt` —
 good example of promoting workspace identity to a first-class value object.
+
 -
-`/Users/acosta/Downloads/cvix-main/shared/spring-boot-common/src/main/kotlin/com/cvix/spring/boot/AppAutoConfiguration.kt` —
+
+`/Users/acosta/Downloads/profiletailors-main/shared/spring-boot-common/src/main/kotlin/com/profiletailors/spring/boot/AppAutoConfiguration.kt` —
 reference for mediator Spring wiring and shared auto-config style.
+
 -
-`/Users/acosta/Downloads/cvix-main/shared/spring-boot-common/src/main/kotlin/com/cvix/spring/boot/ApiController.kt` —
+
+`/Users/acosta/Downloads/profiletailors-main/shared/spring-boot-common/src/main/kotlin/com/profiletailors/spring/boot/ApiController.kt` —
 useful controller seam ideas, but currently biased to JWT subject extraction and fixed workspace
 header conventions.
+
 -
-`/Users/acosta/Downloads/cvix-main/shared/spring-boot-common/src/main/kotlin/com/cvix/config/WorkspaceContextWebFilter.kt` —
+
+`/Users/acosta/Downloads/profiletailors-main/shared/spring-boot-common/src/main/kotlin/com/profiletailors/config/WorkspaceContextWebFilter.kt` —
 strong reference for tenant/workspace propagation through reactive context.
+
 -
-`/Users/acosta/Downloads/cvix-main/shared/spring-boot-common/src/main/kotlin/com/cvix/controllers/GlobalExceptionHandler.kt` —
+
+`/Users/acosta/Downloads/profiletailors-main/shared/spring-boot-common/src/main/kotlin/com/profiletailors/controllers/GlobalExceptionHandler.kt` —
 mature error-handling pattern to adapt, not copy blindly.
+
 -
-`/Users/acosta/Downloads/cvix-main/shared/spring-boot-common/src/main/resources/db/changelog/common-migrations/001-create-outbox.yaml` —
+
+`/Users/acosta/Downloads/profiletailors-main/shared/spring-boot-common/src/main/resources/db/changelog/common-migrations/001-create-outbox.yaml` —
 reusable example for Liquibase convention and shared foundation migrations.
 
 ### Approaches
