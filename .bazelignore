@@ -1,0 +1,27 @@
+# Bazel ignores these paths entirely — no BUILD file scanning, no invalidation
+# ─────────────────────────────────────────────────────────────────────────────
+
+# Node / JS artefacts
+node_modules
+apps/web/marketing/node_modules
+apps/web/marketing/dist
+apps/web/marketing/.astro
+
+# JVM build outputs
+server/smp/build
+server/smp/.gradle
+server/smp/.kotlin
+
+# IDE / OS
+.idea
+.DS_Store
+.vscode
+
+# Bazel internal (in case someone nests a workspace by mistake)
+bazel-*
+
+# Playwright / test artefacts
+.playwright-mcp
+
+# Temporary research notes
+tmp
