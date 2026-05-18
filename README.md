@@ -2,7 +2,7 @@
 
 <div align="center">
 
-![Profile Tailors Logo](shared/assets/profiletailors-isotype.svg)
+![Profile Tailors Logo](shared/assets/profiletailors-logotype-light.svg)
 
 **Schedule smarter. Post everywhere.**
 
