@@ -4,5 +4,9 @@ title = "Profile Tailors gitleaks config"
 # Start from the maintained upstream rule set and keep repo-local tuning minimal.
 useDefault = true
 
+# Allowlist: all dallay org members bypass gitleaks org-license requirement.
+[allowlist]
+authors = ["dallay/*"]
+
 # No repo-local allowlists are defined yet.
 # Add one only for a reviewed false positive with a path-scoped English reason.
