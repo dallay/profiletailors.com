@@ -92,19 +92,10 @@ kt_jvm_library(
     kotlinc_opts = ":smp_kotlinc_opts",
 )
 
-# NOTE: `rules_spring` is intentionally not loaded here yet. On Bazel 9.1.0,
-# rules_spring@2.6.3 fails during Starlark module load (`JavaInfo` undefined),
-# which would break the stable //server/smp:smp path. We preserve stable
-# behavior and stop the spike at native compilation proof until a compatible
-# rules_spring version or patch is available.
-#
-# Planned experimental target shape once compatibility is resolved:
-# springboot(
-#     name = "smp_rules_spring",
-#     boot_app_class = "com.profiletailors.smp.SmpApplication",
-#     boot_launcher_class = "org.springframework.boot.loader.launch.JarLauncher",
-#     java_library = ":smp_lib",
-# )
+# NOTE: `smp_lib` is a native Bazel compilation target only.
+# The stable deployable artifact remains `//server/smp:smp`, which still wraps
+# `./gradlew bootJar`. Native Spring Boot packaging is intentionally out of
+# scope for this target so the stable backend path stays untouched.
 
 # ── Main artefact: Spring Boot fat JAR ───────────────────────────────────────
 genrule(

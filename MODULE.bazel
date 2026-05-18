@@ -44,7 +44,6 @@ node.toolchain(node_version = "22.12.0")
 bazel_dep(name = "rules_java", version = "9.3.0")
 bazel_dep(name = "rules_kotlin", version = "2.2.0")
 bazel_dep(name = "rules_jvm_external", version = "6.9")
-bazel_dep(name = "rules_spring", version = "2.6.3")
 
 # Activate the rules_java toolchains extension so it registers the hermetic
 # remotejdk repos (8, 11, 17, 21, 25). Without this use_extension call the
@@ -63,13 +62,7 @@ maven = use_extension("@rules_jvm_external//:extensions.bzl", "maven")
 maven.install(
     name = "maven",
     artifacts = [
-        # Spring Boot 4 BOM is applied via override_targets below;
-        # list individual artifacts here for rules_jvm_external resolution.
-        "org.springframework.boot:spring-boot:4.0.6",
-        "org.springframework.boot:spring-boot-autoconfigure:4.0.6",
-        "org.springframework.boot:spring-boot-loader:4.0.6",
-        "org.springframework.boot:spring-boot-loader-tools:4.0.6",
-        "org.springframework.boot:spring-boot-jarmode-tools:4.0.6",
+        # Spring Boot runtime dependencies for native Bazel compilation.
         "org.springframework.boot:spring-boot-starter-data-r2dbc:4.0.6",
         "org.springframework.boot:spring-boot-starter-oauth2-resource-server:4.0.6",
         "org.springframework.boot:spring-boot-starter-security:4.0.6",
