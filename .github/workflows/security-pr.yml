@@ -180,7 +180,7 @@ jobs:
             --output semgrep-backend.sarif
       - name: Upload Semgrep backend SARIF
         if: ${{ always() }}
-        uses: github/codeql-action/upload-sarif@78ed0c7291d93e40c51b085850dc669a4c3ab73b # v3.29.0
+        uses: github/codeql-action/upload-sarif@v4
         with:
           sarif_file: semgrep-backend.sarif
           category: semgrep-backend
@@ -212,7 +212,7 @@ jobs:
             --output semgrep-frontend.sarif
       - name: Upload Semgrep frontend SARIF
         if: ${{ always() }}
-        uses: github/codeql-action/upload-sarif@78ed0c7291d93e40c51b085850dc669a4c3ab73b # v3.29.0
+        uses: github/codeql-action/upload-sarif@v4
         with:
           sarif_file: semgrep-frontend.sarif
           category: semgrep-frontend
@@ -235,7 +235,7 @@ jobs:
           java-version: '24'
           cache: gradle
       - name: Initialize CodeQL
-        uses: github/codeql-action/init@78ed0c7291d93e40c51b085850dc669a4c3ab73b # v3.29.0
+        uses: github/codeql-action/init@v4
         with:
           languages: java-kotlin
           config-file: ./.github/codeql/codeql-config.yml
@@ -244,7 +244,7 @@ jobs:
         working-directory: server/smp
         run: ./gradlew build -x test --no-daemon
       - name: Analyze with CodeQL
-        uses: github/codeql-action/analyze@78ed0c7291d93e40c51b085850dc669a4c3ab73b # v3.29.0
+        uses: github/codeql-action/analyze@v4
         with:
           category: codeql-backend
 
@@ -272,7 +272,7 @@ jobs:
           exit-code: '1'
       - name: Upload Trivy SARIF
         if: ${{ always() }}
-        uses: github/codeql-action/upload-sarif@78ed0c7291d93e40c51b085850dc669a4c3ab73b # v3.29.0
+        uses: github/codeql-action/upload-sarif@v4
         with:
           sarif_file: trivy-backend.sarif
           category: trivy-backend
