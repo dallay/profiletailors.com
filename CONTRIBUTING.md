@@ -19,6 +19,15 @@ Signing is automatic — when you open your first PR, the **CLA
 Assistant** bot will comment and ask you to sign. It takes 30 seconds
 and you only do it once.
 
+To sign, leave this exact comment on your pull request:
+
+```
+I have read the CLA Document and I hereby sign the CLA
+```
+
+Your signature is recorded and linked to your GitHub account. From your
+second PR onward, the check passes automatically.
+
 **We cannot merge PRs from unsigned contributors.** No exceptions.
 
 ---
@@ -56,7 +65,15 @@ Requirements: Node >= 22.12.0, pnpm.
 2. Fork the repo and create a branch from `main`.
 3. Write or update tests for your change when applicable.
 4. Make sure the build passes locally before opening the PR.
-5. Sign the CLA when prompted by the bot.
+5. **CLA** — if this is your first contribution to the repository,
+   the CLA Assistant will post a comment asking you to sign. Leave this
+   exact comment on the PR to complete signing:
+
+   ```
+   I have read the CLA Document and I hereby sign the CLA
+   ```
+
+   From your second PR onward, this check passes automatically.
 6. Fill out the PR template completely.
 
 ---
