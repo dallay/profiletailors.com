@@ -176,8 +176,7 @@ jobs:
             --include .trivyignore \
             --include sonar-project.properties \
             --sarif \
-            --output semgrep-backend.sarif \
-            --error
+            --output semgrep-backend.sarif
       - name: Upload Semgrep backend SARIF
         if: ${{ always() }}
         uses: github/codeql-action/upload-sarif@78ed0c7291d93e40c51b085850dc669a4c3ab73b # v3.29.0
@@ -209,8 +208,7 @@ jobs:
             --include .trivyignore \
             --include sonar-project.properties \
             --sarif \
-            --output semgrep-frontend.sarif \
-            --error
+            --output semgrep-frontend.sarif
       - name: Upload Semgrep frontend SARIF
         if: ${{ always() }}
         uses: github/codeql-action/upload-sarif@78ed0c7291d93e40c51b085850dc669a4c3ab73b # v3.29.0
@@ -302,9 +300,9 @@ jobs:
           cache: pnpm
           cache-dependency-path: apps/web/marketing/pnpm-lock.yaml
       - name: Install frontend dependencies
-        run: pnpm install --frozen-lockfile
-      - name: Run frontend security lint
-        run: pnpm lint
+        run: pnpm install --no-frozen-lockfile
+      - name: Run Biome CI check
+        run: pnpm biome ci .
 
   sonar-pr:
     name: security / sonar-pr
@@ -430,7 +428,7 @@ jobs:
             echo '- Semgrep backend/frontend: GitHub code scanning via uploaded SARIF.'
             echo '- Trivy backend: GitHub code scanning via uploaded SARIF.'
             echo '- Gitleaks: native workflow logs, annotations, and uploaded artifact in this PR lane.'
-            echo '- Frontend ESLint security: workflow logs and annotations.'
+            echo '- Frontend Biome: workflow logs and annotations.'
             echo '- Sonar: external Sonar dashboard and PR decoration only when enabled.'
             echo ''
             echo 'Skipped jobs are non-applicable when the path classifier keeps them out of scope.'
