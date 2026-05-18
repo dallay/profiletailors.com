@@ -15,18 +15,21 @@
     "build": "astro build",
     "preview": "astro preview",
     "astro": "astro",
-    "check": "astro check"
+    "check": "astro check",
+    "lint": "biome check .",
+    "format": "biome format --write ."
   },
   "dependencies": {
+    "@dallay/astro-icon": "^1.3.3",
     "@iconify-json/lucide": "^1.2.108",
     "@tailwindcss/vite": "^4.3.0",
     "astro": "^6.3.3",
-    "@dallay/astro-icon": "^1.3.3",
     "tailwindcss": "^4.3.0",
     "yaml": "^2.8.3"
   },
-  "devDependencies": {
+"devDependencies": {
     "@astrojs/check": "^0.9.9",
+    "@biomejs/biome": "2.4.15",
     "typescript": "^6.0.3"
   },
   "pnpm": {

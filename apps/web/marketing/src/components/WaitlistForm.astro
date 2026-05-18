@@ -1,4 +1,5 @@
 ---
+
 interface Props {
   inputPlaceholder: string
   cta: string
@@ -39,7 +40,7 @@ const { inputPlaceholder, cta, waiting, successSuffix } = Astro.props
     e.preventDefault()
     const input = /** @type {HTMLInputElement} */ (document.getElementById('email-input'))
     const email = input?.value?.trim()
-    if (!email || !email.includes('@')) { input?.focus(); return }
+    if (!email?.includes('@')) { input?.focus(); return }
 
     const form = document.getElementById('waitlist-form')
     const success = document.getElementById('form-success')

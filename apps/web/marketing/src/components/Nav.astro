@@ -1,20 +1,19 @@
 ---
+
 import ThemeToggle from './ThemeToggle.astro'
+import Logo from './Logo.astro'
 
 interface Props {
-  name: string
   langSwitch: string
   langHref: string
   langLabel: string
 }
 
-const { name, langSwitch, langHref, langLabel } = Astro.props
+const { langSwitch, langHref, langLabel } = Astro.props
 ---
 
-<nav class="flex items-center justify-between px-6 py-5 max-w-4xl mx-auto">
-  <span class="font-mono text-sm tracking-widest text-text-display">
-    {name}
-  </span>
+<nav aria-label="Main" class="flex items-center justify-between px-6 py-5 max-w-4xl mx-auto">
+  <Logo size="md" />
   <div class="flex items-center gap-6">
     <ThemeToggle />
     <a
