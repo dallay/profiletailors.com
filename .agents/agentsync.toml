@@ -155,3 +155,8 @@ description = "Root AGENTS.md for tools that look for it in repo root"
 source = "AGENTS.md"
 destination = "AGENTS.md"
 type = "symlink"
+
+[agents.root.targets.design]
+source = "DESIGN.md"
+destination = "DESIGN.md"
+type = "symlink"
