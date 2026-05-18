@@ -141,6 +141,7 @@ jobs:
           GITLEAKS_ENABLE_SUMMARY: true
           GITLEAKS_ENABLE_UPLOAD_ARTIFACT: true
           GITLEAKS_EXTRA_ARGS: --log-opts="origin/${{ github.base_ref }}...HEAD"
+          GITLEAKS_LICENSE: ${{ secrets.GITLEAKS_LICENSE }} # Only required for Organizations, not personal accounts.
       - name: Explain native reporting channel
         if: ${{ always() }}
         run: |
