@@ -1,0 +1,162 @@
+# Dependabot configuration
+# https://docs.github.com/en/code-security/dependabot
+
+version: 2
+updates:
+  # Frontend dependencies (npm/pnpm)
+  - package-ecosystem: "npm"
+    directory: "/apps/web/marketing"
+    schedule:
+      day: "monday"
+      time: "09:00"
+      timezone: "UTC"
+    commit-message:
+      prefix: "chore"
+      include: "scope"
+    open-pull-requests-limit: 10
+    labels:
+      - "dependencies"
+      - "frontend"
+    versioning-strategy: increase
+    groups:
+      # Group minor/patch updates for popular frameworks
+      astro-ecosystem:
+        patterns:
+          - "astro"
+          - "@astrojs/*"
+        update-types:
+          - "minor"
+          - "patch"
+      tailwind-ecosystem:
+        patterns:
+          - "tailwindcss"
+          - "@tailwindcss/*"
+        update-types:
+          - "minor"
+          - "patch"
+      # Group all dev dependencies
+      dev-dependencies:
+        patterns:
+          - "*"
+        update-types:
+          - "minor"
+          - "patch"
+        exclude-patterns:
+          - "typescript"
+    # Auto-merge for low-risk updates
+    automerge: true
+    automerge-type: "squash"
+    # Review major updates manually
+    ignore:
+      - dependency-name: "typescript"
+        update-types: ["major"]
+      - dependency-name: "astro"
+        update-types: ["major"]
+
+  # Backend dependencies (Gradle)
+  - package-ecosystem: "gradle"
+    directory: "/server/smp"
+    schedule:
+      day: "wednesday"
+      time: "10:00"
+      timezone: "UTC"
+    commit-message:
+      prefix: "chore"
+      include: "scope"
+    open-pull-requests-limit: 8
+    labels:
+      - "dependencies"
+      - "backend"
+    versioning-strategy: "increase"
+    groups:
+      # Spring Boot ecosystem - group related Spring libraries
+      spring-boot:
+        patterns:
+          - "org.springframework.boot:*"
+          - "org.springframework.*:*"
+        update-types:
+          - "minor"
+          - "patch"
+      # Kotlin ecosystem
+      kotlin:
+        patterns:
+          - "org.jetbrains.kotlin:*"
+          - "org.jetbrains.kotlinx:*"
+        update-types:
+          - "minor"
+          - "patch"
+      # Testing - group test containers and frameworks
+      testing:
+        patterns:
+          - "org.testcontainers:*"
+          - "org.springframework.modulith:*"
+        update-types:
+          - "minor"
+          - "patch"
+      # Default group for other dependencies
+      dependencies:
+        patterns:
+          - "*"
+        update-types:
+          - "minor"
+          - "patch"
+    # Auto-merge patch and most minor updates
+    automerge: true
+    automerge-type: "squash"
+    # Manual review for major version bumps
+    ignore:
+      - dependency-name: "org.jetbrains.kotlin:kotlin"
+        update-types: ["major"]
+      - dependency-name: "org.springframework.boot:spring-boot-starter"
+        update-types: ["major"]
+
+  # GitHub Actions
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    schedule:
+      day: "saturday"
+      time: "11:00"
+      timezone: "UTC"
+    commit-message:
+      prefix: "ci"
+      include: "scope"
+    open-pull-requests-limit: 5
+    labels:
+      - "dependencies"
+      - "ci"
+    # Group all actions into one PR
+    groups:
+      github-actions:
+        patterns:
+          - "*"
+        update-types:
+          - "minor"
+          - "patch"
+    # Auto-merge actions updates (low risk)
+    automerge: true
+    automerge-type: "squash"
+
+  # Bazel dependencies (WORKSPACE.bazel)
+  - package-ecosystem: "bazel"
+    directory: "/"
+    schedule:
+      day: "sunday"
+      time: "12:00"
+      timezone: "UTC"
+    commit-message:
+      prefix: "chore"
+      include: "scope"
+    open-pull-requests-limit: 3
+    labels:
+      - "dependencies"
+      - "bazel"
+    versioning-strategy: "increase"
+    # Manual review for Bazel - high risk
+    automerge: false
+
+# Configuration for security updates
+security-updates:
+  enabled: true
+  commit-message:
+    prefix: "fix"
+    include: "scope"
