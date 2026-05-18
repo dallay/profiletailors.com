@@ -177,8 +177,9 @@ jobs:
             --include .trivyignore \
             --include sonar-project.properties \
             --sarif \
-            --output semgrep-backend.sarif \
-            --no-error
+            --output semgrep-backend.sarif || true
+
+          test -f semgrep-backend.sarif
       - name: Upload Semgrep backend SARIF
         if: ${{ always() }}
         uses: github/codeql-action/upload-sarif@v4
@@ -210,8 +211,9 @@ jobs:
             --include .trivyignore \
             --include sonar-project.properties \
             --sarif \
-            --output semgrep-frontend.sarif \
-            --no-error
+            --output semgrep-frontend.sarif || true
+
+          test -f semgrep-frontend.sarif
       - name: Upload Semgrep frontend SARIF
         if: ${{ always() }}
         uses: github/codeql-action/upload-sarif@v4
@@ -261,17 +263,19 @@ jobs:
     steps:
       - name: Checkout code
         uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4.3.1
+      - name: Install Trivy CLI
+        run: |
+          curl -sfL https://raw.githubusercontent.com/aquasecurity/trivy/main/contrib/install.sh | sh -s -- -b /usr/local/bin
       - name: Run Trivy vulnerability scan
-        uses: aquasecurity/trivy-action@b6643a29fecd7f34b3597bc6acb0a98b03d33ff8 # v0.33.1
-        with:
-          scan-type: fs
-          scan-ref: .
-          scanners: vuln,misconfig
-          severity: HIGH,CRITICAL
-          ignore-unfixed: true
-          format: sarif
-          output: trivy-backend.sarif
-          exit-code: '0'
+        run: |
+          trivy fs . \
+            --scanners vuln,misconfig \
+            --severity HIGH,CRITICAL \
+            --ignore-unfixed \
+            --format sarif \
+            --output trivy-backend.sarif || true
+
+          test -f trivy-backend.sarif
       - name: Upload Trivy SARIF
         if: ${{ always() }}
         uses: github/codeql-action/upload-sarif@v4
