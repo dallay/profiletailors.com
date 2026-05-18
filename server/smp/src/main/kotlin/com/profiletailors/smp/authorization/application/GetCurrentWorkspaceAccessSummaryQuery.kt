@@ -7,7 +7,9 @@ import com.profiletailors.smp.platform.application.AuthorizationDecisionAuditFac
 import com.profiletailors.smp.platform.application.Query
 import com.profiletailors.smp.platform.application.QueryHandler
 
-object GetCurrentWorkspaceAccessSummaryQuery : Query<WorkspaceAccessSummary>
+object GetCurrentWorkspaceAccessSummaryQuery : Query<WorkspaceAccessSummary> {
+    const val CURRENT_WORKSPACE_ACCESS_ENTITLEMENT: String = "workspace.access.summary"
+}
 
 data class WorkspaceAccessSummary(
     val workspaceId: String,
@@ -29,7 +31,10 @@ class GetCurrentWorkspaceAccessSummaryHandler(
         val principalContext = principalContextProvider.require()
         val resourceContext = resourceContextProvider.require()
         val requiredPermission = PermissionKey.of("workspace", "access", "read")
-        val decision = workspaceAuthorizationService.decideDetailed(requiredPermission)
+        val decision = workspaceAuthorizationService.decideDetailed(
+            requiredPermission = requiredPermission,
+            requiredEntitlementKey = GetCurrentWorkspaceAccessSummaryQuery.CURRENT_WORKSPACE_ACCESS_ENTITLEMENT,
+        )
 
         auditHook.onAuthorizationDecision(
             AuthorizationDecisionAuditFact(
@@ -45,7 +50,11 @@ class GetCurrentWorkspaceAccessSummaryHandler(
         )
 
         if (decision.decision != AuthorizationDecision.ALLOW) {
-            throw AuthorizationDeniedException("Missing required permission ${requiredPermission.value}.")
+            throw AuthorizationDeniedException.forDecision(
+                decision = decision,
+                requiredPermission = requiredPermission,
+                requiredEntitlementKey = GetCurrentWorkspaceAccessSummaryQuery.CURRENT_WORKSPACE_ACCESS_ENTITLEMENT,
+            )
         }
 
         val membership = workspaceMembershipResolver.resolve(principalContext, resourceContext)
@@ -67,4 +76,19 @@ class GetCurrentWorkspaceAccessSummaryHandler(
 
 class AuthorizationDeniedException(
     message: String = "Access denied.",
-) : IllegalStateException(message)
+) : IllegalStateException(message) {
+    companion object {
+        fun forDecision(
+            decision: AuthorizationDecisionResult,
+            requiredPermission: PermissionKey,
+            requiredEntitlementKey: String,
+        ): AuthorizationDeniedException = when (decision.reasonCode) {
+            com.profiletailors.smp.platform.application.AuthorizationReasonCode.MISSING_ENTITLEMENT ->
+                AuthorizationDeniedException("Missing required entitlement $requiredEntitlementKey.")
+            com.profiletailors.smp.platform.application.AuthorizationReasonCode.MISSING_MEMBERSHIP ->
+                AuthorizationDeniedException("Active workspace membership is required.")
+            else ->
+                AuthorizationDeniedException("Missing required permission ${requiredPermission.value}.")
+        }
+    }
+}

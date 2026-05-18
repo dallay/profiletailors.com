@@ -1,0 +1,21 @@
+# Minimal Semgrep baseline for the active repository surfaces.
+# Keep rule packs broad enough to cover Kotlin/Java, JS/TS, Docker, GitHub Actions,
+# and secrets without creating repo-local policy drift too early.
+rules:
+  - p/java
+  - p/kotlin
+  - p/javascript
+  - p/typescript
+  - p/dockerfile
+  - p/github-actions
+  - p/secrets
+
+# Exclusions stay narrow and performance-oriented.
+# Secrets scanning remains repo-wide in dedicated tools, so generated artifacts can be skipped here.
+paths:
+  exclude:
+    - apps/web/marketing/.astro
+    - apps/web/marketing/dist
+    - apps/web/marketing/node_modules
+    - '**/.gradle'
+    - '**/build'

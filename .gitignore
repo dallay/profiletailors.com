@@ -38,3 +38,13 @@
 /GEMINI.md.bak
 /opencode.json
 # END AI Agent Symlinks
+
+# Lefthook Git Hooks
+.lefthook/
+.lefthookrc.yml
+lefthook-local.yml
+
+# Environment variables (all directories)
+.env
+.env.production
+.env.local

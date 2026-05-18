@@ -10,23 +10,14 @@ behavior while keeping operational breadth phased.
 
 ### Requirement: Auditability of Security-Relevant Platform Actions
 
-The system MUST provide auditability for security-relevant platform actions and decisions as a
-platform concern.
+The system MUST provide auditability for security-relevant platform actions and decisions as a platform concern.
 
-At minimum, the platform MUST preserve a seam for recording security-relevant events involving
-authentication, credential use, workspace membership changes, role or grant changes, and protected
-authorization outcomes.
-For the existing proving slice, the platform MUST produce runtime audit-ready proof for allow and
-deny outcomes of `/api/authorization/workspace-access/current` for authenticated USER, authenticated
-SERVICE_ACCOUNT, and authenticated API_KEY requests.
-That proof MUST be attributable to explicit decision facts for the evaluated request, including the
-protected capability and enough authorization or credential-state context to distinguish allow,
-authorization-controlled deny, and revoked-or-inactive API-key deny on the active workspace request.
-This change MUST remain limited to runtime proof for the existing slice and MUST NOT require audit
-persistence, compliance reporting, credential-governance dashboards, issuance reporting, inventory
-reporting, or broader governance workflows.
-Comprehensive compliance reporting, retention operations, organization-wide governance workflows,
-and governance expansion beyond this slice remain deferred.
+At minimum, the platform MUST preserve a seam for recording security-relevant events involving authentication, credential use, workspace membership changes, role or grant changes, and protected authorization outcomes.
+For the existing proving slice, the platform MUST produce runtime audit-ready proof for allow and deny outcomes of `/api/authorization/workspace-access/current` for authenticated USER, authenticated SERVICE_ACCOUNT, and authenticated API_KEY requests.
+That proof MUST be attributable to explicit decision facts for the evaluated request, including the protected capability and enough authorization or credential-state context to distinguish allow, authorization-controlled deny, revoked-or-inactive API-key deny, predecessor-after-replacement deny, and successor-after-replacement allow on the active workspace request.
+This change MUST remain limited to runtime proof for the existing slice and MUST NOT require audit persistence, compliance reporting, credential-governance dashboards, issuance reporting, inventory reporting, or broader governance workflows.
+The current change MUST require end-to-end before-and-after proof on `/api/authorization/workspace-access/current` showing that the old API key is accepted before replacement, the new API key is accepted after replacement, and the old API key is denied after replacement completes.
+Comprehensive compliance reporting, retention operations, organization-wide governance workflows, and governance expansion beyond this slice remain deferred.
 
 #### Scenario: Allowed service-account workspace access outcome is audit-ready at runtime
 
@@ -84,6 +75,21 @@ and governance expansion beyond this slice remain deferred.
   credential was revoked or inactive
 - AND the proof MUST remain limited to runtime observability for the existing slice
 
+#### Scenario: Successor API-key allow is audit-ready at runtime after replacement
+
+- GIVEN an authenticated API_KEY principal accesses `/api/authorization/workspace-access/current` with a successor API key after a completed replacement
+- WHEN the protected request completes successfully
+- THEN the platform MUST surface runtime audit-ready proof that the authorization outcome was allowed
+- AND the proof MUST make the successor-after-replacement outcome attributable to explicit decision facts for the existing slice
+
+#### Scenario: Predecessor API-key denial is audit-ready at runtime after replacement
+
+- GIVEN a persisted API_KEY principal presents a predecessor API key for `/api/authorization/workspace-access/current`
+- AND a completed replacement has made that credential the predecessor of an accepted successor
+- WHEN the request is evaluated
+- THEN the platform MUST surface runtime audit-ready proof that the outcome was denied because the predecessor credential was no longer valid after replacement
+- AND the proof MUST remain limited to runtime observability for the existing slice
+
 ### Requirement: Current-Slice Governance Deferral Boundary
 
 The system MUST keep governance scope for `backend-api-key-support` limited to runtime proof for the
@@ -102,22 +108,40 @@ If broader governance capabilities are needed, they MUST be specified in a later
 - THEN that capability MUST be considered deferred
 - AND the current change MUST proceed without broadening into API-key governance platform features
 
+#### Scenario: Broader lifecycle governance remains deferred
+
+- GIVEN a requested governance capability requires credential inventory reporting, durable audit storage, or generalized lifecycle dashboards
+- WHEN the scope for this change is reviewed
+- THEN that capability MUST be considered deferred
+- AND the current change MUST proceed without broadening beyond runtime proof for the replacement cutover on the existing slice
+
 ### Requirement: Deterministic and Explainable Authorization Governance
 
 The system MUST support governance through deterministic and explainable authorization behavior.
 
-Authorization outcomes MUST be attributable to explicit platform facts such as membership, role
-permissions, direct grants, denials, scopes, entitlements, and context.
+Authorization outcomes MUST be attributable to explicit platform facts such as membership, role permissions, direct grants, denials, scopes, entitlements, and context.
 The platform MUST favor explicit-over-implicit behavior so decisions can be understood and governed.
 The system MUST NOT rely on undocumented fallback rules for protected access.
+For `backend-feature-entitlements`, deny outcomes on `/api/authorization/workspace-access/current` MUST remain distinguishable when caused by missing workspace entitlement versus missing principal permission.
+This change MUST remain limited to runtime explainability for the existing proving slice and MUST NOT require durable audit storage, governance dashboards, or broader reporting workflows.
 
-#### Scenario: Denial is explainable from explicit facts
+#### Scenario: Missing entitlement denial is explainable on the proving slice
 
-- GIVEN a principal is denied a protected capability
+- GIVEN a principal is denied `/api/authorization/workspace-access/current`
+- AND the principal has an effective allow path for the required explicit workspace-scoped permission
+- AND the active workspace is not entitled to the proving-slice feature
 - WHEN the authorization outcome is examined
-- THEN the denial MUST be attributable to explicit platform facts or the lack of an explicit allow
-  path
-- AND the result MUST NOT depend on hidden or undocumented fallback behavior
+- THEN the denial MUST be attributable to missing workspace entitlement
+- AND the result MUST remain distinguishable from a denial caused by missing principal permission
+
+#### Scenario: Missing permission denial remains explainable on the proving slice
+
+- GIVEN a principal is denied `/api/authorization/workspace-access/current`
+- AND the active workspace is entitled to the proving-slice feature
+- AND the principal lacks an effective allow path for the required explicit workspace-scoped permission
+- WHEN the authorization outcome is examined
+- THEN the denial MUST be attributable to missing principal permission or the lack of an explicit allow path
+- AND the result MUST remain distinguishable from a denial caused by missing workspace entitlement
 
 #### Scenario: Equivalent state yields equivalent governed outcome
 

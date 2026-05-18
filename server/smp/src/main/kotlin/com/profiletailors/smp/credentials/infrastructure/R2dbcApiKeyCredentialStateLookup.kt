@@ -48,9 +48,9 @@ class R2dbcApiKeyCredentialStateLookup(
                     credentialReference = requireNotNull(row.get("id", String::class.java)),
                     secretVerifier = requireNotNull(row.get("secret_verifier", String::class.java)),
                     status = requireNotNull(row.get("status", String::class.java)),
-                    replacedAt = row.get("replaced_at", java.time.OffsetDateTime::class.java),
                     subject = requireNotNull(row.get("subject", String::class.java)),
                     provider = row.get("provider", String::class.java),
+                    replacedAt = row.get("replaced_at", java.time.OffsetDateTime::class.java),
                 )
             }
             .one()
@@ -63,8 +63,9 @@ class R2dbcApiKeyCredentialStateLookup(
 
     private fun validateCredentialState(record: ApiKeyCredentialRecord, presentedSecret: String) {
         val reason = when {
-            record.status != ACTIVE_STATUS && record.status == REVOKED_STATUS -> ApiKeyCredentialFailureReason.REVOKED
+            record.status == REVOKED_STATUS -> ApiKeyCredentialFailureReason.REVOKED
             record.status != ACTIVE_STATUS -> ApiKeyCredentialFailureReason.INACTIVE
+            record.replacedAt != null -> ApiKeyCredentialFailureReason.REPLACED
             !secretVerifier.matches(presentedSecret, record.secretVerifier) -> ApiKeyCredentialFailureReason.INVALID
             else -> return
         }
@@ -82,6 +83,7 @@ class R2dbcApiKeyCredentialStateLookup(
         val status: String,
         val subject: String,
         val provider: String?,
+        val replacedAt: java.time.OffsetDateTime?,
     )
 
     companion object {
@@ -94,6 +96,7 @@ class R2dbcApiKeyCredentialStateLookup(
                    akc.id,
                    akc.secret_verifier,
                    akc.status,
+                   akc.replaced_at,
                    p.subject,
                    p.provider
             FROM api_key_credentials akc

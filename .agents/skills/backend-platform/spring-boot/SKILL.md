@@ -89,7 +89,8 @@ annotation class ApplicationService
 Rules:
 
 - `ApplicationService` is a local architectural marker, not a framework annotation.
-- Infrastructure may scan or proxy classes marked with `ApplicationService`.
+- Use it for readability and architecture enforcement, not as an excuse for hidden framework magic.
+- Prefer explicit infrastructure `@Configuration` + `@Bean` wiring even when the marker is present.
 - Application code must not import Spring directly just to become a bean.
 
 ## Bean Wiring and Dependency Injection
@@ -174,25 +175,39 @@ Prefer **package by feature** (vertical slicing) over package by technical layer
 
 ```text
 com.profiletailors.workspace/
-  WorkspaceController.kt
-  CreateWorkspaceCommand.kt
-  CreateWorkspaceCommandHandler.kt
-  FindWorkspaceQuery.kt
-  WorkspaceRepository.kt
-  WorkspaceResponse.kt
-  adapter/
-    WorkspaceR2dbcRepository.kt
-    WorkspaceMapper.kt
+  domain/
+    Workspace.kt
+    WorkspaceId.kt
+    WorkspaceRepository.kt
+  application/
+    create/
+      CreateWorkspaceCommand.kt
+      CreateWorkspaceCommandHandler.kt
+      WorkspaceCreator.kt
+    find/
+      FindWorkspaceQuery.kt
+      FindWorkspaceQueryHandler.kt
+      WorkspaceFinder.kt
+  infrastructure/
+    http/
+      WorkspaceController.kt
+      WorkspaceResponse.kt
+    persistence/
+      WorkspaceEntity.kt
+      WorkspaceMapper.kt
+      WorkspaceR2dbcRepository.kt
+      WorkspaceStoreR2dbcAdapter.kt
+    configuration/
+      WorkspaceConfiguration.kt
 
 com.profiletailors.billing/
-  BillingController.kt
-  ChargeSubscriptionCommandHandler.kt
-  BillingGateway.kt
-  adapter/
-    StripeBillingGateway.kt
+  domain/
+  application/
+  infrastructure/
 ```
 
-This keeps the code aligned with bounded contexts and reduces cross-feature coupling.
+This keeps the code aligned with bounded contexts, preserves hexagonal boundaries, and avoids giant
+cross-feature technical folders.
 
 ## HTTP Adapter Patterns
 
@@ -404,11 +419,11 @@ class WorkspaceMapper {
 }
 ```
 
-### Default vs Legacy Persistence
+### Reactive Persistence Baseline
 
 - **Default for this stack:** R2DBC or another reactive persistence adapter.
-- **Legacy / compatibility only:** JPA-based adapters.
-- If a project must use JPA, document the exception explicitly and treat it as a blocking boundary.
+- Blocking persistence is outside the default path for this platform.
+- If an exceptional compatibility adapter is unavoidable, document it explicitly and isolate it as a blocking boundary.
 - Do not mix reactive HTTP flows with hidden blocking persistence calls.
 
 ## Transaction Management
@@ -421,8 +436,8 @@ application annotations.
 - Define one transaction per write use case when consistency requires it.
 - Keep domain and application logic transaction-agnostic.
 - Resolve transactions from infrastructure wiring, not from application classes.
-- Reactive transaction management has different semantics than imperative JPA transactions; do not
-  copy patterns blindly.
+- Reactive transaction management has different semantics than imperative blocking transactions; do
+  not copy patterns blindly.
 - Prefer `TransactionalOperator` for reactive transaction boundaries.
 
 ### Reactive Infrastructure Boundary Example
@@ -434,9 +449,11 @@ class TransactionalSubscriberStore(
     private val transactionalOperator: TransactionalOperator,
 ) {
     suspend fun save(subscriber: Subscriber): Subscriber =
-        transactionalOperator.executeAndAwait {
-            repository.save(subscriber)
-        }!!
+        requireNotNull(
+            transactionalOperator.executeAndAwait {
+                repository.save(subscriber)
+            },
+        ) { "Reactive transaction completed without returning a saved subscriber" }
 }
 ```
 
@@ -607,15 +624,15 @@ handoff before blaming the monitoring backend.
 - ❌ Returning persistence entities from controllers
 - ❌ Using `MockMvc` as the default web test tool in WebFlux apps
 - ❌ Introducing `RestTemplate` in a reactive stack
-- ❌ Mixing blocking JPA calls into reactive request flows without explicit isolation
-- ❌ Treating JPA and R2DBC as interchangeable defaults
+- ❌ Mixing blocking persistence calls into reactive request flows without explicit isolation
+- ❌ Treating blocking adapters and reactive adapters as interchangeable defaults
 - ❌ Putting business rules into validators, controllers, or repository adapters
 
 ## Related Skills
 
 - [hexagonal-architecture](../hexagonal-architecture/SKILL.md)
-- `spring-boot-openapi` (planned companion)
-- `spring-boot-security` (planned companion)
+- `spring-boot-openapi`
+- `spring-boot-security`
 - `spring-boot-testing-webflux`
 - `spring-boot-testing-core`
 - `spring-boot-testing-integrations`

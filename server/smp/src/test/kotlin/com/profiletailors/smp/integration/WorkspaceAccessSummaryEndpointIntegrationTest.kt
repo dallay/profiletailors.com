@@ -1,6 +1,8 @@
 package com.profiletailors.smp.integration
 
 import com.fasterxml.jackson.databind.ObjectMapper
+import com.profiletailors.smp.credentials.application.ReplaceApiKeyCredentialCommand
+import com.profiletailors.smp.credentials.application.ReplaceApiKeyCredentialHandler
 import com.profiletailors.smp.integration.support.CapturingAuditHook
 import com.profiletailors.smp.platform.application.AuditHook
 import com.profiletailors.smp.platform.application.AuthorizationDecisionAuditFact
@@ -48,10 +50,12 @@ import java.time.Instant
         "spring.main.allow-bean-definition-overriding=true",
     ],
 )
+@Suppress("LargeClass")
 class WorkspaceAccessSummaryEndpointIntegrationTest(
     @Autowired private val webTestClient: WebTestClient,
     @Autowired private val databaseClient: DatabaseClient,
     @Autowired private val auditHook: CapturingAuditHook,
+    @Autowired private val replaceApiKeyCredentialHandler: ReplaceApiKeyCredentialHandler,
 ) {
     @BeforeEach
     fun setUp() {
@@ -60,6 +64,7 @@ class WorkspaceAccessSummaryEndpointIntegrationTest(
         kotlinx.coroutines.runBlocking {
             listOf(
                 "DELETE FROM workspace_direct_grants",
+                "DELETE FROM workspace_entitlements",
                 "DELETE FROM membership_roles",
                 "DELETE FROM role_permissions",
                 "DELETE FROM roles",
@@ -78,8 +83,8 @@ class WorkspaceAccessSummaryEndpointIntegrationTest(
     }
 
     @Test
-    fun `returns workspace access summary for authorized member`() {
-        seedAuthorizedMember()
+    fun `returns workspace access summary for entitled authorized member`() {
+        seedAuthorizedMember(entitled = true)
 
         webTestClient.get()
             .uri("/api/authorization/workspace-access/current")
@@ -121,8 +126,8 @@ class WorkspaceAccessSummaryEndpointIntegrationTest(
     }
 
     @Test
-    fun `denies member without required permission`() {
-        seedMemberWithoutPermission()
+    fun `denies entitled member without required permission`() {
+        seedMemberWithoutPermission(entitled = true)
 
         webTestClient.get()
             .uri("/api/authorization/workspace-access/current")
@@ -148,8 +153,8 @@ class WorkspaceAccessSummaryEndpointIntegrationTest(
     }
 
     @Test
-    fun `allows member through persisted direct allow grant`() {
-        seedMemberWithoutPermission()
+    fun `allows entitled member through persisted direct allow grant`() {
+        seedMemberWithoutPermission(entitled = true)
         seedDirectGrant(effect = "ALLOW", permissionId = "permission-1", permissionKey = "workspace:access:read")
 
         webTestClient.get()
@@ -180,8 +185,8 @@ class WorkspaceAccessSummaryEndpointIntegrationTest(
     }
 
     @Test
-    fun `direct deny overrides role based allow on h2`() {
-        seedAuthorizedMember()
+    fun `direct deny overrides entitled role based allow on h2`() {
+        seedAuthorizedMember(entitled = true)
         seedDirectGrant(
             effect = "DENY",
             permissionId = "permission-1",
@@ -213,8 +218,8 @@ class WorkspaceAccessSummaryEndpointIntegrationTest(
     }
 
     @Test
-    fun `expired direct grant is ignored on h2`() {
-        seedMemberWithoutPermission()
+    fun `expired direct grant is ignored on entitled h2 member`() {
+        seedMemberWithoutPermission(entitled = true)
         seedDirectGrant(
             effect = "ALLOW",
             permissionId = "permission-1",
@@ -246,8 +251,8 @@ class WorkspaceAccessSummaryEndpointIntegrationTest(
     }
 
     @Test
-    fun `returns workspace access summary for authorized service account`() {
-        seedAuthorizedServiceAccount()
+    fun `returns workspace access summary for entitled authorized service account`() {
+        seedAuthorizedServiceAccount(entitled = true)
 
         webTestClient.get()
             .uri("/api/authorization/workspace-access/current")
@@ -279,8 +284,8 @@ class WorkspaceAccessSummaryEndpointIntegrationTest(
     }
 
     @Test
-    fun `denies service account without required permission`() {
-        seedServiceAccountWithoutPermission()
+    fun `denies entitled service account without required permission`() {
+        seedServiceAccountWithoutPermission(entitled = true)
 
         webTestClient.get()
             .uri("/api/authorization/workspace-access/current")
@@ -307,7 +312,7 @@ class WorkspaceAccessSummaryEndpointIntegrationTest(
 
     @Test
     fun `rejects revoked service-account credential before authorization executes`() {
-        seedAuthorizedServiceAccount(credentialStatus = "REVOKED")
+        seedAuthorizedServiceAccount(credentialStatus = "REVOKED", entitled = true)
 
         webTestClient.get()
             .uri("/api/authorization/workspace-access/current")
@@ -333,8 +338,8 @@ class WorkspaceAccessSummaryEndpointIntegrationTest(
     }
 
     @Test
-    fun `returns workspace access summary for authorized api key principal`() {
-        seedAuthorizedApiKeyPrincipal()
+    fun `returns workspace access summary for entitled authorized api key principal`() {
+        seedAuthorizedApiKeyPrincipal(entitled = true)
 
         webTestClient.get()
             .uri("/api/authorization/workspace-access/current")
@@ -366,8 +371,8 @@ class WorkspaceAccessSummaryEndpointIntegrationTest(
     }
 
     @Test
-    fun `denies api key principal without required permission`() {
-        seedApiKeyPrincipalWithoutPermission()
+    fun `denies entitled api key principal without required permission`() {
+        seedApiKeyPrincipalWithoutPermission(entitled = true)
 
         webTestClient.get()
             .uri("/api/authorization/workspace-access/current")
@@ -394,7 +399,7 @@ class WorkspaceAccessSummaryEndpointIntegrationTest(
 
     @Test
     fun `rejects revoked api key credential before authorization executes`() {
-        seedAuthorizedApiKeyPrincipal(credentialStatus = "REVOKED")
+        seedAuthorizedApiKeyPrincipal(credentialStatus = "REVOKED", entitled = true)
 
         webTestClient.get()
             .uri("/api/authorization/workspace-access/current")
@@ -421,7 +426,7 @@ class WorkspaceAccessSummaryEndpointIntegrationTest(
 
     @Test
     fun `rejects inactive api key credential before authorization executes`() {
-        seedAuthorizedApiKeyPrincipal(credentialStatus = "INACTIVE")
+        seedAuthorizedApiKeyPrincipal(credentialStatus = "INACTIVE", entitled = true)
 
         webTestClient.get()
             .uri("/api/authorization/workspace-access/current")
@@ -446,6 +451,80 @@ class WorkspaceAccessSummaryEndpointIntegrationTest(
         )
     }
 
+    @Test
+    fun `denies authorized principal when workspace entitlement is missing on h2`() {
+        seedAuthorizedMember(entitled = false)
+
+        webTestClient.get()
+            .uri("/api/authorization/workspace-access/current")
+            .header(HttpHeaders.AUTHORIZATION, "Bearer valid-token")
+            .header("X-Workspace-Id", "workspace-1")
+            .exchange()
+            .expectStatus().isForbidden
+
+        assertAuthorizationFacts(
+            listOf(
+                AuthorizationDecisionAuditFact(
+                    requestName = "com.profiletailors.smp.authorization.application.GetCurrentWorkspaceAccessSummaryQuery",
+                    requestPath = "/api/authorization/workspace-access/current",
+                    permission = "workspace:access:read",
+                    principalId = "principal-1",
+                    workspaceId = "workspace-1",
+                    decision = com.profiletailors.smp.authorization.domain.AuthorizationDecision.DENY,
+                    reasonCode = AuthorizationReasonCode.MISSING_ENTITLEMENT,
+                    roleKeys = listOf("member"),
+                ),
+            ),
+        )
+    }
+
+    @Test
+    fun `allows old api key before replacement and new api key after replacement on h2`() {
+        seedAuthorizedApiKeyPrincipal(entitled = true)
+
+        webTestClient.get()
+            .uri("/api/authorization/workspace-access/current")
+            .header(HttpHeaders.AUTHORIZATION, "Bearer ptk_lookup.secret-value")
+            .header("X-Workspace-Id", "workspace-1")
+            .accept(MediaType.APPLICATION_JSON)
+            .exchange()
+            .expectStatus().isOk
+            .expectBody()
+            .jsonPath("$.principalId").isEqualTo("api-key-principal-1")
+
+        val replacement = kotlinx.coroutines.runBlocking {
+            replaceApiKeyCredentialHandler.handle(
+                ReplaceApiKeyCredentialCommand("api-key-cred-1"),
+            )
+        }
+
+        webTestClient.get()
+            .uri("/api/authorization/workspace-access/current")
+            .header(HttpHeaders.AUTHORIZATION, "Bearer ptk_lookup.secret-value")
+            .header("X-Workspace-Id", "workspace-1")
+            .exchange()
+            .expectStatus().isUnauthorized
+
+        webTestClient.get()
+            .uri("/api/authorization/workspace-access/current")
+            .header(HttpHeaders.AUTHORIZATION, "Bearer ${replacement.successorPlaintextApiKey}")
+            .header("X-Workspace-Id", "workspace-1")
+            .accept(MediaType.APPLICATION_JSON)
+            .exchange()
+            .expectStatus().isOk
+            .expectBody()
+            .jsonPath("$.principalId").isEqualTo("api-key-principal-1")
+
+        val rows = kotlinx.coroutines.runBlocking { readApiKeyRows() }
+        assertEquals(2, rows.size)
+        val predecessor = rows.first { it.id == "api-key-cred-1" }
+        val successor = rows.first { it.id == replacement.successorCredentialReference }
+        assertEquals("INACTIVE", predecessor.status)
+        assertEquals(replacement.successorCredentialReference, predecessor.replacedByCredentialId)
+        assertEquals("ACTIVE", successor.status)
+        assertEquals("api-key-cred-1", successor.replacedCredentialId)
+    }
+
     private fun assertAuthorizationFacts(expected: List<AuthorizationDecisionAuditFact>) {
         assertEquals(expected, auditHook.facts)
     }
@@ -466,61 +545,61 @@ class WorkspaceAccessSummaryEndpointIntegrationTest(
         }
     }
 
-    private fun seedAuthorizedMember() {
+    private fun seedAuthorizedMember(entitled: Boolean = false) {
         kotlinx.coroutines.runBlocking {
             databaseClient.sql("INSERT INTO principals (id, principal_type, subject, provider, display_identity) VALUES ('principal-1', 'USER', 'subject-123', 'https://issuer.example', 'yuniel')").fetch().rowsUpdated().awaitSingle()
             databaseClient.sql("INSERT INTO user_identities (principal_id, email, username) VALUES ('principal-1', 'yuniel@example.com', 'yuniel')").fetch().rowsUpdated().awaitSingle()
-            seedWorkspaceAndRole(principalId = "principal-1", principalType = "USER")
+            seedWorkspaceAndRole(principalId = "principal-1", principalType = "USER", entitled = entitled)
             seedRolePermission(permissionId = "permission-1", permissionKey = "workspace:access:read")
         }
     }
 
-    private fun seedMemberWithoutPermission() {
+    private fun seedMemberWithoutPermission(entitled: Boolean = false) {
         kotlinx.coroutines.runBlocking {
             databaseClient.sql("INSERT INTO principals (id, principal_type, subject, provider, display_identity) VALUES ('principal-1', 'USER', 'subject-123', 'https://issuer.example', 'yuniel')").fetch().rowsUpdated().awaitSingle()
             databaseClient.sql("INSERT INTO user_identities (principal_id, email, username) VALUES ('principal-1', 'yuniel@example.com', 'yuniel')").fetch().rowsUpdated().awaitSingle()
-            seedWorkspaceAndRole(principalId = "principal-1", principalType = "USER")
+            seedWorkspaceAndRole(principalId = "principal-1", principalType = "USER", entitled = entitled)
             seedRolePermission(permissionId = "permission-2", permissionKey = "workspace:members:manage")
         }
     }
 
-    private fun seedAuthorizedServiceAccount(credentialStatus: String = "ACTIVE") {
+    private fun seedAuthorizedServiceAccount(credentialStatus: String = "ACTIVE", entitled: Boolean = false) {
         kotlinx.coroutines.runBlocking {
             databaseClient.sql("INSERT INTO principals (id, principal_type, subject, provider, display_identity) VALUES ('service-principal-1', 'SERVICE_ACCOUNT', 'service-account-subject', 'https://issuer.example', 'scheduler-bot')").fetch().rowsUpdated().awaitSingle()
-            seedWorkspaceAndRole(principalId = "service-principal-1", principalType = "SERVICE_ACCOUNT")
+            seedWorkspaceAndRole(principalId = "service-principal-1", principalType = "SERVICE_ACCOUNT", entitled = entitled)
             seedRolePermission(permissionId = "permission-1", permissionKey = "workspace:access:read")
             seedServiceAccountCredential(status = credentialStatus)
         }
     }
 
-    private fun seedServiceAccountWithoutPermission() {
+    private fun seedServiceAccountWithoutPermission(entitled: Boolean = false) {
         kotlinx.coroutines.runBlocking {
             databaseClient.sql("INSERT INTO principals (id, principal_type, subject, provider, display_identity) VALUES ('service-principal-1', 'SERVICE_ACCOUNT', 'service-account-subject', 'https://issuer.example', 'scheduler-bot')").fetch().rowsUpdated().awaitSingle()
-            seedWorkspaceAndRole(principalId = "service-principal-1", principalType = "SERVICE_ACCOUNT")
+            seedWorkspaceAndRole(principalId = "service-principal-1", principalType = "SERVICE_ACCOUNT", entitled = entitled)
             seedRolePermission(permissionId = "permission-2", permissionKey = "workspace:members:manage")
             seedServiceAccountCredential(status = "ACTIVE")
         }
     }
 
-    private fun seedAuthorizedApiKeyPrincipal(credentialStatus: String = "ACTIVE") {
+    private fun seedAuthorizedApiKeyPrincipal(credentialStatus: String = "ACTIVE", entitled: Boolean = false) {
         kotlinx.coroutines.runBlocking {
             databaseClient.sql("INSERT INTO principals (id, principal_type, subject, provider, display_identity) VALUES ('api-key-principal-1', 'API_KEY', 'api-key-subject', NULL, 'integration-key')").fetch().rowsUpdated().awaitSingle()
-            seedWorkspaceAndRole(principalId = "api-key-principal-1", principalType = "API_KEY")
+            seedWorkspaceAndRole(principalId = "api-key-principal-1", principalType = "API_KEY", entitled = entitled)
             seedRolePermission(permissionId = "permission-1", permissionKey = "workspace:access:read")
             seedApiKeyCredential(status = credentialStatus)
         }
     }
 
-    private fun seedApiKeyPrincipalWithoutPermission() {
+    private fun seedApiKeyPrincipalWithoutPermission(entitled: Boolean = false) {
         kotlinx.coroutines.runBlocking {
             databaseClient.sql("INSERT INTO principals (id, principal_type, subject, provider, display_identity) VALUES ('api-key-principal-1', 'API_KEY', 'api-key-subject', NULL, 'integration-key')").fetch().rowsUpdated().awaitSingle()
-            seedWorkspaceAndRole(principalId = "api-key-principal-1", principalType = "API_KEY")
+            seedWorkspaceAndRole(principalId = "api-key-principal-1", principalType = "API_KEY", entitled = entitled)
             seedRolePermission(permissionId = "permission-2", permissionKey = "workspace:members:manage")
             seedApiKeyCredential(status = "ACTIVE")
         }
     }
 
-    private suspend fun seedWorkspaceAndRole(principalId: String, principalType: String) {
+    private suspend fun seedWorkspaceAndRole(principalId: String, principalType: String, entitled: Boolean = false) {
         databaseClient.sql("INSERT INTO workspaces (id, name, status) VALUES ('workspace-1', 'Profile Tailors', 'ACTIVE')").fetch().rowsUpdated().awaitSingle()
         databaseClient.sql("INSERT INTO workspace_memberships (id, workspace_id, principal_id, principal_type, status) VALUES ('membership-1', 'workspace-1', :principalId, :principalType, 'ACTIVE')")
             .bind("principalId", principalId)
@@ -530,6 +609,9 @@ class WorkspaceAccessSummaryEndpointIntegrationTest(
             .awaitSingle()
         databaseClient.sql("INSERT INTO roles (id, role_key, category) VALUES ('role-1', 'member', 'WORKSPACE')").fetch().rowsUpdated().awaitSingle()
         databaseClient.sql("INSERT INTO membership_roles (membership_id, role_id) VALUES ('membership-1', 'role-1')").fetch().rowsUpdated().awaitSingle()
+        if (entitled) {
+            seedWorkspaceEntitlement()
+        }
     }
 
     private suspend fun seedRolePermission(permissionId: String, permissionKey: String) {
@@ -541,6 +623,15 @@ class WorkspaceAccessSummaryEndpointIntegrationTest(
             .awaitSingle()
         databaseClient.sql("INSERT INTO role_permissions (role_id, permission_id) VALUES ('role-1', :permissionId)")
             .bind("permissionId", permissionId)
+            .fetch()
+            .rowsUpdated()
+            .awaitSingle()
+    }
+
+    private suspend fun seedWorkspaceEntitlement(enabled: Boolean = true) {
+        databaseClient.sql("INSERT INTO workspace_entitlements (id, workspace_id, entitlement_key, enabled) VALUES ('entitlement-1', 'workspace-1', :entitlementKey, :enabled)")
+            .bind("entitlementKey", "workspace.access.summary")
+            .bind("enabled", enabled)
             .fetch()
             .rowsUpdated()
             .awaitSingle()
@@ -559,7 +650,7 @@ class WorkspaceAccessSummaryEndpointIntegrationTest(
 
     private suspend fun seedApiKeyCredential(status: String) {
         val verifier = org.springframework.security.crypto.bcrypt.BCrypt.hashpw("secret-value", org.springframework.security.crypto.bcrypt.BCrypt.gensalt())
-        databaseClient.sql("INSERT INTO api_key_credentials (id, principal_id, lookup_key, key_prefix, secret_verifier, status, revoked_at) VALUES ('api-key-cred-1', 'api-key-principal-1', 'ptk_lookup', 'ptk_lookup', :verifier, :status, :revokedAt)")
+        databaseClient.sql("INSERT INTO api_key_credentials (id, principal_id, lookup_key, key_prefix, secret_verifier, status, revoked_at, replaced_by_credential_id, replaced_credential_id, replaced_at) VALUES ('api-key-cred-1', 'api-key-principal-1', 'ptk_lookup', 'ptk_lookup', :verifier, :status, :revokedAt, NULL, NULL, NULL)")
             .bind("verifier", verifier)
             .bind("status", status)
             .let { spec ->
@@ -569,6 +660,27 @@ class WorkspaceAccessSummaryEndpointIntegrationTest(
             .rowsUpdated()
             .awaitSingle()
     }
+
+    private suspend fun readApiKeyRows(): List<ApiKeyCredentialRow> =
+        databaseClient.sql("SELECT id, status, replaced_by_credential_id, replaced_credential_id FROM api_key_credentials ORDER BY id")
+            .map { row, _ ->
+                ApiKeyCredentialRow(
+                    id = requireNotNull(row.get("id", String::class.java)),
+                    status = requireNotNull(row.get("status", String::class.java)),
+                    replacedByCredentialId = row.get("replaced_by_credential_id", String::class.java),
+                    replacedCredentialId = row.get("replaced_credential_id", String::class.java),
+                )
+            }
+            .all()
+            .collectList()
+            .awaitSingle()
+
+    private data class ApiKeyCredentialRow(
+        val id: String,
+        val status: String,
+        val replacedByCredentialId: String?,
+        val replacedCredentialId: String?,
+    )
 
     private fun seedDirectGrant(
         effect: String,

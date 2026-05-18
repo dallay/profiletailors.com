@@ -1,0 +1,8 @@
+title = "Profile Tailors gitleaks config"
+
+[extend]
+# Start from the maintained upstream rule set and keep repo-local tuning minimal.
+useDefault = true
+
+# No repo-local allowlists are defined yet.
+# Add one only for a reviewed false positive with a path-scoped English reason.

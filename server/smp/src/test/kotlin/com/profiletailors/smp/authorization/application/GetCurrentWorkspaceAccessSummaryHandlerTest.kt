@@ -65,9 +65,15 @@ class GetCurrentWorkspaceAccessSummaryHandlerTest {
                 override suspend fun resolve(membership: WorkspaceMembership): Set<Role> = roles
             },
             workspaceAuthorizationService = object : WorkspaceAuthorizationDecider {
-                override suspend fun decide(requiredPermission: PermissionKey): AuthorizationDecision = AuthorizationDecision.ALLOW
+                override suspend fun decide(
+                    requiredPermission: PermissionKey,
+                    requiredEntitlementKey: String?,
+                ): AuthorizationDecision = AuthorizationDecision.ALLOW
 
-                override suspend fun decideDetailed(requiredPermission: PermissionKey): AuthorizationDecisionResult =
+                override suspend fun decideDetailed(
+                    requiredPermission: PermissionKey,
+                    requiredEntitlementKey: String?,
+                ): AuthorizationDecisionResult =
                     AuthorizationDecisionResult(
                         decision = AuthorizationDecision.ALLOW,
                         reasonCode = AuthorizationReasonCode.ROLE_PERMISSION,
@@ -129,9 +135,15 @@ class GetCurrentWorkspaceAccessSummaryHandlerTest {
                 override suspend fun resolve(membership: WorkspaceMembership): Set<Role> = emptySet()
             },
             workspaceAuthorizationService = object : WorkspaceAuthorizationDecider {
-                override suspend fun decide(requiredPermission: PermissionKey): AuthorizationDecision = AuthorizationDecision.DENY
+                override suspend fun decide(
+                    requiredPermission: PermissionKey,
+                    requiredEntitlementKey: String?,
+                ): AuthorizationDecision = AuthorizationDecision.DENY
 
-                override suspend fun decideDetailed(requiredPermission: PermissionKey): AuthorizationDecisionResult =
+                override suspend fun decideDetailed(
+                    requiredPermission: PermissionKey,
+                    requiredEntitlementKey: String?,
+                ): AuthorizationDecisionResult =
                     AuthorizationDecisionResult(
                         decision = AuthorizationDecision.DENY,
                         reasonCode = AuthorizationReasonCode.MISSING_PERMISSION,
@@ -158,6 +170,80 @@ class GetCurrentWorkspaceAccessSummaryHandlerTest {
                     workspaceId = "workspace-1",
                     decision = AuthorizationDecision.DENY,
                     reasonCode = AuthorizationReasonCode.MISSING_PERMISSION,
+                    roleKeys = emptyList(),
+                ),
+            ),
+            auditHook.facts,
+        )
+    }
+
+    @Test
+    fun `emits missing entitlement audit fact distinct from missing permission`() = runTest {
+        val principalContext = PrincipalContext(
+            principalId = "principal-1",
+            principalType = PrincipalType.USER,
+            subject = "subject-123",
+        )
+        val resourceContext = ResourceContext(
+            type = ResourceContextType.WORKSPACE,
+            workspaceId = "workspace-1",
+        )
+        val auditHook = CapturingAuditHook()
+        val handler = GetCurrentWorkspaceAccessSummaryHandler(
+            principalContextProvider = object : PrincipalContextProvider {
+                override suspend fun current(): PrincipalContext = principalContext
+            },
+            resourceContextProvider = object : ResourceContextProvider {
+                override fun current(): ResourceContext = resourceContext
+            },
+            workspaceMembershipResolver = object : WorkspaceMembershipResolver {
+                override suspend fun resolve(
+                    principalContext: PrincipalContext,
+                    resourceContext: ResourceContext,
+                ): WorkspaceMembership? = null
+            },
+            workspaceMembershipRoleResolver = object : WorkspaceMembershipRoleResolver {
+                override suspend fun resolve(membership: WorkspaceMembership): Set<Role> = emptySet()
+            },
+            workspaceAuthorizationService = object : WorkspaceAuthorizationDecider {
+                override suspend fun decide(
+                    requiredPermission: PermissionKey,
+                    requiredEntitlementKey: String?,
+                ): AuthorizationDecision = AuthorizationDecision.DENY
+
+                override suspend fun decideDetailed(
+                    requiredPermission: PermissionKey,
+                    requiredEntitlementKey: String?,
+                ): AuthorizationDecisionResult =
+                    AuthorizationDecisionResult(
+                        decision = AuthorizationDecision.DENY,
+                        reasonCode = AuthorizationReasonCode.MISSING_ENTITLEMENT,
+                        roleKeys = emptySet(),
+                    )
+            },
+            auditHook = auditHook,
+        )
+
+        val error = assertThrows(AuthorizationDeniedException::class.java) {
+            kotlinx.coroutines.runBlocking {
+                handler.handle(GetCurrentWorkspaceAccessSummaryQuery)
+            }
+        }
+
+        assertEquals(
+            "Missing required entitlement ${GetCurrentWorkspaceAccessSummaryQuery.CURRENT_WORKSPACE_ACCESS_ENTITLEMENT}.",
+            error.message,
+        )
+        assertEquals(
+            listOf(
+                AuthorizationDecisionAuditFact(
+                    requestName = GetCurrentWorkspaceAccessSummaryQuery::class.java.name,
+                    requestPath = "/api/authorization/workspace-access/current",
+                    permission = "workspace:access:read",
+                    principalId = "principal-1",
+                    workspaceId = "workspace-1",
+                    decision = AuthorizationDecision.DENY,
+                    reasonCode = AuthorizationReasonCode.MISSING_ENTITLEMENT,
                     roleKeys = emptyList(),
                 ),
             ),

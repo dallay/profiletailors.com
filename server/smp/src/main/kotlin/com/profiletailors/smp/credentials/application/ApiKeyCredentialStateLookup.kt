@@ -27,6 +27,7 @@ enum class ApiKeyCredentialFailureReason {
     INVALID,
     INACTIVE,
     REVOKED,
+    REPLACED,
 }
 
 class ApiKeyCredentialNotActiveException(
@@ -40,5 +41,6 @@ class ApiKeyCredentialNotActiveException(
         ApiKeyCredentialFailureReason.INVALID -> "API key credential is invalid."
         ApiKeyCredentialFailureReason.INACTIVE -> "API key credential is inactive."
         ApiKeyCredentialFailureReason.REVOKED -> "API key credential is revoked."
+        ApiKeyCredentialFailureReason.REPLACED -> "API key credential has been replaced."
     },
 )

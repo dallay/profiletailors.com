@@ -221,7 +221,7 @@ suspend fun getWorkspace(id: UUID): WorkspaceResponse = TODO()
 If security depends on application-managed users/permissions:
 
 - prefer reactive data access
-- avoid bridging to blocking JPA inside request-time auth flows
+- avoid bridging to blocking persistence adapters inside request-time auth flows
 - isolate blocking lookups if a legacy adapter is unavoidable
 
 ## OAuth2 / Resource Server Guidance

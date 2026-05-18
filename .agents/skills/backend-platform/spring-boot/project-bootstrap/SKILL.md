@@ -1,222 +1,212 @@
 ---
 name: spring-boot-project-bootstrap
-description: Use when bootstrapping a new Spring Boot 4 backend from Spring Initializr, choosing Kotlin and WebFlux defaults, defining project structure, and wiring local development services and baseline integrations.
-allowed-tools: Read, Write, Edit, Bash, Glob, Grep, AskUserQuestion
+description: Use when bootstrapping a new Spring Boot 4 backend from Spring Initializr, choosing Kotlin + WebFlux + Gradle defaults, defining a hexagonal package-by-feature structure, and wiring local development services for a reactive stack.
+allowed-tools: Read, Write, Edit, Bash, Glob, Grep
 ---
 
-# Spring Boot Project Creator
+# Spring Boot Project Bootstrap
 
 ## Overview
 
-Generates a fully configured Spring Boot project from scratch using the Spring Initializr API. The
-skill walks the user through selecting project parameters, choosing an architecture style (DDD or
-Layered), configuring data stores, and setting up Docker Compose for local development. The result
-is a build-ready project with standardized structure, dependency management, and configuration.
+Bootstrap new backend services with the **canonical platform baseline** for this codebase:
+
+- **Spring Boot 4**
+- **Kotlin**
+- **Gradle Kotlin DSL**
+- **WebFlux + coroutines**
+- **reactive-first persistence**
+- **hexagonal architecture inside each feature**
+
+This skill exists to prevent scaffolding the wrong foundation. MVC, Java, Maven, and blocking
+persistence stacks are **not** the default here.
 
 ## When to Use
 
-- Bootstrap a new Spring Boot 3.x or 4.x project with a standard structure.
-- Initialize a backend microservice with JPA, SpringDoc OpenAPI, and Docker Compose.
-- Scaffold a project following either DDD (Domain-Driven Design) or Layered (
-  Controller/Service/Repository/Model) architecture.
-- Set up local development infrastructure with PostgreSQL, Redis, and/or MongoDB via Docker Compose.
-- Trigger phrases: **"create spring boot project"**, **"new spring boot app"**, **"bootstrap java
-  project"**, **"scaffold spring boot microservice"**, **"initialize spring boot backend"**, **"
-  generate spring boot project"**.
+- creating a new Spring Boot backend service from scratch
+- scaffolding a new Kotlin microservice from Spring Initializr
+- starting a reactive API with PostgreSQL, Redis, or MongoDB
+- establishing a standard package structure before feature work begins
+- setting up local development containers for a new service
 
-## Prerequisites
+## Canonical Defaults
 
-Before starting, ensure the following tools are installed:
+| Concern | Default |
+|---|---|
+| Language | Kotlin |
+| Spring Boot | 4.x |
+| Build tool | Gradle (`build.gradle.kts`) |
+| Web stack | WebFlux |
+| Concurrency | Coroutines |
+| SQL persistence | R2DBC |
+| API docs | SpringDoc WebFlux starter |
+| Architecture | Package by feature with `domain/`, `application/`, `infrastructure/` |
+| Tests | Kotest for pure Kotlin tests; JUnit 5 acceptable for Spring slices/integration |
 
-- **Java Development Kit (JDK)**: Version 17+ (Java 21 recommended for Spring Boot 3.x/4.x)
-- **Apache Maven**: Build tool (Spring Initializr generates Maven projects by default)
-- **Docker** and **Docker Compose**: For running local infrastructure services
-- **curl** and **unzip**: For downloading and extracting the project from Spring Initializr
+## Exception Policy
 
-## Instructions
+Use these only when the user explicitly asks for them or existing constraints require them:
 
-Follow these steps to create a new Spring Boot project.
+- **Blocking persistence stacks** → compatibility path only, never the default for a reactive service
+- **Spring MVC** → only for servlet-based legacy or explicit non-reactive requirements
+- **Maven** → only when organization tooling requires it
+- **Java** → only when Kotlin is explicitly out of scope
 
-### 1. Gather Project Configuration
+Document every exception clearly in the generated project notes.
 
-Ask the user for the following project parameters using **AskUserQuestion**. Provide sensible
-defaults:
+## 1. Gather Project Configuration
 
-| Parameter               | Default          | Options                                             |
-|-------------------------|------------------|-----------------------------------------------------|
-| **Group ID**            | `com.example`    | Any valid Java package name                         |
-| **Artifact ID**         | `demo`           | Kebab-case identifier                               |
-| **Package Name**        | Same as Group ID | Valid Java package                                  |
-| **Spring Boot Version** | `3.4.5`          | `3.4.x`, `4.0.x` (check start.spring.io for latest) |
-| **Java Version**        | `21`             | `17`, `21`                                          |
-| **Architecture**        | User choice      | `DDD` or `Layered`                                  |
-| **Docker Services**     | User choice      | PostgreSQL, Redis, MongoDB (multi-select)           |
-| **Build Tool**          | `maven`          | `maven`, `gradle`                                   |
+Ask for only the parameters that materially affect the scaffold.
 
-### 2. Generate Project with Spring Initializr
+| Parameter | Default | Notes |
+|---|---|---|
+| Group ID | `com.example` | valid package root |
+| Artifact ID | `demo-service` | kebab-case |
+| Package name | derived from group + artifact | Kotlin package |
+| Spring Boot version | latest stable `4.x` | prefer latest stable available in Initializr |
+| Java version | `21` | current LTS baseline |
+| Primary datastore | user choice | PostgreSQL / Redis / MongoDB / none |
+| Build tool | `gradle` | use Maven only by explicit request |
 
-Use `curl` to download the project scaffold from start.spring.io.
+Do **not** ask the user to choose between layered vs DDD as if both were equal defaults. For this
+platform, scaffold the hexagonal baseline automatically unless the user explicitly asks otherwise.
 
-**Base dependencies** (always included):
+## 2. Generate Project with Spring Initializr
 
-- `web` — Spring Web MVC
-- `validation` — Jakarta Bean Validation
-- `data-jpa` — Spring Data JPA
-- `testcontainers` — Testcontainers support
+Use Spring Initializr with Kotlin + Gradle + WebFlux.
 
-**Conditional dependencies** (based on Docker Services selection):
+### Base dependencies
 
-- PostgreSQL selected → add `postgresql`
-- Redis selected → add `data-redis`
-- MongoDB selected → add `data-mongodb`
+- `webflux`
+- `validation`
+- `actuator`
+- `docker-compose`
+- `testcontainers`
+
+### Conditional dependencies
+
+- PostgreSQL selected → `data-r2dbc`, `postgresql`, `r2dbc`
+- Redis selected → `data-redis-reactive`
+- MongoDB selected → `data-mongodb-reactive`
+
+### Example
 
 ```bash
-# Example for Spring Boot 3.4.5 with PostgreSQL only
-curl -s https://start.spring.io/starter.zip \
-  -d type=maven-project \
-  -d language=java \
-  -d bootVersion=3.4.5 \
+curl -s "https://start.spring.io/starter.zip" \
+  -d type=gradle-project-kotlin \
+  -d language=kotlin \
+  -d bootVersion=4.0.0 \
   -d groupId=com.example \
-  -d artifactId=demo \
-  -d packageName=com.example \
+  -d artifactId=demo-service \
+  -d packageName=com.example.demoservice \
   -d javaVersion=21 \
   -d packaging=jar \
-  -d dependencies=web,data-jpa,postgresql,validation,testcontainers \
+  -d dependencies=webflux,validation,actuator,docker-compose,data-r2dbc,postgresql,r2dbc,testcontainers \
   -o starter.zip
 
-unzip -o starter.zip -d ./demo
+unzip -o starter.zip -d ./demo-service
 rm starter.zip
-cd demo
 ```
 
-### 3. Add Additional Dependencies
+If Initializr offers a newer stable Spring Boot 4 version, use that instead of the example value.
 
-Edit `pom.xml` to add SpringDoc OpenAPI and ArchUnit for architectural testing.
+## 3. Add Platform Dependencies
 
-```xml
-<!-- SpringDoc OpenAPI -->
-<dependency>
-    <groupId>org.springdoc</groupId>
-    <artifactId>springdoc-openapi-starter-webmvc-ui</artifactId>
-    <version>2.8.15</version>
-</dependency>
+Add only what the reactive Kotlin baseline actually needs.
 
-<!-- ArchUnit for architecture tests -->
-<dependency>
-    <groupId>com.tngtech.archunit</groupId>
-    <artifactId>archunit-junit5</artifactId>
-    <version>1.4.1</version>
-    <scope>test</scope>
-</dependency>
+### Build additions to prefer
+
+- SpringDoc starter for **WebFlux**, not MVC
+- ArchUnit for architecture enforcement
+- Kotest + MockK for pure Kotlin tests if not already present
+- Testcontainers modules that match the selected infrastructure
+
+### Example additions
+
+```kotlin
+dependencies {
+    implementation("org.springdoc:springdoc-openapi-starter-webflux-ui:2.8.15")
+
+    testImplementation("com.tngtech.archunit:archunit-junit5:1.4.1")
+    testImplementation("io.kotest:kotest-runner-junit5:5.9.1")
+    testImplementation("io.kotest:kotest-assertions-core:5.9.1")
+    testImplementation("io.mockk:mockk:1.13.12")
+}
 ```
 
-### 4. Create Architecture Structure
+## 4. Create the Standard Package Structure
 
-Based on the user's choice, create the package structure under `src/main/java/<packagePath>/`.
+Prefer **package by feature**, with hexagonal boundaries **inside** each feature.
 
-#### Option A: Layered Architecture
-
-```
-src/main/java/com/example/
-├── controller/        # REST controllers (@RestController)
-├── service/           # Business logic (@Service)
-├── repository/        # Data access (@Repository, Spring Data interfaces)
-├── model/             # JPA entities (@Entity)
-│   └── dto/           # Request/Response DTOs (Java records)
-├── config/            # Configuration classes (@Configuration)
-└── exception/         # Custom exceptions and @ControllerAdvice
-```
-
-Create placeholder classes for each layer:
-
-- **config/OpenApiConfig.java** — SpringDoc OpenAPI configuration bean
-- **exception/GlobalExceptionHandler.java** — `@RestControllerAdvice` with standard error handling
-- **model/dto/ErrorResponse.java** — Standard error response record
-
-#### Option B: DDD (Domain-Driven Design) Architecture
-
-```
-src/main/java/com/example/
-├── domain/                 # Core domain (framework-free)
-│   ├── model/              # Entities, Value Objects, Aggregates
-│   ├── repository/         # Repository interfaces (ports)
-│   └── exception/          # Domain exceptions
-├── application/            # Use cases / Application services
-│   ├── service/            # @Service orchestration
-│   └── dto/                # Input/Output DTOs (records)
-├── infrastructure/         # External adapters
-│   ├── persistence/        # JPA entities, Spring Data repos
-│   └── config/             # Spring @Configuration
-└── presentation/           # REST API layer
-    ├── controller/         # @RestController
-    └── exception/          # @RestControllerAdvice
+```text
+src/main/kotlin/com/example/demoservice/
+  common/
+    application/
+      ApplicationService.kt
+  workspace/
+    domain/
+      Workspace.kt
+      WorkspaceId.kt
+      WorkspaceRepository.kt
+    application/
+      create/
+        CreateWorkspaceCommand.kt
+        CreateWorkspaceCommandHandler.kt
+        WorkspaceCreator.kt
+      find/
+        FindWorkspaceQuery.kt
+        FindWorkspaceQueryHandler.kt
+        WorkspaceFinder.kt
+    infrastructure/
+      http/
+        WorkspaceController.kt
+        request/
+        response/
+      persistence/
+        WorkspaceEntity.kt
+        WorkspaceMapper.kt
+        WorkspaceR2dbcRepository.kt
+        WorkspaceStoreR2dbcAdapter.kt
+      configuration/
+        WorkspaceConfiguration.kt
 ```
 
-Create placeholder classes for each layer:
+Rules:
 
-- **infrastructure/config/OpenApiConfig.java** — SpringDoc OpenAPI configuration bean
-- **presentation/exception/GlobalExceptionHandler.java** — `@RestControllerAdvice` with standard
-  error handling
-- **application/dto/ErrorResponse.java** — Standard error response record
+- `domain/` is pure Kotlin
+- `application/` is framework-agnostic
+- `infrastructure/` contains all Spring code
+- never scaffold global `controller/`, `service/`, `repository/`, or `dto/` folders as the default
 
-### 5. Configure Application Properties
+## 5. Configure Properties
 
-Create `src/main/resources/application.properties` with the selected services.
+Use `application.yml` or `application.properties`; either is acceptable. Prefer typed
+`@ConfigurationProperties` over scattered `@Value` usage.
 
-**Always include:**
+### PostgreSQL + R2DBC example
 
 ```properties
-# Application
-spring.application.name=${artifactId}
+spring.application.name=demo-service
 
-# SpringDoc OpenAPI
+spring.r2dbc.url=r2dbc:postgresql://localhost:5432/${POSTGRES_DB:postgres}
+spring.r2dbc.username=${POSTGRES_USER:postgres}
+spring.r2dbc.password=${POSTGRES_PASSWORD:changeme}
+
 springdoc.swagger-ui.doc-expansion=none
-springdoc.swagger-ui.operations-sorter=alpha
-springdoc.swagger-ui.tags-sorter=alpha
+management.endpoints.web.exposure.include=health,info
 ```
 
-**If PostgreSQL is selected:**
+If Flyway or Liquibase is added later, keep that decision explicit. Do **not** default to hidden
+schema mutation patterns just because a database exists.
 
-```properties
-# PostgreSQL / JPA
-spring.datasource.driver-class-name=org.postgresql.Driver
-spring.datasource.url=jdbc:postgresql://localhost:5432/${POSTGRES_DB:postgres}
-spring.datasource.username=${POSTGRES_USER:postgres}
-spring.datasource.password=${POSTGRES_PASSWORD:changeme}
-spring.jpa.hibernate.ddl-auto=update
-spring.jpa.show-sql=true
-spring.jpa.properties.hibernate.format_sql=true
-```
+## 6. Local Development Services
 
-**If Redis is selected:**
+Create `compose.yaml` only for the infrastructure actually needed.
 
-```properties
-# Redis
-spring.data.redis.host=localhost
-spring.data.redis.port=6379
-spring.data.redis.password=${REDIS_PASSWORD:changeme}
-```
-
-**If MongoDB is selected:**
-
-```properties
-# MongoDB
-spring.data.mongodb.host=localhost
-spring.data.mongodb.port=27017
-spring.data.mongodb.authentication-database=admin
-spring.data.mongodb.username=${MONGO_USER:root}
-spring.data.mongodb.password=${MONGO_PASSWORD:changeme}
-spring.data.mongodb.database=${MONGO_DB:test}
-```
-
-### 6. Set Up Docker Compose
-
-Create `docker-compose.yaml` at the project root with only the services the user selected.
+### PostgreSQL example
 
 ```yaml
 services:
-  # Include if PostgreSQL selected
-  postgresql:
+  postgres:
     image: postgres:17
     ports:
       - "5432:5432"
@@ -226,182 +216,44 @@ services:
       POSTGRES_DB: ${POSTGRES_DB:-postgres}
     volumes:
       - ./postgres_data:/var/lib/postgresql/data
-
-  # Include if Redis selected
-  redis:
-    image: redis:7
-    ports:
-      - "6379:6379"
-    command: redis-server --requirepass ${REDIS_PASSWORD:-changeme}
-    volumes:
-      - ./redis_data:/data
-
-  # Include if MongoDB selected
-  mongodb:
-    image: mongo:8
-    ports:
-      - "27017:27017"
-    environment:
-      MONGO_INITDB_ROOT_USERNAME: ${MONGO_USER:-root}
-      MONGO_INITDB_ROOT_PASSWORD: ${MONGO_PASSWORD:-changeme}
-    volumes:
-      - ./mongo_data:/data/db
 ```
 
-### 7. Create `.env` File for Docker Compose
+If Redis or MongoDB are required, add only those services. Keep local credentials in a git-ignored
+`.env` file.
 
-Create a `.env` file at the project root with default credentials for local development:
+## 7. Verification
 
-```env
-# PostgreSQL
-POSTGRES_USER=postgres
-POSTGRES_PASSWORD=changeme
-POSTGRES_DB=postgres
-
-# Redis
-REDIS_PASSWORD=changeme
-
-# MongoDB
-MONGO_USER=root
-MONGO_PASSWORD=changeme
-MONGO_DB=test
-```
-
-Include only the variables for the services the user selected. Docker Compose automatically loads
-this file.
-
-### 8. Update .gitignore
-
-Append Docker Compose volume directories and the `.env` file to `.gitignore`:
-
-```
-# Docker Compose
-.env
-postgres_data/
-redis_data/
-mongo_data/
-```
-
-### 9. Verify the Build
-
-Run the Maven build to confirm the project compiles and tests pass:
+Run the narrowest setup validation that proves the scaffold is healthy.
 
 ```bash
-./mvnw clean verify
+./gradlew test
+./gradlew build
 ```
 
-If the build succeeds, inform the user. If it fails, diagnose and fix the issue before proceeding.
+If local containers are required for a selected adapter, start them before running the relevant
+integration tests.
 
-### 10. Present Summary to User
+## 8. Deliverable Summary
 
-Display a summary of the created project:
+When finished, summarize:
 
-```
-Project Created Successfully
+- chosen Boot/Kotlin/Gradle/WebFlux baseline
+- selected data stores
+- generated feature structure
+- any explicit exceptions from the canonical stack
+- exact next commands to run locally
 
-  Artifact:      <artifactId>
-  Spring Boot:   <version>
-  Java:          <javaVersion>
-  Architecture:  <DDD | Layered>
-  Build Tool:    Maven
-  Docker:        <services list>
+## Common Mistakes
 
-  Directory:     ./<artifactId>/
+- ❌ Bootstrapping Java + MVC + a blocking persistence stack as if it were the default here
+- ❌ Generating a global layered package layout for a hexagonal codebase
+- ❌ Putting Spring stereotypes into the application layer
+- ❌ Treating blocking persistence and reactive persistence as interchangeable in this service
+- ❌ Adding dependencies “just in case” before the first feature needs them
+- ❌ Running full infrastructure when a simple scaffold build check is enough
 
-  Next Steps:
-    1. cd <artifactId>
-    2. docker compose up -d
-    3. ./mvnw spring-boot:run
-    4. Open http://localhost:8080/swagger-ui.html
-```
+## Related Skills
 
-## Architecture Patterns
-
-### Layered Architecture
-
-Traditional three-tier architecture with clear separation of concerns:
-
-| Layer            | Package       | Responsibility                           |
-|------------------|---------------|------------------------------------------|
-| **Presentation** | `controller/` | HTTP endpoints, request/response mapping |
-| **Business**     | `service/`    | Business logic, transaction management   |
-| **Data Access**  | `repository/` | Database operations via Spring Data      |
-| **Domain**       | `model/`      | JPA entities and DTOs                    |
-
-**Best for:** Simple CRUD applications, small-to-medium services, teams new to Spring Boot.
-
-### DDD Architecture
-
-Domain-Driven Design with hexagonal boundaries:
-
-| Layer              | Package           | Responsibility                                            |
-|--------------------|-------------------|-----------------------------------------------------------|
-| **Domain**         | `domain/`         | Entities, value objects, domain services (framework-free) |
-| **Application**    | `application/`    | Use cases, orchestration, DTO mapping                     |
-| **Infrastructure** | `infrastructure/` | JPA adapters, external integrations, configuration        |
-| **Presentation**   | `presentation/`   | REST controllers, error handling                          |
-
-**Best for:** Complex business domains, microservices with rich logic, long-lived projects.
-
-## Examples
-
-### Example 1: Simple REST API with PostgreSQL (Layered)
-
-**User request:** "Create a Spring Boot project for a REST API with PostgreSQL"
-
-```bash
-curl -s https://start.spring.io/starter.zip \
-  -d type=maven-project \
-  -d bootVersion=3.4.5 \
-  -d groupId=com.example \
-  -d artifactId=my-api \
-  -d packageName=com.example.myapi \
-  -d javaVersion=21 \
-  -d dependencies=web,data-jpa,postgresql,validation,testcontainers \
-  -o starter.zip
-```
-
-Result: Layered project with `controller/`, `service/`, `repository/`, `model/` packages, PostgreSQL
-Docker Compose, and SpringDoc OpenAPI.
-
-### Example 2: Microservice with DDD and Multiple Stores
-
-**User request:** "Bootstrap a Spring Boot 3 microservice with DDD, PostgreSQL and Redis"
-
-```bash
-curl -s https://start.spring.io/starter.zip \
-  -d type=maven-project \
-  -d bootVersion=3.4.5 \
-  -d groupId=com.acme \
-  -d artifactId=order-service \
-  -d packageName=com.acme.order \
-  -d javaVersion=21 \
-  -d dependencies=web,data-jpa,postgresql,data-redis,validation,testcontainers \
-  -o starter.zip
-```
-
-Result: DDD project with `domain/`, `application/`, `infrastructure/`, `presentation/` packages,
-PostgreSQL + Redis Docker Compose, and SpringDoc OpenAPI.
-
-## Best Practices
-
-- **Always use Spring Initializr** for project generation to get the correct dependency management
-  and parent POM.
-- **Use Java records** for DTOs — they are immutable and concise.
-- **Keep domain layer framework-free** in DDD architecture — no Spring annotations in `domain/`.
-- **Use environment variables** for sensitive configuration in production (database passwords,
-  etc.).
-- **Pin Docker image versions** in `docker-compose.yaml` to avoid unexpected breaking changes.
-- **Run `./mvnw clean verify`** after setup to ensure everything compiles and tests pass.
-- **Add Testcontainers** for integration tests instead of relying on Docker Compose.
-
-## Constraints and Warnings
-
-- Spring Initializr requires internet access — this skill cannot work offline.
-- Spring Boot 4.x availability depends on the current release cycle — check start.spring.io for
-  latest versions.
-- Docker Compose credentials are loaded from `.env` file (git-ignored) — never commit secrets to
-  version control.
-- The `spring.jpa.hibernate.ddl-auto=update` setting is for development only — use Flyway or
-  Liquibase in production.
-- ArchUnit version must be compatible with the JUnit 5 version bundled with Spring Boot.
+- [`../SKILL.md`](../SKILL.md) — core Spring Boot 4 reactive rules
+- [`../../hexagonal-architecture/SKILL.md`](../../hexagonal-architecture/SKILL.md) — domain/application/infrastructure boundaries
+- [`../../languages-typing/kotlin/SKILL.md`](../../languages-typing/kotlin/SKILL.md) — Kotlin conventions and test style

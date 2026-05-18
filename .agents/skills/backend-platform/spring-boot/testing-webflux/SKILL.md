@@ -38,6 +38,8 @@ Use companion skills instead when the main concern is:
 
 - Use `@WebFluxTest` as the default controller slice.
 - Use `WebTestClient`, not `MockMvc`.
+- Keep test style consistent with the Kotlin skill where practical: Kotest is fine, but JUnit 5 is
+  acceptable for Spring slice tests that already rely on standard Spring test integration.
 - Mock application handlers / services, not the controller itself.
 - Assert both success and failure mappings.
 - Verify validation errors and error payload structure.

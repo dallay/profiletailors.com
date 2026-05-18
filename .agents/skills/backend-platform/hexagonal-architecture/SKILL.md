@@ -525,31 +525,34 @@ Error propagation follows the hexagonal boundaries:
 | Layer              | Error Type               | Responsibility                                            |
 |--------------------|--------------------------|-----------------------------------------------------------|
 | **Domain**         | Domain exceptions        | Pure business errors (e.g., `InsufficientFundsException`) |
-| **Application**    | Application-level errors | Translate infrastructure errors, orchestrate domain       |
+| **Application**    | Domain/application errors | Orchestrate use cases without introducing transport concerns |
 | **Infrastructure** | HTTP-friendly responses  | Map exceptions to status codes and `ProblemDetail`        |
 
 **Rules:**
 
 1. **Domain errors bubble as domain exceptions** – Keep domain exceptions pure Kotlin, no framework
-   dependencies
-2. **Infrastructure exceptions are mapped at the application boundary** – Catch and translate in
-   application services or handlers before reaching controllers
-3. **Controllers never catch domain exceptions directly** – Use `@ControllerAdvice` to map
-   domain/application errors to HTTP responses
+   dependencies.
+2. **Application coordinates use cases, not HTTP semantics** – Do not translate business failures
+   into transport-specific concepts inside handlers or services.
+3. **Infrastructure maps to HTTP** – Use `@ControllerAdvice` / `@RestControllerAdvice` to convert
+   domain/application exceptions into `ProblemDetail` or another explicit API error contract.
+4. **`Result<T>` is optional, not the default contract** – If used, standardize it deliberately at
+   the application boundary. Do not mix ad-hoc `Result` usage with exception-based flows in the same
+   feature.
 
 ```kotlin
 // Domain layer - pure business exception
 class UserAlreadyExistsException(val email: Email) :
     DomainException("User with email ${email.value} already exists")
 
-// Application layer - catches and translates
+// Application layer - framework-agnostic orchestration
 class CreateUserHandler(private val userRepository: UserRepository) {
-    suspend fun handle(command: CreateUserCommand): Result<UserId> = runCatching {
-        // Domain exception bubbles up
+    suspend fun handle(command: CreateUserCommand): UserId {
         userRepository.findByEmail(command.email)?.let {
             throw UserAlreadyExistsException(command.email)
         }
         // ...
+        return UserId.generate()
     }
 }
 
@@ -569,11 +572,11 @@ Each layer has specific testing requirements (see
 also: [Decision Tree](#decision-tree-where-does-this-code-belong)
 and [Architecture Tests](#architecture-tests-archunit)):
 
-| Layer              | Test Type                     | Strategy                                                                                     |
-|--------------------|-------------------------------|----------------------------------------------------------------------------------------------|
-| **Domain**         | Unit tests                    | Pure logic, no mocks needed, fast execution                                                  |
-| **Application**    | Integration / Component tests | Mock Repository/Port interfaces, verify orchestration (component/unit-level, not full-stack) |
-| **Infrastructure** | E2E tests                     | Real DB (Testcontainers), real HTTP calls, full stack                                        |
+| Layer              | Test Type                           | Strategy                                                                                  |
+|--------------------|-------------------------------------|-------------------------------------------------------------------------------------------|
+| **Domain**         | Pure unit tests                     | Pure logic, no Spring, no mocks needed for value objects/entities                         |
+| **Application**    | Plain unit / component-style tests  | Mock or fake ports, verify orchestration without starting Spring                          |
+| **Infrastructure** | Focused integration tests           | Real DB, HTTP, broker, or container only where adapter realism matters                    |
 
 ```kotlin
 // Domain - pure unit test (no mocking)
@@ -587,7 +590,7 @@ class EmailTest {
     }
 }
 
-// Application - integration with mocked ports
+// Application - plain unit test with mocked ports
 @UnitTest
 class CreateUserHandlerTest {
     private val userRepository = mockk<UserRepository>()
@@ -600,11 +603,11 @@ class CreateUserHandlerTest {
 
         val result = handler.handle(CreateUserCommand(email, name))
 
-        result.isSuccess shouldBe true
+        result shouldBe expectedUserId
     }
 }
 
-// Infrastructure - E2E with Testcontainers
+// Infrastructure - focused integration test with Testcontainers
 @IntegrationTest
 class UserControllerIntegrationTest {
     @Test

@@ -122,6 +122,7 @@ class IdentitySecurityConfiguration {
                     apiKeyCredentialException.reason in setOf(
                         ApiKeyCredentialFailureReason.REVOKED,
                         ApiKeyCredentialFailureReason.INACTIVE,
+                        ApiKeyCredentialFailureReason.REPLACED,
                     ) &&
                     exchange.request.path.pathWithinApplication().value() == WORKSPACE_ACCESS_PATH -> {
                     mono {

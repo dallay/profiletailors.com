@@ -9,19 +9,19 @@
 ## Monorepo Structure
 
 ```
-apps/web/landing/   ← Astro 6 landing page (the only active app)
+apps/web/marketing/ ← Astro 6 landing page (the only active app)
 docs/plans/         ← Design specs and implementation plans (read before coding)
 tmp/                ← Research notes and feature briefs (context only, not deployed)
 .agents/            ← Agent tooling config (agentsync.toml, skills, commands)
 ```
 
-## Active App: `apps/web/landing`
+## Active App: `apps/web/marketing`
 
 - **Framework:** Astro 6, static-first, no SSR
-- **Package manager:** pnpm (uses its own `pnpm-workspace.yaml` inside `apps/web/landing/`)
+- **Package manager:** pnpm
 - **Node requirement:** `>=22.12.0`
 
-### Dev Commands (run from `apps/web/landing/`)
+### Dev Commands (run from `apps/web/marketing/`)
 
 | Command        | Action                              |
 | -------------- | ----------------------------------- |
@@ -58,7 +58,7 @@ const content = {
 
 ## Implementation Constraints
 
-- Keep `apps/web/landing` lightweight and static — no backend, no CMS, no heavy deps.
+- Keep `apps/web/marketing` lightweight and static — no backend, no CMS, no heavy deps.
 - Add dependencies only when Astro-native primitives are insufficient.
 - Waitlist form is client-side only for now (no persistence backend defined yet).
 - Prefer few files with clear content/style boundaries over many small fragments.
