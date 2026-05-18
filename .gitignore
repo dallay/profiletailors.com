@@ -1,5 +1,15 @@
 /tmp/
 .playwright-mcp/
+
+# Lefthook Git Hooks
+.lefthook/
+.lefthookrc.yml
+lefthook-local.yml
+
+# Environment variables (all directories)
+.env
+.env.production
+.env.local
 # START AI Agent Symlinks
 .agents/skills/*.bak
 .claude/commands
@@ -34,17 +44,9 @@
 /AGENTS.md.bak
 /CLAUDE.md
 /CLAUDE.md.bak
+/DESIGN.md
+/DESIGN.md.bak
 /GEMINI.md
 /GEMINI.md.bak
 /opencode.json
 # END AI Agent Symlinks
-
-# Lefthook Git Hooks
-.lefthook/
-.lefthookrc.yml
-lefthook-local.yml
-
-# Environment variables (all directories)
-.env
-.env.production
-.env.local
