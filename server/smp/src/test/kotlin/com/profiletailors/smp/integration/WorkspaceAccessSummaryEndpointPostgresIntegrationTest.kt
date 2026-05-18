@@ -62,6 +62,7 @@ class WorkspaceAccessSummaryEndpointPostgresIntegrationTest(
         auditHook.reset()
         kotlinx.coroutines.runBlocking {
             listOf(
+                "DELETE FROM workspace_target_scopes",
                 "DELETE FROM workspace_direct_grants",
                 "DELETE FROM workspace_entitlements",
                 "DELETE FROM membership_roles",
@@ -135,6 +136,38 @@ class WorkspaceAccessSummaryEndpointPostgresIntegrationTest(
                     workspaceId = "workspace-1",
                     decision = com.profiletailors.smp.authorization.domain.AuthorizationDecision.DENY,
                     reasonCode = AuthorizationReasonCode.MISSING_PERMISSION,
+                    roleKeys = listOf("member"),
+                ),
+            ),
+        )
+    }
+
+    @Test
+    fun `workspace access summary remains unaffected by target scopes on postgres`() {
+        seedAuthorizedMember(entitled = true)
+        seedTargetScope(allowedTargetIdsJson = "[\"resource-99\"]")
+
+        webTestClient.get()
+            .uri("/api/authorization/workspace-access/current")
+            .header(HttpHeaders.AUTHORIZATION, "Bearer valid-token")
+            .header("X-Workspace-Id", "workspace-1")
+            .accept(MediaType.APPLICATION_JSON)
+            .exchange()
+            .expectStatus().isOk
+            .expectBody()
+            .jsonPath("$.workspaceId").isEqualTo("workspace-1")
+            .jsonPath("$.principalId").isEqualTo("principal-1")
+
+        assertAuthorizationFacts(
+            listOf(
+                AuthorizationDecisionAuditFact(
+                    requestName = "com.profiletailors.smp.authorization.application.GetCurrentWorkspaceAccessSummaryQuery",
+                    requestPath = "/api/authorization/workspace-access/current",
+                    permission = "workspace:access:read",
+                    principalId = "principal-1",
+                    workspaceId = "workspace-1",
+                    decision = com.profiletailors.smp.authorization.domain.AuthorizationDecision.ALLOW,
+                    reasonCode = AuthorizationReasonCode.ROLE_PERMISSION,
                     roleKeys = listOf("member"),
                 ),
             ),
@@ -617,16 +650,33 @@ class WorkspaceAccessSummaryEndpointPostgresIntegrationTest(
             .awaitSingle()
     }
 
-    private suspend fun seedWorkspaceEntitlement(enabled: Boolean = true) {
-        databaseClient.sql("INSERT INTO workspace_entitlements (id, workspace_id, entitlement_key, enabled) VALUES ('entitlement-1', 'workspace-1', :entitlementKey, :enabled)")
-            .bind("entitlementKey", "workspace.access.summary")
-            .bind("enabled", enabled)
+    private suspend fun seedWorkspaceEntitlement() {
+        databaseClient.sql(
+            "INSERT INTO workspace_entitlements (id, workspace_id, entitlement_key, enabled) VALUES ('entitlement-1', 'workspace-1', 'workspace.access.summary', TRUE)",
+        )
             .fetch()
             .rowsUpdated()
             .awaitSingle()
     }
 
+    private fun seedTargetScope(allowedTargetIdsJson: String) {
+        kotlinx.coroutines.runBlocking {
+            databaseClient.sql("INSERT INTO permissions (id, permission_key) VALUES ('permission-resource-read', 'workspace:resource:read')")
+                .fetch()
+                .rowsUpdated()
+                .awaitSingle()
+            databaseClient.sql(
+                "INSERT INTO workspace_target_scopes (id, workspace_id, principal_id, principal_type, permission_id, target_resource_type, allowed_target_ids_json) VALUES ('scope-legacy-1', 'workspace-1', 'principal-1', 'USER', 'permission-resource-read', 'RESOURCE', :allowedTargetIdsJson)",
+            )
+                .bind("allowedTargetIdsJson", allowedTargetIdsJson)
+                .fetch()
+                .rowsUpdated()
+                .awaitSingle()
+        }
+    }
+
     private suspend fun seedServiceAccountCredential(status: String) {
+
         databaseClient.sql("INSERT INTO service_account_credentials (id, principal_id, provider, credential_reference, status, revoked_at) VALUES ('svc-cred-row-1', 'service-principal-1', 'https://issuer.example', 'svc-cred-1', :status, :revokedAt)")
             .bind("status", status)
             .let { spec ->

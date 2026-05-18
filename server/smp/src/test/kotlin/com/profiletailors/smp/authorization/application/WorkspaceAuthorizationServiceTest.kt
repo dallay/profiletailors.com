@@ -1,6 +1,7 @@
 package com.profiletailors.smp.authorization.application
 
 import com.profiletailors.smp.authorization.domain.AuthorizationDecision
+import com.profiletailors.smp.authorization.domain.AuthorizationScope
 import com.profiletailors.smp.authorization.domain.DirectGrant
 import com.profiletailors.smp.authorization.domain.Entitlement
 import com.profiletailors.smp.authorization.domain.GrantEffect
@@ -34,7 +35,14 @@ class WorkspaceAuthorizationServiceTest {
         type = ResourceContextType.WORKSPACE,
         workspaceId = "workspace-1",
     )
+    private val targetAwareResourceContext = ResourceContext(
+        type = ResourceContextType.WORKSPACE,
+        workspaceId = "workspace-1",
+        targetResourceType = "RESOURCE",
+        targetResourceId = "resource-1",
+    )
     private val requiredPermission = PermissionKey.of("workspace", "access", "read")
+    private val resourcePreviewPermission = PermissionKey.of("workspace", "resource", "read")
     private val currentWorkspaceAccessEntitlement = Entitlement(
         key = GetCurrentWorkspaceAccessSummaryQuery.CURRENT_WORKSPACE_ACCESS_ENTITLEMENT,
         enabled = true,
@@ -350,6 +358,129 @@ class WorkspaceAuthorizationServiceTest {
         assertEquals(AuthorizationReasonCode.MISSING_ENTITLEMENT, detailedDecision.reasonCode)
     }
 
+    @Test
+    fun `allows when base permission exists and target scope matches requested resource`() = runTest {
+        val service = WorkspaceAuthorizationService(
+            principalContextProvider = FixedPrincipalContextProvider(principalContext),
+            resourceContextProvider = FixedResourceContextProvider(targetAwareResourceContext),
+            workspaceMembershipResolver = FixedWorkspaceMembershipResolver(
+                WorkspaceMembership(
+                    workspaceId = "workspace-1",
+                    principalId = "principal-1",
+                    principalType = PrincipalType.USER,
+                    status = WorkspaceMembershipStatus.ACTIVE,
+                    roleKeys = setOf("member"),
+                ),
+            ),
+            workspaceMembershipRoleResolver = FixedWorkspaceMembershipRoleResolver(
+                setOf(
+                    Role(
+                        key = "member",
+                        category = RoleCategory.WORKSPACE,
+                        permissions = setOf(resourcePreviewPermission),
+                    ),
+                ),
+            ),
+            scopeResolver = FixedScopeResolver(
+                setOf(
+                    AuthorizationScope(
+                        permission = resourcePreviewPermission,
+                        resourceContextType = ResourceContextType.WORKSPACE,
+                        targetResourceType = "RESOURCE",
+                        allowedTargetResourceIds = setOf("resource-1"),
+                    ),
+                ),
+            ),
+        )
+
+        val detailedDecision = service.decideDetailed(requiredPermission = resourcePreviewPermission)
+
+        assertEquals(AuthorizationDecision.ALLOW, detailedDecision.decision)
+        assertEquals(AuthorizationReasonCode.ROLE_PERMISSION, detailedDecision.reasonCode)
+    }
+
+    @Test
+    fun `denies with scope-specific reason when base permission exists but target scope excludes requested resource`() = runTest {
+        val service = WorkspaceAuthorizationService(
+            principalContextProvider = FixedPrincipalContextProvider(principalContext),
+            resourceContextProvider = FixedResourceContextProvider(targetAwareResourceContext),
+            workspaceMembershipResolver = FixedWorkspaceMembershipResolver(
+                WorkspaceMembership(
+                    workspaceId = "workspace-1",
+                    principalId = "principal-1",
+                    principalType = PrincipalType.USER,
+                    status = WorkspaceMembershipStatus.ACTIVE,
+                    roleKeys = setOf("member"),
+                ),
+            ),
+            workspaceMembershipRoleResolver = FixedWorkspaceMembershipRoleResolver(
+                setOf(
+                    Role(
+                        key = "member",
+                        category = RoleCategory.WORKSPACE,
+                        permissions = setOf(resourcePreviewPermission),
+                    ),
+                ),
+            ),
+            scopeResolver = FixedScopeResolver(
+                setOf(
+                    AuthorizationScope(
+                        permission = resourcePreviewPermission,
+                        resourceContextType = ResourceContextType.WORKSPACE,
+                        targetResourceType = "RESOURCE",
+                        allowedTargetResourceIds = setOf("resource-2"),
+                    ),
+                ),
+            ),
+        )
+
+        val detailedDecision = service.decideDetailed(requiredPermission = resourcePreviewPermission)
+
+        assertEquals(AuthorizationDecision.DENY, detailedDecision.decision)
+        assertEquals(AuthorizationReasonCode.SCOPE_REDUCED_TARGET, detailedDecision.reasonCode)
+    }
+
+    @Test
+    fun `scope cannot manufacture access when base permission is missing`() = runTest {
+        val service = WorkspaceAuthorizationService(
+            principalContextProvider = FixedPrincipalContextProvider(principalContext),
+            resourceContextProvider = FixedResourceContextProvider(targetAwareResourceContext),
+            workspaceMembershipResolver = FixedWorkspaceMembershipResolver(
+                WorkspaceMembership(
+                    workspaceId = "workspace-1",
+                    principalId = "principal-1",
+                    principalType = PrincipalType.USER,
+                    status = WorkspaceMembershipStatus.ACTIVE,
+                    roleKeys = setOf("member"),
+                ),
+            ),
+            workspaceMembershipRoleResolver = FixedWorkspaceMembershipRoleResolver(
+                setOf(
+                    Role(
+                        key = "member",
+                        category = RoleCategory.WORKSPACE,
+                        permissions = setOf(requiredPermission),
+                    ),
+                ),
+            ),
+            scopeResolver = FixedScopeResolver(
+                setOf(
+                    AuthorizationScope(
+                        permission = resourcePreviewPermission,
+                        resourceContextType = ResourceContextType.WORKSPACE,
+                        targetResourceType = "RESOURCE",
+                        allowedTargetResourceIds = setOf("resource-1"),
+                    ),
+                ),
+            ),
+        )
+
+        val detailedDecision = service.decideDetailed(requiredPermission = resourcePreviewPermission)
+
+        assertEquals(AuthorizationDecision.DENY, detailedDecision.decision)
+        assertEquals(AuthorizationReasonCode.MISSING_PERMISSION, detailedDecision.reasonCode)
+    }
+
     private class FixedPrincipalContextProvider(
         private val principalContext: PrincipalContext,
     ) : PrincipalContextProvider {
@@ -384,6 +515,15 @@ class WorkspaceAuthorizationServiceTest {
             principalContext: PrincipalContext,
             resourceContext: ResourceContext,
         ): Set<DirectGrant> = grants
+    }
+
+    private class FixedScopeResolver(
+        private val scopes: Set<AuthorizationScope>,
+    ) : ScopeResolver {
+        override suspend fun resolve(
+            principalContext: PrincipalContext,
+            resourceContext: ResourceContext,
+        ): Set<AuthorizationScope> = scopes
     }
 
     private class FixedEntitlementResolver(
