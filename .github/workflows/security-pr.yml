@@ -87,6 +87,11 @@ jobs:
           FRONTEND_FILES: ${{ steps.filter.outputs.frontend_files }}
           REPO_SECURITY_FILES: ${{ steps.filter.outputs.repo_security_files }}
         run: |
+          # Nullglob equivalent: treat empty vars as placeholder to avoid empty heredoc EOF
+          _backend_files="${BACKEND_FILES:-NONE}"
+          _frontend_files="${FRONTEND_FILES:-NONE}"
+          _repo_security_files="${REPO_SECURITY_FILES:-NONE}"
+
           docs_only=false
           if [[ "$DOCS_CONTENT" == 'true' && "$BACKEND" != 'true' && "$FRONTEND" != 'true' && "$REPO_SECURITY" != 'true' ]]; then
             docs_only=true
@@ -97,15 +102,15 @@ jobs:
             echo "frontend=$FRONTEND"
             echo "repo_security=$REPO_SECURITY"
             echo "docs_only=$docs_only"
-            echo "backend_files<<'EOF'"
-            printf '%s\n' "$BACKEND_FILES"
-            echo 'EOF'
-            echo "frontend_files<<'EOF'"
-            printf '%s\n' "$FRONTEND_FILES"
-            echo 'EOF'
-            echo "repo_security_files<<'EOF'"
-            printf '%s\n' "$REPO_SECURITY_FILES"
-            echo 'EOF'
+            echo "backend_files<<EOF"
+            printf '%s\n' "${_backend_files}"
+            echo "EOF"
+            echo "frontend_files<<EOF"
+            printf '%s\n' "${_frontend_files}"
+            echo "EOF"
+            echo "repo_security_files<<EOF"
+            printf '%s\n' "${_repo_security_files}"
+            echo "EOF"
           } >> "$GITHUB_OUTPUT"
 
           {
