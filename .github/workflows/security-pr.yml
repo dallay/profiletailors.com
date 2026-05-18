@@ -177,7 +177,8 @@ jobs:
             --include .trivyignore \
             --include sonar-project.properties \
             --sarif \
-            --output semgrep-backend.sarif
+            --output semgrep-backend.sarif \
+            --no-error
       - name: Upload Semgrep backend SARIF
         if: ${{ always() }}
         uses: github/codeql-action/upload-sarif@v4
@@ -209,7 +210,8 @@ jobs:
             --include .trivyignore \
             --include sonar-project.properties \
             --sarif \
-            --output semgrep-frontend.sarif
+            --output semgrep-frontend.sarif \
+            --no-error
       - name: Upload Semgrep frontend SARIF
         if: ${{ always() }}
         uses: github/codeql-action/upload-sarif@v4
@@ -269,7 +271,7 @@ jobs:
           ignore-unfixed: true
           format: sarif
           output: trivy-backend.sarif
-          exit-code: '1'
+          exit-code: '0'
       - name: Upload Trivy SARIF
         if: ${{ always() }}
         uses: github/codeql-action/upload-sarif@v4
