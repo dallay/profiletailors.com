@@ -35,6 +35,8 @@ jobs:
           path-to-signatures: signatures/cla.json
           path-to-document: https://github.com/dallay/profiletailors.com/blob/main/CLA.md
           branch: main
-          allowlist: bot*
+          allowlist: |
+            bot*
+            dallay/*
           remote-organization-name: dallay
           remote-repository-name: profiletailors.com
