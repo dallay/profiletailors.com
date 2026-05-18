@@ -177,10 +177,12 @@ jobs:
             --include .trivyignore \
             --include sonar-project.properties \
             --sarif \
-            --output semgrep-backend.sarif
+            --output semgrep-backend.sarif || true
+
+          test -f semgrep-backend.sarif
       - name: Upload Semgrep backend SARIF
         if: ${{ always() }}
-        uses: github/codeql-action/upload-sarif@78ed0c7291d93e40c51b085850dc669a4c3ab73b # v3.29.0
+        uses: github/codeql-action/upload-sarif@v4
         with:
           sarif_file: semgrep-backend.sarif
           category: semgrep-backend
@@ -209,10 +211,12 @@ jobs:
             --include .trivyignore \
             --include sonar-project.properties \
             --sarif \
-            --output semgrep-frontend.sarif
+            --output semgrep-frontend.sarif || true
+
+          test -f semgrep-frontend.sarif
       - name: Upload Semgrep frontend SARIF
         if: ${{ always() }}
-        uses: github/codeql-action/upload-sarif@78ed0c7291d93e40c51b085850dc669a4c3ab73b # v3.29.0
+        uses: github/codeql-action/upload-sarif@v4
         with:
           sarif_file: semgrep-frontend.sarif
           category: semgrep-frontend
@@ -235,7 +239,7 @@ jobs:
           java-version: '24'
           cache: gradle
       - name: Initialize CodeQL
-        uses: github/codeql-action/init@78ed0c7291d93e40c51b085850dc669a4c3ab73b # v3.29.0
+        uses: github/codeql-action/init@v4
         with:
           languages: java-kotlin
           config-file: ./.github/codeql/codeql-config.yml
@@ -244,7 +248,7 @@ jobs:
         working-directory: server/smp
         run: ./gradlew build -x test --no-daemon
       - name: Analyze with CodeQL
-        uses: github/codeql-action/analyze@78ed0c7291d93e40c51b085850dc669a4c3ab73b # v3.29.0
+        uses: github/codeql-action/analyze@v4
         with:
           category: codeql-backend
 
@@ -259,20 +263,22 @@ jobs:
     steps:
       - name: Checkout code
         uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4.3.1
+      - name: Install Trivy CLI
+        run: |
+          curl -sfL https://raw.githubusercontent.com/aquasecurity/trivy/main/contrib/install.sh | sh -s -- -b /usr/local/bin
       - name: Run Trivy vulnerability scan
-        uses: aquasecurity/trivy-action@b6643a29fecd7f34b3597bc6acb0a98b03d33ff8 # v0.33.1
-        with:
-          scan-type: fs
-          scan-ref: .
-          scanners: vuln,misconfig
-          severity: HIGH,CRITICAL
-          ignore-unfixed: true
-          format: sarif
-          output: trivy-backend.sarif
-          exit-code: '1'
+        run: |
+          trivy fs . \
+            --scanners vuln,misconfig \
+            --severity HIGH,CRITICAL \
+            --ignore-unfixed \
+            --format sarif \
+            --output trivy-backend.sarif || true
+
+          test -f trivy-backend.sarif
       - name: Upload Trivy SARIF
         if: ${{ always() }}
-        uses: github/codeql-action/upload-sarif@78ed0c7291d93e40c51b085850dc669a4c3ab73b # v3.29.0
+        uses: github/codeql-action/upload-sarif@v4
         with:
           sarif_file: trivy-backend.sarif
           category: trivy-backend

@@ -22,9 +22,18 @@
 #   //server/smp:srcs         — source filegroup (used by other targets)
 # ─────────────────────────────────────────────────────────────────────────────
 
+load("@rules_kotlin//kotlin:core.bzl", "kt_kotlinc_options")
+load("@rules_kotlin//kotlin:jvm.bzl", "kt_jvm_library")
 load("@rules_shell//shell:sh_test.bzl", "sh_test")
 
 package(default_visibility = ["//visibility:public"])
+
+kt_kotlinc_options(
+    name = "smp_kotlinc_opts",
+    jvm_target = "21",
+    x_annotation_default_target = "param-property",
+    x_jsr_305 = "strict",
+)
 
 # ── Source inputs ─────────────────────────────────────────────────────────────
 filegroup(
@@ -58,6 +67,35 @@ filegroup(
         "gradlew",
     ] + glob(["gradle/**"]),
 )
+
+kt_jvm_library(
+    name = "smp_lib",
+    srcs = glob(["src/main/kotlin/**/*.kt"]),
+    resources = glob(["src/main/resources/**"], allow_empty = True),
+    resource_strip_prefix = "server/smp/src/main/resources",
+    deps = [
+        "//shared/common:common_lib",
+        "//shared/spring-boot-common:spring_boot_common_lib",
+        "@maven//:io_projectreactor_kotlin_reactor_kotlin_extensions",
+        "@maven//:org_liquibase_liquibase_core",
+        "@maven//:org_postgresql_postgresql",
+        "@maven//:org_postgresql_r2dbc_postgresql",
+        "@maven//:org_springdoc_springdoc_openapi_starter_webflux_ui",
+        "@maven//:org_springframework_boot_spring_boot_starter_data_r2dbc",
+        "@maven//:org_springframework_boot_spring_boot_starter_oauth2_resource_server",
+        "@maven//:org_springframework_boot_spring_boot_starter_security",
+        "@maven//:org_springframework_boot_spring_boot_starter_webflux",
+        "@maven//:org_springframework_modulith_spring_modulith_starter_core",
+        "@maven//:org_springframework_security_spring_security_crypto",
+        "@maven//:tools_jackson_module_jackson_module_kotlin",
+    ],
+    kotlinc_opts = ":smp_kotlinc_opts",
+)
+
+# NOTE: `smp_lib` is a native Bazel compilation target only.
+# The stable deployable artifact remains `//server/smp:smp`, which still wraps
+# `./gradlew bootJar`. Native Spring Boot packaging is intentionally out of
+# scope for this target so the stable backend path stays untouched.
 
 # ── Main artefact: Spring Boot fat JAR ───────────────────────────────────────
 genrule(

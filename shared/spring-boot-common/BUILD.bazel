@@ -1,0 +1,32 @@
+load("@rules_kotlin//kotlin:core.bzl", "kt_kotlinc_options")
+load("@rules_kotlin//kotlin:jvm.bzl", "kt_jvm_library")
+
+package(default_visibility = ["//visibility:public"])
+
+kt_kotlinc_options(
+    name = "spring_boot_common_kotlinc_opts",
+    jvm_target = "21",
+    x_annotation_default_target = "param-property",
+    x_jsr_305 = "strict",
+)
+
+kt_jvm_library(
+    name = "spring_boot_common_lib",
+    srcs = glob(["src/main/kotlin/**/*.kt"]),
+    resources = glob(["src/main/resources/**"]),
+    resource_strip_prefix = "shared/spring-boot-common/src/main/resources",
+    deps = [
+        "//shared/common:common_lib",
+        "@maven//:org_apache_commons_commons_text",
+        "@maven//:org_jetbrains_kotlinx_kotlinx_coroutines_reactive",
+        "@maven//:org_jetbrains_kotlinx_kotlinx_coroutines_reactor",
+        "@maven//:org_jetbrains_kotlinx_kotlinx_coroutines_slf4j",
+        "@maven//:org_springdoc_springdoc_openapi_starter_webflux_ui",
+        "@maven//:org_springframework_boot_spring_boot_starter_data_r2dbc",
+        "@maven//:org_springframework_boot_spring_boot_starter_oauth2_resource_server",
+        "@maven//:org_springframework_boot_spring_boot_starter_security",
+        "@maven//:org_springframework_boot_spring_boot_starter_webflux",
+        "@maven//:tools_jackson_module_jackson_module_kotlin",
+    ],
+    kotlinc_opts = ":spring_boot_common_kotlinc_opts",
+)

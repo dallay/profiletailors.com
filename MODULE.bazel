@@ -62,8 +62,7 @@ maven = use_extension("@rules_jvm_external//:extensions.bzl", "maven")
 maven.install(
     name = "maven",
     artifacts = [
-        # Spring Boot 4 BOM is applied via override_targets below;
-        # list individual artifacts here for rules_jvm_external resolution.
+        # Spring Boot runtime dependencies for native Bazel compilation.
         "org.springframework.boot:spring-boot-starter-data-r2dbc:4.0.6",
         "org.springframework.boot:spring-boot-starter-oauth2-resource-server:4.0.6",
         "org.springframework.boot:spring-boot-starter-security:4.0.6",
@@ -71,11 +70,16 @@ maven.install(
         "org.springframework.security:spring-security-crypto:6.5.0",
         "io.projectreactor.kotlin:reactor-kotlin-extensions:1.2.3",
         "org.jetbrains.kotlin:kotlin-reflect:2.2.21",
+        "org.jetbrains.kotlinx:kotlinx-coroutines-core-jvm:1.10.2",
+        "org.jetbrains.kotlinx:kotlinx-coroutines-reactive:1.10.2",
         "org.jetbrains.kotlinx:kotlinx-coroutines-reactor:1.10.2",
+        "org.jetbrains.kotlinx:kotlinx-coroutines-slf4j:1.10.2",
         "org.liquibase:liquibase-core:4.32.0",
         "org.springdoc:springdoc-openapi-starter-webflux-ui:3.0.2",
         "org.springframework.modulith:spring-modulith-starter-core:2.0.6",
-        "com.fasterxml.jackson.module:jackson-module-kotlin:2.19.0",
+        "tools.jackson.core:jackson-databind:3.0.2",
+        "tools.jackson.module:jackson-module-kotlin:3.0.2",
+        "org.apache.commons:commons-text:1.12.0",
         "org.postgresql:postgresql:42.7.7",
         "org.postgresql:r2dbc-postgresql:1.0.7.RELEASE",
         # Test

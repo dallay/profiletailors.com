@@ -28,7 +28,7 @@ jobs:
 
       - name: Comment prompt on PR when CLA is not signed
         if: github.event_name == 'pull_request_target'
-        uses: actions/github-script@5c2a18d6aae2f7a6ab8cd4c05e50f6e4692d7a7d # v7.0.8
+        uses: actions/github-script@v9
         with:
           github-token: ${{ steps.app-token.outputs.token }}
           script: |
