@@ -1,4 +1,5 @@
 ---
+
 import {Icon} from "@dallay/astro-icon/components";
 ---
 
@@ -37,8 +38,10 @@ import {Icon} from "@dallay/astro-icon/components";
   function applyTheme(next: 'dark' | 'light') {
     if (next === 'dark') {
       document.documentElement.removeAttribute('data-theme');
+      document.documentElement.classList.remove('dark');
     } else {
       document.documentElement.setAttribute('data-theme', 'light');
+      document.documentElement.classList.add('dark');
     }
     localStorage.setItem('theme', next);
     syncUI(next);
@@ -50,15 +53,21 @@ import {Icon} from "@dallay/astro-icon/components";
     const clipStart = fromTop ? 'inset(0 0 100% 0)' : 'inset(100% 0 0 0)';
     const clipEnd = 'inset(0 0 0% 0)';
 
-    // Graceful degradation — View Transitions not supported in Firefox < 126, Safari < 18
-    if (!document.startViewTransition) {
-      applyTheme(next);
-      return;
-    }
+// Graceful degradation — View Transitions not supported in Firefox < 126, Safari < 18
+  if (!document.startViewTransition) {
+    applyTheme(next);
+    return;
+  }
 
-    const transition = document.startViewTransition(() => {
-      applyTheme(next);
-    });
+  // Respect reduced motion — skip the clip-path wipe
+  if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+    applyTheme(next);
+    return;
+  }
+
+  const transition = document.startViewTransition(() => {
+    applyTheme(next);
+  });
 
     transition.ready.then(() => {
       document.documentElement.animate(

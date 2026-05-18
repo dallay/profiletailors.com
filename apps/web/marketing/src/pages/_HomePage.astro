@@ -1,4 +1,5 @@
 ---
+
 import Layout from '@layouts/Layout.astro'
 import Nav from '@components/Nav.astro'
 import Hero from '@components/Hero.astro'
@@ -19,9 +20,8 @@ const langLabel = locale === 'en' ? 'Cambiar a español' : 'Switch to English'
 ---
 
 <Layout title={t.meta.title} description={t.meta.description} lang={locale}>
-  <div class="fade-in">
+  <div id="main-content" class="fade-in">
     <Nav
-      name={t.nav.name}
       langSwitch={t.nav.langSwitch}
       langHref={langHref}
       langLabel={langLabel}

@@ -8,15 +8,21 @@ const EASING_EASE = 'ease'
 // Commit the animation's final state to inline styles, then cancel the effect.
 // Without this, fill:'forwards' keeps the WAAPI effect in the cascade at a higher layer
 // than inline styles, so setting el.style.opacity = '1' after finished has no effect.
+// After cancel we always force the final state explicitly — Safari does not always flush
+// commitStyles() reliably, leaving blur residue or clipped characters.
 function commitAndCancel(anim: Animation, el: HTMLElement): void {
   try {
     anim.commitStyles()
   } catch {
-    el.style.opacity = '1'
-    el.style.transform = 'none'
-    el.style.filter = 'none'
+    // intentionally ignored — we force state below
   }
   anim.cancel()
+  // Force final visible state regardless of what commitStyles() did.
+  // This is the Safari-safe fallback: explicit inline styles always win.
+  el.style.opacity = '1'
+  el.style.transform = 'none'
+  el.style.filter = 'none'
+  el.style.willChange = 'auto'
 }
 
 // Split text into per-character spans, turning \n into <br> elements.
@@ -72,6 +78,9 @@ function animateHeadline(el: HTMLElement, delayMs: number): Promise<void> {
 
   const pairs = chars.map((span, rank) => {
     span.style.opacity = '0'
+    // will-change hints Safari to create a compositing layer per char,
+    // preventing blur residue and clipping at animation end.
+    span.style.willChange = 'transform, opacity, filter'
     const anim = span.animate(
       [
         { opacity: 0, transform: `translate3d(0, ${Y_TRAVEL}px, 0)`, filter: 'blur(12px)' },
@@ -87,9 +96,22 @@ function animateHeadline(el: HTMLElement, delayMs: number): Promise<void> {
     return { anim, span }
   })
 
-  return Promise.all(pairs.map(({ anim }) => anim.finished)).then(() => {
-    pairs.forEach(({ anim, span }) => commitAndCancel(anim, span))
-  })
+  const maxDelay = delayMs + (chars.length - 1) * 18 + 648 + 200 // generous safety margin
+
+  const raceTimeout = new Promise<void>((resolve) =>
+    setTimeout(() => {
+      // Safety net: if Safari never resolves anim.finished, force final state and bail.
+      pairs.forEach(({ anim, span }) => commitAndCancel(anim, span))
+      resolve()
+    }, maxDelay)
+  )
+
+  return Promise.race([
+    Promise.all(pairs.map(({ anim }) => anim.finished)).then(() => {
+      pairs.forEach(({ anim, span }) => commitAndCancel(anim, span))
+    }),
+    raceTimeout,
+  ])
 }
 
 // Animate sub: typewriter per-character.

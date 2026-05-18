@@ -1,9 +1,9 @@
 // @ts-check
-import { defineConfig } from 'astro/config'
+import { defineConfig, envField } from 'astro/config'
 import tailwindcss from '@tailwindcss/vite'
 import icon from '@dallay/astro-icon'
 import { resolve, join, extname } from 'node:path'
-import { cpSync, createReadStream, existsSync } from 'node:fs'
+import { cpSync, createReadStream, existsSync, statSync } from 'node:fs'
 
 const SHARED_ASSETS = resolve('../../../shared/assets')
 const SHARED_WEB_ASSETS = resolve('../../../shared/assets/web')
@@ -22,7 +22,8 @@ const sharedAssetsPlugin = {
   configureServer(server) {
     server.middlewares.use((req, res, next) => {
       const filePath = join(SHARED_WEB_ASSETS, req.url ?? '')
-      if (!req.url?.includes('..') && existsSync(filePath)) {
+      // Only serve actual files, not directories
+      if (!req.url?.includes('..') && existsSync(filePath) && statSync(filePath).isFile()) {
         const ext = extname(filePath)
         res.setHeader('Content-Type', MIME_TYPES[ext] ?? 'application/octet-stream')
         createReadStream(filePath).pipe(res)
@@ -41,6 +42,12 @@ const sharedAssetsPlugin = {
 export default defineConfig({
   site: 'https://profiletailors.com',
 
+  env: {
+    schema: {
+      AHREFS_ANALYTICS_KEY: envField.string({ context: 'client', access: 'public', optional: true }),
+    },
+  },
+
   i18n: {
     defaultLocale: 'en',
     locales: ['en', 'es'],
@@ -57,9 +64,24 @@ export default defineConfig({
   vite: {
     plugins: [tailwindcss(), sharedAssetsPlugin],
     resolve: {
-      alias: {
-        // Import shared SVGs: import logo from '@shared/assets/profiletailors-logotype.svg'
-        '@shared/assets': SHARED_ASSETS,
+      // Import shared SVGs: import logo from '@shared/assets/profiletailors-logotype.svg'
+      '@shared/assets': SHARED_ASSETS,
+    },
+    server: {
+      watch: {
+        // Use chokidar polling to avoid EISDIR errors on macOS with symlinks
+        usePolling: true,
+        interval: 1000,
+        ignored: [
+          '**/node_modules/**',
+          '**/.astro/**',
+          '**/bazel-*',
+          '**/.git/**',
+          '**/bazel-out/**',
+          '**/bazel-testlogs/**',
+          '**/bazel-profiletailors.com/**',
+          '**/.cache/**',
+        ],
       },
     },
   },
