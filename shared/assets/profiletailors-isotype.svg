@@ -14,4 +14,10 @@
         </g>
         <text x="233px" y="788px" style="font-family:'FiraCodeNF-Reg', 'FiraCode Nerd Font', monospace;font-size:192.654px;">Prof<tspan x="825.783px " y="788px ">l</tspan>e Tailors</text>
     </g>
+    <style>
+        path { fill: #000; }
+        @media (prefers-color-scheme: dark) {
+            path { fill: #FFF; }
+        }
+    </style>
 </svg>

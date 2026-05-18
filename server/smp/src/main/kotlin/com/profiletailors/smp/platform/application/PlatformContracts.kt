@@ -72,6 +72,7 @@ enum class AuthorizationReasonCode {
     DIRECT_DENY,
     MISSING_MEMBERSHIP,
     MISSING_PERMISSION,
+    MISSING_ENTITLEMENT,
     REVOKED_CREDENTIAL,
 }
 

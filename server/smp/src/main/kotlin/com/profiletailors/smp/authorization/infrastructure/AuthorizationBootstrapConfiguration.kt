@@ -3,7 +3,6 @@ package com.profiletailors.smp.authorization.infrastructure
 import com.profiletailors.smp.authorization.application.DirectGrantResolver
 import com.profiletailors.smp.authorization.application.EntitlementResolver
 import com.profiletailors.smp.authorization.application.GetCurrentWorkspaceAccessSummaryHandler
-import com.profiletailors.smp.authorization.application.NoOpEntitlementResolver
 import com.profiletailors.smp.authorization.application.NoOpScopeResolver
 import com.profiletailors.smp.authorization.application.ScopeResolver
 import com.profiletailors.smp.authorization.application.WorkspaceAuthorizationDecider
@@ -34,7 +33,9 @@ class AuthorizationBootstrapConfiguration {
     fun scopeResolver(): ScopeResolver = NoOpScopeResolver()
 
     @Bean
-    fun entitlementResolver(): EntitlementResolver = NoOpEntitlementResolver()
+    fun entitlementResolver(
+        databaseClient: DatabaseClient,
+    ): EntitlementResolver = R2dbcWorkspaceEntitlementResolver(databaseClient)
 
     @Bean
     fun workspaceAuthorizationDecider(

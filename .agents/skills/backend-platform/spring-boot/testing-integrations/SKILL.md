@@ -36,6 +36,9 @@ Use companion skills instead when the main concern is:
 
 - Use the narrowest integration scope that still proves the behavior.
 - Prefer focused adapters over full end-to-end tests.
+- Keep test style consistent with the Kotlin skill where practical: Kotest is preferred for pure
+  Kotlin behavior, while JUnit 5 is acceptable for Spring/Testcontainers/WireMock integration
+  setups.
 - Use real infrastructure only where contract risk justifies it.
 - Keep containers and stubs deterministic.
 - In reactive stacks, isolate blocking dependencies explicitly.

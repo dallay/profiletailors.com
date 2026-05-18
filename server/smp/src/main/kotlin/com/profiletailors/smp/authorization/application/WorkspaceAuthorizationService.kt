@@ -45,9 +45,15 @@ interface EntitlementResolver {
 }
 
 interface WorkspaceAuthorizationDecider {
-    suspend fun decide(requiredPermission: PermissionKey): AuthorizationDecision
+    suspend fun decide(
+        requiredPermission: PermissionKey,
+        requiredEntitlementKey: String? = null,
+    ): AuthorizationDecision
 
-    suspend fun decideDetailed(requiredPermission: PermissionKey): AuthorizationDecisionResult
+    suspend fun decideDetailed(
+        requiredPermission: PermissionKey,
+        requiredEntitlementKey: String? = null,
+    ): AuthorizationDecisionResult
 }
 
 data class AuthorizationDecisionResult(
@@ -66,10 +72,15 @@ class WorkspaceAuthorizationService(
     private val entitlementResolver: EntitlementResolver = NoOpEntitlementResolver(),
     private val clock: Clock = Clock.systemUTC(),
 ) : WorkspaceAuthorizationDecider {
-    override suspend fun decide(requiredPermission: PermissionKey): AuthorizationDecision =
-        decideDetailed(requiredPermission).decision
+    override suspend fun decide(
+        requiredPermission: PermissionKey,
+        requiredEntitlementKey: String?,
+    ): AuthorizationDecision = decideDetailed(requiredPermission, requiredEntitlementKey).decision
 
-    override suspend fun decideDetailed(requiredPermission: PermissionKey): AuthorizationDecisionResult {
+    override suspend fun decideDetailed(
+        requiredPermission: PermissionKey,
+        requiredEntitlementKey: String?,
+    ): AuthorizationDecisionResult {
         val principalContext = principalContextProvider.require()
         val resourceContext = resourceContextProvider.require()
         val membership = workspaceMembershipResolver.resolve(principalContext, resourceContext)
@@ -92,9 +103,14 @@ class WorkspaceAuthorizationService(
             .toSet()
 
         scopeResolver.resolve(principalContext, resourceContext)
-        entitlementResolver.resolve(resourceContext)
+        val entitlements = entitlementResolver.resolve(resourceContext)
+        val entitlementSatisfied = requiredEntitlementKey == null || entitlements.any { entitlement ->
+            entitlement.key == requiredEntitlementKey && entitlement.enabled
+        }
 
         val (decision, reasonCode) = when {
+            !entitlementSatisfied ->
+                AuthorizationDecision.DENY to AuthorizationReasonCode.MISSING_ENTITLEMENT
             directGrants.any { it.effect == GrantEffect.DENY } ->
                 AuthorizationDecision.DENY to AuthorizationReasonCode.DIRECT_DENY
             directGrants.any { it.effect == GrantEffect.ALLOW } ->

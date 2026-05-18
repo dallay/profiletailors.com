@@ -23,3 +23,5 @@ databaseChangeLog:
       file: db/changelog/authorization/004-create-membership-roles.yaml
   - include:
       file: db/changelog/authorization/005-create-workspace-direct-grants.yaml
+  - include:
+      file: db/changelog/authorization/006-create-workspace-entitlements.yaml

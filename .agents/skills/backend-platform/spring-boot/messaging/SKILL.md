@@ -129,7 +129,7 @@ According to the official docs:
 
 ### Guidance
 
-- In imperative/JPA systems, `@TransactionalEventListener` often feels straightforward.
+- In imperative blocking systems, `@TransactionalEventListener` often feels straightforward.
 - In reactive systems, treat it as an advanced feature, not the default hammer.
 - If correctness depends on durable publication after commit, strongly consider an explicit outbox
   pattern.
@@ -147,11 +147,13 @@ class WorkspaceLifecycleService(
     private val transactionalOperator: TransactionalOperator,
 ) {
     suspend fun createWorkspace(name: String): Workspace =
-        transactionalOperator.executeAndAwait {
-            val workspace = repository.save(Workspace.create(name))
-            eventPublisher.publishEvent(WorkspaceCreatedEvent(workspace.id, workspace))
-            workspace
-        }!!
+        requireNotNull(
+            transactionalOperator.executeAndAwait {
+                val workspace = repository.save(Workspace.create(name))
+                eventPublisher.publishEvent(WorkspaceCreatedEvent(workspace.id, workspace))
+                workspace
+            },
+        ) { "Reactive transaction completed without returning a workspace" }
 }
 ```
 

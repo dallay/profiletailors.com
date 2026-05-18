@@ -2,6 +2,7 @@ package com.profiletailors.smp.authorization.application
 
 import com.profiletailors.smp.authorization.domain.AuthorizationDecision
 import com.profiletailors.smp.authorization.domain.DirectGrant
+import com.profiletailors.smp.authorization.domain.Entitlement
 import com.profiletailors.smp.authorization.domain.GrantEffect
 import com.profiletailors.smp.authorization.domain.PermissionKey
 import com.profiletailors.smp.authorization.domain.Role
@@ -34,6 +35,10 @@ class WorkspaceAuthorizationServiceTest {
         workspaceId = "workspace-1",
     )
     private val requiredPermission = PermissionKey.of("workspace", "access", "read")
+    private val currentWorkspaceAccessEntitlement = Entitlement(
+        key = GetCurrentWorkspaceAccessSummaryQuery.CURRENT_WORKSPACE_ACCESS_ENTITLEMENT,
+        enabled = true,
+    )
 
     @Test
     fun `allows when active membership roles include required explicit permission`() = runTest {
@@ -58,6 +63,7 @@ class WorkspaceAuthorizationServiceTest {
                     ),
                 ),
             ),
+            entitlementResolver = FixedEntitlementResolver(setOf(currentWorkspaceAccessEntitlement)),
         )
 
         val decision = service.decide(requiredPermission)
@@ -115,6 +121,7 @@ class WorkspaceAuthorizationServiceTest {
                     ),
                 ),
             ),
+            entitlementResolver = FixedEntitlementResolver(setOf(currentWorkspaceAccessEntitlement)),
         )
 
         val decision = service.decide(requiredPermission)
@@ -149,6 +156,7 @@ class WorkspaceAuthorizationServiceTest {
                     ),
                 ),
             ),
+            entitlementResolver = FixedEntitlementResolver(setOf(currentWorkspaceAccessEntitlement)),
         )
 
         val decision = service.decide(requiredPermission)
@@ -184,6 +192,7 @@ class WorkspaceAuthorizationServiceTest {
                     ),
                 ),
             ),
+            entitlementResolver = FixedEntitlementResolver(setOf(currentWorkspaceAccessEntitlement)),
         )
 
         val detailedDecision = service.decideDetailed(requiredPermission)
@@ -218,6 +227,7 @@ class WorkspaceAuthorizationServiceTest {
                     ),
                 ),
             ),
+            entitlementResolver = FixedEntitlementResolver(setOf(currentWorkspaceAccessEntitlement)),
             clock = Clock.fixed(Instant.parse("2026-05-15T10:00:00Z"), ZoneOffset.UTC),
         )
 
@@ -260,6 +270,7 @@ class WorkspaceAuthorizationServiceTest {
                     ),
                 ),
             ),
+            entitlementResolver = FixedEntitlementResolver(setOf(currentWorkspaceAccessEntitlement)),
         )
 
         val detailedDecision = service.decideDetailed(requiredPermission)
@@ -267,6 +278,76 @@ class WorkspaceAuthorizationServiceTest {
         assertEquals(AuthorizationDecision.DENY, detailedDecision.decision)
         assertEquals(AuthorizationReasonCode.DIRECT_DENY, detailedDecision.reasonCode)
         assertEquals(setOf("member"), detailedDecision.roleKeys)
+    }
+
+    @Test
+    fun `allows entitled and authorized principal on current workspace slice`() = runTest {
+        val service = WorkspaceAuthorizationService(
+            principalContextProvider = FixedPrincipalContextProvider(principalContext),
+            resourceContextProvider = FixedResourceContextProvider(resourceContext),
+            workspaceMembershipResolver = FixedWorkspaceMembershipResolver(
+                WorkspaceMembership(
+                    workspaceId = "workspace-1",
+                    principalId = "principal-1",
+                    principalType = PrincipalType.USER,
+                    status = WorkspaceMembershipStatus.ACTIVE,
+                    roleKeys = setOf("member"),
+                ),
+            ),
+            workspaceMembershipRoleResolver = FixedWorkspaceMembershipRoleResolver(
+                setOf(
+                    Role(
+                        key = "member",
+                        category = RoleCategory.WORKSPACE,
+                        permissions = setOf(requiredPermission),
+                    ),
+                ),
+            ),
+            entitlementResolver = FixedEntitlementResolver(setOf(currentWorkspaceAccessEntitlement)),
+        )
+
+        val detailedDecision = service.decideDetailed(
+            requiredPermission = requiredPermission,
+            requiredEntitlementKey = GetCurrentWorkspaceAccessSummaryQuery.CURRENT_WORKSPACE_ACCESS_ENTITLEMENT,
+        )
+
+        assertEquals(AuthorizationDecision.ALLOW, detailedDecision.decision)
+        assertEquals(AuthorizationReasonCode.ROLE_PERMISSION, detailedDecision.reasonCode)
+    }
+
+    @Test
+    fun `denies authorized principal when workspace entitlement is missing`() = runTest {
+        val service = WorkspaceAuthorizationService(
+            principalContextProvider = FixedPrincipalContextProvider(principalContext),
+            resourceContextProvider = FixedResourceContextProvider(resourceContext),
+            workspaceMembershipResolver = FixedWorkspaceMembershipResolver(
+                WorkspaceMembership(
+                    workspaceId = "workspace-1",
+                    principalId = "principal-1",
+                    principalType = PrincipalType.USER,
+                    status = WorkspaceMembershipStatus.ACTIVE,
+                    roleKeys = setOf("member"),
+                ),
+            ),
+            workspaceMembershipRoleResolver = FixedWorkspaceMembershipRoleResolver(
+                setOf(
+                    Role(
+                        key = "member",
+                        category = RoleCategory.WORKSPACE,
+                        permissions = setOf(requiredPermission),
+                    ),
+                ),
+            ),
+            entitlementResolver = FixedEntitlementResolver(emptySet()),
+        )
+
+        val detailedDecision = service.decideDetailed(
+            requiredPermission = requiredPermission,
+            requiredEntitlementKey = GetCurrentWorkspaceAccessSummaryQuery.CURRENT_WORKSPACE_ACCESS_ENTITLEMENT,
+        )
+
+        assertEquals(AuthorizationDecision.DENY, detailedDecision.decision)
+        assertEquals(AuthorizationReasonCode.MISSING_ENTITLEMENT, detailedDecision.reasonCode)
     }
 
     private class FixedPrincipalContextProvider(
@@ -303,5 +384,11 @@ class WorkspaceAuthorizationServiceTest {
             principalContext: PrincipalContext,
             resourceContext: ResourceContext,
         ): Set<DirectGrant> = grants
+    }
+
+    private class FixedEntitlementResolver(
+        private val entitlements: Set<Entitlement>,
+    ) : EntitlementResolver {
+        override suspend fun resolve(resourceContext: ResourceContext): Set<Entitlement> = entitlements
     }
 }
