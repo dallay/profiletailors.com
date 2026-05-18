@@ -3,7 +3,7 @@ package com.profiletailors.smp.authorization.infrastructure
 import com.profiletailors.smp.authorization.application.DirectGrantResolver
 import com.profiletailors.smp.authorization.application.EntitlementResolver
 import com.profiletailors.smp.authorization.application.GetCurrentWorkspaceAccessSummaryHandler
-import com.profiletailors.smp.authorization.application.NoOpScopeResolver
+import com.profiletailors.smp.authorization.application.GetResourcePreviewHandler
 import com.profiletailors.smp.authorization.application.ScopeResolver
 import com.profiletailors.smp.authorization.application.WorkspaceAuthorizationDecider
 import com.profiletailors.smp.authorization.application.WorkspaceAuthorizationService
@@ -30,7 +30,13 @@ class AuthorizationBootstrapConfiguration {
     )
 
     @Bean
-    fun scopeResolver(): ScopeResolver = NoOpScopeResolver()
+    fun scopeResolver(
+        databaseClient: DatabaseClient,
+        objectMapper: ObjectMapper,
+    ): ScopeResolver = R2dbcWorkspaceTargetScopeResolver(
+        databaseClient = databaseClient,
+        objectMapper = objectMapper,
+    )
 
     @Bean
     fun entitlementResolver(
@@ -70,6 +76,19 @@ class AuthorizationBootstrapConfiguration {
         workspaceMembershipResolver = workspaceMembershipResolver,
         workspaceMembershipRoleResolver = workspaceMembershipRoleResolver,
         workspaceAuthorizationService = workspaceAuthorizationDecider,
+        auditHook = auditHook,
+    )
+
+    @Bean
+    fun getResourcePreviewHandler(
+        principalContextProvider: PrincipalContextProvider,
+        resourceContextProvider: ResourceContextProvider,
+        workspaceAuthorizationDecider: WorkspaceAuthorizationDecider,
+        auditHook: AuditHook,
+    ): GetResourcePreviewHandler = GetResourcePreviewHandler(
+        principalContextProvider = principalContextProvider,
+        resourceContextProvider = resourceContextProvider,
+        workspaceAuthorizationDecider = workspaceAuthorizationDecider,
         auditHook = auditHook,
     )
 }
