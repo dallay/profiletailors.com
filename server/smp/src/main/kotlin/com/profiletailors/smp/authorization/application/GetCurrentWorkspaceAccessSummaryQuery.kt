@@ -81,12 +81,17 @@ class AuthorizationDeniedException(
         fun forDecision(
             decision: AuthorizationDecisionResult,
             requiredPermission: PermissionKey,
-            requiredEntitlementKey: String,
+            requiredEntitlementKey: String? = null,
+            targetResourceId: String? = null,
         ): AuthorizationDeniedException = when (decision.reasonCode) {
             com.profiletailors.smp.platform.application.AuthorizationReasonCode.MISSING_ENTITLEMENT ->
-                AuthorizationDeniedException("Missing required entitlement $requiredEntitlementKey.")
+                AuthorizationDeniedException("Missing required entitlement ${requiredEntitlementKey ?: "unknown"}.")
             com.profiletailors.smp.platform.application.AuthorizationReasonCode.MISSING_MEMBERSHIP ->
                 AuthorizationDeniedException("Active workspace membership is required.")
+            com.profiletailors.smp.platform.application.AuthorizationReasonCode.SCOPE_REDUCED_TARGET ->
+                AuthorizationDeniedException(
+                    "Requested target ${targetResourceId ?: "unknown"} is outside the allowed scope.",
+                )
             else ->
                 AuthorizationDeniedException("Missing required permission ${requiredPermission.value}.")
         }

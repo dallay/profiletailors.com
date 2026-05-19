@@ -25,3 +25,5 @@ databaseChangeLog:
       file: db/changelog/authorization/005-create-workspace-direct-grants.yaml
   - include:
       file: db/changelog/authorization/006-create-workspace-entitlements.yaml
+  - include:
+      file: db/changelog/authorization/007-create-workspace-target-scopes.yaml

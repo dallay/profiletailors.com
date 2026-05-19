@@ -74,6 +74,7 @@ enum class AuthorizationReasonCode {
     MISSING_PERMISSION,
     MISSING_ENTITLEMENT,
     REVOKED_CREDENTIAL,
+    SCOPE_REDUCED_TARGET,
 }
 
 class MissingPrincipalContextException(
