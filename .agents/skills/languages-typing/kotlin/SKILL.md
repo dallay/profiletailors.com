@@ -1,8 +1,6 @@
 ---
 name: kotlin
-description: >
-  Kotlin conventions with null safety, coroutines, and functional patterns.
-  Trigger: When working with .kt files, coroutines, or Kotlin-specific patterns.
+description: Use when working with .kt files, coroutines, or Kotlin-specific patterns.
 license: Apache-2.0
 allowed-tools: Read, Edit, Write, Glob, Grep, Bash
 metadata:

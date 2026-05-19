@@ -103,7 +103,8 @@ class InventoryClient(
 
 ### Coroutine-Friendly Guidance
 
-If your public API is `suspend`, keep the remote client resilience at the reactive boundary and adapt
+If your public API is `suspend`, keep the remote client resilience at the reactive boundary and
+adapt
 at the edge when needed.
 
 ```kotlin
@@ -144,7 +145,8 @@ class NotificationService {
 
 ## When to Use Resilience4j Instead
 
-Native Spring resilience is strong for retry and concurrency limiting, but Resilience4j still matters
+Native Spring resilience is strong for retry and concurrency limiting, but Resilience4j still
+matters
 when you need:
 
 - `@CircuitBreaker`
@@ -259,14 +261,14 @@ Resilience without observability is theater.
 
 ## Native vs Resilience4j Decision Guide
 
-| Need | Preferred tool |
-|---|---|
-| Simple retry | native `@Retryable` |
-| Simple concurrency cap | native `@ConcurrencyLimit` |
-| Stateful circuit breaker | Resilience4j `@CircuitBreaker` |
-| Request rate limiting | Resilience4j `@RateLimiter` |
-| Advanced isolation model | Resilience4j `@Bulkhead` |
-| Declarative timeout layer | Resilience4j `@TimeLimiter` |
+| Need                      | Preferred tool                 |
+|---------------------------|--------------------------------|
+| Simple retry              | native `@Retryable`            |
+| Simple concurrency cap    | native `@ConcurrencyLimit`     |
+| Stateful circuit breaker  | Resilience4j `@CircuitBreaker` |
+| Request rate limiting     | Resilience4j `@RateLimiter`    |
+| Advanced isolation model  | Resilience4j `@Bulkhead`       |
+| Declarative timeout layer | Resilience4j `@TimeLimiter`    |
 
 ## Testing Guidance
 

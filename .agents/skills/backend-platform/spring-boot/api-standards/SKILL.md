@@ -66,13 +66,13 @@ GET  /api/workspace-member-list
 
 ## HTTP Method Semantics
 
-| Method | Use for | Notes |
-|---|---|---|
-| `GET` | Read resources | Safe and idempotent |
-| `POST` | Create resources or submit commands with side effects | Usually not idempotent |
-| `PUT` | Full replacement | Use only when replacement semantics are real |
-| `PATCH` | Partial update | Prefer when the API truly supports partial mutation |
-| `DELETE` | Delete resources | Should be idempotent from client perspective |
+| Method   | Use for                                               | Notes                                               |
+|----------|-------------------------------------------------------|-----------------------------------------------------|
+| `GET`    | Read resources                                        | Safe and idempotent                                 |
+| `POST`   | Create resources or submit commands with side effects | Usually not idempotent                              |
+| `PUT`    | Full replacement                                      | Use only when replacement semantics are real        |
+| `PATCH`  | Partial update                                        | Prefer when the API truly supports partial mutation |
+| `DELETE` | Delete resources                                      | Should be idempotent from client perspective        |
 
 ### Rules
 
@@ -82,20 +82,20 @@ GET  /api/workspace-member-list
 
 ## Status Code Policy
 
-| Code | Meaning | Typical Use |
-|---|---|---|
-| `200` | Success with body | GET, PUT, PATCH |
-| `201` | Created | POST that creates a resource |
-| `202` | Accepted | Async processing started |
-| `204` | Success without body | DELETE, some idempotent updates |
-| `400` | Malformed request | Invalid shape, parse problems |
-| `401` | Unauthenticated | Missing/invalid credentials |
-| `403` | Authenticated but forbidden | Permission denied |
-| `404` | Resource missing | Identifier not found |
-| `409` | State conflict | Duplicate or invalid state transition |
-| `422` | Semantically invalid input | Business-rule or semantic validation failures |
-| `429` | Too many requests | Rate limiting |
-| `500` | Unexpected server failure | Unhandled platform errors |
+| Code  | Meaning                     | Typical Use                                   |
+|-------|-----------------------------|-----------------------------------------------|
+| `200` | Success with body           | GET, PUT, PATCH                               |
+| `201` | Created                     | POST that creates a resource                  |
+| `202` | Accepted                    | Async processing started                      |
+| `204` | Success without body        | DELETE, some idempotent updates               |
+| `400` | Malformed request           | Invalid shape, parse problems                 |
+| `401` | Unauthenticated             | Missing/invalid credentials                   |
+| `403` | Authenticated but forbidden | Permission denied                             |
+| `404` | Resource missing            | Identifier not found                          |
+| `409` | State conflict              | Duplicate or invalid state transition         |
+| `422` | Semantically invalid input  | Business-rule or semantic validation failures |
+| `429` | Too many requests           | Rate limiting                                 |
+| `500` | Unexpected server failure   | Unhandled platform errors                     |
 
 ### Rules
 

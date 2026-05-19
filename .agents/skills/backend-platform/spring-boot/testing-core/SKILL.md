@@ -38,13 +38,13 @@ Use companion skills instead when the main concern is:
 
 ## Test Pyramid Rules
 
-| Layer                    | Default Tooling                                      | Goal                                  |
-|--------------------------|------------------------------------------------------|---------------------------------------|
-| Application services     | Kotest or JUnit 5 + MockK                            | Business orchestration correctness    |
-| Config properties        | `ApplicationContextRunner`                           | Binding + validation correctness      |
-| JSON                     | `@JsonTest`                                          | Serialization contract correctness    |
-| Bean validation          | Jakarta Validator / focused context                  | Constraint behavior correctness       |
-| Mappers / converters     | Plain unit tests                                     | Deterministic mapping correctness     |
+| Layer                | Default Tooling                     | Goal                               |
+|----------------------|-------------------------------------|------------------------------------|
+| Application services | Kotest or JUnit 5 + MockK           | Business orchestration correctness |
+| Config properties    | `ApplicationContextRunner`          | Binding + validation correctness   |
+| JSON                 | `@JsonTest`                         | Serialization contract correctness |
+| Bean validation      | Jakarta Validator / focused context | Constraint behavior correctness    |
+| Mappers / converters | Plain unit tests                    | Deterministic mapping correctness  |
 
 ## Core Rules
 

@@ -1,8 +1,6 @@
 ---
 name: typescript
-description: >
-  TypeScript strict patterns and best practices.
-  Trigger: When writing TypeScript code - types, interfaces, generics.
+description: Use when writing TypeScript code with types, interfaces, or generics.
 allowed-tools: Read, Edit, Write, Glob, Grep, Bash, WebFetch, WebSearch, Task
 ---
 

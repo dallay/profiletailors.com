@@ -87,7 +87,8 @@ class WeatherApiClientTest {
 
 ## Cache Integration Pattern
 
-Caching behavior often depends on proxies, configuration, and invalidation semantics, so prove it with
+Caching behavior often depends on proxies, configuration, and invalidation semantics, so prove it
+with
 focused integration tests when needed.
 
 ```kotlin

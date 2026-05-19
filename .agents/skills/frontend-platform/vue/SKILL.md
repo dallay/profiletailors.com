@@ -1,8 +1,6 @@
 ---
 name: vue
-description: >
-  Vue 3 Composition API patterns with TypeScript, Pinia, and Vee-Validate.
-  Trigger: When working with .vue files, composables, Pinia stores, or form validation.
+description: Use when working with .vue files, composables, Pinia stores, or form validation.
 allowed-tools: Read, Edit, Write, Glob, Grep, Bash
 metadata:
   author: profiletailors

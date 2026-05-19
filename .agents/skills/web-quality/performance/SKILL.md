@@ -1,9 +1,6 @@
 ---
 name: performance
-description: >-
-  Optimize web performance for faster loading and better user experience. Use when the
-  task involves `speed up my site`, `optimize performance`, `reduce load time`, `fix slow
-  loading`, `improve page speed`, or `performance audit`.
+description: Use when speeding up sites, optimizing performance, reducing load time, fixing slow loading, or improving page speed.
 license: MIT
 metadata:
   version: "1.0.0"

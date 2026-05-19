@@ -211,7 +211,8 @@ cross-feature technical folders.
 
 ## HTTP Adapter Patterns
 
-Reactive controllers receive transport input, delegate to the application layer, and map results into
+Reactive controllers receive transport input, delegate to the application layer, and map results
+into
 HTTP responses.
 
 ### Core Rules
@@ -423,7 +424,8 @@ class WorkspaceMapper {
 
 - **Default for this stack:** R2DBC or another reactive persistence adapter.
 - Blocking persistence is outside the default path for this platform.
-- If an exceptional compatibility adapter is unavoidable, document it explicitly and isolate it as a blocking boundary.
+- If an exceptional compatibility adapter is unavoidable, document it explicitly and isolate it as a
+  blocking boundary.
 - Do not mix reactive HTTP flows with hidden blocking persistence calls.
 
 ## Transaction Management
@@ -555,24 +557,24 @@ Choose the narrowest test that gives confidence.
 
 ### Quick Testing Baseline
 
-| Need to prove | Preferred tool |
-|---|---|
-| Service / use-case behavior | Plain unit test + mocks |
-| Reactive controller behavior | `@WebFluxTest` + `WebTestClient` |
-| JSON contract | `@JsonTest` |
-| `@ConfigurationProperties` binding | `ApplicationContextRunner` |
-| External HTTP integration | WireMock / focused integration test |
-| Persistence adapter realism | Focused integration test / Testcontainers |
+| Need to prove                      | Preferred tool                            |
+|------------------------------------|-------------------------------------------|
+| Service / use-case behavior        | Plain unit test + mocks                   |
+| Reactive controller behavior       | `@WebFluxTest` + `WebTestClient`          |
+| JSON contract                      | `@JsonTest`                               |
+| `@ConfigurationProperties` binding | `ApplicationContextRunner`                |
+| External HTTP integration          | WireMock / focused integration test       |
+| Persistence adapter realism        | Focused integration test / Testcontainers |
 
-| Layer / Adapter          | Preferred Test Type      | Notes                                          |
-|--------------------------|--------------------------|------------------------------------------------|
-| Domain                   | Pure unit tests          | No Spring context                              |
-| Application              | Pure unit tests          | Mock/fake ports                                |
-| HTTP Adapter (WebFlux)   | `@WebFluxTest`           | Controller + validation + error mapping        |
-| JSON                     | `@JsonTest`              | Serialization contract                         |
-| Config Properties        | `ApplicationContextRunner` | Binding and validation                      |
-| Persistence Adapter      | Integration test         | Verify mapping and repository behavior         |
-| End-to-End               | `@SpringBootTest`        | Full wiring only when narrower tests are weak  |
+| Layer / Adapter        | Preferred Test Type        | Notes                                         |
+|------------------------|----------------------------|-----------------------------------------------|
+| Domain                 | Pure unit tests            | No Spring context                             |
+| Application            | Pure unit tests            | Mock/fake ports                               |
+| HTTP Adapter (WebFlux) | `@WebFluxTest`             | Controller + validation + error mapping       |
+| JSON                   | `@JsonTest`                | Serialization contract                        |
+| Config Properties      | `ApplicationContextRunner` | Binding and validation                        |
+| Persistence Adapter    | Integration test           | Verify mapping and repository behavior        |
+| End-to-End             | `@SpringBootTest`          | Full wiring only when narrower tests are weak |
 
 ### WebFlux Controller Slice Example
 
@@ -614,7 +616,8 @@ suspend fun findWorkspace(id: UUID): WorkspaceResponse {
 }
 ```
 
-If a metric, trace, or observation disappears across async boundaries, verify the coroutine / Reactor
+If a metric, trace, or observation disappears across async boundaries, verify the coroutine /
+Reactor
 handoff before blaming the monitoring backend.
 
 ## Common Mistakes

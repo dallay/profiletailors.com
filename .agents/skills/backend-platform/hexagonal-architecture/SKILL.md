@@ -1,8 +1,6 @@
 ---
 name: hexagonal-architecture
-description: >
-  Hexagonal Architecture (Ports and Adapters) with CQRS for clean, testable code.
-  Trigger: When creating features, domain models, use cases, or organizing backend code.
+description: Use when creating features, domain models, use cases, or organizing backend code with Hexagonal Architecture (Ports and Adapters) and CQRS.
 allowed-tools: Read, Edit, Write, Glob, Grep, Bash
 metadata:
   author: profiletailors
@@ -522,11 +520,11 @@ Is it business logic with NO framework dependencies?
 
 Error propagation follows the hexagonal boundaries:
 
-| Layer              | Error Type               | Responsibility                                            |
-|--------------------|--------------------------|-----------------------------------------------------------|
-| **Domain**         | Domain exceptions        | Pure business errors (e.g., `InsufficientFundsException`) |
+| Layer              | Error Type                | Responsibility                                               |
+|--------------------|---------------------------|--------------------------------------------------------------|
+| **Domain**         | Domain exceptions         | Pure business errors (e.g., `InsufficientFundsException`)    |
 | **Application**    | Domain/application errors | Orchestrate use cases without introducing transport concerns |
-| **Infrastructure** | HTTP-friendly responses  | Map exceptions to status codes and `ProblemDetail`        |
+| **Infrastructure** | HTTP-friendly responses   | Map exceptions to status codes and `ProblemDetail`           |
 
 **Rules:**
 
@@ -572,11 +570,11 @@ Each layer has specific testing requirements (see
 also: [Decision Tree](#decision-tree-where-does-this-code-belong)
 and [Architecture Tests](#architecture-tests-archunit)):
 
-| Layer              | Test Type                           | Strategy                                                                                  |
-|--------------------|-------------------------------------|-------------------------------------------------------------------------------------------|
-| **Domain**         | Pure unit tests                     | Pure logic, no Spring, no mocks needed for value objects/entities                         |
-| **Application**    | Plain unit / component-style tests  | Mock or fake ports, verify orchestration without starting Spring                          |
-| **Infrastructure** | Focused integration tests           | Real DB, HTTP, broker, or container only where adapter realism matters                    |
+| Layer              | Test Type                          | Strategy                                                               |
+|--------------------|------------------------------------|------------------------------------------------------------------------|
+| **Domain**         | Pure unit tests                    | Pure logic, no Spring, no mocks needed for value objects/entities      |
+| **Application**    | Plain unit / component-style tests | Mock or fake ports, verify orchestration without starting Spring       |
+| **Infrastructure** | Focused integration tests          | Real DB, HTTP, broker, or container only where adapter realism matters |
 
 ```kotlin
 // Domain - pure unit test (no mocking)
