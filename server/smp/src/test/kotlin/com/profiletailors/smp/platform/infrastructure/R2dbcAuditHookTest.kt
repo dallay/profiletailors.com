@@ -2,51 +2,29 @@ package com.profiletailors.smp.platform.infrastructure
 
 import com.fasterxml.jackson.databind.ObjectMapper
 import com.profiletailors.smp.authorization.domain.AuthorizationDecision
+import com.profiletailors.smp.integration.support.DatabaseUnitTestBase
 import com.profiletailors.smp.platform.application.AuthorizationDecisionAuditFact
 import com.profiletailors.smp.platform.application.AuthorizationReasonCode
 import com.profiletailors.smp.platform.application.MutationAuditFact
 import com.profiletailors.smp.platform.application.MutationAuditOutcome
-import io.r2dbc.h2.H2ConnectionConfiguration
-import io.r2dbc.h2.H2ConnectionFactory
 import kotlinx.coroutines.reactor.awaitSingle
 import kotlinx.coroutines.test.runTest
-import liquibase.Contexts
-import liquibase.LabelExpression
-import liquibase.Liquibase
-import liquibase.database.DatabaseFactory
-import liquibase.resource.ClassLoaderResourceAccessor
 import org.junit.jupiter.api.Assertions.assertEquals
-import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
-import org.springframework.r2dbc.core.DatabaseClient
-import java.sql.DriverManager
 import java.time.Clock
 import java.time.Instant
 import java.time.ZoneOffset
 
-class R2dbcAuditHookTest {
+class R2dbcAuditHookTest : DatabaseUnitTestBase() {
 
-    private val jdbcUrl = "jdbc:h2:mem:audit_hook;MODE=PostgreSQL;DB_CLOSE_DELAY=-1;DB_CLOSE_ON_EXIT=FALSE"
-    private val connectionFactory = H2ConnectionFactory(
-        H2ConnectionConfiguration.builder()
-            .inMemory("audit_hook")
-            .property("MODE", "PostgreSQL")
-            .property("DB_CLOSE_DELAY", "-1")
-            .property("DB_CLOSE_ON_EXIT", "FALSE")
-            .username("sa")
-            .build(),
-    )
-    private val databaseClient = DatabaseClient.create(connectionFactory)
-    private val hook = R2dbcAuditHook(
-        databaseClient = databaseClient,
-        objectMapper = ObjectMapper(),
-        clock = Clock.fixed(Instant.parse("2026-05-20T12:00:00Z"), ZoneOffset.UTC),
-    )
+    override fun databaseName(): String = "audit_hook"
 
-    @BeforeEach
-    fun setUp() {
-        applyLiquibaseBaseline()
-        deleteAllRows()
+    private val hook by lazy {
+        R2dbcAuditHook(
+            databaseClient = databaseClient,
+            objectMapper = ObjectMapper(),
+            clock = Clock.fixed(Instant.parse("2026-05-20T12:00:00Z"), ZoneOffset.UTC),
+        )
     }
 
     @Test
@@ -128,21 +106,5 @@ class R2dbcAuditHookTest {
         assertEquals("WORKSPACE_OWNER", row["target_type"])
         assertEquals("owner-2", row["target_id"])
         assertEquals("SUCCESS", row["outcome"])
-    }
-
-    private fun applyLiquibaseBaseline() {
-        DriverManager.getConnection(jdbcUrl, "sa", "").use { connection ->
-            val database = DatabaseFactory.getInstance()
-                .findCorrectDatabaseImplementation(liquibase.database.jvm.JdbcConnection(connection))
-            Liquibase(
-                "db/changelog/db.changelog-master.yaml",
-                ClassLoaderResourceAccessor(),
-                database,
-            ).update(Contexts(), LabelExpression())
-        }
-    }
-
-    private fun deleteAllRows() = runTest {
-        databaseClient.sql("DELETE FROM audit_events").fetch().rowsUpdated().awaitSingle()
     }
 }

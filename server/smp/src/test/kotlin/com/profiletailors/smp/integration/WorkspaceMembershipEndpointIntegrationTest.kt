@@ -1,18 +1,11 @@
 package com.profiletailors.smp.integration
 
-import com.profiletailors.smp.integration.WorkspaceMembershipEndpointIntegrationTest.TestJwtConfiguration
+import com.profiletailors.smp.integration.support.IntegrationTestBase
 import io.r2dbc.h2.H2ConnectionConfiguration
 import io.r2dbc.h2.H2ConnectionFactory
 import io.r2dbc.spi.ConnectionFactory
 import kotlinx.coroutines.reactor.awaitSingle
-import liquibase.Contexts
-import liquibase.LabelExpression
-import liquibase.Liquibase
-import liquibase.database.DatabaseFactory
-import liquibase.resource.ClassLoaderResourceAccessor
-import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
-import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.test.context.SpringBootTest
 import org.springframework.boot.test.context.TestConfiguration
 import org.springframework.boot.webtestclient.autoconfigure.AutoConfigureWebTestClient
@@ -20,12 +13,6 @@ import org.springframework.context.annotation.Bean
 import org.springframework.context.annotation.Import
 import org.springframework.context.annotation.Primary
 import org.springframework.http.HttpHeaders
-import org.springframework.r2dbc.core.DatabaseClient
-import org.springframework.security.oauth2.jwt.BadJwtException
-import org.springframework.security.oauth2.jwt.Jwt
-import org.springframework.security.oauth2.jwt.ReactiveJwtDecoder
-import org.springframework.test.web.reactive.server.WebTestClient
-import java.sql.DriverManager
 
 @AutoConfigureWebTestClient
 @SpringBootTest(
@@ -42,27 +29,27 @@ import java.sql.DriverManager
         "spring.main.allow-bean-definition-overriding=true",
     ],
 )
-@Import(TestJwtConfiguration::class)
-class WorkspaceMembershipEndpointIntegrationTest {
+@Import(
+    IntegrationTestBase.SharedTestConfiguration::class,
+    WorkspaceMembershipEndpointIntegrationTest.TestConnectionFactory::class
+)
+class WorkspaceMembershipEndpointIntegrationTest : IntegrationTestBase() {
 
-    @Autowired
-    lateinit var webTestClient: WebTestClient
+    override fun databaseName(): String = "workspace_memberships"
 
-    @Autowired
-    lateinit var databaseClient: DatabaseClient
-
-    @Autowired
-    lateinit var auditHook: com.profiletailors.smp.integration.support.CapturingAuditHook
-
-    @BeforeEach
-    fun setUp() {
-        applyLiquibaseBaseline()
-        kotlinx.coroutines.runBlocking {
-            cleanupStatements().forEach { statement ->
-                databaseClient.sql(statement).fetch().rowsUpdated().awaitSingle()
-            }
-            seedMembershipScenario()
-        }
+    override suspend fun seedScenario() {
+        seedPrincipal("owner-1")
+        seedPrincipal("owner-2")
+        seedPrincipal("member-2")
+        seedUserIdentity("owner-1", "owner1@example.com", "owner-one")
+        seedUserIdentity("owner-2", "owner2@example.com", "owner-two")
+        seedUserIdentity("member-2", "member2@example.com", "member-two")
+        seedWorkspace("workspace-1", "Profile Tailors")
+        seedWorkspaceMembership("membership-1", "workspace-1", "owner-1")
+        seedWorkspaceMembership("membership-2", "workspace-1", "owner-2")
+        seedWorkspaceMembership("membership-3", "workspace-1", "member-2")
+        seedWorkspaceOwnership("workspace-1", "owner-1", createdBy = "owner-1")
+        seedWorkspaceOwnership("workspace-1", "owner-2", createdBy = "owner-1")
     }
 
     @Test
@@ -108,72 +95,10 @@ class WorkspaceMembershipEndpointIntegrationTest {
         kotlin.test.assertTrue(auditHook.mutations.any { it.action == "workspace.membership.status.update" && it.targetId == "member-2" })
     }
 
-    private suspend fun seedMembershipScenario() {
-        seedPrincipal("owner-1")
-        seedPrincipal("owner-2")
-        seedPrincipal("member-2")
-        databaseClient.sql("INSERT INTO user_identities (principal_id, email, username) VALUES ('owner-1', 'owner1@example.com', 'owner-one')").fetch().rowsUpdated().awaitSingle()
-        databaseClient.sql("INSERT INTO user_identities (principal_id, email, username) VALUES ('owner-2', 'owner2@example.com', 'owner-two')").fetch().rowsUpdated().awaitSingle()
-        databaseClient.sql("INSERT INTO user_identities (principal_id, email, username) VALUES ('member-2', 'member2@example.com', 'member-two')").fetch().rowsUpdated().awaitSingle()
-        databaseClient.sql("INSERT INTO workspaces (id, name, status) VALUES ('workspace-1', 'Profile Tailors', 'ACTIVE')").fetch().rowsUpdated().awaitSingle()
-        databaseClient.sql("INSERT INTO workspace_memberships (id, workspace_id, principal_id, principal_type, status) VALUES ('membership-1', 'workspace-1', 'owner-1', 'USER', 'ACTIVE')").fetch().rowsUpdated().awaitSingle()
-        databaseClient.sql("INSERT INTO workspace_memberships (id, workspace_id, principal_id, principal_type, status) VALUES ('membership-2', 'workspace-1', 'owner-2', 'USER', 'ACTIVE')").fetch().rowsUpdated().awaitSingle()
-        databaseClient.sql("INSERT INTO workspace_memberships (id, workspace_id, principal_id, principal_type, status) VALUES ('membership-3', 'workspace-1', 'member-2', 'USER', 'ACTIVE')").fetch().rowsUpdated().awaitSingle()
-        databaseClient.sql("INSERT INTO workspace_ownerships (workspace_id, owner_principal_id, owner_principal_type, created_by) VALUES ('workspace-1', 'owner-1', 'USER', 'owner-1')").fetch().rowsUpdated().awaitSingle()
-        databaseClient.sql("INSERT INTO workspace_ownerships (workspace_id, owner_principal_id, owner_principal_type, created_by) VALUES ('workspace-1', 'owner-2', 'USER', 'owner-1')").fetch().rowsUpdated().awaitSingle()
-    }
-
-    private suspend fun seedPrincipal(principalId: String) {
-        databaseClient.sql(
-            "INSERT INTO principals (id, principal_type, subject, provider, display_identity) VALUES (:id, 'USER', :subject, 'https://issuer.example', :displayIdentity)",
-        )
-            .bind("id", principalId)
-            .bind("subject", "subject-$principalId")
-            .bind("displayIdentity", principalId)
-            .fetch()
-            .rowsUpdated()
-            .awaitSingle()
-    }
-
-    private fun cleanupStatements(): List<String> = listOf(
-        "DELETE FROM workspace_target_scopes",
-        "DELETE FROM workspace_direct_grants",
-        "DELETE FROM workspace_entitlements",
-        "DELETE FROM membership_roles",
-        "DELETE FROM role_permissions",
-        "DELETE FROM roles",
-        "DELETE FROM permissions",
-        "DELETE FROM workspace_memberships",
-        "DELETE FROM workspace_ownerships",
-        "DELETE FROM workspaces",
-        "DELETE FROM user_identities",
-        "DELETE FROM principals",
-    )
-
-    private fun applyLiquibaseBaseline() {
-        DriverManager.getConnection(
-            "jdbc:h2:mem:workspace_memberships;MODE=PostgreSQL;DB_CLOSE_DELAY=-1;DB_CLOSE_ON_EXIT=FALSE",
-            "sa",
-            "",
-        ).use { connection ->
-            val database = DatabaseFactory.getInstance()
-                .findCorrectDatabaseImplementation(liquibase.database.jvm.JdbcConnection(connection))
-            Liquibase(
-                "db/changelog/db.changelog-master.yaml",
-                ClassLoaderResourceAccessor(),
-                database,
-            ).update(Contexts(), LabelExpression())
-        }
-    }
-
     @TestConfiguration
-    class TestJwtConfiguration {
+    class TestConnectionFactory {
         @Bean
         @Primary
-        fun testAuditHook(): com.profiletailors.smp.integration.support.CapturingAuditHook =
-            com.profiletailors.smp.integration.support.CapturingAuditHook()
-
-        @Bean
         fun connectionFactory(): ConnectionFactory = H2ConnectionFactory(
             H2ConnectionConfiguration.builder()
                 .inMemory("workspace_memberships")
@@ -181,26 +106,7 @@ class WorkspaceMembershipEndpointIntegrationTest {
                 .property("DB_CLOSE_DELAY", "-1")
                 .property("DB_CLOSE_ON_EXIT", "FALSE")
                 .username("sa")
-                .build(),
+                .build()
         )
-
-        @Bean
-        fun reactiveJwtDecoder(): ReactiveJwtDecoder = ReactiveJwtDecoder { token ->
-            when (token) {
-                "owner-token" -> reactor.core.publisher.Mono.just(
-                    Jwt.withTokenValue(token)
-                        .subject("subject-owner-1")
-                        .header("alg", "none")
-                        .claim("sub", "subject-owner-1")
-                        .claim("iss", "https://issuer.example")
-                        .claim("principal_id", "owner-1")
-                        .claim("principal_type", "USER")
-                        .issuedAt(java.time.Instant.parse("2026-05-20T10:15:30Z"))
-                        .expiresAt(java.time.Instant.parse("2026-05-20T11:15:30Z"))
-                        .build(),
-                )
-                else -> reactor.core.publisher.Mono.error(BadJwtException("Invalid token"))
-            }
-        }
     }
 }

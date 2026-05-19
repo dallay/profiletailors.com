@@ -19,14 +19,6 @@ import java.time.Clock
 @Configuration
 class TenancyBootstrapConfiguration {
     @Bean
-    fun workspaceOwnershipRepository(databaseClient: DatabaseClient): WorkspaceOwnershipRepository =
-        R2dbcWorkspaceOwnershipRepository(databaseClient)
-
-    @Bean
-    fun workspaceMembershipRepository(databaseClient: DatabaseClient): WorkspaceMembershipRepository =
-        R2dbcWorkspaceMembershipRepository(databaseClient)
-
-    @Bean
     fun workspaceOwnershipPolicy(): WorkspaceOwnershipPolicy = WorkspaceOwnershipPolicy()
 
     @Bean

@@ -66,9 +66,8 @@ class R2dbcWorkspaceOwnershipRepository(
                     ?: spec.bindNull("createdBy", String::class.java)
             }
             .let { spec ->
-                ownership.createdAt
-                    ?.let { createdAt -> spec.bind("createdAt", createdAt) }
-                    ?: spec.bindNull("createdAt", java.time.Instant::class.java)
+                val timestamp = ownership.createdAt ?: java.time.Instant.now()
+                spec.bind("createdAt", timestamp)
             }
             .fetch()
             .rowsUpdated()

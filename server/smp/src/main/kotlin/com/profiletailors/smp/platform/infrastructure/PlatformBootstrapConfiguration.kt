@@ -38,11 +38,13 @@ class PlatformBootstrapConfiguration {
 
     @Bean
     fun auditHook(
-        databaseClient: DatabaseClient,
+        databaseClientProvider: org.springframework.beans.factory.ObjectProvider<DatabaseClient>,
         objectMapper: ObjectMapper,
         clock: Clock,
         @Value("\${platform.hooks.audit.enabled:false}") auditEnabled: Boolean,
     ): AuditHook = if (auditEnabled) {
+        val databaseClient = databaseClientProvider.getIfAvailable()
+            ?: throw IllegalStateException("Audit is enabled but DatabaseClient is not available")
         R2dbcAuditHook(
             databaseClient = databaseClient,
             objectMapper = objectMapper,
