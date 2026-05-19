@@ -62,16 +62,21 @@ class UpdateWorkspaceMembershipStatusHandler(
                     details = mapOf("targetStatus" to command.targetStatus.name),
                 )
             }
-        } catch (exception: IllegalArgumentException) {
-            tenancyMutationAuditor.recordRejected(
-                action = "workspace.membership.status.update",
-                targetType = "WORKSPACE_MEMBERSHIP",
-                targetId = command.targetPrincipalId,
-                workspaceId = workspaceId,
-                reason = exception::class.simpleName ?: "Exception",
-                details = mapOf("targetStatus" to command.targetStatus.name),
-            )
-            throw exception
+        } catch (@Suppress("TooGenericExceptionCaught") exception: Exception) {
+            when (exception) {
+                is IllegalArgumentException, is IllegalStateException -> {
+                    tenancyMutationAuditor.recordRejected(
+                        action = "workspace.membership.status.update",
+                        targetType = "WORKSPACE_MEMBERSHIP",
+                        targetId = command.targetPrincipalId,
+                        workspaceId = workspaceId,
+                        reason = exception::class.simpleName ?: "Exception",
+                        details = mapOf("targetStatus" to command.targetStatus.name),
+                    )
+                    throw exception
+                }
+                else -> throw exception
+            }
         }
     }
 }

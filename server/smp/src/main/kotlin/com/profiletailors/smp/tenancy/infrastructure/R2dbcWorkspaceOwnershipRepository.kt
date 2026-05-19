@@ -40,30 +40,7 @@ class R2dbcWorkspaceOwnershipRepository(
             .toSet()
 
     override suspend fun add(ownership: WorkspaceOwnership) {
-        val (sql, binder) = if (ownership.createdAt == null) {
-            """
-            INSERT INTO workspace_ownerships (
-                workspace_id,
-                owner_principal_id,
-                owner_principal_type,
-                created_by
-            ) VALUES (
-                :workspaceId,
-                :ownerPrincipalId,
-                :ownerPrincipalType,
-                :createdBy
-            )
-            """.trimIndent() to { spec: org.springframework.r2dbc.core.DatabaseClient.GenericExecuteSpec ->
-                spec.bind("workspaceId", ownership.workspaceId)
-                    .bind("ownerPrincipalId", ownership.ownerPrincipalId)
-                    .bind("ownerPrincipalType", ownership.ownerPrincipalType.name)
-                    .let { boundSpec ->
-                        ownership.createdBy
-                            ?.let { createdBy -> boundSpec.bind("createdBy", createdBy) }
-                            ?: boundSpec.bindNull("createdBy", String::class.java)
-                    }
-            }
-        } else {
+        databaseClient.sql(
             """
             INSERT INTO workspace_ownerships (
                 workspace_id,
@@ -78,20 +55,21 @@ class R2dbcWorkspaceOwnershipRepository(
                 :createdBy,
                 :createdAt
             )
-            """.trimIndent() to { spec: org.springframework.r2dbc.core.DatabaseClient.GenericExecuteSpec ->
-                spec.bind("workspaceId", ownership.workspaceId)
-                    .bind("ownerPrincipalId", ownership.ownerPrincipalId)
-                    .bind("ownerPrincipalType", ownership.ownerPrincipalType.name)
-                    .let { boundSpec ->
-                        val withCreatedBy = ownership.createdBy
-                            ?.let { createdBy -> boundSpec.bind("createdBy", createdBy) }
-                            ?: boundSpec.bindNull("createdBy", String::class.java)
-                        withCreatedBy.bind("createdAt", ownership.createdAt)
-                    }
+            """.trimIndent(),
+        )
+            .bind("workspaceId", ownership.workspaceId)
+            .bind("ownerPrincipalId", ownership.ownerPrincipalId)
+            .bind("ownerPrincipalType", ownership.ownerPrincipalType.name)
+            .let { spec ->
+                ownership.createdBy
+                    ?.let { createdBy -> spec.bind("createdBy", createdBy) }
+                    ?: spec.bindNull("createdBy", String::class.java)
             }
-        }
-
-        binder(databaseClient.sql(sql))
+            .let { spec ->
+                ownership.createdAt
+                    ?.let { createdAt -> spec.bind("createdAt", createdAt) }
+                    ?: spec.bindNull("createdAt", java.time.Instant::class.java)
+            }
             .fetch()
             .rowsUpdated()
             .awaitSingle()
