@@ -371,6 +371,7 @@ The repo already has a strong integration pattern for H2 and PostgreSQL. This ch
 Required end-to-end matrix in both H2 and PostgreSQL:
 
 #### Allow: base permission + matching scope
+
 Seed:
 - authenticated principal,
 - active workspace membership,
@@ -385,6 +386,7 @@ Result:
 - audit fact showing `ALLOW` with base allow reason (`ROLE_PERMISSION` or `DIRECT_ALLOW`)
 
 #### Scope deny: base permission + non-matching target
+
 Seed:
 - same valid base permission,
 - persisted scope row whose allowed target set does not contain `resource-9`.
@@ -397,6 +399,7 @@ Result:
 - audit fact showing `DENY` with `SCOPE_REDUCED_TARGET`
 
 #### Missing permission deny: no base allow path + scope exists
+
 Seed:
 - authenticated principal,
 - active membership,

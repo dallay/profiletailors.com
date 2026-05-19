@@ -329,8 +329,8 @@ abstract class ResourcePreviewEndpointTestBase {
                         .claim("sub", "subject-123")
                         .claim("iss", "https://issuer.example")
                         .claim("preferred_username", "yuniel")
-                        .issuedAt(Instant.parse("2026-05-15T10:15:30Z"))
-                        .expiresAt(Instant.parse("2026-05-15T11:15:30Z"))
+                        .issuedAt(Instant.now())
+                        .expiresAt(Instant.now().plusSeconds(3600))
                         .build()
                 }
 
