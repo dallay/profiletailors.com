@@ -7,13 +7,7 @@ import com.profiletailors.smp.platform.application.AuditHook
 import com.profiletailors.smp.platform.application.AuthorizationDecisionAuditFact
 import com.profiletailors.smp.platform.application.AuthorizationReasonCode
 import kotlinx.coroutines.reactor.awaitSingle
-import liquibase.Contexts
-import liquibase.LabelExpression
-import liquibase.Liquibase
-import liquibase.database.DatabaseFactory
-import liquibase.resource.ClassLoaderResourceAccessor
 import org.junit.jupiter.api.Assertions.assertEquals
-import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.test.context.TestConfiguration
@@ -21,12 +15,9 @@ import org.springframework.context.annotation.Bean
 import org.springframework.context.annotation.Primary
 import org.springframework.http.HttpHeaders
 import org.springframework.http.MediaType
-import org.springframework.r2dbc.core.DatabaseClient
 import org.springframework.security.oauth2.jwt.BadJwtException
 import org.springframework.security.oauth2.jwt.Jwt
 import org.springframework.security.oauth2.jwt.ReactiveJwtDecoder
-import org.springframework.test.web.reactive.server.WebTestClient
-import java.sql.DriverManager
 import java.time.Instant
 
 /**
@@ -36,55 +27,15 @@ import java.time.Instant
  * implement the three Liquibase coordinate methods.
  */
 @Suppress("LargeClass")
-abstract class WorkspaceAccessSummaryEndpointTestBase {
-
-    @Autowired
-    protected lateinit var webTestClient: WebTestClient
-
-    @Autowired
-    protected lateinit var databaseClient: DatabaseClient
-
-    @Autowired
-    protected lateinit var auditHook: CapturingAuditHook
+abstract class WorkspaceAccessSummaryEndpointTestBase : AuthorizationEndpointIntegrationTestSupport() {
 
     @Autowired
     protected lateinit var replaceApiKeyCredentialHandler: ReplaceApiKeyCredentialHandler
 
-    // ── Liquibase coordinates (provided by subclass) ──────────────────────────
-
-    protected abstract fun liquibaseJdbcUrl(): String
-
-    protected abstract fun liquibaseUsername(): String
-
-    protected abstract fun liquibasePassword(): String
-
-    // ── Setup ─────────────────────────────────────────────────────────────────
-
-    @BeforeEach
-    fun setUp() {
-        applyLiquibaseBaseline()
-        auditHook.reset()
-        kotlinx.coroutines.runBlocking {
-            listOf(
-                "DELETE FROM workspace_target_scopes",
-                "DELETE FROM workspace_direct_grants",
-                "DELETE FROM workspace_entitlements",
-                "DELETE FROM membership_roles",
-                "DELETE FROM role_permissions",
-                "DELETE FROM roles",
-                "DELETE FROM permissions",
-                "DELETE FROM workspace_memberships",
-                "DELETE FROM workspace_ownerships",
-                "DELETE FROM workspaces",
-                "DELETE FROM api_key_credentials",
-                "DELETE FROM service_account_credentials",
-                "DELETE FROM user_identities",
-                "DELETE FROM principals",
-            ).forEach { statement ->
-                databaseClient.sql(statement).fetch().rowsUpdated().awaitSingle()
-            }
-        }
-    }
+    override fun additionalCleanupStatements(): List<String> = listOf(
+        "DELETE FROM api_key_credentials",
+        "DELETE FROM service_account_credentials",
+    )
 
     // ── Tests ─────────────────────────────────────────────────────────────────
 
@@ -559,29 +510,11 @@ abstract class WorkspaceAccessSummaryEndpointTestBase {
         assertEquals(expected, auditHook.facts)
     }
 
-    // ── Liquibase ─────────────────────────────────────────────────────────────
-
-    private fun applyLiquibaseBaseline() {
-        DriverManager.getConnection(liquibaseJdbcUrl(), liquibaseUsername(), liquibasePassword())
-            .use { connection ->
-                val database = DatabaseFactory.getInstance()
-                    .findCorrectDatabaseImplementation(
-                        liquibase.database.jvm.JdbcConnection(connection),
-                    )
-                Liquibase(
-                    "db/changelog/db.changelog-master.yaml",
-                    ClassLoaderResourceAccessor(),
-                    database,
-                ).update(Contexts(), LabelExpression())
-            }
-    }
-
     // ── Seed helpers ──────────────────────────────────────────────────────────
 
     protected fun seedAuthorizedMember(entitled: Boolean = false) {
         kotlinx.coroutines.runBlocking {
-            databaseClient.sql("INSERT INTO principals (id, principal_type, subject, provider, display_identity) VALUES ('principal-1', 'USER', 'subject-123', 'https://issuer.example', 'yuniel')").fetch().rowsUpdated().awaitSingle()
-            databaseClient.sql("INSERT INTO user_identities (principal_id, email, username) VALUES ('principal-1', 'yuniel@example.com', 'yuniel')").fetch().rowsUpdated().awaitSingle()
+            seedUserPrincipal()
             seedWorkspaceAndRole(principalId = "principal-1", principalType = "USER", entitled = entitled)
             seedRolePermission(permissionId = "permission-1", permissionKey = "workspace:access:read")
         }
@@ -589,8 +522,7 @@ abstract class WorkspaceAccessSummaryEndpointTestBase {
 
     protected fun seedMemberWithoutPermission(entitled: Boolean = false) {
         kotlinx.coroutines.runBlocking {
-            databaseClient.sql("INSERT INTO principals (id, principal_type, subject, provider, display_identity) VALUES ('principal-1', 'USER', 'subject-123', 'https://issuer.example', 'yuniel')").fetch().rowsUpdated().awaitSingle()
-            databaseClient.sql("INSERT INTO user_identities (principal_id, email, username) VALUES ('principal-1', 'yuniel@example.com', 'yuniel')").fetch().rowsUpdated().awaitSingle()
+            seedUserPrincipal()
             seedWorkspaceAndRole(principalId = "principal-1", principalType = "USER", entitled = entitled)
             seedRolePermission(permissionId = "permission-2", permissionKey = "workspace:members:manage")
         }
@@ -598,7 +530,13 @@ abstract class WorkspaceAccessSummaryEndpointTestBase {
 
     protected fun seedAuthorizedServiceAccount(credentialStatus: String = "ACTIVE", entitled: Boolean = false) {
         kotlinx.coroutines.runBlocking {
-            databaseClient.sql("INSERT INTO principals (id, principal_type, subject, provider, display_identity) VALUES ('service-principal-1', 'SERVICE_ACCOUNT', 'service-account-subject', 'https://issuer.example', 'scheduler-bot')").fetch().rowsUpdated().awaitSingle()
+            seedPrincipal(
+                principalId = "service-principal-1",
+                principalType = "SERVICE_ACCOUNT",
+                subject = "service-account-subject",
+                provider = "https://issuer.example",
+                displayIdentity = "scheduler-bot",
+            )
             seedWorkspaceAndRole(principalId = "service-principal-1", principalType = "SERVICE_ACCOUNT", entitled = entitled)
             seedRolePermission(permissionId = "permission-1", permissionKey = "workspace:access:read")
             seedServiceAccountCredential(status = credentialStatus)
@@ -607,7 +545,13 @@ abstract class WorkspaceAccessSummaryEndpointTestBase {
 
     protected fun seedServiceAccountWithoutPermission(entitled: Boolean = false) {
         kotlinx.coroutines.runBlocking {
-            databaseClient.sql("INSERT INTO principals (id, principal_type, subject, provider, display_identity) VALUES ('service-principal-1', 'SERVICE_ACCOUNT', 'service-account-subject', 'https://issuer.example', 'scheduler-bot')").fetch().rowsUpdated().awaitSingle()
+            seedPrincipal(
+                principalId = "service-principal-1",
+                principalType = "SERVICE_ACCOUNT",
+                subject = "service-account-subject",
+                provider = "https://issuer.example",
+                displayIdentity = "scheduler-bot",
+            )
             seedWorkspaceAndRole(principalId = "service-principal-1", principalType = "SERVICE_ACCOUNT", entitled = entitled)
             seedRolePermission(permissionId = "permission-2", permissionKey = "workspace:members:manage")
             seedServiceAccountCredential(status = "ACTIVE")
@@ -616,7 +560,13 @@ abstract class WorkspaceAccessSummaryEndpointTestBase {
 
     protected fun seedAuthorizedApiKeyPrincipal(credentialStatus: String = "ACTIVE", entitled: Boolean = false) {
         kotlinx.coroutines.runBlocking {
-            databaseClient.sql("INSERT INTO principals (id, principal_type, subject, provider, display_identity) VALUES ('api-key-principal-1', 'API_KEY', 'api-key-subject', NULL, 'integration-key')").fetch().rowsUpdated().awaitSingle()
+            seedPrincipal(
+                principalId = "api-key-principal-1",
+                principalType = "API_KEY",
+                subject = "api-key-subject",
+                provider = null,
+                displayIdentity = "integration-key",
+            )
             seedWorkspaceAndRole(principalId = "api-key-principal-1", principalType = "API_KEY", entitled = entitled)
             seedRolePermission(permissionId = "permission-1", permissionKey = "workspace:access:read")
             seedApiKeyCredential(status = credentialStatus)
@@ -625,7 +575,13 @@ abstract class WorkspaceAccessSummaryEndpointTestBase {
 
     protected fun seedApiKeyPrincipalWithoutPermission(entitled: Boolean = false) {
         kotlinx.coroutines.runBlocking {
-            databaseClient.sql("INSERT INTO principals (id, principal_type, subject, provider, display_identity) VALUES ('api-key-principal-1', 'API_KEY', 'api-key-subject', NULL, 'integration-key')").fetch().rowsUpdated().awaitSingle()
+            seedPrincipal(
+                principalId = "api-key-principal-1",
+                principalType = "API_KEY",
+                subject = "api-key-subject",
+                provider = null,
+                displayIdentity = "integration-key",
+            )
             seedWorkspaceAndRole(principalId = "api-key-principal-1", principalType = "API_KEY", entitled = entitled)
             seedRolePermission(permissionId = "permission-2", permissionKey = "workspace:members:manage")
             seedApiKeyCredential(status = "ACTIVE")
@@ -647,15 +603,35 @@ abstract class WorkspaceAccessSummaryEndpointTestBase {
         }
     }
 
-    private suspend fun seedRolePermission(permissionId: String, permissionKey: String) {
-        databaseClient.sql("INSERT INTO permissions (id, permission_key) VALUES (:id, :permissionKey)")
-            .bind("id", permissionId)
-            .bind("permissionKey", permissionKey)
+    private suspend fun seedUserPrincipal() {
+        seedPrincipal(
+            principalId = "principal-1",
+            principalType = "USER",
+            subject = "subject-123",
+            provider = "https://issuer.example",
+            displayIdentity = "yuniel",
+        )
+        databaseClient.sql("INSERT INTO user_identities (principal_id, email, username) VALUES ('principal-1', 'yuniel@example.com', 'yuniel')")
             .fetch()
             .rowsUpdated()
             .awaitSingle()
-        databaseClient.sql("INSERT INTO role_permissions (role_id, permission_id) VALUES ('role-1', :permissionId)")
-            .bind("permissionId", permissionId)
+    }
+
+    private suspend fun seedPrincipal(
+        principalId: String,
+        principalType: String,
+        subject: String,
+        provider: String?,
+        displayIdentity: String,
+    ) {
+        databaseClient.sql(
+            "INSERT INTO principals (id, principal_type, subject, provider, display_identity) VALUES (:principalId, :principalType, :subject, :provider, :displayIdentity)",
+        )
+            .bind("principalId", principalId)
+            .bind("principalType", principalType)
+            .bind("subject", subject)
+            .let { spec -> if (provider == null) spec.bindNull("provider", String::class.java) else spec.bind("provider", provider) }
+            .bind("displayIdentity", displayIdentity)
             .fetch()
             .rowsUpdated()
             .awaitSingle()

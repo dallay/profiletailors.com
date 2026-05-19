@@ -4,29 +4,19 @@ import com.profiletailors.smp.platform.application.AuditHook
 import com.profiletailors.smp.platform.application.AuthorizationDecisionAuditFact
 import com.profiletailors.smp.platform.application.AuthorizationReasonCode
 import kotlinx.coroutines.reactor.awaitSingle
-import liquibase.Contexts
-import liquibase.LabelExpression
-import liquibase.Liquibase
-import liquibase.database.DatabaseFactory
-import liquibase.resource.ClassLoaderResourceAccessor
 import org.junit.jupiter.api.Assertions.assertEquals
-import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
-import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.test.context.TestConfiguration
 import org.springframework.context.annotation.Bean
 import org.springframework.context.annotation.Primary
 import org.springframework.http.HttpHeaders
 import org.springframework.http.MediaType
-import org.springframework.r2dbc.core.DatabaseClient
 import org.springframework.security.oauth2.jwt.BadJwtException
 import org.springframework.security.oauth2.jwt.Jwt
 import org.springframework.security.oauth2.jwt.ReactiveJwtDecoder
-import org.springframework.test.web.reactive.server.WebTestClient
-import java.sql.DriverManager
 import java.time.Instant
 
-abstract class ResourcePreviewEndpointTestBase {
+abstract class ResourcePreviewEndpointTestBase : AuthorizationEndpointIntegrationTestSupport() {
 
     companion object {
         const val PRINCIPAL_ID = "principal-1"
@@ -41,45 +31,7 @@ abstract class ResourcePreviewEndpointTestBase {
         const val JSON_PATH_DETAIL = "$.detail"
     }
 
-    @Autowired
-    protected lateinit var webTestClient: WebTestClient
-
-    @Autowired
-    protected lateinit var databaseClient: DatabaseClient
-
-    @Autowired
-    protected lateinit var auditHook: CapturingAuditHook
-
     /** Each subclass provides the JDBC URL for Liquibase baseline migrations. */
-    protected abstract fun liquibaseJdbcUrl(): String
-
-    protected abstract fun liquibaseUsername(): String
-
-    protected abstract fun liquibasePassword(): String
-
-    @BeforeEach
-    fun setUp() {
-        applyLiquibaseBaseline()
-        auditHook.reset()
-        kotlinx.coroutines.runBlocking {
-            listOf(
-                "DELETE FROM workspace_target_scopes",
-                "DELETE FROM workspace_direct_grants",
-                "DELETE FROM workspace_entitlements",
-                "DELETE FROM membership_roles",
-                "DELETE FROM role_permissions",
-                "DELETE FROM roles",
-                "DELETE FROM permissions",
-                "DELETE FROM workspace_memberships",
-                "DELETE FROM workspace_ownerships",
-                "DELETE FROM workspaces",
-                "DELETE FROM user_identities",
-                "DELETE FROM principals",
-            ).forEach { sql ->
-                databaseClient.sql(sql).fetch().rowsUpdated().awaitSingle()
-            }
-        }
-    }
 
     // ── Tests ──────────────────────────────────────────────────────────────────
 
@@ -293,21 +245,6 @@ abstract class ResourcePreviewEndpointTestBase {
         ).fetch().rowsUpdated().awaitSingle()
     }
 
-    private suspend fun seedRolePermission(permissionId: String, permissionKey: String) {
-        databaseClient.sql("INSERT INTO permissions (id, permission_key) VALUES (:id, :permissionKey)")
-            .bind("id", permissionId)
-            .bind("permissionKey", permissionKey)
-            .fetch()
-            .rowsUpdated()
-            .awaitSingle()
-        databaseClient.sql(
-            "INSERT INTO role_permissions (role_id, permission_id) VALUES ('role-1', :permissionId)",
-        )
-            .bind("permissionId", permissionId)
-            .fetch()
-            .rowsUpdated()
-            .awaitSingle()
-    }
 
     protected fun seedTargetScope(allowedTargetIdsJson: String) {
         kotlinx.coroutines.runBlocking {
@@ -330,23 +267,6 @@ abstract class ResourcePreviewEndpointTestBase {
                 .rowsUpdated()
                 .awaitSingle()
         }
-    }
-
-    // ── Liquibase ──────────────────────────────────────────────────────────────
-
-    private fun applyLiquibaseBaseline() {
-        DriverManager.getConnection(liquibaseJdbcUrl(), liquibaseUsername(), liquibasePassword())
-            .use { connection ->
-                val database = DatabaseFactory.getInstance()
-                    .findCorrectDatabaseImplementation(
-                        liquibase.database.jvm.JdbcConnection(connection),
-                    )
-                Liquibase(
-                    "db/changelog/db.changelog-master.yaml",
-                    ClassLoaderResourceAccessor(),
-                    database,
-                ).update(Contexts(), LabelExpression())
-            }
     }
 
     // ── Shared @TestConfiguration ──────────────────────────────────────────────
