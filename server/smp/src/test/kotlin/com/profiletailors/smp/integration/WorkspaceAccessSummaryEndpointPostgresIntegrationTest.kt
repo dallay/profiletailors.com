@@ -49,6 +49,7 @@ import java.time.Instant
 )
 @Testcontainers(disabledWithoutDocker = true)
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
+@Suppress("LargeClass")
 class WorkspaceAccessSummaryEndpointPostgresIntegrationTest(
     @Autowired private val webTestClient: WebTestClient,
     @Autowired private val databaseClient: DatabaseClient,

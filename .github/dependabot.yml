@@ -43,9 +43,6 @@ updates:
           - "patch"
         exclude-patterns:
           - "typescript"
-    # Auto-merge for low-risk updates
-    automerge: true
-    automerge-type: "squash"
     # Review major updates manually
     ignore:
       - dependency-name: "typescript"
@@ -100,9 +97,6 @@ updates:
         update-types:
           - "minor"
           - "patch"
-    # Auto-merge patch and most minor updates
-    automerge: true
-    automerge-type: "squash"
     # Manual review for major version bumps
     ignore:
       - dependency-name: "org.jetbrains.kotlin:kotlin"
@@ -132,9 +126,7 @@ updates:
         update-types:
           - "minor"
           - "patch"
-    # Auto-merge actions updates (low risk)
-    automerge: true
-    automerge-type: "squash"
+    # (Auto-merge disabled for actions - use workflow)
 
   # Bazel dependencies (WORKSPACE.bazel)
   - package-ecosystem: "bazel"
@@ -152,11 +144,3 @@ updates:
       - "bazel"
     versioning-strategy: "increase"
     # Manual review for Bazel - high risk
-    automerge: false
-
-# Configuration for security updates
-security-updates:
-  enabled: true
-  commit-message:
-    prefix: "fix"
-    include: "scope"

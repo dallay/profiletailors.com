@@ -245,7 +245,10 @@ The system MUST add exactly one new protected target-aware proving capability th
 For this change, the capability MUST follow a resource-preview-by-resourceId pattern in WORKSPACE context.
 The capability MUST declare the explicit base permission `workspace:resource:read`.
 The capability MUST evaluate the requested `targetResourceId` as authorization-relevant input for this capability.
-This change MUST remain limited to this one target-aware proving capability and MUST NOT retrofit scope execution onto `/api/authorization/workspace-access/current`.
+
+This capability is implemented as a NEW protected endpoint: `GET /api/authorization/resources/{resourceId}/preview`
+- Request: includes `targetResourceId` as path parameter (resourceId)
+- The existing `/api/authorization/workspace-access/current` endpoint remains unchanged and is NOT used for this target-aware capability
 
 #### Scenario: Target-aware capability uses explicit base permission and target resource id
 

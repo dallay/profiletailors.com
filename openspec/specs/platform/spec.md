@@ -104,6 +104,10 @@ Authorization decisions MUST be evaluated relative to an explicit resource conte
 Permissions, grants, scopes, and policies MUST NOT rely on implicit resource-context inference.
 Phase one MUST fully support WORKSPACE context for the proving slice.
 For `backend-scopes-execution`, the new target-aware proving capability MUST evaluate authorization in WORKSPACE context and MUST use explicit `targetResourceId` input as part of the protected request context.
+This capability is implemented as a NEW protected endpoint: `GET /api/authorization/resources/{resourceId}/preview`
+- The endpoint accepts an explicit `targetResourceId` in the path (resourceId)
+- The proving slice is NOT extended onto `/api/authorization/workspace-access/current`
+
 Support for GLOBAL, USER, and SYSTEM contexts is platform-required and MAY be deferred in implementation beyond the contracts required to keep the model stable.
 (Previously: WORKSPACE context was required for the proving slice, but no executable target-aware capability was required to carry explicit target resource context for scope reduction.)
 
