@@ -4,7 +4,6 @@ import com.profiletailors.smp.platform.application.AuditHook
 import com.profiletailors.smp.platform.application.PrincipalContextProvider
 import com.profiletailors.smp.platform.application.ResourceContextProvider
 import com.profiletailors.smp.tenancy.application.AddWorkspaceOwnerHandler
-import com.profiletailors.smp.tenancy.application.RemoveWorkspaceOwnerHandler
 import com.profiletailors.smp.tenancy.application.TenancyMutationAuditor
 import com.profiletailors.smp.tenancy.application.TransferWorkspaceOwnershipHandler
 import com.profiletailors.smp.tenancy.application.UpdateWorkspaceMembershipStatusHandler
@@ -50,19 +49,6 @@ class TenancyBootstrapConfiguration {
         workspaceOwnershipRepository = workspaceOwnershipRepository,
         workspaceMembershipLookup = workspaceMembershipLookup,
         clock = clock,
-        tenancyMutationAuditor = tenancyMutationAuditor,
-    )
-
-    @Bean
-    fun removeWorkspaceOwnerHandler(
-        principalContextProvider: PrincipalContextProvider,
-        resourceContextProvider: ResourceContextProvider,
-        workspaceOwnershipRepository: WorkspaceOwnershipRepository,
-        tenancyMutationAuditor: TenancyMutationAuditor,
-    ): RemoveWorkspaceOwnerHandler = RemoveWorkspaceOwnerHandler(
-        principalContextProvider = principalContextProvider,
-        resourceContextProvider = resourceContextProvider,
-        workspaceOwnershipRepository = workspaceOwnershipRepository,
         tenancyMutationAuditor = tenancyMutationAuditor,
     )
 

@@ -9,8 +9,6 @@ import com.profiletailors.smp.tenancy.domain.WorkspaceOwnership
 import com.profiletailors.smp.tenancy.domain.WorkspaceOwnershipPolicy
 import java.time.Clock
 
-private val ownershipPolicy = WorkspaceOwnershipPolicy()
-
 data class AddWorkspaceOwnerCommand(
     val targetPrincipalId: String,
 ) : Command<WorkspaceOwnershipResult>
@@ -36,6 +34,7 @@ class AddWorkspaceOwnerHandler(
     private val clock: Clock,
     private val tenancyMutationAuditor: TenancyMutationAuditor,
 ) : CommandHandler<AddWorkspaceOwnerCommand, WorkspaceOwnershipResult> {
+    @Suppress("ThrowsCount")
     override suspend fun handle(command: AddWorkspaceOwnerCommand): WorkspaceOwnershipResult {
         val actor = principalContextProvider.require()
         val resourceContext = resourceContextProvider.requireWorkspaceContext()
@@ -58,7 +57,13 @@ class AddWorkspaceOwnerHandler(
                 )
             }
 
-            ownershipResult(workspaceId).also {
+            WorkspaceOwnershipResult(
+                workspaceId = workspaceId,
+                ownerPrincipalIds = workspaceOwnershipRepository
+                    .findByWorkspaceId(workspaceId)
+                    .map { ownership -> ownership.ownerPrincipalId }
+                    .sorted(),
+            ).also {
                 tenancyMutationAuditor.recordSuccess(
                     action = "workspace.owner.add",
                     targetType = "WORKSPACE_OWNER",
@@ -67,16 +72,21 @@ class AddWorkspaceOwnerHandler(
                     details = mapOf("ownerPrincipalId" to command.targetPrincipalId),
                 )
             }
-        } catch (exception: IllegalArgumentException) {
-            tenancyMutationAuditor.recordRejected(
-                action = "workspace.owner.add",
-                targetType = "WORKSPACE_OWNER",
-                targetId = command.targetPrincipalId,
-                workspaceId = workspaceId,
-                reason = exception::class.simpleName ?: "Exception",
-                details = mapOf("ownerPrincipalId" to command.targetPrincipalId),
-            )
-            throw exception
+        } catch (@Suppress("TooGenericExceptionCaught") exception: Exception) {
+            when (exception) {
+                is IllegalArgumentException, is IllegalStateException -> {
+                    tenancyMutationAuditor.recordRejected(
+                        action = "workspace.owner.add",
+                        targetType = "WORKSPACE_OWNER",
+                        targetId = command.targetPrincipalId,
+                        workspaceId = workspaceId,
+                        reason = exception::class.simpleName ?: "Exception",
+                        details = mapOf("ownerPrincipalId" to command.targetPrincipalId),
+                    )
+                    throw exception
+                }
+                else -> throw exception
+            }
         }
     }
 
@@ -89,35 +99,6 @@ class AddWorkspaceOwnerHandler(
             targetPrincipalId,
             requireNotNull(resourceContext.workspaceId),
         )
-
-    private suspend fun ownershipResult(workspaceId: String): WorkspaceOwnershipResult =
-            WorkspaceOwnershipResult(
-                workspaceId = workspaceId,
-                ownerPrincipalIds = workspaceOwnershipRepository
-                    .findByWorkspaceId(workspaceId)
-                    .map { ownership -> ownership.ownerPrincipalId }
-                    .sorted(),
-            ).also {
-                tenancyMutationAuditor.recordSuccess(
-                    action = "workspace.owner.remove",
-                    targetType = "WORKSPACE_OWNER",
-                    targetId = command.targetPrincipalId,
-                    workspaceId = workspaceId,
-                    details = mapOf("ownerPrincipalId" to command.targetPrincipalId),
-                )
-            }
-        } catch (exception: IllegalArgumentException) {
-            tenancyMutationAuditor.recordRejected(
-                action = "workspace.owner.remove",
-                targetType = "WORKSPACE_OWNER",
-                targetId = command.targetPrincipalId,
-                workspaceId = workspaceId,
-                reason = exception::class.simpleName ?: "Exception",
-                details = mapOf("ownerPrincipalId" to command.targetPrincipalId),
-            )
-            throw exception
-        }
-    }
 }
 
 class TransferWorkspaceOwnershipHandler(
@@ -127,8 +108,9 @@ class TransferWorkspaceOwnershipHandler(
     private val workspaceMembershipLookup: WorkspaceMembershipLookup,
     private val clock: Clock,
     private val tenancyMutationAuditor: TenancyMutationAuditor,
+    private val ownershipPolicy: WorkspaceOwnershipPolicy = WorkspaceOwnershipPolicy(),
 ) : CommandHandler<TransferWorkspaceOwnershipCommand, WorkspaceOwnershipResult> {
-    @Suppress("ThrowsCount")
+    @Suppress("ThrowsCount", "LongMethod")
     override suspend fun handle(command: TransferWorkspaceOwnershipCommand): WorkspaceOwnershipResult {
         val actor = principalContextProvider.require()
         val resourceContext = resourceContextProvider.requireWorkspaceContext()
@@ -174,19 +156,24 @@ class TransferWorkspaceOwnershipHandler(
                     ),
                 )
             }
-        } catch (exception: IllegalArgumentException) {
-            tenancyMutationAuditor.recordRejected(
-                action = "workspace.owner.transfer",
-                targetType = "WORKSPACE_OWNER",
-                targetId = command.targetPrincipalId,
-                workspaceId = workspaceId,
-                reason = exception::class.simpleName ?: "Exception",
-                details = mapOf(
-                    "fromPrincipalId" to actor.principalId,
-                    "toPrincipalId" to command.targetPrincipalId,
-                ),
-            )
-            throw exception
+        } catch (@Suppress("TooGenericExceptionCaught") exception: Exception) {
+            when (exception) {
+                is IllegalArgumentException, is IllegalStateException -> {
+                    tenancyMutationAuditor.recordRejected(
+                        action = "workspace.owner.transfer",
+                        targetType = "WORKSPACE_OWNER",
+                        targetId = command.targetPrincipalId,
+                        workspaceId = workspaceId,
+                        reason = exception::class.simpleName ?: "Exception",
+                        details = mapOf(
+                            "fromPrincipalId" to actor.principalId,
+                            "toPrincipalId" to command.targetPrincipalId,
+                        ),
+                    )
+                    throw exception
+                }
+                else -> throw exception
+            }
         }
     }
 }
