@@ -120,18 +120,17 @@ Base permission check passes
 ScopeResolver.resolve(principalContext, resourceContext)
         │
         ▼
-Persisted workspace scope rows for:
-- workspaceId
-- principalId
-- principalType
+Filter for applicable scopes matching:
 - permission = workspace:resource:read
+- resourceContextType = WORKSPACE
 - targetResourceType = RESOURCE
         │
-        ▼
-AuthorizationScope.allowedTargetResourceIds contains resourceContext.targetResourceId ?
+        ├─ no applicable scope rows → keep ALLOW (no reduction applies)
         │
-        ├─ yes -> keep ALLOW
-        └─ no  -> DENY with scope-specific reason
+        └─ applicable scope rows exist
+              │
+              ├─ allowedTargetResourceIds contains targetResourceId → keep ALLOW
+              └─ does not contain → DENY with SCOPE_REDUCED_TARGET
 ```
 
 ## File Changes
@@ -321,11 +320,7 @@ Updated decision order:
 6. Compute the base authorization decision exactly as today.
 7. If base decision is `DENY`, return immediately.
 8. If base decision is `ALLOW`, resolve applicable scopes.
-9. If no applicable scope rows exist for this capability, keep current behavior explicit in implementation choice:
-   - preferred narrow behavior: treat absence of scope rows as unrestricted within the proving capability only if that matches seed state expectations, OR
-   - stricter behavior: require scope presence for scoped principals only.
-
-For this change, the cleaner proving rule is to seed scope rows whenever scope reduction is being demonstrated and let tests prove the approved matrix directly.
+9. If no applicable scope rows exist for this capability, the base ALLOW decision stands unchanged — absence of scope rows means "no reduction applies." This is the chosen rule, implemented in `evaluateScopeReduction` via `applicableScopes.isEmpty() || ...`. Scopes are an opt-in restriction: they only narrow access when scope rows have been explicitly persisted for the matching permission, resource context type, and target resource type.
 10. If the requested `targetResourceId` is not in the allowed set, return `DENY` with `SCOPE_REDUCED_TARGET`.
 11. Otherwise, return the original base allow reason.
 
@@ -415,6 +410,23 @@ Result:
 
 This last case is critical because it proves scope state does not manufacture access.
 
+#### Allow without scope rows: base permission alone is sufficient
+
+Seed:
+- authenticated principal,
+- active workspace membership,
+- role yielding `workspace:resource:read`,
+- **no** persisted scope rows for this principal/capability.
+
+Request:
+- `GET /api/authorization/resources/resource-1/preview`
+
+Result:
+- `200 OK`
+- audit fact showing `ALLOW` with `ROLE_PERMISSION`
+
+This case proves that scope rows are opt-in: a principal with the base permission but no scope restrictions has unrestricted access within the proving capability.
+
 ## Testing Strategy
 
 | Layer | What to Test | Approach |
@@ -446,6 +458,6 @@ Rollback stays narrow:
 
 ## Open Questions
 
-- [ ] Should absence of a persisted scope row for this capability mean “no reduction applies” or should the proving slice treat scope state as required for principals under test? The implementation should choose one rule explicitly and prove it consistently, but the approved matrix does not require broader semantics yet.
+- [x] ~~Should absence of a persisted scope row for this capability mean "no reduction applies"...~~ **Resolved:** absence of applicable scope rows means "no reduction applies" — the base ALLOW stands. This is enforced in `evaluateScopeReduction` (line 196 of `WorkspaceAuthorizationService.kt`) via `applicableScopes.isEmpty() || ...` and proved by integration test `allows resource preview when base permission exists and no scope row`.
 - [ ] What repo-local constant should represent `targetResourceType` for this proving capability so it stays explicit without inventing a broader resource taxonomy too early?
 - [ ] Should the target-aware preview endpoint live under `authorization` infrastructure for proof discipline, or under a small synthetic `resources` surface that still delegates into the same authorization service?

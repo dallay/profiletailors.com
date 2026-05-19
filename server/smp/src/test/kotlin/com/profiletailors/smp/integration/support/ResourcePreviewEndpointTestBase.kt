@@ -118,6 +118,39 @@ abstract class ResourcePreviewEndpointTestBase {
     }
 
     @Test
+    fun `allows resource preview when base permission exists and no scope row`() {
+        seedMemberWithPreviewPermission()
+
+        webTestClient.get()
+            .uri(RESOURCE_PREVIEW_PATH)
+            .header(HttpHeaders.AUTHORIZATION, BEARER_TOKEN)
+            .header(WORKSPACE_HEADER, WORKSPACE_ID)
+            .accept(MediaType.APPLICATION_JSON)
+            .exchange()
+            .expectStatus().isOk
+            .expectBody()
+            .jsonPath("$.workspaceId").isEqualTo(WORKSPACE_ID)
+            .jsonPath("$.resourceId").isEqualTo(RESOURCE_ID)
+            .jsonPath("$.principalId").isEqualTo(PRINCIPAL_ID)
+            .jsonPath("$.previewAllowed").isEqualTo(true)
+
+        assertAuthorizationFacts(
+            listOf(
+                AuthorizationDecisionAuditFact(
+                    requestName = GET_RESOURCE_PREVIEW_QUERY,
+                    requestPath = RESOURCE_PREVIEW_PATH,
+                    permission = PERMISSION_RESOURCE_READ,
+                    principalId = PRINCIPAL_ID,
+                    workspaceId = WORKSPACE_ID,
+                    decision = com.profiletailors.smp.authorization.domain.AuthorizationDecision.ALLOW,
+                    reasonCode = AuthorizationReasonCode.ROLE_PERMISSION,
+                    roleKeys = listOf("member"),
+                ),
+            ),
+        )
+    }
+
+    @Test
     fun `denies resource preview when scope excludes target`() {
         seedMemberWithPreviewPermission()
         seedTargetScope(allowedTargetIdsJson = "[\"resource-2\"]")
