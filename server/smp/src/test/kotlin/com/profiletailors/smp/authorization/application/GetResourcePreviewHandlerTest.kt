@@ -23,49 +23,21 @@ class GetResourcePreviewHandlerTest {
         private const val WORKSPACE_ID = "workspace-1"
         private const val RESOURCE_ID = "resource-1"
         private const val PERMISSION_RESOURCE_READ = "workspace:resource:read"
+        private const val TARGET_RESOURCE_TYPE = "RESOURCE"
+        private const val OUTSIDE_SCOPE_RESOURCE_ID = "resource-9"
     }
 
     @Test
     fun `returns resource preview for authorized principal and emits allow audit fact`() = runTest {
-        val principalContext = PrincipalContext(
-            principalId = PRINCIPAL_ID,
-            principalType = PrincipalType.USER,
-            subject = "subject-123",
-        )
-        val resourceContext = ResourceContext(
-            type = ResourceContextType.WORKSPACE,
-            workspaceId = WORKSPACE_ID,
-        )
         val auditHook = CapturingAuditHook()
-        val handler = GetResourcePreviewHandler(
-            principalContextProvider = object : PrincipalContextProvider {
-                override suspend fun current(): PrincipalContext = principalContext
-            },
-            resourceContextProvider = object : ResourceContextProvider {
-                override fun current(): ResourceContext = resourceContext
-            },
-            workspaceAuthorizationDecider = object : WorkspaceAuthorizationDecider {
-                override suspend fun decide(
-                    requiredPermission: PermissionKey,
-                    requiredEntitlementKey: String?,
-                    resourceContextOverride: ResourceContext?,
-                ): AuthorizationDecision = AuthorizationDecision.ALLOW
-
-                override suspend fun decideDetailed(
-                    requiredPermission: PermissionKey,
-                    requiredEntitlementKey: String?,
-                    resourceContextOverride: ResourceContext?,
-                ): AuthorizationDecisionResult {
-                    assertEquals(RESOURCE_ID, resourceContextOverride?.targetResourceId)
-                    assertEquals("RESOURCE", resourceContextOverride?.targetResourceType)
-                    return AuthorizationDecisionResult(
-                        decision = AuthorizationDecision.ALLOW,
-                        reasonCode = AuthorizationReasonCode.ROLE_PERMISSION,
-                        roleKeys = setOf("member"),
-                    )
-                }
-            },
+        val handler = buildHandler(
             auditHook = auditHook,
+            decisionResult = AuthorizationDecisionResult(
+                decision = AuthorizationDecision.ALLOW,
+                reasonCode = AuthorizationReasonCode.ROLE_PERMISSION,
+                roleKeys = setOf("member"),
+            ),
+            assertResourceOverride = true,
         )
 
         val preview = handler.handle(GetResourcePreviewQuery(RESOURCE_ID))
@@ -81,15 +53,10 @@ class GetResourcePreviewHandlerTest {
         )
         assertEquals(
             listOf(
-                AuthorizationDecisionAuditFact(
-                    requestName = GetResourcePreviewQuery::class.java.name,
+                auditFact(
                     requestPath = "/api/authorization/resources/$RESOURCE_ID/preview",
-                    permission = PERMISSION_RESOURCE_READ,
-                    principalId = PRINCIPAL_ID,
-                    workspaceId = WORKSPACE_ID,
                     decision = AuthorizationDecision.ALLOW,
                     reasonCode = AuthorizationReasonCode.ROLE_PERMISSION,
-                    roleKeys = listOf("member"),
                 ),
             ),
             auditHook.facts,
@@ -98,17 +65,44 @@ class GetResourcePreviewHandlerTest {
 
     @Test
     fun `throws scope-specific denial when scope excludes resource target`() = runTest {
-        val principalContext = PrincipalContext(
-            principalId = PRINCIPAL_ID,
-            principalType = PrincipalType.USER,
-            subject = "subject-123",
-        )
-        val resourceContext = ResourceContext(
-            type = ResourceContextType.WORKSPACE,
-            workspaceId = WORKSPACE_ID,
-        )
         val auditHook = CapturingAuditHook()
-        val handler = GetResourcePreviewHandler(
+        val handler = buildHandler(
+            auditHook = auditHook,
+            decisionResult = AuthorizationDecisionResult(
+                decision = AuthorizationDecision.DENY,
+                reasonCode = AuthorizationReasonCode.SCOPE_REDUCED_TARGET,
+                roleKeys = setOf("member"),
+            ),
+        )
+
+        val error = assertThrows(AuthorizationDeniedException::class.java) {
+            kotlinx.coroutines.runBlocking {
+                handler.handle(GetResourcePreviewQuery(OUTSIDE_SCOPE_RESOURCE_ID))
+            }
+        }
+
+        assertEquals("Requested target $OUTSIDE_SCOPE_RESOURCE_ID is outside the allowed scope.", error.message)
+        assertEquals(
+            listOf(
+                auditFact(
+                    requestPath = "/api/authorization/resources/$OUTSIDE_SCOPE_RESOURCE_ID/preview",
+                    decision = AuthorizationDecision.DENY,
+                    reasonCode = AuthorizationReasonCode.SCOPE_REDUCED_TARGET,
+                ),
+            ),
+            auditHook.facts,
+        )
+    }
+
+    private fun buildHandler(
+        auditHook: CapturingAuditHook,
+        decisionResult: AuthorizationDecisionResult,
+        assertResourceOverride: Boolean = false,
+    ): GetResourcePreviewHandler {
+        val principalContext = principalContext()
+        val resourceContext = workspaceContext()
+
+        return GetResourcePreviewHandler(
             principalContextProvider = object : PrincipalContextProvider {
                 override suspend fun current(): PrincipalContext = principalContext
             },
@@ -120,44 +114,49 @@ class GetResourcePreviewHandlerTest {
                     requiredPermission: PermissionKey,
                     requiredEntitlementKey: String?,
                     resourceContextOverride: ResourceContext?,
-                ): AuthorizationDecision = AuthorizationDecision.DENY
+                ): AuthorizationDecision = decisionResult.decision
 
                 override suspend fun decideDetailed(
                     requiredPermission: PermissionKey,
                     requiredEntitlementKey: String?,
                     resourceContextOverride: ResourceContext?,
-                ): AuthorizationDecisionResult = AuthorizationDecisionResult(
-                    decision = AuthorizationDecision.DENY,
-                    reasonCode = AuthorizationReasonCode.SCOPE_REDUCED_TARGET,
-                    roleKeys = setOf("member"),
-                )
+                ): AuthorizationDecisionResult {
+                    if (assertResourceOverride) {
+                        assertEquals(RESOURCE_ID, resourceContextOverride?.targetResourceId)
+                        assertEquals(TARGET_RESOURCE_TYPE, resourceContextOverride?.targetResourceType)
+                    }
+                    return decisionResult
+                }
             },
             auditHook = auditHook,
         )
-
-        val error = assertThrows(AuthorizationDeniedException::class.java) {
-            kotlinx.coroutines.runBlocking {
-                handler.handle(GetResourcePreviewQuery("resource-9"))
-            }
-        }
-
-        assertEquals("Requested target resource-9 is outside the allowed scope.", error.message)
-        assertEquals(
-            listOf(
-                AuthorizationDecisionAuditFact(
-                    requestName = GetResourcePreviewQuery::class.java.name,
-                    requestPath = "/api/authorization/resources/resource-9/preview",
-                    permission = PERMISSION_RESOURCE_READ,
-                    principalId = PRINCIPAL_ID,
-                    workspaceId = WORKSPACE_ID,
-                    decision = AuthorizationDecision.DENY,
-                    reasonCode = AuthorizationReasonCode.SCOPE_REDUCED_TARGET,
-                    roleKeys = listOf("member"),
-                ),
-            ),
-            auditHook.facts,
-        )
     }
+
+    private fun principalContext(): PrincipalContext = PrincipalContext(
+        principalId = PRINCIPAL_ID,
+        principalType = PrincipalType.USER,
+        subject = "subject-123",
+    )
+
+    private fun workspaceContext(): ResourceContext = ResourceContext(
+        type = ResourceContextType.WORKSPACE,
+        workspaceId = WORKSPACE_ID,
+    )
+
+    private fun auditFact(
+        requestPath: String,
+        decision: AuthorizationDecision,
+        reasonCode: AuthorizationReasonCode,
+    ): AuthorizationDecisionAuditFact = AuthorizationDecisionAuditFact(
+        requestName = GetResourcePreviewQuery::class.java.name,
+        requestPath = requestPath,
+        permission = PERMISSION_RESOURCE_READ,
+        principalId = PRINCIPAL_ID,
+        workspaceId = WORKSPACE_ID,
+        decision = decision,
+        reasonCode = reasonCode,
+        roleKeys = listOf("member"),
+    )
 
     private class CapturingAuditHook : AuditHook {
         val facts = mutableListOf<AuthorizationDecisionAuditFact>()
