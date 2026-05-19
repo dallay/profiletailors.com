@@ -5,6 +5,7 @@ import com.profiletailors.smp.identity.domain.PrincipalContext
 import com.profiletailors.smp.identity.domain.PrincipalType
 import com.profiletailors.smp.platform.domain.ResourceContext
 import com.profiletailors.smp.platform.domain.ResourceContextType
+import com.profiletailors.smp.tenancy.application.WorkspaceMembershipLookup
 import com.profiletailors.smp.tenancy.domain.WorkspaceMembership
 import com.profiletailors.smp.tenancy.domain.WorkspaceMembershipStatus
 import kotlinx.coroutines.reactor.awaitSingleOrNull
@@ -14,13 +15,13 @@ import org.springframework.stereotype.Repository
 @Repository
 class R2dbcWorkspaceMembershipResolver(
     private val databaseClient: DatabaseClient,
-) : WorkspaceMembershipResolver {
+) : WorkspaceMembershipResolver, WorkspaceMembershipLookup {
     override suspend fun resolve(
         principalContext: PrincipalContext,
         resourceContext: ResourceContext,
     ): WorkspaceMembership? = resolve(principalContext.principalId, resourceContext)
 
-    suspend fun resolve(
+    override suspend fun resolve(
         principalId: String,
         resourceContext: ResourceContext,
     ): WorkspaceMembership? {

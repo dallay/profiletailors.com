@@ -27,3 +27,5 @@ databaseChangeLog:
       file: db/changelog/authorization/006-create-workspace-entitlements.yaml
   - include:
       file: db/changelog/authorization/007-create-workspace-target-scopes.yaml
+  - include:
+      file: db/changelog/governance/001-create-audit-events.yaml

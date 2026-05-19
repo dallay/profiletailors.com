@@ -5,12 +5,16 @@ import com.profiletailors.smp.platform.application.AuditHook
 import com.profiletailors.smp.platform.application.AuthorizationDecisionAuditFact
 import com.profiletailors.smp.platform.application.Mediator
 import com.profiletailors.smp.platform.application.MetricsHook
+import com.profiletailors.smp.platform.application.MutationAuditFact
 import com.profiletailors.smp.platform.application.PrincipalContextProvider
 import com.profiletailors.smp.platform.application.RateLimitHook
 import com.profiletailors.smp.platform.application.ResourceContextProvider
 import com.profiletailors.smp.platform.application.RequestOutcome
+import org.springframework.beans.factory.annotation.Value
 import org.springframework.context.annotation.Bean
 import org.springframework.context.annotation.Configuration
+import org.springframework.r2dbc.core.DatabaseClient
+import java.time.Clock
 
 @Configuration
 class PlatformBootstrapConfiguration {
@@ -33,19 +37,37 @@ class PlatformBootstrapConfiguration {
     fun objectMapper(): ObjectMapper = ObjectMapper()
 
     @Bean
-    fun auditHook(): AuditHook = NoOpAuditHook()
+    fun auditHook(
+        databaseClient: DatabaseClient,
+        objectMapper: ObjectMapper,
+        clock: Clock,
+        @Value("\${platform.hooks.audit.enabled:false}") auditEnabled: Boolean,
+    ): AuditHook = if (auditEnabled) {
+        R2dbcAuditHook(
+            databaseClient = databaseClient,
+            objectMapper = objectMapper,
+            clock = clock,
+        )
+    } else {
+        NoOpAuditHook()
+    }
 
     @Bean
     fun metricsHook(): MetricsHook = NoOpMetricsHook()
 
     @Bean
     fun rateLimitHook(): RateLimitHook = NoOpRateLimitHook()
+
+    @Bean
+    fun clock(): Clock = Clock.systemUTC()
 }
 
 class NoOpAuditHook : AuditHook {
     override suspend fun onRequestHandled(requestName: String, outcome: RequestOutcome) = Unit
 
     override suspend fun onAuthorizationDecision(fact: AuthorizationDecisionAuditFact) = Unit
+
+    override suspend fun onMutation(fact: MutationAuditFact) = Unit
 }
 
 class NoOpMetricsHook : MetricsHook {
