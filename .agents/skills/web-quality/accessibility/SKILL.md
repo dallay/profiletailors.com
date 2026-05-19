@@ -1,17 +1,15 @@
 ---
 name: accessibility
-description: >-
-  Audit and improve web accessibility following WCAG 2.1 guidelines. Use when the task
-  involves `improve accessibility`, `a11y audit`, `WCAG compliance`, `screen reader
-  support`, `keyboard navigation`, or `make accessible`.
+description: Audit and improve web accessibility following WCAG 2.2 guidelines. Use when asked to "improve accessibility", "a11y audit", "WCAG compliance", "screen reader support", "keyboard navigation", or "make accessible".
 license: MIT
 metadata:
-  version: "1.0.0"
+  author: web-quality-skills
+  version: "1.1"
 ---
 
 # Accessibility (a11y)
 
-Comprehensive accessibility guidelines based on WCAG 2.1 and Lighthouse accessibility audits. Goal:
+Comprehensive accessibility guidelines based on WCAG 2.2 and Lighthouse accessibility audits. Goal:
 make content usable by everyone, including people with disabilities.
 
 ## WCAG Principles: POUR
@@ -114,9 +112,9 @@ make content usable by everyone, including people with disabilities.
   background: #fff;
 }
 
-/* ✅ Focus states need contrast too */
+/* ✅ Focus states need contrast too (3:1 against background, WCAG 1.4.11) */
 :focus-visible {
-  outline: 2px solid #005fcc;
+  outline: 2px solid currentColor;
   outline-offset: 2px;
 }
 ```
@@ -164,13 +162,24 @@ make content usable by everyone, including people with disabilities.
 
 ### Keyboard accessible (2.1)
 
-**All functionality must be keyboard accessible:**
+**All functionality must be keyboard accessible.** Prefer native interactive elements — `<button>`,
+`<a href>`, and form controls handle Enter/Space activation, focus, and assistive-tech semantics for
+free. Only add manual keyboard handling when you cannot use a native element.
+
+```html
+<!-- ❌ Non-interactive element with click only: not focusable, no keyboard activation -->
+<div class="card" onclick="handleAction()">Open</div>
+
+<!-- ✅ Best: use a native button -->
+<button type="button" onclick="handleAction()">Open</button>
+```
 
 ```javascript
-// ❌ Only handles click
-element.addEventListener('click', handleAction);
-
-// ✅ Handles both click and keyboard
+// ✅ When you MUST use a non-interactive element (e.g. div with role="button"),
+// make it focusable AND handle keyboard activation. Do NOT add this to a native
+// <button> — Enter/Space already fire click, so you'd double-trigger.
+element.setAttribute('role', 'button');
+element.setAttribute('tabindex', '0');
 element.addEventListener('click', handleAction);
 element.addEventListener('keydown', (e) => {
   if (e.key === 'Enter' || e.key === ' ') {
@@ -180,36 +189,9 @@ element.addEventListener('keydown', (e) => {
 });
 ```
 
-**No keyboard traps:**
-
-```javascript
-// Modal focus management
-function openModal(modal) {
-  const focusableElements = modal.querySelectorAll(
-    'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])'
-  );
-  const firstElement = focusableElements[0];
-  const lastElement = focusableElements[focusableElements.length - 1];
-  
-  // Trap focus within modal
-  modal.addEventListener('keydown', (e) => {
-    if (e.key === 'Tab') {
-      if (e.shiftKey && document.activeElement === firstElement) {
-        e.preventDefault();
-        lastElement.focus();
-      } else if (!e.shiftKey && document.activeElement === lastElement) {
-        e.preventDefault();
-        firstElement.focus();
-      }
-    }
-    if (e.key === 'Escape') {
-      closeModal();
-    }
-  });
-  
-  firstElement.focus();
-}
-```
+**No keyboard traps.** Users must be able to Tab into and out of every component. Use
+the [modal focus trap pattern](references/A11Y-PATTERNS.md#modal-focus-trap) for dialogs—the native
+`<dialog>` element handles this automatically.
 
 ### Focus visible (2.4.7)
 
@@ -223,43 +205,71 @@ function openModal(modal) {
 }
 
 :focus-visible {
-  outline: 2px solid #005fcc;
+  outline: 2px solid currentColor; /* inherits text color → already contrast-checked */
   outline-offset: 2px;
 }
 
-/* ✅ Or custom focus styles */
+/* ✅ Or pick a brand color and verify ≥3:1 contrast against every background it lands on */
 button:focus-visible {
   box-shadow: 0 0 0 3px rgba(0, 95, 204, 0.5);
 }
 ```
 
-### Skip links (2.4.1)
+### Focus not obscured (2.4.11) — new in 2.2
 
-```html
-<body>
-  <a href="#main-content" class="skip-link">Skip to main content</a>
-  <header><!-- navigation --></header>
-  <main id="main-content" tabindex="-1">
-    <!-- main content -->
-  </main>
-</body>
-```
+When an element receives keyboard focus, it must not be entirely hidden by other author-created
+content such as sticky headers, footers, or overlapping panels. At Level AAA (2.4.12), no part of
+the focused element may be hidden.
 
 ```css
-.skip-link {
-  position: absolute;
-  top: -40px;
-  left: 0;
-  background: #000;
-  color: #fff;
-  padding: 8px 16px;
-  z-index: 100;
+/* ✅ Account for sticky headers when scrolling to focused elements */
+:target {
+  scroll-margin-top: 80px;
 }
 
-.skip-link:focus {
-  top: 0;
+/* ✅ Ensure focused items clear fixed/sticky bars */
+:focus {
+  scroll-margin-top: 80px;
+  scroll-margin-bottom: 60px;
 }
 ```
+
+### Skip links (2.4.1)
+
+Provide a skip link so keyboard users can bypass repetitive navigation. See
+the [skip link pattern](references/A11Y-PATTERNS.md#skip-link) for full markup and styles.
+
+### Target size (2.5.8) — new in 2.2
+
+Interactive targets must be at least **24 × 24 CSS pixels** (AA). Exceptions: inline text links,
+elements where the browser controls the size, and targets where a 24px circle centered on the
+bounding box does not overlap another target.
+
+```css
+/* ✅ Minimum target size */
+button,
+[role="button"],
+input[type="checkbox"] + label,
+input[type="radio"] + label {
+  min-width: 24px;
+  min-height: 24px;
+}
+
+/* ✅ Comfortable target size (recommended 44×44) */
+.touch-target {
+  min-width: 44px;
+  min-height: 44px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+```
+
+### Dragging movements (2.5.7) — new in 2.2
+
+Any action that requires dragging must have a single-pointer alternative (e.g., buttons, inputs).
+See the [dragging movements pattern](references/A11Y-PATTERNS.md#dragging-movements) for a
+sortable-list example.
 
 ### Timing (2.2)
 
@@ -273,7 +283,7 @@ function showSessionWarning() {
       { label: 'Extend session', action: extendSession },
       { label: 'Log out', action: logout }
     ],
-    timeout: 120000 // 2 minutes to respond
+    timeout: 120000
   });
 }
 ```
@@ -324,86 +334,63 @@ function showSessionWarning() {
 </nav>
 ```
 
+### Consistent help (3.2.6) — new in 2.2
+
+If a help mechanism (contact info, chat widget, FAQ link, self-help option) is repeated across
+multiple pages, it must appear in the **same relative order** each time. Users who rely on
+consistent placement shouldn't have to hunt for help on every page.
+
 ### Form labels (3.3.2)
 
-```html
-<!-- ❌ No label association -->
-<input type="email" placeholder="Email">
-
-<!-- ✅ Explicit label -->
-<label for="email">Email address</label>
-<input type="email" id="email" name="email" 
-       autocomplete="email" required>
-
-<!-- ✅ Implicit label -->
-<label>
-  Email address
-  <input type="email" name="email" autocomplete="email" required>
-</label>
-
-<!-- ✅ With instructions -->
-<label for="password">Password</label>
-<input type="password" id="password" 
-       aria-describedby="password-requirements">
-<p id="password-requirements">
-  Must be at least 8 characters with one number.
-</p>
-```
+Every input needs a programmatically associated label. See
+the [form labels pattern](references/A11Y-PATTERNS.md#form-labels) for explicit, implicit, and
+instructional examples.
 
 ### Error handling (3.3.1, 3.3.3)
 
+Announce errors to screen readers with `role="alert"` or `aria-live`, set `aria-invalid="true"` on
+invalid fields, and focus the first error on submit. See
+the [error handling pattern](references/A11Y-PATTERNS.md#error-handling) for full markup and JS.
+
+### Redundant entry (3.3.7) — new in 2.2
+
+Don't force users to re-enter information they already provided in the same session. Auto-populate
+from earlier steps, or let users select from previously entered values. Exceptions: security
+re-confirmation and content that has expired.
+
 ```html
-<!-- Announce errors to screen readers -->
-<form novalidate>
-  <div class="field" aria-live="polite">
-    <label for="email">Email</label>
-    <input type="email" id="email" 
-           aria-invalid="true"
-           aria-describedby="email-error">
-    <p id="email-error" class="error" role="alert">
-      Please enter a valid email address (e.g., name@example.com)
-    </p>
-  </div>
-</form>
+<!-- ✅ Auto-fill shipping address from billing -->
+<fieldset>
+  <legend>Shipping address</legend>
+  <label>
+    <input type="checkbox" id="same-as-billing" checked>
+    Same as billing address
+  </label>
+  <!-- Fields auto-populated when checked -->
+</fieldset>
 ```
 
-```javascript
-// Focus first error on submit
-form.addEventListener('submit', (e) => {
-  const firstError = form.querySelector('[aria-invalid="true"]');
-  if (firstError) {
-    e.preventDefault();
-    firstError.focus();
-    
-    // Announce error summary
-    const errorSummary = document.getElementById('error-summary');
-    errorSummary.textContent = `${errors.length} errors found. Please fix them and try again.`;
-    errorSummary.focus();
-  }
-});
+### Accessible authentication (3.3.8) — new in 2.2
+
+Login flows must not rely on cognitive function tests (e.g., remembering a password, solving a
+puzzle) unless at least one of:
+
+- A copy-paste or autofill mechanism is available
+- An alternative method exists (e.g., passkey, SSO, email link)
+- The test uses object recognition or personal content (AA only; AAA removes this exception)
+
+```html
+<!-- ✅ Allow paste in password fields -->
+<input type="password" id="password" autocomplete="current-password">
+
+<!-- ✅ Offer passwordless alternatives -->
+<button type="button">Sign in with passkey</button>
+<button type="button">Email me a login link</button>
 ```
 
 ---
 
 ## Robust
-
-### Valid HTML (4.1.1)
-
-```html
-<!-- ❌ Duplicate IDs -->
-<div id="content">...</div>
-<div id="content">...</div>
-
-<!-- ❌ Invalid nesting -->
-<a href="/"><button>Click</button></a>
-
-<!-- ✅ Unique IDs -->
-<div id="main-content">...</div>
-<div id="sidebar-content">...</div>
-
-<!-- ✅ Proper nesting -->
-<a href="/" class="button-link">Click</a>
-```
 
 ### ARIA usage (4.1.2)
 
@@ -423,52 +410,75 @@ form.addEventListener('submit', (e) => {
 <label><input type="checkbox"> Option</label>
 ```
 
-**When ARIA is needed:**
-
-```html
-<!-- Custom tabs component -->
-<div role="tablist" aria-label="Product information">
-  <button role="tab" id="tab-1" aria-selected="true" 
-          aria-controls="panel-1">Description</button>
-  <button role="tab" id="tab-2" aria-selected="false" 
-          aria-controls="panel-2" tabindex="-1">Reviews</button>
-</div>
-<div role="tabpanel" id="panel-1" aria-labelledby="tab-1">
-  <!-- Panel content -->
-</div>
-<div role="tabpanel" id="panel-2" aria-labelledby="tab-2" hidden>
-  <!-- Panel content -->
-</div>
-```
+**When ARIA is needed,** use the correct roles and states. See
+the [ARIA tabs pattern](references/A11Y-PATTERNS.md#aria-tabs) for a complete tablist example.
 
 ### Live regions (4.1.3)
 
-```html
-<!-- Status updates -->
-<div aria-live="polite" aria-atomic="true" class="status">
-  <!-- Content updates announced to screen readers -->
-</div>
-
-<!-- Urgent alerts -->
-<div role="alert" aria-live="assertive">
-  <!-- Interrupts current announcement -->
-</div>
-```
-
-```javascript
-// Announce dynamic content changes
-function showNotification(message, type = 'polite') {
-  const container = document.getElementById(`${type}-announcer`);
-  container.textContent = ''; // Clear first
-  requestAnimationFrame(() => {
-    container.textContent = message;
-  });
-}
-```
+Use `aria-live` regions to announce dynamic content changes without moving focus. See
+the [live regions pattern](references/A11Y-PATTERNS.md#live-regions-and-notifications) for markup
+and a `showNotification()` helper.
 
 ---
 
-## Additional References
+## Testing checklist
 
-- Read [references/REFERENCE.md](references/REFERENCE.md) when you need the testing checklist, issue
-  triage, or external accessibility references.
+### Automated testing
+
+```bash
+# Lighthouse accessibility audit
+npx lighthouse https://example.com --only-categories=accessibility
+
+# axe-core
+npm install @axe-core/cli -g
+axe https://example.com
+```
+
+### Manual testing
+
+- [ ] **Keyboard navigation:** Tab through entire page, use Enter/Space to activate
+- [ ] **Screen reader:** Test with VoiceOver (Mac), NVDA (Windows), or TalkBack (Android)
+- [ ] **Zoom:** Content usable at 200% zoom
+- [ ] **High contrast:** Test with Windows High Contrast Mode
+- [ ] **Reduced motion:** Test with `prefers-reduced-motion: reduce`
+- [ ] **Focus order:** Logical and follows visual order
+- [ ] **Target size:** Interactive elements meet 24×24px minimum
+
+See the [screen reader commands reference](references/A11Y-PATTERNS.md#screen-reader-commands) for
+VoiceOver and NVDA shortcuts.
+
+---
+
+## Common issues by impact
+
+### Critical (fix immediately)
+
+1. Missing form labels
+2. Missing image alt text
+3. Insufficient color contrast
+4. Keyboard traps
+5. No focus indicators
+
+### Serious (fix before launch)
+
+1. Missing page language
+2. Missing heading structure
+3. Non-descriptive link text
+4. Auto-playing media
+5. Missing skip links
+
+### Moderate (fix soon)
+
+1. Missing ARIA labels on icons
+2. Inconsistent navigation
+3. Missing error identification
+4. Timing without controls
+5. Missing landmark regions
+
+## References
+
+- [WCAG 2.2 Quick Reference](https://www.w3.org/WAI/WCAG22/quickref/)
+- [WAI-ARIA Authoring Practices](https://www.w3.org/WAI/ARIA/apg/)
+- [Deque axe Rules](https://dequeuniversity.com/rules/axe/)
+- [WCAG criteria reference](references/WCAG.md)
+- [Accessibility code patterns](references/A11Y-PATTERNS.md)

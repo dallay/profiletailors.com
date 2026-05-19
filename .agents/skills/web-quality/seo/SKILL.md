@@ -1,12 +1,10 @@
 ---
 name: seo
-description: >-
-  Optimize for search engine visibility and ranking. Use when the task involves `improve
-  SEO`, `optimize for search`, `fix meta tags`, `add structured data`, `sitemap
-  optimization`, or `search engine optimization`.
+description: Optimize for search engine visibility and ranking. Use when asked to "improve SEO", "optimize for search", "fix meta tags", "add structured data", "sitemap optimization", or "search engine optimization".
 license: MIT
 metadata:
-  version: "1.0.0"
+  author: web-quality-skills
+  version: "1.0"
 ---
 
 # SEO optimization
@@ -177,8 +175,7 @@ X-Frame-Options: DENY
 <meta name="description" content="">
 
 <!-- ✅ Compelling and unique -->
-<meta name="description"
-      content="Shop premium blue widgets with free shipping. 30-day returns. Rated 4.9/5 by 10,000+ customers. Order today and save 20%.">
+<meta name="description" content="Shop premium blue widgets with free shipping. 30-day returns. Rated 4.9/5 by 10,000+ customers. Order today and save 20%.">
 ```
 
 **Meta description guidelines:**
@@ -199,11 +196,11 @@ X-Frame-Options: DENY
 
 <!-- ✅ Proper hierarchy -->
 <h1>Blue Widgets - Premium Quality</h1>
-<h2>Product Features</h2>
-<h3>Durability</h3>
-<h3>Design</h3>
-<h2>Customer Reviews</h2>
-<h2>Pricing</h2>
+  <h2>Product Features</h2>
+    <h3>Durability</h3>
+    <h3>Design</h3>
+  <h2>Customer Reviews</h2>
+  <h2>Pricing</h2>
 ```
 
 **Heading guidelines:**
@@ -262,147 +259,142 @@ X-Frame-Options: DENY
 ### Organization
 
 ```html
-
 <script type="application/ld+json">
-  {
-    "@context": "https://schema.org",
-    "@type": "Organization",
-    "name": "Example Company",
-    "url": "https://example.com",
-    "logo": "https://example.com/logo.png",
-    "sameAs": [
-      "https://twitter.com/example",
-      "https://linkedin.com/company/example"
-    ],
-    "contactPoint": {
-      "@type": "ContactPoint",
-      "telephone": "+1-555-123-4567",
-      "contactType": "customer service"
-    }
+{
+  "@context": "https://schema.org",
+  "@type": "Organization",
+  "name": "Example Company",
+  "url": "https://example.com",
+  "logo": "https://example.com/logo.png",
+  "sameAs": [
+    "https://twitter.com/example",
+    "https://linkedin.com/company/example"
+  ],
+  "contactPoint": {
+    "@type": "ContactPoint",
+    "telephone": "+1-555-123-4567",
+    "contactType": "customer service"
   }
+}
 </script>
 ```
 
 ### Article
 
 ```html
-
 <script type="application/ld+json">
-  {
-    "@context": "https://schema.org",
-    "@type": "Article",
-    "headline": "How to Choose the Right Widget",
-    "description": "Complete guide to selecting widgets for your needs.",
-    "image": "https://example.com/article-image.jpg",
-    "author": {
-      "@type": "Person",
-      "name": "Jane Smith",
-      "url": "https://example.com/authors/jane-smith"
-    },
-    "publisher": {
-      "@type": "Organization",
-      "name": "Example Blog",
-      "logo": {
-        "@type": "ImageObject",
-        "url": "https://example.com/logo.png"
-      }
-    },
-    "datePublished": "2024-01-15",
-    "dateModified": "2024-01-20"
-  }
+{
+  "@context": "https://schema.org",
+  "@type": "Article",
+  "headline": "How to Choose the Right Widget",
+  "description": "Complete guide to selecting widgets for your needs.",
+  "image": "https://example.com/article-image.jpg",
+  "author": {
+    "@type": "Person",
+    "name": "Jane Smith",
+    "url": "https://example.com/authors/jane-smith"
+  },
+  "publisher": {
+    "@type": "Organization",
+    "name": "Example Blog",
+    "logo": {
+      "@type": "ImageObject",
+      "url": "https://example.com/logo.png"
+    }
+  },
+  "datePublished": "2024-01-15",
+  "dateModified": "2024-01-20"
+}
 </script>
 ```
 
 ### Product
 
 ```html
-
 <script type="application/ld+json">
-  {
-    "@context": "https://schema.org",
-    "@type": "Product",
-    "name": "Blue Widget Pro",
-    "image": "https://example.com/blue-widget.jpg",
-    "description": "Premium blue widget with advanced features.",
-    "brand": {
-      "@type": "Brand",
-      "name": "WidgetCo"
-    },
-    "offers": {
-      "@type": "Offer",
-      "price": "49.99",
-      "priceCurrency": "USD",
-      "availability": "https://schema.org/InStock",
-      "url": "https://example.com/products/blue-widget"
-    },
-    "aggregateRating": {
-      "@type": "AggregateRating",
-      "ratingValue": "4.8",
-      "reviewCount": "1250"
-    }
+{
+  "@context": "https://schema.org",
+  "@type": "Product",
+  "name": "Blue Widget Pro",
+  "image": "https://example.com/blue-widget.jpg",
+  "description": "Premium blue widget with advanced features.",
+  "brand": {
+    "@type": "Brand",
+    "name": "WidgetCo"
+  },
+  "offers": {
+    "@type": "Offer",
+    "price": "49.99",
+    "priceCurrency": "USD",
+    "availability": "https://schema.org/InStock",
+    "url": "https://example.com/products/blue-widget"
+  },
+  "aggregateRating": {
+    "@type": "AggregateRating",
+    "ratingValue": "4.8",
+    "reviewCount": "1250"
   }
+}
 </script>
 ```
 
 ### FAQ
 
 ```html
-
 <script type="application/ld+json">
-  {
-    "@context": "https://schema.org",
-    "@type": "FAQPage",
-    "mainEntity": [
-      {
-        "@type": "Question",
-        "name": "What colors are available?",
-        "acceptedAnswer": {
-          "@type": "Answer",
-          "text": "Our widgets come in blue, red, and green."
-        }
-      },
-      {
-        "@type": "Question",
-        "name": "What is the warranty?",
-        "acceptedAnswer": {
-          "@type": "Answer",
-          "text": "All widgets include a 2-year warranty."
-        }
+{
+  "@context": "https://schema.org",
+  "@type": "FAQPage",
+  "mainEntity": [
+    {
+      "@type": "Question",
+      "name": "What colors are available?",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "Our widgets come in blue, red, and green."
       }
-    ]
-  }
+    },
+    {
+      "@type": "Question",
+      "name": "What is the warranty?",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "All widgets include a 2-year warranty."
+      }
+    }
+  ]
+}
 </script>
 ```
 
 ### Breadcrumbs
 
 ```html
-
 <script type="application/ld+json">
-  {
-    "@context": "https://schema.org",
-    "@type": "BreadcrumbList",
-    "itemListElement": [
-      {
-        "@type": "ListItem",
-        "position": 1,
-        "name": "Home",
-        "item": "https://example.com"
-      },
-      {
-        "@type": "ListItem",
-        "position": 2,
-        "name": "Products",
-        "item": "https://example.com/products"
-      },
-      {
-        "@type": "ListItem",
-        "position": 3,
-        "name": "Blue Widgets",
-        "item": "https://example.com/products/blue-widgets"
-      }
-    ]
-  }
+{
+  "@context": "https://schema.org",
+  "@type": "BreadcrumbList",
+  "itemListElement": [
+    {
+      "@type": "ListItem",
+      "position": 1,
+      "name": "Home",
+      "item": "https://example.com"
+    },
+    {
+      "@type": "ListItem",
+      "position": 2,
+      "name": "Products",
+      "item": "https://example.com/products"
+    },
+    {
+      "@type": "ListItem",
+      "position": 3,
+      "name": "Blue Widgets",
+      "item": "https://example.com/products/blue-widgets"
+    }
+  ]
+}
 </script>
 ```
 
@@ -415,7 +407,150 @@ Test structured data at:
 
 ---
 
-## Additional References
+## AI search visibility (emerging)
 
-- Read [references/REFERENCE.md](references/REFERENCE.md) when the task needs mobile SEO,
-  international SEO, the audit checklist, or SEO tools and references.
+A class of AI search engines (ChatGPT search, Perplexity, Gemini Overviews) cite web pages from
+their training and retrieval pipelines, not from the classic ranked results. As of 2026 this is an
+unstable area — there are no confirmed ranking signals — but a few things are low-cost and won't
+hurt:
+
+- **Don't block AI crawlers wholesale.** `OAI-SearchBot`, `PerplexityBot`, `GoogleOther`,
+  `Google-Extended`, `ClaudeBot`, etc. each have separate `robots.txt` user-agents. Decide per-bot
+  rather than blanket-blocking — a `Disallow` removes you from that bot's citations.
+- **Lean on schema.org `Article`/`Product`/`FAQPage`.** AI summarizers parse structured data more
+  reliably than they parse prose layouts. The structured-data examples above are the same ones that
+  help here.
+- **Make first-paragraph answers self-contained.** Both featured snippets and AI summaries pull
+  short, coherent passages. A definition or direct answer in the first 1-2 sentences is more
+  extractable than the same content buried under marketing prose.
+
+### `llms.txt` — emerging, unproven
+
+[`llms.txt`](https://llmstxt.org/) is a proposed convention (a Markdown index of your site's
+important pages, served at `/llms.txt`) for LLMs to consume. As of mid-2026 adoption is ~0.015% of
+sites and **no major AI vendor has confirmed they read it**. Treat it as a 5-minute speculative add
+for content sites — not a meaningful ranking or citation factor — and don't reorganize content
+around it.
+
+---
+
+## Mobile SEO
+
+### Responsive design
+
+```html
+<!-- ❌ Not mobile-friendly -->
+<meta name="viewport" content="width=1024">
+
+<!-- ✅ Responsive viewport -->
+<meta name="viewport" content="width=device-width, initial-scale=1">
+```
+
+### Tap targets
+
+```css
+/* ❌ Too small for mobile */
+.small-link {
+  padding: 4px;
+  font-size: 12px;
+}
+
+/* ✅ Adequate tap target */
+.mobile-friendly-link {
+  padding: 12px;
+  font-size: 16px;
+  min-height: 48px;
+  min-width: 48px;
+}
+```
+
+### Font sizes
+
+```css
+/* ❌ Too small on mobile */
+body {
+  font-size: 10px;
+}
+
+/* ✅ Readable without zooming */
+body {
+  font-size: 16px;
+  line-height: 1.5;
+}
+```
+
+---
+
+## International SEO
+
+### Hreflang tags
+
+```html
+<!-- For multi-language sites -->
+<link rel="alternate" hreflang="en" href="https://example.com/page">
+<link rel="alternate" hreflang="es" href="https://example.com/es/page">
+<link rel="alternate" hreflang="fr" href="https://example.com/fr/page">
+<link rel="alternate" hreflang="x-default" href="https://example.com/page">
+```
+
+### Language declaration
+
+```html
+<html lang="en">
+<!-- or -->
+<html lang="es-MX">
+```
+
+---
+
+## SEO audit checklist
+
+### Critical
+
+- [ ] HTTPS enabled
+- [ ] robots.txt allows crawling
+- [ ] No `noindex` on important pages
+- [ ] Title tags present and unique
+- [ ] Single `<h1>` per page
+
+### High priority
+
+- [ ] Meta descriptions present
+- [ ] Sitemap submitted
+- [ ] Canonical URLs set
+- [ ] Mobile-responsive
+- [ ] Core Web Vitals passing
+
+### Medium priority
+
+- [ ] Structured data implemented
+- [ ] Internal linking strategy
+- [ ] Image alt text
+- [ ] Descriptive URLs
+- [ ] Breadcrumb navigation
+
+### Ongoing
+
+- [ ] Fix crawl errors in Search Console
+- [ ] Update sitemap when content changes
+- [ ] Monitor ranking changes
+- [ ] Check for broken links
+- [ ] Review Search Console insights
+
+---
+
+## Tools
+
+| Tool                      | Use                           |
+|---------------------------|-------------------------------|
+| Google Search Console     | Monitor indexing, fix issues  |
+| Google PageSpeed Insights | Performance + Core Web Vitals |
+| Rich Results Test         | Validate structured data      |
+| Lighthouse                | Full SEO audit                |
+| Screaming Frog            | Crawl analysis                |
+
+## References
+
+- [Google Search Central](https://developers.google.com/search)
+- [Schema.org](https://schema.org/)
+- [Core Web Vitals](../core-web-vitals/SKILL.md)
