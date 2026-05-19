@@ -1,10 +1,6 @@
 ---
 name: nothing-design
-description: >-
-  Guides intentional Nothing-inspired UI and design-system work with typography, spacing,
-  hierarchy, components, and platform-specific execution. Use when the user explicitly
-  asks for Nothing style, Nothing design, or `/nothing-design`, not for generic UI or
-  design tasks.
+description: Use when the user explicitly asks for Nothing style, Nothing design, or /nothing-design for intentional Nothing-inspired UI.
 license: MIT
 metadata:
   version: "3.0.0"

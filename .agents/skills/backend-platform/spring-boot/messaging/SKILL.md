@@ -123,6 +123,7 @@ class WorkspaceCreatedTransactionalListener {
 This is where many teams get burned.
 
 According to the official docs:
+
 - `@TransactionalEventListener` supports reactive transactions too
 - reactive transactions use **Reactor context**, not thread-local transaction state
 - therefore, the transaction context must be available in the published event/source model
@@ -241,13 +242,13 @@ If using Kafka, RabbitMQ, or another broker:
 
 ## Decision Guide
 
-| Need | Preferred approach |
-|---|---|
-| Local in-process decoupling | `@EventListener` |
+| Need                                         | Preferred approach                      |
+|----------------------------------------------|-----------------------------------------|
+| Local in-process decoupling                  | `@EventListener`                        |
 | Transaction-outcome-sensitive local handling | `@TransactionalEventListener` with care |
-| Reactive write-flow transaction control | `TransactionalOperator` |
-| Cross-service reliable delivery | Outbox + broker |
-| Fire-and-forget non-critical side effect | `@EventListener` + `@Async` |
+| Reactive write-flow transaction control      | `TransactionalOperator`                 |
+| Cross-service reliable delivery              | Outbox + broker                         |
+| Fire-and-forget non-critical side effect     | `@EventListener` + `@Async`             |
 
 ## Common Mistakes
 

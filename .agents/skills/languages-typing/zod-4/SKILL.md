@@ -1,8 +1,6 @@
 ---
 name: zod-4
-description: >
-  Zod 4 schema validation patterns.
-  Trigger: When using Zod for validation - breaking changes from v3.
+description: Use when using Zod for validation, especially with breaking changes from v3.
 allowed-tools: Read, Edit, Write, Glob, Grep, Bash, WebFetch, WebSearch, Task
 ---
 

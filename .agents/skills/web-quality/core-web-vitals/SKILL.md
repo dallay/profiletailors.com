@@ -1,9 +1,6 @@
 ---
 name: core-web-vitals
-description: >-
-  Optimize Core Web Vitals (LCP, INP, CLS) for better page experience and search ranking.
-  Use when the task involves `improve Core Web Vitals`, `fix LCP`, `reduce CLS`, `optimize
-  INP`, `page experience optimization`, or `fix layout shifts`.
+description: Use when improving Core Web Vitals, fixing LCP, reducing CLS, optimizing INP, or addressing page experience optimization.
 license: MIT
 metadata:
   version: "1.0.0"

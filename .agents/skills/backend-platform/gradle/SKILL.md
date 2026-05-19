@@ -1,8 +1,6 @@
 ---
 name: gradle
-description: >
-    Gradle best practices for build configuration, custom plugins, and performance.
-    Trigger: When working with build.gradle.kts, settings.gradle.kts, custom tasks, or Gradle plugins.
+description: Use when working with build.gradle.kts, settings.gradle.kts, custom tasks, or Gradle plugins for build configuration and performance.
 allowed-tools: Read, Edit, Write, Glob, Grep, Bash
 metadata:
     author: profiletailors
