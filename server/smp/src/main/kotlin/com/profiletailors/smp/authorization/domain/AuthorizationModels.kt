@@ -19,7 +19,10 @@ data class DirectGrant(
 }
 
 data class AuthorizationScope(
-    val key: String,
+    val permission: PermissionKey,
+    val resourceContextType: com.profiletailors.smp.platform.domain.ResourceContextType,
+    val targetResourceType: String,
+    val allowedTargetResourceIds: Set<String>,
 )
 
 data class Entitlement(
