@@ -138,7 +138,7 @@ AuthorizationScope.allowedTargetResourceIds contains resourceContext.targetResou
 
 | File | Action | Description |
 |------|--------|-------------|
-| `openspec/changes/backend-scopes-execution/design.md` | Create | Technical design artifact for this change. |
+| `openspec/changes/archive/2026-05-18-backend-scopes-execution/design.md` | Create | Technical design artifact for this change. |
 | `server/smp/src/main/resources/db/changelog/authorization/007-create-workspace-target-scopes.yaml` | Create | Minimal persisted workspace-scoped target-reduction records for the proving capability. |
 | `server/smp/src/main/resources/db/changelog/db.changelog-master.yaml` | Modify | Include the new scope changelog. |
 | `server/smp/src/main/kotlin/com/profiletailors/smp/authorization/domain/AuthorizationModels.kt` | Modify | Enrich `AuthorizationScope` from placeholder key-only shape to a minimal executable target-aware scope model. |
