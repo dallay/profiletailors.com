@@ -365,7 +365,7 @@ jobs:
           } >> "$GITHUB_STEP_SUMMARY"
       - name: Run Sonar PR analysis
         if: ${{ steps.sonar-config.outputs.enabled == 'true' }}
-        uses: SonarSource/sonarqube-scan-action@2f77a1ec69fb1d595b06f35ab27e97605bdef703 # v5.3.1
+        uses: SonarSource/sonarqube-scan-action@7006c4492b2e0ee0f816d36501671557c97f5995 # v5.3.1
         env:
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
           SONAR_HOST_URL: ${{ secrets.SONAR_HOST_URL }}
