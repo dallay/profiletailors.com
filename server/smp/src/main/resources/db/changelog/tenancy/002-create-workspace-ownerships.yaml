@@ -10,7 +10,6 @@ databaseChangeLog:
                   name: workspace_id
                   type: varchar(64)
                   constraints:
-                    primaryKey: true
                     nullable: false
                     foreignKeyName: fk_workspace_ownerships_workspace
                     references: workspaces(id)
@@ -27,8 +26,19 @@ databaseChangeLog:
                   constraints:
                     nullable: false
               - column:
+                  name: created_by
+                  type: varchar(64)
+                  constraints:
+                    nullable: true
+                    foreignKeyName: fk_workspace_ownerships_created_by_principal
+                    references: principals(id)
+              - column:
                   name: created_at
                   type: timestamp with time zone
                   defaultValueComputed: CURRENT_TIMESTAMP
                   constraints:
                     nullable: false
+        - addPrimaryKey:
+            tableName: workspace_ownerships
+            columnNames: workspace_id, owner_principal_id
+            constraintName: pk_workspace_ownerships

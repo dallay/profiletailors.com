@@ -169,5 +169,7 @@ class GetResourcePreviewHandlerTest {
         override suspend fun onAuthorizationDecision(fact: AuthorizationDecisionAuditFact) {
             facts += fact
         }
+
+        override suspend fun onMutation(fact: com.profiletailors.smp.platform.application.MutationAuditFact) = Unit
     }
 }
