@@ -139,6 +139,27 @@ Run these from `apps/web/marketing/`:
 
 ---
 
+## Architecture
+
+Profile Tailors follows a **hexagonal architecture** with **bounded contexts** from Domain-Driven Design. The backend is built as a **modular monolith** using Spring Boot 4, Kotlin, and reactive programming.
+
+**📐 [View C4 Architecture Models](docs/architecture/c4/)**
+
+- **[System Context](docs/architecture/c4/01-system-context.md)** — Big picture, external dependencies
+- **[Container](docs/architecture/c4/02-container.md)** — Deployable units, technology stack
+- **[Component](docs/architecture/c4/03-component.md)** — Internal structure, bounded contexts
+- **[Code](docs/architecture/c4/04-code.md)** — Implementation patterns, class design
+- **[Summary](docs/architecture/c4/SUMMARY.md)** — Executive summary and roadmap
+
+**Key Architectural Patterns**:
+- Hexagonal Architecture (Ports & Adapters)
+- Domain-Driven Design (Bounded Contexts)
+- CQRS (Command Query Responsibility Segregation)
+- Reactive Programming (Kotlin coroutines + R2DBC)
+- Modular Monolith (Spring Modulith)
+
+---
+
 ## Contributing
 
 Contributions are welcome. Before opening a pull request:
