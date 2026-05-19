@@ -48,11 +48,13 @@ interface WorkspaceAuthorizationDecider {
     suspend fun decide(
         requiredPermission: PermissionKey,
         requiredEntitlementKey: String? = null,
+        resourceContextOverride: ResourceContext? = null,
     ): AuthorizationDecision
 
     suspend fun decideDetailed(
         requiredPermission: PermissionKey,
         requiredEntitlementKey: String? = null,
+        resourceContextOverride: ResourceContext? = null,
     ): AuthorizationDecisionResult
 }
 
@@ -75,58 +77,155 @@ class WorkspaceAuthorizationService(
     override suspend fun decide(
         requiredPermission: PermissionKey,
         requiredEntitlementKey: String?,
-    ): AuthorizationDecision = decideDetailed(requiredPermission, requiredEntitlementKey).decision
+        resourceContextOverride: ResourceContext?,
+    ): AuthorizationDecision =
+        decideDetailed(
+            requiredPermission = requiredPermission,
+            requiredEntitlementKey = requiredEntitlementKey,
+            resourceContextOverride = resourceContextOverride,
+        ).decision
 
     override suspend fun decideDetailed(
         requiredPermission: PermissionKey,
         requiredEntitlementKey: String?,
+        resourceContextOverride: ResourceContext?,
     ): AuthorizationDecisionResult {
         val principalContext = principalContextProvider.require()
-        val resourceContext = resourceContextProvider.require()
+        val resourceContext = resourceContextOverride ?: resourceContextProvider.require()
         val membership = workspaceMembershipResolver.resolve(principalContext, resourceContext)
             ?.takeIf { it.isActive() }
-
-        if (membership == null) {
-            return AuthorizationDecisionResult(
-                decision = AuthorizationDecision.DENY,
-                reasonCode = AuthorizationReasonCode.MISSING_MEMBERSHIP,
-            )
-        }
+            ?: return missingMembershipDecision()
 
         val roles = workspaceMembershipRoleResolver.resolve(membership)
-        val rolePermissions = roles
-            .flatMap { role -> role.permissions }
-            .toSet()
+        val roleKeys = roles.mapTo(sortedSetOf()) { it.key }
+        val baseDecision = decideBaseAccess(
+            requiredPermission = requiredPermission,
+            requiredEntitlementKey = requiredEntitlementKey,
+            resourceContext = resourceContext,
+            roles = roles,
+            roleKeys = roleKeys,
+            principalContext = principalContext,
+        )
 
+        return finalDecision(
+            baseDecision = baseDecision,
+            roleKeys = roleKeys,
+            requiredPermission = requiredPermission,
+            resourceContext = resourceContext,
+            principalContext = principalContext,
+        )
+    }
+
+    private fun missingMembershipDecision(): AuthorizationDecisionResult =
+        AuthorizationDecisionResult(
+            decision = AuthorizationDecision.DENY,
+            reasonCode = AuthorizationReasonCode.MISSING_MEMBERSHIP,
+        )
+
+    private suspend fun decideBaseAccess(
+        requiredPermission: PermissionKey,
+        requiredEntitlementKey: String?,
+        resourceContext: ResourceContext,
+        roles: Set<Role>,
+        roleKeys: Set<String>,
+        principalContext: PrincipalContext,
+    ): AuthorizationDecisionResult {
+        val rolePermissions = roles.flatMap { role -> role.permissions }.toSet()
         val directGrants = directGrantResolver.resolve(principalContext, resourceContext)
             .filter { grant -> grant.permission == requiredPermission && grant.isActive(clock.instant()) }
             .toSet()
-
-        scopeResolver.resolve(principalContext, resourceContext)
         val entitlements = entitlementResolver.resolve(resourceContext)
         val entitlementSatisfied = requiredEntitlementKey == null || entitlements.any { entitlement ->
             entitlement.key == requiredEntitlementKey && entitlement.enabled
         }
 
-        val (decision, reasonCode) = when {
-            !entitlementSatisfied ->
-                AuthorizationDecision.DENY to AuthorizationReasonCode.MISSING_ENTITLEMENT
+        return when {
+            !entitlementSatisfied -> decision(AuthorizationReasonCode.MISSING_ENTITLEMENT, roleKeys)
             directGrants.any { it.effect == GrantEffect.DENY } ->
-                AuthorizationDecision.DENY to AuthorizationReasonCode.DIRECT_DENY
+                decision(AuthorizationReasonCode.DIRECT_DENY, roleKeys)
             directGrants.any { it.effect == GrantEffect.ALLOW } ->
-                AuthorizationDecision.ALLOW to AuthorizationReasonCode.DIRECT_ALLOW
+                decision(
+                    reasonCode = AuthorizationReasonCode.DIRECT_ALLOW,
+                    roleKeys = roleKeys,
+                    authorizationDecision = AuthorizationDecision.ALLOW,
+                )
             requiredPermission in rolePermissions ->
-                AuthorizationDecision.ALLOW to AuthorizationReasonCode.ROLE_PERMISSION
-            else ->
-                AuthorizationDecision.DENY to AuthorizationReasonCode.MISSING_PERMISSION
+                decision(
+                    reasonCode = AuthorizationReasonCode.ROLE_PERMISSION,
+                    roleKeys = roleKeys,
+                    authorizationDecision = AuthorizationDecision.ALLOW,
+                )
+            else -> decision(AuthorizationReasonCode.MISSING_PERMISSION, roleKeys)
+        }
+    }
+
+    private suspend fun finalDecision(
+        baseDecision: AuthorizationDecisionResult,
+        roleKeys: Set<String>,
+        requiredPermission: PermissionKey,
+        resourceContext: ResourceContext,
+        principalContext: PrincipalContext,
+    ): AuthorizationDecisionResult {
+        if (baseDecision.decision != AuthorizationDecision.ALLOW) {
+            return baseDecision
         }
 
-        return AuthorizationDecisionResult(
-            decision = decision,
-            reasonCode = reasonCode,
-            roleKeys = roles.mapTo(sortedSetOf()) { it.key },
+        val scopes = scopeResolver.resolve(principalContext, resourceContext)
+        val scopeDecision = evaluateScopeReduction(
+            requiredPermission = requiredPermission,
+            resourceContext = resourceContext,
+            scopes = scopes,
         )
+
+        return scopeDecision?.copy(roleKeys = roleKeys)
+            ?: baseDecision.copy(roleKeys = roleKeys)
     }
+
+    private fun evaluateScopeReduction(
+        requiredPermission: PermissionKey,
+        resourceContext: ResourceContext,
+        scopes: Set<AuthorizationScope>,
+    ): AuthorizationDecisionResult? {
+        val targetContext = targetScopeContext(resourceContext) ?: return null
+        val applicableScopes = scopes.filter { scope ->
+            scope.permission == requiredPermission &&
+                scope.resourceContextType == resourceContext.type &&
+                scope.targetResourceType == targetContext.targetResourceType
+        }
+
+        val scopeAllowsTarget = applicableScopes.isEmpty() ||
+            applicableScopes.any { scope ->
+                targetContext.targetResourceId in scope.allowedTargetResourceIds
+            }
+
+        return if (scopeAllowsTarget) null
+        else decision(AuthorizationReasonCode.SCOPE_REDUCED_TARGET)
+    }
+
+    private fun targetScopeContext(resourceContext: ResourceContext): TargetScopeContext? =
+        resourceContext.targetResourceType
+            ?.takeIf { resourceContext.targetResourceId != null }
+            ?.let { targetResourceType ->
+                TargetScopeContext(
+                    targetResourceType = targetResourceType,
+                    targetResourceId = requireNotNull(resourceContext.targetResourceId),
+                )
+            }
+
+    private fun decision(
+        reasonCode: AuthorizationReasonCode,
+        roleKeys: Set<String> = emptySet(),
+        authorizationDecision: AuthorizationDecision = AuthorizationDecision.DENY,
+    ): AuthorizationDecisionResult = AuthorizationDecisionResult(
+        decision = authorizationDecision,
+        reasonCode = reasonCode,
+        roleKeys = roleKeys,
+    )
+
+    private data class TargetScopeContext(
+        val targetResourceType: String,
+        val targetResourceId: String,
+    )
 }
 
 class NoOpDirectGrantResolver : DirectGrantResolver {

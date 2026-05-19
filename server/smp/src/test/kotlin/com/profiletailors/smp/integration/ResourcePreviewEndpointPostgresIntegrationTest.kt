@@ -1,16 +1,18 @@
 package com.profiletailors.smp.integration
 
-import com.profiletailors.smp.integration.support.WorkspaceAccessSummaryEndpointTestBase
-import com.profiletailors.smp.integration.support.WorkspaceAccessSummaryEndpointTestBase.SharedTestBeans
-import org.junit.jupiter.api.TestInstance
+import com.fasterxml.jackson.databind.ObjectMapper
+import com.profiletailors.smp.integration.support.ResourcePreviewEndpointTestBase
 import org.springframework.boot.test.context.SpringBootTest
+import org.springframework.boot.test.context.TestConfiguration
 import org.springframework.boot.webtestclient.autoconfigure.AutoConfigureWebTestClient
-import org.springframework.context.annotation.Import
+import org.springframework.context.annotation.Bean
 import org.springframework.test.context.DynamicPropertyRegistry
 import org.springframework.test.context.DynamicPropertySource
 import org.testcontainers.containers.PostgreSQLContainer
 import org.testcontainers.junit.jupiter.Container
 import org.testcontainers.junit.jupiter.Testcontainers
+
+import org.springframework.context.annotation.Import
 
 @AutoConfigureWebTestClient
 @SpringBootTest(
@@ -21,10 +23,9 @@ import org.testcontainers.junit.jupiter.Testcontainers
         "spring.main.allow-bean-definition-overriding=true",
     ],
 )
+@Import(ResourcePreviewEndpointTestBase.SharedTestBeans::class)
 @Testcontainers(disabledWithoutDocker = true)
-@TestInstance(TestInstance.Lifecycle.PER_CLASS)
-@Import(SharedTestBeans::class)
-class WorkspaceAccessSummaryEndpointPostgresIntegrationTest : WorkspaceAccessSummaryEndpointTestBase() {
+class ResourcePreviewEndpointPostgresIntegrationTest : ResourcePreviewEndpointTestBase() {
 
     override fun liquibaseJdbcUrl(): String = postgres.jdbcUrl
 
@@ -32,11 +33,17 @@ class WorkspaceAccessSummaryEndpointPostgresIntegrationTest : WorkspaceAccessSum
 
     override fun liquibasePassword(): String = postgres.password
 
+    @TestConfiguration
+    class PostgresTestBeans {
+        @Bean
+        fun objectMapper(): ObjectMapper = ObjectMapper()
+    }
+
     companion object {
         @Container
         @JvmStatic
         val postgres: PostgreSQLContainer<*> = PostgreSQLContainer("postgres:16-alpine")
-            .withDatabaseName("proving_slice")
+            .withDatabaseName("resource_preview_slice")
             .withUsername("profiletailors")
             .withPassword("profiletailors")
 

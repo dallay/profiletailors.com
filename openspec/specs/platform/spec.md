@@ -103,8 +103,22 @@ The system MUST define the following resource context taxonomy: GLOBAL, USER, WO
 Authorization decisions MUST be evaluated relative to an explicit resource context.
 Permissions, grants, scopes, and policies MUST NOT rely on implicit resource-context inference.
 Phase one MUST fully support WORKSPACE context for the proving slice.
-Support for GLOBAL, USER, and SYSTEM contexts is platform-required and MAY be deferred in
-implementation beyond the contracts required to keep the model stable.
+For `backend-scopes-execution`, the new target-aware proving capability MUST evaluate authorization in WORKSPACE context and MUST use explicit `targetResourceId` input as part of the protected request context.
+This capability is implemented as a NEW protected endpoint: `GET /api/authorization/resources/{resourceId}/preview`
+This target-aware proving capability is separate from `/api/authorization/workspace-access/current`, is evaluated in WORKSPACE context using explicit `targetResourceId`, and does not overlap with or extend the API-key replacement proving slice.
+- The endpoint accepts an explicit `targetResourceId` in the path (resourceId)
+- The proving slice is NOT extended onto `/api/authorization/workspace-access/current`
+
+Support for GLOBAL, USER, and SYSTEM contexts is platform-required and MAY be deferred in implementation beyond the contracts required to keep the model stable.
+(Previously: WORKSPACE context was required for the proving slice, but no executable target-aware capability was required to carry explicit target resource context for scope reduction.)
+
+#### Scenario: Target-aware workspace request evaluates with explicit target context
+
+- GIVEN the new resource-preview proving capability is defined for workspace data
+- AND the request includes an active workspace identifier and explicit `targetResourceId`
+- WHEN authorization is evaluated for that capability
+- THEN the platform MUST evaluate the request in WORKSPACE resource context
+- AND it MUST treat the supplied `targetResourceId` as explicit protected target context rather than as implicit or derived state
 
 #### Scenario: Workspace-scoped request evaluates in explicit context
 
@@ -205,9 +219,9 @@ For the existing `/api/authorization/workspace-access/current` proving slice, th
 This change MUST prove end-to-end behavior for that slice with API-key allow, authorization-controlled deny, revoked-or-inactive-credential deny, and completed-replacement cutover outcomes.
 For the supported API-key replacement capability, the platform MUST apply one explicit runtime rule: after the replacement operation completes, the successor API key MUST be accepted and the predecessor API key MUST be denied.
 The completed replacement rule MUST NOT allow any overlap window where both predecessor and successor are accepted on `/api/authorization/workspace-access/current`.
-The proving slice MUST remain limited to `/api/authorization/workspace-access/current`.
-The proving slice MUST NOT broaden into new endpoints, service-account rotation, dual-active rollover windows, inventory or detail APIs, or generalized credential-family management.
-The proving slice MUST NOT broaden into broad issuance/admin platform behavior beyond what is minimally necessary to execute one API-key replacement path.
+The API-key replacement proving slice for `/api/authorization/workspace-access/current` MUST remain limited to that endpoint.
+The API-key replacement proving slice MUST NOT broaden into new endpoints, service-account rotation, dual-active rollover windows, inventory or detail APIs, or generalized credential-family management.
+The API-key replacement proving slice MUST NOT broaden into broad issuance/admin platform behavior beyond what is minimally necessary to execute one API-key replacement path.
 
 #### Scenario: Access is denied by default
 
