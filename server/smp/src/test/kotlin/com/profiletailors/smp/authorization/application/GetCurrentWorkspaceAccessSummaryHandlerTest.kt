@@ -68,11 +68,13 @@ class GetCurrentWorkspaceAccessSummaryHandlerTest {
                 override suspend fun decide(
                     requiredPermission: PermissionKey,
                     requiredEntitlementKey: String?,
+                    resourceContextOverride: ResourceContext?,
                 ): AuthorizationDecision = AuthorizationDecision.ALLOW
 
                 override suspend fun decideDetailed(
                     requiredPermission: PermissionKey,
                     requiredEntitlementKey: String?,
+                    resourceContextOverride: ResourceContext?,
                 ): AuthorizationDecisionResult =
                     AuthorizationDecisionResult(
                         decision = AuthorizationDecision.ALLOW,
@@ -138,11 +140,13 @@ class GetCurrentWorkspaceAccessSummaryHandlerTest {
                 override suspend fun decide(
                     requiredPermission: PermissionKey,
                     requiredEntitlementKey: String?,
+                    resourceContextOverride: ResourceContext?,
                 ): AuthorizationDecision = AuthorizationDecision.DENY
 
                 override suspend fun decideDetailed(
                     requiredPermission: PermissionKey,
                     requiredEntitlementKey: String?,
+                    resourceContextOverride: ResourceContext?,
                 ): AuthorizationDecisionResult =
                     AuthorizationDecisionResult(
                         decision = AuthorizationDecision.DENY,
@@ -209,11 +213,13 @@ class GetCurrentWorkspaceAccessSummaryHandlerTest {
                 override suspend fun decide(
                     requiredPermission: PermissionKey,
                     requiredEntitlementKey: String?,
+                    resourceContextOverride: ResourceContext?,
                 ): AuthorizationDecision = AuthorizationDecision.DENY
 
                 override suspend fun decideDetailed(
                     requiredPermission: PermissionKey,
                     requiredEntitlementKey: String?,
+                    resourceContextOverride: ResourceContext?,
                 ): AuthorizationDecisionResult =
                     AuthorizationDecisionResult(
                         decision = AuthorizationDecision.DENY,

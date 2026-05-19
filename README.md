@@ -20,17 +20,18 @@ Public-facing marketing site for the Profile Tailors social media management pla
 
 ## Overview
 
-**Profile Tailors** is a social media management product for planning, scheduling, and publishing content across multiple platforms.
+**Profile Tailors** is a social media management platform for scheduling, publishing, analyzing, engaging, and collaborating across multiple platforms.
 
-This repository currently focuses on the **marketing site** and **early-access waitlist** experience. The active app lives in `apps/web/marketing/` and is built as a lightweight, static-first Astro site.
+This repository contains the **marketing site** and the **backend service** (in early development). The frontend is a lightweight, static-first Astro site at `apps/web/marketing/`.
 
 ### What ships in this repo today
 
 - **English landing page** at `/`
 - **Spanish landing page** at `/es/`
 - **Client-side waitlist flow** for early access
-- **Dark-first, typography-led design system**
+- **Nothing-inspired, monochrome, typographically driven design system** — dark-first with equal-rigor light mode
 - **Shared brand assets** served from `shared/assets/`
+- **Backend service** in `server/smp/` (Spring Boot, Kotlin, work in progress)
 
 > The product name is **Profile Tailors**. `profiletailors.com` is the repository/domain name.
 
@@ -40,10 +41,12 @@ This repository currently focuses on the **marketing site** and **early-access w
 
 | Category | Technology |
 | --- | --- |
-| Frontend | Astro 6, Tailwind CSS 4, TypeScript |
+| Frontend | Astro 6, Tailwind CSS v4 + @theme, TypeScript |
+| Backend | Spring Boot 4, Kotlin, WebFlux (experimental) |
 | Rendering model | Static-first, no SSR |
 | i18n | Astro i18n routing (`en`, `es`) |
-| Icons | `@dallay/astro-icon`, Iconify |
+| Icons | `@dallay/astro-icon`, `@iconify-json/lucide` |
+| Linting | Biome |
 | Package manager | pnpm |
 | Workspace tooling | Bazel, Lefthook |
 | CI/CD | GitHub Actions, Release Please |
@@ -67,12 +70,18 @@ profiletailors.com/
 │           │   └── styles/       # Global styles and tokens
 │           ├── astro.config.mjs
 │           └── package.json
+├── server/
+│   └── smp/                     # Backend service (Spring Boot, Kotlin, work in progress)
+│       ├── src/                 # Kotlin source
+│       ├── build.gradle.kts
+│       └── compose.yaml
 ├── shared/
-│   └── assets/                   # Shared logos, icons, and web assets
+│   └── assets/                  # Shared logos, icons, and web assets
 ├── .agents/                      # Agent tooling config and skills
 ├── .github/workflows/            # CI and automation
-├── docs/security/                # Security-related documentation space
+├── docs/security/               # Security documentation
 ├── tmp/                          # Research notes and temporary planning docs
+├── openspec/                    # SDD (Spec-Driven Development) artifacts
 ├── CONTRIBUTING.md
 ├── CLA.md
 ├── LICENSE
@@ -112,17 +121,21 @@ Run these from `apps/web/marketing/`:
 | `pnpm build` | Build the production site into `dist/` |
 | `pnpm preview` | Preview the production build locally |
 | `pnpm check` | Run Astro type/content checks |
-| `pnpm lint` | Lint the app source |
+| `pnpm lint` | Lint the app source with Biome |
+| `pnpm format` | Format code with Biome |
 
 ---
 
 ## Development Notes
 
-- The active app is `apps/web/marketing/`.
+- The active frontend app is `apps/web/marketing/`.
 - The site uses Astro's built-in locale routing with **English as the default locale** and **Spanish under `/es/`**.
 - User-facing copy is maintained in locale files under `apps/web/marketing/src/i18n/`.
 - Shared web assets are sourced from `shared/assets/` and exposed by the app config during development and build.
 - The current waitlist flow is **client-side only**.
+- Code quality: **Biome** for linting and formatting in the frontend.
+- The backend lives in `server/smp/` — Spring Boot 4 with Kotlin and WebFlux (experimental, not deployed).
+- SDD artifacts live in `openspec/` for tracking specs, designs, and tasks.
 
 ---
 
