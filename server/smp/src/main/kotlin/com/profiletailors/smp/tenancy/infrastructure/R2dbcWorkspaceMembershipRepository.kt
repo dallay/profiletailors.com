@@ -44,7 +44,7 @@ class R2dbcWorkspaceMembershipRepository(
         principalId: String,
         status: WorkspaceMembershipStatus,
     ) {
-        databaseClient.sql(
+        val rowsAffected = databaseClient.sql(
             """
             UPDATE workspace_memberships
             SET status = :status
@@ -57,5 +57,11 @@ class R2dbcWorkspaceMembershipRepository(
             .fetch()
             .rowsUpdated()
             .awaitSingle()
+        
+        if (rowsAffected == 0L) {
+            throw IllegalStateException(
+                "Membership not found for principal '$principalId' in workspace '$workspaceId'"
+            )
+        }
     }
 }

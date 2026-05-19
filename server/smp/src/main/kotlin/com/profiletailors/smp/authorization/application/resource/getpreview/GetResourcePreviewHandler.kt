@@ -1,11 +1,12 @@
-package com.profiletailors.smp.authorization.application
+package com.profiletailors.smp.authorization.application.resource.getpreview
 
+import com.profiletailors.common.domain.bus.query.QueryHandler
+import com.profiletailors.smp.authorization.application.AuthorizationDeniedException
 import com.profiletailors.smp.authorization.domain.AuthorizationDecision
 import com.profiletailors.smp.authorization.domain.PermissionKey
+import com.profiletailors.smp.authorization.domain.WorkspaceAuthorizationDecider
 import com.profiletailors.smp.platform.application.AuditHook
 import com.profiletailors.smp.platform.application.AuthorizationDecisionAuditFact
-import com.profiletailors.smp.platform.application.Query
-import com.profiletailors.smp.platform.application.QueryHandler
 import com.profiletailors.smp.platform.application.PrincipalContextProvider
 import com.profiletailors.smp.platform.application.ResourceContextProvider
 import com.profiletailors.smp.platform.domain.ResourceContext
@@ -13,17 +14,6 @@ import com.profiletailors.smp.platform.domain.ResourceContextType
 
 private const val RESOURCE_PREVIEW_PATH = "/api/authorization/resources"
 private const val RESOURCE_TARGET_TYPE = "RESOURCE"
-
-data class GetResourcePreviewQuery(
-    val resourceId: String,
-) : Query<ResourcePreview>
-
-data class ResourcePreview(
-    val workspaceId: String,
-    val resourceId: String,
-    val principalId: String,
-    val previewAllowed: Boolean,
-)
 
 class GetResourcePreviewHandler(
     private val principalContextProvider: PrincipalContextProvider,

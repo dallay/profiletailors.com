@@ -1,11 +1,14 @@
 package com.profiletailors.smp.authorization.application
 
+import com.profiletailors.common.domain.bus.query.Query
+import com.profiletailors.common.domain.bus.query.QueryHandler
 import com.profiletailors.smp.authorization.domain.AuthorizationDecision
 import com.profiletailors.smp.authorization.domain.PermissionKey
+import com.profiletailors.smp.authorization.domain.WorkspaceAuthorizationDecider
+import com.profiletailors.smp.authorization.domain.WorkspaceMembershipResolver
+import com.profiletailors.smp.authorization.domain.WorkspaceMembershipRoleResolver
 import com.profiletailors.smp.platform.application.AuditHook
 import com.profiletailors.smp.platform.application.AuthorizationDecisionAuditFact
-import com.profiletailors.smp.platform.application.Query
-import com.profiletailors.smp.platform.application.QueryHandler
 
 object GetCurrentWorkspaceAccessSummaryQuery : Query<WorkspaceAccessSummary> {
     const val CURRENT_WORKSPACE_ACCESS_ENTITLEMENT: String = "workspace.access.summary"
