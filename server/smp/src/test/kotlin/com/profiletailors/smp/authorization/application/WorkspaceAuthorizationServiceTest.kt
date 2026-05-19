@@ -26,20 +26,26 @@ import java.time.ZoneOffset
 
 class WorkspaceAuthorizationServiceTest {
 
+    companion object {
+        private const val PRINCIPAL_ID = "principal-1"
+        private const val WORKSPACE_ID = "workspace-1"
+        private const val RESOURCE_ID = "resource-1"
+    }
+
     private val principalContext = PrincipalContext(
-        principalId = "principal-1",
+        principalId = PRINCIPAL_ID,
         principalType = PrincipalType.USER,
         subject = "user-123",
     )
     private val resourceContext = ResourceContext(
         type = ResourceContextType.WORKSPACE,
-        workspaceId = "workspace-1",
+        workspaceId = WORKSPACE_ID,
     )
     private val targetAwareResourceContext = ResourceContext(
         type = ResourceContextType.WORKSPACE,
-        workspaceId = "workspace-1",
+        workspaceId = WORKSPACE_ID,
         targetResourceType = "RESOURCE",
-        targetResourceId = "resource-1",
+        targetResourceId = RESOURCE_ID,
     )
     private val requiredPermission = PermissionKey.of("workspace", "access", "read")
     private val resourcePreviewPermission = PermissionKey.of("workspace", "resource", "read")
@@ -55,8 +61,8 @@ class WorkspaceAuthorizationServiceTest {
             resourceContextProvider = FixedResourceContextProvider(resourceContext),
             workspaceMembershipResolver = FixedWorkspaceMembershipResolver(
                 WorkspaceMembership(
-                    workspaceId = "workspace-1",
-                    principalId = "principal-1",
+                    workspaceId = WORKSPACE_ID,
+                    principalId = PRINCIPAL_ID,
                     principalType = PrincipalType.USER,
                     status = WorkspaceMembershipStatus.ACTIVE,
                     roleKeys = setOf("member"),
@@ -108,8 +114,8 @@ class WorkspaceAuthorizationServiceTest {
             resourceContextProvider = FixedResourceContextProvider(resourceContext),
             workspaceMembershipResolver = FixedWorkspaceMembershipResolver(
                 WorkspaceMembership(
-                    workspaceId = "workspace-1",
-                    principalId = "principal-1",
+                    workspaceId = WORKSPACE_ID,
+                    principalId = PRINCIPAL_ID,
                     principalType = PrincipalType.USER,
                     status = WorkspaceMembershipStatus.ACTIVE,
                     roleKeys = setOf("member", "analyst"),
@@ -148,8 +154,8 @@ class WorkspaceAuthorizationServiceTest {
             resourceContextProvider = FixedResourceContextProvider(resourceContext),
             workspaceMembershipResolver = FixedWorkspaceMembershipResolver(
                 WorkspaceMembership(
-                    workspaceId = "workspace-1",
-                    principalId = "principal-1",
+                    workspaceId = WORKSPACE_ID,
+                    principalId = PRINCIPAL_ID,
                     principalType = PrincipalType.USER,
                     status = WorkspaceMembershipStatus.ACTIVE,
                     roleKeys = setOf("member"),
@@ -183,8 +189,8 @@ class WorkspaceAuthorizationServiceTest {
             resourceContextProvider = FixedResourceContextProvider(resourceContext),
             workspaceMembershipResolver = FixedWorkspaceMembershipResolver(
                 WorkspaceMembership(
-                    workspaceId = "workspace-1",
-                    principalId = "principal-1",
+                    workspaceId = WORKSPACE_ID,
+                    principalId = PRINCIPAL_ID,
                     principalType = PrincipalType.USER,
                     status = WorkspaceMembershipStatus.ACTIVE,
                     roleKeys = setOf("member"),
@@ -217,8 +223,8 @@ class WorkspaceAuthorizationServiceTest {
             resourceContextProvider = FixedResourceContextProvider(resourceContext),
             workspaceMembershipResolver = FixedWorkspaceMembershipResolver(
                 WorkspaceMembership(
-                    workspaceId = "workspace-1",
-                    principalId = "principal-1",
+                    workspaceId = WORKSPACE_ID,
+                    principalId = PRINCIPAL_ID,
                     principalType = PrincipalType.USER,
                     status = WorkspaceMembershipStatus.ACTIVE,
                     roleKeys = setOf("member"),
@@ -253,8 +259,8 @@ class WorkspaceAuthorizationServiceTest {
             resourceContextProvider = FixedResourceContextProvider(resourceContext),
             workspaceMembershipResolver = FixedWorkspaceMembershipResolver(
                 WorkspaceMembership(
-                    workspaceId = "workspace-1",
-                    principalId = "principal-1",
+                    workspaceId = WORKSPACE_ID,
+                    principalId = PRINCIPAL_ID,
                     principalType = PrincipalType.USER,
                     status = WorkspaceMembershipStatus.ACTIVE,
                     roleKeys = setOf("member"),
@@ -295,8 +301,8 @@ class WorkspaceAuthorizationServiceTest {
             resourceContextProvider = FixedResourceContextProvider(resourceContext),
             workspaceMembershipResolver = FixedWorkspaceMembershipResolver(
                 WorkspaceMembership(
-                    workspaceId = "workspace-1",
-                    principalId = "principal-1",
+                    workspaceId = WORKSPACE_ID,
+                    principalId = PRINCIPAL_ID,
                     principalType = PrincipalType.USER,
                     status = WorkspaceMembershipStatus.ACTIVE,
                     roleKeys = setOf("member"),
@@ -330,8 +336,8 @@ class WorkspaceAuthorizationServiceTest {
             resourceContextProvider = FixedResourceContextProvider(resourceContext),
             workspaceMembershipResolver = FixedWorkspaceMembershipResolver(
                 WorkspaceMembership(
-                    workspaceId = "workspace-1",
-                    principalId = "principal-1",
+                    workspaceId = WORKSPACE_ID,
+                    principalId = PRINCIPAL_ID,
                     principalType = PrincipalType.USER,
                     status = WorkspaceMembershipStatus.ACTIVE,
                     roleKeys = setOf("member"),
@@ -365,8 +371,8 @@ class WorkspaceAuthorizationServiceTest {
             resourceContextProvider = FixedResourceContextProvider(targetAwareResourceContext),
             workspaceMembershipResolver = FixedWorkspaceMembershipResolver(
                 WorkspaceMembership(
-                    workspaceId = "workspace-1",
-                    principalId = "principal-1",
+                    workspaceId = WORKSPACE_ID,
+                    principalId = PRINCIPAL_ID,
                     principalType = PrincipalType.USER,
                     status = WorkspaceMembershipStatus.ACTIVE,
                     roleKeys = setOf("member"),
@@ -387,7 +393,7 @@ class WorkspaceAuthorizationServiceTest {
                         permission = resourcePreviewPermission,
                         resourceContextType = ResourceContextType.WORKSPACE,
                         targetResourceType = "RESOURCE",
-                        allowedTargetResourceIds = setOf("resource-1"),
+                        allowedTargetResourceIds = setOf(RESOURCE_ID),
                     ),
                 ),
             ),
@@ -406,8 +412,8 @@ class WorkspaceAuthorizationServiceTest {
             resourceContextProvider = FixedResourceContextProvider(targetAwareResourceContext),
             workspaceMembershipResolver = FixedWorkspaceMembershipResolver(
                 WorkspaceMembership(
-                    workspaceId = "workspace-1",
-                    principalId = "principal-1",
+                    workspaceId = WORKSPACE_ID,
+                    principalId = PRINCIPAL_ID,
                     principalType = PrincipalType.USER,
                     status = WorkspaceMembershipStatus.ACTIVE,
                     roleKeys = setOf("member"),
@@ -447,8 +453,8 @@ class WorkspaceAuthorizationServiceTest {
             resourceContextProvider = FixedResourceContextProvider(targetAwareResourceContext),
             workspaceMembershipResolver = FixedWorkspaceMembershipResolver(
                 WorkspaceMembership(
-                    workspaceId = "workspace-1",
-                    principalId = "principal-1",
+                    workspaceId = WORKSPACE_ID,
+                    principalId = PRINCIPAL_ID,
                     principalType = PrincipalType.USER,
                     status = WorkspaceMembershipStatus.ACTIVE,
                     roleKeys = setOf("member"),
@@ -469,7 +475,7 @@ class WorkspaceAuthorizationServiceTest {
                         permission = resourcePreviewPermission,
                         resourceContextType = ResourceContextType.WORKSPACE,
                         targetResourceType = "RESOURCE",
-                        allowedTargetResourceIds = setOf("resource-1"),
+                        allowedTargetResourceIds = setOf(RESOURCE_ID),
                     ),
                 ),
             ),

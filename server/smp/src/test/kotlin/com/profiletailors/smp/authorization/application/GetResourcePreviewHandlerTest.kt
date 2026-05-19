@@ -18,16 +18,23 @@ import org.junit.jupiter.api.Test
 
 class GetResourcePreviewHandlerTest {
 
+    companion object {
+        private const val PRINCIPAL_ID = "principal-1"
+        private const val WORKSPACE_ID = "workspace-1"
+        private const val RESOURCE_ID = "resource-1"
+        private const val PERMISSION_RESOURCE_READ = "workspace:resource:read"
+    }
+
     @Test
     fun `returns resource preview for authorized principal and emits allow audit fact`() = runTest {
         val principalContext = PrincipalContext(
-            principalId = "principal-1",
+            principalId = PRINCIPAL_ID,
             principalType = PrincipalType.USER,
             subject = "subject-123",
         )
         val resourceContext = ResourceContext(
             type = ResourceContextType.WORKSPACE,
-            workspaceId = "workspace-1",
+            workspaceId = WORKSPACE_ID,
         )
         val auditHook = CapturingAuditHook()
         val handler = GetResourcePreviewHandler(
@@ -49,7 +56,7 @@ class GetResourcePreviewHandlerTest {
                     requiredEntitlementKey: String?,
                     resourceContextOverride: ResourceContext?,
                 ): AuthorizationDecisionResult {
-                    assertEquals("resource-1", resourceContextOverride?.targetResourceId)
+                    assertEquals(RESOURCE_ID, resourceContextOverride?.targetResourceId)
                     assertEquals("RESOURCE", resourceContextOverride?.targetResourceType)
                     return AuthorizationDecisionResult(
                         decision = AuthorizationDecision.ALLOW,
@@ -61,13 +68,13 @@ class GetResourcePreviewHandlerTest {
             auditHook = auditHook,
         )
 
-        val preview = handler.handle(GetResourcePreviewQuery("resource-1"))
+        val preview = handler.handle(GetResourcePreviewQuery(RESOURCE_ID))
 
         assertEquals(
             ResourcePreview(
-                workspaceId = "workspace-1",
-                resourceId = "resource-1",
-                principalId = "principal-1",
+                workspaceId = WORKSPACE_ID,
+                resourceId = RESOURCE_ID,
+                principalId = PRINCIPAL_ID,
                 previewAllowed = true,
             ),
             preview,
@@ -76,10 +83,10 @@ class GetResourcePreviewHandlerTest {
             listOf(
                 AuthorizationDecisionAuditFact(
                     requestName = GetResourcePreviewQuery::class.java.name,
-                    requestPath = "/api/authorization/resources/resource-1/preview",
-                    permission = "workspace:resource:read",
-                    principalId = "principal-1",
-                    workspaceId = "workspace-1",
+                    requestPath = "/api/authorization/resources/$RESOURCE_ID/preview",
+                    permission = PERMISSION_RESOURCE_READ,
+                    principalId = PRINCIPAL_ID,
+                    workspaceId = WORKSPACE_ID,
                     decision = AuthorizationDecision.ALLOW,
                     reasonCode = AuthorizationReasonCode.ROLE_PERMISSION,
                     roleKeys = listOf("member"),
@@ -92,13 +99,13 @@ class GetResourcePreviewHandlerTest {
     @Test
     fun `throws scope-specific denial when scope excludes resource target`() = runTest {
         val principalContext = PrincipalContext(
-            principalId = "principal-1",
+            principalId = PRINCIPAL_ID,
             principalType = PrincipalType.USER,
             subject = "subject-123",
         )
         val resourceContext = ResourceContext(
             type = ResourceContextType.WORKSPACE,
-            workspaceId = "workspace-1",
+            workspaceId = WORKSPACE_ID,
         )
         val auditHook = CapturingAuditHook()
         val handler = GetResourcePreviewHandler(
@@ -140,9 +147,9 @@ class GetResourcePreviewHandlerTest {
                 AuthorizationDecisionAuditFact(
                     requestName = GetResourcePreviewQuery::class.java.name,
                     requestPath = "/api/authorization/resources/resource-9/preview",
-                    permission = "workspace:resource:read",
-                    principalId = "principal-1",
-                    workspaceId = "workspace-1",
+                    permission = PERMISSION_RESOURCE_READ,
+                    principalId = PRINCIPAL_ID,
+                    workspaceId = WORKSPACE_ID,
                     decision = AuthorizationDecision.DENY,
                     reasonCode = AuthorizationReasonCode.SCOPE_REDUCED_TARGET,
                     roleKeys = listOf("member"),
@@ -155,7 +162,10 @@ class GetResourcePreviewHandlerTest {
     private class CapturingAuditHook : AuditHook {
         val facts = mutableListOf<AuthorizationDecisionAuditFact>()
 
-        override suspend fun onRequestHandled(requestName: String, outcome: com.profiletailors.smp.platform.application.RequestOutcome) = Unit
+        override suspend fun onRequestHandled(
+            requestName: String,
+            outcome: com.profiletailors.smp.platform.application.RequestOutcome,
+        ) = Unit
 
         override suspend fun onAuthorizationDecision(fact: AuthorizationDecisionAuditFact) {
             facts += fact
