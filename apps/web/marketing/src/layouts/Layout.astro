@@ -330,7 +330,7 @@ const jsonLdString = JSON.stringify(jsonLd)
           document.documentElement.classList.remove('dark');
         } else {
           // No saved preference — respect OS setting
-          if (window.matchMedia('(prefers-color-scheme: light)').matches) {
+          if (globalThis.matchMedia('(prefers-color-scheme: light)').matches) {
             document.documentElement.setAttribute('data-theme', 'light');
             document.documentElement.classList.add('dark');
           }

@@ -314,7 +314,7 @@ import {Icon} from "@dallay/astro-icon/components";
   }
 
   // Respect reduced motion — skip the clip-path wipe
-  if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+  if (globalThis.matchMedia('(prefers-reduced-motion: reduce)').matches) {
     applyTheme(next);
     return;
   }
