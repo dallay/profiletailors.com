@@ -1,7 +1,7 @@
 package com.profiletailors.smp.authorization.infrastructure.http
 
-import com.profiletailors.smp.authorization.application.GetResourcePreviewQuery
-import com.profiletailors.smp.authorization.application.ResourcePreview
+import com.profiletailors.smp.authorization.application.resource.getpreview.GetResourcePreviewQuery
+import com.profiletailors.smp.authorization.application.resource.getpreview.ResourcePreview
 import com.profiletailors.smp.platform.application.Mediator
 import org.springframework.web.bind.annotation.GetMapping
 import org.springframework.web.bind.annotation.PathVariable

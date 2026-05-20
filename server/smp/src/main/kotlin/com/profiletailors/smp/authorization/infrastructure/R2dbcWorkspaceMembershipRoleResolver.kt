@@ -1,9 +1,9 @@
 package com.profiletailors.smp.authorization.infrastructure
 
-import com.profiletailors.smp.authorization.application.WorkspaceMembershipRoleResolver
 import com.profiletailors.smp.authorization.domain.PermissionKey
 import com.profiletailors.smp.authorization.domain.Role
 import com.profiletailors.smp.authorization.domain.RoleCategory
+import com.profiletailors.smp.authorization.domain.WorkspaceMembershipRoleResolver
 import com.profiletailors.smp.tenancy.domain.WorkspaceMembership
 import kotlinx.coroutines.reactor.awaitSingle
 import org.springframework.r2dbc.core.DatabaseClient

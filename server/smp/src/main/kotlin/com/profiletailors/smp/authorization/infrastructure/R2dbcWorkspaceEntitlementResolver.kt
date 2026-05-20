@@ -1,6 +1,6 @@
 package com.profiletailors.smp.authorization.infrastructure
 
-import com.profiletailors.smp.authorization.application.EntitlementResolver
+import com.profiletailors.smp.authorization.domain.EntitlementResolver
 import com.profiletailors.smp.authorization.domain.Entitlement
 import com.profiletailors.smp.platform.domain.ResourceContext
 import com.profiletailors.smp.platform.domain.ResourceContextType

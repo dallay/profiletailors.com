@@ -22,7 +22,7 @@ function animateThemeChange(next: 'dark' | 'light') {
   }
 
   // Respect reduced motion — skip the clip-path wipe
-  if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+  if (globalThis.matchMedia('(prefers-reduced-motion: reduce)').matches) {
     settings.setTheme(next)
     return
   }

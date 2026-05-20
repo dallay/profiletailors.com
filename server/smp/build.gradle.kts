@@ -4,6 +4,7 @@ plugins {
 	id("org.springframework.boot") version "4.0.6"
 	id("io.spring.dependency-management") version "1.1.7"
 	id("dev.detekt") version "2.0.0-alpha.3"
+	jacoco
 }
 
 group = "com.profiletailors"
@@ -79,4 +80,37 @@ tasks.check {
 
 tasks.withType<Test> {
 	useJUnitPlatform()
+	finalizedBy(tasks.jacocoTestReport)
+}
+
+tasks.jacocoTestReport {
+	dependsOn(tasks.test)
+	reports {
+		xml.required.set(true)
+		html.required.set(true)
+		csv.required.set(false)
+	}
+	classDirectories.setFrom(
+		files(classDirectories.files.map {
+			fileTree(it) {
+				exclude(
+					"**/config/**",
+					"**/dto/**",
+					"**/entity/**",
+					"**/Application.kt",
+					"**/ApplicationKt.class"
+				)
+			}
+		})
+	)
+}
+
+tasks.jacocoTestCoverageVerification {
+	violationRules {
+		rule {
+			limit {
+				minimum = "0.80".toBigDecimal()
+			}
+		}
+	}
 }

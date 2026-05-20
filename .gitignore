@@ -50,3 +50,18 @@ lefthook-local.yml
 /GEMINI.md.bak
 /opencode.json
 # END AI Agent Symlinks
+
+# Gradle build output
+.gradle/
+build/
+bin/
+out/
+
+# Kotlin compiler output
+.kotlin/
+
+# IDE-specific files
+.idea/
+*.iml
+*.ipr
+*.iws
