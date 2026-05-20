@@ -50,8 +50,8 @@ dependencies {
 	testImplementation("org.jetbrains.kotlin:kotlin-test-junit5")
 	testImplementation("org.jetbrains.kotlinx:kotlinx-coroutines-test")
 	testImplementation("org.springframework.modulith:spring-modulith-starter-test")
-	testImplementation("org.testcontainers:junit-jupiter:1.20.6")
-	testImplementation("org.testcontainers:postgresql:1.20.6")
+	testImplementation("org.testcontainers:junit-jupiter:1.21.4")
+	testImplementation("org.testcontainers:postgresql:1.21.4")
 	testRuntimeOnly("org.junit.platform:junit-platform-launcher")
 }
 
