@@ -50,6 +50,10 @@ pre-push:
   source: .lefthookrc.yml
 
   commands:
+    # Gitleaks: scan for secrets before push
+    gitleaks:
+      run: 'gitleaks detect --redact --exit-code 1'
+
     # Tests del backend antes de push
     backend-test:
       run: 'cd server/smp && ./gradlew test --no-daemon'
