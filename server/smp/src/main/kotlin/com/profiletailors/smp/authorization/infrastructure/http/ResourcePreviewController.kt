@@ -2,7 +2,7 @@ package com.profiletailors.smp.authorization.infrastructure.http
 
 import com.profiletailors.smp.authorization.application.resource.getpreview.GetResourcePreviewQuery
 import com.profiletailors.smp.authorization.application.resource.getpreview.ResourcePreview
-import com.profiletailors.common.domain.bus.Mediator
+import com.profiletailors.smp.platform.application.Mediator
 import org.springframework.web.bind.annotation.GetMapping
 import org.springframework.web.bind.annotation.PathVariable
 import org.springframework.web.bind.annotation.RequestMapping
@@ -17,5 +17,5 @@ class ResourcePreviewController(
     @GetMapping("/{resourceId}/preview")
     suspend fun getResourcePreview(
         @PathVariable resourceId: String,
-    ): ResourcePreview = mediator.send(GetResourcePreviewQuery(resourceId))
+    ): ResourcePreview = mediator.dispatch(GetResourcePreviewQuery(resourceId))
 }

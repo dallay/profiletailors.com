@@ -1,9 +1,9 @@
 package com.profiletailors.smp.platform.infrastructure
 
 import com.fasterxml.jackson.databind.ObjectMapper
+import com.profiletailors.smp.platform.application.Mediator
 import com.profiletailors.smp.platform.application.AuditHook
 import com.profiletailors.smp.platform.application.AuthorizationDecisionAuditFact
-import com.profiletailors.smp.platform.application.Mediator
 import com.profiletailors.smp.platform.application.MetricsHook
 import com.profiletailors.smp.platform.application.MutationAuditFact
 import com.profiletailors.smp.platform.application.PrincipalContextProvider

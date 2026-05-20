@@ -1,6 +1,6 @@
 package com.profiletailors.smp.authorization.application.resource.getpreview
 
-import com.profiletailors.common.domain.bus.query.Query
+import com.profiletailors.smp.platform.application.Query
 
 
 data class GetResourcePreviewQuery(

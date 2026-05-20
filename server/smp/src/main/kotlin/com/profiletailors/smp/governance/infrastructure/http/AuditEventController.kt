@@ -2,7 +2,7 @@ package com.profiletailors.smp.governance.infrastructure.http
 
 import com.profiletailors.smp.governance.application.GetWorkspaceAuditEventsQuery
 import com.profiletailors.smp.governance.application.WorkspaceAuditEventsResponse
-import com.profiletailors.common.domain.bus.Mediator
+import com.profiletailors.smp.platform.application.Mediator
 import org.springframework.format.annotation.DateTimeFormat
 import org.springframework.web.bind.annotation.GetMapping
 import org.springframework.web.bind.annotation.RequestMapping
@@ -25,7 +25,7 @@ class AuditEventController(
         @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) createdBefore: Instant?,
         @RequestParam(required = false) cursor: String?,
         @RequestParam(required = false, defaultValue = "50") limit: Int,
-    ): WorkspaceAuditEventsResponse = mediator.send(
+    ): WorkspaceAuditEventsResponse =         mediator.dispatch(
         GetWorkspaceAuditEventsQuery(
             targetType = targetType,
             action = action,

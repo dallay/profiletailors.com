@@ -1,7 +1,7 @@
 package com.profiletailors.smp.authorization.application
 
-import com.profiletailors.common.domain.bus.query.Query
-import com.profiletailors.common.domain.bus.query.QueryHandler
+import com.profiletailors.smp.platform.application.Query
+import com.profiletailors.smp.platform.application.QueryHandler
 import com.profiletailors.smp.authorization.domain.AuthorizationDecision
 import com.profiletailors.smp.authorization.domain.PermissionKey
 import com.profiletailors.smp.authorization.domain.WorkspaceAuthorizationDecider

@@ -1,6 +1,6 @@
 package com.profiletailors.smp.authorization.application.resource.getpreview
 
-import com.profiletailors.common.domain.bus.query.QueryHandler
+import com.profiletailors.smp.platform.application.QueryHandler
 import com.profiletailors.smp.authorization.application.AuthorizationDeniedException
 import com.profiletailors.smp.authorization.domain.AuthorizationDecision
 import com.profiletailors.smp.authorization.domain.PermissionKey

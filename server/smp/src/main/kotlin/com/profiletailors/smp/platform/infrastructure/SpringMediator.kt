@@ -10,31 +10,30 @@ import org.springframework.core.ResolvableType
 class SpringMediator(
     private val applicationContext: ApplicationContext,
 ) : Mediator {
+
+    @Suppress("UNCHECKED_CAST")
     override suspend fun <RESPONSE> dispatch(request: Request<RESPONSE>): RESPONSE {
-        val handler = resolveCommandHandler(request) ?: resolveQueryHandler(request)
+        val handler = resolveHandler(request)
             ?: throw NoHandlerForRequestException(request::class.java.name)
 
-        @Suppress("UNCHECKED_CAST")
         return when (handler) {
-            is CommandHandler<*, *> -> (handler as CommandHandler<Request<RESPONSE>, RESPONSE>).handle(request)
             is QueryHandler<*, *> -> (handler as QueryHandler<Request<RESPONSE>, RESPONSE>).handle(request)
+            is CommandHandler<*, *> -> (handler as CommandHandler<Request<RESPONSE>, RESPONSE>).handle(request)
             else -> throw NoHandlerForRequestException(request::class.java.name)
         }
     }
 
-    private fun resolveCommandHandler(request: Request<*>): Any? =
-        applicationContext.getBeanProvider(CommandHandler::class.java)
-            .orderedStream()
-            .filter { candidate -> supports(candidate, CommandHandler::class.java, request) }
-            .findFirst()
-            .orElse(null)
-
-    private fun resolveQueryHandler(request: Request<*>): Any? =
+    private fun resolveHandler(request: Request<*>): Any? =
         applicationContext.getBeanProvider(QueryHandler::class.java)
             .orderedStream()
             .filter { candidate -> supports(candidate, QueryHandler::class.java, request) }
             .findFirst()
             .orElse(null)
+            ?: applicationContext.getBeanProvider(CommandHandler::class.java)
+                .orderedStream()
+                .filter { candidate -> supports(candidate, CommandHandler::class.java, request) }
+                .findFirst()
+                .orElse(null)
 
     private fun supports(candidate: Any, contractType: Class<*>, request: Request<*>): Boolean {
         val type = ResolvableType.forClass(candidate.javaClass).`as`(contractType)
