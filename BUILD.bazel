@@ -1,1 +1,50 @@
-/Users/acosta/Dev/dallay/profiletailors.com/BUILD.bazel
+# Root BUILD.bazel — Profile Tailors monorepo
+# ─────────────────────────────────────────────────────────────────────────────
+# This file defines top-level aliases and aggregate targets so you can run:
+#
+#   bazel build //...               — build everything
+#   bazel build //:all_apps         — build all frontend apps
+#   bazel build //:all_servers      — build all backend services
+#   bazel test //...                — test everything
+#
+# Individual targets live in the BUILD.bazel of each package.
+# ─────────────────────────────────────────────────────────────────────────────
+
+load("@bazel_skylib//lib:selects.bzl", "selects")
+
+package(default_visibility = ["//visibility:public"])
+
+# ── Aggregate frontend builds ─────────────────────────────────────────────────
+alias(
+    name = "marketing",
+    actual = "//apps/web/marketing:build",
+)
+
+filegroup(
+    name = "all_apps",
+    srcs = [
+        "//apps/web/marketing:build",
+    ],
+)
+
+# ── Aggregate backend builds ──────────────────────────────────────────────────
+alias(
+    name = "smp",
+    actual = "//server/smp:smp",
+)
+
+filegroup(
+    name = "all_servers",
+    srcs = [
+        "//server/smp:smp",
+    ],
+)
+
+# ── Everything ────────────────────────────────────────────────────────────────
+filegroup(
+    name = "all",
+    srcs = [
+        ":all_apps",
+        ":all_servers",
+    ],
+)
