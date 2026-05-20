@@ -10,6 +10,23 @@ lefthook-local.yml
 .env
 .env.production
 .env.local
+
+# Gradle build output
+# Bazel symlinks (Bazel removed — kept here in case tools regenerate them)
+/bazel-*
+.gradle/
+build/
+bin/
+out/
+
+# Kotlin compiler output
+.kotlin/
+
+# IDE-specific files
+.idea/
+*.iml
+*.ipr
+*.iws
 # START AI Agent Symlinks
 .agents/skills/*.bak
 .claude/commands
@@ -50,18 +67,3 @@ lefthook-local.yml
 /GEMINI.md.bak
 /opencode.json
 # END AI Agent Symlinks
-
-# Gradle build output
-.gradle/
-build/
-bin/
-out/
-
-# Kotlin compiler output
-.kotlin/
-
-# IDE-specific files
-.idea/
-*.iml
-*.ipr
-*.iws

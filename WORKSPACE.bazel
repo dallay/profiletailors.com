@@ -1,4 +1,0 @@
-# WORKSPACE.bazel — compatibility shim for Bzlmod
-# All real dependency declarations live in MODULE.bazel.
-# This file exists so legacy tools that look for WORKSPACE still find it.
-workspace(name = "profiletailors")

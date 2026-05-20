@@ -128,19 +128,3 @@ updates:
           - "minor"
           - "patch"
 
-  # Bazel dependencies (WORKSPACE.bazel)
-  - package-ecosystem: "bazel"
-    directory: "/"
-    schedule:
-      interval: "weekly"
-      day: "sunday"
-      time: "12:00"
-      timezone: "UTC"
-    commit-message:
-      prefix: "chore"
-      include: "scope"
-    open-pull-requests-limit: 3
-    labels:
-      - "dependencies"
-      - "bazel"
-    # Manual review for Bazel - high risk
