@@ -1,7 +1,11 @@
 package com.profiletailors.smp.authorization.application
 
+import com.profiletailors.smp.authorization.application.resource.getpreview.GetResourcePreviewHandler
+import com.profiletailors.smp.authorization.application.resource.getpreview.GetResourcePreviewQuery
+import com.profiletailors.smp.authorization.application.resource.getpreview.ResourcePreview
 import com.profiletailors.smp.authorization.domain.AuthorizationDecision
 import com.profiletailors.smp.authorization.domain.PermissionKey
+import com.profiletailors.smp.authorization.domain.WorkspaceAuthorizationDecider
 import com.profiletailors.smp.identity.domain.PrincipalContext
 import com.profiletailors.smp.identity.domain.PrincipalType
 import com.profiletailors.smp.platform.application.AuditHook

@@ -4,6 +4,7 @@ import com.profiletailors.smp.governance.application.AuditEventPage
 import com.profiletailors.smp.governance.application.GetWorkspaceAuditEventsQuery
 import com.profiletailors.smp.governance.application.WorkspaceAuditEventsResponse
 import com.profiletailors.smp.platform.application.Mediator
+import com.profiletailors.smp.platform.application.Request
 import kotlinx.coroutines.test.runTest
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Test
@@ -62,9 +63,9 @@ class AuditEventControllerTest {
     ) : Mediator {
         var lastRequest: Any? = null
 
-        override suspend fun <RESPONSE> dispatch(request: com.profiletailors.smp.platform.application.Request<RESPONSE>): RESPONSE {
+        @Suppress("UNCHECKED_CAST")
+        override suspend fun <RESPONSE> dispatch(request: Request<RESPONSE>): RESPONSE {
             lastRequest = request
-            @Suppress("UNCHECKED_CAST")
             return result as RESPONSE
         }
     }

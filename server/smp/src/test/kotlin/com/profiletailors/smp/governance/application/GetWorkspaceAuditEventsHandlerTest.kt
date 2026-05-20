@@ -1,7 +1,7 @@
 package com.profiletailors.smp.governance.application
 
 import com.profiletailors.smp.authorization.application.AuthorizationDecisionResult
-import com.profiletailors.smp.authorization.application.WorkspaceAuthorizationDecider
+import com.profiletailors.smp.authorization.domain.WorkspaceAuthorizationDecider
 import com.profiletailors.smp.authorization.domain.AuthorizationDecision
 import com.profiletailors.smp.authorization.domain.PermissionKey
 import com.profiletailors.smp.platform.application.AuthorizationReasonCode

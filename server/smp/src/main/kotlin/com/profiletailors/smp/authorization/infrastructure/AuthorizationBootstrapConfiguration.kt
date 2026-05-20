@@ -1,14 +1,14 @@
 package com.profiletailors.smp.authorization.infrastructure
 
-import com.profiletailors.smp.authorization.application.DirectGrantResolver
-import com.profiletailors.smp.authorization.application.EntitlementResolver
+import com.profiletailors.smp.authorization.domain.DirectGrantResolver
+import com.profiletailors.smp.authorization.domain.EntitlementResolver
+import com.profiletailors.smp.authorization.domain.ScopeResolver
+import com.profiletailors.smp.authorization.domain.WorkspaceAuthorizationDecider
+import com.profiletailors.smp.authorization.domain.WorkspaceMembershipResolver
+import com.profiletailors.smp.authorization.domain.WorkspaceMembershipRoleResolver
 import com.profiletailors.smp.authorization.application.GetCurrentWorkspaceAccessSummaryHandler
-import com.profiletailors.smp.authorization.application.GetResourcePreviewHandler
-import com.profiletailors.smp.authorization.application.ScopeResolver
-import com.profiletailors.smp.authorization.application.WorkspaceAuthorizationDecider
 import com.profiletailors.smp.authorization.application.WorkspaceAuthorizationService
-import com.profiletailors.smp.authorization.application.WorkspaceMembershipResolver
-import com.profiletailors.smp.authorization.application.WorkspaceMembershipRoleResolver
+import com.profiletailors.smp.authorization.application.resource.getpreview.GetResourcePreviewHandler
 import com.fasterxml.jackson.databind.ObjectMapper
 import com.profiletailors.smp.platform.application.AuditHook
 import com.profiletailors.smp.platform.application.PrincipalContextProvider

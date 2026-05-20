@@ -23,6 +23,11 @@ dependencies {
     implementation("org.slf4j:slf4j-api:2.0.17")
 
     testImplementation(kotlin("test-junit5"))
+    testImplementation("org.assertj:assertj-core:3.27.3")
+    testImplementation("io.mockk:mockk:1.13.14")
+    testImplementation("net.datafaker:datafaker:2.5.2")
+    testImplementation("org.jetbrains.kotlinx:kotlinx-coroutines-test:1.10.2")
+    testImplementation("org.junit.jupiter:junit-jupiter-params:5.11.4")
     testRuntimeOnly("org.junit.platform:junit-platform-launcher")
 }
 

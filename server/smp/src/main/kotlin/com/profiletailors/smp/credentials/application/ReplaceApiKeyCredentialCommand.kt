@@ -1,7 +1,7 @@
 package com.profiletailors.smp.credentials.application
 
-import com.profiletailors.smp.platform.application.Command
-import com.profiletailors.smp.platform.application.CommandHandler
+import com.profiletailors.common.domain.bus.command.CommandWithResult
+import com.profiletailors.common.domain.bus.command.CommandWithResultHandler
 import org.springframework.stereotype.Component
 import java.security.SecureRandom
 
@@ -12,7 +12,7 @@ private const val CREDENTIAL_REFERENCE_BYTES = 16
 
 data class ReplaceApiKeyCredentialCommand(
     val predecessorCredentialReference: String,
-) : Command<ReplaceApiKeyCredentialResult>
+) : CommandWithResult<ReplaceApiKeyCredentialResult>
 
 data class ReplaceApiKeyCredentialResult(
     val predecessorCredentialReference: String,
@@ -27,7 +27,7 @@ interface ApiKeyCredentialReplacementGateway {
 @Component
 class ReplaceApiKeyCredentialHandler(
     private val gateway: ApiKeyCredentialReplacementGateway,
-) : CommandHandler<ReplaceApiKeyCredentialCommand, ReplaceApiKeyCredentialResult> {
+) : CommandWithResultHandler<ReplaceApiKeyCredentialCommand, ReplaceApiKeyCredentialResult> {
     override suspend fun handle(command: ReplaceApiKeyCredentialCommand): ReplaceApiKeyCredentialResult =
         gateway.replaceActiveCredential(command)
 }

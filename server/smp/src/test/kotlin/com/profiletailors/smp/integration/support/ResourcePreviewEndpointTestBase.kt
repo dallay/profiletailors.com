@@ -26,7 +26,7 @@ abstract class ResourcePreviewEndpointTestBase : AuthorizationEndpointIntegratio
         const val WORKSPACE_HEADER = "X-Workspace-Id"
         const val RESOURCE_PREVIEW_PATH = "/api/authorization/resources/resource-1/preview"
         const val GET_RESOURCE_PREVIEW_QUERY =
-            "com.profiletailors.smp.authorization.application.GetResourcePreviewQuery"
+            "com.profiletailors.smp.authorization.application.resource.getpreview.GetResourcePreviewQuery"
         const val PERMISSION_RESOURCE_READ = "workspace:resource:read"
         const val JSON_PATH_DETAIL = "$.detail"
     }

@@ -155,7 +155,7 @@ function animateFade(el: HTMLElement, delayMs: number): Promise<void> {
 }
 
 export async function initHeroAnimations(): Promise<void> {
-  const prefersReduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches
+  const prefersReduced = globalThis.matchMedia('(prefers-reduced-motion: reduce)').matches
 
   const label = document.querySelector<HTMLElement>('[data-hero-label]')
   const headline = document.querySelector<HTMLElement>('[data-hero-headline]')

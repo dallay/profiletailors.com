@@ -2,7 +2,7 @@ package com.profiletailors.smp.authorization.infrastructure
 
 import com.fasterxml.jackson.core.type.TypeReference
 import com.fasterxml.jackson.databind.ObjectMapper
-import com.profiletailors.smp.authorization.application.DirectGrantResolver
+import com.profiletailors.smp.authorization.domain.DirectGrantResolver
 import com.profiletailors.smp.authorization.domain.DirectGrant
 import com.profiletailors.smp.authorization.domain.GrantEffect
 import com.profiletailors.smp.authorization.domain.PermissionKey
@@ -12,7 +12,6 @@ import com.profiletailors.smp.platform.domain.ResourceContextType
 import kotlinx.coroutines.reactor.awaitSingle
 import org.springframework.r2dbc.core.DatabaseClient
 import org.springframework.stereotype.Repository
-import java.time.Instant
 import java.time.OffsetDateTime
 
 @Repository

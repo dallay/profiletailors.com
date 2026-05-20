@@ -1,6 +1,6 @@
 package com.profiletailors.smp.tenancy.infrastructure
 
-import com.profiletailors.smp.authorization.application.WorkspaceMembershipResolver
+import com.profiletailors.smp.authorization.domain.WorkspaceMembershipResolver
 import com.profiletailors.smp.identity.domain.PrincipalContext
 import com.profiletailors.smp.identity.domain.PrincipalType
 import com.profiletailors.smp.platform.domain.ResourceContext

@@ -3,11 +3,16 @@ package com.profiletailors.smp.authorization.application
 import com.profiletailors.smp.authorization.domain.AuthorizationDecision
 import com.profiletailors.smp.authorization.domain.AuthorizationScope
 import com.profiletailors.smp.authorization.domain.DirectGrant
+import com.profiletailors.smp.authorization.domain.DirectGrantResolver
 import com.profiletailors.smp.authorization.domain.Entitlement
+import com.profiletailors.smp.authorization.domain.EntitlementResolver
 import com.profiletailors.smp.authorization.domain.GrantEffect
 import com.profiletailors.smp.authorization.domain.PermissionKey
 import com.profiletailors.smp.authorization.domain.Role
 import com.profiletailors.smp.authorization.domain.RoleCategory
+import com.profiletailors.smp.authorization.domain.ScopeResolver
+import com.profiletailors.smp.authorization.domain.WorkspaceMembershipResolver
+import com.profiletailors.smp.authorization.domain.WorkspaceMembershipRoleResolver
 import com.profiletailors.smp.identity.domain.PrincipalContext
 import com.profiletailors.smp.identity.domain.PrincipalType
 import com.profiletailors.smp.platform.application.AuthorizationReasonCode

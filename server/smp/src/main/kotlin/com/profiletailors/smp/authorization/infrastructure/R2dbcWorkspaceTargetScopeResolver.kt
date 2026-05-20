@@ -2,9 +2,9 @@ package com.profiletailors.smp.authorization.infrastructure
 
 import com.fasterxml.jackson.core.type.TypeReference
 import com.fasterxml.jackson.databind.ObjectMapper
-import com.profiletailors.smp.authorization.application.ScopeResolver
 import com.profiletailors.smp.authorization.domain.AuthorizationScope
 import com.profiletailors.smp.authorization.domain.PermissionKey
+import com.profiletailors.smp.authorization.domain.ScopeResolver
 import com.profiletailors.smp.identity.domain.PrincipalContext
 import com.profiletailors.smp.platform.domain.ResourceContext
 import com.profiletailors.smp.platform.domain.ResourceContextType
