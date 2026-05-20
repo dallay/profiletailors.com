@@ -13,9 +13,11 @@ paths = [
   ".agents/skills/backend-platform/spring-boot/security/references/troubleshooting.md",
   ".agents/skills/backend-platform/spring-boot/security/scripts/test-jwt-setup.sh",
   ".agents/skills/backend-platform/spring-boot/security/references/jwt-testing-guide.md",
+  "shared/common/src/test/kotlin/com/profiletailors/common/testfixture/CredentialFixtures.kt",
 ]
 regexes = [
   "invalid\\.token\\.here",
   "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9\\.eyJzdWIiOiIxMjM0NTY3ODkwIiwiZXhwIjoxNjE2MjM5MDIyfQ\\.SflKxwRJSMeKKF2QT4fwpMeJf36POk6yJV_adQssw5c",
   "test-secret-key-that-is-at-least-256-bits-long",
+  "Th1sIsA\\$5tr0ngP@ssw0rd",
 ]
