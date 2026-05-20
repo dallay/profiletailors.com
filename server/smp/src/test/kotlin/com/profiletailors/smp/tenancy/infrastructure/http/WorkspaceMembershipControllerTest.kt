@@ -1,6 +1,6 @@
 package com.profiletailors.smp.tenancy.infrastructure.http
 
-import com.profiletailors.common.domain.bus.Mediator
+import com.profiletailors.smp.platform.application.Mediator
 import com.profiletailors.smp.tenancy.application.UpdateWorkspaceMembershipStatusCommand
 import com.profiletailors.smp.tenancy.application.WorkspaceMembershipStatusResult
 import com.profiletailors.smp.tenancy.domain.WorkspaceMembershipStatus
@@ -41,31 +41,10 @@ class WorkspaceMembershipControllerTest {
     ) : Mediator {
         var lastRequest: Any? = null
 
-        override suspend fun <TQuery : com.profiletailors.common.domain.bus.query.Query<TResponse>, TResponse> send(query: TQuery): TResponse {
-            lastRequest = query
+        override suspend fun <RESPONSE> dispatch(request: com.profiletailors.smp.platform.application.Request<RESPONSE>): RESPONSE {
+            lastRequest = request
             @Suppress("UNCHECKED_CAST")
-            return result as TResponse
-        }
-
-        override suspend fun <TCommand : com.profiletailors.common.domain.bus.command.Command> send(command: TCommand) {
-            lastRequest = command
-        }
-
-        override suspend fun <TCommand : com.profiletailors.common.domain.bus.command.CommandWithResult<TResult>, TResult> send(command: TCommand): TResult {
-            lastRequest = command
-            @Suppress("UNCHECKED_CAST")
-            return result as TResult
-        }
-
-        override suspend fun <T : com.profiletailors.common.domain.bus.notification.Notification> publish(notification: T) {
-            lastRequest = notification
-        }
-
-        override suspend fun <T : com.profiletailors.common.domain.bus.notification.Notification> publish(
-            notification: T,
-            publishStrategy: com.profiletailors.common.domain.bus.PublishStrategy
-        ) {
-            lastRequest = notification
+            return result as RESPONSE
         }
     }
 }

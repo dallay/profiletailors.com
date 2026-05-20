@@ -1,6 +1,6 @@
 package com.profiletailors.smp.tenancy.infrastructure.http
 
-import com.profiletailors.common.domain.bus.Mediator
+import com.profiletailors.smp.platform.application.Mediator
 import com.profiletailors.smp.tenancy.application.AddWorkspaceOwnerCommand
 import com.profiletailors.smp.tenancy.application.RemoveWorkspaceOwnerCommand
 import com.profiletailors.smp.tenancy.application.TransferWorkspaceOwnershipCommand
@@ -20,17 +20,17 @@ class WorkspaceOwnershipController(
     @PostMapping("/owners")
     suspend fun addOwner(
         @RequestBody request: WorkspaceOwnerRequest,
-    ): WorkspaceOwnershipResult = mediator.send(AddWorkspaceOwnerCommand(targetPrincipalId = request.principalId))
+    ): WorkspaceOwnershipResult = mediator.dispatch(AddWorkspaceOwnerCommand(targetPrincipalId = request.principalId))
 
     @DeleteMapping("/owners/{principalId}")
     suspend fun removeOwner(
         @PathVariable principalId: String,
-    ): WorkspaceOwnershipResult = mediator.send(RemoveWorkspaceOwnerCommand(targetPrincipalId = principalId))
+    ): WorkspaceOwnershipResult = mediator.dispatch(RemoveWorkspaceOwnerCommand(targetPrincipalId = principalId))
 
     @PostMapping("/owners/transfer")
     suspend fun transferOwnership(
         @RequestBody request: WorkspaceOwnerRequest,
-    ): WorkspaceOwnershipResult = mediator.send(
+    ): WorkspaceOwnershipResult = mediator.dispatch(
         TransferWorkspaceOwnershipCommand(targetPrincipalId = request.principalId),
     )
 }

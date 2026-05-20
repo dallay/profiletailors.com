@@ -4,6 +4,24 @@ import com.profiletailors.smp.authorization.domain.AuthorizationDecision
 import com.profiletailors.smp.identity.domain.PrincipalContext
 import com.profiletailors.smp.platform.domain.ResourceContext
 
+interface Request<out RESPONSE>
+
+interface Command<out RESPONSE> : Request<RESPONSE>
+
+interface Query<out RESPONSE> : Request<RESPONSE>
+
+interface Mediator {
+    suspend fun <RESPONSE> dispatch(request: Request<RESPONSE>): RESPONSE
+}
+
+interface CommandHandler<in COMMAND : Command<RESPONSE>, RESPONSE> {
+    suspend fun handle(command: COMMAND): RESPONSE
+}
+
+interface QueryHandler<in QUERY : Query<RESPONSE>, RESPONSE> {
+    suspend fun handle(query: QUERY): RESPONSE
+}
+
 interface PrincipalContextProvider {
     suspend fun current(): PrincipalContext?
 
