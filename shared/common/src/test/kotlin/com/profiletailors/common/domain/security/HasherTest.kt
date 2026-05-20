@@ -25,7 +25,7 @@ internal class HasherTest {
 
     @Test
     fun `hmacsha256 produces_consistent_hmac_given_secret_and_input`() {
-        val secret = "bede9afc9f2bfdccdbddfd742eeff0d6b8ad6ea9"
+        val secret = "test-secret-key-for-hmac-hashing-unit-test"
         val input = "96.251.32.95"
         val hasher = HmacHasher(secret)
 
