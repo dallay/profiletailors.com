@@ -1,6 +1,6 @@
 package com.profiletailors.smp.tenancy.infrastructure.http
 
-import com.profiletailors.smp.platform.application.Mediator
+import com.profiletailors.common.domain.bus.Mediator
 import com.profiletailors.smp.tenancy.application.UpdateWorkspaceMembershipStatusCommand
 import com.profiletailors.smp.tenancy.application.WorkspaceMembershipStatusResult
 import com.profiletailors.smp.tenancy.domain.WorkspaceMembershipStatus
@@ -19,7 +19,7 @@ class WorkspaceMembershipController(
     suspend fun updateMembershipStatus(
         @PathVariable principalId: String,
         @RequestBody request: WorkspaceMembershipStatusRequest,
-    ): WorkspaceMembershipStatusResult = mediator.dispatch(
+    ): WorkspaceMembershipStatusResult = mediator.send(
         UpdateWorkspaceMembershipStatusCommand(
             targetPrincipalId = principalId,
             targetStatus = WorkspaceMembershipStatus.valueOf(request.status),

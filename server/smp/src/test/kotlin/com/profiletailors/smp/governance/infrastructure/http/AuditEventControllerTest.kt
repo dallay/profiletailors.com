@@ -3,7 +3,7 @@ package com.profiletailors.smp.governance.infrastructure.http
 import com.profiletailors.smp.governance.application.AuditEventPage
 import com.profiletailors.smp.governance.application.GetWorkspaceAuditEventsQuery
 import com.profiletailors.smp.governance.application.WorkspaceAuditEventsResponse
-import com.profiletailors.smp.platform.application.Mediator
+import com.profiletailors.common.domain.bus.Mediator
 import kotlinx.coroutines.test.runTest
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Test
@@ -62,10 +62,31 @@ class AuditEventControllerTest {
     ) : Mediator {
         var lastRequest: Any? = null
 
-        override suspend fun <RESPONSE> dispatch(request: com.profiletailors.smp.platform.application.Request<RESPONSE>): RESPONSE {
-            lastRequest = request
+        override suspend fun <TQuery : com.profiletailors.common.domain.bus.query.Query<TResponse>, TResponse> send(query: TQuery): TResponse {
+            lastRequest = query
             @Suppress("UNCHECKED_CAST")
-            return result as RESPONSE
+            return result as TResponse
+        }
+
+        override suspend fun <TCommand : com.profiletailors.common.domain.bus.command.Command> send(command: TCommand) {
+            lastRequest = command
+        }
+
+        override suspend fun <TCommand : com.profiletailors.common.domain.bus.command.CommandWithResult<TResult>, TResult> send(command: TCommand): TResult {
+            lastRequest = command
+            @Suppress("UNCHECKED_CAST")
+            return result as TResult
+        }
+
+        override suspend fun <T : com.profiletailors.common.domain.bus.notification.Notification> publish(notification: T) {
+            lastRequest = notification
+        }
+
+        override suspend fun <T : com.profiletailors.common.domain.bus.notification.Notification> publish(
+            notification: T,
+            publishStrategy: com.profiletailors.common.domain.bus.PublishStrategy
+        ) {
+            lastRequest = notification
         }
     }
 }

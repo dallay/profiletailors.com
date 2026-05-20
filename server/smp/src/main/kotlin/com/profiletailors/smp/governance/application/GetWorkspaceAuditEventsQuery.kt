@@ -1,11 +1,11 @@
 package com.profiletailors.smp.governance.application
 
+import com.profiletailors.common.domain.bus.query.Query
+import com.profiletailors.common.domain.bus.query.QueryHandler
 import com.profiletailors.smp.authorization.application.AuthorizationDeniedException
-import com.profiletailors.smp.authorization.application.WorkspaceAuthorizationDecider
 import com.profiletailors.smp.authorization.domain.AuthorizationDecision
 import com.profiletailors.smp.authorization.domain.PermissionKey
-import com.profiletailors.smp.platform.application.Query
-import com.profiletailors.smp.platform.application.QueryHandler
+import com.profiletailors.smp.authorization.domain.WorkspaceAuthorizationDecider
 import com.profiletailors.smp.platform.application.ResourceContextProvider
 import org.springframework.stereotype.Component
 import java.time.Instant
