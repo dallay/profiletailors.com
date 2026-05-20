@@ -1,17 +1,1 @@
-{
-  "version": 1,
-  "skills": {
-    "animate-text": {
-      "source": "pixel-point/animate-text",
-      "sourceType": "github",
-      "skillPath": "skills/animate-text/SKILL.md",
-      "computedHash": "7724b6f42dc2c33a98d48ca592402aed596830a55d469e83b3c5970d478e25ed"
-    },
-    "bazel-build-optimization": {
-      "source": "wshobson/agents",
-      "sourceType": "github",
-      "skillPath": "plugins/developer-essentials/skills/bazel-build-optimization/SKILL.md",
-      "computedHash": "b0a7a3f3c7051c10dea6a228a8585fb54422dc0a9746615dd27d7061f080b26d"
-    }
-  }
-}
+/Users/acosta/Dev/dallay/profiletailors.com/skills-lock.json
