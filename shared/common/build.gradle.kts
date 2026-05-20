@@ -19,7 +19,7 @@ repositories {
 dependencies {
     implementation("tools.jackson.module:jackson-module-kotlin:3.0.+")
     implementation("org.jetbrains.kotlin:kotlin-reflect")
-    implementation("org.jetbrains.kotlinx:kotlinx-coroutines-core:1.10.2")
+    implementation("org.jetbrains.kotlinx:kotlinx-coroutines-core:1.11.0")
     implementation("org.slf4j:slf4j-api:2.0.17")
 
     testImplementation(kotlin("test-junit5"))
