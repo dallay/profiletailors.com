@@ -1,0 +1,48 @@
+databaseChangeLog:
+  - changeSet:
+      id: tenancy-003-create-workspace-memberships
+      author: opencode
+      changes:
+        - createTable:
+            tableName: workspace_memberships
+            columns:
+              - column:
+                  name: id
+                  type: varchar(64)
+                  constraints:
+                    primaryKey: true
+                    nullable: false
+              - column:
+                  name: workspace_id
+                  type: varchar(64)
+                  constraints:
+                    nullable: false
+                    foreignKeyName: fk_workspace_memberships_workspace
+                    references: workspaces(id)
+              - column:
+                  name: principal_id
+                  type: varchar(64)
+                  constraints:
+                    nullable: false
+                    foreignKeyName: fk_workspace_memberships_principal
+                    references: principals(id)
+              - column:
+                  name: principal_type
+                  type: varchar(32)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: status
+                  type: varchar(32)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: created_at
+                  type: timestamp with time zone
+                  defaultValueComputed: CURRENT_TIMESTAMP
+                  constraints:
+                    nullable: false
+        - addUniqueConstraint:
+            tableName: workspace_memberships
+            columnNames: workspace_id, principal_id
+            constraintName: uq_workspace_memberships_workspace_principal

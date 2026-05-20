@@ -1,0 +1,3 @@
+package com.profiletailors.smp.authorization
+
+object AuthorizationBoundedContext

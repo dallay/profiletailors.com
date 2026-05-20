@@ -1,0 +1,3 @@
+# Register EnableAutoConfiguration
+org.springframework.boot.autoconfigure.EnableAutoConfiguration = \
+com.profiletailors.spring.boot.AppAutoConfiguration

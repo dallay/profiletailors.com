@@ -1,0 +1,32 @@
+databaseChangeLog:
+  - changeSet:
+      id: authorization-004-create-membership-roles
+      author: opencode
+      changes:
+        - createTable:
+            tableName: membership_roles
+            columns:
+              - column:
+                  name: membership_id
+                  type: varchar(64)
+                  constraints:
+                    nullable: false
+                    foreignKeyName: fk_membership_roles_membership
+                    references: workspace_memberships(id)
+              - column:
+                  name: role_id
+                  type: varchar(64)
+                  constraints:
+                    nullable: false
+                    foreignKeyName: fk_membership_roles_role
+                    references: roles(id)
+              - column:
+                  name: created_at
+                  type: timestamp with time zone
+                  defaultValueComputed: CURRENT_TIMESTAMP
+                  constraints:
+                    nullable: false
+        - addPrimaryKey:
+            tableName: membership_roles
+            columnNames: membership_id, role_id
+            constraintName: pk_membership_roles

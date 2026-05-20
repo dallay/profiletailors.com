@@ -1,0 +1,29 @@
+databaseChangeLog:
+  - changeSet:
+      id: authorization-001-create-permissions
+      author: opencode
+      changes:
+        - createTable:
+            tableName: permissions
+            columns:
+              - column:
+                  name: id
+                  type: varchar(64)
+                  constraints:
+                    primaryKey: true
+                    nullable: false
+              - column:
+                  name: permission_key
+                  type: varchar(255)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: created_at
+                  type: timestamp with time zone
+                  defaultValueComputed: CURRENT_TIMESTAMP
+                  constraints:
+                    nullable: false
+        - addUniqueConstraint:
+            tableName: permissions
+            columnNames: permission_key
+            constraintName: uq_permissions_permission_key

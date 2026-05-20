@@ -1,0 +1,179 @@
+---
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+interface Props {
+  inputPlaceholder: string
+  cta: string
+  waiting: string
+  successSuffix: string
+}
+
+const { inputPlaceholder, cta, waiting, successSuffix } = Astro.props
+---
+
+<form id="waitlist-form" class="flex flex-col sm:flex-row gap-3 max-w-md" novalidate>
+  <input
+    id="email-input"
+    type="email"
+    required
+    class="flex-1 bg-bg-secondary border border-border text-text-display placeholder-text-muted font-mono text-sm px-4 py-3 rounded-none outline-none focus:border-accent transition-colors duration-200"
+    placeholder={inputPlaceholder}
+    autocomplete="email"
+  />
+  <button
+    type="submit"
+    class="bg-accent text-bg-primary font-mono text-sm font-bold tracking-widest px-6 py-3 rounded-none hover:opacity-80 transition-opacity duration-200 whitespace-nowrap cursor-pointer"
+  >
+    {cta}
+  </button>
+</form>
+
+<p id="form-success" class="hidden font-mono text-sm text-text-display mt-4 tracking-wide">
+  ✓ <span id="success-email"></span>
+</p>
+
+<p class="font-mono text-xs text-text-muted mt-5 tracking-wide">
+  {waiting}
+</p>
+
+<script is:inline define:vars={{ successSuffix }}>
+  document.getElementById('waitlist-form')?.addEventListener('submit', (e) => {
+    e.preventDefault()
+    const input = /** @type {HTMLInputElement} */ (document.getElementById('email-input'))
+    const email = input?.value?.trim()
+    if (!email?.includes('@')) { input?.focus(); return }
+
+    const form = document.getElementById('waitlist-form')
+    const success = document.getElementById('form-success')
+    const emailSpan = document.getElementById('success-email')
+
+    if (emailSpan) emailSpan.textContent = `${email} ${successSuffix}`
+    form?.classList.add('hidden')
+    success?.classList.remove('hidden')
+  })
+</script>
