@@ -50,7 +50,5 @@ class ResourcePreviewEndpointIntegrationTest : ResourcePreviewEndpointTestBase()
                 .build(),
         )
 
-        @Bean
-        fun objectMapper(): ObjectMapper = ObjectMapper()
     }
 }

@@ -1,17 +1,18 @@
 package com.profiletailors.smp.tenancy.application
 
-import com.profiletailors.smp.identity.domain.PrincipalContext
-import com.profiletailors.smp.identity.domain.PrincipalType
-import com.profiletailors.smp.platform.application.AuditHook
-import com.profiletailors.smp.platform.application.MutationAuditFact
-import com.profiletailors.smp.platform.application.RequestOutcome
-import com.profiletailors.smp.platform.application.PrincipalContextProvider
-import com.profiletailors.smp.platform.application.ResourceContextProvider
-import com.profiletailors.smp.platform.domain.ResourceContext
-import com.profiletailors.smp.platform.domain.ResourceContextType
+import com.profiletailors.common.domain.context.PrincipalContext
+import com.profiletailors.common.domain.context.PrincipalContextProvider
+import com.profiletailors.common.domain.context.PrincipalType
+import com.profiletailors.common.domain.context.ResourceContext
+import com.profiletailors.common.domain.context.ResourceContextProvider
+import com.profiletailors.common.domain.context.ResourceContextType
+import com.profiletailors.common.domain.observability.RequestOutcome
+import com.profiletailors.common.domain.workspace.WorkspaceMembershipStatus
+import com.profiletailors.smp.audit.application.AuditHook
+import com.profiletailors.smp.audit.domain.AuthorizationDecisionAuditFact
+import com.profiletailors.smp.audit.domain.MutationAuditFact
 import com.profiletailors.smp.tenancy.domain.OwnerMustRemainActiveMemberException
 import com.profiletailors.smp.tenancy.domain.WorkspaceMembership
-import com.profiletailors.smp.tenancy.domain.WorkspaceMembershipStatus
 import com.profiletailors.smp.tenancy.domain.WorkspaceOwnership
 import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.test.runTest
@@ -153,7 +154,7 @@ class UpdateWorkspaceMembershipStatusHandlerTest {
 
         override suspend fun onRequestHandled(requestName: String, outcome: RequestOutcome) = Unit
 
-        override suspend fun onAuthorizationDecision(fact: com.profiletailors.smp.platform.application.AuthorizationDecisionAuditFact) = Unit
+        override suspend fun onAuthorizationDecision(fact: AuthorizationDecisionAuditFact) = Unit
 
         override suspend fun onMutation(fact: MutationAuditFact) {
             mutations += fact

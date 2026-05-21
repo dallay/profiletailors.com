@@ -1,8 +1,8 @@
 package com.profiletailors.smp.integration.support
 
-import com.profiletailors.smp.platform.application.AuditHook
-import com.profiletailors.smp.platform.application.AuthorizationDecisionAuditFact
-import com.profiletailors.smp.platform.application.AuthorizationReasonCode
+import com.profiletailors.smp.audit.application.AuditHook
+import com.profiletailors.smp.audit.domain.AuthorizationDecisionAuditFact
+import com.profiletailors.smp.authorization.domain.AuthorizationReasonCode
 import kotlinx.coroutines.reactor.awaitSingle
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Test
@@ -61,8 +61,8 @@ abstract class ResourcePreviewEndpointTestBase : AuthorizationEndpointIntegratio
                     permission = PERMISSION_RESOURCE_READ,
                     principalId = PRINCIPAL_ID,
                     workspaceId = WORKSPACE_ID,
-                    decision = com.profiletailors.smp.authorization.domain.AuthorizationDecision.ALLOW,
-                    reasonCode = AuthorizationReasonCode.ROLE_PERMISSION,
+                    decision = com.profiletailors.smp.authorization.domain.AuthorizationDecision.ALLOW.name,
+                    reasonCode = AuthorizationReasonCode.ROLE_PERMISSION.name,
                     roleKeys = listOf("member"),
                 ),
             ),
@@ -94,8 +94,8 @@ abstract class ResourcePreviewEndpointTestBase : AuthorizationEndpointIntegratio
                     permission = PERMISSION_RESOURCE_READ,
                     principalId = PRINCIPAL_ID,
                     workspaceId = WORKSPACE_ID,
-                    decision = com.profiletailors.smp.authorization.domain.AuthorizationDecision.ALLOW,
-                    reasonCode = AuthorizationReasonCode.ROLE_PERMISSION,
+                    decision = com.profiletailors.smp.authorization.domain.AuthorizationDecision.ALLOW.name,
+                    reasonCode = AuthorizationReasonCode.ROLE_PERMISSION.name,
                     roleKeys = listOf("member"),
                 ),
             ),
@@ -125,8 +125,8 @@ abstract class ResourcePreviewEndpointTestBase : AuthorizationEndpointIntegratio
                     permission = PERMISSION_RESOURCE_READ,
                     principalId = PRINCIPAL_ID,
                     workspaceId = WORKSPACE_ID,
-                    decision = com.profiletailors.smp.authorization.domain.AuthorizationDecision.DENY,
-                    reasonCode = AuthorizationReasonCode.SCOPE_REDUCED_TARGET,
+                    decision = com.profiletailors.smp.authorization.domain.AuthorizationDecision.DENY.name,
+                    reasonCode = AuthorizationReasonCode.SCOPE_REDUCED_TARGET.name,
                     roleKeys = listOf("member"),
                 ),
             ),
@@ -157,8 +157,8 @@ abstract class ResourcePreviewEndpointTestBase : AuthorizationEndpointIntegratio
                     permission = PERMISSION_RESOURCE_READ,
                     principalId = PRINCIPAL_ID,
                     workspaceId = WORKSPACE_ID,
-                    decision = com.profiletailors.smp.authorization.domain.AuthorizationDecision.DENY,
-                    reasonCode = AuthorizationReasonCode.MISSING_PERMISSION,
+                    decision = com.profiletailors.smp.authorization.domain.AuthorizationDecision.DENY.name,
+                    reasonCode = AuthorizationReasonCode.MISSING_PERMISSION.name,
                     roleKeys = listOf("member"),
                 ),
             ),
@@ -188,8 +188,8 @@ abstract class ResourcePreviewEndpointTestBase : AuthorizationEndpointIntegratio
                     permission = PERMISSION_RESOURCE_READ,
                     principalId = PRINCIPAL_ID,
                     workspaceId = WORKSPACE_ID,
-                    decision = com.profiletailors.smp.authorization.domain.AuthorizationDecision.DENY,
-                    reasonCode = AuthorizationReasonCode.SCOPE_REDUCED_TARGET,
+                    decision = com.profiletailors.smp.authorization.domain.AuthorizationDecision.DENY.name,
+                    reasonCode = AuthorizationReasonCode.SCOPE_REDUCED_TARGET.name,
                     roleKeys = listOf("member"),
                 ),
             ),

@@ -1,6 +1,6 @@
 package com.profiletailors.smp.credentials.domain
 
-import com.profiletailors.smp.identity.domain.PrincipalType
+import com.profiletailors.common.domain.context.PrincipalType
 import java.time.Instant
 
 data class ValidatedToken(

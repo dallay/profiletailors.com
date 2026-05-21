@@ -1,6 +1,6 @@
 package com.profiletailors.smp.tenancy.domain
 
-import com.profiletailors.smp.identity.domain.PrincipalType
+import com.profiletailors.common.domain.context.PrincipalType
 import org.junit.jupiter.api.Assertions.assertDoesNotThrow
 import org.junit.jupiter.api.Assertions.assertFalse
 import org.junit.jupiter.api.Assertions.assertThrows
@@ -23,7 +23,7 @@ class WorkspaceDomainModelsTest {
             workspaceId = "workspace-1",
             principalId = "principal-1",
             principalType = PrincipalType.USER,
-            status = WorkspaceMembershipStatus.ACTIVE,
+            status = com.profiletailors.common.domain.workspace.WorkspaceMembershipStatus.ACTIVE,
             roleKeys = setOf("workspace:access:read", "workspace:members:manage"),
         )
 
@@ -63,13 +63,13 @@ class WorkspaceDomainModelsTest {
                 workspaceId = "workspace-1",
                 principalId = "owner-1",
                 principalType = PrincipalType.USER,
-                status = WorkspaceMembershipStatus.ACTIVE,
+                status = com.profiletailors.common.domain.workspace.WorkspaceMembershipStatus.ACTIVE,
             ),
             WorkspaceMembership(
                 workspaceId = "workspace-1",
                 principalId = "owner-2",
                 principalType = PrincipalType.USER,
-                status = WorkspaceMembershipStatus.ACTIVE,
+                status = com.profiletailors.common.domain.workspace.WorkspaceMembershipStatus.ACTIVE,
             ),
         )
 
@@ -111,7 +111,7 @@ class WorkspaceDomainModelsTest {
                 workspaceId = "workspace-1",
                 principalId = "owner-1",
                 principalType = PrincipalType.USER,
-                status = WorkspaceMembershipStatus.REMOVED,
+                status = com.profiletailors.common.domain.workspace.WorkspaceMembershipStatus.REMOVED,
             ),
         )
 
@@ -133,7 +133,7 @@ class WorkspaceDomainModelsTest {
             workspaceId = "workspace-1",
             principalId = "owner-1",
             principalType = PrincipalType.USER,
-            status = WorkspaceMembershipStatus.ACTIVE,
+            status = com.profiletailors.common.domain.workspace.WorkspaceMembershipStatus.ACTIVE,
         )
 
         assertThrows(OwnerMustRemainActiveMemberException::class.java) {
@@ -141,7 +141,7 @@ class WorkspaceDomainModelsTest {
                 ownerships = owners,
                 memberships = setOf(membership),
                 membershipToChange = membership,
-                targetStatus = WorkspaceMembershipStatus.SUSPENDED,
+                targetStatus = com.profiletailors.common.domain.workspace.WorkspaceMembershipStatus.SUSPENDED,
             )
         }
     }

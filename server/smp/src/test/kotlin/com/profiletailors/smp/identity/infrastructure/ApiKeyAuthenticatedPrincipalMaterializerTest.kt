@@ -4,8 +4,8 @@ import com.profiletailors.smp.credentials.application.ActiveApiKeyCredential
 import com.profiletailors.smp.credentials.domain.CredentialType
 import com.profiletailors.smp.identity.application.PrincipalIdentityFacts
 import com.profiletailors.smp.identity.application.PrincipalIdentityLookup
-import com.profiletailors.smp.identity.domain.PrincipalType
-import com.profiletailors.smp.platform.application.MissingPrincipalContextException
+import com.profiletailors.common.domain.context.MissingPrincipalContextException
+import com.profiletailors.common.domain.context.PrincipalType
 import kotlinx.coroutines.test.runTest
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertThrows

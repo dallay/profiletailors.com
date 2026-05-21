@@ -1,9 +1,9 @@
 package com.profiletailors.smp.integration.support
 
-import com.profiletailors.smp.platform.application.AuditHook
-import com.profiletailors.smp.platform.application.AuthorizationDecisionAuditFact
-import com.profiletailors.smp.platform.application.MutationAuditFact
-import com.profiletailors.smp.platform.application.RequestOutcome
+import com.profiletailors.common.domain.observability.RequestOutcome
+import com.profiletailors.smp.audit.application.AuditHook
+import com.profiletailors.smp.audit.domain.AuthorizationDecisionAuditFact
+import com.profiletailors.smp.audit.domain.MutationAuditFact
 
 class CapturingAuditHook : AuditHook {
     private val capturedFacts = mutableListOf<AuthorizationDecisionAuditFact>()

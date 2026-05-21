@@ -1,10 +1,10 @@
 package com.profiletailors.smp.platform.infrastructure
 
 import com.fasterxml.jackson.databind.ObjectMapper
-import com.profiletailors.smp.platform.application.AuditHook
-import com.profiletailors.smp.platform.application.AuthorizationDecisionAuditFact
-import com.profiletailors.smp.platform.application.MutationAuditFact
-import com.profiletailors.smp.platform.application.RequestOutcome
+import com.profiletailors.common.domain.observability.RequestOutcome
+import com.profiletailors.smp.audit.application.AuditHook
+import com.profiletailors.smp.audit.domain.AuthorizationDecisionAuditFact
+import com.profiletailors.smp.audit.domain.MutationAuditFact
 import kotlinx.coroutines.reactor.awaitSingle
 import org.springframework.r2dbc.core.DatabaseClient
 import java.time.Clock
@@ -61,8 +61,8 @@ class R2dbcAuditHook(
             .bind("permission", fact.permission)
             .bind("actorPrincipalId", fact.principalId)
             .bindNullable("workspaceId", fact.workspaceId, String::class.java)
-            .bind("outcome", fact.decision.name)
-            .bind("reasonCode", fact.reasonCode.name)
+            .bind("outcome", fact.decision)
+            .bind("reasonCode", fact.reasonCode)
             .bind("roleKeysJson", objectMapper.writeValueAsString(fact.roleKeys))
             .bind("detailsJson", objectMapper.writeValueAsString(emptyMap<String, String>()))
             .bind("createdAt", clock.instant())

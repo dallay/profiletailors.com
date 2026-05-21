@@ -1,7 +1,7 @@
 package com.profiletailors.smp.tenancy.application
 
 import com.profiletailors.smp.tenancy.domain.WorkspaceMembership
-import com.profiletailors.smp.tenancy.domain.WorkspaceMembershipStatus
+import com.profiletailors.common.domain.workspace.WorkspaceMembershipStatus
 
 interface WorkspaceMembershipRepository {
     suspend fun findByWorkspaceId(workspaceId: String): Set<WorkspaceMembership>

@@ -1,6 +1,7 @@
 package com.profiletailors.smp.tenancy.domain
 
 import com.profiletailors.common.domain.error.BusinessRuleValidationException
+import com.profiletailors.common.domain.workspace.WorkspaceMembershipStatus
 
 class WorkspaceOwnershipPolicy {
     fun ensureOwnersRemainActiveMembers(

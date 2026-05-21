@@ -1,7 +1,7 @@
 package com.profiletailors.smp.platform.infrastructure
 
-import com.profiletailors.smp.identity.domain.PrincipalContext
-import com.profiletailors.smp.platform.domain.ResourceContext
+import com.profiletailors.common.domain.context.PrincipalContext
+import com.profiletailors.common.domain.context.ResourceContext
 
 interface RequestContextStore {
     fun currentPrincipalContext(): PrincipalContext?
@@ -12,12 +12,17 @@ interface RequestContextStore {
 
     fun setResourceContext(context: ResourceContext?)
 
+    fun currentRequestPath(): String?
+
+    fun setRequestPath(path: String?)
+
     fun clear()
 }
 
 class InMemoryRequestContextStore : RequestContextStore {
     private var principalContext: PrincipalContext? = null
     private var resourceContext: ResourceContext? = null
+    private var requestPath: String? = null
 
     override fun currentPrincipalContext(): PrincipalContext? = principalContext
 
@@ -31,8 +36,15 @@ class InMemoryRequestContextStore : RequestContextStore {
         resourceContext = context
     }
 
+    override fun currentRequestPath(): String? = requestPath
+
+    override fun setRequestPath(path: String?) {
+        requestPath = path
+    }
+
     override fun clear() {
         principalContext = null
         resourceContext = null
+        requestPath = null
     }
 }

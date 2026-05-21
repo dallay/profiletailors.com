@@ -1,6 +1,6 @@
 package com.profiletailors.smp.authorization.domain
 
-import com.profiletailors.smp.platform.domain.ResourceContext
+import com.profiletailors.common.domain.context.ResourceContext
 import java.time.Instant
 
 data class DirectGrant(

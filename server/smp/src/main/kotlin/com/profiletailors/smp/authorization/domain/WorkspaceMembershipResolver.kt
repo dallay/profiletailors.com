@@ -1,12 +1,12 @@
 package com.profiletailors.smp.authorization.domain
 
-import com.profiletailors.smp.identity.domain.PrincipalContext
-import com.profiletailors.smp.platform.domain.ResourceContext
-import com.profiletailors.smp.tenancy.domain.WorkspaceMembership
+import com.profiletailors.common.domain.context.PrincipalContext
+import com.profiletailors.common.domain.context.ResourceContext
+import com.profiletailors.common.domain.workspace.WorkspaceMembershipSnapshot
 
 interface WorkspaceMembershipResolver {
     suspend fun resolve(
         principalContext: PrincipalContext,
         resourceContext: ResourceContext,
-    ): WorkspaceMembership?
+    ): WorkspaceMembershipSnapshot?
 }

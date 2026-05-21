@@ -46,10 +46,17 @@ abstract class IntegrationTestBase {
     lateinit var auditHook: CapturingAuditHook
 
     /**
-     * Returns the H2 in-memory database name for this test class.
-     * Must match the database name in @SpringBootTest properties.
+     * Returns the database name for this test class.
+     * For H2 tests this should match the in-memory database name in @SpringBootTest properties.
      */
     protected abstract fun databaseName(): String
+
+    protected open fun liquibaseJdbcUrl(): String =
+        "jdbc:h2:mem:${databaseName()};MODE=PostgreSQL;DB_CLOSE_DELAY=-1;DB_CLOSE_ON_EXIT=FALSE"
+
+    protected open fun liquibaseUsername(): String = "sa"
+
+    protected open fun liquibasePassword(): String = ""
 
     /**
      * Seeds test-specific scenario data after cleanup.
@@ -169,11 +176,10 @@ abstract class IntegrationTestBase {
     )
 
     private fun applyLiquibaseBaseline() {
-        val dbName = databaseName()
         DriverManager.getConnection(
-            "jdbc:h2:mem:$dbName;MODE=PostgreSQL;DB_CLOSE_DELAY=-1;DB_CLOSE_ON_EXIT=FALSE",
-            "sa",
-            ""
+            liquibaseJdbcUrl(),
+            liquibaseUsername(),
+            liquibasePassword(),
         ).use { connection ->
             val database = DatabaseFactory.getInstance()
                 .findCorrectDatabaseImplementation(liquibase.database.jvm.JdbcConnection(connection))

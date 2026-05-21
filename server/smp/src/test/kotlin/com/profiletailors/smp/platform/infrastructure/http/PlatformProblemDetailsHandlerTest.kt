@@ -1,7 +1,7 @@
 package com.profiletailors.smp.platform.infrastructure.http
 
-import com.profiletailors.smp.platform.application.MissingPrincipalContextException
-import com.profiletailors.smp.platform.application.MissingResourceContextException
+import com.profiletailors.common.domain.context.MissingPrincipalContextException
+import com.profiletailors.common.domain.context.MissingResourceContextException
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Test
 import org.springframework.http.HttpStatus

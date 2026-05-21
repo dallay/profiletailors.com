@@ -1,11 +1,11 @@
 package com.profiletailors.smp.platform.infrastructure
 
-import com.profiletailors.smp.identity.domain.PrincipalContext
-import com.profiletailors.smp.identity.domain.PrincipalType
-import com.profiletailors.smp.platform.application.MissingPrincipalContextException
-import com.profiletailors.smp.platform.application.MissingResourceContextException
-import com.profiletailors.smp.platform.domain.ResourceContext
-import com.profiletailors.smp.platform.domain.ResourceContextType
+import com.profiletailors.common.domain.context.MissingPrincipalContextException
+import com.profiletailors.common.domain.context.MissingResourceContextException
+import com.profiletailors.common.domain.context.PrincipalContext
+import com.profiletailors.common.domain.context.PrincipalType
+import com.profiletailors.common.domain.context.ResourceContext
+import com.profiletailors.common.domain.context.ResourceContextType
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertThrows
 import org.junit.jupiter.api.Test

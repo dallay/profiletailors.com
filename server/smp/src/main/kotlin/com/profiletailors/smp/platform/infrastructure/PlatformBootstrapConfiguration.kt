@@ -1,19 +1,21 @@
 package com.profiletailors.smp.platform.infrastructure
 
 import com.fasterxml.jackson.databind.ObjectMapper
-import com.profiletailors.smp.platform.application.Mediator
-import com.profiletailors.smp.platform.application.AuditHook
-import com.profiletailors.smp.platform.application.AuthorizationDecisionAuditFact
-import com.profiletailors.smp.platform.application.MetricsHook
-import com.profiletailors.smp.platform.application.MutationAuditFact
-import com.profiletailors.smp.platform.application.PrincipalContextProvider
-import com.profiletailors.smp.platform.application.RateLimitHook
-import com.profiletailors.smp.platform.application.ResourceContextProvider
-import com.profiletailors.smp.platform.application.RequestOutcome
+import com.profiletailors.common.domain.context.PrincipalContextProvider
+import com.profiletailors.common.domain.context.RequestPathProvider
+import com.profiletailors.common.domain.context.ResourceContextProvider
+import com.profiletailors.common.domain.observability.RequestOutcome
+import com.profiletailors.smp.audit.application.AuditHook
+import com.profiletailors.smp.audit.domain.AuthorizationDecisionAuditFact
+import com.profiletailors.smp.audit.domain.MutationAuditFact
+import com.profiletailors.smp.observability.application.MetricsHook
+import com.profiletailors.smp.observability.application.RateLimitHook
+import com.profiletailors.smp.platform.infrastructure.http.RequestPathWebFilter
 import org.springframework.beans.factory.annotation.Value
 import org.springframework.context.annotation.Bean
 import org.springframework.context.annotation.Configuration
 import org.springframework.r2dbc.core.DatabaseClient
+import org.springframework.web.server.WebFilter
 import java.time.Clock
 
 @Configuration
@@ -31,7 +33,12 @@ class PlatformBootstrapConfiguration {
         StoreBackedResourceContextProvider(requestContextStore)
 
     @Bean
-    fun mediator(context: org.springframework.context.ApplicationContext): Mediator = SpringMediator(context)
+    fun requestPathProvider(requestContextStore: RequestContextStore): RequestPathProvider =
+        StoreBackedRequestPathProvider(requestContextStore)
+
+    @Bean
+    fun requestPathWebFilter(requestContextStore: RequestContextStore): WebFilter =
+        RequestPathWebFilter(requestContextStore)
 
     @Bean
     fun objectMapper(): ObjectMapper = ObjectMapper()

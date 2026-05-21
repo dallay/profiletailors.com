@@ -1,7 +1,7 @@
 package com.profiletailors.smp.identity.infrastructure
 
 import com.profiletailors.smp.identity.application.PrincipalIdentityLookup
-import com.profiletailors.smp.identity.domain.PrincipalType
+import com.profiletailors.common.domain.context.PrincipalType
 import io.r2dbc.h2.H2ConnectionConfiguration
 import io.r2dbc.h2.H2ConnectionFactory
 import kotlinx.coroutines.reactor.awaitSingle
