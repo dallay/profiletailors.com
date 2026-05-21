@@ -1,13 +1,13 @@
 package com.profiletailors.smp.tenancy.infrastructure
 
+import com.profiletailors.common.domain.context.PrincipalContext
+import com.profiletailors.common.domain.context.PrincipalType
+import com.profiletailors.common.domain.context.ResourceContext
+import com.profiletailors.common.domain.context.ResourceContextType
+import com.profiletailors.common.domain.workspace.WorkspaceMembershipStatus
 import com.profiletailors.smp.authorization.domain.WorkspaceMembershipResolver
-import com.profiletailors.smp.identity.domain.PrincipalContext
-import com.profiletailors.smp.identity.domain.PrincipalType
-import com.profiletailors.smp.platform.domain.ResourceContext
-import com.profiletailors.smp.platform.domain.ResourceContextType
 import com.profiletailors.smp.tenancy.application.WorkspaceMembershipLookup
 import com.profiletailors.smp.tenancy.domain.WorkspaceMembership
-import com.profiletailors.smp.tenancy.domain.WorkspaceMembershipStatus
 import kotlinx.coroutines.reactor.awaitSingleOrNull
 import org.springframework.r2dbc.core.DatabaseClient
 import org.springframework.stereotype.Repository
@@ -25,9 +25,9 @@ class R2dbcWorkspaceMembershipResolver(
         principalId: String,
         resourceContext: ResourceContext,
     ): WorkspaceMembership? {
-        if (resourceContext.type != ResourceContextType.WORKSPACE || resourceContext.workspaceId.isNullOrBlank()) {
-            return null
-        }
+        val workspaceId = resourceContext.workspaceId
+            ?.takeIf { resourceContext.type == ResourceContextType.WORKSPACE && it.isNotBlank() }
+            ?: return null
 
         return databaseClient.sql(
             """
@@ -36,7 +36,7 @@ class R2dbcWorkspaceMembershipResolver(
             WHERE workspace_id = :workspaceId AND principal_id = :principalId
             """.trimIndent(),
         )
-            .bind("workspaceId", resourceContext.workspaceId)
+            .bind("workspaceId", workspaceId)
             .bind("principalId", principalId)
             .map { row, _ ->
                 val principalTypeValue = requireNotNull(row.get("principal_type", String::class.java))

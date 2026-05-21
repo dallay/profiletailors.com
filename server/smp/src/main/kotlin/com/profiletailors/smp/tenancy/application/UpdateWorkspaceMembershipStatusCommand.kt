@@ -1,16 +1,16 @@
 package com.profiletailors.smp.tenancy.application
 
-import com.profiletailors.smp.platform.application.Command
-import com.profiletailors.smp.platform.application.CommandHandler
-import com.profiletailors.smp.platform.application.PrincipalContextProvider
-import com.profiletailors.smp.platform.application.ResourceContextProvider
-import com.profiletailors.smp.tenancy.domain.WorkspaceMembershipStatus
+import com.profiletailors.common.domain.bus.command.CommandWithResult
+import com.profiletailors.common.domain.bus.command.CommandWithResultHandler
+import com.profiletailors.common.domain.context.PrincipalContextProvider
+import com.profiletailors.common.domain.context.ResourceContextProvider
+import com.profiletailors.common.domain.workspace.WorkspaceMembershipStatus
 import com.profiletailors.smp.tenancy.domain.WorkspaceOwnershipPolicy
 
 data class UpdateWorkspaceMembershipStatusCommand(
     val targetPrincipalId: String,
     val targetStatus: WorkspaceMembershipStatus,
-) : Command<WorkspaceMembershipStatusResult>
+) : CommandWithResult<WorkspaceMembershipStatusResult>
 
 data class WorkspaceMembershipStatusResult(
     val workspaceId: String,
@@ -26,7 +26,7 @@ class UpdateWorkspaceMembershipStatusHandler(
     private val workspaceMembershipRepository: WorkspaceMembershipRepository,
     private val ownershipPolicy: WorkspaceOwnershipPolicy = WorkspaceOwnershipPolicy(),
     private val tenancyMutationAuditor: TenancyMutationAuditor,
-) : CommandHandler<UpdateWorkspaceMembershipStatusCommand, WorkspaceMembershipStatusResult> {
+) : CommandWithResultHandler<UpdateWorkspaceMembershipStatusCommand, WorkspaceMembershipStatusResult> {
     @Suppress("ThrowsCount")
     override suspend fun handle(command: UpdateWorkspaceMembershipStatusCommand): WorkspaceMembershipStatusResult {
         val actor = principalContextProvider.require()

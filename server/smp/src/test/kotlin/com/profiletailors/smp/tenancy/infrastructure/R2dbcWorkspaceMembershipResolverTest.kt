@@ -1,8 +1,8 @@
 package com.profiletailors.smp.tenancy.infrastructure
 
-import com.profiletailors.smp.identity.domain.PrincipalType
-import com.profiletailors.smp.platform.domain.ResourceContext
-import com.profiletailors.smp.platform.domain.ResourceContextType
+import com.profiletailors.common.domain.context.PrincipalType
+import com.profiletailors.common.domain.context.ResourceContext
+import com.profiletailors.common.domain.context.ResourceContextType
 import io.r2dbc.h2.H2ConnectionConfiguration
 import io.r2dbc.h2.H2ConnectionFactory
 import kotlinx.coroutines.reactor.awaitSingle

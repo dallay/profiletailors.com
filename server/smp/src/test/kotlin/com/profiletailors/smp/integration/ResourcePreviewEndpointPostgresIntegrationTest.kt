@@ -35,8 +35,6 @@ class ResourcePreviewEndpointPostgresIntegrationTest : ResourcePreviewEndpointTe
 
     @TestConfiguration
     class PostgresTestBeans {
-        @Bean
-        fun objectMapper(): ObjectMapper = ObjectMapper()
     }
 
     companion object {

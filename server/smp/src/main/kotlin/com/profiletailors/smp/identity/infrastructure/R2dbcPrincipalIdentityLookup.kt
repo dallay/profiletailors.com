@@ -2,7 +2,7 @@ package com.profiletailors.smp.identity.infrastructure
 
 import com.profiletailors.smp.identity.application.PrincipalIdentityFacts
 import com.profiletailors.smp.identity.application.PrincipalIdentityLookup
-import com.profiletailors.smp.identity.domain.PrincipalType
+import com.profiletailors.common.domain.context.PrincipalType
 import kotlinx.coroutines.reactor.awaitSingleOrNull
 import org.springframework.r2dbc.core.DatabaseClient
 import org.springframework.stereotype.Repository

@@ -1,7 +1,7 @@
 package com.profiletailors.smp.tenancy.application
 
-import com.profiletailors.smp.platform.domain.ResourceContext
-import com.profiletailors.smp.platform.domain.ResourceContextType
+import com.profiletailors.common.domain.context.ResourceContext
+import com.profiletailors.common.domain.context.ResourceContextType
 
 interface ActiveWorkspaceContextResolver {
     fun resolve(workspaceId: String?): ResourceContext

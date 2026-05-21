@@ -1,6 +1,6 @@
 package com.profiletailors.smp.authorization.infrastructure.http
 
-import com.profiletailors.smp.authorization.application.AuthorizationDeniedException
+import com.profiletailors.smp.authorization.domain.AuthorizationDeniedException
 import org.springframework.http.HttpStatus
 import org.springframework.http.ProblemDetail
 import org.springframework.web.bind.annotation.ExceptionHandler

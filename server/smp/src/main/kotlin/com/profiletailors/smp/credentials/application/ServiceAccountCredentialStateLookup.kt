@@ -1,6 +1,6 @@
 package com.profiletailors.smp.credentials.application
 
-import com.profiletailors.smp.identity.domain.PrincipalType
+import com.profiletailors.common.domain.context.PrincipalType
 import org.springframework.security.authentication.BadCredentialsException
 
 data class ActiveServiceAccountCredential(
