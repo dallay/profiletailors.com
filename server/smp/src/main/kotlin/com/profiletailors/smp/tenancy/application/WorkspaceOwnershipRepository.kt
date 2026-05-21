@@ -1,8 +1,8 @@
 package com.profiletailors.smp.tenancy.application
 
-import com.profiletailors.smp.platform.application.ResourceContextProvider
-import com.profiletailors.smp.platform.domain.ResourceContext
-import com.profiletailors.smp.platform.domain.ResourceContextType
+import com.profiletailors.common.domain.context.ResourceContext
+import com.profiletailors.common.domain.context.ResourceContextProvider
+import com.profiletailors.common.domain.context.ResourceContextType
 import com.profiletailors.smp.tenancy.domain.WorkspaceMembership
 import com.profiletailors.smp.tenancy.domain.WorkspaceOwnership
 import com.profiletailors.smp.tenancy.domain.WorkspaceOwnershipPolicy

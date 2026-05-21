@@ -1,25 +1,26 @@
 package com.profiletailors.smp.tenancy.application
 
-import com.profiletailors.smp.identity.domain.PrincipalContext
-import com.profiletailors.smp.platform.application.Command
-import com.profiletailors.smp.platform.application.CommandHandler
-import com.profiletailors.smp.platform.application.PrincipalContextProvider
-import com.profiletailors.smp.platform.application.ResourceContextProvider
+import com.profiletailors.common.domain.bus.command.CommandWithResult
+import com.profiletailors.common.domain.bus.command.CommandWithResultHandler
+import com.profiletailors.common.domain.context.PrincipalContext
+import com.profiletailors.common.domain.context.PrincipalContextProvider
+import com.profiletailors.common.domain.context.ResourceContext
+import com.profiletailors.common.domain.context.ResourceContextProvider
 import com.profiletailors.smp.tenancy.domain.WorkspaceOwnership
 import com.profiletailors.smp.tenancy.domain.WorkspaceOwnershipPolicy
 import java.time.Clock
 
 data class AddWorkspaceOwnerCommand(
     val targetPrincipalId: String,
-) : Command<WorkspaceOwnershipResult>
+) : CommandWithResult<WorkspaceOwnershipResult>
 
 data class RemoveWorkspaceOwnerCommand(
     val targetPrincipalId: String,
-) : Command<WorkspaceOwnershipResult>
+) : CommandWithResult<WorkspaceOwnershipResult>
 
 data class TransferWorkspaceOwnershipCommand(
     val targetPrincipalId: String,
-) : Command<WorkspaceOwnershipResult>
+) : CommandWithResult<WorkspaceOwnershipResult>
 
 data class WorkspaceOwnershipResult(
     val workspaceId: String,
@@ -33,7 +34,7 @@ class AddWorkspaceOwnerHandler(
     private val workspaceMembershipLookup: WorkspaceMembershipLookup,
     private val clock: Clock,
     private val tenancyMutationAuditor: TenancyMutationAuditor,
-) : CommandHandler<AddWorkspaceOwnerCommand, WorkspaceOwnershipResult> {
+) : CommandWithResultHandler<AddWorkspaceOwnerCommand, WorkspaceOwnershipResult> {
     @Suppress("ThrowsCount")
     override suspend fun handle(command: AddWorkspaceOwnerCommand): WorkspaceOwnershipResult {
         val actor = principalContextProvider.require()
@@ -92,7 +93,7 @@ class AddWorkspaceOwnerHandler(
 
     private suspend fun requireActiveMembership(
         targetPrincipalId: String,
-        resourceContext: com.profiletailors.smp.platform.domain.ResourceContext,
+        resourceContext: ResourceContext,
     ) = workspaceMembershipLookup.resolve(targetPrincipalId, resourceContext)
         ?.takeIf { membership -> membership.isActive() }
         ?: throw OwnerTargetMustBeActiveMemberException(
@@ -109,7 +110,7 @@ class TransferWorkspaceOwnershipHandler(
     private val clock: Clock,
     private val tenancyMutationAuditor: TenancyMutationAuditor,
     private val ownershipPolicy: WorkspaceOwnershipPolicy = WorkspaceOwnershipPolicy(),
-) : CommandHandler<TransferWorkspaceOwnershipCommand, WorkspaceOwnershipResult> {
+) : CommandWithResultHandler<TransferWorkspaceOwnershipCommand, WorkspaceOwnershipResult> {
     @Suppress("ThrowsCount", "LongMethod")
     override suspend fun handle(command: TransferWorkspaceOwnershipCommand): WorkspaceOwnershipResult {
         val actor = principalContextProvider.require()

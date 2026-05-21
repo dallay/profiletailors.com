@@ -1,6 +1,7 @@
 package com.profiletailors.smp.authorization.infrastructure
 
 import com.profiletailors.smp.authorization.domain.PermissionKey
+import com.profiletailors.smp.authorization.infrastructure.persistence.R2dbcWorkspaceMembershipRoleResolver
 import io.r2dbc.h2.H2ConnectionConfiguration
 import io.r2dbc.h2.H2ConnectionFactory
 import kotlinx.coroutines.reactor.awaitSingle
@@ -53,8 +54,8 @@ class R2dbcWorkspaceMembershipRoleResolverTest {
                 id = "membership-1",
                 workspaceId = "workspace-1",
                 principalId = "principal-1",
-                principalType = com.profiletailors.smp.identity.domain.PrincipalType.USER,
-                status = com.profiletailors.smp.tenancy.domain.WorkspaceMembershipStatus.ACTIVE,
+                principalType = com.profiletailors.common.domain.context.PrincipalType.USER,
+                status = com.profiletailors.common.domain.workspace.WorkspaceMembershipStatus.ACTIVE,
             ),
         )
 

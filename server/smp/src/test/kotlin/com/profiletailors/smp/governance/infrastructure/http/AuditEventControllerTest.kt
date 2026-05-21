@@ -1,10 +1,14 @@
 package com.profiletailors.smp.governance.infrastructure.http
 
+import com.profiletailors.common.domain.bus.Mediator
+import com.profiletailors.common.domain.bus.command.Command
+import com.profiletailors.common.domain.bus.command.CommandWithResult
+import com.profiletailors.common.domain.bus.notification.Notification
+import com.profiletailors.common.domain.bus.PublishStrategy
+import com.profiletailors.common.domain.bus.query.Query
 import com.profiletailors.smp.governance.application.AuditEventPage
 import com.profiletailors.smp.governance.application.GetWorkspaceAuditEventsQuery
 import com.profiletailors.smp.governance.application.WorkspaceAuditEventsResponse
-import com.profiletailors.smp.platform.application.Mediator
-import com.profiletailors.smp.platform.application.Request
 import kotlinx.coroutines.test.runTest
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Test
@@ -64,9 +68,25 @@ class AuditEventControllerTest {
         var lastRequest: Any? = null
 
         @Suppress("UNCHECKED_CAST")
-        override suspend fun <RESPONSE> dispatch(request: Request<RESPONSE>): RESPONSE {
-            lastRequest = request
-            return result as RESPONSE
+        override suspend fun <TQuery : Query<TResponse>, TResponse> send(query: TQuery): TResponse {
+            lastRequest = query
+            return result as TResponse
+        }
+
+        override suspend fun <TCommand : Command> send(command: TCommand) {
+            error("Not used in this test")
+        }
+
+        override suspend fun <TCommand : CommandWithResult<TResult>, TResult> send(command: TCommand): TResult {
+            error("Not used in this test")
+        }
+
+        override suspend fun <T : Notification> publish(notification: T) {
+            error("Not used in this test")
+        }
+
+        override suspend fun <T : Notification> publish(notification: T, publishStrategy: PublishStrategy) {
+            error("Not used in this test")
         }
     }
 }

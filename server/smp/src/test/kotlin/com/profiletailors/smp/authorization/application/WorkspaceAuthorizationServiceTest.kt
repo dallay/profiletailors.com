@@ -1,5 +1,6 @@
 package com.profiletailors.smp.authorization.application
 
+import com.profiletailors.smp.authorization.application.current.workspace.GetCurrentWorkspaceAccessSummaryQuery
 import com.profiletailors.smp.authorization.domain.AuthorizationDecision
 import com.profiletailors.smp.authorization.domain.AuthorizationScope
 import com.profiletailors.smp.authorization.domain.DirectGrant
@@ -13,15 +14,15 @@ import com.profiletailors.smp.authorization.domain.RoleCategory
 import com.profiletailors.smp.authorization.domain.ScopeResolver
 import com.profiletailors.smp.authorization.domain.WorkspaceMembershipResolver
 import com.profiletailors.smp.authorization.domain.WorkspaceMembershipRoleResolver
-import com.profiletailors.smp.identity.domain.PrincipalContext
-import com.profiletailors.smp.identity.domain.PrincipalType
-import com.profiletailors.smp.platform.application.AuthorizationReasonCode
-import com.profiletailors.smp.platform.application.PrincipalContextProvider
-import com.profiletailors.smp.platform.application.ResourceContextProvider
-import com.profiletailors.smp.platform.domain.ResourceContext
-import com.profiletailors.smp.platform.domain.ResourceContextType
+import com.profiletailors.common.domain.context.PrincipalContext
+import com.profiletailors.common.domain.context.PrincipalContextProvider
+import com.profiletailors.common.domain.context.PrincipalType
+import com.profiletailors.common.domain.context.ResourceContext
+import com.profiletailors.common.domain.context.ResourceContextProvider
+import com.profiletailors.common.domain.context.ResourceContextType
+import com.profiletailors.common.domain.workspace.WorkspaceMembershipStatus
+import com.profiletailors.smp.authorization.domain.AuthorizationReasonCode
 import com.profiletailors.smp.tenancy.domain.WorkspaceMembership
-import com.profiletailors.smp.tenancy.domain.WorkspaceMembershipStatus
 import kotlinx.coroutines.test.runTest
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Test
@@ -339,7 +340,7 @@ class WorkspaceAuthorizationServiceTest {
     private class FixedWorkspaceMembershipRoleResolver(
         private val roles: Set<Role>,
     ) : WorkspaceMembershipRoleResolver {
-        override suspend fun resolve(membership: WorkspaceMembership): Set<Role> = roles
+        override suspend fun resolve(membership: com.profiletailors.common.domain.workspace.WorkspaceMembershipSnapshot): Set<Role> = roles
     }
 
     private class FixedDirectGrantResolver(
