@@ -19,7 +19,7 @@ class SpringJwtValidatedTokenMapper : FederatedTokenValidator<Jwt> {
             },
             tokenValue = token.tokenValue,
             subject = token.subject,
-            issuer = token.issuer?.toString().orEmpty(),
+            issuer = token.issuer?.toString() ?: throw IllegalArgumentException("JWT missing 'iss' claim"),
             audience = token.audience?.toSet() ?: emptySet(),
             issuedAt = token.issuedAt,
             expiresAt = token.expiresAt,

@@ -19,37 +19,37 @@ class TenancyProblemDetailsHandler {
 
     @ExceptionHandler(MissingActiveWorkspaceException::class)
     fun handle(exception: MissingActiveWorkspaceException): ProblemDetail =
-        ProblemDetail.forStatusAndDetail(HttpStatus.BAD_REQUEST, exception.message ?: "Bad request").apply {
+        ProblemDetail.forStatusAndDetail(HttpStatus.BAD_REQUEST, exception.message ?: BAD_REQUEST_DETAIL).apply {
             title = "Active workspace missing"
         }
 
     @ExceptionHandler(WorkspaceOwnershipOperationRequiresWorkspaceContextException::class)
     fun handle(exception: WorkspaceOwnershipOperationRequiresWorkspaceContextException): ProblemDetail =
-        ProblemDetail.forStatusAndDetail(HttpStatus.BAD_REQUEST, exception.message ?: "Bad request").apply {
+        ProblemDetail.forStatusAndDetail(HttpStatus.BAD_REQUEST, exception.message ?: BAD_REQUEST_DETAIL).apply {
             title = "Workspace context required"
         }
 
     @ExceptionHandler(OwnerTargetMustBeActiveMemberException::class)
     fun handle(exception: OwnerTargetMustBeActiveMemberException): ProblemDetail =
-        ProblemDetail.forStatusAndDetail(HttpStatus.BAD_REQUEST, exception.message ?: "Bad request").apply {
+        ProblemDetail.forStatusAndDetail(HttpStatus.BAD_REQUEST, exception.message ?: BAD_REQUEST_DETAIL).apply {
             title = "Owner target must be active member"
         }
 
     @ExceptionHandler(WorkspaceOwnerNotFoundException::class)
     fun handle(exception: WorkspaceOwnerNotFoundException): ProblemDetail =
-        ProblemDetail.forStatusAndDetail(HttpStatus.NOT_FOUND, exception.message ?: "Not found").apply {
+        ProblemDetail.forStatusAndDetail(HttpStatus.NOT_FOUND, exception.message ?: NOT_FOUND_DETAIL).apply {
             title = "Workspace owner not found"
         }
 
     @ExceptionHandler(WorkspaceMembershipNotFoundException::class)
     fun handle(exception: WorkspaceMembershipNotFoundException): ProblemDetail =
-        ProblemDetail.forStatusAndDetail(HttpStatus.NOT_FOUND, exception.message ?: "Not found").apply {
+        ProblemDetail.forStatusAndDetail(HttpStatus.NOT_FOUND, exception.message ?: NOT_FOUND_DETAIL).apply {
             title = "Workspace membership not found"
         }
 
     @ExceptionHandler(WorkspaceOwnerAccessDeniedException::class)
     fun handle(exception: WorkspaceOwnerAccessDeniedException): ProblemDetail =
-        ProblemDetail.forStatusAndDetail(HttpStatus.FORBIDDEN, exception.message ?: "Forbidden").apply {
+        ProblemDetail.forStatusAndDetail(HttpStatus.FORBIDDEN, exception.message ?: FORBIDDEN_DETAIL).apply {
             title = "Workspace owner access denied"
         }
 
@@ -59,7 +59,14 @@ class TenancyProblemDetailsHandler {
         OwnerMustRemainActiveMemberException::class,
     )
     fun handle(exception: Exception): ProblemDetail =
-        ProblemDetail.forStatusAndDetail(HttpStatus.CONFLICT, exception.message ?: "Conflict").apply {
+        ProblemDetail.forStatusAndDetail(HttpStatus.CONFLICT, exception.message ?: CONFLICT_DETAIL).apply {
             title = "Workspace ownership conflict"
         }
+
+    companion object {
+        private const val BAD_REQUEST_DETAIL = "Bad request"
+        private const val NOT_FOUND_DETAIL = "Not found"
+        private const val FORBIDDEN_DETAIL = "Forbidden"
+        private const val CONFLICT_DETAIL = "Conflict"
+    }
 }

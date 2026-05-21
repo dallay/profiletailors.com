@@ -74,19 +74,23 @@ class AuditEventControllerTest {
         }
 
         override suspend fun <TCommand : Command> send(command: TCommand) {
-            error("Not used in this test")
+            error(NOT_USED_MESSAGE)
         }
 
         override suspend fun <TCommand : CommandWithResult<TResult>, TResult> send(command: TCommand): TResult {
-            error("Not used in this test")
+            error(NOT_USED_MESSAGE)
         }
 
         override suspend fun <T : Notification> publish(notification: T) {
-            error("Not used in this test")
+            error(NOT_USED_MESSAGE)
         }
 
         override suspend fun <T : Notification> publish(notification: T, publishStrategy: PublishStrategy) {
-            error("Not used in this test")
+            error(NOT_USED_MESSAGE)
+        }
+
+        companion object {
+            private const val NOT_USED_MESSAGE = "Not used in this test"
         }
     }
 }

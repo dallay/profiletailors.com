@@ -18,6 +18,10 @@ class AuthorizationDeniedException(
                 AuthorizationDeniedException(
                     "Requested target ${targetResourceId ?: "unknown"} is outside the allowed scope.",
                 )
+            AuthorizationReasonCode.DIRECT_DENY ->
+                AuthorizationDeniedException("Permission ${requiredPermission.value} was explicitly denied.")
+            AuthorizationReasonCode.REVOKED_CREDENTIAL ->
+                AuthorizationDeniedException("Access denied: credential has been revoked.")
             else ->
                 AuthorizationDeniedException("Missing required permission ${requiredPermission.value}.")
         }
