@@ -102,11 +102,11 @@ internal class TransferWorkspaceOwnershipHandler(
         val resourceContext = resourceContextProvider.requireWorkspaceContext()
         val workspaceId = requireNotNull(resourceContext.workspaceId)
 
-        if (command.targetPrincipalId == actor.principalId) {
-            throw IllegalArgumentException("Cannot transfer ownership to yourself")
-        }
-
         return try {
+            if (command.targetPrincipalId == actor.principalId) {
+                throw IllegalArgumentException("Cannot transfer ownership to yourself")
+            }
+
             val currentOwners = workspaceOwnershipRepository.requireCurrentOwners(workspaceId)
             val actorOwnership = currentOwners.firstOrNull { it.belongsTo(actor.principalId) }
                 ?: throw WorkspaceOwnerAccessDeniedException()

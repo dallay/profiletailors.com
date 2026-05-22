@@ -387,7 +387,7 @@ graph TB
 - ✅ Authentication (JWT + API Key)
 
 **In Progress**:
-- 🔄 Web Application (React, design phase)
+- 🔄 Web Application (Vue 3, design phase)
 - 🔄 Scheduler Service (architecture defined)
 - 🔄 Analytics Service (architecture defined)
 

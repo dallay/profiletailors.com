@@ -25,11 +25,11 @@ internal class SecureRandomApiKeyCredentialValueFactory :
     com.profiletailors.smp.credentials.application.ApiKeyCredentialValueFactory {
     private val secureRandom = SecureRandom()
 
-    override fun nextCredentialReference(): String = "api-key-${'$'}{secureToken(CREDENTIAL_REFERENCE_BYTES)}"
+    override fun nextCredentialReference(): String = "api-key-${secureToken(CREDENTIAL_REFERENCE_BYTES)}"
 
     override fun nextPlaintextApiKey():
         com.profiletailors.smp.credentials.application.ApiKeyCredentialValueFactory.PlaintextApiKey {
-        val lookupKey = "${'$'}API_KEY_PREFIX${'$'}{secureToken(LOOKUP_KEY_BYTES)}"
+        val lookupKey = "${API_KEY_PREFIX}${secureToken(LOOKUP_KEY_BYTES)}"
         val secret = secureToken(SECRET_BYTES)
         return com.profiletailors.smp.credentials.application.ApiKeyCredentialValueFactory.PlaintextApiKey(
             lookupKey = lookupKey,

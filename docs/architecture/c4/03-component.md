@@ -393,29 +393,6 @@ graph TB
 
 ---
 
-#### 6. Platform Context
-**Purpose**: Cross-cutting concerns and infrastructure
-
-**Responsibilities**:
-- Provide request context (principal, workspace, trace ID)
-- Implement mediator pattern for command/query dispatch
-- Manage request-scoped state
-- Provide common contracts and abstractions
-
-**Key Components**:
-- `RequestContextStore` (infrastructure)
-- `RequestContextProviders` (infrastructure)
-- `SpringMediator` (infrastructure)
-- `PlatformContracts` (application)
-- `ResourceContext` (domain model)
-- `PrincipalContext` (domain model)
-
-**Dependencies**: None (foundational)
-
-**Database Tables**: None (stateless)
-
----
-
 #### 7. Audit Context
 **Purpose**: Request outcome tracking and decision auditing
 

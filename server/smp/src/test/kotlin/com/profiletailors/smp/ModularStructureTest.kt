@@ -1,5 +1,6 @@
 package com.profiletailors.smp
 
+import org.junit.jupiter.api.Disabled
 import org.junit.jupiter.api.Test
 import org.springframework.modulith.core.ApplicationModules
 import org.springframework.modulith.docs.Documenter
@@ -24,6 +25,7 @@ class ModularStructureTest {
     }
 
     @Test
+    @Disabled("Manual test - prints module structure to console")
     fun `prints module structure`() {
         // Useful for understanding the detected modules and their relationships
         println("\n=== Spring Modulith Module Structure ===\n")
@@ -34,6 +36,7 @@ class ModularStructureTest {
     }
 
     @Test
+    @Disabled("Manual test - generates documentation files")
     fun `generates module documentation`() {
         // Generates PlantUML diagrams and AsciiDoc documentation
         // Output will be in build/spring-modulith-docs/
