@@ -1,7 +1,5 @@
-package com.profiletailors.smp.audit.application
+package com.profiletailors.smp.audit.domain
 
-import com.profiletailors.smp.audit.domain.AuthorizationDecisionAuditFact
-import com.profiletailors.smp.audit.domain.MutationAuditFact
 import com.profiletailors.common.domain.observability.RequestOutcome
 
 interface AuditHook {
