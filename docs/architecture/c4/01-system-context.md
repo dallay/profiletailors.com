@@ -177,8 +177,9 @@ Profile Tailors enables teams to:
 
 **Implemented**:
 - ✅ Marketing site (Astro 6, static)
+- ✅ Web application (Vue 3, in development)
 - ✅ Backend foundation (Spring Boot 4, Kotlin, WebFlux)
-- ✅ Core bounded contexts (Identity, Authorization, Tenancy, Credentials, Governance, Platform)
+- ✅ Core bounded contexts (Identity, Authorization, Tenancy, Credentials, Governance, Platform, Audit, Observability)
 - ✅ JWT and API Key authentication
 
 **Planned**:
@@ -190,4 +191,4 @@ Profile Tailors enables teams to:
 
 ---
 
-Last updated: 2026-05-19
+Last updated: 2026-05-21

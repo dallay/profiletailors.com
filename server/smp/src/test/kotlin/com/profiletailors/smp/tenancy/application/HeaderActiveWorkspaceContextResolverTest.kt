@@ -1,6 +1,7 @@
 package com.profiletailors.smp.tenancy.application
 
 import com.profiletailors.common.domain.context.ResourceContextType
+import com.profiletailors.smp.tenancy.application.MissingActiveWorkspaceException
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertThrows
 import org.junit.jupiter.api.Test

@@ -12,6 +12,11 @@ import com.profiletailors.smp.audit.application.AuditHook
 import com.profiletailors.smp.audit.domain.AuthorizationDecisionAuditFact
 import com.profiletailors.smp.audit.domain.MutationAuditFact
 import com.profiletailors.smp.tenancy.domain.OwnerMustRemainActiveMemberException
+import com.profiletailors.smp.tenancy.application.TenancyMutationAuditor
+import com.profiletailors.smp.tenancy.application.UpdateWorkspaceMembershipStatusHandler
+import com.profiletailors.smp.tenancy.application.WorkspaceMembershipLookup
+import com.profiletailors.smp.tenancy.application.WorkspaceMembershipRepository
+import com.profiletailors.smp.tenancy.application.WorkspaceOwnershipRepository
 import com.profiletailors.smp.tenancy.domain.WorkspaceMembership
 import com.profiletailors.smp.tenancy.domain.WorkspaceOwnership
 import kotlinx.coroutines.runBlocking

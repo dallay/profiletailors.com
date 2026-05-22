@@ -20,7 +20,7 @@ LAYOUT_WITH_LEGEND()
 
 title Component Diagram for Profile Tailors API Application
 
-Container(spa, "Web Application", "React, TypeScript", "User interface")
+Container(spa, "Web Application", "Vue 3, TypeScript", "User interface")
 Container(scheduler, "Scheduler Service", "Spring Boot 4, Kotlin", "Background jobs")
 ContainerDb(db, "Database", "PostgreSQL 16", "Data store")
 ContainerDb(cache, "Cache", "Redis", "Session cache")
@@ -42,6 +42,10 @@ Container_Boundary(api, "API Application") {
     Component(governance, "Governance Context", "Bounded Context", "Audit logging, compliance, data retention, mutation tracking")
     
     Component(platform, "Platform Context", "Bounded Context", "Request context, mediator pattern, cross-cutting concerns")
+    
+    Component(audit, "Audit Context", "Bounded Context", "Request outcome tracking, authorization decision auditing, mutation event capture")
+    
+    Component(observability, "Observability Context", "Bounded Context", "Metrics collection, rate limiting hooks, request monitoring")
     
     Component(content, "Content Context", "Bounded Context", "Post creation, scheduling, draft management (planned)")
     
@@ -70,6 +74,16 @@ Rel(identity, governance, "Logs authentication events")
 Rel(authorization, governance, "Logs authorization decisions")
 Rel(tenancy, governance, "Logs workspace changes")
 Rel(credentials, governance, "Logs credential operations")
+
+Rel(identity, audit, "Logs request outcomes")
+Rel(authorization, audit, "Logs authorization decisions")
+Rel(tenancy, audit, "Logs mutations")
+Rel(credentials, audit, "Logs mutations")
+
+Rel(identity, observability, "Reports metrics")
+Rel(authorization, observability, "Reports metrics")
+Rel(tenancy, observability, "Reports metrics")
+Rel(http_layer, observability, "Rate limiting checks")
 
 Rel(authorization, tenancy, "Resolves workspace membership")
 Rel(authorization, identity, "Resolves principal identity")
@@ -121,6 +135,8 @@ graph TB
             CREDS[Credentials Context<br/>API Keys & Tokens]
             GOV[Governance Context<br/>Audit & Compliance]
             PLATFORM[Platform Context<br/>Cross-Cutting Concerns]
+            AUDIT[Audit Context<br/>Request & Decision Tracking]
+            OBS[Observability Context<br/>Metrics & Rate Limiting]
         end
         
         subgraph "Domain Bounded Contexts (Planned)"
@@ -151,6 +167,16 @@ graph TB
     TENANCY --> GOV
     CREDS --> GOV
     
+    IDENTITY --> AUDIT
+    AUTHZ --> AUDIT
+    TENANCY --> AUDIT
+    CREDS --> AUDIT
+    
+    IDENTITY --> OBS
+    AUTHZ --> OBS
+    TENANCY --> OBS
+    HTTP --> OBS
+    
     AUTHZ --> TENANCY
     AUTHZ --> IDENTITY
     CREDS --> IDENTITY
@@ -180,7 +206,7 @@ graph TB
     classDef infrastructure fill:#438DD5,stroke:#2E6295,color:#fff
     classDef external fill:#999999,stroke:#6B6B6B,color:#fff
 
-    class HTTP,IDENTITY,AUTHZ,TENANCY,CREDS,GOV,PLATFORM implemented
+    class HTTP,IDENTITY,AUTHZ,TENANCY,CREDS,GOV,PLATFORM,AUDIT,OBS implemented
     class CONTENT,ANALYTICS_CTX,INTEGRATIONS planned
     class DB,CACHE infrastructure
     class SPA,SCHED,SOCIAL,AUTH external
@@ -367,9 +393,57 @@ graph TB
 
 ---
 
+#### 7. Audit Context
+**Purpose**: Request outcome tracking and decision auditing
+
+**Responsibilities**:
+- Track request outcomes (success, failure, error)
+- Audit authorization decisions with context
+- Capture mutation events with before/after state
+- Provide audit hooks for other contexts
+- Support compliance and forensic analysis
+
+**Key Components**:
+- `AuditHook` (application service)
+- `AuthorizationDecisionAuditFact` (domain model)
+- `MutationAuditFact` (domain model)
+- `RequestOutcome` (domain model)
+
+**Dependencies**:
+- Platform Context (request context)
+
+**Database Tables**:
+- `audit_events`
+- `authorization_decisions`
+- `mutation_log`
+
+---
+
+#### 8. Observability Context
+**Purpose**: Metrics collection and rate limiting
+
+**Responsibilities**:
+- Collect request metrics (latency, throughput, errors)
+- Implement rate limiting hooks
+- Monitor system health
+- Provide observability hooks for other contexts
+- Support operational dashboards
+
+**Key Components**:
+- `MetricsHook` (application service)
+- `RateLimitHook` (application service)
+- `RequestOutcome` (domain model)
+
+**Dependencies**:
+- Platform Context (request context)
+
+**Database Tables**: None (metrics exported to external systems)
+
+---
+
 ### Domain Contexts (Planned)
 
-#### 7. Content Context
+#### 9. Content Context
 **Purpose**: Post creation, scheduling, and draft management
 
 **Responsibilities**:
@@ -402,7 +476,7 @@ graph TB
 
 ---
 
-#### 8. Analytics Context
+#### 10. Analytics Context
 **Purpose**: Metrics aggregation and reporting
 
 **Responsibilities**:
@@ -432,7 +506,7 @@ graph TB
 
 ---
 
-#### 9. Integrations Context
+#### 11. Integrations Context
 **Purpose**: Social media platform adapters
 
 **Responsibilities**:
@@ -622,6 +696,8 @@ class R2dbcWorkspaceMembershipRepository : WorkspaceMembershipRepository {
 - ✅ Credentials Context (API keys, token validation)
 - ✅ Governance Context (audit logging, mutation tracking)
 - ✅ Platform Context (request context, mediator)
+- ✅ Audit Context (request outcomes, authorization decisions, mutations)
+- ✅ Observability Context (metrics hooks, rate limiting)
 
 **Planned Contexts**:
 - 🔲 Content Context (posts, scheduling, drafts)
@@ -630,4 +706,4 @@ class R2dbcWorkspaceMembershipRepository : WorkspaceMembershipRepository {
 
 ---
 
-Last updated: 2026-05-19
+Last updated: 2026-05-21

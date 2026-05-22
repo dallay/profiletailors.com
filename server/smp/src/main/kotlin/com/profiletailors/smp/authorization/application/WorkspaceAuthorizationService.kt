@@ -26,7 +26,7 @@ import com.profiletailors.common.domain.context.ResourceContextProvider
 import java.time.Clock
 
 @Service
-class WorkspaceAuthorizationService(
+internal class WorkspaceAuthorizationService(
     private val principalContextProvider: PrincipalContextProvider,
     private val resourceContextProvider: ResourceContextProvider,
     private val workspaceMembershipResolver: WorkspaceMembershipResolver,

@@ -1,6 +1,8 @@
 package com.profiletailors.smp.authorization.application.resource.getpreview
 
 import com.profiletailors.common.domain.Service
+import com.profiletailors.smp.authorization.application.resource.getpreview.GetResourcePreviewQuery
+import com.profiletailors.smp.authorization.application.resource.getpreview.ResourcePreview
 import com.profiletailors.smp.authorization.domain.AuthorizationDeniedException
 import com.profiletailors.smp.authorization.domain.AuthorizationDecision
 import com.profiletailors.smp.authorization.domain.PermissionKey
@@ -17,7 +19,7 @@ private const val RESOURCE_TARGET_TYPE = "RESOURCE"
 private val REQUIRED_PERMISSION = PermissionKey.of("workspace", "resource", "read")
 
 @Service
-class GetResourcePreviewService(
+internal class GetResourcePreviewService(
     private val principalContextProvider: PrincipalContextProvider,
     private val resourceContextProvider: ResourceContextProvider,
     private val workspaceAuthorizationDecider: WorkspaceAuthorizationDecider,

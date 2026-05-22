@@ -14,14 +14,6 @@ interface ApiKeyCredentialStateLookup {
     suspend fun requireActive(presentedApiKey: String): ActiveApiKeyCredential
 }
 
-class NoOpApiKeyCredentialStateLookup : ApiKeyCredentialStateLookup {
-    override suspend fun requireActive(presentedApiKey: String): ActiveApiKeyCredential =
-        throw ApiKeyCredentialNotActiveException(
-            credentialReference = "missing",
-            reason = ApiKeyCredentialFailureReason.MISSING,
-        )
-}
-
 enum class ApiKeyCredentialFailureReason {
     MISSING,
     INVALID,

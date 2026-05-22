@@ -1,6 +1,7 @@
 package com.profiletailors.smp.tenancy.domain
 
 import com.profiletailors.common.domain.context.PrincipalType
+import com.profiletailors.smp.tenancy.domain.WorkspaceMembership
 import org.junit.jupiter.api.Assertions.assertDoesNotThrow
 import org.junit.jupiter.api.Assertions.assertFalse
 import org.junit.jupiter.api.Assertions.assertThrows

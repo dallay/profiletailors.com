@@ -9,20 +9,20 @@ import com.profiletailors.smp.authorization.domain.ScopeResolver
 import com.profiletailors.common.domain.context.PrincipalContext
 import com.profiletailors.common.domain.context.ResourceContext
 
-class NoOpDirectGrantResolver : DirectGrantResolver {
+internal class NoOpDirectGrantResolver : DirectGrantResolver {
     override suspend fun resolve(
         principalContext: PrincipalContext,
         resourceContext: ResourceContext,
     ): Set<DirectGrant> = emptySet()
 }
 
-class NoOpScopeResolver : ScopeResolver {
+internal class NoOpScopeResolver : ScopeResolver {
     override suspend fun resolve(
         principalContext: PrincipalContext,
         resourceContext: ResourceContext,
     ): Set<AuthorizationScope> = emptySet()
 }
 
-class NoOpEntitlementResolver : EntitlementResolver {
+internal class NoOpEntitlementResolver : EntitlementResolver {
     override suspend fun resolve(resourceContext: ResourceContext): Set<Entitlement> = emptySet()
 }

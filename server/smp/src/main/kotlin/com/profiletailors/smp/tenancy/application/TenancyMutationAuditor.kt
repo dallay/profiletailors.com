@@ -5,7 +5,7 @@ import com.profiletailors.smp.audit.domain.MutationAuditFact
 import com.profiletailors.smp.audit.domain.MutationAuditOutcome
 import com.profiletailors.common.domain.context.PrincipalContextProvider
 
-class TenancyMutationAuditor(
+internal class TenancyMutationAuditor(
     private val principalContextProvider: PrincipalContextProvider,
     private val auditHook: AuditHook,
 ) {

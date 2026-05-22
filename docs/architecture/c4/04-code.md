@@ -104,6 +104,8 @@ com.profiletailors.smp
 - ✅ Credentials Context (API key validation)
 - ✅ Governance Context (audit logging)
 - ✅ Platform Context (request context, mediator)
+- ✅ Audit Context (request outcome tracking, authorization decisions)
+- ✅ Observability Context (metrics hooks, rate limiting)
 
 **Code Quality**:
 
@@ -131,4 +133,4 @@ For detailed code examples, see:
 
 ---
 
-Last updated: 2026-05-19
+Last updated: 2026-05-21
