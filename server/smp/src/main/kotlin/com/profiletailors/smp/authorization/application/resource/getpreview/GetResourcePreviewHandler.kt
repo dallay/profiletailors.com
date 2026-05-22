@@ -2,9 +2,11 @@ package com.profiletailors.smp.authorization.application.resource.getpreview
 
 import com.profiletailors.common.domain.Service
 import com.profiletailors.common.domain.bus.query.QueryHandler
+import com.profiletailors.smp.authorization.application.resource.getpreview.GetResourcePreviewQuery
+import com.profiletailors.smp.authorization.application.resource.getpreview.ResourcePreview
 
 @Service
-class GetResourcePreviewHandler(
+internal class GetResourcePreviewHandler(
     private val service: GetResourcePreviewService,
 ) : QueryHandler<GetResourcePreviewQuery, ResourcePreview> {
 

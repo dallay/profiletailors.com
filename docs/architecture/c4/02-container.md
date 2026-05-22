@@ -25,7 +25,7 @@ Person(user, "User", "Content creator, team admin, or analyst")
 System_Boundary(profile_tailors, "Profile Tailors") {
     Container(web_app, "Marketing Site", "Astro 6, TypeScript", "Static marketing site with waitlist flow. Bilingual (EN/ES). Nothing-inspired design system.")
     
-    Container(spa, "Web Application", "React, TypeScript", "Single-page application for content management, scheduling, and analytics")
+    Container(spa, "Web Application", "Vue 3, TypeScript", "Single-page application for content management, scheduling, and analytics")
     
     Container(api, "API Application", "Spring Boot 4, Kotlin, WebFlux", "Reactive REST API with bounded contexts: Identity, Authorization, Tenancy, Credentials, Governance, Platform")
     
@@ -144,7 +144,7 @@ graph TB
   - Static-first, no SSR
 
 #### Web Application (SPA)
-- **Technology**: React 18+, TypeScript, Tailwind CSS
+- **Technology**: Vue 3, TypeScript, Tailwind CSS v4
 - **Deployment**: Static files on CDN
 - **Purpose**: Authenticated user interface for content management
 - **Key Features**:
@@ -168,6 +168,8 @@ graph TB
   - **Credentials**: API keys, OAuth tokens, service accounts
   - **Governance**: Audit logs, compliance, data retention
   - **Platform**: Cross-cutting concerns, request context
+  - **Audit**: Request outcome tracking, authorization decision auditing
+  - **Observability**: Metrics collection, rate limiting hooks
 - **Key Features**:
   - Reactive programming with Kotlin coroutines
   - JWT and API Key authentication
@@ -274,10 +276,10 @@ graph TB
 | Component | Technology | Rationale |
 |-----------|-----------|-----------|
 | **Marketing** | Astro 6 | Static-first, fast, excellent DX |
-| **Web App** | React 18+ | Component-based, large ecosystem, team familiarity |
+| **Web App** | Vue 3 | Component-based, reactive, excellent TypeScript support |
 | **Language** | TypeScript | Type safety, better tooling |
 | **Styling** | Tailwind CSS v4 | Utility-first, design system tokens |
-| **State** | TBD | React Query, Zustand, or Jotai |
+| **State** | Pinia | Official Vue state management |
 
 ### Infrastructure
 
@@ -385,7 +387,7 @@ graph TB
 - ✅ Authentication (JWT + API Key)
 
 **In Progress**:
-- 🔄 Web Application (React, design phase)
+- 🔄 Web Application (Vue 3, design phase)
 - 🔄 Scheduler Service (architecture defined)
 - 🔄 Analytics Service (architecture defined)
 
@@ -397,4 +399,4 @@ graph TB
 
 ---
 
-Last updated: 2026-05-19
+Last updated: 2026-05-21
