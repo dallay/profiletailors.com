@@ -1,6 +1,8 @@
 package com.profiletailors.smp.authorization.application.current.workspace
 
 import com.profiletailors.common.domain.Service
+import com.profiletailors.smp.authorization.application.current.workspace.GetCurrentWorkspaceAccessSummaryQuery
+import com.profiletailors.smp.authorization.application.current.workspace.WorkspaceAccessSummary
 import com.profiletailors.smp.authorization.domain.AuthorizationDecision
 import com.profiletailors.smp.authorization.domain.AuthorizationDeniedException
 import com.profiletailors.smp.authorization.domain.PermissionKey
@@ -16,7 +18,7 @@ import com.profiletailors.common.domain.context.ResourceContextProvider
 private val REQUIRED_PERMISSION = PermissionKey.of("workspace", "access", "read")
 
 @Service
-class GetCurrentWorkspaceAccessSummaryService(
+internal class GetCurrentWorkspaceAccessSummaryService(
     private val principalContextProvider: PrincipalContextProvider,
     private val resourceContextProvider: ResourceContextProvider,
     private val workspaceMembershipResolver: WorkspaceMembershipResolver,

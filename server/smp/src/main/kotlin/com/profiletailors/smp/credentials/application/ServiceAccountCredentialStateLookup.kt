@@ -16,20 +16,6 @@ interface ServiceAccountCredentialStateLookup {
     ): ActiveServiceAccountCredential
 }
 
-class NoOpServiceAccountCredentialStateLookup : ServiceAccountCredentialStateLookup {
-    override suspend fun requireActive(
-        credentialReference: String,
-        subject: String,
-        provider: String,
-    ): ActiveServiceAccountCredential =
-        throw ServiceAccountCredentialNotActiveException(
-            credentialReference = credentialReference,
-            subject = subject,
-            provider = provider,
-            reason = ServiceAccountCredentialFailureReason.MISSING,
-        )
-}
-
 enum class ServiceAccountCredentialFailureReason {
     MISSING,
     REVOKED,
