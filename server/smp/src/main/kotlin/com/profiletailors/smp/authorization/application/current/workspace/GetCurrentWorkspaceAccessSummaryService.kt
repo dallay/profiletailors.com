@@ -1,15 +1,13 @@
 package com.profiletailors.smp.authorization.application.current.workspace
 
 import com.profiletailors.common.domain.Service
-import com.profiletailors.smp.authorization.application.current.workspace.GetCurrentWorkspaceAccessSummaryQuery
-import com.profiletailors.smp.authorization.application.current.workspace.WorkspaceAccessSummary
 import com.profiletailors.smp.authorization.domain.AuthorizationDecision
 import com.profiletailors.smp.authorization.domain.AuthorizationDeniedException
 import com.profiletailors.smp.authorization.domain.PermissionKey
 import com.profiletailors.smp.authorization.domain.WorkspaceAuthorizationDecider
 import com.profiletailors.smp.authorization.domain.WorkspaceMembershipResolver
 import com.profiletailors.smp.authorization.domain.WorkspaceMembershipRoleResolver
-import com.profiletailors.smp.audit.application.AuditHook
+import com.profiletailors.smp.audit.domain.AuditHook
 import com.profiletailors.smp.audit.domain.AuthorizationDecisionAuditFact
 import com.profiletailors.common.domain.context.PrincipalContextProvider
 import com.profiletailors.common.domain.context.RequestPathProvider

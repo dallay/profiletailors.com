@@ -1,6 +1,6 @@
 package com.profiletailors.smp.tenancy.application
 
-import com.profiletailors.smp.audit.application.AuditHook
+import com.profiletailors.smp.audit.domain.AuditHook
 import com.profiletailors.smp.audit.domain.MutationAuditFact
 import com.profiletailors.smp.audit.domain.MutationAuditOutcome
 import com.profiletailors.common.domain.context.PrincipalContextProvider

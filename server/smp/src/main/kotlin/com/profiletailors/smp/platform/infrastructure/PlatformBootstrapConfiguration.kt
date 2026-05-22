@@ -5,7 +5,7 @@ import com.profiletailors.common.domain.context.PrincipalContextProvider
 import com.profiletailors.common.domain.context.RequestPathProvider
 import com.profiletailors.common.domain.context.ResourceContextProvider
 import com.profiletailors.common.domain.observability.RequestOutcome
-import com.profiletailors.smp.audit.application.AuditHook
+import com.profiletailors.smp.audit.domain.AuditHook
 import com.profiletailors.smp.audit.domain.AuthorizationDecisionAuditFact
 import com.profiletailors.smp.audit.domain.MutationAuditFact
 import com.profiletailors.smp.observability.application.MetricsHook
