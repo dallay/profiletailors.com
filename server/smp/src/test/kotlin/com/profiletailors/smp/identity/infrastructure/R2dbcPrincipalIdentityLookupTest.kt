@@ -2,41 +2,23 @@ package com.profiletailors.smp.identity.infrastructure
 
 import com.profiletailors.smp.identity.application.PrincipalIdentityLookup
 import com.profiletailors.common.domain.context.PrincipalType
-import io.r2dbc.h2.H2ConnectionConfiguration
-import io.r2dbc.h2.H2ConnectionFactory
+import com.profiletailors.smp.integration.support.DatabaseUnitTestBase
 import kotlinx.coroutines.reactor.awaitSingle
 import kotlinx.coroutines.test.runTest
-import liquibase.Contexts
-import liquibase.LabelExpression
-import liquibase.Liquibase
-import liquibase.database.DatabaseFactory
-import liquibase.resource.ClassLoaderResourceAccessor
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertNull
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
-import org.springframework.r2dbc.core.DatabaseClient
-import java.sql.DriverManager
 
-class R2dbcPrincipalIdentityLookupTest {
+class R2dbcPrincipalIdentityLookupTest : DatabaseUnitTestBase() {
 
-    private val jdbcUrl = "jdbc:h2:mem:identity_lookup;MODE=PostgreSQL;DB_CLOSE_DELAY=-1;DB_CLOSE_ON_EXIT=FALSE"
-    private val connectionFactory = H2ConnectionFactory(
-        H2ConnectionConfiguration.builder()
-            .inMemory("identity_lookup")
-            .property("MODE", "PostgreSQL")
-            .property("DB_CLOSE_DELAY", "-1")
-            .property("DB_CLOSE_ON_EXIT", "FALSE")
-            .username("sa")
-            .build(),
-    )
-    private val databaseClient = DatabaseClient.create(connectionFactory)
-    private val lookup: PrincipalIdentityLookup = R2dbcPrincipalIdentityLookup(databaseClient)
+    override fun databaseName() = "identity_lookup"
+
+    private lateinit var lookup: PrincipalIdentityLookup
 
     @BeforeEach
-    fun setUp() {
-        applyLiquibaseBaseline()
-        deleteAllRows()
+    fun setUpLookup() {
+        lookup = R2dbcPrincipalIdentityLookup(databaseClient)
     }
 
     @Test
@@ -115,6 +97,29 @@ class R2dbcPrincipalIdentityLookupTest {
     }
 
     @Test
+    fun `loads principal facts by email`() = runTest {
+        databaseClient.sql(
+            """
+            INSERT INTO principals (id, principal_type, subject, provider, display_identity)
+            VALUES ('principal-2', 'USER', 'local:yuniel@example.com', NULL, 'yuniel')
+            """.trimIndent(),
+        ).fetch().rowsUpdated().awaitSingle()
+        databaseClient.sql(
+            """
+            INSERT INTO user_identities (principal_id, email, username)
+            VALUES ('principal-2', 'yuniel@example.com', 'yuniel')
+            """.trimIndent(),
+        ).fetch().rowsUpdated().awaitSingle()
+
+        val facts = lookup.findByEmail("yuniel@example.com")
+
+        requireNotNull(facts)
+        assertEquals("principal-2", facts.principalId)
+        assertEquals(PrincipalType.USER, facts.principalType)
+        assertEquals("yuniel@example.com", facts.email)
+    }
+
+    @Test
     fun `returns null when no principal facts exist for subject`() = runTest {
         val facts = lookup.findBySubject(
             principalType = PrincipalType.USER,
@@ -123,27 +128,5 @@ class R2dbcPrincipalIdentityLookupTest {
         )
 
         assertNull(facts)
-    }
-
-    private fun applyLiquibaseBaseline() {
-        DriverManager.getConnection(jdbcUrl, "sa", "").use { connection ->
-            val database = DatabaseFactory.getInstance()
-                .findCorrectDatabaseImplementation(liquibase.database.jvm.JdbcConnection(connection))
-            Liquibase(
-                "db/changelog/db.changelog-master.yaml",
-                ClassLoaderResourceAccessor(),
-                database,
-            ).update(Contexts(), LabelExpression())
-        }
-    }
-
-    private fun deleteAllRows() = runTest {
-        listOf(
-            "DELETE FROM service_account_credentials",
-            "DELETE FROM user_identities",
-            "DELETE FROM principals",
-        ).forEach { statement ->
-            databaseClient.sql(statement).fetch().rowsUpdated().awaitSingle()
-        }
     }
 }

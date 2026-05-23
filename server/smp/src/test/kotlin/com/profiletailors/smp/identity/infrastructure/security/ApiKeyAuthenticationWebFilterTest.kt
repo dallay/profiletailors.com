@@ -123,6 +123,9 @@ class ApiKeyAuthenticationWebFilterTest {
                 subject: String,
                 provider: String?,
             ) = null
+
+            override suspend fun findByEmail(email: String) = null
+            override suspend fun findByPrincipalId(principalId: String) = null
         },
     ) {
         override suspend fun materialize(activeCredential: ActiveApiKeyCredential): AuthenticatedPrincipal = AuthenticatedPrincipal(

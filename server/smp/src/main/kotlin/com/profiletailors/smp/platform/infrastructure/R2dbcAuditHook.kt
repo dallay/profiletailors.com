@@ -2,7 +2,7 @@ package com.profiletailors.smp.platform.infrastructure
 
 import com.fasterxml.jackson.databind.ObjectMapper
 import com.profiletailors.common.domain.observability.RequestOutcome
-import com.profiletailors.smp.audit.application.AuditHook
+import com.profiletailors.smp.audit.domain.AuditHook
 import com.profiletailors.smp.audit.domain.AuthorizationDecisionAuditFact
 import com.profiletailors.smp.audit.domain.MutationAuditFact
 import kotlinx.coroutines.reactor.awaitSingle

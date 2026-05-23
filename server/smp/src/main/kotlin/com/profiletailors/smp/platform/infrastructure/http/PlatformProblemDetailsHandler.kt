@@ -1,6 +1,7 @@
 package com.profiletailors.smp.platform.infrastructure.http
 
 import com.profiletailors.smp.credentials.application.ApiKeyCredentialNotActiveException
+import com.profiletailors.smp.credentials.application.RefreshSessionNotActiveException
 import com.profiletailors.common.domain.context.MissingPrincipalContextException
 import com.profiletailors.common.domain.context.MissingResourceContextException
 import org.springframework.http.HttpStatus
@@ -27,6 +28,12 @@ class PlatformProblemDetailsHandler {
     fun handle(exception: MissingResourceContextException): ProblemDetail =
         ProblemDetail.forStatusAndDetail(HttpStatus.BAD_REQUEST, exception.message ?: "Bad request").apply {
             title = "Resource context missing"
+        }
+
+    @ExceptionHandler(RefreshSessionNotActiveException::class)
+    fun handle(exception: RefreshSessionNotActiveException): ProblemDetail =
+        ProblemDetail.forStatusAndDetail(HttpStatus.UNAUTHORIZED, exception.message ?: "Unauthorized").apply {
+            title = "Refresh session invalid"
         }
 
 }

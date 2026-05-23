@@ -8,7 +8,7 @@ import com.profiletailors.smp.credentials.application.ServiceAccountCredentialFa
 import com.profiletailors.smp.credentials.application.ServiceAccountCredentialNotActiveException
 import com.profiletailors.smp.identity.infrastructure.ApiKeyAuthenticatedPrincipalMaterializer
 import com.profiletailors.smp.identity.infrastructure.JwtAuthenticatedPrincipalMaterializer
-import com.profiletailors.smp.audit.application.AuditHook
+import com.profiletailors.smp.audit.domain.AuditHook
 import com.profiletailors.smp.audit.domain.AuthorizationDecisionAuditFact
 import com.profiletailors.smp.authorization.domain.AuthorizationReasonCode
 import com.profiletailors.smp.platform.infrastructure.RequestContextStore
@@ -74,6 +74,13 @@ class IdentitySecurityConfiguration {
             .csrf { it.disable() }
             .authorizeExchange {
                 it.pathMatchers(HttpMethod.GET, "/actuator/health").permitAll()
+                    .pathMatchers(
+                        HttpMethod.POST,
+                        "/api/auth/login",
+                        "/api/auth/register",
+                        "/api/auth/refresh",
+                        "/api/auth/logout",
+                    ).permitAll()
                     .anyExchange().authenticated()
             }
             .exceptionHandling { exceptions ->
