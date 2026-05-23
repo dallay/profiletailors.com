@@ -84,6 +84,10 @@ class JwtPrincipalAuthenticationConverterTest {
             )
             else -> null
         }
+
+        override suspend fun findByEmail(email: String): PrincipalIdentityFacts? = null
+
+        override suspend fun findByPrincipalId(principalId: String): PrincipalIdentityFacts? = null
     }
 
     private class StubServiceAccountCredentialStateLookup : ServiceAccountCredentialStateLookup {
