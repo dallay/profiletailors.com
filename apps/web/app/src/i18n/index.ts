@@ -8,6 +8,8 @@ const messages = {
       analytics: 'Analytics',
       settings: 'Settings',
       logout: 'Log Out',
+      login: 'Login',
+      register: 'Register',
     },
     dashboard: {
       welcome: 'Welcome back',
@@ -37,6 +39,8 @@ const messages = {
       analytics: 'Analítica',
       settings: 'Ajustes',
       logout: 'Cerrar Sesión',
+      login: 'Iniciar Sesión',
+      register: 'Crear Cuenta',
     },
     dashboard: {
       welcome: 'Bienvenido de nuevo',

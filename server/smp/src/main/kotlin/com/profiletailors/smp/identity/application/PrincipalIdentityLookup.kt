@@ -18,6 +18,10 @@ interface PrincipalIdentityLookup {
         subject: String,
         provider: String?,
     ): PrincipalIdentityFacts?
+
+    suspend fun findByEmail(email: String): PrincipalIdentityFacts?
+
+    suspend fun findByPrincipalId(principalId: String): PrincipalIdentityFacts?
 }
 
 class NoOpPrincipalIdentityLookup : PrincipalIdentityLookup {
@@ -26,4 +30,8 @@ class NoOpPrincipalIdentityLookup : PrincipalIdentityLookup {
         subject: String,
         provider: String?,
     ): PrincipalIdentityFacts? = null
+
+    override suspend fun findByEmail(email: String): PrincipalIdentityFacts? = null
+
+    override suspend fun findByPrincipalId(principalId: String): PrincipalIdentityFacts? = null
 }

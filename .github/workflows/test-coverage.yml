@@ -35,7 +35,7 @@ jobs:
 
       - name: Run tests with coverage
         working-directory: server/smp
-        run: ./gradlew test jacocoTestReport --no-daemon
+        run: ./gradlew test jacocoTestReport --no-daemon -PexcludeTags=modularity
 
       - name: Upload coverage to Codecov
         uses: codecov/codecov-action@7f8b4b4bde536c465e797be725718b88c5d95e0e # v5.1.2

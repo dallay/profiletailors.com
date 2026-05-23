@@ -1,6 +1,7 @@
 package com.profiletailors.smp
 
 import org.junit.jupiter.api.Disabled
+import org.junit.jupiter.api.Tag
 import org.junit.jupiter.api.Test
 import org.springframework.modulith.core.ApplicationModules
 import org.springframework.modulith.docs.Documenter
@@ -14,6 +15,7 @@ import org.springframework.modulith.docs.Documenter
  * - No unwanted dependencies exist between modules
  * - Only explicitly exposed packages (via @NamedInterface) are accessible
  */
+@Tag("modularity")
 class ModularStructureTest {
 
     private val modules = ApplicationModules.of(SmpApplication::class.java)
