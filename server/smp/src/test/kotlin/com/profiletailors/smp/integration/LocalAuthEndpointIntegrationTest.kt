@@ -1,16 +1,23 @@
 package com.profiletailors.smp.integration
 
+import com.profiletailors.smp.integration.support.CapturingAuditHook
 import com.profiletailors.smp.integration.support.IntegrationTestBase
 import io.r2dbc.h2.H2ConnectionConfiguration
 import io.r2dbc.h2.H2ConnectionFactory
 import io.r2dbc.spi.ConnectionFactory
+import javax.crypto.spec.SecretKeySpec
 import org.junit.jupiter.api.Test
+import org.springframework.beans.factory.annotation.Value
 import org.springframework.boot.test.context.SpringBootTest
 import org.springframework.boot.test.context.TestConfiguration
 import org.springframework.boot.webtestclient.autoconfigure.AutoConfigureWebTestClient
 import org.springframework.context.annotation.Bean
 import org.springframework.context.annotation.Import
+import org.springframework.context.annotation.Primary
 import org.springframework.http.HttpHeaders
+import org.springframework.security.oauth2.jose.jws.MacAlgorithm
+import org.springframework.security.oauth2.jwt.NimbusReactiveJwtDecoder
+import org.springframework.security.oauth2.jwt.ReactiveJwtDecoder
 
 @AutoConfigureWebTestClient
 @SpringBootTest(
@@ -30,7 +37,7 @@ import org.springframework.http.HttpHeaders
         "app.security.refresh-session.cookie-path=/api/auth",
     ],
 )
-@Import(LocalAuthEndpointIntegrationTest.H2ConnectionFactoryConfiguration::class, IntegrationTestBase.SharedTestConfiguration::class)
+@Import(LocalAuthEndpointIntegrationTest.H2ConnectionFactoryConfiguration::class)
 class LocalAuthEndpointIntegrationTest : IntegrationTestBase() {
 
     override fun databaseName(): String = "local_auth"
@@ -208,5 +215,18 @@ class LocalAuthEndpointIntegrationTest : IntegrationTestBase() {
                 .username("sa")
                 .build(),
         )
+
+        @Bean
+        @Primary
+        fun testAuditHook(): CapturingAuditHook = CapturingAuditHook()
+
+        @Bean
+        @Primary
+        fun localAuthJwtDecoder(
+            @Value("\${app.security.local-jwt.secret}") secret: String,
+        ): ReactiveJwtDecoder = NimbusReactiveJwtDecoder
+            .withSecretKey(SecretKeySpec(secret.toByteArray(Charsets.UTF_8), "HmacSHA256"))
+            .macAlgorithm(MacAlgorithm.HS256)
+            .build()
     }
 }
