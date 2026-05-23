@@ -51,9 +51,8 @@ internal class RegisterUserHandler(
         val normalizedEmail = command.email.trim().lowercase()
         val normalizedUsername =
             command.username?.trim()?.takeIf { it.isNotEmpty() } ?: normalizedEmail.substringBefore('@')
-        val password = command.password.trim()
 
-        validateRegistration(normalizedEmail, password, normalizedUsername)
+        validateRegistration(normalizedEmail, command.password, normalizedUsername)
 
         if (
             localPasswordCredentialGateway.findByEmail(normalizedEmail) != null ||
@@ -75,7 +74,7 @@ internal class RegisterUserHandler(
         )
         localPasswordCredentialGateway.create(
             principalId = principalId,
-            passwordHash = passwordHasher.hash(password),
+            passwordHash = passwordHasher.hash(command.password),
         )
 
         return issueAuthSession(
@@ -116,11 +115,10 @@ internal class LoginUserHandler(
 
     override suspend fun handle(command: LoginUserCommand): LocalAuthSessionResult {
         val normalizedEmail = command.email.trim().lowercase()
-        val password = command.password.trim()
         val credential = localPasswordCredentialGateway.findByEmail(normalizedEmail)
             ?: throw InvalidEmailPasswordException()
 
-        if (!passwordHasher.matches(password, credential.passwordHash)) {
+        if (!passwordHasher.matches(command.password, credential.passwordHash)) {
             throw InvalidEmailPasswordException()
         }
 

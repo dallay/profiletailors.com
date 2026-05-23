@@ -27,7 +27,7 @@ app:
       cookie-name: ${SMP_REFRESH_COOKIE_NAME:pt_refresh}
       cookie-path: ${SMP_REFRESH_COOKIE_PATH:/api/auth}
       same-site: ${SMP_REFRESH_COOKIE_SAME_SITE:Lax}
-      secure: ${SMP_REFRESH_COOKIE_SECURE:false}
+      secure: ${SMP_REFRESH_COOKIE_SECURE:true}
       ttl-seconds: ${SMP_REFRESH_TTL_SECONDS:604800}
 
 platform:
@@ -55,5 +55,14 @@ spring:
     url: ${SMP_TEST_R2DBC_URL:r2dbc:postgresql://localhost:5432/profiletailors_smp_test}
     username: ${SMP_TEST_DB_USERNAME:profiletailors}
     password: ${SMP_TEST_DB_PASSWORD:profiletailors}
+  liquibase:
+    url: ${SMP_TEST_LIQUIBASE_JDBC_URL:jdbc:postgresql://localhost:5432/profiletailors_smp_test}
+    user: ${SMP_TEST_DB_USERNAME:profiletailors}
+    password: ${SMP_TEST_DB_PASSWORD:profiletailors}
+
+app:
+  security:
+    refresh-session:
+      secure: false  # Local tests run over HTTP
   liquibase:
     enabled: ${SMP_TEST_LIQUIBASE_ENABLED:false}

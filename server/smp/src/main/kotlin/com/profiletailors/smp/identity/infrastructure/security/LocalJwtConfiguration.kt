@@ -29,5 +29,16 @@ class LocalJwtConfiguration {
         @Value("\${app.security.local-jwt.secret}") secret: String,
     ): JwtEncoder = NimbusJwtEncoder(ImmutableSecret(secret.toSecretKey()))
 
-    private fun String.toSecretKey() = SecretKeySpec(toByteArray(Charsets.UTF_8), "HmacSHA256")
+    private fun String.toSecretKey(): SecretKeySpec {
+        val bytes = toByteArray(Charsets.UTF_8)
+        require(bytes.size >= MIN_SECRET_BYTES) {
+            "JWT secret must be at least $MIN_SECRET_BYTES bytes (256 bits) for HS256. " +
+                "Current length: ${bytes.size} bytes."
+        }
+        return SecretKeySpec(bytes, "HmacSHA256")
+    }
+
+    private companion object {
+        private const val MIN_SECRET_BYTES = 32
+    }
 }

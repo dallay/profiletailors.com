@@ -56,7 +56,7 @@ class IdentityBootstrapConfiguration {
         @Value("\${app.security.refresh-session.cookie-name:pt_refresh}") cookieName: String,
         @Value("\${app.security.refresh-session.cookie-path:/api/auth}") cookiePath: String,
         @Value("\${app.security.refresh-session.same-site:Lax}") sameSite: String,
-        @Value("\${app.security.refresh-session.secure:false}") secure: Boolean,
+        @Value("\${app.security.refresh-session.secure:true}") secure: Boolean,
         @Value("\${app.security.refresh-session.ttl-seconds:604800}") ttlSeconds: Long,
     ): RefreshSessionProperties = RefreshSessionProperties(
         cookieName = cookieName,
