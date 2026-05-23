@@ -80,7 +80,12 @@ tasks.check {
 }
 
 tasks.withType<Test> {
-	useJUnitPlatform()
+	useJUnitPlatform {
+		val tags = providers.gradleProperty("excludeTags").orNull
+		if (!tags.isNullOrBlank()) {
+			excludeTags(*tags.split(",").map { it.trim() }.toTypedArray())
+		}
+	}
 	finalizedBy(tasks.jacocoTestReport)
 }
 
