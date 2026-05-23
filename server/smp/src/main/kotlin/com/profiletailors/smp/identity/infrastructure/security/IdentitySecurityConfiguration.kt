@@ -74,6 +74,13 @@ class IdentitySecurityConfiguration {
             .csrf { it.disable() }
             .authorizeExchange {
                 it.pathMatchers(HttpMethod.GET, "/actuator/health").permitAll()
+                    .pathMatchers(
+                        HttpMethod.POST,
+                        "/api/auth/login",
+                        "/api/auth/register",
+                        "/api/auth/refresh",
+                        "/api/auth/logout",
+                    ).permitAll()
                     .anyExchange().authenticated()
             }
             .exceptionHandling { exceptions ->

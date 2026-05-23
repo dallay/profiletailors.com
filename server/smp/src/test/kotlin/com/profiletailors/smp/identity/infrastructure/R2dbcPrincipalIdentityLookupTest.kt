@@ -115,6 +115,29 @@ class R2dbcPrincipalIdentityLookupTest {
     }
 
     @Test
+    fun `loads principal facts by email`() = runTest {
+        databaseClient.sql(
+            """
+            INSERT INTO principals (id, principal_type, subject, provider, display_identity)
+            VALUES ('principal-2', 'USER', 'local:yuniel@example.com', NULL, 'yuniel')
+            """.trimIndent(),
+        ).fetch().rowsUpdated().awaitSingle()
+        databaseClient.sql(
+            """
+            INSERT INTO user_identities (principal_id, email, username)
+            VALUES ('principal-2', 'yuniel@example.com', 'yuniel')
+            """.trimIndent(),
+        ).fetch().rowsUpdated().awaitSingle()
+
+        val facts = lookup.findByEmail("yuniel@example.com")
+
+        requireNotNull(facts)
+        assertEquals("principal-2", facts.principalId)
+        assertEquals(PrincipalType.USER, facts.principalType)
+        assertEquals("yuniel@example.com", facts.email)
+    }
+
+    @Test
     fun `returns null when no principal facts exist for subject`() = runTest {
         val facts = lookup.findBySubject(
             principalType = PrincipalType.USER,
@@ -139,6 +162,7 @@ class R2dbcPrincipalIdentityLookupTest {
 
     private fun deleteAllRows() = runTest {
         listOf(
+            "DELETE FROM local_password_credentials",
             "DELETE FROM service_account_credentials",
             "DELETE FROM user_identities",
             "DELETE FROM principals",

@@ -2,7 +2,9 @@
 import { ref } from 'vue'
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
+import { useAuthStore } from '@/stores/auth'
 
+const auth = useAuthStore()
 const postText = ref('')
 const selectedPlatforms = ref<string[]>(['twitter'])
 const isScheduling = ref(false)
@@ -64,7 +66,7 @@ function handleSchedule() {
     <!-- Welcome Header -->
     <div class="space-y-2">
       <h2 class="text-3xl font-light tracking-tight text-text-display">
-        {{ $t('dashboard.welcome') }}, acosta
+        {{ $t('dashboard.welcome') }}, {{ auth.displayName }}
       </h2>
       <p class="text-sm text-text-secondary">
         {{ $t('dashboard.subtitle') }}

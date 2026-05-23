@@ -5,8 +5,7 @@ spring:
     oauth2:
       resourceserver:
         jwt:
-          issuer-uri: ${SMP_JWT_ISSUER_URI:http://localhost:8081/realms/profiletailors}
-          jwk-set-uri: ${SMP_JWT_JWK_SET_URI:http://localhost:8081/realms/profiletailors/protocol/openid-connect/certs}
+          issuer-uri: ${SMP_JWT_ISSUER_URI:http://localhost/profiletailors-local}
   r2dbc:
     url: ${SMP_R2DBC_URL:r2dbc:postgresql://localhost:5432/profiletailors_smp}
     username: ${SMP_DB_USERNAME:profiletailors}
@@ -17,6 +16,19 @@ spring:
     url: ${SMP_LIQUIBASE_JDBC_URL:jdbc:postgresql://localhost:5432/profiletailors_smp}
     user: ${SMP_DB_USERNAME:profiletailors}
     password: ${SMP_DB_PASSWORD:profiletailors}
+
+app:
+  security:
+    local-jwt:
+      secret: ${SMP_LOCAL_JWT_SECRET:profiletailors-local-secret-change-me-1234567890}
+      issuer: ${SMP_LOCAL_JWT_ISSUER:http://localhost/profiletailors-local}
+      ttl-seconds: ${SMP_LOCAL_JWT_TTL_SECONDS:900}
+    refresh-session:
+      cookie-name: ${SMP_REFRESH_COOKIE_NAME:pt_refresh}
+      cookie-path: ${SMP_REFRESH_COOKIE_PATH:/api/auth}
+      same-site: ${SMP_REFRESH_COOKIE_SAME_SITE:Lax}
+      secure: ${SMP_REFRESH_COOKIE_SECURE:false}
+      ttl-seconds: ${SMP_REFRESH_TTL_SECONDS:604800}
 
 platform:
   workspace-context:
@@ -38,8 +50,7 @@ spring:
     oauth2:
       resourceserver:
         jwt:
-          issuer-uri: ${SMP_TEST_JWT_ISSUER_URI:http://localhost/test-issuer}
-          jwk-set-uri: ${SMP_TEST_JWT_JWK_SET_URI:http://localhost/test-jwks}
+          issuer-uri: ${SMP_TEST_JWT_ISSUER_URI:http://localhost/profiletailors-local}
   r2dbc:
     url: ${SMP_TEST_R2DBC_URL:r2dbc:postgresql://localhost:5432/profiletailors_smp_test}
     username: ${SMP_TEST_DB_USERNAME:profiletailors}
