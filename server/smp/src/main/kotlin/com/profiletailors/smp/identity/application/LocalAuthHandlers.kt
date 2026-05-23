@@ -7,6 +7,35 @@ import com.profiletailors.smp.credentials.application.RefreshSessionNotActiveExc
 import java.time.Clock
 import java.util.UUID
 
+internal suspend fun issueAuthSession(
+    principalId: String,
+    subject: String,
+    email: String,
+    username: String?,
+    clock: Clock,
+    localJwtIssuer: LocalJwtIssuer,
+    refreshSessionLifecycleService: RefreshSessionLifecycleService,
+): LocalAuthSessionResult {
+    val token = localJwtIssuer.issue(
+        principalId = principalId,
+        subject = subject,
+        email = email,
+        username = username,
+        issuedAt = clock.instant(),
+    )
+    val refreshSession = refreshSessionLifecycleService.issue(principalId)
+    return LocalAuthSessionResult(
+        tokens = AuthTokens(
+            accessToken = token.value,
+            expiresIn = token.expiresInSeconds,
+            principalId = principalId,
+            email = email,
+            username = username,
+        ),
+        refreshToken = refreshSession.refreshToken,
+    )
+}
+
 @Service
 internal class RegisterUserHandler(
     private val identityRegistrationGateway: IdentityRegistrationGateway,
@@ -35,7 +64,6 @@ internal class RegisterUserHandler(
 
         val principalId = "user-${UUID.randomUUID()}"
         val subject = "local:$normalizedEmail"
-        val displayIdentity = normalizedUsername
 
         identityRegistrationGateway.createUserIdentity(
             principalId = principalId,
@@ -43,18 +71,21 @@ internal class RegisterUserHandler(
             email = normalizedEmail,
             username = normalizedUsername,
             provider = null,
-            displayIdentity = displayIdentity,
+            displayIdentity = normalizedUsername,
         )
         localPasswordCredentialGateway.create(
             principalId = principalId,
             passwordHash = passwordHasher.hash(password),
         )
 
-        return issueSession(
+        return issueAuthSession(
             principalId = principalId,
             subject = subject,
             email = normalizedEmail,
             username = normalizedUsername,
+            clock = clock,
+            localJwtIssuer = localJwtIssuer,
+            refreshSessionLifecycleService = refreshSessionLifecycleService,
         )
     }
 
@@ -66,33 +97,6 @@ internal class RegisterUserHandler(
             else -> null
         }
         if (error != null) throw InvalidRegistrationInputException(error)
-    }
-
-    private suspend fun issueSession(
-        principalId: String,
-        subject: String,
-        email: String,
-        username: String?,
-    ): LocalAuthSessionResult {
-        val token = localJwtIssuer.issue(
-            principalId = principalId,
-            subject = subject,
-            email = email,
-            username = username,
-            issuedAt = clock.instant(),
-        )
-        val refreshSession = refreshSessionLifecycleService.issue(principalId)
-
-        return LocalAuthSessionResult(
-            tokens = AuthTokens(
-                accessToken = token.value,
-                expiresIn = token.expiresInSeconds,
-                principalId = principalId,
-                email = email,
-                username = username,
-            ),
-            refreshToken = refreshSession.refreshToken,
-        )
     }
 
     private companion object {
@@ -120,38 +124,14 @@ internal class LoginUserHandler(
             throw InvalidEmailPasswordException()
         }
 
-        return issueSession(
+        return issueAuthSession(
             principalId = credential.principalId,
             subject = "local:${credential.email}",
             email = credential.email,
             username = credential.username,
-        )
-    }
-
-    private suspend fun issueSession(
-        principalId: String,
-        subject: String,
-        email: String,
-        username: String?,
-    ): LocalAuthSessionResult {
-        val token = localJwtIssuer.issue(
-            principalId = principalId,
-            subject = subject,
-            email = email,
-            username = username,
-            issuedAt = clock.instant(),
-        )
-        val refreshSession = refreshSessionLifecycleService.issue(principalId)
-
-        return LocalAuthSessionResult(
-            tokens = AuthTokens(
-                accessToken = token.value,
-                expiresIn = token.expiresInSeconds,
-                principalId = principalId,
-                email = email,
-                username = username,
-            ),
-            refreshToken = refreshSession.refreshToken,
+            clock = clock,
+            localJwtIssuer = localJwtIssuer,
+            refreshSessionLifecycleService = refreshSessionLifecycleService,
         )
     }
 }
@@ -190,7 +170,6 @@ internal class RefreshUserSessionHandler(
             refreshToken = rotatedSession.current.refreshToken,
         )
     }
-
 }
 
 @Service

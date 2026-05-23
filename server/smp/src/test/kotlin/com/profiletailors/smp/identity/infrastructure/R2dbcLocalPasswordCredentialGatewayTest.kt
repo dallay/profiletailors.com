@@ -1,42 +1,24 @@
 package com.profiletailors.smp.identity.infrastructure
 
 import com.profiletailors.common.domain.context.PrincipalType
-import io.r2dbc.h2.H2ConnectionConfiguration
-import io.r2dbc.h2.H2ConnectionFactory
+import com.profiletailors.smp.integration.support.DatabaseUnitTestBase
 import kotlinx.coroutines.reactor.awaitSingle
 import kotlinx.coroutines.test.runTest
-import liquibase.Contexts
-import liquibase.LabelExpression
-import liquibase.Liquibase
-import liquibase.database.DatabaseFactory
-import liquibase.resource.ClassLoaderResourceAccessor
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertNotNull
 import org.junit.jupiter.api.Assertions.assertNull
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
-import org.springframework.r2dbc.core.DatabaseClient
-import java.sql.DriverManager
 
-class R2dbcLocalPasswordCredentialGatewayTest {
+class R2dbcLocalPasswordCredentialGatewayTest : DatabaseUnitTestBase() {
 
-    private val jdbcUrl = "jdbc:h2:mem:local_password_gateway;MODE=PostgreSQL;DB_CLOSE_DELAY=-1;DB_CLOSE_ON_EXIT=FALSE"
-    private val connectionFactory = H2ConnectionFactory(
-        H2ConnectionConfiguration.builder()
-            .inMemory("local_password_gateway")
-            .property("MODE", "PostgreSQL")
-            .property("DB_CLOSE_DELAY", "-1")
-            .property("DB_CLOSE_ON_EXIT", "FALSE")
-            .username("sa")
-            .build(),
-    )
-    private val databaseClient = DatabaseClient.create(connectionFactory)
-    private val gateway = R2dbcLocalPasswordCredentialGateway(databaseClient)
+    override fun databaseName() = "local_password_gateway"
+
+    private lateinit var gateway: R2dbcLocalPasswordCredentialGateway
 
     @BeforeEach
-    fun setUp() {
-        applyLiquibaseBaseline()
-        deleteAllRows()
+    fun setUpGateway() {
+        gateway = R2dbcLocalPasswordCredentialGateway(databaseClient)
     }
 
     @Test
@@ -91,28 +73,5 @@ class R2dbcLocalPasswordCredentialGatewayTest {
         assertNotNull(facts)
         assertEquals("user-1", facts?.principalId)
         assertEquals(PrincipalType.USER, facts?.principalType)
-    }
-
-    private fun applyLiquibaseBaseline() {
-        DriverManager.getConnection(jdbcUrl, "sa", "").use { connection ->
-            val database = DatabaseFactory.getInstance()
-                .findCorrectDatabaseImplementation(liquibase.database.jvm.JdbcConnection(connection))
-            Liquibase(
-                "db/changelog/db.changelog-master.yaml",
-                ClassLoaderResourceAccessor(),
-                database,
-            ).update(Contexts(), LabelExpression())
-        }
-    }
-
-    private fun deleteAllRows() = runTest {
-        listOf(
-            "DELETE FROM local_password_credentials",
-            "DELETE FROM service_account_credentials",
-            "DELETE FROM user_identities",
-            "DELETE FROM principals",
-        ).forEach { statement ->
-            databaseClient.sql(statement).fetch().rowsUpdated().awaitSingle()
-        }
     }
 }
