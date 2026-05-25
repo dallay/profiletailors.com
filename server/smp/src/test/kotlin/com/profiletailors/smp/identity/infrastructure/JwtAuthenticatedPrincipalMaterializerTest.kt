@@ -170,6 +170,10 @@ class JwtAuthenticatedPrincipalMaterializerTest {
             subject: String,
             provider: String?,
         ): PrincipalIdentityFacts? = facts
+
+        override suspend fun findByEmail(email: String): PrincipalIdentityFacts? = null
+
+        override suspend fun findByPrincipalId(principalId: String): PrincipalIdentityFacts? = null
     }
 
     private class StubServiceAccountCredentialStateLookup(
