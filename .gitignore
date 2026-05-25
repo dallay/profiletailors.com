@@ -22,6 +22,11 @@ out/
 # Kotlin compiler output
 .kotlin/
 
+# Test coverage reports
+coverage/
+*.lcov
+.nyc_output/
+
 # IDE-specific files
 .idea/
 *.iml

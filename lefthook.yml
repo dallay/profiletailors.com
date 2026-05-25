@@ -50,9 +50,9 @@ pre-push:
   source: .lefthookrc.yml
 
   commands:
-    # Gitleaks: scan for secrets before push
+    # Gitleaks: scan staged/changed content before push using repo-local rules
     gitleaks:
-      run: 'gitleaks detect --redact --exit-code 1'
+      run: 'gitleaks protect --staged --redact --exit-code 1 --config .gitleaks.toml'
 
     # Tests del backend antes de push.
     # The "modularity" tag excludes ModularStructureTest and ModularityVerificationTest,

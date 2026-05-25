@@ -7,17 +7,27 @@ useDefault = true
 # No repo-local allowlists are defined yet.
 # Add one only for a reviewed false positive with a path-scoped English reason.
 
+[[rules]]
+id = "profiletailors-hardcoded-config-secrets"
+description = "Detect hardcoded secret-like values in application and compose config"
+regex = '''(?i)(password|secret|token|api[_-]?key)\s*[:=]\s*["']?[A-Za-z_@#%+=:./-][A-Za-z0-9_@#$%+=:./-]{7,}["']?'''
+path = '''(?i)(application|compose|docker|infra/.*compose).*\.(ya?ml|properties)$'''
+keywords = ["password", "secret", "token", "api_key", "apikey"]
+
 [allowlist]
-description = "False positives: explicit test-only tokens and secrets used in documentation examples"
+description = "False positives: explicit test-only tokens, docs examples, and reviewed example env defaults"
 paths = [
   ".agents/skills/backend-platform/spring-boot/security/references/troubleshooting.md",
   ".agents/skills/backend-platform/spring-boot/security/scripts/test-jwt-setup.sh",
   ".agents/skills/backend-platform/spring-boot/security/references/jwt-testing-guide.md",
   "shared/common/src/test/kotlin/com/profiletailors/common/testfixture/CredentialFixtures.kt",
+  ".env.example",
+  "server/smp/.env.example",
 ]
 regexes = [
   "invalid\\.token\\.here",
   "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9\\.eyJzdWIiOiIxMjM0NTY3ODkwIiwiZXhwIjoxNjE2MjM5MDIyfQ\\.SflKxwRJSMeKKF2QT4fwpMeJf36POk6yJV_adQssw5c",
   "test-secret-key-that-is-at-least-256-bits-long",
   "Th1sIsA\\$5tr0ngP@ssw0rd",
+  "profiletailors-local-jwt-secret-for-dev-only",
 ]
