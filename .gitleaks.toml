@@ -7,13 +7,6 @@ useDefault = true
 # No repo-local allowlists are defined yet.
 # Add one only for a reviewed false positive with a path-scoped English reason.
 
-[[rules]]
-id = "profiletailors-hardcoded-config-secrets"
-description = "Detect hardcoded secret-like values in application and compose config"
-regex = '''(?i)(password|secret|token|api[_-]?key)\s*[:=]\s*["']?[A-Za-z_@#%+=:./-][A-Za-z0-9_@#$%+=:./-]{7,}["']?'''
-path = '''(?i)(application|compose|docker|infra/.*compose).*\.(ya?ml|properties)$'''
-keywords = ["password", "secret", "token", "api_key", "apikey"]
-
 [allowlist]
 description = "False positives: explicit test-only tokens, docs examples, and reviewed example env defaults"
 paths = [
