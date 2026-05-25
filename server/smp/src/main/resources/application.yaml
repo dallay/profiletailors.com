@@ -57,7 +57,7 @@ management:
       show-details: when-authorized
       group:
         readiness:
-          include: readinessState,db
+          include: readinessState,r2dbc
           show-details: when-authorized
         liveness:
           include: livenessState
