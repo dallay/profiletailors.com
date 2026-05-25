@@ -18,6 +18,7 @@ import java.time.Instant
 abstract class ResourcePreviewEndpointTestBase : AuthorizationEndpointIntegrationTestSupport() {
 
     companion object {
+        const val API_V1_MEDIA_TYPE = "application/vnd.api.v1+json"
         const val PRINCIPAL_ID = "principal-1"
         const val WORKSPACE_ID = "workspace-1"
         const val RESOURCE_ID = "resource-1"
@@ -43,7 +44,7 @@ abstract class ResourcePreviewEndpointTestBase : AuthorizationEndpointIntegratio
             .uri(RESOURCE_PREVIEW_PATH)
             .header(HttpHeaders.AUTHORIZATION, BEARER_TOKEN)
             .header(WORKSPACE_HEADER, WORKSPACE_ID)
-            .accept(MediaType.APPLICATION_JSON)
+            .header(HttpHeaders.ACCEPT, API_V1_MEDIA_TYPE)
             .exchange()
             .expectStatus().isOk
             .expectBody()
@@ -76,7 +77,7 @@ abstract class ResourcePreviewEndpointTestBase : AuthorizationEndpointIntegratio
             .uri(RESOURCE_PREVIEW_PATH)
             .header(HttpHeaders.AUTHORIZATION, BEARER_TOKEN)
             .header(WORKSPACE_HEADER, WORKSPACE_ID)
-            .accept(MediaType.APPLICATION_JSON)
+            .header(HttpHeaders.ACCEPT, API_V1_MEDIA_TYPE)
             .exchange()
             .expectStatus().isOk
             .expectBody()
@@ -110,6 +111,7 @@ abstract class ResourcePreviewEndpointTestBase : AuthorizationEndpointIntegratio
             .uri(RESOURCE_PREVIEW_PATH)
             .header(HttpHeaders.AUTHORIZATION, BEARER_TOKEN)
             .header(WORKSPACE_HEADER, WORKSPACE_ID)
+            .header(HttpHeaders.ACCEPT, API_V1_MEDIA_TYPE)
             .exchange()
             .expectStatus().isForbidden
             .expectBody()
@@ -142,6 +144,7 @@ abstract class ResourcePreviewEndpointTestBase : AuthorizationEndpointIntegratio
             .uri(RESOURCE_PREVIEW_PATH)
             .header(HttpHeaders.AUTHORIZATION, BEARER_TOKEN)
             .header(WORKSPACE_HEADER, WORKSPACE_ID)
+            .header(HttpHeaders.ACCEPT, API_V1_MEDIA_TYPE)
             .exchange()
             .expectStatus().isForbidden
             .expectBody()
@@ -173,6 +176,7 @@ abstract class ResourcePreviewEndpointTestBase : AuthorizationEndpointIntegratio
             .uri(RESOURCE_PREVIEW_PATH)
             .header(HttpHeaders.AUTHORIZATION, BEARER_TOKEN)
             .header(WORKSPACE_HEADER, WORKSPACE_ID)
+            .header(HttpHeaders.ACCEPT, API_V1_MEDIA_TYPE)
             .exchange()
             .expectStatus().isForbidden
             .expectBody()
@@ -248,9 +252,9 @@ abstract class ResourcePreviewEndpointTestBase : AuthorizationEndpointIntegratio
     protected fun seedTargetScope(allowedTargetIdsJson: String) {
         kotlinx.coroutines.runBlocking {
             databaseClient.sql(
-                "INSERT INTO workspace_target_scopes (id, workspace_id, principal_id, principal_type, permission_id, target_resource_type, allowed_target_ids_json) VALUES ('scope-1', '$WORKSPACE_ID', '$PRINCIPAL_ID', 'USER', 'permission-resource-read', 'RESOURCE', :allowedTargetIdsJson)",
+                "INSERT INTO workspace_target_scopes (id, workspace_id, principal_id, principal_type, permission_id, target_resource_type, allowed_target_ids_json) VALUES ('scope-1', $WORKSPACE_ID, $PRINCIPAL_ID, 'USER', 'permission-resource-read', 'RESOURCE', ?)",
             )
-                .bind("allowedTargetIdsJson", allowedTargetIdsJson)
+                .bind(0, allowedTargetIdsJson)
                 .fetch()
                 .rowsUpdated()
                 .awaitSingle()

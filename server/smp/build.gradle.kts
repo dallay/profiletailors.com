@@ -26,6 +26,7 @@ dependencies {
 	implementation(project(":shared-common"))
 	implementation(project(":shared-spring-boot-common"))
 	implementation("org.springframework.boot:spring-boot-starter-data-r2dbc")
+	implementation("org.springframework.boot:spring-boot-starter-liquibase")
 	implementation("org.springframework.boot:spring-boot-starter-oauth2-resource-server")
 	implementation("org.springframework.security:spring-security-oauth2-jose")
 	implementation("org.springframework.boot:spring-boot-starter-security")
@@ -34,14 +35,16 @@ dependencies {
 	implementation("io.projectreactor.kotlin:reactor-kotlin-extensions")
 	implementation("org.jetbrains.kotlin:kotlin-reflect")
 	implementation("org.jetbrains.kotlinx:kotlinx-coroutines-reactor")
-	implementation("org.liquibase:liquibase-core")
 	implementation("org.springdoc:springdoc-openapi-starter-webflux-ui:3.0.2")
 	implementation("org.springframework.modulith:spring-modulith-starter-core")
 	implementation("tools.jackson.module:jackson-module-kotlin")
-	developmentOnly("org.springframework.boot:spring-boot-devtools")
+    implementation("org.springframework.boot:spring-boot-starter-actuator")
+    implementation("io.micrometer:micrometer-registry-prometheus")
+    developmentOnly("org.springframework.boot:spring-boot-devtools")
 	developmentOnly("org.springframework.boot:spring-boot-docker-compose")
 	runtimeOnly("org.postgresql:postgresql")
 	runtimeOnly("org.postgresql:r2dbc-postgresql")
+	testImplementation("org.postgresql:r2dbc-postgresql")
 	annotationProcessor("org.springframework.boot:spring-boot-configuration-processor")
 	testImplementation("com.h2database:h2")
 	testImplementation("io.r2dbc:r2dbc-h2")
@@ -51,9 +54,13 @@ dependencies {
 	testImplementation("org.jetbrains.kotlin:kotlin-test-junit5")
 	testImplementation("org.jetbrains.kotlinx:kotlinx-coroutines-test")
 	testImplementation("org.springframework.modulith:spring-modulith-starter-test")
+	testImplementation("org.junit.platform:junit-platform-suite")
+	testImplementation("io.cucumber:cucumber-java:7.18.1")
+	testImplementation("io.cucumber:cucumber-spring:7.18.1")
 	testImplementation("org.testcontainers:junit-jupiter:1.20.6")
 	testImplementation("org.testcontainers:postgresql:1.20.6")
 	testRuntimeOnly("org.junit.platform:junit-platform-launcher")
+	testRuntimeOnly("io.cucumber:cucumber-junit-platform-engine:7.18.1")
 }
 
 dependencyManagement {
@@ -79,14 +86,38 @@ tasks.check {
 	dependsOn("detekt")
 }
 
-tasks.withType<Test> {
+tasks.withType<Test>().configureEach {
 	useJUnitPlatform {
 		val tags = providers.gradleProperty("excludeTags").orNull
 		if (!tags.isNullOrBlank()) {
 			excludeTags(*tags.split(",").map { it.trim() }.toTypedArray())
 		}
 	}
+}
+
+tasks.named<Test>("test") {
 	finalizedBy(tasks.jacocoTestReport)
+	exclude("**/CucumberFastIntegrationTest.class", "**/CucumberPostgresIntegrationTest.class")
+}
+
+tasks.register<Test>("bddFastTest") {
+	group = "verification"
+	description = "Runs fast BDD suite with H2"
+	testClassesDirs = sourceSets.test.get().output.classesDirs
+	classpath = sourceSets.test.get().runtimeClasspath
+	useJUnitPlatform()
+	include("**/CucumberFastIntegrationTest.class")
+	shouldRunAfter(tasks.test)
+}
+
+tasks.register<Test>("bddPostgresTest") {
+	group = "verification"
+	description = "Runs Postgres BDD suite with Testcontainers"
+	testClassesDirs = sourceSets.test.get().output.classesDirs
+	classpath = sourceSets.test.get().runtimeClasspath
+	useJUnitPlatform()
+	include("**/CucumberPostgresIntegrationTest.class")
+	shouldRunAfter(tasks.named("bddFastTest"))
 }
 
 tasks.jacocoTestReport {

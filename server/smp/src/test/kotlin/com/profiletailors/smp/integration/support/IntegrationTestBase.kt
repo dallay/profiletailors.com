@@ -36,6 +36,10 @@ import java.time.Instant
  */
 abstract class IntegrationTestBase {
 
+    companion object {
+        const val API_V1_MEDIA_TYPE = "application/vnd.api.v1+json"
+    }
+
     @Autowired
     lateinit var webTestClient: WebTestClient
 

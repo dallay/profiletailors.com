@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, ref } from 'vue'
+import { ref } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { Button } from '@/components/ui/button'
 import { useAuthStore } from '@/stores/auth'
@@ -8,15 +8,8 @@ const auth = useAuthStore()
 const route = useRoute()
 const router = useRouter()
 
-const isRegisterMode = computed(() => route.name === 'register')
-const title = computed(() => isRegisterMode.value ? 'Create account' : 'Welcome back')
-const subtitle = computed(() => isRegisterMode.value
-  ? 'Start managing your channels with local email and password access.'
-  : 'Sign in to continue into your workspace dashboard.')
-const submitLabel = computed(() => isRegisterMode.value ? 'Create account' : 'Sign in')
-const alternateLabel = computed(() => isRegisterMode.value ? 'Already have an account?' : 'Need an account?')
-const alternateActionLabel = computed(() => isRegisterMode.value ? 'Sign in' : 'Register')
-const alternateRoute = computed(() => isRegisterMode.value ? '/login' : '/register')
+const isRegisterMode = ref(route.name === 'register')
+const alternateRoute = isRegisterMode.value ? '/login' : '/register'
 
 const email = ref('')
 const password = ref('')
@@ -61,15 +54,14 @@ async function handleSubmit() {
           <div class="space-y-4">
             <div class="inline-flex items-center gap-2 rounded-full border border-border-visible bg-bg-surface px-4 py-2 font-mono text-[10px] font-bold uppercase tracking-[0.18em] text-text-secondary">
               <span class="size-2 rounded-full bg-text-display" />
-              Profile Tailors
+              {{ $t('auth.badge') }}
             </div>
             <div class="space-y-3">
               <h1 class="max-w-xl text-4xl font-light tracking-tight text-text-display sm:text-5xl">
-                Build your publishing system without dashboard chaos.
+                {{ $t('auth.heroTitle') }}
               </h1>
               <p class="max-w-2xl text-sm leading-7 text-text-secondary sm:text-base">
-                Local auth is now enabled. Sign in with your email and password, then continue into the scheduler,
-                analytics, and workspace settings experience.
+                {{ $t('auth.heroDescription') }}
               </p>
             </div>
           </div>
@@ -77,26 +69,26 @@ async function handleSubmit() {
           <div class="grid gap-4 sm:grid-cols-3">
             <div class="rounded-2xl border border-border-subtle bg-bg-surface p-5">
               <p class="font-mono text-[10px] font-bold uppercase tracking-[0.18em] text-text-secondary">
-                Security
+                {{ $t('auth.security') }}
               </p>
               <p class="mt-3 text-sm text-text-body">
-                JWT-based backend access with local credentials and protected application routes.
+                {{ $t('auth.securityDesc') }}
               </p>
             </div>
             <div class="rounded-2xl border border-border-subtle bg-bg-surface p-5">
               <p class="font-mono text-[10px] font-bold uppercase tracking-[0.18em] text-text-secondary">
-                Focus
+                {{ $t('auth.focus') }}
               </p>
               <p class="mt-3 text-sm text-text-body">
-                Minimal UI, fast interactions, and a dashboard designed around content operations.
+                {{ $t('auth.focusDesc') }}
               </p>
             </div>
             <div class="rounded-2xl border border-border-subtle bg-bg-surface p-5">
               <p class="font-mono text-[10px] font-bold uppercase tracking-[0.18em] text-text-secondary">
-                Workflow
+                {{ $t('auth.workflow') }}
               </p>
               <p class="mt-3 text-sm text-text-body">
-                Register once, then continue directly into your private workspace views.
+                {{ $t('auth.workflowDesc') }}
               </p>
             </div>
           </div>
@@ -105,41 +97,41 @@ async function handleSubmit() {
         <section class="rounded-[28px] border border-border-subtle bg-bg-surface p-7 shadow-[0_0_0_1px_rgba(255,255,255,0.02)] sm:p-8">
           <div class="space-y-2">
             <p class="font-mono text-[10px] font-bold uppercase tracking-[0.18em] text-text-secondary">
-              Local Access
+              {{ $t('auth.localAccess') }}
             </p>
             <h2 class="text-2xl font-light text-text-display">
-              {{ title }}
+              {{ $t(isRegisterMode ? 'auth.titleRegister' : 'auth.titleLogin') }}
             </h2>
             <p class="text-sm leading-6 text-text-secondary">
-              {{ subtitle }}
+              {{ $t(isRegisterMode ? 'auth.subtitleRegister' : 'auth.subtitleLogin') }}
             </p>
           </div>
 
           <form class="mt-8 space-y-5" @submit.prevent="handleSubmit">
             <div v-if="isRegisterMode" class="space-y-2">
               <label class="font-mono text-[10px] font-bold uppercase tracking-[0.16em] text-text-secondary" for="username">
-                Username
+                {{ $t('auth.username') }}
               </label>
               <input
                 id="username"
                 v-model="username"
                 type="text"
                 autocomplete="username"
-                placeholder="acosta"
+                :placeholder="$t('auth.usernamePlaceholder')"
                 class="w-full rounded-2xl border border-border-visible bg-bg-primary px-4 py-3 text-sm text-text-body placeholder:text-text-secondary focus:border-text-display focus:outline-none"
               >
             </div>
 
             <div class="space-y-2">
               <label class="font-mono text-[10px] font-bold uppercase tracking-[0.16em] text-text-secondary" for="email">
-                Email
+                {{ $t('auth.email') }}
               </label>
               <input
                 id="email"
                 v-model="email"
                 type="email"
                 autocomplete="email"
-                placeholder="you@example.com"
+                :placeholder="$t('auth.emailPlaceholder', { at: '@' })"
                 class="w-full rounded-2xl border border-border-visible bg-bg-primary px-4 py-3 text-sm text-text-body placeholder:text-text-secondary focus:border-text-display focus:outline-none"
                 required
               >
@@ -147,14 +139,14 @@ async function handleSubmit() {
 
             <div class="space-y-2">
               <label class="font-mono text-[10px] font-bold uppercase tracking-[0.16em] text-text-secondary" for="password">
-                Password
+                {{ $t('auth.password') }}
               </label>
               <input
                 id="password"
                 v-model="password"
                 type="password"
                 autocomplete="current-password"
-                placeholder="At least 8 characters"
+                :placeholder="$t('auth.passwordPlaceholder')"
                 class="w-full rounded-2xl border border-border-visible bg-bg-primary px-4 py-3 text-sm text-text-body placeholder:text-text-secondary focus:border-text-display focus:outline-none"
                 required
               >
@@ -168,17 +160,17 @@ async function handleSubmit() {
             </div>
 
             <Button type="submit" class="w-full justify-center" :disabled="auth.isLoading">
-              {{ auth.isLoading ? '...' : submitLabel }}
+              {{ auth.isLoading ? '...' : $t(isRegisterMode ? 'auth.submitRegister' : 'auth.submitLogin') }}
             </Button>
           </form>
 
           <div class="mt-6 flex items-center justify-between gap-4 border-t border-border-subtle pt-5 text-sm">
-            <span class="text-text-secondary">{{ alternateLabel }}</span>
+            <span class="text-text-secondary">{{ $t(isRegisterMode ? 'auth.alternateLabelRegister' : 'auth.alternateLabelLogin') }}</span>
             <RouterLink
               :to="alternateRoute"
               class="font-mono text-[11px] font-bold uppercase tracking-[0.12em] text-text-display transition-opacity hover:opacity-70"
             >
-              {{ alternateActionLabel }}
+              {{ $t(isRegisterMode ? 'auth.alternateActionRegister' : 'auth.alternateActionLogin') }}
             </RouterLink>
           </div>
         </section>

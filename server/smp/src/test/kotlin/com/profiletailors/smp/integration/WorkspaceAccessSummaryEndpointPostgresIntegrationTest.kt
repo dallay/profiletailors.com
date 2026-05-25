@@ -19,6 +19,8 @@ import org.testcontainers.junit.jupiter.Testcontainers
         "spring.liquibase.enabled=true",
         "platform.workspace-context.header-name=X-Workspace-Id",
         "spring.main.allow-bean-definition-overriding=true",
+        "management.endpoint.health.group.readiness.include=readinessState",
+        "management.endpoint.health.group.liveness.include=livenessState",
     ],
 )
 @Testcontainers(disabledWithoutDocker = true)

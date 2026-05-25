@@ -14,22 +14,22 @@ const settings = useSettingsStore()
         {{ $t('nav.settings') }}
       </h2>
       <p class="text-sm text-text-secondary">
-        Configure language translations and dark/light modes.
+        {{ $t('settings.subtitle') }}
       </p>
     </div>
 
     <Card class="bg-bg-surface border border-border-subtle max-w-xl">
       <CardHeader class="p-0 border-b border-border-subtle pb-4">
         <CardTitle class="label-mono text-text-display text-[10px]">
-          Interface Preferences
+          {{ $t('settings.interfacePreferences') }}
         </CardTitle>
       </CardHeader>
       <CardContent class="p-0 mt-6 space-y-6">
         <!-- Locale preference -->
         <div class="flex items-center justify-between">
           <div>
-            <span class="text-sm font-medium text-text-display block">Language / Idioma</span>
-            <span class="text-xs text-text-secondary">Set the system default language.</span>
+            <span class="text-sm font-medium text-text-display block">{{ $t('settings.languageLabel') }}</span>
+            <span class="text-xs text-text-secondary">{{ $t('settings.languageDesc') }}</span>
           </div>
           <div class="flex gap-2">
             <Button
@@ -40,7 +40,7 @@ const settings = useSettingsStore()
                 'bg-text-display text-bg-primary font-bold border-transparent hover:bg-text-display/90': settings.currentLocale === 'en'
               }"
             >
-              English
+              EN
             </Button>
             <Button
               @click="settings.setLocale('es')"
@@ -50,7 +50,7 @@ const settings = useSettingsStore()
                 'bg-text-display text-bg-primary font-bold border-transparent hover:bg-text-display/90': settings.currentLocale === 'es'
               }"
             >
-              Español
+              ES
             </Button>
           </div>
         </div>
@@ -60,8 +60,8 @@ const settings = useSettingsStore()
         <!-- Theme preference -->
         <div class="flex items-center justify-between">
           <div>
-            <span class="text-sm font-medium text-text-display block">Theme / Tema</span>
-            <span class="text-xs text-text-secondary">Choose dark mode or light mode appearance.</span>
+            <span class="text-sm font-medium text-text-display block">{{ $t('settings.themeLabel') }}</span>
+            <span class="text-xs text-text-secondary">{{ $t('settings.themeDesc') }}</span>
           </div>
           <div class="flex gap-2">
             <Button
@@ -72,7 +72,7 @@ const settings = useSettingsStore()
                 'bg-text-display text-bg-primary font-bold border-transparent hover:bg-text-display/90': settings.currentTheme === 'dark'
               }"
             >
-              Dark
+              {{ $t('settings.dark') }}
             </Button>
             <Button
               @click="settings.setTheme('light')"
@@ -82,7 +82,7 @@ const settings = useSettingsStore()
                 'bg-text-display text-bg-primary font-bold border-transparent hover:bg-text-display/90': settings.currentTheme === 'light'
               }"
             >
-              Light
+              {{ $t('settings.light') }}
             </Button>
           </div>
         </div>
