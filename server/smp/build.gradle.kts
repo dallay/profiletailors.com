@@ -35,7 +35,7 @@ dependencies {
 	implementation("org.jetbrains.kotlin:kotlin-reflect")
 	implementation("org.jetbrains.kotlinx:kotlinx-coroutines-reactor")
 	implementation("org.liquibase:liquibase-core")
-	implementation("org.springdoc:springdoc-openapi-starter-webflux-ui:3.0.2")
+	implementation("org.springdoc:springdoc-openapi-starter-webflux-ui:3.0.3")
 	implementation("org.springframework.modulith:spring-modulith-starter-core")
 	implementation("tools.jackson.module:jackson-module-kotlin")
 	developmentOnly("org.springframework.boot:spring-boot-devtools")
