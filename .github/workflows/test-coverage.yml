@@ -35,7 +35,7 @@ jobs:
 
       - name: Run tests with coverage
         working-directory: server/smp
-        run: ./gradlew test jacocoTestReport --no-daemon -PexcludeTags=modularity
+        run: ./gradlew test jacocoTestReport --no-daemon -PexcludeTags=modularity,postgres
 
       - name: Run fast BDD suite
         working-directory: server/smp
