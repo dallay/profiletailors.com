@@ -4,3 +4,5 @@ packages:
 
 allowBuilds:
   vue-demi: true
+  esbuild: true
+  sharp: true
