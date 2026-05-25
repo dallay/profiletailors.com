@@ -1,0 +1,64 @@
+name: Tests & Coverage
+
+on:
+  push:
+    branches: [main, develop]
+  pull_request:
+    branches: [main, develop]
+
+concurrency:
+  group: test-coverage-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  backend-tests:
+    name: Backend Tests & Coverage
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4.3.1
+        with:
+          fetch-depth: 0
+
+      - name: Set up JDK 21
+        uses: actions/setup-java@c1e323688fd81a25caa38c78aa6df2d33d3e20d9 # v4.7.1
+        with:
+          distribution: 'temurin'
+          java-version: '21'
+          cache: 'gradle'
+
+      - name: Run tests with coverage
+        working-directory: server/smp
+        run: ./gradlew test jacocoTestReport --no-daemon -PexcludeTags=modularity
+
+      - name: Upload coverage to Codecov
+        uses: codecov/codecov-action@7f8b4b4bde536c465e797be725718b88c5d95e0e # v5.1.2
+        with:
+          token: ${{ secrets.CODECOV_TOKEN }}
+          files: ./server/smp/build/reports/jacoco/test/jacocoTestReport.xml
+          flags: backend,smp
+          name: backend-coverage
+          fail_ci_if_error: true
+          verbose: true
+
+      - name: Upload test results
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        if: always()
+        with:
+          name: test-results
+          path: server/smp/build/reports/tests/
+          retention-days: 7
+
+      - name: Upload coverage report
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        if: always()
+        with:
+          name: coverage-report
+          path: server/smp/build/reports/jacoco/
+          retention-days: 7

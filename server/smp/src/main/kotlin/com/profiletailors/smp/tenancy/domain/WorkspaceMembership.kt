@@ -1,20 +1,14 @@
 package com.profiletailors.smp.tenancy.domain
 
-import com.profiletailors.smp.identity.domain.PrincipalType
-
-enum class WorkspaceMembershipStatus {
-    ACTIVE,
-    SUSPENDED,
-    REMOVED,
-}
+import com.profiletailors.common.domain.context.PrincipalType
+import com.profiletailors.common.domain.workspace.WorkspaceMembershipSnapshot
+import com.profiletailors.common.domain.workspace.WorkspaceMembershipStatus
 
 data class WorkspaceMembership(
-    val id: String = "",
-    val workspaceId: String,
-    val principalId: String,
-    val principalType: PrincipalType,
-    val status: WorkspaceMembershipStatus,
-    val roleKeys: Set<String> = emptySet(),
-) {
-    fun isActive(): Boolean = status == WorkspaceMembershipStatus.ACTIVE
-}
+    override val id: String = "",
+    override val workspaceId: String,
+    override val principalId: String,
+    override val principalType: PrincipalType,
+    override val status: WorkspaceMembershipStatus,
+    override val roleKeys: Set<String> = emptySet(),
+) : WorkspaceMembershipSnapshot

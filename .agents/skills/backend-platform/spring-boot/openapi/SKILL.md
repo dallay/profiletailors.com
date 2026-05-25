@@ -8,7 +8,8 @@ allowed-tools: Read, Write, Edit, Bash, Glob, Grep
 
 OpenAPI and SpringDoc guidance for **Spring Boot 4 + WebFlux + Kotlin coroutines**.
 
-This skill documents how to describe reactive HTTP APIs clearly and consistently without coupling the
+This skill documents how to describe reactive HTTP APIs clearly and consistently without coupling
+the
 API contract to persistence or servlet-era assumptions.
 
 ## Official Baseline
@@ -19,7 +20,8 @@ From the official Spring Boot and Spring Framework docs:
 - reactive controllers still use standard annotations like `@RestController`, `@GetMapping`,
   `@RequestParam`, and `@PathVariable`
 - `@RequestParam` is the normal WebFlux mechanism for explicit query parameters
-- `ProblemDetail` is an official error-response type and should be reflected in API documentation when
+- `ProblemDetail` is an official error-response type and should be reflected in API documentation
+  when
   applicable
 
 ## What This Skill Owns

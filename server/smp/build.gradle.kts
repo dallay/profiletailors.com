@@ -4,6 +4,7 @@ plugins {
 	id("org.springframework.boot") version "4.0.6"
 	id("io.spring.dependency-management") version "1.1.7"
 	id("dev.detekt") version "2.0.0-alpha.3"
+	jacoco
 }
 
 group = "com.profiletailors"
@@ -26,6 +27,7 @@ dependencies {
 	implementation(project(":shared-spring-boot-common"))
 	implementation("org.springframework.boot:spring-boot-starter-data-r2dbc")
 	implementation("org.springframework.boot:spring-boot-starter-oauth2-resource-server")
+	implementation("org.springframework.security:spring-security-oauth2-jose")
 	implementation("org.springframework.boot:spring-boot-starter-security")
 	implementation("org.springframework.boot:spring-boot-starter-webflux")
 	implementation("org.springframework.security:spring-security-crypto")
@@ -78,5 +80,43 @@ tasks.check {
 }
 
 tasks.withType<Test> {
-	useJUnitPlatform()
+	useJUnitPlatform {
+		val tags = providers.gradleProperty("excludeTags").orNull
+		if (!tags.isNullOrBlank()) {
+			excludeTags(*tags.split(",").map { it.trim() }.toTypedArray())
+		}
+	}
+	finalizedBy(tasks.jacocoTestReport)
+}
+
+tasks.jacocoTestReport {
+	dependsOn(tasks.test)
+	reports {
+		xml.required.set(true)
+		html.required.set(true)
+		csv.required.set(false)
+	}
+	classDirectories.setFrom(
+		files(classDirectories.files.map {
+			fileTree(it) {
+				exclude(
+					"**/config/**",
+					"**/dto/**",
+					"**/entity/**",
+					"**/Application.kt",
+					"**/ApplicationKt.class"
+				)
+			}
+		})
+	)
+}
+
+tasks.jacocoTestCoverageVerification {
+	violationRules {
+		rule {
+			limit {
+				minimum = "0.80".toBigDecimal()
+			}
+		}
+	}
 }

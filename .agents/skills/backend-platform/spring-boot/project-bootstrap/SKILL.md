@@ -30,23 +30,24 @@ persistence stacks are **not** the default here.
 
 ## Canonical Defaults
 
-| Concern | Default |
-|---|---|
-| Language | Kotlin |
-| Spring Boot | 4.x |
-| Build tool | Gradle (`build.gradle.kts`) |
-| Web stack | WebFlux |
-| Concurrency | Coroutines |
-| SQL persistence | R2DBC |
-| API docs | SpringDoc WebFlux starter |
-| Architecture | Package by feature with `domain/`, `application/`, `infrastructure/` |
-| Tests | Kotest for pure Kotlin tests; JUnit 5 acceptable for Spring slices/integration |
+| Concern         | Default                                                                        |
+|-----------------|--------------------------------------------------------------------------------|
+| Language        | Kotlin                                                                         |
+| Spring Boot     | 4.x                                                                            |
+| Build tool      | Gradle (`build.gradle.kts`)                                                    |
+| Web stack       | WebFlux                                                                        |
+| Concurrency     | Coroutines                                                                     |
+| SQL persistence | R2DBC                                                                          |
+| API docs        | SpringDoc WebFlux starter                                                      |
+| Architecture    | Package by feature with `domain/`, `application/`, `infrastructure/`           |
+| Tests           | Kotest for pure Kotlin tests; JUnit 5 acceptable for Spring slices/integration |
 
 ## Exception Policy
 
 Use these only when the user explicitly asks for them or existing constraints require them:
 
-- **Blocking persistence stacks** → compatibility path only, never the default for a reactive service
+- **Blocking persistence stacks** → compatibility path only, never the default for a reactive
+  service
 - **Spring MVC** → only for servlet-based legacy or explicit non-reactive requirements
 - **Maven** → only when organization tooling requires it
 - **Java** → only when Kotlin is explicitly out of scope
@@ -57,15 +58,15 @@ Document every exception clearly in the generated project notes.
 
 Ask for only the parameters that materially affect the scaffold.
 
-| Parameter | Default | Notes |
-|---|---|---|
-| Group ID | `com.example` | valid package root |
-| Artifact ID | `demo-service` | kebab-case |
-| Package name | derived from group + artifact | Kotlin package |
-| Spring Boot version | latest stable `4.x` | prefer latest stable available in Initializr |
-| Java version | `21` | current LTS baseline |
-| Primary datastore | user choice | PostgreSQL / Redis / MongoDB / none |
-| Build tool | `gradle` | use Maven only by explicit request |
+| Parameter           | Default                       | Notes                                        |
+|---------------------|-------------------------------|----------------------------------------------|
+| Group ID            | `com.example`                 | valid package root                           |
+| Artifact ID         | `demo-service`                | kebab-case                                   |
+| Package name        | derived from group + artifact | Kotlin package                               |
+| Spring Boot version | latest stable `4.x`           | prefer latest stable available in Initializr |
+| Java version        | `21`                          | current LTS baseline                         |
+| Primary datastore   | user choice                   | PostgreSQL / Redis / MongoDB / none          |
+| Build tool          | `gradle`                      | use Maven only by explicit request           |
 
 Do **not** ask the user to choose between layered vs DDD as if both were equal defaults. For this
 platform, scaffold the hexagonal baseline automatically unless the user explicitly asks otherwise.
@@ -255,5 +256,7 @@ When finished, summarize:
 ## Related Skills
 
 - [`../SKILL.md`](../SKILL.md) — core Spring Boot 4 reactive rules
-- [`../../hexagonal-architecture/SKILL.md`](../../hexagonal-architecture/SKILL.md) — domain/application/infrastructure boundaries
-- [`../../languages-typing/kotlin/SKILL.md`](../../languages-typing/kotlin/SKILL.md) — Kotlin conventions and test style
+- [`../../hexagonal-architecture/SKILL.md`](../../hexagonal-architecture/SKILL.md) —
+  domain/application/infrastructure boundaries
+- [`../../languages-typing/kotlin/SKILL.md`](../../languages-typing/kotlin/SKILL.md) — Kotlin
+  conventions and test style

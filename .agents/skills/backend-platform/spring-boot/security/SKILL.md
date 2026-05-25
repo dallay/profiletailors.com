@@ -68,7 +68,8 @@ Use companion skills instead when the main concern is:
 | `io.jsonwebtoken:jjwt-impl`                  | runtime |
 | `io.jsonwebtoken:jjwt-jackson`               | runtime |
 
-Use JJWT only if the application is responsible for minting tokens. If the application only validates
+Use JJWT only if the application is responsible for minting tokens. If the application only
+validates
 bearer JWTs from an external issuer, the resource-server stack may be enough.
 
 ## Configuration Properties
@@ -125,6 +126,7 @@ class SecurityConfiguration {
 ## 1. Bearer JWT in Authorization Header
 
 Use this when:
+
 - clients are API-first
 - mobile/native integrations dominate
 - token transport should stay explicit
@@ -138,6 +140,7 @@ Use this when:
 ## 2. HttpOnly Cookie Token Transport
 
 Use this when:
+
 - browser clients dominate
 - you want to reduce token handling in JavaScript
 - CSRF implications are understood and handled intentionally
@@ -188,6 +191,7 @@ class JwtService(
 ### Minimal persistence model
 
 Track fields such as:
+
 - token identifier (`jti`)
 - subject/user id
 - expiry

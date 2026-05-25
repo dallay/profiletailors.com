@@ -4,7 +4,9 @@
 
 ## Project Identity
 
-**Profile Tailors** — a social media management platform (schedule, publish, analyze, engage, collaborate). This repo hosts its public-facing marketing site. The product name is **Profile Tailors**; `profiletailors.com` is the domain/org name only.
+**Profile Tailors** — a social media management platform (schedule, publish, analyze, engage,
+collaborate). This repo hosts its public-facing marketing site. The product name is **Profile
+Tailors**; `profiletailors.com` is the domain/org name only.
 
 ## Monorepo Structure
 
@@ -23,23 +25,27 @@ tmp/                ← Research notes and feature briefs (context only, not dep
 
 ### Dev Commands (run from `apps/web/marketing/`)
 
-| Command        | Action                              |
-| -------------- | ----------------------------------- |
-| `pnpm install` | Install dependencies                |
-| `pnpm dev`     | Dev server at `localhost:4321`      |
-| `pnpm build`   | Build to `./dist/`                  |
-| `pnpm preview` | Preview production build locally    |
+| Command        | Action                           |
+|----------------|----------------------------------|
+| `pnpm install` | Install dependencies             |
+| `pnpm dev`     | Dev server at `localhost:4321`   |
+| `pnpm build`   | Build to `./dist/`               |
+| `pnpm preview` | Preview production build locally |
 
 ## Design Spec (source of truth)
 
 Read `docs/plans/2026-05-13-socialnexus-landing-design.md` before any UI work. Key constraints:
 
-- **Style:** Nothing-inspired, monochrome, typographically driven — avoid generic SaaS aesthetics and heavy card grids.
-- **Fonts:** Space Grotesk (body/headings), Space Mono (labels/metadata), Doto (**once** in hero only).
+- **Style:** Nothing-inspired, monochrome, typographically driven — avoid generic SaaS aesthetics
+  and heavy card grids.
+- **Fonts:** Space Grotesk (body/headings), Space Mono (labels/metadata), Doto (**once** in hero
+  only).
 - **Color:** Dark-first (OLED black); light mode is a designed system, not a color inversion.
-- **Tokens:** CSS custom properties — `--bg-primary-dark`, `--text-display`, `--text-secondary`, etc. Define tokens independently per mode.
+- **Tokens:** CSS custom properties — `--bg-primary-dark`, `--text-display`, `--text-secondary`,
+  etc. Define tokens independently per mode.
 - **Spacing rhythm:** 8px base; jumps at 32 / 64 / 96px for section breaks.
-- **Motion:** Minimal and precise — no bounce, blur, or ornamental animation; respect `prefers-reduced-motion`.
+- **Motion:** Minimal and precise — no bounce, blur, or ornamental animation; respect
+  `prefers-reduced-motion`.
 
 ## Bilingual Content Model
 

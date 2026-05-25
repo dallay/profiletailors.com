@@ -5,8 +5,8 @@ import com.profiletailors.smp.credentials.application.ServiceAccountCredentialSt
 import com.profiletailors.smp.credentials.infrastructure.security.SpringJwtValidatedTokenMapper
 import com.profiletailors.smp.identity.application.PrincipalIdentityFacts
 import com.profiletailors.smp.identity.application.PrincipalIdentityLookup
+import com.profiletailors.common.domain.context.PrincipalType
 import com.profiletailors.smp.identity.domain.AuthenticatedPrincipal
-import com.profiletailors.smp.identity.domain.PrincipalType
 import com.profiletailors.smp.identity.infrastructure.JwtAuthenticatedPrincipalMaterializer
 import kotlinx.coroutines.reactor.awaitSingle
 import kotlinx.coroutines.test.runTest
@@ -84,6 +84,10 @@ class JwtPrincipalAuthenticationConverterTest {
             )
             else -> null
         }
+
+        override suspend fun findByEmail(email: String): PrincipalIdentityFacts? = null
+
+        override suspend fun findByPrincipalId(principalId: String): PrincipalIdentityFacts? = null
     }
 
     private class StubServiceAccountCredentialStateLookup : ServiceAccountCredentialStateLookup {

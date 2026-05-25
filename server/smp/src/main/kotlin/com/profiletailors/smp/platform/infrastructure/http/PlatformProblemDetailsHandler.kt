@@ -1,9 +1,9 @@
 package com.profiletailors.smp.platform.infrastructure.http
 
 import com.profiletailors.smp.credentials.application.ApiKeyCredentialNotActiveException
-import com.profiletailors.smp.platform.application.MissingPrincipalContextException
-import com.profiletailors.smp.platform.application.MissingResourceContextException
-import com.profiletailors.smp.tenancy.application.MissingActiveWorkspaceException
+import com.profiletailors.smp.credentials.application.RefreshSessionNotActiveException
+import com.profiletailors.common.domain.context.MissingPrincipalContextException
+import com.profiletailors.common.domain.context.MissingResourceContextException
 import org.springframework.http.HttpStatus
 import org.springframework.http.ProblemDetail
 import org.springframework.web.bind.annotation.ExceptionHandler
@@ -30,9 +30,10 @@ class PlatformProblemDetailsHandler {
             title = "Resource context missing"
         }
 
-    @ExceptionHandler(MissingActiveWorkspaceException::class)
-    fun handle(exception: MissingActiveWorkspaceException): ProblemDetail =
-        ProblemDetail.forStatusAndDetail(HttpStatus.BAD_REQUEST, exception.message ?: "Bad request").apply {
-            title = "Active workspace missing"
+    @ExceptionHandler(RefreshSessionNotActiveException::class)
+    fun handle(exception: RefreshSessionNotActiveException): ProblemDetail =
+        ProblemDetail.forStatusAndDetail(HttpStatus.UNAUTHORIZED, exception.message ?: "Unauthorized").apply {
+            title = "Refresh session invalid"
         }
+
 }

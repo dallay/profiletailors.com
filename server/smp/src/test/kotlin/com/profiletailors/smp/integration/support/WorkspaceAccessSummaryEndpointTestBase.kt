@@ -1,11 +1,10 @@
 package com.profiletailors.smp.integration.support
 
-import com.fasterxml.jackson.databind.ObjectMapper
 import com.profiletailors.smp.credentials.application.ReplaceApiKeyCredentialCommand
 import com.profiletailors.smp.credentials.application.ReplaceApiKeyCredentialHandler
-import com.profiletailors.smp.platform.application.AuditHook
-import com.profiletailors.smp.platform.application.AuthorizationDecisionAuditFact
-import com.profiletailors.smp.platform.application.AuthorizationReasonCode
+import com.profiletailors.smp.audit.domain.AuditHook
+import com.profiletailors.smp.audit.domain.AuthorizationDecisionAuditFact
+import com.profiletailors.smp.authorization.domain.AuthorizationReasonCode
 import kotlinx.coroutines.reactor.awaitSingle
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Test
@@ -37,6 +36,11 @@ abstract class WorkspaceAccessSummaryEndpointTestBase : AuthorizationEndpointInt
         "DELETE FROM service_account_credentials",
     )
 
+    companion object {
+        private const val GET_CURRENT_WORKSPACE_ACCESS_SUMMARY_QUERY_FQCN =
+            "com.profiletailors.smp.authorization.application.current.workspace.GetCurrentWorkspaceAccessSummaryQuery"
+    }
+
     // ── Tests ─────────────────────────────────────────────────────────────────
 
     @Test
@@ -59,13 +63,13 @@ abstract class WorkspaceAccessSummaryEndpointTestBase : AuthorizationEndpointInt
         assertAuthorizationFacts(
             listOf(
                 AuthorizationDecisionAuditFact(
-                    requestName = "com.profiletailors.smp.authorization.application.GetCurrentWorkspaceAccessSummaryQuery",
+                    requestName = GET_CURRENT_WORKSPACE_ACCESS_SUMMARY_QUERY_FQCN,
                     requestPath = "/api/authorization/workspace-access/current",
                     permission = "workspace:access:read",
                     principalId = "principal-1",
                     workspaceId = "workspace-1",
-                    decision = com.profiletailors.smp.authorization.domain.AuthorizationDecision.ALLOW,
-                    reasonCode = AuthorizationReasonCode.ROLE_PERMISSION,
+                    decision = com.profiletailors.smp.authorization.domain.AuthorizationDecision.ALLOW.name,
+                    reasonCode = AuthorizationReasonCode.ROLE_PERMISSION.name,
                     roleKeys = listOf("member"),
                 ),
             ),
@@ -86,13 +90,13 @@ abstract class WorkspaceAccessSummaryEndpointTestBase : AuthorizationEndpointInt
         assertAuthorizationFacts(
             listOf(
                 AuthorizationDecisionAuditFact(
-                    requestName = "com.profiletailors.smp.authorization.application.GetCurrentWorkspaceAccessSummaryQuery",
+                    requestName = GET_CURRENT_WORKSPACE_ACCESS_SUMMARY_QUERY_FQCN,
                     requestPath = "/api/authorization/workspace-access/current",
                     permission = "workspace:access:read",
                     principalId = "principal-1",
                     workspaceId = "workspace-1",
-                    decision = com.profiletailors.smp.authorization.domain.AuthorizationDecision.DENY,
-                    reasonCode = AuthorizationReasonCode.MISSING_PERMISSION,
+                    decision = com.profiletailors.smp.authorization.domain.AuthorizationDecision.DENY.name,
+                    reasonCode = AuthorizationReasonCode.MISSING_PERMISSION.name,
                     roleKeys = listOf("member"),
                 ),
             ),
@@ -118,13 +122,13 @@ abstract class WorkspaceAccessSummaryEndpointTestBase : AuthorizationEndpointInt
         assertAuthorizationFacts(
             listOf(
                 AuthorizationDecisionAuditFact(
-                    requestName = "com.profiletailors.smp.authorization.application.GetCurrentWorkspaceAccessSummaryQuery",
+                    requestName = GET_CURRENT_WORKSPACE_ACCESS_SUMMARY_QUERY_FQCN,
                     requestPath = "/api/authorization/workspace-access/current",
                     permission = "workspace:access:read",
                     principalId = "principal-1",
                     workspaceId = "workspace-1",
-                    decision = com.profiletailors.smp.authorization.domain.AuthorizationDecision.ALLOW,
-                    reasonCode = AuthorizationReasonCode.ROLE_PERMISSION,
+                    decision = com.profiletailors.smp.authorization.domain.AuthorizationDecision.ALLOW.name,
+                    reasonCode = AuthorizationReasonCode.ROLE_PERMISSION.name,
                     roleKeys = listOf("member"),
                 ),
             ),
@@ -150,13 +154,13 @@ abstract class WorkspaceAccessSummaryEndpointTestBase : AuthorizationEndpointInt
         assertAuthorizationFacts(
             listOf(
                 AuthorizationDecisionAuditFact(
-                    requestName = "com.profiletailors.smp.authorization.application.GetCurrentWorkspaceAccessSummaryQuery",
+                    requestName = GET_CURRENT_WORKSPACE_ACCESS_SUMMARY_QUERY_FQCN,
                     requestPath = "/api/authorization/workspace-access/current",
                     permission = "workspace:access:read",
                     principalId = "principal-1",
                     workspaceId = "workspace-1",
-                    decision = com.profiletailors.smp.authorization.domain.AuthorizationDecision.ALLOW,
-                    reasonCode = AuthorizationReasonCode.DIRECT_ALLOW,
+                    decision = com.profiletailors.smp.authorization.domain.AuthorizationDecision.ALLOW.name,
+                    reasonCode = AuthorizationReasonCode.DIRECT_ALLOW.name,
                     roleKeys = listOf("member"),
                 ),
             ),
@@ -183,13 +187,13 @@ abstract class WorkspaceAccessSummaryEndpointTestBase : AuthorizationEndpointInt
         assertAuthorizationFacts(
             listOf(
                 AuthorizationDecisionAuditFact(
-                    requestName = "com.profiletailors.smp.authorization.application.GetCurrentWorkspaceAccessSummaryQuery",
+                    requestName = GET_CURRENT_WORKSPACE_ACCESS_SUMMARY_QUERY_FQCN,
                     requestPath = "/api/authorization/workspace-access/current",
                     permission = "workspace:access:read",
                     principalId = "principal-1",
                     workspaceId = "workspace-1",
-                    decision = com.profiletailors.smp.authorization.domain.AuthorizationDecision.DENY,
-                    reasonCode = AuthorizationReasonCode.DIRECT_DENY,
+                    decision = com.profiletailors.smp.authorization.domain.AuthorizationDecision.DENY.name,
+                    reasonCode = AuthorizationReasonCode.DIRECT_DENY.name,
                     roleKeys = listOf("member"),
                 ),
             ),
@@ -216,13 +220,13 @@ abstract class WorkspaceAccessSummaryEndpointTestBase : AuthorizationEndpointInt
         assertAuthorizationFacts(
             listOf(
                 AuthorizationDecisionAuditFact(
-                    requestName = "com.profiletailors.smp.authorization.application.GetCurrentWorkspaceAccessSummaryQuery",
+                    requestName = GET_CURRENT_WORKSPACE_ACCESS_SUMMARY_QUERY_FQCN,
                     requestPath = "/api/authorization/workspace-access/current",
                     permission = "workspace:access:read",
                     principalId = "principal-1",
                     workspaceId = "workspace-1",
-                    decision = com.profiletailors.smp.authorization.domain.AuthorizationDecision.DENY,
-                    reasonCode = AuthorizationReasonCode.MISSING_PERMISSION,
+                    decision = com.profiletailors.smp.authorization.domain.AuthorizationDecision.DENY.name,
+                    reasonCode = AuthorizationReasonCode.MISSING_PERMISSION.name,
                     roleKeys = listOf("member"),
                 ),
             ),
@@ -249,13 +253,13 @@ abstract class WorkspaceAccessSummaryEndpointTestBase : AuthorizationEndpointInt
         assertAuthorizationFacts(
             listOf(
                 AuthorizationDecisionAuditFact(
-                    requestName = "com.profiletailors.smp.authorization.application.GetCurrentWorkspaceAccessSummaryQuery",
+                    requestName = GET_CURRENT_WORKSPACE_ACCESS_SUMMARY_QUERY_FQCN,
                     requestPath = "/api/authorization/workspace-access/current",
                     permission = "workspace:access:read",
                     principalId = "service-principal-1",
                     workspaceId = "workspace-1",
-                    decision = com.profiletailors.smp.authorization.domain.AuthorizationDecision.ALLOW,
-                    reasonCode = AuthorizationReasonCode.ROLE_PERMISSION,
+                    decision = com.profiletailors.smp.authorization.domain.AuthorizationDecision.ALLOW.name,
+                    reasonCode = AuthorizationReasonCode.ROLE_PERMISSION.name,
                     roleKeys = listOf("member"),
                 ),
             ),
@@ -276,13 +280,13 @@ abstract class WorkspaceAccessSummaryEndpointTestBase : AuthorizationEndpointInt
         assertAuthorizationFacts(
             listOf(
                 AuthorizationDecisionAuditFact(
-                    requestName = "com.profiletailors.smp.authorization.application.GetCurrentWorkspaceAccessSummaryQuery",
+                    requestName = GET_CURRENT_WORKSPACE_ACCESS_SUMMARY_QUERY_FQCN,
                     requestPath = "/api/authorization/workspace-access/current",
                     permission = "workspace:access:read",
                     principalId = "service-principal-1",
                     workspaceId = "workspace-1",
-                    decision = com.profiletailors.smp.authorization.domain.AuthorizationDecision.DENY,
-                    reasonCode = AuthorizationReasonCode.MISSING_PERMISSION,
+                    decision = com.profiletailors.smp.authorization.domain.AuthorizationDecision.DENY.name,
+                    reasonCode = AuthorizationReasonCode.MISSING_PERMISSION.name,
                     roleKeys = listOf("member"),
                 ),
             ),
@@ -303,13 +307,13 @@ abstract class WorkspaceAccessSummaryEndpointTestBase : AuthorizationEndpointInt
         assertAuthorizationFacts(
             listOf(
                 AuthorizationDecisionAuditFact(
-                    requestName = "com.profiletailors.smp.authorization.application.GetCurrentWorkspaceAccessSummaryQuery",
+                    requestName = GET_CURRENT_WORKSPACE_ACCESS_SUMMARY_QUERY_FQCN,
                     requestPath = "/api/authorization/workspace-access/current",
                     permission = "workspace:access:read",
                     principalId = "service-principal-1",
                     workspaceId = "workspace-1",
-                    decision = com.profiletailors.smp.authorization.domain.AuthorizationDecision.DENY,
-                    reasonCode = AuthorizationReasonCode.REVOKED_CREDENTIAL,
+                    decision = com.profiletailors.smp.authorization.domain.AuthorizationDecision.DENY.name,
+                    reasonCode = AuthorizationReasonCode.REVOKED_CREDENTIAL.name,
                     roleKeys = emptyList(),
                 ),
             ),
@@ -336,13 +340,13 @@ abstract class WorkspaceAccessSummaryEndpointTestBase : AuthorizationEndpointInt
         assertAuthorizationFacts(
             listOf(
                 AuthorizationDecisionAuditFact(
-                    requestName = "com.profiletailors.smp.authorization.application.GetCurrentWorkspaceAccessSummaryQuery",
+                    requestName = GET_CURRENT_WORKSPACE_ACCESS_SUMMARY_QUERY_FQCN,
                     requestPath = "/api/authorization/workspace-access/current",
                     permission = "workspace:access:read",
                     principalId = "api-key-principal-1",
                     workspaceId = "workspace-1",
-                    decision = com.profiletailors.smp.authorization.domain.AuthorizationDecision.ALLOW,
-                    reasonCode = AuthorizationReasonCode.ROLE_PERMISSION,
+                    decision = com.profiletailors.smp.authorization.domain.AuthorizationDecision.ALLOW.name,
+                    reasonCode = AuthorizationReasonCode.ROLE_PERMISSION.name,
                     roleKeys = listOf("member"),
                 ),
             ),
@@ -363,13 +367,13 @@ abstract class WorkspaceAccessSummaryEndpointTestBase : AuthorizationEndpointInt
         assertAuthorizationFacts(
             listOf(
                 AuthorizationDecisionAuditFact(
-                    requestName = "com.profiletailors.smp.authorization.application.GetCurrentWorkspaceAccessSummaryQuery",
+                    requestName = GET_CURRENT_WORKSPACE_ACCESS_SUMMARY_QUERY_FQCN,
                     requestPath = "/api/authorization/workspace-access/current",
                     permission = "workspace:access:read",
                     principalId = "api-key-principal-1",
                     workspaceId = "workspace-1",
-                    decision = com.profiletailors.smp.authorization.domain.AuthorizationDecision.DENY,
-                    reasonCode = AuthorizationReasonCode.MISSING_PERMISSION,
+                    decision = com.profiletailors.smp.authorization.domain.AuthorizationDecision.DENY.name,
+                    reasonCode = AuthorizationReasonCode.MISSING_PERMISSION.name,
                     roleKeys = listOf("member"),
                 ),
             ),
@@ -390,13 +394,13 @@ abstract class WorkspaceAccessSummaryEndpointTestBase : AuthorizationEndpointInt
         assertAuthorizationFacts(
             listOf(
                 AuthorizationDecisionAuditFact(
-                    requestName = "com.profiletailors.smp.authorization.application.GetCurrentWorkspaceAccessSummaryQuery",
+                    requestName = GET_CURRENT_WORKSPACE_ACCESS_SUMMARY_QUERY_FQCN,
                     requestPath = "/api/authorization/workspace-access/current",
                     permission = "workspace:access:read",
                     principalId = "api-key-principal-1",
                     workspaceId = "workspace-1",
-                    decision = com.profiletailors.smp.authorization.domain.AuthorizationDecision.DENY,
-                    reasonCode = AuthorizationReasonCode.REVOKED_CREDENTIAL,
+                    decision = com.profiletailors.smp.authorization.domain.AuthorizationDecision.DENY.name,
+                    reasonCode = AuthorizationReasonCode.REVOKED_CREDENTIAL.name,
                     roleKeys = emptyList(),
                 ),
             ),
@@ -417,13 +421,13 @@ abstract class WorkspaceAccessSummaryEndpointTestBase : AuthorizationEndpointInt
         assertAuthorizationFacts(
             listOf(
                 AuthorizationDecisionAuditFact(
-                    requestName = "com.profiletailors.smp.authorization.application.GetCurrentWorkspaceAccessSummaryQuery",
+                    requestName = GET_CURRENT_WORKSPACE_ACCESS_SUMMARY_QUERY_FQCN,
                     requestPath = "/api/authorization/workspace-access/current",
                     permission = "workspace:access:read",
                     principalId = "api-key-principal-1",
                     workspaceId = "workspace-1",
-                    decision = com.profiletailors.smp.authorization.domain.AuthorizationDecision.DENY,
-                    reasonCode = AuthorizationReasonCode.REVOKED_CREDENTIAL,
+                    decision = com.profiletailors.smp.authorization.domain.AuthorizationDecision.DENY.name,
+                    reasonCode = AuthorizationReasonCode.REVOKED_CREDENTIAL.name,
                     roleKeys = emptyList(),
                 ),
             ),
@@ -444,13 +448,13 @@ abstract class WorkspaceAccessSummaryEndpointTestBase : AuthorizationEndpointInt
         assertAuthorizationFacts(
             listOf(
                 AuthorizationDecisionAuditFact(
-                    requestName = "com.profiletailors.smp.authorization.application.GetCurrentWorkspaceAccessSummaryQuery",
+                    requestName = GET_CURRENT_WORKSPACE_ACCESS_SUMMARY_QUERY_FQCN,
                     requestPath = "/api/authorization/workspace-access/current",
                     permission = "workspace:access:read",
                     principalId = "principal-1",
                     workspaceId = "workspace-1",
-                    decision = com.profiletailors.smp.authorization.domain.AuthorizationDecision.DENY,
-                    reasonCode = AuthorizationReasonCode.MISSING_ENTITLEMENT,
+                    decision = com.profiletailors.smp.authorization.domain.AuthorizationDecision.DENY.name,
+                    reasonCode = AuthorizationReasonCode.MISSING_ENTITLEMENT.name,
                     roleKeys = listOf("member"),
                 ),
             ),
@@ -778,8 +782,6 @@ abstract class WorkspaceAccessSummaryEndpointTestBase : AuthorizationEndpointInt
             }
         }
 
-        @Bean
-        fun objectMapper(): ObjectMapper = ObjectMapper()
 
         @Bean
         @Primary

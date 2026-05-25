@@ -3,7 +3,7 @@
 // CSS in global.css handles the actual transition.
 
 export function initScrollReveal(): void {
-  const prefersReduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches
+  const prefersReduced = globalThis.matchMedia('(prefers-reduced-motion: reduce)').matches
 
   if (prefersReduced) {
     // CSS already makes them visible via the media query — nothing to do.
