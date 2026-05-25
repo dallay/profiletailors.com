@@ -27,6 +27,7 @@ dependencies {
 	implementation(project(":shared-spring-boot-common"))
 	implementation("org.springframework.boot:spring-boot-starter-data-r2dbc")
 	implementation("org.springframework.boot:spring-boot-starter-oauth2-resource-server")
+	implementation("org.springframework.security:spring-security-oauth2-jose")
 	implementation("org.springframework.boot:spring-boot-starter-security")
 	implementation("org.springframework.boot:spring-boot-starter-webflux")
 	implementation("org.springframework.security:spring-security-crypto")
@@ -79,7 +80,12 @@ tasks.check {
 }
 
 tasks.withType<Test> {
-	useJUnitPlatform()
+	useJUnitPlatform {
+		val tags = providers.gradleProperty("excludeTags").orNull
+		if (!tags.isNullOrBlank()) {
+			excludeTags(*tags.split(",").map { it.trim() }.toTypedArray())
+		}
+	}
 	finalizedBy(tasks.jacocoTestReport)
 }
 

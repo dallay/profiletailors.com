@@ -1,4 +1,4 @@
-package com.profiletailors.smp.platform.infrastructure.http
+package com.profiletailors.smp.tenancy.infrastructure.http
 
 import com.profiletailors.smp.tenancy.application.MissingActiveWorkspaceException
 import org.junit.jupiter.api.Assertions.assertEquals
@@ -7,7 +7,7 @@ import org.springframework.http.HttpStatus
 
 class TenancyProblemDetailsHandlerTest {
 
-    private val handler = PlatformProblemDetailsHandler()
+    private val handler = TenancyProblemDetailsHandler()
 
     @Test
     fun `maps missing active workspace to bad request problem detail`() {

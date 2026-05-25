@@ -1,6 +1,12 @@
 package com.profiletailors.smp.authorization.application
 
+import com.profiletailors.common.domain.Service
+import com.profiletailors.smp.authorization.application.noop.NoOpDirectGrantResolver
+import com.profiletailors.smp.authorization.application.noop.NoOpEntitlementResolver
+import com.profiletailors.smp.authorization.application.noop.NoOpScopeResolver
 import com.profiletailors.smp.authorization.domain.AuthorizationDecision
+import com.profiletailors.smp.authorization.domain.AuthorizationDecisionResult
+import com.profiletailors.smp.authorization.domain.AuthorizationReasonCode
 import com.profiletailors.smp.authorization.domain.AuthorizationScope
 import com.profiletailors.smp.authorization.domain.DirectGrant
 import com.profiletailors.smp.authorization.domain.DirectGrantResolver
@@ -13,14 +19,14 @@ import com.profiletailors.smp.authorization.domain.ScopeResolver
 import com.profiletailors.smp.authorization.domain.WorkspaceAuthorizationDecider
 import com.profiletailors.smp.authorization.domain.WorkspaceMembershipResolver
 import com.profiletailors.smp.authorization.domain.WorkspaceMembershipRoleResolver
-import com.profiletailors.smp.identity.domain.PrincipalContext
-import com.profiletailors.smp.platform.application.AuthorizationReasonCode
-import com.profiletailors.smp.platform.application.PrincipalContextProvider
-import com.profiletailors.smp.platform.application.ResourceContextProvider
-import com.profiletailors.smp.platform.domain.ResourceContext
+import com.profiletailors.common.domain.context.PrincipalContext
+import com.profiletailors.common.domain.context.PrincipalContextProvider
+import com.profiletailors.common.domain.context.ResourceContext
+import com.profiletailors.common.domain.context.ResourceContextProvider
 import java.time.Clock
 
-class WorkspaceAuthorizationService(
+@Service
+internal class WorkspaceAuthorizationService(
     private val principalContextProvider: PrincipalContextProvider,
     private val resourceContextProvider: ResourceContextProvider,
     private val workspaceMembershipResolver: WorkspaceMembershipResolver,
@@ -182,22 +188,4 @@ class WorkspaceAuthorizationService(
         val targetResourceType: String,
         val targetResourceId: String,
     )
-}
-
-class NoOpDirectGrantResolver : DirectGrantResolver {
-    override suspend fun resolve(
-        principalContext: PrincipalContext,
-        resourceContext: ResourceContext,
-    ): Set<DirectGrant> = emptySet()
-}
-
-class NoOpScopeResolver : ScopeResolver {
-    override suspend fun resolve(
-        principalContext: PrincipalContext,
-        resourceContext: ResourceContext,
-    ): Set<AuthorizationScope> = emptySet()
-}
-
-class NoOpEntitlementResolver : EntitlementResolver {
-    override suspend fun resolve(resourceContext: ResourceContext): Set<Entitlement> = emptySet()
 }

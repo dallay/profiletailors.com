@@ -1,6 +1,11 @@
 package com.profiletailors.smp.tenancy.infrastructure.http
 
-import com.profiletailors.smp.platform.application.Mediator
+import com.profiletailors.common.domain.bus.Mediator
+import com.profiletailors.common.domain.bus.command.Command
+import com.profiletailors.common.domain.bus.command.CommandWithResult
+import com.profiletailors.common.domain.bus.notification.Notification
+import com.profiletailors.common.domain.bus.PublishStrategy
+import com.profiletailors.common.domain.bus.query.Query
 import com.profiletailors.smp.tenancy.application.AddWorkspaceOwnerCommand
 import com.profiletailors.smp.tenancy.application.RemoveWorkspaceOwnerCommand
 import com.profiletailors.smp.tenancy.application.TransferWorkspaceOwnershipCommand
@@ -55,10 +60,25 @@ class WorkspaceOwnershipControllerTest {
     ) : Mediator {
         var lastRequest: Any? = null
 
-        override suspend fun <RESPONSE> dispatch(request: com.profiletailors.smp.platform.application.Request<RESPONSE>): RESPONSE {
-            lastRequest = request
-            @Suppress("UNCHECKED_CAST")
-            return result as RESPONSE
+        override suspend fun <TQuery : Query<TResponse>, TResponse> send(query: TQuery): TResponse =
+            error("Not used in this test")
+
+        override suspend fun <TCommand : Command> send(command: TCommand) {
+            error("Not used in this test")
+        }
+
+        @Suppress("UNCHECKED_CAST")
+        override suspend fun <TCommand : CommandWithResult<TResult>, TResult> send(command: TCommand): TResult {
+            lastRequest = command
+            return result as TResult
+        }
+
+        override suspend fun <T : Notification> publish(notification: T) {
+            error("Not used in this test")
+        }
+
+        override suspend fun <T : Notification> publish(notification: T, publishStrategy: PublishStrategy) {
+            error("Not used in this test")
         }
     }
 }

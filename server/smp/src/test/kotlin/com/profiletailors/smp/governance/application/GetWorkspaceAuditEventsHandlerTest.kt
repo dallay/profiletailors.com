@@ -1,13 +1,20 @@
 package com.profiletailors.smp.governance.application
 
-import com.profiletailors.smp.authorization.application.AuthorizationDecisionResult
-import com.profiletailors.smp.authorization.domain.WorkspaceAuthorizationDecider
+import com.profiletailors.common.domain.context.ResourceContext
+import com.profiletailors.smp.governance.application.AuditEventCursor
+import com.profiletailors.smp.governance.application.AuditEventCursorCodec
+import com.profiletailors.smp.governance.application.AuditEventItem
+import com.profiletailors.smp.governance.application.AuditEventReader
+import com.profiletailors.smp.governance.application.GetWorkspaceAuditEventsQuery
+import com.profiletailors.smp.governance.application.InvalidAuditEventCursorException
+import com.profiletailors.common.domain.context.ResourceContextProvider
+import com.profiletailors.common.domain.context.ResourceContextType
 import com.profiletailors.smp.authorization.domain.AuthorizationDecision
+import com.profiletailors.smp.authorization.domain.AuthorizationDecisionResult
+import com.profiletailors.smp.authorization.domain.AuthorizationDeniedException
+import com.profiletailors.smp.authorization.domain.AuthorizationReasonCode
 import com.profiletailors.smp.authorization.domain.PermissionKey
-import com.profiletailors.smp.platform.application.AuthorizationReasonCode
-import com.profiletailors.smp.platform.application.ResourceContextProvider
-import com.profiletailors.smp.platform.domain.ResourceContext
-import com.profiletailors.smp.platform.domain.ResourceContextType
+import com.profiletailors.smp.authorization.domain.WorkspaceAuthorizationDecider
 import kotlinx.coroutines.test.runTest
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertFalse
@@ -200,7 +207,7 @@ class GetWorkspaceAuditEventsHandlerTest {
             workspaceAuthorizationDecider = denyDecider(),
         )
 
-        assertThrows(com.profiletailors.smp.authorization.application.AuthorizationDeniedException::class.java) {
+        assertThrows(AuthorizationDeniedException::class.java) {
             kotlinx.coroutines.runBlocking { handler.handle(GetWorkspaceAuditEventsQuery()) }
         }
     }

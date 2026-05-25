@@ -1,7 +1,6 @@
 package com.profiletailors.smp.authorization.domain
 
-import com.profiletailors.smp.authorization.application.AuthorizationDecisionResult
-import com.profiletailors.smp.platform.domain.ResourceContext
+import com.profiletailors.common.domain.context.ResourceContext
 
 interface WorkspaceAuthorizationDecider {
     suspend fun decide(

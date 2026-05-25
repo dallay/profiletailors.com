@@ -1,8 +1,8 @@
 package com.profiletailors.smp.identity.infrastructure.security
 
+import com.profiletailors.common.domain.context.PrincipalContext
+import com.profiletailors.common.domain.context.PrincipalContextProvider
 import com.profiletailors.smp.identity.domain.AuthenticatedPrincipal
-import com.profiletailors.smp.identity.domain.PrincipalContext
-import com.profiletailors.smp.platform.application.PrincipalContextProvider
 import reactor.kotlin.core.publisher.switchIfEmpty
 import kotlinx.coroutines.reactor.awaitSingleOrNull
 import org.springframework.security.core.context.ReactiveSecurityContextHolder

@@ -1,10 +1,10 @@
 package com.profiletailors.smp.identity.infrastructure.security
 
-import com.profiletailors.smp.identity.domain.AuthenticatedPrincipal
-import com.profiletailors.smp.identity.domain.PrincipalContext
-import com.profiletailors.smp.identity.domain.PrincipalType
-import com.profiletailors.smp.platform.application.MissingPrincipalContextException
+import com.profiletailors.common.domain.context.MissingPrincipalContextException
+import com.profiletailors.common.domain.context.PrincipalContext
+import com.profiletailors.common.domain.context.PrincipalType
 import com.profiletailors.smp.credentials.domain.CredentialType
+import com.profiletailors.smp.identity.domain.AuthenticatedPrincipal
 import kotlinx.coroutines.reactor.awaitSingle
 import kotlinx.coroutines.test.runTest
 import org.junit.jupiter.api.Assertions.assertEquals

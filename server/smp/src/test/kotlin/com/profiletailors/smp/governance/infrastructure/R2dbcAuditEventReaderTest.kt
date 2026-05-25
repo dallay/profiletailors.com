@@ -3,8 +3,8 @@ package com.profiletailors.smp.governance.infrastructure
 import com.fasterxml.jackson.databind.ObjectMapper
 import com.profiletailors.smp.authorization.domain.AuthorizationDecision
 import com.profiletailors.smp.governance.application.AuditEventCursor
-import com.profiletailors.smp.platform.application.AuthorizationDecisionAuditFact
-import com.profiletailors.smp.platform.application.AuthorizationReasonCode
+import com.profiletailors.smp.audit.domain.AuthorizationDecisionAuditFact
+import com.profiletailors.smp.authorization.domain.AuthorizationReasonCode
 import io.r2dbc.h2.H2ConnectionConfiguration
 import io.r2dbc.h2.H2ConnectionFactory
 import kotlinx.coroutines.reactor.awaitSingle
@@ -59,8 +59,8 @@ class R2dbcAuditEventReaderTest {
                 permission = "workspace:access:read",
                 principalId = "principal-1",
                 workspaceId = "workspace-1",
-                decision = AuthorizationDecision.ALLOW,
-                reasonCode = AuthorizationReasonCode.ROLE_PERMISSION,
+                decision = AuthorizationDecision.ALLOW.name,
+                reasonCode = com.profiletailors.smp.authorization.domain.AuthorizationReasonCode.ROLE_PERMISSION.name,
                 roleKeys = listOf("member"),
             ),
         )

@@ -1,72 +1,15 @@
 package com.profiletailors.smp.authorization.application.resource.getpreview
 
-import com.profiletailors.smp.platform.application.QueryHandler
-import com.profiletailors.smp.authorization.application.AuthorizationDeniedException
-import com.profiletailors.smp.authorization.domain.AuthorizationDecision
-import com.profiletailors.smp.authorization.domain.PermissionKey
-import com.profiletailors.smp.authorization.domain.WorkspaceAuthorizationDecider
-import com.profiletailors.smp.platform.application.AuditHook
-import com.profiletailors.smp.platform.application.AuthorizationDecisionAuditFact
-import com.profiletailors.smp.platform.application.PrincipalContextProvider
-import com.profiletailors.smp.platform.application.ResourceContextProvider
-import com.profiletailors.smp.platform.domain.ResourceContext
-import com.profiletailors.smp.platform.domain.ResourceContextType
+import com.profiletailors.common.domain.Service
+import com.profiletailors.common.domain.bus.query.QueryHandler
+import com.profiletailors.smp.authorization.application.resource.getpreview.GetResourcePreviewQuery
+import com.profiletailors.smp.authorization.application.resource.getpreview.ResourcePreview
 
-private const val RESOURCE_PREVIEW_PATH = "/api/authorization/resources"
-private const val RESOURCE_TARGET_TYPE = "RESOURCE"
-
-class GetResourcePreviewHandler(
-    private val principalContextProvider: PrincipalContextProvider,
-    private val resourceContextProvider: ResourceContextProvider,
-    private val workspaceAuthorizationDecider: WorkspaceAuthorizationDecider,
-    private val auditHook: AuditHook,
+@Service
+internal class GetResourcePreviewHandler(
+    private val service: GetResourcePreviewService,
 ) : QueryHandler<GetResourcePreviewQuery, ResourcePreview> {
 
-    override suspend fun handle(query: GetResourcePreviewQuery): ResourcePreview {
-        val principalContext = principalContextProvider.require()
-        val baseResourceContext = resourceContextProvider.require()
-        val requiredPermission = PermissionKey.of("workspace", "resource", "read")
-        val targetAwareContext = ResourceContext(
-            type = ResourceContextType.WORKSPACE,
-            workspaceId = baseResourceContext.workspaceId,
-            resourceOwnerId = baseResourceContext.resourceOwnerId,
-            targetResourceType = RESOURCE_TARGET_TYPE,
-            targetResourceId = query.resourceId,
-            scopeHints = baseResourceContext.scopeHints,
-        )
-
-        val decision = workspaceAuthorizationDecider.decideDetailed(
-            requiredPermission = requiredPermission,
-            resourceContextOverride = targetAwareContext,
-        )
-
-        auditHook.onAuthorizationDecision(
-            AuthorizationDecisionAuditFact(
-                requestName = query::class.java.name,
-                requestPath = "$RESOURCE_PREVIEW_PATH/${query.resourceId}/preview",
-                permission = requiredPermission.value,
-                principalId = principalContext.principalId,
-                workspaceId = targetAwareContext.workspaceId,
-                decision = decision.decision,
-                reasonCode = decision.reasonCode,
-                roleKeys = decision.roleKeys.toList(),
-            ),
-        )
-
-        if (decision.decision != AuthorizationDecision.ALLOW) {
-            throw AuthorizationDeniedException.forDecision(
-                decision = decision,
-                requiredPermission = requiredPermission,
-                requiredEntitlementKey = null,
-                targetResourceId = query.resourceId,
-            )
-        }
-
-        return ResourcePreview(
-            workspaceId = requireNotNull(targetAwareContext.workspaceId),
-            resourceId = query.resourceId,
-            principalId = principalContext.principalId,
-            previewAllowed = true,
-        )
-    }
+    override suspend fun handle(query: GetResourcePreviewQuery): ResourcePreview =
+        service.execute(query)
 }

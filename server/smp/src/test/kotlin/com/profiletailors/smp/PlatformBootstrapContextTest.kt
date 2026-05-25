@@ -1,12 +1,13 @@
 package com.profiletailors.smp
 
-import com.profiletailors.smp.platform.application.Mediator
+import com.profiletailors.common.domain.bus.Mediator
 import org.junit.jupiter.api.Assertions.assertNotNull
 import org.junit.jupiter.api.Test
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.test.context.SpringBootTest
 
-@SpringBootTest
+@SpringBootTest(properties = ["spring.main.allow-bean-definition-overriding=true"])
+
 class PlatformBootstrapContextTest(
     @Autowired private val mediator: Mediator,
 ) {

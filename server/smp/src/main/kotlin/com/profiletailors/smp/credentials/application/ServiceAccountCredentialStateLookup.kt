@@ -1,6 +1,6 @@
 package com.profiletailors.smp.credentials.application
 
-import com.profiletailors.smp.identity.domain.PrincipalType
+import com.profiletailors.common.domain.context.PrincipalType
 import org.springframework.security.authentication.BadCredentialsException
 
 data class ActiveServiceAccountCredential(
@@ -14,20 +14,6 @@ interface ServiceAccountCredentialStateLookup {
         subject: String,
         provider: String,
     ): ActiveServiceAccountCredential
-}
-
-class NoOpServiceAccountCredentialStateLookup : ServiceAccountCredentialStateLookup {
-    override suspend fun requireActive(
-        credentialReference: String,
-        subject: String,
-        provider: String,
-    ): ActiveServiceAccountCredential =
-        throw ServiceAccountCredentialNotActiveException(
-            credentialReference = credentialReference,
-            subject = subject,
-            provider = provider,
-            reason = ServiceAccountCredentialFailureReason.MISSING,
-        )
 }
 
 enum class ServiceAccountCredentialFailureReason {

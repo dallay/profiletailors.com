@@ -1,6 +1,7 @@
 package com.profiletailors.smp.tenancy.domain
 
-import com.profiletailors.smp.identity.domain.PrincipalType
+import com.profiletailors.common.domain.context.PrincipalType
+import com.profiletailors.smp.tenancy.domain.WorkspaceMembership
 import java.time.Instant
 
 data class WorkspaceOwnership(
