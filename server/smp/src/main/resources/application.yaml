@@ -23,7 +23,7 @@ app:
     cors:
       allowed-origins: ${SMP_CORS_ALLOWED_ORIGINS:}  # comma-separated, empty = no CORS access
     local-jwt:
-      secret: ${SMP_LOCAL_JWT_SECRET:profiletailors-local-secret-change-me-1234567890}
+      secret: ${SMP_LOCAL_JWT_SECRET:}
       issuer: ${SMP_LOCAL_JWT_ISSUER:http://localhost/profiletailors-local}
       ttl-seconds: ${SMP_LOCAL_JWT_TTL_SECONDS:900}
     refresh-session:
