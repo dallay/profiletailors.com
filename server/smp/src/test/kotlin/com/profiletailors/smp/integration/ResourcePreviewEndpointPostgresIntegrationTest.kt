@@ -2,6 +2,7 @@ package com.profiletailors.smp.integration
 
 import com.fasterxml.jackson.databind.ObjectMapper
 import com.profiletailors.smp.integration.support.ResourcePreviewEndpointTestBase
+import org.junit.jupiter.api.Tag
 import org.springframework.boot.test.context.SpringBootTest
 import org.springframework.boot.test.context.TestConfiguration
 import org.springframework.boot.webtestclient.autoconfigure.AutoConfigureWebTestClient
@@ -14,6 +15,7 @@ import org.testcontainers.junit.jupiter.Testcontainers
 
 import org.springframework.context.annotation.Import
 
+@Tag("postgres")
 @AutoConfigureWebTestClient
 @SpringBootTest(
     webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT,

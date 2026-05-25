@@ -1,7 +1,7 @@
 package com.profiletailors.smp.integration
 
 import com.profiletailors.smp.integration.support.WorkspaceAccessSummaryEndpointTestBase
-import com.profiletailors.smp.integration.support.WorkspaceAccessSummaryEndpointTestBase.SharedTestBeans
+import org.junit.jupiter.api.Tag
 import org.junit.jupiter.api.TestInstance
 import org.springframework.boot.test.context.SpringBootTest
 import org.springframework.boot.webtestclient.autoconfigure.AutoConfigureWebTestClient
@@ -12,6 +12,7 @@ import org.testcontainers.containers.PostgreSQLContainer
 import org.testcontainers.junit.jupiter.Container
 import org.testcontainers.junit.jupiter.Testcontainers
 
+@Tag("postgres")
 @AutoConfigureWebTestClient
 @SpringBootTest(
     webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT,
@@ -25,7 +26,7 @@ import org.testcontainers.junit.jupiter.Testcontainers
 )
 @Testcontainers(disabledWithoutDocker = true)
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
-@Import(SharedTestBeans::class)
+@Import(WorkspaceAccessSummaryEndpointTestBase.SharedTestBeans::class)
 class WorkspaceAccessSummaryEndpointPostgresIntegrationTest : WorkspaceAccessSummaryEndpointTestBase() {
 
     override fun liquibaseJdbcUrl(): String = postgres.jdbcUrl
