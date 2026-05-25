@@ -110,7 +110,12 @@ class IdentitySecurityConfiguration {
             .csrf { it.disable() }
             .cors { }
             .authorizeExchange {
-                it.pathMatchers(HttpMethod.GET, "/actuator/health").permitAll()
+                it.pathMatchers(
+                        HttpMethod.GET,
+                        "/actuator/health",
+                        "/actuator/health/**",
+                        "/actuator/prometheus",
+                    ).permitAll()
                     .pathMatchers(
                         HttpMethod.POST,
                         "/api/auth/login",
