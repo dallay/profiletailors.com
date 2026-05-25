@@ -5,30 +5,37 @@
 ## 📖 Table of Contents
 
 ### Architecture & Design
+
 - [API Versioning](./api-versioning.md) - Spring Boot 4 media-type versioning implementation
 - [Architecture Overview](./architecture/) - System architecture and design patterns
 
 ### Infrastructure
+
 - [Modular Docker Compose](./infrastructure/modular-docker-compose.md) - Reusable infrastructure services
 - [PostgreSQL Setup](../infra/postgres/) - Database configuration
 
 ### Monitoring & Observability
+
 - [Prometheus & Grafana Setup](./monitoring/prometheus-grafana-setup.md) - Metrics collection and visualization
 - [Actuator Security](./monitoring/actuator-security.md) - Securing Spring Boot Actuator endpoints
 
 ### Development & Testing
+
 - [Code Coverage Setup](./codecov-setup.md) - JaCoCo and Codecov integration
 
 ### Security
+
 - [Security Guidelines](./security/) - Security best practices and configurations
 
 ## 🚀 Quick Links
 
 ### For Developers
+
 - [SMP Server README](../server/smp/README.md)
 - [Infrastructure README](../infra/README.md)
 
 ### For Operations
+
 - [Monitoring Setup](./monitoring/prometheus-grafana-setup.md)
 - [Infrastructure Management](./infrastructure/modular-docker-compose.md)
 

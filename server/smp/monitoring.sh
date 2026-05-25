@@ -34,7 +34,7 @@ URLs:
     Prometheus: http://localhost:9090
     Grafana:    http://localhost:3000 (admin/admin)
     SMP Health: http://localhost:8080/actuator/health
-    SMP Metrics: http://localhost:9091/actuator/prometheus (puerto interno)
+    SMP Metrics: http://localhost:8080/actuator/prometheus (desarrollo)
 EOF
 }
 
@@ -48,7 +48,7 @@ function start_monitoring() {
     echo ""
     echo "💡 Verifica que el servidor SMP esté corriendo:"
     echo "   API:     http://localhost:8080"
-    echo "   Metrics: http://localhost:9091 (puerto interno)"
+    echo "   Metrics: http://localhost:8080/actuator/prometheus"
 }
 
 function stop_monitoring() {
@@ -65,7 +65,7 @@ function restart_monitoring() {
 
 function show_logs() {
     local service="${1:-}"
-    if [ -z "$service" ]; then
+    if [[ -z "$service" ]]; then
         docker-compose -f "$COMPOSE_FILE" logs -f
     else
         docker-compose -f "$COMPOSE_FILE" logs -f "$service"

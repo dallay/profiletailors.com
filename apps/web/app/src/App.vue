@@ -4,7 +4,6 @@ import {
   AudioWaveform,
   BarChart3,
   CalendarDays,
-  ChevronRight,
   ChevronsUpDown,
   FolderKanban,
   GalleryVerticalEnd,
@@ -205,10 +204,6 @@ function saveProjectsState() {
   localStorage.setItem('sidebar-projects-state', JSON.stringify(projectsOpenState.value))
 }
 
-function isProjectOpen(projectName: string): boolean {
-  return projectsOpenState.value[projectName] ?? false
-}
-
 function toggleProject(projectName: string, open: boolean) {
   projectsOpenState.value[projectName] = open
   saveProjectsState()
@@ -298,7 +293,7 @@ onBeforeUnmount(() => {
               v-for="project in projectLinks"
               :key="project.name"
               v-slot="{ open }"
-              :default-open="isProjectOpen(project.name)"
+              :open="projectsOpenState[project.name] ?? false"
               as-child
               @update:open="(isOpen) => toggleProject(project.name, isOpen)"
             >

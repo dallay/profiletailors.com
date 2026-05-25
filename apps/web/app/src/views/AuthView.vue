@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref } from 'vue'
+import { computed, ref } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { Button } from '@/components/ui/button'
 import { useAuthStore } from '@/stores/auth'
@@ -8,8 +8,8 @@ const auth = useAuthStore()
 const route = useRoute()
 const router = useRouter()
 
-const isRegisterMode = ref(route.name === 'register')
-const alternateRoute = isRegisterMode.value ? '/login' : '/register'
+const isRegisterMode = computed(() => route.name === 'register')
+const alternateRoute = computed(() => isRegisterMode.value ? '/login' : '/register')
 
 const email = ref('')
 const password = ref('')

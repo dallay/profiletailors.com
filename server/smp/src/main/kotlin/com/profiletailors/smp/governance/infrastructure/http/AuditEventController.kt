@@ -6,6 +6,8 @@ import com.profiletailors.smp.governance.application.WorkspaceAuditEventsRespons
 import io.swagger.v3.oas.annotations.Operation
 import io.swagger.v3.oas.annotations.Parameter
 import io.swagger.v3.oas.annotations.tags.Tag
+import jakarta.validation.constraints.Max
+import jakarta.validation.constraints.Min
 import org.springframework.format.annotation.DateTimeFormat
 import org.springframework.validation.annotation.Validated
 import org.springframework.web.bind.annotation.GetMapping
@@ -21,6 +23,11 @@ import java.time.Instant
 class AuditEventController(
     private val mediator: Mediator,
 ) {
+    companion object {
+        private const val DEFAULT_LIMIT_VALUE = "50"
+        private const val MAX_LIMIT = 100L
+    }
+
     @Operation(summary = "List workspace audit events")
     @GetMapping(version = "1")
     suspend fun listWorkspaceAuditEvents(
@@ -61,9 +68,12 @@ class AuditEventController(
         @RequestParam(required = false) cursor: String?,
         @Parameter(
             description = "Maximum number of events to return (default: 50, max: 100)",
-            example = "50",
+            example = DEFAULT_LIMIT_VALUE,
         )
-        @RequestParam(required = false, defaultValue = "50") limit: Int,
+        @RequestParam(required = false, defaultValue = DEFAULT_LIMIT_VALUE)
+        @Min(1)
+        @Max(MAX_LIMIT)
+        limit: Int,
     ): WorkspaceAuditEventsResponse = mediator.send(
         GetWorkspaceAuditEventsQuery(
             targetType = targetType,

@@ -7,19 +7,23 @@ Se ha configurado el test coverage completo para SonarQube en el proyecto Profil
 ## 📋 Archivos Creados
 
 ### Configuración de Testing
+
 - ✅ `apps/web/marketing/vitest.config.ts` - Configuración de Vitest con coverage v8
 - ✅ `apps/web/marketing/src/i18n/utils.test.ts` - Test de ejemplo para i18n utils
 
 ### Workflows de CI/CD
+
 - ✅ `.github/workflows/sonarqube.yml` - Workflow completo de análisis SonarQube
 
 ### Documentación
+
 - ✅ `docs/SONARQUBE_COVERAGE.md` - Guía técnica completa de coverage
 - ✅ `docs/SONARQUBE_SETUP.md` - Guía de configuración inicial paso a paso
 
 ## 📝 Archivos Modificados
 
 ### Configuración del Proyecto
+
 - ✅ `sonar-project.properties` - Actualizado con rutas de coverage para backend y frontend
 - ✅ `apps/web/marketing/package.json` - Agregados scripts de test y dependencias de Vitest
 - ✅ `.gitignore` - Agregadas exclusiones para reportes de coverage
@@ -31,10 +35,12 @@ Se ha configurado el test coverage completo para SonarQube en el proyecto Profil
 **Coverage Tool**: JaCoCo (ya configurado)
 
 **Reporte**: 
+
 - XML: `server/smp/build/reports/jacoco/test/jacocoTestReport.xml`
 - HTML: `server/smp/build/reports/jacoco/test/html/index.html`
 
 **Comando**:
+
 ```bash
 cd server/smp
 ./gradlew test jacocoTestReport
@@ -43,6 +49,7 @@ cd server/smp
 **Threshold**: 80% mínimo
 
 **Exclusiones**:
+
 - `**/config/**` - Clases de configuración
 - `**/dto/**` - Data Transfer Objects
 - `**/entity/**` - Entidades JPA
@@ -53,10 +60,12 @@ cd server/smp
 **Coverage Tool**: Vitest con v8 provider
 
 **Reporte**:
+
 - LCOV: `apps/web/marketing/coverage/lcov.info`
 - HTML: `apps/web/marketing/coverage/index.html`
 
 **Comandos**:
+
 ```bash
 cd apps/web/marketing
 pnpm install          # Instalar dependencias (incluye vitest)
@@ -67,6 +76,7 @@ pnpm test:coverage    # Ejecutar tests con coverage
 **Threshold**: 80% mínimo (lines, functions, branches, statements)
 
 **Exclusiones**:
+
 - `node_modules/**`
 - `dist/**`
 - `.astro/**`
@@ -111,6 +121,7 @@ El workflow ejecuta:
    - Sube artifacts de coverage
 
 ### Triggers
+
 - Push a `main` o `develop`
 - Pull requests a `main` o `develop`
 
@@ -118,7 +129,7 @@ El workflow ejecuta:
 
 Configurar en **GitHub Settings → Secrets and variables → Actions**:
 
-```
+```text
 SONAR_TOKEN           # Token de autenticación de SonarQube/SonarCloud
 SONAR_HOST_URL        # URL del servidor (ej: https://sonarcloud.io)
 SONAR_PROJECT_KEY     # Key del proyecto
@@ -128,11 +139,13 @@ SONAR_ORGANIZATION    # Organización de SonarCloud (solo para SonarCloud)
 ## 📊 Métricas de Coverage
 
 ### Backend
+
 - **Actual**: Configurado con JaCoCo
 - **Target**: ≥ 80%
 - **Formato**: XML (compatible con SonarQube)
 
 ### Frontend
+
 - **Actual**: Configurado con Vitest + v8
 - **Target**: ≥ 80% (lines, functions, branches, statements)
 - **Formato**: LCOV (compatible con SonarQube)
@@ -142,6 +155,7 @@ SONAR_ORGANIZATION    # Organización de SonarCloud (solo para SonarCloud)
 ### Verificación Local
 
 **Backend**:
+
 ```bash
 cd server/smp
 ./gradlew test jacocoTestReport
@@ -149,6 +163,7 @@ open build/reports/jacoco/test/html/index.html
 ```
 
 **Frontend**:
+
 ```bash
 cd apps/web/marketing
 pnpm test:coverage
@@ -165,20 +180,24 @@ open coverage/index.html
 ## 📚 Próximos Pasos
 
 1. **Instalar dependencias del frontend**:
+
    ```bash
    cd apps/web/marketing
    pnpm install
    ```
 
 2. **Configurar secrets en GitHub**:
+
    - Ir a Settings → Secrets and variables → Actions
    - Agregar los 4 secrets requeridos
 
 3. **Actualizar `sonar-project.properties`**:
+
    - Reemplazar `profiletailors-change-me` con el project key real
    - Descomentar y configurar `sonar.organization` (si usas SonarCloud)
 
 4. **Ejecutar tests localmente** para verificar:
+
    ```bash
    # Backend
    cd server/smp && ./gradlew test jacocoTestReport
@@ -188,6 +207,7 @@ open coverage/index.html
    ```
 
 5. **Crear PR y verificar workflow**:
+
    - El workflow debe ejecutarse sin errores
    - Ambos reportes de coverage deben generarse
    - SonarQube debe mostrar las métricas
@@ -208,6 +228,7 @@ open coverage/index.html
 ## 🎉 Resultado Final
 
 Una vez configurado completamente:
+
 - ✅ Coverage automático en cada PR
 - ✅ Reportes visuales en SonarQube dashboard
 - ✅ Quality gate que bloquea PRs con baja cobertura

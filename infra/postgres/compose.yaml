@@ -7,11 +7,13 @@ services:
     environment:
       POSTGRES_DB: ${POSTGRES_DB:-profiletailors_smp}
       POSTGRES_USER: ${POSTGRES_USER:-profiletailors}
+      # WARNING: This default password is for local development only. 
+      # Do not use in production. See docs/security/
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-profiletailors}
     ports:
       - '${POSTGRES_PORT:-5432}:5432'
     volumes:
-      - postgres_data:/var/lib/postgresql
+      - postgres_data:/var/lib/postgresql/data
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-profiletailors} -d ${POSTGRES_DB:-profiletailors_smp}"]
       interval: 10s

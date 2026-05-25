@@ -29,18 +29,16 @@ describe('i18n utils', () => {
       const url = new URL('https://example.com/');
       const t = useTranslations(url);
       
-      expect(t.nav).toBeDefined();
-      expect(t.hero).toBeDefined();
-      expect(t.features).toBeDefined();
+      expect(t.nav.langSwitch).toBe('ES');
+      expect(t.hero.label).toBe('NOW IN EARLY ACCESS');
     });
 
     it('should return Spanish translations for /es/', () => {
       const url = new URL('https://example.com/es/');
       const t = useTranslations(url);
       
-      expect(t.nav).toBeDefined();
-      expect(t.hero).toBeDefined();
-      expect(t.features).toBeDefined();
+      expect(t.nav.langSwitch).toBe('EN');
+      expect(t.hero.label).toBe('ACCESO ANTICIPADO');
     });
   });
 });

@@ -14,8 +14,6 @@ paths = [
   ".agents/skills/backend-platform/spring-boot/security/scripts/test-jwt-setup.sh",
   ".agents/skills/backend-platform/spring-boot/security/references/jwt-testing-guide.md",
   "shared/common/src/test/kotlin/com/profiletailors/common/testfixture/CredentialFixtures.kt",
-  ".env.example",
-  "server/smp/.env.example",
 ]
 regexes = [
   "invalid\\.token\\.here",

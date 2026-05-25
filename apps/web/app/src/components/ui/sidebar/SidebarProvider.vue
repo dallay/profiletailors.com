@@ -54,6 +54,16 @@ provide(sidebarContextKey, {
 })
 
 useEventListener('keydown', (event: KeyboardEvent) => {
+  const target = event.target as HTMLElement
+  if (
+    target?.tagName === 'INPUT' ||
+    target?.tagName === 'TEXTAREA' ||
+    target?.isContentEditable ||
+    target?.closest('[contenteditable="true"]')
+  ) {
+    return
+  }
+
   if (event.key.toLowerCase() === SIDEBAR_KEYBOARD_SHORTCUT && (event.metaKey || event.ctrlKey)) {
     event.preventDefault()
     toggleSidebar()

@@ -19,12 +19,3 @@ scrape_configs:
           application: 'smp'
           service: 'social-media-platform'
           instance: 'smp-local'
-
-  - job_name: 'spring-boot-smp-health'
-    metrics_path: '/actuator/health'
-    scrape_interval: 10s
-    static_configs:
-      - targets: ['host.docker.internal:8080']
-        labels:
-          application: 'smp'
-          check: 'health'

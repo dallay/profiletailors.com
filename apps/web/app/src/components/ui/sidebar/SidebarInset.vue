@@ -18,7 +18,7 @@ const isCollapsed = computed(() => !sidebar.open.value)
 <template>
   <main
     data-slot="sidebar-inset"
-    :class="cn('flex min-w-0 flex-1 flex-col', isCollapsed ? 'md:pl-0' : 'md:pl-0', props.class)"
+    :class="cn('flex min-w-0 flex-1 flex-col', isCollapsed ? 'md:pl-0' : 'md:pl-2', props.class)"
   >
     <slot />
   </main>

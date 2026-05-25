@@ -16,7 +16,7 @@ if (!sidebar) {
 }
 
 const mobileStateClass = computed(() => (sidebar.openMobile.value ? 'translate-x-0' : '-translate-x-full md:translate-x-0'))
-const desktopWidthClass = computed(() => (sidebar.open.value ? 'md:w-(--sidebar-width)' : 'md:w-(--sidebar-width-icon)'))
+const desktopWidthClass = computed(() => (sidebar.open.value ? 'md:w-[var(--sidebar-width)]' : 'md:w-[var(--sidebar-width-icon)]'))
 </script>
 
 <template>

@@ -1,5 +1,6 @@
 package com.profiletailors.smp.bdd.glue
 
+import java.nio.charset.StandardCharsets
 import com.profiletailors.common.domain.bus.Mediator
 import com.profiletailors.common.domain.bus.PublishStrategy
 import com.profiletailors.common.domain.bus.command.Command
@@ -344,54 +345,36 @@ class AuthorizationBddSteps(
     }
 
     @When("the client queries workspace audit events with filters and pagination")
-    fun whenTheClientQueriesWorkspaceAuditEventsWithFiltersAndPagination() = runBlocking {
-        val response = requireNotNull(latestAuditEventsResponse) { "Expected a stubbed audit events response" }
-        val controller = AuditEventController(object : Mediator {
-            override suspend fun <TQuery : Query<TResponse>, TResponse> send(query: TQuery): TResponse {
-                assertEquals(
-                    GetWorkspaceAuditEventsQuery(
-                        targetType = "WORKSPACE_OWNER",
-                        action = "workspace.owner.add",
-                        eventType = "MUTATION",
-                        actorPrincipalId = "owner-1",
-                        createdAfter = null,
-                        createdBefore = null,
-                        cursor = null,
-                        limit = 10,
-                    ),
-                    query,
-                )
-                @Suppress("UNCHECKED_CAST")
-                return response as TResponse
+    fun whenTheClientQueriesWorkspaceAuditEventsWithFiltersAndPagination() {
+        latestStatusCode = null
+        latestResult = webTestClient.get()
+            .uri { builder ->
+                builder.path("/api/governance/audit-events")
+                    .queryParam("targetType", "WORKSPACE_OWNER")
+                    .queryParam("action", "workspace.owner.add")
+                    .queryParam("eventType", "MUTATION")
+                    .queryParam("actorPrincipalId", "owner-1")
+                    .queryParam("limit", 10)
+                    .build()
             }
-
-            override suspend fun <TCommand : Command> send(command: TCommand) = error("Not used")
-            override suspend fun <TCommand : CommandWithResult<TResult>, TResult> send(command: TCommand): TResult = error("Not used")
-            override suspend fun <T : Notification> publish(notification: T) = error("Not used")
-            override suspend fun <T : Notification> publish(notification: T, publishStrategy: PublishStrategy) = error("Not used")
-        })
-
-        latestAuditEventsResponse = controller.listWorkspaceAuditEvents(
-            targetType = "WORKSPACE_OWNER",
-            action = "workspace.owner.add",
-            eventType = "MUTATION",
-            actorPrincipalId = "owner-1",
-            createdAfter = null,
-            createdBefore = null,
-            cursor = null,
-            limit = 10,
-        )
-        latestStatusCode = 200
+            .header(HttpHeaders.AUTHORIZATION, BddDatabaseSupport.USER_BEARER)
+            .header(HttpHeaders.ACCEPT, BddDatabaseSupport.API_VERSION_MEDIA_TYPE)
+            .header(BddDatabaseSupport.WORKSPACE_HEADER, BddDatabaseSupport.WORKSPACE_ID)
+            .exchange()
+            .expectBody()
+            .returnResult()
     }
 
     @And("the audit events response workspaceId should be {string}")
     fun andAuditEventsResponseWorkspaceIdShouldBe(workspaceId: String) {
-        assertEquals(workspaceId, requireNotNull(latestAuditEventsResponse).workspaceId)
+        val body = requireResponseBodyText()
+        assertTrue(body.contains("\"workspaceId\":\"$workspaceId\""), body)
     }
 
     @And("the audit events response returned count should be {int}")
     fun andAuditEventsResponseReturnedCountShouldBe(count: Int) {
-        assertEquals(count, requireNotNull(latestAuditEventsResponse).page.returned)
+        val body = requireResponseBodyText()
+        assertTrue(body.contains("\"returned\":$count"), body)
     }
 
     @Given("a stubbed workspace ownership response is configured")
@@ -513,7 +496,7 @@ class AuthorizationBddSteps(
         checkNotNull(latestResult) { "No HTTP result has been captured for the current scenario" }
 
     private fun requireResponseBodyText(): String =
-        String(requireLatestResult().responseBody ?: ByteArray(0))
+        String(requireLatestResult().responseBody ?: ByteArray(0), StandardCharsets.UTF_8)
 
     private fun requireLatestAuthorizationFact() =
         auditHook.facts.lastOrNull().also { assertNotNull(it, "Expected at least one authorization audit fact") }!!

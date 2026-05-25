@@ -1,6 +1,7 @@
 package com.profiletailors.smp.bdd.glue
 
 import kotlinx.coroutines.reactor.awaitSingle
+import kotlinx.coroutines.reactor.awaitSingleOrNull
 import liquibase.Contexts
 import liquibase.LabelExpression
 import liquibase.Liquibase
@@ -73,11 +74,19 @@ class BddDatabaseSupport(
     }
 
     suspend fun seedDirectGrant(effect: String, permissionKey: String) {
-        // Reusar permission-1 si ya existe (workspace:access:read), sino crear uno nuevo
-        val permissionId = if (permissionKey == WORKSPACE_ACCESS_PERMISSION) {
-            "permission-1"
+        // Ensure permission exists before using it
+        val existingPermission: String? = databaseClient.sql(
+            "SELECT id FROM permissions WHERE permission_key = :permissionKey",
+        )
+            .bind("permissionKey", permissionKey)
+            .map { row, _ -> requireNotNull(row.get("id", String::class.java)) }
+            .one()
+            .awaitSingleOrNull()
+
+        val permissionId = if (existingPermission != null) {
+            existingPermission
         } else {
-            val newId = "permission-dg-${System.currentTimeMillis()}"
+            val newId = if (permissionKey == WORKSPACE_ACCESS_PERMISSION) "permission-1" else "permission-dg-${System.currentTimeMillis()}"
             databaseClient.sql("INSERT INTO permissions (id, permission_key) VALUES (:id, :permissionKey)")
                 .bind("id", newId)
                 .bind("permissionKey", permissionKey)

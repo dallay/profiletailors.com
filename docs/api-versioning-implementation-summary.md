@@ -88,9 +88,10 @@ headers: {
 - `SmpApplicationTests` - context loads
 - `PlatformBootstrapContextTest` - mediator bean registration
 
-### ⚠️ Failing Tests (34 total)
+### ⚠️ Failing Tests (44 total)
 
 **Test Classes:**
+
 1. `ModularStructureTest` - needs H2 config
 2. `ModularityVerificationTest` - needs H2 config
 3. `ResourcePreviewEndpointIntegrationTest` - 5 tests

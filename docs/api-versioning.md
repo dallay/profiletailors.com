@@ -10,6 +10,7 @@ Complete migration of the API versioning system to the new native Spring Boot 4 
 ## Motivation
 
 ### Before (Manual with produces)
+
 ```kotlin
 @RestController
 @RequestMapping(value = ["/api/auth"], produces = ["application/vnd.api.v1+json"])
@@ -25,6 +26,7 @@ class LocalAuthController {
 - ❌ Difficult to evolve multiple versions on the same endpoint
 
 ### Now (Spring Boot 4 Native)
+
 ```kotlin
 @RestController
 @RequestMapping(value = ["/api/auth"])
@@ -42,6 +44,7 @@ class LocalAuthController {
 - ✅ Semantic media-type (`application/vnd.api.v1+json`)
 - ✅ Follows RFC 6838 (vendor media types)
 - ✅ Compatible with standard content negotiation
+- ✅ Cacheable via `Accept` header
 
 ## Changes Made
 
@@ -70,6 +73,7 @@ spring:
 **7 controllers** were updated to use the new system:
 
 #### LocalAuthController
+
 ```kotlin
 @RestController
 @RequestMapping(value = ["/api/auth"])  // ← No produces
@@ -82,11 +86,13 @@ class LocalAuthController {
 ```
 
 #### CurrentUserProfileController
+
 ```kotlin
 @GetMapping("/me", version = "1")
 ```
 
 #### WorkspaceOwnershipController
+
 ```kotlin
 @PostMapping("/owners", consumes = ["application/json"], version = "1")
 @DeleteMapping("/owners/{principalId}", version = "1")
@@ -94,21 +100,25 @@ class LocalAuthController {
 ```
 
 #### WorkspaceMembershipController
+
 ```kotlin
 @PatchMapping("/{principalId}/status", consumes = ["application/json"], version = "1")
 ```
 
 #### AuditEventController
+
 ```kotlin
 @GetMapping(version = "1")
 ```
 
 #### WorkspaceAccessSummaryController
+
 ```kotlin
 @GetMapping("/current", version = "1")
 ```
 
 #### ResourcePreviewController
+
 ```kotlin
 @GetMapping("/{resourceId}/preview", version = "1")
 ```
@@ -128,6 +138,7 @@ All controllers updated their KDoc:
 ### HTTP Client
 
 **Option 1: With explicit Accept header (Recommended)**
+
 ```bash
 curl -X POST http://localhost:8080/api/auth/login \
   -H "Content-Type: application/json" \
@@ -136,7 +147,8 @@ curl -X POST http://localhost:8080/api/auth/login \
 ```
 
 **Response:**
-```
+
+```http
 HTTP/1.1 200 OK
 Content-Type: application/vnd.api.v1+json
 
@@ -148,6 +160,7 @@ Content-Type: application/vnd.api.v1+json
 ```
 
 **Option 2: Without Accept header (uses default v1)**
+
 ```bash
 curl -X POST http://localhost:8080/api/auth/login \
   -H "Content-Type: application/json" \
@@ -155,6 +168,7 @@ curl -X POST http://localhost:8080/api/auth/login \
 ```
 
 **Option 3: With generic Accept (uses default v1)**
+
 ```bash
 curl -X POST http://localhost:8080/api/auth/login \
   -H "Content-Type: application/json" \
@@ -271,12 +285,14 @@ Accept: application/json
 ## Testing
 
 ### Verify Compilation
+
 ```bash
 cd server/smp
 ./gradlew compileKotlin
 ```
 
 ### Verify Swagger UI
+
 ```bash
 ./gradlew bootRun
 ```
@@ -349,9 +365,3 @@ fun `should accept request with Accept header`() = runTest {
 - [ ] Update API documentation for clients
 - [ ] Communicate changes to frontend team
 - [ ] Update Postman/Insomnia collections
-
----
-
-**Author:** Kerrigan (AI Agent)  
-**Reviewed by:** Pending  
-**Approved by:** Pending

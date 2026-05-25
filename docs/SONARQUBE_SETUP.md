@@ -30,7 +30,7 @@ Add these secrets in **Settings → Secrets and variables → Actions**:
 
 ### For SonarCloud:
 
-```
+```env
 SONAR_TOKEN=<your-sonarcloud-token>
 SONAR_HOST_URL=https://sonarcloud.io
 SONAR_PROJECT_KEY=<your-org>_profiletailors.com
@@ -39,7 +39,7 @@ SONAR_ORGANIZATION=<your-sonarcloud-org>
 
 ### For Self-Hosted:
 
-```
+```env
 SONAR_TOKEN=<your-sonarqube-token>
 SONAR_HOST_URL=https://your-sonarqube-instance.com
 SONAR_PROJECT_KEY=profiletailors-com

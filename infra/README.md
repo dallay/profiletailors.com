@@ -6,9 +6,9 @@ This directory contains the centralized Docker Compose configuration for the Pro
 
 All infrastructure documentation has been moved to the centralized docs directory:
 
--   [Modular Infrastructure Overview](../../docs/infrastructure/modular-docker-compose.md)
--   [Monitoring Setup (Prometheus & Grafana)](../../docs/monitoring/prometheus-grafana-setup.md)
--   [Actuator Security Guide](../../docs/monitoring/actuator-security.md)
+-   [Modular Infrastructure Overview](../docs/infrastructure/modular-docker-compose.md)
+-   [Monitoring Setup (Prometheus & Grafana)](../docs/monitoring/prometheus-grafana-setup.md)
+-   [Actuator Security Guide](../docs/monitoring/actuator-security.md)
 
 ## 📁 Quick Structure
 

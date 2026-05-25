@@ -13,8 +13,7 @@ export type Translations = typeof en
 
 export function getLocaleFromUrl(url: URL): Locale {
   const pathname = url.pathname
-  const segments = pathname.split('/').filter(Boolean)
-  const firstSegment = segments[0]
+  const firstSegment = pathname.split('/').find(Boolean)
   
   if (firstSegment && locales.includes(firstSegment as Locale)) {
     return firstSegment as Locale

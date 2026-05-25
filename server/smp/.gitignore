@@ -40,5 +40,6 @@ out/
 .kotlin
 
 ### Environment ###
-../../.env
-.env.local
+# Using root .gitignore for .env files
+
+testsprite_tests/tmp/config.json

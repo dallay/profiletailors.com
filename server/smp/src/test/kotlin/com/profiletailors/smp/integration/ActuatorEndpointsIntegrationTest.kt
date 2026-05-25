@@ -20,7 +20,6 @@ import org.springframework.test.web.reactive.server.WebTestClient
  * - Liveness endpoint reports liveness state
  * - Prometheus metrics endpoint exposes metrics
  * 
- * Based on TestSprite test plan TC001-TC004.
  */
 @ContextConfiguration(classes = [ActuatorEndpointsIntegrationTest.TestSecurityConfig::class])
 @SpringBootTest(

@@ -33,9 +33,11 @@ The monitoring stack is defined in `infra/monitoring/compose.yaml`:
 ## Exposed Endpoints
 
 ### Public (Port 8080)
+
 -   `GET /actuator/health`: Basic UP/DOWN status for load balancers.
 
 ### Internal (Port 9091 in Prod / 8080 in Dev)
+
 -   `GET /actuator/prometheus`: Metrics in Prometheus format.
 -   `GET /actuator/health/liveness`: Kubernetes liveness probe.
 -   `GET /actuator/health/readiness`: Kubernetes readiness probe.
@@ -45,17 +47,21 @@ The monitoring stack is defined in `infra/monitoring/compose.yaml`:
 ## How to Use
 
 ### 1. Start Infrastructure
+
 From the `server/smp` directory:
+
 ```bash
 docker compose up -d
 ```
 
 ### 2. Start Application
+
 ```bash
 ./gradlew bootRun --args='--spring.profiles.active=dev'
 ```
 
 ### 3. Access Interfaces
+
 -   **Prometheus**: [http://localhost:9090](http://localhost:9090)
 -   **Grafana**: [http://localhost:3000](http://localhost:3000) (User: `admin`, Password: `admin`)
 

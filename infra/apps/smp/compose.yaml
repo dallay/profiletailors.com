@@ -2,12 +2,12 @@ include:
   - ../../postgres/compose.yaml
   - ../../monitoring/compose.yaml
 
-# Este compose incluye:
-# - PostgreSQL (desde infra/postgres)
-# - Prometheus + Grafana (desde infra/monitoring)
+# This compose includes:
+# - PostgreSQL (from infra/postgres)
+# - Prometheus + Grafana (from infra/monitoring)
 #
-# Para iniciar todo el stack de SMP:
+# To start the full SMP stack:
 #   docker compose -f infra/apps/smp/compose.yaml up -d
 #
-# Para detener:
+# To stop:
 #   docker compose -f infra/apps/smp/compose.yaml down

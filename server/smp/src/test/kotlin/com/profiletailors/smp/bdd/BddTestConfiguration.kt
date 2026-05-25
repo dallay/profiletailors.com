@@ -41,8 +41,8 @@ class CommonBddTestConfiguration {
                     .claim("sub", "subject-123")
                     .claim("iss", "https://issuer.example")
                     .claim("preferred_username", "yuniel")
-                    .issuedAt(Instant.parse("2026-05-20T10:15:30Z"))
-                    .expiresAt(Instant.parse("2026-05-20T11:15:30Z"))
+                    .issuedAt(Instant.now().minusSeconds(60))
+                    .expiresAt(Instant.now().plusSeconds(3600))
                     .build(),
             )
             "service-account-token" -> Mono.just(
@@ -53,8 +53,8 @@ class CommonBddTestConfiguration {
                     .claim("principal_type", "SERVICE_ACCOUNT")
                     .claim("credential_reference", "svc-cred-1")
                     .claim("jti", "jwt-service-1")
-                    .issuedAt(Instant.parse("2026-05-20T10:15:30Z"))
-                    .expiresAt(Instant.parse("2026-05-20T11:15:30Z"))
+                    .issuedAt(Instant.now().minusSeconds(60))
+                    .expiresAt(Instant.now().plusSeconds(3600))
                     .build(),
             )
 

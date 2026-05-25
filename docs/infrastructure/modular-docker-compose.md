@@ -9,9 +9,9 @@ The infrastructure for Profile Tailors uses a modular Docker Compose architectur
 
 ## Directory Structure
 
-All infrastructure configurations reside in the `@infra/` directory:
+All infrastructure configurations reside in the `infra/` directory:
 
-```
+```text
 infra/
 ├── common.yml                    # Shared network 'profiletailors'
 ├── postgres/
@@ -27,12 +27,15 @@ infra/
 ## Design Principles
 
 ### 1. Service Modularity
+
 Each base service (Postgres, Redis, Monitoring) is defined in its own directory with its own `compose.yaml`. These files are independent and can be started standalone.
 
 ### 2. Composition via `include`
+
 We use the Docker Compose `include` feature to build application-specific stacks. This avoids duplication and ensures consistency.
 
 Example of a composite stack (`infra/apps/smp/compose.yaml`):
+
 ```yaml
 include:
   - ../../postgres/compose.yaml
@@ -40,22 +43,27 @@ include:
 ```
 
 ### 3. Shared Network
+
 All services share a common network bridge named `profiletailors`, defined in `infra/common.yml`. This allows containers to communicate using their service names (e.g., `prometheus` can reach `postgres`).
 
 ## How to Manage Infrastructure
 
 ### Starting a Full Application Stack
+
 From the root of the project:
+
 ```bash
 docker compose -f infra/apps/smp/compose.yaml up -d
 ```
 
 ### Starting Individual Services
+
 ```bash
 docker compose -f infra/monitoring/compose.yaml up -d
 ```
 
 ### Stopping Services
+
 ```bash
 docker compose -f infra/apps/smp/compose.yaml down
 ```

@@ -137,6 +137,7 @@ Configure these in GitHub repository settings:
 ### View Coverage Reports Locally
 
 **Backend**:
+
 ```bash
 cd server/smp
 ./gradlew test jacocoTestReport
@@ -144,6 +145,7 @@ open build/reports/jacoco/test/html/index.html
 ```
 
 **Frontend**:
+
 ```bash
 cd apps/web/marketing
 pnpm test:coverage
@@ -195,11 +197,13 @@ Minimum coverage: **80%** for all metrics:
 ### Backend Coverage Not Showing
 
 1. Verify XML report exists:
+
    ```bash
    ls -la server/smp/build/reports/jacoco/test/jacocoTestReport.xml
    ```
 
 2. Check JaCoCo task ran:
+
    ```bash
    ./gradlew test jacocoTestReport --info
    ```
@@ -207,11 +211,13 @@ Minimum coverage: **80%** for all metrics:
 ### Frontend Coverage Not Showing
 
 1. Verify LCOV report exists:
+
    ```bash
    ls -la apps/web/marketing/coverage/lcov.info
    ```
 
 2. Check Vitest ran with coverage:
+
    ```bash
    pnpm test:coverage --reporter=verbose
    ```

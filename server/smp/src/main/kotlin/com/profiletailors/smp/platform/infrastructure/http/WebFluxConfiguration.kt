@@ -19,12 +19,12 @@ class WebFluxConfiguration {
      * in the Accept header (e.g., application/vnd.api.v1+json).
      */
     class MediaTypeVersionResolver : ApiVersionResolver {
-        private val versionRegex = Regex("application/vnd\\.api\\.v(\\d+)\\+json")
+        private val versionRegex = Regex("^vnd\\.api\\.v(\\d+)\\+json$")
 
         override fun resolveVersion(exchange: ServerWebExchange): String? {
             val acceptHeaders = exchange.request.headers.accept
             for (mediaType in acceptHeaders) {
-                val matchResult = versionRegex.find(mediaType.toString())
+                val matchResult = versionRegex.matchEntire(mediaType.subtype)
                 if (matchResult != null) {
                     return matchResult.groupValues[1]
                 }
