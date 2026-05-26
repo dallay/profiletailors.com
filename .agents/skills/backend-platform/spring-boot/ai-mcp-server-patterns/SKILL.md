@@ -276,11 +276,19 @@ class DatabaseTools(
         @ToolParam("SQL SELECT query") sql: String,
         @ToolParam(value = "Parameters as JSON array", required = false) paramsJson: String?
     ): QueryResult {
-        if (!sql.trim().uppercase().startsWith("SELECT")) {
+        val cleanSql = sql.replace(Regex("/\\*.*?\\*/", RegexOption.DOT_MATCHES_ALL), "")
+            .replace(Regex("--.*"), "")
+            .trim()
+        
+        if (!cleanSql.uppercase().startsWith("SELECT")) {
             throw IllegalArgumentException("Only SELECT queries are allowed")
         }
+        if (cleanSql.contains(";") && cleanSql.indexOf(";") < cleanSql.length - 1) {
+            throw IllegalArgumentException("Multiple statements not allowed")
+        }
+        
         val params = paramsJson?.let { objectMapper.readValue(it, Array<Any>::class.java) } ?: emptyArray()
-        val rows = jdbcTemplate.queryForList(sql, *params)
+        val rows = jdbcTemplate.queryForList(cleanSql, *params)
         return QueryResult(rows, rows.size)
     }
 }

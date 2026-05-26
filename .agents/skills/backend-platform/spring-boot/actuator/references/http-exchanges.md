@@ -172,10 +172,11 @@ class DatabaseHttpExchangeRepository(
     }
 
     private fun toHttpExchange(entity: HttpExchangeEntity): HttpExchange {
-        // Implement conversion from entity to HttpExchange
+        // PSEUDOCODE: Conversion from entity to HttpExchange
         // This is complex due to HttpExchange being immutable
-        // Consider using a builder pattern or reflection
-        throw NotImplementedError("Conversion requires custom builder - see Spring Boot Actuator docs")
+        // Real implementation requires using HttpExchange.Builder or reflection
+        // See Spring Boot Actuator documentation for complete implementation
+        TODO("Conversion requires custom builder - see Spring Boot Actuator docs")
     }
 
     @Scheduled(fixedRate = 3600000) // Clean up every hour

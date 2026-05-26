@@ -985,8 +985,9 @@ class FoodOrderService {
     }
     
     private fun calculateTotal(items: List<FoodItem>): BigDecimal {
-        return items.map { item -> item.price.multiply(BigDecimal.valueOf(item.quantity.toLong())) }
-            .reduce(BigDecimal.ZERO, BigDecimal::add)
+        return items.fold(BigDecimal.ZERO) { acc, item ->
+            acc.add(item.price.multiply(BigDecimal.valueOf(item.quantity.toLong())))
+        }
     }
 }
 ```

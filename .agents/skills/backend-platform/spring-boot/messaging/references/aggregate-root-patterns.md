@@ -209,9 +209,10 @@ class Order extends AggregateRoot<OrderId> {
         ));
     }
 
-    private static BigDecimal calculateTotal(List<OrderItem> items) {
-        return items.map(item -> item.getUnitPrice().multiply(BigDecimal.valueOf(item.getQuantity())))
-            .reduce(BigDecimal.ZERO, BigDecimal::add);
+    private fun calculateTotal(items: List<OrderItem>): BigDecimal {
+        return items.fold(BigDecimal.ZERO) { acc, item ->
+            acc.add(item.unitPrice.multiply(BigDecimal.valueOf(item.quantity.toLong())))
+        }
     }
 
     @Embeddable

@@ -862,21 +862,18 @@ class CsvTools {
     public List<Map<String, String>> csvToJson(
             @ToolParam("Path to CSV file") String filePath) {
 
-        try (Reader reader = FileReader(filePath);
-             CSVParser parser = new CSVParser(reader,
-                     CSVFormat.DEFAULT.builder().setHeader().build())) {
-
-            return parser.getRecords().map(record -> {
-                        Map<String, String> json = new LinkedHashMap<>();
-                        for (String header : parser.getHeaderNames()) {
-                            json.put(header, record.get(header));
+        FileReader(filePath).use { reader ->
+            CSVParser(reader, CSVFormat.DEFAULT.builder().setHeader().build()).use { parser ->
+                return parser.records.map { record ->
+                    buildMap<String, String> {
+                        parser.headerNames.forEach { header ->
+                            put(header, record.get(header))
                         }
-                        return json;
-                    })
-                    .toList();
-
-        } catch (IOException e) {
-            throw RuntimeException("Failed to convert CSV to JSON", e);
+                    }
+                }
+            }
+        } catch (e: IOException) {
+            throw RuntimeException("Failed to convert CSV to JSON", e)
         }
     }
 }
@@ -1147,22 +1144,23 @@ class OrderManagementTools {
                 LocalDate.parse(endDate).atTime(LocalTime.MAX) :
                 LocalDateTime.now();
 
-        List<Order> orders = orderRepository.findByCreatedAtBetween(start, end);
+        val orders = orderRepository.findByCreatedAtBetween(start, end)
 
-        BigDecimal totalRevenue = orders.map(Order::getTotalAmount)
-                .reduce(BigDecimal.ZERO, BigDecimal::add);
+        val totalRevenue = orders.fold(BigDecimal.ZERO) { acc, order ->
+            acc.add(order.totalAmount)
+        }
 
-        Map<String, Long> ordersByStatus = orders.collect(Collectors.groupingBy(Order::getStatus, Collectors.counting()));
+        val ordersByStatus = orders.groupBy { it.status }
+            .mapValues { it.value.size.toLong() }
 
-        Order lastOrder = orders.max(Comparator.comparing(Order::getCreatedAt))
-                .orElse(null);
+        val lastOrder = orders.maxByOrNull { it.createdAt }
 
-        return new OrderStatistics(
-                orders.size(),
-                totalRevenue,
-                ordersByStatus,
-                lastOrder != null ? lastOrder.getCreatedAt() : null
-        );
+        return OrderStatistics(
+            orders.size,
+            totalRevenue,
+            ordersByStatus,
+            lastOrder?.createdAt
+        )
     }
 }
 
