@@ -18,7 +18,11 @@ import software.amazon.awssdk.services.s3.S3AsyncClient
 import software.amazon.awssdk.services.s3.model.CreateBucketRequest
 import software.amazon.awssdk.services.s3.presigner.S3Presigner
 
+import org.junit.jupiter.api.condition.EnabledIfEnvironmentVariable
+import org.junit.jupiter.api.condition.EnabledIfSystemProperty
+
 @Testcontainers
+@EnabledIfEnvironmentVariable(named = "DOCKER_AVAILABLE", matches = "true")
 class S3StorageIntegrationTest {
 
     companion object {
