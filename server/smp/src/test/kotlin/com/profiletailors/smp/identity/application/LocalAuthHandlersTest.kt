@@ -1,5 +1,6 @@
 package com.profiletailors.smp.identity.application
 
+import com.profiletailors.common.testfixture.CredentialGenerator
 import com.profiletailors.smp.credentials.application.ActiveRefreshSession
 import com.profiletailors.smp.credentials.application.CreatedRefreshSession
 import com.profiletailors.smp.credentials.application.RefreshSessionGateway
@@ -17,6 +18,7 @@ import java.time.ZoneOffset
 
 class LocalAuthHandlersTest {
 
+    private val validPassword = CredentialGenerator.generateValidPassword()
     private val fixedClock = Clock.fixed(Instant.parse("2026-05-20T10:15:30Z"), ZoneOffset.UTC)
     private val refreshProperties = RefreshSessionProperties(
         cookieName = "pt_refresh",
@@ -47,7 +49,7 @@ class LocalAuthHandlersTest {
         val result = handler.handle(
             RegisterUserCommand(
                 email = " Yuniel@Example.com ",
-                password = "password123",
+                password = validPassword,
                 username = " yuniel ",
             ),
         )
@@ -58,7 +60,7 @@ class LocalAuthHandlersTest {
         assertEquals("refresh-secret", result.refreshToken.secret)
         requireNotNull(identityRegistrationGateway.created)
         assertEquals("local:yuniel@example.com", identityRegistrationGateway.created?.subject)
-        assertEquals("hashed-password123", passwordGateway.createdHash)
+        assertEquals("hashed-$validPassword", passwordGateway.createdHash)
     }
 
     @Test
@@ -77,7 +79,7 @@ class LocalAuthHandlersTest {
 
         assertThrows(UserAlreadyExistsException::class.java) {
             kotlinx.coroutines.runBlocking {
-                handler.handle(RegisterUserCommand("yuniel@example.com", "password123", "yuniel"))
+                handler.handle(RegisterUserCommand("yuniel@example.com", validPassword, "yuniel"))
             }
         }
     }
@@ -90,7 +92,7 @@ class LocalAuthHandlersTest {
                     principalId = "user-1",
                     email = "yuniel@example.com",
                     username = "yuniel",
-                    passwordHash = "hashed-password123",
+                    passwordHash = "hashed-$validPassword",
                 ),
             ),
             passwordHasher = FakePasswordHasher(),
@@ -99,7 +101,7 @@ class LocalAuthHandlersTest {
             clock = fixedClock,
         )
 
-        val result = handler.handle(LoginUserCommand("yuniel@example.com", "password123"))
+        val result = handler.handle(LoginUserCommand("yuniel@example.com", validPassword))
 
         assertEquals("token-for-yuniel@example.com", result.tokens.accessToken)
         assertEquals("user-1", result.tokens.principalId)
@@ -144,7 +146,7 @@ class LocalAuthHandlersTest {
 
         assertThrows(InvalidEmailPasswordException::class.java) {
             kotlinx.coroutines.runBlocking {
-                handler.handle(LoginUserCommand("missing@example.com", "password123"))
+                handler.handle(LoginUserCommand("missing@example.com", validPassword))
             }
         }
     }

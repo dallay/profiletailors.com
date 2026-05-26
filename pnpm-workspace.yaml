@@ -1,0 +1,8 @@
+packages:
+  - apps/web/marketing
+  - apps/web/app
+
+allowBuilds:
+  vue-demi: true
+  esbuild: true
+  sharp: true

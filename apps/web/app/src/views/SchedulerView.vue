@@ -1,5 +1,7 @@
 <script setup lang="ts">
 import { Card } from '@/components/ui/card'
+
+const dayKeys = ['scheduler.mon', 'scheduler.tue', 'scheduler.wed', 'scheduler.thu', 'scheduler.fri', 'scheduler.sat', 'scheduler.sun'] as const
 </script>
 
 <template>
@@ -10,7 +12,7 @@ import { Card } from '@/components/ui/card'
         {{ $t('nav.scheduler') }}
       </h2>
       <p class="text-sm text-text-secondary">
-        Manage your content pipeline in a structured calendar view.
+        {{ $t('scheduler.subtitle') }}
       </p>
     </div>
 
@@ -18,11 +20,11 @@ import { Card } from '@/components/ui/card'
     <Card class="bg-bg-surface border border-border-subtle p-0 overflow-hidden">
       <div class="grid grid-cols-7 border-b border-border-subtle bg-bg-primary">
         <div
-          v-for="day in ['MON', 'TUE', 'WED', 'THU', 'FRI', 'SAT', 'SUN']"
+          v-for="day in dayKeys"
           :key="day"
           class="py-3 text-center font-mono text-[9px] font-bold tracking-widest text-text-secondary border-r border-border-subtle last:border-r-0"
         >
-          {{ day }}
+          {{ $t(day) }}
         </div>
       </div>
 
@@ -37,10 +39,10 @@ import { Card } from '@/components/ui/card'
         >
           <span class="font-mono text-[10px] text-text-secondary">{{ day }}</span>
           <div v-if="day === 12" class="bg-text-display text-bg-primary px-1.5 py-0.5 rounded font-mono text-[8px] tracking-wider uppercase font-bold truncate">
-            Early Access launch
+            {{ $t('scheduler.earlyAccess') }}
           </div>
           <div v-if="day === 13" class="border border-border-visible bg-bg-primary text-text-secondary px-1.5 py-0.5 rounded font-mono text-[8px] tracking-wider uppercase truncate">
-            Swiss design post
+            {{ $t('scheduler.swissDesign') }}
           </div>
           <div class="min-h-[14px]"></div>
         </div>

@@ -37,6 +37,7 @@ abstract class WorkspaceAccessSummaryEndpointTestBase : AuthorizationEndpointInt
     )
 
     companion object {
+        private const val API_V1_MEDIA_TYPE = "application/vnd.api.v1+json"
         private const val GET_CURRENT_WORKSPACE_ACCESS_SUMMARY_QUERY_FQCN =
             "com.profiletailors.smp.authorization.application.current.workspace.GetCurrentWorkspaceAccessSummaryQuery"
     }
@@ -51,7 +52,7 @@ abstract class WorkspaceAccessSummaryEndpointTestBase : AuthorizationEndpointInt
             .uri("/api/authorization/workspace-access/current")
             .header(HttpHeaders.AUTHORIZATION, "Bearer valid-token")
             .header("X-Workspace-Id", "workspace-1")
-            .accept(MediaType.APPLICATION_JSON)
+            .header(HttpHeaders.ACCEPT, API_V1_MEDIA_TYPE)
             .exchange()
             .expectStatus().isOk
             .expectBody()
@@ -84,6 +85,7 @@ abstract class WorkspaceAccessSummaryEndpointTestBase : AuthorizationEndpointInt
             .uri("/api/authorization/workspace-access/current")
             .header(HttpHeaders.AUTHORIZATION, "Bearer valid-token")
             .header("X-Workspace-Id", "workspace-1")
+            .header(HttpHeaders.ACCEPT, API_V1_MEDIA_TYPE)
             .exchange()
             .expectStatus().isForbidden
 
@@ -112,7 +114,7 @@ abstract class WorkspaceAccessSummaryEndpointTestBase : AuthorizationEndpointInt
             .uri("/api/authorization/workspace-access/current")
             .header(HttpHeaders.AUTHORIZATION, "Bearer valid-token")
             .header("X-Workspace-Id", "workspace-1")
-            .accept(MediaType.APPLICATION_JSON)
+            .header(HttpHeaders.ACCEPT, API_V1_MEDIA_TYPE)
             .exchange()
             .expectStatus().isOk
             .expectBody()
@@ -144,7 +146,7 @@ abstract class WorkspaceAccessSummaryEndpointTestBase : AuthorizationEndpointInt
             .uri("/api/authorization/workspace-access/current")
             .header(HttpHeaders.AUTHORIZATION, "Bearer valid-token")
             .header("X-Workspace-Id", "workspace-1")
-            .accept(MediaType.APPLICATION_JSON)
+            .header(HttpHeaders.ACCEPT, API_V1_MEDIA_TYPE)
             .exchange()
             .expectStatus().isOk
             .expectBody()
@@ -181,6 +183,7 @@ abstract class WorkspaceAccessSummaryEndpointTestBase : AuthorizationEndpointInt
             .uri("/api/authorization/workspace-access/current")
             .header(HttpHeaders.AUTHORIZATION, "Bearer valid-token")
             .header("X-Workspace-Id", "workspace-1")
+            .header(HttpHeaders.ACCEPT, API_V1_MEDIA_TYPE)
             .exchange()
             .expectStatus().isForbidden
 
@@ -214,6 +217,7 @@ abstract class WorkspaceAccessSummaryEndpointTestBase : AuthorizationEndpointInt
             .uri("/api/authorization/workspace-access/current")
             .header(HttpHeaders.AUTHORIZATION, "Bearer valid-token")
             .header("X-Workspace-Id", "workspace-1")
+            .header(HttpHeaders.ACCEPT, API_V1_MEDIA_TYPE)
             .exchange()
             .expectStatus().isForbidden
 
@@ -241,7 +245,7 @@ abstract class WorkspaceAccessSummaryEndpointTestBase : AuthorizationEndpointInt
             .uri("/api/authorization/workspace-access/current")
             .header(HttpHeaders.AUTHORIZATION, "Bearer service-account-token")
             .header("X-Workspace-Id", "workspace-1")
-            .accept(MediaType.APPLICATION_JSON)
+            .header(HttpHeaders.ACCEPT, API_V1_MEDIA_TYPE)
             .exchange()
             .expectStatus().isOk
             .expectBody()
@@ -274,6 +278,7 @@ abstract class WorkspaceAccessSummaryEndpointTestBase : AuthorizationEndpointInt
             .uri("/api/authorization/workspace-access/current")
             .header(HttpHeaders.AUTHORIZATION, "Bearer service-account-token")
             .header("X-Workspace-Id", "workspace-1")
+            .header(HttpHeaders.ACCEPT, API_V1_MEDIA_TYPE)
             .exchange()
             .expectStatus().isForbidden
 
@@ -301,6 +306,7 @@ abstract class WorkspaceAccessSummaryEndpointTestBase : AuthorizationEndpointInt
             .uri("/api/authorization/workspace-access/current")
             .header(HttpHeaders.AUTHORIZATION, "Bearer service-account-token")
             .header("X-Workspace-Id", "workspace-1")
+            .header(HttpHeaders.ACCEPT, API_V1_MEDIA_TYPE)
             .exchange()
             .expectStatus().isUnauthorized
 
@@ -328,7 +334,7 @@ abstract class WorkspaceAccessSummaryEndpointTestBase : AuthorizationEndpointInt
             .uri("/api/authorization/workspace-access/current")
             .header(HttpHeaders.AUTHORIZATION, "Bearer ptk_lookup.secret-value")
             .header("X-Workspace-Id", "workspace-1")
-            .accept(MediaType.APPLICATION_JSON)
+            .header(HttpHeaders.ACCEPT, API_V1_MEDIA_TYPE)
             .exchange()
             .expectStatus().isOk
             .expectBody()
@@ -361,6 +367,7 @@ abstract class WorkspaceAccessSummaryEndpointTestBase : AuthorizationEndpointInt
             .uri("/api/authorization/workspace-access/current")
             .header(HttpHeaders.AUTHORIZATION, "Bearer ptk_lookup.secret-value")
             .header("X-Workspace-Id", "workspace-1")
+            .header(HttpHeaders.ACCEPT, API_V1_MEDIA_TYPE)
             .exchange()
             .expectStatus().isForbidden
 
@@ -388,6 +395,7 @@ abstract class WorkspaceAccessSummaryEndpointTestBase : AuthorizationEndpointInt
             .uri("/api/authorization/workspace-access/current")
             .header(HttpHeaders.AUTHORIZATION, "Bearer ptk_lookup.secret-value")
             .header("X-Workspace-Id", "workspace-1")
+            .header(HttpHeaders.ACCEPT, API_V1_MEDIA_TYPE)
             .exchange()
             .expectStatus().isUnauthorized
 
@@ -415,6 +423,7 @@ abstract class WorkspaceAccessSummaryEndpointTestBase : AuthorizationEndpointInt
             .uri("/api/authorization/workspace-access/current")
             .header(HttpHeaders.AUTHORIZATION, "Bearer ptk_lookup.secret-value")
             .header("X-Workspace-Id", "workspace-1")
+            .header(HttpHeaders.ACCEPT, API_V1_MEDIA_TYPE)
             .exchange()
             .expectStatus().isUnauthorized
 
@@ -442,6 +451,7 @@ abstract class WorkspaceAccessSummaryEndpointTestBase : AuthorizationEndpointInt
             .uri("/api/authorization/workspace-access/current")
             .header(HttpHeaders.AUTHORIZATION, "Bearer valid-token")
             .header("X-Workspace-Id", "workspace-1")
+            .header(HttpHeaders.ACCEPT, API_V1_MEDIA_TYPE)
             .exchange()
             .expectStatus().isForbidden
 
@@ -469,7 +479,7 @@ abstract class WorkspaceAccessSummaryEndpointTestBase : AuthorizationEndpointInt
             .uri("/api/authorization/workspace-access/current")
             .header(HttpHeaders.AUTHORIZATION, "Bearer ptk_lookup.secret-value")
             .header("X-Workspace-Id", "workspace-1")
-            .accept(MediaType.APPLICATION_JSON)
+            .header(HttpHeaders.ACCEPT, API_V1_MEDIA_TYPE)
             .exchange()
             .expectStatus().isOk
             .expectBody()
@@ -485,6 +495,7 @@ abstract class WorkspaceAccessSummaryEndpointTestBase : AuthorizationEndpointInt
             .uri("/api/authorization/workspace-access/current")
             .header(HttpHeaders.AUTHORIZATION, "Bearer ptk_lookup.secret-value")
             .header("X-Workspace-Id", "workspace-1")
+            .header(HttpHeaders.ACCEPT, API_V1_MEDIA_TYPE)
             .exchange()
             .expectStatus().isUnauthorized
 
@@ -492,7 +503,7 @@ abstract class WorkspaceAccessSummaryEndpointTestBase : AuthorizationEndpointInt
             .uri("/api/authorization/workspace-access/current")
             .header(HttpHeaders.AUTHORIZATION, "Bearer ${replacement.successorPlaintextApiKey}")
             .header("X-Workspace-Id", "workspace-1")
-            .accept(MediaType.APPLICATION_JSON)
+            .header(HttpHeaders.ACCEPT, API_V1_MEDIA_TYPE)
             .exchange()
             .expectStatus().isOk
             .expectBody()
@@ -657,9 +668,9 @@ abstract class WorkspaceAccessSummaryEndpointTestBase : AuthorizationEndpointInt
                 .rowsUpdated()
                 .awaitSingle()
             databaseClient.sql(
-                "INSERT INTO workspace_target_scopes (id, workspace_id, principal_id, principal_type, permission_id, target_resource_type, allowed_target_ids_json) VALUES ('scope-legacy-1', 'workspace-1', 'principal-1', 'USER', 'permission-resource-read', 'RESOURCE', :allowedTargetIdsJson)",
+                "INSERT INTO workspace_target_scopes (id, workspace_id, principal_id, principal_type, permission_id, target_resource_type, allowed_target_ids_json) VALUES ('scope-legacy-1', 'workspace-1', 'principal-1', 'USER', 'permission-resource-read', 'RESOURCE', ?)",
             )
-                .bind("allowedTargetIdsJson", allowedTargetIdsJson)
+                .bind(0, allowedTargetIdsJson)
                 .fetch()
                 .rowsUpdated()
                 .awaitSingle()

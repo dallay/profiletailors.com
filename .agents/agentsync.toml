@@ -19,11 +19,17 @@ marker = "AI Agent Symlinks"
 # =============================================================================
 # Define MCP servers once here, and AgentSync will generate the appropriate
 # config files for each AI agent (Claude, Copilot, Codex, Cursor, Gemini, VS Code, OpenCode).
-#
-# [mcp]
-# enabled = true
-# merge_strategy = "merge"  # "merge" (default) or "overwrite"
-#
+
+[mcp]
+enabled = true
+merge_strategy = "merge"  # "merge" (default) or "overwrite"
+
+[mcp_servers.shadcnVue]
+type = "local"
+enabled = true
+command = "npx"
+args = ["shadcn-vue@latest", "mcp"]
+
 # [mcp_servers.filesystem]
 # command = "npx"
 # args = ["-y", "@modelcontextprotocol/server-filesystem", "."]

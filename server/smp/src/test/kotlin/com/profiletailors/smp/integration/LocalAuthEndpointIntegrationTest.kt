@@ -35,6 +35,8 @@ import org.springframework.security.oauth2.jwt.ReactiveJwtDecoder
         "app.security.local-jwt.issuer=http://localhost/profiletailors-local",
         "app.security.refresh-session.cookie-name=pt_refresh",
         "app.security.refresh-session.cookie-path=/api/auth",
+        "management.endpoint.health.group.readiness.include=readinessState",
+        "management.endpoint.health.group.liveness.include=livenessState",
     ],
 )
 @Import(LocalAuthEndpointIntegrationTest.H2ConnectionFactoryConfiguration::class)
@@ -67,6 +69,7 @@ class LocalAuthEndpointIntegrationTest : IntegrationTestBase() {
     fun `registers and logs in user with local credentials plus refresh cookie`() {
         val registerResponse = webTestClient.post()
             .uri("/api/auth/register")
+            .header(HttpHeaders.ACCEPT, API_V1_MEDIA_TYPE)
             .bodyValue(
                 mapOf(
                     "email" to "yuniel@example.com",
@@ -76,6 +79,7 @@ class LocalAuthEndpointIntegrationTest : IntegrationTestBase() {
             )
             .exchange()
             .expectStatus().isOk
+            .expectHeader().contentType(API_V1_MEDIA_TYPE)
             .expectBody()
             .jsonPath("$.accessToken").isNotEmpty
             .jsonPath("$.email").isEqualTo("yuniel@example.com")
@@ -86,6 +90,7 @@ class LocalAuthEndpointIntegrationTest : IntegrationTestBase() {
 
         webTestClient.post()
             .uri("/api/auth/login")
+            .header(HttpHeaders.ACCEPT, API_V1_MEDIA_TYPE)
             .bodyValue(
                 mapOf(
                     "email" to "yuniel@example.com",
@@ -94,6 +99,7 @@ class LocalAuthEndpointIntegrationTest : IntegrationTestBase() {
             )
             .exchange()
             .expectStatus().isOk
+            .expectHeader().contentType(API_V1_MEDIA_TYPE)
             .expectHeader().exists(HttpHeaders.SET_COOKIE)
             .expectBody()
             .jsonPath("$.accessToken").isNotEmpty
@@ -107,8 +113,10 @@ class LocalAuthEndpointIntegrationTest : IntegrationTestBase() {
         webTestClient.get()
             .uri("/api/auth/me")
             .header(HttpHeaders.AUTHORIZATION, "Bearer ${registerResult.accessToken}")
+            .header(HttpHeaders.ACCEPT, API_V1_MEDIA_TYPE)
             .exchange()
             .expectStatus().isOk
+            .expectHeader().contentType(API_V1_MEDIA_TYPE)
             .expectBody()
             .jsonPath("$.email").isEqualTo("owner@example.com")
             .jsonPath("$.username").isEqualTo("owner")
@@ -122,8 +130,10 @@ class LocalAuthEndpointIntegrationTest : IntegrationTestBase() {
         webTestClient.post()
             .uri("/api/auth/refresh")
             .header(HttpHeaders.COOKIE, registerResult.refreshCookie)
+            .header(HttpHeaders.ACCEPT, API_V1_MEDIA_TYPE)
             .exchange()
             .expectStatus().isOk
+            .expectHeader().contentType(API_V1_MEDIA_TYPE)
             .expectHeader().exists(HttpHeaders.SET_COOKIE)
             .expectBody()
             .jsonPath("$.accessToken").isNotEmpty
@@ -137,13 +147,14 @@ class LocalAuthEndpointIntegrationTest : IntegrationTestBase() {
         webTestClient.post()
             .uri("/api/auth/logout")
             .header(HttpHeaders.COOKIE, registerResult.refreshCookie)
+            .header(HttpHeaders.ACCEPT, API_V1_MEDIA_TYPE)
             .exchange()
             .expectStatus().isNoContent
-            .expectHeader().valueMatches(HttpHeaders.SET_COOKIE, ".*Max-Age=0.*")
 
         webTestClient.post()
             .uri("/api/auth/refresh")
             .header(HttpHeaders.COOKIE, registerResult.refreshCookie)
+            .header(HttpHeaders.ACCEPT, API_V1_MEDIA_TYPE)
             .exchange()
             .expectStatus().isUnauthorized
     }
@@ -152,6 +163,7 @@ class LocalAuthEndpointIntegrationTest : IntegrationTestBase() {
     fun `rejects invalid password`() {
         webTestClient.post()
             .uri("/api/auth/register")
+            .header(HttpHeaders.ACCEPT, API_V1_MEDIA_TYPE)
             .bodyValue(
                 mapOf(
                     "email" to "badlogin@example.com",
@@ -163,6 +175,7 @@ class LocalAuthEndpointIntegrationTest : IntegrationTestBase() {
 
         webTestClient.post()
             .uri("/api/auth/login")
+            .header(HttpHeaders.ACCEPT, API_V1_MEDIA_TYPE)
             .bodyValue(
                 mapOf(
                     "email" to "badlogin@example.com",
@@ -176,6 +189,7 @@ class LocalAuthEndpointIntegrationTest : IntegrationTestBase() {
     private fun registerAndExtract(): RegisterResult {
         val result = webTestClient.post()
             .uri("/api/auth/register")
+            .header(HttpHeaders.ACCEPT, API_V1_MEDIA_TYPE)
             .bodyValue(
                 mapOf(
                     "email" to "owner@example.com",

@@ -1,7 +1,7 @@
 package com.profiletailors.smp.integration
 
 import com.profiletailors.smp.integration.support.WorkspaceAccessSummaryEndpointTestBase
-import com.profiletailors.smp.integration.support.WorkspaceAccessSummaryEndpointTestBase.SharedTestBeans
+import org.junit.jupiter.api.Tag
 import org.junit.jupiter.api.TestInstance
 import org.springframework.boot.test.context.SpringBootTest
 import org.springframework.boot.webtestclient.autoconfigure.AutoConfigureWebTestClient
@@ -12,6 +12,7 @@ import org.testcontainers.containers.PostgreSQLContainer
 import org.testcontainers.junit.jupiter.Container
 import org.testcontainers.junit.jupiter.Testcontainers
 
+@Tag("postgres")
 @AutoConfigureWebTestClient
 @SpringBootTest(
     webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT,
@@ -19,11 +20,13 @@ import org.testcontainers.junit.jupiter.Testcontainers
         "spring.liquibase.enabled=true",
         "platform.workspace-context.header-name=X-Workspace-Id",
         "spring.main.allow-bean-definition-overriding=true",
+        "management.endpoint.health.group.readiness.include=readinessState",
+        "management.endpoint.health.group.liveness.include=livenessState",
     ],
 )
 @Testcontainers(disabledWithoutDocker = true)
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
-@Import(SharedTestBeans::class)
+@Import(WorkspaceAccessSummaryEndpointTestBase.SharedTestBeans::class)
 class WorkspaceAccessSummaryEndpointPostgresIntegrationTest : WorkspaceAccessSummaryEndpointTestBase() {
 
     override fun liquibaseJdbcUrl(): String = postgres.jdbcUrl

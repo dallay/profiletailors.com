@@ -29,7 +29,6 @@ ignore:
   - "**/*Test.kt"
   - "**/*Tests.kt"
   - "**/test/**"
-  - "apps/web/marketing/**"  # Frontend sin coverage por ahora
   - "docs/**"
   - "tmp/**"
   - "tools/**"
@@ -43,9 +42,9 @@ flags:
       - shared/
     carryforward: true
   
-  smp:
+  frontend:
     paths:
-      - server/smp/
+      - apps/web/marketing/
     carryforward: true
 
 component_management:
@@ -60,6 +59,11 @@ component_management:
       name: Social Media Platform
       paths:
         - server/smp/**
+
+    - component_id: frontend
+      name: Frontend Marketing Site
+      paths:
+        - apps/web/marketing/**
 
 github_checks:
   annotations: true

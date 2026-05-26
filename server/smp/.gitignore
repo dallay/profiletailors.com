@@ -38,3 +38,8 @@ out/
 
 ### Kotlin ###
 .kotlin
+
+### Environment ###
+# Using root .gitignore for .env files
+
+testsprite_tests/tmp/config.json

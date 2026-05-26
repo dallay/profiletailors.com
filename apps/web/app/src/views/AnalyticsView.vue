@@ -10,7 +10,7 @@ import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card'
         {{ $t('nav.analytics') }}
       </h2>
       <p class="text-sm text-text-secondary">
-        Track audience growth, engagement rates, and platform performance.
+        {{ $t('analytics.subtitle') }}
       </p>
     </div>
 
@@ -19,9 +19,9 @@ import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card'
       <Card class="md:col-span-2">
         <CardHeader class="p-0 border-b border-border-subtle pb-4 flex flex-row items-center justify-between">
           <CardTitle class="label-mono text-text-display text-[10px]">
-            Audience Growth (Last 30 Days)
+            {{ $t('analytics.audienceGrowth') }}
           </CardTitle>
-          <span class="font-mono text-[9px] text-text-secondary uppercase">[ Live ]</span>
+          <span class="font-mono text-[9px] text-text-secondary uppercase">[ {{ $t('analytics.live') }} ]</span>
         </CardHeader>
         <CardContent class="p-0 mt-6 h-48 flex items-end justify-between gap-2 px-2">
           <!-- Monochrome Chart Bars -->
@@ -38,7 +38,7 @@ import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card'
       <Card>
         <CardHeader class="p-0 border-b border-border-subtle pb-4">
           <CardTitle class="label-mono text-text-display text-[10px]">
-            Platform Breakdown
+            {{ $t('analytics.platformBreakdown') }}
           </CardTitle>
         </CardHeader>
         <CardContent class="p-0 mt-6 space-y-4 font-mono text-[10px] uppercase">
