@@ -4,9 +4,9 @@
 
 ### Production Security Headers
 
-```java
+```kotlin
 @Configuration
-public class SecurityHeadersConfig {
+class SecurityHeadersConfig {
 
     @Bean
     public SecurityFilterChain securityHeadersFilterChain(HttpSecurity http) throws Exception {
@@ -58,37 +58,37 @@ public class SecurityHeadersConfig {
 
 ### Enhanced Password Security
 
-```java
+```kotlin
 @Service
-public class SecurePasswordService {
+class SecurePasswordService {
 
-    private final PasswordEncoder passwordEncoder;
-    private final PasswordHistoryRepository passwordHistoryRepository;
-    private final PasswordPolicy passwordPolicy;
+    private val passwordEncoder: PasswordEncoder
+    private val passwordHistoryRepository: PasswordHistoryRepository
+    private val passwordPolicy: PasswordPolicy
 
-    public String encodePassword(String rawPassword) {
+    fun encodePassword(String rawPassword): String {
         // Use Argon2 for better security
         return passwordEncoder.encode(rawPassword);
     }
 
-    public void validatePassword(String password, User user) {
+    fun validatePassword(String password, User user): void {
         // Check password against policy
         if (!meetsPasswordPolicy(password)) {
-            throw new PasswordPolicyViolationException(getPasswordPolicyViolations(password));
+            throw PasswordPolicyViolationException(getPasswordPolicyViolations(password));
         }
 
         // Check against password history
         if (isPasswordReused(password, user)) {
-            throw new PasswordReusedException("Password has been used before");
+            throw PasswordReusedException("Password has been used before");
         }
 
         // Check against breached passwords
         if (isBreachedPassword(password)) {
-            throw new BreachedPasswordException("Password has been exposed in data breaches");
+            throw BreachedPasswordException("Password has been exposed in data breaches");
         }
     }
 
-    private boolean meetsPasswordPolicy(String password) {
+    private fun meetsPasswordPolicy(String password): boolean {
         return password.length() >= passwordPolicy.getMinLength() &&
                password.matches(".*[A-Z].*") && // At least one uppercase
                password.matches(".*[a-z].*") && // At least one lowercase
@@ -120,10 +120,10 @@ public class SecurePasswordService {
 }
 
 @Configuration
-public class PasswordConfig {
+class PasswordConfig {
 
     @Bean
-    public PasswordEncoder passwordEncoder() {
+    fun passwordEncoder(): PasswordEncoder {
         return new Argon2PasswordEncoder(
             16,    // salt length
             32,    // hash length
@@ -139,14 +139,14 @@ public class PasswordConfig {
 
 ### Rate Limiting and Brute Force Protection
 
-```java
+```kotlin
 @Component
-public class BruteForceProtectionService {
+class BruteForceProtectionService {
 
     private final LoadingCache<String, Integer> loginAttemptsCache;
     private final LoadingCache<String, Long> lockoutCache;
-    private final int maxAttempts;
-    private final Duration lockoutDuration;
+    private val maxAttempts: int
+    private val lockoutDuration: Duration
 
     public BruteForceProtectionService() {
         this.maxAttempts = 5;
@@ -161,7 +161,7 @@ public class BruteForceProtectionService {
             .build(key -> 0L);
     }
 
-    public void recordFailedAttempt(String identifier) {
+    fun recordFailedAttempt(String identifier): void {
         int attempts = loginAttemptsCache.asMap().merge(identifier, 1, Integer::sum);
 
         if (attempts >= maxAttempts) {
@@ -170,23 +170,23 @@ public class BruteForceProtectionService {
         }
     }
 
-    public void recordSuccessfulAttempt(String identifier) {
+    fun recordSuccessfulAttempt(String identifier): void {
         loginAttemptsCache.invalidate(identifier);
         lockoutCache.invalidate(identifier);
     }
 
-    public boolean isLockedOut(String identifier) {
+    fun isLockedOut(String identifier): boolean {
         Long lockTime = lockoutCache.getIfPresent(identifier);
         return lockTime != null && lockTime > 0;
     }
 
-    private void lockout(String identifier) {
+    private fun lockout(String identifier): void {
         lockoutCache.put(identifier, System.currentTimeMillis());
     }
 
     @EventListener
     @Async
-    public void handleAuthenticationFailure(AuthenticationFailureBadCredentialsEvent event) {
+    fun handleAuthenticationFailure(AuthenticationFailureBadCredentialsEvent event): void {
         String username = event.getAuthentication().getName();
         recordFailedAttempt(username);
 
@@ -198,10 +198,10 @@ public class BruteForceProtectionService {
 
 @RestController
 @RequestMapping("/api/auth")
-public class SecureAuthController {
+class SecureAuthController {
 
-    private final BruteForceProtectionService bruteForceProtection;
-    private final RecaptchaService recaptchaService;
+    private val bruteForceProtection: BruteForceProtectionService
+    private val recaptchaService: RecaptchaService
 
     @PostMapping("/login")
     @RateLimited(requests = 5, window = "PT1M")
@@ -214,20 +214,20 @@ public class SecureAuthController {
         // Check IP-based rate limiting
         if (bruteForceProtection.isLockedOut(clientIp)) {
             return ResponseEntity.status(HttpStatus.TOO_MANY_REQUESTS)
-                .body(new ErrorResponse("Too many failed attempts. Please try again later."));
+                .body(ErrorResponse("Too many failed attempts. Please try again later."));
         }
 
         // Check username-based rate limiting
         if (bruteForceProtection.isLockedOut(request.username())) {
             return ResponseEntity.status(HttpStatus.TOO_MANY_REQUESTS)
-                .body(new ErrorResponse("Account temporarily locked due to failed attempts."));
+                .body(ErrorResponse("Account temporarily locked due to failed attempts."));
         }
 
         // Verify reCAPTCHA for suspicious activity
         if (shouldRequireRecaptcha(request.username(), clientIp)) {
             if (!recaptchaService.verifyRecaptcha(request.recaptchaToken(), clientIp)) {
                 return ResponseEntity.badRequest()
-                    .body(new ErrorResponse("Invalid reCAPTCHA"));
+                    .body(ErrorResponse("Invalid reCAPTCHA"));
             }
         }
 
@@ -239,13 +239,13 @@ public class SecureAuthController {
 
 ### CSRF Protection with State Management
 
-```java
+```kotlin
 @Configuration
-public class CsrfConfig {
+class CsrfConfig {
 
     @Bean
-    public CsrfTokenRepository customCsrfTokenRepository() {
-        HttpSessionCsrfTokenRepository repository = new HttpSessionCsrfTokenRepository();
+    fun customCsrfTokenRepository(): CsrfTokenRepository {
+        HttpSessionCsrfTokenRepository repository = HttpSessionCsrfTokenRepository();
         repository.setHeaderName("X-CSRF-TOKEN");
         repository.setParameterName("_csrf");
         return repository;
@@ -257,16 +257,16 @@ public class CsrfConfig {
             .csrf(csrf -> csrf
                 .csrfTokenRepository(customCsrfTokenRepository())
                 .ignoringRequestMatchers("/api/auth/**")
-                .csrfTokenRequestHandler(new CsrfTokenRequestAttributeHandler())
+                .csrfTokenRequestHandler(CsrfTokenRequestAttributeHandler())
                 .and()
             )
-            .addFilterAfter(new CsrfCookieFilter(), BasicAuthenticationFilter.class)
+            .addFilterAfter(CsrfCookieFilter(), BasicAuthenticationFilter.class)
             .build();
     }
 }
 
 @Component
-public class CsrfCookieFilter extends OncePerRequestFilter {
+class CsrfCookieFilter extends OncePerRequestFilter {
 
     @Override
     protected void doFilterInternal(HttpServletRequest request,
@@ -276,7 +276,7 @@ public class CsrfCookieFilter extends OncePerRequestFilter {
         CsrfToken csrfToken = (CsrfToken) request.getAttribute(CsrfToken.class.getName());
 
         if (csrfToken != null) {
-            Cookie cookie = new Cookie("XSRF-TOKEN", csrfToken.getToken());
+            Cookie cookie = Cookie("XSRF-TOKEN", csrfToken.getToken());
             cookie.setPath("/");
             cookie.setHttpOnly(false);
             cookie.setSecure(true);
@@ -293,12 +293,12 @@ public class CsrfCookieFilter extends OncePerRequestFilter {
 
 ### Request Validation Filter
 
-```java
+```kotlin
 @Component
-public class SecurityValidationFilter implements Filter {
+class SecurityValidationFilter implements Filter {
 
-    private final InputSanitizer inputSanitizer;
-    private final XssProtectionService xssProtection;
+    private val inputSanitizer: InputSanitizer
+    private val xssProtection: XssProtectionService
 
     @Override
     public void doFilter(ServletRequest request, ServletResponse response,
@@ -306,7 +306,7 @@ public class SecurityValidationFilter implements Filter {
 
         // Wrap request for validation
         SecurityValidatedRequestWrapper wrappedRequest =
-            new SecurityValidatedRequestWrapper((HttpServletRequest) request);
+            SecurityValidatedRequestWrapper((HttpServletRequest) request);
 
         // Validate all inputs
         if (!validateRequest(wrappedRequest)) {
@@ -318,20 +318,20 @@ public class SecurityValidationFilter implements Filter {
         chain.doFilter(wrappedRequest, response);
     }
 
-    private boolean validateRequest(SecurityValidatedRequestWrapper request) {
+    private fun validateRequest(SecurityValidatedRequestWrapper request): boolean {
         try {
             // Validate query parameters
             request.getParameterMap().forEach((key, values) -> {
                 if (xssProtection.containsXss(key) ||
                     Arrays.stream(values).anyMatch(xssProtection::containsXss)) {
-                    throw new SecurityException("XSS detected in parameters");
+                    throw SecurityException("XSS detected in parameters");
                 }
             });
 
             // Validate headers for injection attacks
             Collections.list(request.getHeaderNames()).forEach(headerName -> {
                 if (isSuspiciousHeader(headerName, request.getHeader(headerName))) {
-                    throw new SecurityException("Suspicious header detected");
+                    throw SecurityException("Suspicious header detected");
                 }
             });
 
@@ -343,14 +343,14 @@ public class SecurityValidationFilter implements Filter {
         }
     }
 
-    private boolean isSuspiciousHeader(String headerName, String headerValue) {
+    private fun isSuspiciousHeader(String headerName, String headerValue): boolean {
         String suspiciousPatterns = "(?i)(script|javascript|vbscript|onload|onerror|onclick)";
         return headerName.matches(suspiciousPatterns) || headerValue.matches(suspiciousPatterns);
     }
 }
 
 @Component
-public class XssProtectionService {
+class XssProtectionService {
 
     private final Pattern[] xssPatterns = {
         Pattern.compile("<script[^>]*>.*?</script>", Pattern.CASE_INSENSITIVE),
@@ -362,7 +362,7 @@ public class XssProtectionService {
         Pattern.compile("<img[^>]*src[^=]*=[\"']?javascript:", Pattern.CASE_INSENSITIVE)
     };
 
-    public boolean containsXss(String input) {
+    fun containsXss(String input): boolean {
         if (input == null || input.isEmpty()) {
             return false;
         }
@@ -376,7 +376,7 @@ public class XssProtectionService {
         return false;
     }
 
-    public String sanitize(String input) {
+    fun sanitize(String input): String {
         if (input == null) {
             return null;
         }
@@ -396,14 +396,14 @@ public class XssProtectionService {
 
 ### SQL Injection Prevention
 
-```java
+```kotlin
 @Repository
-public class SecureUserRepository {
+class SecureUserRepository {
 
     @PersistenceContext
-    private EntityManager entityManager;
+    private var entityManager: EntityManager
 
-    public User findByEmailSafe(String email) {
+    fun findByEmailSafe(String email): User {
         // Using parameterized query
         String jpql = "SELECT u FROM User u WHERE u.email = :email";
         TypedQuery<User> query = entityManager.createQuery(jpql, User.class);
@@ -414,7 +414,7 @@ public class SecureUserRepository {
     public List<User> searchUsersSecure(String searchTerm) {
         // Validate search term first
         if (!isValidSearchTerm(searchTerm)) {
-            throw new InvalidSearchTermException("Invalid search term");
+            throw InvalidSearchTermException("Invalid search term");
         }
 
         // Using Criteria API for dynamic queries
@@ -433,7 +433,7 @@ public class SecureUserRepository {
         return entityManager.createQuery(query).getResultList();
     }
 
-    private boolean isValidSearchTerm(String term) {
+    private fun isValidSearchTerm(String term): boolean {
         // Check for SQL injection patterns
         String[] dangerousPatterns = {
             "'", "\"", ";", "--", "/*", "*/",
@@ -446,7 +446,7 @@ public class SecureUserRepository {
             .noneMatch(upperTerm::contains);
     }
 
-    private String escapeSql(String input) {
+    private fun escapeSql(String input): String {
         return input.replace("'", "''");
     }
 }
@@ -456,22 +456,22 @@ public class SecureUserRepository {
 
 ### Key Rotation Service
 
-```java
+```kotlin
 @Service
-public class KeyRotationService {
+class KeyRotationService {
 
-    private final JwtKeyStore keyStore;
-    private final JwtEncoder jwtEncoder;
-    private final ApplicationEventPublisher eventPublisher;
+    private val keyStore: JwtKeyStore
+    private val jwtEncoder: JwtEncoder
+    private val eventPublisher: ApplicationEventPublisher
 
     @Value("${jwt.rotation.enabled:true}")
-    private boolean rotationEnabled;
+    private var rotationEnabled: boolean
 
     @Value("${jwt.rotation.schedule:0 0 2 * * ?}") // 2 AM daily
-    private String rotationSchedule;
+    private var rotationSchedule: String
 
     @Scheduled(cron = "${jwt.rotation.schedule}")
-    public void rotateKeys() {
+    fun rotateKeys(): void {
         if (!rotationEnabled) {
             log.info("Key rotation is disabled");
             return;
@@ -497,28 +497,28 @@ public class KeyRotationService {
             }
 
             // Publish rotation event
-            eventPublisher.publishEvent(new KeyRotationEvent(oldKeyId, newKeyId));
+            eventPublisher.publishEvent(KeyRotationEvent(oldKeyId, newKeyId));
 
             log.info("JWT key rotation completed successfully");
 
         } catch (Exception e) {
             log.error("Failed to rotate JWT keys", e);
-            eventPublisher.publishEvent(new KeyRotationFailedEvent(e));
+            eventPublisher.publishEvent(KeyRotationFailedEvent(e));
         }
     }
 
-    private KeyPair generateNewKeyPair() {
+    private fun generateNewKeyPair(): KeyPair {
         try {
             KeyPairGenerator keyGen = KeyPairGenerator.getInstance("RSA");
             keyGen.initialize(2048);
             return keyGen.generateKeyPair();
         } catch (Exception e) {
-            throw new RuntimeException("Failed to generate key pair", e);
+            throw RuntimeException("Failed to generate key pair", e);
         }
     }
 
     @EventListener
-    public void handleKeyRotation(KeyRotationEvent event) {
+    fun handleKeyRotation(KeyRotationEvent event): void {
         log.info("Key rotated from {} to {}", event.getOldKeyId(), event.getNewKeyId());
 
         // Invalidate all existing refresh tokens if required
@@ -529,45 +529,45 @@ public class KeyRotationService {
 }
 
 @Component
-public class SecureKeyStore {
+class SecureKeyStore {
 
     private final Map<String, KeyPair> keys = new ConcurrentHashMap<>();
     private volatile String currentKeyId;
 
     @PostConstruct
-    public void initialize() {
+    fun initialize(): void {
         // Load keys from secure storage
         loadKeysFromSecureStorage();
     }
 
-    public RSAPrivateKey getCurrentPrivateKey() {
+    fun getCurrentPrivateKey(): RSAPrivateKey {
         KeyPair currentKey = keys.get(currentKeyId);
         if (currentKey == null) {
-            throw new IllegalStateException("No current key available");
+            throw IllegalStateException("No current key available");
         }
         return (RSAPrivateKey) currentKey.getPrivate();
     }
 
-    public RSAPublicKey getPublicKey(String keyId) {
+    fun getPublicKey(String keyId): RSAPublicKey {
         KeyPair keyPair = keys.get(keyId);
         if (keyPair == null) {
-            throw new IllegalArgumentException("Key not found: " + keyId);
+            throw IllegalArgumentException("Key not found: " + keyId);
         }
         return (RSAPublicKey) keyPair.getPublic();
     }
 
-    public void addKey(String keyId, KeyPair keyPair) {
+    fun addKey(String keyId, KeyPair keyPair): void {
         // Store key in secure storage
         storeKeySecurely(keyId, keyPair);
         keys.put(keyId, keyPair);
     }
 
-    private void storeKeySecurely(String keyId, KeyPair keyPair) {
+    private fun storeKeySecurely(String keyId, KeyPair keyPair): void {
         // Implement secure storage (e.g., AWS KMS, HashiCorp Vault)
         // Never store private keys in application properties or files
     }
 
-    private void loadKeysFromSecureStorage() {
+    private fun loadKeysFromSecureStorage(): void {
         // Load keys from secure storage
         // This should integrate with your organization's key management solution
     }
@@ -578,17 +578,17 @@ public class SecureKeyStore {
 
 ### Security Event Monitoring
 
-```java
+```kotlin
 @Component
 @Slf4j
-public class SecurityEventMonitor {
+class SecurityEventMonitor {
 
-    private final MeterRegistry meterRegistry;
-    private final AlertService alertService;
+    private val meterRegistry: MeterRegistry
+    private val alertService: AlertService
 
     @EventListener
     @Async
-    public void monitorAuthenticationFailure(AuthenticationFailureBadCredentialsEvent event) {
+    fun monitorAuthenticationFailure(AuthenticationFailureBadCredentialsEvent event): void {
         String username = event.getAuthentication().getName();
         String clientIp = getClientIp();
 
@@ -605,7 +605,7 @@ public class SecurityEventMonitor {
 
     @EventListener
     @Async
-    public void monitorSuspiciousActivity(SuspiciousActivityEvent event) {
+    fun monitorSuspiciousActivity(SuspiciousActivityEvent event): void {
         // Record security event
         Gauge.builder("security.suspicious.activities")
             .tag("type", event.getActivityType())
@@ -632,7 +632,7 @@ public class SecurityEventMonitor {
         }
     }
 
-    private void checkForAttackPatterns(String username, String clientIp) {
+    private fun checkForAttackPatterns(String username, String clientIp): void {
         // Check for credential stuffing
         if (isCredentialStuffingAttack(username, clientIp)) {
             publishSecurityEvent("CREDENTIAL_STUFFING", Map.of(
@@ -656,15 +656,15 @@ public class SecurityEventMonitor {
 
 ### Security Health Indicator
 
-```java
+```kotlin
 @Component
-public class SecurityHealthIndicator implements HealthIndicator {
+class SecurityHealthIndicator implements HealthIndicator {
 
-    private final SecurityConfigService securityConfig;
-    private final VulnerabilityScanner vulnerabilityScanner;
+    private val securityConfig: SecurityConfigService
+    private val vulnerabilityScanner: VulnerabilityScanner
 
     @Override
-    public Health health() {
+    fun health(): Health {
         try {
             Health.Builder builder = Health.up();
 
@@ -717,17 +717,17 @@ public class SecurityHealthIndicator implements HealthIndicator {
 
 ### Comprehensive Audit Logger
 
-```java
+```kotlin
 @Component
 @Slf4j
-public class SecurityAuditLogger {
+class SecurityAuditLogger {
 
-    private final AuditLogRepository auditLogRepository;
-    private final ObjectMapper objectMapper;
+    private val auditLogRepository: AuditLogRepository
+    private val objectMapper: ObjectMapper
 
     @EventListener
     @Async("auditEventExecutor")
-    public void auditAuthenticationEvent(AuthenticationEvent event) {
+    fun auditAuthenticationEvent(AuthenticationEvent event): void {
         AuditLog auditLog = AuditLog.builder()
             .eventType(event.getType())
             .userId(extractUserId(event))
@@ -741,7 +741,7 @@ public class SecurityAuditLogger {
             .build();
 
         // Add additional context
-        Map<String, Object> context = new HashMap<>();
+        Map<String, Object> context = mutableMapOf();
         context.put("sessionId", event.getSessionId());
         context.put("requestId", event.getRequestId());
 
@@ -760,7 +760,7 @@ public class SecurityAuditLogger {
 
     @EventListener
     @Async
-    public void auditDataAccess(DataAccessEvent event) {
+    fun auditDataAccess(DataAccessEvent event): void {
         AuditLog auditLog = AuditLog.builder()
             .eventType("DATA_ACCESS")
             .userId(event.getUserId())
@@ -772,7 +772,7 @@ public class SecurityAuditLogger {
             .build();
 
         // Record what data was accessed
-        Map<String, Object> context = new HashMap<>();
+        Map<String, Object> context = mutableMapOf();
         context.put("recordIds", event.getRecordIds());
         context.put("fields", event.getAccessedFields());
         context.put("query", event.getQuery());
@@ -782,12 +782,12 @@ public class SecurityAuditLogger {
     }
 
     @Scheduled(fixedRate = 3600000) // Hourly
-    public void generateSecurityReport() {
+    fun generateSecurityReport(): void {
         SecurityReport report = securityReportGenerator.generateHourlyReport();
         reportService.sendReport(report);
     }
 
-    private void logAuditEvent(AuditLog auditLog) {
+    private fun logAuditEvent(AuditLog auditLog): void {
         try {
             String logMessage = objectMapper.writeValueAsString(auditLog);
             log.info("AUDIT: {}", logMessage);
@@ -796,7 +796,7 @@ public class SecurityAuditLogger {
         }
     }
 
-    private String serializeContext(Map<String, Object> context) {
+    private fun serializeContext(Map<String, Object> context): String {
         try {
             return objectMapper.writeValueAsString(context);
         } catch (Exception e) {
@@ -808,14 +808,14 @@ public class SecurityAuditLogger {
 
 ### GDPR Compliance Features
 
-```java
+```kotlin
 @Service
-public class GdprComplianceService {
+class GdprComplianceService {
 
     @Transactional
-    public UserDataExport exportUserData(String userId) {
+    fun exportUserData(String userId): UserDataExport {
         User user = userRepository.findById(userId)
-            .orElseThrow(() -> new UserNotFoundException(userId));
+            .orElseThrow(() -> UserNotFoundException(userId));
 
         return UserDataExport.builder()
             .user(extractUserData(user))
@@ -827,10 +827,10 @@ public class GdprComplianceService {
     }
 
     @Transactional
-    public void deleteUserData(String userId) {
+    fun deleteUserData(String userId): void {
         // Anonymize user data instead of hard delete for audit purposes
         User user = userRepository.findById(userId)
-            .orElseThrow(() -> new UserNotFoundException(userId));
+            .orElseThrow(() -> UserNotFoundException(userId));
 
         // Mark as deleted
         user.setEmail(generateAnonymizedEmail());
@@ -849,12 +849,12 @@ public class GdprComplianceService {
         auditLogger.logDataDeletion(userId, "GDPR_REQUEST");
     }
 
-    private String generateAnonymizedEmail() {
+    private fun generateAnonymizedEmail(): String {
         return "deleted-" + UUID.randomUUID() + "@deleted.local";
     }
 
     @EventListener
-    public void handleDataSubjectRequest(DataSubjectRequestEvent event) {
+    fun handleDataSubjectRequest(DataSubjectRequestEvent event): void {
         switch (event.getRequestType()) {
             case ACCESS:
                 processAccessRequest(event);

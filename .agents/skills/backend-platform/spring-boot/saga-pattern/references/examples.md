@@ -60,34 +60,34 @@ e-commerce-saga/
 
 #### Order Entity
 
-```java
+```kotlin
 @Entity
 @Table(name = "orders")
-public class Order {
+class Order {
     
     @Id
-    private String orderId;
+    private var orderId: String
     
     @Column(nullable = false)
-    private String customerId;
+    private var customerId: String
     
     @Column(nullable = false)
-    private BigDecimal totalAmount;
+    private var totalAmount: BigDecimal
     
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
-    private OrderStatus status;
+    private var status: OrderStatus
     
     @OneToMany(cascade = CascadeType.ALL, orphanRemoval = true)
-    private List<OrderItem> items = new ArrayList<>();
+    private List<OrderItem> items = mutableListOf();
     
     @Column(nullable = false)
-    private Instant createdAt;
+    private var createdAt: Instant
     
-    private Instant completedAt;
+    private var completedAt: Instant
     
     @Version
-    private Long version;
+    private var version: Long
     
     // Constructor
     public Order() {
@@ -102,39 +102,39 @@ public class Order {
     }
     
     // Business methods
-    public void markAsProcessing() {
+    fun markAsProcessing(): void {
         if (this.status != OrderStatus.PENDING) {
-            throw new IllegalStateException("Order must be pending to mark as processing");
+            throw IllegalStateException("Order must be pending to mark as processing");
         }
         this.status = OrderStatus.PROCESSING;
     }
     
-    public void markAsCompleted() {
+    fun markAsCompleted(): void {
         if (this.status != OrderStatus.PROCESSING) {
-            throw new IllegalStateException("Order must be processing to complete");
+            throw IllegalStateException("Order must be processing to complete");
         }
         this.status = OrderStatus.COMPLETED;
         this.completedAt = Instant.now();
     }
     
-    public void cancel() {
+    fun cancel(): void {
         if (this.status == OrderStatus.COMPLETED) {
-            throw new IllegalStateException("Cannot cancel completed order");
+            throw IllegalStateException("Cannot cancel completed order");
         }
         this.status = OrderStatus.CANCELLED;
     }
     
     // Getters
-    public String getOrderId() { return orderId; }
-    public String getCustomerId() { return customerId; }
-    public BigDecimal getTotalAmount() { return totalAmount; }
-    public OrderStatus getStatus() { return status; }
+    fun getOrderId(): String { return orderId; }
+    fun getCustomerId(): String { return customerId; }
+    fun getTotalAmount(): BigDecimal { return totalAmount; }
+    fun getStatus(): OrderStatus { return status; }
     public List<OrderItem> getItems() { return items; }
-    public Instant getCreatedAt() { return createdAt; }
-    public Instant getCompletedAt() { return completedAt; }
+    fun getCreatedAt(): Instant { return createdAt; }
+    fun getCompletedAt(): Instant { return completedAt; }
 }
 
-public enum OrderStatus {
+enum class OrderStatus {
     PENDING,
     PROCESSING,
     COMPLETED,
@@ -145,29 +145,29 @@ public enum OrderStatus {
 
 #### Order Item
 
-```java
+```kotlin
 @Entity
 @Table(name = "order_items")
-public class OrderItem {
+class OrderItem {
     
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Long id;
+    private var id: Long
     
     @Column(nullable = false)
-    private String productId;
+    private var productId: String
     
     @Column(nullable = false)
-    private String productName;
+    private var productName: String
     
     @Column(nullable = false)
-    private Integer quantity;
+    private var quantity: Integer
     
     @Column(nullable = false)
-    private BigDecimal unitPrice;
+    private var unitPrice: BigDecimal
     
     @Column(nullable = false)
-    private BigDecimal totalPrice;
+    private var totalPrice: BigDecimal
     
     // Constructors
     public OrderItem() {
@@ -183,12 +183,12 @@ public class OrderItem {
     }
     
     // Getters
-    public Long getId() { return id; }
-    public String getProductId() { return productId; }
-    public String getProductName() { return productName; }
-    public Integer getQuantity() { return quantity; }
-    public BigDecimal getUnitPrice() { return unitPrice; }
-    public BigDecimal getTotalPrice() { return totalPrice; }
+    fun getId(): Long { return id; }
+    fun getProductId(): String { return productId; }
+    fun getProductName(): String { return productName; }
+    fun getQuantity(): Integer { return quantity; }
+    fun getUnitPrice(): BigDecimal { return unitPrice; }
+    fun getTotalPrice(): BigDecimal { return totalPrice; }
 }
 ```
 
@@ -196,7 +196,7 @@ public class OrderItem {
 
 #### Order Commands
 
-```java
+```kotlin
 public record CreateOrderCommand(
     @TargetAggregateIdentifier String orderId,
     String customerId,
@@ -216,7 +216,7 @@ public record CompleteOrderCommand(
 
 #### Order Events
 
-```java
+```kotlin
 public record OrderCreatedEvent(
     String orderId,
     String customerId,
@@ -239,7 +239,7 @@ public record OrderCompletedEvent(
 
 #### Payment Commands
 
-```java
+```kotlin
 public record ProcessPaymentCommand(
     @TargetAggregateIdentifier String paymentId,
     String orderId,
@@ -258,7 +258,7 @@ public record RefundPaymentCommand(
 
 #### Payment Events
 
-```java
+```kotlin
 public record PaymentProcessedEvent(
     String paymentId,
     String orderId,
@@ -284,23 +284,23 @@ public record PaymentRefundedEvent(
 
 ### Order Saga Implementation
 
-```java
+```kotlin
 @Saga
-public class OrderSaga {
+class OrderSaga {
     
     private static final Logger logger = LoggerFactory.getLogger(OrderSaga.class);
     
     @Autowired
     private transient CommandGateway commandGateway;
     
-    private String orderId;
-    private String paymentId;
-    private String shipmentId;
+    private var orderId: String
+    private var paymentId: String
+    private var shipmentId: String
     private boolean compensating = false;
     
     @StartSaga
     @SagaEventHandler(associationProperty = "orderId")
-    public void handle(OrderCreatedEvent event) {
+    fun handle(OrderCreatedEvent event): void {
         this.orderId = event.orderId();
         logger.info("Order saga started for orderId: {}", orderId);
         
@@ -313,7 +313,7 @@ public class OrderSaga {
             event.orderId(),
             event.customerId(),
             event.totalAmount(),
-            new PaymentMethod("CREDIT_CARD", Map.of())
+            PaymentMethod("CREDIT_CARD", Map.of())
         );
         
         commandGateway.send(command, (commandMessage, commandResultMessage) -> {
@@ -325,7 +325,7 @@ public class OrderSaga {
     }
     
     @SagaEventHandler(associationProperty = "orderId")
-    public void handle(PaymentProcessedEvent event) {
+    fun handle(PaymentProcessedEvent event): void {
         logger.info("Payment processed for orderId: {}", event.orderId());
         
         if (compensating) {
@@ -343,7 +343,7 @@ public class OrderSaga {
     }
     
     @SagaEventHandler(associationProperty = "orderId")
-    public void handle(InventoryReservedEvent event) {
+    fun handle(InventoryReservedEvent event): void {
         logger.info("Inventory reserved for orderId: {}", event.orderId());
         
         if (compensating) {
@@ -365,7 +365,7 @@ public class OrderSaga {
     }
     
     @SagaEventHandler(associationProperty = "orderId")
-    public void handle(ShipmentPreparedEvent event) {
+    fun handle(ShipmentPreparedEvent event): void {
         logger.info("Shipment prepared for orderId: {}", event.orderId());
         
         if (compensating) {
@@ -384,23 +384,23 @@ public class OrderSaga {
     }
     
     @SagaEventHandler(associationProperty = "orderId")
-    public void handle(NotificationSentEvent event) {
+    fun handle(NotificationSentEvent event): void {
         logger.info("Notification sent for orderId: {}", event.orderId());
         
         // Complete the order
-        CompleteOrderCommand command = new CompleteOrderCommand(event.orderId());
+        CompleteOrderCommand command = CompleteOrderCommand(event.orderId());
         commandGateway.send(command);
     }
     
     @EndSaga
     @SagaEventHandler(associationProperty = "orderId")
-    public void handle(OrderCompletedEvent event) {
+    fun handle(OrderCompletedEvent event): void {
         logger.info("Order saga completed for orderId: {}", event.orderId());
     }
     
     // Compensation handlers
     @SagaEventHandler(associationProperty = "orderId")
-    public void handle(PaymentFailedEvent event) {
+    fun handle(PaymentFailedEvent event): void {
         logger.error("Payment failed for orderId: {}, reason: {}", 
             event.orderId(), event.reason());
         
@@ -416,7 +416,7 @@ public class OrderSaga {
     }
     
     @SagaEventHandler(associationProperty = "orderId")
-    public void handle(InventoryReservationFailedEvent event) {
+    fun handle(InventoryReservationFailedEvent event): void {
         logger.error("Inventory reservation failed for orderId: {}, reason: {}", 
             event.orderId(), event.reason());
         
@@ -434,7 +434,7 @@ public class OrderSaga {
     }
     
     @SagaEventHandler(associationProperty = "orderId")
-    public void handle(PaymentRefundedEvent event) {
+    fun handle(PaymentRefundedEvent event): void {
         logger.info("Payment refunded for orderId: {}", event.orderId());
         
         // Cancel the order
@@ -448,7 +448,7 @@ public class OrderSaga {
     
     @EndSaga
     @SagaEventHandler(associationProperty = "orderId")
-    public void handle(OrderCancelledEvent event) {
+    fun handle(OrderCancelledEvent event): void {
         logger.info("Order saga ended with cancellation for orderId: {}", 
             event.orderId());
     }
@@ -457,16 +457,16 @@ public class OrderSaga {
 
 ### Payment Aggregate
 
-```java
+```kotlin
 @Aggregate
-public class PaymentAggregate {
+class PaymentAggregate {
     
     @AggregateIdentifier
-    private String paymentId;
+    private var paymentId: String
     
-    private String orderId;
-    private BigDecimal amount;
-    private PaymentStatus status;
+    private var orderId: String
+    private var amount: BigDecimal
+    private var status: PaymentStatus
     
     public PaymentAggregate() {
     }
@@ -506,7 +506,7 @@ public class PaymentAggregate {
     }
     
     @EventSourcingHandler
-    public void on(PaymentProcessedEvent event) {
+    fun on(PaymentProcessedEvent event): void {
         this.paymentId = event.paymentId();
         this.orderId = event.orderId();
         this.amount = event.amount();
@@ -514,16 +514,16 @@ public class PaymentAggregate {
     }
     
     @EventSourcingHandler
-    public void on(PaymentFailedEvent event) {
+    fun on(PaymentFailedEvent event): void {
         this.paymentId = event.paymentId();
         this.orderId = event.orderId();
         this.status = PaymentStatus.FAILED;
     }
     
     @CommandHandler
-    public void handle(RefundPaymentCommand command) {
+    fun handle(RefundPaymentCommand command): void {
         if (this.status != PaymentStatus.PROCESSED) {
-            throw new IllegalStateException("Can only refund processed payments");
+            throw IllegalStateException("Can only refund processed payments");
         }
         
         apply(new PaymentRefundedEvent(
@@ -535,11 +535,11 @@ public class PaymentAggregate {
     }
     
     @EventSourcingHandler
-    public void on(PaymentRefundedEvent event) {
+    fun on(PaymentRefundedEvent event): void {
         this.status = PaymentStatus.REFUNDED;
     }
     
-    private boolean processPaymentWithGateway(ProcessPaymentCommand command) {
+    private fun processPaymentWithGateway(ProcessPaymentCommand command): boolean {
         // Simulate payment gateway integration
         // In real implementation, call actual payment gateway API
         try {
@@ -565,15 +565,15 @@ enum PaymentStatus {
 
 ### Inventory Aggregate
 
-```java
+```kotlin
 @Aggregate
-public class InventoryAggregate {
+class InventoryAggregate {
     
     @AggregateIdentifier
-    private String inventoryId;
+    private var inventoryId: String
     
-    private String orderId;
-    private Map<String, Integer> reservedItems = new HashMap<>();
+    private var orderId: String
+    private Map<String, Integer> reservedItems = mutableMapOf();
     
     public InventoryAggregate() {
     }
@@ -601,14 +601,14 @@ public class InventoryAggregate {
     }
     
     @EventSourcingHandler
-    public void on(InventoryReservedEvent event) {
+    fun on(InventoryReservedEvent event): void {
         this.inventoryId = event.inventoryId();
         this.orderId = event.orderId();
         this.reservedItems = event.items();
     }
     
     @CommandHandler
-    public void handle(ReleaseInventoryCommand command) {
+    fun handle(ReleaseInventoryCommand command): void {
         apply(new InventoryReleasedEvent(
             this.inventoryId,
             command.orderId(),
@@ -618,11 +618,11 @@ public class InventoryAggregate {
     }
     
     @EventSourcingHandler
-    public void on(InventoryReleasedEvent event) {
+    fun on(InventoryReleasedEvent event): void {
         this.reservedItems.clear();
     }
     
-    private boolean checkInventoryAvailability(Map<String, Integer> items) {
+    private fun checkInventoryAvailability(Map<String, Integer> items): boolean {
         // In real implementation, check actual inventory database
         // For demonstration, 95% availability
         return Math.random() > 0.05;
@@ -632,12 +632,12 @@ public class InventoryAggregate {
 
 ### Order Service Implementation
 
-```java
+```kotlin
 @Service
-public class OrderService {
+class OrderService {
     
-    private final CommandGateway commandGateway;
-    private final OrderRepository orderRepository;
+    private val commandGateway: CommandGateway
+    private val orderRepository: OrderRepository
     
     public OrderService(CommandGateway commandGateway, 
                        OrderRepository orderRepository) {
@@ -645,7 +645,7 @@ public class OrderService {
         this.orderRepository = orderRepository;
     }
     
-    public String createOrder(CreateOrderRequest request) {
+    fun createOrder(CreateOrderRequest request): String {
         String orderId = UUID.randomUUID().toString();
         
         // Create order entity
@@ -681,9 +681,9 @@ public class OrderService {
         return orderId;
     }
     
-    public OrderDTO getOrder(String orderId) {
+    fun getOrder(String orderId): OrderDTO {
         Order order = orderRepository.findById(orderId)
-            .orElseThrow(() -> new OrderNotFoundException(orderId));
+            .orElseThrow(() -> OrderNotFoundException(orderId));
         
         return OrderDTO.fromEntity(order);
     }
@@ -692,12 +692,12 @@ public class OrderService {
 
 ### REST Controller
 
-```java
+```kotlin
 @RestController
 @RequestMapping("/api/orders")
-public class OrderController {
+class OrderController {
     
-    private final OrderService orderService;
+    private val orderService: OrderService
     
     public OrderController(OrderService orderService) {
         this.orderService = orderService;
@@ -711,7 +711,7 @@ public class OrderController {
         
         return ResponseEntity
             .status(HttpStatus.CREATED)
-            .body(new OrderResponse(orderId, "Order created successfully"));
+            .body(OrderResponse(orderId, "Order created successfully"));
     }
     
     @GetMapping("/{orderId}")
@@ -833,7 +833,7 @@ Notification Service
 
 ### Domain Events
 
-```java
+```kotlin
 // Order Events
 public record OrderCreatedEvent(
     String orderId,
@@ -899,12 +899,12 @@ public record DeliveryFailedEvent(
 
 ### Order Service
 
-```java
+```kotlin
 @Service
-public class FoodOrderService {
+class FoodOrderService {
     
-    private final StreamBridge streamBridge;
-    private final OrderRepository orderRepository;
+    private val streamBridge: StreamBridge
+    private val orderRepository: OrderRepository
     
     public FoodOrderService(StreamBridge streamBridge,
                            OrderRepository orderRepository) {
@@ -912,7 +912,7 @@ public class FoodOrderService {
         this.orderRepository = orderRepository;
     }
     
-    public String createOrder(CreateFoodOrderRequest request) {
+    fun createOrder(CreateFoodOrderRequest request): String {
         String orderId = UUID.randomUUID().toString();
         
         // Create and save order
@@ -984,9 +984,8 @@ public class FoodOrderService {
         };
     }
     
-    private BigDecimal calculateTotal(List<FoodItem> items) {
-        return items.stream()
-            .map(item -> item.price().multiply(BigDecimal.valueOf(item.quantity())))
+    private fun calculateTotal(List<FoodItem> items): BigDecimal {
+        return items..map(item -> item.price().multiply(BigDecimal.valueOf(item.quantity())))
             .reduce(BigDecimal.ZERO, BigDecimal::add);
     }
 }
@@ -994,12 +993,12 @@ public class FoodOrderService {
 
 ### Restaurant Service
 
-```java
+```kotlin
 @Service
-public class RestaurantService {
+class RestaurantService {
     
-    private final StreamBridge streamBridge;
-    private final RestaurantRepository restaurantRepository;
+    private val streamBridge: StreamBridge
+    private val restaurantRepository: RestaurantRepository
     
     public RestaurantService(StreamBridge streamBridge,
                             RestaurantRepository restaurantRepository) {
@@ -1064,12 +1063,12 @@ public class RestaurantService {
 
 ### Payment Service
 
-```java
+```kotlin
 @Service
-public class FoodPaymentService {
+class FoodPaymentService {
     
-    private final StreamBridge streamBridge;
-    private final PaymentGateway paymentGateway;
+    private val streamBridge: StreamBridge
+    private val paymentGateway: PaymentGateway
     
     public FoodPaymentService(StreamBridge streamBridge,
                              PaymentGateway paymentGateway) {
@@ -1122,7 +1121,7 @@ public class FoodPaymentService {
         };
     }
     
-    private BigDecimal getOrderAmount(String orderId) {
+    private fun getOrderAmount(String orderId): BigDecimal {
         // Fetch order amount from order service or database
         return BigDecimal.valueOf(50.00); // Placeholder
     }
@@ -1131,12 +1130,12 @@ public class FoodPaymentService {
 
 ### Delivery Service
 
-```java
+```kotlin
 @Service
-public class DeliveryService {
+class DeliveryService {
     
-    private final StreamBridge streamBridge;
-    private final DeliveryPersonRepository deliveryPersonRepository;
+    private val streamBridge: StreamBridge
+    private val deliveryPersonRepository: DeliveryPersonRepository
     
     public DeliveryService(StreamBridge streamBridge,
                           DeliveryPersonRepository deliveryPersonRepository) {
@@ -1186,12 +1185,12 @@ public class DeliveryService {
 
 ### Notification Service
 
-```java
+```kotlin
 @Service
-public class NotificationService {
+class NotificationService {
     
-    private final EmailService emailService;
-    private final SmsService smsService;
+    private val emailService: EmailService
+    private val smsService: SmsService
     
     public NotificationService(EmailService emailService, 
                               SmsService smsService) {
@@ -1254,7 +1253,7 @@ public class NotificationService {
         };
     }
     
-    private void sendNotification(String orderId, String message) {
+    private fun sendNotification(String orderId, String message): void {
         // Get customer contact info from order
         // Send email and SMS
         emailService.sendEmail(orderId, message);
@@ -1324,23 +1323,23 @@ Cancel Flight   Cancel Hotel   Cancel Car   Refund      Cancel All
 
 ### Travel Saga
 
-```java
+```kotlin
 @Saga
-public class TravelBookingSaga {
+class TravelBookingSaga {
     
     @Autowired
     private transient CommandGateway commandGateway;
     
-    private String bookingId;
-    private String flightReservationId;
-    private String hotelReservationId;
-    private String carRentalReservationId;
-    private String paymentId;
+    private var bookingId: String
+    private var flightReservationId: String
+    private var hotelReservationId: String
+    private var carRentalReservationId: String
+    private var paymentId: String
     private boolean compensating = false;
     
     @StartSaga
     @SagaEventHandler(associationProperty = "bookingId")
-    public void handle(TravelBookingStartedEvent event) {
+    fun handle(TravelBookingStartedEvent event): void {
         this.bookingId = event.bookingId();
         
         // Step 1: Book flight
@@ -1356,7 +1355,7 @@ public class TravelBookingSaga {
     }
     
     @SagaEventHandler(associationProperty = "bookingId")
-    public void handle(FlightBookedEvent event) {
+    fun handle(FlightBookedEvent event): void {
         if (compensating) return;
         
         // Step 2: Book hotel
@@ -1372,7 +1371,7 @@ public class TravelBookingSaga {
     }
     
     @SagaEventHandler(associationProperty = "bookingId")
-    public void handle(HotelBookedEvent event) {
+    fun handle(HotelBookedEvent event): void {
         if (compensating) return;
         
         // Step 3: Rent car
@@ -1388,7 +1387,7 @@ public class TravelBookingSaga {
     }
     
     @SagaEventHandler(associationProperty = "bookingId")
-    public void handle(CarRentedEvent event) {
+    fun handle(CarRentedEvent event): void {
         if (compensating) return;
         
         // Step 4: Process payment
@@ -1404,7 +1403,7 @@ public class TravelBookingSaga {
     }
     
     @SagaEventHandler(associationProperty = "bookingId")
-    public void handle(TravelPaymentProcessedEvent event) {
+    fun handle(TravelPaymentProcessedEvent event): void {
         if (compensating) return;
         
         // Step 5: Confirm booking
@@ -1417,13 +1416,13 @@ public class TravelBookingSaga {
     
     @EndSaga
     @SagaEventHandler(associationProperty = "bookingId")
-    public void handle(TravelBookingConfirmedEvent event) {
+    fun handle(TravelBookingConfirmedEvent event): void {
         // Saga completed successfully
     }
     
     // Compensation handlers
     @SagaEventHandler(associationProperty = "bookingId")
-    public void handle(FlightBookingFailedEvent event) {
+    fun handle(FlightBookingFailedEvent event): void {
         compensating = true;
         
         CancelTravelBookingCommand command = new CancelTravelBookingCommand(
@@ -1435,7 +1434,7 @@ public class TravelBookingSaga {
     }
     
     @SagaEventHandler(associationProperty = "bookingId")
-    public void handle(HotelBookingFailedEvent event) {
+    fun handle(HotelBookingFailedEvent event): void {
         compensating = true;
         
         // Cancel flight
@@ -1448,7 +1447,7 @@ public class TravelBookingSaga {
     }
     
     @SagaEventHandler(associationProperty = "bookingId")
-    public void handle(FlightCancelledEvent event) {
+    fun handle(FlightCancelledEvent event): void {
         if (!compensating) return;
         
         // After flight cancelled, cancel entire booking
@@ -1461,7 +1460,7 @@ public class TravelBookingSaga {
     }
     
     @SagaEventHandler(associationProperty = "bookingId")
-    public void handle(CarRentalFailedEvent event) {
+    fun handle(CarRentalFailedEvent event): void {
         compensating = true;
         
         // Cancel hotel
@@ -1474,7 +1473,7 @@ public class TravelBookingSaga {
     }
     
     @SagaEventHandler(associationProperty = "bookingId")
-    public void handle(HotelCancelledEvent event) {
+    fun handle(HotelCancelledEvent event): void {
         if (!compensating) return;
         
         // Cancel flight
@@ -1487,7 +1486,7 @@ public class TravelBookingSaga {
     }
     
     @SagaEventHandler(associationProperty = "bookingId")
-    public void handle(TravelPaymentFailedEvent event) {
+    fun handle(TravelPaymentFailedEvent event): void {
         compensating = true;
         
         // Cancel car rental
@@ -1500,7 +1499,7 @@ public class TravelBookingSaga {
     }
     
     @SagaEventHandler(associationProperty = "bookingId")
-    public void handle(CarRentalCancelledEvent event) {
+    fun handle(CarRentalCancelledEvent event): void {
         if (!compensating) return;
         
         // Cancel hotel
@@ -1514,11 +1513,11 @@ public class TravelBookingSaga {
     
     @EndSaga
     @SagaEventHandler(associationProperty = "bookingId")
-    public void handle(TravelBookingCancelledEvent event) {
+    fun handle(TravelBookingCancelledEvent event): void {
         // Saga ended with cancellation
     }
     
-    private BigDecimal calculateTotalAmount() {
+    private fun calculateTotalAmount(): BigDecimal {
         // Calculate total from all bookings
         return BigDecimal.valueOf(1500.00); // Placeholder
     }

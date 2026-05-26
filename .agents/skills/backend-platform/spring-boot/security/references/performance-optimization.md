@@ -4,14 +4,14 @@
 
 ### Token Validation Cache
 
-```java
+```kotlin
 @Configuration
 @EnableCaching
-public class JwtCacheConfig {
+class JwtCacheConfig {
 
     @Bean
-    public CacheManager jwtCacheManager() {
-        CaffeineCacheManager cacheManager = new CaffeineCacheManager();
+    fun jwtCacheManager(): CacheManager {
+        CaffeineCacheManager cacheManager = CaffeineCacheManager();
         cacheManager.setCaffeine(Caffeine.newBuilder()
             .maximumSize(10000)
             .expireAfterWrite(Duration.ofMinutes(15))
@@ -30,16 +30,16 @@ public class JwtCacheConfig {
 
     @Bean
     @Primary
-    public JwtDecoder cachedJwtDecoder(JwtDecoder delegate) {
-        return new CachingJwtDecoder(delegate);
+    fun cachedJwtDecoder(JwtDecoder delegate): JwtDecoder {
+        return CachingJwtDecoder(delegate);
     }
 }
 
 @Component
 @Slf4j
-public class CachingJwtDecoder implements JwtDecoder {
+class CachingJwtDecoder implements JwtDecoder {
 
-    private final JwtDecoder delegate;
+    private val delegate: JwtDecoder
     private final Cache<String, Jwt> cache;
 
     public CachingJwtDecoder(JwtDecoder delegate) {
@@ -62,11 +62,11 @@ public class CachingJwtDecoder implements JwtDecoder {
             });
 
         } catch (ExecutionException e) {
-            throw new JwtException("Failed to decode token", e.getCause());
+            throw JwtException("Failed to decode token", e.getCause());
         }
     }
 
-    private String extractCacheKey(String token) {
+    private fun extractCacheKey(String token): String {
         String[] parts = token.split("\\.");
         if (parts.length >= 2) {
             return parts[0] + "." + parts[1]; // header.payload
@@ -75,7 +75,7 @@ public class CachingJwtDecoder implements JwtDecoder {
     }
 
     @Scheduled(fixedRate = 300000) // Every 5 minutes
-    public void logCacheStats() {
+    fun logCacheStats(): void {
         CacheStats stats = cache.stats();
         log.info("JWT Decoder Cache - Hit rate: {:.2f}%, Miss rate: {:.2f}%, Size: {}",
             stats.hitRate() * 100,
@@ -85,21 +85,21 @@ public class CachingJwtDecoder implements JwtDecoder {
 }
 
 @Service
-public class CachedTokenValidationService {
+class CachedTokenValidationService {
 
     @Cacheable(value = "tokenValidation", key = "#token")
-    public TokenValidationResult validateToken(String token) {
+    fun validateToken(String token): TokenValidationResult {
         // Actual token validation logic
         return performValidation(token);
     }
 
     @CacheEvict(value = "tokenValidation", key = "#token")
-    public void evictToken(String token) {
+    fun evictToken(String token): void {
         log.debug("Evicting token from cache: {}", token.substring(0, 20));
     }
 
     @CacheEvict(value = "tokenValidation", allEntries = true)
-    public void clearCache() {
+    fun clearCache(): void {
         log.info("Clearing token validation cache");
     }
 }
@@ -107,25 +107,24 @@ public class CachedTokenValidationService {
 
 ### Permission Caching
 
-```java
+```kotlin
 @Service
-public class CachedPermissionService {
+class CachedPermissionService {
 
     @Cacheable(value = "userPermissions", key = "#user.id")
     public Set<String> getUserPermissions(User user) {
-        return permissionRepository.findByUser(user).stream()
-            .map(Permission::getName)
-            .collect(Collectors.toSet());
+        return permissionRepository.findByUser(user)..map(Permission::getName)
+            .toSet();
     }
 
     @CacheEvict(value = "userPermissions", key = "#user.id")
-    public void refreshUserPermissions(User user) {
+    fun refreshUserPermissions(User user): void {
         // Cache eviction will trigger refresh on next access
     }
 
     @CacheEvict(value = "userPermissions", allEntries = true)
     @Scheduled(fixedRate = 3600000) // Hourly
-    public void refreshAllPermissions() {
+    fun refreshAllPermissions(): void {
         log.info("Refreshing all user permissions cache");
     }
 }
@@ -135,7 +134,7 @@ public class CachedPermissionService {
 
 ### Token Storage Optimization
 
-```java
+```kotlin
 @Entity
 @Table(name = "refresh_tokens", indexes = {
     @Index(name = "idx_refresh_token_user_id", columnList = "user_id"),
@@ -143,47 +142,42 @@ public class CachedPermissionService {
     @Index(name = "idx_refresh_token_expires_at", columnList = "expires_at"),
     @Index(name = "idx_refresh_token_revoked", columnList = "revoked, expires_at")
 })
-@Getter
-@Setter
-@NoArgsConstructor
-@AllArgsConstructor
-@Builder
-public class RefreshToken {
+class RefreshToken {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Long id;
+    private var id: Long
 
     // Use varbinary for better performance with large tokens
     @Column(name = "token", columnDefinition = "BINARY(2048)")
     private byte[] token;
 
     @Column(name = "token_id", unique = true, nullable = false, length = 64)
-    private String tokenId;
+    private var tokenId: String
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "user_id", nullable = false)
-    private User user;
+    private var user: User
 
     // Store timestamps as long for better performance
     @Column(name = "created_at", nullable = false)
-    private Long createdAt;
+    private var createdAt: Long
 
     @Column(name = "expires_at", nullable = false)
-    private Long expiresAt;
+    private var expiresAt: Long
 
     @Column(name = "last_used_at")
-    private Long lastUsedAt;
+    private var lastUsedAt: Long
 
     @Column(name = "revoked_at")
-    private Long revokedAt;
+    private var revokedAt: Long
 
     @Column(nullable = false)
     private boolean revoked = false;
 
     // Add hash for quick lookup
     @Column(name = "token_hash", unique = true, nullable = false, length = 64)
-    private String tokenHash;
+    private var tokenHash: String
 
     @PrePersist
     protected void onCreate() {
@@ -197,7 +191,7 @@ public class RefreshToken {
 }
 
 @Repository
-public interface RefreshTokenRepository extends JpaRepository<RefreshToken, Long> {
+interface RefreshTokenRepository extends JpaRepository<RefreshToken, Long> {
 
     @Query("SELECT rt FROM RefreshToken rt WHERE rt.tokenHash = :hash")
     Optional<RefreshToken> findByTokenHash(@Param("hash") String hash);
@@ -216,12 +210,12 @@ public interface RefreshTokenRepository extends JpaRepository<RefreshToken, Long
 
 ### Batch Operations
 
-```java
+```kotlin
 @Service
-public class OptimizedTokenService {
+class OptimizedTokenService {
 
     @Transactional
-    public void cleanupExpiredTokensBatch() {
+    fun cleanupExpiredTokensBatch(): void {
         int batchSize = 1000;
         int deletedCount = 0;
 
@@ -233,7 +227,7 @@ public class OptimizedTokenService {
     }
 
     @Transactional
-    public void revokeAllUserTokensBatch(User user) {
+    fun revokeAllUserTokensBatch(User user): void {
         // Update in batches to avoid memory issues
         int batchSize = 100;
         int offset = 0;
@@ -262,14 +256,14 @@ public class OptimizedTokenService {
 
 ### Async Token Processing
 
-```java
+```kotlin
 @Configuration
 @EnableAsync
-public class AsyncConfig {
+class AsyncConfig {
 
     @Bean("tokenProcessingExecutor")
-    public Executor tokenProcessingExecutor() {
-        ThreadPoolTaskExecutor executor = new ThreadPoolTaskExecutor();
+    fun tokenProcessingExecutor(): Executor {
+        ThreadPoolTaskExecutor executor = ThreadPoolTaskExecutor();
         executor.setCorePoolSize(5);
         executor.setMaxPoolSize(20);
         executor.setQueueCapacity(100);
@@ -281,8 +275,8 @@ public class AsyncConfig {
     }
 
     @Bean("authEventExecutor")
-    public Executor authEventExecutor() {
-        ThreadPoolTaskExecutor executor = new ThreadPoolTaskExecutor();
+    fun authEventExecutor(): Executor {
+        ThreadPoolTaskExecutor executor = ThreadPoolTaskExecutor();
         executor.setCorePoolSize(2);
         executor.setMaxPoolSize(5);
         executor.setQueueCapacity(50);
@@ -294,7 +288,7 @@ public class AsyncConfig {
 }
 
 @Service
-public class AsyncTokenService {
+class AsyncTokenService {
 
     @Async("tokenProcessingExecutor")
     public CompletableFuture<Void> processTokenInBackground(String token, String action) {
@@ -319,7 +313,7 @@ public class AsyncTokenService {
 
     @EventListener
     @Async("authEventExecutor")
-    public void handleAuthenticationEvent(AuthenticationEvent event) {
+    fun handleAuthenticationEvent(AuthenticationEvent event): void {
         // Process authentication events asynchronously
         auditService.recordAuthenticationEvent(event);
         metricsService.incrementAuthenticationCounter(event);
@@ -331,15 +325,15 @@ public class AsyncTokenService {
 
 ### JWT Performance Metrics
 
-```java
+```kotlin
 @Component
-public class JwtMetricsCollector {
+class JwtMetricsCollector {
 
-    private final MeterRegistry meterRegistry;
-    private final Counter tokenGenerationCounter;
-    private final Counter tokenValidationCounter;
-    private final Timer tokenGenerationTimer;
-    private final Timer tokenValidationTimer;
+    private val meterRegistry: MeterRegistry
+    private val tokenGenerationCounter: Counter
+    private val tokenValidationCounter: Counter
+    private val tokenGenerationTimer: Timer
+    private val tokenValidationTimer: Timer
 
     public JwtMetricsCollector(MeterRegistry meterRegistry) {
         this.meterRegistry = meterRegistry;
@@ -361,11 +355,11 @@ public class JwtMetricsCollector {
             .register(meterRegistry);
     }
 
-    public void recordTokenGenerated() {
+    fun recordTokenGenerated(): void {
         tokenGenerationCounter.increment();
     }
 
-    public void recordTokenValidationSuccess() {
+    fun recordTokenValidationSuccess(): void {
         tokenValidationCounter.increment();
     }
 
@@ -373,7 +367,7 @@ public class JwtMetricsCollector {
         return Timer.start(meterRegistry);
     }
 
-    public void recordTokenGenerationTime(Timer.Sample sample) {
+    fun recordTokenGenerationTime(Timer.Sample sample): void {
         sample.stop(tokenGenerationTimer);
     }
 
@@ -381,18 +375,18 @@ public class JwtMetricsCollector {
         return Timer.start(meterRegistry);
     }
 
-    public void recordTokenValidationTime(Timer.Sample sample) {
+    fun recordTokenValidationTime(Timer.Sample sample): void {
         sample.stop(tokenValidationTimer);
     }
 }
 
 @Service
-public class MonitoredJwtTokenService {
+class MonitoredJwtTokenService {
 
-    private final JwtTokenService delegate;
-    private final JwtMetricsCollector metrics;
+    private val delegate: JwtTokenService
+    private val metrics: JwtMetricsCollector
 
-    public AccessTokenResponse generateAccessToken(User user) {
+    fun generateAccessToken(User user): AccessTokenResponse {
         Timer.Sample sample = metrics.startTokenGenerationTimer();
         try {
             AccessTokenResponse response = delegate.generateAccessToken(user);
@@ -403,7 +397,7 @@ public class MonitoredJwtTokenService {
         }
     }
 
-    public boolean isTokenValid(String token) {
+    fun isTokenValid(String token): boolean {
         Timer.Sample sample = metrics.startTokenValidationTimer();
         try {
             boolean isValid = delegate.isTokenValid(token);
@@ -420,15 +414,15 @@ public class MonitoredJwtTokenService {
 
 ### Performance Health Indicators
 
-```java
+```kotlin
 @Component
-public class JwtPerformanceHealthIndicator implements HealthIndicator {
+class JwtPerformanceHealthIndicator implements HealthIndicator {
 
-    private final JwtMetricsCollector metrics;
-    private final CacheManager cacheManager;
+    private val metrics: JwtMetricsCollector
+    private val cacheManager: CacheManager
 
     @Override
-    public Health health() {
+    fun health(): Health {
         try {
             // Check token generation performance
             double avgGenerationTime = metrics.getAverageTokenGenerationTime();
@@ -468,7 +462,7 @@ public class JwtPerformanceHealthIndicator implements HealthIndicator {
         }
     }
 
-    private double getCacheHitRate(Cache cache) {
+    private fun getCacheHitRate(Cache cache): double {
         if (cache.getNativeCache() instanceof com.github.benmanes.caffeine.cache.Cache) {
             com.github.benmanes.caffeine.cache.Cache<?, ?> nativeCache =
                 (com.github.benmanes.caffeine.cache.Cache<?, ?>) cache.getNativeCache();
@@ -483,9 +477,9 @@ public class JwtPerformanceHealthIndicator implements HealthIndicator {
 
 ### Stateless JWT Configuration
 
-```java
+```kotlin
 @Configuration
-public class StatelessSecurityConfig {
+class StatelessSecurityConfig {
 
     @Bean
     public SecurityFilterChain statelessSecurityFilterChain(HttpSecurity http) throws Exception {
@@ -500,28 +494,28 @@ public class StatelessSecurityConfig {
     }
 
     @Bean
-    public JwtAuthenticationFilter jwtAuthenticationFilter() {
-        return new JwtAuthenticationFilter();
+    fun jwtAuthenticationFilter(): JwtAuthenticationFilter {
+        return JwtAuthenticationFilter();
     }
 }
 ```
 
 ### Distributed Cache Configuration
 
-```java
+```kotlin
 @Configuration
 @EnableCaching
-public class DistributedCacheConfig {
+class DistributedCacheConfig {
 
     @Bean
     @ConditionalOnProperty(name = "cache.type", havingValue = "redis")
-    public CacheManager redisCacheManager(RedisConnectionFactory connectionFactory) {
+    fun redisCacheManager(RedisConnectionFactory connectionFactory): CacheManager {
         RedisCacheConfiguration config = RedisCacheConfiguration.defaultCacheConfig()
             .entryTtl(Duration.ofMinutes(15))
             .serializeKeysWith(RedisSerializationContext.SerializationPair
-                .fromSerializer(new StringRedisSerializer()))
+                .fromSerializer(StringRedisSerializer()))
             .serializeValuesWith(RedisSerializationContext.SerializationPair
-                .fromSerializer(new GenericJackson2JsonRedisSerializer()));
+                .fromSerializer(GenericJackson2JsonRedisSerializer()));
 
         return RedisCacheManager.builder(connectionFactory)
             .cacheDefaults(config)
@@ -531,8 +525,8 @@ public class DistributedCacheConfig {
 
     @Bean
     @ConditionalOnProperty(name = "cache.type", havingValue = "hazelcast")
-    public CacheManager hazelcastCacheManager(HazelcastInstance hazelcastInstance) {
-        return new HazelcastCacheManager(hazelcastInstance);
+    fun hazelcastCacheManager(HazelcastInstance hazelcastInstance): CacheManager {
+        return HazelcastCacheManager(hazelcastInstance);
     }
 }
 ```
@@ -541,14 +535,14 @@ public class DistributedCacheConfig {
 
 ### Memory-Efficient Token Handling
 
-```java
+```kotlin
 @Component
-public class MemoryEfficientTokenHandler {
+class MemoryEfficientTokenHandler {
 
-    private final ObjectMapper objectMapper;
-    private final CompressionUtils compressionUtils;
+    private val objectMapper: ObjectMapper
+    private val compressionUtils: CompressionUtils
 
-    public String compressToken(String token) {
+    fun compressToken(String token): String {
         try {
             byte[] compressed = compressionUtils.compress(token.getBytes(StandardCharsets.UTF_8));
             return Base64.getUrlEncoder().withoutPadding().encodeToString(compressed);
@@ -558,28 +552,28 @@ public class MemoryEfficientTokenHandler {
         }
     }
 
-    public String decompressToken(String compressedToken) {
+    fun decompressToken(String compressedToken): String {
         try {
             byte[] compressed = Base64.getUrlDecoder().decode(compressedToken);
             byte[] decompressed = compressionUtils.decompress(compressed);
-            return new String(decompressed, StandardCharsets.UTF_8);
+            return String(decompressed, StandardCharsets.UTF_8);
         } catch (Exception e) {
             log.error("Failed to decompress token", e);
             return compressedToken;
         }
     }
 
-    public JwtClaimsSet parseClaimsEfficiently(String token) {
+    fun parseClaimsEfficiently(String token): JwtClaimsSet {
         // Parse only the payload section for claims
         String[] parts = token.split("\\.");
         if (parts.length >= 2) {
-            String payload = new String(Base64.getUrlDecoder().decode(parts[1]));
+            String payload = String(Base64.getUrlDecoder().decode(parts[1]));
             return parseClaimsFromJson(payload);
         }
-        throw new IllegalArgumentException("Invalid token format");
+        throw IllegalArgumentException("Invalid token format");
     }
 
-    private JwtClaimsSet parseClaimsFromJson(String json) {
+    private fun parseClaimsFromJson(String json): JwtClaimsSet {
         // Efficient JSON parsing for specific claims only
         try {
             JsonNode node = objectMapper.readTree(json);
@@ -593,7 +587,7 @@ public class MemoryEfficientTokenHandler {
                 builder.expiresAt(Instant.ofEpochSecond(node.get("exp").asLong()));
             }
             if (node.has("roles")) {
-                List<String> roles = new ArrayList<>();
+                List<String> roles = mutableListOf();
                 node.get("roles").forEach(role -> roles.add(role.asText()));
                 builder.claim("roles", roles);
             }
@@ -601,7 +595,7 @@ public class MemoryEfficientTokenHandler {
             return builder.build();
 
         } catch (Exception e) {
-            throw new RuntimeException("Failed to parse claims", e);
+            throw RuntimeException("Failed to parse claims", e);
         }
     }
 }

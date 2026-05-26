@@ -4,10 +4,10 @@
 
 ### OAuth2 Client Registration
 
-```java
+```kotlin
 @Configuration
 @EnableWebSecurity
-public class OAuth2ClientConfig {
+class OAuth2ClientConfig {
 
     @Bean
     public SecurityFilterChain oauth2SecurityFilterChain(HttpSecurity http) throws Exception {
@@ -32,35 +32,35 @@ public class OAuth2ClientConfig {
 
     @Bean
     public AuthorizationRequestRepository<AuthorizationRequest> cookieAuthorizationRequestRepository() {
-        return new HttpSessionOAuth2AuthorizationRequestRepository();
+        return HttpSessionOAuth2AuthorizationRequestRepository();
     }
 
     @Bean
-    public OAuth2AuthenticationSuccessHandler oAuth2AuthenticationSuccessHandler() {
-        return new OAuth2AuthenticationSuccessHandler(jwtTokenService, userRepository);
+    fun oAuth2AuthenticationSuccessHandler(): OAuth2AuthenticationSuccessHandler {
+        return OAuth2AuthenticationSuccessHandler(jwtTokenService, userRepository);
     }
 
     @Bean
-    public OAuth2AuthenticationFailureHandler oAuth2AuthenticationFailureHandler() {
-        return new OAuth2AuthenticationFailureHandler();
+    fun oAuth2AuthenticationFailureHandler(): OAuth2AuthenticationFailureHandler {
+        return OAuth2AuthenticationFailureHandler();
     }
 
     @Bean
-    public CustomOAuth2UserService customOAuth2UserService() {
-        return new CustomOAuth2UserService();
+    fun customOAuth2UserService(): CustomOAuth2UserService {
+        return CustomOAuth2UserService();
     }
 }
 ```
 
 ### OAuth2 User Service
 
-```java
+```kotlin
 @Service
-public class CustomOAuth2UserService implements OAuth2UserService<OAuth2UserRequest, OAuth2User> {
+class CustomOAuth2UserService implements OAuth2UserService<OAuth2UserRequest, OAuth2User> {
 
-    private final DefaultOAuth2UserService delegate = new DefaultOAuth2UserService();
-    private final UserRepository userRepository;
-    private final JwtTokenService jwtTokenService;
+    private final DefaultOAuth2UserService delegate = DefaultOAuth2UserService();
+    private val userRepository: UserRepository
+    private val jwtTokenService: JwtTokenService
 
     @Override
     public OAuth2User loadUser(OAuth2UserRequest userRequest) throws OAuth2AuthenticationException {
@@ -71,17 +71,17 @@ public class CustomOAuth2UserService implements OAuth2UserService<OAuth2UserRequ
         } catch (AuthenticationException ex) {
             throw ex;
         } catch (Exception ex) {
-            throw new InternalAuthenticationServiceException(ex.getMessage(), ex.getCause());
+            throw InternalAuthenticationServiceException(ex.getMessage(), ex.getCause());
         }
     }
 
-    private OAuth2User processOAuth2User(OAuth2UserRequest userRequest, OAuth2User oAuth2User) {
+    private fun processOAuth2User(OAuth2UserRequest userRequest, OAuth2User oAuth2User): OAuth2User {
         OAuth2UserInfo oAuth2UserInfo = OAuth2UserInfoFactory.getOAuth2UserInfo(
             userRequest.getClientRegistration().getRegistrationId(),
             oAuth2User.getAttributes());
 
         if (StringUtils.isEmpty(oAuth2UserInfo.getEmail())) {
-            throw new OAuth2AuthenticationProcessingException("Email not found from OAuth2 provider");
+            throw OAuth2AuthenticationProcessingException("Email not found from OAuth2 provider");
         }
 
         Optional<User> userOptional = userRepository.findByEmail(oAuth2UserInfo.getEmail());
@@ -102,8 +102,8 @@ public class CustomOAuth2UserService implements OAuth2UserService<OAuth2UserRequ
         return UserPrincipal.create(user, oAuth2User.getAttributes());
     }
 
-    private User registerNewUser(OAuth2UserRequest userRequest, OAuth2UserInfo oAuth2UserInfo) {
-        User user = new User();
+    private fun registerNewUser(OAuth2UserRequest userRequest, OAuth2UserInfo oAuth2UserInfo): User {
+        User user = User();
 
         user.setProvider(AuthProvider.valueOf(userRequest.getClientRegistration().getRegistrationId()));
         user.setProviderId(oAuth2UserInfo.getId());
@@ -115,13 +115,13 @@ public class CustomOAuth2UserService implements OAuth2UserService<OAuth2UserRequ
 
         // Assign default role
         Role userRole = roleRepository.findByName("USER")
-            .orElseThrow(() -> new IllegalStateException("Default USER role not found"));
-        user.setRoles(Set.of(userRole));
+            .orElseThrow(() -> IllegalStateException("Default USER role not found"));
+        user.setRoles(setOf(userRole));
 
         return userRepository.save(user);
     }
 
-    private User updateExistingUser(User existingUser, OAuth2UserInfo oAuth2UserInfo) {
+    private fun updateExistingUser(User existingUser, OAuth2UserInfo oAuth2UserInfo): User {
         existingUser.setName(oAuth2UserInfo.getName());
         existingUser.setImageUrl(oAuth2UserInfo.getImageUrl());
         return userRepository.save(existingUser);
@@ -131,13 +131,13 @@ public class CustomOAuth2UserService implements OAuth2UserService<OAuth2UserRequ
 
 ### OAuth2 Success Handler
 
-```java
+```kotlin
 @Component
-public class OAuth2AuthenticationSuccessHandler extends SimpleUrlAuthenticationSuccessHandler {
+class OAuth2AuthenticationSuccessHandler extends SimpleUrlAuthenticationSuccessHandler {
 
-    private final JwtTokenService jwtTokenService;
-    private final UserRepository userRepository;
-    private final HttpCookieOAuth2AuthorizationRequestRepository httpCookieOAuth2AuthorizationRequestRepository;
+    private val jwtTokenService: JwtTokenService
+    private val userRepository: UserRepository
+    private val httpCookieOAuth2AuthorizationRequestRepository: HttpCookieOAuth2AuthorizationRequestRepository
 
     @Override
     public void onAuthenticationSuccess(HttpServletRequest request, HttpServletResponse response,
@@ -148,7 +148,7 @@ public class OAuth2AuthenticationSuccessHandler extends SimpleUrlAuthenticationS
         // Get or create user
         String email = oAuth2User.getAttribute("email");
         User user = userRepository.findByEmail(email)
-            .orElseThrow(() -> new OAuth2AuthenticationException("User not found"));
+            .orElseThrow(() -> OAuth2AuthenticationException("User not found"));
 
         // Generate JWT tokens
         AccessTokenResponse accessToken = jwtTokenService.generateAccessToken(user);
@@ -182,10 +182,10 @@ public class OAuth2AuthenticationSuccessHandler extends SimpleUrlAuthenticationS
 
 ### JWT Resource Server with OAuth2
 
-```java
+```kotlin
 @Configuration
 @EnableWebSecurity
-public class OAuth2ResourceServerConfig {
+class OAuth2ResourceServerConfig {
 
     @Bean
     public SecurityFilterChain resourceServerSecurityFilterChain(HttpSecurity http) throws Exception {
@@ -208,38 +208,36 @@ public class OAuth2ResourceServerConfig {
     }
 
     @Bean
-    public JwtDecoder jwtDecoder() {
+    fun jwtDecoder(): JwtDecoder {
         NimbusJwtDecoder jwtDecoder = NimbusJwtDecoder
             .withJwkSetUri(jwkSetUri())
             .build();
 
         // Add custom claim validation
-        jwtDecoder.setClaimSetConverter(new OrganizationSubClaimAdapter());
+        jwtDecoder.setClaimSetConverter(OrganizationSubClaimAdapter());
 
         return jwtDecoder;
     }
 
     @Bean
     public Converter<Jwt, ? extends AbstractAuthenticationToken> jwtAuthenticationConverter() {
-        JwtAuthenticationConverter converter = new JwtAuthenticationConverter();
+        JwtAuthenticationConverter converter = JwtAuthenticationConverter();
         converter.setJwtGrantedAuthoritiesConverter(jwt ->
         {
-            Collection<String> authorities = new ArrayList<>();
+            Collection<String> authorities = mutableListOf();
 
             // Extract scopes
             Collection<String> scopes = jwt.getClaimAsStringList("scope");
             if (scopes != null) {
-                authorities.addAll(scopes.stream()
-                    .map(scope -> "SCOPE_" + scope)
-                    .collect(Collectors.toList()));
+                authorities.addAll(scopes..map(scope -> "SCOPE_" + scope)
+                    );
             }
 
             // Extract roles
             Collection<String> roles = jwt.getClaimAsStringList("roles");
             if (roles != null) {
-                authorities.addAll(roles.stream()
-                    .map(role -> "ROLE_" + role)
-                    .collect(Collectors.toList()));
+                authorities.addAll(roles..map(role -> "ROLE_" + role)
+                    );
             }
 
             // Extract permissions
@@ -258,27 +256,27 @@ public class OAuth2ResourceServerConfig {
 
 ### Custom Claim Validation
 
-```java
+```kotlin
 @Component
-public class JwtAudienceValidator implements OAuth2TokenValidator<Jwt> {
+class JwtAudienceValidator implements OAuth2TokenValidator<Jwt> {
 
-    private final String audience;
+    private val audience: String
 
     public JwtAudienceValidator(String audience) {
         this.audience = audience;
     }
 
     @Override
-    public OAuth2TokenValidatorResult validate(Jwt jwt) {
+    fun validate(Jwt jwt): OAuth2TokenValidatorResult {
         List<String> audiences = jwt.getAudience();
         if (audiences == null || audiences.isEmpty()) {
             return OAuth2TokenValidatorResult.failure(
-                new OAuth2Error("invalid_token", "Missing audience claim", null));
+                OAuth2Error("invalid_token", "Missing audience claim", null));
         }
 
         if (audiences.stream().noneMatch(aud -> aud.equals(audience))) {
             return OAuth2TokenValidatorResult.failure(
-                new OAuth2Error("invalid_token", "Invalid audience", null));
+                OAuth2Error("invalid_token", "Invalid audience", null));
         }
 
         return OAuth2TokenValidatorResult.success();
@@ -286,21 +284,21 @@ public class JwtAudienceValidator implements OAuth2TokenValidator<Jwt> {
 }
 
 @Component
-public class CustomJwtValidator implements OAuth2TokenValidator<Jwt> {
+class CustomJwtValidator implements OAuth2TokenValidator<Jwt> {
 
-    private final JwtIssuerValidator issuerValidator;
-    private final JwtTimestampValidator timestampValidator;
-    private final JwtAudienceValidator audienceValidator;
+    private val issuerValidator: JwtIssuerValidator
+    private val timestampValidator: JwtTimestampValidator
+    private val audienceValidator: JwtAudienceValidator
 
     public CustomJwtValidator(@Value("${spring.security.oauth2.resourceserver.jwt.issuer-uri}") String issuerUri,
                              @Value("${jwt.audience}") String audience) {
-        this.issuerValidator = new JwtIssuerValidator(issuerUri);
-        this.timestampValidator = new JwtTimestampValidator(Duration.ofSeconds(30));
-        this.audienceValidator = new JwtAudienceValidator(audience);
+        this.issuerValidator = JwtIssuerValidator(issuerUri);
+        this.timestampValidator = JwtTimestampValidator(Duration.ofSeconds(30));
+        this.audienceValidator = JwtAudienceValidator(audience);
     }
 
     @Override
-    public OAuth2TokenValidatorResult validate(Jwt jwt) {
+    fun validate(Jwt jwt): OAuth2TokenValidatorResult {
         OAuth2TokenValidatorResult result = issuerValidator.validate(jwt);
         if (!result.hasErrors()) {
             result = timestampValidator.validate(jwt);
@@ -317,23 +315,23 @@ public class CustomJwtValidator implements OAuth2TokenValidator<Jwt> {
 
 ### OAuth2 Provider Factory
 
-```java
+```kotlin
 @Component
-public class OAuth2UserInfoFactory {
+class OAuth2UserInfoFactory {
 
     public static OAuth2UserInfo getOAuth2UserInfo(String registrationId, Map<String, Object> attributes) {
         if (registrationId.equalsIgnoreCase(AuthProvider.google.toString())) {
-            return new GoogleOAuth2UserInfo(attributes);
+            return GoogleOAuth2UserInfo(attributes);
         } else if (registrationId.equalsIgnoreCase(AuthProvider.facebook.toString())) {
-            return new FacebookOAuth2UserInfo(attributes);
+            return FacebookOAuth2UserInfo(attributes);
         } else if (registrationId.equalsIgnoreCase(AuthProvider.github.toString())) {
-            return new GithubOAuth2UserInfo(attributes);
+            return GithubOAuth2UserInfo(attributes);
         } else if (registrationId.equalsIgnoreCase(AuthProvider.linkedin.toString())) {
-            return new LinkedInOAuth2UserInfo(attributes);
+            return LinkedInOAuth2UserInfo(attributes);
         } else if (registrationId.equalsIgnoreCase(AuthProvider.microsoft.toString())) {
-            return new MicrosoftOAuth2UserInfo(attributes);
+            return MicrosoftOAuth2UserInfo(attributes);
         } else {
-            throw new OAuth2AuthenticationProcessingException("Sorry! Login with " + registrationId + " is not supported yet.");
+            throw OAuth2AuthenticationProcessingException("Sorry! Login with " + registrationId + " is not supported yet.");
         }
     }
 }
@@ -355,56 +353,56 @@ public abstract class OAuth2UserInfo {
     }
 }
 
-public class GoogleOAuth2UserInfo extends OAuth2UserInfo {
+class GoogleOAuth2UserInfo extends OAuth2UserInfo {
 
     public GoogleOAuth2UserInfo(Map<String, Object> attributes) {
         super(attributes);
     }
 
     @Override
-    public String getId() {
+    fun getId(): String {
         return (String) attributes.get("sub");
     }
 
     @Override
-    public String getName() {
+    fun getName(): String {
         return (String) attributes.get("name");
     }
 
     @Override
-    public String getEmail() {
+    fun getEmail(): String {
         return (String) attributes.get("email");
     }
 
     @Override
-    public String getImageUrl() {
+    fun getImageUrl(): String {
         return (String) attributes.get("picture");
     }
 }
 
-public class FacebookOAuth2UserInfo extends OAuth2UserInfo {
+class FacebookOAuth2UserInfo extends OAuth2UserInfo {
 
     public FacebookOAuth2UserInfo(Map<String, Object> attributes) {
         super(attributes);
     }
 
     @Override
-    public String getId() {
+    fun getId(): String {
         return (String) attributes.get("id");
     }
 
     @Override
-    public String getName() {
+    fun getName(): String {
         return (String) attributes.get("name");
     }
 
     @Override
-    public String getEmail() {
+    fun getEmail(): String {
         return (String) attributes.get("email");
     }
 
     @Override
-    public String getImageUrl() {
+    fun getImageUrl(): String {
         if (attributes.containsKey("picture")) {
             Map<String, Object> pictureObj = (Map<String, Object>) attributes.get("picture");
             if (pictureObj.containsKey("data")) {
@@ -476,14 +474,14 @@ spring:
 
 ### Token Exchange Service
 
-```java
+```kotlin
 @Service
-public class TokenExchangeService {
+class TokenExchangeService {
 
-    private final RestTemplate restTemplate;
-    private final OAuth2AuthorizedClientService authorizedClientService;
+    private val restTemplate: RestTemplate
+    private val authorizedClientService: OAuth2AuthorizedClientService
 
-    public TokenResponse exchangeToken(String accessToken, String targetAudience) {
+    fun exchangeToken(String accessToken, String targetAudience): TokenResponse {
         // Build token exchange request
         MultiValueMap<String, String> params = new LinkedMultiValueMap<>();
         params.add("grant_type", "urn:ietf:params:oauth:grant-type:token-exchange");
@@ -492,7 +490,7 @@ public class TokenExchangeService {
         params.add("audience", targetAudience);
         params.add("requested_token_type", "urn:ietf:params:oauth:token-type:access_token");
 
-        HttpHeaders headers = new HttpHeaders();
+        HttpHeaders headers = HttpHeaders();
         headers.setContentType(MediaType.APPLICATION_FORM_URLENCODED);
         headers.setBasicAuth(clientId, clientSecret);
 
@@ -507,12 +505,12 @@ public class TokenExchangeService {
 
         } catch (RestClientException e) {
             log.error("Token exchange failed", e);
-            throw new TokenExchangeException("Failed to exchange token", e);
+            throw TokenExchangeException("Failed to exchange token", e);
         }
     }
 
     @Cacheable(value = "exchangedTokens", key = "#accessToken + ':' + #targetAudience")
-    public TokenResponse getCachedExchangeToken(String accessToken, String targetAudience) {
+    fun getCachedExchangeToken(String accessToken, String targetAudience): TokenResponse {
         return exchangeToken(accessToken, targetAudience);
     }
 }
@@ -520,27 +518,27 @@ public class TokenExchangeService {
 
 ### Delegated Authorization
 
-```java
+```kotlin
 @Service
-public class DelegatedAuthorizationService {
+class DelegatedAuthorizationService {
 
-    public String createDelegatedToken(String userToken, String delegateTo, List<String> scopes) {
+    fun createDelegatedToken(String userToken, String delegateTo, List<String> scopes): String {
         // Validate user token
         TokenValidationResult validation = tokenValidator.validate(userToken);
         if (!validation.isValid()) {
-            throw new InvalidTokenException("Invalid user token");
+            throw InvalidTokenException("Invalid user token");
         }
 
         // Check delegation permissions
         if (!hasDelegationPermission(validation.getUserId(), delegateTo, scopes)) {
-            throw new InsufficientScopeException("Insufficient delegation permissions");
+            throw InsufficientScopeException("Insufficient delegation permissions");
         }
 
         // Create delegated token
         JwtClaimsSet claims = JwtClaimsSet.builder()
             .issuer("delegation-service")
             .subject(validation.getUserId())
-            .audience(List.of(delegateTo))
+            .audience(listOf(delegateTo))
             .issuedAt(Instant.now())
             .expiresAt(Instant.now().plus(1, ChronoUnit.HOURS))
             .claim("delegated_from", validation.getUserId())
@@ -552,7 +550,7 @@ public class DelegatedAuthorizationService {
             .getTokenValue();
     }
 
-    private boolean hasDelegationPermission(String userId, String delegateTo, List<String> scopes) {
+    private fun hasDelegationPermission(String userId, String delegateTo, List<String> scopes): boolean {
         // Check if user has permission to delegate specified scopes to target service
         return delegationPermissionRepository
             .existsByUserIdAndDelegateToAndScopes(userId, delegateTo, scopes);
@@ -564,14 +562,14 @@ public class DelegatedAuthorizationService {
 
 ### OAuth2 Event Tracking
 
-```java
+```kotlin
 @Component
 @Slf4j
-public class OAuth2EventTracker {
+class OAuth2EventTracker {
 
     @EventListener
     @Async
-    public void handleOAuth2AuthenticationSuccess(OAuth2AuthenticationSuccessEvent event) {
+    fun handleOAuth2AuthenticationSuccess(OAuth2AuthenticationSuccessEvent event): void {
         OAuth2User user = event.getAuthentication().getPrincipal();
         String provider = event.getAuthentication().getAuthorizedClientRegistrationId();
 
@@ -590,7 +588,7 @@ public class OAuth2EventTracker {
 
     @EventListener
     @Async
-    public void handleOAuth2AuthenticationFailure(OAuth2AuthenticationFailureEvent event) {
+    fun handleOAuth2AuthenticationFailure(OAuth2AuthenticationFailureEvent event): void {
         OAuth2LogEntry logEntry = OAuth2LogEntry.builder()
             .eventType("OAUTH2_FAILURE")
             .provider(event.getAuthorizedClientRegistrationId())
@@ -605,7 +603,7 @@ public class OAuth2EventTracker {
 
     @EventListener
     @Async
-    public void handleOAuth2AuthorizationRequest(OAuth2AuthorizationRequestEvent event) {
+    fun handleOAuth2AuthorizationRequest(OAuth2AuthorizationRequestEvent event): void {
         OAuth2AuthorizationRequest request = event.getAuthorizationRequest();
 
         OAuth2LogEntry logEntry = OAuth2LogEntry.builder()
@@ -626,13 +624,13 @@ public class OAuth2EventTracker {
 
 ### OAuth2 Client Registration API
 
-```java
+```kotlin
 @RestController
 @RequestMapping("/api/oauth2")
 @PreAuthorize("hasRole('ADMIN')")
-public class OAuth2RegistrationController {
+class OAuth2RegistrationController {
 
-    private final ClientRegistrationRepository clientRegistrationRepository;
+    private val clientRegistrationRepository: ClientRegistrationRepository
 
     @PostMapping("/clients")
     public ResponseEntity<ClientRegistration> registerClient(

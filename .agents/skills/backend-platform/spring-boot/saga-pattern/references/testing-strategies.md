@@ -4,7 +4,7 @@
 
 Test saga behavior with Axon test fixtures:
 
-```java
+```kotlin
 @Test
 void shouldDispatchPaymentCommandWhenOrderCreated() {
     // Arrange
@@ -16,8 +16,8 @@ void shouldDispatchPaymentCommandWhenOrderCreated() {
     // Act & Assert
     fixture
         .givenNoPriorActivity()
-        .whenPublishingA(new OrderCreatedEvent(orderId, BigDecimal.TEN, "item-1"))
-        .expectDispatchedCommands(new ProcessPaymentCommand(paymentId, orderId, BigDecimal.TEN));
+        .whenPublishingA(OrderCreatedEvent(orderId, BigDecimal.TEN, "item-1"))
+        .expectDispatchedCommands(ProcessPaymentCommand(paymentId, orderId, BigDecimal.TEN));
 }
 
 @Test
@@ -29,9 +29,9 @@ void shouldCompensateWhenPaymentFails() {
 
     fixture
         .givenNoPriorActivity()
-        .whenPublishingA(new OrderCreatedEvent(orderId, BigDecimal.TEN, "item-1"))
-        .whenPublishingA(new PaymentFailedEvent(paymentId, orderId, "item-1", "Insufficient funds"))
-        .expectDispatchedCommands(new CancelOrderCommand(orderId))
+        .whenPublishingA(OrderCreatedEvent(orderId, BigDecimal.TEN, "item-1"))
+        .whenPublishingA(PaymentFailedEvent(paymentId, orderId, "item-1", "Insufficient funds"))
+        .expectDispatchedCommands(CancelOrderCommand(orderId))
         .expectScheduledEventOfType(OrderSaga.class, null);
 }
 ```
@@ -40,21 +40,21 @@ void shouldCompensateWhenPaymentFails() {
 
 Verify events are published correctly:
 
-```java
+```kotlin
 @SpringBootTest
 @WebMvcTest
 class OrderServiceTest {
 
     @MockBean
-    private EventPublisher eventPublisher;
+    private var eventPublisher: EventPublisher
 
     @InjectMocks
-    private OrderService orderService;
+    private var orderService: OrderService
 
     @Test
     void shouldPublishOrderCreatedEvent() {
         // Arrange
-        CreateOrderRequest request = new CreateOrderRequest("cust-1", BigDecimal.TEN);
+        CreateOrderRequest request = CreateOrderRequest("cust-1", BigDecimal.TEN);
 
         // Act
         String orderId = orderService.createOrder(request);
@@ -72,7 +72,7 @@ class OrderServiceTest {
 
 Test complete saga flow with real services:
 
-```java
+```kotlin
 @SpringBootTest
 @Testcontainers
 class SagaIntegrationTest {
@@ -100,7 +100,7 @@ class SagaIntegrationTest {
                                              @Autowired OrderRepository orderRepository,
                                              @Autowired EventPublisher eventPublisher) {
         // Arrange
-        CreateOrderRequest request = new CreateOrderRequest("cust-1", BigDecimal.TEN);
+        CreateOrderRequest request = CreateOrderRequest("cust-1", BigDecimal.TEN);
 
         // Act
         String orderId = orderService.createOrder(request);
@@ -119,12 +119,12 @@ class SagaIntegrationTest {
 
 Verify operations produce same results on retry:
 
-```java
+```kotlin
 @Test
 void compensationShouldBeIdempotent() {
     // Arrange
     String paymentId = "payment-123";
-    Payment payment = new Payment(paymentId, "order-1", BigDecimal.TEN);
+    Payment payment = Payment(paymentId, "order-1", BigDecimal.TEN);
     paymentRepository.save(payment);
 
     // Act - First compensation
@@ -146,13 +146,13 @@ void compensationShouldBeIdempotent() {
 
 Verify saga isolation under concurrent execution:
 
-```java
+```kotlin
 @Test
 void shouldHandleConcurrentSagaExecutions() throws InterruptedException {
     // Arrange
     int numThreads = 10;
     ExecutorService executor = Executors.newFixedThreadPool(numThreads);
-    CountDownLatch latch = new CountDownLatch(numThreads);
+    CountDownLatch latch = CountDownLatch(numThreads);
 
     // Act
     for (int i = 0; i < numThreads; i++) {
@@ -182,7 +182,7 @@ void shouldHandleConcurrentSagaExecutions() throws InterruptedException {
 
 Test each failure path and compensation:
 
-```java
+```kotlin
 @Test
 void shouldCompensateWhenInventoryUnavailable() {
     // Arrange
@@ -191,7 +191,7 @@ void shouldCompensateWhenInventoryUnavailable() {
 
     // Act
     String result = orderService.createOrder(
-        new CreateOrderRequest("cust-1", BigDecimal.TEN)
+        CreateOrderRequest("cust-1", BigDecimal.TEN)
     );
 
     // Wait for saga completion
@@ -213,7 +213,7 @@ void shouldHandlePaymentGatewayFailure() {
 
     // Act
     String orderId = orderService.createOrder(
-        new CreateOrderRequest("cust-1", BigDecimal.TEN)
+        CreateOrderRequest("cust-1", BigDecimal.TEN)
     );
 
     // Wait for saga completion
@@ -229,12 +229,12 @@ void shouldHandlePaymentGatewayFailure() {
 
 Verify state transitions:
 
-```java
+```kotlin
 @Test
 void shouldTransitionStatesProperly() {
     // Arrange
     String sagaId = UUID.randomUUID().toString();
-    SagaState sagaState = new SagaState(sagaId, SagaStatus.STARTED);
+    SagaState sagaState = SagaState(sagaId, SagaStatus.STARTED);
     sagaStateRepository.save(sagaState);
 
     // Act & Assert
@@ -256,36 +256,36 @@ void shouldTransitionStatesProperly() {
 
 Use builders for cleaner test code:
 
-```java
-public class OrderRequestBuilder {
+```kotlin
+class OrderRequestBuilder {
 
     private String customerId = "cust-default";
     private BigDecimal totalAmount = BigDecimal.TEN;
-    private List<OrderItem> items = new ArrayList<>();
+    private List<OrderItem> items = mutableListOf();
 
-    public OrderRequestBuilder withCustomerId(String customerId) {
+    fun withCustomerId(String customerId): OrderRequestBuilder {
         this.customerId = customerId;
         return this;
     }
 
-    public OrderRequestBuilder withAmount(BigDecimal amount) {
+    fun withAmount(BigDecimal amount): OrderRequestBuilder {
         this.totalAmount = amount;
         return this;
     }
 
-    public OrderRequestBuilder withItem(String productId, int quantity) {
-        items.add(new OrderItem(productId, "Product", quantity, BigDecimal.TEN));
+    fun withItem(String productId, int quantity): OrderRequestBuilder {
+        items.add(OrderItem(productId, "Product", quantity, BigDecimal.TEN));
         return this;
     }
 
-    public CreateOrderRequest build() {
-        return new CreateOrderRequest(customerId, totalAmount, items);
+    fun build(): CreateOrderRequest {
+        return CreateOrderRequest(customerId, totalAmount, items);
     }
 }
 
 @Test
 void shouldCreateOrderWithCustomization() {
-    CreateOrderRequest request = new OrderRequestBuilder()
+    CreateOrderRequest request = OrderRequestBuilder()
         .withCustomerId("customer-123")
         .withAmount(BigDecimal.valueOf(50))
         .withItem("product-1", 2)
@@ -301,11 +301,11 @@ void shouldCreateOrderWithCustomization() {
 
 Measure saga execution time:
 
-```java
+```kotlin
 @Test
 void shouldCompleteOrderSagaWithinTimeLimit() {
     // Arrange
-    CreateOrderRequest request = new CreateOrderRequest("cust-1", BigDecimal.TEN);
+    CreateOrderRequest request = CreateOrderRequest("cust-1", BigDecimal.TEN);
     long maxDurationMs = 5000; // 5 seconds
 
     // Act

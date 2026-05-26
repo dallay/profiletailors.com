@@ -68,13 +68,13 @@ implementation 'org.springframework.ai:spring-ai-starter-model-openai:1.0.0'
 Add Spring AI MCP dependencies (see Quick Reference above), configure the AI model in
 `application.properties`, and enable MCP with `@EnableMcpServer`:
 
-```java
+```kotlin
 @SpringBootApplication
 @EnableMcpServer
-public class MyMcpApplication {
-    public static void main(String[] args) {
-        SpringApplication.run(MyMcpApplication.class, args);
-    }
+class MyMcpApplication
+
+fun main(args: Array<String>) {
+    runApplication<MyMcpApplication>(*args)
 }
 ```
 
@@ -88,20 +88,21 @@ spring.ai.mcp.transport.type=stdio
 
 Annotate methods with `@Tool` inside `@Component` beans. Use `@ToolParam` to document parameters:
 
-```java
+```kotlin
 @Component
-public class WeatherTools {
+class WeatherTools {
 
     @Tool(description = "Get current weather for a city")
-    public WeatherData getWeather(@ToolParam("City name") String city) {
-        return weatherService.getCurrentWeather(city);
+    fun getWeather(@ToolParam("City name") city: String): WeatherData {
+        return weatherService.getCurrentWeather(city)
     }
 
     @Tool(description = "Get 5-day forecast for a city")
-    public ForecastData getForecast(
-            @ToolParam("City name") String city,
-            @ToolParam(value = "Unit: celsius or fahrenheit", required = false) String unit) {
-        return weatherService.getForecast(city, unit != null ? unit : "celsius");
+    fun getForecast(
+        @ToolParam("City name") city: String,
+        @ToolParam(value = "Unit: celsius or fahrenheit", required = false) unit: String?
+    ): ForecastData {
+        return weatherService.getForecast(city, unit ?: "celsius")
     }
 }
 ```
@@ -111,23 +112,23 @@ tools, API integration tools, and the `FunctionCallback` low-level pattern.
 
 ### 3. Create Prompt Templates
 
-```java
+```kotlin
 @Component
-public class CodeReviewPrompts {
+class CodeReviewPrompts {
 
     @PromptTemplate(
-        name = "java-code-review",
-        description = "Review Java code for best practices and issues"
+        name = "kotlin-code-review",
+        description = "Review Kotlin code for best practices and issues"
     )
-    public Prompt createCodeReviewPrompt(
-            @PromptParam("code") String code,
-            @PromptParam(value = "focusAreas", required = false) List<String> focusAreas) {
-
-        String focus = focusAreas != null ? String.join(", ", focusAreas) : "general best practices";
+    fun createCodeReviewPrompt(
+        @PromptParam("code") code: String,
+        @PromptParam(value = "focusAreas", required = false) focusAreas: List<String>?
+    ): Prompt {
+        val focus = focusAreas?.joinToString(", ") ?: "general best practices"
         return Prompt.builder()
-                .system("You are an expert Java code reviewer with 20 years of experience.")
-                .user("Review the following Java code for " + focus + ":\n```java\n" + code + "\n```")
-                .build();
+            .system("You are an expert Kotlin code reviewer with 20 years of experience.")
+            .user("Review the following Kotlin code for $focus:\n```kotlin\n$code\n```")
+            .build()
     }
 }
 ```
@@ -154,19 +155,20 @@ spring:
 
 ### 5. Add Security
 
-```java
+```kotlin
 @Configuration
-public class McpSecurityConfig {
+class McpSecurityConfig {
 
     @Bean
-    public ToolFilter toolFilter(SecurityService securityService) {
-        return (tool, context) -> {
-            User user = securityService.getCurrentUser();
+    fun toolFilter(securityService: SecurityService): ToolFilter {
+        return ToolFilter { tool, context ->
+            val user = securityService.getCurrentUser()
             if (tool.name().startsWith("admin_")) {
-                return user.hasRole("ADMIN");
+                user.hasRole("ADMIN")
+            } else {
+                securityService.isToolAllowed(user, tool.name())
             }
-            return securityService.isToolAllowed(user, tool.name());
-        };
+        }
     }
 }
 ```
@@ -177,25 +179,25 @@ patterns.
 
 ### 6. Testing
 
-```java
+```kotlin
 @SpringBootTest
 class WeatherToolsTest {
 
     @Autowired
-    private WeatherTools weatherTools;
+    private lateinit var weatherTools: WeatherTools
 
     @MockBean
-    private WeatherService weatherService;
+    private lateinit var weatherService: WeatherService
 
     @Test
-    void testGetWeather_Success() {
-        when(weatherService.getCurrentWeather("London"))
-            .thenReturn(new WeatherData("London", "Cloudy", 15.0));
+    fun `test getWeather success`() {
+        whenever(weatherService.getCurrentWeather("London"))
+            .thenReturn(WeatherData("London", "Cloudy", 15.0))
 
-        WeatherData result = weatherTools.getWeather("London");
+        val result = weatherTools.getWeather("London")
 
-        assertThat(result.city()).isEqualTo("London");
-        verify(weatherService).getCurrentWeather("London");
+        assertThat(result.city).isEqualTo("London")
+        verify(weatherService).getCurrentWeather("London")
     }
 }
 ```
@@ -239,46 +241,46 @@ Testcontainers, security tests, and slice tests.
 
 ### Example 1: Minimal Weather MCP Server
 
-```java
+```kotlin
 @SpringBootApplication
 @EnableMcpServer
-public class WeatherMcpApplication {
-    public static void main(String[] args) {
-        SpringApplication.run(WeatherMcpApplication.class, args);
-    }
+class WeatherMcpApplication
+
+fun main(args: Array<String>) {
+    runApplication<WeatherMcpApplication>(*args)
 }
 
 @Component
-public class WeatherTools {
+class WeatherTools {
 
     @Tool(description = "Get current weather for a city")
-    public WeatherData getWeather(@ToolParam("City name") String city) {
-        return new WeatherData(city, "Sunny", 22.5);
+    fun getWeather(@ToolParam("City name") city: String): WeatherData {
+        return WeatherData(city, "Sunny", 22.5)
     }
 }
 
-record WeatherData(String city, String condition, double temperatureCelsius) {}
+data class WeatherData(val city: String, val condition: String, val temperatureCelsius: Double)
 ```
 
 ### Example 2: Secure Database Tool
 
-```java
+```kotlin
 @Component
 @PreAuthorize("hasRole('USER')")
-public class DatabaseTools {
-
-    private final JdbcTemplate jdbcTemplate;
+class DatabaseTools(
+    private val jdbcTemplate: JdbcTemplate
+) {
 
     @Tool(description = "Execute a read-only SQL query and return results")
-    public QueryResult executeQuery(
-            @ToolParam("SQL SELECT query") String sql,
-            @ToolParam(value = "Parameters as JSON map", required = false) String paramsJson) {
-
-        if (!sql.trim().toUpperCase().startsWith("SELECT")) {
-            throw new IllegalArgumentException("Only SELECT queries are allowed");
+    fun executeQuery(
+        @ToolParam("SQL SELECT query") sql: String,
+        @ToolParam(value = "Parameters as JSON map", required = false) paramsJson: String?
+    ): QueryResult {
+        if (!sql.trim().uppercase().startsWith("SELECT")) {
+            throw IllegalArgumentException("Only SELECT queries are allowed")
         }
-        List<Map<String, Object>> rows = jdbcTemplate.queryForList(sql);
-        return new QueryResult(rows, rows.size());
+        val rows = jdbcTemplate.queryForList(sql)
+        return QueryResult(rows, rows.size)
     }
 }
 ```
