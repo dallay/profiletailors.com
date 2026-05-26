@@ -43,13 +43,13 @@ class JmxConfiguration {
     @Bean
     @Primary
     fun mbeanServer(): MBeanServer {
-        MBeanServer server = ManagementFactory.getPlatformMBeanServer();
-        return server;
+        val server = ManagementFactory.getPlatformMBeanServer()
+        return server
     }
 
     @Bean
-    fun jmxMetricsExporter(MeterRegistry meterRegistry): JmxMetricsExporter {
-        return JmxMetricsExporter(meterRegistry);
+    fun jmxMetricsExporter(meterRegistry: MeterRegistry): JmxMetricsExporter {
+        return JmxMetricsExporter(meterRegistry)
     }
 }
 ```
@@ -64,34 +64,31 @@ class JmxConfiguration {
     objectName = "com.example:type=ApplicationMetrics,name=UserService",
     description = "User Service Management Bean"
 )
-class UserServiceMBean {
-
+class UserServiceMBean(
     private val userService: UserService
-    private long totalUsers = 0;
-    private long activeUsers = 0;
+) {
 
-    public UserServiceMBean(UserService userService) {
-        this.userService = userService;
-    }
+    private var totalUsers: Long = 0
+    private var activeUsers: Long = 0
 
     @ManagedAttribute(description = "Total number of users")
-    fun getTotalUsers(): long {
-        return userService.getTotalUserCount();
+    fun getTotalUsers(): Long {
+        return userService.getTotalUserCount()
     }
 
     @ManagedAttribute(description = "Number of active users")
-    fun getActiveUsers(): long {
-        return userService.getActiveUserCount();
+    fun getActiveUsers(): Long {
+        return userService.getActiveUserCount()
     }
 
     @ManagedAttribute(description = "Cache hit ratio")
-    fun getCacheHitRatio(): double {
-        return userService.getCacheHitRatio();
+    fun getCacheHitRatio(): Double {
+        return userService.getCacheHitRatio()
     }
 
     @ManagedOperation(description = "Clear user cache")
-    fun clearCache(): void {
-        userService.clearCache();
+    fun clearCache() {
+        userService.clearCache()
     }
 
     @ManagedOperation(description = "Refresh user statistics")

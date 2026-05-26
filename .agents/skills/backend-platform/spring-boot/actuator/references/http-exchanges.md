@@ -175,7 +175,7 @@ class DatabaseHttpExchangeRepository(
         // Implement conversion from entity to HttpExchange
         // This is complex due to HttpExchange being immutable
         // Consider using a builder pattern or reflection
-        return null!! // Simplified for brevity
+        throw NotImplementedError("Conversion requires custom builder - see Spring Boot Actuator docs")
     }
 
     @Scheduled(fixedRate = 3600000) // Clean up every hour

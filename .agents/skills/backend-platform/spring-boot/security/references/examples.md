@@ -116,7 +116,7 @@ class User implements UserDetails {
         return roles..flatMap(role -> {
                 Collection<GrantedAuthority> authorities = mutableListOf();
                 authorities.add(SimpleGrantedAuthority("ROLE_" + role.getName()));
-                authorities.addAll(role.getPermissions()..map(permission -> SimpleGrantedAuthority(permission.getName()))
+                authorities.addAll(role.getPermissions().map(permission -> SimpleGrantedAuthority(permission.getName()))
                     );
                 return authorities.stream();
             })
@@ -132,12 +132,12 @@ class User implements UserDetails {
         return String.format("%s %s", firstName, lastName).trim();
     }
 
-    fun hasPermission(String permission): boolean {
-        return getAuthorities()..anyMatch(auth -> auth.getAuthority().equals(permission));
+    fun hasPermission(permission: String): Boolean {
+        return getAuthorities().any { auth -> auth.authority == permission }
     }
 
-    fun hasRole(String role): boolean {
-        return roles..anyMatch(r -> r.getName().equals(role));
+    fun hasRole(role: String): Boolean {
+        return roles.any { r -> r.name == role }
     }
 }
 
@@ -239,7 +239,7 @@ class AuthController {
                 user.getId(),
                 user.getEmail(),
                 user.getFullName(),
-                user.getAuthorities()..map(GrantedAuthority::getAuthority)
+                user.getAuthorities().map(GrantedAuthority::getAuthority)
                     
             );
 
@@ -309,9 +309,9 @@ class AuthController {
             user.getEmail(),
             user.getFullName(),
             user.getPhoneNumber(),
-            user.getRoles()..map(Role::getName)
+            user.getRoles().map(Role::getName)
                 .toSet(),
-            user.getAuthorities()..map(GrantedAuthority::getAuthority)
+            user.getAuthorities().map(GrantedAuthority::getAuthority)
                 .toSet()
         );
 

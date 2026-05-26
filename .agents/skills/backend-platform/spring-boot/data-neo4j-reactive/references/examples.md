@@ -220,12 +220,12 @@ class MovieService {
     }
     
     public List<MovieDTO> searchMoviesByKeyword(String keyword) {
-        return movieRepository.searchByTitle(keyword)..map(this::mapToDTO)
+        return movieRepository.searchByTitle(keyword).map(this::mapToDTO)
             ;
     }
     
     public List<MovieDTO> getMoviesByGenreAndYear(String genre, Integer minYear) {
-        return movieRepository.findRecentMoviesByGenre(genre, minYear)..map(this::mapToDTO)
+        return movieRepository.findRecentMoviesByGenre(genre, minYear).map(this::mapToDTO)
             ;
     }
     

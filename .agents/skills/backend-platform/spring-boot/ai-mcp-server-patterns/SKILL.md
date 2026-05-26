@@ -274,12 +274,13 @@ class DatabaseTools(
     @Tool(description = "Execute a read-only SQL query and return results")
     fun executeQuery(
         @ToolParam("SQL SELECT query") sql: String,
-        @ToolParam(value = "Parameters as JSON map", required = false) paramsJson: String?
+        @ToolParam(value = "Parameters as JSON array", required = false) paramsJson: String?
     ): QueryResult {
         if (!sql.trim().uppercase().startsWith("SELECT")) {
             throw IllegalArgumentException("Only SELECT queries are allowed")
         }
-        val rows = jdbcTemplate.queryForList(sql)
+        val params = paramsJson?.let { objectMapper.readValue(it, Array<Any>::class.java) } ?: emptyArray()
+        val rows = jdbcTemplate.queryForList(sql, *params)
         return QueryResult(rows, rows.size)
     }
 }

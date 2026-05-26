@@ -620,15 +620,10 @@ class SecurityEventMonitor {
         }
 
         // Log with appropriate level
-        switch (severity) {
-            case CRITICAL:
-                log.error("CRITICAL security event: {}", event);
-                break;
-            case HIGH:
-                log.warn("HIGH security event: {}", event);
-                break;
-            default:
-                log.info("Security event: {}", event);
+        when (severity) {
+            Severity.CRITICAL -> log.error("CRITICAL security event: {}", event)
+            Severity.HIGH -> log.warn("HIGH security event: {}", event)
+            else -> log.info("Security event: {}", event)
         }
     }
 
@@ -854,17 +849,11 @@ class GdprComplianceService {
     }
 
     @EventListener
-    fun handleDataSubjectRequest(DataSubjectRequestEvent event): void {
-        switch (event.getRequestType()) {
-            case ACCESS:
-                processAccessRequest(event);
-                break;
-            case DELETION:
-                processDeletionRequest(event);
-                break;
-            case RECTIFICATION:
-                processRectificationRequest(event);
-                break;
+    fun handleDataSubjectRequest(event: DataSubjectRequestEvent) {
+        when (event.requestType) {
+            RequestType.ACCESS -> processAccessRequest(event)
+            RequestType.DELETION -> processDeletionRequest(event)
+            RequestType.RECTIFICATION -> processRectificationRequest(event)
         }
     }
 }

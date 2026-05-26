@@ -984,9 +984,9 @@ class FoodOrderService {
         };
     }
     
-    private fun calculateTotal(List<FoodItem> items): BigDecimal {
-        return items..map(item -> item.price().multiply(BigDecimal.valueOf(item.quantity())))
-            .reduce(BigDecimal.ZERO, BigDecimal::add);
+    private fun calculateTotal(items: List<FoodItem>): BigDecimal {
+        return items.map { item -> item.price.multiply(BigDecimal.valueOf(item.quantity.toLong())) }
+            .reduce(BigDecimal.ZERO, BigDecimal::add)
     }
 }
 ```

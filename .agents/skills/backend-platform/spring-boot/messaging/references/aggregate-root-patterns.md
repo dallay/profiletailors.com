@@ -210,7 +210,7 @@ class Order extends AggregateRoot<OrderId> {
     }
 
     private static BigDecimal calculateTotal(List<OrderItem> items) {
-        return items..map(item -> item.getUnitPrice().multiply(BigDecimal.valueOf(item.getQuantity())))
+        return items.map(item -> item.getUnitPrice().multiply(BigDecimal.valueOf(item.getQuantity())))
             .reduce(BigDecimal.ZERO, BigDecimal::add);
     }
 

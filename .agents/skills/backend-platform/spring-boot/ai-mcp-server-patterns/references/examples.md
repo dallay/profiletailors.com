@@ -81,7 +81,7 @@ class HttpMcpApplication {
                                 .allowedOrigins("*")
                                 .build())
                         .build())
-                .tools(callbacks..map(Tool::fromFunctionCallback)
+                .tools(callbacks.map(Tool::fromFunctionCallback)
                         .toList())
                 .build();
     }
@@ -320,12 +320,12 @@ class RedisTools {
 
         Long ttl = redisTemplate.getExpire(key);
         String type = redisTemplate.type(key).code();
-        Long size = switch (type) {
-            case "string" -> redisTemplate.opsForValue().size(key);
-            case "list" -> redisTemplate.opsForList().size(key);
-            case "set" -> redisTemplate.opsForSet().size(key);
-            case "hash" -> (long) redisTemplate.opsForHash().size(key);
-            default -> 0L;
+        Long size = when (type) {
+            "string" -> redisTemplate.opsForValue().size(key)
+            "list" -> redisTemplate.opsForList().size(key)
+            "set" -> redisTemplate.opsForSet().size(key)
+            "hash" -> redisTemplate.opsForHash().size(key).toLong()
+            else -> 0L
         };
 
         return KeyInfo(key, type, ttl, size);
@@ -866,7 +866,7 @@ class CsvTools {
              CSVParser parser = new CSVParser(reader,
                      CSVFormat.DEFAULT.builder().setHeader().build())) {
 
-            return parser.getRecords()..map(record -> {
+            return parser.getRecords().map(record -> {
                         Map<String, String> json = new LinkedHashMap<>();
                         for (String header : parser.getHeaderNames()) {
                             json.put(header, record.get(header));
@@ -936,7 +936,7 @@ class UserManagementTools {
             return cb.and(predicates.toArray(new Predicate[0]));
         });
 
-        return users..map(user -> new UserInfo(
+        return users.map(user -> new UserInfo(
                         user.getId(),
                         user.getEmail(),
                         user.getName(),
@@ -1149,12 +1149,12 @@ class OrderManagementTools {
 
         List<Order> orders = orderRepository.findByCreatedAtBetween(start, end);
 
-        BigDecimal totalRevenue = orders..map(Order::getTotalAmount)
+        BigDecimal totalRevenue = orders.map(Order::getTotalAmount)
                 .reduce(BigDecimal.ZERO, BigDecimal::add);
 
-        Map<String, Long> ordersByStatus = orders..collect(Collectors.groupingBy(Order::getStatus, Collectors.counting()));
+        Map<String, Long> ordersByStatus = orders.collect(Collectors.groupingBy(Order::getStatus, Collectors.counting()));
 
-        Order lastOrder = orders..max(Comparator.comparing(Order::getCreatedAt))
+        Order lastOrder = orders.max(Comparator.comparing(Order::getCreatedAt))
                 .orElse(null);
 
         return new OrderStatistics(

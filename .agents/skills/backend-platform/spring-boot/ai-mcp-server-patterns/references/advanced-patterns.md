@@ -34,28 +34,28 @@ class DynamicToolRegistry {
         }
     }
 
-    private fun executeDynamicTool(String toolId, Map<String, Object> args): Object {
-        ToolRegistration registration = registeredTools.get(toolId);
-        if (registration == null) throw IllegalStateException("Tool not found: " + toolId);
+    private fun executeDynamicTool(toolId: String, args: Map<String, Any>): Any {
+        val registration = registeredTools[toolId] 
+            ?: throw IllegalStateException("Tool not found: $toolId")
 
-        return switch (registration.getType()) {
-            case GROOVY_SCRIPT -> executeGroovyScript(registration, args);
-            case SPRING_BEAN -> executeSpringBeanMethod(registration, args);
-            case HTTP_ENDPOINT -> callHttpEndpoint(registration, args);
-        };
+        return when (registration.type) {
+            ToolType.GROOVY_SCRIPT -> executeGroovyScript(registration, args)
+            ToolType.SPRING_BEAN -> executeSpringBeanMethod(registration, args)
+            ToolType.HTTP_ENDPOINT -> callHttpEndpoint(registration, args)
+        }
     }
 }
 
 @Data
-class ToolRegistration {
-    private var id: String
-    private var name: String
-    private var description: String
-    private Map<String, Object> inputSchema;
-    private var type: ToolType
-    private var target: String
-    private Map<String, String> metadata;
-}
+class ToolRegistration(
+    var id: String,
+    var name: String,
+    var description: String,
+    var inputSchema: Map<String, Any>,
+    var type: ToolType,
+    var target: String,
+    var metadata: Map<String, String>
+)
 
 enum ToolType { GROOVY_SCRIPT, SPRING_BEAN, HTTP_ENDPOINT }
 ```
@@ -70,19 +70,19 @@ class MultiModelConfig {
 
     @Bean
     @Primary
-    fun primaryChatModel(@Value("${spring.ai.primary.model}") String modelName): ChatModel {
-        return switch (modelName) {
-            case "gpt-4" -> OpenAiChatModel(OpenAiApi.builder()
-                    .apiKey(System.getenv("OPENAI_API_KEY")).build());
-            case "claude" -> AnthropicChatModel(AnthropicApi.builder()
-                    .apiKey(System.getenv("ANTHROPIC_API_KEY")).build());
-            default -> throw IllegalArgumentException("Unsupported model: " + modelName);
-        };
+    fun primaryChatModel(@Value("\${spring.ai.primary.model}") modelName: String): ChatModel {
+        return when (modelName) {
+            "gpt-4" -> OpenAiChatModel(OpenAiApi.builder()
+                    .apiKey(System.getenv("OPENAI_API_KEY")).build())
+            "claude" -> AnthropicChatModel(AnthropicApi.builder()
+                    .apiKey(System.getenv("ANTHROPIC_API_KEY")).build())
+            else -> throw IllegalArgumentException("Unsupported model: $modelName")
+        }
     }
 
     @Bean
-    fun modelSelector(Map<String, ChatModel> models): ModelSelector {
-        return SpringAiModelSelector(models);
+    fun modelSelector(models: Map<String, ChatModel>): ModelSelector {
+        return SpringAiModelSelector(models)
     }
 }
 
@@ -176,17 +176,18 @@ class SecureToolExecutor {
         }
     }
 
-    private fun hasToolPermission(User user, String toolName): boolean {
-        return user.getAuthorities()..anyMatch(a -> a.getAuthority().equals("TOOL_" + toolName) ||
-                               a.getAuthority().equals("ROLE_ADMIN"));
+    private fun hasToolPermission(user: User, toolName: String): Boolean {
+        return user.authorities.any { a -> 
+            a.authority == "TOOL_$toolName" || a.authority == "ROLE_ADMIN"
+        }
     }
 
-    private fun validateArguments(Map<String, Object> arguments): void {
-        arguments.forEach((key, value) -> {
-            if (value instanceof String str && (str.contains(";") || str.contains("--"))) {
-                throw IllegalArgumentException("Invalid characters in argument: " + key);
+    private fun validateArguments(arguments: Map<String, Any>) {
+        arguments.forEach { (key, value) ->
+            if (value is String && (value.contains(";") || value.contains("--"))) {
+                throw IllegalArgumentException("Invalid characters in argument: $key")
             }
-        });
+        }
     }
 }
 ```
@@ -199,24 +200,24 @@ class ValidatedTools {
 
     @Tool(description = "Process user data with validation")
     @Validated
-    public ProcessingResult processUserData(
-            @ToolParam("User data to process") @Valid UserData data) {
-        return ProcessingResult("success", data);
+    fun processUserData(
+            @ToolParam("User data to process") @Valid data: UserData): ProcessingResult {
+        return ProcessingResult("success", data)
     }
 }
 
-record UserData(
-    @NotBlank(message = "Name is required")
-    @Size(max = 100)
-    String name,
+data class UserData(
+    @field:NotBlank(message = "Name is required")
+    @field:Size(max = 100)
+    val name: String,
 
-    @NotNull
-    @Min(18) @Max(120)
-    Integer age,
+    @field:NotNull
+    @field:Min(18) @field:Max(120)
+    val age: Int,
 
-    @NotBlank @Email
-    String email
-) {}
+    @field:NotBlank @field:Email
+    val email: String
+)
 ```
 
 ## Error Handling
@@ -227,47 +228,46 @@ Consistent error handling via `@ControllerAdvice`:
 @ControllerAdvice
 class McpExceptionHandler {
 
-    @ExceptionHandler(ToolExecutionException.class)
-    public ResponseEntity<ErrorResponse> handleToolExecutionException(
-            ToolExecutionException ex, WebRequest request) {
+    @ExceptionHandler(ToolExecutionException::class)
+    fun handleToolExecutionException(
+            ex: ToolExecutionException, request: WebRequest): ResponseEntity<ErrorResponse> {
         return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-                .body(ErrorResponse.builder()
-                        .timestamp(LocalDateTime.now())
-                        .status(500)
-                        .error("Tool Execution Failed")
-                        .message(ex.getMessage())
-                        .build());
+                .body(ErrorResponse(
+                        timestamp = LocalDateTime.now(),
+                        status = 500,
+                        error = "Tool Execution Failed",
+                        message = ex.message ?: "Unknown error"
+                ))
     }
 
-    @ExceptionHandler(AccessDeniedException.class)
-    public ResponseEntity<ErrorResponse> handleAccessDenied(AccessDeniedException ex) {
+    @ExceptionHandler(AccessDeniedException::class)
+    fun handleAccessDenied(ex: AccessDeniedException): ResponseEntity<ErrorResponse> {
         return ResponseEntity.status(HttpStatus.FORBIDDEN)
-                .body(ErrorResponse.builder()
-                        .timestamp(LocalDateTime.now())
-                        .status(403)
-                        .error("Access Denied")
-                        .message("You do not have permission to execute this tool")
-                        .build());
+                .body(ErrorResponse(
+                        timestamp = LocalDateTime.now(),
+                        status = 403,
+                        error = "Access Denied",
+                        message = "You do not have permission to execute this tool"
+                ))
     }
 
-    @ExceptionHandler(IllegalArgumentException.class)
-    public ResponseEntity<ErrorResponse> handleValidation(IllegalArgumentException ex) {
+    @ExceptionHandler(IllegalArgumentException::class)
+    fun handleValidation(ex: IllegalArgumentException): ResponseEntity<ErrorResponse> {
         return ResponseEntity.badRequest()
-                .body(ErrorResponse.builder()
-                        .timestamp(LocalDateTime.now())
-                        .status(400)
-                        .error("Validation Error")
-                        .message(ex.getMessage())
-                        .build());
+                .body(ErrorResponse(
+                        timestamp = LocalDateTime.now(),
+                        status = 400,
+                        error = "Validation Error",
+                        message = ex.message ?: "Validation failed"
+                ))
     }
 
-    @Data
-        static class ErrorResponse {
-        private var timestamp: LocalDateTime
-        private var status: int
-        private var error: String
-        private var message: String
-    }
+    data class ErrorResponse(
+        val timestamp: LocalDateTime,
+        val status: Int,
+        val error: String,
+        val message: String
+    )
 }
 ```
 
@@ -277,26 +277,26 @@ For long-running operations that should return immediately:
 
 ```kotlin
 @Tool(description = "Execute long-running task asynchronously")
-public AsyncResult executeAsyncTask(
-        @ToolParam("Task name") String taskName,
-        @ToolParam(value = "Task parameters", required = false) String paramsJson) {
+fun executeAsyncTask(
+        @ToolParam("Task name") taskName: String,
+        @ToolParam(value = "Task parameters", required = false) paramsJson: String?): AsyncResult {
 
-    String taskId = UUID.randomUUID().toString();
+    val taskId = UUID.randomUUID().toString()
 
-    CompletableFuture.supplyAsync(() -> performLongRunningTask(taskName, paramsJson), asyncExecutor)
-            .thenAccept(result -> taskResults.put(taskId, result));
+    CompletableFuture.supplyAsync({ performLongRunningTask(taskName, paramsJson) }, asyncExecutor)
+            .thenAccept { result -> taskResults[taskId] = result }
 
-    return AsyncResult(taskId, "pending", null);
+    return AsyncResult(taskId, "pending", null)
 }
 
 @Tool(description = "Check status of an async task")
-fun getTaskStatus(@ToolParam("Task ID") String taskId): AsyncResult {
-    Object result = taskResults.get(taskId);
-    if (result == null) return AsyncResult(taskId, "pending", null);
-    return AsyncResult(taskId, "completed", result);
+fun getTaskStatus(@ToolParam("Task ID") taskId: String): AsyncResult {
+    val result = taskResults[taskId]
+    if (result == null) return AsyncResult(taskId, "pending", null)
+    return AsyncResult(taskId, "completed", result)
 }
 
-record AsyncResult(String taskId, String status, Object result) {}
+data class AsyncResult(val taskId: String, val status: String, val result: Any?)
 ```
 
 ## Health Check
