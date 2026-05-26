@@ -6,6 +6,7 @@ import com.profiletailors.common.domain.bus.command.Command
 import com.profiletailors.common.domain.bus.command.CommandWithResult
 import com.profiletailors.common.domain.bus.notification.Notification
 import com.profiletailors.common.domain.bus.query.Query
+import com.profiletailors.common.testfixture.CredentialGenerator
 import com.profiletailors.smp.credentials.application.RefreshSessionCookieFactory
 import com.profiletailors.smp.credentials.application.RefreshSessionProperties
 import com.profiletailors.smp.credentials.application.RefreshSessionToken
@@ -24,6 +25,7 @@ import org.springframework.http.server.reactive.ServerHttpRequest
 
 class LocalAuthControllerTest {
 
+    private val validPassword = CredentialGenerator.generateValidPassword()
     private val cookieFactory = RefreshSessionCookieFactory(
         RefreshSessionProperties(
             cookieName = "pt_refresh",
@@ -50,7 +52,7 @@ class LocalAuthControllerTest {
         val response = controller.register(
             RegisterUserRequest(
                 email = "yuniel@example.com",
-                password = "password123",
+                password = validPassword,
                 username = "yuniel",
             ),
         )
@@ -60,7 +62,7 @@ class LocalAuthControllerTest {
         assertEquals(
             RegisterUserCommand(
                 email = "yuniel@example.com",
-                password = "password123",
+                password = validPassword,
                 username = "yuniel",
             ),
             mediator.lastRequest,
@@ -76,7 +78,7 @@ class LocalAuthControllerTest {
         val response = controller.login(
             LoginUserRequest(
                 email = "login@example.com",
-                password = "password123",
+                password = validPassword,
             ),
         )
 
@@ -85,7 +87,7 @@ class LocalAuthControllerTest {
         assertEquals(
             LoginUserCommand(
                 email = "login@example.com",
-                password = "password123",
+                password = validPassword,
             ),
             mediator.lastRequest,
         )

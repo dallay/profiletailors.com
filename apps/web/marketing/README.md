@@ -35,8 +35,25 @@ All commands are run from the root of the project, from a terminal:
 | `pnpm dev`             | Starts local dev server at `localhost:4321`      |
 | `pnpm build`           | Build your production site to `./dist/`          |
 | `pnpm preview`         | Preview your build locally, before deploying     |
+| `pnpm test`            | Run tests in watch mode                          |
+| `pnpm test:ui`         | Open Vitest UI for interactive testing           |
+| `pnpm test:coverage`   | Generate coverage report                         |
 | `pnpm astro ...`       | Run CLI commands like `astro add`, `astro check` |
 | `pnpm astro -- --help` | Get help using the Astro CLI                     |
+
+## 🧪 Testing
+
+This project uses Vitest for unit and component testing.
+
+### Coverage
+
+Coverage reports are generated in the `coverage/` directory and uploaded to Codecov on every CI run.
+
+**Target coverage:** 70% (lines, functions, branches, statements)
+
+### Bundle Analysis
+
+Bundle size is tracked via Codecov's bundle analysis. The build will fail if the bundle grows by more than 5% without justification.
 
 ## 👀 Want to learn more?
 

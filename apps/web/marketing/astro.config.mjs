@@ -2,6 +2,7 @@
 import { defineConfig, envField } from 'astro/config'
 import tailwindcss from '@tailwindcss/vite'
 import icon from '@dallay/astro-icon'
+import { codecovVitePlugin } from '@codecov/vite-plugin'
 import { resolve, join, extname } from 'node:path'
 import { cpSync, createReadStream, existsSync, statSync } from 'node:fs'
 
@@ -62,7 +63,15 @@ export default defineConfig({
   },
 
   vite: {
-    plugins: [tailwindcss(), sharedAssetsPlugin],
+    plugins: [
+      tailwindcss(),
+      sharedAssetsPlugin,
+      codecovVitePlugin({
+        enableBundleAnalysis: process.env.CODECOV_TOKEN !== undefined,
+        bundleName: 'marketing',
+        uploadToken: process.env.CODECOV_TOKEN,
+      }),
+    ],
     resolve: {
       // Import shared SVGs: import logo from '@shared/assets/profiletailors-logotype.svg'
       '@shared/assets': SHARED_ASSETS,

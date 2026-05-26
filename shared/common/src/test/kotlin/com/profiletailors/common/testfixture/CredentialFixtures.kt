@@ -11,10 +11,10 @@ import com.profiletailors.common.domain.vo.credential.Credential
 object CredentialFixtures {
 
     /** Safe password passing all validation rules — use in happy-path tests. */
-    const val strongCredentialPassword = "Th1sIsA\$5tr0ngP@ssw0rd"
+    val strongCredentialPassword: String = CredentialGenerator.generateValidPassword()
 
     /** Creates a [Credential] from the strong test password. */
-    fun aStrongCredential(): Credential = Credential.create(strongCredentialPassword)
+    fun aStrongCredential(): Credential = CredentialGenerator.generate(strongCredentialPassword)
 
     // --- Weak passwords for validation error tests ---
 

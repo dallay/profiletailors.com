@@ -65,17 +65,18 @@ export const useAuthStore = defineStore('auth', () => {
   const isAuthenticated = computed(() => Boolean(_accessToken.value))
   const accessToken = computed(() => _accessToken.value)
 
+  const defaultDisplayName = 'PT';
   const displayName = computed(
-    () => user.value?.displayIdentity || user.value?.username || user.value?.email || 'PT',
+    () => user.value?.displayIdentity || user.value?.username || user.value?.email || defaultDisplayName,
   )
 
   const userInitials = computed(() => {
     const source = displayName.value.trim()
 
-    if (!source) return 'PT'
+    if (!source) return defaultDisplayName
 
     const parts = source.split(/\s+/).filter(Boolean)
-    if (parts.length === 1) return (parts[0] ?? 'PT').slice(0, 2).toUpperCase()
+    if (parts.length === 1) return (parts[0] ?? defaultDisplayName).slice(0, 2).toUpperCase()
 
     return parts
       .slice(0, 2)

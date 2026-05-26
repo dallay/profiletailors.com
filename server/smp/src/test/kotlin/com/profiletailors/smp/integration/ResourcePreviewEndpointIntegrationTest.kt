@@ -25,6 +25,8 @@ import org.springframework.context.annotation.Import
         "spring.liquibase.password=",
         "platform.workspace-context.header-name=X-Workspace-Id",
         "spring.main.allow-bean-definition-overriding=true",
+        "management.endpoint.health.group.readiness.include=readinessState",
+        "management.endpoint.health.group.liveness.include=livenessState",
     ],
 )
 @Import(ResourcePreviewEndpointTestBase.SharedTestBeans::class)

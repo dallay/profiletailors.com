@@ -291,3 +291,19 @@ body {
     @apply font-sans;
   }
 }
+
+@keyframes collapsible-down {
+  from { height: 0; }
+  to { height: var(--reka-collapsible-content-height); }
+}
+@keyframes collapsible-up {
+  from { height: var(--reka-collapsible-content-height); }
+  to { height: 0; }
+}
+
+.animate-collapsible-down {
+  animation: collapsible-down 0.2s ease-out;
+}
+.animate-collapsible-up {
+  animation: collapsible-up 0.2s ease-out;
+}

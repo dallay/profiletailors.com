@@ -83,7 +83,7 @@ function handleSchedule() {
         </CardHeader>
         <CardContent class="p-0 mt-4 flex items-baseline gap-2">
           <span class="text-5xl font-doto text-text-display font-light">02</span>
-          <span class="text-xs text-text-secondary font-mono">POSTS</span>
+          <span class="text-xs text-text-secondary font-mono">{{ $t('dashboard.posts') }}</span>
         </CardContent>
       </Card>
 
@@ -95,7 +95,7 @@ function handleSchedule() {
         </CardHeader>
         <CardContent class="p-0 mt-4 flex items-baseline gap-2">
           <span class="text-5xl font-doto text-text-display font-light">04</span>
-          <span class="text-xs text-text-secondary font-mono">ACTIVE</span>
+          <span class="text-xs text-text-secondary font-mono">{{ $t('dashboard.active') }}</span>
         </CardContent>
       </Card>
 
@@ -119,7 +119,7 @@ function handleSchedule() {
         </CardHeader>
         <CardContent class="p-0 mt-4 flex items-baseline gap-2">
           <span class="text-5xl font-doto text-text-display font-light">4.8%</span>
-          <span class="text-xs text-text-secondary font-mono">AVG</span>
+          <span class="text-xs text-text-secondary font-mono">{{ $t('dashboard.avg') }}</span>
         </CardContent>
       </Card>
     </div>
@@ -185,7 +185,7 @@ function handleSchedule() {
             <!-- Channels selection -->
             <div class="space-y-2">
               <span class="font-mono text-[9px] tracking-widest text-text-secondary uppercase block">
-                Select Channels
+                {{ $t('dashboard.selectChannels') }}
               </span>
               <div class="flex flex-wrap gap-2">
                 <button
