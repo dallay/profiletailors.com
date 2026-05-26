@@ -93,6 +93,11 @@ class AuthorizationBddSteps(
         bddDatabaseSupport.seedMemberWithPreviewPermission()
     }
 
+    @Given("a workspace member with the audit events read permission")
+    fun givenMemberWithAuditEventsReadPermission() = runBlocking {
+        bddDatabaseSupport.seedMemberWithAuditReadPermission()
+    }
+
     @And("the member has a target scope that allows resource {string}")
     fun andMemberHasTargetScope(resourceId: String) = runBlocking {
         bddDatabaseSupport.seedTargetScope(resourceId)

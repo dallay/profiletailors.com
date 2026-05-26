@@ -46,6 +46,7 @@ class BddDatabaseSupport(
         const val ACCESS_SUMMARY_QUERY = "com.profiletailors.smp.authorization.application.current.workspace.GetCurrentWorkspaceAccessSummaryQuery"
         const val RESOURCE_PREVIEW_QUERY = "com.profiletailors.smp.authorization.application.resource.getpreview.GetResourcePreviewQuery"
         const val WORKSPACE_ACCESS_PERMISSION = "workspace:access:read"
+        const val WORKSPACE_AUDIT_READ_PERMISSION = "workspace:audit:read"
         const val RESOURCE_PREVIEW_PERMISSION = "workspace:resource:read"
         const val WORKSPACE_ACCESS_ENTITLEMENT = "workspace.access.summary"
     }
@@ -168,6 +169,12 @@ class BddDatabaseSupport(
         seedUserPrincipal()
         seedWorkspaceAndRole(entitled = false)
         seedRolePermission(permissionId = "permission-resource-read", permissionKey = RESOURCE_PREVIEW_PERMISSION)
+    }
+
+    suspend fun seedMemberWithAuditReadPermission() {
+        seedUserPrincipal()
+        seedWorkspaceAndRole(entitled = false)
+        seedRolePermission(permissionId = "permission-audit-read", permissionKey = WORKSPACE_AUDIT_READ_PERMISSION)
     }
 
     suspend fun seedAuthorizedServiceAccount(entitled: Boolean, credentialStatus: String = "ACTIVE") {
