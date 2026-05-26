@@ -45,6 +45,7 @@ dependencies {
 	runtimeOnly("org.postgresql:postgresql")
 	runtimeOnly("org.postgresql:r2dbc-postgresql")
 	testImplementation("org.postgresql:r2dbc-postgresql")
+	testImplementation(testFixtures(project(":shared-common")))
 	annotationProcessor("org.springframework.boot:spring-boot-configuration-processor")
 	testImplementation("com.h2database:h2")
 	testImplementation("io.r2dbc:r2dbc-h2")

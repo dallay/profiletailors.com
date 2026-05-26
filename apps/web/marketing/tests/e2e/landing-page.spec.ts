@@ -17,9 +17,11 @@ test.describe('Landing Page - Hero Section', () => {
   test('should display platform integrations', async ({ page }) => {
     await page.goto('/');
     
-    // Look for platform mentions (Twitter, Instagram, LinkedIn, etc.)
-    const content = await page.textContent('body');
-    expect(content).toBeTruthy();
+    // Verify specific platform integrations are present
+    const body = await page.textContent('body');
+    expect(body).toContain('Twitter');
+    expect(body).toContain('Instagram');
+    expect(body).toContain('LinkedIn');
   });
 });
 
@@ -30,14 +32,15 @@ test.describe('Bilingual Support', () => {
     // Check if language switcher exists
     const langSwitcher = page.getByRole('button', { name: /es|en|español|english/i });
     
-    if (await langSwitcher.count() > 0) {
-      await langSwitcher.first().click();
-      
-      // Verify URL or content changed
-      await page.waitForTimeout(500);
-      const url = page.url();
-      expect(url).toBeTruthy();
-    }
+    // Assert switcher is present
+    await expect(langSwitcher.first()).toBeVisible();
+    
+    await langSwitcher.first().click();
+    
+    // Wait for navigation or content change
+    await page.waitForLoadState('domcontentloaded');
+    const url = page.url();
+    expect(url).toBeTruthy();
   });
 
   test('should load Spanish version directly', async ({ page }) => {
@@ -79,20 +82,19 @@ test.describe('Waitlist Form', () => {
     await page.goto('/');
     
     const emailInput = page.locator('input[type="email"]').first();
+    const submitButton = page.locator('button[type="submit"]').first();
     
-    if (await emailInput.count() > 0) {
-      // Try invalid email
-      await emailInput.fill('invalid-email');
-      
-      const submitButton = page.locator('button[type="submit"]').first();
-      if (await submitButton.count() > 0) {
-        await submitButton.click();
-        
-        // HTML5 validation should prevent submission
-        const validationMessage = await emailInput.evaluate((el: HTMLInputElement) => el.validationMessage);
-        expect(validationMessage).toBeTruthy();
-      }
-    }
+    // Assert form elements exist
+    await expect(emailInput).toBeVisible();
+    await expect(submitButton).toBeVisible();
+    
+    // Try invalid email
+    await emailInput.fill('invalid-email');
+    await submitButton.click();
+    
+    // HTML5 validation should prevent submission
+    const validationMessage = await emailInput.evaluate((el: HTMLInputElement) => el.validationMessage);
+    expect(validationMessage).toBeTruthy();
   });
 
   test('should accept valid email', async ({ page }) => {
@@ -107,8 +109,9 @@ test.describe('Waitlist Form', () => {
       if (await submitButton.count() > 0) {
         await submitButton.click();
         
-        // Wait for potential success message or state change
-        await page.waitForTimeout(1000);
+        // Wait for form submission to complete - look for success indicator or state change
+        // TODO: Replace with actual success element when form is implemented
+        await page.waitForLoadState('networkidle');
       }
     }
   });
@@ -125,7 +128,7 @@ test.describe('Responsive Design', () => {
     // Check no horizontal overflow
     const bodyWidth = await page.evaluate(() => document.body.scrollWidth);
     const viewportWidth = await page.evaluate(() => window.innerWidth);
-    expect(bodyWidth).toBeLessThanOrEqual(viewportWidth + 1); // +1 for rounding
+    expect(bodyWidth).toBeLessThanOrEqual(viewportWidth);
   });
 
   test('should adapt to tablet size', async ({ page }) => {
@@ -167,7 +170,8 @@ test.describe('Accessibility', () => {
     for (let i = 0; i < count; i++) {
       const img = images.nth(i);
       const alt = await img.getAttribute('alt');
-      expect(alt).toBeDefined();
+      expect(alt).not.toBeNull();
+      expect(typeof alt).toBe('string');
     }
   });
 

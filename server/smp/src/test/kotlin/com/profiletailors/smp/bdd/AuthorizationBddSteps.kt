@@ -350,7 +350,10 @@ class AuthorizationBddSteps(
     }
 
     @When("the client queries workspace audit events with filters and pagination")
-    fun whenTheClientQueriesWorkspaceAuditEventsWithFiltersAndPagination() {
+    fun whenTheClientQueriesWorkspaceAuditEventsWithFiltersAndPagination() = runBlocking {
+        // Seed audit event that matches the query filters
+        bddDatabaseSupport.seedAuditEventRecords()
+        
         latestStatusCode = null
         latestResult = webTestClient.get()
             .uri { builder ->
