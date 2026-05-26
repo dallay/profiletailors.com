@@ -4,39 +4,39 @@
 
 ### Service-to-Service JWT Tokens
 
-```java
+```kotlin
 @Configuration
-public class InterServiceSecurityConfig {
+class InterServiceSecurityConfig {
 
     @Bean
     @Primary
-    public JwtDecoder interServiceJwtDecoder() {
+    fun interServiceJwtDecoder(): JwtDecoder {
         // Use public key for validating inter-service tokens
         return NimbusJwtDecoder.withPublicKey(interServicePublicKey()).build();
     }
 
     @Bean
-    public JwtEncoder interServiceJwtEncoder() {
+    fun interServiceJwtEncoder(): JwtEncoder {
         // Use private key for generating inter-service tokens
         JWKSet jwkSet = new JWKSet(
             new RSAKey.Builder(interServicePrivateKey()).build());
-        return new NimbusJwtEncoder(new ImmutableJWKSet<>(jwkSet));
+        return NimbusJwtEncoder(new ImmutableJWKSet<>(jwkSet));
     }
 
     @Bean
-    public RestTemplate interServiceRestTemplate() {
-        RestTemplate restTemplate = new RestTemplate();
+    fun interServiceRestTemplate(): RestTemplate {
+        RestTemplate restTemplate = RestTemplate();
         restTemplate.setInterceptors(List.of(
-            new InterServiceAuthInterceptor(jwtTokenService)
+            InterServiceAuthInterceptor(jwtTokenService)
         ));
         return restTemplate;
     }
 }
 
 @Component
-public class InterServiceAuthInterceptor implements ClientHttpRequestInterceptor {
+class InterServiceAuthInterceptor implements ClientHttpRequestInterceptor {
 
-    private final InterServiceJwtTokenService tokenService;
+    private val tokenService: InterServiceJwtTokenService
 
     @Override
     public ClientHttpResponse intercept(
@@ -60,25 +60,25 @@ public class InterServiceAuthInterceptor implements ClientHttpRequestInterceptor
 
 ### Service Authentication Provider
 
-```java
+```kotlin
 @Service
-public class InterServiceJwtTokenService {
+class InterServiceJwtTokenService {
 
     @Value("${service.name}")
-    private String serviceName;
+    private var serviceName: String
 
     @Value("${service.version}")
-    private String serviceVersion;
+    private var serviceVersion: String
 
-    private final JwtEncoder jwtEncoder;
+    private val jwtEncoder: JwtEncoder
 
-    public String generateInterServiceToken() {
+    fun generateInterServiceToken(): String {
         Instant now = Instant.now();
 
         JwtClaimsSet claims = JwtClaimsSet.builder()
             .issuer(serviceName)
             .subject("inter-service")
-            .audience(List.of("microservices"))
+            .audience(listOf("microservices"))
             .issuedAt(now)
             .expiresAt(now.plus(5, ChronoUnit.MINUTES)) // Short-lived tokens
             .claim("service", serviceName)
@@ -91,7 +91,7 @@ public class InterServiceJwtTokenService {
             .getTokenValue();
     }
 
-    public boolean isValidInterServiceToken(String token) {
+    fun isValidInterServiceToken(String token): boolean {
         try {
             Jwt jwt = jwtDecoder.decode(token);
 
@@ -112,14 +112,14 @@ public class InterServiceJwtTokenService {
 
 ### Gateway Authentication Filter
 
-```java
+```kotlin
 @Component
 @Slf4j
-public class GatewayAuthenticationFilter implements GlobalFilter, Ordered {
+class GatewayAuthenticationFilter implements GlobalFilter, Ordered {
 
-    private final RouteValidator routeValidator;
-    private final JwtTokenValidator tokenValidator;
-    private final RateLimiterRegistry rateLimiterRegistry;
+    private val routeValidator: RouteValidator
+    private val tokenValidator: JwtTokenValidator
+    private val rateLimiterRegistry: RateLimiterRegistry
 
     @Override
     public Mono<Void> filter(ServerWebExchange exchange, GatewayFilterChain chain) {
@@ -183,7 +183,7 @@ public class GatewayAuthenticationFilter implements GlobalFilter, Ordered {
     }
 
     @Override
-    public int getOrder() {
+    fun getOrder(): int {
         return -100; // High priority
     }
 }
@@ -285,26 +285,26 @@ spec:
 
 ### Spring Boot Istio Integration
 
-```java
+```kotlin
 @Configuration
-public class IstioSecurityConfig {
+class IstioSecurityConfig {
 
     @Bean
     public FilterRegistrationBean<IstioAuthenticationFilter> istioAuthFilter() {
         FilterRegistrationBean<IstioAuthenticationFilter> registration = new FilterRegistrationBean<>();
-        registration.setFilter(new IstioAuthenticationFilter());
+        registration.setFilter(IstioAuthenticationFilter());
         registration.addUrlPatterns("/api/*");
         registration.setOrder(1);
         return registration;
     }
 
     @Bean
-    public UserDetailsService istioUserDetailsService() {
-        return new IstioUserDetailsService();
+    fun istioUserDetailsService(): UserDetailsService {
+        return IstioUserDetailsService();
     }
 }
 
-public class IstioAuthenticationFilter implements Filter {
+class IstioAuthenticationFilter implements Filter {
 
     @Override
     public void doFilter(ServletRequest request, ServletResponse response,
@@ -326,7 +326,7 @@ public class IstioAuthenticationFilter implements Filter {
                 .build();
 
             UsernamePasswordAuthenticationToken authentication =
-                new UsernamePasswordAuthenticationToken(userDetails, null, authorities);
+                UsernamePasswordAuthenticationToken(userDetails, null, authorities);
 
             SecurityContextHolder.getContext().setAuthentication(authentication);
         }
@@ -340,15 +340,15 @@ public class IstioAuthenticationFilter implements Filter {
 
 ### Centralized Token Validation Service
 
-```java
+```kotlin
 @Service
 @Retryable(maxAttempts = 3, backoff = @Backoff(delay = 1000))
-public class DistributedTokenValidationService {
+class DistributedTokenValidationService {
 
-    private final TokenValidationCache cache;
-    private final AuthServiceClient authServiceClient;
+    private val cache: TokenValidationCache
+    private val authServiceClient: AuthServiceClient
 
-    public TokenValidationResult validateToken(String token) {
+    fun validateToken(String token): TokenValidationResult {
         // Check cache first
         TokenValidationResult cached = cache.get(token);
         if (cached != null && !cached.isExpired()) {
@@ -371,14 +371,14 @@ public class DistributedTokenValidationService {
     }
 
     @Recover
-    public TokenValidationResult recover(FeignException e, String token) {
+    fun recover(FeignException e, String token): TokenValidationResult {
         // Fallback validation when auth service is unavailable
         return localTokenValidation(token);
     }
 }
 
 @FeignClient(name = "auth-service", configuration = FeignConfig.class)
-public interface AuthServiceClient {
+interface AuthServiceClient {
 
     @PostMapping("/api/auth/validate")
     TokenValidationResult validateToken(@RequestBody String token);
@@ -390,19 +390,19 @@ public interface AuthServiceClient {
 
 ### Token Introspection Pattern
 
-```java
+```kotlin
 @Service
-public class TokenIntrospectionService {
+class TokenIntrospectionService {
 
-    private final RestTemplate restTemplate;
-    private final String introspectionEndpoint;
+    private val restTemplate: RestTemplate
+    private val introspectionEndpoint: String
 
-    public TokenIntrospectionResult introspect(String token) {
+    fun introspect(String token): TokenIntrospectionResult {
         MultiValueMap<String, String> params = new LinkedMultiValueMap<>();
         params.add("token", token);
         params.add("token_type_hint", "access_token");
 
-        HttpHeaders headers = new HttpHeaders();
+        HttpHeaders headers = HttpHeaders();
         headers.setContentType(MediaType.APPLICATION_FORM_URLENCODED);
         headers.setBasicAuth(clientId, clientSecret);
 
@@ -427,32 +427,31 @@ public class TokenIntrospectionService {
 
 ### Secure Service Discovery
 
-```java
+```kotlin
 @Configuration
-public class ServiceDiscoverySecurityConfig {
+class ServiceDiscoverySecurityConfig {
 
     @Bean
-    public DiscoveryClient secureDiscoveryClient() {
-        return new SecureDiscoveryClient();
+    fun secureDiscoveryClient(): DiscoveryClient {
+        return SecureDiscoveryClient();
     }
 }
 
-public class SecureDiscoveryClient implements DiscoveryClient {
+class SecureDiscoveryClient implements DiscoveryClient {
 
-    private final DiscoveryClient delegate;
-    private final ServiceSecurityProperties properties;
+    private val delegate: DiscoveryClient
+    private val properties: ServiceSecurityProperties
 
     @Override
     public List<ServiceInstance> getInstances(String serviceId) {
         List<ServiceInstance> instances = delegate.getInstances(serviceId);
 
-        return instances.stream()
-            .filter(this::isInstanceSecure)
+        return instances..filter(this::isInstanceSecure)
             .map(this::addSecurityMetadata)
-            .collect(Collectors.toList());
+            ;
     }
 
-    private boolean isInstanceSecure(ServiceInstance instance) {
+    private fun isInstanceSecure(ServiceInstance instance): boolean {
         // Check if instance is using HTTPS
         String scheme = instance.getUri().getScheme();
         if (!"https".equals(scheme)) {
@@ -465,7 +464,7 @@ public class SecureDiscoveryClient implements DiscoveryClient {
         return verifyInstanceCertificate(instance);
     }
 
-    private ServiceInstance addSecurityMetadata(ServiceInstance instance) {
+    private fun addSecurityMetadata(ServiceInstance instance): ServiceInstance {
         Map<String, String> metadata = new HashMap<>(instance.getMetadata());
 
         // Add security metadata
@@ -490,17 +489,17 @@ public class SecureDiscoveryClient implements DiscoveryClient {
 
 ### Resilient Security Client
 
-```java
+```kotlin
 @Component
-public class ResilientAuthServiceClient {
+class ResilientAuthServiceClient {
 
-    private final AuthServiceClient authClient;
-    private final CircuitBreaker circuitBreaker;
-    private final RateLimiter rateLimiter;
-    private final Bulkhead bulkhead;
+    private val authClient: AuthServiceClient
+    private val circuitBreaker: CircuitBreaker
+    private val rateLimiter: RateLimiter
+    private val bulkhead: Bulkhead
 
     @Retryable(maxAttempts = 3, backoff = @Backoff(delay = 1000))
-    public TokenValidationResult validateToken(String token) {
+    fun validateToken(String token): TokenValidationResult {
         Supplier<TokenValidationResult> decoratedSupplier = Decorators.ofSupplier(
             () -> authClient.validateToken(token))
             .withCircuitBreaker(circuitBreaker)
@@ -514,23 +513,23 @@ public class ResilientAuthServiceClient {
             .get();
     }
 
-    private TokenValidationResult fallbackValidation(String token) {
+    private fun fallbackValidation(String token): TokenValidationResult {
         log.warn("Using fallback validation for token");
         // Implement local validation logic
         return localValidateToken(token);
     }
 
-    private TokenValidationResult fallbackValidation() {
+    private fun fallbackValidation(): TokenValidationResult {
         // Default fallback when token is not available
         return TokenValidationResult.invalid("Service unavailable");
     }
 }
 
 @Configuration
-public class ResilienceConfig {
+class ResilienceConfig {
 
     @Bean
-    public CircuitBreaker authServiceCircuitBreaker() {
+    fun authServiceCircuitBreaker(): CircuitBreaker {
         CircuitBreakerConfig config = CircuitBreakerConfig.custom()
             .failureRateThreshold(50)
             .waitDurationInOpenState(Duration.ofSeconds(30))
@@ -542,7 +541,7 @@ public class ResilienceConfig {
     }
 
     @Bean
-    public RateLimiter authServiceRateLimiter() {
+    fun authServiceRateLimiter(): RateLimiter {
         return RateLimiter.of("authService",
             RateLimiterConfig.custom()
                 .limitForPeriod(100)
@@ -552,7 +551,7 @@ public class ResilienceConfig {
     }
 
     @Bean
-    public Bulkhead authServiceBulkhead() {
+    fun authServiceBulkhead(): Bulkhead {
         return Bulkhead.of("authService",
             BulkheadConfig.custom()
                 .maxConcurrentCalls(20)
@@ -566,13 +565,13 @@ public class ResilienceConfig {
 
 ### Security Event Publishing
 
-```java
+```kotlin
 @Component
 @Slf4j
-public class SecurityEventPublisher {
+class SecurityEventPublisher {
 
     private final KafkaTemplate<String, SecurityEvent> kafkaTemplate;
-    private final String topicName;
+    private val topicName: String
 
     @EventListener
     @Async
@@ -609,7 +608,7 @@ public class SecurityEventPublisher {
 
     @EventListener
     @Async
-    public void handleTokenRevoked(RefreshTokenRevokedEvent event) {
+    fun handleTokenRevoked(RefreshTokenRevokedEvent event): void {
         SecurityEvent securityEvent = SecurityEvent.builder()
             .eventType(SecurityEventType.TOKEN_REVOKED)
             .userId(event.getRefreshToken().getUser().getId())
@@ -622,7 +621,7 @@ public class SecurityEventPublisher {
         publishEvent(securityEvent);
     }
 
-    private void publishEvent(SecurityEvent event) {
+    private fun publishEvent(SecurityEvent event): void {
         try {
             kafkaTemplate.send(topicName, event.getUserId().toString(), event)
                 .addCallback(
@@ -638,16 +637,16 @@ public class SecurityEventPublisher {
 
 ### Security Event Consumer
 
-```java
+```kotlin
 @Component
 @Slf4j
-public class SecurityEventConsumer {
+class SecurityEventConsumer {
 
-    private final SecurityEventProcessor eventProcessor;
+    private val eventProcessor: SecurityEventProcessor
 
     @KafkaListener(topics = "${security.events.topic}",
                    groupId = "${security.events.consumer-group}")
-    public void handleSecurityEvent(SecurityEvent event) {
+    fun handleSecurityEvent(SecurityEvent event): void {
         try {
             eventProcessor.processEvent(event);
         } catch (Exception e) {
@@ -658,29 +657,29 @@ public class SecurityEventConsumer {
 
     @KafkaListener(topics = "${security.events.dlt-topic}",
                    groupId = "${security.events.dlt-group}")
-    public void handleDeadLetterEvent(ConsumerRecord<String, SecurityEvent> record) {
+    fun handleDeadLetterEvent(ConsumerRecord<String, SecurityEvent> record): void {
         log.error("Security event in dead letter queue: {}", record);
         // Implement alerting or manual intervention
     }
 }
 
 @Service
-public class SecurityEventProcessor {
+class SecurityEventProcessor {
 
     @EventListener
-    public void processSuspiciousActivity(SecurityEvent event) {
+    fun processSuspiciousActivity(SecurityEvent event): void {
         if (isSuspiciousActivity(event)) {
             // Trigger additional security measures
             triggerSecurityResponse(event);
         }
     }
 
-    private boolean isSuspiciousActivity(SecurityEvent event) {
+    private fun isSuspiciousActivity(SecurityEvent event): boolean {
         return event.getEventType() == SecurityEventType.AUTHENTICATION_FAILURE &&
                getRecentFailureCount(event.getUserId()) > 5;
     }
 
-    private void triggerSecurityResponse(SecurityEvent event) {
+    private fun triggerSecurityResponse(SecurityEvent event): void {
         // Lock user account temporarily
         userService.lockAccountTemporarily(event.getUserId());
 

@@ -7,12 +7,12 @@ process information, thread dumps, and heap dumps.
 
 The `info` endpoint can provide process-specific information:
 
-```java
+```kotlin
 @Component
-public class ProcessInfoContributor implements InfoContributor {
+class ProcessInfoContributor implements InfoContributor {
 
     @Override
-    public void contribute(Info.Builder builder) {
+    fun contribute(Info.Builder builder): void {
         RuntimeMXBean runtime = ManagementFactory.getRuntimeMXBean();
         
         builder.withDetail("process", Map.of(
@@ -38,27 +38,27 @@ GET /actuator/threaddump
 
 ### Custom Thread Monitoring
 
-```java
+```kotlin
 @Component
 @ManagedResource(objectName = "com.example:type=ThreadMonitor")
-public class ThreadMonitorMBean {
+class ThreadMonitorMBean {
 
     @ManagedAttribute
-    public int getActiveThreadCount() {
+    fun getActiveThreadCount(): int {
         return Thread.activeCount();
     }
 
     @ManagedAttribute
-    public long getTotalStartedThreadCount() {
+    fun getTotalStartedThreadCount(): long {
         return ManagementFactory.getThreadMXBean().getTotalStartedThreadCount();
     }
 
     @ManagedOperation
-    public String getThreadDump() {
+    fun getThreadDump(): String {
         ThreadMXBean threadBean = ManagementFactory.getThreadMXBean();
         ThreadInfo[] threadInfos = threadBean.dumpAllThreads(true, true);
         
-        StringBuilder dump = new StringBuilder();
+        StringBuilder dump = StringBuilder();
         for (ThreadInfo threadInfo : threadInfos) {
             dump.append(threadInfo.toString()).append("\n");
         }
@@ -79,11 +79,11 @@ GET /actuator/heapdump
 
 ### Memory Metrics
 
-```java
+```kotlin
 @Component
-public class MemoryMetrics {
+class MemoryMetrics {
 
-    private final MeterRegistry meterRegistry;
+    private val meterRegistry: MeterRegistry
 
     public MemoryMetrics(MeterRegistry meterRegistry) {
         this.meterRegistry = meterRegistry;
@@ -93,7 +93,7 @@ public class MemoryMetrics {
             .register(meterRegistry, this, MemoryMetrics::getHeapUsagePercentage);
     }
 
-    private double getHeapUsagePercentage() {
+    private fun getHeapUsagePercentage(): double {
         MemoryMXBean memoryBean = ManagementFactory.getMemoryMXBean();
         MemoryUsage heapUsage = memoryBean.getHeapMemoryUsage();
         return (double) heapUsage.getUsed() / heapUsage.getMax() * 100;
@@ -103,12 +103,12 @@ public class MemoryMetrics {
 
 ## Process Health Monitoring
 
-```java
+```kotlin
 @Component
-public class ProcessHealthIndicator implements HealthIndicator {
+class ProcessHealthIndicator implements HealthIndicator {
 
     @Override
-    public Health health() {
+    fun health(): Health {
         try {
             // Check process health
             long pid = ProcessHandle.current().pid();

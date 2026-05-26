@@ -2,7 +2,7 @@
 
 ## Full-Featured Book Controller
 
-```java
+```kotlin
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.media.Content;
@@ -22,9 +22,9 @@ import jakarta.validation.Valid;
 @RequestMapping("/api/books")
 @Tag(name = "Book", description = "Book management APIs")
 @SecurityRequirement(name = "bearer-jwt")
-public class BookController {
+class BookController {
 
-    private final BookService bookService;
+    private val bookService: BookService
 
     public BookController(BookService bookService) {
         this.bookService = bookService;
@@ -118,7 +118,7 @@ public class BookController {
     })
     @DeleteMapping("/{id}")
     @ResponseStatus(HttpStatus.NO_CONTENT)
-    public void deleteBook(@PathVariable Long id) {
+    fun deleteBook(@PathVariable Long id): void {
         bookService.deleteBook(id);
     }
 
@@ -136,7 +136,7 @@ public class BookController {
 
 ## Complete Book Entity
 
-```java
+```kotlin
 import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.validation.constraints.*;
 import java.math.BigDecimal;
@@ -145,40 +145,40 @@ import java.time.LocalDate;
 @Entity
 @Table(name = "books")
 @Schema(description = "Book entity representing a published book")
-public class Book {
+class Book {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     @Schema(description = "Unique identifier", example = "1", accessMode = Schema.AccessMode.READ_ONLY)
-    private Long id;
+    private var id: Long
 
     @NotBlank(message = "Title is required")
     @Size(min = 1, max = 200)
     @Schema(description = "Book title", example = "Clean Code", required = true, maxLength = 200)
-    private String title;
+    private var title: String
 
     @NotBlank(message = "Author is required")
     @Schema(description = "Book author", example = "Robert C. Martin", required = true)
-    private String author;
+    private var author: String
 
     @Pattern(regexp = "^(?:ISBN(?:-1[03])?:? )?(?=[0-9X]{10}$|(?=(?:[0-9]+[- ]){3})[- 0-9X]{13}$|97[89][0-9]{10}$|(?=(?:[0-9]+[- ]){4})[- 0-9]{17}$)(?:97[89][- ]?)?[0-9]{1,5}[- ]?[0-9]+[- ]?[0-9]+[- ]?[0-9X]$")
     @Schema(description = "ISBN number", example = "978-0132350884")
-    private String isbn;
+    private var isbn: String
 
     @Min(value = 0, message = "Price must be positive")
     @Schema(description = "Book price in USD", example = "29.99", minimum = "0")
-    private BigDecimal price;
+    private var price: BigDecimal
 
     @Past(message = "Publication date must be in the past")
     @Schema(description = "Publication date", example = "2008-08-01")
-    private LocalDate publicationDate;
+    private var publicationDate: LocalDate
 
     @Schema(description = "Book description", example = "A handbook of agile software craftsmanship")
-    private String description;
+    private var description: String
 
     @Email(message = "Publisher email must be valid")
     @Schema(description = "Publisher contact email", example = "contact@publisher.com")
-    private String publisherEmail;
+    private var publisherEmail: String
 
     // Constructors, getters, setters...
 }
@@ -186,7 +186,7 @@ public class Book {
 
 ## Complete Configuration Class
 
-```java
+```kotlin
 import io.swagger.v3.oas.models.Components;
 import io.swagger.v3.oas.models.OpenAPI;
 import io.swagger.v3.oas.models.info.Contact;
@@ -197,29 +197,29 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
 @Configuration
-public class OpenAPIConfig {
+class OpenAPIConfig {
 
     @Bean
-    public OpenAPI customOpenAPI() {
-        return new OpenAPI()
-            .components(new Components()
-                .addSecuritySchemes("bearer-jwt", new SecurityScheme()
+    fun customOpenAPI(): OpenAPI {
+        return OpenAPI()
+            .components(Components()
+                .addSecuritySchemes("bearer-jwt", SecurityScheme()
                     .type(SecurityScheme.Type.HTTP)
                     .scheme("bearer")
                     .bearerFormat("JWT")
                     .description("JWT authentication - Enter token without 'Bearer' prefix")
                 )
             )
-            .info(new Info()
+            .info(Info()
                 .title("Book Management API")
                 .description("Comprehensive API for managing books, authors, and publishers")
                 .version("v1.0.0")
-                .contact(new Contact()
+                .contact(Contact()
                     .name("API Support")
                     .email("support@example.com")
                     .url("https://example.com/support")
                 )
-                .license(new License()
+                .license(License()
                     .name("MIT License")
                     .url("https://opensource.org/licenses/MIT")
                 )
@@ -264,7 +264,7 @@ logging:
 
 ## Complete Security Configuration
 
-```java
+```kotlin
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
@@ -274,7 +274,7 @@ import org.springframework.security.web.authentication.UsernamePasswordAuthentic
 
 @Configuration
 @EnableWebSecurity
-public class SecurityConfig {
+class SecurityConfig {
 
     @Bean
     public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {

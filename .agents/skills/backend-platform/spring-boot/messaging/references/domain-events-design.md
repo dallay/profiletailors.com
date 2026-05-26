@@ -4,14 +4,14 @@
 
 Create an immutable base class for all domain events:
 
-```java
+```kotlin
 import java.time.LocalDateTime;
 import java.util.UUID;
 
 public abstract class DomainEvent {
-    private final UUID eventId;
-    private final LocalDateTime occurredAt;
-    private final UUID correlationId;
+    private val eventId: UUID
+    private val occurredAt: LocalDateTime
+    private val correlationId: UUID
 
     protected DomainEvent() {
         this.eventId = UUID.randomUUID();
@@ -25,15 +25,15 @@ public abstract class DomainEvent {
         this.correlationId = correlationId;
     }
 
-    public UUID getEventId() {
+    fun getEventId(): UUID {
         return eventId;
     }
 
-    public LocalDateTime getOccurredAt() {
+    fun getOccurredAt(): LocalDateTime {
         return occurredAt;
     }
 
-    public UUID getCorrelationId() {
+    fun getCorrelationId(): UUID {
         return correlationId;
     }
 }
@@ -43,15 +43,15 @@ public abstract class DomainEvent {
 
 ### Product Created Event
 
-```java
+```kotlin
 import java.math.BigDecimal;
 import java.util.UUID;
 
-public class ProductCreatedEvent extends DomainEvent {
-    private final ProductId productId;
-    private final String name;
-    private final BigDecimal price;
-    private final Integer stock;
+class ProductCreatedEvent extends DomainEvent {
+    private val productId: ProductId
+    private val name: String
+    private val price: BigDecimal
+    private val stock: Integer
 
     public ProductCreatedEvent(ProductId productId, String name, BigDecimal price, Integer stock) {
         super();
@@ -61,19 +61,19 @@ public class ProductCreatedEvent extends DomainEvent {
         this.stock = stock;
     }
 
-    public ProductId getProductId() {
+    fun getProductId(): ProductId {
         return productId;
     }
 
-    public String getName() {
+    fun getName(): String {
         return name;
     }
 
-    public BigDecimal getPrice() {
+    fun getPrice(): BigDecimal {
         return price;
     }
 
-    public Integer getStock() {
+    fun getStock(): Integer {
         return stock;
     }
 }
@@ -81,11 +81,11 @@ public class ProductCreatedEvent extends DomainEvent {
 
 ### Product Stock Decreased Event
 
-```java
-public class ProductStockDecreasedEvent extends DomainEvent {
-    private final ProductId productId;
-    private final Integer quantity;
-    private final Integer remainingStock;
+```kotlin
+class ProductStockDecreasedEvent extends DomainEvent {
+    private val productId: ProductId
+    private val quantity: Integer
+    private val remainingStock: Integer
 
     public ProductStockDecreasedEvent(ProductId productId, Integer quantity, Integer remainingStock) {
         super();
@@ -94,15 +94,15 @@ public class ProductStockDecreasedEvent extends DomainEvent {
         this.remainingStock = remainingStock;
     }
 
-    public ProductId getProductId() {
+    fun getProductId(): ProductId {
         return productId;
     }
 
-    public Integer getQuantity() {
+    fun getQuantity(): Integer {
         return quantity;
     }
 
-    public Integer getRemainingStock() {
+    fun getRemainingStock(): Integer {
         return remainingStock;
     }
 }
@@ -110,14 +110,14 @@ public class ProductStockDecreasedEvent extends DomainEvent {
 
 ### Order Created Event
 
-```java
+```kotlin
 import java.util.List;
 
-public class OrderCreatedEvent extends DomainEvent {
-    private final OrderId orderId;
-    private final CustomerId customerId;
+class OrderCreatedEvent extends DomainEvent {
+    private val orderId: OrderId
+    private val customerId: CustomerId
     private final List<OrderItem> items;
-    private final BigDecimal total;
+    private val total: BigDecimal
 
     public OrderCreatedEvent(OrderId orderId, CustomerId customerId, List<OrderItem> items, BigDecimal total) {
         super();
@@ -127,11 +127,11 @@ public class OrderCreatedEvent extends DomainEvent {
         this.total = total;
     }
 
-    public OrderId getOrderId() {
+    fun getOrderId(): OrderId {
         return orderId;
     }
 
-    public CustomerId getCustomerId() {
+    fun getCustomerId(): CustomerId {
         return customerId;
     }
 
@@ -139,7 +139,7 @@ public class OrderCreatedEvent extends DomainEvent {
         return items;
     }
 
-    public BigDecimal getTotal() {
+    fun getTotal(): BigDecimal {
         return total;
     }
 }
@@ -167,15 +167,15 @@ public class OrderCreatedEvent extends DomainEvent {
 
 ### Example: Rich Event Design
 
-```java
-public class OrderPlacedEvent extends DomainEvent {
-    private final OrderId orderId;
-    private final CustomerId customerId;
+```kotlin
+class OrderPlacedEvent extends DomainEvent {
+    private val orderId: OrderId
+    private val customerId: CustomerId
     private final List<OrderItem> items;
-    private final BigDecimal totalAmount;
-    private final String shippingAddress;
-    private final PaymentMethod paymentMethod;
-    private final Instant estimatedDeliveryDate;
+    private val totalAmount: BigDecimal
+    private val shippingAddress: String
+    private val paymentMethod: PaymentMethod
+    private val estimatedDeliveryDate: Instant
 
     public OrderPlacedEvent(
         OrderId orderId,
@@ -212,20 +212,20 @@ public class OrderPlacedEvent extends DomainEvent {
 
 ### JSON Serialization
 
-```java
+```kotlin
 import com.fasterxml.jackson.annotation.JsonFormat;
 
-public class ProductCreatedEvent extends DomainEvent {
-    private final String productId;
-    private final String name;
+class ProductCreatedEvent extends DomainEvent {
+    private val productId: String
+    private val name: String
 
     @JsonFormat(shape = JsonFormat.Shape.STRING)
-    private final BigDecimal price;
+    private val price: BigDecimal
 
-    private final Integer stock;
+    private val stock: Integer
 
     @JsonFormat(pattern = "yyyy-MM-dd'T'HH:mm:ss")
-    private final LocalDateTime occurredAt;
+    private val occurredAt: LocalDateTime
 
     // Constructor and getters...
 }
@@ -233,22 +233,22 @@ public class ProductCreatedEvent extends DomainEvent {
 
 ### Event DTO Pattern
 
-```java
+```kotlin
 // Domain event (internal)
-public class ProductCreatedEvent extends DomainEvent {
-    private final ProductId productId;
-    private final String name;
-    private final BigDecimal price;
+class ProductCreatedEvent extends DomainEvent {
+    private val productId: ProductId
+    private val name: String
+    private val price: BigDecimal
 }
 
 // Event DTO (external communication)
-public class ProductCreatedEventDto {
-    private final String eventId;
-    private final String productId;
-    private final String name;
-    private final BigDecimal price;
-    private final LocalDateTime occurredAt;
-    private final String correlationId;
+class ProductCreatedEventDto {
+    private val eventId: String
+    private val productId: String
+    private val name: String
+    private val price: BigDecimal
+    private val occurredAt: LocalDateTime
+    private val correlationId: String
 
     public static ProductCreatedEventDto from(ProductCreatedEvent event) {
         return new ProductCreatedEventDto(
@@ -267,13 +267,13 @@ public class ProductCreatedEventDto {
 
 ### Versioned Events
 
-```java
-public class ProductCreatedEventV2 extends DomainEvent {
-    private final ProductId productId;
-    private final String name;
-    private final BigDecimal price;
-    private final Integer stock;
-    private final String category; // New field in V2
+```kotlin
+class ProductCreatedEventV2 extends DomainEvent {
+    private val productId: ProductId
+    private val name: String
+    private val price: BigDecimal
+    private val stock: Integer
+    private val category: String // New field in V2
 
     // Include version information
     private final String eventVersion = "2.0";
@@ -284,10 +284,10 @@ public class ProductCreatedEventV2 extends DomainEvent {
 
 ### Upcaster Pattern
 
-```java
+```kotlin
 @Component
-public class EventUpcaster {
-    public ProductCreatedEventV2 upcast(ProductCreatedEventV1 v1Event) {
+class EventUpcaster {
+    fun upcast(ProductCreatedEventV1 v1Event): ProductCreatedEventV2 {
         return new ProductCreatedEventV2(
             v1Event.getProductId(),
             v1Event.getName(),
