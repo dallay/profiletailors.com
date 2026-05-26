@@ -208,19 +208,19 @@ resilience4j:
 
 ### `@`CircuitBreaker
 
-```java
+```kotlin
 @CircuitBreaker(
     name = "serviceName",                    // Required: Instance name from config
     fallbackMethod = "fallbackMethodName"    // Optional: Fallback method name
 )
 
 // Fallback method signature
-public String fallback(Long id, Exception ex) { }
+fun fallback(Long id, Exception ex): String { }
 ```
 
 ### `@`Retry
 
-```java
+```kotlin
 @Retry(
     name = "serviceName",                    // Required: Instance name from config
     fallbackMethod = "fallbackMethodName"    // Optional: Fallback method name
@@ -229,7 +229,7 @@ public String fallback(Long id, Exception ex) { }
 
 ### `@`RateLimiter
 
-```java
+```kotlin
 @RateLimiter(
     name = "serviceName",
     fallbackMethod = "fallbackMethodName"
@@ -238,7 +238,7 @@ public String fallback(Long id, Exception ex) { }
 
 ### `@`Bulkhead
 
-```java
+```kotlin
 @Bulkhead(
     name = "serviceName",
     fallbackMethod = "fallbackMethodName",
@@ -248,7 +248,7 @@ public String fallback(Long id, Exception ex) { }
 
 ### `@`TimeLimiter
 
-```java
+```kotlin
 @TimeLimiter(
     name = "serviceName",
     fallbackMethod = "fallbackMethodName"
@@ -280,7 +280,7 @@ When combining annotations on a method, execution order from outermost to innerm
 
 ### Circuit Breaker
 
-```java
+```kotlin
 CircuitBreakerConfig config = CircuitBreakerConfig.custom()
     .failureRateThreshold(50)
     .waitDurationInOpenState(Duration.ofSeconds(10))
@@ -299,7 +299,7 @@ CircuitBreaker circuitBreaker = registry.circuitBreaker("myService");
 
 ### Retry
 
-```java
+```kotlin
 RetryConfig config = RetryConfig.custom()
     .maxAttempts(3)
     .waitDuration(Duration.ofMillis(500))

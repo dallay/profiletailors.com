@@ -4,147 +4,130 @@
 
 ### Hierarchical Role Structure
 
-```java
+```kotlin
 @Entity
 @Table(name = "roles")
-@Getter
-@Setter
-@NoArgsConstructor
-@AllArgsConstructor
-@Builder
-public class Role {
-
+data class Role(
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Long id;
+    val id: Long? = null,
 
     @Column(unique = true, nullable = false)
-    private String name;
+    val name: String,
 
-    private String description;
+    val description: String? = null,
 
     @ManyToMany(fetch = FetchType.EAGER)
     @JoinTable(
         name = "role_hierarchy",
-        joinColumns = @JoinColumn(name = "child_role_id"),
-        inverseJoinColumns = @JoinColumn(name = "parent_role_id")
+        joinColumns = [JoinColumn(name = "child_role_id")],
+        inverseJoinColumns = [JoinColumn(name = "parent_role_id")]
     )
-    private Set<Role> parentRoles = new HashSet<>();
+    val parentRoles: Set<Role> = emptySet(),
 
     @ManyToMany(mappedBy = "parentRoles")
-    private Set<Role> childRoles = new HashSet<>();
+    val childRoles: Set<Role> = emptySet(),
 
     @ManyToMany(fetch = FetchType.EAGER)
     @JoinTable(
         name = "role_permissions",
-        joinColumns = @JoinColumn(name = "role_id"),
-        inverseJoinColumns = @JoinColumn(name = "permission_id")
+        joinColumns = [JoinColumn(name = "role_id")],
+        inverseJoinColumns = [JoinColumn(name = "permission_id")]
     )
-    private Set<Permission> permissions = new HashSet<>();
-
-    public Set<Permission> getAllPermissions() {
-        Set<Permission> allPermissions = new HashSet<>(permissions);
-
+    val permissions: Set<Permission> = emptySet()
+) {
+    fun getAllPermissions(): Set<Permission> {
+        val allPermissions = permissions.toMutableSet()
+        
         // Recursively collect permissions from parent roles
-        for (Role parentRole : parentRoles) {
-            allPermissions.addAll(parentRole.getAllPermissions());
+        parentRoles.forEach { parentRole ->
+            allPermissions.addAll(parentRole.getAllPermissions())
         }
-
-        return allPermissions;
+        
+        return allPermissions
     }
 
-    public boolean hasPermission(String permissionName) {
-        return getAllPermissions().stream()
-            .anyMatch(permission -> permission.getName().equals(permissionName));
-    }
+    fun hasPermission(permissionName: String): Boolean =
+        getAllPermissions().any { it.name == permissionName }
 }
 ```
 
 ### Custom Role Hierarchy Voter
 
-```java
+```kotlin
 @Component
-public class RoleHierarchyVoter implements AccessDecisionVoter<Object> {
+class RoleHierarchyVoter(
+    private val roleHierarchy: RoleHierarchy
+) : AccessDecisionVoter<Any> {
 
-    private final RoleHierarchy roleHierarchy;
+    override fun supports(attribute: ConfigAttribute): Boolean =
+        attribute.attribute?.startsWith("ROLE_") == true
 
-    public RoleHierarchyVoter(RoleHierarchy roleHierarchy) {
-        this.roleHierarchy = roleHierarchy;
-    }
+    override fun supports(clazz: Class<*>): Boolean = true
 
-    @Override
-    public boolean supports(ConfigAttribute attribute) {
-        return attribute.getAttribute() != null &&
-               attribute.getAttribute().startsWith("ROLE_");
-    }
+    override fun vote(
+        authentication: Authentication,
+        obj: Any,
+        attributes: Collection<ConfigAttribute>
+    ): Int {
+        val authorities = roleHierarchy.getReachableGrantedAuthorities(authentication.authorities)
 
-    @Override
-    public boolean supports(Class<?> clazz) {
-        return true;
-    }
-
-    @Override
-    public int vote(Authentication authentication, Object object,
-                   Collection<ConfigAttribute> attributes) {
-
-        Collection<? extends GrantedAuthority> authorities = roleHierarchy
-            .getReachableGrantedAuthorities(authentication.getAuthorities());
-
-        for (ConfigAttribute attribute : attributes) {
-            if (authorities.contains(new SimpleGrantedAuthority(attribute.getAttribute()))) {
-                return ACCESS_GRANTED;
+        for (attribute in attributes) {
+            if (authorities.contains(SimpleGrantedAuthority(attribute.attribute))) {
+                return ACCESS_GRANTED
             }
         }
 
-        return ACCESS_ABSTAIN;
+        return ACCESS_ABSTAIN
     }
 }
 
 @Configuration
-public class RoleHierarchyConfig {
+class RoleHierarchyConfig {
 
     @Bean
-    public RoleHierarchy roleHierarchy() {
-        RoleHierarchyImpl roleHierarchy = new RoleHierarchyImpl();
-        String hierarchy =
-            "ROLE_ADMIN > ROLE_MANAGER\n" +
-            "ROLE_MANAGER > ROLE_USER\n" +
-            "ROLE_MANAGER > ROLE_SUPPORT\n" +
-            "ROLE_SUPPORT > ROLE_READONLY";
-        roleHierarchy.setHierarchy(hierarchy);
-        return roleHierarchy;
+    fun roleHierarchy(): RoleHierarchy {
+        val roleHierarchy = RoleHierarchyImpl()
+        val hierarchy = """
+            ROLE_ADMIN > ROLE_MANAGER
+            ROLE_MANAGER > ROLE_USER
+            ROLE_MANAGER > ROLE_SUPPORT
+            ROLE_SUPPORT > ROLE_READONLY
+        """.trimIndent()
+        roleHierarchy.setHierarchy(hierarchy)
+        return roleHierarchy
     }
 }
 ```
 
 ### Method-Level Security with Roles
 
-```java
+```kotlin
 @Service
 @PreAuthorize("hasRole('USER')")
-public class DocumentService {
+class DocumentService {
 
     @PreAuthorize("hasRole('ADMIN')")
-    public void deleteAllDocuments() {
+    fun deleteAllDocuments() {
         // Only administrators can delete all documents
     }
 
     @PreAuthorize("hasAnyRole('ADMIN', 'MANAGER')")
-    public void approveDocument(Long documentId) {
+    fun approveDocument(documentId: Long) {
         // Admins and managers can approve documents
     }
 
     @PreAuthorize("hasRole('USER')")
-    public List<Document> getMyDocuments() {
+    fun getMyDocuments(): List<Document> {
         // Regular users can view their own documents
     }
 
     @PreAuthorize("hasRole('MANAGER')")
     @PostAuthorize("returnObject.owner.id == authentication.principal.id or hasRole('ADMIN')")
-    public Document getDocumentForApproval(Long documentId) {
+    fun getDocumentForApproval(documentId: Long): Document {
         // Managers can view documents for approval, admins can view any
         return documentRepository.findById(documentId)
-            .orElseThrow(() -> new DocumentNotFoundException(documentId));
+            .orElseThrow { DocumentNotFoundException(documentId) }
     }
 }
 ```
@@ -153,60 +136,49 @@ public class DocumentService {
 
 ### Permission Entity with Resource Types
 
-```java
+```kotlin
 @Entity
 @Table(name = "permissions")
-@Getter
-@Setter
-@NoArgsConstructor
-@AllArgsConstructor
-@Builder
-public class Permission {
-
+data class Permission(
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Long id;
+    val id: Long? = null,
 
     @Column(unique = true, nullable = false)
-    private String name;
+    val name: String,
 
-    private String description;
-
-    @Enumerated(EnumType.STRING)
-    @Column(nullable = false)
-    private ResourceType resourceType;
+    val description: String? = null,
 
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
-    private ActionType action;
+    val resourceType: ResourceType,
+
+    @Enumerated(EnumType.STRING)
+    @Column(nullable = false)
+    val action: ActionType,
 
     // Permission templates for dynamic permissions
-    private String template;
+    val template: String? = null,
 
     // Conditions for conditional permissions
     @Lob
-    private String conditions;
-}
+    val conditions: String? = null
+)
 
-public enum ResourceType {
+enum class ResourceType(
+    val code: String,
+    val description: String
+) {
     USER("user", "User Management"),
     DOCUMENT("document", "Document Management"),
     ORDER("order", "Order Processing"),
     PRODUCT("product", "Product Catalog"),
     INVOICE("invoice", "Invoice Management"),
     REPORT("report", "Reporting"),
-    SYSTEM("system", "System Administration");
-
-    private final String code;
-    private final String description;
-
-    ResourceType(String code, String description) {
-        this.code = code;
-        this.description = description;
-    }
+    SYSTEM("system", "System Administration")
 }
 
-public enum ActionType {
+enum class ActionType(val code: String) {
     CREATE("create"),
     READ("read"),
     UPDATE("update"),
@@ -214,146 +186,138 @@ public enum ActionType {
     APPROVE("approve"),
     REJECT("reject"),
     EXPORT("export"),
-    IMPORT("import");
-
-    private final String code;
-
-    ActionType(String code) {
-        this.code = code;
-    }
+    IMPORT("import")
 }
 ```
 
 ### Custom Permission Evaluator
 
-```java
+```kotlin
 @Component("permissionEvaluator")
-public class CustomPermissionEvaluator implements PermissionEvaluator {
+class CustomPermissionEvaluator(
+    private val permissionService: PermissionService
+) : PermissionEvaluator {
 
-    private final PermissionService permissionService;
-
-    public boolean hasPermission(Authentication authentication,
-            Object targetDomainObject, Object permission) {
-
-        if (authentication == null || !authentication.isAuthenticated()) {
-            return false;
+    override fun hasPermission(
+        authentication: Authentication?,
+        targetDomainObject: Any?,
+        permission: Any?
+    ): Boolean {
+        if (authentication == null || !authentication.isAuthenticated) {
+            return false
         }
 
-        User user = (User) authentication.getPrincipal();
-        String permissionName = permission.toString();
+        val user = authentication.principal as User
+        val permissionName = permission.toString()
 
         // Check direct permissions
         if (user.hasPermission(permissionName)) {
-            return true;
+            return true
         }
 
         // Check resource-specific permissions
         if (targetDomainObject != null) {
-            return checkResourcePermission(user, targetDomainObject, permissionName);
+            return checkResourcePermission(user, targetDomainObject, permissionName)
         }
 
-        return false;
+        return false
     }
 
-    @Override
-    public boolean hasPermission(Authentication authentication,
-            Serializable targetId, String targetType, Object permission) {
-
-        if (authentication == null || !authentication.isAuthenticated()) {
-            return false;
+    override fun hasPermission(
+        authentication: Authentication?,
+        targetId: Serializable?,
+        targetType: String?,
+        permission: Any?
+    ): Boolean {
+        if (authentication == null || !authentication.isAuthenticated) {
+            return false
         }
 
-        User user = (User) authentication.getPrincipal();
-        String permissionName = permission.toString();
+        val user = authentication.principal as User
+        val permissionName = permission.toString()
 
-        return permissionService.hasResourcePermission(user, targetId, targetType, permissionName);
+        return permissionService.hasResourcePermission(user, targetId, targetType, permissionName)
     }
 
-    private boolean checkResourcePermission(User user, Object resource, String permission) {
+    private fun checkResourcePermission(user: User, resource: Any, permission: String): Boolean {
         // Extract resource information
-        String resourceType = extractResourceType(resource);
-        Serializable resourceId = extractResourceId(resource);
+        val resourceType = extractResourceType(resource)
+        val resourceId = extractResourceId(resource)
 
         // Check ownership
         if (isOwner(user, resource) && hasOwnershipPermission(permission)) {
-            return true;
+            return true
         }
 
         // Check department/organizational permissions
         if (isInSameDepartment(user, resource) && hasDepartmentPermission(permission)) {
-            return true;
+            return true
         }
 
         // Check global permissions
-        return permissionService.hasGlobalPermission(user, resourceType, permission);
+        return permissionService.hasGlobalPermission(user, resourceType, permission)
     }
 
-    private boolean hasOwnershipPermission(String permission) {
-        return permission.endsWith("_OWN") || permission.endsWith("_MY");
-    }
+    private fun hasOwnershipPermission(permission: String): Boolean =
+        permission.endsWith("_OWN") || permission.endsWith("_MY")
 
-    private boolean hasDepartmentPermission(String permission) {
-        return permission.endsWith("_DEPT") || permission.endsWith("_ORG");
-    }
+    private fun hasDepartmentPermission(permission: String): Boolean =
+        permission.endsWith("_DEPT") || permission.endsWith("_ORG")
 }
 ```
 
 ### Dynamic Permission Builder
 
-```java
+```kotlin
 @Service
-public class PermissionBuilderService {
+class PermissionBuilderService {
 
-    public Set<String> buildPermissions(User user) {
-        Set<String> permissions = new HashSet<>();
+    fun buildPermissions(user: User): Set<String> {
+        val permissions = mutableSetOf<String>()
 
         // Role-based permissions
-        user.getRoles().forEach(role -> {
-            permissions.add("ROLE_" + role.getName());
-            role.getPermissions().forEach(permission -> {
-                permissions.add(permission.getName());
-            });
-        });
+        user.roles.forEach { role ->
+            permissions.add("ROLE_${role.name}")
+            role.permissions.forEach { permission ->
+                permissions.add(permission.name)
+            }
+        }
 
         // User-specific permissions
-        user.getUserPermissions().forEach(userPermission -> {
-            if (isPermissionValid(userPermission)) {
-                permissions.add(buildPermissionString(userPermission));
+        user.userPermissions
+            .filter { isPermissionValid(it) }
+            .forEach { userPermission ->
+                permissions.add(buildPermissionString(userPermission))
             }
-        });
 
         // Dynamic permissions based on user attributes
-        addDynamicPermissions(user, permissions);
+        addDynamicPermissions(user, permissions)
 
-        return permissions;
+        return permissions
     }
 
-    private void addDynamicPermissions(User user, Set<String> permissions) {
+    private fun addDynamicPermissions(user: User, permissions: MutableSet<String>) {
         // Department-based permissions
-        if (user.getDepartment() != null) {
-            permissions.add("DEPT_" + user.getDepartment().getCode() + "_READ");
+        user.department?.let { dept ->
+            permissions.add("DEPT_${dept.code}_READ")
         }
 
         // Location-based permissions
-        if (user.getLocation() != null) {
-            permissions.add("LOCATION_" + user.getLocation().getCode() + "_ACCESS");
+        user.location?.let { location ->
+            permissions.add("LOCATION_${location.code}_ACCESS")
         }
 
         // Project-based permissions
-        user.getProjectMemberships().forEach(membership -> {
-            permissions.add("PROJECT_" + membership.getProject().getId() + "_MEMBER");
-            if (membership.getRole() == ProjectRole.MANAGER) {
-                permissions.add("PROJECT_" + membership.getProject().getId() + "_MANAGER");
+        user.projectMemberships.forEach { membership ->
+            permissions.add("PROJECT_${membership.project.id}_MEMBER")
+            if (membership.role == ProjectRole.MANAGER) {
+                permissions.add("PROJECT_${membership.project.id}_MANAGER")
             }
-        });
+        }
     }
 
-    private String buildPermissionString(UserPermission userPermission) {
-        return String.format("%s_%s_%s",
-            userPermission.getResourceType(),
-            userPermission.getAction(),
-            userPermission.getScope());
-    }
+    private fun buildPermissionString(userPermission: UserPermission): String =
+        "${userPermission.resourceType}_${userPermission.action}_${userPermission.scope}"
 }
 ```
 
@@ -361,138 +325,119 @@ public class PermissionBuilderService {
 
 ### Policy-Based Authorization
 
-```java
+```kotlin
 @Component
-public class PolicyBasedAccessDecisionManager implements AccessDecisionManager {
+class PolicyBasedAccessDecisionManager(
+    private val policyRepository: PolicyRepository,
+    private val evaluationService: PolicyEvaluationService
+) : AccessDecisionManager {
 
-    private final PolicyRepository policyRepository;
-    private final PolicyEvaluationService evaluationService;
-
-    @Override
-    public void decide(Authentication authentication, Object object,
-                       Collection<ConfigAttribute> configAttributes) throws AccessDeniedException {
-
+    override fun decide(
+        authentication: Authentication,
+        obj: Any,
+        configAttributes: Collection<ConfigAttribute>
+    ) {
         if (configAttributes.isEmpty()) {
-            return;
+            return
         }
 
-        for (ConfigAttribute attribute : configAttributes) {
+        for (attribute in configAttributes) {
             if (supports(attribute)) {
-                String policyName = attribute.getAttribute();
-                Policy policy = policyRepository.findByName(policyName)
-                    .orElseThrow(() -> new PolicyNotFoundException(policyName));
+                val policyName = attribute.attribute
+                val policy = policyRepository.findByName(policyName)
+                    .orElseThrow { PolicyNotFoundException(policyName) }
 
-                if (!evaluationService.evaluate(policy, authentication, object)) {
-                    throw new AccessDeniedException(
-                        "Access denied by policy: " + policyName);
+                if (!evaluationService.evaluate(policy, authentication, obj)) {
+                    throw AccessDeniedException("Access denied by policy: $policyName")
                 }
             }
         }
     }
 
-    @Override
-    public boolean supports(ConfigAttribute attribute) {
-        return attribute.getAttribute() != null &&
-               attribute.getAttribute().startsWith("POLICY_");
-    }
+    override fun supports(attribute: ConfigAttribute): Boolean =
+        attribute.attribute?.startsWith("POLICY_") == true
 
-    @Override
-    public boolean supports(Class<?> clazz) {
-        return true;
-    }
+    override fun supports(clazz: Class<*>): Boolean = true
 }
 
 @Service
-public class PolicyEvaluationService {
+class PolicyEvaluationService {
 
-    public boolean evaluate(Policy policy, Authentication authentication, Object resource) {
+    fun evaluate(policy: Policy, authentication: Authentication, resource: Any): Boolean {
         // Build evaluation context
-        EvaluationContext context = EvaluationContext.builder()
-            .subject(extractSubjectInfo(authentication))
-            .resource(extractResourceInfo(resource))
-            .environment(extractEnvironmentInfo())
-            .build();
+        val context = EvaluationContext(
+            subject = extractSubjectInfo(authentication),
+            resource = extractResourceInfo(resource),
+            environment = extractEnvironmentInfo()
+        )
 
         // Evaluate policy rules
-        return policy.getRules().stream()
-            .allMatch(rule -> evaluateRule(rule, context));
+        return policy.rules.all { rule -> evaluateRule(rule, context) }
     }
 
-    private boolean evaluateRule(PolicyRule rule, EvaluationContext context) {
+    private fun evaluateRule(rule: PolicyRule, context: EvaluationContext): Boolean {
         // Implement rule evaluation logic using SPEL or custom evaluator
-        StandardEvaluationContext spe1Context = new StandardEvaluationContext(context);
-        ExpressionParser parser = new SpelExpressionParser();
-        Expression expression = parser.parseExpression(rule.getCondition());
+        val spelContext = StandardEvaluationContext(context)
+        val parser = SpelExpressionParser()
+        val expression = parser.parseExpression(rule.condition)
 
-        return expression.getValue(spe1Context, Boolean.class);
+        return expression.getValue(spelContext, Boolean::class.java) ?: false
     }
 }
 ```
 
 ### ABAC Policy Definitions
 
-```java
+```kotlin
 @Entity
 @Table(name = "policies")
-@Getter
-@Setter
-@NoArgsConstructor
-@AllArgsConstructor
-@Builder
-public class Policy {
-
+data class Policy(
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Long id;
+    val id: Long? = null,
 
     @Column(unique = true, nullable = false)
-    private String name;
+    val name: String,
 
-    private String description;
+    val description: String? = null,
 
     @Enumerated(EnumType.STRING)
-    private PolicyEffect effect; // PERMIT or DENY
+    val effect: PolicyEffect, // PERMIT or DENY
 
-    @OneToMany(mappedBy = "policy", cascade = CascadeType.ALL, orphanRemoval = true)
+    @OneToMany(mappedBy = "policy", cascade = [CascadeType.ALL], orphanRemoval = true)
     @OrderBy("priority ASC")
-    private List<PolicyRule> rules = new ArrayList<>();
+    val rules: List<PolicyRule> = emptyList(),
 
     @Column(columnDefinition = "TEXT")
-    private String targetCondition; // SPEL expression for target matching
-
-    public enum PolicyEffect {
+    val targetCondition: String? = null // SPEL expression for target matching
+) {
+    enum class PolicyEffect {
         PERMIT, DENY
     }
 }
 
 @Entity
 @Table(name = "policy_rules")
-@Getter
-@Setter
-@NoArgsConstructor
-@AllArgsConstructor
-@Builder
-public class PolicyRule {
-
+data class PolicyRule(
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Long id;
+    val id: Long? = null,
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "policy_id")
-    private Policy policy;
+    val policy: Policy,
 
-    private String description;
+    val description: String? = null,
 
     @Column(columnDefinition = "TEXT")
-    private String condition; // SPEL expression
+    val condition: String, // SPEL expression
 
-    private int priority;
+    val priority: Int,
 
     @Enumerated(EnumType.STRING)
-    private RuleType type;
-
-    public enum RuleType {
+    val type: RuleType
+) {
+    enum class RuleType {
         SUBJECT, RESOURCE, ENVIRONMENT, COMPOSITE
     }
 }
@@ -502,112 +447,114 @@ public class PolicyRule {
 
 ### Time-Restricted Permissions
 
-```java
+```kotlin
 @Component
-public class TimeBasedPermissionEvaluator {
+class TimeBasedPermissionEvaluator {
 
-    public boolean hasTimeBasedPermission(Authentication authentication,
-            Object permission, Instant accessTime) {
-
-        User user = (User) authentication.getPrincipal();
+    fun hasTimeBasedPermission(
+        authentication: Authentication,
+        permission: Any,
+        accessTime: Instant
+    ): Boolean {
+        val user = authentication.principal as User
 
         // Check business hours
         if (!isWithinBusinessHours(accessTime)) {
-            return user.hasPermission("AFTER_HOURS_ACCESS");
+            return user.hasPermission("AFTER_HOURS_ACCESS")
         }
 
         // Check time-based restrictions
-        return user.getTimeRestrictions().stream()
-            .noneMatch(restriction -> isRestricted(restriction, accessTime));
+        return user.timeRestrictions.none { restriction ->
+            isRestricted(restriction, accessTime)
+        }
     }
 
-    private boolean isWithinBusinessHours(Instant accessTime) {
-        ZonedDateTime zdt = accessTime.atZone(ZoneId.systemDefault());
-        DayOfWeek dayOfWeek = zdt.getDayOfWeek();
-        int hour = zdt.getHour();
+    private fun isWithinBusinessHours(accessTime: Instant): Boolean {
+        val zdt = accessTime.atZone(ZoneId.systemDefault())
+        val dayOfWeek = zdt.dayOfWeek
+        val hour = zdt.hour
 
         // Monday to Friday, 9 AM to 6 PM
         return dayOfWeek != DayOfWeek.SATURDAY &&
                dayOfWeek != DayOfWeek.SUNDAY &&
-               hour >= 9 && hour < 18;
+               hour in 9..17
     }
 }
 
-@Target({ElementType.METHOD, ElementType.TYPE})
-@Retention(RetentionPolicy.RUNTIME)
+@Target(AnnotationTarget.FUNCTION, AnnotationTarget.CLASS)
+@Retention(AnnotationRetention.RUNTIME)
 @PreAuthorize("@timeBasedPermissionEvaluator.hasTimeBasedPermission(authentication, 'READ', T(java.time.Instant).now())")
-public @interface TimeRestrictedAccess {
-    String value() default "READ";
-}
+annotation class TimeRestrictedAccess(
+    val value: String = "READ"
+)
 ```
 
 ### Expiration-Based Access
 
-```java
+```kotlin
 @Entity
 @Table(name = "access_grants")
-@Getter
-@Setter
-@NoArgsConstructor
-@AllArgsConstructor
-@Builder
-public class AccessGrant {
-
+data class AccessGrant(
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Long id;
+    val id: Long? = null,
 
     @ManyToOne(fetch = FetchType.LAZY)
-    private User user;
+    val user: User,
 
     @Column(nullable = false)
-    private String resource;
+    val resource: String,
 
     @Column(nullable = false)
-    private String permission;
+    val permission: String,
 
     @Column(nullable = false)
-    private Instant grantedAt;
+    val grantedAt: Instant,
 
     @Column(nullable = false)
-    private Instant expiresAt;
+    val expiresAt: Instant,
 
-    private String grantedBy;
+    val grantedBy: String? = null,
 
     @Column(columnDefinition = "TEXT")
-    private String reason;
-
-    public boolean isValid() {
-        return Instant.now().isBefore(expiresAt);
-    }
+    val reason: String? = null
+) {
+    fun isValid(): Boolean = Instant.now().isBefore(expiresAt)
 }
 
 @Service
-public class AccessGrantService {
+class AccessGrantService(
+    private val accessGrantRepository: AccessGrantRepository
+) {
 
     @Transactional
-    public AccessGrant grantTemporaryAccess(User user, String resource,
-            String permission, Duration duration, String grantedBy, String reason) {
+    fun grantTemporaryAccess(
+        user: User,
+        resource: String,
+        permission: String,
+        duration: Duration,
+        grantedBy: String,
+        reason: String
+    ): AccessGrant {
+        val grant = AccessGrant(
+            user = user,
+            resource = resource,
+            permission = permission,
+            grantedAt = Instant.now(),
+            expiresAt = Instant.now().plus(duration),
+            grantedBy = grantedBy,
+            reason = reason
+        )
 
-        AccessGrant grant = AccessGrant.builder()
-            .user(user)
-            .resource(resource)
-            .permission(permission)
-            .grantedAt(Instant.now())
-            .expiresAt(Instant.now().plus(duration))
-            .grantedBy(grantedBy)
-            .reason(reason)
-            .build();
-
-        return accessGrantRepository.save(grant);
+        return accessGrantRepository.save(grant)
     }
 
-    public boolean hasTemporaryAccess(User user, String resource, String permission) {
-        return accessGrantRepository
+    fun hasTemporaryAccess(user: User, resource: String, permission: String): Boolean =
+        accessGrantRepository
             .findByUserAndResourceAndPermissionAndExpiresAtAfter(
-                user, resource, permission, Instant.now())
-            .isPresent();
-    }
+                user, resource, permission, Instant.now()
+            )
+            .isPresent
 }
 ```
 
@@ -615,54 +562,53 @@ public class AccessGrantService {
 
 ### IP Address Restrictions
 
-```java
+```kotlin
 @Component
-public class LocationBasedAccessControl {
+class LocationBasedAccessControl(
+    private val ipRangeRepository: IpRangeRepository
+) {
 
-    private final IpRangeRepository ipRangeRepository;
-
-    public boolean isAccessAllowedFromIp(Authentication authentication, String ipAddress) {
-        User user = (User) authentication.getPrincipal();
+    fun isAccessAllowedFromIp(authentication: Authentication, ipAddress: String): Boolean {
+        val user = authentication.principal as User
 
         // Check if user has location restrictions
         if (!user.hasLocationRestrictions()) {
-            return true;
+            return true
         }
 
         // Check IP against allowed ranges
-        List<IpRange> allowedRanges = ipRangeRepository.findByUser(user);
-        return allowedRanges.stream()
-            .anyMatch(range -> isInRange(ipAddress, range));
+        val allowedRanges = ipRangeRepository.findByUser(user)
+        return allowedRanges.any { range -> isInRange(ipAddress, range) }
     }
 
-    private boolean isInRange(String ipAddress, IpRange ipRange) {
-        try {
-            InetAddress address = InetAddress.getByName(ipAddress);
-            InetAddress networkAddress = InetAddress.getByName(ipRange.getNetworkAddress());
-            int prefixLength = ipRange.getPrefixLength();
+    private fun isInRange(ipAddress: String, ipRange: IpRange): Boolean {
+        return try {
+            val address = InetAddress.getByName(ipAddress)
+            val networkAddress = InetAddress.getByName(ipRange.networkAddress)
+            val prefixLength = ipRange.prefixLength
 
-            byte[] addressBytes = address.getAddress();
-            byte[] networkBytes = networkAddress.getAddress();
+            val addressBytes = address.address
+            val networkBytes = networkAddress.address
 
-            int fullPrefix = prefixLength / 8;
-            int partialPrefix = prefixLength % 8;
+            val fullPrefix = prefixLength / 8
+            val partialPrefix = prefixLength % 8
 
-            for (int i = 0; i < fullPrefix; i++) {
+            for (i in 0 until fullPrefix) {
                 if (addressBytes[i] != networkBytes[i]) {
-                    return false;
+                    return false
                 }
             }
 
             if (partialPrefix > 0) {
-                byte mask = (byte) (0xFF << (8 - partialPrefix));
-                if ((addressBytes[fullPrefix] & mask) != (networkBytes[fullPrefix] & mask)) {
-                    return false;
+                val mask = (0xFF shl (8 - partialPrefix)).toByte()
+                if ((addressBytes[fullPrefix] and mask) != (networkBytes[fullPrefix] and mask)) {
+                    return false
                 }
             }
 
-            return true;
-        } catch (Exception e) {
-            return false;
+            true
+        } catch (e: Exception) {
+            false
         }
     }
 }
@@ -672,84 +618,76 @@ public class LocationBasedAccessControl {
 
 ### Department-Based Security
 
-```java
+```kotlin
 @Entity
 @Table(name = "departments")
-@Getter
-@Setter
-@NoArgsConstructor
-@AllArgsConstructor
-@Builder
-public class Department {
-
+data class Department(
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Long id;
+    val id: Long? = null,
 
     @Column(unique = true, nullable = false)
-    private String code;
+    val code: String,
 
-    private String name;
+    val name: String,
 
-    private String description;
+    val description: String? = null,
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "parent_department_id")
-    private Department parentDepartment;
+    val parentDepartment: Department? = null,
 
     @OneToMany(mappedBy = "parentDepartment")
-    private List<Department> childDepartments = new ArrayList<>();
+    val childDepartments: List<Department> = emptyList(),
 
-    private int level;
-
+    val level: Int
+) {
     // Get all child departments recursively
-    public List<Department> getAllChildDepartments() {
-        List<Department> allChildren = new ArrayList<>();
-        for (Department child : childDepartments) {
-            allChildren.add(child);
-            allChildren.addAll(child.getAllChildDepartments());
+    fun getAllChildDepartments(): List<Department> {
+        val allChildren = mutableListOf<Department>()
+        for (child in childDepartments) {
+            allChildren.add(child)
+            allChildren.addAll(child.getAllChildDepartments())
         }
-        return allChildren;
+        return allChildren
     }
 }
 
 @Service
-public class DepartmentSecurityService {
+class DepartmentSecurityService {
 
-    public boolean canAccessDepartmentData(User user, Department targetDepartment) {
+    fun canAccessDepartmentData(user: User, targetDepartment: Department): Boolean {
         // Users can access their own department
-        if (user.getDepartment().equals(targetDepartment)) {
-            return true;
+        if (user.department == targetDepartment) {
+            return true
         }
 
         // Check parent department access
         if (canAccessParentDepartment(user, targetDepartment)) {
-            return true;
+            return true
         }
 
         // Check child department access
         if (canAccessChildDepartments(user, targetDepartment)) {
-            return true;
+            return true
         }
 
-        return false;
+        return false
     }
 
-    private boolean canAccessParentDepartment(User user, Department department) {
-        Department current = department.getParentDepartment();
+    private fun canAccessParentDepartment(user: User, department: Department): Boolean {
+        var current = department.parentDepartment
         while (current != null) {
-            if (current.equals(user.getDepartment()) &&
-                user.hasPermission("DEPT_CHILDREN_ACCESS")) {
-                return true;
+            if (current == user.department && user.hasPermission("DEPT_CHILDREN_ACCESS")) {
+                return true
             }
-            current = current.getParentDepartment();
+            current = current.parentDepartment
         }
-        return false;
+        return false
     }
 
-    private boolean canAccessChildDepartments(User user, Department department) {
-        return user.getDepartment().getAllChildDepartments().contains(department) &&
-               user.hasPermission("DEPT_PARENT_ACCESS");
-    }
+    private fun canAccessChildDepartments(user: User, department: Department): Boolean =
+        user.department.getAllChildDepartments().contains(department) &&
+        user.hasPermission("DEPT_PARENT_ACCESS")
 }
 ```

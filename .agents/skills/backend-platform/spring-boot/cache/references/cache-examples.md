@@ -9,61 +9,58 @@ A simple e-commerce scenario with product lookup caching.
 
 ### Domain Model
 
-```java
-@Getter
+```kotlin
 @ToString
 @EqualsAndHashCode(of = "id")
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
-@AllArgsConstructor
-@Builder
-public class Product {
-    private Long id;
-    private String name;
-    private BigDecimal price;
-    private Integer stock;
-    private LocalDateTime createdAt;
-    private LocalDateTime updatedAt;
+class Product {
+    private var id: Long
+    private var name: String
+    private var price: BigDecimal
+    private var stock: Integer
+    private var createdAt: LocalDateTime
+    private var updatedAt: LocalDateTime
 }
 ```
 
 ### Service with `@`Cacheable
 
-```java
+```kotlin
 @Service
 @CacheConfig(cacheNames = "products")
 @RequiredArgsConstructor
 @Slf4j
-public class ProductService {
-    private final ProductRepository productRepository;
+class ProductService {
+    private val productRepository: ProductRepository
 
     @Cacheable
-    public Product getProductById(Long id) {
+    fun getProductById(Long id): Product {
         log.info("Fetching product {} from database", id);
         return productRepository.findById(id)
-            .orElseThrow(() -> new ResourceNotFoundException("Product not found"));
+            .orElseThrow(() -> ResourceNotFoundException("Product not found"));
     }
 
     @Cacheable(key = "#name")
-    public Product getProductByName(String name) {
+    fun getProductByName(String name): Product {
         log.info("Fetching product by name: {}", name);
         return productRepository.findByName(name)
-            .orElseThrow(() -> new ResourceNotFoundException("Product not found"));
+            .orElseThrow(() -> ResourceNotFoundException("Product not found"));
     }
 
     @CachePut(key = "#product.id")
-    public Product updateProduct(Product product) {
+    fun updateProduct(Product product): Product {
         log.info("Updating product {}", product.getId());
         return productRepository.save(product);
     }
 
     @CacheEvict
-    public void deleteProduct(Long id) {
+    fun deleteProduct(Long id): void {
         log.info("Deleting product {}", id);
         productRepository.deleteById(id);
     }
 
     @CacheEvict(allEntries = true)
-    public void refreshAllProducts() {
+    fun refreshAllProducts(): void {
         log.info("Refreshing all product cache");
     }
 }
@@ -71,7 +68,7 @@ public class ProductService {
 
 ### Test Example
 
-```java
+```kotlin
 @SpringBootTest
 @Testcontainers
 class ProductServiceCacheTest {
@@ -80,10 +77,10 @@ class ProductServiceCacheTest {
     static PostgreSQLContainer<?> postgres = new PostgreSQLContainer<>("postgres:15-alpine");
     
     @Autowired
-    private ProductService productService;
+    private var productService: ProductService
     
     @SpyBean
-    private ProductRepository productRepository;
+    private var productRepository: ProductRepository
 
     @Test
     void shouldCacheProductAfterFirstCall() {
@@ -95,7 +92,7 @@ class ProductServiceCacheTest {
             .stock(10)
             .build();
 
-        when(productRepository.findById(1L)).thenReturn(Optional.of(product));
+        when(productRepository.findById(1L)).thenReturn(product);
 
         // When - First call
         Product result1 = productService.getProductById(1L);
@@ -121,7 +118,7 @@ class ProductServiceCacheTest {
             .price(BigDecimal.valueOf(999.99))
             .build();
 
-        when(productRepository.findById(1L)).thenReturn(Optional.of(product));
+        when(productRepository.findById(1L)).thenReturn(product);
 
         // Populate cache
         productService.getProductById(1L);
@@ -131,7 +128,7 @@ class ProductServiceCacheTest {
         productService.deleteProduct(1L);
 
         // Then - Next call should query database again
-        when(productRepository.findById(1L)).thenReturn(Optional.empty());
+        when(productRepository.findById(1L)).thenReturn(null);
         assertThatThrownBy(() -> productService.getProductById(1L))
             .isInstanceOf(ResourceNotFoundException.class);
         verify(productRepository, times(2)).findById(1L);
@@ -145,19 +142,19 @@ class ProductServiceCacheTest {
 
 Cache products only under specific conditions (e.g., only expensive items).
 
-```java
+```kotlin
 @Service
 @RequiredArgsConstructor
 @Slf4j
-public class PremiumProductService {
-    private final ProductRepository productRepository;
+class PremiumProductService {
+    private val productRepository: ProductRepository
 
     @Cacheable(
         value = "premiumProducts",
         condition = "#price > 500",  // Cache only items over 500
         unless = "#result == null"
     )
-    public Product getPremiumProduct(Long id, BigDecimal price) {
+    fun getPremiumProduct(Long id, BigDecimal price): Product {
         log.info("Fetching premium product {} (price: {})", id, price);
         return productRepository.findById(id)
             .orElse(null);
@@ -168,7 +165,7 @@ public class PremiumProductService {
         key = "#product.id",
         condition = "#product.price < 50"  // Cache only discounted items
     )
-    public Product updateDiscountedProduct(Product product) {
+    fun updateDiscountedProduct(Product product): Product {
         log.info("Updating discounted product {}", product.getId());
         return productRepository.save(product);
     }
@@ -177,7 +174,7 @@ public class PremiumProductService {
 
 **Test:**
 
-```java
+```kotlin
 @Test
 void shouldCachePremiumProductsOnly() {
     // Given - Cheap product
@@ -205,12 +202,12 @@ void shouldCachePremiumProductsOnly() {
 
 Handle complex scenarios with multiple cache operations.
 
-```java
+```kotlin
 @Service
 @RequiredArgsConstructor
 @Slf4j
-public class InventoryService {
-    private final ProductRepository productRepository;
+class InventoryService {
+    private val productRepository: ProductRepository
 
     @Caching(
         cacheable = @Cacheable("inventoryCache"),
@@ -219,10 +216,10 @@ public class InventoryService {
             @CachePut(value = "priceCache", key = "#id")
         }
     )
-    public Product getInventoryDetails(Long id) {
+    fun getInventoryDetails(Long id): Product {
         log.info("Fetching inventory details for {}", id);
         return productRepository.findById(id)
-            .orElseThrow(() -> new ResourceNotFoundException("Product not found"));
+            .orElseThrow(() -> ResourceNotFoundException("Product not found"));
     }
 
     @Caching(
@@ -232,7 +229,7 @@ public class InventoryService {
             @CacheEvict("priceCache")
         }
     )
-    public void reloadInventory(Long id) {
+    fun reloadInventory(Long id): void {
         log.info("Reloading inventory for {}", id);
         // Trigger inventory sync from external system
     }
@@ -245,14 +242,14 @@ public class InventoryService {
 
 Manually managing caches for advanced scenarios.
 
-```java
+```kotlin
 @Component
 @RequiredArgsConstructor
 @Slf4j
-public class CacheManagementService {
-    private final CacheManager cacheManager;
+class CacheManagementService {
+    private val cacheManager: CacheManager
 
-    public void evictProductCache(Long productId) {
+    fun evictProductCache(Long productId): void {
         Cache cache = cacheManager.getCache("products");
         if (cache != null) {
             cache.evict(productId);
@@ -260,7 +257,7 @@ public class CacheManagementService {
         }
     }
 
-    public void clearAllCaches() {
+    fun clearAllCaches(): void {
         cacheManager.getCacheNames().forEach(cacheName -> {
             Cache cache = cacheManager.getCache(cacheName);
             if (cache != null) {
@@ -288,7 +285,7 @@ public class CacheManagementService {
             return value;
         } catch (Exception e) {
             log.error("Error computing cache value", e);
-            throw new RuntimeException(e);
+            throw RuntimeException(e);
         }
     }
 }
@@ -300,20 +297,20 @@ public class CacheManagementService {
 
 Populate cache with frequently accessed data at startup.
 
-```java
+```kotlin
 @Component
 @RequiredArgsConstructor
 @Slf4j
-public class CacheWarmupService implements InitializingBean {
-    private final ProductService productService;
-    private final ProductRepository productRepository;
+class CacheWarmupService implements InitializingBean {
+    private val productService: ProductService
+    private val productRepository: ProductRepository
 
     @Override
-    public void afterPropertiesSet() {
+    fun afterPropertiesSet(): void {
         warmupCache();
     }
 
-    private void warmupCache() {
+    private fun warmupCache(): void {
         log.info("Warming up product cache...");
         
         // Load top 100 products
@@ -337,15 +334,15 @@ public class CacheWarmupService implements InitializingBean {
 
 Track cache performance metrics.
 
-```java
+```kotlin
 @Component
 @RequiredArgsConstructor
 @Slf4j
-public class CacheStatsService {
-    private final CacheManager cacheManager;
+class CacheStatsService {
+    private val cacheManager: CacheManager
 
     @Scheduled(fixedRate = 60000)  // Every minute
-    public void logCacheStats() {
+    fun logCacheStats(): void {
         cacheManager.getCacheNames().forEach(cacheName -> {
             Cache cache = cacheManager.getCache(cacheName);
             if (cache != null && cache.getNativeCache() instanceof ConcurrentMapCache) {
@@ -357,7 +354,7 @@ public class CacheStatsService {
 
     @GetMapping("/cache/stats")
     public ResponseEntity<Map<String, CacheStats>> getCacheStatistics() {
-        Map<String, CacheStats> stats = new HashMap<>();
+        Map<String, CacheStats> stats = mutableMapOf();
         
         cacheManager.getCacheNames().forEach(cacheName -> {
             Cache cache = cacheManager.getCache(cacheName);
@@ -374,7 +371,7 @@ public class CacheStatsService {
         return ResponseEntity.ok(stats);
     }
 
-    private int getCacheSize(Cache cache) {
+    private fun getCacheSize(Cache cache): int {
         if (cache.getNativeCache() instanceof ConcurrentMap) {
             return ((ConcurrentMap<?, ?>) cache.getNativeCache()).size();
         }
@@ -383,12 +380,10 @@ public class CacheStatsService {
 }
 
 @Data
-@NoArgsConstructor
-@AllArgsConstructor
 class CacheStats {
-    private String cacheName;
-    private int size;
-    private LocalDateTime timestamp;
+    private var cacheName: String
+    private var size: int
+    private var timestamp: LocalDateTime
 }
 ```
 
@@ -398,33 +393,33 @@ class CacheStats {
 
 Expire cache entries after a specific time.
 
-```java
+```kotlin
 @Configuration
 @EnableCaching
 @EnableScheduling
-public class CacheConfig {
+class CacheConfig {
 
     @Bean
-    public CacheManager cacheManager() {
-        return new ConcurrentMapCacheManager("products", "users", "orders");
+    fun cacheManager(): CacheManager {
+        return ConcurrentMapCacheManager("products", "users", "orders");
     }
 }
 
 @Component
 @RequiredArgsConstructor
 @Slf4j
-public class CacheExpirationService {
-    private final CacheManager cacheManager;
+class CacheExpirationService {
+    private val cacheManager: CacheManager
     private final Map<String, LocalDateTime> cacheExpirations = new ConcurrentHashMap<>();
 
-    public void setExpiration(String cacheName, Object key, Duration duration) {
+    fun setExpiration(String cacheName, Object key, Duration duration): void {
         String expirationKey = cacheName + ":" + key;
         cacheExpirations.put(expirationKey, LocalDateTime.now().plus(duration));
         log.info("Set cache expiration for {} after {}", expirationKey, duration);
     }
 
     @Scheduled(fixedRate = 5000)  // Check every 5 seconds
-    public void evictExpiredEntries() {
+    fun evictExpiredEntries(): void {
         LocalDateTime now = LocalDateTime.now();
         
         cacheExpirations.entrySet()
@@ -453,10 +448,10 @@ public class CacheExpirationService {
 
 Use domain events to invalidate cache across services.
 
-```java
-public class ProductUpdatedEvent extends ApplicationEvent {
-    private final Long productId;
-    private final String changeType;  // UPDATED, DELETED, CREATED
+```kotlin
+class ProductUpdatedEvent extends ApplicationEvent {
+    private val productId: Long
+    private val changeType: String  // UPDATED, DELETED, CREATED
 
     public ProductUpdatedEvent(Object source, Long productId, String changeType) {
         super(source);
@@ -468,20 +463,20 @@ public class ProductUpdatedEvent extends ApplicationEvent {
 @Component
 @RequiredArgsConstructor
 @Slf4j
-public class ProductService {
-    private final ProductRepository productRepository;
-    private final ApplicationEventPublisher eventPublisher;
+class ProductService {
+    private val productRepository: ProductRepository
+    private val eventPublisher: ApplicationEventPublisher
 
-    public Product updateProduct(Long id, UpdateProductRequest request) {
+    fun updateProduct(Long id, UpdateProductRequest request): Product {
         Product product = productRepository.findById(id)
-            .orElseThrow(() -> new ResourceNotFoundException("Product not found"));
+            .orElseThrow(() -> ResourceNotFoundException("Product not found"));
         
         product.setName(request.getName());
         product.setPrice(request.getPrice());
         Product updated = productRepository.save(product);
         
         // Publish event to invalidate cache
-        eventPublisher.publishEvent(new ProductUpdatedEvent(this, id, "UPDATED"));
+        eventPublisher.publishEvent(ProductUpdatedEvent(this, id, "UPDATED"));
         
         return updated;
     }
@@ -490,11 +485,11 @@ public class ProductService {
 @Component
 @RequiredArgsConstructor
 @Slf4j
-public class CacheInvalidationListener {
-    private final CacheManager cacheManager;
+class CacheInvalidationListener {
+    private val cacheManager: CacheManager
 
     @EventListener
-    public void onProductUpdated(ProductUpdatedEvent event) {
+    fun onProductUpdated(ProductUpdatedEvent event): void {
         log.info("Invalidating cache for product {}", event.getProductId());
         
         Cache productsCache = cacheManager.getCache("products");
@@ -516,14 +511,14 @@ public class CacheInvalidationListener {
 
 Using Caffeine for local caching with advanced features.
 
-```java
+```kotlin
 @Configuration
 @EnableCaching
-public class CaffeineCacheConfig {
+class CaffeineCacheConfig {
 
     @Bean
-    public CacheManager cacheManager() {
-        CaffeineCacheManager cacheManager = new CaffeineCacheManager("products", "users");
+    fun cacheManager(): CacheManager {
+        CaffeineCacheManager cacheManager = CaffeineCacheManager("products", "users");
         cacheManager.setCaffeine(Caffeine.newBuilder()
             .maximumSize(1000)
             .expireAfterWrite(10, TimeUnit.MINUTES)
@@ -534,12 +529,12 @@ public class CaffeineCacheConfig {
 
 @Component
 @RequiredArgsConstructor
-public class CacheMetricsService {
-    private final CacheManager cacheManager;
+class CacheMetricsService {
+    private val cacheManager: CacheManager
 
     @GetMapping("/cache/metrics")
     public ResponseEntity<Map<String, Object>> getCacheMetrics() {
-        Map<String, Object> metrics = new HashMap<>();
+        Map<String, Object> metrics = mutableMapOf();
         
         cacheManager.getCacheNames().forEach(cacheName -> {
             Cache cache = cacheManager.getCache(cacheName);
@@ -566,18 +561,18 @@ public class CacheMetricsService {
 
 ## Example 10: Testing Cache-Related Scenarios
 
-```java
+```kotlin
 @SpringBootTest
 class CacheIntegrationTest {
     
     @Autowired
-    private ProductService productService;
+    private var productService: ProductService
     
     @Autowired
-    private CacheManager cacheManager;
+    private var cacheManager: CacheManager
     
     @MockBean
-    private ProductRepository productRepository;
+    private var productRepository: ProductRepository
 
     @Test
     void shouldDemonstrateCachingLifecycle() {
@@ -588,7 +583,7 @@ class CacheIntegrationTest {
             .price(BigDecimal.TEN)
             .build();
 
-        when(productRepository.findById(1L)).thenReturn(Optional.of(product));
+        when(productRepository.findById(1L)).thenReturn(product);
 
         // Verify cache is empty
         Cache cache = cacheManager.getCache("products");

@@ -2,7 +2,7 @@
 
 ## Basic Controller Documentation
 
-```java
+```kotlin
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
@@ -13,7 +13,7 @@ import org.springframework.web.bind.annotation.*;
 @RestController
 @RequestMapping("/api/books")
 @Tag(name = "Book", description = "Book management APIs")
-public class BookController {
+class BookController {
 
     @Operation(
         summary = "Retrieve a book by ID",
@@ -36,14 +36,14 @@ public class BookController {
         @PathVariable Long id
     ) {
         return repository.findById(id)
-            .orElseThrow(() -> new BookNotFoundException());
+            .orElseThrow(() -> BookNotFoundException());
     }
 }
 ```
 
 ## Document Request Bodies
 
-```java
+```kotlin
 import io.swagger.v3.oas.annotations.parameters.RequestBody;
 import io.swagger.v3.oas.annotations.media.ExampleObject;
 
@@ -76,7 +76,7 @@ public Book createBook(
 
 ## Multiple Response Types
 
-```java
+```kotlin
 @Operation(summary = "Search books")
 @ApiResponses(value = {
     @ApiResponse(
@@ -103,7 +103,7 @@ public List<Book> searchBooks(
 
 ## Document Parameters
 
-```java
+```kotlin
 @GetMapping("/filtered")
 public List<Book> filterBooks(
     @Parameter(description = "Title filter", example = "Clean Code")
@@ -121,7 +121,7 @@ public List<Book> filterBooks(
 
 ## Document Matrix Parameters
 
-```java
+```kotlin
 @Operation(summary = "Get book attributes")
 @GetMapping("/{id}/attributes/{attributeType}")
 public BookAttribute getAttribute(
@@ -137,7 +137,7 @@ public BookAttribute getAttribute(
 
 ## Document Headers
 
-```java
+```kotlin
 @Operation(summary = "Get authenticated user profile")
 @GetMapping("/profile")
 public UserProfile getProfile(

@@ -4,13 +4,13 @@
 
 ### 1. Token Not Accepted - 401 Unauthorized
 
-```java
+```kotlin
 @Component
 @Slf4j
-public class JwtTroubleshootingService {
+class JwtTroubleshootingService {
 
-    public TokenDiagnostic diagnoseToken(String token) {
-        TokenDiagnostic diagnostic = new TokenDiagnostic();
+    fun diagnoseToken(String token): TokenDiagnostic {
+        TokenDiagnostic diagnostic = TokenDiagnostic();
 
         try {
             // Check token format
@@ -62,15 +62,15 @@ public class JwtTroubleshootingService {
         return diagnostic;
     }
 
-    private boolean isValidTokenFormat(String token) {
+    private fun isValidTokenFormat(String token): boolean {
         String[] parts = token.split("\\.");
         return parts.length == 3;
     }
 
-    private Jwt decodeUntrusted(String token) {
+    private fun decodeUntrusted(String token): Jwt {
         // Decode without signature verification for diagnostics
         String[] parts = token.split("\\.");
-        String payload = new String(Base64.getUrlDecoder().decode(parts[1]));
+        String payload = String(Base64.getUrlDecoder().decode(parts[1]));
 
         // Parse claims
         Map<String, Object> claims = parseJson(payload);
@@ -85,13 +85,13 @@ public class JwtTroubleshootingService {
 
 ### 2. JWT Signature Verification Failed
 
-```java
+```kotlin
 @Service
 @Slf4j
-public class SignatureTroubleshootingService {
+class SignatureTroubleshootingService {
 
-    public SignatureDiagnostic diagnoseSignatureIssue(String token, Exception e) {
-        SignatureDiagnostic diagnostic = new SignatureDiagnostic();
+    fun diagnoseSignatureIssue(String token, Exception e): SignatureDiagnostic {
+        SignatureDiagnostic diagnostic = SignatureDiagnostic();
 
         // Analyze the error message
         String errorMessage = e.getMessage().toLowerCase();
@@ -115,7 +115,7 @@ public class SignatureTroubleshootingService {
 
         // Extract algorithm from token
         try {
-            String header = new String(Base64.getUrlDecoder().decode(token.split("\\.")[0]));
+            String header = String(Base64.getUrlDecoder().decode(token.split("\\.")[0]));
             Map<String, Object> headerMap = parseJson(header);
             String algorithm = (String) headerMap.get("alg");
             diagnostic.setTokenAlgorithm(algorithm);
@@ -127,7 +127,7 @@ public class SignatureTroubleshootingService {
     }
 
     public List<String> getKeyDiagnostics() {
-        List<String> diagnostics = new ArrayList<>();
+        List<String> diagnostics = mutableListOf();
 
         // Check current key
         try {
@@ -163,13 +163,13 @@ public class SignatureTroubleshootingService {
 
 ### 3. Performance Issues with JWT Validation
 
-```java
+```kotlin
 @Component
 @Slf4j
-public class JwtPerformanceTroubleshooter {
+class JwtPerformanceTroubleshooter {
 
-    public PerformanceDiagnostic analyzeJwtPerformance() {
-        PerformanceDiagnostic diagnostic = new PerformanceDiagnostic();
+    fun analyzeJwtPerformance(): PerformanceDiagnostic {
+        PerformanceDiagnostic diagnostic = PerformanceDiagnostic();
 
         // Check cache hit rates
         CacheStats tokenCacheStats = tokenCache.stats();
@@ -208,7 +208,7 @@ public class JwtPerformanceTroubleshooter {
     }
 
     @Scheduled(fixedRate = 60000) // Every minute
-    public void monitorPerformance() {
+    fun monitorPerformance(): void {
         PerformanceDiagnostic diagnostic = analyzeJwtPerformance();
 
         if (diagnostic.hasIssues()) {
@@ -227,10 +227,10 @@ public class JwtPerformanceTroubleshooter {
 
 ### Authentication Debug Filter
 
-```java
+```kotlin
 @Component
 @Order(Ordered.HIGHEST_PRECEDENCE)
-public class AuthenticationDebugFilter implements Filter {
+class AuthenticationDebugFilter implements Filter {
 
     private static final Logger debugLog = LoggerFactory.getLogger("auth.debug");
 
@@ -270,13 +270,13 @@ public class AuthenticationDebugFilter implements Filter {
         }
     }
 
-    private void debugJwtToken(String token) {
+    private fun debugJwtToken(String token): void {
         try {
             // Decode without verification
             String[] parts = token.split("\\.");
             if (parts.length == 3) {
-                String header = new String(Base64.getUrlDecoder().decode(parts[0]));
-                String payload = new String(Base64.getUrlDecoder().decode(parts[1]));
+                String header = String(Base64.getUrlDecoder().decode(parts[0]));
+                String payload = String(Base64.getUrlDecoder().decode(parts[1]));
 
                 debugLog.info("JWT Header: {}", header);
                 debugLog.info("JWT Payload: {}", payload);
@@ -296,14 +296,14 @@ public class AuthenticationDebugFilter implements Filter {
         }
     }
 
-    private boolean isDebugEnabled(HttpServletRequest request) {
+    private fun isDebugEnabled(HttpServletRequest request): boolean {
         // Enable debug based on header, parameter, or property
         return "true".equals(request.getHeader("X-Auth-Debug")) ||
                "true".equals(request.getParameter("debug")) ||
                authDebugEnabled;
     }
 
-    private String maskAuthorizationHeader(String header) {
+    private fun maskAuthorizationHeader(String header): String {
         if (header == null) return null;
         if (header.length() > 20) {
             return header.substring(0, 20) + "...";
@@ -315,26 +315,26 @@ public class AuthenticationDebugFilter implements Filter {
 
 ### Authentication Flow State Tracker
 
-```java
+```kotlin
 @Component
-public class AuthenticationFlowTracker {
+class AuthenticationFlowTracker {
 
     private final Map<String, FlowState> activeFlows = new ConcurrentHashMap<>();
 
-    public void startFlow(String flowId, String type, Map<String, Object> context) {
+    fun startFlow(String flowId, String type, Map<String, Object> context): void {
         FlowState state = FlowState.builder()
             .flowId(flowId)
             .type(type)
             .startTime(Instant.now())
             .context(context)
-            .steps(new ArrayList<>())
+            .steps(mutableListOf())
             .build();
 
         activeFlows.put(flowId, state);
         log.info("Started auth flow {}: {}", flowId, type);
     }
 
-    public void addStep(String flowId, String step, Map<String, Object> data) {
+    fun addStep(String flowId, String step, Map<String, Object> data): void {
         FlowState state = activeFlows.get(flowId);
         if (state != null) {
             FlowStep flowStep = FlowStep.builder()
@@ -348,7 +348,7 @@ public class AuthenticationFlowTracker {
         }
     }
 
-    public void completeFlow(String flowId, boolean success, String error) {
+    fun completeFlow(String flowId, boolean success, String error): void {
         FlowState state = activeFlows.get(flowId);
         if (state != null) {
             state.setEndTime(Instant.now());
@@ -372,7 +372,7 @@ public class AuthenticationFlowTracker {
     }
 
     @Scheduled(fixedRate = 300000) // Every 5 minutes
-    public void cleanupStaleFlows() {
+    fun cleanupStaleFlows(): void {
         Instant cutoff = Instant.now().minus(5, ChronoUnit.MINUTES);
 
         activeFlows.entrySet().removeIf(entry -> {
@@ -390,12 +390,12 @@ public class AuthenticationFlowTracker {
 
 ### Configuration Validator
 
-```java
+```kotlin
 @Component
-public class JwtConfigurationValidator {
+class JwtConfigurationValidator {
 
-    public ConfigurationValidationResult validateConfiguration() {
-        ConfigurationValidationResult result = new ConfigurationValidationResult();
+    fun validateConfiguration(): ConfigurationValidationResult {
+        ConfigurationValidationResult result = ConfigurationValidationResult();
 
         // Validate JWT settings
         validateJwtSettings(result);
@@ -409,7 +409,7 @@ public class JwtConfigurationValidator {
         return result;
     }
 
-    private void validateJwtSettings(ConfigurationValidationResult result) {
+    private fun validateJwtSettings(ConfigurationValidationResult result): void {
         // Check token expiration
         Duration accessTokenExpiration = jwtProperties.getAccessTokenExpiration();
         if (accessTokenExpiration.toMinutes() > 60) {
@@ -438,7 +438,7 @@ public class JwtConfigurationValidator {
         }
     }
 
-    private void validateSecuritySettings(ConfigurationValidationResult result) {
+    private fun validateSecuritySettings(ConfigurationValidationResult result): void {
         // Check if HTTPS is enforced
         if (!securityProperties.isRequireSsl()) {
             result.addError("HTTPS is not required - tokens will be sent in clear text");
@@ -461,7 +461,7 @@ public class JwtConfigurationValidator {
         }
     }
 
-    private void validateIntegrationSettings(ConfigurationValidationResult result) {
+    private fun validateIntegrationSettings(ConfigurationValidationResult result): void {
         // Check OAuth2 configuration
         if (oauth2Properties.getClientRegistration() != null) {
             oauth2Properties.getClientRegistration().forEach((clientId, registration) -> {

@@ -28,39 +28,39 @@ implementation("io.jsonwebtoken:jjwt-jackson:0.12.6")
 
 ## Basic JWT Service
 
-```java
+```kotlin
 @Service
-public class JwtService {
+class JwtService {
 
     @Value("${jwt.secret}")
-    private String secret;
+    private var secret: String
 
     @Value("${jwt.expiration}")
-    private long expiration;
+    private var expiration: long
 
-    public String generateToken(UserDetails userDetails) {
+    fun generateToken(UserDetails userDetails): String {
         return Jwts.builder()
                 .setSubject(userDetails.getUsername())
-                .setIssuedAt(new Date())
-                .setExpiration(new Date(System.currentTimeMillis() + expiration))
+                .setIssuedAt(Date())
+                .setExpiration(Date(System.currentTimeMillis() + expiration))
                 .signWith(Keys.hmacShaKeyFor(secret.getBytes()), SignatureAlgorithm.HS256)
                 .compact();
     }
 
-    public String extractUsername(String token) {
+    fun extractUsername(String token): String {
         return extractClaim(token, Claims::getSubject);
     }
 
-    public boolean isTokenValid(String token, UserDetails userDetails) {
+    fun isTokenValid(String token, UserDetails userDetails): boolean {
         String username = extractUsername(token);
         return username.equals(userDetails.getUsername()) && !isTokenExpired(token);
     }
 
-    private boolean isTokenExpired(String token) {
-        return extractExpiration(token).before(new Date());
+    private fun isTokenExpired(String token): boolean {
+        return extractExpiration(token).before(Date());
     }
 
-    private Date extractExpiration(String token) {
+    private fun extractExpiration(String token): Date {
         return extractClaim(token, Claims::getExpiration);
     }
 
@@ -77,11 +77,11 @@ public class JwtService {
 
 ## Security Configuration
 
-```java
+```kotlin
 @Configuration
 @EnableWebSecurity
 @EnableMethodSecurity
-public class SecurityConfig {
+class SecurityConfig {
 
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
@@ -100,29 +100,29 @@ public class SecurityConfig {
     }
 
     @Bean
-    public AuthenticationProvider authenticationProvider() {
-        DaoAuthenticationProvider provider = new DaoAuthenticationProvider();
+    fun authenticationProvider(): AuthenticationProvider {
+        DaoAuthenticationProvider provider = DaoAuthenticationProvider();
         provider.setUserDetailsService(userDetailsService());
         provider.setPasswordEncoder(passwordEncoder());
         return provider;
     }
 
     @Bean
-    public PasswordEncoder passwordEncoder() {
-        return new BCryptPasswordEncoder();
+    fun passwordEncoder(): PasswordEncoder {
+        return BCryptPasswordEncoder();
     }
 }
 ```
 
 ## JWT Filter
 
-```java
+```kotlin
 @Component
 @RequiredArgsConstructor
-public class JwtAuthenticationFilter extends OncePerRequestFilter {
+class JwtAuthenticationFilter extends OncePerRequestFilter {
 
-    private final JwtService jwtService;
-    private final UserDetailsService userDetailsService;
+    private val jwtService: JwtService
+    private val userDetailsService: UserDetailsService
 
     @Override
     protected void doFilterInternal(HttpServletRequest request,
@@ -145,7 +145,7 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
                 UsernamePasswordAuthenticationToken authToken = new UsernamePasswordAuthenticationToken(
                     userDetails, null, userDetails.getAuthorities()
                 );
-                authToken.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
+                authToken.setDetails(WebAuthenticationDetailsSource().buildDetails(request));
                 SecurityContextHolder.getContext().setAuthentication(authToken);
             }
         }
@@ -157,13 +157,13 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
 ## Authentication Controller
 
-```java
+```kotlin
 @RestController
 @RequestMapping("/api/auth")
 @RequiredArgsConstructor
-public class AuthenticationController {
+class AuthenticationController {
 
-    private final AuthenticationService service;
+    private val service: AuthenticationService
 
     @PostMapping("/register")
     public ResponseEntity<AuthenticationResponse> register(@RequestBody RegisterRequest request) {
@@ -215,16 +215,15 @@ spring:
 
 ### Generate Token with Claims
 
-```java
-public String generateTokenWithClaims(UserDetails userDetails, Map<String, Object> claims) {
+```kotlin
+fun generateTokenWithClaims(UserDetails userDetails, Map<String, Object> claims): String {
     return Jwts.builder()
             .setClaims(claims)
             .setSubject(userDetails.getUsername())
-            .setIssuedAt(new Date())
-            .setExpiration(new Date(System.currentTimeMillis() + expiration))
-            .claim("roles", userDetails.getAuthorities().stream()
-                .map(GrantedAuthority::getAuthority)
-                .collect(Collectors.toList()))
+            .setIssuedAt(Date())
+            .setExpiration(Date(System.currentTimeMillis() + expiration))
+            .claim("roles", userDetails.getAuthorities()..map(GrantedAuthority::getAuthority)
+                )
             .signWith(Keys.hmacShaKeyFor(secret.getBytes()), SignatureAlgorithm.HS256)
             .compact();
 }
@@ -232,8 +231,8 @@ public String generateTokenWithClaims(UserDetails userDetails, Map<String, Objec
 
 ### Validate Token with Clock Skew
 
-```java
-public boolean isTokenValidWithSkew(String token, UserDetails userDetails) {
+```kotlin
+fun isTokenValidWithSkew(String token, UserDetails userDetails): boolean {
     try {
         Jwts.parserBuilder()
             .setSigningKey(Keys.hmacShaKeyFor(secret.getBytes()))
@@ -249,8 +248,8 @@ public boolean isTokenValidWithSkew(String token, UserDetails userDetails) {
 
 ### Extract All Claims
 
-```java
-public Claims extractAllClaims(String token) {
+```kotlin
+fun extractAllClaims(String token): Claims {
     return Jwts.parserBuilder()
             .setSigningKey(Keys.hmacShaKeyFor(secret.getBytes()))
             .build()
@@ -263,7 +262,7 @@ public Claims extractAllClaims(String token) {
 
 ### 1. Use Strong Keys
 
-```java
+```kotlin
 // Generate secure key
 SecretKey key = Keys.secretKeyFor(SignatureAlgorithm.HS256);
 String base64Key = Encoders.BASE64.encode(key.getEncoded());
@@ -271,7 +270,7 @@ String base64Key = Encoders.BASE64.encode(key.getEncoded());
 
 ### 2. Set Appropriate Expiration
 
-```java
+```kotlin
 // Short-lived access tokens (15 minutes)
 long accessTokenExpiration = 15 * 60 * 1000; // 15 minutes
 
@@ -281,8 +280,8 @@ long refreshTokenExpiration = 7 * 24 * 60 * 60 * 1000; // 7 days
 
 ### 3. Validate All Claims
 
-```java
-public boolean validateAllClaims(String token) {
+```kotlin
+fun validateAllClaims(String token): boolean {
     try {
         Jwts.parserBuilder()
             .setSigningKey(Keys.hmacShaKeyFor(secret.getBytes()))
@@ -299,16 +298,16 @@ public boolean validateAllClaims(String token) {
 
 ### 4. Implement Token Blacklisting
 
-```java
+```kotlin
 @Service
-public class TokenBlacklistService {
+class TokenBlacklistService {
     private final Set<String> blacklistedTokens = ConcurrentHashMap.newKeySet();
 
-    public void blacklistToken(String token) {
+    fun blacklistToken(String token): void {
         blacklistedTokens.add(token);
     }
 
-    public boolean isBlacklisted(String token) {
+    fun isBlacklisted(String token): boolean {
         return blacklistedTokens.contains(token);
     }
 }
@@ -318,7 +317,7 @@ public class TokenBlacklistService {
 
 ### Unit Test JWT Service
 
-```java
+```kotlin
 @Test
 void shouldGenerateValidToken() {
     UserDetails userDetails = User.builder()
@@ -337,17 +336,17 @@ void shouldGenerateValidToken() {
 
 ### Integration Test Authentication
 
-```java
+```kotlin
 @SpringBootTest
 @AutoConfigureMockMvc
 class AuthenticationIntegrationTest {
 
     @Autowired
-    private MockMvc mockMvc;
+    private var mockMvc: MockMvc
 
     @Test
     void shouldAuthenticateUser() throws Exception {
-        LoginRequest request = new LoginRequest("user@example.com", "password123");
+        LoginRequest request = LoginRequest("user@example.com", "password123");
 
         mockMvc.perform(post("/api/auth/authenticate")
                 .contentType(MediaType.APPLICATION_JSON)
@@ -363,9 +362,9 @@ class AuthenticationIntegrationTest {
 
 ### JWT Exception Handler
 
-```java
+```kotlin
 @RestControllerAdvice
-public class JwtExceptionHandler {
+class JwtExceptionHandler {
 
     @ExceptionHandler(JwtException.class)
     public ResponseEntity<ErrorResponse> handleJwtException(JwtException e) {
@@ -401,7 +400,7 @@ public class JwtExceptionHandler {
 **Error**: JWT is expired or not yet valid
 **Solution**: Add clock skew tolerance.
 
-```java
+```kotlin
 Jwts.parserBuilder()
     .setAllowedClockSkewSeconds(60)
     .build()
@@ -412,16 +411,16 @@ Jwts.parserBuilder()
 
 **Solution**: Configure CORS properly.
 
-```java
+```kotlin
 @Bean
-public CorsConfigurationSource corsConfigurationSource() {
-    CorsConfiguration configuration = new CorsConfiguration();
-    configuration.setAllowedOriginPatterns(List.of("http://localhost:*"));
-    configuration.setAllowedMethods(List.of("GET", "POST", "PUT", "DELETE", "OPTIONS"));
-    configuration.setAllowedHeaders(List.of("*"));
+fun corsConfigurationSource(): CorsConfigurationSource {
+    CorsConfiguration configuration = CorsConfiguration();
+    configuration.setAllowedOriginPatterns(listOf("http://localhost:*"));
+    configuration.setAllowedMethods(listOf("GET", "POST", "PUT", "DELETE", "OPTIONS"));
+    configuration.setAllowedHeaders(listOf("*"));
     configuration.setAllowCredentials(true);
 
-    UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
+    UrlBasedCorsConfigurationSource source = UrlBasedCorsConfigurationSource();
     source.registerCorsConfiguration("/**", configuration);
     return source;
 }

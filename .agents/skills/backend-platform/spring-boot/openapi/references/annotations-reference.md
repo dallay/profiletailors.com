@@ -6,11 +6,11 @@
 
 Groups operations under a logical tag.
 
-```java
+```kotlin
 // Controller level
 @RestController
 @Tag(name = "Book", description = "Book management APIs")
-public class BookController { }
+class BookController { }
 
 // With external docs
 @Tag(
@@ -33,7 +33,7 @@ public class BookController { }
 
 Describes a single API operation.
 
-```java
+```kotlin
 @Operation(
     summary = "Get book by ID",
     description = "Retrieve detailed information about a specific book",
@@ -64,7 +64,7 @@ Describes a single API operation.
 
 Documents HTTP response codes.
 
-```java
+```kotlin
 @ApiResponses(value = {
     @ApiResponse(
         responseCode = "200",
@@ -94,7 +94,7 @@ Documents HTTP response codes.
 
 Documents operation parameters.
 
-```java
+```kotlin
 public Book getBook(
     @Parameter(
         description = "Book ID",
@@ -132,7 +132,7 @@ public Book getBook(
 
 Documents request body (not to be confused with Spring's `@RequestBody`).
 
-```java
+```kotlin
 @PostMapping
 public Book create(
     @io.swagger.v3.oas.annotations.parameters.RequestBody(
@@ -154,7 +154,7 @@ public Book create(
 
 Documents model schemas.
 
-```java
+```kotlin
 @Schema(
     description = "Book entity",
     name = "Book",
@@ -175,7 +175,7 @@ Documents model schemas.
     anyOf = {Book.class, Magazine.class},
     allOf = {BaseEntity.class}
 )
-public class Book { }
+class Book { }
 
 // Field level
 @Schema(
@@ -192,7 +192,7 @@ public class Book { }
     accessMode = Schema.AccessMode.READ_ONLY,
     hidden = false
 )
-private String title;
+private var title: String
 ```
 
 **Attributes:**
@@ -219,11 +219,11 @@ private String title;
 
 Applies security requirements.
 
-```java
+```kotlin
 // Controller level
 @SecurityRequirement(name = "bearer-jwt")
 @RestController
-public class BookController { }
+class BookController { }
 
 // Operation level
 @Operation(
@@ -247,23 +247,23 @@ public class BookController { }
 
 Hides from documentation.
 
-```java
+```kotlin
 // Hide endpoint
 @Operation(hidden = true)
 @GetMapping("/internal")
-public String internal() { }
+fun internal(): String { }
 
 // Hide entire controller
 @Hidden
 @RestController
-public class InternalController { }
+class InternalController { }
 ```
 
 ### `@ParameterObject`
 
 Documents complex objects as parameters.
 
-```java
+```kotlin
 @GetMapping("/paginated")
 public Page<Book> getPaginated(
     @ParameterObject Pageable pageable
@@ -276,7 +276,7 @@ public Page<Book> getPaginated(
 
 ### Standard Bean Validation
 
-```java
+```kotlin
 @NotNull           // Required field
 @NotBlank          // Required, non-empty string
 @NotEmpty          // Required, non-empty collection
@@ -305,7 +305,7 @@ public Page<Book> getPaginated(
 
 Documents array schemas.
 
-```java
+```kotlin
 @Schema(
     description = "List of books",
     implementation = Book[].class
@@ -329,7 +329,7 @@ List<Book> books;
 
 Detailed content documentation.
 
-```java
+```kotlin
 @Content(
     mediaType = "application/json",
     schema = @Schema(implementation = Book.class),
@@ -353,7 +353,7 @@ Detailed content documentation.
 
 Example values.
 
-```java
+```kotlin
 @ExampleObject(
     name = "Book Example",
     value = "{\"id\": 1, \"title\": \"Clean Code\"}",
@@ -366,7 +366,7 @@ Example values.
 
 External documentation references.
 
-```java
+```kotlin
 @ExternalDocumentation(
     description = "Detailed API documentation",
     url = "https://docs.example.com/api"
@@ -379,7 +379,7 @@ External documentation references.
 
 For polymorphic types.
 
-```java
+```kotlin
 @Schema(
     discriminatorProperty = "type",
     discriminatorMapping = {

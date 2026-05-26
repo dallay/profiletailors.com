@@ -183,9 +183,9 @@ management:
 
 For more granular control, create a custom security configuration:
 
-```java
+```kotlin
 @Configuration
-public class ManagementSecurityConfig {
+class ManagementSecurityConfig {
 
     @Bean
     @Order(1)
@@ -216,9 +216,9 @@ public class ManagementSecurityConfig {
 
 Different endpoints can require different roles:
 
-```java
+```kotlin
 @Configuration
-public class ActuatorSecurityConfig {
+class ActuatorSecurityConfig {
 
     @Bean
     @Order(1)

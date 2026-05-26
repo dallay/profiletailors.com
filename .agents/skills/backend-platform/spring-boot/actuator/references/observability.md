@@ -70,9 +70,9 @@ logging:
 
 ### Micrometer Integration
 
-```java
+```kotlin
 @Configuration
-public class ObservabilityConfiguration {
+class ObservabilityConfiguration {
 
     @Bean
     public MeterRegistryCustomizer<MeterRegistry> metricsCommonTags() {
@@ -84,12 +84,12 @@ public class ObservabilityConfiguration {
     @Bean
     public ObservationRegistryCustomizer<ObservationRegistry> observationRegistryCustomizer() {
         return registry -> registry.observationConfig()
-            .observationHandler(new LoggingObservationHandler())
-            .observationHandler(new MetricsObservationHandler(meterRegistry()))
-            .observationHandler(new TracingObservationHandler(tracer()));
+            .observationHandler(LoggingObservationHandler())
+            .observationHandler(MetricsObservationHandler(meterRegistry()))
+            .observationHandler(TracingObservationHandler(tracer()));
     }
 
-    private String getEnvironment() {
+    private fun getEnvironment(): String {
         return System.getProperty("spring.profiles.active", "development");
     }
 }
@@ -99,18 +99,18 @@ public class ObservabilityConfiguration {
 
 ### Custom Health Indicators
 
-```java
+```kotlin
 @Component
-public class DatabaseHealthIndicator implements HealthIndicator {
+class DatabaseHealthIndicator implements HealthIndicator {
 
-    private final DataSource dataSource;
+    private val dataSource: DataSource
 
     public DatabaseHealthIndicator(DataSource dataSource) {
         this.dataSource = dataSource;
     }
 
     @Override
-    public Health health() {
+    fun health(): Health {
         try (Connection connection = dataSource.getConnection()) {
             boolean isValid = connection.isValid(5);
             
@@ -144,13 +144,13 @@ public class DatabaseHealthIndicator implements HealthIndicator {
 
 ### Custom Metrics
 
-```java
+```kotlin
 @Component
-public class BusinessMetrics {
+class BusinessMetrics {
 
-    private final Counter orderCounter;
-    private final Timer orderProcessingTime;
-    private final Gauge activeUsers;
+    private val orderCounter: Counter
+    private val orderProcessingTime: Timer
+    private val activeUsers: Gauge
 
     public BusinessMetrics(MeterRegistry meterRegistry) {
         this.orderCounter = Counter.builder("orders.total")
@@ -167,15 +167,15 @@ public class BusinessMetrics {
             .register(meterRegistry, this, BusinessMetrics::getActiveUserCount);
     }
 
-    public void recordOrder(String orderType) {
+    fun recordOrder(String orderType): void {
         orderCounter.increment(Tags.of("type", orderType));
     }
 
-    public void recordOrderProcessingTime(Duration duration) {
+    fun recordOrderProcessingTime(Duration duration): void {
         orderProcessingTime.record(duration);
     }
 
-    private double getActiveUserCount() {
+    private fun getActiveUserCount(): double {
         // Implement logic to get active user count
         return 150.0;
     }
@@ -184,12 +184,12 @@ public class BusinessMetrics {
 
 ### Observation Aspects
 
-```java
+```kotlin
 @Aspect
 @Component
-public class ObservationAspect {
+class ObservationAspect {
 
-    private final ObservationRegistry observationRegistry;
+    private val observationRegistry: ObservationRegistry
 
     public ObservationAspect(ObservationRegistry observationRegistry) {
         this.observationRegistry = observationRegistry;
@@ -208,7 +208,7 @@ public class ObservationAspect {
                 } catch (RuntimeException ex) {
                     throw ex;
                 } catch (Throwable ex) {
-                    throw new RuntimeException(ex);
+                    throw RuntimeException(ex);
                 }
             });
     }
@@ -219,12 +219,12 @@ public class ObservationAspect {
 
 ### Service Correlation
 
-```java
+```kotlin
 @RestController
-public class OrderController {
+class OrderController {
 
-    private final OrderService orderService;
-    private final ObservationRegistry observationRegistry;
+    private val orderService: OrderService
+    private val observationRegistry: ObservationRegistry
 
     public OrderController(OrderService orderService, ObservationRegistry observationRegistry) {
         this.orderService = orderService;
@@ -244,37 +244,37 @@ public class OrderController {
 }
 
 @Service
-public class OrderService {
+class OrderService {
 
-    private final PaymentServiceClient paymentClient;
+    private val paymentClient: PaymentServiceClient
 
     @Observed(name = "order.processing")
-    public Order createOrder(CreateOrderRequest request) {
+    fun createOrder(CreateOrderRequest request): Order {
         // Business logic with automatic observation
         PaymentResult payment = paymentClient.processPayment(request.getPayment());
         
         if (payment.isSuccessful()) {
             return saveOrder(request);
         } else {
-            throw new PaymentFailedException("Payment failed");
+            throw PaymentFailedException("Payment failed");
         }
     }
 
-    private Order saveOrder(CreateOrderRequest request) {
+    private fun saveOrder(CreateOrderRequest request): Order {
         // Save order logic
-        return new Order();
+        return Order();
     }
 }
 ```
 
 ### Cross-Service Tracing
 
-```java
+```kotlin
 @Component
-public class PaymentServiceClient {
+class PaymentServiceClient {
 
-    private final WebClient webClient;
-    private final ObservationRegistry observationRegistry;
+    private val webClient: WebClient
+    private val observationRegistry: ObservationRegistry
 
     public PaymentServiceClient(WebClient.Builder webClientBuilder, 
                                ObservationRegistry observationRegistry) {
@@ -284,7 +284,7 @@ public class PaymentServiceClient {
         this.observationRegistry = observationRegistry;
     }
 
-    public PaymentResult processPayment(PaymentRequest request) {
+    fun processPayment(PaymentRequest request): PaymentResult {
         return Observation.createNotStarted("payment.process", observationRegistry)
             .lowCardinalityKeyValue("service", "payment-service")
             .lowCardinalityKeyValue("method", "POST")
@@ -305,15 +305,15 @@ public class PaymentServiceClient {
 
 ### Health-based Alerting
 
-```java
+```kotlin
 @Component
-public class HealthAlertManager {
+class HealthAlertManager {
 
-    private final HealthEndpoint healthEndpoint;
-    private final NotificationService notificationService;
+    private val healthEndpoint: HealthEndpoint
+    private val notificationService: NotificationService
 
     @Scheduled(fixedRate = 30000) // Check every 30 seconds
-    public void checkHealth() {
+    fun checkHealth(): void {
         HealthComponent health = healthEndpoint.health();
         
         if (!Status.UP.equals(health.getStatus())) {
@@ -332,15 +332,15 @@ public class HealthAlertManager {
 
 ### Metric-based Alerting
 
-```java
+```kotlin
 @Component
-public class MetricAlertManager {
+class MetricAlertManager {
 
-    private final MeterRegistry meterRegistry;
-    private final NotificationService notificationService;
+    private val meterRegistry: MeterRegistry
+    private val notificationService: NotificationService
 
     @Scheduled(fixedRate = 60000) // Check every minute
-    public void checkMetrics() {
+    fun checkMetrics(): void {
         // Check error rate
         double errorRate = getErrorRate();
         if (errorRate > 0.05) { // 5% error rate threshold
@@ -363,7 +363,7 @@ public class MetricAlertManager {
         }
     }
 
-    private double getErrorRate() {
+    private fun getErrorRate(): double {
         Timer successTimer = meterRegistry.find("http.server.requests")
             .tag("status", "200")
             .timer();
@@ -378,12 +378,12 @@ public class MetricAlertManager {
         return 0.0;
     }
 
-    private double getAverageResponseTime() {
+    private fun getAverageResponseTime(): double {
         Timer timer = meterRegistry.find("http.server.requests").timer();
         return timer != null ? timer.mean(TimeUnit.MILLISECONDS) : 0.0;
     }
 
-    private double getMemoryUsage() {
+    private fun getMemoryUsage(): double {
         Gauge memoryUsed = meterRegistry.find("jvm.memory.used").gauge();
         Gauge memoryMax = meterRegistry.find("jvm.memory.max").gauge();
         
@@ -393,7 +393,7 @@ public class MetricAlertManager {
         return 0.0;
     }
 
-    private void sendAlert(String title, String message) {
+    private fun sendAlert(String title, String message): void {
         Alert alert = Alert.builder()
             .severity(Alert.Severity.MEDIUM)
             .title(title)

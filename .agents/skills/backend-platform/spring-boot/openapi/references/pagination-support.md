@@ -4,7 +4,7 @@
 
 ### Basic Pageable Parameter
 
-```java
+```kotlin
 import org.springdoc.core.annotations.ParameterObject;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -26,7 +26,7 @@ This generates parameters:
 
 ### Custom Pageable Documentation
 
-```java
+```kotlin
 @Operation(summary = "Get paginated books with custom defaults")
 @GetMapping("/paginated")
 public Page<Book> getBooksPaginated(
@@ -43,7 +43,7 @@ public Page<Book> getBooksPaginated(
 
 ### Pageable with `@ParameterObject`
 
-```java
+```kotlin
 @GetMapping("/search")
 public Page<Book> searchBooks(
     @Parameter(description = "Search query")
@@ -60,7 +60,7 @@ public Page<Book> searchBooks(
 
 ### Page Metadata
 
-```java
+```kotlin
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.PageRequest;
@@ -115,7 +115,7 @@ public PagedResponse<Book> getPagedBooks(
 
 ### Using Slice for Large Datasets
 
-```java
+```kotlin
 import org.springframework.data.domain.Slice;
 
 @Operation(summary = "Get books as slice (no count query)")
@@ -135,7 +135,7 @@ public Slice<Book> getBookSlice(
 
 ### Custom Pagination DTO
 
-```java
+```kotlin
 @Schema(description = "Pagination request")
 public record PaginationRequest(
     @Schema(description = "Page number (0-based)", example = "0", minValue = "0")
@@ -153,7 +153,7 @@ public record PaginationRequest(
     @Schema(description = "Sort direction", example = "asc", allowableValues = {"asc", "desc"})
     String sortDirection
 ) {
-    public Pageable toPageable() {
+    fun toPageable(): Pageable {
         Sort.Direction direction = Sort.Direction.fromString(sortDirection);
         return PageRequest.of(page, size, Sort.by(direction, sortField));
     }
@@ -172,7 +172,7 @@ public Page<Book> getBooksCustomPagination(
 
 ### Filtered Pageable Endpoints
 
-```java
+```kotlin
 @Operation(summary = "Search books with pagination and filters")
 @GetMapping("/search")
 public Page<Book> searchBooks(
@@ -204,7 +204,7 @@ public Page<Book> searchBooks(
 5. **Include pagination metadata**: Help clients navigate results
 6. **Consider cursor-based pagination**: For infinite scroll scenarios
 
-```java
+```kotlin
 @Operation(
     summary = "Get paginated books",
     description = """

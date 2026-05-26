@@ -73,15 +73,15 @@ logging:
 
 ### Basic Application Example
 
-```java
+```kotlin
 @SpringBootApplication
 @RestController
-public class MyApplication {
+class MyApplication {
 
     private static final Logger logger = LoggerFactory.getLogger(MyApplication.class);
 
     @GetMapping("/")
-    public String home() {
+    fun home(): String {
         logger.info("Handling home request");
         return "Hello World!";
     }
@@ -147,12 +147,12 @@ management:
 
 ### Using `@`Observed Annotation
 
-```java
+```kotlin
 @Service
-public class UserService {
+class UserService {
 
     @Observed(name = "user.service.find-by-id")
-    public User findById(Long id) {
+    fun findById(Long id): User {
         // Service logic
         return userRepository.findById(id);
     }
@@ -162,7 +162,7 @@ public class UserService {
         contextualName = "creating-user",
         lowCardinalityKeyValues = {"operation", "create"}
     )
-    public User createUser(CreateUserRequest request) {
+    fun createUser(CreateUserRequest request): User {
         // Creation logic
         return save(request.toUser());
     }
@@ -171,17 +171,17 @@ public class UserService {
 
 ### Programmatic Span Creation
 
-```java
+```kotlin
 @Service
-public class OrderService {
+class OrderService {
 
-    private final ObservationRegistry observationRegistry;
+    private val observationRegistry: ObservationRegistry
 
     public OrderService(ObservationRegistry observationRegistry) {
         this.observationRegistry = observationRegistry;
     }
 
-    public Order processOrder(OrderRequest request) {
+    fun processOrder(OrderRequest request): Order {
         return Observation.createNotStarted("order.processing", observationRegistry)
             .lowCardinalityKeyValue("order.type", request.getType())
             .observe(() -> {
@@ -198,30 +198,30 @@ public class OrderService {
             });
     }
 
-    private void validateOrder(OrderRequest request) {
+    private fun validateOrder(OrderRequest request): void {
         // Validation logic
     }
 
-    private Order saveOrder(OrderRequest request) {
+    private fun saveOrder(OrderRequest request): Order {
         // Save logic
-        return new Order();
+        return Order();
     }
 }
 ```
 
 ### Using Micrometer's Tracer API
 
-```java
+```kotlin
 @Service
-public class PaymentService {
+class PaymentService {
 
-    private final Tracer tracer;
+    private val tracer: Tracer
 
     public PaymentService(Tracer tracer) {
         this.tracer = tracer;
     }
 
-    public PaymentResult processPayment(PaymentRequest request) {
+    fun processPayment(PaymentRequest request): PaymentResult {
         Span span = tracer.nextSpan()
             .name("payment.processing")
             .tag("payment.method", request.getMethod())
@@ -249,13 +249,13 @@ public class PaymentService {
         }
     }
 
-    private void validatePayment(PaymentRequest request) {
+    private fun validatePayment(PaymentRequest request): void {
         // Validation logic
     }
 
-    private PaymentResult processPaymentInternal(PaymentRequest request) {
+    private fun processPaymentInternal(PaymentRequest request): PaymentResult {
         // Processing logic
-        return new PaymentResult();
+        return PaymentResult();
     }
 }
 ```
@@ -264,17 +264,17 @@ public class PaymentService {
 
 Baggage allows you to pass context information across service boundaries:
 
-```java
+```kotlin
 @Service
-public class UserService {
+class UserService {
 
-    private final BaggageManager baggageManager;
+    private val baggageManager: BaggageManager
 
     public UserService(BaggageManager baggageManager) {
         this.baggageManager = baggageManager;
     }
 
-    public User getCurrentUser(String userId) {
+    fun getCurrentUser(String userId): User {
         // Set baggage that will be propagated to downstream services
         try (BaggageInScope baggageInScope = 
                 baggageManager.createBaggage("user.id", userId).makeCurrent()) {
@@ -283,7 +283,7 @@ public class UserService {
         }
     }
 
-    private User fetchUserFromDatabase(String userId) {
+    private fun fetchUserFromDatabase(String userId): User {
         // This method and any downstream calls will have access to the baggage
         String currentUserId = baggageManager.getBaggage("user.id").get();
         // Use the user ID for security context, logging, etc.
@@ -298,11 +298,11 @@ public class UserService {
 
 Spring Boot automatically configures tracing for WebClient:
 
-```java
+```kotlin
 @Service
-public class ExternalApiService {
+class ExternalApiService {
 
-    private final WebClient webClient;
+    private val webClient: WebClient
 
     public ExternalApiService(WebClient.Builder webClientBuilder) {
         this.webClient = webClientBuilder
@@ -310,7 +310,7 @@ public class ExternalApiService {
             .build();
     }
 
-    public ApiResponse callExternalApi(String data) {
+    fun callExternalApi(String data): ApiResponse {
         return webClient
             .post()
             .uri("/process")
@@ -326,14 +326,14 @@ public class ExternalApiService {
 
 For RestTemplate, add the interceptor manually:
 
-```java
+```kotlin
 @Configuration
-public class RestTemplateConfig {
+class RestTemplateConfig {
 
     @Bean
-    public RestTemplate restTemplate(RestTemplateBuilder builder) {
+    fun restTemplate(RestTemplateBuilder builder): RestTemplate {
         return builder
-            .interceptors(new TraceRestTemplateInterceptor())
+            .interceptors(TraceRestTemplateInterceptor())
             .build();
     }
 }
@@ -367,12 +367,12 @@ management:
 
 ### Custom Database Observation
 
-```java
+```kotlin
 @Repository
-public class UserRepository {
+class UserRepository {
 
-    private final JdbcTemplate jdbcTemplate;
-    private final ObservationRegistry observationRegistry;
+    private val jdbcTemplate: JdbcTemplate
+    private val observationRegistry: ObservationRegistry
 
     public UserRepository(JdbcTemplate jdbcTemplate, 
                          ObservationRegistry observationRegistry) {
@@ -380,14 +380,14 @@ public class UserRepository {
         this.observationRegistry = observationRegistry;
     }
 
-    public User findById(Long id) {
+    fun findById(Long id): User {
         return Observation.createNotStarted("db.user.find-by-id", observationRegistry)
             .lowCardinalityKeyValue("db.operation", "select")
             .lowCardinalityKeyValue("db.table", "users")
             .observe(() -> {
                 String sql = "SELECT * FROM users WHERE id = ?";
                 return jdbcTemplate.queryForObject(sql, 
-                    new UserRowMapper(), id);
+                    UserRowMapper(), id);
             });
     }
 }
@@ -397,9 +397,9 @@ public class UserRepository {
 
 ### `@`Async Methods
 
-```java
+```kotlin
 @Service
-public class NotificationService {
+class NotificationService {
 
     @Async
     @Observed(name = "notification.send")
@@ -412,19 +412,19 @@ public class NotificationService {
 
 ### Manual Trace Propagation
 
-```java
+```kotlin
 @Service
-public class EmailService {
+class EmailService {
 
-    private final Tracer tracer;
-    private final ExecutorService executorService;
+    private val tracer: Tracer
+    private val executorService: ExecutorService
 
     public EmailService(Tracer tracer) {
         this.tracer = tracer;
         this.executorService = Executors.newFixedThreadPool(5);
     }
 
-    public void sendEmailAsync(String recipient, String subject, String body) {
+    fun sendEmailAsync(String recipient, String subject, String body): void {
         TraceContext traceContext = tracer.currentSpan().context();
         
         executorService.submit(() -> {
@@ -445,7 +445,7 @@ public class EmailService {
         });
     }
 
-    private void sendEmailInternal(String recipient, String subject, String body) {
+    private fun sendEmailInternal(String recipient, String subject, String body): void {
         // Email sending implementation
     }
 }
@@ -525,18 +525,18 @@ management:
 
 ### Health Check for Tracing
 
-```java
+```kotlin
 @Component
-public class TracingHealthIndicator implements HealthIndicator {
+class TracingHealthIndicator implements HealthIndicator {
 
-    private final Tracer tracer;
+    private val tracer: Tracer
 
     public TracingHealthIndicator(Tracer tracer) {
         this.tracer = tracer;
     }
 
     @Override
-    public Health health() {
+    fun health(): Health {
         try {
             Span span = tracer.nextSpan().name("health.check.tracing").start();
             span.end();

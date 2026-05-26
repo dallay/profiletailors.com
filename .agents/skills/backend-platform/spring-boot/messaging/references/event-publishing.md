@@ -4,7 +4,7 @@
 
 ### Application Event Publisher
 
-```java
+```kotlin
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -12,12 +12,12 @@ import lombok.RequiredArgsConstructor;
 
 @Service
 @RequiredArgsConstructor
-public class ProductApplicationService {
-    private final ProductRepository productRepository;
-    private final ApplicationEventPublisher eventPublisher;
+class ProductApplicationService {
+    private val productRepository: ProductRepository
+    private val eventPublisher: ApplicationEventPublisher
 
     @Transactional
-    public ProductResponse createProduct(CreateProductRequest request) {
+    fun createProduct(CreateProductRequest request): ProductResponse {
         Product product = Product.create(
             request.getName(),
             request.getPrice(),
@@ -39,7 +39,7 @@ public class ProductApplicationService {
 
 ### Kafka Event Publisher
 
-```java
+```kotlin
 import org.springframework.kafka.core.KafkaTemplate;
 import org.springframework.stereotype.Component;
 import lombok.RequiredArgsConstructor;
@@ -48,10 +48,10 @@ import lombok.extern.slf4j.Slf4j;
 @Component
 @RequiredArgsConstructor
 @Slf4j
-public class ProductEventPublisher {
+class ProductEventPublisher {
     private final KafkaTemplate<String, Object> kafkaTemplate;
 
-    public void publishProductCreatedEvent(ProductCreatedEvent event) {
+    fun publishProductCreatedEvent(ProductCreatedEvent event): void {
         ProductCreatedEventDto dto = mapToDto(event);
 
         kafkaTemplate.send("product-events", event.getProductId().getValue(), dto)
@@ -64,7 +64,7 @@ public class ProductEventPublisher {
             });
     }
 
-    private ProductCreatedEventDto mapToDto(ProductCreatedEvent event) {
+    private fun mapToDto(ProductCreatedEvent event): ProductCreatedEventDto {
         return new ProductCreatedEventDto(
             event.getEventId().toString(),
             event.getProductId().getValue(),
@@ -80,7 +80,7 @@ public class ProductEventPublisher {
 
 ### Event Publisher with Retry
 
-```java
+```kotlin
 import org.springframework.kafka.support.SendResult;
 import org.springframework.util.concurrent.ListenableFutureCallback;
 import org.springframework.retry.annotation.Retryable;
@@ -90,30 +90,30 @@ import org.springframework.retry.support.RetryTemplate;
 
 @Component
 @RequiredArgsConstructor
-public class ResilientEventPublisher {
+class ResilientEventPublisher {
     private final KafkaTemplate<String, Object> kafkaTemplate;
-    private final RetryTemplate retryTemplate;
+    private val retryTemplate: RetryTemplate
 
-    public void publishEvent(String topic, String key, Object payload) {
+    fun publishEvent(String topic, String key, Object payload): void {
         retryTemplate.execute(context -> {
             try {
                 kafkaTemplate.send(topic, key, payload).get();
                 return true;
             } catch (Exception e) {
                 log.error("Failed to publish event to topic: {}", topic, e);
-                throw new EventPublishingException("Failed to publish event", e);
+                throw EventPublishingException("Failed to publish event", e);
             }
         });
     }
 
     @Bean
-    public RetryTemplate retryTemplate() {
-        RetryTemplate retryTemplate = new RetryTemplate();
+    fun retryTemplate(): RetryTemplate {
+        RetryTemplate retryTemplate = RetryTemplate();
 
-        FixedBackOffPolicy backOffPolicy = new FixedBackOffPolicy();
+        FixedBackOffPolicy backOffPolicy = FixedBackOffPolicy();
         backOffPolicy.setBackOffPeriod(1000L);
 
-        SimpleRetryPolicy retryPolicy = new SimpleRetryPolicy();
+        SimpleRetryPolicy retryPolicy = SimpleRetryPolicy();
         retryPolicy.setMaxAttempts(3);
 
         retryTemplate.setBackOffPolicy(backOffPolicy);
@@ -128,22 +128,22 @@ public class ResilientEventPublisher {
 
 ### Functional Publisher
 
-```java
+```kotlin
 import org.springframework.cloud.stream.function.StreamBridge;
 import org.springframework.stereotype.Component;
 import lombok.RequiredArgsConstructor;
 
 @Component
 @RequiredArgsConstructor
-public class ProductEventStreamPublisher {
-    private final StreamBridge streamBridge;
+class ProductEventStreamPublisher {
+    private val streamBridge: StreamBridge
 
-    public void publishProductCreatedEvent(ProductCreatedEvent event) {
+    fun publishProductCreatedEvent(ProductCreatedEvent event): void {
         ProductCreatedEventDto dto = mapToDto(event);
         streamBridge.send("productCreated-out-0", dto);
     }
 
-    private ProductCreatedEventDto mapToDto(ProductCreatedEvent event) {
+    private fun mapToDto(ProductCreatedEvent event): ProductCreatedEventDto {
         return new ProductCreatedEventDto(
             event.getEventId().toString(),
             event.getProductId().getValue(),
@@ -183,15 +183,15 @@ spring:
 
 ### Publishing Events After Handling
 
-```java
+```kotlin
 @Component
 @RequiredArgsConstructor
-public class OrderEventHandler {
-    private final OrderRepository orderRepository;
-    private final ApplicationEventPublisher eventPublisher;
+class OrderEventHandler {
+    private val orderRepository: OrderRepository
+    private val eventPublisher: ApplicationEventPublisher
 
     @TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT)
-    public void handleOrderCreated(OrderCreatedEvent event) {
+    fun handleOrderCreated(OrderCreatedEvent event): void {
         // Process order creation
         Order order = orderRepository.findById(event.getOrderId())
             .orElseThrow();
@@ -214,15 +214,15 @@ public class OrderEventHandler {
 
 ### Batch Event Publisher
 
-```java
+```kotlin
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
 import lombok.RequiredArgsConstructor;
 
 @Component
 @RequiredArgsConstructor
-public class BatchEventPublisher {
-    private final List<DomainEvent> eventBuffer = new ArrayList<>();
+class BatchEventPublisher {
+    private final List<DomainEvent> eventBuffer = mutableListOf();
     private final KafkaTemplate<String, Object> kafkaTemplate;
 
     public synchronized void addEvent(DomainEvent event) {
@@ -254,9 +254,9 @@ public class BatchEventPublisher {
 
 ### 1. Publish After Transaction Commit
 
-```java
+```kotlin
 @Transactional
-public void executeBusinessOperation() {
+fun executeBusinessOperation(): void {
     // Perform business logic
     aggregateRoot.performAction();
 
@@ -265,9 +265,9 @@ public void executeBusinessOperation() {
 
     // Publish events AFTER transaction commits
     TransactionSynchronizationManager.registerSynchronization(
-        new TransactionSynchronization() {
+        TransactionSynchronization() {
             @Override
-            public void afterCommit() {
+            fun afterCommit(): void {
                 aggregateRoot.getDomainEvents().forEach(eventPublisher::publishEvent);
                 aggregateRoot.clearDomainEvents();
             }
@@ -278,13 +278,13 @@ public void executeBusinessOperation() {
 
 ### 2. Use Transactional Event Listener
 
-```java
+```kotlin
 @Component
-public class EventForwardingHandler {
+class EventForwardingHandler {
     private final KafkaTemplate<String, Object> kafkaTemplate;
 
     @TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT)
-    public void forwardToKafka(DomainEvent event) {
+    fun forwardToKafka(DomainEvent event): void {
         kafkaTemplate.send("events", event);
     }
 }
@@ -292,8 +292,8 @@ public class EventForwardingHandler {
 
 ### 3. Handle Publishing Failures
 
-```java
-public void publishEventWithFallback(DomainEvent event) {
+```kotlin
+fun publishEventWithFallback(DomainEvent event): void {
     try {
         kafkaTemplate.send("events", event).get(5, TimeUnit.SECONDS);
     } catch (Exception e) {

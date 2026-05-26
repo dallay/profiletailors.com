@@ -98,17 +98,17 @@ Compensation    Compensation        Compensation
 
 #### Event Publisher
 
-```java
+```kotlin
 @Component
-public class OrderEventPublisher {
-    private final StreamBridge streamBridge;
+class OrderEventPublisher {
+    private val streamBridge: StreamBridge
     
     public OrderEventPublisher(StreamBridge streamBridge) {
         this.streamBridge = streamBridge;
     }
     
-    public void publishOrderCreatedEvent(String orderId, BigDecimal amount, String itemId) {
-        OrderCreatedEvent event = new OrderCreatedEvent(orderId, amount, itemId);
+    fun publishOrderCreatedEvent(String orderId, BigDecimal amount, String itemId): void {
+        OrderCreatedEvent event = OrderCreatedEvent(orderId, amount, itemId);
         streamBridge.send("orderCreated-out-0", 
             MessageBuilder
                 .withPayload(event)
@@ -120,16 +120,16 @@ public class OrderEventPublisher {
 
 #### Event Listener
 
-```java
+```kotlin
 @Component
-public class PaymentEventListener {
+class PaymentEventListener {
     
     @Bean
     public Consumer<OrderCreatedEvent> handleOrderCreatedEvent() {
         return event -> processPayment(event.getOrderId());
     }
     
-    private void processPayment(String orderId) {
+    private fun processPayment(String orderId): void {
         // Payment processing logic
     }
 }
@@ -137,7 +137,7 @@ public class PaymentEventListener {
 
 #### Event Classes
 
-```java
+```kotlin
 public record OrderCreatedEvent(
     String orderId,
     BigDecimal amount,
@@ -224,16 +224,16 @@ services and handling responses.
 
 #### Saga Class
 
-```java
+```kotlin
 @Saga
-public class OrderSaga {
+class OrderSaga {
     
     @Autowired
     private transient CommandGateway commandGateway;
     
     @StartSaga
     @SagaEventHandler(associationProperty = "orderId")
-    public void handle(OrderCreatedEvent event) {
+    fun handle(OrderCreatedEvent event): void {
         String paymentId = UUID.randomUUID().toString();
         ProcessPaymentCommand command = new ProcessPaymentCommand(
             paymentId, 
@@ -245,7 +245,7 @@ public class OrderSaga {
     }
     
     @SagaEventHandler(associationProperty = "orderId")
-    public void handle(PaymentProcessedEvent event) {
+    fun handle(PaymentProcessedEvent event): void {
         ReserveInventoryCommand command = new ReserveInventoryCommand(
             event.getOrderId(), 
             event.getItemId()
@@ -254,14 +254,14 @@ public class OrderSaga {
     }
     
     @SagaEventHandler(associationProperty = "orderId")
-    public void handle(PaymentFailedEvent event) {
-        CancelOrderCommand command = new CancelOrderCommand(event.getOrderId());
+    fun handle(PaymentFailedEvent event): void {
+        CancelOrderCommand command = CancelOrderCommand(event.getOrderId());
         commandGateway.send(command);
         end();
     }
     
     @SagaEventHandler(associationProperty = "orderId")
-    public void handle(InventoryReservedEvent event) {
+    fun handle(InventoryReservedEvent event): void {
         PrepareShipmentCommand command = new PrepareShipmentCommand(
             event.getOrderId(), 
             event.getItemId()
@@ -271,7 +271,7 @@ public class OrderSaga {
     
     @EndSaga
     @SagaEventHandler(associationProperty = "orderId")
-    public void handle(OrderCompletedEvent event) {
+    fun handle(OrderCompletedEvent event): void {
         // Saga completed successfully
     }
 }
@@ -279,14 +279,14 @@ public class OrderSaga {
 
 #### Aggregate for Order Service
 
-```java
+```kotlin
 @Aggregate
-public class OrderAggregate {
+class OrderAggregate {
     
     @AggregateIdentifier
-    private String orderId;
+    private var orderId: String
     
-    private OrderStatus status;
+    private var status: OrderStatus
     
     public OrderAggregate() {
     }
@@ -301,18 +301,18 @@ public class OrderAggregate {
     }
     
     @EventSourcingHandler
-    public void on(OrderCreatedEvent event) {
+    fun on(OrderCreatedEvent event): void {
         this.orderId = event.getOrderId();
         this.status = OrderStatus.PENDING;
     }
     
     @CommandHandler
-    public void handle(CancelOrderCommand command) {
-        apply(new OrderCancelledEvent(command.getOrderId()));
+    fun handle(CancelOrderCommand command): void {
+        apply(OrderCancelledEvent(command.getOrderId()));
     }
     
     @EventSourcingHandler
-    public void on(OrderCancelledEvent event) {
+    fun on(OrderCancelledEvent event): void {
         this.status = OrderStatus.CANCELLED;
     }
 }
@@ -320,12 +320,12 @@ public class OrderAggregate {
 
 #### Aggregate for Payment Service
 
-```java
+```kotlin
 @Aggregate
-public class PaymentAggregate {
+class PaymentAggregate {
     
     @AggregateIdentifier
-    private String paymentId;
+    private var paymentId: String
     
     public PaymentAggregate() {
     }
@@ -385,10 +385,10 @@ axon:
 
 ### Application Configuration
 
-```java
+```kotlin
 @SpringBootApplication
 @EnableScheduling
-public class SagaApplication {
+class SagaApplication {
     
     public static void main(String[] args) {
         SpringApplication.run(SagaApplication.class, args);
@@ -398,23 +398,23 @@ public class SagaApplication {
 
 ### Kafka Configuration
 
-```java
+```kotlin
 @Configuration
-public class KafkaConfig {
+class KafkaConfig {
     
     @Bean
-    public NewTopic orderTopic() {
-        return new NewTopic("order-events", 3, (short) 1);
+    fun orderTopic(): NewTopic {
+        return NewTopic("order-events", 3, (short) 1);
     }
     
     @Bean
-    public NewTopic paymentTopic() {
-        return new NewTopic("payment-events", 3, (short) 1);
+    fun paymentTopic(): NewTopic {
+        return NewTopic("payment-events", 3, (short) 1);
     }
     
     @Bean
-    public NewTopic inventoryTopic() {
-        return new NewTopic("inventory-events", 3, (short) 1);
+    fun inventoryTopic(): NewTopic {
+        return NewTopic("inventory-events", 3, (short) 1);
     }
 }
 ```
@@ -530,7 +530,7 @@ management.endpoint.health.show-details=always
 
 **Domain Events**: Represent business facts that happened
 
-```java
+```kotlin
 public record OrderCreatedEvent(
     String orderId,
     Instant createdAt,
@@ -540,7 +540,7 @@ public record OrderCreatedEvent(
 
 **Integration Events**: Communication between bounded contexts
 
-```java
+```kotlin
 public record PaymentRequestedEvent(
     String orderId,
     String paymentId,
@@ -550,7 +550,7 @@ public record PaymentRequestedEvent(
 
 **Command Events**: Request for action
 
-```java
+```kotlin
 public record ProcessPaymentCommand(
     String paymentId,
     String orderId,
@@ -560,7 +560,7 @@ public record ProcessPaymentCommand(
 
 ### Event Versioning
 
-```java
+```kotlin
 public record OrderCreatedEventV1(
     String orderId,
     BigDecimal amount
@@ -574,7 +574,7 @@ public record OrderCreatedEventV2(
 ) {}
 
 // Event Upcaster
-public class OrderEventUpcaster implements EventUpcaster {
+class OrderEventUpcaster implements EventUpcaster {
     @Override
     public Stream<IntermediateEventRepresentation> upcast(
         Stream<IntermediateEventRepresentation> eventStream) {
@@ -591,29 +591,29 @@ public class OrderEventUpcaster implements EventUpcaster {
 
 ### Event Store
 
-```java
+```kotlin
 @Entity
 @Table(name = "saga_events")
-public class SagaEvent {
+class SagaEvent {
     
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Long id;
+    private var id: Long
     
     @Column(nullable = false)
-    private String sagaId;
+    private var sagaId: String
     
     @Column(nullable = false)
-    private String eventType;
+    private var eventType: String
     
     @Column(columnDefinition = "TEXT")
-    private String payload;
+    private var payload: String
     
     @Column(nullable = false)
-    private Instant timestamp;
+    private var timestamp: Instant
     
     @Column(nullable = false)
-    private Integer version;
+    private var version: Integer
 }
 ```
 
@@ -625,8 +625,8 @@ public class SagaEvent {
 
 **Idempotency**: Execute multiple times with same result
 
-```java
-public void cancelPayment(String paymentId) {
+```kotlin
+fun cancelPayment(String paymentId): void {
     Payment payment = paymentRepository.findById(paymentId)
         .orElse(null);
     
@@ -649,13 +649,13 @@ public void cancelPayment(String paymentId) {
 
 **Retryability**: Safe to retry on failure
 
-```java
+```kotlin
 @Retryable(
     value = {TransientException.class},
     maxAttempts = 3,
     backoff = @Backoff(delay = 1000, multiplier = 2)
 )
-public void releaseInventory(String itemId, int quantity) {
+fun releaseInventory(String itemId, int quantity): void {
     // Implementation
 }
 ```
@@ -664,17 +664,17 @@ public void releaseInventory(String itemId, int quantity) {
 
 **Backward Recovery**: Undo completed steps
 
-```java
+```kotlin
 @SagaEventHandler(associationProperty = "orderId")
-public void handle(PaymentFailedEvent event) {
+fun handle(PaymentFailedEvent event): void {
     // Step 1: Cancel shipment preparation
-    commandGateway.send(new CancelShipmentCommand(event.getOrderId()));
+    commandGateway.send(CancelShipmentCommand(event.getOrderId()));
     
     // Step 2: Release inventory
-    commandGateway.send(new ReleaseInventoryCommand(event.getOrderId()));
+    commandGateway.send(ReleaseInventoryCommand(event.getOrderId()));
     
     // Step 3: Cancel order
-    commandGateway.send(new CancelOrderCommand(event.getOrderId()));
+    commandGateway.send(CancelOrderCommand(event.getOrderId()));
     
     end();
 }
@@ -682,9 +682,9 @@ public void handle(PaymentFailedEvent event) {
 
 **Forward Recovery**: Retry failed operation
 
-```java
+```kotlin
 @SagaEventHandler(associationProperty = "orderId")
-public void handle(PaymentTransientFailureEvent event) {
+fun handle(PaymentTransientFailureEvent event): void {
     if (event.getRetryCount() < MAX_RETRIES) {
         // Retry payment
         ProcessPaymentCommand retryCommand = new ProcessPaymentCommand(
@@ -704,21 +704,21 @@ public void handle(PaymentTransientFailureEvent event) {
 
 Prevent concurrent modifications during saga execution:
 
-```java
+```kotlin
 @Entity
-public class Order {
+class Order {
     @Id
-    private String orderId;
+    private var orderId: String
     
     @Enumerated(EnumType.STRING)
-    private OrderStatus status;
+    private var status: OrderStatus
     
     @Version
-    private Long version;
+    private var version: Long
     
-    private Instant lockedUntil;
+    private var lockedUntil: Instant
     
-    public boolean tryLock(Duration lockDuration) {
+    fun tryLock(Duration lockDuration): boolean {
         if (isLocked()) {
             return false;
         }
@@ -726,12 +726,12 @@ public class Order {
         return true;
     }
     
-    public boolean isLocked() {
+    fun isLocked(): boolean {
         return lockedUntil != null && 
                Instant.now().isBefore(lockedUntil);
     }
     
-    public void unlock() {
+    fun unlock(): void {
         this.lockedUntil = null;
     }
 }
@@ -743,31 +743,31 @@ public class Order {
 
 ### Saga State
 
-```java
+```kotlin
 @Entity
 @Table(name = "saga_state")
-public class SagaState {
+class SagaState {
     
     @Id
-    private String sagaId;
+    private var sagaId: String
     
     @Enumerated(EnumType.STRING)
-    private SagaStatus status;
+    private var status: SagaStatus
     
     @Column(columnDefinition = "TEXT")
-    private String currentStep;
+    private var currentStep: String
     
     @Column(columnDefinition = "TEXT")
-    private String compensationSteps;
+    private var compensationSteps: String
     
-    private Instant startedAt;
-    private Instant completedAt;
+    private var startedAt: Instant
+    private var completedAt: Instant
     
     @Version
-    private Long version;
+    private var version: Long
 }
 
-public enum SagaStatus {
+enum class SagaStatus {
     STARTED,
     PROCESSING,
     COMPENSATING,
@@ -779,10 +779,10 @@ public enum SagaStatus {
 
 ### State Machine with Spring Statemachine
 
-```java
+```kotlin
 @Configuration
 @EnableStateMachine
-public class SagaStateMachineConfig 
+class SagaStateMachineConfig 
     extends StateMachineConfigurerAdapter<SagaStatus, SagaEvent> {
     
     @Override
@@ -833,20 +833,20 @@ public class SagaStateMachineConfig
 
 ### Retry Configuration
 
-```java
+```kotlin
 @Configuration
 @EnableRetry
-public class RetryConfig {
+class RetryConfig {
     
     @Bean
-    public RetryTemplate retryTemplate() {
-        RetryTemplate retryTemplate = new RetryTemplate();
+    fun retryTemplate(): RetryTemplate {
+        RetryTemplate retryTemplate = RetryTemplate();
         
-        FixedBackOffPolicy backOffPolicy = new FixedBackOffPolicy();
+        FixedBackOffPolicy backOffPolicy = FixedBackOffPolicy();
         backOffPolicy.setBackOffPeriod(2000L);
         retryTemplate.setBackOffPolicy(backOffPolicy);
         
-        SimpleRetryPolicy retryPolicy = new SimpleRetryPolicy();
+        SimpleRetryPolicy retryPolicy = SimpleRetryPolicy();
         retryPolicy.setMaxAttempts(3);
         retryTemplate.setRetryPolicy(retryPolicy);
         
@@ -857,12 +857,12 @@ public class RetryConfig {
 
 ### Circuit Breaker with Resilience4j
 
-```java
+```kotlin
 @Configuration
-public class CircuitBreakerConfig {
+class CircuitBreakerConfig {
     
     @Bean
-    public CircuitBreakerRegistry circuitBreakerRegistry() {
+    fun circuitBreakerRegistry(): CircuitBreakerRegistry {
         CircuitBreakerConfig config = CircuitBreakerConfig.custom()
             .failureRateThreshold(50)
             .waitDurationInOpenState(Duration.ofMillis(1000))
@@ -874,15 +874,15 @@ public class CircuitBreakerConfig {
 }
 
 @Service
-public class PaymentService {
+class PaymentService {
     
-    private final CircuitBreaker circuitBreaker;
+    private val circuitBreaker: CircuitBreaker
     
     public PaymentService(CircuitBreakerRegistry registry) {
         this.circuitBreaker = registry.circuitBreaker("payment");
     }
     
-    public PaymentResult processPayment(PaymentRequest request) {
+    fun processPayment(PaymentRequest request): PaymentResult {
         return circuitBreaker.executeSupplier(
             () -> callPaymentGateway(request)
         );
@@ -892,18 +892,18 @@ public class PaymentService {
 
 ### Dead Letter Queue
 
-```java
+```kotlin
 @Configuration
-public class DeadLetterQueueConfig {
+class DeadLetterQueueConfig {
     
     @Bean
-    public NewTopic deadLetterTopic() {
-        return new NewTopic("saga-dlq", 1, (short) 1);
+    fun deadLetterTopic(): NewTopic {
+        return NewTopic("saga-dlq", 1, (short) 1);
     }
 }
 
 @Component
-public class SagaErrorHandler implements ConsumerAwareErrorHandler {
+class SagaErrorHandler implements ConsumerAwareErrorHandler {
     
     private final KafkaTemplate<String, Object> kafkaTemplate;
     
@@ -926,11 +926,11 @@ public class SagaErrorHandler implements ConsumerAwareErrorHandler {
 
 ### Unit Testing Saga
 
-```java
+```kotlin
 @Test
 void shouldCompensateWhenPaymentFails() {
     // Given
-    OrderSaga saga = new OrderSaga();
+    OrderSaga saga = OrderSaga();
     FixtureConfiguration<OrderSaga> fixture = new SagaTestFixture<>(OrderSaga.class);
     
     String orderId = UUID.randomUUID().toString();
@@ -939,19 +939,19 @@ void shouldCompensateWhenPaymentFails() {
     // When
     fixture
         .givenNoPriorActivity()
-        .whenPublishingA(new OrderCreatedEvent(orderId, BigDecimal.TEN, "item-1"))
-        .expectDispatchedCommands(new ProcessPaymentCommand(paymentId, orderId, BigDecimal.TEN));
+        .whenPublishingA(OrderCreatedEvent(orderId, BigDecimal.TEN, "item-1"))
+        .expectDispatchedCommands(ProcessPaymentCommand(paymentId, orderId, BigDecimal.TEN));
     
     // Then - payment fails
     fixture
-        .whenPublishingA(new PaymentFailedEvent(paymentId, orderId, "item-1", "Insufficient funds"))
-        .expectDispatchedCommands(new CancelOrderCommand(orderId));
+        .whenPublishingA(PaymentFailedEvent(paymentId, orderId, "item-1", "Insufficient funds"))
+        .expectDispatchedCommands(CancelOrderCommand(orderId));
 }
 ```
 
 ### Integration Testing with Testcontainers
 
-```java
+```kotlin
 @SpringBootTest
 @Testcontainers
 class SagaIntegrationTest {
@@ -983,7 +983,7 @@ class SagaIntegrationTest {
 
 ### Testing Idempotency
 
-```java
+```kotlin
 @Test
 void compensationShouldBeIdempotent() {
     String paymentId = "payment-123";
@@ -1008,14 +1008,14 @@ void compensationShouldBeIdempotent() {
 
 ### Micrometer Metrics
 
-```java
+```kotlin
 @Component
-public class SagaMetrics {
+class SagaMetrics {
     
-    private final Counter sagaStarted;
-    private final Counter sagaCompleted;
-    private final Counter sagaFailed;
-    private final Timer sagaDuration;
+    private val sagaStarted: Counter
+    private val sagaCompleted: Counter
+    private val sagaFailed: Counter
+    private val sagaDuration: Timer
     
     public SagaMetrics(MeterRegistry registry) {
         this.sagaStarted = Counter.builder("saga.started")
@@ -1035,16 +1035,16 @@ public class SagaMetrics {
             .register(registry);
     }
     
-    public void recordSagaStart() {
+    fun recordSagaStart(): void {
         sagaStarted.increment();
     }
     
-    public void recordSagaCompletion(Duration duration) {
+    fun recordSagaCompletion(Duration duration): void {
         sagaCompleted.increment();
         sagaDuration.record(duration);
     }
     
-    public void recordSagaFailure() {
+    fun recordSagaFailure(): void {
         sagaFailed.increment();
     }
 }
@@ -1052,25 +1052,25 @@ public class SagaMetrics {
 
 ### Distributed Tracing
 
-```java
+```kotlin
 @Configuration
-public class TracingConfig {
+class TracingConfig {
     
     @Bean
-    public Tracer tracer() {
+    fun tracer(): Tracer {
         return new Tracer.Builder()
-            .spanReporter(new ZipkinSpanReporter())
+            .spanReporter(ZipkinSpanReporter())
             .build();
     }
 }
 
 @Service
-public class OrderService {
+class OrderService {
     
     @Autowired
-    private Tracer tracer;
+    private var tracer: Tracer
     
-    public void createOrder(OrderRequest request) {
+    fun createOrder(OrderRequest request): void {
         Span span = tracer.newTrace().name("create-order").start();
         try (Tracer.SpanInScope ws = tracer.withSpanInScope(span)) {
             // Order creation logic
@@ -1084,14 +1084,14 @@ public class OrderService {
 
 ### Health Checks
 
-```java
+```kotlin
 @Component
-public class SagaHealthIndicator implements HealthIndicator {
+class SagaHealthIndicator implements HealthIndicator {
     
-    private final SagaStateRepository sagaStateRepository;
+    private val sagaStateRepository: SagaStateRepository
     
     @Override
-    public Health health() {
+    fun health(): Health {
         long stuckSagas = sagaStateRepository.countStuckSagas(
             Duration.ofMinutes(30)
         );
@@ -1115,12 +1115,12 @@ public class SagaHealthIndicator implements HealthIndicator {
 
 ### Batch Processing
 
-```java
+```kotlin
 @Service
-public class BatchSagaProcessor {
+class BatchSagaProcessor {
     
     @Scheduled(fixedDelay = 5000)
-    public void processPendingSagas() {
+    fun processPendingSagas(): void {
         List<SagaState> pendingSagas = sagaStateRepository
             .findByStatus(SagaStatus.PROCESSING, PageRequest.of(0, 100));
         
@@ -1131,16 +1131,16 @@ public class BatchSagaProcessor {
 
 ### Parallel Execution
 
-```java
+```kotlin
 @SagaEventHandler(associationProperty = "orderId")
-public void handle(PaymentProcessedEvent event) {
+fun handle(PaymentProcessedEvent event): void {
     // Execute inventory and notification in parallel
     CompletableFuture.allOf(
         CompletableFuture.runAsync(() -> 
-            commandGateway.send(new ReserveInventoryCommand(event.getOrderId()))
+            commandGateway.send(ReserveInventoryCommand(event.getOrderId()))
         ),
         CompletableFuture.runAsync(() -> 
-            commandGateway.send(new SendNotificationCommand(event.getOrderId()))
+            commandGateway.send(SendNotificationCommand(event.getOrderId()))
         )
     ).join();
 }
@@ -1164,17 +1164,17 @@ CREATE INDEX idx_saga_events_timestamp ON saga_events(timestamp);
 
 ### Message Authentication
 
-```java
+```kotlin
 @Configuration
-public class MessageSecurityConfig {
+class MessageSecurityConfig {
     
     @Bean
-    public MessageSigningInterceptor messageSigningInterceptor() {
-        return new MessageSigningInterceptor(secretKey);
+    fun messageSigningInterceptor(): MessageSigningInterceptor {
+        return MessageSigningInterceptor(secretKey);
     }
 }
 
-public class MessageSigningInterceptor implements ProducerInterceptor<String, Object> {
+class MessageSigningInterceptor implements ProducerInterceptor<String, Object> {
     
     @Override
     public ProducerRecord<String, Object> onSend(ProducerRecord<String, Object> record) {
@@ -1188,10 +1188,10 @@ public class MessageSigningInterceptor implements ProducerInterceptor<String, Ob
 
 ### Audit Logging
 
-```java
+```kotlin
 @Aspect
 @Component
-public class SagaAuditAspect {
+class SagaAuditAspect {
     
     @Around("@annotation(SagaOperation)")
     public Object auditSagaOperation(ProceedingJoinPoint joinPoint) throws Throwable {
@@ -1225,10 +1225,10 @@ public class SagaAuditAspect {
 
 **Solution**: Use persistent messages and acknowledgments.
 
-```java
+```kotlin
 @Bean
 public ProducerFactory<String, Object> producerFactory() {
-    Map<String, Object> config = new HashMap<>();
+    Map<String, Object> config = mutableMapOf();
     config.put(ProducerConfig.ACKS_CONFIG, "all");
     config.put(ProducerConfig.RETRIES_CONFIG, 3);
     config.put(ProducerConfig.ENABLE_IDEMPOTENCE_CONFIG, true);
@@ -1242,13 +1242,13 @@ public ProducerFactory<String, Object> producerFactory() {
 
 **Solution**: Implement idempotency with deduplication.
 
-```java
+```kotlin
 @Service
-public class DeduplicationService {
+class DeduplicationService {
     
     private final Set<String> processedMessageIds = ConcurrentHashMap.newKeySet();
     
-    public boolean isDuplicate(String messageId) {
+    fun isDuplicate(String messageId): boolean {
         return !processedMessageIds.add(messageId);
     }
 }
@@ -1260,9 +1260,9 @@ public class DeduplicationService {
 
 **Solution**: Use event sourcing or state reconciliation.
 
-```java
+```kotlin
 @Scheduled(fixedDelay = 60000)
-public void reconcileSagaStates() {
+fun reconcileSagaStates(): void {
     List<SagaState> processingSagas = 
         sagaStateRepository.findByStatus(SagaStatus.PROCESSING);
     

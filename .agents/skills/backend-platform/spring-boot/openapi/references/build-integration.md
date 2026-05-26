@@ -193,7 +193,7 @@ generate-docs:
 
 ### OpenAPI Specification Validation
 
-```java
+```kotlin
 import org.springdoc.core.utils.SpringDocUtils;
 import static org.junit.jupiter.api.Assertions.*;
 
@@ -201,7 +201,7 @@ import static org.junit.jupiter.api.Assertions.*;
 class OpenApiDocumentationTest {
 
     @Autowired
-    private OpenApiContract openApiContract;
+    private var openApiContract: OpenApiContract
 
     @Test
     void validateOpenApiSpec() {
@@ -229,7 +229,7 @@ class OpenApiDocumentationTest {
 
 ### Schema Validation Tests
 
-```java
+```kotlin
 @Test
 void validateBookSchema() {
     OpenAPI openAPI = openApiContract.getOpenApi();
@@ -291,21 +291,21 @@ After adding the dependency:
 
 ### Custom Redoc Configuration
 
-```java
+```kotlin
 @Bean
-public OpenAPI openAPI() {
-    return new OpenAPI()
-        .info(new Info()
+fun openAPI(): OpenAPI {
+    return OpenAPI()
+        .info(Info()
             .title("API Documentation")
             .version("1.0.0")
         );
 }
 
 @Configuration
-public class RedocConfig {
+class RedocConfig {
 
     @Bean
-    public IndexPageCustomizer indexPageCustomizer() {
+    fun indexPageCustomizer(): IndexPageCustomizer {
         return indexHtml -> indexHtml.replace(
             "<title>",
             "<link rel='stylesheet' href='/webjars/redoc/redoc.css'><script src='/webjars/redoc/redoc.standalone.js'></script><title>"

@@ -6,8 +6,8 @@
 
 Execute multiple times with same result:
 
-```java
-public void cancelPayment(String paymentId) {
+```kotlin
+fun cancelPayment(String paymentId): void {
     Payment payment = paymentRepository.findById(paymentId)
         .orElse(null);
 
@@ -32,13 +32,13 @@ public void cancelPayment(String paymentId) {
 
 Design operations to handle retries without side effects:
 
-```java
+```kotlin
 @Retryable(
     value = {TransientException.class},
     maxAttempts = 3,
     backoff = @Backoff(delay = 1000, multiplier = 2)
 )
-public void releaseInventory(String itemId, int quantity) {
+fun releaseInventory(String itemId, int quantity): void {
     // Use set operations for idempotency
     InventoryItem item = inventoryRepository.findById(itemId)
         .orElseThrow();
@@ -54,19 +54,19 @@ public void releaseInventory(String itemId, int quantity) {
 
 Undo completed steps in reverse order:
 
-```java
+```kotlin
 @SagaEventHandler(associationProperty = "orderId")
-public void handle(PaymentFailedEvent event) {
+fun handle(PaymentFailedEvent event): void {
     logger.error("Payment failed, initiating compensation");
 
     // Step 1: Cancel shipment preparation
-    commandGateway.send(new CancelShipmentCommand(event.getOrderId()));
+    commandGateway.send(CancelShipmentCommand(event.getOrderId()));
 
     // Step 2: Release inventory
-    commandGateway.send(new ReleaseInventoryCommand(event.getOrderId()));
+    commandGateway.send(ReleaseInventoryCommand(event.getOrderId()));
 
     // Step 3: Cancel order
-    commandGateway.send(new CancelOrderCommand(event.getOrderId()));
+    commandGateway.send(CancelOrderCommand(event.getOrderId()));
 
     end();
 }
@@ -76,9 +76,9 @@ public void handle(PaymentFailedEvent event) {
 
 Retry failed operation with exponential backoff:
 
-```java
+```kotlin
 @SagaEventHandler(associationProperty = "orderId")
-public void handle(PaymentTransientFailureEvent event) {
+fun handle(PaymentTransientFailureEvent event): void {
     if (event.getRetryCount() < MAX_RETRIES) {
         // Retry payment with backoff
         ProcessPaymentCommand retryCommand = new ProcessPaymentCommand(
@@ -98,21 +98,21 @@ public void handle(PaymentTransientFailureEvent event) {
 
 Prevent concurrent modifications during saga execution:
 
-```java
+```kotlin
 @Entity
-public class Order {
+class Order {
     @Id
-    private String orderId;
+    private var orderId: String
 
     @Enumerated(EnumType.STRING)
-    private OrderStatus status;
+    private var status: OrderStatus
 
     @Version
-    private Long version;
+    private var version: Long
 
-    private Instant lockedUntil;
+    private var lockedUntil: Instant
 
-    public boolean tryLock(Duration lockDuration) {
+    fun tryLock(Duration lockDuration): boolean {
         if (isLocked()) {
             return false;
         }
@@ -120,12 +120,12 @@ public class Order {
         return true;
     }
 
-    public boolean isLocked() {
+    fun isLocked(): boolean {
         return lockedUntil != null &&
                Instant.now().isBefore(lockedUntil);
     }
 
-    public void unlock() {
+    fun unlock(): void {
         this.lockedUntil = null;
     }
 }
@@ -133,17 +133,17 @@ public class Order {
 
 ## Compensation in Axon Framework
 
-```java
+```kotlin
 @Saga
-public class OrderSaga {
+class OrderSaga {
 
-    private String orderId;
-    private String paymentId;
-    private String inventoryId;
+    private var orderId: String
+    private var paymentId: String
+    private var inventoryId: String
     private boolean compensating = false;
 
     @SagaEventHandler(associationProperty = "orderId")
-    public void handle(InventoryReservationFailedEvent event) {
+    fun handle(InventoryReservationFailedEvent event): void {
         logger.error("Inventory reservation failed");
         compensating = true;
 
@@ -159,7 +159,7 @@ public class OrderSaga {
     }
 
     @SagaEventHandler(associationProperty = "orderId")
-    public void handle(PaymentRefundedEvent event) {
+    fun handle(PaymentRefundedEvent event): void {
         if (!compensating) return;
 
         logger.info("Payment refunded, cancelling order");
@@ -175,7 +175,7 @@ public class OrderSaga {
 
     @EndSaga
     @SagaEventHandler(associationProperty = "orderId")
-    public void handle(OrderCancelledEvent event) {
+    fun handle(OrderCancelledEvent event): void {
         logger.info("Saga completed with compensation");
     }
 }
@@ -185,13 +185,13 @@ public class OrderSaga {
 
 Handle cases where compensation itself fails:
 
-```java
+```kotlin
 @Service
-public class CompensationService {
+class CompensationService {
 
-    private final DeadLetterQueueService dlqService;
+    private val dlqService: DeadLetterQueueService
 
-    public void handleCompensationFailure(String sagaId, String step, Exception cause) {
+    fun handleCompensationFailure(String sagaId, String step, Exception cause): void {
         logger.error("Compensation failed for saga {} at step {}", sagaId, step, cause);
 
         // Send to dead letter queue for manual intervention
@@ -215,16 +215,16 @@ public class CompensationService {
 
 Verify that compensation produces expected results:
 
-```java
+```kotlin
 @Test
 void shouldCompensateWhenPaymentFails() {
     String orderId = "order-123";
     String paymentId = "payment-456";
 
     // Arrange: execute payment
-    Payment payment = new Payment(paymentId, orderId, BigDecimal.TEN);
+    Payment payment = Payment(paymentId, orderId, BigDecimal.TEN);
     paymentRepository.save(payment);
-    orderRepository.save(new Order(orderId, OrderStatus.PENDING));
+    orderRepository.save(Order(orderId, OrderStatus.PENDING));
 
     // Act: compensate
     paymentService.cancelPayment(paymentId);
@@ -241,11 +241,11 @@ void shouldCompensateWhenPaymentFails() {
 
 ### Inventory Release
 
-```java
+```kotlin
 @Service
-public class InventoryService {
+class InventoryService {
 
-    public void releaseInventory(String orderId) {
+    fun releaseInventory(String orderId): void {
         Order order = orderRepository.findById(orderId).orElseThrow();
 
         order.getItems().forEach(item -> {
@@ -262,11 +262,11 @@ public class InventoryService {
 
 ### Payment Refund
 
-```java
+```kotlin
 @Service
-public class PaymentService {
+class PaymentService {
 
-    public void refundPayment(String paymentId) {
+    fun refundPayment(String paymentId): void {
         Payment payment = paymentRepository.findById(paymentId)
             .orElseThrow();
 
@@ -281,11 +281,11 @@ public class PaymentService {
 
 ### Order Cancellation
 
-```java
+```kotlin
 @Service
-public class OrderService {
+class OrderService {
 
-    public void cancelOrder(String orderId, String reason) {
+    fun cancelOrder(String orderId, String reason): void {
         Order order = orderRepository.findById(orderId)
             .orElseThrow();
 

@@ -4,7 +4,7 @@
 
 ### Configuration Class
 
-```java
+```kotlin
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import io.swagger.v3.oas.models.Components;
 import io.swagger.v3.oas.models.OpenAPI;
@@ -13,13 +13,13 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
 @Configuration
-public class OpenAPISecurityConfig {
+class OpenAPISecurityConfig {
 
     @Bean
-    public OpenAPI customOpenAPI() {
-        return new OpenAPI()
-            .components(new Components()
-                .addSecuritySchemes("bearer-jwt", new SecurityScheme()
+    fun customOpenAPI(): OpenAPI {
+        return OpenAPI()
+            .components(Components()
+                .addSecuritySchemes("bearer-jwt", SecurityScheme()
                     .type(SecurityScheme.Type.HTTP)
                     .scheme("bearer")
                     .bearerFormat("JWT")
@@ -32,22 +32,22 @@ public class OpenAPISecurityConfig {
 
 ### Apply to Controllers
 
-```java
+```kotlin
 @RestController
 @RequestMapping("/api/books")
 @SecurityRequirement(name = "bearer-jwt")
 @Tag(name = "Book", description = "Protected book management APIs")
-public class BookController {
+class BookController {
     // All endpoints require JWT authentication
 }
 ```
 
 ### Apply to Specific Endpoints
 
-```java
+```kotlin
 @RestController
 @RequestMapping("/api/books")
-public class BookController {
+class BookController {
 
     @GetMapping("/public")
     @Operation(summary = "Public endpoint - no auth required")
@@ -67,22 +67,22 @@ public class BookController {
 
 ### Authorization Code Flow
 
-```java
+```kotlin
 import io.swagger.v3.oas.models.security.OAuthFlow;
 import io.swagger.v3.oas.models.security.OAuthFlows;
 import io.swagger.v3.oas.models.security.Scopes;
 
 @Bean
-public OpenAPI oauth2OpenAPI() {
-    return new OpenAPI()
-        .components(new Components()
-            .addSecuritySchemes("oauth2", new SecurityScheme()
+fun oauth2OpenAPI(): OpenAPI {
+    return OpenAPI()
+        .components(Components()
+            .addSecuritySchemes("oauth2", SecurityScheme()
                 .type(SecurityScheme.Type.OAUTH2)
-                .flows(new OAuthFlows()
-                    .authorizationCode(new OAuthFlow()
+                .flows(OAuthFlows()
+                    .authorizationCode(OAuthFlow()
                         .authorizationUrl("https://auth.example.com/oauth/authorize")
                         .tokenUrl("https://auth.example.com/oauth/token")
-                        .scopes(new Scopes()
+                        .scopes(Scopes()
                             .addString("read", "Read access to resources")
                             .addString("write", "Write access to resources")
                             .addString("admin", "Administrative access")
@@ -96,17 +96,17 @@ public OpenAPI oauth2OpenAPI() {
 
 ### Client Credentials Flow
 
-```java
+```kotlin
 @Bean
-public OpenAPI clientCredentialsOpenAPI() {
-    return new OpenAPI()
-        .components(new Components()
-            .addSecuritySchemes("oauth2-client-creds", new SecurityScheme()
+fun clientCredentialsOpenAPI(): OpenAPI {
+    return OpenAPI()
+        .components(Components()
+            .addSecuritySchemes("oauth2-client-creds", SecurityScheme()
                 .type(SecurityScheme.Type.OAUTH2)
-                .flows(new OAuthFlows()
-                    .clientCredentials(new OAuthFlow()
+                .flows(OAuthFlows()
+                    .clientCredentials(OAuthFlow()
                         .tokenUrl("https://auth.example.com/oauth/token")
-                        .scopes(new Scopes()
+                        .scopes(Scopes()
                             .addString("api.read", "Read API access")
                             .addString("api.write", "Write API access")
                         )
@@ -119,12 +119,12 @@ public OpenAPI clientCredentialsOpenAPI() {
 
 ## Basic Authentication
 
-```java
+```kotlin
 @Bean
-public OpenAPI basicAuthOpenAPI() {
-    return new OpenAPI()
-        .components(new Components()
-            .addSecuritySchemes("basicAuth", new SecurityScheme()
+fun basicAuthOpenAPI(): OpenAPI {
+    return OpenAPI()
+        .components(Components()
+            .addSecuritySchemes("basicAuth", SecurityScheme()
                 .type(SecurityScheme.Type.HTTP)
                 .scheme("basic")
                 .description("Basic HTTP authentication")
@@ -134,19 +134,19 @@ public OpenAPI basicAuthOpenAPI() {
 
 @RestController
 @SecurityRequirement(name = "basicAuth")
-public class AdminController {
+class AdminController {
     // Endpoints protected by Basic Auth
 }
 ```
 
 ## API Key Authentication
 
-```java
+```kotlin
 @Bean
-public OpenAPI apiKeyOpenAPI() {
-    return new OpenAPI()
-        .components(new Components()
-            .addSecuritySchemes("api-key", new SecurityScheme()
+fun apiKeyOpenAPI(): OpenAPI {
+    return OpenAPI()
+        .components(Components()
+            .addSecuritySchemes("api-key", SecurityScheme()
                 .type(SecurityScheme.Type.APIKEY)
                 .in(SecurityScheme.In.HEADER)
                 .name("X-API-Key")
@@ -158,17 +158,17 @@ public OpenAPI apiKeyOpenAPI() {
 
 ## Multiple Security Schemes
 
-```java
+```kotlin
 @Bean
-public OpenAPI multipleSecuritySchemes() {
-    return new OpenAPI()
-        .components(new Components()
-            .addSecuritySchemes("bearer-jwt", new SecurityScheme()
+fun multipleSecuritySchemes(): OpenAPI {
+    return OpenAPI()
+        .components(Components()
+            .addSecuritySchemes("bearer-jwt", SecurityScheme()
                 .type(SecurityScheme.Type.HTTP)
                 .scheme("bearer")
                 .bearerFormat("JWT")
             )
-            .addSecuritySchemes("api-key", new SecurityScheme()
+            .addSecuritySchemes("api-key", SecurityScheme()
                 .type(SecurityScheme.Type.APIKEY)
                 .in(SecurityScheme.In.HEADER)
                 .name("X-API-Key")
@@ -179,7 +179,7 @@ public OpenAPI multipleSecuritySchemes() {
 
 ### Apply Multiple Schemes (OR logic)
 
-```java
+```kotlin
 @Operation(
     summary = "Endpoint with multiple auth options",
     security = {
@@ -195,13 +195,13 @@ public ResponseEntity<?> secureEndpoint() {
 
 ## Conditional Security Requirements
 
-```java
+```kotlin
 @Operation(
     summary = "Public endpoint (no security)",
     security = {}
 )
 @GetMapping("/public")
-public String publicEndpoint() {
+fun publicEndpoint(): String {
     return "Public access";
 }
 
@@ -210,7 +210,7 @@ public String publicEndpoint() {
     security = @SecurityRequirement(name = "bearer-jwt")
 )
 @GetMapping("/admin")
-public String adminEndpoint() {
+fun adminEndpoint(): String {
     return "Admin access";
 }
 ```
@@ -224,21 +224,21 @@ public String adminEndpoint() {
 5. **Test in Swagger UI**: Verify auth flows work before documenting
 6. **Use environment-specific URLs**: Different auth URLs for dev/staging/prod
 
-```java
+```kotlin
 @Value("${springdoc.oauth2.auth-url:https://auth.example.com/oauth/authorize}")
-private String authUrl;
+private var authUrl: String
 
 @Bean
-public OpenAPI environmentAwareOpenAPI() {
-    return new OpenAPI()
-        .components(new Components()
-            .addSecuritySchemes("oauth2", new SecurityScheme()
+fun environmentAwareOpenAPI(): OpenAPI {
+    return OpenAPI()
+        .components(Components()
+            .addSecuritySchemes("oauth2", SecurityScheme()
                 .type(SecurityScheme.Type.OAUTH2)
-                .flows(new OAuthFlows()
-                    .authorizationCode(new OAuthFlow()
+                .flows(OAuthFlows()
+                    .authorizationCode(OAuthFlow()
                         .authorizationUrl(authUrl)
                         .tokenUrl("${springdoc.oauth2.token-url}")
-                        .scopes(new Scopes()
+                        .scopes(Scopes()
                             .addString("read", "Read access")
                         )
                     )

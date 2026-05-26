@@ -6,197 +6,188 @@ Detailed patterns for creating tools, prompt templates, and configuring Spring B
 
 ### Database Tool
 
-```java
+```kotlin
 @Component
-public class DatabaseTools {
-
-    private final JdbcTemplate jdbcTemplate;
-
-    public DatabaseTools(JdbcTemplate jdbcTemplate) {
-        this.jdbcTemplate = jdbcTemplate;
-    }
+class DatabaseTools(
+    private val jdbcTemplate: JdbcTemplate
+) {
 
     @Tool(description = "Execute a safe read-only SQL query")
-    public List<Map<String, Object>> executeQuery(
-            @ToolParam("SQL SELECT query") String query,
-            @ToolParam(value = "Query parameters", required = false) Map<String, Object> params) {
-
-        if (!query.trim().toUpperCase().startsWith("SELECT")) {
-            throw new IllegalArgumentException("Only SELECT queries are allowed");
+    fun executeQuery(
+        @ToolParam("SQL SELECT query") query: String,
+        @ToolParam(value = "Query parameters", required = false) params: Map<String, Any>?
+    ): List<Map<String, Any>> {
+        require(query.trim().uppercase().startsWith("SELECT")) {
+            "Only SELECT queries are allowed"
         }
-        return jdbcTemplate.queryForList(query, params);
+        return jdbcTemplate.queryForList(query, params)
     }
 
     @Tool(description = "Get table schema information")
-    public TableSchema getTableSchema(@ToolParam("Table name") String tableName) {
-        String sql = "SELECT column_name, data_type " +
-                     "FROM information_schema.columns WHERE table_name = ?";
-        List<Map<String, Object>> columns = jdbcTemplate.queryForList(sql, tableName);
-        return new TableSchema(tableName, columns);
+    fun getTableSchema(@ToolParam("Table name") tableName: String): TableSchema {
+        val sql = """
+            SELECT column_name, data_type 
+            FROM information_schema.columns 
+            WHERE table_name = ?
+        """.trimIndent()
+        val columns = jdbcTemplate.queryForList(sql, tableName)
+        return TableSchema(tableName, columns)
     }
 }
 
-record TableSchema(String tableName, List<Map<String, Object>> columns) {}
+data class TableSchema(val tableName: String, val columns: List<Map<String, Any>>)
 ```
 
 ### API Integration Tool
 
-```java
+```kotlin
 @Component
-public class ApiTools {
+class ApiTools(webClientBuilder: WebClient.Builder) {
 
-    private final WebClient webClient;
-
-    public ApiTools(WebClient.Builder webClientBuilder) {
-        this.webClient = webClientBuilder.build();
-    }
+    private val webClient: WebClient = webClientBuilder.build()
 
     @Tool(description = "Make HTTP GET request to an API")
-    public ApiResponse callApi(
-            @ToolParam("API URL") String url,
-            @ToolParam(value = "Headers as JSON string", required = false) String headersJson) {
-
-        try { new URL(url); } catch (MalformedURLException e) {
-            throw new IllegalArgumentException("Invalid URL format");
+    fun callApi(
+        @ToolParam("API URL") url: String,
+        @ToolParam(value = "Headers as JSON string", required = false) headersJson: String?
+    ): ApiResponse {
+        runCatching { URL(url) }.getOrElse {
+            throw IllegalArgumentException("Invalid URL format")
         }
 
-        HttpHeaders headers = new HttpHeaders();
-        if (headersJson != null && !headersJson.isBlank()) {
-            try {
-                Map<String, String> map = new ObjectMapper().readValue(headersJson, Map.class);
-                map.forEach(headers::add);
-            } catch (JsonProcessingException e) {
-                throw new IllegalArgumentException("Invalid headers JSON");
+        val headers = HttpHeaders()
+        if (!headersJson.isNullOrBlank()) {
+            runCatching {
+                val map = ObjectMapper().readValue(headersJson, Map::class.java) as Map<String, String>
+                map.forEach { (key, value) -> headers.add(key, value) }
+            }.getOrElse {
+                throw IllegalArgumentException("Invalid headers JSON")
             }
         }
 
         return webClient.get()
-                .uri(url)
-                .headers(h -> h.addAll(headers))
-                .retrieve()
-                .bodyToMono(ApiResponse.class)
-                .block();
+            .uri(url)
+            .headers { it.addAll(headers) }
+            .retrieve()
+            .bodyToMono(ApiResponse::class.java)
+            .block()!!
     }
 }
 
-record ApiResponse(int status, Map<String, Object> body, HttpHeaders headers) {}
+data class ApiResponse(val status: Int, val body: Map<String, Any>, val headers: HttpHeaders)
 ```
 
 ### File System Tool
 
-```java
+```kotlin
 @Component
-public class FileSystemTools {
+class FileSystemTools(@Value("\${mcp.file.base-path:/tmp}") basePath: String) {
 
-    private final Path basePath;
-
-    public FileSystemTools(@Value("${mcp.file.base-path:/tmp}") String basePath) {
-        this.basePath = Paths.get(basePath).normalize();
-    }
+    private val basePath: Path = Paths.get(basePath).normalize()
 
     @Tool(description = "List files in a directory")
-    public List<FileInfo> listFiles(
-            @ToolParam(value = "Directory path (relative to base)", required = false) String directory) {
+    fun listFiles(
+        @ToolParam(value = "Directory path (relative to base)", required = false) directory: String?
+    ): List<FileInfo> {
+        val targetPath = resolvePath(directory ?: "")
+        validatePath(targetPath)
 
-        Path targetPath = resolvePath(directory != null ? directory : "");
-        validatePath(targetPath);
-
-        try (Stream<Path> stream = Files.list(targetPath)) {
-            return stream.filter(Files::isRegularFile).map(this::toFileInfo).toList();
-        } catch (IOException e) {
-            throw new RuntimeException("Failed to list files", e);
-        }
+        return runCatching {
+            Files.list(targetPath).use { stream ->
+                stream.filter { Files.isRegularFile(it) }
+                    .map { toFileInfo(it) }
+                    .toList()
+            }
+        }.getOrElse { throw RuntimeException("Failed to list files", it) }
     }
 
     @Tool(description = "Read file contents")
-    public FileContent readFile(
-            @ToolParam("File path (relative to base)") String filePath,
-            @ToolParam(value = "Maximum lines to read", required = false) Integer maxLines) {
+    fun readFile(
+        @ToolParam("File path (relative to base)") filePath: String,
+        @ToolParam(value = "Maximum lines to read", required = false) maxLines: Int?
+    ): FileContent {
+        val targetPath = resolvePath(filePath)
+        validatePath(targetPath)
 
-        Path targetPath = resolvePath(filePath);
-        validatePath(targetPath);
-
-        try {
-            List<String> lines = maxLines != null
-                    ? Files.lines(targetPath).limit(maxLines).toList()
-                    : Files.readAllLines(targetPath);
-            return new FileContent(targetPath.toString(), lines);
-        } catch (IOException e) {
-            throw new RuntimeException("Failed to read file", e);
-        }
+        return runCatching {
+            val lines = if (maxLines != null) {
+                Files.lines(targetPath).use { it.limit(maxLines.toLong()).toList() }
+            } else {
+                Files.readAllLines(targetPath)
+            }
+            FileContent(targetPath.toString(), lines)
+        }.getOrElse { throw RuntimeException("Failed to read file", it) }
     }
 
-    private Path resolvePath(String relativePath) {
-        return basePath.resolve(relativePath).normalize();
+    private fun resolvePath(relativePath: String): Path =
+        basePath.resolve(relativePath).normalize()
+
+    private fun validatePath(path: Path) {
+        require(path.startsWith(basePath)) { "Path traversal not allowed" }
     }
 
-    private void validatePath(Path path) {
-        if (!path.startsWith(basePath)) {
-            throw new SecurityException("Path traversal not allowed");
-        }
-    }
-
-    private FileInfo toFileInfo(Path path) {
-        try {
-            return new FileInfo(basePath.relativize(path).toString(),
-                    Files.size(path), Files.getLastModifiedTime(path).toInstant());
-        } catch (IOException e) {
-            return new FileInfo(path.toString(), 0, Instant.now());
-        }
+    private fun toFileInfo(path: Path): FileInfo = runCatching {
+        FileInfo(
+            basePath.relativize(path).toString(),
+            Files.size(path),
+            Files.getLastModifiedTime(path).toInstant()
+        )
+    }.getOrElse {
+        FileInfo(path.toString(), 0, Instant.now())
     }
 }
 
-record FileInfo(String path, long size, Instant lastModified) {}
-record FileContent(String path, List<String> lines) {}
+data class FileInfo(val path: String, val size: Long, val lastModified: Instant)
+data class FileContent(val path: String, val lines: List<String>)
 ```
 
 ## Prompt Template Patterns
 
-```java
+```kotlin
 @Component
-public class CodeReviewPrompts {
+class CodeReviewPrompts {
 
     @PromptTemplate(
         name = "java-code-review",
         description = "Review Java code for best practices and issues"
     )
-    public Prompt createJavaCodeReviewPrompt(
-            @PromptParam("code") String code,
-            @PromptParam(value = "focusAreas", required = false) List<String> focusAreas) {
-
-        String focus = focusAreas != null ? String.join(", ", focusAreas) : "general best practices";
+    fun createJavaCodeReviewPrompt(
+        @PromptParam("code") code: String,
+        @PromptParam(value = "focusAreas", required = false) focusAreas: List<String>?
+    ): Prompt {
+        val focus = focusAreas?.joinToString(", ") ?: "general best practices"
         return Prompt.builder()
-                .system("You are an expert Java code reviewer with 20 years of experience.")
-                .user("""
-                    Review the following Java code for %s:
-                    ```java
-                    %s
-                    ```
-                    Format: ## Critical Issues | ## Warnings | ## Suggestions | ## Positive Aspects
-                    """.formatted(focus, code))
-                .build();
+            .system("You are an expert Java code reviewer with 20 years of experience.")
+            .user("""
+                Review the following Java code for $focus:
+                ```java
+                $code
+                ```
+                Format: ## Critical Issues | ## Warnings | ## Suggestions | ## Positive Aspects
+            """.trimIndent())
+            .build()
     }
 
     @PromptTemplate(
         name = "generate-unit-tests",
         description = "Generate comprehensive unit tests for Java code"
     )
-    public Prompt createTestGenerationPrompt(
-            @PromptParam("code") String code,
-            @PromptParam("className") String className,
-            @PromptParam(value = "testingFramework", required = false) String framework) {
-
-        String testFramework = framework != null ? framework : "JUnit 5";
+    fun createTestGenerationPrompt(
+        @PromptParam("code") code: String,
+        @PromptParam("className") className: String,
+        @PromptParam(value = "testingFramework", required = false) framework: String?
+    ): Prompt {
+        val testFramework = framework ?: "JUnit 5"
         return Prompt.builder()
-                .system("You are an expert in test-driven development.")
-                .user("""
-                    Generate comprehensive unit tests for class %s using %s:
-                    ```java
-                    %s
-                    ```
-                    Requirements: test all public methods, include edge cases, use AAA pattern, mock dependencies.
-                    """.formatted(className, testFramework, code))
-                .build();
+            .system("You are an expert in test-driven development.")
+            .user("""
+                Generate comprehensive unit tests for class $className using $testFramework:
+                ```kotlin
+                $code
+                ```
+                Requirements: test all public methods, include edge cases, use AAA pattern, mock dependencies.
+            """.trimIndent())
+            .build()
     }
 }
 ```
@@ -205,70 +196,65 @@ public class CodeReviewPrompts {
 
 For low-level function calling without annotations:
 
-```java
+```kotlin
 @Configuration
-public class FunctionConfig {
+class FunctionConfig {
 
     @Bean
-    public FunctionCallback weatherFunction() {
-        return FunctionCallback.builder()
-                .function("getCurrentWeather", new WeatherService())
-                .description("Get the current weather for a location")
-                .inputType(WeatherRequest.class)
-                .build();
-    }
+    fun weatherFunction(): FunctionCallback =
+        FunctionCallback.builder()
+            .function("getCurrentWeather", WeatherService())
+            .description("Get the current weather for a location")
+            .inputType(WeatherRequest::class.java)
+            .build()
 
     @Bean
-    public FunctionCallback calculatorFunction() {
-        return FunctionCallbackWrapper.builder(new Calculator())
-                .withName("calculate")
-                .withDescription("Perform mathematical calculations")
-                .build();
-    }
+    fun calculatorFunction(): FunctionCallback =
+        FunctionCallbackWrapper.builder(Calculator())
+            .withName("calculate")
+            .withDescription("Perform mathematical calculations")
+            .build()
 }
 
-class WeatherService implements Function<WeatherRequest, WeatherResponse> {
-    @Override
-    public WeatherResponse apply(WeatherRequest request) {
-        return new WeatherResponse(request.location(), 72, "Sunny");
-    }
+class WeatherService : Function<WeatherRequest, WeatherResponse> {
+    override fun apply(request: WeatherRequest): WeatherResponse =
+        WeatherResponse(request.location, 72.0, "Sunny")
 }
 
-record WeatherRequest(String location) {}
-record WeatherResponse(String location, double temperature, String condition) {}
+data class WeatherRequest(val location: String)
+data class WeatherResponse(val location: String, val temperature: Double, val condition: String)
 ```
 
 ## Spring Boot Auto-Configuration
 
-```java
+```kotlin
 @Configuration
-@AutoConfigureAfter({WebMvcAutoConfiguration.class})
-@ConditionalOnClass({McpServer.class, ChatModel.class})
-@ConditionalOnProperty(name = "spring.ai.mcp.enabled", havingValue = "true", matchIfMissing = true)
-public class McpAutoConfiguration {
+@AutoConfigureAfter(WebMvcAutoConfiguration::class)
+@ConditionalOnClass(McpServer::class, ChatModel::class)
+@ConditionalOnProperty(name = ["spring.ai.mcp.enabled"], havingValue = "true", matchIfMissing = true)
+class McpAutoConfiguration {
 
     @Bean
     @ConditionalOnMissingBean
-    public McpServer mcpServer(
-            List<FunctionCallback> functionCallbacks,
-            List<PromptTemplate> promptTemplates,
-            McpServerProperties properties) {
+    fun mcpServer(
+        functionCallbacks: List<FunctionCallback>,
+        promptTemplates: List<PromptTemplate>,
+        properties: McpServerProperties
+    ): McpServer {
+        val builder = McpServer.builder()
+            .serverInfo("spring-ai-mcp", "1.0.0")
+            .transport(properties.transport.create())
 
-        McpServer.Builder builder = McpServer.builder()
-                .serverInfo("spring-ai-mcp", "1.0.0")
-                .transport(properties.getTransport().create());
+        functionCallbacks.forEach { builder.tool(Tool.fromFunctionCallback(it)) }
+        promptTemplates.forEach { builder.prompt(Prompt.fromTemplate(it)) }
 
-        functionCallbacks.forEach(cb -> builder.tool(Tool.fromFunctionCallback(cb)));
-        promptTemplates.forEach(t -> builder.prompt(Prompt.fromTemplate(t)));
-
-        return builder.build();
+        return builder.build()
     }
 
     @Bean
-    @ConditionalOnProperty(name = "spring.ai.mcp.actuator.enabled", havingValue = "true")
-    public McpHealthIndicator mcpHealthIndicator(McpServer mcpServer) {
-        return new McpHealthIndicator(mcpServer);
-    }
+    @ConditionalOnProperty(name = ["spring.ai.mcp.actuator.enabled"], havingValue = "true")
+    fun mcpHealthIndicator(mcpServer: McpServer): McpHealthIndicator =
+        McpHealthIndicator(mcpServer)
 }
 ```
 
@@ -347,22 +333,20 @@ logging:
 
 ### Custom Server Configuration (Interceptors)
 
-```java
+```kotlin
 @Configuration
-public class CustomMcpConfig {
+class CustomMcpConfig {
 
     @Bean
-    public McpServerCustomizer mcpServerCustomizer(MeterRegistry meterRegistry) {
-        return server -> {
-            server.addToolInterceptor((tool, args, chain) -> {
-                long start = System.currentTimeMillis();
-                Object result = chain.execute(tool, args);
-                long duration = System.currentTimeMillis() - start;
-                meterRegistry.timer("mcp.tool.duration", "tool", tool.name())
-                        .record(duration, TimeUnit.MILLISECONDS);
-                return result;
-            });
-        };
+    fun mcpServerCustomizer(meterRegistry: MeterRegistry): McpServerCustomizer = McpServerCustomizer { server ->
+        server.addToolInterceptor { tool, args, chain ->
+            val start = System.currentTimeMillis()
+            val result = chain.execute(tool, args)
+            val duration = System.currentTimeMillis() - start
+            meterRegistry.timer("mcp.tool.duration", "tool", tool.name())
+                .record(duration, TimeUnit.MILLISECONDS)
+            result
+        }
     }
 }
 ```
