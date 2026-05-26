@@ -18,9 +18,12 @@ dependencies {
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-reactive:1.7.3")
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-reactor:1.7.3")
 
-    // Spring Boot dependencies (pinned to align with server/smp)
-    implementation("org.springframework.boot:spring-boot-starter-webflux:4.0.6")
-    implementation("io.projectreactor.kotlin:reactor-kotlin-extensions:1.2.2")
+    // Spring Boot BOM for dependency management
+    implementation(platform("org.springframework.boot:spring-boot-dependencies:4.0.6"))
+
+    // Spring Boot dependencies (versions managed by BOM)
+    implementation("org.springframework.boot:spring-boot-starter-webflux")
+    implementation("io.projectreactor.kotlin:reactor-kotlin-extensions")
 
     // AWS SDK v2 async - kept optional, use minimal for now
     implementation("software.amazon.awssdk:s3:2.20.15")
@@ -31,7 +34,7 @@ dependencies {
     testImplementation("org.jetbrains.kotlin:kotlin-test-junit5:1.9.10")
     testImplementation("io.mockk:mockk:1.13.7")
     testImplementation("org.testcontainers:testcontainers:1.19.0")
-    testImplementation("org.springframework.boot:spring-boot-starter-test:4.0.6")
+    testImplementation("org.springframework.boot:spring-boot-starter-test")
     testImplementation("org.testcontainers:junit-jupiter:1.19.0")
     testImplementation("org.testcontainers:localstack:1.19.0")
     testRuntimeOnly("org.junit.jupiter:junit-jupiter-engine:5.10.0")

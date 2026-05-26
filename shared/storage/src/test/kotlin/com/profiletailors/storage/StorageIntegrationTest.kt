@@ -13,7 +13,7 @@ import kotlin.test.assertTrue
 @TestPropertySource(properties = [
     "platform.storage.default=local-bucket",
     "platform.storage.providers.local-bucket.type=local",
-    "platform.storage.providers.local-bucket.base-path=/tmp/smp-tests",
+    "platform.storage.providers.local-bucket.base-path=\${java.io.tmpdir}/smp-tests",
     "platform.storage.providers.s3-bucket.type=s3",
     "platform.storage.providers.s3-bucket.bucket=my-s3-bucket",
     "platform.storage.providers.s3-bucket.region=us-east-1",

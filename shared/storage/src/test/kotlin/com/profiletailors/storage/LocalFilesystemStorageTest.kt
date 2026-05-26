@@ -49,9 +49,11 @@ class LocalFilesystemStorageTest {
     @Test
     fun `prevent path traversal on download`(@TempDir tempDir: Path) = runTest {
         val storage = LocalFilesystemStorage(tempDir)
-        
+
         assertThrows<StorageSecurityException> {
-            storage.download("local", "../secret.txt").toList()
+            runBlocking {
+                storage.download("local", "../secret.txt").toList()
+            }
         }
     }
 }

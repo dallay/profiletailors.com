@@ -13,5 +13,6 @@ class StorageContractTest {
     fun `local filesystem upload and download`() = runTest {
         // Use LocalFilesystemStorage to test contract
         // Test in LocalFilesystemStorageTest
+        TODO("Contract test not yet implemented - covered by LocalFilesystemStorageTest")
     }
 }

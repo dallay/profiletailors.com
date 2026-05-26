@@ -23,6 +23,7 @@ import org.reactivestreams.Publisher
 
 import software.amazon.awssdk.services.s3.model.NoSuchKeyException
 import software.amazon.awssdk.services.s3.model.S3Exception
+import software.amazon.awssdk.core.exception.SdkException
 
 open class S3Storage(private val client: S3AsyncClient, private val bucketName: String, private val presigner: S3Presigner) : Storage {
 
@@ -39,9 +40,11 @@ open class S3Storage(private val client: S3AsyncClient, private val bucketName: 
                 .asPublisher()
 
             val body = AsyncRequestBody.fromPublisher(publisher)
-            
+
             client.putObject(request, body).await()
         } catch (e: S3Exception) {
+            throw StorageServiceException("Failed to upload '$key' to bucket '$bucketName'", e)
+        } catch (e: SdkException) {
             throw StorageServiceException("Failed to upload '$key' to bucket '$bucketName'", e)
         }
     }
@@ -55,9 +58,9 @@ open class S3Storage(private val client: S3AsyncClient, private val bucketName: 
 
             val transformer = AsyncResponseTransformer.toPublisher<GetObjectResponse>()
             val future = client.getObject(request, transformer)
-            
+
             val responsePublisher = future.await()
-            
+
             responsePublisher.asFlow().collect { byteBuffer ->
                 val bytes = ByteArray(byteBuffer.remaining())
                 byteBuffer.get(bytes)
@@ -66,6 +69,8 @@ open class S3Storage(private val client: S3AsyncClient, private val bucketName: 
         } catch (e: NoSuchKeyException) {
             throw StorageObjectNotFoundException(bucketName, key)
         } catch (e: S3Exception) {
+            throw StorageServiceException("Failed to download '$key' from bucket '$bucketName'", e)
+        } catch (e: SdkException) {
             throw StorageServiceException("Failed to download '$key' from bucket '$bucketName'", e)
         }
     }
@@ -79,18 +84,34 @@ open class S3Storage(private val client: S3AsyncClient, private val bucketName: 
             client.deleteObject(req).await()
         } catch (e: S3Exception) {
             throw StorageServiceException("Failed to delete '$key' from bucket '$bucketName'", e)
+        } catch (e: SdkException) {
+            throw StorageServiceException("Failed to delete '$key' from bucket '$bucketName'", e)
         }
     }
 
     override suspend fun list(bucket: String, prefix: String): List<String> {
         try {
-            val req = software.amazon.awssdk.services.s3.model.ListObjectsV2Request.builder()
-                .bucket(bucketName)
-                .prefix(prefix)
-                .build()
-            val resp = client.listObjectsV2(req).await()
-            return resp.contents().map { it.key() }
+            val results = mutableListOf<String>()
+            var continuationToken: String? = null
+
+            do {
+                val reqBuilder = software.amazon.awssdk.services.s3.model.ListObjectsV2Request.builder()
+                    .bucket(bucketName)
+                    .prefix(prefix)
+
+                if (continuationToken != null) {
+                    reqBuilder.continuationToken(continuationToken)
+                }
+
+                val resp = client.listObjectsV2(reqBuilder.build()).await()
+                results.addAll(resp.contents().map { it.key() })
+                continuationToken = resp.nextContinuationToken()
+            } while (resp.isTruncated)
+
+            return results
         } catch (e: S3Exception) {
+            throw StorageServiceException("Failed to list objects in bucket '$bucketName' with prefix '$prefix'", e)
+        } catch (e: SdkException) {
             throw StorageServiceException("Failed to list objects in bucket '$bucketName' with prefix '$prefix'", e)
         }
     }
@@ -110,6 +131,8 @@ open class S3Storage(private val client: S3AsyncClient, private val bucketName: 
             val presigned = presigner.presignGetObject(presignRequest)
             return presigned.url().toString()
         } catch (e: S3Exception) {
+            throw StorageServiceException("Failed to generate presigned URL for '$key' in bucket '$bucketName'", e)
+        } catch (e: SdkException) {
             throw StorageServiceException("Failed to generate presigned URL for '$key' in bucket '$bucketName'", e)
         }
     }

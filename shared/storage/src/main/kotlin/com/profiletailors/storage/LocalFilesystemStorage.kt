@@ -22,8 +22,9 @@ class LocalFilesystemStorage(private val basePath: Path) : Storage {
 
     private fun resolveSafe(bucket: String, key: String): Path {
         val normalized = Path.of(key).normalize()
-        val resolved = basePath.resolve(normalized).normalize()
-        if (!resolved.startsWith(basePath)) {
+        val baseBucketPath = basePath.resolve(bucket).normalize()
+        val resolved = baseBucketPath.resolve(normalized).normalize()
+        if (!resolved.startsWith(baseBucketPath)) {
             throw StorageSecurityException("Path traversal detected for key: $key")
         }
         return resolved
@@ -117,11 +118,14 @@ class LocalFilesystemStorage(private val basePath: Path) : Storage {
     override suspend fun list(bucket: String, prefix: String): List<String> = withContext(Dispatchers.IO) {
         val dir = resolveSafe(bucket, prefix.ifEmpty { "." })
         if (!Files.exists(dir)) return@withContext emptyList()
+        val baseBucketPath = basePath.resolve(bucket).normalize()
         try {
-            return@withContext Files.walk(dir)
-                .filter { Files.isRegularFile(it) }
-                .map { basePath.relativize(it).toString().replace('\\', '/') }
-                .toList()
+            return@withContext Files.walk(dir).use { stream ->
+                stream
+                    .filter { Files.isRegularFile(it) }
+                    .map { baseBucketPath.relativize(it).toString().replace('\\', '/') }
+                    .toList()
+            }
         } catch (e: IOException) {
             throw StorageServiceException("Failed to list objects with prefix: $prefix", e)
         }

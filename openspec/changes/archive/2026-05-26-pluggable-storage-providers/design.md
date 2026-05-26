@@ -47,7 +47,7 @@ Controller/Service requests storage via BucketRegistry.getStorage(name) -> retur
 |------|--------|-------------|
 | openspec/changes/pluggable-storage-providers/design.md | Create | Este archivo de diseño |
 | shared/storage/build.gradle.kts | Create | Nuevo módulo gradle (plugins, dependencies) |
-| settings.gradle.kts | Modify | Incluir module ':shared:storage' en settings si aplica |
+| settings.gradle.kts | Modify | Incluir module ':shared-storage' en settings si aplica |
 | shared/storage/src/main/kotlin/com/profiletailors/storage/Storage.kt | Create | Interfaz principal Storage |
 | shared/storage/src/main/kotlin/com/profiletailors/storage/BucketRegistry.kt | Create | Registry interface + impl |
 | shared/storage/src/main/kotlin/com/profiletailors/storage/LocalFilesystemStorage.kt | Create | Local FS provider implementation |

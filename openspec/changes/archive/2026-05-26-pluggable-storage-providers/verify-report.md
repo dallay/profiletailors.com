@@ -117,7 +117,7 @@ This is a **Docker client version incompatibility** on the verification machine.
 | REQ-03: Coroutines + Flow | Use suspend + Flow primitives | `LocalFilesystemStorageTest > upload and download file` | ✅ COMPLIANT |
 | REQ-04: LocalFS path traversal | Protect against .. attacks | `LocalFilesystemStorageTest > prevent path traversal on upload/download` | ✅ COMPLIANT |
 | REQ-05: S3/S2 presigned URLs | Generate presigned GET URLs | `S3StorageUnitTests > presignGet returns presigned url` | ✅ COMPLIANT |
-| REQ-05: S3/S2 multipart upload | Support large file uploads | `S3StorageUnitTests > upload calls putObject` | ✅ COMPLIANT |
+| REQ-05: S3/S2 multipart upload | Support large file uploads | `S3StorageUnitTests > upload calls putObject` | ⚠️ PARTIAL - Single putObject test does not verify multipart support; need dedicated multipart test or TODO linking to multipart implementation path |
 | REQ-06: Bean injection | defaultStorage bean | `StorageIntegrationTest > should load default storage` | ✅ COMPLIANT |
 | REQ-06: Bean injection | BucketRegistry resolution | `StorageIntegrationTest > should load multiple providers from properties` | ✅ COMPLIANT |
 | Scenario 1: Upload/Download local | Local bucket upload/download | `LocalFilesystemStorageTest > upload and download file` | ✅ COMPLIANT |

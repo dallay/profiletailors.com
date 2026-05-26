@@ -34,6 +34,14 @@ open class StorageAutoConfiguration {
         storageProperties.providers.forEach { (name, props) ->
             map[name] = createProvider(props)
         }
+
+        // Ensure default storage is registered
+        val defaultName = storageProperties.default
+        if (defaultName.isNotBlank() && !map.containsKey(defaultName)) {
+            // Create default local storage if not already registered
+            map[defaultName] = LocalFilesystemStorage(Path.of(System.getProperty("java.io.tmpdir")))
+        }
+
         return InMemoryBucketRegistry(map)
     }
 
@@ -46,21 +54,24 @@ open class StorageAutoConfiguration {
             "s3", "s2" -> {
                 val bucket = props["bucket"] ?: throw IllegalArgumentException("Bucket name is required for S3/S2")
                 val region = props["region"] ?: "us-east-1"
-                val accessKey = props["access-key-id"] ?: ""
-                val secretKey = props["secret-access-key"] ?: ""
+                val accessKey = props["access-key-id"]
+                val secretKey = props["secret-access-key"]
                 val endpoint = props["endpoint"]
-
-                val credentialsProvider = StaticCredentialsProvider.create(
-                    AwsBasicCredentials.create(accessKey, secretKey)
-                )
 
                 val clientBuilder = S3AsyncClient.builder()
                     .region(Region.of(region))
-                    .credentialsProvider(credentialsProvider)
 
                 val presignerBuilder = S3Presigner.builder()
                     .region(Region.of(region))
-                    .credentialsProvider(credentialsProvider)
+
+                // Only set credentials if both are provided
+                if (!accessKey.isNullOrBlank() && !secretKey.isNullOrBlank()) {
+                    val credentialsProvider = StaticCredentialsProvider.create(
+                        AwsBasicCredentials.create(accessKey, secretKey)
+                    )
+                    clientBuilder.credentialsProvider(credentialsProvider)
+                    presignerBuilder.credentialsProvider(credentialsProvider)
+                }
 
                 if (!endpoint.isNullOrBlank()) {
                     val uri = URI.create(endpoint)
@@ -81,5 +92,5 @@ open class StorageAutoConfiguration {
 
 class InMemoryBucketRegistry(private val providers: Map<String, Storage>) : BucketRegistry {
     override fun getStorage(bucketName: String): Storage = providers[bucketName]
-        ?: throw NoSuchElementException("Bucket not found: $bucketName")
+        ?: throw StorageServiceException("Bucket not found: $bucketName")
 }
