@@ -1,6 +1,6 @@
 package com.profiletailors.ratelimit.infrastructure.config
 
-import com.cvix.common.domain.Service
+import com.profiletailors.common.domain.Service
 import org.springframework.boot.context.properties.EnableConfigurationProperties
 import org.springframework.context.annotation.Bean
 import org.springframework.context.annotation.ComponentScan

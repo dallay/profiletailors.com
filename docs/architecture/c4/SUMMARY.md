@@ -1,3 +1,8 @@
+---
+date: 2026-05-19
+status: 🔄 In Progress
+---
+
 # Profile Tailors — C4 Architecture Summary
 
 ## Executive Summary

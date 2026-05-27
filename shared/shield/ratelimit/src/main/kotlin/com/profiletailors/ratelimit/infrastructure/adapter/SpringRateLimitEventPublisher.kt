@@ -1,6 +1,6 @@
 package com.profiletailors.ratelimit.infrastructure.adapter
 
-import com.cvix.common.domain.bus.event.EventPublisher
+import com.profiletailors.common.domain.bus.event.EventPublisher
 import com.profiletailors.ratelimit.domain.event.RateLimitExceededEvent
 import org.slf4j.LoggerFactory
 import org.springframework.context.ApplicationEventPublisher

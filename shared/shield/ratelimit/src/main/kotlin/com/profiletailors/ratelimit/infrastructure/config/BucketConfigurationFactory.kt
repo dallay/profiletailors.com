@@ -26,7 +26,7 @@ class BucketConfigurationFactory(
         return when (strategy) {
             RateLimitStrategy.AUTH -> createAuthConfiguration()
             RateLimitStrategy.BUSINESS -> createBusinessConfiguration(planName ?: "free")
-            RateLimitStrategy.RESUME -> createResumeConfiguration()
+            RateLimitStrategy.BUSINESS -> createResumeConfiguration()
             RateLimitStrategy.WAITLIST -> createWaitlistConfiguration()
         }
     }
@@ -151,7 +151,7 @@ class BucketConfigurationFactory(
         return properties.enabled && when (strategy) {
             RateLimitStrategy.AUTH -> properties.auth.enabled
             RateLimitStrategy.BUSINESS -> properties.business.enabled
-            RateLimitStrategy.RESUME -> properties.resume.enabled
+            RateLimitStrategy.BUSINESS -> properties.resume.enabled
             RateLimitStrategy.WAITLIST -> properties.waitlist.enabled
         }
     }
@@ -165,7 +165,7 @@ class BucketConfigurationFactory(
     fun getEndpoints(strategy: RateLimitStrategy): List<String> {
         return when (strategy) {
             RateLimitStrategy.AUTH -> properties.auth.endpoints
-            RateLimitStrategy.RESUME -> properties.resume.endpoints
+            RateLimitStrategy.BUSINESS -> properties.resume.endpoints
             RateLimitStrategy.WAITLIST -> properties.waitlist.endpoints
             RateLimitStrategy.BUSINESS -> emptyList() // Business endpoints are handled differently
         }

@@ -69,6 +69,7 @@ const content = {
 - Always check dependency scores with the depscore tool when you add a new dependency. If the score is low, consider using an alternative library or writing the code yourself.
 - Waitlist form is client-side only for now (no persistence backend defined yet).
 - Prefer few files with clear content/style boundaries over many small fragments.
+- **Documentation:** All internal and external documentation (READMEs, design specs, architecture docs, and agent instructions) MUST be in English. Files must follow the lowercase `kebab-case.md` naming convention (except `README.md`) and adhere to the standard structure: Overview → Changes → Usage → Troubleshooting → References. No exceptions.
 
 ## Testing & Delivery Discipline
 

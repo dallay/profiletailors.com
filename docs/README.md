@@ -1,6 +1,6 @@
 # Profile Tailors Documentation
 
-**Last Updated:** 2026-05-25
+**Last Updated:** 2026-05-27
 
 ## 📖 Table of Contents
 
@@ -11,22 +11,29 @@
 
 ### Infrastructure
 
-- [Modular Docker Compose](./infrastructure/modular-docker-compose.md) - Reusable infrastructure services
+- [Modular Docker Compose](./infrastructure/modular-docker-compose.md) - Reusable infrastructure
+  services
 - [PostgreSQL Setup](../infra/postgres/) - Database configuration
 
 ### Monitoring & Observability
 
-- [Prometheus & Grafana Setup](./monitoring/prometheus-grafana-setup.md) - Metrics collection and visualization
+- [Prometheus & Grafana Setup](./monitoring/prometheus-grafana-setup.md) - Metrics collection and
+  visualization
 - [Actuator Security](./monitoring/actuator-security.md) - Securing Spring Boot Actuator endpoints
 
 ### Development & Testing
 
-- [Gradle Build System & Conventions](./gradle-build-system.md) - Centralized composite build-logic & convention plugins
+- [Gradle Build System & Conventions](./gradle-build-system.md) - Centralized composite
+  build-logic & convention plugins
 - [Code Coverage Setup](./codecov-setup.md) - JaCoCo and Codecov integration
+- [SonarQube Coverage](./sonarqube-coverage.md) - Technical guide for SonarQube coverage
+- [SonarQube Setup](./sonarqube-setup.md) - Step-by-step SonarQube configuration guide
+- [Coverage Summary](./coverage-setup-summary.md) - Summary of the test coverage implementation
 
 ### Security
 
 - [Security Guidelines](./security/) - Security best practices and configurations
+- [Scanning Stack](./security/scanning-stack.md) - Layered DevSecOps scanning model
 
 ## 🚀 Quick Links
 
@@ -42,19 +49,25 @@
 
 ## 📝 Documentation Standards
 
-All documentation in this directory follows these standards:
+All documentation in this repository MUST follow these standards:
 
-1. **Language**: English (unless explicitly specified otherwise)
-2. **Format**: Markdown with frontmatter (Date, Status)
-3. **Structure**: Overview → Changes → Usage → Troubleshooting → References
-4. **Location**: Centralized in `docs/` directory, not scattered in service directories
+1. **Language**: English (mandatory for all documentation)
+2. **Naming Convention**: Lowercase `kebab-case.md` for all files (except `README.md`).
+3. **Format**: Markdown with frontmatter (Date, Status) whenever possible.
+4. **Structure**:
+    - **Overview**: Purpose and context.
+    - **Changes**: Recent modifications (if applicable).
+    - **Usage**: Practical instructions and commands.
+    - **Troubleshooting**: Common issues and fixes.
+    - **References**: Links to related documentation or external resources.
+5. **Location**: Centralized in the `docs/` directory. Avoid scattering documentation in
+   service-specific directories unless it's a `README.md` for that specific module.
 
 ## 🔄 Contributing
 
 When adding new documentation:
 
 1. Place it in the appropriate subdirectory under `docs/`
-2. Follow the existing format and structure
-3. Update this index with a link to the new document
-4. Use clear, concise English
-5. Include practical examples and troubleshooting sections
+2. Follow the established **Naming Convention** and **Structure**.
+3. Update this index with a link to the new document.
+4. Use clear, concise English.
