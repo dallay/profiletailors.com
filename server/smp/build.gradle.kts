@@ -59,6 +59,7 @@ dependencies {
 
 dependencyManagement {
     imports {
+        mavenBom(org.springframework.boot.gradle.plugin.SpringBootPlugin.BOM_COORDINATES)
         mavenBom(libs.spring.modulith.bom.get().toString())
     }
 }
