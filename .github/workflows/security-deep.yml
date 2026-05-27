@@ -173,6 +173,8 @@ jobs:
           format: sarif
           output: reports/trivy/trivy-full.sarif
           exit-code: '0'
+        env:
+          TRIVY_LOG_LEVEL: DEBUG
       - name: Verify SARIF file exists
         if: ${{ always() }}
         run: |
