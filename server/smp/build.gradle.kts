@@ -36,7 +36,7 @@ dependencies {
 	implementation("io.projectreactor.kotlin:reactor-kotlin-extensions")
 	implementation("org.jetbrains.kotlin:kotlin-reflect")
 	implementation("org.jetbrains.kotlinx:kotlinx-coroutines-reactor")
-	implementation("org.springdoc:springdoc-openapi-starter-webflux-ui:3.0.2")
+	implementation("org.springdoc:springdoc-openapi-starter-webflux-ui:3.0.3")
 	implementation("org.springframework.modulith:spring-modulith-starter-core")
 	implementation("tools.jackson.module:jackson-module-kotlin")
     implementation("org.springframework.boot:spring-boot-starter-actuator")
@@ -57,12 +57,12 @@ dependencies {
 	testImplementation("org.jetbrains.kotlinx:kotlinx-coroutines-test")
 	testImplementation("org.springframework.modulith:spring-modulith-starter-test")
 	testImplementation("org.junit.platform:junit-platform-suite")
-	testImplementation("io.cucumber:cucumber-java:7.18.1")
-	testImplementation("io.cucumber:cucumber-spring:7.18.1")
+	testImplementation("io.cucumber:cucumber-java:7.34.3")
+	testImplementation("io.cucumber:cucumber-spring:7.34.3")
 	testImplementation("org.testcontainers:junit-jupiter:1.20.6")
 	testImplementation("org.testcontainers:postgresql:1.20.6")
 	testRuntimeOnly("org.junit.platform:junit-platform-launcher")
-	testRuntimeOnly("io.cucumber:cucumber-junit-platform-engine:7.18.1")
+	testRuntimeOnly("io.cucumber:cucumber-junit-platform-engine:7.34.3")
 }
 
 dependencyManagement {
