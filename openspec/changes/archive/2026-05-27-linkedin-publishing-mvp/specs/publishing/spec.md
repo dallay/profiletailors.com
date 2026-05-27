@@ -2,15 +2,24 @@
 
 ## Purpose
 
-Define workspace-scoped social publishing behavior for Profile Tailors. This specification establishes the provider-neutral contracts for connected social accounts, publications, scheduling, queue execution, retry handling, and provider delivery seams, with LinkedIn personal-profile publishing as the first implemented provider slice.
+Define workspace-scoped social publishing behavior for Profile Tailors. This specification
+establishes the provider-neutral contracts for connected social accounts, publications, scheduling,
+queue execution, retry handling, and provider delivery seams, with LinkedIn personal-profile
+publishing as the first implemented provider slice.
 
 ## Requirements
 
 ### Requirement: Workspace-Scoped Social Connections
 
-The system MUST allow an authenticated workspace member to register and manage a social-provider connection in workspace scope.
+The system MUST allow an authenticated workspace member to register and manage a social-provider
+connection in workspace scope.
 
-A social connection MUST be associated with exactly one workspace and one provider account identity. The system MUST persist enough provider metadata to identify the connected account, provider type, connection status, and credential freshness. Provider credential secrets MUST remain an infrastructure concern and MUST NOT leak into public API responses. LinkedIn personal-profile connection support MUST be implemented in this change. LinkedIn page support MAY be added later without redefining the core connection model.
+A social connection MUST be associated with exactly one workspace and one provider account identity.
+The system MUST persist enough provider metadata to identify the connected account, provider type,
+connection status, and credential freshness. Provider credential secrets MUST remain an
+infrastructure concern and MUST NOT leak into public API responses. LinkedIn personal-profile
+connection support MUST be implemented in this change. LinkedIn page support MAY be added later
+without redefining the core connection model.
 
 #### Scenario: User connects a LinkedIn personal profile to a workspace
 
@@ -31,14 +40,19 @@ A social connection MUST be associated with exactly one workspace and one provid
 
 The system MUST model publications independently from provider-specific transport details.
 
-A publication MUST belong to one workspace, one authoring principal, and one or more target provider accounts. The publication lifecycle MUST support at least the states DRAFT, QUEUED, SCHEDULED, PROCESSING, PUBLISHED, FAILED, and CANCELLED. The system MUST allow future approval-oriented lifecycle extensions without redefining the core publication identity.
+A publication MUST belong to one workspace, one authoring principal, and one or more target provider
+accounts. The publication lifecycle MUST support at least the states DRAFT, QUEUED, SCHEDULED,
+PROCESSING, PUBLISHED, FAILED, and CANCELLED. The system MUST allow future approval-oriented
+lifecycle extensions without redefining the core publication identity.
 
 #### Scenario: Draft publication becomes queued for immediate delivery
 
-- GIVEN an authenticated workspace member creates a valid publication draft for a connected LinkedIn profile
+- GIVEN an authenticated workspace member creates a valid publication draft for a connected LinkedIn
+  profile
 - WHEN the user requests immediate publication
 - THEN the system MUST transition the publication into a queued delivery path
-- AND the publication MUST become eligible for worker processing without requiring a second manual action
+- AND the publication MUST become eligible for worker processing without requiring a second manual
+  action
 
 #### Scenario: Publication state prevents duplicate completion semantics
 
@@ -51,7 +65,11 @@ A publication MUST belong to one workspace, one authoring principal, and one or 
 
 The system MUST support explicit scheduling strategies for outbound publication delivery.
 
-The supported strategies in this change MUST be `NOW`, `SCHEDULED_AT`, `NEXT_SLOT`, and priority queue ordering. `NOW` MUST enqueue a delivery job immediately. `SCHEDULED_AT` MUST make the job due at the requested date-time. `NEXT_SLOT` MUST resolve the next available publishing slot according to the workspace scheduling policy in effect for that account. Priority delivery MUST order otherwise eligible jobs ahead of non-priority jobs without bypassing authorization or validity checks.
+The supported strategies in this change MUST be `NOW`, `SCHEDULED_AT`, `NEXT_SLOT`, and priority
+queue ordering. `NOW` MUST enqueue a delivery job immediately. `SCHEDULED_AT` MUST make the job due
+at the requested date-time. `NEXT_SLOT` MUST resolve the next available publishing slot according to
+the workspace scheduling policy in effect for that account. Priority delivery MUST order otherwise
+eligible jobs ahead of non-priority jobs without bypassing authorization or validity checks.
 
 #### Scenario: Scheduled publication waits until due time
 
@@ -71,7 +89,10 @@ The supported strategies in this change MUST be `NOW`, `SCHEDULED_AT`, `NEXT_SLO
 
 The system MUST allow editing and cancellation before a publication is claimed for delivery.
 
-A publication in DRAFT, QUEUED, or SCHEDULED state MAY be edited, including text, media references, schedule mode, and schedule timing, as long as the delivery job has not been claimed for processing. Such a publication MAY also be cancelled before claim. Once processing has begun, the system MUST prevent unsafe edits that would invalidate the claimed delivery attempt.
+A publication in DRAFT, QUEUED, or SCHEDULED state MAY be edited, including text, media references,
+schedule mode, and schedule timing, as long as the delivery job has not been claimed for processing.
+Such a publication MAY also be cancelled before claim. Once processing has begun, the system MUST
+prevent unsafe edits that would invalidate the claimed delivery attempt.
 
 #### Scenario: Queued publication is edited before claim
 
@@ -91,7 +112,11 @@ A publication in DRAFT, QUEUED, or SCHEDULED state MAY be edited, including text
 
 The system MUST persist delivery attempts and apply bounded automatic retry behavior.
 
-Every provider delivery attempt MUST be recorded with attempt order, provider target, execution time, and outcome. When provider delivery fails with a retryable error, the system MUST automatically reschedule another attempt until the configured retry budget is exhausted. When the retry budget is exhausted, the publication MUST be marked FAILED. A failed publication MUST support later manual retry or rescheduling by an authorized workspace member.
+Every provider delivery attempt MUST be recorded with attempt order, provider target, execution
+time, and outcome. When provider delivery fails with a retryable error, the system MUST
+automatically reschedule another attempt until the configured retry budget is exhausted. When the
+retry budget is exhausted, the publication MUST be marked FAILED. A failed publication MUST support
+later manual retry or rescheduling by an authorized workspace member.
 
 #### Scenario: Retryable provider failure is retried automatically
 
@@ -112,38 +137,52 @@ Every provider delivery attempt MUST be recorded with attempt order, provider ta
 
 The system MUST support both backend-managed uploads and external media references.
 
-A publication asset MAY originate from an uploaded backend-managed file or an external URL. The system MUST persist asset source metadata separately from provider-delivery metadata. Before dispatching a publication, the system MUST validate that the targeted provider account and content shape are compatible with the provider capabilities implemented for that slice. This change MUST implement LinkedIn personal-profile capability validation for the MVP-supported content formats.
+A publication asset MAY originate from an uploaded backend-managed file or an external URL. The
+system MUST persist asset source metadata separately from provider-delivery metadata. Before
+dispatching a publication, the system MUST validate that the targeted provider account and content
+shape are compatible with the provider capabilities implemented for that slice. This change MUST
+implement LinkedIn personal-profile capability validation for the MVP-supported content formats.
 
 #### Scenario: Uploaded asset is prepared for provider delivery
 
 - GIVEN a publication references a backend-managed asset
 - WHEN the publication becomes ready for provider delivery
 - THEN the system MUST resolve the stored asset metadata for the provider adapter
-- AND the adapter MUST use that metadata to perform provider-specific media registration or upload steps
+- AND the adapter MUST use that metadata to perform provider-specific media registration or upload
+  steps
 
 #### Scenario: Unsupported provider-content combination is rejected before queue execution
 
-- GIVEN a publication targets a provider account with a content shape not supported by the implemented capability set
+- GIVEN a publication targets a provider account with a content shape not supported by the
+  implemented capability set
 - WHEN the publication is validated for queueing or delivery
 - THEN the system MUST reject the publication as invalid for that provider target
 - AND it MUST NOT enqueue a job that cannot succeed under known capability rules
 
 ### Requirement: Simple Queue Execution with Future Queue Portability
 
-The system MUST execute scheduled publishing through a simple durable queue model that remains portable to stronger async infrastructure later.
+The system MUST execute scheduled publishing through a simple durable queue model that remains
+portable to stronger async infrastructure later.
 
-The first implementation MUST use authoritative persisted job records and worker claim semantics rather than in-memory timers alone. The queue model MUST support due-time polling, job claiming, retry rescheduling, and terminal completion semantics. The publishing domain MUST depend on repo-local job and provider-delivery ports so a later migration to external queue infrastructure MAY happen without redefining publication semantics.
+The first implementation MUST use authoritative persisted job records and worker claim semantics
+rather than in-memory timers alone. The queue model MUST support due-time polling, job claiming,
+retry rescheduling, and terminal completion semantics. The publishing domain MUST depend on
+repo-local job and provider-delivery ports so a later migration to external queue infrastructure MAY
+happen without redefining publication semantics.
 
 #### Scenario: Due job is claimed exactly once under authoritative job state
 
 - GIVEN a due publication job is available for processing
 - WHEN a worker claims that job through the supported queue mechanism
-- THEN the system MUST transition the job into a claimed or processing state in authoritative persistence
-- AND later workers MUST treat that claimed job as unavailable unless recovery rules make it eligible again
+- THEN the system MUST transition the job into a claimed or processing state in authoritative
+  persistence
+- AND later workers MUST treat that claimed job as unavailable unless recovery rules make it
+  eligible again
 
 #### Scenario: Queue portability remains an infrastructure concern
 
 - GIVEN the system currently uses persisted database-backed jobs for publishing
 - WHEN future scaling requires external queue infrastructure
 - THEN the publication lifecycle and delivery semantics MUST remain stable
-- AND the migration MUST be achievable by replacing infrastructure adapters rather than redefining the core publishing model
+- AND the migration MUST be achievable by replacing infrastructure adapters rather than redefining
+  the core publishing model

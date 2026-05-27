@@ -39,8 +39,10 @@ are still too narrow for the target auth foundation.
 - `server/smp/src/test/kotlin/com/profiletailors/smp/SmpApplicationTests.kt` — only smoke test; no
   architecture, security, or module tests.
 -
+
 `/Users/acosta/Downloads/profiletailors-main/shared/common/src/main/kotlin/com/profiletailors/common/domain/bus/*` —
 source of reusable mediator/CQRS contracts and pipeline behavior ideas.
+
 -
 
 `/Users/acosta/Downloads/profiletailors-main/shared/common/src/main/kotlin/com/profiletailors/common/domain/security/WorkspaceAuthorization.kt` —

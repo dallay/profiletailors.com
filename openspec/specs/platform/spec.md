@@ -40,9 +40,19 @@ product headers as part of its core platform contract.
 
 ### Requirement: Platform Bounded Contexts
 
-The system MUST define the following bounded contexts for the platform architecture: Identity, Tenancy, Authorization, Credentials, Governance, Publishing, and Platform.
+The system MUST define the following bounded contexts for the platform architecture: Identity,
+Tenancy, Authorization, Credentials, Governance, Publishing, and Platform.
 
-The Platform context MUST own cross-cutting seams required by all other contexts, including mediator-style dispatch, context propagation, and adapter-facing shared contracts. The Identity context MUST own principal identity semantics. The Tenancy context MUST own workspace lifecycle, ownership, and membership semantics. The Authorization context MUST own permissions, roles, grants, scopes, policies, and effective authorization evaluation semantics. The Credentials context MUST own authentication credential and token semantics. The Governance context MUST own auditing and governance semantics. The Publishing context MUST own workspace-scoped outbound social publishing semantics, including provider-neutral publication lifecycle rules and provider delivery ports. Phase one MUST implement only the minimum contracts and behaviors from these contexts required by the proving slice.
+The Platform context MUST own cross-cutting seams required by all other contexts, including
+mediator-style dispatch, context propagation, and adapter-facing shared contracts. The Identity
+context MUST own principal identity semantics. The Tenancy context MUST own workspace lifecycle,
+ownership, and membership semantics. The Authorization context MUST own permissions, roles, grants,
+scopes, policies, and effective authorization evaluation semantics. The Credentials context MUST own
+authentication credential and token semantics. The Governance context MUST own auditing and
+governance semantics. The Publishing context MUST own workspace-scoped outbound social publishing
+semantics, including provider-neutral publication lifecycle rules and provider delivery ports. Phase
+one MUST implement only the minimum contracts and behaviors from these contexts required by the
+proving slice.
 
 #### Scenario: Cross-context behavior remains bounded
 
@@ -54,9 +64,11 @@ The Platform context MUST own cross-cutting seams required by all other contexts
 #### Scenario: Cross-context behavior remains bounded with publishing
 
 - GIVEN a workspace member requests outbound social publishing behavior
-- WHEN the platform resolves authentication, active workspace context, authorization, publishing lifecycle, and provider delivery preparation
+- WHEN the platform resolves authentication, active workspace context, authorization, publishing
+  lifecycle, and provider delivery preparation
 - THEN each behavior MUST be attributable to the appropriate bounded context
-- AND the Publishing context MUST NOT absorb unrelated identity or tenancy responsibilities merely for convenience
+- AND the Publishing context MUST NOT absorb unrelated identity or tenancy responsibilities merely
+  for convenience
 
 #### Scenario: Deferred contexts still exist semantically
 
@@ -100,14 +112,22 @@ The system MUST define the following resource context taxonomy: GLOBAL, USER, WO
 Authorization decisions MUST be evaluated relative to an explicit resource context.
 Permissions, grants, scopes, and policies MUST NOT rely on implicit resource-context inference.
 Phase one MUST fully support WORKSPACE context for the proving slice.
-For `backend-scopes-execution`, the new target-aware proving capability MUST evaluate authorization in WORKSPACE context and MUST use explicit `targetResourceId` input as part of the protected request context.
-This capability is implemented as a NEW protected endpoint: `GET /api/authorization/resources/{resourceId}/preview`
-This target-aware proving capability is separate from `/api/authorization/workspace-access/current`, is evaluated in WORKSPACE context using explicit `targetResourceId`, and does not overlap with or extend the API-key replacement proving slice.
+For `backend-scopes-execution`, the new target-aware proving capability MUST evaluate authorization
+in WORKSPACE context and MUST use explicit `targetResourceId` input as part of the protected request
+context.
+This capability is implemented as a NEW protected endpoint:
+`GET /api/authorization/resources/{resourceId}/preview`
+This target-aware proving capability is separate from `/api/authorization/workspace-access/current`,
+is evaluated in WORKSPACE context using explicit `targetResourceId`, and does not overlap with or
+extend the API-key replacement proving slice.
+
 - The endpoint accepts an explicit `targetResourceId` in the path (resourceId)
 - The proving slice is NOT extended onto `/api/authorization/workspace-access/current`
 
-Support for GLOBAL, USER, and SYSTEM contexts is platform-required and MAY be deferred in implementation beyond the contracts required to keep the model stable.
-(Previously: WORKSPACE context was required for the proving slice, but no executable target-aware capability was required to carry explicit target resource context for scope reduction.)
+Support for GLOBAL, USER, and SYSTEM contexts is platform-required and MAY be deferred in
+implementation beyond the contracts required to keep the model stable.
+(Previously: WORKSPACE context was required for the proving slice, but no executable target-aware
+capability was required to carry explicit target resource context for scope reduction.)
 
 #### Scenario: Target-aware workspace request evaluates with explicit target context
 
@@ -115,7 +135,8 @@ Support for GLOBAL, USER, and SYSTEM contexts is platform-required and MAY be de
 - AND the request includes an active workspace identifier and explicit `targetResourceId`
 - WHEN authorization is evaluated for that capability
 - THEN the platform MUST evaluate the request in WORKSPACE resource context
-- AND it MUST treat the supplied `targetResourceId` as explicit protected target context rather than as implicit or derived state
+- AND it MUST treat the supplied `targetResourceId` as explicit protected target context rather than
+  as implicit or derived state
 
 #### Scenario: Workspace-scoped request evaluates in explicit context
 
@@ -173,9 +194,12 @@ For the implemented service-account bearer path, credential revocation state MUS
 authoritative state for protected-request evaluation.
 A technically valid presented service-account credential MUST NOT continue to authorize access when
 current authoritative credential state revokes it.
-For the local USER refresh-session path, refresh-credential validity and logout invalidation MUST be treated as authoritative state for session continuation.
-A browser that loses in-memory access-token state MAY recover only through current authoritative refresh-session state, not through instance-local memory or durable frontend token persistence.
-Caches and stateless nodes MUST NOT preserve a refresh-backed session after authoritative logout, revocation, expiry, or invalidation has occurred.
+For the local USER refresh-session path, refresh-credential validity and logout invalidation MUST be
+treated as authoritative state for session continuation.
+A browser that loses in-memory access-token state MAY recover only through current authoritative
+refresh-session state, not through instance-local memory or durable frontend token persistence.
+Caches and stateless nodes MUST NOT preserve a refresh-backed session after authoritative logout,
+revocation, expiry, or invalidation has occurred.
 Caches MUST NOT expand permissions beyond what authoritative state allows.
 Phase one MAY use minimal or no cache implementation, but the platform seams MUST permit later safe
 caching and invalidation.
@@ -209,37 +233,54 @@ caching and invalidation.
 #### Scenario: Invalidated refresh session cannot survive cache or node-local state
 
 - GIVEN a local USER refresh-backed session was previously valid
-- AND authoritative backend state later invalidates that refresh session through logout, revocation, or expiry
+- AND authoritative backend state later invalidates that refresh session through logout, revocation,
+  or expiry
 - WHEN any platform instance evaluates a later refresh attempt for that session
 - THEN instance-local state or caches MUST NOT restore the session
 - AND the refresh request MUST be denied according to current authoritative state
 
 #### Scenario: Equivalent nodes evaluate refresh continuation consistently
 
-- GIVEN two platform instances evaluate the same refresh request against the same authoritative refresh-session state
+- GIVEN two platform instances evaluate the same refresh request against the same authoritative
+  refresh-session state
 - WHEN both instances process the request independently
 - THEN they MUST produce the same allow-or-deny refresh outcome
 - AND the result MUST NOT depend on which instance previously issued the access token
 
 ### Requirement: Deterministic API Protection Principles
 
-The system MUST enforce deny-by-default, explicit-over-implicit, and deterministic API protection behavior.
+The system MUST enforce deny-by-default, explicit-over-implicit, and deterministic API protection
+behavior.
 
-Protected API behavior MUST require successful authentication, applicable context resolution, and explicit authorization success before access is granted.
+Protected API behavior MUST require successful authentication, applicable context resolution, and
+explicit authorization success before access is granted.
 The absence of a required permission, grant, membership, or applicable rule MUST result in denial.
 Explicit denial MUST override any allow path.
 The system MUST NOT infer access from role names, token presence, or unspecified defaults.
 Equivalent requests against equivalent state MUST produce equivalent authorization outcomes.
-For the existing `/api/authorization/workspace-access/current` proving slice, the same protection principles MUST apply to authenticated USER, authenticated SERVICE_ACCOUNT, and authenticated API_KEY requests.
-This change MUST prove end-to-end behavior for that slice with API-key allow, authorization-controlled deny, revoked-or-inactive-credential deny, and completed-replacement cutover outcomes.
-For the supported API-key replacement capability, the platform MUST apply one explicit runtime rule: after the replacement operation completes, the successor API key MUST be accepted and the predecessor API key MUST be denied.
-The completed replacement rule MUST NOT allow any overlap window where both predecessor and successor are accepted on `/api/authorization/workspace-access/current`.
-The API-key replacement proving slice for `/api/authorization/workspace-access/current` MUST remain limited to that endpoint.
-The API-key replacement proving slice MUST NOT broaden into new endpoints, service-account rotation, dual-active rollover windows, inventory or detail APIs, or generalized credential-family management.
-The API-key replacement proving slice MUST NOT broaden into broad issuance/admin platform behavior beyond what is minimally necessary to execute one API-key replacement path.
-For the local USER browser session flow, protected API calls MUST be made with an in-memory access token rather than a durable browser-persisted access token.
-For the local USER browser session flow, a `401` from a protected API MAY trigger exactly one refresh-based recovery attempt for the original request.
-If that refresh-based recovery attempt fails, the platform and client flow MUST fail closed rather than loop or infer continued access.
+For the existing `/api/authorization/workspace-access/current` proving slice, the same protection
+principles MUST apply to authenticated USER, authenticated SERVICE_ACCOUNT, and authenticated
+API_KEY requests.
+This change MUST prove end-to-end behavior for that slice with API-key allow,
+authorization-controlled deny, revoked-or-inactive-credential deny, and completed-replacement
+cutover outcomes.
+For the supported API-key replacement capability, the platform MUST apply one explicit runtime rule:
+after the replacement operation completes, the successor API key MUST be accepted and the
+predecessor API key MUST be denied.
+The completed replacement rule MUST NOT allow any overlap window where both predecessor and
+successor are accepted on `/api/authorization/workspace-access/current`.
+The API-key replacement proving slice for `/api/authorization/workspace-access/current` MUST remain
+limited to that endpoint.
+The API-key replacement proving slice MUST NOT broaden into new endpoints, service-account rotation,
+dual-active rollover windows, inventory or detail APIs, or generalized credential-family management.
+The API-key replacement proving slice MUST NOT broaden into broad issuance/admin platform behavior
+beyond what is minimally necessary to execute one API-key replacement path.
+For the local USER browser session flow, protected API calls MUST be made with an in-memory access
+token rather than a durable browser-persisted access token.
+For the local USER browser session flow, a `401` from a protected API MAY trigger exactly one
+refresh-based recovery attempt for the original request.
+If that refresh-based recovery attempt fails, the platform and client flow MUST fail closed rather
+than loop or infer continued access.
 
 #### Scenario: Access is denied by default
 
@@ -289,7 +330,8 @@ If that refresh-based recovery attempt fails, the platform and client flow MUST 
 
 #### Scenario: Old API key allows access before replacement
 
-- GIVEN a persisted API-key credential authenticates successfully for `/api/authorization/workspace-access/current`
+- GIVEN a persisted API-key credential authenticates successfully for
+  `/api/authorization/workspace-access/current`
 - AND the active workspace request is valid
 - AND workspace membership and authorization facts explicitly allow access for the bound principal
 - AND no completed replacement has made that credential a predecessor
@@ -299,8 +341,10 @@ If that refresh-based recovery attempt fails, the platform and client flow MUST 
 
 #### Scenario: New API key allows access after replacement
 
-- GIVEN an existing active API-key credential has been replaced through the supported replacement capability
-- AND the successor API-key credential now authenticates successfully for `/api/authorization/workspace-access/current`
+- GIVEN an existing active API-key credential has been replaced through the supported replacement
+  capability
+- AND the successor API-key credential now authenticates successfully for
+  `/api/authorization/workspace-access/current`
 - AND the active workspace request is valid
 - AND workspace membership and authorization facts explicitly allow access for the bound principal
 - WHEN the protected request is evaluated with the successor API key
@@ -309,9 +353,11 @@ If that refresh-based recovery attempt fails, the platform and client flow MUST 
 
 #### Scenario: Old API key is denied after replacement
 
-- GIVEN an existing active API-key credential has been replaced through the supported replacement capability
+- GIVEN an existing active API-key credential has been replaced through the supported replacement
+  capability
 - AND the predecessor API key would otherwise match and verify successfully
-- WHEN the request targets `/api/authorization/workspace-access/current` with that predecessor API key
+- WHEN the request targets `/api/authorization/workspace-access/current` with that predecessor API
+  key
 - THEN the platform MUST deny the request before protected access is granted
 - AND the protected slice MUST NOT return an allowed result
 
@@ -333,7 +379,8 @@ If that refresh-based recovery attempt fails, the platform and client flow MUST 
 
 #### Scenario: Broad credential lifecycle platform behavior remains deferred
 
-- GIVEN a requested capability requires service-account rotation, dual-active rollover windows, inventory/list/detail APIs, or generalized credential-family management
+- GIVEN a requested capability requires service-account rotation, dual-active rollover windows,
+  inventory/list/detail APIs, or generalized credential-family management
 - WHEN the proving-slice scope for this change is evaluated
 - THEN that capability MUST be treated as deferred
 - AND the current slice MUST proceed without broadening beyond one API-key replacement cutover path
@@ -343,7 +390,8 @@ If that refresh-based recovery attempt fails, the platform and client flow MUST 
 - GIVEN a local USER sends a protected API request with an access token that is no longer accepted
 - AND the USER still has a valid refresh-backed session in authoritative backend state
 - WHEN the protected request returns `401`
-- THEN the client-platform flow MAY perform one refresh-based recovery attempt for that original request
+- THEN the client-platform flow MAY perform one refresh-based recovery attempt for that original
+  request
 - AND the replayed request MUST be attempted no more than once after a successful refresh
 
 #### Scenario: Protected request fails closed after exhausted recovery
@@ -356,20 +404,26 @@ If that refresh-based recovery attempt fails, the platform and client flow MUST 
 
 ### Requirement: Dedicated Refresh and Logout Endpoints for Local User Sessions
 
-The system MUST expose dedicated local USER session-continuation endpoints separate from protected business APIs.
+The system MUST expose dedicated local USER session-continuation endpoints separate from protected
+business APIs.
 
 The refresh flow MUST be available through a dedicated endpoint for session continuation.
-The logout flow MUST be available through a dedicated endpoint for authoritative session invalidation.
-The refresh endpoint MUST accept refresh-cookie transport without requiring an existing valid access token.
-The logout endpoint MUST invalidate the current refresh-backed session when one exists and MUST clear client-facing refresh-cookie state in its response.
-The system MUST preserve deny-by-default behavior when refresh or logout requests reference missing or invalid session state.
+The logout flow MUST be available through a dedicated endpoint for authoritative session
+invalidation.
+The refresh endpoint MUST accept refresh-cookie transport without requiring an existing valid access
+token.
+The logout endpoint MUST invalidate the current refresh-backed session when one exists and MUST
+clear client-facing refresh-cookie state in its response.
+The system MUST preserve deny-by-default behavior when refresh or logout requests reference missing
+or invalid session state.
 
 #### Scenario: Refresh endpoint is public to the session-continuation flow
 
 - GIVEN a browser has no current valid access token in memory
 - AND the browser still holds a valid refresh cookie for a local USER session
 - WHEN the browser calls the dedicated refresh endpoint
-- THEN the platform MUST evaluate the refresh credential without requiring prior protected-API authentication
+- THEN the platform MUST evaluate the refresh credential without requiring prior protected-API
+  authentication
 - AND it MUST issue a new access token only if authoritative refresh state allows it
 
 #### Scenario: Logout invalidates session continuity even after access token loss
@@ -381,12 +435,17 @@ The system MUST preserve deny-by-default behavior when refresh or logout request
 
 ### Requirement: Pluggable Storage Abstraction Layer
 
-The system MUST provide a pluggable Storage Abstraction Layer (SAL) for object storage operations with support for multiple providers.
+The system MUST provide a pluggable Storage Abstraction Layer (SAL) for object storage operations
+with support for multiple providers.
 
-The storage API MUST be based on Kotlin coroutines (suspend functions and kotlinx.coroutines.Flow) for efficient streaming of large objects.
-The system MUST support multiple storage providers simultaneously, configurable by name through Spring Boot properties.
-The system MUST provide implementations for Local filesystem, AWS S3, and Cloudflare R2 (S3-compatible) providers.
-The storage API MUST expose operations for upload (streaming), download (streaming), delete, list, and presigned GET URLs.
+The storage API MUST be based on Kotlin coroutines (suspend functions and kotlinx.coroutines.Flow)
+for efficient streaming of large objects.
+The system MUST support multiple storage providers simultaneously, configurable by name through
+Spring Boot properties.
+The system MUST provide implementations for Local filesystem, AWS S3, and Cloudflare R2 (
+S3-compatible) providers.
+The storage API MUST expose operations for upload (streaming), download (streaming), delete, list,
+and presigned GET URLs.
 The system MUST provide a BucketRegistry for resolving storage providers by name at runtime.
 The system MUST provide a default storage bean for injection by type.
 The LocalFilesystem provider MUST protect against path traversal attacks (e.g., `..` in keys).
