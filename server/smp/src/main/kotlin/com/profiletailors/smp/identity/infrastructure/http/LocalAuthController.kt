@@ -11,24 +11,37 @@ import com.profiletailors.smp.identity.application.LoginUserCommand
 import com.profiletailors.smp.identity.application.LogoutUserSessionCommand
 import com.profiletailors.smp.identity.application.RefreshUserSessionCommand
 import com.profiletailors.smp.identity.application.RegisterUserCommand
+import io.swagger.v3.oas.annotations.Operation
+import io.swagger.v3.oas.annotations.media.Schema
+import io.swagger.v3.oas.annotations.tags.Tag
+import jakarta.validation.Valid
+import jakarta.validation.constraints.Email
+import jakarta.validation.constraints.NotBlank
+import jakarta.validation.constraints.Size
 import org.springframework.http.HttpHeaders
 import org.springframework.http.ResponseEntity
+import org.springframework.http.server.reactive.ServerHttpRequest
+import org.springframework.validation.annotation.Validated
 import org.springframework.web.bind.annotation.PostMapping
 import org.springframework.web.bind.annotation.RequestBody
 import org.springframework.web.bind.annotation.RequestMapping
 import org.springframework.web.bind.annotation.RestController
-import org.springframework.http.server.reactive.ServerHttpRequest
 
+@Validated
 @RestController
-@RequestMapping("/api/auth")
+@RequestMapping(value = ["/api/auth"])
+@Tag(name = "Authentication", description = "Local authentication endpoints")
 class LocalAuthController(
     private val mediator: Mediator,
     private val refreshSessionCookieFactory: RefreshSessionCookieFactory,
     private val refreshSessionProperties: RefreshSessionProperties,
 ) {
 
-    @PostMapping("/register")
-    suspend fun register(@RequestBody request: RegisterUserRequest): ResponseEntity<AuthTokens> =
+    @Operation(summary = "Register a new user account")
+    @PostMapping("/register", consumes = ["application/json"], version = "1")
+    suspend fun register(
+        @Valid @RequestBody request: RegisterUserRequest,
+    ): ResponseEntity<AuthTokens> =
         sessionResponse(
             mediator.send(
                 RegisterUserCommand(
@@ -39,8 +52,11 @@ class LocalAuthController(
             ),
         )
 
-    @PostMapping("/login")
-    suspend fun login(@RequestBody request: LoginUserRequest): ResponseEntity<AuthTokens> =
+    @Operation(summary = "Authenticate user with email and password")
+    @PostMapping("/login", consumes = ["application/json"], version = "1")
+    suspend fun login(
+        @Valid @RequestBody request: LoginUserRequest,
+    ): ResponseEntity<AuthTokens> =
         sessionResponse(
             mediator.send(
                 LoginUserCommand(
@@ -50,7 +66,8 @@ class LocalAuthController(
             ),
         )
 
-    @PostMapping("/refresh")
+    @Operation(summary = "Refresh user session")
+    @PostMapping("/refresh", version = "1")
     suspend fun refresh(request: ServerHttpRequest): ResponseEntity<AuthTokens> {
         val result = mediator.send(
             RefreshUserSessionCommand(
@@ -63,7 +80,8 @@ class LocalAuthController(
         return sessionResponse(result)
     }
 
-    @PostMapping("/logout")
+    @Operation(summary = "Logout user and invalidate session")
+    @PostMapping("/logout", version = "1")
     suspend fun logout(request: ServerHttpRequest): ResponseEntity<Void> {
         mediator.send(LogoutUserSessionCommand(readRefreshCookie(request)))
         return ResponseEntity.noContent()
@@ -80,13 +98,75 @@ class LocalAuthController(
         request.cookies.getFirst(refreshSessionProperties.cookieName)?.value
 }
 
+/**
+ * Request body for user registration.
+ *
+ * Contains the required information to create a new user account.
+ *
+ * @property email User's email address (must be valid email format).
+ * @property password User's password (must meet security requirements).
+ * @property username Optional username for the account.
+ */
+@Schema(description = "User registration request")
 data class RegisterUserRequest(
+    @field:NotBlank(message = "Email is required")
+    @field:Email(message = "Email must be valid")
+    @field:Schema(
+        description = "User's email address",
+        example = "user@example.com",
+        required = true,
+        format = "email",
+    )
     val email: String,
+
+    @field:NotBlank(message = "Password is required")
+    @field:Size(min = 8, max = 128, message = "Password must be between 8 and 128 characters")
+    @field:Schema(
+        description = "User's password (minimum 8 characters)",
+        example = "SecureP@ssw0rd",
+        required = true,
+        minLength = 8,
+        maxLength = 128,
+        format = "password",
+    )
     val password: String,
+
+    @field:Size(max = 50, message = "Username must not exceed 50 characters")
+    @field:Schema(
+        description = "Optional username for the account",
+        example = "johndoe",
+        required = false,
+        maxLength = 50,
+    )
     val username: String? = null,
 )
 
+/**
+ * Request body for user login.
+ *
+ * Contains the credentials required to authenticate a user.
+ *
+ * @property email User's email address.
+ * @property password User's password.
+ */
+@Schema(description = "User login request")
 data class LoginUserRequest(
+    @field:NotBlank(message = "Email is required")
+    @field:Email(message = "Email must be valid")
+    @field:Schema(
+        description = "User's email address",
+        example = "user@example.com",
+        required = true,
+        format = "email",
+    )
     val email: String,
+
+    @field:NotBlank(message = "Password is required")
+    @field:Schema(
+        description = "User's password",
+        example = "SecureP@ssw0rd",
+        required = true,
+        format = "password",
+    )
     val password: String,
 )

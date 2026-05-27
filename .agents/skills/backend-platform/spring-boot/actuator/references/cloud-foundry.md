@@ -26,18 +26,17 @@ management:
 
 ### Cloud Foundry Health
 
-```java
+```kotlin
 @Component
-public class CloudFoundryHealthIndicator implements HealthIndicator {
+class CloudFoundryHealthIndicator : HealthIndicator {
 
-    @Override
-    public Health health() {
+    override fun health(): Health {
         // Cloud Foundry specific health checks
         return Health.up()
             .withDetail("cloud-foundry", "available")
             .withDetail("instance-index", System.getenv("CF_INSTANCE_INDEX"))
             .withDetail("application-id", System.getenv("VCAP_APPLICATION"))
-            .build();
+            .build()
     }
 }
 ```

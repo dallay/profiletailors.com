@@ -15,80 +15,76 @@ development environments. For production environments, consider creating your ow
 
 ### In-Memory Audit Repository (Development)
 
-```java
+```kotlin
 @Configuration
-public class AuditConfiguration {
+class AuditConfiguration {
 
     @Bean
-    public AuditEventRepository auditEventRepository() {
-        return new InMemoryAuditEventRepository();
+    fun auditEventRepository(): AuditEventRepository {
+        return InMemoryAuditEventRepository()
     }
 }
 ```
 
 ### Database Audit Repository (Production)
 
-```java
+```kotlin
 @Entity
 @Table(name = "audit_events")
-public class PersistentAuditEvent {
+class PersistentAuditEvent(
     
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Long id;
+    var id: Long? = null,
     
     @Column(name = "principal", nullable = false)
-    private String principal;
+    var principal: String = "",
     
     @Column(name = "audit_event_type", nullable = false)
-    private String auditEventType;
+    var auditEventType: String = "",
     
     @Column(name = "audit_event_date", nullable = false)
-    private Instant auditEventDate;
+    var auditEventDate: Instant = Instant.now(),
     
     @ElementCollection
     @MapKeyColumn(name = "name")
     @Column(name = "value")
-    @CollectionTable(name = "audit_event_data", 
-                    joinColumns = @JoinColumn(name = "event_id"))
-    private Map<String, String> data = new HashMap<>();
-    
-    // Constructors, getters, setters
-}
+    @CollectionTable(
+        name = "audit_event_data", 
+        joinColumns = [JoinColumn(name = "event_id")]
+    )
+    var data: MutableMap<String, String> = mutableMapOf()
+)
 
 @Repository
-public class CustomAuditEventRepository implements AuditEventRepository {
+class CustomAuditEventRepository(
+    private val repository: PersistentAuditEventRepository
+) : AuditEventRepository {
 
-    private final PersistentAuditEventRepository repository;
-
-    public CustomAuditEventRepository(PersistentAuditEventRepository repository) {
-        this.repository = repository;
+    override fun add(event: AuditEvent) {
+        val persistentEvent = PersistentAuditEvent(
+            principal = event.principal,
+            auditEventType = event.type,
+            auditEventDate = event.timestamp,
+            data = event.data.toMutableMap()
+        )
+        repository.save(persistentEvent)
     }
 
-    @Override
-    public void add(AuditEvent event) {
-        PersistentAuditEvent persistentEvent = new PersistentAuditEvent();
-        persistentEvent.setPrincipal(event.getPrincipal());
-        persistentEvent.setAuditEventType(event.getType());
-        persistentEvent.setAuditEventDate(event.getTimestamp());
-        persistentEvent.setData(event.getData());
-        repository.save(persistentEvent);
+    override fun find(principal: String, after: Instant, type: String): List<AuditEvent> {
+        val events = repository.findByPrincipalAndAuditEventDateAfterAndAuditEventType(
+            principal, after, type
+        )
+        return events.map { convertToAuditEvent(it) }
     }
 
-    @Override
-    public List<AuditEvent> find(String principal, Instant after, String type) {
-        List<PersistentAuditEvent> events = repository.findByPrincipalAndAuditEventDateAfterAndAuditEventType(
-                principal, after, type);
-        return events.stream()
-                .map(this::convertToAuditEvent)
-                .collect(Collectors.toList());
-    }
-
-    private AuditEvent convertToAuditEvent(PersistentAuditEvent persistentEvent) {
-        return new AuditEvent(persistentEvent.getAuditEventDate(),
-                             persistentEvent.getPrincipal(),
-                             persistentEvent.getAuditEventType(),
-                             persistentEvent.getData());
+    private fun convertToAuditEvent(persistentEvent: PersistentAuditEvent): AuditEvent {
+        return AuditEvent(
+            persistentEvent.auditEventDate,
+            persistentEvent.principal,
+            persistentEvent.auditEventType,
+            persistentEvent.data
+        )
     }
 }
 ```
@@ -99,93 +95,87 @@ public class CustomAuditEventRepository implements AuditEventRepository {
 
 You can publish custom audit events using `AuditEventRepository`:
 
-```java
+```kotlin
 @Service
-public class UserService {
+class UserService(
+    private val auditEventRepository: AuditEventRepository,
+    private val userRepository: UserRepository
+) {
 
-    private final AuditEventRepository auditEventRepository;
-    private final UserRepository userRepository;
-
-    public UserService(AuditEventRepository auditEventRepository,
-                      UserRepository userRepository) {
-        this.auditEventRepository = auditEventRepository;
-        this.userRepository = userRepository;
-    }
-
-    public User createUser(CreateUserRequest request) {
-        User user = userRepository.save(request.toUser());
+    fun createUser(request: CreateUserRequest): User {
+        val user = userRepository.save(request.toUser())
         
         // Publish audit event
-        Map<String, String> data = new HashMap<>();
-        data.put("userId", user.getId().toString());
-        data.put("username", user.getUsername());
-        data.put("email", user.getEmail());
+        val data = mutableMapOf(
+            "userId" to user.id.toString(),
+            "username" to user.username,
+            "email" to user.email
+        )
         
-        AuditEvent event = new AuditEvent(getCurrentUsername(), "USER_CREATED", data);
-        auditEventRepository.add(event);
+        val event = AuditEvent(getCurrentUsername(), "USER_CREATED", data)
+        auditEventRepository.add(event)
         
-        return user;
+        return user
     }
 
-    public void deleteUser(Long userId) {
-        User user = userRepository.findById(userId)
-                .orElseThrow(() -> new UserNotFoundException(userId));
+    fun deleteUser(userId: Long) {
+        val user = userRepository.findById(userId)
+            .orElseThrow { UserNotFoundException(userId) }
         
-        userRepository.delete(user);
+        userRepository.delete(user)
         
         // Publish audit event
-        Map<String, String> data = new HashMap<>();
-        data.put("userId", userId.toString());
-        data.put("username", user.getUsername());
+        val data = mutableMapOf(
+            "userId" to userId.toString(),
+            "username" to user.username
+        )
         
-        AuditEvent event = new AuditEvent(getCurrentUsername(), "USER_DELETED", data);
-        auditEventRepository.add(event);
+        val event = AuditEvent(getCurrentUsername(), "USER_DELETED", data)
+        auditEventRepository.add(event)
     }
 
-    private String getCurrentUsername() {
-        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
-        return auth != null ? auth.getName() : "system";
+    private fun getCurrentUsername(): String {
+        val auth = SecurityContextHolder.getContext().authentication
+        return auth?.name ?: "system"
     }
 }
 ```
 
 ### Custom Audit Event Publisher
 
-```java
+```kotlin
 @Component
-public class AuditEventPublisher {
+class AuditEventPublisher(
+    private val auditEventRepository: AuditEventRepository
+) {
 
-    private final AuditEventRepository auditEventRepository;
-
-    public AuditEventPublisher(AuditEventRepository auditEventRepository) {
-        this.auditEventRepository = auditEventRepository;
+    fun publishEvent(type: String, data: Map<String, String>) {
+        val principal = getCurrentPrincipal()
+        val event = AuditEvent(principal, type, data)
+        auditEventRepository.add(event)
     }
 
-    public void publishEvent(String type, Map<String, String> data) {
-        String principal = getCurrentPrincipal();
-        AuditEvent event = new AuditEvent(principal, type, data);
-        auditEventRepository.add(event);
+    fun publishSecurityEvent(type: String, details: String) {
+        val data = mutableMapOf(
+            "details" to details,
+            "timestamp" to Instant.now().toString(),
+            "source" to "security"
+        )
+        publishEvent(type, data)
     }
 
-    public void publishSecurityEvent(String type, String details) {
-        Map<String, String> data = new HashMap<>();
-        data.put("details", details);
-        data.put("timestamp", Instant.now().toString());
-        data.put("source", "security");
-        publishEvent(type, data);
+    fun publishBusinessEvent(type: String, entityId: String, action: String) {
+        val data = mutableMapOf(
+            "entityId" to entityId,
+            "action" to action,
+            "timestamp" to Instant.now().toString()
+        )
+        publishEvent(type, data)
     }
 
-    public void publishBusinessEvent(String type, String entityId, String action) {
-        Map<String, String> data = new HashMap<>();
-        data.put("entityId", entityId);
-        data.put("action", action);
-        data.put("timestamp", Instant.now().toString());
-        publishEvent(type, data);
-    }
-
-    private String getCurrentPrincipal() {
-        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
-        return auth != null ? auth.getName() : "anonymous";
+    private fun getCurrentPrincipal(): String {
+        val auth = SecurityContextHolder.getContext().authentication
+        return auth?.name ?: "anonymous"
     }
 }
 ```
@@ -194,60 +184,60 @@ public class AuditEventPublisher {
 
 ### Using AOP for Automatic Auditing
 
-```java
-@Target({ElementType.METHOD})
-@Retention(RetentionPolicy.RUNTIME)
-public @interface Auditable {
-    String value() default "";
-    String type() default "";
-    boolean includeArgs() default false;
-    boolean includeResult() default false;
-}
+```kotlin
+@Target(AnnotationTarget.FUNCTION)
+@Retention(AnnotationRetention.RUNTIME)
+annotation class Auditable(
+    val value: String = "",
+    val type: String = "",
+    val includeArgs: Boolean = false,
+    val includeResult: Boolean = false
+)
 
 @Aspect
 @Component
-public class AuditableAspect {
-
-    private final AuditEventPublisher auditEventPublisher;
-
-    public AuditableAspect(AuditEventPublisher auditEventPublisher) {
-        this.auditEventPublisher = auditEventPublisher;
-    }
+class AuditableAspect(
+    private val auditEventPublisher: AuditEventPublisher
+) {
 
     @Around("@annotation(auditable)")
-    public Object auditMethod(ProceedingJoinPoint joinPoint, Auditable auditable) throws Throwable {
-        String methodName = joinPoint.getSignature().getName();
-        String className = joinPoint.getTarget().getClass().getSimpleName();
-        String auditType = auditable.type().isEmpty() ? 
-                          className + "." + methodName : auditable.type();
+    fun auditMethod(joinPoint: ProceedingJoinPoint, auditable: Auditable): Any? {
+        val methodName = joinPoint.signature.name
+        val className = joinPoint.target.javaClass.simpleName
+        val auditType = if (auditable.type.isEmpty()) {
+            "$className.$methodName"
+        } else {
+            auditable.type
+        }
 
-        Map<String, String> data = new HashMap<>();
-        data.put("method", methodName);
-        data.put("class", className);
+        val data = mutableMapOf(
+            "method" to methodName,
+            "class" to className
+        )
 
-        if (auditable.includeArgs()) {
-            Object[] args = joinPoint.getArgs();
-            for (int i = 0; i < args.length; i++) {
-                data.put("arg" + i, String.valueOf(args[i]));
+        if (auditable.includeArgs) {
+            val args = joinPoint.args
+            args.forEachIndexed { index, arg ->
+                data["arg$index"] = arg.toString()
             }
         }
 
-        try {
-            Object result = joinPoint.proceed();
+        return try {
+            val result = joinPoint.proceed()
             
-            if (auditable.includeResult() && result != null) {
-                data.put("result", String.valueOf(result));
+            if (auditable.includeResult && result != null) {
+                data["result"] = result.toString()
             }
             
-            data.put("status", "success");
-            auditEventPublisher.publishEvent(auditType, data);
+            data["status"] = "success"
+            auditEventPublisher.publishEvent(auditType, data)
             
-            return result;
-        } catch (Exception ex) {
-            data.put("status", "failure");
-            data.put("error", ex.getMessage());
-            auditEventPublisher.publishEvent(auditType, data);
-            throw ex;
+            result
+        } catch (ex: Exception) {
+            data["status"] = "failure"
+            data["error"] = ex.message ?: "Unknown error"
+            auditEventPublisher.publishEvent(auditType, data)
+            throw ex
         }
     }
 }
@@ -255,26 +245,26 @@ public class AuditableAspect {
 
 ### Usage Example
 
-```java
+```kotlin
 @Service
-public class OrderService {
+class OrderService {
 
     @Auditable(type = "ORDER_CREATED", includeArgs = true)
-    public Order createOrder(CreateOrderRequest request) {
+    fun createOrder(request: CreateOrderRequest): Order {
         // Order creation logic
-        return new Order();
+        return Order()
     }
 
     @Auditable(type = "ORDER_CANCELLED", includeResult = true)
-    public Order cancelOrder(Long orderId) {
+    fun cancelOrder(orderId: Long): Order {
         // Order cancellation logic
-        return cancelledOrder;
+        return cancelledOrder
     }
 
     @Auditable(type = "PAYMENT_PROCESSED")
-    public PaymentResult processPayment(PaymentRequest request) {
+    fun processPayment(request: PaymentRequest): PaymentResult {
         // Payment processing logic
-        return new PaymentResult();
+        return PaymentResult()
     }
 }
 ```
@@ -291,115 +281,109 @@ Spring Boot automatically publishes authentication events when using Spring Secu
 
 ### Custom Security Events
 
-```java
+```kotlin
 @Component
-public class SecurityAuditService {
+class SecurityAuditService(
+    private val auditEventPublisher: AuditEventPublisher
+) {
 
-    private final AuditEventPublisher auditEventPublisher;
-
-    public SecurityAuditService(AuditEventPublisher auditEventPublisher) {
-        this.auditEventPublisher = auditEventPublisher;
+    @EventListener
+    fun handleAuthenticationSuccess(event: AuthenticationSuccessEvent) {
+        val data = mutableMapOf(
+            "username" to event.authentication.name,
+            "authorities" to event.authentication.authorities.toString(),
+            "source" to getClientIP()
+        )
+        
+        auditEventPublisher.publishEvent("AUTHENTICATION_SUCCESS", data)
     }
 
     @EventListener
-    public void handleAuthenticationSuccess(AuthenticationSuccessEvent event) {
-        Map<String, String> data = new HashMap<>();
-        data.put("username", event.getAuthentication().getName());
-        data.put("authorities", event.getAuthentication().getAuthorities().toString());
-        data.put("source", getClientIP());
+    fun handleAuthenticationFailure(event: AbstractAuthenticationFailureEvent) {
+        val data = mutableMapOf(
+            "username" to event.authentication.name,
+            "exception" to event.exception.javaClass.simpleName,
+            "message" to (event.exception.message ?: ""),
+            "source" to getClientIP()
+        )
         
-        auditEventPublisher.publishEvent("AUTHENTICATION_SUCCESS", data);
+        auditEventPublisher.publishEvent("AUTHENTICATION_FAILURE", data)
     }
 
     @EventListener
-    public void handleAuthenticationFailure(AbstractAuthenticationFailureEvent event) {
-        Map<String, String> data = new HashMap<>();
-        data.put("username", event.getAuthentication().getName());
-        data.put("exception", event.getException().getClass().getSimpleName());
-        data.put("message", event.getException().getMessage());
-        data.put("source", getClientIP());
+    fun handleAccessDenied(event: AuthorizationDeniedEvent<*>) {
+        val data = mutableMapOf(
+            "username" to event.authentication.get().name,
+            "resource" to event.authorizationDecision.toString(),
+            "source" to getClientIP()
+        )
         
-        auditEventPublisher.publishEvent("AUTHENTICATION_FAILURE", data);
+        auditEventPublisher.publishEvent("ACCESS_DENIED", data)
     }
 
-    @EventListener
-    public void handleAccessDenied(AuthorizationDeniedEvent event) {
-        Map<String, String> data = new HashMap<>();
-        data.put("username", event.getAuthentication().getName());
-        data.put("resource", event.getAuthorizationDecision().toString());
-        data.put("source", getClientIP());
-        
-        auditEventPublisher.publishEvent("ACCESS_DENIED", data);
-    }
-
-    private String getClientIP() {
-        RequestAttributes requestAttributes = RequestContextHolder.getRequestAttributes();
-        if (requestAttributes instanceof ServletRequestAttributes) {
-            HttpServletRequest request = ((ServletRequestAttributes) requestAttributes).getRequest();
-            return request.getRemoteAddr();
+    private fun getClientIP(): String {
+        val requestAttributes = RequestContextHolder.getRequestAttributes()
+        if (requestAttributes is ServletRequestAttributes) {
+            val request = requestAttributes.request
+            return request.remoteAddr
         }
-        return "unknown";
+        return "unknown"
     }
 }
 ```
 
 ### Password Change Auditing
 
-```java
+```kotlin
 @Service
-public class PasswordService {
+class PasswordService(
+    private val auditEventPublisher: AuditEventPublisher,
+    private val passwordEncoder: PasswordEncoder
+) {
 
-    private final AuditEventPublisher auditEventPublisher;
-    private final PasswordEncoder passwordEncoder;
-
-    public PasswordService(AuditEventPublisher auditEventPublisher,
-                          PasswordEncoder passwordEncoder) {
-        this.auditEventPublisher = auditEventPublisher;
-        this.passwordEncoder = passwordEncoder;
-    }
-
-    public void changePassword(String oldPassword, String newPassword) {
-        String username = getCurrentUsername();
+    fun changePassword(oldPassword: String, newPassword: String) {
+        val username = getCurrentUsername()
         
         try {
             // Validate old password
             if (!isCurrentPassword(oldPassword)) {
-                Map<String, String> data = new HashMap<>();
-                data.put("username", username);
-                data.put("reason", "invalid_old_password");
-                auditEventPublisher.publishEvent("PASSWORD_CHANGE_FAILED", data);
-                throw new InvalidPasswordException("Invalid old password");
+                val data = mutableMapOf(
+                    "username" to username,
+                    "reason" to "invalid_old_password"
+                )
+                auditEventPublisher.publishEvent("PASSWORD_CHANGE_FAILED", data)
+                throw InvalidPasswordException("Invalid old password")
             }
 
             // Change password
-            updatePassword(newPassword);
+            updatePassword(newPassword)
 
             // Audit success
-            Map<String, String> data = new HashMap<>();
-            data.put("username", username);
-            auditEventPublisher.publishEvent("PASSWORD_CHANGED", data);
+            val data = mutableMapOf("username" to username)
+            auditEventPublisher.publishEvent("PASSWORD_CHANGED", data)
 
-        } catch (Exception ex) {
-            Map<String, String> data = new HashMap<>();
-            data.put("username", username);
-            data.put("error", ex.getMessage());
-            auditEventPublisher.publishEvent("PASSWORD_CHANGE_ERROR", data);
-            throw ex;
+        } catch (ex: Exception) {
+            val data = mutableMapOf(
+                "username" to username,
+                "error" to (ex.message ?: "")
+            )
+            auditEventPublisher.publishEvent("PASSWORD_CHANGE_ERROR", data)
+            throw ex
         }
     }
 
-    private boolean isCurrentPassword(String password) {
+    private fun isCurrentPassword(password: String): Boolean {
         // Implementation
-        return true;
+        return true
     }
 
-    private void updatePassword(String newPassword) {
+    private fun updatePassword(newPassword: String) {
         // Implementation
     }
 
-    private String getCurrentUsername() {
-        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
-        return auth != null ? auth.getName() : "anonymous";
+    private fun getCurrentUsername(): String {
+        val auth = SecurityContextHolder.getContext().authentication
+        return auth?.name ?: "anonymous"
     }
 }
 ```
@@ -436,19 +420,20 @@ Response format:
 
 ### Secure Audit Endpoint
 
-```java
+```kotlin
 @Configuration
-public class AuditSecurityConfig {
+class AuditSecurityConfig {
 
     @Bean
     @Order(1)
-    public SecurityFilterChain auditSecurityFilterChain(HttpSecurity http) throws Exception {
+    fun auditSecurityFilterChain(http: HttpSecurity): SecurityFilterChain {
         return http
-            .requestMatcher(EndpointRequest.to("auditevents"))
-            .authorizeHttpRequests(requests -> 
-                requests.anyRequest().hasRole("AUDITOR"))
+            .securityMatcher(EndpointRequest.to("auditevents"))
+            .authorizeHttpRequests { requests -> 
+                requests.anyRequest().hasRole("AUDITOR")
+            }
             .httpBasic(withDefaults())
-            .build();
+            .build()
     }
 }
 ```
@@ -486,41 +471,35 @@ audit:
 
 ### Async Audit Processing
 
-```java
+```kotlin
 @Configuration
 @EnableAsync
-public class AsyncAuditConfiguration {
+class AsyncAuditConfiguration {
 
     @Bean
-    public TaskExecutor auditTaskExecutor() {
-        ThreadPoolTaskExecutor executor = new ThreadPoolTaskExecutor();
-        executor.setCorePoolSize(2);
-        executor.setMaxPoolSize(5);
-        executor.setQueueCapacity(100);
-        executor.setThreadNamePrefix("audit-");
-        executor.initialize();
-        return executor;
+    fun auditTaskExecutor(): TaskExecutor {
+        val executor = ThreadPoolTaskExecutor()
+        executor.corePoolSize = 2
+        executor.maxPoolSize = 5
+        executor.queueCapacity = 100
+        executor.setThreadNamePrefix("audit-")
+        executor.initialize()
+        return executor
     }
 }
 
 @Service
-public class AsyncAuditEventRepository implements AuditEventRepository {
+class AsyncAuditEventRepository(
+    private val delegate: AuditEventRepository
+) : AuditEventRepository {
 
-    private final AuditEventRepository delegate;
-
-    public AsyncAuditEventRepository(AuditEventRepository delegate) {
-        this.delegate = delegate;
-    }
-
-    @Override
     @Async("auditTaskExecutor")
-    public void add(AuditEvent event) {
-        delegate.add(event);
+    override fun add(event: AuditEvent) {
+        delegate.add(event)
     }
 
-    @Override
-    public List<AuditEvent> find(String principal, Instant after, String type) {
-        return delegate.find(principal, after, type);
+    override fun find(principal: String, after: Instant, type: String): List<AuditEvent> {
+        return delegate.find(principal, after, type)
     }
 }
 ```

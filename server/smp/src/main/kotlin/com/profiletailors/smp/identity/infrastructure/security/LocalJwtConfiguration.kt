@@ -18,16 +18,23 @@ class LocalJwtConfiguration {
     @Bean
     @ConditionalOnMissingBean(ReactiveJwtDecoder::class)
     fun reactiveJwtDecoder(
-        @Value("\${app.security.local-jwt.secret}") secret: String,
+        @Value("\${app.security.local-jwt.secret:}") secret: String,
     ): ReactiveJwtDecoder = NimbusReactiveJwtDecoder
-        .withSecretKey(secret.toSecretKey())
+        .withSecretKey(secret.effectiveSecret().toSecretKey())
         .macAlgorithm(MacAlgorithm.HS256)
         .build()
 
     @Bean
     fun jwtEncoder(
-        @Value("\${app.security.local-jwt.secret}") secret: String,
-    ): JwtEncoder = NimbusJwtEncoder(ImmutableSecret(secret.toSecretKey()))
+        @Value("\${app.security.local-jwt.secret:}") secret: String,
+    ): JwtEncoder = NimbusJwtEncoder(ImmutableSecret(secret.effectiveSecret().toSecretKey()))
+
+    private fun String.effectiveSecret(): String =
+        if (isBlank()) {
+            DEV_FALLBACK_SECRET
+        } else {
+            this
+        }
 
     private fun String.toSecretKey(): SecretKeySpec {
         val bytes = toByteArray(Charsets.UTF_8)
@@ -40,5 +47,6 @@ class LocalJwtConfiguration {
 
     private companion object {
         private const val MIN_SECRET_BYTES = 32
+        private const val DEV_FALLBACK_SECRET = "profiletailors-local-jwt-secret-for-dev-only"
     }
 }

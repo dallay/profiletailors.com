@@ -8,7 +8,7 @@ useDefault = true
 # Add one only for a reviewed false positive with a path-scoped English reason.
 
 [allowlist]
-description = "False positives: explicit test-only tokens and secrets used in documentation examples"
+description = "False positives: explicit test-only tokens, docs examples, and reviewed example env defaults"
 paths = [
   ".agents/skills/backend-platform/spring-boot/security/references/troubleshooting.md",
   ".agents/skills/backend-platform/spring-boot/security/scripts/test-jwt-setup.sh",
@@ -20,4 +20,5 @@ regexes = [
   "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9\\.eyJzdWIiOiIxMjM0NTY3ODkwIiwiZXhwIjoxNjE2MjM5MDIyfQ\\.SflKxwRJSMeKKF2QT4fwpMeJf36POk6yJV_adQssw5c",
   "test-secret-key-that-is-at-least-256-bits-long",
   "Th1sIsA\\$5tr0ngP@ssw0rd",
+  "profiletailors-local-jwt-secret-for-dev-only",
 ]

@@ -30,17 +30,17 @@ Compensation    Compensation        Compensation
 
 ## Event Publisher
 
-```java
+```kotlin
 @Component
-public class OrderEventPublisher {
-    private final StreamBridge streamBridge;
+class OrderEventPublisher {
+    private val streamBridge: StreamBridge
 
     public OrderEventPublisher(StreamBridge streamBridge) {
         this.streamBridge = streamBridge;
     }
 
-    public void publishOrderCreatedEvent(String orderId, BigDecimal amount, String itemId) {
-        OrderCreatedEvent event = new OrderCreatedEvent(orderId, amount, itemId);
+    fun publishOrderCreatedEvent(String orderId, BigDecimal amount, String itemId): void {
+        OrderCreatedEvent event = OrderCreatedEvent(orderId, amount, itemId);
         streamBridge.send("orderCreated-out-0",
             MessageBuilder
                 .withPayload(event)
@@ -52,16 +52,16 @@ public class OrderEventPublisher {
 
 ## Event Listener
 
-```java
+```kotlin
 @Component
-public class PaymentEventListener {
+class PaymentEventListener {
 
     @Bean
     public Consumer<OrderCreatedEvent> handleOrderCreatedEvent() {
         return event -> processPayment(event.getOrderId());
     }
 
-    private void processPayment(String orderId) {
+    private fun processPayment(String orderId): void {
         // Payment processing logic
     }
 }
@@ -69,7 +69,7 @@ public class PaymentEventListener {
 
 ## Event Classes
 
-```java
+```kotlin
 public record OrderCreatedEvent(
     String orderId,
     BigDecimal amount,

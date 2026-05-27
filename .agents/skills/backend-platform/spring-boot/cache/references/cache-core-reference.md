@@ -10,8 +10,8 @@ Complete API reference and external resources for Spring Boot caching.
 
 Interface for managing cache instances.
 
-```java
-public interface CacheManager {
+```kotlin
+interface CacheManager {
     // Get a cache by name
     Cache getCache(String name);
     
@@ -32,8 +32,8 @@ public interface CacheManager {
 
 Interface representing a single cache.
 
-```java
-public interface Cache {
+```kotlin
+interface Cache {
     // Get cache name
     String getName();
     
@@ -71,7 +71,7 @@ public interface Cache {
 
 Name(s) of the cache(s) to use.
 
-```java
+```kotlin
 @Cacheable(value = "products")  // Single cache
 @Cacheable(value = {"products", "inventory"})  // Multiple caches
 ```
@@ -80,7 +80,7 @@ Name(s) of the cache(s) to use.
 
 SpEL expression to generate cache key (if not using method parameters as key).
 
-```java
+```kotlin
 @Cacheable(value = "products", key = "#id")
 @Cacheable(value = "products", key = "#p0")  // First parameter
 @Cacheable(value = "products", key = "#root.methodName + #id")
@@ -101,7 +101,7 @@ SpEL expression to generate cache key (if not using method parameters as key).
 
 SpEL expression evaluated before cache operation. Operation only executes if true.
 
-```java
+```kotlin
 @Cacheable(value = "products", condition = "#id > 0")
 @Cacheable(value = "products", condition = "#price > 100 && #active == true")
 @Cacheable(value = "products", condition = "#size() > 0")  // For collections
@@ -111,7 +111,7 @@ SpEL expression evaluated before cache operation. Operation only executes if tru
 
 SpEL expression evaluated AFTER method execution. Entry is cached only if false.
 
-```java
+```kotlin
 @Cacheable(value = "products", unless = "#result == null")
 @CachePut(value = "products", unless = "#result.isPrivate()")
 ```
@@ -120,7 +120,7 @@ SpEL expression evaluated AFTER method execution. Entry is cached only if false.
 
 For `@`CacheEvict only. If true, cache is evicted BEFORE method execution (default: false).
 
-```java
+```kotlin
 @CacheEvict(value = "products", beforeInvocation = true)  // Evict before call
 @CacheEvict(value = "products", beforeInvocation = false)  // Evict after call
 ```
@@ -129,7 +129,7 @@ For `@`CacheEvict only. If true, cache is evicted BEFORE method execution (defau
 
 For `@`CacheEvict only. If true, entire cache is cleared instead of single entry.
 
-```java
+```kotlin
 @CacheEvict(value = "products", allEntries = true)  // Clear all entries
 ```
 
@@ -248,7 +248,7 @@ spring:
 
 **1. Key Generation Strategy:**
 
-```java
+```kotlin
 // Fast (uses method parameters directly)
 @Cacheable(value = "products")  // Uses all parameters as key
 @Cacheable(value = "products", key = "#id")  // Specific parameter
@@ -296,11 +296,11 @@ spring.cache.type=redis
 
 ### Conditional Bean Creation
 
-```java
+```kotlin
 @Bean
 @ConditionalOnMissingBean(CacheManager.class)
-public CacheManager cacheManager() {
-    return new ConcurrentMapCacheManager("products", "users");
+fun cacheManager(): CacheManager {
+    return ConcurrentMapCacheManager("products", "users");
 }
 ```
 
@@ -308,26 +308,26 @@ public CacheManager cacheManager() {
 
 ### Cache + `@`Transactional Interaction
 
-```java
+```kotlin
 @Service
 @Transactional
-public class ProductService {
+class ProductService {
     
     @Cacheable(value = "products", key = "#id")
     @Transactional(readOnly = true)  // Combines with cache
-    public Product getProduct(Long id) {
+    fun getProduct(Long id): Product {
         return productRepository.findById(id).orElse(null);
     }
     
     @CachePut(value = "products", key = "#product.id")
     @Transactional  // Ensure atomicity of save + cache update
-    public Product updateProduct(Product product) {
+    fun updateProduct(Product product): Product {
         return productRepository.save(product);
     }
     
     @CacheEvict(value = "products", key = "#id")
     @Transactional
-    public void deleteProduct(Long id) {
+    fun deleteProduct(Long id): void {
         productRepository.deleteById(id);
     }
 }
@@ -349,16 +349,16 @@ GET http://localhost:8080/actuator/metrics/cache.misses
 
 ### Custom Cache Metrics
 
-```java
+```kotlin
 @Component
-public class CacheMetricsCollector {
-    private final MeterRegistry meterRegistry;
+class CacheMetricsCollector {
+    private val meterRegistry: MeterRegistry
 
-    public void recordCacheHit(String cacheName) {
+    fun recordCacheHit(String cacheName): void {
         meterRegistry.counter("cache.hits", "cache", cacheName).increment();
     }
 
-    public void recordCacheMiss(String cacheName) {
+    fun recordCacheMiss(String cacheName): void {
         meterRegistry.counter("cache.misses", "cache", cacheName).increment();
     }
 }
@@ -423,40 +423,40 @@ public class CacheMetricsCollector {
 
 **Causes & Solutions:**
 
-```java
+```kotlin
 // Problem: @Cacheable on public method called from same bean
 @Service
-public class ProductService {
+class ProductService {
     @Cacheable("products")
-    public Product get(Long id) { }
+    fun get(Long id): Product { }
     
-    public Product getDetails(Long id) {
+    fun getDetails(Long id): Product {
         return this.get(id);  // ❌ Won't use cache (no proxy)
     }
 }
 
 // Solution: Inject service or call through interface
 @Service
-public class DetailsService {
+class DetailsService {
     @Autowired
-    private ProductService productService;
+    private var productService: ProductService
     
-    public Product getDetails(Long id) {
+    fun getDetails(Long id): Product {
         return productService.get(id);  // ✅ Uses cache
     }
 }
 
 // Problem: Caching non-serializable objects with Redis
 @Cacheable("products")
-public Product get(Long id) {
-    Product p = new Product();
+fun get(Long id): Product {
+    Product p = Product();
     p.setConnection(dbConnection);  // ❌ Not serializable
     return p;
 }
 
 // Solution: Ensure all cached objects are serializable
 @Cacheable("products")
-public ProductDTO get(Long id) {
+fun get(Long id): ProductDTO {
     return mapper.toDTO(productRepository.findById(id));  // ✅ DTO is serializable
 }
 ```
@@ -467,10 +467,10 @@ public ProductDTO get(Long id) {
 
 **Solution:**
 
-```java
+```kotlin
 // Always evict cache on update
 @CacheEvict(value = "products", key = "#id")
-public void updateProduct(Long id, UpdateRequest req) {
+fun updateProduct(Long id, UpdateRequest req): void {
     Product product = productRepository.findById(id).orElseThrow();
     product.update(req);
     productRepository.save(product);
@@ -478,7 +478,7 @@ public void updateProduct(Long id, UpdateRequest req) {
 
 // Or use @CachePut to keep cache fresh
 @CachePut(value = "products", key = "#result.id")
-public Product updateProduct(Long id, UpdateRequest req) {
+fun updateProduct(Long id, UpdateRequest req): Product {
     Product product = productRepository.findById(id).orElseThrow();
     product.update(req);
     return productRepository.save(product);
@@ -532,7 +532,7 @@ spring.cache.redis.time-to-live=600000
 
 ### Basic Expressions
 
-```java
+```kotlin
 // Method parameters
 @Cacheable(key = "#id")           // Single parameter
 @Cacheable(key = "#user.id")      // Object property
@@ -564,7 +564,7 @@ spring.cache.redis.time-to-live=600000
 
 ### Testing Cache Behavior
 
-```java
+```kotlin
 @Test
 void shouldCacheResult() {
     // Arrange
@@ -586,7 +586,7 @@ void shouldCacheResult() {
 
 ### Disabling Cache in Tests
 
-```java
+```kotlin
 @SpringBootTest
 @PropertySource("classpath:application-test.properties")
 class MyServiceTest {
