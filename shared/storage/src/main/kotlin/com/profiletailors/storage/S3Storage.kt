@@ -28,6 +28,9 @@ import software.amazon.awssdk.core.exception.SdkException
 open class S3Storage(private val client: S3AsyncClient, private val bucketName: String, private val presigner: S3Presigner) : Storage {
 
     override suspend fun upload(bucket: String, key: String, content: Flow<ByteArray>, metadata: Map<String, String>) {
+        if (bucket != bucketName) {
+            throw IllegalArgumentException("Bucket mismatch: expected '$bucketName', got '$bucket'")
+        }
         try {
             val request = PutObjectRequest.builder()
                 .bucket(bucketName)
@@ -50,6 +53,9 @@ open class S3Storage(private val client: S3AsyncClient, private val bucketName: 
     }
 
     override fun download(bucket: String, key: String): Flow<ByteArray> = channelFlow {
+        if (bucket != bucketName) {
+            throw IllegalArgumentException("Bucket mismatch: expected '$bucketName', got '$bucket'")
+        }
         try {
             val request = GetObjectRequest.builder()
                 .bucket(bucketName)
@@ -76,6 +82,9 @@ open class S3Storage(private val client: S3AsyncClient, private val bucketName: 
     }
 
     override suspend fun delete(bucket: String, key: String) {
+        if (bucket != bucketName) {
+            throw IllegalArgumentException("Bucket mismatch: expected '$bucketName', got '$bucket'")
+        }
         try {
             val req = software.amazon.awssdk.services.s3.model.DeleteObjectRequest.builder()
                 .bucket(bucketName)
@@ -90,8 +99,12 @@ open class S3Storage(private val client: S3AsyncClient, private val bucketName: 
     }
 
     override suspend fun list(bucket: String, prefix: String): List<String> {
+        if (bucket != bucketName) {
+            throw IllegalArgumentException("Bucket mismatch: expected '$bucketName', got '$bucket'")
+        }
         try {
             val results = mutableListOf<String>()
+            var isTruncated: Boolean
             var continuationToken: String? = null
 
             do {
@@ -105,8 +118,9 @@ open class S3Storage(private val client: S3AsyncClient, private val bucketName: 
 
                 val resp = client.listObjectsV2(reqBuilder.build()).await()
                 results.addAll(resp.contents().map { it.key() })
+                isTruncated = resp.isTruncated
                 continuationToken = resp.nextContinuationToken()
-            } while (resp.isTruncated)
+            } while (isTruncated)
 
             return results
         } catch (e: S3Exception) {
@@ -117,6 +131,9 @@ open class S3Storage(private val client: S3AsyncClient, private val bucketName: 
     }
 
     override suspend fun presignGet(bucket: String, key: String, expirySeconds: Long): String {
+        if (bucket != bucketName) {
+            throw IllegalArgumentException("Bucket mismatch: expected '$bucketName', got '$bucket'")
+        }
         try {
             val getObjectRequest = GetObjectRequest.builder()
                 .bucket(bucketName)

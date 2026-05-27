@@ -10,3 +10,6 @@ class StorageSecurityException(message: String) :
 
 class StorageServiceException(message: String, cause: Throwable? = null) : 
     StorageException(message, cause)
+
+class BucketNotFoundException(message: String) : 
+    StorageException(message)

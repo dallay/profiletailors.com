@@ -21,10 +21,20 @@ class LocalFilesystemStorage(private val basePath: Path) : Storage {
     }
 
     private fun resolveSafe(bucket: String, key: String): Path {
+        // Validate bucket path first
+        val normalizedBucket = Path.of(bucket).normalize()
+        if (normalizedBucket.isAbsolute) {
+            throw StorageSecurityException("Absolute bucket path not allowed: $bucket")
+        }
+        val bucketPath = basePath.resolve(normalizedBucket).normalize()
+        if (!bucketPath.startsWith(basePath)) {
+            throw StorageSecurityException("Bucket path traversal detected: $bucket")
+        }
+        
+        // Now validate key against the validated bucket path
         val normalized = Path.of(key).normalize()
-        val baseBucketPath = basePath.resolve(bucket).normalize()
-        val resolved = baseBucketPath.resolve(normalized).normalize()
-        if (!resolved.startsWith(baseBucketPath)) {
+        val resolved = bucketPath.resolve(normalized).normalize()
+        if (!resolved.startsWith(bucketPath)) {
             throw StorageSecurityException("Path traversal detected for key: $key")
         }
         return resolved
@@ -116,14 +126,14 @@ class LocalFilesystemStorage(private val basePath: Path) : Storage {
     }
 
     override suspend fun list(bucket: String, prefix: String): List<String> = withContext(Dispatchers.IO) {
-        val dir = resolveSafe(bucket, prefix.ifEmpty { "." })
+        val bucketPath = basePath.resolve(bucket).normalize()
+        val dir = if (prefix.isEmpty()) bucketPath else bucketPath.resolve(Path.of(prefix).normalize()).normalize()
         if (!Files.exists(dir)) return@withContext emptyList()
-        val baseBucketPath = basePath.resolve(bucket).normalize()
         try {
             return@withContext Files.walk(dir).use { stream ->
                 stream
                     .filter { Files.isRegularFile(it) }
-                    .map { baseBucketPath.relativize(it).toString().replace('\\', '/') }
+                    .map { bucketPath.relativize(it).toString().replace('\\', '/') }
                     .toList()
             }
         } catch (e: IOException) {

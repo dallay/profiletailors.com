@@ -35,11 +35,13 @@ open class StorageAutoConfiguration {
             map[name] = createProvider(props)
         }
 
-        // Ensure default storage is registered
+        // Validate default provider exists
         val defaultName = storageProperties.default
         if (defaultName.isNotBlank() && !map.containsKey(defaultName)) {
-            // Create default local storage if not already registered
-            map[defaultName] = LocalFilesystemStorage(Path.of(System.getProperty("java.io.tmpdir")))
+            throw IllegalStateException(
+                "Configured default storage provider '$defaultName' not found. " +
+                "Available providers: ${map.keys.joinToString(", ")}"
+            )
         }
 
         return InMemoryBucketRegistry(map)
@@ -64,8 +66,17 @@ open class StorageAutoConfiguration {
                 val presignerBuilder = S3Presigner.builder()
                     .region(Region.of(region))
 
-                // Only set credentials if both are provided
-                if (!accessKey.isNullOrBlank() && !secretKey.isNullOrBlank()) {
+                // Validate credentials: both must be provided together or both omitted
+                val hasAccessKey = !accessKey.isNullOrBlank()
+                val hasSecretKey = !secretKey.isNullOrBlank()
+                
+                if (hasAccessKey != hasSecretKey) {
+                    throw IllegalArgumentException(
+                        "AWS credentials must be provided together: both access-key-id and secret-access-key are required, or both must be omitted"
+                    )
+                }
+                
+                if (hasAccessKey && hasSecretKey) {
                     val credentialsProvider = StaticCredentialsProvider.create(
                         AwsBasicCredentials.create(accessKey, secretKey)
                     )
@@ -92,5 +103,5 @@ open class StorageAutoConfiguration {
 
 class InMemoryBucketRegistry(private val providers: Map<String, Storage>) : BucketRegistry {
     override fun getStorage(bucketName: String): Storage = providers[bucketName]
-        ?: throw StorageServiceException("Bucket not found: $bucketName")
+        ?: throw BucketNotFoundException("Bucket not found: $bucketName")
 }

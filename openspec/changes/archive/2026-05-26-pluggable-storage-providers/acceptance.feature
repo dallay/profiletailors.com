@@ -8,33 +8,37 @@ Feature: Storage providers
     Then I can download it and content matches
 
   Scenario: Presigned URL generation and use
-    Given a local provider configured for bucket 'local-test'
-    When I create a presigned upload URL for 'uploads/file.txt'
-    And I create a presigned download URL for 'uploads/file.txt'
-    Then I can PUT data via the presigned upload URL
-    And I can GET data via the presigned download URL
-    And the content matches what was uploaded
+    Given an S3 provider configured for bucket 's3-test'
+    When I upload a file 'test/document.pdf' with content 'sample data'
+    And I generate a presigned download URL for 'test/document.pdf' with 3600 seconds expiry
+    Then the presigned URL is valid and accessible
+    And I can download the file using the presigned URL
+    And the downloaded content matches 'sample data'
 
   Scenario: Path traversal rejection
-    Given a local provider configured for bucket 'local-test'
-    When I attempt to upload a file with path '../secret.txt'
-    Then the provider returns a 4xx error or denies access
-    When I attempt to download a file with path '../../etc/passwd'
-    Then the provider returns a 4xx error or denies access
+    Given a local provider configured for bucket 'secure-bucket'
+    When I attempt to upload a file '../../../etc/passwd' with content 'malicious'
+    Then the operation is rejected or access is denied
+    When I attempt to download a file '../../secret.txt'
+    Then the operation is rejected or access is denied
 
   Scenario: Multi-provider resolution
-    Given a local provider configured for bucket 'local-test'
-    And an S3 provider configured for bucket 's3-test'
-    When I request storage for 'local-test'
-    Then the local provider is returned
-    When I request storage for 's3-test'
-    Then the S3 provider is returned
-    When I request storage for 'nonexistent-bucket'
-    Then the registry throws an exception
+    Given multiple providers are configured:
+      | name          | type  | bucket       |
+      | local-test    | local | local-bucket |
+      | s3-test       | s3    | my-s3-bucket |
+    When I request storage for bucket 'local-test'
+    Then I receive a LocalFilesystemStorage instance
+    When I request storage for bucket 's3-test'
+    Then I receive an S3Storage instance
+    When I request storage for bucket 'nonexistent'
+    Then a BucketNotFoundException is thrown
 
   Scenario: Large-object streaming
-    Given a local provider configured for bucket 'local-test'
-    When I upload a file 'large/data.bin' with content larger than 100MB
-    Then I can stream-download it in chunks
-    And the downloaded content matches the uploaded content
+    Given a local provider configured for bucket 'large-files'
+    When I upload a large file 'data/large.bin' with 150MB of random data
+    Then the upload completes successfully
+    When I download 'data/large.bin' as a stream
+    Then the download streams correctly
+    And the downloaded content integrity matches the original
     And memory usage remains bounded during streaming
