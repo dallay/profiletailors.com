@@ -41,4 +41,5 @@ Feature: Storage providers
     When I download 'data/large.bin' as a stream
     Then the download streams correctly
     And the downloaded content integrity matches the original
+    # Note: The following step requires manual verification or specialized tooling
     And memory usage remains bounded during streaming
