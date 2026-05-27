@@ -1,15 +1,15 @@
 package com.profiletailors.storage
 
+import com.profiletailors.storage.domain.StorageSecurityException
+import com.profiletailors.storage.infrastructure.LocalFilesystemStorage
 import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.test.runTest
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.io.TempDir
-import java.nio.file.Files
 import java.nio.file.Path
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertTrue
 import kotlinx.coroutines.flow.toList
-import kotlinx.coroutines.flow.reduce
 
 import org.junit.jupiter.api.assertThrows
 

@@ -4,26 +4,21 @@
 
 ### Application Configuration
 
-```kotlin
+```java
 @SpringBootApplication
-class MonitoringApplication {
+public class MonitoringApplication {
 
-    companion object {
-        @JvmStatic
-        fun main(args: Array<String>) {
-            val app = SpringApplication(MonitoringApplication::class.java)
-            // Enable startup tracking
-            app.setApplicationStartup(BufferingApplicationStartup(2048))
-            app.run(*args)
-        }
+    public static void main(String[] args) {
+        SpringApplication app = new SpringApplication(MonitoringApplication.class);
+        // Enable startup tracking
+        app.setApplicationStartup(new BufferingApplicationStartup(2048));
+        app.run(args);
     }
 
     @Bean
-    fun metricsCommonTags(): MeterRegistryCustomizer<MeterRegistry> {
-        return MeterRegistryCustomizer { registry ->
-            registry.config()
-                .commonTags("application", "order-service", "environment", "production")
-        }
+    public MeterRegistryCustomizer<MeterRegistry> metricsCommonTags() {
+        return registry -> registry.config()
+            .commonTags("application", "order-service", "environment", "production");
     }
 }
 ```
@@ -95,49 +90,50 @@ management:
 
 ### Database Health Indicator
 
-```kotlin
+```java
 @Component
-class DatabaseHealthIndicator(
-    private val dataSource: DataSource
-) : HealthIndicator {
+public class DatabaseHealthIndicator implements HealthIndicator {
 
-    companion object {
-        private val log = LoggerFactory.getLogger(DatabaseHealthIndicator::class.java)
+    private static final Logger log = LoggerFactory.getLogger(DatabaseHealthIndicator.class);
+    private final DataSource dataSource;
+
+    public DatabaseHealthIndicator(DataSource dataSource) {
+        this.dataSource = dataSource;
     }
 
-    override fun health(): Health {
-        return try {
-            dataSource.connection.use { connection ->
-                val startTime = System.currentTimeMillis()
-                val valid = connection.isValid(1000)
-                val responseTime = System.currentTimeMillis() - startTime
+    @Override
+    public Health health() {
+        try (Connection connection = dataSource.getConnection()) {
+            long startTime = System.currentTimeMillis();
+            boolean valid = connection.isValid(1000);
+            long responseTime = System.currentTimeMillis() - startTime;
 
-                if (!valid) {
-                    return Health.down()
-                        .withDetail("database", "Connection not valid")
-                        .build()
-                }
-
-                val metaData = connection.metaData
-                
-                val builder = Health.up()
-                    .withDetail("database", metaData.databaseProductName)
-                    .withDetail("version", metaData.databaseProductVersion)
-                    .withDetail("responseTime", "${responseTime}ms")
-
-                if (responseTime > 500) {
-                    builder.status("WARNING")
-                        .withDetail("warning", "Slow database connection")
-                }
-
-                builder.build()
+            if (!valid) {
+                return Health.down()
+                    .withDetail("database", "Connection not valid")
+                    .build();
             }
-        } catch (ex: SQLException) {
-            log.error("Database health check failed", ex)
-            Health.down()
-                .withDetail("error", ex.message)
+
+            DatabaseMetaData metaData = connection.getMetaData();
+            
+            Health.Builder builder = Health.up()
+                .withDetail("database", metaData.getDatabaseProductName())
+                .withDetail("version", metaData.getDatabaseProductVersion())
+                .withDetail("responseTime", responseTime + "ms");
+
+            if (responseTime > 500) {
+                builder.status("WARNING")
+                    .withDetail("warning", "Slow database connection");
+            }
+
+            return builder.build();
+
+        } catch (SQLException ex) {
+            log.error("Database health check failed", ex);
+            return Health.down()
+                .withDetail("error", ex.getMessage())
                 .withException(ex)
-                .build()
+                .build();
         }
     }
 }
@@ -145,50 +141,58 @@ class DatabaseHealthIndicator(
 
 ### External API Health Indicator with Circuit Breaker
 
-```kotlin
+```java
 @Component
-class PaymentGatewayHealthIndicator(
-    private val restTemplate: RestTemplate,
-    @Qualifier("paymentCircuitBreaker") private val circuitBreaker: CircuitBreaker
-) : HealthIndicator {
+public class PaymentGatewayHealthIndicator implements HealthIndicator {
 
-    override fun health(): Health {
-        val state = circuitBreaker.state
+    private final RestTemplate restTemplate;
+    private final CircuitBreaker circuitBreaker;
+
+    public PaymentGatewayHealthIndicator(
+            RestTemplate restTemplate,
+            @Qualifier("paymentCircuitBreaker") CircuitBreaker circuitBreaker) {
+        this.restTemplate = restTemplate;
+        this.circuitBreaker = circuitBreaker;
+    }
+
+    @Override
+    public Health health() {
+        CircuitBreaker.State state = circuitBreaker.getState();
         
-        val builder = Health.up()
+        Health.Builder builder = Health.up()
             .withDetail("circuitBreaker", state.toString())
-            .withDetail("service", "Payment Gateway")
+            .withDetail("service", "Payment Gateway");
 
         if (state == CircuitBreaker.State.OPEN) {
             return builder
                 .down()
                 .withDetail("reason", "Circuit breaker is open")
-                .build()
+                .build();
         }
 
         if (state == CircuitBreaker.State.HALF_OPEN) {
             builder.status("WARNING")
-                .withDetail("reason", "Circuit breaker is testing")
+                .withDetail("reason", "Circuit breaker is testing");
         }
 
-        return try {
-            val startTime = System.currentTimeMillis()
-            val response = restTemplate.getForEntity(
+        try {
+            long startTime = System.currentTimeMillis();
+            ResponseEntity<Map> response = restTemplate.getForEntity(
                 "https://api.payment.com/health", 
-                Map::class.java
-            )
-            val responseTime = System.currentTimeMillis() - startTime
+                Map.class
+            );
+            long responseTime = System.currentTimeMillis() - startTime;
 
-            builder
-                .withDetail("responseTime", "${responseTime}ms")
-                .withDetail("statusCode", response.statusCode.value())
-                .build()
+            return builder
+                .withDetail("responseTime", responseTime + "ms")
+                .withDetail("statusCode", response.getStatusCode().value())
+                .build();
 
-        } catch (ex: Exception) {
-            builder
+        } catch (Exception ex) {
+            return builder
                 .down()
-                .withDetail("error", ex.message)
-                .build()
+                .withDetail("error", ex.getMessage())
+                .build();
         }
     }
 }
@@ -196,83 +200,83 @@ class PaymentGatewayHealthIndicator(
 
 ### Cache Health Indicator
 
-```kotlin
+```java
 @Component
-class CacheHealthIndicator(
-    private val cacheManager: CacheManager
-) : HealthIndicator {
+public class CacheHealthIndicator implements HealthIndicator {
 
-    override fun health(): Health {
-        val cacheNames = cacheManager.cacheNames
+    private final CacheManager cacheManager;
+
+    public CacheHealthIndicator(CacheManager cacheManager) {
+        this.cacheManager = cacheManager;
+    }
+
+    @Override
+    public Health health() {
+        Collection<String> cacheNames = cacheManager.getCacheNames();
         
-        val cacheDetails = mutableMapOf<String, Any>()
-        var allHealthy = true
+        Map<String, Object> cacheDetails = new HashMap<>();
+        boolean allHealthy = true;
 
-        for (cacheName in cacheNames) {
-            val cache = cacheManager.getCache(cacheName)
+        for (String cacheName : cacheNames) {
+            Cache cache = cacheManager.getCache(cacheName);
             if (cache != null) {
                 try {
                     // Test cache operations
-                    cache.put("health-check", "test")
-                    val value = cache.get("health-check", String::class.java)
-                    cache.evict("health-check")
+                    cache.put("health-check", "test");
+                    String value = cache.get("health-check", String.class);
+                    cache.evict("health-check");
                     
-                    cacheDetails[cacheName] = "UP"
-                } catch (ex: Exception) {
-                    cacheDetails[cacheName] = "DOWN: ${ex.message}"
-                    allHealthy = false
+                    cacheDetails.put(cacheName, "UP");
+                } catch (Exception ex) {
+                    cacheDetails.put(cacheName, "DOWN: " + ex.getMessage());
+                    allHealthy = false;
                 }
             }
         }
 
-        val builder = if (allHealthy) Health.up() else Health.down()
+        Health.Builder builder = allHealthy ? Health.up() : Health.down();
         return builder
             .withDetail("caches", cacheDetails)
-            .withDetail("totalCaches", cacheNames.size)
-            .build()
+            .withDetail("totalCaches", cacheNames.size())
+            .build();
     }
 }
 ```
 
 ### Reactive Health Indicator
 
-```kotlin
+```java
 @Component
-class ReactiveExternalServiceHealthIndicator(
-    webClientBuilder: WebClient.Builder
-) : ReactiveHealthIndicator {
+public class ReactiveExternalServiceHealthIndicator implements ReactiveHealthIndicator {
 
-    private val webClient = webClientBuilder
-        .baseUrl("https://api.example.com")
-        .build()
+    private final WebClient webClient;
 
-    override fun health(): Mono<Health> {
+    public ReactiveExternalServiceHealthIndicator(WebClient.Builder webClientBuilder) {
+        this.webClient = webClientBuilder
+            .baseUrl("https://api.example.com")
+            .build();
+    }
+
+    @Override
+    public Mono<Health> health() {
         return webClient
             .get()
             .uri("/health")
             .retrieve()
             .toBodilessEntity()
-            .map { response ->
-                Health.up()
-                    .withDetail("statusCode", response.statusCode.value())
-                    .withDetail("service", "External API")
-                    .build()
-            }
+            .map(response -> Health.up()
+                .withDetail("statusCode", response.getStatusCode().value())
+                .withDetail("service", "External API")
+                .build())
             .timeout(Duration.ofSeconds(2))
-            .onErrorResume(TimeoutException::class.java) { 
-                Mono.just(
-                    Health.down()
-                        .withDetail("error", "Timeout after 2 seconds")
-                        .build()
-                )
-            }
-            .onErrorResume { ex ->
-                Mono.just(
-                    Health.down()
-                        .withDetail("error", ex.message)
-                        .build()
-                )
-            }
+            .onErrorResume(TimeoutException.class, ex -> 
+                Mono.just(Health.down()
+                    .withDetail("error", "Timeout after 2 seconds")
+                    .build()))
+            .onErrorResume(ex -> 
+                Mono.just(Health.down()
+                    .withDetail("error", ex.getMessage())
+                    .build()));
     }
 }
 ```
@@ -281,182 +285,221 @@ class ReactiveExternalServiceHealthIndicator(
 
 ### Application Statistics Endpoint
 
-```kotlin
+```java
 @Component
 @Endpoint(id = "appstats")
-class AppStatisticsEndpoint(
-    private val userRepository: UserRepository,
-    private val orderRepository: OrderRepository,
-    private val meterRegistry: MeterRegistry
-) {
+public class AppStatisticsEndpoint {
+
+    private final UserRepository userRepository;
+    private final OrderRepository orderRepository;
+    private final MeterRegistry meterRegistry;
+
+    public AppStatisticsEndpoint(
+            UserRepository userRepository,
+            OrderRepository orderRepository,
+            MeterRegistry meterRegistry) {
+        this.userRepository = userRepository;
+        this.orderRepository = orderRepository;
+        this.meterRegistry = meterRegistry;
+    }
 
     @ReadOperation
-    fun getStatistics(): Map<String, Any> {
-        val stats = mutableMapOf<String, Any>()
+    public Map<String, Object> getStatistics() {
+        Map<String, Object> stats = new HashMap<>();
         
         // User statistics
-        stats["users"] = mapOf(
-            "total" to userRepository.count(),
-            "active" to userRepository.countByStatus("ACTIVE"),
-            "inactive" to userRepository.countByStatus("INACTIVE")
-        )
+        stats.put("users", Map.of(
+            "total", userRepository.count(),
+            "active", userRepository.countByStatus("ACTIVE"),
+            "inactive", userRepository.countByStatus("INACTIVE")
+        ));
         
         // Order statistics
-        stats["orders"] = mapOf(
-            "total" to orderRepository.count(),
-            "pending" to orderRepository.countByStatus("PENDING"),
-            "completed" to orderRepository.countByStatus("COMPLETED"),
-            "cancelled" to orderRepository.countByStatus("CANCELLED")
-        )
+        stats.put("orders", Map.of(
+            "total", orderRepository.count(),
+            "pending", orderRepository.countByStatus("PENDING"),
+            "completed", orderRepository.countByStatus("COMPLETED"),
+            "cancelled", orderRepository.countByStatus("CANCELLED")
+        ));
         
         // JVM statistics
-        stats["jvm"] = mapOf(
-            "memoryUsed" to getMetricValue("jvm.memory.used"),
-            "memoryMax" to getMetricValue("jvm.memory.max"),
-            "threadCount" to getMetricValue("jvm.threads.live")
-        )
+        stats.put("jvm", Map.of(
+            "memoryUsed", getMetricValue("jvm.memory.used"),
+            "memoryMax", getMetricValue("jvm.memory.max"),
+            "threadCount", getMetricValue("jvm.threads.live")
+        ));
         
-        stats["timestamp"] = Instant.now()
+        stats.put("timestamp", Instant.now());
         
-        return stats
+        return stats;
     }
 
     @ReadOperation
-    fun getStatisticsByType(@Selector type: String): Map<String, Any> {
-        return when (type.lowercase()) {
-            "users" -> mapOf(
-                "total" to userRepository.count(),
-                "byStatus" to userRepository.countByStatusGrouped()
-            )
-            "orders" -> mapOf(
-                "total" to orderRepository.count(),
-                "byStatus" to orderRepository.countByStatusGrouped()
-            )
-            else -> mapOf("error" to "Unknown type: $type")
-        }
+    public Map<String, Object> getStatisticsByType(@Selector String type) {
+        return switch (type.toLowerCase()) {
+            case "users" -> Map.of(
+                "total", userRepository.count(),
+                "byStatus", userRepository.countByStatusGrouped()
+            );
+            case "orders" -> Map.of(
+                "total", orderRepository.count(),
+                "byStatus", orderRepository.countByStatusGrouped()
+            );
+            default -> Map.of("error", "Unknown type: " + type);
+        };
     }
 
-    private fun getMetricValue(meterName: String): Double {
+    private Double getMetricValue(String meterName) {
         return meterRegistry.find(meterName)
             .gauge()
-            ?.value()
-            ?: 0.0
+            .map(Gauge::value)
+            .orElse(0.0);
     }
 }
 ```
 
 ### Feature Flags Endpoint
 
-```kotlin
+```java
 @Component
 @Endpoint(id = "features")
-class FeatureFlagsEndpoint(
-    private val eventPublisher: ApplicationEventPublisher
-) {
+public class FeatureFlagsEndpoint {
 
-    private val features = ConcurrentHashMap<String, FeatureFlag>()
+    private final Map<String, FeatureFlag> features = new ConcurrentHashMap<>();
+    private final ApplicationEventPublisher eventPublisher;
 
-    init {
-        initializeDefaultFeatures()
+    public FeatureFlagsEndpoint(ApplicationEventPublisher eventPublisher) {
+        this.eventPublisher = eventPublisher;
+        initializeDefaultFeatures();
     }
 
-    private fun initializeDefaultFeatures() {
-        features["dark-mode"] = FeatureFlag(true, "Dark mode UI")
-        features["new-checkout"] = FeatureFlag(false, "New checkout flow")
-        features["ai-recommendations"] = FeatureFlag(false, "AI-powered recommendations")
-    }
-
-    @ReadOperation
-    fun getAllFeatures(): Map<String, FeatureFlag> {
-        return features
+    private void initializeDefaultFeatures() {
+        features.put("dark-mode", new FeatureFlag(true, "Dark mode UI"));
+        features.put("new-checkout", new FeatureFlag(false, "New checkout flow"));
+        features.put("ai-recommendations", new FeatureFlag(false, "AI-powered recommendations"));
     }
 
     @ReadOperation
-    fun getFeature(@Selector name: String): FeatureFlag? {
-        return features[name]
+    public Map<String, FeatureFlag> getAllFeatures() {
+        return features;
+    }
+
+    @ReadOperation
+    public FeatureFlag getFeature(@Selector String name) {
+        return features.get(name);
     }
 
     @WriteOperation
-    fun updateFeature(
-        @Selector name: String,
-        enabled: Boolean?,
-        description: String?
-    ) {
-        features.compute(name) { _, existing ->
-            val feature = existing ?: FeatureFlag(false, "")
+    public void updateFeature(
+            @Selector String name,
+            @Nullable Boolean enabled,
+            @Nullable String description) {
+        
+        features.compute(name, (key, existing) -> {
+            if (existing == null) {
+                existing = new FeatureFlag(false, "");
+            }
             
-            enabled?.let { feature.enabled = it }
-            description?.let { feature.description = it }
+            if (enabled != null) {
+                existing.setEnabled(enabled);
+            }
+            if (description != null) {
+                existing.setDescription(description);
+            }
             
-            feature
-        }
+            return existing;
+        });
 
-        eventPublisher.publishEvent(FeatureFlagChangedEvent(name, features[name]!!))
+        eventPublisher.publishEvent(new FeatureFlagChangedEvent(name, features.get(name)));
     }
 
     @DeleteOperation
-    fun deleteFeature(@Selector name: String) {
-        val removed = features.remove(name)
+    public void deleteFeature(@Selector String name) {
+        FeatureFlag removed = features.remove(name);
         if (removed != null) {
-            eventPublisher.publishEvent(FeatureFlagDeletedEvent(name))
+            eventPublisher.publishEvent(new FeatureFlagDeletedEvent(name));
         }
     }
 
-    data class FeatureFlag(
-        var enabled: Boolean = false,
-        var description: String = "",
-        var lastModified: Instant = Instant.now()
-    ) {
-        fun setEnabled(value: Boolean) {
-            enabled = value
-            lastModified = Instant.now()
+    public static class FeatureFlag {
+        private boolean enabled;
+        private String description;
+        private Instant lastModified = Instant.now();
+
+        public FeatureFlag() {}
+
+        public FeatureFlag(boolean enabled, String description) {
+            this.enabled = enabled;
+            this.description = description;
         }
+
+        // Getters and setters
+        public boolean isEnabled() { return enabled; }
+        public void setEnabled(boolean enabled) {
+            this.enabled = enabled;
+            this.lastModified = Instant.now();
+        }
+        public String getDescription() { return description; }
+        public void setDescription(String description) { this.description = description; }
+        public Instant getLastModified() { return lastModified; }
     }
 }
 ```
 
 ### Cache Management Endpoint
 
-```kotlin
+```java
 @Component
 @Endpoint(id = "caches")
-class CacheManagementEndpoint(
-    private val cacheManager: CacheManager
-) {
+public class CacheManagementEndpoint {
 
-    @ReadOperation
-    fun getCaches(): Map<String, Any> {
-        val cacheNames = cacheManager.cacheNames
-        
-        return mapOf(
-            "totalCaches" to cacheNames.size,
-            "caches" to cacheNames
-        )
+    private final CacheManager cacheManager;
+
+    public CacheManagementEndpoint(CacheManager cacheManager) {
+        this.cacheManager = cacheManager;
     }
 
     @ReadOperation
-    fun getCache(@Selector cacheName: String): Map<String, Any> {
-        val cache = cacheManager.getCache(cacheName)
-            ?: return mapOf("error" to "Cache not found: $cacheName")
+    public Map<String, Object> getCaches() {
+        Collection<String> cacheNames = cacheManager.getCacheNames();
+        Map<String, Object> result = new HashMap<>();
+        
+        result.put("totalCaches", cacheNames.size());
+        result.put("caches", cacheNames);
+        
+        return result;
+    }
 
-        return mapOf(
-            "name" to cacheName,
-            "type" to cache.javaClass.simpleName
-        )
+    @ReadOperation
+    public Map<String, Object> getCache(@Selector String cacheName) {
+        Cache cache = cacheManager.getCache(cacheName);
+        if (cache == null) {
+            return Map.of("error", "Cache not found: " + cacheName);
+        }
+
+        return Map.of(
+            "name", cacheName,
+            "type", cache.getClass().getSimpleName()
+        );
     }
 
     @DeleteOperation
-    fun clearCache(@Selector cacheName: String) {
-        val cache = cacheManager.getCache(cacheName)
-        cache?.clear()
+    public void clearCache(@Selector String cacheName) {
+        Cache cache = cacheManager.getCache(cacheName);
+        if (cache != null) {
+            cache.clear();
+        }
     }
 
     @WriteOperation
-    fun clearAllCaches() {
-        cacheManager.cacheNames.forEach { name ->
-            val cache = cacheManager.getCache(name)
-            cache?.clear()
-        }
+    public void clearAllCaches() {
+        cacheManager.getCacheNames()
+            .forEach(name -> {
+                Cache cache = cacheManager.getCache(name);
+                if (cache != null) {
+                    cache.clear();
+                }
+            });
     }
 }
 ```
@@ -465,54 +508,64 @@ class CacheManagementEndpoint(
 
 ### Detailed Application Info
 
-```kotlin
+```java
 @Component
-class DetailedApplicationInfoContributor(
-    private val environment: Environment,
-    private val userRepository: UserRepository,
-    private val orderRepository: OrderRepository
-) : InfoContributor {
+public class DetailedApplicationInfoContributor implements InfoContributor {
 
-    override fun contribute(builder: Info.Builder) {
-        // Runtime information
-        val runtime = Runtime.getRuntime()
-        builder.withDetail("runtime", mapOf(
-            "processors" to runtime.availableProcessors(),
-            "freeMemory" to runtime.freeMemory(),
-            "totalMemory" to runtime.totalMemory(),
-            "maxMemory" to runtime.maxMemory(),
-            "uptime" to ManagementFactory.getRuntimeMXBean().uptime
-        ))
+    private final Environment environment;
+    private final UserRepository userRepository;
+    private final OrderRepository orderRepository;
 
-        // Active profiles
-        builder.withDetail("profiles", environment.activeProfiles.toList())
-
-        // Database statistics
-        builder.withDetail("database", mapOf(
-            "users" to mapOf(
-                "total" to userRepository.count(),
-                "active" to userRepository.countByStatus("ACTIVE")
-            ),
-            "orders" to mapOf(
-                "total" to orderRepository.count(),
-                "pending" to orderRepository.countByStatus("PENDING"),
-                "completed" to orderRepository.countByStatus("COMPLETED")
-            )
-        ))
-
-        // Deployment information
-        builder.withDetail("deployment", mapOf(
-            "environment" to environment.getProperty("app.environment", "unknown"),
-            "region" to environment.getProperty("app.region", "unknown"),
-            "instance" to getHostname()
-        ))
+    public DetailedApplicationInfoContributor(
+            Environment environment,
+            UserRepository userRepository,
+            OrderRepository orderRepository) {
+        this.environment = environment;
+        this.userRepository = userRepository;
+        this.orderRepository = orderRepository;
     }
 
-    private fun getHostname(): String {
-        return try {
-            InetAddress.getLocalHost().hostName
-        } catch (e: Exception) {
-            "unknown"
+    @Override
+    public void contribute(Info.Builder builder) {
+        // Runtime information
+        Runtime runtime = Runtime.getRuntime();
+        builder.withDetail("runtime", Map.of(
+            "processors", runtime.availableProcessors(),
+            "freeMemory", runtime.freeMemory(),
+            "totalMemory", runtime.totalMemory(),
+            "maxMemory", runtime.maxMemory(),
+            "uptime", ManagementFactory.getRuntimeMXBean().getUptime()
+        ));
+
+        // Active profiles
+        builder.withDetail("profiles", List.of(environment.getActiveProfiles()));
+
+        // Database statistics
+        builder.withDetail("database", Map.of(
+            "users", Map.of(
+                "total", userRepository.count(),
+                "active", userRepository.countByStatus("ACTIVE")
+            ),
+            "orders", Map.of(
+                "total", orderRepository.count(),
+                "pending", orderRepository.countByStatus("PENDING"),
+                "completed", orderRepository.countByStatus("COMPLETED")
+            )
+        ));
+
+        // Deployment information
+        builder.withDetail("deployment", Map.of(
+            "environment", environment.getProperty("app.environment", "unknown"),
+            "region", environment.getProperty("app.region", "unknown"),
+            "instance", getHostname()
+        ));
+    }
+
+    private String getHostname() {
+        try {
+            return InetAddress.getLocalHost().getHostName();
+        } catch (Exception e) {
+            return "unknown";
         }
     }
 }
@@ -520,40 +573,37 @@ class DetailedApplicationInfoContributor(
 
 ### Dependency Version Info
 
-```kotlin
+```java
 @Component
-class DependencyVersionInfoContributor : InfoContributor {
+public class DependencyVersionInfoContributor implements InfoContributor {
 
-    override fun contribute(builder: Info.Builder) {
-        val versions = mutableMapOf<String, String>()
+    @Override
+    public void contribute(Info.Builder builder) {
+        Map<String, String> versions = new HashMap<>();
         
         // Spring versions
-        versions["spring-boot"] = SpringBootVersion.getVersion() ?: "unknown"
-        versions["spring-framework"] = SpringVersion.getVersion()
+        versions.put("spring-boot", SpringBootVersion.getVersion());
+        versions.put("spring-framework", SpringVersion.getVersion());
         
         // Java version
-        versions["java"] = System.getProperty("java.version")
-        versions["java-vendor"] = System.getProperty("java.vendor")
+        versions.put("java", System.getProperty("java.version"));
+        versions.put("java-vendor", System.getProperty("java.vendor"));
         
         // Other dependencies (if available)
-        addVersionIfPresent(versions, "hibernate", "org.hibernate.Version", "getVersionString")
-        addVersionIfPresent(versions, "jackson", "com.fasterxml.jackson.core.Version", "versionString")
+        addVersionIfPresent(versions, "hibernate", "org.hibernate.Version", "getVersionString");
+        addVersionIfPresent(versions, "jackson", "com.fasterxml.jackson.core.Version", "versionString");
         
-        builder.withDetail("dependencies", versions)
+        builder.withDetail("dependencies", versions);
     }
 
-    private fun addVersionIfPresent(
-        versions: MutableMap<String, String>,
-        key: String,
-        className: String,
-        methodName: String
-    ) {
+    private void addVersionIfPresent(Map<String, String> versions, String key, 
+                                      String className, String methodName) {
         try {
-            val clazz = Class.forName(className)
-            val versionInstance = clazz.getDeclaredConstructor().newInstance()
-            val version = clazz.getMethod(methodName).invoke(versionInstance) as String
-            versions[key] = version
-        } catch (e: Exception) {
+            Class<?> clazz = Class.forName(className);
+            Object versionInstance = clazz.getDeclaredConstructor().newInstance();
+            String version = (String) clazz.getMethod(methodName).invoke(versionInstance);
+            versions.put(key, version);
+        } catch (Exception e) {
             // Dependency not present or version not accessible
         }
     }
@@ -564,116 +614,120 @@ class DependencyVersionInfoContributor : InfoContributor {
 
 ### Service Metrics
 
-```kotlin
+```java
 @Service
-class OrderService(
-    private val orderRepository: OrderRepository,
-    private val meterRegistry: MeterRegistry
-) {
+public class OrderService {
 
-    private val orderCreatedCounter: Counter
-    private val orderFailedCounter: Counter
-    private val orderProcessingTimer: Timer
-    private val orderAmountSummary: DistributionSummary
+    private final OrderRepository orderRepository;
+    private final MeterRegistry meterRegistry;
+    private final Counter orderCreatedCounter;
+    private final Counter orderFailedCounter;
+    private final Timer orderProcessingTimer;
+    private final DistributionSummary orderAmountSummary;
 
-    init {
+    public OrderService(OrderRepository orderRepository, MeterRegistry meterRegistry) {
+        this.orderRepository = orderRepository;
+        this.meterRegistry = meterRegistry;
+
         // Counters
-        orderCreatedCounter = Counter.builder("orders.created")
+        this.orderCreatedCounter = Counter.builder("orders.created")
             .description("Total number of orders created")
             .tag("service", "order")
-            .register(meterRegistry)
+            .register(meterRegistry);
 
-        orderFailedCounter = Counter.builder("orders.failed")
+        this.orderFailedCounter = Counter.builder("orders.failed")
             .description("Total number of failed orders")
             .tag("service", "order")
-            .register(meterRegistry)
+            .register(meterRegistry);
 
         // Timer for processing duration
-        orderProcessingTimer = Timer.builder("order.processing.time")
+        this.orderProcessingTimer = Timer.builder("order.processing.time")
             .description("Order processing duration")
             .publishPercentiles(0.5, 0.95, 0.99)
-            .register(meterRegistry)
+            .register(meterRegistry);
 
         // Distribution summary for order amounts
-        orderAmountSummary = DistributionSummary.builder("order.amount")
+        this.orderAmountSummary = DistributionSummary.builder("order.amount")
             .description("Order amount distribution")
             .baseUnit("EUR")
             .publishPercentiles(0.5, 0.95, 0.99)
-            .register(meterRegistry)
+            .register(meterRegistry);
 
         // Gauge for pending orders
-        Gauge.builder("orders.pending", orderRepository) { repo ->
-            repo.countByStatus("PENDING").toDouble()
-        }
+        Gauge.builder("orders.pending", orderRepository, repo -> repo.countByStatus("PENDING"))
             .description("Number of pending orders")
-            .register(meterRegistry)
+            .register(meterRegistry);
     }
 
-    fun createOrder(request: OrderRequest): Order {
-        return orderProcessingTimer.record {
+    public Order createOrder(OrderRequest request) {
+        return orderProcessingTimer.record(() -> {
             try {
-                val order = processOrder(request)
-                orderCreatedCounter.increment()
-                orderAmountSummary.record(order.totalAmount)
+                Order order = processOrder(request);
+                orderCreatedCounter.increment();
+                orderAmountSummary.record(order.getTotalAmount());
                 
                 // Tag by payment method
                 Counter.builder("orders.created.by.payment")
-                    .tag("paymentMethod", order.paymentMethod)
+                    .tag("paymentMethod", order.getPaymentMethod())
                     .register(meterRegistry)
-                    .increment()
+                    .increment();
                 
-                order
-            } catch (ex: Exception) {
-                orderFailedCounter.increment()
-                throw ex
+                return order;
+            } catch (Exception ex) {
+                orderFailedCounter.increment();
+                throw ex;
             }
-        }!!
+        });
     }
 
-    private fun processOrder(request: OrderRequest): Order {
+    private Order processOrder(OrderRequest request) {
         // Implementation
-        return Order()
+        return new Order();
     }
 }
 ```
 
 ### Custom Metrics with Tags
 
-```kotlin
+```java
 @Service
-class MetricsService(
-    private val registry: MeterRegistry
-) {
+public class MetricsService {
 
-    fun recordHttpRequest(method: String, endpoint: String, statusCode: Int, duration: Long) {
+    private final MeterRegistry registry;
+
+    public MetricsService(MeterRegistry registry) {
+        this.registry = registry;
+    }
+
+    public void recordHttpRequest(String method, String endpoint, int statusCode, long duration) {
         Timer.builder("http.requests")
             .tag("method", method)
             .tag("endpoint", endpoint)
-            .tag("status", statusCode.toString())
+            .tag("status", String.valueOf(statusCode))
             .register(registry)
-            .record(duration, TimeUnit.MILLISECONDS)
+            .record(duration, TimeUnit.MILLISECONDS);
     }
 
-    fun recordDatabaseQuery(query: String, duration: Long, success: Boolean) {
+    public void recordDatabaseQuery(String query, long duration, boolean success) {
         Timer.builder("db.queries")
             .tag("query", query)
-            .tag("success", success.toString())
+            .tag("success", String.valueOf(success))
             .register(registry)
-            .record(duration, TimeUnit.MILLISECONDS)
+            .record(duration, TimeUnit.MILLISECONDS);
     }
 
-    fun trackCacheHit(cacheName: String, hit: Boolean) {
+    public void trackCacheHit(String cacheName, boolean hit) {
         Counter.builder("cache.operations")
             .tag("cache", cacheName)
-            .tag("result", if (hit) "hit" else "miss")
+            .tag("result", hit ? "hit" : "miss")
             .register(registry)
-            .increment()
+            .increment();
     }
 
-    fun recordBusinessMetric(metricName: String, value: Double, tags: Map<String, String>) {
-        val builder = DistributionSummary.builder(metricName)
-        tags.forEach { (key, value) -> builder.tag(key, value) }
-        builder.register(registry).record(value)
+    public void recordBusinessMetric(String metricName, double value, Map<String, String> tags) {
+        DistributionSummary.Builder builder = DistributionSummary.builder(metricName);
+        tags.forEach(builder::tag);
+        builder.register(registry).record(value);
     }
 }
 ```
@@ -682,86 +736,84 @@ class MetricsService(
 
 ### Complete Security Setup
 
-```kotlin
+```java
 @Configuration
 @EnableWebSecurity
-class ActuatorSecurityConfiguration {
+public class ActuatorSecurityConfiguration {
 
     @Bean
-    fun actuatorSecurityFilterChain(http: HttpSecurity): SecurityFilterChain {
+    public SecurityFilterChain actuatorSecurityFilterChain(HttpSecurity http) throws Exception {
         return http
             .securityMatcher(EndpointRequest.toAnyEndpoint())
-            .authorizeHttpRequests { auth ->
-                auth
-                    // Public health check (for load balancers)
-                    .requestMatchers(EndpointRequest.to(HealthEndpoint::class.java)).permitAll()
-                    
-                    // Info endpoint for authenticated users
-                    .requestMatchers(EndpointRequest.to(InfoEndpoint::class.java)).authenticated()
-                    
-                    // Read-only metrics for monitoring role
-                    .requestMatchers(HttpMethod.GET, "/actuator/metrics/**")
-                        .hasAnyRole("MONITOR", "ADMIN")
-                    
-                    // Prometheus endpoint for monitoring tools
-                    .requestMatchers(EndpointRequest.to("prometheus"))
-                        .hasRole("MONITOR")
-                    
-                    // Write operations only for admin
-                    .requestMatchers(HttpMethod.POST, "/actuator/**").hasRole("ADMIN")
-                    .requestMatchers(HttpMethod.DELETE, "/actuator/**").hasRole("ADMIN")
-                    
-                    // Everything else requires admin
-                    .anyRequest().hasRole("ADMIN")
-            }
+            .authorizeHttpRequests(auth -> auth
+                // Public health check (for load balancers)
+                .requestMatchers(EndpointRequest.to(HealthEndpoint.class)).permitAll()
+                
+                // Info endpoint for authenticated users
+                .requestMatchers(EndpointRequest.to(InfoEndpoint.class)).authenticated()
+                
+                // Read-only metrics for monitoring role
+                .requestMatchers(HttpMethod.GET, "/actuator/metrics/**")
+                    .hasAnyRole("MONITOR", "ADMIN")
+                
+                // Prometheus endpoint for monitoring tools
+                .requestMatchers(EndpointRequest.to("prometheus"))
+                    .hasRole("MONITOR")
+                
+                // Write operations only for admin
+                .requestMatchers(HttpMethod.POST, "/actuator/**").hasRole("ADMIN")
+                .requestMatchers(HttpMethod.DELETE, "/actuator/**").hasRole("ADMIN")
+                
+                // Everything else requires admin
+                .anyRequest().hasRole("ADMIN")
+            )
             .httpBasic(Customizer.withDefaults())
-            .build()
+            .build();
     }
 
     @Bean
-    fun actuatorUsers(): UserDetailsService {
-        val monitor = User.builder()
+    public UserDetailsService actuatorUsers() {
+        UserDetails monitor = User.builder()
             .username("monitor")
             .password("{noop}monitor-password")
             .roles("MONITOR")
-            .build()
+            .build();
 
-        val admin = User.builder()
+        UserDetails admin = User.builder()
             .username("admin")
             .password("{noop}admin-password")
             .roles("ADMIN", "MONITOR")
-            .build()
+            .build();
 
-        return InMemoryUserDetailsManager(monitor, admin)
+        return new InMemoryUserDetailsManager(monitor, admin);
     }
 }
 ```
 
 ### IP-Based Access Control
 
-```kotlin
+```java
 @Configuration
-class IpBasedActuatorSecurity {
+public class IpBasedActuatorSecurity {
 
     @Bean
-    fun actuatorSecurity(http: HttpSecurity): SecurityFilterChain {
+    public SecurityFilterChain actuatorSecurity(HttpSecurity http) throws Exception {
         return http
             .securityMatcher(EndpointRequest.toAnyEndpoint())
-            .authorizeHttpRequests { auth ->
-                auth
-                    .requestMatchers { request -> 
-                        isFromAllowedIp(request.remoteAddr)
-                    }.permitAll()
-                    .anyRequest().denyAll()
-            }
-            .build()
+            .authorizeHttpRequests(auth -> auth
+                .requestMatchers(request -> 
+                    isFromAllowedIp(request.getRemoteAddr())
+                ).permitAll()
+                .anyRequest().denyAll()
+            )
+            .build();
     }
 
-    private fun isFromAllowedIp(remoteAddr: String): Boolean {
+    private boolean isFromAllowedIp(String remoteAddr) {
         // Allow localhost and specific IPs
-        return remoteAddr == "127.0.0.1" ||
-               remoteAddr == "0:0:0:0:0:0:0:1" ||
-               remoteAddr.startsWith("10.0.0.")
+        return remoteAddr.equals("127.0.0.1") ||
+               remoteAddr.equals("0:0:0:0:0:0:0:1") ||
+               remoteAddr.startsWith("10.0.0.");
     }
 }
 ```
@@ -770,85 +822,83 @@ class IpBasedActuatorSecurity {
 
 ### Health Indicator Tests
 
-```kotlin
+```java
 @SpringBootTest
 class DatabaseHealthIndicatorTest {
 
     @Autowired
-    private lateinit var healthIndicator: DatabaseHealthIndicator
+    private DatabaseHealthIndicator healthIndicator;
 
     @MockBean
-    private lateinit var dataSource: DataSource
+    private DataSource dataSource;
 
     @Test
-    fun shouldReturnUpWhenDatabaseIsHealthy() {
-        val connection = mock<Connection>()
-        whenever(dataSource.connection).thenReturn(connection)
-        whenever(connection.isValid(1000)).thenReturn(true)
+    void shouldReturnUpWhenDatabaseIsHealthy() throws Exception {
+        Connection connection = mock(Connection.class);
+        when(dataSource.getConnection()).thenReturn(connection);
+        when(connection.isValid(1000)).thenReturn(true);
 
-        val metaData = mock<DatabaseMetaData>()
-        whenever(connection.metaData).thenReturn(metaData)
-        whenever(metaData.databaseProductName).thenReturn("PostgreSQL")
+        DatabaseMetaData metaData = mock(DatabaseMetaData.class);
+        when(connection.getMetaData()).thenReturn(metaData);
+        when(metaData.getDatabaseProductName()).thenReturn("PostgreSQL");
 
-        val health = healthIndicator.health()
+        Health health = healthIndicator.health();
 
-        assertThat(health.status).isEqualTo(Status.UP)
-        assertThat(health.details).containsKey("database")
+        assertThat(health.getStatus()).isEqualTo(Status.UP);
+        assertThat(health.getDetails()).containsKey("database");
     }
 
     @Test
-    fun shouldReturnDownWhenDatabaseConnectionFails() {
-        whenever(dataSource.connection).thenThrow(SQLException("Connection failed"))
+    void shouldReturnDownWhenDatabaseConnectionFails() throws Exception {
+        when(dataSource.getConnection()).thenThrow(new SQLException("Connection failed"));
 
-        val health = healthIndicator.health()
+        Health health = healthIndicator.health();
 
-        assertThat(health.status).isEqualTo(Status.DOWN)
-        assertThat(health.details).containsKey("error")
+        assertThat(health.getStatus()).isEqualTo(Status.DOWN);
+        assertThat(health.getDetails()).containsKey("error");
     }
 }
 ```
 
 ### Endpoint Tests
 
-```kotlin
+```java
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
 @AutoConfigureMockMvc
 class ActuatorEndpointIntegrationTest {
 
     @Autowired
-    private lateinit var mockMvc: MockMvc
+    private MockMvc mockMvc;
 
     @Test
-    fun healthEndpointShouldBeAccessible() {
+    void healthEndpointShouldBeAccessible() throws Exception {
         mockMvc.perform(get("/actuator/health"))
-            .andExpect(status().isOk)
-            .andExpect(jsonPath("$.status").value("UP"))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.status").value("UP"));
     }
 
     @Test
-    fun metricsEndpointShouldListAvailableMetrics() {
+    void metricsEndpointShouldListAvailableMetrics() throws Exception {
         mockMvc.perform(get("/actuator/metrics"))
-            .andExpect(status().isOk)
-            .andExpect(jsonPath("$.names").isArray)
-            .andExpect(jsonPath("$.names[*]", hasItem("jvm.memory.used")))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.names").isArray())
+            .andExpect(jsonPath("$.names[*]", hasItem("jvm.memory.used")));
     }
 
     @Test
-    fun customEndpointShouldWork() {
+    void customEndpointShouldWork() throws Exception {
         mockMvc.perform(get("/actuator/features"))
-            .andExpect(status().isOk)
-            .andExpect(content().contentType(MediaType.APPLICATION_JSON))
+            .andExpect(status().isOk())
+            .andExpect(content().contentType(MediaType.APPLICATION_JSON));
     }
 
     @Test
-    @WithMockUser(roles = ["ADMIN"])
-    fun securedEndpointShouldRequireAuthentication() {
-        mockMvc.perform(
-            post("/actuator/features/test")
+    @WithMockUser(roles = "ADMIN")
+    void securedEndpointShouldRequireAuthentication() throws Exception {
+        mockMvc.perform(post("/actuator/features/test")
                 .contentType(MediaType.APPLICATION_JSON)
-                .content("{\"enabled\":true}")
-        )
-            .andExpect(status().isOk)
+                .content("{\"enabled\":true}"))
+            .andExpect(status().isOk());
     }
 }
 ```

@@ -53,17 +53,18 @@ Cancel  Refund   Release    Cancel
 
 Each service completes its local ACID transaction atomically:
 
-```kotlin
+```java
 @Service
-class OrderService(
-    private val orderRepository: OrderRepository,
-    private val kafka: KafkaTemplate<String, Any>,
-) {
+@RequiredArgsConstructor
+public class OrderService {
+    private final OrderRepository orderRepository;
+    private final KafkaTemplate<String, Object> kafka;
+
     @Transactional
-    fun createOrder(cmd: CreateOrderCommand): Order {
-        val order = orderRepository.save(Order(cmd.orderId, cmd.items))
-        kafka.send("order.created", OrderCreatedEvent(order.id, order.items))
-        return order
+    public Order createOrder(CreateOrderCommand cmd) {
+        Order order = orderRepository.save(new Order(cmd.orderId(), cmd.items()));
+        kafka.send("order.created", new OrderCreatedEvent(order.getId(), order.getItems()));
+        return order;
     }
 }
 ```
@@ -74,24 +75,26 @@ class OrderService(
 
 Every forward operation requires an idempotent compensation:
 
-```kotlin
+```java
 @Service
-class PaymentService(
-    private val paymentRepository: PaymentRepository,
-    private val kafka: KafkaTemplate<String, Any>,
-) {
-    fun processPayment(request: PaymentRequest) {
-        val payment = paymentRepository.save(Payment(request.orderId, request.amount))
-        kafka.send("payment.processed", PaymentProcessedEvent(payment.id, request.orderId))
+@RequiredArgsConstructor
+public class PaymentService {
+    private final PaymentRepository paymentRepository;
+    private final KafkaTemplate<String, Object> kafka;
+
+    public void processPayment(PaymentRequest request) {
+        Payment payment = paymentRepository.save(new Payment(request.orderId(), request.amount()));
+        kafka.send("payment.processed", new PaymentProcessedEvent(payment.getId(), request.orderId()));
     }
 
     @Transactional
-    fun refundPayment(paymentId: String) {
-        paymentRepository.findById(paymentId).ifPresent { payment ->
-            payment.status = PaymentStatus.REFUNDED
-            paymentRepository.save(payment)
-            kafka.send("payment.refunded", PaymentRefundedEvent(paymentId))
-        }
+    public void refundPayment(String paymentId) {
+        paymentRepository.findById(paymentId)
+            .ifPresent(p -> {
+                p.setStatus(REFUNDED);
+                paymentRepository.save(p);
+                kafka.send("payment.refunded", new PaymentRefundedEvent(paymentId));
+            });
     }
 }
 ```
@@ -102,18 +105,19 @@ class PaymentService(
 
 Configure Kafka with idempotent consumers:
 
-```kotlin
+```java
 @Configuration
 @EnableKafka
-class KafkaConfig {
+public class KafkaConfig {
     @Bean
-    fun kafkaListenerContainerFactory(
-        consumerFactory: ConsumerFactory<String, Any>
-    ): ConcurrentKafkaListenerContainerFactory<String, Any> =
-        ConcurrentKafkaListenerContainerFactory<String, Any>().apply {
-            setConsumerFactory(consumerFactory)
-            setCommonErrorHandler(DefaultErrorHandler())
-        }
+    public ConcurrentKafkaListenerContainerFactory<String, Object> kafkaListenerContainerFactory(
+            ConsumerFactory<String, Object> consumerFactory) {
+        ConcurrentKafkaListenerContainerFactory<String, Object> factory =
+            new ConcurrentKafkaListenerContainerFactory<>();
+        factory.setConsumerFactory(consumerFactory);
+        factory.setCommonErrorHandler(new DefaultErrorHandler());
+        return factory;
+    }
 }
 ```
 
@@ -121,23 +125,24 @@ class KafkaConfig {
 
 ### 6. Implement Saga Orchestrator (Orchestration Only)
 
-```kotlin
+```java
 @Service
-class OrderSagaOrchestrator(
-    private val kafka: KafkaTemplate<String, Any>,
-    private val sagaStateRepo: SagaStateRepository,
-) {
-    fun startSaga(request: OrderRequest) {
-        val sagaId = UUID.randomUUID().toString()
-        sagaStateRepo.save(SagaState(sagaId, SagaStatus.STARTED, LocalDateTime.now()))
-        kafka.send("saga.order.start", StartOrderSagaCommand(sagaId, request))
+@RequiredArgsConstructor
+public class OrderSagaOrchestrator {
+    private final KafkaTemplate<String, Object> kafka;
+    private final SagaStateRepository sagaStateRepo;
+
+    public void startSaga(OrderRequest request) {
+        String sagaId = UUID.randomUUID().toString();
+        sagaStateRepo.save(new SagaState(sagaId, STARTED, LocalDateTime.now()));
+        kafka.send("saga.order.start", new StartOrderSagaCommand(sagaId, request));
     }
 
-    @KafkaListener(topics = ["payment.failed"])
-    fun handlePaymentFailed(event: PaymentFailedEvent) {
-        kafka.send("order.compensate", CompensateOrderCommand(event.sagaId))
-        kafka.send("inventory.compensate", ReleaseInventoryCommand(event.sagaId))
-        sagaStateRepo.updateStatus(event.sagaId, SagaStatus.FAILED)
+    @KafkaListener(topics = "payment.failed")
+    public void handlePaymentFailed(PaymentFailedEvent event) {
+        kafka.send("order.compensate", new CompensateOrderCommand(event.getSagaId()));
+        kafka.send("inventory.compensate", new ReleaseInventoryCommand(event.getSagaId()));
+        sagaStateRepo.updateStatus(event.getSagaId(), FAILED);
     }
 }
 ```
@@ -147,19 +152,19 @@ each failure path.
 
 ### 7. Implement Event Handlers (Choreography Only)
 
-```kotlin
+```java
 @Service
-class OrderEventHandler(
-    private val orderService: OrderService,
-    private val kafka: KafkaTemplate<String, Any>,
-) {
-    @KafkaListener(topics = ["payment.processed"], groupId = "order-service")
-    fun onPaymentProcessed(event: PaymentProcessedEvent) {
+public class OrderEventHandler {
+    private final OrderService orderService;
+    private final KafkaTemplate<String, Object> kafka;
+
+    @KafkaListener(topics = "payment.processed", groupId = "order-service")
+    public void onPaymentProcessed(PaymentProcessedEvent event) {
         try {
-            val result = orderService.reserveInventory(event.toInventoryRequest())
-            kafka.send("inventory.reserved", result)
-        } catch (e: InsufficientInventoryException) {
-            kafka.send("inventory.insufficient", InsufficientInventoryEvent(event.orderId, event.paymentId))
+            InventoryReservedEvent result = orderService.reserveInventory(event.toInventoryRequest());
+            kafka.send("inventory.reserved", result);
+        } catch (InsufficientInventoryException e) {
+            kafka.send("inventory.insufficient", new InsufficientInventoryEvent(event.getOrderId(), event.getPaymentId()));
         }
     }
 }
@@ -169,12 +174,13 @@ class OrderEventHandler(
 
 ### 8. Add Monitoring and Observability
 
-```kotlin
+```java
 @Configuration
-class SagaMetricsConfig {
+public class SagaMetricsConfig {
     @Bean
-    fun meterRegistry(): MeterRegistry =
-        PrometheusMeterRegistry(PrometheusConfig.DEFAULT)
+    public MeterRegistry meterRegistry() {
+        return new PrometheusMeterRegistry(PrometheusConfig.DEFAULT);
+    }
 }
 ```
 
@@ -217,61 +223,64 @@ Track: saga execution duration, compensation count, failure rate, stuck sagas.
 
 ### Choreography-Based Saga
 
-```kotlin
-// Application.kt
+```java
+// Application.java
 @SpringBootApplication
 @EnableKafka
-class OrderApplication
-
-fun main(args: Array<String>) {
-    runApplication<OrderApplication>(*args)
+@EnableKafkaListeners
+public class OrderApplication {
+    public static void main(String[] args) {
+        SpringApplication.run(OrderApplication.class, args);
+    }
 }
 
 // Event Classes (immutable)
-data class OrderCreatedEvent(val orderId: String, val items: List<OrderItem>)
-data class PaymentProcessedEvent(val paymentId: String, val orderId: String)
-data class InventoryReservedEvent(val reservationId: String, val orderId: String)
-data class PaymentFailedEvent(val orderId: String, val reason: String)
-data class InsufficientInventoryEvent(val orderId: String, val paymentId: String)
+public record OrderCreatedEvent(String orderId, List<OrderItem> items) {}
+public record PaymentProcessedEvent(String paymentId, String orderId) {}
+public record InventoryReservedEvent(String reservationId, String orderId) {}
+public record PaymentFailedEvent(String orderId, String reason) {}
+public record InsufficientInventoryEvent(String orderId, String paymentId) {}
 
 // OrderService with compensation
 @Service
-class OrderService(
-    private val orderRepository: OrderRepository,
-    private val kafka: KafkaTemplate<String, Any>,
-) {
-    @KafkaListener(topics = ["payment.failed"], groupId = "order-service")
-    fun handleCompensation(event: PaymentFailedEvent) {
-        orderRepository.findByOrderId(event.orderId)?.let { order ->
-            order.status = OrderStatus.CANCELLED
-            orderRepository.save(order)
-        }
+@RequiredArgsConstructor
+public class OrderService {
+    private final OrderRepository orderRepository;
+    private final KafkaTemplate<String, Object> kafka;
+
+    @KafkaListener(topics = "payment.failed", groupId = "order-service")
+    public void handleCompensation(PaymentFailedEvent event) {
+        orderRepository.findByOrderId(event.orderId())
+            .ifPresent(order -> {
+                order.setStatus(CANCELLED);
+                orderRepository.save(order);
+            });
     }
 }
 ```
 
 ### Orchestration-Based Saga with Axon Framework
 
-```kotlin
+```java
 // Command
 @Aggregate
-class OrderAggregate() {
+public class OrderAggregate {
     @AggregateIdentifier
-    private lateinit var orderId: String
+    private String orderId;
 
     @CommandHandler
-    constructor(cmd: CreateOrderCommand) : this() {
-        apply(OrderCreatedEvent(cmd.orderId, cmd.items))
+    public OrderAggregate(CreateOrderCommand cmd) {
+        apply(new OrderCreatedEvent(cmd.orderId(), cmd.items()));
     }
 
     @EventSourcingHandler
-    fun on(event: OrderCreatedEvent) {
-        this.orderId = event.orderId
+    public void on(OrderCreatedEvent event) {
+        this.orderId = event.orderId();
     }
 
     @CommandHandler
-    fun handle(cmd: CancelOrderCommand) {
-        apply(OrderCancelledEvent(cmd.orderId, cmd.reason))
+    public void handle(CancelOrderCommand cmd) {
+        apply(new OrderCancelledEvent(cmd.orderId(), cmd.reason()));
     }
 }
 ```

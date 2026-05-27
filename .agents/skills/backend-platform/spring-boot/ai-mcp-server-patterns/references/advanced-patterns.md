@@ -7,14 +7,14 @@ and security.
 
 Register tools at runtime based on external configuration or user requests:
 
-```kotlin
+```java
 @Service
-class DynamicToolRegistry {
+public class DynamicToolRegistry {
 
-    private val mcpServer: McpServer
+    private final McpServer mcpServer;
     private final Map<String, ToolRegistration> registeredTools = new ConcurrentHashMap<>();
 
-    fun registerTool(ToolRegistration registration): void {
+    public void registerTool(ToolRegistration registration) {
         registeredTools.put(registration.getId(), registration);
 
         Tool tool = Tool.builder()
@@ -27,35 +27,36 @@ class DynamicToolRegistry {
         mcpServer.addTool(tool);
     }
 
-    fun unregisterTool(String toolId): void {
+    public void unregisterTool(String toolId) {
         ToolRegistration registration = registeredTools.remove(toolId);
         if (registration != null) {
             mcpServer.removeTool(registration.getName());
         }
     }
 
-    private fun executeDynamicTool(toolId: String, args: Map<String, Any>): Any {
-        val registration = registeredTools[toolId] 
-            ?: throw IllegalStateException("Tool not found: $toolId")
+    private Object executeDynamicTool(String toolId, Map<String, Object> args) {
+        ToolRegistration registration = registeredTools.get(toolId);
+        if (registration == null) throw new IllegalStateException("Tool not found: " + toolId);
 
-        return when (registration.type) {
-            ToolType.GROOVY_SCRIPT -> executeGroovyScript(registration, args)
-            ToolType.SPRING_BEAN -> executeSpringBeanMethod(registration, args)
-            ToolType.HTTP_ENDPOINT -> callHttpEndpoint(registration, args)
-        }
+        return switch (registration.getType()) {
+            case GROOVY_SCRIPT -> executeGroovyScript(registration, args);
+            case SPRING_BEAN -> executeSpringBeanMethod(registration, args);
+            case HTTP_ENDPOINT -> callHttpEndpoint(registration, args);
+        };
     }
 }
 
 @Data
-class ToolRegistration(
-    var id: String,
-    var name: String,
-    var description: String,
-    var inputSchema: Map<String, Any>,
-    var type: ToolType,
-    var target: String,
-    var metadata: Map<String, String>
-)
+@Builder
+class ToolRegistration {
+    private String id;
+    private String name;
+    private String description;
+    private Map<String, Object> inputSchema;
+    private ToolType type;
+    private String target;
+    private Map<String, String> metadata;
+}
 
 enum ToolType { GROOVY_SCRIPT, SPRING_BEAN, HTTP_ENDPOINT }
 ```
@@ -64,41 +65,41 @@ enum ToolType { GROOVY_SCRIPT, SPRING_BEAN, HTTP_ENDPOINT }
 
 Configure and select between multiple AI models:
 
-```kotlin
+```java
 @Configuration
-class MultiModelConfig {
+public class MultiModelConfig {
 
     @Bean
     @Primary
-    fun primaryChatModel(@Value("\${spring.ai.primary.model}") modelName: String): ChatModel {
-        return when (modelName) {
-            "gpt-4" -> OpenAiChatModel(OpenAiApi.builder()
-                    .apiKey(System.getenv("OPENAI_API_KEY")).build())
-            "claude" -> AnthropicChatModel(AnthropicApi.builder()
-                    .apiKey(System.getenv("ANTHROPIC_API_KEY")).build())
-            else -> throw IllegalArgumentException("Unsupported model: $modelName")
-        }
+    public ChatModel primaryChatModel(@Value("${spring.ai.primary.model}") String modelName) {
+        return switch (modelName) {
+            case "gpt-4" -> new OpenAiChatModel(OpenAiApi.builder()
+                    .apiKey(System.getenv("OPENAI_API_KEY")).build());
+            case "claude" -> new AnthropicChatModel(AnthropicApi.builder()
+                    .apiKey(System.getenv("ANTHROPIC_API_KEY")).build());
+            default -> throw new IllegalArgumentException("Unsupported model: " + modelName);
+        };
     }
 
     @Bean
-    fun modelSelector(models: Map<String, ChatModel>): ModelSelector {
-        return SpringAiModelSelector(models)
+    public ModelSelector modelSelector(Map<String, ChatModel> models) {
+        return new SpringAiModelSelector(models);
     }
 }
 
 @Component
-class SpringAiModelSelector implements ModelSelector {
+public class SpringAiModelSelector implements ModelSelector {
 
     private final Map<String, ChatModel> models;
 
     @Override
-    fun selectModel(Prompt prompt, Map<String, Object> context): ChatModel {
+    public ChatModel selectModel(Prompt prompt, Map<String, Object> context) {
         // Select based on complexity, cost, or latency constraints
         String modelName = determineBestModel(prompt, context);
         return models.get(modelName);
     }
 
-    private fun determineBestModel(Prompt prompt, Map<String, Object> context): String {
+    private String determineBestModel(Prompt prompt, Map<String, Object> context) {
         // Implement selection logic (prompt length, cost, latency)
         return "gpt-4";
     }
@@ -107,36 +108,36 @@ class SpringAiModelSelector implements ModelSelector {
 
 ## Caching and Performance
 
-```kotlin
+```java
 @Configuration
 @EnableCaching
-class McpCacheConfig {
+public class McpCacheConfig {
 
     @Bean
-    fun cacheManager(): CacheManager {
-        return ConcurrentMapCacheManager("tool-results", "prompt-templates");
+    public CacheManager cacheManager() {
+        return new ConcurrentMapCacheManager("tool-results", "prompt-templates");
     }
 }
 
 @Component
-class CachedToolExecutor {
+public class CachedToolExecutor {
 
-    private val mcpServer: McpServer
+    private final McpServer mcpServer;
 
     @Cacheable(
         value = "tool-results",
         key = "#toolName + '_' + #args.hashCode()",
         unless = "#result.isCacheable() == false"
     )
-    fun executeTool(String toolName, Map<String, Object> args): ToolResult {
+    public ToolResult executeTool(String toolName, Map<String, Object> args) {
         return mcpServer.executeTool(toolName, args);
     }
 
     @CacheEvict(value = "tool-results", allEntries = true)
-    fun clearToolCache(): void { }
+    public void clearToolCache() { }
 
     @Cacheable(value = "prompt-templates", key = "#templateName")
-    fun getPromptTemplate(String templateName): PromptTemplate {
+    public PromptTemplate getPromptTemplate(String templateName) {
         return mcpServer.getPromptTemplate(templateName);
     }
 }
@@ -146,21 +147,21 @@ class CachedToolExecutor {
 
 Full secure tool executor with Spring Security:
 
-```kotlin
+```java
 @Component
-class SecureToolExecutor {
+public class SecureToolExecutor {
 
-    private val mcpServer: McpServer
+    private final McpServer mcpServer;
 
-    fun executeTool(String toolName, Map<String, Object> arguments): ToolResult {
+    public ToolResult executeTool(String toolName, Map<String, Object> arguments) {
         Authentication auth = SecurityContextHolder.getContext().getAuthentication();
 
         if (!(auth instanceof UserAuthentication userAuth)) {
-            throw AccessDeniedException("User not authenticated");
+            throw new AccessDeniedException("User not authenticated");
         }
 
         if (!hasToolPermission(userAuth.getUser(), toolName)) {
-            throw AccessDeniedException("Tool not allowed: " + toolName);
+            throw new AccessDeniedException("Tool not allowed: " + toolName);
         }
 
         validateArguments(arguments);
@@ -172,102 +173,104 @@ class SecureToolExecutor {
             return result;
         } catch (Exception e) {
             logToolFailure(userAuth.getUser(), toolName, e);
-            throw ToolExecutionException("Tool execution failed", e);
+            throw new ToolExecutionException("Tool execution failed", e);
         }
     }
 
-    private fun hasToolPermission(user: User, toolName: String): Boolean {
-        return user.authorities.any { a -> 
-            a.authority == "TOOL_$toolName" || a.authority == "ROLE_ADMIN"
-        }
+    private boolean hasToolPermission(User user, String toolName) {
+        return user.getAuthorities().stream()
+                .anyMatch(a -> a.getAuthority().equals("TOOL_" + toolName) ||
+                               a.getAuthority().equals("ROLE_ADMIN"));
     }
 
-    private fun validateArguments(arguments: Map<String, Any>) {
-        arguments.forEach { (key, value) ->
-            if (value is String && (value.contains(";") || value.contains("--"))) {
-                throw IllegalArgumentException("Invalid characters in argument: $key")
+    private void validateArguments(Map<String, Object> arguments) {
+        arguments.forEach((key, value) -> {
+            if (value instanceof String str && (str.contains(";") || str.contains("--"))) {
+                throw new IllegalArgumentException("Invalid characters in argument: " + key);
             }
-        }
+        });
     }
 }
 ```
 
 ## Input Validation with Bean Validation
 
-```kotlin
+```java
 @Component
-class ValidatedTools {
+public class ValidatedTools {
 
     @Tool(description = "Process user data with validation")
     @Validated
-    fun processUserData(
-            @ToolParam("User data to process") @Valid data: UserData): ProcessingResult {
-        return ProcessingResult("success", data)
+    public ProcessingResult processUserData(
+            @ToolParam("User data to process") @Valid UserData data) {
+        return new ProcessingResult("success", data);
     }
 }
 
-data class UserData(
-    @field:NotBlank(message = "Name is required")
-    @field:Size(max = 100)
-    val name: String,
+record UserData(
+    @NotBlank(message = "Name is required")
+    @Size(max = 100)
+    String name,
 
-    @field:NotNull
-    @field:Min(18) @field:Max(120)
-    val age: Int,
+    @NotNull
+    @Min(18) @Max(120)
+    Integer age,
 
-    @field:NotBlank @field:Email
-    val email: String
-)
+    @NotBlank @Email
+    String email
+) {}
 ```
 
 ## Error Handling
 
 Consistent error handling via `@ControllerAdvice`:
 
-```kotlin
+```java
 @ControllerAdvice
-class McpExceptionHandler {
+public class McpExceptionHandler {
 
-    @ExceptionHandler(ToolExecutionException::class)
-    fun handleToolExecutionException(
-            ex: ToolExecutionException, request: WebRequest): ResponseEntity<ErrorResponse> {
+    @ExceptionHandler(ToolExecutionException.class)
+    public ResponseEntity<ErrorResponse> handleToolExecutionException(
+            ToolExecutionException ex, WebRequest request) {
         return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-                .body(ErrorResponse(
-                        timestamp = LocalDateTime.now(),
-                        status = 500,
-                        error = "Tool Execution Failed",
-                        message = ex.message ?: "Unknown error"
-                ))
+                .body(ErrorResponse.builder()
+                        .timestamp(LocalDateTime.now())
+                        .status(500)
+                        .error("Tool Execution Failed")
+                        .message(ex.getMessage())
+                        .build());
     }
 
-    @ExceptionHandler(AccessDeniedException::class)
-    fun handleAccessDenied(ex: AccessDeniedException): ResponseEntity<ErrorResponse> {
+    @ExceptionHandler(AccessDeniedException.class)
+    public ResponseEntity<ErrorResponse> handleAccessDenied(AccessDeniedException ex) {
         return ResponseEntity.status(HttpStatus.FORBIDDEN)
-                .body(ErrorResponse(
-                        timestamp = LocalDateTime.now(),
-                        status = 403,
-                        error = "Access Denied",
-                        message = "You do not have permission to execute this tool"
-                ))
+                .body(ErrorResponse.builder()
+                        .timestamp(LocalDateTime.now())
+                        .status(403)
+                        .error("Access Denied")
+                        .message("You do not have permission to execute this tool")
+                        .build());
     }
 
-    @ExceptionHandler(IllegalArgumentException::class)
-    fun handleValidation(ex: IllegalArgumentException): ResponseEntity<ErrorResponse> {
+    @ExceptionHandler(IllegalArgumentException.class)
+    public ResponseEntity<ErrorResponse> handleValidation(IllegalArgumentException ex) {
         return ResponseEntity.badRequest()
-                .body(ErrorResponse(
-                        timestamp = LocalDateTime.now(),
-                        status = 400,
-                        error = "Validation Error",
-                        message = ex.message ?: "Validation failed"
-                ))
+                .body(ErrorResponse.builder()
+                        .timestamp(LocalDateTime.now())
+                        .status(400)
+                        .error("Validation Error")
+                        .message(ex.getMessage())
+                        .build());
     }
 
-    data class ErrorResponse(
-        val timestamp: LocalDateTime,
-        val status: Int,
-        val error: String,
-        val message: String
-    )
+    @Data
+    @Builder
+    static class ErrorResponse {
+        private LocalDateTime timestamp;
+        private int status;
+        private String error;
+        private String message;
+    }
 }
 ```
 
@@ -275,41 +278,41 @@ class McpExceptionHandler {
 
 For long-running operations that should return immediately:
 
-```kotlin
+```java
 @Tool(description = "Execute long-running task asynchronously")
-fun executeAsyncTask(
-        @ToolParam("Task name") taskName: String,
-        @ToolParam(value = "Task parameters", required = false) paramsJson: String?): AsyncResult {
+public AsyncResult executeAsyncTask(
+        @ToolParam("Task name") String taskName,
+        @ToolParam(value = "Task parameters", required = false) String paramsJson) {
 
-    val taskId = UUID.randomUUID().toString()
+    String taskId = UUID.randomUUID().toString();
 
-    CompletableFuture.supplyAsync({ performLongRunningTask(taskName, paramsJson) }, asyncExecutor)
-            .thenAccept { result -> taskResults[taskId] = result }
+    CompletableFuture.supplyAsync(() -> performLongRunningTask(taskName, paramsJson), asyncExecutor)
+            .thenAccept(result -> taskResults.put(taskId, result));
 
-    return AsyncResult(taskId, "pending", null)
+    return new AsyncResult(taskId, "pending", null);
 }
 
 @Tool(description = "Check status of an async task")
-fun getTaskStatus(@ToolParam("Task ID") taskId: String): AsyncResult {
-    val result = taskResults[taskId]
-    if (result == null) return AsyncResult(taskId, "pending", null)
-    return AsyncResult(taskId, "completed", result)
+public AsyncResult getTaskStatus(@ToolParam("Task ID") String taskId) {
+    Object result = taskResults.get(taskId);
+    if (result == null) return new AsyncResult(taskId, "pending", null);
+    return new AsyncResult(taskId, "completed", result);
 }
 
-data class AsyncResult(val taskId: String, val status: String, val result: Any?)
+record AsyncResult(String taskId, String status, Object result) {}
 ```
 
 ## Health Check
 
-```kotlin
+```java
 @Component
-class McpHealthIndicator implements HealthIndicator {
+public class McpHealthIndicator implements HealthIndicator {
 
-    private val mcpServer: McpServer
-    private val toolRegistry: ToolRegistry
+    private final McpServer mcpServer;
+    private final ToolRegistry toolRegistry;
 
     @Override
-    fun health(): Health {
+    public Health health() {
         try {
             Transport transport = mcpServer.getTransport();
             List<Tool> tools = toolRegistry.listTools();
@@ -328,20 +331,20 @@ class McpHealthIndicator implements HealthIndicator {
 
 ## Micrometer Metrics
 
-```kotlin
+```java
 @Component
-class McpMetrics {
+public class McpMetrics {
 
-    private val meterRegistry: MeterRegistry
+    private final MeterRegistry meterRegistry;
 
-    fun recordToolExecution(String toolName, long durationMs, boolean success): void {
+    public void recordToolExecution(String toolName, long durationMs, boolean success) {
         meterRegistry.counter("mcp.tool.executions",
                 "tool", toolName, "success", String.valueOf(success)).increment();
         meterRegistry.timer("mcp.tool.execution.time", "tool", toolName)
                 .record(durationMs, TimeUnit.MILLISECONDS);
     }
 
-    fun recordPromptRender(String templateName): void {
+    public void recordPromptRender(String templateName) {
         meterRegistry.counter("mcp.prompt.renders", "template", templateName).increment();
     }
 }

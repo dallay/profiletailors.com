@@ -21,11 +21,11 @@ query language syntax, configuration options, and API documentation.
 
 Marks a class as a Neo4j node entity.
 
-```kotlin
+```java
 @Node                    // Label defaults to class name
 @Node("CustomLabel")     // Explicit label
 @Node({"Label1", "Label2"})  // Multiple labels
-class MyEntity {
+public class MyEntity {
     // ...
 }
 ```
@@ -39,12 +39,12 @@ class MyEntity {
 
 Marks a field as the entity identifier.
 
-```kotlin
+```java
 @Id
-private var businessKey: String  // Custom business key
+private String businessKey;  // Custom business key
 
 @Id @GeneratedValue
-private var id: Long  // Auto-generated internal ID
+private Long id;  // Auto-generated internal ID
 ```
 
 **Important:**
@@ -57,15 +57,15 @@ private var id: Long  // Auto-generated internal ID
 
 Configures ID generation strategy.
 
-```kotlin
+```java
 @Id @GeneratedValue
-private var id: Long  // Uses Neo4j internal ID
+private Long id;  // Uses Neo4j internal ID
 
 @Id @GeneratedValue(generatorClass = UUIDStringGenerator.class)
-private var uuid: String  // Custom UUID generator
+private String uuid;  // Custom UUID generator
 
 @Id @GeneratedValue(generatorClass = MyCustomGenerator.class)
-private var customId: String
+private String customId;
 ```
 
 **Built-in Generators:**
@@ -77,9 +77,9 @@ private var customId: String
 
 Maps a field to a different property name in Neo4j.
 
-```kotlin
+```java
 @Property("graph_property_name")
-private var javaFieldName: String
+private String javaFieldName;
 ```
 
 **When to use:**
@@ -92,9 +92,9 @@ private var javaFieldName: String
 
 Defines relationships between nodes.
 
-```kotlin
+```java
 @Relationship(type = "RELATIONSHIP_TYPE", direction = Direction.OUTGOING)
-private var related: RelatedEntity
+private RelatedEntity related;
 
 @Relationship(type = "RELATED_TO", direction = Direction.INCOMING)
 private List<RelatedEntity> incoming;
@@ -119,18 +119,18 @@ private Set<RelatedEntity> connections;
 
 Marks a class as relationship properties container.
 
-```kotlin
+```java
 @RelationshipProperties
-class ActedIn {
+public class ActedIn {
     
     @Id @GeneratedValue
-    private var id: Long
+    private Long id;
     
     @TargetNode
-    private var movie: Movie
+    private Movie movie;
     
     private List<String> roles;
-    private var screenTime: Integer
+    private Integer screenTime;
 }
 ```
 
@@ -145,7 +145,7 @@ class ActedIn {
 
 Defines custom Cypher query for a repository method.
 
-```kotlin
+```java
 @Query("MATCH (n:Node) WHERE n.property = $param RETURN n")
 List<Node> customQuery(@Param("param") String param);
 
@@ -163,7 +163,7 @@ Node findById(String id);  // Positional parameter
 
 Binds method parameter to query parameter.
 
-```kotlin
+```java
 @Query("MATCH (n) WHERE n.name = $customName RETURN n")
 List<Node> find(@Param("customName") String name);
 ```
@@ -179,10 +179,10 @@ List<Node> find(@Param("customName") String name);
 
 Enables Neo4j repository support.
 
-```kotlin
+```java
 @Configuration
 @EnableNeo4jRepositories(basePackages = "com.example.repositories")
-class Neo4jConfiguration {
+public class Neo4jConfiguration {
     // ...
 }
 ```
@@ -199,11 +199,11 @@ class Neo4jConfiguration {
 
 Test slice annotation for Neo4j tests.
 
-```kotlin
+```java
 @DataNeo4jTest
 class MyRepositoryTest {
     @Autowired
-    private var repository: MyRepository
+    private MyRepository repository;
 }
 ```
 
@@ -491,9 +491,9 @@ spring.neo4j.security.hostname-verification-enabled=true
 
 ### Neo4j Driver Configuration Bean
 
-```kotlin
+```java
 @Configuration
-class Neo4jConfiguration {
+public class Neo4jConfiguration {
     
     @Bean
     org.neo4j.driver.Config neo4jDriverConfig() {
@@ -566,8 +566,8 @@ class Neo4jConfiguration {
 
 ### Examples
 
-```kotlin
-interface UserRepository extends Neo4jRepository<User, String> {
+```java
+public interface UserRepository extends Neo4jRepository<User, String> {
     
     // Simple query derivation
     Optional<User> findByEmail(String email);
@@ -617,21 +617,21 @@ interface UserRepository extends Neo4jRepository<User, String> {
 
 ### Interface-based Projections
 
-```kotlin
+```java
 // Closed projection - only declared properties
-interface UserSummary {
+public interface UserSummary {
     String getUsername();
     String getEmail();
 }
 
 // Open projection - with SpEL
-interface UserWithFullName {
+public interface UserWithFullName {
     @Value("#{target.firstName + ' ' + target.lastName}")
     String getFullName();
 }
 
 // Nested projection
-interface UserWithPosts {
+public interface UserWithPosts {
     String getUsername();
     List<PostSummary> getPosts();
     
@@ -642,7 +642,7 @@ interface UserWithPosts {
 }
 
 // Usage
-interface UserRepository extends Neo4jRepository<User, String> {
+public interface UserRepository extends Neo4jRepository<User, String> {
     List<UserSummary> findAllBy();
     Optional<UserWithFullName> findByUsername(String username);
 }
@@ -650,7 +650,7 @@ interface UserRepository extends Neo4jRepository<User, String> {
 
 ### Class-based DTOs
 
-```kotlin
+```java
 public record UserDTO(
     String username,
     String email,
@@ -658,15 +658,15 @@ public record UserDTO(
 ) {}
 
 // Repository usage
-interface UserRepository extends Neo4jRepository<User, String> {
+public interface UserRepository extends Neo4jRepository<User, String> {
     List<UserDTO> findAllBy();
 }
 ```
 
 ### Dynamic Projections
 
-```kotlin
-interface UserRepository extends Neo4jRepository<User, String> {
+```java
+public interface UserRepository extends Neo4jRepository<User, String> {
     <T> T findByUsername(String username, Class<T> type);
 }
 
@@ -680,15 +680,15 @@ User full = repository.findByUsername("john", User.class);
 
 ### Declarative Transactions
 
-```kotlin
+```java
 @Service
-class UserService {
+public class UserService {
     
-    private val userRepository: UserRepository
+    private final UserRepository userRepository;
     
     @Transactional
-    fun createUser(CreateUserRequest request): User {
-        User user = User(request.username(), request.email());
+    public User createUser(CreateUserRequest request) {
+        User user = new User(request.username(), request.email());
         return userRepository.save(user);
     }
     
@@ -702,7 +702,7 @@ class UserService {
         isolation = Isolation.READ_COMMITTED,
         timeout = 30
     )
-    fun complexOperation(): void {
+    public void complexOperation() {
         // Multiple repository calls in single transaction
         // ...
     }
@@ -711,14 +711,14 @@ class UserService {
 
 ### Programmatic Transactions
 
-```kotlin
+```java
 @Service
-class TransactionalService {
+public class TransactionalService {
     
-    private val transactionManager: Neo4jTransactionManager
+    private final Neo4jTransactionManager transactionManager;
     
-    fun executeInTransaction(): void {
-        TransactionTemplate template = TransactionTemplate(transactionManager);
+    public void executeInTransaction() {
+        TransactionTemplate template = new TransactionTemplate(transactionManager);
         template.execute(status -> {
             try {
                 // Your transactional code here
@@ -734,17 +734,17 @@ class TransactionalService {
 
 ### Reactive Transactions
 
-```kotlin
+```java
 @Service
-class ReactiveUserService {
+public class ReactiveUserService {
     
-    private val repository: ReactiveUserRepository
-    private val transactionManager: ReactiveNeo4jTransactionManager
+    private final ReactiveUserRepository repository;
+    private final ReactiveNeo4jTransactionManager transactionManager;
     
     public Mono<User> createUser(CreateUserRequest request) {
         return transactionManager.getReactiveTransaction()
             .flatMap(status -> {
-                User user = User(request.username(), request.email());
+                User user = new User(request.username(), request.email());
                 return repository.save(user)
                     .doOnError(e -> status.setRollbackOnly());
             });
@@ -801,7 +801,7 @@ DROP INDEX user_email;
    ```
 
 3. **Use projections to fetch only needed data:**
-   ```kotlin
+   ```java
    // Good
    List<UserSummary> findAllBy();
    
@@ -810,7 +810,7 @@ DROP INDEX user_email;
    ```
 
 4. **Limit result sets:**
-   ```kotlin
+   ```java
    // Use pagination
    Page<User> findAll(Pageable pageable);
    
@@ -821,7 +821,7 @@ DROP INDEX user_email;
 
 ### Connection Pooling
 
-```kotlin
+```java
 @Bean
 org.neo4j.driver.Config driverConfig() {
     return org.neo4j.driver.Config.builder()
@@ -834,14 +834,14 @@ org.neo4j.driver.Config driverConfig() {
 
 ### Batch Operations
 
-```kotlin
+```java
 // Save in batches
 @Service
-class BatchService {
+public class BatchService {
     
-    private val repository: UserRepository
+    private final UserRepository repository;
     
-    fun saveUsersInBatches(List<User> users): void {
+    public void saveUsersInBatches(List<User> users) {
         int batchSize = 1000;
         for (int i = 0; i < users.size(); i += batchSize) {
             int end = Math.min(i + batchSize, users.size());

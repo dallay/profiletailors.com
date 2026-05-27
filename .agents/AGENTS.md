@@ -66,6 +66,14 @@ const content = {
 
 - Keep `apps/web/marketing` lightweight and static — no backend, no CMS, no heavy deps.
 - Add dependencies only when Astro-native primitives are insufficient.
+- Always check dependency scores with the depscore tool when you add a new dependency. If the score is low, consider using an alternative library or writing the code yourself.
 - Waitlist form is client-side only for now (no persistence backend defined yet).
 - Prefer few files with clear content/style boundaries over many small fragments.
+
+## Testing & Delivery Discipline
+
+- Apply **BDD** when defining behavior: describe features from the user perspective with clear scenarios and expected outcomes before implementation.
+- Apply **TDD** when implementing changes: start with a failing test when practical, implement the smallest change that makes it pass, then refactor safely.
+- Keep acceptance criteria, scenarios, and tests aligned so product behavior, implementation, and verification stay consistent.
+- Prefer focused, maintainable tests over broad brittle coverage, and update tests alongside behavior changes.
 

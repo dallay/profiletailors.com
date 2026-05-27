@@ -35,6 +35,8 @@ class WorkspaceAccessSummaryEndpointPostgresIntegrationTest : WorkspaceAccessSum
 
     override fun liquibasePassword(): String = postgres.password
 
+
+
     companion object {
         @Container
         @JvmStatic

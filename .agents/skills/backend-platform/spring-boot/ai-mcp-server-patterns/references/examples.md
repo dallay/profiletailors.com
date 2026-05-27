@@ -19,10 +19,10 @@ Comprehensive examples for implementing MCP servers with Spring AI.
 
 ### Minimal Spring Boot MCP Server
 
-```kotlin
+```java
 @SpringBootApplication
 @EnableMcpServer
-class SimpleMcpApplication {
+public class SimpleMcpApplication {
 
     public static void main(String[] args) {
         SpringApplication.run(SimpleMcpApplication.class, args);
@@ -47,9 +47,9 @@ class CalculatorTools {
     }
 
     @Tool(description = "Calculate the square root")
-    fun sqrt(@ToolParam("Number") double x): double {
+    public double sqrt(@ToolParam("Number") double x) {
         if (x < 0) {
-            throw IllegalArgumentException("Cannot calculate square root of negative number");
+            throw new IllegalArgumentException("Cannot calculate square root of negative number");
         }
         return Math.sqrt(x);
     }
@@ -63,16 +63,16 @@ spring.ai.mcp.transport.type=stdio
 
 ### HTTP Transport Setup
 
-```kotlin
+```java
 @SpringBootApplication
-class HttpMcpApplication {
+public class HttpMcpApplication {
 
     public static void main(String[] args) {
         SpringApplication.run(HttpMcpApplication.class, args);
     }
 
     @Bean
-    fun mcpServer(List<FunctionCallback> callbacks): McpServer {
+    public McpServer mcpServer(List<FunctionCallback> callbacks) {
         return McpServer.builder()
                 .transport(HttpTransport.builder()
                         .port(8080)
@@ -81,7 +81,8 @@ class HttpMcpApplication {
                                 .allowedOrigins("*")
                                 .build())
                         .build())
-                .tools(callbacks.map(Tool::fromFunctionCallback)
+                .tools(callbacks.stream()
+                        .map(Tool::fromFunctionCallback)
                         .toList())
                 .build();
     }
@@ -90,16 +91,16 @@ class HttpMcpApplication {
 
 ### Multi-Transport Server
 
-```kotlin
+```java
 @Component
-class MultiTransportMcpServer {
+public class MultiTransportMcpServer {
 
-    private val stdioServer: McpServer
-    private val httpServer: McpServer
+    private final McpServer stdioServer;
+    private final McpServer httpServer;
 
     public MultiTransportMcpServer(List<Tool> tools) {
         this.stdioServer = McpServer.builder()
-                .transport(StdioTransport())
+                .transport(new StdioTransport())
                 .tools(tools)
                 .build();
 
@@ -113,10 +114,10 @@ class MultiTransportMcpServer {
     }
 
     @PostConstruct
-    fun start(): void {
+    public void start() {
         // Start both servers
-        Thread(stdioServer::start).start();
-        Thread(httpServer::start).start();
+        new Thread(stdioServer::start).start();
+        new Thread(httpServer::start).start();
     }
 }
 ```
@@ -125,14 +126,14 @@ class MultiTransportMcpServer {
 
 ### PostgreSQL Query Tool
 
-```kotlin
+```java
 @Component
-class PostgreSqlTools {
+public class PostgreSqlTools {
 
-    private val jdbcTemplate: JdbcTemplate
+    private final JdbcTemplate jdbcTemplate;
 
     public PostgreSqlTools(DataSource dataSource) {
-        this.jdbcTemplate = JdbcTemplate(dataSource);
+        this.jdbcTemplate = new JdbcTemplate(dataSource);
     }
 
     @Tool(description = "Execute a read-only SQL query on PostgreSQL database")
@@ -144,28 +145,28 @@ class PostgreSqlTools {
         // Security: Only allow SELECT queries
         String normalizedQuery = query.trim().toUpperCase();
         if (!normalizedQuery.startsWith("SELECT")) {
-            throw SecurityException("Only SELECT queries are allowed");
+            throw new SecurityException("Only SELECT queries are allowed");
         }
 
         // Security: Check for dangerous patterns
         if (normalizedQuery.contains(";") && !normalizedQuery.endsWith(";")) {
-            throw SecurityException("Multiple statements are not allowed");
+            throw new SecurityException("Multiple statements are not allowed");
         }
 
         try {
             Map<String, Object> params = paramsJson != null && !paramsJson.isBlank()
-                    ? ObjectMapper().readValue(paramsJson, Map.class)
+                    ? new ObjectMapper().readValue(paramsJson, Map.class)
                     : Map.of();
 
             List<Map<String, Object>> results = jdbcTemplate.queryForList(query, params);
             int rowCount = results.size();
 
-            return QueryResult(true, results, null, "Query returned " + rowCount + " rows");
+            return new QueryResult(true, results, null, "Query returned " + rowCount + " rows");
 
         } catch (DataAccessException e) {
-            return QueryResult(false, null, e.getMessage(), "Query execution failed");
+            return new QueryResult(false, null, e.getMessage(), "Query execution failed");
         } catch (JsonProcessingException e) {
-            return QueryResult(false, null, e.getMessage(), "Invalid parameters JSON");
+            return new QueryResult(false, null, e.getMessage(), "Invalid parameters JSON");
         }
     }
 
@@ -182,10 +183,10 @@ class PostgreSqlTools {
 
         if (tableFilter != null && !tableFilter.isBlank()) {
             sql += " AND table_name LIKE ?";
-            return SchemaInfo(jdbcTemplate.queryForList(sql, "%" + tableFilter + "%"));
+            return new SchemaInfo(jdbcTemplate.queryForList(sql, "%" + tableFilter + "%"));
         }
 
-        return SchemaInfo(jdbcTemplate.queryForList(sql));
+        return new SchemaInfo(jdbcTemplate.queryForList(sql));
     }
 
     @Tool(description = "Get query execution plan")
@@ -195,11 +196,11 @@ class PostgreSqlTools {
         String explainSql = "EXPLAIN (FORMAT JSON, ANALYZE) " + query;
         List<Map<String, Object>> plan = jdbcTemplate.queryForList(explainSql);
 
-        return ExecutionPlan(query, plan);
+        return new ExecutionPlan(query, plan);
     }
 
     @Tool(description = "Get database statistics")
-    fun getDatabaseStats(): DatabaseStats {
+    public DatabaseStats getDatabaseStats() {
         String sql = """
             SELECT schemaname, tablename, n_tup_ins, n_tup_upd, n_tup_del
             FROM pg_stat_user_tables
@@ -207,7 +208,7 @@ class PostgreSqlTools {
             LIMIT 10
             """;
 
-        return DatabaseStats(jdbcTemplate.queryForList(sql));
+        return new DatabaseStats(jdbcTemplate.queryForList(sql));
     }
 }
 
@@ -219,11 +220,11 @@ record DatabaseStats(List<Map<String, Object>> stats) {}
 
 ### MongoDB Query Tool
 
-```kotlin
+```java
 @Component
-class MongoDbTools {
+public class MongoDbTools {
 
-    private val mongoTemplate: MongoTemplate
+    private final MongoTemplate mongoTemplate;
 
     public MongoDbTools(MongoTemplate mongoTemplate) {
         this.mongoTemplate = mongoTemplate;
@@ -238,7 +239,7 @@ class MongoDbTools {
             Integer limit) {
 
         try {
-            Query query = Query();
+            Query query = new Query();
 
             if (filterJson != null && !filterJson.isBlank()) {
                 Document filter = Document.parse(filterJson);
@@ -251,10 +252,10 @@ class MongoDbTools {
 
             List<Document> results = mongoTemplate.find(query, Document.class, collection);
 
-            return MongoResult(true, results, null);
+            return new MongoResult(true, results, null);
 
         } catch (Exception e) {
-            return MongoResult(false, null, e.getMessage());
+            return new MongoResult(false, null, e.getMessage());
         }
     }
 
@@ -265,12 +266,13 @@ class MongoDbTools {
         MongoCollection<Document> coll = mongoTemplate.getCollection(collection);
         long count = coll.countDocuments();
 
-        return CollectionStats(collection, count);
+        return new CollectionStats(collection, count);
     }
 
     @Tool(description = "List all collections")
     public List<String> listCollections() {
-        return mongoTemplate.getCollectionNames()..sorted()
+        return mongoTemplate.getCollectionNames().stream()
+                .sorted()
                 .toList();
     }
 
@@ -280,7 +282,7 @@ class MongoDbTools {
 
         return mongoTemplate.getCollection(collection)
                 .listIndexes()
-                .into(mutableListOf());
+                .into(new ArrayList<>());
     }
 }
 
@@ -290,9 +292,9 @@ record CollectionStats(String collection, long count) {}
 
 ### Redis Query Tool
 
-```kotlin
+```java
 @Component
-class RedisTools {
+public class RedisTools {
 
     private final RedisTemplate<String, Object> redisTemplate;
 
@@ -307,11 +309,11 @@ class RedisTools {
         Object value = redisTemplate.opsForValue().get(key);
 
         if (value == null) {
-            return RedisValue(key, null, false);
+            return new RedisValue(key, null, false);
         }
 
         String type = determineType(value);
-        return RedisValue(key, value.toString(), type, true);
+        return new RedisValue(key, value.toString(), type, true);
     }
 
     @Tool(description = "Get Redis key information")
@@ -320,15 +322,15 @@ class RedisTools {
 
         Long ttl = redisTemplate.getExpire(key);
         String type = redisTemplate.type(key).code();
-        Long size = when (type) {
-            "string" -> redisTemplate.opsForValue().size(key)
-            "list" -> redisTemplate.opsForList().size(key)
-            "set" -> redisTemplate.opsForSet().size(key)
-            "hash" -> redisTemplate.opsForHash().size(key).toLong()
-            else -> 0L
+        Long size = switch (type) {
+            case "string" -> redisTemplate.opsForValue().size(key);
+            case "list" -> redisTemplate.opsForList().size(key);
+            case "set" -> redisTemplate.opsForSet().size(key);
+            case "hash" -> (long) redisTemplate.opsForHash().size(key);
+            default -> 0L;
         };
 
-        return KeyInfo(key, type, ttl, size);
+        return new KeyInfo(key, type, ttl, size);
     }
 
     @Tool(description = "Search for keys by pattern")
@@ -336,10 +338,10 @@ class RedisTools {
             @ToolParam("Key pattern (e.g., user:*)") String pattern) {
 
         Set<String> keys = redisTemplate.keys(pattern);
-        return keys != null ? new ArrayList<>(keys) : listOf();
+        return keys != null ? new ArrayList<>(keys) : List.of();
     }
 
-    private fun determineType(Object value): String {
+    private String determineType(Object value) {
         if (value instanceof String) return "string";
         if (value instanceof List) return "list";
         if (value instanceof Set) return "set";
@@ -356,12 +358,12 @@ record KeyInfo(String key, String type, Long ttl, Long size) {}
 
 ### REST API Client Tool
 
-```kotlin
+```java
 @Component
-class RestApiTools {
+public class RestApiTools {
 
-    private val webClient: WebClient
-    private val circuitBreakerRegistry: CircuitBreakerRegistry
+    private final WebClient webClient;
+    private final CircuitBreakerRegistry circuitBreakerRegistry;
 
     public RestApiTools(WebClient.Builder builder, CircuitBreakerRegistry registry) {
         this.webClient = builder
@@ -382,7 +384,7 @@ class RestApiTools {
 
         // Validate URL
         if (!isValidUrl(url)) {
-            return ApiResponse(0, null, Map.of(), "Invalid URL: " + url);
+            return new ApiResponse(0, null, Map.of(), "Invalid URL: " + url);
         }
 
         CircuitBreaker circuitBreaker = circuitBreakerRegistry.circuitBreaker("http-get");
@@ -401,20 +403,20 @@ class RestApiTools {
 
                 // Add custom headers if provided
                 if (headersJson != null && !headersJson.isBlank()) {
-                    Map<String, String> headers = ObjectMapper().readValue(headersJson, Map.class);
+                    Map<String, String> headers = new ObjectMapper().readValue(headersJson, Map.class);
                     request.headers(httpHeaders -> headers.forEach(httpHeaders::add));
                 }
 
                 ResponseEntity<String> response = request
                         .retrieve()
                         .onStatus(HttpStatus::isError, clientResponse ->
-                            Mono.error(ApiException("HTTP error: " + clientResponse.statusCode()))
+                            Mono.error(new ApiException("HTTP error: " + clientResponse.statusCode()))
                         )
                         .toEntity(String.class)
                         .block();
 
                 if (response == null) {
-                    return ApiResponse(500, null, Map.of(), "No response received");
+                    return new ApiResponse(500, null, Map.of(), "No response received");
                 }
 
                 String body = response.getBody();
@@ -428,7 +430,7 @@ class RestApiTools {
                 );
 
             } catch (Exception e) {
-                return ApiResponse(500, null, Map.of(), "Error: " + e.getMessage());
+                return new ApiResponse(500, null, Map.of(), "Error: " + e.getMessage());
             }
         });
     }
@@ -449,7 +451,7 @@ class RestApiTools {
 
                 // Add headers
                 if (headersJson != null && !headersJson.isBlank()) {
-                    Map<String, String> headers = ObjectMapper().readValue(headersJson, Map.class);
+                    Map<String, String> headers = new ObjectMapper().readValue(headersJson, Map.class);
                     request.headers(httpHeaders -> headers.forEach(httpHeaders::add));
                 }
 
@@ -464,7 +466,7 @@ class RestApiTools {
                         .block();
 
                 if (response == null) {
-                    return ApiResponse(500, null, Map.of(), "No response received");
+                    return new ApiResponse(500, null, Map.of(), "No response received");
                 }
 
                 Object parsedBody = parseResponseBody(response.getBody(), response.getHeaders().getContentType());
@@ -477,7 +479,7 @@ class RestApiTools {
                 );
 
             } catch (Exception e) {
-                return ApiResponse(500, null, Map.of(), "Error: " + e.getMessage());
+                return new ApiResponse(500, null, Map.of(), "Error: " + e.getMessage());
             }
         });
     }
@@ -503,13 +505,13 @@ class RestApiTools {
             );
 
         } catch (Exception e) {
-            return HealthCheckResult(baseUrl, false, 0, e.getMessage());
+            return new HealthCheckResult(baseUrl, false, 0, e.getMessage());
         }
     }
 
-    private fun isValidUrl(String url): boolean {
+    private boolean isValidUrl(String url) {
         try {
-            URL parsed = URL(url);
+            URL parsed = new URL(url);
             String protocol = parsed.getProtocol();
             return "http".equals(protocol) || "https".equals(protocol);
         } catch (MalformedURLException e) {
@@ -517,14 +519,14 @@ class RestApiTools {
         }
     }
 
-    private fun parseResponseBody(String body, MediaType contentType): Object {
+    private Object parseResponseBody(String body, MediaType contentType) {
         if (body == null || body.isBlank()) {
             return null;
         }
 
         try {
             if (contentType != null && contentType.includes(MediaType.APPLICATION_JSON)) {
-                return ObjectMapper().readValue(body, Object.class);
+                return new ObjectMapper().readValue(body, Object.class);
             }
             return body;
         } catch (Exception e) {
@@ -536,7 +538,7 @@ class RestApiTools {
         if (bodyJson == null || bodyJson.isBlank()) {
             return null;
         }
-        return ObjectMapper().readValue(bodyJson, Object.class);
+        return new ObjectMapper().readValue(bodyJson, Object.class);
     }
 }
 
@@ -551,11 +553,11 @@ class ApiException extends RuntimeException {
 
 ### GraphQL API Tool
 
-```kotlin
+```java
 @Component
-class GraphQlTools {
+public class GraphQlTools {
 
-    private val webClient: WebClient
+    private final WebClient webClient;
 
     public GraphQlTools(WebClient.Builder builder) {
         this.webClient = builder
@@ -571,11 +573,11 @@ class GraphQlTools {
             String variablesJson) {
 
         try {
-            Map<String, Object> requestBody = mutableMapOf();
+            Map<String, Object> requestBody = new HashMap<>();
             requestBody.put("query", query);
 
             if (variablesJson != null && !variablesJson.isBlank()) {
-                Map<String, Object> variables = ObjectMapper().readValue(variablesJson, Map.class);
+                Map<String, Object> variables = new ObjectMapper().readValue(variablesJson, Map.class);
                 requestBody.put("variables", variables);
             }
 
@@ -587,10 +589,10 @@ class GraphQlTools {
                     .block();
 
             if (response == null) {
-                return GraphQlResponse(null, listOf("No response received"));
+                return new GraphQlResponse(null, List.of("No response received"));
             }
 
-            Map<String, Object> responseBody = ObjectMapper().readValue(response.getBody(), Map.class);
+            Map<String, Object> responseBody = new ObjectMapper().readValue(response.getBody(), Map.class);
 
             return new GraphQlResponse(
                     (Map<String, Object>) responseBody.get("data"),
@@ -598,7 +600,7 @@ class GraphQlTools {
             );
 
         } catch (Exception e) {
-            return GraphQlResponse(null, listOf(Map.of("message", e.getMessage())));
+            return new GraphQlResponse(null, List.of(Map.of("message", e.getMessage())));
         }
     }
 
@@ -621,7 +623,7 @@ class GraphQlTools {
             """;
 
         GraphQlResponse response = executeQuery(endpoint, introspectionQuery, null);
-        return ObjectMapper().valueToTree(response).toPrettyString();
+        return new ObjectMapper().valueToTree(response).toPrettyString();
     }
 }
 
@@ -632,11 +634,11 @@ record GraphQlResponse(Map<String, Object> data, List<Map<String, Object>> error
 
 ### File Operations Tool
 
-```kotlin
+```java
 @Component
-class FileSystemTools {
+public class FileSystemTools {
 
-    private val baseDirectory: Path
+    private final Path baseDirectory;
 
     public FileSystemTools(@Value("{mcp.filesystem.base-dir:/tmp/mcp") String baseDir) {
         this.baseDirectory = Paths.get(baseDir).toAbsolutePath().normalize();
@@ -644,7 +646,7 @@ class FileSystemTools {
         try {
             Files.createDirectories(this.baseDirectory);
         } catch (IOException e) {
-            throw RuntimeException("Failed to create base directory", e);
+            throw new RuntimeException("Failed to create base directory", e);
         }
     }
 
@@ -656,26 +658,26 @@ class FileSystemTools {
             Path file = resolveSafePath(filePath);
 
             if (!Files.exists(file)) {
-                return FileReadResult(false, null, "File does not exist: " + filePath);
+                return new FileReadResult(false, null, "File does not exist: " + filePath);
             }
 
             if (!Files.isRegularFile(file)) {
-                return FileReadResult(false, null, "Path is not a file: " + filePath);
+                return new FileReadResult(false, null, "Path is not a file: " + filePath);
             }
 
             // Security: Check file size
             long size = Files.size(file);
             if (size > 10 * 1024 * 1024) { // 10MB limit
-                return FileReadResult(false, null, "File too large: " + size + " bytes");
+                return new FileReadResult(false, null, "File too large: " + size + " bytes");
             }
 
             String content = Files.readString(file);
             String mimeType = Files.probeContentType(file);
 
-            return FileReadResult(true, content, mimeType, filePath, size);
+            return new FileReadResult(true, content, mimeType, filePath, size);
 
         } catch (IOException e) {
-            return FileReadResult(false, null, "Error reading file: " + e.getMessage());
+            return new FileReadResult(false, null, "Error reading file: " + e.getMessage());
         }
     }
 
@@ -689,7 +691,7 @@ class FileSystemTools {
 
             // Security: Don't allow writing outside base directory
             if (!file.startsWith(baseDirectory)) {
-                return FileWriteResult(false, filePath, "Invalid path");
+                return new FileWriteResult(false, filePath, "Invalid path");
             }
 
             // Create parent directories if needed
@@ -698,10 +700,10 @@ class FileSystemTools {
             Files.writeString(file, content, StandardOpenOption.CREATE,
                             StandardOpenOption.TRUNCATE_EXISTING);
 
-            return FileWriteResult(true, filePath, "File written successfully");
+            return new FileWriteResult(true, filePath, "File written successfully");
 
         } catch (IOException e) {
-            return FileWriteResult(false, filePath, "Error writing file: " + e.getMessage());
+            return new FileWriteResult(false, filePath, "Error writing file: " + e.getMessage());
         }
     }
 
@@ -718,7 +720,7 @@ class FileSystemTools {
                     : baseDirectory;
 
             if (!Files.isDirectory(dir)) {
-                return ListFilesResult(false, null, "Not a directory: " + dirPath);
+                return new ListFilesResult(false, null, "Not a directory: " + dirPath);
             }
 
             try (var stream = Files.list(dir)) {
@@ -741,11 +743,11 @@ class FileSystemTools {
                         .sorted(Comparator.comparing(FileInfo::name))
                         .toList();
 
-                return ListFilesResult(true, files, null);
+                return new ListFilesResult(true, files, null);
             }
 
         } catch (IOException e) {
-            return ListFilesResult(false, null, "Error listing files: " + e.getMessage());
+            return new ListFilesResult(false, null, "Error listing files: " + e.getMessage());
         }
     }
 
@@ -757,17 +759,17 @@ class FileSystemTools {
             Path file = resolveSafePath(path);
 
             if (!Files.exists(file)) {
-                return FileInfo(path, false, -1, null, "File does not exist");
+                return new FileInfo(path, false, -1, null, "File does not exist");
             }
 
             boolean isDirectory = Files.isDirectory(file);
             long size = isDirectory ? -1 : Files.size(file);
             Instant lastModified = Files.getLastModifiedTime(file).toInstant();
 
-            return FileInfo(file.getFileName().toString(), isDirectory, size, lastModified, null);
+            return new FileInfo(file.getFileName().toString(), isDirectory, size, lastModified, null);
 
         } catch (IOException e) {
-            return FileInfo(path, false, -1, null, "Error: " + e.getMessage());
+            return new FileInfo(path, false, -1, null, "Error: " + e.getMessage());
         }
     }
 
@@ -776,7 +778,7 @@ class FileSystemTools {
         Path file = baseDirectory.resolve(path).normalize();
 
         if (!file.startsWith(baseDirectory)) {
-            throw SecurityException("Invalid path");
+            throw new SecurityException("Invalid path");
         }
 
         return file;
@@ -795,9 +797,9 @@ record FileInfo(String name, boolean isDirectory, long size, Instant lastModifie
 
 ### CSV Processing Tool
 
-```kotlin
+```java
 @Component
-class CsvTools {
+public class CsvTools {
 
     @Tool(description = "Read and analyze CSV file")
     public CsvAnalysis analyzeCsv(
@@ -807,7 +809,7 @@ class CsvTools {
 
         boolean header = hasHeader != null ? hasHeader : true;
 
-        try (Reader reader = FileReader(filePath);
+        try (Reader reader = new FileReader(filePath);
              CSVParser parser = new CSVParser(reader,
                      CSVFormat.DEFAULT.builder()
                              .setHeader()
@@ -815,7 +817,7 @@ class CsvTools {
                              .build())) {
 
             List<CSVRecord> records = parser.getRecords();
-            Map<String, Integer> columnCount = mutableMapOf();
+            Map<String, Integer> columnCount = new HashMap<>();
 
             if (header) {
                 for (String column : parser.getHeaderNames()) {
@@ -824,13 +826,13 @@ class CsvTools {
             }
 
             // Analyze data types
-            Map<String, Set<String>> columnTypes = mutableMapOf();
+            Map<String, Set<String>> columnTypes = new HashMap<>();
             for (CSVRecord record : records) {
                 for (int i = 0; i < record.size(); i++) {
                     String column = header ? parser.getHeaderNames().get(i) : "col_" + i;
                     String value = record.get(i);
 
-                    columnTypes.computeIfAbsent(column, k -> mutableSetOf())
+                    columnTypes.computeIfAbsent(column, k -> new HashSet<>())
                             .add(inferType(value));
                 }
             }
@@ -844,11 +846,11 @@ class CsvTools {
             );
 
         } catch (IOException e) {
-            throw RuntimeException("Failed to analyze CSV", e);
+            throw new RuntimeException("Failed to analyze CSV", e);
         }
     }
 
-    private fun inferType(String value): String {
+    private String inferType(String value) {
         if (value == null || value.isBlank()) return "empty";
         if (value.matches("-?\\d+")) return "integer";
         if (value.matches("-?\\d*\\.\\d+")) return "decimal";
@@ -862,18 +864,22 @@ class CsvTools {
     public List<Map<String, String>> csvToJson(
             @ToolParam("Path to CSV file") String filePath) {
 
-        FileReader(filePath).use { reader ->
-            CSVParser(reader, CSVFormat.DEFAULT.builder().setHeader().build()).use { parser ->
-                return parser.records.map { record ->
-                    buildMap<String, String> {
-                        parser.headerNames.forEach { header ->
-                            put(header, record.get(header))
+        try (Reader reader = new FileReader(filePath);
+             CSVParser parser = new CSVParser(reader,
+                     CSVFormat.DEFAULT.builder().setHeader().build())) {
+
+            return parser.getRecords().stream()
+                    .map(record -> {
+                        Map<String, String> json = new LinkedHashMap<>();
+                        for (String header : parser.getHeaderNames()) {
+                            json.put(header, record.get(header));
                         }
-                    }
-                }
-            }
-        } catch (e: IOException) {
-            throw RuntimeException("Failed to convert CSV to JSON", e)
+                        return json;
+                    })
+                    .toList();
+
+        } catch (IOException e) {
+            throw new RuntimeException("Failed to convert CSV to JSON", e);
         }
     }
 }
@@ -891,12 +897,12 @@ record CsvAnalysis(
 
 ### User Management Tools
 
-```kotlin
+```java
 @Component
-class UserManagementTools {
+public class UserManagementTools {
 
-    private val userRepository: UserRepository
-    private val passwordEncoder: PasswordEncoder
+    private final UserRepository userRepository;
+    private final PasswordEncoder passwordEncoder;
 
     public UserManagementTools(UserRepository userRepository, PasswordEncoder passwordEncoder) {
         this.userRepository = userRepository;
@@ -915,7 +921,7 @@ class UserManagementTools {
             Boolean active) {
 
         List<User> users = userRepository.findAll((root, query, cb) -> {
-            List<Predicate> predicates = mutableListOf();
+            List<Predicate> predicates = new ArrayList<>();
 
             if (email != null && !email.isBlank()) {
                 predicates.add(cb.like(root.get("email"), "%" + email + "%"));
@@ -933,7 +939,8 @@ class UserManagementTools {
             return cb.and(predicates.toArray(new Predicate[0]));
         });
 
-        return users.map(user -> new UserInfo(
+        return users.stream()
+                .map(user -> new UserInfo(
                         user.getId(),
                         user.getEmail(),
                         user.getName(),
@@ -954,20 +961,20 @@ class UserManagementTools {
 
         // Validate input
         if (!isValidEmail(email)) {
-            return UserCreationResult(false, null, "Invalid email format");
+            return new UserCreationResult(false, null, "Invalid email format");
         }
 
         if (password.length() < 8) {
-            return UserCreationResult(false, null, "Password must be at least 8 characters");
+            return new UserCreationResult(false, null, "Password must be at least 8 characters");
         }
 
         // Check if user exists
         if (userRepository.findByEmail(email).isPresent()) {
-            return UserCreationResult(false, null, "User already exists: " + email);
+            return new UserCreationResult(false, null, "User already exists: " + email);
         }
 
         try {
-            User user = User();
+            User user = new User();
             user.setEmail(email);
             user.setName(name);
             user.setPassword(passwordEncoder.encode(password));
@@ -991,17 +998,18 @@ class UserManagementTools {
             );
 
         } catch (Exception e) {
-            return UserCreationResult(false, null, "Error creating user: " + e.getMessage());
+            return new UserCreationResult(false, null, "Error creating user: " + e.getMessage());
         }
     }
 
     @Tool(description = "Get user statistics")
-    fun getUserStatistics(): UserStatistics {
+    public UserStatistics getUserStatistics() {
         long totalUsers = userRepository.count();
         long activeUsers = userRepository.countByActive(true);
         long inactiveUsers = userRepository.countByActive(false);
 
-        Map<String, Long> usersByRole = userRepository.findAll()..collect(Collectors.groupingBy(User::getRole, Collectors.counting()));
+        Map<String, Long> usersByRole = userRepository.findAll().stream()
+                .collect(Collectors.groupingBy(User::getRole, Collectors.counting()));
 
         return new UserStatistics(
                 totalUsers,
@@ -1011,7 +1019,7 @@ class UserManagementTools {
         );
     }
 
-    private fun isValidEmail(String email): boolean {
+    private boolean isValidEmail(String email) {
         return email != null && email.matches("^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\\.[a-zA-Z]{2,}$");
     }
 }
@@ -1023,12 +1031,12 @@ record UserStatistics(long totalUsers, long activeUsers, long inactiveUsers, Map
 
 ### Order Management Tools
 
-```kotlin
+```java
 @Component
-class OrderManagementTools {
+public class OrderManagementTools {
 
-    private val orderRepository: OrderRepository
-    private val productRepository: ProductRepository
+    private final OrderRepository orderRepository;
+    private final ProductRepository productRepository;
 
     public OrderManagementTools(OrderRepository orderRepository, ProductRepository productRepository) {
         this.orderRepository = orderRepository;
@@ -1042,11 +1050,11 @@ class OrderManagementTools {
             String itemsJson) {
 
         try {
-            List<OrderItemInput> items = ObjectMapper().readValue(itemsJson,
+            List<OrderItemInput> items = new ObjectMapper().readValue(itemsJson,
                     new TypeReference<List<OrderItemInput>>() {});
 
             // Validate items
-            List<OrderItem> orderItems = mutableListOf();
+            List<OrderItem> orderItems = new ArrayList<>();
             BigDecimal totalAmount = BigDecimal.ZERO;
 
             for (OrderItemInput itemInput : items) {
@@ -1059,7 +1067,7 @@ class OrderManagementTools {
                             "Insufficient stock for product: " + product.getName());
                 }
 
-                OrderItem orderItem = OrderItem();
+                OrderItem orderItem = new OrderItem();
                 orderItem.setProductId(product.getId());
                 orderItem.setProductName(product.getName());
                 orderItem.setQuantity(itemInput.quantity());
@@ -1071,7 +1079,7 @@ class OrderManagementTools {
             }
 
             // Create order
-            Order order = Order();
+            Order order = new Order();
             order.setCustomerEmail(customerEmail);
             order.setOrderItems(orderItems);
             order.setTotalAmount(totalAmount);
@@ -1080,7 +1088,7 @@ class OrderManagementTools {
 
             Order saved = orderRepository.save(order);
 
-            return OrderCreationResult(true, saved.getId(), saved.getTotalAmount(),
+            return new OrderCreationResult(true, saved.getId(), saved.getTotalAmount(),
                     "Order created successfully");
 
         } catch (Exception e) {
@@ -1101,7 +1109,7 @@ class OrderManagementTools {
             String endDate) {
 
         return orderRepository.findAll((root, query, cb) -> {
-            List<Predicate> predicates = mutableListOf();
+            List<Predicate> predicates = new ArrayList<>();
 
             if (customerEmail != null && !customerEmail.isBlank()) {
                 predicates.add(cb.equal(root.get("customerEmail"), customerEmail));
@@ -1144,23 +1152,25 @@ class OrderManagementTools {
                 LocalDate.parse(endDate).atTime(LocalTime.MAX) :
                 LocalDateTime.now();
 
-        val orders = orderRepository.findByCreatedAtBetween(start, end)
+        List<Order> orders = orderRepository.findByCreatedAtBetween(start, end);
 
-        val totalRevenue = orders.fold(BigDecimal.ZERO) { acc, order ->
-            acc.add(order.totalAmount)
-        }
+        BigDecimal totalRevenue = orders.stream()
+                .map(Order::getTotalAmount)
+                .reduce(BigDecimal.ZERO, BigDecimal::add);
 
-        val ordersByStatus = orders.groupBy { it.status }
-            .mapValues { it.value.size.toLong() }
+        Map<String, Long> ordersByStatus = orders.stream()
+                .collect(Collectors.groupingBy(Order::getStatus, Collectors.counting()));
 
-        val lastOrder = orders.maxByOrNull { it.createdAt }
+        Order lastOrder = orders.stream()
+                .max(Comparator.comparing(Order::getCreatedAt))
+                .orElse(null);
 
-        return OrderStatistics(
-            orders.size,
-            totalRevenue,
-            ordersByStatus,
-            lastOrder?.createdAt
-        )
+        return new OrderStatistics(
+                orders.size(),
+                totalRevenue,
+                ordersByStatus,
+                lastOrder != null ? lastOrder.getCreatedAt() : null
+        );
     }
 }
 
@@ -1176,29 +1186,29 @@ record OrderStatistics(int totalOrders, BigDecimal totalRevenue,
 
 ### Image Processing Tools
 
-```kotlin
+```java
 @Component
-class ImageTools {
+public class ImageTools {
 
-    private val restTemplate: RestTemplate
+    private final RestTemplate restTemplate;
 
     public ImageTools(RestTemplateBuilder builder) {
         this.restTemplate = builder.build();
     }
 
     @Tool(description = "Download and analyze image")
-    fun analyzeImage(@ToolParam("Image URL") String imageUrl): ImageAnalysis {
+    public ImageAnalysis analyzeImage(@ToolParam("Image URL") String imageUrl) {
         try {
             // Download image
             ResponseEntity<byte[]> response = restTemplate.getForEntity(imageUrl, byte[].class);
 
             if (!response.getStatusCode().is2xxSuccessful()) {
-                return ImageAnalysis(false, null, "Failed to download image");
+                return new ImageAnalysis(false, null, "Failed to download image");
             }
 
             byte[] imageData = response.getBody();
             if (imageData == null) {
-                return ImageAnalysis(false, null, "No image data");
+                return new ImageAnalysis(false, null, "No image data");
             }
 
             // Analyze image
@@ -1206,7 +1216,7 @@ class ImageTools {
                     response.getHeaders().getContentType().toString() : "unknown";
 
             // Load image to get dimensions
-            InputStream is = ByteArrayInputStream(imageData);
+            InputStream is = new ByteArrayInputStream(imageData);
             BufferedImage image = ImageIO.read(is);
 
             Map<String, Object> metadata = Map.of(
@@ -1217,10 +1227,10 @@ class ImageTools {
                     "height", image != null ? image.getHeight() : -1
             );
 
-            return ImageAnalysis(true, metadata, null);
+            return new ImageAnalysis(true, metadata, null);
 
         } catch (Exception e) {
-            return ImageAnalysis(false, null, "Error: " + e.getMessage());
+            return new ImageAnalysis(false, null, "Error: " + e.getMessage());
         }
     }
 
@@ -1235,16 +1245,16 @@ class ImageTools {
             byte[] sourceImage = response.getBody();
 
             if (sourceImage == null) {
-                return ImageConversionResult(false, null, "No source image data");
+                return new ImageConversionResult(false, null, "No source image data");
             }
 
             // Convert image
-            InputStream is = ByteArrayInputStream(sourceImage);
+            InputStream is = new ByteArrayInputStream(sourceImage);
             BufferedImage image = ImageIO.read(is);
 
             String outputFileName = "converted_" + System.currentTimeMillis() + "." + targetFormat;
 
-            ByteArrayOutputStream os = ByteArrayOutputStream();
+            ByteArrayOutputStream os = new ByteArrayOutputStream();
             ImageIO.write(image, targetFormat, os);
 
             byte[] convertedImage = os.toByteArray();
@@ -1253,10 +1263,10 @@ class ImageTools {
             Path outputPath = Paths.get(System.getProperty("java.io.tmpdir"), outputFileName);
             Files.write(outputPath, convertedImage);
 
-            return ImageConversionResult(true, outputPath.toString(), null);
+            return new ImageConversionResult(true, outputPath.toString(), null);
 
         } catch (Exception e) {
-            return ImageConversionResult(false, null, e.getMessage());
+            return new ImageConversionResult(false, null, e.getMessage());
         }
     }
 
@@ -1269,7 +1279,7 @@ class ImageTools {
         int qrSize = size != null ? size : 200;
 
         try {
-            QRCodeWriter qrCodeWriter = QRCodeWriter();
+            QRCodeWriter qrCodeWriter = new QRCodeWriter();
             BitMatrix bitMatrix = qrCodeWriter.encode(
                     content,
                     BarcodeFormat.QR_CODE,
@@ -1284,10 +1294,10 @@ class ImageTools {
 
             ImageIO.write(image, "PNG", outputPath.toFile());
 
-            return QrCodeResult(true, outputPath.toString(), content, qrSize, null);
+            return new QrCodeResult(true, outputPath.toString(), content, qrSize, null);
 
         } catch (Exception e) {
-            return QrCodeResult(false, null, content, qrSize, e.getMessage());
+            return new QrCodeResult(false, null, content, qrSize, e.getMessage());
         }
     }
 }
@@ -1299,9 +1309,9 @@ record QrCodeResult(boolean success, String filePath, String content, int size, 
 
 ### Audio Processing Tools
 
-```kotlin
+```java
 @Component
-class AudioTools {
+public class AudioTools {
 
     private final Logger log = LoggerFactory.getLogger(AudioTools.class);
 
@@ -1331,10 +1341,10 @@ class AudioTools {
             // Write dummy audio data
             Files.write(outputPath, new byte[]{0, 1, 2, 3, 4, 5});
 
-            return TextToSpeechResult(true, outputPath.toString(), text.length(), 1, selectedVoice, format);
+            return new TextToSpeechResult(true, outputPath.toString(), text.length(), 1, selectedVoice, format);
 
         } catch (Exception e) {
-            return TextToSpeechResult(false, null, text.length(), 0, selectedVoice, format, e.getMessage());
+            return new TextToSpeechResult(false, null, text.length(), 0, selectedVoice, format, e.getMessage());
         }
     }
 
@@ -1348,12 +1358,12 @@ class AudioTools {
             Path audioPath = Paths.get(audioFilePath);
 
             if (!Files.exists(audioPath)) {
-                return SpeechToTextResult(false, null, null, "File not found");
+                return new SpeechToTextResult(false, null, null, "File not found");
             }
 
             long fileSize = Files.size(audioPath);
             if (fileSize > 25 * 1024 * 1024) { // 25MB limit
-                return SpeechToTextResult(false, null, null, "File too large (max 25MB)");
+                return new SpeechToTextResult(false, null, null, "File too large (max 25MB)");
             }
 
             // This would integrate with actual STT service
@@ -1365,20 +1375,20 @@ class AudioTools {
             String transcription = "This is a simulated transcription of the audio file. " +
                                  "In a real implementation, this would be the actual transcribed text.";
 
-            return SpeechToTextResult(true, transcription, language, null);
+            return new SpeechToTextResult(true, transcription, language, null);
 
         } catch (Exception e) {
-            return SpeechToTextResult(false, null, language, e.getMessage());
+            return new SpeechToTextResult(false, null, language, e.getMessage());
         }
     }
 
     @Tool(description = "Analyze audio file")
-    fun analyzeAudio(@ToolParam("Path to audio file") String audioFilePath): AudioAnalysis {
+    public AudioAnalysis analyzeAudio(@ToolParam("Path to audio file") String audioFilePath) {
         try {
             Path audioPath = Paths.get(audioFilePath);
 
             if (!Files.exists(audioPath)) {
-                return AudioAnalysis(false, null, "File not found");
+                return new AudioAnalysis(false, null, "File not found");
             }
 
             long fileSize = Files.size(audioPath);
@@ -1411,10 +1421,10 @@ class AudioTools {
                 metadata.put("durationFormatted", String.format("%d:%02d", duration / 60, duration % 60));
             }
 
-            return AudioAnalysis(true, metadata, null);
+            return new AudioAnalysis(true, metadata, null);
 
         } catch (Exception e) {
-            return AudioAnalysis(false, null, e.getMessage());
+            return new AudioAnalysis(false, null, e.getMessage());
         }
     }
 }
@@ -1436,12 +1446,12 @@ record AudioAnalysis(boolean success, Map<String, Object> metadata, String error
 
 ### Secure Database Operations
 
-```kotlin
+```java
 @Component
-class SecureDatabaseTools {
+public class SecureDatabaseTools {
 
-    private val jdbcTemplate: JdbcTemplate
-    private val securityService: SecurityService
+    private final JdbcTemplate jdbcTemplate;
+    private final SecurityService securityService;
 
     public SecureDatabaseTools(JdbcTemplate jdbcTemplate, SecurityService securityService) {
         this.jdbcTemplate = jdbcTemplate;
@@ -1458,7 +1468,7 @@ class SecureDatabaseTools {
         // Multi-factor authentication for sensitive operations
         if (isSensitiveQuery(query)) {
             if (!securityService.verifyMfaToken()) {
-                return SecureQueryResult(false, null, null, "MFA verification required");
+                return new SecureQueryResult(false, null, null, "MFA verification required");
             }
             securityService.logSensitiveOperation("database_query", query);
         }
@@ -1466,12 +1476,12 @@ class SecureDatabaseTools {
         // Query sanitization
         String sanitizedQuery = sanitizeQuery(query);
         if (sanitizedQuery == null) {
-            return SecureQueryResult(false, null, null, "Query not allowed");
+            return new SecureQueryResult(false, null, null, "Query not allowed");
         }
 
         try {
             Map<String, Object> params = paramsJson != null
-                    ? ObjectMapper().readValue(paramsJson, Map.class)
+                    ? new ObjectMapper().readValue(paramsJson, Map.class)
                     : Map.of();
 
             long startTime = System.currentTimeMillis();
@@ -1485,21 +1495,21 @@ class SecureDatabaseTools {
                 log.warn("Slow query detected: {}ms by user {}", duration, user.getUsername());
             }
 
-            return SecureQueryResult(true, results, duration, null);
+            return new SecureQueryResult(true, results, duration, null);
 
         } catch (Exception e) {
             securityService.logSecurityEvent("query_error", e.getMessage());
-            return SecureQueryResult(false, null, null, "Query execution failed");
+            return new SecureQueryResult(false, null, null, "Query execution failed");
         }
     }
 
-    private fun isSensitiveQuery(String query): boolean {
+    private boolean isSensitiveQuery(String query) {
         String upper = query.toUpperCase();
         return upper.contains("DELETE") || upper.contains("UPDATE") || upper.contains("DROP") ||
                 upper.contains("CREATE") || upper.contains("ALTER") || upper.contains("GRANT");
     }
 
-    private fun sanitizeQuery(String query): String {
+    private String sanitizeQuery(String query) {
         // Remove comments
         String sanitized = query.replaceAll("\\/\\*.*?\\*\\/", "")
                                .replaceAll("--.*$", "")
@@ -1522,16 +1532,16 @@ record SecureQueryResult(boolean success, List<Map<String, Object>> data, Long d
 
 ### Streaming MCP Server
 
-```kotlin
+```java
 @Component
-class StreamingMcpServer {
+public class StreamingMcpServer {
 
-    private val emitter: SseEmitter
-    private val mcpServer: McpServer
+    private final SseEmitter emitter;
+    private final McpServer mcpServer;
 
     public StreamingMcpServer(McpServer mcpServer) {
         this.mcpServer = mcpServer;
-        this.emitter = SseEmitter(600000L); // 10 minutes
+        this.emitter = new SseEmitter(600000L); // 10 minutes
     }
 
     @Tool(description = "Stream real-time data")
@@ -1548,7 +1558,7 @@ class StreamingMcpServer {
                     .data(Map.of("source", source, "interval", seconds)));
 
             ScheduledExecutorService executor = Executors.newSingleThreadScheduledExecutor();
-            AtomicInteger counter = AtomicInteger(0);
+            AtomicInteger counter = new AtomicInteger(0);
 
             executor.scheduleAtFixedRate(() -> {
                 try {
@@ -1587,7 +1597,7 @@ class StreamingMcpServer {
             emitter.completeWithError(e);
         } finally {
             // Ensure executor is shutdown in all cases
-            Runtime.getRuntime().addShutdownHook(Thread(() -> {
+            Runtime.getRuntime().addShutdownHook(new Thread(() -> {
                 if (!executor.isShutdown()) {
                     executor.shutdown();
                 }
@@ -1611,20 +1621,20 @@ class StreamingMcpServer {
 
 ### Full Spring Boot MCP Application
 
-```kotlin
+```java
 @SpringBootApplication
 @EnableMcpServer
-class EnterpriseMcpApplication {
+public class EnterpriseMcpApplication {
 
     public static void main(String[] args) {
         SpringApplication.run(EnterpriseMcpApplication.class, args);
     }
 
     @Bean
-    fun corsConfigurer(): WebMvcConfigurer {
-        return WebMvcConfigurer() {
+    public WebMvcConfigurer corsConfigurer() {
+        return new WebMvcConfigurer() {
             @Override
-            fun addCorsMappings(CorsRegistry registry): void {
+            public void addCorsMappings(CorsRegistry registry) {
                 registry.addMapping("/mcp/*")
                         .allowedOrigins("*")
                         .allowedMethods("GET", "POST", "PUT", "DELETE");
@@ -1636,10 +1646,10 @@ class EnterpriseMcpApplication {
 
 ### Security Configuration
 
-```kotlin
+```java
 @Configuration
 @EnableWebSecurity
-class SecurityConfig {
+public class SecurityConfig {
 
     @Bean
     public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {

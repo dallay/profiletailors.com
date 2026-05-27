@@ -1,0 +1,68 @@
+databaseChangeLog:
+  - changeSet:
+      id: publishing-007-create-delivery-attempts
+      author: opencode
+      changes:
+        - createTable:
+            tableName: delivery_attempts
+            columns:
+              - column:
+                  name: id
+                  type: varchar(64)
+                  constraints:
+                    primaryKey: true
+                    nullable: false
+              - column:
+                  name: publication_id
+                  type: varchar(64)
+                  constraints:
+                    nullable: false
+                    foreignKeyName: fk_delivery_attempts_publication
+                    references: publications(id)
+              - column:
+                  name: publication_job_id
+                  type: varchar(64)
+                  constraints:
+                    nullable: false
+                    foreignKeyName: fk_delivery_attempts_job
+                    references: publication_jobs(id)
+              - column:
+                  name: attempt_number
+                  type: integer
+                  constraints:
+                    nullable: false
+              - column:
+                  name: outcome
+                  type: varchar(32)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: retryable
+                  type: boolean
+                  defaultValueBoolean: false
+                  constraints:
+                    nullable: false
+              - column:
+                  name: provider_message
+                  type: text
+              - column:
+                  name: provider_error_code
+                  type: varchar(128)
+              - column:
+                  name: external_publication_id
+                  type: varchar(255)
+              - column:
+                  name: attempted_at
+                  type: timestamp with time zone
+                  constraints:
+                    nullable: false
+              - column:
+                  name: created_at
+                  type: timestamp with time zone
+                  defaultValueComputed: CURRENT_TIMESTAMP
+                  constraints:
+                    nullable: false
+        - addUniqueConstraint:
+            tableName: delivery_attempts
+            columnNames: publication_job_id, attempt_number
+            constraintName: uq_delivery_attempts_job_attempt_number

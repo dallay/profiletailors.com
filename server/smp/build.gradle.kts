@@ -1,155 +1,64 @@
 plugins {
-	kotlin("jvm") version "2.3.21"
-	kotlin("plugin.spring") version "2.3.21"
-	id("org.springframework.boot") version "4.0.6"
-	id("io.spring.dependency-management") version "1.1.7"
-	id("dev.detekt") version "2.0.0-alpha.3"
-	jacoco
+    id("com.profiletailors.spring.boot.application")
 }
 
 group = "com.profiletailors"
 version = "0.0.1-SNAPSHOT"
 
-java {
-	toolchain {
-		languageVersion = JavaLanguageVersion.of(21)
-	}
-}
-
-repositories {
-	mavenCentral()
-}
-
-extra["springModulithVersion"] = "2.0.6"
-
 dependencies {
-	implementation(project(":shared-common"))
-    implementation(project(":shared-spring-boot-common"))
-    implementation(project(":shared-storage"))
-    implementation("org.springframework.boot:spring-boot-starter-data-r2dbc")
-	implementation("org.springframework.boot:spring-boot-starter-liquibase")
-	implementation("org.springframework.boot:spring-boot-starter-oauth2-resource-server")
-	implementation("org.springframework.security:spring-security-oauth2-jose")
-	implementation("org.springframework.boot:spring-boot-starter-security")
-	implementation("org.springframework.boot:spring-boot-starter-webflux")
-	implementation("org.springframework.security:spring-security-crypto")
-	implementation("io.projectreactor.kotlin:reactor-kotlin-extensions")
-	implementation("org.jetbrains.kotlin:kotlin-reflect")
-	implementation("org.jetbrains.kotlinx:kotlinx-coroutines-reactor")
-	implementation("org.springdoc:springdoc-openapi-starter-webflux-ui:3.0.2")
-	implementation("org.springframework.modulith:spring-modulith-starter-core")
-	implementation("tools.jackson.module:jackson-module-kotlin")
-    implementation("org.springframework.boot:spring-boot-starter-actuator")
-    implementation("io.micrometer:micrometer-registry-prometheus")
-    developmentOnly("org.springframework.boot:spring-boot-devtools")
-	developmentOnly("org.springframework.boot:spring-boot-docker-compose")
-	runtimeOnly("org.postgresql:postgresql")
-	runtimeOnly("org.postgresql:r2dbc-postgresql")
-	testImplementation("org.postgresql:r2dbc-postgresql")
-	testImplementation(testFixtures(project(":shared-common")))
-	annotationProcessor("org.springframework.boot:spring-boot-configuration-processor")
-	testImplementation("com.h2database:h2")
-	testImplementation("io.r2dbc:r2dbc-h2")
-	testImplementation("org.springframework.boot:spring-boot-starter-data-r2dbc-test")
-	testImplementation("org.springframework.boot:spring-boot-starter-security-test")
-	testImplementation("org.springframework.boot:spring-boot-starter-webflux-test")
-	testImplementation("org.jetbrains.kotlin:kotlin-test-junit5")
-	testImplementation("org.jetbrains.kotlinx:kotlinx-coroutines-test")
-	testImplementation("org.springframework.modulith:spring-modulith-starter-test")
-	testImplementation("org.junit.platform:junit-platform-suite")
-	testImplementation("io.cucumber:cucumber-java:7.18.1")
-	testImplementation("io.cucumber:cucumber-spring:7.18.1")
-	testImplementation("org.testcontainers:junit-jupiter:1.20.6")
-	testImplementation("org.testcontainers:postgresql:1.20.6")
-	testRuntimeOnly("org.junit.platform:junit-platform-launcher")
-	testRuntimeOnly("io.cucumber:cucumber-junit-platform-engine:7.18.1")
+    implementation(project(":shared:common"))
+    implementation(project(":shared:spring-boot-common"))
+    implementation(project(":shared:storage"))
+
+    implementation(libs.spring.boot.starter.data.r2dbc)
+    implementation(libs.spring.boot.starter.liquibase)
+    implementation(libs.spring.boot.starter.oauth2.resource.server)
+    implementation("org.springframework.security:spring-security-oauth2-jose")
+    implementation(libs.spring.boot.starter.security)
+    implementation(libs.spring.boot.starter.webflux)
+    implementation("org.springframework.security:spring-security-crypto")
+    implementation("io.projectreactor.kotlin:reactor-kotlin-extensions")
+    implementation(libs.kotlin.reflect)
+    implementation(libs.kotlinx.coroutines.reactor)
+    implementation(libs.springdoc.openapi.webflux)
+    implementation(libs.spring.modulith.starter.core)
+    implementation(libs.jackson.module.kotlin)
+    implementation(libs.spring.boot.starter.actuator)
+    implementation(libs.micrometer.prometheus)
+
+    developmentOnly(libs.spring.boot.devtools)
+    developmentOnly(libs.spring.boot.docker.compose)
+
+    runtimeOnly(libs.postgresql)
+    runtimeOnly(libs.r2dbc.postgresql)
+
+    testImplementation(libs.r2dbc.postgresql)
+    testImplementation(testFixtures(project(":shared:common")))
+    annotationProcessor("org.springframework.boot:spring-boot-configuration-processor")
+
+    testImplementation(libs.h2)
+    testImplementation(libs.r2dbc.h2)
+    testImplementation("org.springframework.boot:spring-boot-starter-data-r2dbc-test")
+    testImplementation("org.springframework.boot:spring-boot-starter-security-test")
+    testImplementation("org.springframework.boot:spring-boot-starter-webflux-test")
+    testImplementation(libs.kotlin.test.junit5)
+    testImplementation(libs.kotlinx.coroutines.test)
+    testImplementation(libs.spring.modulith.starter.test)
+    testImplementation(libs.junit.platform.suite)
+
+    testImplementation(libs.cucumber.java)
+    testImplementation(libs.cucumber.spring)
+    
+    testImplementation(platform(libs.testcontainers.bom))
+    testImplementation(libs.testcontainers.junit.jupiter)
+    testImplementation(libs.testcontainers.postgresql)
+
+    testRuntimeOnly(libs.junit.platform.launcher)
+    testRuntimeOnly(libs.cucumber.junit.platform.engine)
 }
 
 dependencyManagement {
-	imports {
-		mavenBom("org.springframework.modulith:spring-modulith-bom:${property("springModulithVersion")}")
-	}
-}
-
-kotlin {
-	compilerOptions {
-		freeCompilerArgs.addAll("-Xjsr305=strict", "-Xannotation-default-target=param-property")
-	}
-}
-
-detekt {
-    config.setFrom(files("detekt.yml"))
-    buildUponDefaultConfig = true
-    allRules = false
-    debug.set(false)
-}
-
-tasks.check {
-	dependsOn("detekt")
-}
-
-tasks.withType<Test>().configureEach {
-	useJUnitPlatform {
-		val tags = providers.gradleProperty("excludeTags").orNull
-		if (!tags.isNullOrBlank()) {
-			excludeTags(*tags.split(",").map { it.trim() }.toTypedArray())
-		}
-	}
-}
-
-tasks.named<Test>("test") {
-	finalizedBy(tasks.jacocoTestReport)
-	exclude("**/CucumberFastIntegrationTest.class", "**/CucumberPostgresIntegrationTest.class")
-}
-
-tasks.register<Test>("bddFastTest") {
-	group = "verification"
-	description = "Runs fast BDD suite with H2"
-	testClassesDirs = sourceSets.test.get().output.classesDirs
-	classpath = sourceSets.test.get().runtimeClasspath
-	useJUnitPlatform()
-	include("**/CucumberFastIntegrationTest.class")
-	shouldRunAfter(tasks.test)
-}
-
-tasks.register<Test>("bddPostgresTest") {
-	group = "verification"
-	description = "Runs Postgres BDD suite with Testcontainers"
-	testClassesDirs = sourceSets.test.get().output.classesDirs
-	classpath = sourceSets.test.get().runtimeClasspath
-	useJUnitPlatform()
-	include("**/CucumberPostgresIntegrationTest.class")
-	shouldRunAfter(tasks.named("bddFastTest"))
-}
-
-tasks.jacocoTestReport {
-	dependsOn(tasks.test)
-	reports {
-		xml.required.set(true)
-		html.required.set(true)
-		csv.required.set(false)
-	}
-	classDirectories.setFrom(
-		files(classDirectories.files.map {
-			fileTree(it) {
-				exclude(
-					"**/config/**",
-					"**/dto/**",
-					"**/entity/**",
-					"**/Application.kt",
-					"**/ApplicationKt.class"
-				)
-			}
-		})
-	)
-}
-
-tasks.jacocoTestCoverageVerification {
-	violationRules {
-		rule {
-			limit {
-				minimum = "0.80".toBigDecimal()
-			}
-		}
-	}
+    imports {
+        mavenBom(libs.spring.modulith.bom.get().toString())
+    }
 }

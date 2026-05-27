@@ -140,14 +140,14 @@ the actuator access rules.
 
 You can add additional endpoints by using `@Endpoint` and `@Component` annotations:
 
-```kotlin
+```java
 @Component
 @Endpoint(id = "custom")
-class CustomEndpoint {
+public class CustomEndpoint {
 
     @ReadOperation
-    fun customEndpoint(): String {
-        return "Custom endpoint response"
+    public String customEndpoint() {
+        return "Custom endpoint response";
     }
 }
 ```
@@ -156,14 +156,14 @@ class CustomEndpoint {
 
 For web-specific endpoints, use `@WebEndpoint`:
 
-```kotlin
+```java
 @Component
 @WebEndpoint(id = "web-custom")
-class WebCustomEndpoint {
+public class WebCustomEndpoint {
 
     @ReadOperation
-    fun webCustomEndpoint(): String {
-        return "Web custom endpoint response"
+    public String webCustomEndpoint() {
+        return "Web custom endpoint response";
     }
 }
 ```
@@ -172,14 +172,14 @@ class WebCustomEndpoint {
 
 For JMX-specific endpoints, use `@JmxEndpoint`:
 
-```kotlin
+```java
 @Component
 @JmxEndpoint(id = "jmx-custom")
-class JmxCustomEndpoint {
+public class JmxCustomEndpoint {
 
     @ReadOperation
-    fun jmxCustomEndpoint(): String {
-        return "JMX custom endpoint response"
+    public String jmxCustomEndpoint() {
+        return "JMX custom endpoint response";
     }
 }
 ```
@@ -209,28 +209,29 @@ management:
 You can provide custom health information by registering Spring beans that implement the
 `HealthIndicator` interface:
 
-```kotlin
+```java
 @Component
-class CustomHealthIndicator : HealthIndicator {
+public class CustomHealthIndicator implements HealthIndicator {
 
-    override fun health(): Health {
+    @Override
+    public Health health() {
         // Perform custom health check
-        val isHealthy = checkHealth()
+        boolean isHealthy = checkHealth();
         
-        return if (isHealthy) {
-            Health.up()
+        if (isHealthy) {
+            return Health.up()
                 .withDetail("custom", "Service is running")
-                .build()
+                .build();
         } else {
-            Health.down()
+            return Health.down()
                 .withDetail("custom", "Service is down")
-                .build()
+                .build();
         }
     }
     
-    private fun checkHealth(): Boolean {
+    private boolean checkHealth() {
         // Custom health check logic
-        return true
+        return true;
     }
 }
 ```
@@ -240,12 +241,13 @@ class CustomHealthIndicator : HealthIndicator {
 The `info` endpoint publishes information about your application. You can customize this information
 by implementing `InfoContributor`:
 
-```kotlin
+```java
 @Component
-class CustomInfoContributor : InfoContributor {
+public class CustomInfoContributor implements InfoContributor {
 
-    override fun contribute(builder: Info.Builder) {
-        builder.withDetail("custom", "Custom application info")
+    @Override
+    public void contribute(Info.Builder builder) {
+        builder.withDetail("custom", "Custom application info");
     }
 }
 ```
@@ -318,29 +320,29 @@ GET /actuator/metrics/jvm.memory.used
 
 You can add custom metrics using Micrometer:
 
-```kotlin
+```java
 @Component
-class CustomMetrics(meterRegistry: MeterRegistry) {
+public class CustomMetrics {
 
-    private val customCounter: Counter
-    private val customTimer: Timer
+    private final Counter customCounter;
+    private final Timer customTimer;
 
-    init {
-        customCounter = Counter.builder("custom.requests")
+    public CustomMetrics(MeterRegistry meterRegistry) {
+        this.customCounter = Counter.builder("custom.requests")
             .description("Custom request counter")
-            .register(meterRegistry)
+            .register(meterRegistry);
             
-        customTimer = Timer.builder("custom.processing.time")
+        this.customTimer = Timer.builder("custom.processing.time")
             .description("Custom processing time")
-            .register(meterRegistry)
+            .register(meterRegistry);
     }
 
-    fun incrementCounter() {
-        customCounter.increment()
+    public void incrementCounter() {
+        customCounter.increment();
     }
 
-    fun recordTime(duration: Duration) {
-        customTimer.record(duration)
+    public void recordTime(Duration duration) {
+        customTimer.record(duration);
     }
 }
 ```

@@ -28,40 +28,46 @@ Guide for migrating existing LangChain4j MCP server implementations to Spring AI
 
 **Before (LangChain4j):**
 
-```kotlin
-class WeatherTools {
+```java
+public class WeatherTools {
 
     @ToolMethod("Get weather information for a city")
-    fun getWeather(@P("city name") city: String): String =
-        weatherService.getWeather(city)
+    public String getWeather(@P("city name") String city) {
+        return weatherService.getWeather(city);
+    }
 
     @ToolMethod("Get 5-day forecast")
-    fun getForecast(
-        @P("city name") city: String,
-        @P("temperature unit") unit: String
-    ): String =
-        weatherService.getForecast(city, unit)
+    public String getForecast(
+            @P("city name") String city,
+            @P("temperature unit") String unit) {
+        return weatherService.getForecast(city, unit);
+    }
 }
 ```
 
 **After (Spring AI):**
 
-```kotlin
+```java
 @Component
-class WeatherTools(
-    private val weatherService: WeatherService
-) {
+public class WeatherTools {
+
+    private final WeatherService weatherService;
+
+    public WeatherTools(WeatherService weatherService) {
+        this.weatherService = weatherService;
+    }
 
     @Tool(description = "Get weather information for a city")
-    fun getWeather(@ToolParam("City name") city: String): WeatherResponse =
-        weatherService.getWeather(city)
+    public WeatherResponse getWeather(@ToolParam("City name") String city) {
+        return weatherService.getWeather(city);
+    }
 
     @Tool(description = "Get 5-day forecast")
-    fun getForecast(
-        @ToolParam("City name") city: String,
-        @ToolParam(value = "Temperature unit: celsius or fahrenheit", required = false) unit: String?
-    ): ForecastResponse =
-        weatherService.getForecast(city, unit ?: "celsius")
+    public ForecastResponse getForecast(
+            @ToolParam("City name") String city,
+            @ToolParam(value = "Temperature unit: celsius or fahrenheit", required = false) String unit) {
+        return weatherService.getForecast(city, unit != null ? unit : "celsius");
+    }
 }
 ```
 
@@ -88,32 +94,34 @@ spring.ai.openai.chat.options.model=gpt-4o-mini
 
 **Before (LangChain4j):**
 
-```kotlin
-class CodePrompts {
+```java
+public class CodePrompts {
 
-    fun createCodeReviewPrompt(code: String): AiPrompt =
-        AiPrompt.builder()
-            .system("You are a code reviewer.")
-            .user("Review: $code")
-            .build()
+    public AiPrompt createCodeReviewPrompt(String code) {
+        return AiPrompt.builder()
+                .system("You are a code reviewer.")
+                .user("Review: " + code)
+                .build();
+    }
 }
 ```
 
 **After (Spring AI):**
 
-```kotlin
+```java
 @Component
-class CodePrompts {
+public class CodePrompts {
 
     @PromptTemplate(
         name = "code-review",
         description = "Review Java code for best practices"
     )
-    fun createCodeReviewPrompt(@PromptParam("code") code: String): Prompt =
-        Prompt.builder()
-            .system("You are a code reviewer.")
-            .user("Review the following code:\n```java\n$code\n```")
-            .build()
+    public Prompt createCodeReviewPrompt(@PromptParam("code") String code) {
+        return Prompt.builder()
+                .system("You are a code reviewer.")
+                .user("Review the following code:\n```java\n" + code + "\n```")
+                .build();
+    }
 }
 ```
 
@@ -121,24 +129,24 @@ class CodePrompts {
 
 **Before:**
 
-```kotlin
+```java
 @SpringBootApplication
-class MyApplication
-
-fun main(args: Array<String>) {
-    runApplication<MyApplication>(*args)
+public class MyApplication {
+    public static void main(String[] args) {
+        SpringApplication.run(MyApplication.class, args);
+    }
 }
 ```
 
 **After:**
 
-```kotlin
+```java
 @SpringBootApplication
 @EnableMcpServer
-class MyApplication
-
-fun main(args: Array<String>) {
-    runApplication<MyApplication>(*args)
+public class MyApplication {
+    public static void main(String[] args) {
+        SpringApplication.run(MyApplication.class, args);
+    }
 }
 ```
 

@@ -1,5 +1,6 @@
 package com.profiletailors.storage
 
+import com.profiletailors.storage.infrastructure.S3Storage
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.toList
 import kotlinx.coroutines.runBlocking
@@ -19,7 +20,6 @@ import software.amazon.awssdk.services.s3.model.CreateBucketRequest
 import software.amazon.awssdk.services.s3.presigner.S3Presigner
 
 import org.junit.jupiter.api.condition.EnabledIfEnvironmentVariable
-import org.junit.jupiter.api.condition.EnabledIfSystemProperty
 
 @Testcontainers
 @EnabledIfEnvironmentVariable(named = "DOCKER_AVAILABLE", matches = "true")

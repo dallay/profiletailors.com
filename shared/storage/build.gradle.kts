@@ -1,47 +1,34 @@
 plugins {
-    kotlin("jvm")
+    id("com.profiletailors.spring.boot.library")
 }
 
-java {
-    toolchain {
-        languageVersion = JavaLanguageVersion.of(21)
-    }
-}
-
-repositories {
-    mavenCentral()
-}
+group = "com.profiletailors"
+version = "0.0.1-SNAPSHOT"
 
 dependencies {
-    implementation("org.jetbrains.kotlin:kotlin-stdlib")
-    implementation("org.jetbrains.kotlinx:kotlinx-coroutines-core:1.7.3")
-    implementation("org.jetbrains.kotlinx:kotlinx-coroutines-reactive:1.7.3")
-    implementation("org.jetbrains.kotlinx:kotlinx-coroutines-reactor:1.7.3")
+    implementation(libs.kotlin.stdlib)
+    implementation(libs.kotlinx.coroutines.core)
+    implementation(libs.kotlinx.coroutines.reactive)
+    implementation(libs.kotlinx.coroutines.reactor)
 
-    // Spring Boot BOM for dependency management
-    implementation(platform("org.springframework.boot:spring-boot-dependencies:4.0.6"))
-
-    // Spring Boot dependencies (versions managed by BOM)
-    implementation("org.springframework.boot:spring-boot-starter-webflux")
+    implementation(libs.spring.boot.starter.webflux)
     implementation("io.projectreactor.kotlin:reactor-kotlin-extensions")
 
-    // AWS SDK v2 async - kept optional, use minimal for now
-    implementation("software.amazon.awssdk:s3:2.20.15")
-    implementation("org.jetbrains.kotlinx:kotlinx-coroutines-jdk8:1.7.3")
+    // AWS SDK v2
+    implementation(libs.aws.s3)
+    implementation(libs.kotlinx.coroutines.jdk8)
 
-    testImplementation("org.junit.jupiter:junit-jupiter:5.10.0")
-    testImplementation("org.jetbrains.kotlinx:kotlinx-coroutines-test:1.7.3")
-    testImplementation("org.jetbrains.kotlin:kotlin-test-junit5:1.9.10")
-    testImplementation("io.mockk:mockk:1.13.7")
-    testImplementation("org.testcontainers:testcontainers:1.19.0")
+    testImplementation(libs.junit.jupiter)
+    testImplementation(libs.kotlinx.coroutines.test)
+    testImplementation(libs.kotlin.test.junit5)
+    testImplementation(libs.mockk)
+    
+    testImplementation(platform(libs.testcontainers.bom))
+    testImplementation("org.testcontainers:testcontainers")
     testImplementation("org.springframework.boot:spring-boot-starter-test")
-    testImplementation("org.testcontainers:junit-jupiter:1.19.0")
-    testImplementation("org.testcontainers:localstack:1.19.0")
-    testRuntimeOnly("org.junit.jupiter:junit-jupiter-engine:5.10.0")
-    testRuntimeOnly("org.junit.platform:junit-platform-launcher:1.10.0")
-
-}
-
-tasks.test {
-    useJUnitPlatform()
+    testImplementation(libs.testcontainers.junit.jupiter)
+    testImplementation(libs.testcontainers.localstack)
+    
+    testRuntimeOnly(libs.junit.jupiter.engine)
+    testRuntimeOnly(libs.junit.platform.launcher)
 }

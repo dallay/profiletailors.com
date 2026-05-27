@@ -20,7 +20,10 @@ import org.springframework.context.annotation.FilterType
     excludeFilters = [
         ComponentScan.Filter(
             type = FilterType.REGEX,
-            pattern = ["com\\.profiletailors\\.smp\\.integration\\..*"],
+            pattern = [
+                "com\\.profiletailors\\.smp\\.integration\\..*",
+                "com\\.profiletailors\\.smp\\.bdd\\..*",
+            ],
         ),
     ],
 )
