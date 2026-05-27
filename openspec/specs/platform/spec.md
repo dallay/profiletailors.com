@@ -381,3 +381,50 @@ The system MUST preserve deny-by-default behavior when refresh or logout request
 - WHEN the browser calls the dedicated logout endpoint
 - THEN the platform MUST invalidate the authoritative refresh session and clear the refresh cookie
 - AND later session bootstrap or retry recovery for that session MUST be denied
+
+### Requirement: Pluggable Storage Abstraction Layer
+
+The system MUST provide a pluggable Storage Abstraction Layer (SAL) for object storage operations with support for multiple providers.
+
+The storage API MUST be based on Kotlin coroutines (suspend functions and kotlinx.coroutines.Flow) for efficient streaming of large objects.
+The system MUST support multiple storage providers simultaneously, configurable by name through Spring Boot properties.
+The system MUST provide implementations for Local filesystem, AWS S3, and Cloudflare R2 (S3-compatible) providers.
+The storage API MUST expose operations for upload (streaming), download (streaming), delete, list, and presigned GET URLs.
+The system MUST provide a BucketRegistry for resolving storage providers by name at runtime.
+The system MUST provide a default storage bean for injection by type.
+The LocalFilesystem provider MUST protect against path traversal attacks (e.g., `..` in keys).
+The S3/R2 providers MUST support presigned GET URLs and handle large file uploads efficiently.
+The storage module MUST be reusable from other bounded contexts in the backend.
+The system MUST integrate with existing observability hooks (MetricsHook/AuditHook) when available.
+
+#### Scenario: Upload and download with local filesystem
+
+- GIVEN a bucket "local-test" mapped to `/tmp/storage/local-test`
+- WHEN a file is uploaded by streaming with key "foo/bar.txt"
+- THEN the file can be downloaded and its content matches the uploaded data
+- AND listing with prefix "foo/" contains "foo/bar.txt"
+
+#### Scenario: Presigned URL generation for S3
+
+- GIVEN an S3 provider configured for bucket "attachments"
+- WHEN a presigned GET URL is requested for "attachments", "invoices/1.pdf", with 600 seconds expiry
+- THEN a valid URL is returned that allows downloading the object within 600 seconds
+
+#### Scenario: Path traversal protection in LocalFS
+
+- GIVEN a local bucket mapped to `/var/data/bucket`
+- WHEN an upload is attempted with key "../secret.txt"
+- THEN the operation fails with StorageSecurityException preventing path traversal
+
+#### Scenario: Multi-provider resolution
+
+- GIVEN providers "local" and "attachments" are configured
+- WHEN `registry.getStorage("attachments")` is called
+- THEN a Storage instance associated with the S3Provider is returned
+
+#### Scenario: Large object streaming
+
+- GIVEN a large object (>100MB)
+- WHEN uploaded via Flow chunks
+- THEN the upload does not consume memory proportional to file size
+- AND download also streams in chunks without loading the entire file into memory
