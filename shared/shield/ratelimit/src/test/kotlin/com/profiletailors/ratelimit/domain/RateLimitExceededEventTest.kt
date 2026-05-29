@@ -1,14 +1,13 @@
 package com.profiletailors.ratelimit.domain
 
-import com.profiletailors.ratelimit.domain.RateLimitStrategy
 import com.profiletailors.ratelimit.domain.event.RateLimitExceededEvent
 import io.kotest.assertions.throwables.shouldThrow
 import io.kotest.matchers.shouldBe
 import io.kotest.matchers.shouldNotBe
 import io.kotest.matchers.string.shouldContain
+import org.junit.jupiter.api.Test
 import java.time.Duration
 import java.time.Instant
-import org.junit.jupiter.api.Test
 
 /**
  * Unit tests for RateLimitExceededEvent domain event.
