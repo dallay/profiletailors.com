@@ -6,6 +6,8 @@ group = "com.profiletailors"
 version = "0.0.1-SNAPSHOT"
 
 dependencies {
+    implementation(project(":shared:common"))
+    
     implementation(libs.kotlin.stdlib)
     implementation(libs.kotlinx.coroutines.core)
     implementation(libs.kotlinx.coroutines.reactive)
@@ -17,6 +19,9 @@ dependencies {
     // AWS SDK v2
     implementation(libs.aws.s3)
     implementation(libs.kotlinx.coroutines.jdk8)
+
+    // Micrometer for metrics
+    implementation(libs.micrometer.prometheus)
 
     testImplementation(libs.junit.jupiter)
     testImplementation(libs.kotlinx.coroutines.test)

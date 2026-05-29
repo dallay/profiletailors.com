@@ -149,10 +149,25 @@ class LocalFilesystemStorage(private val basePath: Path) : Storage {
 
     override suspend fun list(bucket: String, prefix: String): List<String> =
         withContext(Dispatchers.IO) {
-            val bucketPath = basePath.resolve(bucket).normalize()
-            val dir = if (prefix.isEmpty()) bucketPath else bucketPath.resolve(
-                Path.of(prefix).normalize()
-            ).normalize()
+            // Validar bucket con path traversal protection
+            val bucketPath = try {
+                resolveSafe(bucket, "")
+            } catch (e: StorageSecurityException) {
+                throw StorageSecurityException("Path traversal attempt in bucket: $bucket")
+            }.parent ?: throw StorageSecurityException("Invalid bucket path")
+
+            // Validar prefix con path traversal protection
+            val dir = if (prefix.isEmpty()) {
+                bucketPath
+            } else {
+                try {
+                    val safeKey = resolveSafe(bucket, prefix)
+                    safeKey.parent ?: throw StorageSecurityException("Invalid prefix path")
+                } catch (e: StorageSecurityException) {
+                    throw StorageSecurityException("Path traversal attempt in prefix: $prefix")
+                }
+            }
+
             if (!Files.exists(dir)) return@withContext emptyList()
             try {
                 return@withContext Files.walk(dir).use { stream ->

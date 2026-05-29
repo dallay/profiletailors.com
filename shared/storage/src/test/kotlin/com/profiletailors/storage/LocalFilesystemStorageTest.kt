@@ -1,6 +1,8 @@
 package com.profiletailors.storage
 
+import com.profiletailors.storage.application.GeneratePresignedUrlUseCase
 import com.profiletailors.storage.domain.StorageSecurityException
+import com.profiletailors.storage.domain.StorageServiceException
 import com.profiletailors.storage.infrastructure.LocalFilesystemStorage
 import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.test.runTest
@@ -10,9 +12,8 @@ import java.nio.file.Path
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertTrue
 import kotlinx.coroutines.flow.toList
-
+import kotlinx.coroutines.flow.flowOf
 import org.junit.jupiter.api.assertThrows
-
 import kotlinx.coroutines.runBlocking
 
 class LocalFilesystemStorageTest {
@@ -53,6 +54,56 @@ class LocalFilesystemStorageTest {
         assertThrows<StorageSecurityException> {
             runBlocking {
                 storage.download("local", "../secret.txt").toList()
+            }
+        }
+    }
+
+    @Test
+    fun `prevent path traversal on list with bucket`(@TempDir tempDir: Path) = runTest {
+        val storage = LocalFilesystemStorage(tempDir)
+
+        assertThrows<StorageSecurityException> {
+            runBlocking {
+                storage.list("../etc", "passwd")
+            }
+        }
+    }
+
+    @Test
+    fun `prevent path traversal on list with prefix`(@TempDir tempDir: Path) = runTest {
+        val storage = LocalFilesystemStorage(tempDir)
+
+        assertThrows<StorageSecurityException> {
+            runBlocking {
+                storage.list("local", "../../../etc/passwd")
+            }
+        }
+    }
+
+    @Test
+    fun `list files with valid path`(@TempDir tempDir: Path) = runTest {
+        val storage = LocalFilesystemStorage(tempDir)
+        val bucket = "test-bucket"
+        val key = "files/test.txt"
+        val data = "test content".toByteArray()
+        
+        // Upload a file
+        storage.upload(bucket, key, flowOf(data))
+        
+        // List should work with valid paths
+        val listed = storage.list(bucket, "")
+        assertTrue(listed.any { it.contains("test.txt") })
+    }
+
+    @Test
+    fun `list files with nested directory traversal attempt fails`(@TempDir tempDir: Path) = runTest {
+        val storage = LocalFilesystemStorage(tempDir)
+        val bucket = "test-bucket"
+        
+        // Attempt to access parent directory
+        assertThrows<StorageSecurityException> {
+            runBlocking {
+                storage.list(bucket, "../secret")
             }
         }
     }
