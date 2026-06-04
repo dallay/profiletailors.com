@@ -59,8 +59,8 @@ dependencies {
 	testImplementation("org.junit.platform:junit-platform-suite")
 	testImplementation("io.cucumber:cucumber-java:7.18.1")
 	testImplementation("io.cucumber:cucumber-spring:7.18.1")
-	testImplementation("org.testcontainers:junit-jupiter:1.20.6")
-	testImplementation("org.testcontainers:postgresql:1.20.6")
+	testImplementation("org.testcontainers:junit-jupiter:1.21.4")
+	testImplementation("org.testcontainers:postgresql:1.21.4")
 	testRuntimeOnly("org.junit.platform:junit-platform-launcher")
 	testRuntimeOnly("io.cucumber:cucumber-junit-platform-engine:7.18.1")
 }
