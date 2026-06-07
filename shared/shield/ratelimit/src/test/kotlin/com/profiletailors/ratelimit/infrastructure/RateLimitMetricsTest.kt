@@ -72,14 +72,14 @@ class RateLimitMetricsTest {
         // Then
         val requestsCounter = meterRegistry.counter(
             "rate_limit.requests.total",
-            "strategy", "resume",
+            "strategy", "business",
             "result", "denied",
         )
         requestsCounter.count() shouldBe 1.0
 
         val deniedCounter = meterRegistry.counter(
             "rate_limit.denied.total",
-            "strategy", "resume",
+            "strategy", "business",
         )
         deniedCounter.count() shouldBe 1.0
     }

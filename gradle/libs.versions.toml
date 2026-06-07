@@ -1,5 +1,5 @@
 [versions]
-kotlin = "2.3.21"
+kotlin = "2.2.21"
 springBoot = "4.0.6"
 springManagement = "1.1.7"
 springModulith = "2.0.6"
@@ -18,7 +18,7 @@ awsS3 = "2.20.15"
 # Testing
 junit = "6.0.3"
 assertj = "3.27.3"
-mockk = "1.13.14"
+mockk = "1.14.11"
 testcontainers = "1.20.6"
 cucumber = "7.18.1"
 
