@@ -10,13 +10,13 @@ covering caching fundamentals and annotation usage. Source pages are from the
   resolved from configured cache managers.
 - **Enablement**:
 
-  ```kotlin
+  ```java
   @Configuration
   @EnableCaching
-  class CacheConfig {
+  public class CacheConfig {
       @Bean
-      fun cacheManager(): CacheManager {
-          return ConcurrentMapCacheManager("books");
+      public CacheManager cacheManager() {
+          return new ConcurrentMapCacheManager("books");
       }
   }
   ```
@@ -35,9 +35,9 @@ covering caching fundamentals and annotation usage. Source pages are from the
 - Supports conditional caching with `condition` (pre-invocation) and `unless`
   (post-invocation, access `#result`).
 
-```kotlin
+```java
 @Cacheable(cacheNames = "book", condition = "#isbn.length() == 13", unless = "#result.hardback")
-fun findBook(String isbn): Book { ... }
+public Book findBook(String isbn) { ... }
 ```
 
 Source: [/integration/cache/annotations](https://docs.spring.io/spring-framework/reference/6.2/-SNAPSHOT/integration/cache/annotations)
@@ -48,9 +48,9 @@ Source: [/integration/cache/annotations](https://docs.spring.io/spring-framework
 - `@CacheEvict`: Remove entries; use `allEntries = true` or `beforeInvocation`
   for pre-call eviction.
 
-```kotlin
+```java
 @CacheEvict(cacheNames = "books", key = "#isbn", beforeInvocation = true)
-fun reset(String isbn): void { ... }
+public void reset(String isbn) { ... }
 ```
 
 Source: [/integration/cache/annotations](https://docs.spring.io/spring-framework/reference/6.2/-SNAPSHOT/integration/cache/annotations)
@@ -59,12 +59,12 @@ Source: [/integration/cache/annotations](https://docs.spring.io/spring-framework
 
 - Bundle multiple cache operations on a single method:
 
-```kotlin
+```java
 @Caching(evict = {
     @CacheEvict("primary"),
     @CacheEvict(cacheNames = "secondary", key = "#isbn")
 })
-fun importBooks(String isbn): Book { ... }
+public Book importBooks(String isbn) { ... }
 ```
 
 Source: [/integration/cache/annotations](https://docs.spring.io/spring-framework/reference/6.2/-SNAPSHOT/integration/cache/annotations)
@@ -73,10 +73,10 @@ Source: [/integration/cache/annotations](https://docs.spring.io/spring-framework
 
 - **Caffeine**: Configure `CaffeineCacheManager` to create caches on demand.
 
-  ```kotlin
+  ```java
   @Bean
   CacheManager cacheManager() {
-      return CaffeineCacheManager();
+      return new CaffeineCacheManager();
   }
   ```
 
@@ -96,12 +96,12 @@ Source: [/integration/cache/annotations](https://docs.spring.io/spring-framework
 
 - `@Cacheable` works with asynchronous signatures:
 
-  ```kotlin
+  ```java
   @Cacheable("books")
   public Mono<Book> findBook(ISBN isbn) { ... }
   ```
 
-  ```kotlin
+  ```java
   @Cacheable(cacheNames = "foos", sync = true)
   public CompletableFuture<Foo> executeExpensiveOperation(String id) { ... }
   ```

@@ -8,31 +8,31 @@ Complete API reference for event-driven architecture in Spring Boot applications
 
 Base class for Spring events (deprecated in newer versions in favor of plain objects).
 
-```kotlin
+```java
 public abstract class ApplicationEvent extends EventObject {
-    private val timestamp: long
+    private final long timestamp;
     
     public ApplicationEvent(Object source) {
         super(source);
         this.timestamp = System.currentTimeMillis();
     }
     
-    fun getTimestamp(): long {
+    public long getTimestamp() {
         return timestamp;
     }
 }
 
 // Modern approach: Use plain POJOs
-fun ProductCreatedEvent(String productId, String name, BigDecimal price): record {}
+public record ProductCreatedEvent(String productId, String name, BigDecimal price) {}
 ```
 
 ### Custom Domain Event Base Class
 
-```kotlin
+```java
 public abstract class DomainEvent {
-    private val eventId: UUID
-    private val occurredAt: LocalDateTime
-    private val correlationId: UUID
+    private final UUID eventId;
+    private final LocalDateTime occurredAt;
+    private final UUID correlationId;
 
     protected DomainEvent() {
         this.eventId = UUID.randomUUID();
@@ -48,30 +48,30 @@ public abstract class DomainEvent {
 
 Register event listener methods.
 
-```kotlin
+```java
 @EventListener
-fun onProductCreated(ProductCreatedEvent event): void { }
+public void onProductCreated(ProductCreatedEvent event) { }
 
 @EventListener(condition = "#event.productId == '123'")  // SpEL condition
-fun onSpecificProduct(ProductCreatedEvent event): void { }
+public void onSpecificProduct(ProductCreatedEvent event) { }
 
 @EventListener(classes = { ProductCreatedEvent.class, ProductUpdatedEvent.class })
-fun onProductEvent(DomainEvent event): void { }
+public void onProductEvent(DomainEvent event) { }
 ```
 
 ### `@`TransactionalEventListener
 
 Listen to events within transaction lifecycle.
 
-```kotlin
+```java
 @TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT)
-fun onProductCreated(ProductCreatedEvent event): void { }
+public void onProductCreated(ProductCreatedEvent event) { }
 
 @TransactionalEventListener(phase = TransactionPhase.BEFORE_COMMIT)
-fun beforeCommit(ProductCreatedEvent event): void { }
+public void beforeCommit(ProductCreatedEvent event) { }
 
 @TransactionalEventListener(phase = TransactionPhase.AFTER_ROLLBACK)
-fun afterRollback(ProductCreatedEvent event): void { }
+public void afterRollback(ProductCreatedEvent event) { }
 ```
 
 **TransactionPhase Values:**
@@ -85,8 +85,8 @@ fun afterRollback(ProductCreatedEvent event): void { }
 
 ### ApplicationEventPublisher Interface
 
-```kotlin
-interface ApplicationEventPublisher {
+```java
+public interface ApplicationEventPublisher {
     void publishEvent(ApplicationEvent event);
     void publishEvent(Object event);  // Modern approach
 }
@@ -94,13 +94,13 @@ interface ApplicationEventPublisher {
 
 ### Usage Pattern
 
-```kotlin
+```java
 @Service
 @RequiredArgsConstructor
-class ProductService {
-    private val eventPublisher: ApplicationEventPublisher
+public class ProductService {
+    private final ApplicationEventPublisher eventPublisher;
 
-    fun create(CreateProductRequest request): Product {
+    public Product create(CreateProductRequest request) {
         Product product = Product.create(request);
         Product saved = repository.save(product);
         
@@ -148,9 +148,9 @@ spring:
 
 ### Consumer Function Binding
 
-```kotlin
+```java
 @Configuration
-class EventConsumers {
+public class EventConsumers {
     
     @Bean
     public java.util.function.Consumer<ProductCreatedEvent> productCreatedConsumer(
@@ -175,13 +175,13 @@ spring.cloud.stream.bindings.productUpdatedConsumer-in-0.destination=product-eve
 
 ### Producer Function Binding
 
-```kotlin
+```java
 @Configuration
-class EventProducers {
+public class EventProducers {
     
     @Bean
     public java.util.function.Supplier<ProductCreatedEvent> eventPublisher() {
-        return () -> ProductCreatedEvent("prod-123", "Laptop", BigDecimal.TEN);
+        return () -> new ProductCreatedEvent("prod-123", "Laptop", BigDecimal.TEN);
     }
 }
 
@@ -211,7 +211,7 @@ CREATE TABLE outbox_events (
 
 ### Implementation Pattern
 
-```kotlin
+```java
 // In single transaction:
 // 1. Update aggregate
 product = repository.save(product);
@@ -225,7 +225,7 @@ product.getDomainEvents().forEach(event -> {
 
 // Then separately, scheduled task publishes from outbox
 @Scheduled(fixedDelay = 5000)
-fun publishPendingEvents(): void {
+public void publishPendingEvents() {
     List<OutboxEvent> pending = outboxRepository.findByPublishedAtIsNull();
     pending.forEach(event -> {
         kafkaTemplate.send(topic, event.getPayload());
@@ -298,7 +298,7 @@ dependencies {
 
 ### Kafka Partition Key Strategy
 
-```kotlin
+```java
 // Events with same product must be in same partition
 kafkaTemplate.send(topic, 
     productId,  // Key: ensures ordering per product
@@ -349,11 +349,11 @@ spring:
 
 ### Idempotent Consumer
 
-```kotlin
+```java
 @Component
-class IdempotentEventHandler {
-    private val idempotencyRepository: IdempotencyKeyRepository
-    private val eventService: EventProcessingService
+public class IdempotentEventHandler {
+    private final IdempotencyKeyRepository idempotencyRepository;
+    private final EventProcessingService eventService;
 
     @EventListener
     public void handle(DomainEvent event) throws Exception {
@@ -370,7 +370,7 @@ class IdempotentEventHandler {
             eventService.process(event);
             
             // Mark as processed
-            idempotencyRepository.save(IdempotencyKey(idempotencyKey));
+            idempotencyRepository.save(new IdempotencyKey(idempotencyKey));
         } catch (Exception e) {
             log.error("Event processing failed: {}", idempotencyKey, e);
             throw e;
@@ -383,19 +383,19 @@ class IdempotentEventHandler {
 
 ### Local Event Testing
 
-```kotlin
+```java
 @SpringBootTest
 class EventDrivenTest {
     @Autowired
-    private var eventPublisher: ApplicationEventPublisher
+    private ApplicationEventPublisher eventPublisher;
     
     @MockBean
-    private var handler: EventHandler
+    private EventHandler handler;
 
     @Test
     void shouldHandleEvent() {
         // Arrange
-        ProductCreatedEvent event = ProductCreatedEvent("123", "Laptop", BigDecimal.TEN);
+        ProductCreatedEvent event = new ProductCreatedEvent("123", "Laptop", BigDecimal.TEN);
 
         // Act
         eventPublisher.publishEvent(event);
@@ -408,7 +408,7 @@ class EventDrivenTest {
 
 ### Kafka Testing with Testcontainers
 
-```kotlin
+```java
 @SpringBootTest
 @Testcontainers
 class KafkaEventTest {
@@ -426,7 +426,7 @@ class KafkaEventTest {
 
     @Test
     void shouldPublishEventToKafka() throws Exception {
-        ProductCreatedEvent event = ProductCreatedEvent("123", "Laptop", BigDecimal.TEN);
+        ProductCreatedEvent event = new ProductCreatedEvent("123", "Laptop", BigDecimal.TEN);
         kafkaTemplate.send("product-events", "123", event).get(5, TimeUnit.SECONDS);
         
         // Verify consumption
@@ -449,21 +449,21 @@ kafka.log.leader_election.latency.avg
 
 ### Custom Event Metrics
 
-```kotlin
+```java
 @Component
 @RequiredArgsConstructor
-class EventMetrics {
-    private val meterRegistry: MeterRegistry
+public class EventMetrics {
+    private final MeterRegistry meterRegistry;
 
-    fun recordEventPublished(String eventType): void {
+    public void recordEventPublished(String eventType) {
         meterRegistry.counter("events.published", "type", eventType).increment();
     }
 
-    fun recordEventProcessed(String eventType, long durationMs): void {
+    public void recordEventProcessed(String eventType, long durationMs) {
         meterRegistry.timer("events.processed", "type", eventType).record(durationMs, TimeUnit.MILLISECONDS);
     }
 
-    fun recordEventFailed(String eventType): void {
+    public void recordEventFailed(String eventType) {
         meterRegistry.counter("events.failed", "type", eventType).increment();
     }
 }

@@ -44,29 +44,40 @@ scopes, and entitlements are architecture-preserved seams, not platform-backed c
 - `openspec/changes/archive/2026-05-15-backend-auth-hardening/design.md` — confirms the last change
   explicitly avoided breadth expansion and kept work inside the existing proving slice.
 -
+
 `server/smp/src/main/kotlin/com/profiletailors/smp/authorization/application/WorkspaceAuthorizationService.kt` —
 current breadth pivot point; direct grants are executable here, while scopes and entitlements are
 resolved but not enforced.
+
 - `server/smp/src/main/kotlin/com/profiletailors/smp/authorization/domain/AuthorizationModels.kt` —
   domain already contains `DirectGrant`, `AuthorizationScope`, and `Entitlement`, but only
   `DirectGrant` has live decision impact.
 -
+
 `server/smp/src/main/kotlin/com/profiletailors/smp/authorization/infrastructure/AuthorizationBootstrapConfiguration.kt` —
 wires only no-op resolvers for grants, scopes, and entitlements.
+
 -
+
 `server/smp/src/main/kotlin/com/profiletailors/smp/authorization/infrastructure/R2dbcWorkspaceMembershipRoleResolver.kt` —
 example of the existing persistence pattern to mirror for executable grant breadth.
+
 - `server/smp/src/main/resources/db/changelog/authorization/*.yaml` — current schema supports
   permissions, roles, role-permissions, and membership-roles only; there are no tables yet for
   direct grants, scopes, or entitlements.
 -
+
 `server/smp/src/test/kotlin/com/profiletailors/smp/authorization/application/WorkspaceAuthorizationServiceTest.kt` —
 proves direct allow/direct deny semantics today, but only through in-memory stub resolvers.
+
 -
+
 `server/smp/src/test/kotlin/com/profiletailors/smp/authorization/application/DirectGrantPrecedenceTest.kt` —
 proves expired direct grants are ignored and explicit deny overrides role allow, again without
 persistence.
+
 -
+
 `server/smp/src/test/kotlin/com/profiletailors/smp/integration/WorkspaceAccessSummaryEndpointIntegrationTest.kt`
 and `...PostgresIntegrationTest.kt` — current end-to-end surface that could host the smallest real
 breadth expansion without inventing a new endpoint.

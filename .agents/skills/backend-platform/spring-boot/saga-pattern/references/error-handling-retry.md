@@ -4,24 +4,24 @@
 
 Use Spring Retry for automatic retry logic:
 
-```kotlin
+```java
 @Configuration
 @EnableRetry
-class RetryConfig {
+public class RetryConfig {
 
     @Bean
-    fun retryTemplate(): RetryTemplate {
-        RetryTemplate retryTemplate = RetryTemplate();
+    public RetryTemplate retryTemplate() {
+        RetryTemplate retryTemplate = new RetryTemplate();
 
-        FixedBackOffPolicy backOffPolicy = FixedBackOffPolicy();
+        FixedBackOffPolicy backOffPolicy = new FixedBackOffPolicy();
         backOffPolicy.setBackOffPeriod(2000L); // 2 second delay
 
-        ExponentialBackOffPolicy exponentialBackOff = ExponentialBackOffPolicy();
+        ExponentialBackOffPolicy exponentialBackOff = new ExponentialBackOffPolicy();
         exponentialBackOff.setInitialInterval(1000L);
         exponentialBackOff.setMultiplier(2.0);
         exponentialBackOff.setMaxInterval(10000L);
 
-        SimpleRetryPolicy retryPolicy = SimpleRetryPolicy();
+        SimpleRetryPolicy retryPolicy = new SimpleRetryPolicy();
         retryPolicy.setMaxAttempts(3);
 
         retryTemplate.setBackOffPolicy(exponentialBackOff);
@@ -34,21 +34,21 @@ class RetryConfig {
 
 ## Retry with `@Retryable`
 
-```kotlin
+```java
 @Service
-class OrderService {
+public class OrderService {
 
     @Retryable(
         value = {TransientException.class},
         maxAttempts = 3,
         backoff = @Backoff(delay = 1000, multiplier = 2)
     )
-    fun processOrder(String orderId): void {
+    public void processOrder(String orderId) {
         // Order processing logic
     }
 
     @Recover
-    fun recover(TransientException ex, String orderId): void {
+    public void recover(TransientException ex, String orderId) {
         logger.error("Order processing failed after retries: {}", orderId, ex);
         // Fallback logic
     }
@@ -59,12 +59,12 @@ class OrderService {
 
 Prevent cascading failures:
 
-```kotlin
+```java
 @Configuration
-class CircuitBreakerConfig {
+public class CircuitBreakerConfig {
 
     @Bean
-    fun circuitBreakerRegistry(): CircuitBreakerRegistry {
+    public CircuitBreakerRegistry circuitBreakerRegistry() {
         CircuitBreakerConfig config = CircuitBreakerConfig.custom()
             .failureRateThreshold(50)  // Open after 50% failures
             .waitDurationInOpenState(Duration.ofMillis(1000))
@@ -76,23 +76,23 @@ class CircuitBreakerConfig {
 }
 
 @Service
-class PaymentService {
+public class PaymentService {
 
-    private val circuitBreaker: CircuitBreaker
+    private final CircuitBreaker circuitBreaker;
 
     public PaymentService(CircuitBreakerRegistry registry) {
         this.circuitBreaker = registry.circuitBreaker("payment");
     }
 
-    fun processPayment(PaymentRequest request): PaymentResult {
+    public PaymentResult processPayment(PaymentRequest request) {
         return circuitBreaker.executeSupplier(
             () -> callPaymentGateway(request)
         );
     }
 
-    private fun callPaymentGateway(PaymentRequest request): PaymentResult {
+    private PaymentResult callPaymentGateway(PaymentRequest request) {
         // Call external payment gateway
-        return PaymentResult(...);
+        return new PaymentResult(...);
     }
 }
 ```
@@ -101,18 +101,18 @@ class PaymentService {
 
 Handle failed messages:
 
-```kotlin
+```java
 @Configuration
-class DeadLetterQueueConfig {
+public class DeadLetterQueueConfig {
 
     @Bean
-    fun deadLetterTopic(): NewTopic {
-        return NewTopic("saga-dlq", 1, (short) 1);
+    public NewTopic deadLetterTopic() {
+        return new NewTopic("saga-dlq", 1, (short) 1);
     }
 }
 
 @Component
-class SagaErrorHandler implements ConsumerAwareErrorHandler {
+public class SagaErrorHandler implements ConsumerAwareErrorHandler {
 
     private final KafkaTemplate<String, Object> kafkaTemplate;
 
@@ -134,15 +134,15 @@ class SagaErrorHandler implements ConsumerAwareErrorHandler {
 
 Define and enforce timeout policies:
 
-```kotlin
+```java
 @Service
-class TimeoutHandler {
+public class TimeoutHandler {
 
-    private val sagaStateRepository: SagaStateRepository
+    private final SagaStateRepository sagaStateRepository;
     private static final Duration STEP_TIMEOUT = Duration.ofSeconds(30);
 
     @Scheduled(fixedDelay = 5000)
-    fun checkForTimeouts(): void {
+    public void checkForTimeouts() {
         Instant timeoutThreshold = Instant.now().minus(STEP_TIMEOUT);
 
         List<SagaState> timedOutSagas = sagaStateRepository
@@ -155,7 +155,7 @@ class TimeoutHandler {
         });
     }
 
-    private fun compensateSaga(SagaState saga): void {
+    private void compensateSaga(SagaState saga) {
         saga.setStatus(SagaStatus.COMPENSATING);
         sagaStateRepository.save(saga);
     }
@@ -166,11 +166,11 @@ class TimeoutHandler {
 
 Prevent overwhelming downstream services:
 
-```kotlin
+```java
 @Service
-class BackoffService {
+public class BackoffService {
 
-    fun calculateBackoff(int attemptNumber): Duration {
+    public Duration calculateBackoff(int attemptNumber) {
         long baseDelay = 1000; // 1 second
         long delay = baseDelay * (long) Math.pow(2, attemptNumber - 1);
         long maxDelay = 30000; // 30 seconds
@@ -187,7 +187,7 @@ class BackoffService {
             maxDelay = 30000
         )
     )
-    fun callExternalService(): void {
+    public void callExternalService() {
         // External service call
     }
 }
@@ -197,14 +197,14 @@ class BackoffService {
 
 Ensure retries don't cause duplicate processing:
 
-```kotlin
+```java
 @Service
-class IdempotentPaymentService {
+public class IdempotentPaymentService {
 
-    private val paymentRepository: PaymentRepository
+    private final PaymentRepository paymentRepository;
     private final Map<String, PaymentResult> processedPayments = new ConcurrentHashMap<>();
 
-    fun processPayment(String paymentId, BigDecimal amount): PaymentResult {
+    public PaymentResult processPayment(String paymentId, BigDecimal amount) {
         // Check if already processed
         if (processedPayments.containsKey(paymentId)) {
             return processedPayments.get(paymentId);
@@ -213,7 +213,7 @@ class IdempotentPaymentService {
         // Check database
         Optional<Payment> existing = paymentRepository.findById(paymentId);
         if (existing.isPresent()) {
-            return PaymentResult(existing.get());
+            return new PaymentResult(existing.get());
         }
 
         // Process payment
@@ -221,7 +221,7 @@ class IdempotentPaymentService {
 
         // Cache and persist
         processedPayments.put(paymentId, result);
-        paymentRepository.save(Payment(paymentId, amount, result.getStatus()));
+        paymentRepository.save(new Payment(paymentId, amount, result.getStatus()));
 
         return result;
     }
@@ -232,9 +232,9 @@ class IdempotentPaymentService {
 
 Centralize error handling:
 
-```kotlin
+```java
 @RestControllerAdvice
-class GlobalExceptionHandler {
+public class GlobalExceptionHandler {
 
     @ExceptionHandler(SagaExecutionException.class)
     public ResponseEntity<ErrorResponse> handleSagaError(
@@ -289,31 +289,31 @@ public record ErrorResponse(
 
 Track failure metrics:
 
-```kotlin
+```java
 @Component
-class SagaErrorMetrics {
+public class SagaErrorMetrics {
 
-    private val meterRegistry: MeterRegistry
+    private final MeterRegistry meterRegistry;
 
     public SagaErrorMetrics(MeterRegistry meterRegistry) {
         this.meterRegistry = meterRegistry;
     }
 
-    fun recordSagaFailure(String sagaType): void {
+    public void recordSagaFailure(String sagaType) {
         Counter.builder("saga.failure")
             .tag("type", sagaType)
             .register(meterRegistry)
             .increment();
     }
 
-    fun recordRetry(String sagaType): void {
+    public void recordRetry(String sagaType) {
         Counter.builder("saga.retry")
             .tag("type", sagaType)
             .register(meterRegistry)
             .increment();
     }
 
-    fun recordTimeout(String sagaType): void {
+    public void recordTimeout(String sagaType) {
         Counter.builder("saga.timeout")
             .tag("type", sagaType)
             .register(meterRegistry)

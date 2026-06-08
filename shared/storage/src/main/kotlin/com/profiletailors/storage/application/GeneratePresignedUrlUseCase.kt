@@ -1,0 +1,103 @@
+package com.profiletailors.storage.application
+
+import com.profiletailors.common.domain.Service
+import com.profiletailors.common.domain.bus.event.BaseDomainEvent
+import com.profiletailors.common.domain.bus.event.EventPublisher
+import com.profiletailors.storage.domain.PresignedUrlGeneratedEvent
+import com.profiletailors.storage.domain.Storage
+import com.profiletailors.storage.domain.StorageServiceException
+import com.profiletailors.storage.infrastructure.metrics.StorageMetrics
+import java.time.Instant
+
+/**
+ * Use case for generating presigned URLs for S3 objects.
+ * Enforces security constraints (max expiry), audits all URL generation, and records metrics.
+ *
+ * @param storage The storage adapter (output port)
+ * @param eventPublisher Publisher for auditing URL generation events
+ * @param metrics Storage metrics for recording presigned URL operations
+ * @param maxExpirySeconds Maximum allowed expiry time for presigned URLs (default: 1 hour)
+ * @param provider The storage provider name for metrics
+ */
+@Service
+class GeneratePresignedUrlUseCase(
+    private val storage: Storage,
+    private val eventPublisher: EventPublisher<BaseDomainEvent>,
+    private val metrics: StorageMetrics,
+    private val maxExpirySeconds: Long = DEFAULT_MAX_EXPIRY_SECONDS,
+    private val provider: String = StorageMetrics.Providers.S3
+) {
+
+    /**
+     * Generates a presigned URL for downloading an object from storage.
+     *
+     * @param bucket The bucket name containing the object
+     * @param key The object key
+     * @param expirySeconds How long the URL should be valid (max: [maxExpirySeconds])
+     * @param requesterId Identifier of the user/application requesting the URL (for auditing)
+     * @return The presigned URL string
+     * @throws IllegalArgumentException If expirySeconds is out of range
+     * @throws StorageServiceException If there's an error generating the URL
+     */
+    suspend fun execute(
+        bucket: String,
+        key: String,
+        expirySeconds: Long,
+        requesterId: String
+    ): String {
+        validateExpiry(expirySeconds)
+
+        val url = try {
+            metrics.recordOperationTime(StorageMetrics.Operations.PRESIGN, provider) {
+                storage.presignGet(bucket, key, expirySeconds)
+            }
+        } catch (e: Exception) {
+            metrics.recordPresignedUrlGenerated(provider, false)
+            metrics.recordError(StorageMetrics.Operations.PRESIGN, provider, bucket, StorageMetrics.ErrorTypes.SERVICE)
+            throw StorageServiceException(
+                "Failed to generate presigned URL for '$key' in bucket '$bucket'", e
+            )
+        }
+
+        metrics.recordPresignedUrlGenerated(provider, true)
+
+        try {
+            eventPublisher.publish(
+                PresignedUrlGeneratedEvent(
+                    bucket = bucket,
+                    key = key,
+                    expirySeconds = expirySeconds,
+                    requesterId = requesterId,
+                    timestamp = Instant.now(),
+                    expiryTime = Instant.now().plusSeconds(expirySeconds)
+                )
+            )
+        } catch (_: Exception) {
+            // Event publishing failure should not break URL generation
+        }
+
+        return url
+    }
+
+    /**
+     * Generates a presigned URL using default expiry (1 hour).
+     */
+    suspend fun execute(
+        bucket: String,
+        key: String,
+        requesterId: String
+    ): String = execute(bucket, key, DEFAULT_MAX_EXPIRY_SECONDS, requesterId)
+
+    private fun validateExpiry(expirySeconds: Long) {
+        require(expirySeconds > 0) {
+            "Expiry seconds must be positive, got $expirySeconds"
+        }
+        require(expirySeconds <= maxExpirySeconds) {
+            "Expiry seconds ($expirySeconds) exceeds maximum allowed ($maxExpirySeconds)"
+        }
+    }
+
+    companion object {
+        private const val DEFAULT_MAX_EXPIRY_SECONDS = 3600L // 1 hour
+    }
+}

@@ -2,7 +2,8 @@
 
 ## Overview
 
-The System Context diagram shows Profile Tailors and how it fits into the world around it. It shows the people who use it and the other systems it interacts with.
+The System Context diagram shows Profile Tailors and how it fits into the world around it. It shows
+the people who use it and the other systems it interacts with.
 
 **Audience**: Everyone (technical and non-technical)
 
@@ -110,25 +111,25 @@ graph TB
 
 ### People
 
-| Name | Description | Responsibilities |
-|------|-------------|------------------|
-| **Content Creator** | Individual or team member who creates and schedules social media content | Create posts, schedule publishing, manage content calendar, engage with audience |
-| **Team Administrator** | Manages team members, workspaces, and permissions | Invite team members, assign roles, configure workspace settings, manage billing |
-| **Analyst** | Reviews analytics and engagement metrics | View reports, analyze performance, export data, track KPIs |
+| Name                   | Description                                                              | Responsibilities                                                                 |
+|------------------------|--------------------------------------------------------------------------|----------------------------------------------------------------------------------|
+| **Content Creator**    | Individual or team member who creates and schedules social media content | Create posts, schedule publishing, manage content calendar, engage with audience |
+| **Team Administrator** | Manages team members, workspaces, and permissions                        | Invite team members, assign roles, configure workspace settings, manage billing  |
+| **Analyst**            | Reviews analytics and engagement metrics                                 | View reports, analyze performance, export data, track KPIs                       |
 
 ### Software Systems
 
-| Name | Type | Description | Technology |
-|------|------|-------------|------------|
-| **Profile Tailors** | Internal | Social media management platform for scheduling, publishing, analyzing, and collaborating across multiple social networks | Spring Boot 4, Kotlin, WebFlux, Astro 6 |
-| **Twitter/X API** | External | Social media platform for posting and engagement | REST API |
-| **LinkedIn API** | External | Professional networking platform | REST API |
-| **Instagram Graph API** | External | Photo and video sharing platform | REST API |
-| **Facebook Graph API** | External | Social networking platform | REST API |
-| **TikTok API** | External | Short-form video platform | REST API |
-| **Auth Provider** | External | OAuth2/OIDC identity provider (e.g., Auth0, Clerk) | OAuth2/OIDC |
-| **Email Service** | External | Transactional email delivery (e.g., Resend, SendGrid) | SMTP/REST API |
-| **Cloud Storage** | External | Media asset storage (e.g., S3, Cloudflare R2) | S3-compatible API |
+| Name                    | Type     | Description                                                                                                               | Technology                              |
+|-------------------------|----------|---------------------------------------------------------------------------------------------------------------------------|-----------------------------------------|
+| **Profile Tailors**     | Internal | Social media management platform for scheduling, publishing, analyzing, and collaborating across multiple social networks | Spring Boot 4, Kotlin, WebFlux, Astro 6 |
+| **Twitter/X API**       | External | Social media platform for posting and engagement                                                                          | REST API                                |
+| **LinkedIn API**        | External | Professional networking platform                                                                                          | REST API                                |
+| **Instagram Graph API** | External | Photo and video sharing platform                                                                                          | REST API                                |
+| **Facebook Graph API**  | External | Social networking platform                                                                                                | REST API                                |
+| **TikTok API**          | External | Short-form video platform                                                                                                 | REST API                                |
+| **Auth Provider**       | External | OAuth2/OIDC identity provider (e.g., Auth0, Clerk)                                                                        | OAuth2/OIDC                             |
+| **Email Service**       | External | Transactional email delivery (e.g., Resend, SendGrid)                                                                     | SMTP/REST API                           |
+| **Cloud Storage**       | External | Media asset storage (e.g., S3, Cloudflare R2)                                                                             | S3-compatible API                       |
 
 ---
 
@@ -136,18 +137,21 @@ graph TB
 
 ### User Interactions
 
-- **Content Creators** interact with Profile Tailors to create, schedule, and publish content across multiple platforms
+- **Content Creators** interact with Profile Tailors to create, schedule, and publish content across
+  multiple platforms
 - **Team Administrators** manage workspace configuration, team members, and access control
 - **Analysts** consume analytics data and generate reports on content performance
 
 ### External System Integrations
 
 #### Social Media Platforms
+
 - Profile Tailors publishes scheduled posts to each platform via their respective APIs
 - Profile Tailors fetches engagement metrics (likes, comments, shares, impressions) for analytics
 - OAuth2 flows are used to authorize Profile Tailors to act on behalf of users
 
 #### Supporting Services
+
 - **Auth Provider**: Handles user authentication and identity management
 - **Email Service**: Sends transactional emails (invitations, notifications, reports)
 - **Cloud Storage**: Stores uploaded media assets (images, videos) before publishing
@@ -159,10 +163,14 @@ graph TB
 ### Core Value Proposition
 
 Profile Tailors enables teams to:
-1. **Schedule smarter** — Plan and schedule content across multiple platforms from a single interface
-2. **Post everywhere** — Publish to Twitter, LinkedIn, Instagram, Facebook, and TikTok simultaneously
+
+1. **Schedule smarter** — Plan and schedule content across multiple platforms from a single
+   interface
+2. **Post everywhere** — Publish to Twitter, LinkedIn, Instagram, Facebook, and TikTok
+   simultaneously
 3. **Analyze performance** — Track engagement metrics and optimize content strategy
-4. **Collaborate effectively** — Coordinate team workflows with roles, permissions, and approval flows
+4. **Collaborate effectively** — Coordinate team workflows with roles, permissions, and approval
+   flows
 
 ### Key Constraints
 
@@ -176,13 +184,16 @@ Profile Tailors enables teams to:
 ## Current Implementation Status
 
 **Implemented**:
+
 - ✅ Marketing site (Astro 6, static)
 - ✅ Web application (Vue 3, in development)
 - ✅ Backend foundation (Spring Boot 4, Kotlin, WebFlux)
-- ✅ Core bounded contexts (Identity, Authorization, Tenancy, Credentials, Governance, Platform, Audit, Observability)
+- ✅ Core bounded contexts (Identity, Authorization, Tenancy, Credentials, Governance, Platform,
+  Audit, Observability)
 - ✅ JWT and API Key authentication
 
 **Planned**:
+
 - 🔲 Social media platform integrations
 - 🔲 Content scheduling engine
 - 🔲 Analytics and reporting

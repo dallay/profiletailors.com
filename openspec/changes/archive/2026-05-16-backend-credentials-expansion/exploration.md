@@ -60,26 +60,37 @@ still mostly conceptual.
 - `server/smp/src/main/kotlin/com/profiletailors/smp/credentials/domain/ValidatedToken.kt` — current
   normalized token model is JWT-oriented and request-scoped, not credential-lifecycle-oriented.
 -
+
 `server/smp/src/main/kotlin/com/profiletailors/smp/credentials/application/FederatedTokenValidator.kt` —
 generic validation seam exists but is only used for JWT.
+
 -
+
 `server/smp/src/main/kotlin/com/profiletailors/smp/credentials/infrastructure/security/SpringJwtValidatedTokenMapper.kt` —
 current only credential adapter.
+
 -
+
 `server/smp/src/main/kotlin/com/profiletailors/smp/identity/infrastructure/JwtAuthenticatedPrincipalMaterializer.kt` —
 hard-codes USER/JWT materialization behavior.
+
 -
+
 `server/smp/src/main/kotlin/com/profiletailors/smp/identity/application/PrincipalIdentityLookup.kt`
 and `.../R2dbcPrincipalIdentityLookup.kt` — persisted principal lookup seam is usable for non-user
 principal types, but current row shaping is user-biased because only `user_identities` exists.
+
 - `server/smp/src/main/resources/db/changelog/identity/001-create-principals.yaml` — current
   principal table is broad enough to hold non-user actors.
 - `server/smp/src/main/resources/db/changelog/identity/002-create-user-identities.yaml` — only
   user-specific detail table today.
 -
+
 `server/smp/src/main/kotlin/com/profiletailors/smp/identity/infrastructure/security/IdentitySecurityConfiguration.kt` —
 security chain is fully JWT resource-server based right now.
+
 -
+
 `server/smp/src/test/kotlin/com/profiletailors/smp/identity/infrastructure/JwtAuthenticatedPrincipalMaterializerTest.kt` —
 current test proof only covers JWT USER mapping.
 

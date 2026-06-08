@@ -2,9 +2,13 @@
 
 ## Technical Approach
 
-Add one narrow command-side credential replacement path for API keys in `server/smp` while keeping the existing proving slice, authentication adapters, and authorization flow intact.
+Add one narrow command-side credential replacement path for API keys in `server/smp` while keeping
+the existing proving slice, authentication adapters, and authorization flow intact.
 
-The change does **not** introduce a generic credential-family model. Instead, it adds only the minimum lineage metadata needed to express one explicit predecessor/successor cutover for `api_key_credentials`, then reuses the current runtime authentication pipeline so that the old key is denied and the new key is accepted on `GET /api/authorization/workspace-access/current`.
+The change does **not** introduce a generic credential-family model. Instead, it adds only the
+minimum lineage metadata needed to express one explicit predecessor/successor cutover for
+`api_key_credentials`, then reuses the current runtime authentication pipeline so that the old key
+is denied and the new key is accepted on `GET /api/authorization/workspace-access/current`.
 
 The design follows the proposal boundaries:
 
@@ -18,7 +22,8 @@ The design follows the proposal boundaries:
 
 ### Decision: Model replacement locally on `api_key_credentials`
 
-**Choice**: Extend `api_key_credentials` with additive self-referential lineage fields so one credential row can point to the credential it replaced or the credential that replaced it.
+**Choice**: Extend `api_key_credentials` with additive self-referential lineage fields so one
+credential row can point to the credential it replaced or the credential that replaced it.
 
 **Alternatives considered**:
 
@@ -26,11 +31,15 @@ The design follows the proposal boundaries:
 - Reuse only `status` and `revoked_at` with no persisted link between rows.
 - Add lifecycle linkage to a new cross-credential `credentials` super-table.
 
-**Rationale**: This change needs explicit replacement semantics, but only for API keys. A generic lineage platform would be architecture-first and too broad for this slice. Using status alone would enforce denial, but would not make predecessor/successor intent explicit or easy to verify in tests and future operations.
+**Rationale**: This change needs explicit replacement semantics, but only for API keys. A generic
+lineage platform would be architecture-first and too broad for this slice. Using status alone would
+enforce denial, but would not make predecessor/successor intent explicit or easy to verify in tests
+and future operations.
 
 ### Decision: Prefer additive lineage columns over a new mapping table
 
-**Choice**: Add nullable local columns on `api_key_credentials` for replacement linkage and timestamp, with the successor relationship treated as one-to-one for this change.
+**Choice**: Add nullable local columns on `api_key_credentials` for replacement linkage and
+timestamp, with the successor relationship treated as one-to-one for this change.
 
 **Alternatives considered**:
 
@@ -38,11 +47,17 @@ The design follows the proposal boundaries:
 - Only `successor_credential_id`.
 - Only `replaced_credential_id` on the new row.
 
-**Rationale**: A separate table would be extra machinery for a single cutover workflow. The smallest practical model is to keep lineage next to the credential row. The implementation can use either one directional link or both directional links, but the design recommends storing the canonical predecessor reference on the successor row and optionally mirroring the successor reference on the predecessor row for easier diagnostics. That keeps semantics explicit without becoming family management.
+**Rationale**: A separate table would be extra machinery for a single cutover workflow. The smallest
+practical model is to keep lineage next to the credential row. The implementation can use either one
+directional link or both directional links, but the design recommends storing the canonical
+predecessor reference on the successor row and optionally mirroring the successor reference on the
+predecessor row for easier diagnostics. That keeps semantics explicit without becoming family
+management.
 
 ### Decision: Replacement is a single atomic cutover, not a rotation window
 
-**Choice**: Model replacement as one command that creates a successor credential and marks the predecessor non-active within the same transactional operation.
+**Choice**: Model replacement as one command that creates a successor credential and marks the
+predecessor non-active within the same transactional operation.
 
 **Alternatives considered**:
 
@@ -50,7 +65,9 @@ The design follows the proposal boundaries:
 - Delayed revocation with grace period.
 - “Create new key now, revoke old key later” two-step workflow.
 
-**Rationale**: The proposal explicitly wants successor-valid / predecessor-denied semantics immediately after completion. A single atomic cutover keeps runtime rules deterministic and testable on the existing workspace-access proving slice.
+**Rationale**: The proposal explicitly wants successor-valid / predecessor-denied semantics
+immediately after completion. A single atomic cutover keeps runtime rules deterministic and testable
+on the existing workspace-access proving slice.
 
 ### Decision: Keep runtime authentication contract shape unchanged
 
@@ -68,11 +85,15 @@ The design follows the proposal boundaries:
 - Resolve “credential family” first, then determine active descendant.
 - Add API-key replacement logic into authorization rather than authentication.
 
-**Rationale**: The existing architecture already places credential validity in the authentication phase. Keeping the same shape minimizes risk and limits the change to credential-state semantics, not platform flow.
+**Rationale**: The existing architecture already places credential validity in the authentication
+phase. Keeping the same shape minimizes risk and limits the change to credential-state semantics,
+not platform flow.
 
 ### Decision: Treat replaced predecessors as credential-state denial, not authorization denial
 
-**Choice**: Once a key has been replaced, the predecessor must fail in the same category as revoked/inactive credentials: unauthenticated for the protected slice, with runtime audit-ready proof using existing governance seams.
+**Choice**: Once a key has been replaced, the predecessor must fail in the same category as
+revoked/inactive credentials: unauthenticated for the protected slice, with runtime audit-ready
+proof using existing governance seams.
 
 **Alternatives considered**:
 
@@ -80,7 +101,9 @@ The design follows the proposal boundaries:
 - Add a brand-new audit taxonomy just for replacement.
 - Allow predecessor requests through and fail later.
 
-**Rationale**: Replacement changes credential validity, not permissions. The protected use case must not execute for a replaced key. Reusing the current revoked/inactive denial semantics keeps the scope narrow and the behavior consistent.
+**Rationale**: Replacement changes credential validity, not permissions. The protected use case must
+not execute for a replaced key. Reusing the current revoked/inactive denial semantics keeps the
+scope narrow and the behavior consistent.
 
 ## Data Flow
 
@@ -164,16 +187,16 @@ Caller            Handler/Use Case         DB/api_key_credentials        Runtime
 
 ## File Changes
 
-| File | Action | Description |
-|------|--------|-------------|
-| `openspec/changes/backend-credential-lifecycle/design.md` | Create | Technical design artifact for this change. |
-| `server/smp/src/main/resources/db/changelog/credentials/002-create-api-key-credentials.yaml` | Modify | Add minimal replacement lineage columns to API-key credential storage. |
-| `server/smp/src/main/kotlin/com/profiletailors/smp/credentials/application/ApiKeyCredentialStateLookup.kt` | Modify | Extend failure/state semantics so replaced predecessor denial is representable alongside current active/inactive/revoked behavior. |
-| `server/smp/src/main/kotlin/com/profiletailors/smp/credentials/infrastructure/R2dbcApiKeyCredentialStateLookup.kt` | Modify | Keep lookup-by-key behavior but enforce post-replacement predecessor denial and successor acceptance. |
-| `server/smp/src/main/kotlin/com/profiletailors/smp/credentials/` | Create/Modify | Add one narrow replacement command/handler plus a small persistence seam for replacement. |
-| `server/smp/src/main/kotlin/com/profiletailors/smp/identity/infrastructure/security/IdentitySecurityConfiguration.kt` | Modify minimally | Reuse existing revoked/inactive audit path or extend it minimally so replacement denial is observable on the proving slice. |
-| `server/smp/src/test/kotlin/com/profiletailors/smp/integration/WorkspaceAccessSummaryEndpointIntegrationTest.kt` | Modify | Add H2 before/after proof: predecessor allowed before replacement, predecessor denied after replacement, successor allowed after replacement. |
-| `server/smp/src/test/kotlin/com/profiletailors/smp/integration/WorkspaceAccessSummaryEndpointPostgresIntegrationTest.kt` | Modify | Add PostgreSQL equivalent proof for the same cutover semantics. |
+| File                                                                                                                     | Action           | Description                                                                                                                                   |
+|--------------------------------------------------------------------------------------------------------------------------|------------------|-----------------------------------------------------------------------------------------------------------------------------------------------|
+| `openspec/changes/backend-credential-lifecycle/design.md`                                                                | Create           | Technical design artifact for this change.                                                                                                    |
+| `server/smp/src/main/resources/db/changelog/credentials/002-create-api-key-credentials.yaml`                             | Modify           | Add minimal replacement lineage columns to API-key credential storage.                                                                        |
+| `server/smp/src/main/kotlin/com/profiletailors/smp/credentials/application/ApiKeyCredentialStateLookup.kt`               | Modify           | Extend failure/state semantics so replaced predecessor denial is representable alongside current active/inactive/revoked behavior.            |
+| `server/smp/src/main/kotlin/com/profiletailors/smp/credentials/infrastructure/R2dbcApiKeyCredentialStateLookup.kt`       | Modify           | Keep lookup-by-key behavior but enforce post-replacement predecessor denial and successor acceptance.                                         |
+| `server/smp/src/main/kotlin/com/profiletailors/smp/credentials/`                                                         | Create/Modify    | Add one narrow replacement command/handler plus a small persistence seam for replacement.                                                     |
+| `server/smp/src/main/kotlin/com/profiletailors/smp/identity/infrastructure/security/IdentitySecurityConfiguration.kt`    | Modify minimally | Reuse existing revoked/inactive audit path or extend it minimally so replacement denial is observable on the proving slice.                   |
+| `server/smp/src/test/kotlin/com/profiletailors/smp/integration/WorkspaceAccessSummaryEndpointIntegrationTest.kt`         | Modify           | Add H2 before/after proof: predecessor allowed before replacement, predecessor denied after replacement, successor allowed after replacement. |
+| `server/smp/src/test/kotlin/com/profiletailors/smp/integration/WorkspaceAccessSummaryEndpointPostgresIntegrationTest.kt` | Modify           | Add PostgreSQL equivalent proof for the same cutover semantics.                                                                               |
 
 ## Interfaces / Contracts
 
@@ -201,7 +224,8 @@ api_key_credentials (
 ### Schema notes
 
 - `replaced_credential_id`: canonical pointer from the successor row to the predecessor it replaced.
-- `replaced_by_credential_id`: optional convenience pointer from predecessor to successor for direct diagnostics and test assertions.
+- `replaced_by_credential_id`: optional convenience pointer from predecessor to successor for direct
+  diagnostics and test assertions.
 - `replaced_at`: explicit lifecycle timestamp for the cutover event.
 
 If implementation wants the absolute smallest schema, it MAY persist only:
@@ -209,7 +233,8 @@ If implementation wants the absolute smallest schema, it MAY persist only:
 - `replaced_credential_id` on successor rows, and
 - reuse predecessor `status` + `revoked_at` + `replaced_at` to mark the predecessor invalid.
 
-That reduced variant is still compliant with this design because it preserves explicit replacement semantics without a family table.
+That reduced variant is still compliant with this design because it preserves explicit replacement
+semantics without a family table.
 
 ### Replacement operation contract
 
@@ -243,7 +268,8 @@ interface ApiKeyCredentialStateLookup {
 }
 ```
 
-This remains the primary shape. The narrow change is in the failure semantics, not the public authentication entry point.
+This remains the primary shape. The narrow change is in the failure semantics, not the public
+authentication entry point.
 
 Recommended failure expansion:
 
@@ -257,7 +283,8 @@ enum class ApiKeyCredentialFailureReason {
 }
 ```
 
-The runtime MAY map `REPLACED` into the same audit reason code currently used for revoked/inactive credential denial in order to avoid broad governance redesign.
+The runtime MAY map `REPLACED` into the same audit reason code currently used for revoked/inactive
+credential denial in order to avoid broad governance redesign.
 
 ### Persistence seam for replacement
 
@@ -267,7 +294,8 @@ interface ApiKeyCredentialReplacementGateway {
 }
 ```
 
-This keeps the mutation logic out of controllers and allows the design to stay aligned with the repo’s command/handler seams.
+This keeps the mutation logic out of controllers and allows the design to stay aligned with the
+repo’s command/handler seams.
 
 ## Runtime Authentication Rules
 
@@ -282,18 +310,24 @@ After the replacement operation commits:
 
 ### How `R2dbcApiKeyCredentialStateLookup` stays narrow
 
-The lookup logic should remain keyed by the presented `lookup_key`. It does **not** need to resolve credential families or search across related rows.
+The lookup logic should remain keyed by the presented `lookup_key`. It does **not** need to resolve
+credential families or search across related rows.
 
 That means the runtime rule is simple:
 
-- when the old key is presented, the predecessor row is loaded by its old `lookup_key`, and its non-active/replaced state causes denial
-- when the new key is presented, the successor row is loaded by its new `lookup_key`, and normal active verifier validation succeeds
+- when the old key is presented, the predecessor row is loaded by its old `lookup_key`, and its
+  non-active/replaced state causes denial
+- when the new key is presented, the successor row is loaded by its new `lookup_key`, and normal
+  active verifier validation succeeds
 
-This is important: replacement semantics are enforced by **state transition on the predecessor row**, not by adding a runtime family-resolution engine.
+This is important: replacement semantics are enforced by **state transition on the predecessor row
+**, not by adding a runtime family-resolution engine.
 
 ### Audit-ready denial semantics
 
-For the current proving slice, replaced predecessor denial should use the same narrow runtime proof seam already used for revoked/inactive credential denial on `/api/authorization/workspace-access/current`.
+For the current proving slice, replaced predecessor denial should use the same narrow runtime proof
+seam already used for revoked/inactive credential denial on
+`/api/authorization/workspace-access/current`.
 
 Recommended behavior:
 
@@ -302,7 +336,8 @@ Recommended behavior:
 - audit fact: existing `AuthorizationReasonCode.REVOKED_CREDENTIAL` may be reused
 - optional internal exception reason: `REPLACED`
 
-This keeps governance scope narrow while still making the replacement transition explainable in code and tests.
+This keeps governance scope narrow while still making the replacement transition explainable in code
+and tests.
 
 ## Before/After Proof on `/api/authorization/workspace-access/current`
 
@@ -312,7 +347,8 @@ The existing integration tests already prove:
 - authorization-controlled deny
 - revoked/inactive credential deny
 
-This change extends that exact slice with one new lifecycle scenario family in both H2 and PostgreSQL suites.
+This change extends that exact slice with one new lifecycle scenario family in both H2 and
+PostgreSQL suites.
 
 ### Required proving sequence
 
@@ -356,13 +392,13 @@ So it is the right before/after demonstration point without adding new endpoints
 
 ## Testing Strategy
 
-| Layer | What to Test | Approach |
-|-------|-------------|----------|
-| Unit | Replacement handler rules | Verify active predecessor required, successor created once, predecessor invalidated, and linkage persisted. |
-| Unit | Credential-state failure mapping | Verify replaced predecessor yields the expected failure reason and remains unauthenticated. |
-| Integration | H2 proving slice | Use existing `WorkspaceAccessSummaryEndpointIntegrationTest` to prove before/after cutover on the current endpoint. |
-| Integration | PostgreSQL proving slice | Mirror the same lifecycle proof in `WorkspaceAccessSummaryEndpointPostgresIntegrationTest`. |
-| E2E | Not required for this change | Existing backend integration slice is sufficient because no new HTTP management surface is introduced. |
+| Layer       | What to Test                     | Approach                                                                                                            |
+|-------------|----------------------------------|---------------------------------------------------------------------------------------------------------------------|
+| Unit        | Replacement handler rules        | Verify active predecessor required, successor created once, predecessor invalidated, and linkage persisted.         |
+| Unit        | Credential-state failure mapping | Verify replaced predecessor yields the expected failure reason and remains unauthenticated.                         |
+| Integration | H2 proving slice                 | Use existing `WorkspaceAccessSummaryEndpointIntegrationTest` to prove before/after cutover on the current endpoint. |
+| Integration | PostgreSQL proving slice         | Mirror the same lifecycle proof in `WorkspaceAccessSummaryEndpointPostgresIntegrationTest`.                         |
+| E2E         | Not required for this change     | Existing backend integration slice is sufficient because no new HTTP management surface is introduced.              |
 
 ## Migration / Rollout
 
@@ -375,7 +411,8 @@ Rollout plan:
 3. update runtime credential-state semantics to deny replaced predecessors
 4. extend H2 and PostgreSQL proving-slice tests
 
-No public migration choreography, no feature flag, and no staggered cutover window are required for this narrow change.
+No public migration choreography, no feature flag, and no staggered cutover window are required for
+this narrow change.
 
 ## Explicit Deferrals
 
@@ -393,5 +430,8 @@ The following remain out of scope and must not be pulled into this design:
 
 ## Open Questions
 
-- [ ] What test-only caller or application seam should invoke `ReplaceApiKeyCredentialCommand` first, given there is intentionally no new operator HTTP API in scope?
-- [ ] Should predecessor denial use a distinct internal `REPLACED` reason while still mapping to existing `REVOKED_CREDENTIAL` audit proof, or should it reuse `REVOKED` end-to-end for absolute minimum change?
+- [ ] What test-only caller or application seam should invoke `ReplaceApiKeyCredentialCommand`
+  first, given there is intentionally no new operator HTTP API in scope?
+- [ ] Should predecessor denial use a distinct internal `REPLACED` reason while still mapping to
+  existing `REVOKED_CREDENTIAL` audit proof, or should it reuse `REVOKED` end-to-end for absolute
+  minimum change?

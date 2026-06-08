@@ -127,28 +127,28 @@ curl -X POST http://localhost:8080/actuator/loggers/ROOT \
 
 You can also manage loggers programmatically in your application:
 
-```kotlin
+```java
 @RestController
-class LoggerController {
+public class LoggerController {
 
-    private val loggingSystem: LoggingSystem
+    private final LoggingSystem loggingSystem;
 
     public LoggerController(LoggingSystem loggingSystem) {
         this.loggingSystem = loggingSystem;
     }
 
     @PostMapping("/admin/logger/{name}")
-    fun setLogLevel(@PathVariable String name, @RequestBody LogLevelRequest request): void {
+    public void setLogLevel(@PathVariable String name, @RequestBody LogLevelRequest request) {
         LogLevel level = request.getLevel() != null ? 
             LogLevel.valueOf(request.getLevel().toUpperCase()) : null;
         loggingSystem.setLogLevel(name, level);
     }
 
     public static class LogLevelRequest {
-        private var level: String
+        private String level;
         
-        fun getLevel(): String { return level; }
-        fun setLevel(String level): void { this.level = level; }
+        public String getLevel() { return level; }
+        public void setLevel(String level) { this.level = level; }
     }
 }
 ```
@@ -189,12 +189,12 @@ logging:
 
 ### Feature Toggle Logging
 
-```kotlin
+```java
 @Component
-class FeatureLoggingController {
+public class FeatureLoggingController {
 
-    private val loggingSystem: LoggingSystem
-    private val environment: Environment
+    private final LoggingSystem loggingSystem;
+    private final Environment environment;
 
     public FeatureLoggingController(LoggingSystem loggingSystem, Environment environment) {
         this.loggingSystem = loggingSystem;
@@ -202,7 +202,7 @@ class FeatureLoggingController {
     }
 
     @EventListener
-    fun handleFeatureToggleChange(FeatureToggleEvent event): void {
+    public void handleFeatureToggleChange(FeatureToggleEvent event) {
         if ("debug-logging".equals(event.getFeatureName())) {
             if (event.isEnabled()) {
                 enableDebugLogging();
@@ -212,12 +212,12 @@ class FeatureLoggingController {
         }
     }
 
-    private fun enableDebugLogging(): void {
+    private void enableDebugLogging() {
         loggingSystem.setLogLevel("com.example.service", LogLevel.DEBUG);
         loggingSystem.setLogLevel("com.example.repository", LogLevel.DEBUG);
     }
 
-    private fun disableDebugLogging(): void {
+    private void disableDebugLogging() {
         loggingSystem.setLogLevel("com.example.service", null);
         loggingSystem.setLogLevel("com.example.repository", null);
     }
@@ -228,9 +228,9 @@ class FeatureLoggingController {
 
 ### Securing the Loggers Endpoint
 
-```kotlin
+```java
 @Configuration
-class LoggersSecurityConfig {
+public class LoggersSecurityConfig {
 
     @Bean
     @Order(1)
@@ -258,9 +258,9 @@ management:
 
 Or configure programmatically:
 
-```kotlin
+```java
 @Configuration
-class LoggersAccessConfig {
+public class LoggersAccessConfig {
 
     @Bean
     @Order(1)
@@ -312,17 +312,17 @@ The `OpenTelemetryAppender` for both Logback and Log4j requires access to an `Op
 instance to function properly. This instance must be set programmatically during application
 startup:
 
-```kotlin
+```java
 @Component
-class OpenTelemetryAppenderInitializer {
+public class OpenTelemetryAppenderInitializer {
 
     public OpenTelemetryAppenderInitializer(OpenTelemetry openTelemetry) {
         // Configure Logback appender
         if (LoggerFactory.getILoggerFactory() instanceof LoggerContext) {
             LoggerContext context = (LoggerContext) LoggerFactory.getILoggerFactory();
-            context.getStatusManager().add(OnConsoleStatusListener());
+            context.getStatusManager().add(new OnConsoleStatusListener());
             
-            OpenTelemetryAppender appender = OpenTelemetryAppender();
+            OpenTelemetryAppender appender = new OpenTelemetryAppender();
             appender.setContext(context);
             appender.setOpenTelemetry(openTelemetry);
             appender.start();
@@ -346,14 +346,14 @@ class OpenTelemetryAppenderInitializer {
 
 ### Audit Log Level Changes
 
-```kotlin
+```java
 @Component
-class LoggerAuditListener {
+public class LoggerAuditListener {
 
     private static final Logger logger = LoggerFactory.getLogger(LoggerAuditListener.class);
 
     @EventListener
-    fun handleLoggerConfigurationChange(LoggerConfigurationChangeEvent event): void {
+    public void handleLoggerConfigurationChange(LoggerConfigurationChangeEvent event) {
         String username = getCurrentUsername();
         logger.info("Logger level changed: logger={}, oldLevel={}, newLevel={}, user={}", 
                    event.getLoggerName(), 
@@ -362,7 +362,7 @@ class LoggerAuditListener {
                    username);
     }
 
-    private fun getCurrentUsername(): String {
+    private String getCurrentUsername() {
         Authentication auth = SecurityContextHolder.getContext().getAuthentication();
         return auth != null ? auth.getName() : "system";
     }
@@ -371,11 +371,11 @@ class LoggerAuditListener {
 
 ### Temporary Log Level Changes
 
-```kotlin
+```java
 @Component
-class TemporaryLogLevelManager {
+public class TemporaryLogLevelManager {
 
-    private val loggingSystem: LoggingSystem
+    private final LoggingSystem loggingSystem;
     private final ScheduledExecutorService scheduler = Executors.newScheduledThreadPool(1);
     private final Map<String, LogLevel> originalLevels = new ConcurrentHashMap<>();
 
@@ -383,7 +383,7 @@ class TemporaryLogLevelManager {
         this.loggingSystem = loggingSystem;
     }
 
-    fun setTemporaryLogLevel(String loggerName, LogLevel level, Duration duration): void {
+    public void setTemporaryLogLevel(String loggerName, LogLevel level, Duration duration) {
         // Store original level
         LoggerConfiguration config = loggingSystem.getLoggerConfiguration(loggerName);
         originalLevels.put(loggerName, config.getConfiguredLevel());
@@ -395,7 +395,7 @@ class TemporaryLogLevelManager {
         scheduler.schedule(() -> resetLogLevel(loggerName), duration.toMillis(), TimeUnit.MILLISECONDS);
     }
 
-    private fun resetLogLevel(String loggerName): void {
+    private void resetLogLevel(String loggerName) {
         LogLevel originalLevel = originalLevels.remove(loggerName);
         loggingSystem.setLogLevel(loggerName, originalLevel);
     }

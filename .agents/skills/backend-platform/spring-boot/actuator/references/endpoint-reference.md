@@ -87,32 +87,32 @@ management:
 
 ### Web Security
 
-```kotlin
+```java
 @Configuration
-class ActuatorSecurityConfiguration {
+public class ActuatorSecurityConfiguration {
 
     @Bean
     @Order(1)
-    fun actuatorSecurityFilterChain(http: HttpSecurity): SecurityFilterChain {
+    public SecurityFilterChain actuatorSecurityFilterChain(HttpSecurity http) throws Exception {
         return http
-            .securityMatcher(EndpointRequest.toAnyEndpoint())
-            .authorizeHttpRequests { requests -> 
+            .requestMatcher(EndpointRequest.toAnyEndpoint())
+            .authorizeHttpRequests(requests -> 
                 requests
                     .requestMatchers(EndpointRequest.to("health", "info")).permitAll()
                     .anyRequest().hasRole("ACTUATOR")
-            }
+            )
             .httpBasic(withDefaults())
-            .build()
+            .build();
     }
 }
 ```
 
 ### Method-level Security
 
-```kotlin
+```java
 @PreAuthorize("hasRole('ADMIN')")
 @GetMapping("/actuator/shutdown")
-fun shutdown(): Object {
+public Object shutdown() {
     // Shutdown logic
 }
 ```
@@ -121,23 +121,23 @@ fun shutdown(): Object {
 
 ### Creating Custom Endpoints
 
-```kotlin
+```java
 @Component
 @Endpoint(id = "custom")
-class CustomEndpoint {
+public class CustomEndpoint {
 
     @ReadOperation
-    fun customEndpoint(): Map<String, Any> {
-        return mapOf("custom" to "data")
+    public Map<String, Object> customEndpoint() {
+        return Map.of("custom", "data");
     }
 
     @WriteOperation
-    fun writeOperation(@Selector name: String, value: String) {
+    public void writeOperation(@Selector String name, String value) {
         // Write operation
     }
 
     @DeleteOperation
-    fun deleteOperation(@Selector name: String) {
+    public void deleteOperation(@Selector String name) {
         // Delete operation
     }
 }
@@ -145,15 +145,15 @@ class CustomEndpoint {
 
 ### Web-specific Endpoints
 
-```kotlin
+```java
 @Component
 @WebEndpoint(id = "web-custom")
-class WebCustomEndpoint {
+public class WebCustomEndpoint {
 
     @ReadOperation
-    fun webCustomEndpoint(): WebEndpointResponse<Map<String, Any>> {
-        val data = mapOf("web" to "specific")
-        return WebEndpointResponse(data, 200)
+    public WebEndpointResponse<Map<String, Object>> webCustomEndpoint() {
+        Map<String, Object> data = Map.of("web", "specific");
+        return new WebEndpointResponse<>(data, 200);
     }
 }
 ```

@@ -4,11 +4,11 @@
 
 ### Group by Path
 
-```kotlin
+```java
 import org.springdoc.core.models.GroupedOpenApi;
 
 @Bean
-fun publicApi(): GroupedOpenApi {
+public GroupedOpenApi publicApi() {
     return GroupedOpenApi.builder()
         .group("public")
         .pathsToMatch("/api/public/**")
@@ -16,7 +16,7 @@ fun publicApi(): GroupedOpenApi {
 }
 
 @Bean
-fun adminApi(): GroupedOpenApi {
+public GroupedOpenApi adminApi() {
     return GroupedOpenApi.builder()
         .group("admin")
         .pathsToMatch("/api/admin/**")
@@ -24,7 +24,7 @@ fun adminApi(): GroupedOpenApi {
 }
 
 @Bean
-fun userApi(): GroupedOpenApi {
+public GroupedOpenApi userApi() {
     return GroupedOpenApi.builder()
         .group("user")
         .pathsToMatch("/api/user/**")
@@ -34,9 +34,9 @@ fun userApi(): GroupedOpenApi {
 
 ### Group by Package
 
-```kotlin
+```java
 @Bean
-fun controllerGroup(): GroupedOpenApi {
+public GroupedOpenApi controllerGroup() {
     return GroupedOpenApi.builder()
         .group("controllers")
         .packagesToScan("com.example.controller")
@@ -44,7 +44,7 @@ fun controllerGroup(): GroupedOpenApi {
 }
 
 @Bean
-fun controllerGroup2(): GroupedOpenApi {
+public GroupedOpenApi controllerGroup2() {
     return GroupedOpenApi.builder()
         .group("vendor-controllers")
         .packagesToScan("com.vendor.controller")
@@ -54,9 +54,9 @@ fun controllerGroup2(): GroupedOpenApi {
 
 ### Group with Custom Configuration
 
-```kotlin
+```java
 @Bean
-fun customGroup(): GroupedOpenApi {
+public GroupedOpenApi customGroup() {
     return GroupedOpenApi.builder()
         .group("custom")
         .pathsToMatch("/api/custom/**")
@@ -69,11 +69,11 @@ fun customGroup(): GroupedOpenApi {
 
 ### Global Operation Customization
 
-```kotlin
+```java
 import org.springdoc.core.customizers.OperationCustomizer;
 
 @Bean
-fun customizeOperation(): OperationCustomizer {
+public OperationCustomizer customizeOperation() {
     return (operation, handlerMethod) -> {
         // Add custom extension
         operation.addExtension("x-custom-field", "custom-value");
@@ -94,13 +94,13 @@ fun customizeOperation(): OperationCustomizer {
 
 ### Conditional Customization
 
-```kotlin
+```java
 @Bean
-fun authOperationCustomizer(): OperationCustomizer {
+public OperationCustomizer authOperationCustomizer() {
     return (operation, handlerMethod) -> {
         // Add security requirement for methods with @RequireAuth
         if (handlerMethod.hasMethodAnnotation(RequireAuth.class)) {
-            operation.addSecurityItem(SecurityRequirement().addList("bearer-jwt"));
+            operation.addSecurityItem(new SecurityRequirement().addList("bearer-jwt"));
         }
         return operation;
     };
@@ -111,32 +111,32 @@ fun authOperationCustomizer(): OperationCustomizer {
 
 ### Hide Single Endpoint
 
-```kotlin
+```java
 @Operation(hidden = true)
 @GetMapping("/internal")
-fun internalEndpoint(): String {
+public String internalEndpoint() {
     return "Hidden from docs";
 }
 ```
 
 ### Hide Entire Controller
 
-```kotlin
+```java
 import io.swagger.v3.oas.annotations.Hidden;
 
 @Hidden
 @RestController
 @RequestMapping("/internal")
-class InternalController {
+public class InternalController {
     // All endpoints hidden from documentation
 }
 ```
 
 ### Conditional Hiding
 
-```kotlin
+```java
 @Bean
-fun conditionalHiding(): OperationCustomizer {
+public OperationCustomizer conditionalHiding() {
     return (operation, handlerMethod) -> {
         // Hide endpoints based on profile
         if (isProductionProfile()) {
@@ -153,7 +153,7 @@ fun conditionalHiding(): OperationCustomizer {
 
 ### Complete OpenAPI Configuration
 
-```kotlin
+```java
 import io.swagger.v3.oas.models.OpenAPI;
 import io.swagger.v3.oas.models.info.Contact;
 import io.swagger.v3.oas.models.info.Info;
@@ -161,31 +161,31 @@ import io.swagger.v3.oas.models.info.License;
 import io.swagger.v3.oas.models.servers.Server;
 
 @Bean
-fun customOpenAPI(): OpenAPI {
-    return OpenAPI()
-        .info(Info()
+public OpenAPI customOpenAPI() {
+    return new OpenAPI()
+        .info(new Info()
             .title("Book Management API")
             .description("Comprehensive API for managing books, authors, and publishers")
             .version("v1.0.0")
-            .contact(Contact()
+            .contact(new Contact()
                 .name("API Support")
                 .email("support@example.com")
                 .url("https://example.com/support")
             )
-            .license(License()
+            .license(new License()
                 .name("MIT License")
                 .url("https://opensource.org/licenses/MIT")
             )
         )
-        .addServersItem(Server()
+        .addServersItem(new Server()
             .url("https://api.example.com")
             .description("Production server")
         )
-        .addServersItem(Server()
+        .addServersItem(new Server()
             .url("https://staging-api.example.com")
             .description("Staging server")
         )
-        .addServersItem(Server()
+        .addServersItem(new Server()
             .url("http://localhost:8080")
             .description("Development server")
         );
@@ -194,35 +194,35 @@ fun customOpenAPI(): OpenAPI {
 
 ### Environment-Specific Configuration
 
-```kotlin
+```java
 @Value("${api.version:v1.0.0}")
-private var apiVersion: String
+private String apiVersion;
 
 @Value("${api.title:My API}")
-private var apiTitle: String
+private String apiTitle;
 
 @Profile("production")
 @Bean
-fun prodOpenAPI(): OpenAPI {
-    return OpenAPI()
-        .info(Info()
+public OpenAPI prodOpenAPI() {
+    return new OpenAPI()
+        .info(new Info()
             .title(apiTitle)
             .version(apiVersion)
             .description("Production API")
         )
-        .addServersItem(Server().url("https://api.example.com"));
+        .addServersItem(new Server().url("https://api.example.com"));
 }
 
 @Profile("development")
 @Bean
-fun devOpenAPI(): OpenAPI {
-    return OpenAPI()
-        .info(Info()
+public OpenAPI devOpenAPI() {
+    return new OpenAPI()
+        .info(new Info()
             .title(apiTitle + " (DEV)")
             .version(apiVersion)
             .description("Development API")
         )
-        .addServersItem(Server().url("http://localhost:8080"));
+        .addServersItem(new Server().url("http://localhost:8080"));
 }
 ```
 
@@ -230,23 +230,23 @@ fun devOpenAPI(): OpenAPI {
 
 ### Multiple Servers with Variables
 
-```kotlin
+```java
 @Bean
-fun serversOpenAPI(): OpenAPI {
-    Server prodServer = Server()
+public OpenAPI serversOpenAPI() {
+    Server prodServer = new Server()
         .url("https://{environment}.example.com:{port}/api")
         .description("Production server")
-        .addVariable("environment", ServerVariable()
+        .addVariable("environment", new ServerVariable()
             .defaultValue("api")
-            .enumeration(listOf("api", "api-staging"))
+            .enumeration(Arrays.asList("api", "api-staging"))
             .description("Server environment")
         )
-        .addVariable("port", ServerVariable()
+        .addVariable("port", new ServerVariable()
             .defaultValue("443")
             .description("Server port")
         );
 
-    return OpenAPI().addServersItem(prodServer);
+    return new OpenAPI().addServersItem(prodServer);
 }
 ```
 
@@ -254,22 +254,22 @@ fun serversOpenAPI(): OpenAPI {
 
 ### Dynamic Tag Configuration
 
-```kotlin
+```java
 @Bean
-fun customTagsOpenAPI(): OpenAPI {
-    return OpenAPI()
+public OpenAPI customTagsOpenAPI() {
+    return new OpenAPI()
         .tags(Arrays.asList(
-            Tag()
+            new Tag()
                 .name("public")
                 .description("Publicly accessible endpoints")
-                .externalDocs(ExternalDocumentation()
+                .externalDocs(new ExternalDocumentation()
                     .description("Public API documentation")
                     .url("https://docs.example.com/public")
                 ),
-            Tag()
+            new Tag()
                 .name("admin")
                 .description("Administrative endpoints")
-                .externalDocs(ExternalDocumentation()
+                .externalDocs(new ExternalDocumentation()
                     .description("Admin guide")
                     .url("https://docs.example.com/admin")
                 )
@@ -281,9 +281,9 @@ fun customTagsOpenAPI(): OpenAPI {
 
 ### Adding Custom Extensions
 
-```kotlin
+```java
 @Bean
-fun addCustomExtensions(): OperationCustomizer {
+public OperationCustomizer addCustomExtensions() {
     return (operation, handlerMethod) -> {
         // Add rate limit info
         operation.addExtension("x-rate-limit", 100);
@@ -306,7 +306,7 @@ fun addCustomExtensions(): OperationCustomizer {
 
 ### Documenting Response Headers
 
-```kotlin
+```java
 @Operation(
     summary = "Get book with headers",
     responses = {
@@ -321,7 +321,7 @@ fun addCustomExtensions(): OperationCustomizer {
     }
 )
 @GetMapping("/{id}")
-fun getBook(@PathVariable Long id): Book {
+public Book getBook(@PathVariable Long id) {
     return repository.findById(id).orElseThrow();
 }
 ```
@@ -330,7 +330,7 @@ fun getBook(@PathVariable Long id): Book {
 
 ### Reactive Router Function Documentation
 
-```kotlin
+```java
 import org.springdoc.core.models.GroupedOpenApi;
 import org.springframework.web.reactive.function.server.RouterFunction;
 import org.springframework.web.reactive.function.server.ServerResponse;

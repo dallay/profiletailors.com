@@ -33,3 +33,19 @@ databaseChangeLog:
       file: db/changelog/authorization/007-create-workspace-target-scopes.yaml
   - include:
       file: db/changelog/governance/001-create-audit-events.yaml
+  - include:
+      file: db/changelog/publishing/001-create-social-connections.yaml
+  - include:
+      file: db/changelog/publishing/002-create-social-accounts.yaml
+  - include:
+      file: db/changelog/publishing/003-create-publication-assets.yaml
+  - include:
+      file: db/changelog/publishing/004-create-publications.yaml
+  - include:
+      file: db/changelog/publishing/005-create-publication-asset-links.yaml
+  - include:
+      file: db/changelog/publishing/006-create-publication-jobs.yaml
+  - include:
+      file: db/changelog/publishing/007-create-delivery-attempts.yaml
+  - include:
+      file: db/changelog/publishing/008-create-secure-credentials.yaml

@@ -96,16 +96,23 @@ preserve direct grants as a first-class platform concept.
 The system MUST support scopes as permission-reducing constraints.
 
 A scope MUST narrow what an already otherwise-allowable principal may do.
-A scope MUST NEVER create or expand permissions not already available through roles, direct grants, or future policy evaluation.
-For `backend-scopes-execution`, scope evaluation for the new resource-preview proving capability MUST run only after an otherwise valid allow path exists for the explicit base permission `workspace:resource:read`.
-For `backend-scopes-execution`, the scope result MUST only reduce which `targetResourceId` values remain reachable for that capability.
-Phase one MAY defer generalized scope authoring and management, but authorization evaluation semantics MUST reserve this invariant.
-(Previously: The specification preserved the invariant that scopes reduce access and never manufacture access, but no executable target-aware proving capability was required.)
+A scope MUST NEVER create or expand permissions not already available through roles, direct grants,
+or future policy evaluation.
+For `backend-scopes-execution`, scope evaluation for the new resource-preview proving capability
+MUST run only after an otherwise valid allow path exists for the explicit base permission
+`workspace:resource:read`.
+For `backend-scopes-execution`, the scope result MUST only reduce which `targetResourceId` values
+remain reachable for that capability.
+Phase one MAY defer generalized scope authoring and management, but authorization evaluation
+semantics MUST reserve this invariant.
+(Previously: The specification preserved the invariant that scopes reduce access and never
+manufacture access, but no executable target-aware proving capability was required.)
 
 #### Scenario: Base permission plus matching scope allows the target-aware capability
 
 - GIVEN a principal has an otherwise valid allow path for `workspace:resource:read`
-- AND the active workspace has a persisted scope whose allowed target set includes the requested `targetResourceId`
+- AND the active workspace has a persisted scope whose allowed target set includes the requested
+  `targetResourceId`
 - WHEN the principal requests the new resource-preview proving capability
 - THEN the platform MUST allow access
 - AND the scope MUST operate only as a reduction over the already-valid base permission
@@ -113,7 +120,8 @@ Phase one MAY defer generalized scope authoring and management, but authorizatio
 #### Scenario: Base permission plus non-matching target is denied by scope reduction
 
 - GIVEN a principal has an otherwise valid allow path for `workspace:resource:read`
-- AND the active workspace has a persisted scope whose allowed target set does not include the requested `targetResourceId`
+- AND the active workspace has a persisted scope whose allowed target set does not include the
+  requested `targetResourceId`
 - WHEN the principal requests the new resource-preview proving capability
 - THEN the platform MUST deny access
 - AND the denial MUST be caused by scope reduction rather than by missing base permission
@@ -170,20 +178,25 @@ deny-by-default or explicit-over-implicit principles.
 
 The system MUST define deterministic effective permission resolution.
 
-At minimum, effective resolution MUST consider principal identity, resource context, active workspace when applicable, membership, assigned roles, explicit role permissions, direct grants, denials, scopes, and applicable deferred-policy seams.
+At minimum, effective resolution MUST consider principal identity, resource context, active
+workspace when applicable, membership, assigned roles, explicit role permissions, direct grants,
+denials, scopes, and applicable deferred-policy seams.
 The platform MUST evaluate explicit denial before final allow.
 The absence of an explicit allow path MUST result in denial.
 Equivalent requests against equivalent authoritative state MUST resolve to the same result.
-For `backend-scopes-execution`, the new target-aware proving capability MUST resolve the explicit base permission allow path before applying scope reduction to the requested `targetResourceId`.
+For `backend-scopes-execution`, the new target-aware proving capability MUST resolve the explicit
+base permission allow path before applying scope reduction to the requested `targetResourceId`.
 Phase one MUST implement the subset of this flow required by the proving slice.
-(Previously: The effective-resolution flow had to consider scopes semantically, but no executable requirement forced target-aware scope reduction after base allow-path resolution.)
+(Previously: The effective-resolution flow had to consider scopes semantically, but no executable
+requirement forced target-aware scope reduction after base allow-path resolution.)
 
 #### Scenario: Effective permission resolves before scope reduction on the target-aware capability
 
 - GIVEN an authenticated principal requests the new resource-preview proving capability
 - AND the request identifies the active workspace in the supported phase-one form
 - WHEN authorization is evaluated
-- THEN the platform MUST resolve whether an explicit allow path exists for `workspace:resource:read` before applying scope reduction
+- THEN the platform MUST resolve whether an explicit allow path exists for `workspace:resource:read`
+  before applying scope reduction
 - AND a missing allow path MUST result in denial even if persisted scope data exists
 
 #### Scenario: Effective permission is granted through membership and roles
@@ -208,23 +221,29 @@ Phase one MUST implement the subset of this flow required by the proving slice.
 The system MUST model feature entitlements separately from permissions.
 
 Permissions MUST answer whether a principal may perform an action.
-Feature entitlements MUST answer whether the active workspace has the feature available for the protected capability being evaluated.
-For this change, authorization evaluation for `/api/authorization/workspace-access/current` MUST require both workspace entitlement success and principal permission success.
+Feature entitlements MUST answer whether the active workspace has the feature available for the
+protected capability being evaluated.
+For this change, authorization evaluation for `/api/authorization/workspace-access/current` MUST
+require both workspace entitlement success and principal permission success.
 The system MUST NOT treat feature entitlement as a substitute for principal permission.
-The system MUST NOT treat principal permission as a substitute for feature entitlement when the capability is feature-gated.
-For this change, the executable entitlement proof MUST remain limited to one persisted workspace-scoped feature key on the existing proving slice.
+The system MUST NOT treat principal permission as a substitute for feature entitlement when the
+capability is feature-gated.
+For this change, the executable entitlement proof MUST remain limited to one persisted
+workspace-scoped feature key on the existing proving slice.
 
 #### Scenario: Entitled and authorized request is allowed
 
 - GIVEN the active workspace is entitled to the proving-slice feature
-- AND the principal has the required explicit permission for `/api/authorization/workspace-access/current`
+- AND the principal has the required explicit permission for
+  `/api/authorization/workspace-access/current`
 - WHEN the principal requests the capability
 - THEN the platform MUST allow access
 - AND the entitlement check MUST remain distinct from the permission check
 
 #### Scenario: Authorized but not entitled request is denied
 
-- GIVEN the principal has the required explicit permission for `/api/authorization/workspace-access/current`
+- GIVEN the principal has the required explicit permission for
+  `/api/authorization/workspace-access/current`
 - AND the active workspace is not entitled to the proving-slice feature
 - WHEN the principal requests the capability
 - THEN the platform MUST deny access
@@ -233,22 +252,29 @@ For this change, the executable entitlement proof MUST remain limited to one per
 #### Scenario: Entitled but unauthorized request is denied
 
 - GIVEN the active workspace is entitled to the proving-slice feature
-- AND the principal lacks the required explicit permission for `/api/authorization/workspace-access/current`
+- AND the principal lacks the required explicit permission for
+  `/api/authorization/workspace-access/current`
 - WHEN the principal requests the capability
 - THEN the platform MUST deny access
 - AND entitlement success alone MUST NOT authorize the action
 
 ### Requirement: Target-Aware Resource Preview Proving Capability
 
-The system MUST add exactly one new protected target-aware proving capability that evaluates authorization against an explicit `targetResourceId`.
+The system MUST add exactly one new protected target-aware proving capability that evaluates
+authorization against an explicit `targetResourceId`.
 
-For this change, the capability MUST follow a resource-preview-by-resourceId pattern in WORKSPACE context.
+For this change, the capability MUST follow a resource-preview-by-resourceId pattern in WORKSPACE
+context.
 The capability MUST declare the explicit base permission `workspace:resource:read`.
-The capability MUST evaluate the requested `targetResourceId` as authorization-relevant input for this capability.
+The capability MUST evaluate the requested `targetResourceId` as authorization-relevant input for
+this capability.
 
-This capability is implemented as a NEW protected endpoint: `GET /api/authorization/resources/{resourceId}/preview`
+This capability is implemented as a NEW protected endpoint:
+`GET /api/authorization/resources/{resourceId}/preview`
+
 - Request: includes `targetResourceId` as path parameter (resourceId)
-- The existing `/api/authorization/workspace-access/current` endpoint remains unchanged and is NOT used for this target-aware capability
+- The existing `/api/authorization/workspace-access/current` endpoint remains unchanged and is NOT
+  used for this target-aware capability
 
 #### Scenario: Target-aware capability uses explicit base permission and target resource id
 
@@ -262,76 +288,104 @@ This capability is implemented as a NEW protected endpoint: `GET /api/authorizat
 
 ### Requirement: Persisted Workspace-Scoped Target Scope for Resource Preview
 
-The system MUST support one persisted workspace-scoped scope model that can reduce allowed target resource IDs for the new target-aware proving capability.
+The system MUST support one persisted workspace-scoped scope model that can reduce allowed target
+resource IDs for the new target-aware proving capability.
 
-For this change, the persisted scope model MUST bind the active workspace, principal, base permission `workspace:resource:read`, and an allowed target resource-ID set or an equivalently narrow representation for this one capability.
-The persisted scope model MUST be sufficient to decide whether the requested `targetResourceId` is inside the allowed reduced set for that capability.
-This change MUST NOT require a generic scope engine, wildcard matching, inheritance, hierarchical target matching, multi-context scopes, admin CRUD, quotas, billing semantics, entitlement combinations, or broad policy redesign.
+For this change, the persisted scope model MUST bind the active workspace, principal, base
+permission `workspace:resource:read`, and an allowed target resource-ID set or an equivalently
+narrow representation for this one capability.
+The persisted scope model MUST be sufficient to decide whether the requested `targetResourceId` is
+inside the allowed reduced set for that capability.
+This change MUST NOT require a generic scope engine, wildcard matching, inheritance, hierarchical
+target matching, multi-context scopes, admin CRUD, quotas, billing semantics, entitlement
+combinations, or broad policy redesign.
 
 #### Scenario: Persisted scope narrows allowed target resource ids for the proving capability
 
 - GIVEN a principal already has an otherwise valid allow path for `workspace:resource:read`
 - AND the active workspace has persisted scope state for that principal and capability
 - WHEN the principal requests the new resource-preview proving capability for a `targetResourceId`
-- THEN the platform MUST evaluate the persisted scope as a reduction over allowed target resource IDs
-- AND the result MUST be sufficient to allow or deny that target based on membership in the reduced allowed set
+- THEN the platform MUST evaluate the persisted scope as a reduction over allowed target resource
+  IDs
+- AND the result MUST be sufficient to allow or deny that target based on membership in the reduced
+  allowed set
 
 #### Scenario: Broader scope features remain deferred
 
-- GIVEN a requested addition introduces wildcard scopes, inheritance, multi-context scope breadth, admin CRUD, or broad policy redesign
+- GIVEN a requested addition introduces wildcard scopes, inheritance, multi-context scope breadth,
+  admin CRUD, or broad policy redesign
 - WHEN the scope for `backend-scopes-execution` is evaluated
 - THEN that addition MUST be treated as out of scope for this change
 - AND the current change MUST proceed without requiring those broader scope features
 
 ### Requirement: Scope-Execution Change Boundary for the New Proving Capability
 
-The system MUST treat `backend-scopes-execution` as a narrow executable scope-reduction change for one new target-aware proving capability only.
+The system MUST treat `backend-scopes-execution` as a narrow executable scope-reduction change for
+one new target-aware proving capability only.
 
-This change MUST include only the behaviors required to execute persisted workspace-scoped target reduction for the new resource-preview-by-resourceId capability.
-This change MUST NOT require generic scope engines, wildcards, inheritance, multi-context scopes, admin CRUD, quotas, billing or entitlement combinations, or broad RBAC/ABAC and policy-platform redesign.
-This change MUST NOT broaden scope execution to `/api/authorization/workspace-access/current` or to unrelated protected endpoints.
+This change MUST include only the behaviors required to execute persisted workspace-scoped target
+reduction for the new resource-preview-by-resourceId capability.
+This change MUST NOT require generic scope engines, wildcards, inheritance, multi-context scopes,
+admin CRUD, quotas, billing or entitlement combinations, or broad RBAC/ABAC and policy-platform
+redesign.
+This change MUST NOT broaden scope execution to `/api/authorization/workspace-access/current` or to
+unrelated protected endpoints.
 
 #### Scenario: Existing workspace-access-summary slice remains outside this scope change
 
-- GIVEN a requested addition applies executable scope reduction to `/api/authorization/workspace-access/current`
+- GIVEN a requested addition applies executable scope reduction to
+  `/api/authorization/workspace-access/current`
 - WHEN the scope for `backend-scopes-execution` is evaluated
 - THEN that addition MUST be treated as out of scope for this change
 - AND executable scope proof MUST remain tied to the new target-aware proving capability
 
 #### Scenario: Generic scope-platform breadth is rejected
 
-- GIVEN a proposed addition does not directly support the one new resource-preview proving capability
+- GIVEN a proposed addition does not directly support the one new resource-preview proving
+  capability
 - WHEN the scope for `backend-scopes-execution` is reviewed
 - THEN the addition MUST be treated as out of scope for this change
 - AND the specification MUST keep the scope proof limited to the approved target-aware slice
 
 ### Requirement: PostgreSQL Verification for the Target-Aware Scope Proving Capability
 
-The system MUST verify the new target-aware resource-preview proving capability against real PostgreSQL as part of this scope-execution change.
+The system MUST verify the new target-aware resource-preview proving capability against real
+PostgreSQL as part of this scope-execution change.
 
-That verification MUST execute the same protected slice against PostgreSQL-backed authoritative membership, role, grant, permission, and scope state rather than relying only on H2 PostgreSQL compatibility mode.
-The verification MUST cover at least one authorized request path where base permission exists and the requested `targetResourceId` matches the persisted scope.
-The verification MUST cover at least one denied request path where base permission exists and the requested `targetResourceId` does not match the persisted scope.
-The verification MUST cover at least one denied request path where the principal lacks the base permission even if scope state exists.
-This requirement MUST NOT be interpreted as a mandate to add a generic scope engine, wildcard support, inheritance, multi-context scopes, admin CRUD, quotas, billing or entitlement combinations, or broad policy redesign.
+That verification MUST execute the same protected slice against PostgreSQL-backed authoritative
+membership, role, grant, permission, and scope state rather than relying only on H2 PostgreSQL
+compatibility mode.
+The verification MUST cover at least one authorized request path where base permission exists and
+the requested `targetResourceId` matches the persisted scope.
+The verification MUST cover at least one denied request path where base permission exists and the
+requested `targetResourceId` does not match the persisted scope.
+The verification MUST cover at least one denied request path where the principal lacks the base
+permission even if scope state exists.
+This requirement MUST NOT be interpreted as a mandate to add a generic scope engine, wildcard
+support, inheritance, multi-context scopes, admin CRUD, quotas, billing or entitlement combinations,
+or broad policy redesign.
 
 #### Scenario: PostgreSQL verifies base permission plus matching scope allow
 
 - GIVEN the target-aware proving-slice schema is applied on a real PostgreSQL runtime
 - AND an authenticated principal has an otherwise valid allow path for `workspace:resource:read`
-- AND the active workspace has persisted scope state whose allowed target set includes the requested `targetResourceId`
+- AND the active workspace has persisted scope state whose allowed target set includes the requested
+  `targetResourceId`
 - WHEN the principal requests the new resource-preview proving capability
 - THEN the platform MUST allow access
-- AND the result MUST prove scope reduction executes correctly against PostgreSQL-backed authoritative state
+- AND the result MUST prove scope reduction executes correctly against PostgreSQL-backed
+  authoritative state
 
 #### Scenario: PostgreSQL verifies base permission plus non-matching target deny
 
 - GIVEN the target-aware proving-slice schema is applied on a real PostgreSQL runtime
 - AND an authenticated principal has an otherwise valid allow path for `workspace:resource:read`
-- AND the active workspace has persisted scope state whose allowed target set does not include the requested `targetResourceId`
+- AND the active workspace has persisted scope state whose allowed target set does not include the
+  requested `targetResourceId`
 - WHEN the principal requests the new resource-preview proving capability
 - THEN the platform MUST deny access
-- AND the denial MUST prove scope reduction blocks the disallowed target against PostgreSQL-backed authoritative state
+- AND the denial MUST prove scope reduction blocks the disallowed target against PostgreSQL-backed
+  authoritative state
 
 #### Scenario: PostgreSQL verifies missing base permission plus any scope deny
 
@@ -340,36 +394,52 @@ This requirement MUST NOT be interpreted as a mandate to add a generic scope eng
 - AND persisted scope state exists for that principal in the active workspace
 - WHEN the principal requests the new resource-preview proving capability
 - THEN the platform MUST deny access
-- AND the denial MUST prove scope state does not manufacture access against PostgreSQL-backed authoritative state
+- AND the denial MUST prove scope state does not manufacture access against PostgreSQL-backed
+  authoritative state
 
 ### Requirement: Minimal Proving Authorization Slice
 
-The system MUST keep breadth expansion of the current authorization proof limited to the existing protected proving slice at `/api/authorization/workspace-access/current`.
+The system MUST keep breadth expansion of the current authorization proof limited to the existing
+protected proving slice at `/api/authorization/workspace-access/current`.
 
-For this breadth change, the proving capability MUST continue to allow an authenticated USER principal with an active workspace membership and the required explicit workspace-scoped permission to retrieve the current workspace access summary for the active workspace.
-For this breadth change, the proving slice MUST also execute persisted workspace-scoped direct grants for the same required permission, including direct `ALLOW`, direct `DENY` override, and expired-grant exclusion.
-For this breadth change, the proving slice MUST also execute one persisted workspace-scoped feature entitlement gate for that capability.
-For this breadth change, access to `/api/authorization/workspace-access/current` MUST require both an effective allow path for the required permission and an enabled entitlement for the active workspace.
-This breadth scope MUST remain sufficient to validate principal materialization, active workspace resolution, membership lookup, role-based permission composition, persisted direct-grant evaluation, workspace-scoped entitlement evaluation, deny-by-default behavior, protected query dispatch, and the previously required runtime audit-ready proof and PostgreSQL-backed verification.
-This breadth scope MUST NOT introduce new protected endpoints, package or billing modeling, entitlement CRUD or admin workflows, multi-context entitlements, or quota and usage semantics.
+For this breadth change, the proving capability MUST continue to allow an authenticated USER
+principal with an active workspace membership and the required explicit workspace-scoped permission
+to retrieve the current workspace access summary for the active workspace.
+For this breadth change, the proving slice MUST also execute persisted workspace-scoped direct
+grants for the same required permission, including direct `ALLOW`, direct `DENY` override, and
+expired-grant exclusion.
+For this breadth change, the proving slice MUST also execute one persisted workspace-scoped feature
+entitlement gate for that capability.
+For this breadth change, access to `/api/authorization/workspace-access/current` MUST require both
+an effective allow path for the required permission and an enabled entitlement for the active
+workspace.
+This breadth scope MUST remain sufficient to validate principal materialization, active workspace
+resolution, membership lookup, role-based permission composition, persisted direct-grant evaluation,
+workspace-scoped entitlement evaluation, deny-by-default behavior, protected query dispatch, and the
+previously required runtime audit-ready proof and PostgreSQL-backed verification.
+This breadth scope MUST NOT introduce new protected endpoints, package or billing modeling,
+entitlement CRUD or admin workflows, multi-context entitlements, or quota and usage semantics.
 
 #### Scenario: Authorized and entitled principal retrieves workspace access summary within breadth scope
 
 - GIVEN an authenticated USER principal requests `/api/authorization/workspace-access/current`
 - AND the request identifies the active workspace in the supported phase-one form
 - AND the principal has an active membership in that workspace
-- AND the principal has an effective allow path for the required explicit workspace-scoped permission
+- AND the principal has an effective allow path for the required explicit workspace-scoped
+  permission
 - AND the active workspace is entitled to the proving-slice feature
 - WHEN the protected capability is executed during this breadth scope
 - THEN the platform MUST return the workspace access summary for that principal in that workspace
-- AND the behavior MUST remain within the existing proving slice rather than expanding to additional protected capabilities
+- AND the behavior MUST remain within the existing proving slice rather than expanding to additional
+  protected capabilities
 
 #### Scenario: Authorized principal without entitlement is denied within breadth scope
 
 - GIVEN an authenticated USER principal requests `/api/authorization/workspace-access/current`
 - AND the request identifies the active workspace in the supported phase-one form
 - AND the principal has an active membership in that workspace
-- AND the principal has an effective allow path for the required explicit workspace-scoped permission
+- AND the principal has an effective allow path for the required explicit workspace-scoped
+  permission
 - AND the active workspace is not entitled to the proving-slice feature
 - WHEN the protected capability is executed during this breadth scope
 - THEN the platform MUST deny access
@@ -377,44 +447,59 @@ This breadth scope MUST NOT introduce new protected endpoints, package or billin
 
 ### Requirement: PostgreSQL Verification for Workspace Access Current Slice
 
-The system MUST verify the existing `/api/authorization/workspace-access/current` slice against real PostgreSQL as part of this entitlement-gating breadth change.
+The system MUST verify the existing `/api/authorization/workspace-access/current` slice against real
+PostgreSQL as part of this entitlement-gating breadth change.
 
-That verification MUST execute the same protected slice against PostgreSQL-backed authoritative grant, membership, role, permission, and workspace entitlement state rather than relying only on H2 PostgreSQL compatibility mode.
-The verification MUST cover at least one authorized request path where the active workspace is entitled and the principal is authorized.
-The verification MUST cover at least one denied request path where the active workspace is not entitled but the principal is authorized.
-The verification MUST cover at least one denied request path where the active workspace is entitled but the principal is unauthorized.
-The verification MUST continue to prove compatibility of the current Liquibase execution, R2DBC access, and SQL assumptions used by that slice.
-This requirement MUST NOT be interpreted as a mandate to broaden verification into package modeling, billing integration, entitlement admin workflows, multi-context breadth, quotas, or unrelated protected endpoints.
+That verification MUST execute the same protected slice against PostgreSQL-backed authoritative
+grant, membership, role, permission, and workspace entitlement state rather than relying only on H2
+PostgreSQL compatibility mode.
+The verification MUST cover at least one authorized request path where the active workspace is
+entitled and the principal is authorized.
+The verification MUST cover at least one denied request path where the active workspace is not
+entitled but the principal is authorized.
+The verification MUST cover at least one denied request path where the active workspace is entitled
+but the principal is unauthorized.
+The verification MUST continue to prove compatibility of the current Liquibase execution, R2DBC
+access, and SQL assumptions used by that slice.
+This requirement MUST NOT be interpreted as a mandate to broaden verification into package modeling,
+billing integration, entitlement admin workflows, multi-context breadth, quotas, or unrelated
+protected endpoints.
 
 #### Scenario: PostgreSQL verifies entitled and authorized allow on the existing slice
 
 - GIVEN the proving-slice schema is applied on a real PostgreSQL runtime
 - AND an authenticated USER principal has an active workspace membership
-- AND the principal has an effective allow path for the required explicit workspace-scoped permission
+- AND the principal has an effective allow path for the required explicit workspace-scoped
+  permission
 - AND the active workspace is entitled to the proving-slice feature
 - WHEN the principal requests `/api/authorization/workspace-access/current`
 - THEN the platform MUST return the workspace access summary successfully
-- AND the result MUST prove combined entitlement and permission evaluation works against PostgreSQL-backed authoritative state
+- AND the result MUST prove combined entitlement and permission evaluation works against
+  PostgreSQL-backed authoritative state
 
 #### Scenario: PostgreSQL verifies authorized but non-entitled deny on the existing slice
 
 - GIVEN the proving-slice schema is applied on a real PostgreSQL runtime
 - AND an authenticated USER principal has an active workspace membership
-- AND the principal has an effective allow path for the required explicit workspace-scoped permission
+- AND the principal has an effective allow path for the required explicit workspace-scoped
+  permission
 - AND the active workspace is not entitled to the proving-slice feature
 - WHEN the principal requests `/api/authorization/workspace-access/current`
 - THEN the platform MUST deny access
-- AND the denial MUST prove missing workspace entitlement blocks the capability against PostgreSQL-backed authoritative state
+- AND the denial MUST prove missing workspace entitlement blocks the capability against
+  PostgreSQL-backed authoritative state
 
 #### Scenario: PostgreSQL verifies entitled but unauthorized deny on the existing slice
 
 - GIVEN the proving-slice schema is applied on a real PostgreSQL runtime
 - AND an authenticated USER principal has an active workspace membership
-- AND the principal lacks an effective allow path for the required explicit workspace-scoped permission
+- AND the principal lacks an effective allow path for the required explicit workspace-scoped
+  permission
 - AND the active workspace is entitled to the proving-slice feature
 - WHEN the principal requests `/api/authorization/workspace-access/current`
 - THEN the platform MUST deny access
-- AND the denial MUST prove missing principal permission blocks the capability against PostgreSQL-backed authoritative state
+- AND the denial MUST prove missing principal permission blocks the capability against
+  PostgreSQL-backed authoritative state
 
 ### Requirement: Hardening Change Boundary for Workspace Access Current Slice
 
@@ -528,20 +613,26 @@ A separate deny-rule subsystem beyond direct grants with `DENY` effect MUST rema
 
 ### Requirement: Persisted Workspace-Scoped Feature Entitlement for the Existing Proving Slice
 
-The system MUST support one persisted workspace-scoped feature entitlement key as authoritative feature-availability state for the existing `/api/authorization/workspace-access/current` proving slice.
+The system MUST support one persisted workspace-scoped feature entitlement key as authoritative
+feature-availability state for the existing `/api/authorization/workspace-access/current` proving
+slice.
 
-For this change, the entitlement model MUST be sufficient to answer whether a specific workspace is enabled for that one proving-slice feature key.
+For this change, the entitlement model MUST be sufficient to answer whether a specific workspace is
+enabled for that one proving-slice feature key.
 The persisted entitlement state MUST be workspace-scoped.
 The persisted entitlement state MUST distinguish enabled from not enabled for that key.
-This change MUST NOT require package, billing, catalog, bundle, subscription, quota, usage, inheritance, fallback, or multi-context semantics.
+This change MUST NOT require package, billing, catalog, bundle, subscription, quota, usage,
+inheritance, fallback, or multi-context semantics.
 This change MUST NOT require entitlement CRUD, assignment, administration, or operator APIs.
 
 #### Scenario: Entitlement state exists for one workspace-scoped proving key
 
 - GIVEN the existing proving slice requires feature entitlement evaluation
 - WHEN the platform resolves entitlement state for `/api/authorization/workspace-access/current`
-- THEN the platform MUST evaluate one persisted workspace-scoped feature key for the active workspace
-- AND the result MUST be sufficient to determine whether that proving-slice feature is enabled for that workspace
+- THEN the platform MUST evaluate one persisted workspace-scoped feature key for the active
+  workspace
+- AND the result MUST be sufficient to determine whether that proving-slice feature is enabled for
+  that workspace
 
 #### Scenario: Missing broader commercial semantics remains deferred
 
@@ -552,11 +643,16 @@ This change MUST NOT require entitlement CRUD, assignment, administration, or op
 
 ### Requirement: Feature-Entitlement Change Boundary for the Existing Proving Slice
 
-The system MUST treat `backend-feature-entitlements` as a narrow executable entitlement-gating change for the existing proving slice only.
+The system MUST treat `backend-feature-entitlements` as a narrow executable entitlement-gating
+change for the existing proving slice only.
 
-This change MUST include only the behaviors required to persist one workspace-scoped proving feature key and execute entitlement gating on `/api/authorization/workspace-access/current`.
-This change MUST NOT require new protected endpoints, package or billing modeling, entitlement CRUD or admin APIs, multi-context entitlement breadth, quota or usage semantics, or generalized commercial feature management.
-The current change MUST explicitly defer broader entitlement breadth beyond the existing proving slice.
+This change MUST include only the behaviors required to persist one workspace-scoped proving feature
+key and execute entitlement gating on `/api/authorization/workspace-access/current`.
+This change MUST NOT require new protected endpoints, package or billing modeling, entitlement CRUD
+or admin APIs, multi-context entitlement breadth, quota or usage semantics, or generalized
+commercial feature management.
+The current change MUST explicitly defer broader entitlement breadth beyond the existing proving
+slice.
 
 #### Scenario: New endpoint expansion is rejected
 

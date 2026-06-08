@@ -48,6 +48,14 @@ abstract class DatabaseUnitTestBase {
     }
 
     protected open suspend fun cleanupTables() {
+        databaseClient.sql("DELETE FROM delivery_attempts").fetch().rowsUpdated().awaitSingle()
+        databaseClient.sql("DELETE FROM publication_jobs").fetch().rowsUpdated().awaitSingle()
+        databaseClient.sql("DELETE FROM publication_asset_links").fetch().rowsUpdated().awaitSingle()
+        databaseClient.sql("DELETE FROM publications").fetch().rowsUpdated().awaitSingle()
+        databaseClient.sql("DELETE FROM publication_assets").fetch().rowsUpdated().awaitSingle()
+        databaseClient.sql("DELETE FROM social_accounts").fetch().rowsUpdated().awaitSingle()
+        databaseClient.sql("DELETE FROM social_connections").fetch().rowsUpdated().awaitSingle()
+        databaseClient.sql("DELETE FROM secure_credentials").fetch().rowsUpdated().awaitSingle()
         databaseClient.sql("DELETE FROM audit_events").fetch().rowsUpdated().awaitSingle()
         databaseClient.sql("DELETE FROM workspace_target_scopes").fetch().rowsUpdated().awaitSingle()
         databaseClient.sql("DELETE FROM workspace_direct_grants").fetch().rowsUpdated().awaitSingle()

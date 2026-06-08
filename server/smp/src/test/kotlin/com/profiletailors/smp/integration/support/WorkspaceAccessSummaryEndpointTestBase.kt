@@ -668,9 +668,9 @@ abstract class WorkspaceAccessSummaryEndpointTestBase : AuthorizationEndpointInt
                 .rowsUpdated()
                 .awaitSingle()
             databaseClient.sql(
-                "INSERT INTO workspace_target_scopes (id, workspace_id, principal_id, principal_type, permission_id, target_resource_type, allowed_target_ids_json) VALUES ('scope-legacy-1', 'workspace-1', 'principal-1', 'USER', 'permission-resource-read', 'RESOURCE', ?)",
+                "INSERT INTO workspace_target_scopes (id, workspace_id, principal_id, principal_type, permission_id, target_resource_type, allowed_target_ids_json) VALUES ('scope-legacy-1', 'workspace-1', 'principal-1', 'USER', 'permission-resource-read', 'RESOURCE', :allowedTargetIdsJson)",
             )
-                .bind(0, allowedTargetIdsJson)
+                .bind("allowedTargetIdsJson", allowedTargetIdsJson)
                 .fetch()
                 .rowsUpdated()
                 .awaitSingle()

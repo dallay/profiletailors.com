@@ -20,19 +20,19 @@ Boot applications, covering unit tests, integration tests, security tests, and p
 
 ### JWT Service Unit Tests
 
-```kotlin
+```java
 @ExtendWith(MockitoExtension.class)
 class JwtServiceTest {
 
     @Mock
-    private var refreshTokenService: RefreshTokenService
+    private RefreshTokenService refreshTokenService;
 
     @Value("${jwt.test.secret:test-secret-key-for-unit-testing-only-256-bits}")
-    private var testSecret: String
+    private String testSecret;
 
-    private var jwtService: JwtService
+    private JwtService jwtService;
 
-    private var testUser: User
+    private User testUser;
 
     @BeforeEach
     void setUp() {
@@ -52,7 +52,7 @@ class JwtServiceTest {
                 .id(1L)
                 .email("test@example.com")
                 .password("encodedPassword")
-                .roles(setOf(Role("USER")))
+                .roles(Set.of(new Role("USER")))
                 .enabled(true)
                 .build();
     }
@@ -72,7 +72,7 @@ class JwtServiceTest {
         Claims claims = parseToken(token);
         assertThat(claims.getSubject()).isEqualTo("test@example.com");
         assertThat(claims.getIssuer()).isEqualTo("test-issuer");
-        assertThat(claims.getExpiration()).isAfter(Date());
+        assertThat(claims.getExpiration()).isAfter(new Date());
         assertThat(claims.getIssuedAt()).isNotNull();
         assertThat(claims.get("type")).isEqualTo("access");
     }
@@ -178,9 +178,9 @@ class JwtServiceTest {
     void shouldIncludeAuthoritiesInToken() {
         // Given
         Set<GrantedAuthority> authorities = Set.of(
-            SimpleGrantedAuthority("ROLE_USER"),
-            SimpleGrantedAuthority("USER_READ"),
-            SimpleGrantedAuthority("USER_WRITE")
+            new SimpleGrantedAuthority("ROLE_USER"),
+            new SimpleGrantedAuthority("USER_READ"),
+            new SimpleGrantedAuthority("USER_WRITE")
         );
 
         UserDetails userDetails = new org.springframework.security.core.userdetails.User(
@@ -202,7 +202,7 @@ class JwtServiceTest {
         );
     }
 
-    private fun createUserDetails(): UserDetails {
+    private UserDetails createUserDetails() {
         return new org.springframework.security.core.userdetails.User(
             testUser.getEmail(),
             testUser.getPassword(),
@@ -210,7 +210,7 @@ class JwtServiceTest {
         );
     }
 
-    private fun parseToken(String token): Claims {
+    private Claims parseToken(String token) {
         return Jwts.parser()
                 .verifyWith(getSigningKey())
                 .build()
@@ -218,7 +218,7 @@ class JwtServiceTest {
                 .getPayload();
     }
 
-    private fun getSigningKey(): SecretKey {
+    private SecretKey getSigningKey() {
         byte[] keyBytes = Base64.getEncoder().encodeToString(testSecret.getBytes()).getBytes();
         return Keys.hmacShaKeyFor(keyBytes);
     }
@@ -227,18 +227,18 @@ class JwtServiceTest {
 
 ### Refresh Token Service Unit Tests
 
-```kotlin
+```java
 @ExtendWith(MockitoExtension.class)
 class RefreshTokenServiceTest {
 
     @Mock
-    private var refreshTokenRepository: RefreshTokenRepository
+    private RefreshTokenRepository refreshTokenRepository;
 
     @Mock
-    private var userRepository: UserRepository
+    private UserRepository userRepository;
 
     @InjectMocks
-    private var refreshTokenService: RefreshTokenService
+    private RefreshTokenService refreshTokenService;
 
     @Test
     @DisplayName("Should create refresh token successfully")
@@ -279,7 +279,7 @@ class RefreshTokenServiceTest {
     @DisplayName("Should refresh token successfully")
     void shouldRefreshTokenSuccessfully() {
         // Given
-        RefreshTokenRequest request = RefreshTokenRequest("valid-refresh-token");
+        RefreshTokenRequest request = new RefreshTokenRequest("valid-refresh-token");
         RefreshToken existingToken = RefreshToken.builder()
                 .token("valid-refresh-token")
                 .user(createTestUser())
@@ -288,7 +288,7 @@ class RefreshTokenServiceTest {
                 .build();
 
         when(refreshTokenRepository.findByToken("valid-refresh-token"))
-                .thenReturn(existingToken);
+                .thenReturn(Optional.of(existingToken));
         when(refreshTokenRepository.save(any(RefreshToken.class)))
                 .thenAnswer(invocation -> invocation.getArgument(0));
 
@@ -311,16 +311,16 @@ class RefreshTokenServiceTest {
                 .build();
 
         when(refreshTokenRepository.findByToken(revokedToken))
-                .thenReturn(token);
+                .thenReturn(Optional.of(token));
 
-        RefreshTokenRequest request = RefreshTokenRequest(revokedToken);
+        RefreshTokenRequest request = new RefreshTokenRequest(revokedToken);
 
         // When & Then
         assertThrows(InvalidTokenException.class,
             () -> refreshTokenService.refreshToken(request));
     }
 
-    private fun createTestUser(): User {
+    private User createTestUser() {
         return User.builder()
                 .id(1L)
                 .email("test@example.com")
@@ -334,7 +334,7 @@ class RefreshTokenServiceTest {
 
 ### Security Configuration Integration Tests
 
-```kotlin
+```java
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
 @TestPropertySource(properties = {
     "jwt.secret=test-secret-key-for-integration-testing-256-bits-minimum",
@@ -346,18 +346,18 @@ class RefreshTokenServiceTest {
 class SecurityIntegrationTest {
 
     @Autowired
-    private var restTemplate: TestRestTemplate
+    private TestRestTemplate restTemplate;
 
     @Autowired
-    private var userRepository: UserRepository
+    private UserRepository userRepository;
 
     @Autowired
-    private var passwordEncoder: PasswordEncoder
+    private PasswordEncoder passwordEncoder;
 
     @Autowired
-    private var jwtService: JwtService
+    private JwtService jwtService;
 
-    private var testUser: User
+    private User testUser;
 
     @BeforeEach
     void setUp() {
@@ -365,7 +365,7 @@ class SecurityIntegrationTest {
         testUser = User.builder()
                 .email("test@example.com")
                 .password(passwordEncoder.encode("password"))
-                .roles(setOf(Role("USER")))
+                .roles(Set.of(new Role("USER")))
                 .enabled(true)
                 .build();
         testUser = userRepository.save(testUser);
@@ -396,7 +396,7 @@ class SecurityIntegrationTest {
     void shouldAllowAccessToProtectedEndpointsWithValidToken() {
         // Given
         String token = jwtService.generateAccessToken(testUser);
-        HttpHeaders headers = HttpHeaders();
+        HttpHeaders headers = new HttpHeaders();
         headers.setBearerAuth(token);
 
         HttpEntity<String> entity = new HttpEntity<>(headers);
@@ -417,7 +417,7 @@ class SecurityIntegrationTest {
     @DisplayName("Should deny access with invalid token")
     void shouldDenyAccessWithInvalidToken() {
         // Given
-        HttpHeaders headers = HttpHeaders();
+        HttpHeaders headers = new HttpHeaders();
         headers.setBearerAuth("invalid-token");
 
         HttpEntity<String> entity = new HttpEntity<>(headers);
@@ -468,7 +468,7 @@ class SecurityIntegrationTest {
             }
         });
 
-        HttpHeaders headers = HttpHeaders();
+        HttpHeaders headers = new HttpHeaders();
         headers.setBearerAuth(token);
 
         HttpEntity<String> entity = new HttpEntity<>(headers);
@@ -489,7 +489,7 @@ class SecurityIntegrationTest {
 
 ### Authentication Controller Integration Tests
 
-```kotlin
+```java
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
 @AutoConfigureTestDatabase(replace = AutoConfigureTestDatabase.Replace.NONE)
 @Testcontainers
@@ -512,13 +512,13 @@ class AuthenticationControllerIntegrationTest {
     }
 
     @Autowired
-    private var restTemplate: TestRestTemplate
+    private TestRestTemplate restTemplate;
 
     @Autowired
-    private var objectMapper: ObjectMapper
+    private ObjectMapper objectMapper;
 
-    private var registerRequest: RegisterRequest
-    private var authRequest: AuthenticationRequest
+    private RegisterRequest registerRequest;
+    private AuthenticationRequest authRequest;
 
     @BeforeEach
     void setUp() {
@@ -651,7 +651,7 @@ class AuthenticationControllerIntegrationTest {
 
 ### MockMvc Security Tests
 
-```kotlin
+```java
 @SpringBootTest
 @AutoConfigureMockMvc(addFilters = false)
 @TestPropertySource(properties = {
@@ -663,28 +663,28 @@ class AuthenticationControllerIntegrationTest {
 class AuthenticationControllerMockMvcTest {
 
     @Autowired
-    private var mockMvc: MockMvc
+    private MockMvc mockMvc;
 
     @Autowired
-    private var objectMapper: ObjectMapper
+    private ObjectMapper objectMapper;
 
     @Autowired
-    private var userRepository: UserRepository
+    private UserRepository userRepository;
 
     @Autowired
-    private var passwordEncoder: PasswordEncoder
+    private PasswordEncoder passwordEncoder;
 
     @Autowired
-    private var jwtService: JwtService
+    private JwtService jwtService;
 
-    private var testUser: User
+    private User testUser;
 
     @BeforeEach
     void setUp() {
         testUser = User.builder()
                 .email("test@example.com")
                 .password(passwordEncoder.encode("Password123!"))
-                .roles(setOf(Role("USER")))
+                .roles(Set.of(new Role("USER")))
                 .enabled(true)
                 .build();
         testUser = userRepository.save(testUser);
@@ -711,7 +711,7 @@ class AuthenticationControllerMockMvcTest {
     @Test
     @DisplayName("Should validate authentication request")
     void shouldValidateAuthenticationRequest() throws Exception {
-        AuthenticationRequest invalidRequest = AuthenticationRequest("", "");
+        AuthenticationRequest invalidRequest = new AuthenticationRequest("", "");
 
         mockMvc.perform(post("/api/auth/authenticate")
                 .contentType(MediaType.APPLICATION_JSON)
@@ -788,7 +788,7 @@ class AuthenticationControllerMockMvcTest {
     @Test
     @DisplayName("Should validate refresh token request")
     void shouldValidateRefreshTokenRequest() throws Exception {
-        RefreshTokenRequest invalidRequest = RefreshTokenRequest("");
+        RefreshTokenRequest invalidRequest = new RefreshTokenRequest("");
 
         mockMvc.perform(post("/api/auth/refresh")
                 .contentType(MediaType.APPLICATION_JSON)
@@ -800,7 +800,7 @@ class AuthenticationControllerMockMvcTest {
     @DisplayName("Should handle concurrent requests correctly")
     void shouldHandleConcurrentRequestsCorrectly() throws Exception {
         String token = jwtService.generateAccessToken(testUser);
-        HttpHeaders headers = HttpHeaders();
+        HttpHeaders headers = new HttpHeaders();
         headers.setBearerAuth(token);
 
         MockHttpServletRequestBuilder request = get("/api/auth/me")
@@ -808,8 +808,8 @@ class AuthenticationControllerMockMvcTest {
 
         // Execute multiple concurrent requests
         int numRequests = 10;
-        CountDownLatch latch = CountDownLatch(numRequests);
-        AtomicInteger successCount = AtomicInteger(0);
+        CountDownLatch latch = new CountDownLatch(numRequests);
+        AtomicInteger successCount = new AtomicInteger(0);
 
         for (int i = 0; i < numRequests; i++) {
             CompletableFuture.runAsync(() -> {
@@ -842,7 +842,7 @@ class AuthenticationControllerMockMvcTest {
 
 ### Security Vulnerability Tests
 
-```kotlin
+```java
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
 @TestPropertySource(properties = {
     "jwt.secret=test-secret-key-for-security-testing-256-bits",
@@ -851,18 +851,18 @@ class AuthenticationControllerMockMvcTest {
 class SecurityVulnerabilityTest {
 
     @Autowired
-    private var restTemplate: TestRestTemplate
+    private TestRestTemplate restTemplate;
 
     @Autowired
-    private var jwtService: JwtService
+    private JwtService jwtService;
 
-    private var testUser: User
+    private User testUser;
 
     @BeforeEach
     void setUp() {
         testUser = User.builder()
                 .email("test@example.com")
-                .roles(setOf(Role("USER")))
+                .roles(Set.of(new Role("USER")))
                 .enabled(true)
                 .build();
     }
@@ -876,7 +876,7 @@ class SecurityVulnerabilityTest {
         // Tamper with token by changing characters
         String tamperedToken = validToken.substring(0, validToken.length() - 5) + "xxxxx";
 
-        HttpHeaders headers = HttpHeaders();
+        HttpHeaders headers = new HttpHeaders();
         headers.setBearerAuth(tamperedToken);
 
         HttpEntity<String> entity = new HttpEntity<>(headers);
@@ -926,7 +926,7 @@ class SecurityVulnerabilityTest {
             }
         });
 
-        HttpHeaders headers = HttpHeaders();
+        HttpHeaders headers = new HttpHeaders();
         headers.setBearerAuth(expiredToken);
 
         HttpEntity<String> entity = new HttpEntity<>(headers);
@@ -1030,7 +1030,7 @@ class SecurityVulnerabilityTest {
 
         // When - Make multiple failed attempts
         int attemptCount = 10;
-        List<ResponseEntity<String>> responses = mutableListOf();
+        List<ResponseEntity<String>> responses = new ArrayList<>();
 
         for (int i = 0; i < attemptCount; i++) {
             ResponseEntity<String> response = restTemplate.postForEntity(
@@ -1064,13 +1064,13 @@ class SecurityVulnerabilityTest {
 
 ### JWT Performance Tests
 
-```kotlin
+```java
 @ExtendWith(MockitoExtension.class)
 class JwtPerformanceTest {
 
-    private var jwtService: JwtService
+    private JwtService jwtService;
 
-    private var testUser: User
+    private User testUser;
 
     @BeforeEach
     void setUp() {
@@ -1089,7 +1089,7 @@ class JwtPerformanceTest {
         testUser = User.builder()
                 .id(1L)
                 .email("performance-test@example.com")
-                .roles(setOf(Role("USER"), Role("ADMIN")))
+                .roles(Set.of(new Role("USER"), new Role("ADMIN")))
                 .build();
     }
 
@@ -1126,7 +1126,7 @@ class JwtPerformanceTest {
     void shouldValidateTokensEfficiently() {
         // Generate tokens first
         int numTokens = 1000;
-        List<String> tokens = mutableListOf();
+        List<String> tokens = new ArrayList<>();
 
         for (int i = 0; i < numTokens; i++) {
             tokens.add(jwtService.generateAccessToken(testUser));
@@ -1164,10 +1164,10 @@ class JwtPerformanceTest {
         int numThreads = 10;
         int operationsPerThread = 100;
         ExecutorService executor = Executors.newFixedThreadPool(numThreads);
-        CountDownLatch latch = CountDownLatch(numThreads);
+        CountDownLatch latch = new CountDownLatch(numThreads);
 
-        AtomicInteger successCount = AtomicInteger(0);
-        List<Exception> exceptions = Collections.synchronizedList(mutableListOf());
+        AtomicInteger successCount = new AtomicInteger(0);
+        List<Exception> exceptions = Collections.synchronizedList(new ArrayList<>());
 
         // Concurrent token generation and validation
         for (int i = 0; i < numThreads; i++) {
@@ -1215,14 +1215,14 @@ class JwtPerformanceTest {
                 .build();
 
         // Add many roles
-        Set<Role> roles = mutableSetOf();
+        Set<Role> roles = new HashSet<>();
         for (int i = 0; i < 50; i++) {
-            roles.add(Role("ROLE_" + i));
+            roles.add(new Role("ROLE_" + i));
         }
         largeUser.setRoles(roles);
 
         int numTokens = 100;
-        List<String> tokens = mutableListOf();
+        List<String> tokens = new ArrayList<>();
 
         // Measure performance with large user data
         long startTime = System.nanoTime();
@@ -1250,7 +1250,7 @@ class JwtPerformanceTest {
     void shouldEfficientlyExtractClaimsFromTokens() {
         // Generate tokens
         int numTokens = 1000;
-        List<String> tokens = mutableListOf();
+        List<String> tokens = new ArrayList<>();
 
         for (int i = 0; i < numTokens; i++) {
             tokens.add(jwtService.generateAccessToken(testUser));
@@ -1275,7 +1275,7 @@ class JwtPerformanceTest {
         assertThat(avgTimePerExtraction).isLessThan(1.0); // Less than 1ms per extraction
     }
 
-    private fun createUserDetails(): UserDetails {
+    private UserDetails createUserDetails() {
         return org.springframework.security.core.userdetails.User.builder()
                 .username(testUser.getEmail())
                 .password("password")

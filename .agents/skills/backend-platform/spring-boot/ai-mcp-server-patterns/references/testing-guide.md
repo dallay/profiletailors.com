@@ -5,21 +5,21 @@ and slice tests.
 
 ## Unit Testing Tools
 
-```kotlin
+```java
 @SpringBootTest
 class DatabaseToolsTest {
 
     @Autowired
-    private var databaseTools: DatabaseTools
+    private DatabaseTools databaseTools;
 
     @MockBean
-    private var jdbcTemplate: JdbcTemplate
+    private JdbcTemplate jdbcTemplate;
 
     @Test
     void testExecuteQuery_Success() {
         String query = "SELECT * FROM users WHERE id = ?";
         Map<String, Object> params = Map.of("id", 1);
-        List<Map<String, Object>> expected = listOf(Map.of("id", 1, "name", "John"));
+        List<Map<String, Object>> expected = List.of(Map.of("id", 1, "name", "John"));
 
         when(jdbcTemplate.queryForList(anyString(), anyMap())).thenReturn(expected);
 
@@ -60,27 +60,27 @@ class DatabaseToolsTest {
 
 ## Integration Testing
 
-```kotlin
+```java
 @SpringBootTest
 @AutoConfigureMockMvc
 class McpServerIntegrationTest {
 
     @Autowired
-    private var mockMvc: MockMvc
+    private MockMvc mockMvc;
 
     @MockBean
-    private var databaseTools: DatabaseTools
+    private DatabaseTools databaseTools;
 
     @Test
     void testExecuteTool_Success() throws Exception {
         Map<String, Object> args = Map.of("query", "SELECT * FROM users", "params", Map.of());
-        List<Map<String, Object>> expectedResult = listOf(Map.of("id", 1, "name", "Test User"));
+        List<Map<String, Object>> expectedResult = List.of(Map.of("id", 1, "name", "Test User"));
 
         when(databaseTools.executeQuery(anyString(), anyMap())).thenReturn(expectedResult);
 
         mockMvc.perform(post("/mcp/tools/executeQuery")
                 .contentType(MediaType.APPLICATION_JSON)
-                .content(ObjectMapper().writeValueAsString(args)))
+                .content(new ObjectMapper().writeValueAsString(args)))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.result").isArray())
                 .andExpect(jsonPath("$.result[0].id").value(1));
@@ -104,7 +104,7 @@ class McpServerIntegrationTest {
 
 ## Integration Testing with Testcontainers
 
-```kotlin
+```java
 @SpringBootTest
 @Testcontainers
 @AutoConfigureMockMvc
@@ -124,7 +124,7 @@ class McpServerDatabaseIntegrationTest {
     }
 
     @Autowired
-    private var mockMvc: MockMvc
+    private MockMvc mockMvc;
 
     @Test
     void testDatabaseToolWithRealDatabase() throws Exception {
@@ -135,7 +135,7 @@ class McpServerDatabaseIntegrationTest {
 
         mockMvc.perform(post("/mcp/tools/executeQuery")
                 .contentType(MediaType.APPLICATION_JSON)
-                .content(ObjectMapper().writeValueAsString(request)))
+                .content(new ObjectMapper().writeValueAsString(request)))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.success").value(true))
                 .andExpect(jsonPath("$.data[0].current_database").value("testdb"));
@@ -145,25 +145,25 @@ class McpServerDatabaseIntegrationTest {
 
 ## Slice Test with `@WebMvcTest`
 
-```kotlin
+```java
 @WebMvcTest(controllers = McpController.class)
 class McpControllerSliceTest {
 
     @Autowired
-    private var mockMvc: MockMvc
+    private MockMvc mockMvc;
 
     @MockBean
-    private var mcpServer: McpServer
+    private McpServer mcpServer;
 
     @MockBean
-    private var toolRegistry: ToolRegistry
+    private ToolRegistry toolRegistry;
 
     @Test
     void testListToolsEndpoint() throws Exception {
         Tool tool1 = Tool.builder().name("tool1").description("Tool 1").build();
         Tool tool2 = Tool.builder().name("tool2").description("Tool 2").build();
 
-        when(toolRegistry.listTools()).thenReturn(listOf(tool1, tool2));
+        when(toolRegistry.listTools()).thenReturn(List.of(tool1, tool2));
 
         mockMvc.perform(get("/mcp/tools"))
                 .andExpect(status().isOk())
@@ -176,17 +176,17 @@ class McpControllerSliceTest {
 
 ## Testing Tool Validation
 
-```kotlin
+```java
 @ExtendWith(MockitoExtension.class)
 class ToolValidationTest {
 
-    private var validator: ToolValidator
+    private ToolValidator validator;
 
     @BeforeEach
     void setUp() {
-        McpServerProperties properties = McpServerProperties();
+        McpServerProperties properties = new McpServerProperties();
         properties.getTools().getValidation().setMaxArgumentsSize(1000);
-        validator = DefaultToolValidator(properties);
+        validator = new DefaultToolValidator(properties);
     }
 
     @Test
@@ -213,14 +213,14 @@ class ToolValidationTest {
 
 ## Security Testing
 
-```kotlin
+```java
 @SpringBootTest
 @AutoConfigureMockMvc
 @WithMockUser(roles = {"USER"})
 class McpSecurityTest {
 
     @Autowired
-    private var mockMvc: MockMvc
+    private MockMvc mockMvc;
 
     @Test
     void testUserCanAccessRegularTools() throws Exception {
@@ -246,13 +246,13 @@ class McpSecurityTest {
 
 ## Configuration Properties Testing
 
-```kotlin
+```java
 @SpringBootTest
 @EnableConfigurationProperties(McpServerProperties.class)
 class McpPropertiesTest {
 
     @Autowired
-    private var properties: McpServerProperties
+    private McpServerProperties properties;
 
     @Test
     void testDefaultValues() {

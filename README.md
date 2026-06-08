@@ -2,7 +2,7 @@
 
 <div align="center">
 
-![Profile Tailors Logo](shared/assets/profiletailors-logotype-light.svg)
+<img src="shared/assets/profiletailors-logotype-light.svg" alt="Profile Tailors Logo" width="320" />
 
 **Schedule smarter. Post everywhere.**
 
@@ -20,16 +20,19 @@ Public-facing marketing site for the Profile Tailors social media management pla
 
 ## Overview
 
-**Profile Tailors** is a social media management platform for scheduling, publishing, analyzing, engaging, and collaborating across multiple platforms.
+**Profile Tailors** is a social media management platform for scheduling, publishing, analyzing,
+engaging, and collaborating across multiple platforms.
 
-This repository contains the **marketing site** and the **backend service** (in early development). The frontend is a lightweight, static-first Astro site at `apps/web/marketing/`.
+This repository contains the **marketing site** and the **backend service** (in early development).
+The frontend is a lightweight, static-first Astro site at `apps/web/marketing/`.
 
 ### What ships in this repo today
 
 - **English landing page** at `/`
 - **Spanish landing page** at `/es/`
 - **Client-side waitlist flow** for early access
-- **Nothing-inspired, monochrome, typographically driven design system** — dark-first with equal-rigor light mode
+- **Nothing-inspired, monochrome, typographically driven design system** — dark-first with
+  equal-rigor light mode
 - **Shared brand assets** served from `shared/assets/`
 - **Backend service** in `server/smp/` (Spring Boot, Kotlin, work in progress)
 
@@ -39,17 +42,17 @@ This repository contains the **marketing site** and the **backend service** (in 
 
 ## Tech Stack
 
-| Category | Technology |
-| --- | --- |
-| Frontend | Astro 6, Tailwind CSS v4 + @theme, TypeScript |
-| Backend | Spring Boot 4, Kotlin, WebFlux (experimental) |
-| Rendering model | Static-first, no SSR |
-| i18n | Astro i18n routing (`en`, `es`) |
-| Icons | `@dallay/astro-icon`, `@iconify-json/lucide` |
-| Linting | Biome |
-| Package manager | pnpm |
-| Workspace tooling | Bazel, Lefthook |
-| CI/CD | GitHub Actions, Release Please |
+| Category          | Technology                                    |
+|-------------------|-----------------------------------------------|
+| Frontend          | Astro 6, Tailwind CSS v4 + @theme, TypeScript |
+| Backend           | Spring Boot 4, Kotlin, WebFlux (experimental) |
+| Rendering model   | Static-first, no SSR                          |
+| i18n              | Astro i18n routing (`en`, `es`)               |
+| Icons             | `@dallay/astro-icon`, `@iconify-json/lucide`  |
+| Linting           | Biome                                         |
+| Package manager   | pnpm                                          |
+| Workspace tooling | Bazel, Lefthook                               |
+| CI/CD             | GitHub Actions, Release Please                |
 
 ---
 
@@ -94,10 +97,10 @@ profiletailors.com/
 
 ### Prerequisites
 
-| Requirement | Version |
-| --- | --- |
-| Node.js | `>= 22.12.0` |
-| pnpm | `>= 10` |
+| Requirement | Version      |
+|-------------|--------------|
+| Node.js     | `>= 22.12.0` |
+| pnpm        | `>= 10`      |
 
 ### Install and run locally
 
@@ -114,44 +117,51 @@ The site will be available at [http://localhost:4321](http://localhost:4321).
 
 Run these from `apps/web/marketing/`:
 
-| Command | What it does |
-| --- | --- |
-| `pnpm install` | Install dependencies |
-| `pnpm dev` | Start the Astro dev server |
-| `pnpm build` | Build the production site into `dist/` |
-| `pnpm preview` | Preview the production build locally |
-| `pnpm check` | Run Astro type/content checks |
-| `pnpm lint` | Lint the app source with Biome |
-| `pnpm format` | Format code with Biome |
+| Command        | What it does                           |
+|----------------|----------------------------------------|
+| `pnpm install` | Install dependencies                   |
+| `pnpm dev`     | Start the Astro dev server             |
+| `pnpm build`   | Build the production site into `dist/` |
+| `pnpm preview` | Preview the production build locally   |
+| `pnpm check`   | Run Astro type/content checks          |
+| `pnpm lint`    | Lint the app source with Biome         |
+| `pnpm format`  | Format code with Biome                 |
 
 ---
 
 ## Development Notes
 
 - The active frontend app is `apps/web/marketing/`.
-- The site uses Astro's built-in locale routing with **English as the default locale** and **Spanish under `/es/`**.
+- The site uses Astro's built-in locale routing with **English as the default locale** and **Spanish
+  under `/es/`**.
 - User-facing copy is maintained in locale files under `apps/web/marketing/src/i18n/`.
-- Shared web assets are sourced from `shared/assets/` and exposed by the app config during development and build.
+- Shared web assets are sourced from `shared/assets/` and exposed by the app config during
+  development and build.
 - The current waitlist flow is **client-side only**.
 - Code quality: **Biome** for linting and formatting in the frontend.
-- The backend lives in `server/smp/` — Spring Boot 4 with Kotlin and WebFlux (experimental, not deployed).
+- The backend lives in `server/smp/` — Spring Boot 4 with Kotlin and WebFlux (experimental, not
+  deployed).
 - SDD artifacts live in `openspec/` for tracking specs, designs, and tasks.
 
 ---
 
 ## Architecture
 
-Profile Tailors follows a **hexagonal architecture** with **bounded contexts** from Domain-Driven Design. The backend is built as a **modular monolith** using Spring Boot 4, Kotlin, and reactive programming.
+Profile Tailors follows a **hexagonal architecture** with **bounded contexts** from Domain-Driven
+Design. The backend is built as a **modular monolith** using Spring Boot 4, Kotlin, and reactive
+programming.
 
 **📐 [View C4 Architecture Models](docs/architecture/c4/)**
 
-- **[System Context](docs/architecture/c4/01-system-context.md)** — Big picture, external dependencies
+- **[System Context](docs/architecture/c4/01-system-context.md)** — Big picture, external
+  dependencies
 - **[Container](docs/architecture/c4/02-container.md)** — Deployable units, technology stack
 - **[Component](docs/architecture/c4/03-component.md)** — Internal structure, bounded contexts
 - **[Code](docs/architecture/c4/04-code.md)** — Implementation patterns, class design
 - **[Summary](docs/architecture/c4/SUMMARY.md)** — Executive summary and roadmap
 
 **Key Architectural Patterns**:
+
 - Hexagonal Architecture (Ports & Adapters)
 - Domain-Driven Design (Bounded Contexts)
 - CQRS (Command Query Responsibility Segregation)

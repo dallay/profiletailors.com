@@ -1,0 +1,31 @@
+databaseChangeLog:
+  - changeSet:
+      id: publishing-005-create-publication-asset-links
+      author: opencode
+      changes:
+        - createTable:
+            tableName: publication_asset_links
+            columns:
+              - column:
+                  name: publication_id
+                  type: varchar(64)
+                  constraints:
+                    nullable: false
+                    foreignKeyName: fk_publication_asset_links_publication
+                    references: publications(id)
+              - column:
+                  name: asset_id
+                  type: varchar(64)
+                  constraints:
+                    nullable: false
+                    foreignKeyName: fk_publication_asset_links_asset
+                    references: publication_assets(id)
+              - column:
+                  name: position_index
+                  type: integer
+                  constraints:
+                    nullable: false
+        - addPrimaryKey:
+            tableName: publication_asset_links
+            columnNames: publication_id, asset_id
+            constraintName: pk_publication_asset_links

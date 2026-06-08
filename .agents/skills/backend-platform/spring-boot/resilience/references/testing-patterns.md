@@ -4,47 +4,47 @@
 
 ### Testing State Transitions
 
-```kotlin
+```java
 @SpringBootTest
 class CircuitBreakerStateTest {
 
     @Autowired
-    private var paymentService: PaymentService
+    private PaymentService paymentService;
 
     @MockBean
-    private var restTemplate: RestTemplate
+    private RestTemplate restTemplate;
 
     @Test
     void shouldTransitionToOpenAfterFailures() {
         // Simulate repeated failures
         when(restTemplate.postForObject(anyString(), any(), eq(PaymentResponse.class)))
-            .thenThrow(HttpServerErrorException(HttpStatus.INTERNAL_SERVER_ERROR));
+            .thenThrow(new HttpServerErrorException(HttpStatus.INTERNAL_SERVER_ERROR));
 
         // Trigger failures to exceed threshold
         for (int i = 0; i < 5; i++) {
-            assertThatThrownBy(() -> paymentService.processPayment(PaymentRequest()))
+            assertThatThrownBy(() -> paymentService.processPayment(new PaymentRequest()))
                 .isInstanceOf(HttpServerErrorException.class);
         }
 
         // Circuit should be open - fallback executes
-        PaymentResponse response = paymentService.processPayment(PaymentRequest());
+        PaymentResponse response = paymentService.processPayment(new PaymentRequest());
         assertThat(response.getStatus()).isEqualTo("PENDING");
     }
 
     @Test
     void shouldExecuteFallbackWhenCircuitOpen() {
         when(restTemplate.postForObject(anyString(), any(), eq(PaymentResponse.class)))
-            .thenThrow(RuntimeException("Service unavailable"));
+            .thenThrow(new RuntimeException("Service unavailable"));
 
         // Force failures to open circuit
         for (int i = 0; i < 5; i++) {
             try {
-                paymentService.processPayment(PaymentRequest());
+                paymentService.processPayment(new PaymentRequest());
             } catch (Exception ignored) {}
         }
 
         // Circuit is open, fallback provides response
-        PaymentResponse response = paymentService.processPayment(PaymentRequest());
+        PaymentResponse response = paymentService.processPayment(new PaymentRequest());
         assertThat(response.getStatus()).isEqualTo("PENDING");
         assertThat(response.getMessage()).contains("temporarily unavailable");
     }
@@ -53,12 +53,12 @@ class CircuitBreakerStateTest {
 
 ### Testing Circuit States Directly
 
-```kotlin
+```java
 @SpringBootTest
 class CircuitBreakerDirectStateTest {
 
     @Autowired
-    private var circuitBreakerRegistry: CircuitBreakerRegistry
+    private CircuitBreakerRegistry circuitBreakerRegistry;
 
     @Test
     void shouldManuallyOpenAndCloseCircuit() {
@@ -81,13 +81,13 @@ class CircuitBreakerDirectStateTest {
 
 ### Testing Retry Attempts
 
-```kotlin
+```java
 @SpringBootTest
 @AutoConfigureWireMock(port = 0)
 class RetryTest {
 
     @Autowired
-    private var orderService: OrderService
+    private OrderService orderService;
 
     @Test
     void shouldRetryOnTransientFailure() {
@@ -111,7 +111,7 @@ class RetryTest {
                 {"id":1,"status":"CREATED"}
                 """)));
 
-        Order order = orderService.createOrder(OrderRequest());
+        Order order = orderService.createOrder(new OrderRequest());
 
         assertThat(order.getId()).isEqualTo(1L);
         assertThat(order.getStatus()).isEqualTo("CREATED");
@@ -124,7 +124,7 @@ class RetryTest {
     void shouldThrowExceptionAfterMaxRetries() {
         stubFor(post("/orders").willReturn(serverError()));
 
-        assertThatThrownBy(() -> orderService.createOrder(OrderRequest()))
+        assertThatThrownBy(() -> orderService.createOrder(new OrderRequest()))
             .isInstanceOf(Exception.class);
 
         // Verify retry attempts (maxAttempts = 3)
@@ -137,12 +137,12 @@ class RetryTest {
 
 ### Testing Rate Limit Enforcement
 
-```kotlin
+```java
 @SpringBootTest
 class RateLimiterTest {
 
     @Autowired
-    private var notificationService: NotificationService
+    private NotificationService notificationService;
 
     @Test
     void shouldRejectRequestsExceedingRateLimit() {
@@ -173,7 +173,7 @@ class RateLimiterTest {
         notificationService.sendEmail(createEmailRequest(5));
     }
 
-    private fun createEmailRequest(int id): EmailRequest {
+    private EmailRequest createEmailRequest(int id) {
         return EmailRequest.builder()
             .to("user" + id + "@example.com")
             .subject("Test " + id)
@@ -186,31 +186,31 @@ class RateLimiterTest {
 
 ### Testing Semaphore Bulkhead
 
-```kotlin
+```java
 @SpringBootTest
 class BulkheadSemaphoreTest {
 
     @Autowired
-    private var reportService: ReportService
+    private ReportService reportService;
 
     @Test
     void shouldLimitConcurrentCalls() {
         // Configuration: maxConcurrentCalls = 5
 
-        CountDownLatch latch = CountDownLatch(5);
-        List<CompletableFuture<Report>> futures = mutableListOf();
+        CountDownLatch latch = new CountDownLatch(5);
+        List<CompletableFuture<Report>> futures = new ArrayList<>();
 
         // Submit 5 concurrent calls
         for (int i = 0; i < 5; i++) {
             futures.add(CompletableFuture.supplyAsync(() -> {
                 latch.countDown();
-                return reportService.generateReport(ReportRequest());
+                return reportService.generateReport(new ReportRequest());
             }));
         }
 
         // 6th call should be rejected
         assertThatThrownBy(() ->
-            reportService.generateReport(ReportRequest())
+            reportService.generateReport(new ReportRequest())
         ).isInstanceOf(BulkheadFullException.class);
 
         CompletableFuture.allOf(futures.toArray(new CompletableFuture[0])).join();
@@ -220,21 +220,21 @@ class BulkheadSemaphoreTest {
 
 ### Testing Thread Pool Bulkhead
 
-```kotlin
+```java
 @SpringBootTest
 class BulkheadThreadPoolTest {
 
     @Autowired
-    private var analyticsService: AnalyticsService
+    private AnalyticsService analyticsService;
 
     @Test
     void shouldUseThreadPoolForAsync() {
         // Configuration: threadPoolSize = 2, queueCapacity = 100
 
-        List<CompletableFuture<AnalyticsResult>> futures = mutableListOf();
+        List<CompletableFuture<AnalyticsResult>> futures = new ArrayList<>();
 
         for (int i = 0; i < 10; i++) {
-            futures.add(analyticsService.runAnalytics(AnalyticsRequest()));
+            futures.add(analyticsService.runAnalytics(new AnalyticsRequest()));
         }
 
         CompletableFuture.allOf(futures.toArray(new CompletableFuture[0])).join();
@@ -250,18 +250,18 @@ class BulkheadThreadPoolTest {
 
 ### Testing Timeout Enforcement
 
-```kotlin
+```java
 @SpringBootTest
 class TimeLimiterTest {
 
     @Autowired
-    private var searchService: SearchService
+    private SearchService searchService;
 
     @Test
     void shouldTimeoutExceededOperations() {
         // Configuration: timeoutDuration = 1s
 
-        SearchQuery slowQuery = SearchQuery();
+        SearchQuery slowQuery = new SearchQuery();
         slowQuery.setSimulatedDelay(Duration.ofSeconds(2));
 
         assertThatThrownBy(() ->
@@ -271,7 +271,7 @@ class TimeLimiterTest {
 
     @Test
     void shouldReturnFallbackOnTimeout() {
-        SearchQuery slowQuery = SearchQuery();
+        SearchQuery slowQuery = new SearchQuery();
         slowQuery.setSimulatedDelay(Duration.ofSeconds(2));
 
         CompletableFuture<SearchResults> result = searchService.search(slowQuery);
@@ -288,27 +288,27 @@ class TimeLimiterTest {
 
 ### Correct Fallback Signatures
 
-```kotlin
+```java
 @Service
-class PaymentService {
+public class PaymentService {
 
     @CircuitBreaker(name = "payment", fallbackMethod = "paymentFallback")
-    fun processPayment(PaymentRequest request): PaymentResponse {
+    public PaymentResponse processPayment(PaymentRequest request) {
         // method body
     }
 
     // CORRECT: Matches return type and parameters + Exception
-    private fun paymentFallback(PaymentRequest request, Exception ex): PaymentResponse {
+    private PaymentResponse paymentFallback(PaymentRequest request, Exception ex) {
         // fallback logic
     }
 
     @Retry(name = "product")
-    fun getProduct(String productId): Product {
+    public Product getProduct(String productId) {
         // method body
     }
 
     // CORRECT: Can omit Exception parameter
-    private fun getProductFallback(String productId): Product {
+    private Product getProductFallback(String productId) {
         // fallback logic
     }
 }
@@ -316,21 +316,21 @@ class PaymentService {
 
 ### Common Fallback Signature Errors
 
-```kotlin
+```java
 @CircuitBreaker(name = "service", fallbackMethod = "fallback")
-fun processData(Long id): String { }
+public String processData(Long id) { }
 
 // WRONG: Missing parameter
-fun fallback(Exception ex): String { }
+public String fallback(Exception ex) { }
 
 // WRONG: Wrong return type
-fun fallback(Long id, Exception ex): void { }
+public void fallback(Long id, Exception ex) { }
 
 // WRONG: Wrong parameter type
-fun fallback(String id, Exception ex): String { }
+public String fallback(String id, Exception ex) { }
 
 // CORRECT:
-fun fallback(Long id, Exception ex): String { }
+public String fallback(Long id, Exception ex) { }
 ```
 
 ## Integration Testing Configuration
@@ -365,9 +365,9 @@ resilience4j:
 
 ### Test Helper Methods
 
-```kotlin
+```java
 @TestConfiguration
-class ResilienceTestConfig {
+public class ResilienceTestConfig {
 
     public static void openCircuitBreaker(CircuitBreaker circuitBreaker) {
         circuitBreaker.transitionToOpenState();
@@ -383,7 +383,7 @@ class ResilienceTestConfig {
         for (int i = 0; i < numberOfFailures; i++) {
             try {
                 circuitBreaker.executeSupplier(() -> {
-                    throw RuntimeException("Simulated failure");
+                    throw new RuntimeException("Simulated failure");
                 });
             } catch (Exception ignored) {}
         }
@@ -399,7 +399,7 @@ class ResilienceTestConfig {
 
 ### Mistake 1: Not Waiting for Sliding Window
 
-```kotlin
+```java
 // WRONG: Circuit might not open yet
 for (int i = 0; i < 3; i++) {
     try { service.call(); } catch (Exception e) {}
@@ -415,12 +415,12 @@ assertThat(circuit.getState()).isEqualTo(CircuitBreaker.State.OPEN);
 
 ### Mistake 2: Incorrect Fallback Method Access
 
-```kotlin
+```java
 // WRONG: Fallback method is private, not accessible by AOP
 @CircuitBreaker(name = "service", fallbackMethod = "fallback")
-fun process(String data): String { }
+public String process(String data) { }
 
-private fun fallback(String data, Exception ex): String { }  // Private - won't work!
+private String fallback(String data, Exception ex) { }  // Private - won't work!
 
 // CORRECT: Package-private or protected
 protected String fallback(String data, Exception ex) { }
@@ -428,12 +428,12 @@ protected String fallback(String data, Exception ex) { }
 
 ### Mistake 3: Not Mocking External Dependencies
 
-```kotlin
+```java
 // WRONG: Circuit breaker might open due to real network calls
 @SpringBootTest
 class ServiceTest {
     @Autowired
-    private var service: ServiceWithCircuitBreaker
+    private ServiceWithCircuitBreaker service;
 
     // Missing @MockBean for external service
 
@@ -447,14 +447,14 @@ class ServiceTest {
 @SpringBootTest
 class ServiceTest {
     @Autowired
-    private var service: ServiceWithCircuitBreaker
+    private ServiceWithCircuitBreaker service;
 
     @MockBean
-    private var externalService: ExternalService
+    private ExternalService externalService;
 
     @Test
     void test() {
-        when(externalService.call()).thenThrow(RuntimeException());
+        when(externalService.call()).thenThrow(new RuntimeException());
         // Predictable failure
     }
 }

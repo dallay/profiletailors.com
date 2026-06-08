@@ -4,31 +4,31 @@
 
 Persist saga state for recovery and monitoring:
 
-```kotlin
+```java
 @Entity
 @Table(name = "saga_state")
-class SagaState {
+public class SagaState {
 
     @Id
-    private var sagaId: String
+    private String sagaId;
 
     @Enumerated(EnumType.STRING)
-    private var status: SagaStatus
+    private SagaStatus status;
 
     @Column(columnDefinition = "TEXT")
-    private var currentStep: String
+    private String currentStep;
 
     @Column(columnDefinition = "TEXT")
-    private var compensationSteps: String
+    private String compensationSteps;
 
-    private var startedAt: Instant
-    private var completedAt: Instant
+    private Instant startedAt;
+    private Instant completedAt;
 
     @Version
-    private var version: Long
+    private Long version;
 }
 
-enum class SagaStatus {
+public enum SagaStatus {
     STARTED,
     PROCESSING,
     COMPENSATING,
@@ -42,10 +42,10 @@ enum class SagaStatus {
 
 Define saga state transitions explicitly:
 
-```kotlin
+```java
 @Configuration
 @EnableStateMachine
-class SagaStateMachineConfig
+public class SagaStateMachineConfig
     extends StateMachineConfigurerAdapter<SagaStatus, SagaEvent> {
 
     @Override
@@ -114,36 +114,36 @@ STARTED → PROCESSING → PROCESSING (retry) → COMPLETED
 
 Store context data for saga execution:
 
-```kotlin
+```java
 @Entity
 @Table(name = "saga_context")
-class SagaContext {
+public class SagaContext {
 
     @Id
-    private var sagaId: String
+    private String sagaId;
 
     @Column(columnDefinition = "TEXT")
-    private var contextData: String // JSON-serialized
+    private String contextData; // JSON-serialized
 
-    private var createdAt: Instant
-    private var updatedAt: Instant
+    private Instant createdAt;
+    private Instant updatedAt;
 
     public <T> T getContextData(Class<T> type) {
         return JsonUtils.fromJson(contextData, type);
     }
 
-    fun setContextData(Object data): void {
+    public void setContextData(Object data) {
         this.contextData = JsonUtils.toJson(data);
     }
 }
 
 @Service
-class SagaContextService {
+public class SagaContextService {
 
-    private val repository: SagaContextRepository
+    private final SagaContextRepository repository;
 
-    fun saveContext(String sagaId, Object context): void {
-        SagaContext sagaContext = SagaContext(sagaId);
+    public void saveContext(String sagaId, Object context) {
+        SagaContext sagaContext = new SagaContext(sagaId);
         sagaContext.setContextData(context);
         repository.save(sagaContext);
     }
@@ -151,7 +151,7 @@ class SagaContextService {
     public <T> T loadContext(String sagaId, Class<T> type) {
         return repository.findById(sagaId)
             .map(ctx -> ctx.getContextData(type))
-            .orElseThrow(() -> SagaContextNotFoundException(sagaId));
+            .orElseThrow(() -> new SagaContextNotFoundException(sagaId));
     }
 }
 ```
@@ -160,15 +160,15 @@ class SagaContextService {
 
 Detect and handle sagas that exceed expected duration:
 
-```kotlin
+```java
 @Service
-class SagaTimeoutHandler {
+public class SagaTimeoutHandler {
 
-    private val repository: SagaStateRepository
+    private final SagaStateRepository repository;
     private static final Duration MAX_SAGA_DURATION = Duration.ofMinutes(30);
 
     @Scheduled(fixedDelay = 60000) // Check every minute
-    fun detectTimeouts(): void {
+    public void detectTimeouts() {
         Instant timeout = Instant.now().minus(MAX_SAGA_DURATION);
 
         List<SagaState> timedOutSagas = repository
@@ -180,7 +180,7 @@ class SagaTimeoutHandler {
         });
     }
 
-    private fun compensateSaga(SagaState saga): void {
+    private void compensateSaga(SagaState saga) {
         saga.setStatus(SagaStatus.COMPENSATING);
         repository.save(saga);
         // Trigger compensation logic
@@ -192,15 +192,15 @@ class SagaTimeoutHandler {
 
 Recover sagas from failures:
 
-```kotlin
+```java
 @Service
-class SagaRecoveryService {
+public class SagaRecoveryService {
 
-    private val stateRepository: SagaStateRepository
-    private val commandGateway: CommandGateway
+    private final SagaStateRepository stateRepository;
+    private final CommandGateway commandGateway;
 
     @Scheduled(fixedDelay = 30000) // Check every 30 seconds
-    fun recoverFailedSagas(): void {
+    public void recoverFailedSagas() {
         List<SagaState> failedSagas = stateRepository
             .findByStatus(SagaStatus.FAILED);
 
@@ -212,11 +212,11 @@ class SagaRecoveryService {
         });
     }
 
-    private fun canBeRetried(SagaState saga): boolean {
+    private boolean canBeRetried(SagaState saga) {
         return saga.getRetryCount() < 3;
     }
 
-    private fun retrySaga(SagaState saga): void {
+    private void retrySaga(SagaState saga) {
         saga.setStatus(SagaStatus.STARTED);
         saga.setRetryCount(saga.getRetryCount() + 1);
         stateRepository.save(saga);
@@ -229,9 +229,9 @@ class SagaRecoveryService {
 
 Query sagas for monitoring:
 
-```kotlin
+```java
 @Repository
-interface SagaStateRepository extends JpaRepository<SagaState, String> {
+public interface SagaStateRepository extends JpaRepository<SagaState, String> {
 
     List<SagaState> findByStatus(SagaStatus status);
 
@@ -247,9 +247,9 @@ interface SagaStateRepository extends JpaRepository<SagaState, String> {
 
 @RestController
 @RequestMapping("/api/sagas")
-class SagaMonitoringController {
+public class SagaMonitoringController {
 
-    private val repository: SagaStateRepository
+    private final SagaStateRepository repository;
 
     @GetMapping("/status/{status}")
     public List<SagaState> getSagasByStatus(

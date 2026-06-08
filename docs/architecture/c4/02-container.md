@@ -2,7 +2,8 @@
 
 ## Overview
 
-The Container diagram zooms into Profile Tailors and shows the high-level technology choices, how containers communicate, and where data lives.
+The Container diagram zooms into Profile Tailors and shows the high-level technology choices, how
+containers communicate, and where data lives.
 
 **Audience**: Technical leadership, architects, senior developers
 
@@ -134,103 +135,111 @@ graph TB
 ### Frontend Containers
 
 #### Marketing Site
+
 - **Technology**: Astro 6, TypeScript, Tailwind CSS v4
 - **Deployment**: Static files on CDN (Vercel, Cloudflare Pages)
 - **Purpose**: Public-facing marketing site with waitlist flow
 - **Key Features**:
-  - Bilingual (English/Spanish) with i18n routing
-  - Nothing-inspired monochrome design system
-  - Client-side waitlist form submission
-  - Static-first, no SSR
+    - Bilingual (English/Spanish) with i18n routing
+    - Nothing-inspired monochrome design system
+    - Client-side waitlist form submission
+    - Static-first, no SSR
 
 #### Web Application (SPA)
+
 - **Technology**: Vue 3, TypeScript, Tailwind CSS v4
 - **Deployment**: Static files on CDN
 - **Purpose**: Authenticated user interface for content management
 - **Key Features**:
-  - Content creation and scheduling
-  - Multi-platform publishing
-  - Analytics dashboards
-  - Team collaboration
-  - Workspace management
+    - Content creation and scheduling
+    - Multi-platform publishing
+    - Analytics dashboards
+    - Team collaboration
+    - Workspace management
 
 ### Backend Containers
 
 #### API Application
+
 - **Technology**: Spring Boot 4, Kotlin, WebFlux (reactive)
 - **Deployment**: Container (Docker) on Kubernetes or Cloud Run
 - **Purpose**: Core business logic and REST API
 - **Architecture**: Hexagonal architecture with bounded contexts
 - **Bounded Contexts**:
-  - **Identity**: User authentication and principal management
-  - **Authorization**: Permission checks, role-based access control
-  - **Tenancy**: Workspace and membership management
-  - **Credentials**: API keys, OAuth tokens, service accounts
-  - **Governance**: Audit logs, compliance, data retention
-  - **Platform**: Cross-cutting concerns, request context
-  - **Audit**: Request outcome tracking, authorization decision auditing
-  - **Observability**: Metrics collection, rate limiting hooks
+    - **Identity**: User authentication and principal management
+    - **Authorization**: Permission checks, role-based access control
+    - **Tenancy**: Workspace and membership management
+    - **Credentials**: API keys, OAuth tokens, service accounts
+    - **Governance**: Audit logs, compliance, data retention
+    - **Platform**: Cross-cutting concerns, request context
+    - **Audit**: Request outcome tracking, authorization decision auditing
+    - **Observability**: Metrics collection, rate limiting hooks
 - **Key Features**:
-  - Reactive programming with Kotlin coroutines
-  - JWT and API Key authentication
-  - R2DBC for non-blocking database access
-  - OpenAPI documentation (SpringDoc)
-  - Spring Modulith for modular monolith
+    - Reactive programming with Kotlin coroutines
+    - JWT and API Key authentication
+    - R2DBC for non-blocking database access
+    - OpenAPI documentation (SpringDoc)
+    - Spring Modulith for modular monolith
 
 #### Scheduler Service
+
 - **Technology**: Spring Boot 4, Kotlin
 - **Deployment**: Container (Docker) on Kubernetes or Cloud Run
 - **Purpose**: Background job processing for scheduled posts
 - **Key Features**:
-  - Consumes scheduling jobs from message queue
-  - Publishes posts to social media platforms at scheduled times
-  - Handles retries and error recovery
-  - Respects platform rate limits
+    - Consumes scheduling jobs from message queue
+    - Publishes posts to social media platforms at scheduled times
+    - Handles retries and error recovery
+    - Respects platform rate limits
 
 #### Analytics Service
+
 - **Technology**: Spring Boot 4, Kotlin
 - **Deployment**: Container (Docker) on Kubernetes or Cloud Run
 - **Purpose**: Collects and aggregates engagement metrics
 - **Key Features**:
-  - Polls social media APIs for engagement data
-  - Processes analytics events from queue
-  - Aggregates metrics for reporting
-  - Stores time-series data
+    - Polls social media APIs for engagement data
+    - Processes analytics events from queue
+    - Aggregates metrics for reporting
+    - Stores time-series data
 
 ### Data Containers
 
 #### Database (PostgreSQL 16)
+
 - **Technology**: PostgreSQL 16 with R2DBC driver
 - **Deployment**: Managed service (AWS RDS, Google Cloud SQL, Neon)
 - **Purpose**: Primary data store
 - **Schema**:
-  - Users and authentication
-  - Workspaces and memberships
-  - Posts and schedules
-  - Credentials and tokens
-  - Audit logs
-  - Analytics metrics
+    - Users and authentication
+    - Workspaces and memberships
+    - Posts and schedules
+    - Credentials and tokens
+    - Audit logs
+    - Analytics metrics
 - **Access Pattern**: Reactive via R2DBC (non-blocking)
 
 #### Cache (Redis)
+
 - **Technology**: Redis 7+
 - **Deployment**: Managed service (AWS ElastiCache, Upstash)
 - **Purpose**: Session cache, rate limiting, temporary data
 - **Use Cases**:
-  - Session storage
-  - Rate limiting counters
-  - OAuth token cache
-  - API response cache
+    - Session storage
+    - Rate limiting counters
+    - OAuth token cache
+    - API response cache
 
 #### Message Queue (RabbitMQ / Kafka)
+
 - **Technology**: RabbitMQ or Apache Kafka
 - **Deployment**: Managed service (CloudAMQP, Confluent Cloud)
 - **Purpose**: Asynchronous job processing and event streaming
 - **Use Cases**:
-  - Scheduling jobs (post publishing)
-  - Analytics events (engagement updates)
-  - Audit events (governance)
-  - Notification events (email, webhooks)
+    - Scheduling jobs (post publishing)
+    - Analytics events (engagement updates)
+    - Audit events (governance)
+    - Notification events (email, webhooks)
 
 ---
 
@@ -238,23 +247,23 @@ graph TB
 
 ### Synchronous (Request/Response)
 
-| From | To | Protocol | Purpose |
-|------|-----|----------|---------|
-| Web App / SPA | API Application | HTTPS/REST | User actions, data queries |
-| API Application | Database | R2DBC | Data persistence |
-| API Application | Auth Provider | HTTPS/OAuth2 | User authentication |
-| API Application | Cloud Storage | HTTPS/S3 | Media upload/download |
-| Scheduler Service | Social Media APIs | HTTPS/REST | Post publishing |
-| Analytics Service | Social Media APIs | HTTPS/REST | Engagement data fetching |
+| From              | To                | Protocol     | Purpose                    |
+|-------------------|-------------------|--------------|----------------------------|
+| Web App / SPA     | API Application   | HTTPS/REST   | User actions, data queries |
+| API Application   | Database          | R2DBC        | Data persistence           |
+| API Application   | Auth Provider     | HTTPS/OAuth2 | User authentication        |
+| API Application   | Cloud Storage     | HTTPS/S3     | Media upload/download      |
+| Scheduler Service | Social Media APIs | HTTPS/REST   | Post publishing            |
+| Analytics Service | Social Media APIs | HTTPS/REST   | Engagement data fetching   |
 
 ### Asynchronous (Event-Driven)
 
-| From | To | Via | Purpose |
-|------|-----|-----|---------|
-| API Application | Scheduler Service | Message Queue | Schedule post publishing |
-| API Application | Analytics Service | Message Queue | Trigger metrics collection |
-| Scheduler Service | Analytics Service | Message Queue | Post published event |
-| API Application | Email Service | Message Queue | Send notifications |
+| From              | To                | Via           | Purpose                    |
+|-------------------|-------------------|---------------|----------------------------|
+| API Application   | Scheduler Service | Message Queue | Schedule post publishing   |
+| API Application   | Analytics Service | Message Queue | Trigger metrics collection |
+| Scheduler Service | Analytics Service | Message Queue | Post published event       |
+| API Application   | Email Service     | Message Queue | Send notifications         |
 
 ---
 
@@ -262,34 +271,34 @@ graph TB
 
 ### Backend Stack
 
-| Component | Technology | Rationale |
-|-----------|-----------|-----------|
-| **Language** | Kotlin | Type-safe, concise, excellent coroutines support |
-| **Framework** | Spring Boot 4 | Mature ecosystem, reactive support, Spring Modulith |
-| **Reactive** | WebFlux + Coroutines | Non-blocking I/O, better resource utilization |
-| **Database Access** | R2DBC | Reactive database driver for PostgreSQL |
-| **Architecture** | Hexagonal + Bounded Contexts | Clean separation, testability, domain-driven design |
-| **API Docs** | SpringDoc OpenAPI | Auto-generated API documentation |
+| Component           | Technology                   | Rationale                                           |
+|---------------------|------------------------------|-----------------------------------------------------|
+| **Language**        | Kotlin                       | Type-safe, concise, excellent coroutines support    |
+| **Framework**       | Spring Boot 4                | Mature ecosystem, reactive support, Spring Modulith |
+| **Reactive**        | WebFlux + Coroutines         | Non-blocking I/O, better resource utilization       |
+| **Database Access** | R2DBC                        | Reactive database driver for PostgreSQL             |
+| **Architecture**    | Hexagonal + Bounded Contexts | Clean separation, testability, domain-driven design |
+| **API Docs**        | SpringDoc OpenAPI            | Auto-generated API documentation                    |
 
 ### Frontend Stack
 
-| Component | Technology | Rationale |
-|-----------|-----------|-----------|
-| **Marketing** | Astro 6 | Static-first, fast, excellent DX |
-| **Web App** | Vue 3 | Component-based, reactive, excellent TypeScript support |
-| **Language** | TypeScript | Type safety, better tooling |
-| **Styling** | Tailwind CSS v4 | Utility-first, design system tokens |
-| **State** | Pinia | Official Vue state management |
+| Component     | Technology      | Rationale                                               |
+|---------------|-----------------|---------------------------------------------------------|
+| **Marketing** | Astro 6         | Static-first, fast, excellent DX                        |
+| **Web App**   | Vue 3           | Component-based, reactive, excellent TypeScript support |
+| **Language**  | TypeScript      | Type safety, better tooling                             |
+| **Styling**   | Tailwind CSS v4 | Utility-first, design system tokens                     |
+| **State**     | Pinia           | Official Vue state management                           |
 
 ### Infrastructure
 
-| Component | Technology | Rationale |
-|-----------|-----------|-----------|
-| **Database** | PostgreSQL 16 | Robust, ACID, JSON support, mature |
-| **Cache** | Redis | Fast, simple, widely supported |
-| **Queue** | RabbitMQ / Kafka | Reliable message delivery, event streaming |
-| **Storage** | S3-compatible | Standard API, multiple providers |
-| **Auth** | OAuth2/OIDC | Industry standard, delegated authentication |
+| Component    | Technology       | Rationale                                   |
+|--------------|------------------|---------------------------------------------|
+| **Database** | PostgreSQL 16    | Robust, ACID, JSON support, mature          |
+| **Cache**    | Redis            | Fast, simple, widely supported              |
+| **Queue**    | RabbitMQ / Kafka | Reliable message delivery, event streaming  |
+| **Storage**  | S3-compatible    | Standard API, multiple providers            |
+| **Auth**     | OAuth2/OIDC      | Industry standard, delegated authentication |
 
 ---
 
@@ -341,18 +350,21 @@ graph TB
 ## Security Considerations
 
 ### Authentication & Authorization
+
 - JWT tokens for user sessions (short-lived, 15 min)
 - API keys for service-to-service communication
 - OAuth2 for social media platform authorization
 - Role-based access control (RBAC) at workspace level
 
 ### Data Protection
+
 - TLS 1.3 for all external communication
 - Encrypted credentials at rest (AES-256)
 - Secrets management via environment variables or secret manager
 - Database connection pooling with encrypted connections
 
 ### Rate Limiting
+
 - Per-user rate limits enforced by API gateway
 - Per-workspace rate limits for fair usage
 - Social media API rate limit tracking and backoff
@@ -362,16 +374,19 @@ graph TB
 ## Scalability Considerations
 
 ### Horizontal Scaling
+
 - API Application: Stateless, can scale horizontally
 - Scheduler Service: Partitioned by workspace or time slot
 - Analytics Service: Partitioned by platform or metric type
 
 ### Database Scaling
+
 - Read replicas for analytics queries
 - Connection pooling (R2DBC)
 - Partitioning by workspace or time range
 
 ### Caching Strategy
+
 - Redis for session data (TTL: 15 min)
 - API response cache (TTL: 1-5 min)
 - OAuth token cache (TTL: token expiry - 5 min)
@@ -381,17 +396,20 @@ graph TB
 ## Current Implementation Status
 
 **Implemented**:
+
 - ✅ Marketing Site (Astro 6, deployed)
 - ✅ API Application (Spring Boot 4, core bounded contexts)
 - ✅ Database (PostgreSQL with R2DBC)
 - ✅ Authentication (JWT + API Key)
 
 **In Progress**:
+
 - 🔄 Web Application (Vue 3, design phase)
 - 🔄 Scheduler Service (architecture defined)
 - 🔄 Analytics Service (architecture defined)
 
 **Planned**:
+
 - 🔲 Redis cache integration
 - 🔲 Message queue integration
 - 🔲 Social media API integrations

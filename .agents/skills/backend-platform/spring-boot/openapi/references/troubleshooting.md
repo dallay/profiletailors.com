@@ -32,9 +32,9 @@ tasks.withType(JavaCompile).configureEach {
 
 **Solution**: Ensure `ByteArrayHttpMessageConverter` is registered when overriding converters:
 
-```kotlin
-converters.add(ByteArrayHttpMessageConverter());
-converters.add(MappingJackson2HttpMessageConverter());
+```java
+converters.add(new ByteArrayHttpMessageConverter());
+converters.add(new MappingJackson2HttpMessageConverter());
 ```
 
 **Alternative approach**: Check for missing message converter configuration in your WebMvcConfigurer
@@ -72,14 +72,14 @@ or similar configuration.
 
 **Solution**: Permit SpringDoc endpoints in Spring Security:
 
-```kotlin
+```java
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
 import org.springframework.security.web.SecurityFilterChain;
 
 @Configuration
 @EnableWebSecurity
-class SecurityConfig {
+public class SecurityConfig {
 
     @Bean
     public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
@@ -150,17 +150,17 @@ val title: String = ""
 
 **Solution**: Ensure proper Jackson configuration:
 
-```kotlin
+```java
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
 @Configuration
-class JacksonConfig {
+public class JacksonConfig {
 
     @Bean
-    fun objectMapper(): ObjectMapper {
-        return ObjectMapper();
+    public ObjectMapper objectMapper() {
+        return new ObjectMapper();
     }
 }
 ```
@@ -175,9 +175,9 @@ class JacksonConfig {
 2. Use path exclusions to filter out unwanted endpoints
 3. Consider using grouped OpenAPI definitions
 
-```kotlin
+```java
 @Bean
-fun publicApi(): GroupedOpenApi {
+public GroupedOpenApi publicApi() {
     return GroupedOpenApi.builder()
         .group("public")
         .packagesToScan("com.example.controller.public")
@@ -211,12 +211,12 @@ springdoc.show-actuator=true
 **Solution**: Use `@Operation(hidden = true)` on exception handlers and define proper error response
 schemas:
 
-```kotlin
+```java
 @ExceptionHandler(BookNotFoundException.class)
 @ResponseStatus(HttpStatus.NOT_FOUND)
 @Operation(hidden = true)
-fun handleBookNotFound(BookNotFoundException ex): ErrorResponse {
-    return ErrorResponse("BOOK_NOT_FOUND", ex.getMessage());
+public ErrorResponse handleBookNotFound(BookNotFoundException ex) {
+    return new ErrorResponse("BOOK_NOT_FOUND", ex.getMessage());
 }
 
 @Schema(description = "Error response")

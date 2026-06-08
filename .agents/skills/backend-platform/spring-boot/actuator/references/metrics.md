@@ -70,9 +70,9 @@ management:
 You can register any number of `MeterRegistryCustomizer` beans to further configure the registry,
 such as applying common tags, before any meters are registered with the registry:
 
-```kotlin
+```java
 @Component
-class MyMeterRegistryConfiguration {
+public class MyMeterRegistryConfiguration {
 
     @Bean
     public MeterRegistryCustomizer<MeterRegistry> metricsCommonTags() {
@@ -84,16 +84,16 @@ class MyMeterRegistryConfiguration {
 You can apply customizations to particular registry implementations by being more specific about the
 generic type:
 
-```kotlin
+```java
 @Component
-class MyMeterRegistryConfiguration {
+public class MyMeterRegistryConfiguration {
 
     @Bean
     public MeterRegistryCustomizer<GraphiteMeterRegistry> graphiteMetricsNamingConvention() {
         return registry -> registry.config().namingConvention(this::toGraphiteConvention);
     }
 
-    private fun toGraphiteConvention(String name, Meter.Type type, String baseUnit): String {
+    private String toGraphiteConvention(String name, Meter.Type type, String baseUnit) {
         return name.toLowerCase().replace(".", "_");
     }
 }
@@ -150,9 +150,9 @@ Tags added to HTTP server request metrics:
 
 To customize the tags, provide a `@Bean` that implements `WebMvcTagsContributor`:
 
-```kotlin
+```java
 @Component
-class MyWebMvcTagsContributor implements WebMvcTagsContributor {
+public class MyWebMvcTagsContributor implements WebMvcTagsContributor {
 
     @Override
     public Iterable<Tag> getTags(HttpServletRequest request, 
@@ -223,12 +223,12 @@ Executor metrics include:
 
 To record your own metrics, inject `MeterRegistry` into your component:
 
-```kotlin
+```java
 @Component
-class MyService {
-    private val counter: Counter
-    private val timer: Timer
-    private val gauge: Gauge
+public class MyService {
+    private final Counter counter;
+    private final Timer timer;
+    private final Gauge gauge;
 
     public MyService(MeterRegistry meterRegistry) {
         this.counter = Counter.builder("my.counter")
@@ -244,7 +244,7 @@ class MyService {
                 .register(meterRegistry, this, MyService::calculateGaugeValue);
     }
 
-    fun doSomething(): void {
+    public void doSomething() {
         counter.increment();
         
         Timer.Sample sample = Timer.start(meterRegistry);
@@ -252,7 +252,7 @@ class MyService {
         sample.stop(timer);
     }
     
-    private fun calculateGaugeValue(MyService self): double {
+    private double calculateGaugeValue(MyService self) {
         return Math.random();
     }
 }
@@ -262,12 +262,12 @@ class MyService {
 
 You can use the `@Timed` annotation to time method executions:
 
-```kotlin
+```java
 @Component
-class MyService {
+public class MyService {
 
     @Timed(name = "my.method.time", description = "Time taken to execute my method")
-    fun timedMethod(): void {
+    public void timedMethod() {
         // method body
     }
 }
@@ -275,14 +275,14 @@ class MyService {
 
 For the `@Timed` annotation to work, you need to enable timing support:
 
-```kotlin
+```java
 @Configuration
 @EnableConfigurationProperties
-class TimedConfiguration {
+public class TimedConfiguration {
 
     @Bean
-    fun timedAspect(MeterRegistry registry): TimedAspect {
-        return TimedAspect(registry);
+    public TimedAspect timedAspect(MeterRegistry registry) {
+        return new TimedAspect(registry);
     }
 }
 ```
@@ -291,12 +291,12 @@ class TimedConfiguration {
 
 You can use the `@Counted` annotation to count method invocations:
 
-```kotlin
+```java
 @Component
-class MyService {
+public class MyService {
 
     @Counted(name = "my.method.count", description = "Number of times my method is called")
-    fun countedMethod(): void {
+    public void countedMethod() {
         // method body
     }
 }
@@ -304,13 +304,13 @@ class MyService {
 
 For the `@Counted` annotation to work, you need to enable counting support:
 
-```kotlin
+```java
 @Configuration
-class CountedConfiguration {
+public class CountedConfiguration {
 
     @Bean
-    fun countedAspect(MeterRegistry registry): CountedAspect {
-        return CountedAspect(registry);
+    public CountedAspect countedAspect(MeterRegistry registry) {
+        return new CountedAspect(registry);
     }
 }
 ```
@@ -319,22 +319,22 @@ class CountedConfiguration {
 
 You can register any number of `MeterFilter` beans to control how meters are registered:
 
-```kotlin
+```java
 @Configuration
-class MetricsConfiguration {
+public class MetricsConfiguration {
 
     @Bean
-    fun renameFilter(): MeterFilter {
+    public MeterFilter renameFilter() {
         return MeterFilter.rename("old.metric.name", "new.metric.name");
     }
 
     @Bean
-    fun denyFilter(): MeterFilter {
+    public MeterFilter denyFilter() {
         return MeterFilter.deny(id -> id.getName().contains("unwanted"));
     }
 
     @Bean
-    fun tagFilter(): MeterFilter {
+    public MeterFilter tagFilter() {
         return MeterFilter.commonTags("application", "my-app");
     }
 }
@@ -508,7 +508,7 @@ management:
 Be mindful of meter cardinality when adding tags. High-cardinality tags (like user IDs) can lead to
 performance issues:
 
-```kotlin
+```java
 // Bad - high cardinality
 Timer.builder("user.request.time")
     .tag("user.id", userId)  // Could be millions of different values
@@ -524,9 +524,9 @@ Timer.builder("user.request.time")
 
 For high-throughput applications, consider using sampling to reduce overhead:
 
-```kotlin
+```java
 @Bean
-fun samplingFilter(): MeterFilter {
+public MeterFilter samplingFilter() {
     return MeterFilter.maximumExpectedValue("http.server.requests", 
                                            Duration.ofMillis(500));
 }
@@ -550,7 +550,7 @@ management:
 
 Be careful not to include sensitive information in metric tags or names:
 
-```kotlin
+```java
 // Bad - exposes sensitive data
 Counter.builder("login.attempts")
     .tag("username", username)  // Could expose usernames
@@ -579,9 +579,9 @@ management:
 
 Or using Spring Security:
 
-```kotlin
+```java
 @Configuration
-class ActuatorSecurity {
+public class ActuatorSecurity {
 
     @Bean
     public SecurityFilterChain actuatorSecurityFilterChain(HttpSecurity http) throws Exception {

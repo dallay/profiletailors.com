@@ -382,7 +382,7 @@ class AuthorizationBddSteps(
     @And("the audit events response returned count should be {int}")
     fun andAuditEventsResponseReturnedCountShouldBe(count: Int) {
         val body = requireResponseBodyText()
-        assertTrue(body.contains("\"returned\":$count"), body)
+        assertTrue(body.contains("\"returned\":$count"), "Expected body to contain '\"returned\":$count' but got: $body")
     }
 
     @Given("a stubbed workspace ownership response is configured")

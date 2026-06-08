@@ -4,48 +4,48 @@
 
 ### Comprehensive Exception Handler
 
-```kotlin
+```java
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 import io.swagger.v3.oas.annotations.Operation;
 
 @RestControllerAdvice
-class GlobalExceptionHandler {
+public class GlobalExceptionHandler {
 
     @ExceptionHandler(BookNotFoundException.class)
     @ResponseStatus(HttpStatus.NOT_FOUND)
     @Operation(hidden = true)
-    fun handleBookNotFound(BookNotFoundException ex): ErrorResponse {
-        return ErrorResponse("BOOK_NOT_FOUND", ex.getMessage());
+    public ErrorResponse handleBookNotFound(BookNotFoundException ex) {
+        return new ErrorResponse("BOOK_NOT_FOUND", ex.getMessage());
     }
 
     @ExceptionHandler(ValidationException.class)
     @ResponseStatus(HttpStatus.BAD_REQUEST)
     @Operation(hidden = true)
-    fun handleValidation(ValidationException ex): ErrorResponse {
-        return ErrorResponse("VALIDATION_ERROR", ex.getMessage());
+    public ErrorResponse handleValidation(ValidationException ex) {
+        return new ErrorResponse("VALIDATION_ERROR", ex.getMessage());
     }
 
     @ExceptionHandler(AccessDeniedException.class)
     @ResponseStatus(HttpStatus.FORBIDDEN)
     @Operation(hidden = true)
-    fun handleAccessDenied(AccessDeniedException ex): ErrorResponse {
-        return ErrorResponse("ACCESS_DENIED", "Insufficient permissions");
+    public ErrorResponse handleAccessDenied(AccessDeniedException ex) {
+        return new ErrorResponse("ACCESS_DENIED", "Insufficient permissions");
     }
 
     @ExceptionHandler(Exception.class)
     @ResponseStatus(HttpStatus.INTERNAL_SERVER_ERROR)
     @Operation(hidden = true)
-    fun handleGeneric(Exception ex): ErrorResponse {
-        return ErrorResponse("INTERNAL_ERROR", "An unexpected error occurred");
+    public ErrorResponse handleGeneric(Exception ex) {
+        return new ErrorResponse("INTERNAL_ERROR", "An unexpected error occurred");
     }
 }
 ```
 
 ### Error Response Schema
 
-```kotlin
+```java
 import io.swagger.v3.oas.annotations.media.Schema;
 import java.time.LocalDateTime;
 import java.util.List;
@@ -68,7 +68,7 @@ public record ErrorResponse(
     String path
 ) {
     public ErrorResponse(String code, String message) {
-        this(code, message, listOf(), LocalDateTime.now(), "");
+        this(code, message, List.of(), LocalDateTime.now(), "");
     }
 
     @Schema(description = "Validation error detail")
@@ -86,7 +86,7 @@ public record ErrorResponse(
 
 ### API Response with Error Codes
 
-```kotlin
+```java
 @Operation(
     summary = "Get book by ID",
     responses = {
@@ -113,14 +113,14 @@ public record ErrorResponse(
     }
 )
 @GetMapping("/{id}")
-fun getBook(@PathVariable Long id): Book {
-    return repository.findById(id).orElseThrow(() -> BookNotFoundException(id));
+public Book getBook(@PathVariable Long id) {
+    return repository.findById(id).orElseThrow(() -> new BookNotFoundException(id));
 }
 ```
 
 ### Custom Error Response Examples
 
-```kotlin
+```java
 @Operation(
     summary = "Create book",
     responses = {
@@ -152,7 +152,7 @@ fun getBook(@PathVariable Long id): Book {
     }
 )
 @PostMapping
-fun createBook(@Valid @RequestBody Book book): Book {
+public Book createBook(@Valid @RequestBody Book book) {
     return repository.save(book);
 }
 ```
@@ -161,7 +161,7 @@ fun createBook(@Valid @RequestBody Book book): Book {
 
 ### RFC 7807 Problem Details
 
-```kotlin
+```java
 @Schema(description = "RFC 7807 Problem Details")
 public record ProblemDetail(
     @Schema(description = "Problem type URI", example = "https://example.com/probs/book-not-found")
@@ -181,12 +181,12 @@ public record ProblemDetail(
 ) {}
 
 @RestControllerAdvice
-class ProblemDetailExceptionHandler {
+public class ProblemDetailExceptionHandler {
 
     @ExceptionHandler(BookNotFoundException.class)
     @ResponseStatus(HttpStatus.NOT_FOUND)
     @Operation(hidden = true)
-    fun handleNotFound(BookNotFoundException ex): ProblemDetail {
+    public ProblemDetail handleNotFound(BookNotFoundException ex) {
         return new ProblemDetail(
             "https://example.com/probs/book-not-found",
             "Book Not Found",
@@ -202,7 +202,7 @@ class ProblemDetailExceptionHandler {
 
 ### Bean Validation Error Documentation
 
-```kotlin
+```java
 @Schema(description = "Constraint violation detail")
 public record ConstraintViolation(
     @Schema(description = "Invalid field", example = "title")
@@ -238,11 +238,11 @@ public record ValidationErrorResponse(
 
 ### Custom Business Exceptions
 
-```kotlin
-class InsufficientStockException extends RuntimeException {
-    private val bookId: Long
-    private val requested: int
-    private val available: int
+```java
+public class InsufficientStockException extends RuntimeException {
+    private final Long bookId;
+    private final int requested;
+    private final int available;
 
     public InsufficientStockException(Long bookId, int requested, int available) {
         super(String.format("Insufficient stock for book %d: requested=%d, available=%d",
@@ -258,7 +258,7 @@ class InsufficientStockException extends RuntimeException {
 @ExceptionHandler(InsufficientStockException.class)
 @ResponseStatus(HttpStatus.CONFLICT)
 @Operation(hidden = true)
-fun handleInsufficientStock(InsufficientStockException ex): ErrorResponse {
+public ErrorResponse handleInsufficientStock(InsufficientStockException ex) {
     return new ErrorResponse(
         "INSUFFICIENT_STOCK",
         String.format("Only %d copies available, %d requested", ex.getAvailable(), ex.getRequested()),
@@ -281,7 +281,7 @@ fun handleInsufficientStock(InsufficientStockException ex): ErrorResponse {
 6. **Don't expose sensitive data**: Sanitize exception messages
 7. **Use appropriate HTTP status codes**: Follow HTTP semantics
 
-```kotlin
+```java
 @Schema(description = "Error response with request tracking")
 public record ErrorResponse(
     String code,

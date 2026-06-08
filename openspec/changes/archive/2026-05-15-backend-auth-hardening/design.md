@@ -74,6 +74,7 @@ and has access to the request-local principal/resource context plus the permissi
 That makes it the narrowest and cleanest emission point.
 
 ### Decision: Add a detailed authorization result instead of replacing the existing
+
 `decide(...)` contract wholesale
 
 **Choice**: Add a detailed result path, such as `decideDetailed(requiredPermission)` returning a

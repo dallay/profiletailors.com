@@ -29,23 +29,33 @@ intended seams structurally, but does not enforce them.
 - `server/smp/src/main/kotlin/com/profiletailors/smp/platform/application/PlatformContracts.kt` —
   current audit seam is too coarse to prove authorization-specific allow/deny facts.
 -
+
 `server/smp/src/main/kotlin/com/profiletailors/smp/platform/infrastructure/PlatformBootstrapConfiguration.kt` —
 audit hook wiring is no-op by default; any runtime proof will need test-time replacement or enriched
 wiring.
+
 - `server/smp/src/main/kotlin/com/profiletailors/smp/platform/infrastructure/SpringMediator.kt` —
   current mediator dispatch has no hook invocation around request handling.
 -
+
 `server/smp/src/main/kotlin/com/profiletailors/smp/authorization/application/GetCurrentWorkspaceAccessSummaryQuery.kt` —
 proving-slice handler is the narrowest place to verify allow/deny outcomes without broadening scope.
+
 -
+
 `server/smp/src/main/kotlin/com/profiletailors/smp/authorization/application/WorkspaceAuthorizationService.kt` —
 allow/deny decisions are made here today, but are not surfaced as audit-ready runtime facts.
+
 -
+
 `server/smp/src/test/kotlin/com/profiletailors/smp/integration/WorkspaceAccessSummaryEndpointIntegrationTest.kt` —
 current proving-slice end-to-end verification uses H2 compatibility mode only.
+
 -
+
 `server/smp/src/test/kotlin/com/profiletailors/smp/infrastructure/db/LiquibaseBaselineChangelogTest.kt` —
 validates changelog composition statically, not against real PostgreSQL execution.
+
 - `server/smp/build.gradle.kts` — already includes Spring Modulith test support, so structural tests
   are feasible without dependency expansion.
 - `server/smp/compose.yaml` — existing Postgres compose file is generic and not aligned with current

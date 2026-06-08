@@ -46,31 +46,44 @@ bearer transport.
 - `openspec/specs/governance/spec.md` — runtime audit semantics already exist and should classify
   API-key allow/deny without broad governance expansion.
 -
+
 `server/smp/src/main/kotlin/com/profiletailors/smp/identity/infrastructure/security/IdentitySecurityConfiguration.kt` —
 current auth chain is JWT-only and is the main place where API-key transport integration would need
 to happen.
+
 -
+
 `server/smp/src/main/kotlin/com/profiletailors/smp/identity/infrastructure/security/JwtPrincipalAuthenticationConverter.kt` —
 current converter is JWT-specific and cannot directly authenticate API-key requests.
+
 - `server/smp/src/main/kotlin/com/profiletailors/smp/credentials/domain/ValidatedToken.kt` — current
   normalized credential object is token/bearer oriented; API-key support may need either careful
   extension or a parallel normalized credential shape.
 -
+
 `server/smp/src/main/kotlin/com/profiletailors/smp/identity/infrastructure/JwtAuthenticatedPrincipalMaterializer.kt` —
 currently branches USER vs SERVICE_ACCOUNT only.
+
 -
+
 `server/smp/src/main/kotlin/com/profiletailors/smp/identity/infrastructure/R2dbcPrincipalIdentityLookup.kt` —
 already broad enough to load an `API_KEY` principal if one exists in `principals`.
+
 - `server/smp/src/main/resources/db/changelog/db.changelog-master.yaml` — will need a new
   credentials changelog if API-key persistence is introduced.
 -
+
 `server/smp/src/main/resources/db/changelog/credentials/001-create-service-account-credentials.yaml` —
 useful reference for narrow credential-instance state, but not enough for API-key storage because
 API keys need lookup-safe secret handling.
+
 -
+
 `server/smp/src/test/kotlin/com/profiletailors/smp/integration/WorkspaceAccessSummaryEndpointIntegrationTest.kt` —
 existing proving-slice test harness can be extended for API-key allow/deny scenarios.
+
 -
+
 `server/smp/src/test/kotlin/com/profiletailors/smp/integration/WorkspaceAccessSummaryEndpointPostgresIntegrationTest.kt` —
 same for PostgreSQL proof.
 

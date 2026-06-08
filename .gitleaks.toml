@@ -14,6 +14,10 @@ paths = [
   ".agents/skills/backend-platform/spring-boot/security/scripts/test-jwt-setup.sh",
   ".agents/skills/backend-platform/spring-boot/security/references/jwt-testing-guide.md",
   "shared/common/src/test/kotlin/com/profiletailors/common/testfixture/CredentialFixtures.kt",
+  "server/smp/src/main/kotlin/com/profiletailors/smp/publishing/infrastructure/credentials/CredentialEncryptionService.kt",
+  "server/smp/src/main/resources/application.yaml",
+  "server/smp/src/test/resources/application-test.properties",
+  "server/smp/src/test/resources/application.properties",
 ]
 regexes = [
   "invalid\\.token\\.here",
@@ -21,4 +25,7 @@ regexes = [
   "test-secret-key-that-is-at-least-256-bits-long",
   "Th1sIsA\\$5tr0ngP@ssw0rd",
   "profiletailors-local-jwt-secret-for-dev-only",
+  "test-encryption-key-123456789012",
+  "dGVzdC1lbmNyeXB0aW9uLWtleS0xMjM0NTY3ODkwMTI=",
+  "ganNWJdNVv0kQKLKxX7cCA",
 ]

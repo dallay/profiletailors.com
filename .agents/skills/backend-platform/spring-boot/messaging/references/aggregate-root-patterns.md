@@ -4,22 +4,23 @@
 
 ### Base Aggregate Root
 
-```kotlin
+```java
 import jakarta.persistence.*;
 import lombok.*;
 import java.util.ArrayList;
 import java.util.List;
 
 @MappedSuperclass
+@Getter
 public abstract class AggregateRoot<ID> {
     @Transient
-    protected List<DomainEvent> domainEvents = mutableListOf();
+    protected List<DomainEvent> domainEvents = new ArrayList<>();
 
     public List<DomainEvent> getDomainEvents() {
         return new ArrayList<>(domainEvents);
     }
 
-    fun clearDomainEvents(): void {
+    public void clearDomainEvents() {
         domainEvents.clear();
     }
 
@@ -31,44 +32,45 @@ public abstract class AggregateRoot<ID> {
 
 ### Product Aggregate
 
-```kotlin
+```java
 import jakarta.persistence.*;
 import lombok.*;
 import java.math.BigDecimal;
 
 @Entity
 @Table(name = "products")
+@Getter
 @Setter(AccessLevel.PROTECTED)
 @EqualsAndHashCode(of = "id")
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
-class Product extends AggregateRoot<ProductId> {
+public class Product extends AggregateRoot<ProductId> {
 
     @Id
     @Embedded
-    private var id: ProductId
+    private ProductId id;
 
     @Column(nullable = false)
-    private var name: String
+    private String name;
 
     @Column(nullable = false, precision = 10, scale = 2)
-    private var price: BigDecimal
+    private BigDecimal price;
 
     @Column(nullable = false)
-    private var stock: Integer
+    private Integer stock;
 
     // Factory method
     public static Product create(String name, BigDecimal price, Integer stock) {
-        Product product = Product();
+        Product product = new Product();
         product.id = ProductId.generate();
         product.name = name;
         product.price = price;
         product.stock = stock;
-        product.addDomainEvent(ProductCreatedEvent(product.id, name, price, stock));
+        product.addDomainEvent(new ProductCreatedEvent(product.id, name, price, stock));
         return product;
     }
 
     // Domain behavior
-    fun decreaseStock(Integer quantity): void {
+    public void decreaseStock(Integer quantity) {
         if (this.stock < quantity) {
             throw new InsufficientStockException(
                 String.format("Insufficient stock: requested=%d, available=%d",
@@ -77,26 +79,26 @@ class Product extends AggregateRoot<ProductId> {
         }
 
         this.stock -= quantity;
-        addDomainEvent(ProductStockDecreasedEvent(this.id, quantity, this.stock));
+        addDomainEvent(new ProductStockDecreasedEvent(this.id, quantity, this.stock));
     }
 
-    fun increaseStock(Integer quantity): void {
+    public void increaseStock(Integer quantity) {
         this.stock += quantity;
-        addDomainEvent(ProductStockIncreasedEvent(this.id, quantity, this.stock));
+        addDomainEvent(new ProductStockIncreasedEvent(this.id, quantity, this.stock));
     }
 
-    fun updatePrice(BigDecimal newPrice): void {
+    public void updatePrice(BigDecimal newPrice) {
         if (newPrice.compareTo(BigDecimal.ZERO) <= 0) {
-            throw InvalidPriceException("Price must be positive");
+            throw new InvalidPriceException("Price must be positive");
         }
 
         BigDecimal oldPrice = this.price;
         this.price = newPrice;
-        addDomainEvent(ProductPriceUpdatedEvent(this.id, oldPrice, newPrice));
+        addDomainEvent(new ProductPriceUpdatedEvent(this.id, oldPrice, newPrice));
     }
 
-    fun discontinue(): void {
-        addDomainEvent(ProductDiscontinuedEvent(this.id, this.name, this.stock));
+    public void discontinue() {
+        addDomainEvent(new ProductDiscontinuedEvent(this.id, this.name, this.stock));
     }
 
     @Embeddable
@@ -104,18 +106,18 @@ class Product extends AggregateRoot<ProductId> {
     @NoArgsConstructor(access = AccessLevel.PROTECTED)
     @AllArgsConstructor(access = AccessLevel.PRIVATE)
     public static class ProductId {
-        private var value: String
+        private String value;
 
         public static ProductId of(String value) {
-            return ProductId(value);
+            return new ProductId(value);
         }
 
         public static ProductId generate() {
-            return ProductId(UUID.randomUUID().toString());
+            return new ProductId(UUID.randomUUID().toString());
         }
 
         @Override
-        fun toString(): String {
+        public String toString() {
             return value;
         }
     }
@@ -124,31 +126,32 @@ class Product extends AggregateRoot<ProductId> {
 
 ## Order Aggregate
 
-```kotlin
+```java
 @Entity
 @Table(name = "orders")
+@Getter
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
-class Order extends AggregateRoot<OrderId> {
+public class Order extends AggregateRoot<OrderId> {
 
     @Id
     @Embedded
-    private var id: OrderId
+    private OrderId id;
 
     @Embedded
-    private var customerId: CustomerId
+    private CustomerId customerId;
 
     @ElementCollection
     @CollectionTable(name = "order_items", joinColumns = @JoinColumn(name = "order_id"))
-    private List<OrderItem> items = mutableListOf();
+    private List<OrderItem> items = new ArrayList<>();
 
     @Enumerated(Enum.STRING)
-    private var status: OrderStatus
+    private OrderStatus status;
 
     @Column(nullable = false, precision = 10, scale = 2)
-    private var totalAmount: BigDecimal
+    private BigDecimal totalAmount;
 
     public static Order create(CustomerId customerId, List<OrderItem> items) {
-        Order order = Order();
+        Order order = new Order();
         order.id = OrderId.generate();
         order.customerId = customerId;
         order.items = List.copyOf(items);
@@ -163,7 +166,7 @@ class Order extends AggregateRoot<OrderId> {
         return order;
     }
 
-    fun pay(PaymentMethod paymentMethod): void {
+    public void pay(PaymentMethod paymentMethod) {
         if (this.status != OrderStatus.PENDING) {
             throw new InvalidOrderStatusException(
                 "Cannot pay order in status: " + this.status
@@ -179,7 +182,7 @@ class Order extends AggregateRoot<OrderId> {
         ));
     }
 
-    fun ship(ShippingAddress shippingAddress): void {
+    public void ship(ShippingAddress shippingAddress) {
         if (this.status != OrderStatus.PAID) {
             throw new InvalidOrderStatusException(
                 "Cannot ship order in status: " + this.status
@@ -194,7 +197,7 @@ class Order extends AggregateRoot<OrderId> {
         ));
     }
 
-    fun cancel(String reason): void {
+    public void cancel(String reason) {
         if (this.status == OrderStatus.SHIPPED || this.status == OrderStatus.DELIVERED) {
             throw new InvalidOrderStatusException(
                 "Cannot cancel order in status: " + this.status
@@ -209,10 +212,10 @@ class Order extends AggregateRoot<OrderId> {
         ));
     }
 
-    private fun calculateTotal(items: List<OrderItem>): BigDecimal {
-        return items.fold(BigDecimal.ZERO) { acc, item ->
-            acc.add(item.unitPrice.multiply(BigDecimal.valueOf(item.quantity.toLong())))
-        }
+    private static BigDecimal calculateTotal(List<OrderItem> items) {
+        return items.stream()
+            .map(item -> item.getUnitPrice().multiply(BigDecimal.valueOf(item.getQuantity())))
+            .reduce(BigDecimal.ZERO, BigDecimal::add);
     }
 
     @Embeddable
@@ -220,26 +223,28 @@ class Order extends AggregateRoot<OrderId> {
     @NoArgsConstructor(access = AccessLevel.PROTECTED)
     @AllArgsConstructor(access = AccessLevel.PRIVATE)
     public static class OrderId {
-        private var value: String
+        private String value;
 
         public static OrderId of(String value) {
-            return OrderId(value);
+            return new OrderId(value);
         }
 
         public static OrderId generate() {
-            return OrderId(UUID.randomUUID().toString());
+            return new OrderId(UUID.randomUUID().toString());
         }
     }
 
     @Embeddable
-            public static class OrderItem {
-        private var productId: ProductId
-        private var productName: String
-        private var quantity: Integer
-        private var unitPrice: BigDecimal
+    @AllArgsConstructor
+    @NoArgsConstructor
+    public static class OrderItem {
+        private ProductId productId;
+        private String productName;
+        private Integer quantity;
+        private BigDecimal unitPrice;
     }
 
-    enum class OrderStatus {
+    public enum OrderStatus {
         PENDING, PAID, SHIPPED, DELIVERED, CANCELLED
     }
 }
@@ -247,33 +252,33 @@ class Order extends AggregateRoot<OrderId> {
 
 ## Repository Pattern
 
-```kotlin
+```java
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
 
 import java.util.Optional;
 
 @Repository
-interface ProductRepository extends JpaRepository<Product, Product.ProductId> {
+public interface ProductRepository extends JpaRepository<Product, Product.ProductId> {
     Optional<Product> findByProductName(String name);
 }
 ```
 
 ## Application Service Pattern
 
-```kotlin
+```java
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import lombok.RequiredArgsConstructor;
 
 @Service
 @RequiredArgsConstructor
-class ProductApplicationService {
-    private val productRepository: ProductRepository
-    private val eventPublisher: ApplicationEventPublisher
+public class ProductApplicationService {
+    private final ProductRepository productRepository;
+    private final ApplicationEventPublisher eventPublisher;
 
     @Transactional
-    fun createProduct(CreateProductRequest request): ProductResponse {
+    public ProductResponse createProduct(CreateProductRequest request) {
         Product product = Product.create(
             request.getName(),
             request.getPrice(),
@@ -290,9 +295,9 @@ class ProductApplicationService {
     }
 
     @Transactional
-    fun decreaseStock(DecreaseStockRequest request): void {
+    public void decreaseStock(DecreaseStockRequest request) {
         Product product = productRepository.findById(request.getProductId())
-            .orElseThrow(() -> ProductNotFoundException(request.getProductId()));
+            .orElseThrow(() -> new ProductNotFoundException(request.getProductId()));
 
         product.decreaseStock(request.getQuantity());
 
@@ -303,7 +308,7 @@ class ProductApplicationService {
         product.clearDomainEvents();
     }
 
-    private fun mapToResponse(Product product): ProductResponse {
+    private ProductResponse mapToResponse(Product product) {
         return new ProductResponse(
             product.getId().getValue(),
             product.getName(),

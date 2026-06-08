@@ -44,6 +44,26 @@ platform:
     rate-limit:
       enabled: ${SMP_PLATFORM_RATE_LIMIT_ENABLED:false}
 
+publishing:
+  worker:
+    enabled: ${SMP_PUBLISHING_WORKER_ENABLED:false}
+    poll-interval: ${SMP_PUBLISHING_WORKER_POLL_INTERVAL:PT30S}
+    claim-lease: ${SMP_PUBLISHING_WORKER_CLAIM_LEASE:PT2M}
+    max-retries: ${SMP_PUBLISHING_MAX_RETRIES:3}
+    retry-backoff: ${SMP_PUBLISHING_RETRY_BACKOFF:PT5M}
+  linkedin:
+    mode: ${SMP_LINKEDIN_MODE:fake}
+    client-id: ${SMP_LINKEDIN_CLIENT_ID:}
+    client-secret: ${SMP_LINKEDIN_CLIENT_SECRET:}
+    redirect-uri: ${SMP_LINKEDIN_REDIRECT_URI:}
+    scopes: ${SMP_LINKEDIN_SCOPES:w_member_social,openid,profile,email}
+    api-base-url: ${SMP_LINKEDIN_API_BASE_URL:https://api.linkedin.com}
+    authorization-base-url: ${SMP_LINKEDIN_AUTHORIZATION_BASE_URL:https://www.linkedin.com/oauth/v2/authorization}
+    token-base-url: ${SMP_LINKEDIN_TOKEN_BASE_URL:https://www.linkedin.com/oauth/v2/accessToken}
+  credentials:
+    encryption:
+      key: ${PUBLISHING_CREDENTIALS_KEY:dGVzdC1lbmNyeXB0aW9uLWtleS0xMjM0NTY3ODkwMTI=}
+
 management:
   endpoints:
     web:
@@ -95,6 +115,11 @@ spring:
   config:
     activate:
       on-profile: test
+
+publishing:
+  credentials:
+    encryption:
+      key: dGVzdC1lbmNyeXB0aW9uLWtleS0xMjM0NTY3ODkwMTI=  # Base64 test key (32 bytes)
 
 management:
   server:

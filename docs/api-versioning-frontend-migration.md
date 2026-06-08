@@ -2,11 +2,14 @@
 
 ## Overview
 
-The backend API now uses **Media Type Versioning** with the vendor media type `application/vnd.api.v1+json`. All HTTP requests to the backend **must** include the `Accept` header with this media type.
+The backend API now uses **Media Type Versioning** with the vendor media type
+`application/vnd.api.v1+json`. All HTTP requests to the backend **must** include the `Accept` header
+with this media type.
 
 ## What Changed
 
 ### Before
+
 ```typescript
 headers: {
   'Content-Type': 'application/json',
@@ -15,6 +18,7 @@ headers: {
 ```
 
 ### After
+
 ```typescript
 headers: {
   'Content-Type': 'application/json',
@@ -27,26 +31,29 @@ headers: {
 
 ### ✅ Already Updated
 
-- `apps/web/app/src/lib/auth-api.ts` - The `request()` function now includes the `Accept` header automatically
+- `apps/web/app/src/lib/auth-api.ts` - The `request()` function now includes the `Accept` header
+  automatically
 - All authentication endpoints (`/api/auth/*`) are covered
 - All authenticated requests using `apiFetch` from the auth store are covered
 
 ### ⚠️ Action Required
 
-If you have **any other HTTP clients** in the frontend (e.g., separate API modules, direct `fetch` calls, axios instances), you **must** add the `Accept: application/vnd.api.v1+json` header to all requests.
+If you have **any other HTTP clients** in the frontend (e.g., separate API modules, direct `fetch`
+calls, axios instances), you **must** add the `Accept: application/vnd.api.v1+json` header to all
+requests.
 
 ## How to Test
 
 1. Start the backend: `cd server/smp && ./gradlew bootRun`
 2. Start the frontend: `cd apps/web/app && pnpm dev`
 3. Test authentication flows:
-   - Register a new user
-   - Login with credentials
-   - Refresh session
-   - Logout
+    - Register a new user
+    - Login with credentials
+    - Refresh session
+    - Logout
 4. Verify in browser DevTools Network tab that all requests include:
-   - **Request Header:** `Accept: application/vnd.api.v1+json`
-   - **Response Header:** `Content-Type: application/vnd.api.v1+json`
+    - **Request Header:** `Accept: application/vnd.api.v1+json`
+    - **Response Header:** `Content-Type: application/vnd.api.v1+json`
 
 ## What Happens Without the Header?
 

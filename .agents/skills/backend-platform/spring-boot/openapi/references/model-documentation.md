@@ -2,43 +2,43 @@
 
 ## Entity with Validation
 
-```kotlin
+```java
 import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.validation.constraints.*;
 
 @Entity
 @Schema(description = "Book entity representing a published book")
-class Book {
+public class Book {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     @Schema(description = "Unique identifier", example = "1", accessMode = Schema.AccessMode.READ_ONLY)
-    private var id: Long
+    private Long id;
 
     @NotBlank(message = "Title is required")
     @Size(min = 1, max = 200)
     @Schema(description = "Book title", example = "Clean Code", required = true, maxLength = 200)
-    private var title: String
+    private String title;
 
     @NotBlank(message = "Author is required")
     @Schema(description = "Book author", example = "Robert C. Martin", required = true)
-    private var author: String
+    private String author;
 
     @Pattern(regexp = "^(?:ISBN(?:-1[03])?:? )?(?=[0-9X]{10}$|(?=(?:[0-9]+[- ]){3})[- 0-9X]{13}$|97[89][0-9]{10}$|(?=(?:[0-9]+[- ]){4})[- 0-9]{17}$)(?:97[89][- ]?)?[0-9]{1,5}[- ]?[0-9]+[- ]?[0-9]+[- ]?[0-9X]$")
     @Schema(description = "ISBN number", example = "978-0132350884")
-    private var isbn: String
+    private String isbn;
 
     @Min(value = 0, message = "Price must be positive")
     @Schema(description = "Book price in USD", example = "29.99", minimum = "0")
-    private var price: BigDecimal
+    private BigDecimal price;
 
     @Past(message = "Publication date must be in the past")
     @Schema(description = "Publication date", example = "2008-08-01")
-    private var publicationDate: LocalDate
+    private LocalDate publicationDate;
 
     @Email(message = "Publisher email must be valid")
     @Schema(description = "Publisher contact email", example = "contact@publisher.com")
-    private var publisherEmail: String
+    private String publisherEmail;
 
     // Constructors, getters, setters...
 }
@@ -46,34 +46,34 @@ class Book {
 
 ## Nested Objects
 
-```kotlin
+```java
 @Schema(description = "Book with publisher details")
-class BookDetail {
+public class BookDetail {
 
     @Schema(description = "Book information")
-    private var book: Book
+    private Book book;
 
     @Schema(description = "Publisher information")
-    private var publisher: Publisher
+    private Publisher publisher;
 
     @Schema(description = "Publication details")
-    private var publicationInfo: PublicationInfo
+    private PublicationInfo publicationInfo;
 }
 
 @Schema(description = "Publisher entity")
-class Publisher {
+public class Publisher {
     @Schema(example = "Prentice Hall")
-    private var name: String
+    private String name;
 
     @Schema(example = "contact@pearson.com")
-    private var email: String
+    private String email;
 }
 ```
 
 ## Enum Documentation
 
-```kotlin
-enum class BookStatus {
+```java
+public enum BookStatus {
     @Schema(description = "Book is available for purchase")
     AVAILABLE,
 
@@ -85,39 +85,39 @@ enum class BookStatus {
 }
 
 @Schema(description = "Book entity")
-class Book {
+public class Book {
     @Schema(description = "Current book status", example = "AVAILABLE")
-    private var status: BookStatus
+    private BookStatus status;
 }
 ```
 
 ## Hidden Fields
 
-```kotlin
+```java
 @Schema(hidden = true)
-private var internalField: String
+private String internalField;
 
 @JsonIgnore
 @Schema(accessMode = Schema.AccessMode.READ_ONLY)
-private var createdAt: LocalDateTime
+private LocalDateTime createdAt;
 
 @Schema(description = "Password hash (write-only)", accessMode = Schema.AccessMode.WRITE_ONLY)
-private var password: String
+private String password;
 ```
 
 ## Read-Only Properties
 
-```kotlin
+```java
 @Schema(description = "Creation timestamp", accessMode = Schema.AccessMode.READ_ONLY, example = "2024-01-15T10:30:00Z")
-private var createdAt: LocalDateTime
+private LocalDateTime createdAt;
 
 @Schema(description = "Last update timestamp", accessMode = Schema.AccessMode.READ_ONLY, example = "2024-01-15T10:30:00Z")
-private var updatedAt: LocalDateTime
+private LocalDateTime updatedAt;
 ```
 
 ## Array and Collection Fields
 
-```kotlin
+```java
 @Schema(description = "List of book tags")
 private List<String> tags;
 
@@ -130,7 +130,7 @@ private Set<Category> categories;
 
 ## Polymorphic Types
 
-```kotlin
+```java
 @Schema(description = "Payment method (one of: creditCard, paypal, bankTransfer)")
 @JsonTypeInfo(
     use = JsonTypeInfo.Id.NAME,
@@ -150,22 +150,22 @@ public abstract class PaymentMethod {
 
 ## Required vs Optional Fields
 
-```kotlin
+```java
 @Schema(description = "User profile")
-class UserProfile {
+public class UserProfile {
 
     @NotNull
     @Schema(description = "User first name", example = "John", required = true)
-    private var firstName: String
+    private String firstName;
 
     @NotNull
     @Schema(description = "User last name", example = "Doe", required = true)
-    private var lastName: String
+    private String lastName;
 
     @Schema(description = "User middle name (optional)", example = "William")
-    private var middleName: String
+    private String middleName;
 
     @Schema(description = "User nickname (optional)", example = "Johnny")
-    private var nickname: String
+    private String nickname;
 }
 ```

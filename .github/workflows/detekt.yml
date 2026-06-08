@@ -30,7 +30,6 @@ jobs:
           cache: 'gradle'
 
       - name: Run Detekt
-        working-directory: server/smp
         run: ./gradlew detekt --no-daemon
 
       - name: Upload SARIF report
@@ -38,5 +37,5 @@ jobs:
         if: always()
         with:
           name: detekt-report
-          path: server/smp/build/reports/detekt/
+          path: build/reports/detekt/
           retention-days: 7

@@ -16,19 +16,19 @@ implementations.
 
 ### Entity Classes
 
-```kotlin
+```java
 @Node("Movie")
-class Movie {
+public class Movie {
     
     @Id
-    private val imdbId: String
+    private final String imdbId;
     
-    private val title: String
+    private final String title;
     
     @Property("tagline")
-    private val description: String
+    private final String description;
     
-    private val releaseYear: Integer
+    private final Integer releaseYear;
     
     private final List<String> genres;
     
@@ -45,29 +45,29 @@ class Movie {
         this.description = description;
         this.releaseYear = releaseYear;
         this.genres = genres;
-        this.actors = mutableListOf();
-        this.directors = mutableListOf();
+        this.actors = new ArrayList<>();
+        this.directors = new ArrayList<>();
     }
     
     // Getters
-    fun getImdbId(): String { return imdbId; }
-    fun getTitle(): String { return title; }
-    fun getDescription(): String { return description; }
-    fun getReleaseYear(): Integer { return releaseYear; }
+    public String getImdbId() { return imdbId; }
+    public String getTitle() { return title; }
+    public String getDescription() { return description; }
+    public Integer getReleaseYear() { return releaseYear; }
     public List<String> getGenres() { return genres; }
     public List<ActedIn> getActors() { return actors; }
     public List<Person> getDirectors() { return directors; }
 }
 
 @Node("Person")
-class Person {
+public class Person {
     
     @Id @GeneratedValue
-    private var id: Long
+    private Long id;
     
-    private val name: String
+    private final String name;
     
-    private val birthYear: Integer
+    private final Integer birthYear;
     
     @Relationship(type = "ACTED_IN", direction = Direction.OUTGOING)
     private List<ActedIn> actedIn;
@@ -78,39 +78,39 @@ class Person {
     public Person(String name, Integer birthYear) {
         this.name = name;
         this.birthYear = birthYear;
-        this.actedIn = mutableListOf();
-        this.directed = mutableListOf();
+        this.actedIn = new ArrayList<>();
+        this.directed = new ArrayList<>();
     }
     
-    fun withId(Long id): Person {
+    public Person withId(Long id) {
         if (this.id != null && this.id.equals(id)) {
             return this;
         }
-        Person newPerson = Person(this.name, this.birthYear);
+        Person newPerson = new Person(this.name, this.birthYear);
         newPerson.id = id;
         return newPerson;
     }
     
     // Getters
-    fun getId(): Long { return id; }
-    fun getName(): String { return name; }
-    fun getBirthYear(): Integer { return birthYear; }
+    public Long getId() { return id; }
+    public String getName() { return name; }
+    public Integer getBirthYear() { return birthYear; }
     public List<ActedIn> getActedIn() { return actedIn; }
     public List<Movie> getDirected() { return directed; }
 }
 
 @RelationshipProperties
-class ActedIn {
+public class ActedIn {
     
     @Id @GeneratedValue
-    private var id: Long
+    private Long id;
     
     @TargetNode
-    private val movie: Movie
+    private final Movie movie;
     
     private final List<String> roles;
     
-    private val screenTime: Integer  // in minutes
+    private final Integer screenTime;  // in minutes
     
     public ActedIn(Movie movie, List<String> roles, Integer screenTime) {
         this.movie = movie;
@@ -119,18 +119,18 @@ class ActedIn {
     }
     
     // Getters
-    fun getId(): Long { return id; }
-    fun getMovie(): Movie { return movie; }
+    public Long getId() { return id; }
+    public Movie getMovie() { return movie; }
     public List<String> getRoles() { return roles; }
-    fun getScreenTime(): Integer { return screenTime; }
+    public Integer getScreenTime() { return screenTime; }
 }
 ```
 
 ### Repository Interfaces
 
-```kotlin
+```java
 @Repository
-interface MovieRepository extends Neo4jRepository<Movie, String> {
+public interface MovieRepository extends Neo4jRepository<Movie, String> {
     
     // Simple query derivation
     Optional<Movie> findByTitle(String title);
@@ -168,7 +168,7 @@ interface MovieRepository extends Neo4jRepository<Movie, String> {
 }
 
 @Repository
-interface PersonRepository extends Neo4jRepository<Person, Long> {
+public interface PersonRepository extends Neo4jRepository<Person, Long> {
     
     Optional<Person> findByName(String name);
     
@@ -192,7 +192,7 @@ interface PersonRepository extends Neo4jRepository<Person, Long> {
 }
 
 // Projection interface
-interface PersonProjection {
+public interface PersonProjection {
     String getName();
     Integer getBirthYear();
 }
@@ -200,12 +200,12 @@ interface PersonProjection {
 
 ### Service Layer
 
-```kotlin
+```java
 @Service
-class MovieService {
+public class MovieService {
     
-    private val movieRepository: MovieRepository
-    private val personRepository: PersonRepository
+    private final MovieRepository movieRepository;
+    private final PersonRepository personRepository;
     
     public MovieService(MovieRepository movieRepository, 
                        PersonRepository personRepository) {
@@ -213,23 +213,25 @@ class MovieService {
         this.personRepository = personRepository;
     }
     
-    fun getMovieByTitle(String title): MovieDTO {
+    public MovieDTO getMovieByTitle(String title) {
         Movie movie = movieRepository.findByTitle(title)
-            .orElseThrow(() -> MovieNotFoundException(title));
+            .orElseThrow(() -> new MovieNotFoundException(title));
         return mapToDTO(movie);
     }
     
     public List<MovieDTO> searchMoviesByKeyword(String keyword) {
-        return movieRepository.searchByTitle(keyword).map(this::mapToDTO)
-            ;
+        return movieRepository.searchByTitle(keyword).stream()
+            .map(this::mapToDTO)
+            .collect(Collectors.toList());
     }
     
     public List<MovieDTO> getMoviesByGenreAndYear(String genre, Integer minYear) {
-        return movieRepository.findRecentMoviesByGenre(genre, minYear).map(this::mapToDTO)
-            ;
+        return movieRepository.findRecentMoviesByGenre(genre, minYear).stream()
+            .map(this::mapToDTO)
+            .collect(Collectors.toList());
     }
     
-    fun createMovie(CreateMovieRequest request): MovieDTO {
+    public MovieDTO createMovie(CreateMovieRequest request) {
         Movie movie = new Movie(
             request.imdbId(),
             request.title(),
@@ -242,7 +244,7 @@ class MovieService {
         return mapToDTO(saved);
     }
     
-    private fun mapToDTO(Movie movie): MovieDTO {
+    private MovieDTO mapToDTO(Movie movie) {
         return new MovieDTO(
             movie.getImdbId(),
             movie.getTitle(),
@@ -255,21 +257,23 @@ class MovieService {
     }
     
     private List<String> extractActorNames(List<ActedIn> actors) {
-        return actors..map(ActedIn::getMovie)
+        return actors.stream()
+            .map(ActedIn::getMovie)
             .map(Movie::getTitle)
-            ;
+            .collect(Collectors.toList());
     }
     
     private List<String> extractDirectorNames(List<Person> directors) {
-        return directors..map(Person::getName)
-            ;
+        return directors.stream()
+            .map(Person::getName)
+            .collect(Collectors.toList());
     }
 }
 ```
 
 ### DTOs
 
-```kotlin
+```java
 public record MovieDTO(
     String imdbId,
     String title,
@@ -291,7 +295,7 @@ public record CreateMovieRequest(
         Objects.requireNonNull(imdbId, "IMDB ID is required");
         Objects.requireNonNull(title, "Title is required");
         if (releaseYear != null && releaseYear < 1888) {
-            throw IllegalArgumentException("Invalid release year");
+            throw new IllegalArgumentException("Invalid release year");
         }
     }
 }
@@ -301,18 +305,18 @@ public record CreateMovieRequest(
 
 ### Entity Classes
 
-```kotlin
+```java
 @Node("User")
-class User {
+public class User {
     
     @Id
-    private val username: String
+    private final String username;
     
-    private val email: String
+    private final String email;
     
-    private val fullName: String
+    private final String fullName;
     
-    private val joinedAt: LocalDateTime
+    private final LocalDateTime joinedAt;
     
     @Relationship(type = "FOLLOWS", direction = Direction.OUTGOING)
     private Set<User> following;
@@ -328,43 +332,43 @@ class User {
         this.email = email;
         this.fullName = fullName;
         this.joinedAt = LocalDateTime.now();
-        this.following = mutableSetOf();
-        this.followers = mutableSetOf();
-        this.posts = mutableListOf();
+        this.following = new HashSet<>();
+        this.followers = new HashSet<>();
+        this.posts = new ArrayList<>();
     }
     
-    fun follow(User user): void {
+    public void follow(User user) {
         this.following.add(user);
     }
     
-    fun unfollow(User user): void {
+    public void unfollow(User user) {
         this.following.remove(user);
     }
     
     // Getters
-    fun getUsername(): String { return username; }
-    fun getEmail(): String { return email; }
-    fun getFullName(): String { return fullName; }
-    fun getJoinedAt(): LocalDateTime { return joinedAt; }
+    public String getUsername() { return username; }
+    public String getEmail() { return email; }
+    public String getFullName() { return fullName; }
+    public LocalDateTime getJoinedAt() { return joinedAt; }
     public Set<User> getFollowing() { return following; }
     public Set<User> getFollowers() { return followers; }
     public List<Post> getPosts() { return posts; }
 }
 
 @Node("Post")
-class Post {
+public class Post {
     
     @Id @GeneratedValue
-    private var id: Long
+    private Long id;
     
-    private val content: String
+    private final String content;
     
-    private val createdAt: LocalDateTime
+    private final LocalDateTime createdAt;
     
-    private var likes: Integer
+    private Integer likes;
     
     @Relationship(type = "POSTED", direction = Direction.INCOMING)
-    private var author: User
+    private User author;
     
     @Relationship(type = "TAGGED", direction = Direction.OUTGOING)
     private List<Hashtag> hashtags;
@@ -373,10 +377,10 @@ class Post {
         this.content = content;
         this.createdAt = LocalDateTime.now();
         this.likes = 0;
-        this.hashtags = mutableListOf();
+        this.hashtags = new ArrayList<>();
     }
     
-    fun incrementLikes(): void {
+    public void incrementLikes() {
         this.likes++;
     }
     
@@ -384,12 +388,12 @@ class Post {
 }
 
 @Node("Hashtag")
-class Hashtag {
+public class Hashtag {
     
     @Id
-    private val tag: String
+    private final String tag;
     
-    private var usageCount: Integer
+    private Integer usageCount;
     
     @Relationship(type = "TAGGED", direction = Direction.INCOMING)
     private List<Post> posts;
@@ -397,10 +401,10 @@ class Hashtag {
     public Hashtag(String tag) {
         this.tag = tag;
         this.usageCount = 0;
-        this.posts = mutableListOf();
+        this.posts = new ArrayList<>();
     }
     
-    fun incrementUsage(): void {
+    public void incrementUsage() {
         this.usageCount++;
     }
     
@@ -410,9 +414,9 @@ class Hashtag {
 
 ### Repository with Advanced Queries
 
-```kotlin
+```java
 @Repository
-interface UserRepository extends Neo4jRepository<User, String> {
+public interface UserRepository extends Neo4jRepository<User, String> {
     
     Optional<User> findByEmail(String email);
     
@@ -448,7 +452,7 @@ interface UserRepository extends Neo4jRepository<User, String> {
 }
 
 @Repository
-interface PostRepository extends Neo4jRepository<Post, Long> {
+public interface PostRepository extends Neo4jRepository<Post, Long> {
     
     @Query("MATCH (p:Post)-[:TAGGED]->(h:Hashtag {tag: $tag}) " +
            "RETURN p ORDER BY p.createdAt DESC LIMIT $limit")
@@ -467,21 +471,21 @@ interface PostRepository extends Neo4jRepository<Post, Long> {
 
 ### Entity Classes
 
-```kotlin
+```java
 @Node("Product")
-class Product {
+public class Product {
     
     @Id
-    private val sku: String
+    private final String sku;
     
-    private val name: String
+    private final String name;
     
-    private val description: String
+    private final String description;
     
-    private val price: BigDecimal
+    private final BigDecimal price;
     
     @Relationship(type = "BELONGS_TO", direction = Direction.OUTGOING)
-    private var category: Category
+    private Category category;
     
     @Relationship(type = "SIMILAR_TO", direction = Direction.UNDIRECTED)
     private List<Product> similarProducts;
@@ -494,52 +498,52 @@ class Product {
         this.name = name;
         this.description = description;
         this.price = price;
-        this.similarProducts = mutableListOf();
-        this.frequentlyBoughtTogether = mutableListOf();
+        this.similarProducts = new ArrayList<>();
+        this.frequentlyBoughtTogether = new ArrayList<>();
     }
     
     // Getters omitted
 }
 
 @Node("Category")
-class Category {
+public class Category {
     
     @Id @GeneratedValue
-    private var id: Long
+    private Long id;
     
-    private val name: String
+    private final String name;
     
     @Relationship(type = "PARENT_CATEGORY", direction = Direction.OUTGOING)
-    private var parent: Category
+    private Category parent;
     
     @Relationship(type = "PARENT_CATEGORY", direction = Direction.INCOMING)
     private List<Category> subcategories;
     
     public Category(String name) {
         this.name = name;
-        this.subcategories = mutableListOf();
+        this.subcategories = new ArrayList<>();
     }
     
     // Getters omitted
 }
 
 @RelationshipProperties
-class PurchasedWith {
+public class PurchasedWith {
     
     @Id @GeneratedValue
-    private var id: Long
+    private Long id;
     
     @TargetNode
-    private val product: Product
+    private final Product product;
     
-    private var purchaseCount: Integer
+    private Integer purchaseCount;
     
     public PurchasedWith(Product product) {
         this.product = product;
         this.purchaseCount = 1;
     }
     
-    fun incrementCount(): void {
+    public void incrementCount() {
         this.purchaseCount++;
     }
     
@@ -549,9 +553,9 @@ class PurchasedWith {
 
 ### Repository with Recommendation Queries
 
-```kotlin
+```java
 @Repository
-interface ProductRepository extends Neo4jRepository<Product, String> {
+public interface ProductRepository extends Neo4jRepository<Product, String> {
     
     List<Product> findByNameContaining(String keyword);
     
@@ -590,9 +594,9 @@ interface ProductRepository extends Neo4jRepository<Product, String> {
 
 ### Pagination and Sorting
 
-```kotlin
+```java
 @Repository
-interface MovieRepository extends Neo4jRepository<Movie, String> {
+public interface MovieRepository extends Neo4jRepository<Movie, String> {
     
     // Using Pageable
     Page<Movie> findByGenresContaining(String genre, Pageable pageable);
@@ -609,7 +613,7 @@ interface MovieRepository extends Neo4jRepository<Movie, String> {
 }
 
 // Usage
-class MovieService {
+public class MovieService {
     
     public Page<MovieDTO> getMoviesByGenre(String genre, int page, int size) {
         Pageable pageable = PageRequest.of(page, size, 
@@ -622,9 +626,9 @@ class MovieService {
 
 ### Aggregation Queries
 
-```kotlin
+```java
 @Repository
-interface StatisticsRepository extends Neo4jRepository<Movie, String> {
+public interface StatisticsRepository extends Neo4jRepository<Movie, String> {
     
     @Query("MATCH (m:Movie) WHERE m.releaseYear = $year " +
            "RETURN COUNT(m) AS count")
@@ -648,17 +652,17 @@ interface StatisticsRepository extends Neo4jRepository<Movie, String> {
 }
 
 // Projection interfaces
-interface YearStatistics {
+public interface YearStatistics {
     Integer getYear();
     Long getCount();
 }
 
-interface ActorStatistics {
+public interface ActorStatistics {
     String getActor();
     Long getMovieCount();
 }
 
-interface MovieYearStatistics {
+public interface MovieYearStatistics {
     Double getAverageYear();
     Integer getOldestYear();
     Integer getNewestYear();
@@ -669,9 +673,9 @@ interface MovieYearStatistics {
 
 ### Reactive Repository
 
-```kotlin
+```java
 @Repository
-interface ReactiveMovieRepository 
+public interface ReactiveMovieRepository 
         extends ReactiveNeo4jRepository<Movie, String> {
     
     Mono<Movie> findByTitle(String title);
@@ -689,11 +693,11 @@ interface ReactiveMovieRepository
 
 ### Reactive Service
 
-```kotlin
+```java
 @Service
-class ReactiveMovieService {
+public class ReactiveMovieService {
     
-    private val movieRepository: ReactiveMovieRepository
+    private final ReactiveMovieRepository movieRepository;
     
     public ReactiveMovieService(ReactiveMovieRepository movieRepository) {
         this.movieRepository = movieRepository;
@@ -703,7 +707,7 @@ class ReactiveMovieService {
         return movieRepository.findByTitle(title)
             .map(this::mapToDTO)
             .switchIfEmpty(Mono.error(
-                MovieNotFoundException("Movie not found: " + title)));
+                new MovieNotFoundException("Movie not found: " + title)));
     }
     
     public Flux<MovieDTO> searchMovies(String keyword) {
@@ -724,15 +728,15 @@ class ReactiveMovieService {
             .map(this::mapToDTO);
     }
     
-    private fun mapToDTO(Movie movie): MovieDTO {
+    private MovieDTO mapToDTO(Movie movie) {
         return new MovieDTO(
             movie.getImdbId(),
             movie.getTitle(),
             movie.getDescription(),
             movie.getReleaseYear(),
             movie.getGenres(),
-            listOf(),
-            listOf()
+            List.of(),
+            List.of()
         );
     }
 }
@@ -740,12 +744,12 @@ class ReactiveMovieService {
 
 ### Reactive Controller
 
-```kotlin
+```java
 @RestController
 @RequestMapping("/api/movies")
-class ReactiveMovieController {
+public class ReactiveMovieController {
     
-    private val movieService: ReactiveMovieService
+    private final ReactiveMovieService movieService;
     
     public ReactiveMovieController(ReactiveMovieService movieService) {
         this.movieService = movieService;
@@ -772,7 +776,7 @@ class ReactiveMovieController {
 
 ### Integration Test with Neo4j Harness
 
-```kotlin
+```java
 @DataNeo4jTest
 class MovieRepositoryIntegrationTest {
 
@@ -820,7 +824,7 @@ class MovieRepositoryIntegrationTest {
     }
 
     @Autowired
-    private var movieRepository: MovieRepository
+    private MovieRepository movieRepository;
 
     @Test
     void shouldFindMovieByTitle() {
@@ -859,18 +863,18 @@ class MovieRepositoryIntegrationTest {
 
 ### Service Layer Test with Mocks
 
-```kotlin
+```java
 @ExtendWith(MockitoExtension.class)
 class MovieServiceTest {
 
     @Mock
-    private var movieRepository: MovieRepository
+    private MovieRepository movieRepository;
 
     @Mock
-    private var personRepository: PersonRepository
+    private PersonRepository personRepository;
 
     @InjectMocks
-    private var movieService: MovieService
+    private MovieService movieService;
 
     @Test
     void shouldGetMovieByTitle() {
@@ -881,11 +885,11 @@ class MovieServiceTest {
             title,
             "A computer hacker learns about the true nature of reality",
             1999,
-            listOf("Action", "Sci-Fi")
+            List.of("Action", "Sci-Fi")
         );
         
         when(movieRepository.findByTitle(title))
-            .thenReturn(movie);
+            .thenReturn(Optional.of(movie));
 
         // When
         MovieDTO result = movieService.getMovieByTitle(title);
@@ -901,7 +905,7 @@ class MovieServiceTest {
         // Given
         String title = "Non-existent Movie";
         when(movieRepository.findByTitle(title))
-            .thenReturn(null);
+            .thenReturn(Optional.empty());
 
         // When/Then
         assertThatThrownBy(() -> movieService.getMovieByTitle(title))
@@ -917,7 +921,7 @@ class MovieServiceTest {
             "New Movie",
             "A new movie description",
             2024,
-            listOf("Action")
+            List.of("Action")
         );
         
         Movie movie = new Movie(
@@ -944,7 +948,7 @@ class MovieServiceTest {
 
 ### Reactive Test Example
 
-```kotlin
+```java
 @DataNeo4jTest
 class ReactiveMovieRepositoryTest {
 
@@ -972,7 +976,7 @@ class ReactiveMovieRepositoryTest {
     }
 
     @Autowired
-    private var reactiveMovieRepository: ReactiveMovieRepository
+    private ReactiveMovieRepository reactiveMovieRepository;
 
     @Test
     void shouldFindMovieByTitle() {

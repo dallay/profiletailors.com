@@ -1,5 +1,10 @@
 package com.profiletailors.storage
 
+import com.profiletailors.storage.domain.BucketRegistry
+import com.profiletailors.storage.domain.Storage
+import com.profiletailors.storage.infrastructure.LocalFilesystemStorage
+import com.profiletailors.storage.infrastructure.S3Storage
+import com.profiletailors.storage.infrastructure.StorageAutoConfiguration
 import org.junit.jupiter.api.Test
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.autoconfigure.SpringBootApplication
