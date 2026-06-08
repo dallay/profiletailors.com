@@ -51,6 +51,8 @@ jobs:
           name: backend-coverage
           fail_ci_if_error: true
           verbose: true
+        env:
+          CODECOV_DISABLE_SIGNATURE_VERIFICATION: true
 
       - name: Upload test results
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
