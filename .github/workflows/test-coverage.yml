@@ -130,6 +130,8 @@ jobs:
           disable_search: false
           disable_safe_directory: false
           disable_telem: false
+        env:
+          CODECOV_DISABLE_SIGNATURE_VERIFICATION: true
 
       - name: Upload coverage report
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
