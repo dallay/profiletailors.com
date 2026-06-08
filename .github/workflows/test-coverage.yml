@@ -118,7 +118,7 @@ jobs:
         run: pnpm build
 
       - name: Upload coverage to Codecov
-        uses: codecov/codecov-action@75cd11691c0faa626561e295848008c8a7dddffe # v5
+        uses: codecov/codecov-action@7f8b4b4bde536c465e797be725718b88c5d95e0e # v5.1.2
         with:
           token: ${{ secrets.CODECOV_TOKEN }}
           files: ./apps/web/marketing/coverage/lcov.info
@@ -126,6 +126,10 @@ jobs:
           name: frontend-coverage
           fail_ci_if_error: true
           verbose: true
+          disable_file_fixes: false
+          disable_search: false
+          disable_safe_directory: false
+          disable_telem: false
 
       - name: Upload coverage report
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4

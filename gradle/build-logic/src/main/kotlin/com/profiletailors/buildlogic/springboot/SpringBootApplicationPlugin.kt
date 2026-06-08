@@ -51,28 +51,32 @@ class SpringBootApplicationPlugin : ConventionPlugin {
             exclude("**/CucumberFastIntegrationTest.class", "**/CucumberPostgresIntegrationTest.class")
         }
 
-        // Register BDD Fast Test task
-        val bddFastTestTask = tasks.register("bddFastTest", Test::class.java) {
-            group = "verification"
-            description = "Runs fast BDD suite with H2"
-            val testSourceSet = extensions.getByType<JavaPluginExtension>().sourceSets.getByName("test")
-            testClassesDirs = testSourceSet.output.classesDirs
-            classpath = testSourceSet.runtimeClasspath
-            useJUnitPlatform()
-            include("**/CucumberFastIntegrationTest.class")
-            shouldRunAfter(testTask)
-        }
+        // Register BDD test tasks after project evaluation to ensure Java plugin is fully configured
+        afterEvaluate {
+            val javaExtension = extensions.getByType<JavaPluginExtension>()
+            val testSourceSet = javaExtension.sourceSets.getByName("test")
 
-        // Register BDD Postgres Test task
-        tasks.register("bddPostgresTest", Test::class.java) {
-            group = "verification"
-            description = "Runs Postgres BDD suite with Testcontainers"
-            val testSourceSet = extensions.getByType<JavaPluginExtension>().sourceSets.getByName("test")
-            testClassesDirs = testSourceSet.output.classesDirs
-            classpath = testSourceSet.runtimeClasspath
-            useJUnitPlatform()
-            include("**/CucumberPostgresIntegrationTest.class")
-            shouldRunAfter(bddFastTestTask)
+            // Register BDD Fast Test task
+            val bddFastTestTask = tasks.register("bddFastTest", Test::class.java) {
+                group = "verification"
+                description = "Runs fast BDD suite with H2"
+                testClassesDirs = testSourceSet.output.classesDirs
+                classpath = testSourceSet.runtimeClasspath
+                useJUnitPlatform()
+                include("**/CucumberFastIntegrationTest.class")
+                shouldRunAfter(testTask)
+            }
+
+            // Register BDD Postgres Test task
+            tasks.register("bddPostgresTest", Test::class.java) {
+                group = "verification"
+                description = "Runs Postgres BDD suite with Testcontainers"
+                testClassesDirs = testSourceSet.output.classesDirs
+                classpath = testSourceSet.runtimeClasspath
+                useJUnitPlatform()
+                include("**/CucumberPostgresIntegrationTest.class")
+                shouldRunAfter(bddFastTestTask)
+            }
         }
 
         // Configure Jacoco Reports and Exclusions
