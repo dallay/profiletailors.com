@@ -32,6 +32,13 @@ class LiquibaseBaselineChangelogTest {
         assertTrue(resourceText("db/changelog/authorization/007-create-workspace-target-scopes.yaml").contains("tableName: workspace_target_scopes"))
         assertTrue(resourceText("db/changelog/governance/001-create-audit-events.yaml").contains("tableName: audit_events"))
         assertTrue(resourceText("db/changelog/credentials/002-create-api-key-credentials.yaml").contains("tableName: api_key_credentials"))
+        assertTrue(resourceText("db/changelog/publishing/001-create-social-connections.yaml").contains("tableName: social_connections"))
+        assertTrue(resourceText("db/changelog/publishing/002-create-social-accounts.yaml").contains("tableName: social_accounts"))
+        assertTrue(resourceText("db/changelog/publishing/003-create-publication-assets.yaml").contains("tableName: publication_assets"))
+        assertTrue(resourceText("db/changelog/publishing/004-create-publications.yaml").contains("tableName: publications"))
+        assertTrue(resourceText("db/changelog/publishing/005-create-publication-asset-links.yaml").contains("tableName: publication_asset_links"))
+        assertTrue(resourceText("db/changelog/publishing/006-create-publication-jobs.yaml").contains("tableName: publication_jobs"))
+        assertTrue(resourceText("db/changelog/publishing/007-create-delivery-attempts.yaml").contains("tableName: delivery_attempts"))
     }
 
     private fun resourceText(path: String): String =
@@ -54,5 +61,12 @@ class LiquibaseBaselineChangelogTest {
         "db/changelog/authorization/007-create-workspace-target-scopes.yaml",
         "db/changelog/governance/001-create-audit-events.yaml",
         "db/changelog/credentials/002-create-api-key-credentials.yaml",
+        "db/changelog/publishing/001-create-social-connections.yaml",
+        "db/changelog/publishing/002-create-social-accounts.yaml",
+        "db/changelog/publishing/003-create-publication-assets.yaml",
+        "db/changelog/publishing/004-create-publications.yaml",
+        "db/changelog/publishing/005-create-publication-asset-links.yaml",
+        "db/changelog/publishing/006-create-publication-jobs.yaml",
+        "db/changelog/publishing/007-create-delivery-attempts.yaml",
     )
 }

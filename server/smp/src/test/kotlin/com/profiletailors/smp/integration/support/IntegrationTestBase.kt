@@ -164,6 +164,14 @@ abstract class IntegrationTestBase {
     }
 
     protected open fun cleanupStatements(): List<String> = listOf(
+        "DELETE FROM delivery_attempts",
+        "DELETE FROM publication_jobs",
+        "DELETE FROM publication_asset_links",
+        "DELETE FROM publications",
+        "DELETE FROM publication_assets",
+        "DELETE FROM social_accounts",
+        "DELETE FROM social_connections",
+        "DELETE FROM secure_credentials",
         "DELETE FROM audit_events",
         "DELETE FROM workspace_target_scopes",
         "DELETE FROM workspace_direct_grants",

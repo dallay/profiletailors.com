@@ -2,11 +2,13 @@
 
 ## Overview
 
-The Component diagram zooms into the API Application container and shows the internal structure using bounded contexts from Domain-Driven Design.
+The Component diagram zooms into the API Application container and shows the internal structure
+using bounded contexts from Domain-Driven Design.
 
 **Audience**: Developers, architects
 
-**Purpose**: Understand the internal organization, bounded contexts, and component interactions within the API Application.
+**Purpose**: Understand the internal organization, bounded contexts, and component interactions
+within the API Application.
 
 ---
 
@@ -219,9 +221,11 @@ graph TB
 ### Core Contexts (Implemented)
 
 #### 1. Identity Context
+
 **Purpose**: User authentication and principal management
 
 **Responsibilities**:
+
 - Authenticate users via JWT or API key
 - Materialize authenticated principals
 - Validate OAuth2 tokens
@@ -229,6 +233,7 @@ graph TB
 - Provide principal context to other contexts
 
 **Key Components**:
+
 - `AuthenticatedPrincipal` (domain model)
 - `PrincipalIdentityLookup` (application service)
 - `JwtAuthenticatedPrincipalMaterializer` (infrastructure)
@@ -237,21 +242,25 @@ graph TB
 - `JwtPrincipalAuthenticationConverter` (security)
 
 **Dependencies**:
+
 - Platform Context (request context)
 - Credentials Context (token validation)
 - Governance Context (audit logging)
 - Auth Provider (JWT validation)
 
 **Database Tables**:
+
 - `users`
 - `user_profiles`
 
 ---
 
 #### 2. Authorization Context
+
 **Purpose**: Permission checks and access control
 
 **Responsibilities**:
+
 - Enforce role-based access control (RBAC)
 - Check workspace-level permissions
 - Resolve direct grants
@@ -259,6 +268,7 @@ graph TB
 - Calculate workspace access summary
 
 **Key Components**:
+
 - `WorkspaceAuthorizationService` (application service)
 - `Role` (domain model)
 - `PermissionKey` (domain model)
@@ -268,12 +278,14 @@ graph TB
 - `ResourcePreviewController` (HTTP)
 
 **Dependencies**:
+
 - Identity Context (principal resolution)
 - Tenancy Context (workspace membership)
 - Platform Context (request context)
 - Governance Context (audit logging)
 
 **Database Tables**:
+
 - `workspace_roles`
 - `workspace_permissions`
 - `direct_grants`
@@ -282,9 +294,11 @@ graph TB
 ---
 
 #### 3. Tenancy Context
+
 **Purpose**: Workspace and membership management
 
 **Responsibilities**:
+
 - Create and manage workspaces
 - Manage workspace memberships
 - Handle ownership transfers
@@ -292,6 +306,7 @@ graph TB
 - Enforce membership lifecycle rules
 
 **Key Components**:
+
 - `Workspace` (domain model)
 - `WorkspaceMembership` (domain model)
 - `WorkspaceOwnership` (domain model)
@@ -301,12 +316,14 @@ graph TB
 - `WorkspaceContextWebFilter` (HTTP filter)
 
 **Dependencies**:
+
 - Identity Context (user resolution)
 - Authorization Context (permission checks)
 - Platform Context (request context)
 - Governance Context (audit logging)
 
 **Database Tables**:
+
 - `workspaces`
 - `workspace_memberships`
 - `workspace_ownership`
@@ -314,9 +331,11 @@ graph TB
 ---
 
 #### 4. Credentials Context
+
 **Purpose**: API keys, OAuth tokens, and secret management
 
 **Responsibilities**:
+
 - Generate and validate API keys
 - Store and refresh OAuth tokens
 - Manage service account credentials
@@ -324,6 +343,7 @@ graph TB
 - Handle credential lifecycle (rotation, revocation)
 
 **Key Components**:
+
 - `ValidatedToken` (domain model)
 - `CredentialType` (domain model)
 - `ApiKeySecretVerifier` (application service)
@@ -333,11 +353,13 @@ graph TB
 - `SpringJwtValidatedTokenMapper` (infrastructure)
 
 **Dependencies**:
+
 - Identity Context (principal association)
 - Platform Context (request context)
 - Governance Context (audit logging)
 
 **Database Tables**:
+
 - `api_keys`
 - `oauth_tokens`
 - `service_accounts`
@@ -346,9 +368,11 @@ graph TB
 ---
 
 #### 5. Governance Context
+
 **Purpose**: Audit logging, compliance, and data retention
 
 **Responsibilities**:
+
 - Log all mutations and sensitive operations
 - Track audit trails for compliance
 - Enforce data retention policies
@@ -356,14 +380,17 @@ graph TB
 - Support compliance reporting
 
 **Key Components**:
+
 - `TenancyMutationAuditor` (application service)
 - `R2dbcAuditHook` (infrastructure)
 - Audit event publishers
 
 **Dependencies**:
+
 - Platform Context (request context)
 
 **Database Tables**:
+
 - `audit_log`
 - `mutation_events`
 - `compliance_snapshots`
@@ -371,15 +398,18 @@ graph TB
 ---
 
 #### 6. Platform Context
+
 **Purpose**: Cross-cutting concerns and infrastructure
 
 **Responsibilities**:
+
 - Provide request context (principal, workspace, trace ID)
 - Implement mediator pattern for command/query dispatch
 - Manage request-scoped state
 - Provide common contracts and abstractions
 
 **Key Components**:
+
 - `RequestContextStore` (infrastructure)
 - `RequestContextProviders` (infrastructure)
 - `SpringMediator` (infrastructure)
@@ -394,9 +424,11 @@ graph TB
 ---
 
 #### 7. Audit Context
+
 **Purpose**: Request outcome tracking and decision auditing
 
 **Responsibilities**:
+
 - Track request outcomes (success, failure, error)
 - Audit authorization decisions with context
 - Capture mutation events with before/after state
@@ -404,15 +436,18 @@ graph TB
 - Support compliance and forensic analysis
 
 **Key Components**:
+
 - `AuditHook` (application service)
 - `AuthorizationDecisionAuditFact` (domain model)
 - `MutationAuditFact` (domain model)
 - `RequestOutcome` (domain model)
 
 **Dependencies**:
+
 - Platform Context (request context)
 
 **Database Tables**:
+
 - `audit_events`
 - `authorization_decisions`
 - `mutation_log`
@@ -420,9 +455,11 @@ graph TB
 ---
 
 #### 8. Observability Context
+
 **Purpose**: Metrics collection and rate limiting
 
 **Responsibilities**:
+
 - Collect request metrics (latency, throughput, errors)
 - Implement rate limiting hooks
 - Monitor system health
@@ -430,11 +467,13 @@ graph TB
 - Support operational dashboards
 
 **Key Components**:
+
 - `MetricsHook` (application service)
 - `RateLimitHook` (application service)
 - `RequestOutcome` (domain model)
 
 **Dependencies**:
+
 - Platform Context (request context)
 
 **Database Tables**: None (metrics exported to external systems)
@@ -444,9 +483,11 @@ graph TB
 ### Domain Contexts (Planned)
 
 #### 9. Content Context
+
 **Purpose**: Post creation, scheduling, and draft management
 
 **Responsibilities**:
+
 - Create and edit posts
 - Schedule posts for publishing
 - Manage drafts and revisions
@@ -454,6 +495,7 @@ graph TB
 - Coordinate with scheduler service
 
 **Key Components** (planned):
+
 - `Post` (domain model)
 - `Schedule` (domain model)
 - `Draft` (domain model)
@@ -461,6 +503,7 @@ graph TB
 - `SchedulingService` (application service)
 
 **Dependencies**:
+
 - Identity Context (author)
 - Tenancy Context (workspace)
 - Authorization Context (permissions)
@@ -469,6 +512,7 @@ graph TB
 - Governance Context (audit logging)
 
 **Database Tables** (planned):
+
 - `posts`
 - `post_schedules`
 - `post_drafts`
@@ -477,9 +521,11 @@ graph TB
 ---
 
 #### 10. Analytics Context
+
 **Purpose**: Metrics aggregation and reporting
 
 **Responsibilities**:
+
 - Aggregate engagement metrics
 - Generate performance reports
 - Track KPIs over time
@@ -487,18 +533,21 @@ graph TB
 - Export data for external tools
 
 **Key Components** (planned):
+
 - `Metric` (domain model)
 - `Report` (domain model)
 - `MetricsAggregationService` (application service)
 - `ReportingService` (application service)
 
 **Dependencies**:
+
 - Tenancy Context (workspace)
 - Authorization Context (permissions)
 - Integrations Context (platform data)
 - Platform Context (request context)
 
 **Database Tables** (planned):
+
 - `metrics`
 - `metric_aggregates`
 - `reports`
@@ -507,9 +556,11 @@ graph TB
 ---
 
 #### 11. Integrations Context
+
 **Purpose**: Social media platform adapters
 
 **Responsibilities**:
+
 - Abstract platform-specific APIs
 - Handle OAuth flows for each platform
 - Normalize post formats
@@ -517,6 +568,7 @@ graph TB
 - Handle rate limiting and retries
 
 **Key Components** (planned):
+
 - `PlatformAdapter` (interface)
 - `TwitterAdapter` (implementation)
 - `LinkedInAdapter` (implementation)
@@ -526,11 +578,13 @@ graph TB
 - `RateLimiter` (infrastructure)
 
 **Dependencies**:
+
 - Credentials Context (OAuth tokens)
 - Platform Context (request context)
 - Governance Context (audit logging)
 
 **Database Tables** (planned):
+
 - `platform_connections`
 - `rate_limit_state`
 
@@ -610,6 +664,7 @@ Each bounded context follows hexagonal architecture:
 - **Queries**: Read state, return data
 
 Example:
+
 - `UpdateWorkspaceMembershipStatusCommand` (command)
 - `GetCurrentWorkspaceAccessSummaryQuery` (query)
 
@@ -629,7 +684,8 @@ val result = mediator.send(query)
 
 ### Repository Pattern
 
-Each aggregate root has a repository interface in the application layer and an R2DBC implementation in the infrastructure layer:
+Each aggregate root has a repository interface in the application layer and an R2DBC implementation
+in the infrastructure layer:
 
 ```kotlin
 // Application layer (port)
@@ -649,16 +705,19 @@ class R2dbcWorkspaceMembershipRepository : WorkspaceMembershipRepository {
 ## Technology Stack (Component Level)
 
 ### Domain Layer
+
 - **Language**: Kotlin
 - **Patterns**: DDD entities, value objects, domain services
 - **Dependencies**: None (pure domain logic)
 
 ### Application Layer
+
 - **Language**: Kotlin with coroutines
 - **Patterns**: CQRS, mediator, repository interfaces
 - **Dependencies**: Domain layer only
 
 ### Infrastructure Layer
+
 - **Language**: Kotlin
 - **Frameworks**: Spring Boot 4, Spring WebFlux, Spring Security
 - **Database**: R2DBC (reactive PostgreSQL driver)
@@ -671,16 +730,19 @@ class R2dbcWorkspaceMembershipRepository : WorkspaceMembershipRepository {
 ## Testing Strategy
 
 ### Unit Tests
+
 - Domain logic (pure functions, policies)
 - Application services (mocked repositories)
 - Infrastructure adapters (mocked external dependencies)
 
 ### Integration Tests
+
 - R2DBC repositories (Testcontainers PostgreSQL)
 - HTTP controllers (WebTestClient)
 - Security filters (MockMvc)
 
 ### Architecture Tests
+
 - Spring Modulith verification
 - Bounded context isolation
 - Dependency rules
@@ -690,6 +752,7 @@ class R2dbcWorkspaceMembershipRepository : WorkspaceMembershipRepository {
 ## Current Implementation Status
 
 **Implemented Contexts**:
+
 - ✅ Identity Context (JWT + API Key auth)
 - ✅ Authorization Context (RBAC, direct grants, entitlements)
 - ✅ Tenancy Context (workspaces, memberships, ownership)
@@ -700,6 +763,7 @@ class R2dbcWorkspaceMembershipRepository : WorkspaceMembershipRepository {
 - ✅ Observability Context (metrics hooks, rate limiting)
 
 **Planned Contexts**:
+
 - 🔲 Content Context (posts, scheduling, drafts)
 - 🔲 Analytics Context (metrics, reporting)
 - 🔲 Integrations Context (social media adapters)

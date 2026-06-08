@@ -67,18 +67,18 @@ dependencies {
 
 ### Asymmetric Key Configuration (RSA)
 
-```kotlin
+```java
 @Configuration
-class JwtConfig {
+public class JwtConfig {
 
     @Value("${jwt.key-store:classpath:jwt.jks}")
-    private var keyStore: Resource
+    private Resource keyStore;
 
     @Value("${jwt.key-store-password:password}")
     private char[] keyStorePassword;
 
     @Value("${jwt.key-alias:jwt}")
-    private var keyAlias: String
+    private String keyAlias;
 
     @Value("${jwt.private-key-password:password}")
     private char[] privateKeyPassword;
@@ -101,15 +101,15 @@ class JwtConfig {
     }
 
     @Bean
-    fun jwtEncoder(RSAPrivateKey privateKey): JwtEncoder {
-        JWKSet jwkSet = JWKSet(new RSAKey.Builder(privateKey).build());
-        return NimbusJwtEncoder(new ImmutableJWKSet<>(jwkSet));
+    public JwtEncoder jwtEncoder(RSAPrivateKey privateKey) {
+        JWKSet jwkSet = new JWKSet(new RSAKey.Builder(privateKey).build());
+        return new NimbusJwtEncoder(new ImmutableJWKSet<>(jwkSet));
     }
 
     @Bean
-    fun jwtDecoder(RSAPublicKey publicKey): JwtDecoder {
+    public JwtDecoder jwtDecoder(RSAPublicKey publicKey) {
         RSAKey key = new RSAKey.Builder(publicKey).build();
-        JWKSet jwkSet = JWKSet(key);
+        JWKSet jwkSet = new JWKSet(key);
         return NimbusJwtDecoder.withPublicKey(publicKey).build();
     }
 }
@@ -117,22 +117,22 @@ class JwtConfig {
 
 ### Symmetric Key Configuration (HMAC)
 
-```kotlin
+```java
 @Configuration
-class SymmetricJwtConfig {
+public class SymmetricJwtConfig {
 
     @Value("${jwt.secret:my-very-long-and-secure-secret-key-for-hmac-sha256}")
-    private var jwtSecret: String
+    private String jwtSecret;
 
     @Bean
-    fun jwtEncoder(): JwtEncoder {
+    public JwtEncoder jwtEncoder() {
         SecretKey key = Keys.hmacShaKeyFor(
             Decoders.BASE64URL.decode(EncodedSecretKey.get(jwtSecret)));
-        return NimbusJwtEncoder(new ImmutableSecret<>(key));
+        return new NimbusJwtEncoder(new ImmutableSecret<>(key));
     }
 
     @Bean
-    fun jwtDecoder(): JwtDecoder {
+    public JwtDecoder jwtDecoder() {
         SecretKey key = Keys.hmacShaKeyFor(
             Decoders.BASE64URL.decode(EncodedSecretKey.get(jwtSecret)));
         return NimbusJwtDecoder.withSecretKey(key).build();
@@ -156,15 +156,15 @@ class SymmetricJwtConfig {
 
 ### ECDSA Key Configuration (Elliptic Curve)
 
-```kotlin
+```java
 @Configuration
-class EcdsaJwtConfig {
+public class EcdsaJwtConfig {
 
     @Value("${jwt.ecdsa-private-key}")
-    private var ecdsaPrivateKey: String
+    private String ecdsaPrivateKey;
 
     @Value("${jwt.ecdsa-public-key}")
-    private var ecdsaPublicKey: String
+    private String ecdsaPublicKey;
 
     @Bean
     public JwtEncoder jwtEncoder() throws Exception {
@@ -174,7 +174,7 @@ class EcdsaJwtConfig {
                 Base64.getDecoder().decode(ecdsaPrivateKey)));
 
         ECKey key = new ECKey.Builder(ECKey.Curve.P_256, privateKey).build();
-        return NimbusJwtEncoder(new ImmutableJWKSet<>(new JWKSet(key)));
+        return new NimbusJwtEncoder(new ImmutableJWKSet<>(new JWKSet(key)));
     }
 
     @Bean
@@ -193,31 +193,32 @@ class EcdsaJwtConfig {
 
 ### Custom Claims Set Builder
 
-```kotlin
+```java
 @Service
-class JwtClaimsService {
+public class JwtClaimsService {
 
     @Value("${jwt.issuer:http://localhost:8080}")
-    private var issuer: String
+    private String issuer;
 
     @Value("${jwt.audience:my-app}")
-    private var audience: String
+    private String audience;
 
     @Value("${jwt.access-token-expiration:PT15M}")
-    private var accessTokenExpiration: Duration
+    private Duration accessTokenExpiration;
 
     @Value("${jwt.refresh-token-expiration:P7D}")
-    private var refreshTokenExpiration: Duration
+    private Duration refreshTokenExpiration;
 
-    fun createAccessTokenClaims(User user): JwtClaimsSet {
+    public JwtClaimsSet createAccessTokenClaims(User user) {
         Instant now = Instant.now();
-        List<String> authorities = user.getAuthorities()..map(GrantedAuthority::getAuthority)
-            ;
+        List<String> authorities = user.getAuthorities().stream()
+            .map(GrantedAuthority::getAuthority)
+            .collect(Collectors.toList());
 
         return JwtClaimsSet.builder()
             .issuer(issuer)
             .subject(user.getId().toString())
-            .audience(listOf(audience))
+            .audience(List.of(audience))
             .issuedAt(now)
             .expiresAt(now.plus(accessTokenExpiration))
             .claim("email", user.getEmail())
@@ -228,13 +229,13 @@ class JwtClaimsService {
             .build();
     }
 
-    fun createRefreshTokenClaims(User user): JwtClaimsSet {
+    public JwtClaimsSet createRefreshTokenClaims(User user) {
         Instant now = Instant.now();
 
         return JwtClaimsSet.builder()
             .issuer(issuer)
             .subject(user.getId().toString())
-            .audience(listOf(audience))
+            .audience(List.of(audience))
             .issuedAt(now)
             .expiresAt(now.plus(refreshTokenExpiration))
             .claim("email", user.getEmail())
@@ -248,14 +249,14 @@ class JwtClaimsService {
 
 ### JWT Token Service
 
-```kotlin
+```java
 @Service
 @Transactional
-class JwtTokenService {
+public class JwtTokenService {
 
-    private val jwtEncoder: JwtEncoder
-    private val claimsService: JwtClaimsService
-    private val refreshTokenRepository: RefreshTokenRepository
+    private final JwtEncoder jwtEncoder;
+    private final JwtClaimsService claimsService;
+    private final RefreshTokenRepository refreshTokenRepository;
 
     public JwtTokenService(JwtEncoder jwtEncoder,
                           JwtClaimsService claimsService,
@@ -265,7 +266,7 @@ class JwtTokenService {
         this.refreshTokenRepository = refreshTokenRepository;
     }
 
-    fun generateAccessToken(User user): AccessTokenResponse {
+    public AccessTokenResponse generateAccessToken(User user) {
         JwtClaimsSet claims = claimsService.createAccessTokenClaims(user);
         String tokenValue = jwtEncoder.encode(
             JwtEncoderParameters.from(claims)).getTokenValue();
@@ -277,7 +278,7 @@ class JwtTokenService {
             claims.getClaimAsString("type"));
     }
 
-    fun generateRefreshToken(User user): RefreshTokenResponse {
+    public RefreshTokenResponse generateRefreshToken(User user) {
         JwtClaimsSet claims = claimsService.createRefreshTokenClaims(user);
         String tokenValue = jwtEncoder.encode(
             JwtEncoderParameters.from(claims)).getTokenValue();
@@ -296,11 +297,11 @@ class JwtTokenService {
             claims.getExpiresAt().toEpochMilli());
     }
 
-    fun parseToken(String token): Jwt {
+    public Jwt parseToken(String token) {
         try {
             return jwtDecoder.decode(token);
         } catch (JwtException e) {
-            throw InvalidTokenException("Failed to parse JWT token", e);
+            throw new InvalidTokenException("Failed to parse JWT token", e);
         }
     }
 }
@@ -398,9 +399,9 @@ cors:
 
 ### Key Generator for RSA
 
-```kotlin
+```java
 @Component
-class RsaKeyGenerator {
+public class RsaKeyGenerator {
 
     @EventListener(ApplicationReadyEvent.class)
     public void generateKeys() throws Exception {
@@ -418,12 +419,12 @@ class RsaKeyGenerator {
         keyStore.setKeyEntry("jwt", keyPair.getPrivate(), password, chain);
 
         // Save to file
-        try (FileOutputStream fos = FileOutputStream("jwt.jks")) {
+        try (FileOutputStream fos = new FileOutputStream("jwt.jks")) {
             keyStore.store(fos, password);
         }
     }
 
-    private fun generateSelfSignedCertificate(KeyPair keyPair): Certificate {
+    private Certificate generateSelfSignedCertificate(KeyPair keyPair) {
         // Implementation for self-signed certificate generation
         // Use Bouncy Castle or similar library
         return null;
@@ -433,16 +434,17 @@ class RsaKeyGenerator {
 
 ### Key Rotation Support
 
-```kotlin
+```java
 @Configuration
-class KeyRotationConfig {
+public class KeyRotationConfig {
 
     @Bean
     @Primary
-    fun jwtDecoder(List<JWKSet> jwkSets): JwtDecoder {
+    public JwtDecoder jwtDecoder(List<JWKSet> jwkSets) {
         // Merge multiple key sets for rotation support
-        JWKSet mergedSet = jwkSets..reduce(JWKSet::new)
-            .orElse(JWKSet());
+        JWKSet mergedSet = jwkSets.stream()
+            .reduce(JWKSet::new)
+            .orElse(new JWKSet());
 
         return NimbusJwtDecoder.withJwkSetUri(jwkSetUri())
             .jwsAlgorithm(JWSAlgorithm.RS256)
@@ -450,13 +452,13 @@ class KeyRotationConfig {
     }
 
     @Bean
-    fun currentJwkSet(@Value("${jwt.current-key-id}") String currentKeyId): JWKSet {
+    public JWKSet currentJwkSet(@Value("${jwt.current-key-id}") String currentKeyId) {
         // Load current key set from database or file
         return loadJwkSetFromStorage(currentKeyId);
     }
 
     @Bean
-    fun previousJwkSet(@Value("${jwt.previous-key-id}") String previousKeyId): JWKSet {
+    public JWKSet previousJwkSet(@Value("${jwt.previous-key-id}") String previousKeyId) {
         // Load previous key set for validation of existing tokens
         return loadJwkSetFromStorage(previousKeyId);
     }
@@ -467,12 +469,12 @@ class KeyRotationConfig {
 
 ### Enhanced JWT Decoder with Validation
 
-```kotlin
+```java
 @Component
-class CustomJwtDecoder implements JwtDecoder {
+public class CustomJwtDecoder implements JwtDecoder {
 
-    private val delegate: JwtDecoder
-    private val claimsValidator: JwtClaimsValidator
+    private final JwtDecoder delegate;
+    private final JwtClaimsValidator claimsValidator;
 
     public CustomJwtDecoder(JwtDecoder delegate,
                            JwtClaimsValidator claimsValidator) {
@@ -492,10 +494,10 @@ class CustomJwtDecoder implements JwtDecoder {
             return jwt;
         }
 
-        throw JwtException("JWT validation failed");
+        throw new JwtException("JWT validation failed");
     }
 
-    private fun hasRequiredClaims(Jwt jwt): boolean {
+    private boolean hasRequiredClaims(Jwt jwt) {
         return jwt.containsClaim("type") &&
                jwt.containsClaim("jti") &&
                jwt.containsClaim("sessionId");
@@ -505,20 +507,20 @@ class CustomJwtDecoder implements JwtDecoder {
 
 ### Claims Validator
 
-```kotlin
+```java
 @Component
-class JwtClaimsValidator {
+public class JwtClaimsValidator {
 
     @Value("${jwt.issuer}")
-    private var expectedIssuer: String
+    private String expectedIssuer;
 
     @Value("${jwt.audience}")
-    private var expectedAudience: String
+    private String expectedAudience;
 
     @Value("${jwt.allowed-clock-skew:PT30S}")
-    private var allowedClockSkew: Duration
+    private Duration allowedClockSkew;
 
-    fun validate(Jwt jwt): void {
+    public void validate(Jwt jwt) {
         validateIssuer(jwt);
         validateAudience(jwt);
         validateExpiration(jwt);
@@ -527,50 +529,50 @@ class JwtClaimsValidator {
         validateType(jwt);
     }
 
-    private fun validateIssuer(Jwt jwt): void {
+    private void validateIssuer(Jwt jwt) {
         if (!expectedIssuer.equals(jwt.getIssuer())) {
-            throw JwtException("Invalid issuer: " + jwt.getIssuer());
+            throw new JwtException("Invalid issuer: " + jwt.getIssuer());
         }
     }
 
-    private fun validateAudience(Jwt jwt): void {
+    private void validateAudience(Jwt jwt) {
         if (jwt.getAudience() == null ||
             !jwt.getAudience().contains(expectedAudience)) {
-            throw JwtException("Invalid audience");
+            throw new JwtException("Invalid audience");
         }
     }
 
-    private fun validateExpiration(Jwt jwt): void {
+    private void validateExpiration(Jwt jwt) {
         Instant now = Instant.now();
         Instant exp = jwt.getExpiresAt();
 
         if (exp == null || now.isAfter(exp.plus(allowedClockSkew))) {
-            throw JwtException("Token expired");
+            throw new JwtException("Token expired");
         }
     }
 
-    private fun validateNotBefore(Jwt jwt): void {
+    private void validateNotBefore(Jwt jwt) {
         Instant now = Instant.now();
         Instant nbf = jwt.getNotBefore();
 
         if (nbf != null && now.isBefore(nbf.minus(allowedClockSkew))) {
-            throw JwtException("Token not yet valid");
+            throw new JwtException("Token not yet valid");
         }
     }
 
-    private fun validateIssuedAt(Jwt jwt): void {
+    private void validateIssuedAt(Jwt jwt) {
         Instant now = Instant.now();
         Instant iat = jwt.getIssuedAt();
 
         if (iat != null && now.isBefore(iat.minus(allowedClockSkew))) {
-            throw JwtException("Token issued in the future");
+            throw new JwtException("Token issued in the future");
         }
     }
 
-    private fun validateType(Jwt jwt): void {
+    private void validateType(Jwt jwt) {
         String type = jwt.getClaimAsString("type");
         if (!"access".equals(type)) {
-            throw JwtException("Invalid token type: " + type);
+            throw new JwtException("Invalid token type: " + type);
         }
     }
 }

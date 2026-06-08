@@ -176,9 +176,9 @@ abstract class ResourcePreviewEndpointTestBase : AuthorizationEndpointIntegratio
     protected fun seedTargetScope(allowedTargetIdsJson: String) {
         kotlinx.coroutines.runBlocking {
             databaseClient.sql(
-                "INSERT INTO workspace_target_scopes (id, workspace_id, principal_id, principal_type, permission_id, target_resource_type, allowed_target_ids_json) VALUES ('scope-1', '$WORKSPACE_ID', '$PRINCIPAL_ID', 'USER', 'permission-resource-read', 'RESOURCE', ?)",
+                "INSERT INTO workspace_target_scopes (id, workspace_id, principal_id, principal_type, permission_id, target_resource_type, allowed_target_ids_json) VALUES ('scope-1', '$WORKSPACE_ID', '$PRINCIPAL_ID', 'USER', 'permission-resource-read', 'RESOURCE', :allowedTargetIdsJson)",
             )
-                .bind(0, allowedTargetIdsJson)
+                .bind("allowedTargetIdsJson", allowedTargetIdsJson)
                 .fetch()
                 .rowsUpdated()
                 .awaitSingle()

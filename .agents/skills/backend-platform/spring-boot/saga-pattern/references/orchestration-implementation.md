@@ -24,16 +24,16 @@ to services and handling responses.
 
 ### Saga Class
 
-```kotlin
+```java
 @Saga
-class OrderSaga {
+public class OrderSaga {
 
     @Autowired
     private transient CommandGateway commandGateway;
 
     @StartSaga
     @SagaEventHandler(associationProperty = "orderId")
-    fun handle(OrderCreatedEvent event): void {
+    public void handle(OrderCreatedEvent event) {
         String paymentId = UUID.randomUUID().toString();
         ProcessPaymentCommand command = new ProcessPaymentCommand(
             paymentId,
@@ -45,7 +45,7 @@ class OrderSaga {
     }
 
     @SagaEventHandler(associationProperty = "orderId")
-    fun handle(PaymentProcessedEvent event): void {
+    public void handle(PaymentProcessedEvent event) {
         ReserveInventoryCommand command = new ReserveInventoryCommand(
             event.getOrderId(),
             event.getItemId()
@@ -54,14 +54,14 @@ class OrderSaga {
     }
 
     @SagaEventHandler(associationProperty = "orderId")
-    fun handle(PaymentFailedEvent event): void {
-        CancelOrderCommand command = CancelOrderCommand(event.getOrderId());
+    public void handle(PaymentFailedEvent event) {
+        CancelOrderCommand command = new CancelOrderCommand(event.getOrderId());
         commandGateway.send(command);
         end();
     }
 
     @SagaEventHandler(associationProperty = "orderId")
-    fun handle(InventoryReservedEvent event): void {
+    public void handle(InventoryReservedEvent event) {
         PrepareShipmentCommand command = new PrepareShipmentCommand(
             event.getOrderId(),
             event.getItemId()
@@ -71,7 +71,7 @@ class OrderSaga {
 
     @EndSaga
     @SagaEventHandler(associationProperty = "orderId")
-    fun handle(OrderCompletedEvent event): void {
+    public void handle(OrderCompletedEvent event) {
         // Saga completed successfully
     }
 }
@@ -79,14 +79,14 @@ class OrderSaga {
 
 ### Aggregate for Order Service
 
-```kotlin
+```java
 @Aggregate
-class OrderAggregate {
+public class OrderAggregate {
 
     @AggregateIdentifier
-    private var orderId: String
+    private String orderId;
 
-    private var status: OrderStatus
+    private OrderStatus status;
 
     public OrderAggregate() {
     }
@@ -101,18 +101,18 @@ class OrderAggregate {
     }
 
     @EventSourcingHandler
-    fun on(OrderCreatedEvent event): void {
+    public void on(OrderCreatedEvent event) {
         this.orderId = event.getOrderId();
         this.status = OrderStatus.PENDING;
     }
 
     @CommandHandler
-    fun handle(CancelOrderCommand command): void {
-        apply(OrderCancelledEvent(command.getOrderId()));
+    public void handle(CancelOrderCommand command) {
+        apply(new OrderCancelledEvent(command.getOrderId()));
     }
 
     @EventSourcingHandler
-    fun on(OrderCancelledEvent event): void {
+    public void on(OrderCancelledEvent event) {
         this.status = OrderStatus.CANCELLED;
     }
 }
@@ -120,12 +120,12 @@ class OrderAggregate {
 
 ### Aggregate for Payment Service
 
-```kotlin
+```java
 @Aggregate
-class PaymentAggregate {
+public class PaymentAggregate {
 
     @AggregateIdentifier
-    private var paymentId: String
+    private String paymentId;
 
     public PaymentAggregate() {
     }

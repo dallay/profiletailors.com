@@ -1,0 +1,94 @@
+databaseChangeLog:
+  - changeSet:
+      id: publishing-006-create-publication-jobs
+      author: opencode
+      changes:
+        - createTable:
+            tableName: publication_jobs
+            columns:
+              - column:
+                  name: id
+                  type: varchar(64)
+                  constraints:
+                    primaryKey: true
+                    nullable: false
+              - column:
+                  name: publication_id
+                  type: varchar(64)
+                  constraints:
+                    nullable: false
+                    foreignKeyName: fk_publication_jobs_publication
+                    references: publications(id)
+              - column:
+                  name: workspace_id
+                  type: varchar(64)
+                  constraints:
+                    nullable: false
+                    foreignKeyName: fk_publication_jobs_workspace
+                    references: workspaces(id)
+              - column:
+                  name: status
+                  type: varchar(32)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: due_at
+                  type: timestamp with time zone
+                  constraints:
+                    nullable: false
+              - column:
+                  name: priority_rank
+                  type: integer
+                  defaultValueNumeric: 0
+                  constraints:
+                    nullable: false
+              - column:
+                  name: attempt_count
+                  type: integer
+                  defaultValueNumeric: 0
+                  constraints:
+                    nullable: false
+              - column:
+                  name: max_attempts
+                  type: integer
+                  defaultValueNumeric: 3
+                  constraints:
+                    nullable: false
+              - column:
+                  name: claimed_by_worker
+                  type: varchar(128)
+              - column:
+                  name: claimed_at
+                  type: timestamp with time zone
+              - column:
+                  name: lease_expires_at
+                  type: timestamp with time zone
+              - column:
+                  name: completed_at
+                  type: timestamp with time zone
+              - column:
+                  name: failed_at
+                  type: timestamp with time zone
+              - column:
+                  name: cancelled_at
+                  type: timestamp with time zone
+              - column:
+                  name: created_at
+                  type: timestamp with time zone
+                  defaultValueComputed: CURRENT_TIMESTAMP
+                  constraints:
+                    nullable: false
+        - createIndex:
+            tableName: publication_jobs
+            indexName: idx_publication_jobs_due_lookup
+            columns:
+              - column:
+                  name: status
+              - column:
+                  name: due_at
+              - column:
+                  name: priority_rank
+        - addUniqueConstraint:
+            tableName: publication_jobs
+            columnNames: publication_id
+            constraintName: uq_publication_jobs_publication

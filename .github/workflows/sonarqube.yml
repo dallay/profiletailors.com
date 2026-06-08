@@ -37,8 +37,7 @@ jobs:
           cache: 'gradle'
 
       - name: Run backend tests with coverage
-        working-directory: server/smp
-        run: ./gradlew test jacocoTestReport --no-daemon -PexcludeTags=modularity,postgres
+        run: ./gradlew :server:smp:test :server:smp:jacocoTestReport --no-daemon -PexcludeTags=modularity,postgres
 
       - name: Verify backend coverage report
         run: |

@@ -24,20 +24,26 @@ This project uses [Codecov](https://about.codecov.io/) for code coverage trackin
 ## Configuration Files
 
 ### `codecov.yml`
+
 Main Codecov configuration at the repository root:
+
 - **Coverage targets**: 80% project, 70% patch
 - **Flags**: `backend`, `smp` for component tracking
 - **Ignore patterns**: Tests, docs, build artifacts
 
 ### `.github/workflows/test-coverage.yml`
+
 CI workflow that:
+
 - Runs backend tests with JaCoCo
 - Generates XML coverage reports
 - Uploads to Codecov with flags
 - Stores test results as artifacts
 
 ### `server/smp/build.gradle.kts`
+
 Gradle configuration with:
+
 - JaCoCo plugin enabled
 - XML report generation (required by Codecov)
 - HTML reports for local viewing
@@ -47,17 +53,20 @@ Gradle configuration with:
 ## Local Usage
 
 ### Run tests with coverage
+
 ```bash
 cd server/smp
 ./gradlew test jacocoTestReport
 ```
 
 ### View coverage report
+
 ```bash
 open server/smp/build/reports/jacoco/test/html/index.html
 ```
 
 ### Verify coverage thresholds
+
 ```bash
 ./gradlew jacocoTestCoverageVerification
 ```
@@ -65,12 +74,14 @@ open server/smp/build/reports/jacoco/test/html/index.html
 ## CI/CD Integration
 
 The workflow runs automatically on:
+
 - Push to `main` or `develop`
 - Pull requests to `main` or `develop`
 
 ### Coverage Reports
 
 After each run:
+
 - Coverage data is uploaded to Codecov
 - Test results are stored as artifacts (7 days)
 - Coverage reports are stored as artifacts (7 days)
@@ -99,17 +110,20 @@ Add to your README.md:
 ## Troubleshooting
 
 ### Coverage not uploading
+
 1. Check `CODECOV_TOKEN` is set in GitHub secrets
 2. Verify workflow has `contents: read` permission
 3. Check JaCoCo XML report exists at expected path
 
 ### Low coverage warnings
+
 1. Run `./gradlew jacocoTestReport` locally
 2. Open HTML report to see uncovered lines
 3. Add tests for uncovered code
 4. Verify exclusions in `build.gradle.kts` are correct
 
 ### Workflow failing
+
 1. Check test execution: `./gradlew test`
 2. Verify JaCoCo report generation: `./gradlew jacocoTestReport`
 3. Check workflow logs in GitHub Actions

@@ -90,17 +90,17 @@ jwt:
 
 ### Modern Spring Security 6.x Configuration
 
-```kotlin
+```java
 @Configuration
 @EnableWebSecurity
 @EnableMethodSecurity
 @RequiredArgsConstructor
-class SecurityConfig {
+public class SecurityConfig {
 
-    private val jwtAuthFilter: JwtAuthenticationFilter
-    private val authenticationProvider: AuthenticationProvider
-    private val logoutHandler: LogoutHandler
-    private val jwtAuthenticationEntryPoint: JwtAuthenticationEntryPoint
+    private final JwtAuthenticationFilter jwtAuthFilter;
+    private final AuthenticationProvider authenticationProvider;
+    private final LogoutHandler logoutHandler;
+    private final JwtAuthenticationEntryPoint jwtAuthenticationEntryPoint;
 
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
@@ -144,15 +144,15 @@ class SecurityConfig {
     }
 
     @Bean
-    fun corsConfigurationSource(): CorsConfigurationSource {
-        CorsConfiguration configuration = CorsConfiguration();
+    public CorsConfigurationSource corsConfigurationSource() {
+        CorsConfiguration configuration = new CorsConfiguration();
         configuration.setAllowedOriginPatterns(getAllowedOrigins());
-        configuration.setAllowedMethods(listOf("GET", "POST", "PUT", "DELETE", "OPTIONS"));
-        configuration.setAllowedHeaders(listOf("*"));
+        configuration.setAllowedMethods(List.of("GET", "POST", "PUT", "DELETE", "OPTIONS"));
+        configuration.setAllowedHeaders(List.of("*"));
         configuration.setAllowCredentials(true);
         configuration.setMaxAge(3600L);
 
-        UrlBasedCorsConfigurationSource source = UrlBasedCorsConfigurationSource();
+        UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
         source.registerCorsConfiguration("/**", configuration);
         return source;
     }
@@ -169,15 +169,15 @@ class SecurityConfig {
 
 ### JWT Authentication Filter
 
-```kotlin
+```java
 @Component
 @RequiredArgsConstructor
 @Slf4j
-class JwtAuthenticationFilter extends OncePerRequestFilter {
+public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
-    private val jwtService: JwtService
-    private val userDetailsService: UserDetailsService
-    private val blacklistService: TokenBlacklistService
+    private final JwtService jwtService;
+    private final UserDetailsService userDetailsService;
+    private final TokenBlacklistService blacklistService;
 
     @Override
     protected void doFilterInternal(
@@ -222,7 +222,7 @@ class JwtAuthenticationFilter extends OncePerRequestFilter {
                         userDetails.getAuthorities()
                 );
                 authToken.setDetails(
-                    WebAuthenticationDetailsSource().buildDetails(request)
+                    new WebAuthenticationDetailsSource().buildDetails(request)
                 );
                 SecurityContextHolder.getContext().setAuthentication(authToken);
             }
@@ -237,37 +237,37 @@ class JwtAuthenticationFilter extends OncePerRequestFilter {
 
 ### JWT Service Implementation
 
-```kotlin
+```java
 @Service
 @RequiredArgsConstructor
 @Slf4j
-class JwtService {
+public class JwtService {
 
     @Value("${jwt.secret}")
-    private var secret: String
+    private String secret;
 
     @Value("${jwt.access-token-expiration}")
-    private var accessTokenExpiration: long
+    private long accessTokenExpiration;
 
     @Value("${jwt.refresh-token-expiration}")
-    private var refreshTokenExpiration: long
+    private long refreshTokenExpiration;
 
     @Value("${jwt.issuer}")
-    private var issuer: String
+    private String issuer;
 
-    private val secretKeyRepository: SecretKeyRepository
-    private val cacheManager: CacheManager
+    private final SecretKeyRepository secretKeyRepository;
+    private final CacheManager cacheManager;
 
-    fun generateToken(UserDetails userDetails): String {
-        return generateToken(mutableMapOf(), userDetails);
+    public String generateToken(UserDetails userDetails) {
+        return generateToken(new HashMap<>(), userDetails);
     }
 
-    fun generateToken(Map<String, Object> extraClaims, UserDetails userDetails): String {
+    public String generateToken(Map<String, Object> extraClaims, UserDetails userDetails) {
         return buildToken(extraClaims, userDetails, accessTokenExpiration);
     }
 
-    fun generateRefreshToken(UserDetails userDetails): String {
-        return buildToken(mutableMapOf(), userDetails, refreshTokenExpiration);
+    public String generateRefreshToken(UserDetails userDetails) {
+        return buildToken(new HashMap<>(), userDetails, refreshTokenExpiration);
     }
 
     private String buildToken(
@@ -280,17 +280,18 @@ class JwtService {
         return Jwts.builder()
                 .setClaims(extraClaims)
                 .setSubject(userDetails.getUsername())
-                .setIssuedAt(Date(System.currentTimeMillis()))
-                .setExpiration(Date(System.currentTimeMillis() + expiration))
+                .setIssuedAt(new Date(System.currentTimeMillis()))
+                .setExpiration(new Date(System.currentTimeMillis() + expiration))
                 .setIssuer(issuer)
                 .setId(UUID.randomUUID().toString())
-                .claim("authorities", userDetails.getAuthorities()..map(GrantedAuthority::getAuthority)
-                    )
+                .claim("authorities", userDetails.getAuthorities().stream()
+                    .map(GrantedAuthority::getAuthority)
+                    .collect(Collectors.toList()))
                 .signWith(signingKey, SignatureAlgorithm.HS256)
                 .compact();
     }
 
-    fun extractUsername(String token): String {
+    public String extractUsername(String token) {
         return extractClaim(token, Claims::getSubject);
     }
 
@@ -299,20 +300,20 @@ class JwtService {
         return claimsResolver.apply(claims);
     }
 
-    fun isTokenValid(String token, UserDetails userDetails): boolean {
+    public boolean isTokenValid(String token, UserDetails userDetails) {
         final String username = extractUsername(token);
         return (username.equals(userDetails.getUsername())) && !isTokenExpired(token);
     }
 
-    private fun isTokenExpired(String token): boolean {
-        return extractExpiration(token).before(Date());
+    private boolean isTokenExpired(String token) {
+        return extractExpiration(token).before(new Date());
     }
 
-    private fun extractExpiration(String token): Date {
+    private Date extractExpiration(String token) {
         return extractClaim(token, Claims::getExpiration);
     }
 
-    private fun extractAllClaims(String token): Claims {
+    private Claims extractAllClaims(String token) {
         SecretKey signingKey = getCurrentSigningKey();
 
         return Jwts.parserBuilder()
@@ -323,12 +324,12 @@ class JwtService {
                 .getBody();
     }
 
-    private fun getCurrentSigningKey(): SecretKey {
+    private SecretKey getCurrentSigningKey() {
         return secretKeyRepository.findCurrentKey()
                 .map(SecretKeyEntity::getKey)
                 .orElseGet(() -> {
                     SecretKey newKey = Keys.secretKeyFor(SignatureAlgorithm.HS256);
-                    secretKeyRepository.save(SecretKeyEntity(newKey, LocalDateTime.now()));
+                    secretKeyRepository.save(new SecretKeyEntity(newKey, LocalDateTime.now()));
                     return newKey;
                 });
     }
@@ -337,24 +338,24 @@ class JwtService {
 
 ### Key Rotation Configuration
 
-```kotlin
+```java
 @Service
 @RequiredArgsConstructor
 @Slf4j
-class JwtKeyRotationService {
+public class JwtKeyRotationService {
 
-    private val keyRepository: SecretKeyRepository
-    private val cacheManager: CacheManager
-    private val eventPublisher: ApplicationEventPublisher
+    private final SecretKeyRepository keyRepository;
+    private final CacheManager cacheManager;
+    private final ApplicationEventPublisher eventPublisher;
 
     @Value("${jwt.key-rotation.enabled:true}")
-    private var keyRotationEnabled: boolean
+    private boolean keyRotationEnabled;
 
     @Value("${jwt.key-rotation.cron:0 0 0 * * ?}")
-    private var rotationCron: String
+    private String rotationCron;
 
     @Scheduled(cron = "${jwt.key-rotation.cron}")
-    fun rotateKeys(): void {
+    public void rotateKeys() {
         if (!keyRotationEnabled) {
             log.info("JWT key rotation is disabled");
             return;
@@ -362,7 +363,7 @@ class JwtKeyRotationService {
 
         try {
             SecretKey newKey = Keys.secretKeyFor(SignatureAlgorithm.HS256);
-            SecretKeyEntity keyEntity = SecretKeyEntity(newKey, LocalDateTime.now());
+            SecretKeyEntity keyEntity = new SecretKeyEntity(newKey, LocalDateTime.now());
 
             keyRepository.save(keyEntity);
 
@@ -370,7 +371,7 @@ class JwtKeyRotationService {
             cacheManager.getCache("jwt-keys").clear();
 
             // Publish key rotation event
-            eventPublisher.publishEvent(KeyRotatedEvent(this, keyEntity.getId()));
+            eventPublisher.publishEvent(new KeyRotatedEvent(this, keyEntity.getId()));
 
             log.info("JWT signing key rotated successfully");
         } catch (Exception e) {
@@ -378,10 +379,10 @@ class JwtKeyRotationService {
         }
     }
 
-    fun getCurrentSigningKey(): SecretKey {
+    public SecretKey getCurrentSigningKey() {
         return keyRepository.findCurrentKey()
                 .map(SecretKeyEntity::getKey)
-                .orElseThrow(() -> IllegalStateException("No signing key available"));
+                .orElseThrow(() -> new IllegalStateException("No signing key available"));
     }
 }
 ```
@@ -390,14 +391,14 @@ class JwtKeyRotationService {
 
 ### Pure Resource Server Configuration
 
-```kotlin
+```java
 @Configuration
 @EnableWebSecurity
 @EnableMethodSecurity
-class ResourceServerConfig {
+public class ResourceServerConfig {
 
     @Value("${spring.security.oauth2.resourceserver.jwt.issuer-uri}")
-    private var issuerUri: String
+    private String issuerUri;
 
     @Bean
     public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
@@ -417,17 +418,17 @@ class ResourceServerConfig {
     }
 
     @Bean
-    fun jwtDecoder(): JwtDecoder {
+    public JwtDecoder jwtDecoder() {
         return JwtDecoders.fromIssuerLocation(issuerUri);
     }
 
     @Bean
-    fun jwtAuthenticationConverter(): JwtAuthenticationConverter {
-        JwtGrantedAuthoritiesConverter authoritiesConverter = JwtGrantedAuthoritiesConverter();
+    public JwtAuthenticationConverter jwtAuthenticationConverter() {
+        JwtGrantedAuthoritiesConverter authoritiesConverter = new JwtGrantedAuthoritiesConverter();
         authoritiesConverter.setAuthorityPrefix("ROLE_");
         authoritiesConverter.setAuthoritiesClaimName("roles");
 
-        JwtAuthenticationConverter converter = JwtAuthenticationConverter();
+        JwtAuthenticationConverter converter = new JwtAuthenticationConverter();
         converter.setJwtGrantedAuthoritiesConverter(authoritiesConverter);
         return converter;
     }
@@ -436,19 +437,19 @@ class ResourceServerConfig {
 
 ### Custom JWT Decoder
 
-```kotlin
+```java
 @Component
 @RequiredArgsConstructor
-class CustomJwtDecoder implements JwtDecoder {
+public class CustomJwtDecoder implements JwtDecoder {
 
-    private val nimbusJwtDecoder: NimbusJwtDecoder
-    private val blacklistService: TokenBlacklistService
+    private final NimbusJwtDecoder nimbusJwtDecoder;
+    private final TokenBlacklistService blacklistService;
 
     @Override
     public Jwt decode(String token) throws JwtException {
         // Check blacklist
         if (blacklistService.isBlacklisted(token)) {
-            throw BadJwtException("Token has been blacklisted");
+            throw new BadJwtException("Token has been blacklisted");
         }
 
         // Decode token
@@ -460,19 +461,19 @@ class CustomJwtDecoder implements JwtDecoder {
         return jwt;
     }
 
-    private fun validateCustomClaims(Jwt jwt): void {
+    private void validateCustomClaims(Jwt jwt) {
         // Add custom claim validation logic
         Map<String, Object> claims = jwt.getClaims();
 
         // Example: Validate tenant claim
         if (!claims.containsKey("tenant_id")) {
-            throw BadJwtException("Missing tenant_id claim");
+            throw new BadJwtException("Missing tenant_id claim");
         }
 
         // Example: Validate IP address
         String tokenIp = (String) claims.get("ip_address");
         if (tokenIp != null && !tokenIp.equals(getCurrentIpAddress())) {
-            throw BadJwtException("Token IP mismatch");
+            throw new BadJwtException("Token IP mismatch");
         }
     }
 }
@@ -482,18 +483,18 @@ class CustomJwtDecoder implements JwtDecoder {
 
 ### Token Blacklisting
 
-```kotlin
+```java
 @Service
 @RequiredArgsConstructor
-class TokenBlacklistService {
+public class TokenBlacklistService {
 
     private final RedisTemplate<String, String> redisTemplate;
     private static final String BLACKLIST_PREFIX = "blacklist:jwt:";
 
     @Value("${jwt.blacklist.enabled:true}")
-    private var blacklistEnabled: boolean
+    private boolean blacklistEnabled;
 
-    fun blacklistToken(String token): void {
+    public void blacklistToken(String token) {
         if (!blacklistEnabled) {
             return;
         }
@@ -515,7 +516,7 @@ class TokenBlacklistService {
         }
     }
 
-    fun isBlacklisted(String token): boolean {
+    public boolean isBlacklisted(String token) {
         if (!blacklistEnabled) {
             return false;
         }
@@ -529,12 +530,12 @@ class TokenBlacklistService {
         }
     }
 
-    private fun extractTokenId(String token): String {
+    private String extractTokenId(String token) {
         // Extract JTI claim or generate from token hash
         return DigestUtils.md5DigestAsHex(token.getBytes());
     }
 
-    private fun calculateRemainingTime(String token): long {
+    private long calculateRemainingTime(String token) {
         // Parse token and calculate remaining time
         try {
             Jwt jwt = JwtHelper.decode(token);
@@ -553,33 +554,33 @@ class TokenBlacklistService {
 
 ### Rate Limiting
 
-```kotlin
+```java
 @Configuration
 @EnableCaching
-class RateLimitConfig {
+public class RateLimitConfig {
 
     @Bean
-    fun cacheManager(): CacheManager {
-        return ConcurrentMapCacheManager("login-attempts", "jwt-requests");
+    public CacheManager cacheManager() {
+        return new ConcurrentMapCacheManager("login-attempts", "jwt-requests");
     }
 }
 
 @Component
 @RequiredArgsConstructor
-class JwtRateLimitService {
+public class JwtRateLimitService {
 
-    private val cacheManager: CacheManager
+    private final CacheManager cacheManager;
 
     @Value("${jwt.rate-limit.enabled:true}")
-    private var rateLimitEnabled: boolean
+    private boolean rateLimitEnabled;
 
     @Value("${jwt.rate-limit.max-attempts:5}")
-    private var maxAttempts: int
+    private int maxAttempts;
 
     @Value("${jwt.rate-limit.time-window:300000}") // 5 minutes
-    private var timeWindow: long
+    private long timeWindow;
 
-    fun isRateLimited(String identifier): boolean {
+    public boolean isRateLimited(String identifier) {
         if (!rateLimitEnabled) {
             return false;
         }
@@ -589,7 +590,7 @@ class JwtRateLimitService {
 
         AtomicInteger attempts = cache.get(key, AtomicInteger.class);
         if (attempts == null) {
-            attempts = AtomicInteger(0);
+            attempts = new AtomicInteger(0);
             cache.put(key, attempts);
         }
 
@@ -609,17 +610,17 @@ class JwtRateLimitService {
 
 ### JWT Parsing Optimization
 
-```kotlin
+```java
 @Service
 @RequiredArgsConstructor
 @Slf4j
-class OptimizedJwtService {
+public class OptimizedJwtService {
 
-    private val cacheManager: CacheManager
-    private val keyRepository: SecretKeyRepository
+    private final CacheManager cacheManager;
+    private final SecretKeyRepository keyRepository;
 
     @Cacheable(value = "jwt-parsing", key = "#token")
-    fun parseToken(String token): Claims {
+    public Claims parseToken(String token) {
         SecretKey key = getCurrentSigningKey();
 
         return Jwts.parserBuilder()
@@ -630,17 +631,18 @@ class OptimizedJwtService {
     }
 
     @Cacheable(value = "signing-keys", key = "'current'")
-    fun getCurrentSigningKey(): SecretKey {
+    public SecretKey getCurrentSigningKey() {
         return keyRepository.findCurrentKey()
                 .map(SecretKeyEntity::getKey)
-                .orElseThrow(() -> IllegalStateException("No signing key available"));
+                .orElseThrow(() -> new IllegalStateException("No signing key available"));
     }
 
-    fun generateTokenOptimized(UserDetails userDetails): String {
+    public String generateTokenOptimized(UserDetails userDetails) {
         // Pre-calculate common claims
-        Map<String, Object> claims = mutableMapOf();
-        claims.put("authorities", userDetails.getAuthorities()..map(GrantedAuthority::getAuthority)
-                );
+        Map<String, Object> claims = new HashMap<>();
+        claims.put("authorities", userDetails.getAuthorities().stream()
+                .map(GrantedAuthority::getAuthority)
+                .collect(Collectors.toList()));
         claims.put("user_id", ((User) userDetails).getId());
         claims.put("email", ((User) userDetails).getEmail());
 
@@ -684,7 +686,7 @@ spring:
    ```
 
 2. **Clock Skew Issues**
-   ```kotlin
+   ```java
    // Add clock skew tolerance
    Jwts.parserBuilder()
        .setAllowedClockSkewSeconds(60) // 60 seconds tolerance
@@ -693,7 +695,7 @@ spring:
    ```
 
 3. **Issuer Mismatch**
-   ```kotlin
+   ```java
    // Always set and validate issuer
    Jwts.parserBuilder()
        .requireIssuer("your-app-name")
@@ -719,14 +721,14 @@ spring:
 
 ### Health Check Endpoint
 
-```kotlin
+```java
 @Component
-class JwtHealthIndicator implements HealthIndicator {
+public class JwtHealthIndicator implements HealthIndicator {
 
-    private val jwtService: JwtService
+    private final JwtService jwtService;
 
     @Override
-    fun health(): Health {
+    public Health health() {
         try {
             // Test JWT signing and parsing
             String testToken = jwtService.generateTestToken();

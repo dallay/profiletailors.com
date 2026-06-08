@@ -99,8 +99,11 @@ The system MUST derive the authenticated principal identity from a validated cre
 repo-local identity seams.
 For USER principals on the proving slice, the system MUST continue to materialize the authenticated
 principal from a validated JWT.
-For the local USER browser session flow, the frontend MUST obtain that JWT access token through login or refresh and keep it only in memory for subsequent protected API calls.
-For the dedicated refresh endpoint, the backend MUST materialize the same USER principal only after validating the refresh credential against authoritative backend state and issuing a new JWT for the session.
+For the local USER browser session flow, the frontend MUST obtain that JWT access token through
+login or refresh and keep it only in memory for subsequent protected API calls.
+For the dedicated refresh endpoint, the backend MUST materialize the same USER principal only after
+validating the refresh credential against authoritative backend state and issuing a new JWT for the
+session.
 For SERVICE_ACCOUNT principals on the proving slice, the system MUST materialize the authenticated
 principal from the validated service-account bearer credential path.
 For API_KEY principals on the proving slice, the system MUST materialize the authenticated principal
@@ -167,25 +170,34 @@ generalized multi-principal onboarding flows remain deferred.
 - AND the backend still recognizes a valid refresh credential for that USER session
 - WHEN the frontend calls the dedicated refresh endpoint during session bootstrap
 - THEN the backend MUST issue a new JWT that materializes the same authenticated USER principal
-- AND downstream protected API behavior MUST continue to consume the platform principal rather than raw cookie state
+- AND downstream protected API behavior MUST continue to consume the platform principal rather than
+  raw cookie state
 
 #### Scenario: Missing or invalid refresh session prevents renewed USER principal establishment
 
-- GIVEN a browser attempts to bootstrap or recover a local USER session through the dedicated refresh endpoint
-- AND the presented refresh credential is missing, invalid, expired, or revoked in authoritative backend state
+- GIVEN a browser attempts to bootstrap or recover a local USER session through the dedicated
+  refresh endpoint
+- AND the presented refresh credential is missing, invalid, expired, or revoked in authoritative
+  backend state
 - WHEN the backend evaluates the refresh request
 - THEN the system MUST reject renewed principal establishment for that session
 - AND the frontend MUST treat the browser as unauthenticated until a new login occurs
 
 ### Requirement: Local User Session Bootstrap and In-Memory Access Token Handling
 
-The system MUST support local USER browser sessions where the access token is held only in client memory.
+The system MUST support local USER browser sessions where the access token is held only in client
+memory.
 
 The frontend MUST treat the access token as an in-memory session artifact for authenticated API use.
-The frontend MUST NOT persist the local USER access token in `localStorage`, `sessionStorage`, or equivalent durable browser storage.
-When the app starts without an in-memory access token, the frontend MUST bootstrap session state by attempting the dedicated refresh flow before treating a potentially authenticated browser as anonymous.
-If refresh bootstrap succeeds, the frontend MUST continue with the returned authenticated USER state.
-If refresh bootstrap fails, the frontend MUST clear any local authenticated session state and treat the browser as unauthenticated.
+The frontend MUST NOT persist the local USER access token in `localStorage`, `sessionStorage`, or
+equivalent durable browser storage.
+When the app starts without an in-memory access token, the frontend MUST bootstrap session state by
+attempting the dedicated refresh flow before treating a potentially authenticated browser as
+anonymous.
+If refresh bootstrap succeeds, the frontend MUST continue with the returned authenticated USER
+state.
+If refresh bootstrap fails, the frontend MUST clear any local authenticated session state and treat
+the browser as unauthenticated.
 
 #### Scenario: App startup restores session from refresh when memory is empty
 
@@ -205,13 +217,19 @@ If refresh bootstrap fails, the frontend MUST clear any local authenticated sess
 
 ### Requirement: Local User Access Token Retry Behavior
 
-The system MUST support exactly one automatic access-token recovery attempt for local USER API requests that fail with `401` due to expired or missing access-token state.
+The system MUST support exactly one automatic access-token recovery attempt for local USER API
+requests that fail with `401` due to expired or missing access-token state.
 
-The frontend authenticated request wrapper MUST attach the current in-memory access token when present.
-When a protected request receives `401`, the frontend MAY call the dedicated refresh flow once for that original request.
-If refresh succeeds, the frontend MUST replay the original request exactly one time with the new access token.
-If refresh fails, the frontend MUST fail closed and surface the request failure without additional refresh loops.
-The frontend MUST NOT perform repeated or unbounded automatic refresh retries for a single original request.
+The frontend authenticated request wrapper MUST attach the current in-memory access token when
+present.
+When a protected request receives `401`, the frontend MAY call the dedicated refresh flow once for
+that original request.
+If refresh succeeds, the frontend MUST replay the original request exactly one time with the new
+access token.
+If refresh fails, the frontend MUST fail closed and surface the request failure without additional
+refresh loops.
+The frontend MUST NOT perform repeated or unbounded automatic refresh retries for a single original
+request.
 
 #### Scenario: Single retry succeeds after one refresh
 

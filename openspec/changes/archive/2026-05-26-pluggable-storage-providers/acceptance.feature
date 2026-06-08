@@ -24,9 +24,9 @@ Feature: Storage providers
 
   Scenario: Multi-provider resolution
     Given multiple providers are configured:
-      | name          | type  | bucket       |
-      | local-test    | local | local-bucket |
-      | s3-test       | s3    | my-s3-bucket |
+      | name       | type  | bucket       |
+      | local-test | local | local-bucket |
+      | s3-test    | s3    | my-s3-bucket |
     When I request storage for bucket 'local-test'
     Then I receive a LocalFilesystemStorage instance
     When I request storage for bucket 's3-test'
