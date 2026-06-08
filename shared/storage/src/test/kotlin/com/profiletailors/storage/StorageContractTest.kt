@@ -11,6 +11,7 @@ import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertFalse
 import org.junit.jupiter.api.Assertions.assertInstanceOf
 import org.junit.jupiter.api.Assertions.assertTrue
+import org.junit.jupiter.api.Assertions.fail
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.DisplayName
 import org.junit.jupiter.api.Nested
@@ -183,11 +184,13 @@ abstract class StorageContractTest {
             storage.delete(TEST_BUCKET, TEST_KEY)
 
             // Object should no longer exist
+            val thrown = runCatching {
+                storage.download(TEST_BUCKET, TEST_KEY).collect { }
+            }.exceptionOrNull() ?: fail("Expected exception but got none")
+            val target = thrown.cause ?: thrown
             assertInstanceOf(
                 StorageObjectNotFoundException::class.java,
-                runCatching {
-                    storage.download(TEST_BUCKET, TEST_KEY).collect { }
-                }.exceptionOrNull()?.cause
+                target
             )
         }
 

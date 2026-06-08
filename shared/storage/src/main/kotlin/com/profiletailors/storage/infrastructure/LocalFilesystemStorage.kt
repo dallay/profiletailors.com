@@ -157,7 +157,8 @@ class LocalFilesystemStorage(private val basePath: Path) : Storage {
             }
 
             // Resolve the directory to list from
-            val dir = if (prefix.isEmpty()) {
+            val dir = if (prefix.isEmpty() || prefix == "." || prefix == "./") {
+                // Special-case: "." and "./" map to bucket root (not its parent)
                 bucketPath
             } else {
                 try {
