@@ -125,10 +125,11 @@ abstract class StorageContractTest {
 
             storage.upload(TEST_BUCKET, TEST_KEY, content)
 
-            // Verify download works with chunked content
-            val downloaded = storage.download(TEST_BUCKET, TEST_KEY)
-            // Implementation should handle chunked content correctly
-            assertInstanceOf(Flow::class.java, downloaded)
+            // Verify download works with chunked content and data integrity
+            val downloaded = collectBytes(storage.download(TEST_BUCKET, TEST_KEY))
+            val expected = chunkList.reduce { acc, bytes -> acc + bytes }
+            assertEquals(expected.size, downloaded.size)
+            assertArrayEquals(expected, downloaded)
         }
     }
 
@@ -148,12 +149,14 @@ abstract class StorageContractTest {
 
         @Test
         fun `should throw StorageObjectNotFoundException for non-existent object`() = runTest {
+            val thrown = runCatching {
+                // Collect the flow to trigger the download
+                storage.download(TEST_BUCKET, "non-existent-key").collect { }
+            }.exceptionOrNull()
+            val target = thrown?.cause ?: thrown
             assertInstanceOf(
                 StorageObjectNotFoundException::class.java,
-                runCatching {
-                    // Collect the flow to trigger the download
-                    storage.download(TEST_BUCKET, "non-existent-key").collect { }
-                }.exceptionOrNull()?.cause
+                target
             )
         }
 

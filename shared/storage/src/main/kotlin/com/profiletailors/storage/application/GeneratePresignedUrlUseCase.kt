@@ -5,6 +5,7 @@ import com.profiletailors.common.domain.bus.event.BaseDomainEvent
 import com.profiletailors.common.domain.bus.event.EventPublisher
 import com.profiletailors.storage.domain.PresignedUrlGeneratedEvent
 import com.profiletailors.storage.domain.PresignableStorage
+import com.profiletailors.storage.domain.StorageObjectNotFoundException
 import com.profiletailors.storage.domain.StorageServiceException
 import com.profiletailors.storage.infrastructure.metrics.StorageMetrics
 import java.time.Instant
@@ -60,6 +61,17 @@ class GeneratePresignedUrlUseCase(
             metrics.recordOperationTime(StorageMetrics.Operations.PRESIGN, provider) {
                 storage.presignGet(bucket, key, expirySeconds)
             }
+        } catch (e: IllegalArgumentException) {
+            // Validation errors (e.g., bucket validation) should not be wrapped as service errors
+            metrics.recordPresignedUrlGenerated(provider, false)
+            metrics.recordError(StorageMetrics.Operations.PRESIGN, provider, bucket, StorageMetrics.ErrorTypes.SECURITY)
+            throw e
+        } catch (e: StorageObjectNotFoundException) {
+            metrics.recordPresignedUrlGenerated(provider, false)
+            metrics.recordError(StorageMetrics.Operations.PRESIGN, provider, bucket, StorageMetrics.ErrorTypes.NOT_FOUND)
+            throw StorageServiceException(
+                "Failed to generate presigned URL for '$key' in bucket '$bucket'", e
+            )
         } catch (e: Exception) {
             metrics.recordPresignedUrlGenerated(provider, false)
             metrics.recordError(StorageMetrics.Operations.PRESIGN, provider, bucket, StorageMetrics.ErrorTypes.SERVICE)

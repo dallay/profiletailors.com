@@ -51,7 +51,7 @@ class MockPresignableStorage : PresignableStorage {
         val key_ = "$bucket:$key"
         val bytes = mutableListOf<ByteArray>()
         content.collect { bytes.add(it) }
-        storage[key_] = bytes.reduce { acc, b -> acc + b }
+        storage[key_] = if (bytes.isEmpty()) ByteArray(0) else bytes.reduce { acc, b -> acc + b }
     }
 
     override fun download(bucket: String, key: String): Flow<ByteArray> {

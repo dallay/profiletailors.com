@@ -175,6 +175,12 @@ class LocalFilesystemStorage(private val basePath: Path) : Storage {
                 }
             }
 
+            // Ensure dir is still contained within bucketPath (prevents prefix="." from escaping)
+            val normalizedDir = dir.normalize()
+            if (!normalizedDir.startsWith(bucketPath.normalize())) {
+                throw StorageSecurityException("Path traversal attempt with prefix: $prefix")
+            }
+
             if (!Files.exists(dir)) return@withContext emptyList()
             try {
                 return@withContext Files.walk(dir).use { stream ->

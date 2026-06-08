@@ -62,7 +62,7 @@ abstract class PresignableStorageContractTest {
     private lateinit var storage: PresignableStorage
 
     @BeforeEach
-    fun setUp(tempDir: Path) {
+    fun setUp(@TempDir tempDir: Path) {
         storage = createStorage(tempDir)
     }
 
@@ -130,12 +130,14 @@ abstract class PresignableStorageContractTest {
         }
 
         @Test
-        fun `should throw StorageServiceException for non-existent object`() = runTest {
+        fun `should throw StorageObjectNotFoundException for non-existent object`() = runTest {
+            val thrown = runCatching {
+                storage.presignGet(TEST_BUCKET, "non-existent-key", 300)
+            }.exceptionOrNull()
+            val target = thrown?.cause ?: thrown
             assertInstanceOf(
                 StorageObjectNotFoundException::class.java,
-                runCatching {
-                    storage.presignGet(TEST_BUCKET, "non-existent-key", 300)
-                }.exceptionOrNull()?.cause
+                target
             )
         }
     }
