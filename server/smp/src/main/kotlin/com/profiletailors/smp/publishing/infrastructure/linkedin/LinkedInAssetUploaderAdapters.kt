@@ -37,7 +37,7 @@ class RealLinkedInAssetUploader(
     private val assetUploadProperties: LinkedInAssetUploadProperties,
     private val objectMapper: ObjectMapper,
     private val httpTransport: LinkedInHttpTransport,
-    private val storage: Storage,
+    private val storage: Storage?,
     private val assetRepository: PublicationAssetRepository,
 ) : AssetUploader {
     override suspend fun uploadAsset(

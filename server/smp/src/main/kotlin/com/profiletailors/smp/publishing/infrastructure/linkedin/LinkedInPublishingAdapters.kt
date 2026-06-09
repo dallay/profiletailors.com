@@ -3,6 +3,7 @@ package com.profiletailors.smp.publishing.infrastructure.linkedin
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties
 import com.fasterxml.jackson.annotation.JsonProperty
 import com.fasterxml.jackson.databind.ObjectMapper
+import org.springframework.beans.factory.annotation.Autowired
 import com.profiletailors.smp.publishing.domain.AssetSourceType
 import com.profiletailors.smp.publishing.domain.AssetUploader
 import com.profiletailors.smp.publishing.domain.AssetUploadContext
@@ -225,7 +226,7 @@ class RealLinkedInPublisher(
     private val credentialGateway: com.profiletailors.smp.publishing.infrastructure
         .credentials.LinkedInCredentialGateway,
     private val assetUploader: AssetUploader,
-    private val storage: Storage,
+    private val storage: Storage?,
     private val attachmentsBucket: String,
 ) : SocialPublisher {
     override suspend fun publish(command: ProviderPublishCommand): ProviderPublishResult {
@@ -330,7 +331,7 @@ class RealLinkedInPublisher(
                     } else {
                         val storageKey = asset.storageKey
                             ?: throw IllegalStateException("Uploaded asset is missing storage key")
-                        val content = storage.download(attachmentsBucket, storageKey)
+                        val content = storage!!.download(attachmentsBucket, storageKey)
                         val assetRef = assetUploader.uploadAsset(asset, content, context)
                         mapOf("entity" to assetRef.providerAssetId)
                     }
@@ -461,7 +462,7 @@ class LinkedInPublishingConfiguration {
         assetUploadProperties: LinkedInAssetUploadProperties,
         objectMapper: ObjectMapper,
         linkedInHttpTransport: LinkedInHttpTransport,
-        storage: Storage,
+        @Autowired(required = false) storage: Storage?,
         publicationAssetRepository: com.profiletailors.smp.publishing.domain.PublicationAssetRepository,
     ): AssetUploader =
         if (properties.mode.equals("real", ignoreCase = true)) {
@@ -497,7 +498,7 @@ class LinkedInPublishingConfiguration {
         linkedInHttpTransport: LinkedInHttpTransport,
         credentialGateway: com.profiletailors.smp.publishing.infrastructure.credentials.LinkedInCredentialGateway,
         assetUploader: AssetUploader,
-        storage: Storage,
+        @Autowired(required = false) storage: Storage?,
         assetUploadProperties: LinkedInAssetUploadProperties,
     ): SocialPublisher =
         if (properties.mode.equals("real", ignoreCase = true)) {
