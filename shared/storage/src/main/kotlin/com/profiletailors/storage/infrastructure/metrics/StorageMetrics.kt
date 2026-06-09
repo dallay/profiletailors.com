@@ -4,8 +4,6 @@ import io.micrometer.core.instrument.Counter
 import io.micrometer.core.instrument.MeterRegistry
 import io.micrometer.core.instrument.Tag
 import io.micrometer.core.instrument.Timer
-import java.util.concurrent.TimeUnit
-import java.util.concurrent.atomic.AtomicLong
 import org.springframework.stereotype.Component
 
 private const val OPERATION = "operation"
@@ -23,30 +21,13 @@ private const val BUCKET = "bucket"
  * - storage.operation.time: Timer for operation latency (tags: operation, provider)
  * - storage.errors.total: Counter for failed operations (tags: operation, provider, bucket, error_type)
  * - storage.presigned.urls.generated: Counter for presigned URL generations (tags: provider)
- * - storage.objects.total: Gauge for object count per bucket (tags: provider, bucket)
+ *
+ * All metrics are tagged with provider and bucket for fine-grained observability.
  *
  * @property meterRegistry Micrometer meter registry for metric registration
  */
 @Component
 class StorageMetrics(private val meterRegistry: MeterRegistry) {
-
-    // Track bytes for gauge calculations
-    private val bytesUploaded = AtomicLong(0)
-    private val bytesDownloaded = AtomicLong(0)
-
-    init {
-        // Register gauges for total bytes transferred
-        meterRegistry.gauge(
-            "storage.bytes.uploaded.total",
-            listOf(Tag.of("type", "cumulative")),
-            bytesUploaded,
-        )
-        meterRegistry.gauge(
-            "storage.bytes.downloaded.total",
-            listOf(Tag.of("type", "cumulative")),
-            bytesDownloaded,
-        )
-    }
 
     /**
      * Records a storage operation (upload, download, delete, list).
@@ -77,8 +58,6 @@ class StorageMetrics(private val meterRegistry: MeterRegistry) {
      * @param bucket The bucket name
      */
     fun recordBytesUploaded(bytes: Long, provider: String, bucket: String) {
-        bytesUploaded.addAndGet(bytes)
-
         Counter.builder("storage.bytes.uploaded.total")
             .tag(PROVIDER, provider)
             .tag(BUCKET, sanitizeBucketTag(bucket))
@@ -95,8 +74,6 @@ class StorageMetrics(private val meterRegistry: MeterRegistry) {
      * @param bucket The bucket name
      */
     fun recordBytesDownloaded(bytes: Long, provider: String, bucket: String) {
-        bytesDownloaded.addAndGet(bytes)
-
         Counter.builder("storage.bytes.downloaded.total")
             .tag(PROVIDER, provider)
             .tag(BUCKET, sanitizeBucketTag(bucket))

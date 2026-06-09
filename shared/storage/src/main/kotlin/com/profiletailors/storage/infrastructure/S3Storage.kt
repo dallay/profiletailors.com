@@ -1,6 +1,6 @@
 package com.profiletailors.storage.infrastructure
 
-import com.profiletailors.storage.domain.Storage
+import com.profiletailors.storage.domain.PresignableStorage
 import com.profiletailors.storage.domain.StorageObjectNotFoundException
 import com.profiletailors.storage.domain.StorageServiceException
 import kotlinx.coroutines.flow.Flow
@@ -26,11 +26,52 @@ import software.amazon.awssdk.services.s3.presigner.model.GetObjectPresignReques
 import java.nio.ByteBuffer
 import java.time.Duration
 
+/**
+ * S3-compatible object storage adapter.
+ *
+ * Supports AWS S3, MinIO, Cloudflare R2, and other S3-compatible providers.
+ * Implements [PresignableStorage] to provide presigned URL generation.
+ *
+ * ## Bucket Model
+ *
+ * Each instance is bound to exactly one bucket (configured at construction time).
+ * All operations validate that the requested bucket matches the configured bucket.
+ * If a different bucket is requested, an [IllegalArgumentException] is thrown.
+ * This prevents silent cross-bucket writes.
+ *
+ * ## Thread Safety
+ *
+ * This class is safe for concurrent use; the underlying S3 client handles concurrency.
+ *
+ * @param client The S3 async client configured for the provider
+ * @param bucketName The bucket name this instance is bound to
+ * @param presigner The S3 presigner for generating presigned URLs
+ * @throws IllegalArgumentException if bucketName is blank
+ */
 open class S3Storage(
     private val client: S3AsyncClient,
     private val bucketName: String,
     private val presigner: S3Presigner
-) : Storage {
+) : PresignableStorage {
+
+    init {
+        require(bucketName.isNotBlank()) {
+            "bucketName cannot be blank"
+        }
+    }
+
+    /**
+     * Validates that the requested bucket matches the configured bucket.
+     *
+     * @throws IllegalArgumentException if bucket does not match the configured bucket
+     */
+    private fun validateBucket(bucket: String) {
+        require(bucket == bucketName) {
+            "Bucket mismatch: this storage instance is bound to bucket '$bucketName'. " +
+            "Requested bucket '$bucket' is not supported. " +
+            "Create a separate S3Storage instance for each bucket."
+        }
+    }
 
     override suspend fun upload(
         bucket: String,
@@ -38,6 +79,7 @@ open class S3Storage(
         content: Flow<ByteArray>,
         metadata: Map<String, String>
     ) {
+        validateBucket(bucket)
         try {
             val request = PutObjectRequest.builder()
                 .bucket(bucketName)
@@ -60,6 +102,7 @@ open class S3Storage(
     }
 
     override fun download(bucket: String, key: String): Flow<ByteArray> = channelFlow {
+        validateBucket(bucket)
         try {
             val request = GetObjectRequest.builder()
                 .bucket(bucketName)
@@ -86,6 +129,7 @@ open class S3Storage(
     }
 
     override suspend fun delete(bucket: String, key: String) {
+        validateBucket(bucket)
         try {
             val req = DeleteObjectRequest.builder()
                 .bucket(bucketName)
@@ -100,6 +144,7 @@ open class S3Storage(
     }
 
     override suspend fun list(bucket: String, prefix: String): List<String> {
+        validateBucket(bucket)
         try {
             val results = mutableListOf<String>()
             var isTruncated: Boolean
@@ -136,6 +181,7 @@ open class S3Storage(
     }
 
     override suspend fun presignGet(bucket: String, key: String, expirySeconds: Long): String {
+        validateBucket(bucket)
         try {
             val getObjectRequest = GetObjectRequest.builder()
                 .bucket(bucketName)
@@ -162,7 +208,3 @@ open class S3Storage(
         }
     }
 }
-
-
-
-

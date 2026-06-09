@@ -4,24 +4,34 @@ import com.profiletailors.common.domain.Service
 import com.profiletailors.common.domain.bus.event.BaseDomainEvent
 import com.profiletailors.common.domain.bus.event.EventPublisher
 import com.profiletailors.storage.domain.PresignedUrlGeneratedEvent
-import com.profiletailors.storage.domain.Storage
+import com.profiletailors.storage.domain.PresignableStorage
+import com.profiletailors.storage.domain.StorageObjectNotFoundException
 import com.profiletailors.storage.domain.StorageServiceException
 import com.profiletailors.storage.infrastructure.metrics.StorageMetrics
 import java.time.Instant
 
 /**
- * Use case for generating presigned URLs for S3 objects.
+ * Use case for generating presigned URLs for cloud object storage.
+ *
+ * This use case requires a [PresignableStorage] implementation because presigned URLs
+ * are only supported by cloud providers (S3, R2, GCS, Azure Blob, etc.) and not by
+ * local filesystem storage.
+ *
+ * NOTE: This class is NOT annotated with @Service to avoid auto-wiring issues when
+ * the BucketRegistry returns Storage (not PresignableStorage). Create instances
+ * explicitly where needed, or add a @Bean method in your configuration for each
+ * PresignableStorage provider.
+ *
  * Enforces security constraints (max expiry), audits all URL generation, and records metrics.
  *
- * @param storage The storage adapter (output port)
+ * @param storage The presignable storage adapter (must implement [PresignableStorage])
  * @param eventPublisher Publisher for auditing URL generation events
  * @param metrics Storage metrics for recording presigned URL operations
  * @param maxExpirySeconds Maximum allowed expiry time for presigned URLs (default: 1 hour)
  * @param provider The storage provider name for metrics
  */
-@Service
 class GeneratePresignedUrlUseCase(
-    private val storage: Storage,
+    private val storage: PresignableStorage,
     private val eventPublisher: EventPublisher<BaseDomainEvent>,
     private val metrics: StorageMetrics,
     private val maxExpirySeconds: Long = DEFAULT_MAX_EXPIRY_SECONDS,
@@ -51,6 +61,17 @@ class GeneratePresignedUrlUseCase(
             metrics.recordOperationTime(StorageMetrics.Operations.PRESIGN, provider) {
                 storage.presignGet(bucket, key, expirySeconds)
             }
+        } catch (e: IllegalArgumentException) {
+            // Validation errors (e.g., bucket validation) should not be wrapped as service errors
+            metrics.recordPresignedUrlGenerated(provider, false)
+            metrics.recordError(StorageMetrics.Operations.PRESIGN, provider, bucket, StorageMetrics.ErrorTypes.SECURITY)
+            throw e
+        } catch (e: StorageObjectNotFoundException) {
+            metrics.recordPresignedUrlGenerated(provider, false)
+            metrics.recordError(StorageMetrics.Operations.PRESIGN, provider, bucket, StorageMetrics.ErrorTypes.NOT_FOUND)
+            throw StorageServiceException(
+                "Failed to generate presigned URL for '$key' in bucket '$bucket'", e
+            )
         } catch (e: Exception) {
             metrics.recordPresignedUrlGenerated(provider, false)
             metrics.recordError(StorageMetrics.Operations.PRESIGN, provider, bucket, StorageMetrics.ErrorTypes.SERVICE)
