@@ -11,6 +11,7 @@ import com.profiletailors.smp.publishing.domain.CompleteProviderConnectionComman
 import com.profiletailors.smp.publishing.domain.ProviderAccountProfile
 import com.profiletailors.smp.publishing.domain.ProviderCapabilityValidationInput
 import com.profiletailors.smp.publishing.domain.ProviderCapabilityValidator
+import com.profiletailors.smp.publishing.domain.ProviderAssetRef
 import com.profiletailors.smp.publishing.domain.ProviderConnectionResult
 import com.profiletailors.smp.publishing.domain.PublicationAsset
 import com.profiletailors.smp.publishing.domain.PublicationAssetRepository
@@ -393,10 +394,29 @@ class PublishingHandlersTest {
     }
 
     private class InMemoryPublicationAssetRepository(
-        private val assets: List<PublicationAsset>,
+        private val assets: List<PublicationAsset> = emptyList(),
     ) : PublicationAssetRepository {
+        private val items = linkedMapOf<String, PublicationAsset>()
+
+        init {
+            assets.forEach { items[it.id] = it }
+        }
+
         override suspend fun findByWorkspaceAndIds(workspaceId: String, assetIds: Collection<String>): List<PublicationAsset> =
-            assets.filter { it.workspaceId == workspaceId && it.id in assetIds }
+            items.values.filter { it.workspaceId == workspaceId && it.id in assetIds }
+
+        override suspend fun create(asset: PublicationAsset): PublicationAsset {
+            items[asset.id] = asset
+            return asset
+        }
+
+        override suspend fun updateStatus(assetId: String, status: PublicationAssetStatus) {
+            items[assetId] = items[assetId]!!.copy(status = status)
+        }
+
+        override suspend fun updateProviderAssetRef(assetId: String, providerAssetRef: ProviderAssetRef) {
+            items[assetId] = items[assetId]!!.copy(status = PublicationAssetStatus.READY, providerAssetRef = providerAssetRef)
+        }
     }
 
     private class InMemoryPublicationJobRepository : PublicationJobRepository {

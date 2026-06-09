@@ -49,3 +49,7 @@ databaseChangeLog:
       file: db/changelog/publishing/007-create-delivery-attempts.yaml
   - include:
       file: db/changelog/publishing/008-create-secure-credentials.yaml
+  - include:
+      file: db/changelog/publishing/009-add-provider-asset-ref.yaml
+  - include:
+      file: db/changelog/publishing/010-add-file-size-to-publication-assets.yaml

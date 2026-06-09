@@ -1,5 +1,6 @@
 package com.profiletailors.smp.publishing.infrastructure
 
+import com.fasterxml.jackson.databind.ObjectMapper
 import com.profiletailors.smp.integration.support.DatabaseUnitTestBase
 import com.profiletailors.smp.publishing.domain.AssetSourceType
 import com.profiletailors.smp.publishing.domain.PublicationAsset
@@ -38,7 +39,7 @@ class R2dbcPublishingRepositoriesTest : DatabaseUnitTestBase() {
         socialConnectionRepository = R2dbcSocialConnectionRepository(databaseClient)
         socialAccountRepository = R2dbcSocialAccountRepository(databaseClient)
         publicationRepository = R2dbcPublicationRepository(databaseClient)
-        publicationAssetRepository = R2dbcPublicationAssetRepository(databaseClient)
+        publicationAssetRepository = R2dbcPublicationAssetRepository(databaseClient, ObjectMapper())
     }
 
     @Test

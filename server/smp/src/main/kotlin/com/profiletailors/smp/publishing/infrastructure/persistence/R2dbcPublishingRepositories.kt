@@ -1,5 +1,7 @@
 package com.profiletailors.smp.publishing.infrastructure.persistence
 
+import com.fasterxml.jackson.core.JsonProcessingException
+import com.fasterxml.jackson.databind.ObjectMapper
 import com.profiletailors.smp.publishing.domain.AssetSourceType
 import com.profiletailors.smp.publishing.domain.DeliveryAttempt
 import com.profiletailors.smp.publishing.domain.DeliveryAttemptOutcome
@@ -8,6 +10,7 @@ import com.profiletailors.smp.publishing.domain.JobStatus
 import com.profiletailors.smp.publishing.domain.PublicationAsset
 import com.profiletailors.smp.publishing.domain.PublicationAssetRepository
 import com.profiletailors.smp.publishing.domain.PublicationAssetStatus
+import com.profiletailors.smp.publishing.domain.ProviderAssetRef
 import com.profiletailors.smp.publishing.domain.PublicationDraft
 import com.profiletailors.smp.publishing.domain.PublicationJob
 import com.profiletailors.smp.publishing.domain.PublicationJobClaim
@@ -243,6 +246,7 @@ class R2dbcPublicationRepository(
 @Repository
 class R2dbcPublicationAssetRepository(
     private val databaseClient: DatabaseClient,
+    private val objectMapper: ObjectMapper,
 ) : PublicationAssetRepository {
     override suspend fun findByWorkspaceAndIds(
         workspaceId: String,
@@ -251,7 +255,7 @@ class R2dbcPublicationAssetRepository(
         if (assetIds.isEmpty()) return emptyList()
         return databaseClient.sql(
             """
-            SELECT id, workspace_id, source_type, media_type, storage_key, external_url, original_filename, status, created_by_principal_id, created_at
+            SELECT id, workspace_id, source_type, media_type, storage_key, external_url, original_filename, file_size_bytes, status, created_by_principal_id, created_at, provider_asset_ref
             FROM publication_assets
             WHERE workspace_id = :workspaceId
             """.trimIndent(),
@@ -266,7 +270,16 @@ class R2dbcPublicationAssetRepository(
                     storageKey = row.get("storage_key", String::class.java),
                     externalUrl = row.get("external_url", String::class.java),
                     originalFilename = row.get("original_filename", String::class.java),
+                    fileSizeBytes = row.get("file_size_bytes", java.lang.Long::class.java)?.toLong(),
                     status = PublicationAssetStatus.valueOf(requireNotNull(row.get("status", String::class.java))),
+                    providerAssetRef = row.get("provider_asset_ref", String::class.java)?.let { json ->
+                        runCatching {
+                            objectMapper.readValue(
+                                json,
+                                com.profiletailors.smp.publishing.domain.ProviderAssetRef::class.java,
+                            )
+                        }.getOrNull()
+                    },
                     createdByPrincipalId = requireNotNull(row.get("created_by_principal_id", String::class.java)),
                     createdAt = row.get("created_at", OffsetDateTime::class.java)?.toInstant(),
                 )
@@ -275,6 +288,82 @@ class R2dbcPublicationAssetRepository(
             .collectList()
             .awaitSingle()
             .filter { it.id in assetIds }
+    }
+
+    override suspend fun create(asset: PublicationAsset): PublicationAsset {
+        val providerAssetRefJson = asset.providerAssetRef?.let {
+            runCatching { objectMapper.writeValueAsString(it) }.getOrNull()
+        }
+        databaseClient.sql(
+            """
+            INSERT INTO publication_assets (
+                id, workspace_id, source_type, media_type, storage_key, external_url,
+                original_filename, file_size_bytes, status, provider_asset_ref, created_by_principal_id, created_at
+            ) VALUES (
+                :id, :workspaceId, :sourceType, :mediaType, :storageKey, :externalUrl,
+                :originalFilename, :fileSizeBytes, :status, :providerAssetRef, :createdByPrincipalId, :createdAt
+            )
+            """.trimIndent(),
+        )
+            .bind("id", asset.id)
+            .bind("workspaceId", asset.workspaceId)
+            .bind("sourceType", asset.sourceType.name)
+            .bind("mediaType", asset.mediaType)
+            .bindNullable("storageKey", asset.storageKey, String::class.java)
+            .bindNullable("externalUrl", asset.externalUrl, String::class.java)
+            .bindNullable("originalFilename", asset.originalFilename, String::class.java)
+            .let { spec ->
+                val fileSize = asset.fileSizeBytes
+                if (fileSize != null) {
+                    spec.bind("fileSizeBytes", java.lang.Long.valueOf(fileSize))
+                } else {
+                    spec.bindNull("fileSizeBytes", java.lang.Long::class.java)
+                }
+            }
+            .bind("status", asset.status.name)
+            .bindNullable("providerAssetRef", providerAssetRefJson, String::class.java)
+            .bind("createdByPrincipalId", asset.createdByPrincipalId)
+            .bindNullable("createdAt", asset.createdAt ?: Instant.now(), Instant::class.java)
+            .fetch()
+            .rowsUpdated()
+            .awaitSingle()
+        return asset
+    }
+
+    override suspend fun updateStatus(assetId: String, status: PublicationAssetStatus) {
+        databaseClient.sql(
+            """
+            UPDATE publication_assets
+            SET status = :status
+            WHERE id = :id
+            """.trimIndent(),
+        )
+            .bind("status", status.name)
+            .bind("id", assetId)
+            .fetch()
+            .rowsUpdated()
+            .awaitSingle()
+    }
+
+    override suspend fun updateProviderAssetRef(assetId: String, providerAssetRef: ProviderAssetRef) {
+        val providerAssetRefJson = try {
+            objectMapper.writeValueAsString(providerAssetRef)
+        } catch (e: JsonProcessingException) {
+            throw IllegalStateException("Failed to serialize provider asset ref", e)
+        }
+        databaseClient.sql(
+            """
+            UPDATE publication_assets
+            SET status = :status, provider_asset_ref = :providerAssetRef
+            WHERE id = :id
+            """.trimIndent(),
+        )
+            .bind("status", PublicationAssetStatus.READY.name)
+            .bind("providerAssetRef", providerAssetRefJson)
+            .bind("id", assetId)
+            .fetch()
+            .rowsUpdated()
+            .awaitSingle()
     }
 }
 
@@ -495,5 +584,12 @@ private fun org.springframework.r2dbc.core.DatabaseClient.GenericExecuteSpec.bin
     name: String,
     value: java.time.Instant?,
     type: Class<java.time.Instant>,
+): org.springframework.r2dbc.core.DatabaseClient.GenericExecuteSpec =
+    value?.let { bind(name, it) } ?: bindNull(name, type)
+
+private fun org.springframework.r2dbc.core.DatabaseClient.GenericExecuteSpec.bindNullable(
+    name: String,
+    value: java.lang.Long?,
+    type: Class<java.lang.Long>,
 ): org.springframework.r2dbc.core.DatabaseClient.GenericExecuteSpec =
     value?.let { bind(name, it) } ?: bindNull(name, type)
