@@ -8,6 +8,9 @@ import com.profiletailors.storage.domain.PresignableStorage
 import com.profiletailors.storage.domain.StorageObjectNotFoundException
 import com.profiletailors.storage.domain.StorageServiceException
 import com.profiletailors.storage.infrastructure.metrics.StorageMetrics
+import com.profiletailors.ratelimit.domain.RateLimitResult
+import com.profiletailors.ratelimit.domain.RateLimiter
+import org.slf4j.LoggerFactory
 import java.time.Instant
 
 /**
@@ -34,9 +37,11 @@ class GeneratePresignedUrlUseCase(
     private val storage: PresignableStorage,
     private val eventPublisher: EventPublisher<BaseDomainEvent>,
     private val metrics: StorageMetrics,
+    private val rateLimiter: RateLimiter,
     private val maxExpirySeconds: Long = DEFAULT_MAX_EXPIRY_SECONDS,
     private val provider: String = StorageMetrics.Providers.S3
 ) {
+    private val logger = LoggerFactory.getLogger(GeneratePresignedUrlUseCase::class.java)
 
     /**
      * Generates a presigned URL for downloading an object from storage.
@@ -56,6 +61,16 @@ class GeneratePresignedUrlUseCase(
         requesterId: String
     ): String {
         validateExpiry(expirySeconds)
+
+        // Rate limit check before generating URL
+        val rateLimitResult = rateLimiter.consumeToken(requesterId)
+        if (rateLimitResult is RateLimitResult.Denied) {
+            metrics.recordPresignedUrlGenerated(provider, false)
+            metrics.recordError(StorageMetrics.Operations.PRESIGN, provider, bucket, StorageMetrics.ErrorTypes.RATE_LIMITED)
+            throw StorageServiceException(
+                "Rate limit exceeded for presigned URL generation. Retry after ${rateLimitResult.retryAfter.seconds}s"
+            )
+        }
 
         val url = try {
             metrics.recordOperationTime(StorageMetrics.Operations.PRESIGN, provider) {
@@ -93,8 +108,8 @@ class GeneratePresignedUrlUseCase(
                     expiryTime = Instant.now().plusSeconds(expirySeconds)
                 )
             )
-        } catch (_: Exception) {
-            // Event publishing failure should not break URL generation
+        } catch (e: Exception) {
+            logger.warn("Failed to publish PresignedUrlGeneratedEvent for bucket=$bucket, key=$key", e)
         }
 
         return url

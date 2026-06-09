@@ -71,7 +71,7 @@ open class StorageAutoConfiguration {
             }
             "s3" -> {
                 // AWS S3 - use default endpoint
-                val bucket = config.bucket 
+                val bucket = config.bucket
                     ?: throw IllegalArgumentException("Bucket name is required for S3")
                 val region = config.region ?: "us-east-1"
 

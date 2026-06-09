@@ -17,7 +17,10 @@ import kotlinx.coroutines.flow.channelFlow
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import org.slf4j.LoggerFactory
 import java.time.Instant
+
+private val logger = LoggerFactory.getLogger(StorageApplicationService::class.java)
 
 /**
  * Main application service for file storage operations.
@@ -98,8 +101,8 @@ class StorageApplicationService(
                     metadata = metadata
                 )
             )
-        } catch (_: Exception) {
-            // Event publishing failure should not break the upload
+        } catch (e: Exception) {
+            logger.warn("Failed to publish FileUploadedEvent for bucket=$bucket, key=$key", e)
         }
     }
 
@@ -131,8 +134,8 @@ class StorageApplicationService(
                         timestamp = Instant.now()
                     )
                 )
-            } catch (_: Exception) {
-                // Event publishing failure should not break the download
+            } catch (e: Exception) {
+                logger.warn("Failed to publish FileDownloadedEvent for bucket=$bucket, key=$key", e)
             }
 
             var bytesDownloaded = 0L
@@ -201,8 +204,8 @@ class StorageApplicationService(
                     timestamp = Instant.now()
                 )
             )
-        } catch (_: Exception) {
-            // Event publishing failure should not break the deletion
+        } catch (e: Exception) {
+            logger.warn("Failed to publish FileDeletedEvent for bucket=$bucket, key=$key", e)
         }
     }
 

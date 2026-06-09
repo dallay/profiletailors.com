@@ -5,6 +5,8 @@ import com.profiletailors.common.domain.bus.event.EventPublisher
 import com.profiletailors.storage.application.GeneratePresignedUrlUseCase
 import com.profiletailors.storage.domain.PresignableStorage
 import com.profiletailors.storage.domain.StorageObjectNotFoundException
+import com.profiletailors.ratelimit.domain.RateLimitResult
+import com.profiletailors.ratelimit.domain.RateLimiter
 import com.profiletailors.storage.infrastructure.metrics.StorageMetrics
 import io.micrometer.core.instrument.MeterRegistry
 import io.micrometer.core.instrument.simple.SimpleMeterRegistry
@@ -81,6 +83,17 @@ class MockPresignableStorage : PresignableStorage {
     }
 }
 
+/**
+ * Mock [RateLimiter] that always allows requests (no rate limiting in tests).
+ */
+class MockRateLimiter : RateLimiter {
+    override suspend fun consumeToken(identifier: String): RateLimitResult =
+        RateLimitResult.Allowed(remainingTokens = 100, limitCapacity = 100, resetTime = java.time.Instant.now().plusSeconds(3600))
+
+    override suspend fun consumeToken(identifier: String, strategy: com.profiletailors.ratelimit.domain.RateLimitStrategy): RateLimitResult =
+        RateLimitResult.Allowed(remainingTokens = 100, limitCapacity = 100, resetTime = java.time.Instant.now().plusSeconds(3600))
+}
+
 class GeneratePresignedUrlUseCaseTest {
 
     private fun createMockEventPublisher(): EventPublisher<BaseDomainEvent> = object : EventPublisher<BaseDomainEvent> {
@@ -92,7 +105,7 @@ class GeneratePresignedUrlUseCaseTest {
         val storage = MockPresignableStorage()
         val eventPublisher = createMockEventPublisher()
         val metrics = TestStorageMetrics()
-        val useCase = GeneratePresignedUrlUseCase(storage, eventPublisher, metrics, maxExpirySeconds = 3600)
+        val useCase = GeneratePresignedUrlUseCase(storage, eventPublisher, metrics, MockRateLimiter(), maxExpirySeconds = 3600)
 
         val bucket = "test-bucket"
         val key = "test.txt"
@@ -109,7 +122,7 @@ class GeneratePresignedUrlUseCaseTest {
         val storage = MockPresignableStorage()
         val eventPublisher = createMockEventPublisher()
         val metrics = TestStorageMetrics()
-        val useCase = GeneratePresignedUrlUseCase(storage, eventPublisher, metrics, maxExpirySeconds = 3600)
+        val useCase = GeneratePresignedUrlUseCase(storage, eventPublisher, metrics, MockRateLimiter(), maxExpirySeconds = 3600)
 
         assertThrows<IllegalArgumentException> {
             runBlocking {
@@ -123,7 +136,7 @@ class GeneratePresignedUrlUseCaseTest {
         val storage = MockPresignableStorage()
         val eventPublisher = createMockEventPublisher()
         val metrics = TestStorageMetrics()
-        val useCase = GeneratePresignedUrlUseCase(storage, eventPublisher, metrics, maxExpirySeconds = 3600)
+        val useCase = GeneratePresignedUrlUseCase(storage, eventPublisher, metrics, MockRateLimiter(), maxExpirySeconds = 3600)
 
         assertThrows<IllegalArgumentException> {
             runBlocking {
@@ -137,7 +150,7 @@ class GeneratePresignedUrlUseCaseTest {
         val storage = MockPresignableStorage()
         val eventPublisher = createMockEventPublisher()
         val metrics = TestStorageMetrics()
-        val useCase = GeneratePresignedUrlUseCase(storage, eventPublisher, metrics, maxExpirySeconds = 3600)
+        val useCase = GeneratePresignedUrlUseCase(storage, eventPublisher, metrics, MockRateLimiter(), maxExpirySeconds = 3600)
 
         assertThrows<IllegalArgumentException> {
             runBlocking {
@@ -151,7 +164,7 @@ class GeneratePresignedUrlUseCaseTest {
         val storage = MockPresignableStorage()
         val eventPublisher = createMockEventPublisher()
         val metrics = TestStorageMetrics()
-        val useCase = GeneratePresignedUrlUseCase(storage, eventPublisher, metrics, maxExpirySeconds = 3600)
+        val useCase = GeneratePresignedUrlUseCase(storage, eventPublisher, metrics, MockRateLimiter(), maxExpirySeconds = 3600)
 
         val bucket = "test-bucket"
         val key = "test.txt"
@@ -166,7 +179,7 @@ class GeneratePresignedUrlUseCaseTest {
         val storage = MockPresignableStorage()
         val eventPublisher = createMockEventPublisher()
         val metrics = TestStorageMetrics()
-        val useCase = GeneratePresignedUrlUseCase(storage, eventPublisher, metrics, maxExpirySeconds = 3600)
+        val useCase = GeneratePresignedUrlUseCase(storage, eventPublisher, metrics, MockRateLimiter(), maxExpirySeconds = 3600)
 
         val exception = assertThrows<Exception> {
             runBlocking {

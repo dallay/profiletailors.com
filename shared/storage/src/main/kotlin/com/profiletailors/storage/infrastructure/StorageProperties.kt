@@ -57,5 +57,11 @@ data class ProviderConfig(
      * The account ID is used to construct the R2 endpoint:
      * https://{accountId}.r2.cloudflarestorage.com
      */
-    val accountId: String? = null
+    val accountId: String? = null,
+
+    /**
+     * Timeout for S3/R2 operations in seconds.
+     * Default is 30 seconds.
+     */
+    val timeoutSeconds: Long = 30
 )
