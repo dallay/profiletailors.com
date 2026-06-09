@@ -11,6 +11,7 @@ import com.profiletailors.smp.publishing.domain.PublicationAsset
 import com.profiletailors.smp.publishing.domain.PublicationAssetRepository
 import com.profiletailors.smp.publishing.domain.PublicationAssetStatus
 import com.profiletailors.storage.domain.Storage
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.flow.Flow
 import java.net.URI
 import java.net.http.HttpRequest
@@ -62,11 +63,16 @@ class RealLinkedInAssetUploader(
                 accessUrl = null,
             )
         }.onFailure { e ->
+            if (e is CancellationException) {
+                assetRepository.updateStatus(asset.id, PublicationAssetStatus.FAILED)
+                throw e
+            }
             if (e is ProviderUploadException || e is IllegalStateException || e is RuntimeException) {
                 assetRepository.updateStatus(asset.id, PublicationAssetStatus.FAILED)
             }
         }.getOrThrow()
 
+        assetRepository.updateStatus(asset.id, PublicationAssetStatus.READY)
         assetRepository.updateProviderAssetRef(asset.id, providerRef)
         return providerRef
     }

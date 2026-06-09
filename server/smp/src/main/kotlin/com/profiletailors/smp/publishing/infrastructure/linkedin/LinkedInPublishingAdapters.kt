@@ -324,11 +324,16 @@ class RealLinkedInPublisher(
         return assets.map { asset ->
             when (asset.sourceType) {
                 AssetSourceType.UPLOADED -> {
-                    val storageKey = asset.storageKey
-                        ?: throw IllegalStateException("Uploaded asset is missing storage key")
-                    val content = storage.download(attachmentsBucket, storageKey)
-                    val assetRef = assetUploader.uploadAsset(asset, content, context)
-                    mapOf("entity" to assetRef.providerAssetId)
+                    val existingRef = asset.providerAssetRef
+                    if (existingRef != null) {
+                        mapOf("entity" to existingRef.providerAssetId)
+                    } else {
+                        val storageKey = asset.storageKey
+                            ?: throw IllegalStateException("Uploaded asset is missing storage key")
+                        val content = storage.download(attachmentsBucket, storageKey)
+                        val assetRef = assetUploader.uploadAsset(asset, content, context)
+                        mapOf("entity" to assetRef.providerAssetId)
+                    }
                 }
                 AssetSourceType.EXTERNAL_URL -> {
                     val url = asset.externalUrl

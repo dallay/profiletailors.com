@@ -2,6 +2,7 @@ package com.profiletailors.smp.publishing.application
 
 import com.profiletailors.common.domain.bus.command.CommandWithResult
 import com.profiletailors.smp.publishing.domain.AssetSourceType
+import com.profiletailors.smp.publishing.domain.PublicationAssetStatus
 import com.profiletailors.smp.publishing.domain.PublicationStatus
 import com.profiletailors.smp.publishing.domain.ScheduleMode
 import com.profiletailors.smp.publishing.domain.SocialAccountKind

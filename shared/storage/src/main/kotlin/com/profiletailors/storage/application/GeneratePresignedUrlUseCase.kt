@@ -90,6 +90,8 @@ class GeneratePresignedUrlUseCase(
             throw StorageServiceException(
                 "Failed to generate presigned URL for '$key' in bucket '$bucket'", e
             )
+        } catch (e: CancellationException) {
+            throw e  // Don't swallow coroutine cancellation
         } catch (e: Exception) {
             metrics.recordPresignedUrlGenerated(provider, false)
             metrics.recordError(StorageMetrics.Operations.PRESIGN, provider, bucket, StorageMetrics.ErrorTypes.SERVICE)

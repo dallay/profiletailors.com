@@ -99,10 +99,10 @@ Enable LinkedIn media upload support so users can attach binary assets (images, 
 
 ## Success Criteria
 
-- [ ] `PublicationAssetRepository.create()` persists a new record with `providerAssetRef`
-- [ ] `RealLinkedInAssetUploader` completes register → upload flow and returns valid LinkedIn URN
-- [ ] `FakeLinkedInAssetUploader` can be used in tests without real credentials
-- [ ] `RealLinkedInPublisher.publish()` accepts non-empty assets list without throwing
-- [ ] LinkedIn URNs are embedded in `contentEntities` of the post body
-- [ ] Asset ingest API endpoint (`POST /assets`) creates a `PublicationAsset` record
-- [ ] Presigned URL flow works end-to-end for external asset sources
+- [x] `PublicationAssetRepository.create()` persists a new record with `providerAssetRef`
+- [x] `RealLinkedInAssetUploader` completes register → upload flow and returns valid LinkedIn URN
+- [x] `FakeLinkedInAssetUploader` can be used in tests without real credentials
+- [x] `RealLinkedInPublisher.publish()` accepts non-empty assets list without throwing
+- [x] LinkedIn URNs are embedded in `contentEntities` of the post body
+- [x] Asset ingest API endpoint (`POST /assets`) creates a `PublicationAsset` record
+- [x] Presigned URL flow works end-to-end for external asset sources

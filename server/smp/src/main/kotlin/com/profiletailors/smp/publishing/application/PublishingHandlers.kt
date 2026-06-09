@@ -28,12 +28,12 @@ import com.profiletailors.smp.publishing.domain.SocialConnectionRepository
 import com.profiletailors.smp.publishing.domain.SocialConnectionStatus
 import com.profiletailors.smp.publishing.domain.SocialProvider
 import com.profiletailors.smp.tenancy.application.requireWorkspaceContext
-import com.profiletailors.storage.domain.Storage
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.asFlow
 import kotlinx.coroutines.flow.onEach
 import java.time.Clock
 import java.time.Instant
+import java.util.Locale
 import java.util.UUID
 
 class PublicationNotFoundException(
@@ -338,7 +338,7 @@ internal class CreateAssetHandler(
     private val principalContextProvider: PrincipalContextProvider,
     private val resourceContextProvider: ResourceContextProvider,
     private val publicationAssetRepository: PublicationAssetRepository,
-    private val storage: Storage,
+
     private val clock: Clock,
 ) : CommandWithResultHandler<CreateAssetCommand, CreateAssetResult> {
     override suspend fun handle(command: CreateAssetCommand): CreateAssetResult {
@@ -358,7 +358,7 @@ internal class CreateAssetHandler(
             id = assetId,
             workspaceId = workspaceId,
             sourceType = command.sourceType,
-            mediaType = command.mediaType.uppercase(),
+            mediaType = command.mediaType.uppercase(Locale.ROOT),
             storageKey = storageKey,
             externalUrl = command.externalUrl,
             originalFilename = command.originalFilename,
