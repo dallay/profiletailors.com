@@ -26,7 +26,6 @@ class LocalFilesystemStorage(private val basePath: Path) : Storage {
     }
 
     private fun resolveSafe(bucket: String, key: String): Path {
-        // Validate bucket path first
         val normalizedBucket = Path.of(bucket).normalize()
         if (normalizedBucket.isAbsolute) {
             throw StorageSecurityException("Absolute bucket path not allowed: $bucket")
@@ -36,7 +35,6 @@ class LocalFilesystemStorage(private val basePath: Path) : Storage {
             throw StorageSecurityException("Bucket path traversal detected: $bucket")
         }
 
-        // Now validate key against the validated bucket path
         val normalized = Path.of(key).normalize()
         val resolved = bucketPath.resolve(normalized).normalize()
         if (!resolved.startsWith(bucketPath)) {
@@ -52,23 +50,32 @@ class LocalFilesystemStorage(private val basePath: Path) : Storage {
         metadata: Map<String, String>
     ) {
         val target = resolveSafe(bucket, key)
-        // Ensure parent directories exist
+        ensureParentDirectories(target)
+        val tmp = createTempFile()
+        writeContent(target, tmp, content)
+    }
+
+    private suspend fun ensureParentDirectories(target: Path) {
         withContext(Dispatchers.IO) {
             try {
                 Files.createDirectories(target.parent)
             } catch (e: IOException) {
-                throw StorageServiceException("Failed to create parent directories for: $key", e)
+                throw StorageServiceException("Failed to create parent directories for: ${target.fileName}", e)
             }
         }
+    }
 
-        val tmp = withContext(Dispatchers.IO) {
+    private suspend fun createTempFile(): Path {
+        return withContext(Dispatchers.IO) {
             try {
                 Files.createTempFile(basePath, "upload", ".tmp")
             } catch (e: IOException) {
                 throw StorageServiceException("Failed to create temp file for upload", e)
             }
         }
-        // Open output stream in IO dispatcher and write chunks using withContext for each blocking write
+    }
+
+    private suspend fun writeContent(target: Path, tmp: Path, content: Flow<ByteArray>) {
         val os = withContext(Dispatchers.IO) { tmp.toFile().outputStream() }
         try {
             content.collect { chunk ->
@@ -81,42 +88,42 @@ class LocalFilesystemStorage(private val basePath: Path) : Storage {
                     }
                 }
             }
-            withContext(Dispatchers.IO) {
-                try {
-                    os.flush()
-                    os.close()
-                    Files.move(tmp, target, StandardCopyOption.REPLACE_EXISTING)
-                } catch (e: IOException) {
-                    throw StorageServiceException("Failed to finalize upload", e)
-                }
-            }
+            finalizeUpload(tmp, target, os)
         } catch (ex: Throwable) {
-            // Attempt to cleanup temp file
-            withContext(Dispatchers.IO) {
-                try {
-                    os.close()
-                } catch (_: Throwable) {
-                }
-                try {
-                    Files.deleteIfExists(tmp)
-                } catch (_: Throwable) {
-                }
-            }
+            cleanupTempFile(tmp, os)
             if (ex is StorageException) throw ex
             throw StorageServiceException("Upload failed", ex)
         }
     }
 
+    private suspend fun finalizeUpload(tmp: Path, target: Path, os: java.io.OutputStream) {
+        withContext(Dispatchers.IO) {
+            try {
+                os.flush()
+                os.close()
+                Files.move(tmp, target, StandardCopyOption.REPLACE_EXISTING)
+            } catch (e: IOException) {
+                throw StorageServiceException("Failed to finalize upload", e)
+            }
+        }
+    }
+
+    private fun cleanupTempFile(tmp: Path, os: java.io.OutputStream) {
+        try {
+            os.close()
+        } catch (_: Throwable) {
+        }
+        try {
+            Files.deleteIfExists(tmp)
+        } catch (_: Throwable) {
+        }
+    }
+
     override fun download(bucket: String, key: String): Flow<ByteArray> =
         channelFlow {
-            val source = try {
-                resolveSafe(bucket, key)
-            } catch (e: StorageSecurityException) {
-                throw e
-            }
+            val source = resolveSafe(bucket, key)
             if (!Files.exists(source)) throw StorageObjectNotFoundException(bucket, key)
-            // Launch reading in IO dispatcher and send chunks to the channelFlow
-            val producer = launch(Dispatchers.IO) {
+            launch(Dispatchers.IO) {
                 try {
                     Files.newInputStream(source).use { ins ->
                         val buffer = ByteArray(8192)
@@ -131,9 +138,7 @@ class LocalFilesystemStorage(private val basePath: Path) : Storage {
                 } catch (e: IOException) {
                     throw StorageServiceException("Error reading file from disk", e)
                 }
-            }
-            // ensure producer completes before closing
-            producer.invokeOnCompletion { cause -> if (cause != null) close(cause) else close() }
+            }.invokeOnCompletion { cause -> if (cause != null) close(cause) else close() }
         }
 
     override suspend fun delete(bucket: String, key: String) {
@@ -149,51 +154,52 @@ class LocalFilesystemStorage(private val basePath: Path) : Storage {
 
     override suspend fun list(bucket: String, prefix: String): List<String> =
         withContext(Dispatchers.IO) {
-            // Validate bucket with path traversal protection
-            val bucketPath = try {
-                resolveSafe(bucket, "")
-            } catch (e: StorageSecurityException) {
-                throw StorageSecurityException("Path traversal attempt in bucket: $bucket")
-            }
-
-            // Resolve the directory to list from
-            val dir = if (prefix.isEmpty() || prefix == "." || prefix == "./") {
-                // Special-case: "." and "./" map to bucket root (not its parent)
-                bucketPath
-            } else {
-                try {
-                    // For prefix "subdir/" or "subdir/nested/", we want to list from bucketPath/subdir
-                    val safePrefix = resolveSafe(bucket, prefix)
-                    // If prefix ends with /, the prefix itself is the directory
-                    // Otherwise use the parent to get the containing directory
-                    if (prefix.endsWith("/")) {
-                        safePrefix
-                    } else {
-                        safePrefix.parent ?: bucketPath
-                    }
-                } catch (e: StorageSecurityException) {
-                    throw StorageSecurityException("Path traversal attempt in prefix: $prefix")
-                }
-            }
-
-            // Ensure dir is still contained within bucketPath (prevents prefix="." from escaping)
-            val normalizedDir = dir.normalize()
-            if (!normalizedDir.startsWith(bucketPath.normalize())) {
-                throw StorageSecurityException("Path traversal attempt with prefix: $prefix")
-            }
-
-            if (!Files.exists(dir)) return@withContext emptyList()
-            try {
-                return@withContext Files.walk(dir).use { stream ->
-                    stream
-                        .filter { Files.isRegularFile(it) }
-                        .filter { !it.fileName.toString().startsWith(".") } // Skip hidden files
-                        .map { bucketPath.relativize(it).toString().replace('\\', '/') }
-                        .filter { key -> prefix.isEmpty() || key.startsWith(prefix) }
-                        .toList()
-                }
-            } catch (e: IOException) {
-                throw StorageServiceException("Failed to list objects with prefix: $prefix", e)
-            }
+            val bucketPath = resolveBucketPath(bucket)
+            val dir = resolveListDirectory(bucket, prefix, bucketPath)
+            validateDirectoryBounds(dir, bucketPath, prefix)
+            walkDirectory(dir, bucketPath, prefix)
         }
+
+    private fun resolveBucketPath(bucket: String): Path {
+        return try {
+            resolveSafe(bucket, "")
+        } catch (e: StorageSecurityException) {
+            throw StorageSecurityException("Path traversal attempt in bucket: $bucket")
+        }
+    }
+
+    private fun resolveListDirectory(bucket: String, prefix: String, bucketPath: Path): Path {
+        if (prefix.isEmpty() || prefix == "." || prefix == "./") {
+            return bucketPath
+        }
+        return try {
+            val safePrefix = resolveSafe(bucket, prefix)
+            if (prefix.endsWith("/")) safePrefix else safePrefix.parent ?: bucketPath
+        } catch (e: StorageSecurityException) {
+            throw StorageSecurityException("Path traversal attempt in prefix: $prefix")
+        }
+    }
+
+    private fun validateDirectoryBounds(dir: Path, bucketPath: Path, prefix: String) {
+        val normalizedDir = dir.normalize()
+        if (!normalizedDir.startsWith(bucketPath.normalize())) {
+            throw StorageSecurityException("Path traversal attempt with prefix: $prefix")
+        }
+    }
+
+    private fun walkDirectory(dir: Path, bucketPath: Path, prefix: String): List<String> {
+        if (!Files.exists(dir)) return emptyList()
+        return try {
+            Files.walk(dir).use { stream ->
+                stream
+                    .filter { Files.isRegularFile(it) }
+                    .filter { !it.fileName.toString().startsWith(".") }
+                    .map { bucketPath.relativize(it).toString().replace('\\', '/') }
+                    .filter { key -> prefix.isEmpty() || key.startsWith(prefix) }
+                    .toList()
+            }
+        } catch (e: IOException) {
+            throw StorageServiceException("Failed to list objects with prefix: $prefix", e)
+        }
+    }
 }

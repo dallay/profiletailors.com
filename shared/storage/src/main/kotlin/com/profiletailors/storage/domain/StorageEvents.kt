@@ -6,6 +6,17 @@ import java.time.LocalDateTime
 import java.time.ZoneOffset
 
 /**
+ * Shared validation messages to avoid duplicated string literals.
+ */
+private object ValidationMessages {
+    const val BUCKET_BLANK = "Bucket cannot be blank"
+    const val KEY_BLANK = "Key cannot be blank"
+    const val UPLOADER_BLANK = "Uploader ID cannot be blank"
+    const val DOWNLOADER_BLANK = "Downloader ID cannot be blank"
+    const val DELETER_BLANK = "Deleter ID cannot be blank"
+}
+
+/**
  * Event published when a file is successfully uploaded to storage.
  * Used for auditing, quota tracking, and analytics.
  */
@@ -18,9 +29,9 @@ data class FileUploadedEvent(
     val metadata: Map<String, String> = emptyMap()
 ) : BaseDomainEvent(LocalDateTime.ofInstant(timestamp, ZoneOffset.UTC)) {
     init {
-        require(bucket.isNotBlank()) { "Bucket cannot be blank" }
-        require(key.isNotBlank()) { "Key cannot be blank" }
-        require(uploaderId.isNotBlank()) { "Uploader ID cannot be blank" }
+        require(bucket.isNotBlank()) { ValidationMessages.BUCKET_BLANK }
+        require(key.isNotBlank()) { ValidationMessages.KEY_BLANK }
+        require(uploaderId.isNotBlank()) { ValidationMessages.UPLOADER_BLANK }
     }
 }
 
@@ -35,9 +46,9 @@ data class FileDownloadedEvent(
     val timestamp: Instant = Instant.now()
 ) : BaseDomainEvent(LocalDateTime.ofInstant(timestamp, ZoneOffset.UTC)) {
     init {
-        require(bucket.isNotBlank()) { "Bucket cannot be blank" }
-        require(key.isNotBlank()) { "Key cannot be blank" }
-        require(downloaderId.isNotBlank()) { "Downloader ID cannot be blank" }
+        require(bucket.isNotBlank()) { ValidationMessages.BUCKET_BLANK }
+        require(key.isNotBlank()) { ValidationMessages.KEY_BLANK }
+        require(downloaderId.isNotBlank()) { ValidationMessages.DOWNLOADER_BLANK }
     }
 }
 
@@ -52,9 +63,9 @@ data class FileDeletedEvent(
     val timestamp: Instant = Instant.now()
 ) : BaseDomainEvent(LocalDateTime.ofInstant(timestamp, ZoneOffset.UTC)) {
     init {
-        require(bucket.isNotBlank()) { "Bucket cannot be blank" }
-        require(key.isNotBlank()) { "Key cannot be blank" }
-        require(deleterId.isNotBlank()) { "Deleter ID cannot be blank" }
+        require(bucket.isNotBlank()) { ValidationMessages.BUCKET_BLANK }
+        require(key.isNotBlank()) { ValidationMessages.KEY_BLANK }
+        require(deleterId.isNotBlank()) { ValidationMessages.DELETER_BLANK }
     }
 }
 
@@ -70,9 +81,9 @@ data class LargeFileUploadStartedEvent(
     val timestamp: Instant = Instant.now()
 ) : BaseDomainEvent(LocalDateTime.ofInstant(timestamp, ZoneOffset.UTC)) {
     init {
-        require(bucket.isNotBlank()) { "Bucket cannot be blank" }
-        require(key.isNotBlank()) { "Key cannot be blank" }
+        require(bucket.isNotBlank()) { ValidationMessages.BUCKET_BLANK }
+        require(key.isNotBlank()) { ValidationMessages.KEY_BLANK }
         require(expectedSizeBytes > 0) { "Expected size must be positive" }
-        require(uploaderId.isNotBlank()) { "Uploader ID cannot be blank" }
+        require(uploaderId.isNotBlank()) { ValidationMessages.UPLOADER_BLANK }
     }
 }
