@@ -149,23 +149,37 @@ class LocalFilesystemStorage(private val basePath: Path) : Storage {
 
     override suspend fun list(bucket: String, prefix: String): List<String> =
         withContext(Dispatchers.IO) {
-            // Validar bucket con path traversal protection
+            // Validate bucket with path traversal protection
             val bucketPath = try {
                 resolveSafe(bucket, "")
             } catch (e: StorageSecurityException) {
                 throw StorageSecurityException("Path traversal attempt in bucket: $bucket")
-            }.parent ?: throw StorageSecurityException("Invalid bucket path")
+            }
 
-            // Validar prefix con path traversal protection
-            val dir = if (prefix.isEmpty()) {
+            // Resolve the directory to list from
+            val dir = if (prefix.isEmpty() || prefix == "." || prefix == "./") {
+                // Special-case: "." and "./" map to bucket root (not its parent)
                 bucketPath
             } else {
                 try {
-                    val safeKey = resolveSafe(bucket, prefix)
-                    safeKey.parent ?: throw StorageSecurityException("Invalid prefix path")
+                    // For prefix "subdir/" or "subdir/nested/", we want to list from bucketPath/subdir
+                    val safePrefix = resolveSafe(bucket, prefix)
+                    // If prefix ends with /, the prefix itself is the directory
+                    // Otherwise use the parent to get the containing directory
+                    if (prefix.endsWith("/")) {
+                        safePrefix
+                    } else {
+                        safePrefix.parent ?: bucketPath
+                    }
                 } catch (e: StorageSecurityException) {
                     throw StorageSecurityException("Path traversal attempt in prefix: $prefix")
                 }
+            }
+
+            // Ensure dir is still contained within bucketPath (prevents prefix="." from escaping)
+            val normalizedDir = dir.normalize()
+            if (!normalizedDir.startsWith(bucketPath.normalize())) {
+                throw StorageSecurityException("Path traversal attempt with prefix: $prefix")
             }
 
             if (!Files.exists(dir)) return@withContext emptyList()
@@ -173,17 +187,13 @@ class LocalFilesystemStorage(private val basePath: Path) : Storage {
                 return@withContext Files.walk(dir).use { stream ->
                     stream
                         .filter { Files.isRegularFile(it) }
+                        .filter { !it.fileName.toString().startsWith(".") } // Skip hidden files
                         .map { bucketPath.relativize(it).toString().replace('\\', '/') }
+                        .filter { key -> prefix.isEmpty() || key.startsWith(prefix) }
                         .toList()
                 }
             } catch (e: IOException) {
                 throw StorageServiceException("Failed to list objects with prefix: $prefix", e)
             }
         }
-
-    override suspend fun presignGet(bucket: String, key: String, expirySeconds: Long): String {
-        // Not applicable for local filesystem; return file:// URL
-        val target = resolveSafe(bucket, key)
-        return target.toUri().toString()
-    }
 }
