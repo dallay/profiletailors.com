@@ -88,11 +88,30 @@ class LocalFilesystemStorage(private val basePath: Path) : Storage {
                     }
                 }
             }
-            finalizeUpload(tmp, target, os)
+            // Attempt finalize - if this fails, temp file will be cleaned below
+            try {
+                finalizeUpload(tmp, target, os)
+            } catch (e: IOException) {
+                // Rename failed - cleanup temp file before rethrowing
+                cleanupTempFile(tmp, os)
+                throw StorageServiceException("Failed to finalize upload", e)
+            }
         } catch (ex: Throwable) {
+            // For other errors (not from finalizeUpload), also cleanup
             cleanupTempFile(tmp, os)
             if (ex is StorageException) throw ex
             throw StorageServiceException("Upload failed", ex)
+        }
+    }
+
+    private fun cleanupTempFile(tmp: Path, os: java.io.OutputStream?) {
+        try {
+            os?.close()
+        } catch (_: Throwable) {
+        }
+        try {
+            Files.deleteIfExists(tmp)
+        } catch (_: Throwable) {
         }
     }
 
@@ -108,16 +127,7 @@ class LocalFilesystemStorage(private val basePath: Path) : Storage {
         }
     }
 
-    private fun cleanupTempFile(tmp: Path, os: java.io.OutputStream) {
-        try {
-            os.close()
-        } catch (_: Throwable) {
-        }
-        try {
-            Files.deleteIfExists(tmp)
-        } catch (_: Throwable) {
-        }
-    }
+    
 
     override fun download(bucket: String, key: String): Flow<ByteArray> =
         channelFlow {
