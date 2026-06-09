@@ -99,8 +99,10 @@ class LocalFilesystemStorage(private val basePath: Path) : Storage {
         } catch (ex: Throwable) {
             // For other errors (not from finalizeUpload), also cleanup
             cleanupTempFile(tmp, os)
-            if (ex is StorageException) throw ex
-            throw StorageServiceException("Upload failed", ex)
+            when (ex) {
+                is StorageException -> throw ex
+                else -> throw StorageServiceException("Upload failed", ex)
+            }
         }
     }
 

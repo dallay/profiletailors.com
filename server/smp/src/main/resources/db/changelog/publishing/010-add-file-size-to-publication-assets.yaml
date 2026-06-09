@@ -1,0 +1,13 @@
+databaseChangeLog:
+  - changeSet:
+      id: publishing-010-add-file-size-to-publication-assets
+      author: opencode
+      changes:
+        - addColumn:
+            tableName: publication_assets
+            columns:
+              - column:
+                  name: file_size_bytes
+                  type: bigint
+                  constraints:
+                    nullable: true

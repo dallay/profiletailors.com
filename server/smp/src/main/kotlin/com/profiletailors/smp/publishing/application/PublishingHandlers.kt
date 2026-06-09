@@ -4,16 +4,19 @@ import com.profiletailors.common.domain.Service
 import com.profiletailors.common.domain.bus.command.CommandWithResultHandler
 import com.profiletailors.common.domain.context.PrincipalContextProvider
 import com.profiletailors.common.domain.context.ResourceContextProvider
+import com.profiletailors.smp.publishing.domain.AssetSourceType
 import com.profiletailors.smp.publishing.domain.CompleteProviderConnectionCommand
 import com.profiletailors.smp.publishing.domain.ProviderCapabilityValidationInput
 import com.profiletailors.smp.publishing.domain.ProviderCapabilityValidator
+import com.profiletailors.smp.publishing.domain.PublicationAsset
+import com.profiletailors.smp.publishing.domain.PublicationAssetRepository
+import com.profiletailors.smp.publishing.domain.PublicationAssetStatus
 import com.profiletailors.smp.publishing.domain.PublicationDraft
 import com.profiletailors.smp.publishing.domain.PublicationLifecyclePolicy
 import com.profiletailors.smp.publishing.domain.PublicationRepository
 import com.profiletailors.smp.publishing.domain.PublicationSchedulingPolicy
 import com.profiletailors.smp.publishing.domain.PublicationStatus
 import com.profiletailors.smp.publishing.domain.PublicationValidationException
-import com.profiletailors.smp.publishing.domain.PublicationAssetRepository
 import com.profiletailors.smp.publishing.domain.PublicationJob
 import com.profiletailors.smp.publishing.domain.PublicationJobRepository
 import com.profiletailors.smp.publishing.domain.ScheduleMode
@@ -25,8 +28,12 @@ import com.profiletailors.smp.publishing.domain.SocialConnectionRepository
 import com.profiletailors.smp.publishing.domain.SocialConnectionStatus
 import com.profiletailors.smp.publishing.domain.SocialProvider
 import com.profiletailors.smp.tenancy.application.requireWorkspaceContext
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.asFlow
+import kotlinx.coroutines.flow.onEach
 import java.time.Clock
 import java.time.Instant
+import java.util.Locale
 import java.util.UUID
 
 class PublicationNotFoundException(
@@ -323,6 +330,52 @@ internal class ReschedulePublicationHandler(
             ),
         )
         return persisted.toResult()
+    }
+}
+
+@Service
+internal class CreateAssetHandler(
+    private val principalContextProvider: PrincipalContextProvider,
+    private val resourceContextProvider: ResourceContextProvider,
+    private val publicationAssetRepository: PublicationAssetRepository,
+
+    private val clock: Clock,
+) : CommandWithResultHandler<CreateAssetCommand, CreateAssetResult> {
+    override suspend fun handle(command: CreateAssetCommand): CreateAssetResult {
+        val principal = principalContextProvider.require()
+        val resourceContext = resourceContextProvider.requireWorkspaceContext()
+        val workspaceId = requireNotNull(resourceContext.workspaceId)
+        val now = clock.instant()
+
+        val assetId = "pa-${UUID.randomUUID()}"
+        val storageKey = if (command.sourceType == AssetSourceType.UPLOADED) {
+            "assets/$workspaceId/$assetId"
+        } else {
+            null
+        }
+
+        val asset = PublicationAsset(
+            id = assetId,
+            workspaceId = workspaceId,
+            sourceType = command.sourceType,
+            mediaType = command.mediaType.uppercase(Locale.ROOT),
+            storageKey = storageKey,
+            externalUrl = command.externalUrl,
+            originalFilename = command.originalFilename,
+            status = PublicationAssetStatus.READY,
+            createdByPrincipalId = principal.principalId,
+            createdAt = now,
+        )
+
+        publicationAssetRepository.create(asset)
+
+        return CreateAssetResult(
+            assetId = asset.id,
+            workspaceId = asset.workspaceId,
+            sourceType = asset.sourceType,
+            mediaType = asset.mediaType,
+            status = asset.status,
+        )
     }
 }
 

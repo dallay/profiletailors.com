@@ -84,6 +84,12 @@ data class SocialAccount(
     val createdAt: Instant? = null,
 )
 
+data class ProviderAssetRef(
+    val providerAssetId: String,
+    val mediaType: String,
+    val accessUrl: String? = null,
+)
+
 data class PublicationAsset(
     val id: String,
     val workspaceId: String,
@@ -92,7 +98,9 @@ data class PublicationAsset(
     val storageKey: String? = null,
     val externalUrl: String? = null,
     val originalFilename: String? = null,
+    val fileSizeBytes: Long? = null,
     val status: PublicationAssetStatus,
+    val providerAssetRef: ProviderAssetRef? = null,
     val createdByPrincipalId: String,
     val createdAt: Instant? = null,
 ) {

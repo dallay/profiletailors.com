@@ -1,5 +1,8 @@
 package com.profiletailors.smp.publishing.domain
 
+import kotlinx.coroutines.flow.Flow
+import java.time.Instant
+
 data class CompleteProviderConnectionCommand(
     val workspaceId: String,
     val actorPrincipalId: String,
@@ -52,3 +55,23 @@ interface SocialPublisher {
 interface ProviderCapabilityValidator {
     fun validate(input: ProviderCapabilityValidationInput)
 }
+
+interface AssetUploader {
+    suspend fun uploadAsset(
+        asset: PublicationAsset,
+        content: Flow<ByteArray>,
+        context: AssetUploadContext,
+    ): ProviderAssetRef
+}
+
+data class AssetUploadContext(
+    val socialAccount: SocialAccount,
+    val accessToken: String,
+    val apiBaseUrl: String,
+    val apiVersion: String,
+)
+
+class ProviderUploadException(
+    message: String,
+    cause: Throwable? = null,
+) : RuntimeException(message, cause)

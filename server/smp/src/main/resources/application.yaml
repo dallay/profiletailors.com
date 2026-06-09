@@ -36,6 +36,10 @@ app:
 platform:
   workspace-context:
     header-name: ${SMP_WORKSPACE_HEADER_NAME:X-Workspace-Id}
+  storage:
+    providers:
+      attachments:
+        bucket: ${SMP_STORAGE_ATTACHMENTS_BUCKET:profiletailors-attachments}
   hooks:
     audit:
       enabled: ${SMP_PLATFORM_AUDIT_ENABLED:false}

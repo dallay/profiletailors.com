@@ -30,6 +30,12 @@ interface PublicationRepository {
 
 interface PublicationAssetRepository {
     suspend fun findByWorkspaceAndIds(workspaceId: String, assetIds: Collection<String>): List<PublicationAsset>
+
+    suspend fun create(asset: PublicationAsset): PublicationAsset
+
+    suspend fun updateStatus(assetId: String, status: PublicationAssetStatus)
+
+    suspend fun updateProviderAssetRef(assetId: String, providerAssetRef: ProviderAssetRef)
 }
 
 interface PublicationJobRepository {

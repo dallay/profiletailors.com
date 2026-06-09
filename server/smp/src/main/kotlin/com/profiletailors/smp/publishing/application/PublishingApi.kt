@@ -2,6 +2,7 @@ package com.profiletailors.smp.publishing.application
 
 import com.profiletailors.common.domain.bus.command.CommandWithResult
 import com.profiletailors.smp.publishing.domain.AssetSourceType
+import com.profiletailors.smp.publishing.domain.PublicationAssetStatus
 import com.profiletailors.smp.publishing.domain.PublicationStatus
 import com.profiletailors.smp.publishing.domain.ScheduleMode
 import com.profiletailors.smp.publishing.domain.SocialAccountKind
@@ -90,4 +91,19 @@ data class PublicationAssetSummary(
     val assetId: String,
     val sourceType: AssetSourceType,
     val mediaType: String,
+)
+
+data class CreateAssetCommand(
+    val mediaType: String,
+    val sourceType: AssetSourceType,
+    val externalUrl: String? = null,
+    val originalFilename: String? = null,
+) : CommandWithResult<CreateAssetResult>
+
+data class CreateAssetResult(
+    val assetId: String,
+    val workspaceId: String,
+    val sourceType: AssetSourceType,
+    val mediaType: String,
+    val status: com.profiletailors.smp.publishing.domain.PublicationAssetStatus,
 )

@@ -59,7 +59,8 @@ class R2dbcLinkedInCredentialGateway(
             .bind("id", id)
             .map { row, _ ->
                 val bytes = row.get("encrypted_payload", ByteArray::class.java)
-                val json = encryptionService.decrypt(bytes!!)
+                    ?: throw IllegalStateException("Credential bytes missing for id $id")
+                val json = encryptionService.decrypt(bytes)
                 mapper.readValue(json, LinkedInCredentials::class.java)
             }
             .one()
