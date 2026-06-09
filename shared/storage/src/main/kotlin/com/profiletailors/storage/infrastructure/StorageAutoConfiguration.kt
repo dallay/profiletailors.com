@@ -71,7 +71,7 @@ open class StorageAutoConfiguration {
             }
             "s3" -> {
                 // AWS S3 - use default endpoint
-                val bucket = config.bucket 
+                val bucket = config.bucket
                     ?: throw IllegalArgumentException("Bucket name is required for S3")
                 val region = config.region ?: "us-east-1"
 
@@ -81,7 +81,7 @@ open class StorageAutoConfiguration {
                 val presignerBuilder = S3Presigner.builder()
                     .region(Region.of(region))
 
-                S3Storage(clientBuilder.build(), bucket, presignerBuilder.build())
+                S3Storage(clientBuilder.build(), bucket, presignerBuilder.build(), config.timeoutSeconds)
             }
             "s2" -> {
                 // s2 is deprecated alias for R2
@@ -125,7 +125,8 @@ open class StorageAutoConfiguration {
             clientBuilder.build(),
             bucket,
             presignerBuilder.build(),
-            accountId
+            accountId,
+            config.timeoutSeconds
         )
     }
 }

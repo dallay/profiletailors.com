@@ -29,11 +29,13 @@ import software.amazon.awssdk.services.s3.presigner.S3Presigner
  * @param client The R2-configured S3 async client
  * @param bucketName The default R2 bucket name
  * @param presigner The R2-configured S3 presigner
+ * @param timeoutSeconds Timeout for operations in seconds
  */
 class S2Storage(
     client: S3AsyncClient,
     bucketName: String,
-    presigner: S3Presigner
+    presigner: S3Presigner,
+    timeoutSeconds: Long = 30
 ) : PresignableStorage {
 
     /**
@@ -43,7 +45,7 @@ class S2Storage(
      * behavior (e.g., different throttling, different presign semantics) without
      * affecting this class.
      */
-    private val delegate = S3Storage(client, bucketName, presigner)
+    private val delegate = S3Storage(client, bucketName, presigner, timeoutSeconds)
 
     override suspend fun upload(
         bucket: String,

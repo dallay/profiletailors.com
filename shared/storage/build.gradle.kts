@@ -7,7 +7,8 @@ version = "0.0.1-SNAPSHOT"
 
 dependencies {
     implementation(project(":shared:common"))
-    
+    implementation(project(":shared:shield:ratelimit"))
+
     implementation(libs.kotlin.stdlib)
     implementation(libs.kotlinx.coroutines.core)
     implementation(libs.kotlinx.coroutines.reactive)

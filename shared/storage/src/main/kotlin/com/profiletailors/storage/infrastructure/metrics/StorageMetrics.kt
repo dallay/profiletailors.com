@@ -193,6 +193,7 @@ class StorageMetrics(private val meterRegistry: MeterRegistry) {
         const val SECURITY = "security"
         const val SERVICE = "service"
         const val TIMEOUT = "timeout"
+        const val RATE_LIMITED = "rate_limited"
     }
 
     /**

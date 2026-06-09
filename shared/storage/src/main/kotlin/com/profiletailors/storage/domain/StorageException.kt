@@ -11,5 +11,17 @@ class StorageSecurityException(message: String) :
 class StorageServiceException(message: String, cause: Throwable? = null) : 
     StorageException(message, cause)
 
-class BucketNotFoundException(message: String) : 
+class BucketNotFoundException(message: String) :
     StorageException(message)
+
+/**
+ * Exception thrown when rate limit is exceeded during storage operations.
+ * Carries HTTP 429 semantics with retry information.
+ *
+ * @param retryAfterSeconds Seconds until the rate limit resets
+ * @param message Descriptive message
+ */
+class RateLimitExceededException(
+    val retryAfterSeconds: Long,
+    message: String = "Rate limit exceeded. Retry after $retryAfterSeconds seconds"
+) : StorageException(message)
