@@ -1,11 +1,18 @@
 package com.profiletailors.smp.publishing.infrastructure.linkedin
 
 import com.fasterxml.jackson.databind.ObjectMapper
+import com.profiletailors.smp.publishing.domain.AssetSourceType
+import com.profiletailors.smp.publishing.domain.AssetUploader
+import com.profiletailors.smp.publishing.domain.AssetUploadContext
 import com.profiletailors.smp.publishing.domain.CompleteProviderConnectionCommand
 import com.profiletailors.smp.publishing.domain.ProviderAccountProfile
+import com.profiletailors.smp.publishing.domain.ProviderAssetRef
 import com.profiletailors.smp.publishing.domain.ProviderPublishCommand
+import com.profiletailors.smp.publishing.domain.PublicationAsset
+import com.profiletailors.smp.publishing.domain.PublicationAssetStatus
 import com.profiletailors.smp.publishing.domain.PublicationDraft
 import com.profiletailors.smp.publishing.domain.PublicationStatus
+import com.profiletailors.smp.publishing.domain.PublicationValidationException
 import com.profiletailors.smp.publishing.domain.ScheduleMode
 import com.profiletailors.smp.publishing.domain.SocialAccount
 import com.profiletailors.smp.publishing.domain.SocialAccountKind
@@ -14,9 +21,14 @@ import com.profiletailors.smp.publishing.domain.SocialProvider
 import com.profiletailors.smp.publishing.infrastructure.credentials.LinkedInCredentialGateway
 import com.profiletailors.smp.publishing.infrastructure.credentials.LinkedInCredentials
 import com.profiletailors.smp.publishing.infrastructure.scheduling.RetryablePublishingException
+import com.profiletailors.storage.domain.Storage
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.test.runTest
 import org.junit.jupiter.api.Assertions.assertEquals
+import org.junit.jupiter.api.Assertions.assertNotNull
 import org.junit.jupiter.api.Assertions.assertThrows
+import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.Test
 import java.net.http.HttpHeaders
 import java.util.UUID
@@ -74,6 +86,36 @@ class LinkedInPublishingAdaptersTest {
     }
 
     @Test
+    fun `real connection provider maps token exchange failure`() = runTest {
+        val transport = StubTransport(
+            responses = listOf(
+                LinkedInHttpResponse(
+                    400,
+                    emptyHeaders(),
+                    "invalid_request",
+                ),
+            ),
+        )
+        val credentialGateway = FakeCredentialGateway()
+        val provider = RealLinkedInConnectionProvider(properties, objectMapper, transport, credentialGateway)
+
+        val error = assertThrows(IllegalStateException::class.java) {
+            kotlinx.coroutines.runBlocking {
+                provider.completeConnection(
+                    CompleteProviderConnectionCommand(
+                        workspaceId = "workspace-1",
+                        actorPrincipalId = "principal-1",
+                        authorizationCode = "bad-code",
+                        redirectUri = "https://app.example.com/callback",
+                    ),
+                )
+            }
+        }
+
+        assertEquals(true, error.message!!.contains("token exchange failed"))
+    }
+
+    @Test
     fun `real publisher builds article post and publishes with resolved token`() = runTest {
         val transport = StubTransport(
             responses = listOf(
@@ -85,11 +127,21 @@ class LinkedInPublishingAdaptersTest {
             ),
         )
         val credentialGateway = FakeCredentialGateway()
-        // Use derived UUID for LinkedIn account "abcd1234"
         val accountId = "abcd1234"
         val derivedUuid = UUID.nameUUIDFromBytes("linkedin:$accountId".toByteArray())
         credentialGateway.store(derivedUuid, LinkedInCredentials("access-token-123", null, null, null))
-        val publisher = RealLinkedInPublisher(properties, objectMapper, transport, credentialGateway)
+        val assetUploader = FakeLinkedInAssetUploader()
+        val storage = FakeStorage()
+        val assetUploadProperties = LinkedInAssetUploadProperties("test-bucket")
+        val publisher = RealLinkedInPublisher(
+            properties,
+            objectMapper,
+            transport,
+            credentialGateway,
+            assetUploader,
+            storage,
+            assetUploadProperties.attachmentsBucket,
+        )
         val account = SocialAccount(
             id = "account-1",
             socialConnectionId = "connection-1",
@@ -127,35 +179,230 @@ class LinkedInPublishingAdaptersTest {
         assertEquals("post-123", result.externalPublicationId)
     }
 
+    // ===== LinkedInCapabilityValidator Tests =====
+
     @Test
-    fun `real connection provider maps token exchange failure`() = runTest {
+    fun `capability validator accepts supported media types`() {
+        val validator = LinkedInCapabilityValidator()
+        val account = testSocialAccount()
+        val assets = listOf(
+            testAsset("image/jpeg"),
+            testAsset("image/png"),
+            testAsset("image/gif"),
+            testAsset("image/webp"),
+            testAsset("video/mp4"),
+        )
+
+        assets.forEach { asset ->
+            validator.validate(testValidationInput(account, listOf(asset)))
+        }
+        // If we get here without exception, the test passes
+    }
+
+    @Test
+    fun `capability validator rejects unsupported media type`() {
+        val validator = LinkedInCapabilityValidator()
+        val account = testSocialAccount()
+        val asset = testAsset("application/pdf")
+
+        val error = assertThrows(PublicationValidationException::class.java) {
+            validator.validate(testValidationInput(account, listOf(asset)))
+        }
+
+        assertTrue(error.message!!.contains("Unsupported media type"))
+        assertTrue(error.message!!.contains("application/pdf"))
+    }
+
+    @Test
+    fun `capability validator rejects multiple unsupported media types`() {
+        val validator = LinkedInCapabilityValidator()
+        val account = testSocialAccount()
+        val assets = listOf(
+            testAsset("application/pdf"),
+            testAsset("application/zip"),
+        )
+
+        val error = assertThrows(PublicationValidationException::class.java) {
+            validator.validate(testValidationInput(account, assets))
+        }
+
+        assertTrue(error.message!!.contains("application/pdf"))
+        assertTrue(error.message!!.contains("application/zip"))
+    }
+
+    @Test
+    fun `capability validator accepts empty assets list`() {
+        val validator = LinkedInCapabilityValidator()
+        val account = testSocialAccount()
+
+        validator.validate(testValidationInput(account, emptyList()))
+        // If we get here without exception, the test passes
+    }
+
+    // ===== RealLinkedInAssetUploader Tests =====
+
+    @Test
+    fun `real linkedin asset uploader completes three step flow`() = runTest {
+        val transport = StubTransport(
+            responses = listOf(
+                LinkedInHttpResponse(
+                    200,
+                    emptyHeaders(),
+                    """{"asset":"urn:li:digitalmediaAsset:image:abc123","uploadUrl":"https://upload.linkedin.com/upload"}""",
+                ),
+                LinkedInHttpResponse(
+                    200,
+                    emptyHeaders(),
+                    """{}""",
+                ),
+                LinkedInHttpResponse(
+                    200,
+                    emptyHeaders(),
+                    """{"status":"SUCCESS"}""",
+                ),
+            ),
+        )
+        val storage = FakeStorage()
+        val assetUploadProperties = LinkedInAssetUploadProperties("test-bucket")
+        val assetRepository = FakePublicationAssetRepository()
+        val uploader = RealLinkedInAssetUploader(properties, assetUploadProperties, objectMapper, transport, storage, assetRepository)
+        val asset = testAsset("image/jpeg")
+        val context = testAssetUploadContext()
+
+        val result = uploader.uploadAsset(asset, flowOf(ByteArray(1024)), context)
+
+        assertEquals("urn:li:digitalmediaAsset:image:abc123", result.providerAssetId)
+        assertEquals("image/jpeg", result.mediaType)
+        assertNotNull(result)
+    }
+
+    @Test
+    fun `real linkedin asset uploader throws on registration failure`() = runTest {
         val transport = StubTransport(
             responses = listOf(
                 LinkedInHttpResponse(
                     400,
                     emptyHeaders(),
-                    "invalid_request",
+                    """{"message":"Bad request"}""",
                 ),
             ),
         )
-        val credentialGateway = FakeCredentialGateway()
-        val provider = RealLinkedInConnectionProvider(properties, objectMapper, transport, credentialGateway)
+        val storage = FakeStorage()
+        val assetUploadProperties = LinkedInAssetUploadProperties("test-bucket")
+        val uploader = RealLinkedInAssetUploader(properties, assetUploadProperties, objectMapper, transport, storage, FakePublicationAssetRepository())
+        val asset = testAsset("image/jpeg")
+        val context = testAssetUploadContext()
 
-        val error = assertThrows(IllegalStateException::class.java) {
+        val error = assertThrows(Exception::class.java) {
             kotlinx.coroutines.runBlocking {
-                provider.completeConnection(
-                    CompleteProviderConnectionCommand(
-                        workspaceId = "workspace-1",
-                        actorPrincipalId = "principal-1",
-                        authorizationCode = "bad-code",
-                        redirectUri = "https://app.example.com/callback",
-                    ),
-                )
+                uploader.uploadAsset(asset, flowOf(ByteArray(1024)), context)
             }
         }
 
-        assertEquals(true, error.message!!.contains("token exchange failed"))
+        assertTrue(error.message!!.contains("asset registration failed"))
     }
+
+    // ===== FakeLinkedInAssetUploader Tests =====
+
+    @Test
+    fun `fake linkedin asset uploader returns deterministic fake urn on success`() = runTest {
+        val uploader = FakeLinkedInAssetUploader()
+        val asset = testAsset("image/jpeg")
+        val context = testAssetUploadContext()
+
+        val result = uploader.uploadAsset(asset, flowOf(ByteArray(1024)), context)
+
+        assertTrue(result.providerAssetId.startsWith("urn:li:digitalmediaAsset:image:fake-asset-"))
+        assertEquals("image/jpeg", result.mediaType)
+        assertEquals(null, result.accessUrl)
+    }
+
+    @Test
+    fun `fake linkedin asset uploader throws when configured to fail`() = runTest {
+        val uploader = FakeLinkedInAssetUploader()
+        uploader.failOnNextCall = true
+        val asset = testAsset("image/jpeg")
+        val context = testAssetUploadContext()
+
+        val error = assertThrows(Exception::class.java) {
+            kotlinx.coroutines.runBlocking {
+                uploader.uploadAsset(asset, flowOf(ByteArray(1024)), context)
+            }
+        }
+
+        assertTrue(error.message!!.contains("Fake LinkedIn asset upload failure"))
+    }
+
+    @Test
+    fun `fake linkedin asset uploader resets fail flag after throwing`() = runTest {
+        val uploader = FakeLinkedInAssetUploader()
+        uploader.failOnNextCall = true
+        val asset = testAsset("image/jpeg")
+        val context = testAssetUploadContext()
+
+        // First call should fail
+        assertThrows(Exception::class.java) {
+            kotlinx.coroutines.runBlocking {
+                uploader.uploadAsset(asset, flowOf(ByteArray(1024)), context)
+            }
+        }
+
+        // Second call should succeed
+        val result = uploader.uploadAsset(asset, flowOf(ByteArray(1024)), context)
+        assertTrue(result.providerAssetId.startsWith("urn:li:digitalmediaAsset:"))
+    }
+
+    // ===== Helper methods =====
+
+    private fun testSocialAccount(): SocialAccount = SocialAccount(
+        id = "account-1",
+        socialConnectionId = "connection-1",
+        workspaceId = "workspace-1",
+        provider = SocialProvider.LINKEDIN,
+        providerAccountId = "linkedin-account-1",
+        kind = SocialAccountKind.PERSONAL_PROFILE,
+        displayName = "Test User",
+        profileUrn = "urn:li:person:test123",
+        status = SocialConnectionStatus.ACTIVE,
+    )
+
+    private fun testAsset(mediaType: String): PublicationAsset = PublicationAsset(
+        id = "asset-1",
+        workspaceId = "workspace-1",
+        sourceType = AssetSourceType.UPLOADED,
+        mediaType = mediaType,
+        storageKey = "assets/workspace-1/asset-1",
+        status = PublicationAssetStatus.READY,
+        createdByPrincipalId = "principal-1",
+    )
+
+    private fun testValidationInput(
+        account: SocialAccount,
+        assets: List<PublicationAsset>,
+    ): com.profiletailors.smp.publishing.domain.ProviderCapabilityValidationInput =
+        com.profiletailors.smp.publishing.domain.ProviderCapabilityValidationInput(
+            provider = SocialProvider.LINKEDIN,
+            socialAccount = account,
+            publication = PublicationDraft(
+                id = "pub-1",
+                workspaceId = "workspace-1",
+                authorPrincipalId = "principal-1",
+                provider = SocialProvider.LINKEDIN,
+                socialAccountId = account.id,
+                status = PublicationStatus.QUEUED,
+                scheduleMode = ScheduleMode.NOW,
+                priority = false,
+                bodyText = "Test post",
+            ),
+            assets = assets,
+        )
+
+    private fun testAssetUploadContext(): AssetUploadContext = AssetUploadContext(
+        socialAccount = testSocialAccount(),
+        accessToken = "test-access-token",
+        apiBaseUrl = "https://api.linkedin.com",
+        apiVersion = "202601",
+    )
 
     private class StubTransport(
         private val responses: List<LinkedInHttpResponse>,
@@ -181,6 +428,43 @@ class LinkedInPublishingAdaptersTest {
 
         fun store(id: UUID, credentials: LinkedInCredentials) {
             store[id] = credentials
+        }
+    }
+
+    private class FakeStorage : Storage {
+        override suspend fun upload(
+            bucket: String,
+            key: String,
+            content: Flow<ByteArray>,
+            metadata: Map<String, String>,
+        ) {
+            content.collect { /* no-op */ }
+        }
+
+        override fun download(bucket: String, key: String): Flow<ByteArray> = flowOf(ByteArray(0))
+
+        override suspend fun delete(bucket: String, key: String) {}
+
+        override suspend fun list(bucket: String, prefix: String): List<String> = emptyList()
+    }
+
+    private class FakePublicationAssetRepository : com.profiletailors.smp.publishing.domain.PublicationAssetRepository {
+        private val items = linkedMapOf<String, com.profiletailors.smp.publishing.domain.PublicationAsset>()
+
+        override suspend fun findByWorkspaceAndIds(workspaceId: String, assetIds: Collection<String>): List<com.profiletailors.smp.publishing.domain.PublicationAsset> =
+            items.values.filter { it.workspaceId == workspaceId && it.id in assetIds }
+
+        override suspend fun create(asset: com.profiletailors.smp.publishing.domain.PublicationAsset): com.profiletailors.smp.publishing.domain.PublicationAsset {
+            items[asset.id] = asset
+            return asset
+        }
+
+        override suspend fun updateStatus(assetId: String, status: com.profiletailors.smp.publishing.domain.PublicationAssetStatus) {
+            items[assetId]?.let { items[assetId] = it.copy(status = status) }
+        }
+
+        override suspend fun updateProviderAssetRef(assetId: String, providerAssetRef: com.profiletailors.smp.publishing.domain.ProviderAssetRef) {
+            items[assetId]?.let { items[assetId] = it.copy(status = com.profiletailors.smp.publishing.domain.PublicationAssetStatus.READY, providerAssetRef = providerAssetRef) }
         }
     }
 

@@ -3,8 +3,12 @@ package com.profiletailors.smp.publishing.infrastructure.linkedin
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties
 import com.fasterxml.jackson.annotation.JsonProperty
 import com.fasterxml.jackson.databind.ObjectMapper
+import com.profiletailors.smp.publishing.domain.AssetSourceType
+import com.profiletailors.smp.publishing.domain.AssetUploader
+import com.profiletailors.smp.publishing.domain.AssetUploadContext
 import com.profiletailors.smp.publishing.domain.CompleteProviderConnectionCommand
 import com.profiletailors.smp.publishing.domain.ProviderAccountProfile
+import com.profiletailors.smp.publishing.domain.ProviderAssetRef
 import com.profiletailors.smp.publishing.domain.ProviderCapabilityValidationInput
 import com.profiletailors.smp.publishing.domain.ProviderCapabilityValidator
 import com.profiletailors.smp.publishing.domain.ProviderConnectionResult
@@ -16,6 +20,9 @@ import com.profiletailors.smp.publishing.domain.SocialConnectionProvider
 import com.profiletailors.smp.publishing.domain.SocialProvider
 import com.profiletailors.smp.publishing.domain.SocialPublisher
 import com.profiletailors.smp.publishing.infrastructure.scheduling.RetryablePublishingException
+import com.profiletailors.storage.domain.PresignableStorage
+import com.profiletailors.storage.domain.Storage
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.reactor.awaitSingle
 import org.springframework.beans.factory.annotation.Value
 import org.springframework.context.annotation.Bean
@@ -161,10 +168,45 @@ class LinkedInCapabilityValidator : ProviderCapabilityValidator {
         if (input.assets.any { it.mediaType.isBlank() }) {
             throw PublicationValidationException("All publication assets require a media type.")
         }
+        validateMediaTypes(input)
+        validateFileSizes(input)
+    }
+
+    private fun validateMediaTypes(input: ProviderCapabilityValidationInput) {
+        val unsupportedAssets = input.assets.filter { asset ->
+            !SUPPORTED_MEDIA_TYPES.contains(asset.mediaType.uppercase())
+        }
+        if (unsupportedAssets.isNotEmpty()) {
+            val types = unsupportedAssets.joinToString(", ") { it.mediaType }
+            throw PublicationValidationException(
+                "Unsupported media type(s) for LinkedIn: $types. " +
+                    "Supported types: ${SUPPORTED_MEDIA_TYPES.joinToString(", ")}"
+            )
+        }
+    }
+
+    private fun validateFileSizes(input: ProviderCapabilityValidationInput) {
+        for (asset in input.assets) {
+            val size = asset.fileSizeBytes
+            if (size != null && size > MAX_ASSET_SIZE_BYTES) {
+                throw PublicationValidationException(
+                    "Asset ${asset.id} exceeds maximum size of ${MAX_ASSET_SIZE_BYTES / MB}MB"
+                )
+            }
+        }
     }
 
     private companion object {
         const val MAX_ASSETS_PER_POST = 10
+        const val MAX_ASSET_SIZE_BYTES = 10L * 1024 * 1024 // 10MB
+        const val MB = 1024 * 1024
+        val SUPPORTED_MEDIA_TYPES = setOf(
+            "IMAGE/JPEG",
+            "IMAGE/PNG",
+            "IMAGE/GIF",
+            "IMAGE/WEBP",
+            "VIDEO/MP4",
+        )
     }
 }
 
@@ -182,12 +224,11 @@ class RealLinkedInPublisher(
     private val httpTransport: LinkedInHttpTransport,
     private val credentialGateway: com.profiletailors.smp.publishing.infrastructure
         .credentials.LinkedInCredentialGateway,
+    private val assetUploader: AssetUploader,
+    private val storage: Storage,
+    private val attachmentsBucket: String,
 ) : SocialPublisher {
     override suspend fun publish(command: ProviderPublishCommand): ProviderPublishResult {
-        require(command.assets.isEmpty()) {
-            "LinkedIn real publisher currently supports text and article posts only; " +
-                "media uploads are deferred."
-        }
         val requestBody = buildPostBody(command)
         val accessToken = resolveAccessToken(command.socialAccount)
         val response = httpTransport.send(
@@ -219,24 +260,35 @@ class RealLinkedInPublisher(
         }
     }
 
-    private fun buildPostBody(command: ProviderPublishCommand): Map<String, Any> {
+    private suspend fun buildPostBody(command: ProviderPublishCommand): Map<String, Any> {
         val authorUrn = command.socialAccount.profileUrn
             ?: throw IllegalStateException(
                 "LinkedIn social account is missing a person URN for authoring."
             )
         val commentary = command.publication.bodyText.orEmpty()
         val articleLink = extractFirstUrl(commentary)
+
+        val assetContentEntities = buildAssetContentEntities(command, command.assets)
+
         val content = if (articleLink != null) {
-            mapOf(
+            val articleContent = mapOf(
                 "article" to mapOf(
                     "source" to articleLink,
                     "title" to (command.publication.title ?: articleLink),
                     "description" to commentary,
                 ),
             )
+            if (assetContentEntities.isNotEmpty()) {
+                articleContent + ("contentEntities" to assetContentEntities)
+            } else {
+                articleContent
+            }
+        } else if (assetContentEntities.isNotEmpty()) {
+            mapOf("contentEntities" to assetContentEntities)
         } else {
             emptyMap()
         }
+
         return linkedMapOf(
             "author" to authorUrn,
             "commentary" to commentary,
@@ -251,6 +303,38 @@ class RealLinkedInPublisher(
         ).also {
             if (content.isNotEmpty()) {
                 it["content"] = content
+            }
+        }
+    }
+
+    private suspend fun buildAssetContentEntities(
+        command: ProviderPublishCommand,
+        assets: List<com.profiletailors.smp.publishing.domain.PublicationAsset>,
+    ): List<Map<String, Any>> {
+        if (assets.isEmpty()) return emptyList()
+
+        val accessToken = resolveAccessToken(command.socialAccount)
+        val context = AssetUploadContext(
+            socialAccount = command.socialAccount,
+            accessToken = accessToken,
+            apiBaseUrl = properties.apiBaseUrl,
+            apiVersion = properties.apiVersion,
+        )
+
+        return assets.map { asset ->
+            when (asset.sourceType) {
+                AssetSourceType.UPLOADED -> {
+                    val storageKey = asset.storageKey
+                        ?: throw IllegalStateException("Uploaded asset is missing storage key")
+                    val content = storage.download(attachmentsBucket, storageKey)
+                    val assetRef = assetUploader.uploadAsset(asset, content, context)
+                    mapOf("entity" to assetRef.providerAssetId)
+                }
+                AssetSourceType.EXTERNAL_URL -> {
+                    val url = asset.externalUrl
+                        ?: throw IllegalStateException("External URL asset is missing external URL")
+                    mapOf("entity" to mapOf("source" to url))
+                }
             }
         }
     }
@@ -359,6 +443,36 @@ class LinkedInPublishingConfiguration {
     fun linkedInHttpTransport(): LinkedInHttpTransport = JdkLinkedInHttpTransport(HttpClient.newHttpClient())
 
     @Bean
+    fun linkedInAssetUploadProperties(
+        @Value("\${platform.storage.providers.attachments.bucket:profiletailors-attachments}")
+        attachmentsBucket: String,
+    ): LinkedInAssetUploadProperties = LinkedInAssetUploadProperties(
+        attachmentsBucket = attachmentsBucket,
+    )
+
+    @Bean
+    fun assetUploader(
+        properties: LinkedInPublishingProperties,
+        assetUploadProperties: LinkedInAssetUploadProperties,
+        objectMapper: ObjectMapper,
+        linkedInHttpTransport: LinkedInHttpTransport,
+        storage: Storage,
+        publicationAssetRepository: com.profiletailors.smp.publishing.domain.PublicationAssetRepository,
+    ): AssetUploader =
+        if (properties.mode.equals("real", ignoreCase = true)) {
+            RealLinkedInAssetUploader(
+                properties,
+                assetUploadProperties,
+                objectMapper,
+                linkedInHttpTransport,
+                storage,
+                publicationAssetRepository,
+            )
+        } else {
+            FakeLinkedInAssetUploader()
+        }
+
+    @Bean
     fun socialConnectionProvider(
         properties: LinkedInPublishingProperties,
         objectMapper: ObjectMapper,
@@ -377,9 +491,20 @@ class LinkedInPublishingConfiguration {
         objectMapper: ObjectMapper,
         linkedInHttpTransport: LinkedInHttpTransport,
         credentialGateway: com.profiletailors.smp.publishing.infrastructure.credentials.LinkedInCredentialGateway,
+        assetUploader: AssetUploader,
+        storage: Storage,
+        assetUploadProperties: LinkedInAssetUploadProperties,
     ): SocialPublisher =
         if (properties.mode.equals("real", ignoreCase = true)) {
-            RealLinkedInPublisher(properties, objectMapper, linkedInHttpTransport, credentialGateway)
+            RealLinkedInPublisher(
+                properties,
+                objectMapper,
+                linkedInHttpTransport,
+                credentialGateway,
+                assetUploader,
+                storage,
+                assetUploadProperties.attachmentsBucket,
+            )
         } else {
             FakeLinkedInPublisher()
         }

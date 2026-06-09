@@ -5,10 +5,14 @@ import com.profiletailors.storage.domain.Storage
 import com.profiletailors.storage.infrastructure.LocalFilesystemStorage
 import com.profiletailors.storage.infrastructure.S3Storage
 import com.profiletailors.storage.infrastructure.StorageAutoConfiguration
+import com.profiletailors.storage.infrastructure.metrics.StorageMetrics
+import io.micrometer.core.instrument.simple.SimpleMeterRegistry
 import org.junit.jupiter.api.Test
 import org.springframework.beans.factory.annotation.Autowired
-import org.springframework.boot.autoconfigure.SpringBootApplication
 import org.springframework.boot.test.context.SpringBootTest
+import org.springframework.context.annotation.Bean
+import org.springframework.context.annotation.ComponentScan
+import org.springframework.context.annotation.Configuration
 import org.springframework.context.annotation.Import
 import org.springframework.test.context.TestPropertySource
 import kotlin.test.assertNotNull
@@ -27,9 +31,13 @@ import kotlin.test.assertTrue
 ])
 class StorageIntegrationTest {
 
-    @SpringBootApplication
+    @Configuration
+    @ComponentScan(basePackages = ["com.profiletailors.storage.infrastructure.metrics"])
     @Import(StorageAutoConfiguration::class)
-    class TestApplication
+    class TestApplication {
+        @Bean
+        fun meterRegistry() = SimpleMeterRegistry()
+    }
 
     @Autowired
     lateinit var registry: BucketRegistry
@@ -41,7 +49,7 @@ class StorageIntegrationTest {
     fun `should load multiple providers from properties`() {
         val local = registry.getStorage("local-bucket")
         val s3 = registry.getStorage("s3-bucket")
-        
+
         assertNotNull(local)
         assertNotNull(s3)
         assertTrue(local is LocalFilesystemStorage)
