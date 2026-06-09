@@ -12,5 +12,6 @@ import software.amazon.awssdk.services.s3.presigner.S3Presigner
 class S3Storage(
     client: S3AsyncClient,
     bucketName: String,
-    presigner: S3Presigner
-) : AbstractS3CompatibleStorage(client, bucketName, presigner)
+    presigner: S3Presigner,
+    timeoutSeconds: Long = 30
+) : AbstractS3CompatibleStorage(client, bucketName, presigner, timeoutSeconds)

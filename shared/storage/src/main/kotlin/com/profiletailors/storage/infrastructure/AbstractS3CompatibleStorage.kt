@@ -11,6 +11,7 @@ import kotlinx.coroutines.future.await
 import kotlinx.coroutines.reactive.asFlow
 import kotlinx.coroutines.reactive.asPublisher
 import kotlinx.coroutines.withContext
+import kotlinx.coroutines.withTimeout
 import org.reactivestreams.Publisher
 import software.amazon.awssdk.core.async.AsyncRequestBody
 import software.amazon.awssdk.core.async.AsyncResponseTransformer
@@ -32,11 +33,13 @@ import java.time.Duration
 abstract class AbstractS3CompatibleStorage(
     protected val client: S3AsyncClient,
     protected val bucketName: String,
-    protected val presigner: S3Presigner
+    protected val presigner: S3Presigner,
+    protected val timeoutSeconds: Long = 30
 ) : PresignableStorage {
 
     init {
         require(bucketName.isNotBlank()) { "bucketName cannot be blank" }
+        require(timeoutSeconds > 0) { "timeoutSeconds must be positive, got $timeoutSeconds" }
     }
 
     protected fun validateBucket(bucket: String) {
@@ -48,31 +51,38 @@ abstract class AbstractS3CompatibleStorage(
 
     override suspend fun upload(bucket: String, key: String, content: Flow<ByteArray>, metadata: Map<String, String>) {
         validateBucket(bucket)
-        S3RetryHelper.withRetry {
-            try {
-                val request = PutObjectRequest.builder()
-                    .bucket(bucketName)
-                    .key(key)
-                    .metadata(metadata)
-                    .build()
+        // Materialize the Flow into a ByteArray so it can be safely retried.
+        // For large files, this buffers in memory. Alternative: use a temp file.
+        val bytes = mutableListOf<ByteArray>()
+        content.collect { bytes.add(it) }
+        val fullContent = if (bytes.isEmpty()) ByteArray(0) else bytes.reduce { acc, b -> acc + b }
 
-                val publisher: Publisher<ByteBuffer> = content
-                    .map { ByteBuffer.wrap(it) }
-                    .asPublisher()
+        withTimeout(timeoutSeconds * 1000L) {
+            S3RetryHelper.withRetry {
+                try {
+                    val request = PutObjectRequest.builder()
+                        .bucket(bucketName)
+                        .key(key)
+                        .metadata(metadata)
+                        .build()
 
-                val body = AsyncRequestBody.fromPublisher(publisher)
-                client.putObject(request, body).await()
-            } catch (e: S3Exception) {
-                throw StorageServiceException("Failed to upload '$key' to bucket '$bucketName'", e)
-            } catch (e: SdkException) {
-                throw StorageServiceException("Failed to upload '$key' to bucket '$bucketName'", e)
+                    val body = AsyncRequestBody.fromBytes(fullContent)
+                    client.putObject(request, body).await()
+                } catch (e: S3Exception) {
+                    throw StorageServiceException("Failed to upload '$key' to bucket '$bucketName'", e)
+                } catch (e: SdkException) {
+                    throw StorageServiceException("Failed to upload '$key' to bucket '$bucketName'", e)
+                }
             }
         }
     }
 
     override fun download(bucket: String, key: String): Flow<ByteArray> = channelFlow {
         validateBucket(bucket)
-        S3RetryHelper.withRetry {
+        // No retry wrapper here — Flow-based downloads can't safely retry
+        // because partial emission means the stream has already progressed.
+        // Callers handle transient errors via their own retry logic.
+        withTimeout(timeoutSeconds * 1000L) {
             try {
                 val request = GetObjectRequest.builder()
                     .bucket(bucketName)
@@ -100,49 +110,53 @@ abstract class AbstractS3CompatibleStorage(
 
     override suspend fun delete(bucket: String, key: String) {
         validateBucket(bucket)
-        S3RetryHelper.withRetry {
-            try {
-                val req = DeleteObjectRequest.builder()
-                    .bucket(bucketName)
-                    .key(key)
-                    .build()
-                client.deleteObject(req).await()
-            } catch (e: S3Exception) {
-                throw StorageServiceException("Failed to delete '$key' from bucket '$bucketName'", e)
-            } catch (e: SdkException) {
-                throw StorageServiceException("Failed to delete '$key' from bucket '$bucketName'", e)
+        withTimeout(timeoutSeconds * 1000L) {
+            S3RetryHelper.withRetry {
+                try {
+                    val req = DeleteObjectRequest.builder()
+                        .bucket(bucketName)
+                        .key(key)
+                        .build()
+                    client.deleteObject(req).await()
+                } catch (e: S3Exception) {
+                    throw StorageServiceException("Failed to delete '$key' from bucket '$bucketName'", e)
+                } catch (e: SdkException) {
+                    throw StorageServiceException("Failed to delete '$key' from bucket '$bucketName'", e)
+                }
             }
         }
     }
 
     override suspend fun list(bucket: String, prefix: String): List<String> {
         validateBucket(bucket)
-        return S3RetryHelper.withRetry {
-            try {
-                val results = mutableListOf<String>()
-                var isTruncated: Boolean
-                var continuationToken: String? = null
+        return withTimeout(timeoutSeconds * 1000L) {
+            S3RetryHelper.withRetry {
+                try {
+                    val results = mutableListOf<String>()
+                    var isTruncated: Boolean
+                    var continuationToken: String? = null
 
-                do {
-                    val reqBuilder = ListObjectsV2Request.builder()
-                        .bucket(bucketName)
-                        .prefix(prefix)
+                    do {
+                        val reqBuilder = ListObjectsV2Request.builder()
+                            .bucket(bucketName)
+                            .prefix(prefix)
 
-                    if (continuationToken != null) {
-                        reqBuilder.continuationToken(continuationToken)
-                    }
+                        if (continuationToken != null) {
+                            reqBuilder.continuationToken(continuationToken)
+                        }
 
-                    val resp = client.listObjectsV2(reqBuilder.build()).await()
-                    results.addAll(resp.contents().map { it.key() })
-                    isTruncated = resp.isTruncated
-                    continuationToken = resp.nextContinuationToken()
-                } while (isTruncated)
+                        val resp = client.listObjectsV2(reqBuilder.build()).await()
+                        results.addAll(resp.contents().map { it.key() })
+                        isTruncated = resp.isTruncated
+                        continuationToken = resp.nextContinuationToken()
+                    } while (isTruncated)
 
-                results
-            } catch (e: S3Exception) {
-                throw StorageServiceException("Failed to list objects in bucket '$bucketName' with prefix '$prefix'", e)
-            } catch (e: SdkException) {
-                throw StorageServiceException("Failed to list objects in bucket '$bucketName' with prefix '$prefix'", e)
+                    results
+                } catch (e: S3Exception) {
+                    throw StorageServiceException("Failed to list objects in bucket '$bucketName' with prefix '$prefix'", e)
+                } catch (e: SdkException) {
+                    throw StorageServiceException("Failed to list objects in bucket '$bucketName' with prefix '$prefix'", e)
+                }
             }
         }
     }
@@ -150,7 +164,10 @@ abstract class AbstractS3CompatibleStorage(
     override suspend fun presignGet(bucket: String, key: String, expirySeconds: Long): String {
         validateBucket(bucket)
         // Presigning is not retried as it doesn't have transient failures
-        try {
+        // Note: withTimeout is not applied here because presigning is a fast operation
+        // and the AWS SDK handles its own timeouts. Timeout would require wrapping the
+        // SdkFuture which is complex and low-value for presign operations.
+        return try {
             val getObjectRequest = GetObjectRequest.builder()
                 .bucket(bucketName)
                 .key(key)
@@ -161,8 +178,7 @@ abstract class AbstractS3CompatibleStorage(
                 .getObjectRequest(getObjectRequest)
                 .build()
 
-            val presigned = presigner.presignGetObject(presignRequest)
-            return presigned.url().toString()
+            presigner.presignGetObject(presignRequest).url().toString()
         } catch (e: S3Exception) {
             throw StorageServiceException("Failed to generate presigned URL for '$key' in bucket '$bucketName'", e)
         } catch (e: SdkException) {

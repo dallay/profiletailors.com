@@ -18,9 +18,13 @@ object S3RetryHelper {
     /**
      * Executes an S3 operation with retry logic.
      * Retries on transient S3 errors (409 Conflict, 429 Rate Limit, 5xx Server Errors).
+     *
+     * Note: S3Exception subtypes (e.g., NoSuchKeyException) are NOT wrapped into
+     * StorageServiceException — they propagate to the caller for proper handling.
+     * Only non-transient S3Exception errors are converted to StorageServiceException.
      */
     suspend fun <T> withRetry(operation: suspend () -> T): T {
-        var lastException: Exception? = null
+        var lastException: S3Exception? = null
         val maxAttempts = 3
         val baseDelayMs = 100L
 
@@ -35,13 +39,13 @@ object S3RetryHelper {
                     logger.warn("Transient S3 error ($statusCode), retrying in ${delayMs}ms (attempt $attempt/$maxAttempts): ${e.message}")
                     delay(delayMs)
                 } else {
-                    throw StorageServiceException("S3 operation failed: ${e.message}", e)
+                    // Don't wrap — let caller see the original S3Exception (e.g., NoSuchKeyException)
+                    throw e
                 }
             } catch (e: Exception) {
                 throw e
             }
         }
-        throw lastException?.let { StorageServiceException("S3 operation failed after $maxAttempts attempts", it) }
-            ?: throw StorageServiceException("S3 operation failed")
+        throw lastException ?: IllegalStateException("S3 operation failed after $maxAttempts attempts")
     }
 }

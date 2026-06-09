@@ -24,33 +24,33 @@ data class ProviderConfig(
      * Storage provider type: "local", "s3", "s2" (deprecated), or "r2"
      */
     val type: String,
-    
+
     /**
      * Bucket name for S3/S2/R2 providers.
      * Required for S3/S2/R2, ignored for local.
      */
     val bucket: String? = null,
-    
+
     /**
      * AWS region for S3/S2/R2 providers.
      * Default is us-east-1.
      * For R2, use "auto" as the region.
      */
     val region: String? = null,
-    
+
     /**
      * Base path for local filesystem storage.
      * Default is system temporary directory.
      */
     val basePath: String? = null,
-    
+
     /**
      * Custom endpoint for S3/S2 providers.
      * Useful for S2 (Ceph), MinIO, or other S3-compatible services.
      * For R2, the endpoint is automatically constructed from accountId.
      */
     val endpoint: String? = null,
-    
+
     /**
      * Cloudflare R2 account ID.
      * Required when type is "r2".
@@ -61,7 +61,11 @@ data class ProviderConfig(
 
     /**
      * Timeout for S3/R2 operations in seconds.
-     * Default is 30 seconds.
+     * Default is 30 seconds. Must be positive.
      */
     val timeoutSeconds: Long = 30
-)
+) {
+    init {
+        require(timeoutSeconds > 0) { "timeoutSeconds must be positive, got $timeoutSeconds" }
+    }
+}

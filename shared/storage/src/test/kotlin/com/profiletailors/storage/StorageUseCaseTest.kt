@@ -5,6 +5,7 @@ import com.profiletailors.common.domain.bus.event.EventPublisher
 import com.profiletailors.storage.application.GeneratePresignedUrlUseCase
 import com.profiletailors.storage.domain.PresignableStorage
 import com.profiletailors.storage.domain.StorageObjectNotFoundException
+import com.profiletailors.storage.domain.RateLimitExceededException
 import com.profiletailors.ratelimit.domain.RateLimitResult
 import com.profiletailors.ratelimit.domain.RateLimiter
 import com.profiletailors.storage.infrastructure.metrics.StorageMetrics
@@ -92,6 +93,17 @@ class MockRateLimiter : RateLimiter {
 
     override suspend fun consumeToken(identifier: String, strategy: com.profiletailors.ratelimit.domain.RateLimitStrategy): RateLimitResult =
         RateLimitResult.Allowed(remainingTokens = 100, limitCapacity = 100, resetTime = java.time.Instant.now().plusSeconds(3600))
+}
+
+/**
+ * Mock [RateLimiter] that always denies with rate limit exceeded.
+ */
+class MockRateLimiterDenied : RateLimiter {
+    override suspend fun consumeToken(identifier: String): RateLimitResult =
+        RateLimitResult.Denied(retryAfter = java.time.Duration.ofSeconds(30), limitCapacity = 100, windowDuration = java.time.Duration.ofMinutes(1))
+
+    override suspend fun consumeToken(identifier: String, strategy: com.profiletailors.ratelimit.domain.RateLimitStrategy): RateLimitResult =
+        RateLimitResult.Denied(retryAfter = java.time.Duration.ofSeconds(30), limitCapacity = 100, windowDuration = java.time.Duration.ofMinutes(1))
 }
 
 class GeneratePresignedUrlUseCaseTest {
@@ -194,5 +206,22 @@ class GeneratePresignedUrlUseCaseTest {
             "Expected StorageObjectNotFoundException as cause but got ${exception.cause?.let { it::class.simpleName }}"
         }
         assertTrue(exception.message?.contains("non-existent-key") == true)
+    }
+
+    @Test
+    fun `throw RateLimitExceededException when rate limit is exceeded`() = runTest {
+        val storage = MockPresignableStorage()
+        val eventPublisher = createMockEventPublisher()
+        val metrics = TestStorageMetrics()
+        val useCase = GeneratePresignedUrlUseCase(storage, eventPublisher, metrics, MockRateLimiterDenied(), maxExpirySeconds = 3600)
+
+        val exception = assertThrows<RateLimitExceededException> {
+            runBlocking {
+                useCase.execute("test-bucket", "test-key", 3600, "user-123")
+            }
+        }
+        assertTrue(exception.retryAfterSeconds == 30L) {
+            "Expected retryAfterSeconds of 30 but got ${exception.retryAfterSeconds}"
+        }
     }
 }

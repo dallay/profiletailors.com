@@ -13,8 +13,9 @@ class R2StorageAdapter(
     client: S3AsyncClient,
     bucketName: String,
     presigner: S3Presigner,
-    private val accountId: String
-) : AbstractS3CompatibleStorage(client, bucketName, presigner) {
+    private val accountId: String,
+    timeoutSeconds: Long = 30
+) : AbstractS3CompatibleStorage(client, bucketName, presigner, timeoutSeconds) {
 
     init {
         require(accountId.isNotBlank()) { "accountId cannot be blank for R2" }

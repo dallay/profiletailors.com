@@ -81,7 +81,7 @@ open class StorageAutoConfiguration {
                 val presignerBuilder = S3Presigner.builder()
                     .region(Region.of(region))
 
-                S3Storage(clientBuilder.build(), bucket, presignerBuilder.build())
+                S3Storage(clientBuilder.build(), bucket, presignerBuilder.build(), config.timeoutSeconds)
             }
             "s2" -> {
                 // s2 is deprecated alias for R2
@@ -125,7 +125,8 @@ open class StorageAutoConfiguration {
             clientBuilder.build(),
             bucket,
             presignerBuilder.build(),
-            accountId
+            accountId,
+            config.timeoutSeconds
         )
     }
 }

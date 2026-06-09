@@ -8,8 +8,10 @@ import com.profiletailors.storage.domain.PresignableStorage
 import com.profiletailors.storage.domain.StorageObjectNotFoundException
 import com.profiletailors.storage.domain.StorageServiceException
 import com.profiletailors.storage.infrastructure.metrics.StorageMetrics
+import com.profiletailors.storage.domain.RateLimitExceededException
 import com.profiletailors.ratelimit.domain.RateLimitResult
 import com.profiletailors.ratelimit.domain.RateLimiter
+import kotlinx.coroutines.CancellationException
 import org.slf4j.LoggerFactory
 import java.time.Instant
 
@@ -67,8 +69,9 @@ class GeneratePresignedUrlUseCase(
         if (rateLimitResult is RateLimitResult.Denied) {
             metrics.recordPresignedUrlGenerated(provider, false)
             metrics.recordError(StorageMetrics.Operations.PRESIGN, provider, bucket, StorageMetrics.ErrorTypes.RATE_LIMITED)
-            throw StorageServiceException(
-                "Rate limit exceeded for presigned URL generation. Retry after ${rateLimitResult.retryAfter.seconds}s"
+            throw RateLimitExceededException(
+                retryAfterSeconds = rateLimitResult.retryAfter.seconds,
+                message = "Rate limit exceeded for presigned URL generation. Retry after ${rateLimitResult.retryAfter.seconds}s"
             )
         }
 
@@ -108,6 +111,8 @@ class GeneratePresignedUrlUseCase(
                     expiryTime = Instant.now().plusSeconds(expirySeconds)
                 )
             )
+        } catch (e: CancellationException) {
+            throw e  // Don't swallow coroutine cancellation
         } catch (e: Exception) {
             logger.warn("Failed to publish PresignedUrlGeneratedEvent for bucket=$bucket, key=$key", e)
         }
