@@ -33,18 +33,30 @@ platform:
         type: s3
         bucket: "my-app-attachments"
         region: "eu-west-1"
-        access-key-id: "${AWS_ACCESS_KEY_ID:}"
-        secret-access-key: "${AWS_SECRET_ACCESS_KEY:}"
+        # AWS SDK usa default credentials chain (IAM roles, env vars, etc.)
       
-      # Provider Cloudflare R2 (S2 compatible)
+      # Provider Cloudflare R2 (recomendado)
       public-images:
-        type: s2
+        type: r2
         bucket: "user-images"
-        endpoint: "https://<id>.r2.cloudflarestorage.com"
-        access-key-id: "${R2_ACCESS_KEY:}"
-        secret-access-key: "${R2_SECRET_KEY:}"
+        account-id: "${R2_ACCOUNT_ID}"  # Requerido para R2
+        region: "auto"
+        # AWS SDK usa default credentials chain
+      
+      # Provider Cloudflare R2 (deprecated - usa "r2" en su lugar)
+      legacy-images:
+        type: s2  # Deprecated: usa "r2" en su lugar
+        bucket: "legacy-images"
+        account-id: "${R2_ACCOUNT_ID}"
         region: "auto"
 ```
+
+### Notas sobre Configuration
+
+- **`type: r2`**: Configuración canónica para Cloudflare R2. Requiere `account-id`.
+- **`type: s2`**: Alias deprecated para R2. Logra un warning al iniciar. Migra a `type: r2`.
+- **Credenciales**: El módulo usa AWS SDK default credentials chain (IAM roles en producción, variables de entorno `AWS_ACCESS_KEY_ID`/`AWS_SECRET_ACCESS_KEY`, o credentials file).
+- **R2 Endpoint**: Se construye automáticamente como `https://{account-id}.r2.cloudflarestorage.com`.
 
 ## Uso
 
@@ -66,7 +78,7 @@ class MyService(
 }
 ```
 
-### Generar Presigned URLs (S3/S2)
+### Generar Presigned URLs (S3/R2)
 ```kotlin
 val url = storage.presignGet("public-images", "avatars/123.jpg", expirySeconds = 600)
 ```
@@ -75,6 +87,18 @@ val url = storage.presignGet("public-images", "avatars/123.jpg", expirySeconds =
 
 Para ejecutar los tests del módulo:
 ```bash
-./gradlew :shared-storage:test
+./gradlew :shared:storage:test --tests "*R2Storage*"    # Solo tests de R2
+./gradlew :shared:storage:test --tests "*S3Storage*"   # Solo tests de S3
+./gradlew :shared:storage:test                         # Todos los tests
 ```
-*Nota: Los tests de integración de S3 requieren Docker para levantar Localstack.*
+
+*Nota: Los tests de integración de S3/R2 requieren Docker para levantar Localstack o un emulador de R2.*
+
+## Providers Soportados
+
+| Type | Provider | Adapter | Presigned URLs |
+|------|----------|---------|----------------|
+| `local` | Local Filesystem | `LocalFilesystemStorage` | ❌ |
+| `s3` | AWS S3 | `S3Storage` | ✅ |
+| `r2` | Cloudflare R2 | `R2StorageAdapter` | ✅ |
+| `s2` | Cloudflare R2 (deprecated) | `R2StorageAdapter` | ✅ |
