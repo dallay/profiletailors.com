@@ -18,6 +18,8 @@ paths = [
   "server/smp/src/main/resources/application.yaml",
   "server/smp/src/test/resources/application-test.properties",
   "server/smp/src/test/resources/application.properties",
+  "server/smp/src/test/kotlin/com/profiletailors/smp/publishing/infrastructure/credentials/LinkedInCredentialGatewayTest.kt",
+  "docs/plans/2026-06-10-publishing-infrastructure-credentials-tests-design.md",
 ]
 regexes = [
   "invalid\\.token\\.here",
