@@ -1,0 +1,441 @@
+import { describe, it, expect, vi, beforeEach } from 'vitest'
+import {
+  login,
+  register,
+  refreshSession,
+  logoutSession,
+  getCurrentUserProfile,
+  createApiFetch,
+  type AuthTokens,
+  type CurrentUserProfile,
+} from './auth-api'
+
+// ---------------------------------------------------------------------------
+// Helpers
+// ---------------------------------------------------------------------------
+
+function mockFetch(response: Response) {
+  const fetchMock = vi.fn(() => response)
+  vi.stubGlobal('fetch', fetchMock)
+  return fetchMock
+}
+
+function mockImportMetaEnv(env: Record<string, string> = {}) {
+  // Vite maps process.env to import.meta.env — use this for reliable mocking
+  if (env.VITE_API_BASE_URL !== undefined) {
+    process.env.VITE_API_BASE_URL = env.VITE_API_BASE_URL
+  } else {
+    delete process.env.VITE_API_BASE_URL
+  }
+}
+
+// ---------------------------------------------------------------------------
+// login
+// ---------------------------------------------------------------------------
+
+describe('login', () => {
+  beforeEach(() => {
+    mockImportMetaEnv({})
+  })
+
+  it('returns auth tokens on successful login', async () => {
+    const tokens: AuthTokens = {
+      accessToken: 'access-123',
+      tokenType: 'Bearer',
+      expiresIn: 3600,
+      principalId: 'user-1',
+      email: 'user@example.com',
+      username: 'testuser',
+    }
+    const fetchMock = mockFetch(
+      new Response(JSON.stringify(tokens), {
+        status: 200,
+        headers: { 'Content-Type': 'application/json' },
+      }),
+    )
+
+    const result = await login({ email: 'user@example.com', password: 'password123' })
+
+    expect(result).toEqual(tokens)
+    expect(fetchMock).toHaveBeenCalledWith(
+      'http://localhost:8080/api/auth/login',
+      expect.objectContaining({
+        method: 'POST',
+        credentials: 'include',
+        headers: expect.objectContaining({
+          'Content-Type': 'application/json',
+          Accept: 'application/vnd.api.v1+json',
+        }),
+        body: JSON.stringify({ email: 'user@example.com', password: 'password123' }),
+      }),
+    )
+  })
+
+  it('throws ApiError on login failure', async () => {
+    const fetchMock = mockFetch(
+      new Response(JSON.stringify({ title: 'Unauthorized', detail: 'Invalid credentials' }), {
+        status: 401,
+        headers: { 'Content-Type': 'application/json' },
+      }),
+    )
+
+    await expect(login({ email: 'user@example.com', password: 'wrong' })).rejects.toEqual({
+      title: 'Unauthorized',
+      detail: 'Invalid credentials',
+      status: 401,
+    })
+  })
+
+  it('throws ApiError on server error', async () => {
+    const fetchMock = mockFetch(
+      new Response(JSON.stringify({ title: 'Internal Server Error', detail: 'Something went wrong' }), {
+        status: 500,
+        headers: { 'Content-Type': 'application/json' },
+      }),
+    )
+
+    await expect(login({ email: 'user@example.com', password: 'password' })).rejects.toEqual({
+      title: 'Internal Server Error',
+      detail: 'Something went wrong',
+      status: 500,
+    })
+  })
+
+  it('throws ApiError when server returns non-JSON error body', async () => {
+    const fetchMock = mockFetch(
+      new Response('plain text error', {
+        status: 400,
+        headers: { 'Content-Type': 'text/plain' },
+      }),
+    )
+
+    await expect(login({ email: 'user@example.com', password: 'password' })).rejects.toEqual({
+      title: 'Request failed',
+      detail: 'An unexpected error occurred.',
+      status: 400,
+    })
+  })
+})
+
+// ---------------------------------------------------------------------------
+// register
+// ---------------------------------------------------------------------------
+
+describe('register', () => {
+  beforeEach(() => {
+    mockImportMetaEnv({})
+  })
+
+  it('returns auth tokens on successful registration', async () => {
+    const tokens: AuthTokens = {
+      accessToken: 'access-456',
+      tokenType: 'Bearer',
+      expiresIn: 7200,
+      principalId: 'user-2',
+      email: 'newuser@example.com',
+      username: 'newuser',
+    }
+    const fetchMock = mockFetch(
+      new Response(JSON.stringify(tokens), {
+        status: 200,
+        headers: { 'Content-Type': 'application/json' },
+      }),
+    )
+
+    const result = await register({ email: 'newuser@example.com', password: 'password123', username: 'newuser' })
+
+    expect(result).toEqual(tokens)
+    expect(fetchMock).toHaveBeenCalledWith(
+      'http://localhost:8080/api/auth/register',
+      expect.objectContaining({
+        method: 'POST',
+        body: JSON.stringify({ email: 'newuser@example.com', password: 'password123', username: 'newuser' }),
+      }),
+    )
+  })
+})
+
+// ---------------------------------------------------------------------------
+// refreshSession
+// ---------------------------------------------------------------------------
+
+describe('refreshSession', () => {
+  beforeEach(() => {
+    mockImportMetaEnv({})
+  })
+
+  it('returns auth tokens on successful refresh', async () => {
+    const tokens: AuthTokens = {
+      accessToken: 'access-refreshed',
+      tokenType: 'Bearer',
+      expiresIn: 3600,
+      principalId: 'user-1',
+      email: 'user@example.com',
+      username: null,
+    }
+    const fetchMock = mockFetch(
+      new Response(JSON.stringify(tokens), {
+        status: 200,
+        headers: { 'Content-Type': 'application/json' },
+      }),
+    )
+
+    const result = await refreshSession()
+
+    expect(result).toEqual(tokens)
+  })
+
+  it('returns null on 401 (no active session)', async () => {
+    const fetchMock = mockFetch(
+      new Response(null, { status: 401 }),
+    )
+
+    const result = await refreshSession()
+
+    expect(result).toBeNull()
+  })
+
+  it('re-throws non-401 errors', async () => {
+    const fetchMock = mockFetch(
+      new Response(JSON.stringify({ title: 'Server Error', detail: 'Database error' }), {
+        status: 500,
+        headers: { 'Content-Type': 'application/json' },
+      }),
+    )
+
+    await expect(refreshSession()).rejects.toEqual({
+      title: 'Server Error',
+      detail: 'Database error',
+      status: 500,
+    })
+  })
+})
+
+// ---------------------------------------------------------------------------
+// logoutSession
+// ---------------------------------------------------------------------------
+
+describe('logoutSession', () => {
+  beforeEach(() => {
+    mockImportMetaEnv({})
+  })
+
+  it('always resolves even on network error', async () => {
+    const fetchMock = mockFetch(
+      new Response(null, { status: 500 }),
+    )
+
+    // Should not throw
+    await expect(logoutSession()).resolves.toBeUndefined()
+  })
+
+  it('resolves successfully on 204 No Content', async () => {
+    const fetchMock = mockFetch(
+      new Response(null, { status: 204 }),
+    )
+
+    await expect(logoutSession()).resolves.toBeUndefined()
+  })
+})
+
+// ---------------------------------------------------------------------------
+// getCurrentUserProfile
+// ---------------------------------------------------------------------------
+
+describe('getCurrentUserProfile', () => {
+  beforeEach(() => {
+    mockImportMetaEnv({})
+  })
+
+  it('returns current user profile', async () => {
+    const profile: CurrentUserProfile = {
+      principalId: 'user-1',
+      email: 'user@example.com',
+      username: 'testuser',
+      displayIdentity: 'testuser (user@example.com)',
+    }
+    const fetchMock = mockFetch(
+      new Response(JSON.stringify(profile), {
+        status: 200,
+        headers: { 'Content-Type': 'application/json' },
+      }),
+    )
+
+    const result = await getCurrentUserProfile('access-token-123')
+
+    expect(result).toEqual(profile)
+    expect(fetchMock).toHaveBeenCalledWith(
+      'http://localhost:8080/api/auth/me',
+      expect.objectContaining({
+        method: 'GET',
+        headers: expect.objectContaining({
+          Authorization: 'Bearer access-token-123',
+        }),
+      }),
+    )
+  })
+
+  it('throws ApiError on failure', async () => {
+    const fetchMock = mockFetch(
+      new Response(JSON.stringify({ title: 'Unauthorized', detail: 'Invalid token' }), {
+        status: 401,
+        headers: { 'Content-Type': 'application/json' },
+      }),
+    )
+
+    await expect(getCurrentUserProfile('bad-token')).rejects.toEqual({
+      title: 'Unauthorized',
+      detail: 'Invalid token',
+      status: 401,
+    })
+  })
+})
+
+// ---------------------------------------------------------------------------
+// createApiFetch
+// ---------------------------------------------------------------------------
+
+describe('createApiFetch', () => {
+  beforeEach(() => {
+    mockImportMetaEnv({})
+  })
+
+  it('returns data on successful request', async () => {
+    const fetchMock = mockFetch(
+      new Response(JSON.stringify({ id: 'post-1', text: 'Hello' }), {
+        status: 200,
+        headers: { 'Content-Type': 'application/json' },
+      }),
+    )
+
+    const apiFetch = createApiFetch({
+      getToken: () => 'access-token',
+      onRefresh: async () => null,
+      onUnauthenticated: vi.fn(),
+    })
+
+    const result = await apiFetch('/api/posts/1')
+
+    expect(result).toEqual({ id: 'post-1', text: 'Hello' })
+  })
+
+  it('retries once after successful token refresh on 401', async () => {
+    let callCount = 0
+    const fetchMock = vi.fn(() => {
+      callCount++
+      if (callCount === 1) {
+        return Promise.resolve(
+          new Response(null, { status: 401 }),
+        )
+      }
+      return Promise.resolve(
+        new Response(JSON.stringify({ id: 'post-1', text: 'Hello' }), {
+          status: 200,
+          headers: { 'Content-Type': 'application/json' },
+        }),
+      )
+    })
+    vi.stubGlobal('fetch', fetchMock)
+
+    const onUnauthenticated = vi.fn()
+    const apiFetch = createApiFetch({
+      getToken: () => 'expired-token',
+      onRefresh: async () => 'new-access-token',
+      onUnauthenticated,
+    })
+
+    const result = await apiFetch('/api/posts/1')
+
+    expect(result).toEqual({ id: 'post-1', text: 'Hello' })
+    expect(callCount).toBe(2)
+    // First call should have used the old token
+    expect(fetchMock).toHaveBeenNthCalledWith(
+      1,
+      'http://localhost:8080/api/posts/1',
+      expect.objectContaining({ headers: expect.objectContaining({ Authorization: 'Bearer expired-token' }) }),
+    )
+    // Second call should have used the new token
+    expect(fetchMock).toHaveBeenNthCalledWith(
+      2,
+      'http://localhost:8080/api/posts/1',
+      expect.objectContaining({ headers: expect.objectContaining({ Authorization: 'Bearer new-access-token' }) }),
+    )
+    expect(onUnauthenticated).not.toHaveBeenCalled()
+  })
+
+  it('calls onUnauthenticated and re-throws when refresh returns null on 401', async () => {
+    const fetchMock = mockFetch(
+      new Response(null, { status: 401 }),
+    )
+
+    const onUnauthenticated = vi.fn()
+    const apiFetch = createApiFetch({
+      getToken: () => 'expired-token',
+      onRefresh: async () => null,
+      onUnauthenticated,
+    })
+
+    await expect(apiFetch('/api/posts/1')).rejects.toEqual({
+      title: 'Request failed',
+      detail: 'An unexpected error occurred.',
+      status: 401,
+    })
+    expect(onUnauthenticated).toHaveBeenCalledOnce()
+  })
+
+  it('re-throws non-401 errors without refresh attempt', async () => {
+    const fetchMock = mockFetch(
+      new Response(JSON.stringify({ title: 'Forbidden', detail: 'Access denied' }), {
+        status: 403,
+        headers: { 'Content-Type': 'application/json' },
+      }),
+    )
+
+    const onRefresh = vi.fn()
+    const apiFetch = createApiFetch({
+      getToken: () => 'access-token',
+      onRefresh,
+      onUnauthenticated: vi.fn(),
+    })
+
+    await expect(apiFetch('/api/posts/1')).rejects.toEqual({
+      title: 'Forbidden',
+      detail: 'Access denied',
+      status: 403,
+    })
+    expect(onRefresh).not.toHaveBeenCalled()
+  })
+
+  it('uses custom API base URL from environment', async () => {
+    // Vite maps process.env to import.meta.env — use this to override
+    const original = process.env.VITE_API_BASE_URL
+    process.env.VITE_API_BASE_URL = 'https://api.example.com'
+
+    const fetchMock = mockFetch(
+      new Response(JSON.stringify({ id: '1' }), {
+        status: 200,
+        headers: { 'Content-Type': 'application/json' },
+      }),
+    )
+
+    const apiFetch = createApiFetch({
+      getToken: () => 'token',
+      onRefresh: async () => null,
+      onUnauthenticated: vi.fn(),
+    })
+
+    await apiFetch('/api/test')
+
+    expect(fetchMock).toHaveBeenCalledWith(
+      'https://api.example.com/api/test',
+      expect.any(Object),
+    )
+
+    // Restore
+    if (original === undefined) {
+      delete process.env.VITE_API_BASE_URL
+    } else {
+      process.env.VITE_API_BASE_URL = original
+    }
+  })
+})

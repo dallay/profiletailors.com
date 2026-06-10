@@ -7,6 +7,9 @@ version = "0.0.1-SNAPSHOT"
 
 dependencies {
     api(project(":shared:common"))
+    api(project(":shared:bus"))
+    api(project(":shared:security"))
+    api(project(":shared:presentation"))
 
     implementation(libs.spring.boot.starter.data.r2dbc)
     implementation(libs.spring.boot.starter.security)

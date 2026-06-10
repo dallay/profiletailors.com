@@ -138,7 +138,7 @@ describe('initHeroAnimations', () => {
     const sub = document.createElement('div')
     sub.textContent = 'Sub'
 
-    const origQuerySelector = document.querySelector.bind(document)
+    const _origQuerySelector = document.querySelector.bind(document)
     document.querySelector = vi.fn().mockImplementation((selector: string) => {
       switch (selector) {
         case '[data-hero-label]': return label

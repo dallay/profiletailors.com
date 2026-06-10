@@ -111,7 +111,7 @@ describe('initScrollReveal', () => {
     const el = document.querySelector('[data-animate-scroll]')!
 
     // Trigger intersection
-    $globals.observeCb!(
+    $globals.observeCb?.(
       [makeEntry(el, true)],
       { observe: vi.fn() } as unknown as IntersectionObserver
     )
@@ -132,7 +132,7 @@ describe('initScrollReveal', () => {
     const elB = document.querySelector('#b')!
 
     // Only elA intersects
-    $globals.observeCb!(
+    $globals.observeCb?.(
       [makeEntry(elA, true)],
       { observe: vi.fn() } as unknown as IntersectionObserver
     )
@@ -150,7 +150,7 @@ describe('initScrollReveal', () => {
     const el = document.querySelector('[data-animate-scroll]')!
 
     // Trigger intersection
-    $globals.observeCb!(
+    $globals.observeCb?.(
       [makeEntry(el, true)],
       { observe: vi.fn(), unobserve: vi.fn() } as unknown as IntersectionObserver
     )

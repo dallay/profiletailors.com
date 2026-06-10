@@ -7,6 +7,9 @@ version = "0.0.1-SNAPSHOT"
 
 dependencies {
     implementation(project(":shared:common"))
+    implementation(project(":shared:bus"))
+    implementation(project(":shared:security"))
+    implementation(project(":shared:presentation"))
     implementation(project(":shared:spring-boot-common"))
     implementation(project(":shared:storage"))
 
