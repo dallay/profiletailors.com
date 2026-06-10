@@ -65,9 +65,13 @@ export const useAuthStore = defineStore('auth', () => {
   const isAuthenticated = computed(() => Boolean(_accessToken.value))
   const accessToken = computed(() => _accessToken.value)
 
-  const defaultDisplayName = 'PT';
+  const defaultDisplayName = 'PT'
   const displayName = computed(
-    () => user.value?.displayIdentity || user.value?.username || user.value?.email || defaultDisplayName,
+    () =>
+      user.value?.displayIdentity ||
+      user.value?.username ||
+      user.value?.email ||
+      defaultDisplayName,
   )
 
   const userInitials = computed(() => {

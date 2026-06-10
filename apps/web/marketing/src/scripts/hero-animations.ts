@@ -27,7 +27,7 @@ function commitAndCancel(anim: Animation, el: HTMLElement): void {
 
 // Split text into per-character spans, turning \n into <br> elements.
 // Returns only the animatable spans (not <br> nodes).
-function splitToChars(el: HTMLElement): HTMLSpanElement[] {
+export function splitToChars(el: HTMLElement): HTMLSpanElement[] {
   const text = el.textContent ?? ''
   el.textContent = ''
   const spans: HTMLSpanElement[] = []
