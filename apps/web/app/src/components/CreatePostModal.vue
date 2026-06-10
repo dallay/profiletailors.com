@@ -185,7 +185,7 @@ async function handleSchedule() {
   isSubmitting.value = true
 
   try {
-    let finalScheduledDate = new Date()
+    let finalScheduledDate: Date
     if (scheduleMode.value === 'custom' && scheduleDate.value) {
       const [year, month, day] = scheduleDate.value.split('-').map(Number)
       const [hours, minutes] = scheduleTime.value.split(':').map(Number)
