@@ -41,6 +41,7 @@ import {
 } from '@/components/ui/sidebar'
 import { useAuthStore } from '@/stores/auth'
 import { useSettingsStore } from '@/stores/settings'
+import { usePublishingStore } from '@/stores/publishing'
 
 interface NavItem {
   labelKey: string
@@ -71,6 +72,7 @@ const auth = useAuthStore()
 const router = useRouter()
 const route = useRoute()
 const settings = useSettingsStore()
+const publishingStore = usePublishingStore()
 const accountMenuOpen = ref(false)
 const accountMenuRef = ref<HTMLElement | null>(null)
 const projectsOpenState = ref<Record<string, boolean>>({})
@@ -95,7 +97,15 @@ const navigationGroups = computed<NavGroup[]>(() => [
   {
     label: 'Workspace',
     items: [
-      { labelKey: 'nav.dashboard', to: '/', icon: LayoutGrid, badge: '02' },
+      { 
+        labelKey: 'nav.dashboard', 
+        to: '/', 
+        icon: LayoutGrid, 
+        badge: (() => {
+          const count = publishingStore.publications.filter((p) => p.status === 'QUEUED').length
+          return count < 10 ? `0${count}` : String(count)
+        })()
+      },
       { labelKey: 'nav.scheduler', to: '/scheduler', icon: CalendarDays },
       { labelKey: 'nav.analytics', to: '/analytics', icon: BarChart3, badge: 'Live' },
     ],
@@ -167,6 +177,12 @@ async function handleLogout() {
   await auth.logout()
   await router.replace('/login')
 }
+
+function navigateToSettings() {
+  router.push('/settings')
+  closeAccountMenu()
+}
+
 
 function handleDocumentClick(event: MouseEvent) {
   if (!accountMenuOpen.value) {
@@ -381,7 +397,7 @@ onBeforeUnmount(() => {
               <button
                 class="flex w-full items-center gap-3 rounded-xl border border-transparent px-3 py-2.5 text-left text-sm text-text-secondary transition-colors hover:border-border-subtle hover:bg-bg-primary/70 hover:text-text-display"
                 type="button"
-                @click="router.push('/settings'); closeAccountMenu()"
+                @click="navigateToSettings"
               >
                 <Settings class="size-4 shrink-0" />
                 <span>Account settings</span>

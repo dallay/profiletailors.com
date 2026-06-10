@@ -1,14 +1,17 @@
 <script setup lang="ts">
-import { ref } from 'vue'
+import { ref, computed } from 'vue'
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { useAuthStore } from '@/stores/auth'
+import { usePublishingStore } from '@/stores/publishing'
+import CreatePostModal from '@/components/CreatePostModal.vue'
 
 const auth = useAuthStore()
+const publishingStore = usePublishingStore()
+
 const postText = ref('')
-const selectedPlatforms = ref<string[]>(['twitter'])
-const isScheduling = ref(false)
-const showSuccess = ref(false)
+const selectedPlatforms = ref<string[]>(['twitter', 'linkedin'])
+const isModalOpen = ref(false)
 
 const platformsList = [
   { id: 'twitter', label: 'X/Twitter' },
@@ -17,20 +20,40 @@ const platformsList = [
   { id: 'facebook', label: 'Facebook' },
 ]
 
-const recentPosts = ref([
-  {
-    id: 1,
-    content: 'We are officially launching early access for Profile Tailors next week! Stay tuned.',
-    platforms: ['twitter', 'linkedin'],
-    time: 'Today, 14:00',
-  },
-  {
-    id: 2,
-    content: 'Swiss design principles applied to social media scheduling. No bloat, just speed.',
-    platforms: ['instagram', 'twitter'],
-    time: 'Tomorrow, 09:30',
-  },
-])
+// Computed stats from store
+const queuedPostsCount = computed(() => {
+  const count = publishingStore.publications.filter((p) => p.status === 'QUEUED').length
+  return count < 10 ? `0${count}` : String(count)
+})
+
+const activeChannelsCount = computed(() => {
+  const count = publishingStore.channels.filter((c) => c.status === 'ACTIVE').length
+  return count < 10 ? `0${count}` : String(count)
+})
+
+const recentPosts = computed(() => {
+  return publishingStore.publications.slice(0, 5).map((pub) => {
+    let relativeTime = 'Scheduled'
+    try {
+      const pubDate = new Date(pub.scheduledAt)
+      relativeTime = pubDate.toLocaleString([], {
+        month: 'short',
+        day: 'numeric',
+        hour: '2-digit',
+        minute: '2-digit',
+      })
+    } catch {
+      // ignore
+    }
+    return {
+      id: pub.id,
+      content: pub.content,
+      platforms: pub.channels,
+      time: relativeTime,
+      status: pub.status,
+    }
+  })
+})
 
 function togglePlatform(id: string) {
   if (selectedPlatforms.value.includes(id)) {
@@ -40,24 +63,13 @@ function togglePlatform(id: string) {
   }
 }
 
-function handleSchedule() {
-  if (!postText.value.trim()) return
+function handleOpenModal() {
+  isModalOpen.value = true
+}
 
-  isScheduling.value = true
-  setTimeout(() => {
-    recentPosts.value.unshift({
-      id: Date.now(),
-      content: postText.value,
-      platforms: [...selectedPlatforms.value],
-      time: 'Scheduled',
-    })
-    postText.value = ''
-    isScheduling.value = false
-    showSuccess.value = true
-    setTimeout(() => {
-      showSuccess.value = false
-    }, 3000)
-  }, 1000)
+function handleCreated() {
+  postText.value = ''
+  isModalOpen.value = false
 }
 </script>
 
@@ -82,7 +94,7 @@ function handleSchedule() {
           </CardTitle>
         </CardHeader>
         <CardContent class="p-0 mt-4 flex items-baseline gap-2">
-          <span class="text-5xl font-doto text-text-display font-light">02</span>
+          <span class="text-5xl font-doto text-text-display font-light">{{ queuedPostsCount }}</span>
           <span class="text-xs text-text-secondary font-mono">{{ $t('dashboard.posts') }}</span>
         </CardContent>
       </Card>
@@ -94,7 +106,7 @@ function handleSchedule() {
           </CardTitle>
         </CardHeader>
         <CardContent class="p-0 mt-4 flex items-baseline gap-2">
-          <span class="text-5xl font-doto text-text-display font-light">04</span>
+          <span class="text-5xl font-doto text-text-display font-light">{{ activeChannelsCount }}</span>
           <span class="text-xs text-text-secondary font-mono">{{ $t('dashboard.active') }}</span>
         </CardContent>
       </Card>
@@ -155,6 +167,12 @@ function handleSchedule() {
                 >
                   {{ platform }}
                 </span>
+                <span
+                  class="border border-border-visible px-2 py-0.5 rounded-full font-mono text-[8px] tracking-wider text-text-secondary uppercase"
+                  :class="post.status === 'PUBLISHED' ? 'bg-success/10 text-success' : 'bg-transparent text-text-secondary'"
+                >
+                  {{ post.status }}
+                </span>
               </div>
             </div>
             <p class="text-sm text-text-body font-light leading-relaxed">
@@ -172,15 +190,12 @@ function handleSchedule() {
           </h3>
         </div>
 
-        <Card class="bg-bg-surface border border-border-subtle">
+        <Card class="bg-bg-surface border border-border-subtle hover:border-text-secondary transition-all cursor-pointer" @click="handleOpenModal">
           <CardContent class="p-0 space-y-6">
-            <!-- Composer textarea -->
-            <textarea
-              v-model="postText"
-              :placeholder="$t('composer.placeholder')"
-              rows="4"
-              class="w-full bg-bg-primary border border-border-visible rounded-lg p-4 text-sm text-text-body placeholder:text-text-secondary focus:outline-none focus:border-text-display resize-none font-sans"
-            ></textarea>
+            <!-- Composer textarea placeholder -->
+            <div class="w-full bg-bg-primary border border-border-visible rounded-lg p-4 text-sm text-text-secondary font-sans min-h-[96px] select-none">
+              {{ $t('composer.placeholder') }}
+            </div>
 
             <!-- Channels selection -->
             <div class="space-y-2">
@@ -191,7 +206,7 @@ function handleSchedule() {
                 <button
                   v-for="platform in platformsList"
                   :key="platform.id"
-                  @click="togglePlatform(platform.id)"
+                  @click.stop="togglePlatform(platform.id)"
                   class="border rounded-full px-3 py-1 font-mono text-[9px] tracking-wider uppercase transition-colors cursor-pointer"
                   :class="selectedPlatforms.includes(platform.id)
                     ? 'border-text-display bg-text-display text-bg-primary font-bold'
@@ -202,26 +217,22 @@ function handleSchedule() {
               </div>
             </div>
 
-            <!-- Submit action -->
-            <div class="space-y-3">
-              <Button
-                @click="handleSchedule"
-                :disabled="isScheduling || !postText.trim()"
-                class="w-full justify-center"
-              >
-                {{ isScheduling ? '...' : $t('composer.scheduleBtn') }}
+            <!-- Trigger Button -->
+            <div>
+              <Button class="w-full justify-center">
+                {{ $t('composer.title') }}
               </Button>
-
-              <div
-                v-if="showSuccess"
-                class="border border-success/30 bg-success/10 text-success text-[11px] font-mono text-center py-2 rounded-md uppercase tracking-wider"
-              >
-                {{ $t('composer.successMsg') }}
-              </div>
             </div>
           </CardContent>
         </Card>
       </div>
     </div>
+
+    <!-- Create Post Modal Dialog -->
+    <CreatePostModal
+      :is-open="isModalOpen"
+      @close="isModalOpen = false"
+      @created="handleCreated"
+    />
   </div>
 </template>

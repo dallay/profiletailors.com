@@ -37,6 +37,7 @@ import kotlinx.coroutines.test.runTest
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertNotNull
 import org.junit.jupiter.api.Assertions.assertThrows
+import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.Test
 import java.time.Clock
 import java.time.Instant
@@ -297,6 +298,221 @@ class PublishingHandlersTest {
         assertEquals(PublicationStatus.QUEUED, result.status)
         assertEquals(true, result.priority)
         assertNotNull(jobRepository.lastReplaced)
+    }
+
+    @Test
+    fun `reschedules queued publication with new timing`() = runTest {
+        val publication = PublicationDraft(
+            id = "pub-1",
+            workspaceId = "workspace-1",
+            authorPrincipalId = "principal-1",
+            provider = SocialProvider.LINKEDIN,
+            socialAccountId = "account-1",
+            status = PublicationStatus.QUEUED,
+            scheduleMode = ScheduleMode.NOW,
+            priority = false,
+            bodyText = "Reschedule me",
+        )
+        val publicationRepository = InMemoryPublicationRepository(publication)
+        val jobRepository = InMemoryPublicationJobRepository()
+        val handler = ReschedulePublicationHandler(
+            resourceContextProvider = FixedResourceContextProvider(workspaceContext),
+            publicationRepository = publicationRepository,
+            publicationJobRepository = jobRepository,
+            schedulingPolicy = PublicationSchedulingPolicy(),
+            clock = fixedClock,
+        )
+
+        val result = handler.handle(
+            ReschedulePublicationCommand(
+                publicationId = "pub-1",
+                scheduleMode = ScheduleMode.SCHEDULED_AT,
+                scheduledFor = Instant.parse("2026-06-15T10:00:00Z"),
+            ),
+        )
+
+        assertEquals(ScheduleMode.SCHEDULED_AT, result.scheduleMode)
+        assertEquals(Instant.parse("2026-06-15T10:00:00Z"), result.scheduledFor)
+        assertNotNull(jobRepository.lastReplaced)
+    }
+
+    @Test
+    fun `create asset for uploaded type generates storage key`() = runTest {
+        val assetRepository = InMemoryPublicationAssetRepository(emptyList())
+        val handler = CreateAssetHandler(
+            principalContextProvider = FixedPrincipalContextProvider(principalContext),
+            resourceContextProvider = FixedResourceContextProvider(workspaceContext),
+            publicationAssetRepository = assetRepository,
+            clock = fixedClock,
+        )
+
+        val result = handler.handle(
+            CreateAssetCommand(
+                mediaType = "image/jpeg",
+                sourceType = AssetSourceType.UPLOADED,
+                originalFilename = "photo.jpg",
+            ),
+        )
+
+        assertEquals("workspace-1", result.workspaceId)
+        assertEquals(AssetSourceType.UPLOADED, result.sourceType)
+        assertEquals("IMAGE/JPEG", result.mediaType)
+        assertNotNull(result.assetId)
+    }
+
+    @Test
+    fun `create asset for external url type does not generate storage key`() = runTest {
+        val assetRepository = InMemoryPublicationAssetRepository(emptyList())
+        val handler = CreateAssetHandler(
+            principalContextProvider = FixedPrincipalContextProvider(principalContext),
+            resourceContextProvider = FixedResourceContextProvider(workspaceContext),
+            publicationAssetRepository = assetRepository,
+            clock = fixedClock,
+        )
+
+        val result = handler.handle(
+            CreateAssetCommand(
+                mediaType = "image/png",
+                sourceType = AssetSourceType.EXTERNAL_URL,
+                externalUrl = "https://cdn.example.com/image.png",
+                originalFilename = "remote-image.png",
+            ),
+        )
+
+        assertEquals(AssetSourceType.EXTERNAL_URL, result.sourceType)
+        assertEquals("IMAGE/PNG", result.mediaType)
+        assertNotNull(result.assetId)
+    }
+
+    @Test
+    fun `create publication throws when social account not found`() = runTest {
+        val publicationRepository = InMemoryPublicationRepository()
+        val jobRepository = InMemoryPublicationJobRepository()
+        val socialAccountRepository = InMemorySocialAccountRepository()
+        val assetRepository = InMemoryPublicationAssetRepository(emptyList())
+        val handler = CreatePublicationHandler(
+            principalContextProvider = FixedPrincipalContextProvider(principalContext),
+            resourceContextProvider = FixedResourceContextProvider(workspaceContext),
+            socialAccountRepository = socialAccountRepository,
+            publicationRepository = publicationRepository,
+            publicationAssetRepository = assetRepository,
+            publicationJobRepository = jobRepository,
+            providerCapabilityValidator = AcceptingCapabilityValidator(),
+            schedulingPolicy = PublicationSchedulingPolicy(),
+            clock = fixedClock,
+        )
+
+        val error = assertThrows(SocialAccountNotFoundException::class.java) {
+            kotlinx.coroutines.runBlocking {
+                handler.handle(
+                    CreatePublicationCommand(
+                        socialAccountId = "non-existent-account",
+                        bodyText = "Test",
+                        scheduleMode = ScheduleMode.NOW,
+                    ),
+                )
+            }
+        }
+
+        assertTrue(error.message!!.contains("non-existent-account"))
+    }
+
+    @Test
+    fun `edit publication throws when publication not found`() = runTest {
+        val publicationRepository = InMemoryPublicationRepository()
+        val jobRepository = InMemoryPublicationJobRepository()
+        val socialAccountRepository = InMemorySocialAccountRepository()
+        val handler = EditPublicationHandler(
+            resourceContextProvider = FixedResourceContextProvider(workspaceContext),
+            socialAccountRepository = socialAccountRepository,
+            publicationRepository = publicationRepository,
+            publicationAssetRepository = InMemoryPublicationAssetRepository(emptyList()),
+            publicationJobRepository = jobRepository,
+            providerCapabilityValidator = AcceptingCapabilityValidator(),
+            schedulingPolicy = PublicationSchedulingPolicy(),
+            clock = fixedClock,
+        )
+
+        val error = assertThrows(PublicationNotFoundException::class.java) {
+            kotlinx.coroutines.runBlocking {
+                handler.handle(
+                    EditPublicationCommand(
+                        publicationId = "non-existent-pub",
+                        bodyText = "Test",
+                        scheduleMode = ScheduleMode.NOW,
+                    ),
+                )
+            }
+        }
+
+        assertTrue(error.message!!.contains("non-existent-pub"))
+    }
+
+    @Test
+    fun `cancel publication throws when publication not found`() = runTest {
+        val publicationRepository = InMemoryPublicationRepository()
+        val jobRepository = InMemoryPublicationJobRepository()
+        val handler = CancelPublicationHandler(
+            resourceContextProvider = FixedResourceContextProvider(workspaceContext),
+            publicationRepository = publicationRepository,
+            publicationJobRepository = jobRepository,
+            clock = fixedClock,
+        )
+
+        val error = assertThrows(PublicationNotFoundException::class.java) {
+            kotlinx.coroutines.runBlocking {
+                handler.handle(CancelPublicationCommand("non-existent-pub"))
+            }
+        }
+
+        assertTrue(error.message!!.contains("non-existent-pub"))
+    }
+
+    @Test
+    fun `retry publication throws when publication not found`() = runTest {
+        val publicationRepository = InMemoryPublicationRepository()
+        val jobRepository = InMemoryPublicationJobRepository()
+        val handler = RetryPublicationHandler(
+            resourceContextProvider = FixedResourceContextProvider(workspaceContext),
+            publicationRepository = publicationRepository,
+            publicationJobRepository = jobRepository,
+            schedulingPolicy = PublicationSchedulingPolicy(),
+            clock = fixedClock,
+        )
+
+        val error = assertThrows(PublicationNotFoundException::class.java) {
+            kotlinx.coroutines.runBlocking {
+                handler.handle(RetryPublicationCommand(publicationId = "non-existent-pub"))
+            }
+        }
+
+        assertTrue(error.message!!.contains("non-existent-pub"))
+    }
+
+    @Test
+    fun `reschedule publication throws when publication not found`() = runTest {
+        val publicationRepository = InMemoryPublicationRepository()
+        val jobRepository = InMemoryPublicationJobRepository()
+        val handler = ReschedulePublicationHandler(
+            resourceContextProvider = FixedResourceContextProvider(workspaceContext),
+            publicationRepository = publicationRepository,
+            publicationJobRepository = jobRepository,
+            schedulingPolicy = PublicationSchedulingPolicy(),
+            clock = fixedClock,
+        )
+
+        val error = assertThrows(PublicationNotFoundException::class.java) {
+            kotlinx.coroutines.runBlocking {
+                handler.handle(
+                    ReschedulePublicationCommand(
+                        publicationId = "non-existent-pub",
+                        scheduleMode = ScheduleMode.NOW,
+                    ),
+                )
+            }
+        }
+
+        assertTrue(error.message!!.contains("non-existent-pub"))
     }
 
     private class FixedPrincipalContextProvider(

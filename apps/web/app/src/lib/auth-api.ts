@@ -48,20 +48,16 @@ function resolveApiBaseUrl() {
  * Low-level fetch wrapper.
  * Always sends cookies (`credentials: 'include'`) so the refresh-token
  * HttpOnly cookie is forwarded automatically by the browser.
- * 
+ *
  * Includes API versioning via Accept header (application/vnd.api.v1+json).
  */
-async function request<T>(
-  path: string,
-  init: RequestInit = {},
-  token?: string | null,
-): Promise<T> {
+async function request<T>(path: string, init: RequestInit = {}, token?: string | null): Promise<T> {
   const response = await fetch(`${resolveApiBaseUrl()}${path}`, {
     ...init,
     credentials: 'include',
     headers: {
       'Content-Type': 'application/json',
-      'Accept': 'application/vnd.api.v1+json',
+      Accept: 'application/vnd.api.v1+json',
       ...(token ? { Authorization: `Bearer ${token}` } : {}),
       ...(init.headers ?? {}),
     },

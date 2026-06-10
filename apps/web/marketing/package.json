@@ -41,6 +41,7 @@
     "@codecov/vite-plugin": "^2.0.1",
     "@playwright/test": "^1.60.0",
     "@vitest/coverage-v8": "^3.0.0",
+    "jsdom": "^29.1.1",
     "typescript": "^6.0.3",
     "vite": "^7.1.12",
     "vitest": "^3.0.0"

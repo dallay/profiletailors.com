@@ -7,6 +7,7 @@ version = "1.0-SNAPSHOT"
 
 dependencies {
     implementation(project(":shared:common"))
+    implementation(project(":shared:bus"))
     implementation(project(":shared:spring-boot-common"))
     
     // Spring Boot

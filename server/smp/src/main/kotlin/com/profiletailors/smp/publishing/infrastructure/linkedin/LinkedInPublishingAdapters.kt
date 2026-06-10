@@ -519,8 +519,8 @@ class LinkedInPublishingConfiguration {
     fun providerCapabilityValidator(): ProviderCapabilityValidator = LinkedInCapabilityValidator()
 }
 
-private fun formUrlEncoded(vararg parts: Pair<String, String>): String = parts.joinToString("&") { (key, value) ->
+fun formUrlEncoded(vararg parts: Pair<String, String>): String = parts.joinToString("&") { (key, value) ->
     "${urlEncode(key)}=${urlEncode(value)}"
 }
 
-private fun urlEncode(value: String): String = URLEncoder.encode(value, StandardCharsets.UTF_8)
+fun urlEncode(value: String): String = URLEncoder.encode(value, StandardCharsets.UTF_8)
