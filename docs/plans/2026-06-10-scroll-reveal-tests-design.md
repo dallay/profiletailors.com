@@ -8,7 +8,7 @@ Add unit tests for `scroll-reveal.ts` in `apps/web/marketing` to eliminate the 0
 
 JaCoCo/Vitest coverage report shows `src/scripts/` at 0% coverage:
 
-```
+```text
 scripts/animations.ts | 0% | 100% | 100% | 0% | 5-188
 scripts/scroll-reveal.ts | 0% | 100% | 100% | 0% | 5-30
 ```
@@ -24,11 +24,13 @@ The file `scroll-reveal.ts` is a30-line utility that adds `.is-visible` to `[dat
 Switch Vitest from `environment: 'node'` to `environment: 'jsdom'` in `vitest.config.ts`. This enables real DOM APIs (`document.querySelectorAll`, `IntersectionObserver`) without needing to mock them manually.
 
 If jsdom is not yet installed:
+
 ```sh
 pnpm add -D jsdom @vitest/jsdom
 ```
 
 Update `vitest.config.ts`:
+
 ```ts
 import { defineConfig } from 'vitest/config'
 
@@ -68,7 +70,7 @@ export default defineConfig({
 
 `apps/web/marketing/src/scripts/scroll-reveal.test.ts`
 
-## Risks& Mitigations
+## Risks & Mitigations
 
 - **jsdom performance**: slight slowdown vs node env — acceptable for the small test surface
 - **IntersectionObserver fake**: Vitest's fake may not fire `isIntersecting` correctly in all cases — mock manually if needed

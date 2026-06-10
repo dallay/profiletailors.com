@@ -13,7 +13,6 @@ import com.profiletailors.smp.audit.domain.AuthorizationDecisionAuditFact
 import com.profiletailors.smp.audit.domain.MutationAuditFact
 import com.profiletailors.smp.tenancy.domain.WorkspaceMembership
 import com.profiletailors.smp.tenancy.domain.WorkspaceOwnership
-import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.test.runTest
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertFalse
@@ -108,9 +107,8 @@ class TenancyOwnershipHandlersInternalTest {
             ),
         )
 
-        assertThrows(WorkspaceOwnerAccessDeniedException::class.java) {
-            runBlocking { handler.handle(AddWorkspaceOwnerCommand(targetPrincipalId = "member-2")) }
-        }
+        val exception = runCatching { handler.handle(AddWorkspaceOwnerCommand(targetPrincipalId = "member-2")) }.exceptionOrNull()
+        assertInstanceOf(WorkspaceOwnerAccessDeniedException::class.java, exception)
     }
 
     @Test
@@ -144,9 +142,8 @@ class TenancyOwnershipHandlersInternalTest {
             ),
         )
 
-        assertThrows(OwnerTargetMustBeActiveMemberException::class.java) {
-            runBlocking { handler.handle(AddWorkspaceOwnerCommand(targetPrincipalId = "member-2")) }
-        }
+        val exception = runCatching { handler.handle(AddWorkspaceOwnerCommand(targetPrincipalId = "member-2")) }.exceptionOrNull()
+        assertInstanceOf(OwnerTargetMustBeActiveMemberException::class.java, exception)
     }
 
     @Test
@@ -261,10 +258,9 @@ class TenancyOwnershipHandlersInternalTest {
             ),
         )
 
-        val exception = assertThrows(IllegalArgumentException::class.java) {
-            runBlocking { handler.handle(TransferWorkspaceOwnershipCommand(targetPrincipalId = "owner-1")) }
-        }
-        assertEquals("Cannot transfer ownership to yourself", exception.message)
+        val exception = runCatching { handler.handle(TransferWorkspaceOwnershipCommand(targetPrincipalId = "owner-1")) }.exceptionOrNull()
+        assertInstanceOf(IllegalArgumentException::class.java, exception)
+        assertEquals("Cannot transfer ownership to yourself", (exception as IllegalArgumentException).message)
     }
 
     @Test
@@ -291,9 +287,8 @@ class TenancyOwnershipHandlersInternalTest {
             ),
         )
 
-        assertThrows(WorkspaceOwnerAccessDeniedException::class.java) {
-            runBlocking { handler.handle(TransferWorkspaceOwnershipCommand(targetPrincipalId = "member-2")) }
-        }
+        val exception = runCatching { handler.handle(TransferWorkspaceOwnershipCommand(targetPrincipalId = "member-2")) }.exceptionOrNull()
+        assertInstanceOf(WorkspaceOwnerAccessDeniedException::class.java, exception)
     }
 
     @Test
@@ -327,9 +322,8 @@ class TenancyOwnershipHandlersInternalTest {
             ),
         )
 
-        assertThrows(OwnerTargetMustBeActiveMemberException::class.java) {
-            runBlocking { handler.handle(TransferWorkspaceOwnershipCommand(targetPrincipalId = "member-2")) }
-        }
+        val exception = runCatching { handler.handle(TransferWorkspaceOwnershipCommand(targetPrincipalId = "member-2")) }.exceptionOrNull()
+        assertInstanceOf(OwnerTargetMustBeActiveMemberException::class.java, exception)
     }
 
     // -------------------------------------------------------------------------

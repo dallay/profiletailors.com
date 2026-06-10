@@ -1,8 +1,10 @@
 <script setup lang="ts">
 import { ref, computed } from 'vue'
+import { useI18n } from 'vue-i18n'
 import {
   Bookmark,
   CalendarDays,
+  ChevronDown,
   ChevronLeft,
   ChevronRight,
   Clock,
@@ -20,6 +22,7 @@ import { Card } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 
 const publishingStore = usePublishingStore()
+const { locale: i18nLocale } = useI18n()
 
 // State
 const isModalOpen = ref(false)
@@ -46,7 +49,7 @@ const weekDays = computed(() => {
 
 const monthYearLabel = computed(() => {
   const options: Intl.DateTimeFormatOptions = { month: 'long', year: 'numeric' }
-  const locale = publishingStore.filterTag === 'es' ? 'es-ES' : 'en-US'
+  const locale = i18nLocale.value === 'es' ? 'es-ES' : 'en-US'
   return currentBaseDate.value.toLocaleDateString(locale, options)
 })
 
@@ -113,7 +116,7 @@ function formatDayName(date: Date) {
   const days = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday']
   const daysEs = ['Domingo', 'Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado']
   const index = date.getDay()
-  return (publishingStore.filterTag === 'es' ? daysEs[index] : days[index]) || ''
+  return ((i18nLocale.value === 'es' ? daysEs[index] : days[index])) || ''
 }
 
 function getProviderColor(provider: string) {

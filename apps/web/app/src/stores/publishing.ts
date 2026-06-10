@@ -91,6 +91,8 @@ export const usePublishingStore = defineStore('publishing', () => {
 
   // Persisted publications list
   const publications = ref<Publication[]>([])
+  // Track object URLs for memory cleanup
+  const objectUrls = new Map<string, string>()
 
   // Load from localStorage or seed
   const stored = localStorage.getItem('pt_publications')
@@ -143,7 +145,9 @@ export const usePublishingStore = defineStore('publishing', () => {
     if (post.mediaFiles && post.mediaFiles.length > 0) {
       const file = post.mediaFiles[0]
       if (file?.type?.startsWith('image/')) {
-        newPub.thumbnail = URL.createObjectURL(file)
+        const objectUrl = URL.createObjectURL(file)
+        newPub.thumbnail = objectUrl
+        objectUrls.set(publicationId, objectUrl)
       }
     }
 
@@ -184,6 +188,12 @@ export const usePublishingStore = defineStore('publishing', () => {
   }
 
   function deletePost(id: string) {
+    // Revoke object URL if tracked
+    const url = objectUrls.get(id)
+    if (url) {
+      URL.revokeObjectURL(url)
+      objectUrls.delete(id)
+    }
     publications.value = publications.value.filter((p) => p.id !== id)
     saveToStorage()
   }
@@ -199,6 +209,11 @@ export const usePublishingStore = defineStore('publishing', () => {
   function updatePost(id: string, updates: Partial<Publication>) {
     const post = publications.value.find((p) => p.id === id)
     if (post) {
+      // If thumbnail is being replaced, revoke old object URL
+      if (updates.thumbnail && post.thumbnail && objectUrls.has(id)) {
+        URL.revokeObjectURL(objectUrls.get(id)!)
+        objectUrls.delete(id)
+      }
       Object.assign(post, updates)
       saveToStorage()
     }

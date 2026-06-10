@@ -51,6 +51,9 @@ const waapiMock = vi.fn().mockReturnValue({
   commitStyles: vi.fn(),
 })
 
+/** Shared original querySelector for centralized cleanup. */
+const origQuerySelector = document.querySelector.bind(document)
+
 describe('initHeroAnimations', () => {
   beforeEach(() => {
     vi.clearAllMocks()
@@ -76,6 +79,8 @@ describe('initHeroAnimations', () => {
     vi.useRealTimers()
     // Restore native animate if it existed (it doesn't in jsdom)
     delete (Element.prototype as any).animate
+    // Restore document.querySelector to guarantee cleanup
+    document.querySelector = origQuerySelector
   })
 
   // -------------------------------------------------------------------------
@@ -94,7 +99,6 @@ describe('initHeroAnimations', () => {
     const icons = document.createElement('div')
     const form = document.createElement('div')
 
-    const origQuerySelector = document.querySelector.bind(document)
     document.querySelector = vi.fn().mockImplementation((selector: string) => {
       switch (selector) {
         case '[data-hero-label]': return label
@@ -115,8 +119,6 @@ describe('initHeroAnimations', () => {
     expect(sub.style.opacity).toBe('1')
     expect(icons.style.opacity).toBe('1')
     expect(form.style.opacity).toBe('1')
-
-    document.querySelector = origQuerySelector
   })
 
   // -------------------------------------------------------------------------
@@ -138,7 +140,6 @@ describe('initHeroAnimations', () => {
     const sub = document.createElement('div')
     sub.textContent = 'Sub'
 
-    const _origQuerySelector = document.querySelector.bind(document)
     document.querySelector = vi.fn().mockImplementation((selector: string) => {
       switch (selector) {
         case '[data-hero-label]': return label
@@ -170,7 +171,6 @@ describe('initHeroAnimations', () => {
     const sub = document.createElement('div')
     sub.textContent = 'Sub'
 
-    const origQuerySelector = document.querySelector.bind(document)
     document.querySelector = vi.fn().mockImplementation((selector: string) => {
       switch (selector) {
         case '[data-hero-label]': return label
@@ -187,7 +187,5 @@ describe('initHeroAnimations', () => {
     await animPromise
 
     expect(waapiMock).toHaveBeenCalled()
-
-    document.querySelector = origQuerySelector
   })
 })

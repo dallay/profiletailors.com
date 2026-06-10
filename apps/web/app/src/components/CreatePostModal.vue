@@ -43,7 +43,6 @@ const mediaPreviews = ref<string[]>([])
 const fileInput = ref<HTMLInputElement | null>(null)
 const firstComment = ref('')
 const createAnother = ref(false)
-const saveDraftMode = ref(false)
 const priorityMode = ref(false)
 const scheduleMode = ref<'now' | 'custom'>('now')
 
@@ -61,7 +60,6 @@ watch(
       mediaFiles.value = []
       mediaPreviews.value = []
       firstComment.value = ''
-      saveDraftMode.value = false
       priorityMode.value = false
       scheduleMode.value = 'now'
 
@@ -81,6 +79,7 @@ watch(
 
 // Computed
 const isSubmitting = ref(false)
+const isAiProcessing = ref(false)
 const charLimit = 3000
 const charsRemaining = computed(() => charLimit - postText.value.length)
 const isTextTooLong = computed(() => charsRemaining.value < 0)
@@ -173,10 +172,10 @@ function handleAiAssist() {
     postText.value = 'Profile Tailors is officially launching! Minimalist scheduling, analytics, and multichannel delivery designed for creators. 🚀'
     return
   }
-  isSubmitting.value = true
+  isAiProcessing.value = true
   setTimeout(() => {
     postText.value = `${postText.value}\n\nProgramado vía @ProfileTailors`
-    isSubmitting.value = false
+    isAiProcessing.value = false
   }, 800)
 }
 
@@ -190,9 +189,14 @@ async function handleSchedule() {
     if (scheduleMode.value === 'custom' && scheduleDate.value) {
       const [year, month, day] = scheduleDate.value.split('-').map(Number)
       const [hours, minutes] = scheduleTime.value.split(':').map(Number)
-      // Check validation
-      if (year && month !== undefined && day) {
-        finalScheduledDate = new Date(year, month - 1, day, hours || 0, minutes || 0)
+      // Guard against NaN from parsing and validate ranges
+      const isValidYear = Number.isInteger(year) && year >= 2000 && year <= 2100
+      const isValidMonth = Number.isInteger(month) && month >= 1 && month <= 12
+      const isValidDay = Number.isInteger(day) && day >= 1 && day <= 31
+      const isValidHours = Number.isInteger(hours) && hours >= 0 && hours <= 23
+      const isValidMinutes = Number.isInteger(minutes) && minutes >= 0 && minutes <= 59
+      if (isValidYear && isValidMonth && isValidDay && isValidHours && isValidMinutes) {
+        finalScheduledDate = new Date(year, month - 1, day, hours, minutes)
       }
     } else {
       // "Next Available" mode - default to 1 hour from now

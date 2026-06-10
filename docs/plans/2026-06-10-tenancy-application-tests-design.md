@@ -47,7 +47,6 @@ Reuses helper classes from `UpdateWorkspaceMembershipStatusHandlerTest.kt`:
 - `StubWorkspaceMembershipLookup`
 - `CapturingAuditHook`
 - `InMemoryWorkspaceOwnershipRepository`
-- `InMemoryWorkspaceMembershipRepository`
 
 ## Success Criteria
 

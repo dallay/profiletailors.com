@@ -72,7 +72,7 @@ describe('login', () => {
   })
 
   it('throws ApiError on login failure', async () => {
-    const fetchMock = mockFetch(
+    mockFetch(
       new Response(JSON.stringify({ title: 'Unauthorized', detail: 'Invalid credentials' }), {
         status: 401,
         headers: { 'Content-Type': 'application/json' },
@@ -87,7 +87,7 @@ describe('login', () => {
   })
 
   it('throws ApiError on server error', async () => {
-    const fetchMock = mockFetch(
+    mockFetch(
       new Response(JSON.stringify({ title: 'Internal Server Error', detail: 'Something went wrong' }), {
         status: 500,
         headers: { 'Content-Type': 'application/json' },
@@ -102,7 +102,7 @@ describe('login', () => {
   })
 
   it('throws ApiError when server returns non-JSON error body', async () => {
-    const fetchMock = mockFetch(
+    mockFetch(
       new Response('plain text error', {
         status: 400,
         headers: { 'Content-Type': 'text/plain' },
@@ -173,7 +173,7 @@ describe('refreshSession', () => {
       email: 'user@example.com',
       username: null,
     }
-    const fetchMock = mockFetch(
+    mockFetch(
       new Response(JSON.stringify(tokens), {
         status: 200,
         headers: { 'Content-Type': 'application/json' },
@@ -186,7 +186,7 @@ describe('refreshSession', () => {
   })
 
   it('returns null on 401 (no active session)', async () => {
-    const fetchMock = mockFetch(
+    mockFetch(
       new Response(null, { status: 401 }),
     )
 
@@ -196,7 +196,7 @@ describe('refreshSession', () => {
   })
 
   it('re-throws non-401 errors', async () => {
-    const fetchMock = mockFetch(
+    mockFetch(
       new Response(JSON.stringify({ title: 'Server Error', detail: 'Database error' }), {
         status: 500,
         headers: { 'Content-Type': 'application/json' },
@@ -221,7 +221,7 @@ describe('logoutSession', () => {
   })
 
   it('always resolves even on network error', async () => {
-    const fetchMock = mockFetch(
+    mockFetch(
       new Response(null, { status: 500 }),
     )
 
@@ -230,7 +230,7 @@ describe('logoutSession', () => {
   })
 
   it('resolves successfully on 204 No Content', async () => {
-    const fetchMock = mockFetch(
+    mockFetch(
       new Response(null, { status: 204 }),
     )
 
@@ -276,7 +276,7 @@ describe('getCurrentUserProfile', () => {
   })
 
   it('throws ApiError on failure', async () => {
-    const fetchMock = mockFetch(
+    mockFetch(
       new Response(JSON.stringify({ title: 'Unauthorized', detail: 'Invalid token' }), {
         status: 401,
         headers: { 'Content-Type': 'application/json' },
@@ -301,7 +301,7 @@ describe('createApiFetch', () => {
   })
 
   it('returns data on successful request', async () => {
-    const fetchMock = mockFetch(
+    mockFetch(
       new Response(JSON.stringify({ id: 'post-1', text: 'Hello' }), {
         status: 200,
         headers: { 'Content-Type': 'application/json' },
@@ -364,7 +364,7 @@ describe('createApiFetch', () => {
   })
 
   it('calls onUnauthenticated and re-throws when refresh returns null on 401', async () => {
-    const fetchMock = mockFetch(
+    mockFetch(
       new Response(null, { status: 401 }),
     )
 
@@ -384,7 +384,7 @@ describe('createApiFetch', () => {
   })
 
   it('re-throws non-401 errors without refresh attempt', async () => {
-    const fetchMock = mockFetch(
+    mockFetch(
       new Response(JSON.stringify({ title: 'Forbidden', detail: 'Access denied' }), {
         status: 403,
         headers: { 'Content-Type': 'application/json' },

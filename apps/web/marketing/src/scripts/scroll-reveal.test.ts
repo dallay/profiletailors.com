@@ -10,12 +10,15 @@ interface ObserverGlobals {
   observeCb: IntersectionObserverCallback | null
   observedEls: Set<Element>
   entries: IntersectionObserverEntry[]
+  /** Reference to the mock observer's unobserve spy (the actual one used by implementation). */
+  unobserveSpy: ReturnType<typeof vi.fn>
 }
 
 const $globals: ObserverGlobals = {
   observeCb: null,
   observedEls: new Set(),
   entries: [],
+  unobserveSpy: vi.fn(),
 }
 
 function makeEntry(el: Element, isIntersecting: boolean): IntersectionObserverEntry {
@@ -41,6 +44,7 @@ describe('initScrollReveal', () => {
     $globals.observeCb = null
     $globals.observedEls.clear()
     $globals.entries = []
+    $globals.unobserveSpy = vi.fn()
 
     // Stub matchMedia — default: motion OK
     vi.stubGlobal('matchMedia', vi.fn().mockReturnValue({
@@ -52,12 +56,13 @@ describe('initScrollReveal', () => {
     // Stub IntersectionObserver so we control when the callback fires
     vi.stubGlobal('IntersectionObserver', vi.fn().mockImplementation((cb: IntersectionObserverCallback) => {
       $globals.observeCb = cb
+      $globals.unobserveSpy = vi.fn()
       return {
         observe: (el: Element) => {
           $globals.observedEls.add(el)
           $globals.entries.push(makeEntry(el, false))
         },
-        unobserve: vi.fn(),
+        unobserve: $globals.unobserveSpy,
         disconnect: vi.fn(),
       }
     }))
@@ -157,6 +162,6 @@ describe('initScrollReveal', () => {
 
     expect(el.classList.contains('is-visible')).toBe(true)
     // The implementation calls observer.unobserve(entry.target) after adding is-visible
-    // We verified the class was added — unobserve was called internally
+    expect($globals.unobserveSpy).toHaveBeenCalledWith(el)
   })
 })

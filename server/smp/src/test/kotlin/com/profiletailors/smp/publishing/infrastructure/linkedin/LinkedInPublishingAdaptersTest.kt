@@ -849,7 +849,7 @@ class LinkedInPublishingAdaptersTest {
     }
 
     @Test
-    fun `capability validator rejects asset at exactly max size`() {
+    fun `capability validator accepts asset at exactly max size`() {
         val validator = LinkedInCapabilityValidator()
         val account = testSocialAccount()
         // Exactly 10MB should pass
