@@ -214,6 +214,12 @@ export const usePublishingStore = defineStore('publishing', () => {
         URL.revokeObjectURL(objectUrls.get(id)!)
         objectUrls.delete(id)
       }
+      // Track new blob URL for later revocation
+      if (typeof updates.thumbnail === 'string' && updates.thumbnail.startsWith('blob:')) {
+        objectUrls.set(id, updates.thumbnail)
+      } else if (updates.thumbnail == null && objectUrls.has(id)) {
+        objectUrls.delete(id)
+      }
       Object.assign(post, updates)
       saveToStorage()
     }

@@ -197,6 +197,9 @@ async function handleSchedule() {
       const isValidMinutes = Number.isInteger(minutes) && minutes >= 0 && minutes <= 59
       if (isValidYear && isValidMonth && isValidDay && isValidHours && isValidMinutes) {
         finalScheduledDate = new Date(year, month - 1, day, hours, minutes)
+      } else {
+        // Invalid parsed values — use same safe-future fallback as "Next Available"
+        finalScheduledDate = new Date(Date.now() + 60 * 60 * 1000)
       }
     } else {
       // "Next Available" mode - default to 1 hour from now
