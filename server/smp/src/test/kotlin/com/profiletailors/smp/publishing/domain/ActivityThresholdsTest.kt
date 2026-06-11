@@ -8,6 +8,7 @@ class ActivityThresholdsTest {
 
     @ParameterizedTest
     @CsvSource(
+        "-1, NONE",
         "0, NONE",
         "1, LIGHT",
         "2, LIGHT",

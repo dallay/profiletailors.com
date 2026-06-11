@@ -118,9 +118,9 @@ class ConflictDetectionPolicyTest {
             conflictWindow = Duration.ofMinutes(15),
         )
 
-        assertEquals(setOf("pub-2"), conflicts["pub-1"]?.toSet())
+        assertEquals(setOf("pub-2", "pub-3"), conflicts["pub-1"]?.toSet())
         assertTrue(conflicts["pub-2"]?.containsAll(listOf("pub-1", "pub-3")) ?: false)
-        assertEquals(setOf("pub-2"), conflicts["pub-3"]?.toSet())
+        assertEquals(setOf("pub-1", "pub-2"), conflicts["pub-3"]?.toSet())
     }
 
     @Test

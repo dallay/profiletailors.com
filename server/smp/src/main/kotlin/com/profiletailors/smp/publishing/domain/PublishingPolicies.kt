@@ -245,14 +245,15 @@ object ConflictDetectionPolicy {
         for ((_, accountPublications) in byAccount) {
             val sorted = accountPublications.sortedBy { it.scheduledFor!! }
 
-            for (i in 0 until sorted.size - 1) {
+            for (i in sorted.indices) {
                 val current = sorted[i]
-                val next = sorted[i + 1]
-                val gap = Duration.between(current.scheduledFor!!, next.scheduledFor!!).abs()
+                for (j in i + 1 until sorted.size) {
+                    val candidate = sorted[j]
+                    val gap = Duration.between(current.scheduledFor!!, candidate.scheduledFor!!).abs()
 
-                if (gap < conflictWindow) {
-                    conflictMap.getOrPut(current.id) { mutableSetOf() }.add(next.id)
-                    conflictMap.getOrPut(next.id) { mutableSetOf() }.add(current.id)
+                    if (gap >= conflictWindow) break
+                    conflictMap.getOrPut(current.id) { mutableSetOf() }.add(candidate.id)
+                    conflictMap.getOrPut(candidate.id) { mutableSetOf() }.add(current.id)
                 }
             }
         }

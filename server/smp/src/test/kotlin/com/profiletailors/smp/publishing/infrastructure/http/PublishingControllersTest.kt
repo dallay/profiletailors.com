@@ -209,7 +209,7 @@ class PublishingControllersTest {
             mediator.lastRequest,
         )
 
-        controller.reschedulePublication(
+        controller.patchReschedulePublication(
             "pub-1",
             PublicationRescheduleRequest(
                 scheduleMode = "NEXT_SLOT",

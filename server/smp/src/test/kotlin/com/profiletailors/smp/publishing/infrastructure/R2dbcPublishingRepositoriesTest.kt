@@ -214,6 +214,49 @@ class R2dbcPublishingRepositoriesTest : DatabaseUnitTestBase() {
     }
 
     @Test
+    fun `findInDateRange filters by socialAccountIds`() = runTest {
+        seedSocialAccount()
+        databaseClient.sql(
+            """
+            INSERT INTO social_connections (id, workspace_id, provider, provider_connection_ref, status, credential_reference)
+            VALUES ('soconn-2', 'workspace-1', 'LINKEDIN', 'linkedin-conn-2', 'ACTIVE', '00000000-0000-0000-0000-000000000000')
+            """.trimIndent(),
+        ).fetch().rowsUpdated().awaitSingle()
+        databaseClient.sql(
+            """
+            INSERT INTO social_accounts (id, social_connection_id, workspace_id, provider, provider_account_id, account_type, display_name, status)
+            VALUES ('soacc-2', 'soconn-2', 'workspace-1', 'LINKEDIN', 'linkedin-account-2', 'PERSONAL_PROFILE', 'Another', 'ACTIVE')
+            """.trimIndent(),
+        ).fetch().rowsUpdated().awaitSingle()
+
+        val pub1 = publicationRepository.createDraft(
+            PublicationDraft(
+                id = "pub-filter-1", workspaceId = "workspace-1", authorPrincipalId = "principal-1",
+                provider = SocialProvider.LINKEDIN, socialAccountId = "soacc-1",
+                status = PublicationStatus.SCHEDULED, scheduleMode = ScheduleMode.SCHEDULED_AT, priority = false,
+                bodyText = "First account", scheduledFor = Instant.parse("2026-06-15T12:00:00Z"),
+            ),
+        )
+        val pub2 = publicationRepository.createDraft(
+            PublicationDraft(
+                id = "pub-filter-2", workspaceId = "workspace-1", authorPrincipalId = "principal-1",
+                provider = SocialProvider.LINKEDIN, socialAccountId = "soacc-2",
+                status = PublicationStatus.SCHEDULED, scheduleMode = ScheduleMode.SCHEDULED_AT, priority = false,
+                bodyText = "Second account", scheduledFor = Instant.parse("2026-06-15T14:00:00Z"),
+            ),
+        )
+
+        val results = publicationRepository.findInDateRange(
+            workspaceId = "workspace-1",
+            from = Instant.parse("2026-06-01T00:00:00Z"),
+            to = Instant.parse("2026-07-01T00:00:00Z"),
+            socialAccountIds = setOf("soacc-1"),
+        )
+
+        assertEquals(listOf(pub1.id), results.map { it.id })
+    }
+
+    @Test
     fun `countByDate groups by requested timezone`() = runTest {
         seedSocialAccount()
         publicationRepository.createDraft(

@@ -771,6 +771,10 @@ class PublishingHandlersTest {
     ) : PublicationRepository {
         var lastFindStatuses: Set<PublicationStatus>? = null
         var lastFindSocialAccountIds: Set<String>? = null
+        var lastCountWorkspaceId: String? = null
+        var lastCountFrom: Instant? = null
+        var lastCountTo: Instant? = null
+        var lastCountStatuses: Set<PublicationStatus>? = null
         var lastCountTimezone: String? = null
         private val items = linkedMapOf<String, PublicationDraft>()
 
@@ -818,6 +822,10 @@ class PublishingHandlersTest {
             statuses: Set<PublicationStatus>?,
             timezone: String,
         ): List<DateCount> {
+            lastCountWorkspaceId = workspaceId
+            lastCountFrom = from
+            lastCountTo = to
+            lastCountStatuses = statuses
             lastCountTimezone = timezone
             return dateCounts
         }
