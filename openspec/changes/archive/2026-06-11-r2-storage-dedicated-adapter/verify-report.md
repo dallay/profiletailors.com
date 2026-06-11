@@ -24,11 +24,13 @@ The third verify report flagged 2 CRITICAL items that prevented the contract tes
 - `should throw StorageObjectNotFoundException` corrected to match actual S3/R2 semantics (presignGet does NOT verify object existence — 404 only surfaces when URL is consumed).
 
 ### Test result
-```
+
+```text
 DOCKER_AVAILABLE=true ./gradlew :shared:storage:test --rerun-tasks
 BUILD SUCCESSFUL
 88 tests, 0 failed, 0 errors, 0 skipped
 ```
+
 
 ### Spec compliance: 17/17 ✅
 - 14 scenarios covered by non-Docker-gated unit tests (all pass)

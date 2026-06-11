@@ -1,10 +1,11 @@
 change: r2-storage-dedicated-adapter
-current_phase: verify
+current_phase: archived
 completed:
   - propose
   - spec
   - design
   - tasks
   - apply
-next: verify
+  - verify
+next: archive
 updated: "2026-06-11T00:00:00Z"

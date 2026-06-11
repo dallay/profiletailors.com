@@ -1101,6 +1101,8 @@ class LinkedInPublishingAdaptersTest {
         override suspend fun delete(bucket: String, key: String) {}
 
         override suspend fun list(bucket: String, prefix: String): List<String> = emptyList()
+
+        override suspend fun exists(bucket: String, key: String): Boolean = false
     }
 
     private class FakePublicationAssetRepository : com.profiletailors.smp.publishing.domain.PublicationAssetRepository {
