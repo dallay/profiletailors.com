@@ -1,5 +1,5 @@
 plugins {
-    kotlin("jvm") version "2.3.21"
+    alias(libs.plugins.kotlin.jvm)
 }
 
 group = "com.profiletailors"
