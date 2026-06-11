@@ -34,6 +34,7 @@ import com.profiletailors.common.domain.Service
                 org.springframework.stereotype.Controller::class,
                 RestController::class,
                 RestControllerAdvice::class,
+                Service::class,
             ],
         ),
     ],
