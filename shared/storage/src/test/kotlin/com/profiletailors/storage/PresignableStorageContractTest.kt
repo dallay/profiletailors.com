@@ -1,11 +1,9 @@
 package com.profiletailors.storage
 
 import com.profiletailors.storage.domain.PresignableStorage
-import com.profiletailors.storage.domain.StorageObjectNotFoundException
 import kotlinx.coroutines.flow.flowOf
-import kotlinx.coroutines.test.runTest
+import kotlinx.coroutines.runBlocking
 import org.junit.jupiter.api.Assertions.assertFalse
-import org.junit.jupiter.api.Assertions.assertInstanceOf
 import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.DisplayName
@@ -71,7 +69,7 @@ abstract class PresignableStorageContractTest {
     inner class PresignOperations {
 
         @Test
-        fun `should generate presigned URL for existing object`() = runTest {
+        fun `should generate presigned URL for existing object`() = runBlocking {
             // First upload an object
             storage.upload(TEST_BUCKET, TEST_KEY, flowOf(TEST_CONTENT.toByteArray()))
 
@@ -84,7 +82,7 @@ abstract class PresignableStorageContractTest {
         }
 
         @Test
-        fun `should include expiry in presigned URL`() = runTest {
+        fun `should include expiry in presigned URL`() = runBlocking {
             storage.upload(TEST_BUCKET, TEST_KEY, flowOf(TEST_CONTENT.toByteArray()))
 
             val shortExpiry = 60L
@@ -97,7 +95,7 @@ abstract class PresignableStorageContractTest {
         }
 
         @Test
-        fun `should generate unique URLs for different expiry times`() = runTest {
+        fun `should generate unique URLs for different expiry times`() = runBlocking {
             storage.upload(TEST_BUCKET, TEST_KEY, flowOf(TEST_CONTENT.toByteArray()))
 
             val url60s = storage.presignGet(TEST_BUCKET, TEST_KEY, 60)
@@ -108,7 +106,7 @@ abstract class PresignableStorageContractTest {
         }
 
         @Test
-        fun `should generate presigned URL with default expiry`() = runTest {
+        fun `should generate presigned URL with default expiry`() = runBlocking {
             storage.upload(TEST_BUCKET, TEST_KEY, flowOf(TEST_CONTENT.toByteArray()))
 
             // Call without explicit expirySeconds
@@ -119,7 +117,7 @@ abstract class PresignableStorageContractTest {
         }
 
         @Test
-        fun `should handle presigned URL for object in subdirectory`() = runTest {
+        fun `should handle presigned URL for object in subdirectory`() = runBlocking {
             val subdirKey = "subdir/nested/file.txt"
             storage.upload(TEST_BUCKET, subdirKey, flowOf(TEST_CONTENT.toByteArray()))
 
@@ -130,15 +128,15 @@ abstract class PresignableStorageContractTest {
         }
 
         @Test
-        fun `should throw StorageObjectNotFoundException for non-existent object`() = runTest {
-            val thrown = runCatching {
-                storage.presignGet(TEST_BUCKET, "non-existent-key", 300)
-            }.exceptionOrNull()
-            val target = thrown?.cause ?: thrown
-            assertInstanceOf(
-                StorageObjectNotFoundException::class.java,
-                target
-            )
+        fun `should not throw for non-existent object - S3-or-R2 semantics`() = runBlocking {
+            // S3/R2 presign operations are not required to verify the object exists —
+            // the request is signed locally without contacting the service. The actual
+            // 404 surfaces only when the presigned URL is consumed. This test pins down
+            // that contract: presignGet must NOT throw StorageObjectNotFoundException
+            // for a key that doesn't exist.
+            val presignedUrl = storage.presignGet(TEST_BUCKET, "non-existent-key", 300)
+            assertFalse(presignedUrl.isBlank())
+            Unit
         }
     }
 
@@ -147,7 +145,7 @@ abstract class PresignableStorageContractTest {
     inner class UrlFormatValidation {
 
         @Test
-        fun `should produce valid URI in presigned URL`() = runTest {
+        fun `should produce valid URI in presigned URL`() = runBlocking {
             storage.upload(TEST_BUCKET, TEST_KEY, flowOf(TEST_CONTENT.toByteArray()))
 
             val presignedUrl = storage.presignGet(TEST_BUCKET, TEST_KEY, 300)
@@ -159,7 +157,7 @@ abstract class PresignableStorageContractTest {
         }
 
         @Test
-        fun `should include bucket and key information in URL`() = runTest {
+        fun `should include bucket and key information in URL`() = runBlocking {
             storage.upload(TEST_BUCKET, TEST_KEY, flowOf(TEST_CONTENT.toByteArray()))
 
             val presignedUrl = storage.presignGet(TEST_BUCKET, TEST_KEY, 300)

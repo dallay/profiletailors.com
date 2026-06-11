@@ -65,4 +65,7 @@ class S2Storage(
 
     override suspend fun presignGet(bucket: String, key: String, expirySeconds: Long): String =
         delegate.presignGet(bucket, key, expirySeconds)
+
+    override suspend fun exists(bucket: String, key: String): Boolean =
+        delegate.exists(bucket, key)
 }

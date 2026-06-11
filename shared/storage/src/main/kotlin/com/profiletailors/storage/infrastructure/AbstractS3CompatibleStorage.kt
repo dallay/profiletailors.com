@@ -1,7 +1,10 @@
 package com.profiletailors.storage.infrastructure
 
 import com.profiletailors.storage.domain.PresignableStorage
+import com.profiletailors.storage.domain.StorageAccessDeniedException
+import com.profiletailors.storage.domain.StorageConnectionException
 import com.profiletailors.storage.domain.StorageObjectNotFoundException
+import com.profiletailors.storage.domain.StorageSecurityException
 import com.profiletailors.storage.domain.StorageServiceException
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.Flow
@@ -50,8 +53,53 @@ abstract class AbstractS3CompatibleStorage(
         }
     }
 
+    /**
+     * Validates that a key does not contain path traversal sequences.
+     * Rejects keys containing "../" or "..\\" to prevent security vulnerabilities.
+     *
+     * @param key The key to validate
+     * @throws StorageSecurityException if the key contains path traversal sequences
+     */
+    protected fun validateKey(key: String) {
+        require(!key.contains("../") && !key.contains("..\\")) {
+            throw StorageSecurityException("Key contains path traversal sequence: '$key'")
+        }
+    }
+
+    /**
+     * Checks if an S3Exception represents a ServiceUnavailable (503) error.
+     */
+    private fun S3Exception.isServiceUnavailable(): Boolean =
+        statusCode() == 503
+
+    /**
+     * Checks if an S3Exception represents an AccessDenied (403) error.
+     * In AWS SDK v2 S3, AccessDenied is represented as S3Exception with statusCode 403.
+     */
+    private fun S3Exception.isAccessDenied(): Boolean =
+        statusCode() == 403
+
+    /**
+     * Maps S3Exception or SdkException to the appropriate domain exception.
+     */
+    protected fun mapToStorageException(message: String, e: Exception): Nothing {
+        when (e) {
+            is S3Exception -> when {
+                e.isAccessDenied() ->
+                    throw StorageAccessDeniedException("$message: access denied")
+                e.isServiceUnavailable() ->
+                    throw StorageConnectionException("$message: service unavailable", e)
+                else -> throw StorageServiceException(message, e)
+            }
+            is NoSuchKeyException ->
+                throw StorageObjectNotFoundException(bucketName, message.substringAfter("'").substringBefore("'").takeIf { it.isNotEmpty() } ?: "unknown")
+            else -> throw StorageServiceException(message, e)
+        }
+    }
+
     override suspend fun upload(bucket: String, key: String, content: Flow<ByteArray>, metadata: Map<String, String>) {
         validateBucket(bucket)
+        validateKey(key)
         // Materialize the Flow into a ByteArray so it can be safely retried.
         // For large files, this buffers in memory. Alternative: use a temp file.
         val bytes = mutableListOf<ByteArray>()
@@ -70,6 +118,12 @@ abstract class AbstractS3CompatibleStorage(
                     val body = AsyncRequestBody.fromBytes(fullContent)
                     client.putObject(request, body).await()
                 } catch (e: S3Exception) {
+                    if (e.isAccessDenied()) {
+                        throw StorageAccessDeniedException("Failed to upload '$key' to bucket '$bucketName'")
+                    }
+                    if (e.isServiceUnavailable()) {
+                        throw StorageConnectionException("Failed to upload '$key' to bucket '$bucketName'", e)
+                    }
                     throw StorageServiceException("Failed to upload '$key' to bucket '$bucketName'", e)
                 } catch (e: SdkException) {
                     throw StorageServiceException("Failed to upload '$key' to bucket '$bucketName'", e)
@@ -80,6 +134,7 @@ abstract class AbstractS3CompatibleStorage(
 
     override fun download(bucket: String, key: String): Flow<ByteArray> = channelFlow {
         validateBucket(bucket)
+        validateKey(key)
         // No retry wrapper here — Flow-based downloads can't safely retry
         // because partial emission means the stream has already progressed.
         // Callers handle transient errors via their own retry logic.
@@ -102,6 +157,12 @@ abstract class AbstractS3CompatibleStorage(
             } catch (e: NoSuchKeyException) {
                 throw StorageObjectNotFoundException(bucketName, key)
             } catch (e: S3Exception) {
+                if (e.isAccessDenied()) {
+                    throw StorageAccessDeniedException("Failed to download '$key' from bucket '$bucketName'")
+                }
+                if (e.isServiceUnavailable()) {
+                    throw StorageConnectionException("Failed to download '$key' from bucket '$bucketName'", e)
+                }
                 throw StorageServiceException("Failed to download '$key' from bucket '$bucketName'", e)
             } catch (e: SdkException) {
                 throw StorageServiceException("Failed to download '$key' from bucket '$bucketName'", e)
@@ -111,6 +172,7 @@ abstract class AbstractS3CompatibleStorage(
 
     override suspend fun delete(bucket: String, key: String) {
         validateBucket(bucket)
+        validateKey(key)
         withTimeout(timeoutSeconds * 1000L) {
             S3RetryHelper.withRetry {
                 try {
@@ -120,6 +182,12 @@ abstract class AbstractS3CompatibleStorage(
                         .build()
                     client.deleteObject(req).await()
                 } catch (e: S3Exception) {
+                    if (e.isAccessDenied()) {
+                        throw StorageAccessDeniedException("Failed to delete '$key' from bucket '$bucketName'")
+                    }
+                    if (e.isServiceUnavailable()) {
+                        throw StorageConnectionException("Failed to delete '$key' from bucket '$bucketName'", e)
+                    }
                     throw StorageServiceException("Failed to delete '$key' from bucket '$bucketName'", e)
                 } catch (e: SdkException) {
                     throw StorageServiceException("Failed to delete '$key' from bucket '$bucketName'", e)
@@ -130,6 +198,7 @@ abstract class AbstractS3CompatibleStorage(
 
     override suspend fun list(bucket: String, prefix: String): List<String> {
         validateBucket(bucket)
+        if (prefix.isNotEmpty()) validateKey(prefix)
         return withTimeout(timeoutSeconds * 1000L) {
             S3RetryHelper.withRetry {
                 try {
@@ -154,6 +223,12 @@ abstract class AbstractS3CompatibleStorage(
 
                     results
                 } catch (e: S3Exception) {
+                    if (e.isAccessDenied()) {
+                        throw StorageAccessDeniedException("Failed to list objects in bucket '$bucketName' with prefix '$prefix'")
+                    }
+                    if (e.isServiceUnavailable()) {
+                        throw StorageConnectionException("Failed to list objects in bucket '$bucketName' with prefix '$prefix'", e)
+                    }
                     throw StorageServiceException("Failed to list objects in bucket '$bucketName' with prefix '$prefix'", e)
                 } catch (e: SdkException) {
                     throw StorageServiceException("Failed to list objects in bucket '$bucketName' with prefix '$prefix'", e)
@@ -164,6 +239,7 @@ abstract class AbstractS3CompatibleStorage(
 
     override suspend fun presignGet(bucket: String, key: String, expirySeconds: Long): String {
         validateBucket(bucket)
+        validateKey(key)
         // Presigning is not retried as it doesn't have transient failures
         // Note: withTimeout is not applied here because presigning is a fast operation
         // and the AWS SDK handles its own timeouts. Timeout would require wrapping the
@@ -181,9 +257,44 @@ abstract class AbstractS3CompatibleStorage(
 
             presigner.presignGetObject(presignRequest).url().toString()
         } catch (e: S3Exception) {
+            if (e.isAccessDenied()) {
+                throw StorageAccessDeniedException("Failed to generate presigned URL for '$key' in bucket '$bucketName'")
+            }
+            if (e.isServiceUnavailable()) {
+                throw StorageConnectionException("Failed to generate presigned URL for '$key' in bucket '$bucketName'", e)
+            }
             throw StorageServiceException("Failed to generate presigned URL for '$key' in bucket '$bucketName'", e)
         } catch (e: SdkException) {
             throw StorageServiceException("Failed to generate presigned URL for '$key' in bucket '$bucketName'", e)
+        }
+    }
+
+    override suspend fun exists(bucket: String, key: String): Boolean {
+        validateBucket(bucket)
+        validateKey(key)
+        return withTimeout(timeoutSeconds * 1000L) {
+            S3RetryHelper.withRetry {
+                try {
+                    val request = HeadObjectRequest.builder()
+                        .bucket(bucketName)
+                        .key(key)
+                        .build()
+                    client.headObject(request).await()
+                    true
+                } catch (e: NoSuchKeyException) {
+                    false
+                } catch (e: S3Exception) {
+                    if (e.isAccessDenied()) {
+                        throw StorageAccessDeniedException("Failed to check existence of '$key' in bucket '$bucketName'")
+                    }
+                    if (e.isServiceUnavailable()) {
+                        throw StorageConnectionException("Failed to check existence of '$key' in bucket '$bucketName'", e)
+                    }
+                    throw StorageServiceException("Failed to check existence of '$key' in bucket '$bucketName'", e)
+                } catch (e: SdkException) {
+                    throw StorageServiceException("Failed to check existence of '$key' in bucket '$bucketName'", e)
+                }
+            }
         }
     }
 }
