@@ -54,14 +54,14 @@ abstract class AbstractS3CompatibleStorage(
     }
 
     /**
-     * Validates that a key does not contain path traversal sequences.
+     * Validates that a storage key does not contain path traversal sequences.
      * Rejects keys containing "../" or "..\\" to prevent security vulnerabilities.
      *
      * @param key The key to validate
      * @throws StorageSecurityException if the key contains path traversal sequences
      */
     protected fun validateKey(key: String) {
-        require(!key.contains("../") && !key.contains("..\\")) {
+        if (key.contains("../") || key.contains("..\\")) {
             throw StorageSecurityException("Key contains path traversal sequence: '$key'")
         }
     }

@@ -17,6 +17,8 @@ import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.assertThrows
 import org.junit.jupiter.api.DisplayName
 import org.junit.jupiter.api.Nested
+import kotlin.test.assertFalse
+import kotlin.test.assertTrue
 import software.amazon.awssdk.core.async.AsyncResponseTransformer
 import software.amazon.awssdk.core.async.AsyncRequestBody
 import software.amazon.awssdk.core.async.ResponsePublisher
@@ -395,7 +397,7 @@ class R2StorageUnitTests {
 
             val result = runBlocking { storage.exists(TEST_BUCKET, TEST_KEY) }
 
-            assertTrue(!result)
+            assertFalse(result)
         }
 
         @Test

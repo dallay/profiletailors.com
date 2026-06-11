@@ -231,7 +231,7 @@ fixes made the tests runnable). Concrete fixes applied in this re-entry:
 
 ### Test results
 
-```
+```text
 $ DOCKER_AVAILABLE=true ./gradlew :shared:storage:test --rerun-tasks
 88 tests, 0 failed, 0 errors, 0 skipped
 BUILD SUCCESSFUL
@@ -265,7 +265,7 @@ didn't fully anticipate.
 
 ## Execution Order
 
-```
+```text
 1.1 → 1.2 → 2.1 → 2.2 → 2.3 → 3.1 → 3.2 → 4.1 → 4.2 → 4.3 → 5.1 → 5.2 → 6.1 → 6.2
 ```
 
