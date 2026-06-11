@@ -1,28 +1,22 @@
 package com.profiletailors.ratelimit.infrastructure.config
 
-import com.profiletailors.common.domain.Service
 import org.springframework.boot.context.properties.EnableConfigurationProperties
 import org.springframework.context.annotation.Bean
-import org.springframework.context.annotation.ComponentScan
 import org.springframework.context.annotation.Configuration
-import org.springframework.context.annotation.FilterType
 
 /**
  * Configuration class to enable rate limiting properties and create necessary beans.
+ *
+ * No nested `@ComponentScan` is declared: the custom
+ * [com.profiletailors.common.domain.Service] marker is meta-annotated with
+ * `@Component`, so Spring's default filter discovers application-layer handlers
+ * automatically. Adding a nested `includeFilters` here would re-introduce the
+ * restrictive-scan bug that this configuration previously had.
  *
  * @since 2.0.0
  */
 @Configuration
 @EnableConfigurationProperties(RateLimitProperties::class)
-@ComponentScan(
-    basePackages = ["com.profiletailors.ratelimit.application"],
-    includeFilters = [
-        ComponentScan.Filter(
-            type = FilterType.ANNOTATION,
-            classes = [Service::class],
-        ),
-    ],
-)
 class RateLimitConfiguration {
 
     /**
