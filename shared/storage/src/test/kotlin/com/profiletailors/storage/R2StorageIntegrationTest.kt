@@ -1,6 +1,9 @@
 package com.profiletailors.storage
 
 import com.profiletailors.storage.infrastructure.R2StorageAdapter
+import kotlinx.coroutines.async
+import kotlinx.coroutines.awaitAll
+import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.toList
 import kotlinx.coroutines.runBlocking
@@ -171,8 +174,12 @@ class R2StorageIntegrationTest {
 
         // Upload multiple files concurrently
         val keys = (1..5).map { "concurrent/file$it.txt" }
-        keys.forEach { key ->
-            storage.upload(BUCKET_NAME, key, flowOf("content of $key".toByteArray()))
+        coroutineScope {
+            keys.map { key ->
+                async {
+                    storage.upload(BUCKET_NAME, key, flowOf("content of $key".toByteArray()))
+                }
+            }.awaitAll()
         }
 
         // Verify all exist

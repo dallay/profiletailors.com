@@ -174,12 +174,8 @@ class LocalFilesystemStorage(private val basePath: Path) : Storage {
 
     override suspend fun exists(bucket: String, key: String): Boolean =
         withContext(Dispatchers.IO) {
-            try {
-                val target = resolveSafe(bucket, key)
-                Files.exists(target)
-            } catch (e: StorageSecurityException) {
-                false
-            }
+            val target = resolveSafe(bucket, key)
+            Files.exists(target)
         }
 
     private fun resolveBucketPath(bucket: String): Path {
