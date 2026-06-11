@@ -1,5 +1,9 @@
 package com.profiletailors.storage
 
+import com.profiletailors.storage.domain.StorageAccessDeniedException
+import com.profiletailors.storage.domain.StorageConnectionException
+import com.profiletailors.storage.domain.StorageObjectNotFoundException
+import com.profiletailors.storage.domain.StorageSecurityException
 import com.profiletailors.storage.infrastructure.R2StorageAdapter
 import io.mockk.mockk
 import io.mockk.coEvery
@@ -13,6 +17,8 @@ import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.assertThrows
 import org.junit.jupiter.api.DisplayName
 import org.junit.jupiter.api.Nested
+import kotlin.test.assertFalse
+import kotlin.test.assertTrue
 import software.amazon.awssdk.core.async.AsyncResponseTransformer
 import software.amazon.awssdk.core.async.AsyncRequestBody
 import software.amazon.awssdk.core.async.ResponsePublisher
@@ -20,11 +26,15 @@ import software.amazon.awssdk.services.s3.S3AsyncClient
 import software.amazon.awssdk.services.s3.model.DeleteObjectRequest
 import software.amazon.awssdk.services.s3.model.GetObjectRequest
 import software.amazon.awssdk.services.s3.model.GetObjectResponse
+import software.amazon.awssdk.services.s3.model.HeadObjectRequest
+import software.amazon.awssdk.services.s3.model.HeadObjectResponse
 import software.amazon.awssdk.services.s3.model.ListObjectsV2Request
 import software.amazon.awssdk.services.s3.model.ListObjectsV2Response
 import software.amazon.awssdk.services.s3.model.PutObjectRequest
 import software.amazon.awssdk.services.s3.model.PutObjectResponse
 import software.amazon.awssdk.services.s3.model.S3Object
+import software.amazon.awssdk.services.s3.model.NoSuchKeyException
+import software.amazon.awssdk.services.s3.model.S3Exception
 import software.amazon.awssdk.services.s3.presigner.S3Presigner
 import software.amazon.awssdk.services.s3.presigner.model.GetObjectPresignRequest
 import software.amazon.awssdk.services.s3.presigner.model.PresignedGetObjectRequest
@@ -350,6 +360,272 @@ class R2StorageUnitTests {
 
             assertFailsWith<IllegalArgumentException> {
                 runBlocking { storage.list("wrong-bucket") }
+            }
+        }
+    }
+
+    @Nested
+    @DisplayName("exists")
+    inner class Exists {
+
+        @Test
+        fun `should return true when object exists`() {
+            val client = mockk<S3AsyncClient>()
+            val presigner = mockk<S3Presigner>()
+            val storage = R2StorageAdapter(client, TEST_BUCKET, presigner, TEST_ACCOUNT_ID)
+
+            val headResponse = HeadObjectResponse.builder().contentLength(1024).build()
+            val future = java.util.concurrent.CompletableFuture.completedFuture(headResponse)
+            coEvery { client.headObject(any<HeadObjectRequest>()) } returns future
+
+            val result = runBlocking { storage.exists(TEST_BUCKET, TEST_KEY) }
+
+            assertTrue(result)
+            coVerify { client.headObject(match<HeadObjectRequest> { req -> req.bucket() == TEST_BUCKET && req.key() == TEST_KEY }) }
+        }
+
+        @Test
+        fun `should return false when object does not exist`() {
+            val client = mockk<S3AsyncClient>()
+            val presigner = mockk<S3Presigner>()
+            val storage = R2StorageAdapter(client, TEST_BUCKET, presigner, TEST_ACCOUNT_ID)
+
+            val future = java.util.concurrent.CompletableFuture.failedFuture<HeadObjectResponse>(
+                NoSuchKeyException.builder().message("Not found").build()
+            )
+            coEvery { client.headObject(any<HeadObjectRequest>()) } returns future
+
+            val result = runBlocking { storage.exists(TEST_BUCKET, TEST_KEY) }
+
+            assertFalse(result)
+        }
+
+        @Test
+        fun `should throw StorageAccessDeniedException on access denied`() {
+            val client = mockk<S3AsyncClient>()
+            val presigner = mockk<S3Presigner>()
+            val storage = R2StorageAdapter(client, TEST_BUCKET, presigner, TEST_ACCOUNT_ID)
+
+            val accessDenied = S3Exception.builder()
+                .message("Access denied")
+                .statusCode(403)
+                .build()
+            val future = java.util.concurrent.CompletableFuture.failedFuture<HeadObjectResponse>(accessDenied)
+            coEvery { client.headObject(any<HeadObjectRequest>()) } returns future
+
+            assertFailsWith<StorageAccessDeniedException> {
+                runBlocking { storage.exists(TEST_BUCKET, TEST_KEY) }
+            }
+        }
+
+        @Test
+        fun `should throw StorageConnectionException on service unavailable`() {
+            val client = mockk<S3AsyncClient>()
+            val presigner = mockk<S3Presigner>()
+            val storage = R2StorageAdapter(client, TEST_BUCKET, presigner, TEST_ACCOUNT_ID)
+
+            // S3Exception with status code 503 represents ServiceUnavailable
+            val serviceUnavailable = S3Exception.builder()
+                .message("Service unavailable")
+                .statusCode(503)
+                .build()
+            val future = java.util.concurrent.CompletableFuture.failedFuture<HeadObjectResponse>(serviceUnavailable)
+            coEvery { client.headObject(any<HeadObjectRequest>()) } returns future
+
+            assertFailsWith<StorageConnectionException> {
+                runBlocking { storage.exists(TEST_BUCKET, TEST_KEY) }
+            }
+        }
+    }
+
+    @Nested
+    @DisplayName("path traversal protection")
+    inner class PathTraversalProtection {
+
+        @Test
+        fun `should reject key with forward path traversal`() {
+            val client = mockk<S3AsyncClient>()
+            val presigner = mockk<S3Presigner>()
+            val storage = R2StorageAdapter(client, TEST_BUCKET, presigner, TEST_ACCOUNT_ID)
+
+            assertFailsWith<StorageSecurityException> {
+                runBlocking { storage.upload(TEST_BUCKET, "../../etc/passwd", flowOf("data".toByteArray())) }
+            }
+        }
+
+        @Test
+        fun `should reject key with backward path traversal`() {
+            val client = mockk<S3AsyncClient>()
+            val presigner = mockk<S3Presigner>()
+            val storage = R2StorageAdapter(client, TEST_BUCKET, presigner, TEST_ACCOUNT_ID)
+
+            assertFailsWith<StorageSecurityException> {
+                runBlocking { storage.download(TEST_BUCKET, "..\\..\\etc\\passwd").collect {} }
+            }
+        }
+
+        @Test
+        fun `should reject path traversal in delete`() {
+            val client = mockk<S3AsyncClient>()
+            val presigner = mockk<S3Presigner>()
+            val storage = R2StorageAdapter(client, TEST_BUCKET, presigner, TEST_ACCOUNT_ID)
+
+            assertFailsWith<StorageSecurityException> {
+                runBlocking { storage.delete(TEST_BUCKET, "../secrets.txt") }
+            }
+        }
+
+        @Test
+        fun `should reject path traversal in list`() {
+            val client = mockk<S3AsyncClient>()
+            val presigner = mockk<S3Presigner>()
+            val storage = R2StorageAdapter(client, TEST_BUCKET, presigner, TEST_ACCOUNT_ID)
+
+            assertFailsWith<StorageSecurityException> {
+                runBlocking { storage.list(TEST_BUCKET, "../..") }
+            }
+        }
+
+        @Test
+        fun `should reject path traversal in presignGet`() {
+            val client = mockk<S3AsyncClient>()
+            val presigner = mockk<S3Presigner>()
+            val storage = R2StorageAdapter(client, TEST_BUCKET, presigner, TEST_ACCOUNT_ID)
+
+            val presignedRequest = mockk<PresignedGetObjectRequest>()
+            every { presigner.presignGetObject(any<GetObjectPresignRequest>()) } returns presignedRequest
+            every { presignedRequest.url() } returns java.net.URL("https://example.com")
+
+            assertFailsWith<StorageSecurityException> {
+                runBlocking { storage.presignGet(TEST_BUCKET, "../../secret.txt", 600) }
+            }
+        }
+
+        @Test
+        fun `should reject path traversal in exists`() {
+            val client = mockk<S3AsyncClient>()
+            val presigner = mockk<S3Presigner>()
+            val storage = R2StorageAdapter(client, TEST_BUCKET, presigner, TEST_ACCOUNT_ID)
+
+            assertFailsWith<StorageSecurityException> {
+                runBlocking { storage.exists(TEST_BUCKET, "..\\..\\etc\\passwd") }
+            }
+        }
+    }
+
+    @Nested
+    @DisplayName("error mapping")
+    inner class ErrorMapping {
+
+        @Test
+        fun `should map AccessDeniedException on upload`() {
+            val client = mockk<S3AsyncClient>()
+            val presigner = mockk<S3Presigner>()
+            val storage = R2StorageAdapter(client, TEST_BUCKET, presigner, TEST_ACCOUNT_ID)
+
+            val accessDenied = S3Exception.builder()
+                .message("Access denied")
+                .statusCode(403)
+                .build()
+            val future = java.util.concurrent.CompletableFuture.failedFuture<PutObjectResponse>(accessDenied)
+            coEvery { client.putObject(any<PutObjectRequest>(), any<AsyncRequestBody>()) } returns future
+
+            assertFailsWith<StorageAccessDeniedException> {
+                runBlocking { storage.upload(TEST_BUCKET, TEST_KEY, flowOf("test".toByteArray())) }
+            }
+        }
+
+        @Test
+        fun `should map S3Exception with 503 status to StorageConnectionException on download`() {
+            val client = mockk<S3AsyncClient>()
+            val presigner = mockk<S3Presigner>()
+            val storage = R2StorageAdapter(client, TEST_BUCKET, presigner, TEST_ACCOUNT_ID)
+
+            val responsePublisher = mockk<ResponsePublisher<GetObjectResponse>>()
+            val future = java.util.concurrent.CompletableFuture.completedFuture(responsePublisher)
+            every { client.getObject(any<GetObjectRequest>(), any<AsyncResponseTransformer<GetObjectResponse, ResponsePublisher<GetObjectResponse>>>()) } returns future
+
+            // Mock subscriber to throw S3Exception with status code 503 (ServiceUnavailable)
+            val serviceUnavailable = S3Exception.builder()
+                .message("Service unavailable")
+                .statusCode(503)
+                .build()
+            io.mockk.every { responsePublisher.subscribe(any<org.reactivestreams.Subscriber<in ByteBuffer>>()) } throws serviceUnavailable
+
+            assertFailsWith<StorageConnectionException> {
+                runBlocking { storage.download(TEST_BUCKET, TEST_KEY).collect {} }
+            }
+        }
+
+        @Test
+        fun `should map NoSuchKeyException to StorageObjectNotFoundException on download`() {
+            val client = mockk<S3AsyncClient>()
+            val presigner = mockk<S3Presigner>()
+            val storage = R2StorageAdapter(client, TEST_BUCKET, presigner, TEST_ACCOUNT_ID)
+
+            val noSuchKey = NoSuchKeyException.builder()
+                .message("The specified key does not exist")
+                .build()
+            val future = java.util.concurrent.CompletableFuture.failedFuture<ResponsePublisher<GetObjectResponse>>(noSuchKey)
+            every {
+                client.getObject(any<GetObjectRequest>(), any<AsyncResponseTransformer<GetObjectResponse, ResponsePublisher<GetObjectResponse>>>())
+            } returns future
+
+            assertFailsWith<StorageObjectNotFoundException> {
+                runBlocking { storage.download(TEST_BUCKET, TEST_KEY).collect {} }
+            }
+        }
+
+        @Test
+        fun `should map AccessDeniedException on delete`() {
+            val client = mockk<S3AsyncClient>()
+            val presigner = mockk<S3Presigner>()
+            val storage = R2StorageAdapter(client, TEST_BUCKET, presigner, TEST_ACCOUNT_ID)
+
+            val accessDenied = S3Exception.builder()
+                .message("Access denied")
+                .statusCode(403)
+                .build()
+            val future = java.util.concurrent.CompletableFuture.failedFuture<software.amazon.awssdk.services.s3.model.DeleteObjectResponse>(accessDenied)
+            coEvery { client.deleteObject(any<DeleteObjectRequest>()) } returns future
+
+            assertFailsWith<StorageAccessDeniedException> {
+                runBlocking { storage.delete(TEST_BUCKET, TEST_KEY) }
+            }
+        }
+
+        @Test
+        fun `should map AccessDeniedException on list`() {
+            val client = mockk<S3AsyncClient>()
+            val presigner = mockk<S3Presigner>()
+            val storage = R2StorageAdapter(client, TEST_BUCKET, presigner, TEST_ACCOUNT_ID)
+
+            val accessDenied = S3Exception.builder()
+                .message("Access denied")
+                .statusCode(403)
+                .build()
+            val future = java.util.concurrent.CompletableFuture.failedFuture<ListObjectsV2Response>(accessDenied)
+            coEvery { client.listObjectsV2(any<ListObjectsV2Request>()) } returns future
+
+            assertFailsWith<StorageAccessDeniedException> {
+                runBlocking { storage.list(TEST_BUCKET, "prefix/") }
+            }
+        }
+
+        @Test
+        fun `should map AccessDeniedException on presignGet`() {
+            val client = mockk<S3AsyncClient>()
+            val presigner = mockk<S3Presigner>()
+            val storage = R2StorageAdapter(client, TEST_BUCKET, presigner, TEST_ACCOUNT_ID)
+
+            val accessDenied = S3Exception.builder()
+                .message("Access denied")
+                .statusCode(403)
+                .build()
+            every { presigner.presignGetObject(any<GetObjectPresignRequest>()) } throws accessDenied
+
+            assertFailsWith<StorageAccessDeniedException> {
+                runBlocking { storage.presignGet(TEST_BUCKET, TEST_KEY, 600) }
             }
         }
     }

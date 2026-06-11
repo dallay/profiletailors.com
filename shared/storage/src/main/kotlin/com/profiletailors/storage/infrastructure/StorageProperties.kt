@@ -60,6 +60,20 @@ data class ProviderConfig(
     val accountId: String? = null,
 
     /**
+     * Access key for S3-compatible providers.
+     * Required when type is "r2" (Cloudflare R2 has no implicit credentials chain).
+     * YAML key: `access-key-id`.
+     */
+    val accessKeyId: String? = null,
+
+    /**
+     * Secret access key for S3-compatible providers.
+     * Required when type is "r2" (Cloudflare R2 has no implicit credentials chain).
+     * YAML key: `secret-access-key`.
+     */
+    val secretAccessKey: String? = null,
+
+    /**
      * Timeout for S3/R2 operations in seconds.
      * Default is 30 seconds. Must be positive.
      */
