@@ -1,14 +1,17 @@
 package com.profiletailors.smp.publishing.infrastructure.http
 
 import com.profiletailors.common.domain.bus.Mediator
+import com.profiletailors.smp.publishing.application.CalendarResponse
 import com.profiletailors.smp.publishing.application.CancelPublicationCommand
 import com.profiletailors.smp.publishing.application.CompleteLinkedInConnectionCommand
 import com.profiletailors.smp.publishing.application.CreatePublicationCommand
 import com.profiletailors.smp.publishing.application.EditPublicationCommand
+import com.profiletailors.smp.publishing.application.GetCalendarPublicationsQuery
 import com.profiletailors.smp.publishing.application.PublicationResult
 import com.profiletailors.smp.publishing.application.ReschedulePublicationCommand
 import com.profiletailors.smp.publishing.application.RetryPublicationCommand
 import com.profiletailors.smp.publishing.application.SocialConnectionResult
+import com.profiletailors.smp.publishing.domain.PublicationStatus
 import com.profiletailors.smp.publishing.domain.ScheduleMode
 import io.swagger.v3.oas.annotations.Operation
 import io.swagger.v3.oas.annotations.Parameter
@@ -17,8 +20,10 @@ import io.swagger.v3.oas.annotations.tags.Tag
 import jakarta.validation.Valid
 import jakarta.validation.constraints.NotBlank
 import org.springframework.format.annotation.DateTimeFormat
+import org.springframework.http.HttpStatus
 import org.springframework.validation.annotation.Validated
 import org.springframework.web.bind.annotation.GetMapping
+import org.springframework.web.server.ResponseStatusException
 import org.springframework.web.bind.annotation.PatchMapping
 import org.springframework.web.bind.annotation.PathVariable
 import org.springframework.web.bind.annotation.PostMapping
@@ -26,7 +31,9 @@ import org.springframework.web.bind.annotation.RequestBody
 import org.springframework.web.bind.annotation.RequestMapping
 import org.springframework.web.bind.annotation.RequestParam
 import org.springframework.web.bind.annotation.RestController
+import java.time.DateTimeException
 import java.time.Instant
+import java.time.ZoneId
 
 @Validated
 @RestController
@@ -111,9 +118,54 @@ class PublishingPublicationController(
         ),
     )
 
-    @Operation(summary = "Reschedule an editable publication")
-    @PostMapping("/{publicationId}/reschedule", consumes = ["application/json"], version = "1")
-    suspend fun reschedulePublication(
+    @Operation(summary = "Get calendar publications within a date range")
+    @GetMapping("/calendar", version = "1")
+    suspend fun getCalendar(
+        @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) from: Instant,
+        @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) to: Instant,
+        @RequestParam(required = false) status: PublicationStatus? = null,
+        @RequestParam(required = false) socialAccountId: String? = null,
+        @RequestParam(required = false, defaultValue = "UTC") timezone: String = "UTC",
+    ): CalendarResponse {
+        val validZoneId = try {
+            ZoneId.of(timezone)
+        } catch (e: DateTimeException) {
+            throw ResponseStatusException(
+                HttpStatus.BAD_REQUEST,
+                "Invalid timezone: '$timezone'",
+                e,
+            )
+        }
+        return mediator.send(
+            GetCalendarPublicationsQuery(
+                from = from,
+                to = to,
+                status = status,
+                socialAccountId = socialAccountId,
+                timezone = validZoneId.id,
+            ),
+        )
+    }
+
+    @Operation(summary = "Quick-create a scheduled publication")
+    @PostMapping("/quick-create", consumes = ["application/json"], version = "1")
+    suspend fun quickCreatePublication(
+        @Valid @RequestBody request: QuickCreateRequest,
+    ): PublicationResult = mediator.send(
+        CreatePublicationCommand(
+            socialAccountId = request.socialAccountId,
+            title = request.title,
+            bodyText = request.bodyText,
+            scheduleMode = ScheduleMode.SCHEDULED_AT,
+            scheduledFor = request.scheduledFor,
+            assetIds = emptyList(),
+            priority = request.priority,
+        ),
+    )
+
+    @Operation(summary = "Reschedule an editable publication (PATCH)")
+    @PatchMapping("/{publicationId}/reschedule", consumes = ["application/json"], version = "1")
+    suspend fun patchReschedulePublication(
         @PathVariable publicationId: String,
         @Valid @RequestBody request: PublicationRescheduleRequest,
     ): PublicationResult = mediator.send(
@@ -155,6 +207,17 @@ data class PublicationUpsertRequest(
 ) {
     fun toScheduleMode(): ScheduleMode = ScheduleMode.valueOf(scheduleMode)
 }
+
+@Schema(description = "Quick-create publication request (scheduled with empty assets)")
+data class QuickCreateRequest(
+    @field:NotBlank
+    val socialAccountId: String,
+    val title: String? = null,
+    val bodyText: String? = null,
+    @field:DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME)
+    val scheduledFor: Instant,
+    val priority: Boolean = false,
+)
 
 @Schema(description = "Publication retry or reschedule request")
 data class PublicationRescheduleRequest(

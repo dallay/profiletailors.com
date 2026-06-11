@@ -21,6 +21,22 @@ interface PublicationRepository {
 
     suspend fun findByWorkspaceAndId(workspaceId: String, publicationId: String): PublicationDraft?
 
+    suspend fun findInDateRange(
+        workspaceId: String,
+        from: Instant,
+        to: Instant,
+        statuses: Set<PublicationStatus>? = null,
+        socialAccountIds: Set<String>? = null,
+    ): List<PublicationDraft>
+
+    suspend fun countByDate(
+        workspaceId: String,
+        from: Instant,
+        to: Instant,
+        statuses: Set<PublicationStatus>? = null,
+        timezone: String = "UTC",
+    ): List<DateCount>
+
     suspend fun markPublished(publicationId: String, externalPublicationId: String, publishedAt: Instant)
 
     suspend fun markFailed(publicationId: String, failedAt: Instant, reasonCode: String?, reasonMessage: String?)

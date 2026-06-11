@@ -6,8 +6,10 @@ import com.profiletailors.common.domain.context.PrincipalType
 import com.profiletailors.common.domain.context.ResourceContext
 import com.profiletailors.common.domain.context.ResourceContextProvider
 import com.profiletailors.common.domain.context.ResourceContextType
+import com.profiletailors.smp.publishing.domain.ActivityDensity
 import com.profiletailors.smp.publishing.domain.AssetSourceType
 import com.profiletailors.smp.publishing.domain.CompleteProviderConnectionCommand
+import com.profiletailors.smp.publishing.domain.DateCount
 import com.profiletailors.smp.publishing.domain.ProviderAccountProfile
 import com.profiletailors.smp.publishing.domain.ProviderCapabilityValidationInput
 import com.profiletailors.smp.publishing.domain.ProviderCapabilityValidator
@@ -41,6 +43,7 @@ import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.Test
 import java.time.Clock
 import java.time.Instant
+import java.time.LocalDate
 import java.time.ZoneOffset
 
 class PublishingHandlersTest {
@@ -337,6 +340,168 @@ class PublishingHandlersTest {
     }
 
     @Test
+    fun `gets calendar publications with conflicts and activity`() = runTest {
+        val publicationRepository = InMemoryPublicationRepository(
+            seedMany = listOf(
+                calendarPublication("pub-1", "account-1", "2026-06-15T10:00:00Z"),
+                calendarPublication("pub-2", "account-1", "2026-06-15T10:10:00Z"),
+                calendarPublication("pub-3", "account-2", "2026-06-16T10:00:00Z"),
+            ),
+            dateCounts = listOf(
+                DateCount(date = LocalDate.parse("2026-06-15"), count = 2),
+                DateCount(date = LocalDate.parse("2026-06-16"), count = 6),
+            ),
+        )
+        val handler = GetCalendarPublicationsHandler(
+            resourceContextProvider = FixedResourceContextProvider(workspaceContext),
+            publicationRepository = publicationRepository,
+        )
+
+        val result = handler.handle(
+            GetCalendarPublicationsQuery(
+                from = Instant.parse("2026-06-01T00:00:00Z"),
+                to = Instant.parse("2026-07-01T00:00:00Z"),
+                timezone = "Europe/Madrid",
+            ),
+        )
+
+        assertEquals(listOf("pub-1", "pub-2", "pub-3"), result.publications.map { it.id })
+        assertEquals(setOf("pub-1", "pub-2"), result.conflicts.map { it.publicationId }.toSet())
+        assertEquals(ActivityDensity.LIGHT, result.activity.first { it.date == LocalDate.parse("2026-06-15") }.density)
+        assertEquals(ActivityDensity.HIGH, result.activity.first { it.date == LocalDate.parse("2026-06-16") }.density)
+        assertEquals("Europe/Madrid", publicationRepository.lastCountTimezone)
+    }
+
+    @Test
+    fun `gets calendar publications with status and account filters`() = runTest {
+        val publicationRepository = InMemoryPublicationRepository(
+            seedMany = listOf(
+                calendarPublication("pub-1", "account-1", "2026-06-15T10:00:00Z"),
+                calendarPublication("pub-2", "account-2", "2026-06-15T10:00:00Z", PublicationStatus.QUEUED),
+                calendarPublication("pub-3", "account-1", "2026-06-15T10:00:00Z", PublicationStatus.FAILED),
+            ),
+        )
+        val handler = GetCalendarPublicationsHandler(
+            resourceContextProvider = FixedResourceContextProvider(workspaceContext),
+            publicationRepository = publicationRepository,
+        )
+
+        val result = handler.handle(
+            GetCalendarPublicationsQuery(
+                from = Instant.parse("2026-06-01T00:00:00Z"),
+                to = Instant.parse("2026-07-01T00:00:00Z"),
+                status = PublicationStatus.SCHEDULED,
+                socialAccountId = "account-1",
+            ),
+        )
+
+        assertEquals(listOf("pub-1"), result.publications.map { it.id })
+        assertEquals(setOf(PublicationStatus.SCHEDULED), publicationRepository.lastFindStatuses)
+        assertEquals(setOf("account-1"), publicationRepository.lastFindSocialAccountIds)
+    }
+
+    @Test
+    fun `gets empty calendar for empty range`() = runTest {
+        val publicationRepository = InMemoryPublicationRepository()
+        val handler = GetCalendarPublicationsHandler(
+            resourceContextProvider = FixedResourceContextProvider(workspaceContext),
+            publicationRepository = publicationRepository,
+        )
+
+        val result = handler.handle(
+            GetCalendarPublicationsQuery(
+                from = Instant.parse("2026-06-01T00:00:00Z"),
+                to = Instant.parse("2026-07-01T00:00:00Z"),
+            ),
+        )
+
+        assertEquals(emptyList<CalendarPublicationResult>(), result.publications)
+        assertEquals(emptyList<ConflictEntry>(), result.conflicts)
+        assertEquals(emptyList<ActivityEntry>(), result.activity)
+    }
+
+    @Test
+    fun `calendar ignores non-conflicting accounts`() = runTest {
+        val publicationRepository = InMemoryPublicationRepository(
+            seedMany = listOf(
+                calendarPublication("pub-1", "account-1", "2026-06-15T10:00:00Z"),
+                calendarPublication("pub-2", "account-2", "2026-06-15T10:10:00Z"),
+            ),
+        )
+        val handler = GetCalendarPublicationsHandler(
+            resourceContextProvider = FixedResourceContextProvider(workspaceContext),
+            publicationRepository = publicationRepository,
+        )
+
+        val result = handler.handle(
+            GetCalendarPublicationsQuery(
+                from = Instant.parse("2026-06-01T00:00:00Z"),
+                to = Instant.parse("2026-07-01T00:00:00Z"),
+            ),
+        )
+
+        assertEquals(emptyList<ConflictEntry>(), result.conflicts)
+    }
+
+    @Test
+    fun `calendar converts zero activity density`() = runTest {
+        val publicationRepository = InMemoryPublicationRepository(
+            dateCounts = listOf(DateCount(date = LocalDate.parse("2026-06-15"), count = 0)),
+        )
+        val handler = GetCalendarPublicationsHandler(
+            resourceContextProvider = FixedResourceContextProvider(workspaceContext),
+            publicationRepository = publicationRepository,
+        )
+
+        val result = handler.handle(
+            GetCalendarPublicationsQuery(
+                from = Instant.parse("2026-06-01T00:00:00Z"),
+                to = Instant.parse("2026-07-01T00:00:00Z"),
+            ),
+        )
+
+        assertEquals(ActivityDensity.NONE, result.activity.single().density)
+    }
+
+    @Test
+    fun `reschedule publication rejects terminal status`() = runTest {
+        val publication = PublicationDraft(
+            id = "pub-1",
+            workspaceId = "workspace-1",
+            authorPrincipalId = "principal-1",
+            provider = SocialProvider.LINKEDIN,
+            socialAccountId = "account-1",
+            status = PublicationStatus.PUBLISHED,
+            scheduleMode = ScheduleMode.SCHEDULED_AT,
+            priority = false,
+            bodyText = "Already published",
+            scheduledFor = Instant.parse("2026-06-15T10:00:00Z"),
+            publishedAt = Instant.parse("2026-06-15T10:01:00Z"),
+        )
+        val publicationRepository = InMemoryPublicationRepository(publication)
+        val jobRepository = InMemoryPublicationJobRepository()
+        val handler = ReschedulePublicationHandler(
+            resourceContextProvider = FixedResourceContextProvider(workspaceContext),
+            publicationRepository = publicationRepository,
+            publicationJobRepository = jobRepository,
+            schedulingPolicy = PublicationSchedulingPolicy(),
+            clock = fixedClock,
+        )
+
+        assertThrows(com.profiletailors.smp.publishing.domain.PublicationEditNotAllowedException::class.java) {
+            kotlinx.coroutines.runBlocking {
+                handler.handle(
+                    ReschedulePublicationCommand(
+                        publicationId = "pub-1",
+                        scheduleMode = ScheduleMode.SCHEDULED_AT,
+                        scheduledFor = Instant.parse("2026-06-16T10:00:00Z"),
+                    ),
+                )
+            }
+        }
+    }
+
+    @Test
     fun `create asset for uploaded type generates storage key`() = runTest {
         val assetRepository = InMemoryPublicationAssetRepository(emptyList())
         val handler = CreateAssetHandler(
@@ -515,6 +680,25 @@ class PublishingHandlersTest {
         assertTrue(error.message!!.contains("non-existent-pub"))
     }
 
+    private fun calendarPublication(
+        id: String,
+        socialAccountId: String,
+        scheduledFor: String,
+        status: PublicationStatus = PublicationStatus.SCHEDULED,
+    ): PublicationDraft = PublicationDraft(
+        id = id,
+        workspaceId = "workspace-1",
+        authorPrincipalId = "principal-1",
+        provider = SocialProvider.LINKEDIN,
+        socialAccountId = socialAccountId,
+        status = status,
+        scheduleMode = ScheduleMode.SCHEDULED_AT,
+        priority = false,
+        title = id,
+        bodyText = "Calendar publication $id",
+        scheduledFor = Instant.parse(scheduledFor),
+    )
+
     private class FixedPrincipalContextProvider(
         private val principalContext: PrincipalContext,
     ) : PrincipalContextProvider {
@@ -582,11 +766,21 @@ class PublishingHandlersTest {
 
     private class InMemoryPublicationRepository(
         seed: PublicationDraft? = null,
+        seedMany: List<PublicationDraft> = emptyList(),
+        private val dateCounts: List<DateCount> = emptyList(),
     ) : PublicationRepository {
+        var lastFindStatuses: Set<PublicationStatus>? = null
+        var lastFindSocialAccountIds: Set<String>? = null
+        var lastCountWorkspaceId: String? = null
+        var lastCountFrom: Instant? = null
+        var lastCountTo: Instant? = null
+        var lastCountStatuses: Set<PublicationStatus>? = null
+        var lastCountTimezone: String? = null
         private val items = linkedMapOf<String, PublicationDraft>()
 
         init {
             if (seed != null) items[seed.id] = seed
+            seedMany.forEach { items[it.id] = it }
         }
 
         override suspend fun createDraft(draft: PublicationDraft): PublicationDraft {
@@ -601,6 +795,40 @@ class PublishingHandlersTest {
 
         override suspend fun findByWorkspaceAndId(workspaceId: String, publicationId: String): PublicationDraft? =
             items[publicationId]?.takeIf { it.workspaceId == workspaceId }
+
+        override suspend fun findInDateRange(
+            workspaceId: String,
+            from: Instant,
+            to: Instant,
+            statuses: Set<PublicationStatus>?,
+            socialAccountIds: Set<String>?,
+        ): List<PublicationDraft> {
+            lastFindStatuses = statuses
+            lastFindSocialAccountIds = socialAccountIds
+            return items.values.filter { pub ->
+                pub.workspaceId == workspaceId &&
+                    pub.scheduledFor != null &&
+                    pub.scheduledFor >= from &&
+                    pub.scheduledFor < to &&
+                    (statuses == null || pub.status in statuses) &&
+                    (socialAccountIds == null || pub.socialAccountId in socialAccountIds)
+            }
+        }
+
+        override suspend fun countByDate(
+            workspaceId: String,
+            from: Instant,
+            to: Instant,
+            statuses: Set<PublicationStatus>?,
+            timezone: String,
+        ): List<DateCount> {
+            lastCountWorkspaceId = workspaceId
+            lastCountFrom = from
+            lastCountTo = to
+            lastCountStatuses = statuses
+            lastCountTimezone = timezone
+            return dateCounts
+        }
 
         override suspend fun markPublished(publicationId: String, externalPublicationId: String, publishedAt: Instant) = Unit
 

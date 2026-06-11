@@ -2,10 +2,13 @@ package com.profiletailors.smp.publishing.application
 
 import com.profiletailors.common.domain.Service
 import com.profiletailors.common.domain.bus.command.CommandWithResultHandler
+import com.profiletailors.common.domain.bus.query.QueryHandler
 import com.profiletailors.common.domain.context.PrincipalContextProvider
 import com.profiletailors.common.domain.context.ResourceContextProvider
+import com.profiletailors.smp.publishing.domain.ActivityThresholds
 import com.profiletailors.smp.publishing.domain.AssetSourceType
 import com.profiletailors.smp.publishing.domain.CompleteProviderConnectionCommand
+import com.profiletailors.smp.publishing.domain.ConflictDetectionPolicy
 import com.profiletailors.smp.publishing.domain.ProviderCapabilityValidationInput
 import com.profiletailors.smp.publishing.domain.ProviderCapabilityValidator
 import com.profiletailors.smp.publishing.domain.PublicationAsset
@@ -378,6 +381,69 @@ internal class CreateAssetHandler(
         )
     }
 }
+
+@Service
+internal class GetCalendarPublicationsHandler(
+    private val resourceContextProvider: ResourceContextProvider,
+    private val publicationRepository: PublicationRepository,
+) : QueryHandler<GetCalendarPublicationsQuery, CalendarResponse> {
+    override suspend fun handle(query: GetCalendarPublicationsQuery): CalendarResponse {
+        val workspaceId = requireNotNull(resourceContextProvider.requireWorkspaceContext().workspaceId)
+
+        val statuses = query.status?.let { setOf(it) }
+        val accountIds = query.socialAccountId?.let { setOf(it) }
+
+        val publications = publicationRepository.findInDateRange(
+            workspaceId = workspaceId,
+            from = query.from,
+            to = query.to,
+            statuses = statuses,
+            socialAccountIds = accountIds,
+        )
+
+        val conflictMap = ConflictDetectionPolicy.findConflicts(publications)
+        val conflicts = conflictMap.map { (pubId, conflictingIds) ->
+            ConflictEntry(publicationId = pubId, conflictingPublicationIds = conflictingIds)
+        }
+
+        val dateCounts = publicationRepository.countByDate(
+            workspaceId = workspaceId,
+            from = query.from,
+            to = query.to,
+            statuses = statuses,
+            timezone = query.timezone,
+        )
+
+        val activity = dateCounts.map { dc ->
+            ActivityEntry(date = dc.date, density = ActivityThresholds.classify(dc.count), count = dc.count)
+        }
+
+        val publicationResults = publications.map { it.toCalendarResult(conflictMap[it.id].orEmpty()) }
+
+        return CalendarResponse(
+            publications = publicationResults,
+            conflicts = conflicts,
+            activity = activity,
+        )
+    }
+}
+
+private fun PublicationDraft.toCalendarResult(
+    conflictingPublicationIds: List<String>,
+): CalendarPublicationResult = CalendarPublicationResult(
+    id = id,
+    workspaceId = workspaceId,
+    socialAccountId = socialAccountId,
+    provider = provider,
+    status = status,
+    scheduleMode = scheduleMode,
+    priority = priority,
+    title = title,
+    bodyText = bodyText,
+    scheduledFor = scheduledFor,
+    hasConflict = conflictingPublicationIds.isNotEmpty(),
+    conflictingPublicationIds = conflictingPublicationIds,
+)
 
 private fun PublicationDraft.toResult(): PublicationResult = PublicationResult(
     publicationId = id,
