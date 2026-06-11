@@ -206,3 +206,57 @@ class DeliveryRetryPolicy(
 
     fun maxAttempts(): Int = maxRetries + 1
 }
+
+/**
+ * Stateless domain policy that detects conflicting publications scheduled
+ * for the same social account within a configurable time window.
+ *
+ * Excludes DRAFT, FAILED, CANCELLED, and PUBLISHED statuses.
+ * Publications with null [PublicationDraft.scheduledFor] are skipped.
+ */
+object ConflictDetectionPolicy {
+
+    private val DEFAULT_CONFLICT_WINDOW: Duration = Duration.ofMinutes(15)
+
+    private val conflictStatuses = setOf(
+        PublicationStatus.SCHEDULED,
+        PublicationStatus.QUEUED,
+    )
+
+    /**
+     * Returns a map from publication ID to the list of conflicting publication IDs.
+     *
+     * Algorithm:
+     * 1. Filters to SCHEDULED/QUEUED with non-null scheduledFor
+     * 2. Groups by socialAccountId
+     * 3. Sorts each group by scheduledFor
+     * 4. Flags adjacent pairs where gap < conflictWindow
+     */
+    fun findConflicts(
+        publications: List<PublicationDraft>,
+        conflictWindow: Duration = DEFAULT_CONFLICT_WINDOW,
+    ): Map<String, List<String>> {
+        val eligible = publications.filter { it.status in conflictStatuses && it.scheduledFor != null }
+
+        val byAccount: Map<String, List<PublicationDraft>> = eligible.groupBy { it.socialAccountId }
+
+        val conflictMap = mutableMapOf<String, MutableSet<String>>()
+
+        for ((_, accountPublications) in byAccount) {
+            val sorted = accountPublications.sortedBy { it.scheduledFor!! }
+
+            for (i in 0 until sorted.size - 1) {
+                val current = sorted[i]
+                val next = sorted[i + 1]
+                val gap = Duration.between(current.scheduledFor!!, next.scheduledFor!!).abs()
+
+                if (gap < conflictWindow) {
+                    conflictMap.getOrPut(current.id) { mutableSetOf() }.add(next.id)
+                    conflictMap.getOrPut(next.id) { mutableSetOf() }.add(current.id)
+                }
+            }
+        }
+
+        return conflictMap.mapValues { it.value.toList() }
+    }
+}

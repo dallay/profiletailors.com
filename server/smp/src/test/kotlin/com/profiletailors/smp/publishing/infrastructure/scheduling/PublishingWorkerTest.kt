@@ -1,6 +1,7 @@
 package com.profiletailors.smp.publishing.infrastructure.scheduling
 
 import com.profiletailors.smp.publishing.domain.AssetSourceType
+import com.profiletailors.smp.publishing.domain.DateCount
 import com.profiletailors.smp.publishing.domain.DeliveryAttempt
 import com.profiletailors.smp.publishing.domain.DeliveryAttemptRepository
 import com.profiletailors.smp.publishing.domain.DeliveryAttemptOutcome
@@ -168,6 +169,20 @@ class PublishingWorkerTest {
         override suspend fun createDraft(draft: PublicationDraft): PublicationDraft = draft
         override suspend fun updateEditableDraft(draft: PublicationDraft): PublicationDraft = draft
         override suspend fun findByWorkspaceAndId(workspaceId: String, publicationId: String): PublicationDraft? = publication
+        override suspend fun findInDateRange(
+            workspaceId: String,
+            from: Instant,
+            to: Instant,
+            statuses: Set<PublicationStatus>?,
+            socialAccountIds: Set<String>?,
+        ): List<PublicationDraft> = emptyList()
+        override suspend fun countByDate(
+            workspaceId: String,
+            from: Instant,
+            to: Instant,
+            statuses: Set<PublicationStatus>?,
+            timezone: String,
+        ): List<DateCount> = emptyList()
         override suspend fun markPublished(publicationId: String, externalPublicationId: String, publishedAt: Instant) {
             publishedPublicationId = publicationId
         }
