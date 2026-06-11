@@ -1,5 +1,6 @@
 package com.profiletailors.smp.governance.application
 
+import com.profiletailors.common.domain.Service
 import com.profiletailors.common.domain.bus.query.QueryHandler
 import com.profiletailors.common.domain.context.ResourceContextProvider
 import com.profiletailors.smp.authorization.domain.AuthorizationDeniedException
@@ -11,11 +12,10 @@ import com.profiletailors.smp.governance.application.AuditEventPage
 import com.profiletailors.smp.governance.application.AuditEventReader
 import com.profiletailors.smp.governance.application.GetWorkspaceAuditEventsQuery
 import com.profiletailors.smp.governance.application.WorkspaceAuditEventsResponse
-import org.springframework.stereotype.Component
 
 private val AUDIT_READ_PERMISSION: PermissionKey = PermissionKey.of("workspace", "audit", "read")
 
-@Component
+@Service
 internal class GetWorkspaceAuditEventsHandler(
     private val resourceContextProvider: ResourceContextProvider,
     private val auditEventReader: AuditEventReader,
