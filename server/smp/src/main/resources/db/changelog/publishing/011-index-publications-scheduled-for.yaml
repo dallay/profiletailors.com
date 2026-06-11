@@ -1,0 +1,17 @@
+databaseChangeLog:
+  - changeSet:
+      id: publishing-011-index-publications-scheduled_for
+      author: opencode
+      changes:
+        - createIndex:
+            indexName: idx_publications_workspace_scheduled_for
+            tableName: publications
+            columns:
+              - column:
+                  name: workspace_id
+              - column:
+                  name: scheduled_for
+      rollback:
+        - dropIndex:
+            indexName: idx_publications_workspace_scheduled_for
+            tableName: publications
