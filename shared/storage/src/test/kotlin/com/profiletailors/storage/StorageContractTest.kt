@@ -5,7 +5,7 @@ import com.profiletailors.storage.domain.Storage
 import com.profiletailors.storage.domain.StorageObjectNotFoundException
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.flowOf
-import kotlinx.coroutines.test.runTest
+import kotlinx.coroutines.runBlocking
 import org.junit.jupiter.api.Assertions.assertArrayEquals
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertFalse
@@ -74,7 +74,7 @@ abstract class StorageContractTest {
     private lateinit var storage: Storage
 
     @BeforeEach
-    fun setUp(tempDir: Path) {
+    fun setUp(@TempDir tempDir: Path) {
         storage = createStorage(tempDir)
     }
 
@@ -83,7 +83,7 @@ abstract class StorageContractTest {
     inner class UploadOperations {
 
         @Test
-        fun `should upload content and return without error`() = runTest {
+        fun `should upload content and return without error`() = runBlocking {
             val content = flowOf(TEST_CONTENT.toByteArray())
 
             storage.upload(TEST_BUCKET, TEST_KEY, content)
@@ -92,7 +92,7 @@ abstract class StorageContractTest {
         }
 
         @Test
-        fun `should upload content with metadata`() = runTest {
+        fun `should upload content with metadata`() = runBlocking {
             val metadata = mapOf("content-type" to "text/plain", "author" to "test")
             val content = flowOf(TEST_CONTENT.toByteArray())
 
@@ -103,7 +103,7 @@ abstract class StorageContractTest {
         }
 
         @Test
-        fun `should overwrite existing object`() = runTest {
+        fun `should overwrite existing object`() = runBlocking {
             val content1 = flowOf("first".toByteArray())
             val content2 = flowOf("second".toByteArray())
 
@@ -116,7 +116,7 @@ abstract class StorageContractTest {
         }
 
         @Test
-        fun `should handle large content in chunks`() = runTest {
+        fun `should handle large content in chunks`() = runBlocking {
             val chunkSize = 1024
             val totalChunks = 100
             val chunkList = (1..totalChunks).map { chunkNum ->
@@ -139,7 +139,7 @@ abstract class StorageContractTest {
     inner class DownloadOperations {
 
         @Test
-        fun `should download uploaded content`() = runTest {
+        fun `should download uploaded content`() = runBlocking {
             val content = flowOf(TEST_CONTENT.toByteArray())
             storage.upload(TEST_BUCKET, TEST_KEY, content)
 
@@ -149,7 +149,7 @@ abstract class StorageContractTest {
         }
 
         @Test
-        fun `should throw StorageObjectNotFoundException for non-existent object`() = runTest {
+        fun `should throw StorageObjectNotFoundException for non-existent object`() = runBlocking {
             val thrown = runCatching {
                 // Collect the flow to trigger the download
                 storage.download(TEST_BUCKET, "non-existent-key").collect { }
@@ -159,16 +159,18 @@ abstract class StorageContractTest {
                 StorageObjectNotFoundException::class.java,
                 target
             )
+            Unit
         }
 
         @Test
-        fun `should return content as Flow of ByteArray`() = runTest {
+        fun `should return content as Flow of ByteArray`() = runBlocking {
             val content = flowOf(TEST_CONTENT.toByteArray())
             storage.upload(TEST_BUCKET, TEST_KEY, content)
 
             val result = storage.download(TEST_BUCKET, TEST_KEY)
 
             assertInstanceOf(Flow::class.java, result)
+            Unit
         }
     }
 
@@ -177,7 +179,7 @@ abstract class StorageContractTest {
     inner class DeleteOperations {
 
         @Test
-        fun `should delete existing object`() = runTest {
+        fun `should delete existing object`() = runBlocking {
             val content = flowOf(TEST_CONTENT.toByteArray())
             storage.upload(TEST_BUCKET, TEST_KEY, content)
 
@@ -192,10 +194,11 @@ abstract class StorageContractTest {
                 StorageObjectNotFoundException::class.java,
                 target
             )
+            Unit
         }
 
         @Test
-        fun `should not throw when deleting non-existent object`() = runTest {
+        fun `should not throw when deleting non-existent object`() = runBlocking {
             // Deleting non-existent should not throw - idempotent operation
             storage.delete(TEST_BUCKET, "non-existent-key")
         }
@@ -206,7 +209,7 @@ abstract class StorageContractTest {
     inner class ListOperations {
 
         @Test
-        fun `should list objects in bucket`() = runTest {
+        fun `should list objects in bucket`() = runBlocking {
             storage.upload(TEST_BUCKET, "file1.txt", flowOf("content1".toByteArray()))
             storage.upload(TEST_BUCKET, "file2.txt", flowOf("content2".toByteArray()))
             storage.upload(TEST_BUCKET, "subdir/file3.txt", flowOf("content3".toByteArray()))
@@ -219,7 +222,7 @@ abstract class StorageContractTest {
         }
 
         @Test
-        fun `should list objects with prefix`() = runTest {
+        fun `should list objects with prefix`() = runBlocking {
             storage.upload(TEST_BUCKET, "file1.txt", flowOf("content1".toByteArray()))
             storage.upload(TEST_BUCKET, "file2.txt", flowOf("content2".toByteArray()))
             storage.upload(TEST_BUCKET, "subdir/file3.txt", flowOf("content3".toByteArray()))
@@ -231,14 +234,17 @@ abstract class StorageContractTest {
         }
 
         @Test
-        fun `should return empty list for empty bucket`() = runTest {
-            val keys = storage.list(TEST_BUCKET)
+        fun `should return empty list for empty bucket`() = runBlocking {
+            // Use a per-test unique prefix that no other test in this class writes to,
+            // so the listing is guaranteed empty even though `TEST_BUCKET` is shared.
+            val emptyPrefix = "empty-${System.nanoTime()}/"
+            val keys = storage.list(TEST_BUCKET, emptyPrefix)
 
             assertTrue(keys.isEmpty())
         }
 
         @Test
-        fun `should return empty list for non-matching prefix`() = runTest {
+        fun `should return empty list for non-matching prefix`() = runBlocking {
             storage.upload(TEST_BUCKET, "file1.txt", flowOf("content1".toByteArray()))
 
             val keys = storage.list(TEST_BUCKET, "non-matching-prefix/")

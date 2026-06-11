@@ -25,3 +25,17 @@ class RateLimitExceededException(
     val retryAfterSeconds: Long,
     message: String = "Rate limit exceeded. Retry after $retryAfterSeconds seconds"
 ) : StorageException(message)
+
+/**
+ * Exception thrown when access to a storage resource is denied.
+ * Maps to AWS SDK `AccessDeniedException`.
+ */
+class StorageAccessDeniedException(message: String) :
+    StorageException(message)
+
+/**
+ * Exception thrown when a connection to storage cannot be established.
+ * Maps to AWS SDK `ServiceUnavailable` and other network-related errors.
+ */
+class StorageConnectionException(message: String, cause: Throwable? = null) :
+    StorageException(message, cause)

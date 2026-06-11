@@ -82,6 +82,10 @@ class MockPresignableStorage : PresignableStorage {
         }
         return "https://mock-storage.example.com/$bucket/$key?expiry=$expirySeconds&signature=mock"
     }
+
+    override suspend fun exists(bucket: String, key: String): Boolean {
+        return storage.containsKey("$bucket:$key")
+    }
 }
 
 /**
