@@ -1,6 +1,6 @@
 package com.profiletailors.smp.publishing.infrastructure.credentials
 
-import org.springframework.stereotype.Service
+import com.profiletailors.common.domain.Service
 import java.security.SecureRandom
 import java.util.*
 import javax.crypto.Cipher

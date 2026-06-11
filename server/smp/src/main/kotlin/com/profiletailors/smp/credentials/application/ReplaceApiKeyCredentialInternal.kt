@@ -1,10 +1,10 @@
 package com.profiletailors.smp.credentials.application
 
+import com.profiletailors.common.domain.Service
 import com.profiletailors.common.domain.bus.command.CommandWithResultHandler
 import com.profiletailors.smp.credentials.application.ApiKeyCredentialReplacementGateway
 import com.profiletailors.smp.credentials.application.ReplaceApiKeyCredentialCommand
 import com.profiletailors.smp.credentials.application.ReplaceApiKeyCredentialResult
-import org.springframework.stereotype.Component
 import java.security.SecureRandom
 
 private const val API_KEY_PREFIX = "ptk_"
@@ -12,7 +12,7 @@ private const val LOOKUP_KEY_BYTES = 12
 private const val SECRET_BYTES = 24
 private const val CREDENTIAL_REFERENCE_BYTES = 16
 
-@Component
+@Service
 class ReplaceApiKeyCredentialHandler(
     private val gateway: ApiKeyCredentialReplacementGateway,
 ) : CommandWithResultHandler<ReplaceApiKeyCredentialCommand, ReplaceApiKeyCredentialResult> {
@@ -20,7 +20,7 @@ class ReplaceApiKeyCredentialHandler(
         gateway.replaceActiveCredential(command)
 }
 
-@Component
+@Service
 internal class SecureRandomApiKeyCredentialValueFactory :
     com.profiletailors.smp.credentials.application.ApiKeyCredentialValueFactory {
     private val secureRandom = SecureRandom()
