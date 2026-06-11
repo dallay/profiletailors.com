@@ -1,3 +1,5 @@
+/// <reference types="vitest" />
+
 import { fileURLToPath, URL } from 'node:url'
 
 import { defineConfig } from 'vite'
@@ -17,6 +19,7 @@ export default defineConfig({
       '@': fileURLToPath(new URL('./src', import.meta.url))
     },
   },
+  // @ts-expect-error Vitest extends Vite config with a test property.
   test: {
     environment: 'jsdom',
     globals: true,

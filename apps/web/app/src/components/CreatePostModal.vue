@@ -61,7 +61,7 @@ watch(
       mediaPreviews.value = []
       firstComment.value = ''
       priorityMode.value = false
-      scheduleMode.value = 'now'
+      scheduleMode.value = props.initialDate ? 'custom' : 'now'
 
       const defaultDate = props.initialDate ? new Date(props.initialDate) : new Date()
       // format to YYYY-MM-DD
@@ -187,8 +187,13 @@ async function handleSchedule() {
   try {
     let finalScheduledDate: Date
     if (scheduleMode.value === 'custom' && scheduleDate.value) {
-      const [year, month, day] = scheduleDate.value.split('-').map(Number)
-      const [hours, minutes] = scheduleTime.value.split(':').map(Number)
+      const [yearRaw, monthRaw, dayRaw] = scheduleDate.value.split('-').map(Number)
+      const [hoursRaw, minutesRaw] = scheduleTime.value.split(':').map(Number)
+      const year = yearRaw ?? Number.NaN
+      const month = monthRaw ?? Number.NaN
+      const day = dayRaw ?? Number.NaN
+      const hours = hoursRaw ?? Number.NaN
+      const minutes = minutesRaw ?? Number.NaN
       // Guard against NaN from parsing and validate ranges
       const isValidYear = Number.isInteger(year) && year >= 2000 && year <= 2100
       const isValidMonth = Number.isInteger(month) && month >= 1 && month <= 12
