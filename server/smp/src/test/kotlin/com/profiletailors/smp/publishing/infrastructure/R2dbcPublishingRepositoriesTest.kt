@@ -17,10 +17,12 @@ import com.profiletailors.smp.publishing.infrastructure.persistence.R2dbcPublica
 import com.profiletailors.smp.publishing.infrastructure.persistence.R2dbcPublicationRepository
 import com.profiletailors.smp.publishing.infrastructure.persistence.R2dbcSocialAccountRepository
 import com.profiletailors.smp.publishing.infrastructure.persistence.R2dbcSocialConnectionRepository
+import java.time.Instant
 import kotlinx.coroutines.reactor.awaitSingle
 import kotlinx.coroutines.test.runTest
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertNotNull
+import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
 
@@ -117,6 +119,188 @@ class R2dbcPublishingRepositoriesTest : DatabaseUnitTestBase() {
         assertNotNull(loaded)
         assertEquals(listOf("asset-1"), loaded?.assetIds)
         assertEquals("image/png", assets.single().mediaType)
+    }
+
+    @Test
+    fun `findInDateRange returns publications within date range`() = runTest {
+        seedSocialAccount()
+        val pub1 = publicationRepository.createDraft(
+            PublicationDraft(
+                id = "pub-range-1", workspaceId = "workspace-1", authorPrincipalId = "principal-1",
+                provider = SocialProvider.LINKEDIN, socialAccountId = "soacc-1",
+                status = PublicationStatus.SCHEDULED, scheduleMode = ScheduleMode.SCHEDULED_AT, priority = false,
+                bodyText = "June post", scheduledFor = Instant.parse("2026-06-15T12:00:00Z"),
+            ),
+        )
+        val pub2 = publicationRepository.createDraft(
+            PublicationDraft(
+                id = "pub-range-2", workspaceId = "workspace-1", authorPrincipalId = "principal-1",
+                provider = SocialProvider.LINKEDIN, socialAccountId = "soacc-1",
+                status = PublicationStatus.SCHEDULED, scheduleMode = ScheduleMode.SCHEDULED_AT, priority = false,
+                bodyText = "July post", scheduledFor = Instant.parse("2026-07-01T12:00:00Z"),
+            ),
+        )
+
+        val results = publicationRepository.findInDateRange(
+            workspaceId = "workspace-1",
+            from = Instant.parse("2026-06-01T00:00:00Z"),
+            to = Instant.parse("2026-07-01T00:00:00Z"),
+        )
+
+        assertEquals(listOf(pub1.id), results.map { it.id })
+    }
+
+    @Test
+    fun `findInDateRange filters by status`() = runTest {
+        seedSocialAccount()
+        val draftPub = publicationRepository.createDraft(
+            PublicationDraft(
+                id = "pub-status-draft", workspaceId = "workspace-1", authorPrincipalId = "principal-1",
+                provider = SocialProvider.LINKEDIN, socialAccountId = "soacc-1",
+                status = PublicationStatus.DRAFT, scheduleMode = ScheduleMode.SCHEDULED_AT, priority = false,
+                bodyText = "Draft post", scheduledFor = Instant.parse("2026-06-15T12:00:00Z"),
+            ),
+        )
+        val scheduledPub = publicationRepository.createDraft(
+            PublicationDraft(
+                id = "pub-status-sched", workspaceId = "workspace-1", authorPrincipalId = "principal-1",
+                provider = SocialProvider.LINKEDIN, socialAccountId = "soacc-1",
+                status = PublicationStatus.SCHEDULED, scheduleMode = ScheduleMode.SCHEDULED_AT, priority = false,
+                bodyText = "Scheduled post", scheduledFor = Instant.parse("2026-06-15T14:00:00Z"),
+            ),
+        )
+
+        val results = publicationRepository.findInDateRange(
+            workspaceId = "workspace-1",
+            from = Instant.parse("2026-06-01T00:00:00Z"),
+            to = Instant.parse("2026-07-01T00:00:00Z"),
+            statuses = setOf(PublicationStatus.SCHEDULED),
+        )
+
+        assertEquals(listOf(scheduledPub.id), results.map { it.id })
+    }
+
+    @Test
+    fun `findInDateRange returns empty list for no matches`() = runTest {
+        val results = publicationRepository.findInDateRange(
+            workspaceId = "workspace-1",
+            from = Instant.parse("2025-01-01T00:00:00Z"),
+            to = Instant.parse("2025-01-31T00:00:00Z"),
+        )
+        assertTrue(results.isEmpty())
+    }
+
+    @Test
+    fun `countByDate returns publications for date range`() = runTest {
+        seedSocialAccount()
+        publicationRepository.createDraft(
+            PublicationDraft(
+                id = "pub-count-1", workspaceId = "workspace-1", authorPrincipalId = "principal-1",
+                provider = SocialProvider.LINKEDIN, socialAccountId = "soacc-1",
+                status = PublicationStatus.SCHEDULED, scheduleMode = ScheduleMode.SCHEDULED_AT, priority = false,
+                bodyText = "Count post", scheduledFor = Instant.parse("2026-06-15T12:00:00Z"),
+            ),
+        )
+
+        val results = publicationRepository.countByDate(
+            workspaceId = "workspace-1",
+            from = Instant.parse("2026-06-01T00:00:00Z"),
+            to = Instant.parse("2026-07-01T00:00:00Z"),
+        )
+
+        assertEquals(1, results.size)
+        assertEquals(1, results.single().count)
+        assertEquals(java.time.LocalDate.parse("2026-06-15"), results.single().date)
+    }
+
+    @Test
+    fun `findInDateRange filters by socialAccountIds`() = runTest {
+        seedSocialAccount()
+        databaseClient.sql(
+            """
+            INSERT INTO social_connections (id, workspace_id, provider, provider_connection_ref, status, credential_reference)
+            VALUES ('soconn-2', 'workspace-1', 'LINKEDIN', 'linkedin-conn-2', 'ACTIVE', '00000000-0000-0000-0000-000000000000')
+            """.trimIndent(),
+        ).fetch().rowsUpdated().awaitSingle()
+        databaseClient.sql(
+            """
+            INSERT INTO social_accounts (id, social_connection_id, workspace_id, provider, provider_account_id, account_type, display_name, status)
+            VALUES ('soacc-2', 'soconn-2', 'workspace-1', 'LINKEDIN', 'linkedin-account-2', 'PERSONAL_PROFILE', 'Another', 'ACTIVE')
+            """.trimIndent(),
+        ).fetch().rowsUpdated().awaitSingle()
+
+        val pub1 = publicationRepository.createDraft(
+            PublicationDraft(
+                id = "pub-filter-1", workspaceId = "workspace-1", authorPrincipalId = "principal-1",
+                provider = SocialProvider.LINKEDIN, socialAccountId = "soacc-1",
+                status = PublicationStatus.SCHEDULED, scheduleMode = ScheduleMode.SCHEDULED_AT, priority = false,
+                bodyText = "First account", scheduledFor = Instant.parse("2026-06-15T12:00:00Z"),
+            ),
+        )
+        val pub2 = publicationRepository.createDraft(
+            PublicationDraft(
+                id = "pub-filter-2", workspaceId = "workspace-1", authorPrincipalId = "principal-1",
+                provider = SocialProvider.LINKEDIN, socialAccountId = "soacc-2",
+                status = PublicationStatus.SCHEDULED, scheduleMode = ScheduleMode.SCHEDULED_AT, priority = false,
+                bodyText = "Second account", scheduledFor = Instant.parse("2026-06-15T14:00:00Z"),
+            ),
+        )
+
+        val results = publicationRepository.findInDateRange(
+            workspaceId = "workspace-1",
+            from = Instant.parse("2026-06-01T00:00:00Z"),
+            to = Instant.parse("2026-07-01T00:00:00Z"),
+            socialAccountIds = setOf("soacc-1"),
+        )
+
+        assertEquals(listOf(pub1.id), results.map { it.id })
+    }
+
+    @Test
+    fun `countByDate groups by requested timezone`() = runTest {
+        seedSocialAccount()
+        publicationRepository.createDraft(
+            PublicationDraft(
+                id = "pub-tz-1", workspaceId = "workspace-1", authorPrincipalId = "principal-1",
+                provider = SocialProvider.LINKEDIN, socialAccountId = "soacc-1",
+                status = PublicationStatus.SCHEDULED, scheduleMode = ScheduleMode.SCHEDULED_AT, priority = false,
+                bodyText = "Late UTC", scheduledFor = Instant.parse("2026-06-09T23:00:00Z"),
+            ),
+        )
+        publicationRepository.createDraft(
+            PublicationDraft(
+                id = "pub-tz-2", workspaceId = "workspace-1", authorPrincipalId = "principal-1",
+                provider = SocialProvider.LINKEDIN, socialAccountId = "soacc-1",
+                status = PublicationStatus.SCHEDULED, scheduleMode = ScheduleMode.SCHEDULED_AT, priority = false,
+                bodyText = "Early UTC", scheduledFor = Instant.parse("2026-06-10T01:00:00Z"),
+            ),
+        )
+
+        val results = publicationRepository.countByDate(
+            workspaceId = "workspace-1",
+            from = Instant.parse("2026-06-09T00:00:00Z"),
+            to = Instant.parse("2026-06-11T00:00:00Z"),
+            timezone = "America/New_York",
+        )
+
+        assertEquals(1, results.size)
+        assertEquals(java.time.LocalDate.parse("2026-06-09"), results.single().date)
+        assertEquals(2, results.single().count)
+    }
+
+    private suspend fun seedSocialAccount() {
+        databaseClient.sql(
+            """
+            INSERT INTO social_connections (id, workspace_id, provider, provider_connection_ref, status, credential_reference)
+            VALUES ('soconn-1', 'workspace-1', 'LINKEDIN', 'linkedin-conn-1', 'ACTIVE', '00000000-0000-0000-0000-000000000000')
+            """.trimIndent(),
+        ).fetch().rowsUpdated().awaitSingle()
+        databaseClient.sql(
+            """
+            INSERT INTO social_accounts (id, social_connection_id, workspace_id, provider, provider_account_id, account_type, display_name, status)
+            VALUES ('soacc-1', 'soconn-1', 'workspace-1', 'LINKEDIN', 'linkedin-account-1', 'PERSONAL_PROFILE', 'Yuniel', 'ACTIVE')
+            """.trimIndent(),
+        ).fetch().rowsUpdated().awaitSingle()
     }
 
     private suspend fun seedPrincipalAndWorkspace() {
