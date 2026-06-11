@@ -17,7 +17,7 @@ awsS3 = "2.20.15"
 
 # Testing
 junit = "6.0.3"
-assertj = "3.27.3"
+assertj = "3.27.7"
 mockk = "1.14.11"
 testcontainers = "1.20.6"
 cucumber = "7.18.1"
