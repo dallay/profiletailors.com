@@ -6,10 +6,12 @@ import com.profiletailors.common.domain.bus.command.Command
 import com.profiletailors.common.domain.bus.command.CommandWithResult
 import com.profiletailors.common.domain.bus.notification.Notification
 import com.profiletailors.common.domain.bus.query.Query
+import com.profiletailors.smp.publishing.application.CalendarResponse
 import com.profiletailors.smp.publishing.application.CancelPublicationCommand
 import com.profiletailors.smp.publishing.application.CompleteLinkedInConnectionCommand
 import com.profiletailors.smp.publishing.application.CreatePublicationCommand
 import com.profiletailors.smp.publishing.application.EditPublicationCommand
+import com.profiletailors.smp.publishing.application.GetCalendarPublicationsQuery
 import com.profiletailors.smp.publishing.application.PublicationResult
 import com.profiletailors.smp.publishing.application.ReschedulePublicationCommand
 import com.profiletailors.smp.publishing.application.RetryPublicationCommand
@@ -84,6 +86,110 @@ class PublishingControllersTest {
     }
 
     @Test
+    fun `dispatches calendar query with defaults`() = runTest {
+        val mediator = CapturingMediator()
+        val controller = PublishingPublicationController(mediator)
+        val from = Instant.parse("2026-06-01T00:00:00Z")
+        val to = Instant.parse("2026-07-01T00:00:00Z")
+
+        val response = controller.getCalendar(from = from, to = to)
+
+        assertEquals(
+            GetCalendarPublicationsQuery(
+                from = from,
+                to = to,
+                status = null,
+                socialAccountId = null,
+                timezone = "UTC",
+            ),
+            mediator.lastQuery,
+        )
+    }
+
+    @Test
+    fun `dispatches calendar query with all filters`() = runTest {
+        val mediator = CapturingMediator()
+        val controller = PublishingPublicationController(mediator)
+        val from = Instant.parse("2026-06-01T00:00:00Z")
+        val to = Instant.parse("2026-07-01T00:00:00Z")
+
+        val response = controller.getCalendar(
+            from = from,
+            to = to,
+            status = PublicationStatus.SCHEDULED,
+            socialAccountId = "account-1",
+            timezone = "America/New_York",
+        )
+
+        assertEquals(
+            GetCalendarPublicationsQuery(
+                from = from,
+                to = to,
+                status = PublicationStatus.SCHEDULED,
+                socialAccountId = "account-1",
+                timezone = "America/New_York",
+            ),
+            mediator.lastQuery,
+        )
+    }
+
+    @Test
+    fun `dispatches quick-create command`() = runTest {
+        val mediator = CapturingMediator()
+        val controller = PublishingPublicationController(mediator)
+        val scheduledFor = Instant.parse("2026-06-15T10:00:00Z")
+
+        val response = controller.quickCreatePublication(
+            QuickCreateRequest(
+                socialAccountId = "account-1",
+                title = "Quick post",
+                bodyText = "Calendar content",
+                scheduledFor = scheduledFor,
+                priority = true,
+            ),
+        )
+
+        assertEquals(
+            CreatePublicationCommand(
+                socialAccountId = "account-1",
+                title = "Quick post",
+                bodyText = "Calendar content",
+                scheduleMode = ScheduleMode.SCHEDULED_AT,
+                scheduledFor = scheduledFor,
+                assetIds = emptyList(),
+                priority = true,
+            ),
+            mediator.lastRequest,
+        )
+    }
+
+    @Test
+    fun `dispatches patch reschedule command`() = runTest {
+        val mediator = CapturingMediator()
+        val controller = PublishingPublicationController(mediator)
+
+        val response = controller.patchReschedulePublication(
+            "pub-1",
+            PublicationRescheduleRequest(
+                scheduleMode = "SCHEDULED_AT",
+                scheduledFor = Instant.parse("2026-06-20T14:00:00Z"),
+                priority = true,
+            ),
+        )
+
+        assertEquals(
+            ReschedulePublicationCommand(
+                publicationId = "pub-1",
+                scheduleMode = ScheduleMode.SCHEDULED_AT,
+                scheduledFor = Instant.parse("2026-06-20T14:00:00Z"),
+                nextSlotAfter = null,
+                priority = true,
+            ),
+            mediator.lastRequest,
+        )
+    }
+
+    @Test
     fun `dispatches publication lifecycle commands`() = runTest {
         val mediator = CapturingMediator()
         val controller = PublishingPublicationController(mediator)
@@ -147,10 +253,20 @@ class PublishingControllersTest {
 
     private class CapturingMediator : Mediator {
         var lastRequest: Any? = null
+        var lastQuery: Any? = null
 
         @Suppress("UNCHECKED_CAST")
-        override suspend fun <TQuery : Query<TResponse>, TResponse> send(query: TQuery): TResponse =
-            error("Not used in this test")
+        override suspend fun <TQuery : Query<TResponse>, TResponse> send(query: TQuery): TResponse {
+            lastQuery = query
+            return when (query) {
+                is GetCalendarPublicationsQuery -> CalendarResponse(
+                    publications = emptyList(),
+                    conflicts = emptyList(),
+                    activity = emptyList(),
+                ) as TResponse
+                else -> error("Unsupported query type ${query::class.simpleName}")
+            }
+        }
 
         override suspend fun <TCommand : Command> send(command: TCommand) {
             error("Not used in this test")

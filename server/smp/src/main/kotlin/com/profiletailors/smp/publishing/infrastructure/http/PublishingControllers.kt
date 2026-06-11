@@ -1,14 +1,17 @@
 package com.profiletailors.smp.publishing.infrastructure.http
 
 import com.profiletailors.common.domain.bus.Mediator
+import com.profiletailors.smp.publishing.application.CalendarResponse
 import com.profiletailors.smp.publishing.application.CancelPublicationCommand
 import com.profiletailors.smp.publishing.application.CompleteLinkedInConnectionCommand
 import com.profiletailors.smp.publishing.application.CreatePublicationCommand
 import com.profiletailors.smp.publishing.application.EditPublicationCommand
+import com.profiletailors.smp.publishing.application.GetCalendarPublicationsQuery
 import com.profiletailors.smp.publishing.application.PublicationResult
 import com.profiletailors.smp.publishing.application.ReschedulePublicationCommand
 import com.profiletailors.smp.publishing.application.RetryPublicationCommand
 import com.profiletailors.smp.publishing.application.SocialConnectionResult
+import com.profiletailors.smp.publishing.domain.PublicationStatus
 import com.profiletailors.smp.publishing.domain.ScheduleMode
 import io.swagger.v3.oas.annotations.Operation
 import io.swagger.v3.oas.annotations.Parameter
@@ -126,6 +129,55 @@ class PublishingPublicationController(
         ),
     )
 
+    @Operation(summary = "Get calendar publications within a date range")
+    @GetMapping("/calendar", version = "1")
+    suspend fun getCalendar(
+        @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) from: Instant,
+        @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) to: Instant,
+        @RequestParam(required = false) status: PublicationStatus? = null,
+        @RequestParam(required = false) socialAccountId: String? = null,
+        @RequestParam(required = false, defaultValue = "UTC") timezone: String = "UTC",
+    ): CalendarResponse = mediator.send(
+        GetCalendarPublicationsQuery(
+            from = from,
+            to = to,
+            status = status,
+            socialAccountId = socialAccountId,
+            timezone = timezone,
+        ),
+    )
+
+    @Operation(summary = "Quick-create a scheduled publication")
+    @PostMapping("/quick-create", consumes = ["application/json"], version = "1")
+    suspend fun quickCreatePublication(
+        @Valid @RequestBody request: QuickCreateRequest,
+    ): PublicationResult = mediator.send(
+        CreatePublicationCommand(
+            socialAccountId = request.socialAccountId,
+            title = request.title,
+            bodyText = request.bodyText,
+            scheduleMode = ScheduleMode.SCHEDULED_AT,
+            scheduledFor = request.scheduledFor,
+            assetIds = emptyList(),
+            priority = request.priority,
+        ),
+    )
+
+    @Operation(summary = "Reschedule an editable publication (PATCH)")
+    @PatchMapping("/{publicationId}/reschedule", consumes = ["application/json"], version = "1")
+    suspend fun patchReschedulePublication(
+        @PathVariable publicationId: String,
+        @Valid @RequestBody request: PublicationRescheduleRequest,
+    ): PublicationResult = mediator.send(
+        ReschedulePublicationCommand(
+            publicationId = publicationId,
+            scheduleMode = request.requiredScheduleMode(),
+            scheduledFor = request.scheduledFor,
+            nextSlotAfter = request.nextSlotAfter,
+            priority = request.priority,
+        ),
+    )
+
     @Operation(summary = "Placeholder list publications endpoint")
     @GetMapping(version = "1")
     suspend fun listPlaceholder(): Map<String, String> = mapOf("status" to "not-yet-implemented")
@@ -155,6 +207,17 @@ data class PublicationUpsertRequest(
 ) {
     fun toScheduleMode(): ScheduleMode = ScheduleMode.valueOf(scheduleMode)
 }
+
+@Schema(description = "Quick-create publication request (scheduled with empty assets)")
+data class QuickCreateRequest(
+    @field:NotBlank
+    val socialAccountId: String,
+    val title: String? = null,
+    val bodyText: String? = null,
+    @field:DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME)
+    val scheduledFor: Instant,
+    val priority: Boolean = false,
+)
 
 @Schema(description = "Publication retry or reschedule request")
 data class PublicationRescheduleRequest(
