@@ -102,6 +102,15 @@ const messages = {
       today: 'Today',
       timezoneMadrid: 'Madrid',
     },
+    channels: {
+      title: 'Channels',
+      all: 'All channels',
+      active: 'Active',
+      inactive: 'Inactive',
+      connect: 'Connect channels',
+      connectAction: 'connect',
+      more: 'More channels',
+    },
     analytics: {
       subtitle: 'Track audience growth, engagement rates, and platform performance.',
       audienceGrowth: 'Audience Growth (Last 30 Days)',
@@ -219,6 +228,15 @@ const messages = {
       weekView: 'Semana',
       today: 'Hoy',
       timezoneMadrid: 'Madrid',
+    },
+    channels: {
+      title: 'Canales',
+      all: 'Todos los canales',
+      active: 'Activo',
+      inactive: 'Inactivo',
+      connect: 'Conectar canales',
+      connectAction: 'conectar',
+      more: 'Más canales',
     },
     analytics: {
       subtitle:
