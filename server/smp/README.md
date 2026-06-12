@@ -40,6 +40,23 @@ This starts:
 curl http://localhost:8080/actuator/health
 ```
 
+## Package Structure
+
+Every bounded context under `com.profiletailors.smp` follows hexagonal architecture:
+
+```
+{context}/
+├── domain/          # Pure Kotlin — no Spring annotations
+├── application/     # Use cases, CQRS handlers
+└── infrastructure/  # R2DBC, HTTP, Spring configuration
+```
+
+Cross-cutting contexts (`platform`, `audit`, `observability`, `governance`) follow the same
+three-layer rule as product contexts (`identity`, `authorization`, `tenancy`, etc.).
+
+- [C4 Code-level patterns](../../docs/architecture/c4/04-code.md)
+- [Hexagonal architecture skill](../../.agents/skills/backend-platform/hexagonal-architecture/SKILL.md)
+
 ## 🔧 Development Commands
 
 ```bash

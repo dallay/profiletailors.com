@@ -1,4 +1,4 @@
-package com.profiletailors.smp.platform.infrastructure
+package com.profiletailors.smp.audit.infrastructure
 
 import com.fasterxml.jackson.databind.ObjectMapper
 import com.profiletailors.common.domain.observability.RequestOutcome

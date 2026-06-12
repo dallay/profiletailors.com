@@ -27,6 +27,7 @@ const state = computed(() => (open.value ? 'expanded' : 'collapsed'))
 
 function setOpen(value: boolean) {
   open.value = value
+  // biome-ignore lint/suspicious/noDocumentCookie: shadcn-vue uses cookie persistence for sidebar state across page loads
   document.cookie = `${SIDEBAR_COOKIE_NAME}=${value}; path=/; max-age=${SIDEBAR_COOKIE_MAX_AGE}`
 }
 

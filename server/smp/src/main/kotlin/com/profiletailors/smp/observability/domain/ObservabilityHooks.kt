@@ -1,4 +1,4 @@
-package com.profiletailors.smp.observability.application
+package com.profiletailors.smp.observability.domain
 
 import com.profiletailors.common.domain.observability.RequestOutcome
 

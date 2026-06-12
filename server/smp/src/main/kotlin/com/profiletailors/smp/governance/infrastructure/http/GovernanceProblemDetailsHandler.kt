@@ -1,6 +1,6 @@
 package com.profiletailors.smp.governance.infrastructure.http
 
-import com.profiletailors.smp.governance.application.InvalidAuditEventCursorException
+import com.profiletailors.smp.governance.domain.InvalidAuditEventCursorException
 import org.springframework.http.HttpStatus
 import org.springframework.http.ProblemDetail
 import org.springframework.web.bind.annotation.ExceptionHandler

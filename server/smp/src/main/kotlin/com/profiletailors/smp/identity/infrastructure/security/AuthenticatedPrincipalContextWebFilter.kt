@@ -1,7 +1,7 @@
 package com.profiletailors.smp.identity.infrastructure.security
 
 import com.profiletailors.smp.identity.domain.AuthenticatedPrincipal
-import com.profiletailors.smp.platform.infrastructure.RequestContextStore
+import com.profiletailors.smp.platform.domain.RequestContextStore
 import org.springframework.security.core.Authentication
 import org.springframework.security.core.context.ReactiveSecurityContextHolder
 import org.springframework.web.server.ServerWebExchange
