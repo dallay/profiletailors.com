@@ -7,56 +7,50 @@ distributed messaging.
 
 A simple product lifecycle with domain events.
 
-```java
+```kotlin
 // Domain event
-public class ProductCreatedEvent extends DomainEvent {
-    private final String productId;
-    private final String name;
-    private final BigDecimal price;
-
-    public ProductCreatedEvent(String productId, String name, BigDecimal price) {
-        super();
-        this.productId = productId;
-        this.name = name;
-        this.price = price;
-    }
-
-    // Getters
-}
+data class ProductCreatedEvent(
+    val productId: String,
+    val name: String,
+    val price: BigDecimal
+) : DomainEvent()
 
 // Aggregate publishing events
-@Getter
-@NoArgsConstructor(access = AccessLevel.PROTECTED)
-public class Product {
-    private String id;
-    private String name;
-    private BigDecimal price;
-    
+class Product protected constructor() {
+    var id: String = ""
+        private set
+    var name: String = ""
+        private set
+    var price: BigDecimal = BigDecimal.ZERO
+        private set
+
     @Transient
-    private List<DomainEvent> domainEvents = new ArrayList<>();
+    private val domainEvents: MutableList<DomainEvent> = mutableListOf()
 
-    public static Product create(String name, BigDecimal price) {
-        Product product = new Product();
-        product.id = UUID.randomUUID().toString();
-        product.name = name;
-        product.price = price;
-        
-        // Publish domain event
-        product.publishEvent(new ProductCreatedEvent(product.id, name, price));
-        
-        return product;
+    companion object {
+        fun create(name: String, price: BigDecimal): Product {
+            val product = Product()
+            product.id = UUID.randomUUID().toString()
+            product.name = name
+            product.price = price
+
+            // Publish domain event
+            product.publishEvent(ProductCreatedEvent(product.id, name, price))
+
+            return product
+        }
     }
 
-    protected void publishEvent(DomainEvent event) {
-        domainEvents.add(event);
+    protected fun publishEvent(event: DomainEvent) {
+        domainEvents.add(event)
     }
 
-    public List<DomainEvent> getDomainEvents() {
-        return new ArrayList<>(domainEvents);
+    fun getDomainEvents(): List<DomainEvent> {
+        return domainEvents.toList()
     }
 
-    public void clearDomainEvents() {
-        domainEvents.clear();
+    fun clearDomainEvents() {
+        domainEvents.clear()
     }
 }
 ```
@@ -67,50 +61,50 @@ public class Product {
 
 Using ApplicationEventPublisher for in-process events.
 
-```java
+```kotlin
 // Application service
 @Service
-@Slf4j
-@RequiredArgsConstructor
 @Transactional
-public class ProductApplicationService {
-    private final ProductRepository productRepository;
-    private final ApplicationEventPublisher eventPublisher;
+class ProductApplicationService(
+    private val productRepository: ProductRepository,
+    private val eventPublisher: ApplicationEventPublisher
+) {
+    private val log = LoggerFactory.getLogger(javaClass)
 
-    public ProductResponse createProduct(CreateProductRequest request) {
-        Product product = Product.create(request.getName(), request.getPrice());
-        Product saved = productRepository.save(product);
-        
+    fun createProduct(request: CreateProductRequest): ProductResponse {
+        val product = Product.create(request.name, request.price)
+        val saved = productRepository.save(product)
+
         // Publish domain events
-        saved.getDomainEvents().forEach(event -> {
-            log.debug("Publishing event: {}", event.getClass().getSimpleName());
-            eventPublisher.publishEvent(event);
-        });
-        saved.clearDomainEvents();
-        
-        return mapper.toResponse(saved);
+        saved.getDomainEvents().forEach { event ->
+            log.debug("Publishing event: {}", event::class.simpleName)
+            eventPublisher.publishEvent(event)
+        }
+        saved.clearDomainEvents()
+
+        return mapper.toResponse(saved)
     }
 }
 
 // Event listener
 @Component
-@Slf4j
-@RequiredArgsConstructor
-public class ProductEventHandler {
-    private final NotificationService notificationService;
-    private final InventoryService inventoryService;
+class ProductEventHandler(
+    private val notificationService: NotificationService,
+    private val inventoryService: InventoryService
+) {
+    private val log = LoggerFactory.getLogger(javaClass)
 
     @TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT)
-    public void onProductCreated(ProductCreatedEvent event) {
-        log.info("Handling ProductCreatedEvent");
-        
+    fun onProductCreated(event: ProductCreatedEvent) {
+        log.info("Handling ProductCreatedEvent")
+
         // Send notification
         notificationService.sendProductCreatedNotification(
-            event.getName(), event.getPrice()
-        );
-        
+            event.name, event.price
+        )
+
         // Update inventory
-        inventoryService.registerProduct(event.getProductId());
+        inventoryService.registerProduct(event.productId)
     }
 }
 
@@ -118,25 +112,25 @@ public class ProductEventHandler {
 @SpringBootTest
 class ProductEventTest {
     @Autowired
-    private ProductApplicationService productService;
-    
+    private lateinit var productService: ProductApplicationService
+
     @MockBean
-    private NotificationService notificationService;
-    
+    private lateinit var notificationService: NotificationService
+
     @Autowired
-    private ProductRepository productRepository;
+    private lateinit var productRepository: ProductRepository
 
     @Test
-    void shouldPublishProductCreatedEvent() {
+    fun shouldPublishProductCreatedEvent() {
         // Act
         productService.createProduct(
-            new CreateProductRequest("Laptop", BigDecimal.valueOf(999.99))
-        );
+            CreateProductRequest("Laptop", BigDecimal.valueOf(999.99))
+        )
 
         // Assert - Event was handled
         verify(notificationService).sendProductCreatedNotification(
             "Laptop", BigDecimal.valueOf(999.99)
-        );
+        )
     }
 }
 ```
@@ -147,95 +141,93 @@ class ProductEventTest {
 
 Ensures reliable event publishing even on failures.
 
-```java
+```kotlin
 // Outbox entity
 @Entity
 @Table(name = "outbox_events")
-@Getter
-@Builder
-@NoArgsConstructor
-@AllArgsConstructor
-public class OutboxEvent {
+class OutboxEvent(
     @Id
     @GeneratedValue(strategy = GenerationType.UUID)
-    private UUID id;
+    var id: UUID? = null,
 
-    private String aggregateId;
-    private String eventType;
-    
+    var aggregateId: String = "",
+    var eventType: String = "",
+
     @Column(columnDefinition = "TEXT")
-    private String payload;
-    
-    private LocalDateTime createdAt;
-    private LocalDateTime publishedAt;
-    private Integer retryCount;
-}
+    var payload: String = "",
+
+    var createdAt: LocalDateTime = LocalDateTime.now(),
+    var publishedAt: LocalDateTime? = null,
+    var retryCount: Int = 0
+)
 
 // Application service using outbox
 @Service
-@Slf4j
-@RequiredArgsConstructor
 @Transactional
-public class ProductApplicationService {
-    private final ProductRepository productRepository;
-    private final OutboxEventRepository outboxRepository;
-    private final ObjectMapper objectMapper;
+class ProductApplicationService(
+    private val productRepository: ProductRepository,
+    private val outboxRepository: OutboxEventRepository,
+    private val objectMapper: ObjectMapper
+) {
+    private val log = LoggerFactory.getLogger(javaClass)
 
-    public ProductResponse createProduct(CreateProductRequest request) {
-        Product product = Product.create(request.getName(), request.getPrice());
-        Product saved = productRepository.save(product);
-        
+    fun createProduct(request: CreateProductRequest): ProductResponse {
+        val product = Product.create(request.name, request.price)
+        val saved = productRepository.save(product)
+
         // Store event in outbox (same transaction)
-        saved.getDomainEvents().forEach(event -> {
+        saved.getDomainEvents().forEach { event ->
             try {
-                String payload = objectMapper.writeValueAsString(event);
-                OutboxEvent outboxEvent = OutboxEvent.builder()
-                    .aggregateId(saved.getId())
-                    .eventType(event.getClass().getSimpleName())
-                    .payload(payload)
-                    .createdAt(LocalDateTime.now())
-                    .retryCount(0)
-                    .build();
-                
-                outboxRepository.save(outboxEvent);
-                log.debug("Outbox event created: {}", event.getClass().getSimpleName());
-            } catch (Exception e) {
-                log.error("Failed to create outbox event", e);
-                throw new RuntimeException(e);
+                val payload = objectMapper.writeValueAsString(event)
+                val outboxEvent = OutboxEvent(
+                    aggregateId = saved.id,
+                    eventType = event::class.simpleName ?: "UnknownEvent",
+                    payload = payload,
+                    createdAt = LocalDateTime.now(),
+                    retryCount = 0
+                )
+
+                outboxRepository.save(outboxEvent)
+                log.debug("Outbox event created: {}", event::class.simpleName)
+            } catch (e: Exception) {
+                log.error("Failed to create outbox event", e)
+                throw RuntimeException(e)
             }
-        });
-        
-        return mapper.toResponse(saved);
+        }
+
+        return mapper.toResponse(saved)
     }
 }
 
 // Scheduled publisher
 @Component
-@Slf4j
-@RequiredArgsConstructor
-public class OutboxEventPublisher {
-    private final OutboxEventRepository outboxRepository;
-    private final KafkaTemplate<String, String> kafkaTemplate;
-    private final ObjectMapper objectMapper;
+class OutboxEventPublisher(
+    private val outboxRepository: OutboxEventRepository,
+    private val kafkaTemplate: KafkaTemplate<String, String>,
+    private val objectMapper: ObjectMapper
+) {
+    private val log = LoggerFactory.getLogger(javaClass)
 
     @Scheduled(fixedDelay = 5000)
     @Transactional
-    public void publishPendingEvents() {
-        List<OutboxEvent> pending = outboxRepository.findByPublishedAtIsNull();
-        
-        for (OutboxEvent event : pending) {
+    fun publishPendingEvents() {
+        val pending = outboxRepository.findByPublishedAtIsNull()
+
+        for (event in pending) {
             try {
-                kafkaTemplate.send("product-events", 
-                    event.getAggregateId(), event.getPayload());
-                
-                event.setPublishedAt(LocalDateTime.now());
-                outboxRepository.save(event);
-                
-                log.info("Published outbox event: {}", event.getId());
-            } catch (Exception e) {
-                log.error("Failed to publish event: {}", event.getId(), e);
-                event.setRetryCount(event.getRetryCount() + 1);
-                outboxRepository.save(event);
+                kafkaTemplate.send(
+                    "product-events",
+                    event.aggregateId, event.payload
+                )
+
+                event.publishedAt = LocalDateTime.now()
+                outboxRepository.save(event)
+
+                log.info("Published outbox event: {}", event.id)
+            } catch (e: Exception) {
+                log.error("Failed to publish event: {}", event.id, e)
+                event.retryCount = event.retryCount + 1
+                outboxRepository.save(event)
             }
         }
     }
@@ -248,56 +240,58 @@ public class OutboxEventPublisher {
 
 Distributed event publishing with Spring Cloud Stream.
 
-```java
+```kotlin
 // Application configuration
 @Configuration
-public class KafkaConfig {
-    
+class KafkaConfig {
+
     @Bean
-    public ObjectMapper objectMapper() {
-        return new ObjectMapper()
-            .registerModule(new JavaTimeModule())
-            .disable(SerializationFeature.WRITE_DATES_AS_TIMESTAMPS);
+    fun objectMapper(): ObjectMapper {
+        return ObjectMapper()
+            .registerModule(JavaTimeModule())
+            .disable(SerializationFeature.WRITE_DATES_AS_TIMESTAMPS)
     }
 }
 
 // Event publisher
 @Component
-@Slf4j
-@RequiredArgsConstructor
-public class KafkaProductEventPublisher {
-    private final KafkaTemplate<String, Object> kafkaTemplate;
+class KafkaProductEventPublisher(
+    private val kafkaTemplate: KafkaTemplate<String, Any>
+) {
+    private val log = LoggerFactory.getLogger(javaClass)
 
-    public void publishProductCreatedEvent(ProductCreatedEvent event) {
-        log.info("Publishing ProductCreatedEvent to Kafka: {}", event.getProductId());
-        
-        kafkaTemplate.send("product-events", 
-            event.getProductId(),
-            event);
+    fun publishProductCreatedEvent(event: ProductCreatedEvent) {
+        log.info("Publishing ProductCreatedEvent to Kafka: {}", event.productId)
+
+        kafkaTemplate.send(
+            "product-events",
+            event.productId,
+            event
+        )
     }
 }
 
 // Event consumer
 @Component
-@Slf4j
-@RequiredArgsConstructor
-public class ProductEventStreamConsumer {
-    private final InventoryService inventoryService;
+class ProductEventStreamConsumer(
+    private val inventoryService: InventoryService
+) {
+    private val log = LoggerFactory.getLogger(javaClass)
 
     @Bean
-    public java.util.function.Consumer<ProductCreatedEvent> productCreatedConsumer() {
-        return event -> {
-            log.info("Consumed ProductCreatedEvent: {}", event.getProductId());
-            inventoryService.registerProduct(event.getProductId(), event.getName());
-        };
+    fun productCreatedConsumer(): java.util.function.Consumer<ProductCreatedEvent> {
+        return java.util.function.Consumer { event ->
+            log.info("Consumed ProductCreatedEvent: {}", event.productId)
+            inventoryService.registerProduct(event.productId, event.name)
+        }
     }
 
     @Bean
-    public java.util.function.Consumer<ProductUpdatedEvent> productUpdatedConsumer() {
-        return event -> {
-            log.info("Consumed ProductUpdatedEvent: {}", event.getProductId());
-            inventoryService.updateProduct(event.getProductId(), event.getPrice());
-        };
+    fun productUpdatedConsumer(): java.util.function.Consumer<ProductUpdatedEvent> {
+        return java.util.function.Consumer { event ->
+            log.info("Consumed ProductUpdatedEvent: {}", event.productId)
+            inventoryService.updateProduct(event.productId, event.price)
+        }
     }
 }
 
@@ -337,55 +331,53 @@ spring:
 
 Coordinating multiple services with events.
 
-```java
+```kotlin
 // Events
-public class OrderPlacedEvent extends DomainEvent {
-    private final String orderId;
-    private final String productId;
-    private final Integer quantity;
-    // ...
-}
+data class OrderPlacedEvent(
+    val orderId: String,
+    val productId: String,
+    val quantity: Int
+) : DomainEvent()
 
-public class OrderPaymentConfirmedEvent extends DomainEvent {
-    private final String orderId;
-    // ...
-}
+data class OrderPaymentConfirmedEvent(
+    val orderId: String
+) : DomainEvent()
 
 // Saga orchestrator
 @Component
-@Slf4j
-@RequiredArgsConstructor
-public class OrderFulfillmentSaga {
-    private final OrderService orderService;
-    private final PaymentService paymentService;
-    private final InventoryService inventoryService;
-    private final ApplicationEventPublisher eventPublisher;
+class OrderFulfillmentSaga(
+    private val orderService: OrderService,
+    private val paymentService: PaymentService,
+    private val inventoryService: InventoryService,
+    private val eventPublisher: ApplicationEventPublisher
+) {
+    private val log = LoggerFactory.getLogger(javaClass)
 
     @Transactional
     @EventListener
-    public void onOrderPlaced(OrderPlacedEvent event) {
-        log.info("Starting order fulfillment saga for order: {}", event.getOrderId());
-        
+    fun onOrderPlaced(event: OrderPlacedEvent) {
+        log.info("Starting order fulfillment saga for order: {}", event.orderId)
+
         try {
             // Step 1: Reserve inventory
-            inventoryService.reserveStock(event.getProductId(), event.getQuantity());
-            log.info("Inventory reserved for order: {}", event.getOrderId());
-            
+            inventoryService.reserveStock(event.productId, event.quantity)
+            log.info("Inventory reserved for order: {}", event.orderId)
+
             // Step 2: Process payment
-            paymentService.processPayment(event.getOrderId());
-            log.info("Payment processed for order: {}", event.getOrderId());
-            
+            paymentService.processPayment(event.orderId)
+            log.info("Payment processed for order: {}", event.orderId)
+
             // Step 3: Publish confirmation
-            eventPublisher.publishEvent(new OrderPaymentConfirmedEvent(event.getOrderId()));
-            
+            eventPublisher.publishEvent(OrderPaymentConfirmedEvent(event.orderId))
+
             // Step 4: Update order status
-            orderService.markAsConfirmed(event.getOrderId());
-            log.info("Order confirmed: {}", event.getOrderId());
-            
-        } catch (PaymentFailedException e) {
-            log.warn("Payment failed, releasing inventory");
-            inventoryService.releaseStock(event.getProductId(), event.getQuantity());
-            orderService.markAsFailed(event.getOrderId(), e.getMessage());
+            orderService.markAsConfirmed(event.orderId)
+            log.info("Order confirmed: {}", event.orderId)
+
+        } catch (e: PaymentFailedException) {
+            log.warn("Payment failed, releasing inventory")
+            inventoryService.releaseStock(event.productId, event.quantity)
+            orderService.markAsFailed(event.orderId, e.message ?: "Payment failed")
         }
     }
 }
@@ -394,29 +386,29 @@ public class OrderFulfillmentSaga {
 @SpringBootTest
 class OrderFulfillmentSagaTest {
     @Autowired
-    private ApplicationEventPublisher eventPublisher;
-    
+    private lateinit var eventPublisher: ApplicationEventPublisher
+
     @MockBean
-    private InventoryService inventoryService;
-    
+    private lateinit var inventoryService: InventoryService
+
     @MockBean
-    private PaymentService paymentService;
-    
+    private lateinit var paymentService: PaymentService
+
     @MockBean
-    private OrderService orderService;
+    private lateinit var orderService: OrderService
 
     @Test
-    void shouldCompleteOrderFulfillmentSaga() {
+    fun shouldCompleteOrderFulfillmentSaga() {
         // Arrange
-        OrderPlacedEvent event = new OrderPlacedEvent("order-123", "product-456", 2);
+        val event = OrderPlacedEvent("order-123", "product-456", 2)
 
         // Act
-        eventPublisher.publishEvent(event);
+        eventPublisher.publishEvent(event)
 
         // Assert
-        verify(inventoryService).reserveStock("product-456", 2);
-        verify(paymentService).processPayment("order-123");
-        verify(orderService).markAsConfirmed("order-123");
+        verify(inventoryService).reserveStock("product-456", 2)
+        verify(paymentService).processPayment("order-123")
+        verify(orderService).markAsConfirmed("order-123")
     }
 }
 ```
@@ -427,83 +419,80 @@ class OrderFulfillmentSagaTest {
 
 Storing state changes as events.
 
-```java
+```kotlin
 // Event store
 @Repository
-public interface EventStoreRepository extends JpaRepository<StoredEvent, UUID> {
-    List<StoredEvent> findByAggregateIdOrderBySequenceAsc(String aggregateId);
+interface EventStoreRepository : JpaRepository<StoredEvent, UUID> {
+    fun findByAggregateIdOrderBySequenceAsc(aggregateId: String): List<StoredEvent>
 }
 
 // Stored event
 @Entity
 @Table(name = "event_store")
-@Getter
-@Builder
-@NoArgsConstructor
-@AllArgsConstructor
-public class StoredEvent {
+class StoredEvent(
     @Id
     @GeneratedValue(strategy = GenerationType.UUID)
-    private UUID id;
+    var id: UUID? = null,
 
-    private String aggregateId;
-    private String eventType;
-    private Integer sequence;
-    
+    var aggregateId: String = "",
+    var eventType: String = "",
+    var sequence: Int = 0,
+
     @Column(columnDefinition = "TEXT")
-    private String payload;
-    
-    private LocalDateTime occurredAt;
-}
+    var payload: String = "",
+
+    var occurredAt: LocalDateTime = LocalDateTime.now()
+)
 
 // Event sourcing service
 @Service
-@Slf4j
-@RequiredArgsConstructor
-public class EventSourcingService {
-    private final EventStoreRepository eventStoreRepository;
-    private final ObjectMapper objectMapper;
+class EventSourcingService(
+    private val eventStoreRepository: EventStoreRepository,
+    private val objectMapper: ObjectMapper
+) {
+    private val log = LoggerFactory.getLogger(javaClass)
 
     @Transactional
-    public void storeEvent(String aggregateId, DomainEvent event) {
+    fun storeEvent(aggregateId: String, event: DomainEvent) {
         try {
-            List<StoredEvent> existing = eventStoreRepository
-                .findByAggregateIdOrderBySequenceAsc(aggregateId);
-            
-            Integer nextSequence = existing.isEmpty() ? 1 : 
-                existing.get(existing.size() - 1).getSequence() + 1;
-            
-            StoredEvent storedEvent = StoredEvent.builder()
-                .aggregateId(aggregateId)
-                .eventType(event.getClass().getSimpleName())
-                .sequence(nextSequence)
-                .payload(objectMapper.writeValueAsString(event))
-                .occurredAt(LocalDateTime.now())
-                .build();
-            
-            eventStoreRepository.save(storedEvent);
-            log.info("Event stored: {} for aggregate: {}", 
-                event.getClass().getSimpleName(), aggregateId);
-        } catch (JsonProcessingException e) {
-            throw new RuntimeException("Failed to store event", e);
+            val existing = eventStoreRepository
+                .findByAggregateIdOrderBySequenceAsc(aggregateId)
+
+            val nextSequence = if (existing.isEmpty()) 1
+            else existing.last().sequence + 1
+
+            val storedEvent = StoredEvent(
+                aggregateId = aggregateId,
+                eventType = event::class.simpleName ?: "UnknownEvent",
+                sequence = nextSequence,
+                payload = objectMapper.writeValueAsString(event),
+                occurredAt = LocalDateTime.now()
+            )
+
+            eventStoreRepository.save(storedEvent)
+            log.info(
+                "Event stored: {} for aggregate: {}",
+                event::class.simpleName, aggregateId
+            )
+        } catch (e: JsonProcessingException) {
+            throw RuntimeException("Failed to store event", e)
         }
     }
 
-    public List<DomainEvent> getEventHistory(String aggregateId) {
+    fun getEventHistory(aggregateId: String): List<DomainEvent> {
         return eventStoreRepository
             .findByAggregateIdOrderBySequenceAsc(aggregateId)
-            .stream()
-            .map(this::deserializeEvent)
-            .collect(Collectors.toList());
+            .map { deserializeEvent(it) }
     }
 
-    private DomainEvent deserializeEvent(StoredEvent stored) {
+    private fun deserializeEvent(stored: StoredEvent): DomainEvent {
         try {
-            Class<?> eventClass = Class.forName(
-                "com.example.product.domain.event." + stored.getEventType());
-            return (DomainEvent) objectMapper.readValue(stored.getPayload(), eventClass);
-        } catch (Exception e) {
-            throw new RuntimeException("Failed to deserialize event", e);
+            val eventClass = Class.forName(
+                "com.example.product.domain.event.${stored.eventType}"
+            )
+            return objectMapper.readValue(stored.payload, eventClass) as DomainEvent
+        } catch (e: Exception) {
+            throw RuntimeException("Failed to deserialize event", e)
         }
     }
 }

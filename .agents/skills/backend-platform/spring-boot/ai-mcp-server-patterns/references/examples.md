@@ -19,12 +19,13 @@ Comprehensive examples for implementing MCP servers with Spring AI.
 
 ### Minimal Spring Boot MCP Server
 
-```java
+```kotlin
 @SpringBootApplication
 @EnableMcpServer
-public class SimpleMcpApplication {
+class SimpleMcpApplication {
 
-    public static void main(String[] args) {
+    public static void main(String[] args)
+    {
         SpringApplication.run(SimpleMcpApplication.class, args);
     }
 }
@@ -34,90 +35,101 @@ class CalculatorTools {
 
     @Tool(description = "Add two numbers")
     public double add(
-            @ToolParam("First number") double a,
-            @ToolParam("Second number") double b) {
+    @ToolParam("First number") double a,
+    @ToolParam("Second number") double b)
+    {
         return a + b;
     }
 
     @Tool(description = "Multiply two numbers")
     public double multiply(
-            @ToolParam("First number") double a,
-            @ToolParam("Second number") double b) {
+    @ToolParam("First number") double a,
+    @ToolParam("Second number") double b)
+    {
         return a * b;
     }
 
     @Tool(description = "Calculate the square root")
-    public double sqrt(@ToolParam("Number") double x) {
+    fun sqrt(@ToolParam("Number") double x): double {
         if (x < 0) {
-            throw new IllegalArgumentException("Cannot calculate square root of negative number");
+            throw IllegalArgumentException("Cannot calculate square root of negative number");
         }
         return Math.sqrt(x);
     }
 }
 
 // application.properties
-spring.ai.openai.api-key=${OPENAI_API_KEY}
-spring.ai.mcp.enabled=true
-spring.ai.mcp.transport.type=stdio
+spring.ai.openai.api - key = ${ OPENAI_API_KEY }
+spring.ai.mcp.enabled = true
+spring.ai.mcp.transport.type = stdio
 ```
 
 ### HTTP Transport Setup
 
-```java
+```kotlin
 @SpringBootApplication
-public class HttpMcpApplication {
+class HttpMcpApplication {
 
-    public static void main(String[] args) {
+    public static void main(String[] args)
+    {
         SpringApplication.run(HttpMcpApplication.class, args);
     }
 
     @Bean
-    public McpServer mcpServer(List<FunctionCallback> callbacks) {
+    fun mcpServer(List<FunctionCallback> callbacks): McpServer {
         return McpServer.builder()
-                .transport(HttpTransport.builder()
-                        .port(8080)
-                        .path("/mcp")
-                        .cors(CorsConfig.builder()
-                                .allowedOrigins("*")
-                                .build())
-                        .build())
-                .tools(callbacks.stream()
-                        .map(Tool::fromFunctionCallback)
-                        .toList())
-                .build();
+            .transport(
+                HttpTransport.builder()
+                    .port(8080)
+                    .path("/mcp")
+                    .cors(
+                        CorsConfig.builder()
+                            .allowedOrigins("*")
+                            .build()
+                    )
+                    .build()
+            )
+            .tools(
+                callbacks.map(Tool::fromFunctionCallback)
+                    .toList()
+            )
+            .build();
     }
 }
 ```
 
 ### Multi-Transport Server
 
-```java
+```kotlin
 @Component
-public class MultiTransportMcpServer {
+class MultiTransportMcpServer {
 
-    private final McpServer stdioServer;
-    private final McpServer httpServer;
+    private val stdioServer: McpServer
+    private val httpServer: McpServer
 
-    public MultiTransportMcpServer(List<Tool> tools) {
+    public MultiTransportMcpServer(List<Tool> tools)
+    {
         this.stdioServer = McpServer.builder()
-                .transport(new StdioTransport())
-                .tools(tools)
-                .build();
+            .transport(StdioTransport())
+            .tools(tools)
+            .build();
 
         this.httpServer = McpServer.builder()
-                .transport(HttpTransport.builder()
-                        .port(8081)
-                        .path("/mcp")
-                        .build())
-                .tools(tools)
-                .build();
+            .transport(
+                HttpTransport.builder()
+                    .port(8081)
+                    .path("/mcp")
+                    .build()
+            )
+            .tools(tools)
+            .build();
     }
 
     @PostConstruct
-    public void start() {
+    fun start(): void {
         // Start both servers
-        new Thread(stdioServer::start).start();
-        new Thread(httpServer::start).start();
+        Thread(stdioServer::start).start();
+        Thread(httpServer::start).start();
     }
 }
 ```
@@ -126,54 +138,58 @@ public class MultiTransportMcpServer {
 
 ### PostgreSQL Query Tool
 
-```java
+```kotlin
 @Component
-public class PostgreSqlTools {
+class PostgreSqlTools {
 
-    private final JdbcTemplate jdbcTemplate;
+    private val jdbcTemplate: JdbcTemplate
 
-    public PostgreSqlTools(DataSource dataSource) {
-        this.jdbcTemplate = new JdbcTemplate(dataSource);
+    public PostgreSqlTools(DataSource dataSource)
+    {
+        this.jdbcTemplate = JdbcTemplate(dataSource);
     }
 
     @Tool(description = "Execute a read-only SQL query on PostgreSQL database")
     public QueryResult executeReadOnlyQuery(
-            @ToolParam("SQL SELECT query") String query,
-            @ToolParam(value = "Query parameters as JSON object", required = false)
-            String paramsJson) {
+    @ToolParam("SQL SELECT query") String query,
+    @ToolParam(value = "Query parameters as JSON object", required = false)
+    String paramsJson)
+    {
 
         // Security: Only allow SELECT queries
-        String normalizedQuery = query.trim().toUpperCase();
+        String normalizedQuery = query . trim ().toUpperCase();
         if (!normalizedQuery.startsWith("SELECT")) {
-            throw new SecurityException("Only SELECT queries are allowed");
+            throw SecurityException("Only SELECT queries are allowed");
         }
 
         // Security: Check for dangerous patterns
         if (normalizedQuery.contains(";") && !normalizedQuery.endsWith(";")) {
-            throw new SecurityException("Multiple statements are not allowed");
+            throw SecurityException("Multiple statements are not allowed");
         }
 
         try {
             Map<String, Object> params = paramsJson != null && !paramsJson.isBlank()
-                    ? new ObjectMapper().readValue(paramsJson, Map.class)
+            ? ObjectMapper().readValue(
+                paramsJson, Map.class)
                     : Map.of();
 
-            List<Map<String, Object>> results = jdbcTemplate.queryForList(query, params);
-            int rowCount = results.size();
+            List<Map<String, Object>> results = jdbcTemplate . queryForList (query, params);
+            int rowCount = results . size ();
 
-            return new QueryResult(true, results, null, "Query returned " + rowCount + " rows");
+            return QueryResult(true, results, null, "Query returned " + rowCount + " rows");
 
         } catch (DataAccessException e) {
-            return new QueryResult(false, null, e.getMessage(), "Query execution failed");
+            return QueryResult(false, null, e.getMessage(), "Query execution failed");
         } catch (JsonProcessingException e) {
-            return new QueryResult(false, null, e.getMessage(), "Invalid parameters JSON");
+            return QueryResult(false, null, e.getMessage(), "Invalid parameters JSON");
         }
     }
 
     @Tool(description = "Get database schema information")
     public SchemaInfo getDatabaseSchema(
-            @ToolParam(value = "Table name filter", required = false)
-            String tableFilter) {
+    @ToolParam(value = "Table name filter", required = false)
+    String tableFilter)
+    {
 
         String sql = """
             SELECT table_name, column_name, data_type, is_nullable
@@ -183,24 +199,25 @@ public class PostgreSqlTools {
 
         if (tableFilter != null && !tableFilter.isBlank()) {
             sql += " AND table_name LIKE ?";
-            return new SchemaInfo(jdbcTemplate.queryForList(sql, "%" + tableFilter + "%"));
+            return SchemaInfo(jdbcTemplate.queryForList(sql, "%" + tableFilter + "%"));
         }
 
-        return new SchemaInfo(jdbcTemplate.queryForList(sql));
+        return SchemaInfo(jdbcTemplate.queryForList(sql));
     }
 
     @Tool(description = "Get query execution plan")
     public ExecutionPlan explainQuery(
-            @ToolParam("SQL query to analyze") String query) {
+    @ToolParam("SQL query to analyze") String query)
+    {
 
-        String explainSql = "EXPLAIN (FORMAT JSON, ANALYZE) " + query;
-        List<Map<String, Object>> plan = jdbcTemplate.queryForList(explainSql);
+        String explainSql = "EXPLAIN (FORMAT JSON, ANALYZE) "+query;
+        List<Map<String, Object>> plan = jdbcTemplate . queryForList (explainSql);
 
-        return new ExecutionPlan(query, plan);
+        return ExecutionPlan(query, plan);
     }
 
     @Tool(description = "Get database statistics")
-    public DatabaseStats getDatabaseStats() {
+    fun getDatabaseStats(): DatabaseStats {
         String sql = """
             SELECT schemaname, tablename, n_tup_ins, n_tup_upd, n_tup_del
             FROM pg_stat_user_tables
@@ -208,41 +225,43 @@ public class PostgreSqlTools {
             LIMIT 10
             """;
 
-        return new DatabaseStats(jdbcTemplate.queryForList(sql));
+        return DatabaseStats(jdbcTemplate.queryForList(sql));
     }
 }
 
-record QueryResult(boolean success, List<Map<String, Object>> data, String error, String message) {}
-record SchemaInfo(List<Map<String, Object>> columns) {}
-record ExecutionPlan(String query, List<Map<String, Object>> plan) {}
-record DatabaseStats(List<Map<String, Object>> stats) {}
+record QueryResult (boolean success, List<Map<String, Object>> data, String error, String message) {}
+record SchemaInfo (List<Map<String, Object>> columns) {}
+record ExecutionPlan (String query, List<Map<String, Object>> plan) {}
+record DatabaseStats (List<Map<String, Object>> stats) {}
 ```
 
 ### MongoDB Query Tool
 
-```java
+```kotlin
 @Component
-public class MongoDbTools {
+class MongoDbTools {
 
-    private final MongoTemplate mongoTemplate;
+    private val mongoTemplate: MongoTemplate
 
-    public MongoDbTools(MongoTemplate mongoTemplate) {
+    public MongoDbTools(MongoTemplate mongoTemplate)
+    {
         this.mongoTemplate = mongoTemplate;
     }
 
     @Tool(description = "Execute a MongoDB find query")
     public MongoResult findDocuments(
-            @ToolParam("Collection name") String collection,
-            @ToolParam(value = "Query filter as JSON", required = false)
-            String filterJson,
-            @ToolParam(value = "Maximum documents to return", required = false)
-            Integer limit) {
+    @ToolParam("Collection name") String collection,
+    @ToolParam(value = "Query filter as JSON", required = false)
+    String filterJson,
+    @ToolParam(value = "Maximum documents to return", required = false)
+    Integer limit)
+    {
 
         try {
-            Query query = new Query();
+            Query query = Query ();
 
             if (filterJson != null && !filterJson.isBlank()) {
-                Document filter = Document.parse(filterJson);
+                Document filter = Document . parse (filterJson);
                 query.addCriteria(Criteria.byExample(filter));
             }
 
@@ -250,98 +269,104 @@ public class MongoDbTools {
                 query.limit(limit);
             }
 
-            List<Document> results = mongoTemplate.find(query, Document.class, collection);
+            List<Document> results = mongoTemplate . find (query, Document.class, collection);
 
-            return new MongoResult(true, results, null);
+            return MongoResult(true, results, null);
 
         } catch (Exception e) {
-            return new MongoResult(false, null, e.getMessage());
+            return MongoResult(false, null, e.getMessage());
         }
     }
 
     @Tool(description = "Get collection statistics")
     public CollectionStats getCollectionStats(
-            @ToolParam("Collection name") String collection) {
+    @ToolParam("Collection name") String collection)
+    {
 
-        MongoCollection<Document> coll = mongoTemplate.getCollection(collection);
-        long count = coll.countDocuments();
+        MongoCollection<Document> coll = mongoTemplate . getCollection (collection);
+        long count = coll . countDocuments ();
 
-        return new CollectionStats(collection, count);
+        return CollectionStats(collection, count);
     }
 
     @Tool(description = "List all collections")
-    public List<String> listCollections() {
-        return mongoTemplate.getCollectionNames().stream()
-                .sorted()
-                .toList();
+    public List<String> listCollections()
+    {
+        return mongoTemplate.getCollectionNames()..sorted()
+            .toList();
     }
 
     @Tool(description = "Get collection indexes")
     public List<Document> getIndexes(
-            @ToolParam("Collection name") String collection) {
+    @ToolParam("Collection name") String collection)
+    {
 
         return mongoTemplate.getCollection(collection)
-                .listIndexes()
-                .into(new ArrayList<>());
+            .listIndexes()
+            .into(mutableListOf());
     }
 }
 
-record MongoResult(boolean success, List<Document> data, String error) {}
-record CollectionStats(String collection, long count) {}
+record MongoResult (boolean success, List<Document> data, String error) {}
+record CollectionStats (String collection, long count) {}
 ```
 
 ### Redis Query Tool
 
-```java
+```kotlin
 @Component
-public class RedisTools {
+class RedisTools {
 
     private final RedisTemplate<String, Object> redisTemplate;
 
-    public RedisTools(RedisTemplate<String, Object> redisTemplate) {
+    public RedisTools(RedisTemplate<String, Object> redisTemplate)
+    {
         this.redisTemplate = redisTemplate;
     }
 
     @Tool(description = "Get value from Redis by key")
     public RedisValue getValue(
-            @ToolParam("Redis key") String key) {
+    @ToolParam("Redis key") String key)
+    {
 
-        Object value = redisTemplate.opsForValue().get(key);
+        Object value = redisTemplate . opsForValue ().get(key);
 
         if (value == null) {
-            return new RedisValue(key, null, false);
+            return RedisValue(key, null, false);
         }
 
-        String type = determineType(value);
-        return new RedisValue(key, value.toString(), type, true);
+        String type = determineType (value);
+        return RedisValue(key, value.toString(), type, true);
     }
 
     @Tool(description = "Get Redis key information")
     public KeyInfo getKeyInfo(
-            @ToolParam("Redis key") String key) {
+    @ToolParam("Redis key") String key)
+    {
 
-        Long ttl = redisTemplate.getExpire(key);
-        String type = redisTemplate.type(key).code();
-        Long size = switch (type) {
-            case "string" -> redisTemplate.opsForValue().size(key);
-            case "list" -> redisTemplate.opsForList().size(key);
-            case "set" -> redisTemplate.opsForSet().size(key);
-            case "hash" -> (long) redisTemplate.opsForHash().size(key);
-            default -> 0L;
-        };
+        Long ttl = redisTemplate . getExpire (key);
+        String type = redisTemplate . type (key).code();
+        Long size = when (type) {
+        "string" -> redisTemplate.opsForValue().size(key)
+        "list" -> redisTemplate.opsForList().size(key)
+        "set" -> redisTemplate.opsForSet().size(key)
+        "hash" -> redisTemplate.opsForHash().size(key).toLong()
+        else -> 0L
+    };
 
-        return new KeyInfo(key, type, ttl, size);
+        return KeyInfo(key, type, ttl, size);
     }
 
     @Tool(description = "Search for keys by pattern")
     public List<String> findKeys(
-            @ToolParam("Key pattern (e.g., user:*)") String pattern) {
+    @ToolParam("Key pattern (e.g., user:*)") String pattern)
+    {
 
-        Set<String> keys = redisTemplate.keys(pattern);
-        return keys != null ? new ArrayList<>(keys) : List.of();
+        Set<String> keys = redisTemplate . keys (pattern);
+        return keys != null ? new ArrayList<>(keys) : listOf();
     }
 
-    private String determineType(Object value) {
+    private fun determineType(Object value): String {
         if (value instanceof String) return "string";
         if (value instanceof List) return "list";
         if (value instanceof Set) return "set";
@@ -350,183 +375,192 @@ public class RedisTools {
     }
 }
 
-record RedisValue(String key, String value, String type, boolean exists) {}
-record KeyInfo(String key, String type, Long ttl, Long size) {}
+record RedisValue (String key, String value, String type, boolean exists) {}
+record KeyInfo (String key, String type, Long ttl, Long size) {}
 ```
 
 ## API Integration Tools
 
 ### REST API Client Tool
 
-```java
+```kotlin
 @Component
-public class RestApiTools {
+class RestApiTools {
 
-    private final WebClient webClient;
-    private final CircuitBreakerRegistry circuitBreakerRegistry;
+    private val webClient: WebClient
+    private val circuitBreakerRegistry: CircuitBreakerRegistry
 
-    public RestApiTools(WebClient.Builder builder, CircuitBreakerRegistry registry) {
+    public RestApiTools(WebClient.Builder builder, CircuitBreakerRegistry registry)
+    {
         this.webClient = builder
-                .defaultHeader(HttpHeaders.USER_AGENT, "Spring-AI-MCP-Client/1.0")
-                .defaultHeader(HttpHeaders.ACCEPT, MediaType.APPLICATION_JSON_VALUE)
-                .codecs(config -> config.defaultCodecs().maxInMemorySize(10 * 1024 * 1024))
-                .build();
+            .defaultHeader(HttpHeaders.USER_AGENT, "Spring-AI-MCP-Client/1.0")
+            .defaultHeader(HttpHeaders.ACCEPT, MediaType.APPLICATION_JSON_VALUE)
+            .codecs(config -> config.defaultCodecs().maxInMemorySize(10 * 1024 * 1024))
+        .build();
         this.circuitBreakerRegistry = registry;
     }
 
     @Tool(description = "Make HTTP GET request to a REST API")
     public ApiResponse httpGet(
-            @ToolParam("URL to request") String url,
-            @ToolParam(value = "Headers as JSON object", required = false)
-            String headersJson,
-            @ToolParam(value = "Timeout in seconds", required = false)
-            Integer timeout) {
+    @ToolParam("URL to request") String url,
+    @ToolParam(value = "Headers as JSON object", required = false)
+    String headersJson,
+    @ToolParam(value = "Timeout in seconds", required = false)
+    Integer timeout)
+    {
 
         // Validate URL
         if (!isValidUrl(url)) {
-            return new ApiResponse(0, null, Map.of(), "Invalid URL: " + url);
+            return ApiResponse(0, null, Map.of(), "Invalid URL: " + url);
         }
 
-        CircuitBreaker circuitBreaker = circuitBreakerRegistry.circuitBreaker("http-get");
+        CircuitBreaker circuitBreaker = circuitBreakerRegistry . circuitBreaker ("http-get");
 
         return circuitBreaker.executeSupplier(() -> {
-            try {
-                WebClient.RequestHeadersSpec<?> request = webClient.get()
-                        .uri(url)
-                        .httpRequest(httpRequest -> {
-                            if (timeout != null) {
-                                httpRequest.headers(headers ->
-                                    headers.setReadTimeout(Duration.ofSeconds(timeout))
-                                );
-                            }
-                        });
-
-                // Add custom headers if provided
-                if (headersJson != null && !headersJson.isBlank()) {
-                    Map<String, String> headers = new ObjectMapper().readValue(headersJson, Map.class);
-                    request.headers(httpHeaders -> headers.forEach(httpHeaders::add));
+        try {
+            WebClient.RequestHeadersSpec<?> request = webClient . get ()
+                .uri(url)
+                .httpRequest(httpRequest -> {
+                if (timeout != null) {
+                    httpRequest.headers(headers ->
+                    headers.setReadTimeout(Duration.ofSeconds(timeout))
+                    );
                 }
+            });
 
-                ResponseEntity<String> response = request
-                        .retrieve()
-                        .onStatus(HttpStatus::isError, clientResponse ->
-                            Mono.error(new ApiException("HTTP error: " + clientResponse.statusCode()))
-                        )
-                        .toEntity(String.class)
-                        .block();
-
-                if (response == null) {
-                    return new ApiResponse(500, null, Map.of(), "No response received");
-                }
-
-                String body = response.getBody();
-                Object parsedBody = parseResponseBody(body, response.getHeaders().getContentType());
-
-                return new ApiResponse(
-                        response.getStatusCode().value(),
-                        parsedBody,
-                        response.getHeaders().toSingleValueMap(),
-                        "Success"
-                );
-
-            } catch (Exception e) {
-                return new ApiResponse(500, null, Map.of(), "Error: " + e.getMessage());
+            // Add custom headers if provided
+            if (headersJson != null && !headersJson.isBlank()) {
+                Map<String, String> headers = ObjectMapper ().readValue(headersJson, Map.class);
+                request.headers(httpHeaders -> headers.forEach(httpHeaders::add));
             }
-        });
+
+            ResponseEntity<String> response = request
+                    .retrieve()
+                .onStatus(HttpStatus::isError, clientResponse ->
+            Mono.error(ApiException("HTTP error: " + clientResponse.statusCode()))
+            )
+            .toEntity(
+                String.class)
+                    .block();
+
+            if (response == null) {
+                return ApiResponse(500, null, Map.of(), "No response received");
+            }
+
+            String body = response . getBody ();
+            Object parsedBody = parseResponseBody (body, response.getHeaders().getContentType());
+
+            return new ApiResponse (
+                    response.getStatusCode().value(),
+            parsedBody,
+            response.getHeaders().toSingleValueMap(),
+            "Success"
+            );
+
+        } catch (Exception e) {
+            return ApiResponse(500, null, Map.of(), "Error: " + e.getMessage());
+        }
+    });
     }
 
     @Tool(description = "Make HTTP POST request to a REST API")
     public ApiResponse httpPost(
-            @ToolParam("URL to request") String url,
-            @ToolParam("Request body as JSON string") String bodyJson,
-            @ToolParam(value = "Headers as JSON object", required = false)
-            String headersJson) {
+    @ToolParam("URL to request") String url,
+    @ToolParam("Request body as JSON string") String bodyJson,
+    @ToolParam(value = "Headers as JSON object", required = false)
+    String headersJson)
+    {
 
-        CircuitBreaker circuitBreaker = circuitBreakerRegistry.circuitBreaker("http-post");
+        CircuitBreaker circuitBreaker = circuitBreakerRegistry . circuitBreaker ("http-post");
 
         return circuitBreaker.executeSupplier(() -> {
-            try {
-                WebClient.RequestBodySpec request = webClient.post()
-                        .uri(url);
+        try {
+            WebClient.RequestBodySpec request = webClient . post ()
+                .uri(url);
 
-                // Add headers
-                if (headersJson != null && !headersJson.isBlank()) {
-                    Map<String, String> headers = new ObjectMapper().readValue(headersJson, Map.class);
-                    request.headers(httpHeaders -> headers.forEach(httpHeaders::add));
-                }
-
-                // Parse and set body
-                Object body = parseRequestBody(bodyJson);
-                Mono<Object> bodyMono = Mono.justOrEmpty(body);
-
-                ResponseEntity<String> response = request
-                        .body(bodyMono, Object.class)
-                        .retrieve()
-                        .toEntity(String.class)
-                        .block();
-
-                if (response == null) {
-                    return new ApiResponse(500, null, Map.of(), "No response received");
-                }
-
-                Object parsedBody = parseResponseBody(response.getBody(), response.getHeaders().getContentType());
-
-                return new ApiResponse(
-                        response.getStatusCode().value(),
-                        parsedBody,
-                        response.getHeaders().toSingleValueMap(),
-                        "Success"
-                );
-
-            } catch (Exception e) {
-                return new ApiResponse(500, null, Map.of(), "Error: " + e.getMessage());
+            // Add headers
+            if (headersJson != null && !headersJson.isBlank()) {
+                Map<String, String> headers = ObjectMapper ().readValue(headersJson, Map.class);
+                request.headers(httpHeaders -> headers.forEach(httpHeaders::add));
             }
-        });
+
+            // Parse and set body
+            Object body = parseRequestBody (bodyJson);
+            Mono<Object> bodyMono = Mono . justOrEmpty (body);
+
+            ResponseEntity<String> response = request
+                    .body(
+                bodyMono,
+                Object.class)
+                    .retrieve()
+                    .toEntity(
+                        String.class)
+                            .block();
+
+            if (response == null) {
+                return ApiResponse(500, null, Map.of(), "No response received");
+            }
+
+            Object parsedBody = parseResponseBody (response.getBody(), response.getHeaders().getContentType());
+
+            return new ApiResponse (
+                    response.getStatusCode().value(),
+            parsedBody,
+            response.getHeaders().toSingleValueMap(),
+            "Success"
+            );
+
+        } catch (Exception e) {
+            return ApiResponse(500, null, Map.of(), "Error: " + e.getMessage());
+        }
+    });
     }
 
     @Tool(description = "Get API status and health")
     public HealthCheckResult checkApiHealth(
-            @ToolParam("Base URL of the API") String baseUrl) {
+    @ToolParam("Base URL of the API") String baseUrl)
+    {
 
-        String healthUrl = baseUrl.endsWith("/") ? baseUrl + "health" : baseUrl + "/health";
+        String healthUrl = baseUrl . endsWith ("/") ? baseUrl+"health" : baseUrl+"/health";
 
         try {
-            ResponseEntity<String> response = webClient.get()
-                    .uri(healthUrl)
-                    .retrieve()
-                    .toEntity(String.class)
-                    .block();
+            ResponseEntity<String> response = webClient . get ()
+                .uri(healthUrl)
+                .retrieve()
+                .toEntity(
+                    String.class)
+                        .block();
 
-            return new HealthCheckResult(
+            return new HealthCheckResult (
                     baseUrl,
-                    response != null && response.getStatusCode().is2xxSuccessful(),
-                    response != null ? response.getStatusCode().value() : 0,
-                    response != null ? response.getBody() : "No response"
+            response != null && response.getStatusCode().is2xxSuccessful(),
+            response != null ? response.getStatusCode().value() : 0,
+            response != null ? response.getBody() : "No response"
             );
 
         } catch (Exception e) {
-            return new HealthCheckResult(baseUrl, false, 0, e.getMessage());
+            return HealthCheckResult(baseUrl, false, 0, e.getMessage());
         }
     }
 
-    private boolean isValidUrl(String url) {
+    private fun isValidUrl(String url): boolean {
         try {
-            URL parsed = new URL(url);
-            String protocol = parsed.getProtocol();
+            URL parsed = URL (url);
+            String protocol = parsed . getProtocol ();
             return "http".equals(protocol) || "https".equals(protocol);
         } catch (MalformedURLException e) {
             return false;
         }
     }
 
-    private Object parseResponseBody(String body, MediaType contentType) {
+    private fun parseResponseBody(String body, MediaType contentType): Object {
         if (body == null || body.isBlank()) {
             return null;
         }
 
         try {
             if (contentType != null && contentType.includes(MediaType.APPLICATION_JSON)) {
-                return new ObjectMapper().readValue(body, Object.class);
+                return ObjectMapper().readValue(body, Object.class);
             }
             return body;
         } catch (Exception e) {
@@ -534,18 +568,19 @@ public class RestApiTools {
         }
     }
 
-    private Object parseRequestBody(String bodyJson) throws JsonProcessingException {
+    private Object parseRequestBody(String bodyJson) throws JsonProcessingException
+    {
         if (bodyJson == null || bodyJson.isBlank()) {
             return null;
         }
-        return new ObjectMapper().readValue(bodyJson, Object.class);
+        return ObjectMapper().readValue(bodyJson, Object.class);
     }
 }
 
-record ApiResponse(int status, Object body, Map<String, String> headers, String message) {}
-record HealthCheckResult(String url, boolean healthy, int statusCode, String response) {}
+record ApiResponse (int status, Object body, Map<String, String> headers, String message) {}
+record HealthCheckResult (String url, boolean healthy, int statusCode, String response) {}
 class ApiException extends RuntimeException {
-    public ApiException(String message) {
+    public ApiException (String message) {
         super(message);
     }
 }
@@ -553,60 +588,66 @@ class ApiException extends RuntimeException {
 
 ### GraphQL API Tool
 
-```java
+```kotlin
 @Component
-public class GraphQlTools {
+class GraphQlTools {
 
-    private final WebClient webClient;
+    private val webClient: WebClient
 
-    public GraphQlTools(WebClient.Builder builder) {
+    public GraphQlTools(WebClient.Builder builder)
+    {
         this.webClient = builder
-                .defaultHeader(HttpHeaders.CONTENT_TYPE, "application/json")
-                .build();
+            .defaultHeader(HttpHeaders.CONTENT_TYPE, "application/json")
+            .build();
     }
 
     @Tool(description = "Execute GraphQL query")
     public GraphQlResponse executeQuery(
-            @ToolParam("GraphQL endpoint URL") String endpoint,
-            @ToolParam("GraphQL query") String query,
-            @ToolParam(value = "Query variables as JSON", required = false)
-            String variablesJson) {
+    @ToolParam("GraphQL endpoint URL") String endpoint,
+    @ToolParam("GraphQL query") String query,
+    @ToolParam(value = "Query variables as JSON", required = false)
+    String variablesJson)
+    {
 
         try {
-            Map<String, Object> requestBody = new HashMap<>();
+            Map<String, Object> requestBody = mutableMapOf ();
             requestBody.put("query", query);
 
             if (variablesJson != null && !variablesJson.isBlank()) {
-                Map<String, Object> variables = new ObjectMapper().readValue(variablesJson, Map.class);
+                Map<String, Object> variables = ObjectMapper ().readValue(variablesJson, Map.class);
                 requestBody.put("variables", variables);
             }
 
-            ResponseEntity<String> response = webClient.post()
-                    .uri(endpoint)
-                    .bodyValue(requestBody)
-                    .retrieve()
-                    .toEntity(String.class)
-                    .block();
+            ResponseEntity<String> response = webClient . post ()
+                .uri(endpoint)
+                .bodyValue(requestBody)
+                .retrieve()
+                .toEntity(
+                    String.class)
+                        .block();
 
             if (response == null) {
-                return new GraphQlResponse(null, List.of("No response received"));
+                return GraphQlResponse(null, listOf("No response received"));
             }
 
-            Map<String, Object> responseBody = new ObjectMapper().readValue(response.getBody(), Map.class);
+            Map<String, Object> responseBody = ObjectMapper ().readValue(
+                response.getBody(),
+                Map.class);
 
-            return new GraphQlResponse(
-                    (Map<String, Object>) responseBody.get("data"),
-                    (List<Map<String, Object>>) responseBody.get("errors")
+            return new GraphQlResponse (
+                    (Map<String, Object>) responseBody . get ("data"),
+            (List<Map<String, Object>>) responseBody . get ("errors")
             );
 
         } catch (Exception e) {
-            return new GraphQlResponse(null, List.of(Map.of("message", e.getMessage())));
+            return GraphQlResponse(null, listOf(Map.of("message", e.getMessage())));
         }
     }
 
     @Tool(description = "Get GraphQL schema")
     public String getSchema(
-            @ToolParam("GraphQL endpoint URL") String endpoint) {
+    @ToolParam("GraphQL endpoint URL") String endpoint)
+    {
 
         String introspectionQuery = """
             query IntrospectionQuery {
@@ -622,235 +663,246 @@ public class GraphQlTools {
             }
             """;
 
-        GraphQlResponse response = executeQuery(endpoint, introspectionQuery, null);
-        return new ObjectMapper().valueToTree(response).toPrettyString();
+        GraphQlResponse response = executeQuery (endpoint, introspectionQuery, null);
+        return ObjectMapper().valueToTree(response).toPrettyString();
     }
 }
 
-record GraphQlResponse(Map<String, Object> data, List<Map<String, Object>> errors) {}
+record GraphQlResponse (Map<String, Object> data, List<Map<String, Object>> errors) {}
 ```
 
 ## File System Tools
 
 ### File Operations Tool
 
-```java
+```kotlin
 @Component
-public class FileSystemTools {
+class FileSystemTools {
 
-    private final Path baseDirectory;
+    private val baseDirectory: Path
 
-    public FileSystemTools(@Value("{mcp.filesystem.base-dir:/tmp/mcp") String baseDir) {
+    public FileSystemTools(@Value("{mcp.filesystem.base-dir:/tmp/mcp") String baseDir)
+    {
         this.baseDirectory = Paths.get(baseDir).toAbsolutePath().normalize();
         // Security: Create base directory if it doesn't exist
         try {
             Files.createDirectories(this.baseDirectory);
         } catch (IOException e) {
-            throw new RuntimeException("Failed to create base directory", e);
+            throw RuntimeException("Failed to create base directory", e);
         }
     }
 
     @Tool(description = "Read file contents")
     public FileReadResult readFile(
-            @ToolParam("Path to file, relative to base directory") String filePath) {
+    @ToolParam("Path to file, relative to base directory") String filePath)
+    {
 
         try {
-            Path file = resolveSafePath(filePath);
+            Path file = resolveSafePath (filePath);
 
             if (!Files.exists(file)) {
-                return new FileReadResult(false, null, "File does not exist: " + filePath);
+                return FileReadResult(false, null, "File does not exist: " + filePath);
             }
 
             if (!Files.isRegularFile(file)) {
-                return new FileReadResult(false, null, "Path is not a file: " + filePath);
+                return FileReadResult(false, null, "Path is not a file: " + filePath);
             }
 
             // Security: Check file size
-            long size = Files.size(file);
+            long size = Files . size (file);
             if (size > 10 * 1024 * 1024) { // 10MB limit
-                return new FileReadResult(false, null, "File too large: " + size + " bytes");
+                return FileReadResult(false, null, "File too large: " + size + " bytes");
             }
 
-            String content = Files.readString(file);
-            String mimeType = Files.probeContentType(file);
+            String content = Files . readString (file);
+            String mimeType = Files . probeContentType (file);
 
-            return new FileReadResult(true, content, mimeType, filePath, size);
+            return FileReadResult(true, content, mimeType, filePath, size);
 
         } catch (IOException e) {
-            return new FileReadResult(false, null, "Error reading file: " + e.getMessage());
+            return FileReadResult(false, null, "Error reading file: " + e.getMessage());
         }
     }
 
     @Tool(description = "Write content to file")
     public FileWriteResult writeFile(
-            @ToolParam("Path to file, relative to base directory") String filePath,
-            @ToolParam("Content to write") String content) {
+    @ToolParam("Path to file, relative to base directory") String filePath,
+    @ToolParam("Content to write") String content)
+    {
 
         try {
-            Path file = resolveSafePath(filePath);
+            Path file = resolveSafePath (filePath);
 
             // Security: Don't allow writing outside base directory
             if (!file.startsWith(baseDirectory)) {
-                return new FileWriteResult(false, filePath, "Invalid path");
+                return FileWriteResult(false, filePath, "Invalid path");
             }
 
             // Create parent directories if needed
             Files.createDirectories(file.getParent());
 
-            Files.writeString(file, content, StandardOpenOption.CREATE,
-                            StandardOpenOption.TRUNCATE_EXISTING);
+            Files.writeString(
+                file, content, StandardOpenOption.CREATE,
+                StandardOpenOption.TRUNCATE_EXISTING
+            );
 
-            return new FileWriteResult(true, filePath, "File written successfully");
+            return FileWriteResult(true, filePath, "File written successfully");
 
         } catch (IOException e) {
-            return new FileWriteResult(false, filePath, "Error writing file: " + e.getMessage());
+            return FileWriteResult(false, filePath, "Error writing file: " + e.getMessage());
         }
     }
 
     @Tool(description = "List files in directory")
     public ListFilesResult listFiles(
-            @ToolParam(value = "Directory path, relative to base directory", required = false)
-            String dirPath,
-            @ToolParam(value = "File pattern (e.g., *.txt)", required = false)
-            String pattern) {
+    @ToolParam(value = "Directory path, relative to base directory", required = false)
+    String dirPath,
+    @ToolParam(value = "File pattern (e.g., *.txt)", required = false)
+    String pattern)
+    {
 
         try {
             Path dir = dirPath != null && !dirPath.isBlank()
-                    ? resolveSafePath(dirPath)
-                    : baseDirectory;
+            ? resolveSafePath(dirPath)
+            : baseDirectory;
 
             if (!Files.isDirectory(dir)) {
-                return new ListFilesResult(false, null, "Not a directory: " + dirPath);
+                return ListFilesResult(false, null, "Not a directory: " + dirPath);
             }
 
             try (var stream = Files.list(dir)) {
                 List<FileInfo> files = stream
                         .filter(path -> pattern == null ||
-                                path.getFileName().toString().matches(pattern.replace("*", ".*")))
-                        .map(path -> {
-                            try {
-                                return new FileInfo(
-                                        path.getFileName().toString(),
-                                        Files.isDirectory(path),
-                                        Files.size(path),
-                                        Files.getLastModifiedTime(path).toInstant()
-                                );
-                            } catch (IOException e) {
-                                return null;
-                            }
-                        })
-                        .filter(Objects::nonNull)
-                        .sorted(Comparator.comparing(FileInfo::name))
-                        .toList();
+                path.getFileName().toString().matches(pattern.replace("*", ".*")))
+                .map(path -> {
+                try {
+                    return new FileInfo (
+                            path.getFileName().toString(),
+                    Files.isDirectory(path),
+                    Files.size(path),
+                    Files.getLastModifiedTime(path).toInstant()
+                    );
+                } catch (IOException e) {
+                    return null;
+                }
+            })
+                .filter(Objects::nonNull)
+                .sorted(Comparator.comparing(FileInfo::name))
+                .toList();
 
-                return new ListFilesResult(true, files, null);
+                return ListFilesResult(true, files, null);
             }
 
-        } catch (IOException e) {
-            return new ListFilesResult(false, null, "Error listing files: " + e.getMessage());
+            } catch (IOException e) {
+            return ListFilesResult(false, null, "Error listing files: " + e.getMessage());
         }
     }
 
     @Tool(description = "Get file information")
     public FileInfo getFileInfo(
-            @ToolParam("Path to file or directory") String path) {
+    @ToolParam("Path to file or directory") String path)
+    {
 
         try {
-            Path file = resolveSafePath(path);
+            Path file = resolveSafePath (path);
 
             if (!Files.exists(file)) {
-                return new FileInfo(path, false, -1, null, "File does not exist");
+                return FileInfo(path, false, -1, null, "File does not exist");
             }
 
-            boolean isDirectory = Files.isDirectory(file);
-            long size = isDirectory ? -1 : Files.size(file);
-            Instant lastModified = Files.getLastModifiedTime(file).toInstant();
+            boolean isDirectory = Files . isDirectory (file);
+            long size = isDirectory ? - 1 : Files.size(file);
+            Instant lastModified = Files . getLastModifiedTime (file).toInstant();
 
-            return new FileInfo(file.getFileName().toString(), isDirectory, size, lastModified, null);
+            return FileInfo(file.getFileName().toString(), isDirectory, size, lastModified, null);
 
         } catch (IOException e) {
-            return new FileInfo(path, false, -1, null, "Error: " + e.getMessage());
+            return FileInfo(path, false, -1, null, "Error: " + e.getMessage());
         }
     }
 
-    private Path resolveSafePath(String path) throws IOException {
+    private Path resolveSafePath(String path) throws IOException
+    {
         // Security: Prevent path traversal
-        Path file = baseDirectory.resolve(path).normalize();
+        Path file = baseDirectory . resolve (path).normalize();
 
         if (!file.startsWith(baseDirectory)) {
-            throw new SecurityException("Invalid path");
+            throw SecurityException("Invalid path");
         }
 
         return file;
     }
 }
 
-record FileReadResult(boolean success, String content, String mimeType, String path, long size, String error) {
-    public FileReadResult(boolean success, String content, String error) {
-        this(success, content, null, null, 0, error);
-    }
+record FileReadResult (boolean success, String content, String mimeType, String path, long size, String error) {
+    public FileReadResult (boolean success, String content, String error) {
+    this(success, content, null, null, 0, error);
 }
-record FileWriteResult(boolean success, String path, String message) {}
-record ListFilesResult(boolean success, List<FileInfo> files, String error) {}
-record FileInfo(String name, boolean isDirectory, long size, Instant lastModified, String error) {}
+}
+record FileWriteResult (boolean success, String path, String message) {}
+record ListFilesResult (boolean success, List<FileInfo> files, String error) {}
+record FileInfo (String name, boolean isDirectory, long size, Instant lastModified, String error) {}
 ```
 
 ### CSV Processing Tool
 
-```java
+```kotlin
 @Component
-public class CsvTools {
+class CsvTools {
 
     @Tool(description = "Read and analyze CSV file")
     public CsvAnalysis analyzeCsv(
-            @ToolParam("Path to CSV file") String filePath,
-            @ToolParam(value = "Has header row", required = false)
-            Boolean hasHeader) {
+    @ToolParam("Path to CSV file") String filePath,
+    @ToolParam(value = "Has header row", required = false)
+    Boolean hasHeader)
+    {
 
         boolean header = hasHeader != null ? hasHeader : true;
 
-        try (Reader reader = new FileReader(filePath);
-             CSVParser parser = new CSVParser(reader,
-                     CSVFormat.DEFAULT.builder()
-                             .setHeader()
-                             .setSkipHeaderRecord(header)
-                             .build())) {
+        try (Reader reader = FileReader (filePath);
+            CSVParser parser = new CSVParser(
+                reader,
+                CSVFormat.DEFAULT.builder()
+                    .setHeader()
+                    .setSkipHeaderRecord(header)
+                    .build()
+            )) {
 
-            List<CSVRecord> records = parser.getRecords();
-            Map<String, Integer> columnCount = new HashMap<>();
+                List<CSVRecord> records = parser . getRecords ();
+                Map<String, Integer> columnCount = mutableMapOf ();
 
-            if (header) {
-                for (String column : parser.getHeaderNames()) {
-                    columnCount.put(column, 0);
+                if (header) {
+                    for (String column : parser.getHeaderNames()) {
+                        columnCount.put(column, 0);
+                    }
                 }
-            }
 
-            // Analyze data types
-            Map<String, Set<String>> columnTypes = new HashMap<>();
-            for (CSVRecord record : records) {
+                // Analyze data types
+                Map<String, Set<String>> columnTypes = mutableMapOf ();
+                for (CSVRecord record : records) {
                 for (int i = 0; i < record.size(); i++) {
-                    String column = header ? parser.getHeaderNames().get(i) : "col_" + i;
-                    String value = record.get(i);
+                String column = header ? parser . getHeaderNames ().get(i) : "col_"+i;
+                String value = record . get (i);
 
-                    columnTypes.computeIfAbsent(column, k -> new HashSet<>())
-                            .add(inferType(value));
-                }
+                columnTypes.computeIfAbsent(column, k -> mutableSetOf())
+                .add(inferType(value));
+            }
             }
 
-            return new CsvAnalysis(
-                    filePath,
-                    records.size(),
-                    header ? parser.getHeaderNames() : null,
-                    columnTypes,
-                    header
-            );
+                return new CsvAnalysis (
+                        filePath,
+                records.size(),
+                header ? parser.getHeaderNames() : null,
+                columnTypes,
+                header
+                );
 
-        } catch (IOException e) {
-            throw new RuntimeException("Failed to analyze CSV", e);
+            } catch (IOException e) {
+                throw RuntimeException("Failed to analyze CSV", e);
+            }
         }
-    }
 
-    private String inferType(String value) {
+    private fun inferType(String value): String {
         if (value == null || value.isBlank()) return "empty";
         if (value.matches("-?\\d+")) return "integer";
         if (value.matches("-?\\d*\\.\\d+")) return "decimal";
@@ -862,34 +914,31 @@ public class CsvTools {
 
     @Tool(description = "Convert CSV to JSON")
     public List<Map<String, String>> csvToJson(
-            @ToolParam("Path to CSV file") String filePath) {
+    @ToolParam("Path to CSV file") String filePath)
+    {
 
-        try (Reader reader = new FileReader(filePath);
-             CSVParser parser = new CSVParser(reader,
-                     CSVFormat.DEFAULT.builder().setHeader().build())) {
-
-            return parser.getRecords().stream()
-                    .map(record -> {
-                        Map<String, String> json = new LinkedHashMap<>();
-                        for (String header : parser.getHeaderNames()) {
-                            json.put(header, record.get(header));
+        FileReader(filePath).use { reader ->
+            CSVParser(reader, CSVFormat.DEFAULT.builder().setHeader().build()).use { parser ->
+                return parser.records.map { record ->
+                    buildMap<String, String> {
+                        parser.headerNames.forEach { header ->
+                            put(header, record.get(header))
                         }
-                        return json;
-                    })
-                    .toList();
-
-        } catch (IOException e) {
-            throw new RuntimeException("Failed to convert CSV to JSON", e);
-        }
+                    }
+                }
+            }
+        } catch (e: IOException) {
+        throw RuntimeException("Failed to convert CSV to JSON", e)
+    }
     }
 }
 
-record CsvAnalysis(
-    String filePath,
-    int rowCount,
-    List<String> headers,
-    Map<String, Set<String>> columnTypes,
-    boolean hasHeader
+record CsvAnalysis (
+        String filePath,
+int rowCount,
+List<String> headers,
+Map<String, Set<String>> columnTypes,
+boolean hasHeader
 ) {}
 ```
 
@@ -897,84 +946,86 @@ record CsvAnalysis(
 
 ### User Management Tools
 
-```java
+```kotlin
 @Component
-public class UserManagementTools {
+class UserManagementTools {
 
-    private final UserRepository userRepository;
-    private final PasswordEncoder passwordEncoder;
+    private val userRepository: UserRepository
+    private val passwordEncoder: PasswordEncoder
 
-    public UserManagementTools(UserRepository userRepository, PasswordEncoder passwordEncoder) {
+    public UserManagementTools(UserRepository userRepository, PasswordEncoder passwordEncoder)
+    {
         this.userRepository = userRepository;
         this.passwordEncoder = passwordEncoder;
     }
 
     @Tool(description = "Search users by criteria")
     public List<UserInfo> searchUsers(
-            @ToolParam(value = "Email contains", required = false)
-            String email,
-            @ToolParam(value = "Name contains", required = false)
-            String name,
-            @ToolParam(value = "Role", required = false)
-            String role,
-            @ToolParam(value = "Active status", required = false)
-            Boolean active) {
+    @ToolParam(value = "Email contains", required = false)
+    String email,
+    @ToolParam(value = "Name contains", required = false)
+    String name,
+    @ToolParam(value = "Role", required = false)
+    String role,
+    @ToolParam(value = "Active status", required = false)
+    Boolean active)
+    {
 
-        List<User> users = userRepository.findAll((root, query, cb) -> {
-            List<Predicate> predicates = new ArrayList<>();
+        List<User> users = userRepository . findAll ((root, query, cb) -> {
+        List<Predicate> predicates = mutableListOf ();
 
-            if (email != null && !email.isBlank()) {
-                predicates.add(cb.like(root.get("email"), "%" + email + "%"));
-            }
-            if (name != null && !name.isBlank()) {
-                predicates.add(cb.like(root.get("name"), "%" + name + "%"));
-            }
-            if (role != null && !role.isBlank()) {
-                predicates.add(cb.equal(root.get("role"), role));
-            }
-            if (active != null) {
-                predicates.add(cb.equal(root.get("active"), active));
-            }
+        if (email != null && !email.isBlank()) {
+            predicates.add(cb.like(root.get("email"), "%" + email + "%"));
+        }
+        if (name != null && !name.isBlank()) {
+            predicates.add(cb.like(root.get("name"), "%" + name + "%"));
+        }
+        if (role != null && !role.isBlank()) {
+            predicates.add(cb.equal(root.get("role"), role));
+        }
+        if (active != null) {
+            predicates.add(cb.equal(root.get("active"), active));
+        }
 
-            return cb.and(predicates.toArray(new Predicate[0]));
-        });
+        return cb.and(predicates.toArray(new Predicate [0]));
+    });
 
-        return users.stream()
-                .map(user -> new UserInfo(
-                        user.getId(),
-                        user.getEmail(),
-                        user.getName(),
-                        user.getRole(),
-                        user.isActive(),
-                        user.getCreatedAt()
-                ))
-                .toList();
+        return users.map(user -> new UserInfo(
+        user.getId(),
+        user.getEmail(),
+        user.getName(),
+        user.getRole(),
+        user.isActive(),
+        user.getCreatedAt()
+        ))
+        .toList();
     }
 
     @Tool(description = "Create a new user account")
     public UserCreationResult createUser(
-            @ToolParam("User email") String email,
-            @ToolParam("User name") String name,
-            @ToolParam("User password") String password,
-            @ToolParam(value = "User role", required = false)
-            String role) {
+    @ToolParam("User email") String email,
+    @ToolParam("User name") String name,
+    @ToolParam("User password") String password,
+    @ToolParam(value = "User role", required = false)
+    String role)
+    {
 
         // Validate input
         if (!isValidEmail(email)) {
-            return new UserCreationResult(false, null, "Invalid email format");
+            return UserCreationResult(false, null, "Invalid email format");
         }
 
         if (password.length() < 8) {
-            return new UserCreationResult(false, null, "Password must be at least 8 characters");
+            return UserCreationResult(false, null, "Password must be at least 8 characters");
         }
 
         // Check if user exists
         if (userRepository.findByEmail(email).isPresent()) {
-            return new UserCreationResult(false, null, "User already exists: " + email);
+            return UserCreationResult(false, null, "User already exists: " + email);
         }
 
         try {
-            User user = new User();
+            User user = User ();
             user.setEmail(email);
             user.setName(name);
             user.setPassword(passwordEncoder.encode(password));
@@ -982,346 +1033,368 @@ public class UserManagementTools {
             user.setActive(true);
             user.setCreatedAt(LocalDateTime.now());
 
-            User saved = userRepository.save(user);
+            User saved = userRepository . save (user);
 
-            return new UserCreationResult(
+            return new UserCreationResult (
                     true,
-                    new UserInfo(
-                            saved.getId(),
-                            saved.getEmail(),
-                            saved.getName(),
-                            saved.getRole(),
-                            saved.isActive(),
-                            saved.getCreatedAt()
-                    ),
-                    "User created successfully"
+            new UserInfo (
+                    saved.getId(),
+            saved.getEmail(),
+            saved.getName(),
+            saved.getRole(),
+            saved.isActive(),
+            saved.getCreatedAt()
+            ),
+            "User created successfully"
             );
 
         } catch (Exception e) {
-            return new UserCreationResult(false, null, "Error creating user: " + e.getMessage());
+            return UserCreationResult(false, null, "Error creating user: " + e.getMessage());
         }
     }
 
     @Tool(description = "Get user statistics")
-    public UserStatistics getUserStatistics() {
-        long totalUsers = userRepository.count();
-        long activeUsers = userRepository.countByActive(true);
-        long inactiveUsers = userRepository.countByActive(false);
+    fun getUserStatistics(): UserStatistics {
+        long totalUsers = userRepository . count ();
+        long activeUsers = userRepository . countByActive (true);
+        long inactiveUsers = userRepository . countByActive (false);
 
-        Map<String, Long> usersByRole = userRepository.findAll().stream()
-                .collect(Collectors.groupingBy(User::getRole, Collectors.counting()));
+        Map<String, Long> usersByRole = userRepository . findAll ()..collect(
+            Collectors.groupingBy(
+                User::getRole,
+                Collectors.counting()
+            )
+        );
 
-        return new UserStatistics(
+        return new UserStatistics (
                 totalUsers,
-                activeUsers,
-                inactiveUsers,
-                usersByRole
+        activeUsers,
+        inactiveUsers,
+        usersByRole
         );
     }
 
-    private boolean isValidEmail(String email) {
+    private fun isValidEmail(String email): boolean {
         return email != null && email.matches("^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\\.[a-zA-Z]{2,}$");
     }
 }
 
-record UserInfo(Long id, String email, String name, String role, boolean active, LocalDateTime createdAt) {}
-record UserCreationResult(boolean success, UserInfo user, String message) {}
-record UserStatistics(long totalUsers, long activeUsers, long inactiveUsers, Map<String, Long> usersByRole) {}
+record UserInfo (Long id, String email, String name, String role, boolean active, LocalDateTime createdAt) {}
+record UserCreationResult (boolean success, UserInfo user, String message) {}
+record UserStatistics (long totalUsers, long activeUsers, long inactiveUsers, Map<String, Long> usersByRole) {}
 ```
 
 ### Order Management Tools
 
-```java
+```kotlin
 @Component
-public class OrderManagementTools {
+class OrderManagementTools {
 
-    private final OrderRepository orderRepository;
-    private final ProductRepository productRepository;
+    private val orderRepository: OrderRepository
+    private val productRepository: ProductRepository
 
-    public OrderManagementTools(OrderRepository orderRepository, ProductRepository productRepository) {
+    public OrderManagementTools(OrderRepository orderRepository, ProductRepository productRepository)
+    {
         this.orderRepository = orderRepository;
         this.productRepository = productRepository;
     }
 
     @Tool(description = "Create a new order")
     public OrderCreationResult createOrder(
-            @ToolParam("Customer email") String customerEmail,
-            @ToolParam("Product IDs and quantities as JSON array")
-            String itemsJson) {
+    @ToolParam("Customer email") String customerEmail,
+    @ToolParam("Product IDs and quantities as JSON array")
+    String itemsJson)
+    {
 
         try {
-            List<OrderItemInput> items = new ObjectMapper().readValue(itemsJson,
-                    new TypeReference<List<OrderItemInput>>() {});
+            List<OrderItemInput> items = ObjectMapper ().readValue(
+                itemsJson,
+                new TypeReference < List < OrderItemInput > > () {});
 
             // Validate items
-            List<OrderItem> orderItems = new ArrayList<>();
-            BigDecimal totalAmount = BigDecimal.ZERO;
+            List<OrderItem> orderItems = mutableListOf ();
+            BigDecimal totalAmount = BigDecimal . ZERO;
 
             for (OrderItemInput itemInput : items) {
-                Product product = productRepository.findById(itemInput.productId())
-                        .orElseThrow(() -> new IllegalArgumentException(
-                                "Product not found: " + itemInput.productId()));
+                Product product = productRepository . findById (itemInput.productId())
+                    .orElseThrow(() -> new IllegalArgumentException(
+                "Product not found: " + itemInput.productId()));
 
                 if (product.getStock() < itemInput.quantity()) {
-                    throw new IllegalArgumentException(
+                    throw new IllegalArgumentException (
                             "Insufficient stock for product: " + product.getName());
                 }
 
-                OrderItem orderItem = new OrderItem();
+                OrderItem orderItem = OrderItem ();
                 orderItem.setProductId(product.getId());
                 orderItem.setProductName(product.getName());
                 orderItem.setQuantity(itemInput.quantity());
                 orderItem.setUnitPrice(product.getPrice());
-                orderItem.setSubtotal(product.getPrice().multiply(BigDecimal.valueOf(itemInput.quantity())));
+                orderItem.setSubtotal(
+                    product.getPrice().multiply(BigDecimal.valueOf(itemInput.quantity()))
+                );
 
                 orderItems.add(orderItem);
                 totalAmount = totalAmount.add(orderItem.getSubtotal());
             }
 
             // Create order
-            Order order = new Order();
+            Order order = Order ();
             order.setCustomerEmail(customerEmail);
             order.setOrderItems(orderItems);
             order.setTotalAmount(totalAmount);
             order.setStatus("PENDING");
             order.setCreatedAt(LocalDateTime.now());
 
-            Order saved = orderRepository.save(order);
+            Order saved = orderRepository . save (order);
 
-            return new OrderCreationResult(true, saved.getId(), saved.getTotalAmount(),
-                    "Order created successfully");
+            return OrderCreationResult(
+                true, saved.getId(), saved.getTotalAmount(),
+                "Order created successfully"
+            );
 
         } catch (Exception e) {
-            return new OrderCreationResult(false, null, null,
-                    "Error: " + e.getMessage());
+            return new OrderCreationResult (false, null, null,
+            "Error: " + e.getMessage());
         }
     }
 
     @Tool(description = "Search orders")
     public List<OrderInfo> searchOrders(
-            @ToolParam(value = "Customer email", required = false)
-            String customerEmail,
-            @ToolParam(value = "Order status", required = false)
-            String status,
-            @ToolParam(value = "Start date (YYYY-MM-DD)", required = false)
-            String startDate,
-            @ToolParam(value = "End date (YYYY-MM-DD)", required = false)
-            String endDate) {
+    @ToolParam(value = "Customer email", required = false)
+    String customerEmail,
+    @ToolParam(value = "Order status", required = false)
+    String status,
+    @ToolParam(value = "Start date (YYYY-MM-DD)", required = false)
+    String startDate,
+    @ToolParam(value = "End date (YYYY-MM-DD)", required = false)
+    String endDate)
+    {
 
         return orderRepository.findAll((root, query, cb) -> {
-            List<Predicate> predicates = new ArrayList<>();
+        List<Predicate> predicates = mutableListOf ();
 
-            if (customerEmail != null && !customerEmail.isBlank()) {
-                predicates.add(cb.equal(root.get("customerEmail"), customerEmail));
-            }
-            if (status != null && !status.isBlank()) {
-                predicates.add(cb.equal(root.get("status"), status));
-            }
-            if (startDate != null && !startDate.isBlank()) {
-                predicates.add(cb.greaterThanOrEqualTo(
-                        root.get("createdAt"), LocalDate.parse(startDate).atStartOfDay()));
-            }
-            if (endDate != null && !endDate.isBlank()) {
-                predicates.add(cb.lessThanOrEqualTo(
-                        root.get("createdAt"), LocalDate.parse(endDate).atTime(LocalTime.MAX)));
-            }
+        if (customerEmail != null && !customerEmail.isBlank()) {
+            predicates.add(cb.equal(root.get("customerEmail"), customerEmail));
+        }
+        if (status != null && !status.isBlank()) {
+            predicates.add(cb.equal(root.get("status"), status));
+        }
+        if (startDate != null && !startDate.isBlank()) {
+            predicates.add(
+                cb.greaterThanOrEqualTo(
+                    root.get("createdAt"), LocalDate.parse(startDate).atStartOfDay()
+                )
+            );
+        }
+        if (endDate != null && !endDate.isBlank()) {
+            predicates.add(
+                cb.lessThanOrEqualTo(
+                    root.get("createdAt"), LocalDate.parse(endDate).atTime(LocalTime.MAX)
+                )
+            );
+        }
 
-            return cb.and(predicates.toArray(new Predicate[0]));
-        }).stream().map(order -> new OrderInfo(
-                order.getId(),
-                order.getCustomerEmail(),
-                order.getStatus(),
-                order.getTotalAmount(),
-                order.getCreatedAt(),
-                order.getOrderItems().size()
+        return cb.and(predicates.toArray(new Predicate [0]));
+    }).stream().map(order -> new OrderInfo(
+        order.getId(),
+        order.getCustomerEmail(),
+        order.getStatus(),
+        order.getTotalAmount(),
+        order.getCreatedAt(),
+        order.getOrderItems().size()
         )).toList();
     }
 
     @Tool(description = "Get order statistics")
     public OrderStatistics getOrderStatistics(
-            @ToolParam(value = "Start date (YYYY-MM-DD)", required = false)
-            String startDate,
-            @ToolParam(value = "End date (YYYY-MM-DD)", required = false)
-            String endDate) {
+    @ToolParam(value = "Start date (YYYY-MM-DD)", required = false)
+    String startDate,
+    @ToolParam(value = "End date (YYYY-MM-DD)", required = false)
+    String endDate)
+    {
 
         LocalDateTime start = startDate != null ?
-                LocalDate.parse(startDate).atStartOfDay() :
-                LocalDateTime.now().minusDays(30);
+        LocalDate.parse(startDate).atStartOfDay() :
+        LocalDateTime.now().minusDays(30);
 
         LocalDateTime end = endDate != null ?
-                LocalDate.parse(endDate).atTime(LocalTime.MAX) :
-                LocalDateTime.now();
+        LocalDate.parse(endDate).atTime(LocalTime.MAX) :
+        LocalDateTime.now();
 
-        List<Order> orders = orderRepository.findByCreatedAtBetween(start, end);
+        val orders = orderRepository.findByCreatedAtBetween(start, end)
 
-        BigDecimal totalRevenue = orders.stream()
-                .map(Order::getTotalAmount)
-                .reduce(BigDecimal.ZERO, BigDecimal::add);
+        val totalRevenue = orders.fold(BigDecimal.ZERO) { acc, order ->
+            acc.add(order.totalAmount)
+        }
 
-        Map<String, Long> ordersByStatus = orders.stream()
-                .collect(Collectors.groupingBy(Order::getStatus, Collectors.counting()));
+        val ordersByStatus = orders.groupBy { it.status }
+            .mapValues { it.value.size.toLong() }
 
-        Order lastOrder = orders.stream()
-                .max(Comparator.comparing(Order::getCreatedAt))
-                .orElse(null);
+        val lastOrder = orders.maxByOrNull { it.createdAt }
 
-        return new OrderStatistics(
-                orders.size(),
-                totalRevenue,
-                ordersByStatus,
-                lastOrder != null ? lastOrder.getCreatedAt() : null
-        );
+        return OrderStatistics(
+            orders.size,
+            totalRevenue,
+            ordersByStatus,
+            lastOrder?.createdAt
+        )
     }
 }
 
-record OrderItemInput(Long productId, int quantity) {}
-record OrderCreationResult(boolean success, Long orderId, BigDecimal total, String message) {}
-record OrderInfo(Long id, String customerEmail, String status, BigDecimal totalAmount,
-                 LocalDateTime createdAt, int itemCount) {}
-record OrderStatistics(int totalOrders, BigDecimal totalRevenue,
-                       Map<String, Long> ordersByStatus, LocalDateTime lastOrderDate) {}
+record OrderItemInput (Long productId, int quantity) {}
+record OrderCreationResult (boolean success, Long orderId, BigDecimal total, String message) {}
+record OrderInfo (Long id, String customerEmail, String status, BigDecimal totalAmount,
+LocalDateTime createdAt, int itemCount) {}
+record OrderStatistics (int totalOrders, BigDecimal totalRevenue,
+Map<String, Long> ordersByStatus, LocalDateTime lastOrderDate) {}
 ```
 
 ## Multi-Modal Tools
 
 ### Image Processing Tools
 
-```java
+```kotlin
 @Component
-public class ImageTools {
+class ImageTools {
 
-    private final RestTemplate restTemplate;
+    private val restTemplate: RestTemplate
 
-    public ImageTools(RestTemplateBuilder builder) {
+    public ImageTools(RestTemplateBuilder builder)
+    {
         this.restTemplate = builder.build();
     }
 
     @Tool(description = "Download and analyze image")
-    public ImageAnalysis analyzeImage(@ToolParam("Image URL") String imageUrl) {
+    fun analyzeImage(@ToolParam("Image URL") String imageUrl): ImageAnalysis {
         try {
             // Download image
-            ResponseEntity<byte[]> response = restTemplate.getForEntity(imageUrl, byte[].class);
+            ResponseEntity < byte[] > response = restTemplate.getForEntity(imageUrl, byte[].class);
 
             if (!response.getStatusCode().is2xxSuccessful()) {
-                return new ImageAnalysis(false, null, "Failed to download image");
+                return ImageAnalysis(false, null, "Failed to download image");
             }
 
-            byte[] imageData = response.getBody();
+            byte[] imageData = response . getBody ();
             if (imageData == null) {
-                return new ImageAnalysis(false, null, "No image data");
+                return ImageAnalysis(false, null, "No image data");
             }
 
             // Analyze image
-            String contentType = response.getHeaders().getContentType() != null ?
-                    response.getHeaders().getContentType().toString() : "unknown";
+            String contentType = response . getHeaders ().getContentType() != null ?
+            response.getHeaders().getContentType().toString() : "unknown";
 
             // Load image to get dimensions
-            InputStream is = new ByteArrayInputStream(imageData);
-            BufferedImage image = ImageIO.read(is);
+            InputStream is = ByteArrayInputStream(imageData);
+            BufferedImage image = ImageIO . read ( is);
 
-            Map<String, Object> metadata = Map.of(
+            Map<String, Object> metadata = Map . of (
                     "url", imageUrl,
-                    "size", imageData.length,
-                    "contentType", contentType,
-                    "width", image != null ? image.getWidth() : -1,
-                    "height", image != null ? image.getHeight() : -1
+            "size", imageData.length,
+            "contentType", contentType,
+            "width", image != null ? image.getWidth() :-1,
+            "height", image != null ? image.getHeight() :-1
             );
 
-            return new ImageAnalysis(true, metadata, null);
+            return ImageAnalysis(true, metadata, null);
 
         } catch (Exception e) {
-            return new ImageAnalysis(false, null, "Error: " + e.getMessage());
+            return ImageAnalysis(false, null, "Error: " + e.getMessage());
         }
     }
 
     @Tool(description = "Convert image format")
     public ImageConversionResult convertImage(
-            @ToolParam("Source image URL") String sourceUrl,
-            @ToolParam("Target format (jpg, png, gif)") String targetFormat) {
+    @ToolParam("Source image URL") String sourceUrl,
+    @ToolParam("Target format (jpg, png, gif)") String targetFormat)
+    {
 
         try {
             // Download source image
-            ResponseEntity<byte[]> response = restTemplate.getForEntity(sourceUrl, byte[].class);
-            byte[] sourceImage = response.getBody();
+            ResponseEntity < byte[] > response = restTemplate.getForEntity(sourceUrl, byte[].class);
+            byte[] sourceImage = response . getBody ();
 
             if (sourceImage == null) {
-                return new ImageConversionResult(false, null, "No source image data");
+                return ImageConversionResult(false, null, "No source image data");
             }
 
             // Convert image
-            InputStream is = new ByteArrayInputStream(sourceImage);
-            BufferedImage image = ImageIO.read(is);
+            InputStream is = ByteArrayInputStream(sourceImage);
+            BufferedImage image = ImageIO . read ( is);
 
-            String outputFileName = "converted_" + System.currentTimeMillis() + "." + targetFormat;
+            String outputFileName = "converted_"+System.currentTimeMillis()+"."+targetFormat;
 
-            ByteArrayOutputStream os = new ByteArrayOutputStream();
+            ByteArrayOutputStream os = ByteArrayOutputStream ();
             ImageIO.write(image, targetFormat, os);
 
-            byte[] convertedImage = os.toByteArray();
+            byte[] convertedImage = os . toByteArray ();
 
             // Save to temp file
-            Path outputPath = Paths.get(System.getProperty("java.io.tmpdir"), outputFileName);
+            Path outputPath = Paths . get (System.getProperty("java.io.tmpdir"), outputFileName);
             Files.write(outputPath, convertedImage);
 
-            return new ImageConversionResult(true, outputPath.toString(), null);
+            return ImageConversionResult(true, outputPath.toString(), null);
 
         } catch (Exception e) {
-            return new ImageConversionResult(false, null, e.getMessage());
+            return ImageConversionResult(false, null, e.getMessage());
         }
     }
 
     @Tool(description = "Generate QR code")
     public QrCodeResult generateQrCode(
-            @ToolParam("Text or URL to encode") String content,
-            @ToolParam(value = "QR code size", required = false)
-            Integer size) {
+    @ToolParam("Text or URL to encode") String content,
+    @ToolParam(value = "QR code size", required = false)
+    Integer size)
+    {
 
         int qrSize = size != null ? size : 200;
 
         try {
-            QRCodeWriter qrCodeWriter = new QRCodeWriter();
-            BitMatrix bitMatrix = qrCodeWriter.encode(
+            QRCodeWriter qrCodeWriter = QRCodeWriter ();
+            BitMatrix bitMatrix = qrCodeWriter . encode (
                     content,
-                    BarcodeFormat.QR_CODE,
-                    qrSize,
-                    qrSize
+            BarcodeFormat.QR_CODE,
+            qrSize,
+            qrSize
             );
 
-            BufferedImage image = MatrixToImageWriter.toBufferedImage(bitMatrix);
+            BufferedImage image = MatrixToImageWriter . toBufferedImage (bitMatrix);
 
-            String outputFileName = "qr_" + System.currentTimeMillis() + ".png";
-            Path outputPath = Paths.get(System.getProperty("java.io.tmpdir"), outputFileName);
+            String outputFileName = "qr_"+System.currentTimeMillis()+".png";
+            Path outputPath = Paths . get (System.getProperty("java.io.tmpdir"), outputFileName);
 
             ImageIO.write(image, "PNG", outputPath.toFile());
 
-            return new QrCodeResult(true, outputPath.toString(), content, qrSize, null);
+            return QrCodeResult(true, outputPath.toString(), content, qrSize, null);
 
         } catch (Exception e) {
-            return new QrCodeResult(false, null, content, qrSize, e.getMessage());
+            return QrCodeResult(false, null, content, qrSize, e.getMessage());
         }
     }
 }
 
-record ImageAnalysis(boolean success, Map<String, Object> metadata, String error) {}
-record ImageConversionResult(boolean success, String outputPath, String error) {}
-record QrCodeResult(boolean success, String filePath, String content, int size, String error) {}
+record ImageAnalysis (boolean success, Map<String, Object> metadata, String error) {}
+record ImageConversionResult (boolean success, String outputPath, String error) {}
+record QrCodeResult (boolean success, String filePath, String content, int size, String error) {}
 ```
 
 ### Audio Processing Tools
 
-```java
+```kotlin
 @Component
-public class AudioTools {
+class AudioTools {
 
-    private final Logger log = LoggerFactory.getLogger(AudioTools.class);
+    private final Logger log = LoggerFactory.getLogger(AudioTools.
+    class);
 
     @Tool(description = "Convert text to speech")
     public TextToSpeechResult textToSpeech(
-            @ToolParam("Text to convert to speech") String text,
-            @ToolParam(value = "Voice (alloy, echo, fable, onyx, nova, shimmer)", required = false)
-            String voice,
-            @ToolParam(value = "Response format (mp3, opus, aac, flac)", required = false)
-            String responseFormat) {
+    @ToolParam("Text to convert to speech") String text,
+    @ToolParam(value = "Voice (alloy, echo, fable, onyx, nova, shimmer)", required = false)
+    String voice,
+    @ToolParam(value = "Response format (mp3, opus, aac, flac)", required = false)
+    String responseFormat)
+    {
 
         String selectedVoice = voice != null ? voice : "alloy";
         String format = responseFormat != null ? responseFormat : "mp3";
@@ -1329,41 +1402,61 @@ public class AudioTools {
         try {
             // This would integrate with actual TTS service like OpenAI
             // For demonstration, we'll create a dummy audio file
-            log.info("Converting text to speech: {} chars, voice: {}", text.length(), selectedVoice);
+            log.info(
+                "Converting text to speech: {} chars, voice: {}",
+                text.length(),
+                selectedVoice
+            );
 
             // Simulate processing time
             Thread.sleep(1000);
 
             // Create dummy audio file
-            String outputFileName = "speech_" + System.currentTimeMillis() + "." + format;
-            Path outputPath = Paths.get(System.getProperty("java.io.tmpdir"), outputFileName);
+            String outputFileName = "speech_"+System.currentTimeMillis()+"."+format;
+            Path outputPath = Paths . get (System.getProperty("java.io.tmpdir"), outputFileName);
 
             // Write dummy audio data
-            Files.write(outputPath, new byte[]{0, 1, 2, 3, 4, 5});
+            Files.write(outputPath, new byte []{ 0, 1, 2, 3, 4, 5 });
 
-            return new TextToSpeechResult(true, outputPath.toString(), text.length(), 1, selectedVoice, format);
+            return TextToSpeechResult(
+                true,
+                outputPath.toString(),
+                text.length(),
+                1,
+                selectedVoice,
+                format
+            );
 
         } catch (Exception e) {
-            return new TextToSpeechResult(false, null, text.length(), 0, selectedVoice, format, e.getMessage());
+            return TextToSpeechResult(
+                false,
+                null,
+                text.length(),
+                0,
+                selectedVoice,
+                format,
+                e.getMessage()
+            );
         }
     }
 
     @Tool(description = "Transcribe audio to text")
     public SpeechToTextResult speechToText(
-            @ToolParam("Path to audio file") String audioFilePath,
-            @ToolParam(value = "Language (e.g., en, es, fr)", required = false)
-            String language) {
+    @ToolParam("Path to audio file") String audioFilePath,
+    @ToolParam(value = "Language (e.g., en, es, fr)", required = false)
+    String language)
+    {
 
         try {
-            Path audioPath = Paths.get(audioFilePath);
+            Path audioPath = Paths . get (audioFilePath);
 
             if (!Files.exists(audioPath)) {
-                return new SpeechToTextResult(false, null, null, "File not found");
+                return SpeechToTextResult(false, null, null, "File not found");
             }
 
-            long fileSize = Files.size(audioPath);
+            long fileSize = Files . size (audioPath);
             if (fileSize > 25 * 1024 * 1024) { // 25MB limit
-                return new SpeechToTextResult(false, null, null, "File too large (max 25MB)");
+                return SpeechToTextResult(false, null, null, "File too large (max 25MB)");
             }
 
             // This would integrate with actual STT service
@@ -1372,88 +1465,92 @@ public class AudioTools {
             // Simulate transcription
             Thread.sleep(2000);
 
-            String transcription = "This is a simulated transcription of the audio file. " +
-                                 "In a real implementation, this would be the actual transcribed text.";
+            String transcription = "This is a simulated transcription of the audio file. "+
+            "In a real implementation, this would be the actual transcribed text.";
 
-            return new SpeechToTextResult(true, transcription, language, null);
+            return SpeechToTextResult(true, transcription, language, null);
 
         } catch (Exception e) {
-            return new SpeechToTextResult(false, null, language, e.getMessage());
+            return SpeechToTextResult(false, null, language, e.getMessage());
         }
     }
 
     @Tool(description = "Analyze audio file")
-    public AudioAnalysis analyzeAudio(@ToolParam("Path to audio file") String audioFilePath) {
+    fun analyzeAudio(@ToolParam("Path to audio file") String audioFilePath): AudioAnalysis {
         try {
-            Path audioPath = Paths.get(audioFilePath);
+            Path audioPath = Paths . get (audioFilePath);
 
             if (!Files.exists(audioPath)) {
-                return new AudioAnalysis(false, null, "File not found");
+                return AudioAnalysis(false, null, "File not found");
             }
 
-            long fileSize = Files.size(audioPath);
-            String fileName = audioPath.getFileName().toString();
-            String extension = fileName.substring(fileName.lastIndexOf('.') + 1).toLowerCase();
+            long fileSize = Files . size (audioPath);
+            String fileName = audioPath . getFileName ().toString();
+            String extension = fileName . substring (fileName.lastIndexOf('.') + 1).toLowerCase();
 
             // Get audio format details
             AudioFormat format = null;
             long duration = 0;
 
             if ("wav".equals(extension)) {
-                try (AudioInputStream audioInputStream = AudioSystem.getAudioInputStream(audioPath.toFile())) {
+                try (AudioInputStream audioInputStream = AudioSystem . getAudioInputStream (audioPath.toFile())) {
                     format = audioInputStream.getFormat();
-                    long frames = audioInputStream.getFrameLength();
-                    duration = (long) (frames / format.getSampleRate());
+                    long frames = audioInputStream . getFrameLength ();
+                    duration = (long)(frames / format.getSampleRate());
                 }
-            }
+                }
 
-            Map<String, Object> metadata = new LinkedHashMap<>();
-            metadata.put("fileName", fileName);
-            metadata.put("fileSize", fileSize);
-            metadata.put("fileSizeMB", String.format("%.2f", fileSize / (1024.0 * 1024.0)));
-            metadata.put("extension", extension);
+                Map<String, Object> metadata = new LinkedHashMap<>();
+                metadata.put("fileName", fileName);
+                metadata.put("fileSize", fileSize);
+                metadata.put("fileSizeMB", String.format("%.2f", fileSize / (1024.0 * 1024.0)));
+                metadata.put("extension", extension);
 
-            if (format != null) {
-                metadata.put("sampleRate", format.getSampleRate());
-                metadata.put("channels", format.getChannels());
-                metadata.put("bitsPerSample", format.getSampleSizeInBits());
-                metadata.put("durationSeconds", duration);
-                metadata.put("durationFormatted", String.format("%d:%02d", duration / 60, duration % 60));
-            }
+                if (format != null) {
+                    metadata.put("sampleRate", format.getSampleRate());
+                    metadata.put("channels", format.getChannels());
+                    metadata.put("bitsPerSample", format.getSampleSizeInBits());
+                    metadata.put("durationSeconds", duration);
+                    metadata.put(
+                        "durationFormatted",
+                        String.format("%d:%02d", duration / 60, duration % 60)
+                    );
+                }
 
-            return new AudioAnalysis(true, metadata, null);
+                return AudioAnalysis(true, metadata, null);
 
-        } catch (Exception e) {
-            return new AudioAnalysis(false, null, e.getMessage());
+            } catch (Exception e) {
+            return AudioAnalysis(false, null, e.getMessage());
         }
     }
 }
 
-record TextToSpeechResult(
+record TextToSpeechResult (
         boolean success,
-        String outputFilePath,
-        int textLength,
-        int durationSeconds,
-        String voice,
-        String format,
-        String error
+String outputFilePath,
+int textLength,
+int durationSeconds,
+String voice,
+String format,
+String error
 ) {}
-record SpeechToTextResult(boolean success, String transcription, String language, String error) {}
-record AudioAnalysis(boolean success, Map<String, Object> metadata, String error) {}
+record SpeechToTextResult (boolean success, String transcription, String language, String error) {}
+record AudioAnalysis (boolean success, Map<String, Object> metadata, String error) {}
 ```
 
 ## Secure Enterprise Tools
 
 ### Secure Database Operations
 
-```java
+```kotlin
 @Component
-public class SecureDatabaseTools {
+class SecureDatabaseTools {
 
-    private final JdbcTemplate jdbcTemplate;
-    private final SecurityService securityService;
+    private val jdbcTemplate: JdbcTemplate
+    private val securityService: SecurityService
 
-    public SecureDatabaseTools(JdbcTemplate jdbcTemplate, SecurityService securityService) {
+    public SecureDatabaseTools(JdbcTemplate jdbcTemplate, SecurityService securityService)
+    {
         this.jdbcTemplate = jdbcTemplate;
         this.securityService = securityService;
     }
@@ -1461,62 +1558,64 @@ public class SecureDatabaseTools {
     @PreAuthorize("hasRole('ADMIN') or hasRole('DB_USER')")
     @Tool(description = "Execute secure database query (requires authentication)")
     public SecureQueryResult executeSecureQuery(
-            @ToolParam("SQL query") String query,
-            @ToolParam(value = "Query parameters", required = false)
-            String paramsJson) {
+    @ToolParam("SQL query") String query,
+    @ToolParam(value = "Query parameters", required = false)
+    String paramsJson)
+    {
 
         // Multi-factor authentication for sensitive operations
         if (isSensitiveQuery(query)) {
             if (!securityService.verifyMfaToken()) {
-                return new SecureQueryResult(false, null, null, "MFA verification required");
+                return SecureQueryResult(false, null, null, "MFA verification required");
             }
             securityService.logSensitiveOperation("database_query", query);
         }
 
         // Query sanitization
-        String sanitizedQuery = sanitizeQuery(query);
+        String sanitizedQuery = sanitizeQuery (query);
         if (sanitizedQuery == null) {
-            return new SecureQueryResult(false, null, null, "Query not allowed");
+            return SecureQueryResult(false, null, null, "Query not allowed");
         }
 
         try {
             Map<String, Object> params = paramsJson != null
-                    ? new ObjectMapper().readValue(paramsJson, Map.class)
+            ? ObjectMapper().readValue(
+                paramsJson, Map.class)
                     : Map.of();
 
-            long startTime = System.currentTimeMillis();
-            List<Map<String, Object>> results = jdbcTemplate.queryForList(sanitizedQuery, params);
-            long duration = System.currentTimeMillis() - startTime;
+            long startTime = System . currentTimeMillis ();
+            List<Map<String, Object>> results = jdbcTemplate . queryForList (sanitizedQuery, params);
+            long duration = System . currentTimeMillis () - startTime;
 
-            User user = securityService.getCurrentUser();
+            User user = securityService . getCurrentUser ();
             securityService.auditQueryExecution(user, query, duration, results.size());
 
             if (duration > 5000) {
                 log.warn("Slow query detected: {}ms by user {}", duration, user.getUsername());
             }
 
-            return new SecureQueryResult(true, results, duration, null);
+            return SecureQueryResult(true, results, duration, null);
 
         } catch (Exception e) {
             securityService.logSecurityEvent("query_error", e.getMessage());
-            return new SecureQueryResult(false, null, null, "Query execution failed");
+            return SecureQueryResult(false, null, null, "Query execution failed");
         }
     }
 
-    private boolean isSensitiveQuery(String query) {
-        String upper = query.toUpperCase();
+    private fun isSensitiveQuery(String query): boolean {
+        String upper = query . toUpperCase ();
         return upper.contains("DELETE") || upper.contains("UPDATE") || upper.contains("DROP") ||
                 upper.contains("CREATE") || upper.contains("ALTER") || upper.contains("GRANT");
     }
 
-    private String sanitizeQuery(String query) {
+    private fun sanitizeQuery(String query): String {
         // Remove comments
-        String sanitized = query.replaceAll("\\/\\*.*?\\*\\/", "")
-                               .replaceAll("--.*$", "")
-                               .trim();
+        String sanitized = query . replaceAll ("\\/\\*.*?\\*\\/", "")
+        .replaceAll("--.*$", "")
+            .trim();
 
         // Check for dangerous patterns
-        String upper = sanitized.toUpperCase();
+        String upper = sanitized . toUpperCase ();
         if (upper.contains("UNION") || upper.contains(";/*") || upper.contains("xp_")) {
             return null; // Potentially dangerous
         }
@@ -1525,50 +1624,56 @@ public class SecureDatabaseTools {
     }
 }
 
-record SecureQueryResult(boolean success, List<Map<String, Object>> data, Long durationMs, String error) {}
+record SecureQueryResult (boolean success, List<Map<String, Object>> data, Long durationMs, String error) {}
 ```
 
 ## Real-Time Streaming
 
 ### Streaming MCP Server
 
-```java
+```kotlin
 @Component
-public class StreamingMcpServer {
+class StreamingMcpServer {
 
-    private final SseEmitter emitter;
-    private final McpServer mcpServer;
+    private val emitter: SseEmitter
+    private val mcpServer: McpServer
 
-    public StreamingMcpServer(McpServer mcpServer) {
+    public StreamingMcpServer(McpServer mcpServer)
+    {
         this.mcpServer = mcpServer;
-        this.emitter = new SseEmitter(600000L); // 10 minutes
+        this.emitter = SseEmitter(600000L); // 10 minutes
     }
 
     @Tool(description = "Stream real-time data")
     public void streamData(
-            @ToolParam("Data source") String source,
-            @ToolParam(value = "Stream interval (seconds)", required = false)
-            Integer interval) {
+    @ToolParam("Data source") String source,
+    @ToolParam(value = "Stream interval (seconds)", required = false)
+    Integer interval)
+    {
 
         int seconds = interval != null ? interval : 5;
 
         try {
-            emitter.send(SseEmitter.event()
+            emitter.send(
+                SseEmitter.event()
                     .name("stream-start")
-                    .data(Map.of("source", source, "interval", seconds)));
+                    .data(Map.of("source", source, "interval", seconds))
+            );
 
-            ScheduledExecutorService executor = Executors.newSingleThreadScheduledExecutor();
-            AtomicInteger counter = new AtomicInteger(0);
+            ScheduledExecutorService executor = Executors . newSingleThreadScheduledExecutor ();
+            AtomicInteger counter = AtomicInteger (0);
 
             executor.scheduleAtFixedRate(() -> {
                 try {
-                    Map<String, Object> data = fetchRealTimeData(source);
+                    Map<String, Object> data = fetchRealTimeData (source);
                     data.put("timestamp", Instant.now().toString());
                     data.put("sequence", counter.incrementAndGet());
 
-                    emitter.send(SseEmitter.event()
+                    emitter.send(
+                        SseEmitter.event()
                             .name("data-update")
-                            .data(data));
+                            .data(data)
+                    );
 
                 } catch (IOException e) {
                     log.error("Failed to send stream data", e);
@@ -1597,7 +1702,7 @@ public class StreamingMcpServer {
             emitter.completeWithError(e);
         } finally {
             // Ensure executor is shutdown in all cases
-            Runtime.getRuntime().addShutdownHook(new Thread(() -> {
+            Runtime.getRuntime().addShutdownHook(Thread(() -> {
                 if (!executor.isShutdown()) {
                     executor.shutdown();
                 }
@@ -1605,13 +1710,14 @@ public class StreamingMcpServer {
         }
     }
 
-    private Map<String, Object> fetchRealTimeData(String source) {
+    private Map<String, Object> fetchRealTimeData(String source)
+    {
         // Simulate real-time data fetching
         return Map.of(
-                "source", source,
-                "value", Math.random() * 100,
-                "unit", "metric",
-                "status", "active"
+            "source", source,
+            "value", Math.random() * 100,
+            "unit", "metric",
+            "status", "active"
         );
     }
 }
@@ -1621,23 +1727,24 @@ public class StreamingMcpServer {
 
 ### Full Spring Boot MCP Application
 
-```java
+```kotlin
 @SpringBootApplication
 @EnableMcpServer
-public class EnterpriseMcpApplication {
+class EnterpriseMcpApplication {
 
-    public static void main(String[] args) {
+    public static void main(String[] args)
+    {
         SpringApplication.run(EnterpriseMcpApplication.class, args);
     }
 
     @Bean
-    public WebMvcConfigurer corsConfigurer() {
-        return new WebMvcConfigurer() {
+    fun corsConfigurer(): WebMvcConfigurer {
+        return WebMvcConfigurer() {
             @Override
-            public void addCorsMappings(CorsRegistry registry) {
+            fun addCorsMappings(CorsRegistry registry): void {
                 registry.addMapping("/mcp/*")
-                        .allowedOrigins("*")
-                        .allowedMethods("GET", "POST", "PUT", "DELETE");
+                    .allowedOrigins("*")
+                    .allowedMethods("GET", "POST", "PUT", "DELETE");
             }
         };
     }
@@ -1646,20 +1753,21 @@ public class EnterpriseMcpApplication {
 
 ### Security Configuration
 
-```java
+```kotlin
 @Configuration
 @EnableWebSecurity
-public class SecurityConfig {
+class SecurityConfig {
 
     @Bean
-    public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
+    public SecurityFilterChain filterChain(HttpSecurity http) throws Exception
+    {
         http
             .authorizeHttpRequests(auth -> auth
-                .requestMatchers("/mcp/tools/secure*").hasRole("ADMIN")
-                .requestMatchers("/mcp/**").hasAnyRole("USER", "ADMIN")
-                .anyRequest().authenticated()
-            )
-            .oauth2ResourceServer(oauth2 -> oauth2.jwt());
+        .requestMatchers("/mcp/tools/secure*").hasRole("ADMIN")
+        .requestMatchers("/mcp/**").hasAnyRole("USER", "ADMIN")
+        .anyRequest().authenticated()
+        )
+        .oauth2ResourceServer(oauth2 -> oauth2.jwt());
 
         return http.build();
     }

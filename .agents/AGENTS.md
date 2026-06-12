@@ -42,12 +42,12 @@ tmp/                ← Research notes and feature briefs (context only, not dep
 
 ### Dev Commands (run from repo root)
 
-| Command | Action |
-|---------|--------|
-| `./gradlew :server:smp:build` | Compile and package |
-| `./gradlew :server:smp:test` | Run unit and integration tests |
-| `./gradlew :server:smp:check` | Tests + detekt |
-| `./gradlew :server:smp:bootRun --args='--spring.profiles.active=dev'` | Start dev server |
+| Command                                                               | Action                         |
+|-----------------------------------------------------------------------|--------------------------------|
+| `./gradlew :server:smp:build`                                         | Compile and package            |
+| `./gradlew :server:smp:test`                                          | Run unit and integration tests |
+| `./gradlew :server:smp:check`                                         | Tests + detekt                 |
+| `./gradlew :server:smp:bootRun --args='--spring.profiles.active=dev'` | Start dev server               |
 
 ### Hexagonal Architecture (mandatory)
 
@@ -62,11 +62,11 @@ tmp/                ← Research notes and feature briefs (context only, not dep
 
 **Dependency rule:** `domain ← application ← infrastructure`
 
-| Layer | Can depend on | Must NOT depend on |
-|-------|---------------|--------------------|
-| **Domain** | Nothing (pure Kotlin) | Application, Infrastructure, Spring |
-| **Application** | Domain | Infrastructure, Spring stereotypes |
-| **Infrastructure** | Domain + Application | — |
+| Layer              | Can depend on         | Must NOT depend on                  |
+|--------------------|-----------------------|-------------------------------------|
+| **Domain**         | Nothing (pure Kotlin) | Application, Infrastructure, Spring |
+| **Application**    | Domain                | Infrastructure, Spring stereotypes  |
+| **Infrastructure** | Domain + Application  | —                                   |
 
 - **Package convention:** `com.profiletailors.smp.{context}.{layer}`
 - **CQRS naming:** `GetXQuery`, `{Verb}XCommand`, `XHandler`, `R2dbcXRepository`
@@ -109,15 +109,23 @@ const content = {
 
 - Keep `apps/web/marketing` lightweight and static — no backend, no CMS, no heavy deps.
 - Add dependencies only when Astro-native primitives are insufficient.
-- Always check dependency scores with the depscore tool when you add a new dependency. If the score is low, consider using an alternative library or writing the code yourself.
+- Always check dependency scores with the depscore tool when you add a new dependency. If the score
+  is low, consider using an alternative library or writing the code yourself.
 - Waitlist form is client-side only for now (no persistence backend defined yet).
 - Prefer few files with clear content/style boundaries over many small fragments.
-- **Documentation:** All internal and external documentation (READMEs, design specs, architecture docs, and agent instructions) MUST be in English. Files must follow the lowercase `kebab-case.md` naming convention (except `README.md`) and adhere to the standard structure: Overview → Changes → Usage → Troubleshooting → References. No exceptions.
+- **Documentation:** All internal and external documentation (READMEs, design specs, architecture
+  docs, and agent instructions) MUST be in English. Files must follow the lowercase `kebab-case.md`
+  naming convention (except `README.md`) and adhere to the standard structure: Overview → Changes →
+  Usage → Troubleshooting → References. No exceptions.
 
 ## Testing & Delivery Discipline
 
-- Apply **BDD** when defining behavior: describe features from the user perspective with clear scenarios and expected outcomes before implementation.
-- Apply **TDD** when implementing changes: start with a failing test when practical, implement the smallest change that makes it pass, then refactor safely.
-- Keep acceptance criteria, scenarios, and tests aligned so product behavior, implementation, and verification stay consistent.
-- Prefer focused, maintainable tests over broad brittle coverage, and update tests alongside behavior changes.
+- Apply **BDD** when defining behavior: describe features from the user perspective with clear
+  scenarios and expected outcomes before implementation.
+- Apply **TDD** when implementing changes: start with a failing test when practical, implement the
+  smallest change that makes it pass, then refactor safely.
+- Keep acceptance criteria, scenarios, and tests aligned so product behavior, implementation, and
+  verification stay consistent.
+- Prefer focused, maintainable tests over broad brittle coverage, and update tests alongside
+  behavior changes.
 
