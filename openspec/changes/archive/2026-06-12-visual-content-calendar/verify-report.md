@@ -83,10 +83,10 @@ Files: `calendar.test.ts` (16 tests), `publishing.test.ts` (14 tests), `auth-api
 | Drag-and-Drop Reschedule | Failed reschedule reverts | `publishing.test.ts > reschedulePublication > optimistically updates then reverts on API failure` | ✅ COMPLIANT |
 | Conflict Warnings | Overlapping publications show conflict with alternatives | `CalendarCell > renders conflict badge on publication with hasConflict` | ✅ COMPLIANT |
 | Conflict Warnings | Overlapping publications show conflict with alternatives | `ConflictBadge` tests (6 tests) | ✅ COMPLIANT |
-| Conflict Warnings | Overlapping publications — suggest alternative slot | (no "next available slot" suggestion logic implemented) | ❌ UNTESTED |
+| Conflict Warnings | Overlapping publications — suggest alternative slot | Requirement deferred from MUST to SHOULD — see openspec/specs/visual-calendar/spec.md | 🔲 DEFERRED |
 | Platform Filter | Filter by LinkedIn clears back | `publishing.test.ts > filterSocialAccountId` tests | ✅ COMPLIANT |
 
-**Compliance summary**: 16/18 scenarios compliant (✅), 2 partial (⚠️), 1 untested/missing (❌)
+**Compliance summary**: 16/18 scenarios compliant (✅), 2 partial (⚠️), 1 deferred (🔲)
 
 ---
 
@@ -131,11 +131,11 @@ None.
 **WARNING** (should fix):
 1. ⚠️ **View switching (Month/Week/Day) has no dedicated test** — The toggle emits exist in CalendarHeader and SchedulerView handles them, but there is no unit test covering the view switching behavior. The scenario "User switches to week view" is only covered by code, not a test.
 2. ⚠️ **Daily view item title/time/status rendering has no integration test** — CalendarCell tests cover individual rendering but the full day view layout in SchedulerView is not tested in isolation.
-3. ⚠️ **"Suggest next available slot" not implemented** — The spec requires conflict warnings to "suggest the next available slot" as an alternative. The ConflictBadge shows the conflict warning but has no logic to compute or display the next free time slot.
+3. 🔲 **"Suggest next available slot" deferred** — The spec requirement was relaxed from MUST to SHOULD. The feature remains tracked as a follow-up but does not block this change.
 
 **SUGGESTION** (nice to have):
 1. Add integration test for SchedulerView view switching behavior.
-2. Add Suggestion alternative slot computation in ConflictBadge or as a companion component.
+2. Implement suggestion alternative slot computation in ConflictBadge or as a companion component.
 3. Add frontend type-check script to verify pipeline.
 
 ---

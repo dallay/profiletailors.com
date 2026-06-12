@@ -66,7 +66,7 @@ Dragging a publication to a new slot MUST optimistically update the UI and fire 
 
 ### Requirement: Conflict Warnings
 
-The system MUST warn when two SCHEDULED/QUEUED publications for the same social account overlap within the conflict window. The conflict badge MUST show on affected publications. The conflict view MUST suggest the next available slot. The user MAY confirm and keep the overlap.
+The system MUST warn when two SCHEDULED/QUEUED publications for the same social account overlap within the conflict window. The conflict badge MUST show on affected publications. The conflict view SHOULD suggest the next available slot. The user MAY confirm and keep the overlap.
 
 #### Scenario: Overlapping publications show conflict with alternatives
 

@@ -12,6 +12,7 @@ import CalendarCell from '@/components/CalendarCell.vue'
 import ConflictBadge from '@/components/ConflictBadge.vue'
 import { Card } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
+import { getProviderColor, getProviderBadge } from '@/lib/provider-styles'
 
 const publishingStore = usePublishingStore()
 const { locale: i18nLocale } = useI18n()
@@ -212,13 +213,8 @@ const filteredPublications = computed(() => {
     if (publishingStore.filterChannel && !(pub.channels as string[]).includes(publishingStore.filterChannel)) {
       return false
     }
-    if (publishingStore.filterSocialAccountId) {
-      const matchedChannel = publishingStore.channels.find(
-        (ch) => ch.accountId === publishingStore.filterSocialAccountId,
-      )
-      if (matchedChannel && !(pub.channels as string[]).includes(matchedChannel.provider)) {
-        return false
-      }
+    if (publishingStore.filterSocialAccountId && pub.accountId !== publishingStore.filterSocialAccountId) {
+      return false
     }
     if (publishingStore.filterTag && !pub.content.toLowerCase().includes(publishingStore.filterTag.toLowerCase())) {
       return false
@@ -273,32 +269,6 @@ function isToday(date: Date) {
     date.getMonth() === now.getMonth() &&
     date.getFullYear() === now.getFullYear()
   )
-}
-
-function getProviderColor(provider: string) {
-  switch (provider) {
-    case 'linkedin':
-      return 'bg-[#0077b5]/10 border-[#0077b5]/30 text-[#0077b5]'
-    case 'twitter':
-      return 'bg-foreground/5 border-border-visible text-text-display'
-    case 'instagram':
-      return 'bg-pink-500/10 border-pink-500/30 text-pink-500'
-    default:
-      return 'bg-bg-primary border-border-visible text-text-secondary'
-  }
-}
-
-function getProviderBadge(provider: string) {
-  switch (provider) {
-    case 'linkedin':
-      return 'in'
-    case 'twitter':
-      return '𝕏'
-    case 'instagram':
-      return 'ig'
-    default:
-      return '•'
-  }
 }
 
 function dateKey(date: Date): string {

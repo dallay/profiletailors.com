@@ -16,22 +16,19 @@ import org.junit.jupiter.api.Test
  * - application: depends on domain only (within smp packages)
  * - infrastructure: may depend on domain and application
  * - every bounded context exposes domain, application, and infrastructure packages
+ *
+ * Bounded contexts are auto-discovered from the package tree so that
+ * adding a new context automatically includes it in the validation.
  */
 internal class HexagonalArchTest {
 
     private lateinit var importedClasses: JavaClasses
 
-    private val boundedContexts = listOf(
-        "authorization",
-        "credentials",
-        "governance",
-        "identity",
-        "platform",
-        "publishing",
-        "tenancy",
-        "audit",
-        "observability",
-    )
+    private companion object {
+        private val THREE_LAYER_PACKAGE = Regex(
+            "com\\.profiletailors\\.smp\\.[a-z]+\\.(domain|application|infrastructure)",
+        )
+    }
 
     @BeforeEach
     fun setUp() {
@@ -39,6 +36,14 @@ internal class HexagonalArchTest {
             .withImportOption(ImportOption.Predefined.DO_NOT_INCLUDE_TESTS)
             .importPackages("com.profiletailors.smp")
     }
+
+    private fun discoverBoundedContexts(): List<String> =
+        importedClasses.map { it.packageName }
+            .filterNot { it.isBlank() }
+            .mapNotNull { THREE_LAYER_PACKAGE.matchEntire(it) }
+            .map { it.value.removePrefix("com.profiletailors.smp.").substringBefore('.') }
+            .distinct()
+            .sorted()
 
     @Test
     fun domainLayerShouldNotDependOnSpring() {
@@ -78,7 +83,12 @@ internal class HexagonalArchTest {
 
     @Test
     fun boundedContextsShouldExposeAllLayers() {
-        boundedContexts.forEach { context ->
+        val contexts = discoverBoundedContexts()
+        assertTrue(
+            contexts.isNotEmpty(),
+            "No bounded contexts discovered — package tree may be empty or misconfigured",
+        )
+        contexts.forEach { context ->
             val domainClasses = importedClasses.filter {
                 it.packageName.startsWith("com.profiletailors.smp.$context.domain")
             }

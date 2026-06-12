@@ -2,6 +2,7 @@
 import { computed } from 'vue'
 import ConflictBadge from '@/components/ConflictBadge.vue'
 import type { Publication, ActivityEntry } from '@/stores/publishing'
+import { getProviderColor, getProviderBadge } from '@/lib/provider-styles'
 
 const props = withDefaults(
   defineProps<{
@@ -34,32 +35,6 @@ const emit = defineEmits<{
   (e: 'drop-cell', payload: { event: DragEvent; date: Date }): void
 }>()
 
-function getProviderColor(provider: string) {
-  switch (provider) {
-    case 'linkedin':
-      return 'bg-[#0077b5]/10 border-[#0077b5]/30 text-[#0077b5]'
-    case 'twitter':
-      return 'bg-foreground/5 border-border-visible text-text-display'
-    case 'instagram':
-      return 'bg-pink-500/10 border-pink-500/30 text-pink-500'
-    default:
-      return 'bg-bg-primary border-border-visible text-text-secondary'
-  }
-}
-
-function getProviderBadge(provider: string) {
-  switch (provider) {
-    case 'linkedin':
-      return 'in'
-    case 'twitter':
-      return '𝕏'
-    case 'instagram':
-      return 'ig'
-    default:
-      return '•'
-  }
-}
-
 const visiblePublications = computed(() => props.publications.slice(0, props.maxVisible))
 const remainingCount = computed(() => Math.max(0, props.publications.length - props.maxVisible))
 
@@ -88,6 +63,13 @@ function onDragEnd(e: DragEvent) {
 function onDrop(e: DragEvent) {
   emit('drop-cell', { event: e, date: props.date })
 }
+
+function onKeyDown(e: KeyboardEvent) {
+  if (props.isCurrentMonth && (e.key === 'Enter' || e.key === ' ')) {
+    e.preventDefault()
+    emit('click-day', props.date)
+  }
+}
 </script>
 
 <template>
@@ -98,7 +80,11 @@ function onDrop(e: DragEvent) {
       'bg-bg-primary/10': isCurrentMonth,
       'cursor-pointer hover:bg-bg-primary/20': isCurrentMonth,
     }"
+    :tabindex="isCurrentMonth ? 0 : -1"
+    :role="isCurrentMonth ? 'button' : undefined"
+    :aria-label="isCurrentMonth ? `Calendar cell for ${date.toLocaleDateString()}` : undefined"
     @click="isCurrentMonth ? emit('click-day', date) : undefined"
+    @keydown="onKeyDown"
     @dragover.prevent
     @drop.prevent="onDrop"
   >
