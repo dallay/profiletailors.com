@@ -152,7 +152,6 @@ export const useAuthStore = defineStore('auth', () => {
   async function registerWithPassword(payload: {
     email: string
     password: string
-    username?: string
   }) {
     isLoading.value = true
     error.value = null

@@ -13,7 +13,6 @@ const alternateRoute = computed(() => isRegisterMode.value ? '/login' : '/regist
 
 const email = ref('')
 const password = ref('')
-const username = ref('')
 const formError = ref<string | null>(null)
 
 if (auth.error) {
@@ -29,7 +28,6 @@ async function handleSubmit() {
       await auth.registerWithPassword({
         email: email.value,
         password: password.value,
-        username: username.value || undefined,
       })
     } else {
       await auth.loginWithPassword({
@@ -108,20 +106,6 @@ async function handleSubmit() {
           </div>
 
           <form class="mt-8 space-y-5" @submit.prevent="handleSubmit">
-            <div v-if="isRegisterMode" class="space-y-2">
-              <label class="font-mono text-[10px] font-bold uppercase tracking-[0.16em] text-text-secondary" for="username">
-                {{ $t('auth.username') }}
-              </label>
-              <input
-                id="username"
-                v-model="username"
-                type="text"
-                autocomplete="username"
-                :placeholder="$t('auth.usernamePlaceholder')"
-                class="w-full rounded-2xl border border-border-visible bg-bg-primary px-4 py-3 text-sm text-text-body placeholder:text-text-secondary focus:border-text-display focus:outline-none"
-              >
-            </div>
-
             <div class="space-y-2">
               <label class="font-mono text-[10px] font-bold uppercase tracking-[0.16em] text-text-secondary" for="email">
                 {{ $t('auth.email') }}

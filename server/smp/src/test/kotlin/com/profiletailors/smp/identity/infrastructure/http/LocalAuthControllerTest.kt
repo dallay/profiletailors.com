@@ -53,7 +53,6 @@ class LocalAuthControllerTest {
             RegisterUserRequest(
                 email = "yuniel@example.com",
                 password = validPassword,
-                username = "yuniel",
             ),
         )
 
@@ -63,7 +62,6 @@ class LocalAuthControllerTest {
             RegisterUserCommand(
                 email = "yuniel@example.com",
                 password = validPassword,
-                username = "yuniel",
             ),
             mediator.lastRequest,
         )
