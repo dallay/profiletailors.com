@@ -148,7 +148,6 @@ describe('register', () => {
     const result = await register({
       email: 'newuser@example.com',
       password: 'password123',
-      username: 'newuser',
     })
 
     expect(result).toEqual(tokens)
@@ -159,7 +158,6 @@ describe('register', () => {
         body: JSON.stringify({
           email: 'newuser@example.com',
           password: 'password123',
-          username: 'newuser',
         }),
       }),
     )

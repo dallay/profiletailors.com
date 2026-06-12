@@ -23,9 +23,7 @@ interface LoginPayload {
   password: string
 }
 
-interface RegisterPayload extends LoginPayload {
-  username?: string
-}
+interface RegisterPayload extends LoginPayload {}
 
 export interface ApiError {
   title?: string
