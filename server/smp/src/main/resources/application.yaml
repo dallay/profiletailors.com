@@ -135,6 +135,12 @@ spring:
     activate:
       on-profile: dev
 
+logging:
+  level:
+    com.profiletailors: DEBUG
+    org.springframework.security: DEBUG
+    org.springframework.web.reactive: DEBUG
+
 app:
   security:
     cors:
