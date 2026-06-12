@@ -5,11 +5,11 @@ import {
   BarChart3,
   CalendarDays,
   ChevronsUpDown,
-  FolderKanban,
   GalleryVerticalEnd,
   LayoutGrid,
   LogOut,
   PanelLeft,
+  Plus,
   Settings,
   Sparkles,
   Users,
@@ -29,19 +29,14 @@ import {
   SidebarMenu,
   SidebarMenuButton,
   SidebarMenuItem,
-  SidebarMenuSub,
-  SidebarMenuSubButton,
-  SidebarMenuSubItem,
   SidebarProvider,
   SidebarRail,
   SidebarTrigger,
-  Collapsible,
-  CollapsibleContent,
-  CollapsibleTrigger,
 } from '@/components/ui/sidebar'
 import { useAuthStore } from '@/stores/auth'
 import { useSettingsStore } from '@/stores/settings'
-import { usePublishingStore } from '@/stores/publishing'
+import { usePublishingStore, type Channel } from '@/stores/publishing'
+import { getProviderBadge } from '@/lib/provider-styles'
 
 interface NavItem {
   labelKey: string
@@ -56,16 +51,21 @@ interface NavGroup {
   items: NavItem[]
 }
 
-interface ProjectLink {
-  name: string
-  icon: Component
-  items?: Array<{ title: string; url: string }>
-}
-
 interface AccountOption {
   name: string
   plan: string
   icon: Component
+}
+
+interface SidebarChannel extends Channel {
+  badge: string
+  queuedCount: number
+}
+
+interface ConnectChannel {
+  id: string
+  label: string
+  badge: string
 }
 
 const auth = useAuthStore()
@@ -75,7 +75,6 @@ const settings = useSettingsStore()
 const publishingStore = usePublishingStore()
 const accountMenuOpen = ref(false)
 const accountMenuRef = ref<HTMLElement | null>(null)
-const projectsOpenState = ref<Record<string, boolean>>({})
 
 const activeAccount = ref<AccountOption>({
   name: 'Profile Tailors',
@@ -102,7 +101,7 @@ const navigationGroups = computed<NavGroup[]>(() => [
         to: '/', 
         icon: LayoutGrid, 
         badge: (() => {
-          const count = publishingStore.publications.filter((p) => p.status === 'QUEUED').length
+          const count = totalQueuedCount.value
           return count < 10 ? `0${count}` : String(count)
         })()
       },
@@ -116,25 +115,36 @@ const navigationGroups = computed<NavGroup[]>(() => [
   },
 ])
 
-const projectLinks = computed<ProjectLink[]>(() => [
-  {
-    name: 'Launch Week',
-    icon: FolderKanban,
-    items: [
-      { title: 'Overview', url: '#' },
-      { title: 'Timeline', url: '#' },
-      { title: 'Assets', url: '#' },
-    ],
-  },
-  {
-    name: 'Creator Growth',
-    icon: Users,
-    items: [
-      { title: 'Campaigns', url: '#' },
-      { title: 'Metrics', url: '#' },
-    ],
-  },
+const queuedCounts = computed(() => {
+  const counts = new Map<string, number>()
+  let total = 0
+  for (const pub of publishingStore.publications) {
+    if (pub.status !== 'QUEUED') continue
+    total++
+    for (const provider of pub.channels as string[]) {
+      counts.set(provider, (counts.get(provider) ?? 0) + 1)
+    }
+  }
+  return { counts, total }
+})
+
+const sidebarChannels = computed<SidebarChannel[]>(() =>
+  publishingStore.channels.map((channel) => ({
+    ...channel,
+    badge: getProviderBadge(channel.provider),
+    queuedCount: queuedCounts.value.counts.get(channel.provider) ?? 0,
+  })),
+)
+
+const totalQueuedCount = computed(() => queuedCounts.value.total)
+
+const connectChannels = computed<ConnectChannel[]>(() => [
+  { id: 'threads', label: 'Threads', badge: '@' },
+  { id: 'bluesky', label: 'Bluesky', badge: 'b' },
+  { id: 'facebook', label: 'Facebook', badge: 'f' },
 ])
+
+const activeChannelProvider = computed(() => publishingStore.filterChannel)
 
 const accountOptions = computed<AccountOption[]>(() => [
   {
@@ -157,6 +167,22 @@ const headerSummary = computed(() => {
 
 function isActive(path: string) {
   return route.path === path
+}
+
+function isSchedulerRoute() {
+  return route.path === '/scheduler'
+}
+
+async function showAllChannels() {
+  publishingStore.filterChannel = ''
+  publishingStore.filterSocialAccountId = ''
+  await router.push('/scheduler')
+}
+
+async function selectChannel(channel: SidebarChannel) {
+  publishingStore.filterChannel = channel.provider
+  publishingStore.filterSocialAccountId = ''
+  await router.push('/scheduler')
 }
 
 function toggleAccountMenu() {
@@ -183,6 +209,28 @@ function navigateToSettings() {
   closeAccountMenu()
 }
 
+const connectMessage = ref('')
+let connectTimeout: ReturnType<typeof setTimeout> | null = null
+
+function handleConnectChannel(channel: ConnectChannel) {
+  connectMessage.value = `${channel.label} ${channel.id === 'threads' ? 'coming soon' : 'connection available soon'}`
+  if (connectTimeout) clearTimeout(connectTimeout)
+  connectTimeout = setTimeout(() => {
+    connectMessage.value = ''
+  }, 3500)
+}
+
+function handleMoreChannels() {
+  connectMessage.value = 'More channels coming soon'
+  if (connectTimeout) clearTimeout(connectTimeout)
+  connectTimeout = setTimeout(() => {
+    connectMessage.value = ''
+  }, 3500)
+}
+
+onBeforeUnmount(() => {
+  if (connectTimeout) clearTimeout(connectTimeout)
+})
 
 function handleDocumentClick(event: MouseEvent) {
   if (!accountMenuOpen.value) {
@@ -205,32 +253,11 @@ function handleEscapeKey(event: KeyboardEvent) {
   }
 }
 
-function loadProjectsState() {
-  const stored = localStorage.getItem('sidebar-projects-state')
-  if (stored) {
-    try {
-      projectsOpenState.value = JSON.parse(stored)
-    } catch {
-      projectsOpenState.value = {}
-    }
-  }
-}
-
-function saveProjectsState() {
-  localStorage.setItem('sidebar-projects-state', JSON.stringify(projectsOpenState.value))
-}
-
-function toggleProject(projectName: string, open: boolean) {
-  projectsOpenState.value[projectName] = open
-  saveProjectsState()
-}
-
 watch(() => route.path, () => {
   closeAccountMenu()
 })
 
 onMounted(() => {
-  loadProjectsState()
   document.addEventListener('click', handleDocumentClick)
   document.addEventListener('keydown', handleEscapeKey)
 })
@@ -302,49 +329,104 @@ onBeforeUnmount(() => {
           </SidebarMenu>
         </SidebarGroup>
 
-        <SidebarGroup class="gap-2 group-data-[collapsible=icon]:hidden">
-          <SidebarGroupLabel>Projects</SidebarGroupLabel>
-          <SidebarMenu>
-            <Collapsible
-              v-for="project in projectLinks"
-              :key="project.name"
-              v-slot="{ open }"
-              :open="projectsOpenState[project.name] ?? false"
-              as-child
-              @update:open="(isOpen) => toggleProject(project.name, isOpen)"
-            >
-              <SidebarMenuItem>
-                <CollapsibleTrigger as-child>
-                  <SidebarMenuButton
-                    :has-submenu="!!project.items"
-                    :is-submenu-open="open"
-                    :tooltip="project.name"
-                    v-slot="{ className }"
-                  >
-                    <button :class="className" type="button">
-                      <component :is="project.icon" class="size-4 shrink-0" />
-                      <span class="truncate">{{ project.name }}</span>
-                    </button>
-                  </SidebarMenuButton>
-                </CollapsibleTrigger>
+        <SidebarGroup class="gap-2">
+          <SidebarGroupLabel class="group-data-[collapsible=icon]:hidden">
+            {{ $t('channels.title') }}
+          </SidebarGroupLabel>
 
-                <CollapsibleContent v-if="project.items">
-                  <SidebarMenuSub>
-                    <SidebarMenuSubItem
-                      v-for="item in project.items"
-                      :key="item.title"
-                    >
-                      <SidebarMenuSubButton v-slot="{ className }">
-                        <a :href="item.url" :class="className">
-                          <span>{{ item.title }}</span>
-                        </a>
-                      </SidebarMenuSubButton>
-                    </SidebarMenuSubItem>
-                  </SidebarMenuSub>
-                </CollapsibleContent>
-              </SidebarMenuItem>
-            </Collapsible>
+          <SidebarMenu>
+            <SidebarMenuItem>
+              <SidebarMenuButton
+                :is-active="isSchedulerRoute() && !activeChannelProvider"
+                :tooltip="$t('channels.all')"
+                v-slot="{ className, collapsed }"
+              >
+                <button :class="className" type="button" @click="showAllChannels">
+                  <Users class="size-4 shrink-0" />
+                  <span v-if="!collapsed" class="truncate">{{ $t('channels.all') }}</span>
+                  <span
+                    v-if="!collapsed"
+                    class="ml-auto rounded-full border border-border-visible bg-bg-primary px-2 py-0.5 font-mono text-[9px] uppercase tracking-[0.12em] text-text-secondary"
+                  >
+                    {{ totalQueuedCount < 10 ? `0${totalQueuedCount}` : totalQueuedCount }}
+                  </span>
+                </button>
+              </SidebarMenuButton>
+            </SidebarMenuItem>
+
+            <SidebarMenuItem
+              v-for="channel in sidebarChannels"
+              :key="channel.id"
+            >
+              <SidebarMenuButton
+                :is-active="isSchedulerRoute() && activeChannelProvider === channel.provider"
+                :tooltip="`${channel.name} · ${channel.handle}`"
+                v-slot="{ className, collapsed }"
+              >
+                <button :class="className" type="button" @click="selectChannel(channel)">
+                  <span class="relative flex size-5 shrink-0 items-center justify-center">
+                    <img
+                      :src="channel.avatar"
+                      class="size-5 rounded-full border border-border-visible object-cover grayscale"
+                      alt=""
+                    />
+                    <span class="absolute -right-1 -bottom-1 flex size-3.5 items-center justify-center rounded-full border border-bg-surface bg-bg-primary font-mono text-[7px] font-bold uppercase leading-none text-text-display">
+                      {{ channel.badge }}
+                    </span>
+                  </span>
+
+                  <span v-if="!collapsed" class="min-w-0 flex-1 text-left">
+                    <span class="block truncate text-sm">{{ channel.name }}</span>
+                    <span class="block truncate font-mono text-[9px] uppercase tracking-[0.08em] text-text-secondary">
+                      {{ channel.status === 'ACTIVE' ? $t('channels.active') : $t('channels.inactive') }}
+                    </span>
+                  </span>
+
+                  <span
+                    v-if="!collapsed"
+                    class="ml-auto font-mono text-[10px] text-text-secondary"
+                  >
+                    {{ channel.queuedCount }}
+                  </span>
+                </button>
+              </SidebarMenuButton>
+            </SidebarMenuItem>
           </SidebarMenu>
+
+          <div class="mt-2 space-y-1 border-t border-border-subtle pt-3 group-data-[collapsible=icon]:hidden">
+            <p class="px-2 font-mono text-[9px] uppercase tracking-[0.16em] text-text-secondary">
+              {{ $t('channels.connect') }}
+            </p>
+
+            <button
+              v-for="channel in connectChannels"
+              :key="channel.id"
+              class="flex w-full items-center gap-2 rounded-lg border border-transparent px-2 py-1.5 text-left text-xs text-text-secondary transition-colors hover:border-border-subtle hover:bg-bg-primary/70 hover:text-text-display"
+              type="button"
+              @click="handleConnectChannel(channel)"
+            >
+              <span class="flex size-5 shrink-0 items-center justify-center rounded-md border border-border-visible bg-bg-primary font-mono text-[9px] font-bold uppercase text-text-display">
+                {{ channel.badge }}
+              </span>
+              <span class="min-w-0 flex-1 truncate">{{ channel.label }}</span>
+              <span class="font-mono text-[9px] uppercase tracking-[0.1em]">+ {{ $t('channels.connectAction') }}</span>
+            </button>
+
+            <button
+              class="flex w-full items-center gap-2 rounded-lg border border-dashed border-border-visible px-2 py-1.5 text-left font-mono text-[9px] uppercase tracking-[0.12em] text-text-secondary transition-colors hover:border-text-secondary hover:text-text-display"
+              type="button"
+              @click="handleMoreChannels"
+            >
+              <Plus class="size-3.5" />
+              <span class="truncate">{{ $t('channels.more') }}</span>
+            </button>
+
+            <Transition name="fade">
+              <p v-if="connectMessage" class="mt-2 px-2 font-mono text-[9px] uppercase tracking-[0.12em] text-text-secondary">
+                {{ connectMessage }}
+              </p>
+            </Transition>
+          </div>
         </SidebarGroup>
 
       </SidebarContent>
@@ -524,3 +606,13 @@ onBeforeUnmount(() => {
   </TooltipProvider>
 </template>
 
+<style scoped>
+.fade-enter-active,
+.fade-leave-active {
+  transition: opacity 0.25s ease;
+}
+.fade-enter-from,
+.fade-leave-to {
+  opacity: 0;
+}
+</style>
