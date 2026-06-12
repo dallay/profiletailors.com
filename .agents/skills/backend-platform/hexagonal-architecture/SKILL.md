@@ -623,7 +623,7 @@ class UserControllerIntegrationTest {
 
 ```bash
 # Create new feature structure
-mkdir -p server/smp/src/main/kotlin/com/profiletailors/smp/{feature}/{domain,application,infrastructure}
+FEATURE="new-feature"; mkdir -p "server/smp/src/main/kotlin/com/profiletailors/smp/${FEATURE}/{domain,application,infrastructure}"
 
 # Verify architecture (check imports)
 rg "import org.springframework" server/smp/src/main/kotlin/com/profiletailors/smp/*/domain/

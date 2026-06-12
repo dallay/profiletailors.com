@@ -17,6 +17,19 @@ import java.time.Clock
 @Configuration
 class PlatformBootstrapConfiguration {
 
+    /**
+     * Singleton store shared across the request pipeline.
+     *
+     * In a pure WebFlux reactive application `@RequestScope` is not available because
+     * request state lives in Reactor Context, not thread-local storage.  The idiomatic
+     * per-request fix would be to migrate to Reactor Context (SubscriberContext) so each
+     * subscription sees its own data without shared mutable state.
+     *
+     * Until that migration, the existing filters (RequestPathWebFilter etc.) set and clear
+     * their keys synchronously within each request, which is safe for the current deployment
+     * profile (sequential / low-concurrency).  If request-concurrent isolation is needed,
+     * migrate InMemoryRequestContextStore to use Reactor Context under the same interface.
+     */
     @Bean
     fun requestContextStore(): RequestContextStore = InMemoryRequestContextStore()
 

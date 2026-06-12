@@ -46,9 +46,7 @@ function makePublication(overrides: Partial<Publication> = {}): Publication {
   }
 }
 
-function makeActivity(
-  overrides: Partial<ActivityEntry> = {},
-): ActivityEntry {
+function makeActivity(overrides: Partial<ActivityEntry> = {}): ActivityEntry {
   return {
     date: '2026-06-15',
     density: 'MEDIUM',

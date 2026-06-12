@@ -58,6 +58,10 @@ async function onDropCell(e: DragEvent, targetDate: Date, targetHour?: number) {
   const d = new Date(targetDate)
   if (targetHour !== undefined) {
     d.setHours(targetHour, 0, 0, 0)
+  } else if (dragData.value?.previousScheduledAt) {
+    // Preserve original time when dropping in month view
+    const prev = new Date(dragData.value.previousScheduledAt)
+    d.setHours(prev.getHours(), prev.getMinutes(), 0, 0)
   }
   const newDateIso = d.toISOString()
 
@@ -207,6 +211,14 @@ const filteredPublications = computed(() => {
   return publishingStore.publications.filter((pub) => {
     if (publishingStore.filterChannel && !(pub.channels as string[]).includes(publishingStore.filterChannel)) {
       return false
+    }
+    if (publishingStore.filterSocialAccountId) {
+      const matchedChannel = publishingStore.channels.find(
+        (ch) => ch.accountId === publishingStore.filterSocialAccountId,
+      )
+      if (matchedChannel && !(pub.channels as string[]).includes(matchedChannel.provider)) {
+        return false
+      }
     }
     if (publishingStore.filterTag && !pub.content.toLowerCase().includes(publishingStore.filterTag.toLowerCase())) {
       return false

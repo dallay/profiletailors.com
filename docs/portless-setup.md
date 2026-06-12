@@ -72,6 +72,7 @@ pnpm dev
 Each project's `package.json` declares its portless config:
 
 - `apps/web/marketing/package.json`:
+
   ```json
   {
     "portless": {
@@ -86,6 +87,7 @@ Each project's `package.json` declares its portless config:
   ```
 
 - `apps/web/app/package.json`:
+
   ```json
   {
     "portless": {

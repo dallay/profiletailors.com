@@ -1,6 +1,5 @@
 <script setup lang="ts">
 import { computed } from 'vue'
-import { useI18n } from 'vue-i18n'
 import ConflictBadge from '@/components/ConflictBadge.vue'
 import type { Publication, ActivityEntry } from '@/stores/publishing'
 
@@ -34,16 +33,6 @@ const emit = defineEmits<{
   (e: 'dragend', event: DragEvent): void
   (e: 'drop-cell', payload: { event: DragEvent; date: Date }): void
 }>()
-
-const { locale: i18nLocale } = useI18n()
-
-const localeDays = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday']
-const localeDaysEs = ['Domingo', 'Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado']
-
-function formatDayName(date: Date) {
-  const index = date.getDay()
-  return (i18nLocale.value === 'es' ? localeDaysEs : localeDays)[index] ?? ''
-}
 
 function getProviderColor(provider: string) {
   switch (provider) {
@@ -128,7 +117,7 @@ function onDrop(e: DragEvent) {
 
       <!-- Activity dot -->
       <div
-        v-if="activityEntry && isCurrentMonth"
+        v-if="activityEntry && isCurrentMonth && activityDotColor"
         class="size-2 rounded-full shrink-0"
         :class="activityDotColor"
       />

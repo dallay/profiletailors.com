@@ -46,6 +46,8 @@ object AuditEventCursorCodec {
             throw exception
         } catch (exception: IllegalArgumentException) {
             throw InvalidAuditEventCursorException(exception)
+        } catch (exception: java.time.format.DateTimeParseException) {
+            throw InvalidAuditEventCursorException(exception)
         }
     }
 }

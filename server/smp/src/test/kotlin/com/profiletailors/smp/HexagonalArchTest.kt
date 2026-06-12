@@ -47,7 +47,7 @@ internal class HexagonalArchTest {
             .resideInAPackage("..domain..")
             .should()
             .dependOnClassesThat()
-            .resideInAnyPackage("org.springframework..", "org.springframework.r2dbc..")
+            .resideInAnyPackage("org.springframework..")
             .because("domain layer must be pure Kotlin with no Spring dependencies")
             .check(importedClasses)
     }

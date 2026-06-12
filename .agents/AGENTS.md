@@ -10,7 +10,7 @@ collaborate). This repo hosts the marketing site and the backend service. The pr
 
 ## Monorepo Structure
 
-```
+```text
 apps/web/marketing/ ← Astro 6 landing page
 server/smp/         ← Spring Boot 4 backend (Kotlin, WebFlux)
 shared/             ← Reusable Kotlin libraries (bus, common, storage, security, etc.)

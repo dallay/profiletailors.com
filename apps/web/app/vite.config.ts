@@ -12,7 +12,7 @@ export default defineConfig({
   server: {
     port: parseInt(process.env.PORT || '5173', 10),
     host: true,
-    allowedHosts: true,
+    allowedHosts: ['.localhost', 'pt-app.localhost'],
     proxy: {
       '/api': {
         target: 'http://localhost:8080',

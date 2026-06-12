@@ -8,7 +8,7 @@
     "script": "dev:app"
   },
   "scripts": {
-    "dev": "portless",
+    "dev": "node -e 'try { require(\"child_process\").execSync(\"portless --version\", { stdio: \"ignore\" }) } catch { console.error(\"\\n❌ ERROR: portless not found. See docs/portless-setup.md for installation.\\n\"); process.exit(1) }' && portless",
     "dev:app": "vite",
     "build": "run-p type-check \"build-only {@}\" --",
     "preview": "vite preview",
