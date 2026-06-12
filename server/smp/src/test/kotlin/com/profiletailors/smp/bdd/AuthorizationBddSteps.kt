@@ -9,7 +9,7 @@ import com.profiletailors.common.domain.bus.notification.Notification
 import com.profiletailors.common.domain.bus.query.Query
 import com.profiletailors.common.domain.workspace.WorkspaceMembershipStatus
 import com.profiletailors.smp.authorization.domain.AuthorizationDecision
-import com.profiletailors.smp.governance.application.AuditEventPage
+import com.profiletailors.smp.governance.domain.AuditEventPage
 import com.profiletailors.smp.governance.application.GetWorkspaceAuditEventsQuery
 import com.profiletailors.smp.governance.application.WorkspaceAuditEventsResponse
 import com.profiletailors.smp.governance.infrastructure.http.AuditEventController

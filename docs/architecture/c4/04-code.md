@@ -19,6 +19,10 @@ This level focuses on class structure, key methods, and design patterns.
 - **Application**: Use cases, ports (interfaces)
 - **Infrastructure**: Adapters (R2DBC, HTTP, external APIs)
 
+All bounded contexts — including cross-cutting ones (`platform`, `audit`, `observability`,
+`governance`) — must expose `domain/`, `application/`, and `infrastructure/` packages.
+Enforced by `HexagonalArchTest` in `server/smp/src/test/`.
+
 ### 2. CQRS (Command Query Responsibility Segregation)
 
 - **Commands**: Mutate state (e.g., `UpdateWorkspaceMembershipStatusCommand`)

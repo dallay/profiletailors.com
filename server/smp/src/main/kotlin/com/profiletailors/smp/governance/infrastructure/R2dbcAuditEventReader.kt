@@ -2,9 +2,9 @@ package com.profiletailors.smp.governance.infrastructure
 
 import com.fasterxml.jackson.core.type.TypeReference
 import com.fasterxml.jackson.databind.ObjectMapper
-import com.profiletailors.smp.governance.application.AuditEventCursor
-import com.profiletailors.smp.governance.application.AuditEventItem
-import com.profiletailors.smp.governance.application.AuditEventReader
+import com.profiletailors.smp.governance.domain.AuditEventCursor
+import com.profiletailors.smp.governance.domain.AuditEventItem
+import com.profiletailors.smp.governance.domain.AuditEventReader
 import kotlinx.coroutines.reactor.awaitSingle
 import org.springframework.r2dbc.core.DatabaseClient
 import org.springframework.stereotype.Repository

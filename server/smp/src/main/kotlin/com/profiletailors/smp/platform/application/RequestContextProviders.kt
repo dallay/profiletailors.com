@@ -1,10 +1,11 @@
-package com.profiletailors.smp.platform.infrastructure
+package com.profiletailors.smp.platform.application
 
 import com.profiletailors.common.domain.context.PrincipalContext
 import com.profiletailors.common.domain.context.PrincipalContextProvider
 import com.profiletailors.common.domain.context.RequestPathProvider
 import com.profiletailors.common.domain.context.ResourceContext
 import com.profiletailors.common.domain.context.ResourceContextProvider
+import com.profiletailors.smp.platform.domain.RequestContextStore
 
 class StoreBackedPrincipalContextProvider(
     private val requestContextStore: RequestContextStore,
