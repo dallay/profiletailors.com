@@ -3,8 +3,13 @@
   "version": "0.0.0",
   "private": true,
   "type": "module",
+  "portless": {
+    "name": "pt-app",
+    "script": "dev:app"
+  },
   "scripts": {
-    "dev": "vite",
+    "dev": "portless",
+    "dev:app": "vite",
     "build": "run-p type-check \"build-only {@}\" --",
     "preview": "vite preview",
     "build-only": "vite build",

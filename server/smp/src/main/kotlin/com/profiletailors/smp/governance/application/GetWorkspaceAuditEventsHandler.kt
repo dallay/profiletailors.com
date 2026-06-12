@@ -7,11 +7,10 @@ import com.profiletailors.smp.authorization.domain.AuthorizationDeniedException
 import com.profiletailors.smp.authorization.domain.AuthorizationDecision
 import com.profiletailors.smp.authorization.domain.PermissionKey
 import com.profiletailors.smp.authorization.domain.WorkspaceAuthorizationDecider
-import com.profiletailors.smp.governance.application.AuditEventCursorCodec
-import com.profiletailors.smp.governance.application.AuditEventPage
-import com.profiletailors.smp.governance.application.AuditEventReader
-import com.profiletailors.smp.governance.application.GetWorkspaceAuditEventsQuery
-import com.profiletailors.smp.governance.application.WorkspaceAuditEventsResponse
+import com.profiletailors.smp.governance.domain.AuditEventCursorCodec
+import com.profiletailors.smp.governance.domain.AuditEventPage
+import com.profiletailors.smp.governance.domain.AuditEventReader
+import com.profiletailors.smp.governance.domain.AuditEventCursor
 
 private val AUDIT_READ_PERMISSION: PermissionKey = PermissionKey.of("workspace", "audit", "read")
 
@@ -49,7 +48,7 @@ internal class GetWorkspaceAuditEventsHandler(
         val nextCursor = if (items.size > normalizedLimit && visibleItems.isNotEmpty()) {
             val lastVisibleItem = visibleItems.last()
             AuditEventCursorCodec.encode(
-                com.profiletailors.smp.governance.application.AuditEventCursor(
+                AuditEventCursor(
                     createdAt = lastVisibleItem.createdAt,
                     id = lastVisibleItem.id,
                 ),

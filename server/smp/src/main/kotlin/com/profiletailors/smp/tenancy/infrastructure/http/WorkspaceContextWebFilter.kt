@@ -1,6 +1,6 @@
 package com.profiletailors.smp.tenancy.infrastructure.http
 
-import com.profiletailors.smp.platform.infrastructure.RequestContextStore
+import com.profiletailors.smp.platform.domain.RequestContextStore
 import com.profiletailors.smp.tenancy.application.ActiveWorkspaceContextResolver
 import org.springframework.web.server.ServerWebExchange
 import org.springframework.web.server.WebFilter

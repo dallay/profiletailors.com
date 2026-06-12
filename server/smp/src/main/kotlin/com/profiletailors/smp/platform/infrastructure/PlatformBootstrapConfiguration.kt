@@ -4,17 +4,13 @@ import com.fasterxml.jackson.databind.ObjectMapper
 import com.profiletailors.common.domain.context.PrincipalContextProvider
 import com.profiletailors.common.domain.context.RequestPathProvider
 import com.profiletailors.common.domain.context.ResourceContextProvider
-import com.profiletailors.common.domain.observability.RequestOutcome
-import com.profiletailors.smp.audit.domain.AuditHook
-import com.profiletailors.smp.audit.domain.AuthorizationDecisionAuditFact
-import com.profiletailors.smp.audit.domain.MutationAuditFact
-import com.profiletailors.smp.observability.application.MetricsHook
-import com.profiletailors.smp.observability.application.RateLimitHook
+import com.profiletailors.smp.platform.application.StoreBackedPrincipalContextProvider
+import com.profiletailors.smp.platform.application.StoreBackedRequestPathProvider
+import com.profiletailors.smp.platform.application.StoreBackedResourceContextProvider
+import com.profiletailors.smp.platform.domain.RequestContextStore
 import com.profiletailors.smp.platform.infrastructure.http.RequestPathWebFilter
-import org.springframework.beans.factory.annotation.Value
 import org.springframework.context.annotation.Bean
 import org.springframework.context.annotation.Configuration
-import org.springframework.r2dbc.core.DatabaseClient
 import org.springframework.web.server.WebFilter
 import java.time.Clock
 
@@ -44,45 +40,5 @@ class PlatformBootstrapConfiguration {
     fun objectMapper(): ObjectMapper = ObjectMapper()
 
     @Bean
-    fun auditHook(
-        databaseClientProvider: org.springframework.beans.factory.ObjectProvider<DatabaseClient>,
-        objectMapper: ObjectMapper,
-        clock: Clock,
-        @Value("\${platform.hooks.audit.enabled:false}") auditEnabled: Boolean,
-    ): AuditHook = if (auditEnabled) {
-        val databaseClient = databaseClientProvider.getIfAvailable()
-            ?: throw IllegalStateException("Audit is enabled but DatabaseClient is not available")
-        R2dbcAuditHook(
-            databaseClient = databaseClient,
-            objectMapper = objectMapper,
-            clock = clock,
-        )
-    } else {
-        NoOpAuditHook()
-    }
-
-    @Bean
-    fun metricsHook(): MetricsHook = NoOpMetricsHook()
-
-    @Bean
-    fun rateLimitHook(): RateLimitHook = NoOpRateLimitHook()
-
-    @Bean
     fun clock(): Clock = Clock.systemUTC()
-}
-
-class NoOpAuditHook : AuditHook {
-    override suspend fun onRequestHandled(requestName: String, outcome: RequestOutcome) = Unit
-
-    override suspend fun onAuthorizationDecision(fact: AuthorizationDecisionAuditFact) = Unit
-
-    override suspend fun onMutation(fact: MutationAuditFact) = Unit
-}
-
-class NoOpMetricsHook : MetricsHook {
-    override suspend fun onRequestHandled(requestName: String, outcome: RequestOutcome) = Unit
-}
-
-class NoOpRateLimitHook : RateLimitHook {
-    override suspend fun onRequestReceived(requestName: String) = Unit
 }

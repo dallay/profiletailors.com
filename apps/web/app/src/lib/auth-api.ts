@@ -39,9 +39,14 @@ export interface ApiError {
 
 const DEFAULT_API_BASE_URL = 'http://localhost:8080'
 
-function resolveApiBaseUrl() {
+function resolveApiBaseUrl(): string {
   const envValue = import.meta.env.VITE_API_BASE_URL
-  return typeof envValue === 'string' && envValue.length > 0 ? envValue : DEFAULT_API_BASE_URL
+  // Allow explicit '' to mean same-origin (for Vite proxy in development).
+  // When unset, falls back to DEFAULT_API_BASE_URL for backwards compat.
+  if (typeof envValue === 'string') {
+    return envValue
+  }
+  return DEFAULT_API_BASE_URL
 }
 
 /**

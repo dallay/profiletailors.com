@@ -623,41 +623,43 @@ class UserControllerIntegrationTest {
 
 ```bash
 # Create new feature structure
-mkdir -p server/engine/src/main/kotlin/com/profiletailors/{feature}/{domain,application,infrastructure}
+mkdir -p server/smp/src/main/kotlin/com/profiletailors/smp/{feature}/{domain,application,infrastructure}
 
 # Verify architecture (check imports)
-rg "import org.springframework" server/engine/src/main/kotlin/com/profiletailors/*/domain/
+rg "import org.springframework" server/smp/src/main/kotlin/com/profiletailors/smp/*/domain/
 
 # Should return NOTHING - domain must be pure
 ```
 
 ## Architecture Tests (ArchUnit)
 
-To keep boundaries enforced automatically, every new feature/bounded context must be added to the
-ArchUnit test so rules run for it.
+Layer boundaries are enforced by ArchUnit in the smp module. Every new bounded context must be
+added to the `boundedContexts` list so rules run for it.
 
-- File: server/engine/src/test/kotlin/com/profiletailors/ArchTest.kt
-- Update the `boundedContexts` list to include the new feature folder name (matches
-  `com.profiletailors.{feature}`):
+- File: `server/smp/src/test/kotlin/com/profiletailors/smp/HexagonalArchTest.kt`
+- Component-scan rules: `server/smp/src/test/kotlin/com/profiletailors/smp/ComponentScanArchTest.kt`
+- Update the `boundedContexts` list to include the new context name (matches
+  `com.profiletailors.smp.{context}`):
 
 ```kotlin
 private val boundedContexts = listOf(
-    "users",
-    "authentication",
-    "workspace",
-    "ratelimit",
-    "resume",
-    "waitlist",
-    "subscription",
-    "contact",
-    // ➕ add your new feature here, e.g. "billing"
+    "authorization",
+    "credentials",
+    "governance",
+    "identity",
+    "platform",
+    "publishing",
+    "tenancy",
+    "audit",
+    "observability",
+    // ➕ add your new context here, e.g. "billing"
 )
 ```
 
 Run tests to verify rules apply to your feature:
 
 ```bash
-./gradlew test --tests com.profiletailors.ArchTest
+./gradlew :server:smp:test --tests com.profiletailors.smp.HexagonalArchTest
 ```
 
 ## Resources

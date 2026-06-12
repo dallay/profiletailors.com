@@ -2,22 +2,14 @@
 import { ref, computed, watch, onMounted } from 'vue'
 import { useI18n } from 'vue-i18n'
 import {
-  Bookmark,
-  CalendarDays,
-  ChevronDown,
-  ChevronLeft,
-  ChevronRight,
-  Clock,
-  Filter,
-  Globe,
-  List,
   Plus,
-  Tag,
   Trash2,
-  X,
 } from '@lucide/vue'
 import { usePublishingStore, type Publication, type ActivityEntry } from '@/stores/publishing'
 import CreatePostModal from '@/components/CreatePostModal.vue'
+import CalendarHeader from '@/components/CalendarHeader.vue'
+import CalendarCell from '@/components/CalendarCell.vue'
+import ConflictBadge from '@/components/ConflictBadge.vue'
 import { Card } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 
@@ -305,19 +297,6 @@ function activityForDate(date: Date): ActivityEntry | undefined {
   return activityByDate.value.get(dateKey(date))
 }
 
-function activityDotColor(density: string | undefined): string {
-  switch (density) {
-    case 'LIGHT':
-      return 'bg-yellow-400'
-    case 'MEDIUM':
-      return 'bg-orange-400'
-    case 'HIGH':
-      return 'bg-green-500'
-    default:
-      return ''
-  }
-}
-
 // ---------------------------------------------------------------------------
 // Modal helpers
 // ---------------------------------------------------------------------------
@@ -368,114 +347,16 @@ onMounted(() => {
 
 <template>
   <div class="space-y-6">
-    <!-- Top Filter Controls Bar -->
-    <div class="flex flex-col lg:flex-row gap-4 items-start lg:items-center justify-between border-b border-border-subtle pb-4">
-      <!-- Title/Breadcrumb -->
-      <div class="flex items-center gap-2">
-        <Bookmark class="size-4.5 text-text-secondary" />
-        <h2 class="text-xl font-light tracking-tight text-text-display">
-          {{ $t('scheduler.allChannels') || 'All Channels' }}
-        </h2>
-      </div>
-
-      <!-- Filters & Action buttons -->
-      <div class="flex flex-wrap items-center gap-3 w-full lg:w-auto">
-        <!-- Calendar View toggle (month/week/day) — only in calendar mode -->
-        <div v-if="publishingStore.viewMode === 'calendar'" class="flex items-center rounded-full border border-border-visible bg-bg-surface p-0.5 font-mono text-[9px] tracking-wider uppercase font-bold">
-          <button
-            class="cursor-pointer rounded-full px-2.5 py-1 transition-all"
-            :class="calendarView === 'month' ? 'bg-text-display text-bg-primary' : 'text-text-secondary hover:text-text-display'"
-            @click="calendarView = 'month'"
-          >
-            {{ $t('scheduler.calendar') || 'Month' }}
-          </button>
-          <button
-            class="cursor-pointer rounded-full px-2.5 py-1 transition-all"
-            :class="calendarView === 'week' ? 'bg-text-display text-bg-primary' : 'text-text-secondary hover:text-text-display'"
-            @click="calendarView = 'week'"
-          >
-            {{ $t('scheduler.weekView') || 'Week' }}
-          </button>
-          <button
-            class="cursor-pointer rounded-full px-2.5 py-1 transition-all"
-            :class="calendarView === 'day' ? 'bg-text-display text-bg-primary' : 'text-text-secondary hover:text-text-display'"
-            @click="calendarView = 'day'"
-          >
-            Day
-          </button>
-        </div>
-
-        <!-- View mode toggle (calendar / list) -->
-        <div class="flex items-center rounded-full border border-border-visible bg-bg-surface p-0.5 font-mono text-[9px] tracking-wider uppercase font-bold">
-          <button
-            class="cursor-pointer rounded-full px-3 py-1 transition-all"
-            :class="publishingStore.viewMode === 'calendar' ? 'bg-text-display text-bg-primary' : 'text-text-secondary hover:text-text-display'"
-            @click="publishingStore.viewMode = 'calendar'"
-          >
-            {{ $t('scheduler.calendar') || 'Calendar' }}
-          </button>
-          <button
-            class="cursor-pointer rounded-full px-3 py-1 transition-all"
-            :class="publishingStore.viewMode === 'list' ? 'bg-text-display text-bg-primary' : 'text-text-secondary hover:text-text-display'"
-            @click="publishingStore.viewMode = 'list'"
-          >
-            {{ $t('scheduler.list') || 'List' }}
-          </button>
-        </div>
-
-        <!-- Timezone Location Dropdown -->
-        <div class="relative shrink-0">
-          <select
-            v-model="publishingStore.userTimezone"
-            class="bg-bg-surface border border-border-subtle rounded-full px-3 py-1.5 text-[10px] font-mono font-bold text-text-secondary appearance-none pr-8 cursor-pointer focus:outline-none focus:border-text-display"
-          >
-            <option :value="publishingStore.userTimezone">🌐 {{ publishingStore.userTimezone || 'UTC' }}</option>
-            <option value="Europe/Madrid">📍 Europe/Madrid</option>
-            <option value="UTC">🌐 UTC</option>
-            <option value="America/New_York">🇺🇸 America/New_York</option>
-          </select>
-          <ChevronDown class="absolute right-3 top-1/2 -translate-y-1/2 size-3 text-text-secondary pointer-events-none" />
-        </div>
-
-        <!-- Platform/Account filter -->
-        <div class="relative shrink-0">
-          <select
-            v-model="publishingStore.filterSocialAccountId"
-            class="bg-bg-surface border border-border-subtle rounded-full px-3 py-1.5 text-[10px] font-mono font-bold text-text-secondary appearance-none pr-8 cursor-pointer focus:outline-none focus:border-text-display"
-          >
-            <option value="">👤 {{ $t('scheduler.channelsLabel') || 'Platform' }}</option>
-            <option
-              v-for="ch in publishingStore.channels"
-              :key="ch.accountId"
-              :value="ch.accountId"
-            >
-              {{ ch.provider }} ({{ ch.handle }})
-            </option>
-          </select>
-          <ChevronDown class="absolute right-3 top-1/2 -translate-y-1/2 size-3 text-text-secondary pointer-events-none" />
-        </div>
-
-        <!-- Post Status Filter -->
-        <div class="relative shrink-0">
-          <select
-            v-model="publishingStore.filterPostType"
-            class="bg-bg-surface border border-border-subtle rounded-full px-3 py-1.5 text-[10px] font-mono font-bold text-text-secondary appearance-none pr-8 cursor-pointer focus:outline-none focus:border-text-display"
-          >
-            <option value="all">📁 {{ $t('scheduler.allPosts') || 'All Posts' }}</option>
-            <option value="queued">⏳ Queued</option>
-            <option value="published">✅ Published</option>
-            <option value="cancelled">🚫 Cancelled</option>
-          </select>
-          <ChevronDown class="absolute right-3 top-1/2 -translate-y-1/2 size-3 text-text-secondary pointer-events-none" />
-        </div>
-
-        <!-- Create Button -->
-        <Button @click="openNewPostGeneral" class="gap-1.5 h-8.5 text-[10px] uppercase font-mono tracking-wider">
-          <Plus class="size-3.5" />
-          <span>{{ $t('scheduler.newPost') || 'New Post' }}</span>
-        </Button>
-      </div>
-    </div>
+    <!-- Calendar Header: navigation, view toggle, filters -->
+    <CalendarHeader
+      :calendar-view="calendarView"
+      :period-label="periodLabel"
+      @update:calendar-view="calendarView = $event"
+      @forward="goForward"
+      @backward="goBackward"
+      @today="goToToday"
+      @new-post="openNewPostGeneral"
+    />
 
     <!-- Main Workspace Layout -->
     <div class="flex flex-col lg:flex-row gap-6">
@@ -540,43 +421,6 @@ onMounted(() => {
       <div class="flex-1 min-w-0">
         <!-- Calendar Mode -->
         <div v-if="publishingStore.viewMode === 'calendar'" class="space-y-4">
-          <!-- Calendar Subheader: Navigation -->
-          <div class="flex items-center justify-between bg-bg-surface border border-border-subtle p-3 rounded-xl">
-            <!-- Navigation arrows -->
-            <div class="flex items-center gap-1">
-              <button
-                @click="goBackward"
-                class="size-8 flex items-center justify-center rounded-lg border border-border-visible hover:border-text-secondary hover:text-text-display bg-bg-primary transition-colors cursor-pointer text-text-secondary"
-              >
-                <ChevronLeft class="size-4" />
-              </button>
-              <button
-                @click="goForward"
-                class="size-8 flex items-center justify-center rounded-lg border border-border-visible hover:border-text-secondary hover:text-text-display bg-bg-primary transition-colors cursor-pointer text-text-secondary"
-              >
-                <ChevronRight class="size-4" />
-              </button>
-            </div>
-
-            <!-- Date Range Label -->
-            <span class="font-mono text-[10px] font-bold uppercase tracking-widest text-text-display">
-              {{ periodLabel }}
-            </span>
-
-            <!-- Actions -->
-            <div class="flex items-center gap-2">
-              <button
-                @click="goToToday"
-                class="border border-border-visible hover:border-text-secondary bg-bg-primary text-text-secondary hover:text-text-display font-mono text-[9px] uppercase tracking-wider font-bold rounded-lg px-3 py-1.5 transition-colors cursor-pointer"
-              >
-                {{ $t('scheduler.today') || 'Today' }}
-              </button>
-              <span class="font-mono text-[9px] uppercase tracking-wider text-text-secondary bg-bg-primary border border-border-visible px-2.5 py-1 rounded-lg">
-                {{ calendarView === 'month' ? 'Month' : calendarView === 'week' ? 'Week' : 'Day' }}
-              </span>
-            </div>
-          </div>
-
           <!-- ================================================================ -->
           <!-- MONTH VIEW -->
           <!-- ================================================================ -->
@@ -602,62 +446,20 @@ onMounted(() => {
                   :key="wkIdx"
                   class="grid grid-cols-7"
                 >
-              <div
-                  v-for="day in week"
-                  :key="day.toISOString()"
-                  class="relative min-h-[90px] border-r border-border-subtle last:border-r-0 p-1.5 transition-all"
-                  :class="{
-                    'bg-bg-surface/30': !isCurrentMonth(day),
-                    'bg-bg-primary/10': isCurrentMonth(day),
-                    'cursor-pointer hover:bg-bg-primary/20': isCurrentMonth(day),
-                  }"
-                  @click="isCurrentMonth(day) ? openDayView(day) : undefined"
-                >
-                    <!-- Day number -->
-                    <div class="flex items-center justify-between mb-1">
-                      <span
-                        class="font-mono text-[10px] font-bold leading-none size-5 flex items-center justify-center rounded-full"
-                        :class="{
-                          'bg-text-display text-bg-primary': isToday(day),
-                          'text-text-display': !isToday(day) && isCurrentMonth(day),
-                          'text-text-secondary/40': !isCurrentMonth(day),
-                        }"
-                      >
-                        {{ day.getDate() }}
-                      </span>
-
-                      <!-- Activity dot -->
-                      <div
-                        v-if="activityForDate(day) && isCurrentMonth(day)"
-                        class="size-2 rounded-full shrink-0"
-                        :class="activityDotColor(activityForDate(day)?.density)"
-                      />
-                    </div>
-
-                    <!-- Publication snippets for this day (max 3) -->
-                    <div class="space-y-0.5">
-                      <div
-                        v-for="pub in getPublicationsForDate(day).slice(0, 3)"
-                        :key="pub.id"
-                        class="flex items-center gap-1 rounded-md px-1 py-0.5 text-[7px] font-mono truncate"
-                        :class="getProviderColor(pub.channels[0] || 'linkedin')"
-                        :draggable="publishingStore.viewMode === 'calendar'"
-                        @dragstart="onDragStart($event, pub)"
-                        @dragend="onDragEnd($event)"
-                      >
-                        <span class="shrink-0">{{ getProviderBadge(pub.channels[0] || 'linkedin') }}</span>
-                        <span class="truncate">{{ pub.title || pub.content.substring(0, 20) }}</span>
-                        <!-- Conflict badge -->
-                        <span v-if="pub.hasConflict" class="shrink-0 size-2.5 rounded-full bg-error/20 text-error flex items-center justify-center text-[6px] font-bold">!</span>
-                      </div>
-                      <div
-                        v-if="getPublicationsForDate(day).length > 3"
-                        class="text-[7px] font-mono text-text-secondary pl-1"
-                      >
-                        +{{ getPublicationsForDate(day).length - 3 }} more
-                      </div>
-                    </div>
-                  </div>
+                  <CalendarCell
+                    v-for="day in week"
+                    :key="day.toISOString()"
+                    :date="day"
+                    :is-current-month="isCurrentMonth(day)"
+                    :is-today="isToday(day)"
+                    :publications="getPublicationsForDate(day)"
+                    :activity-entry="activityForDate(day) ?? null"
+                    :draggable="publishingStore.viewMode === 'calendar'"
+                    @click-day="openDayView"
+                    @dragstart="(p) => onDragStart(p.event, p.pub)"
+                    @dragend="onDragEnd"
+                    @drop-cell="(p) => onDropCell(p.event, p.date)"
+                  />
                 </div>
               </div>
             </Card>
@@ -732,13 +534,10 @@ onMounted(() => {
                             {{ getProviderBadge(channel) }}
                           </span>
                           <!-- Conflict badge -->
-                          <span
+                          <ConflictBadge
                             v-if="pub.hasConflict"
-                            class="size-3.5 rounded-full bg-error/15 text-error flex items-center justify-center font-mono text-[6px] font-bold cursor-help"
-                            title="Conflicts with another publication"
-                          >
-                            !
-                          </span>
+                            variant="badge"
+                          />
                         </div>
                       </div>
 
@@ -799,13 +598,10 @@ onMounted(() => {
                       >
                         {{ getProviderBadge(channel) }}
                       </span>
-                      <span
+                      <ConflictBadge
                         v-if="pub.hasConflict"
-                        class="size-4 rounded-full bg-error/15 text-error flex items-center justify-center font-mono text-[7px] font-bold cursor-help"
-                        title="Conflicts with another publication"
-                      >
-                        !
-                      </span>
+                        variant="badge"
+                      />
                     </div>
                   </div>
                   <p class="text-sm font-light leading-relaxed text-text-body">
@@ -871,13 +667,10 @@ onMounted(() => {
                     {{ pub.status }}
                   </span>
                   <!-- Conflict badge in list view -->
-                  <span
+                  <ConflictBadge
                     v-if="pub.hasConflict"
-                    class="bg-error/10 text-error border border-error/20 font-mono text-[9px] uppercase tracking-widest px-2 py-0.5 rounded-md flex items-center gap-1"
-                  >
-                    <span class="size-2.5 rounded-full bg-error inline-block" />
-                    Conflict
-                  </span>
+                    variant="inline"
+                  />
                 </div>
                 <p class="text-sm font-light text-text-body leading-relaxed break-words">
                   {{ pub.content }}
