@@ -6,7 +6,7 @@ import com.profiletailors.common.domain.bus.command.CommandWithResult
 import com.profiletailors.common.domain.bus.notification.Notification
 import com.profiletailors.common.domain.bus.PublishStrategy
 import com.profiletailors.common.domain.bus.query.Query
-import com.profiletailors.smp.governance.application.AuditEventPage
+import com.profiletailors.smp.governance.domain.AuditEventPage
 import com.profiletailors.smp.governance.application.GetWorkspaceAuditEventsQuery
 import com.profiletailors.smp.governance.application.WorkspaceAuditEventsResponse
 import kotlinx.coroutines.test.runTest

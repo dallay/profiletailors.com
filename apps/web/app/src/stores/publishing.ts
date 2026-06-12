@@ -28,6 +28,8 @@ export interface Publication {
   mediaFiles?: File[] // Local file list for previewing uploads
   hasConflict?: boolean
   conflictingPublicationIds?: string[]
+  /** The originating social account ID; used for direct account-level filtering. */
+  accountId?: string
 }
 
 // ---------------------------------------------------------------------------
@@ -106,6 +108,7 @@ function apiResultToPublication(api: CalendarPublicationResult): Publication {
     priority: api.priority,
     hasConflict: api.hasConflict,
     conflictingPublicationIds: api.conflictingPublicationIds,
+    accountId: api.socialAccountId,
   }
 }
 
@@ -475,6 +478,9 @@ export const usePublishingStore = defineStore('publishing', () => {
   function applyLocalFilters(list: Publication[]): Publication[] {
     return list.filter((pub) => {
       if (filterChannel.value && !(pub.channels as string[]).includes(filterChannel.value)) {
+        return false
+      }
+      if (filterSocialAccountId.value && pub.accountId !== filterSocialAccountId.value) {
         return false
       }
       if (filterTag.value && !pub.content.toLowerCase().includes(filterTag.value.toLowerCase())) {

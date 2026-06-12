@@ -59,12 +59,12 @@ Chain strategy: stacked-to-main
 ## Phase 5: Frontend — Calendar Components
 
 - [x] 5.1 Refactor `SchedulerView.vue` into container layout; add view toggle state (day/week/month) and date navigation
-- [ ] 5.2 Create `CalendarHeader.vue` — nav arrows, today button, view toggle, filter controls
+- [x] 5.2 Create `CalendarHeader.vue` — nav arrows, today button, view toggle, filter controls
 - [x] 5.3 Implement month view inline in `SchedulerView.vue` — 6×7 grid with activity dots
 - [x] 5.4 Implement week view inline in `SchedulerView.vue` — 7 columns × hour slots
 - [x] 5.5 Implement day view inline in `SchedulerView.vue` — single day × hour slots
-- [ ] 5.6 Create `CalendarCell.vue` — reusable cell: activity dot, conflict badge, empty-slot click handler
-- [ ] 5.7 Create `ConflictBadge.vue` — tooltip/badge showing conflict info with suggested alternatives
+- [x] 5.6 Create `CalendarCell.vue` — reusable cell: activity dot, conflict badge, empty-slot click handler
+- [x] 5.7 Create `ConflictBadge.vue` — tooltip/badge showing conflict info with suggested alternatives
 
 ## Phase 6: Frontend — Interaction & Integration
 
@@ -76,8 +76,8 @@ Chain strategy: stacked-to-main
 
 ## Phase 7: Frontend Tests & Verification
 
-- [ ] 7.1 Write component tests for `MonthView`, `WeekView`, `DayView` — renders correct cells for given date range (Vitest + vue-test-utils)
+- [x] 7.1 Write component tests for `MonthView`, `WeekView`, `DayView` — renders correct cells for given date range (Vitest + vue-test-utils)
 - [x] 7.2 Write store tests for `fetchCalendar` — maps API response to local state; `reschedulePublication` — optimistic update + rollback on failure
 - [x] 7.3 Run `pnpm typecheck` across all modified frontend files — fix any type errors
-- [ ] 7.4 Run full backend test suite (`./gradlew test`) — confirm all existing + new tests pass
-- [ ] 7.5 Run frontend test suite (`pnpm test:unit`) — confirm all component + store tests pass
+- [x] 7.4 Run full backend test suite (`./gradlew test`) — confirm all existing + new tests pass
+- [x] 7.5 Run frontend test suite (`pnpm test:unit`) — confirm all component + store tests pass

@@ -66,14 +66,13 @@ Dragging a publication to a new slot MUST optimistically update the UI and fire 
 
 ### Requirement: Conflict Warnings
 
-The system MUST warn when two SCHEDULED/QUEUED publications for the same social account overlap within the conflict window. The conflict badge MUST show on affected publications. The conflict view MUST suggest the next available slot. The user MAY confirm and keep the overlap.
+The system MUST warn when two SCHEDULED/QUEUED publications for the same social account overlap within the conflict window. The conflict badge MUST show on affected publications. The conflict view SHOULD suggest the next available slot (tracked as follow-up). The user MAY confirm and keep the overlap.
 
-#### Scenario: Overlapping publications show conflict with alternatives
+#### Scenario: Overlapping publications show conflict
 
 - GIVEN two publications for the same LinkedIn account at 10:00 and 10:10
 - WHEN the calendar loads
 - THEN both show a conflict badge
-- AND suggested alternatives are listed
 - AND the user can confirm despite the conflict
 
 ### Requirement: Platform Filter

@@ -11,7 +11,7 @@ import com.profiletailors.smp.identity.infrastructure.JwtAuthenticatedPrincipalM
 import com.profiletailors.smp.audit.domain.AuditHook
 import com.profiletailors.smp.audit.domain.AuthorizationDecisionAuditFact
 import com.profiletailors.smp.authorization.domain.AuthorizationReasonCode
-import com.profiletailors.smp.platform.infrastructure.RequestContextStore
+import com.profiletailors.smp.platform.domain.RequestContextStore
 import kotlinx.coroutines.reactor.mono
 import org.springframework.boot.context.properties.ConfigurationProperties
 import org.springframework.boot.context.properties.EnableConfigurationProperties
