@@ -341,66 +341,7 @@ onMounted(() => {
     />
 
     <!-- Main Workspace Layout -->
-    <div class="flex flex-col lg:flex-row gap-6">
-      <!-- Left Sidebar: Channel Manager -->
-      <div class="w-full lg:w-60 shrink-0 space-y-6">
-        <!-- Connected Channels list -->
-        <div class="space-y-3">
-          <span class="font-mono text-[9px] tracking-widest text-text-secondary uppercase block">
-            Active Profiles
-          </span>
-
-          <div class="space-y-2">
-            <div
-              v-for="ch in publishingStore.channels"
-              :key="ch.id"
-              class="flex items-center gap-3 p-2.5 rounded-xl border border-border-subtle bg-bg-surface"
-            >
-              <div class="relative">
-                <img :src="ch.avatar" class="size-9 rounded-full object-cover border border-border-visible" alt="" />
-                <span
-                  class="absolute -bottom-1 -right-1 flex size-4.5 items-center justify-center rounded-full text-[8px] font-bold border border-bg-surface text-white"
-                  :class="ch.provider === 'linkedin' ? 'bg-[#0077b5]' : 'bg-foreground'"
-                >
-                  {{ getProviderBadge(ch.provider) }}
-                </span>
-              </div>
-              <div class="min-w-0 flex-1">
-                <p class="truncate text-xs font-semibold text-text-display">{{ ch.name }}</p>
-                <p class="truncate font-mono text-[9px] text-text-secondary">{{ ch.handle }}</p>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        <!-- Platform buttons to Connect -->
-        <div class="space-y-3 pt-4 border-t border-border-subtle">
-          <span class="font-mono text-[9px] tracking-widest text-text-secondary uppercase block">
-            {{ $t('scheduler.connectChannels') || 'Connect channels' }}
-          </span>
-
-          <div class="grid grid-cols-1 gap-2 text-xs">
-            <button class="flex items-center justify-between p-2.5 rounded-xl border border-border-visible bg-transparent hover:border-text-secondary hover:text-text-display transition-colors text-left cursor-pointer">
-              <span>Threads</span>
-              <span class="font-mono text-[9px] text-text-secondary">+ connect</span>
-            </button>
-            <button class="flex items-center justify-between p-2.5 rounded-xl border border-border-visible bg-transparent hover:border-text-secondary hover:text-text-display transition-colors text-left cursor-pointer">
-              <span>Bluesky</span>
-              <span class="font-mono text-[9px] text-text-secondary">+ connect</span>
-            </button>
-            <button class="flex items-center justify-between p-2.5 rounded-xl border border-border-visible bg-transparent hover:border-text-secondary hover:text-text-display transition-colors text-left cursor-pointer">
-              <span>Facebook</span>
-              <span class="font-mono text-[9px] text-text-secondary">+ connect</span>
-            </button>
-            <button class="flex items-center justify-between gap-1.5 p-2 rounded-xl border border-dashed border-border-visible bg-transparent hover:border-text-secondary text-text-secondary hover:text-text-display transition-all cursor-pointer font-mono text-[9px] uppercase tracking-wider">
-              <span>{{ $t('scheduler.moreChannels') || '+ More channels' }}</span>
-            </button>
-          </div>
-        </div>
-      </div>
-
-      <!-- Right Main: Calendar Planner -->
-      <div class="flex-1 min-w-0">
+    <div class="min-w-0">
         <!-- Calendar Mode -->
         <div v-if="publishingStore.viewMode === 'calendar'" class="space-y-4">
           <!-- ================================================================ -->
@@ -680,7 +621,6 @@ onMounted(() => {
             </div>
           </div>
         </div>
-      </div>
     </div>
 
     <!-- Create Post Modal component overlay -->

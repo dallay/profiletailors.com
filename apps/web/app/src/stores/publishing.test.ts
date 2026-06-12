@@ -257,4 +257,40 @@ describe('publishing store', () => {
       expect(store.calendarFilters.socialAccountId).toBe('acc-li-1')
     })
   })
+
+  describe('channel filters', () => {
+    it('keeps local provider filtering independent from backend social account ids', async () => {
+      // This test exercises the local fallback-only path (no API call).
+      // fetchCalendar >> isAuthenticated === false >> applyLocalFilters
+      const store = usePublishingStore()
+      const auth = useAuthStore()
+      Object.defineProperty(auth, 'isAuthenticated', { value: false, configurable: true })
+      store.publications = [
+        {
+          id: 'local-linkedin',
+          content: 'LinkedIn post',
+          channels: ['linkedin'],
+          scheduledAt: '2026-06-15T20:00:00Z',
+          status: 'QUEUED',
+          priority: false,
+        },
+        {
+          id: 'local-instagram',
+          content: 'Instagram post',
+          channels: ['instagram'],
+          scheduledAt: '2026-06-15T21:00:00Z',
+          status: 'QUEUED',
+          priority: false,
+        },
+      ]
+
+      store.filterChannel = 'linkedin'
+      store.filterSocialAccountId = ''
+
+      await store.fetchCalendar('2026-06-01T00:00:00Z', '2026-07-01T00:00:00Z')
+
+      expect(store.publications).toHaveLength(1)
+      expect(store.publications[0]?.id).toBe('local-linkedin')
+    })
+  })
 })
