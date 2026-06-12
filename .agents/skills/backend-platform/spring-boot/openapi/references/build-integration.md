@@ -5,86 +5,89 @@
 ### OpenAPI Generation Plugin
 
 ```xml
+
 <plugin>
-    <groupId>org.springdoc</groupId>
-    <artifactId>springdoc-openapi-maven-plugin</artifactId>
-    <version>1.4</version>
-    <executions>
-        <execution>
-            <phase>integration-test</phase>
-            <goals>
-                <goal>generate</goal>
-            </goals>
-        </execution>
-    </executions>
-    <configuration>
-        <apiDocsUrl>http://localhost:8080/v3/api-docs</apiDocsUrl>
-        <outputFileName>openapi.json</outputFileName>
-        <outputDir>${project.build.directory}</outputDir>
-    </configuration>
+  <groupId>org.springdoc</groupId>
+  <artifactId>springdoc-openapi-maven-plugin</artifactId>
+  <version>1.4</version>
+  <executions>
+    <execution>
+      <phase>integration-test</phase>
+      <goals>
+        <goal>generate</goal>
+      </goals>
+    </execution>
+  </executions>
+  <configuration>
+    <apiDocsUrl>http://localhost:8080/v3/api-docs</apiDocsUrl>
+    <outputFileName>openapi.json</outputFileName>
+    <outputDir>${project.build.directory}</outputDir>
+  </configuration>
 </plugin>
 ```
 
 ### Custom Configuration
 
 ```xml
+
 <plugin>
-    <groupId>org.springdoc</groupId>
-    <artifactId>springdoc-openapi-maven-plugin</artifactId>
-    <version>1.4</version>
-    <executions>
-        <execution>
-            <phase>verify</phase>
-            <goals>
-                <goal>generate</goal>
-            </goals>
-        </execution>
-    </executions>
-    <configuration>
-        <apiDocsUrl>http://localhost:8080/v3/api-docs</apiDocsUrl>
-        <outputFileName>openapi.yaml</outputFileName>
-        <outputDir>${project.build.directory}/docs</outputDir>
-        <skip>false</skip>
-        <headers>
-            <Authorization>Bearer test-token</Authorization>
-        </headers>
-    </configuration>
+  <groupId>org.springdoc</groupId>
+  <artifactId>springdoc-openapi-maven-plugin</artifactId>
+  <version>1.4</version>
+  <executions>
+    <execution>
+      <phase>verify</phase>
+      <goals>
+        <goal>generate</goal>
+      </goals>
+    </execution>
+  </executions>
+  <configuration>
+    <apiDocsUrl>http://localhost:8080/v3/api-docs</apiDocsUrl>
+    <outputFileName>openapi.yaml</outputFileName>
+    <outputDir>${project.build.directory}/docs</outputDir>
+    <skip>false</skip>
+    <headers>
+      <Authorization>Bearer test-token</Authorization>
+    </headers>
+  </configuration>
 </plugin>
 ```
 
 ### Multiple API Groups
 
 ```xml
+
 <plugin>
-    <groupId>org.springdoc</groupId>
-    <artifactId>springdoc-openapi-maven-plugin</artifactId>
-    <version>1.4</version>
-    <executions>
-        <execution>
-            <id>generate-public-api</id>
-            <phase>verify</phase>
-            <goals>
-                <goal>generate</goal>
-            </goals>
-            <configuration>
-                <apiDocsUrl>http://localhost:8080/v3/api-docs/public</apiDocsUrl>
-                <outputFileName>public-api.json</outputFileName>
-                <outputDir>${project.build.directory}/docs</outputDir>
-            </configuration>
-        </execution>
-        <execution>
-            <id>generate-admin-api</id>
-            <phase>verify</phase>
-            <goals>
-                <goal>generate</goal>
-            </goals>
-            <configuration>
-                <apiDocsUrl>http://localhost:8080/v3/api-docs/admin</apiDocsUrl>
-                <outputFileName>admin-api.json</outputFileName>
-                <outputDir>${project.build.directory}/docs</outputDir>
-            </configuration>
-        </execution>
-    </executions>
+  <groupId>org.springdoc</groupId>
+  <artifactId>springdoc-openapi-maven-plugin</artifactId>
+  <version>1.4</version>
+  <executions>
+    <execution>
+      <id>generate-public-api</id>
+      <phase>verify</phase>
+      <goals>
+        <goal>generate</goal>
+      </goals>
+      <configuration>
+        <apiDocsUrl>http://localhost:8080/v3/api-docs/public</apiDocsUrl>
+        <outputFileName>public-api.json</outputFileName>
+        <outputDir>${project.build.directory}/docs</outputDir>
+      </configuration>
+    </execution>
+    <execution>
+      <id>generate-admin-api</id>
+      <phase>verify</phase>
+      <goals>
+        <goal>generate</goal>
+      </goals>
+      <configuration>
+        <apiDocsUrl>http://localhost:8080/v3/api-docs/admin</apiDocsUrl>
+        <outputFileName>admin-api.json</outputFileName>
+        <outputDir>${project.build.directory}/docs</outputDir>
+      </configuration>
+    </execution>
+  </executions>
 </plugin>
 ```
 
@@ -127,9 +130,9 @@ name: Generate API Docs
 
 on:
   push:
-    branches: [main]
+    branches: [ main ]
   pull_request:
-    branches: [main]
+    branches: [ main ]
 
 jobs:
   build:
@@ -193,7 +196,7 @@ generate-docs:
 
 ### OpenAPI Specification Validation
 
-```java
+```kotlin
 import org.springdoc.core.utils.SpringDocUtils;
 import static org.junit.jupiter.api.Assertions.*;
 
@@ -201,11 +204,12 @@ import static org.junit.jupiter.api.Assertions.*;
 class OpenApiDocumentationTest {
 
     @Autowired
-    private OpenApiContract openApiContract;
+    private var openApiContract: OpenApiContract
 
     @Test
-    void validateOpenApiSpec() {
-        OpenAPI openAPI = openApiContract.getOpenApi();
+    void validateOpenApiSpec()
+    {
+        OpenAPI openAPI = openApiContract . getOpenApi ();
 
         assertNotNull(openAPI);
         assertNotNull(openAPI.getInfo());
@@ -214,26 +218,27 @@ class OpenApiDocumentationTest {
     }
 
     @Test
-    void allPathsHaveDocumentation() {
-        OpenAPI openAPI = openApiContract.getOpenApi();
+    void allPathsHaveDocumentation()
+    {
+        OpenAPI openAPI = openApiContract . getOpenApi ();
 
         openAPI.getPaths().forEach((path, pathItem) -> {
-            pathItem.readOperationsMap().forEach((method, operation) -> {
-                assertNotNull(operation.getSummary(), "Missing summary for " + method + " " + path);
-                assertFalse(operation.getResponses().isEmpty(), "No responses for " + method + " " + path);
-            });
-        });
+        pathItem.readOperationsMap().forEach((method, operation) -> {
+        assertNotNull(operation.getSummary(), "Missing summary for " + method + " " + path);
+        assertFalse(operation.getResponses().isEmpty(), "No responses for " + method + " " + path);
+    });
+    });
     }
 }
 ```
 
 ### Schema Validation Tests
 
-```java
+```kotlin
 @Test
-void validateBookSchema() {
-    OpenAPI openAPI = openApiContract.getOpenApi();
-    Schema bookSchema = openAPI.getComponents().getSchemas().get("Book");
+void validateBookSchema () {
+    OpenAPI openAPI = openApiContract . getOpenApi ();
+    Schema bookSchema = openAPI . getComponents ().getSchemas().get("Book");
 
     assertNotNull(bookSchema);
     assertTrue(bookSchema.getProperties().containsKey("id"));
@@ -261,13 +266,14 @@ gradle openApi
 ### Custom Output Directory
 
 ```xml
+
 <plugin>
-    <groupId>org.springdoc</groupId>
-    <artifactId>springdoc-openapi-maven-plugin</artifactId>
-    <configuration>
-        <outputDir>${project.basedir}/src/main/resources/static/docs</outputDir>
-        <outputFileName>swagger.json</outputFileName>
-    </configuration>
+  <groupId>org.springdoc</groupId>
+  <artifactId>springdoc-openapi-maven-plugin</artifactId>
+  <configuration>
+    <outputDir>${project.basedir}/src/main/resources/static/docs</outputDir>
+    <outputFileName>swagger.json</outputFileName>
+  </configuration>
 </plugin>
 ```
 
@@ -276,9 +282,10 @@ gradle openApi
 ### Add Redoc Dependency
 
 ```xml
+
 <dependency>
-    <groupId>org.springdoc</groupId>
-    <artifactId>springdoc-openapi-starter-webmvc-ui</artifactId>
+  <groupId>org.springdoc</groupId>
+  <artifactId>springdoc-openapi-starter-webmvc-ui</artifactId>
 </dependency>
 ```
 
@@ -291,24 +298,25 @@ After adding the dependency:
 
 ### Custom Redoc Configuration
 
-```java
+```kotlin
 @Bean
-public OpenAPI openAPI() {
-    return new OpenAPI()
-        .info(new Info()
-            .title("API Documentation")
-            .version("1.0.0")
+fun openAPI(): OpenAPI {
+    return OpenAPI()
+        .info(
+            Info()
+                .title("API Documentation")
+                .version("1.0.0")
         );
 }
 
 @Configuration
-public class RedocConfig {
+class RedocConfig {
 
     @Bean
-    public IndexPageCustomizer indexPageCustomizer() {
+    fun indexPageCustomizer(): IndexPageCustomizer {
         return indexHtml -> indexHtml.replace(
-            "<title>",
-            "<link rel='stylesheet' href='/webjars/redoc/redoc.css'><script src='/webjars/redoc/redoc.standalone.js'></script><title>"
+        "<title>",
+        "<link rel='stylesheet' href='/webjars/redoc/redoc.css'><script src='/webjars/redoc/redoc.standalone.js'></script><title>"
         );
     }
 }

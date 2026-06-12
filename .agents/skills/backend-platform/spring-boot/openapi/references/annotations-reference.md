@@ -6,11 +6,11 @@
 
 Groups operations under a logical tag.
 
-```java
+```kotlin
 // Controller level
 @RestController
 @Tag(name = "Book", description = "Book management APIs")
-public class BookController { }
+class BookController {}
 
 // With external docs
 @Tag(
@@ -33,14 +33,14 @@ public class BookController { }
 
 Describes a single API operation.
 
-```java
+```kotlin
 @Operation(
     summary = "Get book by ID",
     description = "Retrieve detailed information about a specific book",
     operationId = "getBookById",
     deprecated = false,
     hidden = false,
-    tags = {"Book"},
+    tags = { "Book" },
     externalDocs = @ExternalDocumentation(
         description = "Book API Guide",
         url = "https://docs.example.com/book"
@@ -64,21 +64,23 @@ Describes a single API operation.
 
 Documents HTTP response codes.
 
-```java
+```kotlin
 @ApiResponses(value = {
     @ApiResponse(
         responseCode = "200",
         description = "Successfully retrieved",
         content = @Content(
-            schema = @Schema(implementation = Book.class),
-            mediaType = "application/json"
-        )
-    ),
-    @ApiResponse(
-        responseCode = "404",
-        description = "Resource not found",
-        content = @Content(schema = @Schema(implementation = ErrorResponse.class))
-    )
+            schema = @Schema(
+                implementation = Book.class),
+                mediaType = "application/json"
+            )
+        ),
+        @ApiResponse(
+            responseCode = "404",
+            description = "Resource not found",
+            content = @Content(
+                schema = @Schema(implementation = ErrorResponse.class))
+            )
 })
 ```
 
@@ -94,7 +96,7 @@ Documents HTTP response codes.
 
 Documents operation parameters.
 
-```java
+```kotlin
 public Book getBook(
     @Parameter(
         description = "Book ID",
@@ -106,12 +108,13 @@ public Book getBook(
         allowReserved = true,
         schema = @Schema(type = "integer", format = "int64"),
         content = @Content(
-            schema = @Schema(implementation = Book.class),
-            examples = @ExampleObject(value = "1")
+            schema = @Schema(
+                implementation = Book.class),
+                examples = @ExampleObject(value = "1")
+            )
         )
-    )
-    @PathVariable Long id
-) { }
+        @PathVariable Long id
+    ) { }
 ```
 
 **Attributes:**
@@ -132,29 +135,30 @@ public Book getBook(
 
 Documents request body (not to be confused with Spring's `@RequestBody`).
 
-```java
+```kotlin
 @PostMapping
 public Book create(
     @io.swagger.v3.oas.annotations.parameters.RequestBody(
         description = "Book to create",
         required = true,
         content = @Content(
-            schema = @Schema(implementation = Book.class),
-            examples = @ExampleObject(
-                name = "Example Book",
-                value = "{\"title\": \"Clean Code\", \"author\": \"Robert C. Martin\"}"
+            schema = @Schema(
+                implementation = Book.class),
+                examples = @ExampleObject(
+                    name = "Example Book",
+                    value = "{\"title\": \"Clean Code\", \"author\": \"Robert C. Martin\"}"
+                )
             )
         )
-    )
-    @Valid @RequestBody Book book
-) { }
+        @Valid @RequestBody Book book
+    ) { }
 ```
 
 ### `@Schema`
 
 Documents model schemas.
 
-```java
+```kotlin
 @Schema(
     description = "Book entity",
     name = "Book",
@@ -170,12 +174,12 @@ Documents model schemas.
         url = "https://docs.example.com/book-model"
     ),
     implementation = Book.class,
-    not = Book.class,
-    oneOf = {Book.class, Magazine.class},
-    anyOf = {Book.class, Magazine.class},
-    allOf = {BaseEntity.class}
+            not = Book .class,
+oneOf = { Book.class, Magazine .class },
+anyOf = { Book.class, Magazine .class },
+allOf = { BaseEntity.class }
 )
-public class Book { }
+class Book {}
 
 // Field level
 @Schema(
@@ -187,12 +191,12 @@ public class Book { }
     pattern = "^[a-zA-Z0-9 ]*$",
     type = "string",
     format = "string",
-    allowableValues = {"Fiction", "Non-Fiction", "Technical"},
+    allowableValues = { "Fiction", "Non-Fiction", "Technical" },
     defaultValue = "Untitled",
     accessMode = Schema.AccessMode.READ_ONLY,
     hidden = false
 )
-private String title;
+private var title: String
 ```
 
 **Attributes:**
@@ -219,11 +223,11 @@ private String title;
 
 Applies security requirements.
 
-```java
+```kotlin
 // Controller level
 @SecurityRequirement(name = "bearer-jwt")
 @RestController
-public class BookController { }
+class BookController {}
 
 // Operation level
 @Operation(
@@ -247,27 +251,28 @@ public class BookController { }
 
 Hides from documentation.
 
-```java
+```kotlin
 // Hide endpoint
 @Operation(hidden = true)
 @GetMapping("/internal")
-public String internal() { }
+fun internal(): String {
+}
 
 // Hide entire controller
 @Hidden
 @RestController
-public class InternalController { }
+class InternalController {}
 ```
 
 ### `@ParameterObject`
 
 Documents complex objects as parameters.
 
-```java
+```kotlin
 @GetMapping("/paginated")
-public Page<Book> getPaginated(
-    @ParameterObject Pageable pageable
-) { }
+public Page < Book > getPaginated (
+        @ParameterObject Pageable pageable
+        ) { }
 
 // Works with Spring Data Pageable, custom filter objects
 ```
@@ -276,16 +281,16 @@ public Page<Book> getPaginated(
 
 ### Standard Bean Validation
 
-```java
+```kotlin
 @NotNull           // Required field
 @NotBlank          // Required, non-empty string
 @NotEmpty          // Required, non-empty collection
-@Size(min=1, max=200)  // String/collection length
+@Size(min = 1, max = 200)  // String/collection length
 @Min(0)            // Numeric minimum
 @Max(1000)         // Numeric maximum
 @DecimalMin("0.0") // Decimal minimum
 @DecimalMax("999.99") // Decimal maximum
-@Pattern(regex="^[A-Z].*") // Regex pattern
+@Pattern(regex = "^[A-Z].*") // Regex pattern
 @Email             // Email validation
 @Past              // Date in the past
 @PastOrPresent     // Date today or in the past
@@ -305,55 +310,57 @@ public Page<Book> getPaginated(
 
 Documents array schemas.
 
-```java
+```kotlin
 @Schema(
     description = "List of books",
     implementation = Book[].class
-)
-List<Book> books;
+    )
+            List < Book > books;
 
 // Using ArraySchema
 @ArraySchema(
-    schema = @Schema(implementation = Book.class),
-    arraySchema = @Schema(
-        description = "Array of books",
-        minItems = 0,
-        maxItems = 100,
-        uniqueItems = false
+    schema = @Schema(
+        implementation = Book.class),
+        arraySchema = @Schema(
+            description = "Array of books",
+            minItems = 0,
+            maxItems = 100,
+            uniqueItems = false
+        )
     )
-)
-List<Book> books;
+    List<Book> books;
 ```
 
 ### `@Content`
 
 Detailed content documentation.
 
-```java
+```kotlin
 @Content(
     mediaType = "application/json",
-    schema = @Schema(implementation = Book.class),
-    examples = {
-        @ExampleObject(
-            name = "Example 1",
-            value = "{\"title\": \"Clean Code\"}",
-            summary = "Simple example"
-        ),
-        @ExampleObject(
-            name = "Example 2",
-            value = "{\"title\": \"Effective Java\"}",
-            summary = "Another example",
-            externalValue = "https://example.com/book-example.json"
-        )
-    }
-)
+    schema = @Schema(
+        implementation = Book.class),
+        examples = {
+            @ExampleObject(
+                name = "Example 1",
+                value = "{\"title\": \"Clean Code\"}",
+                summary = "Simple example"
+            ),
+            @ExampleObject(
+                name = "Example 2",
+                value = "{\"title\": \"Effective Java\"}",
+                summary = "Another example",
+                externalValue = "https://example.com/book-example.json"
+            )
+        }
+    )
 ```
 
 ### `@ExampleObject`
 
 Example values.
 
-```java
+```kotlin
 @ExampleObject(
     name = "Book Example",
     value = "{\"id\": 1, \"title\": \"Clean Code\"}",
@@ -366,7 +373,7 @@ Example values.
 
 External documentation references.
 
-```java
+```kotlin
 @ExternalDocumentation(
     description = "Detailed API documentation",
     url = "https://docs.example.com/api"
@@ -379,15 +386,16 @@ External documentation references.
 
 For polymorphic types.
 
-```java
+```kotlin
 @Schema(
     discriminatorProperty = "type",
     discriminatorMapping = {
-        @DiscriminatorMapping(value = "book", schema = Book.class),
-        @DiscriminatorMapping(value = "magazine", schema = Magazine.class)
+        @DiscriminatorMapping(
+            value = "book", schema = Book.class),
+            @DiscriminatorMapping(value = "magazine", schema = Magazine.class)
     }
 )
-public abstract class Publication { }
+public abstract class Publication {}
 ```
 
 ## Annotation Best Practices

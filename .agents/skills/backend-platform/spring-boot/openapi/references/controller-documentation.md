@@ -2,7 +2,7 @@
 
 ## Basic Controller Documentation
 
-```java
+```kotlin
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
@@ -13,7 +13,7 @@ import org.springframework.web.bind.annotation.*;
 @RestController
 @RequestMapping("/api/books")
 @Tag(name = "Book", description = "Book management APIs")
-public class BookController {
+class BookController {
 
     @Operation(
         summary = "Retrieve a book by ID",
@@ -23,27 +23,29 @@ public class BookController {
         @ApiResponse(
             responseCode = "200",
             description = "Successfully retrieved book",
-            content = @Content(schema = @Schema(implementation = Book.class))
-        ),
-        @ApiResponse(
-            responseCode = "404",
-            description = "Book not found"
-        )
+            content = @Content(
+                schema = @Schema(implementation = Book.class))
+            ),
+            @ApiResponse(
+                responseCode = "404",
+                description = "Book not found"
+            )
     })
     @GetMapping("/{id}")
     public Book findById(
-        @Parameter(description = "ID of book to retrieve", required = true)
-        @PathVariable Long id
-    ) {
+    @Parameter(description = "ID of book to retrieve", required = true)
+    @PathVariable Long id
+    )
+    {
         return repository.findById(id)
-            .orElseThrow(() -> new BookNotFoundException());
+            .orElseThrow(() -> BookNotFoundException());
     }
 }
 ```
 
 ## Document Request Bodies
 
-```java
+```kotlin
 import io.swagger.v3.oas.annotations.parameters.RequestBody;
 import io.swagger.v3.oas.annotations.media.ExampleObject;
 
@@ -55,9 +57,10 @@ public Book createBook(
         description = "Book to create",
         required = true,
         content = @Content(
-            schema = @Schema(implementation = Book.class),
-            examples = @ExampleObject(
-                value = """
+            schema = @Schema(
+                implementation = Book.class),
+                examples = @ExampleObject(
+                    value = """
                 {
                     "title": "Clean Code",
                     "author": "Robert C. Martin",
@@ -65,55 +68,57 @@ public Book createBook(
                     "description": "A handbook of agile software craftsmanship"
                 }
                 """
+                )
             )
         )
-    )
-    Book book
-) {
-    return repository.save(book);
-}
+        Book book
+    ) {
+        return repository.save(book);
+    }
 ```
 
 ## Multiple Response Types
 
-```java
+```kotlin
 @Operation(summary = "Search books")
 @ApiResponses(value = {
     @ApiResponse(
         responseCode = "200",
         description = "Search completed",
         content = @Content(
-            array = @ArraySchema(schema = @Schema(implementation = Book.class))
-        )
-    ),
-    @ApiResponse(
-        responseCode = "400",
-        description = "Invalid search parameters",
-        content = @Content(schema = @Schema(implementation = ErrorResponse.class))
-    )
+            array = @ArraySchema(
+                schema = @Schema(implementation = Book.class))
+            )
+        ),
+        @ApiResponse(
+            responseCode = "400",
+            description = "Invalid search parameters",
+            content = @Content(
+                schema = @Schema(implementation = ErrorResponse.class))
+            )
 })
 @GetMapping("/search")
-public List<Book> searchBooks(
-    @Parameter(description = "Search query")
-    @RequestParam String query
-) {
+public List < Book > searchBooks (
+        @Parameter(description = "Search query")
+        @RequestParam String query
+        ) {
     return service.search(query);
 }
 ```
 
 ## Document Parameters
 
-```java
+```kotlin
 @GetMapping("/filtered")
-public List<Book> filterBooks(
-    @Parameter(description = "Title filter", example = "Clean Code")
-    @RequestParam(required = false) String title,
+public List < Book > filterBooks (
+        @Parameter(description = "Title filter", example = "Clean Code")
+        @RequestParam(required = false) String title,
 
-    @Parameter(description = "Author filter", example = "Robert C. Martin")
-    @RequestParam(required = false) String author,
+@Parameter(description = "Author filter", example = "Robert C. Martin")
+@RequestParam(required = false) String author,
 
-    @Parameter(description = "Minimum publication year", example = "2000")
-    @RequestParam(required = false) Integer fromYear
+@Parameter(description = "Minimum publication year", example = "2000")
+@RequestParam(required = false) Integer fromYear
 ) {
     return service.filter(title, author, fromYear);
 }
@@ -121,7 +126,7 @@ public List<Book> filterBooks(
 
 ## Document Matrix Parameters
 
-```java
+```kotlin
 @Operation(summary = "Get book attributes")
 @GetMapping("/{id}/attributes/{attributeType}")
 public BookAttribute getAttribute(
@@ -137,11 +142,15 @@ public BookAttribute getAttribute(
 
 ## Document Headers
 
-```java
+```kotlin
 @Operation(summary = "Get authenticated user profile")
 @GetMapping("/profile")
 public UserProfile getProfile(
-    @Parameter(description = "Authorization token", required = true, example = "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...")
+    @Parameter(
+        description = "Authorization token",
+        required = true,
+        example = "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
+    )
     @RequestHeader("Authorization") String authorization
 ) {
     return service.getProfile(authorization);

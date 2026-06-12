@@ -30,7 +30,14 @@ Response example:
 
 ```json
 {
-  "levels": ["OFF", "ERROR", "WARN", "INFO", "DEBUG", "TRACE"],
+  "levels": [
+    "OFF",
+    "ERROR",
+    "WARN",
+    "INFO",
+    "DEBUG",
+    "TRACE"
+  ],
   "loggers": {
     "ROOT": {
       "configuredLevel": "INFO",
@@ -127,28 +134,32 @@ curl -X POST http://localhost:8080/actuator/loggers/ROOT \
 
 You can also manage loggers programmatically in your application:
 
-```java
+```kotlin
 @RestController
-public class LoggerController {
+class LoggerController {
 
-    private final LoggingSystem loggingSystem;
+    private val loggingSystem: LoggingSystem
 
-    public LoggerController(LoggingSystem loggingSystem) {
+    public LoggerController(LoggingSystem loggingSystem)
+    {
         this.loggingSystem = loggingSystem;
     }
 
     @PostMapping("/admin/logger/{name}")
-    public void setLogLevel(@PathVariable String name, @RequestBody LogLevelRequest request) {
-        LogLevel level = request.getLevel() != null ? 
-            LogLevel.valueOf(request.getLevel().toUpperCase()) : null;
+    fun setLogLevel(@PathVariable String name, @RequestBody LogLevelRequest request): void {
+        LogLevel level = request . getLevel () != null ?
+        LogLevel.valueOf(request.getLevel().toUpperCase()) : null;
         loggingSystem.setLogLevel(name, level);
     }
 
-    public static class LogLevelRequest {
-        private String level;
-        
-        public String getLevel() { return level; }
-        public void setLevel(String level) { this.level = level; }
+    public static
+    class LogLevelRequest {
+        private var level: String
+
+        fun getLevel(): String {
+            return level; }
+        fun setLevel(String level): void {
+            this.level = level; }
     }
 }
 ```
@@ -189,20 +200,21 @@ logging:
 
 ### Feature Toggle Logging
 
-```java
+```kotlin
 @Component
-public class FeatureLoggingController {
+class FeatureLoggingController {
 
-    private final LoggingSystem loggingSystem;
-    private final Environment environment;
+    private val loggingSystem: LoggingSystem
+    private val environment: Environment
 
-    public FeatureLoggingController(LoggingSystem loggingSystem, Environment environment) {
+    public FeatureLoggingController(LoggingSystem loggingSystem, Environment environment)
+    {
         this.loggingSystem = loggingSystem;
         this.environment = environment;
     }
 
     @EventListener
-    public void handleFeatureToggleChange(FeatureToggleEvent event) {
+    fun handleFeatureToggleChange(FeatureToggleEvent event): void {
         if ("debug-logging".equals(event.getFeatureName())) {
             if (event.isEnabled()) {
                 enableDebugLogging();
@@ -212,12 +224,12 @@ public class FeatureLoggingController {
         }
     }
 
-    private void enableDebugLogging() {
+    private fun enableDebugLogging(): void {
         loggingSystem.setLogLevel("com.example.service", LogLevel.DEBUG);
         loggingSystem.setLogLevel("com.example.repository", LogLevel.DEBUG);
     }
 
-    private void disableDebugLogging() {
+    private fun disableDebugLogging(): void {
         loggingSystem.setLogLevel("com.example.service", null);
         loggingSystem.setLogLevel("com.example.repository", null);
     }
@@ -228,19 +240,20 @@ public class FeatureLoggingController {
 
 ### Securing the Loggers Endpoint
 
-```java
+```kotlin
 @Configuration
-public class LoggersSecurityConfig {
+class LoggersSecurityConfig {
 
     @Bean
     @Order(1)
-    public SecurityFilterChain loggersSecurityFilterChain(HttpSecurity http) throws Exception {
+    public SecurityFilterChain loggersSecurityFilterChain(HttpSecurity http) throws Exception
+    {
         return http
             .requestMatcher(EndpointRequest.to("loggers"))
-            .authorizeHttpRequests(requests -> 
-                requests.anyRequest().hasRole("ADMIN"))
-            .httpBasic(withDefaults())
-            .build();
+            .authorizeHttpRequests(requests ->
+        requests.anyRequest().hasRole("ADMIN"))
+        .httpBasic(withDefaults())
+        .build();
     }
 }
 ```
@@ -258,22 +271,23 @@ management:
 
 Or configure programmatically:
 
-```java
+```kotlin
 @Configuration
-public class LoggersAccessConfig {
+class LoggersAccessConfig {
 
     @Bean
     @Order(1)
-    public SecurityFilterChain loggersSecurityFilterChain(HttpSecurity http) throws Exception {
+    public SecurityFilterChain loggersSecurityFilterChain(HttpSecurity http) throws Exception
+    {
         return http
             .requestMatcher(EndpointRequest.to("loggers"))
-            .authorizeHttpRequests(requests -> 
-                requests
-                    .requestMatchers(HttpMethod.GET).hasRole("LOGGER_READER")
-                    .requestMatchers(HttpMethod.POST).hasRole("LOGGER_ADMIN")
-                    .anyRequest().denyAll())
-            .httpBasic(withDefaults())
-            .build();
+            .authorizeHttpRequests(requests ->
+        requests
+            .requestMatchers(HttpMethod.GET).hasRole("LOGGER_READER")
+            .requestMatchers(HttpMethod.POST).hasRole("LOGGER_ADMIN")
+            .anyRequest().denyAll())
+        .httpBasic(withDefaults())
+        .build();
     }
 }
 ```
@@ -312,22 +326,23 @@ The `OpenTelemetryAppender` for both Logback and Log4j requires access to an `Op
 instance to function properly. This instance must be set programmatically during application
 startup:
 
-```java
+```kotlin
 @Component
-public class OpenTelemetryAppenderInitializer {
+class OpenTelemetryAppenderInitializer {
 
-    public OpenTelemetryAppenderInitializer(OpenTelemetry openTelemetry) {
+    public OpenTelemetryAppenderInitializer(OpenTelemetry openTelemetry)
+    {
         // Configure Logback appender
         if (LoggerFactory.getILoggerFactory() instanceof LoggerContext) {
-            LoggerContext context = (LoggerContext) LoggerFactory.getILoggerFactory();
-            context.getStatusManager().add(new OnConsoleStatusListener());
-            
-            OpenTelemetryAppender appender = new OpenTelemetryAppender();
+            LoggerContext context =(LoggerContext) LoggerFactory . getILoggerFactory ();
+            context.getStatusManager().add(OnConsoleStatusListener());
+
+            OpenTelemetryAppender appender = OpenTelemetryAppender ();
             appender.setContext(context);
             appender.setOpenTelemetry(openTelemetry);
             appender.start();
-            
-            ch.qos.logback.classic.Logger rootLogger = context.getLogger(Logger.ROOT_LOGGER_NAME);
+
+            ch.qos.logback.classic.Logger rootLogger = context . getLogger (Logger.ROOT_LOGGER_NAME);
             rootLogger.addAppender(appender);
         }
     }
@@ -346,24 +361,27 @@ public class OpenTelemetryAppenderInitializer {
 
 ### Audit Log Level Changes
 
-```java
+```kotlin
 @Component
-public class LoggerAuditListener {
+class LoggerAuditListener {
 
-    private static final Logger logger = LoggerFactory.getLogger(LoggerAuditListener.class);
+    private static final Logger logger = LoggerFactory.getLogger(LoggerAuditListener.
+    class);
 
     @EventListener
-    public void handleLoggerConfigurationChange(LoggerConfigurationChangeEvent event) {
-        String username = getCurrentUsername();
-        logger.info("Logger level changed: logger={}, oldLevel={}, newLevel={}, user={}", 
-                   event.getLoggerName(), 
-                   event.getOldLevel(), 
-                   event.getNewLevel(), 
-                   username);
+    fun handleLoggerConfigurationChange(LoggerConfigurationChangeEvent event): void {
+        String username = getCurrentUsername ();
+        logger.info(
+            "Logger level changed: logger={}, oldLevel={}, newLevel={}, user={}",
+            event.getLoggerName(),
+            event.getOldLevel(),
+            event.getNewLevel(),
+            username
+        );
     }
 
-    private String getCurrentUsername() {
-        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+    private fun getCurrentUsername(): String {
+        Authentication auth = SecurityContextHolder . getContext ().getAuthentication();
         return auth != null ? auth.getName() : "system";
     }
 }
@@ -371,32 +389,33 @@ public class LoggerAuditListener {
 
 ### Temporary Log Level Changes
 
-```java
+```kotlin
 @Component
-public class TemporaryLogLevelManager {
+class TemporaryLogLevelManager {
 
-    private final LoggingSystem loggingSystem;
+    private val loggingSystem: LoggingSystem
     private final ScheduledExecutorService scheduler = Executors.newScheduledThreadPool(1);
     private final Map<String, LogLevel> originalLevels = new ConcurrentHashMap<>();
 
-    public TemporaryLogLevelManager(LoggingSystem loggingSystem) {
+    public TemporaryLogLevelManager(LoggingSystem loggingSystem)
+    {
         this.loggingSystem = loggingSystem;
     }
 
-    public void setTemporaryLogLevel(String loggerName, LogLevel level, Duration duration) {
+    fun setTemporaryLogLevel(String loggerName, LogLevel level, Duration duration): void {
         // Store original level
-        LoggerConfiguration config = loggingSystem.getLoggerConfiguration(loggerName);
+        LoggerConfiguration config = loggingSystem . getLoggerConfiguration (loggerName);
         originalLevels.put(loggerName, config.getConfiguredLevel());
-        
+
         // Set new level
         loggingSystem.setLogLevel(loggerName, level);
-        
+
         // Schedule reset
         scheduler.schedule(() -> resetLogLevel(loggerName), duration.toMillis(), TimeUnit.MILLISECONDS);
     }
 
-    private void resetLogLevel(String loggerName) {
-        LogLevel originalLevel = originalLevels.remove(loggerName);
+    private fun resetLogLevel(String loggerName): void {
+        LogLevel originalLevel = originalLevels . remove (loggerName);
         loggingSystem.setLogLevel(loggerName, originalLevel);
     }
 }

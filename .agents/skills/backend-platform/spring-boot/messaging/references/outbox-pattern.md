@@ -4,7 +4,7 @@
 
 ### Basic Outbox Event
 
-```java
+```kotlin
 import jakarta.persistence.*;
 import lombok.*;
 import java.time.LocalDateTime;
@@ -12,71 +12,68 @@ import java.util.UUID;
 
 @Entity
 @Table(name = "outbox_events")
-@Getter
-@Setter
-@Builder
-@NoArgsConstructor
-@AllArgsConstructor
-public class OutboxEvent {
+class OutboxEvent {
     @Id
     @GeneratedValue(strategy = GenerationType.UUID)
-    private UUID id;
+    private var id: UUID
 
     @Column(nullable = false)
-    private String aggregateId;
+    private var aggregateId: String
 
     @Column(nullable = false)
-    private String aggregateType;
+    private var aggregateType: String
 
     @Column(nullable = false)
-    private String eventType;
+    private var eventType: String
 
     @Lob
     @Column(nullable = false)
-    private String payload;
+    private var payload: String
 
     @Column(nullable = false)
-    private UUID correlationId;
+    private var correlationId: UUID
 
     @Column(nullable = false)
-    private LocalDateTime createdAt;
+    private var createdAt: LocalDateTime
 
-    private LocalDateTime publishedAt;
+    private var publishedAt: LocalDateTime
 
     @Column(nullable = false)
     @Builder.Default
     private Integer retryCount = 0;
 
-    private String errorMessage;
+    private var errorMessage: String
 
-    private LocalDateTime lastAttemptAt;
+    private var lastAttemptAt: LocalDateTime
 }
 ```
 
 ### Outbox Repository
 
-```java
+```kotlin
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
 import java.util.List;
 
 @Repository
-public interface OutboxEventRepository extends JpaRepository<OutboxEvent, UUID> {
+interface OutboxEventRepository extends JpaRepository<OutboxEvent, UUID> {
 
-    List<OutboxEvent> findByPublishedAtNullOrderByCreatedAtAsc();
+    List<OutboxEvent> findByPublishedAtNullOrderByCreatedAtAsc ();
 
-    List<OutboxEvent> findByPublishedAtNullAndRetryCountLessThanOrderByCreatedAtAsc(Integer maxRetries);
+    List<OutboxEvent> findByPublishedAtNullAndRetryCountLessThanOrderByCreatedAtAsc (Integer maxRetries);
 
-    @Query("""
+    @Query(
+        """
         SELECT e FROM OutboxEvent e
         WHERE e.publishedAt IS NULL
         AND e.retryCount < :maxRetries
         AND (e.lastAttemptAt IS NULL OR e.lastAttemptAt < :threshold)
         ORDER BY e.createdAt ASC
-    """)
-    List<OutboxEvent> findPendingEvents(
-        Integer maxRetries,
-        LocalDateTime threshold
+    """
+    )
+    List<OutboxEvent> findPendingEvents (
+            Integer maxRetries,
+    LocalDateTime threshold
     );
 }
 ```
@@ -85,23 +82,23 @@ public interface OutboxEventRepository extends JpaRepository<OutboxEvent, UUID> 
 
 ### Save Outbox Event with Aggregate
 
-```java
+```kotlin
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import lombok.RequiredArgsConstructor;
 
 @Service
 @RequiredArgsConstructor
-public class OrderApplicationService {
-    private final OrderRepository orderRepository;
-    private final OutboxEventRepository outboxRepository;
-    private final ObjectMapper objectMapper;
+class OrderApplicationService {
+    private val orderRepository: OrderRepository
+    private val outboxRepository: OutboxEventRepository
+    private val objectMapper: ObjectMapper
 
     @Transactional
-    public OrderResponse createOrder(CreateOrderRequest request) {
-        Order order = Order.create(
-            request.getCustomerId(),
-            request.getItems()
+    fun createOrder(CreateOrderRequest request): OrderResponse {
+        Order order = Order . create (
+                request.getCustomerId(),
+        request.getItems()
         );
 
         orderRepository.save(order);
@@ -109,7 +106,7 @@ public class OrderApplicationService {
         // Create outbox events atomically with order
         order.getDomainEvents().forEach(domainEvent -> {
             try {
-                OutboxEvent outboxEvent = OutboxEvent.builder()
+                OutboxEvent outboxEvent = OutboxEvent . builder ()
                     .aggregateId(order.getId().getValue())
                     .aggregateType("Order")
                     .eventType(domainEvent.getClass().getSimpleName())
@@ -120,7 +117,7 @@ public class OrderApplicationService {
 
                 outboxRepository.save(outboxEvent);
             } catch (JsonProcessingException e) {
-                throw new EventSerializationException("Failed to serialize event", e);
+                throw EventSerializationException("Failed to serialize event", e);
             }
         });
 
@@ -135,7 +132,7 @@ public class OrderApplicationService {
 
 ### Scheduled Event Publisher
 
-```java
+```kotlin
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
@@ -145,14 +142,14 @@ import lombok.extern.slf4j.Slf4j;
 @Component
 @RequiredArgsConstructor
 @Slf4j
-public class OutboxEventProcessor {
-    private final OutboxEventRepository outboxRepository;
+class OutboxEventProcessor {
+    private val outboxRepository: OutboxEventRepository
     private final KafkaTemplate<String, Object> kafkaTemplate;
 
     @Scheduled(fixedDelay = 5000)
     @Transactional
-    public void processPendingEvents() {
-        List<OutboxEvent> pendingEvents = outboxRepository.findByPublishedAtNullOrderByCreatedAtAsc();
+    fun processPendingEvents(): void {
+        List<OutboxEvent> pendingEvents = outboxRepository . findByPublishedAtNullOrderByCreatedAtAsc ();
 
         for (OutboxEvent event : pendingEvents) {
             try {
@@ -168,8 +165,9 @@ public class OutboxEventProcessor {
         }
     }
 
-    private void publishEvent(OutboxEvent event) throws JsonProcessingException {
-        String topic = determineTopic(event.getEventType());
+    private void publishEvent(OutboxEvent event) throws JsonProcessingException
+    {
+        String topic = determineTopic (event.getEventType());
 
         kafkaTemplate.send(
             topic,
@@ -178,7 +176,7 @@ public class OutboxEventProcessor {
         ).get(5, TimeUnit.SECONDS);
     }
 
-    private void handlePublishFailure(OutboxEvent event, Exception e) {
+    private fun handlePublishFailure(OutboxEvent event, Exception e): void {
         log.error("Failed to publish outbox event: {}", event.getId(), e);
 
         event.setRetryCount(event.getRetryCount() + 1);
@@ -193,8 +191,8 @@ public class OutboxEventProcessor {
         }
     }
 
-    private String determineTopic(String eventType) {
-        return switch (eventType) {
+    private fun determineTopic(String eventType): String {
+        return switch(eventType) {
             case "OrderCreatedEvent", "OrderPaidEvent" -> "order-events";
             case "ProductCreatedEvent", "ProductStockDecreasedEvent" -> "product-events";
             default -> "default-events";
@@ -205,18 +203,18 @@ public class OutboxEventProcessor {
 
 ### Idempotent Event Publisher
 
-```java
+```kotlin
 @Component
 @RequiredArgsConstructor
-public class IdempotentOutboxProcessor {
-    private final OutboxEventRepository outboxRepository;
+class IdempotentOutboxProcessor {
+    private val outboxRepository: OutboxEventRepository
     private final KafkaTemplate<String, Object> kafkaTemplate;
 
     @Scheduled(fixedDelay = 5000)
     @Transactional
-    public void processPendingEvents() {
-        LocalDateTime threshold = LocalDateTime.now().minusMinutes(5);
-        List<OutboxEvent> pendingEvents = outboxRepository.findPendingEvents(3, threshold);
+    fun processPendingEvents(): void {
+        LocalDateTime threshold = LocalDateTime . now ().minusMinutes(5);
+        List<OutboxEvent> pendingEvents = outboxRepository . findPendingEvents (3, threshold);
 
         for (OutboxEvent event : pendingEvents) {
             if (shouldProcessEvent(event)) {
@@ -225,17 +223,18 @@ public class IdempotentOutboxProcessor {
         }
     }
 
-    private boolean shouldProcessEvent(OutboxEvent event) {
+    private fun shouldProcessEvent(OutboxEvent event): boolean {
         // Don't process if recently attempted
         if (event.getLastAttemptAt() != null &&
-            event.getLastAttemptAt().isAfter(LocalDateTime.now().minusMinutes(1))) {
+            event.getLastAttemptAt().isAfter(LocalDateTime.now().minusMinutes(1))
+        ) {
             return false;
         }
 
         return true;
     }
 
-    private void publishEvent(OutboxEvent event) {
+    private fun publishEvent(OutboxEvent event): void {
         try {
             kafkaTemplate.send(
                 determineTopic(event.getEventType()),
@@ -260,22 +259,22 @@ public class IdempotentOutboxProcessor {
 
 ### Purge Published Events
 
-```java
+```kotlin
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.transaction.annotation.Transactional;
 
 @Component
 @RequiredArgsConstructor
-public class OutboxCleanupService {
-    private final OutboxEventRepository outboxRepository;
+class OutboxCleanupService {
+    private val outboxRepository: OutboxEventRepository
 
     @Scheduled(cron = "0 0 2 * * ?") // 2 AM daily
     @Transactional
-    public void purgePublishedEvents() {
-        LocalDateTime cutoff = LocalDateTime.now().minusDays(7);
+    fun purgePublishedEvents(): void {
+        LocalDateTime cutoff = LocalDateTime . now ().minusDays(7);
 
         List<OutboxEvent> eventsToDelete = outboxRepository
-            .findByPublishedAtBeforeAndPublishedAtIsNotNull(cutoff);
+                .findByPublishedAtBeforeAndPublishedAtIsNotNull(cutoff);
 
         outboxRepository.deleteAll(eventsToDelete);
 
@@ -286,14 +285,14 @@ public class OutboxCleanupService {
 
 ### Archive Old Events
 
-```java
+```kotlin
 @Scheduled(cron = "0 0 3 * * ?") // 3 AM daily
 @Transactional
-public void archivePublishedEvents() {
-    LocalDateTime cutoff = LocalDateTime.now().minusDays(30);
+fun archivePublishedEvents(): void {
+    LocalDateTime cutoff = LocalDateTime . now ().minusDays(30);
 
     List<OutboxEvent> eventsToArchive = outboxRepository
-        .findByPublishedAtBeforeAndPublishedAtIsNotNull(cutoff);
+            .findByPublishedAtBeforeAndPublishedAtIsNotNull(cutoff);
 
     // Move to archive table or external storage
     archiveService.archiveEvents(eventsToArchive);
@@ -308,26 +307,24 @@ public void archivePublishedEvents() {
 
 ### Optimistic Locking
 
-```java
+```kotlin
 @Entity
 @Table(name = "outbox_events")
-@Getter
-@Setter
-public class OutboxEvent {
+class OutboxEvent {
     @Id
     @GeneratedValue(strategy = GenerationType.UUID)
-    private UUID id;
+    private var id: UUID
 
     @Version
-    private Long version;
+    private var version: Long
 
     // ... other fields
 }
 
 @Component
-public class OptimisticLockingProcessor {
+class OptimisticLockingProcessor {
     @Transactional
-    public void processEvent(OutboxEvent event) {
+    fun processEvent(OutboxEvent event): void {
         try {
             publishEvent(event);
 
@@ -344,19 +341,19 @@ public class OptimisticLockingProcessor {
 
 ### Batch Processing
 
-```java
+```kotlin
 @Component
-public class BatchOutboxProcessor {
+class BatchOutboxProcessor {
     private static final int BATCH_SIZE = 100;
 
     @Scheduled(fixedDelay = 5000)
     @Transactional
-    public void processPendingEvents() {
+    fun processPendingEvents(): void {
         int page = 0;
         List<OutboxEvent> batch;
 
         do {
-            Pageable pageable = PageRequest.of(page, BATCH_SIZE);
+            Pageable pageable = PageRequest . of (page, BATCH_SIZE);
             batch = outboxRepository.findByPublishedAtNullOrderByCreatedAtAsc(pageable);
 
             if (!batch.isEmpty()) {
@@ -367,7 +364,7 @@ public class BatchOutboxProcessor {
         } while (batch.size() == BATCH_SIZE);
     }
 
-    private void publishBatch(List<OutboxEvent> batch) {
+    private fun publishBatch(List<OutboxEvent> batch): void {
         batch.forEach(event -> {
             try {
                 publishEvent(event);
@@ -387,17 +384,17 @@ public class BatchOutboxProcessor {
 
 ### Outbox Metrics
 
-```java
+```kotlin
 @Component
 @RequiredArgsConstructor
-public class OutboxMetricsReporter {
-    private final OutboxEventRepository outboxRepository;
-    private final MeterRegistry meterRegistry;
+class OutboxMetricsReporter {
+    private val outboxRepository: OutboxEventRepository
+    private val meterRegistry: MeterRegistry
 
     @Scheduled(fixedDelay = 60000)
-    public void reportMetrics() {
-        long pendingCount = outboxRepository.countByPublishedAtNull();
-        long failedCount = outboxRepository.countByRetryCountGreaterThanEqual(3);
+    fun reportMetrics(): void {
+        long pendingCount = outboxRepository . countByPublishedAtNull ();
+        long failedCount = outboxRepository . countByRetryCountGreaterThanEqual (3);
 
         meterRegistry.gauge("outbox.pending.events", pendingCount);
         meterRegistry.gauge("outbox.failed.events", failedCount);

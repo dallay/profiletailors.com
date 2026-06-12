@@ -49,13 +49,15 @@ metrics via Actuator.
 
 ### Example 1: Basic `@Cacheable` Usage
 
-```java
+```kotlin
 @Service
-@CacheConfig(cacheNames = "users")
+@CacheConfig(cacheNames = ["users"])
 class UserService {
 
     @Cacheable(key = "#id", unless = "#result == null")
-    User findUser(Long id) { ... }
+    fun findUser(id: Long): User {
+        ...
+    }
 }
 ```
 
@@ -66,18 +68,22 @@ Second call → cache hit, repository skipped
 
 ### Example 2: Conditional Caching with SpEL
 
-```java
-@Cacheable(value = "products", key = "#id", condition = "#price > 100")
-public Product getProduct(Long id, BigDecimal price) { ... }
+```kotlin
+@Cacheable(value = ["products"], key = "#id", condition = "#price > 100")
+fun getProduct(id: Long, price: BigDecimal): Product {
+    ...
+}
 
 // Only expensive products are cached
 ```
 
 ### Example 3: Cache Eviction
 
-```java
-@CacheEvict(value = "users", key = "#id")
-public void deleteUser(Long id) { ... }
+```kotlin
+@CacheEvict(value = ["users"], key = "#id")
+fun deleteUser(id: Long) {
+    ...
+}
 ```
 
 For progressive scenarios (basic product cache, multilevel eviction, Redis

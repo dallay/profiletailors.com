@@ -4,19 +4,20 @@
 
 ### Test Domain Event Publishing
 
-```java
+```kotlin
 import org.junit.jupiter.api.Test;
 import static org.assertj.core.api.Assertions.*;
 
 class ProductTest {
 
     @Test
-    void shouldPublishProductCreatedEventOnCreation() {
+    void shouldPublishProductCreatedEventOnCreation()
+    {
         // When
-        Product product = Product.create(
-            "Test Product",
-            BigDecimal.TEN,
-            100
+        Product product = Product . create (
+                "Test Product",
+        BigDecimal.TEN,
+        100
         );
 
         // Then
@@ -24,16 +25,17 @@ class ProductTest {
         assertThat(product.getDomainEvents().get(0))
             .isInstanceOf(ProductCreatedEvent.class);
 
-        ProductCreatedEvent event = (ProductCreatedEvent) product.getDomainEvents().get(0);
+        ProductCreatedEvent event =(ProductCreatedEvent) product . getDomainEvents ().get(0);
         assertThat(event.getName()).isEqualTo("Test Product");
         assertThat(event.getPrice()).isEqualByComparingTo(BigDecimal.TEN);
         assertThat(event.getStock()).isEqualTo(100);
     }
 
     @Test
-    void shouldPublishStockDecreasedEvent() {
+    void shouldPublishStockDecreasedEvent()
+    {
         // Given
-        Product product = Product.create("Product", BigDecimal.TEN, 100);
+        Product product = Product . create ("Product", BigDecimal.TEN, 100);
         product.clearDomainEvents();
 
         // When
@@ -46,9 +48,10 @@ class ProductTest {
     }
 
     @Test
-    void shouldClearDomainEvents() {
+    void shouldClearDomainEvents()
+    {
         // Given
-        Product product = Product.create("Product", BigDecimal.TEN, 100);
+        Product product = Product . create ("Product", BigDecimal.TEN, 100);
 
         // When
         product.clearDomainEvents();
@@ -61,29 +64,30 @@ class ProductTest {
 
 ### Test Event Handlers
 
-```java
+```kotlin
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
-@ExtendWith(MockitoExtension.class)
-class ProductEventHandlerTest {
+@ExtendWith(
+    MockitoExtension.class)
+    class ProductEventHandlerTest {
 
     @Mock
-    private NotificationService notificationService;
+    private var notificationService: NotificationService
 
     @Mock
-    private AuditService auditService;
+    private var auditService: AuditService
 
     @InjectMocks
-    private ProductEventHandler handler;
+    private var handler: ProductEventHandler
 
     @Test
-    void shouldHandleProductCreatedEvent() {
+    void shouldHandleProductCreatedEvent () {
         // Given
-        ProductId productId = ProductId.of("123");
+        ProductId productId = ProductId . of ("123");
         ProductCreatedEvent event = new ProductCreatedEvent(
             productId,
             "Test Product",
@@ -100,14 +104,15 @@ class ProductEventHandlerTest {
             eq("123"),
             eq("Test Product"),
             eq(BigDecimal.TEN),
-            any(UUID.class)
-        );
+            any(
+                UUID.class)
+            );
     }
 
     @Test
-    void shouldHandleProductStockDecreasedEvent() {
+    void shouldHandleProductStockDecreasedEvent () {
         // Given
-        ProductId productId = ProductId.of("123");
+        ProductId productId = ProductId . of ("123");
         ProductStockDecreasedEvent event = new ProductStockDecreasedEvent(
             productId,
             10,
@@ -127,7 +132,7 @@ class ProductEventHandlerTest {
 
 ### Kafka Integration Test
 
-```java
+```kotlin
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
@@ -144,16 +149,17 @@ import static org.awaitility.Awaitility.await;
 class KafkaEventIntegrationTest {
 
     @Autowired
-    private ProductApplicationService productService;
+    private var productService: ProductApplicationService
 
     @Autowired
     private KafkaTemplate<String, Object> kafkaTemplate;
 
     @Autowired
-    private ProductEventConsumer consumer;
+    private var consumer: ProductEventConsumer
 
     @Test
-    void shouldPublishEventToKafka() throws Exception {
+    void shouldPublishEventToKafka() throws Exception
+    {
         // Given
         CreateProductRequest request = new CreateProductRequest(
             "Test Product",
@@ -162,21 +168,21 @@ class KafkaEventIntegrationTest {
         );
 
         // When
-        ProductResponse response = productService.createProduct(request);
+        ProductResponse response = productService . createProduct (request);
 
         // Then
         await()
             .atMost(5, TimeUnit.SECONDS)
             .untilAsserted(() -> {
-                verify(consumer).handleProductCreated(any(ProductCreatedEventDto.class));
-            });
+        verify(consumer).handleProductCreated(any(ProductCreatedEventDto.class));
+    });
     }
 }
 ```
 
 ### Full Integration Test with Testcontainers
 
-```java
+```kotlin
 import org.junit.jupiter.api.Test;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.test.context.DynamicPropertyRegistry;
@@ -192,19 +198,21 @@ class EventDrivenIntegrationTest {
 
     @Container
     static KafkaContainer kafka = new KafkaContainer(
-        DockerImageName.parse("confluentinc/cp-kafka:7.5.0")
+    DockerImageName.parse("confluentinc/cp-kafka:7.5.0")
     );
 
     @DynamicPropertySource
-    static void configureProperties(DynamicPropertyRegistry registry) {
+    static void configureProperties(DynamicPropertyRegistry registry)
+    {
         registry.add("spring.kafka.bootstrap-servers", kafka::getBootstrapServers);
     }
 
     @Autowired
-    private ProductApplicationService productService;
+    private var productService: ProductApplicationService
 
     @Test
-    void shouldProcessEndToEnd() {
+    void shouldProcessEndToEnd()
+    {
         // Create product
         CreateProductRequest request = new CreateProductRequest(
             "Test Product",
@@ -212,7 +220,7 @@ class EventDrivenIntegrationTest {
             50
         );
 
-        ProductResponse response = productService.createProduct(request);
+        ProductResponse response = productService . createProduct (request);
 
         assertThat(response.getId()).isNotNull();
         assertThat(response.getName()).isEqualTo("Test Product");
@@ -224,7 +232,7 @@ class EventDrivenIntegrationTest {
 
 ### Test Transactional Event Listener
 
-```java
+```kotlin
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.transaction.annotation.Transactional;
@@ -236,14 +244,15 @@ import static org.mockito.Mockito.verify;
 class TransactionalEventListenerTest {
 
     @Autowired
-    private ProductApplicationService productService;
+    private var productService: ProductApplicationService
 
     @Autowired
-    private ProductEventHandler eventHandler;
+    private var eventHandler: ProductEventHandler
 
     @Test
     @Transactional
-    void shouldPublishEventAfterTransactionCommit() {
+    void shouldPublishEventAfterTransactionCommit()
+    {
         // Given
         CreateProductRequest request = new CreateProductRequest(
             "Test Product",
@@ -262,7 +271,7 @@ class TransactionalEventListenerTest {
 
 ### Test Event Publishing with ApplicationEventPublisher
 
-```java
+```kotlin
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.context.ApplicationEventPublisher;
@@ -273,13 +282,14 @@ import static org.mockito.Mockito.*;
 class ApplicationEventPublisherTest {
 
     @Autowired
-    private ProductApplicationService productService;
+    private var productService: ProductApplicationService
 
     @MockBean
-    private ApplicationEventPublisher eventPublisher;
+    private var eventPublisher: ApplicationEventPublisher
 
     @Test
-    void shouldPublishEvents() {
+    void shouldPublishEvents()
+    {
         // Given
         CreateProductRequest request = new CreateProductRequest(
             "Test Product",
@@ -300,7 +310,7 @@ class ApplicationEventPublisherTest {
 
 ### Test Kafka Listener
 
-```java
+```kotlin
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.kafka.test.context.EmbeddedKafka;
@@ -315,10 +325,11 @@ class KafkaConsumerTest {
     private KafkaTemplate<String, Object> kafkaTemplate;
 
     @Autowired
-    private ProductEventConsumer consumer;
+    private var consumer: ProductEventConsumer
 
     @Test
-    void shouldConsumeProductCreatedEvent() throws Exception {
+    void shouldConsumeProductCreatedEvent() throws Exception
+    {
         // Given
         ProductCreatedEventDto event = new ProductCreatedEventDto(
             UUID.randomUUID().toString(),
@@ -346,7 +357,7 @@ class KafkaConsumerTest {
 
 ### Test Stream Functions
 
-```java
+```kotlin
 import org.springframework.cloud.stream.binder.test.InputDestination;
 import org.springframework.cloud.stream.binder.test.OutputDestination;
 import org.springframework.cloud.stream.binder.test.TestChannelBinderConfiguration;
@@ -357,17 +368,18 @@ import org.springframework.messaging.Message;
 import org.springframework.messaging.support.GenericMessage;
 
 @SpringBootTest
-@Import(TestChannelBinderConfiguration.class)
-class StreamFunctionTest {
+@Import(
+    TestChannelBinderConfiguration.class)
+    class StreamFunctionTest {
 
     @Autowired
-    private InputDestination input;
+    private var input: InputDestination
 
     @Autowired
-    private OutputDestination output;
+    private var output: OutputDestination
 
     @Test
-    void shouldProcessProductCreatedEvent() {
+    void shouldProcessProductCreatedEvent () {
         // Given
         ProductCreatedEventDto event = new ProductCreatedEventDto(
             UUID.randomUUID().toString(),
@@ -385,7 +397,7 @@ class StreamFunctionTest {
         input.send(message, "productCreated-in-0");
 
         // Then
-        Message<byte[]> result = output.receive(1000, "productCreated-out-0");
+        Message < byte[] > result = output.receive(1000, "productCreated-out-0");
         assertThat(result).isNotNull();
     }
 }
@@ -395,32 +407,34 @@ class StreamFunctionTest {
 
 ### Test Event Reconstruction
 
-```java
+```kotlin
 class EventSourcingTest {
 
     @Test
-    void shouldReconstructAggregateFromEvents() {
+    void shouldReconstructAggregateFromEvents()
+    {
         // Given
-        List<DomainEvent> events = List.of(
-            new ProductCreatedEvent(ProductId.of("123"), "Product", BigDecimal.TEN, 100),
-            new ProductStockDecreasedEvent(ProductId.of("123"), 10, 90),
-            new ProductStockDecreasedEvent(ProductId.of("123"), 5, 85)
+        List<DomainEvent> events = List . of (
+                ProductCreatedEvent(ProductId.of("123"), "Product", BigDecimal.TEN, 100),
+        ProductStockDecreasedEvent(ProductId.of("123"), 10, 90),
+        ProductStockDecreasedEvent(ProductId.of("123"), 5, 85)
         );
 
         // When
-        Product product = Product.replay(events);
+        Product product = Product . replay (events);
 
         // Then
         assertThat(product.getStock()).isEqualTo(85);
     }
 
     @Test
-    void shouldRebuildStateFromEventStream() {
+    void shouldRebuildStateFromEventStream()
+    {
         // Given
-        EventStream eventStream = eventStore.getEvents(ProductId.of("123"));
+        EventStream eventStream = eventStore . getEvents (ProductId.of("123"));
 
         // When
-        Product product = Product.rebuild(eventStream);
+        Product product = Product . rebuild (eventStream);
 
         // Then
         assertThat(product).isNotNull();
@@ -433,9 +447,9 @@ class EventSourcingTest {
 
 ### Test Event Handler Failure
 
-```java
+```kotlin
 @Test
-void shouldHandleEventProcessingFailure() {
+void shouldHandleEventProcessingFailure () {
     // Given
     ProductCreatedEvent event = new ProductCreatedEvent(
         ProductId.of("123"),
@@ -444,12 +458,13 @@ void shouldHandleEventProcessingFailure() {
         100
     );
 
-    doThrow(new RuntimeException("Processing failed"))
-        .when(orderService).onProductCreated(any());
+    doThrow(RuntimeException("Processing failed"))
+        .when (orderService).onProductCreated(any());
 
     // When
     assertThatThrownBy(() -> consumer.handleProductCreated(event))
-        .isInstanceOf(RuntimeException.class)
+    .isInstanceOf(
+    RuntimeException.class)
         .hasMessage("Processing failed");
 
     // Then
@@ -459,14 +474,14 @@ void shouldHandleEventProcessingFailure() {
 
 ### Test Dead Letter Queue
 
-```java
+```kotlin
 @Test
-void shouldSendFailedEventsToDLQ() {
+void shouldSendFailedEventsToDLQ () {
     // Given
-    ProductCreatedEventDto event = createEvent();
+    ProductCreatedEventDto event = createEvent ();
 
-    doThrow(new RuntimeException("Max retries exceeded"))
-        .when(orderService).onProductCreated(any());
+    doThrow(RuntimeException("Max retries exceeded"))
+        .when (orderService).onProductCreated(any());
 
     // When
     kafkaTemplate.send("product-events", event);
@@ -474,8 +489,8 @@ void shouldSendFailedEventsToDLQ() {
     // Then
     await().atMost(10, TimeUnit.SECONDS)
         .untilAsserted(() -> {
-            Message<?> dltMessage = kafkaTemplate.receive("product-events-dlt");
-            assertThat(dltMessage).isNotNull();
-        });
+    Message<?> dltMessage = kafkaTemplate . receive ("product-events-dlt");
+    assertThat(dltMessage).isNotNull();
+});
 }
 ```

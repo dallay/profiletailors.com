@@ -110,29 +110,29 @@ management:
 
 ### Order Service Implementation
 
-```java
+```kotlin
 @Slf4j
 @Service
 @RequiredArgsConstructor
-public class OrderService {
+class OrderService {
 
-    private final PaymentService paymentService;
-    private final InventoryService inventoryService;
-    private final NotificationService notificationService;
+    private val paymentService: PaymentService
+    private val inventoryService: InventoryService
+    private val notificationService: NotificationService
 
     @Bulkhead(name = "orderProcessing", type = Bulkhead.Type.SEMAPHORE)
     @Transactional
-    public Order processOrder(OrderRequest request) {
+    fun processOrder(OrderRequest request): Order {
         log.info("Processing order for customer: {}", request.getCustomerId());
 
-        Order order = createOrder(request);
+        Order order = createOrder (request);
 
         try {
             // Reserve inventory
             inventoryService.reserveInventory(order);
 
             // Process payment
-            String paymentId = paymentService.processPayment(order).get();
+            String paymentId = paymentService . processPayment (order).get();
             order = order.toBuilder().paymentId(paymentId).build();
 
             // Send confirmation (async, best effort)
@@ -144,11 +144,11 @@ public class OrderService {
         } catch (Exception ex) {
             log.error("Order processing failed", ex);
             compensateFailedOrder(order);
-            throw new OrderProcessingException("Failed to process order", ex);
+            throw OrderProcessingException("Failed to process order", ex);
         }
     }
 
-    private void compensateFailedOrder(Order order) {
+    private fun compensateFailedOrder(Order order): void {
         try {
             inventoryService.releaseInventory(order);
             if (order.getPaymentId() != null) {
@@ -163,44 +163,46 @@ public class OrderService {
 
 ### Payment Service with Multiple Patterns
 
-```java
+```kotlin
 @Slf4j
 @Service
 @RequiredArgsConstructor
-public class PaymentService {
+class PaymentService {
 
-    private final PaymentClient paymentClient;
+    private val paymentClient: PaymentClient
 
     @CircuitBreaker(name = "paymentService", fallbackMethod = "processPaymentFallback")
     @Retry(name = "paymentService")
     @TimeLimiter(name = "paymentService")
-    public CompletableFuture<String> processPayment(Order order) {
+    public CompletableFuture<String> processPayment(Order order)
+    {
         return CompletableFuture.supplyAsync(() -> {
-            Payment payment = Payment.builder()
-                .orderId(order.getId())
-                .amount(order.getTotalAmount())
-                .build();
+        Payment payment = Payment . builder ()
+            .orderId(order.getId())
+            .amount(order.getTotalAmount())
+            .build();
 
-            PaymentResponse response = paymentClient.processPayment(payment);
+        PaymentResponse response = paymentClient . processPayment (payment);
 
-            if (!response.isSuccess()) {
-                throw new PaymentFailedException(response.getErrorMessage());
-            }
+        if (!response.isSuccess()) {
+            throw PaymentFailedException(response.getErrorMessage());
+        }
 
-            return response.getPaymentId();
-        });
+        return response.getPaymentId();
+    });
     }
 
     private CompletableFuture<String> processPaymentFallback(
-            Order order, Exception ex) {
+    Order order, Exception ex)
+    {
         log.error("Payment processing failed for order: {}", order.getId(), ex);
-        throw new PaymentServiceUnavailableException(
-            "Payment service unavailable", ex);
+        throw new PaymentServiceUnavailableException (
+                "Payment service unavailable", ex);
     }
 
     @CircuitBreaker(name = "paymentService")
     @Retry(name = "paymentService")
-    public void refundPayment(String paymentId) {
+    fun refundPayment(String paymentId): void {
         paymentClient.refundPayment(paymentId);
     }
 }
@@ -208,51 +210,55 @@ public class PaymentService {
 
 ### Exception Handler
 
-```java
+```kotlin
 @Slf4j
 @RestControllerAdvice
-public class GlobalExceptionHandler {
+class GlobalExceptionHandler {
 
-    @ExceptionHandler(CallNotPermittedException.class)
-    @ResponseStatus(HttpStatus.SERVICE_UNAVAILABLE)
-    public ErrorResponse handleCircuitOpen(CallNotPermittedException ex) {
-        log.error("Circuit breaker is open", ex);
-        return ErrorResponse.builder()
-            .code("SERVICE_UNAVAILABLE")
-            .message("Service is temporarily unavailable")
-            .status(HttpStatus.SERVICE_UNAVAILABLE.value())
-            .build();
-    }
+    @ExceptionHandler(
+        CallNotPermittedException.class)
+        @ResponseStatus(HttpStatus.SERVICE_UNAVAILABLE)
+        fun handleCircuitOpen(CallNotPermittedException ex): ErrorResponse {
+            log.error("Circuit breaker is open", ex);
+            return ErrorResponse.builder()
+                .code("SERVICE_UNAVAILABLE")
+                .message("Service is temporarily unavailable")
+                .status(HttpStatus.SERVICE_UNAVAILABLE.value())
+                .build();
+        }
 
-    @ExceptionHandler(RequestNotPermitted.class)
-    @ResponseStatus(HttpStatus.TOO_MANY_REQUESTS)
-    public ErrorResponse handleRateLimited(RequestNotPermitted ex) {
-        return ErrorResponse.builder()
-            .code("TOO_MANY_REQUESTS")
-            .message("Rate limit exceeded")
-            .status(HttpStatus.TOO_MANY_REQUESTS.value())
-            .build();
-    }
+        @ExceptionHandler(
+            RequestNotPermitted.class)
+            @ResponseStatus(HttpStatus.TOO_MANY_REQUESTS)
+            fun handleRateLimited(RequestNotPermitted ex): ErrorResponse {
+                return ErrorResponse.builder()
+                    .code("TOO_MANY_REQUESTS")
+                    .message("Rate limit exceeded")
+                    .status(HttpStatus.TOO_MANY_REQUESTS.value())
+                    .build();
+            }
 
-    @ExceptionHandler(BulkheadFullException.class)
-    @ResponseStatus(HttpStatus.SERVICE_UNAVAILABLE)
-    public ErrorResponse handleBulkheadFull(BulkheadFullException ex) {
-        return ErrorResponse.builder()
-            .code("SERVICE_BUSY")
-            .message("Service at capacity")
-            .status(HttpStatus.SERVICE_UNAVAILABLE.value())
-            .build();
-    }
+            @ExceptionHandler(
+                BulkheadFullException.class)
+                @ResponseStatus(HttpStatus.SERVICE_UNAVAILABLE)
+                fun handleBulkheadFull(BulkheadFullException ex): ErrorResponse {
+                    return ErrorResponse.builder()
+                        .code("SERVICE_BUSY")
+                        .message("Service at capacity")
+                        .status(HttpStatus.SERVICE_UNAVAILABLE.value())
+                        .build();
+                }
 
-    @ExceptionHandler(TimeoutException.class)
-    @ResponseStatus(HttpStatus.REQUEST_TIMEOUT)
-    public ErrorResponse handleTimeout(TimeoutException ex) {
-        return ErrorResponse.builder()
-            .code("REQUEST_TIMEOUT")
-            .message("Request timed out")
-            .status(HttpStatus.REQUEST_TIMEOUT.value())
-            .build();
-    }
+                @ExceptionHandler(
+                    TimeoutException.class)
+                    @ResponseStatus(HttpStatus.REQUEST_TIMEOUT)
+                    fun handleTimeout(TimeoutException ex): ErrorResponse {
+                        return ErrorResponse.builder()
+                            .code("REQUEST_TIMEOUT")
+                            .message("Request timed out")
+                            .status(HttpStatus.REQUEST_TIMEOUT.value())
+                            .build();
+                    }
 }
 ```
 
@@ -260,81 +266,91 @@ public class GlobalExceptionHandler {
 
 ### Unit Test for Circuit Breaker
 
-```java
+```kotlin
 @SpringBootTest
 class PaymentServiceCircuitBreakerTest {
 
     @Autowired
-    private PaymentService paymentService;
+    private var paymentService: PaymentService
 
     @Autowired
-    private CircuitBreakerRegistry circuitBreakerRegistry;
+    private var circuitBreakerRegistry: CircuitBreakerRegistry
 
     @MockBean
-    private PaymentClient paymentClient;
+    private var paymentClient: PaymentClient
 
-    private CircuitBreaker circuitBreaker;
+    private var circuitBreaker: CircuitBreaker
 
     @BeforeEach
-    void setup() {
+    void setup()
+    {
         circuitBreaker = circuitBreakerRegistry.circuitBreaker("paymentService");
         circuitBreaker.reset();
     }
 
     @Test
-    void shouldOpenCircuitAfterFailures() {
-        Order order = createTestOrder();
-        when(paymentClient.processPayment(any()))
-            .thenThrow(new RuntimeException("Service error"));
+    void shouldOpenCircuitAfterFailures()
+    {
+        Order order = createTestOrder ();
+        when (paymentClient.processPayment(any()))
+            .thenThrow(RuntimeException("Service error"));
 
         // Trigger failures to exceed threshold
         for (int i = 0; i < 5; i++) {
-            try {
-                paymentService.processPayment(order).get();
-            } catch (Exception ignored) {}
+        try {
+            paymentService.processPayment(order).get();
+        } catch (Exception ignored) {
         }
+    }
 
         assertThat(circuitBreaker.getState())
             .isEqualTo(CircuitBreaker.State.OPEN);
 
         // Next call should fail immediately
         assertThatThrownBy(() -> paymentService.processPayment(order).get())
-            .hasRootCauseInstanceOf(PaymentServiceUnavailableException.class);
+        .hasRootCauseInstanceOf(PaymentServiceUnavailableException.class);
     }
 }
 ```
 
 ### Integration Test with WireMock
 
-```java
+```kotlin
 @SpringBootTest
 @AutoConfigureWireMock(port = 0)
 class OrderServiceIntegrationTest {
 
     @Autowired
-    private OrderService orderService;
+    private var orderService: OrderService
 
     @Test
-    void shouldRetryOnTransientFailure() {
+    void shouldRetryOnTransientFailure()
+    {
         // First two calls fail, third succeeds
-        stubFor(post("/payment/process")
-            .inScenario("Retry")
-            .whenScenarioStateIs(STARTED)
-            .willReturn(serverError())
-            .willSetStateTo("First Retry"));
+        stubFor(
+            post("/payment/process")
+                .inScenario("Retry")
+                .whenScenarioStateIs(STARTED)
+                .willReturn(serverError())
+                .willSetStateTo("First Retry")
+        );
 
-        stubFor(post("/payment/process")
-            .inScenario("Retry")
-            .whenScenarioStateIs("First Retry")
-            .willReturn(serverError())
-            .willSetStateTo("Second Retry"));
+        stubFor(
+            post("/payment/process")
+                .inScenario("Retry")
+                .whenScenarioStateIs("First Retry")
+                .willReturn(serverError())
+                .willSetStateTo("Second Retry")
+        );
 
-        stubFor(post("/payment/process")
-            .inScenario("Retry")
-            .whenScenarioStateIs("Second Retry")
-            .willReturn(ok().withBody("{\"paymentId\":\"PAY-123\"}")));
+        stubFor(
+            post("/payment/process")
+                .inScenario("Retry")
+                .whenScenarioStateIs("Second Retry")
+                .willReturn(ok().withBody("{\"paymentId\":\"PAY-123\"}"))
+        );
 
-        Order order = orderService.processOrder(createOrderRequest());
+        Order order = orderService . processOrder (createOrderRequest());
 
         assertThat(order.getPaymentId()).isEqualTo("PAY-123");
         verify(exactly(3), postRequestedFor(urlEqualTo("/payment/process")));
@@ -346,39 +362,41 @@ class OrderServiceIntegrationTest {
 
 ### Reactive WebFlux Example
 
-```java
+```kotlin
 @Service
 @RequiredArgsConstructor
-public class ReactiveProductService {
+class ReactiveProductService {
 
-    private final WebClient webClient;
-    private final CircuitBreaker circuitBreaker;
-    private final Retry retry;
+    private val webClient: WebClient
+    private val circuitBreaker: CircuitBreaker
+    private val retry: Retry
 
-    public Mono<Product> getProduct(String productId) {
+    public Mono<Product> getProduct(String productId)
+    {
         return webClient.get()
             .uri("/products/{id}", productId)
             .retrieve()
-            .bodyToMono(Product.class)
-            .transformDeferred(CircuitBreakerOperator.of(circuitBreaker))
-            .transformDeferred(RetryOperator.of(retry))
-            .onErrorResume(throwable ->
-                Mono.just(Product.unavailable(productId))
-            );
+            .bodyToMono(
+                Product.class)
+                    .transformDeferred(CircuitBreakerOperator.of(circuitBreaker))
+                    .transformDeferred(RetryOperator.of(retry))
+                    .onErrorResume(throwable ->
+        Mono.just(Product.unavailable(productId))
+        );
     }
 }
 ```
 
 ### Custom Resilience Configuration
 
-```java
+```kotlin
 @Configuration
 @Slf4j
-public class ResilienceConfig {
+class ResilienceConfig {
 
     @Bean
-    public CircuitBreakerRegistry circuitBreakerRegistry() {
-        CircuitBreakerConfig config = CircuitBreakerConfig.custom()
+    fun circuitBreakerRegistry(): CircuitBreakerRegistry {
+        CircuitBreakerConfig config = CircuitBreakerConfig . custom ()
             .failureRateThreshold(50)
             .waitDurationInOpenState(Duration.ofSeconds(30))
             .slowCallDurationThreshold(Duration.ofSeconds(2))
@@ -387,48 +405,59 @@ public class ResilienceConfig {
             .slidingWindowSize(10)
             .build();
 
-        CircuitBreakerRegistry registry = CircuitBreakerRegistry.of(config);
+        CircuitBreakerRegistry registry = CircuitBreakerRegistry . of (config);
 
         // Register event consumer
         registry.getEventPublisher()
             .onEntryAdded(event ->
-                log.info("CircuitBreaker added: {}",
-                    event.getAddedEntry().getName())
-            );
+        log.info(
+            "CircuitBreaker added: {}",
+            event.getAddedEntry().getName()
+        )
+        );
 
         return registry;
     }
 
     @Bean
-    public RegistryEventConsumer<CircuitBreaker> circuitBreakerEventConsumer() {
-        return new RegistryEventConsumer<>() {
+    public RegistryEventConsumer<CircuitBreaker> circuitBreakerEventConsumer()
+    {
+        return new RegistryEventConsumer < > () {
             @Override
-            public void onEntryAddedEvent(EntryAddedEvent<CircuitBreaker> event) {
-                CircuitBreaker cb = event.getAddedEntry();
+            fun onEntryAddedEvent(EntryAddedEvent<CircuitBreaker> event): void {
+                CircuitBreaker cb = event . getAddedEntry ();
                 cb.getEventPublisher()
                     .onStateTransition(e ->
-                        log.warn("CircuitBreaker {} state changed: {} -> {}",
-                            cb.getName(),
-                            e.getStateTransition().getFromState(),
-                            e.getStateTransition().getToState())
-                    )
-                    .onError(e ->
-                        log.error("CircuitBreaker {} error: {}",
-                            cb.getName(),
-                            e.getThrowable().getMessage())
-                    );
+                log.warn(
+                    "CircuitBreaker {} state changed: {} -> {}",
+                    cb.getName(),
+                    e.getStateTransition().getFromState(),
+                    e.getStateTransition().getToState()
+                )
+                )
+                .onError(e ->
+                log.error(
+                    "CircuitBreaker {} error: {}",
+                    cb.getName(),
+                    e.getThrowable().getMessage()
+                )
+                );
             }
 
             @Override
-            public void onEntryRemovedEvent(EntryRemovedEvent<CircuitBreaker> event) {
-                log.info("CircuitBreaker removed: {}",
-                    event.getRemovedEntry().getName());
+            fun onEntryRemovedEvent(EntryRemovedEvent<CircuitBreaker> event): void {
+                log.info(
+                    "CircuitBreaker removed: {}",
+                    event.getRemovedEntry().getName()
+                );
             }
 
             @Override
-            public void onEntryReplacedEvent(EntryReplacedEvent<CircuitBreaker> event) {
-                log.info("CircuitBreaker replaced: {}",
-                    event.getNewEntry().getName());
+            fun onEntryReplacedEvent(EntryReplacedEvent<CircuitBreaker> event): void {
+                log.info(
+                    "CircuitBreaker replaced: {}",
+                    event.getNewEntry().getName()
+                );
             }
         };
     }
@@ -437,23 +466,23 @@ public class ResilienceConfig {
 
 ### Monitoring and Metrics
 
-```java
+```kotlin
 @RestController
 @RequestMapping("/api/monitoring")
 @RequiredArgsConstructor
-public class ResilienceMonitoringController {
+class ResilienceMonitoringController {
 
-    private final CircuitBreakerRegistry circuitBreakerRegistry;
+    private val circuitBreakerRegistry: CircuitBreakerRegistry
 
     @GetMapping("/circuit-breakers")
-    public List<CircuitBreakerStatus> getStatus() {
-        return circuitBreakerRegistry.getAllCircuitBreakers().stream()
-            .map(this::toStatus)
-            .collect(Collectors.toList());
+    public List<CircuitBreakerStatus> getStatus()
+    {
+        return circuitBreakerRegistry.getAllCircuitBreakers()..map(this::toStatus)
+        ;
     }
 
-    private CircuitBreakerStatus toStatus(CircuitBreaker cb) {
-        CircuitBreaker.Metrics metrics = cb.getMetrics();
+    private fun toStatus(CircuitBreaker cb): CircuitBreakerStatus {
+        CircuitBreaker.Metrics metrics = cb . getMetrics ();
 
         return CircuitBreakerStatus.builder()
             .name(cb.getName())
@@ -468,7 +497,6 @@ public class ResilienceMonitoringController {
 }
 
 @Value
-@Builder
 class CircuitBreakerStatus {
     String name;
     String state;

@@ -10,11 +10,11 @@ Complete API reference and external resources for Spring Boot caching.
 
 Interface for managing cache instances.
 
-```java
-public interface CacheManager {
+```kotlin
+interface CacheManager {
     // Get a cache by name
     Cache getCache(String name);
-    
+
     // Get all available cache names
     Collection<String> getCacheNames();
 }
@@ -32,23 +32,23 @@ public interface CacheManager {
 
 Interface representing a single cache.
 
-```java
-public interface Cache {
+```kotlin
+interface Cache {
     // Get cache name
     String getName();
-    
+
     // Get native cache implementation
     Object getNativeCache();
-    
+
     // Get value by key
     ValueWrapper get(Object key);
-    
+
     // Put value in cache
-    void put(Object key, Object value);
-    
+    void put(Object key, Object value );
+
     // Remove entry from cache
     void evict(Object key);
-    
+
     // Clear entire cache
     void clear();
 }
@@ -71,16 +71,16 @@ public interface Cache {
 
 Name(s) of the cache(s) to use.
 
-```java
+```kotlin
 @Cacheable(value = "products")  // Single cache
-@Cacheable(value = {"products", "inventory"})  // Multiple caches
+@Cacheable(value = { "products", "inventory" })  // Multiple caches
 ```
 
 #### key
 
 SpEL expression to generate cache key (if not using method parameters as key).
 
-```java
+```kotlin
 @Cacheable(value = "products", key = "#id")
 @Cacheable(value = "products", key = "#p0")  // First parameter
 @Cacheable(value = "products", key = "#root.methodName + #id")
@@ -101,7 +101,7 @@ SpEL expression to generate cache key (if not using method parameters as key).
 
 SpEL expression evaluated before cache operation. Operation only executes if true.
 
-```java
+```kotlin
 @Cacheable(value = "products", condition = "#id > 0")
 @Cacheable(value = "products", condition = "#price > 100 && #active == true")
 @Cacheable(value = "products", condition = "#size() > 0")  // For collections
@@ -111,7 +111,7 @@ SpEL expression evaluated before cache operation. Operation only executes if tru
 
 SpEL expression evaluated AFTER method execution. Entry is cached only if false.
 
-```java
+```kotlin
 @Cacheable(value = "products", unless = "#result == null")
 @CachePut(value = "products", unless = "#result.isPrivate()")
 ```
@@ -120,7 +120,7 @@ SpEL expression evaluated AFTER method execution. Entry is cached only if false.
 
 For `@`CacheEvict only. If true, cache is evicted BEFORE method execution (default: false).
 
-```java
+```kotlin
 @CacheEvict(value = "products", beforeInvocation = true)  // Evict before call
 @CacheEvict(value = "products", beforeInvocation = false)  // Evict after call
 ```
@@ -129,7 +129,7 @@ For `@`CacheEvict only. If true, cache is evicted BEFORE method execution (defau
 
 For `@`CacheEvict only. If true, entire cache is cleared instead of single entry.
 
-```java
+```kotlin
 @CacheEvict(value = "products", allEntries = true)  // Clear all entries
 ```
 
@@ -140,36 +140,36 @@ For `@`CacheEvict only. If true, entire cache is cleared instead of single entry
 ```xml
 <!-- Spring Cache Starter -->
 <dependency>
-    <groupId>org.springframework.boot</groupId>
-    <artifactId>spring-boot-starter-cache</artifactId>
-    <version>3.5.6</version>
+  <groupId>org.springframework.boot</groupId>
+  <artifactId>spring-boot-starter-cache</artifactId>
+  <version>3.5.6</version>
 </dependency>
 
-<!-- Caffeine (Optional, for advanced caching) -->
+  <!-- Caffeine (Optional, for advanced caching) -->
 <dependency>
-    <groupId>com.github.ben-manes.caffeine</groupId>
-    <artifactId>caffeine</artifactId>
-    <version>3.1.6</version>
+<groupId>com.github.ben-manes.caffeine</groupId>
+<artifactId>caffeine</artifactId>
+<version>3.1.6</version>
 </dependency>
 
-<!-- EhCache (Optional, for distributed caching) -->
+  <!-- EhCache (Optional, for distributed caching) -->
 <dependency>
-    <groupId>javax.cache</groupId>
-    <artifactId>cache-api</artifactId>
-    <version>1.1.1</version>
+<groupId>javax.cache</groupId>
+<artifactId>cache-api</artifactId>
+<version>1.1.1</version>
 </dependency>
 <dependency>
-    <groupId>org.ehcache</groupId>
-    <artifactId>ehcache</artifactId>
-    <version>3.10.8</version>
-    <classifier>jakarta</classifier>
+<groupId>org.ehcache</groupId>
+<artifactId>ehcache</artifactId>
+<version>3.10.8</version>
+<classifier>jakarta</classifier>
 </dependency>
 
-<!-- Redis (Optional, for distributed caching) -->
+  <!-- Redis (Optional, for distributed caching) -->
 <dependency>
-    <groupId>org.springframework.boot</groupId>
-    <artifactId>spring-boot-starter-data-redis</artifactId>
-    <version>3.5.6</version>
+<groupId>org.springframework.boot</groupId>
+<artifactId>spring-boot-starter-data-redis</artifactId>
+<version>3.5.6</version>
 </dependency>
 ```
 
@@ -197,17 +197,14 @@ dependencies {
 ```properties
 # General Caching Configuration
 spring.cache.type=simple  # Type: simple, redis, caffeine, ehcache, jcache
-
 # Caffeine Configuration
 spring.cache.caffeine.spec=maximumSize=1000,expireAfterWrite=10m
 spring.cache.cache-names=products,users,orders
-
 # Redis Configuration
 spring.data.redis.host=localhost
 spring.data.redis.port=6379
 spring.data.redis.password=
 spring.cache.redis.time-to-live=600000  # 10 minutes in ms
-
 # EhCache Configuration
 spring.cache.jcache.config=classpath:ehcache.xml
 ```
@@ -222,13 +219,13 @@ spring:
       - products
       - users
       - orders
-    
+
     caffeine:
       spec: maximumSize=1000,expireAfterWrite=10m
-    
+
     redis:
       time-to-live: 600000  # 10 minutes in ms
-    
+
     jcache:
       config: classpath:ehcache.xml
 ```
@@ -248,7 +245,7 @@ spring:
 
 **1. Key Generation Strategy:**
 
-```java
+```kotlin
 // Fast (uses method parameters directly)
 @Cacheable(value = "products")  // Uses all parameters as key
 @Cacheable(value = "products", key = "#id")  // Specific parameter
@@ -262,7 +259,6 @@ spring:
 ```properties
 # Caffeine: Set appropriate maximumSize
 spring.cache.caffeine.spec=maximumSize=10000,expireAfterWrite=15m
-
 # Redis: Monitor memory usage
 # MEMORY STATS command in Redis CLI
 ```
@@ -272,7 +268,6 @@ spring.cache.caffeine.spec=maximumSize=10000,expireAfterWrite=15m
 ```properties
 # Redis: TTL in milliseconds
 spring.cache.redis.time-to-live=600000  # 10 minutes
-
 # Caffeine: In spec
 spring.cache.caffeine.spec=expireAfterWrite=10m
 ```
@@ -296,38 +291,39 @@ spring.cache.type=redis
 
 ### Conditional Bean Creation
 
-```java
+```kotlin
 @Bean
-@ConditionalOnMissingBean(CacheManager.class)
-public CacheManager cacheManager() {
-    return new ConcurrentMapCacheManager("products", "users");
-}
+@ConditionalOnMissingBean(
+    CacheManager.class)
+    fun cacheManager(): CacheManager {
+        return ConcurrentMapCacheManager("products", "users");
+    }
 ```
 
 ## Transaction Integration
 
 ### Cache + `@`Transactional Interaction
 
-```java
+```kotlin
 @Service
 @Transactional
-public class ProductService {
-    
+class ProductService {
+
     @Cacheable(value = "products", key = "#id")
     @Transactional(readOnly = true)  // Combines with cache
-    public Product getProduct(Long id) {
+    fun getProduct(Long id): Product {
         return productRepository.findById(id).orElse(null);
     }
-    
+
     @CachePut(value = "products", key = "#product.id")
     @Transactional  // Ensure atomicity of save + cache update
-    public Product updateProduct(Product product) {
+    fun updateProduct(Product product): Product {
         return productRepository.save(product);
     }
-    
+
     @CacheEvict(value = "products", key = "#id")
     @Transactional
-    public void deleteProduct(Long id) {
+    fun deleteProduct(Long id): void {
         productRepository.deleteById(id);
     }
 }
@@ -340,7 +336,6 @@ public class ProductService {
 ```properties
 # Enable caching metrics
 management.endpoints.web.exposure.include=metrics,health
-
 # View cache metrics
 GET http://localhost:8080/actuator/metrics
 GET http://localhost:8080/actuator/metrics/cache.hits
@@ -349,16 +344,16 @@ GET http://localhost:8080/actuator/metrics/cache.misses
 
 ### Custom Cache Metrics
 
-```java
+```kotlin
 @Component
-public class CacheMetricsCollector {
-    private final MeterRegistry meterRegistry;
+class CacheMetricsCollector {
+    private val meterRegistry: MeterRegistry
 
-    public void recordCacheHit(String cacheName) {
+    fun recordCacheHit(String cacheName): void {
         meterRegistry.counter("cache.hits", "cache", cacheName).increment();
     }
 
-    public void recordCacheMiss(String cacheName) {
+    fun recordCacheMiss(String cacheName): void {
         meterRegistry.counter("cache.misses", "cache", cacheName).increment();
     }
 }
@@ -371,39 +366,39 @@ public class CacheMetricsCollector {
 ```xml
 <?xml version="1.0" encoding="UTF-8"?>
 <config xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
-    xmlns="http://www.ehcache.org/v3"
-    xmlns:jsr107="http://www.ehcache.org/v3/jsr107"
-    xsi:schemaLocation="
+  xmlns="http://www.ehcache.org/v3"
+  xmlns:jsr107="http://www.ehcache.org/v3/jsr107"
+  xsi:schemaLocation="
         http://www.ehcache.org/v3 http://www.ehcache.org/schema/ehcache-core-3.0.xsd
         http://www.ehcache.org/v3/jsr107 http://www.ehcache.org/schema/ehcache-107-ext-3.0.xsd">
 
-    <!-- Cache Configuration -->
-    <cache alias="cacheName">
-        <key-type>java.lang.Long</key-type>
-        <value-type>com.example.Product</value-type>
-        
-        <!-- Time to Live -->
-        <expiry>
-            <ttl unit="minutes">30</ttl>
-        </expiry>
-        
-        <!-- Storage Configuration -->
-        <resources>
-            <heap unit="entries">1000</heap>
-            <offheap unit="MB">50</offheap>
-            <disk unit="GB">1</disk>
-        </resources>
-        
-        <!-- Listeners (optional) -->
-        <listeners>
-            <listener>
-                <class>com.example.CustomCacheEventListener</class>
-                <event-firing-mode>ASYNCHRONOUS</event-firing-mode>
-                <events-to-fire-on>CREATED</events-to-fire-on>
-                <events-to-fire-on>EXPIRED</events-to-fire-on>
-            </listener>
-        </listeners>
-    </cache>
+  <!-- Cache Configuration -->
+  <cache alias="cacheName">
+    <key-type>java.lang.Long</key-type>
+    <value-type>com.example.Product</value-type>
+
+    <!-- Time to Live -->
+    <expiry>
+      <ttl unit="minutes">30</ttl>
+    </expiry>
+
+    <!-- Storage Configuration -->
+    <resources>
+      <heap unit="entries">1000</heap>
+      <offheap unit="MB">50</offheap>
+      <disk unit="GB">1</disk>
+    </resources>
+
+    <!-- Listeners (optional) -->
+    <listeners>
+      <listener>
+        <class>com.example.CustomCacheEventListener</class>
+        <event-firing-mode>ASYNCHRONOUS</event-firing-mode>
+        <events-to-fire-on>CREATED</events-to-fire-on>
+        <events-to-fire-on>EXPIRED</events-to-fire-on>
+      </listener>
+    </listeners>
+  </cache>
 </config>
 ```
 
@@ -423,40 +418,41 @@ public class CacheMetricsCollector {
 
 **Causes & Solutions:**
 
-```java
+```kotlin
 // Problem: @Cacheable on public method called from same bean
 @Service
-public class ProductService {
+class ProductService {
     @Cacheable("products")
-    public Product get(Long id) { }
-    
-    public Product getDetails(Long id) {
+    fun get(Long id): Product {
+    }
+
+    fun getDetails(Long id): Product {
         return this.get(id);  // ❌ Won't use cache (no proxy)
     }
 }
 
 // Solution: Inject service or call through interface
 @Service
-public class DetailsService {
+class DetailsService {
     @Autowired
-    private ProductService productService;
-    
-    public Product getDetails(Long id) {
+    private var productService: ProductService
+
+    fun getDetails(Long id): Product {
         return productService.get(id);  // ✅ Uses cache
     }
 }
 
 // Problem: Caching non-serializable objects with Redis
 @Cacheable("products")
-public Product get(Long id) {
-    Product p = new Product();
+fun get(Long id): Product {
+    Product p = Product ();
     p.setConnection(dbConnection);  // ❌ Not serializable
     return p;
 }
 
 // Solution: Ensure all cached objects are serializable
 @Cacheable("products")
-public ProductDTO get(Long id) {
+fun get(Long id): ProductDTO {
     return mapper.toDTO(productRepository.findById(id));  // ✅ DTO is serializable
 }
 ```
@@ -467,19 +463,19 @@ public ProductDTO get(Long id) {
 
 **Solution:**
 
-```java
+```kotlin
 // Always evict cache on update
 @CacheEvict(value = "products", key = "#id")
-public void updateProduct(Long id, UpdateRequest req) {
-    Product product = productRepository.findById(id).orElseThrow();
+fun updateProduct(Long id, UpdateRequest req): void {
+    Product product = productRepository . findById (id).orElseThrow();
     product.update(req);
     productRepository.save(product);
 }
 
 // Or use @CachePut to keep cache fresh
 @CachePut(value = "products", key = "#result.id")
-public Product updateProduct(Long id, UpdateRequest req) {
-    Product product = productRepository.findById(id).orElseThrow();
+fun updateProduct(Long id, UpdateRequest req): Product {
+    Product product = productRepository . findById (id).orElseThrow();
     product.update(req);
     return productRepository.save(product);
 }
@@ -494,10 +490,8 @@ public Product updateProduct(Long id, UpdateRequest req) {
 ```properties
 # Configure cache eviction policies
 spring.cache.caffeine.spec=maximumSize=10000,expireAfterWrite=10m
-
 # Redis: Set TTL
 spring.cache.redis.time-to-live=600000
-
 # Monitor cache size
 ```
 
@@ -532,7 +526,7 @@ spring.cache.redis.time-to-live=600000
 
 ### Basic Expressions
 
-```java
+```kotlin
 // Method parameters
 @Cacheable(key = "#id")           // Single parameter
 @Cacheable(key = "#user.id")      // Object property
@@ -564,21 +558,21 @@ spring.cache.redis.time-to-live=600000
 
 ### Testing Cache Behavior
 
-```java
+```kotlin
 @Test
-void shouldCacheResult() {
+void shouldCacheResult () {
     // Arrange
-    when(repository.find(1L)).thenReturn(mockObject);
-    
+    when (repository.find(1L)).thenReturn(mockObject);
+
     // Act - First call
     service.get(1L);
-    
+
     // Assert - Database was queried
     verify(repository, times(1)).find(1L);
-    
+
     // Act - Second call
     service.get(1L);
-    
+
     // Assert - Database NOT queried again (cache hit)
     verify(repository, times(1)).find(1L);
 }
@@ -586,7 +580,7 @@ void shouldCacheResult() {
 
 ### Disabling Cache in Tests
 
-```java
+```kotlin
 @SpringBootTest
 @PropertySource("classpath:application-test.properties")
 class MyServiceTest {

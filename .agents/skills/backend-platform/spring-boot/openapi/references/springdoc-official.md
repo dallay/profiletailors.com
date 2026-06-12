@@ -20,10 +20,11 @@ and annotations.
 ### Maven (Spring Boot 3.x)
 
 ```xml
+
 <dependency>
-    <groupId>org.springdoc</groupId>
-    <artifactId>springdoc-openapi-starter-webmvc-ui</artifactId>
-    <version>2.8.13</version>
+  <groupId>org.springdoc</groupId>
+  <artifactId>springdoc-openapi-starter-webmvc-ui</artifactId>
+  <version>2.8.13</version>
 </dependency>
 ```
 
@@ -36,10 +37,11 @@ implementation 'org.springdoc:springdoc-openapi-starter-webmvc-ui:2.8.13'
 ### WebFlux Support
 
 ```xml
+
 <dependency>
-    <groupId>org.springdoc</groupId>
-    <artifactId>springdoc-openapi-starter-webflux-ui</artifactId>
-    <version>2.8.13</version>
+  <groupId>org.springdoc</groupId>
+  <artifactId>springdoc-openapi-starter-webflux-ui</artifactId>
+  <version>2.8.13</version>
 </dependency>
 ```
 
@@ -68,31 +70,22 @@ After adding the dependency:
 ```properties
 # Custom API docs path
 springdoc.api-docs.path=/api-docs
-
 # Custom Swagger UI path
 springdoc.swagger-ui.path=/swagger-ui-custom.html
-
 # Sort operations by HTTP method
 springdoc.swagger-ui.operationsSorter=method
-
 # Sort tags alphabetically
 springdoc.swagger-ui.tagsSorter=alpha
-
 # Enable/disable Swagger UI
 springdoc.swagger-ui.enabled=true
-
 # Disable springdoc-openapi endpoints
 springdoc.api-docs.enabled=false
-
 # Show actuator endpoints in documentation
 springdoc.show-actuator=true
-
 # Packages to scan
 springdoc.packages-to-scan=com.example.controller
-
 # Paths to match
 springdoc.paths-to-match=/api/**,/public/**
-
 # Default response messages
 springdoc.default-produces-media-type=application/json
 springdoc.default-consumes-media-type=application/json
@@ -122,7 +115,7 @@ springdoc:
 
 ### Programmatic Configuration
 
-```java
+```kotlin
 import io.swagger.v3.oas.models.OpenAPI;
 import io.swagger.v3.oas.models.info.Info;
 import io.swagger.v3.oas.models.info.Contact;
@@ -132,27 +125,35 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
 @Configuration
-public class OpenAPIConfig {
+class OpenAPIConfig {
 
     @Bean
-    public OpenAPI customOpenAPI() {
-        return new OpenAPI()
-            .info(new Info()
-                .title("Book API")
-                .version("1.0")
-                .description("REST API for managing books")
-                .termsOfService("https://example.com/terms")
-                .contact(new Contact()
-                    .name("API Support")
-                    .url("https://example.com/support")
-                    .email("support@example.com"))
-                .license(new License()
-                    .name("Apache 2.0")
-                    .url("https://www.apache.org/licenses/LICENSE-2.0.html")))
-            .servers(List.of(
-                new Server().url("http://localhost:8080").description("Development server"),
-                new Server().url("https://api.example.com").description("Production server")
-            ));
+    fun customOpenAPI(): OpenAPI {
+        return OpenAPI()
+            .info(
+                Info()
+                    .title("Book API")
+                    .version("1.0")
+                    .description("REST API for managing books")
+                    .termsOfService("https://example.com/terms")
+                    .contact(
+                        Contact()
+                            .name("API Support")
+                            .url("https://example.com/support")
+                            .email("support@example.com")
+                    )
+                    .license(
+                        License()
+                            .name("Apache 2.0")
+                            .url("https://www.apache.org/licenses/LICENSE-2.0.html")
+                    )
+            )
+            .servers(
+                List.of(
+                    Server().url("http://localhost:8080").description("Development server"),
+                    Server().url("https://api.example.com").description("Production server")
+                )
+            );
     }
 }
 ```
@@ -161,7 +162,7 @@ public class OpenAPIConfig {
 
 ### Basic Controller Documentation
 
-```java
+```kotlin
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
@@ -174,11 +175,12 @@ import org.springframework.web.bind.annotation.*;
 @RestController
 @RequestMapping("/api/books")
 @Tag(name = "Book", description = "Book management APIs")
-public class BookController {
+class BookController {
 
-    private final BookRepository repository;
+    private val repository: BookRepository
 
-    public BookController(BookRepository repository) {
+    public BookController(BookRepository repository)
+    {
         this.repository = repository;
     }
 
@@ -192,34 +194,36 @@ public class BookController {
             description = "Successfully retrieved book",
             content = @Content(
                 mediaType = "application/json",
-                schema = @Schema(implementation = Book.class)
+                schema = @Schema(
+                    implementation = Book.class)
+                )
+            ),
+            @ApiResponse(
+                responseCode = "404",
+                description = "Book not found",
+                content = @Content
+            ),
+            @ApiResponse(
+                responseCode = "500",
+                description = "Internal server error",
+                content = @Content
             )
-        ),
-        @ApiResponse(
-            responseCode = "404",
-            description = "Book not found",
-            content = @Content
-        ),
-        @ApiResponse(
-            responseCode = "500",
-            description = "Internal server error",
-            content = @Content
-        )
     })
     @GetMapping("/{id}")
     public Book findById(
-        @Parameter(description = "ID of book to retrieve", required = true)
-        @PathVariable Long id
-    ) {
+    @Parameter(description = "ID of book to retrieve", required = true)
+    @PathVariable Long id
+    )
+    {
         return repository.findById(id)
-            .orElseThrow(() -> new BookNotFoundException());
+            .orElseThrow(() -> BookNotFoundException());
     }
 }
 ```
 
 ### Request Body Documentation
 
-```java
+```kotlin
 import io.swagger.v3.oas.annotations.parameters.RequestBody;
 import io.swagger.v3.oas.annotations.media.ExampleObject;
 
@@ -230,10 +234,11 @@ import io.swagger.v3.oas.annotations.media.ExampleObject;
         description = "Book created successfully",
         content = @Content(
             mediaType = "application/json",
-            schema = @Schema(implementation = Book.class)
-        )
-    ),
-    @ApiResponse(responseCode = "400", description = "Invalid input provided")
+            schema = @Schema(
+                implementation = Book.class)
+            )
+        ),
+        @ApiResponse(responseCode = "400", description = "Invalid input provided")
 })
 @PostMapping
 @ResponseStatus(HttpStatus.CREATED)
@@ -243,9 +248,10 @@ public Book createBook(
         required = true,
         content = @Content(
             mediaType = "application/json",
-            schema = @Schema(implementation = Book.class),
-            examples = @ExampleObject(
-                value = """
+            schema = @Schema(
+                implementation = Book.class),
+                examples = @ExampleObject(
+                    value = """
                 {
                     "title": "Clean Code",
                     "author": "Robert C. Martin",
@@ -253,45 +259,49 @@ public Book createBook(
                     "description": "A handbook of agile software craftsmanship"
                 }
                 """
+                )
             )
         )
-    )
-    @org.springframework.web.bind.annotation.RequestBody Book book
-) {
-    return repository.save(book);
-}
+        @org.springframework.web.bind.annotation.RequestBody Book book
+    ) {
+        return repository.save(book);
+    }
 ```
 
 ## Model Documentation
 
 ### Entity with Validation Annotations
 
-```java
+```kotlin
 import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.validation.constraints.*;
 
 @Entity
 @Schema(description = "Book entity representing a published book")
-public class Book {
+class Book {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
-    @Schema(description = "Unique identifier", example = "1", accessMode = Schema.AccessMode.READ_ONLY)
-    private Long id;
+    @Schema(
+        description = "Unique identifier",
+        example = "1",
+        accessMode = Schema.AccessMode.READ_ONLY
+    )
+    private var id: Long
 
     @NotBlank(message = "Title is required")
     @Size(min = 1, max = 200)
     @Schema(description = "Book title", example = "Clean Code", required = true, maxLength = 200)
-    private String title;
+    private var title: String
 
     @NotBlank(message = "Author is required")
     @Size(min = 1, max = 100)
     @Schema(description = "Book author", example = "Robert C. Martin", required = true)
-    private String author;
+    private var author: String
 
     @Pattern(regexp = "^(?:ISBN(?:-1[03])?:? )?(?=[0-9X]{10}$|(?=(?:[0-9]+[- ]){3})[- 0-9X]{13}$|97[89][0-9]{10}$|(?=(?:[0-9]+[- ]){4})[- 0-9]{17}$)(?:97[89][- ]?)?[0-9]{1,5}[- ]?[0-9]+[- ]?[0-9]+[- ]?[0-9X]$")
     @Schema(description = "ISBN number", example = "978-0132350884")
-    private String isbn;
+    private var isbn: String
 
     // Constructor, getters, setters
 }
@@ -299,40 +309,42 @@ public class Book {
 
 ### Hidden Fields
 
-```java
+```kotlin
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import io.swagger.v3.oas.annotations.media.Schema;
 
 @Schema(hidden = true)
-private String internalField;
+private var internalField: String
 
 @JsonIgnore
 @Schema(accessMode = Schema.AccessMode.READ_ONLY)
-private LocalDateTime createdAt;
+private var createdAt: LocalDateTime
 ```
 
 ## Security Documentation
 
 ### JWT Bearer Authentication
 
-```java
+```kotlin
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import io.swagger.v3.oas.models.Components;
 import io.swagger.v3.oas.models.security.SecurityScheme;
 
 @Configuration
-public class OpenAPISecurityConfig {
+class OpenAPISecurityConfig {
 
     @Bean
-    public OpenAPI customOpenAPI() {
-        return new OpenAPI()
-            .components(new Components()
-                .addSecuritySchemes("bearer-jwt", new SecurityScheme()
-                    .type(SecurityScheme.Type.HTTP)
-                    .scheme("bearer")
-                    .bearerFormat("JWT")
-                    .description("JWT authentication")
-                )
+    fun customOpenAPI(): OpenAPI {
+        return OpenAPI()
+            .components(
+                Components()
+                    .addSecuritySchemes(
+                        "bearer-jwt", SecurityScheme()
+                            .type(SecurityScheme.Type.HTTP)
+                            .scheme("bearer")
+                            .bearerFormat("JWT")
+                            .description("JWT authentication")
+                    )
             );
     }
 }
@@ -340,66 +352,75 @@ public class OpenAPISecurityConfig {
 // On controller or method level
 @SecurityRequirement(name = "bearer-jwt")
 @GetMapping("/secure")
-public String secureEndpoint() {
+fun secureEndpoint(): String {
     return "Secure data";
 }
 ```
 
 ### Basic Authentication
 
-```java
+```kotlin
 @Bean
-public OpenAPI customOpenAPI() {
-    return new OpenAPI()
-        .components(new Components()
-            .addSecuritySchemes("basicAuth", new SecurityScheme()
-                .type(SecurityScheme.Type.HTTP)
-                .scheme("basic")
-            )
+fun customOpenAPI(): OpenAPI {
+    return OpenAPI()
+        .components(
+            Components()
+                .addSecuritySchemes(
+                    "basicAuth", SecurityScheme()
+                        .type(SecurityScheme.Type.HTTP)
+                        .scheme("basic")
+                )
         );
 }
 ```
 
 ### OAuth2 Configuration
 
-```java
+```kotlin
 import io.swagger.v3.oas.models.security.OAuthFlow;
 import io.swagger.v3.oas.models.security.OAuthFlows;
 import io.swagger.v3.oas.models.security.Scopes;
 
 @Bean
-public OpenAPI customOpenAPI() {
-    return new OpenAPI()
-        .components(new Components()
-            .addSecuritySchemes("oauth2", new SecurityScheme()
-                .type(SecurityScheme.Type.OAUTH2)
-                .flows(new OAuthFlows()
-                    .authorizationCode(new OAuthFlow()
-                        .authorizationUrl("https://auth.example.com/oauth/authorize")
-                        .tokenUrl("https://auth.example.com/oauth/token")
-                        .scopes(new Scopes()
-                            .addString("read", "Read access")
-                            .addString("write", "Write access")
+fun customOpenAPI(): OpenAPI {
+    return OpenAPI()
+        .components(
+            Components()
+                .addSecuritySchemes(
+                    "oauth2", SecurityScheme()
+                        .type(SecurityScheme.Type.OAUTH2)
+                        .flows(
+                            OAuthFlows()
+                                .authorizationCode(
+                                    OAuthFlow()
+                                        .authorizationUrl("https://auth.example.com/oauth/authorize")
+                                        .tokenUrl("https://auth.example.com/oauth/token")
+                                        .scopes(
+                                            Scopes()
+                                                .addString("read", "Read access")
+                                                .addString("write", "Write access")
+                                        )
+                                )
                         )
-                    )
                 )
-            )
         );
 }
 ```
 
 ### API Key Authentication
 
-```java
+```kotlin
 @Bean
-public OpenAPI customOpenAPI() {
-    return new OpenAPI()
-        .components(new Components()
-            .addSecuritySchemes("api-key", new SecurityScheme()
-                .type(SecurityScheme.Type.APIKEY)
-                .in(SecurityScheme.In.HEADER)
-                .name("X-API-Key")
-            )
+fun customOpenAPI(): OpenAPI {
+    return OpenAPI()
+        .components(
+            Components()
+                .addSecuritySchemes(
+                    "api-key", SecurityScheme()
+                        .type(SecurityScheme.Type.APIKEY)
+                        .in(SecurityScheme.In.HEADER)
+                        .name("X-API-Key")
+                )
         );
 }
 ```
@@ -408,16 +429,16 @@ public OpenAPI customOpenAPI() {
 
 ### Spring Data Pageable Support
 
-```java
+```kotlin
 import org.springdoc.core.annotations.ParameterObject;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 
 @Operation(summary = "Get paginated list of books")
 @GetMapping("/paginated")
-public Page<Book> findAllPaginated(
-    @ParameterObject Pageable pageable
-) {
+public Page < Book > findAllPaginated (
+        @ParameterObject Pageable pageable
+        ) {
     return repository.findAll(pageable);
 }
 ```
@@ -432,9 +453,9 @@ This automatically generates documentation for:
 
 ### Multiple API Groups
 
-```java
+```kotlin
 @Bean
-public GroupedOpenApi publicApi() {
+fun publicApi(): GroupedOpenApi {
     return GroupedOpenApi.builder()
         .group("public")
         .pathsToMatch("/api/public/**")
@@ -442,7 +463,7 @@ public GroupedOpenApi publicApi() {
 }
 
 @Bean
-public GroupedOpenApi adminApi() {
+fun adminApi(): GroupedOpenApi {
     return GroupedOpenApi.builder()
         .group("admin")
         .pathsToMatch("/api/admin/**")
@@ -457,28 +478,28 @@ Access groups at:
 
 ### Hiding Endpoints
 
-```java
+```kotlin
 @Operation(hidden = true)
 @GetMapping("/internal")
-public String internalEndpoint() {
+fun internalEndpoint(): String {
     return "Hidden from docs";
 }
 
 // Or hide entire controller
 @Hidden
 @RestController
-public class InternalController {
+class InternalController {
     // All endpoints hidden
 }
 ```
 
 ### Custom Operation Customizer
 
-```java
+```kotlin
 import org.springdoc.core.customizers.OperationCustomizer;
 
 @Bean
-public OperationCustomizer customizeOperation() {
+fun customizeOperation(): OperationCustomizer {
     return (operation, handlerMethod) -> {
         operation.addExtension("x-custom-field", "custom-value");
         return operation;
@@ -488,9 +509,9 @@ public OperationCustomizer customizeOperation() {
 
 ### Filtering Packages and Paths
 
-```java
+```kotlin
 @Bean
-public GroupedOpenApi apiGroup() {
+fun apiGroup(): GroupedOpenApi {
     return GroupedOpenApi.builder()
         .group("api")
         .packagesToScan("com.example.controller")
@@ -531,17 +552,19 @@ data class Book(
 class BookController(private val repository: BookRepository) {
 
     @Operation(summary = "Get all books")
-    @ApiResponses(value = [
-        ApiResponse(
-            responseCode = "200",
-            description = "Found books",
-            content = [Content(
-                mediaType = "application/json",
-                array = ArraySchema(schema = Schema(implementation = Book::class))
-            )]
-        ),
-        ApiResponse(responseCode = "404", description = "No books found", content = [Content()])
-    ])
+    @ApiResponses(
+        value = [
+            ApiResponse(
+                responseCode = "200",
+                description = "Found books",
+                content = [Content(
+                    mediaType = "application/json",
+                    array = ArraySchema(schema = Schema(implementation = Book::class))
+                )]
+            ),
+            ApiResponse(responseCode = "404", description = "No books found", content = [Content()])
+        ]
+    )
     @GetMapping
     fun getAllBooks(): List<Book> = repository.findAll()
 }
@@ -552,23 +575,24 @@ class BookController(private val repository: BookRepository) {
 ### Maven Plugin for Generating OpenAPI
 
 ```xml
+
 <plugin>
-    <groupId>org.springdoc</groupId>
-    <artifactId>springdoc-openapi-maven-plugin</artifactId>
-    <version>1.4</version>
-    <executions>
-        <execution>
-            <phase>integration-test</phase>
-            <goals>
-                <goal>generate</goal>
-            </goals>
-        </execution>
-    </executions>
-    <configuration>
-        <apiDocsUrl>http://localhost:8080/v3/api-docs</apiDocsUrl>
-        <outputFileName>openapi.json</outputFileName>
-        <outputDir>${project.build.directory}</outputDir>
-    </configuration>
+  <groupId>org.springdoc</groupId>
+  <artifactId>springdoc-openapi-maven-plugin</artifactId>
+  <version>1.4</version>
+  <executions>
+    <execution>
+      <phase>integration-test</phase>
+      <goals>
+        <goal>generate</goal>
+      </goals>
+    </execution>
+  </executions>
+  <configuration>
+    <apiDocsUrl>http://localhost:8080/v3/api-docs</apiDocsUrl>
+    <outputFileName>openapi.json</outputFileName>
+    <outputDir>${project.build.directory}</outputDir>
+  </configuration>
 </plugin>
 ```
 
@@ -602,12 +626,13 @@ Replace SpringFox dependencies and update annotations:
 Add `-parameters` compiler flag (Spring Boot 3.2+):
 
 ```xml
+
 <plugin>
-    <groupId>org.apache.maven.plugins</groupId>
-    <artifactId>maven-compiler-plugin</artifactId>
-    <configuration>
-        <parameters>true</parameters>
-    </configuration>
+  <groupId>org.apache.maven.plugins</groupId>
+  <artifactId>maven-compiler-plugin</artifactId>
+  <configuration>
+    <parameters>true</parameters>
+  </configuration>
 </plugin>
 ```
 
@@ -615,9 +640,9 @@ Add `-parameters` compiler flag (Spring Boot 3.2+):
 
 Ensure `ByteArrayHttpMessageConverter` is registered when overriding converters:
 
-```java
-converters.add(new ByteArrayHttpMessageConverter());
-converters.add(new MappingJackson2HttpMessageConverter());
+```kotlin
+converters.add(ByteArrayHttpMessageConverter());
+converters.add(MappingJackson2HttpMessageConverter());
 ```
 
 ### Endpoints Not Appearing
@@ -632,15 +657,15 @@ Check:
 
 Permit SpringDoc endpoints in Spring Security:
 
-```java
+```kotlin
 @Bean
-public SecurityFilterChain filterChain(HttpSecurity http) {
+fun filterChain(HttpSecurity http): SecurityFilterChain {
     return http
         .authorizeHttpRequests(auth -> auth
-            .requestMatchers("/v3/api-docs/**", "/swagger-ui/**", "/swagger-ui.html").permitAll()
-            .anyRequest().authenticated()
-        )
-        .build();
+    .requestMatchers("/v3/api-docs/**", "/swagger-ui/**", "/swagger-ui.html").permitAll()
+        .anyRequest().authenticated()
+    )
+    .build();
 }
 ```
 

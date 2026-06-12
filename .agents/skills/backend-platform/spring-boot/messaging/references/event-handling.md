@@ -4,7 +4,7 @@
 
 ### Transactional Event Listener
 
-```java
+```kotlin
 import org.springframework.context.event.EventListener;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Component;
@@ -14,12 +14,12 @@ import lombok.RequiredArgsConstructor;
 
 @Component
 @RequiredArgsConstructor
-public class ProductEventHandler {
-    private final NotificationService notificationService;
-    private final AuditService auditService;
+class ProductEventHandler {
+    private val notificationService: NotificationService
+    private val auditService: AuditService
 
     @TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT)
-    public void onProductCreated(ProductCreatedEvent event) {
+    fun onProductCreated(ProductCreatedEvent event): void {
         auditService.logProductCreation(
             event.getProductId().getValue(),
             event.getName(),
@@ -31,7 +31,7 @@ public class ProductEventHandler {
     }
 
     @TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT)
-    public void onProductStockDecreased(ProductStockDecreasedEvent event) {
+    fun onProductStockDecreased(ProductStockDecreasedEvent event): void {
         notificationService.sendStockUpdateNotification(
             event.getProductId().getValue(),
             event.getQuantity()
@@ -39,7 +39,7 @@ public class ProductEventHandler {
     }
 
     @TransactionalEventListener(phase = TransactionPhase.AFTER_ROLLBACK)
-    public void onTransactionRollback(DomainEvent event) {
+    fun onTransactionRollback(DomainEvent event): void {
         log.error("Transaction rolled back for event: {}", event.getEventId());
     }
 }
@@ -47,15 +47,15 @@ public class ProductEventHandler {
 
 ### Async Event Listener
 
-```java
+```kotlin
 @Component
 @RequiredArgsConstructor
-public class AsyncEventHandler {
-    private final EmailService emailService;
+class AsyncEventHandler {
+    private val emailService: EmailService
 
     @Async
     @EventListener
-    public void handleOrderCreatedEvent(OrderCreatedEvent event) {
+    fun handleOrderCreatedEvent(OrderCreatedEvent event): void {
         // Executes asynchronously in a separate thread
         emailService.sendOrderConfirmationEmail(
             event.getCustomerId().getValue(),
@@ -69,7 +69,7 @@ public class AsyncEventHandler {
 
 ### Kafka Listener
 
-```java
+```kotlin
 import org.springframework.kafka.annotation.KafkaListener;
 import org.springframework.stereotype.Component;
 import lombok.RequiredArgsConstructor;
@@ -78,9 +78,9 @@ import lombok.extern.slf4j.Slf4j;
 @Component
 @RequiredArgsConstructor
 @Slf4j
-public class ProductEventConsumer {
+class ProductEventConsumer {
 
-    private final OrderService orderService;
+    private val orderService: OrderService
 
     @KafkaListener(
         topics = "product-events",
@@ -89,7 +89,7 @@ public class ProductEventConsumer {
             "spring.json.value.default.type=com.example.events.ProductCreatedEventDto"
         }
     )
-    public void handleProductCreated(ProductCreatedEventDto event) {
+    fun handleProductCreated(ProductCreatedEventDto event): void {
         log.info("Received ProductCreatedEvent: {}", event.getProductId());
 
         try {
@@ -107,7 +107,7 @@ public class ProductEventConsumer {
             "spring.json.value.default.type=com.example.events.ProductStockDecreasedEventDto"
         }
     )
-    public void handleProductStockDecreased(ProductStockDecreasedEventDto event) {
+    fun handleProductStockDecreased(ProductStockDecreasedEventDto event): void {
         log.info("Received ProductStockDecreasedEvent: {}", event.getProductId());
 
         orderService.onProductStockDecreased(event);
@@ -117,7 +117,7 @@ public class ProductEventConsumer {
 
 ### Manual Acknowledgment
 
-```java
+```kotlin
 import org.springframework.kafka.annotation.KafkaListener;
 import org.springframework.kafka.support.Acknowledgment;
 import org.springframework.kafka.support.KafkaHeaders;
@@ -126,7 +126,7 @@ import org.springframework.messaging.handler.annotation.Payload;
 
 @Component
 @Slf4j
-public class ManualAckConsumer {
+class ManualAckConsumer {
 
     @KafkaListener(
         topics = "product-events",
@@ -134,9 +134,10 @@ public class ManualAckConsumer {
         containerFactory = "kafkaListenerContainerFactory"
     )
     public void handleWithManualAck(
-        @Payload ProductCreatedEventDto event,
-        @Header(KafkaHeaders.ACKNOWLEDGMENT) Acknowledgment acknowledgment
-    ) {
+    @Payload ProductCreatedEventDto event,
+    @Header(KafkaHeaders.ACKNOWLEDGMENT) Acknowledgment acknowledgment
+    )
+    {
         try {
             // Process event
             orderService.onProductCreated(event);
@@ -154,14 +155,14 @@ public class ManualAckConsumer {
 
 ### Error Handling with Dead Letter Queue
 
-```java
+```kotlin
 import org.springframework.kafka.annotation.KafkaListener;
 import org.springframework.kafka.annotation.RetryableTopic;
 import org.springframework.retry.annotation.Backoff;
 
 @Component
 @Slf4j
-public class ResilientEventConsumer {
+class ResilientEventConsumer {
 
     @RetryableTopic(
         attempts = "3",
@@ -173,7 +174,7 @@ public class ResilientEventConsumer {
         topics = "product-events",
         groupId = "order-service"
     )
-    public void handleProductEvent(ProductCreatedEventDto event) {
+    fun handleProductEvent(ProductCreatedEventDto event): void {
         log.info("Processing product event: {}", event.getProductId());
 
         // Process event
@@ -184,7 +185,7 @@ public class ResilientEventConsumer {
         topics = "product-events-dlt",
         groupId = "order-service-dlt"
     )
-    public void handleDeadLetterEvent(ProductCreatedEventDto event) {
+    fun handleDeadLetterEvent(ProductCreatedEventDto event): void {
         log.error("Event moved to DLT: {}", event.getProductId());
 
         // Log to monitoring system
@@ -200,58 +201,61 @@ public class ResilientEventConsumer {
 
 ### Functional Consumer
 
-```java
+```kotlin
 import org.springframework.context.annotation.Bean;
 import org.springframework.stereotype.Component;
 import java.util.function.Consumer;
 
 @Component
 @RequiredArgsConstructor
-public class ProductEventStreamConsumer {
-    private final OrderService orderService;
+class ProductEventStreamConsumer {
+    private val orderService: OrderService
 
     @Bean
-    public Consumer<ProductCreatedEventDto> productCreated() {
+    public Consumer<ProductCreatedEventDto> productCreated()
+    {
         return event -> {
-            log.info("Received ProductCreatedEvent: {}", event.getProductId());
-            orderService.onProductCreated(event);
-        };
+        log.info("Received ProductCreatedEvent: {}", event.getProductId());
+        orderService.onProductCreated(event);
+    };
     }
 
     @Bean
-    public Consumer<ProductStockDecreasedEventDto> productStockDecreased() {
+    public Consumer<ProductStockDecreasedEventDto> productStockDecreased()
+    {
         return event -> {
-            log.info("Received ProductStockDecreasedEvent: {}", event.getProductId());
-            orderService.onProductStockDecreased(event);
-        };
+        log.info("Received ProductStockDecreasedEvent: {}", event.getProductId());
+        orderService.onProductStockDecreased(event);
+    };
     }
 }
 ```
 
 ### Consumer with Error Handling
 
-```java
+```kotlin
 import org.springframework.context.annotation.Bean;
 import org.springframework.messaging.Message;
 import org.springframework.messaging.support.MessageBuilder;
 import org.springframework.stereotype.Component;
 
 @Component
-public class ErrorHandlingConsumer {
+class ErrorHandlingConsumer {
 
     @Bean
-    public Consumer<Message<ProductCreatedEventDto>> productCreatedWithRetry() {
+    public Consumer<Message<ProductCreatedEventDto>> productCreatedWithRetry()
+    {
         return message -> {
-            try {
-                ProductCreatedEventDto event = message.getPayload();
-                orderService.onProductCreated(event);
-            } catch (Exception e) {
-                log.error("Failed to process event", e);
+        try {
+            ProductCreatedEventDto event = message . getPayload ();
+            orderService.onProductCreated(event);
+        } catch (Exception e) {
+            log.error("Failed to process event", e);
 
-                // Send to dead letter topic
-                throw new RuntimeException("Failed to process event", e);
-            }
-        };
+            // Send to dead letter topic
+            throw RuntimeException("Failed to process event", e);
+        }
+    };
     }
 }
 ```
@@ -260,13 +264,13 @@ public class ErrorHandlingConsumer {
 
 ### 1. Idempotent Handlers
 
-```java
+```kotlin
 @Component
 @RequiredArgsConstructor
-public class IdempotentEventHandler {
-    private final ProcessedEventRepository processedEventRepository;
+class IdempotentEventHandler {
+    private val processedEventRepository: ProcessedEventRepository
 
-    public void handleProductCreated(ProductCreatedEventDto event) {
+    fun handleProductCreated(ProductCreatedEventDto event): void {
         // Check if event was already processed
         if (processedEventRepository.existsByEventId(event.getEventId())) {
             log.info("Event already processed: {}", event.getEventId());
@@ -277,26 +281,26 @@ public class IdempotentEventHandler {
         orderService.onProductCreated(event);
 
         // Mark as processed
-        processedEventRepository.save(new ProcessedEvent(event.getEventId()));
+        processedEventRepository.save(ProcessedEvent(event.getEventId()));
     }
 }
 ```
 
 ### 2. Event Handler with Validation
 
-```java
+```kotlin
 @Component
-public class ValidatingEventHandler {
+class ValidatingEventHandler {
 
     @TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT)
-    public void handleOrderCreated(OrderCreatedEvent event) {
+    fun handleOrderCreated(OrderCreatedEvent event): void {
         // Validate event
         if (event.getItems().isEmpty()) {
-            throw new InvalidEventException("Order items cannot be empty");
+            throw InvalidEventException("Order items cannot be empty");
         }
 
         if (event.getTotalAmount().compareTo(BigDecimal.ZERO) <= 0) {
-            throw new InvalidEventException("Total amount must be positive");
+            throw InvalidEventException("Total amount must be positive");
         }
 
         // Process valid event
@@ -308,24 +312,24 @@ public class ValidatingEventHandler {
 
 ### 3. Event Handler with Circuit Breaker
 
-```java
+```kotlin
 import io.github.resilience4j.circuitbreaker.annotation.CircuitBreaker;
 
 @Component
 @RequiredArgsConstructor
-public class ResilientEventHandler {
-    private final ExternalServiceClient externalServiceClient;
+class ResilientEventHandler {
+    private val externalServiceClient: ExternalServiceClient
 
     @TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT)
     @CircuitBreaker(
         name = "externalService",
         fallbackMethod = "handleExternalServiceFailure"
     )
-    public void handleOrderCreated(OrderCreatedEvent event) {
+    fun handleOrderCreated(OrderCreatedEvent event): void {
         externalServiceClient.notifyOrderCreated(event);
     }
 
-    private void handleExternalServiceFailure(OrderCreatedEvent event, Exception ex) {
+    private fun handleExternalServiceFailure(OrderCreatedEvent event, Exception ex): void {
         log.error("External service unavailable for event: {}", event.getOrderId(), ex);
 
         // Store event for later retry
@@ -336,19 +340,19 @@ public class ResilientEventHandler {
 
 ### 4. Event Handler with Timeout
 
-```java
+```kotlin
 import org.springframework.transaction.annotation.Transactional;
 import java.util.concurrent.TimeUnit;
 
 @Component
-public class TimeoutEventHandler {
+class TimeoutEventHandler {
 
     @TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT)
-    public void handleOrderCreated(OrderCreatedEvent event) {
-        ExecutorService executor = Executors.newSingleThreadExecutor();
+    fun handleOrderCreated(OrderCreatedEvent event): void {
+        ExecutorService executor = Executors . newSingleThreadExecutor ();
 
         try {
-            Future<?> future = executor.submit(() -> {
+            Future<?> future = executor . submit (() -> {
                 notificationService.sendOrderConfirmation(event);
             });
 
@@ -359,7 +363,7 @@ public class TimeoutEventHandler {
             // Handle timeout appropriately
         } catch (Exception e) {
             log.error("Failed to send notification", e);
-            throw new EventHandlingException("Failed to handle event", e);
+            throw EventHandlingException("Failed to handle event", e);
         } finally {
             executor.shutdown();
         }
@@ -369,17 +373,17 @@ public class TimeoutEventHandler {
 
 ### 5. Batch Event Processing
 
-```java
+```kotlin
 import org.springframework.scheduling.annotation.Scheduled;
 import java.util.List;
 
 @Component
-public class BatchEventHandler {
-    private final List<DomainEvent> eventBuffer = new ArrayList<>();
+class BatchEventHandler {
+    private final List<DomainEvent> eventBuffer = mutableListOf();
 
     @TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT)
-    public void bufferEvent(DomainEvent event) {
-        synchronized (eventBuffer) {
+    fun bufferEvent(DomainEvent event): void {
+        synchronized(eventBuffer) {
             eventBuffer.add(event);
 
             if (eventBuffer.size() >= 100) {
@@ -389,7 +393,8 @@ public class BatchEventHandler {
     }
 
     @Scheduled(fixedDelay = 5000)
-    public synchronized void processBatch() {
+    public synchronized void processBatch()
+    {
         if (eventBuffer.isEmpty()) {
             return;
         }

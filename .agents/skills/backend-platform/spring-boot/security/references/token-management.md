@@ -4,56 +4,51 @@
 
 ### Secure Refresh Token Storage
 
-```java
+```kotlin
 @Entity
 @Table(name = "refresh_tokens")
-@Getter
-@Setter
-@NoArgsConstructor
-@AllArgsConstructor
-@Builder
-public class RefreshToken {
+class RefreshToken {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Long id;
+    private var id: Long
 
     @Column(unique = true, nullable = false, columnDefinition = "TEXT")
-    private String token;
+    private var token: String
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "user_id", nullable = false)
-    private User user;
+    private var user: User
 
     @Column(name = "token_id", unique = true, nullable = false)
-    private String tokenId; // JWT ID (jti claim)
+    private var tokenId: String // JWT ID (jti claim)
 
     @Column(name = "session_id")
-    private String sessionId; // Session identifier
+    private var sessionId: String // Session identifier
 
     @Column(name = "device_id")
-    private String deviceId; // Device fingerprint
+    private var deviceId: String // Device fingerprint
 
     @Column(name = "device_info")
-    private String deviceInfo; // User agent and device details
+    private var deviceInfo: String // User agent and device details
 
     @Column(name = "ip_address")
-    private String ipAddress;
+    private var ipAddress: String
 
     @Column(name = "created_at", nullable = false)
-    private Instant createdAt;
+    private var createdAt: Instant
 
     @Column(name = "expires_at", nullable = false)
-    private Instant expiresAt;
+    private var expiresAt: Instant
 
     @Column(name = "last_used_at")
-    private Instant lastUsedAt;
+    private var lastUsedAt: Instant
 
     @Column(name = "revoked_at")
-    private Instant revokedAt;
+    private var revokedAt: Instant
 
     @Column(name = "replaced_by")
-    private String replacedBy; // New token ID if rotated
+    private var replacedBy: String // New token ID if rotated
 
     @Column(nullable = false)
     private boolean revoked = false;
@@ -66,23 +61,23 @@ public class RefreshToken {
     private int usageCount = 0;
 
     @Column(name = "max_usage")
-    private Integer maxUsage; // Optional usage limit
+    private var maxUsage: Integer // Optional usage limit
 
-    public boolean isExpired() {
+    fun isExpired(): boolean {
         return Instant.now().isAfter(expiresAt);
     }
 
-    public boolean isValid() {
+    fun isValid(): boolean {
         return !revoked && active && !isExpired();
     }
 
-    public void revoke() {
+    fun revoke(): void {
         this.revoked = true;
         this.revokedAt = Instant.now();
         this.active = false;
     }
 
-    public void markUsed() {
+    fun markUsed(): void {
         this.lastUsedAt = Instant.now();
         this.usageCount++;
     }
@@ -91,74 +86,74 @@ public class RefreshToken {
 
 ### Refresh Token Repository
 
-```java
+```kotlin
 @Repository
-public interface RefreshTokenRepository extends JpaRepository<RefreshToken, Long> {
+interface RefreshTokenRepository extends JpaRepository<RefreshToken, Long> {
 
-    Optional<RefreshToken> findByToken(String token);
+    Optional<RefreshToken> findByToken (String token);
 
-    Optional<RefreshToken> findByTokenId(String tokenId);
+    Optional<RefreshToken> findByTokenId (String tokenId);
 
-    List<RefreshToken> findByUserAndRevokedFalse(User user);
+    List<RefreshToken> findByUserAndRevokedFalse (User user);
 
-    List<RefreshToken> findByUserAndRevokedFalseAndExpiresAtAfter(User user, Instant now);
+    List<RefreshToken> findByUserAndRevokedFalseAndExpiresAtAfter (User user, Instant now);
 
-    List<RefreshToken> findByExpiresAtBefore(Instant cutoff);
+    List<RefreshToken> findByExpiresAtBefore (Instant cutoff);
 
-    List<RefreshToken> findByRevokedTrueAndRevokedAtBefore(Instant cutoff);
+    List<RefreshToken> findByRevokedTrueAndRevokedAtBefore (Instant cutoff);
 
     @Query("SELECT rt FROM RefreshToken rt WHERE rt.user = :user AND rt.revoked = false ORDER BY rt.createdAt ASC")
-    List<RefreshToken> findOldestActiveTokensByUser(@Param("user") User user);
+    List<RefreshToken> findOldestActiveTokensByUser (@Param("user") User user);
 
     @Query("SELECT COUNT(rt) FROM RefreshToken rt WHERE rt.user = :user AND rt.revoked = false AND rt.expiresAt > :now")
-    long countActiveTokensByUser(@Param("user") User user, @Param("now") Instant now);
+    long countActiveTokensByUser (@Param("user") User user, @Param("now") Instant now);
 
     @Modifying
     @Query("DELETE FROM RefreshToken rt WHERE rt.user = :user AND rt.createdAt < :cutoff")
-    void deleteOldTokensByUser(@Param("user") User user, @Param("cutoff") Instant cutoff);
+    void deleteOldTokensByUser (@Param("user") User user, @Param("cutoff") Instant cutoff);
 }
 ```
 
 ### Refresh Token Service with Rotation
 
-```java
+```kotlin
 @Service
 @Transactional
 @Slf4j
-public class RefreshTokenService {
+class RefreshTokenService {
 
-    private final RefreshTokenRepository refreshTokenRepository;
-    private final UserRepository userRepository;
-    private final JwtTokenService jwtTokenService;
-    private final JwtClaimsService claimsService;
+    private val refreshTokenRepository: RefreshTokenRepository
+    private val userRepository: UserRepository
+    private val jwtTokenService: JwtTokenService
+    private val claimsService: JwtClaimsService
 
-    @Value("${jwt.refresh-token-expiration:P7D}")
-    private Duration refreshTokenExpiration;
+    @Value("${jwt.refresh - token - expiration:P7D}")
+    private var refreshTokenExpiration: Duration
 
-    @Value("${jwt.max-active-tokens:5}")
-    private int maxActiveTokensPerUser;
+    @Value("${jwt.max - active - tokens:5}")
+    private var maxActiveTokensPerUser: int
 
-    @Value("${jwt.token-rotation-enabled:true}")
-    private boolean tokenRotationEnabled;
+    @Value("${jwt.token - rotation - enabled:true}")
+    private var tokenRotationEnabled: boolean
 
-    @Value("${jwt.token-rotation-threshold:P3D}")
-    private Duration tokenRotationThreshold;
+    @Value("${jwt.token - rotation - threshold:P3D}")
+    private var tokenRotationThreshold: Duration
 
-    public RefreshTokenResponse createRefreshToken(User user, HttpServletRequest request) {
+    fun createRefreshToken(User user, HttpServletRequest request): RefreshTokenResponse {
         // Enforce maximum active tokens
         enforceMaxActiveTokens(user);
 
         // Extract request information
-        String ipAddress = extractIpAddress(request);
-        String deviceInfo = extractDeviceInfo(request);
-        String deviceId = generateDeviceId(request);
+        String ipAddress = extractIpAddress (request);
+        String deviceInfo = extractDeviceInfo (request);
+        String deviceId = generateDeviceId (request);
 
         // Create JWT claims
-        JwtClaimsSet claims = claimsService.createRefreshTokenClaims(user);
-        String tokenValue = jwtTokenService.encodeToken(claims);
+        JwtClaimsSet claims = claimsService . createRefreshTokenClaims (user);
+        String tokenValue = jwtTokenService . encodeToken (claims);
 
         // Create refresh token entity
-        RefreshToken refreshToken = RefreshToken.builder()
+        RefreshToken refreshToken = RefreshToken . builder ()
             .token(tokenValue)
             .user(user)
             .tokenId(claims.getClaimAsString("jti"))
@@ -176,26 +171,28 @@ public class RefreshTokenService {
 
         // Publish token created event
         applicationEventPublisher.publishEvent(
-            new RefreshTokenCreatedEvent(refreshToken));
+            RefreshTokenCreatedEvent(refreshToken)
+        );
 
-        return new RefreshTokenResponse(
-            refreshToken.getToken(),
-            refreshToken.getExpiresAt().toEpochMilli(),
-            refreshToken.getSessionId()
+        return new RefreshTokenResponse (
+                refreshToken.getToken(),
+        refreshToken.getExpiresAt().toEpochMilli(),
+        refreshToken.getSessionId()
         );
     }
 
     @Transactional
     public AccessTokenResponse refreshToken(RefreshTokenRequest request,
-            HttpServletRequest httpRequest) {
+    HttpServletRequest httpRequest)
+    {
 
-        String refreshTokenValue = request.refreshToken();
-        String ipAddress = extractIpAddress(httpRequest);
+        String refreshTokenValue = request . refreshToken ();
+        String ipAddress = extractIpAddress (httpRequest);
 
         // Validate and retrieve refresh token
-        RefreshToken refreshToken = validateRefreshToken(refreshTokenValue, ipAddress);
+        RefreshToken refreshToken = validateRefreshToken (refreshTokenValue, ipAddress);
 
-        User user = refreshToken.getUser();
+        User user = refreshToken . getUser ();
 
         // Check account status
         validateUserAccount(user);
@@ -205,11 +202,11 @@ public class RefreshTokenService {
         refreshTokenRepository.save(refreshToken);
 
         // Generate new access token
-        AccessTokenResponse accessToken = jwtTokenService.generateAccessToken(user);
+        AccessTokenResponse accessToken = jwtTokenService . generateAccessToken (user);
 
         // Implement token rotation if enabled
         if (shouldRotateRefreshToken(refreshToken)) {
-            RefreshTokenResponse newRefreshToken = createRefreshToken(user, httpRequest);
+            RefreshTokenResponse newRefreshToken = createRefreshToken (user, httpRequest);
 
             // Mark old token as replaced
             refreshToken.setReplacedBy(extractTokenId(newRefreshToken.token()));
@@ -228,22 +225,23 @@ public class RefreshTokenService {
     }
 
     @Transactional
-    public void revokeRefreshToken(String token, String reason) {
+    fun revokeRefreshToken(String token, String reason): void {
         refreshTokenRepository.findByToken(token)
             .ifPresent(refreshToken -> {
-                refreshToken.revoke();
-                refreshTokenRepository.save(refreshToken);
+            refreshToken.revoke();
+            refreshTokenRepository.save(refreshToken);
 
-                // Publish token revoked event
-                applicationEventPublisher.publishEvent(
-                    new RefreshTokenRevokedEvent(refreshToken, reason));
-            });
+            // Publish token revoked event
+            applicationEventPublisher.publishEvent(
+                RefreshTokenRevokedEvent(refreshToken, reason)
+            );
+        });
     }
 
     @Transactional
-    public void revokeAllUserTokens(User user, String reason) {
+    fun revokeAllUserTokens(User user, String reason): void {
         List<RefreshToken> activeTokens = refreshTokenRepository
-            .findByUserAndRevokedFalse(user);
+                .findByUserAndRevokedFalse(user);
 
         activeTokens.forEach(token -> {
             token.revoke();
@@ -254,99 +252,107 @@ public class RefreshTokenService {
 
         // Publish batch revocation event
         applicationEventPublisher.publishEvent(
-            new AllRefreshTokensRevokedEvent(user, activeTokens.size(), reason));
+            AllRefreshTokensRevokedEvent(user, activeTokens.size(), reason)
+        );
     }
 
-    private RefreshToken validateRefreshToken(String tokenValue, String ipAddress) {
-        RefreshToken refreshToken = refreshTokenRepository.findByToken(tokenValue)
-            .orElseThrow(() -> new InvalidTokenException("Refresh token not found"));
+    private fun validateRefreshToken(String tokenValue, String ipAddress): RefreshToken {
+        RefreshToken refreshToken = refreshTokenRepository . findByToken (tokenValue)
+            .orElseThrow(() -> InvalidTokenException("Refresh token not found"));
 
         // Validate token status
         if (!refreshToken.isValid()) {
             if (refreshToken.isRevoked()) {
-                throw new TokenRevokedException("Token has been revoked");
+                throw TokenRevokedException("Token has been revoked");
             }
             if (refreshToken.isExpired()) {
                 refreshTokenRepository.delete(refreshToken);
-                throw new ExpiredTokenException("Refresh token expired");
+                throw ExpiredTokenException("Refresh token expired");
             }
-            throw new InvalidTokenException("Token is invalid");
+            throw InvalidTokenException("Token is invalid");
         }
 
         // Validate token usage
         if (refreshToken.getMaxUsage() != null &&
-            refreshToken.getUsageCount() >= refreshToken.getMaxUsage()) {
+            refreshToken.getUsageCount() >= refreshToken.getMaxUsage()
+        ) {
             refreshToken.revoke();
             refreshTokenRepository.save(refreshToken);
-            throw new TokenUsageExceededException("Token usage limit exceeded");
+            throw TokenUsageExceededException("Token usage limit exceeded");
         }
 
         // Validate IP address (optional security measure)
         if (!isValidIpAddress(refreshToken.getIpAddress(), ipAddress)) {
-            log.warn("Suspicious refresh token usage - IP mismatch. Expected: {}, Actual: {}",
-                refreshToken.getIpAddress(), ipAddress);
+            log.warn(
+                "Suspicious refresh token usage - IP mismatch. Expected: {}, Actual: {}",
+                refreshToken.getIpAddress(), ipAddress
+            );
 
             // Optional: revoke token on IP mismatch
             // refreshToken.revoke();
             // refreshTokenRepository.save(refreshToken);
-            // throw new SecurityException("IP address mismatch");
+            // throw SecurityException("IP address mismatch");
         }
 
         return refreshToken;
     }
 
-    private void enforceMaxActiveTokens(User user) {
-        long activeTokens = refreshTokenRepository.countActiveTokensByUser(
-            user, Instant.now());
+    private fun enforceMaxActiveTokens(User user): void {
+        long activeTokens = refreshTokenRepository . countActiveTokensByUser (
+                user, Instant.now());
 
         if (activeTokens >= maxActiveTokensPerUser) {
             // Revoke oldest token
             List<RefreshToken> oldestTokens = refreshTokenRepository
-                .findOldestActiveTokensByUser(user);
+                    .findOldestActiveTokensByUser(user);
 
             if (!oldestTokens.isEmpty()) {
-                RefreshToken oldestToken = oldestTokens.get(0);
+                RefreshToken oldestToken = oldestTokens . get (0);
                 oldestToken.revoke();
                 refreshTokenRepository.save(oldestToken);
 
-                log.info("Revoked oldest refresh token for user {} due to limit",
-                    user.getId());
+                log.info(
+                    "Revoked oldest refresh token for user {} due to limit",
+                    user.getId()
+                );
             }
         }
     }
 
-    private boolean shouldRotateRefreshToken(RefreshToken refreshToken) {
+    private fun shouldRotateRefreshToken(RefreshToken refreshToken): boolean {
         if (!tokenRotationEnabled) {
             return false;
         }
 
         // Rotate if token is older than threshold
-        boolean ageThreshold = refreshToken.getCreatedAt()
+        boolean ageThreshold = refreshToken . getCreatedAt ()
             .isBefore(Instant.now().minus(tokenRotationThreshold));
 
         // Rotate if token has been used too many times
-        boolean usageThreshold = refreshToken.getUsageCount() > 50;
+        boolean usageThreshold = refreshToken . getUsageCount () > 50;
 
         return ageThreshold || usageThreshold;
     }
 
     // Cleanup expired and revoked tokens
     @Scheduled(fixedRate = 86400000) // Daily
-    public void cleanupTokens() {
-        Instant cutoff = Instant.now().minus(30, ChronoUnit.DAYS);
+    fun cleanupTokens(): void {
+        Instant cutoff = Instant . now ().minus(30, ChronoUnit.DAYS);
 
         // Delete expired tokens older than 30 days
         List<RefreshToken> expiredTokens = refreshTokenRepository
-            .findByExpiresAtBefore(cutoff);
+                .findByExpiresAtBefore(cutoff);
         refreshTokenRepository.deleteAll(expiredTokens);
 
         // Delete revoked tokens older than 30 days
         List<RefreshToken> revokedTokens = refreshTokenRepository
-            .findByRevokedTrueAndRevokedAtBefore(cutoff);
+                .findByRevokedTrueAndRevokedAtBefore(cutoff);
         refreshTokenRepository.deleteAll(revokedTokens);
 
-        log.info("Cleaned up {} expired and {} revoked tokens",
-            expiredTokens.size(), revokedTokens.size());
+        log.info(
+            "Cleaned up {} expired and {} revoked tokens",
+            expiredTokens.size(), revokedTokens.size()
+        );
     }
 }
 ```
@@ -355,41 +361,36 @@ public class RefreshTokenService {
 
 ### BlacklistedToken Entity
 
-```java
+```kotlin
 @Entity
 @Table(name = "blacklisted_tokens")
-@Getter
-@Setter
-@NoArgsConstructor
-@AllArgsConstructor
-@Builder
-public class BlacklistedToken {
+class BlacklistedToken {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Long id;
+    private var id: Long
 
     @Column(name = "token_id", unique = true, nullable = false)
-    private String tokenId; // JWT ID (jti claim)
+    private var tokenId: String // JWT ID (jti claim)
 
     @Column(columnDefinition = "TEXT")
-    private String token; // Full token (for debugging)
+    private var token: String // Full token (for debugging)
 
     @Column(name = "blacklisted_at", nullable = false)
-    private Instant blacklistedAt;
+    private var blacklistedAt: Instant
 
     @Column(name = "expires_at", nullable = false)
-    private Instant expiresAt;
+    private var expiresAt: Instant
 
     @Column(name = "blacklisted_by")
-    private String blacklistedBy; // User ID or system
+    private var blacklistedBy: String // User ID or system
 
-    private String reason; // Reason for blacklisting
+    private var reason: String // Reason for blacklisting
 
     @Enumerated(EnumType.STRING)
-    private BlacklistReason blacklistReason;
+    private var blacklistReason: BlacklistReason
 
-    public enum BlacklistReason {
+    enum class BlacklistReason {
         LOGOUT,
         PASSWORD_CHANGE,
         ROLE_CHANGE,
@@ -400,7 +401,7 @@ public class BlacklistedToken {
         MASS_REVOCATION
     }
 
-    public boolean isExpired() {
+    fun isExpired(): boolean {
         return Instant.now().isAfter(expiresAt);
     }
 }
@@ -408,25 +409,25 @@ public class BlacklistedToken {
 
 ### Token Blacklisting Service
 
-```java
+```kotlin
 @Service
 @Transactional
-public class TokenBlacklistingService {
+class TokenBlacklistingService {
 
-    private final BlacklistedTokenRepository blacklistedTokenRepository;
-    private final JwtDecoder jwtDecoder;
+    private val blacklistedTokenRepository: BlacklistedTokenRepository
+    private val jwtDecoder: JwtDecoder
 
-    public void blacklistToken(String token, String reason, BlacklistReason blacklistReason) {
+    fun blacklistToken(String token, String reason, BlacklistReason blacklistReason): void {
         try {
-            Jwt jwt = jwtDecoder.decode(token);
-            String tokenId = jwt.getClaimAsString("jti");
-            Instant expiresAt = jwt.getExpiresAt();
+            Jwt jwt = jwtDecoder . decode (token);
+            String tokenId = jwt . getClaimAsString ("jti");
+            Instant expiresAt = jwt . getExpiresAt ();
 
             if (tokenId == null || expiresAt == null) {
-                throw new InvalidTokenException("Token missing required claims");
+                throw InvalidTokenException("Token missing required claims");
             }
 
-            BlacklistedToken blacklistedToken = BlacklistedToken.builder()
+            BlacklistedToken blacklistedToken = BlacklistedToken . builder ()
                 .tokenId(tokenId)
                 .token(token.substring(0, Math.min(token.length(), 100))) // Store first 100 chars
                 .blacklistedAt(Instant.now())
@@ -442,15 +443,15 @@ public class TokenBlacklistingService {
 
         } catch (JwtException e) {
             log.error("Failed to blacklist token", e);
-            throw new InvalidTokenException("Invalid token", e);
+            throw InvalidTokenException("Invalid token", e);
         }
     }
 
     @Transactional(readOnly = true)
-    public boolean isTokenBlacklisted(String token) {
+    fun isTokenBlacklisted(String token): boolean {
         try {
-            Jwt jwt = jwtDecoder.decode(token);
-            String tokenId = jwt.getClaimAsString("jti");
+            Jwt jwt = jwtDecoder . decode (token);
+            String tokenId = jwt . getClaimAsString ("jti");
 
             if (tokenId == null) {
                 return false;
@@ -465,10 +466,10 @@ public class TokenBlacklistingService {
     }
 
     @Transactional
-    public void blacklistAllUserTokens(User user, String reason, BlacklistReason blacklistReason) {
+    fun blacklistAllUserTokens(User user, String reason, BlacklistReason blacklistReason): void {
         // This would require tracking all active tokens in the system
         // For now, we'll implement a user-based blacklist
-        UserBlacklist blacklist = UserBlacklist.builder()
+        UserBlacklist blacklist = UserBlacklist . builder ()
             .user(user)
             .blacklistedAt(Instant.now())
             .reason(reason)
@@ -479,9 +480,9 @@ public class TokenBlacklistingService {
     }
 
     @Scheduled(fixedRate = 3600000) // Every hour
-    public void cleanupExpiredBlacklistedTokens() {
+    fun cleanupExpiredBlacklistedTokens(): void {
         List<BlacklistedToken> expiredTokens = blacklistedTokenRepository
-            .findByExpiresAtBefore(Instant.now());
+                .findByExpiresAtBefore(Instant.now());
 
         blacklistedTokenRepository.deleteAll(expiredTokens);
 
@@ -496,53 +497,48 @@ public class TokenBlacklistingService {
 
 ### Session Tracking
 
-```java
+```kotlin
 @Entity
 @Table(name = "user_sessions")
-@Getter
-@Setter
-@NoArgsConstructor
-@AllArgsConstructor
-@Builder
-public class UserSession {
+class UserSession {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Long id;
+    private var id: Long
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "user_id", nullable = false)
-    private User user;
+    private var user: User
 
     @Column(name = "session_id", unique = true, nullable = false)
-    private String sessionId;
+    private var sessionId: String
 
     @Column(name = "device_id")
-    private String deviceId;
+    private var deviceId: String
 
     @Column(name = "device_info")
-    private String deviceInfo;
+    private var deviceInfo: String
 
     @Column(name = "ip_address")
-    private String ipAddress;
+    private var ipAddress: String
 
     @Column(name = "user_agent")
-    private String userAgent;
+    private var userAgent: String
 
     @Column(name = "location")
-    private String location; // Geolocation based on IP
+    private var location: String // Geolocation based on IP
 
     @Column(name = "login_at", nullable = false)
-    private Instant loginAt;
+    private var loginAt: Instant
 
     @Column(name = "last_activity_at")
-    private Instant lastActivityAt;
+    private var lastActivityAt: Instant
 
     @Column(name = "logout_at")
-    private Instant logoutAt;
+    private var logoutAt: Instant
 
     @Column(name = "session_timeout_at")
-    private Instant sessionTimeoutAt;
+    private var sessionTimeoutAt: Instant
 
     @Column(nullable = false)
     private boolean active = true;
@@ -553,53 +549,53 @@ public class UserSession {
     // Session metadata
     @Column(name = "login_method")
     @Enumerated(EnumType.STRING)
-    private LoginMethod loginMethod;
+    private var loginMethod: LoginMethod
 
     @Column(name = "mfa_verified")
     private boolean mfaVerified = false;
 
     @Column(name = "risk_score")
-    private Integer riskScore;
+    private var riskScore: Integer
 
-    public boolean isValid() {
+    fun isValid(): boolean {
         return active && !isExpired();
     }
 
-    public boolean isExpired() {
+    fun isExpired(): boolean {
         return sessionTimeoutAt != null && Instant.now().isAfter(sessionTimeoutAt);
     }
 
-    public void updateActivity() {
+    fun updateActivity(): void {
         this.lastActivityAt = Instant.now();
         // Update session timeout based on inactivity policy
         this.sessionTimeoutAt = Instant.now().plus(30, ChronoUnit.MINUTES);
     }
 
-    public void terminate() {
+    fun terminate(): void {
         this.active = false;
         this.logoutAt = Instant.now();
     }
 }
 
 @Service
-public class SessionManagementService {
+class SessionManagementService {
 
-    @Value("${security.session.max-concurrent:5}")
-    private int maxConcurrentSessions;
+    @Value("${security.session.max - concurrent:5}")
+    private var maxConcurrentSessions: int
 
-    @Value("${security.session.inactivity-timeout:PT30M}")
-    private Duration inactivityTimeout;
+    @Value("${security.session.inactivity - timeout:PT30M}")
+    private var inactivityTimeout: Duration
 
-    public UserSession createSession(User user, HttpServletRequest request, LoginMethod loginMethod) {
-        String sessionId = UUID.randomUUID().toString();
-        String ipAddress = extractIpAddress(request);
-        String deviceInfo = extractDeviceInfo(request);
-        String deviceId = generateDeviceId(request);
+    fun createSession(User user, HttpServletRequest request, LoginMethod loginMethod): UserSession {
+        String sessionId = UUID . randomUUID ().toString();
+        String ipAddress = extractIpAddress (request);
+        String deviceInfo = extractDeviceInfo (request);
+        String deviceId = generateDeviceId (request);
 
         // Enforce concurrent session limit
         enforceConcurrentSessionLimit(user);
 
-        UserSession session = UserSession.builder()
+        UserSession session = UserSession . builder ()
             .user(user)
             .sessionId(sessionId)
             .deviceId(deviceId)
@@ -618,31 +614,32 @@ public class SessionManagementService {
         session = sessionRepository.save(session);
 
         // Publish session created event
-        applicationEventPublisher.publishEvent(new UserSessionCreatedEvent(session));
+        applicationEventPublisher.publishEvent(UserSessionCreatedEvent(session));
 
         return session;
     }
 
     @Transactional
-    public void terminateSession(String sessionId, String reason) {
+    fun terminateSession(String sessionId, String reason): void {
         sessionRepository.findBySessionId(sessionId)
             .ifPresent(session -> {
-                session.terminate();
-                sessionRepository.save(session);
+            session.terminate();
+            sessionRepository.save(session);
 
-                // Revoke associated refresh tokens
-                refreshTokenService.revokeTokensBySessionId(sessionId);
+            // Revoke associated refresh tokens
+            refreshTokenService.revokeTokensBySessionId(sessionId);
 
-                // Publish session terminated event
-                applicationEventPublisher.publishEvent(
-                    new UserSessionTerminatedEvent(session, reason));
-            });
+            // Publish session terminated event
+            applicationEventPublisher.publishEvent(
+                UserSessionTerminatedEvent(session, reason)
+            );
+        });
     }
 
     @Transactional
-    public void terminateAllUserSessions(User user, String reason) {
+    fun terminateAllUserSessions(User user, String reason): void {
         List<UserSession> activeSessions = sessionRepository
-            .findByUserAndActiveTrue(user);
+                .findByUserAndActiveTrue(user);
 
         activeSessions.forEach(session -> {
             session.terminate();
@@ -654,30 +651,33 @@ public class SessionManagementService {
 
         // Publish batch session termination event
         applicationEventPublisher.publishEvent(
-            new AllUserSessionsTerminatedEvent(user, activeSessions.size(), reason));
+            AllUserSessionsTerminatedEvent(user, activeSessions.size(), reason)
+        );
     }
 
-    private void enforceConcurrentSessionLimit(User user) {
-        long activeSessions = sessionRepository.countByUserAndActiveTrue(user);
+    private fun enforceConcurrentSessionLimit(User user): void {
+        long activeSessions = sessionRepository . countByUserAndActiveTrue (user);
 
         if (activeSessions >= maxConcurrentSessions) {
             // Terminate oldest session
             List<UserSession> oldestSessions = sessionRepository
-                .findByUserAndActiveTrueOrderByLoginAtAsc(user);
+                    .findByUserAndActiveTrueOrderByLoginAtAsc(user);
 
             if (!oldestSessions.isEmpty()) {
-                UserSession oldestSession = oldestSessions.get(0);
-                terminateSession(oldestSession.getSessionId(),
-                    "Concurrent session limit exceeded");
+                UserSession oldestSession = oldestSessions . get (0);
+                terminateSession(
+                    oldestSession.getSessionId(),
+                    "Concurrent session limit exceeded"
+                );
             }
         }
     }
 
     // Cleanup inactive sessions
     @Scheduled(fixedRate = 300000) // Every 5 minutes
-    public void cleanupInactiveSessions() {
+    fun cleanupInactiveSessions(): void {
         List<UserSession> inactiveSessions = sessionRepository
-            .findByActiveTrueAndSessionTimeoutAtBefore(Instant.now());
+                .findByActiveTrueAndSessionTimeoutAtBefore(Instant.now());
 
         inactiveSessions.forEach(session -> {
             session.terminate();
@@ -698,80 +698,86 @@ public class SessionManagementService {
 
 ### Security Headers Configuration
 
-```java
+```kotlin
 @Configuration
-public class SecurityHeadersConfig {
+class SecurityHeadersConfig {
 
     @Bean
-    public SecurityFilterChain securityHeaders(HttpSecurity http) throws Exception {
+    public SecurityFilterChain securityHeaders(HttpSecurity http) throws Exception
+    {
         return http
             .headers(headers -> headers
-                .contentTypeOptions(cto -> cto.and()
-                    .xssProtection(xss -> xss.headerValue(XXssProtectionHeaderWriter.HeaderValue.ENABLED_MODE_BLOCK))
-                    .httpStrictTransportSecurity(hsts -> hsts
-                        .maxAgeInSeconds(31536000)
-                        .includeSubdomains(true)
-                        .preload(true))
-                    .frameOptions(frame -> frame.deny())
-                    .contentSecurityPolicy(csp -> csp
-                        .policyDirectives("default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data: https:; font-src 'self'; connect-src 'self'; frame-ancestors 'none';"))
-                    .referrerPolicy(referrer -> referrer
-                        .policy(ReferrerPolicy.STRICT_ORIGIN_WHEN_CROSS_ORIGIN))))
-                .and())
-            .build();
+        .contentTypeOptions(cto -> cto.and()
+        .xssProtection(xss -> xss.headerValue(XXssProtectionHeaderWriter.HeaderValue.ENABLED_MODE_BLOCK))
+        .httpStrictTransportSecurity(hsts -> hsts
+        .maxAgeInSeconds(31536000)
+        .includeSubdomains(true)
+        .preload(true))
+        .frameOptions(frame -> frame.deny())
+        .contentSecurityPolicy(csp -> csp
+        .policyDirectives("default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data: https:; font-src 'self'; connect-src 'self'; frame-ancestors 'none';"))
+        .referrerPolicy(referrer -> referrer
+        .policy(ReferrerPolicy.STRICT_ORIGIN_WHEN_CROSS_ORIGIN))))
+        .and())
+        .build();
     }
 }
 ```
 
 ### Rate Limiting for Token Endpoints
 
-```java
+```kotlin
 @RestController
 @RequestMapping("/api/auth")
-public class AuthController {
+class AuthController {
 
-    private final RateLimiter authRateLimiter;
+    private val authRateLimiter: RateLimiter
 
     @PostMapping("/login")
     @RateLimited(requests = 5, window = "PT1M")
-    public ResponseEntity<LoginResponse> login(@RequestBody LoginRequest request) {
+    public ResponseEntity<LoginResponse> login(@RequestBody LoginRequest request)
+    {
         // Login implementation
     }
 
     @PostMapping("/refresh")
     @RateLimited(requests = 10, window = "PT1M")
     public ResponseEntity<RefreshTokenResponse> refresh(
-            @RequestBody RefreshTokenRequest request) {
+    @RequestBody RefreshTokenRequest request)
+    {
         // Refresh token implementation
     }
 }
 
 @Aspect
 @Component
-public class RateLimitingAspect {
+class RateLimitingAspect {
 
     private final Map<String, Bucket> bucketCache = new ConcurrentHashMap<>();
 
     @Around("@annotation(rateLimited)")
-    public Object around(ProceedingJoinPoint joinPoint, RateLimited rateLimited) throws Throwable {
-        String key = generateKey(joinPoint, rateLimited);
-        Bucket bucket = bucketCache.computeIfAbsent(key, k -> createBucket(rateLimited));
+    public Object around(ProceedingJoinPoint joinPoint, RateLimited rateLimited) throws Throwable
+    {
+        String key = generateKey (joinPoint, rateLimited);
+        Bucket bucket = bucketCache . computeIfAbsent (key, k -> createBucket(rateLimited));
 
         if (bucket.tryConsume(1)) {
             return joinPoint.proceed();
         } else {
-            throw new RateLimitExceededException("Rate limit exceeded");
+            throw RateLimitExceededException("Rate limit exceeded");
         }
     }
 
-    private String generateKey(ProceedingJoinPoint joinPoint, RateLimited rateLimited) {
-        HttpServletRequest request = getCurrentRequest();
-        String clientIp = getClientIpAddress(request);
+    private fun generateKey(ProceedingJoinPoint joinPoint, RateLimited rateLimited): String {
+        HttpServletRequest request = getCurrentRequest ();
+        String clientIp = getClientIpAddress (request);
 
-        return String.format("%s:%s:%s",
+        return String.format(
+            "%s:%s:%s",
             joinPoint.getSignature().toShortString(),
             clientIp,
-            rateLimited.identifier());
+            rateLimited.identifier()
+        );
     }
 }
 ```

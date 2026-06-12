@@ -36,20 +36,20 @@ management:
 
 ### Custom MBean Server Configuration
 
-```java
+```kotlin
 @Configuration
-public class JmxConfiguration {
+class JmxConfiguration {
 
     @Bean
     @Primary
-    public MBeanServer mbeanServer() {
-        MBeanServer server = ManagementFactory.getPlatformMBeanServer();
-        return server;
+    fun mbeanServer(): MBeanServer {
+        val server = ManagementFactory.getPlatformMBeanServer()
+        return server
     }
 
     @Bean
-    public JmxMetricsExporter jmxMetricsExporter(MeterRegistry meterRegistry) {
-        return new JmxMetricsExporter(meterRegistry);
+    fun jmxMetricsExporter(meterRegistry: MeterRegistry): JmxMetricsExporter {
+        return JmxMetricsExporter(meterRegistry)
     }
 }
 ```
@@ -58,44 +58,41 @@ public class JmxConfiguration {
 
 ### Using `@`ManagedResource Annotation
 
-```java
+```kotlin
 @Component
 @ManagedResource(
     objectName = "com.example:type=ApplicationMetrics,name=UserService",
     description = "User Service Management Bean"
 )
-public class UserServiceMBean {
+class UserServiceMBean(
+    private val userService: UserService
+) {
 
-    private final UserService userService;
-    private long totalUsers = 0;
-    private long activeUsers = 0;
-
-    public UserServiceMBean(UserService userService) {
-        this.userService = userService;
-    }
+    private var totalUsers: Long = 0
+    private var activeUsers: Long = 0
 
     @ManagedAttribute(description = "Total number of users")
-    public long getTotalUsers() {
-        return userService.getTotalUserCount();
+    fun getTotalUsers(): Long {
+        return userService.getTotalUserCount()
     }
 
     @ManagedAttribute(description = "Number of active users")
-    public long getActiveUsers() {
-        return userService.getActiveUserCount();
+    fun getActiveUsers(): Long {
+        return userService.getActiveUserCount()
     }
 
     @ManagedAttribute(description = "Cache hit ratio")
-    public double getCacheHitRatio() {
-        return userService.getCacheHitRatio();
+    fun getCacheHitRatio(): Double {
+        return userService.getCacheHitRatio()
     }
 
     @ManagedOperation(description = "Clear user cache")
-    public void clearCache() {
-        userService.clearCache();
+    fun clearCache() {
+        userService.clearCache()
     }
 
     @ManagedOperation(description = "Refresh user statistics")
-    public String refreshStatistics() {
+    fun refreshStatistics(): String {
         userService.refreshStatistics();
         return "Statistics refreshed at " + Instant.now();
     }
@@ -104,8 +101,8 @@ public class UserServiceMBean {
     @ManagedOperationParameters({
         @ManagedOperationParameter(name = "userId", description = "User ID")
     })
-    public String getUserInfo(Long userId) {
-        User user = userService.findById(userId);
+    fun getUserInfo(Long userId): String {
+        User user = userService . findById (userId);
         return user != null ? user.toString() : "User not found";
     }
 }
@@ -113,8 +110,8 @@ public class UserServiceMBean {
 
 ### Implementing MBean Interface
 
-```java
-public interface ApplicationConfigMBean {
+```kotlin
+interface ApplicationConfigMBean {
     String getEnvironment();
     void setLogLevel(String loggerName, String level);
     boolean isMaintenanceMode();
@@ -124,62 +121,62 @@ public interface ApplicationConfigMBean {
 }
 
 @Component
-public class ApplicationConfig implements ApplicationConfigMBean {
+class ApplicationConfig implements ApplicationConfigMBean {
 
-    private final Environment environment;
-    private final LoggingSystem loggingSystem;
+    private val environment: Environment
+    private val loggingSystem: LoggingSystem
     private boolean maintenanceMode = false;
 
-    public ApplicationConfig(Environment environment, LoggingSystem loggingSystem) {
-        this.environment = environment;
-        this.loggingSystem = loggingSystem;
-    }
+    public ApplicationConfig (Environment environment, LoggingSystem loggingSystem) {
+    this.environment = environment;
+    this.loggingSystem = loggingSystem;
+}
 
     @Override
-    public String getEnvironment() {
+    fun getEnvironment(): String {
         return String.join(",", environment.getActiveProfiles());
     }
 
     @Override
-    public void setLogLevel(String loggerName, String level) {
+    fun setLogLevel(String loggerName, String level): void {
         LogLevel logLevel = level != null ? LogLevel.valueOf(level.toUpperCase()) : null;
         loggingSystem.setLogLevel(loggerName, logLevel);
     }
 
     @Override
-    public boolean isMaintenanceMode() {
+    fun isMaintenanceMode(): boolean {
         return maintenanceMode;
     }
 
     @Override
-    public void setMaintenanceMode(boolean maintenanceMode) {
+    fun setMaintenanceMode(boolean maintenanceMode): void {
         this.maintenanceMode = maintenanceMode;
         // Publish event or notify other components
     }
 
     @Override
-    public void reloadConfiguration() {
+    fun reloadConfiguration(): void {
         // Implement configuration reload logic
         // This could refresh @ConfigurationProperties beans
     }
 
     @Override
-    public Map<String, String> getSystemProperties() {
-        return System.getProperties().entrySet().stream()
-            .collect(Collectors.toMap(
-                e -> String.valueOf(e.getKey()),
-                e -> String.valueOf(e.getValue())
-            ));
-    }
+    public Map < String, String> getSystemProperties() {
+    return System.getProperties().entrySet()..collect(
+        Collectors.toMap(
+            e -> String.valueOf(e.getKey()),
+    e -> String.valueOf(e.getValue())
+    ));
+}
 
     @PostConstruct
-    public void registerMBean() {
+    fun registerMBean(): void {
         try {
-            MBeanServer server = ManagementFactory.getPlatformMBeanServer();
-            ObjectName objectName = new ObjectName("com.example:type=ApplicationConfig");
+            MBeanServer server = ManagementFactory . getPlatformMBeanServer ();
+            ObjectName objectName = ObjectName ("com.example:type=ApplicationConfig");
             server.registerMBean(this, objectName);
         } catch (Exception e) {
-            throw new RuntimeException("Failed to register MBean", e);
+            throw RuntimeException("Failed to register MBean", e);
         }
     }
 }
@@ -189,20 +186,21 @@ public class ApplicationConfig implements ApplicationConfigMBean {
 
 ### Custom Metrics MBean
 
-```java
+```kotlin
 @Component
 @ManagedResource(
     objectName = "com.example:type=Performance,name=ApplicationMetrics",
     description = "Application Performance Metrics"
 )
-public class ApplicationMetricsMBean {
+class ApplicationMetricsMBean {
 
-    private final MeterRegistry meterRegistry;
-    private final Counter requestCounter;
-    private final Timer responseTimer;
-    private final Gauge activeConnections;
+    private val meterRegistry: MeterRegistry
+    private val requestCounter: Counter
+    private val responseTimer: Timer
+    private val activeConnections: Gauge
 
-    public ApplicationMetricsMBean(MeterRegistry meterRegistry) {
+    public ApplicationMetricsMBean(MeterRegistry meterRegistry)
+    {
         this.meterRegistry = meterRegistry;
         this.requestCounter = Counter.builder("application.requests.total")
             .description("Total number of requests")
@@ -216,39 +214,39 @@ public class ApplicationMetricsMBean {
     }
 
     @ManagedAttribute(description = "Total requests processed")
-    public long getTotalRequests() {
-        return (long) requestCounter.count();
+    fun getTotalRequests(): long {
+        return (long) requestCounter . count ();
     }
 
     @ManagedAttribute(description = "Average response time in milliseconds")
-    public double getAverageResponseTime() {
+    fun getAverageResponseTime(): double {
         return responseTimer.mean(TimeUnit.MILLISECONDS);
     }
 
     @ManagedAttribute(description = "95th percentile response time")
-    public double getResponse95thPercentile() {
+    fun getResponse95thPercentile(): double {
         return responseTimer.percentile(0.95, TimeUnit.MILLISECONDS);
     }
 
     @ManagedAttribute(description = "Current active connections")
-    public long getActiveConnections() {
+    fun getActiveConnections(): long {
         return getActiveConnectionsCount();
     }
 
     @ManagedAttribute(description = "JVM memory usage percentage")
-    public double getMemoryUsagePercentage() {
-        MemoryMXBean memoryBean = ManagementFactory.getMemoryMXBean();
-        MemoryUsage heapUsage = memoryBean.getHeapMemoryUsage();
-        return (double) heapUsage.getUsed() / heapUsage.getMax() * 100;
+    fun getMemoryUsagePercentage(): double {
+        MemoryMXBean memoryBean = ManagementFactory . getMemoryMXBean ();
+        MemoryUsage heapUsage = memoryBean . getHeapMemoryUsage ();
+        return (double) heapUsage . getUsed () / heapUsage.getMax() * 100;
     }
 
     @ManagedOperation(description = "Reset request counter")
-    public void resetRequestCounter() {
+    fun resetRequestCounter(): void {
         // Note: Micrometer counters cannot be reset, this would require custom implementation
         // or using a different metric type
     }
 
-    private long getActiveConnectionsCount() {
+    private fun getActiveConnectionsCount(): long {
         // Implementation to get actual active connections
         return 42; // Placeholder
     }
@@ -257,22 +255,23 @@ public class ApplicationMetricsMBean {
 
 ### Database Connection Pool MBean
 
-```java
+```kotlin
 @Component
 @ManagedResource(
     objectName = "com.example:type=Database,name=ConnectionPool",
     description = "Database Connection Pool Metrics"
 )
-public class DatabaseConnectionPoolMBean {
+class DatabaseConnectionPoolMBean {
 
-    private final DataSource dataSource;
+    private val dataSource: DataSource
 
-    public DatabaseConnectionPoolMBean(DataSource dataSource) {
+    public DatabaseConnectionPoolMBean(DataSource dataSource)
+    {
         this.dataSource = dataSource;
     }
 
     @ManagedAttribute(description = "Active connections")
-    public int getActiveConnections() {
+    fun getActiveConnections(): int {
         if (dataSource instanceof HikariDataSource) {
             return ((HikariDataSource) dataSource).getHikariPoolMXBean().getActiveConnections();
         }
@@ -280,7 +279,7 @@ public class DatabaseConnectionPoolMBean {
     }
 
     @ManagedAttribute(description = "Idle connections")
-    public int getIdleConnections() {
+    fun getIdleConnections(): int {
         if (dataSource instanceof HikariDataSource) {
             return ((HikariDataSource) dataSource).getHikariPoolMXBean().getIdleConnections();
         }
@@ -288,7 +287,7 @@ public class DatabaseConnectionPoolMBean {
     }
 
     @ManagedAttribute(description = "Total connections")
-    public int getTotalConnections() {
+    fun getTotalConnections(): int {
         if (dataSource instanceof HikariDataSource) {
             return ((HikariDataSource) dataSource).getHikariPoolMXBean().getTotalConnections();
         }
@@ -296,22 +295,23 @@ public class DatabaseConnectionPoolMBean {
     }
 
     @ManagedAttribute(description = "Threads awaiting connection")
-    public int getThreadsAwaitingConnection() {
+    fun getThreadsAwaitingConnection(): int {
         if (dataSource instanceof HikariDataSource) {
-            return ((HikariDataSource) dataSource).getHikariPoolMXBean().getThreadsAwaitingConnection();
+            return ((HikariDataSource) dataSource).getHikariPoolMXBean()
+                .getThreadsAwaitingConnection();
         }
         return -1; // Not supported
     }
 
     @ManagedOperation(description = "Suspend connection pool")
-    public void suspendPool() {
+    fun suspendPool(): void {
         if (dataSource instanceof HikariDataSource) {
             ((HikariDataSource) dataSource).getHikariPoolMXBean().suspendPool();
         }
     }
 
     @ManagedOperation(description = "Resume connection pool")
-    public void resumePool() {
+    fun resumePool(): void {
         if (dataSource instanceof HikariDataSource) {
             ((HikariDataSource) dataSource).getHikariPoolMXBean().resumePool();
         }
@@ -345,45 +345,48 @@ com.sun.management.jmxremote.password.file: /path/to/jmxremote.password
 
 ### Custom JMX Security
 
-```java
+```kotlin
 @Configuration
-public class JmxSecurityConfiguration {
+class JmxSecurityConfiguration {
 
     @Bean
-    public JMXConnectorServer jmxConnectorServer() throws Exception {
-        JMXServiceURL url = new JMXServiceURL("service:jmx:rmi://localhost:9999");
-        
-        Map<String, Object> environment = new HashMap<>();
-        environment.put(JMXConnectorServer.AUTHENTICATOR, new CustomJMXAuthenticator());
-        
-        JMXConnectorServer server = JMXConnectorServerFactory.newJMXConnectorServer(
-            url, environment, ManagementFactory.getPlatformMBeanServer());
-        
+    public JMXConnectorServer jmxConnectorServer() throws Exception
+    {
+        JMXServiceURL url = JMXServiceURL ("service:jmx:rmi://localhost:9999");
+
+        Map<String, Object> environment = mutableMapOf ();
+        environment.put(JMXConnectorServer.AUTHENTICATOR, CustomJMXAuthenticator());
+
+        JMXConnectorServer server = JMXConnectorServerFactory . newJMXConnectorServer (
+                url, environment, ManagementFactory.getPlatformMBeanServer());
+
         server.start();
         return server;
     }
 
-    private static class CustomJMXAuthenticator implements JMXAuthenticator {
+    private static
+    class CustomJMXAuthenticator implements JMXAuthenticator
+    {
         @Override
-        public Subject authenticate(Object credentials) {
+        fun authenticate(Object credentials): Subject {
             if (!(credentials instanceof String[])) {
-                throw new SecurityException("Credentials must be String[]");
+                throw SecurityException("Credentials must be String[]");
             }
-            
-            String[] creds = (String[]) credentials;
+
+            String[] creds =(String[]) credentials;
             if (creds.length != 2) {
-                throw new SecurityException("Credentials must contain username and password");
+                throw SecurityException("Credentials must contain username and password");
             }
-            
-            String username = creds[0];
-            String password = creds[1];
-            
+
+            String username = creds [0];
+            String password = creds [1];
+
             // Implement your authentication logic
             if ("admin".equals(username) && "password".equals(password)) {
-                return new Subject();
+                return Subject();
             }
-            
-            throw new SecurityException("Authentication failed");
+
+            throw SecurityException("Authentication failed");
         }
     }
 }
@@ -393,51 +396,53 @@ public class JmxSecurityConfiguration {
 
 ### Health Check MBean
 
-```java
+```kotlin
 @Component
 @ManagedResource(
     objectName = "com.example:type=Health,name=ApplicationHealth",
     description = "Application Health Monitoring"
 )
-public class ApplicationHealthMBean {
+class ApplicationHealthMBean {
 
-    private final HealthEndpoint healthEndpoint;
-    private final List<String> healthIssues = new ArrayList<>();
+    private val healthEndpoint: HealthEndpoint
+    private final List<String> healthIssues = mutableListOf();
 
-    public ApplicationHealthMBean(HealthEndpoint healthEndpoint) {
+    public ApplicationHealthMBean(HealthEndpoint healthEndpoint)
+    {
         this.healthEndpoint = healthEndpoint;
     }
 
     @ManagedAttribute(description = "Overall application health status")
-    public String getHealthStatus() {
-        HealthComponent health = healthEndpoint.health();
+    fun getHealthStatus(): String {
+        HealthComponent health = healthEndpoint . health ();
         return health.getStatus().getCode();
     }
 
     @ManagedAttribute(description = "Detailed health information")
-    public String getHealthDetails() {
-        HealthComponent health = healthEndpoint.health();
+    fun getHealthDetails(): String {
+        HealthComponent health = healthEndpoint . health ();
         return health.toString();
     }
 
     @ManagedAttribute(description = "Database health status")
-    public String getDatabaseHealth() {
-        HealthComponent health = healthEndpoint.healthForPath("db");
+    fun getDatabaseHealth(): String {
+        HealthComponent health = healthEndpoint . healthForPath ("db");
         return health != null ? health.getStatus().getCode() : "UNKNOWN";
     }
 
     @ManagedAttribute(description = "Current health issues")
-    public String[] getHealthIssues() {
-        return healthIssues.toArray(new String[0]);
+    public String[] getHealthIssues()
+    {
+        return healthIssues.toArray(new String [0]);
     }
 
     @ManagedOperation(description = "Refresh health status")
-    public void refreshHealth() {
-        HealthComponent health = healthEndpoint.health();
+    fun refreshHealth(): void {
+        HealthComponent health = healthEndpoint . health ();
         healthIssues.clear();
-        
+
         if (health instanceof CompositeHealthComponent) {
-            CompositeHealthComponent composite = (CompositeHealthComponent) health;
+            CompositeHealthComponent composite =(CompositeHealthComponent) health;
             composite.getComponents().forEach((name, component) -> {
                 if (!Status.UP.equals(component.getStatus())) {
                     healthIssues.add(name + ": " + component.getStatus().getCode());
@@ -447,7 +452,7 @@ public class ApplicationHealthMBean {
     }
 
     @PostConstruct
-    public void init() {
+    fun init(): void {
         refreshHealth();
     }
 }
@@ -455,33 +460,33 @@ public class ApplicationHealthMBean {
 
 ### Notification MBean
 
-```java
+```kotlin
 @Component
 @ManagedResource(
     objectName = "com.example:type=Notifications,name=AlertManager",
     description = "Application Alert Management"
 )
-public class AlertManagerMBean extends NotificationBroadcasterSupport {
+class AlertManagerMBean extends NotificationBroadcasterSupport {
 
-    private final AtomicLong sequenceNumber = new AtomicLong(0);
+    private final AtomicLong sequenceNumber = AtomicLong (0);
     private boolean alertsEnabled = true;
 
     @ManagedAttribute(description = "Are alerts enabled")
-    public boolean isAlertsEnabled() {
+    fun isAlertsEnabled(): boolean {
         return alertsEnabled;
     }
 
     @ManagedAttribute(description = "Enable or disable alerts")
-    public void setAlertsEnabled(boolean alertsEnabled) {
+    fun setAlertsEnabled(boolean alertsEnabled): void {
         this.alertsEnabled = alertsEnabled;
     }
 
     @ManagedOperation(description = "Send test alert")
-    public void sendTestAlert() {
+    fun sendTestAlert(): void {
         sendAlert("TEST", "Test alert from JMX", "INFO");
     }
 
-    public void sendAlert(String type, String message, String severity) {
+    fun sendAlert(String type, String message, String severity): void {
         if (!alertsEnabled) {
             return;
         }
@@ -493,22 +498,24 @@ public class AlertManagerMBean extends NotificationBroadcasterSupport {
             System.currentTimeMillis(),
             message
         );
-        
-        notification.setUserData(Map.of(
-            "severity", severity,
-            "timestamp", Instant.now().toString()
-        ));
+
+        notification.setUserData(
+            Map.of(
+                "severity", severity,
+                "timestamp", Instant.now().toString()
+            )
+        );
 
         sendNotification(notification);
     }
 
     @Override
-    public MBeanNotificationInfo[] getNotificationInfo() {
-        return new MBeanNotificationInfo[]{
-            new MBeanNotificationInfo(
-                new String[]{"HEALTH", "PERFORMANCE", "SECURITY", "TEST"},
-                Notification.class.getName(),
-                "Application alerts and notifications"
+    public MBeanNotificationInfo [] getNotificationInfo () {
+        return new MBeanNotificationInfo []{
+            new MBeanNotificationInfo (
+                    new String []{ "HEALTH", "PERFORMANCE", "SECURITY", "TEST" },
+            Notification.class. getName (),
+            "Application alerts and notifications"
             )
         };
     }
@@ -555,34 +562,37 @@ management:
 
 ### JMX Client Example
 
-```java
-public class JmxClient {
+```kotlin
+class JmxClient {
 
-    public static void main(String[] args) throws Exception {
+    public static void main(String[] args) throws Exception
+    {
         String url = "service:jmx:rmi:///jndi/rmi://localhost:9999/jmxrmi";
-        JMXServiceURL serviceURL = new JMXServiceURL(url);
-        
-        Map<String, Object> environment = new HashMap<>();
-        environment.put(JMXConnector.CREDENTIALS, new String[]{"admin", "password"});
-        
-        try (JMXConnector connector = JMXConnectorFactory.connect(serviceURL, environment)) {
-            MBeanServerConnection connection = connector.getMBeanServerConnection();
-            
+        JMXServiceURL serviceURL = JMXServiceURL (url);
+
+        Map<String, Object> environment = mutableMapOf ();
+        environment.put(JMXConnector.CREDENTIALS, new String []{ "admin", "password" });
+
+        try (JMXConnector connector = JMXConnectorFactory . connect (serviceURL, environment)) {
+            MBeanServerConnection connection = connector . getMBeanServerConnection ();
+
             // Get application health
-            ObjectName healthName = new ObjectName("com.example:type=Health,name=ApplicationHealth");
-            String healthStatus = (String) connection.getAttribute(healthName, "HealthStatus");
+            ObjectName healthName = ObjectName ("com.example:type=Health,name=ApplicationHealth");
+            String healthStatus =(String) connection . getAttribute (healthName, "HealthStatus");
             System.out.println("Health Status: " + healthStatus);
-            
+
             // Invoke operation
             connection.invoke(healthName, "refreshHealth", null, null);
-            
+
             // Listen for notifications
-            ObjectName alertName = new ObjectName("com.example:type=Notifications,name=AlertManager");
-            connection.addNotificationListener(alertName, 
-                (notification, handback) -> {
-                    System.out.println("Alert: " + notification.getMessage());
-                }, null, null);
+            ObjectName alertName = ObjectName ("com.example:type=Notifications,name=AlertManager");
+            connection.addNotificationListener(
+                alertName,
+                (notification, handback
+            ) -> {
+            System.out.println("Alert: " + notification.getMessage());
+        }, null, null);
         }
-    }
+        }
 }
 ```

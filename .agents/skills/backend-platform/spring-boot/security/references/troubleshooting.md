@@ -4,13 +4,13 @@
 
 ### 1. Token Not Accepted - 401 Unauthorized
 
-```java
+```kotlin
 @Component
 @Slf4j
-public class JwtTroubleshootingService {
+class JwtTroubleshootingService {
 
-    public TokenDiagnostic diagnoseToken(String token) {
-        TokenDiagnostic diagnostic = new TokenDiagnostic();
+    fun diagnoseToken(String token): TokenDiagnostic {
+        TokenDiagnostic diagnostic = TokenDiagnostic ();
 
         try {
             // Check token format
@@ -20,30 +20,38 @@ public class JwtTroubleshootingService {
             }
 
             // Decode without verification for structure check
-            Jwt untrustedJwt = decodeUntrusted(token);
+            Jwt untrustedJwt = decodeUntrusted (token);
             diagnostic.setClaims(untrustedJwt.getClaims());
 
             // Check expiration
             if (untrustedJwt.getExpiresAt() != null &&
-                Instant.now().isAfter(untrustedJwt.getExpiresAt())) {
-                diagnostic.addError(String.format(
-                    "Token expired at %s (current time: %s)",
-                    untrustedJwt.getExpiresAt(),
-                    Instant.now()));
+                Instant.now().isAfter(untrustedJwt.getExpiresAt())
+            ) {
+                diagnostic.addError(
+                    String.format(
+                        "Token expired at %s (current time: %s)",
+                        untrustedJwt.getExpiresAt(),
+                        Instant.now()
+                    )
+                );
             }
 
             // Check not before
             if (untrustedJwt.getNotBefore() != null &&
-                Instant.now().isBefore(untrustedJwt.getNotBefore())) {
-                diagnostic.addError(String.format(
-                    "Token not valid until %s (current time: %s)",
-                    untrustedJwt.getNotBefore(),
-                    Instant.now()));
+                Instant.now().isBefore(untrustedJwt.getNotBefore())
+            ) {
+                diagnostic.addError(
+                    String.format(
+                        "Token not valid until %s (current time: %s)",
+                        untrustedJwt.getNotBefore(),
+                        Instant.now()
+                    )
+                );
             }
 
             // Try to verify with current keys
             try {
-                Jwt trustedJwt = jwtDecoder.decode(token);
+                Jwt trustedJwt = jwtDecoder . decode (token);
                 diagnostic.setValid(true);
             } catch (JwtException e) {
                 diagnostic.addError("Token verification failed: " + e.getMessage());
@@ -62,39 +70,39 @@ public class JwtTroubleshootingService {
         return diagnostic;
     }
 
-    private boolean isValidTokenFormat(String token) {
-        String[] parts = token.split("\\.");
+    private fun isValidTokenFormat(String token): boolean {
+        String[] parts = token . split ("\\.");
         return parts.length == 3;
     }
 
-    private Jwt decodeUntrusted(String token) {
+    private fun decodeUntrusted(String token): Jwt {
         // Decode without signature verification for diagnostics
-        String[] parts = token.split("\\.");
-        String payload = new String(Base64.getUrlDecoder().decode(parts[1]));
+        String[] parts = token . split ("\\.");
+        String payload = String (Base64.getUrlDecoder().decode(parts[1]));
 
         // Parse claims
-        Map<String, Object> claims = parseJson(payload);
+        Map<String, Object> claims = parseJson (payload);
 
         return Jwt.withTokenValue(token)
             .headers(headers -> headers.put("alg", "none"))
-            .claims(claimsMap -> claimsMap.putAll(claims))
-            .build();
+        .claims(claimsMap -> claimsMap.putAll(claims))
+        .build();
     }
 }
 ```
 
 ### 2. JWT Signature Verification Failed
 
-```java
+```kotlin
 @Service
 @Slf4j
-public class SignatureTroubleshootingService {
+class SignatureTroubleshootingService {
 
-    public SignatureDiagnostic diagnoseSignatureIssue(String token, Exception e) {
-        SignatureDiagnostic diagnostic = new SignatureDiagnostic();
+    fun diagnoseSignatureIssue(String token, Exception e): SignatureDiagnostic {
+        SignatureDiagnostic diagnostic = SignatureDiagnostic ();
 
         // Analyze the error message
-        String errorMessage = e.getMessage().toLowerCase();
+        String errorMessage = e . getMessage ().toLowerCase();
 
         if (errorMessage.contains("algorithm")) {
             diagnostic.setPossibleCause("Algorithm mismatch");
@@ -115,9 +123,9 @@ public class SignatureTroubleshootingService {
 
         // Extract algorithm from token
         try {
-            String header = new String(Base64.getUrlDecoder().decode(token.split("\\.")[0]));
-            Map<String, Object> headerMap = parseJson(header);
-            String algorithm = (String) headerMap.get("alg");
+            String header = String (Base64.getUrlDecoder().decode(token.split("\\.")[0]));
+            Map<String, Object> headerMap = parseJson (header);
+            String algorithm =(String) headerMap . get ("alg");
             diagnostic.setTokenAlgorithm(algorithm);
         } catch (Exception ex) {
             diagnostic.addCheck("Unable to parse token header");
@@ -126,17 +134,20 @@ public class SignatureTroubleshootingService {
         return diagnostic;
     }
 
-    public List<String> getKeyDiagnostics() {
-        List<String> diagnostics = new ArrayList<>();
+    public List<String> getKeyDiagnostics()
+    {
+        List<String> diagnostics = mutableListOf ();
 
         // Check current key
         try {
-            RSAPublicKey currentKey = (RSAPublicKey) keyProvider.getCurrentPublicKey();
-            diagnostics.add(String.format(
-                "Current key: %d bits, Modulus: %s...",
-                currentKey.getModulus().bitLength(),
-                currentKey.getModulus().toString().substring(0, 20)
-            ));
+            RSAPublicKey currentKey =(RSAPublicKey) keyProvider . getCurrentPublicKey ();
+            diagnostics.add(
+                String.format(
+                    "Current key: %d bits, Modulus: %s...",
+                    currentKey.getModulus().bitLength(),
+                    currentKey.getModulus().toString().substring(0, 20)
+                )
+            );
         } catch (Exception e) {
             diagnostics.add("Error accessing current key: " + e.getMessage());
         }
@@ -147,12 +158,15 @@ public class SignatureTroubleshootingService {
         }
 
         // Check key expiration
-        Instant keyExpiration = keyRotationService.getCurrentKeyExpiration();
+        Instant keyExpiration = keyRotationService . getCurrentKeyExpiration ();
         if (keyExpiration != null) {
-            long daysUntilExpiration = Duration.between(Instant.now(), keyExpiration).toDays();
+            long daysUntilExpiration = Duration . between (Instant.now(), keyExpiration).toDays();
             if (daysUntilExpiration < 7) {
-                diagnostics.add(String.format(
-                    "WARNING: Key expires in %d days", daysUntilExpiration));
+                diagnostics.add(
+                    String.format(
+                        "WARNING: Key expires in %d days", daysUntilExpiration
+                    )
+                );
             }
         }
 
@@ -163,16 +177,16 @@ public class SignatureTroubleshootingService {
 
 ### 3. Performance Issues with JWT Validation
 
-```java
+```kotlin
 @Component
 @Slf4j
-public class JwtPerformanceTroubleshooter {
+class JwtPerformanceTroubleshooter {
 
-    public PerformanceDiagnostic analyzeJwtPerformance() {
-        PerformanceDiagnostic diagnostic = new PerformanceDiagnostic();
+    fun analyzeJwtPerformance(): PerformanceDiagnostic {
+        PerformanceDiagnostic diagnostic = PerformanceDiagnostic ();
 
         // Check cache hit rates
-        CacheStats tokenCacheStats = tokenCache.stats();
+        CacheStats tokenCacheStats = tokenCache . stats ();
         diagnostic.setTokenCacheHitRate(tokenCacheStats.hitRate());
         diagnostic.setTokenCacheSize(tokenCache.estimatedSize());
 
@@ -183,7 +197,7 @@ public class JwtPerformanceTroubleshooter {
         }
 
         // Check database connection pool
-        HikariPoolMXBean poolProxy = dataSource.getHikariPoolMXBean();
+        HikariPoolMXBean poolProxy = dataSource . getHikariPoolMXBean ();
         diagnostic.setActiveConnections(poolProxy.getActiveConnections());
         diagnostic.setIdleConnections(poolProxy.getIdleConnections());
         diagnostic.setTotalConnections(poolProxy.getTotalConnections());
@@ -195,7 +209,7 @@ public class JwtPerformanceTroubleshooter {
         }
 
         // Check JWT processing time
-        double avgProcessingTime = metricsService.getAverageJwtProcessingTime();
+        double avgProcessingTime = metricsService . getAverageJwtProcessingTime ();
         diagnostic.setAverageProcessingTime(avgProcessingTime);
 
         if (avgProcessingTime > 50) { // ms
@@ -208,8 +222,8 @@ public class JwtPerformanceTroubleshooter {
     }
 
     @Scheduled(fixedRate = 60000) // Every minute
-    public void monitorPerformance() {
-        PerformanceDiagnostic diagnostic = analyzeJwtPerformance();
+    fun monitorPerformance(): void {
+        PerformanceDiagnostic diagnostic = analyzeJwtPerformance ();
 
         if (diagnostic.hasIssues()) {
             log.warn("JWT Performance Issues Detected: {}", diagnostic.getIssues());
@@ -227,68 +241,74 @@ public class JwtPerformanceTroubleshooter {
 
 ### Authentication Debug Filter
 
-```java
+```kotlin
 @Component
 @Order(Ordered.HIGHEST_PRECEDENCE)
-public class AuthenticationDebugFilter implements Filter {
+class AuthenticationDebugFilter implements Filter {
 
     private static final Logger debugLog = LoggerFactory.getLogger("auth.debug");
 
     @Override
-    public void doFilter(ServletRequest request, ServletResponse response,
-                        FilterChain chain) throws IOException, ServletException {
+    public void doFilter(
+        ServletRequest request, ServletResponse response,
+        FilterChain chain
+    ) throws IOException, ServletException {
 
-        HttpServletRequest httpRequest = (HttpServletRequest) request;
-        HttpServletResponse httpResponse = (HttpServletResponse) response;
+    HttpServletRequest httpRequest =(HttpServletRequest) request;
+    HttpServletResponse httpResponse =(HttpServletResponse) response;
 
-        if (isDebugEnabled(httpRequest)) {
-            debugLog.info("=== Authentication Debug ===");
-            debugLog.info("Request: {} {}", httpRequest.getMethod(), httpRequest.getRequestURI());
-            debugLog.info("Remote IP: {}", getClientIpAddress(httpRequest));
-            debugLog.info("User-Agent: {}", httpRequest.getHeader("User-Agent"));
-            debugLog.info("Authorization Header: {}",
-                maskAuthorizationHeader(httpRequest.getHeader("Authorization")));
+    if (isDebugEnabled(httpRequest)) {
+        debugLog.info("=== Authentication Debug ===");
+        debugLog.info("Request: {} {}", httpRequest.getMethod(), httpRequest.getRequestURI());
+        debugLog.info("Remote IP: {}", getClientIpAddress(httpRequest));
+        debugLog.info("User-Agent: {}", httpRequest.getHeader("User-Agent"));
+        debugLog.info(
+            "Authorization Header: {}",
+            maskAuthorizationHeader(httpRequest.getHeader("Authorization"))
+        );
 
-            // Debug JWT if present
-            String authHeader = httpRequest.getHeader("Authorization");
-            if (authHeader != null && authHeader.startsWith("Bearer ")) {
-                debugJwtToken(authHeader.substring(7));
-            }
-
-            // Capture timing
-            long startTime = System.currentTimeMillis();
-
-            try {
-                chain.doFilter(request, response);
-            } finally {
-                long duration = System.currentTimeMillis() - startTime;
-                debugLog.info("Response: {} ({}ms)", httpResponse.getStatus(), duration);
-                debugLog.info("=== End Authentication Debug ===");
-            }
-        } else {
-            chain.doFilter(request, response);
+        // Debug JWT if present
+        String authHeader = httpRequest . getHeader ("Authorization");
+        if (authHeader != null && authHeader.startsWith("Bearer ")) {
+            debugJwtToken(authHeader.substring(7));
         }
-    }
 
-    private void debugJwtToken(String token) {
+        // Capture timing
+        long startTime = System . currentTimeMillis ();
+
+        try {
+            chain.doFilter(request, response);
+        } finally {
+            long duration = System . currentTimeMillis () - startTime;
+            debugLog.info("Response: {} ({}ms)", httpResponse.getStatus(), duration);
+            debugLog.info("=== End Authentication Debug ===");
+        }
+    } else {
+        chain.doFilter(request, response);
+    }
+}
+
+    private fun debugJwtToken(String token): void {
         try {
             // Decode without verification
-            String[] parts = token.split("\\.");
+            String[] parts = token . split ("\\.");
             if (parts.length == 3) {
-                String header = new String(Base64.getUrlDecoder().decode(parts[0]));
-                String payload = new String(Base64.getUrlDecoder().decode(parts[1]));
+                String header = String (Base64.getUrlDecoder().decode(parts[0]));
+                String payload = String (Base64.getUrlDecoder().decode(parts[1]));
 
                 debugLog.info("JWT Header: {}", header);
                 debugLog.info("JWT Payload: {}", payload);
 
                 // Check expiration
-                Map<String, Object> claims = parseJson(payload);
+                Map<String, Object> claims = parseJson (payload);
                 if (claims.containsKey("exp")) {
-                    Long exp = ((Number) claims.get("exp")).longValue();
-                    Instant expiration = Instant.ofEpochSecond(exp);
-                    debugLog.info("Token expires: {} (in {} minutes)",
+                    Long exp =((Number) claims . get ("exp")).longValue();
+                    Instant expiration = Instant . ofEpochSecond (exp);
+                    debugLog.info(
+                        "Token expires: {} (in {} minutes)",
                         expiration,
-                        Duration.between(Instant.now(), expiration).toMinutes());
+                        Duration.between(Instant.now(), expiration).toMinutes()
+                    );
                 }
             }
         } catch (Exception e) {
@@ -296,14 +316,14 @@ public class AuthenticationDebugFilter implements Filter {
         }
     }
 
-    private boolean isDebugEnabled(HttpServletRequest request) {
+    private fun isDebugEnabled(HttpServletRequest request): boolean {
         // Enable debug based on header, parameter, or property
         return "true".equals(request.getHeader("X-Auth-Debug")) ||
-               "true".equals(request.getParameter("debug")) ||
-               authDebugEnabled;
+                "true".equals(request.getParameter("debug")) ||
+                authDebugEnabled;
     }
 
-    private String maskAuthorizationHeader(String header) {
+    private fun maskAuthorizationHeader(String header): String {
         if (header == null) return null;
         if (header.length() > 20) {
             return header.substring(0, 20) + "...";
@@ -315,29 +335,29 @@ public class AuthenticationDebugFilter implements Filter {
 
 ### Authentication Flow State Tracker
 
-```java
+```kotlin
 @Component
-public class AuthenticationFlowTracker {
+class AuthenticationFlowTracker {
 
     private final Map<String, FlowState> activeFlows = new ConcurrentHashMap<>();
 
-    public void startFlow(String flowId, String type, Map<String, Object> context) {
-        FlowState state = FlowState.builder()
+    fun startFlow(String flowId, String type, Map<String, Object> context): void {
+        FlowState state = FlowState . builder ()
             .flowId(flowId)
             .type(type)
             .startTime(Instant.now())
             .context(context)
-            .steps(new ArrayList<>())
+            .steps(mutableListOf())
             .build();
 
         activeFlows.put(flowId, state);
         log.info("Started auth flow {}: {}", flowId, type);
     }
 
-    public void addStep(String flowId, String step, Map<String, Object> data) {
-        FlowState state = activeFlows.get(flowId);
+    fun addStep(String flowId, String step, Map<String, Object> data): void {
+        FlowState state = activeFlows . get (flowId);
         if (state != null) {
-            FlowStep flowStep = FlowStep.builder()
+            FlowStep flowStep = FlowStep . builder ()
                 .step(step)
                 .timestamp(Instant.now())
                 .data(data)
@@ -348,21 +368,23 @@ public class AuthenticationFlowTracker {
         }
     }
 
-    public void completeFlow(String flowId, boolean success, String error) {
-        FlowState state = activeFlows.get(flowId);
+    fun completeFlow(String flowId, boolean success, String error): void {
+        FlowState state = activeFlows . get (flowId);
         if (state != null) {
             state.setEndTime(Instant.now());
             state.setSuccess(success);
             state.setError(error);
 
-            Duration duration = Duration.between(state.getStartTime(), state.getEndTime());
-            log.info("Completed auth flow {} in {}ms - Success: {}",
-                flowId, duration.toMillis(), success);
+            Duration duration = Duration . between (state.getStartTime(), state.getEndTime());
+            log.info(
+                "Completed auth flow {} in {}ms - Success: {}",
+                flowId, duration.toMillis(), success
+            );
 
             // Log detailed flow
             if (log.isDebugEnabled()) {
                 state.getSteps().forEach(step ->
-                    log.debug("  Step: {} at {}", step.getStep(), step.getTimestamp()));
+                log.debug("  Step: {} at {}", step.getStep(), step.getTimestamp()));
             }
 
             // Archive flow for analysis
@@ -372,8 +394,8 @@ public class AuthenticationFlowTracker {
     }
 
     @Scheduled(fixedRate = 300000) // Every 5 minutes
-    public void cleanupStaleFlows() {
-        Instant cutoff = Instant.now().minus(5, ChronoUnit.MINUTES);
+    fun cleanupStaleFlows(): void {
+        Instant cutoff = Instant . now ().minus(5, ChronoUnit.MINUTES);
 
         activeFlows.entrySet().removeIf(entry -> {
             if (entry.getValue().getStartTime().isBefore(cutoff)) {
@@ -390,12 +412,12 @@ public class AuthenticationFlowTracker {
 
 ### Configuration Validator
 
-```java
+```kotlin
 @Component
-public class JwtConfigurationValidator {
+class JwtConfigurationValidator {
 
-    public ConfigurationValidationResult validateConfiguration() {
-        ConfigurationValidationResult result = new ConfigurationValidationResult();
+    fun validateConfiguration(): ConfigurationValidationResult {
+        ConfigurationValidationResult result = ConfigurationValidationResult ();
 
         // Validate JWT settings
         validateJwtSettings(result);
@@ -409,12 +431,14 @@ public class JwtConfigurationValidator {
         return result;
     }
 
-    private void validateJwtSettings(ConfigurationValidationResult result) {
+    private fun validateJwtSettings(ConfigurationValidationResult result): void {
         // Check token expiration
-        Duration accessTokenExpiration = jwtProperties.getAccessTokenExpiration();
+        Duration accessTokenExpiration = jwtProperties . getAccessTokenExpiration ();
         if (accessTokenExpiration.toMinutes() > 60) {
-            result.addWarning("Access token expiration is very long (" +
-                accessTokenExpiration.toMinutes() + " minutes)");
+            result.addWarning(
+                "Access token expiration is very long (" +
+                        accessTokenExpiration.toMinutes() + " minutes)"
+            );
             result.addRecommendation("Consider reducing to 15-30 minutes");
         }
 
@@ -424,21 +448,22 @@ public class JwtConfigurationValidator {
                 result.addError("JWT secret is too short (minimum 32 characters)");
             }
             if ("changeit".equals(jwtProperties.getSecret()) ||
-                "secret".equals(jwtProperties.getSecret())) {
+                "secret".equals(jwtProperties.getSecret())
+            ) {
                 result.addError("Using default JWT secret - change immediately");
             }
         }
 
         // Check key store configuration
         if (jwtProperties.getKeyStore() != null) {
-            Resource keyStore = jwtProperties.getKeyStore();
+            Resource keyStore = jwtProperties . getKeyStore ();
             if (!keyStore.exists()) {
                 result.addError("JWT keystore file not found: " + keyStore);
             }
         }
     }
 
-    private void validateSecuritySettings(ConfigurationValidationResult result) {
+    private fun validateSecuritySettings(ConfigurationValidationResult result): void {
         // Check if HTTPS is enforced
         if (!securityProperties.isRequireSsl()) {
             result.addError("HTTPS is not required - tokens will be sent in clear text");
@@ -446,27 +471,30 @@ public class JwtConfigurationValidator {
         }
 
         // Check CORS configuration
-        CorsConfiguration corsConfig = corsConfigurationSource.getCorsConfiguration(null);
+        CorsConfiguration corsConfig = corsConfigurationSource . getCorsConfiguration (null);
         if (corsConfig != null) {
             if (corsConfig.getAllowedOrigins() != null &&
-                corsConfig.getAllowedOrigins().contains("*")) {
+                corsConfig.getAllowedOrigins().contains("*")
+            ) {
                 result.addWarning("CORS allows all origins - security risk");
             }
         }
 
         // Check session management
         if (securityProperties.getSessionTimeout() == null ||
-            securityProperties.getSessionTimeout().toMinutes() > 60) {
+            securityProperties.getSessionTimeout().toMinutes() > 60
+        ) {
             result.addWarning("Session timeout is not configured or too long");
         }
     }
 
-    private void validateIntegrationSettings(ConfigurationValidationResult result) {
+    private fun validateIntegrationSettings(ConfigurationValidationResult result): void {
         // Check OAuth2 configuration
         if (oauth2Properties.getClientRegistration() != null) {
             oauth2Properties.getClientRegistration().forEach((clientId, registration) -> {
                 if (registration.getClientSecret() == null ||
-                    registration.getClientSecret().length() < 16) {
+                    registration.getClientSecret().length() < 16
+                ) {
                     result.addWarning("OAuth2 client secret for " + clientId + " is weak");
                 }
             });
@@ -474,10 +502,12 @@ public class JwtConfigurationValidator {
 
         // Check database configuration
         if (dataSource instanceof HikariDataSource) {
-            HikariConfig config = ((HikariDataSource) dataSource).getHikariConfig();
+            HikariConfig config =((HikariDataSource) dataSource).getHikariConfig();
             if (config.getMaximumPoolSize() < 10) {
-                result.addWarning("Database connection pool is small (" +
-                    config.getMaximumPoolSize() + ")");
+                result.addWarning(
+                    "Database connection pool is small (" +
+                            config.getMaximumPoolSize() + ")"
+                );
             }
         }
     }

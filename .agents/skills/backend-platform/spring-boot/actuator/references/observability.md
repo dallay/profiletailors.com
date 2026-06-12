@@ -43,7 +43,7 @@ management:
     web:
       exposure:
         include: "health,info,metrics,prometheus,loggers"
-  
+
   metrics:
     export:
       prometheus:
@@ -52,11 +52,11 @@ management:
       percentiles-histogram:
         http.server.requests: true
         http.client.requests: true
-  
+
   tracing:
     sampling:
       probability: 0.1  # 10% sampling in production
-  
+
   zipkin:
     tracing:
       endpoint: "http://zipkin:9411/api/v2/spans"
@@ -70,26 +70,28 @@ logging:
 
 ### Micrometer Integration
 
-```java
+```kotlin
 @Configuration
-public class ObservabilityConfiguration {
+class ObservabilityConfiguration {
 
     @Bean
-    public MeterRegistryCustomizer<MeterRegistry> metricsCommonTags() {
+    public MeterRegistryCustomizer<MeterRegistry> metricsCommonTags()
+    {
         return registry -> registry.config()
-            .commonTags("application", "my-app")
-            .commonTags("environment", getEnvironment());
+        .commonTags("application", "my-app")
+        .commonTags("environment", getEnvironment());
     }
 
     @Bean
-    public ObservationRegistryCustomizer<ObservationRegistry> observationRegistryCustomizer() {
+    public ObservationRegistryCustomizer<ObservationRegistry> observationRegistryCustomizer()
+    {
         return registry -> registry.observationConfig()
-            .observationHandler(new LoggingObservationHandler())
-            .observationHandler(new MetricsObservationHandler(meterRegistry()))
-            .observationHandler(new TracingObservationHandler(tracer()));
+        .observationHandler(LoggingObservationHandler())
+        .observationHandler(MetricsObservationHandler(meterRegistry()))
+        .observationHandler(TracingObservationHandler(tracer()));
     }
 
-    private String getEnvironment() {
+    private fun getEnvironment(): String {
         return System.getProperty("spring.profiles.active", "development");
     }
 }
@@ -99,21 +101,21 @@ public class ObservabilityConfiguration {
 
 ### Custom Health Indicators
 
-```java
+```kotlin
 @Component
-public class DatabaseHealthIndicator implements HealthIndicator {
+class DatabaseHealthIndicator implements HealthIndicator {
 
-    private final DataSource dataSource;
+    private val dataSource: DataSource
 
-    public DatabaseHealthIndicator(DataSource dataSource) {
+    public DatabaseHealthIndicator (DataSource dataSource) {
         this.dataSource = dataSource;
     }
 
     @Override
-    public Health health() {
-        try (Connection connection = dataSource.getConnection()) {
-            boolean isValid = connection.isValid(5);
-            
+    fun health(): Health {
+        try (Connection connection = dataSource . getConnection ()) {
+            boolean isValid = connection . isValid (5);
+
             if (isValid) {
                 return Health.up()
                     .withDetail("database", "PostgreSQL")
@@ -129,30 +131,31 @@ public class DatabaseHealthIndicator implements HealthIndicator {
                 .withDetail("database", "Connection failed")
                 .build();
         }
-    }
+        }
 
-    private Map<String, Object> getConnectionPoolInfo() {
-        // Return connection pool metrics
-        return Map.of(
-            "active", 5,
-            "idle", 3,
-            "max", 10
-        );
-    }
+    private Map < String, Object> getConnectionPoolInfo() {
+    // Return connection pool metrics
+    return Map.of(
+        "active", 5,
+        "idle", 3,
+        "max", 10
+    );
+}
 }
 ```
 
 ### Custom Metrics
 
-```java
+```kotlin
 @Component
-public class BusinessMetrics {
+class BusinessMetrics {
 
-    private final Counter orderCounter;
-    private final Timer orderProcessingTime;
-    private final Gauge activeUsers;
+    private val orderCounter: Counter
+    private val orderProcessingTime: Timer
+    private val activeUsers: Gauge
 
-    public BusinessMetrics(MeterRegistry meterRegistry) {
+    public BusinessMetrics(MeterRegistry meterRegistry)
+    {
         this.orderCounter = Counter.builder("orders.total")
             .description("Total number of orders")
             .tag("type", "all")
@@ -167,15 +170,15 @@ public class BusinessMetrics {
             .register(meterRegistry, this, BusinessMetrics::getActiveUserCount);
     }
 
-    public void recordOrder(String orderType) {
+    fun recordOrder(String orderType): void {
         orderCounter.increment(Tags.of("type", orderType));
     }
 
-    public void recordOrderProcessingTime(Duration duration) {
+    fun recordOrderProcessingTime(Duration duration): void {
         orderProcessingTime.record(duration);
     }
 
-    private double getActiveUserCount() {
+    private fun getActiveUserCount(): double {
         // Implement logic to get active user count
         return 150.0;
     }
@@ -184,33 +187,35 @@ public class BusinessMetrics {
 
 ### Observation Aspects
 
-```java
+```kotlin
 @Aspect
 @Component
-public class ObservationAspect {
+class ObservationAspect {
 
-    private final ObservationRegistry observationRegistry;
+    private val observationRegistry: ObservationRegistry
 
-    public ObservationAspect(ObservationRegistry observationRegistry) {
+    public ObservationAspect(ObservationRegistry observationRegistry)
+    {
         this.observationRegistry = observationRegistry;
     }
 
     @Around("@annotation(observed)")
-    public Object observe(ProceedingJoinPoint joinPoint, Observed observed) throws Throwable {
-        String operationName = observed.name().isEmpty() ? 
-            joinPoint.getSignature().getName() : observed.name();
+    public Object observe(ProceedingJoinPoint joinPoint, Observed observed) throws Throwable
+    {
+        String operationName = observed . name ().isEmpty() ?
+        joinPoint.getSignature().getName() : observed.name();
 
         return Observation.createNotStarted(operationName, observationRegistry)
             .lowCardinalityKeyValues(observed.lowCardinalityKeyValues())
             .observe(() -> {
-                try {
-                    return joinPoint.proceed();
-                } catch (RuntimeException ex) {
-                    throw ex;
-                } catch (Throwable ex) {
-                    throw new RuntimeException(ex);
-                }
-            });
+        try {
+            return joinPoint.proceed();
+        } catch (RuntimeException ex) {
+            throw ex;
+        } catch (Throwable ex) {
+            throw RuntimeException(ex);
+        }
+    });
     }
 }
 ```
@@ -219,84 +224,88 @@ public class ObservationAspect {
 
 ### Service Correlation
 
-```java
+```kotlin
 @RestController
-public class OrderController {
+class OrderController {
 
-    private final OrderService orderService;
-    private final ObservationRegistry observationRegistry;
+    private val orderService: OrderService
+    private val observationRegistry: ObservationRegistry
 
-    public OrderController(OrderService orderService, ObservationRegistry observationRegistry) {
+    public OrderController(OrderService orderService, ObservationRegistry observationRegistry)
+    {
         this.orderService = orderService;
         this.observationRegistry = observationRegistry;
     }
 
     @PostMapping("/orders")
-    public ResponseEntity<Order> createOrder(@RequestBody CreateOrderRequest request) {
+    public ResponseEntity<Order> createOrder(@RequestBody CreateOrderRequest request)
+    {
         return Observation.createNotStarted("order.create", observationRegistry)
             .lowCardinalityKeyValue("operation", "create")
             .lowCardinalityKeyValue("service", "order-service")
             .observe(() -> {
-                Order order = orderService.createOrder(request);
-                return ResponseEntity.ok(order);
-            });
+        Order order = orderService . createOrder (request);
+        return ResponseEntity.ok(order);
+    });
     }
 }
 
 @Service
-public class OrderService {
+class OrderService {
 
-    private final PaymentServiceClient paymentClient;
+    private val paymentClient: PaymentServiceClient
 
     @Observed(name = "order.processing")
-    public Order createOrder(CreateOrderRequest request) {
+    fun createOrder(CreateOrderRequest request): Order {
         // Business logic with automatic observation
-        PaymentResult payment = paymentClient.processPayment(request.getPayment());
-        
+        PaymentResult payment = paymentClient . processPayment (request.getPayment());
+
         if (payment.isSuccessful()) {
             return saveOrder(request);
         } else {
-            throw new PaymentFailedException("Payment failed");
+            throw PaymentFailedException("Payment failed");
         }
     }
 
-    private Order saveOrder(CreateOrderRequest request) {
+    private fun saveOrder(CreateOrderRequest request): Order {
         // Save order logic
-        return new Order();
+        return Order();
     }
 }
 ```
 
 ### Cross-Service Tracing
 
-```java
+```kotlin
 @Component
-public class PaymentServiceClient {
+class PaymentServiceClient {
 
-    private final WebClient webClient;
-    private final ObservationRegistry observationRegistry;
+    private val webClient: WebClient
+    private val observationRegistry: ObservationRegistry
 
-    public PaymentServiceClient(WebClient.Builder webClientBuilder, 
-                               ObservationRegistry observationRegistry) {
+    public PaymentServiceClient(WebClient.Builder webClientBuilder,
+    ObservationRegistry observationRegistry)
+    {
         this.webClient = webClientBuilder
             .baseUrl("http://payment-service")
             .build();
         this.observationRegistry = observationRegistry;
     }
 
-    public PaymentResult processPayment(PaymentRequest request) {
+    fun processPayment(PaymentRequest request): PaymentResult {
         return Observation.createNotStarted("payment.process", observationRegistry)
             .lowCardinalityKeyValue("service", "payment-service")
             .lowCardinalityKeyValue("method", "POST")
             .observe(() -> {
-                return webClient
-                    .post()
-                    .uri("/payments")
-                    .bodyValue(request)
-                    .retrieve()
-                    .bodyToMono(PaymentResult.class)
-                    .block();
-            });
+            return webClient
+                .post()
+                .uri("/payments")
+                .bodyValue(request)
+                .retrieve()
+                .bodyToMono(
+                    PaymentResult.class)
+                        .block();
+        });
     }
 }
 ```
@@ -305,25 +314,25 @@ public class PaymentServiceClient {
 
 ### Health-based Alerting
 
-```java
+```kotlin
 @Component
-public class HealthAlertManager {
+class HealthAlertManager {
 
-    private final HealthEndpoint healthEndpoint;
-    private final NotificationService notificationService;
+    private val healthEndpoint: HealthEndpoint
+    private val notificationService: NotificationService
 
     @Scheduled(fixedRate = 30000) // Check every 30 seconds
-    public void checkHealth() {
-        HealthComponent health = healthEndpoint.health();
-        
+    fun checkHealth(): void {
+        HealthComponent health = healthEndpoint . health ();
+
         if (!Status.UP.equals(health.getStatus())) {
-            Alert alert = Alert.builder()
+            Alert alert = Alert . builder ()
                 .severity(Alert.Severity.HIGH)
                 .title("Application Health Check Failed")
                 .description("Application health status: " + health.getStatus())
                 .details(health.getDetails())
                 .build();
-                
+
             notificationService.sendAlert(alert);
         }
     }
@@ -332,75 +341,81 @@ public class HealthAlertManager {
 
 ### Metric-based Alerting
 
-```java
+```kotlin
 @Component
-public class MetricAlertManager {
+class MetricAlertManager {
 
-    private final MeterRegistry meterRegistry;
-    private final NotificationService notificationService;
+    private val meterRegistry: MeterRegistry
+    private val notificationService: NotificationService
 
     @Scheduled(fixedRate = 60000) // Check every minute
-    public void checkMetrics() {
+    fun checkMetrics(): void {
         // Check error rate
-        double errorRate = getErrorRate();
+        double errorRate = getErrorRate ();
         if (errorRate > 0.05) { // 5% error rate threshold
-            sendAlert("High Error Rate", 
-                     String.format("Error rate: %.2f%%", errorRate * 100));
+            sendAlert(
+                "High Error Rate",
+                String.format("Error rate: %.2f%%", errorRate * 100)
+            );
         }
 
         // Check response time
-        double avgResponseTime = getAverageResponseTime();
+        double avgResponseTime = getAverageResponseTime ();
         if (avgResponseTime > 1000) { // 1 second threshold
-            sendAlert("High Response Time", 
-                     String.format("Average response time: %.2f ms", avgResponseTime));
+            sendAlert(
+                "High Response Time",
+                String.format("Average response time: %.2f ms", avgResponseTime)
+            );
         }
 
         // Check memory usage
-        double memoryUsage = getMemoryUsage();
+        double memoryUsage = getMemoryUsage ();
         if (memoryUsage > 0.9) { // 90% memory usage
-            sendAlert("High Memory Usage", 
-                     String.format("Memory usage: %.2f%%", memoryUsage * 100));
+            sendAlert(
+                "High Memory Usage",
+                String.format("Memory usage: %.2f%%", memoryUsage * 100)
+            );
         }
     }
 
-    private double getErrorRate() {
-        Timer successTimer = meterRegistry.find("http.server.requests")
+    private fun getErrorRate(): double {
+        Timer successTimer = meterRegistry . find ("http.server.requests")
             .tag("status", "200")
             .timer();
-        Timer errorTimer = meterRegistry.find("http.server.requests")
+        Timer errorTimer = meterRegistry . find ("http.server.requests")
             .tag("status", "500")
             .timer();
 
         if (successTimer != null && errorTimer != null) {
-            double total = successTimer.count() + errorTimer.count();
+            double total = successTimer . count () + errorTimer.count();
             return total > 0 ? errorTimer.count() / total : 0.0;
         }
         return 0.0;
     }
 
-    private double getAverageResponseTime() {
-        Timer timer = meterRegistry.find("http.server.requests").timer();
+    private fun getAverageResponseTime(): double {
+        Timer timer = meterRegistry . find ("http.server.requests").timer();
         return timer != null ? timer.mean(TimeUnit.MILLISECONDS) : 0.0;
     }
 
-    private double getMemoryUsage() {
-        Gauge memoryUsed = meterRegistry.find("jvm.memory.used").gauge();
-        Gauge memoryMax = meterRegistry.find("jvm.memory.max").gauge();
-        
+    private fun getMemoryUsage(): double {
+        Gauge memoryUsed = meterRegistry . find ("jvm.memory.used").gauge();
+        Gauge memoryMax = meterRegistry . find ("jvm.memory.max").gauge();
+
         if (memoryUsed != null && memoryMax != null) {
             return memoryUsed.value() / memoryMax.value();
         }
         return 0.0;
     }
 
-    private void sendAlert(String title, String message) {
-        Alert alert = Alert.builder()
+    private fun sendAlert(String title, String message): void {
+        Alert alert = Alert . builder ()
             .severity(Alert.Severity.MEDIUM)
             .title(title)
             .description(message)
             .timestamp(Instant.now())
             .build();
-            
+
         notificationService.sendAlert(alert);
     }
 }
@@ -416,7 +431,7 @@ management:
     web:
       exposure:
         include: "health,info,metrics,prometheus"
-  
+
   metrics:
     export:
       prometheus:
@@ -456,7 +471,7 @@ management:
       },
       {
         "title": "Response Time",
-        "type": "graph", 
+        "type": "graph",
         "targets": [
           {
             "expr": "histogram_quantile(0.95, rate(http_server_requests_seconds_bucket[5m]))",
@@ -499,7 +514,7 @@ management:
       exposure:
         include: "health,info,metrics,prometheus"
       base-path: "/actuator"
-  
+
   endpoint:
     health:
       show-details: when-authorized
@@ -524,7 +539,7 @@ management:
   tracing:
     sampling:
       probability: 0.01  # 1% sampling in production
-  
+
   zipkin:
     tracing:
       endpoint: "${ZIPKIN_URL:http://localhost:9411/api/v2/spans}"

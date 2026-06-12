@@ -4,31 +4,31 @@
 
 Persist saga state for recovery and monitoring:
 
-```java
+```kotlin
 @Entity
 @Table(name = "saga_state")
-public class SagaState {
+class SagaState {
 
     @Id
-    private String sagaId;
+    private var sagaId: String
 
     @Enumerated(EnumType.STRING)
-    private SagaStatus status;
+    private var status: SagaStatus
 
     @Column(columnDefinition = "TEXT")
-    private String currentStep;
+    private var currentStep: String
 
     @Column(columnDefinition = "TEXT")
-    private String compensationSteps;
+    private var compensationSteps: String
 
-    private Instant startedAt;
-    private Instant completedAt;
+    private var startedAt: Instant
+    private var completedAt: Instant
 
     @Version
-    private Long version;
+    private var version: Long
 }
 
-public enum SagaStatus {
+enum class SagaStatus {
     STARTED,
     PROCESSING,
     COMPENSATING,
@@ -42,50 +42,53 @@ public enum SagaStatus {
 
 Define saga state transitions explicitly:
 
-```java
+```kotlin
 @Configuration
 @EnableStateMachine
-public class SagaStateMachineConfig
-    extends StateMachineConfigurerAdapter<SagaStatus, SagaEvent> {
+class SagaStateMachineConfig
+extends StateMachineConfigurerAdapter < SagaStatus, SagaEvent> {
 
     @Override
     public void configure(
-        StateMachineStateConfigurer<SagaStatus, SagaEvent> states)
-        throws Exception {
+        StateMachineStateConfigurer<SagaStatus, SagaEvent> states
+    )
+    throws Exception {
 
         states
             .withStates()
             .initial(SagaStatus.STARTED)
-            .states(EnumSet.allOf(SagaStatus.class))
-            .end(SagaStatus.COMPLETED)
-            .end(SagaStatus.FAILED);
+            .states(
+                EnumSet.allOf(SagaStatus.class))
+                    .end(SagaStatus.COMPLETED)
+                    .end(SagaStatus.FAILED);
     }
 
     @Override
     public void configure(
-        StateMachineTransitionConfigurer<SagaStatus, SagaEvent> transitions)
-        throws Exception {
+        StateMachineTransitionConfigurer<SagaStatus, SagaEvent> transitions
+    )
+    throws Exception {
 
         transitions
             .withExternal()
-                .source(SagaStatus.STARTED)
-                .target(SagaStatus.PROCESSING)
-                .event(SagaEvent.ORDER_CREATED)
+            .source(SagaStatus.STARTED)
+            .target(SagaStatus.PROCESSING)
+            .event(SagaEvent.ORDER_CREATED)
             .and()
             .withExternal()
-                .source(SagaStatus.PROCESSING)
-                .target(SagaStatus.COMPLETED)
-                .event(SagaEvent.ALL_STEPS_COMPLETED)
+            .source(SagaStatus.PROCESSING)
+            .target(SagaStatus.COMPLETED)
+            .event(SagaEvent.ALL_STEPS_COMPLETED)
             .and()
             .withExternal()
-                .source(SagaStatus.PROCESSING)
-                .target(SagaStatus.COMPENSATING)
-                .event(SagaEvent.STEP_FAILED)
+            .source(SagaStatus.PROCESSING)
+            .target(SagaStatus.COMPENSATING)
+            .event(SagaEvent.STEP_FAILED)
             .and()
             .withExternal()
-                .source(SagaStatus.COMPENSATING)
-                .target(SagaStatus.FAILED)
-                .event(SagaEvent.COMPENSATION_COMPLETED);
+            .source(SagaStatus.COMPENSATING)
+            .target(SagaStatus.FAILED)
+            .event(SagaEvent.COMPENSATION_COMPLETED);
     }
 }
 ```
@@ -114,44 +117,46 @@ STARTED → PROCESSING → PROCESSING (retry) → COMPLETED
 
 Store context data for saga execution:
 
-```java
+```kotlin
 @Entity
 @Table(name = "saga_context")
-public class SagaContext {
+class SagaContext {
 
     @Id
-    private String sagaId;
+    private var sagaId: String
 
     @Column(columnDefinition = "TEXT")
-    private String contextData; // JSON-serialized
+    private var contextData: String // JSON-serialized
 
-    private Instant createdAt;
-    private Instant updatedAt;
+    private var createdAt: Instant
+    private var updatedAt: Instant
 
-    public <T> T getContextData(Class<T> type) {
+    public <T> T getContextData(Class<T> type)
+    {
         return JsonUtils.fromJson(contextData, type);
     }
 
-    public void setContextData(Object data) {
+    fun setContextData(Object data): void {
         this.contextData = JsonUtils.toJson(data);
     }
 }
 
 @Service
-public class SagaContextService {
+class SagaContextService {
 
-    private final SagaContextRepository repository;
+    private val repository: SagaContextRepository
 
-    public void saveContext(String sagaId, Object context) {
-        SagaContext sagaContext = new SagaContext(sagaId);
+    fun saveContext(String sagaId, Object context): void {
+        SagaContext sagaContext = SagaContext (sagaId);
         sagaContext.setContextData(context);
         repository.save(sagaContext);
     }
 
-    public <T> T loadContext(String sagaId, Class<T> type) {
+    public <T> T loadContext(String sagaId, Class<T> type)
+    {
         return repository.findById(sagaId)
             .map(ctx -> ctx.getContextData(type))
-            .orElseThrow(() -> new SagaContextNotFoundException(sagaId));
+        .orElseThrow(() -> SagaContextNotFoundException(sagaId));
     }
 }
 ```
@@ -160,19 +165,19 @@ public class SagaContextService {
 
 Detect and handle sagas that exceed expected duration:
 
-```java
+```kotlin
 @Service
-public class SagaTimeoutHandler {
+class SagaTimeoutHandler {
 
-    private final SagaStateRepository repository;
+    private val repository: SagaStateRepository
     private static final Duration MAX_SAGA_DURATION = Duration.ofMinutes(30);
 
     @Scheduled(fixedDelay = 60000) // Check every minute
-    public void detectTimeouts() {
-        Instant timeout = Instant.now().minus(MAX_SAGA_DURATION);
+    fun detectTimeouts(): void {
+        Instant timeout = Instant . now ().minus(MAX_SAGA_DURATION);
 
         List<SagaState> timedOutSagas = repository
-            .findByStatusAndStartedAtBefore(SagaStatus.PROCESSING, timeout);
+                .findByStatusAndStartedAtBefore(SagaStatus.PROCESSING, timeout);
 
         timedOutSagas.forEach(saga -> {
             logger.warn("Saga {} timed out", saga.getSagaId());
@@ -180,7 +185,7 @@ public class SagaTimeoutHandler {
         });
     }
 
-    private void compensateSaga(SagaState saga) {
+    private fun compensateSaga(SagaState saga): void {
         saga.setStatus(SagaStatus.COMPENSATING);
         repository.save(saga);
         // Trigger compensation logic
@@ -192,17 +197,17 @@ public class SagaTimeoutHandler {
 
 Recover sagas from failures:
 
-```java
+```kotlin
 @Service
-public class SagaRecoveryService {
+class SagaRecoveryService {
 
-    private final SagaStateRepository stateRepository;
-    private final CommandGateway commandGateway;
+    private val stateRepository: SagaStateRepository
+    private val commandGateway: CommandGateway
 
     @Scheduled(fixedDelay = 30000) // Check every 30 seconds
-    public void recoverFailedSagas() {
+    fun recoverFailedSagas(): void {
         List<SagaState> failedSagas = stateRepository
-            .findByStatus(SagaStatus.FAILED);
+                .findByStatus(SagaStatus.FAILED);
 
         failedSagas.forEach(saga -> {
             if (canBeRetried(saga)) {
@@ -212,11 +217,11 @@ public class SagaRecoveryService {
         });
     }
 
-    private boolean canBeRetried(SagaState saga) {
+    private fun canBeRetried(SagaState saga): boolean {
         return saga.getRetryCount() < 3;
     }
 
-    private void retrySaga(SagaState saga) {
+    private fun retrySaga(SagaState saga): void {
         saga.setStatus(SagaStatus.STARTED);
         saga.setRetryCount(saga.getRetryCount() + 1);
         stateRepository.save(saga);
@@ -229,39 +234,42 @@ public class SagaRecoveryService {
 
 Query sagas for monitoring:
 
-```java
+```kotlin
 @Repository
-public interface SagaStateRepository extends JpaRepository<SagaState, String> {
+interface SagaStateRepository extends JpaRepository<SagaState, String> {
 
-    List<SagaState> findByStatus(SagaStatus status);
+    List<SagaState> findByStatus (SagaStatus status);
 
-    List<SagaState> findByStatusAndStartedAtBefore(
-        SagaStatus status, Instant before);
+    List<SagaState> findByStatusAndStartedAtBefore (
+            SagaStatus status, Instant before);
 
-    Page<SagaState> findByStatus(SagaStatus status, Pageable pageable);
+    Page<SagaState> findByStatus (SagaStatus status, Pageable pageable);
 
-    long countByStatus(SagaStatus status);
+    long countByStatus (SagaStatus status);
 
-    long countByStatusAndStartedAtBefore(SagaStatus status, Instant before);
+    long countByStatusAndStartedAtBefore (SagaStatus status, Instant before);
 }
 
 @RestController
 @RequestMapping("/api/sagas")
-public class SagaMonitoringController {
+class SagaMonitoringController {
 
-    private final SagaStateRepository repository;
+    private val repository: SagaStateRepository
 
     @GetMapping("/status/{status}")
     public List<SagaState> getSagasByStatus(
-            @PathVariable SagaStatus status) {
+    @PathVariable SagaStatus status)
+    {
         return repository.findByStatus(status);
     }
 
     @GetMapping("/stuck")
-    public List<SagaState> getStuckSagas() {
-        Instant oneHourAgo = Instant.now().minus(Duration.ofHours(1));
+    public List<SagaState> getStuckSagas()
+    {
+        Instant oneHourAgo = Instant . now ().minus(Duration.ofHours(1));
         return repository.findByStatusAndStartedAtBefore(
-            SagaStatus.PROCESSING, oneHourAgo);
+            SagaStatus.PROCESSING, oneHourAgo
+        );
     }
 }
 ```
@@ -269,26 +277,28 @@ public class SagaMonitoringController {
 ## Database Schema for State Management
 
 ```sql
-CREATE TABLE saga_state (
-    saga_id VARCHAR(255) PRIMARY KEY,
-    status VARCHAR(50) NOT NULL,
-    current_step TEXT,
+CREATE TABLE saga_state
+(
+    saga_id            VARCHAR(255) PRIMARY KEY,
+    status             VARCHAR(50) NOT NULL,
+    current_step       TEXT,
     compensation_steps TEXT,
-    started_at TIMESTAMP NOT NULL,
-    completed_at TIMESTAMP,
-    version BIGINT,
-    INDEX idx_status (status),
-    INDEX idx_started_at (started_at)
+    started_at         TIMESTAMP   NOT NULL,
+    completed_at       TIMESTAMP,
+    version            BIGINT,
+    INDEX              idx_status(status),
+    INDEX              idx_started_at(started_at)
 );
 
-CREATE TABLE saga_context (
-    saga_id VARCHAR(255) PRIMARY KEY,
+CREATE TABLE saga_context
+(
+    saga_id      VARCHAR(255) PRIMARY KEY,
     context_data LONGTEXT,
-    created_at TIMESTAMP NOT NULL,
-    updated_at TIMESTAMP,
-    FOREIGN KEY (saga_id) REFERENCES saga_state(saga_id)
+    created_at   TIMESTAMP NOT NULL,
+    updated_at   TIMESTAMP,
+    FOREIGN KEY (saga_id) REFERENCES saga_state (saga_id)
 );
 
 CREATE INDEX idx_saga_state_status_started
-    ON saga_state(status, started_at);
+    ON saga_state (status, started_at);
 ```
