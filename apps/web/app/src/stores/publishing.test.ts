@@ -260,7 +260,11 @@ describe('publishing store', () => {
 
   describe('channel filters', () => {
     it('keeps local provider filtering independent from backend social account ids', async () => {
+      // This test exercises the local fallback-only path (no API call).
+      // fetchCalendar >> isAuthenticated === false >> applyLocalFilters
       const store = usePublishingStore()
+      const auth = useAuthStore()
+      Object.defineProperty(auth, 'isAuthenticated', { value: false, configurable: true })
       store.publications = [
         {
           id: 'local-linkedin',

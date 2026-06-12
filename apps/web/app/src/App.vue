@@ -101,7 +101,7 @@ const navigationGroups = computed<NavGroup[]>(() => [
         to: '/', 
         icon: LayoutGrid, 
         badge: (() => {
-          const count = publishingStore.publications.filter((p) => p.status === 'QUEUED').length
+          const count = totalQueuedCount.value
           return count < 10 ? `0${count}` : String(count)
         })()
       },
@@ -115,21 +115,28 @@ const navigationGroups = computed<NavGroup[]>(() => [
   },
 ])
 
+const queuedCounts = computed(() => {
+  const counts = new Map<string, number>()
+  let total = 0
+  for (const pub of publishingStore.publications) {
+    if (pub.status !== 'QUEUED') continue
+    total++
+    for (const provider of pub.channels as string[]) {
+      counts.set(provider, (counts.get(provider) ?? 0) + 1)
+    }
+  }
+  return { counts, total }
+})
+
 const sidebarChannels = computed<SidebarChannel[]>(() =>
   publishingStore.channels.map((channel) => ({
     ...channel,
     badge: getProviderBadge(channel.provider),
-    queuedCount: publishingStore.publications.filter(
-      (publication) =>
-        publication.status === 'QUEUED' &&
-        (publication.channels as string[]).includes(channel.provider),
-    ).length,
+    queuedCount: queuedCounts.value.counts.get(channel.provider) ?? 0,
   })),
 )
 
-const totalQueuedCount = computed(
-  () => publishingStore.publications.filter((publication) => publication.status === 'QUEUED').length,
-)
+const totalQueuedCount = computed(() => queuedCounts.value.total)
 
 const connectChannels = computed<ConnectChannel[]>(() => [
   { id: 'threads', label: 'Threads', badge: '@' },
@@ -202,6 +209,28 @@ function navigateToSettings() {
   closeAccountMenu()
 }
 
+const connectMessage = ref('')
+let connectTimeout: ReturnType<typeof setTimeout> | null = null
+
+function handleConnectChannel(channel: ConnectChannel) {
+  connectMessage.value = `${channel.label} ${channel.id === 'threads' ? 'coming soon' : 'connection available soon'}`
+  if (connectTimeout) clearTimeout(connectTimeout)
+  connectTimeout = setTimeout(() => {
+    connectMessage.value = ''
+  }, 3500)
+}
+
+function handleMoreChannels() {
+  connectMessage.value = 'More channels coming soon'
+  if (connectTimeout) clearTimeout(connectTimeout)
+  connectTimeout = setTimeout(() => {
+    connectMessage.value = ''
+  }, 3500)
+}
+
+onBeforeUnmount(() => {
+  if (connectTimeout) clearTimeout(connectTimeout)
+})
 
 function handleDocumentClick(event: MouseEvent) {
   if (!accountMenuOpen.value) {
@@ -374,6 +403,7 @@ onBeforeUnmount(() => {
               :key="channel.id"
               class="flex w-full items-center gap-2 rounded-lg border border-transparent px-2 py-1.5 text-left text-xs text-text-secondary transition-colors hover:border-border-subtle hover:bg-bg-primary/70 hover:text-text-display"
               type="button"
+              @click="handleConnectChannel(channel)"
             >
               <span class="flex size-5 shrink-0 items-center justify-center rounded-md border border-border-visible bg-bg-primary font-mono text-[9px] font-bold uppercase text-text-display">
                 {{ channel.badge }}
@@ -385,10 +415,17 @@ onBeforeUnmount(() => {
             <button
               class="flex w-full items-center gap-2 rounded-lg border border-dashed border-border-visible px-2 py-1.5 text-left font-mono text-[9px] uppercase tracking-[0.12em] text-text-secondary transition-colors hover:border-text-secondary hover:text-text-display"
               type="button"
+              @click="handleMoreChannels"
             >
               <Plus class="size-3.5" />
               <span class="truncate">{{ $t('channels.more') }}</span>
             </button>
+
+            <Transition name="fade">
+              <p v-if="connectMessage" class="mt-2 px-2 font-mono text-[9px] uppercase tracking-[0.12em] text-text-secondary">
+                {{ connectMessage }}
+              </p>
+            </Transition>
           </div>
         </SidebarGroup>
 
@@ -568,3 +605,14 @@ onBeforeUnmount(() => {
     </SidebarProvider>
   </TooltipProvider>
 </template>
+
+<style scoped>
+.fade-enter-active,
+.fade-leave-active {
+  transition: opacity 0.25s ease;
+}
+.fade-enter-from,
+.fade-leave-to {
+  opacity: 0;
+}
+</style>
