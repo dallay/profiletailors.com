@@ -88,10 +88,13 @@ describe('login', () => {
 
   it('throws ApiError on server error', async () => {
     mockFetch(
-      new Response(JSON.stringify({ title: 'Internal Server Error', detail: 'Something went wrong' }), {
-        status: 500,
-        headers: { 'Content-Type': 'application/json' },
-      }),
+      new Response(
+        JSON.stringify({ title: 'Internal Server Error', detail: 'Something went wrong' }),
+        {
+          status: 500,
+          headers: { 'Content-Type': 'application/json' },
+        },
+      ),
     )
 
     await expect(login({ email: 'user@example.com', password: 'password' })).rejects.toEqual({
@@ -142,14 +145,22 @@ describe('register', () => {
       }),
     )
 
-    const result = await register({ email: 'newuser@example.com', password: 'password123', username: 'newuser' })
+    const result = await register({
+      email: 'newuser@example.com',
+      password: 'password123',
+      username: 'newuser',
+    })
 
     expect(result).toEqual(tokens)
     expect(fetchMock).toHaveBeenCalledWith(
       'http://localhost:8080/api/auth/register',
       expect.objectContaining({
         method: 'POST',
-        body: JSON.stringify({ email: 'newuser@example.com', password: 'password123', username: 'newuser' }),
+        body: JSON.stringify({
+          email: 'newuser@example.com',
+          password: 'password123',
+          username: 'newuser',
+        }),
       }),
     )
   })
@@ -186,9 +197,7 @@ describe('refreshSession', () => {
   })
 
   it('returns null on 401 (no active session)', async () => {
-    mockFetch(
-      new Response(null, { status: 401 }),
-    )
+    mockFetch(new Response(null, { status: 401 }))
 
     const result = await refreshSession()
 
@@ -221,18 +230,14 @@ describe('logoutSession', () => {
   })
 
   it('always resolves even on network error', async () => {
-    mockFetch(
-      new Response(null, { status: 500 }),
-    )
+    mockFetch(new Response(null, { status: 500 }))
 
     // Should not throw
     await expect(logoutSession()).resolves.toBeUndefined()
   })
 
   it('resolves successfully on 204 No Content', async () => {
-    mockFetch(
-      new Response(null, { status: 204 }),
-    )
+    mockFetch(new Response(null, { status: 204 }))
 
     await expect(logoutSession()).resolves.toBeUndefined()
   })
@@ -324,9 +329,7 @@ describe('createApiFetch', () => {
     const fetchMock = vi.fn(() => {
       callCount++
       if (callCount === 1) {
-        return Promise.resolve(
-          new Response(null, { status: 401 }),
-        )
+        return Promise.resolve(new Response(null, { status: 401 }))
       }
       return Promise.resolve(
         new Response(JSON.stringify({ id: 'post-1', text: 'Hello' }), {
@@ -352,21 +355,23 @@ describe('createApiFetch', () => {
     expect(fetchMock).toHaveBeenNthCalledWith(
       1,
       'http://localhost:8080/api/posts/1',
-      expect.objectContaining({ headers: expect.objectContaining({ Authorization: 'Bearer expired-token' }) }),
+      expect.objectContaining({
+        headers: expect.objectContaining({ Authorization: 'Bearer expired-token' }),
+      }),
     )
     // Second call should have used the new token
     expect(fetchMock).toHaveBeenNthCalledWith(
       2,
       'http://localhost:8080/api/posts/1',
-      expect.objectContaining({ headers: expect.objectContaining({ Authorization: 'Bearer new-access-token' }) }),
+      expect.objectContaining({
+        headers: expect.objectContaining({ Authorization: 'Bearer new-access-token' }),
+      }),
     )
     expect(onUnauthenticated).not.toHaveBeenCalled()
   })
 
   it('calls onUnauthenticated and re-throws when refresh returns null on 401', async () => {
-    mockFetch(
-      new Response(null, { status: 401 }),
-    )
+    mockFetch(new Response(null, { status: 401 }))
 
     const onUnauthenticated = vi.fn()
     const apiFetch = createApiFetch({
@@ -426,10 +431,7 @@ describe('createApiFetch', () => {
 
     await apiFetch('/api/test')
 
-    expect(fetchMock).toHaveBeenCalledWith(
-      'https://api.example.com/api/test',
-      expect.any(Object),
-    )
+    expect(fetchMock).toHaveBeenCalledWith('https://api.example.com/api/test', expect.any(Object))
 
     // Restore
     if (original === undefined) {

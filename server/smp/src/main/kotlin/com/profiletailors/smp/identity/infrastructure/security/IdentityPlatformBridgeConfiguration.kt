@@ -1,7 +1,7 @@
 package com.profiletailors.smp.identity.infrastructure.security
 
 import com.profiletailors.common.domain.context.PrincipalContextProvider
-import com.profiletailors.smp.platform.infrastructure.RequestContextStore
+import com.profiletailors.smp.platform.domain.RequestContextStore
 import org.springframework.context.annotation.Bean
 import org.springframework.context.annotation.Configuration
 import org.springframework.context.annotation.Primary

@@ -1,0 +1,11 @@
+{
+  "$schema": "https://portless.sh/schema.json",
+  "apps": {
+    "apps/web/app": {
+      "name": "pt-app"
+    },
+    "apps/web/marketing": {
+      "name": "profile-tailors"
+    }
+  }
+}
