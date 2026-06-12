@@ -215,13 +215,13 @@ class AuthorizationBddSteps(
     @Given("a previously registered local user session exists")
     fun givenPreviouslyRegisteredLocalUserSessionExists() {
         if (latestLocalAuthSession == null) {
-            registerLocalUser(email = "owner@example.com", username = "owner")
+            registerLocalUser(email = "owner@example.com")
         }
     }
 
     @When("the client registers a local user")
     fun whenClientRegistersLocalUser() {
-        registerLocalUser(email = "yuniel@example.com", username = "yuniel")
+        registerLocalUser(email = "yuniel@example.com")
     }
 
     @When("the client refreshes the local user session")
@@ -474,7 +474,7 @@ class AuthorizationBddSteps(
         assertEquals(status, requireNotNull(latestMembershipStatusResponse).status.name)
     }
 
-    private fun registerLocalUser(email: String, username: String) {
+    private fun registerLocalUser(email: String) {
         latestStatusCode = null
         latestResult = webTestClient.post()
             .uri(bddDatabaseSupport.localAuthRegisterPath())
@@ -484,7 +484,6 @@ class AuthorizationBddSteps(
                 mapOf(
                     "email" to email,
                     "password" to "password123",
-                    "username" to username,
                 ),
             )
             .exchange()

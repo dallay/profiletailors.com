@@ -74,7 +74,6 @@ class LocalAuthEndpointIntegrationTest : IntegrationTestBase() {
                 mapOf(
                     "email" to "yuniel@example.com",
                     "password" to "password123",
-                    "username" to "yuniel",
                 ),
             )
             .exchange()
@@ -194,7 +193,6 @@ class LocalAuthEndpointIntegrationTest : IntegrationTestBase() {
                 mapOf(
                     "email" to "owner@example.com",
                     "password" to "password123",
-                    "username" to "owner",
                 ),
             )
             .exchange()

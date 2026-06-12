@@ -47,7 +47,6 @@ class LocalAuthController(
                 RegisterUserCommand(
                     email = request.email,
                     password = request.password,
-                    username = request.username,
                 ),
             ),
         )
@@ -105,7 +104,6 @@ class LocalAuthController(
  *
  * @property email User's email address (must be valid email format).
  * @property password User's password (must meet security requirements).
- * @property username Optional username for the account.
  */
 @Schema(description = "User registration request")
 data class RegisterUserRequest(
@@ -130,15 +128,6 @@ data class RegisterUserRequest(
         format = "password",
     )
     val password: String,
-
-    @field:Size(max = 50, message = "Username must not exceed 50 characters")
-    @field:Schema(
-        description = "Optional username for the account",
-        example = "johndoe",
-        required = false,
-        maxLength = 50,
-    )
-    val username: String? = null,
 )
 
 /**
