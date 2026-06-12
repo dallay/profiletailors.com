@@ -37,13 +37,14 @@ Only `email` and `password` SHALL be accepted as request body parameters.
 - THEN the response MUST be `201 Created`
 - AND the user SHALL be created with username derived from the email prefix (`alice`)
 
-#### Scenario: Register request with username is rejected
+#### Scenario: Register request with unknown username field is silently ignored
 
 - GIVEN a client sends a POST to `/api/auth/register`
 - AND the body includes `{"email": "bob@example.com", "password": "Secret123!", "username": "bob"}`
 - WHEN the server processes the request
-- THEN the server MUST ignore or reject the unknown `username` field
-- AND the response MUST be `201 Created` or `400 Bad Request` depending on strict deserialization
+- THEN the server MUST silently ignore the unknown `username` field via Jackson default behavior
+- AND the response MUST be `201 Created`
+- AND the username SHALL be auto-derived from the email prefix (`bob`)
 
 ## PRESERVED Requirements
 
