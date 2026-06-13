@@ -2,10 +2,28 @@
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Key, Layers, Link, Activity, BookOpen } from '@lucide/vue'
-import { BASE_URL } from '@/config'
 
-const openDocs = () => {
-  window.open('https://docs.omnirouter.ahome.quest', '_blank')
+const DOCS_URL = 'https://docs.omnirouter.ahome.quest'
+
+function openDocs(url: string = DOCS_URL) {
+  try {
+    const newWindow = window.open(url, '_blank', 'noopener,noreferrer')
+    if (!newWindow || newWindow.closed || typeof newWindow.closed === 'undefined') {
+      throw new Error('Popup blocked')
+    }
+  } catch (e) {
+    // Secondary attempt: dynamic anchor click
+    try {
+      const a = document.createElement('a')
+      a.href = url
+      a.target = '_blank'
+      a.rel = 'noopener noreferrer'
+      a.click()
+    } catch (innerError) {
+      // Final fallback: alert user
+      alert(`Popup blocked. Please visit: ${url}`)
+    }
+  }
 }
 </script>
 
@@ -20,7 +38,11 @@ const openDocs = () => {
           {{ $t('dashboard.quickStart.subtitle') }}
         </CardDescription>
       </div>
-      <Button variant="ghost" class="font-mono text-[10px] gap-2 uppercase tracking-widest border border-border-visible h-9 px-4" @click="openDocs">
+      <Button
+        variant="ghost"
+        class="font-mono text-[10px] gap-2 uppercase tracking-widest border border-border-visible h-9 px-4 cursor-pointer"
+        @click="openDocs()"
+      >
         <BookOpen class="size-3.5" />
         {{ $t('dashboard.quickStart.fullDocs') }}
       </Button>
@@ -35,7 +57,7 @@ const openDocs = () => {
           <div class="space-y-1.5">
             <h4 class="font-bold text-[13px] text-text-display">{{ $t('dashboard.quickStart.step1Title') }}</h4>
             <p class="text-[12px] text-text-secondary leading-relaxed">
-              {{ $t('dashboard.quickStart.step1Desc') }}
+              Go to <span class="text-error hover:underline cursor-pointer" @click.stop="openDocs(`${DOCS_URL}/endpoint`)">Endpoint</span> -> Registered Keys. Generate one key per environment.
             </p>
           </div>
         </Card>
@@ -48,7 +70,7 @@ const openDocs = () => {
           <div class="space-y-1.5">
             <h4 class="font-bold text-[13px] text-text-display">{{ $t('dashboard.quickStart.step2Title') }}</h4>
             <p class="text-[12px] text-text-secondary leading-relaxed">
-              {{ $t('dashboard.quickStart.step2Desc') }}
+              Add accounts in <span class="text-error hover:underline cursor-pointer" @click.stop="openDocs(`${DOCS_URL}/providers`)">Providers</span>. Supports OAuth, API Key, and free tiers.
             </p>
           </div>
         </Card>
@@ -60,7 +82,9 @@ const openDocs = () => {
           </div>
           <div class="space-y-1.5">
             <h4 class="font-bold text-[13px] text-text-display">{{ $t('dashboard.quickStart.step3Title') }}</h4>
-            <p class="text-[12px] text-text-secondary leading-relaxed" v-html="$t('dashboard.quickStart.step3Desc', { baseUrl: BASE_URL })"></p>
+            <p class="text-[12px] text-text-secondary leading-relaxed">
+              Set base URL to <span class="text-text-display font-mono">https://omnirouter.ahome.quest/v1</span> in your IDE or API client.
+            </p>
           </div>
         </Card>
 
@@ -72,7 +96,7 @@ const openDocs = () => {
           <div class="space-y-1.5">
             <h4 class="font-bold text-[13px] text-text-display">{{ $t('dashboard.quickStart.step4Title') }}</h4>
             <p class="text-[12px] text-text-secondary leading-relaxed">
-              {{ $t('dashboard.quickStart.step4Desc') }}
+              Track tokens, cost and errors in <span class="text-error hover:underline cursor-pointer" @click.stop="openDocs(`${DOCS_URL}/logs`)">Request Logs</span> and <span class="text-error hover:underline cursor-pointer" @click.stop="openDocs(`${DOCS_URL}/analytics`)">Analytics</span>.
             </p>
           </div>
         </Card>
