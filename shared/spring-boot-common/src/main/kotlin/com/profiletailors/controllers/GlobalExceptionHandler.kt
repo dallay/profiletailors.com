@@ -205,7 +205,7 @@ class GlobalExceptionHandler(
     private fun getLocalizedMessage(exchange: ServerWebExchange, messageKey: String): String {
         val locale = exchange.localeContext.locale ?: Locale.getDefault()
         return try {
-            messageSource.getMessage(messageKey, null, locale) ?: messageKey
+            messageSource.getMessage(messageKey, null, locale)
         } catch (_: NoSuchMessageException) {
             messageKey
         }

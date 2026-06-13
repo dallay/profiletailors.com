@@ -65,12 +65,16 @@ internal class RateLimitingFilterTest {
         // Default mocks
         every { configurationFactory.isRateLimitEnabled(RateLimitStrategy.AUTH) } returns true
         every { configurationFactory.isRateLimitEnabled(RateLimitStrategy.BUSINESS) } returns true
+        every { configurationFactory.isRateLimitEnabled(RateLimitStrategy.RESUME) } returns true
         every { configurationFactory.isRateLimitEnabled(RateLimitStrategy.WAITLIST) } returns true
         every {
             configurationFactory.getEndpoints(RateLimitStrategy.AUTH)
         } returns listOf("/api/auth/login", "/api/auth/register")
         every {
             configurationFactory.getEndpoints(RateLimitStrategy.BUSINESS)
+        } returns emptyList()
+        every {
+            configurationFactory.getEndpoints(RateLimitStrategy.RESUME)
         } returns listOf("/api/resume/generate")
         every {
             configurationFactory.getEndpoints(RateLimitStrategy.WAITLIST)

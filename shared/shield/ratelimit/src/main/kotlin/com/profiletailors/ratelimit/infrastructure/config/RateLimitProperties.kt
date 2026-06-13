@@ -7,6 +7,8 @@ import org.springframework.boot.context.properties.ConfigurationProperties
  * Configuration properties for rate limiting.
  * These properties can be configured in application.yml under the prefix "application.rate-limit".
  *
+ * @since 1.0.0
+ *
  * Example configuration:
  * ```yaml
  * application:

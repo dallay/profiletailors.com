@@ -18,6 +18,7 @@ dependencies {
     implementation(libs.gradle.spring.dependency)
     implementation(libs.gradle.detekt)
     implementation(libs.gradle.owasp.depcheck)
+    implementation(libs.gradle.kover)
 }
 
 gradlePlugin {

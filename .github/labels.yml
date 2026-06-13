@@ -1,0 +1,39 @@
+- name: "area:backend"
+  color: "0e8a16"
+  description: "Changes in backend code (server/smp/** or shared/**)"
+
+- name: "area:frontend"
+  color: "fbca04"
+  description: "Changes in frontend marketing site (apps/web/marketing/**)"
+
+- name: "area:docs"
+  color: "0052cc"
+  description: "Documentation changes (docs/**, *.md, *.mdx)"
+
+- name: "area:ci"
+  color: "5319e7"
+  description: "CI/CD or GitHub Actions changes (.github/**)"
+
+- name: "area:infra"
+  color: "fef2c0"
+  description: "Infrastructure or deployment related changes"
+
+- name: "type:chore"
+  color: "d4c5f9"
+  description: "Code maintenance and configuration changes"
+
+- name: "type:test"
+  color: "c2e0c6"
+  description: "Test files or test infrastructure changes"
+
+- name: "type:dependency"
+  color: "e3e3e3"
+  description: "Dependency updates (Dependabot or manual)"
+
+- name: "type:security"
+  color: "d93f0b"
+  description: "Security-related changes or findings"
+
+- name: "status:stale"
+  color: "ffffff"
+  description: "Marked as inactive, pending closure"

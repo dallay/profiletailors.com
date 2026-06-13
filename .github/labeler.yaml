@@ -1,0 +1,68 @@
+# GitHub Labeler Configuration
+# Assigns labels to PRs automatically based on changed file paths.
+
+area:backend:
+  - changed-files:
+      - any-glob-to-any-file:
+          - 'server/smp/**'
+          - 'shared/**'
+          - 'server/smp/build.gradle.kts'
+          - 'server/smp/settings.gradle.kts'
+
+area:frontend:
+  - changed-files:
+      - any-glob-to-any-file:
+          - 'apps/web/marketing/**'
+          - 'package.json'
+          - 'pnpm-lock.yaml'
+          - 'pnpm-workspace.yaml'
+
+area:docs:
+  - changed-files:
+      - any-glob-to-any-file:
+          - 'docs/**'
+          - '**/*.md'
+          - '**/*.mdx'
+
+area:ci:
+  - changed-files:
+      - any-glob-to-any-file:
+          - '.github/**'
+
+area:infra:
+  - changed-files:
+      - any-glob-to-any-file:
+          - 'infra/**'
+          - 'docker/**'
+          - 'Dockerfile*'
+          - '.dockerignore'
+
+type:chore:
+  - changed-files:
+      - any-glob-to-any-file:
+          - '.github/**'
+          - 'scripts/**'
+          - '.editorconfig'
+          - '.gitignore'
+          - '.yamllint.yml'
+          - '.hadolint.yaml'
+          - '.markdownlint.json'
+          - 'sonar-project.properties'
+
+type:test:
+  - changed-files:
+      - any-glob-to-any-file:
+          - '**/*.spec.*'
+          - '**/*.test.*'
+          - '**/src/test/**'
+          - '**/tests/**'
+
+type:dependency:
+  - changed-files:
+      - any-glob-to-any-file:
+          - '**/build.gradle.kts'
+          - '**/gradle/libs.versions.toml'
+          - '**/gradle.properties'
+          - '**/gradle-wrapper.properties'
+          - 'package.json'
+          - 'pnpm-lock.yaml'

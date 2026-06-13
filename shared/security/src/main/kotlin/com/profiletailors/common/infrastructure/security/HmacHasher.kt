@@ -4,6 +4,15 @@ import com.profiletailors.common.domain.security.Hasher
 import javax.crypto.Mac
 import javax.crypto.spec.SecretKeySpec
 
+/**
+ * HMAC-SHA256 hash implementation.
+ *
+ * Requires a non-blank secret key. The key must be provided at construction time.
+ * Useful for verifying data integrity and authenticity.
+ *
+ * @param secretKey the HMAC secret key (must not be blank)
+ * @param algorithm the HMAC algorithm (default: HmacSHA256)
+ */
 class HmacHasher(
     private val secretKey: String,
     private val algorithm: String = "HmacSHA256"

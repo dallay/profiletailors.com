@@ -7,7 +7,24 @@ import org.springframework.http.ProblemDetail
 import org.springframework.web.server.ServerWebExchange
 
 /**
- * Central factory for building ProblemDetail objects across advices.
+ * Creates an RFC 7807 [ProblemDetail] with ProfileTailors standard metadata.
+ *
+ * All exception advices should use this factory to produce consistent error
+ * responses, including stable error categories, timestamps, message keys,
+ * localized messages, optional trace IDs, and optional request instances.
+ *
+ * @param status HTTP status represented by the problem detail.
+ * @param title Short, human-readable error title.
+ * @param detail Detailed message; when null, [title] is used as fallback.
+ * @param typeSuffix Suffix appended to the application error documentation URL.
+ * @param errorCategory Stable category used by clients and observability tooling.
+ * @param exchange Optional exchange used to include request trace/instance data.
+ * @param messageKey Optional i18n message key.
+ * @param localizedMessage Optional localized message resolved by the caller.
+ * @param additionalProperties Additional RFC 7807 extension properties.
+ * @param includeInstance Whether to set the request path as the problem instance.
+ * @return A fully populated [ProblemDetail].
+ * @since 1.0.0
  */
 fun createProblemDetail(
     status: HttpStatus,
