@@ -39,6 +39,7 @@ const publishingStore = usePublishingStore()
 const postText = ref('')
 const selectedChannels = ref<('twitter' | 'linkedin' | 'instagram' | 'facebook')[]>(['linkedin'])
 const mediaFiles = ref<File[]>([])
+const submitError = ref('')
 const mediaPreviews = ref<string[]>([])
 const fileInput = ref<HTMLInputElement | null>(null)
 const firstComment = ref('')
@@ -61,6 +62,7 @@ watch(
       mediaPreviews.value = []
       firstComment.value = ''
       priorityMode.value = false
+      submitError.value = ''
       scheduleMode.value = props.initialDate ? 'custom' : 'now'
 
       const defaultDate = props.initialDate ? new Date(props.initialDate) : new Date()
@@ -183,6 +185,7 @@ async function handleSchedule() {
   if (!canSubmit.value) return
 
   isSubmitting.value = true
+  submitError.value = ''
 
   try {
     let finalScheduledDate: Date
@@ -232,6 +235,7 @@ async function handleSchedule() {
       firstComment.value = ''
     }
   } catch (err) {
+    submitError.value = err instanceof Error ? err.message : 'Unable to schedule post.'
     console.error('Error scheduling post', err)
   } finally {
     isSubmitting.value = false
@@ -514,8 +518,13 @@ async function handleSchedule() {
               </div>
             </div>
 
-            <!-- Primary Action Buttons -->
-            <div class="grid grid-cols-3 gap-3">
+              <p v-if="submitError" class="rounded-xl border border-error/30 bg-error/10 px-3 py-2 text-xs text-error">
+                {{ submitError }}
+              </p>
+
+              <!-- Primary Action Buttons -->
+              <div class="grid grid-cols-3 gap-3">
+
               <button
                 @click="emit('close')"
                 class="col-span-1 border border-border-visible text-text-body hover:border-text-display hover:text-text-display font-mono text-[10px] font-bold uppercase tracking-wider rounded-full py-2.5 transition-all text-center cursor-pointer"

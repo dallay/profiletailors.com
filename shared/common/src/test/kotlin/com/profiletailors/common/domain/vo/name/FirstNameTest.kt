@@ -27,8 +27,8 @@ internal class FirstNameTest {
     }
 
     @Test
-    fun `should throw an exception when create a first name with length greater than 150`() {
-        val firstName = (1..256).joinToString("") { "a" }
+    fun `should throw an exception when create a first name with length greater than maximum`() {
+        val firstName = "a".repeat(51)
         assertThrows(IllegalArgumentException::class.java) {
             FirstName(firstName)
         }

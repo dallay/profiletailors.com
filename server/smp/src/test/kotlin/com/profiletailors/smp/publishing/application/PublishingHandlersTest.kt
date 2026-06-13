@@ -8,13 +8,23 @@ import com.profiletailors.common.domain.context.ResourceContextProvider
 import com.profiletailors.common.domain.context.ResourceContextType
 import com.profiletailors.smp.publishing.domain.ActivityDensity
 import com.profiletailors.smp.publishing.domain.AssetSourceType
+import com.profiletailors.smp.publishing.domain.ChannelEvent
+import com.profiletailors.smp.publishing.domain.ChannelEventPublisher
 import com.profiletailors.smp.publishing.domain.CompleteProviderConnectionCommand
+import com.profiletailors.smp.publishing.domain.ConnectedSocialChannel
+import com.profiletailors.smp.publishing.domain.ConnectedSocialChannelReadRepository
 import com.profiletailors.smp.publishing.domain.DateCount
+import com.profiletailors.smp.publishing.domain.ExpiredOAuthStateException
+import com.profiletailors.smp.publishing.domain.InvalidOAuthStateException
+import com.profiletailors.smp.publishing.domain.LinkedInAuthorizationUrlBuilder
+import com.profiletailors.smp.publishing.domain.LinkedInOAuthStatePayload
+import com.profiletailors.smp.publishing.domain.OAuthStateSigner
 import com.profiletailors.smp.publishing.domain.ProviderAccountProfile
 import com.profiletailors.smp.publishing.domain.ProviderCapabilityValidationInput
 import com.profiletailors.smp.publishing.domain.ProviderCapabilityValidator
 import com.profiletailors.smp.publishing.domain.ProviderAssetRef
 import com.profiletailors.smp.publishing.domain.ProviderConnectionResult
+import com.profiletailors.smp.publishing.domain.ProviderNotConfiguredException
 import com.profiletailors.smp.publishing.domain.PublicationAsset
 import com.profiletailors.smp.publishing.domain.PublicationAssetRepository
 import com.profiletailors.smp.publishing.domain.PublicationAssetStatus
@@ -63,12 +73,16 @@ class PublishingHandlersTest {
     fun `connects linkedin profile in active workspace`() = runTest {
         val connectionRepository = InMemorySocialConnectionRepository()
         val accountRepository = InMemorySocialAccountRepository()
+        val stateSigner = CapturingOAuthStateSigner()
+        val state = stateSigner.sign(validStatePayload())
         val handler = CompleteLinkedInConnectionHandler(
             principalContextProvider = FixedPrincipalContextProvider(principalContext),
             resourceContextProvider = FixedResourceContextProvider(workspaceContext),
             socialConnectionProvider = FakeSocialConnectionProvider(),
+            oauthStateSigner = stateSigner,
             socialConnectionRepository = connectionRepository,
             socialAccountRepository = accountRepository,
+            channelEventPublisher = CapturingChannelEventPublisher(),
             clock = fixedClock,
         )
 
@@ -76,6 +90,7 @@ class PublishingHandlersTest {
             CompleteLinkedInConnectionCommand(
                 authorizationCode = "oauth-code-123",
                 redirectUri = "https://app.example.com/callback",
+                state = state,
             ),
         )
 
@@ -84,6 +99,129 @@ class PublishingHandlersTest {
         assertEquals("linkedin-account-1", result.account.providerAccountId)
         assertNotNull(connectionRepository.lastSaved)
         assertNotNull(accountRepository.lastSaved)
+    }
+
+    @Test
+    fun `initiates linkedin connection with signed state and authorization url`() = runTest {
+        val stateSigner = CapturingOAuthStateSigner()
+        val handler = InitiateLinkedInConnectionHandler(
+            principalContextProvider = FixedPrincipalContextProvider(principalContext),
+            resourceContextProvider = FixedResourceContextProvider(workspaceContext),
+            oauthStateSigner = stateSigner,
+            authorizationUrlBuilder = FakeAuthorizationUrlBuilder(),
+            clock = fixedClock,
+        )
+
+        val result = handler.handle(InitiateLinkedInConnectionCommand("https://app.example.com/callback"))
+
+        assertEquals("state-1", result.state)
+        assertEquals("https://linkedin.example/authorize?state=state-1", result.authorizationUrl)
+        assertEquals("workspace-1", stateSigner.lastPayload?.workspaceId)
+        assertEquals("principal-1", stateSigner.lastPayload?.principalId)
+        assertEquals(Instant.parse("2026-05-26T12:10:00Z"), result.expiresAt)
+    }
+
+    @Test
+    fun `rejects linkedin initiation when provider is not configured`() = runTest {
+        val handler = InitiateLinkedInConnectionHandler(
+            principalContextProvider = FixedPrincipalContextProvider(principalContext),
+            resourceContextProvider = FixedResourceContextProvider(workspaceContext),
+            oauthStateSigner = CapturingOAuthStateSigner(),
+            authorizationUrlBuilder = FakeAuthorizationUrlBuilder(configured = false),
+            clock = fixedClock,
+        )
+
+        assertThrows(ProviderNotConfiguredException::class.java) {
+            kotlinx.coroutines.runBlocking {
+                handler.handle(InitiateLinkedInConnectionCommand("https://app.example.com/callback"))
+            }
+        }
+    }
+
+    @Test
+    fun `lists active connected channels for active workspace`() = runTest {
+        val repository = InMemoryConnectedSocialChannelReadRepository(
+            listOf(
+                ConnectedSocialChannel(
+                    socialAccountId = "account-1",
+                    connectionId = "connection-1",
+                    provider = SocialProvider.LINKEDIN,
+                    accountKind = SocialAccountKind.PERSONAL_PROFILE,
+                    displayName = "Yuniel",
+                    status = SocialConnectionStatus.ACTIVE,
+                    profileUrn = "urn:li:person:123",
+                    connectedAt = fixedClock.instant(),
+                    lastSyncedAt = null,
+                ),
+            ),
+        )
+        val handler = ListConnectedChannelsHandler(FixedResourceContextProvider(workspaceContext), repository)
+
+        val result = handler.handle(ListConnectedChannelsQuery())
+
+        assertEquals(1, result.channels.size)
+        assertEquals("account-1", result.channels.single().socialAccountId)
+        assertEquals(setOf(SocialConnectionStatus.ACTIVE), repository.lastStatuses)
+    }
+
+    @Test
+    fun `rejects completion with mismatched oauth state before provider exchange`() = runTest {
+        val provider = FakeSocialConnectionProvider()
+        val handler = CompleteLinkedInConnectionHandler(
+            principalContextProvider = FixedPrincipalContextProvider(principalContext),
+            resourceContextProvider = FixedResourceContextProvider(workspaceContext),
+            socialConnectionProvider = provider,
+            oauthStateSigner = CapturingOAuthStateSigner(
+                payload = validStatePayload(workspaceId = "other-workspace"),
+            ),
+            socialConnectionRepository = InMemorySocialConnectionRepository(),
+            socialAccountRepository = InMemorySocialAccountRepository(),
+            channelEventPublisher = CapturingChannelEventPublisher(),
+            clock = fixedClock,
+        )
+
+        assertThrows(InvalidOAuthStateException::class.java) {
+            kotlinx.coroutines.runBlocking {
+                handler.handle(
+                    CompleteLinkedInConnectionCommand(
+                        authorizationCode = "oauth-code-123",
+                        redirectUri = "https://app.example.com/callback",
+                        state = "state-1",
+                    ),
+                )
+            }
+        }
+        assertEquals(0, provider.callCount)
+    }
+
+    @Test
+    fun `rejects completion with expired oauth state before provider exchange`() = runTest {
+        val provider = FakeSocialConnectionProvider()
+        val handler = CompleteLinkedInConnectionHandler(
+            principalContextProvider = FixedPrincipalContextProvider(principalContext),
+            resourceContextProvider = FixedResourceContextProvider(workspaceContext),
+            socialConnectionProvider = provider,
+            oauthStateSigner = CapturingOAuthStateSigner(
+                payload = validStatePayload(expiresAt = Instant.parse("2026-05-26T11:59:59Z")),
+            ),
+            socialConnectionRepository = InMemorySocialConnectionRepository(),
+            socialAccountRepository = InMemorySocialAccountRepository(),
+            channelEventPublisher = CapturingChannelEventPublisher(),
+            clock = fixedClock,
+        )
+
+        assertThrows(ExpiredOAuthStateException::class.java) {
+            kotlinx.coroutines.runBlocking {
+                handler.handle(
+                    CompleteLinkedInConnectionCommand(
+                        authorizationCode = "oauth-code-123",
+                        redirectUri = "https://app.example.com/callback",
+                        state = "state-1",
+                    ),
+                )
+            }
+        }
+        assertEquals(0, provider.callCount)
     }
 
     @Test
@@ -712,8 +850,11 @@ class PublishingHandlersTest {
     }
 
     private class FakeSocialConnectionProvider : SocialConnectionProvider {
-        override suspend fun completeConnection(command: CompleteProviderConnectionCommand): ProviderConnectionResult =
-            ProviderConnectionResult(
+        var callCount = 0
+
+        override suspend fun completeConnection(command: CompleteProviderConnectionCommand): ProviderConnectionResult {
+            callCount += 1
+            return ProviderConnectionResult(
                 provider = SocialProvider.LINKEDIN,
                 providerConnectionRef = "linkedin-connection-1",
                 credentialReference = "secret-ref-1",
@@ -724,6 +865,60 @@ class PublishingHandlersTest {
                     profileUrn = "urn:li:person:123",
                 ),
             )
+        }
+    }
+
+    private class CapturingOAuthStateSigner(
+        private val payload: LinkedInOAuthStatePayload? = null,
+    ) : OAuthStateSigner {
+        var lastPayload: LinkedInOAuthStatePayload? = null
+
+        override fun sign(payload: LinkedInOAuthStatePayload): String {
+            lastPayload = payload
+            return "state-1"
+        }
+
+        override fun verify(state: String): LinkedInOAuthStatePayload = payload ?: validStatePayload()
+    }
+
+    private class FakeAuthorizationUrlBuilder(
+        private val configured: Boolean = true,
+    ) : LinkedInAuthorizationUrlBuilder {
+        override fun buildAuthorizationUrl(state: String, redirectUri: String): String =
+            "https://linkedin.example/authorize?state=$state"
+
+        override fun isConfigured(): Boolean = configured
+    }
+
+    private class InMemoryConnectedSocialChannelReadRepository(
+        private val channels: List<ConnectedSocialChannel>,
+    ) : ConnectedSocialChannelReadRepository {
+        var lastStatuses: Set<SocialConnectionStatus>? = null
+
+        override suspend fun listByWorkspace(
+            workspaceId: String,
+            statuses: Set<SocialConnectionStatus>,
+        ): List<ConnectedSocialChannel> {
+            lastStatuses = statuses
+            return channels
+        }
+    }
+
+    private companion object {
+        fun validStatePayload(
+            workspaceId: String = "workspace-1",
+            principalId: String = "principal-1",
+            redirectUri: String = "https://app.example.com/callback",
+            expiresAt: Instant = Instant.parse("2026-05-26T12:10:00Z"),
+        ): LinkedInOAuthStatePayload = LinkedInOAuthStatePayload(
+            provider = SocialProvider.LINKEDIN,
+            workspaceId = workspaceId,
+            principalId = principalId,
+            redirectUri = redirectUri,
+            nonce = "nonce-1",
+            issuedAt = Instant.parse("2026-05-26T12:00:00Z"),
+            expiresAt = expiresAt,
+        )
     }
 
     private class AcceptingCapabilityValidator : ProviderCapabilityValidator {
@@ -762,6 +957,14 @@ class PublishingHandlersTest {
 
         override suspend fun findByWorkspaceAndId(workspaceId: String, accountId: String): SocialAccount? =
             items[accountId]?.takeIf { it.workspaceId == workspaceId }
+    }
+
+    private class CapturingChannelEventPublisher : ChannelEventPublisher {
+        val events = mutableListOf<ChannelEvent>()
+
+        override fun publish(event: ChannelEvent) {
+            events += event
+        }
     }
 
     private class InMemoryPublicationRepository(

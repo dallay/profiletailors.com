@@ -1,9 +1,41 @@
 <script setup lang="ts">
+import { computed, onMounted, ref } from 'vue'
+import { useRoute } from 'vue-router'
+import { useI18n } from 'vue-i18n'
 import { useSettingsStore } from '@/stores/settings'
+import { usePublishingStore } from '@/stores/publishing'
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 
 const settings = useSettingsStore()
+const publishing = usePublishingStore()
+const route = useRoute()
+const { t } = useI18n()
+const connectError = ref<string | null>(null)
+const connectingLinkedIn = ref(false)
+
+const linkedInChannels = computed(() =>
+  publishing.channels.filter((channel) => channel.provider === 'linkedin' && channel.status === 'ACTIVE'),
+)
+const linkedinConnected = computed(() => route.query.connected === 'linkedin')
+
+async function connectLinkedInProfile() {
+  connectError.value = null
+  connectingLinkedIn.value = true
+
+  try {
+    await publishing.connectLinkedInPersonalProfile()
+  } catch (err) {
+    connectError.value = err instanceof Error ? err.message : t('channels.connectLinkedInFailed')
+    connectingLinkedIn.value = false
+  }
+}
+
+onMounted(() => {
+  publishing.fetchChannels().catch((err) => {
+    connectError.value = err instanceof Error ? err.message : t('channels.loadFailed')
+  })
+})
 </script>
 
 <template>
@@ -86,6 +118,60 @@ const settings = useSettingsStore()
             </Button>
           </div>
         </div>
+      </CardContent>
+    </Card>
+
+    <Card class="max-w-xl border border-border-subtle bg-bg-surface">
+      <CardHeader class="border-b border-border-subtle p-0 pb-4">
+        <CardTitle class="label-mono text-[10px] text-text-display">
+          {{ $t('channels.title') }}
+        </CardTitle>
+      </CardHeader>
+      <CardContent class="mt-6 space-y-5 p-0">
+        <p v-if="linkedinConnected" class="rounded-xl border border-success/30 bg-success/10 px-4 py-3 text-sm text-success">
+          {{ $t('linkedinCallback.successMessage') }}
+        </p>
+
+        <p v-if="publishing.channelsLoading" class="font-mono text-[10px] uppercase tracking-[0.14em] text-text-secondary">
+          {{ $t('channels.loading') }}
+        </p>
+
+        <div v-if="linkedInChannels.length" class="space-y-3">
+          <div
+            v-for="channel in linkedInChannels"
+            :key="channel.id"
+            class="flex items-center justify-between rounded-xl border border-border-subtle bg-bg-primary px-4 py-3"
+          >
+            <div class="min-w-0">
+              <p class="truncate text-sm font-medium text-text-display">{{ channel.name }}</p>
+              <p class="truncate font-mono text-[10px] uppercase tracking-[0.12em] text-text-secondary">
+                {{ channel.handle }}
+              </p>
+            </div>
+            <span class="rounded-full border border-border-visible px-2 py-0.5 font-mono text-[9px] uppercase tracking-[0.12em] text-success">
+              {{ $t('channels.active') }}
+            </span>
+          </div>
+        </div>
+
+        <div v-else class="rounded-xl border border-dashed border-border-visible bg-bg-primary/50 p-5">
+          <p class="text-sm font-medium text-text-display">{{ $t('channels.noChannels') }}</p>
+          <p class="mt-1 text-xs leading-5 text-text-secondary">
+            {{ $t('channels.connectLinkedInProfileDesc') }}
+          </p>
+        </div>
+
+        <p v-if="connectError || publishing.channelsError" class="text-sm text-error">
+          {{ connectError || publishing.channelsError }}
+        </p>
+
+        <Button
+          type="button"
+          :disabled="connectingLinkedIn"
+          @click="connectLinkedInProfile"
+        >
+          {{ connectingLinkedIn ? $t('channels.connectingLinkedIn') : $t('channels.connectLinkedInProfile') }}
+        </Button>
       </CardContent>
     </Card>
   </div>

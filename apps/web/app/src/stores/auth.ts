@@ -11,6 +11,7 @@ import {
   refreshSession,
   register,
 } from '@/lib/auth-api'
+import { useWorkspaceStore } from './workspace'
 
 // ---------------------------------------------------------------------------
 // Types
@@ -50,6 +51,8 @@ function mapProfileToUser(profile: CurrentUserProfile): AuthUser {
 // ---------------------------------------------------------------------------
 
 export const useAuthStore = defineStore('auth', () => {
+  const workspace = useWorkspaceStore()
+
   // Access token lives ONLY in memory — never persisted to localStorage
   const _accessToken = ref<string | null>(null)
   const user = ref<AuthUser | null>(null)
@@ -97,8 +100,9 @@ export const useAuthStore = defineStore('auth', () => {
    * Use this instead of raw fetch for any authenticated API call.
    * Handles Bearer injection + silent 401 retry with token rotation.
    */
-  const apiFetch = createApiFetch({
+  const authenticatedApiFetch = createApiFetch({
     getToken: () => _accessToken.value,
+    getWorkspaceId: () => workspace.activeWorkspaceId,
     onRefresh: async () => {
       const tokens = await refreshSession()
       if (tokens) {
@@ -109,6 +113,8 @@ export const useAuthStore = defineStore('auth', () => {
     },
     onUnauthenticated: () => _clearSession(),
   })
+  const apiFetch = authenticatedApiFetch
+  const apiFetchRaw = authenticatedApiFetch.raw
 
   // ---------------------------------------------------------------------------
   // Internal helpers
@@ -149,10 +155,7 @@ export const useAuthStore = defineStore('auth', () => {
     }
   }
 
-  async function registerWithPassword(payload: {
-    email: string
-    password: string
-  }) {
+  async function registerWithPassword(payload: { email: string; password: string }) {
     isLoading.value = true
     error.value = null
 
@@ -259,6 +262,7 @@ export const useAuthStore = defineStore('auth', () => {
   return {
     accessToken,
     apiFetch,
+    apiFetchRaw,
     clearError,
     displayName,
     error,

@@ -16,6 +16,7 @@ class KotlinLibraryPlugin : ConventionPlugin {
         apply(plugin = catalogPlugin("kotlin-jvm").get().pluginId)
         apply(plugin = catalogPlugin("detekt").get().pluginId)
         apply(plugin = "com.profiletailors.security.owasp")
+        apply(plugin = catalogPlugin("kover").get().pluginId)
 
         repositories.mavenCentral()
 
