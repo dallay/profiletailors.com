@@ -5,6 +5,7 @@ import { Button } from '@/components/ui/button'
 import { useAuthStore } from '@/stores/auth'
 import { usePublishingStore } from '@/stores/publishing'
 import CreatePostModal from '@/components/CreatePostModal.vue'
+import QuickStart from '@/components/QuickStart.vue'
 
 const auth = useAuthStore()
 const publishingStore = usePublishingStore()
@@ -84,6 +85,9 @@ function handleCreated() {
         {{ $t('dashboard.subtitle') }}
       </p>
     </div>
+
+    <!-- Quick Start Section -->
+    <QuickStart />
 
     <!-- Grid Stats -->
     <div class="grid grid-cols-1 md:grid-cols-4 gap-6">
