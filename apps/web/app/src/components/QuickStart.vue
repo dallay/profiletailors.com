@@ -56,9 +56,11 @@ function openDocs(url: string = DOCS_URL) {
           </div>
           <div class="space-y-1.5">
             <h4 class="font-bold text-[13px] text-text-display">{{ $t('dashboard.quickStart.step1Title') }}</h4>
-            <p class="text-[12px] text-text-secondary leading-relaxed">
-              Go to <span class="text-error hover:underline cursor-pointer" @click.stop="openDocs(`${DOCS_URL}/endpoint`)">Endpoint</span> -> Registered Keys. Generate one key per environment.
-            </p>
+            <i18n-t keypath="dashboard.quickStart.step1Desc" tag="p" class="text-[12px] text-text-secondary leading-relaxed">
+              <template #endpoint>
+                <span class="text-error hover:underline cursor-pointer" @click.stop="openDocs(`${DOCS_URL}/endpoint`)">Endpoint</span>
+              </template>
+            </i18n-t>
           </div>
         </Card>
 
@@ -69,9 +71,11 @@ function openDocs(url: string = DOCS_URL) {
           </div>
           <div class="space-y-1.5">
             <h4 class="font-bold text-[13px] text-text-display">{{ $t('dashboard.quickStart.step2Title') }}</h4>
-            <p class="text-[12px] text-text-secondary leading-relaxed">
-              Add accounts in <span class="text-error hover:underline cursor-pointer" @click.stop="openDocs(`${DOCS_URL}/providers`)">Providers</span>. Supports OAuth, API Key, and free tiers.
-            </p>
+            <i18n-t keypath="dashboard.quickStart.step2Desc" tag="p" class="text-[12px] text-text-secondary leading-relaxed">
+              <template #providers>
+                <span class="text-error hover:underline cursor-pointer" @click.stop="openDocs(`${DOCS_URL}/providers`)">Providers</span>
+              </template>
+            </i18n-t>
           </div>
         </Card>
 
@@ -82,9 +86,11 @@ function openDocs(url: string = DOCS_URL) {
           </div>
           <div class="space-y-1.5">
             <h4 class="font-bold text-[13px] text-text-display">{{ $t('dashboard.quickStart.step3Title') }}</h4>
-            <p class="text-[12px] text-text-secondary leading-relaxed">
-              Set base URL to <span class="text-text-display font-mono">https://omnirouter.ahome.quest/v1</span> in your IDE or API client.
-            </p>
+            <i18n-t keypath="dashboard.quickStart.step3Desc" tag="p" class="text-[12px] text-text-secondary leading-relaxed">
+              <template #url>
+                <span class="text-text-display font-mono">https://omnirouter.ahome.quest/v1</span>
+              </template>
+            </i18n-t>
           </div>
         </Card>
 
@@ -95,9 +101,14 @@ function openDocs(url: string = DOCS_URL) {
           </div>
           <div class="space-y-1.5">
             <h4 class="font-bold text-[13px] text-text-display">{{ $t('dashboard.quickStart.step4Title') }}</h4>
-            <p class="text-[12px] text-text-secondary leading-relaxed">
-              Track tokens, cost and errors in <span class="text-error hover:underline cursor-pointer" @click.stop="openDocs(`${DOCS_URL}/logs`)">Request Logs</span> and <span class="text-error hover:underline cursor-pointer" @click.stop="openDocs(`${DOCS_URL}/analytics`)">Analytics</span>.
-            </p>
+            <i18n-t keypath="dashboard.quickStart.step4Desc" tag="p" class="text-[12px] text-text-secondary leading-relaxed">
+              <template #logs>
+                <span class="text-error hover:underline cursor-pointer" @click.stop="openDocs(`${DOCS_URL}/logs`)">Request Logs</span>
+              </template>
+              <template #analytics>
+                <span class="text-error hover:underline cursor-pointer" @click.stop="openDocs(`${DOCS_URL}/analytics`)">Analytics</span>
+              </template>
+            </i18n-t>
           </div>
         </Card>
       </div>
