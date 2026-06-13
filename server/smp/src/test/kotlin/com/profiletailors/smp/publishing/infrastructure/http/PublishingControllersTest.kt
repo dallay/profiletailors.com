@@ -6,12 +6,20 @@ import com.profiletailors.common.domain.bus.command.Command
 import com.profiletailors.common.domain.bus.command.CommandWithResult
 import com.profiletailors.common.domain.bus.notification.Notification
 import com.profiletailors.common.domain.bus.query.Query
+import com.profiletailors.common.domain.context.ResourceContext
+import com.profiletailors.common.domain.context.ResourceContextProvider
+import com.profiletailors.common.domain.context.ResourceContextType
 import com.profiletailors.smp.publishing.application.CalendarResponse
 import com.profiletailors.smp.publishing.application.CancelPublicationCommand
 import com.profiletailors.smp.publishing.application.CompleteLinkedInConnectionCommand
 import com.profiletailors.smp.publishing.application.CreatePublicationCommand
 import com.profiletailors.smp.publishing.application.EditPublicationCommand
+import com.profiletailors.smp.publishing.application.ConnectedChannelsResponse
+import com.profiletailors.smp.publishing.application.ConnectedSocialChannelSummary
 import com.profiletailors.smp.publishing.application.GetCalendarPublicationsQuery
+import com.profiletailors.smp.publishing.application.InitiateLinkedInConnectionCommand
+import com.profiletailors.smp.publishing.application.LinkedInConnectionInitiationResult
+import com.profiletailors.smp.publishing.application.ListConnectedChannelsQuery
 import com.profiletailors.smp.publishing.application.PublicationResult
 import com.profiletailors.smp.publishing.application.ReschedulePublicationCommand
 import com.profiletailors.smp.publishing.application.RetryPublicationCommand
@@ -21,16 +29,44 @@ import com.profiletailors.smp.publishing.domain.PublicationStatus
 import com.profiletailors.smp.publishing.domain.ScheduleMode
 import com.profiletailors.smp.publishing.domain.SocialAccountKind
 import com.profiletailors.smp.publishing.domain.SocialConnectionStatus
+import com.profiletailors.smp.publishing.domain.ChannelEvent
+import com.profiletailors.smp.publishing.domain.ChannelEventType
 import com.profiletailors.smp.publishing.domain.SocialProvider
+import com.profiletailors.smp.publishing.infrastructure.events.ChannelEventStreamRegistry
 import kotlinx.coroutines.test.runTest
+import reactor.core.publisher.Flux
+import kotlinx.coroutines.runBlocking
 import org.junit.jupiter.api.Assertions.assertEquals
+import org.junit.jupiter.api.Assertions.assertThrows
 import org.junit.jupiter.api.Test
+import org.springframework.http.HttpStatus
+import org.springframework.web.server.ResponseStatusException
 import java.time.Instant
 
 class PublishingControllersTest {
 
     @Test
-    fun `dispatches linkedin connection completion command`() = runTest {
+    fun `dispatches linkedin connection initiation command`() = runTest {
+        val mediator = CapturingMediator()
+        val controller = PublishingConnectionController(mediator)
+
+        val response = controller.initiateLinkedInConnection(
+            LinkedInConnectionInitiationRequest(
+                redirectUri = "https://app.example.com/callback",
+            ),
+        )
+
+        assertEquals("state-1", response.state)
+        assertEquals(
+            InitiateLinkedInConnectionCommand(
+                redirectUri = "https://app.example.com/callback",
+            ),
+            mediator.lastRequest,
+        )
+    }
+
+    @Test
+    fun `dispatches linkedin connection completion command with state`() = runTest {
         val mediator = CapturingMediator()
         val controller = PublishingConnectionController(mediator)
 
@@ -38,6 +74,7 @@ class PublishingControllersTest {
             LinkedInConnectionCompletionRequest(
                 authorizationCode = "oauth-code-1",
                 redirectUri = "https://app.example.com/callback",
+                state = "signed-state-1",
             ),
         )
 
@@ -46,9 +83,57 @@ class PublishingControllersTest {
             CompleteLinkedInConnectionCommand(
                 authorizationCode = "oauth-code-1",
                 redirectUri = "https://app.example.com/callback",
+                state = "signed-state-1",
             ),
             mediator.lastRequest,
         )
+    }
+
+    @Test
+    fun `dispatches channel list query with status filter`() = runTest {
+        val mediator = CapturingMediator()
+        val controller = PublishingChannelController(
+            mediator = mediator,
+            resourceContextProvider = FixedResourceContextProvider("workspace-1"),
+            channelEventStreamRegistry = FakeChannelEventStreamRegistry(emptyList()),
+        )
+
+        val response = controller.listChannels(status = SocialConnectionStatus.ACTIVE)
+
+        assertEquals(1, response.channels.size)
+        assertEquals(
+            ListConnectedChannelsQuery(status = SocialConnectionStatus.ACTIVE),
+            mediator.lastQuery,
+        )
+    }
+
+    @Test
+    fun `constructs SSE stream scoped to active workspace`() {
+        val controller = PublishingChannelController(
+            mediator = CapturingMediator(),
+            resourceContextProvider = FixedResourceContextProvider("workspace-1"),
+            channelEventStreamRegistry = FakeChannelEventStreamRegistry(
+                listOf(
+                    ChannelEvent(
+                        type = ChannelEventType.CONNECTED_CHANNEL_UPDATED,
+                        workspaceId = "workspace-2",
+                        socialAccountId = "account-2",
+                        occurredAt = Instant.parse("2026-06-12T12:00:00Z"),
+                    ),
+                    ChannelEvent(
+                        type = ChannelEventType.CONNECTED_CHANNEL_UPDATED,
+                        workspaceId = "workspace-1",
+                        socialAccountId = "account-1",
+                        occurredAt = Instant.parse("2026-06-12T12:00:00Z"),
+                    ),
+                ),
+            ),
+        )
+
+        val firstEvent = controller.streamEvents().filter { it.event() != "heartbeat" }.blockFirst()
+
+        assertEquals("connected-channel.updated", firstEvent?.event())
+        assertEquals("account-1", firstEvent?.data()?.socialAccountId)
     }
 
     @Test
@@ -190,6 +275,45 @@ class PublishingControllersTest {
     }
 
     @Test
+    fun `returns placeholder for list publications`() = runTest {
+        val mediator = CapturingMediator()
+        val controller = PublishingPublicationController(mediator)
+
+        val response = controller.listPlaceholder()
+
+        assertEquals(mapOf("status" to "not-yet-implemented"), response)
+    }
+
+    @Test
+    fun `rejects invalid timezone in calendar query`() = runTest {
+        val mediator = CapturingMediator()
+        val controller = PublishingPublicationController(mediator)
+        val from = Instant.parse("2026-06-01T00:00:00Z")
+        val to = Instant.parse("2026-07-01T00:00:00Z")
+
+        val error = assertThrows(ResponseStatusException::class.java) {
+            runBlocking {
+                controller.getCalendar(
+                    from = from,
+                    to = to,
+                    timezone = "Not-a-timezone",
+                )
+            }
+        }
+
+        assertEquals(HttpStatus.BAD_REQUEST, error.statusCode)
+        assertEquals("Invalid timezone: 'Not-a-timezone'", error.reason)
+    }
+
+    @Test
+    fun `requiredScheduleMode throws when scheduleMode is null`() {
+        val error = assertThrows(IllegalArgumentException::class.java) {
+            PublicationRescheduleRequest().requiredScheduleMode()
+        }
+        assertEquals("scheduleMode is required for reschedule.", error.message)
+    }
+
+    @Test
     fun `dispatches publication lifecycle commands`() = runTest {
         val mediator = CapturingMediator()
         val controller = PublishingPublicationController(mediator)
@@ -251,6 +375,21 @@ class PublishingControllersTest {
         )
     }
 
+    private class FixedResourceContextProvider(
+        private val workspaceId: String,
+    ) : ResourceContextProvider {
+        override fun current(): ResourceContext = ResourceContext(
+            type = ResourceContextType.WORKSPACE,
+            workspaceId = workspaceId,
+        )
+    }
+
+    private class FakeChannelEventStreamRegistry(
+        private val events: List<ChannelEvent>,
+    ) : ChannelEventStreamRegistry {
+        override fun stream(): Flux<ChannelEvent> = Flux.fromIterable(events)
+    }
+
     private class CapturingMediator : Mediator {
         var lastRequest: Any? = null
         var lastQuery: Any? = null
@@ -264,6 +403,21 @@ class PublishingControllersTest {
                     conflicts = emptyList(),
                     activity = emptyList(),
                 ) as TResponse
+                is ListConnectedChannelsQuery -> ConnectedChannelsResponse(
+                    channels = listOf(
+                        ConnectedSocialChannelSummary(
+                            socialAccountId = "account-1",
+                            connectionId = "connection-1",
+                            provider = SocialProvider.LINKEDIN,
+                            accountKind = SocialAccountKind.PERSONAL_PROFILE,
+                            displayName = "Yuniel",
+                            status = SocialConnectionStatus.ACTIVE,
+                            profileUrn = "urn:li:person:123",
+                            connectedAt = Instant.parse("2026-06-12T12:00:00Z"),
+                            lastSyncedAt = null,
+                        ),
+                    ),
+                ) as TResponse
                 else -> error("Unsupported query type ${query::class.simpleName}")
             }
         }
@@ -276,6 +430,11 @@ class PublishingControllersTest {
         override suspend fun <TCommand : CommandWithResult<TResult>, TResult> send(command: TCommand): TResult {
             lastRequest = command
             return when (command) {
+                is InitiateLinkedInConnectionCommand -> LinkedInConnectionInitiationResult(
+                    authorizationUrl = "https://linkedin.example/authorize?state=state-1",
+                    state = "state-1",
+                    expiresAt = Instant.parse("2026-06-12T12:10:00Z"),
+                ) as TResult
                 is CompleteLinkedInConnectionCommand -> SocialConnectionResult(
                     connectionId = "conn-1",
                     workspaceId = "workspace-1",
