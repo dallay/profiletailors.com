@@ -1,5 +1,12 @@
 package com.profiletailors.common.domain.vo.name
 
+/**
+ * A validated first name value object.
+ *
+ * Ensures the name is non-blank and does not exceed 50 characters.
+ *
+ * @since 1.0.0
+ */
 @JvmInline
 value class FirstName(val value: String) {
     init {

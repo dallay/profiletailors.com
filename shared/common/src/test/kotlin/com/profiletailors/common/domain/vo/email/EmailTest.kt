@@ -6,6 +6,8 @@ import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertNotEquals
 import org.junit.jupiter.api.Assertions.assertThrows
 import org.junit.jupiter.api.Test
+import org.junit.jupiter.params.ParameterizedTest
+import org.junit.jupiter.params.provider.ValueSource
 
 internal class EmailTest {
     @Test
@@ -14,19 +16,16 @@ internal class EmailTest {
         assertEquals("john.snow@gmail.com", email.value)
     }
 
-    @Test
-    fun `should throw exception when email is not valid`() {
-        val invalidEmails = listOf(
-            "john.snow@gmail.", "Julia.abc@",
-            "Julia.abc@.com", "Samantha_21.", ".1Samantha",
-            "Samantha@10_2A", "JuliaZ007", "_Julia007.com",
-            "Willie_Zboncak@@yahoo.com",
-        )
-
-        invalidEmails.forEach {
-            assertThrows(IllegalArgumentException::class.java) {
-                Email(it)
-            }
+    @ParameterizedTest
+    @ValueSource(strings = [
+        "john.snow@gmail.", "Julia.abc@",
+        "Julia.abc@.com", "Samantha_21.", ".1Samantha",
+        "Samantha@10_2A", "JuliaZ007", "_Julia007.com",
+        "Willie_Zboncak@@yahoo.com",
+    ])
+    fun `should throw exception when email is not valid`(invalidEmail: String) {
+        assertThrows(IllegalArgumentException::class.java) {
+            Email(invalidEmail)
         }
     }
 
@@ -95,18 +94,15 @@ internal class EmailTest {
         assertNotEquals(email1.hashCode(), email2.hashCode())
     }
 
-    @Test
-    fun `should throw exception for emails with invalid dots`() {
-        val invalidEmails = listOf(
-            ".user@example.com", // Leading dot
-            "user.@example.com", // Trailing dot
-            "user..name@example.com", // Consecutive dots
-        )
-
-        invalidEmails.forEach {
-            assertThrows(IllegalArgumentException::class.java) {
-                Email(it)
-            }
+    @ParameterizedTest
+    @ValueSource(strings = [
+        ".user@example.com",
+        "user.@example.com",
+        "user..name@example.com",
+    ])
+    fun `should throw exception for emails with invalid dots`(invalidEmail: String) {
+        assertThrows(IllegalArgumentException::class.java) {
+            Email(invalidEmail)
         }
     }
 }
