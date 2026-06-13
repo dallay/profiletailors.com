@@ -76,7 +76,9 @@ const settings = useSettingsStore()
 const { t } = useI18n()
 const publishingStore = usePublishingStore()
 const accountMenuOpen = ref(false)
+const workspaceMenuOpen = ref(false)
 const accountMenuRef = ref<HTMLElement | null>(null)
+const workspaceMenuRef = ref<HTMLElement | null>(null)
 
 const activeAccount = ref<AccountOption>({
   name: 'Profile Tailors',
@@ -179,13 +181,35 @@ function isSchedulerRoute() {
 async function showAllChannels() {
   publishingStore.filterChannel = ''
   publishingStore.filterSocialAccountId = ''
-  await router.push('/scheduler')
+  try {
+    await router.push('/scheduler')
+  } catch (e) {
+    console.error('Failed to navigate to scheduler', e)
+  }
 }
 
 async function selectChannel(channel: SidebarChannel) {
   publishingStore.filterChannel = channel.provider
   publishingStore.filterSocialAccountId = ''
-  await router.push('/scheduler')
+  try {
+    await router.push('/scheduler')
+  } catch (e) {
+    console.error('Failed to navigate to scheduler', e)
+  }
+}
+
+
+function toggleWorkspaceMenu() {
+  workspaceMenuOpen.value = !workspaceMenuOpen.value
+}
+
+function closeWorkspaceMenu() {
+  workspaceMenuOpen.value = false
+}
+
+function selectWorkspace(account: AccountOption) {
+  activeAccount.value = account
+  closeWorkspaceMenu()
 }
 
 function toggleAccountMenu() {
@@ -196,13 +220,11 @@ function closeAccountMenu() {
   accountMenuOpen.value = false
 }
 
-function selectAccount(account: AccountOption) {
-  activeAccount.value = account
-  closeAccountMenu()
-}
+
 
 async function handleLogout() {
   closeAccountMenu()
+  closeWorkspaceMenu()
   try {
     await auth.logout()
   } catch (e) {
@@ -217,8 +239,9 @@ async function handleLogout() {
 }
 
 function navigateToSettings() {
-  router.push('/settings')
+  router.push("/settings")
   closeAccountMenu()
+  closeWorkspaceMenu()
 }
 
 const connectMessage = ref('')
@@ -259,7 +282,7 @@ onBeforeUnmount(() => {
 })
 
 function handleDocumentClick(event: MouseEvent) {
-  if (!accountMenuOpen.value) {
+  if (!accountMenuOpen.value && !workspaceMenuOpen.value) {
     return
   }
 
@@ -268,19 +291,19 @@ function handleDocumentClick(event: MouseEvent) {
     return
   }
 
-  if (!accountMenuRef.value?.contains(target)) {
-    closeAccountMenu()
+  if (!accountMenuRef.value?.contains(target) && !workspaceMenuRef.value?.contains(target)) {
+    closeAccountMenu(); closeWorkspaceMenu()
   }
 }
 
 function handleEscapeKey(event: KeyboardEvent) {
   if (event.key === 'Escape') {
-    closeAccountMenu()
+    closeAccountMenu(); closeWorkspaceMenu()
   }
 }
 
 watch(() => route.path, () => {
-  closeAccountMenu()
+  closeAccountMenu(); closeWorkspaceMenu()
 })
 
 watch(
@@ -312,25 +335,82 @@ onBeforeUnmount(() => {
   <TooltipProvider v-else>
     <SidebarProvider :default-open="true" class="bg-bg-primary font-sans text-text-body transition-colors duration-250">
     <Sidebar collapsible="icon">
+
+
       <SidebarHeader class="gap-3">
-        <RouterLink
-          to="/"
-          class="flex min-w-0 items-center gap-3 rounded-2xl border border-border-subtle bg-bg-surface/70 px-3 py-2 group-data-[collapsible=icon]:justify-center group-data-[collapsible=icon]:px-2"
-        >
-          <div class="flex size-10 shrink-0 items-center justify-center rounded-xl bg-text-display text-bg-primary">
-            <Sparkles class="size-4" />
+        <div ref="workspaceMenuRef" class="relative">
+          <div
+            v-if="workspaceMenuOpen"
+            class="absolute top-0 left-0 z-50 w-full rounded-2xl border border-border-subtle bg-bg-surface p-2 shadow-2xl group-data-[collapsible=icon]:left-full group-data-[collapsible=icon]:ml-2 group-data-[collapsible=icon]:w-64"
+          >
+            <div class="px-2 py-2 group-data-[collapsible=icon]:hidden">
+              <p class="truncate font-mono text-[10px] uppercase tracking-[0.14em] text-text-secondary">
+                Workspaces
+              </p>
+            </div>
+
+            <div class="my-2 border-t border-border-subtle" />
+
+            <div class="space-y-1">
+              <button
+                v-for="account in accountOptions"
+                :key="account.name"
+                class="flex w-full items-center gap-3 rounded-xl border px-3 py-2 text-left text-sm transition-all"
+                :class="activeAccount.name === account.name
+                  ? 'border-border-visible bg-bg-primary text-text-display'
+                  : 'border-transparent text-text-secondary hover:border-border-subtle hover:bg-bg-primary/70 hover:text-text-display'"
+                type="button"
+                @click="selectWorkspace(account)"
+              >
+                <div class="flex size-8 shrink-0 items-center justify-center rounded-lg border border-border-visible bg-bg-primary text-text-display">
+                  <component :is="account.icon" class="size-4" />
+                </div>
+                <div class="min-w-0 flex-1">
+                  <p class="truncate text-sm font-medium text-current">
+                    {{ account.name }}
+                  </p>
+                  <p class="truncate text-[10px] text-text-secondary">
+                    {{ account.plan }}
+                  </p>
+                </div>
+              </button>
+            </div>
+
+            <div class="my-2 border-t border-border-subtle" />
+
+            <button
+              class="flex w-full items-center gap-3 rounded-xl border border-transparent px-3 py-2 text-left text-sm text-text-secondary transition-colors hover:border-border-subtle hover:bg-bg-primary/70 hover:text-text-display"
+              type="button"
+            >
+              <Plus class="size-4 shrink-0" />
+              <span>Add workspace</span>
+            </button>
           </div>
 
-          <div class="min-w-0 flex-1 group-data-[collapsible=icon]:hidden">
-            <p class="truncate font-mono text-[11px] font-bold uppercase tracking-[0.18em] text-text-display">
-              Profile Tailors
-            </p>
-            <p class="truncate text-xs text-text-secondary">
-              Creator workspace
-            </p>
-          </div>
-        </RouterLink>
+          <button
+            class="flex w-full items-center gap-3 rounded-2xl border border-border-subtle bg-bg-surface/70 px-3 py-2 transition-all hover:border-border-visible hover:bg-bg-surface group-data-[collapsible=icon]:justify-center group-data-[collapsible=icon]:px-2"
+            type="button"
+            @click.stop="toggleWorkspaceMenu"
+          >
+            <div class="flex size-10 shrink-0 items-center justify-center rounded-xl bg-text-display text-bg-primary shadow-lg">
+              <component :is="activeAccount.icon" class="size-4" />
+            </div>
+
+            <div class="min-w-0 flex-1 text-left group-data-[collapsible=icon]:hidden">
+              <p class="truncate font-mono text-[11px] font-bold uppercase tracking-[0.18em] text-text-display">
+                {{ activeAccount.name }}
+              </p>
+              <p class="truncate text-xs text-text-secondary">
+                {{ activeAccount.plan }}
+              </p>
+            </div>
+
+            <ChevronsUpDown class="size-4 shrink-0 text-text-secondary group-data-[collapsible=icon]:hidden" />
+          </button>
+        </div>
       </SidebarHeader>
+
+
 
       <SidebarContent class="gap-6">
         <SidebarGroup
@@ -484,32 +564,7 @@ onBeforeUnmount(() => {
               </p>
             </div>
 
-            <div class="my-2 border-t border-border-subtle" />
 
-            <div class="space-y-1">
-              <button
-                v-for="account in accountOptions"
-                :key="account.name"
-                class="flex w-full items-center gap-3 rounded-xl border px-3 py-2.5 text-left text-sm transition-all"
-                :class="activeAccount.name === account.name
-                  ? 'border-border-visible bg-bg-primary text-text-display'
-                  : 'border-transparent text-text-secondary hover:border-border-subtle hover:bg-bg-primary/70 hover:text-text-display'"
-                type="button"
-                @click="selectAccount(account)"
-              >
-                <div class="flex size-8 shrink-0 items-center justify-center rounded-lg border border-border-visible bg-bg-primary text-text-display">
-                  <component :is="account.icon" class="size-4" />
-                </div>
-                <div class="min-w-0 flex-1">
-                  <p class="truncate text-sm font-medium text-current">
-                    {{ account.name }}
-                  </p>
-                  <p class="truncate text-xs text-text-secondary">
-                    {{ account.plan }}
-                  </p>
-                </div>
-              </button>
-            </div>
 
             <div class="my-2 border-t border-border-subtle" />
 
