@@ -58,7 +58,7 @@ function openDocs(url: string = DOCS_URL) {
             <h4 class="font-bold text-[13px] text-text-display">{{ $t('dashboard.quickStart.step1Title') }}</h4>
             <i18n-t keypath="dashboard.quickStart.step1Desc" tag="p" class="text-[12px] text-text-secondary leading-relaxed">
               <template #endpoint>
-                <span class="text-error hover:underline cursor-pointer" @click.stop="openDocs(`${DOCS_URL}/endpoint`)">Endpoint</span>
+                <span class="text-error hover:underline cursor-pointer" @click.stop="openDocs(`${DOCS_URL}/endpoint`)">{{ $t('dashboard.quickStart.endpoint') }}</span>
               </template>
             </i18n-t>
           </div>
@@ -73,7 +73,7 @@ function openDocs(url: string = DOCS_URL) {
             <h4 class="font-bold text-[13px] text-text-display">{{ $t('dashboard.quickStart.step2Title') }}</h4>
             <i18n-t keypath="dashboard.quickStart.step2Desc" tag="p" class="text-[12px] text-text-secondary leading-relaxed">
               <template #providers>
-                <span class="text-error hover:underline cursor-pointer" @click.stop="openDocs(`${DOCS_URL}/providers`)">Providers</span>
+                <span class="text-error hover:underline cursor-pointer" @click.stop="openDocs(`${DOCS_URL}/providers`)">{{ $t('dashboard.quickStart.providers') }}</span>
               </template>
             </i18n-t>
           </div>
@@ -103,10 +103,10 @@ function openDocs(url: string = DOCS_URL) {
             <h4 class="font-bold text-[13px] text-text-display">{{ $t('dashboard.quickStart.step4Title') }}</h4>
             <i18n-t keypath="dashboard.quickStart.step4Desc" tag="p" class="text-[12px] text-text-secondary leading-relaxed">
               <template #logs>
-                <span class="text-error hover:underline cursor-pointer" @click.stop="openDocs(`${DOCS_URL}/logs`)">Request Logs</span>
+                <span class="text-error hover:underline cursor-pointer" @click.stop="openDocs(`${DOCS_URL}/logs`)">{{ $t('dashboard.quickStart.requestLogs') }}</span>
               </template>
               <template #analytics>
-                <span class="text-error hover:underline cursor-pointer" @click.stop="openDocs(`${DOCS_URL}/analytics`)">Analytics</span>
+                <span class="text-error hover:underline cursor-pointer" @click.stop="openDocs(`${DOCS_URL}/analytics`)">{{ $t('dashboard.quickStart.analytics') }}</span>
               </template>
             </i18n-t>
           </div>

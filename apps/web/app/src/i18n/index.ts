@@ -39,6 +39,10 @@ const messages = {
         step3Desc: 'Set base URL to {url} in your IDE or API client.',
         step4Title: '4. Monitor & optimize',
         step4Desc: 'Track tokens, cost and errors in {logs} and {analytics}.',
+        endpoint: 'Endpoint',
+        providers: 'Providers',
+        requestLogs: 'Request Logs',
+        analytics: 'Analytics',
       },
     },
     composer: {
@@ -179,6 +183,10 @@ const messages = {
         step3Desc: 'Establece la URL base en {url} en tu IDE o cliente API.',
         step4Title: '4. Monitorear y optimizar',
         step4Desc: 'Rastrea tokens, costes y errores en {logs} y {analytics}.',
+        endpoint: 'Endpoint',
+        providers: 'Proveedores',
+        requestLogs: 'Registros de Solicitudes',
+        analytics: 'Analítica',
       },
     },
     composer: {
