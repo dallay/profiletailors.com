@@ -69,6 +69,7 @@ architecture at different levels of abstraction.
 ### 2. Domain-Driven Design (DDD)
 
 - **Bounded Contexts**: Identity, Authorization, Tenancy, Credentials, Governance, Platform
+- **Shared Kernel**: [`shared:common`](../../shared/common/) — framework-agnostic domain primitives shared by all bounded contexts
 - **Aggregates**: Clear boundaries and consistency rules
 - **Domain Events**: For cross-context communication
 

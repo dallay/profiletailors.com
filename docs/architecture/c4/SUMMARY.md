@@ -44,6 +44,24 @@ across multiple platforms (Twitter, LinkedIn, Instagram, Facebook, TikTok).
 
 ---
 
+## Shared Kernel (Shared Libraries)
+
+The API Application is composed of multiple Gradle modules. The **Shared Kernel** (`shared:common`)
+provides framework-agnostic domain primitives used by every bounded context:
+
+| Module | Purpose | Spring Deps |
+|--------|---------|-------------|
+| `shared:common` | Domain primitives, base entities, value objects, `@Service` marker | ❌ None |
+| `shared:bus` | Event bus abstractions | ❌ None |
+| `shared:spring-boot-common` | Spring Boot integration, repository base classes | ✅ Yes |
+| `shared:security` | Security primitives | ❌ None |
+| `shared:presentation` | Presentation layer utilities | ❌ None |
+| `shared:storage` | Storage abstractions | ❌ None |
+
+**Dependency graph:** Every bounded context → `shared:spring-boot-common` → `shared:common`
+
+---
+
 ## Bounded Contexts (Implemented)
 
 ### 1. Identity Context
