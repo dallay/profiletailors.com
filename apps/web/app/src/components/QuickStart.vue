@@ -2,6 +2,11 @@
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Key, Layers, Link, Activity, BookOpen } from '@lucide/vue'
+import { BASE_URL } from '@/config'
+
+const openDocs = () => {
+  window.open('https://docs.omnirouter.ahome.quest', '_blank')
+}
 </script>
 
 <template>
@@ -15,7 +20,7 @@ import { Key, Layers, Link, Activity, BookOpen } from '@lucide/vue'
           {{ $t('dashboard.quickStart.subtitle') }}
         </CardDescription>
       </div>
-      <Button variant="ghost" class="font-mono text-[10px] gap-2 uppercase tracking-widest border border-border-visible h-9 px-4">
+      <Button variant="ghost" class="font-mono text-[10px] gap-2 uppercase tracking-widest border border-border-visible h-9 px-4" @click="openDocs">
         <BookOpen class="size-3.5" />
         {{ $t('dashboard.quickStart.fullDocs') }}
       </Button>
@@ -30,7 +35,7 @@ import { Key, Layers, Link, Activity, BookOpen } from '@lucide/vue'
           <div class="space-y-1.5">
             <h4 class="font-bold text-[13px] text-text-display">{{ $t('dashboard.quickStart.step1Title') }}</h4>
             <p class="text-[12px] text-text-secondary leading-relaxed">
-              Go to <span class="text-error hover:underline cursor-pointer">Endpoint</span> -> Registered Keys. Generate one key per environment.
+              {{ $t('dashboard.quickStart.step1Desc') }}
             </p>
           </div>
         </Card>
@@ -43,7 +48,7 @@ import { Key, Layers, Link, Activity, BookOpen } from '@lucide/vue'
           <div class="space-y-1.5">
             <h4 class="font-bold text-[13px] text-text-display">{{ $t('dashboard.quickStart.step2Title') }}</h4>
             <p class="text-[12px] text-text-secondary leading-relaxed">
-              Add accounts in <span class="text-error hover:underline cursor-pointer">Providers</span>. Supports OAuth, API Key, and free tiers.
+              {{ $t('dashboard.quickStart.step2Desc') }}
             </p>
           </div>
         </Card>
@@ -55,9 +60,7 @@ import { Key, Layers, Link, Activity, BookOpen } from '@lucide/vue'
           </div>
           <div class="space-y-1.5">
             <h4 class="font-bold text-[13px] text-text-display">{{ $t('dashboard.quickStart.step3Title') }}</h4>
-            <p class="text-[12px] text-text-secondary leading-relaxed">
-              Set base URL to <span class="text-text-display font-mono">https://omnirouter.ahome.quest/v1</span> in your IDE or API client.
-            </p>
+            <p class="text-[12px] text-text-secondary leading-relaxed" v-html="$t('dashboard.quickStart.step3Desc', { baseUrl: BASE_URL })"></p>
           </div>
         </Card>
 
@@ -69,7 +72,7 @@ import { Key, Layers, Link, Activity, BookOpen } from '@lucide/vue'
           <div class="space-y-1.5">
             <h4 class="font-bold text-[13px] text-text-display">{{ $t('dashboard.quickStart.step4Title') }}</h4>
             <p class="text-[12px] text-text-secondary leading-relaxed">
-              Track tokens, cost and errors in <span class="text-error hover:underline cursor-pointer">Request Logs</span> and <span class="text-error hover:underline cursor-pointer">Analytics</span>.
+              {{ $t('dashboard.quickStart.step4Desc') }}
             </p>
           </div>
         </Card>
