@@ -183,7 +183,7 @@ const messages = {
         step3Desc: 'Establece la URL base en {url} en tu IDE o cliente API.',
         step4Title: '4. Monitorear y optimizar',
         step4Desc: 'Rastrea tokens, costes y errores en {logs} y {analytics}.',
-        endpoint: 'Endpoint',
+        endpoint: 'Punto de acceso',
         providers: 'Proveedores',
         requestLogs: 'Registros de Solicitudes',
         analytics: 'Analítica',
