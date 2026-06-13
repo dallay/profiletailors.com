@@ -311,15 +311,18 @@ export const usePublishingStore = defineStore('publishing', () => {
     let result: SocialConnectionResult
 
     try {
-      result = await auth.apiFetch<SocialConnectionResult>('/api/publishing/linkedin/connections/complete', {
-        method: 'POST',
-        body: JSON.stringify({
-          authorizationCode: opts.code,
-          redirectUri: opts.redirectUri,
-          state: opts.state,
-        }),
-        workspaceScoped: true,
-      })
+      result = await auth.apiFetch<SocialConnectionResult>(
+        '/api/publishing/linkedin/connections/complete',
+        {
+          method: 'POST',
+          body: JSON.stringify({
+            authorizationCode: opts.code,
+            redirectUri: opts.redirectUri,
+            state: opts.state,
+          }),
+          workspaceScoped: true,
+        },
+      )
     } catch (e) {
       console.error('Failed to complete connection', e)
       throw e

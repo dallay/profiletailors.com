@@ -29,7 +29,8 @@ const messages = {
       avg: 'AVG',
       quickStart: {
         title: 'Quick Start',
-        subtitle: 'Get up and running in 4 steps. Connect providers, route models, monitor everything.',
+        subtitle:
+          'Get up and running in 4 steps. Connect providers, route models, monitor everything.',
         fullDocs: 'Full Docs',
         step1Title: '1. Create API key',
         step1Desc: 'Go to {endpoint} -> Registered Keys. Generate one key per environment.',
@@ -196,7 +197,8 @@ const messages = {
       avg: 'PROM',
       quickStart: {
         title: 'Inicio Rápido',
-        subtitle: 'Ponte en marcha en 4 pasos. Conecta proveedores, enruta modelos, monitorea todo.',
+        subtitle:
+          'Ponte en marcha en 4 pasos. Conecta proveedores, enruta modelos, monitorea todo.',
         fullDocs: 'Docs Completas',
         step1Title: '1. Crear clave API',
         step1Desc: 'Ve a {endpoint} -> Claves Registradas. Genera una clave por entorno.',
