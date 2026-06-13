@@ -58,6 +58,38 @@ class HmacOAuthStateSignerTest {
         }
     }
 
+    @Test
+    fun `rejects blank signing secret`() {
+        val error = assertThrows(IllegalArgumentException::class.java) {
+            HmacOAuthStateSigner("", objectMapper, clock)
+        }
+        assertEquals("OAuth state signing secret is required.", error.message)
+    }
+
+    @Test
+    fun `rejects state with blank payload part`() {
+        val state = signer.sign(validPayload())
+
+        assertThrows(InvalidOAuthStateException::class.java) {
+            signer.verify(".$state")
+        }
+        assertThrows(InvalidOAuthStateException::class.java) {
+            signer.verify("$state.")
+        }
+    }
+
+    @Test
+    fun `rejects state with unparseable json payload`() {
+        val state = signer.sign(validPayload())
+        val parts = state.split('.')
+        val mangledPayload = parts[0].dropLast(2) // corrupted base64
+        val mangledState = "$mangledPayload.${parts[1]}"
+
+        assertThrows(InvalidOAuthStateException::class.java) {
+            signer.verify(mangledState)
+        }
+    }
+
     private fun validPayload(
         expiresAt: Instant = Instant.parse("2026-05-26T12:10:00Z"),
     ): LinkedInOAuthStatePayload = LinkedInOAuthStatePayload(

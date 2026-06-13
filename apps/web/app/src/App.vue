@@ -203,8 +203,12 @@ function selectAccount(account: AccountOption) {
 
 async function handleLogout() {
   closeAccountMenu()
-  await auth.logout()
-  await router.replace('/login')
+  try {
+    await auth.logout()
+    await router.replace('/login')
+  } catch (e) {
+    console.error('Logout failed', e)
+  }
 }
 
 function navigateToSettings() {

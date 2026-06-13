@@ -35,8 +35,12 @@ import com.profiletailors.smp.publishing.domain.SocialProvider
 import com.profiletailors.smp.publishing.infrastructure.events.ChannelEventStreamRegistry
 import kotlinx.coroutines.test.runTest
 import reactor.core.publisher.Flux
+import kotlinx.coroutines.runBlocking
 import org.junit.jupiter.api.Assertions.assertEquals
+import org.junit.jupiter.api.Assertions.assertThrows
 import org.junit.jupiter.api.Test
+import org.springframework.http.HttpStatus
+import org.springframework.web.server.ResponseStatusException
 import java.time.Instant
 
 class PublishingControllersTest {
@@ -268,6 +272,45 @@ class PublishingControllersTest {
             ),
             mediator.lastRequest,
         )
+    }
+
+    @Test
+    fun `returns placeholder for list publications`() = runTest {
+        val mediator = CapturingMediator()
+        val controller = PublishingPublicationController(mediator)
+
+        val response = controller.listPlaceholder()
+
+        assertEquals(mapOf("status" to "not-yet-implemented"), response)
+    }
+
+    @Test
+    fun `rejects invalid timezone in calendar query`() = runTest {
+        val mediator = CapturingMediator()
+        val controller = PublishingPublicationController(mediator)
+        val from = Instant.parse("2026-06-01T00:00:00Z")
+        val to = Instant.parse("2026-07-01T00:00:00Z")
+
+        val error = assertThrows(ResponseStatusException::class.java) {
+            runBlocking {
+                controller.getCalendar(
+                    from = from,
+                    to = to,
+                    timezone = "Not-a-timezone",
+                )
+            }
+        }
+
+        assertEquals(HttpStatus.BAD_REQUEST, error.statusCode)
+        assertEquals("Invalid timezone: 'Not-a-timezone'", error.reason)
+    }
+
+    @Test
+    fun `requiredScheduleMode throws when scheduleMode is null`() {
+        val error = assertThrows(IllegalArgumentException::class.java) {
+            PublicationRescheduleRequest().requiredScheduleMode()
+        }
+        assertEquals("scheduleMode is required for reschedule.", error.message)
     }
 
     @Test

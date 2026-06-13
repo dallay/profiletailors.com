@@ -6,7 +6,7 @@ import org.springframework.stereotype.Component
 import reactor.core.publisher.Flux
 import reactor.core.publisher.Sinks
 
-interface ChannelEventStreamRegistry {
+fun interface ChannelEventStreamRegistry {
     fun stream(): Flux<ChannelEvent>
 }
 

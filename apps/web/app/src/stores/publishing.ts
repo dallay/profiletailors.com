@@ -7,6 +7,22 @@ import { useAuthStore } from './auth'
 // Types — Channel & Publication (frontend model)
 // ---------------------------------------------------------------------------
 
+export interface SocialConnectionResult {
+  connectionId: string
+  workspaceId: string
+  provider: string
+  status: string
+  account: SocialAccountSummary
+}
+
+export interface SocialAccountSummary {
+  accountId: string
+  providerAccountId: string
+  displayName: string
+  kind: string
+  profileUrn: string | null
+}
+
 export interface Channel {
   id: string
   name: string
@@ -292,7 +308,7 @@ export const usePublishingStore = defineStore('publishing', () => {
     state: string
     redirectUri: string
   }) {
-    const result = await auth.apiFetch<unknown>('/api/publishing/linkedin/connections/complete', {
+    const result = await auth.apiFetch<SocialConnectionResult>('/api/publishing/linkedin/connections/complete', {
       method: 'POST',
       body: JSON.stringify({
         authorizationCode: opts.code,
