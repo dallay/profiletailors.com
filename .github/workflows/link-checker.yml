@@ -31,7 +31,7 @@ jobs:
             cache-lychee-
 
       - name: Link Checker
-        uses: lycheeverse/lychee-action@2b973e86fc7b1f6b36a53795c2b2c8e4a0e33b2a # v2
+        uses: lycheeverse/lychee-action@8646ba30535128ac92d33dfc9133794bfdd9b411 # v2.8.0
         with:
           args: >-
             --no-progress --cache --max-cache-age 1d
