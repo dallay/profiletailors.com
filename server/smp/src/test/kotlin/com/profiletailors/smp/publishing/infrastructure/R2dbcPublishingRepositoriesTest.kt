@@ -13,6 +13,7 @@ import com.profiletailors.smp.publishing.domain.SocialAccountKind
 import com.profiletailors.smp.publishing.domain.SocialConnection
 import com.profiletailors.smp.publishing.domain.SocialConnectionStatus
 import com.profiletailors.smp.publishing.domain.SocialProvider
+import com.profiletailors.smp.publishing.infrastructure.persistence.R2dbcConnectedSocialChannelReadRepository
 import com.profiletailors.smp.publishing.infrastructure.persistence.R2dbcPublicationAssetRepository
 import com.profiletailors.smp.publishing.infrastructure.persistence.R2dbcPublicationRepository
 import com.profiletailors.smp.publishing.infrastructure.persistence.R2dbcSocialAccountRepository
@@ -32,6 +33,7 @@ class R2dbcPublishingRepositoriesTest : DatabaseUnitTestBase() {
 
     private lateinit var socialConnectionRepository: R2dbcSocialConnectionRepository
     private lateinit var socialAccountRepository: R2dbcSocialAccountRepository
+    private lateinit var connectedSocialChannelReadRepository: R2dbcConnectedSocialChannelReadRepository
     private lateinit var publicationRepository: R2dbcPublicationRepository
     private lateinit var publicationAssetRepository: R2dbcPublicationAssetRepository
 
@@ -40,6 +42,7 @@ class R2dbcPublishingRepositoriesTest : DatabaseUnitTestBase() {
         seedPrincipalAndWorkspace()
         socialConnectionRepository = R2dbcSocialConnectionRepository(databaseClient)
         socialAccountRepository = R2dbcSocialAccountRepository(databaseClient)
+        connectedSocialChannelReadRepository = R2dbcConnectedSocialChannelReadRepository(databaseClient)
         publicationRepository = R2dbcPublicationRepository(databaseClient)
         publicationAssetRepository = R2dbcPublicationAssetRepository(databaseClient, ObjectMapper())
     }
@@ -75,6 +78,118 @@ class R2dbcPublishingRepositoriesTest : DatabaseUnitTestBase() {
         assertEquals("linkedin-conn-1", loadedConnection?.providerConnectionRef)
         assertEquals("linkedin-account-1", loadedAccount?.providerAccountId)
         assertEquals(SocialAccountKind.PERSONAL_PROFILE, loadedAccount?.kind)
+    }
+
+    @Test
+    fun `social connection upsert preserves id on conflict`() = runTest {
+        val first = socialConnectionRepository.upsert(
+            SocialConnection(
+                id = "soconn-original",
+                workspaceId = "workspace-1",
+                provider = SocialProvider.LINKEDIN,
+                providerConnectionRef = "linkedin-conn-conflict",
+                status = SocialConnectionStatus.ACTIVE,
+                credentialReference = "credential-original",
+                connectedAt = Instant.parse("2026-06-12T12:00:00Z"),
+            ),
+        )
+
+        val updated = socialConnectionRepository.upsert(
+            SocialConnection(
+                id = "soconn-reconnect",
+                workspaceId = "workspace-1",
+                provider = SocialProvider.LINKEDIN,
+                providerConnectionRef = "linkedin-conn-conflict",
+                status = SocialConnectionStatus.REVOKED,
+                credentialReference = "credential-updated",
+                connectedAt = Instant.parse("2026-06-13T12:00:00Z"),
+                lastSyncedAt = Instant.parse("2026-06-13T12:05:00Z"),
+            ),
+        )
+
+        assertEquals(first.id, updated.id)
+        assertEquals("credential-updated", updated.credentialReference)
+        assertEquals(SocialConnectionStatus.REVOKED, updated.status)
+    }
+
+    @Test
+    fun `social account upsert preserves id on conflict`() = runTest {
+        val connection = socialConnectionRepository.upsert(
+            SocialConnection(
+                id = "soconn-account-conflict",
+                workspaceId = "workspace-1",
+                provider = SocialProvider.LINKEDIN,
+                providerConnectionRef = "linkedin-conn-account-conflict",
+                status = SocialConnectionStatus.ACTIVE,
+                credentialReference = "credential-ref",
+            ),
+        )
+        val first = socialAccountRepository.upsert(
+            SocialAccount(
+                id = "soacc-original",
+                socialConnectionId = connection.id,
+                workspaceId = "workspace-1",
+                provider = SocialProvider.LINKEDIN,
+                providerAccountId = "linkedin-account-conflict",
+                kind = SocialAccountKind.PERSONAL_PROFILE,
+                displayName = "Original Name",
+                status = SocialConnectionStatus.ACTIVE,
+            ),
+        )
+
+        val updated = socialAccountRepository.upsert(
+            first.copy(
+                id = "soacc-reconnect",
+                displayName = "Updated Name",
+                profileUrn = "urn:li:person:updated",
+                status = SocialConnectionStatus.REVOKED,
+            ),
+        )
+
+        assertEquals(first.id, updated.id)
+        assertEquals("Updated Name", updated.displayName)
+        assertEquals("urn:li:person:updated", updated.profileUrn)
+        assertEquals(SocialConnectionStatus.REVOKED, updated.status)
+    }
+
+    @Test
+    fun `connected channel read repository returns safe active joined rows`() = runTest {
+        val connection = socialConnectionRepository.upsert(
+            SocialConnection(
+                id = "soconn-read",
+                workspaceId = "workspace-1",
+                provider = SocialProvider.LINKEDIN,
+                providerConnectionRef = "linkedin-conn-read",
+                status = SocialConnectionStatus.ACTIVE,
+                credentialReference = "credential-secret-not-exposed",
+                connectedAt = Instant.parse("2026-06-12T12:00:00Z"),
+            ),
+        )
+        socialAccountRepository.upsert(
+            SocialAccount(
+                id = "soacc-read",
+                socialConnectionId = connection.id,
+                workspaceId = "workspace-1",
+                provider = SocialProvider.LINKEDIN,
+                providerAccountId = "linkedin-account-read",
+                kind = SocialAccountKind.PERSONAL_PROFILE,
+                displayName = "Read Model Name",
+                profileUrn = "urn:li:person:read",
+                status = SocialConnectionStatus.ACTIVE,
+            ),
+        )
+
+        val channels = connectedSocialChannelReadRepository.listByWorkspace("workspace-1")
+
+        assertEquals(1, channels.size)
+        val channel = channels.single()
+        assertEquals("soacc-read", channel.socialAccountId)
+        assertEquals(connection.id, channel.connectionId)
+        assertEquals(SocialProvider.LINKEDIN, channel.provider)
+        assertEquals(SocialAccountKind.PERSONAL_PROFILE, channel.accountKind)
+        assertEquals("Read Model Name", channel.displayName)
+        assertEquals(SocialConnectionStatus.ACTIVE, channel.status)
+        assertEquals("urn:li:person:read", channel.profileUrn)
     }
 
     @Test

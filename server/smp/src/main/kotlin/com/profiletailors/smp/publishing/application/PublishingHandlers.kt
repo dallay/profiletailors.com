@@ -7,10 +7,21 @@ import com.profiletailors.common.domain.context.PrincipalContextProvider
 import com.profiletailors.common.domain.context.ResourceContextProvider
 import com.profiletailors.smp.publishing.domain.ActivityThresholds
 import com.profiletailors.smp.publishing.domain.AssetSourceType
+import com.profiletailors.smp.publishing.domain.ChannelEvent
+import com.profiletailors.smp.publishing.domain.ChannelEventPublisher
+import com.profiletailors.smp.publishing.domain.ChannelEventType
 import com.profiletailors.smp.publishing.domain.CompleteProviderConnectionCommand
+import com.profiletailors.smp.publishing.domain.ConnectedSocialChannel
+import com.profiletailors.smp.publishing.domain.ConnectedSocialChannelReadRepository
 import com.profiletailors.smp.publishing.domain.ConflictDetectionPolicy
+import com.profiletailors.smp.publishing.domain.ExpiredOAuthStateException
+import com.profiletailors.smp.publishing.domain.InvalidOAuthStateException
+import com.profiletailors.smp.publishing.domain.LinkedInAuthorizationUrlBuilder
+import com.profiletailors.smp.publishing.domain.LinkedInOAuthStatePayload
+import com.profiletailors.smp.publishing.domain.OAuthStateSigner
 import com.profiletailors.smp.publishing.domain.ProviderCapabilityValidationInput
 import com.profiletailors.smp.publishing.domain.ProviderCapabilityValidator
+import com.profiletailors.smp.publishing.domain.ProviderNotConfiguredException
 import com.profiletailors.smp.publishing.domain.PublicationAsset
 import com.profiletailors.smp.publishing.domain.PublicationAssetRepository
 import com.profiletailors.smp.publishing.domain.PublicationAssetStatus
@@ -48,18 +59,63 @@ class SocialAccountNotFoundException(
 ) : IllegalArgumentException("Social account '$socialAccountId' was not found in the active workspace.")
 
 @Service
+internal class InitiateLinkedInConnectionHandler(
+    private val principalContextProvider: PrincipalContextProvider,
+    private val resourceContextProvider: ResourceContextProvider,
+    private val oauthStateSigner: OAuthStateSigner,
+    private val authorizationUrlBuilder: LinkedInAuthorizationUrlBuilder,
+    private val clock: Clock,
+) : CommandWithResultHandler<InitiateLinkedInConnectionCommand, LinkedInConnectionInitiationResult> {
+    override suspend fun handle(command: InitiateLinkedInConnectionCommand): LinkedInConnectionInitiationResult {
+        if (!authorizationUrlBuilder.isConfigured()) {
+            throw ProviderNotConfiguredException(SocialProvider.LINKEDIN)
+        }
+        val principal = principalContextProvider.require()
+        val workspaceId = requireNotNull(resourceContextProvider.requireWorkspaceContext().workspaceId)
+        val issuedAt = clock.instant()
+        val expiresAt = issuedAt.plus(STATE_TTL)
+        val state = oauthStateSigner.sign(
+            LinkedInOAuthStatePayload(
+                provider = SocialProvider.LINKEDIN,
+                workspaceId = workspaceId,
+                principalId = principal.principalId,
+                redirectUri = command.redirectUri,
+                nonce = UUID.randomUUID().toString(),
+                issuedAt = issuedAt,
+                expiresAt = expiresAt,
+            ),
+        )
+        return LinkedInConnectionInitiationResult(
+            authorizationUrl = authorizationUrlBuilder.buildAuthorizationUrl(
+                state = state,
+                redirectUri = command.redirectUri,
+            ),
+            state = state,
+            expiresAt = expiresAt,
+        )
+    }
+
+    private companion object {
+        val STATE_TTL: java.time.Duration = java.time.Duration.ofMinutes(10)
+    }
+}
+
+@Service
 internal class CompleteLinkedInConnectionHandler(
     private val principalContextProvider: PrincipalContextProvider,
     private val resourceContextProvider: ResourceContextProvider,
     private val socialConnectionProvider: SocialConnectionProvider,
+    private val oauthStateSigner: OAuthStateSigner,
     private val socialConnectionRepository: SocialConnectionRepository,
     private val socialAccountRepository: SocialAccountRepository,
+    private val channelEventPublisher: ChannelEventPublisher,
     private val clock: Clock,
 ) : CommandWithResultHandler<CompleteLinkedInConnectionCommand, SocialConnectionResult> {
     override suspend fun handle(command: CompleteLinkedInConnectionCommand): SocialConnectionResult {
         val principal = principalContextProvider.require()
         val resourceContext = resourceContextProvider.requireWorkspaceContext()
         val workspaceId = requireNotNull(resourceContext.workspaceId)
+        validateState(command, principal.principalId, workspaceId)
         val providerResult = socialConnectionProvider.completeConnection(
             CompleteProviderConnectionCommand(
                 workspaceId = workspaceId,
@@ -93,6 +149,14 @@ internal class CompleteLinkedInConnectionHandler(
                 status = SocialConnectionStatus.ACTIVE,
             ),
         )
+        channelEventPublisher.publish(
+            ChannelEvent(
+                type = ChannelEventType.CONNECTED_CHANNEL_UPDATED,
+                workspaceId = workspaceId,
+                socialAccountId = account.id,
+                occurredAt = clock.instant(),
+            ),
+        )
 
         return SocialConnectionResult(
             connectionId = connection.id,
@@ -108,7 +172,63 @@ internal class CompleteLinkedInConnectionHandler(
             ),
         )
     }
+
+    private fun validateState(
+        command: CompleteLinkedInConnectionCommand,
+        principalId: String,
+        workspaceId: String,
+    ) {
+        val payload = oauthStateSigner.verify(command.state)
+        if (!payload.expiresAt.isAfter(clock.instant())) {
+            throw ExpiredOAuthStateException()
+        }
+        requireOAuthState(payload.provider == SocialProvider.LINKEDIN) {
+            "OAuth state provider does not match LinkedIn."
+        }
+        requireOAuthState(payload.workspaceId == workspaceId) {
+            "OAuth state workspace does not match the active workspace."
+        }
+        requireOAuthState(payload.principalId == principalId) {
+            "OAuth state principal does not match the active principal."
+        }
+        requireOAuthState(payload.redirectUri == command.redirectUri) {
+            "OAuth state redirect URI does not match the completion request."
+        }
+    }
+
+    private fun requireOAuthState(condition: Boolean, message: () -> String) {
+        if (!condition) {
+            throw InvalidOAuthStateException(message())
+        }
+    }
 }
+
+@Service
+internal class ListConnectedChannelsHandler(
+    private val resourceContextProvider: ResourceContextProvider,
+    private val connectedSocialChannelReadRepository: ConnectedSocialChannelReadRepository,
+) : QueryHandler<ListConnectedChannelsQuery, ConnectedChannelsResponse> {
+    override suspend fun handle(query: ListConnectedChannelsQuery): ConnectedChannelsResponse {
+        val workspaceId = requireNotNull(resourceContextProvider.requireWorkspaceContext().workspaceId)
+        val statuses = query.status?.let { setOf(it) } ?: setOf(SocialConnectionStatus.ACTIVE)
+        val channels = connectedSocialChannelReadRepository
+            .listByWorkspace(workspaceId = workspaceId, statuses = statuses)
+            .map { it.toSummary() }
+        return ConnectedChannelsResponse(channels)
+    }
+}
+
+private fun ConnectedSocialChannel.toSummary(): ConnectedSocialChannelSummary = ConnectedSocialChannelSummary(
+    socialAccountId = socialAccountId,
+    connectionId = connectionId,
+    provider = provider,
+    accountKind = accountKind,
+    displayName = displayName,
+    status = status,
+    profileUrn = profileUrn,
+    connectedAt = connectedAt,
+    lastSyncedAt = lastSyncedAt,
+)
 
 @Service
 internal class CreatePublicationHandler(

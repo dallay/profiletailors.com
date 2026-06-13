@@ -6,6 +6,8 @@ import com.fasterxml.jackson.databind.ObjectMapper
 import org.springframework.beans.factory.annotation.Autowired
 import com.profiletailors.smp.publishing.domain.AssetSourceType
 import com.profiletailors.smp.publishing.domain.AssetUploader
+import com.profiletailors.smp.publishing.domain.LinkedInAuthorizationUrlBuilder
+import com.profiletailors.smp.publishing.domain.OAuthStateSigner
 import com.profiletailors.smp.publishing.domain.AssetUploadContext
 import com.profiletailors.smp.publishing.domain.CompleteProviderConnectionCommand
 import com.profiletailors.smp.publishing.domain.ProviderAccountProfile
@@ -30,6 +32,7 @@ import org.springframework.context.annotation.Bean
 import org.springframework.context.annotation.Configuration
 import java.io.IOException
 import java.net.URI
+import java.time.Clock
 import java.net.URLEncoder
 import java.net.http.HttpClient
 import java.net.http.HttpRequest
@@ -444,6 +447,19 @@ class LinkedInPublishingConfiguration {
         tokenBaseUrl = tokenBaseUrl,
         apiVersion = apiVersion,
     )
+
+    @Bean
+    fun linkedInAuthorizationUrlBuilder(properties: LinkedInPublishingProperties): LinkedInAuthorizationUrlBuilder =
+        LinkedInAuthorizationUrlBuilderAdapter(properties)
+
+    @Bean
+    fun oauthStateSigner(
+        @Value(
+            "\${publishing.linkedin.state-signing-secret:profiletailors-dev-oauth-state-secret}",
+        ) stateSigningSecret: String,
+        objectMapper: ObjectMapper,
+        clock: Clock,
+    ): OAuthStateSigner = HmacOAuthStateSigner(stateSigningSecret, objectMapper, clock)
 
     @Bean
     fun linkedInHttpTransport(): LinkedInHttpTransport = JdkLinkedInHttpTransport(HttpClient.newHttpClient())

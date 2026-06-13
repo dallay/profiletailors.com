@@ -97,35 +97,83 @@ profiletailors.com/
 
 ### Prerequisites
 
-| Requirement | Version      |
-|-------------|--------------|
-| Node.js     | `>= 22.12.0` |
-| pnpm        | `>= 10`      |
+| Requirement    | Version               | Install                                    |
+|----------------|-----------------------|--------------------------------------------|
+| Node.js        | `>= 22.12.0`          | [nodejs.org](https://nodejs.org)           |
+| pnpm           | `>= 10`               | `npm install -g pnpm`                      |
+| just           | `>= 1.30`             | `brew install just` / `winget install Casey.Just` / `cargo install just` |
+
+> **Windows users:** `just` runs natively on Windows. The Gradle wrapper is auto-detected
+> (`gradlew.bat` in CMD/PowerShell, `./gradlew` in Git Bash/WSL). Recipes that use `rm -rf`
+> still require a POSIX shell — use **Git Bash** (included with [Git for Windows](https://git-scm.com))
+> or **WSL**.
 
 ### Install and run locally
 
 ```bash
 git clone https://github.com/dallay/profiletailors.com.git
-cd profiletailors.com/apps/web/marketing
-pnpm install
-pnpm dev
+cd profiletailors.com
+just install       # installs all dependencies (frontend + backend)
+just frontend-dev  # starts the Astro dev server
 ```
 
 The site will be available at [http://localhost:4321](http://localhost:4321).
 
-### Common commands
+### Command Hub
 
-Run these from `apps/web/marketing/`:
+This repo uses [`just`](https://github.com/casey/just) as a centralized command runner.
+All common operations are available via `just <recipe>` — no need to remember pnpm, Gradle, or
+Docker commands separately. Run `just -l` to list everything.
 
-| Command        | What it does                           |
-|----------------|----------------------------------------|
-| `pnpm install` | Install dependencies                   |
-| `pnpm dev`     | Start the Astro dev server             |
-| `pnpm build`   | Build the production site into `dist/` |
-| `pnpm preview` | Preview the production build locally   |
-| `pnpm check`   | Run Astro type/content checks          |
-| `pnpm lint`    | Lint the app source with Biome         |
-| `pnpm format`  | Format code with Biome                 |
+#### Frontend (Astro / pnpm)
+
+| Command                     | What it does                        |
+|-----------------------------|-------------------------------------|
+| `just frontend-dev`         | Start the Astro dev server          |
+| `just frontend-build`       | Build the production site           |
+| `just frontend-preview`     | Preview the production build        |
+| `just frontend-lint`        | Lint with Biome                     |
+| `just frontend-format`      | Format code with Biome              |
+| `just frontend-check`       | Run Astro type/content checks       |
+| `just frontend-test`        | Run unit tests (Vitest)             |
+| `just frontend-test-cov`    | Run unit tests with coverage        |
+| `just frontend-test-e2e`    | Run E2E tests (Playwright headless) |
+
+#### Backend (Gradle / Kotlin / Spring Boot)
+
+| Command                     | What it does                        |
+|-----------------------------|-------------------------------------|
+| `just backend-build`        | Compile and package                 |
+| `just backend-run`          | Start Spring Boot (dev profile)     |
+| `just backend-test-fast`    | Run unit tests (fast: no Postgres)  |
+| `just backend-test`         | Run unit tests (pass exclude-tags)  |
+| `just backend-lint`         | Run Detekt static analysis          |
+| `just backend-check`        | Full check (tests + Detekt)         |
+| `just backend-coverage`     | Tests with JaCoCo coverage report   |
+
+#### Infrastructure (Docker)
+
+| Command              | What it does                    |
+|----------------------|---------------------------------|
+| `just infra-up`      | Start Postgres + services       |
+| `just infra-down`    | Stop and remove containers      |
+| `just infra-logs`    | Tail service logs               |
+
+#### CI Simulation
+
+| Command             | What it does                                   |
+|---------------------|------------------------------------------------|
+| `just ci-local`     | Full CI pipeline simulation (fast, local-only) |
+| `just ci-full`      | CI pipeline + Postgres BDD tests               |
+
+#### Setup & Maintenance
+
+| Command               | What it does                          |
+|-----------------------|---------------------------------------|
+| `just install`        | Install all dependencies              |
+| `just setup`          | Full initial setup (.env + install + hooks) |
+| `just hooks-install`  | Install Lefthook git hooks            |
+| `just clean`          | Clean all build artifacts and caches  |
 
 ---
 

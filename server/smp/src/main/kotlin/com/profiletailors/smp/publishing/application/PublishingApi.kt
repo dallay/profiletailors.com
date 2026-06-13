@@ -13,10 +13,41 @@ import com.profiletailors.smp.publishing.domain.SocialProvider
 import java.time.Instant
 import java.time.LocalDate
 
+data class InitiateLinkedInConnectionCommand(
+    val redirectUri: String,
+) : CommandWithResult<LinkedInConnectionInitiationResult>
+
+data class LinkedInConnectionInitiationResult(
+    val authorizationUrl: String,
+    val state: String,
+    val expiresAt: Instant,
+)
+
 data class CompleteLinkedInConnectionCommand(
     val authorizationCode: String,
     val redirectUri: String,
+    val state: String,
 ) : CommandWithResult<SocialConnectionResult>
+
+data class ListConnectedChannelsQuery(
+    val status: SocialConnectionStatus? = SocialConnectionStatus.ACTIVE,
+) : Query<ConnectedChannelsResponse>
+
+data class ConnectedChannelsResponse(
+    val channels: List<ConnectedSocialChannelSummary>,
+)
+
+data class ConnectedSocialChannelSummary(
+    val socialAccountId: String,
+    val connectionId: String,
+    val provider: SocialProvider,
+    val accountKind: SocialAccountKind,
+    val displayName: String,
+    val status: SocialConnectionStatus,
+    val profileUrn: String?,
+    val connectedAt: Instant?,
+    val lastSyncedAt: Instant?,
+)
 
 data class CreatePublicationCommand(
     val socialAccountId: String,

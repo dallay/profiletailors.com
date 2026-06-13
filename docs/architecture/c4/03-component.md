@@ -131,8 +131,43 @@ graph TB
         HTTP[HTTP Layer<br/>WebFlux Controllers]
         
         subgraph "Shared Kernel"
-            KERNEL[Shared Kernel<br/>shared:common<br/>Domain Primitives, Base Entities,<br/>Value Objects, @Service Marker<br/>Zero Spring Dependencies]
+            KERNEL[Shared Kernel<br/>shared:common<br/>Domain Primitives, Value Objects,<br/>@Service Marker<br/>Zero Spring Dependencies]
+
+            SHARED_BUS[shared:bus<br/>Event Bus & CQRS]
+            SHARED_SEC[shared:security<br/>Hasher & Crypto]
+            SHARED_PRES[shared:presentation<br/>PageResponse, DTOs]
+
+            SHARED_SBC[shared:spring-boot-common<br/>Spring Boot Integration<br/>Exception handlers, presenters, repos]
+
+            SHARED_STORAGE[shared:storage<br/>S3/R2 Abstraction]
+            SHARED_RL[shared:shield:ratelimit<br/>Rate Limiting]
+
+            SHARED_BUS --> KERNEL
+            SHARED_SEC --> KERNEL
+            SHARED_PRES --> KERNEL
+            SHARED_SBC --> KERNEL
+            SHARED_SBC --> SHARED_BUS
+            SHARED_SBC --> SHARED_SEC
+            SHARED_SBC --> SHARED_PRES
+            SHARED_RL --> SHARED_SBC
+            SHARED_RL --> SHARED_BUS
+            SHARED_STORAGE --> KERNEL
+            SHARED_STORAGE --> SHARED_BUS
+            SHARED_STORAGE --> SHARED_RL
         end
+
+        %% All bounded contexts use the shared kernel
+        IDENTITY -.->|Uses| SHARED_SBC
+        AUTHZ -.->|Uses| SHARED_SBC
+        TENANCY -.->|Uses| SHARED_SBC
+        CREDS -.->|Uses| SHARED_SBC
+        GOV -.->|Uses| SHARED_SBC
+        PLATFORM -.->|Uses| SHARED_SBC
+        AUDIT -.->|Uses| SHARED_SBC
+        OBS -.->|Uses| SHARED_SBC
+        CONTENT -.->|Uses| SHARED_SBC
+        ANALYTICS_CTX -.->|Uses| SHARED_SBC
+        INTEGRATIONS -.->|Uses| SHARED_SBC
 
         subgraph "Core Bounded Contexts"
             IDENTITY[Identity Context<br/>Authentication & Principals]
@@ -154,18 +189,6 @@ graph TB
 
     SPA -->|REST/JSON| HTTP
 
-    IDENTITY -.->|Uses| KERNEL
-    AUTHZ -.->|Uses| KERNEL
-    TENANCY -.->|Uses| KERNEL
-    CREDS -.->|Uses| KERNEL
-    GOV -.->|Uses| KERNEL
-    PLATFORM -.->|Uses| KERNEL
-    AUDIT -.->|Uses| KERNEL
-    OBS -.->|Uses| KERNEL
-    CONTENT -.->|Uses| KERNEL
-    ANALYTICS_CTX -.->|Uses| KERNEL
-    INTEGRATIONS -.->|Uses| KERNEL
-    
     HTTP --> IDENTITY
     HTTP --> AUTHZ
     HTTP --> TENANCY
@@ -223,12 +246,17 @@ graph TB
     classDef planned fill:#666666,stroke:#444444,color:#fff
     classDef infrastructure fill:#438DD5,stroke:#2E6295,color:#fff
     classDef external fill:#999999,stroke:#6B6B6B,color:#fff
+    classDef shared fill:#1a3a5c,stroke:#2a5a8c,color:#fff
 
     class HTTP,IDENTITY,AUTHZ,TENANCY,CREDS,GOV,PLATFORM,AUDIT,OBS implemented
     class CONTENT,ANALYTICS_CTX,INTEGRATIONS planned
     class DB,CACHE infrastructure
     class SPA,SCHED,SOCIAL,AUTH external
+    class KERNEL,SHARED_BUS,SHARED_SEC,SHARED_PRES,SHARED_SBC,SHARED_STORAGE,SHARED_RL shared
 ```
+
+> **Full dependency graph:** See [Shared Module Dependencies](../shared/dependencies.md) for
+> the complete module dependency diagram with all `api` vs `implementation` edges.
 
 ---
 

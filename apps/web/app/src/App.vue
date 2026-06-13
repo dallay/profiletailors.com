@@ -16,6 +16,7 @@ import {
 } from '@lucide/vue'
 import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import { RouterLink, RouterView, useRoute, useRouter } from 'vue-router'
+import { useI18n } from 'vue-i18n'
 import ThemeToggle from '@/components/ThemeToggle.vue'
 import { TooltipProvider } from '@/components/ui/tooltip'
 import {
@@ -72,6 +73,7 @@ const auth = useAuthStore()
 const router = useRouter()
 const route = useRoute()
 const settings = useSettingsStore()
+const { t } = useI18n()
 const publishingStore = usePublishingStore()
 const accountMenuOpen = ref(false)
 const accountMenuRef = ref<HTMLElement | null>(null)
@@ -139,6 +141,7 @@ const sidebarChannels = computed<SidebarChannel[]>(() =>
 const totalQueuedCount = computed(() => queuedCounts.value.total)
 
 const connectChannels = computed<ConnectChannel[]>(() => [
+  { id: 'linkedin', label: t('channels.linkedinProfile'), badge: 'in' },
   { id: 'threads', label: 'Threads', badge: '@' },
   { id: 'bluesky', label: 'Bluesky', badge: 'b' },
   { id: 'facebook', label: 'Facebook', badge: 'f' },
@@ -200,8 +203,17 @@ function selectAccount(account: AccountOption) {
 
 async function handleLogout() {
   closeAccountMenu()
-  await auth.logout()
-  await router.replace('/login')
+  try {
+    await auth.logout()
+  } catch (e) {
+    console.error('Logout failed', e)
+  } finally {
+    try {
+      await router.replace('/login')
+    } catch (e) {
+      console.error('Navigation failed', e)
+    }
+  }
 }
 
 function navigateToSettings() {
@@ -212,7 +224,21 @@ function navigateToSettings() {
 const connectMessage = ref('')
 let connectTimeout: ReturnType<typeof setTimeout> | null = null
 
-function handleConnectChannel(channel: ConnectChannel) {
+async function handleConnectChannel(channel: ConnectChannel) {
+  if (channel.id === 'linkedin') {
+    connectMessage.value = t('channels.connectingLinkedIn')
+    try {
+      await publishingStore.connectLinkedInPersonalProfile()
+    } catch (err) {
+      connectMessage.value = err instanceof Error ? err.message : t('channels.connectLinkedInFailed')
+      if (connectTimeout) clearTimeout(connectTimeout)
+      connectTimeout = setTimeout(() => {
+        connectMessage.value = ''
+      }, 3500)
+    }
+    return
+  }
+
   connectMessage.value = `${channel.label} ${channel.id === 'threads' ? 'coming soon' : 'connection available soon'}`
   if (connectTimeout) clearTimeout(connectTimeout)
   connectTimeout = setTimeout(() => {
@@ -256,6 +282,18 @@ function handleEscapeKey(event: KeyboardEvent) {
 watch(() => route.path, () => {
   closeAccountMenu()
 })
+
+watch(
+  () => auth.isAuthenticated,
+  (isAuthenticated) => {
+    if (isAuthenticated) {
+      publishingStore.fetchChannels().catch((err) => {
+        console.warn('Unable to load connected channels', err)
+      })
+    }
+  },
+  { immediate: true },
+)
 
 onMounted(() => {
   document.addEventListener('click', handleDocumentClick)

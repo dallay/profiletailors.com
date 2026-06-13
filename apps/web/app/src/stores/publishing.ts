@@ -1,10 +1,27 @@
 import { ref, computed } from 'vue'
 import { defineStore } from 'pinia'
+import { consumeSseStream } from '@/lib/sse'
 import { useAuthStore } from './auth'
 
 // ---------------------------------------------------------------------------
 // Types — Channel & Publication (frontend model)
 // ---------------------------------------------------------------------------
+
+export interface SocialConnectionResult {
+  connectionId: string
+  workspaceId: string
+  provider: string
+  status: string
+  account: SocialAccountSummary
+}
+
+export interface SocialAccountSummary {
+  accountId: string
+  providerAccountId: string
+  displayName: string
+  kind: string
+  profileUrn: string | null
+}
 
 export interface Channel {
   id: string
@@ -71,6 +88,28 @@ export interface CalendarResponse {
   activity: ActivityEntry[]
 }
 
+export interface ConnectedSocialChannelSummary {
+  socialAccountId: string
+  connectionId: string
+  provider: 'LINKEDIN' | string
+  accountKind: 'PERSONAL_PROFILE' | 'ORGANIZATION_PAGE' | string
+  displayName: string
+  status: 'ACTIVE' | 'REVOKED' | 'EXPIRED' | 'ERROR' | string
+  profileUrn: string | null
+  connectedAt: string | null
+  lastSyncedAt: string | null
+}
+
+export interface ConnectedChannelsResponse {
+  channels: ConnectedSocialChannelSummary[]
+}
+
+interface LinkedInConnectionInitiationResult {
+  authorizationUrl: string
+  state: string
+  expiresAt: string
+}
+
 /** Filter params accepted by fetchCalendar */
 export interface CalendarFilters {
   status?: string
@@ -94,6 +133,18 @@ function toChannelProvider(backendProvider: string): Publication['channels'][num
   const lower = backendProvider.toLowerCase()
   const known = new Set(['twitter', 'linkedin', 'instagram', 'facebook'])
   return known.has(lower) ? (lower as Publication['channels'][number]) : 'linkedin'
+}
+
+function apiChannelToChannel(api: ConnectedSocialChannelSummary): Channel {
+  return {
+    id: api.socialAccountId,
+    accountId: api.socialAccountId,
+    name: api.displayName,
+    provider: toChannelProvider(api.provider),
+    avatar: '',
+    handle: api.profileUrn ?? api.displayName,
+    status: api.status === 'ACTIVE' ? 'ACTIVE' : 'INACTIVE',
+  }
 }
 
 /** Converts a single API result to a frontend Publication. */
@@ -133,39 +184,11 @@ function mapApiStatus(s: string): Publication['status'] {
 export const usePublishingStore = defineStore('publishing', () => {
   const auth = useAuthStore()
 
-  // Seeding initial mock channels
-  const channels = ref<Channel[]>([
-    {
-      id: 'ch-twitter',
-      name: 'yacosta738',
-      provider: 'twitter',
-      avatar:
-        'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=150&q=80',
-      handle: '@yacosta738',
-      status: 'ACTIVE',
-      accountId: 'account-twitter-mock',
-    },
-    {
-      id: 'ch-linkedin',
-      name: 'Yuniel Acosta Pérez',
-      provider: 'linkedin',
-      avatar:
-        'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&w=150&q=80',
-      handle: 'Yuniel Acosta Pérez',
-      status: 'ACTIVE',
-      accountId: 'account-linkedin-mock',
-    },
-    {
-      id: 'ch-instagram',
-      name: 'yacosta738',
-      provider: 'instagram',
-      avatar:
-        'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=150&q=80',
-      handle: '@yacosta738',
-      status: 'ACTIVE',
-      accountId: 'account-instagram-mock',
-    },
-  ])
+  const channels = ref<Channel[]>([])
+  const channelsLoading = ref(false)
+  const channelsError = ref<string | null>(null)
+  const channelEventsConnected = ref(false)
+  const channelEventsAbortController = ref<AbortController | null>(null)
 
   // Seeding initial mock publications
   const initialPublications: Publication[] = [
@@ -236,6 +259,120 @@ export const usePublishingStore = defineStore('publishing', () => {
   }
 
   // -----------------------------------------------------------------------
+  // Actions — Channel API
+  // -----------------------------------------------------------------------
+
+  async function fetchChannels() {
+    if (!auth.isAuthenticated) {
+      channels.value = []
+      channelsError.value = null
+      return []
+    }
+
+    channelsLoading.value = true
+    channelsError.value = null
+
+    try {
+      const data = await auth.apiFetch<ConnectedChannelsResponse>('/api/publishing/channels', {
+        method: 'GET',
+        workspaceScoped: true,
+      })
+      channels.value = data.channels.map(apiChannelToChannel)
+      return channels.value
+    } catch (err) {
+      const message = err instanceof Error ? err.message : 'Unable to load connected channels.'
+      channelsError.value = message
+      throw err
+    } finally {
+      channelsLoading.value = false
+    }
+  }
+
+  async function connectLinkedInPersonalProfile(
+    redirectUri = `${window.location.origin}/integrations/linkedin/callback`,
+  ) {
+    const data = await auth.apiFetch<LinkedInConnectionInitiationResult>(
+      '/api/publishing/linkedin/connections/initiate',
+      {
+        method: 'POST',
+        body: JSON.stringify({ redirectUri }),
+        workspaceScoped: true,
+      },
+    )
+    window.location.assign(data.authorizationUrl)
+    return data
+  }
+
+  async function completeLinkedInConnectionFromCallback(opts: {
+    code: string
+    state: string
+    redirectUri: string
+  }) {
+    let result: SocialConnectionResult
+
+    try {
+      result = await auth.apiFetch<SocialConnectionResult>('/api/publishing/linkedin/connections/complete', {
+        method: 'POST',
+        body: JSON.stringify({
+          authorizationCode: opts.code,
+          redirectUri: opts.redirectUri,
+          state: opts.state,
+        }),
+        workspaceScoped: true,
+      })
+    } catch (e) {
+      console.error('Failed to complete connection', e)
+      throw e
+    }
+
+    await fetchChannels()
+    return result
+  }
+
+  async function subscribeChannelEvents() {
+    if (!auth.isAuthenticated) {
+      channelEventsConnected.value = false
+      return null
+    }
+
+    unsubscribeChannelEvents()
+    const abortController = new AbortController()
+    channelEventsAbortController.value = abortController
+
+    try {
+      const response = await auth.apiFetchRaw('/api/publishing/channels/events', {
+        method: 'GET',
+        headers: { Accept: 'text/event-stream' },
+        workspaceScoped: true,
+        signal: abortController.signal,
+      })
+      channelEventsConnected.value = true
+      await consumeSseStream(response, async ({ event }) => {
+        if (event === 'connected-channel.updated' || event === 'connected-channel.removed') {
+          await fetchChannels()
+        }
+      })
+    } catch (err) {
+      if (!abortController.signal.aborted) {
+        console.warn('Channel event stream unavailable; continuing with REST channel list.', err)
+      }
+    } finally {
+      if (channelEventsAbortController.value === abortController) {
+        channelEventsAbortController.value = null
+      }
+      channelEventsConnected.value = false
+    }
+
+    return null
+  }
+
+  function unsubscribeChannelEvents() {
+    channelEventsAbortController.value?.abort()
+    channelEventsAbortController.value = null
+    channelEventsConnected.value = false
+  }
+
+  // -----------------------------------------------------------------------
   // Actions — Calendar API
   // -----------------------------------------------------------------------
 
@@ -256,6 +393,7 @@ export const usePublishingStore = defineStore('publishing', () => {
       try {
         const data = await auth.apiFetch<CalendarResponse>(
           `/api/publishing/publications/calendar?${params.toString()}`,
+          { workspaceScoped: true },
         )
         publications.value = data.publications.map(apiResultToPublication)
         activity.value = data.activity
@@ -307,6 +445,7 @@ export const usePublishingStore = defineStore('publishing', () => {
             scheduledFor: opts.scheduledFor,
             priority: opts.priority ?? false,
           }),
+          workspaceScoped: true,
         })
       } catch (err) {
         console.warn('Quick-create API unavailable, saving locally', err)
@@ -344,6 +483,7 @@ export const usePublishingStore = defineStore('publishing', () => {
             scheduledFor: newScheduledFor,
             priority: previous.priority,
           }),
+          workspaceScoped: true,
         })
         saveToStorage()
         return publications.value[idx]
@@ -402,15 +542,18 @@ export const usePublishingStore = defineStore('publishing', () => {
         // LinkedIn is the only active integration on the backend
         const hasLinkedIn = post.channels.includes('linkedin')
         if (hasLinkedIn) {
-          // Find the active account ID. In production we map workspace connections
-          const linkedInChannel = channels.value.find((c) => c.provider === 'linkedin')
-          const accountId = linkedInChannel?.accountId || 'account-linkedin-mock'
+          const linkedInChannel = channels.value.find(
+            (c) => c.provider === 'linkedin' && c.status === 'ACTIVE',
+          )
+          if (!linkedInChannel?.accountId) {
+            throw new Error('Connect a LinkedIn profile before scheduling authenticated posts.')
+          }
 
           // Call the Spring Boot API
           await auth.apiFetch<unknown>('/api/publishing/publications', {
             method: 'POST',
             body: JSON.stringify({
-              socialAccountId: accountId,
+              socialAccountId: linkedInChannel.accountId,
               title: post.title || 'Post via Web App',
               bodyText: post.content,
               assetIds: [],
@@ -418,10 +561,14 @@ export const usePublishingStore = defineStore('publishing', () => {
               scheduledFor: post.scheduledAt,
               priority: post.priority,
             }),
+            workspaceScoped: true,
           })
           console.log('Successfully synced publication with backend API!')
         }
       } catch (err) {
+        if (post.channels.includes('linkedin')) {
+          throw err
+        }
         console.warn('Backend API unavailable. Saving to local storage mock queue instead.', err)
       }
     }
@@ -502,6 +649,10 @@ export const usePublishingStore = defineStore('publishing', () => {
   return {
     // State
     channels,
+    channelsLoading,
+    channelsError,
+    channelEventsConnected,
+    channelEventsAbortController,
     publications,
     activity,
     conflicts,
@@ -513,6 +664,11 @@ export const usePublishingStore = defineStore('publishing', () => {
     viewMode,
     calendarFilters,
     // Actions
+    fetchChannels,
+    connectLinkedInPersonalProfile,
+    completeLinkedInConnectionFromCallback,
+    subscribeChannelEvents,
+    unsubscribeChannelEvents,
     fetchCalendar,
     quickCreatePost,
     reschedulePublication,

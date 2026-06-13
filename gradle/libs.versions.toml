@@ -22,6 +22,7 @@ mockk = "1.14.11"
 testcontainers = "1.20.6"
 cucumber = "7.18.1"
 archunit = "1.4.2"
+kover = "0.9.1"
 
 [libraries]
 # Kotlin
@@ -89,6 +90,7 @@ h2 = { module = "com.h2database:h2" }
 r2dbc-h2 = { module = "io.r2dbc:r2dbc-h2" }
 
 # Gradle Plugins for build-logic
+gradle-kover = { module = "org.jetbrains.kotlinx:kover-gradle-plugin", version.ref = "kover" }
 gradle-kotlin = { module = "org.jetbrains.kotlin:kotlin-gradle-plugin", version.ref = "kotlin" }
 gradle-spring-boot = { module = "org.springframework.boot:spring-boot-gradle-plugin", version.ref = "springBoot" }
 gradle-spring-dependency = { module = "io.spring.dependency-management:io.spring.dependency-management.gradle.plugin", version.ref = "springManagement" }
@@ -102,3 +104,4 @@ spring-boot = { id = "org.springframework.boot", version.ref = "springBoot" }
 spring-dependency-management = { id = "io.spring.dependency-management", version.ref = "springManagement" }
 detekt = { id = "dev.detekt", version.ref = "detekt" }
 owasp-dependencycheck = { id = "org.owasp.dependencycheck", version.ref = "owasp" }
+kover = { id = "org.jetbrains.kotlinx.kover", version.ref = "kover" }

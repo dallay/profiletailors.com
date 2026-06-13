@@ -105,7 +105,6 @@ The root `portless.json` provides additional name resolution for the monorepo:
 
 ```json
 {
-  "$schema": "https://portless.sh/schema.json",
   "apps": {
     "apps/web/app": { "name": "pt-app" },
     "apps/web/marketing": { "name": "profile-tailors" }
@@ -149,7 +148,6 @@ alternative port via `portless.json`.
 
 ## References
 
-- [Portless documentation](https://portless.sh/docs)
-- [Portless GitHub](https://github.com/akita-software/portless)
+- [Portless](https://portless.sh)
 - [Monorepo structure](../README.md)
 - [pnpm workspaces](https://pnpm.io/workspaces)
