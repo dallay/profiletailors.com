@@ -165,6 +165,14 @@ graph TB
 - **Deployment**: Container (Docker) on Kubernetes or Cloud Run
 - **Purpose**: Core business logic and REST API
 - **Architecture**: Hexagonal architecture with bounded contexts
+- **Composition**: Multi-module Gradle project composed of:
+    - `shared:common` — **Shared Kernel**: domain primitives, base entities, value objects (pure Kotlin, zero Spring dependencies)
+    - `shared:bus` — Event bus abstractions
+    - `shared:spring-boot-common` — Spring Boot integration library
+    - `shared:security` — Security primitives
+    - `shared:presentation` — Presentation layer utilities
+    - `shared:storage` — Storage abstractions
+    - `server:smp` — Application assembly (Spring Boot application)
 - **Bounded Contexts**:
     - **Identity**: User authentication and principal management
     - **Authorization**: Permission checks, role-based access control
