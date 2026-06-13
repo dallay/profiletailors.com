@@ -359,7 +359,7 @@ class Bucket4jRateLimiterTest {
         val result = deterministicLimiter.consumeToken("DETERMINISTIC-KEY", RateLimitStrategy.AUTH)
         assertTrue(
             result is RateLimitResult.Allowed,
-            "Expected RateLimitResult.Allowed, got ${result?.let { it::class }}",
+            "Expected RateLimitResult.Allowed, got ${result.let { it::class }}",
         )
         val expectedReset = fixedNow.plus(Duration.ofMinutes(1))
         assertEquals(

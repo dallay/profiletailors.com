@@ -10,6 +10,18 @@ import org.springframework.data.relational.core.mapping.Column
 import org.springframework.data.relational.core.query.Criteria as R2DBCCriteria
 import org.springframework.data.relational.core.query.Criteria.CriteriaStep as R2DBCCriteriaStep
 
+/**
+ * Translates domain [Criteria] objects into Spring Data R2DBC [R2DBCCriteria].
+ *
+ * The parser maps public Kotlin property names to database column names, honoring
+ * Spring Data's [Column] annotation when present. This keeps application code
+ * expressed in domain/API property names while repositories execute queries using
+ * the actual relational schema column names.
+ *
+ * @param T Entity type whose properties define the supported criteria keys.
+ * @param clazz Kotlin class used to inspect property-to-column mappings.
+ * @since 1.0.0
+ */
 @Suppress("MethodOverloading")
 class R2DBCCriteriaParser<T : Any>(
     clazz: KClass<T>
@@ -112,6 +124,16 @@ class R2DBCCriteriaParser<T : Any>(
     }
 }
 
+/**
+ * Resolves the relational column name for a Kotlin property.
+ *
+ * If the property backing field is annotated with Spring Data [Column], the
+ * annotation value is returned. Otherwise the Kotlin property name is used.
+ *
+ * @param property Kotlin property to resolve.
+ * @return Database column name for the property.
+ * @since 1.0.0
+ */
 fun <T> columnName(property: KProperty<T>): String {
     val column = property
         .javaField

@@ -76,6 +76,7 @@ class RateLimitingFilter(
         return when {
             isStrategyEndpoint(path, RateLimitStrategy.AUTH) -> RateLimitStrategy.AUTH
             isStrategyEndpoint(path, RateLimitStrategy.BUSINESS) -> RateLimitStrategy.BUSINESS
+            isStrategyEndpoint(path, RateLimitStrategy.RESUME) -> RateLimitStrategy.RESUME
             isStrategyEndpoint(path, RateLimitStrategy.WAITLIST) -> RateLimitStrategy.WAITLIST
             else -> null
         }
@@ -215,9 +216,9 @@ class RateLimitingFilter(
 
         val message = when (strategy) {
             RateLimitStrategy.AUTH -> "Too many authentication attempts. Please try again later."
-            RateLimitStrategy.BUSINESS -> "Rate limit exceeded for resume generation. Please try again later."
+            RateLimitStrategy.BUSINESS -> "Rate limit exceeded for business API. Please try again later."
+            RateLimitStrategy.RESUME -> "Rate limit exceeded for resume generation. Please try again later."
             RateLimitStrategy.WAITLIST -> "Too many waitlist requests. Please try again later."
-            else -> "Rate limit exceeded. Please try again later."
         }
 
         val errorResponse = mapOf(

@@ -1,5 +1,6 @@
 package com.profiletailors.common.domain.presentation.sort
 
+/** Sort direction for query results. */
 enum class Direction {
     ASC, DESC;
     fun fromString(direction: String): Direction = Direction.fromString(direction)
@@ -13,6 +14,7 @@ enum class Direction {
     }
 }
 
+/** A single sort criterion: a [property] sorted in the given [direction]. */
 data class Order(val direction: Direction, val property: String) {
     override fun toString(): String = "$property: $direction"
     companion object {
@@ -21,6 +23,16 @@ data class Order(val direction: Direction, val property: String) {
     }
 }
 
+/**
+ * Sort specification composed of one or more [Order] clauses.
+ *
+ * Usage:
+ * ```kotlin
+ * Sort.by("createdAt")
+ * Sort.by(Direction.DESC, "priority", "createdAt")
+ * Sort.by("name").and(Sort.by(Direction.DESC, "createdAt"))
+ * ```
+ */
 class Sort(val orders: List<Order>) {
     fun and(sort: Sort): Sort = Sort(this.orders + sort.orders)
     fun ascending(): Sort = Sort(orders.map { it.copy(direction = Direction.ASC) })

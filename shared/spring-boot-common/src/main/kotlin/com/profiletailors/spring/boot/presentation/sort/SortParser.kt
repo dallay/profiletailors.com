@@ -10,6 +10,19 @@ import kotlin.reflect.jvm.javaField
 import tools.jackson.databind.ObjectMapper
 import tools.jackson.databind.introspect.AnnotatedField
 
+/**
+ * Parses API sort expressions into domain [Sort] objects for a target DTO/entity type.
+ *
+ * Sort expressions use the `direction:property` format, for example `asc:name`
+ * or `desc:createdAt`. The parser validates that the requested property is
+ * exported by [clazz], applies Jackson naming strategy when configured, and maps
+ * the property to its database column name via [columnName].
+ *
+ * @param T Type whose properties are allowed in sort expressions.
+ * @property clazz Kotlin class used for property validation and column mapping.
+ * @property objectMapper Mapper used to honor Jackson property naming strategy.
+ * @since 1.0.0
+ */
 class SortParser<T : Any>(
     private val clazz: KClass<T>,
     private val objectMapper: ObjectMapper,
