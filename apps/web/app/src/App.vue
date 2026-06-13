@@ -181,13 +181,21 @@ function isSchedulerRoute() {
 async function showAllChannels() {
   publishingStore.filterChannel = ''
   publishingStore.filterSocialAccountId = ''
-  await router.push('/scheduler')
+  try {
+    await router.push('/scheduler')
+  } catch (e) {
+    console.error('Failed to navigate to scheduler', e)
+  }
 }
 
 async function selectChannel(channel: SidebarChannel) {
   publishingStore.filterChannel = channel.provider
   publishingStore.filterSocialAccountId = ''
-  await router.push('/scheduler')
+  try {
+    await router.push('/scheduler')
+  } catch (e) {
+    console.error('Failed to navigate to scheduler', e)
+  }
 }
 
 
