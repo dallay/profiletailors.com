@@ -7,12 +7,22 @@ import com.profiletailors.smp.publishing.application.CompleteLinkedInConnectionC
 import com.profiletailors.smp.publishing.application.CreatePublicationCommand
 import com.profiletailors.smp.publishing.application.EditPublicationCommand
 import com.profiletailors.smp.publishing.application.GetCalendarPublicationsQuery
+import com.profiletailors.smp.publishing.application.InitiateLinkedInConnectionCommand
+import com.profiletailors.smp.publishing.application.LinkedInConnectionInitiationResult
+import com.profiletailors.smp.publishing.application.ListConnectedChannelsQuery
+import com.profiletailors.smp.publishing.application.ConnectedChannelsResponse
 import com.profiletailors.smp.publishing.application.PublicationResult
 import com.profiletailors.smp.publishing.application.ReschedulePublicationCommand
 import com.profiletailors.smp.publishing.application.RetryPublicationCommand
 import com.profiletailors.smp.publishing.application.SocialConnectionResult
+import com.profiletailors.common.domain.context.ResourceContextProvider
+import com.profiletailors.smp.publishing.domain.ChannelEvent
+import com.profiletailors.smp.publishing.domain.ChannelEventType
 import com.profiletailors.smp.publishing.domain.PublicationStatus
 import com.profiletailors.smp.publishing.domain.ScheduleMode
+import com.profiletailors.smp.publishing.domain.SocialConnectionStatus
+import com.profiletailors.smp.publishing.infrastructure.events.ChannelEventStreamRegistry
+import com.profiletailors.smp.tenancy.application.requireWorkspaceContext
 import io.swagger.v3.oas.annotations.Operation
 import io.swagger.v3.oas.annotations.Parameter
 import io.swagger.v3.oas.annotations.media.Schema
@@ -21,6 +31,8 @@ import jakarta.validation.Valid
 import jakarta.validation.constraints.NotBlank
 import org.springframework.format.annotation.DateTimeFormat
 import org.springframework.http.HttpStatus
+import org.springframework.http.MediaType
+import org.springframework.http.codec.ServerSentEvent
 import org.springframework.validation.annotation.Validated
 import org.springframework.web.bind.annotation.GetMapping
 import org.springframework.web.server.ResponseStatusException
@@ -31,7 +43,9 @@ import org.springframework.web.bind.annotation.RequestBody
 import org.springframework.web.bind.annotation.RequestMapping
 import org.springframework.web.bind.annotation.RequestParam
 import org.springframework.web.bind.annotation.RestController
+import reactor.core.publisher.Flux
 import java.time.DateTimeException
+import java.time.Duration
 import java.time.Instant
 import java.time.ZoneId
 
@@ -42,6 +56,16 @@ import java.time.ZoneId
 class PublishingConnectionController(
     private val mediator: Mediator,
 ) {
+    @Operation(summary = "Initiate LinkedIn profile connection")
+    @PostMapping("/initiate", consumes = ["application/json"], version = "1")
+    suspend fun initiateLinkedInConnection(
+        @Valid @RequestBody request: LinkedInConnectionInitiationRequest,
+    ): LinkedInConnectionInitiationResult = mediator.send(
+        InitiateLinkedInConnectionCommand(
+            redirectUri = request.redirectUri,
+        ),
+    )
+
     @Operation(summary = "Complete LinkedIn profile connection")
     @PostMapping("/complete", consumes = ["application/json"], version = "1")
     suspend fun completeLinkedInConnection(
@@ -50,8 +74,64 @@ class PublishingConnectionController(
         CompleteLinkedInConnectionCommand(
             authorizationCode = request.authorizationCode,
             redirectUri = request.redirectUri,
+            state = request.state,
         ),
     )
+}
+
+@Validated
+@RestController
+@RequestMapping(value = ["/api/publishing/channels"])
+@Tag(name = "Publishing Channels", description = "Workspace-scoped connected channel endpoints")
+class PublishingChannelController(
+    private val mediator: Mediator,
+    private val resourceContextProvider: ResourceContextProvider,
+    private val channelEventStreamRegistry: ChannelEventStreamRegistry,
+) {
+    @Operation(summary = "List connected publishing channels")
+    @GetMapping(version = "1")
+    suspend fun listChannels(
+        @RequestParam(required = false) status: SocialConnectionStatus? = null,
+    ): ConnectedChannelsResponse = mediator.send(ListConnectedChannelsQuery(status = status))
+
+    @Operation(summary = "Stream connected channel change notifications")
+    @GetMapping("/events", produces = [MediaType.TEXT_EVENT_STREAM_VALUE])
+    fun streamEvents(): Flux<ServerSentEvent<ChannelEventResponse>> {
+        val workspaceId = requireNotNull(resourceContextProvider.requireWorkspaceContext().workspaceId)
+        val channelEvents = channelEventStreamRegistry.stream()
+            .filter { it.workspaceId == workspaceId }
+            .map { event ->
+                ServerSentEvent.builder(event.toResponse())
+                    .event(event.type.eventName())
+                    .build()
+            }
+        val heartbeats = Flux.interval(Duration.ofSeconds(20))
+            .map {
+                ServerSentEvent.builder<ChannelEventResponse>()
+                    .event("heartbeat")
+                    .build()
+            }
+        return Flux.merge(channelEvents, heartbeats)
+    }
+}
+
+data class ChannelEventResponse(
+    val type: String,
+    val workspaceId: String,
+    val socialAccountId: String?,
+    val occurredAt: Instant,
+)
+
+private fun ChannelEvent.toResponse(): ChannelEventResponse = ChannelEventResponse(
+    type = type.eventName(),
+    workspaceId = workspaceId,
+    socialAccountId = socialAccountId,
+    occurredAt = occurredAt,
+)
+
+private fun ChannelEventType.eventName(): String = when (this) {
+    ChannelEventType.CONNECTED_CHANNEL_UPDATED -> "connected-channel.updated"
+    ChannelEventType.CONNECTED_CHANNEL_REMOVED -> "connected-channel.removed"
 }
 
 @Validated
@@ -183,12 +263,20 @@ class PublishingPublicationController(
     suspend fun listPlaceholder(): Map<String, String> = mapOf("status" to "not-yet-implemented")
 }
 
+@Schema(description = "LinkedIn connection initiation request")
+data class LinkedInConnectionInitiationRequest(
+    @field:NotBlank
+    val redirectUri: String,
+)
+
 @Schema(description = "LinkedIn connection completion request")
 data class LinkedInConnectionCompletionRequest(
     @field:NotBlank
     val authorizationCode: String,
     @field:NotBlank
     val redirectUri: String,
+    @field:NotBlank
+    val state: String,
 )
 
 @Schema(description = "Publication create or edit request")

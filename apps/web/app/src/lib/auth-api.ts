@@ -31,6 +31,10 @@ export interface ApiError {
   status?: number
 }
 
+export type ApiFetchOptions = RequestInit & {
+  workspaceScoped?: boolean
+}
+
 // ---------------------------------------------------------------------------
 // Base request helper
 // ---------------------------------------------------------------------------
@@ -54,7 +58,11 @@ function resolveApiBaseUrl(): string {
  *
  * Includes API versioning via Accept header (application/vnd.api.v1+json).
  */
-async function request<T>(path: string, init: RequestInit = {}, token?: string | null): Promise<T> {
+async function requestRaw(
+  path: string,
+  init: RequestInit = {},
+  token?: string | null,
+): Promise<Response> {
   const response = await fetch(`${resolveApiBaseUrl()}${path}`, {
     ...init,
     credentials: 'include',
@@ -81,6 +89,12 @@ async function request<T>(path: string, init: RequestInit = {}, token?: string |
       status: response.status,
     } satisfies ApiError
   }
+
+  return response
+}
+
+async function request<T>(path: string, init: RequestInit = {}, token?: string | null): Promise<T> {
+  const response = await requestRaw(path, init, token)
 
   // 204 No Content — return empty object cast to T
   if (response.status === 204) {
@@ -157,14 +171,68 @@ type TokenRefresher = () => Promise<string | null>
  */
 export function createApiFetch(opts: {
   getToken: TokenProvider
+  getWorkspaceId?: () => string | null
   onRefresh: TokenRefresher
   onUnauthenticated: () => void
 }) {
-  return async function apiFetch<T>(path: string, init: RequestInit = {}): Promise<T> {
+  function withWorkspace(init: ApiFetchOptions): RequestInit {
+    const { workspaceScoped, ...requestInit } = init
+
+    if (!workspaceScoped) {
+      return requestInit
+    }
+
+    const workspaceId = opts.getWorkspaceId?.()
+    if (!workspaceId) {
+      throw {
+        title: 'Workspace context required',
+        detail: 'Workspace context is required for this request.',
+        status: 400,
+      } satisfies ApiError
+    }
+
+    return {
+      ...requestInit,
+      headers: {
+        ...(requestInit.headers ?? {}),
+        'X-Workspace-Id': workspaceId,
+      },
+    }
+  }
+
+  async function apiFetchRaw(path: string, init: ApiFetchOptions = {}): Promise<Response> {
     const token = opts.getToken()
+    const requestInit = withWorkspace(init)
 
     try {
-      return await request<T>(path, init, token)
+      return await requestRaw(path, requestInit, token)
+    } catch (err) {
+      const apiError = err as ApiError
+
+      if (apiError.status !== 401) {
+        throw err
+      }
+
+      const newToken = await opts.onRefresh()
+
+      if (!newToken) {
+        opts.onUnauthenticated()
+        throw err
+      }
+
+      return requestRaw(path, requestInit, newToken)
+    }
+  }
+
+  const apiFetch = async function apiFetch<T>(
+    path: string,
+    init: ApiFetchOptions = {},
+  ): Promise<T> {
+    const token = opts.getToken()
+    const requestInit = withWorkspace(init)
+
+    try {
+      return await request<T>(path, requestInit, token)
     } catch (err) {
       const apiError = err as ApiError
 
@@ -181,9 +249,11 @@ export function createApiFetch(opts: {
       }
 
       // Single retry with fresh token
-      return request<T>(path, init, newToken)
+      return request<T>(path, requestInit, newToken)
     }
   }
+
+  return Object.assign(apiFetch, { raw: apiFetchRaw })
 }
 
 export type { LoginPayload, RegisterPayload }
