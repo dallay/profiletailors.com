@@ -2,7 +2,21 @@ import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { flushPromises, mount } from '@vue/test-utils'
 import { createPinia, setActivePinia } from 'pinia'
 import LinkedInCallbackView from './LinkedInCallbackView.vue'
-import { usePublishingStore } from '@/stores/publishing'
+import { usePublishingStore, type SocialConnectionResult } from '@/stores/publishing'
+
+const mockConnectionResult: SocialConnectionResult = {
+  connectionId: 'conn-1',
+  workspaceId: 'ws-1',
+  provider: 'linkedin',
+  status: 'connected',
+  account: {
+    accountId: 'acc-1',
+    providerAccountId: 'pa-1',
+    displayName: 'Test User',
+    kind: 'PROFILE',
+    profileUrn: 'urn:li:person:123',
+  },
+}
 
 const routeQuery = vi.hoisted(() => ({ value: {} as Record<string, unknown> }))
 const replace = vi.hoisted(() => vi.fn())
@@ -61,7 +75,7 @@ describe('LinkedInCallbackView', () => {
     const publishing = usePublishingStore()
     const complete = vi
       .spyOn(publishing, 'completeLinkedInConnectionFromCallback')
-      .mockResolvedValue({})
+      .mockResolvedValue(mockConnectionResult)
 
     mountCallback()
     await flushPromises()

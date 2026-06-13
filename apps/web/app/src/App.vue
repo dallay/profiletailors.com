@@ -205,9 +205,10 @@ async function handleLogout() {
   closeAccountMenu()
   try {
     await auth.logout()
-    await router.replace('/login')
   } catch (e) {
     console.error('Logout failed', e)
+  } finally {
+    await router.replace('/login')
   }
 }
 
