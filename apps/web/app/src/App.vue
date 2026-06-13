@@ -208,7 +208,11 @@ async function handleLogout() {
   } catch (e) {
     console.error('Logout failed', e)
   } finally {
-    await router.replace('/login')
+    try {
+      await router.replace('/login')
+    } catch (e) {
+      console.error('Navigation failed', e)
+    }
   }
 }
 
