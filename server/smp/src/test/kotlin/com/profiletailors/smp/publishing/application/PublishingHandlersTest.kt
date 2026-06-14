@@ -48,6 +48,7 @@ import com.profiletailors.smp.publishing.domain.PublicationSchedulingPolicy
 import kotlinx.coroutines.test.runTest
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertNotNull
+import org.junit.jupiter.api.Assertions.assertNull
 import org.junit.jupiter.api.Assertions.assertThrows
 import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.Test
@@ -150,6 +151,7 @@ class PublishingHandlersTest {
                     displayName = "Yuniel",
                     status = SocialConnectionStatus.ACTIVE,
                     profileUrn = "urn:li:person:123",
+                    avatarUrl = "https://media.licdn.com/photo.jpg",
                     connectedAt = fixedClock.instant(),
                     lastSyncedAt = null,
                 ),
@@ -161,7 +163,34 @@ class PublishingHandlersTest {
 
         assertEquals(1, result.channels.size)
         assertEquals("account-1", result.channels.single().socialAccountId)
+        assertEquals("https://media.licdn.com/photo.jpg", result.channels.single().avatarUrl)
         assertEquals(setOf(SocialConnectionStatus.ACTIVE), repository.lastStatuses)
+    }
+
+    @Test
+    fun `toSummary maps avatarUrl as null when channel has no avatar`() = runTest {
+        val repository = InMemoryConnectedSocialChannelReadRepository(
+            listOf(
+                ConnectedSocialChannel(
+                    socialAccountId = "account-no-avatar",
+                    connectionId = "connection-2",
+                    provider = SocialProvider.LINKEDIN,
+                    accountKind = SocialAccountKind.PERSONAL_PROFILE,
+                    displayName = "No Avatar",
+                    status = SocialConnectionStatus.ACTIVE,
+                    profileUrn = "urn:li:person:456",
+                    avatarUrl = null,
+                    connectedAt = fixedClock.instant(),
+                    lastSyncedAt = null,
+                ),
+            ),
+        )
+        val handler = ListConnectedChannelsHandler(FixedResourceContextProvider(workspaceContext), repository)
+
+        val result = handler.handle(ListConnectedChannelsQuery())
+
+        assertEquals(1, result.channels.size)
+        assertNull(result.channels.single().avatarUrl)
     }
 
     @Test

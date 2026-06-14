@@ -9,6 +9,8 @@ import com.profiletailors.smp.publishing.domain.SocialConnection
 import com.profiletailors.smp.publishing.domain.SocialConnectionRepository
 import com.profiletailors.smp.publishing.domain.SocialConnectionStatus
 import com.profiletailors.smp.publishing.domain.SocialProvider
+import io.micrometer.core.instrument.Counter
+import io.micrometer.core.instrument.MeterRegistry
 import io.r2dbc.spi.Readable
 import kotlinx.coroutines.reactor.awaitSingle
 import kotlinx.coroutines.reactor.awaitSingleOrNull
@@ -125,32 +127,44 @@ class R2dbcSocialConnectionRepository(
 @Repository
 class R2dbcSocialAccountRepository(
     private val databaseClient: DatabaseClient,
+    private val meterRegistry: MeterRegistry,
 ) : SocialAccountRepository {
+    private val avatarPersistedCounter: Counter = Counter.builder("publishing.linkedin.avatar.persisted")
+        .description("Number of times a LinkedIn avatar URL has been successfully persisted")
+        .register(meterRegistry)
+
     @Suppress("SwallowedException")
-    override suspend fun upsert(account: SocialAccount): SocialAccount = try {
-        upsertPostgres(account)
-    } catch (exception: BadSqlGrammarException) {
-        // H2/R2DBC test databases used by local unit tests do not support PostgreSQL
-        // ON CONFLICT ... RETURNING. Production remains PostgreSQL and uses the SQL above;
-        // this fallback preserves the same repository contract in tests.
-        upsertForTestDatabase(account)
+    override suspend fun upsert(account: SocialAccount): SocialAccount {
+        val result = try {
+            upsertPostgres(account)
+        } catch (exception: BadSqlGrammarException) {
+            // H2/R2DBC test databases used by local unit tests do not support PostgreSQL
+            // ON CONFLICT ... RETURNING. Production remains PostgreSQL and uses the SQL above;
+            // this fallback preserves the same repository contract in tests.
+            upsertForTestDatabase(account)
+        }
+        if (account.avatarUrl != null) {
+            avatarPersistedCounter.increment()
+        }
+        return result
     }
 
     private suspend fun upsertPostgres(account: SocialAccount): SocialAccount = databaseClient.sql(
         """
         INSERT INTO social_accounts (
-            id, social_connection_id, workspace_id, provider, provider_account_id, account_type, display_name, profile_urn, status
+            id, social_connection_id, workspace_id, provider, provider_account_id, account_type, display_name, profile_urn, avatar_url, status
         ) VALUES (
-            :id, :socialConnectionId, :workspaceId, :provider, :providerAccountId, :accountType, :displayName, :profileUrn, :status
+            :id, :socialConnectionId, :workspaceId, :provider, :providerAccountId, :accountType, :displayName, :profileUrn, :avatarUrl, :status
         )
         ON CONFLICT (workspace_id, provider, provider_account_id) DO UPDATE
         SET social_connection_id = EXCLUDED.social_connection_id,
             account_type = EXCLUDED.account_type,
             display_name = EXCLUDED.display_name,
             profile_urn = EXCLUDED.profile_urn,
+            avatar_url = EXCLUDED.avatar_url,
             status = EXCLUDED.status
         RETURNING id, social_connection_id, workspace_id, provider, provider_account_id, account_type,
-                  display_name, profile_urn, status, created_at
+                  display_name, profile_urn, avatar_url, status, created_at
         """.trimIndent(),
     )
         .bindSocialAccount(account)
@@ -164,9 +178,9 @@ class R2dbcSocialAccountRepository(
             databaseClient.sql(
                 """
                 INSERT INTO social_accounts (
-                    id, social_connection_id, workspace_id, provider, provider_account_id, account_type, display_name, profile_urn, status
+                    id, social_connection_id, workspace_id, provider, provider_account_id, account_type, display_name, profile_urn, avatar_url, status
                 ) VALUES (
-                    :id, :socialConnectionId, :workspaceId, :provider, :providerAccountId, :accountType, :displayName, :profileUrn, :status
+                    :id, :socialConnectionId, :workspaceId, :provider, :providerAccountId, :accountType, :displayName, :profileUrn, :avatarUrl, :status
                 )
                 """.trimIndent(),
             )
@@ -183,6 +197,7 @@ class R2dbcSocialAccountRepository(
                 account_type = :accountType,
                 display_name = :displayName,
                 profile_urn = :profileUrn,
+                avatar_url = :avatarUrl,
                 status = :status
             WHERE id = :id
             """.trimIndent(),
@@ -192,6 +207,7 @@ class R2dbcSocialAccountRepository(
             .bind("accountType", account.kind.name)
             .bind("displayName", account.displayName)
             .bindNullable("profileUrn", account.profileUrn, String::class.java)
+            .bindNullable("avatarUrl", account.avatarUrl, String::class.java)
             .bind("status", account.status.name)
             .fetch()
             .rowsUpdated()
@@ -201,7 +217,7 @@ class R2dbcSocialAccountRepository(
 
     private suspend fun findByNaturalKey(account: SocialAccount): SocialAccount? = databaseClient.sql(
         """
-        SELECT id, social_connection_id, workspace_id, provider, provider_account_id, account_type, display_name, profile_urn, status, created_at
+        SELECT id, social_connection_id, workspace_id, provider, provider_account_id, account_type, display_name, profile_urn, avatar_url, status, created_at
         FROM social_accounts
         WHERE workspace_id = :workspaceId
           AND provider = :provider
@@ -218,7 +234,7 @@ class R2dbcSocialAccountRepository(
     override suspend fun findByWorkspaceAndId(workspaceId: String, accountId: String): SocialAccount? =
         databaseClient.sql(
             """
-            SELECT id, social_connection_id, workspace_id, provider, provider_account_id, account_type, display_name, profile_urn, status, created_at
+            SELECT id, social_connection_id, workspace_id, provider, provider_account_id, account_type, display_name, profile_urn, avatar_url, status, created_at
             FROM social_accounts
             WHERE workspace_id = :workspaceId AND id = :id
             """.trimIndent(),
@@ -250,6 +266,7 @@ class R2dbcConnectedSocialChannelReadRepository(
                 a.display_name,
                 a.status,
                 a.profile_urn,
+                a.avatar_url,
                 c.connected_at,
                 c.last_synced_at
             FROM social_accounts a
@@ -274,6 +291,7 @@ class R2dbcConnectedSocialChannelReadRepository(
                 displayName = requireNotNull(row.get("display_name", String::class.java)),
                 status = SocialConnectionStatus.valueOf(requireNotNull(row.get("status", String::class.java))),
                 profileUrn = row.get("profile_urn", String::class.java),
+                avatarUrl = row.get("avatar_url", String::class.java),
                 connectedAt = row.get("connected_at", OffsetDateTime::class.java)?.toInstant(),
                 lastSyncedAt = row.get("last_synced_at", OffsetDateTime::class.java)?.toInstant(),
             )
@@ -305,6 +323,7 @@ private fun Readable.toSocialAccount(): SocialAccount = SocialAccount(
     kind = SocialAccountKind.valueOf(requireNotNull(get("account_type", String::class.java))),
     displayName = requireNotNull(get("display_name", String::class.java)),
     profileUrn = get("profile_urn", String::class.java),
+    avatarUrl = get("avatar_url", String::class.java),
     status = SocialConnectionStatus.valueOf(requireNotNull(get("status", String::class.java))),
     createdAt = get("created_at", OffsetDateTime::class.java)?.toInstant(),
 )
@@ -332,6 +351,7 @@ private fun org.springframework.r2dbc.core.DatabaseClient.GenericExecuteSpec.bin
     .bind("accountType", account.kind.name)
     .bind("displayName", account.displayName)
     .bindNullable("profileUrn", account.profileUrn, String::class.java)
+    .bindNullable("avatarUrl", account.avatarUrl, String::class.java)
     .bind("status", account.status.name)
 
 private fun org.springframework.r2dbc.core.DatabaseClient.GenericExecuteSpec.bindNullable(

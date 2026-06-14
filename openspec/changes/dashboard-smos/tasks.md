@@ -35,34 +35,34 @@ Chain strategy: feature-branch-chain
 - [x] 2.3 `GrowthScore.vue` — gauge, factor bars, top opportunity
 - [x] 2.4 `TopPerformingPosts.vue` — ranked list, platform filter, empty state
 - [x] 2.5 `CrossChannelAnalytics.vue` — platform bars, follower context
-- [ ] 2.6 Wire Phase 1 into DashboardLayout grid
-- [ ] 2.7 Component tests (mount each with fake props)
+- [x] 2.6 Wire Phase 1 into DashboardLayout grid
+- [x] 2.7 Component tests (mount each with fake props)
 
 ## Phase 3: Schedule & Pipeline
 
-- [ ] 3.1 Install uPlot, create `shared/LineChart.vue`
-- [ ] 3.2 `AudienceGrowthChart.vue` — 30-day line chart
-- [ ] 3.3 `UpcomingSchedule.vue` — next 5 posts, calendar CTA
-- [ ] 3.4 `BestPostingTimes.vue` — 7×24 heatmap, best-time badge
-- [ ] 3.5 `ContentPipeline.vue` — 4-column kanban, priority indicators
-- [ ] 3.6 Add Phase 2 sections to DashboardLayout
-- [ ] 3.7 Component tests for Phase 2 sections
+- [x] 3.1 ~~Install uPlot~~ → Custom SVG (design revision: lighter bundle)
+- [x] 3.2 `AudienceGrowthChart.vue` — 30-day line chart
+- [x] 3.3 `UpcomingSchedule.vue` — next 5 posts, calendar CTA
+- [x] 3.4 `BestPostingTimes.vue` — 7×24 heatmap, best-time badge
+- [x] 3.5 `ContentPipeline.vue` — 4-column kanban, priority indicators
+- [x] 3.6 Add Phase 2 sections to DashboardLayout
+- [x] 3.7 Component tests for Phase 2 sections
 
 ## Phase 4: Engagement & Team
 
 - [x] 4.1 `InboxSummary.vue` — per-platform inbox cards, activity dot
 - [x] 4.2 `TeamActivity.vue` — action feed, online indicator
-- [ ] 4.3 Add Phase 3 sections to DashboardLayout
-- [ ] 4.4 Component tests for engagement sections
+- [x] 4.3 Add Phase 3 sections to DashboardLayout
+- [x] 4.4 Component tests for engagement sections
 
 ## Phase 5: Integration
 
-- [ ] 5.1 Modify `HomeView.vue` — replace grid with `<DashboardLayout />`
-- [ ] 5.2 Feature flag toggle via localStorage
-- [ ] 5.3 Responsive verification (desktop/tablet/mobile)
-- [ ] 5.4 `vue-tsc --noEmit` zero errors
-- [ ] 5.5 i18n completeness audit
-- [ ] 5.6 Design system token compliance audit
+- [x] 5.1 Modify `HomeView.vue` — replace grid with `<DashboardLayout />`
+- [x] 5.2 Feature flag toggle via localStorage
+- [x] 5.3 Responsive verification (desktop/tablet/mobile)
+- [x] 5.4 `vue-tsc --noEmit` zero errors
+- [x] 5.5 i18n completeness audit
+- [x] 5.6 Design system token compliance audit
 
 ## Critical Path
 

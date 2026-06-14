@@ -71,7 +71,7 @@ describe('ContentPipeline', () => {
     })
     const moveLeftButtons = wrapper.findAll('button[aria-label="Move left"]')
     expect(moveLeftButtons.length).toBeGreaterThan(0)
-    expect(moveLeftButtons[0].attributes('disabled')).toBeDefined()
+    expect(moveLeftButtons[0]?.attributes('disabled')).toBeDefined()
   })
 
   it('enables Move Right on non-last columns', () => {
@@ -82,7 +82,7 @@ describe('ContentPipeline', () => {
     })
     const moveRightButtons = wrapper.findAll('button[aria-label="Move right"]')
     expect(moveRightButtons.length).toBeGreaterThan(0)
-    expect(moveRightButtons[0].attributes('disabled')).toBeUndefined()
+    expect(moveRightButtons[0]?.attributes('disabled')).toBeUndefined()
   })
 
   it('emits moveCard event when move right is clicked', async () => {
@@ -141,10 +141,12 @@ describe('ContentPipeline', () => {
         columns: defaultColumns({ ideas: [makeCard('c1')] }),
       },
     })
-    // Cards should have cursor-grab styling
     const cards = wrapper.findAll('[data-dnd-draggable]')
+    const columns = wrapper.findAll('[data-dnd-column]')
     expect(cards.length).toBe(1)
-    expect(cards[0].attributes('data-dnd-draggable')).toBe('c1')
+    expect(columns.length).toBe(4)
+    expect(cards[0]?.attributes('data-dnd-draggable')).toBe('c1')
+    expect(cards[0]?.attributes('draggable')).toBe('true')
   })
 
   it('card containers have min-h-[48px] for drop targets', () => {

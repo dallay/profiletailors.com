@@ -527,4 +527,81 @@ The publishing Pinia store MUST replace mock channel seeding with backend-loaded
 - THEN the UI MUST display an empty state with a "Connect LinkedIn profile" call-to-action
 - AND it MUST NOT display mock channels
 
+### Requirement: LinkedIn Channel Avatar Support
+
+The system MUST propagate an optional `avatarUrl` from LinkedIn OIDC userinfo through persistence, APIs, store mapping, and UI rendering for connected LinkedIn channels.
+
+A connected LinkedIn channel with a non-null `avatar_url` MUST display the avatar image in the sidebar and channel selector. When the avatar URL is absent or fails to load, the system MUST render the existing provider badge/initials fallback without layout shift. The `avatarUrl` field MUST be additive and optional across all layers — domain, API, and frontend types. Provider secret values MUST NOT be stored in `avatar_url`. Only HTTPS URLs SHALL be accepted; non-HTTPS values (including data-URIs) MUST be rejected and the column left NULL.
+
+#### Scenario: Connected LinkedIn channel with avatar shows profile picture
+
+- GIVEN a workspace with an ACTIVE LinkedIn personal-profile social account that has a non-empty `avatar_url`
+- WHEN the SPA requests `GET /api/publishing/channels`
+- THEN the response MUST include `avatarUrl` for that channel
+- AND the sidebar MUST render an `<img src={avatarUrl}>` for that channel
+
+#### Scenario: Connected LinkedIn channel without avatar shows badge fallback
+
+- GIVEN a workspace with an ACTIVE LinkedIn personal-profile social account where `avatar_url` is NULL
+- WHEN channels are listed
+- THEN the frontend MUST render the provider badge/initials fallback in place of an `<img>`
+
+#### Scenario: Avatar URL broken or expired triggers fallback without layout shift
+
+- GIVEN a channel with a non-empty `avatar_url` that 404s or otherwise fails to load in the browser
+- WHEN the browser `<img>` element emits an `error` event
+- THEN frontend code MUST replace the image with the provider badge/initials fallback
+- AND this MUST NOT cause layout shift beyond the existing badge image size
+
+#### Scenario: New LinkedIn connection persists avatar from userinfo.picture
+
+- GIVEN a user completes LinkedIn OAuth and LinkedIn `userinfo` includes `picture`
+- WHEN the backend finalizes the connection and persists social account metadata
+- THEN `avatar_url` column on the `social_accounts` row MUST be populated with the safe `picture` value
+
+#### Scenario: Reconnect updates avatar_url via upsert
+
+- GIVEN an existing LinkedIn connection with previous `avatar_url`
+- WHEN the user reconnects and LinkedIn `userinfo.picture` differs
+- THEN the repository upsert semantics MUST update `avatar_url` to the new value
+
+#### API Contract
+
+`GET /api/publishing/channels` (200) response array items include optional field:
+- `avatarUrl?: string | null` — absolute URL from LinkedIn userinfo.picture when present. MUST be present for channels whose persisted `avatar_url` is non-null. MUST NOT contain provider secrets.
+
+API compatibility: The field is additive and optional; older clients MUST ignore unknown fields. New clients MUST tolerate missing or null values.
+
+#### Data Model
+
+- Database migration: Add nullable column `avatar_url VARCHAR(1024) NULL` to `social_accounts`. Changeset MUST be additive and backward-compatible.
+- Domain model `SocialAccount` MUST include `avatarUrl: String?`.
+- Repository upsert semantics MUST set `avatar_url` when provided and leave existing value unchanged when absent during partial updates (unless reconnect flow explicitly provides new value).
+
+Security: Do NOT store provider secret values in `avatar_url`. Validate that the value is an HTTPS URL. If LinkedIn returns data-URI or non-HTTPS, sanitize or reject and leave column NULL.
+
+#### Frontend
+
+- Channel interface MUST include `avatarUrl?: string | null`. Mapper `apiChannelToChannel()` MUST read `avatarUrl` from API response.
+- Sidebar and CreatePostModal MUST render `<img :src="channel.avatarUrl" @error="onAvatarError(channel)" v-if="channel.avatarUrl"/>`. When `avatarUrl` is null/absent or `avatarLoadFailed` is true, render provider badge/initials fallback with identical dimensions.
+- Avatar image and badge MUST share same container size and border radius so swapping does not cause layout changes.
+- Avatar images MUST provide `alt` text: `alt="{channel.displayName} avatar"`. Fallback badge MUST expose accessible label for assistive technologies.
+
+#### Backend
+
+- LinkedIn connector: When completing connection or during sync, read `picture` from LinkedIn OIDC userinfo `/v2/userinfo` if present. Validate that `picture` is an HTTPS URL and not a data URI. If invalid, log at debug and do not persist.
+- Service layer: When persisting social account metadata, set `avatar_url` when value is provided by connector. Upsert semantics MUST replace the column when connector supplies a new value.
+- Repository: Add `avatar_url` handling in read/write mappings between DB rows and domain objects.
+- Controller/API: Include `avatarUrl` in the channel summary DTO returned by `GET /api/publishing/channels` when `avatar_url` is non-null. Ensure DTO does not leak provider tokens or other secrets.
+
+#### Observability
+
+- Debug logs in LinkedIn connector when parsing `picture` and when sanitization rejects values.
+- Counter metric `publishing.linkedin.avatar.persisted` incremented when avatarUrl is persisted.
+
+#### Rollout
+
+- Deploy DB migration before server code that writes `avatar_url` (deploy in same release window preferred). Because column is nullable and additive, older server versions are compatible.
+- Feature rollout is safe by default; UI will show fallback if API does not provide `avatarUrl`.
+
 

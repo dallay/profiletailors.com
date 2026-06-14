@@ -146,6 +146,7 @@ internal class CompleteLinkedInConnectionHandler(
                 kind = providerResult.account.kind,
                 displayName = providerResult.account.displayName,
                 profileUrn = providerResult.account.profileUrn,
+                avatarUrl = providerResult.account.avatarUrl,
                 status = SocialConnectionStatus.ACTIVE,
             ),
         )
@@ -226,6 +227,7 @@ private fun ConnectedSocialChannel.toSummary(): ConnectedSocialChannelSummary = 
     displayName = displayName,
     status = status,
     profileUrn = profileUrn,
+    avatarUrl = avatarUrl,
     connectedAt = connectedAt,
     lastSyncedAt = lastSyncedAt,
 )

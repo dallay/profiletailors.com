@@ -18,6 +18,7 @@ import com.profiletailors.smp.publishing.infrastructure.persistence.R2dbcPublica
 import com.profiletailors.smp.publishing.infrastructure.persistence.R2dbcPublicationRepository
 import com.profiletailors.smp.publishing.infrastructure.persistence.R2dbcSocialAccountRepository
 import com.profiletailors.smp.publishing.infrastructure.persistence.R2dbcSocialConnectionRepository
+import io.micrometer.core.instrument.simple.SimpleMeterRegistry
 import java.time.Instant
 import kotlinx.coroutines.reactor.awaitSingle
 import kotlinx.coroutines.test.runTest
@@ -36,12 +37,14 @@ class R2dbcPublishingRepositoriesTest : DatabaseUnitTestBase() {
     private lateinit var connectedSocialChannelReadRepository: R2dbcConnectedSocialChannelReadRepository
     private lateinit var publicationRepository: R2dbcPublicationRepository
     private lateinit var publicationAssetRepository: R2dbcPublicationAssetRepository
+    private lateinit var meterRegistry: SimpleMeterRegistry
 
     @BeforeEach
     fun setUpRepositories() = runTest {
         seedPrincipalAndWorkspace()
+        meterRegistry = SimpleMeterRegistry()
         socialConnectionRepository = R2dbcSocialConnectionRepository(databaseClient)
-        socialAccountRepository = R2dbcSocialAccountRepository(databaseClient)
+        socialAccountRepository = R2dbcSocialAccountRepository(databaseClient, meterRegistry)
         connectedSocialChannelReadRepository = R2dbcConnectedSocialChannelReadRepository(databaseClient)
         publicationRepository = R2dbcPublicationRepository(databaseClient)
         publicationAssetRepository = R2dbcPublicationAssetRepository(databaseClient, ObjectMapper())
@@ -401,6 +404,75 @@ class R2dbcPublishingRepositoriesTest : DatabaseUnitTestBase() {
         assertEquals(1, results.size)
         assertEquals(java.time.LocalDate.parse("2026-06-09"), results.single().date)
         assertEquals(2, results.single().count)
+    }
+
+    @Test
+    fun `upsert increments avatar persisted counter when avatarUrl is present`() = runTest {
+        val connection = socialConnectionRepository.upsert(
+            SocialConnection(
+                id = "soconn-avatar",
+                workspaceId = "workspace-1",
+                provider = SocialProvider.LINKEDIN,
+                providerConnectionRef = "linkedin-conn-avatar",
+                status = SocialConnectionStatus.ACTIVE,
+                credentialReference = "credential-ref",
+            ),
+        )
+
+        val counterBefore = avatarPersistedCounterValue()
+
+        socialAccountRepository.upsert(
+            SocialAccount(
+                id = "soacc-avatar-1",
+                socialConnectionId = connection.id,
+                workspaceId = "workspace-1",
+                provider = SocialProvider.LINKEDIN,
+                providerAccountId = "linkedin-avatar-account-1",
+                kind = SocialAccountKind.PERSONAL_PROFILE,
+                displayName = "Avatar User",
+                avatarUrl = "https://media.licdn.com/photo.jpg",
+                status = SocialConnectionStatus.ACTIVE,
+            ),
+        )
+
+        assertEquals(counterBefore + 1.0, avatarPersistedCounterValue(), 0.001)
+    }
+
+    @Test
+    fun `upsert does not increment avatar persisted counter when avatarUrl is null`() = runTest {
+        val connection = socialConnectionRepository.upsert(
+            SocialConnection(
+                id = "soconn-no-avatar",
+                workspaceId = "workspace-1",
+                provider = SocialProvider.LINKEDIN,
+                providerConnectionRef = "linkedin-conn-no-avatar",
+                status = SocialConnectionStatus.ACTIVE,
+                credentialReference = "credential-ref",
+            ),
+        )
+
+        val counterBefore = avatarPersistedCounterValue()
+
+        socialAccountRepository.upsert(
+            SocialAccount(
+                id = "soacc-no-avatar",
+                socialConnectionId = connection.id,
+                workspaceId = "workspace-1",
+                provider = SocialProvider.LINKEDIN,
+                providerAccountId = "linkedin-no-avatar-account",
+                kind = SocialAccountKind.PERSONAL_PROFILE,
+                displayName = "No Avatar User",
+                avatarUrl = null,
+                status = SocialConnectionStatus.ACTIVE,
+            ),
+        )
+
+        assertEquals(counterBefore, avatarPersistedCounterValue(), 0.001)
+    }
+
+    private fun avatarPersistedCounterValue(): Double {
+        return meterRegistry.find("publishing.linkedin.avatar.persisted")
+            .counter()?.count() ?: 0.0
     }
 
     private suspend fun seedSocialAccount() {

@@ -45,6 +45,7 @@ data class ConnectedSocialChannelSummary(
     val displayName: String,
     val status: SocialConnectionStatus,
     val profileUrn: String?,
+    val avatarUrl: String? = null,
     val connectedAt: Instant?,
     val lastSyncedAt: Instant?,
 )

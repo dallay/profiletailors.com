@@ -81,6 +81,7 @@ data class SocialAccount(
     val kind: SocialAccountKind,
     val displayName: String,
     val profileUrn: String? = null,
+    val avatarUrl: String? = null,
     val status: SocialConnectionStatus,
     val createdAt: Instant? = null,
 )
