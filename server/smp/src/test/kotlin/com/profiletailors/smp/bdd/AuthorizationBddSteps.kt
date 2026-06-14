@@ -503,6 +503,9 @@ class AuthorizationBddSteps(
             .expectBody()
             .returnResult()
 
+        // Capture register response so Then steps can assert on it
+        val registerResult = latestResult
+
         // Step 2: Mark email as verified in DB (BDD shortcut for pre-existing scenarios)
         runBlocking { bddDatabaseSupport.markEmailVerified(email) }
 
@@ -529,6 +532,9 @@ class AuthorizationBddSteps(
             ?.substringBefore(';')
             ?: error("Missing refresh cookie in login response")
         latestLocalAuthSession = BddDatabaseSupport.LocalAuthSession(accessToken, refreshCookie)
+
+        // Restore register result so Then steps check the registration response, not the login response
+        latestResult = registerResult
     }
 
     private fun requireLatestResult(): EntityExchangeResult<ByteArray> =

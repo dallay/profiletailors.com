@@ -19,6 +19,7 @@ import com.profiletailors.smp.publishing.domain.ProviderPublishCommand
 import com.profiletailors.smp.publishing.domain.ProviderPublishResult
 import com.profiletailors.smp.publishing.domain.PublicationValidationException
 import com.profiletailors.smp.publishing.domain.SocialAccountKind
+import com.profiletailors.smp.publishing.domain.SocialConnectionRepository
 import com.profiletailors.smp.publishing.domain.SocialConnectionProvider
 import com.profiletailors.smp.publishing.domain.SocialProvider
 import com.profiletailors.smp.publishing.domain.SocialPublisher
@@ -222,6 +223,7 @@ class RealLinkedInPublisher(
     private val httpTransport: LinkedInHttpTransport,
     private val credentialGateway: com.profiletailors.smp.publishing.infrastructure
         .credentials.LinkedInCredentialGateway,
+    private val socialConnectionRepository: SocialConnectionRepository,
     private val assetUploader: AssetUploader,
     private val storage: Storage?,
     private val attachmentsBucket: String,
@@ -348,17 +350,17 @@ class RealLinkedInPublisher(
     private suspend fun resolveAccessToken(
         socialAccount: com.profiletailors.smp.publishing.domain.SocialAccount
     ): String {
-        val providerAccountId = socialAccount.providerAccountId
-        require(providerAccountId.isNotBlank()) {
-            "LinkedIn social account providerAccountId is required."
-        }
-        // Lookup social connection to find credential reference.
-        // For now we infer owner id from providerAccountId.
-        // In production we should link SocialAccount -> SocialConnection
-        // and store the credentialReference on the connection.
-        // LinkedIn providerAccountId is not a UUID, so we derive a stable UUID from it
-        val ownerUuid = UUID.nameUUIDFromBytes("linkedin:$providerAccountId".toByteArray())
-        val credential = credentialGateway.resolveCredential(ownerUuid)
+        val socialConnection = socialConnectionRepository.findByWorkspaceAndId(
+            socialAccount.workspaceId,
+            socialAccount.socialConnectionId,
+        ) ?: throw IllegalStateException(
+            "LinkedIn social connection '${socialAccount.socialConnectionId}' was not found.",
+        )
+        val credentialReference = socialConnection.credentialReference
+            ?: throw IllegalStateException(
+                "LinkedIn social connection '${socialConnection.id}' is missing a credential reference.",
+            )
+        val credential = credentialGateway.resolveCredential(UUID.fromString(credentialReference))
         return credential.accessToken
     }
 
@@ -498,6 +500,7 @@ class LinkedInPublishingConfiguration {
         objectMapper: ObjectMapper,
         linkedInHttpTransport: LinkedInHttpTransport,
         credentialGateway: com.profiletailors.smp.publishing.infrastructure.credentials.LinkedInCredentialGateway,
+        socialConnectionRepository: SocialConnectionRepository,
         assetUploader: AssetUploader,
         @Autowired(required = false) storage: Storage?,
         assetUploadProperties: LinkedInAssetUploadProperties,
@@ -506,6 +509,7 @@ class LinkedInPublishingConfiguration {
         objectMapper,
         linkedInHttpTransport,
         credentialGateway,
+        socialConnectionRepository,
         assetUploader,
         storage,
         assetUploadProperties.attachmentsBucket,

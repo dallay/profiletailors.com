@@ -16,6 +16,8 @@ import com.profiletailors.smp.publishing.domain.PublicationValidationException
 import com.profiletailors.smp.publishing.domain.ScheduleMode
 import com.profiletailors.smp.publishing.domain.SocialAccount
 import com.profiletailors.smp.publishing.domain.SocialAccountKind
+import com.profiletailors.smp.publishing.domain.SocialConnection
+import com.profiletailors.smp.publishing.domain.SocialConnectionRepository
 import com.profiletailors.smp.publishing.domain.SocialConnectionStatus
 import com.profiletailors.smp.publishing.domain.SocialProvider
 import com.profiletailors.smp.publishing.infrastructure.credentials.LinkedInCredentialGateway
@@ -203,14 +205,13 @@ class LinkedInPublishingAdaptersTest {
         val assetUploader = FakeLinkedInAssetUploader()
         val storage = FakeStorage()
         val assetUploadProperties = LinkedInAssetUploadProperties("test-bucket")
-        val publisher = RealLinkedInPublisher(
-            properties,
-            objectMapper,
-            transport,
-            credentialGateway,
-            assetUploader,
-            storage,
-            assetUploadProperties.attachmentsBucket,
+        val publisher = testPublisher(
+            transport = transport,
+            credentialGateway = credentialGateway,
+            credentialReference = derivedUuid,
+            assetUploader = assetUploader,
+            storage = storage,
+            attachmentsBucket = assetUploadProperties.attachmentsBucket,
         )
         val account = SocialAccount(
             id = "account-1",
@@ -264,14 +265,10 @@ class LinkedInPublishingAdaptersTest {
         val accountId = "abcd1234"
         val derivedUuid = UUID.nameUUIDFromBytes("linkedin:$accountId".toByteArray())
         credentialGateway.store(derivedUuid, LinkedInCredentials("access-token-123", null, null, null))
-        val publisher = RealLinkedInPublisher(
-            properties,
-            objectMapper,
-            transport,
-            credentialGateway,
-            FakeLinkedInAssetUploader(),
-            FakeStorage(),
-            "test-bucket",
+        val publisher = testPublisher(
+            transport = transport,
+            credentialGateway = credentialGateway,
+            credentialReference = derivedUuid,
         )
         val account = SocialAccount(
             id = "account-1",
@@ -328,14 +325,10 @@ class LinkedInPublishingAdaptersTest {
         val accountId = "abcd1234"
         val derivedUuid = UUID.nameUUIDFromBytes("linkedin:$accountId".toByteArray())
         credentialGateway.store(derivedUuid, LinkedInCredentials("access-token-123", null, null, null))
-        val publisher = RealLinkedInPublisher(
-            properties,
-            objectMapper,
-            transport,
-            credentialGateway,
-            FakeLinkedInAssetUploader(),
-            FakeStorage(),
-            "test-bucket",
+        val publisher = testPublisher(
+            transport = transport,
+            credentialGateway = credentialGateway,
+            credentialReference = derivedUuid,
         )
         val account = SocialAccount(
             id = "account-1",
@@ -392,14 +385,10 @@ class LinkedInPublishingAdaptersTest {
         val accountId = "abcd1234"
         val derivedUuid = UUID.nameUUIDFromBytes("linkedin:$accountId".toByteArray())
         credentialGateway.store(derivedUuid, LinkedInCredentials("access-token-123", null, null, null))
-        val publisher = RealLinkedInPublisher(
-            properties,
-            objectMapper,
-            transport,
-            credentialGateway,
-            FakeLinkedInAssetUploader(),
-            FakeStorage(),
-            "test-bucket",
+        val publisher = testPublisher(
+            transport = transport,
+            credentialGateway = credentialGateway,
+            credentialReference = derivedUuid,
         )
         val account = SocialAccount(
             id = "account-1",
@@ -457,14 +446,10 @@ class LinkedInPublishingAdaptersTest {
         val accountId = "abcd1234"
         val derivedUuid = UUID.nameUUIDFromBytes("linkedin:$accountId".toByteArray())
         credentialGateway.store(derivedUuid, LinkedInCredentials("access-token-123", null, null, null))
-        val publisher = RealLinkedInPublisher(
-            properties,
-            objectMapper,
-            transport,
-            credentialGateway,
-            FakeLinkedInAssetUploader(),
-            FakeStorage(),
-            "test-bucket",
+        val publisher = testPublisher(
+            transport = transport,
+            credentialGateway = credentialGateway,
+            credentialReference = derivedUuid,
         )
         val accountWithoutUrn = SocialAccount(
             id = "account-1",
@@ -523,14 +508,12 @@ class LinkedInPublishingAdaptersTest {
         credentialGateway.store(derivedUuid, LinkedInCredentials("access-token-123", null, null, null))
         val assetUploader = FakeLinkedInAssetUploader()
         val storage = FakeStorage()
-        val publisher = RealLinkedInPublisher(
-            properties,
-            objectMapper,
-            transport,
-            credentialGateway,
-            assetUploader,
-            storage,
-            "test-bucket",
+        val publisher = testPublisher(
+            transport = transport,
+            credentialGateway = credentialGateway,
+            credentialReference = derivedUuid,
+            assetUploader = assetUploader,
+            storage = storage,
         )
         val account = SocialAccount(
             id = "account-1",
@@ -594,14 +577,12 @@ class LinkedInPublishingAdaptersTest {
         credentialGateway.store(derivedUuid, LinkedInCredentials("access-token-123", null, null, null))
         val assetUploader = FakeLinkedInAssetUploader()
         val storage = FakeStorage()
-        val publisher = RealLinkedInPublisher(
-            properties,
-            objectMapper,
-            transport,
-            credentialGateway,
-            assetUploader,
-            storage,
-            "test-bucket",
+        val publisher = testPublisher(
+            transport = transport,
+            credentialGateway = credentialGateway,
+            credentialReference = derivedUuid,
+            assetUploader = assetUploader,
+            storage = storage,
         )
         val account = SocialAccount(
             id = "account-1",
@@ -1183,6 +1164,33 @@ class LinkedInPublishingAdaptersTest {
         apiVersion = "202601",
     )
 
+    private fun testPublisher(
+        transport: LinkedInHttpTransport,
+        credentialGateway: LinkedInCredentialGateway,
+        credentialReference: UUID,
+        assetUploader: AssetUploader = FakeLinkedInAssetUploader(),
+        storage: Storage? = FakeStorage(),
+        attachmentsBucket: String = "test-bucket",
+    ): RealLinkedInPublisher = RealLinkedInPublisher(
+        properties,
+        objectMapper,
+        transport,
+        credentialGateway,
+        FakeSocialConnectionRepository(
+            SocialConnection(
+                id = "connection-1",
+                workspaceId = "workspace-1",
+                provider = SocialProvider.LINKEDIN,
+                providerConnectionRef = "linkedin-member-test",
+                status = SocialConnectionStatus.ACTIVE,
+                credentialReference = credentialReference.toString(),
+            ),
+        ),
+        assetUploader,
+        storage,
+        attachmentsBucket,
+    )
+
     private class StubTransport(
         private val responses: List<LinkedInHttpResponse>,
     ) : LinkedInHttpTransport {
@@ -1208,6 +1216,15 @@ class LinkedInPublishingAdaptersTest {
         fun store(id: UUID, credentials: LinkedInCredentials) {
             store[id] = credentials
         }
+    }
+
+    private class FakeSocialConnectionRepository(
+        private val connection: SocialConnection,
+    ) : SocialConnectionRepository {
+        override suspend fun upsert(connection: SocialConnection): SocialConnection = connection
+
+        override suspend fun findByWorkspaceAndId(workspaceId: String, connectionId: String): SocialConnection? =
+            connection.takeIf { it.workspaceId == workspaceId && it.id == connectionId }
     }
 
     private class FakeStorage : Storage {

@@ -85,6 +85,54 @@ class LinkedInCredentialGatewayTest : DatabaseUnitTestBase() {
             assertEquals("USER", userType)
             assertEquals("WORKSPACE", workspaceType)
         }
+
+        @Test
+        fun `storeForOwner updates existing owner credential instead of inserting duplicate row`() = runTest {
+            val ownerId = UUID.randomUUID()
+            val firstId = gateway.storeForOwner(
+                "USER",
+                ownerId,
+                LinkedInCredentials(
+                    accessToken = "token-1",
+                    refreshToken = "refresh-1",
+                    expiresAtEpochSeconds = 100L,
+                    scope = "openid",
+                ),
+            )
+
+            val secondId = gateway.storeForOwner(
+                "USER",
+                ownerId,
+                LinkedInCredentials(
+                    accessToken = "token-2",
+                    refreshToken = "refresh-2",
+                    expiresAtEpochSeconds = 200L,
+                    scope = "openid profile",
+                ),
+            )
+
+            val count = databaseClient.sql(
+                """
+                SELECT COUNT(*) AS credential_count
+                FROM secure_credentials
+                WHERE owner_type = :ownerType
+                  AND owner_id = :ownerId
+                """.trimIndent(),
+            )
+                .bind("ownerType", "USER")
+                .bind("ownerId", ownerId)
+                .map { row, _ -> (row.get("credential_count") as Number).toLong() }
+                .one()
+                .awaitSingle()
+
+            val resolved = gateway.resolveCredential(secondId)
+
+            assertEquals(firstId, secondId)
+            assertEquals(1L, count)
+            assertEquals("token-2", resolved.accessToken)
+            assertEquals("refresh-2", resolved.refreshToken)
+            assertEquals(200L, resolved.expiresAtEpochSeconds)
+        }
     }
 
     @Nested

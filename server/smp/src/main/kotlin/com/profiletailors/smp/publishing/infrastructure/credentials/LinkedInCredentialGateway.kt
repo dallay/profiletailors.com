@@ -32,6 +32,25 @@ class R2dbcLinkedInCredentialGateway(
     ): UUID {
         val asJson = mapper.writeValueAsString(credentials)
         val encrypted = encryptionService.encrypt(asJson)
+        val existingId = findExistingCredentialId(ownerType, ownerId)
+
+        if (existingId != null) {
+            db.sql(
+                """
+                UPDATE secure_credentials
+                SET encrypted_payload = :payload,
+                    updated_at = CURRENT_TIMESTAMP
+                WHERE id = :id
+                """.trimIndent()
+            )
+                .bind("id", existingId)
+                .bind("payload", encrypted)
+                .fetch()
+                .rowsUpdated()
+                .awaitSingle()
+            return existingId
+        }
+
         val id = UUID.randomUUID()
         return db.sql(
             """
@@ -66,4 +85,26 @@ class R2dbcLinkedInCredentialGateway(
             .one()
             .awaitSingle()
     }
+
+    private suspend fun findExistingCredentialId(ownerType: String, ownerId: UUID): UUID? =
+        db.sql(
+            """
+            SELECT id
+            FROM secure_credentials
+            WHERE owner_type = :ownerType
+              AND owner_id = :ownerId
+            ORDER BY updated_at DESC, created_at DESC
+            LIMIT 1
+            """.trimIndent()
+        )
+            .bind("ownerType", ownerType)
+            .bind("ownerId", ownerId)
+            .map { row, _ ->
+                row.get("id", UUID::class.java)
+                    ?: throw IllegalStateException("Credential id missing for owner $ownerType/$ownerId")
+            }
+            .all()
+            .collectList()
+            .awaitSingle()
+            .firstOrNull()
 }
