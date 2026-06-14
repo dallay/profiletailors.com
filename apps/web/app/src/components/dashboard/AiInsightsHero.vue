@@ -64,7 +64,7 @@ const priorityDot = (priority: AiInsight['priority']) => {
       v-if="insights.length === 0"
       class="text-sm text-[var(--text-secondary)] text-center py-8"
     >
-      {{ t('dashboard.insights.dismiss') }}
+      {{ t('dashboard.insights.empty') }}
     </p>
 
     <template v-else>

@@ -44,7 +44,17 @@ function toggleSidebar() {
 }
 
 useEventListener("keydown", (event: KeyboardEvent) => {
-  if (event.key === SIDEBAR_KEYBOARD_SHORTCUT && (event.metaKey || event.ctrlKey)) {
+  const target = event.target as HTMLElement | null
+  // Don't intercept shortcuts when user is typing in inputs or rich text areas
+  if (
+    target?.tagName === 'INPUT' ||
+    target?.tagName === 'TEXTAREA' ||
+    target?.isContentEditable ||
+    target?.closest('[contenteditable="true"]')
+  ) {
+    return
+  }
+  if (event.key.toLowerCase() === SIDEBAR_KEYBOARD_SHORTCUT && (event.metaKey || event.ctrlKey)) {
     event.preventDefault()
     toggleSidebar()
   }

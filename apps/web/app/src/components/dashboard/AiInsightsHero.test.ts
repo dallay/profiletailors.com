@@ -81,6 +81,6 @@ describe('AiInsightsHero', () => {
     const wrapper = mount(AiInsightsHero, {
       props: { insights: [] },
     })
-    expect(wrapper.text()).toContain('dashboard.insights.dismiss')
+    expect(wrapper.text()).toContain('dashboard.insights.empty')
   })
 })
