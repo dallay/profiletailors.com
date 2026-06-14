@@ -89,4 +89,5 @@ class IdentityBootstrapConfiguration {
         @Value("\${app.security.local-jwt.issuer:profiletailors-local}") issuer: String,
         @Value("\${app.security.local-jwt.ttl-seconds:3600}") ttlSeconds: Long,
     ): LocalJwtIssuer = NimbusLocalJwtIssuer(jwtEncoder, issuer, ttlSeconds)
+
 }

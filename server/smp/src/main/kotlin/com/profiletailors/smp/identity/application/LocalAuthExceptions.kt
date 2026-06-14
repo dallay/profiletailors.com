@@ -9,3 +9,9 @@ class UserAlreadyExistsException(
 class InvalidRegistrationInputException(
     message: String,
 ) : RuntimeException(message)
+
+class UnverifiedEmailException(
+    val email: String,
+) : RuntimeException("Email verification required for '$email'.")
+
+class InvalidVerificationTokenException : RuntimeException("Invalid or expired verification token.")

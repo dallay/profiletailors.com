@@ -2,12 +2,13 @@ package com.profiletailors.smp.identity.application
 
 import com.profiletailors.common.domain.bus.command.CommandWithResult
 import com.profiletailors.smp.credentials.application.RefreshSessionToken
+import com.profiletailors.smp.identity.domain.EmailStatus
 
 data class RegisterUserCommand(
     val email: String,
     val password: String,
     val username: String? = null,
-) : CommandWithResult<LocalAuthSessionResult>
+) : CommandWithResult<RegistrationResult>
 
 data class LoginUserCommand(
     val email: String,
@@ -22,6 +23,14 @@ data class LogoutUserSessionCommand(
     val rawRefreshToken: String?,
 ) : CommandWithResult<LogoutUserSessionResult>
 
+data class VerifyEmailCommand(
+    val token: String,
+) : CommandWithResult<LocalAuthSessionResult>
+
+data class ResendVerificationCommand(
+    val email: String,
+) : CommandWithResult<ResendVerificationResult>
+
 data class AuthTokens(
     val accessToken: String,
     val tokenType: String = "Bearer",
@@ -29,6 +38,7 @@ data class AuthTokens(
     val principalId: String,
     val email: String,
     val username: String?,
+    val emailStatus: String = EmailStatus.UNVERIFIED.name,
     val workspaceId: String? = null,
 )
 
@@ -39,4 +49,15 @@ data class LocalAuthSessionResult(
 
 data class LogoutUserSessionResult(
     val clearedClientSession: Boolean = true,
+)
+
+data class RegistrationResult(
+    val principalId: String,
+    val email: String,
+    val username: String?,
+    val emailStatus: EmailStatus,
+)
+
+data class ResendVerificationResult(
+    val accepted: Boolean = true,
 )

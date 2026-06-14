@@ -1,6 +1,7 @@
 package com.profiletailors.smp.identity.application
 
 import com.profiletailors.common.domain.context.PrincipalType
+import com.profiletailors.smp.identity.domain.EmailStatus
 
 data class PrincipalIdentityFacts(
     val principalId: String,
@@ -10,6 +11,7 @@ data class PrincipalIdentityFacts(
     val displayIdentity: String?,
     val email: String?,
     val username: String?,
+    val emailStatus: EmailStatus? = null,
 )
 
 interface PrincipalIdentityLookup {

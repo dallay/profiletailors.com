@@ -118,10 +118,15 @@ class IdentitySecurityConfiguration {
                     ).permitAll()
                     .pathMatchers(
                         HttpMethod.POST,
+                        "/api/auth/verify-email",
+                    ).permitAll()
+                    .pathMatchers(
+                        HttpMethod.POST,
                         "/api/auth/login",
                         "/api/auth/register",
                         "/api/auth/refresh",
                         "/api/auth/logout",
+                        "/api/auth/resend-verification",
                     ).permitAll()
                     .anyExchange().authenticated()
             }
