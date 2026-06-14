@@ -299,7 +299,7 @@ onMounted(() => {
                   :disabled="updatingIcon"
                   @click="selectIcon(iconName)"
                 >
-                  <component :is="LucideIcons[toPascalCase(iconName) as keyof typeof LucideIcons] as any" :size="18" />
+                  <component :is="LucideIcons[toPascalCase(iconName) as keyof typeof LucideIcons]" :size="18" />
                 </button>
               </div>
               <p v-if="iconError" class="text-sm text-error">{{ iconError }}</p>
