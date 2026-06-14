@@ -49,6 +49,6 @@ internal class UpdateWorkspaceIconHandler(
 
     companion object {
         private val REQUIRED_PERMISSION = PermissionKey.of("workspace", "settings", "manage")
-        private val ICON_NAME_PATTERN = Regex("^[a-z]([a-z-]*[a-z])?$")
+        private val ICON_NAME_PATTERN = Regex("^[a-z]+(-[a-z]+)*$")
     }
 }

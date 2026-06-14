@@ -62,7 +62,7 @@ class WorkspaceController(
 @Schema(description = "Workspace icon update request")
 data class UpdateWorkspaceIconRequest(
     @field:Size(max = 64)
-    @field:jakarta.validation.constraints.Pattern(regexp = "^[a-z]([a-z-]*[a-z])?$")
+    @field:jakarta.validation.constraints.Pattern(regexp = "^[a-z]+(-[a-z]+)*$")
     @field:Schema(
         description = "The new workspace icon name (Lucide icon name)",
         example = "briefcase",

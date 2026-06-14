@@ -246,6 +246,7 @@ onMounted(() => {
               v-for="iconName in CURATED_ICONS"
               :key="iconName"
               type="button"
+              :aria-label="iconName"
               class="flex size-9 items-center justify-center rounded-lg border transition-all"
               :class="workspace.activeWorkspace?.icon === iconName
                 ? 'border-text-display bg-text-display text-bg-primary'
@@ -253,7 +254,7 @@ onMounted(() => {
               :disabled="updatingIcon"
               @click="selectIcon(iconName)"
             >
-              <component :is="LucideIcons[toPascalCase(iconName) as keyof typeof LucideIcons]" :size="18" v-bind="{}" />
+              <component :is="LucideIcons[toPascalCase(iconName) as keyof typeof LucideIcons]" :size="18" />
             </button>
           </div>
           <p v-if="iconError" class="text-sm text-error">{{ iconError }}</p>
