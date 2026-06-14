@@ -10,6 +10,9 @@ importers:
 
   apps/web/app:
     dependencies:
+      '@formkit/drag-and-drop':
+        specifier: ^0.6.0
+        version: 0.6.0
       '@lucide/vue':
         specifier: 1.16.0
         version: 1.16.0(vue@3.5.34(typescript@6.0.3))
@@ -848,6 +851,14 @@ packages:
 
   '@floating-ui/vue@1.1.11':
     resolution: {integrity: sha512-HzHKCNVxnGS35r9fCHBc3+uCnjw9IWIlCPL683cGgM9Kgj2BiAl8x1mS7vtvP6F9S/e/q4O6MApwSHj8hNLGfw==}
+
+  '@formkit/drag-and-drop@0.6.0':
+    resolution: {integrity: sha512-q40BE3sjqO43Nx+SBruFIhom/BWYj/RAr511g7KVJEZmrapMMYkLjx1mV9BttkwxT7MSLDcNMWaZMuU59ZI1BA==}
+    peerDependencies:
+      '@marko/runtime-tags': '>=6.0.166'
+    peerDependenciesMeta:
+      '@marko/runtime-tags':
+        optional: true
 
   '@hono/node-server@1.19.14':
     resolution: {integrity: sha512-GwtvgtXxnWsucXvbQXkRgqksiH2Qed37H9xHZocE5sA3N8O8O8/8FA3uclQXxXVzc9XBZuEOMK7+r02FmSpHtw==}
@@ -6159,6 +6170,8 @@ snapshots:
     transitivePeerDependencies:
       - '@vue/composition-api'
       - vue
+
+  '@formkit/drag-and-drop@0.6.0': {}
 
   '@hono/node-server@1.19.14(hono@4.12.22)':
     dependencies:
