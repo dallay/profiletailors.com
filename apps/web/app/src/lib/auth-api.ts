@@ -185,6 +185,7 @@ export interface WorkspaceSummary {
   workspaceId: string
   name: string
   role: string
+  icon: string | null
 }
 
 /**
@@ -216,6 +217,27 @@ export async function fetchConfiguredProviders(
     '/api/publishing/channels/providers',
     {
       method: 'GET',
+      headers: { 'X-Workspace-Id': workspaceId },
+    },
+    token,
+  )
+}
+
+export interface UpdateWorkspaceIconResult {
+  workspaceId: string
+  icon: string | null
+}
+
+export async function updateWorkspaceIcon(
+  icon: string | null,
+  token: string,
+  workspaceId: string,
+): Promise<UpdateWorkspaceIconResult> {
+  return request<UpdateWorkspaceIconResult>(
+    '/api/tenancy/workspaces/current/icon',
+    {
+      method: 'PATCH',
+      body: JSON.stringify({ icon }),
       headers: { 'X-Workspace-Id': workspaceId },
     },
     token,

@@ -53,6 +53,13 @@ export const useWorkspaceStore = defineStore('workspace', () => {
     }
   }
 
+  function updateWorkspaceIcon(workspaceId: string, icon: string | null) {
+    const match = workspaces.value.find((ws) => ws.workspaceId === workspaceId)
+    if (match) {
+      match.icon = icon
+    }
+  }
+
   /**
    * Fetch all workspaces for the authenticated user.
    * Auto-selects the first workspace if none is currently selected.
@@ -102,6 +109,7 @@ export const useWorkspaceStore = defineStore('workspace', () => {
     loadWorkspaces,
     setActiveWorkspaceId,
     setWorkspaceName,
+    updateWorkspaceIcon,
     workspaces,
     workspaceName,
     $reset,

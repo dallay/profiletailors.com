@@ -22,4 +22,5 @@ data class WorkspaceSummary(
     val workspaceId: String,
     val name: String,
     val role: String,
+    val icon: String? = null,
 )

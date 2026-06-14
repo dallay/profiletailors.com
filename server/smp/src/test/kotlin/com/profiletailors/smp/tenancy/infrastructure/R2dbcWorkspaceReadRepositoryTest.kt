@@ -37,6 +37,7 @@ class R2dbcWorkspaceReadRepositoryTest {
                 id VARCHAR(36) PRIMARY KEY,
                 name VARCHAR(255) NOT NULL,
                 status VARCHAR(20) NOT NULL DEFAULT 'ACTIVE',
+                icon VARCHAR(64) NULL,
                 created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
                 updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
             )""",
@@ -64,11 +65,11 @@ class R2dbcWorkspaceReadRepositoryTest {
         ).then().block()
 
         // Seed data
-        databaseClient.sql("INSERT INTO workspaces (id, name, status) VALUES ('ws-a', 'Workspace Alpha', 'ACTIVE')")
+        databaseClient.sql("INSERT INTO workspaces (id, name, status, icon) VALUES ('ws-a', 'Workspace Alpha', 'ACTIVE', NULL)")
             .then().block()
-        databaseClient.sql("INSERT INTO workspaces (id, name, status) VALUES ('ws-b', 'Workspace Beta', 'ACTIVE')")
+        databaseClient.sql("INSERT INTO workspaces (id, name, status, icon) VALUES ('ws-b', 'Workspace Beta', 'ACTIVE', NULL)")
             .then().block()
-        databaseClient.sql("INSERT INTO workspaces (id, name, status) VALUES ('ws-c', 'Archived Workspace', 'ARCHIVED')")
+        databaseClient.sql("INSERT INTO workspaces (id, name, status, icon) VALUES ('ws-c', 'Archived Workspace', 'ARCHIVED', NULL)")
             .then().block()
         databaseClient.sql("INSERT INTO workspace_memberships (id, workspace_id, principal_id, status) VALUES ('m1', 'ws-a', 'user-1', 'ACTIVE')")
             .then().block()

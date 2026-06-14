@@ -7,18 +7,17 @@ import com.profiletailors.smp.authorization.domain.AuthorizationDecision
 import com.profiletailors.smp.authorization.domain.AuthorizationDeniedException
 import com.profiletailors.smp.authorization.domain.PermissionKey
 import com.profiletailors.smp.authorization.domain.WorkspaceAuthorizationDecider
-import com.profiletailors.smp.tenancy.application.requireWorkspaceContext
 import kotlinx.coroutines.reactor.awaitSingle
 import org.springframework.r2dbc.core.DatabaseClient
 
 @Service
-internal class RenameWorkspaceHandler(
+internal class UpdateWorkspaceIconHandler(
     private val resourceContextProvider: ResourceContextProvider,
     private val databaseClient: DatabaseClient,
     private val workspaceAuthorizationDecider: WorkspaceAuthorizationDecider,
-) : CommandWithResultHandler<RenameWorkspaceCommand, RenameWorkspaceResult> {
+) : CommandWithResultHandler<UpdateWorkspaceIconCommand, UpdateWorkspaceIconResult> {
 
-    override suspend fun handle(command: RenameWorkspaceCommand): RenameWorkspaceResult {
+    override suspend fun handle(command: UpdateWorkspaceIconCommand): UpdateWorkspaceIconResult {
         val decision = workspaceAuthorizationDecider.decideDetailed(REQUIRED_PERMISSION)
         if (decision.decision == AuthorizationDecision.DENY) {
             throw AuthorizationDeniedException.forDecision(decision, REQUIRED_PERMISSION)
@@ -27,31 +26,29 @@ internal class RenameWorkspaceHandler(
         val resourceContext = resourceContextProvider.requireWorkspaceContext()
         val workspaceId = requireNotNull(resourceContext.workspaceId)
 
-        val trimmedName = command.newName.trim()
-        require(trimmedName.isNotEmpty()) { "Workspace name cannot be blank." }
-        require(trimmedName.length <= MAX_NAME_LENGTH) { "Workspace name cannot exceed $MAX_NAME_LENGTH characters." }
+        if (command.icon != null) {
+            require(command.icon.matches(ICON_NAME_PATTERN)) {
+                "Invalid icon name: '${command.icon}'. Use only lowercase letters and hyphens."
+            }
+        }
 
-        val rowsUpdated = databaseClient.sql(
-            "UPDATE workspaces SET name = :name WHERE id = :id",
-        )
-            .bind("name", trimmedName)
+        val rowsUpdated = databaseClient.sql("UPDATE workspaces SET icon = :icon WHERE id = :id")
+            .let {
+                if (command.icon == null) it.bindNull("icon", String::class.java)
+                else it.bind("icon", command.icon)
+            }
             .bind("id", workspaceId)
-            .fetch()
-            .rowsUpdated()
-            .awaitSingle()
+            .fetch().rowsUpdated().awaitSingle()
 
         if (rowsUpdated == 0L) {
             throw IllegalStateException("Workspace '$workspaceId' not found.")
         }
 
-        return RenameWorkspaceResult(
-            workspaceId = workspaceId,
-            name = trimmedName,
-        )
+        return UpdateWorkspaceIconResult(workspaceId = workspaceId, icon = command.icon)
     }
 
     companion object {
-        private const val MAX_NAME_LENGTH = 255
         private val REQUIRED_PERMISSION = PermissionKey.of("workspace", "settings", "manage")
+        private val ICON_NAME_PATTERN = Regex("^[a-z]+(-[a-z]+)*$")
     }
 }

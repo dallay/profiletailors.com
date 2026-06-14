@@ -6,7 +6,10 @@ import { useSettingsStore } from '@/stores/settings'
 import { usePublishingStore } from '@/stores/publishing'
 import { useAuthStore } from '@/stores/auth'
 import { useWorkspaceStore } from '@/stores/workspace'
-import { renameWorkspace } from '@/lib/auth-api'
+import { renameWorkspace, updateWorkspaceIcon } from '@/lib/auth-api'
+import WorkspaceAvatar from '@/components/WorkspaceAvatar.vue'
+import { toPascalCase } from '@/lib/string-utils'
+import * as LucideIcons from '@lucide/vue'
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 
@@ -36,6 +39,32 @@ onBeforeUnmount(() => {
 const displayWorkspaceName = computed(
   () => workspace.workspaceName || t('workspace.defaultName'),
 )
+
+const CURATED_ICONS = [
+  'briefcase', 'building', 'palette', 'rocket', 'zap', 'star',
+  'heart', 'flag', 'globe', 'compass', 'target', 'trending-up',
+  'layers', 'folder', 'shield', 'users', 'camera', 'music',
+  'code', 'book-open', 'crown', 'gem', 'sparkles', 'smile'
+]
+
+const updatingIcon = ref(false)
+const iconError = ref<string | null>(null)
+
+async function selectIcon(iconName: string | null) {
+  if (!auth.accessToken || !workspace.activeWorkspaceId) return
+
+  updatingIcon.value = true
+  iconError.value = null
+
+  try {
+    const result = await updateWorkspaceIcon(iconName, auth.accessToken, workspace.activeWorkspaceId)
+    workspace.updateWorkspaceIcon(result.workspaceId, result.icon)
+  } catch (err) {
+    iconError.value = err instanceof Error ? err.message : 'Failed to update icon'
+  } finally {
+    updatingIcon.value = false
+  }
+}
 
 function startRenameWorkspace() {
   workspaceNameInput.value = workspace.workspaceName || ''
@@ -187,7 +216,52 @@ onMounted(() => {
           {{ $t('workspace.title') }}
         </CardTitle>
       </CardHeader>
-      <CardContent class="mt-6 space-y-4 p-0">
+      <CardContent class="mt-6 space-y-6 p-0">
+        <!-- Icon Picker -->
+        <div class="space-y-4">
+          <div class="flex items-center gap-4">
+            <WorkspaceAvatar
+              :name="workspace.activeWorkspace?.name ?? 'W'"
+              :icon="workspace.activeWorkspace?.icon"
+              size="md"
+            />
+            <div>
+              <span class="text-sm font-medium text-text-display block">Workspace Icon</span>
+              <span class="text-xs text-text-secondary">Choose an icon to represent your workspace</span>
+            </div>
+            <Button
+              v-if="workspace.activeWorkspace?.icon"
+              variant="outline"
+              size="sm"
+              class="ml-auto"
+              :disabled="updatingIcon"
+              @click="selectIcon(null)"
+            >
+              Remove
+            </Button>
+          </div>
+
+          <div class="grid grid-cols-8 gap-2">
+            <button
+              v-for="iconName in CURATED_ICONS"
+              :key="iconName"
+              type="button"
+              :aria-label="iconName"
+              class="flex size-9 items-center justify-center rounded-lg border transition-all"
+              :class="workspace.activeWorkspace?.icon === iconName
+                ? 'border-text-display bg-text-display text-bg-primary'
+                : 'border-border-visible text-text-secondary hover:border-text-secondary hover:text-text-display'"
+              :disabled="updatingIcon"
+              @click="selectIcon(iconName)"
+            >
+              <component :is="LucideIcons[toPascalCase(iconName) as keyof typeof LucideIcons]" :size="18" />
+            </button>
+          </div>
+          <p v-if="iconError" class="text-sm text-error">{{ iconError }}</p>
+        </div>
+
+        <div class="border-t border-border-visible"></div>
+
         <p v-if="renameSuccess" class="rounded-xl border border-success/30 bg-success/10 px-4 py-3 text-sm text-success">
           {{ $t('workspace.renameSuccess') }}
         </p>

@@ -31,6 +31,7 @@ internal class R2dbcWorkspaceReadRepository(
             """
             SELECT w.id AS workspace_id,
                    w.name AS workspace_name,
+                   w.icon AS workspace_icon,
                    CASE WHEN wo.workspace_id IS NOT NULL THEN 'OWNER' ELSE 'MEMBER' END AS role
             FROM workspace_memberships wm
             INNER JOIN workspaces w ON w.id = wm.workspace_id
@@ -50,6 +51,7 @@ internal class R2dbcWorkspaceReadRepository(
                     workspaceId = requireNotNull(row.get("workspace_id", String::class.java)),
                     name = requireNotNull(row.get("workspace_name", String::class.java)),
                     role = requireNotNull(row.get("role", String::class.java)),
+                    icon = row.get("workspace_icon", String::class.java),
                 )
             }
             .all()

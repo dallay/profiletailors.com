@@ -44,7 +44,7 @@ class R2dbcWorkspaceMembershipRoleResolverTest {
     @Test
     fun `loads effective role permissions for membership`() = runTest {
         databaseClient.sql("INSERT INTO principals (id, principal_type, subject, provider, display_identity) VALUES ('principal-1', 'USER', 'subject-123', 'https://issuer.example', 'yuniel')").fetch().rowsUpdated().awaitSingle()
-        databaseClient.sql("INSERT INTO workspaces (id, name, status) VALUES ('workspace-1', 'Profile Tailors', 'ACTIVE')").fetch().rowsUpdated().awaitSingle()
+        databaseClient.sql("INSERT INTO workspaces (id, name, status, icon) VALUES ('workspace-1', 'Profile Tailors', 'ACTIVE', NULL)").fetch().rowsUpdated().awaitSingle()
         databaseClient.sql("INSERT INTO workspace_memberships (id, workspace_id, principal_id, principal_type, status) VALUES ('membership-1', 'workspace-1', 'principal-1', 'USER', 'ACTIVE')").fetch().rowsUpdated().awaitSingle()
         databaseClient.sql("INSERT INTO permissions (id, permission_key) VALUES ('permission-1', 'workspace:access:read')").fetch().rowsUpdated().awaitSingle()
         databaseClient.sql("INSERT INTO roles (id, role_key, category) VALUES ('role-1', 'member', 'WORKSPACE')").fetch().rowsUpdated().awaitSingle()

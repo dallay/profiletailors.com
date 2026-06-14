@@ -1,0 +1,13 @@
+databaseChangeLog:
+  - changeSet:
+      id: tenancy-004-add-workspace-icon
+      author: opencode
+      changes:
+        - addColumn:
+            tableName: workspaces
+            columns:
+              - column:
+                  name: icon
+                  type: varchar(64)
+                  constraints:
+                    nullable: true
