@@ -27,7 +27,6 @@ import java.time.Clock
 import java.time.Instant
 import java.time.ZoneOffset
 
-@Tag("brokenOnH2")
 class R2dbcApiKeyCredentialReplacementGatewayTest {
 
     private val jdbcUrl = "jdbc:h2:mem:api_key_replacement;MODE=PostgreSQL;DB_CLOSE_DELAY=-1;DB_CLOSE_ON_EXIT=FALSE"
@@ -224,6 +223,7 @@ class R2dbcApiKeyCredentialReplacementGatewayTest {
     }
 
     private fun deleteAllRows() = runTest {
+        databaseClient.sql("SET REFERENTIAL_INTEGRITY FALSE").fetch().rowsUpdated().awaitSingle()
         listOf(
             "DELETE FROM api_key_credentials",
             "DELETE FROM service_account_credentials",
@@ -232,6 +232,7 @@ class R2dbcApiKeyCredentialReplacementGatewayTest {
         ).forEach { statement ->
             databaseClient.sql(statement).fetch().rowsUpdated().awaitSingle()
         }
+        databaseClient.sql("SET REFERENTIAL_INTEGRITY TRUE").fetch().rowsUpdated().awaitSingle()
     }
 
     private class StubApiKeyCredentialValueFactory : com.profiletailors.smp.credentials.application.ApiKeyCredentialValueFactory {
