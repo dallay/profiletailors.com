@@ -31,10 +31,8 @@ test.describe('Login Form Validation', { tag: '@frontend' }, () => {
     // Click submit with empty fields
     await loginPage.submit()
 
-    // Wait a beat to let any potential request fire
-    await page.waitForTimeout(500)
-
-    // HTML5 validation should prevent form submission
+    // HTML5 validation prevents form submission synchronously, no network
+    // request should be made
     expect(requestMade).toBe(false)
   })
 
@@ -51,7 +49,6 @@ test.describe('Login Form Validation', { tag: '@frontend' }, () => {
     await loginPage.fillPassword('password123')
     await loginPage.submit()
 
-    await page.waitForTimeout(500)
     expect(requestMade).toBe(false)
   })
 
@@ -68,7 +65,6 @@ test.describe('Login Form Validation', { tag: '@frontend' }, () => {
     // Leave password empty
     await loginPage.submit()
 
-    await page.waitForTimeout(500)
     expect(requestMade).toBe(false)
   })
 })

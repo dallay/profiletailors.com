@@ -55,10 +55,16 @@ export class LoginPage {
   async goto(basePath = '/login'): Promise<void> {
     try {
       await this.page.goto(basePath)
-    } catch {
-      // WebKit: throws "Navigation to X is interrupted by another navigation to X"
-      // when the SPA route guard triggers a redirect during page load.
-      await this.page.waitForLoadState('domcontentloaded').catch(() => {})
+    } catch (error) {
+      // Swallow only the WebKit "interrupted by another navigation" error
+      // that occurs when the SPA route guard triggers a redirect during page load.
+      // Re-throw all other errors to avoid masking legitimate failures.
+      const msg = String(error)
+      if (msg.includes('interrupted by another navigation')) {
+        await this.page.waitForLoadState('domcontentloaded').catch(() => {})
+        return
+      }
+      throw error
     }
   }
 

@@ -19,12 +19,13 @@ if (auth.error) {
   formError.value = auth.error
 }
 
-// Clear form state when navigating between /login and /register
+// Clear form and store state when navigating between /login and /register
 // (both use the same AuthView component, so setup() runs only once)
 watch(() => route.name, () => {
   formError.value = null
   email.value = ''
   password.value = ''
+  auth.clearError()
 })
 
 async function handleSubmit() {

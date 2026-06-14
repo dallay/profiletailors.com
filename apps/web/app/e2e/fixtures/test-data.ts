@@ -17,7 +17,7 @@ export const APP_URL = {
 
 export const E2E_TEST_USER = {
   email: process.env.E2E_TEST_USER_EMAIL || 'dev@profiletailors.com',
-  password: process.env.E2E_TEST_USER_PASSWORD || 'S3cr3tP@ssw0rd*123',
+  password: process.env.E2E_TEST_USER_PASSWORD ?? (() => { throw new Error('E2E_TEST_USER_PASSWORD env var must be set'); })(),
   /** Auto-derived from email prefix by the backend */
   username: 'dev',
 } as const

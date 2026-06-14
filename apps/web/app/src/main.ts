@@ -21,7 +21,11 @@ async function main() {
   // Hydrate session BEFORE mounting the router so the route guard
   // always sees resolved session state (avoids race where navigation
   // starts before hydration completes).
-  await authStore.hydrateSession()
+  try {
+    await authStore.hydrateSession()
+  } catch (error) {
+    console.error('Failed to hydrate session:', error)
+  }
 
   app.use(i18n)
   app.use(router)
@@ -29,4 +33,4 @@ async function main() {
   app.mount('#app')
 }
 
-main()
+main().catch(console.error)

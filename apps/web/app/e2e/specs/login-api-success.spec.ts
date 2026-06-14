@@ -45,7 +45,7 @@ test.describe('Login API — Success Path', { tag: '@integration' }, () => {
     await expect(page).toHaveURL(APP_URL.dashboard)
 
     // Verify user display name / identity appears in the heading
-    await expect(page.getByRole('heading', { name: new RegExp(E2E_TEST_USER.username, 'i') })).toBeVisible()
+    await expect(page.getByRole('heading', { name: E2E_TEST_USER.username })).toBeVisible()
   })
 
   test('3.2 Login preserves redirect parameter', async ({ page }) => {

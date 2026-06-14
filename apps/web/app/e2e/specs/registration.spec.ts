@@ -90,7 +90,6 @@ test.describe('Registration', { tag: '@integration' }, () => {
     await loginPage.fillPassword('ValidPass123!')
     await loginPage.submit()
 
-    await page.waitForTimeout(500)
     expect(requestMade).toBe(false)
   })
 

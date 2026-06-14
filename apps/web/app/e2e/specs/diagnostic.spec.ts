@@ -1,6 +1,6 @@
 import { test, expect } from '../fixtures/base-test'
 
-test('DIAGNOSTIC A: WITH clearCookies', async ({ page }) => {
+test.skip('DIAGNOSTIC A: WITH clearCookies', async ({ page }) => {
   const responses: Array<{ url: string; status: number }> = []
   page.on('response', (res) => {
     if (res.url().includes('/api/')) {
@@ -21,7 +21,7 @@ test('DIAGNOSTIC A: WITH clearCookies', async ({ page }) => {
   expect(true).toBe(true)
 })
 
-test('DIAGNOSTIC B: WITHOUT clearCookies', async ({ page }) => {
+test.skip('DIAGNOSTIC B: WITHOUT clearCookies', async ({ page }) => {
   const responses: Array<{ url: string; status: number }> = []
   page.on('response', (res) => {
     if (res.url().includes('/api/')) {

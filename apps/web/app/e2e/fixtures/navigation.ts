@@ -23,9 +23,16 @@ import type { Page, PageGoToOptions } from '@playwright/test'
 export async function safeGoto(page: Page, url: string, options?: PageGoToOptions): Promise<void> {
   try {
     await page.goto(url, options)
-  } catch {
-    // WebKit: the SPA route guard interrupted the initial navigation.
-    // The page is already at the final URL. Wait for load to complete.
-    await page.waitForLoadState('load').catch(() => {})
+  } catch (error) {
+    // Only swallow the WebKit-specific "interrupted by another navigation" error.
+    // Re-throw everything else (DNS failures, 404s, timeouts) to avoid masking
+    // legitimate test failures.
+    const msg = String(error)
+    if (msg.includes('interrupted by another navigation')) {
+      // The page is already at the final URL. Wait for load to complete.
+      await page.waitForLoadState('load').catch(() => {})
+      return
+    }
+    throw error
   }
 }
