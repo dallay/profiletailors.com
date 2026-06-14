@@ -27,3 +27,12 @@ data class RenameWorkspaceResult(
     val workspaceId: String,
     val name: String,
 )
+
+data class UpdateWorkspaceIconCommand(
+    val icon: String?,
+) : CommandWithResult<UpdateWorkspaceIconResult>
+
+data class UpdateWorkspaceIconResult(
+    val workspaceId: String,
+    val icon: String?,
+)

@@ -4,6 +4,8 @@ import com.profiletailors.common.domain.bus.Mediator
 import com.profiletailors.smp.tenancy.application.GetWorkspacesForPrincipalQuery
 import com.profiletailors.smp.tenancy.application.RenameWorkspaceCommand
 import com.profiletailors.smp.tenancy.application.RenameWorkspaceResult
+import com.profiletailors.smp.tenancy.application.UpdateWorkspaceIconCommand
+import com.profiletailors.smp.tenancy.application.UpdateWorkspaceIconResult
 import com.profiletailors.smp.tenancy.application.WorkspaceSummary
 import io.swagger.v3.oas.annotations.Operation
 import io.swagger.v3.oas.annotations.media.Schema
@@ -44,7 +46,29 @@ class WorkspaceController(
     ): RenameWorkspaceResult = mediator.send(
         RenameWorkspaceCommand(newName = request.name),
     )
+
+    @Operation(
+        summary = "Update the active workspace icon",
+        description = "Updates the icon for the workspace identified by the X-Workspace-Id header.",
+    )
+    @PatchMapping("/current/icon", consumes = ["application/json"], version = "1")
+    suspend fun updateWorkspaceIcon(
+        @Valid @RequestBody request: UpdateWorkspaceIconRequest,
+    ): UpdateWorkspaceIconResult = mediator.send(
+        UpdateWorkspaceIconCommand(icon = request.icon),
+    )
 }
+
+@Schema(description = "Workspace icon update request")
+data class UpdateWorkspaceIconRequest(
+    @field:Size(max = 64)
+    @field:Schema(
+        description = "The new workspace icon name (Lucide icon name)",
+        example = "briefcase",
+        nullable = true,
+    )
+    val icon: String?,
+)
 
 @Schema(description = "Workspace rename request")
 data class RenameWorkspaceRequest(

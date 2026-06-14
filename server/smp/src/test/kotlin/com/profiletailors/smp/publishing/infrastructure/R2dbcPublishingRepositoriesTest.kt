@@ -427,8 +427,8 @@ class R2dbcPublishingRepositoriesTest : DatabaseUnitTestBase() {
         ).fetch().rowsUpdated().awaitSingle()
         databaseClient.sql(
             """
-            INSERT INTO workspaces (id, name, status)
-            VALUES ('workspace-1', 'Workspace 1', 'ACTIVE')
+            INSERT INTO workspaces (id, name, status, icon)
+            VALUES ('workspace-1', 'Workspace 1', 'ACTIVE', NULL)
             """.trimIndent(),
         ).fetch().rowsUpdated().awaitSingle()
     }

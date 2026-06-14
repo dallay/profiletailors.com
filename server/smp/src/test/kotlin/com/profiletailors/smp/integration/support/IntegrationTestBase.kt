@@ -109,7 +109,7 @@ abstract class IntegrationTestBase {
 
     protected suspend fun seedWorkspace(workspaceId: String, name: String, status: String = "ACTIVE") {
         databaseClient.sql(
-            "INSERT INTO workspaces (id, name, status) VALUES (:id, :name, :status)"
+            "INSERT INTO workspaces (id, name, status, icon) VALUES (:id, :name, :status)"
         )
             .bind("id", workspaceId)
             .bind("name", name)

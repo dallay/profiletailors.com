@@ -18,6 +18,8 @@ databaseChangeLog:
   - include:
       file: db/changelog/tenancy/003-create-workspace-memberships.yaml
   - include:
+      file: db/changelog/tenancy/004-add-workspace-icon.yaml
+  - include:
       file: db/changelog/authorization/001-create-permissions.yaml
   - include:
       file: db/changelog/authorization/002-create-roles.yaml

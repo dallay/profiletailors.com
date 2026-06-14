@@ -35,6 +35,7 @@ import { useAuthStore } from '@/stores/auth'
 import { useSettingsStore } from '@/stores/settings'
 import { usePublishingStore, type Channel } from '@/stores/publishing'
 import { useWorkspaceStore } from '@/stores/workspace'
+import WorkspaceAvatar from '@/components/WorkspaceAvatar.vue'
 import { getProviderBadge } from '@/lib/provider-styles'
 import type { WorkspaceSummary } from '@/lib/auth-api'
 
@@ -346,11 +347,11 @@ onBeforeUnmount(() => {
                 type="button"
                 @click="selectWorkspace(ws)"
               >
-                <div class="flex size-8 shrink-0 items-center justify-center rounded-lg border border-border-visible bg-bg-primary text-text-display">
-                  <span class="font-mono text-[10px] font-bold uppercase">
-                    {{ ws.name.charAt(0) }}
-                  </span>
-                </div>
+                <WorkspaceAvatar
+                  :name="ws.name"
+                  :icon="ws.icon"
+                  size="sm"
+                />
                 <div class="min-w-0 flex-1">
                   <p class="truncate text-sm font-medium text-current">
                     {{ ws.name }}
@@ -385,11 +386,11 @@ onBeforeUnmount(() => {
             type="button"
             @click.stop="toggleWorkspaceMenu"
           >
-            <div class="flex size-10 shrink-0 items-center justify-center rounded-xl bg-text-display text-bg-primary shadow-lg">
-              <span class="font-mono text-xs font-bold">
-                {{ workspace.activeWorkspace?.name?.charAt(0) ?? 'W' }}
-              </span>
-            </div>
+            <WorkspaceAvatar
+              :name="workspace.activeWorkspace?.name ?? 'W'"
+              :icon="workspace.activeWorkspace?.icon"
+              size="md"
+            />
 
             <div class="min-w-0 flex-1 text-left group-data-[collapsible=icon]:hidden">
               <p class="truncate font-mono text-[11px] font-bold uppercase tracking-[0.18em] text-text-display">

@@ -266,8 +266,8 @@ class PublishingWorkspaceIsolationIntegrationTest : DatabaseUnitTestBase() {
         ).fetch().rowsUpdated().awaitSingle()
         databaseClient.sql(
             """
-            INSERT INTO workspaces (id, name, status)
-            VALUES ('workspace-a', 'Workspace A', 'ACTIVE')
+            INSERT INTO workspaces (id, name, status, icon)
+            VALUES ('workspace-a', 'Workspace A', 'ACTIVE', NULL)
             """.trimIndent(),
         ).fetch().rowsUpdated().awaitSingle()
 
@@ -280,8 +280,8 @@ class PublishingWorkspaceIsolationIntegrationTest : DatabaseUnitTestBase() {
         ).fetch().rowsUpdated().awaitSingle()
         databaseClient.sql(
             """
-            INSERT INTO workspaces (id, name, status)
-            VALUES ('workspace-b', 'Workspace B', 'ACTIVE')
+            INSERT INTO workspaces (id, name, status, icon)
+            VALUES ('workspace-b', 'Workspace B', 'ACTIVE', NULL)
             """.trimIndent(),
         ).fetch().rowsUpdated().awaitSingle()
     }
