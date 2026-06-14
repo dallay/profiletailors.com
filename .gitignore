@@ -51,6 +51,9 @@ coverage/
 # Node.js dependencies (all workspaces/packages)
 node_modules/
 **/node_modules/
+
+# pnpm store (local cache, not for repo)
+.pnpm-store/
 # START AI Agent Symlinks
 .agents/skills/*.bak
 .claude/commands
