@@ -12,6 +12,7 @@ internal suspend fun issueAuthSession(
     subject: String,
     email: String,
     username: String?,
+    workspaceId: String? = null,
     clock: Clock,
     localJwtIssuer: LocalJwtIssuer,
     refreshSessionLifecycleService: RefreshSessionLifecycleService,
@@ -31,6 +32,7 @@ internal suspend fun issueAuthSession(
             principalId = principalId,
             email = email,
             username = username,
+            workspaceId = workspaceId,
         ),
         refreshToken = refreshSession.refreshToken,
     )
@@ -44,6 +46,7 @@ internal class RegisterUserHandler(
     private val passwordHasher: PasswordHasher,
     private val localJwtIssuer: LocalJwtIssuer,
     private val refreshSessionLifecycleService: RefreshSessionLifecycleService,
+    private val workspaceProvisioningService: com.profiletailors.smp.tenancy.application.WorkspaceProvisioningService,
     private val clock: Clock,
 ) : CommandWithResultHandler<RegisterUserCommand, LocalAuthSessionResult> {
 
@@ -77,11 +80,18 @@ internal class RegisterUserHandler(
             passwordHash = passwordHasher.hash(command.password),
         )
 
+        // Provision a default workspace for the new user
+        val provisioned = workspaceProvisioningService.provisionDefaultWorkspace(
+            principalId = principalId,
+            displayName = normalizedUsername,
+        )
+
         return issueAuthSession(
             principalId = principalId,
             subject = subject,
             email = normalizedEmail,
             username = normalizedUsername,
+            workspaceId = provisioned.workspaceId,
             clock = clock,
             localJwtIssuer = localJwtIssuer,
             refreshSessionLifecycleService = refreshSessionLifecycleService,

@@ -29,6 +29,7 @@ data class AuthTokens(
     val principalId: String,
     val email: String,
     val username: String?,
+    val workspaceId: String? = null,
 )
 
 data class LocalAuthSessionResult(

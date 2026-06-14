@@ -36,7 +36,6 @@ import java.util.UUID
 class LinkedInPublishingAdaptersTest {
 
     private val properties = LinkedInPublishingProperties(
-        mode = "real",
         clientId = "client-id",
         clientSecret = "client-secret",
         redirectUri = "https://app.example.com/callback",
@@ -653,7 +652,6 @@ class LinkedInPublishingAdaptersTest {
     @Test
     fun `linkedin publishing properties binds from environment`() {
         val props = LinkedInPublishingProperties(
-            mode = "real",
             clientId = "my-client-id",
             clientSecret = "my-client-secret",
             redirectUri = "https://app.example.com/callback",
@@ -664,7 +662,6 @@ class LinkedInPublishingAdaptersTest {
             apiVersion = "202601",
         )
 
-        assertEquals("real", props.mode)
         assertEquals("my-client-id", props.clientId)
         assertEquals("my-client-secret", props.clientSecret)
         assertEquals("https://api.linkedin.com", props.apiBaseUrl)

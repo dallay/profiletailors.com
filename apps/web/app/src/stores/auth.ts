@@ -123,6 +123,11 @@ export const useAuthStore = defineStore('auth', () => {
   function _applyTokens(tokens: AuthTokens) {
     _accessToken.value = tokens.accessToken
     user.value = mapTokensToUser(tokens)
+
+    // If the backend returned a workspace ID (e.g. from registration), persist it
+    if (tokens.workspaceId && !workspace.activeWorkspaceId) {
+      workspace.setActiveWorkspaceId(tokens.workspaceId)
+    }
   }
 
   function _clearSession() {

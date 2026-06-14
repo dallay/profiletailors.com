@@ -137,6 +137,12 @@ const [col3Ref, col3Items] = useDragAndDrop(
 const allItems = [col0Items, col1Items, col2Items, col3Items]
 const colRefs = [col0Ref, col1Ref, col2Ref, col3Ref]
 
+function setColumnRef(colIndex: number, el: Element | null): void {
+  const targetRef = colRefs[colIndex]
+  if (!targetRef) return
+  targetRef.value = el instanceof HTMLElement ? el : undefined
+}
+
 // Sync local DnD state when props change (e.g. after move-button click updates the store)
 watch(
   () => props.columns,
@@ -192,7 +198,7 @@ watch(
 
             <!-- Cards (draggable container) -->
             <div
-              :ref="colRefs[colIndex]"
+              :ref="(el) => setColumnRef(colIndex, el as Element | null)"
               class="space-y-2 min-h-[48px]"
             >
               <div

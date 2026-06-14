@@ -1,17 +1,14 @@
 <script setup lang="ts">
 import type { Component } from 'vue'
 import {
-  AudioWaveform,
   BarChart3,
   CalendarDays,
   ChevronsUpDown,
-  GalleryVerticalEnd,
   LayoutGrid,
   LogOut,
   PanelLeft,
   Plus,
   Settings,
-  Sparkles,
   Users,
 } from '@lucide/vue'
 import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue'
@@ -37,7 +34,9 @@ import {
 import { useAuthStore } from '@/stores/auth'
 import { useSettingsStore } from '@/stores/settings'
 import { usePublishingStore, type Channel } from '@/stores/publishing'
+import { useWorkspaceStore } from '@/stores/workspace'
 import { getProviderBadge } from '@/lib/provider-styles'
+import type { WorkspaceSummary } from '@/lib/auth-api'
 
 interface NavItem {
   labelKey: string
@@ -50,12 +49,6 @@ interface NavItem {
 interface NavGroup {
   label: string
   items: NavItem[]
-}
-
-interface AccountOption {
-  name: string
-  plan: string
-  icon: Component
 }
 
 interface SidebarChannel extends Channel {
@@ -75,16 +68,11 @@ const route = useRoute()
 const settings = useSettingsStore()
 const { t } = useI18n()
 const publishingStore = usePublishingStore()
+const workspace = useWorkspaceStore()
 const accountMenuOpen = ref(false)
 const workspaceMenuOpen = ref(false)
 const accountMenuRef = ref<HTMLElement | null>(null)
 const workspaceMenuRef = ref<HTMLElement | null>(null)
-
-const activeAccount = ref<AccountOption>({
-  name: 'Profile Tailors',
-  plan: 'Enterprise',
-  icon: GalleryVerticalEnd,
-})
 
 const isAuthRoute = computed(() => route.name === 'login' || route.name === 'register')
 
@@ -151,18 +139,7 @@ const connectChannels = computed<ConnectChannel[]>(() => [
 
 const activeChannelProvider = computed(() => publishingStore.filterChannel)
 
-const accountOptions = computed<AccountOption[]>(() => [
-  {
-    name: 'Profile Tailors',
-    plan: 'Enterprise',
-    icon: GalleryVerticalEnd,
-  },
-  {
-    name: 'Acosta Studio',
-    plan: 'Growth',
-    icon: AudioWaveform,
-  },
-])
+const accountOptions = computed(() => workspace.workspaces)
 
 const headerSummary = computed(() => {
   return currentSectionLabel.value === 'dashboard'
@@ -207,8 +184,8 @@ function closeWorkspaceMenu() {
   workspaceMenuOpen.value = false
 }
 
-function selectWorkspace(account: AccountOption) {
-  activeAccount.value = account
+function selectWorkspace(ws: WorkspaceSummary) {
+  workspace.setActiveWorkspaceId(ws.workspaceId)
   closeWorkspaceMenu()
 }
 
@@ -252,8 +229,8 @@ async function handleConnectChannel(channel: ConnectChannel) {
     connectMessage.value = t('channels.connectingLinkedIn')
     try {
       await publishingStore.connectLinkedInPersonalProfile()
-    } catch (err) {
-      connectMessage.value = err instanceof Error ? err.message : t('channels.connectLinkedInFailed')
+    } catch (err: any) {
+      connectMessage.value = err?.detail || err?.message || t('channels.connectLinkedInFailed')
       if (connectTimeout) clearTimeout(connectTimeout)
       connectTimeout = setTimeout(() => {
         connectMessage.value = ''
@@ -309,7 +286,10 @@ watch(() => route.path, () => {
 watch(
   () => auth.isAuthenticated,
   (isAuthenticated) => {
-    if (isAuthenticated) {
+    if (isAuthenticated && auth.accessToken) {
+      workspace.loadWorkspaces(auth.accessToken).catch((err) => {
+        console.warn('Unable to load workspaces', err)
+      })
       publishingStore.fetchChannels().catch((err) => {
         console.warn('Unable to load connected channels', err)
       })
@@ -353,27 +333,36 @@ onBeforeUnmount(() => {
 
             <div class="space-y-1">
               <button
-                v-for="account in accountOptions"
-                :key="account.name"
+                v-for="ws in accountOptions"
+                :key="ws.workspaceId"
                 class="flex w-full items-center gap-3 rounded-xl border px-3 py-2 text-left text-sm transition-all"
-                :class="activeAccount.name === account.name
+                :class="workspace.activeWorkspaceId === ws.workspaceId
                   ? 'border-border-visible bg-bg-primary text-text-display'
                   : 'border-transparent text-text-secondary hover:border-border-subtle hover:bg-bg-primary/70 hover:text-text-display'"
                 type="button"
-                @click="selectWorkspace(account)"
+                @click="selectWorkspace(ws)"
               >
                 <div class="flex size-8 shrink-0 items-center justify-center rounded-lg border border-border-visible bg-bg-primary text-text-display">
-                  <component :is="account.icon" class="size-4" />
+                  <span class="font-mono text-[10px] font-bold uppercase">
+                    {{ ws.name.charAt(0) }}
+                  </span>
                 </div>
                 <div class="min-w-0 flex-1">
                   <p class="truncate text-sm font-medium text-current">
-                    {{ account.name }}
+                    {{ ws.name }}
                   </p>
                   <p class="truncate text-[10px] text-text-secondary">
-                    {{ account.plan }}
+                    {{ ws.role }}
                   </p>
                 </div>
               </button>
+
+              <p
+                v-if="accountOptions.length === 0 && !workspace.isLoadingWorkspaces"
+                class="px-3 py-4 text-center text-xs text-text-secondary"
+              >
+                No workspaces found
+              </p>
             </div>
 
             <div class="my-2 border-t border-border-subtle" />
@@ -393,15 +382,17 @@ onBeforeUnmount(() => {
             @click.stop="toggleWorkspaceMenu"
           >
             <div class="flex size-10 shrink-0 items-center justify-center rounded-xl bg-text-display text-bg-primary shadow-lg">
-              <component :is="activeAccount.icon" class="size-4" />
+              <span class="font-mono text-xs font-bold">
+                {{ workspace.activeWorkspace?.name?.charAt(0) ?? 'W' }}
+              </span>
             </div>
 
             <div class="min-w-0 flex-1 text-left group-data-[collapsible=icon]:hidden">
               <p class="truncate font-mono text-[11px] font-bold uppercase tracking-[0.18em] text-text-display">
-                {{ activeAccount.name }}
+                {{ workspace.activeWorkspace?.name ?? 'Select workspace' }}
               </p>
               <p class="truncate text-xs text-text-secondary">
-                {{ activeAccount.plan }}
+                {{ workspace.activeWorkspace?.role ?? '' }}
               </p>
             </div>
 
@@ -428,16 +419,17 @@ onBeforeUnmount(() => {
               :key="item.to"
             >
               <SidebarMenuButton
+                as-child
                 :is-active="isActive(item.to)"
                 :tooltip="$t(item.labelKey)"
-                v-slot="{ className, collapsed }"
+                class="h-10 rounded-xl px-2.5 text-[15px] font-medium text-text-primary data-active:bg-bg-surface data-active:text-text-display data-active:shadow-[inset_0_0_0_1px_var(--border-subtle)]"
               >
-                <RouterLink :to="item.to" :class="className">
-                  <component :is="item.icon" class="size-4 shrink-0" />
-                  <span v-if="!collapsed" class="truncate">{{ $t(item.labelKey) }}</span>
+                <RouterLink :to="item.to">
+                  <component :is="item.icon" class="size-4 shrink-0 text-text-secondary" />
+                  <span class="truncate group-data-[collapsible=icon]:hidden">{{ $t(item.labelKey) }}</span>
                   <span
-                    v-if="!collapsed && item.badge"
-                    class="ml-auto rounded-full border border-border-visible bg-bg-primary px-2 py-0.5 font-mono text-[9px] uppercase tracking-[0.12em] text-text-secondary"
+                    v-if="item.badge"
+                    class="ml-auto inline-flex min-w-8 items-center justify-center rounded-full border border-border-visible bg-bg-primary px-2 py-0.5 font-mono text-[9px] uppercase tracking-[0.12em] text-text-secondary group-data-[collapsible=icon]:hidden"
                   >
                     {{ item.badge }}
                   </span>
@@ -455,16 +447,16 @@ onBeforeUnmount(() => {
           <SidebarMenu>
             <SidebarMenuItem>
               <SidebarMenuButton
+                as-child
                 :is-active="isSchedulerRoute() && !activeChannelProvider"
                 :tooltip="$t('channels.all')"
-                v-slot="{ className, collapsed }"
+                class="h-10 rounded-xl px-2.5 text-[15px] font-medium text-text-primary data-active:bg-bg-surface data-active:text-text-display data-active:shadow-[inset_0_0_0_1px_var(--border-subtle)]"
               >
-                <button :class="className" type="button" @click="showAllChannels">
-                  <Users class="size-4 shrink-0" />
-                  <span v-if="!collapsed" class="truncate">{{ $t('channels.all') }}</span>
+                <button type="button" @click="showAllChannels">
+                  <Users class="size-4 shrink-0 text-text-secondary" />
+                  <span class="truncate group-data-[collapsible=icon]:hidden">{{ $t('channels.all') }}</span>
                   <span
-                    v-if="!collapsed"
-                    class="ml-auto rounded-full border border-border-visible bg-bg-primary px-2 py-0.5 font-mono text-[9px] uppercase tracking-[0.12em] text-text-secondary"
+                    class="ml-auto inline-flex min-w-8 items-center justify-center rounded-full border border-border-visible bg-bg-primary px-2 py-0.5 font-mono text-[9px] uppercase tracking-[0.12em] text-text-secondary group-data-[collapsible=icon]:hidden"
                   >
                     {{ totalQueuedCount < 10 ? `0${totalQueuedCount}` : totalQueuedCount }}
                   </span>
@@ -477,11 +469,12 @@ onBeforeUnmount(() => {
               :key="channel.id"
             >
               <SidebarMenuButton
+                as-child
                 :is-active="isSchedulerRoute() && activeChannelProvider === channel.provider"
                 :tooltip="`${channel.name} · ${channel.handle}`"
-                v-slot="{ className, collapsed }"
+                class="h-11 rounded-xl px-2.5 text-sm font-medium text-text-primary data-active:bg-bg-surface data-active:text-text-display data-active:shadow-[inset_0_0_0_1px_var(--border-subtle)]"
               >
-                <button :class="className" type="button" @click="selectChannel(channel)">
+                <button type="button" @click="selectChannel(channel)">
                   <span class="relative flex size-5 shrink-0 items-center justify-center">
                     <img
                       :src="channel.avatar"
@@ -493,16 +486,15 @@ onBeforeUnmount(() => {
                     </span>
                   </span>
 
-                  <span v-if="!collapsed" class="min-w-0 flex-1 text-left">
-                    <span class="block truncate text-sm">{{ channel.name }}</span>
-                    <span class="block truncate font-mono text-[9px] uppercase tracking-[0.08em] text-text-secondary">
+                  <span class="min-w-0 flex-1 text-left group-data-[collapsible=icon]:hidden">
+                    <span class="block truncate text-sm leading-none">{{ channel.name }}</span>
+                    <span class="mt-1 block truncate font-mono text-[9px] uppercase tracking-[0.08em] text-text-secondary">
                       {{ channel.status === 'ACTIVE' ? $t('channels.active') : $t('channels.inactive') }}
                     </span>
                   </span>
 
                   <span
-                    v-if="!collapsed"
-                    class="ml-auto font-mono text-[10px] text-text-secondary"
+                    class="ml-auto inline-flex min-w-6 items-center justify-end font-mono text-[10px] text-text-secondary group-data-[collapsible=icon]:hidden"
                   >
                     {{ channel.queuedCount }}
                   </span>
@@ -511,23 +503,23 @@ onBeforeUnmount(() => {
             </SidebarMenuItem>
           </SidebarMenu>
 
-          <div class="mt-2 space-y-1 border-t border-border-subtle pt-3 group-data-[collapsible=icon]:hidden">
-            <p class="px-2 font-mono text-[9px] uppercase tracking-[0.16em] text-text-secondary">
+          <div class="mt-3 space-y-1.5 border-t border-border-subtle pt-3 group-data-[collapsible=icon]:hidden">
+            <p class="px-2 font-mono text-[9px] uppercase tracking-[0.18em] text-text-secondary/80">
               {{ $t('channels.connect') }}
             </p>
 
             <button
               v-for="channel in connectChannels"
               :key="channel.id"
-              class="flex w-full items-center gap-2 rounded-lg border border-transparent px-2 py-1.5 text-left text-xs text-text-secondary transition-colors hover:border-border-subtle hover:bg-bg-primary/70 hover:text-text-display"
+              class="flex w-full items-center gap-3 rounded-xl border border-transparent px-2.5 py-2 text-left text-[13px] text-text-secondary transition-colors hover:border-border-subtle hover:bg-bg-primary/70 hover:text-text-display"
               type="button"
               @click="handleConnectChannel(channel)"
             >
-              <span class="flex size-5 shrink-0 items-center justify-center rounded-md border border-border-visible bg-bg-primary font-mono text-[9px] font-bold uppercase text-text-display">
+              <span class="flex size-5 shrink-0 items-center justify-center rounded-full border border-border-visible bg-bg-primary font-mono text-[9px] font-bold uppercase text-text-display">
                 {{ channel.badge }}
               </span>
               <span class="min-w-0 flex-1 truncate">{{ channel.label }}</span>
-              <span class="font-mono text-[9px] uppercase tracking-[0.1em]">+ {{ $t('channels.connectAction') }}</span>
+              <span class="font-mono text-[9px] uppercase tracking-[0.12em] text-text-secondary/80">+ {{ $t('channels.connectAction') }}</span>
             </button>
 
             <button
@@ -608,10 +600,10 @@ onBeforeUnmount(() => {
 
             <div class="min-w-0 flex-1 group-data-[collapsible=icon]:hidden">
               <p class="truncate text-sm font-medium text-text-display">
-                {{ activeAccount.name }}
+                {{ auth.displayName }}
               </p>
               <p class="truncate font-mono text-[10px] uppercase tracking-[0.14em] text-text-secondary">
-                {{ auth.user?.email || activeAccount.plan }}
+                {{ auth.user?.email || workspace.workspaceName || 'Session active' }}
               </p>
             </div>
 

@@ -4,15 +4,64 @@ import { useRoute } from 'vue-router'
 import { useI18n } from 'vue-i18n'
 import { useSettingsStore } from '@/stores/settings'
 import { usePublishingStore } from '@/stores/publishing'
+import { useAuthStore } from '@/stores/auth'
+import { useWorkspaceStore } from '@/stores/workspace'
+import { renameWorkspace } from '@/lib/auth-api'
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 
 const settings = useSettingsStore()
 const publishing = usePublishingStore()
+const auth = useAuthStore()
+const workspace = useWorkspaceStore()
 const route = useRoute()
 const { t } = useI18n()
 const connectError = ref<string | null>(null)
 const connectingLinkedIn = ref(false)
+
+// Workspace rename
+const editingWorkspaceName = ref(false)
+const workspaceNameInput = ref('')
+const renamingWorkspace = ref(false)
+const renameError = ref<string | null>(null)
+const renameSuccess = ref(false)
+
+const displayWorkspaceName = computed(
+  () => workspace.workspaceName || t('workspace.defaultName'),
+)
+
+function startRenameWorkspace() {
+  workspaceNameInput.value = workspace.workspaceName || ''
+  editingWorkspaceName.value = true
+  renameError.value = null
+  renameSuccess.value = false
+}
+
+function cancelRenameWorkspace() {
+  editingWorkspaceName.value = false
+  renameError.value = null
+}
+
+async function saveWorkspaceName() {
+  const newName = workspaceNameInput.value.trim()
+  if (!newName || !auth.accessToken || !workspace.activeWorkspaceId) return
+
+  renamingWorkspace.value = true
+  renameError.value = null
+  renameSuccess.value = false
+
+  try {
+    const result = await renameWorkspace(newName, auth.accessToken, workspace.activeWorkspaceId)
+    workspace.setWorkspaceName(result.name)
+    editingWorkspaceName.value = false
+    renameSuccess.value = true
+    setTimeout(() => { renameSuccess.value = false }, 3000)
+  } catch (err) {
+    renameError.value = err instanceof Error ? err.message : t('workspace.renameFailed')
+  } finally {
+    renamingWorkspace.value = false
+  }
+}
 
 const linkedInChannels = computed(() =>
   publishing.channels.filter((channel) => channel.provider === 'linkedin' && channel.status === 'ACTIVE'),
@@ -25,8 +74,8 @@ async function connectLinkedInProfile() {
 
   try {
     await publishing.connectLinkedInPersonalProfile()
-  } catch (err) {
-    connectError.value = err instanceof Error ? err.message : t('channels.connectLinkedInFailed')
+  } catch (err: any) {
+    connectError.value = err?.detail || err?.message || t('channels.connectLinkedInFailed')
     connectingLinkedIn.value = false
   }
 }
@@ -35,6 +84,7 @@ onMounted(() => {
   publishing.fetchChannels().catch((err) => {
     connectError.value = err instanceof Error ? err.message : t('channels.loadFailed')
   })
+  publishing.fetchConfiguredProviders()
 })
 </script>
 
@@ -124,6 +174,57 @@ onMounted(() => {
     <Card class="max-w-xl border border-border-subtle bg-bg-surface">
       <CardHeader class="border-b border-border-subtle p-0 pb-4">
         <CardTitle class="label-mono text-[10px] text-text-display">
+          {{ $t('workspace.title') }}
+        </CardTitle>
+      </CardHeader>
+      <CardContent class="mt-6 space-y-4 p-0">
+        <p v-if="renameSuccess" class="rounded-xl border border-success/30 bg-success/10 px-4 py-3 text-sm text-success">
+          {{ $t('workspace.renameSuccess') }}
+        </p>
+
+        <div v-if="!editingWorkspaceName" class="flex items-center justify-between">
+          <div class="min-w-0">
+            <p class="text-sm font-medium text-text-display">{{ displayWorkspaceName }}</p>
+            <p class="font-mono text-[10px] uppercase tracking-[0.12em] text-text-secondary">
+              {{ workspace.activeWorkspaceId }}
+            </p>
+          </div>
+          <Button variant="outline" size="sm" @click="startRenameWorkspace">
+            {{ $t('workspace.rename') }}
+          </Button>
+        </div>
+
+        <div v-else class="space-y-3">
+          <input
+            v-model="workspaceNameInput"
+            type="text"
+            :placeholder="$t('workspace.namePlaceholder')"
+            class="w-full rounded-2xl border border-border-visible bg-bg-primary px-4 py-3 text-sm text-text-body placeholder:text-text-secondary focus:border-text-display focus:outline-none"
+            maxlength="255"
+            @keyup.enter="saveWorkspaceName"
+            @keyup.escape="cancelRenameWorkspace"
+          >
+          <p v-if="renameError" class="text-sm text-error">{{ renameError }}</p>
+          <div class="flex gap-2">
+            <Button
+              type="button"
+              size="sm"
+              :disabled="renamingWorkspace || !workspaceNameInput.trim()"
+              @click="saveWorkspaceName"
+            >
+              {{ renamingWorkspace ? '...' : $t('workspace.save') }}
+            </Button>
+            <Button variant="outline" size="sm" @click="cancelRenameWorkspace">
+              {{ $t('workspace.cancel') }}
+            </Button>
+          </div>
+        </div>
+      </CardContent>
+    </Card>
+
+    <Card class="max-w-xl border border-border-subtle bg-bg-surface">
+      <CardHeader class="border-b border-border-subtle p-0 pb-4">
+        <CardTitle class="label-mono text-[10px] text-text-display">
           {{ $t('channels.title') }}
         </CardTitle>
       </CardHeader>
@@ -154,6 +255,13 @@ onMounted(() => {
           </div>
         </div>
 
+        <div v-else-if="!publishing.isLinkedInConfigured" class="rounded-xl border border-dashed border-border-visible bg-bg-primary/50 p-5">
+          <p class="text-sm font-medium text-text-display">{{ $t('channels.notConfigured') }}</p>
+          <p class="mt-1 text-xs leading-5 text-text-secondary">
+            {{ $t('channels.notConfiguredDesc') }}
+          </p>
+        </div>
+
         <div v-else class="rounded-xl border border-dashed border-border-visible bg-bg-primary/50 p-5">
           <p class="text-sm font-medium text-text-display">{{ $t('channels.noChannels') }}</p>
           <p class="mt-1 text-xs leading-5 text-text-secondary">
@@ -166,6 +274,7 @@ onMounted(() => {
         </p>
 
         <Button
+          v-if="publishing.isLinkedInConfigured"
           type="button"
           :disabled="connectingLinkedIn"
           @click="connectLinkedInProfile"

@@ -5,6 +5,22 @@ plugins {
 group = "com.profiletailors"
 version = "0.0.1-SNAPSHOT"
 
+// ── .env loader for local development ────────────────────────────────────────
+// Reads the root .env (linked via bin/setup-env.sh) and exports each variable
+// to the forked bootRun JVM so Spring Boot picks them up as environment vars.
+// This works for both CLI (./gradlew bootRun) and IntelliJ Gradle runner.
+tasks.bootRun {
+    val envFile = layout.projectDirectory.file(".env")
+    if (envFile.asFile.exists()) {
+        envFile.asFile.readLines()
+            .filter { it.isNotBlank() && !it.startsWith("#") && '=' in it }
+            .forEach { line ->
+                val (key, value) = line.split("=", limit = 2)
+                environment(key, value.trim())
+            }
+    }
+}
+
 dependencies {
     implementation(project(":shared:common"))
     implementation(project(":shared:bus"))
@@ -26,6 +42,7 @@ dependencies {
     implementation(libs.springdoc.openapi.webflux)
     implementation(libs.spring.modulith.starter.core)
     implementation(libs.jackson.module.kotlin)
+    implementation("com.fasterxml.jackson.module:jackson-module-kotlin:2.21.2")
     implementation(libs.spring.boot.starter.actuator)
     implementation(libs.micrometer.prometheus)
 
