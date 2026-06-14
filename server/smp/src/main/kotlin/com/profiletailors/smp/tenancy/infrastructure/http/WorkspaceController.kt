@@ -12,6 +12,7 @@ import io.swagger.v3.oas.annotations.media.Schema
 import io.swagger.v3.oas.annotations.tags.Tag
 import jakarta.validation.Valid
 import jakarta.validation.constraints.NotBlank
+import jakarta.validation.constraints.Pattern
 import jakarta.validation.constraints.Size
 import org.springframework.http.ResponseEntity
 import org.springframework.validation.annotation.Validated
@@ -62,6 +63,7 @@ class WorkspaceController(
 @Schema(description = "Workspace icon update request")
 data class UpdateWorkspaceIconRequest(
     @field:Size(max = 64)
+    @field:Pattern(regexp = "^[a-z]([a-z-]*[a-z])?$", message = "Icon name must contain only lowercase letters and hyphens")
     @field:Schema(
         description = "The new workspace icon name (Lucide icon name)",
         example = "briefcase",

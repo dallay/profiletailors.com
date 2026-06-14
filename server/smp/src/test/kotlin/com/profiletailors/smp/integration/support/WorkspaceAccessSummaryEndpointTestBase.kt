@@ -604,7 +604,7 @@ abstract class WorkspaceAccessSummaryEndpointTestBase : AuthorizationEndpointInt
     }
 
     private suspend fun seedWorkspaceAndRole(principalId: String, principalType: String, entitled: Boolean = false) {
-        databaseClient.sql("INSERT INTO workspaces (id, name, status, icon) VALUES ('workspace-1', 'Profile Tailors', 'ACTIVE')").fetch().rowsUpdated().awaitSingle()
+        databaseClient.sql("INSERT INTO workspaces (id, name, status, icon) VALUES ('workspace-1', 'Profile Tailors', 'ACTIVE', NULL)").fetch().rowsUpdated().awaitSingle()
         databaseClient.sql("INSERT INTO workspace_memberships (id, workspace_id, principal_id, principal_type, status) VALUES ('membership-1', 'workspace-1', :principalId, :principalType, 'ACTIVE')")
             .bind("principalId", principalId)
             .bind("principalType", principalType)

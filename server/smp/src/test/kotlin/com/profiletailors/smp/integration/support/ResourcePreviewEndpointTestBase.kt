@@ -159,7 +159,7 @@ abstract class ResourcePreviewEndpointTestBase : AuthorizationEndpointIntegratio
             "INSERT INTO user_identities (principal_id, email, username) VALUES ('$PRINCIPAL_ID', 'yuniel@example.com', 'yuniel')",
         ).fetch().rowsUpdated().awaitSingle()
         databaseClient.sql(
-            "INSERT INTO workspaces (id, name, status, icon) VALUES ('$WORKSPACE_ID', 'Profile Tailors', 'ACTIVE')",
+            "INSERT INTO workspaces (id, name, status, icon) VALUES ('$WORKSPACE_ID', 'Profile Tailors', 'ACTIVE', NULL)",
         ).fetch().rowsUpdated().awaitSingle()
         databaseClient.sql(
             "INSERT INTO workspace_memberships (id, workspace_id, principal_id, principal_type, status) VALUES ('membership-1', '$WORKSPACE_ID', '$PRINCIPAL_ID', 'USER', 'ACTIVE')",

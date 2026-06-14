@@ -2,6 +2,7 @@
 import { computed } from 'vue'
 import * as LucideIcons from '@lucide/vue'
 import type { Component } from 'vue'
+import { toPascalCase } from '@/lib/string-utils'
 
 const props = withDefaults(
   defineProps<{
@@ -25,13 +26,6 @@ const iconComponent = computed<Component | null>(() => {
   const icon = (LucideIcons as Record<string, Component>)[iconName]
   return icon ?? null
 })
-
-function toPascalCase(kebab: string): string {
-  return kebab
-    .split('-')
-    .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
-    .join('')
-}
 </script>
 
 <template>
@@ -45,7 +39,7 @@ function toPascalCase(kebab: string): string {
       :size="iconSizes[size]"
     />
     <span v-else class="font-mono font-bold">
-      {{ name.charAt(0).toUpperCase() ?? 'W' }}
+      {{ name.charAt(0).toUpperCase() || 'W' }}
     </span>
   </div>
 </template>

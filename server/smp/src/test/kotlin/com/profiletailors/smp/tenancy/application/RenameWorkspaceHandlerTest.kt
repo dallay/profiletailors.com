@@ -49,7 +49,7 @@ class RenameWorkspaceHandlerTest {
             )""",
         ).then().awaitSingleOrNull()
 
-        db.sql("INSERT INTO workspaces (id, name, status, icon) VALUES ('ws-rname', 'Original Name', 'ACTIVE')")
+        db.sql("INSERT INTO workspaces (id, name, status, icon) VALUES ('ws-rname', 'Original Name', 'ACTIVE', NULL)")
             .then().awaitSingleOrNull()
 
         return db

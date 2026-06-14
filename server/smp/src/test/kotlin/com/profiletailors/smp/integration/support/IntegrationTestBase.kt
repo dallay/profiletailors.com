@@ -107,13 +107,14 @@ abstract class IntegrationTestBase {
             .awaitSingle()
     }
 
-    protected suspend fun seedWorkspace(workspaceId: String, name: String, status: String = "ACTIVE") {
+    protected suspend fun seedWorkspace(workspaceId: String, name: String, status: String = "ACTIVE", icon: String? = null) {
         databaseClient.sql(
-            "INSERT INTO workspaces (id, name, status, icon) VALUES (:id, :name, :status)"
+            "INSERT INTO workspaces (id, name, status, icon) VALUES (:id, :name, :status, :icon)"
         )
             .bind("id", workspaceId)
             .bind("name", name)
             .bind("status", status)
+            .let { if (icon == null) it.bindNull("icon", String::class.java) else it.bind("icon", icon) }
             .fetch()
             .rowsUpdated()
             .awaitSingle()

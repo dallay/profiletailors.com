@@ -11,6 +11,7 @@ import WorkspaceAvatar from '@/components/WorkspaceAvatar.vue'
 import * as LucideIcons from '@lucide/vue'
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
+import { toPascalCase } from '@/lib/string-utils'
 
 const settings = useSettingsStore()
 const publishing = usePublishingStore()
@@ -46,13 +47,6 @@ const CURATED_ICONS = [
   'code', 'book-open', 'crown', 'gem', 'sparkles', 'smile'
 ]
 
-function toPascalCase(kebab: string): string {
-  return kebab
-    .split('-')
-    .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
-    .join('')
-}
-
 const updatingIcon = ref(false)
 const iconError = ref<string | null>(null)
 
@@ -65,10 +59,7 @@ async function selectIcon(iconName: string | null) {
   try {
     const result = await updateWorkspaceIcon(iconName, auth.accessToken, workspace.activeWorkspaceId)
     // Update the workspace in the store list
-    const ws = workspace.workspaces.find(w => w.workspaceId === result.workspaceId)
-    if (ws) {
-      ws.icon = result.icon
-    }
+    workspace.updateWorkspaceIcon(result.workspaceId, result.icon)
   } catch (err) {
     iconError.value = err instanceof Error ? err.message : 'Failed to update icon'
   } finally {

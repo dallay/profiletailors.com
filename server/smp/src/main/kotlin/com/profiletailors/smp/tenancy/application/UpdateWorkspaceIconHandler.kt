@@ -17,7 +17,7 @@ internal class UpdateWorkspaceIconHandler(
         val workspaceId = requireNotNull(resourceContext.workspaceId)
 
         if (command.icon != null) {
-            require(command.icon.matches(Regex("^[a-z][a-z-]*[a-z]$"))) {
+            require(command.icon.matches(Regex("^[a-z]([a-z-]*[a-z])?$"))) {
                 "Invalid icon name: '${command.icon}'. Use only lowercase letters and hyphens."
             }
         }
