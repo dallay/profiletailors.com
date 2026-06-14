@@ -12,6 +12,7 @@ const props = defineProps<{
 
 const emit = defineEmits<{
   dismiss: [id: string]
+  action: [insight: AiInsight]
 }>()
 
 const { t } = useI18n()
@@ -108,6 +109,7 @@ const priorityDot = (priority: AiInsight['priority']) => {
             variant="outline"
             size="sm"
             class="mt-4"
+            @click="emit('action', heroInsight)"
           >
             {{ heroInsight.actionLabel }}
           </Button>
@@ -155,6 +157,7 @@ const priorityDot = (priority: AiInsight['priority']) => {
               variant="ghost"
               size="sm"
               class="mt-3 h-6 px-2 text-[10px]"
+              @click="emit('action', insight)"
             >
               {{ insight.actionLabel }}
             </Button>

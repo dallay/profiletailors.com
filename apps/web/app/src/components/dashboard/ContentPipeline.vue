@@ -11,7 +11,7 @@ const props = defineProps<{
 }>()
 
 const emit = defineEmits<{
-  moveCard: [cardId: string, fromColumn: string, toColumn: string]
+  moveCard: [cardId: string, fromColumn: string, toColumn: string, toIndex?: number]
 }>()
 
 const { t } = useI18n()
@@ -66,6 +66,10 @@ function handleMoveRight(cardId: string, columnId: string): void {
 // Drag & Drop — @formkit/drag-and-drop
 // ---------------------------------------------------------------------------
 
+interface DragEventData {
+  draggedNode?: { data?: { value?: PipelineCard } }
+}
+
 const columnIds = props.columns.map((c) => c.id)
 
 // Track the dragged card across dragstart/dragend
@@ -85,7 +89,12 @@ function createDragEndHandler(colIndex: number) {
     if (!draggedCard.value) return
     const targetColId = findColumnForCard(draggedCard.value.id)
     if (targetColId && targetColId !== columnIds[colIndex]) {
-      emit('moveCard', draggedCard.value.id, columnIds[colIndex], targetColId)
+      // Calculate the index at which the library placed the card in the target column
+      const targetColIdx = columnIds.indexOf(targetColId)
+      const targetIndex = targetColIdx >= 0
+        ? allItems[targetColIdx]?.value.findIndex((c) => c.id === draggedCard.value!.id)
+        : -1
+      emit('moveCard', draggedCard.value.id, columnIds[colIndex], targetColId, targetIndex >= 0 ? targetIndex : undefined)
     }
     draggedCard.value = null
   }
@@ -96,7 +105,7 @@ const [col0Ref, col0Items] = useDragAndDrop(
   [...props.columns[0].cards],
   {
     group: 'pipeline',
-    onDragstart: (data: any) => { draggedCard.value = data.draggedNode?.data?.value ?? null },
+    onDragstart: (data: DragEventData) => { draggedCard.value = data.draggedNode?.data?.value ?? null },
     onDragend: createDragEndHandler(0),
   },
 )
@@ -104,7 +113,7 @@ const [col1Ref, col1Items] = useDragAndDrop(
   [...props.columns[1].cards],
   {
     group: 'pipeline',
-    onDragstart: (data: any) => { draggedCard.value = data.draggedNode?.data?.value ?? null },
+    onDragstart: (data: DragEventData) => { draggedCard.value = data.draggedNode?.data?.value ?? null },
     onDragend: createDragEndHandler(1),
   },
 )
@@ -112,7 +121,7 @@ const [col2Ref, col2Items] = useDragAndDrop(
   [...props.columns[2].cards],
   {
     group: 'pipeline',
-    onDragstart: (data: any) => { draggedCard.value = data.draggedNode?.data?.value ?? null },
+    onDragstart: (data: DragEventData) => { draggedCard.value = data.draggedNode?.data?.value ?? null },
     onDragend: createDragEndHandler(2),
   },
 )
@@ -120,7 +129,7 @@ const [col3Ref, col3Items] = useDragAndDrop(
   [...props.columns[3].cards],
   {
     group: 'pipeline',
-    onDragstart: (data: any) => { draggedCard.value = data.draggedNode?.data?.value ?? null },
+    onDragstart: (data: DragEventData) => { draggedCard.value = data.draggedNode?.data?.value ?? null },
     onDragend: createDragEndHandler(3),
   },
 )

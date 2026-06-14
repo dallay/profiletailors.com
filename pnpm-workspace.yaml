@@ -6,3 +6,4 @@ allowBuilds:
   vue-demi: true
   esbuild: true
   sharp: true
+  maplibre-gl: set this to true or false
