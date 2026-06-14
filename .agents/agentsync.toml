@@ -86,12 +86,32 @@ source = "AGENTS.md"
 destination = ".github/copilot-instructions.md"
 type = "symlink"
 
+[agents.copilot.targets.commands]
+source = "commands"
+destination = ".github/commands"
+type = "symlink-contents"
+
 # -----------------------------------------------------------------------------
 # Cursor
 # -----------------------------------------------------------------------------
 [agents.cursor]
 enabled = true
 description = "Cursor - AI code editor and CLI"
+
+[agents.cursor.targets.instructions]
+source = "AGENTS.md"
+destination = ".cursor/instructions.md"
+type = "symlink"
+
+[agents.cursor.targets.skills]
+source = "skills"
+destination = ".cursor/skills"
+type = "symlink"
+
+[agents.cursor.targets.commands]
+source = "commands"
+destination = ".cursor/commands"
+type = "symlink-contents"
 
 # -----------------------------------------------------------------------------
 # OpenAI Codex CLI
@@ -100,10 +120,20 @@ description = "Cursor - AI code editor and CLI"
 enabled = true
 description = "OpenAI Codex CLI - OpenAI's AI coding agent"
 
+[agents.codex.targets.instructions]
+source = "AGENTS.md"
+destination = "CODEX.md"
+type = "symlink"
+
 [agents.codex.targets.skills]
 source = "skills"
 destination = ".codex/skills"
 type = "symlink"
+
+[agents.codex.targets.commands]
+source = "commands"
+destination = ".codex/commands"
+type = "symlink-contents"
 
 # -----------------------------------------------------------------------------
 # Gemini CLI
@@ -148,6 +178,11 @@ type = "symlink"
 [agents.opencode.targets.commands]
 source = "commands"
 destination = ".opencode/command"
+type = "symlink-contents"
+
+[agents.opencode.targets.agents]
+source = "agents"
+destination = ".opencode/agents"
 type = "symlink-contents"
 
 # -----------------------------------------------------------------------------

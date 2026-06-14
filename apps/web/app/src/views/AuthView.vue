@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, ref } from 'vue'
+import { computed, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { Button } from '@/components/ui/button'
 import { useAuthStore } from '@/stores/auth'
@@ -18,6 +18,15 @@ const formError = ref<string | null>(null)
 if (auth.error) {
   formError.value = auth.error
 }
+
+// Clear form and store state when navigating between /login and /register
+// (both use the same AuthView component, so setup() runs only once)
+watch(() => route.name, () => {
+  formError.value = null
+  email.value = ''
+  password.value = ''
+  auth.clearError()
+})
 
 async function handleSubmit() {
   formError.value = null

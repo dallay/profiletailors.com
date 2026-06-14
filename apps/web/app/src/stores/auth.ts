@@ -180,28 +180,38 @@ export const useAuthStore = defineStore('auth', () => {
     }
   }
 
+  let _hydratePromise: Promise<void> | null = null
+
   /**
    * Bootstraps the session from the server using the HttpOnly refresh-token cookie.
    * Call this once on app mount to restore an existing session without localStorage.
+   * Idempotent: concurrent calls share the same in-flight promise.
    */
   async function hydrateSession() {
-    try {
-      const tokens = await refreshSession()
+    if (_hydratePromise) return _hydratePromise
 
-      if (!tokens) {
-        // No active session — that's fine
+    _hydratePromise = (async () => {
+      try {
+        const tokens = await refreshSession()
+
+        if (!tokens) {
+          // No active session — that's fine
+          sessionChecked.value = true
+          return
+        }
+
+        _applyTokens(tokens)
+        await _loadProfile()
+      } catch {
+        // refreshSession already swallows 401; anything else is a transient error
+        _clearSession()
+      } finally {
         sessionChecked.value = true
-        return
+        _hydratePromise = null
       }
+    })()
 
-      _applyTokens(tokens)
-      await _loadProfile()
-    } catch {
-      // refreshSession already swallows 401; anything else is a transient error
-      _clearSession()
-    } finally {
-      sessionChecked.value = true
-    }
+    return _hydratePromise
   }
 
   async function refreshProfile() {
