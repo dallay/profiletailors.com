@@ -1,5 +1,8 @@
 package com.profiletailors.smp.identity.application
 
+import com.profiletailors.common.domain.bus.event.DomainEvent
+import com.profiletailors.common.domain.bus.event.EventConsumer
+import com.profiletailors.common.domain.bus.event.EventPublisher
 import com.profiletailors.common.testfixture.CredentialGenerator
 import com.profiletailors.smp.credentials.application.ActiveRefreshSession
 import com.profiletailors.smp.credentials.application.CreatedRefreshSession
@@ -8,14 +11,16 @@ import com.profiletailors.smp.credentials.application.RefreshSessionLifecycleSer
 import com.profiletailors.smp.credentials.application.RefreshSessionProperties
 import com.profiletailors.smp.credentials.application.RefreshSessionToken
 import com.profiletailors.smp.credentials.application.RefreshSessionTokenService
+import com.profiletailors.smp.identity.domain.EmailStatus
+import com.profiletailors.smp.identity.domain.UserRegistered
 import com.profiletailors.smp.tenancy.application.WorkspaceProvisioningService
+import java.time.Instant
 import kotlinx.coroutines.test.runTest
 import org.junit.jupiter.api.Assertions.assertEquals
-import org.junit.jupiter.api.Assertions.assertThrows
 import org.junit.jupiter.api.Assertions.assertNotNull
+import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.Test
 import java.time.Clock
-import java.time.Instant
 import java.time.ZoneOffset
 
 class LocalAuthHandlersTest {
@@ -31,21 +36,19 @@ class LocalAuthHandlersTest {
     )
 
     @Test
-    fun `registers user and returns token plus refresh session`() = runTest {
+    fun `registers user and returns result without tokens`() = runTest {
         val identityRegistrationGateway = FakeIdentityRegistrationGateway()
         val principalLookup = FakePrincipalIdentityLookup()
         val passwordGateway = FakeLocalPasswordCredentialGateway()
         val passwordHasher = FakePasswordHasher()
-        val jwtIssuer = FakeLocalJwtIssuer()
-        val refreshLifecycleService = fakeRefreshLifecycleService()
+        val eventPublisher = RecordingEventPublisher()
         val handler = RegisterUserHandler(
             identityRegistrationGateway = identityRegistrationGateway,
             principalIdentityLookup = principalLookup,
             localPasswordCredentialGateway = passwordGateway,
             passwordHasher = passwordHasher,
-            localJwtIssuer = jwtIssuer,
-            refreshSessionLifecycleService = refreshLifecycleService,
             workspaceProvisioningService = FakeWorkspaceProvisioningService(),
+            eventPublisher = eventPublisher,
             clock = fixedClock,
         )
 
@@ -57,13 +60,26 @@ class LocalAuthHandlersTest {
             ),
         )
 
-        assertEquals("token-for-yuniel@example.com", result.tokens.accessToken)
-        assertEquals("yuniel@example.com", result.tokens.email)
-        assertEquals("yuniel", result.tokens.username)
-        assertEquals("refresh-secret", result.refreshToken.secret)
-        requireNotNull(identityRegistrationGateway.created)
-        assertEquals("local:yuniel@example.com", identityRegistrationGateway.created?.subject)
-        assertEquals("hashed-$validPassword", passwordGateway.createdHash)
+        assertEquals("yuniel@example.com", result.email)
+        assertEquals("yuniel", result.username)
+        assertEquals(EmailStatus.UNVERIFIED, result.emailStatus)
+        assertNotNull(result.principalId)
+
+        // Verify identity was created with UNVERIFIED status
+        val createdIdentity = identityRegistrationGateway.created
+        assertNotNull(createdIdentity)
+        assertEquals(EmailStatus.UNVERIFIED, createdIdentity?.emailStatus)
+
+        // Verify verification token was created
+        assertNotNull(identityRegistrationGateway.createdToken)
+        assertEquals("yuniel@example.com", identityRegistrationGateway.createdToken?.email)
+
+        // Verify domain event was published
+        assertEquals(1, eventPublisher.published.size)
+        val event = eventPublisher.published.first() as UserRegistered
+        assertEquals("yuniel@example.com", event.email)
+        assertEquals("yuniel", event.username)
+        assertNotNull(event.rawVerificationToken)
     }
 
     @Test
@@ -75,21 +91,21 @@ class LocalAuthHandlersTest {
             ),
             localPasswordCredentialGateway = FakeLocalPasswordCredentialGateway(),
             passwordHasher = FakePasswordHasher(),
-            localJwtIssuer = FakeLocalJwtIssuer(),
-            refreshSessionLifecycleService = fakeRefreshLifecycleService(),
             workspaceProvisioningService = FakeWorkspaceProvisioningService(),
+            eventPublisher = RecordingEventPublisher(),
             clock = fixedClock,
         )
 
-        assertThrows(UserAlreadyExistsException::class.java) {
-            kotlinx.coroutines.runBlocking {
-                handler.handle(RegisterUserCommand("yuniel@example.com", validPassword, "yuniel"))
-            }
+        try {
+            handler.handle(RegisterUserCommand("yuniel@example.com", validPassword, "yuniel"))
+            throw AssertionError("Expected UserAlreadyExistsException")
+        } catch (e: UserAlreadyExistsException) {
+            assertTrue(e.message?.contains("yuniel@example.com") == true)
         }
     }
 
     @Test
-    fun `logs user in with valid password and returns refresh session`() = runTest {
+    fun `logs user in with valid password and verified email`() = runTest {
         val handler = LoginUserHandler(
             localPasswordCredentialGateway = FakeLocalPasswordCredentialGateway(
                 record = LocalPasswordCredentialRecord(
@@ -100,6 +116,18 @@ class LocalAuthHandlersTest {
                 ),
             ),
             passwordHasher = FakePasswordHasher(),
+            principalIdentityLookup = FakePrincipalIdentityLookup(
+                principalFacts = PrincipalIdentityFacts(
+                    principalId = "user-1",
+                    principalType = com.profiletailors.common.domain.context.PrincipalType.USER,
+                    subject = "local:yuniel@example.com",
+                    provider = null,
+                    displayIdentity = "yuniel",
+                    email = "yuniel@example.com",
+                    username = "yuniel",
+                    emailStatus = EmailStatus.VERIFIED,
+                ),
+            ),
             localJwtIssuer = FakeLocalJwtIssuer(),
             refreshSessionLifecycleService = fakeRefreshLifecycleService(),
             clock = fixedClock,
@@ -113,7 +141,44 @@ class LocalAuthHandlersTest {
     }
 
     @Test
-    fun `refreshes user session`() = runTest {
+    fun `rejects login with unverified email`() = runTest {
+        val handler = LoginUserHandler(
+            localPasswordCredentialGateway = FakeLocalPasswordCredentialGateway(
+                record = LocalPasswordCredentialRecord(
+                    principalId = "user-1",
+                    email = "yuniel@example.com",
+                    username = "yuniel",
+                    passwordHash = "hashed-$validPassword",
+                ),
+            ),
+            passwordHasher = FakePasswordHasher(),
+            principalIdentityLookup = FakePrincipalIdentityLookup(
+                principalFacts = PrincipalIdentityFacts(
+                    principalId = "user-1",
+                    principalType = com.profiletailors.common.domain.context.PrincipalType.USER,
+                    subject = "local:yuniel@example.com",
+                    provider = null,
+                    displayIdentity = "yuniel",
+                    email = "yuniel@example.com",
+                    username = "yuniel",
+                    emailStatus = EmailStatus.UNVERIFIED,
+                ),
+            ),
+            localJwtIssuer = FakeLocalJwtIssuer(),
+            refreshSessionLifecycleService = fakeRefreshLifecycleService(),
+            clock = fixedClock,
+        )
+
+        try {
+            handler.handle(LoginUserCommand("yuniel@example.com", validPassword))
+            throw AssertionError("Expected UnverifiedEmailException")
+        } catch (e: UnverifiedEmailException) {
+            assertEquals("yuniel@example.com", e.email)
+        }
+    }
+
+    @Test
+    fun `refreshes user session with verified email`() = runTest {
         val handler = RefreshUserSessionHandler(
             principalIdentityLookup = FakePrincipalIdentityLookup(
                 principalFacts = PrincipalIdentityFacts(
@@ -124,6 +189,7 @@ class LocalAuthHandlersTest {
                     displayIdentity = "yuniel",
                     email = "yuniel@example.com",
                     username = "yuniel",
+                    emailStatus = EmailStatus.VERIFIED,
                 ),
             ),
             localJwtIssuer = FakeLocalJwtIssuer(),
@@ -139,20 +205,93 @@ class LocalAuthHandlersTest {
     }
 
     @Test
-    fun `rejects invalid login`() = runTest {
-        val handler = LoginUserHandler(
-            localPasswordCredentialGateway = FakeLocalPasswordCredentialGateway(),
-            passwordHasher = FakePasswordHasher(),
+    fun `rejects refresh with unverified email`() = runTest {
+        val handler = RefreshUserSessionHandler(
+            principalIdentityLookup = FakePrincipalIdentityLookup(
+                principalFacts = PrincipalIdentityFacts(
+                    principalId = "user-1",
+                    principalType = com.profiletailors.common.domain.context.PrincipalType.USER,
+                    subject = "local:yuniel@example.com",
+                    provider = null,
+                    displayIdentity = "yuniel",
+                    email = "yuniel@example.com",
+                    username = "yuniel",
+                    emailStatus = EmailStatus.UNVERIFIED,
+                ),
+            ),
             localJwtIssuer = FakeLocalJwtIssuer(),
             refreshSessionLifecycleService = fakeRefreshLifecycleService(),
             clock = fixedClock,
         )
 
-        assertThrows(InvalidEmailPasswordException::class.java) {
-            kotlinx.coroutines.runBlocking {
-                handler.handle(LoginUserCommand("missing@example.com", validPassword))
-            }
+        try {
+            handler.handle(RefreshUserSessionCommand("refresh-lookup.refresh-secret"))
+            throw AssertionError("Expected UnverifiedEmailException")
+        } catch (e: UnverifiedEmailException) {
+            assertEquals("yuniel@example.com", e.email)
         }
+    }
+
+    @Test
+    fun `rejects invalid login`() = runTest {
+        val handler = LoginUserHandler(
+            localPasswordCredentialGateway = FakeLocalPasswordCredentialGateway(),
+            passwordHasher = FakePasswordHasher(),
+            principalIdentityLookup = FakePrincipalIdentityLookup(),
+            localJwtIssuer = FakeLocalJwtIssuer(),
+            refreshSessionLifecycleService = fakeRefreshLifecycleService(),
+            clock = fixedClock,
+        )
+
+        try {
+            handler.handle(LoginUserCommand("missing@example.com", validPassword))
+            throw AssertionError("Expected InvalidEmailPasswordException")
+        } catch (e: InvalidEmailPasswordException) {
+            assertNotNull(e)
+        }
+    }
+
+    @Test
+    fun `resend verification invalidates old tokens and publishes event`() = runTest {
+        val identityRegistrationGateway = FakeIdentityRegistrationGateway()
+        val principalLookup = FakePrincipalIdentityLookup(
+            principalFacts = PrincipalIdentityFacts(
+                principalId = "user-1",
+                principalType = com.profiletailors.common.domain.context.PrincipalType.USER,
+                subject = "local:yuniel@example.com",
+                provider = null,
+                displayIdentity = "yuniel",
+                email = "yuniel@example.com",
+                username = "yuniel",
+                emailStatus = EmailStatus.UNVERIFIED,
+            ),
+        )
+        val eventPublisher = RecordingEventPublisher()
+        val handler = ResendVerificationHandler(
+            identityRegistrationGateway = identityRegistrationGateway,
+            eventPublisher = eventPublisher,
+            principalIdentityLookup = principalLookup,
+        )
+
+        val result = handler.handle(ResendVerificationCommand("yuniel@example.com"))
+
+        assertTrue(result.accepted)
+        assertTrue(identityRegistrationGateway.invalidatedTokens)
+        assertNotNull(identityRegistrationGateway.createdToken)
+        assertEquals(1, eventPublisher.published.size)
+    }
+
+    @Test
+    fun `resend verification returns accepted for unknown email`() = runTest {
+        val handler = ResendVerificationHandler(
+            identityRegistrationGateway = FakeIdentityRegistrationGateway(),
+            eventPublisher = RecordingEventPublisher(),
+            principalIdentityLookup = FakePrincipalIdentityLookup(),
+        )
+
+        val result = handler.handle(ResendVerificationCommand("unknown@example.com"))
+
+        assertTrue(result.accepted)
     }
 
     private fun fakeRefreshLifecycleService(): RefreshSessionLifecycleService = RefreshSessionLifecycleService(
@@ -164,8 +303,14 @@ class LocalAuthHandlersTest {
         clock = fixedClock,
     )
 
+    // ── Fakes ─────────────────────────────────────────────────────────────────
+
     private class FakeIdentityRegistrationGateway : IdentityRegistrationGateway {
         var created: CreatedIdentity? = null
+        var createdToken: com.profiletailors.smp.identity.application.EmailVerificationTokenData? = null
+        var verifiedTokenHash: String? = null
+        var updatedEmailStatus: EmailStatus? = null
+        var invalidatedTokens: Boolean = false
 
         override suspend fun createUserIdentity(
             principalId: String,
@@ -174,9 +319,43 @@ class LocalAuthHandlersTest {
             username: String,
             provider: String?,
             displayIdentity: String,
+            emailStatus: EmailStatus,
         ) {
-            created = CreatedIdentity(principalId, subject, email, username, provider, displayIdentity)
+            created = CreatedIdentity(principalId, subject, email, username, provider, displayIdentity, emailStatus)
         }
+
+        override suspend fun createEmailVerificationToken(
+            email: String,
+            tokenHash: String,
+            expiresAt: Instant,
+        ) {
+            createdToken = com.profiletailors.smp.identity.application.EmailVerificationTokenData(
+                email = email,
+                tokenHash = tokenHash,
+                expiresAt = expiresAt,
+                usedAt = null,
+            )
+        }
+
+        override suspend fun verifyEmailToken(tokenHash: String): com.profiletailors.smp.identity.application.EmailVerificationTokenData? {
+            verifiedTokenHash = tokenHash
+            return createdToken?.takeIf { it.tokenHash == tokenHash }
+        }
+
+        override suspend fun markTokenUsed(tokenHash: String, now: Instant) {
+            createdToken = createdToken?.copy(usedAt = now)
+        }
+
+        override suspend fun updateEmailStatus(email: String, emailStatus: EmailStatus) {
+            updatedEmailStatus = emailStatus
+        }
+
+        override suspend fun invalidateEmailTokens(email: String) {
+            invalidatedTokens = true
+        }
+
+        override suspend fun findActiveTokenByEmail(email: String): com.profiletailors.smp.identity.application.EmailVerificationTokenData? =
+            createdToken?.takeIf { it.email == email && it.usedAt == null }
     }
 
     private data class CreatedIdentity(
@@ -186,6 +365,7 @@ class LocalAuthHandlersTest {
         val username: String,
         val provider: String?,
         val displayIdentity: String,
+        val emailStatus: EmailStatus,
     )
 
     private class FakePrincipalIdentityLookup(
@@ -208,9 +388,10 @@ class LocalAuthHandlersTest {
                     displayIdentity = "existing",
                     email = email,
                     username = "existing",
+                    emailStatus = EmailStatus.UNVERIFIED,
                 )
             } else {
-                null
+                principalFacts
             }
 
         override suspend fun findByPrincipalId(principalId: String): PrincipalIdentityFacts? = principalFacts
@@ -294,5 +475,13 @@ class LocalAuthHandlersTest {
             workspaceId = "ws-fake-${principalId.hashCode().toUInt()}",
             name = "${displayName}'s Workspace",
         )
+    }
+
+    private class RecordingEventPublisher : EventPublisher<DomainEvent> {
+        val published = mutableListOf<DomainEvent>()
+
+        override suspend fun publish(event: DomainEvent) {
+            published.add(event)
+        }
     }
 }

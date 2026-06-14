@@ -71,6 +71,7 @@ abstract class DatabaseUnitTestBase {
         databaseClient.sql("DELETE FROM api_key_credentials").fetch().rowsUpdated().awaitSingle()
         databaseClient.sql("DELETE FROM service_account_credentials").fetch().rowsUpdated().awaitSingle()
         databaseClient.sql("DELETE FROM local_password_credentials").fetch().rowsUpdated().awaitSingle()
+        databaseClient.sql("DELETE FROM email_verification_tokens").fetch().rowsUpdated().awaitSingle()
         databaseClient.sql("DELETE FROM user_identities").fetch().rowsUpdated().awaitSingle()
         databaseClient.sql("DELETE FROM principals").fetch().rowsUpdated().awaitSingle()
     }
