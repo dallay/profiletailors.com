@@ -112,6 +112,7 @@ class PublishingControllersTest {
         val response = controller.listChannels(status = SocialConnectionStatus.ACTIVE)
 
         assertEquals(1, response.channels.size)
+        assertEquals("https://media.licdn.com/photo.jpg", response.channels.single().avatarUrl)
         assertEquals(
             ListConnectedChannelsQuery(status = SocialConnectionStatus.ACTIVE),
             mediator.lastQuery,
@@ -434,6 +435,7 @@ class PublishingControllersTest {
                             displayName = "Yuniel",
                             status = SocialConnectionStatus.ACTIVE,
                             profileUrn = "urn:li:person:123",
+                            avatarUrl = "https://media.licdn.com/photo.jpg",
                             connectedAt = Instant.parse("2026-06-12T12:00:00Z"),
                             lastSyncedAt = null,
                         ),
