@@ -26,11 +26,13 @@ class JwtAuthenticatedPrincipalMaterializer(
         }
 
     private suspend fun materializeUser(token: ValidatedToken): AuthenticatedPrincipal {
-        val principalFacts = principalIdentityLookup.findBySubject(
-            principalType = PrincipalType.USER,
-            subject = token.subject,
-            provider = token.issuer,
-        )
+        val principalFacts = token.claims["principal_id"]
+            ?.let { principalIdentityLookup.findByPrincipalId(it) }
+            ?: principalIdentityLookup.findBySubject(
+                principalType = PrincipalType.USER,
+                subject = token.subject,
+                provider = token.issuer,
+            )
         val displayIdentity = principalFacts?.displayIdentity
             ?: principalFacts?.username
             ?: token.claims["preferred_username"]

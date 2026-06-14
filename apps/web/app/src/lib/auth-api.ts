@@ -9,6 +9,7 @@ export interface AuthTokens {
   principalId: string
   email: string
   username: string | null
+  workspaceId: string | null
 }
 
 export interface CurrentUserProfile {
@@ -153,6 +154,72 @@ export async function logoutSession(): Promise<void> {
 
 export async function getCurrentUserProfile(token: string) {
   return request<CurrentUserProfile>('/api/auth/me', { method: 'GET' }, token)
+}
+
+export interface RenameWorkspaceResult {
+  workspaceId: string
+  name: string
+}
+
+export async function renameWorkspace(
+  name: string,
+  token: string,
+  workspaceId: string,
+): Promise<RenameWorkspaceResult> {
+  return request<RenameWorkspaceResult>(
+    '/api/tenancy/workspaces/current/name',
+    {
+      method: 'PATCH',
+      body: JSON.stringify({ name }),
+      headers: { 'X-Workspace-Id': workspaceId },
+    },
+    token,
+  )
+}
+
+// ---------------------------------------------------------------------------
+// Workspace endpoints
+// ---------------------------------------------------------------------------
+
+export interface WorkspaceSummary {
+  workspaceId: string
+  name: string
+  role: string
+}
+
+/**
+ * Fetch all workspaces the authenticated user belongs to.
+ * Does NOT require an X-Workspace-Id header — lists across all contexts.
+ */
+export async function fetchWorkspaces(token: string): Promise<WorkspaceSummary[]> {
+  return request<WorkspaceSummary[]>('/api/tenancy/workspaces', { method: 'GET' }, token)
+}
+
+// ---------------------------------------------------------------------------
+// Configured providers
+// ---------------------------------------------------------------------------
+
+export interface ConfiguredProvider {
+  name: string
+  configured: boolean
+}
+
+export interface ConfiguredProvidersResponse {
+  providers: ConfiguredProvider[]
+}
+
+export async function fetchConfiguredProviders(
+  token: string,
+  workspaceId: string,
+): Promise<ConfiguredProvidersResponse> {
+  return request<ConfiguredProvidersResponse>(
+    '/api/publishing/channels/providers',
+    {
+      method: 'GET',
+      headers: { 'X-Workspace-Id': workspaceId },
+    },
+    token,
+  )
 }
 
 // ---------------------------------------------------------------------------

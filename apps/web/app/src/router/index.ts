@@ -62,7 +62,7 @@ const router = createRouter({
 router.beforeEach(async (to) => {
   const auth = useAuthStore()
 
-  if (!auth.sessionChecked && auth.accessToken) {
+  if (!auth.sessionChecked) {
     await auth.hydrateSession()
   }
 

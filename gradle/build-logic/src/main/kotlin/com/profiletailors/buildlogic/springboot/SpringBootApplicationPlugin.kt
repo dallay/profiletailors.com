@@ -35,12 +35,16 @@ class SpringBootApplicationPlugin : ConventionPlugin {
             dependsOn("detekt")
         }
 
-        // Configure test tasks to support tags exclusion
+        // Configure test tasks to support tags inclusion/exclusion
         tasks.withType(Test::class.java).configureEach {
             useJUnitPlatform {
-                val tags = providers.gradleProperty("excludeTags").orNull
-                if (!tags.isNullOrBlank()) {
-                    excludeTags(*tags.split(",").map { it.trim() }.toTypedArray())
+                val includeTags = providers.gradleProperty("includeTags").orNull
+                if (!includeTags.isNullOrBlank()) {
+                    includeTags(*includeTags.split(",").map { it.trim() }.toTypedArray())
+                }
+                val excludeTags = providers.gradleProperty("excludeTags").orNull
+                if (!excludeTags.isNullOrBlank()) {
+                    excludeTags(*excludeTags.split(",").map { it.trim() }.toTypedArray())
                 }
             }
         }

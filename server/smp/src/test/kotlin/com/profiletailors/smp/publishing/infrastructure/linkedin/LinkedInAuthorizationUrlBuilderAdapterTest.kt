@@ -43,7 +43,6 @@ class LinkedInAuthorizationUrlBuilderAdapterTest {
         authorizationBaseUrl: String = "https://www.linkedin.com/oauth/v2/authorization",
         scopes: String = "openid profile email w_member_social",
     ): LinkedInPublishingProperties = LinkedInPublishingProperties(
-        mode = "fake",
         clientId = clientId,
         clientSecret = "client-secret",
         redirectUri = "https://app.example.com/callback",

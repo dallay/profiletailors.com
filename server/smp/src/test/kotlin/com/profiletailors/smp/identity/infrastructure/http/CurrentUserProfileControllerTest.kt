@@ -20,7 +20,7 @@ class CurrentUserProfileControllerTest {
 
         val response = controller.currentUser()
 
-        assertEquals(expected, response)
+        assertEquals(expected, response.body)
     }
 
     private class FakeGetCurrentUserProfileService(

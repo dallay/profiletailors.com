@@ -8,9 +8,11 @@ import com.profiletailors.smp.credentials.application.RefreshSessionLifecycleSer
 import com.profiletailors.smp.credentials.application.RefreshSessionProperties
 import com.profiletailors.smp.credentials.application.RefreshSessionToken
 import com.profiletailors.smp.credentials.application.RefreshSessionTokenService
+import com.profiletailors.smp.tenancy.application.WorkspaceProvisioningService
 import kotlinx.coroutines.test.runTest
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertThrows
+import org.junit.jupiter.api.Assertions.assertNotNull
 import org.junit.jupiter.api.Test
 import java.time.Clock
 import java.time.Instant
@@ -43,6 +45,7 @@ class LocalAuthHandlersTest {
             passwordHasher = passwordHasher,
             localJwtIssuer = jwtIssuer,
             refreshSessionLifecycleService = refreshLifecycleService,
+            workspaceProvisioningService = FakeWorkspaceProvisioningService(),
             clock = fixedClock,
         )
 
@@ -74,6 +77,7 @@ class LocalAuthHandlersTest {
             passwordHasher = FakePasswordHasher(),
             localJwtIssuer = FakeLocalJwtIssuer(),
             refreshSessionLifecycleService = fakeRefreshLifecycleService(),
+            workspaceProvisioningService = FakeWorkspaceProvisioningService(),
             clock = fixedClock,
         )
 
@@ -280,5 +284,15 @@ class LocalAuthHandlersTest {
         )
 
         override suspend fun revoke(currentSessionId: String, now: Instant) = Unit
+    }
+
+    private class FakeWorkspaceProvisioningService : WorkspaceProvisioningService {
+        override suspend fun provisionDefaultWorkspace(
+            principalId: String,
+            displayName: String,
+        ): WorkspaceProvisioningService.ProvisionedWorkspace = WorkspaceProvisioningService.ProvisionedWorkspace(
+            workspaceId = "ws-fake-${principalId.hashCode().toUInt()}",
+            name = "${displayName}'s Workspace",
+        )
     }
 }

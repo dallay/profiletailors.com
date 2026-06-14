@@ -190,6 +190,10 @@ export const usePublishingStore = defineStore('publishing', () => {
   const channelEventsConnected = ref(false)
   const channelEventsAbortController = ref<AbortController | null>(null)
 
+  // Configured providers (which channels are available to connect)
+  const configuredProviders = ref<string[]>([])
+  const providersLoading = ref(false)
+
   // Seeding initial mock publications
   const initialPublications: Publication[] = [
     {
@@ -287,6 +291,29 @@ export const usePublishingStore = defineStore('publishing', () => {
       channelsLoading.value = false
     }
   }
+
+  async function fetchConfiguredProviders() {
+    if (!auth.isAuthenticated) {
+      configuredProviders.value = []
+      return
+    }
+
+    providersLoading.value = true
+    try {
+      const data = await auth.apiFetch<{ providers: { name: string; configured: boolean }[] }>(
+        '/api/publishing/channels/providers',
+        { method: 'GET', workspaceScoped: true },
+      )
+      configuredProviders.value = data.providers.filter((p) => p.configured).map((p) => p.name)
+    } catch {
+      // Silently fail — preserve existing provider state rather than collapsing
+      // transient network errors into a "not configured" state
+    } finally {
+      providersLoading.value = false
+    }
+  }
+
+  const isLinkedInConfigured = computed(() => configuredProviders.value.includes('linkedin'))
 
   async function connectLinkedInPersonalProfile(
     redirectUri = `${window.location.origin}/integrations/linkedin/callback`,
@@ -666,8 +693,12 @@ export const usePublishingStore = defineStore('publishing', () => {
     filterSocialAccountId,
     viewMode,
     calendarFilters,
+    configuredProviders,
+    providersLoading,
+    isLinkedInConfigured,
     // Actions
     fetchChannels,
+    fetchConfiguredProviders,
     connectLinkedInPersonalProfile,
     completeLinkedInConnectionFromCallback,
     subscribeChannelEvents,

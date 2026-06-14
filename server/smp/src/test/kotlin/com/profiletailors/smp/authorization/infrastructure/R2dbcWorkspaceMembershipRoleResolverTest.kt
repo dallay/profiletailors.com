@@ -14,10 +14,12 @@ import liquibase.resource.ClassLoaderResourceAccessor
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.BeforeEach
+import org.junit.jupiter.api.Tag
 import org.junit.jupiter.api.Test
 import org.springframework.r2dbc.core.DatabaseClient
 import java.sql.DriverManager
 
+@Tag("brokenOnH2")
 class R2dbcWorkspaceMembershipRoleResolverTest {
 
     private val jdbcUrl = "jdbc:h2:mem:role_lookup;MODE=PostgreSQL;DB_CLOSE_DELAY=-1;DB_CLOSE_ON_EXIT=FALSE"

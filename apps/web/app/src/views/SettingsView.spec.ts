@@ -52,6 +52,9 @@ describe('SettingsView channel connection CTA', () => {
   it('shows empty channels state with LinkedIn connect CTA', async () => {
     const publishing = usePublishingStore()
     vi.spyOn(publishing, 'fetchChannels').mockResolvedValue([])
+    vi.spyOn(publishing, 'fetchConfiguredProviders').mockImplementation(async () => {
+      publishing.configuredProviders = ['linkedin']
+    })
 
     const wrapper = mountSettings()
     await flushPromises()
@@ -63,6 +66,9 @@ describe('SettingsView channel connection CTA', () => {
   it('clicking LinkedIn connect CTA starts connection flow', async () => {
     const publishing = usePublishingStore()
     vi.spyOn(publishing, 'fetchChannels').mockResolvedValue([])
+    vi.spyOn(publishing, 'fetchConfiguredProviders').mockImplementation(async () => {
+      publishing.configuredProviders = ['linkedin']
+    })
     const connect = vi.spyOn(publishing, 'connectLinkedInPersonalProfile').mockResolvedValue({
       authorizationUrl: 'https://linkedin.example/auth',
       state: 'state-1',

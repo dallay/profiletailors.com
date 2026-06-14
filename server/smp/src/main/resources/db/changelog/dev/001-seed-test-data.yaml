@@ -1,0 +1,64 @@
+databaseChangeLog:
+  - changeSet:
+      id: dev-001-seed-test-data
+      author: opencode
+      context: dev
+      preConditions:
+        - onFail: MARK_RAN
+        - tableExists:
+            tableName: principals
+      changes:
+        # ── Identity ──────────────────────────────────────────────
+        - insert:
+            tableName: principals
+            columns:
+              - column: { name: id, value: dev-user-001 }
+              - column: { name: principal_type, value: USER }
+              - column: { name: subject, value: dev@profiletailors.com }
+              - column: { name: provider, value: local }
+              - column: { name: display_identity, value: Dev User }
+              - column: { name: created_at, valueComputed: "TIMESTAMP WITH TIME ZONE '2026-01-01 00:00:00+00'" }
+
+        - insert:
+            tableName: user_identities
+            columns:
+              - column: { name: principal_id, value: dev-user-001 }
+              - column: { name: email, value: dev@profiletailors.com }
+              - column: { name: username, value: dev }
+              - column: { name: created_at, valueComputed: "TIMESTAMP WITH TIME ZONE '2026-01-01 00:00:00+00'" }
+
+        - insert:
+            tableName: local_password_credentials
+            columns:
+              - column: { name: principal_id, value: dev-user-001 }
+              - column: { name: password_hash, value: "$2b$12$0NBuXKepyt/EsO2BeNpQe.bSG4u0Qvd7pm3qyJFsrdsuH8fAgcWcu" }
+              - column: { name: created_at, valueComputed: "TIMESTAMP WITH TIME ZONE '2026-01-01 00:00:00+00'" }
+              - column: { name: updated_at, valueComputed: "TIMESTAMP WITH TIME ZONE '2026-01-01 00:00:00+00'" }
+
+        # ── Tenancy ───────────────────────────────────────────────
+        - insert:
+            tableName: workspaces
+            columns:
+              - column: { name: id, value: dev-workspace-001 }
+              - column: { name: name, value: Dev Workspace }
+              - column: { name: status, value: ACTIVE }
+              - column: { name: created_at, valueComputed: "TIMESTAMP WITH TIME ZONE '2026-01-01 00:00:00+00'" }
+
+        - insert:
+            tableName: workspace_ownerships
+            columns:
+              - column: { name: workspace_id, value: dev-workspace-001 }
+              - column: { name: owner_principal_id, value: dev-user-001 }
+              - column: { name: owner_principal_type, value: USER }
+              - column: { name: created_by, value: dev-user-001 }
+              - column: { name: created_at, valueComputed: "TIMESTAMP WITH TIME ZONE '2026-01-01 00:00:00+00'" }
+
+        - insert:
+            tableName: workspace_memberships
+            columns:
+              - column: { name: id, value: dev-membership-001 }
+              - column: { name: workspace_id, value: dev-workspace-001 }
+              - column: { name: principal_id, value: dev-user-001 }
+              - column: { name: principal_type, value: USER }
+              - column: { name: status, value: ACTIVE }
+              - column: { name: created_at, valueComputed: "TIMESTAMP WITH TIME ZONE '2026-01-01 00:00:00+00'" }

@@ -22,6 +22,7 @@ import com.profiletailors.smp.publishing.domain.PublicationStatus
 import com.profiletailors.smp.publishing.domain.ScheduleMode
 import com.profiletailors.smp.publishing.domain.SocialConnectionStatus
 import com.profiletailors.smp.publishing.infrastructure.events.ChannelEventStreamRegistry
+import com.profiletailors.smp.publishing.infrastructure.linkedin.LinkedInPublishingProperties
 import com.profiletailors.smp.tenancy.application.requireWorkspaceContext
 import io.swagger.v3.oas.annotations.Operation
 import io.swagger.v3.oas.annotations.Parameter
@@ -87,12 +88,26 @@ class PublishingChannelController(
     private val mediator: Mediator,
     private val resourceContextProvider: ResourceContextProvider,
     private val channelEventStreamRegistry: ChannelEventStreamRegistry,
+    private val linkedInPublishingProperties: LinkedInPublishingProperties,
 ) {
     @Operation(summary = "List connected publishing channels")
     @GetMapping(version = "1")
     suspend fun listChannels(
         @RequestParam(required = false) status: SocialConnectionStatus? = null,
     ): ConnectedChannelsResponse = mediator.send(ListConnectedChannelsQuery(status = status))
+
+    @Operation(
+        summary = "List configured publishing providers",
+        description = "Returns which social providers have credentials configured and are available for connection.",
+    )
+    @GetMapping("/providers", version = "1")
+    fun listConfiguredProviders(): ConfiguredProvidersResponse = ConfiguredProvidersResponse(
+        providers = buildList {
+            if (linkedInPublishingProperties.isConfigured()) {
+                add(ConfiguredProvider(name = "linkedin", configured = true))
+            }
+        },
+    )
 
     @Operation(summary = "Stream connected channel change notifications")
     @GetMapping("/events", produces = [MediaType.TEXT_EVENT_STREAM_VALUE])
@@ -320,3 +335,14 @@ data class PublicationRescheduleRequest(
         scheduleMode?.let(ScheduleMode::valueOf)
             ?: throw IllegalArgumentException("scheduleMode is required for reschedule.")
 }
+
+@Schema(description = "List of configured publishing providers")
+data class ConfiguredProvidersResponse(
+    val providers: List<ConfiguredProvider>,
+)
+
+@Schema(description = "A configured publishing provider")
+data class ConfiguredProvider(
+    val name: String,
+    val configured: Boolean,
+)

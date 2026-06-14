@@ -12,6 +12,7 @@ import org.springframework.boot.webtestclient.autoconfigure.AutoConfigureWebTest
 import org.springframework.context.annotation.Bean
 import org.springframework.context.annotation.Import
 import org.springframework.http.HttpHeaders
+import org.junit.jupiter.api.Tag
 import org.springframework.test.web.reactive.server.WebTestClient
 
 @AutoConfigureWebTestClient
@@ -32,6 +33,7 @@ import org.springframework.test.web.reactive.server.WebTestClient
     ],
 )
 @Import(SharedTestBeans::class)
+@Tag("brokenOnH2")
 class WorkspaceAccessSummaryEndpointIntegrationTest : WorkspaceAccessSummaryEndpointTestBase() {
 
     override fun liquibaseJdbcUrl(): String =

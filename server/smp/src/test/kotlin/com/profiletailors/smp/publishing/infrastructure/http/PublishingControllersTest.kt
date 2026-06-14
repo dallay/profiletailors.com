@@ -32,6 +32,7 @@ import com.profiletailors.smp.publishing.domain.SocialConnectionStatus
 import com.profiletailors.smp.publishing.domain.ChannelEvent
 import com.profiletailors.smp.publishing.domain.ChannelEventType
 import com.profiletailors.smp.publishing.domain.SocialProvider
+import com.profiletailors.smp.publishing.infrastructure.linkedin.LinkedInPublishingProperties
 import com.profiletailors.smp.publishing.infrastructure.events.ChannelEventStreamRegistry
 import kotlinx.coroutines.test.runTest
 import reactor.core.publisher.Flux
@@ -96,6 +97,16 @@ class PublishingControllersTest {
             mediator = mediator,
             resourceContextProvider = FixedResourceContextProvider("workspace-1"),
             channelEventStreamRegistry = FakeChannelEventStreamRegistry(emptyList()),
+            linkedInPublishingProperties = LinkedInPublishingProperties(
+                clientId = "",
+                clientSecret = "",
+                redirectUri = "",
+                scopes = "",
+                apiBaseUrl = "",
+                authorizationBaseUrl = "",
+                tokenBaseUrl = "",
+                apiVersion = "",
+            ),
         )
 
         val response = controller.listChannels(status = SocialConnectionStatus.ACTIVE)
@@ -127,6 +138,16 @@ class PublishingControllersTest {
                         occurredAt = Instant.parse("2026-06-12T12:00:00Z"),
                     ),
                 ),
+            ),
+            linkedInPublishingProperties = LinkedInPublishingProperties(
+                clientId = "",
+                clientSecret = "",
+                redirectUri = "",
+                scopes = "",
+                apiBaseUrl = "",
+                authorizationBaseUrl = "",
+                tokenBaseUrl = "",
+                apiVersion = "",
             ),
         )
 
