@@ -53,8 +53,8 @@ const areaPath = computed(() => {
 const trendColor = computed(() => {
   const data = props.data
   if (data.length < 2) return props.strokeColor
-  const last = data[data.length - 1]
-  const first = data[0]
+  const last = data[data.length - 1]!
+  const first = data[0]!
   if (last > first) return 'var(--success-color)'
   if (last < first) return 'var(--error-color)'
   return props.strokeColor

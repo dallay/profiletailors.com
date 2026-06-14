@@ -61,7 +61,7 @@ const hourLabels = [0, 3, 6, 9, 12, 15, 18, 21]
       <!-- Grid -->
       <div v-for="day in days" :key="day" class="flex items-center gap-1 mb-1">
         <span class="text-[10px] text-[var(--text-secondary)] font-[var(--font-space-mono)] w-8 text-right shrink-0 uppercase tracking-wider">
-          {{ t(dayKeys[day]) }}
+          {{ t(dayKeys[day]!) }}
         </span>
         <div class="flex gap-px flex-1">
           <div
@@ -69,7 +69,7 @@ const hourLabels = [0, 3, 6, 9, 12, 15, 18, 21]
             :key="hour"
             class="flex-1 aspect-square rounded-[2px] transition-colors duration-200"
             :style="{ backgroundColor: getHeatColor(getScore(day, hour - 1)) }"
-            :title="`${t(dayKeys[day])} ${hour - 1}:00 — ${getScore(day, hour - 1)}`"
+            :title="`${t(dayKeys[day]!)} ${hour - 1}:00 — ${getScore(day, hour - 1)}`"
           />
         </div>
       </div>
