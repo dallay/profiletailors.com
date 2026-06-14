@@ -137,6 +137,7 @@ function shouldShowAvatar(channel: SidebarChannel): boolean {
 watch(
   () => publishingStore.channels,
   (newChannels) => {
+    avatarLoadFailedMap.value = {}
     sidebarChannels.value = newChannels.map((channel) => ({
       ...channel,
       badge: getProviderBadge(channel.provider),
