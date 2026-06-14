@@ -50,6 +50,7 @@ describe('login', () => {
       principalId: 'user-1',
       email: 'user@example.com',
       username: 'testuser',
+      workspaceId: null,
     }
     const fetchMock = mockFetch(
       new Response(JSON.stringify(tokens), {
@@ -141,6 +142,7 @@ describe('register', () => {
       principalId: 'user-2',
       email: 'newuser@example.com',
       username: 'newuser',
+      workspaceId: null,
     }
     const fetchMock = mockFetch(
       new Response(JSON.stringify(tokens), {
@@ -185,6 +187,7 @@ describe('refreshSession', () => {
       principalId: 'user-1',
       email: 'user@example.com',
       username: null,
+      workspaceId: null,
     }
     mockFetch(
       new Response(JSON.stringify(tokens), {

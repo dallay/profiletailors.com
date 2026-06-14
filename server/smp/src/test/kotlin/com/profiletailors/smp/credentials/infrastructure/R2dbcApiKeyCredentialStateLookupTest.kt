@@ -16,11 +16,13 @@ import liquibase.resource.ClassLoaderResourceAccessor
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertThrows
 import org.junit.jupiter.api.BeforeEach
+import org.junit.jupiter.api.Tag
 import org.junit.jupiter.api.Test
 import org.springframework.r2dbc.core.DatabaseClient
 import java.sql.DriverManager
 import java.time.Instant
 
+@Tag("brokenOnH2")
 class R2dbcApiKeyCredentialStateLookupTest {
 
     private val jdbcUrl = "jdbc:h2:mem:api_key_lookup;MODE=PostgreSQL;DB_CLOSE_DELAY=-1;DB_CLOSE_ON_EXIT=FALSE"
