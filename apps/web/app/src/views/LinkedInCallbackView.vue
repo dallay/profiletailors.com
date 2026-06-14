@@ -71,7 +71,7 @@ async function processCallback() {
 
     await router.replace({
       path: '/settings',
-      query: { connected: 'linkedin' },
+      query: { connected: 'linkedin', panel: 'channels', provider: 'linkedin' },
     })
   } catch (err) {
     status.value = 'error'

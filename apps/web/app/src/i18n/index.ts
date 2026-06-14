@@ -274,7 +274,7 @@ const messages = {
       retryingMessage: 'Restarting the LinkedIn connection flow.',
       retryFailedMessage: 'Unable to restart the LinkedIn connection flow.',
       successTitle: 'LinkedIn connected',
-      successMessage: 'LinkedIn profile connected. Redirecting you back to settings.',
+      successMessage: 'LinkedIn profile connected. Redirecting you back to channel settings.',
       errorTitle: 'Connection failed',
       deniedMessage: 'LinkedIn connection was cancelled before permissions were granted.',
       missingParamsMessage: 'LinkedIn did not return the required callback information.',
@@ -299,7 +299,7 @@ const messages = {
       live: 'Live',
     },
     settings: {
-      subtitle: 'Configure language and dark/light mode preferences.',
+      subtitle: 'Manage connected channels, workspace identity, and interface preferences.',
       interfacePreferences: 'Interface Preferences',
       languageLabel: 'Language',
       languageDesc: 'Set the default system language.',
@@ -582,7 +582,7 @@ const messages = {
       retryingMessage: 'Reiniciando el flujo de conexión de LinkedIn.',
       retryFailedMessage: 'No se pudo reiniciar el flujo de conexión de LinkedIn.',
       successTitle: 'LinkedIn conectado',
-      successMessage: 'Perfil de LinkedIn conectado. Volviendo a ajustes.',
+      successMessage: 'Perfil de LinkedIn conectado. Volviendo a la configuración del canal.',
       errorTitle: 'Falló la conexión',
       deniedMessage: 'La conexión de LinkedIn fue cancelada antes de conceder permisos.',
       missingParamsMessage:
@@ -609,7 +609,7 @@ const messages = {
       live: 'En Vivo',
     },
     settings: {
-      subtitle: 'Configura el idioma y la apariencia oscura o clara.',
+      subtitle: 'Gestiona canales conectados, la identidad del workspace y las preferencias de interfaz.',
       interfacePreferences: 'Preferencias de Interfaz',
       languageLabel: 'Idioma',
       languageDesc: 'Selecciona el idioma por defecto del sistema.',

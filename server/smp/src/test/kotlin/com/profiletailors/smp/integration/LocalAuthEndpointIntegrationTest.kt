@@ -316,7 +316,7 @@ class LocalAuthEndpointIntegrationTest : IntegrationTestBase() {
 
         @Bean
         @Primary
-        fun localAuthJwtDecoder(
+        fun reactiveJwtDecoder(
             @Value("\${app.security.local-jwt.secret}") secret: String,
         ): ReactiveJwtDecoder = NimbusReactiveJwtDecoder
             .withSecretKey(SecretKeySpec(secret.toByteArray(Charsets.UTF_8), "HmacSHA256"))
