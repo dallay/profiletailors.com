@@ -45,7 +45,7 @@ describe('ScoreGauge', () => {
     const wrapper = mount(ScoreGauge, {
       props: { score: 85 },
     })
-    const fillCircle = wrapper.findAll('circle')[1]
+    const fillCircle = wrapper.findAll('circle')[1]!
     expect(fillCircle.attributes('stroke')).toBe('var(--success-color)')
   })
 
@@ -53,7 +53,7 @@ describe('ScoreGauge', () => {
     const wrapper = mount(ScoreGauge, {
       props: { score: 74 },
     })
-    const fillCircle = wrapper.findAll('circle')[1]
+    const fillCircle = wrapper.findAll('circle')[1]!
     expect(fillCircle.attributes('stroke')).toBe('var(--warning-color)')
   })
 
@@ -61,7 +61,7 @@ describe('ScoreGauge', () => {
     const wrapper = mount(ScoreGauge, {
       props: { score: 42 },
     })
-    const fillCircle = wrapper.findAll('circle')[1]
+    const fillCircle = wrapper.findAll('circle')[1]!
     expect(fillCircle.attributes('stroke')).toBe('var(--error-color)')
   })
 

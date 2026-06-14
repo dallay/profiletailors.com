@@ -67,7 +67,7 @@ describe('TopPerformingPosts', () => {
       props: { posts },
     })
     // Click "X" filter button
-    const xButton = wrapper.findAll('button').filter((b) => b.text() === 'X')[0]
+    const xButton = wrapper.findAll('button').filter((b) => b.text() === 'X')[0]!
     await xButton.trigger('click')
     expect(wrapper.text()).toContain('Twitter Post')
     expect(wrapper.text()).not.toContain('LinkedIn Post')
@@ -80,7 +80,7 @@ describe('TopPerformingPosts', () => {
     })
     // Click "X" filter
     const buttons = wrapper.findAll('button')
-    const xButton = buttons.filter((b) => b.text() === 'X')[0]
+    const xButton = buttons.filter((b) => b.text() === 'X')[0]!
     await xButton.trigger('click')
     expect(wrapper.text()).toContain('dashboard.contentPerformance.noPostsMatch')
   })

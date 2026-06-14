@@ -1,5 +1,6 @@
 change: dashboard-smos
-current_phase: apply
+status: archived
+current_phase: archive
 completed:
   - init
   - explore
@@ -8,5 +9,6 @@ completed:
   - design
   - tasks
   - apply
-next: verify
-updated: 2026-06-13T22:30:00Z
+  - verify
+  - archive
+updated: 2026-06-14T20:55:00Z
