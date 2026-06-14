@@ -27,6 +27,7 @@ import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.test.runTest
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertNotNull
+import org.junit.jupiter.api.Assertions.assertNull
 import org.junit.jupiter.api.Assertions.assertThrows
 import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.Test
@@ -709,6 +710,132 @@ class LinkedInPublishingAdaptersTest {
         )
 
         assertEquals("Yuniel Acosta", response.displayName())
+    }
+
+    // ===== Avatar URL mapping tests =====
+
+    @Test
+    fun `connection provider maps valid https picture to avatarUrl`() = runTest {
+        val transport = StubTransport(
+            responses = listOf(
+                LinkedInHttpResponse(
+                    200,
+                    emptyHeaders(),
+                    """{"access_token":"access-123","expires_in":5184000,"scope":"openid profile email"}""",
+                ),
+                LinkedInHttpResponse(
+                    200,
+                    emptyHeaders(),
+                    """{"sub":"user-123","name":"Yuniel","picture":"https://media.licdn.com/dms/image/v2/example.jpg"}""",
+                ),
+            ),
+        )
+        val credentialGateway = FakeCredentialGateway()
+        val provider = RealLinkedInConnectionProvider(properties, objectMapper, transport, credentialGateway)
+
+        val result = provider.completeConnection(
+            CompleteProviderConnectionCommand(
+                workspaceId = "workspace-1",
+                actorPrincipalId = "principal-1",
+                authorizationCode = "auth-code-1",
+                redirectUri = "https://app.example.com/callback",
+            ),
+        )
+
+        assertEquals("https://media.licdn.com/dms/image/v2/example.jpg", result.account.avatarUrl)
+    }
+
+    @Test
+    fun `connection provider sets null avatarUrl when picture is absent`() = runTest {
+        val transport = StubTransport(
+            responses = listOf(
+                LinkedInHttpResponse(
+                    200,
+                    emptyHeaders(),
+                    """{"access_token":"access-123","expires_in":5184000}""",
+                ),
+                LinkedInHttpResponse(
+                    200,
+                    emptyHeaders(),
+                    """{"sub":"user-123","name":"Yuniel"}""",
+                ),
+            ),
+        )
+        val credentialGateway = FakeCredentialGateway()
+        val provider = RealLinkedInConnectionProvider(properties, objectMapper, transport, credentialGateway)
+
+        val result = provider.completeConnection(
+            CompleteProviderConnectionCommand(
+                workspaceId = "workspace-1",
+                actorPrincipalId = "principal-1",
+                authorizationCode = "auth-code-1",
+                redirectUri = "https://app.example.com/callback",
+            ),
+        )
+
+        assertNull(result.account.avatarUrl)
+    }
+
+    @Test
+    fun `connection provider rejects data-uri picture and sets null avatarUrl`() = runTest {
+        val transport = StubTransport(
+            responses = listOf(
+                LinkedInHttpResponse(
+                    200,
+                    emptyHeaders(),
+                    """{"access_token":"access-123","expires_in":5184000}""",
+                ),
+                LinkedInHttpResponse(
+                    200,
+                    emptyHeaders(),
+                    """{"sub":"user-123","name":"Yuniel","picture":"data:image/png;base64,iVBOR..."}""",
+                ),
+            ),
+        )
+        val credentialGateway = FakeCredentialGateway()
+        val provider = RealLinkedInConnectionProvider(properties, objectMapper, transport, credentialGateway)
+
+        val result = provider.completeConnection(
+            CompleteProviderConnectionCommand(
+                workspaceId = "workspace-1",
+                actorPrincipalId = "principal-1",
+                authorizationCode = "auth-code-1",
+                redirectUri = "https://app.example.com/callback",
+            ),
+        )
+
+        assertNull(result.account.avatarUrl)
+    }
+
+    @Test
+    fun `connection provider rejects non-https picture and sets null avatarUrl`() = runTest {
+        val transport = StubTransport(
+            responses = listOf(
+                LinkedInHttpResponse(
+                    200,
+                    emptyHeaders(),
+                    """{"access_token":"access-123","expires_in":5184000}""",
+                ),
+                LinkedInHttpResponse(
+                    200,
+                    emptyHeaders(),
+                    """{"sub":"user-123","name":"Yuniel","picture":"http://insecure.example.com/photo.jpg"}""",
+                ),
+            ),
+        )
+        val credentialGateway = FakeCredentialGateway()
+        val provider = RealLinkedInConnectionProvider(properties, objectMapper, transport, credentialGateway)
+
+        val result = provider.completeConnection(
+            CompleteProviderConnectionCommand(
+                workspaceId = "workspace-1",
+                actorPrincipalId = "principal-1",
+                authorizationCode = "auth-code-1",
+                redirectUri = "https://app.example.com/callback",
+            ),
+        )
+
+        assertNull(result.account.avatarUrl)
     }
 
     @Test

@@ -55,6 +55,7 @@ interface NavGroup {
 interface SidebarChannel extends Channel {
   badge: string
   queuedCount: number
+  avatarLoadFailed: boolean
 }
 
 interface ConnectChannel {
@@ -121,12 +122,31 @@ const queuedCounts = computed(() => {
   return { counts, total }
 })
 
-const sidebarChannels = computed<SidebarChannel[]>(() =>
-  publishingStore.channels.map((channel) => ({
-    ...channel,
-    badge: getProviderBadge(channel.provider),
-    queuedCount: queuedCounts.value.counts.get(channel.provider) ?? 0,
-  })),
+const sidebarChannels = ref<SidebarChannel[]>([])
+
+// Reactive avatarLoadFailed tracking for each channel
+const avatarLoadFailedMap = ref<Record<string, boolean>>({})
+
+function onAvatarError(channelId: string) {
+  avatarLoadFailedMap.value[channelId] = true
+}
+
+function shouldShowAvatar(channel: SidebarChannel): boolean {
+  return !!(channel.avatarUrl && !avatarLoadFailedMap.value[channel.id])
+}
+
+watch(
+  () => publishingStore.channels,
+  (newChannels) => {
+    avatarLoadFailedMap.value = {}
+    sidebarChannels.value = newChannels.map((channel) => ({
+      ...channel,
+      badge: getProviderBadge(channel.provider),
+      queuedCount: queuedCounts.value.counts.get(channel.provider) ?? 0,
+      avatarLoadFailed: false,
+    }))
+  },
+  { immediate: true },
 )
 
 const totalQueuedCount = computed(() => queuedCounts.value.total)
@@ -482,10 +502,18 @@ onBeforeUnmount(() => {
                 <button type="button" @click="selectChannel(channel)">
                   <span class="relative flex size-5 shrink-0 items-center justify-center">
                     <img
-                      :src="channel.avatar"
+                      v-if="shouldShowAvatar(channel)"
+                      :src="channel.avatarUrl"
+                      :alt="`${channel.name} avatar`"
                       class="size-5 rounded-full border border-border-visible object-cover grayscale"
-                      alt=""
+                      @error="onAvatarError(channel.id)"
                     />
+                    <span
+                      v-else
+                      class="flex size-5 items-center justify-center rounded-full border border-border-visible bg-bg-primary font-mono text-[7px] font-bold uppercase leading-none text-text-display"
+                    >
+                      {{ channel.badge }}
+                    </span>
                     <span class="absolute -right-1 -bottom-1 flex size-3.5 items-center justify-center rounded-full border border-bg-surface bg-bg-primary font-mono text-[7px] font-bold uppercase leading-none text-text-display">
                       {{ channel.badge }}
                     </span>

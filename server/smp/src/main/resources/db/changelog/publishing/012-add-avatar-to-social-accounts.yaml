@@ -1,0 +1,19 @@
+databaseChangeLog:
+  - changeSet:
+      id: publishing-012-add-avatar-url-to-social-accounts
+      author: opencode
+      changes:
+        - addColumn:
+            tableName: social_accounts
+            columns:
+              - column:
+                  name: avatar_url
+                  type: varchar(1024)
+                  constraints:
+                    nullable: true
+      rollback:
+        - dropColumn:
+            tableName: social_accounts
+            columns:
+              - column:
+                  name: avatar_url
