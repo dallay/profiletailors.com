@@ -39,6 +39,7 @@ import java.net.http.HttpRequest
 import java.net.http.HttpResponse
 import java.nio.charset.StandardCharsets
 import java.util.UUID
+import org.slf4j.LoggerFactory
 
 data class LinkedInPublishingProperties(
     val clientId: String,
@@ -60,6 +61,8 @@ class RealLinkedInConnectionProvider(
     private val credentialGateway: com.profiletailors.smp.publishing.infrastructure
         .credentials.LinkedInCredentialGateway,
 ) : SocialConnectionProvider {
+    private val log = LoggerFactory.getLogger(javaClass)
+
     @Suppress("LongMethod", "ThrowsCount")
     override suspend fun completeConnection(
         command: CompleteProviderConnectionCommand
@@ -131,13 +134,26 @@ class RealLinkedInConnectionProvider(
                 displayName = profile.displayName(),
                 kind = SocialAccountKind.PERSONAL_PROFILE,
                 profileUrn = "urn:li:person:$providerAccountId",
+                avatarUrl = sanitizeAvatarUrl(profile.picture),
             ),
         )
+    }
+
+    private fun sanitizeAvatarUrl(picture: String?): String? {
+        val trimmed = picture?.trim()
+        if (trimmed.isNullOrBlank() || !trimmed.startsWith("https://", ignoreCase = true)) {
+            if (!trimmed.isNullOrBlank()) {
+                log.debug("LinkedIn avatar rejected — not HTTPS: {}", trimmed.take(MAX_AVATAR_URL_LOG_LENGTH))
+            }
+            return null
+        }
+        return trimmed
     }
 
     private companion object {
         val HTTP_SUCCESS_RANGE = 200..299
         const val MILLIS_TO_SECONDS = 1000L
+        const val MAX_AVATAR_URL_LOG_LENGTH = 120
     }
 }
 
@@ -392,6 +408,7 @@ data class LinkedInUserInfoResponse(
     @JsonProperty("given_name") val givenName: String? = null,
     @JsonProperty("family_name") val familyName: String? = null,
     @JsonProperty("email") val email: String? = null,
+    @JsonProperty("picture") val picture: String? = null,
 ) {
     fun displayName(): String = name
         ?: listOfNotNull(givenName, familyName).joinToString(" ").takeIf { it.isNotBlank() }

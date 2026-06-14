@@ -1,8 +1,13 @@
 <script setup lang="ts">
-import { ref, watch } from 'vue'
+import { nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
-import { useDragAndDrop } from '@formkit/drag-and-drop/vue'
-import type { PipelineColumn, PipelineCard, Platform } from '@/lib/types/dashboard'
+import {
+  draggable,
+  dropTargetForElements,
+  monitorForElements,
+  type ElementEventPayloadMap,
+} from '@atlaskit/pragmatic-drag-and-drop/element/adapter'
+import type { PipelineColumn, Platform } from '@/lib/types/dashboard'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 
@@ -62,97 +67,227 @@ function handleMoveRight(cardId: string, columnId: string): void {
   }
 }
 
-// ---------------------------------------------------------------------------
-// Drag & Drop — @formkit/drag-and-drop
-// ---------------------------------------------------------------------------
-
-interface DragEventData {
-  draggedNode?: { data?: { value?: PipelineCard } }
+type DragData = {
+  cardId: string
+  columnId: string
 }
 
-const columnIds = props.columns.map((c) => c.id)
+type DropTargetData = {
+  cardId?: string
+  columnId: string
+  kind: 'card' | 'column'
+}
 
-// Track the dragged card across dragstart/dragend
-const draggedCard = ref<PipelineCard | null>(null)
+type CleanupFn = ReturnType<typeof monitorForElements>
 
-function findColumnForCard(cardId: string): string | null {
-  for (let i = 0; i < 4; i++) {
-    if (allItems[i].value.some((c) => c.id === cardId)) {
-      return columnIds[i] ?? null
+const columnElements = new Map<string, HTMLElement>()
+const cardElements = new Map<string, HTMLElement>()
+const cleanupFns = ref<CleanupFn[]>([])
+const draggedCardId = ref<string | null>(null)
+
+function setColumnRef(columnId: string, el: Element | null): void {
+  if (el instanceof HTMLElement) {
+    columnElements.set(columnId, el)
+    return
+  }
+
+  columnElements.delete(columnId)
+}
+
+function setCardRef(cardId: string, el: Element | null): void {
+  if (el instanceof HTMLElement) {
+    cardElements.set(cardId, el)
+    return
+  }
+
+  cardElements.delete(cardId)
+}
+
+function cleanupDragAndDrop(): void {
+  for (const cleanup of cleanupFns.value) {
+    cleanup()
+  }
+  cleanupFns.value = []
+}
+
+function findCardLocation(cardId: string): { cardIndex: number; columnId: string } | null {
+  for (const column of props.columns) {
+    const cardIndex = column.cards.findIndex((card) => card.id === cardId)
+    if (cardIndex >= 0) {
+      return { cardIndex, columnId: column.id }
     }
   }
+
   return null
 }
 
-function createDragEndHandler(colIndex: number) {
-  return () => {
-    if (!draggedCard.value) return
-    const targetColId = findColumnForCard(draggedCard.value.id)
-    if (targetColId && targetColId !== columnIds[colIndex]) {
-      // Calculate the index at which the library placed the card in the target column
-      const targetColIdx = columnIds.indexOf(targetColId)
-      const targetIndex = targetColIdx >= 0
-        ? allItems[targetColIdx]?.value.findIndex((c) => c.id === draggedCard.value!.id)
-        : -1
-      emit('moveCard', draggedCard.value.id, columnIds[colIndex], targetColId, targetIndex >= 0 ? targetIndex : undefined)
+function findColumn(columnId: string): PipelineColumn | undefined {
+  return props.columns.find((column) => column.id === columnId)
+}
+
+function getCardDropIndex(target: DropTargetData, inputY: number): number | undefined {
+  if (!target.cardId) {
+    return undefined
+  }
+
+  const targetColumn = findColumn(target.columnId)
+  const targetIndex = targetColumn?.cards.findIndex((card) => card.id === target.cardId) ?? -1
+  if (targetIndex < 0) {
+    return undefined
+  }
+
+  const targetElement = cardElements.get(target.cardId)
+  if (!targetElement) {
+    return targetIndex
+  }
+
+  const { top, height } = targetElement.getBoundingClientRect()
+  const insertAfter = inputY >= top + (height / 2)
+  return targetIndex + (insertAfter ? 1 : 0)
+}
+
+function getDropTargetData(
+  event: ElementEventPayloadMap['onDrop'],
+): DropTargetData | null {
+  for (const target of event.location.current.dropTargets) {
+    const kind = target.data.kind
+    const columnId = target.data.columnId
+
+    if (
+      (kind === 'card' || kind === 'column')
+      && typeof columnId === 'string'
+    ) {
+      return {
+        kind,
+        columnId,
+        cardId: typeof target.data.cardId === 'string' ? target.data.cardId : undefined,
+      }
     }
-    draggedCard.value = null
+  }
+
+  return null
+}
+
+function handleDrop(event: ElementEventPayloadMap['onDrop']): void {
+  draggedCardId.value = null
+
+  const sourceCardId = event.source.data.cardId
+  const sourceColumnId = event.source.data.columnId
+  if (typeof sourceCardId !== 'string' || typeof sourceColumnId !== 'string') {
+    return
+  }
+
+  const sourceLocation = findCardLocation(sourceCardId)
+  if (!sourceLocation) {
+    return
+  }
+
+  const target = getDropTargetData(event)
+  if (!target) {
+    return
+  }
+
+  let targetIndex: number | undefined
+  if (target.kind === 'card') {
+    targetIndex = getCardDropIndex(target, event.location.current.input.clientY)
+  } else {
+    targetIndex = findColumn(target.columnId)?.cards.length
+  }
+
+  if (targetIndex == null) {
+    return
+  }
+
+  if (sourceLocation.columnId === target.columnId) {
+    let normalizedIndex = targetIndex
+    if (sourceLocation.cardIndex < targetIndex) {
+      normalizedIndex -= 1
+    }
+
+    if (normalizedIndex === sourceLocation.cardIndex) {
+      return
+    }
+
+    emit('moveCard', sourceCardId, sourceLocation.columnId, target.columnId, normalizedIndex)
+    return
+  }
+
+  emit('moveCard', sourceCardId, sourceLocation.columnId, target.columnId, targetIndex)
+}
+
+function registerDragAndDrop(): void {
+  cleanupDragAndDrop()
+
+  cleanupFns.value.push(
+    monitorForElements({
+      onDragStart: ({ source }) => {
+        draggedCardId.value = typeof source.data.cardId === 'string' ? source.data.cardId : null
+      },
+      onDrop: handleDrop,
+    }),
+  )
+
+  for (const column of props.columns) {
+    const columnElement = columnElements.get(column.id)
+    if (columnElement) {
+      cleanupFns.value.push(
+        dropTargetForElements({
+          element: columnElement,
+          getData: () => ({
+            kind: 'column',
+            columnId: column.id,
+          }),
+        }),
+      )
+    }
+
+    for (const card of column.cards) {
+      const cardElement = cardElements.get(card.id)
+      if (!cardElement) {
+        continue
+      }
+
+      cleanupFns.value.push(
+        draggable({
+          element: cardElement,
+          getInitialData: (): DragData => ({
+            cardId: card.id,
+            columnId: column.id,
+          }),
+        }),
+      )
+
+      cleanupFns.value.push(
+        dropTargetForElements({
+          element: cardElement,
+          getData: (): DropTargetData => ({
+            kind: 'card',
+            cardId: card.id,
+            columnId: column.id,
+          }),
+        }),
+      )
+    }
   }
 }
 
-// One useDragAndDrop per column — all share the same group for cross-list transfer
-const [col0Ref, col0Items] = useDragAndDrop(
-  [...props.columns[0].cards],
-  {
-    group: 'pipeline',
-    onDragstart: (data: DragEventData) => { draggedCard.value = data.draggedNode?.data?.value ?? null },
-    onDragend: createDragEndHandler(0),
-  },
-)
-const [col1Ref, col1Items] = useDragAndDrop(
-  [...props.columns[1].cards],
-  {
-    group: 'pipeline',
-    onDragstart: (data: DragEventData) => { draggedCard.value = data.draggedNode?.data?.value ?? null },
-    onDragend: createDragEndHandler(1),
-  },
-)
-const [col2Ref, col2Items] = useDragAndDrop(
-  [...props.columns[2].cards],
-  {
-    group: 'pipeline',
-    onDragstart: (data: DragEventData) => { draggedCard.value = data.draggedNode?.data?.value ?? null },
-    onDragend: createDragEndHandler(2),
-  },
-)
-const [col3Ref, col3Items] = useDragAndDrop(
-  [...props.columns[3].cards],
-  {
-    group: 'pipeline',
-    onDragstart: (data: DragEventData) => { draggedCard.value = data.draggedNode?.data?.value ?? null },
-    onDragend: createDragEndHandler(3),
-  },
-)
-
-const allItems = [col0Items, col1Items, col2Items, col3Items]
-const colRefs = [col0Ref, col1Ref, col2Ref, col3Ref]
-
-function setColumnRef(colIndex: number, el: Element | null): void {
-  const targetRef = colRefs[colIndex]
-  if (!targetRef) return
-  targetRef.value = el instanceof HTMLElement ? el : undefined
-}
-
-// Sync local DnD state when props change (e.g. after move-button click updates the store)
 watch(
-  () => props.columns,
-  (newCols) => {
-    for (let i = 0; i < 4; i++) {
-      allItems[i].value = [...newCols[i]!.cards]
-    }
+  () => props.columns.map((column) => `${column.id}:${column.cards.map((card) => card.id).join(',')}`).join('|'),
+  async () => {
+    await nextTick()
+    registerDragAndDrop()
   },
-  { deep: true },
+  { immediate: true },
 )
+
+onMounted(async () => {
+  await nextTick()
+  registerDragAndDrop()
+})
+
+onBeforeUnmount(() => {
+  cleanupDragAndDrop()
+})
 </script>
 
 <template>
@@ -178,7 +313,7 @@ watch(
       <div class="overflow-x-auto -mx-1 px-1">
         <div class="flex lg:grid lg:grid-cols-4 gap-3 min-w-[640px] lg:min-w-0">
           <div
-            v-for="(column, colIndex) in columns"
+            v-for="column in columns"
             :key="column.id"
             class="flex-1 lg:flex-none min-w-[150px] lg:min-w-0"
           >
@@ -192,20 +327,26 @@ watch(
               <span
                 class="text-[10px] text-[var(--text-secondary)] font-[var(--font-space-mono)] tabular-nums bg-[var(--background-primary)] px-1.5 py-0.5 rounded"
               >
-                {{ allItems[colIndex]?.value.length ?? column.cards.length }}
+                {{ column.cards.length }}
               </span>
             </div>
 
             <!-- Cards (draggable container) -->
             <div
-              :ref="(el) => setColumnRef(colIndex, el as Element | null)"
+              :ref="(el) => setColumnRef(column.id, el as Element | null)"
+              :data-dnd-column="column.id"
               class="space-y-2 min-h-[48px]"
             >
               <div
-                v-for="card in allItems[colIndex]?.value ?? column.cards"
+                v-for="card in column.cards"
                 :key="card.id"
+                :ref="(el) => setCardRef(card.id, el as Element | null)"
                 :data-dnd-draggable="card.id"
-                class="rounded-lg bg-[var(--background-primary)] border border-[var(--border-color)] p-3 space-y-2 cursor-grab active:cursor-grabbing transition-opacity data-[dnd-dragging]:opacity-50"
+                draggable="true"
+                :class="[
+                  'rounded-lg bg-[var(--background-primary)] border border-[var(--border-color)] p-3 space-y-2 cursor-grab active:cursor-grabbing transition-opacity',
+                  draggedCardId === card.id ? 'opacity-50' : '',
+                ]"
               >
                 <!-- Card title -->
                 <p class="text-sm font-medium text-[var(--text-display)] line-clamp-2 leading-snug">
@@ -291,7 +432,7 @@ watch(
 
               <!-- Empty column -->
               <p
-                v-if="(allItems[colIndex]?.value.length ?? column.cards.length) === 0"
+                v-if="column.cards.length === 0"
                 class="text-xs text-[var(--text-secondary)] text-center py-6 border border-dashed border-[var(--border-color)] rounded-lg"
               >
                 {{ t('dashboard.pipeline.noCards') }}

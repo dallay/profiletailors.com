@@ -37,8 +37,8 @@ function handleDismissInsight(id: string): void {
   insights.dismiss(id)
 }
 
-function handleMoveCard(cardId: string, fromColumn: string, toColumn: string): void {
-  pipeline.moveCard(cardId, fromColumn, toColumn)
+function handleMoveCard(cardId: string, fromColumn: string, toColumn: string, toIndex?: number): void {
+  pipeline.moveCard(cardId, fromColumn, toColumn, toIndex)
 }
 </script>
 

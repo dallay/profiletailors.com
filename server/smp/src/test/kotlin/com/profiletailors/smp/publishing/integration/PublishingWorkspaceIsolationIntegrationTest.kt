@@ -12,6 +12,7 @@ import com.profiletailors.smp.publishing.domain.SocialProvider
 import com.profiletailors.smp.publishing.infrastructure.persistence.R2dbcPublicationRepository
 import com.profiletailors.smp.publishing.infrastructure.persistence.R2dbcSocialAccountRepository
 import com.profiletailors.smp.publishing.infrastructure.persistence.R2dbcSocialConnectionRepository
+import io.micrometer.core.instrument.simple.SimpleMeterRegistry
 import kotlinx.coroutines.reactor.awaitSingle
 import kotlinx.coroutines.test.runTest
 import org.junit.jupiter.api.Assertions.assertEquals
@@ -41,7 +42,7 @@ class PublishingWorkspaceIsolationIntegrationTest : DatabaseUnitTestBase() {
     fun setUpRepositories() = runTest {
         seedTwoWorkspacesWithPrincipals()
         socialConnectionRepository = R2dbcSocialConnectionRepository(databaseClient)
-        socialAccountRepository = R2dbcSocialAccountRepository(databaseClient)
+        socialAccountRepository = R2dbcSocialAccountRepository(databaseClient, SimpleMeterRegistry())
         publicationRepository = R2dbcPublicationRepository(databaseClient)
     }
 

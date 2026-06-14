@@ -38,6 +38,7 @@ const publishingStore = usePublishingStore()
 // State
 const postText = ref('')
 const selectedChannels = ref<('twitter' | 'linkedin' | 'instagram' | 'facebook')[]>(['linkedin'])
+const avatarLoadFailed = ref<Record<string, boolean>>({})
 const mediaFiles = ref<File[]>([])
 const submitError = ref('')
 const mediaPreviews = ref<string[]>([])
@@ -64,6 +65,7 @@ watch(
       priorityMode.value = false
       submitError.value = ''
       scheduleMode.value = props.initialDate ? 'custom' : 'now'
+      avatarLoadFailed.value = {}
 
       const defaultDate = props.initialDate ? new Date(props.initialDate) : new Date()
       // format to YYYY-MM-DD
@@ -157,6 +159,14 @@ function toggleChannel(provider: 'twitter' | 'linkedin' | 'instagram' | 'faceboo
   } else {
     selectedChannels.value.push(provider)
   }
+}
+
+function onChannelAvatarError(channelId: string) {
+  avatarLoadFailed.value[channelId] = true
+}
+
+function shouldShowChannelAvatar(channelId: string, avatarUrl?: string): boolean {
+  return !!(avatarUrl && !avatarLoadFailed.value[channelId])
 }
 
 // Format hashtags helper
@@ -292,7 +302,19 @@ async function handleSchedule() {
                   ? 'border-text-display bg-bg-primary text-text-display font-bold'
                   : 'border-border-visible text-text-secondary hover:text-text-display bg-bg-primary/50'"
               >
-                <img :src="ch.avatar" alt="" class="size-4.5 rounded-full object-cover border border-border-subtle" />
+                <img
+                  v-if="shouldShowChannelAvatar(ch.id, ch.avatarUrl)"
+                  :src="ch.avatarUrl"
+                  :alt="`${ch.name} avatar`"
+                  class="size-4.5 rounded-full object-cover border border-border-subtle"
+                  @error="onChannelAvatarError(ch.id)"
+                />
+                <span
+                  v-else
+                  class="flex size-4.5 shrink-0 items-center justify-center rounded-full border border-border-visible bg-bg-primary font-mono text-[7px] font-bold uppercase text-text-display"
+                >
+                  {{ ch.provider === 'linkedin' ? 'in' : ch.provider.charAt(0) }}
+                </span>
                 <span class="max-w-[120px] truncate">{{ ch.name }}</span>
                 <span
                   class="flex size-3.5 shrink-0 items-center justify-center rounded-full text-[8px] font-bold text-bg-primary"
