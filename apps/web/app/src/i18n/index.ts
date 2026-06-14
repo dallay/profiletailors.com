@@ -27,6 +27,134 @@ const messages = {
       posts: 'POSTS',
       active: 'ACTIVE',
       avg: 'AVG',
+      // Executive Overview
+      executiveOverview: {
+        title: 'Executive Overview',
+        last30Days: 'Last 30 days',
+      },
+      // KPI Labels
+      kpi: {
+        totalFollowers: 'Total Followers',
+        avgEngagement: 'Avg Engagement',
+        totalImpressions: 'Total Impressions',
+        contentPublished: 'Content Published',
+        vsLast30Days: 'vs last 30 days',
+      },
+      // AI Insights
+      insights: {
+        title: 'AI Insights',
+        subtitle: 'Smart recommendations to grow your channels',
+        dismiss: 'Dismiss',
+        dismissAll: 'Dismiss All',
+        empty: 'No new insights available.',
+        viewAction: 'View',
+        highPriority: 'High Priority',
+        recommendation: 'Recommendation',
+        alert: 'Alert',
+        opportunity: 'Opportunity',
+      },
+      // Growth Score
+      growthScore: {
+        title: 'Growth Score',
+        subtitle: 'Your overall channel health',
+        outOf100: 'out of 100',
+        breakdown: {
+          consistency: 'Consistency',
+          engagement: 'Engagement',
+          growth: 'Growth',
+          reach: 'Reach',
+        },
+        topOpportunity: 'Top Opportunity',
+        improving: 'Improving',
+        declining: 'Declining',
+        stable: 'Stable',
+      },
+      // Content Performance
+      contentPerformance: {
+        title: 'Content Performance',
+        subtitle: 'Your top performing posts this period',
+        impressions: 'Impressions',
+        engagementRate: 'Engagement',
+        reactions: 'Reactions',
+        comments: 'Comments',
+        shares: 'Shares',
+        publishedOn: 'Published on',
+        allPlatforms: 'All',
+        noPostsMatch: 'No posts match this filter.',
+        rank: 'Rank',
+      },
+      // Cross-Channel Analytics
+      crossChannel: {
+        title: 'Cross-Channel Analytics',
+        subtitle: 'Platform comparison and breakdown',
+        followers: 'Followers',
+        growth: 'Growth',
+        posts: 'Posts',
+        followerContext: '{count} followers on {platform}',
+      },
+      // Audience Growth
+      audienceGrowth: {
+        title: 'Audience Growth',
+        subtitle: 'Follower trend over time',
+        milestone: 'Milestone',
+      },
+      // Upcoming Schedule
+      upcomingSchedule: {
+        title: 'Upcoming Schedule',
+        subtitle: 'Your next planned content',
+        noItems: 'No upcoming posts scheduled.',
+        queued: 'Queued',
+        scheduled: 'Scheduled',
+        published: 'Published',
+      },
+      // Content Pipeline (Kanban)
+      pipeline: {
+        title: 'Content Pipeline',
+        subtitle: 'Manage your content from idea to publish',
+        column: {
+          ideas: 'Ideas',
+          drafting: 'Drafting',
+          review: 'Review',
+          scheduled: 'Scheduled',
+        },
+        noCards: 'No cards in this column',
+        author: 'Author',
+        tags: 'Tags',
+      },
+      // Best Posting Times
+      postingTimes: {
+        title: 'Best Posting Times',
+        subtitle: 'Heatmap of optimal engagement windows',
+        low: 'Low',
+        high: 'High',
+        mon: 'Mon',
+        tue: 'Tue',
+        wed: 'Wed',
+        thu: 'Thu',
+        fri: 'Fri',
+        sat: 'Sat',
+        sun: 'Sun',
+      },
+      // Inbox Summary
+      inbox: {
+        title: 'Inbox',
+        subtitle: 'Comments, mentions, and messages',
+        comment: 'Comment',
+        mention: 'Mention',
+        message: 'Message',
+        lead: 'Lead',
+        noItems: 'No new items.',
+        viewAll: 'View All',
+        markRead: 'Mark Read',
+      },
+      // Team Activity
+      teamActivity: {
+        title: 'Team Activity',
+        subtitle: 'What your team has been up to',
+        online: 'Online',
+        offline: 'Offline',
+        noActivity: 'No recent activity.',
+      },
       quickStart: {
         title: 'Quick Start',
         subtitle:
@@ -195,6 +323,134 @@ const messages = {
       posts: 'PUBLICACIONES',
       active: 'ACTIVAS',
       avg: 'PROM',
+      // Executive Overview
+      executiveOverview: {
+        title: 'Resumen Ejecutivo',
+        last30Days: 'Últimos 30 días',
+      },
+      // KPI Labels
+      kpi: {
+        totalFollowers: 'Total de Seguidores',
+        avgEngagement: 'Interacción Promedio',
+        totalImpressions: 'Total de Impresiones',
+        contentPublished: 'Contenido Publicado',
+        vsLast30Days: 'vs últimos 30 días',
+      },
+      // AI Insights
+      insights: {
+        title: 'Insights de IA',
+        subtitle: 'Recomendaciones inteligentes para hacer crecer tus canales',
+        dismiss: 'Descartar',
+        dismissAll: 'Descartar Todo',
+        empty: 'No hay nuevos insights disponibles.',
+        viewAction: 'Ver',
+        highPriority: 'Alta Prioridad',
+        recommendation: 'Recomendación',
+        alert: 'Alerta',
+        opportunity: 'Oportunidad',
+      },
+      // Growth Score
+      growthScore: {
+        title: 'Puntuación de Crecimiento',
+        subtitle: 'Salud general de tus canales',
+        outOf100: 'de 100',
+        breakdown: {
+          consistency: 'Consistencia',
+          engagement: 'Interacción',
+          growth: 'Crecimiento',
+          reach: 'Alcance',
+        },
+        topOpportunity: 'Mayor Oportunidad',
+        improving: 'Mejorando',
+        declining: 'En declive',
+        stable: 'Estable',
+      },
+      // Content Performance
+      contentPerformance: {
+        title: 'Rendimiento del Contenido',
+        subtitle: 'Tus publicaciones con mejor rendimiento este período',
+        impressions: 'Impresiones',
+        engagementRate: 'Interacción',
+        reactions: 'Reacciones',
+        comments: 'Comentarios',
+        shares: 'Compartidos',
+        publishedOn: 'Publicado el',
+        allPlatforms: 'Todas',
+        noPostsMatch: 'Ninguna publicación coincide con este filtro.',
+        rank: 'Posición',
+      },
+      // Cross-Channel Analytics
+      crossChannel: {
+        title: 'Analítica Multi-Canal',
+        subtitle: 'Comparación y desglose por plataforma',
+        followers: 'Seguidores',
+        growth: 'Crecimiento',
+        posts: 'Publicaciones',
+        followerContext: '{count} seguidores en {platform}',
+      },
+      // Audience Growth
+      audienceGrowth: {
+        title: 'Crecimiento de Audiencia',
+        subtitle: 'Tendencia de seguidores en el tiempo',
+        milestone: 'Hito',
+      },
+      // Upcoming Schedule
+      upcomingSchedule: {
+        title: 'Próximas Publicaciones',
+        subtitle: 'Tu contenido planificado a continuación',
+        noItems: 'No hay publicaciones próximas programadas.',
+        queued: 'En cola',
+        scheduled: 'Programada',
+        published: 'Publicada',
+      },
+      // Content Pipeline (Kanban)
+      pipeline: {
+        title: 'Pipeline de Contenido',
+        subtitle: 'Gestiona tu contenido de idea a publicación',
+        column: {
+          ideas: 'Ideas',
+          drafting: 'Redacción',
+          review: 'Revisión',
+          scheduled: 'Programado',
+        },
+        noCards: 'No hay tarjetas en esta columna',
+        author: 'Autor',
+        tags: 'Etiquetas',
+      },
+      // Best Posting Times
+      postingTimes: {
+        title: 'Mejores Horarios para Publicar',
+        subtitle: 'Mapa de calor de ventanas de interacción óptimas',
+        low: 'Bajo',
+        high: 'Alto',
+        mon: 'Lun',
+        tue: 'Mar',
+        wed: 'Mié',
+        thu: 'Jue',
+        fri: 'Vie',
+        sat: 'Sáb',
+        sun: 'Dom',
+      },
+      // Inbox Summary
+      inbox: {
+        title: 'Bandeja de Entrada',
+        subtitle: 'Comentarios, menciones y mensajes',
+        comment: 'Comentario',
+        mention: 'Mención',
+        message: 'Mensaje',
+        lead: 'Lead',
+        noItems: 'No hay elementos nuevos.',
+        viewAll: 'Ver Todo',
+        markRead: 'Marcar Leído',
+      },
+      // Team Activity
+      teamActivity: {
+        title: 'Actividad del Equipo',
+        subtitle: 'Lo que tu equipo ha estado haciendo',
+        online: 'En línea',
+        offline: 'Desconectado',
+        noActivity: 'No hay actividad reciente.',
+      },
       quickStart: {
         title: 'Inicio Rápido',
         subtitle:
