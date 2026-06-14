@@ -110,7 +110,7 @@ backend-test exclude-tags="":
 
 # Run backend tests (fast: excludes modularity + postgres)
 backend-test-fast:
-    {{gradle-root}} :server:smp:test --no-daemon -PexcludeTags=modularity,postgres,brokenOnH2
+    {{gradle-root}} :server:smp:test --no-daemon -PexcludeTags=modularity,postgres
 
 # Run full check: tests + Detekt
 backend-check:
@@ -130,7 +130,7 @@ backend-run:
 
 # Run tests with JaCoCo coverage report
 backend-coverage:
-    {{gradle-root}} :server:smp:test :server:smp:jacocoTestReport --no-daemon -PexcludeTags=modularity,postgres,brokenOnH2
+    {{gradle-root}} :server:smp:test :server:smp:jacocoTestReport --no-daemon -PexcludeTags=modularity,postgres
 
 # Run fast BDD suite
 backend-bdd-fast:
@@ -188,10 +188,10 @@ ci-local:
     {{gradle-root}} :server:smp:detekt --no-daemon
     @echo ""
     @echo "▸ Backend: unit tests (fast)..."
-    {{gradle-root}} :server:smp:test --no-daemon -PexcludeTags=modularity,postgres,brokenOnH2
+    {{gradle-root}} :server:smp:test --no-daemon -PexcludeTags=modularity,postgres
     @echo ""
     @echo "▸ Backend: build..."
-    {{gradle-root}} :server:smp:build --no-daemon -PexcludeTags=modularity,postgres,brokenOnH2 -x :server:smp:bddFastTest -x :server:smp:bddPostgresTest
+    {{gradle-root}} :server:smp:build --no-daemon -PexcludeTags=modularity,postgres -x :server:smp:bddFastTest -x :server:smp:bddPostgresTest
     @echo ""
     @echo "══════════════════════════════════════════════"
     @echo "  ✅ CI Pipeline Simulation Complete"
