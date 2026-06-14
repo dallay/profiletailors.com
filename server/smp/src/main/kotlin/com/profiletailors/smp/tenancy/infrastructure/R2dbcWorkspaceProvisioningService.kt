@@ -7,6 +7,7 @@ import com.profiletailors.smp.tenancy.application.WorkspaceProvisioningService
 import com.profiletailors.smp.tenancy.domain.WorkspaceStatus
 import kotlinx.coroutines.reactor.awaitSingle
 import org.springframework.r2dbc.core.DatabaseClient
+import org.springframework.transaction.annotation.Transactional
 import java.time.Clock
 import java.util.UUID
 
@@ -22,6 +23,7 @@ class R2dbcWorkspaceProvisioningService(
     private val clock: Clock,
 ) : WorkspaceProvisioningService {
 
+    @Transactional
     override suspend fun provisionDefaultWorkspace(
         principalId: String,
         displayName: String,

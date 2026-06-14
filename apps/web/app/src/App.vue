@@ -229,8 +229,9 @@ async function handleConnectChannel(channel: ConnectChannel) {
     connectMessage.value = t('channels.connectingLinkedIn')
     try {
       await publishingStore.connectLinkedInPersonalProfile()
-    } catch (err: any) {
-      connectMessage.value = err?.detail || err?.message || t('channels.connectLinkedInFailed')
+    } catch (err: unknown) {
+      const e = err as { detail?: string; message?: string }
+      connectMessage.value = e?.detail || e?.message || t('channels.connectLinkedInFailed')
       if (connectTimeout) clearTimeout(connectTimeout)
       connectTimeout = setTimeout(() => {
         connectMessage.value = ''

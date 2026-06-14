@@ -74,8 +74,9 @@ async function connectLinkedInProfile() {
 
   try {
     await publishing.connectLinkedInPersonalProfile()
-  } catch (err: any) {
-    connectError.value = err?.detail || err?.message || t('channels.connectLinkedInFailed')
+  } catch (err: unknown) {
+    const e = err as { detail?: string; message?: string }
+    connectError.value = e?.detail || e?.message || t('channels.connectLinkedInFailed')
     connectingLinkedIn.value = false
   }
 }
