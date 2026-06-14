@@ -4,9 +4,6 @@ import * as LucideIcons from '@lucide/vue'
 import type { Component } from 'vue'
 import { toPascalCase } from '@/lib/string-utils'
 
-type LucideIconRecord = Record<string, Component>
-const icons = LucideIcons as unknown as LucideIconRecord
-
 const props = withDefaults(
   defineProps<{
     name: string
@@ -26,7 +23,7 @@ const iconSizes: Record<string, number> = { sm: 14, md: 18 }
 const iconComponent = computed<Component | null>(() => {
   if (!props.icon) return null
   const iconName = toPascalCase(props.icon)
-  return icons[iconName] ?? null
+  return LucideIcons[iconName as keyof typeof LucideIcons] ?? null
 })
 
 </script>
