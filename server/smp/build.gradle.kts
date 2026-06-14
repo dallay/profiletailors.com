@@ -46,6 +46,8 @@ dependencies {
     implementation(libs.springdoc.openapi.webflux)
     implementation(libs.spring.modulith.starter.core)
     implementation(libs.jackson.module.kotlin)
+    // Jackson 2.x compat — PlatformBootstrapConfiguration uses kotlinModule() from the 2.x line
+    @Suppress("GradleDependency")
     implementation("com.fasterxml.jackson.module:jackson-module-kotlin:2.21.2")
     implementation(libs.spring.boot.starter.actuator)
     implementation(libs.micrometer.prometheus)

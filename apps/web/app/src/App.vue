@@ -216,9 +216,12 @@ async function handleLogout() {
 }
 
 function navigateToSettings() {
-  router.push("/settings")
-  closeAccountMenu()
-  closeWorkspaceMenu()
+  router.push("/settings").catch((err) => {
+    console.error('Navigation to settings failed', err)
+  }).finally(() => {
+    closeAccountMenu()
+    closeWorkspaceMenu()
+  })
 }
 
 const connectMessage = ref('')

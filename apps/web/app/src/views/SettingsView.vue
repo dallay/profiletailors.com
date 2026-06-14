@@ -92,7 +92,9 @@ onMounted(() => {
   publishing.fetchChannels().catch((err) => {
     connectError.value = err instanceof Error ? err.message : t('channels.loadFailed')
   })
-  publishing.fetchConfiguredProviders()
+  publishing.fetchConfiguredProviders().catch((err) => {
+    console.error('Failed to load configured providers:', err)
+  })
 })
 </script>
 
