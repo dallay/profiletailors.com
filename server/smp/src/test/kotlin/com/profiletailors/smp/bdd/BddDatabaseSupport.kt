@@ -117,7 +117,7 @@ class BddDatabaseSupport(
         // Seed workspace with owner-1 (current user) and owner-2 (target for transfer)
         seedUserPrincipal()
         databaseClient.sql(
-            "INSERT INTO workspaces (id, name, status) VALUES ('$WORKSPACE_ID', 'Profile Tailors', 'ACTIVE')",
+            "INSERT INTO workspaces (id, name, status, icon) VALUES ('$WORKSPACE_ID', 'Profile Tailors', 'ACTIVE', NULL)",
         ).fetch().rowsUpdated().awaitSingle()
         
         databaseClient.sql(
@@ -145,7 +145,7 @@ class BddDatabaseSupport(
         // Seed workspace with member-2 to update status
         seedUserPrincipal()
         databaseClient.sql(
-            "INSERT INTO workspaces (id, name, status) VALUES ('$WORKSPACE_ID', 'Profile Tailors', 'ACTIVE')",
+            "INSERT INTO workspaces (id, name, status, icon) VALUES ('$WORKSPACE_ID', 'Profile Tailors', 'ACTIVE', NULL)",
         ).fetch().rowsUpdated().awaitSingle()
         
         // Seed member-2 principal
@@ -393,7 +393,7 @@ class BddDatabaseSupport(
         entitled: Boolean,
     ) {
         databaseClient.sql(
-            "INSERT INTO workspaces (id, name, status) VALUES ('$WORKSPACE_ID', 'Profile Tailors', 'ACTIVE')",
+            "INSERT INTO workspaces (id, name, status, icon) VALUES ('$WORKSPACE_ID', 'Profile Tailors', 'ACTIVE', NULL)",
         ).fetch().rowsUpdated().awaitSingle()
         databaseClient.sql(
             "INSERT INTO workspace_memberships (id, workspace_id, principal_id, principal_type, status) VALUES ('membership-1', '$WORKSPACE_ID', :principalId, :principalType, 'ACTIVE')",

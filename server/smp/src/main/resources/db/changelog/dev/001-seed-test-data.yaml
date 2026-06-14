@@ -42,6 +42,7 @@ databaseChangeLog:
               - column: { name: id, value: dev-workspace-001 }
               - column: { name: name, value: Dev Workspace }
               - column: { name: status, value: ACTIVE }
+              - column: { name: icon, value: briefcase }
               - column: { name: created_at, valueComputed: "TIMESTAMP WITH TIME ZONE '2026-01-01 00:00:00+00'" }
 
         - insert:
