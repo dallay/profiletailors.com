@@ -111,7 +111,7 @@ spring:
       on-profile: dev
   docker:
     compose:
-      enabled: false  # Nosotros manejamos Docker Compose manualmente
+      enabled: true
 
 publishing:
   credentials:
