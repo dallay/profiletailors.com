@@ -63,7 +63,7 @@ class WorkspaceController(
 @Schema(description = "Workspace icon update request")
 data class UpdateWorkspaceIconRequest(
     @field:Size(max = 64)
-    @field:Pattern(regexp = "^[a-z]([a-z-]*[a-z])?$", message = "Icon name must contain only lowercase letters and hyphens")
+    @field:Pattern(regexp = UpdateWorkspaceIconCommand.ICON_NAME_PATTERN, message = "Icon name must contain only lowercase letters and hyphens")
     @field:Schema(
         description = "The new workspace icon name (Lucide icon name)",
         example = "briefcase",
