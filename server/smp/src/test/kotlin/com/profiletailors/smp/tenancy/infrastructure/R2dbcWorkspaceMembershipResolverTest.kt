@@ -45,7 +45,7 @@ class R2dbcWorkspaceMembershipResolverTest {
     @Test
     fun `loads active workspace membership for principal and workspace`() = runTest {
         databaseClient.sql("INSERT INTO principals (id, principal_type, subject, provider, display_identity) VALUES ('principal-1', 'USER', 'subject-123', 'https://issuer.example', 'yuniel')").fetch().rowsUpdated().awaitSingle()
-        databaseClient.sql("INSERT INTO workspaces (id, name, status, icon) VALUES ('workspace-1', 'Profile Tailors', 'ACTIVE', NULL)").fetch().rowsUpdated().awaitSingle()
+        databaseClient.sql("INSERT INTO workspaces (id, name, status, icon) VALUES ('workspace-1', 'Profile Tailors', 'ACTIVE', 'briefcase')").fetch().rowsUpdated().awaitSingle()
         databaseClient.sql("INSERT INTO workspace_memberships (id, workspace_id, principal_id, principal_type, status) VALUES ('membership-1', 'workspace-1', 'principal-1', 'USER', 'ACTIVE')").fetch().rowsUpdated().awaitSingle()
 
         val membership = resolver.resolve(principalId = "principal-1", resourceContext = ResourceContext(ResourceContextType.WORKSPACE, workspaceId = "workspace-1"))

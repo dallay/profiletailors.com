@@ -114,7 +114,10 @@ abstract class IntegrationTestBase {
             .bind("id", workspaceId)
             .bind("name", name)
             .bind("status", status)
-            .let { if (icon == null) it.bindNull("icon", String::class.java) else it.bind("icon", icon) }
+            .let { spec ->
+                if (icon == null) spec.bindNull("icon", String::class.java)
+                else spec.bind("icon", icon)
+            }
             .fetch()
             .rowsUpdated()
             .awaitSingle()

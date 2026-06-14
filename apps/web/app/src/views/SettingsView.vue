@@ -8,10 +8,10 @@ import { useAuthStore } from '@/stores/auth'
 import { useWorkspaceStore } from '@/stores/workspace'
 import { renameWorkspace, updateWorkspaceIcon } from '@/lib/auth-api'
 import WorkspaceAvatar from '@/components/WorkspaceAvatar.vue'
+import { toPascalCase } from '@/lib/string-utils'
 import * as LucideIcons from '@lucide/vue'
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
-import { toPascalCase } from '@/lib/string-utils'
 
 const settings = useSettingsStore()
 const publishing = usePublishingStore()
@@ -58,7 +58,6 @@ async function selectIcon(iconName: string | null) {
 
   try {
     const result = await updateWorkspaceIcon(iconName, auth.accessToken, workspace.activeWorkspaceId)
-    // Update the workspace in the store list
     workspace.updateWorkspaceIcon(result.workspaceId, result.icon)
   } catch (err) {
     iconError.value = err instanceof Error ? err.message : 'Failed to update icon'
@@ -254,7 +253,7 @@ onMounted(() => {
               :disabled="updatingIcon"
               @click="selectIcon(iconName)"
             >
-              <component :is="LucideIcons[toPascalCase(iconName) as keyof typeof LucideIcons]" :size="18" />
+              <component :is="LucideIcons[toPascalCase(iconName) as keyof typeof LucideIcons]" :size="18" v-bind="{}" />
             </button>
           </div>
           <p v-if="iconError" class="text-sm text-error">{{ iconError }}</p>

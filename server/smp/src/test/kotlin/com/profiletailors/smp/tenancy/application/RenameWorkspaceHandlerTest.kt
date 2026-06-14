@@ -3,6 +3,9 @@ package com.profiletailors.smp.tenancy.application
 import com.profiletailors.common.domain.context.ResourceContext
 import com.profiletailors.common.domain.context.ResourceContextProvider
 import com.profiletailors.common.domain.context.ResourceContextType
+import com.profiletailors.smp.authorization.domain.AuthorizationDecision
+import com.profiletailors.smp.authorization.domain.PermissionKey
+import com.profiletailors.smp.authorization.domain.WorkspaceAuthorizationDecider
 import io.r2dbc.h2.H2ConnectionConfiguration
 import io.r2dbc.h2.H2ConnectionFactory
 import kotlinx.coroutines.reactor.awaitSingleOrNull
@@ -22,6 +25,24 @@ class RenameWorkspaceHandlerTest {
 
     private val resourceContextProvider = object : ResourceContextProvider {
         override fun current(): ResourceContext = workspaceContext
+    }
+
+    private val allowDecider = object : WorkspaceAuthorizationDecider {
+        override suspend fun decide(
+            requiredPermission: PermissionKey,
+            requiredEntitlementKey: String?,
+            resourceContextOverride: ResourceContext?,
+        ) = AuthorizationDecision.ALLOW
+
+        override suspend fun decideDetailed(
+            requiredPermission: PermissionKey,
+            requiredEntitlementKey: String?,
+            resourceContextOverride: ResourceContext?,
+        ) = com.profiletailors.smp.authorization.domain.AuthorizationDecisionResult(
+            decision = AuthorizationDecision.ALLOW,
+            reasonCode = com.profiletailors.smp.authorization.domain.AuthorizationReasonCode.ROLE_PERMISSION,
+            roleKeys = setOf("owner"),
+        )
     }
 
     private suspend fun createDb(): DatabaseClient {
@@ -58,7 +79,7 @@ class RenameWorkspaceHandlerTest {
     @Test
     fun `renames workspace successfully`() = runTest {
         val db = createDb()
-        val handler = RenameWorkspaceHandler(resourceContextProvider, db)
+        val handler = RenameWorkspaceHandler(resourceContextProvider, db, allowDecider)
 
         val result = handler.handle(RenameWorkspaceCommand(newName = "New Name"))
 
@@ -69,7 +90,7 @@ class RenameWorkspaceHandlerTest {
     @Test
     fun `trims whitespace from name`() = runTest {
         val db = createDb()
-        val handler = RenameWorkspaceHandler(resourceContextProvider, db)
+        val handler = RenameWorkspaceHandler(resourceContextProvider, db, allowDecider)
 
         val result = handler.handle(RenameWorkspaceCommand(newName = "  Trimmed  "))
 
@@ -79,7 +100,7 @@ class RenameWorkspaceHandlerTest {
     @Test
     fun `rejects blank name`() = runTest {
         val db = createDb()
-        val handler = RenameWorkspaceHandler(resourceContextProvider, db)
+        val handler = RenameWorkspaceHandler(resourceContextProvider, db, allowDecider)
 
         val ex = runCatching { handler.handle(RenameWorkspaceCommand(newName = "   ")) }.exceptionOrNull()
         assertTrue(ex is IllegalArgumentException)
@@ -89,7 +110,7 @@ class RenameWorkspaceHandlerTest {
     @Test
     fun `rejects name exceeding max length`() = runTest {
         val db = createDb()
-        val handler = RenameWorkspaceHandler(resourceContextProvider, db)
+        val handler = RenameWorkspaceHandler(resourceContextProvider, db, allowDecider)
 
         val longName = "x".repeat(256)
         val ex = runCatching { handler.handle(RenameWorkspaceCommand(newName = longName)) }.exceptionOrNull()

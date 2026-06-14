@@ -54,9 +54,9 @@ export const useWorkspaceStore = defineStore('workspace', () => {
   }
 
   function updateWorkspaceIcon(workspaceId: string, icon: string | null) {
-    const workspace = workspaces.value.find((ws) => ws.workspaceId === workspaceId)
-    if (workspace) {
-      workspace.icon = icon
+    const match = workspaces.value.find((ws) => ws.workspaceId === workspaceId)
+    if (match) {
+      match.icon = icon
     }
   }
 

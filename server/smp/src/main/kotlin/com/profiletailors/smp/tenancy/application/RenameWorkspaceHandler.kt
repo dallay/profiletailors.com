@@ -3,6 +3,10 @@ package com.profiletailors.smp.tenancy.application
 import com.profiletailors.common.domain.Service
 import com.profiletailors.common.domain.bus.command.CommandWithResultHandler
 import com.profiletailors.common.domain.context.ResourceContextProvider
+import com.profiletailors.smp.authorization.domain.AuthorizationDecision
+import com.profiletailors.smp.authorization.domain.AuthorizationDeniedException
+import com.profiletailors.smp.authorization.domain.PermissionKey
+import com.profiletailors.smp.authorization.domain.WorkspaceAuthorizationDecider
 import com.profiletailors.smp.tenancy.application.requireWorkspaceContext
 import kotlinx.coroutines.reactor.awaitSingle
 import org.springframework.r2dbc.core.DatabaseClient
@@ -11,9 +15,15 @@ import org.springframework.r2dbc.core.DatabaseClient
 internal class RenameWorkspaceHandler(
     private val resourceContextProvider: ResourceContextProvider,
     private val databaseClient: DatabaseClient,
+    private val workspaceAuthorizationDecider: WorkspaceAuthorizationDecider,
 ) : CommandWithResultHandler<RenameWorkspaceCommand, RenameWorkspaceResult> {
 
     override suspend fun handle(command: RenameWorkspaceCommand): RenameWorkspaceResult {
+        val decision = workspaceAuthorizationDecider.decideDetailed(REQUIRED_PERMISSION)
+        if (decision.decision == AuthorizationDecision.DENY) {
+            throw AuthorizationDeniedException.forDecision(decision, REQUIRED_PERMISSION)
+        }
+
         val resourceContext = resourceContextProvider.requireWorkspaceContext()
         val workspaceId = requireNotNull(resourceContext.workspaceId)
 
@@ -42,5 +52,6 @@ internal class RenameWorkspaceHandler(
 
     companion object {
         private const val MAX_NAME_LENGTH = 255
+        private val REQUIRED_PERMISSION = PermissionKey.of("workspace", "settings", "manage")
     }
 }

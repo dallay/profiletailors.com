@@ -23,9 +23,10 @@ const iconSizes: Record<string, number> = { sm: 14, md: 18 }
 const iconComponent = computed<Component | null>(() => {
   if (!props.icon) return null
   const iconName = toPascalCase(props.icon)
-  const icon = (LucideIcons as Record<string, Component>)[iconName]
-  return icon ?? null
+  const icon = (LucideIcons as any)[iconName]
+  return (icon as Component) ?? null
 })
+
 </script>
 
 <template>

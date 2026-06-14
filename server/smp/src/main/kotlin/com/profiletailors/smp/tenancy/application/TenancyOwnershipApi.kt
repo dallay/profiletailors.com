@@ -30,11 +30,7 @@ data class RenameWorkspaceResult(
 
 data class UpdateWorkspaceIconCommand(
     val icon: String?,
-) : CommandWithResult<UpdateWorkspaceIconResult> {
-    companion object {
-        const val ICON_NAME_PATTERN = "^[a-z]([a-z-]*[a-z])?$"
-    }
-}
+) : CommandWithResult<UpdateWorkspaceIconResult>
 
 data class UpdateWorkspaceIconResult(
     val workspaceId: String,
