@@ -9,17 +9,24 @@ import i18n from './i18n'
 import { useAuthStore } from '@/stores/auth'
 import { useSettingsStore } from '@/stores/settings'
 
-const app = createApp(App)
-const pinia = createPinia()
+async function main() {
+  const app = createApp(App)
+  const pinia = createPinia()
 
-app.use(pinia)
+  app.use(pinia)
 
-const authStore = useAuthStore(pinia)
-useSettingsStore(pinia)
+  const authStore = useAuthStore(pinia)
+  useSettingsStore(pinia)
 
-authStore.hydrateSession()
+  // Hydrate session BEFORE mounting the router so the route guard
+  // always sees resolved session state (avoids race where navigation
+  // starts before hydration completes).
+  await authStore.hydrateSession()
 
-app.use(i18n)
-app.use(router)
+  app.use(i18n)
+  app.use(router)
 
-app.mount('#app')
+  app.mount('#app')
+}
+
+main()
