@@ -356,6 +356,45 @@ describe('publishing store', () => {
       expect(apiFetch.mock.calls[0]?.[1]).toMatchObject({ workspaceScoped: true })
     })
 
+    it('falls back to the first active LinkedIn account when socialAccountId is omitted', async () => {
+      const store = usePublishingStore()
+      const auth = useAuthStore()
+      Object.defineProperty(auth, 'isAuthenticated', { value: true, configurable: true })
+      store.channels = [
+        {
+          id: 'soc-fallback-1',
+          accountId: 'soc-fallback-1',
+          name: 'Fallback Profile',
+          provider: 'linkedin',
+          avatar: '',
+          handle: 'Fallback Profile',
+          status: 'ACTIVE',
+        },
+        {
+          id: 'soc-fallback-2',
+          accountId: 'soc-fallback-2',
+          name: 'Other Profile',
+          provider: 'linkedin',
+          avatar: '',
+          handle: 'Other Profile',
+          status: 'ACTIVE',
+        },
+      ]
+      const apiFetch = vi.spyOn(auth, 'apiFetch').mockResolvedValue({})
+
+      const result = await store.schedulePost({
+        content: 'Post content',
+        title: 'Title',
+        channels: ['linkedin'],
+        scheduledAt: '2026-06-20T14:00:00Z',
+        priority: false,
+      })
+
+      const body = JSON.parse(apiFetch.mock.calls[0]?.[1]?.body as string)
+      expect(body.socialAccountId).toBe('soc-fallback-1')
+      expect(result.accountId).toBe('soc-fallback-1')
+    })
+
     it('throws for authenticated LinkedIn scheduling when no connected channel exists', async () => {
       const store = usePublishingStore()
       const auth = useAuthStore()

@@ -597,6 +597,9 @@ export const usePublishingStore = defineStore('publishing', () => {
             throw new Error('Connect a LinkedIn profile before scheduling authenticated posts.')
           }
 
+          // Sync the resolved account ID back to the local publication object
+          newPub.accountId = linkedInChannel.accountId
+
           // Call the Spring Boot API
           await auth.apiFetch<unknown>('/api/publishing/publications', {
             method: 'POST',

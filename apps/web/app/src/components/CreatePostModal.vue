@@ -85,11 +85,15 @@ watch(
 watch(
   () => publishingStore.channels,
   (channels) => {
-    if (!selectedChannelId.value && channels.length > 0) {
-      selectedChannelId.value = channels[0]?.id ?? null
+    if (channels.length === 0) {
+      selectedChannelId.value = null
+      return
+    }
+    const activeIds = new Set(channels.filter(ch => ch.status === 'ACTIVE').map(ch => ch.id))
+    if (!activeIds.has(selectedChannelId.value ?? '')) {
+      selectedChannelId.value = channels.find(ch => ch.status === 'ACTIVE')?.id ?? null
     }
   },
-
 )
 
 // Computed
@@ -325,7 +329,7 @@ async function handleSchedule() {
             </span>
             <div class="flex flex-wrap gap-2 items-center">
               <button
-                v-for="ch in publishingStore.channels"
+                v-for="ch in publishingStore.channels.filter(ch => ch.status === 'ACTIVE')"
                 :key="ch.id"
                 @click="selectChannel(ch.id)"
                 class="relative flex items-center gap-2 border rounded-full px-3 py-1.5 font-mono text-[10px] tracking-wide transition-all cursor-pointer"
