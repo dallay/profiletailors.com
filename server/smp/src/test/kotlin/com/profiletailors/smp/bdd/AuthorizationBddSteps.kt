@@ -274,6 +274,18 @@ class AuthorizationBddSteps(
         assertTrue(!cookie.isNullOrBlank() && cookie.contains("Max-Age=0"), "Expected cleared refresh cookie")
     }
 
+    @And("the auth response should include emailStatus {string}")
+    fun andAuthResponseShouldIncludeEmailStatus(emailStatus: String) {
+        val body = requireResponseBodyText()
+        assertTrue(body.contains("\"emailStatus\":\"$emailStatus\""), body)
+    }
+
+    @And("the response should not set a refresh cookie")
+    fun andResponseShouldNotSetRefreshCookie() {
+        val cookie = requireLatestResult().responseHeaders.getFirst(HttpHeaders.SET_COOKIE)
+        assertTrue(cookie.isNullOrBlank(), "Expected no Set-Cookie header for registration")
+    }
+
     @Given("an entitled authorized service-account principal exists")
     fun givenEntitledAuthorizedServiceAccountPrincipalExists() = runBlocking {
         bddDatabaseSupport.seedAuthorizedServiceAccount(entitled = true)
@@ -475,6 +487,7 @@ class AuthorizationBddSteps(
     }
 
     private fun registerLocalUser(email: String) {
+        // Step 1: Register — returns 201 with RegistrationResult, no tokens, UNVERIFIED
         latestStatusCode = null
         latestResult = webTestClient.post()
             .uri(bddDatabaseSupport.localAuthRegisterPath())
@@ -490,12 +503,31 @@ class AuthorizationBddSteps(
             .expectBody()
             .returnResult()
 
+        // Step 2: Mark email as verified in DB (BDD shortcut for pre-existing scenarios)
+        runBlocking { bddDatabaseSupport.markEmailVerified(email) }
+
+        // Step 3: Login to get tokens and refresh cookie
+        latestStatusCode = null
+        latestResult = webTestClient.post()
+            .uri(bddDatabaseSupport.localAuthLoginPath())
+            .header(HttpHeaders.ACCEPT, BddDatabaseSupport.API_VERSION_MEDIA_TYPE)
+            .header(HttpHeaders.CONTENT_TYPE, "application/json")
+            .bodyValue(
+                mapOf(
+                    "email" to email,
+                    "password" to "password123",
+                ),
+            )
+            .exchange()
+            .expectBody()
+            .returnResult()
+
         val body = requireResponseBodyText()
         val accessToken = Regex("\"accessToken\":\"([^\"]+)\"").find(body)?.groupValues?.get(1)
-            ?: error("Missing access token in registration response")
+            ?: error("Missing access token in login response")
         val refreshCookie = requireLatestResult().responseHeaders.getFirst(HttpHeaders.SET_COOKIE)
             ?.substringBefore(';')
-            ?: error("Missing refresh cookie in registration response")
+            ?: error("Missing refresh cookie in login response")
         latestLocalAuthSession = BddDatabaseSupport.LocalAuthSession(accessToken, refreshCookie)
     }
 

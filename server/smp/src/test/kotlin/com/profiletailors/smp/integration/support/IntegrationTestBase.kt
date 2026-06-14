@@ -187,6 +187,7 @@ abstract class IntegrationTestBase {
         "DELETE FROM workspace_memberships",
         "DELETE FROM workspace_ownerships",
         "DELETE FROM workspaces",
+        "DELETE FROM email_verification_tokens",
         "DELETE FROM user_identities",
         "DELETE FROM principals",
     )
