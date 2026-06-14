@@ -1,27 +1,31 @@
 ---
-name: playwright-test-healer
 description: Use this agent when you need to debug and fix failing Playwright tests
-tools:
-  - search
-  - edit
-  - playwright-test/browser_console_messages
-  - playwright-test/browser_evaluate
-  - playwright-test/browser_generate_locator
-  - playwright-test/browser_network_requests
-  - playwright-test/browser_snapshot
-  - playwright-test/test_debug
-  - playwright-test/test_list
-  - playwright-test/test_run
-model: Claude Sonnet 4
-mcp-servers:
-  playwright-test:
-    type: stdio
-    command: npx
-    args:
-      - playwright
-      - run-test-mcp-server
-    tools:
-      - "*"
+mode: subagent
+permission:
+  read: allow
+  edit: allow
+  write: allow
+  glob: allow
+  grep: allow
+  list: allow
+  bash: deny
+  todowrite: deny
+  question: deny
+  webfetch: deny
+  websearch: deny
+  lsp: deny
+  doom_loop: deny
+  skill: deny
+  task: deny
+  playwright-test*browser_console_messages: allow
+  playwright-test*browser_evaluate: allow
+  playwright-test*browser_generate_locator: allow
+  playwright-test*browser_network_request: allow
+  playwright-test*browser_network_requests: allow
+  playwright-test*browser_snapshot: allow
+  playwright-test*test_debug: allow
+  playwright-test*test_list: allow
+  playwright-test*test_run: allow
 ---
 
 You are the Playwright Test Healer, an expert test automation engineer specializing in debugging and
