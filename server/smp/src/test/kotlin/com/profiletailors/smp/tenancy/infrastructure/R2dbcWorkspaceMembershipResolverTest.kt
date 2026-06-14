@@ -20,7 +20,6 @@ import org.junit.jupiter.api.Test
 import org.springframework.r2dbc.core.DatabaseClient
 import java.sql.DriverManager
 
-@Tag("brokenOnH2")
 class R2dbcWorkspaceMembershipResolverTest {
 
     private val jdbcUrl = "jdbc:h2:mem:membership_lookup;MODE=PostgreSQL;DB_CLOSE_DELAY=-1;DB_CLOSE_ON_EXIT=FALSE"
@@ -76,6 +75,7 @@ class R2dbcWorkspaceMembershipResolverTest {
     }
 
     private fun deleteAllRows() = runTest {
+        databaseClient.sql("SET REFERENTIAL_INTEGRITY FALSE").fetch().rowsUpdated().awaitSingle()
         listOf(
             "DELETE FROM membership_roles",
             "DELETE FROM workspace_memberships",
@@ -86,5 +86,6 @@ class R2dbcWorkspaceMembershipResolverTest {
         ).forEach { statement ->
             databaseClient.sql(statement).fetch().rowsUpdated().awaitSingle()
         }
+        databaseClient.sql("SET REFERENTIAL_INTEGRITY TRUE").fetch().rowsUpdated().awaitSingle()
     }
 }

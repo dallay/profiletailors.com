@@ -64,7 +64,7 @@ pre-push:
     # The "postgres" tag excludes Postgres integration tests that require Docker/Testcontainers
     # and are currently failing (pre-existing issue).
     backend-test:
-      run: './gradlew :server:smp:test --no-daemon -PexcludeTags=modularity,postgres,brokenOnH2'
+      run: './gradlew :server:smp:test --no-daemon -PexcludeTags=modularity,postgres'
 
 
 # ---------- CONFIGURACIÓN DISTRIBUIDA ----------

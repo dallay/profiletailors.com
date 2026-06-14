@@ -35,7 +35,15 @@ class WorkspaceAccessSummaryEndpointPostgresIntegrationTest : WorkspaceAccessSum
 
     override fun liquibasePassword(): String = postgres.password
 
-
+    @org.junit.jupiter.api.Test
+    fun `rejects request when jwt is invalid`() {
+        webTestClient.get()
+            .uri("/api/authorization/workspace-access/current")
+            .header(org.springframework.http.HttpHeaders.AUTHORIZATION, "Bearer invalid-token")
+            .header("X-Workspace-Id", "workspace-1")
+            .exchange()
+            .expectStatus().isUnauthorized
+    }
 
     companion object {
         @Container

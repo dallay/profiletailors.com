@@ -22,7 +22,6 @@ import org.springframework.r2dbc.core.DatabaseClient
 import java.sql.DriverManager
 import java.time.Instant
 
-@Tag("brokenOnH2")
 class R2dbcApiKeyCredentialStateLookupTest {
 
     private val jdbcUrl = "jdbc:h2:mem:api_key_lookup;MODE=PostgreSQL;DB_CLOSE_DELAY=-1;DB_CLOSE_ON_EXIT=FALSE"
@@ -159,6 +158,7 @@ class R2dbcApiKeyCredentialStateLookupTest {
     }
 
     private fun deleteAllRows() = runTest {
+        databaseClient.sql("SET REFERENTIAL_INTEGRITY FALSE").fetch().rowsUpdated().awaitSingle()
         listOf(
             "DELETE FROM api_key_credentials",
             "DELETE FROM service_account_credentials",
@@ -167,5 +167,6 @@ class R2dbcApiKeyCredentialStateLookupTest {
         ).forEach { statement ->
             databaseClient.sql(statement).fetch().rowsUpdated().awaitSingle()
         }
+        databaseClient.sql("SET REFERENTIAL_INTEGRITY TRUE").fetch().rowsUpdated().awaitSingle()
     }
 }
