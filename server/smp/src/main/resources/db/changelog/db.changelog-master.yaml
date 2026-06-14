@@ -57,6 +57,8 @@ databaseChangeLog:
       file: db/changelog/publishing/010-add-file-size-to-publication-assets.yaml
   - include:
       file: db/changelog/publishing/011-index-publications-scheduled-for.yaml
+  - include:
+      file: db/changelog/publishing/012-add-avatar-to-social-accounts.yaml
   # ── Dev seed data (context: dev only) ──────────────────────────
   - include:
       file: db/changelog/dev/001-seed-test-data.yaml

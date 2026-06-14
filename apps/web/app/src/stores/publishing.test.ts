@@ -141,6 +141,7 @@ describe('publishing store', () => {
             displayName: 'Ada Lovelace',
             status: 'ACTIVE',
             profileUrn: 'urn:li:person:ada',
+            avatarUrl: 'https://media.licdn.com/photo.jpg',
             connectedAt: '2026-06-12T12:00:00Z',
             lastSyncedAt: null,
           },
@@ -160,10 +161,37 @@ describe('publishing store', () => {
           name: 'Ada Lovelace',
           provider: 'linkedin',
           avatar: '',
+          avatarUrl: 'https://media.licdn.com/photo.jpg',
           handle: 'urn:li:person:ada',
           status: 'ACTIVE',
         },
       ])
+    })
+
+    it('maps null avatarUrl to undefined when backend omits avatar', async () => {
+      const store = usePublishingStore()
+      const auth = useAuthStore()
+      Object.defineProperty(auth, 'isAuthenticated', { value: true, configurable: true })
+      vi.spyOn(auth, 'apiFetch').mockResolvedValue({
+        channels: [
+          {
+            socialAccountId: 'soc-2',
+            connectionId: 'conn-2',
+            provider: 'LINKEDIN',
+            accountKind: 'PERSONAL_PROFILE',
+            displayName: 'Grace Hopper',
+            status: 'ACTIVE',
+            profileUrn: 'urn:li:person:grace',
+            avatarUrl: null,
+            connectedAt: '2026-06-12T12:00:00Z',
+            lastSyncedAt: null,
+          },
+        ],
+      })
+
+      await store.fetchChannels()
+
+      expect(store.channels[0]?.avatarUrl).toBeUndefined()
     })
 
     it('does not fetch channels when unauthenticated', async () => {
