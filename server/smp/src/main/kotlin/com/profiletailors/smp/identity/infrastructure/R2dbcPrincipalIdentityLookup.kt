@@ -2,7 +2,10 @@ package com.profiletailors.smp.identity.infrastructure
 
 import com.profiletailors.smp.identity.application.PrincipalIdentityFacts
 import com.profiletailors.smp.identity.application.PrincipalIdentityLookup
+import com.profiletailors.smp.identity.domain.EmailStatus
 import com.profiletailors.common.domain.context.PrincipalType
+import io.r2dbc.spi.Readable
+import io.r2dbc.spi.RowMetadata
 import kotlinx.coroutines.reactor.awaitSingleOrNull
 import org.springframework.r2dbc.core.DatabaseClient
 import org.springframework.stereotype.Repository
@@ -20,7 +23,8 @@ class R2dbcPrincipalIdentityLookup(
                    p.provider,
                    p.display_identity,
                    ui.email,
-                   ui.username
+                   ui.username,
+                   ui.email_status
             FROM principals p
             INNER JOIN user_identities ui ON ui.principal_id = p.id
             WHERE ui.email = :email
@@ -40,7 +44,8 @@ class R2dbcPrincipalIdentityLookup(
                    p.provider,
                    p.display_identity,
                    ui.email,
-                   ui.username
+                   ui.username,
+                   ui.email_status
             FROM principals p
             LEFT JOIN user_identities ui ON ui.principal_id = p.id
             WHERE p.id = :principalId
@@ -64,7 +69,8 @@ class R2dbcPrincipalIdentityLookup(
                    p.provider,
                    p.display_identity,
                    ui.email,
-                   ui.username
+                   ui.username,
+                   ui.email_status
             FROM principals p
             LEFT JOIN user_identities ui ON ui.principal_id = p.id
             WHERE p.principal_type = :principalType
@@ -79,7 +85,8 @@ class R2dbcPrincipalIdentityLookup(
                    p.provider,
                    p.display_identity,
                    ui.email,
-                   ui.username
+                   ui.username,
+                   ui.email_status
             FROM principals p
             LEFT JOIN user_identities ui ON ui.principal_id = p.id
             WHERE p.principal_type = :principalType
@@ -103,10 +110,11 @@ class R2dbcPrincipalIdentityLookup(
     }
 
     private fun mapPrincipalIdentityFacts(
-        row: io.r2dbc.spi.Readable,
-        @Suppress("UNUSED_PARAMETER") metadata: io.r2dbc.spi.RowMetadata,
+        row: Readable,
+        @Suppress("UNUSED_PARAMETER") metadata: RowMetadata,
     ): PrincipalIdentityFacts {
         val principalTypeValue = requireNotNull(row.get("principal_type", String::class.java))
+        val emailStatusRaw = row.get("email_status", String::class.java)
         return PrincipalIdentityFacts(
             principalId = requireNotNull(row.get("id", String::class.java)),
             principalType = PrincipalType.valueOf(principalTypeValue),
@@ -115,6 +123,7 @@ class R2dbcPrincipalIdentityLookup(
             displayIdentity = row.get("display_identity", String::class.java),
             email = row.get("email", String::class.java),
             username = row.get("username", String::class.java),
+            emailStatus = emailStatusRaw?.let { EmailStatus.valueOf(it) },
         )
     }
 }

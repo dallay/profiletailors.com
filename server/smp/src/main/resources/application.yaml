@@ -32,6 +32,9 @@ app:
       same-site: ${SMP_REFRESH_COOKIE_SAME_SITE:Lax}
       secure: ${SMP_REFRESH_COOKIE_SECURE:true}
       ttl-seconds: ${SMP_REFRESH_TTL_SECONDS:604800}
+  email:
+    sender: ${SMP_EMAIL_SENDER:noreply@profiletailors.com}
+    verification-subject-prefix: ${SMP_EMAIL_VERIFICATION_SUBJECT_PREFIX:[Profile Tailors]}
 
 platform:
   workspace-context:

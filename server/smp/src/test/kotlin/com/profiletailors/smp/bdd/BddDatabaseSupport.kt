@@ -38,6 +38,7 @@ class BddDatabaseSupport(
         const val ACCESS_SUMMARY_PATH = "/api/authorization/workspace-access/current"
         const val RESOURCE_PREVIEW_PATH_TEMPLATE = "/api/authorization/resources/%s/preview"
         const val LOCAL_AUTH_REGISTER_PATH = "/api/auth/register"
+        const val LOCAL_AUTH_LOGIN_PATH = "/api/auth/login"
         const val LOCAL_AUTH_REFRESH_PATH = "/api/auth/refresh"
         const val LOCAL_AUTH_LOGOUT_PATH = "/api/auth/logout"
         const val GOVERNANCE_AUDIT_EVENTS_PATH = "/api/governance/audit-events"
@@ -223,6 +224,8 @@ class BddDatabaseSupport(
 
     fun localAuthRegisterPath(): String = LOCAL_AUTH_REGISTER_PATH
 
+    fun localAuthLoginPath(): String = LOCAL_AUTH_LOGIN_PATH
+
     fun localAuthRefreshPath(): String = LOCAL_AUTH_REFRESH_PATH
 
     fun localAuthLogoutPath(): String = LOCAL_AUTH_LOGOUT_PATH
@@ -277,6 +280,16 @@ class BddDatabaseSupport(
             successorPlaintextApiKey = "$successorLookupKey.$successorSecret",
             successorCredentialReference = successorCredentialReference,
         )
+    }
+
+    suspend fun markEmailVerified(email: String) {
+        databaseClient.sql(
+            "UPDATE user_identities SET email_status = 'VERIFIED' WHERE email = :email",
+        )
+            .bind("email", email)
+            .fetch()
+            .rowsUpdated()
+            .awaitSingle()
     }
 
     suspend fun seedAuditEventRecords() {
