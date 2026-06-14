@@ -10,21 +10,21 @@ Messages get lost due to broker failures, network issues, or consumer crashes be
 
 Use persistent messages with acknowledgments:
 
-```java
+```kotlin
 @Bean
-public ProducerFactory<String, Object> producerFactory() {
-    Map<String, Object> config = new HashMap<>();
+public ProducerFactory < String, Object> producerFactory() {
+    Map<String, Object> config = mutableMapOf ();
     config.put(ProducerConfig.ACKS_CONFIG, "all");        // All replicas must acknowledge
     config.put(ProducerConfig.RETRIES_CONFIG, 3);         // Retry failed sends
     config.put(ProducerConfig.ENABLE_IDEMPOTENCE_CONFIG, true); // Prevent duplicates
-    return new DefaultKafkaProducerFactory<>(config);
+    return new DefaultKafkaProducerFactory < > (config);
 }
 
 @Bean
-public ConsumerFactory<String, Object> consumerFactory() {
-    Map<String, Object> config = new HashMap<>();
+public ConsumerFactory < String, Object> consumerFactory() {
+    Map<String, Object> config = mutableMapOf ();
     config.put(ConsumerConfig.ENABLE_AUTO_COMMIT_CONFIG, false); // Manual commit
-    return new DefaultKafkaConsumerFactory<>(config);
+    return new DefaultKafkaConsumerFactory < > (config);
 }
 ```
 
@@ -49,17 +49,17 @@ effects.
 
 Implement idempotency with deduplication:
 
-```java
+```kotlin
 @Service
-public class DeduplicationService {
+class DeduplicationService {
 
-    private final DeduplicationRepository repository;
+    private val repository: DeduplicationRepository
 
-    public boolean isDuplicate(String messageId) {
+    fun isDuplicate(String messageId): boolean {
         return repository.existsById(messageId);
     }
 
-    public void recordProcessed(String messageId) {
+    fun recordProcessed(String messageId): void {
         DeduplicatedMessage entry = new DeduplicatedMessage(
             messageId,
             Instant.now()
@@ -69,24 +69,25 @@ public class DeduplicationService {
 }
 
 @Component
-public class PaymentEventListener {
+class PaymentEventListener {
 
-    private final DeduplicationService deduplicationService;
-    private final PaymentService paymentService;
+    private val deduplicationService: DeduplicationService
+    private val paymentService: PaymentService
 
     @Bean
-    public Consumer<PaymentEvent> handlePaymentEvent() {
+    public Consumer<PaymentEvent> handlePaymentEvent()
+    {
         return event -> {
-            String messageId = event.getMessageId();
+        String messageId = event . getMessageId ();
 
-            if (deduplicationService.isDuplicate(messageId)) {
-                logger.info("Duplicate message ignored: {}", messageId);
-                return;
-            }
+        if (deduplicationService.isDuplicate(messageId)) {
+            logger.info("Duplicate message ignored: {}", messageId);
+            return;
+        }
 
-            paymentService.processPayment(event);
-            deduplicationService.recordProcessed(messageId);
-        };
+        paymentService.processPayment(event);
+        deduplicationService.recordProcessed(messageId);
+    };
     }
 }
 ```
@@ -111,18 +112,18 @@ Saga state in database doesn't match actual service states, leading to orphaned 
 
 Use event sourcing or state reconciliation:
 
-```java
+```kotlin
 @Service
-public class SagaStateReconciler {
+class SagaStateReconciler {
 
-    private final SagaStateRepository stateRepository;
-    private final OrderRepository orderRepository;
-    private final PaymentRepository paymentRepository;
+    private val stateRepository: SagaStateRepository
+    private val orderRepository: OrderRepository
+    private val paymentRepository: PaymentRepository
 
     @Scheduled(fixedDelay = 60000) // Run every minute
-    public void reconcileSagaStates() {
+    fun reconcileSagaStates(): void {
         List<SagaState> processingSagas = stateRepository
-            .findByStatus(SagaStatus.PROCESSING);
+                .findByStatus(SagaStatus.PROCESSING);
 
         processingSagas.forEach(saga -> {
             if (isActuallyCompleted(saga)) {
@@ -134,15 +135,15 @@ public class SagaStateReconciler {
         });
     }
 
-    private boolean isActuallyCompleted(SagaState saga) {
-        String orderId = saga.getSagaId();
+    private fun isActuallyCompleted(SagaState saga): boolean {
+        String orderId = saga . getSagaId ();
 
-        Order order = orderRepository.findById(orderId).orElse(null);
+        Order order = orderRepository . findById (orderId).orElse(null);
         if (order == null || order.getStatus() != OrderStatus.COMPLETED) {
             return false;
         }
 
-        Payment payment = paymentRepository.findByOrderId(orderId).orElse(null);
+        Payment payment = paymentRepository . findByOrderId (orderId).orElse(null);
         if (payment == null || payment.getStatus() != PaymentStatus.PROCESSED) {
             return false;
         }
@@ -172,33 +173,34 @@ Orchestration-based saga fails when orchestrator is down, blocking all sagas.
 
 Implement clustering and failover:
 
-```java
+```kotlin
 @Configuration
-public class SagaOrchestratorClusterConfig {
+class SagaOrchestratorClusterConfig {
 
     @Bean
-    public SagaStateRepository sagaStateRepository() {
+    fun sagaStateRepository(): SagaStateRepository {
         // Use shared database for cluster-wide state
-        return new DatabaseSagaStateRepository();
+        return DatabaseSagaStateRepository();
     }
 
     @Bean
     @Primary
     public CommandGateway clusterAwareCommandGateway(
-            CommandBus commandBus) {
+    CommandBus commandBus)
+    {
 
-        return new ClusterAwareCommandGateway(commandBus);
+        return ClusterAwareCommandGateway(commandBus);
     }
 }
 
 @Component
-public class OrchestratorHealthCheck extends AbstractHealthIndicator {
+class OrchestratorHealthCheck extends AbstractHealthIndicator {
 
-    private final SagaStateRepository repository;
+    private val repository: SagaStateRepository
 
     @Override
     protected void doHealthCheck(Health.Builder builder) {
-        long stuckSagas = repository.countStuckSagas(Duration.ofMinutes(30));
+        long stuckSagas = repository . countStuckSagas (Duration.ofMinutes(30));
 
         if (stuckSagas > 100) {
             builder.down()
@@ -236,12 +238,12 @@ Compensation logic fails on retry because it's not idempotent, leaving system in
 
 Design all compensations to be idempotent:
 
-```java
+```kotlin
 // Bad - Not idempotent
 @Service
-public class BadPaymentService {
-    public void refundPayment(String paymentId) {
-        Payment payment = paymentRepository.findById(paymentId).orElseThrow();
+class BadPaymentService {
+    fun refundPayment(String paymentId): void {
+        Payment payment = paymentRepository . findById (paymentId).orElseThrow();
         payment.setStatus(PaymentStatus.REFUNDED);
         paymentRepository.save(payment);
 
@@ -252,9 +254,9 @@ public class BadPaymentService {
 
 // Good - Idempotent
 @Service
-public class GoodPaymentService {
-    public void refundPayment(String paymentId) {
-        Payment payment = paymentRepository.findById(paymentId)
+class GoodPaymentService {
+    fun refundPayment(String paymentId): void {
+        Payment payment = paymentRepository . findById (paymentId)
             .orElse(null);
 
         if (payment == null) {
@@ -301,15 +303,15 @@ Sagas hang indefinitely waiting for events that never arrive due to service fail
 
 Implement timeout mechanisms:
 
-```java
+```kotlin
 @Configuration
-public class SagaTimeoutConfig {
+class SagaTimeoutConfig {
 
     @Bean
-    public SagaLifecycle sagaLifecycle(SagaStateRepository repository) {
-        return new SagaLifecycle() {
+    fun sagaLifecycle(SagaStateRepository repository): SagaLifecycle {
+        return SagaLifecycle() {
             @Override
-            public void onSagaFinished(Saga saga) {
+            fun onSagaFinished(Saga saga): void {
                 // Update saga state
             }
         };
@@ -317,18 +319,18 @@ public class SagaTimeoutConfig {
 }
 
 @Saga
-public class OrderSaga {
+class OrderSaga {
 
     @Autowired
     private transient CommandGateway commandGateway;
 
-    private String orderId;
-    private String paymentId;
-    private DeadlineManager deadlineManager;
+    private var orderId: String
+    private var paymentId: String
+    private var deadlineManager: DeadlineManager
 
     @StartSaga
     @SagaEventHandler(associationProperty = "orderId")
-    public void handle(OrderCreatedEvent event) {
+    fun handle(OrderCreatedEvent event): void {
         this.orderId = event.orderId();
 
         // Schedule timeout for payment processing
@@ -338,20 +340,20 @@ public class OrderSaga {
             orderId
         );
 
-        commandGateway.send(new ProcessPaymentCommand(...));
+        commandGateway.send(ProcessPaymentCommand(...));
     }
 
     @DeadlineHandler(deadlineName = "PaymentTimeout")
-    public void handlePaymentTimeout() {
+    fun handlePaymentTimeout(): void {
         logger.warn("Payment processing timed out for order {}", orderId);
 
         // Compensate
-        commandGateway.send(new CancelOrderCommand(orderId));
+        commandGateway.send(CancelOrderCommand(orderId));
         end();
     }
 
     @SagaEventHandler(associationProperty = "orderId")
-    public void handle(PaymentProcessedEvent event) {
+    fun handle(PaymentProcessedEvent event): void {
         // Cancel timeout
         deadlineManager.cancelDeadline("PaymentTimeout", orderId);
         // Continue saga...
@@ -379,12 +381,12 @@ Saga logic couples services tightly, making independent deployment impossible.
 
 Use event-driven communication:
 
-```java
+```kotlin
 // Bad - Tight coupling
 @Service
-public class TightlyAgedOrderService {
-    public void createOrder(OrderRequest request) {
-        Order order = orderRepository.save(new Order(...));
+class TightlyAgedOrderService {
+    fun createOrder(OrderRequest request): void {
+        Order order = orderRepository . save (Order(...));
 
         // Direct coupling to payment service
         paymentService.processPayment(order.getId(), request.getAmount());
@@ -393,30 +395,32 @@ public class TightlyAgedOrderService {
 
 // Good - Event-driven
 @Service
-public class LooselyAgedOrderService {
-    public void createOrder(OrderRequest request) {
-        Order order = orderRepository.save(new Order(...));
+class LooselyAgedOrderService {
+    fun createOrder(OrderRequest request): void {
+        Order order = orderRepository . save (Order(...));
 
         // Publish event - services listen independently
-        eventPublisher.publish(new OrderCreatedEvent(
-            order.getId(),
+        eventPublisher.publish(
+            new OrderCreatedEvent (
+                    order.getId(),
             request.getAmount()
         ));
     }
 }
 
 @Component
-public class PaymentServiceListener {
+class PaymentServiceListener {
 
     @Bean
-    public Consumer<OrderCreatedEvent> handleOrderCreated() {
+    public Consumer<OrderCreatedEvent> handleOrderCreated()
+    {
         return event -> {
-            // Payment service can be deployed independently
-            paymentService.processPayment(
-                event.orderId(),
-                event.amount()
-            );
-        };
+        // Payment service can be deployed independently
+        paymentService.processPayment(
+            event.orderId(),
+            event.amount()
+        );
+    };
     }
 }
 ```
@@ -441,34 +445,34 @@ Sagas fail silently or get stuck without visibility, making troubleshooting impo
 
 Implement comprehensive monitoring:
 
-```java
+```kotlin
 @Component
-public class SagaMonitoring {
+class SagaMonitoring {
 
-    private final MeterRegistry meterRegistry;
+    private val meterRegistry: MeterRegistry
 
     @Bean
-    public MeterBinder sagaMetrics(SagaStateRepository repository) {
+    fun sagaMetrics(SagaStateRepository repository): MeterBinder {
         return (registry) -> {
             Gauge.builder("saga.active", repository::countByStatus)
                 .description("Number of active sagas")
                 .register(registry);
 
             Gauge.builder("saga.stuck", () ->
-                repository.countStuckSagas(Duration.ofMinutes(30)))
-                .description("Number of stuck sagas")
-                .register(registry);
+            repository.countStuckSagas(Duration.ofMinutes(30)))
+            .description("Number of stuck sagas")
+            .register(registry);
         };
     }
 
-    public void recordSagaStart(String sagaType) {
+    fun recordSagaStart(String sagaType): void {
         Counter.builder("saga.started")
             .tag("type", sagaType)
             .register(meterRegistry)
             .increment();
     }
 
-    public void recordSagaCompletion(String sagaType, long durationMs) {
+    fun recordSagaCompletion(String sagaType, long durationMs): void {
         Timer.builder("saga.duration")
             .tag("type", sagaType)
             .publishPercentiles(0.5, 0.95, 0.99)
@@ -476,7 +480,7 @@ public class SagaMonitoring {
             .record(Duration.ofMillis(durationMs));
     }
 
-    public void recordSagaFailure(String sagaType, String reason) {
+    fun recordSagaFailure(String sagaType, String reason): void {
         Counter.builder("saga.failed")
             .tag("type", sagaType)
             .tag("reason", reason)

@@ -24,17 +24,17 @@ to services and handling responses.
 
 ### Saga Class
 
-```java
+```kotlin
 @Saga
-public class OrderSaga {
+class OrderSaga {
 
     @Autowired
     private transient CommandGateway commandGateway;
 
     @StartSaga
     @SagaEventHandler(associationProperty = "orderId")
-    public void handle(OrderCreatedEvent event) {
-        String paymentId = UUID.randomUUID().toString();
+    fun handle(OrderCreatedEvent event): void {
+        String paymentId = UUID . randomUUID ().toString();
         ProcessPaymentCommand command = new ProcessPaymentCommand(
             paymentId,
             event.getOrderId(),
@@ -45,7 +45,7 @@ public class OrderSaga {
     }
 
     @SagaEventHandler(associationProperty = "orderId")
-    public void handle(PaymentProcessedEvent event) {
+    fun handle(PaymentProcessedEvent event): void {
         ReserveInventoryCommand command = new ReserveInventoryCommand(
             event.getOrderId(),
             event.getItemId()
@@ -54,14 +54,14 @@ public class OrderSaga {
     }
 
     @SagaEventHandler(associationProperty = "orderId")
-    public void handle(PaymentFailedEvent event) {
-        CancelOrderCommand command = new CancelOrderCommand(event.getOrderId());
+    fun handle(PaymentFailedEvent event): void {
+        CancelOrderCommand command = CancelOrderCommand (event.getOrderId());
         commandGateway.send(command);
         end();
     }
 
     @SagaEventHandler(associationProperty = "orderId")
-    public void handle(InventoryReservedEvent event) {
+    fun handle(InventoryReservedEvent event): void {
         PrepareShipmentCommand command = new PrepareShipmentCommand(
             event.getOrderId(),
             event.getItemId()
@@ -71,7 +71,7 @@ public class OrderSaga {
 
     @EndSaga
     @SagaEventHandler(associationProperty = "orderId")
-    public void handle(OrderCompletedEvent event) {
+    fun handle(OrderCompletedEvent event): void {
         // Saga completed successfully
     }
 }
@@ -79,40 +79,43 @@ public class OrderSaga {
 
 ### Aggregate for Order Service
 
-```java
+```kotlin
 @Aggregate
-public class OrderAggregate {
+class OrderAggregate {
 
     @AggregateIdentifier
-    private String orderId;
+    private var orderId: String
 
-    private OrderStatus status;
+    private var status: OrderStatus
 
-    public OrderAggregate() {
+    public OrderAggregate()
+    {
     }
 
     @CommandHandler
-    public OrderAggregate(CreateOrderCommand command) {
-        apply(new OrderCreatedEvent(
-            command.getOrderId(),
+    public OrderAggregate(CreateOrderCommand command)
+    {
+        apply(
+            new OrderCreatedEvent (
+                    command.getOrderId(),
             command.getAmount(),
             command.getItemId()
         ));
     }
 
     @EventSourcingHandler
-    public void on(OrderCreatedEvent event) {
+    fun on(OrderCreatedEvent event): void {
         this.orderId = event.getOrderId();
         this.status = OrderStatus.PENDING;
     }
 
     @CommandHandler
-    public void handle(CancelOrderCommand command) {
-        apply(new OrderCancelledEvent(command.getOrderId()));
+    fun handle(CancelOrderCommand command): void {
+        apply(OrderCancelledEvent(command.getOrderId()));
     }
 
     @EventSourcingHandler
-    public void on(OrderCancelledEvent event) {
+    fun on(OrderCancelledEvent event): void {
         this.status = OrderStatus.CANCELLED;
     }
 }
@@ -120,30 +123,34 @@ public class OrderAggregate {
 
 ### Aggregate for Payment Service
 
-```java
+```kotlin
 @Aggregate
-public class PaymentAggregate {
+class PaymentAggregate {
 
     @AggregateIdentifier
-    private String paymentId;
+    private var paymentId: String
 
-    public PaymentAggregate() {
+    public PaymentAggregate()
+    {
     }
 
     @CommandHandler
-    public PaymentAggregate(ProcessPaymentCommand command) {
+    public PaymentAggregate(ProcessPaymentCommand command)
+    {
         this.paymentId = command.getPaymentId();
 
         if (command.getAmount().compareTo(BigDecimal.ZERO) <= 0) {
-            apply(new PaymentFailedEvent(
-                command.getPaymentId(),
+            apply(
+                new PaymentFailedEvent (
+                        command.getPaymentId(),
                 command.getOrderId(),
                 command.getItemId(),
                 "Payment amount must be greater than zero"
             ));
         } else {
-            apply(new PaymentProcessedEvent(
-                command.getPaymentId(),
+            apply(
+                new PaymentProcessedEvent (
+                        command.getPaymentId(),
                 command.getOrderId(),
                 command.getItemId()
             ));
@@ -172,10 +179,12 @@ axon:
 ## Maven Dependencies for Axon
 
 ```xml
+
 <dependency>
-    <groupId>org.axonframework</groupId>
-    <artifactId>axon-spring-boot-starter</artifactId>
-    <version>4.9.0</version> // Use latest stable version
+  <groupId>org.axonframework</groupId>
+  <artifactId>axon-spring-boot-starter</artifactId>
+  <version>4.9.0</version>
+  // Use latest stable version
 </dependency>
 ```
 
@@ -200,10 +209,12 @@ axon:
 Eventuate Tram is an alternative to Axon for orchestration-based sagas:
 
 ```xml
+
 <dependency>
-    <groupId>io.eventuate.tram.sagas</groupId>
-    <artifactId>eventuate-tram-sagas-spring-starter</artifactId>
-    <version>0.28.0</version> // Use latest stable version
+  <groupId>io.eventuate.tram.sagas</groupId>
+  <artifactId>eventuate-tram-sagas-spring-starter</artifactId>
+  <version>0.28.0</version>
+  // Use latest stable version
 </dependency>
 ```
 

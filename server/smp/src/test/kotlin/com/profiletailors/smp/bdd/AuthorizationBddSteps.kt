@@ -9,7 +9,7 @@ import com.profiletailors.common.domain.bus.notification.Notification
 import com.profiletailors.common.domain.bus.query.Query
 import com.profiletailors.common.domain.workspace.WorkspaceMembershipStatus
 import com.profiletailors.smp.authorization.domain.AuthorizationDecision
-import com.profiletailors.smp.governance.application.AuditEventPage
+import com.profiletailors.smp.governance.domain.AuditEventPage
 import com.profiletailors.smp.governance.application.GetWorkspaceAuditEventsQuery
 import com.profiletailors.smp.governance.application.WorkspaceAuditEventsResponse
 import com.profiletailors.smp.governance.infrastructure.http.AuditEventController
@@ -215,13 +215,13 @@ class AuthorizationBddSteps(
     @Given("a previously registered local user session exists")
     fun givenPreviouslyRegisteredLocalUserSessionExists() {
         if (latestLocalAuthSession == null) {
-            registerLocalUser(email = "owner@example.com", username = "owner")
+            registerLocalUser(email = "owner@example.com")
         }
     }
 
     @When("the client registers a local user")
     fun whenClientRegistersLocalUser() {
-        registerLocalUser(email = "yuniel@example.com", username = "yuniel")
+        registerLocalUser(email = "yuniel@example.com")
     }
 
     @When("the client refreshes the local user session")
@@ -272,6 +272,18 @@ class AuthorizationBddSteps(
     fun andResponseShouldClearRefreshCookie() {
         val cookie = requireLatestResult().responseHeaders.getFirst(HttpHeaders.SET_COOKIE)
         assertTrue(!cookie.isNullOrBlank() && cookie.contains("Max-Age=0"), "Expected cleared refresh cookie")
+    }
+
+    @And("the auth response should include emailStatus {string}")
+    fun andAuthResponseShouldIncludeEmailStatus(emailStatus: String) {
+        val body = requireResponseBodyText()
+        assertTrue(body.contains("\"emailStatus\":\"$emailStatus\""), body)
+    }
+
+    @And("the response should not set a refresh cookie")
+    fun andResponseShouldNotSetRefreshCookie() {
+        val cookie = requireLatestResult().responseHeaders.getFirst(HttpHeaders.SET_COOKIE)
+        assertTrue(cookie.isNullOrBlank(), "Expected no Set-Cookie header for registration")
     }
 
     @Given("an entitled authorized service-account principal exists")
@@ -474,7 +486,8 @@ class AuthorizationBddSteps(
         assertEquals(status, requireNotNull(latestMembershipStatusResponse).status.name)
     }
 
-    private fun registerLocalUser(email: String, username: String) {
+    private fun registerLocalUser(email: String) {
+        // Step 1: Register — returns 201 with RegistrationResult, no tokens, UNVERIFIED
         latestStatusCode = null
         latestResult = webTestClient.post()
             .uri(bddDatabaseSupport.localAuthRegisterPath())
@@ -484,7 +497,25 @@ class AuthorizationBddSteps(
                 mapOf(
                     "email" to email,
                     "password" to "password123",
-                    "username" to username,
+                ),
+            )
+            .exchange()
+            .expectBody()
+            .returnResult()
+
+        // Step 2: Mark email as verified in DB (BDD shortcut for pre-existing scenarios)
+        runBlocking { bddDatabaseSupport.markEmailVerified(email) }
+
+        // Step 3: Login to get tokens and refresh cookie
+        latestStatusCode = null
+        latestResult = webTestClient.post()
+            .uri(bddDatabaseSupport.localAuthLoginPath())
+            .header(HttpHeaders.ACCEPT, BddDatabaseSupport.API_VERSION_MEDIA_TYPE)
+            .header(HttpHeaders.CONTENT_TYPE, "application/json")
+            .bodyValue(
+                mapOf(
+                    "email" to email,
+                    "password" to "password123",
                 ),
             )
             .exchange()
@@ -493,10 +524,10 @@ class AuthorizationBddSteps(
 
         val body = requireResponseBodyText()
         val accessToken = Regex("\"accessToken\":\"([^\"]+)\"").find(body)?.groupValues?.get(1)
-            ?: error("Missing access token in registration response")
+            ?: error("Missing access token in login response")
         val refreshCookie = requireLatestResult().responseHeaders.getFirst(HttpHeaders.SET_COOKIE)
             ?.substringBefore(';')
-            ?: error("Missing refresh cookie in registration response")
+            ?: error("Missing refresh cookie in login response")
         latestLocalAuthSession = BddDatabaseSupport.LocalAuthSession(accessToken, refreshCookie)
     }
 

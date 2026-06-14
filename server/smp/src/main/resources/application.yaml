@@ -8,14 +8,14 @@ spring:
           issuer-uri: ${SMP_JWT_ISSUER_URI:http://localhost/profiletailors-local}
   r2dbc:
     url: ${SMP_R2DBC_URL:r2dbc:postgresql://localhost:5432/profiletailors_smp}
-    username: ${SMP_DB_USERNAME}
-    password: ${SMP_DB_PASSWORD}
+    username: ${SMP_DB_USERNAME:profiletailors}
+    password: ${SMP_DB_PASSWORD:CHANGE_ME}
   liquibase:
     enabled: ${SMP_LIQUIBASE_ENABLED:true}
     change-log: classpath:db/changelog/db.changelog-master.yaml
     url: ${SMP_LIQUIBASE_JDBC_URL:jdbc:postgresql://localhost:5432/profiletailors_smp}
-    user: ${SMP_DB_USERNAME}
-    password: ${SMP_DB_PASSWORD}
+    user: ${SMP_DB_USERNAME:profiletailors}
+    password: ${SMP_DB_PASSWORD:CHANGE_ME}
 
 
 app:
@@ -32,6 +32,9 @@ app:
       same-site: ${SMP_REFRESH_COOKIE_SAME_SITE:Lax}
       secure: ${SMP_REFRESH_COOKIE_SECURE:true}
       ttl-seconds: ${SMP_REFRESH_TTL_SECONDS:604800}
+  email:
+    sender: ${SMP_EMAIL_SENDER:noreply@profiletailors.com}
+    verification-subject-prefix: ${SMP_EMAIL_VERIFICATION_SUBJECT_PREFIX:[Profile Tailors]}
 
 platform:
   workspace-context:
@@ -66,7 +69,7 @@ publishing:
     token-base-url: ${SMP_LINKEDIN_TOKEN_BASE_URL:https://www.linkedin.com/oauth/v2/accessToken}
   credentials:
     encryption:
-      key: ${PUBLISHING_CREDENTIALS_KEY:dGVzdC1lbmNyeXB0aW9uLWtleS0xMjM0NTY3ODkwMTI=}
+      key: ${PUBLISHING_CREDENTIALS_KEY:}  # Sin default — debe configurarse via env var
 
 management:
   endpoints:
@@ -109,6 +112,14 @@ spring:
   config:
     activate:
       on-profile: dev
+  docker:
+    compose:
+      enabled: true
+
+publishing:
+  credentials:
+    encryption:
+      key: ${PUBLISHING_CREDENTIALS_KEY:dGVzdC1lbmNyeXB0aW9uLWtleS0xMjM0NTY3ODkwMTI=}  # Base64 test key for dev
 
 management:
   server:
@@ -123,7 +134,7 @@ spring:
 publishing:
   credentials:
     encryption:
-      key: dGVzdC1lbmNyeXB0aW9uLWtleS0xMjM0NTY3ODkwMTI=  # Base64 test key (32 bytes)
+      key: ${PUBLISHING_CREDENTIALS_KEY:dGVzdC1lbmNyeXB0aW9uLWtleS0xMjM0NTY3ODkwMTI=}  # Base64 test key (32 bytes)
 
 management:
   server:
@@ -135,8 +146,16 @@ spring:
     activate:
       on-profile: dev
 
+logging:
+  level:
+    com.profiletailors: DEBUG
+    org.springframework.security: DEBUG
+    org.springframework.web.reactive: DEBUG
+
 app:
   security:
     cors:
       allowed-origins:
         - "http://localhost:5173"
+        - "https://pt-app.localhost:1355"
+        - "https://pt-app.localhost"

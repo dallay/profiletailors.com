@@ -33,11 +33,11 @@ the deprecated `WebSecurityConfigurerAdapter` to a more functional approach usin
 
 ### Before (Spring Security 5.x)
 
-```java
+```kotlin
 @Configuration
 @EnableWebSecurity
 @EnableGlobalMethodSecurity(prePostEnabled = true)
-public class SecurityConfig extends WebSecurityConfigurerAdapter {
+class SecurityConfig extends WebSecurityConfigurerAdapter {
 
     @Override
     protected void configure(HttpSecurity http) throws Exception {
@@ -46,9 +46,9 @@ public class SecurityConfig extends WebSecurityConfigurerAdapter {
             .sessionManagement().sessionCreationPolicy(SessionCreationPolicy.STATELESS)
             .and()
             .authorizeRequests()
-                .antMatchers("/api/auth/**").permitAll()
-                .antMatchers("/api/admin/**").hasRole("ADMIN")
-                .anyRequest().authenticated()
+            .antMatchers("/api/auth/**").permitAll()
+            .antMatchers("/api/admin/**").hasRole("ADMIN")
+            .anyRequest().authenticated()
             .and()
             .authenticationProvider(authenticationProvider)
             .addFilterBefore(jwtAuthFilter, UsernamePasswordAuthenticationFilter.class);
@@ -58,26 +58,27 @@ public class SecurityConfig extends WebSecurityConfigurerAdapter {
 
 ### After (Spring Security 6.x)
 
-```java
+```kotlin
 @Configuration
 @EnableWebSecurity
 @EnableMethodSecurity // Changed from EnableGlobalMethodSecurity
-public class SecurityConfig {
+class SecurityConfig {
 
     @Bean
-    public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
+    public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception
+    {
         http
             .csrf(csrf -> csrf.disable()) // Lambda DSL required
-            .sessionManagement(session ->
-                session.sessionCreationPolicy(SessionCreationPolicy.STATELESS)
-            )
-            .authorizeHttpRequests(authz -> authz // New method
-                .requestMatchers("/api/auth/**").permitAll() // Changed from antMatchers
-                .requestMatchers("/api/admin/**").hasRole("ADMIN")
-                .anyRequest().authenticated()
-            )
-            .authenticationProvider(authenticationProvider)
-            .addFilterBefore(jwtAuthFilter, UsernamePasswordAuthenticationFilter.class);
+        .sessionManagement(session ->
+        session.sessionCreationPolicy(SessionCreationPolicy.STATELESS)
+        )
+        .authorizeHttpRequests(authz -> authz // New method
+        .requestMatchers("/api/auth/**").permitAll() // Changed from antMatchers
+        .requestMatchers("/api/admin/**").hasRole("ADMIN")
+        .anyRequest().authenticated()
+        )
+        .authenticationProvider(authenticationProvider)
+        .addFilterBefore(jwtAuthFilter, UsernamePasswordAuthenticationFilter.class);
 
         return http.build();
     }
@@ -88,65 +89,69 @@ public class SecurityConfig {
 
 ### Before (Spring Security 5.x)
 
-```java
-public class JwtAuthenticationFilter extends OncePerRequestFilter {
+```kotlin
+class JwtAuthenticationFilter extends OncePerRequestFilter {
 
     @Override
-    protected void doFilterInternal(HttpServletRequest request,
-                                   HttpServletResponse response,
-                                   FilterChain filterChain) throws ServletException, IOException {
+    protected void doFilterInternal(
+        HttpServletRequest request,
+        HttpServletResponse response,
+        FilterChain filterChain
+    ) throws ServletException, IOException {
 
-        String authHeader = request.getHeader("Authorization");
+    String authHeader = request . getHeader ("Authorization");
 
-        if (authHeader != null && authHeader.startsWith("Bearer ")) {
-            String token = authHeader.substring(7);
-            // ... token validation logic
-        }
-
-        filterChain.doFilter(request, response);
+    if (authHeader != null && authHeader.startsWith("Bearer ")) {
+        String token = authHeader . substring (7);
+        // ... token validation logic
     }
+
+    filterChain.doFilter(request, response);
+}
 }
 ```
 
 ### After (Spring Security 6.x)
 
-```java
+```kotlin
 @Component
 @RequiredArgsConstructor
-public class JwtAuthenticationFilter extends OncePerRequestFilter {
+class JwtAuthenticationFilter extends OncePerRequestFilter {
 
-    private final JwtService jwtService;
-    private final UserDetailsService userDetailsService;
+    private val jwtService: JwtService
+    private val userDetailsService: UserDetailsService
 
     @Override
-    protected void doFilterInternal(@NonNull HttpServletRequest request,
-                                   @NonNull HttpServletResponse response,
-                                   @NonNull FilterChain filterChain) throws ServletException, IOException {
+    protected void doFilterInternal(
+        @NonNull HttpServletRequest request,
+        @NonNull HttpServletResponse response,
+        @NonNull FilterChain filterChain
+    ) throws ServletException, IOException {
 
-        String authHeader = request.getHeader("Authorization");
+    String authHeader = request . getHeader ("Authorization");
 
-        if (authHeader == null || !authHeader.startsWith("Bearer ")) {
-            filterChain.doFilter(request, response);
-            return;
-        }
-
-        String token = authHeader.substring(7);
-        String username = jwtService.extractUsername(token);
-
-        if (username != null && SecurityContextHolder.getContext().getAuthentication() == null) {
-            UserDetails userDetails = userDetailsService.loadUserByUsername(username);
-
-            if (jwtService.isTokenValid(token, userDetails)) {
-                UsernamePasswordAuthenticationToken authToken = new UsernamePasswordAuthenticationToken(
-                    userDetails, null, userDetails.getAuthorities()
-                );
-                authToken.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
-                SecurityContextHolder.getContext().setAuthentication(authToken);
-            }
-        }
-
+    if (authHeader == null || !authHeader.startsWith("Bearer ")) {
         filterChain.doFilter(request, response);
+        return;
     }
+
+    String token = authHeader . substring (7);
+    String username = jwtService . extractUsername (token);
+
+    if (username != null && SecurityContextHolder.getContext().getAuthentication() == null) {
+        UserDetails userDetails = userDetailsService . loadUserByUsername (username);
+
+        if (jwtService.isTokenValid(token, userDetails)) {
+            UsernamePasswordAuthenticationToken authToken = new UsernamePasswordAuthenticationToken(
+                userDetails, null, userDetails.getAuthorities()
+            );
+            authToken.setDetails(WebAuthenticationDetailsSource().buildDetails(request));
+            SecurityContextHolder.getContext().setAuthentication(authToken);
+        }
+    }
+
+    filterChain.doFilter(request, response);
+}
 }
 ```
 
@@ -154,10 +159,10 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
 ### Before (Spring Security 5.x)
 
-```java
+```kotlin
 @Bean
-public AuthenticationProvider authenticationProvider() {
-    DaoAuthenticationProvider authProvider = new DaoAuthenticationProvider();
+fun authenticationProvider(): AuthenticationProvider {
+    DaoAuthenticationProvider authProvider = DaoAuthenticationProvider ();
     authProvider.setUserDetailsService(userDetailsService);
     authProvider.setPasswordEncoder(passwordEncoder());
     return authProvider;
@@ -166,10 +171,10 @@ public AuthenticationProvider authenticationProvider() {
 
 ### After (Spring Security 6.x)
 
-```java
+```kotlin
 @Bean
-public AuthenticationProvider authenticationProvider() {
-    DaoAuthenticationProvider authProvider = new DaoAuthenticationProvider();
+fun authenticationProvider(): AuthenticationProvider {
+    DaoAuthenticationProvider authProvider = DaoAuthenticationProvider ();
     authProvider.setUserDetailsService(userDetailsService);
     authProvider.setPasswordEncoder(passwordEncoder());
     return authProvider;
@@ -182,36 +187,36 @@ public AuthenticationProvider authenticationProvider() {
 
 ### Before (Spring Security 5.x)
 
-```java
+```kotlin
 @Configuration
-public class CorsConfig implements WebMvcConfigurer {
+class CorsConfig implements WebMvcConfigurer {
     @Override
-    public void addCorsMappings(CorsRegistry registry) {
+    fun addCorsMappings(CorsRegistry registry): void {
         registry.addMapping("/**")
-                .allowedOrigins("*")
-                .allowedMethods("GET", "POST", "PUT", "DELETE")
-                .allowedHeaders("*")
-                .allowCredentials(true);
+            .allowedOrigins("*")
+            .allowedMethods("GET", "POST", "PUT", "DELETE")
+            .allowedHeaders("*")
+            .allowCredentials(true);
     }
 }
 ```
 
 ### After (Spring Security 6.x)
 
-```java
+```kotlin
 @Configuration
-public class CorsConfig {
+class CorsConfig {
 
     @Bean
-    public CorsConfigurationSource corsConfigurationSource() {
-        CorsConfiguration configuration = new CorsConfiguration();
-        configuration.setAllowedOriginPatterns(List.of("*")); // Changed from setAllowedOrigins
-        configuration.setAllowedMethods(List.of("GET", "POST", "PUT", "DELETE", "OPTIONS"));
-        configuration.setAllowedHeaders(List.of("*"));
+    fun corsConfigurationSource(): CorsConfigurationSource {
+        CorsConfiguration configuration = CorsConfiguration ();
+        configuration.setAllowedOriginPatterns(listOf("*")); // Changed from setAllowedOrigins
+        configuration.setAllowedMethods(listOf("GET", "POST", "PUT", "DELETE", "OPTIONS"));
+        configuration.setAllowedHeaders(listOf("*"));
         configuration.setAllowCredentials(true);
         configuration.setMaxAge(3600L);
 
-        UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
+        UrlBasedCorsConfigurationSource source = UrlBasedCorsConfigurationSource ();
         source.registerCorsConfiguration("/**", configuration);
         return source;
     }
@@ -222,7 +227,7 @@ public class CorsConfig {
 
 ### Before (Spring Security 5.x)
 
-```java
+```kotlin
 @EnableGlobalMethodSecurity(
     prePostEnabled = true,
     securedEnabled = true,
@@ -232,7 +237,7 @@ public class CorsConfig {
 
 ### After (Spring Security 6.x)
 
-```java
+```kotlin
 @EnableMethodSecurity( // Simplified annotation
     prePostEnabled = true,
     securedEnabled = true,
@@ -242,17 +247,18 @@ public class CorsConfig {
 
 ### Method Security Usage
 
-```java
+```kotlin
 @Service
-public class UserService {
+class UserService {
 
     @PreAuthorize("hasRole('ADMIN')") // No changes
-    public List<User> getAllUsers() {
+    public List<User> getAllUsers()
+    {
         // ...
     }
 
     @PreAuthorize("hasRole('USER') or #username == authentication.name")
-    public User getUser(String username) {
+    fun getUser(String username): User {
         // ...
     }
 }
@@ -266,12 +272,12 @@ public class UserService {
 
 **Solution**: Use `requestMatchers()` instead
 
-```java
+```kotlin
 // Before
 .antMatchers("/api/auth/**").permitAll()
 
 // After
-.requestMatchers("/api/auth/**").permitAll()
+    .requestMatchers("/api/auth/**").permitAll()
 ```
 
 ### Issue 2: `and()` Method Not Found
@@ -280,7 +286,7 @@ public class UserService {
 
 **Solution**: Use lambda DSL
 
-```java
+```kotlin
 // Before
 http
     .csrf().disable()
@@ -290,7 +296,7 @@ http
 // After
 http
     .csrf(csrf -> csrf.disable())
-    .sessionManagement(session -> ...)...
+.sessionManagement(session -> ...)...
 ```
 
 ### Issue 3: `WebSecurityConfigurerAdapter` Deprecated
@@ -299,9 +305,9 @@ http
 
 **Solution**: Use `SecurityFilterChain` bean
 
-```java
+```kotlin
 // Before
-public class SecurityConfig extends WebSecurityConfigurerAdapter {
+class SecurityConfig extends WebSecurityConfigurerAdapter {
     @Override
     protected void configure(HttpSecurity http) throws Exception {
         // ...
@@ -309,9 +315,10 @@ public class SecurityConfig extends WebSecurityConfigurerAdapter {
 }
 
 // After
-public class SecurityConfig {
+class SecurityConfig {
     @Bean
-    public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
+    public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception
+    {
         // ...
         return http.build();
     }
@@ -324,7 +331,7 @@ public class SecurityConfig {
 
 **Solution**: Use `AuthenticationManager` bean
 
-```java
+```kotlin
 // Before
 @Override
 protected void configure(AuthenticationManagerBuilder auth) throws Exception {
@@ -334,12 +341,13 @@ protected void configure(AuthenticationManagerBuilder auth) throws Exception {
 // After
 @Bean
 public AuthenticationManager authenticationManager(
-        UserDetailsService userDetailsService,
-        PasswordEncoder passwordEncoder) throws Exception {
-    DaoAuthenticationProvider provider = new DaoAuthenticationProvider();
+    UserDetailsService userDetailsService,
+    PasswordEncoder passwordEncoder
+) throws Exception {
+    DaoAuthenticationProvider provider = DaoAuthenticationProvider ();
     provider.setUserDetailsService(userDetailsService);
     provider.setPasswordEncoder(passwordEncoder);
-    return new ProviderManager(provider);
+    return ProviderManager(provider);
 }
 ```
 
@@ -350,23 +358,24 @@ public AuthenticationManager authenticationManager(
 ```xml
 <!-- pom.xml -->
 <properties>
-    <spring-boot.version>3.5.0</spring-boot.version>
-    <spring-security.version>6.3.0</spring-security.version>
+  <spring-boot.version>3.5.0</spring-boot.version>
+  <spring-security.version>6.3.0</spring-security.version>
 </properties>
 ```
 
 ### Step 2: Update Configuration Class
 
-```java
+```kotlin
 // Remove extends WebSecurityConfigurerAdapter
 @Configuration
 @EnableWebSecurity
 @EnableMethodSecurity // Update annotation
-public class SecurityConfig {
+class SecurityConfig {
 
     // Add SecurityFilterChain bean
     @Bean
-    public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
+    public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception
+    {
         // Configuration using lambda DSL
         return http.build();
     }
@@ -375,67 +384,71 @@ public class SecurityConfig {
 
 ### Step 3: Update Request Matchers
 
-```java
+```kotlin
 // Replace all antMatchers() with requestMatchers()
 http
     .authorizeHttpRequests(authz -> authz
-        .requestMatchers("/api/auth/**").permitAll()
-        .requestMatchers(HttpMethod.GET, "/api/public/**").permitAll()
-        .anyRequest().authenticated()
-    )
+.requestMatchers("/api/auth/**").permitAll()
+    .requestMatchers(HttpMethod.GET, "/api/public/**").permitAll()
+    .anyRequest().authenticated()
+)
 ```
 
 ### Step 4: Update CORS Configuration
 
-```java
+```kotlin
 // If using WebMvcConfigurer, switch to CorsConfigurationSource
 @Bean
-public CorsConfigurationSource corsConfigurationSource() {
-    CorsConfiguration configuration = new CorsConfiguration();
-    configuration.setAllowedOriginPatterns(List.of("*"));
+fun corsConfigurationSource(): CorsConfigurationSource {
+    CorsConfiguration configuration = CorsConfiguration ();
+    configuration.setAllowedOriginPatterns(listOf("*"));
     // ... rest of configuration
 }
 ```
 
 ### Step 5: Update JWT Filter
 
-```java
+```kotlin
 // Add @NonNull annotations to parameters
 @Override
-protected void doFilterInternal(@NonNull HttpServletRequest request,
-                               @NonNull HttpServletResponse response,
-                               @NonNull FilterChain filterChain) throws ServletException, IOException {
+protected void doFilterInternal(
+    @NonNull HttpServletRequest request,
+    @NonNull HttpServletResponse response,
+    @NonNull FilterChain filterChain
+) throws ServletException, IOException {
     // ... implementation
 }
 ```
 
 ### Step 6: Update Authentication Manager
 
-```java
+```kotlin
 // Create AuthenticationManager bean instead of overriding
 @Bean
 public AuthenticationManager authenticationManager(
-        UserDetailsService userDetailsService,
-        PasswordEncoder passwordEncoder) throws Exception {
-    DaoAuthenticationProvider provider = new DaoAuthenticationProvider();
+    UserDetailsService userDetailsService,
+    PasswordEncoder passwordEncoder
+) throws Exception {
+    DaoAuthenticationProvider provider = DaoAuthenticationProvider ();
     provider.setUserDetailsService(userDetailsService);
     provider.setPasswordEncoder(passwordEncoder);
-    return new ProviderManager(provider);
+    return ProviderManager(provider);
 }
 ```
 
 ### Step 7: Update Tests
 
-```java
+```kotlin
 // Update test configurations
 @SpringBootTest
 @AutoConfigureMockMvc
 class SecurityTest {
 
     @Test
-    void testSecurityConfiguration() throws Exception {
+    void testSecurityConfiguration() throws Exception
+    {
         mockMvc.perform(get("/api/protected"))
-                .andExpect(status().isForbidden());
+            .andExpect(status().isForbidden());
     }
 }
 ```
@@ -444,40 +457,44 @@ class SecurityTest {
 
 ### 1. Request Authorization Improvements
 
-```java
+```kotlin
 @Bean
 public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
     http
         .authorizeHttpRequests(authz -> authz
-            .requestMatchers("/api/users/{userId}/**")
-                .access(new WebExpressionAuthorizationManager(
-                    "@authz.checkUserId(authentication, #userId)"))
-            .anyRequest().authenticated()
-        );
+    .requestMatchers("/api/users/{userId}/**")
+    .access(
+        new WebExpressionAuthorizationManager (
+                "@authz.checkUserId(authentication, #userId)")
+    )
+    .anyRequest().authenticated()
+    );
     return http.build();
 }
 ```
 
 ### 2. Custom Authorization Manager
 
-```java
+```kotlin
 @Component
-public class CustomAuthorizationManager implements AuthorizationManager<RequestAuthorizationContext> {
+class CustomAuthorizationManager implements AuthorizationManager<RequestAuthorizationContext> {
 
     @Override
-    public AuthorizationDecision check(Supplier<Authentication> authentication,
-                                      RequestAuthorizationContext context) {
+    public AuthorizationDecision check(
+        Supplier<Authentication> authentication,
+        RequestAuthorizationContext context
+    ) {
         // Custom authorization logic
-        return new AuthorizationDecision(true);
+        return AuthorizationDecision(true);
     }
 }
 ```
 
 ### 3. Simplified Security Expressions
 
-```java
+```kotlin
 @PreAuthorize("@securityService.hasPermission(#id, authentication)")
-public void deleteResource(Long id) {
+fun deleteResource(Long id): void {
     // Method implementation
 }
 ```

@@ -166,37 +166,6 @@ class RealLinkedInAssetUploader(
     }
 }
 
-class FakeLinkedInAssetUploader : AssetUploader {
-    var failOnNextCall: Boolean = false
-
-    override suspend fun uploadAsset(
-        asset: PublicationAsset,
-        content: Flow<ByteArray>,
-        context: AssetUploadContext,
-    ): ProviderAssetRef {
-        if (failOnNextCall) {
-            failOnNextCall = false
-            throw ProviderUploadException("Fake LinkedIn asset upload failure")
-        }
-
-        content.collect { /* no-op for fake */ }
-
-        val assetType = when {
-            asset.mediaType.startsWith("image/") -> "image"
-            asset.mediaType.startsWith("video/") -> "video"
-            asset.mediaType.startsWith("document/") -> "document"
-            else -> "asset"
-        }
-
-        val fakeUrn = "urn:li:digitalmediaAsset:$assetType:fake-asset-${UUID.randomUUID()}"
-        return ProviderAssetRef(
-            providerAssetId = fakeUrn,
-            mediaType = asset.mediaType,
-            accessUrl = null,
-        )
-    }
-}
-
 private fun <T> T?.orThrow(lazyMessage: () -> String): T =
     this ?: throw ProviderUploadException(lazyMessage())
 

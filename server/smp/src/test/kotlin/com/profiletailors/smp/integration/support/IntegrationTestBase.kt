@@ -107,13 +107,17 @@ abstract class IntegrationTestBase {
             .awaitSingle()
     }
 
-    protected suspend fun seedWorkspace(workspaceId: String, name: String, status: String = "ACTIVE") {
+    protected suspend fun seedWorkspace(workspaceId: String, name: String, status: String = "ACTIVE", icon: String? = null) {
         databaseClient.sql(
-            "INSERT INTO workspaces (id, name, status) VALUES (:id, :name, :status)"
+            "INSERT INTO workspaces (id, name, status, icon) VALUES (:id, :name, :status, :icon)"
         )
             .bind("id", workspaceId)
             .bind("name", name)
             .bind("status", status)
+            .let { spec ->
+                if (icon == null) spec.bindNull("icon", String::class.java)
+                else spec.bind("icon", icon)
+            }
             .fetch()
             .rowsUpdated()
             .awaitSingle()
@@ -183,6 +187,7 @@ abstract class IntegrationTestBase {
         "DELETE FROM workspace_memberships",
         "DELETE FROM workspace_ownerships",
         "DELETE FROM workspaces",
+        "DELETE FROM email_verification_tokens",
         "DELETE FROM user_identities",
         "DELETE FROM principals",
     )

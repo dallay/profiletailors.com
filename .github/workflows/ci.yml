@@ -1,0 +1,321 @@
+name: CI
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened, ready_for_review]
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+env:
+  NODE_VERSION: "22.13.0"
+  JAVA_VERSION: "21"
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.head_ref || github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+jobs:
+  # ============================================================================
+  # Change Detection — single source of truth for which jobs to run
+  # ============================================================================
+  changes:
+    name: Detect Changes
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pull-requests: read
+    outputs:
+      backend: ${{ steps.filter.outputs.backend }}
+      frontend: ${{ steps.filter.outputs.frontend }}
+      docs: ${{ steps.filter.outputs.docs }}
+      meta: ${{ steps.filter.outputs.meta }}
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4.3.1
+
+      - name: Path filter
+        uses: dorny/paths-filter@d1c1ffe0248fe513906c8e24db8ea791d46f8590 # v3.0.2
+        id: filter
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          filters: |
+            backend:
+              - 'server/smp/**'
+              - 'shared/**'
+              - 'server/smp/build.gradle.kts'
+              - 'server/smp/settings.gradle.kts'
+              - 'server/smp/gradlew'
+              - 'server/smp/gradle/**'
+              - 'shared/*/build.gradle.kts'
+              - '.github/workflows/ci.yml'
+            frontend:
+              - 'apps/web/marketing/**'
+              - 'package.json'
+              - 'pnpm-lock.yaml'
+              - 'pnpm-workspace.yaml'
+              - '.github/workflows/ci.yml'
+            docs:
+              - '**/*.md'
+              - '**/*.mdx'
+              - 'docs/**'
+            meta:
+              - '.github/**'
+              - 'scripts/**'
+              - '**/*.yml'
+              - '**/*.yaml'
+              - '**/*.json'
+              - '**/*.sh'
+              - '**/Dockerfile'
+              - '**/Dockerfile.*'
+
+      - name: Summary
+        run: |
+          {
+            echo "## Changes detected"
+            echo "- backend: ${{ steps.filter.outputs.backend }}"
+            echo "- frontend: ${{ steps.filter.outputs.frontend }}"
+            echo "- docs: ${{ steps.filter.outputs.docs }}"
+            echo "- meta: ${{ steps.filter.outputs.meta }}"
+          } >> "$GITHUB_STEP_SUMMARY"
+
+  # ============================================================================
+  # Backend — lint, build, test, coverage
+  # ============================================================================
+  lint-backend:
+    name: Backend Lint (Detekt)
+    runs-on: ubuntu-latest
+    needs: changes
+    if: needs.changes.outputs.backend == 'true'
+    permissions:
+      contents: read
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4.3.1
+
+      - name: Set up JDK ${{ env.JAVA_VERSION }}
+        uses: actions/setup-java@c1e323688fd81a25caa38c78aa6df2d33d3e20d9 # v4.7.1
+        with:
+          distribution: 'temurin'
+          java-version: ${{ env.JAVA_VERSION }}
+          cache: 'gradle'
+
+      - name: Run Detekt
+        run: ./gradlew detekt --no-daemon
+
+      - name: Upload Detekt report
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        if: always()
+        with:
+          name: detekt-report
+          path: build/reports/detekt/
+          retention-days: 7
+
+  backend-pipeline:
+    name: Backend Build & Test
+    runs-on: ubuntu-latest
+    needs: changes
+    if: needs.changes.outputs.backend == 'true'
+    permissions:
+      contents: read
+      checks: write
+      pull-requests: write
+    outputs:
+      codecov-failed: ${{ steps.codecov-report.outputs.failed }}
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4.3.1
+        with:
+          fetch-depth: 0
+
+      - name: Set up JDK ${{ env.JAVA_VERSION }}
+        uses: actions/setup-java@c1e323688fd81a25caa38c78aa6df2d33d3e20d9 # v4.7.1
+        with:
+          distribution: 'temurin'
+          java-version: ${{ env.JAVA_VERSION }}
+          cache: 'gradle'
+
+      - name: Run unit tests with coverage
+        run: ./gradlew :server:smp:test :server:smp:jacocoTestReport --no-daemon -PexcludeTags=modularity,postgres
+
+      - name: Run fast BDD suite
+        run: ./gradlew :server:smp:bddFastTest --no-daemon -x :shared:common:test -x :shared:spring-boot-common:test
+
+      - name: Run Postgres BDD suite
+        run: ./gradlew :server:smp:bddPostgresTest --no-daemon -x :shared:common:test -x :shared:spring-boot-common:test
+
+      - name: Upload coverage to Codecov
+        id: codecov
+        uses: codecov/codecov-action@7f8b4b4bde536c465e797be725718b88c5d95e0e # v5.1.2
+        with:
+          token: ${{ secrets.CODECOV_TOKEN }}
+          files: ./server/smp/build/reports/jacoco/test/jacocoTestReport.xml
+          flags: backend,smp
+          name: backend-coverage
+          fail_ci_if_error: false
+          verbose: true
+          skip_validation: true
+
+      - name: Report Codecov status
+        id: codecov-report
+        if: always()
+        run: |
+          failed="${{ steps.codecov.outcome == 'failure' && steps.codecov.conclusion == 'failure' }}"
+          echo "failed=$failed" >> "$GITHUB_OUTPUT"
+
+      - name: Upload test results
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        if: always()
+        with:
+          name: test-results
+          path: server/smp/build/reports/tests/
+          retention-days: 7
+
+      - name: Upload coverage report
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        if: always()
+        with:
+          name: coverage-report
+          path: server/smp/build/reports/jacoco/
+          retention-days: 7
+
+  # ============================================================================
+  # Frontend — install, lint, test, build
+  # ============================================================================
+  frontend-pipeline:
+    name: Frontend Test & Build
+    runs-on: ubuntu-latest
+    needs: changes
+    if: needs.changes.outputs.frontend == 'true'
+    permissions:
+      contents: read
+      checks: write
+      pull-requests: write
+    outputs:
+      codecov-failed: ${{ steps.codecov-report.outputs.failed }}
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4.3.1
+        with:
+          fetch-depth: 0
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@f40ffcd9367d9f12939873eb1018b921a783ffaa # v4
+
+      - name: Setup Node.js ${{ env.NODE_VERSION }}
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'pnpm'
+          cache-dependency-path: apps/web/marketing/pnpm-lock.yaml
+
+      - name: Install dependencies
+        working-directory: apps/web/marketing
+        run: pnpm install --frozen-lockfile --ignore-scripts
+
+      - name: Run tests with coverage
+        working-directory: apps/web/marketing
+        run: pnpm test:coverage
+
+      - name: Build
+        working-directory: apps/web/marketing
+        env:
+          CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
+        run: pnpm build
+
+      - name: Upload coverage to Codecov
+        id: codecov
+        uses: codecov/codecov-action@7f8b4b4bde536c465e797be725718b88c5d95e0e # v5.1.2
+        with:
+          token: ${{ secrets.CODECOV_TOKEN }}
+          files: ./apps/web/marketing/coverage/lcov.info
+          flags: frontend
+          name: frontend-coverage
+          fail_ci_if_error: false
+          verbose: true
+          skip_validation: true
+
+      - name: Report Codecov status
+        id: codecov-report
+        if: always()
+        run: |
+          failed="${{ steps.codecov.outcome == 'failure' && steps.codecov.conclusion == 'failure' }}"
+          echo "failed=$failed" >> "$GITHUB_OUTPUT"
+
+      - name: Upload coverage report
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        if: always()
+        with:
+          name: frontend-coverage-report
+          path: apps/web/marketing/coverage/
+          retention-days: 7
+
+  # ============================================================================
+  # Quality Gate — ensures every relevant job passed
+  # ============================================================================
+  gatekeeper:
+    name: Quality Gate
+    runs-on: ubuntu-latest
+    if: always()
+    needs:
+      - changes
+      - lint-backend
+      - backend-pipeline
+      - frontend-pipeline
+    steps:
+      - name: Check pipeline results
+        env:
+          BACKEND_CHANGED: ${{ needs.changes.outputs.backend }}
+          FRONTEND_CHANGED: ${{ needs.changes.outputs.frontend }}
+          LINT_BACKEND_RESULT: ${{ needs.lint-backend.result }}
+          BACKEND_RESULT: ${{ needs.backend-pipeline.result }}
+          FRONTEND_RESULT: ${{ needs.frontend-pipeline.result }}
+        run: |
+          echo "Checking all job results..."
+
+          # Backend must pass if backend changed
+          if [ "$BACKEND_CHANGED" == "true" ]; then
+            if [ "$LINT_BACKEND_RESULT" != "success" ]; then
+              echo "❌ Backend lint failed: $LINT_BACKEND_RESULT"
+              exit 1
+            fi
+            if [ "$BACKEND_RESULT" != "success" ]; then
+              echo "❌ Backend pipeline failed: $BACKEND_RESULT"
+              exit 1
+            fi
+            echo "✅ Backend checks passed"
+          else
+            echo "⏭️  No backend changes — backend jobs skipped"
+          fi
+
+          # Frontend must pass if frontend changed
+          if [ "$FRONTEND_CHANGED" == "true" ]; then
+            if [ "$FRONTEND_RESULT" != "success" ]; then
+              echo "❌ Frontend pipeline failed: $FRONTEND_RESULT"
+              exit 1
+            fi
+            echo "✅ Frontend checks passed"
+          else
+            echo "⏭️  No frontend changes — frontend jobs skipped"
+          fi
+
+          echo ""
+          echo "✅ All relevant checks passed!"
+
+      - name: CI Summary
+        if: always()
+        run: |
+          {
+            echo "## CI Pipeline Summary"
+            echo ""
+            echo "| Job | Status |"
+            echo "|-----|--------|"
+            echo "| Changes Detection | ${{ needs.changes.result }} |"
+            echo "| Backend Lint | ${{ needs.lint-backend.result }} |"
+            echo "| Backend Pipeline | ${{ needs.backend-pipeline.result }} |"
+            echo "| Frontend Pipeline | ${{ needs.frontend-pipeline.result }} |"
+            echo ""
+            echo "### Coverage Uploads"
+            echo "- Backend: ${{ needs.backend-pipeline.outputs.codecov-failed == 'true' && '⚠️ Upload failed' || '✅ Uploaded' }}"
+            echo "- Frontend: ${{ needs.frontend-pipeline.outputs.codecov-failed == 'true' && '⚠️ Upload failed' || '✅ Uploaded' }}"
+          } >> "$GITHUB_STEP_SUMMARY"

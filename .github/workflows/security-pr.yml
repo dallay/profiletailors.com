@@ -282,8 +282,8 @@ jobs:
           sarif_file: trivy-backend.sarif
           category: trivy-backend
 
-  frontend-eslint-security:
-    name: security / frontend-eslint-security
+  frontend-biome-security:
+    name: security / frontend-biome-security
     needs: changes
     if: ${{ needs.changes.outputs.frontend == 'true' || needs.changes.outputs.repo_security == 'true' }}
     runs-on: ubuntu-latest
@@ -297,12 +297,10 @@ jobs:
         uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4.3.1
       - name: Set up pnpm
         uses: pnpm/action-setup@b906affcce14559ad1aafd4ab0e942779e9f58b1 # v4.2.0
-        with:
-          version: 10
       - name: Set up Node.js
         uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
         with:
-          node-version: '22.12.0'
+          node-version: '22.13.0'
           cache: pnpm
           cache-dependency-path: apps/web/marketing/pnpm-lock.yaml
       - name: Install frontend dependencies
@@ -319,7 +317,7 @@ jobs:
       - semgrep-frontend
       - codeql-backend
       - trivy-backend
-      - frontend-eslint-security
+      - frontend-biome-security
     if: ${{ always() && (needs.changes.outputs.backend == 'true' || needs.changes.outputs.frontend == 'true' || needs.changes.outputs.repo_security == 'true') }}
     runs-on: ubuntu-latest
     permissions:
@@ -392,7 +390,7 @@ jobs:
       - semgrep-frontend
       - codeql-backend
       - trivy-backend
-      - frontend-eslint-security
+      - frontend-biome-security
       - sonar-pr
     if: ${{ always() }}
     runs-on: ubuntu-latest
@@ -408,7 +406,7 @@ jobs:
           SEMGREP_FRONTEND_RESULT: ${{ needs.semgrep-frontend.result }}
           CODEQL_RESULT: ${{ needs.codeql-backend.result }}
           TRIVY_RESULT: ${{ needs.trivy-backend.result }}
-          ESLINT_RESULT: ${{ needs.frontend-eslint-security.result }}
+          BIOME_RESULT: ${{ needs.frontend-biome-security.result }}
           SONAR_RESULT: ${{ needs.sonar-pr.result }}
         run: |
           {
@@ -426,7 +424,7 @@ jobs:
             echo "- semgrep-frontend: $SEMGREP_FRONTEND_RESULT"
             echo "- codeql-backend: $CODEQL_RESULT"
             echo "- trivy-backend: $TRIVY_RESULT"
-            echo "- frontend-eslint-security: $ESLINT_RESULT"
+            echo "- frontend-biome-security: $BIOME_RESULT"
             echo "- sonar-pr: $SONAR_RESULT"
             echo ''
             echo '### Findings channels'

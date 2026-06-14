@@ -6,6 +6,8 @@ import com.fasterxml.jackson.databind.ObjectMapper
 import org.springframework.beans.factory.annotation.Autowired
 import com.profiletailors.smp.publishing.domain.AssetSourceType
 import com.profiletailors.smp.publishing.domain.AssetUploader
+import com.profiletailors.smp.publishing.domain.LinkedInAuthorizationUrlBuilder
+import com.profiletailors.smp.publishing.domain.OAuthStateSigner
 import com.profiletailors.smp.publishing.domain.AssetUploadContext
 import com.profiletailors.smp.publishing.domain.CompleteProviderConnectionCommand
 import com.profiletailors.smp.publishing.domain.ProviderAccountProfile
@@ -30,15 +32,16 @@ import org.springframework.context.annotation.Bean
 import org.springframework.context.annotation.Configuration
 import java.io.IOException
 import java.net.URI
+import java.time.Clock
 import java.net.URLEncoder
 import java.net.http.HttpClient
 import java.net.http.HttpRequest
 import java.net.http.HttpResponse
 import java.nio.charset.StandardCharsets
 import java.util.UUID
+import org.slf4j.LoggerFactory
 
 data class LinkedInPublishingProperties(
-    val mode: String,
     val clientId: String,
     val clientSecret: String,
     val redirectUri: String,
@@ -47,21 +50,8 @@ data class LinkedInPublishingProperties(
     val authorizationBaseUrl: String,
     val tokenBaseUrl: String,
     val apiVersion: String,
-)
-
-class FakeLinkedInConnectionProvider : SocialConnectionProvider {
-    override suspend fun completeConnection(command: CompleteProviderConnectionCommand): ProviderConnectionResult =
-        ProviderConnectionResult(
-            provider = SocialProvider.LINKEDIN,
-            providerConnectionRef = "fake-linkedin-connection-${command.workspaceId}",
-            credentialReference = "fake-credential-${command.actorPrincipalId}",
-            account = ProviderAccountProfile(
-                providerAccountId = "linkedin-profile-${command.actorPrincipalId}",
-                displayName = "Fake LinkedIn Profile",
-                kind = SocialAccountKind.PERSONAL_PROFILE,
-                profileUrn = "urn:li:person:${command.actorPrincipalId}",
-            ),
-        )
+) {
+    fun isConfigured(): Boolean = clientId.isNotBlank() && clientSecret.isNotBlank() && redirectUri.isNotBlank()
 }
 
 class RealLinkedInConnectionProvider(
@@ -71,6 +61,8 @@ class RealLinkedInConnectionProvider(
     private val credentialGateway: com.profiletailors.smp.publishing.infrastructure
         .credentials.LinkedInCredentialGateway,
 ) : SocialConnectionProvider {
+    private val log = LoggerFactory.getLogger(javaClass)
+
     @Suppress("LongMethod", "ThrowsCount")
     override suspend fun completeConnection(
         command: CompleteProviderConnectionCommand
@@ -142,13 +134,26 @@ class RealLinkedInConnectionProvider(
                 displayName = profile.displayName(),
                 kind = SocialAccountKind.PERSONAL_PROFILE,
                 profileUrn = "urn:li:person:$providerAccountId",
+                avatarUrl = sanitizeAvatarUrl(profile.picture),
             ),
         )
+    }
+
+    private fun sanitizeAvatarUrl(picture: String?): String? {
+        val trimmed = picture?.trim()
+        if (trimmed.isNullOrBlank() || !trimmed.startsWith("https://", ignoreCase = true)) {
+            if (!trimmed.isNullOrBlank()) {
+                log.debug("LinkedIn avatar rejected — not HTTPS: {}", trimmed.take(MAX_AVATAR_URL_LOG_LENGTH))
+            }
+            return null
+        }
+        return trimmed
     }
 
     private companion object {
         val HTTP_SUCCESS_RANGE = 200..299
         const val MILLIS_TO_SECONDS = 1000L
+        const val MAX_AVATAR_URL_LOG_LENGTH = 120
     }
 }
 
@@ -209,14 +214,6 @@ class LinkedInCapabilityValidator : ProviderCapabilityValidator {
             "VIDEO/MP4",
         )
     }
-}
-
-class FakeLinkedInPublisher : SocialPublisher {
-    override suspend fun publish(command: ProviderPublishCommand): ProviderPublishResult =
-        ProviderPublishResult(
-            externalPublicationId = "fake-linkedin-post-${command.publicationId}",
-            providerMessage = "Fake LinkedIn publish completed.",
-        )
 }
 
 class RealLinkedInPublisher(
@@ -411,6 +408,7 @@ data class LinkedInUserInfoResponse(
     @JsonProperty("given_name") val givenName: String? = null,
     @JsonProperty("family_name") val familyName: String? = null,
     @JsonProperty("email") val email: String? = null,
+    @JsonProperty("picture") val picture: String? = null,
 ) {
     fun displayName(): String = name
         ?: listOfNotNull(givenName, familyName).joinToString(" ").takeIf { it.isNotBlank() }
@@ -421,7 +419,6 @@ data class LinkedInUserInfoResponse(
 class LinkedInPublishingConfiguration {
     @Bean
     fun linkedInPublishingProperties(
-        @Value("\${publishing.linkedin.mode:fake}") mode: String,
         @Value("\${publishing.linkedin.client-id:}") clientId: String,
         @Value("\${publishing.linkedin.client-secret:}") clientSecret: String,
         @Value("\${publishing.linkedin.redirect-uri:}") redirectUri: String,
@@ -434,7 +431,6 @@ class LinkedInPublishingConfiguration {
         tokenBaseUrl: String,
         @Value("\${publishing.linkedin.api-version:202601}") apiVersion: String,
     ): LinkedInPublishingProperties = LinkedInPublishingProperties(
-        mode = mode,
         clientId = clientId,
         clientSecret = clientSecret,
         redirectUri = redirectUri,
@@ -444,6 +440,19 @@ class LinkedInPublishingConfiguration {
         tokenBaseUrl = tokenBaseUrl,
         apiVersion = apiVersion,
     )
+
+    @Bean
+    fun linkedInAuthorizationUrlBuilder(properties: LinkedInPublishingProperties): LinkedInAuthorizationUrlBuilder =
+        LinkedInAuthorizationUrlBuilderAdapter(properties)
+
+    @Bean
+    fun oauthStateSigner(
+        @Value(
+            "\${publishing.linkedin.state-signing-secret:profiletailors-dev-oauth-state-secret}",
+        ) stateSigningSecret: String,
+        objectMapper: ObjectMapper,
+        clock: Clock,
+    ): OAuthStateSigner = HmacOAuthStateSigner(stateSigningSecret, objectMapper, clock)
 
     @Bean
     fun linkedInHttpTransport(): LinkedInHttpTransport = JdkLinkedInHttpTransport(HttpClient.newHttpClient())
@@ -464,19 +473,14 @@ class LinkedInPublishingConfiguration {
         linkedInHttpTransport: LinkedInHttpTransport,
         @Autowired(required = false) storage: Storage?,
         publicationAssetRepository: com.profiletailors.smp.publishing.domain.PublicationAssetRepository,
-    ): AssetUploader =
-        if (properties.mode.equals("real", ignoreCase = true)) {
-            RealLinkedInAssetUploader(
-                properties,
-                assetUploadProperties,
-                objectMapper,
-                linkedInHttpTransport,
-                storage,
-                publicationAssetRepository,
-            )
-        } else {
-            FakeLinkedInAssetUploader()
-        }
+    ): AssetUploader = RealLinkedInAssetUploader(
+        properties,
+        assetUploadProperties,
+        objectMapper,
+        linkedInHttpTransport,
+        storage,
+        publicationAssetRepository,
+    )
 
     @Bean
     fun socialConnectionProvider(
@@ -484,12 +488,9 @@ class LinkedInPublishingConfiguration {
         objectMapper: ObjectMapper,
         linkedInHttpTransport: LinkedInHttpTransport,
         credentialGateway: com.profiletailors.smp.publishing.infrastructure.credentials.LinkedInCredentialGateway,
-    ): SocialConnectionProvider =
-        if (properties.mode.equals("real", ignoreCase = true)) {
-            RealLinkedInConnectionProvider(properties, objectMapper, linkedInHttpTransport, credentialGateway)
-        } else {
-            FakeLinkedInConnectionProvider()
-        }
+    ): SocialConnectionProvider = RealLinkedInConnectionProvider(
+        properties, objectMapper, linkedInHttpTransport, credentialGateway,
+    )
 
     @Bean
     fun socialPublisher(
@@ -500,20 +501,15 @@ class LinkedInPublishingConfiguration {
         assetUploader: AssetUploader,
         @Autowired(required = false) storage: Storage?,
         assetUploadProperties: LinkedInAssetUploadProperties,
-    ): SocialPublisher =
-        if (properties.mode.equals("real", ignoreCase = true)) {
-            RealLinkedInPublisher(
-                properties,
-                objectMapper,
-                linkedInHttpTransport,
-                credentialGateway,
-                assetUploader,
-                storage,
-                assetUploadProperties.attachmentsBucket,
-            )
-        } else {
-            FakeLinkedInPublisher()
-        }
+    ): SocialPublisher = RealLinkedInPublisher(
+        properties,
+        objectMapper,
+        linkedInHttpTransport,
+        credentialGateway,
+        assetUploader,
+        storage,
+        assetUploadProperties.attachmentsBucket,
+    )
 
     @Bean
     fun providerCapabilityValidator(): ProviderCapabilityValidator = LinkedInCapabilityValidator()

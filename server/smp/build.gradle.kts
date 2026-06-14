@@ -5,6 +5,26 @@ plugins {
 group = "com.profiletailors"
 version = "0.0.1-SNAPSHOT"
 
+// ── .env loader for local development ────────────────────────────────────────
+// Reads the root .env (linked via bin/setup-env.sh) and exports each variable
+// to the forked bootRun JVM so Spring Boot picks them up as environment vars.
+// This works for both CLI (./gradlew bootRun) and IntelliJ Gradle runner.
+tasks.bootRun {
+    val envFile = layout.projectDirectory.file(".env")
+    if (envFile.asFile.exists()) {
+        envFile.asFile.readLines()
+            .filter { it.isNotBlank() && !it.startsWith("#") && '=' in it }
+            .map { line ->
+                val (key, value) = line.split("=", limit = 2)
+                key.trim() to value.trim()
+            }
+            .filter { (_, value) -> value.isNotBlank() }
+            .forEach { (key, value) ->
+                environment(key, value)
+            }
+    }
+}
+
 dependencies {
     implementation(project(":shared:common"))
     implementation(project(":shared:bus"))
@@ -26,6 +46,10 @@ dependencies {
     implementation(libs.springdoc.openapi.webflux)
     implementation(libs.spring.modulith.starter.core)
     implementation(libs.jackson.module.kotlin)
+    // Jackson 2.x compat — PlatformBootstrapConfiguration uses kotlinModule() from the 2.x line
+    @Suppress("GradleDependency")
+    implementation("com.fasterxml.jackson.module:jackson-module-kotlin:2.21.2")
+    implementation("org.springframework.boot:spring-boot-starter-mail")
     implementation(libs.spring.boot.starter.actuator)
     implementation(libs.micrometer.prometheus)
 
@@ -51,6 +75,7 @@ dependencies {
 
     testImplementation(libs.cucumber.java)
     testImplementation(libs.cucumber.spring)
+    testImplementation(libs.archunit.junit5)
     
     testImplementation(platform(libs.testcontainers.bom))
     testImplementation(libs.testcontainers.junit.jupiter)

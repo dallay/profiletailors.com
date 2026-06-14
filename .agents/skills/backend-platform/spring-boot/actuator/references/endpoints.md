@@ -140,14 +140,14 @@ the actuator access rules.
 
 You can add additional endpoints by using `@Endpoint` and `@Component` annotations:
 
-```java
+```kotlin
 @Component
 @Endpoint(id = "custom")
-public class CustomEndpoint {
+class CustomEndpoint {
 
     @ReadOperation
-    public String customEndpoint() {
-        return "Custom endpoint response";
+    fun customEndpoint(): String {
+        return "Custom endpoint response"
     }
 }
 ```
@@ -156,14 +156,14 @@ public class CustomEndpoint {
 
 For web-specific endpoints, use `@WebEndpoint`:
 
-```java
+```kotlin
 @Component
 @WebEndpoint(id = "web-custom")
-public class WebCustomEndpoint {
+class WebCustomEndpoint {
 
     @ReadOperation
-    public String webCustomEndpoint() {
-        return "Web custom endpoint response";
+    fun webCustomEndpoint(): String {
+        return "Web custom endpoint response"
     }
 }
 ```
@@ -172,14 +172,14 @@ public class WebCustomEndpoint {
 
 For JMX-specific endpoints, use `@JmxEndpoint`:
 
-```java
+```kotlin
 @Component
 @JmxEndpoint(id = "jmx-custom")
-public class JmxCustomEndpoint {
+class JmxCustomEndpoint {
 
     @ReadOperation
-    public String jmxCustomEndpoint() {
-        return "JMX custom endpoint response";
+    fun jmxCustomEndpoint(): String {
+        return "JMX custom endpoint response"
     }
 }
 ```
@@ -209,29 +209,28 @@ management:
 You can provide custom health information by registering Spring beans that implement the
 `HealthIndicator` interface:
 
-```java
+```kotlin
 @Component
-public class CustomHealthIndicator implements HealthIndicator {
+class CustomHealthIndicator : HealthIndicator {
 
-    @Override
-    public Health health() {
+    override fun health(): Health {
         // Perform custom health check
-        boolean isHealthy = checkHealth();
-        
-        if (isHealthy) {
-            return Health.up()
+        val isHealthy = checkHealth()
+
+        return if (isHealthy) {
+            Health.up()
                 .withDetail("custom", "Service is running")
-                .build();
+                .build()
         } else {
-            return Health.down()
+            Health.down()
                 .withDetail("custom", "Service is down")
-                .build();
+                .build()
         }
     }
-    
-    private boolean checkHealth() {
+
+    private fun checkHealth(): Boolean {
         // Custom health check logic
-        return true;
+        return true
     }
 }
 ```
@@ -241,13 +240,12 @@ public class CustomHealthIndicator implements HealthIndicator {
 The `info` endpoint publishes information about your application. You can customize this information
 by implementing `InfoContributor`:
 
-```java
+```kotlin
 @Component
-public class CustomInfoContributor implements InfoContributor {
+class CustomInfoContributor : InfoContributor {
 
-    @Override
-    public void contribute(Info.Builder builder) {
-        builder.withDetail("custom", "Custom application info");
+    override fun contribute(builder: Info.Builder) {
+        builder.withDetail("custom", "Custom application info")
     }
 }
 ```
@@ -259,9 +257,10 @@ To expose git information in the `info` endpoint, add the following to your buil
 **Maven:**
 
 ```xml
+
 <plugin>
-    <groupId>pl.project13.maven</groupId>
-    <artifactId>git-commit-id-plugin</artifactId>
+  <groupId>pl.project13.maven</groupId>
+  <artifactId>git-commit-id-plugin</artifactId>
 </plugin>
 ```
 
@@ -280,16 +279,17 @@ Build information can be added to the `info` endpoint by configuring the build p
 **Maven:**
 
 ```xml
+
 <plugin>
-    <groupId>org.springframework.boot</groupId>
-    <artifactId>spring-boot-maven-plugin</artifactId>
-    <executions>
-        <execution>
-            <goals>
-                <goal>build-info</goal>
-            </goals>
-        </execution>
-    </executions>
+  <groupId>org.springframework.boot</groupId>
+  <artifactId>spring-boot-maven-plugin</artifactId>
+  <executions>
+    <execution>
+      <goals>
+        <goal>build-info</goal>
+      </goals>
+    </execution>
+  </executions>
 </plugin>
 ```
 
@@ -320,29 +320,29 @@ GET /actuator/metrics/jvm.memory.used
 
 You can add custom metrics using Micrometer:
 
-```java
+```kotlin
 @Component
-public class CustomMetrics {
+class CustomMetrics(meterRegistry: MeterRegistry) {
 
-    private final Counter customCounter;
-    private final Timer customTimer;
+    private val customCounter: Counter
+    private val customTimer: Timer
 
-    public CustomMetrics(MeterRegistry meterRegistry) {
-        this.customCounter = Counter.builder("custom.requests")
+    init {
+        customCounter = Counter.builder("custom.requests")
             .description("Custom request counter")
-            .register(meterRegistry);
-            
-        this.customTimer = Timer.builder("custom.processing.time")
+            .register(meterRegistry)
+
+        customTimer = Timer.builder("custom.processing.time")
             .description("Custom processing time")
-            .register(meterRegistry);
+            .register(meterRegistry)
     }
 
-    public void incrementCounter() {
-        customCounter.increment();
+    fun incrementCounter() {
+        customCounter.increment()
     }
 
-    public void recordTime(Duration duration) {
-        customTimer.record(duration);
+    fun recordTime(duration: Duration) {
+        customTimer.record(duration)
     }
 }
 ```

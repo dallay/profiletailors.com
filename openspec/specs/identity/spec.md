@@ -115,6 +115,8 @@ membership, permission grants, or effective authorization.
 Federated social login, external account linking, broader identity lifecycle breadth, and
 generalized multi-principal onboarding flows remain deferred.
 
+(Previously: Registration issued JWT+refresh immediately without email verification)
+
 #### Scenario: Valid JWT materializes an authenticated principal
 
 - GIVEN a protected phase-one request includes a valid JWT
@@ -183,6 +185,41 @@ generalized multi-principal onboarding flows remain deferred.
 - THEN the system MUST reject renewed principal establishment for that session
 - AND the frontend MUST treat the browser as unauthenticated until a new login occurs
 
+#### Scenario: Registration emits domain event without issuing tokens
+
+- GIVEN a new user submits registration with valid email and password
+- WHEN the registration handler processes the request
+- THEN the system MUST persist the user with `email_status = UNVERIFIED`
+- AND the system MUST emit a `UserRegistered` domain event
+- AND the system MUST NOT issue JWT or refresh tokens
+- AND the response MUST return 201 with verification instructions
+
+#### Scenario: Login guard rejects unverified email
+
+- GIVEN a user attempts to login with valid credentials
+- AND the user's `email_status` is `UNVERIFIED`
+- WHEN the login handler processes the request
+- THEN the system MUST reject the request with 403 status
+- AND the error MUST indicate email verification required
+- AND the system MUST NOT issue JWT or refresh tokens
+
+#### Scenario: Login guard accepts verified email
+
+- GIVEN a user attempts to login with valid credentials
+- AND the user's `email_status` is `VERIFIED`
+- WHEN the login handler processes the request
+- THEN the system MUST issue JWT and refresh tokens
+- AND the system MUST return successful authentication response
+
+#### Scenario: Refresh guard rejects unverified email
+
+- GIVEN a user attempts to refresh with valid refresh token
+- AND the user's `email_status` is `UNVERIFIED`
+- WHEN the refresh handler processes the request
+- THEN the system MUST reject the request with 403 status
+- AND the error MUST indicate email verification required
+- AND the system MUST NOT issue new JWT
+
 ### Requirement: Local User Session Bootstrap and In-Memory Access Token Handling
 
 The system MUST support local USER browser sessions where the access token is held only in client
@@ -199,6 +236,8 @@ state.
 If refresh bootstrap fails, the frontend MUST clear any local authenticated session state and treat
 the browser as unauthenticated.
 
+(Previously: No email verification check during session bootstrap)
+
 #### Scenario: App startup restores session from refresh when memory is empty
 
 - GIVEN the browser starts the app without an in-memory access token
@@ -214,6 +253,14 @@ the browser as unauthenticated.
 - WHEN the frontend performs session bootstrap
 - THEN the system MUST treat the browser as unauthenticated
 - AND the frontend MUST NOT retain stale authenticated state
+
+#### Scenario: Refresh bootstrap fails for unverified email
+
+- GIVEN a browser starts the app without an in-memory access token
+- AND a valid refresh cookie is available but user email is unverified
+- WHEN the frontend performs session bootstrap
+- THEN the system MUST reject the refresh with 403 status
+- AND the frontend MUST treat the browser as unauthenticated
 
 ### Requirement: Local User Access Token Retry Behavior
 
@@ -246,3 +293,90 @@ request.
 - WHEN the frontend handles the authentication recovery path
 - THEN the frontend MUST NOT retry refresh again for that original request
 - AND the request MUST fail as unauthenticated or denied
+
+### Requirement: Email Verification Token Management
+
+The system MUST support email verification tokens for confirming user email addresses.
+
+The system MUST generate a cryptographically secure token for each new user registration.
+The token MUST be single-use and expire after 24 hours.
+The token MUST be stored hashed (SHA-256) in the database.
+The system MUST provide an endpoint to verify email using the token.
+The system MUST provide an endpoint to resend verification email.
+
+#### Scenario: Verification token generated on registration
+
+- GIVEN a new user registers with valid email and password
+- WHEN the registration completes
+- THEN the system MUST generate a verification token
+- AND the token MUST be stored hashed in `email_verification_tokens` table
+- AND the token MUST be associated with the user's email
+
+#### Scenario: Verify email endpoint validates token
+
+- GIVEN a user receives verification email with token
+- WHEN the user calls `GET /api/auth/verify-email?token=...`
+- THEN the system MUST validate the token exists and is not expired
+- AND the system MUST set `email_status = VERIFIED` for the user
+- AND the system MUST invalidate the token (single-use)
+- AND the system MUST issue JWT and refresh tokens
+- AND the system MUST return successful verification response
+
+#### Scenario: Verify email endpoint rejects invalid token
+
+- GIVEN a user calls `GET /api/auth/verify-email?token=invalid`
+- WHEN the system validates the token
+- THEN the system MUST reject with 400 status
+- AND the error MUST indicate invalid or expired token
+
+#### Scenario: Verify email endpoint rejects expired token
+
+- GIVEN a user calls verification endpoint with token older than 24 hours
+- WHEN the system validates the token
+- THEN the system MUST reject with 400 status
+- AND the error MUST indicate token expired
+
+#### Scenario: Resend verification sends new token
+
+- GIVEN a user calls `POST /api/auth/resend-verification` with valid email
+- WHEN the system processes the request
+- THEN the system MUST generate a new verification token
+- AND the system MUST invalidate any previous tokens for that email
+- AND the system MUST send verification email with new token
+- AND the system MUST return 202 Accepted response
+
+#### Scenario: Resend verification rejects invalid email
+
+- GIVEN a user calls resend endpoint with non-existent email
+- WHEN the system processes the request
+- THEN the system MUST return 202 Accepted (to prevent email enumeration)
+- AND the system MUST NOT send any email
+
+### Requirement: Email Verification Status Tracking
+
+The system MUST track email verification status for all users.
+
+The system MUST add `email_status` column to `user_identities` table.
+The system MUST support two statuses: `UNVERIFIED` and `VERIFIED`.
+New registrations MUST default to `UNVERIFIED`.
+Existing users MUST be migrated to `VERIFIED` during schema migration.
+The system MUST include email status in authentication responses.
+
+#### Scenario: New registration has unverified status
+
+- GIVEN a new user registers
+- WHEN the user record is persisted
+- THEN `email_status` MUST be `UNVERIFIED`
+
+#### Scenario: Existing users migrated to verified status
+
+- GIVEN the database migration runs for existing users
+- WHEN the migration completes
+- THEN all existing user records MUST have `email_status = VERIFIED`
+
+#### Scenario: Email status included in auth response
+
+- GIVEN a user successfully authenticates
+- WHEN the authentication response is returned
+- THEN the response MUST include `email_status` field
+- AND the frontend MUST be able to read verification status

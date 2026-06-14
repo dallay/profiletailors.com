@@ -1,0 +1,14 @@
+change: dashboard-smos
+status: archived
+current_phase: archive
+completed:
+  - init
+  - explore
+  - propose
+  - spec
+  - design
+  - tasks
+  - apply
+  - verify
+  - archive
+updated: 2026-06-14T20:55:00Z

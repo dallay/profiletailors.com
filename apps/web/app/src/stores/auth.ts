@@ -11,6 +11,7 @@ import {
   refreshSession,
   register,
 } from '@/lib/auth-api'
+import { useWorkspaceStore } from './workspace'
 
 // ---------------------------------------------------------------------------
 // Types
@@ -50,6 +51,8 @@ function mapProfileToUser(profile: CurrentUserProfile): AuthUser {
 // ---------------------------------------------------------------------------
 
 export const useAuthStore = defineStore('auth', () => {
+  const workspace = useWorkspaceStore()
+
   // Access token lives ONLY in memory — never persisted to localStorage
   const _accessToken = ref<string | null>(null)
   const user = ref<AuthUser | null>(null)
@@ -97,8 +100,9 @@ export const useAuthStore = defineStore('auth', () => {
    * Use this instead of raw fetch for any authenticated API call.
    * Handles Bearer injection + silent 401 retry with token rotation.
    */
-  const apiFetch = createApiFetch({
+  const authenticatedApiFetch = createApiFetch({
     getToken: () => _accessToken.value,
+    getWorkspaceId: () => workspace.activeWorkspaceId,
     onRefresh: async () => {
       const tokens = await refreshSession()
       if (tokens) {
@@ -109,6 +113,8 @@ export const useAuthStore = defineStore('auth', () => {
     },
     onUnauthenticated: () => _clearSession(),
   })
+  const apiFetch = authenticatedApiFetch
+  const apiFetchRaw = authenticatedApiFetch.raw
 
   // ---------------------------------------------------------------------------
   // Internal helpers
@@ -117,6 +123,12 @@ export const useAuthStore = defineStore('auth', () => {
   function _applyTokens(tokens: AuthTokens) {
     _accessToken.value = tokens.accessToken
     user.value = mapTokensToUser(tokens)
+
+    // If the backend returned a workspace ID, always apply it
+    // This handles both first-time registration and account switching
+    if (tokens.workspaceId) {
+      workspace.setActiveWorkspaceId(tokens.workspaceId)
+    }
   }
 
   function _clearSession() {
@@ -149,11 +161,7 @@ export const useAuthStore = defineStore('auth', () => {
     }
   }
 
-  async function registerWithPassword(payload: {
-    email: string
-    password: string
-    username?: string
-  }) {
+  async function registerWithPassword(payload: { email: string; password: string }) {
     isLoading.value = true
     error.value = null
 
@@ -172,28 +180,38 @@ export const useAuthStore = defineStore('auth', () => {
     }
   }
 
+  let _hydratePromise: Promise<void> | null = null
+
   /**
    * Bootstraps the session from the server using the HttpOnly refresh-token cookie.
    * Call this once on app mount to restore an existing session without localStorage.
+   * Idempotent: concurrent calls share the same in-flight promise.
    */
   async function hydrateSession() {
-    try {
-      const tokens = await refreshSession()
+    if (_hydratePromise) return _hydratePromise
 
-      if (!tokens) {
-        // No active session — that's fine
+    _hydratePromise = (async () => {
+      try {
+        const tokens = await refreshSession()
+
+        if (!tokens) {
+          // No active session — that's fine
+          sessionChecked.value = true
+          return
+        }
+
+        _applyTokens(tokens)
+        await _loadProfile()
+      } catch {
+        // refreshSession already swallows 401; anything else is a transient error
+        _clearSession()
+      } finally {
         sessionChecked.value = true
-        return
+        _hydratePromise = null
       }
+    })()
 
-      _applyTokens(tokens)
-      await _loadProfile()
-    } catch {
-      // refreshSession already swallows 401; anything else is a transient error
-      _clearSession()
-    } finally {
-      sessionChecked.value = true
-    }
+    return _hydratePromise
   }
 
   async function refreshProfile() {
@@ -260,6 +278,7 @@ export const useAuthStore = defineStore('auth', () => {
   return {
     accessToken,
     apiFetch,
+    apiFetchRaw,
     clearError,
     displayName,
     error,

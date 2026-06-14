@@ -172,6 +172,12 @@ class LocalFilesystemStorage(private val basePath: Path) : Storage {
             walkDirectory(dir, bucketPath, prefix)
         }
 
+    override suspend fun exists(bucket: String, key: String): Boolean =
+        withContext(Dispatchers.IO) {
+            val target = resolveSafe(bucket, key)
+            Files.exists(target)
+        }
+
     private fun resolveBucketPath(bucket: String): Path {
         return try {
             resolveSafe(bucket, "")

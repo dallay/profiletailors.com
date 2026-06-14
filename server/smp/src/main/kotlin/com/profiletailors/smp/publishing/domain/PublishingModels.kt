@@ -1,6 +1,7 @@
 package com.profiletailors.smp.publishing.domain
 
 import java.time.Instant
+import java.time.LocalDate
 
 enum class SocialProvider {
     LINKEDIN,
@@ -80,6 +81,7 @@ data class SocialAccount(
     val kind: SocialAccountKind,
     val displayName: String,
     val profileUrn: String? = null,
+    val avatarUrl: String? = null,
     val status: SocialConnectionStatus,
     val createdAt: Instant? = null,
 )
@@ -143,6 +145,11 @@ data class PublicationDraft(
         ScheduleMode.SCHEDULED_AT, ScheduleMode.NEXT_SLOT -> PublicationStatus.SCHEDULED
     }
 }
+
+data class DateCount(
+    val date: LocalDate,
+    val count: Int,
+)
 
 data class PublicationJob(
     val id: String,

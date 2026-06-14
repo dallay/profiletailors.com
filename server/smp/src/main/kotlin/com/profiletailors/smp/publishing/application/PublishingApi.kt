@@ -1,6 +1,8 @@
 package com.profiletailors.smp.publishing.application
 
 import com.profiletailors.common.domain.bus.command.CommandWithResult
+import com.profiletailors.common.domain.bus.query.Query
+import com.profiletailors.smp.publishing.domain.ActivityDensity
 import com.profiletailors.smp.publishing.domain.AssetSourceType
 import com.profiletailors.smp.publishing.domain.PublicationAssetStatus
 import com.profiletailors.smp.publishing.domain.PublicationStatus
@@ -9,11 +11,44 @@ import com.profiletailors.smp.publishing.domain.SocialAccountKind
 import com.profiletailors.smp.publishing.domain.SocialConnectionStatus
 import com.profiletailors.smp.publishing.domain.SocialProvider
 import java.time.Instant
+import java.time.LocalDate
+
+data class InitiateLinkedInConnectionCommand(
+    val redirectUri: String,
+) : CommandWithResult<LinkedInConnectionInitiationResult>
+
+data class LinkedInConnectionInitiationResult(
+    val authorizationUrl: String,
+    val state: String,
+    val expiresAt: Instant,
+)
 
 data class CompleteLinkedInConnectionCommand(
     val authorizationCode: String,
     val redirectUri: String,
+    val state: String,
 ) : CommandWithResult<SocialConnectionResult>
+
+data class ListConnectedChannelsQuery(
+    val status: SocialConnectionStatus? = SocialConnectionStatus.ACTIVE,
+) : Query<ConnectedChannelsResponse>
+
+data class ConnectedChannelsResponse(
+    val channels: List<ConnectedSocialChannelSummary>,
+)
+
+data class ConnectedSocialChannelSummary(
+    val socialAccountId: String,
+    val connectionId: String,
+    val provider: SocialProvider,
+    val accountKind: SocialAccountKind,
+    val displayName: String,
+    val status: SocialConnectionStatus,
+    val profileUrn: String?,
+    val avatarUrl: String? = null,
+    val connectedAt: Instant?,
+    val lastSyncedAt: Instant?,
+)
 
 data class CreatePublicationCommand(
     val socialAccountId: String,
@@ -106,4 +141,47 @@ data class CreateAssetResult(
     val sourceType: AssetSourceType,
     val mediaType: String,
     val status: com.profiletailors.smp.publishing.domain.PublicationAssetStatus,
+)
+
+// --- Calendar Query DTOs ---
+
+data class GetCalendarPublicationsQuery(
+    val from: Instant,
+    val to: Instant,
+    val status: PublicationStatus? = null,
+    val socialAccountId: String? = null,
+    val timezone: String = "UTC",
+) : Query<CalendarResponse>
+
+data class CalendarResponse(
+    val publications: List<CalendarPublicationResult>,
+    val conflicts: List<ConflictEntry>,
+    val activity: List<ActivityEntry>,
+)
+
+data class CalendarPublicationResult(
+    val id: String,
+    val workspaceId: String,
+    val socialAccountId: String,
+    val provider: SocialProvider,
+    val status: PublicationStatus,
+    val scheduleMode: ScheduleMode,
+    val priority: Boolean,
+    val title: String?,
+    val bodyText: String?,
+    val scheduledFor: Instant?,
+    val hasConflict: Boolean,
+    val conflictingPublicationIds: List<String>,
+)
+
+data class ConflictEntry(
+    val publicationId: String,
+    val conflictingPublicationIds: List<String>,
+    val reason: String = "OVERLAPPING_SCHEDULE",
+)
+
+data class ActivityEntry(
+    val date: LocalDate,
+    val density: ActivityDensity,
+    val count: Int,
 )

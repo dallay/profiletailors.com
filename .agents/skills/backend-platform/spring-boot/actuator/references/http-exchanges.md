@@ -15,26 +15,26 @@ that are stored in the `HttpExchangeRepository`.
 
 ### In-Memory Repository (Development)
 
-```java
+```kotlin
 @Configuration
-public class HttpExchangesConfiguration {
+class HttpExchangesConfiguration {
 
     @Bean
-    public InMemoryHttpExchangeRepository httpExchangeRepository() {
-        return new InMemoryHttpExchangeRepository();
+    fun httpExchangeRepository(): InMemoryHttpExchangeRepository {
+        return InMemoryHttpExchangeRepository()
     }
 }
 ```
 
 ### Custom Repository Size
 
-```java
+```kotlin
 @Configuration
-public class HttpExchangesConfiguration {
+class HttpExchangesConfiguration {
 
     @Bean
-    public InMemoryHttpExchangeRepository httpExchangeRepository() {
-        return new InMemoryHttpExchangeRepository(1000); // Store last 1000 exchanges
+    fun httpExchangeRepository(): InMemoryHttpExchangeRepository {
+        return InMemoryHttpExchangeRepository(1000) // Store last 1000 exchanges
     }
 }
 ```
@@ -74,178 +74,166 @@ Available options:
 
 ### Database-backed Repository
 
-```java
+```kotlin
 @Entity
 @Table(name = "http_exchanges")
-public class HttpExchangeEntity {
-    
+class HttpExchangeEntity(
+
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Long id;
-    
+    var id: Long? = null,
+
     @Column(name = "timestamp")
-    private Instant timestamp;
-    
+    var timestamp: Instant? = null,
+
     @Column(name = "method")
-    private String method;
-    
+    var method: String? = null,
+
     @Column(name = "uri", length = 2000)
-    private String uri;
-    
+    var uri: String? = null,
+
     @Column(name = "status")
-    private Integer status;
-    
+    var status: Int? = null,
+
     @Column(name = "time_taken")
-    private Long timeTaken;
-    
+    var timeTaken: Long? = null,
+
     @Column(name = "principal")
-    private String principal;
-    
+    var principal: String? = null,
+
     @Column(name = "remote_address")
-    private String remoteAddress;
-    
+    var remoteAddress: String? = null,
+
     @Column(name = "session_id")
-    private String sessionId;
-    
+    var sessionId: String? = null,
+
     @Lob
     @Column(name = "request_headers")
-    private String requestHeaders;
-    
+    var requestHeaders: String? = null,
+
     @Lob
     @Column(name = "response_headers")
-    private String responseHeaders;
-    
-    // Constructors, getters, setters
-}
+    var responseHeaders: String? = null
+)
 
 @Repository
-public interface HttpExchangeEntityRepository extends JpaRepository<HttpExchangeEntity, Long> {
-    
-    List<HttpExchangeEntity> findTop100ByOrderByTimestampDesc();
-    
+interface HttpExchangeEntityRepository : JpaRepository<HttpExchangeEntity, Long> {
+
+    fun findTop100ByOrderByTimestampDesc(): List<HttpExchangeEntity>
+
     @Modifying
     @Query("DELETE FROM HttpExchangeEntity h WHERE h.timestamp < :cutoff")
-    void deleteOlderThan(@Param("cutoff") Instant cutoff);
+    fun deleteOlderThan(@Param("cutoff") cutoff: Instant)
 }
 
 @Component
-public class DatabaseHttpExchangeRepository implements HttpExchangeRepository {
+class DatabaseHttpExchangeRepository(
+    private val repository: HttpExchangeEntityRepository
+) : HttpExchangeRepository {
 
-    private final HttpExchangeEntityRepository repository;
-    private final ObjectMapper objectMapper;
+    private val objectMapper = ObjectMapper()
 
-    public DatabaseHttpExchangeRepository(HttpExchangeEntityRepository repository) {
-        this.repository = repository;
-        this.objectMapper = new ObjectMapper();
-    }
-
-    @Override
-    public List<HttpExchange> findAll() {
+    override fun findAll(): List<HttpExchange> {
         return repository.findTop100ByOrderByTimestampDesc()
-                .stream()
-                .map(this::toHttpExchange)
-                .collect(Collectors.toList());
+            .map { toHttpExchange(it) }
     }
 
-    @Override
-    public void add(HttpExchange httpExchange) {
-        HttpExchangeEntity entity = toEntity(httpExchange);
-        repository.save(entity);
+    override fun add(httpExchange: HttpExchange) {
+        val entity = toEntity(httpExchange)
+        repository.save(entity)
     }
 
-    private HttpExchangeEntity toEntity(HttpExchange exchange) {
-        HttpExchangeEntity entity = new HttpExchangeEntity();
-        entity.setTimestamp(exchange.getTimestamp());
-        
-        HttpExchange.Request request = exchange.getRequest();
-        entity.setMethod(request.getMethod());
-        entity.setUri(request.getUri().toString());
-        entity.setPrincipal(exchange.getPrincipal() != null ? 
-                          exchange.getPrincipal().getName() : null);
-        entity.setRemoteAddress(request.getRemoteAddress());
-        
-        if (exchange.getResponse() != null) {
-            entity.setStatus(exchange.getResponse().getStatus());
+    private fun toEntity(exchange: HttpExchange): HttpExchangeEntity {
+        val entity = HttpExchangeEntity()
+        entity.timestamp = exchange.timestamp
+
+        val request = exchange.request
+        entity.method = request.method
+        entity.uri = request.uri.toString()
+        entity.principal = exchange.principal?.name
+        entity.remoteAddress = request.remoteAddress
+
+        exchange.response?.let { response ->
+            entity.status = response.status
         }
-        
-        entity.setTimeTaken(exchange.getTimeTaken() != null ? 
-                          exchange.getTimeTaken().toMillis() : null);
-        
+
+        entity.timeTaken = exchange.timeTaken?.toMillis()
+
         try {
-            entity.setRequestHeaders(objectMapper.writeValueAsString(request.getHeaders()));
-            if (exchange.getResponse() != null) {
-                entity.setResponseHeaders(objectMapper.writeValueAsString(
-                    exchange.getResponse().getHeaders()));
+            entity.requestHeaders = objectMapper.writeValueAsString(request.headers)
+            exchange.response?.let { response ->
+                entity.responseHeaders = objectMapper.writeValueAsString(response.headers)
             }
-        } catch (Exception e) {
+        } catch (e: Exception) {
             // Handle serialization error
         }
-        
-        return entity;
+
+        return entity
     }
 
-    private HttpExchange toHttpExchange(HttpExchangeEntity entity) {
-        // Implement conversion from entity to HttpExchange
+    private fun toHttpExchange(entity: HttpExchangeEntity): HttpExchange {
+        // PSEUDOCODE: Conversion from entity to HttpExchange
         // This is complex due to HttpExchange being immutable
-        // Consider using a builder pattern or reflection
-        return null; // Simplified for brevity
+        // Real implementation requires using HttpExchange.Builder or reflection
+        // See Spring Boot Actuator documentation for complete implementation
+        TODO("Conversion requires custom builder - see Spring Boot Actuator docs")
     }
 
     @Scheduled(fixedRate = 3600000) // Clean up every hour
-    public void cleanup() {
-        Instant cutoff = Instant.now().minus(Duration.ofDays(7));
-        repository.deleteOlderThan(cutoff);
+    fun cleanup() {
+        val cutoff = Instant.now().minus(Duration.ofDays(7))
+        repository.deleteOlderThan(cutoff)
     }
 }
 ```
 
 ### Filtered HTTP Exchange Repository
 
-```java
+```kotlin
 @Component
-public class FilteredHttpExchangeRepository implements HttpExchangeRepository {
+class FilteredHttpExchangeRepository implements HttpExchangeRepository {
 
-    private final HttpExchangeRepository delegate;
+    private val delegate: HttpExchangeRepository
     private final Set<String> excludePaths;
     private final Set<String> excludeUserAgents;
 
-    public FilteredHttpExchangeRepository(HttpExchangeRepository delegate) {
+    public FilteredHttpExchangeRepository (HttpExchangeRepository delegate) {
         this.delegate = delegate;
-        this.excludePaths = Set.of("/actuator/health", "/actuator/metrics", "/favicon.ico");
-        this.excludeUserAgents = Set.of("kube-probe", "ELB-HealthChecker");
+        this.excludePaths = setOf("/actuator/health", "/actuator/metrics", "/favicon.ico");
+        this.excludeUserAgents = setOf("kube-probe", "ELB-HealthChecker");
     }
 
     @Override
-    public List<HttpExchange> findAll() {
+    public List < HttpExchange > findAll () {
         return delegate.findAll();
     }
 
     @Override
-    public void add(HttpExchange httpExchange) {
+    fun add(HttpExchange httpExchange): void {
         if (shouldRecord(httpExchange)) {
             delegate.add(httpExchange);
         }
     }
 
-    private boolean shouldRecord(HttpExchange exchange) {
-        String path = exchange.getRequest().getUri().getPath();
-        
+    private fun shouldRecord(HttpExchange exchange): boolean {
+        String path = exchange . getRequest ().getUri().getPath();
+
         // Skip health check and monitoring endpoints
         if (excludePaths.contains(path)) {
             return false;
         }
-        
+
         // Skip requests from monitoring tools
-        String userAgent = exchange.getRequest().getHeaders().getFirst("User-Agent");
+        String userAgent = exchange . getRequest ().getHeaders().getFirst("User-Agent");
         if (userAgent != null && excludeUserAgents.stream().anyMatch(userAgent::contains)) {
             return false;
         }
-        
+
         // Skip successful static resource requests
         if (path.startsWith("/static/") || path.startsWith("/css/") || path.startsWith("/js/")) {
             return exchange.getResponse() == null || exchange.getResponse().getStatus() >= 400;
         }
-        
+
         return true;
     }
 }
@@ -255,26 +243,26 @@ public class FilteredHttpExchangeRepository implements HttpExchangeRepository {
 
 ### Async Repository Wrapper
 
-```java
+```kotlin
 @Component
-public class AsyncHttpExchangeRepository implements HttpExchangeRepository {
+class AsyncHttpExchangeRepository implements HttpExchangeRepository {
 
-    private final HttpExchangeRepository delegate;
-    private final TaskExecutor taskExecutor;
+    private val delegate: HttpExchangeRepository
+    private val taskExecutor: TaskExecutor
 
-    public AsyncHttpExchangeRepository(HttpExchangeRepository delegate, 
-                                     @Qualifier("httpExchangeTaskExecutor") TaskExecutor taskExecutor) {
-        this.delegate = delegate;
-        this.taskExecutor = taskExecutor;
-    }
+    public AsyncHttpExchangeRepository (HttpExchangeRepository delegate,
+    @Qualifier("httpExchangeTaskExecutor") TaskExecutor taskExecutor) {
+    this.delegate = delegate;
+    this.taskExecutor = taskExecutor;
+}
 
     @Override
-    public List<HttpExchange> findAll() {
+    public List < HttpExchange > findAll () {
         return delegate.findAll();
     }
 
     @Override
-    public void add(HttpExchange httpExchange) {
+    fun add(HttpExchange httpExchange): void {
         taskExecutor.execute(() -> {
             try {
                 delegate.add(httpExchange);
@@ -287,16 +275,16 @@ public class AsyncHttpExchangeRepository implements HttpExchangeRepository {
 }
 
 @Configuration
-public class HttpExchangeTaskExecutorConfiguration {
+class HttpExchangeTaskExecutorConfiguration {
 
     @Bean("httpExchangeTaskExecutor")
-    public TaskExecutor httpExchangeTaskExecutor() {
-        ThreadPoolTaskExecutor executor = new ThreadPoolTaskExecutor();
+    fun httpExchangeTaskExecutor(): TaskExecutor {
+        ThreadPoolTaskExecutor executor = ThreadPoolTaskExecutor ();
         executor.setCorePoolSize(1);
         executor.setMaxPoolSize(2);
         executor.setQueueCapacity(1000);
         executor.setThreadNamePrefix("http-exchange-");
-        executor.setRejectedExecutionHandler(new ThreadPoolExecutor.DiscardOldestPolicy());
+        executor.setRejectedExecutionHandler(new ThreadPoolExecutor . DiscardOldestPolicy ());
         executor.initialize();
         return executor;
     }
@@ -322,16 +310,24 @@ Response format:
         "method": "GET",
         "uri": "http://localhost:8080/api/users/123",
         "headers": {
-          "accept": ["application/json"],
-          "user-agent": ["Mozilla/5.0..."]
+          "accept": [
+            "application/json"
+          ],
+          "user-agent": [
+            "Mozilla/5.0..."
+          ]
         },
         "remoteAddress": "192.168.1.100"
       },
       "response": {
         "status": 200,
         "headers": {
-          "content-type": ["application/json"],
-          "content-length": ["256"]
+          "content-type": [
+            "application/json"
+          ],
+          "content-length": [
+            "256"
+          ]
         }
       },
       "principal": {
@@ -348,19 +344,20 @@ Response format:
 
 ### Securing the Endpoint
 
-```java
+```kotlin
 @Configuration
-public class HttpExchangesSecurityConfig {
+class HttpExchangesSecurityConfig {
 
     @Bean
     @Order(1)
-    public SecurityFilterChain httpExchangesSecurityFilterChain(HttpSecurity http) throws Exception {
+    public SecurityFilterChain httpExchangesSecurityFilterChain(HttpSecurity http) throws Exception
+    {
         return http
             .requestMatcher(EndpointRequest.to("httpexchanges"))
-            .authorizeHttpRequests(requests -> 
-                requests.anyRequest().hasRole("ADMIN"))
-            .httpBasic(withDefaults())
-            .build();
+            .authorizeHttpRequests(requests ->
+        requests.anyRequest().hasRole("ADMIN"))
+        .httpBasic(withDefaults())
+        .build();
     }
 }
 ```
@@ -369,32 +366,32 @@ public class HttpExchangesSecurityConfig {
 
 ### Including Custom Data
 
-```java
+```kotlin
 @Component
-public class CustomHttpExchangeRepository implements HttpExchangeRepository {
+class CustomHttpExchangeRepository implements HttpExchangeRepository {
 
-    private final InMemoryHttpExchangeRepository delegate;
+    private val delegate: InMemoryHttpExchangeRepository
 
-    public CustomHttpExchangeRepository() {
-        this.delegate = new InMemoryHttpExchangeRepository();
+    public CustomHttpExchangeRepository () {
+        this.delegate = InMemoryHttpExchangeRepository();
     }
 
     @Override
-    public List<HttpExchange> findAll() {
+    public List < HttpExchange > findAll () {
         return delegate.findAll();
     }
 
     @Override
-    public void add(HttpExchange httpExchange) {
-        HttpExchange enrichedExchange = enrichExchange(httpExchange);
+    fun add(HttpExchange httpExchange): void {
+        HttpExchange enrichedExchange = enrichExchange (httpExchange);
         delegate.add(enrichedExchange);
     }
 
-    private HttpExchange enrichExchange(HttpExchange original) {
+    private fun enrichExchange(HttpExchange original): HttpExchange {
         // Add custom information to the exchange
         // Note: HttpExchange is immutable, so we need to create a wrapper
         // or use reflection to modify internal state
-        
+
         // For demonstration, we'll just add it normally
         // In practice, you might need to create a custom implementation
         return original;
@@ -402,26 +399,26 @@ public class CustomHttpExchangeRepository implements HttpExchangeRepository {
 }
 
 @Component
-public class HttpExchangeEnricher {
+class HttpExchangeEnricher {
 
-    public void enrich(HttpServletRequest request, HttpServletResponse response) {
+    fun enrich(HttpServletRequest request, HttpServletResponse response): void {
         // Add custom attributes that can be picked up by the repository
         request.setAttribute("custom.trace.id", getTraceId());
         request.setAttribute("custom.user.role", getUserRole());
         request.setAttribute("custom.api.version", getApiVersion(request));
     }
 
-    private String getTraceId() {
+    private fun getTraceId(): String {
         // Get from tracing context
         return "trace-123";
     }
 
-    private String getUserRole() {
-        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+    private fun getUserRole(): String {
+        Authentication auth = SecurityContextHolder . getContext ().getAuthentication();
         return auth != null ? auth.getAuthorities().toString() : "anonymous";
     }
 
-    private String getApiVersion(HttpServletRequest request) {
+    private fun getApiVersion(HttpServletRequest request): String {
         return request.getHeader("API-Version");
     }
 }
@@ -450,27 +447,27 @@ management:
 
 ### Custom Sampling
 
-```java
+```kotlin
 @Component
-public class SamplingHttpExchangeRepository implements HttpExchangeRepository {
+class SamplingHttpExchangeRepository implements HttpExchangeRepository {
 
-    private final HttpExchangeRepository delegate;
-    private final Random random = new Random();
-    private final double samplingRate;
+    private val delegate: HttpExchangeRepository
+    private final Random random = Random ();
+    private val samplingRate: double
 
-    public SamplingHttpExchangeRepository(HttpExchangeRepository delegate,
-                                        @Value("${app.http-exchanges.sampling-rate:0.1}") double samplingRate) {
-        this.delegate = delegate;
-        this.samplingRate = samplingRate;
-    }
+    public SamplingHttpExchangeRepository (HttpExchangeRepository delegate,
+    @Value("${app.http - exchanges.sampling - rate:0.1}") double samplingRate) {
+    this.delegate = delegate;
+    this.samplingRate = samplingRate;
+}
 
     @Override
-    public List<HttpExchange> findAll() {
+    public List < HttpExchange > findAll () {
         return delegate.findAll();
     }
 
     @Override
-    public void add(HttpExchange httpExchange) {
+    fun add(HttpExchange httpExchange): void {
         if (random.nextDouble() < samplingRate) {
             delegate.add(httpExchange);
         }

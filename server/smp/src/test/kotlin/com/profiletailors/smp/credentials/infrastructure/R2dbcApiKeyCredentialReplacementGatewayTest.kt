@@ -19,6 +19,7 @@ import org.junit.jupiter.api.Assertions.assertNotNull
 import org.junit.jupiter.api.Assertions.assertNull
 import org.junit.jupiter.api.Assertions.assertThrows
 import org.junit.jupiter.api.BeforeEach
+import org.junit.jupiter.api.Tag
 import org.junit.jupiter.api.Test
 import org.springframework.r2dbc.core.DatabaseClient
 import java.sql.DriverManager
@@ -222,6 +223,7 @@ class R2dbcApiKeyCredentialReplacementGatewayTest {
     }
 
     private fun deleteAllRows() = runTest {
+        databaseClient.sql("SET REFERENTIAL_INTEGRITY FALSE").fetch().rowsUpdated().awaitSingle()
         listOf(
             "DELETE FROM api_key_credentials",
             "DELETE FROM service_account_credentials",
@@ -230,6 +232,7 @@ class R2dbcApiKeyCredentialReplacementGatewayTest {
         ).forEach { statement ->
             databaseClient.sql(statement).fetch().rowsUpdated().awaitSingle()
         }
+        databaseClient.sql("SET REFERENTIAL_INTEGRITY TRUE").fetch().rowsUpdated().awaitSingle()
     }
 
     private class StubApiKeyCredentialValueFactory : com.profiletailors.smp.credentials.application.ApiKeyCredentialValueFactory {

@@ -10,6 +10,8 @@ import org.springframework.context.annotation.Bean
 import org.springframework.context.annotation.Configuration
 import java.nio.file.Path
 
+import software.amazon.awssdk.auth.credentials.AwsBasicCredentials
+import software.amazon.awssdk.auth.credentials.StaticCredentialsProvider
 import software.amazon.awssdk.regions.Region
 import software.amazon.awssdk.services.s3.S3AsyncClient
 import software.amazon.awssdk.services.s3.presigner.S3Presigner
@@ -95,11 +97,14 @@ open class StorageAutoConfiguration {
 
     /**
      * Creates an R2StorageAdapter for Cloudflare R2.
+     *
+     * R2 has no AWS credentials chain — the access/secret keys MUST be supplied
+     * explicitly via [ProviderConfig.accessKeyId] / [ProviderConfig.secretAccessKey].
      */
-    private fun createR2Storage(config: ProviderConfig): R2StorageAdapter {
-        val bucket = config.bucket 
+    internal fun createR2Storage(config: ProviderConfig): R2StorageAdapter {
+        val bucket = config.bucket
             ?: throw IllegalArgumentException("Bucket name is required for R2")
-        
+
         // Get account ID from config or extract from endpoint
         val accountId = config.accountId ?: extractAccountId(config.endpoint)
             ?: throw IllegalArgumentException(
@@ -107,20 +112,36 @@ open class StorageAutoConfiguration {
                 "Provide it in config or include it in the endpoint URL: " +
                 "https://{accountId}.r2.cloudflarestorage.com"
             )
-        
+
+        // R2 has no implicit credentials chain; both keys are mandatory.
+        val accessKeyId = config.accessKeyId
+        val secretAccessKey = config.secretAccessKey
+        if (accessKeyId.isNullOrBlank() || secretAccessKey.isNullOrBlank()) {
+            throw IllegalArgumentException(
+                "R2 requires both accessKeyId and secretAccessKey in provider config. " +
+                "Configure them under platform.storage.providers.{name}.access-key-id " +
+                "and platform.storage.providers.{name}.secret-access-key."
+            )
+        }
+        val credentialsProvider = StaticCredentialsProvider.create(
+            AwsBasicCredentials.create(accessKeyId, secretAccessKey)
+        )
+
         // R2 requires region "auto"
         val region = Region.of(config.region ?: "auto")
-        
-        // Build R2-specific client
+
+        // Build R2-specific client with explicit credentials
         val clientBuilder = S3AsyncClient.builder()
             .region(region)
             .endpointOverride(r2Endpoint(accountId))
+            .credentialsProvider(credentialsProvider)
             .forcePathStyle(true)  // R2 requires path-style
-        
+
         val presignerBuilder = S3Presigner.builder()
             .region(region)
             .endpointOverride(r2Endpoint(accountId))
-        
+            .credentialsProvider(credentialsProvider)
+
         return R2StorageAdapter(
             clientBuilder.build(),
             bucket,

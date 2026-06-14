@@ -194,8 +194,8 @@ class Bucket4jRateLimiter(
                 configurationFactory.createConfiguration(RateLimitStrategy.BUSINESS, planName)
             }
 
-            RateLimitStrategy.BUSINESS ->
-                configurationFactory.createConfiguration(RateLimitStrategy.BUSINESS)
+            RateLimitStrategy.RESUME ->
+                configurationFactory.createConfiguration(RateLimitStrategy.RESUME)
 
             RateLimitStrategy.WAITLIST ->
                 configurationFactory.createConfiguration(RateLimitStrategy.WAITLIST)

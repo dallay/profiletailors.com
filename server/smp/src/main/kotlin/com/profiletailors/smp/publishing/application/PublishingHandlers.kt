@@ -2,12 +2,26 @@ package com.profiletailors.smp.publishing.application
 
 import com.profiletailors.common.domain.Service
 import com.profiletailors.common.domain.bus.command.CommandWithResultHandler
+import com.profiletailors.common.domain.bus.query.QueryHandler
 import com.profiletailors.common.domain.context.PrincipalContextProvider
 import com.profiletailors.common.domain.context.ResourceContextProvider
+import com.profiletailors.smp.publishing.domain.ActivityThresholds
 import com.profiletailors.smp.publishing.domain.AssetSourceType
+import com.profiletailors.smp.publishing.domain.ChannelEvent
+import com.profiletailors.smp.publishing.domain.ChannelEventPublisher
+import com.profiletailors.smp.publishing.domain.ChannelEventType
 import com.profiletailors.smp.publishing.domain.CompleteProviderConnectionCommand
+import com.profiletailors.smp.publishing.domain.ConnectedSocialChannel
+import com.profiletailors.smp.publishing.domain.ConnectedSocialChannelReadRepository
+import com.profiletailors.smp.publishing.domain.ConflictDetectionPolicy
+import com.profiletailors.smp.publishing.domain.ExpiredOAuthStateException
+import com.profiletailors.smp.publishing.domain.InvalidOAuthStateException
+import com.profiletailors.smp.publishing.domain.LinkedInAuthorizationUrlBuilder
+import com.profiletailors.smp.publishing.domain.LinkedInOAuthStatePayload
+import com.profiletailors.smp.publishing.domain.OAuthStateSigner
 import com.profiletailors.smp.publishing.domain.ProviderCapabilityValidationInput
 import com.profiletailors.smp.publishing.domain.ProviderCapabilityValidator
+import com.profiletailors.smp.publishing.domain.ProviderNotConfiguredException
 import com.profiletailors.smp.publishing.domain.PublicationAsset
 import com.profiletailors.smp.publishing.domain.PublicationAssetRepository
 import com.profiletailors.smp.publishing.domain.PublicationAssetStatus
@@ -45,18 +59,63 @@ class SocialAccountNotFoundException(
 ) : IllegalArgumentException("Social account '$socialAccountId' was not found in the active workspace.")
 
 @Service
+internal class InitiateLinkedInConnectionHandler(
+    private val principalContextProvider: PrincipalContextProvider,
+    private val resourceContextProvider: ResourceContextProvider,
+    private val oauthStateSigner: OAuthStateSigner,
+    private val authorizationUrlBuilder: LinkedInAuthorizationUrlBuilder,
+    private val clock: Clock,
+) : CommandWithResultHandler<InitiateLinkedInConnectionCommand, LinkedInConnectionInitiationResult> {
+    override suspend fun handle(command: InitiateLinkedInConnectionCommand): LinkedInConnectionInitiationResult {
+        if (!authorizationUrlBuilder.isConfigured()) {
+            throw ProviderNotConfiguredException(SocialProvider.LINKEDIN)
+        }
+        val principal = principalContextProvider.require()
+        val workspaceId = requireNotNull(resourceContextProvider.requireWorkspaceContext().workspaceId)
+        val issuedAt = clock.instant()
+        val expiresAt = issuedAt.plus(STATE_TTL)
+        val state = oauthStateSigner.sign(
+            LinkedInOAuthStatePayload(
+                provider = SocialProvider.LINKEDIN,
+                workspaceId = workspaceId,
+                principalId = principal.principalId,
+                redirectUri = command.redirectUri,
+                nonce = UUID.randomUUID().toString(),
+                issuedAt = issuedAt,
+                expiresAt = expiresAt,
+            ),
+        )
+        return LinkedInConnectionInitiationResult(
+            authorizationUrl = authorizationUrlBuilder.buildAuthorizationUrl(
+                state = state,
+                redirectUri = command.redirectUri,
+            ),
+            state = state,
+            expiresAt = expiresAt,
+        )
+    }
+
+    private companion object {
+        val STATE_TTL: java.time.Duration = java.time.Duration.ofMinutes(10)
+    }
+}
+
+@Service
 internal class CompleteLinkedInConnectionHandler(
     private val principalContextProvider: PrincipalContextProvider,
     private val resourceContextProvider: ResourceContextProvider,
     private val socialConnectionProvider: SocialConnectionProvider,
+    private val oauthStateSigner: OAuthStateSigner,
     private val socialConnectionRepository: SocialConnectionRepository,
     private val socialAccountRepository: SocialAccountRepository,
+    private val channelEventPublisher: ChannelEventPublisher,
     private val clock: Clock,
 ) : CommandWithResultHandler<CompleteLinkedInConnectionCommand, SocialConnectionResult> {
     override suspend fun handle(command: CompleteLinkedInConnectionCommand): SocialConnectionResult {
         val principal = principalContextProvider.require()
         val resourceContext = resourceContextProvider.requireWorkspaceContext()
         val workspaceId = requireNotNull(resourceContext.workspaceId)
+        validateState(command, principal.principalId, workspaceId)
         val providerResult = socialConnectionProvider.completeConnection(
             CompleteProviderConnectionCommand(
                 workspaceId = workspaceId,
@@ -87,7 +146,16 @@ internal class CompleteLinkedInConnectionHandler(
                 kind = providerResult.account.kind,
                 displayName = providerResult.account.displayName,
                 profileUrn = providerResult.account.profileUrn,
+                avatarUrl = providerResult.account.avatarUrl,
                 status = SocialConnectionStatus.ACTIVE,
+            ),
+        )
+        channelEventPublisher.publish(
+            ChannelEvent(
+                type = ChannelEventType.CONNECTED_CHANNEL_UPDATED,
+                workspaceId = workspaceId,
+                socialAccountId = account.id,
+                occurredAt = clock.instant(),
             ),
         )
 
@@ -105,7 +173,64 @@ internal class CompleteLinkedInConnectionHandler(
             ),
         )
     }
+
+    private fun validateState(
+        command: CompleteLinkedInConnectionCommand,
+        principalId: String,
+        workspaceId: String,
+    ) {
+        val payload = oauthStateSigner.verify(command.state)
+        if (!payload.expiresAt.isAfter(clock.instant())) {
+            throw ExpiredOAuthStateException()
+        }
+        requireOAuthState(payload.provider == SocialProvider.LINKEDIN) {
+            "OAuth state provider does not match LinkedIn."
+        }
+        requireOAuthState(payload.workspaceId == workspaceId) {
+            "OAuth state workspace does not match the active workspace."
+        }
+        requireOAuthState(payload.principalId == principalId) {
+            "OAuth state principal does not match the active principal."
+        }
+        requireOAuthState(payload.redirectUri == command.redirectUri) {
+            "OAuth state redirect URI does not match the completion request."
+        }
+    }
+
+    private fun requireOAuthState(condition: Boolean, message: () -> String) {
+        if (!condition) {
+            throw InvalidOAuthStateException(message())
+        }
+    }
 }
+
+@Service
+internal class ListConnectedChannelsHandler(
+    private val resourceContextProvider: ResourceContextProvider,
+    private val connectedSocialChannelReadRepository: ConnectedSocialChannelReadRepository,
+) : QueryHandler<ListConnectedChannelsQuery, ConnectedChannelsResponse> {
+    override suspend fun handle(query: ListConnectedChannelsQuery): ConnectedChannelsResponse {
+        val workspaceId = requireNotNull(resourceContextProvider.requireWorkspaceContext().workspaceId)
+        val statuses = query.status?.let { setOf(it) } ?: setOf(SocialConnectionStatus.ACTIVE)
+        val channels = connectedSocialChannelReadRepository
+            .listByWorkspace(workspaceId = workspaceId, statuses = statuses)
+            .map { it.toSummary() }
+        return ConnectedChannelsResponse(channels)
+    }
+}
+
+private fun ConnectedSocialChannel.toSummary(): ConnectedSocialChannelSummary = ConnectedSocialChannelSummary(
+    socialAccountId = socialAccountId,
+    connectionId = connectionId,
+    provider = provider,
+    accountKind = accountKind,
+    displayName = displayName,
+    status = status,
+    profileUrn = profileUrn,
+    avatarUrl = avatarUrl,
+    connectedAt = connectedAt,
+    lastSyncedAt = lastSyncedAt,
+)
 
 @Service
 internal class CreatePublicationHandler(
@@ -378,6 +503,69 @@ internal class CreateAssetHandler(
         )
     }
 }
+
+@Service
+internal class GetCalendarPublicationsHandler(
+    private val resourceContextProvider: ResourceContextProvider,
+    private val publicationRepository: PublicationRepository,
+) : QueryHandler<GetCalendarPublicationsQuery, CalendarResponse> {
+    override suspend fun handle(query: GetCalendarPublicationsQuery): CalendarResponse {
+        val workspaceId = requireNotNull(resourceContextProvider.requireWorkspaceContext().workspaceId)
+
+        val statuses = query.status?.let { setOf(it) }
+        val accountIds = query.socialAccountId?.let { setOf(it) }
+
+        val publications = publicationRepository.findInDateRange(
+            workspaceId = workspaceId,
+            from = query.from,
+            to = query.to,
+            statuses = statuses,
+            socialAccountIds = accountIds,
+        )
+
+        val conflictMap = ConflictDetectionPolicy.findConflicts(publications)
+        val conflicts = conflictMap.map { (pubId, conflictingIds) ->
+            ConflictEntry(publicationId = pubId, conflictingPublicationIds = conflictingIds)
+        }
+
+        val dateCounts = publicationRepository.countByDate(
+            workspaceId = workspaceId,
+            from = query.from,
+            to = query.to,
+            statuses = statuses,
+            timezone = query.timezone,
+        )
+
+        val activity = dateCounts.map { dc ->
+            ActivityEntry(date = dc.date, density = ActivityThresholds.classify(dc.count), count = dc.count)
+        }
+
+        val publicationResults = publications.map { it.toCalendarResult(conflictMap[it.id].orEmpty()) }
+
+        return CalendarResponse(
+            publications = publicationResults,
+            conflicts = conflicts,
+            activity = activity,
+        )
+    }
+}
+
+private fun PublicationDraft.toCalendarResult(
+    conflictingPublicationIds: List<String>,
+): CalendarPublicationResult = CalendarPublicationResult(
+    id = id,
+    workspaceId = workspaceId,
+    socialAccountId = socialAccountId,
+    provider = provider,
+    status = status,
+    scheduleMode = scheduleMode,
+    priority = priority,
+    title = title,
+    bodyText = bodyText,
+    scheduledFor = scheduledFor,
+    hasConflict = conflictingPublicationIds.isNotEmpty(),
+    conflictingPublicationIds = conflictingPublicationIds,
+)
 
 private fun PublicationDraft.toResult(): PublicationResult = PublicationResult(
     publicationId = id,

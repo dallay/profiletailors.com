@@ -18,3 +18,21 @@ data class WorkspaceOwnershipResult(
     val workspaceId: String,
     val ownerPrincipalIds: List<String>,
 )
+
+data class RenameWorkspaceCommand(
+    val newName: String,
+) : CommandWithResult<RenameWorkspaceResult>
+
+data class RenameWorkspaceResult(
+    val workspaceId: String,
+    val name: String,
+)
+
+data class UpdateWorkspaceIconCommand(
+    val icon: String?,
+) : CommandWithResult<UpdateWorkspaceIconResult>
+
+data class UpdateWorkspaceIconResult(
+    val workspaceId: String,
+    val icon: String?,
+)

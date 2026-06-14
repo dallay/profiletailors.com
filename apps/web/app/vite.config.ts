@@ -1,3 +1,5 @@
+/// <reference types="vitest" />
+
 import { fileURLToPath, URL } from 'node:url'
 
 import { defineConfig } from 'vite'
@@ -7,6 +9,17 @@ import tailwind from '@tailwindcss/vite'
 
 // https://vite.dev/config/
 export default defineConfig({
+  server: {
+    port: parseInt(process.env.PORT || '5173', 10),
+    host: true,
+    allowedHosts: ['.localhost', 'pt-app.localhost'],
+    proxy: {
+      '/api': {
+        target: 'http://localhost:8080',
+        changeOrigin: true,
+      },
+    },
+  },
   plugins: [
     vue(),
     vueDevTools(),
@@ -17,6 +30,7 @@ export default defineConfig({
       '@': fileURLToPath(new URL('./src', import.meta.url))
     },
   },
+  // @ts-expect-error Vitest extends Vite config with a test property.
   test: {
     environment: 'jsdom',
     globals: true,

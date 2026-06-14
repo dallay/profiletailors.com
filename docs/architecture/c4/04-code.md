@@ -19,6 +19,10 @@ This level focuses on class structure, key methods, and design patterns.
 - **Application**: Use cases, ports (interfaces)
 - **Infrastructure**: Adapters (R2DBC, HTTP, external APIs)
 
+All bounded contexts — including cross-cutting ones (`platform`, `audit`, `observability`,
+`governance`) — must expose `domain/`, `application/`, and `infrastructure/` packages.
+Enforced by `HexagonalArchTest` in `server/smp/src/test/`.
+
 ### 2. CQRS (Command Query Responsibility Segregation)
 
 - **Commands**: Mutate state (e.g., `UpdateWorkspaceMembershipStatusCommand`)
@@ -55,6 +59,31 @@ This level focuses on class structure, key methods, and design patterns.
 
 ## Package Structure
 
+### Shared Kernel (framework-agnostic, zero Spring dependencies)
+
+```
+com.profiletailors.common
+├── domain                       # Domain primitives
+│   ├── model/                   # BaseEntity, AggregateRoot, AuditableEntity
+│   ├── vo/                      # Email, Name, Credential, IpHash, etc.
+│   ├── error/                   # Domain exception hierarchy
+│   ├── bus/event/               # DomainEvent interface
+│   ├── bus/query/               # Response marker
+│   ├── authentication/          # AccessToken
+│   ├── context/                 # PrincipalType
+│   ├── observability/           # RequestOutcome
+│   ├── workspace/               # WorkspaceMembershipSnapshot
+│   ├── Service.kt               # @Service annotation
+│   ├── Memoizers.kt             # Thread-safe memoization
+│   ├── Generated.kt             # Generated code marker
+│   └── GlobalSystemConstants.kt # SYSTEM_USER constants
+└── util/                        # SystemEnvironment
+```
+
+**Dependency direction:** `com.profiletailors.common` → no dependencies (pure Kotlin library)
+
+### Bounded Contexts (Spring Boot application)
+
 ```
 com.profiletailors.smp
 ├── {context}                    # Bounded context (e.g., identity, authorization)
@@ -65,6 +94,8 @@ com.profiletailors.smp
 │       ├── security             # Security filters, converters
 │       └── {AdapterName}.kt     # Repository implementations
 ```
+
+**Dependency direction:** `com.profiletailors.smp.{context}` → `com.profiletailors.common`
 
 ---
 

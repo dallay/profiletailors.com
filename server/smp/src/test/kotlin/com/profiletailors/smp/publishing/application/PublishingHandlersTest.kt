@@ -6,13 +6,25 @@ import com.profiletailors.common.domain.context.PrincipalType
 import com.profiletailors.common.domain.context.ResourceContext
 import com.profiletailors.common.domain.context.ResourceContextProvider
 import com.profiletailors.common.domain.context.ResourceContextType
+import com.profiletailors.smp.publishing.domain.ActivityDensity
 import com.profiletailors.smp.publishing.domain.AssetSourceType
+import com.profiletailors.smp.publishing.domain.ChannelEvent
+import com.profiletailors.smp.publishing.domain.ChannelEventPublisher
 import com.profiletailors.smp.publishing.domain.CompleteProviderConnectionCommand
+import com.profiletailors.smp.publishing.domain.ConnectedSocialChannel
+import com.profiletailors.smp.publishing.domain.ConnectedSocialChannelReadRepository
+import com.profiletailors.smp.publishing.domain.DateCount
+import com.profiletailors.smp.publishing.domain.ExpiredOAuthStateException
+import com.profiletailors.smp.publishing.domain.InvalidOAuthStateException
+import com.profiletailors.smp.publishing.domain.LinkedInAuthorizationUrlBuilder
+import com.profiletailors.smp.publishing.domain.LinkedInOAuthStatePayload
+import com.profiletailors.smp.publishing.domain.OAuthStateSigner
 import com.profiletailors.smp.publishing.domain.ProviderAccountProfile
 import com.profiletailors.smp.publishing.domain.ProviderCapabilityValidationInput
 import com.profiletailors.smp.publishing.domain.ProviderCapabilityValidator
 import com.profiletailors.smp.publishing.domain.ProviderAssetRef
 import com.profiletailors.smp.publishing.domain.ProviderConnectionResult
+import com.profiletailors.smp.publishing.domain.ProviderNotConfiguredException
 import com.profiletailors.smp.publishing.domain.PublicationAsset
 import com.profiletailors.smp.publishing.domain.PublicationAssetRepository
 import com.profiletailors.smp.publishing.domain.PublicationAssetStatus
@@ -36,11 +48,13 @@ import com.profiletailors.smp.publishing.domain.PublicationSchedulingPolicy
 import kotlinx.coroutines.test.runTest
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertNotNull
+import org.junit.jupiter.api.Assertions.assertNull
 import org.junit.jupiter.api.Assertions.assertThrows
 import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.Test
 import java.time.Clock
 import java.time.Instant
+import java.time.LocalDate
 import java.time.ZoneOffset
 
 class PublishingHandlersTest {
@@ -60,12 +74,16 @@ class PublishingHandlersTest {
     fun `connects linkedin profile in active workspace`() = runTest {
         val connectionRepository = InMemorySocialConnectionRepository()
         val accountRepository = InMemorySocialAccountRepository()
+        val stateSigner = CapturingOAuthStateSigner()
+        val state = stateSigner.sign(validStatePayload())
         val handler = CompleteLinkedInConnectionHandler(
             principalContextProvider = FixedPrincipalContextProvider(principalContext),
             resourceContextProvider = FixedResourceContextProvider(workspaceContext),
             socialConnectionProvider = FakeSocialConnectionProvider(),
+            oauthStateSigner = stateSigner,
             socialConnectionRepository = connectionRepository,
             socialAccountRepository = accountRepository,
+            channelEventPublisher = CapturingChannelEventPublisher(),
             clock = fixedClock,
         )
 
@@ -73,6 +91,7 @@ class PublishingHandlersTest {
             CompleteLinkedInConnectionCommand(
                 authorizationCode = "oauth-code-123",
                 redirectUri = "https://app.example.com/callback",
+                state = state,
             ),
         )
 
@@ -81,6 +100,157 @@ class PublishingHandlersTest {
         assertEquals("linkedin-account-1", result.account.providerAccountId)
         assertNotNull(connectionRepository.lastSaved)
         assertNotNull(accountRepository.lastSaved)
+    }
+
+    @Test
+    fun `initiates linkedin connection with signed state and authorization url`() = runTest {
+        val stateSigner = CapturingOAuthStateSigner()
+        val handler = InitiateLinkedInConnectionHandler(
+            principalContextProvider = FixedPrincipalContextProvider(principalContext),
+            resourceContextProvider = FixedResourceContextProvider(workspaceContext),
+            oauthStateSigner = stateSigner,
+            authorizationUrlBuilder = FakeAuthorizationUrlBuilder(),
+            clock = fixedClock,
+        )
+
+        val result = handler.handle(InitiateLinkedInConnectionCommand("https://app.example.com/callback"))
+
+        assertEquals("state-1", result.state)
+        assertEquals("https://linkedin.example/authorize?state=state-1", result.authorizationUrl)
+        assertEquals("workspace-1", stateSigner.lastPayload?.workspaceId)
+        assertEquals("principal-1", stateSigner.lastPayload?.principalId)
+        assertEquals(Instant.parse("2026-05-26T12:10:00Z"), result.expiresAt)
+    }
+
+    @Test
+    fun `rejects linkedin initiation when provider is not configured`() = runTest {
+        val handler = InitiateLinkedInConnectionHandler(
+            principalContextProvider = FixedPrincipalContextProvider(principalContext),
+            resourceContextProvider = FixedResourceContextProvider(workspaceContext),
+            oauthStateSigner = CapturingOAuthStateSigner(),
+            authorizationUrlBuilder = FakeAuthorizationUrlBuilder(configured = false),
+            clock = fixedClock,
+        )
+
+        assertThrows(ProviderNotConfiguredException::class.java) {
+            kotlinx.coroutines.runBlocking {
+                handler.handle(InitiateLinkedInConnectionCommand("https://app.example.com/callback"))
+            }
+        }
+    }
+
+    @Test
+    fun `lists active connected channels for active workspace`() = runTest {
+        val repository = InMemoryConnectedSocialChannelReadRepository(
+            listOf(
+                ConnectedSocialChannel(
+                    socialAccountId = "account-1",
+                    connectionId = "connection-1",
+                    provider = SocialProvider.LINKEDIN,
+                    accountKind = SocialAccountKind.PERSONAL_PROFILE,
+                    displayName = "Yuniel",
+                    status = SocialConnectionStatus.ACTIVE,
+                    profileUrn = "urn:li:person:123",
+                    avatarUrl = "https://media.licdn.com/photo.jpg",
+                    connectedAt = fixedClock.instant(),
+                    lastSyncedAt = null,
+                ),
+            ),
+        )
+        val handler = ListConnectedChannelsHandler(FixedResourceContextProvider(workspaceContext), repository)
+
+        val result = handler.handle(ListConnectedChannelsQuery())
+
+        assertEquals(1, result.channels.size)
+        assertEquals("account-1", result.channels.single().socialAccountId)
+        assertEquals("https://media.licdn.com/photo.jpg", result.channels.single().avatarUrl)
+        assertEquals(setOf(SocialConnectionStatus.ACTIVE), repository.lastStatuses)
+    }
+
+    @Test
+    fun `toSummary maps avatarUrl as null when channel has no avatar`() = runTest {
+        val repository = InMemoryConnectedSocialChannelReadRepository(
+            listOf(
+                ConnectedSocialChannel(
+                    socialAccountId = "account-no-avatar",
+                    connectionId = "connection-2",
+                    provider = SocialProvider.LINKEDIN,
+                    accountKind = SocialAccountKind.PERSONAL_PROFILE,
+                    displayName = "No Avatar",
+                    status = SocialConnectionStatus.ACTIVE,
+                    profileUrn = "urn:li:person:456",
+                    avatarUrl = null,
+                    connectedAt = fixedClock.instant(),
+                    lastSyncedAt = null,
+                ),
+            ),
+        )
+        val handler = ListConnectedChannelsHandler(FixedResourceContextProvider(workspaceContext), repository)
+
+        val result = handler.handle(ListConnectedChannelsQuery())
+
+        assertEquals(1, result.channels.size)
+        assertNull(result.channels.single().avatarUrl)
+    }
+
+    @Test
+    fun `rejects completion with mismatched oauth state before provider exchange`() = runTest {
+        val provider = FakeSocialConnectionProvider()
+        val handler = CompleteLinkedInConnectionHandler(
+            principalContextProvider = FixedPrincipalContextProvider(principalContext),
+            resourceContextProvider = FixedResourceContextProvider(workspaceContext),
+            socialConnectionProvider = provider,
+            oauthStateSigner = CapturingOAuthStateSigner(
+                payload = validStatePayload(workspaceId = "other-workspace"),
+            ),
+            socialConnectionRepository = InMemorySocialConnectionRepository(),
+            socialAccountRepository = InMemorySocialAccountRepository(),
+            channelEventPublisher = CapturingChannelEventPublisher(),
+            clock = fixedClock,
+        )
+
+        assertThrows(InvalidOAuthStateException::class.java) {
+            kotlinx.coroutines.runBlocking {
+                handler.handle(
+                    CompleteLinkedInConnectionCommand(
+                        authorizationCode = "oauth-code-123",
+                        redirectUri = "https://app.example.com/callback",
+                        state = "state-1",
+                    ),
+                )
+            }
+        }
+        assertEquals(0, provider.callCount)
+    }
+
+    @Test
+    fun `rejects completion with expired oauth state before provider exchange`() = runTest {
+        val provider = FakeSocialConnectionProvider()
+        val handler = CompleteLinkedInConnectionHandler(
+            principalContextProvider = FixedPrincipalContextProvider(principalContext),
+            resourceContextProvider = FixedResourceContextProvider(workspaceContext),
+            socialConnectionProvider = provider,
+            oauthStateSigner = CapturingOAuthStateSigner(
+                payload = validStatePayload(expiresAt = Instant.parse("2026-05-26T11:59:59Z")),
+            ),
+            socialConnectionRepository = InMemorySocialConnectionRepository(),
+            socialAccountRepository = InMemorySocialAccountRepository(),
+            channelEventPublisher = CapturingChannelEventPublisher(),
+            clock = fixedClock,
+        )
+
+        assertThrows(ExpiredOAuthStateException::class.java) {
+            kotlinx.coroutines.runBlocking {
+                handler.handle(
+                    CompleteLinkedInConnectionCommand(
+                        authorizationCode = "oauth-code-123",
+                        redirectUri = "https://app.example.com/callback",
+                        state = "state-1",
+                    ),
+                )
+            }
+        }
+        assertEquals(0, provider.callCount)
     }
 
     @Test
@@ -337,6 +507,168 @@ class PublishingHandlersTest {
     }
 
     @Test
+    fun `gets calendar publications with conflicts and activity`() = runTest {
+        val publicationRepository = InMemoryPublicationRepository(
+            seedMany = listOf(
+                calendarPublication("pub-1", "account-1", "2026-06-15T10:00:00Z"),
+                calendarPublication("pub-2", "account-1", "2026-06-15T10:10:00Z"),
+                calendarPublication("pub-3", "account-2", "2026-06-16T10:00:00Z"),
+            ),
+            dateCounts = listOf(
+                DateCount(date = LocalDate.parse("2026-06-15"), count = 2),
+                DateCount(date = LocalDate.parse("2026-06-16"), count = 6),
+            ),
+        )
+        val handler = GetCalendarPublicationsHandler(
+            resourceContextProvider = FixedResourceContextProvider(workspaceContext),
+            publicationRepository = publicationRepository,
+        )
+
+        val result = handler.handle(
+            GetCalendarPublicationsQuery(
+                from = Instant.parse("2026-06-01T00:00:00Z"),
+                to = Instant.parse("2026-07-01T00:00:00Z"),
+                timezone = "Europe/Madrid",
+            ),
+        )
+
+        assertEquals(listOf("pub-1", "pub-2", "pub-3"), result.publications.map { it.id })
+        assertEquals(setOf("pub-1", "pub-2"), result.conflicts.map { it.publicationId }.toSet())
+        assertEquals(ActivityDensity.LIGHT, result.activity.first { it.date == LocalDate.parse("2026-06-15") }.density)
+        assertEquals(ActivityDensity.HIGH, result.activity.first { it.date == LocalDate.parse("2026-06-16") }.density)
+        assertEquals("Europe/Madrid", publicationRepository.lastCountTimezone)
+    }
+
+    @Test
+    fun `gets calendar publications with status and account filters`() = runTest {
+        val publicationRepository = InMemoryPublicationRepository(
+            seedMany = listOf(
+                calendarPublication("pub-1", "account-1", "2026-06-15T10:00:00Z"),
+                calendarPublication("pub-2", "account-2", "2026-06-15T10:00:00Z", PublicationStatus.QUEUED),
+                calendarPublication("pub-3", "account-1", "2026-06-15T10:00:00Z", PublicationStatus.FAILED),
+            ),
+        )
+        val handler = GetCalendarPublicationsHandler(
+            resourceContextProvider = FixedResourceContextProvider(workspaceContext),
+            publicationRepository = publicationRepository,
+        )
+
+        val result = handler.handle(
+            GetCalendarPublicationsQuery(
+                from = Instant.parse("2026-06-01T00:00:00Z"),
+                to = Instant.parse("2026-07-01T00:00:00Z"),
+                status = PublicationStatus.SCHEDULED,
+                socialAccountId = "account-1",
+            ),
+        )
+
+        assertEquals(listOf("pub-1"), result.publications.map { it.id })
+        assertEquals(setOf(PublicationStatus.SCHEDULED), publicationRepository.lastFindStatuses)
+        assertEquals(setOf("account-1"), publicationRepository.lastFindSocialAccountIds)
+    }
+
+    @Test
+    fun `gets empty calendar for empty range`() = runTest {
+        val publicationRepository = InMemoryPublicationRepository()
+        val handler = GetCalendarPublicationsHandler(
+            resourceContextProvider = FixedResourceContextProvider(workspaceContext),
+            publicationRepository = publicationRepository,
+        )
+
+        val result = handler.handle(
+            GetCalendarPublicationsQuery(
+                from = Instant.parse("2026-06-01T00:00:00Z"),
+                to = Instant.parse("2026-07-01T00:00:00Z"),
+            ),
+        )
+
+        assertEquals(emptyList<CalendarPublicationResult>(), result.publications)
+        assertEquals(emptyList<ConflictEntry>(), result.conflicts)
+        assertEquals(emptyList<ActivityEntry>(), result.activity)
+    }
+
+    @Test
+    fun `calendar ignores non-conflicting accounts`() = runTest {
+        val publicationRepository = InMemoryPublicationRepository(
+            seedMany = listOf(
+                calendarPublication("pub-1", "account-1", "2026-06-15T10:00:00Z"),
+                calendarPublication("pub-2", "account-2", "2026-06-15T10:10:00Z"),
+            ),
+        )
+        val handler = GetCalendarPublicationsHandler(
+            resourceContextProvider = FixedResourceContextProvider(workspaceContext),
+            publicationRepository = publicationRepository,
+        )
+
+        val result = handler.handle(
+            GetCalendarPublicationsQuery(
+                from = Instant.parse("2026-06-01T00:00:00Z"),
+                to = Instant.parse("2026-07-01T00:00:00Z"),
+            ),
+        )
+
+        assertEquals(emptyList<ConflictEntry>(), result.conflicts)
+    }
+
+    @Test
+    fun `calendar converts zero activity density`() = runTest {
+        val publicationRepository = InMemoryPublicationRepository(
+            dateCounts = listOf(DateCount(date = LocalDate.parse("2026-06-15"), count = 0)),
+        )
+        val handler = GetCalendarPublicationsHandler(
+            resourceContextProvider = FixedResourceContextProvider(workspaceContext),
+            publicationRepository = publicationRepository,
+        )
+
+        val result = handler.handle(
+            GetCalendarPublicationsQuery(
+                from = Instant.parse("2026-06-01T00:00:00Z"),
+                to = Instant.parse("2026-07-01T00:00:00Z"),
+            ),
+        )
+
+        assertEquals(ActivityDensity.NONE, result.activity.single().density)
+    }
+
+    @Test
+    fun `reschedule publication rejects terminal status`() = runTest {
+        val publication = PublicationDraft(
+            id = "pub-1",
+            workspaceId = "workspace-1",
+            authorPrincipalId = "principal-1",
+            provider = SocialProvider.LINKEDIN,
+            socialAccountId = "account-1",
+            status = PublicationStatus.PUBLISHED,
+            scheduleMode = ScheduleMode.SCHEDULED_AT,
+            priority = false,
+            bodyText = "Already published",
+            scheduledFor = Instant.parse("2026-06-15T10:00:00Z"),
+            publishedAt = Instant.parse("2026-06-15T10:01:00Z"),
+        )
+        val publicationRepository = InMemoryPublicationRepository(publication)
+        val jobRepository = InMemoryPublicationJobRepository()
+        val handler = ReschedulePublicationHandler(
+            resourceContextProvider = FixedResourceContextProvider(workspaceContext),
+            publicationRepository = publicationRepository,
+            publicationJobRepository = jobRepository,
+            schedulingPolicy = PublicationSchedulingPolicy(),
+            clock = fixedClock,
+        )
+
+        assertThrows(com.profiletailors.smp.publishing.domain.PublicationEditNotAllowedException::class.java) {
+            kotlinx.coroutines.runBlocking {
+                handler.handle(
+                    ReschedulePublicationCommand(
+                        publicationId = "pub-1",
+                        scheduleMode = ScheduleMode.SCHEDULED_AT,
+                        scheduledFor = Instant.parse("2026-06-16T10:00:00Z"),
+                    ),
+                )
+            }
+        }
+    }
+
+    @Test
     fun `create asset for uploaded type generates storage key`() = runTest {
         val assetRepository = InMemoryPublicationAssetRepository(emptyList())
         val handler = CreateAssetHandler(
@@ -515,6 +847,25 @@ class PublishingHandlersTest {
         assertTrue(error.message!!.contains("non-existent-pub"))
     }
 
+    private fun calendarPublication(
+        id: String,
+        socialAccountId: String,
+        scheduledFor: String,
+        status: PublicationStatus = PublicationStatus.SCHEDULED,
+    ): PublicationDraft = PublicationDraft(
+        id = id,
+        workspaceId = "workspace-1",
+        authorPrincipalId = "principal-1",
+        provider = SocialProvider.LINKEDIN,
+        socialAccountId = socialAccountId,
+        status = status,
+        scheduleMode = ScheduleMode.SCHEDULED_AT,
+        priority = false,
+        title = id,
+        bodyText = "Calendar publication $id",
+        scheduledFor = Instant.parse(scheduledFor),
+    )
+
     private class FixedPrincipalContextProvider(
         private val principalContext: PrincipalContext,
     ) : PrincipalContextProvider {
@@ -528,8 +879,11 @@ class PublishingHandlersTest {
     }
 
     private class FakeSocialConnectionProvider : SocialConnectionProvider {
-        override suspend fun completeConnection(command: CompleteProviderConnectionCommand): ProviderConnectionResult =
-            ProviderConnectionResult(
+        var callCount = 0
+
+        override suspend fun completeConnection(command: CompleteProviderConnectionCommand): ProviderConnectionResult {
+            callCount += 1
+            return ProviderConnectionResult(
                 provider = SocialProvider.LINKEDIN,
                 providerConnectionRef = "linkedin-connection-1",
                 credentialReference = "secret-ref-1",
@@ -540,6 +894,60 @@ class PublishingHandlersTest {
                     profileUrn = "urn:li:person:123",
                 ),
             )
+        }
+    }
+
+    private class CapturingOAuthStateSigner(
+        private val payload: LinkedInOAuthStatePayload? = null,
+    ) : OAuthStateSigner {
+        var lastPayload: LinkedInOAuthStatePayload? = null
+
+        override fun sign(payload: LinkedInOAuthStatePayload): String {
+            lastPayload = payload
+            return "state-1"
+        }
+
+        override fun verify(state: String): LinkedInOAuthStatePayload = payload ?: validStatePayload()
+    }
+
+    private class FakeAuthorizationUrlBuilder(
+        private val configured: Boolean = true,
+    ) : LinkedInAuthorizationUrlBuilder {
+        override fun buildAuthorizationUrl(state: String, redirectUri: String): String =
+            "https://linkedin.example/authorize?state=$state"
+
+        override fun isConfigured(): Boolean = configured
+    }
+
+    private class InMemoryConnectedSocialChannelReadRepository(
+        private val channels: List<ConnectedSocialChannel>,
+    ) : ConnectedSocialChannelReadRepository {
+        var lastStatuses: Set<SocialConnectionStatus>? = null
+
+        override suspend fun listByWorkspace(
+            workspaceId: String,
+            statuses: Set<SocialConnectionStatus>,
+        ): List<ConnectedSocialChannel> {
+            lastStatuses = statuses
+            return channels
+        }
+    }
+
+    private companion object {
+        fun validStatePayload(
+            workspaceId: String = "workspace-1",
+            principalId: String = "principal-1",
+            redirectUri: String = "https://app.example.com/callback",
+            expiresAt: Instant = Instant.parse("2026-05-26T12:10:00Z"),
+        ): LinkedInOAuthStatePayload = LinkedInOAuthStatePayload(
+            provider = SocialProvider.LINKEDIN,
+            workspaceId = workspaceId,
+            principalId = principalId,
+            redirectUri = redirectUri,
+            nonce = "nonce-1",
+            issuedAt = Instant.parse("2026-05-26T12:00:00Z"),
+            expiresAt = expiresAt,
+        )
     }
 
     private class AcceptingCapabilityValidator : ProviderCapabilityValidator {
@@ -580,13 +988,31 @@ class PublishingHandlersTest {
             items[accountId]?.takeIf { it.workspaceId == workspaceId }
     }
 
+    private class CapturingChannelEventPublisher : ChannelEventPublisher {
+        val events = mutableListOf<ChannelEvent>()
+
+        override fun publish(event: ChannelEvent) {
+            events += event
+        }
+    }
+
     private class InMemoryPublicationRepository(
         seed: PublicationDraft? = null,
+        seedMany: List<PublicationDraft> = emptyList(),
+        private val dateCounts: List<DateCount> = emptyList(),
     ) : PublicationRepository {
+        var lastFindStatuses: Set<PublicationStatus>? = null
+        var lastFindSocialAccountIds: Set<String>? = null
+        var lastCountWorkspaceId: String? = null
+        var lastCountFrom: Instant? = null
+        var lastCountTo: Instant? = null
+        var lastCountStatuses: Set<PublicationStatus>? = null
+        var lastCountTimezone: String? = null
         private val items = linkedMapOf<String, PublicationDraft>()
 
         init {
             if (seed != null) items[seed.id] = seed
+            seedMany.forEach { items[it.id] = it }
         }
 
         override suspend fun createDraft(draft: PublicationDraft): PublicationDraft {
@@ -601,6 +1027,40 @@ class PublishingHandlersTest {
 
         override suspend fun findByWorkspaceAndId(workspaceId: String, publicationId: String): PublicationDraft? =
             items[publicationId]?.takeIf { it.workspaceId == workspaceId }
+
+        override suspend fun findInDateRange(
+            workspaceId: String,
+            from: Instant,
+            to: Instant,
+            statuses: Set<PublicationStatus>?,
+            socialAccountIds: Set<String>?,
+        ): List<PublicationDraft> {
+            lastFindStatuses = statuses
+            lastFindSocialAccountIds = socialAccountIds
+            return items.values.filter { pub ->
+                pub.workspaceId == workspaceId &&
+                    pub.scheduledFor != null &&
+                    pub.scheduledFor >= from &&
+                    pub.scheduledFor < to &&
+                    (statuses == null || pub.status in statuses) &&
+                    (socialAccountIds == null || pub.socialAccountId in socialAccountIds)
+            }
+        }
+
+        override suspend fun countByDate(
+            workspaceId: String,
+            from: Instant,
+            to: Instant,
+            statuses: Set<PublicationStatus>?,
+            timezone: String,
+        ): List<DateCount> {
+            lastCountWorkspaceId = workspaceId
+            lastCountFrom = from
+            lastCountTo = to
+            lastCountStatuses = statuses
+            lastCountTimezone = timezone
+            return dateCounts
+        }
 
         override suspend fun markPublished(publicationId: String, externalPublicationId: String, publishedAt: Instant) = Unit
 

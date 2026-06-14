@@ -3,6 +3,7 @@ package com.profiletailors.smp.publishing.infrastructure.persistence
 import com.fasterxml.jackson.core.JsonProcessingException
 import com.fasterxml.jackson.databind.ObjectMapper
 import com.profiletailors.smp.publishing.domain.AssetSourceType
+import com.profiletailors.smp.publishing.domain.DateCount
 import com.profiletailors.smp.publishing.domain.DeliveryAttempt
 import com.profiletailors.smp.publishing.domain.DeliveryAttemptOutcome
 import com.profiletailors.smp.publishing.domain.DeliveryAttemptRepository
@@ -19,6 +20,7 @@ import com.profiletailors.smp.publishing.domain.PublicationRepository
 import com.profiletailors.smp.publishing.domain.PublicationStatus
 import com.profiletailors.smp.publishing.domain.ScheduleMode
 import com.profiletailors.smp.publishing.domain.SocialProvider
+import io.r2dbc.spi.Readable
 import kotlinx.coroutines.reactor.awaitSingle
 import kotlinx.coroutines.reactor.awaitSingleOrNull
 import org.springframework.r2dbc.core.DatabaseClient
@@ -96,6 +98,90 @@ class R2dbcPublicationRepository(
             .awaitSingle()
 
         return publication.copy(assetIds = assetIds)
+    }
+
+    override suspend fun findInDateRange(
+        workspaceId: String,
+        from: Instant,
+        to: Instant,
+        statuses: Set<PublicationStatus>?,
+        socialAccountIds: Set<String>?,
+    ): List<PublicationDraft> {
+        val conditions = mutableListOf("workspace_id = :workspaceId", "scheduled_for >= :from", "scheduled_for < :to")
+        val paramKeys = mutableMapOf(
+            "workspaceId" to workspaceId,
+            "from" to from,
+            "to" to to,
+        )
+
+        statuses?.takeIf { it.isNotEmpty() }?.let { set ->
+            val placeholders = set.mapIndexed { i, s ->
+                val key = "status_$i"
+                paramKeys[key] = s.name
+                ":$key"
+            }
+            conditions.add("status IN (${placeholders.joinToString(", ")})")
+        }
+
+        socialAccountIds?.takeIf { it.isNotEmpty() }?.let { set ->
+            val placeholders = set.mapIndexed { i, id ->
+                val key = "account_$i"
+                paramKeys[key] = id
+                ":$key"
+            }
+            conditions.add("social_account_id IN (${placeholders.joinToString(", ")})")
+        }
+
+        val sql = """
+            SELECT id, workspace_id, author_principal_id, provider, social_account_id, status, schedule_mode, priority,
+                   title, body_text, scheduled_for, next_slot_after, published_at, failed_at, external_publication_id,
+                   last_error_code, last_error_message, created_at, updated_at
+            FROM publications
+            WHERE ${conditions.joinToString(" AND ")}
+            ORDER BY scheduled_for ASC
+        """.trimIndent()
+
+        var spec = databaseClient.sql(sql)
+            .bind("workspaceId", paramKeys["workspaceId"]!!)
+            .bind("from", paramKeys["from"]!!)
+            .bind("to", paramKeys["to"]!!)
+
+        statuses?.forEachIndexed { i, _ ->
+            spec = spec.bind("status_$i", paramKeys["status_$i"]!!)
+        }
+        socialAccountIds?.forEachIndexed { i, _ ->
+            spec = spec.bind("account_$i", paramKeys["account_$i"]!!)
+        }
+
+        return spec.map { row, _ -> row.toPublicationDraft() }
+            .all()
+            .collectList()
+            .awaitSingle()
+    }
+
+    override suspend fun countByDate(
+        workspaceId: String,
+        from: Instant,
+        to: Instant,
+        statuses: Set<PublicationStatus>?,
+        timezone: String,
+    ): List<DateCount> {
+        val publications = findInDateRange(
+            workspaceId = workspaceId,
+            from = from,
+            to = to,
+            statuses = statuses,
+            socialAccountIds = null,
+        )
+
+        val zoneId = java.time.ZoneId.of(timezone)
+
+        return publications
+            .mapNotNull { it.scheduledFor }
+            .groupingBy { it.atZone(zoneId).toLocalDate() }
+            .eachCount()
+            .map { (date, count) -> DateCount(date = date, count = count) }
+            .sortedBy { it.date }
     }
 
     override suspend fun markPublished(publicationId: String, externalPublicationId: String, publishedAt: Instant) {
@@ -593,3 +679,26 @@ private fun org.springframework.r2dbc.core.DatabaseClient.GenericExecuteSpec.bin
     type: Class<java.lang.Long>,
 ): org.springframework.r2dbc.core.DatabaseClient.GenericExecuteSpec =
     value?.let { bind(name, it) } ?: bindNull(name, type)
+
+private fun Readable.toPublicationDraft(): PublicationDraft = PublicationDraft(
+    id = requireNotNull(get("id", String::class.java)),
+    workspaceId = requireNotNull(get("workspace_id", String::class.java)),
+    authorPrincipalId = requireNotNull(get("author_principal_id", String::class.java)),
+    provider = SocialProvider.valueOf(requireNotNull(get("provider", String::class.java))),
+    socialAccountId = requireNotNull(get("social_account_id", String::class.java)),
+    status = PublicationStatus.valueOf(requireNotNull(get("status", String::class.java))),
+    scheduleMode = ScheduleMode.valueOf(requireNotNull(get("schedule_mode", String::class.java))),
+    priority = requireNotNull(get("priority", java.lang.Boolean::class.java)).booleanValue(),
+    title = get("title", String::class.java),
+    bodyText = get("body_text", String::class.java),
+    assetIds = emptyList(),
+    scheduledFor = get("scheduled_for", OffsetDateTime::class.java)?.toInstant(),
+    nextSlotAfter = get("next_slot_after", OffsetDateTime::class.java)?.toInstant(),
+    publishedAt = get("published_at", OffsetDateTime::class.java)?.toInstant(),
+    failedAt = get("failed_at", OffsetDateTime::class.java)?.toInstant(),
+    externalPublicationId = get("external_publication_id", String::class.java),
+    lastErrorCode = get("last_error_code", String::class.java),
+    lastErrorMessage = get("last_error_message", String::class.java),
+    createdAt = get("created_at", OffsetDateTime::class.java)?.toInstant(),
+    updatedAt = get("updated_at", OffsetDateTime::class.java)?.toInstant(),
+)

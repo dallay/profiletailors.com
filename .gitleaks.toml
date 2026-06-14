@@ -20,6 +20,8 @@ paths = [
   "server/smp/src/test/resources/application.properties",
   "server/smp/src/test/kotlin/com/profiletailors/smp/publishing/infrastructure/credentials/LinkedInCredentialGatewayTest.kt",
   "docs/plans/2026-06-10-publishing-infrastructure-credentials-tests-design.md",
+  ".agents/skills/testing/playwright-best-practices/advanced/authentication-flows.md",
+  "apps/web/app/e2e/hars/", # Recorded HAR fixtures containing test-only local JWT tokens
 ]
 regexes = [
   "invalid\\.token\\.here",

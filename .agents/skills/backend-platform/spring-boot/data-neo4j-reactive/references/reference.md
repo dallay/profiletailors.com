@@ -21,11 +21,11 @@ query language syntax, configuration options, and API documentation.
 
 Marks a class as a Neo4j node entity.
 
-```java
+```kotlin
 @Node                    // Label defaults to class name
 @Node("CustomLabel")     // Explicit label
-@Node({"Label1", "Label2"})  // Multiple labels
-public class MyEntity {
+@Node({ "Label1", "Label2" })  // Multiple labels
+class MyEntity {
     // ...
 }
 ```
@@ -39,12 +39,12 @@ public class MyEntity {
 
 Marks a field as the entity identifier.
 
-```java
+```kotlin
 @Id
-private String businessKey;  // Custom business key
+private var businessKey: String  // Custom business key
 
 @Id @GeneratedValue
-private Long id;  // Auto-generated internal ID
+private var id: Long  // Auto-generated internal ID
 ```
 
 **Important:**
@@ -57,15 +57,19 @@ private Long id;  // Auto-generated internal ID
 
 Configures ID generation strategy.
 
-```java
+```kotlin
 @Id @GeneratedValue
-private Long id;  // Uses Neo4j internal ID
+private var id: Long  // Uses Neo4j internal ID
 
-@Id @GeneratedValue(generatorClass = UUIDStringGenerator.class)
-private String uuid;  // Custom UUID generator
+@Id @GeneratedValue(
+    generatorClass = UUIDStringGenerator.class)
+            private
+            var uuid: String  // Custom UUID generator
 
-@Id @GeneratedValue(generatorClass = MyCustomGenerator.class)
-private String customId;
+    @Id @GeneratedValue(
+        generatorClass = MyCustomGenerator.class)
+                private
+                var customId: String
 ```
 
 **Built-in Generators:**
@@ -77,9 +81,9 @@ private String customId;
 
 Maps a field to a different property name in Neo4j.
 
-```java
+```kotlin
 @Property("graph_property_name")
-private String javaFieldName;
+private var javaFieldName: String
 ```
 
 **When to use:**
@@ -92,15 +96,15 @@ private String javaFieldName;
 
 Defines relationships between nodes.
 
-```java
+```kotlin
 @Relationship(type = "RELATIONSHIP_TYPE", direction = Direction.OUTGOING)
-private RelatedEntity related;
+private var related: RelatedEntity
 
 @Relationship(type = "RELATED_TO", direction = Direction.INCOMING)
-private List<RelatedEntity> incoming;
+private List < RelatedEntity > incoming;
 
 @Relationship(type = "CONNECTED", direction = Direction.UNDIRECTED)
-private Set<RelatedEntity> connections;
+private Set < RelatedEntity > connections;
 ```
 
 **Properties:**
@@ -119,18 +123,19 @@ private Set<RelatedEntity> connections;
 
 Marks a class as relationship properties container.
 
-```java
+```kotlin
 @RelationshipProperties
-public class ActedIn {
-    
-    @Id @GeneratedValue
-    private Long id;
-    
+class ActedIn {
+
+    @Id
+    @GeneratedValue
+    private var id: Long
+
     @TargetNode
-    private Movie movie;
-    
+    private var movie: Movie
+
     private List<String> roles;
-    private Integer screenTime;
+    private var screenTime: Integer
 }
 ```
 
@@ -145,12 +150,12 @@ public class ActedIn {
 
 Defines custom Cypher query for a repository method.
 
-```java
+```kotlin
 @Query("MATCH (n:Node) WHERE n.property = $param RETURN n")
-List<Node> customQuery(@Param("param") String param);
+List<Node> customQuery (@Param("param") String param);
 
 @Query("MATCH (n:Node) WHERE n.id = $0 RETURN n")
-Node findById(String id);  // Positional parameter
+Node findById (String id);  // Positional parameter
 ```
 
 **Parameter Binding:**
@@ -163,9 +168,9 @@ Node findById(String id);  // Positional parameter
 
 Binds method parameter to query parameter.
 
-```java
+```kotlin
 @Query("MATCH (n) WHERE n.name = $customName RETURN n")
-List<Node> find(@Param("customName") String name);
+List<Node> find (@Param("customName") String name);
 ```
 
 **When required:**
@@ -179,10 +184,10 @@ List<Node> find(@Param("customName") String name);
 
 Enables Neo4j repository support.
 
-```java
+```kotlin
 @Configuration
 @EnableNeo4jRepositories(basePackages = "com.example.repositories")
-public class Neo4jConfiguration {
+class Neo4jConfiguration {
     // ...
 }
 ```
@@ -199,11 +204,11 @@ public class Neo4jConfiguration {
 
 Test slice annotation for Neo4j tests.
 
-```java
+```kotlin
 @DataNeo4jTest
 class MyRepositoryTest {
     @Autowired
-    private MyRepository repository;
+    private var repository: MyRepository
 }
 ```
 
@@ -455,13 +460,11 @@ SKIP 20 LIMIT 10
 spring.neo4j.uri=bolt://localhost:7687
 spring.neo4j.uri=neo4j://localhost:7687
 spring.neo4j.uri=neo4j+s://production.server:7687
-
 # Authentication
 spring.neo4j.authentication.username=neo4j
 spring.neo4j.authentication.password=secret
 spring.neo4j.authentication.realm=native
 spring.neo4j.authentication.kerberos-ticket=...
-
 # Connection pool
 spring.neo4j.pool.max-connection-pool-size=50
 spring.neo4j.pool.idle-time-before-connection-test=PT30S
@@ -476,13 +479,10 @@ spring.neo4j.pool.metrics-enabled=true
 # Logging
 spring.neo4j.logging.level=WARN
 spring.neo4j.logging.log-leaked-sessions=true
-
 # Connection timeout
 spring.neo4j.connection-timeout=PT30S
-
 # Max transaction retry time
 spring.neo4j.max-transaction-retry-time=PT30S
-
 # Encrypted connection
 spring.neo4j.security.encrypted=true
 spring.neo4j.security.trust-strategy=TRUST_ALL_CERTIFICATES
@@ -491,12 +491,13 @@ spring.neo4j.security.hostname-verification-enabled=true
 
 ### Neo4j Driver Configuration Bean
 
-```java
+```kotlin
 @Configuration
-public class Neo4jConfiguration {
-    
+class Neo4jConfiguration {
+
     @Bean
-    org.neo4j.driver.Config neo4jDriverConfig() {
+    org.neo4j.driver.Config neo4jDriverConfig()
+    {
         return org.neo4j.driver.Config.builder()
             .withMaxConnectionPoolSize(50)
             .withConnectionAcquisitionTimeout(60, TimeUnit.SECONDS)
@@ -506,9 +507,10 @@ public class Neo4jConfiguration {
             .withEncryption()
             .build();
     }
-    
+
     @Bean
-    Configuration cypherDslConfiguration() {
+    Configuration cypherDslConfiguration()
+    {
         return Configuration.newConfig()
             .withDialect(Dialect.NEO4J_5)
             .build();
@@ -566,50 +568,50 @@ public class Neo4jConfiguration {
 
 ### Examples
 
-```java
-public interface UserRepository extends Neo4jRepository<User, String> {
-    
+```kotlin
+interface UserRepository extends Neo4jRepository<User, String> {
+
     // Simple query derivation
-    Optional<User> findByEmail(String email);
-    
-    List<User> findByAgeGreaterThan(Integer age);
-    
-    List<User> findByAgeBetween(Integer minAge, Integer maxAge);
-    
-    List<User> findByNameStartingWith(String prefix);
-    
+    Optional<User> findByEmail (String email);
+
+    List<User> findByAgeGreaterThan (Integer age);
+
+    List<User> findByAgeBetween (Integer minAge, Integer maxAge);
+
+    List<User> findByNameStartingWith (String prefix);
+
     // Boolean queries
-    boolean existsByEmail(String email);
-    
+    boolean existsByEmail (String email);
+
     // Count queries
-    long countByAgeGreaterThan(Integer age);
-    
+    long countByAgeGreaterThan (Integer age);
+
     // Delete queries
-    long deleteByAgeLessThan(Integer age);
-    
+    long deleteByAgeLessThan (Integer age);
+
     // Sorting
-    List<User> findByAgeGreaterThanOrderByNameAsc(Integer age);
-    
+    List<User> findByAgeGreaterThanOrderByNameAsc (Integer age);
+
     // Pagination
-    Page<User> findByAgeGreaterThan(Integer age, Pageable pageable);
-    
+    Page<User> findByAgeGreaterThan (Integer age, Pageable pageable);
+
     // Stream
-    Stream<User> findByAgeBetween(Integer min, Integer max);
-    
+    Stream<User> findByAgeBetween (Integer min, Integer max);
+
     // Multiple conditions
-    List<User> findByNameAndAge(String name, Integer age);
-    
-    List<User> findByNameOrEmail(String name, String email);
-    
+    List<User> findByNameAndAge (String name, Integer age);
+
+    List<User> findByNameOrEmail (String name, String email);
+
     // Null checks
-    List<User> findByNicknameIsNull();
-    
-    List<User> findByNicknameIsNotNull();
-    
+    List<User> findByNicknameIsNull ();
+
+    List<User> findByNicknameIsNotNull ();
+
     // Collection queries
-    List<User> findByRolesContaining(String role);
-    
-    List<User> findByIdIn(Collection<String> ids);
+    List<User> findByRolesContaining (String role);
+
+    List<User> findByIdIn (Collection<String> ids);
 }
 ```
 
@@ -617,24 +619,24 @@ public interface UserRepository extends Neo4jRepository<User, String> {
 
 ### Interface-based Projections
 
-```java
+```kotlin
 // Closed projection - only declared properties
-public interface UserSummary {
+interface UserSummary {
     String getUsername();
     String getEmail();
 }
 
 // Open projection - with SpEL
-public interface UserWithFullName {
+interface UserWithFullName {
     @Value("#{target.firstName + ' ' + target.lastName}")
     String getFullName();
 }
 
 // Nested projection
-public interface UserWithPosts {
+interface UserWithPosts {
     String getUsername();
     List<PostSummary> getPosts();
-    
+
     interface PostSummary {
         String getTitle();
         LocalDateTime getCreatedAt();
@@ -642,15 +644,15 @@ public interface UserWithPosts {
 }
 
 // Usage
-public interface UserRepository extends Neo4jRepository<User, String> {
-    List<UserSummary> findAllBy();
-    Optional<UserWithFullName> findByUsername(String username);
+interface UserRepository extends Neo4jRepository<User, String> {
+    List<UserSummary> findAllBy ();
+    Optional<UserWithFullName> findByUsername (String username);
 }
 ```
 
 ### Class-based DTOs
 
-```java
+```kotlin
 public record UserDTO(
     String username,
     String email,
@@ -658,51 +660,52 @@ public record UserDTO(
 ) {}
 
 // Repository usage
-public interface UserRepository extends Neo4jRepository<User, String> {
-    List<UserDTO> findAllBy();
+interface UserRepository extends Neo4jRepository<User, String> {
+    List<UserDTO> findAllBy ();
 }
 ```
 
 ### Dynamic Projections
 
-```java
-public interface UserRepository extends Neo4jRepository<User, String> {
-    <T> T findByUsername(String username, Class<T> type);
+```kotlin
+interface UserRepository extends Neo4jRepository<User, String> {
+    <T > T findByUsername (String username, Class<T> type);
 }
 
 // Usage
-UserSummary summary = repository.findByUsername("john", UserSummary.class);
-UserDTO dto = repository.findByUsername("john", UserDTO.class);
-User full = repository.findByUsername("john", User.class);
+UserSummary summary = repository . findByUsername ("john", UserSummary.class);
+UserDTO dto = repository . findByUsername ("john", UserDTO.class);
+User full = repository . findByUsername ("john", User.class);
 ```
 
 ## Transaction Management
 
 ### Declarative Transactions
 
-```java
+```kotlin
 @Service
-public class UserService {
-    
-    private final UserRepository userRepository;
-    
+class UserService {
+
+    private val userRepository: UserRepository
+
     @Transactional
-    public User createUser(CreateUserRequest request) {
-        User user = new User(request.username(), request.email());
+    fun createUser(CreateUserRequest request): User {
+        User user = User (request.username(), request.email());
         return userRepository.save(user);
     }
-    
+
     @Transactional(readOnly = true)
-    public Optional<User> getUser(String username) {
+    public Optional<User> getUser(String username)
+    {
         return userRepository.findByUsername(username);
     }
-    
+
     @Transactional(
         propagation = Propagation.REQUIRES_NEW,
         isolation = Isolation.READ_COMMITTED,
         timeout = 30
     )
-    public void complexOperation() {
+    fun complexOperation(): void {
         // Multiple repository calls in single transaction
         // ...
     }
@@ -711,14 +714,14 @@ public class UserService {
 
 ### Programmatic Transactions
 
-```java
+```kotlin
 @Service
-public class TransactionalService {
-    
-    private final Neo4jTransactionManager transactionManager;
-    
-    public void executeInTransaction() {
-        TransactionTemplate template = new TransactionTemplate(transactionManager);
+class TransactionalService {
+
+    private val transactionManager: Neo4jTransactionManager
+
+    fun executeInTransaction(): void {
+        TransactionTemplate template = TransactionTemplate (transactionManager);
         template.execute(status -> {
             try {
                 // Your transactional code here
@@ -734,20 +737,21 @@ public class TransactionalService {
 
 ### Reactive Transactions
 
-```java
+```kotlin
 @Service
-public class ReactiveUserService {
-    
-    private final ReactiveUserRepository repository;
-    private final ReactiveNeo4jTransactionManager transactionManager;
-    
-    public Mono<User> createUser(CreateUserRequest request) {
+class ReactiveUserService {
+
+    private val repository: ReactiveUserRepository
+    private val transactionManager: ReactiveNeo4jTransactionManager
+
+    public Mono<User> createUser(CreateUserRequest request)
+    {
         return transactionManager.getReactiveTransaction()
             .flatMap(status -> {
-                User user = new User(request.username(), request.email());
-                return repository.save(user)
-                    .doOnError(e -> status.setRollbackOnly());
-            });
+        User user = User (request.username(), request.email());
+        return repository.save(user)
+            .doOnError(e -> status.setRollbackOnly());
+    });
     }
 }
 ```
@@ -801,7 +805,7 @@ DROP INDEX user_email;
    ```
 
 3. **Use projections to fetch only needed data:**
-   ```java
+   ```kotlin
    // Good
    List<UserSummary> findAllBy();
    
@@ -810,7 +814,7 @@ DROP INDEX user_email;
    ```
 
 4. **Limit result sets:**
-   ```java
+   ```kotlin
    // Use pagination
    Page<User> findAll(Pageable pageable);
    
@@ -821,9 +825,9 @@ DROP INDEX user_email;
 
 ### Connection Pooling
 
-```java
+```kotlin
 @Bean
-org.neo4j.driver.Config driverConfig() {
+org.neo4j.driver.Config driverConfig () {
     return org.neo4j.driver.Config.builder()
         .withMaxConnectionPoolSize(50)
         .withConnectionAcquisitionTimeout(60, TimeUnit.SECONDS)
@@ -834,18 +838,18 @@ org.neo4j.driver.Config driverConfig() {
 
 ### Batch Operations
 
-```java
+```kotlin
 // Save in batches
 @Service
-public class BatchService {
-    
-    private final UserRepository repository;
-    
-    public void saveUsersInBatches(List<User> users) {
+class BatchService {
+
+    private val repository: UserRepository
+
+    fun saveUsersInBatches(List<User> users): void {
         int batchSize = 1000;
         for (int i = 0; i < users.size(); i += batchSize) {
-            int end = Math.min(i + batchSize, users.size());
-            List<User> batch = users.subList(i, end);
+            int end = Math . min (i + batchSize, users.size());
+            List<User> batch = users . subList (i, end);
             repository.saveAll(batch);
         }
     }
@@ -857,7 +861,6 @@ public class BatchService {
 ```properties
 # Enable driver metrics
 spring.neo4j.pool.metrics-enabled=true
-
 # Log slow queries (if using Neo4j Enterprise)
 # Set in neo4j.conf:
 # dbms.logs.query.enabled=true

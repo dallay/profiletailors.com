@@ -6,6 +6,8 @@ databaseChangeLog:
   - include:
       file: db/changelog/identity/003-create-local-password-credentials.yaml
   - include:
+      file: db/changelog/identity/004-add-email-verification.yaml
+  - include:
       file: db/changelog/credentials/001-create-service-account-credentials.yaml
   - include:
       file: db/changelog/credentials/002-create-api-key-credentials.yaml
@@ -17,6 +19,8 @@ databaseChangeLog:
       file: db/changelog/tenancy/002-create-workspace-ownerships.yaml
   - include:
       file: db/changelog/tenancy/003-create-workspace-memberships.yaml
+  - include:
+      file: db/changelog/tenancy/004-add-workspace-icon.yaml
   - include:
       file: db/changelog/authorization/001-create-permissions.yaml
   - include:
@@ -53,3 +57,10 @@ databaseChangeLog:
       file: db/changelog/publishing/009-add-provider-asset-ref.yaml
   - include:
       file: db/changelog/publishing/010-add-file-size-to-publication-assets.yaml
+  - include:
+      file: db/changelog/publishing/011-index-publications-scheduled-for.yaml
+  - include:
+      file: db/changelog/publishing/012-add-avatar-to-social-accounts.yaml
+  # ── Dev seed data (context: dev only) ──────────────────────────
+  - include:
+      file: db/changelog/dev/001-seed-test-data.yaml

@@ -1,5 +1,5 @@
 
-@import 'https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&family=Space+Mono:wght@400;700&family=Doto:wght@300;400;700&display=swap';
+@import url('https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700&display=swap');
 
 @import "tailwindcss";
 
@@ -156,6 +156,18 @@
   --border: 60 9.1% 81.2%;
   --input: 60 9.1% 81.2%;
   --ring: 0 0% 0%;
+}
+
+/* Dashboard tokens */
+:root {
+  --chart-line: var(--text-secondary);
+  --chart-area: var(--accent-color);
+  --sparkline-stroke: var(--accent-color);
+  --sparkline-fill: color-mix(in srgb, var(--accent-color) 20%, transparent);
+  --heatmap-low: var(--background-surface);
+  --heatmap-high: var(--accent-color);
+  --score-gauge-track: var(--border-color);
+  --score-gauge-fill: var(--accent-color);
 }
 
 /* Base resets & layout rules */

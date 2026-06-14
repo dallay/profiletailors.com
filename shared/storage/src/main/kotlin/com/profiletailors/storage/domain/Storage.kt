@@ -71,4 +71,14 @@ interface Storage {
      * @throws StorageServiceException if the listing fails
      */
     suspend fun list(bucket: String, prefix: String = ""): List<String>
+
+    /**
+     * Checks if an object exists in storage.
+     *
+     * @param bucket The bucket name
+     * @param key The object key
+     * @return true if the object exists, false otherwise
+     * @throws StorageServiceException if the check fails due to a service error
+     */
+    suspend fun exists(bucket: String, key: String): Boolean
 }

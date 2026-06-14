@@ -29,8 +29,8 @@ allowed-tools: Read, Write, Bash
 ```xml
 <!-- Maven -->
 <dependency>
-    <groupId>org.springframework.boot</groupId>
-    <artifactId>spring-boot-starter-actuator</artifactId>
+  <groupId>org.springframework.boot</groupId>
+  <artifactId>spring-boot-starter-actuator</artifactId>
 </dependency>
 ```
 
@@ -127,21 +127,19 @@ management:
 
 ### Intermediate – Readiness group with custom indicator
 
-```java
+```kotlin
 @Component
-public class PaymentsGatewayHealth implements HealthIndicator {
+class PaymentsGatewayHealth(
+    private val client: PaymentsClient
+) : HealthIndicator {
 
-    private final PaymentsClient client;
-
-    public PaymentsGatewayHealth(PaymentsClient client) {
-        this.client = client;
-    }
-
-    @Override
-    public Health health() {
-        boolean reachable = client.ping();
-        return reachable ? Health.up().withDetail("latencyMs", client.latency()).build()
-                         : Health.down().withDetail("error", "Gateway timeout").build();
+    override fun health(): Health {
+        val reachable = client.ping()
+        return if (reachable) {
+            Health.up().withDetail("latencyMs", client.latency()).build()
+        } else {
+            Health.down().withDetail("error", "Gateway timeout").build()
+        }
     }
 }
 ```
@@ -182,18 +180,19 @@ management:
       roles: "ENDPOINT_ADMIN"
 ```
 
-```java
+```kotlin
 @Configuration
-public class ActuatorSecurityConfig {
+class ActuatorSecurityConfig {
 
     @Bean
-    SecurityFilterChain actuatorChain(HttpSecurity http) throws Exception {
+    fun actuatorChain(http: HttpSecurity): SecurityFilterChain {
         http.securityMatcher(EndpointRequest.toAnyEndpoint())
-            .authorizeHttpRequests(c -> c
-                .requestMatchers(EndpointRequest.to("health")).permitAll()
-                .anyRequest().hasRole("ENDPOINT_ADMIN"))
-            .httpBasic(Customizer.withDefaults());
-        return http.build();
+            .authorizeHttpRequests { c ->
+                c.requestMatchers(EndpointRequest.to("health")).permitAll()
+                    .anyRequest().hasRole("ENDPOINT_ADMIN")
+            }
+            .httpBasic(Customizer.withDefaults())
+        return http.build()
     }
 }
 ```

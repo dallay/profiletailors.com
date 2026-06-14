@@ -50,13 +50,19 @@ const router = createRouter({
       component: () => import('../views/SettingsView.vue'),
       meta: { requiresAuth: true },
     },
+    {
+      path: '/integrations/linkedin/callback',
+      name: 'linkedin-callback',
+      component: () => import('../views/LinkedInCallbackView.vue'),
+      meta: { requiresAuth: true },
+    },
   ],
 })
 
 router.beforeEach(async (to) => {
   const auth = useAuthStore()
 
-  if (!auth.sessionChecked && auth.accessToken) {
+  if (!auth.sessionChecked) {
     await auth.hydrateSession()
   }
 

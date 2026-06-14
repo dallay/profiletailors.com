@@ -38,7 +38,9 @@ const publishingStore = usePublishingStore()
 // State
 const postText = ref('')
 const selectedChannels = ref<('twitter' | 'linkedin' | 'instagram' | 'facebook')[]>(['linkedin'])
+const avatarLoadFailed = ref<Record<string, boolean>>({})
 const mediaFiles = ref<File[]>([])
+const submitError = ref('')
 const mediaPreviews = ref<string[]>([])
 const fileInput = ref<HTMLInputElement | null>(null)
 const firstComment = ref('')
@@ -61,7 +63,9 @@ watch(
       mediaPreviews.value = []
       firstComment.value = ''
       priorityMode.value = false
-      scheduleMode.value = 'now'
+      submitError.value = ''
+      scheduleMode.value = props.initialDate ? 'custom' : 'now'
+      avatarLoadFailed.value = {}
 
       const defaultDate = props.initialDate ? new Date(props.initialDate) : new Date()
       // format to YYYY-MM-DD
@@ -157,6 +161,14 @@ function toggleChannel(provider: 'twitter' | 'linkedin' | 'instagram' | 'faceboo
   }
 }
 
+function onChannelAvatarError(channelId: string) {
+  avatarLoadFailed.value[channelId] = true
+}
+
+function shouldShowChannelAvatar(channelId: string, avatarUrl?: string): boolean {
+  return !!(avatarUrl && !avatarLoadFailed.value[channelId])
+}
+
 // Format hashtags helper
 function appendHashtag() {
   const tag = prompt('Enter tag (e.g. #socialmedia):')
@@ -183,12 +195,18 @@ async function handleSchedule() {
   if (!canSubmit.value) return
 
   isSubmitting.value = true
+  submitError.value = ''
 
   try {
     let finalScheduledDate: Date
     if (scheduleMode.value === 'custom' && scheduleDate.value) {
-      const [year, month, day] = scheduleDate.value.split('-').map(Number)
-      const [hours, minutes] = scheduleTime.value.split(':').map(Number)
+      const [yearRaw, monthRaw, dayRaw] = scheduleDate.value.split('-').map(Number)
+      const [hoursRaw, minutesRaw] = scheduleTime.value.split(':').map(Number)
+      const year = yearRaw ?? Number.NaN
+      const month = monthRaw ?? Number.NaN
+      const day = dayRaw ?? Number.NaN
+      const hours = hoursRaw ?? Number.NaN
+      const minutes = minutesRaw ?? Number.NaN
       // Guard against NaN from parsing and validate ranges
       const isValidYear = Number.isInteger(year) && year >= 2000 && year <= 2100
       const isValidMonth = Number.isInteger(month) && month >= 1 && month <= 12
@@ -227,6 +245,7 @@ async function handleSchedule() {
       firstComment.value = ''
     }
   } catch (err) {
+    submitError.value = err instanceof Error ? err.message : 'Unable to schedule post.'
     console.error('Error scheduling post', err)
   } finally {
     isSubmitting.value = false
@@ -283,7 +302,19 @@ async function handleSchedule() {
                   ? 'border-text-display bg-bg-primary text-text-display font-bold'
                   : 'border-border-visible text-text-secondary hover:text-text-display bg-bg-primary/50'"
               >
-                <img :src="ch.avatar" alt="" class="size-4.5 rounded-full object-cover border border-border-subtle" />
+                <img
+                  v-if="shouldShowChannelAvatar(ch.id, ch.avatarUrl)"
+                  :src="ch.avatarUrl"
+                  :alt="`${ch.name} avatar`"
+                  class="size-4.5 rounded-full object-cover border border-border-subtle"
+                  @error="onChannelAvatarError(ch.id)"
+                />
+                <span
+                  v-else
+                  class="flex size-4.5 shrink-0 items-center justify-center rounded-full border border-border-visible bg-bg-primary font-mono text-[7px] font-bold uppercase text-text-display"
+                >
+                  {{ ch.provider === 'linkedin' ? 'in' : ch.provider.charAt(0) }}
+                </span>
                 <span class="max-w-[120px] truncate">{{ ch.name }}</span>
                 <span
                   class="flex size-3.5 shrink-0 items-center justify-center rounded-full text-[8px] font-bold text-bg-primary"
@@ -509,8 +540,13 @@ async function handleSchedule() {
               </div>
             </div>
 
-            <!-- Primary Action Buttons -->
-            <div class="grid grid-cols-3 gap-3">
+              <p v-if="submitError" class="rounded-xl border border-error/30 bg-error/10 px-3 py-2 text-xs text-error">
+                {{ submitError }}
+              </p>
+
+              <!-- Primary Action Buttons -->
+              <div class="grid grid-cols-3 gap-3">
+
               <button
                 @click="emit('close')"
                 class="col-span-1 border border-border-visible text-text-body hover:border-text-display hover:text-text-display font-mono text-[10px] font-bold uppercase tracking-wider rounded-full py-2.5 transition-all text-center cursor-pointer"

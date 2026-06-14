@@ -20,6 +20,10 @@ function mockFetch(response: Response) {
   return fetchMock
 }
 
+function fetchHeaders(fetchMock: ReturnType<typeof vi.fn>, callIndex = 0) {
+  return fetchMock.mock.calls[callIndex]?.[1]?.headers as Record<string, string>
+}
+
 function mockImportMetaEnv(env: Record<string, string> = {}) {
   // Vite maps process.env to import.meta.env — use this for reliable mocking
   if (env.VITE_API_BASE_URL !== undefined) {
@@ -46,6 +50,7 @@ describe('login', () => {
       principalId: 'user-1',
       email: 'user@example.com',
       username: 'testuser',
+      workspaceId: null,
     }
     const fetchMock = mockFetch(
       new Response(JSON.stringify(tokens), {
@@ -88,10 +93,13 @@ describe('login', () => {
 
   it('throws ApiError on server error', async () => {
     mockFetch(
-      new Response(JSON.stringify({ title: 'Internal Server Error', detail: 'Something went wrong' }), {
-        status: 500,
-        headers: { 'Content-Type': 'application/json' },
-      }),
+      new Response(
+        JSON.stringify({ title: 'Internal Server Error', detail: 'Something went wrong' }),
+        {
+          status: 500,
+          headers: { 'Content-Type': 'application/json' },
+        },
+      ),
     )
 
     await expect(login({ email: 'user@example.com', password: 'password' })).rejects.toEqual({
@@ -134,6 +142,7 @@ describe('register', () => {
       principalId: 'user-2',
       email: 'newuser@example.com',
       username: 'newuser',
+      workspaceId: null,
     }
     const fetchMock = mockFetch(
       new Response(JSON.stringify(tokens), {
@@ -142,14 +151,20 @@ describe('register', () => {
       }),
     )
 
-    const result = await register({ email: 'newuser@example.com', password: 'password123', username: 'newuser' })
+    const result = await register({
+      email: 'newuser@example.com',
+      password: 'password123',
+    })
 
     expect(result).toEqual(tokens)
     expect(fetchMock).toHaveBeenCalledWith(
       'http://localhost:8080/api/auth/register',
       expect.objectContaining({
         method: 'POST',
-        body: JSON.stringify({ email: 'newuser@example.com', password: 'password123', username: 'newuser' }),
+        body: JSON.stringify({
+          email: 'newuser@example.com',
+          password: 'password123',
+        }),
       }),
     )
   })
@@ -172,6 +187,7 @@ describe('refreshSession', () => {
       principalId: 'user-1',
       email: 'user@example.com',
       username: null,
+      workspaceId: null,
     }
     mockFetch(
       new Response(JSON.stringify(tokens), {
@@ -186,9 +202,7 @@ describe('refreshSession', () => {
   })
 
   it('returns null on 401 (no active session)', async () => {
-    mockFetch(
-      new Response(null, { status: 401 }),
-    )
+    mockFetch(new Response(null, { status: 401 }))
 
     const result = await refreshSession()
 
@@ -221,18 +235,14 @@ describe('logoutSession', () => {
   })
 
   it('always resolves even on network error', async () => {
-    mockFetch(
-      new Response(null, { status: 500 }),
-    )
+    mockFetch(new Response(null, { status: 500 }))
 
     // Should not throw
     await expect(logoutSession()).resolves.toBeUndefined()
   })
 
   it('resolves successfully on 204 No Content', async () => {
-    mockFetch(
-      new Response(null, { status: 204 }),
-    )
+    mockFetch(new Response(null, { status: 204 }))
 
     await expect(logoutSession()).resolves.toBeUndefined()
   })
@@ -324,9 +334,7 @@ describe('createApiFetch', () => {
     const fetchMock = vi.fn(() => {
       callCount++
       if (callCount === 1) {
-        return Promise.resolve(
-          new Response(null, { status: 401 }),
-        )
+        return Promise.resolve(new Response(null, { status: 401 }))
       }
       return Promise.resolve(
         new Response(JSON.stringify({ id: 'post-1', text: 'Hello' }), {
@@ -352,21 +360,23 @@ describe('createApiFetch', () => {
     expect(fetchMock).toHaveBeenNthCalledWith(
       1,
       'http://localhost:8080/api/posts/1',
-      expect.objectContaining({ headers: expect.objectContaining({ Authorization: 'Bearer expired-token' }) }),
+      expect.objectContaining({
+        headers: expect.objectContaining({ Authorization: 'Bearer expired-token' }),
+      }),
     )
     // Second call should have used the new token
     expect(fetchMock).toHaveBeenNthCalledWith(
       2,
       'http://localhost:8080/api/posts/1',
-      expect.objectContaining({ headers: expect.objectContaining({ Authorization: 'Bearer new-access-token' }) }),
+      expect.objectContaining({
+        headers: expect.objectContaining({ Authorization: 'Bearer new-access-token' }),
+      }),
     )
     expect(onUnauthenticated).not.toHaveBeenCalled()
   })
 
   it('calls onUnauthenticated and re-throws when refresh returns null on 401', async () => {
-    mockFetch(
-      new Response(null, { status: 401 }),
-    )
+    mockFetch(new Response(null, { status: 401 }))
 
     const onUnauthenticated = vi.fn()
     const apiFetch = createApiFetch({
@@ -406,6 +416,122 @@ describe('createApiFetch', () => {
     expect(onRefresh).not.toHaveBeenCalled()
   })
 
+  it('injects workspace header for workspace-scoped requests', async () => {
+    const fetchMock = mockFetch(
+      new Response(JSON.stringify({ ok: true }), {
+        status: 200,
+        headers: { 'Content-Type': 'application/json' },
+      }),
+    )
+
+    const apiFetch = createApiFetch({
+      getToken: () => 'token',
+      getWorkspaceId: () => 'workspace-1',
+      onRefresh: async () => null,
+      onUnauthenticated: vi.fn(),
+    })
+
+    await apiFetch('/api/publishing/channels', { workspaceScoped: true })
+
+    expect(fetchHeaders(fetchMock)['X-Workspace-Id']).toBe('workspace-1')
+  })
+
+  it('prevents workspace-scoped requests when workspace is missing', async () => {
+    const fetchMock = vi.fn()
+    vi.stubGlobal('fetch', fetchMock)
+
+    const apiFetch = createApiFetch({
+      getToken: () => 'token',
+      getWorkspaceId: () => null,
+      onRefresh: async () => null,
+      onUnauthenticated: vi.fn(),
+    })
+
+    await expect(apiFetch('/api/publishing/channels', { workspaceScoped: true })).rejects.toEqual({
+      title: 'Workspace context required',
+      detail: 'Workspace context is required for this request.',
+      status: 400,
+    })
+    expect(fetchMock).not.toHaveBeenCalled()
+  })
+
+  it('does not require workspace for non-workspace requests', async () => {
+    const fetchMock = mockFetch(
+      new Response(JSON.stringify({ ok: true }), {
+        status: 200,
+        headers: { 'Content-Type': 'application/json' },
+      }),
+    )
+
+    const apiFetch = createApiFetch({
+      getToken: () => 'token',
+      getWorkspaceId: () => null,
+      onRefresh: async () => null,
+      onUnauthenticated: vi.fn(),
+    })
+
+    await apiFetch('/api/auth/me')
+
+    expect(fetchMock).toHaveBeenCalledOnce()
+    expect(fetchHeaders(fetchMock)['X-Workspace-Id']).toBeUndefined()
+  })
+
+  it('preserves workspace header after successful token refresh on 401', async () => {
+    let callCount = 0
+    const fetchMock = vi.fn(() => {
+      callCount++
+      if (callCount === 1) return Promise.resolve(new Response(null, { status: 401 }))
+      return Promise.resolve(
+        new Response(JSON.stringify({ ok: true }), {
+          status: 200,
+          headers: { 'Content-Type': 'application/json' },
+        }),
+      )
+    })
+    vi.stubGlobal('fetch', fetchMock)
+
+    const apiFetch = createApiFetch({
+      getToken: () => 'expired-token',
+      getWorkspaceId: () => 'workspace-1',
+      onRefresh: async () => 'new-token',
+      onUnauthenticated: vi.fn(),
+    })
+
+    await apiFetch('/api/publishing/channels', { workspaceScoped: true })
+
+    expect(fetchHeaders(fetchMock)['X-Workspace-Id']).toBe('workspace-1')
+    expect(fetchHeaders(fetchMock, 1)['X-Workspace-Id']).toBe('workspace-1')
+  })
+
+  it('returns raw streaming responses with workspace and accept headers', async () => {
+    const fetchMock = mockFetch(new Response('event: heartbeat\n\n', { status: 200 }))
+    const apiFetch = createApiFetch({
+      getToken: () => 'token',
+      getWorkspaceId: () => 'workspace-1',
+      onRefresh: async () => null,
+      onUnauthenticated: vi.fn(),
+    })
+
+    const response = await apiFetch.raw('/api/publishing/channels/events', {
+      method: 'GET',
+      headers: { Accept: 'text/event-stream' },
+      workspaceScoped: true,
+    })
+
+    expect(response).toBeInstanceOf(Response)
+    expect(fetchMock).toHaveBeenCalledWith(
+      'http://localhost:8080/api/publishing/channels/events',
+      expect.objectContaining({
+        method: 'GET',
+        headers: expect.objectContaining({
+          Accept: 'text/event-stream',
+          Authorization: 'Bearer token',
+          'X-Workspace-Id': 'workspace-1',
+        }),
+      }),
+    )
+  })
+
   it('uses custom API base URL from environment', async () => {
     // Vite maps process.env to import.meta.env — use this to override
     const original = process.env.VITE_API_BASE_URL
@@ -426,10 +552,7 @@ describe('createApiFetch', () => {
 
     await apiFetch('/api/test')
 
-    expect(fetchMock).toHaveBeenCalledWith(
-      'https://api.example.com/api/test',
-      expect.any(Object),
-    )
+    expect(fetchMock).toHaveBeenCalledWith('https://api.example.com/api/test', expect.any(Object))
 
     // Restore
     if (original === undefined) {
