@@ -1,5 +1,6 @@
 package com.profiletailors.smp.tenancy.infrastructure
 
+import com.profiletailors.smp.tenancy.application.WorkspaceReadRepository
 import com.profiletailors.smp.tenancy.application.WorkspaceSummary
 import kotlinx.coroutines.reactor.awaitSingle
 import org.springframework.r2dbc.core.DatabaseClient
@@ -14,7 +15,7 @@ import org.springframework.stereotype.Repository
 @Repository
 internal class R2dbcWorkspaceReadRepository(
     private val databaseClient: DatabaseClient,
-) {
+) : WorkspaceReadRepository {
     /**
      * Find all workspaces where the given principal has an ACTIVE membership.
      *
@@ -25,7 +26,7 @@ internal class R2dbcWorkspaceReadRepository(
      * @param principalId The authenticated user's principal ID
      * @return List of workspace summaries ordered by name
      */
-    suspend fun findWorkspacesByPrincipal(principalId: String): List<WorkspaceSummary> =
+    override suspend fun findWorkspacesByPrincipal(principalId: String): List<WorkspaceSummary> =
         databaseClient.sql(
             """
             SELECT w.id AS workspace_id,

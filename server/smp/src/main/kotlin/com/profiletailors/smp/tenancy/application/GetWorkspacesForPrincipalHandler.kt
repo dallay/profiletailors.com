@@ -3,7 +3,6 @@ package com.profiletailors.smp.tenancy.application
 import com.profiletailors.common.domain.Service
 import com.profiletailors.common.domain.bus.query.QueryHandler
 import com.profiletailors.common.domain.context.PrincipalContextProvider
-import com.profiletailors.smp.tenancy.infrastructure.R2dbcWorkspaceReadRepository
 
 /**
  * Handler for [GetWorkspacesForPrincipalQuery].
@@ -16,7 +15,7 @@ import com.profiletailors.smp.tenancy.infrastructure.R2dbcWorkspaceReadRepositor
 @Service
 internal class GetWorkspacesForPrincipalHandler(
     private val principalContextProvider: PrincipalContextProvider,
-    private val workspaceReadRepository: R2dbcWorkspaceReadRepository,
+    private val workspaceReadRepository: WorkspaceReadRepository,
 ) : QueryHandler<GetWorkspacesForPrincipalQuery, List<WorkspaceSummary>> {
 
     override suspend fun handle(query: GetWorkspacesForPrincipalQuery): List<WorkspaceSummary> {
