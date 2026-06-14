@@ -101,7 +101,7 @@ describe('CreatePostModal.vue — avatar rendering', () => {
   })
 
   it('renders fallback badge when avatarUrl is null/undefined', () => {
-    const wrapper = mountModal([
+    mountModal([
       makeChannel('ch-2', { avatarUrl: undefined }),
     ])
 
