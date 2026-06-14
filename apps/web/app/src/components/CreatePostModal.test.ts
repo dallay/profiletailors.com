@@ -46,21 +46,32 @@ vi.mock('@lucide/vue', () => {
 // Helpers
 // ---------------------------------------------------------------------------
 
-function makeChannel(id: string, overrides: Record<string, unknown> = {}) {
+interface TestChannel {
+  id: string
+  accountId: string
+  name: string
+  provider: 'linkedin'
+  avatar: string
+  avatarUrl?: string
+  handle: string
+  status: 'ACTIVE' | 'INACTIVE'
+}
+
+function makeChannel(id: string, overrides: Partial<Omit<TestChannel, 'id'>> = {}): TestChannel {
   return {
     id,
     accountId: id,
     name: `Channel ${id}`,
-    provider: 'linkedin' as const,
+    provider: 'linkedin',
     avatar: '',
-    avatarUrl: undefined as string | undefined,
+    avatarUrl: undefined,
     handle: 'urn:li:person:test',
-    status: 'ACTIVE' as const,
+    status: 'ACTIVE',
     ...overrides,
   }
 }
 
-function mountModal(channels: ReturnType<typeof makeChannel>[]) {
+function mountModal(channels: TestChannel[]) {
   const store = usePublishingStore()
   store.channels = channels
 
