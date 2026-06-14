@@ -215,7 +215,6 @@ abstract class IntegrationTestBase {
         fun testAuditHook(): CapturingAuditHook = CapturingAuditHook()
 
         @Bean
-        @Primary
         fun reactiveJwtDecoder(): ReactiveJwtDecoder = ReactiveJwtDecoder { token ->
             when (token) {
                 "owner-token" -> Mono.just(

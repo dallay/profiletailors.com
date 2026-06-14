@@ -80,7 +80,7 @@ const mockConflictCalendarResponse: CalendarResponse = {
 describe('publishing store', () => {
   beforeEach(() => {
     setActivePinia(createPinia())
-    localStorage.clear()
+    globalThis.localStorage?.clear()
     vi.restoreAllMocks()
   })
 
@@ -315,18 +315,27 @@ describe('publishing store', () => {
   })
 
   describe('schedulePost', () => {
-    it('uses the real connected LinkedIn account id for authenticated scheduling', async () => {
+    it('uses the selected connected LinkedIn account id for authenticated scheduling', async () => {
       const store = usePublishingStore()
       const auth = useAuthStore()
       Object.defineProperty(auth, 'isAuthenticated', { value: true, configurable: true })
       store.channels = [
         {
-          id: 'soc-real',
-          accountId: 'soc-real',
-          name: 'Real Profile',
+          id: 'soc-real-1',
+          accountId: 'soc-real-1',
+          name: 'Real Profile 1',
           provider: 'linkedin',
           avatar: '',
-          handle: 'Real Profile',
+          handle: 'Real Profile 1',
+          status: 'ACTIVE',
+        },
+        {
+          id: 'soc-real-2',
+          accountId: 'soc-real-2',
+          name: 'Real Profile 2',
+          provider: 'linkedin',
+          avatar: '',
+          handle: 'Real Profile 2',
           status: 'ACTIVE',
         },
       ]
@@ -338,10 +347,11 @@ describe('publishing store', () => {
         channels: ['linkedin'],
         scheduledAt: '2026-06-20T14:00:00Z',
         priority: false,
+        socialAccountId: 'soc-real-2',
       })
 
       const body = JSON.parse(apiFetch.mock.calls[0]?.[1]?.body as string)
-      expect(body.socialAccountId).toBe('soc-real')
+      expect(body.socialAccountId).toBe('soc-real-2')
       expect(body.socialAccountId).not.toBe('account-linkedin-mock')
       expect(apiFetch.mock.calls[0]?.[1]).toMatchObject({ workspaceScoped: true })
     })

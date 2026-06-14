@@ -37,7 +37,7 @@ const publishingStore = usePublishingStore()
 
 // State
 const postText = ref('')
-const selectedChannels = ref<('twitter' | 'linkedin' | 'instagram' | 'facebook')[]>(['linkedin'])
+const selectedChannelId = ref<string | null>(null)
 const avatarLoadFailed = ref<Record<string, boolean>>({})
 const mediaFiles = ref<File[]>([])
 const submitError = ref('')
@@ -66,6 +66,7 @@ watch(
       submitError.value = ''
       scheduleMode.value = props.initialDate ? 'custom' : 'now'
       avatarLoadFailed.value = {}
+      selectedChannelId.value = publishingStore.channels[0]?.id ?? null
 
       const defaultDate = props.initialDate ? new Date(props.initialDate) : new Date()
       // format to YYYY-MM-DD
@@ -81,16 +82,49 @@ watch(
   }
 )
 
+watch(
+  () => publishingStore.channels,
+  (channels) => {
+    if (!selectedChannelId.value && channels.length > 0) {
+      selectedChannelId.value = channels[0]?.id ?? null
+    }
+  },
+
+)
+
 // Computed
 const isSubmitting = ref(false)
 const isAiProcessing = ref(false)
 const charLimit = 3000
 const charsRemaining = computed(() => charLimit - postText.value.length)
 const isTextTooLong = computed(() => charsRemaining.value < 0)
+const selectedChannel = computed(() =>
+  publishingStore.channels.find((channel) => channel.id === selectedChannelId.value)
+  ?? publishingStore.channels[0]
+  ?? null,
+)
+const selectedProviders = computed(() =>
+  selectedChannel.value ? [selectedChannel.value.provider] : [],
+)
+const selectedChannelInitials = computed(() => {
+  const name = selectedChannel.value?.name?.trim()
+  if (!name) return 'PT'
+
+  const parts = name.split(/\s+/).filter(Boolean)
+  if (parts.length === 1) {
+    return (parts[0]?.slice(0, 2) ?? 'PT').toUpperCase()
+  }
+
+  return parts
+    .slice(0, 2)
+    .map((part) => part[0] ?? '')
+    .join('')
+    .toUpperCase()
+})
 
 const canSubmit = computed(() => {
   return (
-    selectedChannels.value.length > 0 &&
+    selectedChannel.value !== null &&
     postText.value.trim().length > 0 &&
     !isTextTooLong.value &&
     !isSubmitting.value
@@ -153,12 +187,8 @@ function removeFile() {
   mediaPreviews.value = []
 }
 
-function toggleChannel(provider: 'twitter' | 'linkedin' | 'instagram' | 'facebook') {
-  if (selectedChannels.value.includes(provider)) {
-    selectedChannels.value = selectedChannels.value.filter((p) => p !== provider)
-  } else {
-    selectedChannels.value.push(provider)
-  }
+function selectChannel(channelId: string) {
+  selectedChannelId.value = channelId
 }
 
 function onChannelAvatarError(channelId: string) {
@@ -228,10 +258,11 @@ async function handleSchedule() {
     await publishingStore.schedulePost({
       content: postText.value,
       title: 'Post from App',
-      channels: selectedChannels.value,
+      channels: selectedProviders.value,
       scheduledAt: finalScheduledDate.toISOString(),
       priority: priorityMode.value,
       mediaFiles: mediaFiles.value,
+      socialAccountId: selectedChannel.value?.accountId,
     })
 
     emit('created')
@@ -296,9 +327,9 @@ async function handleSchedule() {
               <button
                 v-for="ch in publishingStore.channels"
                 :key="ch.id"
-                @click="toggleChannel(ch.provider)"
+                @click="selectChannel(ch.id)"
                 class="relative flex items-center gap-2 border rounded-full px-3 py-1.5 font-mono text-[10px] tracking-wide transition-all cursor-pointer"
-                :class="selectedChannels.includes(ch.provider)
+                :class="selectedChannelId === ch.id
                   ? 'border-text-display bg-bg-primary text-text-display font-bold'
                   : 'border-border-visible text-text-secondary hover:text-text-display bg-bg-primary/50'"
               >
@@ -318,9 +349,9 @@ async function handleSchedule() {
                 <span class="max-w-[120px] truncate">{{ ch.name }}</span>
                 <span
                   class="flex size-3.5 shrink-0 items-center justify-center rounded-full text-[8px] font-bold text-bg-primary"
-                  :class="selectedChannels.includes(ch.provider) ? 'bg-text-display' : 'bg-border-visible text-text-secondary'"
+                  :class="selectedChannelId === ch.id ? 'bg-text-display' : 'bg-border-visible text-text-secondary'"
                 >
-                  <component :is="selectedChannels.includes(ch.provider) ? Check : X" class="size-2" />
+                  <component :is="selectedChannelId === ch.id ? Check : X" class="size-2" />
                 </span>
               </button>
 
@@ -443,18 +474,27 @@ async function handleSchedule() {
               <!-- Post Header -->
               <div class="p-3.5 flex gap-3">
                 <img
-                  src="https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&w=150&q=80"
-                  alt="LinkedIn User Avatar"
+                  v-if="selectedChannel?.avatarUrl"
+                  :src="selectedChannel.avatarUrl"
+                  :alt="`${selectedChannel.name} avatar`"
                   class="size-10 rounded-full object-cover border border-[#404448]"
                 />
+                <div
+                  v-else
+                  class="flex size-10 shrink-0 items-center justify-center rounded-full border border-[#404448] bg-[#111417] font-mono text-[11px] font-bold uppercase text-white"
+                >
+                  {{ selectedChannelInitials }}
+                </div>
                 <div class="min-w-0 flex-1">
                   <div class="flex items-center gap-1.5">
                     <p class="font-semibold text-white text-[13px] hover:text-[#70b5f9] hover:underline cursor-pointer truncate">
-                      {{ auth.user?.username || 'Yuniel Acosta Pérez' }}
+                      {{ selectedChannel?.name || auth.user?.username || 'Profile Tailors' }}
                     </p>
                     <span class="text-[10px] text-gray-400 font-normal shrink-0"> • 1st</span>
                   </div>
-                  <p class="text-[11px] text-gray-400 truncate">LinkedIn Member</p>
+                  <p class="text-[11px] text-gray-400 truncate">
+                    {{ selectedChannel?.handle || 'LinkedIn Member' }}
+                  </p>
                   <p class="text-[10px] text-gray-400 flex items-center gap-1 mt-0.5">
                     <span>Just now</span>
                     <span>•</span>

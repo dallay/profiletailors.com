@@ -130,6 +130,11 @@ function deriveTimezone(): string {
   }
 }
 
+function readStoredPublications(): string | null {
+  if (typeof localStorage === 'undefined') return null
+  return localStorage.getItem('pt_publications')
+}
+
 /** Maps a backend provider string to the frontend channel type. */
 function toChannelProvider(backendProvider: string): Publication['channels'][number] {
   const lower = backendProvider.toLowerCase()
@@ -231,7 +236,7 @@ export const usePublishingStore = defineStore('publishing', () => {
   const objectUrls = new Map<string, string>()
 
   // Load from localStorage or seed
-  const stored = localStorage.getItem('pt_publications')
+  const stored = readStoredPublications()
   if (stored) {
     try {
       publications.value = JSON.parse(stored)
@@ -262,6 +267,7 @@ export const usePublishingStore = defineStore('publishing', () => {
 
   // Save changes helper
   function saveToStorage() {
+    if (typeof localStorage === 'undefined') return
     localStorage.setItem('pt_publications', JSON.stringify(publications.value))
   }
 
@@ -544,6 +550,7 @@ export const usePublishingStore = defineStore('publishing', () => {
     scheduledAt: string
     priority: boolean
     mediaFiles?: File[]
+    socialAccountId?: string
   }) {
     const publicationId = `pub-${Date.now()}`
 
@@ -553,6 +560,7 @@ export const usePublishingStore = defineStore('publishing', () => {
       content: post.content,
       title: post.title || undefined,
       channels: post.channels,
+      accountId: post.socialAccountId,
       scheduledAt: post.scheduledAt,
       status: 'QUEUED',
       priority: post.priority,
@@ -575,9 +583,16 @@ export const usePublishingStore = defineStore('publishing', () => {
         // LinkedIn is the only active integration on the backend
         const hasLinkedIn = post.channels.includes('linkedin')
         if (hasLinkedIn) {
-          const linkedInChannel = channels.value.find(
-            (c) => c.provider === 'linkedin' && c.status === 'ACTIVE',
-          )
+          const linkedInChannel = post.socialAccountId
+            ? channels.value.find(
+              (c) =>
+                c.accountId === post.socialAccountId &&
+                c.provider === 'linkedin' &&
+                c.status === 'ACTIVE',
+            )
+            : channels.value.find(
+              (c) => c.provider === 'linkedin' && c.status === 'ACTIVE',
+            )
           if (!linkedInChannel?.accountId) {
             throw new Error('Connect a LinkedIn profile before scheduling authenticated posts.')
           }

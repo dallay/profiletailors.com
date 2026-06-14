@@ -70,7 +70,7 @@ describe('LinkedInCallbackView', () => {
     })
   })
 
-  it('completes callback with code, state, and computed redirect URI before navigating to settings', async () => {
+  it('completes callback with code, state, and computed redirect URI before navigating to channel settings', async () => {
     routeQuery.value = { code: 'code-1', state: 'state-raw-value' }
     const publishing = usePublishingStore()
     const complete = vi
@@ -85,7 +85,10 @@ describe('LinkedInCallbackView', () => {
       state: 'state-raw-value',
       redirectUri: 'http://app.test/integrations/linkedin/callback',
     })
-    expect(replace).toHaveBeenCalledWith({ path: '/settings', query: { connected: 'linkedin' } })
+    expect(replace).toHaveBeenCalledWith({
+      path: '/settings',
+      query: { connected: 'linkedin', panel: 'channels', provider: 'linkedin' },
+    })
   })
 
   it('does not call completion when LinkedIn returns an OAuth error', async () => {
