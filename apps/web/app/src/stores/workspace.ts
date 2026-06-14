@@ -78,6 +78,8 @@ export const useWorkspaceStore = defineStore('workspace', () => {
         const match = list.find((ws) => ws.workspaceId === selectedWorkspaceId.value)
         setWorkspaceName(match?.name ?? null)
       }
+    } catch (error) {
+      console.error('Failed to load workspaces:', error)
     } finally {
       isLoadingWorkspaces.value = false
     }

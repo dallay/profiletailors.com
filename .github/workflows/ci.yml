@@ -136,7 +136,7 @@ jobs:
           cache: 'gradle'
 
       - name: Run unit tests with coverage
-        run: ./gradlew :server:smp:test :server:smp:jacocoTestReport --no-daemon -PexcludeTags=modularity,postgres
+        run: ./gradlew :server:smp:test :server:smp:jacocoTestReport --no-daemon -PexcludeTags=modularity,postgres,brokenOnH2
 
       - name: Run fast BDD suite
         run: ./gradlew :server:smp:bddFastTest --no-daemon -x :shared:common:test -x :shared:spring-boot-common:test

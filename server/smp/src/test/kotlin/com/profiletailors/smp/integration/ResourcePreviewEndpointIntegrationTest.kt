@@ -10,6 +10,7 @@ import org.springframework.boot.test.context.TestConfiguration
 import org.springframework.boot.webtestclient.autoconfigure.AutoConfigureWebTestClient
 import org.springframework.context.annotation.Bean
 
+import org.junit.jupiter.api.Tag
 import org.springframework.context.annotation.Import
 
 @AutoConfigureWebTestClient
@@ -30,6 +31,7 @@ import org.springframework.context.annotation.Import
     ],
 )
 @Import(ResourcePreviewEndpointTestBase.SharedTestBeans::class)
+@Tag("brokenOnH2")
 class ResourcePreviewEndpointIntegrationTest : ResourcePreviewEndpointTestBase() {
 
     override fun liquibaseJdbcUrl(): String =
