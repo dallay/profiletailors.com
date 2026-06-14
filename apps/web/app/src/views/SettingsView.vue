@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, onMounted, ref } from 'vue'
+import { computed, onBeforeUnmount, onMounted, ref } from 'vue'
 import { useRoute } from 'vue-router'
 import { useI18n } from 'vue-i18n'
 import { useSettingsStore } from '@/stores/settings'
@@ -25,6 +25,13 @@ const workspaceNameInput = ref('')
 const renamingWorkspace = ref(false)
 const renameError = ref<string | null>(null)
 const renameSuccess = ref(false)
+let renameSuccessTimer: number | undefined
+
+onBeforeUnmount(() => {
+  if (renameSuccessTimer !== undefined) {
+    clearTimeout(renameSuccessTimer)
+  }
+})
 
 const displayWorkspaceName = computed(
   () => workspace.workspaceName || t('workspace.defaultName'),
@@ -55,7 +62,7 @@ async function saveWorkspaceName() {
     workspace.setWorkspaceName(result.name)
     editingWorkspaceName.value = false
     renameSuccess.value = true
-    setTimeout(() => { renameSuccess.value = false }, 3000)
+    renameSuccessTimer = window.setTimeout(() => { renameSuccess.value = false }, 3000)
   } catch (err) {
     renameError.value = err instanceof Error ? err.message : t('workspace.renameFailed')
   } finally {

@@ -9,11 +9,11 @@ pnpm has strict peer dependency handling by default. It provides configuration o
 
 ## Auto-Install Peer Dependencies
 
-By default, pnpm automatically installs peer dependencies:
+By default, pnpm automatically installs peer dependencies. In pnpm v11+, configure in `pnpm-workspace.yaml`:
 
-```ini
-# .npmrc (default is true since pnpm v8)
-auto-install-peers=true
+```yaml
+# pnpm-workspace.yaml
+autoInstallPeers: true
 ```
 
 When enabled, pnpm automatically adds missing peer dependencies based on the best matching version.
@@ -22,9 +22,9 @@ When enabled, pnpm automatically adds missing peer dependencies based on the bes
 
 Control whether peer dependency issues cause errors:
 
-```ini
-# Fail on peer dependency issues (default: false)
-strict-peer-dependencies=true
+```yaml
+# pnpm-workspace.yaml — Fail on peer dependency issues (default: false)
+strictPeerDependencies: true
 ```
 
 When strict, pnpm will fail if:
@@ -33,38 +33,31 @@ When strict, pnpm will fail if:
 
 ## Peer Dependency Rules
 
-Configure peer dependency behavior in `package.json`:
+Configure peer dependency behavior in `pnpm-workspace.yaml` (pnpm v11+):
 
-```json
-{
-  "pnpm": {
-    "peerDependencyRules": {
-      "ignoreMissing": ["@babel/*", "eslint"],
-      "allowedVersions": {
-        "react": "17 || 18"
-      },
-      "allowAny": ["@types/*"]
-    }
-  }
-}
+```yaml
+# pnpm-workspace.yaml
+peerDependencyRules:
+  ignoreMissing:
+    - '@babel/*'
+    - eslint
+  allowedVersions:
+    react: 17 || 18
+  allowAny:
+    - '@types/*'
 ```
 
 ### ignoreMissing
 
 Suppress warnings for missing peer dependencies:
 
-```json
-{
-  "pnpm": {
-    "peerDependencyRules": {
-      "ignoreMissing": [
-        "@babel/*",
-        "eslint",
-        "webpack"
-      ]
-    }
-  }
-}
+```yaml
+# pnpm-workspace.yaml
+peerDependencyRules:
+  ignoreMissing:
+    - '@babel/*'
+    - eslint
+    - webpack
 ```
 
 Use patterns:
@@ -76,32 +69,25 @@ Use patterns:
 
 Allow specific versions that would otherwise cause warnings:
 
-```json
-{
-  "pnpm": {
-    "peerDependencyRules": {
-      "allowedVersions": {
-        "react": "17 || 18",
-        "webpack": "4 || 5",
-        "@types/react": "*"
-      }
-    }
-  }
-}
+```yaml
+# pnpm-workspace.yaml
+peerDependencyRules:
+  allowedVersions:
+    react: 17 || 18
+    webpack: 4 || 5
+    '@types/react': '*'
 ```
 
 ### allowAny
 
 Allow any version for specified peer dependencies:
 
-```json
-{
-  "pnpm": {
-    "peerDependencyRules": {
-      "allowAny": ["@types/*", "eslint"]
-    }
-  }
-}
+```yaml
+# pnpm-workspace.yaml
+peerDependencyRules:
+  allowAny:
+    - '@types/*'
+    - eslint
 ```
 
 ## Adding Peer Dependencies via Hooks

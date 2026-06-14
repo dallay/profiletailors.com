@@ -50,7 +50,7 @@ data class LinkedInPublishingProperties(
     val tokenBaseUrl: String,
     val apiVersion: String,
 ) {
-    fun isConfigured(): Boolean = clientId.isNotBlank() && clientSecret.isNotBlank()
+    fun isConfigured(): Boolean = clientId.isNotBlank() && clientSecret.isNotBlank() && redirectUri.isNotBlank()
 }
 
 class RealLinkedInConnectionProvider(

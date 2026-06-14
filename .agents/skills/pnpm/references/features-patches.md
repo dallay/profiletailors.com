@@ -42,22 +42,20 @@ pnpm patch-commit <path-from-step-1>
 pnpm patch-commit /tmp/abc123...
 ```
 
-This creates a `.patch` file in `patches/` and updates `package.json`:
+This creates a `.patch` file in `patches/` and updates `pnpm-workspace.yaml` (pnpm v11+):
 
 ```
 patches/
 └── express@4.18.2.patch
 ```
 
-```json
-{
-  "pnpm": {
-    "patchedDependencies": {
-      "express@4.18.2": "patches/express@4.18.2.patch"
-    }
-  }
-}
+```yaml
+# pnpm-workspace.yaml
+patchedDependencies:
+  express@4.18.2: patches/express@4.18.2.patch
 ```
+
+> **Note:** In pnpm v11+, `patchedDependencies` is configured in `pnpm-workspace.yaml`. The `package.json` `pnpm.patchedDependencies` field is deprecated.
 
 ## Patch File Format
 

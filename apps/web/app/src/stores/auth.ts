@@ -124,8 +124,9 @@ export const useAuthStore = defineStore('auth', () => {
     _accessToken.value = tokens.accessToken
     user.value = mapTokensToUser(tokens)
 
-    // If the backend returned a workspace ID (e.g. from registration), persist it
-    if (tokens.workspaceId && !workspace.activeWorkspaceId) {
+    // If the backend returned a workspace ID, always apply it
+    // This handles both first-time registration and account switching
+    if (tokens.workspaceId) {
       workspace.setActiveWorkspaceId(tokens.workspaceId)
     }
   }

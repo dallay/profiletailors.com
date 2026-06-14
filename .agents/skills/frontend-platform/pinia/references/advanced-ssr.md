@@ -74,7 +74,7 @@ Serialize state on server and hydrate on client.
 Use [devalue](https://github.com/Rich-Harris/devalue) for XSS-safe serialization:
 
 ```ts
-import devalue from 'devalue'
+import { stringify } from 'devalue'
 import { createPinia } from 'pinia'
 
 const pinia = createPinia()
@@ -83,7 +83,7 @@ app.use(router)
 app.use(pinia)
 
 // After rendering, state is available
-const serializedState = devalue(pinia.state.value)
+const serializedState = stringify(pinia.state.value)
 // Inject into HTML as global variable
 ```
 
@@ -92,13 +92,16 @@ const serializedState = devalue(pinia.state.value)
 Hydrate before any `useStore()` call:
 
 ```ts
+import { parse } from 'devalue'
+import { createPinia } from 'pinia'
+
 const pinia = createPinia()
 const app = createApp(App)
 app.use(pinia)
 
 // Hydrate from serialized state (e.g., from window.__pinia)
 if (typeof window !== 'undefined') {
-  pinia.state.value = JSON.parse(window.__pinia)
+  pinia.state.value = parse(window.__pinia)
 }
 ```
 

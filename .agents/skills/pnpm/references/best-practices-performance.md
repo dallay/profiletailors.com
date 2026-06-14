@@ -27,10 +27,10 @@ Use cached packages when available:
 pnpm install --prefer-offline
 ```
 
-Or configure globally:
-```ini
-# .npmrc
-prefer-offline=true
+Or configure globally (pnpm-workspace.yaml for pnpm v11+):
+```yaml
+# pnpm-workspace.yaml
+preferOffline: true
 ```
 
 ### Skip Optional Dependencies
@@ -53,23 +53,29 @@ pnpm install --ignore-scripts
 
 ### Only Build Specific Dependencies
 
-Only run build scripts for specific packages:
+Only run build scripts for specific packages. In pnpm v11+, configure in `pnpm-workspace.yaml`:
 
-```ini
-# .npmrc
-onlyBuiltDependencies[]=esbuild
-onlyBuiltDependencies[]=sharp
-onlyBuiltDependencies[]=@swc/core
+```yaml
+# pnpm-workspace.yaml
+packages:
+  - 'packages/*'
+
+onlyBuiltDependencies:
+  - esbuild
+  - sharp
+  - '@swc/core'
 ```
 
 Or skip builds entirely for deps that don't need them:
 
-```json
-{
-  "pnpm": {
-    "neverBuiltDependencies": ["fsevents", "cpu-features"]
-  }
-}
+```yaml
+# pnpm-workspace.yaml
+onlyBuiltDependencies:
+  - esbuild
+
+neverBuiltDependencies:
+  - fsevents
+  - cpu-features
 ```
 
 ## Store Optimizations

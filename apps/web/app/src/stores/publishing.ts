@@ -306,8 +306,8 @@ export const usePublishingStore = defineStore('publishing', () => {
       )
       configuredProviders.value = data.providers.filter((p) => p.configured).map((p) => p.name)
     } catch {
-      // Silently fail — providers will appear as unavailable
-      configuredProviders.value = []
+      // Silently fail — preserve existing provider state rather than collapsing
+      // transient network errors into a "not configured" state
     } finally {
       providersLoading.value = false
     }

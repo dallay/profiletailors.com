@@ -68,6 +68,10 @@ export const useWorkspaceStore = defineStore('workspace', () => {
         if (list.length > 0) {
           const first = list[0]!
           setActiveWorkspaceId(first.workspaceId)
+        } else {
+          // No workspaces available — clear stale selection
+          setActiveWorkspaceId(null)
+          setWorkspaceName(null)
         }
       } else {
         // Sync name from list for the current selection

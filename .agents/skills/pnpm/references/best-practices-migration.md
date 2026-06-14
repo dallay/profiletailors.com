@@ -65,9 +65,9 @@ pnpm add lodash
 pnpm reports peer dependency issues by default.
 
 **Option 1:** Let pnpm auto-install:
-```ini
-# .npmrc (default in pnpm v8+)
-auto-install-peers=true
+```yaml
+# pnpm-workspace.yaml (default in pnpm v8+)
+autoInstallPeers: true
 ```
 
 **Option 2:** Install manually:
@@ -76,14 +76,11 @@ pnpm add react react-dom
 ```
 
 **Option 3:** Suppress warnings if acceptable:
-```json
-{
-  "pnpm": {
-    "peerDependencyRules": {
-      "ignoreMissing": ["react"]
-    }
-  }
-}
+```yaml
+# pnpm-workspace.yaml
+peerDependencyRules:
+  ignoreMissing:
+    - react
 ```
 
 ### Symlink Issues

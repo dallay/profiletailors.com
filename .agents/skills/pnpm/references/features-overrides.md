@@ -9,11 +9,10 @@ Overrides let you force specific versions of packages, including transitive depe
 
 ## Basic Syntax
 
-Define overrides in `pnpm-workspace.yaml` (recommended) or `package.json`:
-
-### In pnpm-workspace.yaml (Recommended)
+Define overrides in `pnpm-workspace.yaml` (pnpm v11+):
 
 ```yaml
+# pnpm-workspace.yaml
 packages:
   - 'packages/*'
 
@@ -31,19 +30,7 @@ overrides:
   "underscore": "npm:lodash@^4.17.21"
 ```
 
-### In package.json
-
-```json
-{
-  "pnpm": {
-    "overrides": {
-      "lodash": "^4.17.21",
-      "foo@^1.0.0": "^1.2.3",
-      "bar@^2.0.0>qux": "^1.0.0"
-    }
-  }
-}
-```
+> **Note:** pnpm v11+ requires project-level configuration in `pnpm-workspace.yaml`. The `package.json` `pnpm.overrides` field is deprecated.
 
 ## Override Patterns
 

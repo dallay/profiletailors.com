@@ -101,7 +101,7 @@ export const useColorStore = defineStore('colors', () => {
     // Skip hydration for client-only state
     lastColor: skipHydrate(lastColor),
     open,       // Function - no hydration needed
-    isSupported, // Boolean - not reactive
+    isSupported, // ComputedRef<boolean> — reactive but does not need hydration
   }
 })
 ```

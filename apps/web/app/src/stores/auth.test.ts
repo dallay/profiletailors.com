@@ -114,7 +114,7 @@ describe('Auth store — hydrateSession', () => {
     expect(workspace.activeWorkspaceId).toBe('ws-1')
   })
 
-  it('does NOT overwrite existing workspaceId from tokens', async () => {
+  it('applies workspaceId from tokens even when a workspace is already selected', async () => {
     mockRefreshSession.mockResolvedValue(fakeTokens)
     mockGetCurrentUserProfile.mockResolvedValue({
       principalId: 'user-1',
@@ -127,12 +127,12 @@ describe('Auth store — hydrateSession', () => {
     const { useWorkspaceStore } = await import('./workspace')
     const workspace = useWorkspaceStore()
 
-    // User already selected a different workspace
+    // User already selected a different workspace (e.g. from previous account)
     workspace.setActiveWorkspaceId('ws-existing')
 
     await auth.hydrateSession()
 
-    // Should NOT be overwritten by token's workspaceId
-    expect(workspace.activeWorkspaceId).toBe('ws-existing')
+    // Token's workspaceId should overwrite — it is the authoritative context
+    expect(workspace.activeWorkspaceId).toBe(fakeTokens.workspaceId)
   })
 })

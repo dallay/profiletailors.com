@@ -14,9 +14,13 @@ tasks.bootRun {
     if (envFile.asFile.exists()) {
         envFile.asFile.readLines()
             .filter { it.isNotBlank() && !it.startsWith("#") && '=' in it }
-            .forEach { line ->
+            .map { line ->
                 val (key, value) = line.split("=", limit = 2)
-                environment(key, value.trim())
+                key.trim() to value.trim()
+            }
+            .filter { (_, value) -> value.isNotBlank() }
+            .forEach { (key, value) ->
+                environment(key, value)
             }
     }
 }

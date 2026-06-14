@@ -126,7 +126,7 @@ Cache build outputs for native modules:
 # Enable side effects caching
 side-effects-cache=true
 
-# Store side effects in project (instead of global store)
+# Read-only mode: reuse cached build outputs without creating new cache entries
 side-effects-cache-readonly=true
 ```
 

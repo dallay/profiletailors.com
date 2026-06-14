@@ -25,7 +25,7 @@ const app = createApp(App)
 app.use(pinia)
 
 // ✅ Works - pinia is active
-const userStore = useUserStore()
+const userStoreAfterSetup = useUserStore()
 ```
 
 ## Navigation Guards

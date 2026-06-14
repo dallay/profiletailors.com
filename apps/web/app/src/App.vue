@@ -285,10 +285,10 @@ watch(() => route.path, () => {
 })
 
 watch(
-  () => auth.isAuthenticated,
-  (isAuthenticated) => {
-    if (isAuthenticated && auth.accessToken) {
-      workspace.loadWorkspaces(auth.accessToken).catch((err) => {
+  () => [auth.isAuthenticated, auth.accessToken] as const,
+  ([isAuthenticated, accessToken]) => {
+    if (isAuthenticated && accessToken) {
+      workspace.loadWorkspaces(accessToken).catch((err) => {
         console.warn('Unable to load workspaces', err)
       })
       publishingStore.fetchChannels().catch((err) => {
