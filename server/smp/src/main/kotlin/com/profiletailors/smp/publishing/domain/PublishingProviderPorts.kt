@@ -22,6 +22,7 @@ data class ProviderAccountProfile(
     val displayName: String,
     val kind: SocialAccountKind,
     val profileUrn: String? = null,
+    val avatarUrl: String? = null,
 )
 
 data class ProviderPublishCommand(

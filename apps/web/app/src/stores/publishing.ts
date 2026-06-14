@@ -28,6 +28,7 @@ export interface Channel {
   name: string
   provider: 'twitter' | 'linkedin' | 'instagram' | 'facebook'
   avatar: string
+  avatarUrl?: string
   handle: string
   status: 'ACTIVE' | 'INACTIVE'
   accountId: string // Maps to backend socialAccountId if available
@@ -96,6 +97,7 @@ export interface ConnectedSocialChannelSummary {
   displayName: string
   status: 'ACTIVE' | 'REVOKED' | 'EXPIRED' | 'ERROR' | string
   profileUrn: string | null
+  avatarUrl?: string | null
   connectedAt: string | null
   lastSyncedAt: string | null
 }
@@ -142,6 +144,7 @@ function apiChannelToChannel(api: ConnectedSocialChannelSummary): Channel {
     name: api.displayName,
     provider: toChannelProvider(api.provider),
     avatar: '',
+    avatarUrl: api.avatarUrl ?? undefined,
     handle: api.profileUrn ?? api.displayName,
     status: api.status === 'ACTIVE' ? 'ACTIVE' : 'INACTIVE',
   }
