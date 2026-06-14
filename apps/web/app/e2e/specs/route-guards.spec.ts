@@ -54,7 +54,6 @@ test.describe('Route Guards', { tag: '@integration' }, () => {
 
   test('9.3 Redirect parameter propagates correctly through login flow', async ({ page }) => {
     const loginPage = new LoginPage(page)
-    const dashboard = new DashboardPage(page)
 
     // Navigate to settings (protected) — should be redirected
     await safeGoto(page, APP_URL.settings)

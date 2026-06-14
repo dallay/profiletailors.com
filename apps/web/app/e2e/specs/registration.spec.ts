@@ -16,7 +16,7 @@ import {
   VALID_CREDENTIALS,
   APP_URL,
 } from '../fixtures/test-data'
-import { logout, registerUser, mockRegisterResponse, mockRefreshFailure } from '../fixtures/auth-helpers'
+import { logout, mockRegisterResponse, mockRefreshFailure } from '../fixtures/auth-helpers'
 
 test.describe('Registration', { tag: '@integration' }, () => {
   test.beforeEach(async ({ page }) => {

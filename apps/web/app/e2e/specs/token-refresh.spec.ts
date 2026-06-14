@@ -30,7 +30,6 @@ test.describe('Token Refresh', { tag: '@integration' }, () => {
     await expect(page).toHaveURL(APP_URL.dashboard)
 
     // Track refresh calls
-    let refreshCallCount = 0
     let originalRequestSeen = false
     let retriedRequestSeen = false
 

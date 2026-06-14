@@ -17,7 +17,6 @@ import {
   APP_URL,
   E2E_TEST_USER,
 } from '../fixtures/test-data'
-import { logout } from '../fixtures/auth-helpers'
 import { safeGoto } from '../fixtures/navigation'
 
 test.describe('Login API — Success Path', { tag: '@integration' }, () => {
@@ -51,7 +50,6 @@ test.describe('Login API — Success Path', { tag: '@integration' }, () => {
 
   test('3.2 Login preserves redirect parameter', async ({ page }) => {
     const loginPage = new LoginPage(page)
-    const dashboard = new DashboardPage(page)
 
     // Navigate to a protected route (should redirect to login)
     await safeGoto(page, APP_URL.analytics)
