@@ -1,22 +1,28 @@
 <script setup lang="ts">
-import { inject } from 'vue'
-import { Button } from '@/components/ui/button'
-import { sidebarContextKey } from './utils'
+import { PanelLeftIcon } from '@lucide/vue';
 
-const sidebar = inject(sidebarContextKey)
-if (!sidebar) {
-  throw new Error('SidebarTrigger must be used within SidebarProvider')
-}
+import type { HTMLAttributes } from "vue"
+import { cn } from "@/lib/utils"
+import { Button } from '@/components/ui/button'
+import { useSidebar } from "./utils"
+
+const props = defineProps<{
+  class?: HTMLAttributes["class"]
+}>()
+
+const { toggleSidebar } = useSidebar()
 </script>
 
 <template>
   <Button
+    data-sidebar="trigger"
+    data-slot="sidebar-trigger"
     variant="ghost"
-    size="icon"
-    class="size-10 rounded-xl"
-    aria-label="Toggle sidebar"
-    @click="sidebar.toggleSidebar()"
+    size="icon-sm"
+    :class="cn('', props.class)"
+    @click="toggleSidebar"
   >
-    <slot />
+    <PanelLeftIcon class="cn-rtl-flip" />
+    <span class="sr-only">Toggle Sidebar</span>
   </Button>
 </template>

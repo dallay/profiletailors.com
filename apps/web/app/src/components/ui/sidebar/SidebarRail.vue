@@ -1,29 +1,33 @@
 <script setup lang="ts">
-import { computed, inject } from 'vue'
-import { cn } from '@/lib/utils'
-import { sidebarContextKey } from './utils'
+import type { HTMLAttributes } from "vue"
+import { cn } from "@/lib/utils"
+import { useSidebar } from "./utils"
 
 const props = defineProps<{
-  class?: string
+  class?: HTMLAttributes["class"]
 }>()
 
-const sidebar = inject(sidebarContextKey)
-if (!sidebar) {
-  throw new Error('SidebarRail must be used within SidebarProvider')
-}
-
-const railClass = computed(() => {
-  return sidebar.open.value ? 'right-[-8px] cursor-w-resize' : 'right-[-8px] cursor-e-resize'
-})
+const { toggleSidebar } = useSidebar()
 </script>
 
 <template>
   <button
-    type="button"
+    data-sidebar="rail"
+    data-slot="sidebar-rail"
     aria-label="Toggle Sidebar"
-    :class="cn('absolute inset-y-0 hidden w-4 md:block', railClass, props.class)"
-    @click="sidebar.toggleSidebar()"
+    :tabindex="-1"
+    title="Toggle Sidebar"
+    :class="cn(
+      'hover:after:bg-sidebar-border absolute inset-y-0 z-20 hidden w-4 transition-all ease-linear group-data-[side=left]:-right-4 group-data-[side=right]:left-0 after:absolute after:inset-y-0 after:start-1/2 after:w-0.5 sm:flex ltr:-translate-x-1/2 rtl:-translate-x-1/2',
+      'in-data-[side=left]:cursor-w-resize in-data-[side=right]:cursor-e-resize',
+      '[[data-side=left][data-state=collapsed]_&]:cursor-e-resize [[data-side=right][data-state=collapsed]_&]:cursor-w-resize',
+      'group-data-[collapsible=offcanvas]:translate-x-0 group-data-[collapsible=offcanvas]:after:left-full hover:group-data-[collapsible=offcanvas]:bg-sidebar',
+      '[[data-side=left][data-collapsible=offcanvas]_&]:-right-2',
+      '[[data-side=right][data-collapsible=offcanvas]_&]:-left-2',
+      props.class,
+    )"
+    @click="toggleSidebar"
   >
-    <span class="absolute inset-y-6 left-1/2 w-px -translate-x-1/2 bg-border-subtle transition-colors hover:bg-border-visible" />
+    <slot />
   </button>
 </template>

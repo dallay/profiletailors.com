@@ -1,0 +1,51 @@
+import { ref, computed } from 'vue'
+import { defineStore } from 'pinia'
+import type { AiInsight } from '@/lib/types/dashboard'
+import { aiInsights as mockInsights } from '@/lib/mockData/insights'
+
+// ---------------------------------------------------------------------------
+// Store
+// ---------------------------------------------------------------------------
+
+export const useInsightsStore = defineStore('insights', () => {
+  const isLoading = ref(false)
+  const insights = ref<AiInsight[]>(mockInsights.map((i) => ({ ...i })))
+
+  const activeInsights = computed(() => insights.value.filter((i) => !i.dismissed))
+
+  const highPriorityCount = computed(
+    () => activeInsights.value.filter((i) => i.priority === 'high').length,
+  )
+
+  function dismiss(id: string): void {
+    const insight = insights.value.find((i) => i.id === id)
+    if (insight) {
+      insight.dismissed = true
+    }
+  }
+
+  function dismissAll(): void {
+    insights.value.forEach((i) => {
+      i.dismissed = true
+    })
+  }
+
+  async function refreshAll(): Promise<void> {
+    isLoading.value = true
+    try {
+      console.log('[insights] refreshAll — mock mode, no-op')
+    } finally {
+      isLoading.value = false
+    }
+  }
+
+  return {
+    isLoading,
+    insights,
+    activeInsights,
+    highPriorityCount,
+    dismiss,
+    dismissAll,
+    refreshAll,
+  }
+})
