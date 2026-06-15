@@ -37,5 +37,6 @@ jobs:
           allowlist: |
             bot*
             dallay/*
+            dependabot[bot]
           remote-organization-name: dallay
           remote-repository-name: profiletailors.com
