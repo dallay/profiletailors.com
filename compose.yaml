@@ -1,3 +1,4 @@
+name: profile-tailors
 # Compose configuration that imports infrastructure services
 # This file is used by Spring Boot Docker Compose support during local development
 include:

@@ -35,6 +35,9 @@ vi.mock('@/lib/auth-api', () => ({
   login: vi.fn(),
   register: vi.fn(),
   logoutSession: vi.fn(),
+  // Latent gap surfaced by the app-shell refactor: SidebarChannelRow calls
+  // proxyImageUrl(channel.avatarUrl) and the original mock did not export it.
+  proxyImageUrl: (url: string) => url,
 }))
 
 vi.mock('@/components/ui/tooltip', () => ({

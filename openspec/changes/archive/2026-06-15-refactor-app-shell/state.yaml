@@ -1,0 +1,29 @@
+change: refactor-app-shell
+status: archived
+current_phase: archive
+completed:
+  - init
+  - explore
+  - propose
+  - spec
+  - design
+  - tasks
+  - apply
+  - verify
+  - archive
+next: null
+updated: "2026-06-15T11:00:00Z"
+verdict: pass-with-warnings
+warnings:
+  - useQueuedCounts composable not wired into AppShell.vue
+  - CreatePostModal.test.ts has the same proxyImageUrl mock gap as App.test.ts pre-refactor
+follow_up_issues:
+  - title: "Wire useQueuedCounts into AppShell"
+    severity: low
+    description: "The composable is correct and tested. AppShell.vue line 65 hardcodes totalQueuedCount = ref(0). Wire the composable and remove the hardcode."
+  - title: "Add proxyImageUrl stub to CreatePostModal.test.ts auth-api mock"
+    severity: low
+    description: "Same mock gap that the refactor fixed in App.test.ts. Pre-existing latent bug."
+  - title: "Split refactor-app-shell into stacked PRs before merge"
+    severity: medium
+    description: "Forecast recommended chained PRs (composables → layout leaves → sidebar leaves → shell → verify). Single-PR delivery works but reviewers may prefer stacked."

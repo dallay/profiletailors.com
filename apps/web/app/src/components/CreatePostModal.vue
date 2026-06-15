@@ -15,6 +15,7 @@ import {
 } from '@lucide/vue'
 import { useAuthStore } from '@/stores/auth'
 import { usePublishingStore } from '@/stores/publishing'
+import { proxyImageUrl } from '@/lib/auth-api'
 import { Button } from '@/components/ui/button'
 
 const props = withDefaults(
@@ -339,7 +340,7 @@ async function handleSchedule() {
               >
                 <img
                   v-if="shouldShowChannelAvatar(ch.id, ch.avatarUrl)"
-                  :src="ch.avatarUrl"
+                  :src="proxyImageUrl(ch.avatarUrl!)"
                   :alt="`${ch.name} avatar`"
                   class="size-4.5 rounded-full object-cover border border-border-subtle"
                   @error="onChannelAvatarError(ch.id)"
@@ -479,7 +480,7 @@ async function handleSchedule() {
               <div class="p-3.5 flex gap-3">
                 <img
                   v-if="selectedChannel?.avatarUrl"
-                  :src="selectedChannel.avatarUrl"
+                  :src="proxyImageUrl(selectedChannel.avatarUrl!)"
                   :alt="`${selectedChannel.name} avatar`"
                   class="size-10 rounded-full object-cover border border-[#404448]"
                 />
