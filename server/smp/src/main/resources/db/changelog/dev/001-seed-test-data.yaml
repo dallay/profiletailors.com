@@ -25,6 +25,7 @@ databaseChangeLog:
               - column: { name: principal_id, value: dev-user-001 }
               - column: { name: email, value: dev@profiletailors.com }
               - column: { name: username, value: dev }
+              - column: { name: email_status, value: VERIFIED }
               - column: { name: created_at, valueComputed: "TIMESTAMP WITH TIME ZONE '2026-01-01 00:00:00+00'" }
 
         - insert:
