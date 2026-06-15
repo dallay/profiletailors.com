@@ -105,11 +105,6 @@ const connectChannels = computed<ConnectChannel[]>(() => [
 // Header pieces
 // ---------------------------------------------------------------------------
 
-const currentSectionLabel = computed(() => {
-  if (!route.name) return 'dashboard'
-  return String(route.name)
-})
-
 // ---------------------------------------------------------------------------
 // Sidebar handlers
 // ---------------------------------------------------------------------------
@@ -266,7 +261,7 @@ onBeforeUnmount(() => {
 
       <SidebarInset>
         <div class="flex min-w-0 flex-1 flex-col">
-          <AppHeader :current-section-label="currentSectionLabel" />
+          <AppHeader />
 
           <main
             id="main-content"

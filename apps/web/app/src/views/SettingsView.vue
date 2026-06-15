@@ -134,6 +134,7 @@ async function connectLinkedInProfile() {
   } catch (err: unknown) {
     const e = err as { detail?: string; message?: string }
     connectError.value = e?.detail || e?.message || t('channels.connectLinkedInFailed')
+  } finally {
     connectingLinkedIn.value = false
   }
 }
@@ -383,7 +384,7 @@ onMounted(() => {
               class="ml-auto"
               :disabled="updatingIcon"
               data-testid="settings-open-icon-modal"
-              @click="iconModalOpen = true"
+              @click="iconError = null; iconModalOpen = true"
             >
               <Pencil class="size-3.5" />
               {{ $t('workspace.editIdentity') }}

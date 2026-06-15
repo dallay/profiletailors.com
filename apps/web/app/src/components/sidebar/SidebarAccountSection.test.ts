@@ -34,6 +34,8 @@ const user = {
 describe('SidebarAccountSection', () => {
   beforeEach(() => {
     setActivePinia(createPinia())
+    routeState.path = '/'
+    routeState.fullPath = '/'
   })
 
   it('closed state shows the trigger only — no panel in the DOM', () => {

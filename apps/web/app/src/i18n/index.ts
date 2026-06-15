@@ -651,9 +651,9 @@ const messages = {
       themeLight: 'Claro',
       languageLabel: 'Idioma',
       languageDesc: 'Selecciona el idioma por defecto del sistema.',
-      languageEnglish: 'Ingles',
-      languageSpanish: 'Espanol',
-      quickPreferences: 'Preferencias rapidas',
+      languageEnglish: 'Inglés',
+      languageSpanish: 'Español',
+      quickPreferences: 'Preferencias rápidas',
     },
   },
 }

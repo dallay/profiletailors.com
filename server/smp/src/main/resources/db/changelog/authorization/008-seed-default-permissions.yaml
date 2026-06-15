@@ -2,7 +2,7 @@ databaseChangeLog:
   - changeSet:
       id: authorization-008-seed-default-permissions
       author: opencode
-      context: dev
+      context: dev, prod, staging
       changes:
         # ── Permissions ────────────────────────────────────────────
         - insert:

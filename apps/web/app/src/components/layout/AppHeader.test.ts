@@ -51,8 +51,12 @@ describe('AppHeader', () => {
   })
 
   it('updates the resolved h1 label when the route name changes', async () => {
-    routeState.name = 'scheduler'
+    // Mount with the default 'analytics' route first
     const wrapper = mountHeader()
+    expect(wrapper.text()).toContain('nav.analytics')
+
+    // Then simulate a route change
+    routeState.name = 'scheduler'
     await nextTick()
     expect(wrapper.text()).toContain('nav.scheduler')
   })
