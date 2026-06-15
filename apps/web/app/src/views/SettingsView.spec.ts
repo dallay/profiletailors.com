@@ -86,4 +86,22 @@ describe('SettingsView channel connection CTA', () => {
 
     expect(connect).toHaveBeenCalledOnce()
   })
+
+  it('renders the integrated settings overview layout', async () => {
+    const publishing = usePublishingStore()
+    vi.spyOn(publishing, 'fetchChannels').mockResolvedValue([])
+    vi.spyOn(publishing, 'fetchConfiguredProviders').mockImplementation(async () => {
+      publishing.configuredProviders = ['linkedin']
+    })
+
+    const wrapper = mountSettings()
+    await flushPromises()
+
+    expect(wrapper.find('[data-testid="settings-shell"]').exists()).toBe(true)
+    expect(wrapper.find('[data-testid="settings-overview"]').exists()).toBe(true)
+    expect(wrapper.find('[data-testid="settings-preferences-panel"]').exists()).toBe(true)
+    expect(wrapper.text()).toContain('settings.preferencesEyebrow')
+    expect(wrapper.text()).toContain('settings.workspaceIdentityTitle')
+    expect(wrapper.text()).toContain('settings.channelStatusTitle')
+  })
 })

@@ -115,6 +115,7 @@ class IdentitySecurityConfiguration {
                         "/actuator/health",
                         "/actuator/health/**",
                         "/actuator/prometheus",
+                        "/api/media/proxy",
                     ).permitAll()
                     .pathMatchers(
                         HttpMethod.POST,
