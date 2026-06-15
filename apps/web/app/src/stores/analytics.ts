@@ -1,6 +1,13 @@
 import { ref, computed } from 'vue'
 import { defineStore } from 'pinia'
-import type { KpiMetric, ChannelPerformance, TopPost, AudienceGrowthPoint, GrowthScore, PostingTimeSlot } from '@/lib/types/dashboard'
+import type {
+  KpiMetric,
+  ChannelPerformance,
+  TopPost,
+  AudienceGrowthPoint,
+  GrowthScore,
+  PostingTimeSlot,
+} from '@/lib/types/dashboard'
 import {
   kpiMetrics as mockKpiMetrics,
   channelPerformance as mockChannelPerformance,

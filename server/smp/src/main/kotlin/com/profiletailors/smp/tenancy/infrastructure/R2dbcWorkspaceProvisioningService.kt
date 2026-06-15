@@ -83,6 +83,21 @@ class R2dbcWorkspaceProvisioningService(
             .rowsUpdated()
             .awaitSingle()
 
+        // 4. Assign the WORKSPACE_OWNER role to the membership
+        databaseClient.sql(
+            """
+            INSERT INTO membership_roles (membership_id, role_id, created_at)
+            VALUES (:membershipId, :roleId, :createdAt)
+            ON CONFLICT (membership_id, role_id) DO NOTHING
+            """.trimIndent(),
+        )
+            .bind("membershipId", membershipId)
+            .bind("roleId", "role-owner")
+            .bind("createdAt", now)
+            .fetch()
+            .rowsUpdated()
+            .awaitSingle()
+
         return WorkspaceProvisioningService.ProvisionedWorkspace(
             workspaceId = workspaceId,
             name = workspaceName,

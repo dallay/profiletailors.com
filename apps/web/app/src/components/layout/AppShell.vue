@@ -19,7 +19,6 @@ import { TooltipProvider } from '@/components/ui/tooltip'
 import AppHeader from './AppHeader.vue'
 import { getProviderBadge } from '@/lib/provider-styles'
 import { useAuthStore } from '@/stores/auth'
-import { useSettingsStore } from '@/stores/settings'
 import { useWorkspaceStore } from '@/stores/workspace'
 import { usePublishingStore, type Channel } from '@/stores/publishing'
 import SidebarHeaderSection from '@/components/sidebar/SidebarHeaderSection.vue'
@@ -34,7 +33,6 @@ import { useQueuedCounts } from '@/composables/useQueuedCounts'
 // ---------------------------------------------------------------------------
 
 const auth = useAuthStore()
-const settings = useSettingsStore()
 const workspace = useWorkspaceStore()
 const publishingStore = usePublishingStore()
 const router = useRouter()
@@ -69,7 +67,7 @@ const navigationGroups = computed<NavGroup[]>(() => [
   {
     label: 'Workspace',
     items: [
-      { labelKey: 'nav.dashboard', to: '/', icon: LayoutGrid, badge: (() => { const c = totalQueuedCount.value; return c < 10 ? `0${c}` : String(c) })() },
+      { labelKey: 'nav.dashboard', to: '/', icon: LayoutGrid },
       { labelKey: 'nav.scheduler', to: '/scheduler', icon: LayoutGrid },
       { labelKey: 'nav.analytics', to: '/analytics', icon: LayoutGrid, badge: 'Live' },
     ],
@@ -111,16 +109,6 @@ const currentSectionLabel = computed(() => {
   if (!route.name) return 'dashboard'
   return String(route.name)
 })
-
-const headerSummary = computed(() => {
-  return currentSectionLabel.value === 'dashboard'
-    ? 'Publishing control panel'
-    : `${settings.currentTheme} mode / ${settings.currentLocale.toUpperCase()}`
-})
-
-function onSetLocale(locale: 'en' | 'es') {
-  settings.setLocale(locale)
-}
 
 // ---------------------------------------------------------------------------
 // Sidebar handlers
@@ -278,12 +266,7 @@ onBeforeUnmount(() => {
 
       <SidebarInset>
         <div class="flex min-w-0 flex-1 flex-col">
-          <AppHeader
-            :current-section-label="currentSectionLabel"
-            :header-summary="headerSummary"
-            :current-locale="settings.currentLocale"
-            @set-locale="onSetLocale"
-          />
+          <AppHeader :current-section-label="currentSectionLabel" />
 
           <main
             id="main-content"

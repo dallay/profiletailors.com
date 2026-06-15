@@ -96,7 +96,6 @@ export interface ConnectedSocialChannelSummary {
   accountKind: 'PERSONAL_PROFILE' | 'ORGANIZATION_PAGE' | string
   displayName: string
   status: 'ACTIVE' | 'REVOKED' | 'EXPIRED' | 'ERROR' | string
-  profileUrn: string | null
   avatarUrl?: string | null
   connectedAt: string | null
   lastSyncedAt: string | null
@@ -150,7 +149,7 @@ function apiChannelToChannel(api: ConnectedSocialChannelSummary): Channel {
     provider: toChannelProvider(api.provider),
     avatar: '',
     avatarUrl: api.avatarUrl ?? undefined,
-    handle: api.profileUrn ?? api.displayName,
+    handle: api.displayName,
     status: api.status === 'ACTIVE' ? 'ACTIVE' : 'INACTIVE',
   }
 }
@@ -585,14 +584,12 @@ export const usePublishingStore = defineStore('publishing', () => {
         if (hasLinkedIn) {
           const linkedInChannel = post.socialAccountId
             ? channels.value.find(
-              (c) =>
-                c.accountId === post.socialAccountId &&
-                c.provider === 'linkedin' &&
-                c.status === 'ACTIVE',
-            )
-            : channels.value.find(
-              (c) => c.provider === 'linkedin' && c.status === 'ACTIVE',
-            )
+                (c) =>
+                  c.accountId === post.socialAccountId &&
+                  c.provider === 'linkedin' &&
+                  c.status === 'ACTIVE',
+              )
+            : channels.value.find((c) => c.provider === 'linkedin' && c.status === 'ACTIVE')
           if (!linkedInChannel?.accountId) {
             throw new Error('Connect a LinkedIn profile before scheduling authenticated posts.')
           }

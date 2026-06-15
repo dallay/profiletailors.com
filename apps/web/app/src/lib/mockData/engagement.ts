@@ -9,7 +9,8 @@ export const inboxItems: InboxItem[] = [
     id: 'inbox-1',
     type: 'comment',
     platform: 'linkedin',
-    content: 'Great insights on DDD! I have been struggling with anemic models in my current project.',
+    content:
+      'Great insights on DDD! I have been struggling with anemic models in my current project.',
     from: 'Sarah Chen',
     createdAt: '2026-06-13T10:30:00Z',
     priority: 'high',

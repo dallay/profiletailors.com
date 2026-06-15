@@ -2,6 +2,9 @@ import { createI18n } from 'vue-i18n'
 
 const messages = {
   en: {
+    common: {
+      close: 'Close',
+    },
     nav: {
       dashboard: 'Dashboard',
       scheduler: 'Scheduler',
@@ -264,11 +267,13 @@ const messages = {
       loadFailed: 'Unable to load connected channels.',
       noChannels: 'No connected channels yet.',
       notConfigured: 'LinkedIn not configured.',
-      notConfiguredDesc: 'Set your LinkedIn app credentials in the server environment to enable this integration.',
+      notConfiguredDesc:
+        'Set your LinkedIn app credentials in the server environment to enable this integration.',
       loading: 'Loading channels...',
       more: 'More channels',
       threadsComingSoon: 'coming soon',
       connectionAvailableSoon: 'connection available soon',
+      accountLabel: 'Account ID',
     },
     linkedinCallback: {
       loadingTitle: 'Connecting LinkedIn',
@@ -295,6 +300,9 @@ const messages = {
       namePlaceholder: 'Workspace name',
       save: 'Save',
       cancel: 'Cancel',
+      editIdentity: 'Edit identity',
+      iconModalTitle: 'Choose workspace icon',
+      iconModalDesc: 'Pick an icon that represents this workspace.',
     },
     analytics: {
       subtitle: 'Track audience growth, engagement rates, and platform performance.',
@@ -309,15 +317,21 @@ const messages = {
       interfacePreferences: 'Interface Preferences',
       workspaceIdentityTitle: 'Workspace identity',
       channelStatusTitle: 'Channel status',
+      themeLabel: 'Theme',
+      themeDesc: 'Choose the workspace appearance.',
+      themeDark: 'Dark',
+      themeLight: 'Light',
       languageLabel: 'Language',
       languageDesc: 'Set the default system language.',
-      themeLabel: 'Theme',
-      themeDesc: 'Choose between dark or light appearance.',
-      dark: 'Dark',
-      light: 'Light',
+      languageEnglish: 'English',
+      languageSpanish: 'Spanish',
+      quickPreferences: 'Quick preferences',
     },
   },
   es: {
+    common: {
+      close: 'Cerrar',
+    },
     nav: {
       dashboard: 'Panel de Control',
       scheduler: 'Programador',
@@ -579,12 +593,12 @@ const messages = {
       connectLinkedInFailed: 'No se pudo iniciar la conexión de LinkedIn.',
       loadFailed: 'No se pudieron cargar los canales conectados.',
       noChannels: 'Aún no hay canales conectados.',
-      threadsComingSoon: 'próximamente',
-      connectionAvailableSoon: 'conexión disponible próximamente',
       notConfigured: 'LinkedIn no está configurado.',
-      notConfiguredDesc: 'Configura las credenciales de tu aplicación LinkedIn en el entorno del servidor para habilitar esta integración.',
+      notConfiguredDesc:
+        'Configura las credenciales de tu aplicación LinkedIn en el entorno del servidor para habilitar esta integración.',
       loading: 'Cargando canales...',
       more: 'Más canales',
+      accountLabel: 'ID de cuenta',
     },
     linkedinCallback: {
       loadingTitle: 'Conectando LinkedIn',
@@ -612,6 +626,9 @@ const messages = {
       namePlaceholder: 'Nombre del espacio de trabajo',
       save: 'Guardar',
       cancel: 'Cancelar',
+      editIdentity: 'Editar identidad',
+      iconModalTitle: 'Elegir icono del workspace',
+      iconModalDesc: 'Selecciona un icono que represente este espacio de trabajo.',
     },
     analytics: {
       subtitle:
@@ -622,17 +639,21 @@ const messages = {
     },
     settings: {
       overviewBadge: 'Resumen de ajustes',
-      subtitle: 'Gestiona canales conectados, la identidad del workspace y las preferencias de interfaz.',
+      subtitle:
+        'Gestiona canales conectados, la identidad del workspace y las preferencias de interfaz.',
       preferencesEyebrow: 'Preferencias del sistema',
       interfacePreferences: 'Preferencias de Interfaz',
       workspaceIdentityTitle: 'Identidad del workspace',
       channelStatusTitle: 'Estado de canales',
+      themeLabel: 'Tema',
+      themeDesc: 'Elige la apariencia del workspace.',
+      themeDark: 'Oscuro',
+      themeLight: 'Claro',
       languageLabel: 'Idioma',
       languageDesc: 'Selecciona el idioma por defecto del sistema.',
-      themeLabel: 'Tema',
-      themeDesc: 'Elige entre apariencia oscura o clara.',
-      dark: 'Oscuro',
-      light: 'Claro',
+      languageEnglish: 'Ingles',
+      languageSpanish: 'Espanol',
+      quickPreferences: 'Preferencias rapidas',
     },
   },
 }

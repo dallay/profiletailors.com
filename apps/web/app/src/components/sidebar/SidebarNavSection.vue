@@ -31,17 +31,21 @@ function formatBadge(n: number): string {
 
 /**
  * Decorate each group's items: when an item's `to` is exactly `/` (the
- * Dashboard), override its `badge` with the formatted queue count. Other
- * items pass through unchanged.
+ * Dashboard), override its `badge` with the formatted queue count.
+ * If the count is zero, the badge is omitted (no badge in zero-state).
+ * Other items pass through unchanged.
  */
 const renderedGroups = computed<NavGroup[]>(() =>
   props.groups.map((group) => ({
     ...group,
-    items: group.items.map((item) =>
-      item.to === '/'
-        ? { ...item, badge: formatBadge(props.totalQueuedCount) }
-        : item,
-    ),
+    items: group.items.map((item) => {
+      if (item.to !== '/') return item
+      if (props.totalQueuedCount <= 0) {
+        const { badge: _omit, ...rest } = item
+        return rest as NavItem
+      }
+      return { ...item, badge: formatBadge(props.totalQueuedCount) }
+    }),
   })),
 )
 </script>

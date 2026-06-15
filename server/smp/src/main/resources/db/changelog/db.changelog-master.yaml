@@ -36,6 +36,10 @@ databaseChangeLog:
   - include:
       file: db/changelog/authorization/007-create-workspace-target-scopes.yaml
   - include:
+      file: db/changelog/authorization/008-seed-default-permissions.yaml
+  - include:
+      file: db/changelog/authorization/009-backfill-owner-roles.yaml
+  - include:
       file: db/changelog/governance/001-create-audit-events.yaml
   - include:
       file: db/changelog/publishing/001-create-social-connections.yaml

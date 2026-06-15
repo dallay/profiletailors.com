@@ -1,6 +1,7 @@
-import { describe, it, expect, vi } from 'vitest'
+import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { reactive, nextTick } from 'vue'
 import { mount } from '@vue/test-utils'
+import { createPinia, setActivePinia } from 'pinia'
 import SidebarAccountSection from './SidebarAccountSection.vue'
 
 const routeState = reactive({ path: '/', fullPath: '/' })
@@ -9,8 +10,13 @@ vi.mock('vue-router', () => ({
   useRouter: () => ({ push: vi.fn(), replace: vi.fn() }),
 }))
 
-vi.mock('@/components/ThemeToggle.vue', () => ({
-  default: { name: 'ThemeToggle', template: '<button class="theme-toggle" />' },
+vi.mock('vue-i18n', () => ({
+  createI18n: () => ({
+    global: {
+      locale: { value: 'en' },
+    },
+  }),
+  useI18n: () => ({ t: (key: string) => key }),
 }))
 
 vi.mock('@lucide/vue', () => ({
@@ -26,6 +32,10 @@ const user = {
 }
 
 describe('SidebarAccountSection', () => {
+  beforeEach(() => {
+    setActivePinia(createPinia())
+  })
+
   it('closed state shows the trigger only — no panel in the DOM', () => {
     const wrapper = mount(SidebarAccountSection, {
       props: { user },
@@ -38,7 +48,7 @@ describe('SidebarAccountSection', () => {
     expect(wrapper.text()).toContain('YA')
   })
 
-  it('open popover shows exactly: Account settings, ThemeToggle, Logout — and no static "Theme" label', async () => {
+  it('open popover shows account, theme, language, and logout controls', async () => {
     const wrapper = mount(SidebarAccountSection, {
       props: { user },
       attachTo: document.body,
@@ -55,16 +65,10 @@ describe('SidebarAccountSection', () => {
     const items = panel.findAll('[role="menuitem"]')
     expect(items.length).toBe(2)
     expect(panel.text()).toContain('Account settings')
+    expect(panel.text()).toContain('settings.themeLabel')
+    expect(panel.text()).toContain('settings.languageLabel')
     expect(panel.text()).toContain('Log Out')
-
-    // ThemeToggle is rendered exactly once
-    const toggles = panel.findAllComponents({ name: 'ThemeToggle' })
-    expect(toggles.length).toBe(1)
-
-    // No static "Theme" label row — the word "Theme" must not appear as a label
-    const text = panel.text()
-    // The text "Log Out" contains "Log" not "Theme"; we look for the bare word
-    expect(/^\s*Theme\s*$/m.test(text)).toBe(false)
+    expect(panel.findAll('[role="radiogroup"]').length).toBe(2)
   })
 
   it('emits openSettings when Account settings is clicked, then closes the popover', async () => {
@@ -77,8 +81,9 @@ describe('SidebarAccountSection', () => {
 
     const settingsBtn = wrapper
       .findAll('[role="menuitem"]')
-      .find((b) => b.text().includes('Account settings'))!
-    await settingsBtn.trigger('click')
+      .find((b) => b.text().includes('Account settings'))
+    expect(settingsBtn).toBeTruthy()
+    await settingsBtn?.trigger('click')
     await nextTick()
 
     expect(wrapper.emitted('openSettings')).toBeTruthy()
@@ -93,10 +98,9 @@ describe('SidebarAccountSection', () => {
     await wrapper.find('button[aria-haspopup="menu"]').trigger('click')
     await nextTick()
 
-    const logoutBtn = wrapper
-      .findAll('[role="menuitem"]')
-      .find((b) => b.text().includes('Log Out'))!
-    await logoutBtn.trigger('click')
+    const logoutBtn = wrapper.findAll('[role="menuitem"]').find((b) => b.text().includes('Log Out'))
+    expect(logoutBtn).toBeTruthy()
+    await logoutBtn?.trigger('click')
     await nextTick()
 
     expect(wrapper.emitted('logout')).toBeTruthy()

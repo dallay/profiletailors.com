@@ -57,11 +57,7 @@ export const useDashboardStore = defineStore('dashboard', () => {
       const insights = useInsightsStore()
       const pipeline = useContentPipelineStore()
 
-      await Promise.all([
-        analytics.refreshAll(),
-        insights.refreshAll(),
-        pipeline.refreshAll(),
-      ])
+      await Promise.all([analytics.refreshAll(), insights.refreshAll(), pipeline.refreshAll()])
     } catch (err) {
       loadingError.value = err instanceof Error ? err.message : 'Failed to refresh dashboard'
     } finally {

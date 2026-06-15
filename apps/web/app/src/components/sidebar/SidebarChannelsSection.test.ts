@@ -30,7 +30,7 @@ function makeChannel(overrides: Partial<SidebarChannel> = {}): SidebarChannel {
     provider: 'linkedin',
     avatar: '',
     avatarUrl: undefined,
-    handle: 'urn:li:person:test',
+    handle: 'Channel 1',
     status: 'ACTIVE',
     badge: 'in',
     queuedCount: 0,
@@ -39,7 +39,7 @@ function makeChannel(overrides: Partial<SidebarChannel> = {}): SidebarChannel {
 }
 
 describe('SidebarChannelsSection', () => {
-  it('renders the "All channels" row first with the zero-padded total badge', () => {
+  it('renders the "All channels" row first with the zero-padded total badge when count > 0', () => {
     const wrapper = mount(SidebarChannelsSection, {
       props: {
         channels: [],
@@ -52,6 +52,21 @@ describe('SidebarChannelsSection', () => {
     const text = wrapper.text()
     expect(text).toContain('All channels')
     expect(text).toContain('04')
+  })
+
+  it('omits the badge entirely when totalQueuedCount is 0 (no zero-state badge)', () => {
+    const wrapper = mount(SidebarChannelsSection, {
+      props: {
+        channels: [],
+        activeProvider: null,
+        totalQueuedCount: 0,
+        isSchedulerRoute: true,
+      },
+    })
+
+    // The "All channels" row should be present, but no "00" badge.
+    expect(wrapper.text()).toContain('All channels')
+    expect(wrapper.text()).not.toContain('00')
   })
 
   it('renders one SidebarChannelRow per channel', () => {
