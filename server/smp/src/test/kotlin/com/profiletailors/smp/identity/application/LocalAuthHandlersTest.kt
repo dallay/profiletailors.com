@@ -62,13 +62,13 @@ class LocalAuthHandlersTest {
 
         assertEquals("yuniel@example.com", result.email)
         assertEquals("yuniel", result.username)
-        assertEquals(EmailStatus.UNVERIFIED, result.emailStatus)
+        assertEquals(EmailStatus.PENDING, result.emailStatus)
         assertNotNull(result.principalId)
 
-        // Verify identity was created with UNVERIFIED status
+        // Verify identity was created with PENDING status
         val createdIdentity = identityRegistrationGateway.created
         assertNotNull(createdIdentity)
-        assertEquals(EmailStatus.UNVERIFIED, createdIdentity?.emailStatus)
+        assertEquals(EmailStatus.PENDING, createdIdentity?.emailStatus)
 
         // Verify verification token was created
         assertNotNull(identityRegistrationGateway.createdToken)
@@ -161,7 +161,7 @@ class LocalAuthHandlersTest {
                     displayIdentity = "yuniel",
                     email = "yuniel@example.com",
                     username = "yuniel",
-                    emailStatus = EmailStatus.UNVERIFIED,
+                    emailStatus = EmailStatus.PENDING,
                 ),
             ),
             localJwtIssuer = FakeLocalJwtIssuer(),
@@ -216,7 +216,7 @@ class LocalAuthHandlersTest {
                     displayIdentity = "yuniel",
                     email = "yuniel@example.com",
                     username = "yuniel",
-                    emailStatus = EmailStatus.UNVERIFIED,
+                    emailStatus = EmailStatus.PENDING,
                 ),
             ),
             localJwtIssuer = FakeLocalJwtIssuer(),
@@ -263,7 +263,7 @@ class LocalAuthHandlersTest {
                 displayIdentity = "yuniel",
                 email = "yuniel@example.com",
                 username = "yuniel",
-                emailStatus = EmailStatus.UNVERIFIED,
+                emailStatus = EmailStatus.PENDING,
             ),
         )
         val eventPublisher = RecordingEventPublisher()
@@ -388,7 +388,7 @@ class LocalAuthHandlersTest {
                     displayIdentity = "existing",
                     email = email,
                     username = "existing",
-                    emailStatus = EmailStatus.UNVERIFIED,
+                    emailStatus = EmailStatus.PENDING,
                 )
             } else {
                 principalFacts

@@ -9,7 +9,7 @@ databaseChangeLog:
               - column:
                   name: email_status
                   type: varchar(16)
-                  defaultValue: UNVERIFIED
+                  defaultValue: PENDING
                   constraints:
                     nullable: false
         - createTable:
