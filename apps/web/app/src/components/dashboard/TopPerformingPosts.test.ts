@@ -87,7 +87,9 @@ describe('TopPerformingPosts', () => {
 
   it('renders post metrics (reactions, comments, shares, engagement)', () => {
     const wrapper = mount(TopPerformingPosts, {
-      props: { posts: [makePost('p1', { reactions: 342, comments: 89, shares: 67, engagementRate: 7.2 })] },
+      props: {
+        posts: [makePost('p1', { reactions: 342, comments: 89, shares: 67, engagementRate: 7.2 })],
+      },
     })
     expect(wrapper.text()).toContain('dashboard.contentPerformance.reactions')
     expect(wrapper.text()).toContain('dashboard.contentPerformance.comments')

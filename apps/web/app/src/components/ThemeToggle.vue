@@ -59,6 +59,7 @@ function handleClick() {
     @click="handleClick"
     :disabled="isAnimating"
     class="p-1.5 hover:text-text-display transition-colors rounded-full border border-border-subtle focus:outline-none focus:ring-1 focus:ring-text-secondary cursor-pointer disabled:opacity-50"
+    :aria-label="$t('dashboard.toggleTheme')"
     :title="$t('dashboard.toggleTheme')"
   >
     <!-- Sun icon when dark, Moon icon when light -->
@@ -96,4 +97,3 @@ function handleClick() {
     </svg>
   </button>
 </template>
-

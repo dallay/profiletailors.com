@@ -226,7 +226,6 @@ private fun ConnectedSocialChannel.toSummary(): ConnectedSocialChannelSummary = 
     accountKind = accountKind,
     displayName = displayName,
     status = status,
-    profileUrn = profileUrn,
     avatarUrl = avatarUrl,
     connectedAt = connectedAt,
     lastSyncedAt = lastSyncedAt,

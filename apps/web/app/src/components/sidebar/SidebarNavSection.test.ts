@@ -41,7 +41,7 @@ describe('SidebarNavSection', () => {
     expect(text).toContain('nav.settings')
   })
 
-  it('zero-pads the Dashboard badge for counts 0–9 and renders raw counts for 10+', () => {
+  it('zero-pads the Dashboard badge for counts 1–9 and renders raw counts for 10+', () => {
     const groups = makeGroups()
 
     const w7 = mount(SidebarNavSection, { props: { groups, totalQueuedCount: 7 } })
@@ -50,6 +50,17 @@ describe('SidebarNavSection', () => {
     const w12 = mount(SidebarNavSection, { props: { groups, totalQueuedCount: 12 } })
     expect(w12.text()).toContain('12')
     expect(w12.text()).not.toContain('012')
+  })
+
+  it('omits the Dashboard badge entirely when totalQueuedCount is 0 (no zero-state badge)', () => {
+    const groups = makeGroups()
+    const wrapper = mount(SidebarNavSection, { props: { groups, totalQueuedCount: 0 } })
+
+    // The text should not contain a zero-padded "00" badge for Dashboard
+    // (other items like Analytics with badge="Live" still render).
+    expect(wrapper.text()).not.toContain('00')
+    // But "Live" should still be there (other items pass through).
+    expect(wrapper.text()).toContain('Live')
   })
 
   it('emits navigate with the item `to` on click', async () => {

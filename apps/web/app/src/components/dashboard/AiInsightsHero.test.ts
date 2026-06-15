@@ -53,12 +53,7 @@ describe('AiInsightsHero', () => {
   })
 
   it('renders remaining insights in a grid', () => {
-    const insights = [
-      makeInsight('a1'),
-      makeInsight('a2'),
-      makeInsight('a3'),
-      makeInsight('a4'),
-    ]
+    const insights = [makeInsight('a1'), makeInsight('a2'), makeInsight('a3'), makeInsight('a4')]
     const wrapper = mount(AiInsightsHero, {
       props: { insights },
     })

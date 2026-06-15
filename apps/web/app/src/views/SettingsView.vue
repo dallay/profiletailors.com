@@ -8,10 +8,12 @@ import { useAuthStore } from '@/stores/auth'
 import { useWorkspaceStore } from '@/stores/workspace'
 import { renameWorkspace, updateWorkspaceIcon, proxyImageUrl } from '@/lib/auth-api'
 import WorkspaceAvatar from '@/components/WorkspaceAvatar.vue'
-import { toPascalCase } from '@/lib/string-utils'
-import * as LucideIcons from '@lucide/vue'
+import WorkspaceIconModal from '@/components/workspace/WorkspaceIconModal.vue'
+import { getProviderBadge } from '@/lib/provider-styles'
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
+import { Pencil } from '@lucide/vue'
+import { cn } from '@/lib/utils'
 
 const settings = useSettingsStore()
 const publishing = usePublishingStore()
@@ -40,29 +42,38 @@ const displayWorkspaceName = computed(
   () => workspace.workspaceName || t('workspace.defaultName'),
 )
 
-const CURATED_ICONS = [
-  'briefcase', 'building', 'palette', 'rocket', 'zap', 'star',
-  'heart', 'flag', 'globe', 'compass', 'target', 'trending-up',
-  'layers', 'folder', 'shield', 'users', 'camera', 'music',
-  'code', 'book-open', 'crown', 'gem', 'sparkles', 'smile'
-]
-
 const updatingIcon = ref(false)
 const iconError = ref<string | null>(null)
+const iconModalOpen = ref(false)
 
 const workspaceIdentifier = computed(() => workspace.activeWorkspaceId ?? '—')
-const connectedLinkedInCount = computed(() => linkedInChannels.value.length)
-const channelStatusLabel = computed(() =>
-  connectedLinkedInCount.value > 0
-    ? `${String(connectedLinkedInCount.value).padStart(2, '0')} ${t('channels.active')}`
-    : t('channels.noChannels'),
-)
 
+// Segmented pill — solid fill with inverse text for active state (WCAG AA).
 function segmentedControlClass(isActive: boolean) {
   return isActive
     ? 'bg-text-display text-bg-primary'
-    : 'text-text-secondary hover:text-text-display'
+    : 'text-text-secondary hover:text-text-secondary/80'
 }
+
+const linkedInChannels = computed(() =>
+  publishing.channels.filter((channel) => channel.provider === 'linkedin' && channel.status === 'ACTIVE'),
+)
+const linkedinConnected = computed(() => route.query.connected === 'linkedin')
+const channelsPanelFocused = computed(() =>
+  route.query.panel === 'channels' ||
+  route.query.provider === 'linkedin' ||
+  linkedinConnected.value,
+)
+
+// Channel status — provider name + dot indicator, no decorative zero-padded number.
+const channelStatus = computed(() => {
+  const first = linkedInChannels.value[0]
+  if (!first) {
+    return { label: t('channels.noChannels'), active: false }
+  }
+  const label = first.name || t('channels.linkedinProfile')
+  return { label, active: true }
+})
 
 async function selectIcon(iconName: string | null) {
   if (!auth.accessToken || !workspace.activeWorkspaceId) return
@@ -73,6 +84,7 @@ async function selectIcon(iconName: string | null) {
   try {
     const result = await updateWorkspaceIcon(iconName, auth.accessToken, workspace.activeWorkspaceId)
     workspace.updateWorkspaceIcon(result.workspaceId, result.icon)
+    iconModalOpen.value = false
   } catch (err) {
     iconError.value = err instanceof Error ? err.message : t('workspace.updateIconFailed')
   } finally {
@@ -113,16 +125,6 @@ async function saveWorkspaceName() {
   }
 }
 
-const linkedInChannels = computed(() =>
-  publishing.channels.filter((channel) => channel.provider === 'linkedin' && channel.status === 'ACTIVE'),
-)
-const linkedinConnected = computed(() => route.query.connected === 'linkedin')
-const channelsPanelFocused = computed(() =>
-  route.query.panel === 'channels' ||
-  route.query.provider === 'linkedin' ||
-  linkedinConnected.value,
-)
-
 async function connectLinkedInProfile() {
   connectError.value = null
   connectingLinkedIn.value = true
@@ -132,6 +134,7 @@ async function connectLinkedInProfile() {
   } catch (err: unknown) {
     const e = err as { detail?: string; message?: string }
     connectError.value = e?.detail || e?.message || t('channels.connectLinkedInFailed')
+  } finally {
     connectingLinkedIn.value = false
   }
 }
@@ -169,7 +172,23 @@ onMounted(() => {
           <div class="grid gap-4 md:grid-cols-2">
             <article class="rounded-2xl border border-border-subtle bg-bg-primary/65 p-5">
               <p class="label-mono text-text-secondary">{{ $t('settings.channelStatusTitle') }}</p>
-              <p class="mt-3 text-lg font-medium text-text-display">{{ channelStatusLabel }}</p>
+              <div class="mt-3 flex items-center gap-2.5">
+                <span
+                  aria-hidden="true"
+                  :class="cn(
+                    'size-2 shrink-0 rounded-full',
+                    channelStatus.active
+                      ? 'bg-success shadow-[0_0_8px_rgba(34,197,94,0.55)]'
+                      : 'bg-text-secondary/40',
+                  )"
+                />
+                <p
+                  class="text-lg font-medium text-text-display"
+                  data-testid="settings-channel-status-label"
+                >
+                  {{ channelStatus.label }}
+                </p>
+              </div>
               <p class="mt-2 text-sm leading-6 text-text-secondary">
                 {{ linkedInChannels.length ? $t('channels.connectLinkedInProfileDesc') : $t('channels.noChannels') }}
               </p>
@@ -207,51 +226,34 @@ onMounted(() => {
                 <p class="text-sm font-medium text-text-display">{{ $t('settings.languageLabel') }}</p>
                 <p class="mt-1 text-xs leading-5 text-text-secondary">{{ $t('settings.languageDesc') }}</p>
               </div>
-              <div class="flex items-center rounded-full border border-border-visible bg-bg-surface p-0.5 font-mono text-[10px]">
+              <div
+                class="inline-flex items-center rounded-full border border-border-visible bg-bg-surface p-0.5 font-mono text-[10px]"
+                role="radiogroup"
+                :aria-label="$t('settings.languageLabel')"
+              >
+                <!-- biome-ignore lint/a11y/useSemanticElements: spec requires role="radio" on a button for the radiogroup pill design (R-A11Y-4) -->
                 <button
                   type="button"
-                  class="min-h-9 cursor-pointer rounded-full px-3 py-1.5 font-bold uppercase tracking-[0.14em] transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-text-display"
+                  role="radio"
+                  :aria-checked="settings.currentLocale === 'en' ? 'true' : 'false'"
+                  data-testid="settings-language-en"
+                  class="cursor-pointer rounded-full px-3 py-1.5 font-bold uppercase tracking-[0.14em] transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-text-display"
                   :class="segmentedControlClass(settings.currentLocale === 'en')"
-                  :aria-pressed="settings.currentLocale === 'en'"
                   @click="settings.setLocale('en')"
                 >
                   EN
                 </button>
+                <!-- biome-ignore lint/a11y/useSemanticElements: spec requires role="radio" on a button for the radiogroup pill design (R-A11Y-4) -->
                 <button
                   type="button"
-                  class="min-h-9 cursor-pointer rounded-full px-3 py-1.5 font-bold uppercase tracking-[0.14em] transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-text-display"
+                  role="radio"
+                  :aria-checked="settings.currentLocale === 'es' ? 'true' : 'false'"
+                  data-testid="settings-language-es"
+                  class="cursor-pointer rounded-full px-3 py-1.5 font-bold uppercase tracking-[0.14em] transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-text-display"
                   :class="segmentedControlClass(settings.currentLocale === 'es')"
-                  :aria-pressed="settings.currentLocale === 'es'"
                   @click="settings.setLocale('es')"
                 >
                   ES
-                </button>
-              </div>
-            </div>
-
-            <div class="border-t border-border-subtle pt-5">
-              <div>
-                <p class="text-sm font-medium text-text-display">{{ $t('settings.themeLabel') }}</p>
-                <p class="mt-1 text-xs leading-5 text-text-secondary">{{ $t('settings.themeDesc') }}</p>
-              </div>
-              <div class="mt-3 flex items-center rounded-full border border-border-visible bg-bg-surface p-0.5 font-mono text-[10px]">
-                <button
-                  type="button"
-                  class="min-h-9 cursor-pointer rounded-full px-3 py-1.5 font-bold uppercase tracking-[0.14em] transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-text-display"
-                  :class="segmentedControlClass(settings.currentTheme === 'dark')"
-                  :aria-pressed="settings.currentTheme === 'dark'"
-                  @click="settings.setTheme('dark')"
-                >
-                  {{ $t('settings.dark') }}
-                </button>
-                <button
-                  type="button"
-                  class="min-h-9 cursor-pointer rounded-full px-3 py-1.5 font-bold uppercase tracking-[0.14em] transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-text-display"
-                  :class="segmentedControlClass(settings.currentTheme === 'light')"
-                  :aria-pressed="settings.currentTheme === 'light'"
-                  @click="settings.setTheme('light')"
-                >
-                  {{ $t('settings.light') }}
                 </button>
               </div>
             </div>
@@ -268,24 +270,12 @@ onMounted(() => {
           : ''"
       >
         <CardHeader class="space-y-3 border-b border-border-subtle p-0 pb-5">
-          <div class="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
-            <div>
-              <CardTitle class="label-mono text-[10px] text-text-display">
-                {{ $t('channels.title') }}
-              </CardTitle>
-              <p class="mt-3 max-w-lg text-sm leading-6 text-text-secondary">
-                {{ $t('channels.connectLinkedInProfileDesc') }}
-              </p>
-            </div>
-            <Button
-              v-if="publishing.isLinkedInConfigured"
-              type="button"
-              :disabled="connectingLinkedIn"
-              @click="connectLinkedInProfile"
-            >
-              {{ connectingLinkedIn ? $t('channels.connectingLinkedIn') : $t('channels.connectLinkedInProfile') }}
-            </Button>
-          </div>
+          <CardTitle class="label-mono text-[10px] text-text-display">
+            {{ $t('channels.title') }}
+          </CardTitle>
+          <p class="max-w-lg text-sm leading-6 text-text-secondary">
+            {{ $t('channels.connectLinkedInProfileDesc') }}
+          </p>
         </CardHeader>
 
         <CardContent class="mt-6 space-y-5 p-0">
@@ -308,10 +298,11 @@ onMounted(() => {
               v-for="channel in linkedInChannels"
               :key="channel.id"
               class="flex items-center gap-4 rounded-2xl border border-border-subtle bg-bg-primary px-4 py-4"
+              data-testid="settings-connected-channel"
             >
               <img
                 v-if="channel.avatarUrl"
-                :src="proxyImageUrl(channel.avatarUrl!)"
+                :src="proxyImageUrl(channel.avatarUrl)"
                 :alt="`${channel.name} avatar`"
                 class="size-11 rounded-full border border-border-visible object-cover"
               >
@@ -319,15 +310,16 @@ onMounted(() => {
                 v-else
                 class="flex size-11 shrink-0 items-center justify-center rounded-full border border-border-visible bg-bg-surface font-mono text-[10px] font-bold uppercase text-text-display"
               >
-                in
+                {{ getProviderBadge(channel.provider) }}
               </div>
               <div class="min-w-0 flex-1">
                 <p class="truncate text-sm font-medium text-text-display">{{ channel.name }}</p>
                 <p class="truncate font-mono text-[10px] uppercase tracking-[0.12em] text-text-secondary">
-                  {{ channel.handle }}
+                  {{ t('channels.accountLabel') }} · {{ channel.accountId }}
                 </p>
               </div>
-              <span class="rounded-full border border-border-visible px-2 py-0.5 font-mono text-[9px] uppercase tracking-[0.12em] text-success">
+              <span class="inline-flex items-center gap-1.5 rounded-full border border-border-visible px-2.5 py-0.5 font-mono text-[9px] uppercase tracking-[0.12em] text-success">
+                <span aria-hidden="true" class="size-1.5 rounded-full bg-success" />
                 {{ $t('channels.active') }}
               </span>
             </div>
@@ -351,6 +343,15 @@ onMounted(() => {
             <p class="mt-1 text-xs leading-5 text-text-secondary">
               {{ $t('channels.connectLinkedInProfileDesc') }}
             </p>
+            <Button
+              v-if="publishing.isLinkedInConfigured"
+              type="button"
+              class="mt-4"
+              :disabled="connectingLinkedIn"
+              @click="connectLinkedInProfile"
+            >
+              {{ connectingLinkedIn ? $t('channels.connectingLinkedIn') : $t('channels.connectLinkedInProfile') }}
+            </Button>
           </div>
 
           <p v-if="connectError || publishing.channelsError" class="text-sm text-error">
@@ -377,87 +378,75 @@ onMounted(() => {
               </p>
             </div>
             <Button
-              v-if="workspace.activeWorkspace?.icon"
+              type="button"
               variant="outline"
               size="sm"
               class="ml-auto"
               :disabled="updatingIcon"
-              @click="selectIcon(null)"
+              data-testid="settings-open-icon-modal"
+              @click="iconError = null; iconModalOpen = true"
             >
-              {{ $t('workspace.removeIcon') }}
+              <Pencil class="size-3.5" />
+              {{ $t('workspace.editIdentity') }}
             </Button>
           </div>
         </CardHeader>
 
         <CardContent class="mt-6 space-y-6 p-0">
-          <div class="space-y-4">
-            <div class="grid grid-cols-6 gap-2 sm:grid-cols-8">
-              <button
-                v-for="iconName in CURATED_ICONS"
-                :key="iconName"
-                type="button"
-                :aria-label="iconName"
-                class="flex size-10 items-center justify-center rounded-xl border transition-all focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-text-display"
-                :class="workspace.activeWorkspace?.icon === iconName
-                  ? 'border-text-display bg-text-display text-bg-primary'
-                  : 'border-border-visible text-text-secondary hover:border-text-secondary hover:text-text-display'"
-                :disabled="updatingIcon"
-                @click="selectIcon(iconName)"
-              >
-                <component :is="LucideIcons[toPascalCase(iconName) as keyof typeof LucideIcons]" :size="18" />
-              </button>
+          <p
+            v-if="renameSuccess"
+            class="rounded-2xl border border-success/30 bg-success/10 px-4 py-3 text-sm text-success"
+          >
+            {{ $t('workspace.renameSuccess') }}
+          </p>
+
+          <div v-if="!editingWorkspaceName" class="flex items-center justify-between gap-4">
+            <div class="min-w-0">
+              <p class="text-sm font-medium text-text-display">{{ displayWorkspaceName }}</p>
+              <p class="font-mono text-[10px] uppercase tracking-[0.12em] text-text-secondary">
+                {{ workspaceIdentifier }}
+              </p>
             </div>
-            <p v-if="iconError" class="text-sm text-error">{{ iconError }}</p>
+            <Button variant="outline" size="sm" @click="startRenameWorkspace">
+              {{ $t('workspace.rename') }}
+            </Button>
           </div>
 
-          <div class="border-t border-border-visible pt-6">
-            <p
-              v-if="renameSuccess"
-              class="mb-4 rounded-2xl border border-success/30 bg-success/10 px-4 py-3 text-sm text-success"
+          <div v-else class="space-y-3">
+            <input
+              v-model="workspaceNameInput"
+              type="text"
+              :placeholder="$t('workspace.namePlaceholder')"
+              class="w-full rounded-2xl border border-border-visible bg-bg-primary px-4 py-3 text-sm text-text-body placeholder:text-text-secondary focus:border-text-display focus:outline-none"
+              maxlength="255"
+              @keyup.enter="saveWorkspaceName"
+              @keyup.escape="cancelRenameWorkspace"
             >
-              {{ $t('workspace.renameSuccess') }}
-            </p>
-
-            <div v-if="!editingWorkspaceName" class="flex items-center justify-between gap-4">
-              <div class="min-w-0">
-                <p class="text-sm font-medium text-text-display">{{ displayWorkspaceName }}</p>
-                <p class="font-mono text-[10px] uppercase tracking-[0.12em] text-text-secondary">
-                  {{ workspaceIdentifier }}
-                </p>
-              </div>
-              <Button variant="outline" size="sm" @click="startRenameWorkspace">
-                {{ $t('workspace.rename') }}
-              </Button>
-            </div>
-
-            <div v-else class="space-y-3">
-              <input
-                v-model="workspaceNameInput"
-                type="text"
-                :placeholder="$t('workspace.namePlaceholder')"
-                class="w-full rounded-2xl border border-border-visible bg-bg-primary px-4 py-3 text-sm text-text-body placeholder:text-text-secondary focus:border-text-display focus:outline-none"
-                maxlength="255"
-                @keyup.enter="saveWorkspaceName"
-                @keyup.escape="cancelRenameWorkspace"
+            <p v-if="renameError" class="text-sm text-error">{{ renameError }}</p>
+            <div class="flex gap-2">
+              <Button
+                type="button"
+                size="sm"
+                :disabled="renamingWorkspace || !workspaceNameInput.trim()"
+                @click="saveWorkspaceName"
               >
-              <p v-if="renameError" class="text-sm text-error">{{ renameError }}</p>
-              <div class="flex gap-2">
-                <Button
-                  type="button"
-                  size="sm"
-                  :disabled="renamingWorkspace || !workspaceNameInput.trim()"
-                  @click="saveWorkspaceName"
-                >
-                  {{ renamingWorkspace ? '...' : $t('workspace.save') }}
-                </Button>
-                <Button variant="outline" size="sm" @click="cancelRenameWorkspace">
-                  {{ $t('workspace.cancel') }}
-                </Button>
-              </div>
+                {{ renamingWorkspace ? '...' : $t('workspace.save') }}
+              </Button>
+              <Button variant="outline" size="sm" @click="cancelRenameWorkspace">
+                {{ $t('workspace.cancel') }}
+              </Button>
             </div>
           </div>
         </CardContent>
       </Card>
     </div>
+
+    <WorkspaceIconModal
+      v-model:open="iconModalOpen"
+      :current-icon="workspace.activeWorkspace?.icon ?? null"
+      :is-updating="updatingIcon"
+      :error-message="iconError"
+      @select="selectIcon"
+    />
   </div>
 </template>

@@ -1,0 +1,24 @@
+databaseChangeLog:
+  - changeSet:
+      id: authorization-009-backfill-owner-roles
+      author: opencode
+      preConditions:
+        - onFail: MARK_RAN
+        - tableExists:
+            tableName: membership_roles
+      changes:
+        - sql:
+            -- Assign WORKSPACE_OWNER role to all existing workspace owners
+            -- who don't have it yet (users created before the provisioning fix)
+            INSERT INTO membership_roles (membership_id, role_id, created_at)
+            SELECT wm.id, 'role-owner', NOW()
+            FROM workspace_memberships wm
+            JOIN workspace_ownerships wo
+              ON wm.workspace_id = wo.workspace_id
+              AND wm.principal_id = wo.owner_principal_id
+            WHERE wm.status = 'ACTIVE'
+              AND NOT EXISTS (
+                SELECT 1 FROM membership_roles mr
+                WHERE mr.membership_id = wm.id AND mr.role_id = 'role-owner'
+              )
+            ON CONFLICT (membership_id, role_id) DO NOTHING;

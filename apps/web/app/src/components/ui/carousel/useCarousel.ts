@@ -1,18 +1,17 @@
-import type { UnwrapRefCarouselApi as CarouselApi, CarouselEmits, CarouselProps } from "./interface"
-import { createInjectionState } from "@vueuse/core"
-import emblaCarouselVue from "embla-carousel-vue"
-import { onMounted, ref } from "vue"
+import type { UnwrapRefCarouselApi as CarouselApi, CarouselEmits, CarouselProps } from './interface'
+import { createInjectionState } from '@vueuse/core'
+import emblaCarouselVue from 'embla-carousel-vue'
+import { ref, watch } from 'vue'
 
 const [useProvideCarousel, useInjectCarousel] = createInjectionState(
-  ({
-    opts,
-    orientation,
-    plugins,
-  }: CarouselProps, emits: CarouselEmits) => {
-    const [emblaNode, emblaApi] = emblaCarouselVue({
-      ...opts,
-      axis: orientation === "horizontal" ? "x" : "y",
-    }, plugins)
+  ({ opts, orientation, plugins }: CarouselProps, emits: CarouselEmits) => {
+    const [emblaNode, emblaApi] = emblaCarouselVue(
+      {
+        ...opts,
+        axis: orientation === 'horizontal' ? 'x' : 'y',
+      },
+      plugins,
+    )
 
     function scrollPrev() {
       emblaApi.value?.scrollPrev()
@@ -29,26 +28,33 @@ const [useProvideCarousel, useInjectCarousel] = createInjectionState(
       canScrollPrev.value = api?.canScrollPrev() || false
     }
 
-    onMounted(() => {
-      if (!emblaApi.value)
-        return
+    watch(emblaApi, (api) => {
+      if (!api) return
 
-      emblaApi.value?.on("init", onSelect)
-      emblaApi.value?.on("reInit", onSelect)
-      emblaApi.value?.on("select", onSelect)
+      api.on('init', onSelect)
+      api.on('reInit', onSelect)
+      api.on('select', onSelect)
 
-      emits("init-api", emblaApi.value)
+      onSelect(api)
+      emits('init-api', api)
     })
 
-    return { carouselRef: emblaNode, carouselApi: emblaApi, canScrollPrev, canScrollNext, scrollPrev, scrollNext, orientation }
+    return {
+      carouselRef: emblaNode,
+      carouselApi: emblaApi,
+      canScrollPrev,
+      canScrollNext,
+      scrollPrev,
+      scrollNext,
+      orientation,
+    }
   },
 )
 
 function useCarousel() {
   const carouselState = useInjectCarousel()
 
-  if (!carouselState)
-    throw new Error("useCarousel must be used within a <Carousel />")
+  if (!carouselState) throw new Error('useCarousel must be used within a <Carousel />')
 
   return carouselState
 }

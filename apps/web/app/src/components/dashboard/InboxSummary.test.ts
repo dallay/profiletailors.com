@@ -61,9 +61,7 @@ describe('InboxSummary', () => {
   })
 
   it('renders platform badges within type cards', () => {
-    const items = [
-      makeInboxItem('i1', { type: 'comment', platform: 'linkedin' }),
-    ]
+    const items = [makeInboxItem('i1', { type: 'comment', platform: 'linkedin' })]
     const wrapper = mount(InboxSummary, {
       props: { items },
     })
@@ -71,9 +69,7 @@ describe('InboxSummary', () => {
   })
 
   it('shows high priority indicator when high priority items exist', () => {
-    const items = [
-      makeInboxItem('i1', { type: 'lead', priority: 'high' }),
-    ]
+    const items = [makeInboxItem('i1', { type: 'lead', priority: 'high' })]
     const wrapper = mount(InboxSummary, {
       props: { items },
     })
