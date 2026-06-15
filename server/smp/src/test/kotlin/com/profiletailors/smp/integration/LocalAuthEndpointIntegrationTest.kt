@@ -69,7 +69,7 @@ class LocalAuthEndpointIntegrationTest : IntegrationTestBase() {
 
     @Test
     fun `registers user then verifies email and logs in`() {
-        // Step 1: Register — should return 201 with emailStatus UNVERIFIED, no tokens
+        // Step 1: Register — should return 201 with emailStatus PENDING, no tokens
         val registerResult = webTestClient.post()
             .uri("/api/auth/register")
             .header(HttpHeaders.ACCEPT, API_V1_MEDIA_TYPE)
@@ -84,7 +84,7 @@ class LocalAuthEndpointIntegrationTest : IntegrationTestBase() {
             .expectHeader().contentType(API_V1_MEDIA_TYPE)
             .expectBody()
             .jsonPath("$.email").isEqualTo("newuser@example.com")
-            .jsonPath("$.emailStatus").isEqualTo("UNVERIFIED")
+            .jsonPath("$.emailStatus").isEqualTo("PENDING")
             .returnResult()
 
         // No Set-Cookie header should be set for registration
@@ -92,7 +92,7 @@ class LocalAuthEndpointIntegrationTest : IntegrationTestBase() {
         // Cookie may be null or empty since registration doesn't issue tokens anymore
         // We just verify the registration succeeded
 
-        // Step 2: Login with UNVERIFIED email should return 403
+        // Step 2: Login with PENDING email should return 403
         webTestClient.post()
             .uri("/api/auth/login")
             .header(HttpHeaders.ACCEPT, API_V1_MEDIA_TYPE)
@@ -157,7 +157,7 @@ class LocalAuthEndpointIntegrationTest : IntegrationTestBase() {
         // The token was generated during registration. We need to retrieve it.
         // For this test, we query the DB directly via the databaseClient.
         // But since we're in an integration test, let's just verify the 403 behavior
-        // and that registration succeeded with UNVERIFIED status.
+        // and that registration succeeded with PENDING status.
     }
 
     @Test

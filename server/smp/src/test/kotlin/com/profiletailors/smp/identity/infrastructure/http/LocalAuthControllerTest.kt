@@ -54,7 +54,7 @@ class LocalAuthControllerTest {
             principalId = "user-1",
             email = "yuniel@example.com",
             username = "yuniel",
-            emailStatus = EmailStatus.UNVERIFIED,
+            emailStatus = EmailStatus.PENDING,
         )
         val mediator = CapturingMediator(registrationResult = registrationResult)
         val controller = LocalAuthController(mediator, cookieFactory, cookieProperties)
@@ -69,7 +69,7 @@ class LocalAuthControllerTest {
         assertEquals(201, response.statusCode.value())
         assertEquals("user-1", response.body?.principalId)
         assertEquals("yuniel@example.com", response.body?.email)
-        assertEquals(EmailStatus.UNVERIFIED, response.body?.emailStatus)
+        assertEquals(EmailStatus.PENDING, response.body?.emailStatus)
         // Verify no tokens or cookie set
         assertTrue(response.headers["Set-Cookie"] == null)
         assertEquals(

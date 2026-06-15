@@ -38,7 +38,7 @@ data class AuthTokens(
     val principalId: String,
     val email: String,
     val username: String?,
-    val emailStatus: String = EmailStatus.UNVERIFIED.name,
+    val emailStatus: String = EmailStatus.PENDING.name,
     val workspaceId: String? = null,
 )
 

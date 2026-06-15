@@ -79,7 +79,7 @@ internal class RegisterUserHandler(
             username = normalizedUsername,
             provider = null,
             displayIdentity = normalizedUsername,
-            emailStatus = EmailStatus.UNVERIFIED,
+            emailStatus = EmailStatus.PENDING,
         )
         localPasswordCredentialGateway.create(
             principalId = principalId,
@@ -114,7 +114,7 @@ internal class RegisterUserHandler(
             principalId = principalId,
             email = normalizedEmail,
             username = normalizedUsername,
-            emailStatus = EmailStatus.UNVERIFIED,
+            emailStatus = EmailStatus.PENDING,
         )
     }
 
@@ -285,7 +285,7 @@ internal class ResendVerificationHandler(
         val identityFacts = principalIdentityLookup.findByEmail(normalizedEmail)
 
         // Always return accepted to prevent email enumeration
-        if (identityFacts == null || identityFacts.emailStatus != EmailStatus.UNVERIFIED) {
+        if (identityFacts == null || identityFacts.emailStatus != EmailStatus.PENDING) {
             return ResendVerificationResult()
         }
 

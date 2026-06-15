@@ -11,7 +11,7 @@ interface IdentityRegistrationGateway {
         username: String,
         provider: String?,
         displayIdentity: String,
-        emailStatus: EmailStatus = EmailStatus.UNVERIFIED,
+        emailStatus: EmailStatus = EmailStatus.PENDING,
     )
 
     suspend fun createEmailVerificationToken(

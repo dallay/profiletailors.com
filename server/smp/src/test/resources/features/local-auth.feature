@@ -8,7 +8,7 @@ Feature: Local authentication session lifecycle
     When the client registers a local user
     Then the response status should be 201
     And the auth response should include email "yuniel@example.com"
-    And the auth response should include emailStatus "UNVERIFIED"
+    And the auth response should include emailStatus "PENDING"
     And the response should not set a refresh cookie
 
   Scenario: Refresh returns a new access token for an active session cookie

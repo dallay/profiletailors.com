@@ -487,7 +487,7 @@ class AuthorizationBddSteps(
     }
 
     private fun registerLocalUser(email: String) {
-        // Step 1: Register — returns 201 with RegistrationResult, no tokens, UNVERIFIED
+        // Step 1: Register — returns 201 with RegistrationResult, no tokens, PENDING
         latestStatusCode = null
         latestResult = webTestClient.post()
             .uri(bddDatabaseSupport.localAuthRegisterPath())
