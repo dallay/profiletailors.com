@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { computed, type Component } from 'vue'
+import { useI18n } from 'vue-i18n'
 
 export interface NavItem {
   labelKey: string
@@ -13,6 +14,8 @@ export interface NavGroup {
   label: string
   items: NavItem[]
 }
+
+const { t } = useI18n()
 
 const props = defineProps<{
   groups: NavGroup[]
@@ -67,7 +70,7 @@ const renderedGroups = computed<NavGroup[]>(() =>
               :is="item.icon"
               class="size-4 shrink-0 text-text-secondary"
             />
-            <span class="truncate">{{ item.labelKey }}</span>
+            <span class="truncate">{{ t(item.labelKey) }}</span>
             <span
               v-if="item.badge"
               class="ml-auto inline-flex min-w-8 items-center justify-center rounded-full border border-border-visible bg-bg-primary px-2 py-0.5 font-mono text-[9px] uppercase tracking-[0.12em] text-text-secondary"

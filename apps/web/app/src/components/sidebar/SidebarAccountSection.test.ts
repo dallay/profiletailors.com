@@ -3,7 +3,7 @@ import { reactive, nextTick } from 'vue'
 import { mount } from '@vue/test-utils'
 import SidebarAccountSection from './SidebarAccountSection.vue'
 
-const routeState = reactive({ path: '/' })
+const routeState = reactive({ path: '/', fullPath: '/' })
 vi.mock('vue-router', () => ({
   useRoute: () => routeState,
   useRouter: () => ({ push: vi.fn(), replace: vi.fn() }),
@@ -136,6 +136,7 @@ describe('SidebarAccountSection', () => {
     await nextTick()
     expect(wrapper.find('#sidebar-account-menu').exists()).toBe(true)
     routeState.path = '/scheduler'
+    routeState.fullPath = '/scheduler'
     await nextTick()
     await nextTick()
     expect(wrapper.find('#sidebar-account-menu').exists()).toBe(false)

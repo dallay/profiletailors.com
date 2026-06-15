@@ -2,8 +2,8 @@
 import { computed } from 'vue'
 import { useRoute } from 'vue-router'
 import { useI18n } from 'vue-i18n'
-import { PanelLeft } from '@lucide/vue'
 import { useSettingsStore } from '@/stores/settings'
+import { SidebarTrigger } from '@/components/ui/sidebar'
 import AppStatusPill from './AppStatusPill.vue'
 import AppLanguagePill from './AppLanguagePill.vue'
 
@@ -33,14 +33,7 @@ function onLanguageChange(locale: 'en' | 'es') {
   <header class="sticky top-0 z-20 border-b border-border-subtle bg-bg-primary/90 backdrop-blur">
     <div class="flex h-16 items-center justify-between gap-4 px-4 md:px-6 lg:px-8">
       <div class="flex min-w-0 items-center gap-3">
-        <button
-          type="button"
-          class="rounded-xl border border-border-visible bg-bg-surface text-text-display hover:bg-bg-primary"
-          aria-label="Toggle navigation"
-        >
-          <PanelLeft class="size-4" />
-          <span class="sr-only">Toggle navigation</span>
-        </button>
+        <SidebarTrigger class="rounded-xl border border-border-visible bg-bg-surface text-text-display hover:bg-bg-primary size-9" />
 
         <div class="min-w-0">
           <p class="font-mono text-[10px] uppercase tracking-[0.18em] text-text-secondary">

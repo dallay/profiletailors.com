@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, onBeforeUnmount, ref, watch } from 'vue'
+import { computed, onBeforeUnmount, watch } from 'vue'
 import { RouterView, useRoute, useRouter } from 'vue-router'
 import { LayoutGrid } from '@lucide/vue'
 import {
@@ -84,18 +84,12 @@ const navigationGroups = computed<NavGroup[]>(() => [
 // Channels (drives SidebarChannelsSection)
 // ---------------------------------------------------------------------------
 
-const sidebarChannels = ref<SidebarChannel[]>([])
-
-watch(
-  () => publishingStore.channels,
-  (newChannels) => {
-    sidebarChannels.value = (newChannels as Channel[]).map((channel) => ({
-      ...channel,
-      badge: getProviderBadge(channel.provider),
-      queuedCount: queuedByProvider.value.get(channel.provider) ?? 0,
-    }))
-  },
-  { immediate: true },
+const sidebarChannels = computed<SidebarChannel[]>(() =>
+  (publishingStore.channels as Channel[]).map((channel) => ({
+    ...channel,
+    badge: getProviderBadge(channel.provider),
+    queuedCount: queuedByProvider.value.get(channel.provider) ?? 0,
+  })),
 )
 
 // ---------------------------------------------------------------------------

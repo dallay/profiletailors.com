@@ -89,7 +89,7 @@ export function usePopoverDismissal(opts: UsePopoverDismissalOptions): UsePopove
 
   // Route-change close — NO focus restore. The browser shifts focus on navigation.
   const stopRouteWatch = watch(
-    () => route.path,
+    () => route.fullPath,
     () => {
       if (open.value) close()
     },

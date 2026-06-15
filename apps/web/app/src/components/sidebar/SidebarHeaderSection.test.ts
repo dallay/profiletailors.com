@@ -4,7 +4,7 @@ import { mount } from '@vue/test-utils'
 import SidebarHeaderSection from './SidebarHeaderSection.vue'
 
 // Reactive route object so the composable's watcher can re-evaluate.
-const routeState = reactive({ path: '/' })
+const routeState = reactive({ path: '/', fullPath: '/' })
 vi.mock('vue-router', () => ({
   useRoute: () => routeState,
   useRouter: () => ({ push: vi.fn(), replace: vi.fn() }),
@@ -103,6 +103,7 @@ describe('SidebarHeaderSection', () => {
     expect(wrapper.find('#sidebar-workspace-menu').exists()).toBe(true)
 
     routeState.path = '/scheduler'
+    routeState.fullPath = '/scheduler'
     await nextTick()
     await nextTick()
     expect(wrapper.find('#sidebar-workspace-menu').exists()).toBe(false)
