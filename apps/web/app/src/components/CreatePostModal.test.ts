@@ -21,7 +21,9 @@ vi.mock('@/i18n', () => ({
 
 vi.mock('@/lib/auth-api', () => ({
   createApiFetch: () =>
-    async function apiFetch<T>() { return {} as T },
+    async function apiFetch<T>() {
+      return {} as T
+    },
   refreshSession: vi.fn().mockResolvedValue(null),
   getCurrentUserProfile: vi.fn().mockResolvedValue(null),
   login: vi.fn(),
@@ -37,9 +39,16 @@ vi.mock('@/components/ui/button', () => ({
 vi.mock('@lucide/vue', () => {
   const stub = { template: '<svg />' }
   return {
-    Image: stub, Calendar: stub, Check: stub, ChevronDown: stub,
-    FileImage: stub, Hash: stub, Paperclip: stub, Smile: stub,
-    Sparkles: stub, X: stub,
+    Image: stub,
+    Calendar: stub,
+    Check: stub,
+    ChevronDown: stub,
+    FileImage: stub,
+    Hash: stub,
+    Paperclip: stub,
+    Smile: stub,
+    Sparkles: stub,
+    X: stub,
   }
 })
 
@@ -66,7 +75,7 @@ function makeChannel(id: string, overrides: Partial<Omit<TestChannel, 'id'>> = {
     provider: 'linkedin',
     avatar: '',
     avatarUrl: undefined,
-    handle: 'urn:li:person:test',
+    handle: `Channel ${id}`,
     status: 'ACTIVE',
     ...overrides,
   }
@@ -113,9 +122,7 @@ describe('CreatePostModal.vue — avatar rendering', () => {
   })
 
   it('renders fallback badge when avatarUrl is null/undefined', () => {
-    mountModal([
-      makeChannel('ch-2', { avatarUrl: undefined }),
-    ])
+    mountModal([makeChannel('ch-2', { avatarUrl: undefined })])
 
     const body = document.body.innerHTML
     // For a linkedin channel, the fallback badge shows "in"

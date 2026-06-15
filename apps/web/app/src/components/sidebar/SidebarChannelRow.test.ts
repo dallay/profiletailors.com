@@ -18,7 +18,7 @@ function makeChannel(overrides: Partial<SidebarChannel> = {}): SidebarChannel {
     provider: 'linkedin',
     avatar: '',
     avatarUrl: 'https://example.com/a.jpg',
-    handle: 'urn:li:person:test',
+    handle: 'Channel 1',
     status: 'ACTIVE',
     badge: 'in',
     queuedCount: 0,

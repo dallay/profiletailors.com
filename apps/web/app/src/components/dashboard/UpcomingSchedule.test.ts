@@ -62,10 +62,7 @@ describe('UpcomingSchedule', () => {
   it('renders status labels for each item', () => {
     const wrapper = mount(UpcomingSchedule, {
       props: {
-        items: [
-          makeItem('s1', { status: 'scheduled' }),
-          makeItem('s2', { status: 'queued' }),
-        ],
+        items: [makeItem('s1', { status: 'scheduled' }), makeItem('s2', { status: 'queued' })],
       },
     })
     expect(wrapper.text()).toContain('dashboard.upcomingSchedule.scheduled')

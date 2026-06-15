@@ -69,8 +69,7 @@ export const postingTimeSlots: PostingTimeSlot[] = (() => {
       const boost = isWeekday && isBusinessHour ? 0.3 : 0
 
       // Peak at 9-11 AM and 14-16 PM on weekdays
-      const isPeak =
-        isWeekday && ((hour >= 9 && hour <= 11) || (hour >= 14 && hour <= 16))
+      const isPeak = isWeekday && ((hour >= 9 && hour <= 11) || (hour >= 14 && hour <= 16))
       const peakBoost = isPeak ? 0.2 : 0
 
       const score = Math.min(100, Math.round((base + boost + peakBoost) * 100))

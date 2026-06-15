@@ -434,7 +434,6 @@ class PublishingControllersTest {
                             accountKind = SocialAccountKind.PERSONAL_PROFILE,
                             displayName = "Yuniel",
                             status = SocialConnectionStatus.ACTIVE,
-                            profileUrn = "urn:li:person:123",
                             avatarUrl = "https://media.licdn.com/photo.jpg",
                             connectedAt = Instant.parse("2026-06-12T12:00:00Z"),
                             lastSyncedAt = null,

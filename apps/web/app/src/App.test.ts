@@ -29,7 +29,9 @@ vi.mock('vue-router', () => ({
 
 vi.mock('@/lib/auth-api', () => ({
   createApiFetch: () =>
-    async function apiFetch<T>() { return {} as T },
+    async function apiFetch<T>() {
+      return {} as T
+    },
   refreshSession: vi.fn().mockResolvedValue(null),
   getCurrentUserProfile: vi.fn().mockResolvedValue(null),
   login: vi.fn(),
@@ -70,9 +72,15 @@ vi.mock('@/components/ThemeToggle.vue', () => ({
 vi.mock('@lucide/vue', () => {
   const stub = { template: '<span />' }
   return {
-    BarChart3: stub, CalendarDays: stub, ChevronsUpDown: stub,
-    LayoutGrid: stub, LogOut: stub, PanelLeft: stub,
-    Plus: stub, Settings: stub, Users: stub,
+    BarChart3: stub,
+    CalendarDays: stub,
+    ChevronsUpDown: stub,
+    LayoutGrid: stub,
+    LogOut: stub,
+    PanelLeft: stub,
+    Plus: stub,
+    Settings: stub,
+    Users: stub,
   }
 })
 
@@ -99,7 +107,7 @@ function makeChannel(id: string, overrides: Partial<Omit<TestChannel, 'id'>> = {
     provider: 'linkedin',
     avatar: '',
     avatarUrl: undefined,
-    handle: 'urn:li:person:test',
+    handle: `Channel ${id}`,
     status: 'ACTIVE',
     ...overrides,
   }
@@ -126,22 +134,16 @@ describe('App.vue — avatar rendering', () => {
   })
 
   it('renders <img> when channel has a valid avatarUrl', () => {
-    const wrapper = mountApp([
-      makeChannel('ch-1', { avatarUrl: 'https://example.com/avatar.jpg' }),
-    ])
+    const wrapper = mountApp([makeChannel('ch-1', { avatarUrl: 'https://example.com/avatar.jpg' })])
 
     const imgs = wrapper.findAll('img')
-    const avatarImg = imgs.find(
-      (img) => img.attributes('src') === 'https://example.com/avatar.jpg',
-    )
+    const avatarImg = imgs.find((img) => img.attributes('src') === 'https://example.com/avatar.jpg')
     expect(avatarImg).toBeTruthy()
     expect(avatarImg!.attributes('alt')).toBe('Channel ch-1 avatar')
   })
 
   it('renders fallback badge when avatarUrl is null/undefined', () => {
-    const wrapper = mountApp([
-      makeChannel('ch-2', { avatarUrl: undefined }),
-    ])
+    const wrapper = mountApp([makeChannel('ch-2', { avatarUrl: undefined })])
 
     const badgeText = getProviderBadge('linkedin')
     expect(wrapper.text()).toContain(badgeText)
@@ -152,9 +154,7 @@ describe('App.vue — avatar rendering', () => {
   })
 
   it('shows fallback badge when avatar image fails to load', async () => {
-    const wrapper = mountApp([
-      makeChannel('ch-3', { avatarUrl: 'https://example.com/broken.jpg' }),
-    ])
+    const wrapper = mountApp([makeChannel('ch-3', { avatarUrl: 'https://example.com/broken.jpg' })])
 
     const img = wrapper.find('img[src="https://example.com/broken.jpg"]')
     expect(img.exists()).toBe(true)

@@ -23,8 +23,8 @@ export const useWorkspaceStore = defineStore('workspace', () => {
 
   const activeWorkspaceId = computed(() => selectedWorkspaceId.value)
 
-  const activeWorkspace = computed(() =>
-    workspaces.value.find((ws) => ws.workspaceId === selectedWorkspaceId.value) ?? null,
+  const activeWorkspace = computed(
+    () => workspaces.value.find((ws) => ws.workspaceId === selectedWorkspaceId.value) ?? null,
   )
 
   function setActiveWorkspaceId(workspaceId: string | null) {
@@ -71,7 +71,10 @@ export const useWorkspaceStore = defineStore('workspace', () => {
       workspaces.value = list
 
       // Auto-select if nothing selected yet, or if the selected one is no longer in the list
-      if (!selectedWorkspaceId.value || !list.some((ws) => ws.workspaceId === selectedWorkspaceId.value)) {
+      if (
+        !selectedWorkspaceId.value ||
+        !list.some((ws) => ws.workspaceId === selectedWorkspaceId.value)
+      ) {
         if (list.length > 0) {
           const first = list[0]!
           setActiveWorkspaceId(first.workspaceId)

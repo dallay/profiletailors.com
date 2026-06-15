@@ -42,6 +42,7 @@ function isRowActive(provider: string): boolean {
 }
 
 const allBadge = computed(() => {
+  if (props.totalQueuedCount <= 0) return null
   const n = props.totalQueuedCount
   return n < 10 ? `0${n}` : String(n)
 })
@@ -57,7 +58,10 @@ const allBadge = computed(() => {
     >
       <Users class="size-4 shrink-0 text-text-secondary" />
       <span class="truncate">All channels</span>
-      <span class="ml-auto inline-flex min-w-8 items-center justify-center rounded-full border border-border-visible bg-bg-primary px-2 py-0.5 font-mono text-[9px] uppercase tracking-[0.12em] text-text-secondary">
+      <span
+        v-if="allBadge"
+        class="ml-auto inline-flex min-w-8 items-center justify-center rounded-full border border-border-visible bg-bg-primary px-2 py-0.5 font-mono text-[9px] uppercase tracking-[0.12em] text-text-secondary"
+      >
         {{ allBadge }}
       </span>
     </button>

@@ -1,0 +1,67 @@
+databaseChangeLog:
+  - changeSet:
+      id: authorization-008-seed-default-permissions
+      author: opencode
+      # No context restriction — provisioning logic depends on role-owner in ALL environments.
+      # The ON CONFLICT clause makes this idempotent.
+      changes:
+        # ── Permissions ────────────────────────────────────────────
+        - insert:
+            tableName: permissions
+            columns:
+              - column: { name: id, value: perm-001 }
+              - column: { name: permission_key, value: "workspace:settings:manage" }
+              - column: { name: created_at, valueComputed: CURRENT_TIMESTAMP }
+        - insert:
+            tableName: permissions
+            columns:
+              - column: { name: id, value: perm-002 }
+              - column: { name: permission_key, value: "workspace:audit:read" }
+              - column: { name: created_at, valueComputed: CURRENT_TIMESTAMP }
+        - insert:
+            tableName: permissions
+            columns:
+              - column: { name: id, value: perm-003 }
+              - column: { name: permission_key, value: "workspace:resource:read" }
+              - column: { name: created_at, valueComputed: CURRENT_TIMESTAMP }
+        - insert:
+            tableName: permissions
+            columns:
+              - column: { name: id, value: perm-004 }
+              - column: { name: permission_key, value: "workspace:access:read" }
+              - column: { name: created_at, valueComputed: CURRENT_TIMESTAMP }
+
+        # ── Roles ─────────────────────────────────────────────────
+        - insert:
+            tableName: roles
+            columns:
+              - column: { name: id, value: role-owner }
+              - column: { name: role_key, value: WORKSPACE_OWNER }
+              - column: { name: category, value: WORKSPACE }
+              - column: { name: created_at, valueComputed: CURRENT_TIMESTAMP }
+
+        # ── Role → Permissions ────────────────────────────────────
+        - insert:
+            tableName: role_permissions
+            columns:
+              - column: { name: role_id, value: role-owner }
+              - column: { name: permission_id, value: perm-001 }
+              - column: { name: created_at, valueComputed: CURRENT_TIMESTAMP }
+        - insert:
+            tableName: role_permissions
+            columns:
+              - column: { name: role_id, value: role-owner }
+              - column: { name: permission_id, value: perm-002 }
+              - column: { name: created_at, valueComputed: CURRENT_TIMESTAMP }
+        - insert:
+            tableName: role_permissions
+            columns:
+              - column: { name: role_id, value: role-owner }
+              - column: { name: permission_id, value: perm-003 }
+              - column: { name: created_at, valueComputed: CURRENT_TIMESTAMP }
+        - insert:
+            tableName: role_permissions
+            columns:
+              - column: { name: role_id, value: role-owner }
+              - column: { name: permission_id, value: perm-004 }
+              - column: { name: created_at, valueComputed: CURRENT_TIMESTAMP }

@@ -12,8 +12,7 @@ export const pipelineColumns: PipelineColumn[] = [
       {
         id: 'pc-1',
         title: 'Thread on hexagonal architecture',
-        content:
-          'A 5-tweet thread explaining ports and adapters with real-world analogies.',
+        content: 'A 5-tweet thread explaining ports and adapters with real-world analogies.',
         platform: 'twitter',
         author: 'Yuniel',
         tags: ['architecture', 'thread'],
@@ -67,8 +66,7 @@ export const pipelineColumns: PipelineColumn[] = [
       {
         id: 'pc-5',
         title: 'Why testing matters more than coverage',
-        content:
-          'A focused post on meaningful tests vs. chasing 100% coverage metrics.',
+        content: 'A focused post on meaningful tests vs. chasing 100% coverage metrics.',
         platform: 'twitter',
         author: 'Yuniel',
         scheduledFor: '2026-06-14T14:00:00Z',

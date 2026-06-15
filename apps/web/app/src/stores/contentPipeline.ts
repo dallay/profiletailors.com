@@ -16,16 +16,19 @@ export const useContentPipelineStore = defineStore('contentPipeline', () => {
     })),
   )
 
-  const totalCards = computed(() =>
-    columns.value.reduce((sum, col) => sum + col.cards.length, 0),
-  )
+  const totalCards = computed(() => columns.value.reduce((sum, col) => sum + col.cards.length, 0))
 
   const scheduledCount = computed(() => {
     const scheduledCol = columns.value.find((col) => col.id === 'scheduled')
     return scheduledCol ? scheduledCol.cards.length : 0
   })
 
-  function moveCard(cardId: string, fromColumnId: string, toColumnId: string, toIndex?: number): void {
+  function moveCard(
+    cardId: string,
+    fromColumnId: string,
+    toColumnId: string,
+    toIndex?: number,
+  ): void {
     const fromCol = columns.value.find((col) => col.id === fromColumnId)
     const toCol = columns.value.find((col) => col.id === toColumnId)
     if (!fromCol || !toCol) return

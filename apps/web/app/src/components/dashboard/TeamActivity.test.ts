@@ -62,9 +62,7 @@ describe('TeamActivity', () => {
     const events = Array.from({ length: 8 }, (_, i) =>
       makeEvent(`e${i}`, { memberName: `User${i}`, action: 'Action' }),
     )
-    const members = Array.from({ length: 8 }, (_, i) =>
-      makeMember(`m${i}`, { name: `User${i}` }),
-    )
+    const members = Array.from({ length: 8 }, (_, i) => makeMember(`m${i}`, { name: `User${i}` }))
     const wrapper = mount(TeamActivity, {
       props: { events, members },
       global: { stubs: { 'router-link': RouterLinkStub } },

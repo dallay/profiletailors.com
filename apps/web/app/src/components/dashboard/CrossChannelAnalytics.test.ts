@@ -9,7 +9,10 @@ vi.mock('vue-i18n', () => ({
   }),
 }))
 
-function makeChannel(platform: ChannelPerformance['platform'], overrides: Partial<ChannelPerformance> = {}): ChannelPerformance {
+function makeChannel(
+  platform: ChannelPerformance['platform'],
+  overrides: Partial<ChannelPerformance> = {},
+): ChannelPerformance {
   return {
     platform,
     followers: 10000,

@@ -104,5 +104,8 @@ describe('SettingsView channel connection CTA', () => {
     expect(wrapper.text()).toContain('settings.preferencesEyebrow')
     expect(wrapper.text()).toContain('settings.workspaceIdentityTitle')
     expect(wrapper.text()).toContain('settings.channelStatusTitle')
+    // Theme toggle is no longer in the settings panel — it lives in SidebarAccountSection.
+    expect(wrapper.find('[data-testid="settings-language-en"]').exists()).toBe(true)
+    expect(wrapper.find('[data-testid="settings-language-es"]').exists()).toBe(true)
   })
 })

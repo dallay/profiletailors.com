@@ -1,8 +1,9 @@
 <script setup lang="ts">
 import { ref } from 'vue'
+import { useI18n } from 'vue-i18n'
 import { LogOut, Settings } from '@lucide/vue'
-import ThemeToggle from '@/components/ThemeToggle.vue'
 import { usePopoverDismissal } from '@/composables/usePopoverDismissal'
+import { useSettingsStore } from '@/stores/settings'
 
 defineProps<{
   user: {
@@ -17,6 +18,9 @@ const emit = defineEmits<{
   (e: 'openSettings'): void
   (e: 'logout'): void
 }>()
+
+const { t } = useI18n()
+const settings = useSettingsStore()
 
 const containerRef = ref<HTMLElement | null>(null)
 const triggerRef = ref<HTMLElement | null>(null)
@@ -34,6 +38,12 @@ function onOpenSettings() {
 function onLogout() {
   emit('logout')
   close()
+}
+
+function segmentedControlClass(isActive: boolean) {
+  return isActive
+    ? 'bg-text-display text-bg-primary'
+    : 'text-text-secondary hover:text-text-display'
 }
 </script>
 
@@ -70,10 +80,88 @@ function onLogout() {
           <span>Account settings</span>
         </button>
 
-        <!-- Theme is the ONLY theme control. The animated sun/moon SVG inside
-             ThemeToggle already conveys state — no static "Theme" label row. -->
-        <div class="flex items-center gap-3 rounded-xl border border-transparent px-3 py-2.5 text-sm text-text-secondary">
-          <ThemeToggle />
+        <div class="rounded-xl border border-border-subtle bg-bg-primary/60 px-3 py-3">
+          <div class="flex items-center justify-between gap-3">
+            <div>
+              <p class="text-sm font-medium text-text-display">
+                {{ t('settings.themeLabel') }}
+              </p>
+              <p class="mt-1 text-xs leading-5 text-text-secondary">
+                {{ t('settings.themeDesc') }}
+              </p>
+            </div>
+
+            <div
+              class="inline-flex items-center rounded-full border border-border-visible bg-bg-surface p-0.5 font-mono text-[10px]"
+              role="radiogroup"
+              :aria-label="t('settings.themeLabel')"
+            >
+              <!-- biome-ignore lint/a11y/useSemanticElements: segmented control intentionally uses button-based radios for the pill interaction pattern -->
+              <button
+                type="button"
+                role="radio"
+                :aria-checked="settings.currentTheme === 'dark' ? 'true' : 'false'"
+                class="cursor-pointer rounded-full px-3 py-1.5 font-bold uppercase tracking-[0.14em] transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-text-display"
+                :class="segmentedControlClass(settings.currentTheme === 'dark')"
+                @click="settings.setTheme('dark')"
+              >
+                {{ t('settings.themeDark') }}
+              </button>
+              <!-- biome-ignore lint/a11y/useSemanticElements: segmented control intentionally uses button-based radios for the pill interaction pattern -->
+              <button
+                type="button"
+                role="radio"
+                :aria-checked="settings.currentTheme === 'light' ? 'true' : 'false'"
+                class="cursor-pointer rounded-full px-3 py-1.5 font-bold uppercase tracking-[0.14em] transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-text-display"
+                :class="segmentedControlClass(settings.currentTheme === 'light')"
+                @click="settings.setTheme('light')"
+              >
+                {{ t('settings.themeLight') }}
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <div class="rounded-xl border border-border-subtle bg-bg-primary/60 px-3 py-3">
+          <div class="flex items-center justify-between gap-3">
+            <div>
+              <p class="text-sm font-medium text-text-display">
+                {{ t('settings.languageLabel') }}
+              </p>
+              <p class="mt-1 text-xs leading-5 text-text-secondary">
+                {{ t('settings.languageDesc') }}
+              </p>
+            </div>
+
+            <div
+              class="inline-flex items-center rounded-full border border-border-visible bg-bg-surface p-0.5 font-mono text-[10px]"
+              role="radiogroup"
+              :aria-label="t('settings.languageLabel')"
+            >
+              <!-- biome-ignore lint/a11y/useSemanticElements: segmented control intentionally uses button-based radios for the pill interaction pattern -->
+              <button
+                type="button"
+                role="radio"
+                :aria-checked="settings.currentLocale === 'en' ? 'true' : 'false'"
+                class="cursor-pointer rounded-full px-3 py-1.5 font-bold uppercase tracking-[0.14em] transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-text-display"
+                :class="segmentedControlClass(settings.currentLocale === 'en')"
+                @click="settings.setLocale('en')"
+              >
+                EN
+              </button>
+              <!-- biome-ignore lint/a11y/useSemanticElements: segmented control intentionally uses button-based radios for the pill interaction pattern -->
+              <button
+                type="button"
+                role="radio"
+                :aria-checked="settings.currentLocale === 'es' ? 'true' : 'false'"
+                class="cursor-pointer rounded-full px-3 py-1.5 font-bold uppercase tracking-[0.14em] transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-text-display"
+                :class="segmentedControlClass(settings.currentLocale === 'es')"
+                @click="settings.setLocale('es')"
+              >
+                ES
+              </button>
+            </div>
+          </div>
         </div>
 
         <button
