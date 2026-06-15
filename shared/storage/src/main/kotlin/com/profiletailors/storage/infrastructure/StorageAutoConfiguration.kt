@@ -116,12 +116,10 @@ open class StorageAutoConfiguration {
         // R2 has no implicit credentials chain; both keys are mandatory.
         val accessKeyId = config.accessKeyId
         val secretAccessKey = config.secretAccessKey
-        if (accessKeyId.isNullOrBlank() || secretAccessKey.isNullOrBlank()) {
-            throw IllegalArgumentException(
-                "R2 requires both accessKeyId and secretAccessKey in provider config. " +
-                "Configure them under platform.storage.providers.{name}.access-key-id " +
-                "and platform.storage.providers.{name}.secret-access-key."
-            )
+        require(!(accessKeyId.isNullOrBlank() || secretAccessKey.isNullOrBlank())) {
+            "R2 requires both accessKeyId and secretAccessKey in provider config. " +
+            "Configure them under platform.storage.providers.{name}.access-key-id " +
+            "and platform.storage.providers.{name}.secret-access-key."
         }
         val credentialsProvider = StaticCredentialsProvider.create(
             AwsBasicCredentials.create(accessKeyId, secretAccessKey)

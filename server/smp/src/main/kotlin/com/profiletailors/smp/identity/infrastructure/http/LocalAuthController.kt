@@ -108,7 +108,7 @@ class LocalAuthController(
     @PostMapping("/resend-verification", consumes = ["application/json"], version = "1")
     suspend fun resendVerification(
         @Valid @RequestBody request: ResendVerificationRequest,
-    ): ResponseEntity<Void> {
+    ): ResponseEntity<Unit> {
         mediator.send(
             ResendVerificationCommand(
                 email = request.email,

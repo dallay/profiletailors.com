@@ -3,6 +3,8 @@ package com.profiletailors.smp.governance.infrastructure
 import com.fasterxml.jackson.databind.ObjectMapper
 import com.profiletailors.smp.authorization.domain.AuthorizationDecision
 import com.profiletailors.smp.governance.domain.AuditEventCursor
+import com.profiletailors.smp.governance.domain.AuditEventFilter
+import com.profiletailors.smp.governance.domain.AuditEventPageRequest
 import com.profiletailors.smp.audit.domain.AuthorizationDecisionAuditFact
 import com.profiletailors.smp.authorization.domain.AuthorizationReasonCode
 import io.r2dbc.h2.H2ConnectionConfiguration
@@ -85,17 +87,21 @@ class R2dbcAuditEventReaderTest {
 
         val items = reader.readWorkspaceEvents(
             workspaceId = "workspace-1",
-            targetType = "WORKSPACE_OWNER",
-            action = "workspace.owner.add",
-            eventType = "MUTATION",
-            actorPrincipalId = "owner-1",
-            createdAfter = Instant.parse("2026-05-20T12:04:00Z"),
-            createdBefore = Instant.parse("2026-05-20T12:07:00Z"),
-            cursor = AuditEventCursor(
-                createdAt = Instant.parse("2026-05-20T12:06:00Z"),
-                id = "audit-manual-2",
+            filter = AuditEventFilter(
+                targetType = "WORKSPACE_OWNER",
+                action = "workspace.owner.add",
+                eventType = "MUTATION",
+                actorPrincipalId = "owner-1",
+                createdAfter = Instant.parse("2026-05-20T12:04:00Z"),
+                createdBefore = Instant.parse("2026-05-20T12:07:00Z"),
             ),
-            limit = 1,
+            pageRequest = AuditEventPageRequest(
+                cursor = AuditEventCursor(
+                    createdAt = Instant.parse("2026-05-20T12:06:00Z"),
+                    id = "audit-manual-2",
+                ),
+                limit = 1,
+            ),
         )
 
         assertEquals(1, items.size)

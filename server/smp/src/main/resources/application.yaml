@@ -145,6 +145,10 @@ spring:
   config:
     activate:
       on-profile: dev
+  liquibase:
+    parameters:
+      # Dev-only: bcrypt hash for password "dev" — DO NOT use in production
+      dev-password-hash: "$2b$12$0NBuXKepyt/EsO2BeNpQe.bSG4u0Qvd7pm3qyJFsrdsuH8fAgcWcu"
 
 logging:
   level:

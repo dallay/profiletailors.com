@@ -40,9 +40,7 @@ internal class RenameWorkspaceHandler(
             .rowsUpdated()
             .awaitSingle()
 
-        if (rowsUpdated == 0L) {
-            throw IllegalStateException("Workspace '$workspaceId' not found.")
-        }
+        check(rowsUpdated != 0L) { "Workspace '$workspaceId' not found." }
 
         return RenameWorkspaceResult(
             workspaceId = workspaceId,
