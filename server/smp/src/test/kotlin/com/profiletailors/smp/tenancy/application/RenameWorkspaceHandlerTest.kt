@@ -108,6 +108,23 @@ class RenameWorkspaceHandlerTest {
     }
 
     @Test
+    fun `throws on non-existent workspace`() = runTest {
+        val db = createDb()
+        val badContext = ResourceContext(
+            type = ResourceContextType.WORKSPACE,
+            workspaceId = "i-dont-exist",
+        )
+        val badContextProvider = object : ResourceContextProvider {
+            override fun current(): ResourceContext = badContext
+        }
+        val handler = RenameWorkspaceHandler(badContextProvider, db, allowDecider)
+
+        val ex = runCatching { handler.handle(RenameWorkspaceCommand(newName = "New Name")) }.exceptionOrNull()
+        assertTrue(ex is IllegalStateException)
+        assertTrue(ex!!.message!!.contains("not found"))
+    }
+
+    @Test
     fun `rejects name exceeding max length`() = runTest {
         val db = createDb()
         val handler = RenameWorkspaceHandler(resourceContextProvider, db, allowDecider)

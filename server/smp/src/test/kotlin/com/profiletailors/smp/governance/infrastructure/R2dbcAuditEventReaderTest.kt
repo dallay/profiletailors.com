@@ -108,6 +108,66 @@ class R2dbcAuditEventReaderTest {
         assertEquals("audit-manual-1", items.first().id)
     }
 
+    @Test
+    fun `reads all events when no filters and no cursor provided`() = runTest {
+        auditHook.onAuthorizationDecision(
+            AuthorizationDecisionAuditFact(
+                requestName = "request-1",
+                requestPath = "/api/authorization/workspace-access/current",
+                permission = "workspace:access:read",
+                principalId = "principal-1",
+                workspaceId = "workspace-2",
+                decision = AuthorizationDecision.ALLOW.name,
+                reasonCode = AuthorizationReasonCode.ROLE_PERMISSION.name,
+                roleKeys = listOf("member"),
+            ),
+        )
+        databaseClient.sql(
+            """
+            INSERT INTO audit_events (
+                id, event_type, action, actor_principal_id, workspace_id, target_type, target_id, outcome, role_keys_json, details_json, created_at
+            ) VALUES (
+                'audit-plain-1', 'MUTATION', 'workspace.update', 'admin-1', 'workspace-2', 'WORKSPACE', 'ws-1', 'SUCCESS', '[]', '{}', TIMESTAMP WITH TIME ZONE '2026-05-20T12:10:00Z'
+            )
+            """.trimIndent(),
+        ).fetch().rowsUpdated().awaitSingle()
+
+        val items = reader.readWorkspaceEvents(
+            workspaceId = "workspace-2",
+            filter = AuditEventFilter(), // all defaults → all null filters
+            pageRequest = AuditEventPageRequest(), // default page request
+        )
+
+        // Should return both events in order (most recent first)
+        assertEquals(2, items.size)
+        assertEquals("audit-plain-1", items.first().id)
+        assertEquals("workspace-2", items.first().workspaceId)
+    }
+
+    @Test
+    fun `reads events with only action filter`() = runTest {
+        databaseClient.sql(
+            """
+            INSERT INTO audit_events (
+                id, event_type, action, actor_principal_id, workspace_id, target_type, target_id, outcome, role_keys_json, details_json, created_at
+            ) VALUES
+                ('action-1', 'MUTATION', 'workspace.update', 'admin-1', 'workspace-3', 'WORKSPACE', 'ws-1', 'SUCCESS', '[]', '{}', TIMESTAMP WITH TIME ZONE '2026-05-20T12:20:00Z'),
+                ('action-2', 'MUTATION', 'workspace.delete', 'admin-1', 'workspace-3', 'WORKSPACE', 'ws-1', 'SUCCESS', '[]', '{}', TIMESTAMP WITH TIME ZONE '2026-05-20T12:21:00Z'),
+                ('action-3', 'MUTATION', 'workspace.update', 'admin-2', 'workspace-3', 'WORKSPACE', 'ws-1', 'SUCCESS', '[]', '{}', TIMESTAMP WITH TIME ZONE '2026-05-20T12:22:00Z')
+            """.trimIndent(),
+        ).fetch().rowsUpdated().awaitSingle()
+
+        // Filter by action = "workspace.update" only — covers partial filter branches
+        val items = reader.readWorkspaceEvents(
+            workspaceId = "workspace-3",
+            filter = AuditEventFilter(action = "workspace.update"),
+            pageRequest = AuditEventPageRequest(limit = 10),
+        )
+
+        assertEquals(2, items.size)
+        kotlin.test.assertTrue(items.all { it.action == "workspace.update" })
+    }
+
     private fun applyLiquibaseBaseline() {
         DriverManager.getConnection(jdbcUrl, "sa", "").use { connection ->
             val database = DatabaseFactory.getInstance()
