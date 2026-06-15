@@ -20,48 +20,49 @@ Boot applications, covering unit tests, integration tests, security tests, and p
 
 ### JWT Service Unit Tests
 
-```java
-@ExtendWith(MockitoExtension.class)
-class JwtServiceTest {
+```kotlin
+@ExtendWith(
+    MockitoExtension.class)
+    class JwtServiceTest {
 
     @Mock
-    private RefreshTokenService refreshTokenService;
+    private var refreshTokenService: RefreshTokenService
 
-    @Value("${jwt.test.secret:test-secret-key-for-unit-testing-only-256-bits}")
-    private String testSecret;
+    @Value("${jwt.test.secret:test - secret - key - for -unit - testing - only - 256 - bits}")
+    private var testSecret: String
 
-    private JwtService jwtService;
+    private var jwtService: JwtService
 
-    private User testUser;
+    private var testUser: User
 
     @BeforeEach
-    void setUp() {
-        jwtService = new JwtService(
-            testSecret,
-            900000,  // 15 minutes
-            604800000, // 7 days
-            "test-issuer",
-            null,
-            true,
-            false,
-            60,
-            refreshTokenService
+    void setUp () {
+        jwtService = new JwtService (
+                testSecret,
+        900000,  // 15 minutes
+        604800000, // 7 days
+        "test-issuer",
+        null,
+        true,
+        false,
+        60,
+        refreshTokenService
         );
 
         testUser = User.builder()
-                .id(1L)
-                .email("test@example.com")
-                .password("encodedPassword")
-                .roles(Set.of(new Role("USER")))
-                .enabled(true)
-                .build();
+            .id(1L)
+            .email("test@example.com")
+            .password("encodedPassword")
+            .roles(setOf(Role("USER")))
+            .enabled(true)
+            .build();
     }
 
     @Test
     @DisplayName("Should generate valid access token")
-    void shouldGenerateValidAccessToken() {
+    void shouldGenerateValidAccessToken () {
         // When
-        String token = jwtService.generateAccessToken(testUser);
+        String token = jwtService . generateAccessToken (testUser);
 
         // Then
         assertThat(token).isNotNull();
@@ -69,22 +70,22 @@ class JwtServiceTest {
         assertThat(token.split("\\.")).hasSize(3); // Header, Payload, Signature
 
         // Verify claims
-        Claims claims = parseToken(token);
+        Claims claims = parseToken (token);
         assertThat(claims.getSubject()).isEqualTo("test@example.com");
         assertThat(claims.getIssuer()).isEqualTo("test-issuer");
-        assertThat(claims.getExpiration()).isAfter(new Date());
+        assertThat(claims.getExpiration()).isAfter(Date());
         assertThat(claims.getIssuedAt()).isNotNull();
         assertThat(claims.get("type")).isEqualTo("access");
     }
 
     @Test
     @DisplayName("Should extract username from valid token")
-    void shouldExtractUsernameFromValidToken() {
+    void shouldExtractUsernameFromValidToken () {
         // Given
-        String token = jwtService.generateAccessToken(testUser);
+        String token = jwtService . generateAccessToken (testUser);
 
         // When
-        String username = jwtService.extractUsername(token);
+        String username = jwtService . extractUsername (token);
 
         // Then
         assertThat(username).isEqualTo("test@example.com");
@@ -92,9 +93,9 @@ class JwtServiceTest {
 
     @Test
     @DisplayName("Should validate token correctly")
-    void shouldValidateTokenCorrectly() {
+    void shouldValidateTokenCorrectly () {
         // Given
-        String token = jwtService.generateAccessToken(testUser);
+        String token = jwtService . generateAccessToken (testUser);
         UserDetails userDetails = new org.springframework.security.core.userdetails.User(
             testUser.getEmail(),
             testUser.getPassword(),
@@ -102,7 +103,7 @@ class JwtServiceTest {
         );
 
         // When
-        boolean isValid = jwtService.isTokenValid(token, userDetails);
+        boolean isValid = jwtService . isTokenValid (token, userDetails);
 
         // Then
         assertThat(isValid).isTrue();
@@ -110,7 +111,7 @@ class JwtServiceTest {
 
     @Test
     @DisplayName("Should reject expired token")
-    void shouldRejectExpiredToken() {
+    void shouldRejectExpiredToken () {
         // Given
         JwtService expiredJwtService = new JwtService(
             testSecret,
@@ -124,11 +125,11 @@ class JwtServiceTest {
             refreshTokenService
         );
 
-        String token = expiredJwtService.generateAccessToken(testUser);
+        String token = expiredJwtService . generateAccessToken (testUser);
 
         // Wait for token to expire
         await().atMost(2, SECONDS)
-               .until(() -> !expiredJwtService.isTokenValid(token, createUserDetails()));
+            .until(() ->!expiredJwtService.isTokenValid(token, createUserDetails()));
 
         // Then
         assertThat(expiredJwtService.isTokenValid(token, createUserDetails())).isFalse();
@@ -136,13 +137,13 @@ class JwtServiceTest {
 
     @Test
     @DisplayName("Should reject token with invalid signature")
-    void shouldRejectTokenWithInvalidSignature() {
+    void shouldRejectTokenWithInvalidSignature () {
         // Given
-        String validToken = jwtService.generateAccessToken(testUser);
-        String tamperedToken = validToken.substring(0, validToken.length() - 10) + "tampered";
+        String validToken = jwtService . generateAccessToken (testUser);
+        String tamperedToken = validToken . substring (0, validToken.length()-10)+"tampered";
 
         // When
-        boolean isValid = jwtService.isTokenValid(tamperedToken, createUserDetails());
+        boolean isValid = jwtService . isTokenValid (tamperedToken, createUserDetails());
 
         // Then
         assertThat(isValid).isFalse();
@@ -150,7 +151,7 @@ class JwtServiceTest {
 
     @Test
     @DisplayName("Should reject token with invalid issuer")
-    void shouldRejectTokenWithInvalidIssuer() {
+    void shouldRejectTokenWithInvalidIssuer () {
         // Given
         JwtService differentIssuerService = new JwtService(
             testSecret,
@@ -164,10 +165,10 @@ class JwtServiceTest {
             refreshTokenService
         );
 
-        String token = differentIssuerService.generateAccessToken(testUser);
+        String token = differentIssuerService . generateAccessToken (testUser);
 
         // When
-        boolean isValid = jwtService.isTokenValid(token, createUserDetails());
+        boolean isValid = jwtService . isTokenValid (token, createUserDetails());
 
         // Then
         assertThat(isValid).isFalse();
@@ -175,12 +176,12 @@ class JwtServiceTest {
 
     @Test
     @DisplayName("Should include authorities in token")
-    void shouldIncludeAuthoritiesInToken() {
+    void shouldIncludeAuthoritiesInToken () {
         // Given
-        Set<GrantedAuthority> authorities = Set.of(
-            new SimpleGrantedAuthority("ROLE_USER"),
-            new SimpleGrantedAuthority("USER_READ"),
-            new SimpleGrantedAuthority("USER_WRITE")
+        Set<GrantedAuthority> authorities = Set . of (
+                SimpleGrantedAuthority("ROLE_USER"),
+        SimpleGrantedAuthority("USER_READ"),
+        SimpleGrantedAuthority("USER_WRITE")
         );
 
         UserDetails userDetails = new org.springframework.security.core.userdetails.User(
@@ -190,36 +191,36 @@ class JwtServiceTest {
         );
 
         // When
-        String token = jwtService.generateAccessToken(userDetails);
+        String token = jwtService . generateAccessToken (userDetails);
 
         // Then
-        Claims claims = parseToken(token);
+        Claims claims = parseToken (token);
         @SuppressWarnings("unchecked")
-        List<String> tokenAuthorities = claims.get("authorities", List.class);
+        List<String> tokenAuthorities = claims . get ("authorities", List.class);
 
         assertThat(tokenAuthorities).containsExactlyInAnyOrder(
             "ROLE_USER", "USER_READ", "USER_WRITE"
         );
     }
 
-    private UserDetails createUserDetails() {
-        return new org.springframework.security.core.userdetails.User(
-            testUser.getEmail(),
-            testUser.getPassword(),
-            testUser.getAuthorities()
+    private fun createUserDetails(): UserDetails {
+        return new org . springframework . security . core . userdetails . User (
+                testUser.getEmail(),
+        testUser.getPassword(),
+        testUser.getAuthorities()
         );
     }
 
-    private Claims parseToken(String token) {
+    private fun parseToken(String token): Claims {
         return Jwts.parser()
-                .verifyWith(getSigningKey())
-                .build()
-                .parseSignedClaims(token)
-                .getPayload();
+            .verifyWith(getSigningKey())
+            .build()
+            .parseSignedClaims(token)
+            .getPayload();
     }
 
-    private SecretKey getSigningKey() {
-        byte[] keyBytes = Base64.getEncoder().encodeToString(testSecret.getBytes()).getBytes();
+    private fun getSigningKey(): SecretKey {
+        byte[] keyBytes = Base64 . getEncoder ().encodeToString(testSecret.getBytes()).getBytes();
         return Keys.hmacShaKeyFor(keyBytes);
     }
 }
@@ -227,31 +228,32 @@ class JwtServiceTest {
 
 ### Refresh Token Service Unit Tests
 
-```java
-@ExtendWith(MockitoExtension.class)
-class RefreshTokenServiceTest {
+```kotlin
+@ExtendWith(
+    MockitoExtension.class)
+    class RefreshTokenServiceTest {
 
     @Mock
-    private RefreshTokenRepository refreshTokenRepository;
+    private var refreshTokenRepository: RefreshTokenRepository
 
     @Mock
-    private UserRepository userRepository;
+    private var userRepository: UserRepository
 
     @InjectMocks
-    private RefreshTokenService refreshTokenService;
+    private var refreshTokenService: RefreshTokenService
 
     @Test
     @DisplayName("Should create refresh token successfully")
-    void shouldCreateRefreshTokenSuccessfully() {
+    void shouldCreateRefreshTokenSuccessfully () {
         // Given
-        User user = createTestUser();
-        when(refreshTokenRepository.countByUserAndExpiresAtAfter(any(), any()))
-                .thenReturn(0L);
-        when(refreshTokenRepository.save(any(RefreshToken.class)))
-                .thenAnswer(invocation -> invocation.getArgument(0));
+        User user = createTestUser ();
+        when (refreshTokenRepository.countByUserAndExpiresAtAfter(any(), any()))
+            .thenReturn(0L);
+        when (refreshTokenRepository.save(any(RefreshToken.class)))
+            .thenAnswer(invocation -> invocation.getArgument(0));
 
         // When
-        String token = refreshTokenService.createRefreshToken(user.getEmail());
+        String token = refreshTokenService . createRefreshToken (user.getEmail());
 
         // Then
         assertThat(token).isNotNull();
@@ -262,11 +264,11 @@ class RefreshTokenServiceTest {
 
     @Test
     @DisplayName("Should revoke old tokens when limit exceeded")
-    void shouldRevokeOldTokensWhenLimitExceeded() {
+    void shouldRevokeOldTokensWhenLimitExceeded () {
         // Given
-        User user = createTestUser();
-        when(refreshTokenRepository.countByUserAndExpiresAtAfter(any(), any()))
-                .thenReturn(5); // At limit
+        User user = createTestUser ();
+        when (refreshTokenRepository.countByUserAndExpiresAtAfter(any(), any()))
+            .thenReturn(5); // At limit
 
         // When
         refreshTokenService.createRefreshToken(user.getEmail());
@@ -277,23 +279,23 @@ class RefreshTokenServiceTest {
 
     @Test
     @DisplayName("Should refresh token successfully")
-    void shouldRefreshTokenSuccessfully() {
+    void shouldRefreshTokenSuccessfully () {
         // Given
-        RefreshTokenRequest request = new RefreshTokenRequest("valid-refresh-token");
-        RefreshToken existingToken = RefreshToken.builder()
-                .token("valid-refresh-token")
-                .user(createTestUser())
-                .expiresAt(Instant.now().plus(Duration.ofDays(1)))
-                .revoked(false)
-                .build();
+        RefreshTokenRequest request = RefreshTokenRequest ("valid-refresh-token");
+        RefreshToken existingToken = RefreshToken . builder ()
+            .token("valid-refresh-token")
+            .user(createTestUser())
+            .expiresAt(Instant.now().plus(Duration.ofDays(1)))
+            .revoked(false)
+            .build();
 
-        when(refreshTokenRepository.findByToken("valid-refresh-token"))
-                .thenReturn(Optional.of(existingToken));
-        when(refreshTokenRepository.save(any(RefreshToken.class)))
-                .thenAnswer(invocation -> invocation.getArgument(0));
+        when (refreshTokenRepository.findByToken("valid-refresh-token"))
+            .thenReturn(existingToken);
+        when (refreshTokenRepository.save(any(RefreshToken.class)))
+            .thenAnswer(invocation -> invocation.getArgument(0));
 
         // When
-        RefreshTokenResponse response = refreshTokenService.refreshToken(request);
+        RefreshTokenResponse response = refreshTokenService . refreshToken (request);
 
         // Then
         assertThat(response.getAccessToken()).isNotNull();
@@ -302,30 +304,31 @@ class RefreshTokenServiceTest {
 
     @Test
     @DisplayName("Should reject refresh token rotation for revoked tokens")
-    void shouldRejectRefreshTokenRotationForRevokedTokens() {
+    void shouldRejectRefreshTokenRotationForRevokedTokens () {
         // Given
         String revokedToken = "revoked-token";
-        RefreshToken token = RefreshToken.builder()
-                .token(revokedToken)
-                .revoked(true)
-                .build();
+        RefreshToken token = RefreshToken . builder ()
+            .token(revokedToken)
+            .revoked(true)
+            .build();
 
-        when(refreshTokenRepository.findByToken(revokedToken))
-                .thenReturn(Optional.of(token));
+        when (refreshTokenRepository.findByToken(revokedToken))
+            .thenReturn(token);
 
-        RefreshTokenRequest request = new RefreshTokenRequest(revokedToken);
+        RefreshTokenRequest request = RefreshTokenRequest (revokedToken);
 
         // When & Then
-        assertThrows(InvalidTokenException.class,
-            () -> refreshTokenService.refreshToken(request));
+        assertThrows(
+            InvalidTokenException.class,
+                () -> refreshTokenService.refreshToken(request));
     }
 
-    private User createTestUser() {
+    private fun createTestUser(): User {
         return User.builder()
-                .id(1L)
-                .email("test@example.com")
-                .enabled(true)
-                .build();
+            .id(1L)
+            .email("test@example.com")
+            .enabled(true)
+            .build();
     }
 }
 ```
@@ -334,7 +337,7 @@ class RefreshTokenServiceTest {
 
 ### Security Configuration Integration Tests
 
-```java
+```kotlin
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
 @TestPropertySource(properties = {
     "jwt.secret=test-secret-key-for-integration-testing-256-bits-minimum",
@@ -346,36 +349,38 @@ class RefreshTokenServiceTest {
 class SecurityIntegrationTest {
 
     @Autowired
-    private TestRestTemplate restTemplate;
+    private var restTemplate: TestRestTemplate
 
     @Autowired
-    private UserRepository userRepository;
+    private var userRepository: UserRepository
 
     @Autowired
-    private PasswordEncoder passwordEncoder;
+    private var passwordEncoder: PasswordEncoder
 
     @Autowired
-    private JwtService jwtService;
+    private var jwtService: JwtService
 
-    private User testUser;
+    private var testUser: User
 
     @BeforeEach
-    void setUp() {
+    void setUp()
+    {
         // Create test user
         testUser = User.builder()
-                .email("test@example.com")
-                .password(passwordEncoder.encode("password"))
-                .roles(Set.of(new Role("USER")))
-                .enabled(true)
-                .build();
+            .email("test@example.com")
+            .password(passwordEncoder.encode("password"))
+            .roles(setOf(Role("USER")))
+            .enabled(true)
+            .build();
         testUser = userRepository.save(testUser);
     }
 
     @Test
     @DisplayName("Should allow access to public endpoints")
-    void shouldAllowAccessToPublicEndpoints() {
+    void shouldAllowAccessToPublicEndpoints()
+    {
         // When
-        ResponseEntity<String> response = restTemplate.getForEntity("/api/public/health", String.class);
+        ResponseEntity<String> response = restTemplate . getForEntity ("/api/public/health", String.class);
 
         // Then
         assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
@@ -383,9 +388,10 @@ class SecurityIntegrationTest {
 
     @Test
     @DisplayName("Should deny access to protected endpoints without token")
-    void shouldDenyAccessToProtectedEndpointsWithoutToken() {
+    void shouldDenyAccessToProtectedEndpointsWithoutToken()
+    {
         // When
-        ResponseEntity<String> response = restTemplate.getForEntity("/api/users/me", String.class);
+        ResponseEntity<String> response = restTemplate . getForEntity ("/api/users/me", String.class);
 
         // Then
         assertThat(response.getStatusCode()).isEqualTo(HttpStatus.UNAUTHORIZED);
@@ -393,20 +399,21 @@ class SecurityIntegrationTest {
 
     @Test
     @DisplayName("Should allow access to protected endpoints with valid token")
-    void shouldAllowAccessToProtectedEndpointsWithValidToken() {
+    void shouldAllowAccessToProtectedEndpointsWithValidToken()
+    {
         // Given
-        String token = jwtService.generateAccessToken(testUser);
-        HttpHeaders headers = new HttpHeaders();
+        String token = jwtService . generateAccessToken (testUser);
+        HttpHeaders headers = HttpHeaders ();
         headers.setBearerAuth(token);
 
         HttpEntity<String> entity = new HttpEntity<>(headers);
 
         // When
-        ResponseEntity<String> response = restTemplate.exchange(
-            "/api/users/me",
-            HttpMethod.GET,
-            entity,
-            String.class
+        ResponseEntity<String> response = restTemplate . exchange (
+                "/api/users/me",
+        HttpMethod.GET,
+        entity,
+        String.class
         );
 
         // Then
@@ -415,19 +422,20 @@ class SecurityIntegrationTest {
 
     @Test
     @DisplayName("Should deny access with invalid token")
-    void shouldDenyAccessWithInvalidToken() {
+    void shouldDenyAccessWithInvalidToken()
+    {
         // Given
-        HttpHeaders headers = new HttpHeaders();
+        HttpHeaders headers = HttpHeaders ();
         headers.setBearerAuth("invalid-token");
 
         HttpEntity<String> entity = new HttpEntity<>(headers);
 
         // When
-        ResponseEntity<String> response = restTemplate.exchange(
-            "/api/users/me",
-            HttpMethod.GET,
-            entity,
-            String.class
+        ResponseEntity<String> response = restTemplate . exchange (
+                "/api/users/me",
+        HttpMethod.GET,
+        entity,
+        String.class
         );
 
         // Then
@@ -436,7 +444,8 @@ class SecurityIntegrationTest {
 
     @Test
     @DisplayName("Should deny access with expired token")
-    void shouldDenyAccessWithExpiredToken() {
+    void shouldDenyAccessWithExpiredToken()
+    {
         // Given
         // Create an expired token by using a very short expiration time
         JwtService expiredJwtService = new JwtService(
@@ -451,34 +460,35 @@ class SecurityIntegrationTest {
             null
         );
 
-        String token = expiredJwtService.generateAccessToken(testUser);
+        String token = expiredJwtService . generateAccessToken (testUser);
 
         // Wait for token to expire
         await().atMost(2, SECONDS).until(() -> {
-            try {
-                return !expiredJwtService.isTokenValid(token,
-                    org.springframework.security.core.userdetails.User.builder()
-                        .username(testUser.getEmail())
-                        .password("password")
-                        .roles("USER")
-                        .build()
-                );
-            } catch (Exception e) {
-                return true;
-            }
-        });
+        try {
+            return !expiredJwtService.isTokenValid(
+                token,
+                org.springframework.security.core.userdetails.User.builder()
+                    .username(testUser.getEmail())
+                    .password("password")
+                    .roles("USER")
+                    .build()
+            );
+        } catch (Exception e) {
+            return true;
+        }
+    });
 
-        HttpHeaders headers = new HttpHeaders();
+        HttpHeaders headers = HttpHeaders ();
         headers.setBearerAuth(token);
 
         HttpEntity<String> entity = new HttpEntity<>(headers);
 
         // When
-        ResponseEntity<String> response = restTemplate.exchange(
-            "/api/users/me",
-            HttpMethod.GET,
-            entity,
-            String.class
+        ResponseEntity<String> response = restTemplate . exchange (
+                "/api/users/me",
+        HttpMethod.GET,
+        entity,
+        String.class
         );
 
         // Then
@@ -489,7 +499,7 @@ class SecurityIntegrationTest {
 
 ### Authentication Controller Integration Tests
 
-```java
+```kotlin
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
 @AutoConfigureTestDatabase(replace = AutoConfigureTestDatabase.Replace.NONE)
 @Testcontainers
@@ -498,12 +508,13 @@ class AuthenticationControllerIntegrationTest {
 
     @Container
     static PostgreSQLContainer<?> postgres = new PostgreSQLContainer<>("postgres:15-alpine")
-            .withDatabaseName("testdb")
-            .withUsername("test")
-            .withPassword("test");
+    .withDatabaseName("testdb")
+    .withUsername("test")
+    .withPassword("test");
 
     @DynamicPropertySource
-    static void configureProperties(DynamicPropertyRegistry registry) {
+    static void configureProperties(DynamicPropertyRegistry registry)
+    {
         registry.add("spring.datasource.url", postgres::getJdbcUrl);
         registry.add("spring.datasource.username", postgres::getUsername);
         registry.add("spring.datasource.password", postgres::getPassword);
@@ -512,46 +523,48 @@ class AuthenticationControllerIntegrationTest {
     }
 
     @Autowired
-    private TestRestTemplate restTemplate;
+    private var restTemplate: TestRestTemplate
 
     @Autowired
-    private ObjectMapper objectMapper;
+    private var objectMapper: ObjectMapper
 
-    private RegisterRequest registerRequest;
-    private AuthenticationRequest authRequest;
+    private var registerRequest: RegisterRequest
+    private var authRequest: AuthenticationRequest
 
     @BeforeEach
-    void setUp() {
-        registerRequest = new RegisterRequest(
-            "test@example.com",
-            "testuser",
-            "Password123!",
-            "Test",
-            "User"
+    void setUp()
+    {
+        registerRequest = new RegisterRequest (
+                "test@example.com",
+        "testuser",
+        "Password123!",
+        "Test",
+        "User"
         );
 
-        authRequest = new AuthenticationRequest(
-            "test@example.com",
-            "Password123!"
+        authRequest = new AuthenticationRequest (
+                "test@example.com",
+        "Password123!"
         );
     }
 
     @Test
     @DisplayName("Should register new user successfully")
-    void shouldRegisterNewUserSuccessfully() throws Exception {
+    void shouldRegisterNewUserSuccessfully() throws Exception
+    {
         // When
-        ResponseEntity<String> response = restTemplate.postForEntity(
-            "/api/auth/register",
-            registerRequest,
-            String.class
+        ResponseEntity<String> response = restTemplate . postForEntity (
+                "/api/auth/register",
+        registerRequest,
+        String.class
         );
 
         // Then
         assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
 
-        AuthenticationResponse authResponse = objectMapper.readValue(
-            response.getBody(),
-            AuthenticationResponse.class
+        AuthenticationResponse authResponse = objectMapper . readValue (
+                response.getBody(),
+        AuthenticationResponse.class
         );
 
         assertThat(authResponse.getAccessToken()).isNotNull();
@@ -561,23 +574,24 @@ class AuthenticationControllerIntegrationTest {
 
     @Test
     @DisplayName("Should authenticate user successfully")
-    void shouldAuthenticateUserSuccessfully() throws Exception {
+    void shouldAuthenticateUserSuccessfully() throws Exception
+    {
         // Given - Register user first
         restTemplate.postForEntity("/api/auth/register", registerRequest, String.class);
 
         // When
-        ResponseEntity<String> response = restTemplate.postForEntity(
-            "/api/auth/authenticate",
-            authRequest,
-            String.class
+        ResponseEntity<String> response = restTemplate . postForEntity (
+                "/api/auth/authenticate",
+        authRequest,
+        String.class
         );
 
         // Then
         assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
 
-        AuthenticationResponse authResponse = objectMapper.readValue(
-            response.getBody(),
-            AuthenticationResponse.class
+        AuthenticationResponse authResponse = objectMapper . readValue (
+                response.getBody(),
+        AuthenticationResponse.class
         );
 
         assertThat(authResponse.getAccessToken()).isNotNull();
@@ -587,7 +601,8 @@ class AuthenticationControllerIntegrationTest {
 
     @Test
     @DisplayName("Should fail authentication with wrong password")
-    void shouldFailAuthenticationWithWrongPassword() {
+    void shouldFailAuthenticationWithWrongPassword()
+    {
         // Given
         AuthenticationRequest wrongPasswordRequest = new AuthenticationRequest(
             "test@example.com",
@@ -595,10 +610,10 @@ class AuthenticationControllerIntegrationTest {
         );
 
         // When
-        ResponseEntity<String> response = restTemplate.postForEntity(
-            "/api/auth/authenticate",
-            wrongPasswordRequest,
-            String.class
+        ResponseEntity<String> response = restTemplate . postForEntity (
+                "/api/auth/authenticate",
+        wrongPasswordRequest,
+        String.class
         );
 
         // Then
@@ -607,18 +622,19 @@ class AuthenticationControllerIntegrationTest {
 
     @Test
     @DisplayName("Should refresh token successfully")
-    void shouldRefreshTokenSuccessfully() throws Exception {
+    void shouldRefreshTokenSuccessfully() throws Exception
+    {
         // Given - Register and authenticate user
         restTemplate.postForEntity("/api/auth/register", registerRequest, String.class);
-        ResponseEntity<String> authResponse = restTemplate.postForEntity(
-            "/api/auth/authenticate",
-            authRequest,
-            String.class
+        ResponseEntity<String> authResponse = restTemplate . postForEntity (
+                "/api/auth/authenticate",
+        authRequest,
+        String.class
         );
 
-        AuthenticationResponse loginResponse = objectMapper.readValue(
-            authResponse.getBody(),
-            AuthenticationResponse.class
+        AuthenticationResponse loginResponse = objectMapper . readValue (
+                authResponse.getBody(),
+        AuthenticationResponse.class
         );
 
         RefreshTokenRequest refreshRequest = new RefreshTokenRequest(
@@ -626,18 +642,18 @@ class AuthenticationControllerIntegrationTest {
         );
 
         // When
-        ResponseEntity<String> refreshResponse = restTemplate.postForEntity(
-            "/api/auth/refresh",
-            refreshRequest,
-            String.class
+        ResponseEntity<String> refreshResponse = restTemplate . postForEntity (
+                "/api/auth/refresh",
+        refreshRequest,
+        String.class
         );
 
         // Then
         assertThat(refreshResponse.getStatusCode()).isEqualTo(HttpStatus.OK);
 
-        AuthenticationResponse newAuthResponse = objectMapper.readValue(
-            refreshResponse.getBody(),
-            AuthenticationResponse.class
+        AuthenticationResponse newAuthResponse = objectMapper . readValue (
+                refreshResponse.getBody(),
+        AuthenticationResponse.class
         );
 
         assertThat(newAuthResponse.getAccessToken()).isNotNull();
@@ -651,7 +667,7 @@ class AuthenticationControllerIntegrationTest {
 
 ### MockMvc Security Tests
 
-```java
+```kotlin
 @SpringBootTest
 @AutoConfigureMockMvc(addFilters = false)
 @TestPropertySource(properties = {
@@ -663,174 +679,200 @@ class AuthenticationControllerIntegrationTest {
 class AuthenticationControllerMockMvcTest {
 
     @Autowired
-    private MockMvc mockMvc;
+    private var mockMvc: MockMvc
 
     @Autowired
-    private ObjectMapper objectMapper;
+    private var objectMapper: ObjectMapper
 
     @Autowired
-    private UserRepository userRepository;
+    private var userRepository: UserRepository
 
     @Autowired
-    private PasswordEncoder passwordEncoder;
+    private var passwordEncoder: PasswordEncoder
 
     @Autowired
-    private JwtService jwtService;
+    private var jwtService: JwtService
 
-    private User testUser;
+    private var testUser: User
 
     @BeforeEach
-    void setUp() {
+    void setUp()
+    {
         testUser = User.builder()
-                .email("test@example.com")
-                .password(passwordEncoder.encode("Password123!"))
-                .roles(Set.of(new Role("USER")))
-                .enabled(true)
-                .build();
+            .email("test@example.com")
+            .password(passwordEncoder.encode("Password123!"))
+            .roles(setOf(Role("USER")))
+            .enabled(true)
+            .build();
         testUser = userRepository.save(testUser);
     }
 
     @Test
     @DisplayName("Should authenticate user and return tokens")
-    void shouldAuthenticateUserAndReturnTokens() throws Exception {
+    void shouldAuthenticateUserAndReturnTokens() throws Exception
+    {
         AuthenticationRequest request = new AuthenticationRequest(
             "test@example.com",
             "Password123!"
         );
 
-        mockMvc.perform(post("/api/auth/authenticate")
+        mockMvc.perform(
+            post("/api/auth/authenticate")
                 .contentType(MediaType.APPLICATION_JSON)
-                .content(objectMapper.writeValueAsString(request)))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$.accessToken").exists())
-                .andExpect(jsonPath("$.refreshToken").exists())
-                .andExpect(jsonPath("$.user.email").value("test@example.com"))
-                .andExpect(jsonPath("$.tokenType").value("Bearer"));
+                .content(objectMapper.writeValueAsString(request))
+        )
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.accessToken").exists())
+            .andExpect(jsonPath("$.refreshToken").exists())
+            .andExpect(jsonPath("$.user.email").value("test@example.com"))
+            .andExpect(jsonPath("$.tokenType").value("Bearer"));
     }
 
     @Test
     @DisplayName("Should validate authentication request")
-    void shouldValidateAuthenticationRequest() throws Exception {
-        AuthenticationRequest invalidRequest = new AuthenticationRequest("", "");
+    void shouldValidateAuthenticationRequest() throws Exception
+    {
+        AuthenticationRequest invalidRequest = AuthenticationRequest ("", "");
 
-        mockMvc.perform(post("/api/auth/authenticate")
+        mockMvc.perform(
+            post("/api/auth/authenticate")
                 .contentType(MediaType.APPLICATION_JSON)
-                .content(objectMapper.writeValueAsString(invalidRequest)))
-                .andExpect(status().isBadRequest());
+                .content(objectMapper.writeValueAsString(invalidRequest))
+        )
+            .andExpect(status().isBadRequest());
     }
 
     @Test
     @DisplayName("Should protect admin endpoints")
-    void shouldProtectAdminEndpoints() throws Exception {
+    void shouldProtectAdminEndpoints() throws Exception
+    {
         mockMvc.perform(get("/api/admin/users"))
-                .andExpect(status().isUnauthorized());
+            .andExpect(status().isUnauthorized());
     }
 
     @Test
     @WithMockUser(roles = "ADMIN")
     @DisplayName("Should allow admin access with proper role")
-    void shouldAllowAdminAccessWithProperRole() throws Exception {
+    void shouldAllowAdminAccessWithProperRole() throws Exception
+    {
         mockMvc.perform(get("/api/admin/users"))
-                .andExpect(status().isOk());
+            .andExpect(status().isOk());
     }
 
     @Test
     @WithMockUser(roles = "USER")
     @DisplayName("Should deny admin access to user role")
-    void shouldDenyAdminAccessToUserRole() throws Exception {
+    void shouldDenyAdminAccessToUserRole() throws Exception
+    {
         mockMvc.perform(get("/api/admin/users"))
-                .andExpect(status().isForbidden());
+            .andExpect(status().isForbidden());
     }
 
     @Test
     @DisplayName("Should authenticate with JWT token")
-    void shouldAuthenticateWithJwtToken() throws Exception {
+    void shouldAuthenticateWithJwtToken() throws Exception
+    {
         // Given
-        String token = jwtService.generateAccessToken(testUser);
+        String token = jwtService . generateAccessToken (testUser);
 
         // When & Then
-        mockMvc.perform(get("/api/auth/me")
-                .header("Authorization", "Bearer " + token))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$.email").value("test@example.com"));
+        mockMvc.perform(
+            get("/api/auth/me")
+                .header("Authorization", "Bearer " + token)
+        )
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.email").value("test@example.com"));
     }
 
     @Test
     @DisplayName("Should reject malformed JWT token")
-    void shouldRejectMalformedJwtToken() throws Exception {
-        mockMvc.perform(get("/api/auth/me")
-                .header("Authorization", "Bearer malformed.token.here"))
-                .andExpect(status().isUnauthorized());
+    void shouldRejectMalformedJwtToken() throws Exception
+    {
+        mockMvc.perform(
+            get("/api/auth/me")
+                .header("Authorization", "Bearer malformed.token.here")
+        )
+            .andExpect(status().isUnauthorized());
     }
 
     @Test
     @DisplayName("Should reject JWT token without Bearer prefix")
-    void shouldRejectJwtTokenWithoutBearerPrefix() throws Exception {
-        String token = jwtService.generateAccessToken(testUser);
+    void shouldRejectJwtTokenWithoutBearerPrefix() throws Exception
+    {
+        String token = jwtService . generateAccessToken (testUser);
 
-        mockMvc.perform(get("/api/auth/me")
-                .header("Authorization", token))
-                .andExpect(status().isUnauthorized());
+        mockMvc.perform(
+            get("/api/auth/me")
+                .header("Authorization", token)
+        )
+            .andExpect(status().isUnauthorized());
     }
 
     @Test
     @DisplayName("Should handle logout correctly")
-    void shouldHandleLogoutCorrectly() throws Exception {
+    void shouldHandleLogoutCorrectly() throws Exception
+    {
         // Given
-        String token = jwtService.generateAccessToken(testUser);
+        String token = jwtService . generateAccessToken (testUser);
 
         // When & Then
-        mockMvc.perform(post("/api/auth/logout")
-                .header("Authorization", "Bearer " + token))
-                .andExpect(status().isNoContent());
+        mockMvc.perform(
+            post("/api/auth/logout")
+                .header("Authorization", "Bearer " + token)
+        )
+            .andExpect(status().isNoContent());
     }
 
     @Test
     @DisplayName("Should validate refresh token request")
-    void shouldValidateRefreshTokenRequest() throws Exception {
-        RefreshTokenRequest invalidRequest = new RefreshTokenRequest("");
+    void shouldValidateRefreshTokenRequest() throws Exception
+    {
+        RefreshTokenRequest invalidRequest = RefreshTokenRequest ("");
 
-        mockMvc.perform(post("/api/auth/refresh")
+        mockMvc.perform(
+            post("/api/auth/refresh")
                 .contentType(MediaType.APPLICATION_JSON)
-                .content(objectMapper.writeValueAsString(invalidRequest)))
-                .andExpect(status().isBadRequest());
+                .content(objectMapper.writeValueAsString(invalidRequest))
+        )
+            .andExpect(status().isBadRequest());
     }
 
     @Test
     @DisplayName("Should handle concurrent requests correctly")
-    void shouldHandleConcurrentRequestsCorrectly() throws Exception {
-        String token = jwtService.generateAccessToken(testUser);
-        HttpHeaders headers = new HttpHeaders();
+    void shouldHandleConcurrentRequestsCorrectly() throws Exception
+    {
+        String token = jwtService . generateAccessToken (testUser);
+        HttpHeaders headers = HttpHeaders ();
         headers.setBearerAuth(token);
 
-        MockHttpServletRequestBuilder request = get("/api/auth/me")
-                .headers(headers);
+        MockHttpServletRequestBuilder request = get ("/api/auth/me")
+            .headers(headers);
 
         // Execute multiple concurrent requests
         int numRequests = 10;
-        CountDownLatch latch = new CountDownLatch(numRequests);
-        AtomicInteger successCount = new AtomicInteger(0);
+        CountDownLatch latch = CountDownLatch (numRequests);
+        AtomicInteger successCount = AtomicInteger (0);
 
         for (int i = 0; i < numRequests; i++) {
-            CompletableFuture.runAsync(() -> {
-                try {
-                    MvcResult result = mockMvc.perform(request)
-                            .andReturn();
+        CompletableFuture.runAsync(() -> {
+        try {
+            MvcResult result = mockMvc . perform (request)
+                .andReturn();
 
-                    if (result.getResponse().getStatus() == HttpStatus.OK.value()) {
-                        successCount.incrementAndGet();
-                    }
-                } catch (Exception e) {
-                    // Log error for debugging
-                    System.err.println("Request failed: " + e.getMessage());
-                } finally {
-                    latch.countDown();
-                }
-            });
+            if (result.getResponse().getStatus() == HttpStatus.OK.value()) {
+                successCount.incrementAndGet();
+            }
+        } catch (Exception e) {
+            // Log error for debugging
+            System.err.println("Request failed: " + e.getMessage());
+        } finally {
+            latch.countDown();
         }
+    });
+    }
 
         // Wait for all requests to complete
-        boolean completed = latch.await(10, TimeUnit.SECONDS);
+        boolean completed = latch . await (10, TimeUnit.SECONDS);
 
         assertThat(completed).isTrue();
         assertThat(successCount.get()).isEqualTo(numRequests);
@@ -842,7 +884,7 @@ class AuthenticationControllerMockMvcTest {
 
 ### Security Vulnerability Tests
 
-```java
+```kotlin
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
 @TestPropertySource(properties = {
     "jwt.secret=test-secret-key-for-security-testing-256-bits",
@@ -851,42 +893,44 @@ class AuthenticationControllerMockMvcTest {
 class SecurityVulnerabilityTest {
 
     @Autowired
-    private TestRestTemplate restTemplate;
+    private var restTemplate: TestRestTemplate
 
     @Autowired
-    private JwtService jwtService;
+    private var jwtService: JwtService
 
-    private User testUser;
+    private var testUser: User
 
     @BeforeEach
-    void setUp() {
+    void setUp()
+    {
         testUser = User.builder()
-                .email("test@example.com")
-                .roles(Set.of(new Role("USER")))
-                .enabled(true)
-                .build();
+            .email("test@example.com")
+            .roles(setOf(Role("USER")))
+            .enabled(true)
+            .build();
     }
 
     @Test
     @DisplayName("Should prevent JWT token tampering")
-    void shouldPreventJwtTokenTampering() {
+    void shouldPreventJwtTokenTampering()
+    {
         // Given
-        String validToken = jwtService.generateAccessToken(testUser);
+        String validToken = jwtService . generateAccessToken (testUser);
 
         // Tamper with token by changing characters
-        String tamperedToken = validToken.substring(0, validToken.length() - 5) + "xxxxx";
+        String tamperedToken = validToken . substring (0, validToken.length()-5)+"xxxxx";
 
-        HttpHeaders headers = new HttpHeaders();
+        HttpHeaders headers = HttpHeaders ();
         headers.setBearerAuth(tamperedToken);
 
         HttpEntity<String> entity = new HttpEntity<>(headers);
 
         // When
-        ResponseEntity<String> response = restTemplate.exchange(
-            "/api/auth/me",
-            HttpMethod.GET,
-            entity,
-            String.class
+        ResponseEntity<String> response = restTemplate . exchange (
+                "/api/auth/me",
+        HttpMethod.GET,
+        entity,
+        String.class
         );
 
         // Then
@@ -895,7 +939,8 @@ class SecurityVulnerabilityTest {
 
     @Test
     @DisplayName("Should prevent replay attacks with expired tokens")
-    void shouldPreventReplayAttacksWithExpiredTokens() {
+    void shouldPreventReplayAttacksWithExpiredTokens()
+    {
         // Given - Create an expired token
         JwtService expiredService = new JwtService(
             "test-secret-key-for-security-testing-256-bits",
@@ -909,34 +954,35 @@ class SecurityVulnerabilityTest {
             null
         );
 
-        String expiredToken = expiredService.generateAccessToken(testUser);
+        String expiredToken = expiredService . generateAccessToken (testUser);
 
         // Wait for token to expire
         await().atMost(2, SECONDS).until(() -> {
-            try {
-                return !expiredService.isTokenValid(expiredToken,
-                    org.springframework.security.core.userdetails.User.builder()
-                        .username(testUser.getEmail())
-                        .password("password")
-                        .roles("USER")
-                        .build()
-                );
-            } catch (Exception e) {
-                return true;
-            }
-        });
+        try {
+            return !expiredService.isTokenValid(
+                expiredToken,
+                org.springframework.security.core.userdetails.User.builder()
+                    .username(testUser.getEmail())
+                    .password("password")
+                    .roles("USER")
+                    .build()
+            );
+        } catch (Exception e) {
+            return true;
+        }
+    });
 
-        HttpHeaders headers = new HttpHeaders();
+        HttpHeaders headers = HttpHeaders ();
         headers.setBearerAuth(expiredToken);
 
         HttpEntity<String> entity = new HttpEntity<>(headers);
 
         // When
-        ResponseEntity<String> response = restTemplate.exchange(
-            "/api/auth/me",
-            HttpMethod.GET,
-            entity,
-            String.class
+        ResponseEntity<String> response = restTemplate . exchange (
+                "/api/auth/me",
+        HttpMethod.GET,
+        entity,
+        String.class
         );
 
         // Then
@@ -945,7 +991,8 @@ class SecurityVulnerabilityTest {
 
     @Test
     @DisplayName("Should prevent SQL injection in authentication")
-    void shouldPreventSqlInjectionInAuthentication() {
+    void shouldPreventSqlInjectionInAuthentication()
+    {
         // Given
         AuthenticationRequest maliciousRequest = new AuthenticationRequest(
             "test@example.com'; DROP TABLE users; --",
@@ -953,29 +1000,30 @@ class SecurityVulnerabilityTest {
         );
 
         // When
-        ResponseEntity<String> response = restTemplate.postForEntity(
-            "/api/auth/authenticate",
-            maliciousRequest,
-            String.class
+        ResponseEntity<String> response = restTemplate . postForEntity (
+                "/api/auth/authenticate",
+        maliciousRequest,
+        String.class
         );
 
         // Then
         assertThat(response.getStatusCode()).isEqualTo(HttpStatus.UNAUTHORIZED);
 
         // Verify database still works
-        ResponseEntity<String> healthResponse = restTemplate.getForEntity("/health", String.class);
+        ResponseEntity<String> healthResponse = restTemplate . getForEntity ("/health", String.class);
         assertThat(healthResponse.getStatusCode()).isEqualTo(HttpStatus.OK);
     }
 
     @Test
     @DisplayName("Should prevent XSS in authentication responses")
-    void shouldPreventXssInAuthenticationResponses() {
+    void shouldPreventXssInAuthenticationResponses()
+    {
         // Given
-        User maliciousUser = User.builder()
-                .email("test@example.com")
-                .firstName("<script>alert('xss')</script>")
-                .lastName("User")
-                .build();
+        User maliciousUser = User . builder ()
+            .email("test@example.com")
+            .firstName("<script>alert('xss')</script>")
+            .lastName("User")
+            .build();
 
         // When
         // This would be a registration or similar endpoint that includes user data in response
@@ -986,10 +1034,10 @@ class SecurityVulnerabilityTest {
             "password"
         );
 
-        ResponseEntity<String> response = restTemplate.postForEntity(
-            "/api/auth/authenticate",
-            request,
-            String.class
+        ResponseEntity<String> response = restTemplate . postForEntity (
+                "/api/auth/authenticate",
+        request,
+        String.class
         );
 
         // Then
@@ -1000,7 +1048,8 @@ class SecurityVulnerabilityTest {
 
     @Test
     @DisplayName("Should handle large token payload gracefully")
-    void shouldHandleLargeTokenPayloadGracefully() {
+    void shouldHandleLargeTokenPayloadGracefully()
+    {
         // Given - Create a token with large payload
         String largeData = "x".repeat(10000); // 10KB of data
 
@@ -1008,11 +1057,11 @@ class SecurityVulnerabilityTest {
         // We test that the system handles it gracefully
 
         // When
-        ResponseEntity<String> response = restTemplate.exchange(
-            "/api/auth/me",
-            HttpMethod.GET,
-            null,
-            String.class
+        ResponseEntity<String> response = restTemplate . exchange (
+                "/api/auth/me",
+        HttpMethod.GET,
+        null,
+        String.class
         );
 
         // Then
@@ -1021,7 +1070,8 @@ class SecurityVulnerabilityTest {
 
     @Test
     @DisplayName("Should enforce rate limiting")
-    void shouldEnforceRateLimiting() {
+    void shouldEnforceRateLimiting()
+    {
         // Given
         AuthenticationRequest request = new AuthenticationRequest(
             "test@example.com",
@@ -1030,24 +1080,24 @@ class SecurityVulnerabilityTest {
 
         // When - Make multiple failed attempts
         int attemptCount = 10;
-        List<ResponseEntity<String>> responses = new ArrayList<>();
+        List<ResponseEntity<String>> responses = mutableListOf ();
 
         for (int i = 0; i < attemptCount; i++) {
-            ResponseEntity<String> response = restTemplate.postForEntity(
+        ResponseEntity<String> response = restTemplate . postForEntity (
                 "/api/auth/authenticate",
-                request,
-                String.class
-            );
-            responses.add(response);
+        request,
+        String.class
+        );
+        responses.add(response);
 
-            // Small delay between attempts
-            try {
-                Thread.sleep(100);
-            } catch (InterruptedException e) {
-                Thread.currentThread().interrupt();
-                break;
-            }
+        // Small delay between attempts
+        try {
+            Thread.sleep(100);
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+            break;
         }
+    }
 
         // Then
         // Initial attempts should return 401
@@ -1064,57 +1114,58 @@ class SecurityVulnerabilityTest {
 
 ### JWT Performance Tests
 
-```java
-@ExtendWith(MockitoExtension.class)
-class JwtPerformanceTest {
+```kotlin
+@ExtendWith(
+    MockitoExtension.class)
+    class JwtPerformanceTest {
 
-    private JwtService jwtService;
+    private var jwtService: JwtService
 
-    private User testUser;
+    private var testUser: User
 
     @BeforeEach
-    void setUp() {
-        jwtService = new JwtService(
-            "test-secret-key-for-performance-testing-256-bits-long",
-            900000,
-            604800000,
-            "performance-test-issuer",
-            null,
-            true,
-            false,
-            60,
-            null
+    void setUp () {
+        jwtService = new JwtService (
+                "test-secret-key-for-performance-testing-256-bits-long",
+        900000,
+        604800000,
+        "performance-test-issuer",
+        null,
+        true,
+        false,
+        60,
+        null
         );
 
         testUser = User.builder()
-                .id(1L)
-                .email("performance-test@example.com")
-                .roles(Set.of(new Role("USER"), new Role("ADMIN")))
-                .build();
+            .id(1L)
+            .email("performance-test@example.com")
+            .roles(setOf(Role("USER"), Role("ADMIN")))
+            .build();
     }
 
     @Test
     @DisplayName("Should generate tokens efficiently")
-    void shouldGenerateTokensEfficiently() {
+    void shouldGenerateTokensEfficiently () {
         int numTokens = 1000;
         List<String> tokens = new ArrayList<>(numTokens);
 
         // Measure token generation time
-        long startTime = System.nanoTime();
+        long startTime = System . nanoTime ();
 
         for (int i = 0; i < numTokens; i++) {
-            String token = jwtService.generateAccessToken(testUser);
-            tokens.add(token);
-        }
+        String token = jwtService . generateAccessToken (testUser);
+        tokens.add(token);
+    }
 
-        long endTime = System.nanoTime();
-        long durationMs = (endTime - startTime) / 1_000_000;
+        long endTime = System . nanoTime ();
+        long durationMs =(endTime - startTime) / 1_000_000;
 
         // Then
         assertThat(tokens).hasSize(numTokens);
         assertThat(durationMs).isLessThan(5000); // Should complete within 5 seconds
 
-        double avgTimePerToken = (double) durationMs / numTokens;
+        double avgTimePerToken =(double) durationMs / numTokens;
         System.out.println("Average time per token generation: " + avgTimePerToken + " ms");
 
         // Performance assertion - should be very fast per token
@@ -1123,35 +1174,35 @@ class JwtPerformanceTest {
 
     @Test
     @DisplayName("Should validate tokens efficiently")
-    void shouldValidateTokensEfficiently() {
+    void shouldValidateTokensEfficiently () {
         // Generate tokens first
         int numTokens = 1000;
-        List<String> tokens = new ArrayList<>();
+        List<String> tokens = mutableListOf ();
 
         for (int i = 0; i < numTokens; i++) {
-            tokens.add(jwtService.generateAccessToken(testUser));
-        }
+        tokens.add(jwtService.generateAccessToken(testUser));
+    }
 
-        UserDetails userDetails = createUserDetails();
+        UserDetails userDetails = createUserDetails ();
 
         // Measure validation time
-        long startTime = System.nanoTime();
+        long startTime = System . nanoTime ();
 
         int validCount = 0;
         for (String token : tokens) {
-            if (jwtService.isTokenValid(token, userDetails)) {
-                validCount++;
-            }
+        if (jwtService.isTokenValid(token, userDetails)) {
+            validCount++;
         }
+    }
 
-        long endTime = System.nanoTime();
-        long durationMs = (endTime - startTime) / 1_000_000;
+        long endTime = System . nanoTime ();
+        long durationMs =(endTime - startTime) / 1_000_000;
 
         // Then
         assertThat(validCount).isEqualTo(numTokens);
         assertThat(durationMs).isLessThan(3000); // Should complete within 3 seconds
 
-        double avgTimePerValidation = (double) durationMs / numTokens;
+        double avgTimePerValidation =(double) durationMs / numTokens;
         System.out.println("Average time per token validation: " + avgTimePerValidation + " ms");
 
         // Performance assertion - validation should be very fast
@@ -1160,41 +1211,41 @@ class JwtPerformanceTest {
 
     @Test
     @DisplayName("Should handle concurrent token operations")
-    void shouldHandleConcurrentTokenOperations() throws InterruptedException {
+    void shouldHandleConcurrentTokenOperations () throws InterruptedException {
         int numThreads = 10;
         int operationsPerThread = 100;
-        ExecutorService executor = Executors.newFixedThreadPool(numThreads);
-        CountDownLatch latch = new CountDownLatch(numThreads);
+        ExecutorService executor = Executors . newFixedThreadPool (numThreads);
+        CountDownLatch latch = CountDownLatch (numThreads);
 
-        AtomicInteger successCount = new AtomicInteger(0);
-        List<Exception> exceptions = Collections.synchronizedList(new ArrayList<>());
+        AtomicInteger successCount = AtomicInteger (0);
+        List<Exception> exceptions = Collections . synchronizedList (mutableListOf());
 
         // Concurrent token generation and validation
         for (int i = 0; i < numThreads; i++) {
-            executor.submit(() -> {
-                try {
-                    for (int j = 0; j < operationsPerThread; j++) {
-                        // Generate token
-                        String token = jwtService.generateAccessToken(testUser);
+        executor.submit(() -> {
+        try {
+            for (int j = 0; j < operationsPerThread; j++) {
+                // Generate token
+                String token = jwtService . generateAccessToken (testUser);
 
-                        // Validate token
-                        UserDetails userDetails = createUserDetails();
-                        boolean isValid = jwtService.isTokenValid(token, userDetails);
+                // Validate token
+                UserDetails userDetails = createUserDetails ();
+                boolean isValid = jwtService . isTokenValid (token, userDetails);
 
-                        if (isValid) {
-                            successCount.incrementAndGet();
-                        }
-                    }
-                } catch (Exception e) {
-                    exceptions.add(e);
-                } finally {
-                    latch.countDown();
+                if (isValid) {
+                    successCount.incrementAndGet();
                 }
-            });
+            }
+        } catch (Exception e) {
+            exceptions.add(e);
+        } finally {
+            latch.countDown();
         }
+    });
+    }
 
         // Wait for completion
-        boolean completed = latch.await(30, TimeUnit.SECONDS);
+        boolean completed = latch . await (30, TimeUnit.SECONDS);
         executor.shutdown();
 
         // Then
@@ -1207,38 +1258,38 @@ class JwtPerformanceTest {
 
     @Test
     @DisplayName("Should maintain performance with large user data")
-    void shouldMaintainPerformanceWithLargeUserData() {
+    void shouldMaintainPerformanceWithLargeUserData () {
         // Create user with many roles and permissions
-        User largeUser = User.builder()
-                .id(1L)
-                .email("large-user@example.com")
-                .build();
+        User largeUser = User . builder ()
+            .id(1L)
+            .email("large-user@example.com")
+            .build();
 
         // Add many roles
-        Set<Role> roles = new HashSet<>();
+        Set<Role> roles = mutableSetOf ();
         for (int i = 0; i < 50; i++) {
-            roles.add(new Role("ROLE_" + i));
-        }
+        roles.add(Role("ROLE_" + i));
+    }
         largeUser.setRoles(roles);
 
         int numTokens = 100;
-        List<String> tokens = new ArrayList<>();
+        List<String> tokens = mutableListOf ();
 
         // Measure performance with large user data
-        long startTime = System.nanoTime();
+        long startTime = System . nanoTime ();
 
         for (int i = 0; i < numTokens; i++) {
-            String token = jwtService.generateAccessToken(largeUser);
-            tokens.add(token);
-        }
+        String token = jwtService . generateAccessToken (largeUser);
+        tokens.add(token);
+    }
 
-        long endTime = System.nanoTime();
-        long durationMs = (endTime - startTime) / 1_000_000;
+        long endTime = System . nanoTime ();
+        long durationMs =(endTime - startTime) / 1_000_000;
 
         // Then
         assertThat(tokens).hasSize(numTokens);
 
-        double avgTimePerToken = (double) durationMs / numTokens;
+        double avgTimePerToken =(double) durationMs / numTokens;
         System.out.println("Average time per large token generation: " + avgTimePerToken + " ms");
 
         // Should still be reasonable even with large payloads
@@ -1247,40 +1298,40 @@ class JwtPerformanceTest {
 
     @Test
     @DisplayName("Should efficiently extract claims from tokens")
-    void shouldEfficientlyExtractClaimsFromTokens() {
+    void shouldEfficientlyExtractClaimsFromTokens () {
         // Generate tokens
         int numTokens = 1000;
-        List<String> tokens = new ArrayList<>();
+        List<String> tokens = mutableListOf ();
 
         for (int i = 0; i < numTokens; i++) {
-            tokens.add(jwtService.generateAccessToken(testUser));
-        }
+        tokens.add(jwtService.generateAccessToken(testUser));
+    }
 
         // Measure claim extraction time
-        long startTime = System.nanoTime();
+        long startTime = System . nanoTime ();
 
         for (String token : tokens) {
-            String username = jwtService.extractUsername(token);
-            assertThat(username).isEqualTo("performance-test@example.com");
-        }
+        String username = jwtService . extractUsername (token);
+        assertThat(username).isEqualTo("performance-test@example.com");
+    }
 
-        long endTime = System.nanoTime();
-        long durationMs = (endTime - startTime) / 1_000_000;
+        long endTime = System . nanoTime ();
+        long durationMs =(endTime - startTime) / 1_000_000;
 
         // Then
-        double avgTimePerExtraction = (double) durationMs / numTokens;
+        double avgTimePerExtraction =(double) durationMs / numTokens;
         System.out.println("Average time per claim extraction: " + avgTimePerExtraction + " ms");
 
         // Claim extraction should be very fast
         assertThat(avgTimePerExtraction).isLessThan(1.0); // Less than 1ms per extraction
     }
 
-    private UserDetails createUserDetails() {
+    private fun createUserDetails(): UserDetails {
         return org.springframework.security.core.userdetails.User.builder()
-                .username(testUser.getEmail())
-                .password("password")
-                .roles("USER", "ADMIN")
-                .build();
+            .username(testUser.getEmail())
+            .password("password")
+            .roles("USER", "ADMIN")
+            .build();
     }
 }
 ```

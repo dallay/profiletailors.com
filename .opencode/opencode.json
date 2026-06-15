@@ -1,0 +1,17 @@
+{
+  "$schema": "https://opencode.ai/config.json",
+  "mcp": {
+    "shadcnVue": {
+      "type": "local",
+      "command": [
+        "npx",
+        "shadcn-vue@latest",
+        "mcp"
+      ],
+      "enabled": true
+    }
+  },
+  "tools": {
+    "playwright*": false
+  }
+}

@@ -21,16 +21,16 @@ defineConfig({
     coverage: {
       // Provider: 'v8' (default, faster) or 'istanbul' (more compatible)
       provider: 'v8',
-      
+
       // Enable coverage
       enabled: true,
-      
+
       // Reporters
       reporter: ['text', 'json', 'html'],
-      
+
       // Files to include
       include: ['src/**/*.{ts,tsx}'],
-      
+
       // Files to exclude
       exclude: [
         'node_modules/',
@@ -38,10 +38,10 @@ defineConfig({
         '**/*.d.ts',
         '**/*.test.ts',
       ],
-      
+
       // Report uncovered files
       all: true,
-      
+
       // Thresholds
       thresholds: {
         lines: 80,
@@ -88,7 +88,9 @@ coverage: {
     'lcov',           // For CI tools
     'cobertura',      // XML format
   ],
-  reportsDirectory: './coverage',
+      reportsDirectory
+:
+  './coverage',
 }
 ```
 
@@ -101,16 +103,27 @@ coverage: {
   thresholds: {
     // Global thresholds
     lines: 80,
-    functions: 75,
-    branches: 70,
-    statements: 80,
-    
-    // Per-file thresholds
-    perFile: true,
-    
-    // Auto-update thresholds (for gradual improvement)
-    autoUpdate: true,
-  },
+        functions
+  :
+    75,
+        branches
+  :
+    70,
+        statements
+  :
+    80,
+
+        // Per-file thresholds
+        perFile
+  :
+    true,
+
+        // Auto-update thresholds (for gradual improvement)
+        autoUpdate
+  :
+    true,
+  }
+,
 }
 ```
 
@@ -133,7 +146,8 @@ function ignored() {
 
 ```ts
 /* istanbul ignore next -- @preserve */
-function ignored() {}
+function ignored() {
+}
 
 /* istanbul ignore if -- @preserve */
 if (condition) {
@@ -162,7 +176,9 @@ Enable HTML coverage in Vitest UI:
 ```ts
 coverage: {
   enabled: true,
-  reporter: ['text', 'html'],
+      reporter
+:
+  ['text', 'html'],
 }
 ```
 

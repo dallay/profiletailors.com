@@ -208,19 +208,20 @@ resilience4j:
 
 ### `@`CircuitBreaker
 
-```java
+```kotlin
 @CircuitBreaker(
     name = "serviceName",                    // Required: Instance name from config
     fallbackMethod = "fallbackMethodName"    // Optional: Fallback method name
 )
 
 // Fallback method signature
-public String fallback(Long id, Exception ex) { }
+fun fallback(Long id, Exception ex): String {
+}
 ```
 
 ### `@`Retry
 
-```java
+```kotlin
 @Retry(
     name = "serviceName",                    // Required: Instance name from config
     fallbackMethod = "fallbackMethodName"    // Optional: Fallback method name
@@ -229,7 +230,7 @@ public String fallback(Long id, Exception ex) { }
 
 ### `@`RateLimiter
 
-```java
+```kotlin
 @RateLimiter(
     name = "serviceName",
     fallbackMethod = "fallbackMethodName"
@@ -238,7 +239,7 @@ public String fallback(Long id, Exception ex) { }
 
 ### `@`Bulkhead
 
-```java
+```kotlin
 @Bulkhead(
     name = "serviceName",
     fallbackMethod = "fallbackMethodName",
@@ -248,7 +249,7 @@ public String fallback(Long id, Exception ex) { }
 
 ### `@`TimeLimiter
 
-```java
+```kotlin
 @TimeLimiter(
     name = "serviceName",
     fallbackMethod = "fallbackMethodName"
@@ -280,8 +281,8 @@ When combining annotations on a method, execution order from outermost to innerm
 
 ### Circuit Breaker
 
-```java
-CircuitBreakerConfig config = CircuitBreakerConfig.custom()
+```kotlin
+CircuitBreakerConfig config = CircuitBreakerConfig . custom ()
     .failureRateThreshold(50)
     .waitDurationInOpenState(Duration.ofSeconds(10))
     .slowCallDurationThreshold(Duration.ofSeconds(2))
@@ -289,30 +290,34 @@ CircuitBreakerConfig config = CircuitBreakerConfig.custom()
     .minimumNumberOfCalls(10)
     .slidingWindowType(CircuitBreakerConfig.SlidingWindowType.COUNT_BASED)
     .slidingWindowSize(100)
-    .recordExceptions(IOException.class, TimeoutException.class)
-    .ignoreExceptions(IllegalArgumentException.class)
-    .build();
+    .recordExceptions(IOException.class, TimeoutException .class)
+.ignoreExceptions(
+    IllegalArgumentException.class)
+        .build();
 
-CircuitBreakerRegistry registry = CircuitBreakerRegistry.of(config);
-CircuitBreaker circuitBreaker = registry.circuitBreaker("myService");
+CircuitBreakerRegistry registry = CircuitBreakerRegistry . of (config);
+CircuitBreaker circuitBreaker = registry . circuitBreaker ("myService");
 ```
 
 ### Retry
 
-```java
-RetryConfig config = RetryConfig.custom()
+```kotlin
+RetryConfig config = RetryConfig . custom ()
     .maxAttempts(3)
     .waitDuration(Duration.ofMillis(500))
-    .intervalFunction(IntervalFunction.ofExponentialBackoff(
-        Duration.ofMillis(500),
-        2.0
-    ))
-    .retryExceptions(IOException.class, TimeoutException.class)
-    .ignoreExceptions(IllegalArgumentException.class)
-    .build();
+    .intervalFunction(
+        IntervalFunction.ofExponentialBackoff(
+            Duration.ofMillis(500),
+            2.0
+        )
+    )
+    .retryExceptions(IOException.class, TimeoutException .class)
+.ignoreExceptions(
+    IllegalArgumentException.class)
+        .build();
 
-RetryRegistry registry = RetryRegistry.of(config);
-Retry retry = registry.retry("myService");
+RetryRegistry registry = RetryRegistry . of (config);
+Retry retry = registry . retry ("myService");
 ```
 
 ## Actuator Endpoints

@@ -1,0 +1,69 @@
+# Codecov configuration for profiletailors.com monorepo
+# https://docs.codecov.com/docs/codecov-yaml
+
+coverage:
+  status:
+    project:
+      default:
+        target: 80%
+        threshold: 2%
+        if_ci_failed: error
+    patch:
+      default:
+        target: 70%
+        threshold: 5%
+        if_ci_failed: error
+
+  precision: 2
+  round: down
+  range: 70..100
+
+comment:
+  layout: "reach,diff,flags,tree,footer"
+  behavior: default
+  require_changes: false
+  require_base: false
+  require_head: true
+
+ignore:
+  - "**/*Test.kt"
+  - "**/*Tests.kt"
+  - "**/test/**"
+  - "docs/**"
+  - "tmp/**"
+  - "tools/**"
+  - "**/build/**"
+  - "**/generated/**"
+
+flags:
+  backend:
+    paths:
+      - server/
+      - shared/
+    carryforward: true
+  
+  frontend:
+    paths:
+      - apps/web/marketing/
+    carryforward: true
+
+component_management:
+  individual_components:
+    - component_id: backend
+      name: Backend Services
+      paths:
+        - server/**
+        - shared/**
+    
+    - component_id: smp
+      name: Social Media Platform
+      paths:
+        - server/smp/**
+
+    - component_id: frontend
+      name: Frontend Marketing Site
+      paths:
+        - apps/web/marketing/**
+
+github_checks:
+  annotations: true

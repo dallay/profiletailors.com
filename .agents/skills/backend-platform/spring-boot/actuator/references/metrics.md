@@ -70,12 +70,13 @@ management:
 You can register any number of `MeterRegistryCustomizer` beans to further configure the registry,
 such as applying common tags, before any meters are registered with the registry:
 
-```java
+```kotlin
 @Component
-public class MyMeterRegistryConfiguration {
+class MyMeterRegistryConfiguration {
 
     @Bean
-    public MeterRegistryCustomizer<MeterRegistry> metricsCommonTags() {
+    public MeterRegistryCustomizer<MeterRegistry> metricsCommonTags()
+    {
         return registry -> registry.config().commonTags("region", "us-east-1");
     }
 }
@@ -84,16 +85,18 @@ public class MyMeterRegistryConfiguration {
 You can apply customizations to particular registry implementations by being more specific about the
 generic type:
 
-```java
+```kotlin
 @Component
-public class MyMeterRegistryConfiguration {
+class MyMeterRegistryConfiguration {
 
     @Bean
-    public MeterRegistryCustomizer<GraphiteMeterRegistry> graphiteMetricsNamingConvention() {
+    public MeterRegistryCustomizer<GraphiteMeterRegistry> graphiteMetricsNamingConvention()
+    {
         return registry -> registry.config().namingConvention(this::toGraphiteConvention);
     }
 
-    private String toGraphiteConvention(String name, Meter.Type type, String baseUnit) {
+    private fun toGraphiteConvention(String name, Meter.Type type, String baseUnit): String
+    {
         return name.toLowerCase().replace(".", "_");
     }
 }
@@ -150,23 +153,23 @@ Tags added to HTTP server request metrics:
 
 To customize the tags, provide a `@Bean` that implements `WebMvcTagsContributor`:
 
-```java
+```kotlin
 @Component
-public class MyWebMvcTagsContributor implements WebMvcTagsContributor {
+class MyWebMvcTagsContributor implements WebMvcTagsContributor {
 
     @Override
-    public Iterable<Tag> getTags(HttpServletRequest request, 
-                                 HttpServletResponse response, 
-                                 Object handler, 
-                                 Throwable exception) {
-        return Tags.of("custom.tag", "custom-value");
-    }
+    public Iterable < Tag > getTags (HttpServletRequest request,
+    HttpServletResponse response,
+    Object handler,
+    Throwable exception) {
+    return Tags.of("custom.tag", "custom-value");
+}
 
     @Override
-    public Iterable<Tag> getLongRequestTags(HttpServletRequest request, 
-                                           Object handler) {
-        return Tags.of("custom.tag", "custom-value");
-    }
+    public Iterable < Tag > getLongRequestTags (HttpServletRequest request,
+    Object handler) {
+    return Tags.of("custom.tag", "custom-value");
+}
 }
 ```
 
@@ -223,36 +226,37 @@ Executor metrics include:
 
 To record your own metrics, inject `MeterRegistry` into your component:
 
-```java
+```kotlin
 @Component
-public class MyService {
-    private final Counter counter;
-    private final Timer timer;
-    private final Gauge gauge;
+class MyService {
+    private val counter: Counter
+    private val timer: Timer
+    private val gauge: Gauge
 
-    public MyService(MeterRegistry meterRegistry) {
+    public MyService(MeterRegistry meterRegistry)
+    {
         this.counter = Counter.builder("my.counter")
-                .description("A simple counter")
-                .register(meterRegistry);
-        
+            .description("A simple counter")
+            .register(meterRegistry);
+
         this.timer = Timer.builder("my.timer")
-                .description("A simple timer")
-                .register(meterRegistry);
-        
+            .description("A simple timer")
+            .register(meterRegistry);
+
         this.gauge = Gauge.builder("my.gauge")
-                .description("A simple gauge")
-                .register(meterRegistry, this, MyService::calculateGaugeValue);
+            .description("A simple gauge")
+            .register(meterRegistry, this, MyService::calculateGaugeValue);
     }
 
-    public void doSomething() {
+    fun doSomething(): void {
         counter.increment();
-        
-        Timer.Sample sample = Timer.start(meterRegistry);
+
+        Timer.Sample sample = Timer . start (meterRegistry);
         // ... do work
         sample.stop(timer);
     }
-    
-    private double calculateGaugeValue(MyService self) {
+
+    private fun calculateGaugeValue(MyService self): double {
         return Math.random();
     }
 }
@@ -262,12 +266,12 @@ public class MyService {
 
 You can use the `@Timed` annotation to time method executions:
 
-```java
+```kotlin
 @Component
-public class MyService {
+class MyService {
 
     @Timed(name = "my.method.time", description = "Time taken to execute my method")
-    public void timedMethod() {
+    fun timedMethod(): void {
         // method body
     }
 }
@@ -275,14 +279,14 @@ public class MyService {
 
 For the `@Timed` annotation to work, you need to enable timing support:
 
-```java
+```kotlin
 @Configuration
 @EnableConfigurationProperties
-public class TimedConfiguration {
+class TimedConfiguration {
 
     @Bean
-    public TimedAspect timedAspect(MeterRegistry registry) {
-        return new TimedAspect(registry);
+    fun timedAspect(MeterRegistry registry): TimedAspect {
+        return TimedAspect(registry);
     }
 }
 ```
@@ -291,12 +295,12 @@ public class TimedConfiguration {
 
 You can use the `@Counted` annotation to count method invocations:
 
-```java
+```kotlin
 @Component
-public class MyService {
+class MyService {
 
     @Counted(name = "my.method.count", description = "Number of times my method is called")
-    public void countedMethod() {
+    fun countedMethod(): void {
         // method body
     }
 }
@@ -304,13 +308,13 @@ public class MyService {
 
 For the `@Counted` annotation to work, you need to enable counting support:
 
-```java
+```kotlin
 @Configuration
-public class CountedConfiguration {
+class CountedConfiguration {
 
     @Bean
-    public CountedAspect countedAspect(MeterRegistry registry) {
-        return new CountedAspect(registry);
+    fun countedAspect(MeterRegistry registry): CountedAspect {
+        return CountedAspect(registry);
     }
 }
 ```
@@ -319,22 +323,22 @@ public class CountedConfiguration {
 
 You can register any number of `MeterFilter` beans to control how meters are registered:
 
-```java
+```kotlin
 @Configuration
-public class MetricsConfiguration {
+class MetricsConfiguration {
 
     @Bean
-    public MeterFilter renameFilter() {
+    fun renameFilter(): MeterFilter {
         return MeterFilter.rename("old.metric.name", "new.metric.name");
     }
 
     @Bean
-    public MeterFilter denyFilter() {
+    fun denyFilter(): MeterFilter {
         return MeterFilter.deny(id -> id.getName().contains("unwanted"));
     }
 
     @Bean
-    public MeterFilter tagFilter() {
+    fun tagFilter(): MeterFilter {
         return MeterFilter.commonTags("application", "my-app");
     }
 }
@@ -367,11 +371,18 @@ The response contains the meter's measurements:
   "availableTags": [
     {
       "tag": "area",
-      "values": ["heap", "nonheap"]
+      "values": [
+        "heap",
+        "nonheap"
+      ]
     },
     {
       "tag": "id",
-      "values": ["Compressed Class Space", "PS Eden Space", "PS Survivor Space"]
+      "values": [
+        "Compressed Class Space",
+        "PS Eden Space",
+        "PS Survivor Space"
+      ]
     }
   ]
 }
@@ -390,9 +401,10 @@ GET /actuator/metrics/jvm.memory.used?tag=area:heap&tag=id:PS%20Eden%20Space
 To export metrics to Prometheus, add the following dependency:
 
 ```xml
+
 <dependency>
-    <groupId>io.micrometer</groupId>
-    <artifactId>micrometer-registry-prometheus</artifactId>
+  <groupId>io.micrometer</groupId>
+  <artifactId>micrometer-registry-prometheus</artifactId>
 </dependency>
 ```
 
@@ -420,9 +432,10 @@ management:
 To export metrics to Datadog, add the following dependency:
 
 ```xml
+
 <dependency>
-    <groupId>io.micrometer</groupId>
-    <artifactId>micrometer-registry-datadog</artifactId>
+  <groupId>io.micrometer</groupId>
+  <artifactId>micrometer-registry-datadog</artifactId>
 </dependency>
 ```
 
@@ -444,9 +457,10 @@ management:
 To export metrics to InfluxDB, add the following dependency:
 
 ```xml
+
 <dependency>
-    <groupId>io.micrometer</groupId>
-    <artifactId>micrometer-registry-influx</artifactId>
+  <groupId>io.micrometer</groupId>
+  <artifactId>micrometer-registry-influx</artifactId>
 </dependency>
 ```
 
@@ -469,9 +483,10 @@ management:
 To export metrics to New Relic, add the following dependency:
 
 ```xml
+
 <dependency>
-    <groupId>io.micrometer</groupId>
-    <artifactId>micrometer-registry-newrelic</artifactId>
+  <groupId>io.micrometer</groupId>
+  <artifactId>micrometer-registry-newrelic</artifactId>
 </dependency>
 ```
 
@@ -508,7 +523,7 @@ management:
 Be mindful of meter cardinality when adding tags. High-cardinality tags (like user IDs) can lead to
 performance issues:
 
-```java
+```kotlin
 // Bad - high cardinality
 Timer.builder("user.request.time")
     .tag("user.id", userId)  // Could be millions of different values
@@ -524,11 +539,13 @@ Timer.builder("user.request.time")
 
 For high-throughput applications, consider using sampling to reduce overhead:
 
-```java
+```kotlin
 @Bean
-public MeterFilter samplingFilter() {
-    return MeterFilter.maximumExpectedValue("http.server.requests", 
-                                           Duration.ofMillis(500));
+fun samplingFilter(): MeterFilter {
+    return MeterFilter.maximumExpectedValue(
+        "http.server.requests",
+        Duration.ofMillis(500)
+    );
 }
 ```
 
@@ -550,7 +567,7 @@ management:
 
 Be careful not to include sensitive information in metric tags or names:
 
-```java
+```kotlin
 // Bad - exposes sensitive data
 Counter.builder("login.attempts")
     .tag("username", username)  // Could expose usernames
@@ -559,7 +576,7 @@ Counter.builder("login.attempts")
 // Good - uses hashed or anonymized data
 Counter.builder("login.attempts")
     .tag("outcome", successful ? "success" : "failure")
-    .register(registry);
+.register(registry);
 ```
 
 ### Endpoint Security
@@ -579,18 +596,19 @@ management:
 
 Or using Spring Security:
 
-```java
+```kotlin
 @Configuration
-public class ActuatorSecurity {
+class ActuatorSecurity {
 
     @Bean
-    public SecurityFilterChain actuatorSecurityFilterChain(HttpSecurity http) throws Exception {
+    public SecurityFilterChain actuatorSecurityFilterChain(HttpSecurity http) throws Exception
+    {
         return http
             .requestMatcher(EndpointRequest.toAnyEndpoint())
-            .authorizeHttpRequests(requests -> 
-                requests.anyRequest().hasRole("ACTUATOR"))
-            .httpBasic(withDefaults())
-            .build();
+            .authorizeHttpRequests(requests ->
+        requests.anyRequest().hasRole("ACTUATOR"))
+        .httpBasic(withDefaults())
+        .build();
     }
 }
 ```

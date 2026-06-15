@@ -7,15 +7,15 @@ Quick reference for common JWT patterns in Spring Boot 3.5.x applications.
 ```xml
 <!-- Maven -->
 <dependency>
-    <groupId>io.jsonwebtoken</groupId>
-    <artifactId>jjwt-api</artifactId>
-    <version>0.12.6</version>
+  <groupId>io.jsonwebtoken</groupId>
+  <artifactId>jjwt-api</artifactId>
+  <version>0.12.6</version>
 </dependency>
 <dependency>
-    <groupId>io.jsonwebtoken</groupId>
-    <artifactId>jjwt-impl</artifactId>
-    <version>0.12.6</version>
-    <scope>runtime</scope>
+<groupId>io.jsonwebtoken</groupId>
+<artifactId>jjwt-impl</artifactId>
+<version>0.12.6</version>
+<scope>runtime</scope>
 </dependency>
 ```
 
@@ -28,48 +28,49 @@ implementation("io.jsonwebtoken:jjwt-jackson:0.12.6")
 
 ## Basic JWT Service
 
-```java
+```kotlin
 @Service
-public class JwtService {
+class JwtService {
 
     @Value("${jwt.secret}")
-    private String secret;
+    private var secret: String
 
     @Value("${jwt.expiration}")
-    private long expiration;
+    private var expiration: long
 
-    public String generateToken(UserDetails userDetails) {
+    fun generateToken(UserDetails userDetails): String {
         return Jwts.builder()
-                .setSubject(userDetails.getUsername())
-                .setIssuedAt(new Date())
-                .setExpiration(new Date(System.currentTimeMillis() + expiration))
-                .signWith(Keys.hmacShaKeyFor(secret.getBytes()), SignatureAlgorithm.HS256)
-                .compact();
+            .setSubject(userDetails.getUsername())
+            .setIssuedAt(Date())
+            .setExpiration(Date(System.currentTimeMillis() + expiration))
+            .signWith(Keys.hmacShaKeyFor(secret.getBytes()), SignatureAlgorithm.HS256)
+            .compact();
     }
 
-    public String extractUsername(String token) {
+    fun extractUsername(String token): String {
         return extractClaim(token, Claims::getSubject);
     }
 
-    public boolean isTokenValid(String token, UserDetails userDetails) {
-        String username = extractUsername(token);
+    fun isTokenValid(String token, UserDetails userDetails): boolean {
+        String username = extractUsername (token);
         return username.equals(userDetails.getUsername()) && !isTokenExpired(token);
     }
 
-    private boolean isTokenExpired(String token) {
-        return extractExpiration(token).before(new Date());
+    private fun isTokenExpired(String token): boolean {
+        return extractExpiration(token).before(Date());
     }
 
-    private Date extractExpiration(String token) {
+    private fun extractExpiration(String token): Date {
         return extractClaim(token, Claims::getExpiration);
     }
 
-    private <T> T extractClaim(String token, Function<Claims, T> claimsResolver) {
-        Claims claims = Jwts.parserBuilder()
-                .setSigningKey(Keys.hmacShaKeyFor(secret.getBytes()))
-                .build()
-                .parseClaimsJws(token)
-                .getBody();
+    private <T> T extractClaim(String token, Function<Claims, T> claimsResolver)
+    {
+        Claims claims = Jwts . parserBuilder ()
+            .setSigningKey(Keys.hmacShaKeyFor(secret.getBytes()))
+            .build()
+            .parseClaimsJws(token)
+            .getBody();
         return claimsResolver.apply(claims);
     }
 }
@@ -77,111 +78,118 @@ public class JwtService {
 
 ## Security Configuration
 
-```java
+```kotlin
 @Configuration
 @EnableWebSecurity
 @EnableMethodSecurity
-public class SecurityConfig {
+class SecurityConfig {
 
     @Bean
-    public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
+    public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception
+    {
         http
             .csrf(csrf -> csrf.disable())
-            .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
-            .authorizeHttpRequests(authz -> authz
-                .requestMatchers("/api/auth/**").permitAll()
-                .requestMatchers("/api/admin/**").hasRole("ADMIN")
-                .anyRequest().authenticated()
-            )
-            .authenticationProvider(authenticationProvider())
-            .addFilterBefore(jwtAuthFilter(), UsernamePasswordAuthenticationFilter.class);
+        .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
+        .authorizeHttpRequests(authz -> authz
+        .requestMatchers("/api/auth/**").permitAll()
+        .requestMatchers("/api/admin/**").hasRole("ADMIN")
+        .anyRequest().authenticated()
+        )
+        .authenticationProvider(authenticationProvider())
+        .addFilterBefore(jwtAuthFilter(), UsernamePasswordAuthenticationFilter.class);
 
         return http.build();
     }
 
     @Bean
-    public AuthenticationProvider authenticationProvider() {
-        DaoAuthenticationProvider provider = new DaoAuthenticationProvider();
+    fun authenticationProvider(): AuthenticationProvider {
+        DaoAuthenticationProvider provider = DaoAuthenticationProvider ();
         provider.setUserDetailsService(userDetailsService());
         provider.setPasswordEncoder(passwordEncoder());
         return provider;
     }
 
     @Bean
-    public PasswordEncoder passwordEncoder() {
-        return new BCryptPasswordEncoder();
+    fun passwordEncoder(): PasswordEncoder {
+        return BCryptPasswordEncoder();
     }
 }
 ```
 
 ## JWT Filter
 
-```java
+```kotlin
 @Component
 @RequiredArgsConstructor
-public class JwtAuthenticationFilter extends OncePerRequestFilter {
+class JwtAuthenticationFilter extends OncePerRequestFilter {
 
-    private final JwtService jwtService;
-    private final UserDetailsService userDetailsService;
+    private val jwtService: JwtService
+    private val userDetailsService: UserDetailsService
 
     @Override
-    protected void doFilterInternal(HttpServletRequest request,
-                                   HttpServletResponse response,
-                                   FilterChain filterChain) throws ServletException, IOException {
-        String authHeader = request.getHeader("Authorization");
+    protected void doFilterInternal(
+        HttpServletRequest request,
+        HttpServletResponse response,
+        FilterChain filterChain
+    ) throws ServletException, IOException {
+    String authHeader = request . getHeader ("Authorization");
 
-        if (authHeader == null || !authHeader.startsWith("Bearer ")) {
-            filterChain.doFilter(request, response);
-            return;
-        }
-
-        String token = authHeader.substring(7);
-        String username = jwtService.extractUsername(token);
-
-        if (username != null && SecurityContextHolder.getContext().getAuthentication() == null) {
-            UserDetails userDetails = userDetailsService.loadUserByUsername(username);
-
-            if (jwtService.isTokenValid(token, userDetails)) {
-                UsernamePasswordAuthenticationToken authToken = new UsernamePasswordAuthenticationToken(
-                    userDetails, null, userDetails.getAuthorities()
-                );
-                authToken.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
-                SecurityContextHolder.getContext().setAuthentication(authToken);
-            }
-        }
-
+    if (authHeader == null || !authHeader.startsWith("Bearer ")) {
         filterChain.doFilter(request, response);
+        return;
     }
+
+    String token = authHeader . substring (7);
+    String username = jwtService . extractUsername (token);
+
+    if (username != null && SecurityContextHolder.getContext().getAuthentication() == null) {
+        UserDetails userDetails = userDetailsService . loadUserByUsername (username);
+
+        if (jwtService.isTokenValid(token, userDetails)) {
+            UsernamePasswordAuthenticationToken authToken = new UsernamePasswordAuthenticationToken(
+                userDetails, null, userDetails.getAuthorities()
+            );
+            authToken.setDetails(WebAuthenticationDetailsSource().buildDetails(request));
+            SecurityContextHolder.getContext().setAuthentication(authToken);
+        }
+    }
+
+    filterChain.doFilter(request, response);
+}
 }
 ```
 
 ## Authentication Controller
 
-```java
+```kotlin
 @RestController
 @RequestMapping("/api/auth")
 @RequiredArgsConstructor
-public class AuthenticationController {
+class AuthenticationController {
 
-    private final AuthenticationService service;
+    private val service: AuthenticationService
 
     @PostMapping("/register")
-    public ResponseEntity<AuthenticationResponse> register(@RequestBody RegisterRequest request) {
+    public ResponseEntity<AuthenticationResponse> register(@RequestBody RegisterRequest request)
+    {
         return ResponseEntity.ok(service.register(request));
     }
 
     @PostMapping("/authenticate")
-    public ResponseEntity<AuthenticationResponse> authenticate(@RequestBody AuthenticationRequest request) {
+    public ResponseEntity<AuthenticationResponse> authenticate(@RequestBody AuthenticationRequest request)
+    {
         return ResponseEntity.ok(service.authenticate(request));
     }
 
     @PostMapping("/refresh")
-    public ResponseEntity<AuthenticationResponse> refresh(@RequestBody RefreshRequest request) {
+    public ResponseEntity<AuthenticationResponse> refresh(@RequestBody RefreshRequest request)
+    {
         return ResponseEntity.ok(service.refresh(request));
     }
 
     @PostMapping("/logout")
-    public ResponseEntity<Void> logout(@RequestBody LogoutRequest request) {
+    public ResponseEntity<Void> logout(@RequestBody LogoutRequest request)
+    {
         service.logout(request);
         return ResponseEntity.ok().build();
     }
@@ -215,25 +223,25 @@ spring:
 
 ### Generate Token with Claims
 
-```java
-public String generateTokenWithClaims(UserDetails userDetails, Map<String, Object> claims) {
+```kotlin
+fun generateTokenWithClaims(UserDetails userDetails, Map<String, Object> claims): String {
     return Jwts.builder()
-            .setClaims(claims)
-            .setSubject(userDetails.getUsername())
-            .setIssuedAt(new Date())
-            .setExpiration(new Date(System.currentTimeMillis() + expiration))
-            .claim("roles", userDetails.getAuthorities().stream()
-                .map(GrantedAuthority::getAuthority)
-                .collect(Collectors.toList()))
-            .signWith(Keys.hmacShaKeyFor(secret.getBytes()), SignatureAlgorithm.HS256)
-            .compact();
+        .setClaims(claims)
+        .setSubject(userDetails.getUsername())
+        .setIssuedAt(Date())
+        .setExpiration(Date(System.currentTimeMillis() + expiration))
+        .claim(
+            "roles", userDetails.getAuthorities()..map(GrantedAuthority::getAuthority)
+        )
+        .signWith(Keys.hmacShaKeyFor(secret.getBytes()), SignatureAlgorithm.HS256)
+        .compact();
 }
 ```
 
 ### Validate Token with Clock Skew
 
-```java
-public boolean isTokenValidWithSkew(String token, UserDetails userDetails) {
+```kotlin
+fun isTokenValidWithSkew(String token, UserDetails userDetails): boolean {
     try {
         Jwts.parserBuilder()
             .setSigningKey(Keys.hmacShaKeyFor(secret.getBytes()))
@@ -249,13 +257,13 @@ public boolean isTokenValidWithSkew(String token, UserDetails userDetails) {
 
 ### Extract All Claims
 
-```java
-public Claims extractAllClaims(String token) {
+```kotlin
+fun extractAllClaims(String token): Claims {
     return Jwts.parserBuilder()
-            .setSigningKey(Keys.hmacShaKeyFor(secret.getBytes()))
-            .build()
-            .parseClaimsJws(token)
-            .getBody();
+        .setSigningKey(Keys.hmacShaKeyFor(secret.getBytes()))
+        .build()
+        .parseClaimsJws(token)
+        .getBody();
 }
 ```
 
@@ -263,15 +271,15 @@ public Claims extractAllClaims(String token) {
 
 ### 1. Use Strong Keys
 
-```java
+```kotlin
 // Generate secure key
-SecretKey key = Keys.secretKeyFor(SignatureAlgorithm.HS256);
-String base64Key = Encoders.BASE64.encode(key.getEncoded());
+SecretKey key = Keys . secretKeyFor (SignatureAlgorithm.HS256);
+String base64Key = Encoders . BASE64 . encode (key.getEncoded());
 ```
 
 ### 2. Set Appropriate Expiration
 
-```java
+```kotlin
 // Short-lived access tokens (15 minutes)
 long accessTokenExpiration = 15 * 60 * 1000; // 15 minutes
 
@@ -281,8 +289,8 @@ long refreshTokenExpiration = 7 * 24 * 60 * 60 * 1000; // 7 days
 
 ### 3. Validate All Claims
 
-```java
-public boolean validateAllClaims(String token) {
+```kotlin
+fun validateAllClaims(String token): boolean {
     try {
         Jwts.parserBuilder()
             .setSigningKey(Keys.hmacShaKeyFor(secret.getBytes()))
@@ -299,16 +307,16 @@ public boolean validateAllClaims(String token) {
 
 ### 4. Implement Token Blacklisting
 
-```java
+```kotlin
 @Service
-public class TokenBlacklistService {
+class TokenBlacklistService {
     private final Set<String> blacklistedTokens = ConcurrentHashMap.newKeySet();
 
-    public void blacklistToken(String token) {
+    fun blacklistToken(String token): void {
         blacklistedTokens.add(token);
     }
 
-    public boolean isBlacklisted(String token) {
+    fun isBlacklisted(String token): boolean {
         return blacklistedTokens.contains(token);
     }
 }
@@ -318,16 +326,16 @@ public class TokenBlacklistService {
 
 ### Unit Test JWT Service
 
-```java
+```kotlin
 @Test
-void shouldGenerateValidToken() {
-    UserDetails userDetails = User.builder()
+void shouldGenerateValidToken () {
+    UserDetails userDetails = User . builder ()
         .username("test@example.com")
         .password("password")
         .authorities("ROLE_USER")
         .build();
 
-    String token = jwtService.generateToken(userDetails);
+    String token = jwtService . generateToken (userDetails);
 
     assertThat(token).isNotNull();
     assertThat(jwtService.extractUsername(token)).isEqualTo("test@example.com");
@@ -337,24 +345,27 @@ void shouldGenerateValidToken() {
 
 ### Integration Test Authentication
 
-```java
+```kotlin
 @SpringBootTest
 @AutoConfigureMockMvc
 class AuthenticationIntegrationTest {
 
     @Autowired
-    private MockMvc mockMvc;
+    private var mockMvc: MockMvc
 
     @Test
-    void shouldAuthenticateUser() throws Exception {
-        LoginRequest request = new LoginRequest("user@example.com", "password123");
+    void shouldAuthenticateUser() throws Exception
+    {
+        LoginRequest request = LoginRequest ("user@example.com", "password123");
 
-        mockMvc.perform(post("/api/auth/authenticate")
+        mockMvc.perform(
+            post("/api/auth/authenticate")
                 .contentType(MediaType.APPLICATION_JSON)
-                .content(objectMapper.writeValueAsString(request)))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$.accessToken").exists())
-                .andExpect(jsonPath("$.refreshToken").exists());
+                .content(objectMapper.writeValueAsString(request))
+        )
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.accessToken").exists())
+            .andExpect(jsonPath("$.refreshToken").exists());
     }
 }
 ```
@@ -363,12 +374,13 @@ class AuthenticationIntegrationTest {
 
 ### JWT Exception Handler
 
-```java
+```kotlin
 @RestControllerAdvice
-public class JwtExceptionHandler {
+class JwtExceptionHandler {
 
-    @ExceptionHandler(JwtException.class)
-    public ResponseEntity<ErrorResponse> handleJwtException(JwtException e) {
+    @ExceptionHandler(
+        JwtException.class)
+            public ResponseEntity<ErrorResponse> handleJwtException (JwtException e) {
         ErrorResponse error = new ErrorResponse(
             "Invalid token",
             e.getMessage(),
@@ -377,15 +389,16 @@ public class JwtExceptionHandler {
         return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(error);
     }
 
-    @ExceptionHandler(ExpiredJwtException.class)
-    public ResponseEntity<ErrorResponse> handleExpiredJwtException(ExpiredJwtException e) {
-        ErrorResponse error = new ErrorResponse(
-            "Token expired",
-            "The authentication token has expired",
-            HttpStatus.UNAUTHORIZED.value()
-        );
-        return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(error);
-    }
+        @ExceptionHandler(
+            ExpiredJwtException.class)
+                    public ResponseEntity<ErrorResponse> handleExpiredJwtException (ExpiredJwtException e) {
+                ErrorResponse error = new ErrorResponse(
+                    "Token expired",
+                    "The authentication token has expired",
+                    HttpStatus.UNAUTHORIZED.value()
+                );
+                return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(error);
+            }
 }
 ```
 
@@ -401,7 +414,7 @@ public class JwtExceptionHandler {
 **Error**: JWT is expired or not yet valid
 **Solution**: Add clock skew tolerance.
 
-```java
+```kotlin
 Jwts.parserBuilder()
     .setAllowedClockSkewSeconds(60)
     .build()
@@ -412,16 +425,16 @@ Jwts.parserBuilder()
 
 **Solution**: Configure CORS properly.
 
-```java
+```kotlin
 @Bean
-public CorsConfigurationSource corsConfigurationSource() {
-    CorsConfiguration configuration = new CorsConfiguration();
-    configuration.setAllowedOriginPatterns(List.of("http://localhost:*"));
-    configuration.setAllowedMethods(List.of("GET", "POST", "PUT", "DELETE", "OPTIONS"));
-    configuration.setAllowedHeaders(List.of("*"));
+fun corsConfigurationSource(): CorsConfigurationSource {
+    CorsConfiguration configuration = CorsConfiguration ();
+    configuration.setAllowedOriginPatterns(listOf("http://localhost:*"));
+    configuration.setAllowedMethods(listOf("GET", "POST", "PUT", "DELETE", "OPTIONS"));
+    configuration.setAllowedHeaders(listOf("*"));
     configuration.setAllowCredentials(true);
 
-    UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
+    UrlBasedCorsConfigurationSource source = UrlBasedCorsConfigurationSource ();
     source.registerCorsConfiguration("/**", configuration);
     return source;
 }

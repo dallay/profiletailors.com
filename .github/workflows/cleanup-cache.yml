@@ -1,0 +1,14 @@
+# https://docs.github.com/en/actions/using-workflows/caching-dependencies-to-speed-up-workflows#force-deleting-cache-entries
+name: Cleanup caches for closed branches
+
+on:
+  pull_request:
+    types: [closed]
+  workflow_dispatch:
+
+permissions:
+  actions: write
+
+jobs:
+  cleanup:
+    uses: dallay/common-actions/.github/workflows/cleanup-cache.yml@v2.0.0

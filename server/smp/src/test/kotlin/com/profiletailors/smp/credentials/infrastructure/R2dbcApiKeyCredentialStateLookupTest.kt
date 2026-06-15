@@ -16,6 +16,7 @@ import liquibase.resource.ClassLoaderResourceAccessor
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertThrows
 import org.junit.jupiter.api.BeforeEach
+import org.junit.jupiter.api.Tag
 import org.junit.jupiter.api.Test
 import org.springframework.r2dbc.core.DatabaseClient
 import java.sql.DriverManager
@@ -157,6 +158,7 @@ class R2dbcApiKeyCredentialStateLookupTest {
     }
 
     private fun deleteAllRows() = runTest {
+        databaseClient.sql("SET REFERENTIAL_INTEGRITY FALSE").fetch().rowsUpdated().awaitSingle()
         listOf(
             "DELETE FROM api_key_credentials",
             "DELETE FROM service_account_credentials",
@@ -165,5 +167,6 @@ class R2dbcApiKeyCredentialStateLookupTest {
         ).forEach { statement ->
             databaseClient.sql(statement).fetch().rowsUpdated().awaitSingle()
         }
+        databaseClient.sql("SET REFERENTIAL_INTEGRITY TRUE").fetch().rowsUpdated().awaitSingle()
     }
 }

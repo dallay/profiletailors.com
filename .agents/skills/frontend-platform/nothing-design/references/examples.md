@@ -46,12 +46,14 @@ adapting to user goals, platform constraints, and accessibility needs.
 ### Example implementation direction
 
 ```html
+
 <section class="nd-panel">
   <div class="nd-meta">[ NETWORK ] <span>UPDATED 09:41 UTC</span></div>
   <div class="nd-hero">
     <p class="nd-label">THROUGHPUT</p>
     <h1 class="nd-metric">36<span>GB/S</span></h1>
-    <p class="nd-body">Primary transfer lane is operating above baseline with stable packet loss.</p>
+    <p class="nd-body">Primary transfer lane is operating above baseline with stable packet
+      loss.</p>
   </div>
 
   <div class="nd-progress-block">
@@ -121,17 +123,20 @@ Fonts required: Space Grotesk, Space Mono
 Mode: Light
 
 Hierarchy:
+
 - Primary: SETTINGS
 - Secondary: toggle labels, selected mode, connectivity values
 - Tertiary: helper descriptions and sync metadata
 
 Layout:
+
 - Back button pinned top-left
 - Title near top with 64px breathing room below nav
 - Display mode segmented control first
 - Settings rows follow with full-width dividers
 
 Components:
+
 - Circular back button
 - Segmented control for LIGHT / DARK / AUTO
 - Toggle rows with right-aligned switch

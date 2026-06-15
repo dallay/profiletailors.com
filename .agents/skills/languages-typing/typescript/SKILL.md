@@ -1,8 +1,6 @@
 ---
 name: typescript
-description: >
-  TypeScript strict patterns and best practices.
-  Trigger: When writing TypeScript code - types, interfaces, generics.
+description: Use when writing TypeScript code with types, interfaces, or generics.
 allowed-tools: Read, Edit, Write, Glob, Grep, Bash, WebFetch, WebSearch, Task
 ---
 
@@ -69,7 +67,8 @@ function first<T>(arr: T[]): T | undefined {
 }
 
 // ❌ NEVER
-function parse(input: any): any { }
+function parse(input: any): any {
+}
 ```
 
 ## Utility Types
@@ -128,12 +127,16 @@ type Name = NonNullable<string | null | undefined>;
 // string
 
 // ReturnType: get function return type (e.g. for API responses)
-function getUser(): Promise<User> { /* ... */ }
+function getUser(): Promise<User> { /* ... */
+}
+
 type UserPromise = ReturnType<typeof getUser>;
 // Promise<User>
 
 // Parameters: get function parameter tuple (e.g. for wrappers)
-function setUser(id: string, user: User) {}
+function setUser(id: string, user: User) {
+}
+
 type SetUserParams = Parameters<typeof setUser>;
 // [id: string, user: User]
 ```
@@ -143,10 +146,10 @@ type SetUserParams = Parameters<typeof setUser>;
 ```typescript
 function isUser(value: unknown): value is User {
   return (
-    typeof value === "object" &&
-    value !== null &&
-    "id" in value &&
-    "name" in value
+      typeof value === "object" &&
+      value !== null &&
+      "id" in value &&
+      "name" in value
   );
 }
 ```
@@ -154,6 +157,6 @@ function isUser(value: unknown): value is User {
 ## Import Types
 
 ```typescript
-import type { User } from "./types";
-import { createUser, type Config } from "./utils";
+import type {User} from "./types";
+import {createUser, type Config} from "./utils";
 ```

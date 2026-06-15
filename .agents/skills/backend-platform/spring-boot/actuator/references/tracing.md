@@ -27,19 +27,20 @@ Add the following dependencies to your project:
 **Maven:**
 
 ```xml
+
 <dependencies>
-    <dependency>
-        <groupId>org.springframework.boot</groupId>
-        <artifactId>spring-boot-starter-actuator</artifactId>
-    </dependency>
-    <dependency>
-        <groupId>io.micrometer</groupId>
-        <artifactId>micrometer-tracing-bridge-otel</artifactId>
-    </dependency>
-    <dependency>
-        <groupId>io.opentelemetry</groupId>
-        <artifactId>opentelemetry-exporter-zipkin</artifactId>
-    </dependency>
+  <dependency>
+    <groupId>org.springframework.boot</groupId>
+    <artifactId>spring-boot-starter-actuator</artifactId>
+  </dependency>
+  <dependency>
+    <groupId>io.micrometer</groupId>
+    <artifactId>micrometer-tracing-bridge-otel</artifactId>
+  </dependency>
+  <dependency>
+    <groupId>io.opentelemetry</groupId>
+    <artifactId>opentelemetry-exporter-zipkin</artifactId>
+  </dependency>
 </dependencies>
 ```
 
@@ -73,20 +74,22 @@ logging:
 
 ### Basic Application Example
 
-```java
+```kotlin
 @SpringBootApplication
 @RestController
-public class MyApplication {
+class MyApplication {
 
-    private static final Logger logger = LoggerFactory.getLogger(MyApplication.class);
+    private static final Logger logger = LoggerFactory.getLogger(MyApplication.
+    class);
 
     @GetMapping("/")
-    public String home() {
+    fun home(): String {
         logger.info("Handling home request");
         return "Hello World!";
     }
 
-    public static void main(String[] args) {
+    public static void main(String[] args)
+    {
         SpringApplication.run(MyApplication.class, args);
     }
 }
@@ -147,22 +150,22 @@ management:
 
 ### Using `@`Observed Annotation
 
-```java
+```kotlin
 @Service
-public class UserService {
+class UserService {
 
     @Observed(name = "user.service.find-by-id")
-    public User findById(Long id) {
+    fun findById(Long id): User {
         // Service logic
         return userRepository.findById(id);
     }
 
     @Observed(
-        name = "user.service.create", 
+        name = "user.service.create",
         contextualName = "creating-user",
-        lowCardinalityKeyValues = {"operation", "create"}
+        lowCardinalityKeyValues = { "operation", "create" }
     )
-    public User createUser(CreateUserRequest request) {
+    fun createUser(CreateUserRequest request): User {
         // Creation logic
         return save(request.toUser());
     }
@@ -171,71 +174,73 @@ public class UserService {
 
 ### Programmatic Span Creation
 
-```java
+```kotlin
 @Service
-public class OrderService {
+class OrderService {
 
-    private final ObservationRegistry observationRegistry;
+    private val observationRegistry: ObservationRegistry
 
-    public OrderService(ObservationRegistry observationRegistry) {
+    public OrderService(ObservationRegistry observationRegistry)
+    {
         this.observationRegistry = observationRegistry;
     }
 
-    public Order processOrder(OrderRequest request) {
+    fun processOrder(OrderRequest request): Order {
         return Observation.createNotStarted("order.processing", observationRegistry)
             .lowCardinalityKeyValue("order.type", request.getType())
             .observe(() -> {
-                // Add custom tags
-                Observation.Scope scope = Observation.start("order.validation", observationRegistry);
-                try {
-                    validateOrder(request);
-                } finally {
-                    scope.close();
-                }
-                
-                // Process order
-                return saveOrder(request);
-            });
+            // Add custom tags
+            Observation.Scope scope = Observation . start ("order.validation", observationRegistry);
+            try {
+                validateOrder(request);
+            } finally {
+                scope.close();
+            }
+
+            // Process order
+            return saveOrder(request);
+        });
     }
 
-    private void validateOrder(OrderRequest request) {
+    private fun validateOrder(OrderRequest request): void {
         // Validation logic
     }
 
-    private Order saveOrder(OrderRequest request) {
+    private fun saveOrder(OrderRequest request): Order {
         // Save logic
-        return new Order();
+        return Order();
     }
 }
 ```
 
 ### Using Micrometer's Tracer API
 
-```java
+```kotlin
 @Service
-public class PaymentService {
+class PaymentService {
 
-    private final Tracer tracer;
+    private val tracer: Tracer
 
-    public PaymentService(Tracer tracer) {
+    public PaymentService(Tracer tracer)
+    {
         this.tracer = tracer;
     }
 
-    public PaymentResult processPayment(PaymentRequest request) {
-        Span span = tracer.nextSpan()
+    fun processPayment(PaymentRequest request): PaymentResult {
+        Span span = tracer . nextSpan ()
             .name("payment.processing")
             .tag("payment.method", request.getMethod())
             .tag("payment.amount", String.valueOf(request.getAmount()))
             .start();
 
-        try (Tracer.SpanInScope ws = tracer.withSpanInScope(span)) {
+        try (Tracer.SpanInScope ws = tracer . withSpanInScope (span)) {
             // Add events
             span.event("payment.validation.started");
             validatePayment(request);
             span.event("payment.validation.completed");
 
             span.event("payment.processing.started");
-            PaymentResult result = processPaymentInternal(request);
+            PaymentResult result = processPaymentInternal (request);
             span.event("payment.processing.completed");
 
             // Add result information
@@ -247,15 +252,15 @@ public class PaymentService {
         } finally {
             span.end();
         }
-    }
+        }
 
-    private void validatePayment(PaymentRequest request) {
+    private fun validatePayment(PaymentRequest request): void {
         // Validation logic
     }
 
-    private PaymentResult processPaymentInternal(PaymentRequest request) {
+    private fun processPaymentInternal(PaymentRequest request): PaymentResult {
         // Processing logic
-        return new PaymentResult();
+        return PaymentResult();
     }
 }
 ```
@@ -264,28 +269,29 @@ public class PaymentService {
 
 Baggage allows you to pass context information across service boundaries:
 
-```java
+```kotlin
 @Service
-public class UserService {
+class UserService {
 
-    private final BaggageManager baggageManager;
+    private val baggageManager: BaggageManager
 
-    public UserService(BaggageManager baggageManager) {
+    public UserService(BaggageManager baggageManager)
+    {
         this.baggageManager = baggageManager;
     }
 
-    public User getCurrentUser(String userId) {
+    fun getCurrentUser(String userId): User {
         // Set baggage that will be propagated to downstream services
-        try (BaggageInScope baggageInScope = 
-                baggageManager.createBaggage("user.id", userId).makeCurrent()) {
-            
+        try (BaggageInScope baggageInScope =
+                baggageManager . createBaggage ("user.id", userId).makeCurrent()) {
+
             return fetchUserFromDatabase(userId);
         }
-    }
+        }
 
-    private User fetchUserFromDatabase(String userId) {
+    private fun fetchUserFromDatabase(String userId): User {
         // This method and any downstream calls will have access to the baggage
-        String currentUserId = baggageManager.getBaggage("user.id").get();
+        String currentUserId = baggageManager . getBaggage ("user.id").get();
         // Use the user ID for security context, logging, etc.
         return userRepository.findById(userId);
     }
@@ -298,26 +304,28 @@ public class UserService {
 
 Spring Boot automatically configures tracing for WebClient:
 
-```java
+```kotlin
 @Service
-public class ExternalApiService {
+class ExternalApiService {
 
-    private final WebClient webClient;
+    private val webClient: WebClient
 
-    public ExternalApiService(WebClient.Builder webClientBuilder) {
+    public ExternalApiService(WebClient.Builder webClientBuilder)
+    {
         this.webClient = webClientBuilder
             .baseUrl("https://api.example.com")
             .build();
     }
 
-    public ApiResponse callExternalApi(String data) {
+    fun callExternalApi(String data): ApiResponse {
         return webClient
             .post()
             .uri("/process")
             .bodyValue(data)
             .retrieve()
-            .bodyToMono(ApiResponse.class)
-            .block();
+            .bodyToMono(
+                ApiResponse.class)
+                    .block();
     }
 }
 ```
@@ -326,14 +334,14 @@ public class ExternalApiService {
 
 For RestTemplate, add the interceptor manually:
 
-```java
+```kotlin
 @Configuration
-public class RestTemplateConfig {
+class RestTemplateConfig {
 
     @Bean
-    public RestTemplate restTemplate(RestTemplateBuilder builder) {
+    fun restTemplate(RestTemplateBuilder builder): RestTemplate {
         return builder
-            .interceptors(new TraceRestTemplateInterceptor())
+            .interceptors(TraceRestTemplateInterceptor())
             .build();
     }
 }
@@ -367,28 +375,31 @@ management:
 
 ### Custom Database Observation
 
-```java
+```kotlin
 @Repository
-public class UserRepository {
+class UserRepository {
 
-    private final JdbcTemplate jdbcTemplate;
-    private final ObservationRegistry observationRegistry;
+    private val jdbcTemplate: JdbcTemplate
+    private val observationRegistry: ObservationRegistry
 
-    public UserRepository(JdbcTemplate jdbcTemplate, 
-                         ObservationRegistry observationRegistry) {
+    public UserRepository(JdbcTemplate jdbcTemplate,
+    ObservationRegistry observationRegistry)
+    {
         this.jdbcTemplate = jdbcTemplate;
         this.observationRegistry = observationRegistry;
     }
 
-    public User findById(Long id) {
+    fun findById(Long id): User {
         return Observation.createNotStarted("db.user.find-by-id", observationRegistry)
             .lowCardinalityKeyValue("db.operation", "select")
             .lowCardinalityKeyValue("db.table", "users")
             .observe(() -> {
-                String sql = "SELECT * FROM users WHERE id = ?";
-                return jdbcTemplate.queryForObject(sql, 
-                    new UserRowMapper(), id);
-            });
+            String sql = "SELECT * FROM users WHERE id = ?";
+            return jdbcTemplate.queryForObject(
+                sql,
+                UserRowMapper(), id
+            );
+        });
     }
 }
 ```
@@ -397,13 +408,14 @@ public class UserRepository {
 
 ### `@`Async Methods
 
-```java
+```kotlin
 @Service
-public class NotificationService {
+class NotificationService {
 
     @Async
     @Observed(name = "notification.send")
-    public CompletableFuture<Void> sendNotificationAsync(String recipient, String message) {
+    public CompletableFuture<Void> sendNotificationAsync(String recipient, String message)
+    {
         // Async notification logic
         return CompletableFuture.completedFuture(null);
     }
@@ -412,40 +424,41 @@ public class NotificationService {
 
 ### Manual Trace Propagation
 
-```java
+```kotlin
 @Service
-public class EmailService {
+class EmailService {
 
-    private final Tracer tracer;
-    private final ExecutorService executorService;
+    private val tracer: Tracer
+    private val executorService: ExecutorService
 
-    public EmailService(Tracer tracer) {
+    public EmailService(Tracer tracer)
+    {
         this.tracer = tracer;
         this.executorService = Executors.newFixedThreadPool(5);
     }
 
-    public void sendEmailAsync(String recipient, String subject, String body) {
-        TraceContext traceContext = tracer.currentSpan().context();
-        
+    fun sendEmailAsync(String recipient, String subject, String body): void {
+        TraceContext traceContext = tracer . currentSpan ().context();
+
         executorService.submit(() -> {
-            try (Tracer.SpanInScope ws = tracer.withSpanInScope(
+            try (Tracer.SpanInScope ws = tracer . withSpanInScope (
                     tracer.toSpan(traceContext))) {
-                Span span = tracer.nextSpan()
+                Span span = tracer . nextSpan ()
                     .name("email.send")
                     .tag("email.recipient", recipient)
                     .start();
-                
-                try (Tracer.SpanInScope emailScope = tracer.withSpanInScope(span)) {
+
+                try (Tracer.SpanInScope emailScope = tracer . withSpanInScope (span)) {
                     // Send email logic
                     sendEmailInternal(recipient, subject, body);
                 } finally {
                     span.end();
                 }
-            }
-        });
+                }
+            });
     }
 
-    private void sendEmailInternal(String recipient, String subject, String body) {
+    private fun sendEmailInternal(String recipient, String subject, String body): void {
         // Email sending implementation
     }
 }
@@ -463,7 +476,7 @@ management:
       rate: 1000        # Max 1000 traces per second
     baggage:
       enabled: false    # Disable if not needed
-      remote-fields: []
+      remote-fields: [ ]
     zipkin:
       tracing:
         endpoint: "${ZIPKIN_ENDPOINT:http://zipkin:9411/api/v2/spans}"
@@ -495,7 +508,7 @@ management:
     baggage:
       correlation:
         enabled: false  # Disable MDC correlation if sensitive data
-      remote-fields: []   # Don't propagate sensitive fields
+      remote-fields: [ ]   # Don't propagate sensitive fields
 ```
 
 ## Troubleshooting
@@ -525,20 +538,20 @@ management:
 
 ### Health Check for Tracing
 
-```java
+```kotlin
 @Component
-public class TracingHealthIndicator implements HealthIndicator {
+class TracingHealthIndicator implements HealthIndicator {
 
-    private final Tracer tracer;
+    private val tracer: Tracer
 
-    public TracingHealthIndicator(Tracer tracer) {
+    public TracingHealthIndicator (Tracer tracer) {
         this.tracer = tracer;
     }
 
     @Override
-    public Health health() {
+    fun health(): Health {
         try {
-            Span span = tracer.nextSpan().name("health.check.tracing").start();
+            Span span = tracer . nextSpan ().name("health.check.tracing").start();
             span.end();
             return Health.up()
                 .withDetail("tracer", tracer.getClass().getSimpleName())

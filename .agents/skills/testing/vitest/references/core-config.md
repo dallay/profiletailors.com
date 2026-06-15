@@ -12,7 +12,7 @@ format as Vite.
 
 ```ts
 // vitest.config.ts
-import { defineConfig } from 'vitest/config'
+import {defineConfig} from 'vitest/config'
 
 export default defineConfig({
   test: {
@@ -28,7 +28,7 @@ Add Vitest types reference and use the `test` property:
 ```ts
 // vite.config.ts
 /// <reference types="vitest/config" />
-import { defineConfig } from 'vite'
+import {defineConfig} from 'vite'
 
 export default defineConfig({
   test: {
@@ -44,7 +44,7 @@ If you have separate config files, use `mergeConfig`:
 
 ```ts
 // vitest.config.ts
-import { defineConfig, mergeConfig } from 'vitest/config'
+import {defineConfig, mergeConfig} from 'vitest/config'
 import viteConfig from './vite.config'
 
 export default mergeConfig(viteConfig, defineConfig({
@@ -61,41 +61,41 @@ defineConfig({
   test: {
     // Enable global APIs (describe, it, expect) without imports
     globals: true,
-    
+
     // Test environment: 'node', 'jsdom', 'happy-dom'
     environment: 'node',
-    
+
     // Setup files to run before each test file
     setupFiles: ['./tests/setup.ts'],
-    
+
     // Include patterns for test files
     include: ['**/*.{test,spec}.{js,ts,jsx,tsx}'],
-    
+
     // Exclude patterns
     exclude: ['**/node_modules/**', '**/dist/**'],
-    
+
     // Test timeout in ms
     testTimeout: 5000,
-    
+
     // Hook timeout in ms
     hookTimeout: 10000,
-    
+
     // Enable watch mode by default
     watch: true,
-    
+
     // Coverage configuration
     coverage: {
       provider: 'v8', // or 'istanbul'
       reporter: ['text', 'html'],
       include: ['src/**/*.ts'],
     },
-    
+
     // Run tests in isolation (each file in separate process)
     isolate: true,
-    
+
     // Pool for running tests: 'threads', 'forks', 'vmThreads'
     pool: 'threads',
-    
+
     // Number of threads/processes
     poolOptions: {
       threads: {
@@ -103,16 +103,16 @@ defineConfig({
         minThreads: 1,
       },
     },
-    
+
     // Automatically clear mocks between tests
     clearMocks: true,
-    
+
     // Restore mocks between tests
     restoreMocks: true,
-    
+
     // Retry failed tests
     retry: 0,
-    
+
     // Stop after first failure
     bail: 0,
   },
@@ -124,7 +124,7 @@ defineConfig({
 Use `mode` or `process.env.VITEST` for test-specific config:
 
 ```ts
-export default defineConfig(({ mode }) => ({
+export default defineConfig(({mode}) => ({
   plugins: mode === 'test' ? [] : [myPlugin()],
   test: {
     // test options

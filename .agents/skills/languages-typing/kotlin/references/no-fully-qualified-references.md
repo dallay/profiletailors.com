@@ -33,7 +33,9 @@ Bad examples
 
 ```kotlin
 // Fully-qualified annotation inline
-fun update(@io.swagger.v3.oas.annotations.parameters.RequestBody request: UpdateRequest) { ... }
+fun update(@io.swagger.v3.oas.annotations.parameters.RequestBody request: UpdateRequest) {
+    ...
+}
 
 // Fully-qualified static call
 val id = java.util.UUID.randomUUID()
@@ -49,7 +51,9 @@ import io.swagger.v3.oas.annotations.parameters.RequestBody
 import java.util.UUID
 import com.some.lib.Outer.Inner
 
-fun update(@RequestBody request: UpdateRequest) { ... }
+fun update(@RequestBody request: UpdateRequest) {
+    ...
+}
 
 val id = UUID.randomUUID()
 

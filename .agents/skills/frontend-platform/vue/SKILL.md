@@ -1,8 +1,6 @@
 ---
 name: vue
-description: >
-  Vue 3 Composition API patterns with TypeScript, Pinia, and Vee-Validate.
-  Trigger: When working with .vue files, composables, Pinia stores, or form validation.
+description: Use when working with .vue files, composables, Pinia stores, or form validation.
 allowed-tools: Read, Edit, Write, Glob, Grep, Bash
 metadata:
   author: profiletailors
@@ -29,44 +27,45 @@ ecosystem.
 **ALWAYS use `<script setup lang="ts">`**:
 
 ```vue
+
 <script setup lang="ts">
-// 1. Imports
-import { computed, ref } from 'vue';
-import { useUserStore } from '@/stores/user';
+  // 1. Imports
+  import {computed, ref} from 'vue';
+  import {useUserStore} from '@/stores/user';
 
-// 2. Type definitions
-type Props = {
-  title: string;
-  count?: number;
-  isActive?: boolean;
-};
+  // 2. Type definitions
+  type Props = {
+    title: string;
+    count?: number;
+    isActive?: boolean;
+  };
 
-// 3. Props with defaults
-const props = withDefaults(defineProps<Props>(), {
-  count: 0,
-  isActive: false,
-});
+  // 3. Props with defaults
+  const props = withDefaults(defineProps<Props>(), {
+    count: 0,
+    isActive: false,
+  });
 
-// 4. Emits with types
-const emit = defineEmits<{
-  (e: 'update', value: number): void;
-  (e: 'close'): void;
-}>();
+  // 4. Emits with types
+  const emit = defineEmits<{
+    (e: 'update', value: number): void;
+    (e: 'close'): void;
+  }>();
 
-// 5. Composables and stores
-const userStore = useUserStore();
+  // 5. Composables and stores
+  const userStore = useUserStore();
 
-// 6. Reactive state
-const localCount = ref(props.count);
+  // 6. Reactive state
+  const localCount = ref(props.count);
 
-// 7. Computed properties
-const doubled = computed(() => localCount.value * 2);
+  // 7. Computed properties
+  const doubled = computed(() => localCount.value * 2);
 
-// 8. Methods
-const increment = () => {
-  localCount.value++;
-  emit('update', localCount.value);
-};
+  // 8. Methods
+  const increment = () => {
+    localCount.value++;
+    emit('update', localCount.value);
+  };
 </script>
 
 <template>
@@ -78,9 +77,9 @@ const increment = () => {
 </template>
 
 <style scoped>
-.card {
-  padding: var(--space-4);
-}
+  .card {
+    padding: var(--space-4);
+  }
 </style>
 ```
 
@@ -90,9 +89,9 @@ const increment = () => {
 
 ```typescript
 // stores/user.ts
-import { defineStore } from 'pinia';
-import { api, isAxiosError } from '@/api';
-import { toast } from 'vue-sonner';
+import {defineStore} from 'pinia';
+import {api, isAxiosError} from '@/api';
+import {toast} from 'vue-sonner';
 
 type User = {
   id: string;
@@ -118,9 +117,9 @@ export const useUserStore = defineStore('user', {
     userInitials: (state): string => {
       if (!state.currentUser) return '';
       return state.currentUser.name
-        .split(' ')
-        .map(n => n[0])
-        .join('');
+          .split(' ')
+          .map(n => n[0])
+          .join('');
     },
   },
 
@@ -135,11 +134,11 @@ export const useUserStore = defineStore('user', {
         // Type-safe error handling
         const error = e instanceof Error ? e : new Error('Unknown error');
         const message = isAxiosError(e) && e.response?.data?.message
-          ? e.response.data.message
-          : error.message || 'Failed to fetch user';
+            ? e.response.data.message
+            : error.message || 'Failed to fetch user';
 
         this.error = message;
-        toast.error('Error', { description: message });
+        toast.error('Error', {description: message});
       } finally {
         this.isLoading = false;
       }
@@ -158,7 +157,7 @@ export const useUserStore = defineStore('user', {
 
 ```typescript
 // composables/useCounter.ts
-import { ref, computed, type Ref, type ComputedRef } from 'vue';
+import {ref, computed, type Ref, type ComputedRef} from 'vue';
 
 type UseCounterReturn = {
   count: Ref<number>;
@@ -176,7 +175,7 @@ export const useCounter = (initial = 0): UseCounterReturn => {
   const decrement = () => count.value--;
   const reset = () => count.value = initial;
 
-  return { count, doubled, increment, decrement, reset };
+  return {count, doubled, increment, decrement, reset};
 };
 ```
 
@@ -185,35 +184,36 @@ export const useCounter = (initial = 0): UseCounterReturn => {
 **CRITICAL: Manual validation on blur, NOT automatic**:
 
 ```vue
+
 <script setup lang="ts">
-import { useForm } from 'vee-validate';
-import { toTypedSchema } from '@vee-validate/zod';
-import { z } from 'zod';
-import {
-  FormField,
-  FormItem,
-  FormLabel,
-  FormControl,
-  FormMessage,
-  Input,
-  Button,
-} from '@profiletailors/ui';
+  import {useForm} from 'vee-validate';
+  import {toTypedSchema} from '@vee-validate/zod';
+  import {z} from 'zod';
+  import {
+    FormField,
+    FormItem,
+    FormLabel,
+    FormControl,
+    FormMessage,
+    Input,
+    Button,
+  } from '@profiletailors/ui';
 
-const schema = z.object({
-  email: z.string().email('Invalid email format'),
-  password: z.string().min(8, 'Must be at least 8 characters'),
-});
+  const schema = z.object({
+    email: z.string().email('Invalid email format'),
+    password: z.string().min(8, 'Must be at least 8 characters'),
+  });
 
-type FormData = z.infer<typeof schema>;
+  type FormData = z.infer<typeof schema>;
 
-const { handleSubmit, validateField, resetForm } = useForm<FormData>({
-  validationSchema: toTypedSchema(schema),
-  validateOnMount: false, // ✅ CRITICAL: Don't validate on mount
-});
+  const {handleSubmit, validateField, resetForm} = useForm<FormData>({
+    validationSchema: toTypedSchema(schema),
+    validateOnMount: false, // ✅ CRITICAL: Don't validate on mount
+  });
 
-const onSubmit = handleSubmit((values) => {
-  console.log('Form submitted:', values);
-});
+  const onSubmit = handleSubmit((values) => {
+    console.log('Form submitted:', values);
+  });
 </script>
 
 <template>
@@ -224,12 +224,12 @@ const onSubmit = handleSubmit((values) => {
         <FormControl>
           <!-- ✅ Manual validation on blur -->
           <Input
-            type="email"
-            v-bind="componentField"
-            @blur="validateField('email')"
+              type="email"
+              v-bind="componentField"
+              @blur="validateField('email')"
           />
         </FormControl>
-        <FormMessage />
+        <FormMessage/>
       </FormItem>
     </FormField>
 
@@ -254,8 +254,9 @@ const onSubmit = handleSubmit((values) => {
 Use Shadcn-Vue components from `@profiletailors/ui`:
 
 ```vue
+
 <script setup lang="ts">
-import { Button, Card, CardHeader, CardTitle, CardContent } from '@profiletailors/ui';
+  import {Button, Card, CardHeader, CardTitle, CardContent} from '@profiletailors/ui';
 </script>
 
 <template>
@@ -275,20 +276,21 @@ import { Button, Card, CardHeader, CardTitle, CardContent } from '@profiletailor
 ## Performance Patterns
 
 ```vue
+
 <script setup lang="ts">
-import { onUnmounted, shallowRef } from 'vue';
+  import {onUnmounted, shallowRef} from 'vue';
 
-// ✅ Use shallowRef for large objects that don't need deep reactivity
-const largeData = shallowRef<LargeObject | null>(null);
+  // ✅ Use shallowRef for large objects that don't need deep reactivity
+  const largeData = shallowRef<LargeObject | null>(null);
 
-// ✅ Clean up side effects
-const intervalId = setInterval(() => {
-  // polling logic
-}, 5000);
+  // ✅ Clean up side effects
+  const intervalId = setInterval(() => {
+    // polling logic
+  }, 5000);
 
-onUnmounted(() => {
-  clearInterval(intervalId);
-});
+  onUnmounted(() => {
+    clearInterval(intervalId);
+  });
 </script>
 
 <template>
@@ -316,10 +318,11 @@ onUnmounted(() => {
 ## i18n Pattern
 
 ```vue
-<script setup lang="ts">
-import { useI18n } from 'vue-i18n';
 
-const { t } = useI18n();
+<script setup lang="ts">
+  import {useI18n} from 'vue-i18n';
+
+  const {t} = useI18n();
 </script>
 
 <template>

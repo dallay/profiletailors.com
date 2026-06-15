@@ -21,7 +21,7 @@ jobs:
       security-events: write
     steps:
       - name: Checkout code with full history
-        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4.3.1
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
         with:
           fetch-depth: 0
       - name: Install Gitleaks CLI
@@ -47,7 +47,7 @@ jobs:
           category: gitleaks-history
       - name: Upload Gitleaks artifact
         if: ${{ always() }}
-        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
           name: security-deep-gitleaks-history
           path: reports/gitleaks/
@@ -71,7 +71,7 @@ jobs:
       security-events: write
     steps:
       - name: Checkout code
-        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4.3.1
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
       - name: Install Semgrep CLI
         run: python3 -m pip install --disable-pip-version-check semgrep==1.126.0
       - name: Run full Semgrep scan
@@ -79,6 +79,13 @@ jobs:
           mkdir -p reports/semgrep
           semgrep scan \
             --config .semgrep/config.yml \
+            --config p/java \
+            --config p/kotlin \
+            --config p/javascript \
+            --config p/typescript \
+            --config p/dockerfile \
+            --config p/github-actions \
+            --config p/secrets \
             --sarif \
             --output reports/semgrep/semgrep-full.sarif
       - name: Upload Semgrep SARIF
@@ -89,7 +96,7 @@ jobs:
           category: semgrep-full
       - name: Upload Semgrep artifact
         if: ${{ always() }}
-        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
           name: security-deep-semgrep-full
           path: reports/semgrep/
@@ -113,7 +120,7 @@ jobs:
       security-events: write
     steps:
       - name: Checkout code
-        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4.3.1
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
       - name: Set up JDK
         uses: actions/setup-java@c1e323688fd81a25caa38c78aa6df2d33d3e20d9 # v4.7.1
         with:
@@ -152,7 +159,9 @@ jobs:
       security-events: write
     steps:
       - name: Checkout code
-        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4.3.1
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+      - name: Create reports directory
+        run: mkdir -p reports/trivy
       - name: Run full Trivy filesystem, dependency, and IaC scan
         uses: aquasecurity/trivy-action@b6643a29fecd7f34b3597bc6acb0a98b03d33ff8 # v0.33.1
         with:
@@ -162,20 +171,32 @@ jobs:
           severity: UNKNOWN,LOW,MEDIUM,HIGH,CRITICAL
           ignore-unfixed: false
           format: sarif
-          output: trivy-full.sarif
+          output: reports/trivy/trivy-full.sarif
           exit-code: '0'
+        env:
+          TRIVY_LOG_LEVEL: DEBUG
+      - name: Verify SARIF file exists
+        if: ${{ always() }}
+        run: |
+          if [ -f reports/trivy/trivy-full.sarif ]; then
+            echo "✓ SARIF file created successfully"
+            ls -lh reports/trivy/trivy-full.sarif
+          else
+            echo "✗ SARIF file not found"
+            exit 1
+          fi
       - name: Upload Trivy SARIF
         if: ${{ always() }}
         uses: github/codeql-action/upload-sarif@v4
         with:
-          sarif_file: trivy-full.sarif
+          sarif_file: reports/trivy/trivy-full.sarif
           category: trivy-full
       - name: Upload Trivy artifact
         if: ${{ always() }}
-        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
           name: security-deep-trivy-full
-          path: trivy-full.sarif
+          path: reports/trivy/
           retention-days: 21
       - name: Summarize Trivy reporting channel
         if: ${{ always() }}
@@ -201,7 +222,7 @@ jobs:
       contents: read
     steps:
       - name: Checkout code
-        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4.3.1
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
         with:
           fetch-depth: 0
       - name: Determine whether Sonar is enabled

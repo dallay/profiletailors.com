@@ -1,8 +1,8 @@
 ---
 name: astro
-description: Skill for building with the Astro web framework. Helps create Astro components and pages, configure SSR adapters, set up content collections, deploy static sites, and manage project structure and CLI commands. Use when the user needs to work with Astro, mentions .astro files, asks about static site generation (SSG), islands architecture, content collections, or deploying an Astro project.
+description: Use when working with Astro, .astro files, static site generation (SSG), islands architecture, content collections, or deploying Astro projects.
 license: MIT
-metadata: 
+metadata:
   authors: "Astro Team"
   version: "0.0.1"
 ---
@@ -57,7 +57,7 @@ Reference [project structure docs](https://docs.astro.build/en/basics/project-st
 ### Example `astro.config.ts`
 
 ```ts
-import { defineConfig } from 'astro/config';
+import {defineConfig} from 'astro/config';
 
 export default defineConfig({
   site: 'https://example.com',

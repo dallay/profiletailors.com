@@ -1,8 +1,6 @@
 ---
 name: hexagonal-architecture
-description: >
-  Hexagonal Architecture (Ports and Adapters) with CQRS for clean, testable code.
-  Trigger: When creating features, domain models, use cases, or organizing backend code.
+description: Use when creating features, domain models, use cases, or organizing backend code with Hexagonal Architecture (Ports and Adapters) and CQRS.
 allowed-tools: Read, Edit, Write, Glob, Grep, Bash
 metadata:
   author: profiletailors
@@ -522,11 +520,11 @@ Is it business logic with NO framework dependencies?
 
 Error propagation follows the hexagonal boundaries:
 
-| Layer              | Error Type               | Responsibility                                            |
-|--------------------|--------------------------|-----------------------------------------------------------|
-| **Domain**         | Domain exceptions        | Pure business errors (e.g., `InsufficientFundsException`) |
+| Layer              | Error Type                | Responsibility                                               |
+|--------------------|---------------------------|--------------------------------------------------------------|
+| **Domain**         | Domain exceptions         | Pure business errors (e.g., `InsufficientFundsException`)    |
 | **Application**    | Domain/application errors | Orchestrate use cases without introducing transport concerns |
-| **Infrastructure** | HTTP-friendly responses  | Map exceptions to status codes and `ProblemDetail`        |
+| **Infrastructure** | HTTP-friendly responses   | Map exceptions to status codes and `ProblemDetail`           |
 
 **Rules:**
 
@@ -572,11 +570,11 @@ Each layer has specific testing requirements (see
 also: [Decision Tree](#decision-tree-where-does-this-code-belong)
 and [Architecture Tests](#architecture-tests-archunit)):
 
-| Layer              | Test Type                           | Strategy                                                                                  |
-|--------------------|-------------------------------------|-------------------------------------------------------------------------------------------|
-| **Domain**         | Pure unit tests                     | Pure logic, no Spring, no mocks needed for value objects/entities                         |
-| **Application**    | Plain unit / component-style tests  | Mock or fake ports, verify orchestration without starting Spring                          |
-| **Infrastructure** | Focused integration tests           | Real DB, HTTP, broker, or container only where adapter realism matters                    |
+| Layer              | Test Type                          | Strategy                                                               |
+|--------------------|------------------------------------|------------------------------------------------------------------------|
+| **Domain**         | Pure unit tests                    | Pure logic, no Spring, no mocks needed for value objects/entities      |
+| **Application**    | Plain unit / component-style tests | Mock or fake ports, verify orchestration without starting Spring       |
+| **Infrastructure** | Focused integration tests          | Real DB, HTTP, broker, or container only where adapter realism matters |
 
 ```kotlin
 // Domain - pure unit test (no mocking)
@@ -625,41 +623,43 @@ class UserControllerIntegrationTest {
 
 ```bash
 # Create new feature structure
-mkdir -p server/engine/src/main/kotlin/com/profiletailors/{feature}/{domain,application,infrastructure}
+FEATURE="new-feature"; mkdir -p "server/smp/src/main/kotlin/com/profiletailors/smp/${FEATURE}/{domain,application,infrastructure}"
 
 # Verify architecture (check imports)
-rg "import org.springframework" server/engine/src/main/kotlin/com/profiletailors/*/domain/
+rg "import org.springframework" server/smp/src/main/kotlin/com/profiletailors/smp/*/domain/
 
 # Should return NOTHING - domain must be pure
 ```
 
 ## Architecture Tests (ArchUnit)
 
-To keep boundaries enforced automatically, every new feature/bounded context must be added to the
-ArchUnit test so rules run for it.
+Layer boundaries are enforced by ArchUnit in the smp module. Every new bounded context must be
+added to the `boundedContexts` list so rules run for it.
 
-- File: server/engine/src/test/kotlin/com/profiletailors/ArchTest.kt
-- Update the `boundedContexts` list to include the new feature folder name (matches
-  `com.profiletailors.{feature}`):
+- File: `server/smp/src/test/kotlin/com/profiletailors/smp/HexagonalArchTest.kt`
+- Component-scan rules: `server/smp/src/test/kotlin/com/profiletailors/smp/ComponentScanArchTest.kt`
+- Update the `boundedContexts` list to include the new context name (matches
+  `com.profiletailors.smp.{context}`):
 
 ```kotlin
 private val boundedContexts = listOf(
-    "users",
-    "authentication",
-    "workspace",
-    "ratelimit",
-    "resume",
-    "waitlist",
-    "subscription",
-    "contact",
-    // ➕ add your new feature here, e.g. "billing"
+    "authorization",
+    "credentials",
+    "governance",
+    "identity",
+    "platform",
+    "publishing",
+    "tenancy",
+    "audit",
+    "observability",
+    // ➕ add your new context here, e.g. "billing"
 )
 ```
 
 Run tests to verify rules apply to your feature:
 
 ```bash
-./gradlew test --tests com.profiletailors.ArchTest
+./gradlew :server:smp:test --tests com.profiletailors.smp.HexagonalArchTest
 ```
 
 ## Resources

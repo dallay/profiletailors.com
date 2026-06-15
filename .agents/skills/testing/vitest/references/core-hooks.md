@@ -8,7 +8,7 @@ description: beforeEach, afterEach, beforeAll, afterAll, and around hooks
 ## Basic Hooks
 
 ```ts
-import { afterAll, afterEach, beforeAll, beforeEach, test } from 'vitest'
+import {afterAll, afterEach, beforeAll, beforeEach, test} from 'vitest'
 
 beforeAll(async () => {
   // Runs once before all tests in file/suite
@@ -38,7 +38,7 @@ Return cleanup function from `before*` hooks:
 ```ts
 beforeAll(async () => {
   const server = await startServer()
-  
+
   // Returned function runs as afterAll
   return async () => {
     await server.close()
@@ -47,7 +47,7 @@ beforeAll(async () => {
 
 beforeEach(async () => {
   const connection = await connect()
-  
+
   // Runs as afterEach
   return () => connection.close()
 })
@@ -60,13 +60,15 @@ Hooks apply to current suite and nested suites:
 ```ts
 describe('outer', () => {
   beforeEach(() => console.log('outer before'))
-  
-  test('test 1', () => {}) // outer before → test
-  
+
+  test('test 1', () => {
+  }) // outer before → test
+
   describe('inner', () => {
     beforeEach(() => console.log('inner before'))
-    
-    test('test 2', () => {}) // outer before → inner before → test
+
+    test('test 2', () => {
+    }) // outer before → inner before → test
   })
 })
 ```
@@ -84,7 +86,7 @@ beforeAll(async () => {
 Wrap tests with setup/teardown context:
 
 ```ts
-import { aroundEach, test } from 'vitest'
+import {aroundEach, test} from 'vitest'
 
 // Wrap each test in database transaction
 aroundEach(async (runTest) => {
@@ -94,7 +96,7 @@ aroundEach(async (runTest) => {
 })
 
 test('insert user', async () => {
-  await db.insert({ name: 'Alice' })
+  await db.insert({name: 'Alice'})
   // Automatically rolled back after test
 })
 ```
@@ -104,7 +106,7 @@ test('insert user', async () => {
 Wrap entire suite:
 
 ```ts
-import { aroundAll, test } from 'vitest'
+import {aroundAll, test} from 'vitest'
 
 aroundAll(async (runSuite) => {
   console.log('before all tests')
@@ -138,19 +140,19 @@ aroundEach(async (runTest) => {
 Inside test body:
 
 ```ts
-import { onTestFailed, onTestFinished, test } from 'vitest'
+import {onTestFailed, onTestFinished, test} from 'vitest'
 
 test('with cleanup', () => {
   const db = connect()
-  
+
   // Runs after test finishes (pass or fail)
   onTestFinished(() => db.close())
-  
+
   // Only runs if test fails
-  onTestFailed(({ task }) => {
+  onTestFailed(({task}) => {
     console.log('Failed:', task.result?.errors)
   })
-  
+
   db.query('SELECT * FROM users')
 })
 ```
@@ -180,7 +182,7 @@ test('query orders', () => {
 For concurrent tests, use context's hooks:
 
 ```ts
-test.concurrent('concurrent', ({ onTestFinished }) => {
+test.concurrent('concurrent', ({onTestFinished}) => {
   const resource = allocate()
   onTestFinished(() => resource.release())
 })
@@ -200,11 +202,11 @@ const test = base.extend<{ db: Database }>({
 })
 
 // These hooks know about `db` fixture
-test.beforeEach(({ db }) => {
+test.beforeEach(({db}) => {
   db.seed()
 })
 
-test.afterEach(({ db }) => {
+test.afterEach(({db}) => {
   db.clear()
 })
 ```

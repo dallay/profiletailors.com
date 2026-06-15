@@ -6,32 +6,67 @@ import com.profiletailors.smp.credentials.application.ApiKeyCredentialNotActiveE
 import com.profiletailors.smp.credentials.application.FederatedTokenValidator
 import com.profiletailors.smp.credentials.application.ServiceAccountCredentialFailureReason
 import com.profiletailors.smp.credentials.application.ServiceAccountCredentialNotActiveException
-import com.profiletailors.smp.credentials.infrastructure.security.SpringJwtValidatedTokenMapper
 import com.profiletailors.smp.identity.infrastructure.ApiKeyAuthenticatedPrincipalMaterializer
 import com.profiletailors.smp.identity.infrastructure.JwtAuthenticatedPrincipalMaterializer
-import com.profiletailors.smp.platform.application.AuditHook
-import com.profiletailors.smp.platform.application.AuthorizationDecisionAuditFact
-import com.profiletailors.smp.platform.application.AuthorizationReasonCode
-import com.profiletailors.smp.platform.infrastructure.RequestContextStore
+import com.profiletailors.smp.audit.domain.AuditHook
+import com.profiletailors.smp.audit.domain.AuthorizationDecisionAuditFact
+import com.profiletailors.smp.authorization.domain.AuthorizationReasonCode
+import com.profiletailors.smp.platform.domain.RequestContextStore
 import kotlinx.coroutines.reactor.mono
+import org.springframework.boot.context.properties.ConfigurationProperties
+import org.springframework.boot.context.properties.EnableConfigurationProperties
 import org.springframework.context.annotation.Bean
 import org.springframework.context.annotation.Configuration
 import org.springframework.http.HttpMethod
 import org.springframework.http.HttpStatus
 import org.springframework.security.config.annotation.web.reactive.EnableWebFluxSecurity
+import org.springframework.security.config.web.server.SecurityWebFiltersOrder
 import org.springframework.security.config.web.server.ServerHttpSecurity
 import org.springframework.security.oauth2.jwt.Jwt
-import org.springframework.security.config.web.server.SecurityWebFiltersOrder
 import org.springframework.security.web.server.SecurityWebFilterChain
 import org.springframework.security.web.server.ServerAuthenticationEntryPoint
+import org.springframework.web.cors.CorsConfiguration
+import org.springframework.web.cors.reactive.CorsConfigurationSource
+import org.springframework.web.cors.reactive.UrlBasedCorsConfigurationSource
 import org.springframework.web.server.ServerWebExchange
 import org.springframework.web.server.WebFilter
 import org.springframework.web.server.WebFilterChain
 import reactor.core.publisher.Mono
 
+@ConfigurationProperties(prefix = "app.security.cors")
+data class CorsConfigurationProperties(
+    val allowedOrigins: List<String> = emptyList(),
+    val allowedMethods: List<String> = listOf("GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"),
+    val allowedHeaders: List<String> = listOf("*"),
+    val exposedHeaders: List<String> = emptyList(),
+    val allowCredentials: Boolean = true,
+    val maxAge: Long = 1800,
+) {
+    companion object {
+        val REQUIRED_CORS_HEADERS: List<String> = listOf("Content-Type", "Authorization", "X-Requested-With")
+    }
+}
+
 @Configuration
 @EnableWebFluxSecurity
+@EnableConfigurationProperties(CorsConfigurationProperties::class)
 class IdentitySecurityConfiguration {
+
+    @Bean
+    fun corsConfigurationSource(corsProperties: CorsConfigurationProperties): CorsConfigurationSource {
+        val configuration = CorsConfiguration()
+        configuration.allowedOrigins = corsProperties.allowedOrigins
+        configuration.allowedMethods = corsProperties.allowedMethods
+        val allowedHeaders = corsProperties.allowedHeaders.toMutableList()
+        allowedHeaders.addAll(CorsConfigurationProperties.REQUIRED_CORS_HEADERS)
+        configuration.allowedHeaders = allowedHeaders.distinct()
+        configuration.exposedHeaders = corsProperties.exposedHeaders
+        configuration.allowCredentials = corsProperties.allowCredentials
+        configuration.maxAge = corsProperties.maxAge
+        val source = UrlBasedCorsConfigurationSource()
+        source.registerCorsConfiguration("/**", configuration)
+        return source
+    }
 
     @Bean
     fun jwtValidatedTokenMapper(): FederatedTokenValidator<Jwt> = SpringJwtValidatedTokenMapper()
@@ -66,14 +101,33 @@ class IdentitySecurityConfiguration {
         jwtPrincipalAuthenticationConverter: JwtPrincipalAuthenticationConverter,
         apiKeyAuthenticationWebFilter: WebFilter,
         authenticatedPrincipalContextWebFilter: WebFilter,
+        requestPathWebFilter: WebFilter,
         workspaceContextWebFilter: WebFilter,
         revokedCredentialAuditWebFilter: WebFilter,
         authenticationEntryPoint: ServerAuthenticationEntryPoint,
     ): SecurityWebFilterChain =
         http
             .csrf { it.disable() }
+            .cors { }
             .authorizeExchange {
-                it.pathMatchers(HttpMethod.GET, "/actuator/health").permitAll()
+                it.pathMatchers(
+                        HttpMethod.GET,
+                        "/actuator/health",
+                        "/actuator/health/**",
+                        "/actuator/prometheus",
+                    ).permitAll()
+                    .pathMatchers(
+                        HttpMethod.POST,
+                        "/api/auth/verify-email",
+                    ).permitAll()
+                    .pathMatchers(
+                        HttpMethod.POST,
+                        "/api/auth/login",
+                        "/api/auth/register",
+                        "/api/auth/refresh",
+                        "/api/auth/logout",
+                        "/api/auth/resend-verification",
+                    ).permitAll()
                     .anyExchange().authenticated()
             }
             .exceptionHandling { exceptions ->
@@ -88,6 +142,7 @@ class IdentitySecurityConfiguration {
             .addFilterAt(apiKeyAuthenticationWebFilter, SecurityWebFiltersOrder.AUTHENTICATION)
             .addFilterBefore(revokedCredentialAuditWebFilter, SecurityWebFiltersOrder.AUTHENTICATION)
             .addFilterAfter(authenticatedPrincipalContextWebFilter, SecurityWebFiltersOrder.AUTHENTICATION)
+            .addFilterAfter(requestPathWebFilter, SecurityWebFiltersOrder.AUTHENTICATION)
             .addFilterAfter(workspaceContextWebFilter, SecurityWebFiltersOrder.AUTHENTICATION)
             .build()
 
@@ -112,8 +167,8 @@ class IdentitySecurityConfiguration {
                                 principalId = serviceAccountCredentialException.principalId
                                     ?: serviceAccountCredentialException.subject,
                                 workspaceId = exchange.request.headers.getFirst(WORKSPACE_HEADER_NAME),
-                                decision = AuthorizationDecision.DENY,
-                                reasonCode = AuthorizationReasonCode.REVOKED_CREDENTIAL,
+                                decision = AuthorizationDecision.DENY.name,
+                                reasonCode = AuthorizationReasonCode.REVOKED_CREDENTIAL.name,
                             ),
                         )
                     }
@@ -133,8 +188,8 @@ class IdentitySecurityConfiguration {
                                 permission = WORKSPACE_ACCESS_PERMISSION,
                                 principalId = apiKeyCredentialException.principalId ?: "API_KEY",
                                 workspaceId = exchange.request.headers.getFirst(WORKSPACE_HEADER_NAME),
-                                decision = AuthorizationDecision.DENY,
-                                reasonCode = AuthorizationReasonCode.REVOKED_CREDENTIAL,
+                                decision = AuthorizationDecision.DENY.name,
+                                reasonCode = AuthorizationReasonCode.REVOKED_CREDENTIAL.name,
                             ),
                         )
                     }
@@ -164,8 +219,8 @@ private class RevokedCredentialAuditWebFilter(
                                 permission = WORKSPACE_ACCESS_PERMISSION,
                                 principalId = exception.principalId ?: exception.subject,
                                 workspaceId = exchange.request.headers.getFirst(WORKSPACE_HEADER_NAME),
-                                decision = AuthorizationDecision.DENY,
-                                reasonCode = AuthorizationReasonCode.REVOKED_CREDENTIAL,
+                                decision = AuthorizationDecision.DENY.name,
+                                reasonCode = AuthorizationReasonCode.REVOKED_CREDENTIAL.name,
                             ),
                         )
                     }.then(Mono.error(exception))
@@ -189,8 +244,8 @@ private class RevokedCredentialAuditWebFilter(
                                 permission = WORKSPACE_ACCESS_PERMISSION,
                                 principalId = exception.principalId ?: "API_KEY",
                                 workspaceId = exchange.request.headers.getFirst(WORKSPACE_HEADER_NAME),
-                                decision = AuthorizationDecision.DENY,
-                                reasonCode = AuthorizationReasonCode.REVOKED_CREDENTIAL,
+                                decision = AuthorizationDecision.DENY.name,
+                                reasonCode = AuthorizationReasonCode.REVOKED_CREDENTIAL.name,
                             ),
                         )
                     }.then(Mono.error(exception))
@@ -225,7 +280,7 @@ private class RevokedCredentialAuditWebFilter(
 
         internal const val WORKSPACE_ACCESS_PATH = "/api/authorization/workspace-access/current"
         internal const val WORKSPACE_ACCESS_REQUEST_NAME =
-            "com.profiletailors.smp.authorization.application.GetCurrentWorkspaceAccessSummaryQuery"
+            "com.profiletailors.smp.authorization.application.current.workspace.GetCurrentWorkspaceAccessSummaryQuery"
         internal const val WORKSPACE_ACCESS_PERMISSION = "workspace:access:read"
         internal const val WORKSPACE_HEADER_NAME = "X-Workspace-Id"
     }

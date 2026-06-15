@@ -8,7 +8,7 @@ description: Mock functions, modules, timers, and dates with vi utilities
 ## Mock Functions
 
 ```ts
-import { expect, vi } from 'vitest'
+import {expect, vi} from 'vitest'
 
 // Create mock function
 const fn = vi.fn()
@@ -24,7 +24,7 @@ expect(add(1, 2)).toBe(3)
 // Mock return values
 fn.mockReturnValue(42)
 fn.mockReturnValueOnce(1).mockReturnValueOnce(2)
-fn.mockResolvedValue({ data: true })
+fn.mockResolvedValue({data: true})
 fn.mockRejectedValue(new Error('fail'))
 
 // Mock implementation
@@ -57,13 +57,13 @@ spy.mockRestore()
 ```ts
 // vi.mock is hoisted to top of file
 vi.mock('./api', () => ({
-  fetchUser: vi.fn(() => ({ id: 1, name: 'Mock' })),
+  fetchUser: vi.fn(() => ({id: 1, name: 'Mock'})),
 }))
 
-import { fetchUser } from './api'
+import {fetchUser} from './api'
 
 test('mocked module', () => {
-  expect(fetchUser()).toEqual({ id: 1, name: 'Mock' })
+  expect(fetchUser()).toEqual({id: 1, name: 'Mock'})
 })
 ```
 
@@ -83,9 +83,9 @@ vi.mock('./utils', async (importOriginal) => {
 
 ```ts
 // Keep implementation but spy on calls
-vi.mock('./calculator', { spy: true })
+vi.mock('./calculator', {spy: true})
 
-import { add } from './calculator'
+import {add} from './calculator'
 
 test('spy on module', () => {
   const result = add(1, 2) // Real implementation
@@ -98,12 +98,12 @@ test('spy on module', () => {
 
 ```markdown
 src/
-  __mocks__/
-    axios.ts      # Mocks 'axios'
-  api/
-    __mocks__/
-      client.ts   # Mocks './client'
-    client.ts
+__mocks__/
+axios.ts # Mocks 'axios'
+api/
+__mocks__/
+client.ts # Mocks './client'
+client.ts
 ```
 
 ```ts
@@ -122,7 +122,7 @@ test('dynamic mock', async () => {
     apiUrl: 'http://test.local',
   }))
 
-  const { apiUrl } = await import('./config')
+  const {apiUrl} = await import('./config')
   expect(apiUrl).toBe('http://test.local')
 
   vi.doUnmock('./config')
@@ -132,7 +132,7 @@ test('dynamic mock', async () => {
 ## Mock Timers
 
 ```ts
-import { afterEach, beforeEach, vi } from 'vitest'
+import {afterEach, beforeEach, vi} from 'vitest'
 
 beforeEach(() => {
   vi.useFakeTimers()
@@ -165,7 +165,9 @@ test('async timers', async () => {
   vi.useFakeTimers()
 
   let resolved = false
-  setTimeout(() => Promise.resolve().then(() => { resolved = true }), 100)
+  setTimeout(() => Promise.resolve().then(() => {
+    resolved = true
+  }), 100)
 
   await vi.advanceTimersByTimeAsync(100)
   expect(resolved).toBe(true)
@@ -185,7 +187,7 @@ vi.useRealTimers() // Restore
 
 ```ts
 vi.stubGlobal('fetch', vi.fn(() =>
-  Promise.resolve({ json: () => ({ data: 'mock' }) })
+    Promise.resolve({json: () => ({data: 'mock'})})
 ))
 
 // Restore
@@ -242,7 +244,7 @@ vi.mock('./module', () => ({
   getData: mockFn,
 }))
 
-import { getData } from './module'
+import {getData} from './module'
 
 test('hoisted mock', () => {
   mockFn.mockReturnValue('test')

@@ -27,7 +27,7 @@ function commitAndCancel(anim: Animation, el: HTMLElement): void {
 
 // Split text into per-character spans, turning \n into <br> elements.
 // Returns only the animatable spans (not <br> nodes).
-function splitToChars(el: HTMLElement): HTMLSpanElement[] {
+export function splitToChars(el: HTMLElement): HTMLSpanElement[] {
   const text = el.textContent ?? ''
   el.textContent = ''
   const spans: HTMLSpanElement[] = []
@@ -155,7 +155,7 @@ function animateFade(el: HTMLElement, delayMs: number): Promise<void> {
 }
 
 export async function initHeroAnimations(): Promise<void> {
-  const prefersReduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches
+  const prefersReduced = globalThis.matchMedia('(prefers-reduced-motion: reduce)').matches
 
   const label = document.querySelector<HTMLElement>('[data-hero-label]')
   const headline = document.querySelector<HTMLElement>('[data-hero-headline]')

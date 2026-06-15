@@ -6,7 +6,7 @@
 
 Represent business facts that happened within a service:
 
-```java
+```kotlin
 public record OrderCreatedEvent(
     String orderId,
     Instant createdAt,
@@ -18,7 +18,7 @@ public record OrderCreatedEvent(
 
 Communication between bounded contexts (microservices):
 
-```java
+```kotlin
 public record PaymentRequestedEvent(
     String orderId,
     String paymentId,
@@ -30,7 +30,7 @@ public record PaymentRequestedEvent(
 
 Request for action by another service:
 
-```java
+```kotlin
 public record ProcessPaymentCommand(
     String paymentId,
     String orderId,
@@ -42,7 +42,7 @@ public record ProcessPaymentCommand(
 
 Handle event schema evolution using versioning:
 
-```java
+```kotlin
 public record OrderCreatedEventV1(
     String orderId,
     BigDecimal amount
@@ -56,17 +56,17 @@ public record OrderCreatedEventV2(
 ) {}
 
 // Event Upcaster
-public class OrderEventUpcaster implements EventUpcaster {
+class OrderEventUpcaster implements EventUpcaster {
     @Override
-    public Stream<IntermediateEventRepresentation> upcast(
-        Stream<IntermediateEventRepresentation> eventStream) {
+    public Stream < IntermediateEventRepresentation > upcast (
+            Stream<IntermediateEventRepresentation> eventStream) {
 
         return eventStream.map(event -> {
-            if (event.getType().getName().equals("OrderCreatedEventV1")) {
-                return upcastV1ToV2(event);
-            }
-            return event;
-        });
+        if (event.getType().getName().equals("OrderCreatedEventV1")) {
+            return upcastV1ToV2(event);
+        }
+        return event;
+    });
     }
 }
 ```
@@ -75,29 +75,29 @@ public class OrderEventUpcaster implements EventUpcaster {
 
 Store all events for audit trail and recovery:
 
-```java
+```kotlin
 @Entity
 @Table(name = "saga_events")
-public class SagaEvent {
+class SagaEvent {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Long id;
+    private var id: Long
 
     @Column(nullable = false)
-    private String sagaId;
+    private var sagaId: String
 
     @Column(nullable = false)
-    private String eventType;
+    private var eventType: String
 
     @Column(columnDefinition = "TEXT")
-    private String payload;
+    private var payload: String
 
     @Column(nullable = false)
-    private Instant timestamp;
+    private var timestamp: Instant
 
     @Column(nullable = false)
-    private Integer version;
+    private var version: Integer
 }
 ```
 
@@ -107,35 +107,36 @@ public class SagaEvent {
 
 Ensure atomic update of database and event publishing:
 
-```java
+```kotlin
 @Service
-public class OrderService {
+class OrderService {
 
-    private final OrderRepository orderRepository;
-    private final OutboxRepository outboxRepository;
+    private val orderRepository: OrderRepository
+    private val outboxRepository: OutboxRepository
 
     @Transactional
-    public void createOrder(CreateOrderRequest request) {
+    fun createOrder(CreateOrderRequest request): void {
         // 1. Create and save order
-        Order order = new Order(...);
+        Order order = Order (...);
         orderRepository.save(order);
 
         // 2. Create outbox entry in same transaction
         OutboxEntry entry = new OutboxEntry(
             "OrderCreated",
             order.getId(),
-            new OrderCreatedEvent(...)
+            OrderCreatedEvent(...
+        )
         );
         outboxRepository.save(entry);
     }
 }
 
 @Component
-public class OutboxPoller {
+class OutboxPoller {
 
     @Scheduled(fixedDelay = 1000)
-    public void pollAndPublish() {
-        List<OutboxEntry> unpublished = outboxRepository.findUnpublished();
+    fun pollAndPublish(): void {
+        List<OutboxEntry> unpublished = outboxRepository . findUnpublished ();
 
         unpublished.forEach(entry -> {
             eventPublisher.publish(entry.getEvent());
@@ -149,24 +150,24 @@ public class OutboxPoller {
 
 Publish events immediately after transaction:
 
-```java
+```kotlin
 @Service
-public class OrderService {
+class OrderService {
 
-    private final OrderRepository orderRepository;
-    private final EventPublisher eventPublisher;
+    private val orderRepository: OrderRepository
+    private val eventPublisher: EventPublisher
 
     @Transactional
-    public void createOrder(CreateOrderRequest request) {
-        Order order = new Order(...);
+    fun createOrder(CreateOrderRequest request): void {
+        Order order = Order (...);
         orderRepository.save(order);
 
         // Publish event after transaction commits
         TransactionSynchronizationManager.registerSynchronization(
-            new TransactionSynchronization() {
+            TransactionSynchronization() {
                 @Override
-                public void afterCommit() {
-                    eventPublisher.publish(new OrderCreatedEvent(...));
+                fun afterCommit(): void {
+                    eventPublisher.publish(OrderCreatedEvent(...));
                 }
             }
         );
@@ -187,21 +188,22 @@ Store all state changes as events instead of current state:
 
 **Implementation**:
 
-```java
+```kotlin
 @Entity
-public class Order {
+class Order {
 
     @Id
-    private String orderId;
+    private var orderId: String
 
     @OneToMany(cascade = CascadeType.ALL, orphanRemoval = true)
-    private List<DomainEvent> events = new ArrayList<>();
+    private List<DomainEvent> events = mutableListOf();
 
-    public void createOrder(...) {
-        apply(new OrderCreatedEvent(...));
+    fun createOrder(...): void {
+        apply(OrderCreatedEvent(...));
     }
 
-    protected void apply(DomainEvent event) {
+    protected void apply(DomainEvent event)
+    {
         if (event instanceof OrderCreatedEvent e) {
             this.orderId = e.orderId();
             this.status = OrderStatus.PENDING;
@@ -209,11 +211,12 @@ public class Order {
         events.add(event);
     }
 
-    public List<DomainEvent> getUncommittedEvents() {
-        return new ArrayList<>(events);
+    public List<DomainEvent> getUncommittedEvents()
+    {
+        return new ArrayList < > (events);
     }
 
-    public void clearUncommittedEvents() {
+    fun clearUncommittedEvents(): void {
         events.clear();
     }
 }
@@ -225,21 +228,22 @@ public class Order {
 
 Use partitioning to maintain order within a saga:
 
-```java
+```kotlin
 @Bean
-public ProducerFactory<String, Object> producerFactory() {
-    Map<String, Object> config = new HashMap<>();
-    config.put(ProducerConfig.KEY_SERIALIZER_CLASS_CONFIG,
+public ProducerFactory < String, Object> producerFactory() {
+    Map<String, Object> config = mutableMapOf ();
+    config.put(
+        ProducerConfig.KEY_SERIALIZER_CLASS_CONFIG,
         StringSerializer.class);
-    return new DefaultKafkaProducerFactory<>(config);
+    return new DefaultKafkaProducerFactory < > (config);
 }
 
 @Service
-public class EventPublisher {
+class EventPublisher {
 
     private final KafkaTemplate<String, Object> kafkaTemplate;
 
-    public void publish(DomainEvent event) {
+    fun publish(DomainEvent event): void {
         // Use sagaId as key to maintain order
         kafkaTemplate.send("events", event.getSagaId(), event);
     }
@@ -250,9 +254,9 @@ public class EventPublisher {
 
 Use saga state to detect and handle out-of-order events:
 
-```java
+```kotlin
 @SagaEventHandler(associationProperty = "orderId")
-public void handle(PaymentProcessedEvent event) {
+fun handle(PaymentProcessedEvent event): void {
     if (saga.getStatus() != SagaStatus.AWAITING_PAYMENT) {
         // Out of order event, ignore or queue for retry
         logger.warn("Unexpected event in state: {}", saga.getStatus());

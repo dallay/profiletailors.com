@@ -17,38 +17,43 @@ applications, including unit tests, integration tests, and security testing patt
 
 ### Testing JWT Service
 
-```java
-@ExtendWith(MockitoExtension.class)
-class JwtServiceTest {
+```kotlin
+@ExtendWith(
+    MockitoExtension.class)
+    class JwtServiceTest {
 
     @Mock
-    private SecretKeyRepository secretKeyRepository;
+    private var secretKeyRepository: SecretKeyRepository
 
     @Mock
-    private CacheManager cacheManager;
+    private var cacheManager: CacheManager
 
     @InjectMocks
-    private JwtService jwtService;
+    private var jwtService: JwtService
 
     @BeforeEach
-    void setUp() {
-        ReflectionTestUtils.setField(jwtService, "secret", "test-secret-key-that-is-at-least-256-bits-long");
+    void setUp () {
+        ReflectionTestUtils.setField(
+            jwtService,
+            "secret",
+            "test-secret-key-that-is-at-least-256-bits-long"
+        );
         ReflectionTestUtils.setField(jwtService, "accessTokenExpiration", 900000L);
         ReflectionTestUtils.setField(jwtService, "refreshTokenExpiration", 604800000L);
         ReflectionTestUtils.setField(jwtService, "issuer", "test-issuer");
     }
 
     @Test
-    void shouldGenerateValidToken() {
+    void shouldGenerateValidToken () {
         // Given
-        UserDetails userDetails = User.builder()
-                .username("test@example.com")
-                .password("password")
-                .authorities("ROLE_USER")
-                .build();
+        UserDetails userDetails = User . builder ()
+            .username("test@example.com")
+            .password("password")
+            .authorities("ROLE_USER")
+            .build();
 
         // When
-        String token = jwtService.generateToken(userDetails);
+        String token = jwtService . generateToken (userDetails);
 
         // Then
         assertThat(token).isNotNull();
@@ -57,81 +62,82 @@ class JwtServiceTest {
     }
 
     @Test
-    void shouldExtractAllClaims() {
+    void shouldExtractAllClaims () {
         // Given
-        UserDetails userDetails = User.builder()
-                .username("test@example.com")
-                .password("password")
-                .authorities("ROLE_USER", "ROLE_ADMIN")
-                .build();
+        UserDetails userDetails = User . builder ()
+            .username("test@example.com")
+            .password("password")
+            .authorities("ROLE_USER", "ROLE_ADMIN")
+            .build();
 
-        String token = jwtService.generateToken(userDetails);
+        String token = jwtService . generateToken (userDetails);
 
         // When
-        Claims claims = jwtService.extractAllClaims(token);
+        Claims claims = jwtService . extractAllClaims (token);
 
         // Then
         assertThat(claims.getSubject()).isEqualTo("test@example.com");
         assertThat(claims.getIssuer()).isEqualTo("test-issuer");
         assertThat(claims.get("authorities")).asList()
-                .containsExactly("ROLE_USER", "ROLE_ADMIN");
+            .containsExactly("ROLE_USER", "ROLE_ADMIN");
     }
 
     @Test
-    void shouldDetectExpiredToken() {
+    void shouldDetectExpiredToken () {
         // Given
-        UserDetails userDetails = User.builder()
-                .username("test@example.com")
-                .password("password")
-                .authorities("ROLE_USER")
-                .build();
+        UserDetails userDetails = User . builder ()
+            .username("test@example.com")
+            .password("password")
+            .authorities("ROLE_USER")
+            .build();
 
         // Generate token with expired time
         ReflectionTestUtils.setField(jwtService, "accessTokenExpiration", -1000L);
-        String expiredToken = jwtService.generateToken(userDetails);
+        String expiredToken = jwtService . generateToken (userDetails);
 
         // When/Then
         assertThat(jwtService.isTokenValid(expiredToken, userDetails)).isFalse();
     }
 
     @Test
-    void shouldHandleInvalidToken() {
+    void shouldHandleInvalidToken () {
         // Given
         String invalidToken = "invalid.token.here";
-        UserDetails userDetails = User.builder()
-                .username("test@example.com")
-                .password("password")
-                .build();
+        UserDetails userDetails = User . builder ()
+            .username("test@example.com")
+            .password("password")
+            .build();
 
         // When/Then
         assertThatThrownBy(() -> jwtService.extractUsername(invalidToken))
-                .isInstanceOf(JwtException.class);
+        .isInstanceOf(JwtException.class);
     }
 }
 ```
 
 ### Testing Token Blacklist
 
-```java
-@ExtendWith(MockitoExtension.class)
-class TokenBlacklistServiceTest {
+```kotlin
+@ExtendWith(
+    MockitoExtension.class)
+    class TokenBlacklistServiceTest {
 
     @Mock
-    private RedisTemplate<String, String> redisTemplate;
+    private RedisTemplate < String, String> redisTemplate;
 
     @Mock
-    private ValueOperations<String, String> valueOperations;
+    private ValueOperations < String, String> valueOperations;
 
     @InjectMocks
-    private TokenBlacklistService blacklistService;
+    private var blacklistService: TokenBlacklistService
 
     @BeforeEach
-    void setUp() {
-        when(redisTemplate.opsForValue()).thenReturn(valueOperations);
+    void setUp () {
+        when (redisTemplate.opsForValue()).thenReturn(valueOperations);
     }
 
     @Test
-    void shouldBlacklistToken() {
+    void shouldBlacklistToken () {
         // Given
         String token = "test.jwt.token";
 
@@ -140,38 +146,38 @@ class TokenBlacklistServiceTest {
 
         // Then
         verify(valueOperations).set(
-                eq("blacklist:jwt:" + DigestUtils.md5DigestAsHex(token.getBytes())),
-                eq("1"),
-                eq(900000L),
-                eq(TimeUnit.MILLISECONDS)
+            eq("blacklist:jwt:" + DigestUtils.md5DigestAsHex(token.getBytes())),
+            eq("1"),
+            eq(900000L),
+            eq(TimeUnit.MILLISECONDS)
         );
     }
 
     @Test
-    void shouldDetectBlacklistedToken() {
+    void shouldDetectBlacklistedToken () {
         // Given
         String token = "test.jwt.token";
-        String tokenId = "blacklist:jwt:" + DigestUtils.md5DigestAsHex(token.getBytes());
+        String tokenId = "blacklist:jwt:"+DigestUtils.md5DigestAsHex(token.getBytes());
 
-        when(redisTemplate.hasKey(tokenId)).thenReturn(true);
+        when (redisTemplate.hasKey(tokenId)).thenReturn(true);
 
         // When
-        boolean isBlacklisted = blacklistService.isBlacklisted(token);
+        boolean isBlacklisted = blacklistService . isBlacklisted (token);
 
         // Then
         assertThat(isBlacklisted).isTrue();
     }
 
     @Test
-    void shouldReturnFalseForNonBlacklistedToken() {
+    void shouldReturnFalseForNonBlacklistedToken () {
         // Given
         String token = "test.jwt.token";
-        String tokenId = "blacklist:jwt:" + DigestUtils.md5DigestAsHex(token.getBytes());
+        String tokenId = "blacklist:jwt:"+DigestUtils.md5DigestAsHex(token.getBytes());
 
-        when(redisTemplate.hasKey(tokenId)).thenReturn(false);
+        when (redisTemplate.hasKey(tokenId)).thenReturn(false);
 
         // When
-        boolean isBlacklisted = blacklistService.isBlacklisted(token);
+        boolean isBlacklisted = blacklistService . isBlacklisted (token);
 
         // Then
         assertThat(isBlacklisted).isFalse();
@@ -181,65 +187,66 @@ class TokenBlacklistServiceTest {
 
 ### Testing JWT Authentication Filter
 
-```java
-@ExtendWith(MockitoExtension.class)
-class JwtAuthenticationFilterTest {
+```kotlin
+@ExtendWith(
+    MockitoExtension.class)
+    class JwtAuthenticationFilterTest {
 
     @Mock
-    private JwtService jwtService;
+    private var jwtService: JwtService
 
     @Mock
-    private UserDetailsService userDetailsService;
+    private var userDetailsService: UserDetailsService
 
     @Mock
-    private TokenBlacklistService blacklistService;
+    private var blacklistService: TokenBlacklistService
 
     @Mock
-    private HttpServletRequest request;
+    private var request: HttpServletRequest
 
     @Mock
-    private HttpServletResponse response;
+    private var response: HttpServletResponse
 
     @Mock
-    private FilterChain filterChain;
+    private var filterChain: FilterChain
 
     @InjectMocks
-    private JwtAuthenticationFilter filter;
+    private var filter: JwtAuthenticationFilter
 
     @Test
-    void shouldAuthenticateWithValidToken() throws Exception {
+    void shouldAuthenticateWithValidToken () throws Exception {
         // Given
         String token = "valid.jwt.token";
         String username = "test@example.com";
-        UserDetails userDetails = User.builder()
-                .username(username)
-                .password("password")
-                .authorities("ROLE_USER")
-                .build();
+        UserDetails userDetails = User . builder ()
+            .username(username)
+            .password("password")
+            .authorities("ROLE_USER")
+            .build();
 
-        when(request.getHeader("Authorization")).thenReturn("Bearer " + token);
-        when(blacklistService.isBlacklisted(token)).thenReturn(false);
-        when(jwtService.extractUsername(token)).thenReturn(username);
-        when(userDetailsService.loadUserByUsername(username)).thenReturn(userDetails);
-        when(jwtService.isTokenValid(token, userDetails)).thenReturn(true);
+        when (request.getHeader("Authorization")).thenReturn("Bearer " + token);
+        when (blacklistService.isBlacklisted(token)).thenReturn(false);
+        when (jwtService.extractUsername(token)).thenReturn(username);
+        when (userDetailsService.loadUserByUsername(username)).thenReturn(userDetails);
+        when (jwtService.isTokenValid(token, userDetails)).thenReturn(true);
 
         // When
         filter.doFilterInternal(request, response, filterChain);
 
         // Then
         ArgumentCaptor<UsernamePasswordAuthenticationToken> authCaptor =
-                ArgumentCaptor.forClass(UsernamePasswordAuthenticationToken.class);
+        ArgumentCaptor.forClass(UsernamePasswordAuthenticationToken.class);
         verify(filterChain).doFilter(request, response);
 
-        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        Authentication authentication = SecurityContextHolder . getContext ().getAuthentication();
         assertThat(authentication).isNotNull();
         assertThat(authentication.getPrincipal()).isEqualTo(userDetails);
     }
 
     @Test
-    void shouldSkipAuthenticationWithoutBearerToken() throws Exception {
+    void shouldSkipAuthenticationWithoutBearerToken () throws Exception {
         // Given
-        when(request.getHeader("Authorization")).thenReturn(null);
+        when (request.getHeader("Authorization")).thenReturn(null);
 
         // When
         filter.doFilterInternal(request, response, filterChain);
@@ -250,12 +257,12 @@ class JwtAuthenticationFilterTest {
     }
 
     @Test
-    void shouldSkipAuthenticationWithBlacklistedToken() throws Exception {
+    void shouldSkipAuthenticationWithBlacklistedToken () throws Exception {
         // Given
         String token = "blacklisted.jwt.token";
 
-        when(request.getHeader("Authorization")).thenReturn("Bearer " + token);
-        when(blacklistService.isBlacklisted(token)).thenReturn(true);
+        when (request.getHeader("Authorization")).thenReturn("Bearer " + token);
+        when (blacklistService.isBlacklisted(token)).thenReturn(true);
 
         // When
         filter.doFilterInternal(request, response, filterChain);
@@ -271,7 +278,7 @@ class JwtAuthenticationFilterTest {
 
 ### Testing Authentication Endpoints
 
-```java
+```kotlin
 @SpringBootTest
 @AutoConfigureMockMvc
 @Testcontainers
@@ -279,89 +286,99 @@ class JwtAuthenticationFilterTest {
 class AuthenticationControllerIntegrationTest {
 
     @Autowired
-    private MockMvc mockMvc;
+    private var mockMvc: MockMvc
 
     @Autowired
-    private UserRepository userRepository;
+    private var userRepository: UserRepository
 
     @Autowired
-    private PasswordEncoder passwordEncoder;
+    private var passwordEncoder: PasswordEncoder
 
     @Container
     @ServiceConnection
     static PostgreSQLContainer<?> postgres = new PostgreSQLContainer<>("postgres:16-alpine");
 
     @BeforeEach
-    void setUp() {
-        User user = User.builder()
-                .email("test@example.com")
-                .password(passwordEncoder.encode("password123"))
-                .firstName("Test")
-                .lastName("User")
-                .role(Role.USER)
-                .enabled(true)
-                .build();
+    void setUp()
+    {
+        User user = User . builder ()
+            .email("test@example.com")
+            .password(passwordEncoder.encode("password123"))
+            .firstName("Test")
+            .lastName("User")
+            .role(Role.USER)
+            .enabled(true)
+            .build();
         userRepository.save(user);
     }
 
     @Test
-    void shouldAuthenticateUser() throws Exception {
+    void shouldAuthenticateUser() throws Exception
+    {
         // Given
-        LoginRequest request = new LoginRequest("test@example.com", "password123");
+        LoginRequest request = LoginRequest ("test@example.com", "password123");
 
         // When & Then
-        mockMvc.perform(post("/api/auth/authenticate")
+        mockMvc.perform(
+            post("/api/auth/authenticate")
                 .contentType(MediaType.APPLICATION_JSON)
-                .content(objectMapper.writeValueAsString(request)))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$.accessToken").exists())
-                .andExpect(jsonPath("$.refreshToken").exists())
-                .andExpect(jsonPath("$.tokenType").value("Bearer"))
-                .andExpect(jsonPath("$.expiresIn").exists());
+                .content(objectMapper.writeValueAsString(request))
+        )
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.accessToken").exists())
+            .andExpect(jsonPath("$.refreshToken").exists())
+            .andExpect(jsonPath("$.tokenType").value("Bearer"))
+            .andExpect(jsonPath("$.expiresIn").exists());
     }
 
     @Test
-    void shouldRejectInvalidCredentials() throws Exception {
+    void shouldRejectInvalidCredentials() throws Exception
+    {
         // Given
-        LoginRequest request = new LoginRequest("test@example.com", "wrongpassword");
+        LoginRequest request = LoginRequest ("test@example.com", "wrongpassword");
 
         // When & Then
-        mockMvc.perform(post("/api/auth/authenticate")
+        mockMvc.perform(
+            post("/api/auth/authenticate")
                 .contentType(MediaType.APPLICATION_JSON)
-                .content(objectMapper.writeValueAsString(request)))
-                .andExpect(status().isUnauthorized())
-                .andExpect(jsonPath("$.error").value("Invalid credentials"));
+                .content(objectMapper.writeValueAsString(request))
+        )
+            .andExpect(status().isUnauthorized())
+            .andExpect(jsonPath("$.error").value("Invalid credentials"));
     }
 
     @Test
-    void shouldRefreshToken() throws Exception {
+    void shouldRefreshToken() throws Exception
+    {
         // Given
-        LoginRequest loginRequest = new LoginRequest("test@example.com", "password123");
-        MvcResult result = mockMvc.perform(post("/api/auth/authenticate")
-                .contentType(MediaType.APPLICATION_JSON)
-                .content(objectMapper.writeValueAsString(loginRequest)))
-                .andReturn();
+        LoginRequest loginRequest = LoginRequest ("test@example.com", "password123");
+        MvcResult result = mockMvc . perform (post("/api/auth/authenticate")
+            .contentType(MediaType.APPLICATION_JSON)
+            .content(objectMapper.writeValueAsString(loginRequest)))
+            .andReturn();
 
-        AuthenticationResponse authResponse = objectMapper.readValue(
+        AuthenticationResponse authResponse = objectMapper . readValue (
                 result.getResponse().getContentAsString(),
-                AuthenticationResponse.class
+        AuthenticationResponse.class
         );
 
-        RefreshTokenRequest refreshRequest = new RefreshTokenRequest(authResponse.getRefreshToken());
+        RefreshTokenRequest refreshRequest = RefreshTokenRequest (authResponse.getRefreshToken());
 
         // When & Then
-        mockMvc.perform(post("/api/auth/refresh")
+        mockMvc.perform(
+            post("/api/auth/refresh")
                 .contentType(MediaType.APPLICATION_JSON)
-                .content(objectMapper.writeValueAsString(refreshRequest)))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$.accessToken").exists());
+                .content(objectMapper.writeValueAsString(refreshRequest))
+        )
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.accessToken").exists());
     }
 }
 ```
 
 ### Testing Secured Endpoints
 
-```java
+```kotlin
 @SpringBootTest
 @AutoConfigureMockMvc
 @Testcontainers
@@ -369,78 +386,87 @@ class AuthenticationControllerIntegrationTest {
 class SecuredEndpointIntegrationTest {
 
     @Autowired
-    private MockMvc mockMvc;
+    private var mockMvc: MockMvc
 
     @Autowired
-    private JwtService jwtService;
+    private var jwtService: JwtService
 
     @Autowired
-    private UserRepository userRepository;
+    private var userRepository: UserRepository
 
     @Container
     @ServiceConnection
     static PostgreSQLContainer<?> postgres = new PostgreSQLContainer<>("postgres:16-alpine");
 
-    private String generateTokenForUser(String email, Role role) {
-        User user = User.builder()
-                .email(email)
-                .password("password")
-                .role(role)
-                .enabled(true)
-                .build();
+    private fun generateTokenForUser(String email, Role role): String {
+        User user = User . builder ()
+            .email(email)
+            .password("password")
+            .role(role)
+            .enabled(true)
+            .build();
         user = userRepository.save(user);
 
         return jwtService.generateToken(user);
     }
 
     @Test
-    void shouldAccessEndpointWithValidToken() throws Exception {
+    void shouldAccessEndpointWithValidToken() throws Exception
+    {
         // Given
-        String token = generateTokenForUser("user@example.com", Role.USER);
+        String token = generateTokenForUser ("user@example.com", Role.USER);
 
         // When & Then
-        mockMvc.perform(get("/api/users/me")
-                .header("Authorization", "Bearer " + token))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$.email").value("user@example.com"));
+        mockMvc.perform(
+            get("/api/users/me")
+                .header("Authorization", "Bearer " + token)
+        )
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.email").value("user@example.com"));
     }
 
     @Test
-    void shouldRejectRequestWithoutToken() throws Exception {
+    void shouldRejectRequestWithoutToken() throws Exception
+    {
         // When & Then
         mockMvc.perform(get("/api/users/me"))
-                .andExpect(status().isForbidden());
+            .andExpect(status().isForbidden());
     }
 
     @Test
-    void shouldRejectRequestWithInvalidToken() throws Exception {
+    void shouldRejectRequestWithInvalidToken() throws Exception
+    {
         // When & Then
-        mockMvc.perform(get("/api/users/me")
-                .header("Authorization", "Bearer invalid.token.here"))
-                .andExpect(status().isForbidden());
+        mockMvc.perform(
+            get("/api/users/me")
+                .header("Authorization", "Bearer invalid.token.here")
+        )
+            .andExpect(status().isForbidden());
     }
 
     @Test
     @WithMockUser(roles = "ADMIN")
-    void shouldAccessAdminEndpointWithAdminRole() throws Exception {
+    void shouldAccessAdminEndpointWithAdminRole() throws Exception
+    {
         // When & Then
         mockMvc.perform(get("/api/admin/users"))
-                .andExpect(status().isOk());
+            .andExpect(status().isOk());
     }
 
     @Test
     @WithMockUser(roles = "USER")
-    void shouldRejectAdminEndpointWithUserRole() throws Exception {
+    void shouldRejectAdminEndpointWithUserRole() throws Exception
+    {
         // When & Then
         mockMvc.perform(get("/api/admin/users"))
-                .andExpect(status().isForbidden());
+            .andExpect(status().isForbidden());
     }
 }
 ```
 
 ### Testing with Testcontainers
 
-```java
+```kotlin
 @SpringBootTest
 @AutoConfigureMockMvc
 @Testcontainers
@@ -448,16 +474,17 @@ class JwtSecurityTestcontainersTest {
 
     @Container
     static PostgreSQLContainer<?> postgres = new PostgreSQLContainer<>("postgres:16-alpine")
-            .withDatabaseName("testdb")
-            .withUsername("test")
-            .withPassword("test");
+    .withDatabaseName("testdb")
+    .withUsername("test")
+    .withPassword("test");
 
     @Container
     static GenericContainer<?> redis = new GenericContainer<>("redis:7-alpine")
-            .withExposedPorts(6379);
+    .withExposedPorts(6379);
 
     @DynamicPropertySource
-    static void configureProperties(DynamicPropertyRegistry registry) {
+    static void configureProperties(DynamicPropertyRegistry registry)
+    {
         registry.add("spring.datasource.url", postgres::getJdbcUrl);
         registry.add("spring.datasource.username", postgres::getUsername);
         registry.add("spring.datasource.password", postgres::getPassword);
@@ -466,7 +493,8 @@ class JwtSecurityTestcontainersTest {
     }
 
     @Test
-    void shouldWorkWithFullInfrastructure() {
+    void shouldWorkWithFullInfrastructure()
+    {
         // Integration test with real database and Redis
     }
 }
@@ -476,156 +504,180 @@ class JwtSecurityTestcontainersTest {
 
 ### Testing Token Security
 
-```java
+```kotlin
 @SpringBootTest
 @AutoConfigureMockMvc
 class JwtSecurityTest {
 
     @Autowired
-    private MockMvc mockMvc;
+    private var mockMvc: MockMvc
 
     @Autowired
-    private JwtService jwtService;
+    private var jwtService: JwtService
 
     @Test
-    void shouldRejectTokenWithWrongSignature() throws Exception {
+    void shouldRejectTokenWithWrongSignature() throws Exception
+    {
         // Given - Create token with different secret
-        String maliciousToken = Jwts.builder()
-                .setSubject("user@example.com")
-                .setIssuedAt(new Date())
-                .setExpiration(new Date(System.currentTimeMillis() + 900000))
-                .signWith(Keys.secretKeyFor(SignatureAlgorithm.HS256))
-                .compact();
+        String maliciousToken = Jwts . builder ()
+            .setSubject("user@example.com")
+            .setIssuedAt(Date())
+            .setExpiration(Date(System.currentTimeMillis() + 900000))
+            .signWith(Keys.secretKeyFor(SignatureAlgorithm.HS256))
+            .compact();
 
         // When & Then
-        mockMvc.perform(get("/api/users/me")
-                .header("Authorization", "Bearer " + maliciousToken))
-                .andExpect(status().isForbidden());
+        mockMvc.perform(
+            get("/api/users/me")
+                .header("Authorization", "Bearer " + maliciousToken)
+        )
+            .andExpect(status().isForbidden());
     }
 
     @Test
-    void shouldRejectExpiredToken() throws Exception {
+    void shouldRejectExpiredToken() throws Exception
+    {
         // Given - Create expired token
-        String expiredToken = Jwts.builder()
-                .setSubject("user@example.com")
-                .setIssuedAt(new Date(System.currentTimeMillis() - 3600000))
-                .setExpiration(new Date(System.currentTimeMillis() - 1800000))
-                .signWith(Keys.secretKeyFor(SignatureAlgorithm.HS256))
-                .compact();
+        String expiredToken = Jwts . builder ()
+            .setSubject("user@example.com")
+            .setIssuedAt(Date(System.currentTimeMillis() - 3600000))
+            .setExpiration(Date(System.currentTimeMillis() - 1800000))
+            .signWith(Keys.secretKeyFor(SignatureAlgorithm.HS256))
+            .compact();
 
         // When & Then
-        mockMvc.perform(get("/api/users/me")
-                .header("Authorization", "Bearer " + expiredToken))
-                .andExpect(status().isForbidden());
+        mockMvc.perform(
+            get("/api/users/me")
+                .header("Authorization", "Bearer " + expiredToken)
+        )
+            .andExpect(status().isForbidden());
     }
 
     @Test
-    void shouldRejectTokenWithInvalidClaims() throws Exception {
+    void shouldRejectTokenWithInvalidClaims() throws Exception
+    {
         // Given - Create token with invalid issuer
-        SecretKey key = Keys.secretKeyFor(SignatureAlgorithm.HS256);
-        String tokenWithInvalidIssuer = Jwts.builder()
-                .setSubject("user@example.com")
-                .setIssuer("invalid-issuer")
-                .setIssuedAt(new Date())
-                .setExpiration(new Date(System.currentTimeMillis() + 900000))
-                .signWith(key)
-                .compact();
+        SecretKey key = Keys . secretKeyFor (SignatureAlgorithm.HS256);
+        String tokenWithInvalidIssuer = Jwts . builder ()
+            .setSubject("user@example.com")
+            .setIssuer("invalid-issuer")
+            .setIssuedAt(Date())
+            .setExpiration(Date(System.currentTimeMillis() + 900000))
+            .signWith(key)
+            .compact();
 
         // Set the same key in service
-        ReflectionTestUtils.setField(jwtService, "secret", Encoders.BASE64.encode(key.getEncoded()));
+        ReflectionTestUtils.setField(
+            jwtService,
+            "secret",
+            Encoders.BASE64.encode(key.getEncoded())
+        );
 
         // When & Then
-        mockMvc.perform(get("/api/users/me")
-                .header("Authorization", "Bearer " + tokenWithInvalidIssuer))
-                .andExpect(status().isForbidden());
+        mockMvc.perform(
+            get("/api/users/me")
+                .header("Authorization", "Bearer " + tokenWithInvalidIssuer)
+        )
+            .andExpect(status().isForbidden());
     }
 }
 ```
 
 ### Testing Rate Limiting
 
-```java
+```kotlin
 @SpringBootTest
 @AutoConfigureMockMvc
 class JwtRateLimitTest {
 
     @Autowired
-    private MockMvc mockMvc;
+    private var mockMvc: MockMvc
 
     @Test
-    void shouldRateLimitLoginAttempts() throws Exception {
+    void shouldRateLimitLoginAttempts() throws Exception
+    {
         // Given
-        LoginRequest request = new LoginRequest("user@example.com", "wrongpassword");
+        LoginRequest request = LoginRequest ("user@example.com", "wrongpassword");
 
         // When - Make multiple failed attempts
         for (int i = 0; i < 5; i++) {
-            mockMvc.perform(post("/api/auth/authenticate")
-                    .contentType(MediaType.APPLICATION_JSON)
-                    .content(objectMapper.writeValueAsString(request)))
-                    .andExpect(status().isUnauthorized());
-        }
+        mockMvc.perform(
+            post("/api/auth/authenticate")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(objectMapper.writeValueAsString(request))
+        )
+            .andExpect(status().isUnauthorized());
+    }
 
         // Then - 6th attempt should be rate limited
-        mockMvc.perform(post("/api/auth/authenticate")
+        mockMvc.perform(
+            post("/api/auth/authenticate")
                 .contentType(MediaType.APPLICATION_JSON)
-                .content(objectMapper.writeValueAsString(request)))
-                .andExpect(status().isTooManyRequests());
+                .content(objectMapper.writeValueAsString(request))
+        )
+            .andExpect(status().isTooManyRequests());
     }
 }
 ```
 
 ### Testing Token Blacklisting
 
-```java
+```kotlin
 @SpringBootTest
 @AutoConfigureMockMvc
 class TokenBlacklistTest {
 
     @Autowired
-    private MockMvc mockMvc;
+    private var mockMvc: MockMvc
 
     @Autowired
-    private JwtService jwtService;
+    private var jwtService: JwtService
 
     @Autowired
-    private TokenBlacklistService blacklistService;
+    private var blacklistService: TokenBlacklistService
 
     @Test
-    void shouldRejectBlacklistedToken() throws Exception {
+    void shouldRejectBlacklistedToken() throws Exception
+    {
         // Given
-        UserDetails user = User.builder()
-                .username("user@example.com")
-                .password("password")
-                .authorities("ROLE_USER")
-                .build();
+        UserDetails user = User . builder ()
+            .username("user@example.com")
+            .password("password")
+            .authorities("ROLE_USER")
+            .build();
 
-        String token = jwtService.generateToken(user);
+        String token = jwtService . generateToken (user);
         blacklistService.blacklistToken(token);
 
         // When & Then
-        mockMvc.perform(get("/api/users/me")
-                .header("Authorization", "Bearer " + token))
-                .andExpect(status().isForbidden());
+        mockMvc.perform(
+            get("/api/users/me")
+                .header("Authorization", "Bearer " + token)
+        )
+            .andExpect(status().isForbidden());
     }
 
     @Test
-    void shouldBlacklistTokenOnLogout() throws Exception {
+    void shouldBlacklistTokenOnLogout() throws Exception
+    {
         // Given
-        UserDetails user = User.builder()
-                .username("user@example.com")
-                .password("password")
-                .authorities("ROLE_USER")
-                .build();
+        UserDetails user = User . builder ()
+            .username("user@example.com")
+            .password("password")
+            .authorities("ROLE_USER")
+            .build();
 
-        String token = jwtService.generateToken(user);
-        LogoutRequest logoutRequest = new LogoutRequest(token);
+        String token = jwtService . generateToken (user);
+        LogoutRequest logoutRequest = LogoutRequest (token);
 
         // When
-        mockMvc.perform(post("/api/auth/logout")
+        mockMvc.perform(
+            post("/api/auth/logout")
                 .header("Authorization", "Bearer " + token)
                 .contentType(MediaType.APPLICATION_JSON)
-                .content(objectMapper.writeValueAsString(logoutRequest)))
-                .andExpect(status().isOk());
+                .content(objectMapper.writeValueAsString(logoutRequest))
+        )
+            .andExpect(status().isOk());
 
         // Then
         assertThat(blacklistService.isBlacklisted(token)).isTrue();
@@ -637,36 +689,37 @@ class TokenBlacklistTest {
 
 ### JWT Generation Performance
 
-```java
+```kotlin
 @SpringBootTest
 @AutoConfigureMockMvc
 class JwtPerformanceTest {
 
     @Autowired
-    private JwtService jwtService;
+    private var jwtService: JwtService
 
     @Test
-    void measureTokenGenerationPerformance() {
+    void measureTokenGenerationPerformance()
+    {
         // Given
-        UserDetails user = User.builder()
-                .username("performance@test.com")
-                .password("password")
-                .authorities("ROLE_USER")
-                .build();
+        UserDetails user = User . builder ()
+            .username("performance@test.com")
+            .password("password")
+            .authorities("ROLE_USER")
+            .build();
 
         // Warm up
         for (int i = 0; i < 1000; i++) {
-            jwtService.generateToken(user);
-        }
+        jwtService.generateToken(user);
+    }
 
         // Measure
-        long startTime = System.nanoTime();
+        long startTime = System . nanoTime ();
         for (int i = 0; i < 10000; i++) {
-            jwtService.generateToken(user);
-        }
-        long endTime = System.nanoTime();
+        jwtService.generateToken(user);
+    }
+        long endTime = System . nanoTime ();
 
-        long durationMs = (endTime - startTime) / 1_000_000;
+        long durationMs =(endTime - startTime) / 1_000_000;
         double avgTimeMs = durationMs / 10000.0;
 
         log.info("Average token generation time: {} ms", avgTimeMs);
@@ -677,43 +730,44 @@ class JwtPerformanceTest {
 
 ### Concurrent Token Validation
 
-```java
+```kotlin
 @SpringBootTest
 class JwtConcurrencyTest {
 
     @Autowired
-    private JwtService jwtService;
+    private var jwtService: JwtService
 
     @Test
-    void testConcurrentTokenValidation() throws InterruptedException {
+    void testConcurrentTokenValidation() throws InterruptedException
+    {
         // Given
-        UserDetails user = User.builder()
-                .username("concurrent@test.com")
-                .password("password")
-                .authorities("ROLE_USER")
-                .build();
+        UserDetails user = User . builder ()
+            .username("concurrent@test.com")
+            .password("password")
+            .authorities("ROLE_USER")
+            .build();
 
-        String token = jwtService.generateToken(user);
+        String token = jwtService . generateToken (user);
 
         // When
-        ExecutorService executor = Executors.newFixedThreadPool(10);
-        CountDownLatch latch = new CountDownLatch(1000);
-        AtomicInteger successCount = new AtomicInteger(0);
-        AtomicInteger failureCount = new AtomicInteger(0);
+        ExecutorService executor = Executors . newFixedThreadPool (10);
+        CountDownLatch latch = CountDownLatch (1000);
+        AtomicInteger successCount = AtomicInteger (0);
+        AtomicInteger failureCount = AtomicInteger (0);
 
         for (int i = 0; i < 1000; i++) {
-            executor.submit(() -> {
-                try {
-                    if (jwtService.isTokenValid(token, user)) {
-                        successCount.incrementAndGet();
-                    } else {
-                        failureCount.incrementAndGet();
-                    }
-                } finally {
-                    latch.countDown();
-                }
-            });
+        executor.submit(() -> {
+        try {
+            if (jwtService.isTokenValid(token, user)) {
+                successCount.incrementAndGet();
+            } else {
+                failureCount.incrementAndGet();
+            }
+        } finally {
+            latch.countDown();
         }
+    });
+    }
 
         latch.await();
         executor.shutdown();
@@ -729,67 +783,71 @@ class JwtConcurrencyTest {
 
 ### Test Data Builders
 
-```java
+```kotlin
 @TestConfiguration
-public class TestDataFactory {
+class TestDataFactory {
 
-    public static User.UserBuilder userBuilder() {
+    public static User.UserBuilder userBuilder()
+    {
         return User.builder()
-                .email("test@example.com")
-                .password("password123")
-                .firstName("Test")
-                .lastName("User")
-                .role(Role.USER)
-                .enabled(true)
-                .emailVerified(true);
+            .email("test@example.com")
+            .password("password123")
+            .firstName("Test")
+            .lastName("User")
+            .role(Role.USER)
+            .enabled(true)
+            .emailVerified(true);
     }
 
-    public static LoginRequest loginRequest(String email, String password) {
-        return new LoginRequest(email, password);
+    public static LoginRequest loginRequest(String email, String password)
+    {
+        return LoginRequest(email, password);
     }
 
-    public static String generateValidToken(JwtService jwtService, UserDetails user) {
+    public static String generateValidToken(JwtService jwtService, UserDetails user)
+    {
         return jwtService.generateToken(user);
     }
 
-    public static String generateExpiredToken(JwtService jwtService, UserDetails user) {
+    public static String generateExpiredToken(JwtService jwtService, UserDetails user)
+    {
         // Generate token with past expiration
         return Jwts.builder()
-                .setSubject(user.getUsername())
-                .setIssuedAt(new Date(System.currentTimeMillis() - 3600000))
-                .setExpiration(new Date(System.currentTimeMillis() - 1800000))
-                .signWith(Keys.secretKeyFor(SignatureAlgorithm.HS256))
-                .compact();
+            .setSubject(user.getUsername())
+            .setIssuedAt(Date(System.currentTimeMillis() - 3600000))
+            .setExpiration(Date(System.currentTimeMillis() - 1800000))
+            .signWith(Keys.secretKeyFor(SignatureAlgorithm.HS256))
+            .compact();
     }
 }
 ```
 
 ### Database Test Data
 
-```java
+```kotlin
 @TestConfiguration
-public class DatabaseTestData {
+class DatabaseTestData {
 
     @Autowired
-    private UserRepository userRepository;
+    private var userRepository: UserRepository
 
     @Autowired
-    private PasswordEncoder passwordEncoder;
+    private var passwordEncoder: PasswordEncoder
 
-    public User createTestUser(String email, Role role) {
-        User user = User.builder()
-                .email(email)
-                .password(passwordEncoder.encode("password123"))
-                .firstName("Test")
-                .lastName("User")
-                .role(role)
-                .enabled(true)
-                .emailVerified(true)
-                .build();
+    fun createTestUser(String email, Role role): User {
+        User user = User . builder ()
+            .email(email)
+            .password(passwordEncoder.encode("password123"))
+            .firstName("Test")
+            .lastName("User")
+            .role(role)
+            .enabled(true)
+            .emailVerified(true)
+            .build();
         return userRepository.save(user);
     }
 
-    public void cleanUp() {
+    fun cleanUp(): void {
         userRepository.deleteAll();
     }
 }
@@ -799,24 +857,24 @@ public class DatabaseTestData {
 
 ### Mocking JWT Service
 
-```java
+```kotlin
 @TestConfiguration
-public class JwtTestConfig {
+class JwtTestConfig {
 
     @Bean
     @Primary
-    public JwtService jwtService() {
-        JwtService mockService = Mockito.mock(JwtService.class);
+    fun jwtService(): JwtService {
+        JwtService mockService = Mockito . mock (JwtService.class);
 
         // Configure default behavior
-        when(mockService.generateToken(any(UserDetails.class)))
-                .thenReturn("mock.jwt.token");
+        when (mockService.generateToken(any(UserDetails.class)))
+            .thenReturn("mock.jwt.token");
 
-        when(mockService.isTokenValid(anyString(), any(UserDetails.class)))
-                .thenReturn(true);
+        when (mockService.isTokenValid(anyString(), any(UserDetails.class)))
+            .thenReturn(true);
 
-        when(mockService.extractUsername(anyString()))
-                .thenReturn("test@example.com");
+        when (mockService.extractUsername(anyString()))
+            .thenReturn("test@example.com");
 
         return mockService;
     }
@@ -825,37 +883,39 @@ public class JwtTestConfig {
 
 ### Mocking Authentication
 
-```java
-@WebMvcTest(controllers = UserController.class)
-@Import(JwtTestConfig.class)
-class UserControllerTest {
+```kotlin
+@WebMvcTest(
+    controllers = UserController.class)
+    @Import(
+        JwtTestConfig.class)
+        class UserControllerTest {
 
-    @Autowired
-    private MockMvc mockMvc;
+        @Autowired
+        private var mockMvc: MockMvc
 
-    @Test
-    @WithMockUser(username = "test@example.com", roles = {"USER"})
-    void shouldAccessWithMockUser() throws Exception {
-        mockMvc.perform(get("/api/users/me"))
+        @Test
+        @WithMockUser(username = "test@example.com", roles = { "USER" })
+        void shouldAccessWithMockUser () throws Exception {
+            mockMvc.perform(get("/api/users/me"))
                 .andExpect(status().isOk());
-    }
+        }
 
-    @Test
-    void shouldAccessWithMockJwt() throws Exception {
-        Jwt jwt = Jwt.withTokenValue("mock.jwt.token")
+        @Test
+        void shouldAccessWithMockJwt () throws Exception {
+            Jwt jwt = Jwt . withTokenValue ("mock.jwt.token")
                 .header("alg", "HS256")
                 .claim("sub", "test@example.com")
                 .claim("scope", "ROLE_USER")
                 .build();
 
-        SecurityContextHolder.getContext().setAuthentication(
-                new JwtAuthenticationToken(jwt)
-        );
+            SecurityContextHolder.getContext().setAuthentication(
+                JwtAuthenticationToken(jwt)
+            );
 
-        mockMvc.perform(get("/api/users/me"))
+            mockMvc.perform(get("/api/users/me"))
                 .andExpect(status().isOk());
+        }
     }
-}
 ```
 
 ## Continuous Testing
@@ -865,7 +925,7 @@ class UserControllerTest {
 ```yaml
 name: JWT Security Tests
 
-on: [push, pull_request]
+on: [ push, pull_request ]
 
 jobs:
   test:
@@ -928,51 +988,51 @@ jobs:
 ```xml
 <!-- pom.xml -->
 <plugin>
-    <groupId>org.jacoco</groupId>
-    <artifactId>jacoco-maven-plugin</artifactId>
-    <version>0.8.11</version>
-    <configuration>
-        <excludes>
-            <exclude>**/config/**</exclude>
-            <exclude>**/dto/**</exclude>
-            <exclude>**/entity/**</exclude>
-            <exclude>**/Application.class</exclude>
-        </excludes>
-    </configuration>
-    <executions>
-        <execution>
-            <goals>
-                <goal>prepare-agent</goal>
-            </goals>
-        </execution>
-        <execution>
-            <id>report</id>
-            <phase>test</phase>
-            <goals>
-                <goal>report</goal>
-            </goals>
-        </execution>
-        <execution>
-            <id>jacoco-check</id>
-            <goals>
-                <goal>check</goal>
-            </goals>
-            <configuration>
-                <rules>
-                    <rule>
-                        <element>PACKAGE</element>
-                        <limits>
-                            <limit>
-                                <counter>LINE</counter>
-                                <value>COVEREDRATIO</value>
-                                <minimum>0.80</minimum>
-                            </limit>
-                        </limits>
-                    </rule>
-                </rules>
-            </configuration>
-        </execution>
-    </executions>
+  <groupId>org.jacoco</groupId>
+  <artifactId>jacoco-maven-plugin</artifactId>
+  <version>0.8.11</version>
+  <configuration>
+    <excludes>
+      <exclude>**/config/**</exclude>
+      <exclude>**/dto/**</exclude>
+      <exclude>**/entity/**</exclude>
+      <exclude>**/Application.class</exclude>
+    </excludes>
+  </configuration>
+  <executions>
+    <execution>
+      <goals>
+        <goal>prepare-agent</goal>
+      </goals>
+    </execution>
+    <execution>
+      <id>report</id>
+      <phase>test</phase>
+      <goals>
+        <goal>report</goal>
+      </goals>
+    </execution>
+    <execution>
+      <id>jacoco-check</id>
+      <goals>
+        <goal>check</goal>
+      </goals>
+      <configuration>
+        <rules>
+          <rule>
+            <element>PACKAGE</element>
+            <limits>
+              <limit>
+                <counter>LINE</counter>
+                <value>COVEREDRATIO</value>
+                <minimum>0.80</minimum>
+              </limit>
+            </limits>
+          </rule>
+        </rules>
+      </configuration>
+    </execution>
+  </executions>
 </plugin>
 ```
 

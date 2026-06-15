@@ -9,8 +9,8 @@ import com.profiletailors.smp.credentials.domain.ValidatedToken
 import com.profiletailors.smp.identity.application.NoOpPrincipalIdentityLookup
 import com.profiletailors.smp.identity.application.PrincipalIdentityFacts
 import com.profiletailors.smp.identity.application.PrincipalIdentityLookup
+import com.profiletailors.common.domain.context.PrincipalType
 import com.profiletailors.smp.identity.domain.AuthenticatedPrincipal
-import com.profiletailors.smp.identity.domain.PrincipalType
 import kotlinx.coroutines.test.runTest
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertThrows
@@ -48,6 +48,44 @@ class JwtAuthenticatedPrincipalMaterializerTest {
         assertEquals("jwt-1", authenticatedPrincipal.context.issuedCredentialReference)
         assertEquals("yuniel@example.com", authenticatedPrincipal.context.attributes["email"])
         assertEquals(CredentialType.JWT, authenticatedPrincipal.credentialType)
+    }
+
+    @Test
+    fun `materializes user principal from principal id claim when present`() = runTest {
+        val materializer = JwtAuthenticatedPrincipalMaterializer(
+            principalIdentityLookup = StubPrincipalIdentityLookup(
+                PrincipalIdentityFacts(
+                    principalId = "dev-user-001",
+                    principalType = PrincipalType.USER,
+                    subject = "local:dev@profiletailors.com",
+                    provider = null,
+                    displayIdentity = "dev",
+                    email = "dev@profiletailors.com",
+                    username = "dev",
+                ),
+            ),
+        )
+        val token = ValidatedToken(
+            credentialType = CredentialType.JWT,
+            tokenValue = "token-value",
+            subject = "local:dev@profiletailors.com",
+            issuer = "http://localhost/profiletailors-local",
+            audience = setOf("profiletailors-api"),
+            issuedAt = Instant.parse("2026-05-15T10:15:30Z"),
+            expiresAt = Instant.parse("2026-05-15T11:15:30Z"),
+            tokenId = "jwt-1",
+            claims = mapOf(
+                "principal_id" to "dev-user-001",
+                "preferred_username" to "dev",
+                "email" to "dev@profiletailors.com",
+            ),
+        )
+
+        val authenticatedPrincipal = materializer.materialize(token)
+
+        assertEquals("dev-user-001", authenticatedPrincipal.context.principalId)
+        assertEquals("local:dev@profiletailors.com", authenticatedPrincipal.context.subject)
+        assertEquals("dev", authenticatedPrincipal.context.displayIdentity)
     }
 
     @Test
@@ -170,6 +208,11 @@ class JwtAuthenticatedPrincipalMaterializerTest {
             subject: String,
             provider: String?,
         ): PrincipalIdentityFacts? = facts
+
+        override suspend fun findByEmail(email: String): PrincipalIdentityFacts? = null
+
+        override suspend fun findByPrincipalId(principalId: String): PrincipalIdentityFacts? =
+            facts?.takeIf { it.principalId == principalId }
     }
 
     private class StubServiceAccountCredentialStateLookup(

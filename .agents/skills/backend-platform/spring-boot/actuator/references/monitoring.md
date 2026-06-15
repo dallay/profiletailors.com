@@ -183,31 +183,33 @@ management:
 
 For more granular control, create a custom security configuration:
 
-```java
+```kotlin
 @Configuration
-public class ManagementSecurityConfig {
+class ManagementSecurityConfig {
 
     @Bean
     @Order(1)
-    public SecurityFilterChain actuatorSecurityFilterChain(HttpSecurity http) throws Exception {
+    public SecurityFilterChain actuatorSecurityFilterChain(HttpSecurity http) throws Exception
+    {
         return http
             .requestMatcher(EndpointRequest.toAnyEndpoint())
-            .authorizeHttpRequests(requests -> 
-                requests
-                    .requestMatchers(EndpointRequest.to("health", "info")).permitAll()
-                    .anyRequest().hasRole("ACTUATOR")
-            )
-            .httpBasic(withDefaults())
-            .build();
+            .authorizeHttpRequests(requests ->
+        requests
+            .requestMatchers(EndpointRequest.to("health", "info")).permitAll()
+            .anyRequest().hasRole("ACTUATOR")
+        )
+        .httpBasic(withDefaults())
+        .build();
     }
 
     @Bean
-    public SecurityFilterChain defaultSecurityFilterChain(HttpSecurity http) throws Exception {
+    public SecurityFilterChain defaultSecurityFilterChain(HttpSecurity http) throws Exception
+    {
         return http
-            .authorizeHttpRequests(requests -> 
-                requests.anyRequest().authenticated())
-            .formLogin(withDefaults())
-            .build();
+            .authorizeHttpRequests(requests ->
+        requests.anyRequest().authenticated())
+        .formLogin(withDefaults())
+        .build();
     }
 }
 ```
@@ -216,25 +218,26 @@ public class ManagementSecurityConfig {
 
 Different endpoints can require different roles:
 
-```java
+```kotlin
 @Configuration
-public class ActuatorSecurityConfig {
+class ActuatorSecurityConfig {
 
     @Bean
     @Order(1)
-    public SecurityFilterChain actuatorSecurityFilterChain(HttpSecurity http) throws Exception {
+    public SecurityFilterChain actuatorSecurityFilterChain(HttpSecurity http) throws Exception
+    {
         return http
             .requestMatcher(EndpointRequest.toAnyEndpoint())
-            .authorizeHttpRequests(requests -> 
-                requests
-                    .requestMatchers(EndpointRequest.to("health", "info")).permitAll()
-                    .requestMatchers(EndpointRequest.to("metrics", "prometheus")).hasRole("METRICS_READER")
-                    .requestMatchers(EndpointRequest.to("env", "configprops")).hasRole("CONFIG_READER")
-                    .requestMatchers(EndpointRequest.to("shutdown")).hasRole("ADMIN")
-                    .anyRequest().hasRole("ACTUATOR")
-            )
-            .httpBasic(withDefaults())
-            .build();
+            .authorizeHttpRequests(requests ->
+        requests
+            .requestMatchers(EndpointRequest.to("health", "info")).permitAll()
+            .requestMatchers(EndpointRequest.to("metrics", "prometheus")).hasRole("METRICS_READER")
+            .requestMatchers(EndpointRequest.to("env", "configprops")).hasRole("CONFIG_READER")
+            .requestMatchers(EndpointRequest.to("shutdown")).hasRole("ADMIN")
+            .anyRequest().hasRole("ACTUATOR")
+        )
+        .httpBasic(withDefaults())
+        .build();
     }
 }
 ```

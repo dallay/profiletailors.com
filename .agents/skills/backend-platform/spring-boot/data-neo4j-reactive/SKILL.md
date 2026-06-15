@@ -30,9 +30,10 @@ Use this skill when working with:
 Maven:
 
 ```xml
+
 <dependency>
-    <groupId>org.springframework.boot</groupId>
-    <artifactId>spring-boot-starter-data-neo4j</artifactId>
+  <groupId>org.springframework.boot</groupId>
+  <artifactId>spring-boot-starter-data-neo4j</artifactId>
 </dependency>
 ```
 
@@ -52,14 +53,14 @@ spring.neo4j.authentication.password=secret
 
 **Configure Cypher-DSL dialect (recommended):**
 
-```java
+```kotlin
 @Configuration
-public class Neo4jConfig {
+class Neo4jConfig {
     @Bean
-    Configuration cypherDslConfiguration() {
-        return Configuration.newConfig()
-            .withDialect(Dialect.NEO4J_5).build();
-    }
+    fun cypherDslConfiguration(): Configuration =
+        Configuration.newConfig()
+            .withDialect(Dialect.NEO4J_5)
+            .build()
 }
 ```
 
@@ -105,62 +106,42 @@ public class Neo4jConfig {
 
 ### Node Entity with Business Key
 
-```java
+```kotlin
 @Node("Movie")
-public class MovieEntity {
-
+data class MovieEntity(
     @Id
-    private final String title;  // Business key as ID
+    val title: String,  // Business key as ID
 
     @Property("tagline")
-    private final String description;
+    val description: String,
 
-    private final Integer year;
+    val year: Int?,
 
     @Relationship(type = "ACTED_IN", direction = Direction.INCOMING)
-    private List<Roles> actorsAndRoles = new ArrayList<>();
+    val actorsAndRoles: MutableList<Roles> = mutableListOf(),
 
     @Relationship(type = "DIRECTED", direction = Direction.INCOMING)
-    private List<PersonEntity> directors = new ArrayList<>();
-
-    public MovieEntity(String title, String description, Integer year) {
-        this.title = title;
-        this.description = description;
-        this.year = year;
-    }
-}
+    val directors: MutableList<PersonEntity> = mutableListOf()
+)
 ```
 
 ### Node Entity with Generated ID
 
-```java
+```kotlin
 @Node("Movie")
-public class MovieEntity {
-
+data class MovieEntity(
     @Id @GeneratedValue
-    private Long id;
+    val id: Long? = null,  // Never set manually
 
-    private final String title;
+    val title: String,
 
     @Property("tagline")
-    private final String description;
-
-    public MovieEntity(String title, String description) {
-        this.id = null;  // Never set manually
-        this.title = title;
-        this.description = description;
-    }
-
-    // Wither method for immutability with generated IDs
-    public MovieEntity withId(Long id) {
-        if (this.id != null && this.id.equals(id)) {
-            return this;
-        } else {
-            MovieEntity newObject = new MovieEntity(this.title, this.description);
-            newObject.id = id;
-            return newObject;
-        }
-    }
+    val description: String
+) {
+    // Copy method for immutability with generated IDs
+    fun withId(newId: Long): MovieEntity =
+        if (id != null && id == newId) this
+        else copy(id = newId)
 }
 ```
 
@@ -168,28 +149,28 @@ public class MovieEntity {
 
 ### Basic Repository Interface
 
-```java
+```kotlin
 @Repository
-public interface MovieRepository extends Neo4jRepository<MovieEntity, String> {
+interface MovieRepository : Neo4jRepository<MovieEntity, String> {
 
     // Query derivation from method name
-    MovieEntity findOneByTitle(String title);
+    fun findOneByTitle(title: String): MovieEntity?
 
-    List<MovieEntity> findAllByYear(Integer year);
+    fun findAllByYear(year: Int): List<MovieEntity>
 
-    List<MovieEntity> findByYearBetween(Integer startYear, Integer endYear);
+    fun findByYearBetween(startYear: Int, endYear: Int): List<MovieEntity>
 }
 ```
 
 ### Reactive Repository
 
-```java
+```kotlin
 @Repository
-public interface MovieRepository extends ReactiveNeo4jRepository<MovieEntity, String> {
+interface MovieRepository : ReactiveNeo4jRepository<MovieEntity, String> {
 
-    Mono<MovieEntity> findOneByTitle(String title);
+    fun findOneByTitle(title: String): Mono<MovieEntity>
 
-    Flux<MovieEntity> findAllByYear(Integer year);
+    fun findAllByYear(year: Int): Flux<MovieEntity>
 }
 ```
 
@@ -202,20 +183,30 @@ public interface MovieRepository extends ReactiveNeo4jRepository<MovieEntity, St
 
 ## Custom Queries with `@`Query
 
-```java
+```kotlin
 @Repository
-public interface AuthorRepository extends Neo4jRepository<Author, Long> {
+interface AuthorRepository : Neo4jRepository<Author, Long> {
 
-    @Query("MATCH (b:Book)-[:WRITTEN_BY]->(a:Author) " +
-           "WHERE a.name = $name AND b.year > $year " +
-           "RETURN b")
-    List<Book> findBooksAfterYear(@Param("name") String name,
-                                   @Param("year") Integer year);
+    @Query(
+        """
+        MATCH (b:Book)-[:WRITTEN_BY]->(a:Author)
+        WHERE a.name = ${'$'}name AND b.year > ${'$'}year
+        RETURN b
+    """
+    )
+    fun findBooksAfterYear(
+        @Param("name") name: String,
+        @Param("year") year: Int
+    ): List<Book>
 
-    @Query("MATCH (b:Book)-[:WRITTEN_BY]->(a:Author) " +
-           "WHERE a.name = $name " +
-           "RETURN b ORDER BY b.year DESC")
-    List<Book> findBooksByAuthorOrderByYearDesc(@Param("name") String name);
+    @Query(
+        """
+        MATCH (b:Book)-[:WRITTEN_BY]->(a:Author)
+        WHERE a.name = ${'$'}name
+        RETURN b ORDER BY b.year DESC
+    """
+    )
+    fun findBooksByAuthorOrderByYearDesc(@Param("name") name: String): List<Book>
 }
 ```
 
@@ -233,46 +224,53 @@ public interface AuthorRepository extends Neo4jRepository<Author, Long> {
 
 **Test Configuration:**
 
-```java
+```kotlin
 @DataNeo4jTest
 class BookRepositoryIntegrationTest {
 
-    private static Neo4j embeddedServer;
+    companion object {
+        private lateinit var embeddedServer: Neo4j
 
-    @BeforeAll
-    static void initializeNeo4j() {
-        embeddedServer = Neo4jBuilders.newInProcessBuilder()
-            .withDisabledServer()  // No HTTP access needed
-            .withFixture(
-                "CREATE (b:Book {isbn: '978-0547928210', " +
-                "name: 'The Fellowship of the Ring', year: 1954})" +
-                "-[:WRITTEN_BY]->(a:Author {id: 1, name: 'J. R. R. Tolkien'}) " +
-                "CREATE (b2:Book {isbn: '978-0547928203', " +
-                "name: 'The Two Towers', year: 1956})" +
-                "-[:WRITTEN_BY]->(a)"
-            )
-            .build();
-    }
+        @JvmStatic
+        @BeforeAll
+        fun initializeNeo4j() {
+            embeddedServer = Neo4jBuilders.newInProcessBuilder()
+                .withDisabledServer()  // No HTTP access needed
+                .withFixture(
+                    """
+                    CREATE (b:Book {isbn: '978-0547928210',
+                    name: 'The Fellowship of the Ring', year: 1954})
+                    -[:WRITTEN_BY]->(a:Author {id: 1, name: 'J. R. R. Tolkien'})
+                    CREATE (b2:Book {isbn: '978-0547928203',
+                    name: 'The Two Towers', year: 1956})
+                    -[:WRITTEN_BY]->(a)
+                """.trimIndent()
+                )
+                .build()
+        }
 
-    @AfterAll
-    static void stopNeo4j() {
-        embeddedServer.close();
-    }
+        @JvmStatic
+        @AfterAll
+        fun stopNeo4j() {
+            embeddedServer.close()
+        }
 
-    @DynamicPropertySource
-    static void neo4jProperties(DynamicPropertyRegistry registry) {
-        registry.add("spring.neo4j.uri", embeddedServer::boltURI);
-        registry.add("spring.neo4j.authentication.username", () -> "neo4j");
-        registry.add("spring.neo4j.authentication.password", () -> "null");
+        @JvmStatic
+        @DynamicPropertySource
+        fun neo4jProperties(registry: DynamicPropertyRegistry) {
+            registry.add("spring.neo4j.uri") { embeddedServer.boltURI() }
+            registry.add("spring.neo4j.authentication.username") { "neo4j" }
+            registry.add("spring.neo4j.authentication.password") { "null" }
+        }
     }
 
     @Autowired
-    private BookRepository bookRepository;
+    private lateinit var bookRepository: BookRepository
 
     @Test
-    void givenBookExists_whenFindOneByTitle_thenBookIsReturned() {
-        Book book = bookRepository.findOneByTitle("The Fellowship of the Ring");
-        assertThat(book.getIsbn()).isEqualTo("978-0547928210");
+    fun `given book exists when find one by title then book is returned`() {
+        val book = bookRepository.findOneByTitle("The Fellowship of the Ring")
+        assertThat(book?.isbn).isEqualTo("978-0547928210")
     }
 }
 ```
@@ -283,59 +281,64 @@ class BookRepositoryIntegrationTest {
 
 **Input:**
 
-```java
-MovieEntity movie = new MovieEntity("The Matrix", "Welcome to the Real World", 1999);
-movieRepository.save(movie);
+```kotlin
+val movie = MovieEntity("The Matrix", "Welcome to the Real World", 1999)
+movieRepository.save(movie)
 
-MovieEntity found = movieRepository.findOneByTitle("The Matrix");
+val found = movieRepository.findOneByTitle("The Matrix")
 ```
 
 **Output:**
 
-```java
-MovieEntity{
-    title="The Matrix",
-    description="Welcome to the Real World",
-    year=1999,
-    actorsAndRoles=[],
-    directors=[]
-}
+```kotlin
+MovieEntity(
+    title = "The Matrix",
+    description = "Welcome to the Real World",
+    year = 1999,
+    actorsAndRoles = mutableListOf(),
+    directors = mutableListOf()
+)
 ```
 
 ### Example 2: Custom Cypher Query
 
 **Input:**
 
-```java
-List<Book> books = authorRepository.findBooksAfterYear("J.R.R. Tolkien", 1950);
+```kotlin
+val books = authorRepository.findBooksAfterYear("J.R.R. Tolkien", 1950)
 ```
 
 **Output:**
 
-```java
-[
-    Book{isbn="978-0547928210", name="The Fellowship of the Ring", year=1954},
-    Book{isbn="978-0547928203", name="The Two Towers", year=1956},
-    Book{isbn="978-0547928227", name="The Return of the King", year=1957}
-]
+```kotlin
+listOf(
+    Book(isbn = "978-0547928210", name = "The Fellowship of the Ring", year = 1954),
+    Book(isbn = "978-0547928203", name = "The Two Towers", year = 1956),
+    Book(isbn = "978-0547928227", name = "The Return of the King", year = 1957)
+)
 ```
 
 ### Example 3: Relationship Traversal
 
 **Input:**
 
-```java
-@Query("MATCH (m:Movie)<-[:ACTED_IN]-(a:Person) " +
-       "WHERE m.title = $title RETURN a.name as actorName")
-List<String> findActorsByMovieTitle(@Param("title") String title);
+```kotlin
+@Query(
+    """
+    MATCH (m:Movie)<-[:ACTED_IN]-(a:Person)
+    WHERE m.title = ${'$'}title
+    RETURN a.name as actorName
+"""
+)
+fun findActorsByMovieTitle(@Param("title") title: String): List<String>
 
-List<String> actors = movieRepository.findActorsByMovieTitle("The Matrix");
+val actors = movieRepository.findActorsByMovieTitle("The Matrix")
 ```
 
 **Output:**
 
-```java
-["Keanu Reeves", "Laurence Fishburne", "Carrie-Anne Moss", "Hugo Weaving"]
+```kotlin
+listOf("Keanu Reeves", "Laurence Fishburne", "Carrie-Anne Moss", "Hugo Weaving")
 ```
 
 ---

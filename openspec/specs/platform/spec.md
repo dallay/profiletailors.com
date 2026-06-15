@@ -41,18 +41,18 @@ product headers as part of its core platform contract.
 ### Requirement: Platform Bounded Contexts
 
 The system MUST define the following bounded contexts for the platform architecture: Identity,
-Tenancy, Authorization, Credentials, Governance, and Platform.
+Tenancy, Authorization, Credentials, Governance, Publishing, and Platform.
 
 The Platform context MUST own cross-cutting seams required by all other contexts, including
-mediator-style dispatch, context propagation, and adapter-facing shared contracts.
-The Identity context MUST own principal identity semantics.
-The Tenancy context MUST own workspace lifecycle, ownership, and membership semantics.
-The Authorization context MUST own permissions, roles, grants, scopes, policies, and effective
-authorization evaluation semantics.
-The Credentials context MUST own authentication credential and token semantics.
-The Governance context MUST own auditing and governance semantics.
-Phase one MUST implement only the minimum contracts and behaviors from these contexts required by
-the proving slice.
+mediator-style dispatch, context propagation, and adapter-facing shared contracts. The Identity
+context MUST own principal identity semantics. The Tenancy context MUST own workspace lifecycle,
+ownership, and membership semantics. The Authorization context MUST own permissions, roles, grants,
+scopes, policies, and effective authorization evaluation semantics. The Credentials context MUST own
+authentication credential and token semantics. The Governance context MUST own auditing and
+governance semantics. The Publishing context MUST own workspace-scoped outbound social publishing
+semantics, including provider-neutral publication lifecycle rules and provider delivery ports. Phase
+one MUST implement only the minimum contracts and behaviors from these contexts required by the
+proving slice.
 
 #### Scenario: Cross-context behavior remains bounded
 
@@ -60,6 +60,15 @@ the proving slice.
 - WHEN the platform resolves authentication, workspace membership, and authorization
 - THEN each behavior MUST be attributable to the appropriate bounded context
 - AND no single context MUST absorb unrelated responsibilities merely for convenience
+
+#### Scenario: Cross-context behavior remains bounded with publishing
+
+- GIVEN a workspace member requests outbound social publishing behavior
+- WHEN the platform resolves authentication, active workspace context, authorization, publishing
+  lifecycle, and provider delivery preparation
+- THEN each behavior MUST be attributable to the appropriate bounded context
+- AND the Publishing context MUST NOT absorb unrelated identity or tenancy responsibilities merely
+  for convenience
 
 #### Scenario: Deferred contexts still exist semantically
 
@@ -103,14 +112,22 @@ The system MUST define the following resource context taxonomy: GLOBAL, USER, WO
 Authorization decisions MUST be evaluated relative to an explicit resource context.
 Permissions, grants, scopes, and policies MUST NOT rely on implicit resource-context inference.
 Phase one MUST fully support WORKSPACE context for the proving slice.
-For `backend-scopes-execution`, the new target-aware proving capability MUST evaluate authorization in WORKSPACE context and MUST use explicit `targetResourceId` input as part of the protected request context.
-This capability is implemented as a NEW protected endpoint: `GET /api/authorization/resources/{resourceId}/preview`
-This target-aware proving capability is separate from `/api/authorization/workspace-access/current`, is evaluated in WORKSPACE context using explicit `targetResourceId`, and does not overlap with or extend the API-key replacement proving slice.
+For `backend-scopes-execution`, the new target-aware proving capability MUST evaluate authorization
+in WORKSPACE context and MUST use explicit `targetResourceId` input as part of the protected request
+context.
+This capability is implemented as a NEW protected endpoint:
+`GET /api/authorization/resources/{resourceId}/preview`
+This target-aware proving capability is separate from `/api/authorization/workspace-access/current`,
+is evaluated in WORKSPACE context using explicit `targetResourceId`, and does not overlap with or
+extend the API-key replacement proving slice.
+
 - The endpoint accepts an explicit `targetResourceId` in the path (resourceId)
 - The proving slice is NOT extended onto `/api/authorization/workspace-access/current`
 
-Support for GLOBAL, USER, and SYSTEM contexts is platform-required and MAY be deferred in implementation beyond the contracts required to keep the model stable.
-(Previously: WORKSPACE context was required for the proving slice, but no executable target-aware capability was required to carry explicit target resource context for scope reduction.)
+Support for GLOBAL, USER, and SYSTEM contexts is platform-required and MAY be deferred in
+implementation beyond the contracts required to keep the model stable.
+(Previously: WORKSPACE context was required for the proving slice, but no executable target-aware
+capability was required to carry explicit target resource context for scope reduction.)
 
 #### Scenario: Target-aware workspace request evaluates with explicit target context
 
@@ -118,7 +135,8 @@ Support for GLOBAL, USER, and SYSTEM contexts is platform-required and MAY be de
 - AND the request includes an active workspace identifier and explicit `targetResourceId`
 - WHEN authorization is evaluated for that capability
 - THEN the platform MUST evaluate the request in WORKSPACE resource context
-- AND it MUST treat the supplied `targetResourceId` as explicit protected target context rather than as implicit or derived state
+- AND it MUST treat the supplied `targetResourceId` as explicit protected target context rather than
+  as implicit or derived state
 
 #### Scenario: Workspace-scoped request evaluates in explicit context
 
@@ -176,6 +194,12 @@ For the implemented service-account bearer path, credential revocation state MUS
 authoritative state for protected-request evaluation.
 A technically valid presented service-account credential MUST NOT continue to authorize access when
 current authoritative credential state revokes it.
+For the local USER refresh-session path, refresh-credential validity and logout invalidation MUST be
+treated as authoritative state for session continuation.
+A browser that loses in-memory access-token state MAY recover only through current authoritative
+refresh-session state, not through instance-local memory or durable frontend token persistence.
+Caches and stateless nodes MUST NOT preserve a refresh-backed session after authoritative logout,
+revocation, expiry, or invalidation has occurred.
 Caches MUST NOT expand permissions beyond what authoritative state allows.
 Phase one MAY use minimal or no cache implementation, but the platform seams MUST permit later safe
 caching and invalidation.
@@ -206,22 +230,57 @@ caching and invalidation.
 - THEN any platform cache MUST NOT cause broader access than the revoked state allows
 - AND the request outcome MUST converge to denial for the protected slice
 
+#### Scenario: Invalidated refresh session cannot survive cache or node-local state
+
+- GIVEN a local USER refresh-backed session was previously valid
+- AND authoritative backend state later invalidates that refresh session through logout, revocation,
+  or expiry
+- WHEN any platform instance evaluates a later refresh attempt for that session
+- THEN instance-local state or caches MUST NOT restore the session
+- AND the refresh request MUST be denied according to current authoritative state
+
+#### Scenario: Equivalent nodes evaluate refresh continuation consistently
+
+- GIVEN two platform instances evaluate the same refresh request against the same authoritative
+  refresh-session state
+- WHEN both instances process the request independently
+- THEN they MUST produce the same allow-or-deny refresh outcome
+- AND the result MUST NOT depend on which instance previously issued the access token
+
 ### Requirement: Deterministic API Protection Principles
 
-The system MUST enforce deny-by-default, explicit-over-implicit, and deterministic API protection behavior.
+The system MUST enforce deny-by-default, explicit-over-implicit, and deterministic API protection
+behavior.
 
-Protected API behavior MUST require successful authentication, applicable context resolution, and explicit authorization success before access is granted.
+Protected API behavior MUST require successful authentication, applicable context resolution, and
+explicit authorization success before access is granted.
 The absence of a required permission, grant, membership, or applicable rule MUST result in denial.
 Explicit denial MUST override any allow path.
 The system MUST NOT infer access from role names, token presence, or unspecified defaults.
 Equivalent requests against equivalent state MUST produce equivalent authorization outcomes.
-For the existing `/api/authorization/workspace-access/current` proving slice, the same protection principles MUST apply to authenticated USER, authenticated SERVICE_ACCOUNT, and authenticated API_KEY requests.
-This change MUST prove end-to-end behavior for that slice with API-key allow, authorization-controlled deny, revoked-or-inactive-credential deny, and completed-replacement cutover outcomes.
-For the supported API-key replacement capability, the platform MUST apply one explicit runtime rule: after the replacement operation completes, the successor API key MUST be accepted and the predecessor API key MUST be denied.
-The completed replacement rule MUST NOT allow any overlap window where both predecessor and successor are accepted on `/api/authorization/workspace-access/current`.
-The API-key replacement proving slice for `/api/authorization/workspace-access/current` MUST remain limited to that endpoint.
-The API-key replacement proving slice MUST NOT broaden into new endpoints, service-account rotation, dual-active rollover windows, inventory or detail APIs, or generalized credential-family management.
-The API-key replacement proving slice MUST NOT broaden into broad issuance/admin platform behavior beyond what is minimally necessary to execute one API-key replacement path.
+For the existing `/api/authorization/workspace-access/current` proving slice, the same protection
+principles MUST apply to authenticated USER, authenticated SERVICE_ACCOUNT, and authenticated
+API_KEY requests.
+This change MUST prove end-to-end behavior for that slice with API-key allow,
+authorization-controlled deny, revoked-or-inactive-credential deny, and completed-replacement
+cutover outcomes.
+For the supported API-key replacement capability, the platform MUST apply one explicit runtime rule:
+after the replacement operation completes, the successor API key MUST be accepted and the
+predecessor API key MUST be denied.
+The completed replacement rule MUST NOT allow any overlap window where both predecessor and
+successor are accepted on `/api/authorization/workspace-access/current`.
+The API-key replacement proving slice for `/api/authorization/workspace-access/current` MUST remain
+limited to that endpoint.
+The API-key replacement proving slice MUST NOT broaden into new endpoints, service-account rotation,
+dual-active rollover windows, inventory or detail APIs, or generalized credential-family management.
+The API-key replacement proving slice MUST NOT broaden into broad issuance/admin platform behavior
+beyond what is minimally necessary to execute one API-key replacement path.
+For the local USER browser session flow, protected API calls MUST be made with an in-memory access
+token rather than a durable browser-persisted access token.
+For the local USER browser session flow, a `401` from a protected API MAY trigger exactly one
+refresh-based recovery attempt for the original request.
+If that refresh-based recovery attempt fails, the platform and client flow MUST fail closed rather
+than loop or infer continued access.
 
 #### Scenario: Access is denied by default
 
@@ -271,7 +330,8 @@ The API-key replacement proving slice MUST NOT broaden into broad issuance/admin
 
 #### Scenario: Old API key allows access before replacement
 
-- GIVEN a persisted API-key credential authenticates successfully for `/api/authorization/workspace-access/current`
+- GIVEN a persisted API-key credential authenticates successfully for
+  `/api/authorization/workspace-access/current`
 - AND the active workspace request is valid
 - AND workspace membership and authorization facts explicitly allow access for the bound principal
 - AND no completed replacement has made that credential a predecessor
@@ -281,8 +341,10 @@ The API-key replacement proving slice MUST NOT broaden into broad issuance/admin
 
 #### Scenario: New API key allows access after replacement
 
-- GIVEN an existing active API-key credential has been replaced through the supported replacement capability
-- AND the successor API-key credential now authenticates successfully for `/api/authorization/workspace-access/current`
+- GIVEN an existing active API-key credential has been replaced through the supported replacement
+  capability
+- AND the successor API-key credential now authenticates successfully for
+  `/api/authorization/workspace-access/current`
 - AND the active workspace request is valid
 - AND workspace membership and authorization facts explicitly allow access for the bound principal
 - WHEN the protected request is evaluated with the successor API key
@@ -291,9 +353,11 @@ The API-key replacement proving slice MUST NOT broaden into broad issuance/admin
 
 #### Scenario: Old API key is denied after replacement
 
-- GIVEN an existing active API-key credential has been replaced through the supported replacement capability
+- GIVEN an existing active API-key credential has been replaced through the supported replacement
+  capability
 - AND the predecessor API key would otherwise match and verify successfully
-- WHEN the request targets `/api/authorization/workspace-access/current` with that predecessor API key
+- WHEN the request targets `/api/authorization/workspace-access/current` with that predecessor API
+  key
 - THEN the platform MUST deny the request before protected access is granted
 - AND the protected slice MUST NOT return an allowed result
 
@@ -315,7 +379,236 @@ The API-key replacement proving slice MUST NOT broaden into broad issuance/admin
 
 #### Scenario: Broad credential lifecycle platform behavior remains deferred
 
-- GIVEN a requested capability requires service-account rotation, dual-active rollover windows, inventory/list/detail APIs, or generalized credential-family management
+- GIVEN a requested capability requires service-account rotation, dual-active rollover windows,
+  inventory/list/detail APIs, or generalized credential-family management
 - WHEN the proving-slice scope for this change is evaluated
 - THEN that capability MUST be treated as deferred
 - AND the current slice MUST proceed without broadening beyond one API-key replacement cutover path
+
+#### Scenario: Protected request recovers once after access-token expiry
+
+- GIVEN a local USER sends a protected API request with an access token that is no longer accepted
+- AND the USER still has a valid refresh-backed session in authoritative backend state
+- WHEN the protected request returns `401`
+- THEN the client-platform flow MAY perform one refresh-based recovery attempt for that original
+  request
+- AND the replayed request MUST be attempted no more than once after a successful refresh
+
+#### Scenario: Protected request fails closed after exhausted recovery
+
+- GIVEN a local USER sends a protected API request that returns `401`
+- AND no valid refresh-backed session remains to recover that request
+- WHEN the client-platform flow evaluates recovery
+- THEN the original request MUST remain denied after the single allowed recovery path is exhausted
+- AND the system MUST NOT create an implicit authenticated session from stale client state
+
+### Requirement: Dedicated Refresh and Logout Endpoints for Local User Sessions
+
+The system MUST expose dedicated local USER session-continuation endpoints separate from protected
+business APIs.
+
+The refresh flow MUST be available through a dedicated endpoint for session continuation.
+The logout flow MUST be available through a dedicated endpoint for authoritative session
+invalidation.
+The refresh endpoint MUST accept refresh-cookie transport without requiring an existing valid access
+token.
+The logout endpoint MUST invalidate the current refresh-backed session when one exists and MUST
+clear client-facing refresh-cookie state in its response.
+The system MUST preserve deny-by-default behavior when refresh or logout requests reference missing
+or invalid session state.
+
+#### Scenario: Refresh endpoint is public to the session-continuation flow
+
+- GIVEN a browser has no current valid access token in memory
+- AND the browser still holds a valid refresh cookie for a local USER session
+- WHEN the browser calls the dedicated refresh endpoint
+- THEN the platform MUST evaluate the refresh credential without requiring prior protected-API
+  authentication
+- AND it MUST issue a new access token only if authoritative refresh state allows it
+
+#### Scenario: Logout invalidates session continuity even after access token loss
+
+- GIVEN a browser has an active refresh-backed local USER session
+- WHEN the browser calls the dedicated logout endpoint
+- THEN the platform MUST invalidate the authoritative refresh session and clear the refresh cookie
+- AND later session bootstrap or retry recovery for that session MUST be denied
+
+### Requirement: Pluggable Storage Abstraction Layer
+
+The system MUST provide a pluggable Storage Abstraction Layer (SAL) for object storage operations
+with support for multiple providers.
+
+The storage API MUST be based on Kotlin coroutines (suspend functions and kotlinx.coroutines.Flow)
+for efficient streaming of large objects.
+The system MUST support multiple storage providers simultaneously, configurable by name through
+Spring Boot properties.
+The system MUST provide implementations for Local filesystem, AWS S3, and Cloudflare R2 (
+S3-compatible) providers.
+The storage API MUST expose operations for upload (streaming), download (streaming), delete, list,
+and presigned GET URLs.
+The system MUST provide a BucketRegistry for resolving storage providers by name at runtime.
+The system MUST provide a default storage bean for injection by type.
+The LocalFilesystem provider MUST protect against path traversal attacks (e.g., `..` in keys).
+The S3/R2 providers MUST support presigned GET URLs and handle large file uploads efficiently.
+The storage module MUST be reusable from other bounded contexts in the backend.
+The system MUST integrate with existing observability hooks (MetricsHook/AuditHook) when available.
+
+#### Scenario: Upload and download with local filesystem
+
+- GIVEN a bucket "local-test" mapped to `/tmp/storage/local-test`
+- WHEN a file is uploaded by streaming with key "foo/bar.txt"
+- THEN the file can be downloaded and its content matches the uploaded data
+- AND listing with prefix "foo/" contains "foo/bar.txt"
+
+#### Scenario: Presigned URL generation for S3
+
+- GIVEN an S3 provider configured for bucket "attachments"
+- WHEN a presigned GET URL is requested for "attachments", "invoices/1.pdf", with 600 seconds expiry
+- THEN a valid URL is returned that allows downloading the object within 600 seconds
+
+#### Scenario: Path traversal protection in LocalFS
+
+- GIVEN a local bucket mapped to `/var/data/bucket`
+- WHEN an upload is attempted with key "../secret.txt"
+- THEN the operation fails with StorageSecurityException preventing path traversal
+
+#### Scenario: Multi-provider resolution
+
+- GIVEN providers "local" and "attachments" are configured
+- WHEN `registry.getStorage("attachments")` is called
+- THEN a Storage instance associated with the S3Provider is returned
+
+#### Scenario: Large object streaming
+
+- GIVEN a large object (>100MB)
+- WHEN uploaded via Flow chunks
+- THEN the upload does not consume memory proportional to file size
+- AND download also streams in chunks without loading the entire file into memory
+
+### Requirement: R2 Dedicated Storage Adapter
+
+The system MUST provide a first-class `R2StorageAdapter` that implements `PresignableStorage` directly, independent of `S3Storage` delegation.
+
+The adapter MUST support the following operations:
+- `upload(key, contentLength, content, metadata)` - Stream upload with optional metadata
+- `download(key)` - Stream download returning `ByteReadChannel`
+- `delete(key)` - Single object deletion
+- `list(prefix, delimiter)` - List objects with optional prefix and delimiter
+- `presignGet(key, expiresIn)` - Generate presigned GET URL
+- `exists(key)` - Check if object exists
+
+The adapter MUST accept `StorageProperties.R2Provider` configuration containing:
+- `bucket` (required) - R2 bucket name
+- `endpoint` (required) - R2 endpoint URL
+- `accessKeyId` (required) - R2 access key
+- `secretAccessKey` (required) - R2 secret key
+- `accountId` (required) - R2 account ID
+- `region` (optional, default "auto") - R2 uses `auto` for global storage
+
+The adapter MUST support both `type: r2` (canonical) and `type: s2` (backward-compatible alias) in YAML configuration.
+
+The R2 configuration MUST automatically set `region = "auto"` if not explicitly provided, matching R2's global storage model.
+
+The adapter MUST wrap R2/AWS SDK exceptions into domain-appropriate `StorageException` types:
+- `NoSuchKey` → `StorageObjectNotFoundException`
+- `AccessDenied` → `StorageAccessDeniedException`
+- Network errors → `StorageConnectionException`
+- All others → `StorageException` (generic)
+
+The adapter MUST validate that object keys do not contain path traversal sequences (`../`, `..\\`).
+
+The `R2StorageAdapter` MUST pass all tests defined in `StorageContractTest.kt` and `PresignableStorageContractTest.kt`.
+
+#### Scenario: R2 adapter uploads object successfully
+
+- GIVEN an `R2StorageAdapter` configured with valid credentials and bucket "user-images"
+- WHEN `upload("avatars/user1.png", 1024, contentFlow, metadata)` is called
+- THEN the object is uploaded to R2 bucket "user-images" with key "avatars/user1.png"
+- AND metadata is stored with the object
+- AND the operation completes without error
+
+#### Scenario: R2 adapter downloads object successfully
+
+- GIVEN an R2 bucket "user-images" contains object "avatars/user1.png"
+- WHEN `download("avatars/user1.png")` is called
+- THEN a `ByteReadChannel` is returned with the object content
+- AND the content matches what was originally uploaded
+
+#### Scenario: R2 adapter deletes object
+
+- GIVEN an R2 bucket "user-images" contains object "temp/file.txt"
+- WHEN `delete("temp/file.txt")` is called
+- THEN the object is removed from the bucket
+- AND subsequent `exists("temp/file.txt")` returns `false`
+
+#### Scenario: R2 adapter lists objects with prefix
+
+- GIVEN an R2 bucket "user-images" contains objects "avatars/user1.png" and "avatars/user2.png"
+- WHEN `list("avatars/")` is called
+- THEN the result contains both "avatars/user1.png" and "avatars/user2.png"
+
+#### Scenario: R2 adapter generates presigned URL
+
+- GIVEN an R2 bucket "attachments" contains object "invoices/2024/001.pdf"
+- WHEN `presignGet("invoices/2024/001.pdf", 3600)` is called
+- THEN a valid presigned URL is returned
+- AND the URL allows downloading the object within 3600 seconds
+- AND the URL targets the R2 endpoint, not AWS S3
+
+#### Scenario: R2 configured with type r2
+
+- GIVEN YAML configuration with `type: r2`, bucket "media", and valid R2 credentials
+- WHEN `BucketRegistry.getStorage("media")` is called
+- THEN an `R2StorageAdapter` instance is returned
+- AND the adapter uses the R2-specific endpoint
+
+#### Scenario: R2 configured with type s2 (legacy alias)
+
+- GIVEN YAML configuration with `type: s2`, bucket "media", and valid R2 credentials
+- WHEN `BucketRegistry.getStorage("media")` is called
+- THEN an `R2StorageAdapter` instance is returned
+- AND the behavior is identical to `type: r2`
+- AND a deprecation warning is logged for `type: s2`
+
+#### Scenario: R2 configuration defaults region to auto
+
+- GIVEN YAML configuration with `type: r2`, valid credentials, but no `region` specified
+- WHEN the adapter is initialized
+- THEN `region` is set to `"auto"` by default
+- AND R2 global storage is used correctly
+
+#### Scenario: R2 adapter handles not found error
+
+- GIVEN an R2 bucket "user-images" does not contain object "missing.png"
+- WHEN `download("missing.png")` is called
+- THEN `StorageObjectNotFoundException` is thrown
+- AND the message contains the key "missing.png"
+
+#### Scenario: R2 adapter handles access denied error
+
+- GIVEN R2 credentials lack permission to bucket "restricted"
+- WHEN `upload("file.txt", ...)` is called on bucket "restricted"
+- THEN `StorageAccessDeniedException` is thrown
+- AND the operation does not succeed
+
+#### Scenario: R2 adapter rejects path traversal in key
+
+- GIVEN an R2 bucket "user-images"
+- WHEN `upload("../etc/passwd", ...)` is attempted
+- THEN `StorageSecurityException` is thrown
+- AND the object is NOT uploaded
+
+#### Scenario: R2 adapter passes storage contract
+
+- GIVEN `StorageContractTest` is executed with `R2StorageAdapter`
+- WHEN all contract test methods run
+- THEN all tests pass
+- AND the R2 adapter is verified as storage-agnostic compliant
+
+#### Scenario: R2 adapter checks object existence
+
+- GIVEN an R2 bucket "user-images" contains object "avatars/user1.png"
+- WHEN `exists("avatars/user1.png")` is called
+- THEN the method returns `true`
+- AND when `exists("avatars/missing.png")` is called
+- THEN the method returns `false`

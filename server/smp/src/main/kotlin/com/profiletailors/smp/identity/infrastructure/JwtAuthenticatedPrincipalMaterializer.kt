@@ -9,9 +9,9 @@ import com.profiletailors.smp.credentials.domain.ValidatedToken
 import com.profiletailors.smp.identity.application.NoOpPrincipalIdentityLookup
 import com.profiletailors.smp.identity.application.PrincipalIdentityLookup
 import com.profiletailors.smp.identity.domain.AuthenticatedPrincipal
-import com.profiletailors.smp.identity.domain.PrincipalContext
-import com.profiletailors.smp.identity.domain.PrincipalType
-import com.profiletailors.smp.platform.application.MissingPrincipalContextException
+import com.profiletailors.common.domain.context.PrincipalContext
+import com.profiletailors.common.domain.context.PrincipalType
+import com.profiletailors.common.domain.context.MissingPrincipalContextException
 
 class JwtAuthenticatedPrincipalMaterializer(
     private val principalIdentityLookup: PrincipalIdentityLookup = NoOpPrincipalIdentityLookup(),
@@ -26,11 +26,13 @@ class JwtAuthenticatedPrincipalMaterializer(
         }
 
     private suspend fun materializeUser(token: ValidatedToken): AuthenticatedPrincipal {
-        val principalFacts = principalIdentityLookup.findBySubject(
-            principalType = PrincipalType.USER,
-            subject = token.subject,
-            provider = token.issuer,
-        )
+        val principalFacts = token.claims["principal_id"]
+            ?.let { principalIdentityLookup.findByPrincipalId(it) }
+            ?: principalIdentityLookup.findBySubject(
+                principalType = PrincipalType.USER,
+                subject = token.subject,
+                provider = token.issuer,
+            )
         val displayIdentity = principalFacts?.displayIdentity
             ?: principalFacts?.username
             ?: token.claims["preferred_username"]

@@ -8,7 +8,7 @@ description: vi helper for mocking, timers, utilities
 The `vi` helper provides mocking and utility functions.
 
 ```ts
-import { vi } from 'vitest'
+import {vi} from 'vitest'
 ```
 
 ## Mock Functions
@@ -38,7 +38,7 @@ fn.mockRestore()  // Restore original (for spies)
 ## Spying
 
 ```ts
-const obj = { method: () => 'original' }
+const obj = {method: () => 'original'}
 
 const spy = vi.spyOn(obj, 'method')
 obj.method()
@@ -67,7 +67,7 @@ vi.mock('./module', async (importOriginal) => ({
 }))
 
 // Spy mode - keep implementation
-vi.mock('./module', { spy: true })
+vi.mock('./module', {spy: true})
 
 // Import actual module inside mock
 const actual = await vi.importActual('./module')
@@ -80,7 +80,7 @@ const mocked = await vi.importMock('./module')
 
 ```ts
 // Not hoisted - use with dynamic imports
-vi.doMock('./config', () => ({ key: 'value' }))
+vi.doMock('./config', () => ({key: 'value'}))
 const config = await import('./config')
 
 // Unmock
@@ -169,12 +169,12 @@ vi.mock('./module', () => ({
 await vi.waitFor(async () => {
   const el = document.querySelector('.loaded')
   expect(el).toBeTruthy()
-}, { timeout: 5000, interval: 100 })
+}, {timeout: 5000, interval: 100})
 
 // Wait for truthy value
 const element = await vi.waitUntil(
-  () => document.querySelector('.loaded'),
-  { timeout: 5000 }
+    () => document.querySelector('.loaded'),
+    {timeout: 5000}
 )
 ```
 
@@ -185,7 +185,7 @@ Mock all methods of an object:
 ```ts
 const original = {
   method: () => 'real',
-  nested: { fn: () => 'nested' },
+  nested: {fn: () => 'nested'},
 }
 
 const mocked = vi.mockObject(original)
@@ -193,7 +193,7 @@ mocked.method()  // undefined (mocked)
 mocked.method.mockReturnValue('mocked')
 
 // Spy mode
-const spied = vi.mockObject(original, { spy: true })
+const spied = vi.mockObject(original, {spy: true})
 spied.method()  // 'real'
 expect(spied.method).toHaveBeenCalled()
 ```
@@ -222,17 +222,18 @@ vi.restoreAllMocks() // Restore originals (spies)
 TypeScript helper for mocked values:
 
 ```ts
-import { myFn } from './module'
+import {myFn} from './module'
+
 vi.mock('./module')
 
 // Type as mock
 vi.mocked(myFn).mockReturnValue('typed')
 
 // Deep mocking
-vi.mocked(myModule, { deep: true })
+vi.mocked(myModule, {deep: true})
 
 // Partial mock typing
-vi.mocked(fn, { partial: true }).mockResolvedValue({ ok: true })
+vi.mocked(fn, {partial: true}).mockResolvedValue({ok: true})
 ```
 
 ## Key Points

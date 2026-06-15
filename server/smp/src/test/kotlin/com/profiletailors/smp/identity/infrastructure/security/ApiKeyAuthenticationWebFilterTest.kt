@@ -1,9 +1,9 @@
 package com.profiletailors.smp.identity.infrastructure.security
 
 import com.profiletailors.smp.credentials.application.ActiveApiKeyCredential
+import com.profiletailors.common.domain.context.PrincipalContext
+import com.profiletailors.common.domain.context.PrincipalType
 import com.profiletailors.smp.identity.domain.AuthenticatedPrincipal
-import com.profiletailors.smp.identity.domain.PrincipalContext
-import com.profiletailors.smp.identity.domain.PrincipalType
 import com.profiletailors.smp.identity.infrastructure.ApiKeyAuthenticatedPrincipalMaterializer
 import kotlinx.coroutines.reactor.awaitSingle
 import kotlinx.coroutines.test.runTest
@@ -123,6 +123,9 @@ class ApiKeyAuthenticationWebFilterTest {
                 subject: String,
                 provider: String?,
             ) = null
+
+            override suspend fun findByEmail(email: String) = null
+            override suspend fun findByPrincipalId(principalId: String) = null
         },
     ) {
         override suspend fun materialize(activeCredential: ActiveApiKeyCredential): AuthenticatedPrincipal = AuthenticatedPrincipal(

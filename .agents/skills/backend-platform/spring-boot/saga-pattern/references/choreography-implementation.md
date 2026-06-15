@@ -30,38 +30,42 @@ Compensation    Compensation        Compensation
 
 ## Event Publisher
 
-```java
+```kotlin
 @Component
-public class OrderEventPublisher {
-    private final StreamBridge streamBridge;
+class OrderEventPublisher {
+    private val streamBridge: StreamBridge
 
-    public OrderEventPublisher(StreamBridge streamBridge) {
+    public OrderEventPublisher(StreamBridge streamBridge)
+    {
         this.streamBridge = streamBridge;
     }
 
-    public void publishOrderCreatedEvent(String orderId, BigDecimal amount, String itemId) {
-        OrderCreatedEvent event = new OrderCreatedEvent(orderId, amount, itemId);
-        streamBridge.send("orderCreated-out-0",
+    fun publishOrderCreatedEvent(String orderId, BigDecimal amount, String itemId): void {
+        OrderCreatedEvent event = OrderCreatedEvent (orderId, amount, itemId);
+        streamBridge.send(
+            "orderCreated-out-0",
             MessageBuilder
                 .withPayload(event)
                 .setHeader(MessageHeaders.CONTENT_TYPE, MimeTypeUtils.APPLICATION_JSON)
-                .build());
+                .build()
+        );
     }
 }
 ```
 
 ## Event Listener
 
-```java
+```kotlin
 @Component
-public class PaymentEventListener {
+class PaymentEventListener {
 
     @Bean
-    public Consumer<OrderCreatedEvent> handleOrderCreatedEvent() {
+    public Consumer<OrderCreatedEvent> handleOrderCreatedEvent()
+    {
         return event -> processPayment(event.getOrderId());
     }
 
-    private void processPayment(String orderId) {
+    private fun processPayment(String orderId): void {
         // Payment processing logic
     }
 }
@@ -69,7 +73,7 @@ public class PaymentEventListener {
 
 ## Event Classes
 
-```java
+```kotlin
 public record OrderCreatedEvent(
     String orderId,
     BigDecimal amount,
@@ -111,13 +115,14 @@ spring:
 ## Maven Dependencies
 
 ```xml
+
 <dependency>
-    <groupId>org.springframework.cloud</groupId>
-    <artifactId>spring-cloud-stream</artifactId>
+  <groupId>org.springframework.cloud</groupId>
+  <artifactId>spring-cloud-stream</artifactId>
 </dependency>
 <dependency>
-    <groupId>org.springframework.cloud</groupId>
-    <artifactId>spring-cloud-stream-binder-kafka</artifactId>
+<groupId>org.springframework.cloud</groupId>
+<artifactId>spring-cloud-stream-binder-kafka</artifactId>
 </dependency>
 ```
 

@@ -8,14 +8,14 @@ description: test/it function for defining tests with modifiers
 ## Basic Test
 
 ```ts
-import { expect, test } from 'vitest'
+import {expect, test} from 'vitest'
 
 test('adds numbers', () => {
   expect(1 + 1).toBe(2)
 })
 
 // Alias: it
-import { it } from 'vitest'
+import {it} from 'vitest'
 
 it('works the same', () => {
   expect(true).toBe(true)
@@ -47,7 +47,7 @@ test('slow test', async () => {
 }, 10_000)
 
 // Or with options object
-test('with options', { timeout: 10_000, retry: 2 }, async () => {
+test('with options', {timeout: 10_000, retry: 2}, async () => {
   // ...
 })
 ```
@@ -62,11 +62,13 @@ test.skip('skipped test', () => {
 })
 
 // Conditional skip
-test.skipIf(process.env.CI)('not in CI', () => {})
-test.runIf(process.env.CI)('only in CI', () => {})
+test.skipIf(process.env.CI)('not in CI', () => {
+})
+test.runIf(process.env.CI)('only in CI', () => {
+})
 
 // Dynamic skip via context
-test('dynamic skip', ({ skip }) => {
+test('dynamic skip', ({skip}) => {
   skip(someCondition, 'reason')
   // ...
 })
@@ -102,12 +104,12 @@ test.fails('expected to fail', () => {
 
 ```ts
 // Run tests in parallel
-test.concurrent('test 1', async ({ expect }) => {
+test.concurrent('test 1', async ({expect}) => {
   // Use context.expect for concurrent tests
   expect(await fetch1()).toBe('result')
 })
 
-test.concurrent('test 2', async ({ expect }) => {
+test.concurrent('test 2', async ({expect}) => {
   expect(await fetch2()).toBe('result')
 })
 ```
@@ -116,7 +118,8 @@ test.concurrent('test 2', async ({ expect }) => {
 
 ```ts
 // Force sequential in concurrent context
-test.sequential('must run alone', async () => {})
+test.sequential('must run alone', async () => {
+})
 ```
 
 ## Parameterized Tests
@@ -134,9 +137,9 @@ test.each([
 
 // With objects
 test.each([
-  { a: 1, b: 1, expected: 2 },
-  { a: 1, b: 2, expected: 3 },
-])('add($a, $b) = $expected', ({ a, b, expected }) => {
+  {a: 1, b: 1, expected: 2},
+  {a: 1, b: 2, expected: 3},
+])('add($a, $b) = $expected', ({a, b, expected}) => {
   expect(a + b).toBe(expected)
 })
 
@@ -145,7 +148,7 @@ test.each`
   a    | b    | expected
   ${1} | ${1} | ${2}
   ${1} | ${2} | ${3}
-`('add($a, $b) = $expected', ({ a, b, expected }) => {
+`('add($a, $b) = $expected', ({a, b, expected}) => {
   expect(a + b).toBe(expected)
 })
 ```
@@ -158,7 +161,7 @@ Preferred over `.each` - doesn't spread arrays:
 test.for([
   [1, 1, 2],
   [1, 2, 3],
-])('add(%i, %i) = %i', ([a, b, expected], { expect }) => {
+])('add(%i, %i) = %i', ([a, b, expected], {expect}) => {
   // Second arg is TestContext
   expect(a + b).toBe(expected)
 })
@@ -169,7 +172,7 @@ test.for([
 First argument provides context utilities:
 
 ```ts
-test('with context', ({ expect, skip, task }) => {
+test('with context', ({expect, skip, task}) => {
   console.log(task.name)   // Test name
   skip(someCondition)      // Skip dynamically
   expect(1).toBe(1)        // Context-bound expect
@@ -179,7 +182,7 @@ test('with context', ({ expect, skip, task }) => {
 ## Custom Test with Fixtures
 
 ```ts
-import { test as base } from 'vitest'
+import {test as base} from 'vitest'
 
 const test = base.extend({
   db: async ({}, use) => {
@@ -189,7 +192,7 @@ const test = base.extend({
   },
 })
 
-test('query', async ({ db }) => {
+test('query', async ({db}) => {
   const users = await db.query('SELECT * FROM users')
   expect(users).toBeDefined()
 })
@@ -198,7 +201,7 @@ test('query', async ({ db }) => {
 ## Retry Configuration
 
 ```ts
-test('flaky test', { retry: 3 }, async () => {
+test('flaky test', {retry: 3}, async () => {
   // Retries up to 3 times on failure
 })
 
@@ -209,13 +212,15 @@ test('with delay', {
     delay: 1000,
     condition: /timeout/i, // Only retry on timeout errors
   },
-}, async () => {})
+}, async () => {
+})
 ```
 
 ## Tags
 
 ```ts
-test('database test', { tags: ['db', 'slow'] }, async () => {})
+test('database test', {tags: ['db', 'slow']}, async () => {
+})
 
 // Run with: vitest --tags db
 ```

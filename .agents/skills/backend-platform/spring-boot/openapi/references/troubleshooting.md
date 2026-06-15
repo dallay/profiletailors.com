@@ -9,12 +9,13 @@
 **Solution**: Add `-parameters` compiler flag (Spring Boot 3.2+):
 
 ```xml
+
 <plugin>
-    <groupId>org.apache.maven.plugins</groupId>
-    <artifactId>maven-compiler-plugin</artifactId>
-    <configuration>
-        <parameters>true</parameters>
-    </configuration>
+  <groupId>org.apache.maven.plugins</groupId>
+  <artifactId>maven-compiler-plugin</artifactId>
+  <configuration>
+    <parameters>true</parameters>
+  </configuration>
 </plugin>
 ```
 
@@ -32,9 +33,9 @@ tasks.withType(JavaCompile).configureEach {
 
 **Solution**: Ensure `ByteArrayHttpMessageConverter` is registered when overriding converters:
 
-```java
-converters.add(new ByteArrayHttpMessageConverter());
-converters.add(new MappingJackson2HttpMessageConverter());
+```kotlin
+converters.add(ByteArrayHttpMessageConverter());
+converters.add(MappingJackson2HttpMessageConverter());
 ```
 
 **Alternative approach**: Check for missing message converter configuration in your WebMvcConfigurer
@@ -72,23 +73,24 @@ or similar configuration.
 
 **Solution**: Permit SpringDoc endpoints in Spring Security:
 
-```java
+```kotlin
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
 import org.springframework.security.web.SecurityFilterChain;
 
 @Configuration
 @EnableWebSecurity
-public class SecurityConfig {
+class SecurityConfig {
 
     @Bean
-    public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
+    public SecurityFilterChain filterChain(HttpSecurity http) throws Exception
+    {
         return http
             .authorizeHttpRequests(auth -> auth
-                .requestMatchers("/v3/api-docs/**", "/swagger-ui/**", "/swagger-ui.html").permitAll()
-                .anyRequest().authenticated()
-            )
-            .build();
+        .requestMatchers("/v3/api-docs/**", "/swagger-ui/**", "/swagger-ui.html").permitAll()
+        .anyRequest().authenticated()
+        )
+        .build();
     }
 }
 ```
@@ -100,20 +102,22 @@ public class SecurityConfig {
 **Solution**: Ensure correct version compatibility:
 
 ```xml
+
 <dependency>
-    <groupId>org.springdoc</groupId>
-    <artifactId>springdoc-openapi-starter-webmvc-ui</artifactId>
-    <version>2.8.13</version>
+  <groupId>org.springdoc</groupId>
+  <artifactId>springdoc-openapi-starter-webmvc-ui</artifactId>
+  <version>2.8.13</version>
 </dependency>
 ```
 
 For WebFlux applications:
 
 ```xml
+
 <dependency>
-    <groupId>org.springdoc</groupId>
-    <artifactId>springdoc-openapi-starter-webflux-ui</artifactId>
-    <version>2.8.13</version>
+  <groupId>org.springdoc</groupId>
+  <artifactId>springdoc-openapi-starter-webflux-ui</artifactId>
+  <version>2.8.13</version>
 </dependency>
 ```
 
@@ -124,11 +128,12 @@ For WebFlux applications:
 **Solution**: Add the therapi-runtime-javadoc dependency:
 
 ```xml
+
 <dependency>
-    <groupId>com.github.therapi</groupId>
-    <artifactId>therapi-runtime-javadoc</artifactId>
-    <version>0.15.0</version>
-    <scope>provided</scope>
+  <groupId>com.github.therapi</groupId>
+  <artifactId>therapi-runtime-javadoc</artifactId>
+  <version>0.15.0</version>
+  <scope>provided</scope>
 </dependency>
 ```
 
@@ -150,17 +155,17 @@ val title: String = ""
 
 **Solution**: Ensure proper Jackson configuration:
 
-```java
+```kotlin
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
 @Configuration
-public class JacksonConfig {
+class JacksonConfig {
 
     @Bean
-    public ObjectMapper objectMapper() {
-        return new ObjectMapper();
+    fun objectMapper(): ObjectMapper {
+        return ObjectMapper();
     }
 }
 ```
@@ -175,9 +180,9 @@ public class JacksonConfig {
 2. Use path exclusions to filter out unwanted endpoints
 3. Consider using grouped OpenAPI definitions
 
-```java
+```kotlin
 @Bean
-public GroupedOpenApi publicApi() {
+fun publicApi(): GroupedOpenApi {
     return GroupedOpenApi.builder()
         .group("public")
         .packagesToScan("com.example.controller.public")
@@ -211,22 +216,23 @@ springdoc.show-actuator=true
 **Solution**: Use `@Operation(hidden = true)` on exception handlers and define proper error response
 schemas:
 
-```java
-@ExceptionHandler(BookNotFoundException.class)
-@ResponseStatus(HttpStatus.NOT_FOUND)
-@Operation(hidden = true)
-public ErrorResponse handleBookNotFound(BookNotFoundException ex) {
-    return new ErrorResponse("BOOK_NOT_FOUND", ex.getMessage());
-}
+```kotlin
+@ExceptionHandler(
+    BookNotFoundException.class)
+    @ResponseStatus(HttpStatus.NOT_FOUND)
+    @Operation(hidden = true)
+    fun handleBookNotFound(BookNotFoundException ex): ErrorResponse {
+        return ErrorResponse("BOOK_NOT_FOUND", ex.getMessage());
+    }
 
-@Schema(description = "Error response")
-public record ErrorResponse(
-    @Schema(description = "Error code", example = "BOOK_NOT_FOUND")
-    String code,
+    @Schema(description = "Error response")
+    public record ErrorResponse(
+        @Schema(description = "Error code", example = "BOOK_NOT_FOUND")
+        String code,
 
-    @Schema(description = "Error message", example = "Book with ID 123 not found")
-    String message
-) {}
+        @Schema(description = "Error message", example = "Book with ID 123 not found")
+        String message
+    ) {}
 ```
 
 ### Debugging Tips

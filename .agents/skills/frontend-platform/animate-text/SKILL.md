@@ -1,6 +1,6 @@
 ---
 name: animate-text
-description: Curated text animation catalog with exact JSON specs for headings, labels, counters, and text swaps. Use when an agent needs to pick or translate named effects like soft blur in, typewriter, shared axis, line reveal, stagger, crossfade, or kinetic builds into WAAPI, Motion, Framer Motion, GSAP, CSS, Lottie, Rive, or similar stacks.
+description: Use when picking or translating named effects like soft blur in, typewriter, shared axis, line reveal, stagger, crossfade, or kinetic builds.
 ---
 
 # Animate Text

@@ -2,7 +2,7 @@
 
 <div align="center">
 
-![Profile Tailors Logo](shared/assets/profiletailors-logotype-light.svg)
+<img src="shared/assets/profiletailors-logotype-light.svg" alt="Profile Tailors Logo" width="320" />
 
 **Schedule smarter. Post everywhere.**
 
@@ -20,16 +20,19 @@ Public-facing marketing site for the Profile Tailors social media management pla
 
 ## Overview
 
-**Profile Tailors** is a social media management platform for scheduling, publishing, analyzing, engaging, and collaborating across multiple platforms.
+**Profile Tailors** is a social media management platform for scheduling, publishing, analyzing,
+engaging, and collaborating across multiple platforms.
 
-This repository contains the **marketing site** and the **backend service** (in early development). The frontend is a lightweight, static-first Astro site at `apps/web/marketing/`.
+This repository contains the **marketing site** and the **backend service** (in early development).
+The frontend is a lightweight, static-first Astro site at `apps/web/marketing/`.
 
 ### What ships in this repo today
 
 - **English landing page** at `/`
 - **Spanish landing page** at `/es/`
 - **Client-side waitlist flow** for early access
-- **Nothing-inspired, monochrome, typographically driven design system** — dark-first with equal-rigor light mode
+- **Nothing-inspired, monochrome, typographically driven design system** — dark-first with
+  equal-rigor light mode
 - **Shared brand assets** served from `shared/assets/`
 - **Backend service** in `server/smp/` (Spring Boot, Kotlin, work in progress)
 
@@ -39,17 +42,17 @@ This repository contains the **marketing site** and the **backend service** (in 
 
 ## Tech Stack
 
-| Category | Technology |
-| --- | --- |
-| Frontend | Astro 6, Tailwind CSS v4 + @theme, TypeScript |
-| Backend | Spring Boot 4, Kotlin, WebFlux (experimental) |
-| Rendering model | Static-first, no SSR |
-| i18n | Astro i18n routing (`en`, `es`) |
-| Icons | `@dallay/astro-icon`, `@iconify-json/lucide` |
-| Linting | Biome |
-| Package manager | pnpm |
-| Workspace tooling | Bazel, Lefthook |
-| CI/CD | GitHub Actions, Release Please |
+| Category          | Technology                                    |
+|-------------------|-----------------------------------------------|
+| Frontend          | Astro 6, Tailwind CSS v4 + @theme, TypeScript |
+| Backend           | Spring Boot 4, Kotlin, WebFlux (experimental) |
+| Rendering model   | Static-first, no SSR                          |
+| i18n              | Astro i18n routing (`en`, `es`)               |
+| Icons             | `@dallay/astro-icon`, `@iconify-json/lucide`  |
+| Linting           | Biome                                         |
+| Package manager   | pnpm                                          |
+| Workspace tooling | Bazel, Lefthook                               |
+| CI/CD             | GitHub Actions, Release Please                |
 
 ---
 
@@ -94,48 +97,124 @@ profiletailors.com/
 
 ### Prerequisites
 
-| Requirement | Version |
-| --- | --- |
-| Node.js | `>= 22.12.0` |
-| pnpm | `>= 10` |
+| Requirement    | Version               | Install                                    |
+|----------------|-----------------------|--------------------------------------------|
+| Node.js        | `>= 22.12.0`          | [nodejs.org](https://nodejs.org)           |
+| pnpm           | `>= 10`               | `npm install -g pnpm`                      |
+| just           | `>= 1.30`             | `brew install just` / `winget install Casey.Just` / `cargo install just` |
+
+> **Windows users:** `just` runs natively on Windows. The Gradle wrapper is auto-detected
+> (`gradlew.bat` in CMD/PowerShell, `./gradlew` in Git Bash/WSL). Recipes that use `rm -rf`
+> still require a POSIX shell — use **Git Bash** (included with [Git for Windows](https://git-scm.com))
+> or **WSL**.
 
 ### Install and run locally
 
 ```bash
 git clone https://github.com/dallay/profiletailors.com.git
-cd profiletailors.com/apps/web/marketing
-pnpm install
-pnpm dev
+cd profiletailors.com
+just install       # installs all dependencies (frontend + backend)
+just frontend-dev  # starts the Astro dev server
 ```
 
 The site will be available at [http://localhost:4321](http://localhost:4321).
 
-### Common commands
+### Command Hub
 
-Run these from `apps/web/marketing/`:
+This repo uses [`just`](https://github.com/casey/just) as a centralized command runner.
+All common operations are available via `just <recipe>` — no need to remember pnpm, Gradle, or
+Docker commands separately. Run `just -l` to list everything.
 
-| Command | What it does |
-| --- | --- |
-| `pnpm install` | Install dependencies |
-| `pnpm dev` | Start the Astro dev server |
-| `pnpm build` | Build the production site into `dist/` |
-| `pnpm preview` | Preview the production build locally |
-| `pnpm check` | Run Astro type/content checks |
-| `pnpm lint` | Lint the app source with Biome |
-| `pnpm format` | Format code with Biome |
+#### Frontend (Astro / pnpm)
+
+| Command                     | What it does                        |
+|-----------------------------|-------------------------------------|
+| `just frontend-dev`         | Start the Astro dev server          |
+| `just frontend-build`       | Build the production site           |
+| `just frontend-preview`     | Preview the production build        |
+| `just frontend-lint`        | Lint with Biome                     |
+| `just frontend-format`      | Format code with Biome              |
+| `just frontend-check`       | Run Astro type/content checks       |
+| `just frontend-test`        | Run unit tests (Vitest)             |
+| `just frontend-test-cov`    | Run unit tests with coverage        |
+| `just frontend-test-e2e`    | Run E2E tests (Playwright headless) |
+
+#### Backend (Gradle / Kotlin / Spring Boot)
+
+| Command                     | What it does                        |
+|-----------------------------|-------------------------------------|
+| `just backend-build`        | Compile and package                 |
+| `just backend-run`          | Start Spring Boot (dev profile)     |
+| `just backend-test-fast`    | Run unit tests (fast: no Postgres)  |
+| `just backend-test`         | Run unit tests (pass exclude-tags)  |
+| `just backend-lint`         | Run Detekt static analysis          |
+| `just backend-check`        | Full check (tests + Detekt)         |
+| `just backend-coverage`     | Tests with JaCoCo coverage report   |
+
+#### Infrastructure (Docker)
+
+| Command              | What it does                    |
+|----------------------|---------------------------------|
+| `just infra-up`      | Start Postgres + services       |
+| `just infra-down`    | Stop and remove containers      |
+| `just infra-logs`    | Tail service logs               |
+
+#### CI Simulation
+
+| Command             | What it does                                   |
+|---------------------|------------------------------------------------|
+| `just ci-local`     | Full CI pipeline simulation (fast, local-only) |
+| `just ci-full`      | CI pipeline + Postgres BDD tests               |
+
+#### Setup & Maintenance
+
+| Command               | What it does                          |
+|-----------------------|---------------------------------------|
+| `just install`        | Install all dependencies              |
+| `just setup`          | Full initial setup (.env + install + hooks) |
+| `just hooks-install`  | Install Lefthook git hooks            |
+| `just clean`          | Clean all build artifacts and caches  |
 
 ---
 
 ## Development Notes
 
 - The active frontend app is `apps/web/marketing/`.
-- The site uses Astro's built-in locale routing with **English as the default locale** and **Spanish under `/es/`**.
+- The site uses Astro's built-in locale routing with **English as the default locale** and **Spanish
+  under `/es/`**.
 - User-facing copy is maintained in locale files under `apps/web/marketing/src/i18n/`.
-- Shared web assets are sourced from `shared/assets/` and exposed by the app config during development and build.
+- Shared web assets are sourced from `shared/assets/` and exposed by the app config during
+  development and build.
 - The current waitlist flow is **client-side only**.
 - Code quality: **Biome** for linting and formatting in the frontend.
-- The backend lives in `server/smp/` — Spring Boot 4 with Kotlin and WebFlux (experimental, not deployed).
+- The backend lives in `server/smp/` — Spring Boot 4 with Kotlin and WebFlux (experimental, not
+  deployed).
 - SDD artifacts live in `openspec/` for tracking specs, designs, and tasks.
+
+---
+
+## Architecture
+
+Profile Tailors follows a **hexagonal architecture** with **bounded contexts** from Domain-Driven
+Design. The backend is built as a **modular monolith** using Spring Boot 4, Kotlin, and reactive
+programming.
+
+**📐 [View C4 Architecture Models](docs/architecture/c4/)**
+
+- **[System Context](docs/architecture/c4/01-system-context.md)** — Big picture, external
+  dependencies
+- **[Container](docs/architecture/c4/02-container.md)** — Deployable units, technology stack
+- **[Component](docs/architecture/c4/03-component.md)** — Internal structure, bounded contexts
+- **[Code](docs/architecture/c4/04-code.md)** — Implementation patterns, class design
+- **[Summary](docs/architecture/c4/SUMMARY.md)** — Executive summary and roadmap
+
+**Key Architectural Patterns**:
+
+- Hexagonal Architecture (Ports & Adapters)
+- Domain-Driven Design (Bounded Contexts)
+- CQRS (Command Query Responsibility Segregation)
+- Reactive Programming (Kotlin coroutines + R2DBC)
+- Modular Monolith (Spring Modulith)
 
 ---
 
