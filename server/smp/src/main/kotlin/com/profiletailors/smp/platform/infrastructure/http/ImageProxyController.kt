@@ -9,9 +9,10 @@ import org.springframework.web.bind.annotation.GetMapping
 import org.springframework.web.bind.annotation.RequestMapping
 import org.springframework.web.bind.annotation.RequestParam
 import org.springframework.web.bind.annotation.RestController
+import org.springframework.http.HttpHeaders
 import org.springframework.web.reactive.function.client.WebClient
 import org.springframework.web.reactive.function.client.WebClientResponseException
-import org.springframework.web.reactive.function.client.awaitBody
+import org.springframework.web.reactive.function.client.awaitEntity
 import java.net.URI
 import java.time.Duration
 
@@ -23,6 +24,16 @@ class ImageProxyController(
 ) {
     companion object {
         private val CACHE_DURATION = Duration.ofMinutes(30)
+    }
+
+    private fun validateUrl(url: String): URI? {
+        val uri = try {
+            URI.create(url)
+        } catch (_: IllegalArgumentException) {
+            return null
+        }
+        val host = uri.host?.lowercase()
+        return if (uri.scheme == "https" && host != null && host in allowedHosts) uri else null
     }
 
     internal val allowedHosts = setOf(
@@ -38,30 +49,23 @@ class ImageProxyController(
     suspend fun proxyImage(
         @RequestParam url: String,
     ): ResponseEntity<ByteArray> {
-        val uri = URI.create(url)
-        val host = uri.host
-
-        if (host == null || host !in allowedHosts) {
-            return ResponseEntity.badRequest().build()
-        }
+        val uri = validateUrl(url) ?: return ResponseEntity.badRequest().build()
 
         return try {
-            val imageBytes: ByteArray = webClient.get()
+            val upstream = webClient.get()
                 .uri(uri)
                 .accept(MediaType.IMAGE_JPEG, MediaType.IMAGE_PNG, MediaType.IMAGE_GIF)
                 .retrieve()
-                .awaitBody()
+                .awaitEntity<ByteArray>()
 
-            val contentType = when {
-                host.contains("licdn.com") -> MediaType.IMAGE_JPEG
-                host.contains("twimg.com") -> MediaType.IMAGE_JPEG
-                else -> MediaType.IMAGE_PNG
-            }
+            val upstreamHeaders = upstream.headers
+            val upstreamContentType = upstreamHeaders.contentType
+                ?: MediaType.APPLICATION_OCTET_STREAM
 
             ResponseEntity.ok()
-                .contentType(contentType)
+                .contentType(upstreamContentType)
                 .cacheControl(CacheControl.maxAge(CACHE_DURATION))
-                .body(imageBytes)
+                .body(upstream.body)
         } catch (e: WebClientResponseException) {
             ResponseEntity.status(e.statusCode).build()
         }

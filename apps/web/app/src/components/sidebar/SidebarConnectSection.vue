@@ -26,7 +26,7 @@ function onConnect(channel: ConnectChannel) {
     emit('connect', channel)
     return
   }
-  show(`${channel.label} ${channel.id === 'threads' ? 'coming soon' : 'connection available soon'}`)
+  show(`${channel.label} ${channel.id === 'threads' ? t('channels.threadsComingSoon') : t('channels.connectionAvailableSoon')}`)
   emit('connect', channel)
 }
 

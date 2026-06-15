@@ -7,6 +7,9 @@ import org.springframework.web.reactive.config.ApiVersionConfigurer
 import org.springframework.web.reactive.config.WebFluxConfigurer
 import org.springframework.web.reactive.function.client.WebClient
 import org.springframework.web.server.ServerWebExchange
+import reactor.netty.http.client.HttpClient
+import org.springframework.http.client.reactive.ReactorClientHttpConnector
+import java.time.Duration
 
 /**
  * Configuration for Spring WebFlux features including API Versioning.
@@ -15,11 +18,17 @@ import org.springframework.web.server.ServerWebExchange
 class WebFluxConfiguration : WebFluxConfigurer {
 
     @Bean
-    fun webClient(): WebClient = WebClient.builder()
-        .codecs { configurer ->
-            configurer.defaultCodecs().maxInMemorySize(IMAGE_PROXY_MAX_BYTES)
-        }
-        .build()
+    fun webClient(): WebClient {
+        val httpClient = HttpClient.create()
+            .responseTimeout(Duration.ofSeconds(IMAGE_PROXY_TIMEOUT_SECONDS))
+
+        return WebClient.builder()
+            .clientConnector(ReactorClientHttpConnector(httpClient))
+            .codecs { configurer ->
+                configurer.defaultCodecs().maxInMemorySize(IMAGE_PROXY_MAX_BYTES)
+            }
+            .build()
+    }
 
     @Bean
     fun mediaTypeVersionResolver(): ApiVersionResolver = MediaTypeVersionResolver()
@@ -37,6 +46,7 @@ class WebFluxConfiguration : WebFluxConfigurer {
     companion object {
         private const val DEFAULT_API_VERSION = "1"
         private const val IMAGE_PROXY_MAX_BYTES = 2 * 1024 * 1024
+        private const val IMAGE_PROXY_TIMEOUT_SECONDS = 10L
     }
 
     /**

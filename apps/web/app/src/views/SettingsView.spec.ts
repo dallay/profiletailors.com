@@ -31,6 +31,7 @@ vi.mock('@/lib/auth-api', () => ({
   login: vi.fn(),
   register: vi.fn(),
   logoutSession: vi.fn(),
+  proxyImageUrl: (url: string) => url,
 }))
 
 function mountSettings() {

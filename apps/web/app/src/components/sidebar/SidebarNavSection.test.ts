@@ -1,7 +1,11 @@
-import { describe, it, expect } from 'vitest'
+import { describe, it, expect, vi } from 'vitest'
 import { defineComponent, h, markRaw } from 'vue'
 import { mount } from '@vue/test-utils'
 import SidebarNavSection, { type NavGroup } from './SidebarNavSection.vue'
+
+vi.mock('vue-i18n', () => ({
+  useI18n: () => ({ t: (key: string) => key }),
+}))
 
 const StubIcon = markRaw(defineComponent({ name: 'StubIcon', render: () => h('svg') }))
 
