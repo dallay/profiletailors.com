@@ -88,4 +88,94 @@ class PublicationLifecyclePolicyTest {
         assertEquals(Instant.parse("2026-05-26T12:05:00Z"), retryPolicy.nextRetryAt(Instant.parse("2026-05-26T12:00:00Z")))
         assertEquals(3, retryPolicy.maxAttempts())
     }
+
+    // ---------------------------------------------------------------------------
+    // Past-time validation tests
+    // ---------------------------------------------------------------------------
+
+    @Test
+    fun `rejects scheduled publication with past time`() {
+        val now = Instant.parse("2026-05-26T12:00:00Z")
+        val draft = baseDraft.copy(
+            scheduleMode = ScheduleMode.SCHEDULED_AT,
+            scheduledFor = Instant.parse("2026-05-26T11:55:00Z"), // 5 minutes in the past
+        )
+
+        val exception = assertThrows(IllegalArgumentException::class.java) {
+            PublicationLifecyclePolicy.validateForCreation(draft, now)
+        }
+        assertTrue(exception.message!!.contains("Cannot schedule"))
+    }
+
+    @Test
+    fun `accepts scheduled publication exactly 5 minutes from now`() {
+        val now = Instant.parse("2026-05-26T12:00:00Z")
+        val draft = baseDraft.copy(
+            scheduleMode = ScheduleMode.SCHEDULED_AT,
+            scheduledFor = Instant.parse("2026-05-26T12:05:00Z"), // exactly 5 minutes ahead
+        )
+
+        PublicationLifecyclePolicy.validateForCreation(draft, now)
+    }
+
+    @Test
+    fun `rejects scheduled publication just under 5 minute boundary`() {
+        val now = Instant.parse("2026-05-26T12:00:00Z")
+        val draft = baseDraft.copy(
+            scheduleMode = ScheduleMode.SCHEDULED_AT,
+            scheduledFor = Instant.parse("2026-05-26T12:04:59Z"), // 4 minutes 59 seconds ahead
+        )
+
+        val exception = assertThrows(IllegalArgumentException::class.java) {
+            PublicationLifecyclePolicy.validateForCreation(draft, now)
+        }
+        assertTrue(exception.message!!.contains("Cannot schedule"))
+    }
+
+    @Test
+    fun `rejects scheduled publication at current time`() {
+        val now = Instant.parse("2026-05-26T12:00:00Z")
+        val draft = baseDraft.copy(
+            scheduleMode = ScheduleMode.SCHEDULED_AT,
+            scheduledFor = now,
+        )
+
+        val exception = assertThrows(IllegalArgumentException::class.java) {
+            PublicationLifecyclePolicy.validateForCreation(draft, now)
+        }
+        assertTrue(exception.message!!.contains("Cannot schedule"))
+    }
+
+    @Test
+    fun `accepts now mode regardless of current time`() {
+        val now = Instant.parse("2026-05-26T12:00:00Z")
+        // NOW mode with null scheduledFor should pass (no past-time check)
+        PublicationLifecyclePolicy.validateForCreation(baseDraft, now)
+    }
+
+    @Test
+    fun `accepts next slot mode regardless of current time`() {
+        val now = Instant.parse("2026-05-26T12:00:00Z")
+        val draft = baseDraft.copy(
+            scheduleMode = ScheduleMode.NEXT_SLOT,
+            nextSlotAfter = Instant.parse("2026-05-26T13:00:00Z"),
+        )
+        // NEXT_SLOT mode should not trigger past-time check
+        PublicationLifecyclePolicy.validateForCreation(draft, now)
+    }
+
+    @Test
+    fun `rejects scheduled publication with past date but future time`() {
+        val now = Instant.parse("2026-05-26T12:00:00Z")
+        // Yesterday's date at any time is still in the past as an absolute instant
+        val draft = baseDraft.copy(
+            scheduleMode = ScheduleMode.SCHEDULED_AT,
+            scheduledFor = Instant.parse("2026-05-25T15:00:00Z"), // yesterday at 3pm
+        )
+
+        val exception = assertThrows(IllegalArgumentException::class.java) {
+            PublicationLifecyclePolicy.validateForCreation(draft, now)
+        }
+        assertTrue(exception.message!!.contains("Cannot schedule"))
+    }
 }

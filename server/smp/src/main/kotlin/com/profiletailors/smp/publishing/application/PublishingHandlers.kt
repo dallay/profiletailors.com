@@ -46,6 +46,7 @@ import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.asFlow
 import kotlinx.coroutines.flow.onEach
 import java.time.Clock
+import java.time.Duration
 import java.time.Instant
 import java.util.Locale
 import java.util.UUID
@@ -57,6 +58,25 @@ class PublicationNotFoundException(
 class SocialAccountNotFoundException(
     socialAccountId: String,
 ) : IllegalArgumentException("Social account '$socialAccountId' was not found in the active workspace.")
+
+/**
+ * Validates that a SCHEDULED_AT publication is scheduled at least 5 minutes in the future.
+ * This is a belt-and-suspenders guard used by handlers that bypass [PublicationLifecyclePolicy.validateForCreation].
+ * NOW and NEXT_SLOT modes are not checked here — they are resolved by the system.
+ */
+private fun requireScheduledInFuture(scheduleMode: ScheduleMode, scheduledFor: Instant?, now: Instant) {
+    if (scheduleMode == ScheduleMode.SCHEDULED_AT) {
+        val forTime = requireNotNull(scheduledFor) {
+            "SCHEDULED_AT mode requires scheduledFor."
+        }
+        val earliestAllowed = now.plus(Duration.ofMinutes(5))
+        require(!forTime.isBefore(earliestAllowed)) {
+            "Cannot schedule a publication for $forTime. " +
+                "Scheduled time must be at least 5 minutes in the future. " +
+                "Earliest allowed: $earliestAllowed"
+        }
+    }
+}
 
 @Service
 internal class InitiateLinkedInConnectionHandler(
@@ -265,7 +285,7 @@ internal class CreatePublicationHandler(
             scheduledFor = command.scheduledFor,
             nextSlotAfter = command.nextSlotAfter,
         )
-        PublicationLifecyclePolicy.validateForCreation(draft)
+        PublicationLifecyclePolicy.validateForCreation(draft, now)
         providerCapabilityValidator.validate(
             ProviderCapabilityValidationInput(
                 provider = socialAccount.provider,
@@ -315,6 +335,7 @@ internal class EditPublicationHandler(
         val account = socialAccountRepository.findByWorkspaceAndId(workspaceId, current.socialAccountId)
             ?: throw SocialAccountNotFoundException(current.socialAccountId)
         val assets = publicationAssetRepository.findByWorkspaceAndIds(workspaceId, command.assetIds)
+        val now = clock.instant()
         val updatedDraft = current.copy(
             title = command.title,
             bodyText = command.bodyText,
@@ -324,7 +345,7 @@ internal class EditPublicationHandler(
             nextSlotAfter = command.nextSlotAfter,
             priority = command.priority,
         )
-        PublicationLifecyclePolicy.validateForCreation(updatedDraft.copy(status = PublicationStatus.DRAFT))
+        PublicationLifecyclePolicy.validateForCreation(updatedDraft.copy(status = PublicationStatus.DRAFT), now)
         providerCapabilityValidator.validate(
             ProviderCapabilityValidationInput(
                 provider = account.provider,
@@ -335,7 +356,7 @@ internal class EditPublicationHandler(
         )
         val queued = PublicationLifecyclePolicy.queue(
             updatedDraft,
-            schedulingPolicy.resolveDueAt(updatedDraft, clock.instant())
+            schedulingPolicy.resolveDueAt(updatedDraft, now)
         )
         val persisted = publicationRepository.updateEditableDraft(queued)
         publicationJobRepository.replaceForPublication(
@@ -344,7 +365,7 @@ internal class EditPublicationHandler(
                 publicationId = persisted.id,
                 workspaceId = persisted.workspaceId,
                 status = com.profiletailors.smp.publishing.domain.JobStatus.PENDING,
-                dueAt = schedulingPolicy.resolveDueAt(persisted, clock.instant()),
+                dueAt = schedulingPolicy.resolveDueAt(persisted, now),
                 priorityRank = schedulingPolicy.priorityRank(persisted),
                 attemptCount = 0,
                 maxAttempts = 1,
@@ -385,10 +406,14 @@ internal class RetryPublicationHandler(
         val workspaceId = requireNotNull(resourceContextProvider.requireWorkspaceContext().workspaceId)
         val current = publicationRepository.findByWorkspaceAndId(workspaceId, command.publicationId)
             ?: throw PublicationNotFoundException(command.publicationId)
+        val now = clock.instant()
+        val effectiveMode = command.scheduleMode ?: current.scheduleMode
+        val effectiveScheduledFor = command.scheduledFor ?: current.scheduledFor
+        requireScheduledInFuture(effectiveMode, effectiveScheduledFor, now)
         val prepared = PublicationLifecyclePolicy.prepareRetry(
             current.copy(
-                scheduleMode = command.scheduleMode ?: current.scheduleMode,
-                scheduledFor = command.scheduledFor ?: current.scheduledFor,
+                scheduleMode = effectiveMode,
+                scheduledFor = effectiveScheduledFor,
                 nextSlotAfter = command.nextSlotAfter ?: current.nextSlotAfter,
                 priority = command.priority ?: current.priority,
             ),
@@ -400,7 +425,7 @@ internal class RetryPublicationHandler(
                 publicationId = persisted.id,
                 workspaceId = persisted.workspaceId,
                 status = com.profiletailors.smp.publishing.domain.JobStatus.PENDING,
-                dueAt = schedulingPolicy.resolveDueAt(persisted, clock.instant()),
+                dueAt = schedulingPolicy.resolveDueAt(persisted, now),
                 priorityRank = schedulingPolicy.priorityRank(persisted),
                 attemptCount = 0,
                 maxAttempts = 1,
@@ -423,6 +448,8 @@ internal class ReschedulePublicationHandler(
         val current = publicationRepository.findByWorkspaceAndId(workspaceId, command.publicationId)
             ?: throw PublicationNotFoundException(command.publicationId)
         PublicationLifecyclePolicy.requireEditable(current)
+        val now = clock.instant()
+        requireScheduledInFuture(command.scheduleMode, command.scheduledFor, now)
         val rescheduled = PublicationLifecyclePolicy.queue(
             current.copy(
                 scheduleMode = command.scheduleMode,
@@ -437,7 +464,7 @@ internal class ReschedulePublicationHandler(
                     nextSlotAfter = command.nextSlotAfter,
                     priority = command.priority ?: current.priority,
                 ),
-                clock.instant(),
+                now,
             ),
         )
         val persisted = publicationRepository.updateEditableDraft(rescheduled)
@@ -447,7 +474,7 @@ internal class ReschedulePublicationHandler(
                 publicationId = persisted.id,
                 workspaceId = persisted.workspaceId,
                 status = com.profiletailors.smp.publishing.domain.JobStatus.PENDING,
-                dueAt = schedulingPolicy.resolveDueAt(persisted, clock.instant()),
+                dueAt = schedulingPolicy.resolveDueAt(persisted, now),
                 priorityRank = schedulingPolicy.priorityRank(persisted),
                 attemptCount = 0,
                 maxAttempts = 1,
