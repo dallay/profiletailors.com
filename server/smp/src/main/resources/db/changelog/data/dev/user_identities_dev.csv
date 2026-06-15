@@ -1,2 +1,2 @@
-"principal_id";"email";"username";"created_at"
-dev-user-001;dev@profiletailors.com;dev;2026-01-01T00:00:00Z
+"principal_id";"email";"username";"email_status";"created_at"
+dev-user-001;dev@profiletailors.com;dev;VERIFIED;2026-01-01T00:00:00Z
