@@ -2,9 +2,33 @@
 import { computed, ref, watch } from 'vue'
 import type { Component } from 'vue'
 import { useI18n } from 'vue-i18n'
-import { X } from '@lucide/vue'
-import * as LucideIcons from '@lucide/vue'
-import { toPascalCase } from '@/lib/string-utils'
+import {
+  X,
+  Briefcase,
+  Building,
+  Palette,
+  Rocket,
+  Zap,
+  Star,
+  Heart,
+  Flag,
+  Globe,
+  Compass,
+  Target,
+  TrendingUp,
+  Layers,
+  Folder,
+  Shield,
+  Users,
+  Camera,
+  Music,
+  Code,
+  BookOpen,
+  Crown,
+  Gem,
+  Sparkles,
+  Smile,
+} from '@lucide/vue'
 import {
   Dialog,
   DialogContent,
@@ -63,15 +87,37 @@ function confirm() {
   emit('select', localIcon.value)
 }
 
-function resolveIcon(name: string): Component | null {
-  const key = toPascalCase(name) as keyof typeof LucideIcons
-  return (LucideIcons[key] as Component | undefined) ?? null
+const ICON_MAP: Record<string, Component> = {
+  briefcase: Briefcase,
+  building: Building,
+  palette: Palette,
+  rocket: Rocket,
+  zap: Zap,
+  star: Star,
+  heart: Heart,
+  flag: Flag,
+  globe: Globe,
+  compass: Compass,
+  target: Target,
+  'trending-up': TrendingUp,
+  layers: Layers,
+  folder: Folder,
+  shield: Shield,
+  users: Users,
+  camera: Camera,
+  music: Music,
+  code: Code,
+  'book-open': BookOpen,
+  crown: Crown,
+  gem: Gem,
+  sparkles: Sparkles,
+  smile: Smile,
 }
 
 const iconComponents = computed<Record<string, Component | null>>(() => {
   const map: Record<string, Component | null> = {}
   for (const name of CURATED_ICONS) {
-    map[name] = resolveIcon(name)
+    map[name] = ICON_MAP[name] ?? null
   }
   return map
 })

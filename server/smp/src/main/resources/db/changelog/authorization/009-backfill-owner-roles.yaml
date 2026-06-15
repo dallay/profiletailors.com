@@ -2,7 +2,6 @@ databaseChangeLog:
   - changeSet:
       id: authorization-009-backfill-owner-roles
       author: opencode
-      context: dev
       preConditions:
         - onFail: MARK_RAN
         - tableExists:

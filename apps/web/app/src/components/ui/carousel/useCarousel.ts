@@ -35,6 +35,7 @@ const [useProvideCarousel, useInjectCarousel] = createInjectionState(
       api.on('reInit', onSelect)
       api.on('select', onSelect)
 
+      onSelect(api)
       emits('init-api', api)
     })
 
