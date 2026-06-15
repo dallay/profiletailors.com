@@ -54,7 +54,7 @@ function mountHarness(opts: { withTrigger?: boolean } = {}): {
           ? h(
               'button',
               {
-                ref: (el: unknown) => {
+                ref: (el: Element | null) => {
                   if (el instanceof HTMLElement) triggerRef.value = el
                 },
                 class: 'trigger',

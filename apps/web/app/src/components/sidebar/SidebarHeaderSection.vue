@@ -54,7 +54,7 @@ const isEmpty = computed(() => props.options.length === 0 && !props.isLoading)
           :key="ws.workspaceId"
           role="menuitem"
           class="flex w-full items-center gap-3 rounded-xl border px-3 py-2 text-left text-sm transition-all"
-          :class="activeWorkspace?.name === ws.name
+          :class="activeWorkspace?.workspaceId === ws.workspaceId
             ? 'border-border-visible bg-bg-primary text-text-display'
             : 'border-transparent text-text-secondary hover:border-border-subtle hover:bg-bg-primary/70 hover:text-text-display'"
           type="button"
