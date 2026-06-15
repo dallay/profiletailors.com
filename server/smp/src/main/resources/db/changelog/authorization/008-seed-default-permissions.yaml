@@ -2,7 +2,8 @@ databaseChangeLog:
   - changeSet:
       id: authorization-008-seed-default-permissions
       author: opencode
-      context: dev, prod, staging
+      # No context restriction — provisioning logic depends on role-owner in ALL environments.
+      # The ON CONFLICT clause makes this idempotent.
       changes:
         # ── Permissions ────────────────────────────────────────────
         - insert:
