@@ -345,4 +345,22 @@ export function createApiFetch(opts: {
   return Object.assign(apiFetch, { raw: apiFetchRaw })
 }
 
+/**
+ * Create a proxy URL for external images to bypass ad-blockers.
+ * Routes through our backend which fetches the image server-side.
+ */
+export function proxyImageUrl(originalUrl: string): string {
+  if (!originalUrl) return originalUrl
+  // Only proxy external URLs (not relative or same-origin)
+  if (originalUrl.startsWith('/')) return originalUrl
+  try {
+    const url = new URL(originalUrl)
+    // Don't proxy already-proxied URLs
+    if (url.pathname.startsWith('/api/media/proxy')) return originalUrl
+    return `${resolveApiBaseUrl()}/api/media/proxy?url=${encodeURIComponent(originalUrl)}`
+  } catch {
+    return originalUrl
+  }
+}
+
 export type { LoginPayload, RegisterPayload }

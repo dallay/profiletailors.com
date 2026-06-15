@@ -30,9 +30,9 @@ docker-compose := "docker compose"
 # SETUP
 # ═══════════════════════════════════════════════════════════════
 
-# Install all project dependencies (frozen lockfile)
+# Install all workspace dependencies (frozen lockfile)
 install:
-    cd {{frontend-dir}} && pnpm install --frozen-lockfile
+    pnpm install --frozen-lockfile
 
 # Full initial setup: .env → install → git hooks
 setup:
@@ -48,9 +48,9 @@ hooks-install:
 # FRONTEND  (pnpm / Astro / Biome / Vitest / Playwright)
 # ═══════════════════════════════════════════════════════════════
 
-# Start frontend dev server (portless)
+# Start both frontend dev servers in parallel (portless)
 frontend-dev:
-    cd {{frontend-dir}} && pnpm dev
+    pnpm --parallel --filter marketing --filter app dev
 
 # Build frontend for production
 frontend-build:
