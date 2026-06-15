@@ -267,6 +267,8 @@ const messages = {
       notConfiguredDesc: 'Set your LinkedIn app credentials in the server environment to enable this integration.',
       loading: 'Loading channels...',
       more: 'More channels',
+      threadsComingSoon: 'coming soon',
+      connectionAvailableSoon: 'connection available soon',
     },
     linkedinCallback: {
       loadingTitle: 'Connecting LinkedIn',
@@ -577,6 +579,8 @@ const messages = {
       connectLinkedInFailed: 'No se pudo iniciar la conexión de LinkedIn.',
       loadFailed: 'No se pudieron cargar los canales conectados.',
       noChannels: 'Aún no hay canales conectados.',
+      threadsComingSoon: 'próximamente',
+      connectionAvailableSoon: 'conexión disponible próximamente',
       notConfigured: 'LinkedIn no está configurado.',
       notConfiguredDesc: 'Configura las credenciales de tu aplicación LinkedIn en el entorno del servidor para habilitar esta integración.',
       loading: 'Cargando canales...',

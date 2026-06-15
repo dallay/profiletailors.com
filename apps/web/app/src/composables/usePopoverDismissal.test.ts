@@ -14,8 +14,9 @@ import { reactive } from 'vue'
 
 interface RouteLike {
   path: string
+  fullPath: string
 }
-const routeState = reactive<RouteLike>({ path: '/' })
+const routeState = reactive<RouteLike>({ path: '/', fullPath: '/' })
 vi.mock('vue-router', () => ({
   useRoute: () => routeState,
   useRouter: () => ({ push: vi.fn(), replace: vi.fn() }),
@@ -33,6 +34,9 @@ interface HarnessExposed {
   close: () => void
   openIt: () => void
 }
+
+/** Collect wrappers here so afterEach can unmount them all. */
+const wrappers: ReturnType<typeof mount>[] = []
 
 function mountHarness(opts: { withTrigger?: boolean } = {}): {
   wrapper: ReturnType<typeof mount>
@@ -82,6 +86,7 @@ function mountHarness(opts: { withTrigger?: boolean } = {}): {
   })
 
   const wrapper = mount(Harness, { attachTo: document.body })
+  wrappers.push(wrapper)
 
   const exposed: HarnessExposed = {
     containerRef,
@@ -97,6 +102,7 @@ function mountHarness(opts: { withTrigger?: boolean } = {}): {
 
 beforeEach(() => {
   routeState.path = '/'
+  routeState.fullPath = '/'
   if (document.activeElement instanceof HTMLElement) {
     document.activeElement.blur()
   }
@@ -104,6 +110,7 @@ beforeEach(() => {
 
 afterEach(() => {
   vi.restoreAllMocks()
+  for (const w of wrappers.splice(0)) w.unmount()
 })
 
 // ---------------------------------------------------------------------------
@@ -183,6 +190,7 @@ describe('usePopoverDismissal', () => {
 
     // Swap the route's path — composable's watcher must close
     routeState.path = '/scheduler'
+    routeState.fullPath = '/scheduler'
     await nextTick()
     await nextTick()
 

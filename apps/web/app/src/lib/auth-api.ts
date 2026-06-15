@@ -355,9 +355,12 @@ export function proxyImageUrl(originalUrl: string): string {
   if (originalUrl.startsWith('/')) return originalUrl
   try {
     const url = new URL(originalUrl)
-    // Don't proxy already-proxied URLs
-    if (url.pathname.startsWith('/api/media/proxy')) return originalUrl
-    return `${resolveApiBaseUrl()}/api/media/proxy?url=${encodeURIComponent(originalUrl)}`
+    const apiBase = resolveApiBaseUrl()
+    // Don't proxy URLs that are ALREADY proxied through OUR backend
+    if (url.origin === new URL(apiBase).origin && url.pathname.startsWith('/api/media/proxy')) {
+      return originalUrl
+    }
+    return `${apiBase}/api/media/proxy?url=${encodeURIComponent(originalUrl)}`
   } catch {
     return originalUrl
   }
