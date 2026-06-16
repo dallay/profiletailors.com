@@ -179,19 +179,34 @@ jobs:
         uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
       - name: Create reports directory
         run: mkdir -p reports/trivy
+      - name: Install Trivy
+        run: |
+          set -euo pipefail
+          TRIVY_VERSION="0.71.1"
+          ARTIFACT="trivy_${TRIVY_VERSION}_Linux-64bit.tar.gz"
+          EXPECTED_SHA="3cbae37cd440cd8676e5ce9207fe460b5641c7579a17e9d00f8894928c41a88d"
+          curl --fail --silent --show-error --location --proto =https \
+            -o "${ARTIFACT}" \
+            "https://github.com/aquasecurity/trivy/releases/download/v${TRIVY_VERSION}/${ARTIFACT}"
+          ACTUAL_SHA=$(sha256sum "${ARTIFACT}" | awk '{print $1}')
+          if [ "$EXPECTED_SHA" != "$ACTUAL_SHA" ]; then
+            echo "::error::SHA256 mismatch for ${ARTIFACT}: expected ${EXPECTED_SHA}, got ${ACTUAL_SHA}"
+            exit 1
+          fi
+          tar -xzf "${ARTIFACT}" trivy
+          sudo mv trivy /usr/local/bin/trivy
+          rm -f "${ARTIFACT}"
+          trivy --version
       - name: Run full Trivy filesystem, dependency, and IaC scan
-        uses: aquasecurity/trivy-action@b6643a29fecd7f34b3597bc6acb0a98b03d33ff8 # v0.33.1
-        with:
-          scan-type: fs
-          scan-ref: .
-          scanners: vuln,misconfig
-          severity: UNKNOWN,LOW,MEDIUM,HIGH,CRITICAL
-          ignore-unfixed: false
-          format: sarif
-          output: reports/trivy/trivy-full.sarif
-          exit-code: '0'
-        env:
-          TRIVY_LOG_LEVEL: DEBUG
+        run: |
+          trivy fs \
+            --format sarif \
+            --output reports/trivy/trivy-full.sarif \
+            --scanners vuln,misconfig \
+            --severity UNKNOWN,LOW,MEDIUM,HIGH,CRITICAL \
+            --exit-code 0 \
+            --no-progress \
+            .
       - name: Verify SARIF file exists
         if: ${{ always() }}
         run: |
