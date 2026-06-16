@@ -36,7 +36,9 @@ jobs:
           branch: main
           allowlist: |
             bot*
+            *[bot]
             dallay/*
             dependabot[bot]
+            @coderabbitai[bot]
           remote-organization-name: dallay
           remote-repository-name: profiletailors.com
