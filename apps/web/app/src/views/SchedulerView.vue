@@ -64,6 +64,15 @@ async function onDropCell(e: DragEvent, targetDate: Date, targetHour?: number) {
     const prev = new Date(dragData.value.previousScheduledAt)
     d.setHours(prev.getHours(), prev.getMinutes(), 0, 0)
   }
+
+  // Guard: reject drops to past time slots
+  const earliestAllowed = new Date(Date.now() + 5 * 60_000)
+  if (d < earliestAllowed) {
+    console.warn('Cannot reschedule to a past time slot.')
+    dragData.value = null
+    return
+  }
+
   const newDateIso = d.toISOString()
 
   try {
@@ -271,6 +280,23 @@ function isToday(date: Date) {
   )
 }
 
+// ---------------------------------------------------------------------------
+// Past-date / past-slot helpers
+// ---------------------------------------------------------------------------
+function isPastDate(date: Date): boolean {
+  const now = new Date()
+  const today = new Date(now.getFullYear(), now.getMonth(), now.getDate())
+  const cellDate = new Date(date.getFullYear(), date.getMonth(), date.getDate())
+  return cellDate < today
+}
+
+function isPastSlot(date: Date, hour: number): boolean {
+  const now = new Date()
+  const slotDate = new Date(date)
+  slotDate.setHours(hour, 0, 0, 0)
+  return slotDate.getTime() < now.getTime() + 5 * 60_000
+}
+
 function dateKey(date: Date): string {
   return date.toISOString().split('T')[0] ?? ''
 }
@@ -375,6 +401,7 @@ onMounted(() => {
                     :date="day"
                     :is-current-month="isCurrentMonth(day)"
                     :is-today="isToday(day)"
+                    :is-past="isPastDate(day)"
                     :publications="getPublicationsForDate(day)"
                     :activity-entry="activityForDate(day) ?? null"
                     :draggable="publishingStore.viewMode === 'calendar'"
@@ -423,10 +450,13 @@ onMounted(() => {
                   <div
                     v-for="day in weekDays"
                     :key="day.toISOString()"
-                    @click="openNewPostForSlot(day, slot.hour)"
-                    @dragover.prevent
-                    @drop.prevent="onDropCell($event, day, slot.hour)"
-                    class="relative p-2 border-r border-border-subtle last:border-r-0 hover:bg-bg-primary/20 transition-all group/cell flex flex-col justify-start gap-2 select-none cursor-pointer"
+                    @click="!isPastSlot(day, slot.hour) ? openNewPostForSlot(day, slot.hour) : undefined"
+                    @dragover.prevent="!isPastSlot(day, slot.hour)"
+                    @drop.prevent="!isPastSlot(day, slot.hour) ? onDropCell($event, day, slot.hour) : undefined"
+                    class="relative p-2 border-r border-border-subtle last:border-r-0 transition-all group/cell flex flex-col justify-start gap-2 select-none"
+                    :class="isPastSlot(day, slot.hour)
+                      ? 'opacity-40 cursor-not-allowed pointer-events-none'
+                      : 'hover:bg-bg-primary/20 cursor-pointer'"
                   >
                     <!-- Hour slot stamp -->
                     <span class="absolute top-1 left-2 font-mono text-[7px] tracking-wider text-text-secondary opacity-0 group-hover/cell:opacity-100 transition-opacity pointer-events-none">
@@ -551,9 +581,13 @@ onMounted(() => {
                   class="border border-dashed border-border-visible rounded-xl p-12 text-center"
                 >
                   <p class="font-mono text-[10px] uppercase tracking-wider text-text-secondary">
-                    No publications for this day
+                    {{ isPastDate(currentBaseDate) ? 'Past days are read-only' : 'No publications for this day' }}
                   </p>
-                  <Button @click="openNewPostForSlot(currentBaseDate)" class="mt-3 gap-1.5 text-[10px] uppercase font-mono tracking-wider">
+                  <Button
+                    v-if="!isPastDate(currentBaseDate)"
+                    @click="openNewPostForSlot(currentBaseDate)"
+                    class="mt-3 gap-1.5 text-[10px] uppercase font-mono tracking-wider"
+                  >
                     <Plus class="size-3" />
                     <span>Add Publication</span>
                   </Button>
