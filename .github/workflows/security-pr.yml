@@ -358,6 +358,7 @@ jobs:
         env:
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
           SONAR_HOST_URL: ${{ secrets.SONAR_HOST_URL }}
+          SONAR_ORGANIZATION: ${{ secrets.SONAR_ORGANIZATION }}
         run: |
           enabled=true
           reason=''
@@ -366,6 +367,9 @@ jobs:
           if [[ -z "$SONAR_TOKEN" ]]; then
             enabled=false
             reason='SONAR_TOKEN is not configured.'
+          elif [[ -z "$SONAR_ORGANIZATION" ]]; then
+            enabled=false
+            reason='SONAR_ORGANIZATION is not configured.'
           elif [[ -z "$project_key" || "$project_key" == 'profiletailors-change-me' ]]; then
             enabled=false
             reason='sonar.projectKey is still using the placeholder value.'
@@ -374,6 +378,7 @@ jobs:
           {
             echo "enabled=$enabled"
             echo "project_key=$project_key"
+            echo "org=$SONAR_ORGANIZATION"
             echo "host_url=$SONAR_HOST_URL"
             echo "reason=$reason"
           } >> "$GITHUB_OUTPUT"
@@ -384,7 +389,7 @@ jobs:
             echo '### Sonar PR status'
             echo '- Sonar PR analysis skipped.'
             echo "- Reason: ${{ steps.sonar-config.outputs.reason }}"
-            echo '- Configure SONAR_TOKEN and a real sonar.projectKey to enable centralized reporting.'
+            echo '- Configure SONAR_TOKEN, SONAR_ORGANIZATION, and a real sonar.projectKey to enable centralized reporting.'
           } >> "$GITHUB_STEP_SUMMARY"
       - name: Run Sonar PR analysis
         if: ${{ steps.sonar-config.outputs.enabled == 'true' }}
@@ -395,6 +400,7 @@ jobs:
         with:
           args: >-
             -Dsonar.projectKey=${{ steps.sonar-config.outputs.project_key }}
+            -Dsonar.organization=${{ steps.sonar-config.outputs.org }}
             -Dsonar.pullrequest.key=${{ github.event.pull_request.number }}
             -Dsonar.pullrequest.branch=${{ github.head_ref }}
             -Dsonar.pullrequest.base=${{ github.base_ref }}
