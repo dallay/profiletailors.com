@@ -8,10 +8,15 @@ enum class SocialProvider {
 }
 
 enum class SocialConnectionStatus {
+    PENDING,
     ACTIVE,
+    DISABLED,
+    REQUIRES_RECONNECT,
+    DELETED,
+    ERROR,
+    // Legacy values kept for backward compatibility
     REVOKED,
     EXPIRED,
-    ERROR,
 }
 
 enum class SocialAccountKind {
@@ -25,6 +30,7 @@ enum class PublicationStatus {
     SCHEDULED,
     PROCESSING,
     PUBLISHED,
+    BLOCKED,
     FAILED,
     CANCELLED,
 }
@@ -135,6 +141,10 @@ data class PublicationDraft(
     val publishedAt: Instant? = null,
     val failedAt: Instant? = null,
     val externalPublicationId: String? = null,
+    val publicUrl: String? = null,
+    val blockedAt: Instant? = null,
+    val blockedReason: String? = null,
+    val retryCount: Int = 0,
     val lastErrorCode: String? = null,
     val lastErrorMessage: String? = null,
     val createdAt: Instant? = null,
@@ -190,3 +200,88 @@ data class DeliveryAttempt(
     val attemptedAt: Instant,
     val createdAt: Instant? = null,
 )
+
+/**
+ * LinkedIn capability bundles for feature-gated publishing.
+ * Each bundle maps to a set of required OAuth scopes and a resource kind.
+ */
+enum class LinkedinCapabilityBundle(
+    val requiredScopes: Set<String>,
+    val resourceKind: SocialAccountKind,
+    val mvpStatus: CapabilityMvpStatus,
+) {
+    PERSONAL_PROFILE_TEXT(
+        requiredScopes = setOf("w_member_social"),
+        resourceKind = SocialAccountKind.PERSONAL_PROFILE,
+        mvpStatus = CapabilityMvpStatus.SUPPORTED,
+    ),
+    PERSONAL_PROFILE_IMAGE(
+        requiredScopes = setOf("w_member_social"),
+        resourceKind = SocialAccountKind.PERSONAL_PROFILE,
+        mvpStatus = CapabilityMvpStatus.SUPPORTED,
+    ),
+    ORG_PAGE_TEXT(
+        requiredScopes = setOf("w_organization_social"),
+        resourceKind = SocialAccountKind.ORGANIZATION_PAGE,
+        mvpStatus = CapabilityMvpStatus.GATED,
+    ),
+    ORG_PAGE_IMAGE(
+        requiredScopes = setOf("w_organization_social"),
+        resourceKind = SocialAccountKind.ORGANIZATION_PAGE,
+        mvpStatus = CapabilityMvpStatus.GATED,
+    ),
+    ORG_MENTIONS(
+        requiredScopes = setOf("w_organization_social"),
+        resourceKind = SocialAccountKind.ORGANIZATION_PAGE,
+        mvpStatus = CapabilityMvpStatus.GATED,
+    ),
+    VIDEO(
+        requiredScopes = setOf("w_member_social"),
+        resourceKind = SocialAccountKind.PERSONAL_PROFILE,
+        mvpStatus = CapabilityMvpStatus.GATED,
+    ),
+    PDF_DOCUMENT(
+        requiredScopes = setOf("w_member_social"),
+        resourceKind = SocialAccountKind.PERSONAL_PROFILE,
+        mvpStatus = CapabilityMvpStatus.GATED,
+    ),
+    CAROUSEL(
+        requiredScopes = setOf("w_member_social"),
+        resourceKind = SocialAccountKind.PERSONAL_PROFILE,
+        mvpStatus = CapabilityMvpStatus.GATED,
+    ),
+    COMMENTS_THREADS(
+        requiredScopes = setOf("w_member_social"),
+        resourceKind = SocialAccountKind.PERSONAL_PROFILE,
+        mvpStatus = CapabilityMvpStatus.UNSUPPORTED,
+    ),
+    ANALYTICS(
+        requiredScopes = setOf("w_member_social"),
+        resourceKind = SocialAccountKind.PERSONAL_PROFILE,
+        mvpStatus = CapabilityMvpStatus.UNSUPPORTED,
+    ),
+}
+
+enum class CapabilityMvpStatus {
+    SUPPORTED,
+    GATED,
+    UNSUPPORTED,
+}
+
+/**
+ * Tracks which scopes were actually granted during OAuth for a social connection.
+ */
+data class GrantedScopeBundle(
+    val grantedScopes: Set<String>,
+    val capabilityBundles: Set<LinkedinCapabilityBundle>,
+) {
+    companion object {
+        fun fromGrantedScopes(scopes: Set<String>): GrantedScopeBundle {
+            val bundles = LinkedinCapabilityBundle.entries
+                .filter { bundle -> bundle.requiredScopes.all { it in scopes } }
+                .filter { bundle -> bundle.mvpStatus != CapabilityMvpStatus.UNSUPPORTED }
+                .toSet()
+            return GrantedScopeBundle(grantedScopes = scopes, capabilityBundles = bundles)
+        }
+    }
+}

@@ -145,6 +145,70 @@ object PublicationLifecyclePolicy {
             lastErrorMessage = errorMessage,
         )
 
+    /**
+     * Marks a publication as BLOCKED due to non-publishable account status
+     * (DISABLED, REQUIRES_RECONNECT). BLOCKED publications can auto-retry
+     * when the account status restores to ACTIVE.
+     */
+    fun markBlocked(
+        publication: PublicationDraft,
+        blockedAt: Instant,
+        reason: String?,
+    ): PublicationDraft {
+        if (publication.status in terminalStatuses()) {
+            throw PublicationAlreadyTerminalException(publication.id, publication.status)
+        }
+        return publication.copy(
+            status = PublicationStatus.BLOCKED,
+            blockedAt = blockedAt,
+            blockedReason = reason,
+        )
+    }
+
+    /**
+     * Prepares a BLOCKED publication for retry when the account status
+     * restores to ACTIVE. Uses exponential backoff: initial 1 minute,
+     * max 1 hour, max 5 retries. After max retries, transitions to FAILED.
+     */
+    fun prepareBlockedRetry(
+        publication: PublicationDraft,
+        now: Instant,
+        maxRetries: Int = BLOCKED_MAX_RETRIES,
+    ): PublicationDraft {
+        require(publication.status == PublicationStatus.BLOCKED) {
+            "Only BLOCKED publications can be retried via blocked-recovery."
+        }
+        val currentRetry = publication.retryCount
+        if (currentRetry >= maxRetries) {
+            return publication.copy(
+                status = PublicationStatus.FAILED,
+                failedAt = now,
+                lastErrorCode = "BLOCKED_MAX_RETRIES_EXCEEDED",
+                lastErrorMessage = "Publication exceeded maximum retries ($maxRetries) while blocked.",
+            )
+        }
+        val delay = blockedRetryDelay(currentRetry)
+        return publication.copy(
+            status = PublicationStatus.QUEUED,
+            scheduledFor = now.plus(delay),
+            retryCount = currentRetry + 1,
+            blockedAt = null,
+            blockedReason = null,
+            failedAt = null,
+            lastErrorCode = null,
+            lastErrorMessage = null,
+        )
+    }
+
+    /**
+     * Exponential backoff for BLOCKED retry: 1min, 2min, 4min, 8min, 16min, 32min, capped at 1hr.
+     */
+    internal fun blockedRetryDelay(retryCount: Int): java.time.Duration {
+        val baseMinutes = 1L shl retryCount.coerceAtMost(6) // 2^retry, cap exponent at 6
+        val cappedMinutes = baseMinutes.coerceAtMost(BLOCKED_MAX_DELAY_MINUTES)
+        return java.time.Duration.ofMinutes(cappedMinutes)
+    }
+
     fun prepareRetry(publication: PublicationDraft): PublicationDraft {
         requireRetryable(publication)
         return publication.copy(
@@ -187,6 +251,8 @@ object PublicationLifecyclePolicy {
         PublicationStatus.CANCELLED,
     )
 
+    private const val BLOCKED_MAX_RETRIES = 5
+    private const val BLOCKED_MAX_DELAY_MINUTES = 60L
 }
 
 class PublicationSchedulingPolicy {

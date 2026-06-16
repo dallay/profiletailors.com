@@ -30,7 +30,7 @@ export interface Channel {
   avatar: string
   avatarUrl?: string
   handle: string
-  status: 'ACTIVE' | 'INACTIVE'
+  status: 'ACTIVE' | 'INACTIVE' | 'PENDING' | 'DISABLED' | 'REQUIRES_RECONNECT' | 'DELETED' | 'ERROR'
   accountId: string // Maps to backend socialAccountId if available
 }
 
@@ -40,7 +40,7 @@ export interface Publication {
   title?: string
   channels: ('twitter' | 'linkedin' | 'instagram' | 'facebook')[]
   scheduledAt: string // ISO string
-  status: 'DRAFT' | 'QUEUED' | 'SCHEDULED' | 'PROCESSING' | 'PUBLISHED' | 'FAILED' | 'CANCELLED'
+  status: 'DRAFT' | 'QUEUED' | 'SCHEDULED' | 'PROCESSING' | 'PUBLISHED' | 'BLOCKED' | 'FAILED' | 'CANCELLED'
   priority: boolean
   thumbnail?: string
   mediaFiles?: File[] // Local file list for previewing uploads
@@ -48,6 +48,8 @@ export interface Publication {
   conflictingPublicationIds?: string[]
   /** The originating social account ID; used for direct account-level filtering. */
   accountId?: string
+  /** Reason the publication was blocked (e.g., account DISABLED or REQUIRES_RECONNECT). */
+  blockedReason?: string
 }
 
 // ---------------------------------------------------------------------------
@@ -95,7 +97,7 @@ export interface ConnectedSocialChannelSummary {
   provider: 'LINKEDIN' | string
   accountKind: 'PERSONAL_PROFILE' | 'ORGANIZATION_PAGE' | string
   displayName: string
-  status: 'ACTIVE' | 'REVOKED' | 'EXPIRED' | 'ERROR' | string
+  status: 'ACTIVE' | 'PENDING' | 'DISABLED' | 'REQUIRES_RECONNECT' | 'DELETED' | 'ERROR' | 'REVOKED' | 'EXPIRED' | string
   avatarUrl?: string | null
   connectedAt: string | null
   lastSyncedAt: string | null
@@ -150,7 +152,7 @@ function apiChannelToChannel(api: ConnectedSocialChannelSummary): Channel {
     avatar: '',
     avatarUrl: api.avatarUrl ?? undefined,
     handle: api.displayName,
-    status: api.status === 'ACTIVE' ? 'ACTIVE' : 'INACTIVE',
+    status: api.status as Channel['status'],
   }
 }
 
@@ -178,6 +180,7 @@ function mapApiStatus(s: string): Publication['status'] {
     'SCHEDULED',
     'PROCESSING',
     'PUBLISHED',
+    'BLOCKED',
     'FAILED',
     'CANCELLED',
   ])
@@ -257,6 +260,14 @@ export const usePublishingStore = defineStore('publishing', () => {
   const filterPostType = ref('all')
   const filterSocialAccountId = ref('')
   const viewMode = ref<'calendar' | 'list'>('calendar')
+
+  // Reconnect state
+  const hasReconnectRequiredChannels = computed(() =>
+    channels.value.some((ch) => ch.status === 'REQUIRES_RECONNECT'),
+  )
+  const reconnectRequiredChannels = computed(() =>
+    channels.value.filter((ch) => ch.status === 'REQUIRES_RECONNECT'),
+  )
 
   /** Filters for the calendar API — derived from reactive filter state. */
   const calendarFilters = computed<CalendarFilters>(() => ({
@@ -718,6 +729,8 @@ export const usePublishingStore = defineStore('publishing', () => {
     configuredProviders,
     providersLoading,
     isLinkedInConfigured,
+    hasReconnectRequiredChannels,
+    reconnectRequiredChannels,
     // Actions
     fetchChannels,
     fetchConfiguredProviders,

@@ -161,7 +161,12 @@ class RealLinkedInConnectionProvider(
     }
 }
 
-class LinkedInCapabilityValidator : ProviderCapabilityValidator {
+class LinkedInCapabilityValidator(
+    private val enabledBundles: Set<com.profiletailors.smp.publishing.domain.LinkedinCapabilityBundle> = setOf(
+        com.profiletailors.smp.publishing.domain.LinkedinCapabilityBundle.PERSONAL_PROFILE_TEXT,
+        com.profiletailors.smp.publishing.domain.LinkedinCapabilityBundle.PERSONAL_PROFILE_IMAGE,
+    ),
+) : ProviderCapabilityValidator {
     override fun validate(input: ProviderCapabilityValidationInput) {
         require(input.provider == SocialProvider.LINKEDIN) {
             "LinkedIn capability validator only supports LINKEDIN."
@@ -224,16 +229,14 @@ class RealLinkedInPublisher(
     private val properties: LinkedInPublishingProperties,
     private val objectMapper: ObjectMapper,
     private val httpTransport: LinkedInHttpTransport,
-    private val credentialGateway: com.profiletailors.smp.publishing.infrastructure
-        .credentials.LinkedInCredentialGateway,
-    private val socialConnectionRepository: SocialConnectionRepository,
+    private val credentialResolver: com.profiletailors.smp.publishing.domain.RefreshAwareCredentialResolver,
     private val assetUploader: AssetUploader,
     private val storage: Storage?,
     private val attachmentsBucket: String,
 ) : SocialPublisher {
     override suspend fun publish(command: ProviderPublishCommand): ProviderPublishResult {
         val requestBody = buildPostBody(command)
-        val accessToken = resolveAccessToken(command.socialAccount)
+        val accessToken = credentialResolver.resolve(command.socialAccount)
         val response = httpTransport.send(
             HttpRequest.newBuilder(URI.create("${properties.apiBaseUrl}/rest/posts"))
                 .header("Authorization", "Bearer $accessToken")
@@ -316,7 +319,7 @@ class RealLinkedInPublisher(
     ): List<Map<String, Any>> {
         if (assets.isEmpty()) return emptyList()
 
-        val accessToken = resolveAccessToken(command.socialAccount)
+        val accessToken = credentialResolver.resolve(command.socialAccount)
         val context = AssetUploadContext(
             socialAccount = command.socialAccount,
             accessToken = accessToken,
@@ -349,23 +352,6 @@ class RealLinkedInPublisher(
 
     private fun extractFirstUrl(text: String): String? =
         Regex("https?://\\S+").find(text)?.value
-
-    private suspend fun resolveAccessToken(
-        socialAccount: com.profiletailors.smp.publishing.domain.SocialAccount
-    ): String {
-        val socialConnection = socialConnectionRepository.findByWorkspaceAndId(
-            socialAccount.workspaceId,
-            socialAccount.socialConnectionId,
-        ) ?: throw IllegalStateException(
-            "LinkedIn social connection '${socialAccount.socialConnectionId}' was not found.",
-        )
-        val credentialReference = socialConnection.credentialReference
-            ?: throw IllegalStateException(
-                "LinkedIn social connection '${socialConnection.id}' is missing a credential reference.",
-            )
-        val credential = credentialGateway.resolveCredential(UUID.fromString(credentialReference))
-        return credential.accessToken
-    }
 
     private companion object {
         val HTTP_SUCCESS_RANGE = 200..299
@@ -484,23 +470,26 @@ class LinkedInPublishingConfiguration(
         properties: LinkedInPublishingProperties,
         objectMapper: ObjectMapper,
         linkedInHttpTransport: LinkedInHttpTransport,
-        credentialGateway: com.profiletailors.smp.publishing.infrastructure.credentials.LinkedInCredentialGateway,
-        socialConnectionRepository: SocialConnectionRepository,
+        credentialResolver: com.profiletailors.smp.publishing.domain.RefreshAwareCredentialResolver,
         assetUploader: AssetUploader,
         assetUploadProperties: LinkedInAssetUploadProperties,
     ): SocialPublisher = RealLinkedInPublisher(
         properties,
         objectMapper,
         linkedInHttpTransport,
-        credentialGateway,
-        socialConnectionRepository,
+        credentialResolver,
         assetUploader,
         storage,
         assetUploadProperties.attachmentsBucket,
     )
 
     @Bean
-    fun providerCapabilityValidator(): ProviderCapabilityValidator = LinkedInCapabilityValidator()
+    fun providerCapabilityValidator(): ProviderCapabilityValidator = LinkedInCapabilityValidator(
+        enabledBundles = setOf(
+            com.profiletailors.smp.publishing.domain.LinkedinCapabilityBundle.PERSONAL_PROFILE_TEXT,
+            com.profiletailors.smp.publishing.domain.LinkedinCapabilityBundle.PERSONAL_PROFILE_IMAGE,
+        ),
+    )
 }
 
 fun formUrlEncoded(vararg parts: Pair<String, String>): String = parts.joinToString("&") { (key, value) ->

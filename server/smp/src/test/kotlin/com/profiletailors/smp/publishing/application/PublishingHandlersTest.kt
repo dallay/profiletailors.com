@@ -164,7 +164,7 @@ class PublishingHandlersTest {
         assertEquals(1, result.channels.size)
         assertEquals("account-1", result.channels.single().socialAccountId)
         assertEquals("https://media.licdn.com/photo.jpg", result.channels.single().avatarUrl)
-        assertEquals(setOf(SocialConnectionStatus.ACTIVE), repository.lastStatuses)
+        assertEquals(SocialConnectionStatus.entries.toSet(), repository.lastStatuses)
     }
 
     @Test
@@ -1406,6 +1406,12 @@ class PublishingHandlersTest {
         override suspend fun markFailed(publicationId: String, failedAt: Instant, reasonCode: String?, reasonMessage: String?) = Unit
 
         override suspend fun markCancelled(publicationId: String, cancelledAt: Instant) = Unit
+
+        override suspend fun markBlocked(publicationId: String, blockedAt: Instant, reason: String?) = Unit
+
+        override suspend fun findBlockedForRecovery(
+            maxRetries: Int,
+        ): List<PublicationDraft> = emptyList()
     }
 
     private class InMemoryPublicationAssetRepository(

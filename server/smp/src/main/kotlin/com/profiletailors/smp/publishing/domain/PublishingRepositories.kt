@@ -42,6 +42,16 @@ interface PublicationRepository {
     suspend fun markFailed(publicationId: String, failedAt: Instant, reasonCode: String?, reasonMessage: String?)
 
     suspend fun markCancelled(publicationId: String, cancelledAt: Instant)
+
+    suspend fun markBlocked(publicationId: String, blockedAt: Instant, reason: String?)
+
+    /**
+     * Find publications that are BLOCKED and may be eligible for retry.
+     * Used by the BLOCKED-recovery scan when account status restores to ACTIVE.
+     */
+    suspend fun findBlockedForRecovery(
+        maxRetries: Int,
+    ): List<PublicationDraft>
 }
 
 interface PublicationAssetRepository {
@@ -72,4 +82,16 @@ interface PublicationJobRepository {
 
 fun interface DeliveryAttemptRepository {
     suspend fun record(attempt: DeliveryAttempt): DeliveryAttempt
+}
+
+interface NotificationEventRepository {
+    suspend fun record(event: NotificationEvent): NotificationEvent
+
+    suspend fun findByWorkspace(
+        workspaceId: String,
+        socialAccountId: String? = null,
+        publicationId: String? = null,
+        categories: Set<NotificationCategory>? = null,
+        limit: Int = 50,
+    ): List<NotificationEvent>
 }

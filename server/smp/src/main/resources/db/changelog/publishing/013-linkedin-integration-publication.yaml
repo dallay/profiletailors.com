@@ -1,0 +1,144 @@
+databaseChangeLog:
+  # No enum ALTER TYPE needed — status columns are varchar(32), not PostgreSQL enums.
+  # New status values (PENDING, DISABLED, REQUIRES_RECONNECT, DELETED, BLOCKED) are
+  # accepted automatically by varchar columns.
+
+  - changeSet:
+      id: publishing-013-add-publications-columns
+      author: opencode
+      changes:
+        - addColumn:
+            tableName: publications
+            columns:
+              - column:
+                  name: public_url
+                  type: varchar(512)
+              - column:
+                  name: blocked_at
+                  type: timestamp with time zone
+              - column:
+                  name: blocked_reason
+                  type: text
+              - column:
+                  name: retry_count
+                  type: int
+                  defaultValueNumeric: 0
+                  constraints:
+                    nullable: false
+      rollback:
+        - dropColumn:
+            tableName: publications
+            columnName: public_url
+        - dropColumn:
+            tableName: publications
+            columnName: blocked_at
+        - dropColumn:
+            tableName: publications
+            columnName: blocked_reason
+        - dropColumn:
+            tableName: publications
+            columnName: retry_count
+
+  - changeSet:
+      id: publishing-013-create-notification-events
+      author: opencode
+      changes:
+        - createTable:
+            tableName: notification_events
+            columns:
+              - column:
+                  name: id
+                  type: varchar(64)
+                  constraints:
+                    primaryKey: true
+                    nullable: false
+              - column:
+                  name: workspace_id
+                  type: varchar(64)
+                  constraints:
+                    nullable: false
+                    foreignKeyName: fk_notification_events_workspace
+                    references: workspaces(id)
+              - column:
+                  name: provider
+                  type: varchar(50)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: social_account_id
+                  type: varchar(64)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: publication_id
+                  type: varchar(64)
+              - column:
+                  name: category
+                  type: varchar(50)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: message
+                  type: text
+                  constraints:
+                    nullable: false
+              - column:
+                  name: suggested_action
+                  type: text
+              - column:
+                  name: public_url
+                  type: varchar(512)
+              - column:
+                  name: occurred_at
+                  type: timestamp with time zone
+                  constraints:
+                    nullable: false
+              - column:
+                  name: created_at
+                  type: timestamp with time zone
+                  defaultValueComputed: CURRENT_TIMESTAMP
+                  constraints:
+                    nullable: false
+        - createIndex:
+            tableName: notification_events
+            indexName: idx_notification_events_workspace
+            columns:
+              - column:
+                  name: workspace_id
+              - column:
+                  name: occurred_at
+        - createIndex:
+            tableName: notification_events
+            indexName: idx_notification_events_account
+            columns:
+              - column:
+                  name: social_account_id
+              - column:
+                  name: occurred_at
+        - createIndex:
+            tableName: notification_events
+            indexName: idx_notification_events_publication
+            columns:
+              - column:
+                  name: publication_id
+      rollback:
+        - dropTable:
+            tableName: notification_events
+
+  - changeSet:
+      id: publishing-013-add-credential-metadata-columns
+      author: opencode
+      changes:
+        - addColumn:
+            tableName: secure_credentials
+            columns:
+              - column:
+                  name: version
+                  type: int
+                  defaultValueNumeric: 1
+                  constraints:
+                    nullable: false
+      rollback:
+        - dropColumn:
+            tableName: secure_credentials
+            columnName: version
