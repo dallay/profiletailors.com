@@ -26,9 +26,26 @@ jobs:
           fetch-depth: 0
       - name: Install Gitleaks CLI
         run: |
-          curl --fail --silent --show-error --location \
-            https://github.com/gitleaks/gitleaks/releases/download/v8.28.0/gitleaks_8.28.0_linux_x64.tar.gz \
-            | tar -xz gitleaks
+          set -euo pipefail
+          VERSION=v8.28.0
+          ARTIFACT="gitleaks_8.28.0_linux_x64.tar.gz"
+          BASE_URL="https://github.com/gitleaks/gitleaks/releases/download/${VERSION}"
+          EXPECTED_SHA=$(curl --fail --silent --show-error --location --proto =https \
+            "${BASE_URL}/gitleaks_8.28.0_checksums.txt" \
+            | grep "  ${ARTIFACT}" | awk '{print $1}')
+          if [ -z "$EXPECTED_SHA" ]; then
+            echo "::error::Could not find expected SHA256 for ${ARTIFACT} in checksums file."
+            exit 1
+          fi
+          curl --fail --silent --show-error --location --proto =https \
+            "${BASE_URL}/${ARTIFACT}" \
+            -o "${ARTIFACT}"
+          ACTUAL_SHA=$(sha256sum "${ARTIFACT}" | awk '{print $1}')
+          if [ "$EXPECTED_SHA" != "$ACTUAL_SHA" ]; then
+            echo "::error::SHA256 mismatch for ${ARTIFACT}: expected ${EXPECTED_SHA}, got ${ACTUAL_SHA}"
+            exit 1
+          fi
+          tar -xzf "${ARTIFACT}" gitleaks
           install gitleaks /usr/local/bin/gitleaks
       - name: Run full-history Gitleaks scan
         run: |
@@ -162,19 +179,34 @@ jobs:
         uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
       - name: Create reports directory
         run: mkdir -p reports/trivy
+      - name: Install Trivy
+        run: |
+          set -euo pipefail
+          TRIVY_VERSION="0.71.1"
+          ARTIFACT="trivy_${TRIVY_VERSION}_Linux-64bit.tar.gz"
+          EXPECTED_SHA="3cbae37cd440cd8676e5ce9207fe460b5641c7579a17e9d00f8894928c41a88d"
+          curl --fail --silent --show-error --location --proto =https \
+            -o "${ARTIFACT}" \
+            "https://github.com/aquasecurity/trivy/releases/download/v${TRIVY_VERSION}/${ARTIFACT}"
+          ACTUAL_SHA=$(sha256sum "${ARTIFACT}" | awk '{print $1}')
+          if [ "$EXPECTED_SHA" != "$ACTUAL_SHA" ]; then
+            echo "::error::SHA256 mismatch for ${ARTIFACT}: expected ${EXPECTED_SHA}, got ${ACTUAL_SHA}"
+            exit 1
+          fi
+          tar -xzf "${ARTIFACT}" trivy
+          sudo mv trivy /usr/local/bin/trivy
+          rm -f "${ARTIFACT}"
+          trivy --version
       - name: Run full Trivy filesystem, dependency, and IaC scan
-        uses: aquasecurity/trivy-action@b6643a29fecd7f34b3597bc6acb0a98b03d33ff8 # v0.33.1
-        with:
-          scan-type: fs
-          scan-ref: .
-          scanners: vuln,misconfig
-          severity: UNKNOWN,LOW,MEDIUM,HIGH,CRITICAL
-          ignore-unfixed: false
-          format: sarif
-          output: reports/trivy/trivy-full.sarif
-          exit-code: '0'
-        env:
-          TRIVY_LOG_LEVEL: DEBUG
+        run: |
+          trivy fs \
+            --format sarif \
+            --output reports/trivy/trivy-full.sarif \
+            --scanners vuln,misconfig \
+            --severity UNKNOWN,LOW,MEDIUM,HIGH,CRITICAL \
+            --exit-code 0 \
+            --no-progress \
+            .
       - name: Verify SARIF file exists
         if: ${{ always() }}
         run: |
@@ -230,6 +262,7 @@ jobs:
         env:
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
           SONAR_HOST_URL: ${{ secrets.SONAR_HOST_URL }}
+          SONAR_ORGANIZATION: ${{ secrets.SONAR_ORGANIZATION }}
         run: |
           enabled=true
           reason=''
@@ -238,6 +271,9 @@ jobs:
           if [[ -z "$SONAR_TOKEN" ]]; then
             enabled=false
             reason='SONAR_TOKEN is not configured.'
+          elif [[ -z "$SONAR_ORGANIZATION" ]]; then
+            enabled=false
+            reason='SONAR_ORGANIZATION is not configured.'
           elif [[ -z "$project_key" || "$project_key" == 'profiletailors-change-me' ]]; then
             enabled=false
             reason='sonar.projectKey is still using the placeholder value.'
@@ -246,6 +282,7 @@ jobs:
           {
             echo "enabled=$enabled"
             echo "project_key=$project_key"
+            echo "org=$SONAR_ORGANIZATION"
             echo "host_url=$SONAR_HOST_URL"
             echo "reason=$reason"
           } >> "$GITHUB_OUTPUT"
@@ -256,7 +293,7 @@ jobs:
             echo '### security / sonar-full'
             echo '- Sonar deep analysis skipped.'
             echo "- Reason: ${{ steps.sonar-config.outputs.reason }}"
-            echo '- Configure SONAR_TOKEN and a real sonar.projectKey to enable centralized reporting.'
+            echo '- Configure SONAR_TOKEN, SONAR_ORGANIZATION, and a real sonar.projectKey to enable centralized reporting.'
           } >> "$GITHUB_STEP_SUMMARY"
       - name: Run Sonar full analysis
         if: ${{ steps.sonar-config.outputs.enabled == 'true' }}
@@ -267,6 +304,7 @@ jobs:
         with:
           args: >-
             -Dsonar.projectKey=${{ steps.sonar-config.outputs.project_key }}
+            -Dsonar.organization=${{ steps.sonar-config.outputs.org }}
             -Dsonar.branch.name=${{ github.ref_name }}
       - name: Explain Sonar reporting channel
         if: ${{ steps.sonar-config.outputs.enabled == 'true' }}

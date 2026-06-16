@@ -40,9 +40,7 @@ class CredentialEncryptionService(
 
     fun decrypt(payload: ByteArray): String {
         val minSize = IV_LENGTH_BYTES + GCM_TAG_LENGTH_BYTES
-        if (payload.size < minSize) {
-            throw IllegalArgumentException("Encrypted payload too short")
-        }
+        require(payload.size >= minSize) { "Encrypted payload too short" }
         val iv = payload.copyOfRange(0, IV_LENGTH_BYTES)
         val ciphertext = payload.copyOfRange(IV_LENGTH_BYTES, payload.size)
         val cipher = Cipher.getInstance("AES/GCM/NoPadding")

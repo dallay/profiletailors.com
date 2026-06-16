@@ -3,7 +3,9 @@ package com.profiletailors.smp.governance.application
 import com.profiletailors.common.domain.context.ResourceContext
 import com.profiletailors.smp.governance.domain.AuditEventCursor
 import com.profiletailors.smp.governance.domain.AuditEventCursorCodec
+import com.profiletailors.smp.governance.domain.AuditEventFilter
 import com.profiletailors.smp.governance.domain.AuditEventItem
+import com.profiletailors.smp.governance.domain.AuditEventPageRequest
 import com.profiletailors.smp.governance.domain.AuditEventReader
 import com.profiletailors.smp.governance.domain.InvalidAuditEventCursorException
 import com.profiletailors.common.domain.context.ResourceContextProvider
@@ -38,30 +40,24 @@ class GetWorkspaceAuditEventsHandlerTest {
             auditEventReader = object : AuditEventReader {
                 override suspend fun readWorkspaceEvents(
                     workspaceId: String,
-                    targetType: String?,
-                    action: String?,
-                    eventType: String?,
-                    actorPrincipalId: String?,
-                    createdAfter: Instant?,
-                    createdBefore: Instant?,
-                    cursor: AuditEventCursor?,
-                    limit: Int,
+                    filter: AuditEventFilter,
+                    pageRequest: AuditEventPageRequest,
                 ): List<AuditEventItem> {
                     assertEquals("workspace-1", workspaceId)
-                    assertEquals("WORKSPACE_OWNER", targetType)
-                    assertEquals("workspace.owner.add", action)
-                    assertEquals("MUTATION", eventType)
-                    assertEquals("owner-1", actorPrincipalId)
-                    assertEquals(Instant.parse("2026-05-20T11:00:00Z"), createdAfter)
-                    assertEquals(Instant.parse("2026-05-20T13:00:00Z"), createdBefore)
+                    assertEquals("WORKSPACE_OWNER", filter.targetType)
+                    assertEquals("workspace.owner.add", filter.action)
+                    assertEquals("MUTATION", filter.eventType)
+                    assertEquals("owner-1", filter.actorPrincipalId)
+                    assertEquals(Instant.parse("2026-05-20T11:00:00Z"), filter.createdAfter)
+                    assertEquals(Instant.parse("2026-05-20T13:00:00Z"), filter.createdBefore)
                     assertEquals(
                         AuditEventCursor(
                             createdAt = Instant.parse("2026-05-20T12:00:00Z"),
                             id = "audit-5",
                         ),
-                        cursor,
+                        pageRequest.cursor,
                     )
-                    assertEquals(4, limit)
+                    assertEquals(4, pageRequest.limit)
                     return listOf(
                         auditItem("audit-3"),
                         auditItem("audit-2"),
@@ -129,14 +125,8 @@ class GetWorkspaceAuditEventsHandlerTest {
             auditEventReader = object : AuditEventReader {
                 override suspend fun readWorkspaceEvents(
                     workspaceId: String,
-                    targetType: String?,
-                    action: String?,
-                    eventType: String?,
-                    actorPrincipalId: String?,
-                    createdAfter: Instant?,
-                    createdBefore: Instant?,
-                    cursor: AuditEventCursor?,
-                    limit: Int,
+                    filter: AuditEventFilter,
+                    pageRequest: AuditEventPageRequest,
                 ): List<AuditEventItem> = listOf(auditItem("audit-1"))
             },
             workspaceAuthorizationDecider = allowDecider(),
@@ -161,14 +151,8 @@ class GetWorkspaceAuditEventsHandlerTest {
             auditEventReader = object : AuditEventReader {
                 override suspend fun readWorkspaceEvents(
                     workspaceId: String,
-                    targetType: String?,
-                    action: String?,
-                    eventType: String?,
-                    actorPrincipalId: String?,
-                    createdAfter: Instant?,
-                    createdBefore: Instant?,
-                    cursor: AuditEventCursor?,
-                    limit: Int,
+                    filter: AuditEventFilter,
+                    pageRequest: AuditEventPageRequest,
                 ): List<AuditEventItem> = emptyList()
             },
             workspaceAuthorizationDecider = allowDecider(),
@@ -193,14 +177,8 @@ class GetWorkspaceAuditEventsHandlerTest {
             auditEventReader = object : AuditEventReader {
                 override suspend fun readWorkspaceEvents(
                     workspaceId: String,
-                    targetType: String?,
-                    action: String?,
-                    eventType: String?,
-                    actorPrincipalId: String?,
-                    createdAfter: Instant?,
-                    createdBefore: Instant?,
-                    cursor: AuditEventCursor?,
-                    limit: Int,
+                    filter: AuditEventFilter,
+                    pageRequest: AuditEventPageRequest,
                 ): List<AuditEventItem> = emptyList()
             },
             workspaceAuthorizationDecider = denyDecider(),

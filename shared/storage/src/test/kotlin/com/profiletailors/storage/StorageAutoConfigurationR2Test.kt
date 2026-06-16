@@ -43,6 +43,64 @@ class StorageAutoConfigurationR2Test {
     @Nested
     @DisplayName("createR2Storage credentials validation")
     inner class CredentialsValidation {
+        private val config: StorageAutoConfiguration = StorageAutoConfiguration()
+
+        @Test
+        fun `should throw IllegalArgumentException when accessKeyId is blank`() {
+            val providerConfig = ProviderConfig(
+                type = "r2",
+                bucket = TEST_BUCKET,
+                accountId = TEST_ACCOUNT_ID,
+                accessKeyId = "",
+                secretAccessKey = TEST_SECRET_KEY,
+            )
+
+            val ex = assertThrows<IllegalArgumentException> {
+                config.createR2Storage(providerConfig)
+            }
+            assertTrue(
+                ex.message!!.contains("accessKeyId", ignoreCase = true),
+                "Exception message should mention accessKeyId, got: ${ex.message}",
+            )
+        }
+
+        @Test
+        fun `should throw IllegalArgumentException when secretAccessKey is blank`() {
+            val providerConfig = ProviderConfig(
+                type = "r2",
+                bucket = TEST_BUCKET,
+                accountId = TEST_ACCOUNT_ID,
+                accessKeyId = TEST_ACCESS_KEY,
+                secretAccessKey = "",
+            )
+
+            val ex = assertThrows<IllegalArgumentException> {
+                config.createR2Storage(providerConfig)
+            }
+            assertTrue(
+                ex.message!!.contains("secretAccessKey", ignoreCase = true),
+                "Exception message should mention secretAccessKey, got: ${ex.message}",
+            )
+        }
+
+        @Test
+        fun `should throw IllegalArgumentException when both credentials are blank`() {
+            val providerConfig = ProviderConfig(
+                type = "r2",
+                bucket = TEST_BUCKET,
+                accountId = TEST_ACCOUNT_ID,
+                accessKeyId = "",
+                secretAccessKey = "",
+            )
+
+            val ex = assertThrows<IllegalArgumentException> {
+                config.createR2Storage(providerConfig)
+            }
+            assertTrue(
+                ex.message!!.contains("R2 requires", ignoreCase = true),
+                "Exception message should mention the requirement, got: ${ex.message}",
+            )
+        }
 
         @Test
         fun `should throw IllegalArgumentException when accessKeyId is missing`() {

@@ -8,6 +8,7 @@ import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.test.runTest
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.io.TempDir
+import java.nio.file.Files
 import java.nio.file.Path
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertTrue
@@ -106,5 +107,19 @@ class LocalFilesystemStorageTest {
                 storage.list(bucket, "../secret")
             }
         }
+    }
+
+    @Test
+    fun `download throws StorageServiceException on IO error`(@TempDir tempDir: Path) = runTest {
+        val storage = LocalFilesystemStorage(tempDir)
+        val bucket = "local"
+        // Create a directory where a file would be expected — Files.newInputStream on
+        // a directory throws IOException, exercising the catch block in readFileToChannel.
+        Files.createDirectories(tempDir.resolve(bucket).resolve("dangling-dir"))
+
+        val ex = assertThrows<StorageServiceException> {
+            runBlocking { storage.download(bucket, "dangling-dir").toList() }
+        }
+        assertTrue(ex.message!!.contains("Error reading file from disk", ignoreCase = true))
     }
 }

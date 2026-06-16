@@ -8,7 +8,9 @@ import com.profiletailors.smp.authorization.domain.AuthorizationDecision
 import com.profiletailors.smp.authorization.domain.PermissionKey
 import com.profiletailors.smp.authorization.domain.WorkspaceAuthorizationDecider
 import com.profiletailors.smp.governance.domain.AuditEventCursorCodec
+import com.profiletailors.smp.governance.domain.AuditEventFilter
 import com.profiletailors.smp.governance.domain.AuditEventPage
+import com.profiletailors.smp.governance.domain.AuditEventPageRequest
 import com.profiletailors.smp.governance.domain.AuditEventReader
 import com.profiletailors.smp.governance.domain.AuditEventCursor
 
@@ -35,14 +37,18 @@ internal class GetWorkspaceAuditEventsHandler(
         val normalizedLimit = query.limit.coerceIn(1, 200)
         val items = auditEventReader.readWorkspaceEvents(
             workspaceId = workspaceId,
-            targetType = query.targetType,
-            action = query.action,
-            eventType = query.eventType,
-            actorPrincipalId = query.actorPrincipalId,
-            createdAfter = query.createdAfter,
-            createdBefore = query.createdBefore,
-            cursor = normalizedCursor,
-            limit = normalizedLimit + 1,
+            filter = AuditEventFilter(
+                targetType = query.targetType,
+                action = query.action,
+                eventType = query.eventType,
+                actorPrincipalId = query.actorPrincipalId,
+                createdAfter = query.createdAfter,
+                createdBefore = query.createdBefore,
+            ),
+            pageRequest = AuditEventPageRequest(
+                cursor = normalizedCursor,
+                limit = normalizedLimit + 1,
+            ),
         )
         val visibleItems = items.take(normalizedLimit)
         val nextCursor = if (items.size > normalizedLimit && visibleItems.isNotEmpty()) {

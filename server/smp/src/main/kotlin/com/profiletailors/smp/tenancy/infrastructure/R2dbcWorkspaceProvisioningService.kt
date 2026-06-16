@@ -99,7 +99,7 @@ class R2dbcWorkspaceProvisioningService(
             .bind("createdAt", now)
             .fetch()
             .rowsUpdated()
-            .onErrorResume { ex ->
+            .onErrorResume { _ ->
                 // Duplicate-key or constraint violation — already assigned.
                 reactor.core.publisher.Mono.just(0)
             }

@@ -99,21 +99,18 @@ test.describe('Waitlist Form', () => {
 
   test('should accept valid email', async ({ page }) => {
     await page.goto('/');
-    
+
     const emailInput = page.locator('input[type="email"]').first();
-    
-    if (await emailInput.count() > 0) {
-      await emailInput.fill('test@example.com');
-      
-      const submitButton = page.locator('button[type="submit"]').first();
-      if (await submitButton.count() > 0) {
-        await submitButton.click();
-        
-        // Wait for form submission to complete - look for success indicator or state change
-        // TODO: Replace with actual success element when form is implemented
-        await page.waitForLoadState('networkidle');
-      }
-    }
+    await expect(emailInput).toBeVisible();
+    await emailInput.fill('test@example.com');
+
+    const submitButton = page.locator('button[type="submit"]').first();
+    await expect(submitButton).toBeVisible();
+    await submitButton.click();
+
+    // Wait for the form's success transition (deterministic UI state).
+    await expect(page.locator('#form-success')).toBeVisible();
+    await expect(page.locator('#waitlist-form')).toBeHidden();
   });
 });
 

@@ -70,6 +70,6 @@ interface PublicationJobRepository {
     suspend fun cancel(jobId: String, cancelledAt: Instant)
 }
 
-interface DeliveryAttemptRepository {
+fun interface DeliveryAttemptRepository {
     suspend fun record(attempt: DeliveryAttempt): DeliveryAttempt
 }

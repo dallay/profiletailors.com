@@ -6,6 +6,7 @@ import com.profiletailors.storage.domain.StorageObjectNotFoundException
 import com.profiletailors.storage.domain.StorageSecurityException
 import com.profiletailors.storage.domain.StorageServiceException
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.channels.SendChannel
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.channelFlow
 import kotlinx.coroutines.launch
@@ -136,22 +137,25 @@ class LocalFilesystemStorage(private val basePath: Path) : Storage {
             val source = resolveSafe(bucket, key)
             if (!Files.exists(source)) throw StorageObjectNotFoundException(bucket, key)
             launch(Dispatchers.IO) {
-                try {
-                    Files.newInputStream(source).use { ins ->
-                        val buffer = ByteArray(8192)
-                        var read = ins.read(buffer)
-                        while (read >= 0) {
-                            val chunk =
-                                if (read == buffer.size) buffer.copyOf() else buffer.copyOf(read)
-                            send(chunk)
-                            read = ins.read(buffer)
-                        }
-                    }
-                } catch (e: IOException) {
-                    throw StorageServiceException("Error reading file from disk", e)
-                }
+                readFileToChannel(source, this@channelFlow)
             }.invokeOnCompletion { cause -> if (cause != null) close(cause) else close() }
         }
+
+    private suspend fun readFileToChannel(source: Path, channel: SendChannel<ByteArray>) {
+        try {
+            Files.newInputStream(source).use { ins ->
+                val buffer = ByteArray(8192)
+                var read = ins.read(buffer)
+                while (read >= 0) {
+                    val chunk = if (read == buffer.size) buffer.copyOf() else buffer.copyOf(read)
+                    channel.send(chunk)
+                    read = ins.read(buffer)
+                }
+            }
+        } catch (e: IOException) {
+            throw StorageServiceException("Error reading file from disk", e)
+        }
+    }
 
     override suspend fun delete(bucket: String, key: String) {
         val target = resolveSafe(bucket, key)

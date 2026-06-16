@@ -7,7 +7,7 @@ package com.profiletailors.smp.identity.application
  * - [SmtpEmailSender] — sends via SMTP (production)
  * - [MockEmailSender] — logs to console (dev/test)
  */
-interface EmailSender {
+fun interface EmailSender {
     /** Send an email. Returns [EmailSendResult] indicating success or failure. */
     suspend fun send(
         to: String,

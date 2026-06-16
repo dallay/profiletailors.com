@@ -87,7 +87,7 @@ internal class RegisterUserHandler(
         )
 
         // Provision a default workspace for the new user
-        val provisioned = workspaceProvisioningService.provisionDefaultWorkspace(
+        workspaceProvisioningService.provisionDefaultWorkspace(
             principalId = principalId,
             displayName = normalizedUsername,
         )

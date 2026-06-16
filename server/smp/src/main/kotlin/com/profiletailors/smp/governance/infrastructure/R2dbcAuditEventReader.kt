@@ -3,7 +3,9 @@ package com.profiletailors.smp.governance.infrastructure
 import com.fasterxml.jackson.core.type.TypeReference
 import com.fasterxml.jackson.databind.ObjectMapper
 import com.profiletailors.smp.governance.domain.AuditEventCursor
+import com.profiletailors.smp.governance.domain.AuditEventFilter
 import com.profiletailors.smp.governance.domain.AuditEventItem
+import com.profiletailors.smp.governance.domain.AuditEventPageRequest
 import com.profiletailors.smp.governance.domain.AuditEventReader
 import kotlinx.coroutines.reactor.awaitSingle
 import org.springframework.r2dbc.core.DatabaseClient
@@ -18,27 +20,15 @@ class R2dbcAuditEventReader(
 ) : AuditEventReader {
     override suspend fun readWorkspaceEvents(
         workspaceId: String,
-        targetType: String?,
-        action: String?,
-        eventType: String?,
-        actorPrincipalId: String?,
-        createdAfter: Instant?,
-        createdBefore: Instant?,
-        cursor: AuditEventCursor?,
-        limit: Int,
+        filter: AuditEventFilter,
+        pageRequest: AuditEventPageRequest,
     ): List<AuditEventItem> {
-        val sql = buildSqlQuery(targetType, action, eventType, actorPrincipalId, createdAfter, createdBefore, cursor)
+        val sql = buildSqlQuery(filter, pageRequest.cursor)
         val spec = bindParameters(
             sql,
             workspaceId,
-            targetType,
-            action,
-            eventType,
-            actorPrincipalId,
-            createdAfter,
-            createdBefore,
-            cursor,
-            limit,
+            filter,
+            pageRequest,
         )
 
         return spec.map { row, _ -> mapRow(row) }
@@ -48,12 +38,7 @@ class R2dbcAuditEventReader(
     }
 
     private fun buildSqlQuery(
-        targetType: String?,
-        action: String?,
-        eventType: String?,
-        actorPrincipalId: String?,
-        createdAfter: Instant?,
-        createdBefore: Instant?,
+        filter: AuditEventFilter,
         cursor: AuditEventCursor?,
     ): String = buildString {
         append(
@@ -65,12 +50,12 @@ class R2dbcAuditEventReader(
             WHERE workspace_id = :workspaceId
             """.trimIndent(),
         )
-        if (targetType != null) append(" AND target_type = :targetType")
-        if (action != null) append(" AND action = :action")
-        if (eventType != null) append(" AND event_type = :eventType")
-        if (actorPrincipalId != null) append(" AND actor_principal_id = :actorPrincipalId")
-        if (createdAfter != null) append(" AND created_at >= :createdAfter")
-        if (createdBefore != null) append(" AND created_at <= :createdBefore")
+        if (filter.targetType != null) append(" AND target_type = :targetType")
+        if (filter.action != null) append(" AND action = :action")
+        if (filter.eventType != null) append(" AND event_type = :eventType")
+        if (filter.actorPrincipalId != null) append(" AND actor_principal_id = :actorPrincipalId")
+        if (filter.createdAfter != null) append(" AND created_at >= :createdAfter")
+        if (filter.createdBefore != null) append(" AND created_at <= :createdBefore")
         if (cursor != null) {
             append(" AND (created_at < :cursorCreatedAt OR (created_at = :cursorCreatedAt AND id < :cursorId))")
         }
@@ -80,29 +65,23 @@ class R2dbcAuditEventReader(
     private fun bindParameters(
         sql: String,
         workspaceId: String,
-        targetType: String?,
-        action: String?,
-        eventType: String?,
-        actorPrincipalId: String?,
-        createdAfter: Instant?,
-        createdBefore: Instant?,
-        cursor: AuditEventCursor?,
-        limit: Int,
+        filter: AuditEventFilter,
+        pageRequest: AuditEventPageRequest,
     ): DatabaseClient.GenericExecuteSpec {
         var spec = databaseClient.sql(sql)
             .bind("workspaceId", workspaceId)
-            .bind("limit", limit)
+            .bind("limit", pageRequest.limit)
 
-        if (targetType != null) spec = spec.bind("targetType", targetType)
-        if (action != null) spec = spec.bind("action", action)
-        if (eventType != null) spec = spec.bind("eventType", eventType)
-        if (actorPrincipalId != null) spec = spec.bind("actorPrincipalId", actorPrincipalId)
-        if (createdAfter != null) spec = spec.bind("createdAfter", createdAfter)
-        if (createdBefore != null) spec = spec.bind("createdBefore", createdBefore)
-        if (cursor != null) {
+        if (filter.targetType != null) spec = spec.bind("targetType", filter.targetType)
+        if (filter.action != null) spec = spec.bind("action", filter.action)
+        if (filter.eventType != null) spec = spec.bind("eventType", filter.eventType)
+        if (filter.actorPrincipalId != null) spec = spec.bind("actorPrincipalId", filter.actorPrincipalId)
+        if (filter.createdAfter != null) spec = spec.bind("createdAfter", filter.createdAfter)
+        if (filter.createdBefore != null) spec = spec.bind("createdBefore", filter.createdBefore)
+        if (pageRequest.cursor != null) {
             spec = spec
-                .bind("cursorCreatedAt", cursor.createdAt)
-                .bind("cursorId", cursor.id)
+                .bind("cursorCreatedAt", pageRequest.cursor.createdAt)
+                .bind("cursorId", pageRequest.cursor.id)
         }
         return spec
     }

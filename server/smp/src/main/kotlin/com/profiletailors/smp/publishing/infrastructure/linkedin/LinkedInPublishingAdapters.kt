@@ -84,7 +84,7 @@ class RealLinkedInConnectionProvider(
         )
         val tokenResponse = httpTransport.send(
             HttpRequest.newBuilder(URI.create(properties.tokenBaseUrl))
-                .header("Content-Type", "application/x-www-form-urlencoded")
+                .header(CONTENT_TYPE, "application/x-www-form-urlencoded")
                 .POST(HttpRequest.BodyPublishers.ofString(formBody))
                 .build(),
         )
@@ -97,7 +97,7 @@ class RealLinkedInConnectionProvider(
         val profileResponse = httpTransport.send(
             HttpRequest.newBuilder(URI.create("${properties.apiBaseUrl}/v2/userinfo"))
                 .header("Authorization", "Bearer ${token.accessToken}")
-                .header("Content-Type", "application/json")
+                .header(CONTENT_TYPE, "application/json")
                 .GET()
                 .build(),
         )
@@ -234,7 +234,7 @@ class RealLinkedInPublisher(
         val response = httpTransport.send(
             HttpRequest.newBuilder(URI.create("${properties.apiBaseUrl}/rest/posts"))
                 .header("Authorization", "Bearer $accessToken")
-                .header("Content-Type", "application/json")
+                .header(CONTENT_TYPE, "application/json")
                 .header("X-Restli-Protocol-Version", "2.0.0")
                 .header("LinkedIn-Version", properties.apiVersion)
                 .POST(HttpRequest.BodyPublishers.ofString(objectMapper.writeValueAsString(requestBody)))
@@ -371,7 +371,9 @@ class RealLinkedInPublisher(
     }
 }
 
-interface LinkedInHttpTransport {
+internal const val CONTENT_TYPE = "Content-Type"
+
+fun interface LinkedInHttpTransport {
     suspend fun send(request: HttpRequest): LinkedInHttpResponse
 }
 
@@ -418,7 +420,10 @@ data class LinkedInUserInfoResponse(
 }
 
 @Configuration
-class LinkedInPublishingConfiguration {
+class LinkedInPublishingConfiguration(
+    @Autowired(required = false)
+    private val storage: Storage?,
+) {
     @Bean
     fun linkedInPublishingProperties(
         @Value("\${publishing.linkedin.client-id:}") clientId: String,
@@ -502,7 +507,6 @@ class LinkedInPublishingConfiguration {
         credentialGateway: com.profiletailors.smp.publishing.infrastructure.credentials.LinkedInCredentialGateway,
         socialConnectionRepository: SocialConnectionRepository,
         assetUploader: AssetUploader,
-        @Autowired(required = false) storage: Storage?,
         assetUploadProperties: LinkedInAssetUploadProperties,
     ): SocialPublisher = RealLinkedInPublisher(
         properties,
