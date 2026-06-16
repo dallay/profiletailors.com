@@ -19,7 +19,16 @@ import java.time.Duration
 import java.util.UUID
 
 @Configuration
-class PublishingSchedulingConfiguration {
+class PublishingSchedulingConfiguration(
+    private val publicationJobRepository: PublicationJobRepository,
+    private val publicationRepository: PublicationRepository,
+    private val socialAccountRepository: SocialAccountRepository,
+    private val publicationAssetRepository: PublicationAssetRepository,
+    private val deliveryAttemptRepository: DeliveryAttemptRepository,
+    private val providerCapabilityValidator: ProviderCapabilityValidator,
+    private val socialPublisher: SocialPublisher,
+    private val clock: Clock,
+) {
     @Bean
     fun publishingTaskScheduler(): TaskScheduler = ThreadPoolTaskScheduler().apply {
         poolSize = 1
@@ -38,15 +47,7 @@ class PublishingSchedulingConfiguration {
 
     @Bean
     fun publishingJobExecutor(
-        publicationJobRepository: PublicationJobRepository,
-        publicationRepository: PublicationRepository,
-        socialAccountRepository: SocialAccountRepository,
-        publicationAssetRepository: PublicationAssetRepository,
-        deliveryAttemptRepository: DeliveryAttemptRepository,
-        providerCapabilityValidator: ProviderCapabilityValidator,
-        socialPublisher: SocialPublisher,
         publishingRetryPolicy: DeliveryRetryPolicy,
-        clock: Clock,
     ): PublishingJobExecutor = PublishingJobExecutor(
         publicationJobRepository = publicationJobRepository,
         publicationRepository = publicationRepository,
@@ -61,9 +62,7 @@ class PublishingSchedulingConfiguration {
 
     @Bean
     fun publishingWorker(
-        publicationJobRepository: PublicationJobRepository,
         publishingJobExecutor: PublishingJobExecutor,
-        clock: Clock,
     ): PublishingWorker = PublishingWorker(
         publicationJobRepository = publicationJobRepository,
         executor = publishingJobExecutor,

@@ -59,7 +59,7 @@ jobs:
 
       - name: Install frontend dependencies
         working-directory: apps/web/marketing
-        run: pnpm install --frozen-lockfile
+        run: pnpm install --frozen-lockfile --ignore-scripts
 
       - name: Run frontend tests with coverage
         working-directory: apps/web/marketing

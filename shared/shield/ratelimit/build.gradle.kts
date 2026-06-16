@@ -15,10 +15,10 @@ dependencies {
     implementation(libs.kotlinx.coroutines.reactor)
     
     // Bucket4j for rate limiting
-    implementation("com.bucket4j:bucket4j-core:8.10.1")
+    implementation(libs.bucket4j.core)
     
     // Caffeine cache
-    implementation("com.github.ben-manes.caffeine:caffeine:3.1.8")
+    implementation(libs.caffeine)
     
     // Jackson for JSON
     implementation(libs.jackson.module.kotlin)
@@ -31,7 +31,7 @@ dependencies {
     testImplementation(libs.kotlin.reflect)
     testImplementation(libs.kotlinx.coroutines.test)
     testImplementation(libs.mockk)
-    testImplementation("io.kotest:kotest-assertions-core:6.1.11")
+    testImplementation(libs.kotest.assertions.core)
     testImplementation("io.projectreactor:reactor-test")
     testImplementation("org.springframework.boot:spring-boot-starter-test")
 }

@@ -330,7 +330,7 @@ jobs:
           cache: pnpm
           cache-dependency-path: apps/web/marketing/pnpm-lock.yaml
       - name: Install frontend dependencies
-        run: pnpm install --no-frozen-lockfile
+        run: pnpm install --frozen-lockfile --ignore-scripts
       - name: Run Biome CI check
         run: pnpm biome ci .
 
