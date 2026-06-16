@@ -20,6 +20,8 @@ import com.profiletailors.smp.publishing.application.GetCalendarPublicationsQuer
 import com.profiletailors.smp.publishing.application.InitiateLinkedInConnectionCommand
 import com.profiletailors.smp.publishing.application.LinkedInConnectionInitiationResult
 import com.profiletailors.smp.publishing.application.ListConnectedChannelsQuery
+import com.profiletailors.smp.publishing.application.ListPublicationsQuery
+import com.profiletailors.smp.publishing.application.ListPublicationsResponse
 import com.profiletailors.smp.publishing.application.PublicationResult
 import com.profiletailors.smp.publishing.application.ReschedulePublicationCommand
 import com.profiletailors.smp.publishing.application.RetryPublicationCommand
@@ -38,7 +40,9 @@ import kotlinx.coroutines.test.runTest
 import reactor.core.publisher.Flux
 import kotlinx.coroutines.runBlocking
 import org.junit.jupiter.api.Assertions.assertEquals
+import org.junit.jupiter.api.Assertions.assertNotNull
 import org.junit.jupiter.api.Assertions.assertThrows
+import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.Test
 import org.springframework.http.HttpStatus
 import org.springframework.web.server.ResponseStatusException
@@ -297,13 +301,21 @@ class PublishingControllersTest {
     }
 
     @Test
-    fun `returns placeholder for list publications`() = runTest {
+    fun `list publications delegates to mediator`() = runTest {
         val mediator = CapturingMediator()
         val controller = PublishingPublicationController(mediator)
+        val response = controller.listPublications()
 
-        val response = controller.listPlaceholder()
-
-        assertEquals(mapOf("status" to "not-yet-implemented"), response)
+        assertEquals(
+            com.profiletailors.smp.publishing.application.ListPublicationsResponse(
+                publications = emptyList(),
+                total = 0,
+            ),
+            response,
+        )
+        // Verify the correct query was dispatched to the mediator
+        assertNotNull(mediator.lastQuery)
+        assertTrue(mediator.lastQuery is ListPublicationsQuery)
     }
 
     @Test
@@ -439,6 +451,10 @@ class PublishingControllersTest {
                             lastSyncedAt = null,
                         ),
                     ),
+                ) as TResponse
+                is ListPublicationsQuery -> ListPublicationsResponse(
+                    publications = emptyList(),
+                    total = 0,
                 ) as TResponse
                 else -> error("Unsupported query type ${query::class.simpleName}")
             }

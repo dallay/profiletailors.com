@@ -1,6 +1,7 @@
 package com.profiletailors.smp.publishing.infrastructure.scheduling
 
 import com.profiletailors.smp.publishing.domain.DeliveryRetryPolicy
+import com.profiletailors.smp.publishing.domain.NotificationEventRepository
 import com.profiletailors.smp.publishing.domain.PublicationAssetRepository
 import com.profiletailors.smp.publishing.domain.PublicationJobRepository
 import com.profiletailors.smp.publishing.domain.PublicationRepository
@@ -31,7 +32,7 @@ class PublishingSchedulingConfiguration(
 ) {
     @Bean
     fun publishingTaskScheduler(): TaskScheduler = ThreadPoolTaskScheduler().apply {
-        poolSize = 1
+        poolSize = 2
         setThreadNamePrefix("publishing-worker-")
         initialize()
     }
@@ -47,6 +48,14 @@ class PublishingSchedulingConfiguration(
 
     @Bean
     fun publishingJobExecutor(
+        publicationJobRepository: PublicationJobRepository,
+        publicationRepository: PublicationRepository,
+        socialAccountRepository: SocialAccountRepository,
+        publicationAssetRepository: PublicationAssetRepository,
+        deliveryAttemptRepository: DeliveryAttemptRepository,
+        notificationEventRepository: NotificationEventRepository?,
+        providerCapabilityValidator: ProviderCapabilityValidator,
+        socialPublisher: SocialPublisher,
         publishingRetryPolicy: DeliveryRetryPolicy,
     ): PublishingJobExecutor = PublishingJobExecutor(
         publicationJobRepository = publicationJobRepository,
@@ -54,6 +63,7 @@ class PublishingSchedulingConfiguration(
         socialAccountRepository = socialAccountRepository,
         publicationAssetRepository = publicationAssetRepository,
         deliveryAttemptRepository = deliveryAttemptRepository,
+        notificationEventRepository = notificationEventRepository,
         providerCapabilityValidator = providerCapabilityValidator,
         socialPublisher = socialPublisher,
         retryPolicy = publishingRetryPolicy,
@@ -62,9 +72,12 @@ class PublishingSchedulingConfiguration(
 
     @Bean
     fun publishingWorker(
+        publicationJobRepository: PublicationJobRepository,
+        publicationRepository: PublicationRepository,
         publishingJobExecutor: PublishingJobExecutor,
     ): PublishingWorker = PublishingWorker(
         publicationJobRepository = publicationJobRepository,
+        publicationRepository = publicationRepository,
         executor = publishingJobExecutor,
         clock = clock,
         workerId = "worker-${UUID.randomUUID()}",
@@ -74,11 +87,13 @@ class PublishingSchedulingConfiguration(
     fun publishingWorkerLifecycle(
         @Value("\${publishing.worker.enabled:false}") enabled: Boolean,
         @Value("\${publishing.worker.poll-interval:PT30S}") pollInterval: Duration,
+        @Value("\${publishing.worker.blocked-recovery-interval:PT5M}") blockedRecoveryInterval: Duration,
         publishingTaskScheduler: TaskScheduler,
         publishingWorker: PublishingWorker,
     ): PublishingWorkerLifecycle = PublishingWorkerLifecycle(
         enabled = enabled,
         pollInterval = pollInterval,
+        blockedRecoveryInterval = blockedRecoveryInterval,
         taskScheduler = publishingTaskScheduler,
         worker = publishingWorker,
     ).also { it.start() }

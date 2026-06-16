@@ -201,7 +201,7 @@ class LinkedInPublishingAdaptersTest {
         val credentialGateway = FakeCredentialGateway()
         val accountId = "abcd1234"
         val derivedUuid = UUID.nameUUIDFromBytes("linkedin:$accountId".toByteArray())
-        credentialGateway.store(derivedUuid, LinkedInCredentials("access-token-123", null, null, null))
+        credentialGateway.store(derivedUuid, LinkedInCredentials("access-token-123", null, null, scope = null))
         val assetUploader = FakeLinkedInAssetUploader()
         val storage = FakeStorage()
         val assetUploadProperties = LinkedInAssetUploadProperties("test-bucket")
@@ -264,7 +264,7 @@ class LinkedInPublishingAdaptersTest {
         val credentialGateway = FakeCredentialGateway()
         val accountId = "abcd1234"
         val derivedUuid = UUID.nameUUIDFromBytes("linkedin:$accountId".toByteArray())
-        credentialGateway.store(derivedUuid, LinkedInCredentials("access-token-123", null, null, null))
+        credentialGateway.store(derivedUuid, LinkedInCredentials("access-token-123", null, null, scope = null))
         val publisher = testPublisher(
             transport = transport,
             credentialGateway = credentialGateway,
@@ -324,7 +324,7 @@ class LinkedInPublishingAdaptersTest {
         val credentialGateway = FakeCredentialGateway()
         val accountId = "abcd1234"
         val derivedUuid = UUID.nameUUIDFromBytes("linkedin:$accountId".toByteArray())
-        credentialGateway.store(derivedUuid, LinkedInCredentials("access-token-123", null, null, null))
+        credentialGateway.store(derivedUuid, LinkedInCredentials("access-token-123", null, null, scope = null))
         val publisher = testPublisher(
             transport = transport,
             credentialGateway = credentialGateway,
@@ -384,7 +384,7 @@ class LinkedInPublishingAdaptersTest {
         val credentialGateway = FakeCredentialGateway()
         val accountId = "abcd1234"
         val derivedUuid = UUID.nameUUIDFromBytes("linkedin:$accountId".toByteArray())
-        credentialGateway.store(derivedUuid, LinkedInCredentials("access-token-123", null, null, null))
+        credentialGateway.store(derivedUuid, LinkedInCredentials("access-token-123", null, null, scope = null))
         val publisher = testPublisher(
             transport = transport,
             credentialGateway = credentialGateway,
@@ -445,7 +445,7 @@ class LinkedInPublishingAdaptersTest {
         val credentialGateway = FakeCredentialGateway()
         val accountId = "abcd1234"
         val derivedUuid = UUID.nameUUIDFromBytes("linkedin:$accountId".toByteArray())
-        credentialGateway.store(derivedUuid, LinkedInCredentials("access-token-123", null, null, null))
+        credentialGateway.store(derivedUuid, LinkedInCredentials("access-token-123", null, null, scope = null))
         val publisher = testPublisher(
             transport = transport,
             credentialGateway = credentialGateway,
@@ -505,7 +505,7 @@ class LinkedInPublishingAdaptersTest {
         val credentialGateway = FakeCredentialGateway()
         val accountId = "abcd1234"
         val derivedUuid = UUID.nameUUIDFromBytes("linkedin:$accountId".toByteArray())
-        credentialGateway.store(derivedUuid, LinkedInCredentials("access-token-123", null, null, null))
+        credentialGateway.store(derivedUuid, LinkedInCredentials("access-token-123", null, null, scope = null))
         val assetUploader = FakeLinkedInAssetUploader()
         val storage = FakeStorage()
         val publisher = testPublisher(
@@ -574,7 +574,7 @@ class LinkedInPublishingAdaptersTest {
         val credentialGateway = FakeCredentialGateway()
         val accountId = "abcd1234"
         val derivedUuid = UUID.nameUUIDFromBytes("linkedin:$accountId".toByteArray())
-        credentialGateway.store(derivedUuid, LinkedInCredentials("access-token-123", null, null, null))
+        credentialGateway.store(derivedUuid, LinkedInCredentials("access-token-123", null, null, scope = null))
         val assetUploader = FakeLinkedInAssetUploader()
         val storage = FakeStorage()
         val publisher = testPublisher(
@@ -1171,25 +1171,27 @@ class LinkedInPublishingAdaptersTest {
         assetUploader: AssetUploader = FakeLinkedInAssetUploader(),
         storage: Storage? = FakeStorage(),
         attachmentsBucket: String = "test-bucket",
-    ): RealLinkedInPublisher = RealLinkedInPublisher(
-        properties,
-        objectMapper,
-        transport,
-        credentialGateway,
-        FakeSocialConnectionRepository(
-            SocialConnection(
-                id = "connection-1",
-                workspaceId = "workspace-1",
-                provider = SocialProvider.LINKEDIN,
-                providerConnectionRef = "linkedin-member-test",
-                status = SocialConnectionStatus.ACTIVE,
-                credentialReference = credentialReference.toString(),
-            ),
-        ),
-        assetUploader,
-        storage,
-        attachmentsBucket,
-    )
+    ): RealLinkedInPublisher {
+        val resolver = TestCredentialResolver(credentialGateway, credentialReference)
+        return RealLinkedInPublisher(
+            properties,
+            objectMapper,
+            transport,
+            resolver,
+            assetUploader,
+            storage,
+            attachmentsBucket,
+        )
+    }
+
+    private class TestCredentialResolver(
+        private val gateway: LinkedInCredentialGateway,
+        private val credentialId: UUID,
+    ) : com.profiletailors.smp.publishing.domain.RefreshAwareCredentialResolver {
+        override suspend fun resolve(account: SocialAccount): String {
+            return gateway.resolveCredential(credentialId).accessToken
+        }
+    }
 
     private class StubTransport(
         private val responses: List<LinkedInHttpResponse>,
@@ -1271,4 +1273,41 @@ class LinkedInPublishingAdaptersTest {
 
     private fun headersOf(vararg pairs: Pair<String, String>): HttpHeaders =
         HttpHeaders.of(pairs.groupBy({ it.first }, { it.second })) { _, _ -> true }
+
+    // ===== Gated Capability Tests =====
+
+    @Test
+    fun `capability validator rejects organization page publishing for personal profile account`() {
+        val validator = LinkedInCapabilityValidator()
+        val personalAccount = testSocialAccount()
+
+        // Simulate attempting to publish as organization
+        val orgAccount = personalAccount.copy(kind = SocialAccountKind.ORGANIZATION_PAGE)
+
+        val error = assertThrows(IllegalArgumentException::class.java) {
+            validator.validate(testValidationInput(orgAccount, emptyList()))
+        }
+
+        assertTrue(error.message!!.contains("personal profiles only"))
+    }
+
+    @Test
+    fun `capability validator accepts personal profile text publishing`() {
+        val validator = LinkedInCapabilityValidator()
+        val account = testSocialAccount()
+
+        // Text-only publication (no assets) should pass for personal profile
+        validator.validate(testValidationInput(account, emptyList()))
+        // If we get here without exception, the test passes
+    }
+
+    @Test
+    fun `capability validator accepts personal profile image publishing within limits`() {
+        val validator = LinkedInCapabilityValidator()
+        val account = testSocialAccount()
+        val imageAsset = testAsset("image/jpeg")
+
+        validator.validate(testValidationInput(account, listOf(imageAsset)))
+        // If we get here without exception, the test passes
+    }
 }

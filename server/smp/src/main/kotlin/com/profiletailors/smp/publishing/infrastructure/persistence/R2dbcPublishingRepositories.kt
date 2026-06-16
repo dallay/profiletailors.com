@@ -19,6 +19,7 @@ import com.profiletailors.smp.publishing.domain.PublicationJobRepository
 import com.profiletailors.smp.publishing.domain.PublicationRepository
 import com.profiletailors.smp.publishing.domain.PublicationStatus
 import com.profiletailors.smp.publishing.domain.ScheduleMode
+import com.profiletailors.smp.publishing.domain.SocialConnectionStatus
 import com.profiletailors.smp.publishing.domain.SocialProvider
 import io.r2dbc.spi.Readable
 import kotlinx.coroutines.reactor.awaitSingle
@@ -29,6 +30,7 @@ import java.time.Instant
 import java.time.OffsetDateTime
 
 @Repository
+@Suppress("TooManyFunctions")
 class R2dbcPublicationRepository(
     private val databaseClient: DatabaseClient,
 ) : PublicationRepository {
@@ -45,7 +47,8 @@ class R2dbcPublicationRepository(
         val publication = databaseClient.sql(
             """
             SELECT id, workspace_id, author_principal_id, provider, social_account_id, status, schedule_mode, priority,
-                   title, body_text, scheduled_for, next_slot_after, published_at, failed_at, external_publication_id,
+                   title, body_text, public_url, blocked_at, blocked_reason, retry_count,
+                   scheduled_for, next_slot_after, published_at, failed_at, external_publication_id,
                    last_error_code, last_error_message, created_at, updated_at
             FROM publications
             WHERE workspace_id = :workspaceId AND id = :id
@@ -65,6 +68,10 @@ class R2dbcPublicationRepository(
                     priority = requireNotNull(row.get("priority", java.lang.Boolean::class.java)).booleanValue(),
                     title = row.get("title", String::class.java),
                     bodyText = row.get("body_text", String::class.java),
+                    publicUrl = row.get("public_url", String::class.java),
+                    blockedAt = row.get("blocked_at", OffsetDateTime::class.java)?.toInstant(),
+                    blockedReason = row.get("blocked_reason", String::class.java),
+                    retryCount = row.get("retry_count", Integer::class.java)?.toInt() ?: 0,
                     assetIds = emptyList(),
                     scheduledFor = row.get("scheduled_for", OffsetDateTime::class.java)?.toInstant(),
                     nextSlotAfter = row.get("next_slot_after", OffsetDateTime::class.java)?.toInstant(),
@@ -131,7 +138,8 @@ class R2dbcPublicationRepository(
 
         val sql = """
             SELECT id, workspace_id, author_principal_id, provider, social_account_id, status, schedule_mode, priority,
-                   title, body_text, scheduled_for, next_slot_after, published_at, failed_at, external_publication_id,
+                   title, body_text, public_url, blocked_at, blocked_reason, retry_count,
+                   scheduled_for, next_slot_after, published_at, failed_at, external_publication_id,
                    last_error_code, last_error_message, created_at, updated_at
             FROM publications
             WHERE ${conditions.joinToString(" AND ")}
@@ -252,6 +260,84 @@ class R2dbcPublicationRepository(
             .awaitSingle()
     }
 
+    override suspend fun markBlocked(publicationId: String, blockedAt: Instant, reason: String?) {
+        databaseClient.sql(
+            """
+            UPDATE publications
+            SET status = :status,
+                blocked_at = :blockedAt,
+                blocked_reason = :reason,
+                updated_at = :updatedAt
+            WHERE id = :id
+            """.trimIndent(),
+        )
+            .bind("status", PublicationStatus.BLOCKED.name)
+            .bind("blockedAt", blockedAt)
+            .bindNullable("reason", reason, String::class.java)
+            .bind("updatedAt", blockedAt)
+            .bind("id", publicationId)
+            .fetch()
+            .rowsUpdated()
+            .awaitSingle()
+    }
+
+    override suspend fun findBlockedForRecovery(
+        maxRetries: Int,
+    ): List<PublicationDraft> {
+        val drafts = databaseClient.sql(
+            """
+            SELECT p.id, p.workspace_id, p.author_principal_id, p.provider, p.social_account_id, p.status, p.schedule_mode, p.priority,
+                   p.title, p.body_text, p.public_url, p.blocked_at, p.blocked_reason, p.retry_count,
+                   p.scheduled_for, p.next_slot_after, p.published_at, p.failed_at, p.external_publication_id,
+                   p.last_error_code, p.last_error_message, p.created_at, p.updated_at
+            FROM publications p
+            JOIN social_accounts a
+              ON a.id = p.social_account_id
+             AND a.workspace_id = p.workspace_id
+            WHERE p.status = :status
+              AND p.retry_count < :maxRetries
+              AND a.status = :activeStatus
+            ORDER BY p.blocked_at ASC
+            FOR UPDATE OF p SKIP LOCKED
+            """.trimIndent(),
+        )
+            .bind("status", PublicationStatus.BLOCKED.name)
+            .bind("maxRetries", maxRetries)
+            .bind("activeStatus", SocialConnectionStatus.ACTIVE.name)
+            .map { row, _ -> row.toPublicationDraft() }
+            .all()
+            .collectList()
+            .awaitSingle()
+
+        // Hydrate asset IDs for each draft to prevent data loss on recovery
+        val publicationIds = drafts.map { it.id }
+        if (publicationIds.isNotEmpty()) {
+            val assetLinks = databaseClient.sql(
+                """
+                SELECT publication_id, asset_id FROM publication_asset_links
+                WHERE publication_id IN (:ids)
+                ORDER BY publication_id, position_index ASC
+                """.trimIndent(),
+            )
+                .bind("ids", publicationIds)
+                .map { row, _ ->
+                    requireNotNull(row.get("publication_id", String::class.java)) to
+                        requireNotNull(row.get("asset_id", String::class.java))
+                }
+                .all()
+                .collectList()
+                .awaitSingle()
+
+            val assetsByPublication: Map<String, List<String>> = assetLinks
+                .groupBy({ it.first }, { it.second })
+                .mapValues { (_, v) -> v.filterNotNull() }
+            return drafts.map { draft ->
+                draft.copy(assetIds = assetsByPublication[draft.id].orEmpty())
+            }
+        }
+        return drafts
+    }
+
     private suspend fun insertOrUpdate(draft: PublicationDraft) {
         databaseClient.sql("DELETE FROM publications WHERE id = :id")
             .bind("id", draft.id)
@@ -263,11 +349,13 @@ class R2dbcPublicationRepository(
             """
             INSERT INTO publications (
                 id, workspace_id, author_principal_id, provider, social_account_id, status, schedule_mode, priority,
-                title, body_text, scheduled_for, next_slot_after, published_at, failed_at, external_publication_id,
+                title, body_text, public_url, blocked_at, blocked_reason, retry_count,
+                scheduled_for, next_slot_after, published_at, failed_at, external_publication_id,
                 last_error_code, last_error_message, created_at, updated_at
             ) VALUES (
                 :id, :workspaceId, :authorPrincipalId, :provider, :socialAccountId, :status, :scheduleMode, :priority,
-                :title, :bodyText, :scheduledFor, :nextSlotAfter, :publishedAt, :failedAt, :externalPublicationId,
+                :title, :bodyText, :publicUrl, :blockedAt, :blockedReason, :retryCount,
+                :scheduledFor, :nextSlotAfter, :publishedAt, :failedAt, :externalPublicationId,
                 :lastErrorCode, :lastErrorMessage, :createdAt, :updatedAt
             )
             """.trimIndent(),
@@ -282,6 +370,10 @@ class R2dbcPublicationRepository(
             .bind("priority", draft.priority)
             .bindNullable("title", draft.title, String::class.java)
             .bindNullable("bodyText", draft.bodyText, String::class.java)
+            .bindNullable("publicUrl", draft.publicUrl, String::class.java)
+            .bindNullable("blockedAt", draft.blockedAt, Instant::class.java)
+            .bindNullable("blockedReason", draft.blockedReason, String::class.java)
+            .bind("retryCount", draft.retryCount)
             .bindNullable("scheduledFor", draft.scheduledFor, Instant::class.java)
             .bindNullable("nextSlotAfter", draft.nextSlotAfter, Instant::class.java)
             .bindNullable("publishedAt", draft.publishedAt, Instant::class.java)
@@ -656,24 +748,31 @@ class R2dbcDeliveryAttemptRepository(
     }
 }
 
-private fun org.springframework.r2dbc.core.DatabaseClient.GenericExecuteSpec.bindNullable(
+internal fun org.springframework.r2dbc.core.DatabaseClient.GenericExecuteSpec.bindNullable(
     name: String,
     value: String?,
     type: Class<String>,
 ): org.springframework.r2dbc.core.DatabaseClient.GenericExecuteSpec =
     value?.let { bind(name, it) } ?: bindNull(name, type)
 
-private fun org.springframework.r2dbc.core.DatabaseClient.GenericExecuteSpec.bindNullable(
+internal fun org.springframework.r2dbc.core.DatabaseClient.GenericExecuteSpec.bindNullable(
     name: String,
     value: java.time.Instant?,
     type: Class<java.time.Instant>,
 ): org.springframework.r2dbc.core.DatabaseClient.GenericExecuteSpec =
     value?.let { bind(name, it) } ?: bindNull(name, type)
 
-private fun org.springframework.r2dbc.core.DatabaseClient.GenericExecuteSpec.bindNullable(
+internal fun org.springframework.r2dbc.core.DatabaseClient.GenericExecuteSpec.bindNullable(
     name: String,
     value: java.lang.Long?,
     type: Class<java.lang.Long>,
+): org.springframework.r2dbc.core.DatabaseClient.GenericExecuteSpec =
+    value?.let { bind(name, it) } ?: bindNull(name, type)
+
+internal fun org.springframework.r2dbc.core.DatabaseClient.GenericExecuteSpec.bindNullable(
+    name: String,
+    value: java.lang.Integer?,
+    type: Class<java.lang.Integer>,
 ): org.springframework.r2dbc.core.DatabaseClient.GenericExecuteSpec =
     value?.let { bind(name, it) } ?: bindNull(name, type)
 
@@ -688,6 +787,10 @@ private fun Readable.toPublicationDraft(): PublicationDraft = PublicationDraft(
     priority = requireNotNull(get("priority", java.lang.Boolean::class.java)).booleanValue(),
     title = get("title", String::class.java),
     bodyText = get("body_text", String::class.java),
+    publicUrl = get("public_url", String::class.java),
+    blockedAt = get("blocked_at", OffsetDateTime::class.java)?.toInstant(),
+    blockedReason = get("blocked_reason", String::class.java),
+    retryCount = get("retry_count", Integer::class.java)?.toInt() ?: 0,
     assetIds = emptyList(),
     scheduledFor = get("scheduled_for", OffsetDateTime::class.java)?.toInstant(),
     nextSlotAfter = get("next_slot_after", OffsetDateTime::class.java)?.toInstant(),
