@@ -10,6 +10,6 @@ permissions:
 
 jobs:
   label:
-    uses: dallay/common-actions/.github/workflows/pr-labeler.yml@v2.0.0
+    uses: dallay/common-actions/.github/workflows/pr-labeler.yml@6ecd716dcfb6a9e8a9c494d1eac210cc1d73d75f # v2.0.0
     with:
       configuration-path: .github/labeler.yaml

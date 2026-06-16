@@ -15,7 +15,6 @@ import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.flow.Flow
 import java.net.URI
 import java.net.http.HttpRequest
-import java.util.UUID
 
 data class LinkedInAssetUploadProperties(
     val attachmentsBucket: String,
@@ -96,7 +95,7 @@ class RealLinkedInAssetUploader(
         val response = httpTransport.send(
             HttpRequest.newBuilder(URI.create("${context.apiBaseUrl}/rest/assets"))
                 .header("Authorization", "Bearer ${context.accessToken}")
-                .header("Content-Type", "application/json")
+                .header(CONTENT_TYPE, "application/json")
                 .header("X-Restli-Protocol-Version", "2.0.0")
                 .header("LinkedIn-Version", context.apiVersion)
                 .POST(HttpRequest.BodyPublishers.ofString(objectMapper.writeValueAsString(registerBody)))
@@ -117,7 +116,7 @@ class RealLinkedInAssetUploader(
     private suspend fun uploadBinary(uploadUrl: String, content: Flow<ByteArray>) {
         val bytes = content.collectToByteArray()
         val binaryRequest = HttpRequest.newBuilder(URI.create(uploadUrl))
-            .header("Content-Type", "application/octet-stream")
+            .header(CONTENT_TYPE, "application/octet-stream")
             .PUT(HttpRequest.BodyPublishers.ofByteArray(bytes))
             .build()
 
@@ -135,7 +134,7 @@ class RealLinkedInAssetUploader(
         val response = httpTransport.send(
             HttpRequest.newBuilder(URI.create(confirmUrl))
                 .header("Authorization", "Bearer ${context.accessToken}")
-                .header("Content-Type", "application/json")
+                .header(CONTENT_TYPE, "application/json")
                 .header("X-Restli-Protocol-Version", "2.0.0")
                 .header("LinkedIn-Version", context.apiVersion)
                 .POST(HttpRequest.BodyPublishers.ofString("{}"))
@@ -151,29 +150,28 @@ class RealLinkedInAssetUploader(
 
     private fun encodeUrn(urn: String): String = urn.replace(":", "%3A").replace("/", "%2F")
 
-    private fun Flow<ByteArray>.collectToByteArray(): ByteArray {
-        return kotlinx.coroutines.runBlocking {
-            val list = mutableListOf<ByteArray>()
-            this@collectToByteArray.collect { chunk ->
-                list.add(chunk)
-            }
-            list.reduce { acc, bytes -> acc + bytes }
+    private suspend fun Flow<ByteArray>.collectToByteArray(): ByteArray {
+        val chunks = mutableListOf<ByteArray>()
+        this.collect { chunk ->
+            chunks.add(chunk)
         }
+        if (chunks.isEmpty()) return byteArrayOf()
+
+        val totalSize = chunks.sumOf { it.size }
+        val result = ByteArray(totalSize)
+        var offset = 0
+        for (chunk in chunks) {
+            chunk.copyInto(result, offset)
+            offset += chunk.size
+        }
+        return result
     }
 
     private companion object {
         val HTTP_SUCCESS_RANGE = 200..299
+        const val CONTENT_TYPE = "Content-Type"
     }
 }
 
 private fun <T> T?.orThrow(lazyMessage: () -> String): T =
     this ?: throw ProviderUploadException(lazyMessage())
-
-private fun Flow<ByteArray>.collectToByteArray(): ByteArray =
-    kotlinx.coroutines.runBlocking {
-        val list = mutableListOf<ByteArray>()
-        this@collectToByteArray.collect { chunk ->
-            list.add(chunk)
-        }
-        list.reduceOrNull { acc, bytes -> acc + bytes } ?: byteArrayOf()
-    }

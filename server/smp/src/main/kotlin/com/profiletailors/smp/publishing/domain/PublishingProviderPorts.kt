@@ -45,19 +45,19 @@ data class ProviderCapabilityValidationInput(
     val assets: List<PublicationAsset>,
 )
 
-interface SocialConnectionProvider {
+fun interface SocialConnectionProvider {
     suspend fun completeConnection(command: CompleteProviderConnectionCommand): ProviderConnectionResult
 }
 
-interface SocialPublisher {
+fun interface SocialPublisher {
     suspend fun publish(command: ProviderPublishCommand): ProviderPublishResult
 }
 
-interface ProviderCapabilityValidator {
+fun interface ProviderCapabilityValidator {
     fun validate(input: ProviderCapabilityValidationInput)
 }
 
-interface AssetUploader {
+fun interface AssetUploader {
     suspend fun uploadAsset(
         asset: PublicationAsset,
         content: Flow<ByteArray>,

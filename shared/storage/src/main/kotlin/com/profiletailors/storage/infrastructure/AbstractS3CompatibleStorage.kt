@@ -6,6 +6,7 @@ import com.profiletailors.storage.domain.StorageConnectionException
 import com.profiletailors.storage.domain.StorageObjectNotFoundException
 import com.profiletailors.storage.domain.StorageSecurityException
 import com.profiletailors.storage.domain.StorageServiceException
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.collect
@@ -83,7 +84,10 @@ abstract class AbstractS3CompatibleStorage(
      * Maps S3Exception or SdkException to the appropriate domain exception.
      */
     protected fun mapToStorageException(message: String, e: Exception): Nothing {
+        if (e is CancellationException) throw e
         when (e) {
+            is NoSuchKeyException ->
+                throw StorageObjectNotFoundException(bucketName, message.substringAfter("'").substringBefore("'").takeIf { it.isNotEmpty() } ?: "unknown")
             is S3Exception -> when {
                 e.isAccessDenied() ->
                     throw StorageAccessDeniedException("$message: access denied")
@@ -91,8 +95,6 @@ abstract class AbstractS3CompatibleStorage(
                     throw StorageConnectionException("$message: service unavailable", e)
                 else -> throw StorageServiceException(message, e)
             }
-            is NoSuchKeyException ->
-                throw StorageObjectNotFoundException(bucketName, message.substringAfter("'").substringBefore("'").takeIf { it.isNotEmpty() } ?: "unknown")
             else -> throw StorageServiceException(message, e)
         }
     }
@@ -117,16 +119,8 @@ abstract class AbstractS3CompatibleStorage(
 
                     val body = AsyncRequestBody.fromBytes(fullContent)
                     client.putObject(request, body).await()
-                } catch (e: S3Exception) {
-                    if (e.isAccessDenied()) {
-                        throw StorageAccessDeniedException("Failed to upload '$key' to bucket '$bucketName'")
-                    }
-                    if (e.isServiceUnavailable()) {
-                        throw StorageConnectionException("Failed to upload '$key' to bucket '$bucketName'", e)
-                    }
-                    throw StorageServiceException("Failed to upload '$key' to bucket '$bucketName'", e)
-                } catch (e: SdkException) {
-                    throw StorageServiceException("Failed to upload '$key' to bucket '$bucketName'", e)
+                } catch (e: Exception) {
+                    mapToStorageException("Failed to upload '$key' to bucket '$bucketName'", e)
                 }
             }
         }
@@ -154,18 +148,8 @@ abstract class AbstractS3CompatibleStorage(
                     byteBuffer.get(bytes)
                     send(bytes)
                 }
-            } catch (e: NoSuchKeyException) {
-                throw StorageObjectNotFoundException(bucketName, key)
-            } catch (e: S3Exception) {
-                if (e.isAccessDenied()) {
-                    throw StorageAccessDeniedException("Failed to download '$key' from bucket '$bucketName'")
-                }
-                if (e.isServiceUnavailable()) {
-                    throw StorageConnectionException("Failed to download '$key' from bucket '$bucketName'", e)
-                }
-                throw StorageServiceException("Failed to download '$key' from bucket '$bucketName'", e)
-            } catch (e: SdkException) {
-                throw StorageServiceException("Failed to download '$key' from bucket '$bucketName'", e)
+            } catch (e: Exception) {
+                mapToStorageException("Failed to download '$key' from bucket '$bucketName'", e)
             }
         }
     }
@@ -181,16 +165,8 @@ abstract class AbstractS3CompatibleStorage(
                         .key(key)
                         .build()
                     client.deleteObject(req).await()
-                } catch (e: S3Exception) {
-                    if (e.isAccessDenied()) {
-                        throw StorageAccessDeniedException("Failed to delete '$key' from bucket '$bucketName'")
-                    }
-                    if (e.isServiceUnavailable()) {
-                        throw StorageConnectionException("Failed to delete '$key' from bucket '$bucketName'", e)
-                    }
-                    throw StorageServiceException("Failed to delete '$key' from bucket '$bucketName'", e)
-                } catch (e: SdkException) {
-                    throw StorageServiceException("Failed to delete '$key' from bucket '$bucketName'", e)
+                } catch (e: Exception) {
+                    mapToStorageException("Failed to delete '$key' from bucket '$bucketName'", e)
                 }
             }
         }
@@ -222,16 +198,8 @@ abstract class AbstractS3CompatibleStorage(
                     } while (isTruncated)
 
                     results
-                } catch (e: S3Exception) {
-                    if (e.isAccessDenied()) {
-                        throw StorageAccessDeniedException("Failed to list objects in bucket '$bucketName' with prefix '$prefix'")
-                    }
-                    if (e.isServiceUnavailable()) {
-                        throw StorageConnectionException("Failed to list objects in bucket '$bucketName' with prefix '$prefix'", e)
-                    }
-                    throw StorageServiceException("Failed to list objects in bucket '$bucketName' with prefix '$prefix'", e)
-                } catch (e: SdkException) {
-                    throw StorageServiceException("Failed to list objects in bucket '$bucketName' with prefix '$prefix'", e)
+                } catch (e: Exception) {
+                    mapToStorageException("Failed to list objects in bucket '$bucketName' with prefix '$prefix'", e)
                 }
             }
         }
@@ -256,16 +224,8 @@ abstract class AbstractS3CompatibleStorage(
                 .build()
 
             presigner.presignGetObject(presignRequest).url().toString()
-        } catch (e: S3Exception) {
-            if (e.isAccessDenied()) {
-                throw StorageAccessDeniedException("Failed to generate presigned URL for '$key' in bucket '$bucketName'")
-            }
-            if (e.isServiceUnavailable()) {
-                throw StorageConnectionException("Failed to generate presigned URL for '$key' in bucket '$bucketName'", e)
-            }
-            throw StorageServiceException("Failed to generate presigned URL for '$key' in bucket '$bucketName'", e)
-        } catch (e: SdkException) {
-            throw StorageServiceException("Failed to generate presigned URL for '$key' in bucket '$bucketName'", e)
+        } catch (e: Exception) {
+            mapToStorageException("Failed to generate presigned URL for '$key' in bucket '$bucketName'", e)
         }
     }
 
@@ -283,16 +243,8 @@ abstract class AbstractS3CompatibleStorage(
                     true
                 } catch (e: NoSuchKeyException) {
                     false
-                } catch (e: S3Exception) {
-                    if (e.isAccessDenied()) {
-                        throw StorageAccessDeniedException("Failed to check existence of '$key' in bucket '$bucketName'")
-                    }
-                    if (e.isServiceUnavailable()) {
-                        throw StorageConnectionException("Failed to check existence of '$key' in bucket '$bucketName'", e)
-                    }
-                    throw StorageServiceException("Failed to check existence of '$key' in bucket '$bucketName'", e)
-                } catch (e: SdkException) {
-                    throw StorageServiceException("Failed to check existence of '$key' in bucket '$bucketName'", e)
+                } catch (e: Exception) {
+                    mapToStorageException("Failed to check existence of '$key' in bucket '$bucketName'", e)
                 }
             }
         }

@@ -2,7 +2,9 @@ package com.profiletailors.smp.publishing.infrastructure.credentials
 
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertNotNull
+import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.Test
+import org.junit.jupiter.api.assertThrows
 import org.springframework.boot.test.context.SpringBootTest
 import org.springframework.test.context.ActiveProfiles
 import java.util.Base64
@@ -10,6 +12,18 @@ import java.util.Base64
 @SpringBootTest(properties = ["publishing.credentials.encryption.key=", "spring.main.lazy-initialization=true"]) // ensure property injection
 @ActiveProfiles("test")
 class CredentialEncryptionServiceTests {
+
+    @Test
+    fun `decrypt throws on short payload`() {
+        val properties = PublishingCredentialsProperties()
+        properties.encryptionKey = Base64.getEncoder().encodeToString(ByteArray(16))
+        val service = CredentialEncryptionService(properties)
+
+        val ex = assertThrows<IllegalArgumentException> {
+            service.decrypt(ByteArray(2))
+        }
+        assertTrue(ex.message!!.contains("too short", ignoreCase = true))
+    }
 
     @Test
     fun `encrypt and decrypt roundtrip`() {

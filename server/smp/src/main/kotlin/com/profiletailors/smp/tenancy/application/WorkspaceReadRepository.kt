@@ -7,7 +7,7 @@ package com.profiletailors.smp.tenancy.application
  * without depending on infrastructure implementations.
  * The infrastructure layer provides the actual implementation.
  */
-interface WorkspaceReadRepository {
+fun interface WorkspaceReadRepository {
     /**
      * Find all workspaces where the given principal has an ACTIVE membership.
      *

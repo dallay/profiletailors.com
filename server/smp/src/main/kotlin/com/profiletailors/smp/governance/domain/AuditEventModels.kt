@@ -70,16 +70,33 @@ data class AuditEventItem(
     val createdAt: Instant,
 )
 
+data class AuditEventFilter(
+    val targetType: String? = null,
+    val action: String? = null,
+    val eventType: String? = null,
+    val actorPrincipalId: String? = null,
+    val createdAfter: Instant? = null,
+    val createdBefore: Instant? = null,
+)
+
+data class AuditEventPageRequest(
+    val cursor: AuditEventCursor? = null,
+    val limit: Int = 50,
+) {
+    init {
+        require(limit > 0) { "limit must be a positive integer, got $limit" }
+        require(limit <= MAX_LIMIT) { "limit must be at most $MAX_LIMIT, got $limit" }
+    }
+
+    companion object {
+        const val MAX_LIMIT = 1_000
+    }
+}
+
 interface AuditEventReader {
     suspend fun readWorkspaceEvents(
         workspaceId: String,
-        targetType: String? = null,
-        action: String? = null,
-        eventType: String? = null,
-        actorPrincipalId: String? = null,
-        createdAfter: Instant? = null,
-        createdBefore: Instant? = null,
-        cursor: AuditEventCursor? = null,
-        limit: Int = 50,
+        filter: AuditEventFilter = AuditEventFilter(),
+        pageRequest: AuditEventPageRequest = AuditEventPageRequest(),
     ): List<AuditEventItem>
 }

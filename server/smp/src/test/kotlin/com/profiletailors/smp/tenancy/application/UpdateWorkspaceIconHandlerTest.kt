@@ -187,6 +187,23 @@ class UpdateWorkspaceIconHandlerTest {
     }
 
     @Test
+    fun `throws on non-existent workspace`() = runTest {
+        val db = createDb()
+        val badContext = ResourceContext(
+            type = ResourceContextType.WORKSPACE,
+            workspaceId = "i-dont-exist",
+        )
+        val badContextProvider = object : ResourceContextProvider {
+            override fun current(): ResourceContext = badContext
+        }
+        val handler = UpdateWorkspaceIconHandler(badContextProvider, db, allowDecider)
+
+        val ex = runCatching { handler.handle(UpdateWorkspaceIconCommand(icon = "rocket")) }.exceptionOrNull()
+        assertTrue(ex is IllegalStateException)
+        assertTrue(ex!!.message!!.contains("not found"))
+    }
+
+    @Test
     fun `denies access when authorization fails`() = runTest {
         val db = createDb()
         val handler = UpdateWorkspaceIconHandler(resourceContextProvider, db, denyDecider)

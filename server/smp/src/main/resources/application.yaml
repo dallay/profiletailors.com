@@ -145,6 +145,11 @@ spring:
   config:
     activate:
       on-profile: dev
+  liquibase:
+    parameters:
+      # Dev-only: bcrypt hash for password "dev" — DO NOT use in production
+      # Generate with: htpasswd -bnBC 12 "" dev | tr -d ':\n' 2>/dev/null || echo "install htpasswd"
+      dev-password-hash: ${DEV_PASSWORD_HASH}
 
 logging:
   level:

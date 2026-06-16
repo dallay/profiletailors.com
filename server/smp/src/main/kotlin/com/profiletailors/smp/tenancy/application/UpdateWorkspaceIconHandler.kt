@@ -40,9 +40,7 @@ internal class UpdateWorkspaceIconHandler(
             .bind("id", workspaceId)
             .fetch().rowsUpdated().awaitSingle()
 
-        if (rowsUpdated == 0L) {
-            throw IllegalStateException("Workspace '$workspaceId' not found.")
-        }
+        check(rowsUpdated != 0L) { "Workspace '$workspaceId' not found." }
 
         return UpdateWorkspaceIconResult(workspaceId = workspaceId, icon = command.icon)
     }
