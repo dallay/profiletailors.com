@@ -150,14 +150,12 @@ class RealLinkedInAssetUploader(
 
     private fun encodeUrn(urn: String): String = urn.replace(":", "%3A").replace("/", "%2F")
 
-    private fun Flow<ByteArray>.collectToByteArray(): ByteArray {
-        return kotlinx.coroutines.runBlocking {
-            val list = mutableListOf<ByteArray>()
-            this@collectToByteArray.collect { chunk ->
-                list.add(chunk)
-            }
-            list.reduceOrNull { acc, bytes -> acc + bytes } ?: byteArrayOf()
+    private suspend fun Flow<ByteArray>.collectToByteArray(): ByteArray {
+        val list = mutableListOf<ByteArray>()
+        this.collect { chunk ->
+            list.add(chunk)
         }
+        return list.reduceOrNull { acc, bytes -> acc + bytes } ?: byteArrayOf()
     }
 
     private companion object {

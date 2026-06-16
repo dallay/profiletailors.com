@@ -26,9 +26,26 @@ jobs:
           fetch-depth: 0
       - name: Install Gitleaks CLI
         run: |
+          set -euo pipefail
+          VERSION=v8.28.0
+          ARTIFACT="gitleaks_8.28.0_linux_x64.tar.gz"
+          BASE_URL="https://github.com/gitleaks/gitleaks/releases/download/${VERSION}"
+          EXPECTED_SHA=$(curl --fail --silent --show-error --location --proto =https \
+            "${BASE_URL}/gitleaks_8.28.0_checksums.txt" \
+            | grep "  ${ARTIFACT}" | awk '{print $1}')
+          if [ -z "$EXPECTED_SHA" ]; then
+            echo "::error::Could not find expected SHA256 for ${ARTIFACT} in checksums file."
+            exit 1
+          fi
           curl --fail --silent --show-error --location --proto =https \
-            https://github.com/gitleaks/gitleaks/releases/download/v8.28.0/gitleaks_8.28.0_linux_x64.tar.gz \
-            | tar -xz gitleaks
+            "${BASE_URL}/${ARTIFACT}" \
+            -o "${ARTIFACT}"
+          ACTUAL_SHA=$(sha256sum "${ARTIFACT}" | awk '{print $1}')
+          if [ "$EXPECTED_SHA" != "$ACTUAL_SHA" ]; then
+            echo "::error::SHA256 mismatch for ${ARTIFACT}: expected ${EXPECTED_SHA}, got ${ACTUAL_SHA}"
+            exit 1
+          fi
+          tar -xzf "${ARTIFACT}" gitleaks
           install gitleaks /usr/local/bin/gitleaks
       - name: Run full-history Gitleaks scan
         run: |

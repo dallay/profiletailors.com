@@ -82,7 +82,16 @@ data class AuditEventFilter(
 data class AuditEventPageRequest(
     val cursor: AuditEventCursor? = null,
     val limit: Int = 50,
-)
+) {
+    init {
+        require(limit > 0) { "limit must be a positive integer, got $limit" }
+        require(limit <= MAX_LIMIT) { "limit must be at most $MAX_LIMIT, got $limit" }
+    }
+
+    companion object {
+        const val MAX_LIMIT = 1_000
+    }
+}
 
 interface AuditEventReader {
     suspend fun readWorkspaceEvents(

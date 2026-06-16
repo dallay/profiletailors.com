@@ -6,6 +6,7 @@ import com.profiletailors.storage.domain.StorageConnectionException
 import com.profiletailors.storage.domain.StorageObjectNotFoundException
 import com.profiletailors.storage.domain.StorageSecurityException
 import com.profiletailors.storage.domain.StorageServiceException
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.collect
@@ -83,6 +84,7 @@ abstract class AbstractS3CompatibleStorage(
      * Maps S3Exception or SdkException to the appropriate domain exception.
      */
     protected fun mapToStorageException(message: String, e: Exception): Nothing {
+        if (e is CancellationException) throw e
         when (e) {
             is NoSuchKeyException ->
                 throw StorageObjectNotFoundException(bucketName, message.substringAfter("'").substringBefore("'").takeIf { it.isNotEmpty() } ?: "unknown")
