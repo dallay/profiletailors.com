@@ -3,6 +3,8 @@ package com.profiletailors.smp.publishing.domain
 import java.time.Duration
 import java.time.Instant
 
+internal val MIN_SCHEDULE_OFFSET: Duration = Duration.ofMinutes(5)
+
 open class PublicationStateTransitionException(
     message: String,
 ) : IllegalStateException(message)
@@ -35,7 +37,7 @@ class PublicationValidationException(
 // Policy object for publication lifecycle state transitions
 @Suppress("TooManyFunctions")
 object PublicationLifecyclePolicy {
-    fun validateForCreation(draft: PublicationDraft) {
+    fun validateForCreation(draft: PublicationDraft, now: Instant) {
         require(draft.workspaceId.isNotBlank()) { "Publication workspace is required." }
         require(draft.authorPrincipalId.isNotBlank()) { "Publication author is required." }
         require(draft.socialAccountId.isNotBlank()) { "Publication account is required." }
@@ -43,7 +45,7 @@ object PublicationLifecyclePolicy {
         require(draft.bodyText?.isNotBlank() == true || draft.assetIds.isNotEmpty()) {
             "Publication content requires body text or at least one asset."
         }
-        validateSchedule(draft.scheduleMode, draft.scheduledFor, draft.nextSlotAfter)
+        validateSchedule(draft.scheduleMode, draft.scheduledFor, draft.nextSlotAfter, now)
     }
 
     fun requireEditable(publication: PublicationDraft) {
@@ -153,13 +155,26 @@ object PublicationLifecyclePolicy {
         )
     }
 
-    private fun validateSchedule(scheduleMode: ScheduleMode, scheduledFor: Instant?, nextSlotAfter: Instant?) {
+    private fun validateSchedule(
+        scheduleMode: ScheduleMode,
+        scheduledFor: Instant?,
+        nextSlotAfter: Instant?,
+        now: Instant,
+    ) {
         when (scheduleMode) {
             ScheduleMode.NOW -> require(scheduledFor == null) {
                 "NOW publications must not provide scheduledFor."
             }
-            ScheduleMode.SCHEDULED_AT -> requireNotNull(scheduledFor) {
-                "SCHEDULED_AT publications require scheduledFor."
+            ScheduleMode.SCHEDULED_AT -> {
+                requireNotNull(scheduledFor) {
+                    "SCHEDULED_AT publications require scheduledFor."
+                }
+                val earliestAllowed = now.plus(MIN_SCHEDULE_OFFSET)
+                require(!scheduledFor.isBefore(earliestAllowed)) {
+                    "Cannot schedule a publication for a date and time in the past. " +
+                        "Scheduled time must be at least 5 minutes in the future. " +
+                        "Earliest allowed: $earliestAllowed"
+                }
             }
             ScheduleMode.NEXT_SLOT -> require(nextSlotAfter != null || scheduledFor == null) {
                 "NEXT_SLOT publications use nextSlotAfter instead of scheduledFor."
@@ -171,6 +186,7 @@ object PublicationLifecyclePolicy {
         PublicationStatus.PUBLISHED,
         PublicationStatus.CANCELLED,
     )
+
 }
 
 class PublicationSchedulingPolicy {

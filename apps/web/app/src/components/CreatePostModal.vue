@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, computed, watch } from 'vue'
+import { ref, computed, watch, onMounted, onUnmounted } from 'vue'
 // biome-ignore lint/correctness/noUnusedImports: used in template
 import { Image as ImageIcon } from '@lucide/vue'
 import {
@@ -52,6 +52,40 @@ const scheduleMode = ref<'now' | 'custom'>('now')
 // Custom Datepicker state
 const scheduleDate = ref('')
 const scheduleTime = ref('10:00')
+
+// ---------------------------------------------------------------------------
+// Live clock for date/time minimum validation
+// ---------------------------------------------------------------------------
+const now = ref(new Date())
+let timer: ReturnType<typeof setInterval>
+
+onMounted(() => {
+  timer = setInterval(() => {
+    now.value = new Date()
+  }, 60_000)
+})
+
+onUnmounted(() => clearInterval(timer))
+
+const minDate = computed(() => {
+  const d = new Date(now.value)
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
+})
+
+const minTimeForDate = computed(() => {
+  if (scheduleDate.value === minDate.value) {
+    const future = new Date(now.value.getTime() + 5 * 60_000)
+    // Check for midnight rollover: if now+5min crosses into tomorrow,
+    // no valid time remains for today — return an impossible value
+    const futureDateStr = `${future.getFullYear()}-${String(future.getMonth() + 1).padStart(2, '0')}-${String(future.getDate()).padStart(2, '0')}`
+    if (futureDateStr !== minDate.value) {
+      return '23:59'
+    }
+    return `${String(future.getHours()).padStart(2, '0')}:${String(future.getMinutes()).padStart(2, '0')}`
+  }
+  // Future date: any time is valid
+  return '00:00'
+})
 
 // Initialize Date
 watch(
@@ -250,21 +284,36 @@ async function handleSchedule() {
       const isValidMinutes = Number.isInteger(minutes) && minutes >= 0 && minutes <= 59
       if (isValidYear && isValidMonth && isValidDay && isValidHours && isValidMinutes) {
         finalScheduledDate = new Date(year, month - 1, day, hours, minutes)
+        // Guard against silent Date normalization (e.g. Feb 31 → Mar 3)
+        if (finalScheduledDate.getFullYear() !== year ||
+            finalScheduledDate.getMonth() + 1 !== month ||
+            finalScheduledDate.getDate() !== day) {
+          submitError.value = 'Invalid date selected.'
+          return
+        }
       } else {
-        // Invalid parsed values — use same safe-future fallback as "Next Available"
-        finalScheduledDate = new Date(Date.now() + 60 * 60 * 1000)
+        submitError.value = 'Invalid date or time selected.'
+        return
+      }
+
+      // Validate: scheduled time must be at least 5 minutes in the future
+      const earliestAllowed = new Date(Date.now() + 5 * 60_000)
+      if (finalScheduledDate < earliestAllowed) {
+        submitError.value = 'Scheduled time must be at least 5 minutes in the future.'
+        return
       }
     } else {
-      // "Next Available" mode - default to 1 hour from now
-      finalScheduledDate = new Date(Date.now() + 60 * 60 * 1000)
+      // NOW mode — backend resolves to clock.instant(), no need to compute offset
+      finalScheduledDate = new Date()
     }
 
-    // Schedule through store
+    // Schedule through store — pass scheduleMode so NOW mode sends NOR scheduleFor
     await publishingStore.schedulePost({
       content: postText.value,
       title: 'Post from App',
       channels: selectedProviders.value,
-      scheduledAt: finalScheduledDate.toISOString(),
+      scheduledAt: scheduleMode.value === 'now' ? undefined : finalScheduledDate.toISOString(),
+      scheduleMode: scheduleMode.value === 'now' ? 'NOW' : 'SCHEDULED_AT',
       priority: priorityMode.value,
       mediaFiles: mediaFiles.value,
       socialAccountId: selectedChannel.value?.accountId,
@@ -563,11 +612,13 @@ async function handleSchedule() {
                 <input
                   v-model="scheduleDate"
                   type="date"
+                  :min="minDate"
                   class="bg-bg-surface border border-border-subtle rounded-xl px-3 py-2 text-xs text-text-body focus:outline-none focus:border-text-display font-sans"
                 />
                 <input
                   v-model="scheduleTime"
                   type="time"
+                  :min="minTimeForDate"
                   class="bg-bg-surface border border-border-subtle rounded-xl px-3 py-2 text-xs text-text-body focus:outline-none focus:border-text-display font-sans"
                 />
               </div>
