@@ -12,6 +12,8 @@ const props = withDefaults(
     isCurrentMonth: boolean
     /** Whether the date is today */
     isToday: boolean
+    /** Whether this cell is in the past (no interaction allowed) */
+    isPast: boolean
     /** Publications scheduled for this date */
     publications: Publication[]
     /** Activity density entry for this date (optional) */
@@ -65,7 +67,7 @@ function onDrop(e: DragEvent) {
 }
 
 function onKeyDown(e: KeyboardEvent) {
-  if (props.isCurrentMonth && (e.key === 'Enter' || e.key === ' ')) {
+  if (props.isCurrentMonth && !props.isPast && (e.key === 'Enter' || e.key === ' ')) {
     e.preventDefault()
     emit('click-day', props.date)
   }
@@ -77,16 +79,17 @@ function onKeyDown(e: KeyboardEvent) {
     class="relative min-h-[90px] border-r border-border-subtle last:border-r-0 p-1.5 transition-all"
     :class="{
       'bg-bg-surface/30': !isCurrentMonth,
-      'bg-bg-primary/10': isCurrentMonth,
-      'cursor-pointer hover:bg-bg-primary/20': isCurrentMonth,
+      'bg-bg-primary/10': isCurrentMonth && !isPast,
+      'opacity-40 cursor-not-allowed pointer-events-none': isPast,
+      'cursor-pointer hover:bg-bg-primary/20': isCurrentMonth && !isPast,
     }"
-    :tabindex="isCurrentMonth ? 0 : -1"
-    :role="isCurrentMonth ? 'button' : undefined"
-    :aria-label="isCurrentMonth ? `Calendar cell for ${date.toLocaleDateString()}` : undefined"
-    @click="isCurrentMonth ? emit('click-day', date) : undefined"
+    :tabindex="isCurrentMonth && !isPast ? 0 : -1"
+    :role="isCurrentMonth && !isPast ? 'button' : undefined"
+    :aria-label="isCurrentMonth ? `Calendar cell for ${date.toLocaleDateString()}${isPast ? ' (past)' : ''}` : undefined"
+    @click="isCurrentMonth && !isPast ? emit('click-day', date) : undefined"
     @keydown="onKeyDown"
-    @dragover.prevent
-    @drop.prevent="onDrop"
+    @dragover.prevent="!isPast"
+    @drop.prevent="!isPast ? onDrop($event) : undefined"
   >
     <!-- Day number + activity dot -->
     <div class="flex items-center justify-between mb-1">

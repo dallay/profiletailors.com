@@ -546,12 +546,16 @@ export const usePublishingStore = defineStore('publishing', () => {
     content: string
     title?: string
     channels: ('twitter' | 'linkedin' | 'instagram' | 'facebook')[]
-    scheduledAt: string
+    scheduledAt?: string
+    scheduleMode?: 'NOW' | 'SCHEDULED_AT'
     priority: boolean
     mediaFiles?: File[]
     socialAccountId?: string
   }) {
     const publicationId = `pub-${Date.now()}`
+
+    const effectiveMode = post.scheduleMode === 'NOW' ? 'NOW' : 'SCHEDULED_AT'
+    const effectiveScheduledAt = effectiveMode === 'NOW' ? new Date().toISOString() : (post.scheduledAt ?? new Date().toISOString())
 
     // Create new publication object
     const newPub: Publication = {
@@ -560,7 +564,7 @@ export const usePublishingStore = defineStore('publishing', () => {
       title: post.title || undefined,
       channels: post.channels,
       accountId: post.socialAccountId,
-      scheduledAt: post.scheduledAt,
+      scheduledAt: effectiveScheduledAt,
       status: 'QUEUED',
       priority: post.priority,
       mediaFiles: post.mediaFiles,
@@ -605,8 +609,8 @@ export const usePublishingStore = defineStore('publishing', () => {
               title: post.title || 'Post via Web App',
               bodyText: post.content,
               assetIds: [],
-              scheduleMode: 'SCHEDULED_AT',
-              scheduledFor: post.scheduledAt,
+              scheduleMode: effectiveMode,
+              ...(effectiveMode === 'SCHEDULED_AT' ? { scheduledFor: post.scheduledAt } : {}),
               priority: post.priority,
             }),
             workspaceScoped: true,
