@@ -66,7 +66,7 @@ class StorageApplicationService(
         }
 
         try {
-            val result = metrics.recordOperationTime(StorageMetrics.Operations.UPLOAD, provider) {
+            metrics.recordOperationTime(StorageMetrics.Operations.UPLOAD, provider) {
                 storage.upload(bucket, key, trackedContent, metadata)
             }
             metrics.recordBytesUploaded(totalSize, provider, bucket)

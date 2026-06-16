@@ -56,9 +56,7 @@ class RateLimitingService(
                     windowDuration = result.windowDuration,
                     strategy = strategy,
                 )
-            } catch (e: Exception) {
-                val hashedId = hashIdentifier(identifier)
-//                log.warn("Failed to publish rate limit exceeded event for identifier: {} (hashed)", hashedId, e)
+            } catch (_: Exception) {
                 // We don't rethrow to ensure the Denied result is still returned to the caller
             }
         }
@@ -73,8 +71,7 @@ class RateLimitingService(
             val digest = MessageDigest.getInstance("SHA-256")
             val hashBytes = digest.digest(identifier.toByteArray())
             hashBytes.joinToString("") { "%02x".format(it.toInt() and BYTE_MASK) }.take(HASH_LOG_LENGTH) + ELLIPSIS
-        } catch (e: Exception) {
-            //log.warn("Failed to hash identifier for safe logging", e)
+        } catch (_: Exception) {
             "unknown-id-hash-failed"
         }
     }

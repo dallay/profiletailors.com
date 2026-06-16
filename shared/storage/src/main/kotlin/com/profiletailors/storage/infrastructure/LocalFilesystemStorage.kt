@@ -108,14 +108,8 @@ class LocalFilesystemStorage(private val basePath: Path) : Storage {
     }
 
     private fun cleanupTempFile(tmp: Path, os: java.io.OutputStream?) {
-        try {
-            os?.close()
-        } catch (_: Throwable) {
-        }
-        try {
-            Files.deleteIfExists(tmp)
-        } catch (_: Throwable) {
-        }
+        runCatching { os?.close() }
+        runCatching { Files.deleteIfExists(tmp) }
     }
 
     private suspend fun finalizeUpload(tmp: Path, target: Path, os: java.io.OutputStream) {

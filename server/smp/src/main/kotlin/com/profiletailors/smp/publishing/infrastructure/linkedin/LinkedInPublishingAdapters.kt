@@ -29,6 +29,8 @@ import com.profiletailors.storage.domain.Storage
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.reactor.awaitSingle
 import org.springframework.beans.factory.annotation.Value
+import org.springframework.boot.context.properties.ConfigurationProperties
+import org.springframework.boot.context.properties.EnableConfigurationProperties
 import org.springframework.context.annotation.Bean
 import org.springframework.context.annotation.Configuration
 import java.io.IOException
@@ -42,15 +44,16 @@ import java.nio.charset.StandardCharsets
 import java.util.UUID
 import org.slf4j.LoggerFactory
 
+@ConfigurationProperties(prefix = "publishing.linkedin")
 data class LinkedInPublishingProperties(
-    val clientId: String,
-    val clientSecret: String,
-    val redirectUri: String,
-    val scopes: String,
-    val apiBaseUrl: String,
-    val authorizationBaseUrl: String,
-    val tokenBaseUrl: String,
-    val apiVersion: String,
+    val clientId: String = "",
+    val clientSecret: String = "",
+    val redirectUri: String = "",
+    val scopes: String = "",
+    val apiBaseUrl: String = "https://api.linkedin.com",
+    val authorizationBaseUrl: String = "https://www.linkedin.com/oauth/v2/authorization",
+    val tokenBaseUrl: String = "https://www.linkedin.com/oauth/v2/accessToken",
+    val apiVersion: String = "202601",
 ) {
     fun isConfigured(): Boolean = clientId.isNotBlank() && clientSecret.isNotBlank() && redirectUri.isNotBlank()
 }
@@ -420,34 +423,11 @@ data class LinkedInUserInfoResponse(
 }
 
 @Configuration
+@EnableConfigurationProperties(LinkedInPublishingProperties::class)
 class LinkedInPublishingConfiguration(
     @Autowired(required = false)
     private val storage: Storage?,
 ) {
-    @Bean
-    fun linkedInPublishingProperties(
-        @Value("\${publishing.linkedin.client-id:}") clientId: String,
-        @Value("\${publishing.linkedin.client-secret:}") clientSecret: String,
-        @Value("\${publishing.linkedin.redirect-uri:}") redirectUri: String,
-        @Value("\${publishing.linkedin.scopes:}") scopes: String,
-        @Value("\${publishing.linkedin.api-base-url:https://api.linkedin.com}")
-        apiBaseUrl: String,
-        @Value("\${publishing.linkedin.authorization-base-url:https://www.linkedin.com/oauth/v2/authorization}")
-        authorizationBaseUrl: String,
-        @Value("\${publishing.linkedin.token-base-url:https://www.linkedin.com/oauth/v2/accessToken}")
-        tokenBaseUrl: String,
-        @Value("\${publishing.linkedin.api-version:202601}") apiVersion: String,
-    ): LinkedInPublishingProperties = LinkedInPublishingProperties(
-        clientId = clientId,
-        clientSecret = clientSecret,
-        redirectUri = redirectUri,
-        scopes = scopes,
-        apiBaseUrl = apiBaseUrl,
-        authorizationBaseUrl = authorizationBaseUrl,
-        tokenBaseUrl = tokenBaseUrl,
-        apiVersion = apiVersion,
-    )
-
     @Bean
     fun linkedInAuthorizationUrlBuilder(properties: LinkedInPublishingProperties): LinkedInAuthorizationUrlBuilder =
         LinkedInAuthorizationUrlBuilderAdapter(properties)

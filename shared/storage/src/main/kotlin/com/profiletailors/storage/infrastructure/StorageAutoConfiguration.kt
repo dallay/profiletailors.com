@@ -55,11 +55,9 @@ open class StorageAutoConfiguration {
 
         // Validate default provider exists
         val defaultName = storageProperties.default
-        if (defaultName.isNotBlank() && !map.containsKey(defaultName)) {
-            throw IllegalStateException(
-                "Configured default storage provider '$defaultName' not found. " +
-                "Available providers: ${map.keys.joinToString(", ")}"
-            )
+        check(!(defaultName.isNotBlank() && !map.containsKey(defaultName))) {
+            "Configured default storage provider '$defaultName' not found. " +
+            "Available providers: ${map.keys.joinToString(", ")}"
         }
 
         return InMemoryBucketRegistry(map)

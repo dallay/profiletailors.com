@@ -18,7 +18,7 @@ internal interface WorkspaceOwnershipRepository {
     suspend fun exists(workspaceId: String, principalId: String): Boolean
 }
 
-internal interface WorkspaceMembershipLookup {
+internal fun interface WorkspaceMembershipLookup {
     suspend fun resolve(principalId: String, resourceContext: ResourceContext): WorkspaceMembership?
 }
 

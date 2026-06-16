@@ -11,34 +11,36 @@ import com.profiletailors.smp.identity.domain.UserRegistered
 import java.time.Clock
 import java.util.UUID
 
-internal suspend fun issueAuthSession(
-    principalId: String,
-    subject: String,
-    email: String,
-    username: String?,
-    emailStatus: EmailStatus,
-    workspaceId: String? = null,
-    clock: Clock,
-    localJwtIssuer: LocalJwtIssuer,
-    refreshSessionLifecycleService: RefreshSessionLifecycleService,
-): LocalAuthSessionResult {
-    val token = localJwtIssuer.issue(
-        principalId = principalId,
-        subject = subject,
-        email = email,
-        username = username,
-        issuedAt = clock.instant(),
+internal data class AuthSessionContext(
+    val principalId: String,
+    val subject: String,
+    val email: String,
+    val username: String?,
+    val emailStatus: EmailStatus,
+    val workspaceId: String? = null,
+    val clock: Clock,
+    val localJwtIssuer: LocalJwtIssuer,
+    val refreshSessionLifecycleService: RefreshSessionLifecycleService,
+)
+
+internal suspend fun issueAuthSession(context: AuthSessionContext): LocalAuthSessionResult {
+    val token = context.localJwtIssuer.issue(
+        principalId = context.principalId,
+        subject = context.subject,
+        email = context.email,
+        username = context.username,
+        issuedAt = context.clock.instant(),
     )
-    val refreshSession = refreshSessionLifecycleService.issue(principalId)
+    val refreshSession = context.refreshSessionLifecycleService.issue(context.principalId)
     return LocalAuthSessionResult(
         tokens = AuthTokens(
             accessToken = token.value,
             expiresIn = token.expiresInSeconds,
-            principalId = principalId,
-            email = email,
-            username = username,
-            emailStatus = emailStatus.name,
-            workspaceId = workspaceId,
+            principalId = context.principalId,
+            email = context.email,
+            username = context.username,
+            emailStatus = context.emailStatus.name,
+            workspaceId = context.workspaceId,
         ),
         refreshToken = refreshSession.refreshToken,
     )
@@ -160,14 +162,16 @@ internal class LoginUserHandler(
         }
 
         return issueAuthSession(
-            principalId = credential.principalId,
-            subject = "local:${credential.email}",
-            email = credential.email,
-            username = credential.username,
-            emailStatus = emailStatus,
-            clock = clock,
-            localJwtIssuer = localJwtIssuer,
-            refreshSessionLifecycleService = refreshSessionLifecycleService,
+            AuthSessionContext(
+                principalId = credential.principalId,
+                subject = "local:${credential.email}",
+                email = credential.email,
+                username = credential.username,
+                emailStatus = emailStatus,
+                clock = clock,
+                localJwtIssuer = localJwtIssuer,
+                refreshSessionLifecycleService = refreshSessionLifecycleService,
+            ),
         )
     }
 }
@@ -257,15 +261,17 @@ internal class VerifyEmailHandler(
             ?: error("Identity not found for email '${storedToken.email}' after verification.")
 
         return issueAuthSession(
-            principalId = identityFacts.principalId,
-            subject = identityFacts.subject,
-            email = identityFacts.email ?: storedToken.email,
-            username = identityFacts.username,
-            emailStatus = EmailStatus.VERIFIED,
-            workspaceId = null,
-            clock = clock,
-            localJwtIssuer = localJwtIssuer,
-            refreshSessionLifecycleService = refreshSessionLifecycleService,
+            AuthSessionContext(
+                principalId = identityFacts.principalId,
+                subject = identityFacts.subject,
+                email = identityFacts.email ?: storedToken.email,
+                username = identityFacts.username,
+                emailStatus = EmailStatus.VERIFIED,
+                workspaceId = null,
+                clock = clock,
+                localJwtIssuer = localJwtIssuer,
+                refreshSessionLifecycleService = refreshSessionLifecycleService,
+            ),
         )
     }
 

@@ -14,6 +14,8 @@ jackson = "3.0.+"
 slf4j = "2.0.17"
 commonsText = "1.12.0"
 awsS3 = "2.20.15"
+bucket4j = "8.10.1"
+caffeine = "3.1.8"
 
 # Testing
 junit = "6.0.3"
@@ -23,6 +25,7 @@ testcontainers = "1.20.6"
 cucumber = "7.18.1"
 archunit = "1.4.2"
 kover = "0.9.1"
+kotest = "6.1.11"
 
 [libraries]
 # Kotlin
@@ -58,6 +61,8 @@ commons-text = { module = "org.apache.commons:commons-text", version.ref = "comm
 aws-s3 = { module = "software.amazon.awssdk:s3", version.ref = "awsS3" }
 springdoc-openapi-webflux = { module = "org.springdoc:springdoc-openapi-starter-webflux-ui", version.ref = "springdoc" }
 micrometer-prometheus = { module = "io.micrometer:micrometer-registry-prometheus" }
+bucket4j-core = { module = "com.bucket4j:bucket4j-core", version.ref = "bucket4j" }
+caffeine = { module = "com.github.ben-manes.caffeine:caffeine", version.ref = "caffeine" }
 
 # Testing
 junit-jupiter = { module = "org.junit.jupiter:junit-jupiter", version.ref = "junit" }
@@ -71,6 +76,7 @@ archunit-junit5 = { module = "com.tngtech.archunit:archunit-junit5", version.ref
 mockk = { module = "io.mockk:mockk", version.ref = "mockk" }
 kotlin-test-junit5 = { module = "org.jetbrains.kotlin:kotlin-test-junit5", version.ref = "kotlin" }
 kotlinx-coroutines-test = { module = "org.jetbrains.kotlinx:kotlinx-coroutines-test", version.ref = "coroutines" }
+kotest-assertions-core = { module = "io.kotest:kotest-assertions-core", version.ref = "kotest" }
 
 # Cucumber BDD
 cucumber-java = { module = "io.cucumber:cucumber-java", version.ref = "cucumber" }
