@@ -1186,6 +1186,154 @@ class PublishingHandlersTest {
         assertTrue(error.message!!.contains("non-existent-pub"))
     }
 
+    // --- ListPublicationsHandler tests ---
+
+    @Test
+    fun `list publications with both from and to returns matching items`() = runTest {
+        val publicationRepository = InMemoryPublicationRepository(
+            seedMany = listOf(
+                calendarPublication("pub-1", "account-1", "2026-06-10T10:00:00Z"),
+                calendarPublication("pub-2", "account-1", "2026-06-15T10:00:00Z"),
+                calendarPublication("pub-3", "account-1", "2026-06-20T10:00:00Z"),
+            ),
+        )
+        val handler = ListPublicationsHandler(
+            resourceContextProvider = FixedResourceContextProvider(workspaceContext),
+            publicationRepository = publicationRepository,
+        )
+
+        val result = handler.handle(
+            ListPublicationsQuery(
+                from = Instant.parse("2026-06-01T00:00:00Z"),
+                to = Instant.parse("2026-06-18T00:00:00Z"),
+            ),
+        )
+
+        assertEquals(2, result.total)
+        assertEquals(listOf("pub-1", "pub-2"), result.publications.map { it.id })
+    }
+
+    @Test
+    fun `list publications open-ended uses broad date range`() = runTest {
+        val publicationRepository = InMemoryPublicationRepository(
+            seedMany = listOf(
+                calendarPublication("pub-1", "account-1", "2026-06-15T10:00:00Z"),
+                calendarPublication("pub-2", "account-1", "2026-06-16T10:00:00Z"),
+            ),
+        )
+        val handler = ListPublicationsHandler(
+            resourceContextProvider = FixedResourceContextProvider(workspaceContext),
+            publicationRepository = publicationRepository,
+        )
+
+        val result = handler.handle(ListPublicationsQuery())
+
+        assertEquals(2, result.total)
+        assertEquals(2, result.publications.size)
+    }
+
+    @Test
+    fun `list publications with status filter`() = runTest {
+        val publicationRepository = InMemoryPublicationRepository(
+            seedMany = listOf(
+                calendarPublication("pub-1", "account-1", "2026-06-15T10:00:00Z", PublicationStatus.SCHEDULED),
+                calendarPublication("pub-2", "account-1", "2026-06-15T11:00:00Z", PublicationStatus.QUEUED),
+                calendarPublication("pub-3", "account-1", "2026-06-15T12:00:00Z", PublicationStatus.SCHEDULED),
+            ),
+        )
+        val handler = ListPublicationsHandler(
+            resourceContextProvider = FixedResourceContextProvider(workspaceContext),
+            publicationRepository = publicationRepository,
+        )
+
+        val result = handler.handle(
+            ListPublicationsQuery(
+                from = Instant.parse("2026-06-01T00:00:00Z"),
+                to = Instant.parse("2026-07-01T00:00:00Z"),
+                status = PublicationStatus.SCHEDULED,
+            ),
+        )
+
+        assertEquals(2, result.total)
+        assertEquals(setOf(PublicationStatus.SCHEDULED), publicationRepository.lastFindStatuses)
+    }
+
+    @Test
+    fun `list publications with socialAccountId filter`() = runTest {
+        val publicationRepository = InMemoryPublicationRepository(
+            seedMany = listOf(
+                calendarPublication("pub-1", "account-1", "2026-06-15T10:00:00Z"),
+                calendarPublication("pub-2", "account-2", "2026-06-15T11:00:00Z"),
+                calendarPublication("pub-3", "account-1", "2026-06-15T12:00:00Z"),
+            ),
+        )
+        val handler = ListPublicationsHandler(
+            resourceContextProvider = FixedResourceContextProvider(workspaceContext),
+            publicationRepository = publicationRepository,
+        )
+
+        val result = handler.handle(
+            ListPublicationsQuery(
+                from = Instant.parse("2026-06-01T00:00:00Z"),
+                to = Instant.parse("2026-07-01T00:00:00Z"),
+                socialAccountId = "account-1",
+            ),
+        )
+
+        assertEquals(2, result.total)
+        assertEquals(setOf("account-1"), publicationRepository.lastFindSocialAccountIds)
+    }
+
+    @Test
+    fun `list publications respects offset and limit`() = runTest {
+        val publicationRepository = InMemoryPublicationRepository(
+            seedMany = listOf(
+                calendarPublication("pub-1", "account-1", "2026-06-10T10:00:00Z"),
+                calendarPublication("pub-2", "account-1", "2026-06-11T10:00:00Z"),
+                calendarPublication("pub-3", "account-1", "2026-06-12T10:00:00Z"),
+                calendarPublication("pub-4", "account-1", "2026-06-13T10:00:00Z"),
+                calendarPublication("pub-5", "account-1", "2026-06-14T10:00:00Z"),
+            ),
+        )
+        val handler = ListPublicationsHandler(
+            resourceContextProvider = FixedResourceContextProvider(workspaceContext),
+            publicationRepository = publicationRepository,
+        )
+
+        val result = handler.handle(
+            ListPublicationsQuery(
+                from = Instant.parse("2026-06-01T00:00:00Z"),
+                to = Instant.parse("2026-07-01T00:00:00Z"),
+                offset = 1,
+                limit = 2,
+            ),
+        )
+
+        assertEquals(5, result.total)
+        assertEquals(2, result.publications.size)
+        assertEquals("pub-2", result.publications[0].id)
+        assertEquals("pub-3", result.publications[1].id)
+    }
+
+    @Test
+    fun `list publications returns empty for unknown workspace`() = runTest {
+        val publicationRepository = InMemoryPublicationRepository()
+        val handler = ListPublicationsHandler(
+            resourceContextProvider = FixedResourceContextProvider(
+                ResourceContext(
+                    type = ResourceContextType.WORKSPACE,
+                    workspaceId = "unknown-workspace",
+                ),
+            ),
+            publicationRepository = publicationRepository,
+        )
+
+        val result = handler.handle(ListPublicationsQuery())
+
+        assertEquals(0, result.total)
+        assertEquals(emptyList<ListPublicationItem>(), result.publications)
+    }
+
     private fun calendarPublication(
         id: String,
         socialAccountId: String,

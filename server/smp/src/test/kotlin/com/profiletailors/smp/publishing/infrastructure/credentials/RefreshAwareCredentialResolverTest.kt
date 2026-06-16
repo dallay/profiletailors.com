@@ -46,7 +46,9 @@ class RefreshAwareCredentialResolverTest {
             credentialGateway = fakeCredentialGateway,
             socialConnectionRepository = fakeConnectionRepository,
             properties = properties,
-            httpTransport = StubLinkedInHttpTransport(),
+            httpTransport = ControllableFakeLinkedInHttpTransport(
+                throwException = UnsupportedOperationException("Stub transport — no refresh response configured"),
+            ),
             objectMapper = objectMapper,
             clock = clock,
         )
@@ -184,6 +186,293 @@ class RefreshAwareCredentialResolverTest {
         assertEquals("still-valid-token", result)
     }
 
+    // --- executeRefresh tests ---
+
+    @Test
+    fun `executeRefresh returns new access token on success`() = runTest {
+        val account = testAccount()
+        val connectionId = UUID.randomUUID()
+        val expiredCredentials = LinkedInCredentials(
+            accessToken = "old-token",
+            refreshToken = "refresh-token-123",
+            expiresAtEpochSeconds = fixedNow.epochSecond - 100,
+            scope = "w_member_social",
+        )
+        fakeConnectionRepository.addConnection(
+            SocialConnection(
+                id = "conn-1",
+                workspaceId = "ws-1",
+                provider = SocialProvider.LINKEDIN,
+                providerConnectionRef = "linkedin-member-123",
+                status = SocialConnectionStatus.ACTIVE,
+                credentialReference = connectionId.toString(),
+            ),
+        )
+        fakeCredentialGateway.store("linkedin:user", connectionId, expiredCredentials)
+
+        val fakeTransport = ControllableFakeLinkedInHttpTransport(
+            response = com.profiletailors.smp.publishing.infrastructure.linkedin.LinkedInHttpResponse(
+                statusCode = 200,
+                headers = java.net.http.HttpHeaders.of(emptyMap()) { _, _ -> true },
+                body = """{"access_token":"new-access-token","expires_in":3600,"refresh_token":"new-refresh-token"}""",
+            ),
+        )
+        resolver = RefreshAwareCredentialResolverImpl(
+            credentialGateway = fakeCredentialGateway,
+            socialConnectionRepository = fakeConnectionRepository,
+            properties = properties,
+            httpTransport = fakeTransport,
+            objectMapper = objectMapper,
+            clock = clock,
+        )
+
+        val result = resolver.resolve(account)
+
+        assertEquals("new-access-token", result)
+        val stored = fakeCredentialGateway.resolveCredential(connectionId)
+        assertEquals("new-access-token", stored.accessToken)
+        assertEquals("new-refresh-token", stored.refreshToken)
+        assertEquals("SUCCESS", stored.lastRefreshStatus)
+    }
+
+    @Test
+    fun `executeRefresh returns null on non-2xx causing ReconnectRequiredException`() = runTest {
+        val account = testAccount()
+        val connectionId = UUID.randomUUID()
+        val expiredCredentials = LinkedInCredentials(
+            accessToken = "old-token",
+            refreshToken = "refresh-token-123",
+            expiresAtEpochSeconds = fixedNow.epochSecond - 100,
+            scope = "w_member_social",
+        )
+        fakeConnectionRepository.addConnection(
+            SocialConnection(
+                id = "conn-1",
+                workspaceId = "ws-1",
+                provider = SocialProvider.LINKEDIN,
+                providerConnectionRef = "linkedin-member-123",
+                status = SocialConnectionStatus.ACTIVE,
+                credentialReference = connectionId.toString(),
+            ),
+        )
+        fakeCredentialGateway.store("linkedin:user", connectionId, expiredCredentials)
+
+        val fakeTransport = ControllableFakeLinkedInHttpTransport(
+            response = com.profiletailors.smp.publishing.infrastructure.linkedin.LinkedInHttpResponse(
+                statusCode = 401,
+                headers = java.net.http.HttpHeaders.of(emptyMap()) { _, _ -> true },
+                body = """{"error":"invalid_client"}""",
+            ),
+        )
+        resolver = RefreshAwareCredentialResolverImpl(
+            credentialGateway = fakeCredentialGateway,
+            socialConnectionRepository = fakeConnectionRepository,
+            properties = properties,
+            httpTransport = fakeTransport,
+            objectMapper = objectMapper,
+            clock = clock,
+        )
+
+        val exception = assertThrows(ReconnectRequiredException::class.java) {
+            kotlinx.coroutines.runBlocking { resolver.resolve(account) }
+        }
+        assertEquals(ReconnectReason.INVALID_GRANT, exception.reason)
+    }
+
+    @Test
+    fun `executeRefresh treats HTTP timeout as null response causing INVALID_GRANT`() = runTest {
+        val account = testAccount()
+        val connectionId = UUID.randomUUID()
+        val expiredCredentials = LinkedInCredentials(
+            accessToken = "old-token",
+            refreshToken = "refresh-token-123",
+            expiresAtEpochSeconds = fixedNow.epochSecond - 100,
+            scope = "w_member_social",
+        )
+        fakeConnectionRepository.addConnection(
+            SocialConnection(
+                id = "conn-1",
+                workspaceId = "ws-1",
+                provider = SocialProvider.LINKEDIN,
+                providerConnectionRef = "linkedin-member-123",
+                status = SocialConnectionStatus.ACTIVE,
+                credentialReference = connectionId.toString(),
+            ),
+        )
+        fakeCredentialGateway.store("linkedin:user", connectionId, expiredCredentials)
+
+        val fakeTransport = ControllableFakeLinkedInHttpTransport(
+            throwException = java.net.http.HttpTimeoutException("Request timed out"),
+        )
+        resolver = RefreshAwareCredentialResolverImpl(
+            credentialGateway = fakeCredentialGateway,
+            socialConnectionRepository = fakeConnectionRepository,
+            properties = properties,
+            httpTransport = fakeTransport,
+            objectMapper = objectMapper,
+            clock = clock,
+        )
+
+        val exception = assertThrows(ReconnectRequiredException::class.java) {
+            kotlinx.coroutines.runBlocking { resolver.resolve(account) }
+        }
+        assertEquals(ReconnectReason.INVALID_GRANT, exception.reason)
+    }
+
+    @Test
+    fun `executeRefresh treats IOException as null response causing INVALID_GRANT`() = runTest {
+        val account = testAccount()
+        val connectionId = UUID.randomUUID()
+        val expiredCredentials = LinkedInCredentials(
+            accessToken = "old-token",
+            refreshToken = "refresh-token-123",
+            expiresAtEpochSeconds = fixedNow.epochSecond - 100,
+            scope = "w_member_social",
+        )
+        fakeConnectionRepository.addConnection(
+            SocialConnection(
+                id = "conn-1",
+                workspaceId = "ws-1",
+                provider = SocialProvider.LINKEDIN,
+                providerConnectionRef = "linkedin-member-123",
+                status = SocialConnectionStatus.ACTIVE,
+                credentialReference = connectionId.toString(),
+            ),
+        )
+        fakeCredentialGateway.store("linkedin:user", connectionId, expiredCredentials)
+
+        val fakeTransport = ControllableFakeLinkedInHttpTransport(
+            throwException = java.io.IOException("Connection refused"),
+        )
+        resolver = RefreshAwareCredentialResolverImpl(
+            credentialGateway = fakeCredentialGateway,
+            socialConnectionRepository = fakeConnectionRepository,
+            properties = properties,
+            httpTransport = fakeTransport,
+            objectMapper = objectMapper,
+            clock = clock,
+        )
+
+        val exception = assertThrows(ReconnectRequiredException::class.java) {
+            kotlinx.coroutines.runBlocking { resolver.resolve(account) }
+        }
+        assertEquals(ReconnectReason.INVALID_GRANT, exception.reason)
+    }
+
+    @Test
+    fun `executeRefresh treats unexpected exception as null response causing INVALID_GRANT`() = runTest {
+        val account = testAccount()
+        val connectionId = UUID.randomUUID()
+        val expiredCredentials = LinkedInCredentials(
+            accessToken = "old-token",
+            refreshToken = "refresh-token-123",
+            expiresAtEpochSeconds = fixedNow.epochSecond - 100,
+            scope = "w_member_social",
+        )
+        fakeConnectionRepository.addConnection(
+            SocialConnection(
+                id = "conn-1",
+                workspaceId = "ws-1",
+                provider = SocialProvider.LINKEDIN,
+                providerConnectionRef = "linkedin-member-123",
+                status = SocialConnectionStatus.ACTIVE,
+                credentialReference = connectionId.toString(),
+            ),
+        )
+        fakeCredentialGateway.store("linkedin:user", connectionId, expiredCredentials)
+
+        val fakeTransport = ControllableFakeLinkedInHttpTransport(
+            throwException = IllegalStateException("Unexpected failure"),
+        )
+        resolver = RefreshAwareCredentialResolverImpl(
+            credentialGateway = fakeCredentialGateway,
+            socialConnectionRepository = fakeConnectionRepository,
+            properties = properties,
+            httpTransport = fakeTransport,
+            objectMapper = objectMapper,
+            clock = clock,
+        )
+
+        val exception = assertThrows(ReconnectRequiredException::class.java) {
+            kotlinx.coroutines.runBlocking { resolver.resolve(account) }
+        }
+        assertEquals(ReconnectReason.INVALID_GRANT, exception.reason)
+    }
+
+    @Test
+    fun `blank refresh token treated as null and throws REFRESH_UNAVAILABLE`() = runTest {
+        val account = testAccount()
+        val connectionId = UUID.randomUUID()
+        val expiredCredentials = LinkedInCredentials(
+            accessToken = "expired-token",
+            refreshToken = "   ",
+            expiresAtEpochSeconds = fixedNow.epochSecond - 100,
+            scope = "w_member_social",
+        )
+        fakeConnectionRepository.addConnection(
+            SocialConnection(
+                id = "conn-1",
+                workspaceId = "ws-1",
+                provider = SocialProvider.LINKEDIN,
+                providerConnectionRef = "linkedin-member-123",
+                status = SocialConnectionStatus.ACTIVE,
+                credentialReference = connectionId.toString(),
+            ),
+        )
+        fakeCredentialGateway.store("linkedin:user", connectionId, expiredCredentials)
+
+        val exception = assertThrows(ReconnectRequiredException::class.java) {
+            kotlinx.coroutines.runBlocking { resolver.resolve(account) }
+        }
+        assertEquals(ReconnectReason.REFRESH_UNAVAILABLE, exception.reason)
+    }
+
+    @Test
+    fun `executeRefresh persists credentials with old refresh token when response omits new refresh_token`() = runTest {
+        val account = testAccount()
+        val connectionId = UUID.randomUUID()
+        val expiredCredentials = LinkedInCredentials(
+            accessToken = "old-token",
+            refreshToken = "original-refresh-token",
+            expiresAtEpochSeconds = fixedNow.epochSecond - 100,
+            scope = "w_member_social",
+        )
+        fakeConnectionRepository.addConnection(
+            SocialConnection(
+                id = "conn-1",
+                workspaceId = "ws-1",
+                provider = SocialProvider.LINKEDIN,
+                providerConnectionRef = "linkedin-member-123",
+                status = SocialConnectionStatus.ACTIVE,
+                credentialReference = connectionId.toString(),
+            ),
+        )
+        fakeCredentialGateway.store("linkedin:user", connectionId, expiredCredentials)
+
+        val fakeTransport = ControllableFakeLinkedInHttpTransport(
+            response = com.profiletailors.smp.publishing.infrastructure.linkedin.LinkedInHttpResponse(
+                statusCode = 200,
+                headers = java.net.http.HttpHeaders.of(emptyMap()) { _, _ -> true },
+                body = """{"access_token":"refreshed-token","expires_in":7200}""",
+            ),
+        )
+        resolver = RefreshAwareCredentialResolverImpl(
+            credentialGateway = fakeCredentialGateway,
+            socialConnectionRepository = fakeConnectionRepository,
+            properties = properties,
+            httpTransport = fakeTransport,
+            objectMapper = objectMapper,
+            clock = clock,
+        )
+
+        val result = resolver.resolve(account)
+
+        assertEquals("refreshed-token", result)
+        val stored = fakeCredentialGateway.resolveCredential(connectionId)
+        assertEquals("original-refresh-token", stored.refreshToken)
+        assertEquals("SUCCESS", stored.lastRefreshStatus)
+    }
+
     // --- Test doubles ---
 
     private class FakeCredentialGateway : LinkedInCredentialGateway {
@@ -220,9 +509,17 @@ class RefreshAwareCredentialResolverTest {
         }
     }
 
-    private class StubLinkedInHttpTransport : com.profiletailors.smp.publishing.infrastructure.linkedin.LinkedInHttpTransport {
+    private class ControllableFakeLinkedInHttpTransport(
+        private val response: com.profiletailors.smp.publishing.infrastructure.linkedin.LinkedInHttpResponse? = null,
+        private val throwException: Exception? = null,
+    ) : com.profiletailors.smp.publishing.infrastructure.linkedin.LinkedInHttpTransport {
+        var lastRequest: java.net.http.HttpRequest? = null
+            private set
+
         override suspend fun send(request: java.net.http.HttpRequest): com.profiletailors.smp.publishing.infrastructure.linkedin.LinkedInHttpResponse {
-            throw UnsupportedOperationException("Stub transport — refresh not tested in this suite")
+            lastRequest = request
+            if (throwException != null) throw throwException
+            return response!!
         }
     }
 }
