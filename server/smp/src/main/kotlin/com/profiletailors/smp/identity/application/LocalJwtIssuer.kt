@@ -2,7 +2,7 @@ package com.profiletailors.smp.identity.application
 
 import java.time.Instant
 
-interface LocalJwtIssuer {
+fun interface LocalJwtIssuer {
     fun issue(
         principalId: String,
         subject: String,

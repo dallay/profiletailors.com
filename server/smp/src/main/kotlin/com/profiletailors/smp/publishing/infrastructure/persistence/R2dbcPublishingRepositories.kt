@@ -38,11 +38,8 @@ class R2dbcPublicationRepository(
         return draft
     }
 
-    override suspend fun updateEditableDraft(draft: PublicationDraft): PublicationDraft {
-        insertOrUpdate(draft)
-        replaceAssetLinks(draft)
-        return draft
-    }
+    override suspend fun updateEditableDraft(draft: PublicationDraft): PublicationDraft =
+        createDraft(draft)
 
     override suspend fun findByWorkspaceAndId(workspaceId: String, publicationId: String): PublicationDraft? {
         val publication = databaseClient.sql(
