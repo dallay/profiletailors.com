@@ -284,7 +284,7 @@ class R2dbcPublicationRepository(
     override suspend fun findBlockedForRecovery(
         maxRetries: Int,
     ): List<PublicationDraft> {
-        return databaseClient.sql(
+        val drafts = databaseClient.sql(
             """
             SELECT p.id, p.workspace_id, p.author_principal_id, p.provider, p.social_account_id, p.status, p.schedule_mode, p.priority,
                    p.title, p.body_text, p.public_url, p.blocked_at, p.blocked_reason, p.retry_count,
@@ -298,6 +298,7 @@ class R2dbcPublicationRepository(
               AND p.retry_count < :maxRetries
               AND a.status = :activeStatus
             ORDER BY p.blocked_at ASC
+            FOR UPDATE OF p SKIP LOCKED
             """.trimIndent(),
         )
             .bind("status", PublicationStatus.BLOCKED.name)
@@ -307,6 +308,33 @@ class R2dbcPublicationRepository(
             .all()
             .collectList()
             .awaitSingle()
+
+        // Hydrate asset IDs for each draft to prevent data loss on recovery
+        val publicationIds = drafts.map { it.id }
+        if (publicationIds.isNotEmpty()) {
+            val assetLinks = databaseClient.sql(
+                """
+                SELECT publication_id, asset_id FROM publication_asset_links
+                WHERE publication_id IN (:ids)
+                """.trimIndent(),
+            )
+                .bind("ids", publicationIds)
+                .map { row, _ ->
+                    requireNotNull(row.get("publication_id", String::class.java)) to
+                        requireNotNull(row.get("asset_id", String::class.java))
+                }
+                .all()
+                .collectList()
+                .awaitSingle()
+
+            val assetsByPublication: Map<String, List<String>> = assetLinks
+                .groupBy({ it.first }, { it.second })
+                .mapValues { (_, v) -> v.filterNotNull() }
+            return drafts.map { draft ->
+                draft.copy(assetIds = assetsByPublication[draft.id].orEmpty())
+            }
+        }
+        return drafts
     }
 
     private suspend fun insertOrUpdate(draft: PublicationDraft) {

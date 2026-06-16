@@ -50,6 +50,14 @@ function onDragEnd(e: DragEvent) {
   dragData.value = null
 }
 
+async function handleReconnect() {
+  try {
+    await publishingStore.connectLinkedInPersonalProfile()
+  } catch (err: unknown) {
+    console.error('LinkedIn reconnect failed', err)
+  }
+}
+
 async function onDropCell(e: DragEvent, targetDate: Date, targetHour?: number) {
   e.preventDefault()
   if (!e.dataTransfer) return
@@ -672,7 +680,7 @@ onMounted(() => {
                   <!-- BLOCKED reconnect prompt in list view -->
                   <button
                     v-if="pub.status === 'BLOCKED'"
-                    @click="publishingStore.connectLinkedInPersonalProfile()"
+                    @click="handleReconnect"
                     class="text-[9px] underline text-warning hover:text-warning/80 font-medium"
                   >
                     Reconnect

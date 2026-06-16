@@ -353,6 +353,14 @@ class PublishingJobExecutor(
                 exception.message
             )
             publicationJobRepository.fail(claim.jobId, now)
+            recordNotificationEvent(
+                workspaceId = publication.workspaceId,
+                socialAccountId = publication.socialAccountId,
+                publicationId = publication.id,
+                category = NotificationCategory.PUBLICATION_FAILED,
+                message = "Publication failed: ${exception.message}",
+                now = now,
+            )
         }
     }
 }
@@ -385,7 +393,11 @@ class PublishingWorker(
         log.debug("Starting BLOCKED-recovery scan")
         val publications = publicationRepository.findBlockedForRecovery(maxRetries = BLOCKED_RECOVERY_MAX_RETRIES)
         publications.forEach { publication ->
-            requeueBlockedPublication(publication)
+            try {
+                requeueBlockedPublication(publication)
+            } catch (@Suppress("TooGenericExceptionCaught") e: Exception) {
+                log.error("Failed to requeue BLOCKED publication {}: {}", publication.id, e.message, e)
+            }
         }
         log.debug("BLOCKED-recovery scan completed; requeued {} publication(s)", publications.size)
     }
@@ -399,19 +411,28 @@ class PublishingWorker(
             now = now,
             maxRetries = BLOCKED_RECOVERY_MAX_RETRIES,
         )
+        // Update publication first; if job replacement fails, revert to BLOCKED to avoid orphaning
+        // a QUEUED publication with no matching job (recovery scans filter by BLOCKED).
         publicationRepository.updateEditableDraft(prepared)
-        publicationJobRepository.replaceForPublication(
-            com.profiletailors.smp.publishing.domain.PublicationJob(
-                id = "pjob-${UUID.randomUUID()}",
-                publicationId = prepared.id,
-                workspaceId = prepared.workspaceId,
-                status = com.profiletailors.smp.publishing.domain.JobStatus.PENDING,
-                dueAt = prepared.scheduledFor ?: now,
-                priorityRank = 0,
-                attemptCount = 0,
-                maxAttempts = 1,
-            ),
-        )
+        try {
+            publicationJobRepository.replaceForPublication(
+                com.profiletailors.smp.publishing.domain.PublicationJob(
+                    id = "pjob-${UUID.randomUUID()}",
+                    publicationId = prepared.id,
+                    workspaceId = prepared.workspaceId,
+                    status = com.profiletailors.smp.publishing.domain.JobStatus.PENDING,
+                    dueAt = prepared.scheduledFor ?: now,
+                    priorityRank = 0,
+                    attemptCount = 0,
+                    maxAttempts = 1,
+                ),
+            )
+        } catch (@Suppress("TooGenericExceptionCaught") e: Exception) {
+            // Revert publication to BLOCKED so next recovery scan can retry
+            log.warn("Failed to replace job for blocked publication ${publication.id}, reverting to BLOCKED", e)
+            publicationRepository.markBlocked(publication.id, now, "Retry failed: ${e.message}")
+            return
+        }
         log.info(
             "Requeued BLOCKED publication {} for retry (attempt {})",
             publication.id,
