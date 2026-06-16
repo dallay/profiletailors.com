@@ -73,9 +73,14 @@ const minDate = computed(() => {
 })
 
 const minTimeForDate = computed(() => {
-  // If scheduleDate is today, min time = current hour:minute + 5 min
   if (scheduleDate.value === minDate.value) {
     const future = new Date(now.value.getTime() + 5 * 60_000)
+    // Check for midnight rollover: if now+5min crosses into tomorrow,
+    // no valid time remains for today — return an impossible value
+    const futureDateStr = `${future.getFullYear()}-${String(future.getMonth() + 1).padStart(2, '0')}-${String(future.getDate()).padStart(2, '0')}`
+    if (futureDateStr !== minDate.value) {
+      return '23:59'
+    }
     return `${String(future.getHours()).padStart(2, '0')}:${String(future.getMinutes()).padStart(2, '0')}`
   }
   // Future date: any time is valid
@@ -279,14 +284,21 @@ async function handleSchedule() {
       const isValidMinutes = Number.isInteger(minutes) && minutes >= 0 && minutes <= 59
       if (isValidYear && isValidMonth && isValidDay && isValidHours && isValidMinutes) {
         finalScheduledDate = new Date(year, month - 1, day, hours, minutes)
+        // Guard against silent Date normalization (e.g. Feb 31 → Mar 3)
+        if (finalScheduledDate.getFullYear() !== year ||
+            finalScheduledDate.getMonth() + 1 !== month ||
+            finalScheduledDate.getDate() !== day) {
+          submitError.value = 'Invalid date selected.'
+          return
+        }
       } else {
         submitError.value = 'Invalid date or time selected.'
         return
       }
 
       // Validate: scheduled time must be at least 5 minutes in the future
-      const earliestAllowed = new Date(now.value.getTime() + 5 * 60_000)
-      if (finalScheduledDate <= earliestAllowed) {
+      const earliestAllowed = new Date(Date.now() + 5 * 60_000)
+      if (finalScheduledDate < earliestAllowed) {
         submitError.value = 'Scheduled time must be at least 5 minutes in the future.'
         return
       }
@@ -295,12 +307,13 @@ async function handleSchedule() {
       finalScheduledDate = new Date()
     }
 
-    // Schedule through store
+    // Schedule through store — pass scheduleMode so NOW mode sends NOR scheduleFor
     await publishingStore.schedulePost({
       content: postText.value,
       title: 'Post from App',
       channels: selectedProviders.value,
-      scheduledAt: finalScheduledDate.toISOString(),
+      scheduledAt: scheduleMode.value === 'now' ? undefined : finalScheduledDate.toISOString(),
+      scheduleMode: scheduleMode.value === 'now' ? 'NOW' : 'SCHEDULED_AT',
       priority: priorityMode.value,
       mediaFiles: mediaFiles.value,
       socialAccountId: selectedChannel.value?.accountId,

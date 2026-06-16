@@ -67,7 +67,7 @@ async function onDropCell(e: DragEvent, targetDate: Date, targetHour?: number) {
 
   // Guard: reject drops to past time slots
   const earliestAllowed = new Date(Date.now() + 5 * 60_000)
-  if (d <= earliestAllowed) {
+  if (d < earliestAllowed) {
     console.warn('Cannot reschedule to a past time slot.')
     dragData.value = null
     return
@@ -294,7 +294,7 @@ function isPastSlot(date: Date, hour: number): boolean {
   const now = new Date()
   const slotDate = new Date(date)
   slotDate.setHours(hour, 0, 0, 0)
-  return slotDate.getTime() <= now.getTime() + 5 * 60_000
+  return slotDate.getTime() < now.getTime() + 5 * 60_000
 }
 
 function dateKey(date: Date): string {

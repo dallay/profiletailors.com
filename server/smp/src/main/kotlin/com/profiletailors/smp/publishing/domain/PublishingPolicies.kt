@@ -3,6 +3,8 @@ package com.profiletailors.smp.publishing.domain
 import java.time.Duration
 import java.time.Instant
 
+internal val MIN_SCHEDULE_OFFSET: Duration = Duration.ofMinutes(5)
+
 open class PublicationStateTransitionException(
     message: String,
 ) : IllegalStateException(message)
@@ -185,7 +187,6 @@ object PublicationLifecyclePolicy {
         PublicationStatus.CANCELLED,
     )
 
-    private val MIN_SCHEDULE_OFFSET: Duration = Duration.ofMinutes(5)
 }
 
 class PublicationSchedulingPolicy {

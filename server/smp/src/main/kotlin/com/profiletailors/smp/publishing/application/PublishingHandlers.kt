@@ -6,6 +6,7 @@ import com.profiletailors.common.domain.bus.query.QueryHandler
 import com.profiletailors.common.domain.context.PrincipalContextProvider
 import com.profiletailors.common.domain.context.ResourceContextProvider
 import com.profiletailors.smp.publishing.domain.ActivityThresholds
+import com.profiletailors.smp.publishing.domain.MIN_SCHEDULE_OFFSET
 import com.profiletailors.smp.publishing.domain.AssetSourceType
 import com.profiletailors.smp.publishing.domain.ChannelEvent
 import com.profiletailors.smp.publishing.domain.ChannelEventPublisher
@@ -46,7 +47,6 @@ import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.asFlow
 import kotlinx.coroutines.flow.onEach
 import java.time.Clock
-import java.time.Duration
 import java.time.Instant
 import java.util.Locale
 import java.util.UUID
@@ -69,7 +69,7 @@ private fun requireScheduledInFuture(scheduleMode: ScheduleMode, scheduledFor: I
         val forTime = requireNotNull(scheduledFor) {
             "SCHEDULED_AT mode requires scheduledFor."
         }
-        val earliestAllowed = now.plus(Duration.ofMinutes(5))
+        val earliestAllowed = now.plus(MIN_SCHEDULE_OFFSET)
         require(!forTime.isBefore(earliestAllowed)) {
             "Cannot schedule a publication for $forTime. " +
                 "Scheduled time must be at least 5 minutes in the future. " +

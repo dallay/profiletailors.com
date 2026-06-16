@@ -391,6 +391,87 @@ class PublishingHandlersTest {
     }
 
     @Test
+    fun `rejects create publication when SCHEDULED_AT and scheduledFor is null`() = runTest {
+        val publicationRepository = InMemoryPublicationRepository()
+        val jobRepository = InMemoryPublicationJobRepository()
+        val socialAccountRepository = InMemorySocialAccountRepository().apply {
+            upsert(
+                SocialAccount(
+                    id = "account-1",
+                    socialConnectionId = "connection-1",
+                    workspaceId = "workspace-1",
+                    provider = SocialProvider.LINKEDIN,
+                    providerAccountId = "linkedin-account-1",
+                    kind = SocialAccountKind.PERSONAL_PROFILE,
+                    displayName = "Yuniel",
+                    status = SocialConnectionStatus.ACTIVE,
+                ),
+            )
+        }
+        val assetRepository = InMemoryPublicationAssetRepository(emptyList())
+        val handler = CreatePublicationHandler(
+            principalContextProvider = FixedPrincipalContextProvider(principalContext),
+            resourceContextProvider = FixedResourceContextProvider(workspaceContext),
+            socialAccountRepository = socialAccountRepository,
+            publicationRepository = publicationRepository,
+            publicationAssetRepository = assetRepository,
+            publicationJobRepository = jobRepository,
+            providerCapabilityValidator = AcceptingCapabilityValidator(),
+            schedulingPolicy = PublicationSchedulingPolicy(),
+            clock = fixedClock,
+        )
+
+        assertThrows(IllegalArgumentException::class.java) {
+            kotlinx.coroutines.runBlocking {
+                handler.handle(
+                    CreatePublicationCommand(
+                        socialAccountId = "account-1",
+                        bodyText = "Null scheduledFor post",
+                        scheduleMode = ScheduleMode.SCHEDULED_AT,
+                        scheduledFor = null,
+                    ),
+                )
+            }
+        }
+    }
+
+    @Test
+    fun `reschedule publication throws when SCHEDULED_AT and scheduledFor is null`() = runTest {
+        val publication = PublicationDraft(
+            id = "pub-1",
+            workspaceId = "workspace-1",
+            authorPrincipalId = "principal-1",
+            provider = SocialProvider.LINKEDIN,
+            socialAccountId = "account-1",
+            status = PublicationStatus.QUEUED,
+            scheduleMode = ScheduleMode.NOW,
+            priority = false,
+            bodyText = "Reschedule me",
+        )
+        val publicationRepository = InMemoryPublicationRepository(publication)
+        val jobRepository = InMemoryPublicationJobRepository()
+        val handler = ReschedulePublicationHandler(
+            resourceContextProvider = FixedResourceContextProvider(workspaceContext),
+            publicationRepository = publicationRepository,
+            publicationJobRepository = jobRepository,
+            schedulingPolicy = PublicationSchedulingPolicy(),
+            clock = fixedClock,
+        )
+
+        assertThrows(IllegalArgumentException::class.java) {
+            kotlinx.coroutines.runBlocking {
+                handler.handle(
+                    ReschedulePublicationCommand(
+                        publicationId = "pub-1",
+                        scheduleMode = ScheduleMode.SCHEDULED_AT,
+                        scheduledFor = null,
+                    ),
+                )
+            }
+        }
+    }
+
+    @Test
     fun `rejects edit publication with past scheduledFor`() = runTest {
         val publication = PublicationDraft(
             id = "pub-1",
@@ -581,6 +662,84 @@ class PublishingHandlersTest {
 
         assertEquals(PublicationStatus.CANCELLED, result.status)
         assertEquals("pub-1", jobRepository.lastCancelledPublicationId)
+    }
+
+    @Test
+    fun `retry with SCHEDULED_AT mode and past scheduledFor throws`() = runTest {
+        val publication = PublicationDraft(
+            id = "pub-1",
+            workspaceId = "workspace-1",
+            authorPrincipalId = "principal-1",
+            provider = SocialProvider.LINKEDIN,
+            socialAccountId = "account-1",
+            status = PublicationStatus.FAILED,
+            scheduleMode = ScheduleMode.NOW,
+            priority = false,
+            bodyText = "Retry me",
+            failedAt = Instant.parse("2026-05-26T11:00:00Z"),
+        )
+        val publicationRepository = InMemoryPublicationRepository(publication)
+        val jobRepository = InMemoryPublicationJobRepository()
+        val handler = RetryPublicationHandler(
+            resourceContextProvider = FixedResourceContextProvider(workspaceContext),
+            publicationRepository = publicationRepository,
+            publicationJobRepository = jobRepository,
+            schedulingPolicy = PublicationSchedulingPolicy(),
+            clock = fixedClock,
+        )
+
+        val exception = try {
+            handler.handle(
+                RetryPublicationCommand(
+                    publicationId = "pub-1",
+                    scheduleMode = ScheduleMode.SCHEDULED_AT,
+                    scheduledFor = Instant.parse("2026-05-26T11:00:00Z"),
+                ),
+            )
+            null
+        } catch (e: IllegalArgumentException) {
+            e
+        }
+        assertNotNull(exception)
+        assertTrue(exception!!.message!!.contains("at least 5 minutes"))
+    }
+
+    @Test
+    fun `retry with SCHEDULED_AT mode and future scheduledFor succeeds`() = runTest {
+        val publication = PublicationDraft(
+            id = "pub-1",
+            workspaceId = "workspace-1",
+            authorPrincipalId = "principal-1",
+            provider = SocialProvider.LINKEDIN,
+            socialAccountId = "account-1",
+            status = PublicationStatus.FAILED,
+            scheduleMode = ScheduleMode.NOW,
+            priority = false,
+            bodyText = "Retry me",
+            failedAt = Instant.parse("2026-05-26T11:00:00Z"),
+        )
+        val publicationRepository = InMemoryPublicationRepository(publication)
+        val jobRepository = InMemoryPublicationJobRepository()
+        val handler = RetryPublicationHandler(
+            resourceContextProvider = FixedResourceContextProvider(workspaceContext),
+            publicationRepository = publicationRepository,
+            publicationJobRepository = jobRepository,
+            schedulingPolicy = PublicationSchedulingPolicy(),
+            clock = fixedClock,
+        )
+
+        val future = fixedClock.instant().plus(java.time.Duration.ofMinutes(10))
+        val result = handler.handle(
+            RetryPublicationCommand(
+                publicationId = "pub-1",
+                scheduleMode = ScheduleMode.SCHEDULED_AT,
+                scheduledFor = future,
+            ),
+        )
+
+        assertEquals(PublicationStatus.SCHEDULED, result.status)
+        assertEquals(ScheduleMode.SCHEDULED_AT, result.scheduleMode)
+        assertEquals(future, result.scheduledFor)
     }
 
     @Test
