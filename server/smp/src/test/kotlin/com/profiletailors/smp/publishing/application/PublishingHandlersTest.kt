@@ -1215,10 +1215,16 @@ class PublishingHandlersTest {
 
     @Test
     fun `list publications open-ended uses broad date range`() = runTest {
+        // Use runtime-relative dates so the test never becomes flaky as time progresses.
+        // The handler derives its window from Clock.systemUTC(), so dates must fall
+        // within [now-90d, now+30d).
+        val now = java.time.Clock.systemUTC().instant()
+        val oneHourAgo = now.minus(java.time.Duration.ofHours(1))
+        val twoHoursAgo = now.minus(java.time.Duration.ofHours(2))
         val publicationRepository = InMemoryPublicationRepository(
             seedMany = listOf(
-                calendarPublication("pub-1", "account-1", "2026-06-15T10:00:00Z"),
-                calendarPublication("pub-2", "account-1", "2026-06-16T10:00:00Z"),
+                calendarPublication("pub-1", "account-1", oneHourAgo.toString()),
+                calendarPublication("pub-2", "account-1", twoHoursAgo.toString()),
             ),
         )
         val handler = ListPublicationsHandler(

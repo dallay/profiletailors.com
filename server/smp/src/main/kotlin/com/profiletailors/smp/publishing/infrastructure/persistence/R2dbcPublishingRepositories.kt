@@ -316,6 +316,7 @@ class R2dbcPublicationRepository(
                 """
                 SELECT publication_id, asset_id FROM publication_asset_links
                 WHERE publication_id IN (:ids)
+                ORDER BY publication_id, position_index ASC
                 """.trimIndent(),
             )
                 .bind("ids", publicationIds)
