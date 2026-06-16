@@ -151,11 +151,20 @@ class RealLinkedInAssetUploader(
     private fun encodeUrn(urn: String): String = urn.replace(":", "%3A").replace("/", "%2F")
 
     private suspend fun Flow<ByteArray>.collectToByteArray(): ByteArray {
-        val list = mutableListOf<ByteArray>()
+        val chunks = mutableListOf<ByteArray>()
         this.collect { chunk ->
-            list.add(chunk)
+            chunks.add(chunk)
         }
-        return list.reduceOrNull { acc, bytes -> acc + bytes } ?: byteArrayOf()
+        if (chunks.isEmpty()) return byteArrayOf()
+
+        val totalSize = chunks.sumOf { it.size }
+        val result = ByteArray(totalSize)
+        var offset = 0
+        for (chunk in chunks) {
+            chunk.copyInto(result, offset)
+            offset += chunk.size
+        }
+        return result
     }
 
     private companion object {
