@@ -25,7 +25,20 @@ databaseChangeLog:
                   defaultValueNumeric: 0
                   constraints:
                     nullable: false
+        - createIndex:
+            tableName: publications
+            indexName: idx_publications_blocked_recovery
+            columns:
+              - column:
+                  name: status
+              - column:
+                  name: retry_count
+              - column:
+                  name: blocked_at
       rollback:
+        - dropIndex:
+            tableName: publications
+            indexName: idx_publications_blocked_recovery
         - dropColumn:
             tableName: publications
             columnName: public_url

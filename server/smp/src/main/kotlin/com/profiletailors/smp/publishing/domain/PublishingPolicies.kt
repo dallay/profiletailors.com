@@ -155,8 +155,16 @@ object PublicationLifecyclePolicy {
         blockedAt: Instant,
         reason: String?,
     ): PublicationDraft {
-        if (publication.status in terminalStatuses()) {
-            throw PublicationAlreadyTerminalException(publication.id, publication.status)
+        val inflightStatuses = setOf(
+            PublicationStatus.QUEUED,
+            PublicationStatus.SCHEDULED,
+            PublicationStatus.PROCESSING,
+        )
+        if (publication.status !in inflightStatuses) {
+            throw PublicationStateTransitionException(
+                "Publication '${publication.id}' can only be blocked from " +
+                    "QUEUED, SCHEDULED, or PROCESSING (current: ${publication.status}).",
+            )
         }
         return publication.copy(
             status = PublicationStatus.BLOCKED,

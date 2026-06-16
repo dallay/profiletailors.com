@@ -40,7 +40,9 @@ import kotlinx.coroutines.test.runTest
 import reactor.core.publisher.Flux
 import kotlinx.coroutines.runBlocking
 import org.junit.jupiter.api.Assertions.assertEquals
+import org.junit.jupiter.api.Assertions.assertNotNull
 import org.junit.jupiter.api.Assertions.assertThrows
+import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.Test
 import org.springframework.http.HttpStatus
 import org.springframework.web.server.ResponseStatusException
@@ -311,6 +313,9 @@ class PublishingControllersTest {
             ),
             response,
         )
+        // Verify the correct query was dispatched to the mediator
+        assertNotNull(mediator.lastQuery)
+        assertTrue(mediator.lastQuery is ListPublicationsQuery)
     }
 
     @Test

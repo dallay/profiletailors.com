@@ -224,7 +224,7 @@ class PublicationLifecyclePolicyTest {
         val now = Instant.parse("2026-05-26T12:00:00Z")
         val published = baseDraft.copy(status = PublicationStatus.PUBLISHED)
 
-        assertThrows(PublicationAlreadyTerminalException::class.java) {
+        assertThrows(PublicationStateTransitionException::class.java) {
             PublicationLifecyclePolicy.markBlocked(published, now, "test")
         }
     }
@@ -234,21 +234,19 @@ class PublicationLifecyclePolicyTest {
         val now = Instant.parse("2026-05-26T12:00:00Z")
         val cancelled = baseDraft.copy(status = PublicationStatus.CANCELLED)
 
-        assertThrows(PublicationAlreadyTerminalException::class.java) {
+        assertThrows(PublicationStateTransitionException::class.java) {
             PublicationLifecyclePolicy.markBlocked(cancelled, now, "test")
         }
     }
 
     @Test
-    fun `markBlocked allows re-blocking already BLOCKED publication`() {
+    fun `markBlocked rejects re-blocking already BLOCKED publication`() {
         val now = Instant.parse("2026-05-26T12:00:00Z")
         val alreadyBlocked = baseDraft.copy(status = PublicationStatus.BLOCKED, blockedAt = now.minusSeconds(60))
 
-        val reblocked = PublicationLifecyclePolicy.markBlocked(alreadyBlocked, now, "Updated reason")
-
-        assertEquals(PublicationStatus.BLOCKED, reblocked.status)
-        assertEquals(now, reblocked.blockedAt)
-        assertEquals("Updated reason", reblocked.blockedReason)
+        assertThrows(PublicationStateTransitionException::class.java) {
+            PublicationLifecyclePolicy.markBlocked(alreadyBlocked, now, "Updated reason")
+        }
     }
 
     // ---------------------------------------------------------------------------
@@ -290,7 +288,7 @@ class PublicationLifecyclePolicyTest {
     }
 
     @Test
-    fun `prepareBlockedRetry caps delay at 60 minutes`() {
+    fun `prepareBlockedRetry uses exponential backoff under cap`() {
         val now = Instant.parse("2026-05-26T12:00:00Z")
         val blocked = baseDraft.copy(
             status = PublicationStatus.BLOCKED,

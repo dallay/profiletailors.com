@@ -32,7 +32,7 @@ class PublishingSchedulingConfiguration(
 ) {
     @Bean
     fun publishingTaskScheduler(): TaskScheduler = ThreadPoolTaskScheduler().apply {
-        poolSize = 1
+        poolSize = 2
         setThreadNamePrefix("publishing-worker-")
         initialize()
     }

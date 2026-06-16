@@ -30,7 +30,7 @@ export interface Channel {
   avatar: string
   avatarUrl?: string
   handle: string
-  status: 'ACTIVE' | 'INACTIVE' | 'PENDING' | 'DISABLED' | 'REQUIRES_RECONNECT' | 'DELETED' | 'ERROR'
+  status: 'ACTIVE' | 'INACTIVE' | 'PENDING' | 'DISABLED' | 'REQUIRES_RECONNECT' | 'DELETED' | 'ERROR' | 'REVOKED' | 'EXPIRED'
   accountId: string // Maps to backend socialAccountId if available
 }
 
@@ -263,10 +263,10 @@ export const usePublishingStore = defineStore('publishing', () => {
 
   // Reconnect state
   const hasReconnectRequiredChannels = computed(() =>
-    channels.value.some((ch) => ch.status === 'REQUIRES_RECONNECT'),
+    channels.value.some((ch) => ch.status === 'REQUIRES_RECONNECT' || ch.status === 'REVOKED' || ch.status === 'EXPIRED'),
   )
   const reconnectRequiredChannels = computed(() =>
-    channels.value.filter((ch) => ch.status === 'REQUIRES_RECONNECT'),
+    channels.value.filter((ch) => ch.status === 'REQUIRES_RECONNECT' || ch.status === 'REVOKED' || ch.status === 'EXPIRED'),
   )
 
   /** Filters for the calendar API — derived from reactive filter state. */

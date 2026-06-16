@@ -66,7 +66,7 @@ Other integration tests: 24 failed (Spring context loading failures, likely pre-
 | LinkedIn OAuth Scope Bundles and State Validation | Organization page connection validates scope and page role | `LinkedInPublishingAdaptersTest` (capability validation) | ✅ COMPLIANT |
 | LinkedIn OAuth Scope Bundles and State Validation | PENDING transitions to ACTIVE after successful OAuth completion | Not directly tested (OAuth flow) | ❌ UNTESTED |
 | LinkedIn OAuth Scope Bundles and State Validation | PENDING transitions to ERROR on OAuth failure | Not directly tested (OAuth flow) | ❌ UNTESTED |
-| LinkedIn Token Lifecycle and Refresh-Aware Credential Resolution | Expiring access token refreshes automatically through resolver | `RefreshAwareCredentialResolverTest.returns access token when token is not expired` | ✅ COMPLIANT |
+| LinkedIn Token Lifecycle and Refresh-Aware Credential Resolution | Expiring access token refreshes automatically through resolver | `RefreshAwareCredentialResolverTest.successfully refreshes access token when expired` | ✅ COMPLIANT |
 | LinkedIn Token Lifecycle and Refresh-Aware Credential Resolution | Expired refresh token requires reconnect | `RefreshAwareCredentialResolverTest.throws ReconnectRequiredException when refresh token expired` | ✅ COMPLIANT |
 | LinkedIn REST Posts API Contract | Personal text post uses person URN and required headers | `LinkedInPublishingAdaptersTest.real publisher builds article post` | ✅ COMPLIANT |
 | LinkedIn REST Posts API Contract | Organization text post uses organization URN | `LinkedInPublishingAdaptersTest.real publisher builds post with asset content entities` | ✅ COMPLIANT |
@@ -161,6 +161,8 @@ Other integration tests: 24 failed (Spring context loading failures, likely pre-
 **PASS WITH WARNINGS**
 
 The implementation is complete for the MVP scope (26/27 tasks). All publishing unit and integration tests pass (excluding the deferred Testcontainers integration test). The code compiles and builds successfully. However, there are warnings about deferred integration tests, missing OAuth flow tests, and untested frontend changes. These warnings do not block the archive but should be addressed in follow-up work.
+
+**Note**: The automatic token refresh is now tested through the new `RefreshAwareCredentialResolverTest.successfully refreshes access token when expired` test, which verifies that expiring access tokens are refreshed automatically through the resolver.
 
 **Key Strengths**:
 - Core domain logic is well-tested (lifecycle policies, credential resolver, preflight checks)
