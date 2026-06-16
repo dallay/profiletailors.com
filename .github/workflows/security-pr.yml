@@ -276,13 +276,12 @@ jobs:
       - name: Verify SARIF file exists
         if: ${{ always() }}
         run: |
-          if [ ! -f trivy-backend.sarif ]; then
-            echo "Trivy did not produce a SARIF file — creating an empty placeholder to keep the upload step non-blocking."
-            mkdir -p "$(dirname trivy-backend.sarif)"
-            echo '{"$schema":"https://json.schemastore.org/sarif-2.1.0.json","version":"2.1.0","runs":[]}' > trivy-backend.sarif
-          else
+          if [ -f trivy-backend.sarif ]; then
             echo "Trivy SARIF file is present:"
             ls -lh trivy-backend.sarif
+          else
+            echo "::error::Trivy did not produce a SARIF file — failing to avoid masking scan failures as zero-finding reports."
+            exit 1
           fi
       - name: Upload Trivy SARIF
         if: ${{ always() }}
