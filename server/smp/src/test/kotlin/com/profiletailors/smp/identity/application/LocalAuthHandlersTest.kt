@@ -294,6 +294,77 @@ class LocalAuthHandlersTest {
         assertTrue(result.accepted)
     }
 
+    // ── issueAuthSession tests (covers AuthSessionContext data class) ─────────
+
+    @Test
+    fun `issueAuthSession with workspaceId set`() = runTest {
+        val jwtIssuer = FakeLocalJwtIssuer()
+        val refreshSvc = fakeRefreshLifecycleService()
+
+        val context = AuthSessionContext(
+            principalId = "user-ws-1",
+            subject = "local:yuniel@example.com",
+            email = "yuniel@example.com",
+            username = "yuniel",
+            emailStatus = EmailStatus.VERIFIED,
+            workspaceId = "ws-123",
+            clock = fixedClock,
+            localJwtIssuer = jwtIssuer,
+            refreshSessionLifecycleService = refreshSvc,
+        )
+
+        val result = issueAuthSession(context)
+
+        assertEquals("token-for-yuniel@example.com", result.tokens.accessToken)
+        assertEquals(900, result.tokens.expiresIn)
+        assertEquals("user-ws-1", result.tokens.principalId)
+        assertEquals("yuniel@example.com", result.tokens.email)
+        assertEquals("yuniel", result.tokens.username)
+        assertEquals(EmailStatus.VERIFIED.name, result.tokens.emailStatus)
+        assertEquals("ws-123", result.tokens.workspaceId)
+        assertEquals("refresh-secret", result.refreshToken.secret)
+    }
+
+    @Test
+    fun `issueAuthSession with workspaceId null`() = runTest {
+        val jwtIssuer = object : FakeLocalJwtIssuer() {
+            override fun issue(
+                principalId: String,
+                subject: String,
+                email: String,
+                username: String?,
+                issuedAt: Instant,
+            ): IssuedAccessToken = IssuedAccessToken(
+                value = "anon-token",
+                expiresInSeconds = 3600,
+            )
+        }
+        val refreshSvc = fakeRefreshLifecycleService()
+
+        val context = AuthSessionContext(
+            principalId = "user-anon",
+            subject = "local:anon@example.com",
+            email = "anon@example.com",
+            username = null,
+            emailStatus = EmailStatus.PENDING,
+            workspaceId = null,
+            clock = fixedClock,
+            localJwtIssuer = jwtIssuer,
+            refreshSessionLifecycleService = refreshSvc,
+        )
+
+        val result = issueAuthSession(context)
+
+        assertEquals("anon-token", result.tokens.accessToken)
+        assertEquals(3600, result.tokens.expiresIn)
+        assertEquals("user-anon", result.tokens.principalId)
+        assertEquals("anon@example.com", result.tokens.email)
+        assertEquals(null, result.tokens.username)
+        assertEquals(EmailStatus.PENDING.name, result.tokens.emailStatus)
+        assertEquals(null, result.tokens.workspaceId)
+        assertEquals("refresh-secret", result.refreshToken.secret)
+    }
+
     private fun fakeRefreshLifecycleService(): RefreshSessionLifecycleService = RefreshSessionLifecycleService(
         refreshSessionGateway = FakeRefreshSessionGateway(),
         refreshSessionTokenService = object : RefreshSessionTokenService() {
@@ -419,7 +490,7 @@ class LocalAuthHandlersTest {
             passwordHash == "hashed-$rawPassword"
     }
 
-    private class FakeLocalJwtIssuer : LocalJwtIssuer {
+    private open class FakeLocalJwtIssuer : LocalJwtIssuer {
         override fun issue(
             principalId: String,
             subject: String,
