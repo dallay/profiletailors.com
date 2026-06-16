@@ -50,12 +50,19 @@ class PublishingWorkerTest {
             socialAccountRepository = InMemoryAccountRepository(successAccount()),
             publicationAssetRepository = InMemoryAssetRepository(emptyList()),
             deliveryAttemptRepository = attemptRepository,
+            notificationEventRepository = null,
             providerCapabilityValidator = AcceptingCapabilityValidator(),
             socialPublisher = SuccessfulPublisher(),
             retryPolicy = DeliveryRetryPolicy(3, Duration.ofMinutes(5)),
             clock = fixedClock,
         )
-        val worker = PublishingWorker(jobRepository, executor, fixedClock, "worker-1")
+        val worker = PublishingWorker(
+            publicationJobRepository = jobRepository,
+            publicationRepository = publicationRepository,
+            executor = executor,
+            clock = fixedClock,
+            workerId = "worker-1",
+        )
 
         val claim = worker.pollOnce()
 
@@ -76,12 +83,19 @@ class PublishingWorkerTest {
             socialAccountRepository = InMemoryAccountRepository(successAccount()),
             publicationAssetRepository = InMemoryAssetRepository(emptyList()),
             deliveryAttemptRepository = attemptRepository,
+            notificationEventRepository = null,
             providerCapabilityValidator = AcceptingCapabilityValidator(),
             socialPublisher = RetryableFailingPublisher(),
             retryPolicy = DeliveryRetryPolicy(3, Duration.ofMinutes(5)),
             clock = fixedClock,
         )
-        val worker = PublishingWorker(jobRepository, executor, fixedClock, "worker-1")
+        val worker = PublishingWorker(
+            publicationJobRepository = jobRepository,
+            publicationRepository = publicationRepository,
+            executor = executor,
+            clock = fixedClock,
+            workerId = "worker-1",
+        )
 
         worker.pollOnce()
 
@@ -101,17 +115,60 @@ class PublishingWorkerTest {
             socialAccountRepository = InMemoryAccountRepository(successAccount()),
             publicationAssetRepository = InMemoryAssetRepository(emptyList()),
             deliveryAttemptRepository = attemptRepository,
+            notificationEventRepository = null,
             providerCapabilityValidator = AcceptingCapabilityValidator(),
             socialPublisher = RetryableFailingPublisher(),
             retryPolicy = DeliveryRetryPolicy(3, Duration.ofMinutes(5)),
             clock = fixedClock,
         )
-        val worker = PublishingWorker(jobRepository, executor, fixedClock, "worker-1")
+        val worker = PublishingWorker(
+            publicationJobRepository = jobRepository,
+            publicationRepository = publicationRepository,
+            executor = executor,
+            clock = fixedClock,
+            workerId = "worker-1",
+        )
 
         worker.pollOnce()
 
         assertEquals("pub-1", publicationRepository.failedPublicationId)
         assertEquals("job-1", jobRepository.failedJobId)
+    }
+
+    @Test
+    fun `worker requeues blocked publications when scan finds recovered accounts`() = runTest {
+        val blockedPublication = blockedPublication()
+        val publicationRepository = InMemoryPublicationRepository(
+            publication = blockedPublication,
+            blockedForRecovery = listOf(blockedPublication),
+        )
+        val jobRepository = InMemoryJobRepository(null)
+        val executor = PublishingJobExecutor(
+            publicationJobRepository = jobRepository,
+            publicationRepository = publicationRepository,
+            socialAccountRepository = InMemoryAccountRepository(successAccount()),
+            publicationAssetRepository = InMemoryAssetRepository(emptyList()),
+            deliveryAttemptRepository = InMemoryAttemptRepository(),
+            notificationEventRepository = null,
+            providerCapabilityValidator = AcceptingCapabilityValidator(),
+            socialPublisher = SuccessfulPublisher(),
+            retryPolicy = DeliveryRetryPolicy(3, Duration.ofMinutes(5)),
+            clock = fixedClock,
+        )
+        val worker = PublishingWorker(
+            publicationJobRepository = jobRepository,
+            publicationRepository = publicationRepository,
+            executor = executor,
+            clock = fixedClock,
+            workerId = "worker-1",
+        )
+
+        worker.scanBlockedForRecovery()
+
+        assertEquals(PublicationStatus.QUEUED, publicationRepository.updatedDraft?.status)
+        assertEquals(1, publicationRepository.updatedDraft?.retryCount)
+        assertEquals(Instant.parse("2026-05-26T12:01:00Z"), publicationRepository.updatedDraft?.scheduledFor)
+        assertEquals("pub-1", jobRepository.replacedJob?.publicationId)
     }
 
     private fun successPublication() = PublicationDraft(
@@ -124,6 +181,12 @@ class PublishingWorkerTest {
         scheduleMode = ScheduleMode.NOW,
         priority = false,
         bodyText = "hello",
+    )
+
+    private fun blockedPublication() = successPublication().copy(
+        status = PublicationStatus.BLOCKED,
+        blockedAt = fixedClock.instant().minus(Duration.ofMinutes(10)),
+        blockedReason = "Account requires reconnect.",
     )
 
     private fun successAccount() = SocialAccount(
@@ -144,9 +207,12 @@ class PublishingWorkerTest {
         var retriedJobId: String? = null
         var retryAt: Instant? = null
         var failedJobId: String? = null
+        var replacedJob: com.profiletailors.smp.publishing.domain.PublicationJob? = null
 
         override suspend fun enqueue(job: com.profiletailors.smp.publishing.domain.PublicationJob) = Unit
-        override suspend fun replaceForPublication(job: com.profiletailors.smp.publishing.domain.PublicationJob) = Unit
+        override suspend fun replaceForPublication(job: com.profiletailors.smp.publishing.domain.PublicationJob) {
+            replacedJob = job
+        }
         override suspend fun claimNextDue(now: Instant, workerId: String): PublicationJobClaim? = claim
         override suspend fun rescheduleRetry(jobId: String, nextAttemptAt: Instant, attemptNumber: Int) {
             retriedJobId = jobId
@@ -163,11 +229,17 @@ class PublishingWorkerTest {
 
     private class InMemoryPublicationRepository(
         private val publication: PublicationDraft,
+        private val blockedForRecovery: List<PublicationDraft> = emptyList(),
     ) : PublicationRepository {
         var publishedPublicationId: String? = null
         var failedPublicationId: String? = null
+        var blockedPublicationId: String? = null
+        var updatedDraft: PublicationDraft? = null
         override suspend fun createDraft(draft: PublicationDraft): PublicationDraft = draft
-        override suspend fun updateEditableDraft(draft: PublicationDraft): PublicationDraft = draft
+        override suspend fun updateEditableDraft(draft: PublicationDraft): PublicationDraft {
+            updatedDraft = draft
+            return draft
+        }
         override suspend fun findByWorkspaceAndId(workspaceId: String, publicationId: String): PublicationDraft? = publication
         override suspend fun findInDateRange(
             workspaceId: String,
@@ -190,6 +262,12 @@ class PublishingWorkerTest {
             failedPublicationId = publicationId
         }
         override suspend fun markCancelled(publicationId: String, cancelledAt: Instant) = Unit
+        override suspend fun markBlocked(publicationId: String, blockedAt: Instant, reason: String?) {
+            blockedPublicationId = publicationId
+        }
+        override suspend fun findBlockedForRecovery(
+            maxRetries: Int,
+        ): List<PublicationDraft> = blockedForRecovery.filter { it.retryCount < maxRetries }
     }
 
     private class InMemoryAccountRepository(
@@ -246,5 +324,122 @@ class PublishingWorkerTest {
         override suspend fun publish(command: ProviderPublishCommand): ProviderPublishResult {
             throw RetryablePublishingException("transient provider error")
         }
+    }
+
+    private class NeverPublishesPublisher : SocialPublisher {
+        var called = false
+        override suspend fun publish(command: ProviderPublishCommand): ProviderPublishResult {
+            called = true
+            throw AssertionError("Should not be called — preflight should block")
+        }
+    }
+
+    // ===== Preflight gate tests =====
+
+    @Test
+    fun `preflight blocks DISABLED account without calling publisher`() = runTest {
+        val disabledAccount = successAccount().copy(status = SocialConnectionStatus.DISABLED)
+        val publication = successPublication()
+        val publicationRepository = InMemoryPublicationRepository(publication)
+        val jobRepository = InMemoryJobRepository(PublicationJobClaim("job-1", "pub-1", "workspace-1", 1, fixedClock.instant()))
+        val publisher = NeverPublishesPublisher()
+        val executor = PublishingJobExecutor(
+            publicationJobRepository = jobRepository,
+            publicationRepository = publicationRepository,
+            socialAccountRepository = InMemoryAccountRepository(disabledAccount),
+            publicationAssetRepository = InMemoryAssetRepository(emptyList()),
+            deliveryAttemptRepository = InMemoryAttemptRepository(),
+            notificationEventRepository = null,
+            providerCapabilityValidator = AcceptingCapabilityValidator(),
+            socialPublisher = publisher,
+            retryPolicy = DeliveryRetryPolicy(3, Duration.ofMinutes(5)),
+            clock = fixedClock,
+        )
+        val worker = PublishingWorker(
+            publicationJobRepository = jobRepository,
+            publicationRepository = publicationRepository,
+            executor = executor,
+            clock = fixedClock,
+            workerId = "worker-1",
+        )
+
+        worker.pollOnce()
+
+        // Publisher was never called
+        assertEquals(false, publisher.called)
+        // Publication was marked blocked
+        assertEquals("pub-1", publicationRepository.blockedPublicationId)
+        // Job was completed (not left hanging)
+        assertEquals("job-1", jobRepository.completedJobId)
+    }
+
+    @Test
+    fun `preflight blocks REQUIRES_RECONNECT account without calling publisher`() = runTest {
+        val reconnectAccount = successAccount().copy(status = SocialConnectionStatus.REQUIRES_RECONNECT)
+        val publication = successPublication()
+        val publicationRepository = InMemoryPublicationRepository(publication)
+        val jobRepository = InMemoryJobRepository(PublicationJobClaim("job-1", "pub-1", "workspace-1", 1, fixedClock.instant()))
+        val publisher = NeverPublishesPublisher()
+        val executor = PublishingJobExecutor(
+            publicationJobRepository = jobRepository,
+            publicationRepository = publicationRepository,
+            socialAccountRepository = InMemoryAccountRepository(reconnectAccount),
+            publicationAssetRepository = InMemoryAssetRepository(emptyList()),
+            deliveryAttemptRepository = InMemoryAttemptRepository(),
+            notificationEventRepository = null,
+            providerCapabilityValidator = AcceptingCapabilityValidator(),
+            socialPublisher = publisher,
+            retryPolicy = DeliveryRetryPolicy(3, Duration.ofMinutes(5)),
+            clock = fixedClock,
+        )
+        val worker = PublishingWorker(
+            publicationJobRepository = jobRepository,
+            publicationRepository = publicationRepository,
+            executor = executor,
+            clock = fixedClock,
+            workerId = "worker-1",
+        )
+
+        worker.pollOnce()
+
+        assertEquals(false, publisher.called)
+        assertEquals("pub-1", publicationRepository.blockedPublicationId)
+        assertEquals("job-1", jobRepository.completedJobId)
+    }
+
+    @Test
+    fun `preflight fails DELETED account terminally without calling publisher`() = runTest {
+        val deletedAccount = successAccount().copy(status = SocialConnectionStatus.DELETED)
+        val publication = successPublication()
+        val publicationRepository = InMemoryPublicationRepository(publication)
+        val jobRepository = InMemoryJobRepository(PublicationJobClaim("job-1", "pub-1", "workspace-1", 1, fixedClock.instant()))
+        val publisher = NeverPublishesPublisher()
+        val executor = PublishingJobExecutor(
+            publicationJobRepository = jobRepository,
+            publicationRepository = publicationRepository,
+            socialAccountRepository = InMemoryAccountRepository(deletedAccount),
+            publicationAssetRepository = InMemoryAssetRepository(emptyList()),
+            deliveryAttemptRepository = InMemoryAttemptRepository(),
+            notificationEventRepository = null,
+            providerCapabilityValidator = AcceptingCapabilityValidator(),
+            socialPublisher = publisher,
+            retryPolicy = DeliveryRetryPolicy(3, Duration.ofMinutes(5)),
+            clock = fixedClock,
+        )
+        val worker = PublishingWorker(
+            publicationJobRepository = jobRepository,
+            publicationRepository = publicationRepository,
+            executor = executor,
+            clock = fixedClock,
+            workerId = "worker-1",
+        )
+
+        worker.pollOnce()
+
+        // Publisher was never called
+        assertEquals(false, publisher.called)
+        // Publication was failed terminally (not blocked — DELETED is terminal)
+        assertEquals("pub-1", publicationRepository.failedPublicationId)
+        assertEquals("job-1", jobRepository.failedJobId)
     }
 }

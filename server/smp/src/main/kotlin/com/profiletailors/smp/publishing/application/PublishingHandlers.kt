@@ -231,7 +231,7 @@ internal class ListConnectedChannelsHandler(
 ) : QueryHandler<ListConnectedChannelsQuery, ConnectedChannelsResponse> {
     override suspend fun handle(query: ListConnectedChannelsQuery): ConnectedChannelsResponse {
         val workspaceId = requireNotNull(resourceContextProvider.requireWorkspaceContext().workspaceId)
-        val statuses = query.status?.let { setOf(it) } ?: setOf(SocialConnectionStatus.ACTIVE)
+        val statuses = query.status?.let { setOf(it) } ?: SocialConnectionStatus.entries.toSet()
         val channels = connectedSocialChannelReadRepository
             .listByWorkspace(workspaceId = workspaceId, statuses = statuses)
             .map { it.toSummary() }
@@ -605,4 +605,72 @@ private fun PublicationDraft.toResult(): PublicationResult = PublicationResult(
     assetIds = assetIds,
     scheduledFor = scheduledFor,
     nextSlotAfter = nextSlotAfter,
+)
+
+@Service
+internal class ListPublicationsHandler(
+    private val resourceContextProvider: ResourceContextProvider,
+    private val publicationRepository: PublicationRepository,
+) : QueryHandler<ListPublicationsQuery, ListPublicationsResponse> {
+    override suspend fun handle(query: ListPublicationsQuery): ListPublicationsResponse {
+        val workspaceId = requireNotNull(resourceContextProvider.requireWorkspaceContext().workspaceId)
+
+        val from = query.from
+        val to = query.to
+
+        if (from != null && to != null) {
+            val statuses = query.status?.let { setOf(it) }
+            val accountIds = query.socialAccountId?.let { setOf(it) }
+            val publications = publicationRepository.findInDateRange(
+                workspaceId = workspaceId,
+                from = from,
+                to = to,
+                statuses = statuses,
+                socialAccountIds = accountIds,
+            )
+            val items = publications.drop(query.offset).take(query.limit).map { it.toListItem() }
+            return ListPublicationsResponse(
+                publications = items,
+                total = publications.size,
+            )
+        }
+
+        // For open-ended queries, fetch a broad range (last 90 days to next 30 days)
+        val now = java.time.Clock.systemUTC().instant()
+        val broadFrom = from ?: now.minus(java.time.Duration.ofDays(90))
+        val broadTo = to ?: now.plus(java.time.Duration.ofDays(30))
+        val statuses = query.status?.let { setOf(it) }
+        val accountIds = query.socialAccountId?.let { setOf(it) }
+        val publications = publicationRepository.findInDateRange(
+            workspaceId = workspaceId,
+            from = broadFrom,
+            to = broadTo,
+            statuses = statuses,
+            socialAccountIds = accountIds,
+        )
+        val items = publications.drop(query.offset).take(query.limit).map { it.toListItem() }
+        return ListPublicationsResponse(
+            publications = items,
+            total = publications.size,
+        )
+    }
+}
+
+private fun PublicationDraft.toListItem(): ListPublicationItem = ListPublicationItem(
+    id = id,
+    workspaceId = workspaceId,
+    socialAccountId = socialAccountId,
+    provider = provider,
+    status = status,
+    title = title,
+    bodyText = bodyText,
+    scheduledFor = scheduledFor,
+    publishedAt = publishedAt,
+    publicUrl = publicUrl,
+    externalPublicationId = externalPublicationId,
+    failedAt = failedAt,
+    lastErrorCode = lastErrorCode,
+    lastErrorMessage = lastErrorMessage,
+    blockedReason = blockedReason,
+    createdAt = createdAt,
 )

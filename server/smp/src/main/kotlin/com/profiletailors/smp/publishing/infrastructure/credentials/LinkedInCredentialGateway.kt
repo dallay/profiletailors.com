@@ -10,6 +10,10 @@ data class LinkedInCredentials(
     val accessToken: String,
     val refreshToken: String?,
     val expiresAtEpochSeconds: Long?,
+    val refreshTokenExpiresAtEpochSeconds: Long? = null,
+    val lastRefreshAttemptAtEpochSeconds: Long? = null,
+    val lastRefreshStatus: String? = null,
+    val grantedScopes: String? = null,
     val scope: String?,
 )
 

@@ -32,9 +32,8 @@ databaseChangeLog:
             tableName: local_password_credentials
             columns:
               - column: { name: principal_id, value: dev-user-001 }
-              # Dev-only: parameterized to avoid hardcoded credentials in version control.
-              # The default value is set in application.yaml (profile: dev) via spring.liquibase.parameters.
-              - column: { name: password_hash, value: "${dev-password-hash}" }
+              # Dev-only: hardcoded hash for "S3cr3tP@ssw0rd*123" — do not use in production.
+              - column: { name: password_hash, value: "$2b$12$Lh38sBH4uUHd6hKDM4dTreK7l/KaMo9wQKZijLzfvDWVic7qZS2Z2" }
               - column: { name: created_at, valueComputed: "TIMESTAMP WITH TIME ZONE '2026-01-01 00:00:00+00'" }
               - column: { name: updated_at, valueComputed: "TIMESTAMP WITH TIME ZONE '2026-01-01 00:00:00+00'" }
 

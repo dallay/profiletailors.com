@@ -93,7 +93,7 @@ class RealLinkedInAssetUploader(
         )
 
         val response = httpTransport.send(
-            HttpRequest.newBuilder(URI.create("${context.apiBaseUrl}/rest/assets"))
+            HttpRequest.newBuilder(URI.create("${context.apiBaseUrl}/rest/images"))
                 .header("Authorization", "Bearer ${context.accessToken}")
                 .header(CONTENT_TYPE, "application/json")
                 .header("X-Restli-Protocol-Version", "2.0.0")
@@ -130,7 +130,7 @@ class RealLinkedInAssetUploader(
     }
 
     private suspend fun confirmAsset(assetUrn: String, context: AssetUploadContext) {
-        val confirmUrl = "${context.apiBaseUrl}/rest/assets/${encodeUrn(assetUrn)}?action=checkStatus"
+        val confirmUrl = "${context.apiBaseUrl}/rest/images/${encodeUrn(assetUrn)}?action=checkStatus"
         val response = httpTransport.send(
             HttpRequest.newBuilder(URI.create(confirmUrl))
                 .header("Authorization", "Bearer ${context.accessToken}")

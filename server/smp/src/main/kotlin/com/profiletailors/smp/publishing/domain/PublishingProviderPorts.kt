@@ -35,8 +35,32 @@ data class ProviderPublishCommand(
 
 data class ProviderPublishResult(
     val externalPublicationId: String,
+    val publicUrl: String? = null,
     val providerMessage: String? = null,
 )
+
+/**
+ * Refresh-aware credential resolver port.
+ * Returns a valid access token for the given social account.
+ * Handles refresh-ahead, single-flight locking, and reconnect triggering.
+ * Throws ReconnectRequiredException when refresh is impossible.
+ */
+fun interface RefreshAwareCredentialResolver {
+    suspend fun resolve(account: SocialAccount): String
+}
+
+enum class ReconnectReason {
+    REFRESH_TOKEN_EXPIRED,
+    REFRESH_TOKEN_REVOKED,
+    REFRESH_UNAVAILABLE,
+    INVALID_GRANT,
+    INSUFFICIENT_SCOPES,
+}
+
+class ReconnectRequiredException(
+    message: String,
+    val reason: ReconnectReason,
+) : IllegalStateException(message)
 
 data class ProviderCapabilityValidationInput(
     val provider: SocialProvider,

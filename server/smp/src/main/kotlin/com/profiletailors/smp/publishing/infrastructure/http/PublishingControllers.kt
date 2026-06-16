@@ -11,6 +11,8 @@ import com.profiletailors.smp.publishing.application.InitiateLinkedInConnectionC
 import com.profiletailors.smp.publishing.application.LinkedInConnectionInitiationResult
 import com.profiletailors.smp.publishing.application.ListConnectedChannelsQuery
 import com.profiletailors.smp.publishing.application.ConnectedChannelsResponse
+import com.profiletailors.smp.publishing.application.ListPublicationsQuery
+import com.profiletailors.smp.publishing.application.ListPublicationsResponse
 import com.profiletailors.smp.publishing.application.PublicationResult
 import com.profiletailors.smp.publishing.application.ReschedulePublicationCommand
 import com.profiletailors.smp.publishing.application.RetryPublicationCommand
@@ -273,9 +275,36 @@ class PublishingPublicationController(
         ),
     )
 
-    @Operation(summary = "Placeholder list publications endpoint")
+    @Operation(summary = "List publications with optional filtering")
     @GetMapping(version = "1")
-    suspend fun listPlaceholder(): Map<String, String> = mapOf("status" to "not-yet-implemented")
+    suspend fun listPublications(
+        @RequestParam(required = false) status: PublicationStatus? = null,
+        @RequestParam(required = false) socialAccountId: String? = null,
+        @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) from: Instant? = null,
+        @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) to: Instant? = null,
+        @RequestParam(required = false, defaultValue = "50") limit: Int = 50,
+        @RequestParam(required = false, defaultValue = "0") offset: Int = 0,
+    ): ListPublicationsResponse {
+        require(limit in MIN_LIMIT..MAX_LIMIT) {
+            "limit must be between $MIN_LIMIT and $MAX_LIMIT, got $limit"
+        }
+        require(offset >= 0) { "offset must be non-negative, got $offset" }
+        return mediator.send(
+            ListPublicationsQuery(
+                status = status,
+                socialAccountId = socialAccountId,
+                from = from,
+                to = to,
+                limit = limit,
+                offset = offset,
+            ),
+        )
+    }
+
+    private companion object {
+        const val MIN_LIMIT = 1
+        const val MAX_LIMIT = 1000
+    }
 }
 
 @Schema(description = "LinkedIn connection initiation request")

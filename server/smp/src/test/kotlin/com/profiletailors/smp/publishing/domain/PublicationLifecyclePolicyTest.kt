@@ -178,4 +178,172 @@ class PublicationLifecyclePolicyTest {
         }
         assertTrue(exception.message!!.contains("Cannot schedule"))
     }
+
+    // ---------------------------------------------------------------------------
+    // BLOCKED lifecycle tests
+    // ---------------------------------------------------------------------------
+
+    @Test
+    fun `markBlocked transitions from QUEUED to BLOCKED`() {
+        val now = Instant.parse("2026-05-26T12:00:00Z")
+        val queued = baseDraft.copy(status = PublicationStatus.QUEUED)
+
+        val blocked = PublicationLifecyclePolicy.markBlocked(queued, now, "Account is DISABLED")
+
+        assertEquals(PublicationStatus.BLOCKED, blocked.status)
+        assertEquals(now, blocked.blockedAt)
+        assertEquals("Account is DISABLED", blocked.blockedReason)
+    }
+
+    @Test
+    fun `markBlocked transitions from PROCESSING to BLOCKED`() {
+        val now = Instant.parse("2026-05-26T12:00:00Z")
+        val processing = baseDraft.copy(status = PublicationStatus.PROCESSING)
+
+        val blocked = PublicationLifecyclePolicy.markBlocked(processing, now, "Account requires reconnect")
+
+        assertEquals(PublicationStatus.BLOCKED, blocked.status)
+        assertEquals(now, blocked.blockedAt)
+        assertEquals("Account requires reconnect", blocked.blockedReason)
+    }
+
+    @Test
+    fun `markBlocked transitions from SCHEDULED to BLOCKED`() {
+        val now = Instant.parse("2026-05-26T12:00:00Z")
+        val scheduled = baseDraft.copy(status = PublicationStatus.SCHEDULED)
+
+        val blocked = PublicationLifecyclePolicy.markBlocked(scheduled, now, "Account is DISABLED")
+
+        assertEquals(PublicationStatus.BLOCKED, blocked.status)
+        assertEquals(now, blocked.blockedAt)
+        assertEquals("Account is DISABLED", blocked.blockedReason)
+    }
+
+    @Test
+    fun `markBlocked rejects terminal PUBLISHED status`() {
+        val now = Instant.parse("2026-05-26T12:00:00Z")
+        val published = baseDraft.copy(status = PublicationStatus.PUBLISHED)
+
+        assertThrows(PublicationStateTransitionException::class.java) {
+            PublicationLifecyclePolicy.markBlocked(published, now, "test")
+        }
+    }
+
+    @Test
+    fun `markBlocked rejects terminal CANCELLED status`() {
+        val now = Instant.parse("2026-05-26T12:00:00Z")
+        val cancelled = baseDraft.copy(status = PublicationStatus.CANCELLED)
+
+        assertThrows(PublicationStateTransitionException::class.java) {
+            PublicationLifecyclePolicy.markBlocked(cancelled, now, "test")
+        }
+    }
+
+    @Test
+    fun `markBlocked rejects re-blocking already BLOCKED publication`() {
+        val now = Instant.parse("2026-05-26T12:00:00Z")
+        val alreadyBlocked = baseDraft.copy(status = PublicationStatus.BLOCKED, blockedAt = now.minusSeconds(60))
+
+        assertThrows(PublicationStateTransitionException::class.java) {
+            PublicationLifecyclePolicy.markBlocked(alreadyBlocked, now, "Updated reason")
+        }
+    }
+
+    // ---------------------------------------------------------------------------
+    // BLOCKED retry / exponential backoff tests
+    // ---------------------------------------------------------------------------
+
+    @Test
+    fun `prepareBlockedRetry transitions BLOCKED to QUEUED with exponential backoff`() {
+        val now = Instant.parse("2026-05-26T12:00:00Z")
+        val blocked = baseDraft.copy(
+            status = PublicationStatus.BLOCKED,
+            blockedAt = now.minusSeconds(60),
+            blockedReason = "Account is DISABLED",
+            retryCount = 0,
+        )
+
+        val retried = PublicationLifecyclePolicy.prepareBlockedRetry(blocked, now)
+
+        assertEquals(PublicationStatus.QUEUED, retried.status)
+        assertEquals(1, retried.retryCount)
+        assertEquals(null, retried.blockedAt)
+        assertEquals(null, retried.blockedReason)
+        assertEquals(now.plus(Duration.ofMinutes(1)), retried.scheduledFor) // Initial delay = 1 min
+    }
+
+    @Test
+    fun `prepareBlockedRetry doubles delay on second retry`() {
+        val now = Instant.parse("2026-05-26T12:00:00Z")
+        val blocked = baseDraft.copy(
+            status = PublicationStatus.BLOCKED,
+            retryCount = 1,
+        )
+
+        val retried = PublicationLifecyclePolicy.prepareBlockedRetry(blocked, now)
+
+        assertEquals(PublicationStatus.QUEUED, retried.status)
+        assertEquals(2, retried.retryCount)
+        assertEquals(now.plus(Duration.ofMinutes(2)), retried.scheduledFor) // 2^1 = 2 min
+    }
+
+    @Test
+    fun `prepareBlockedRetry uses exponential backoff under cap`() {
+        val now = Instant.parse("2026-05-26T12:00:00Z")
+        val blocked = baseDraft.copy(
+            status = PublicationStatus.BLOCKED,
+            retryCount = 4,
+        )
+
+        val retried = PublicationLifecyclePolicy.prepareBlockedRetry(blocked, now)
+
+        assertEquals(PublicationStatus.QUEUED, retried.status)
+        assertEquals(5, retried.retryCount)
+        assertEquals(now.plus(Duration.ofMinutes(16)), retried.scheduledFor) // 2^4 = 16 min, under cap
+    }
+
+    @Test
+    fun `prepareBlockedRetry transitions to FAILED after max retries`() {
+        val now = Instant.parse("2026-05-26T12:00:00Z")
+        val blocked = baseDraft.copy(
+            status = PublicationStatus.BLOCKED,
+            retryCount = 5, // Already at max retries
+        )
+
+        val failed = PublicationLifecyclePolicy.prepareBlockedRetry(blocked, now)
+
+        assertEquals(PublicationStatus.FAILED, failed.status)
+        assertEquals(now, failed.failedAt)
+        assertEquals("BLOCKED_MAX_RETRIES_EXCEEDED", failed.lastErrorCode)
+        assertTrue(failed.lastErrorMessage!!.contains("maximum retries"))
+    }
+
+    @Test
+    fun `prepareBlockedRetry rejects non-BLOCKED publication`() {
+        val now = Instant.parse("2026-05-26T12:00:00Z")
+        val queued = baseDraft.copy(status = PublicationStatus.QUEUED)
+
+        val exception = assertThrows(IllegalArgumentException::class.java) {
+            PublicationLifecyclePolicy.prepareBlockedRetry(queued, now)
+        }
+        assertTrue(exception.message!!.contains("Only BLOCKED publications"))
+    }
+
+    @Test
+    fun `blockedRetryDelay follows exponential backoff with cap`() {
+        // 2^0 = 1 min
+        assertEquals(Duration.ofMinutes(1), PublicationLifecyclePolicy.blockedRetryDelay(0))
+        // 2^1 = 2 min
+        assertEquals(Duration.ofMinutes(2), PublicationLifecyclePolicy.blockedRetryDelay(1))
+        // 2^2 = 4 min
+        assertEquals(Duration.ofMinutes(4), PublicationLifecyclePolicy.blockedRetryDelay(2))
+        // 2^3 = 8 min
+        assertEquals(Duration.ofMinutes(8), PublicationLifecyclePolicy.blockedRetryDelay(3))
+        // 2^4 = 16 min
+        assertEquals(Duration.ofMinutes(16), PublicationLifecyclePolicy.blockedRetryDelay(4))
+        // 2^5 = 32 min
+        assertEquals(Duration.ofMinutes(32), PublicationLifecyclePolicy.blockedRetryDelay(5))
+        // 2^6 = 64, capped to 60 min
+        assertEquals(Duration.ofMinutes(60), PublicationLifecyclePolicy.blockedRetryDelay(6))
+    }
 }

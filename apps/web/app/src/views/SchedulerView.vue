@@ -50,6 +50,14 @@ function onDragEnd(e: DragEvent) {
   dragData.value = null
 }
 
+async function handleReconnect() {
+  try {
+    await publishingStore.connectLinkedInPersonalProfile()
+  } catch (err: unknown) {
+    console.error('LinkedIn reconnect failed', err)
+  }
+}
+
 async function onDropCell(e: DragEvent, targetDate: Date, targetHour?: number) {
   e.preventDefault()
   if (!e.dataTransfer) return
@@ -366,6 +374,25 @@ onMounted(() => {
       @new-post="openNewPostGeneral"
     />
 
+    <!-- Reconnect prompt for LinkedIn accounts requiring re-authentication -->
+    <div
+      v-if="publishingStore.hasReconnectRequiredChannels"
+      class="flex items-center gap-3 px-4 py-3 rounded-xl border border-warning/30 bg-warning/5"
+    >
+      <span class="font-mono text-[10px] font-bold tracking-wider uppercase text-warning">
+        Reconnect Required
+      </span>
+      <span class="text-xs text-text-secondary">
+        Some LinkedIn accounts need re-authentication to resume publishing.
+      </span>
+      <Button
+        @click="publishingStore.connectLinkedInPersonalProfile()"
+        class="ml-auto gap-1.5 text-[10px] uppercase font-mono tracking-wider bg-warning/10 text-warning border border-warning/30 hover:bg-warning/20"
+      >
+        Reconnect
+      </Button>
+    </div>
+
     <!-- Main Workspace Layout -->
     <div class="min-w-0">
         <!-- Calendar Mode -->
@@ -420,8 +447,10 @@ onMounted(() => {
           <!-- ================================================================ -->
           <div v-if="calendarView === 'week'">
             <Card class="bg-bg-surface border border-border-subtle p-0 overflow-hidden">
-              <!-- Grid Header: Days of the week -->
-              <div class="grid grid-cols-7 border-b border-border-subtle bg-bg-primary">
+              <!-- Grid Header: Time-axis label + Days of the week -->
+              <div class="grid grid-cols-[48px_repeat(7,1fr)] border-b border-border-subtle bg-bg-primary">
+                <!-- Time-axis header spacer -->
+                <div class="py-3.5 border-r border-border-subtle" />
                 <div
                   v-for="day in weekDays"
                   :key="day.toISOString()"
@@ -444,9 +473,16 @@ onMounted(() => {
                 </div>
               </div>
 
-              <!-- Grid Body: Hourly timeline rows -->
+              <!-- Grid Body: Single left time-axis + 7 day columns -->
               <div class="relative">
-                <div v-for="slot in hourSlots" :key="slot.hour" class="grid grid-cols-7 border-b border-border-subtle last:border-b-0 min-h-[140px]">
+                <div v-for="slot in hourSlots" :key="slot.hour" class="grid grid-cols-[48px_repeat(7,1fr)] border-b border-border-subtle last:border-b-0 min-h-[140px]">
+                  <!-- Single left time-axis label -->
+                  <div class="py-2 border-r border-border-subtle flex items-start justify-center">
+                    <span class="font-mono text-[9px] tracking-wider text-text-secondary">
+                      {{ slot.label }}
+                    </span>
+                  </div>
+                  <!-- Day columns -->
                   <div
                     v-for="day in weekDays"
                     :key="day.toISOString()"
@@ -458,11 +494,6 @@ onMounted(() => {
                       ? 'opacity-40 cursor-not-allowed pointer-events-none'
                       : 'hover:bg-bg-primary/20 cursor-pointer'"
                   >
-                    <!-- Hour slot stamp -->
-                    <span class="absolute top-1 left-2 font-mono text-[7px] tracking-wider text-text-secondary opacity-0 group-hover/cell:opacity-100 transition-opacity pointer-events-none">
-                      {{ slot.label }}
-                    </span>
-
                     <!-- Scheduled Posts -->
                     <div
                       v-for="pub in getPublicationsForSlot(day, slot.hour)"
@@ -486,6 +517,13 @@ onMounted(() => {
                           >
                             {{ getProviderBadge(channel) }}
                           </span>
+                          <!-- BLOCKED indicator -->
+                          <span
+                            v-if="pub.status === 'BLOCKED'"
+                            class="px-1.5 py-0.5 rounded text-[7px] font-bold tracking-wider uppercase bg-warning/20 text-warning border border-warning/30"
+                          >
+                            BLOCKED
+                          </span>
                           <!-- Conflict badge -->
                           <ConflictBadge
                             v-if="pub.hasConflict"
@@ -498,6 +536,20 @@ onMounted(() => {
                       <p class="text-[11px] font-light leading-relaxed line-clamp-3 text-text-body">
                         {{ pub.content }}
                       </p>
+
+                      <!-- BLOCKED reconnect prompt -->
+                      <div
+                        v-if="pub.status === 'BLOCKED' && pub.blockedReason"
+                        class="text-[9px] text-warning/80 font-medium"
+                      >
+                        {{ pub.blockedReason }}
+                        <button
+                          @click.stop="publishingStore.connectLinkedInPersonalProfile()"
+                          class="underline ml-1 hover:text-warning"
+                        >
+                          Reconnect
+                        </button>
+                      </div>
 
                       <!-- Preview Thumbnail if any -->
                       <div v-if="pub.thumbnail" class="h-10 w-full rounded overflow-hidden">
@@ -619,10 +671,20 @@ onMounted(() => {
                     :class="{
                       'bg-success/10 text-success border border-success/20': pub.status === 'PUBLISHED',
                       'bg-text-display/10 text-text-display border border-border-visible': pub.status === 'QUEUED',
+                      'bg-warning/10 text-warning border border-warning/20': pub.status === 'BLOCKED',
+                      'bg-error/10 text-error border border-error/20': pub.status === 'FAILED',
                     }"
                   >
                     {{ pub.status }}
                   </span>
+                  <!-- BLOCKED reconnect prompt in list view -->
+                  <button
+                    v-if="pub.status === 'BLOCKED'"
+                    @click="handleReconnect"
+                    class="text-[9px] underline text-warning hover:text-warning/80 font-medium"
+                  >
+                    Reconnect
+                  </button>
                   <!-- Conflict badge in list view -->
                   <ConflictBadge
                     v-if="pub.hasConflict"

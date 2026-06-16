@@ -4,6 +4,7 @@ import com.profiletailors.common.domain.bus.command.CommandWithResult
 import com.profiletailors.common.domain.bus.query.Query
 import com.profiletailors.smp.publishing.domain.ActivityDensity
 import com.profiletailors.smp.publishing.domain.AssetSourceType
+import com.profiletailors.smp.publishing.domain.NotificationCategory
 import com.profiletailors.smp.publishing.domain.PublicationAssetStatus
 import com.profiletailors.smp.publishing.domain.PublicationStatus
 import com.profiletailors.smp.publishing.domain.ScheduleMode
@@ -30,7 +31,7 @@ data class CompleteLinkedInConnectionCommand(
 ) : CommandWithResult<SocialConnectionResult>
 
 data class ListConnectedChannelsQuery(
-    val status: SocialConnectionStatus? = SocialConnectionStatus.ACTIVE,
+    val status: SocialConnectionStatus? = null,
 ) : Query<ConnectedChannelsResponse>
 
 data class ConnectedChannelsResponse(
@@ -183,4 +184,64 @@ data class ActivityEntry(
     val date: LocalDate,
     val density: ActivityDensity,
     val count: Int,
+)
+
+// --- List Publications Query DTOs ---
+
+data class ListPublicationsQuery(
+    val status: PublicationStatus? = null,
+    val socialAccountId: String? = null,
+    val from: Instant? = null,
+    val to: Instant? = null,
+    val limit: Int = 50,
+    val offset: Int = 0,
+) : Query<ListPublicationsResponse>
+
+data class ListPublicationsResponse(
+    val publications: List<ListPublicationItem>,
+    val total: Int,
+)
+
+data class ListPublicationItem(
+    val id: String,
+    val workspaceId: String,
+    val socialAccountId: String,
+    val provider: SocialProvider,
+    val status: PublicationStatus,
+    val title: String?,
+    val bodyText: String?,
+    val scheduledFor: Instant?,
+    val publishedAt: Instant?,
+    val publicUrl: String?,
+    val externalPublicationId: String?,
+    val failedAt: Instant?,
+    val lastErrorCode: String?,
+    val lastErrorMessage: String?,
+    val blockedReason: String?,
+    val createdAt: Instant?,
+)
+
+// --- Notification Event DTOs ---
+
+data class ListNotificationEventsQuery(
+    val socialAccountId: String? = null,
+    val publicationId: String? = null,
+    val categories: Set<NotificationCategory>? = null,
+    val limit: Int = 50,
+) : Query<NotificationEventsResponse>
+
+data class NotificationEventsResponse(
+    val events: List<NotificationEventItem>,
+)
+
+data class NotificationEventItem(
+    val id: String,
+    val provider: SocialProvider,
+    val socialAccountId: String,
+    val publicationId: String?,
+    val category: NotificationCategory,
+    val message: String,
+    val suggestedAction: String?,
+    val publicUrl: String?,
+    val occurredAt: Instant,
 )

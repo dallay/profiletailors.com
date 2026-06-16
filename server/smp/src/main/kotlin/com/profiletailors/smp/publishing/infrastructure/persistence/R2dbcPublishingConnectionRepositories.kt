@@ -353,17 +353,3 @@ private fun org.springframework.r2dbc.core.DatabaseClient.GenericExecuteSpec.bin
     .bindNullable("profileUrn", account.profileUrn, String::class.java)
     .bindNullable("avatarUrl", account.avatarUrl, String::class.java)
     .bind("status", account.status.name)
-
-private fun org.springframework.r2dbc.core.DatabaseClient.GenericExecuteSpec.bindNullable(
-    name: String,
-    value: String?,
-    type: Class<String>,
-): org.springframework.r2dbc.core.DatabaseClient.GenericExecuteSpec =
-    value?.let { bind(name, it) } ?: bindNull(name, type)
-
-private fun org.springframework.r2dbc.core.DatabaseClient.GenericExecuteSpec.bindNullable(
-    name: String,
-    value: java.time.Instant?,
-    type: Class<java.time.Instant>,
-): org.springframework.r2dbc.core.DatabaseClient.GenericExecuteSpec =
-    value?.let { bind(name, it) } ?: bindNull(name, type)

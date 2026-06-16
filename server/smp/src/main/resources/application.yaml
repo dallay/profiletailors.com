@@ -55,6 +55,7 @@ publishing:
   worker:
     enabled: ${SMP_PUBLISHING_WORKER_ENABLED:false}
     poll-interval: ${SMP_PUBLISHING_WORKER_POLL_INTERVAL:PT30S}
+    blocked-recovery-interval: ${SMP_PUBLISHING_BLOCKED_RECOVERY_INTERVAL:PT5M}
     claim-lease: ${SMP_PUBLISHING_WORKER_CLAIM_LEASE:PT2M}
     max-retries: ${SMP_PUBLISHING_MAX_RETRIES:3}
     retry-backoff: ${SMP_PUBLISHING_RETRY_BACKOFF:PT5M}
@@ -67,6 +68,7 @@ publishing:
     api-base-url: ${SMP_LINKEDIN_API_BASE_URL:https://api.linkedin.com}
     authorization-base-url: ${SMP_LINKEDIN_AUTHORIZATION_BASE_URL:https://www.linkedin.com/oauth/v2/authorization}
     token-base-url: ${SMP_LINKEDIN_TOKEN_BASE_URL:https://www.linkedin.com/oauth/v2/accessToken}
+    api-version: ${SMP_LINKEDIN_API_VERSION:202606}
   credentials:
     encryption:
       key: ${PUBLISHING_CREDENTIALS_KEY:}  # Sin default — debe configurarse via env var
@@ -145,11 +147,6 @@ spring:
   config:
     activate:
       on-profile: dev
-  liquibase:
-    parameters:
-      # Dev-only: bcrypt hash for password "dev" — DO NOT use in production
-      # Generate with: htpasswd -bnBC 12 "" dev | tr -d ':\n' 2>/dev/null || echo "install htpasswd"
-      dev-password-hash: ${DEV_PASSWORD_HASH}
 
 logging:
   level:
