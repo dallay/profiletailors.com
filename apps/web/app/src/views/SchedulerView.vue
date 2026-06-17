@@ -569,8 +569,9 @@ onMounted(() => {
                         <img :src="pub.thumbnail" class="w-full h-full object-cover grayscale opacity-75 group-hover/card:grayscale-0 group-hover/card:opacity-100 transition-all" alt="" />
                       </div>
 
-                      <!-- Delete button overlay on card hover -->
+                      <!-- Delete button overlay on card hover (not for published posts) -->
                       <button
+                        v-if="pub.status !== 'PUBLISHED'"
                         @click.stop="publishingStore.deletePost(pub.id)"
                         class="absolute top-1 right-1 opacity-0 group-hover/card:opacity-100 size-5 flex items-center justify-center rounded-full bg-black/60 text-white hover:bg-error transition-all"
                         title="Delete publication"
@@ -643,6 +644,7 @@ onMounted(() => {
                     <img :src="pub.thumbnail" class="w-full h-full object-cover grayscale opacity-75 group-hover/card:grayscale-0 group-hover/card:opacity-100 transition-all" alt="" />
                   </div>
                   <button
+                    v-if="pub.status !== 'PUBLISHED'"
                     @click.stop="publishingStore.deletePost(pub.id)"
                     class="absolute top-2 right-2 opacity-0 group-hover/card:opacity-100 size-6 flex items-center justify-center rounded-full bg-black/60 text-white hover:bg-error transition-all"
                     title="Delete publication"
@@ -733,6 +735,7 @@ onMounted(() => {
                 </div>
 
                 <button
+                  v-if="pub.status !== 'PUBLISHED'"
                   @click="publishingStore.deletePost(pub.id)"
                   class="size-8 flex items-center justify-center rounded-xl border border-border-visible hover:border-error text-text-secondary hover:text-error transition-colors bg-bg-primary cursor-pointer"
                 >
