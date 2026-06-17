@@ -31,7 +31,15 @@ data class LinkedInAssetRegisterResponse(
     @JsonProperty("uploadToken") val uploadToken: String? = null,
 )
 
-/** Unwraps LinkedIn's {"value":{...}} envelope if present. */
+/**
+ * Parses a LinkedIn asset registration response, extracting from the envelope if present.
+ *
+ * If the response contains a `"value"` object, extracts and parses that; otherwise parses the root object directly.
+ *
+ * @param body The JSON response body as a string.
+ * @param objectMapper Jackson `ObjectMapper` for parsing.
+ * @return The parsed `LinkedInAssetRegisterResponse`.
+ */
 private fun unwrapLinkedInResponse(body: String, objectMapper: ObjectMapper): LinkedInAssetRegisterResponse {
     val tree = objectMapper.readTree(body)
     val node = if (tree.has("value") && tree.get("value").isObject) tree.get("value") else tree
@@ -58,6 +66,19 @@ class RealLinkedInAssetUploader(
     private val storage: Storage?,
     private val assetRepository: PublicationAssetRepository,
 ) : AssetUploader {
+    /**
+     * Uploads a publication asset to LinkedIn.
+     *
+     * Updates the asset status to [PublicationAssetStatus.PROCESSING] initially, then to
+     * [PublicationAssetStatus.READY] upon success or [PublicationAssetStatus.FAILED] upon failure.
+     *
+     * @param asset The publication asset to upload.
+     * @param content A flow of byte arrays representing the asset's binary data.
+     * @param context Upload configuration including API endpoint, authentication, and account details.
+     * @return A [ProviderAssetRef] containing the LinkedIn asset URN and media type.
+     * @throws ProviderUploadException if the upload fails or LinkedIn returns an error.
+     * @throws CancellationException if the upload is cancelled.
+     */
     override suspend fun uploadAsset(
         asset: PublicationAsset,
         content: Flow<ByteArray>,
@@ -99,6 +120,14 @@ class RealLinkedInAssetUploader(
         return providerRef
     }
 
+    /**
+     * Initializes an asset upload by registering it with LinkedIn.
+     *
+     * @param asset The publication asset to register.
+     * @param context The upload context containing API configuration and authentication.
+     * @return The registration response containing upload instructions and asset URN.
+     * @throws ProviderUploadException If the social account is missing a profile URN or if the registration request fails.
+     */
     private suspend fun registerAsset(
         asset: PublicationAsset,
         context: AssetUploadContext,
@@ -141,6 +170,11 @@ class RealLinkedInAssetUploader(
         }.getOrThrow()
     }
 
+    /**
+     * Uploads binary content to a specified LinkedIn URL via HTTP PUT.
+     *
+     * @throws ProviderUploadException If the HTTP response status code is not in the 200-299 range.
+     */
     private suspend fun uploadBinary(uploadUrl: String, content: Flow<ByteArray>) {
         val bytes = content.collectToByteArray()
         val binaryRequest = HttpRequest.newBuilder(URI.create(uploadUrl))
@@ -157,6 +191,14 @@ class RealLinkedInAssetUploader(
         }
     }
 
+    /**
+     * Confirms the asset upload with LinkedIn.
+     *
+     * For videos, sends a finalization request with the upload token. For other asset types,
+     * sends a status check request to the corresponding endpoint.
+     *
+     * @throws ProviderUploadException if the confirmation fails.
+     */
     private suspend fun confirmAsset(
         assetUrn: String,
         uploadToken: String?,
@@ -197,6 +239,11 @@ class RealLinkedInAssetUploader(
         }
     }
 
+    /**
+     * Determines the LinkedIn REST endpoint segment for the given asset.
+     *
+     * @return The endpoint segment (`videos`, `documents`, or `images`) corresponding to the asset's media type.
+     */
     private fun assetEndpoint(asset: PublicationAsset): String = when {
         asset.mediaType.startsWith("video/", ignoreCase = true) -> "videos"
         asset.mediaType.equals("application/pdf", ignoreCase = true) ||
@@ -204,8 +251,18 @@ class RealLinkedInAssetUploader(
         else -> "images"
     }
 
-    private fun encodeUrn(urn: String): String = urn.replace(":", "%3A").replace("/", "%2F")
+    /**
+ * Encodes a URN by percent-encoding characters that are reserved in URI paths.
+ *
+ * @return The URN with `:` encoded as `%3A` and `/` encoded as `%2F`.
+ */
+private fun encodeUrn(urn: String): String = urn.replace(":", "%3A").replace("/", "%2F")
 
+    /**
+     * Concatenates all byte arrays emitted by the flow.
+     *
+     * @return The concatenated bytes, or an empty byte array if no chunks were emitted.
+     */
     private suspend fun Flow<ByteArray>.collectToByteArray(): ByteArray {
         val chunks = mutableListOf<ByteArray>()
         this.collect { chunk ->

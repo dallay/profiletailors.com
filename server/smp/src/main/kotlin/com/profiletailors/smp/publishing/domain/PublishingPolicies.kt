@@ -227,6 +227,11 @@ object PublicationLifecyclePolicy {
         )
     }
 
+    /**
+     * Validates timing parameters according to the specified schedule mode.
+     *
+     * @throws IllegalArgumentException if the timing parameters violate schedule mode constraints.
+     */
     private fun validateSchedule(
         scheduleMode: ScheduleMode,
         scheduledFor: Instant?,

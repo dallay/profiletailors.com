@@ -64,20 +64,36 @@ export const useSettingsStore = defineStore('settings', () => {
   const currentLocale = ref<Locale>(initial.locale)
   const currentTheme = ref<Theme>(initial.theme)
 
+  /**
+   * Sets the application locale.
+   *
+   * @param locale - The locale to apply
+   */
   function setLocale(locale: Locale) {
     currentLocale.value = locale
     applyLocale(locale)
   }
 
+  /**
+   * Toggles the current locale between 'en' and 'es'.
+   */
   function toggleLocale() {
     setLocale(currentLocale.value === 'en' ? 'es' : 'en')
   }
 
+  /**
+   * Sets the current theme and applies it to the document.
+   *
+   * @param theme - The theme to apply
+   */
   function setTheme(theme: Theme) {
     currentTheme.value = theme
     applyTheme(theme)
   }
 
+  /**
+   * Switches the current theme between dark and light.
+   */
   function toggleTheme() {
     setTheme(currentTheme.value === 'dark' ? 'light' : 'dark')
   }
