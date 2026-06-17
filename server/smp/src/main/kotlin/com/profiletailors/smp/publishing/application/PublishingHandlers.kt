@@ -62,9 +62,11 @@ class SocialAccountNotFoundException(
 /**
  * Validates that a SCHEDULED_AT publication is scheduled at least [MIN_SCHEDULE_OFFSET] after the given time.
  *
- * When [scheduleMode] is SCHEDULED_AT, requires [scheduledFor] to be non-null and throws if it would occur before [now] + [MIN_SCHEDULE_OFFSET].
+ * When [scheduleMode] is SCHEDULED_AT, requires [scheduledFor] to be non-null and
+ * throws if it would occur before [now] + [MIN_SCHEDULE_OFFSET].
  *
- * @throws IllegalArgumentException If [scheduleMode] is SCHEDULED_AT, [scheduledFor] is null, or [scheduledFor] is before [now] + [MIN_SCHEDULE_OFFSET].
+ * @throws IllegalArgumentException If [scheduleMode] is SCHEDULED_AT,
+ * [scheduledFor] is null, or [scheduledFor] is before [now] + [MIN_SCHEDULE_OFFSET].
  */
 private fun requireScheduledInFuture(scheduleMode: ScheduleMode, scheduledFor: Instant?, now: Instant) {
     if (scheduleMode == ScheduleMode.SCHEDULED_AT) {

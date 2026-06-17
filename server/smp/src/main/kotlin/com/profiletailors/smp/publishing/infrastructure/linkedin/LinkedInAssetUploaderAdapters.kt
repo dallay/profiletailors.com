@@ -126,7 +126,8 @@ class RealLinkedInAssetUploader(
      * @param asset The publication asset to register.
      * @param context The upload context containing API configuration and authentication.
      * @return The registration response containing upload instructions and asset URN.
-     * @throws ProviderUploadException If the social account is missing a profile URN or if the registration request fails.
+     * @throws ProviderUploadException If the social account is missing a profile URN
+     * or if the registration request fails.
      */
     private suspend fun registerAsset(
         asset: PublicationAsset,

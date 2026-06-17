@@ -285,7 +285,8 @@ class RealLinkedInPublisher(
      *
      * Requires the social account to have a profile URN; throws [IllegalStateException] if missing.
      *
-     * @return A map containing the post author, commentary, visibility settings, and optional media or article content formatted for the LinkedIn API.
+     * @return A map containing the post author, commentary, visibility settings,
+     * and optional media or article content formatted for the LinkedIn API.
      * @throws IllegalStateException If the social account is missing a profile URN.
      */
     private suspend fun buildPostBody(command: ProviderPublishCommand): Map<String, Any> {
@@ -333,7 +334,9 @@ class RealLinkedInPublisher(
     /**
      * Constructs the asset content structure for a LinkedIn post.
      *
-     * @return A map representing the asset content for the LinkedIn API, with `multiImage` for multiple images, `media` for a single image, video, or document, or an empty map if no assets are present or match.
+     * @return A map representing the asset content for the LinkedIn API, with
+     * `multiImage` for multiple images, `media` for a single image, video, or
+     * document, or an empty map if no assets are present or match.
      */
     private suspend fun buildAssetContent(
         command: ProviderPublishCommand,
