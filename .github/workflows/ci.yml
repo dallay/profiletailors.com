@@ -160,12 +160,12 @@ jobs:
   # Runs serially within the job since tests share browser state.
   #
   # Required GitHub Secrets:
-  #   CI_POSTGRES_PASSWORD          - test DB password for CI Postgres
-  #   CI_LINKEDIN_CLIENT_ID         - dummy LinkedIn client ID
-  #   CI_LINKEDIN_CLIENT_SECRET     - dummy LinkedIn client secret
-  #   CI_LOCAL_JWT_SECRET           - test JWT signing secret
-  #   CI_PUBLISHING_CREDENTIALS_KEY - base64-encoded test encryption key
-  #   CI_E2E_TEST_USER_PASSWORD     - dev user password (S3cr3tP@ssw0rd*123)
+  #   SMP_POSTGRES_PASSWORD          - test DB password for CI Postgres
+  #   SMP_LINKEDIN_CLIENT_ID         - dummy LinkedIn client ID
+  #   SMP_LINKEDIN_CLIENT_SECRET     - dummy LinkedIn client secret
+  #   SMP_LOCAL_JWT_SECRET           - test JWT signing secret
+  #   PUBLISHING_CREDENTIALS_KEY     - base64-encoded test encryption key
+  #   E2E_TEST_USER_PASSWORD         - dev user password (S3cr3tP@ssw0rd*123)
   # ──────────────────────────────────────────────────────────────
   scheduler-e2e:
     name: 📅 Scheduler E2E
@@ -173,21 +173,21 @@ jobs:
     env:
       SMP_POSTGRES_DB: profiletailors_smp
       SMP_POSTGRES_USER: profiletailors
-      SMP_POSTGRES_PASSWORD: ${{ secrets.CI_POSTGRES_PASSWORD }}
+      SMP_POSTGRES_PASSWORD: ${{ secrets.SMP_POSTGRES_PASSWORD }}
       SMP_PUBLISHING_WORKER_ENABLED: 'true'
       SMP_PUBLISHING_WORKER_POLL_INTERVAL: PT5S
       SMP_LINKEDIN_PUBLISHING_API_BASE_URL: http://localhost:8089
-      SMP_LINKEDIN_CLIENT_ID: ${{ secrets.CI_LINKEDIN_CLIENT_ID }}
-      SMP_LINKEDIN_CLIENT_SECRET: ${{ secrets.CI_LINKEDIN_CLIENT_SECRET }}
+      SMP_LINKEDIN_CLIENT_ID: ${{ secrets.SMP_LINKEDIN_CLIENT_ID }}
+      SMP_LINKEDIN_CLIENT_SECRET: ${{ secrets.SMP_LINKEDIN_CLIENT_SECRET }}
       SMP_LINKEDIN_REDIRECT_URI: http://localhost:5173/integrations/linkedin/callback
       SMP_LINKEDIN_SCOPES: w_member_social,openid,profile,email
       SMP_LINKEDIN_API_BASE_URL: https://api.linkedin.com
       SMP_LINKEDIN_AUTHORIZATION_BASE_URL: https://www.linkedin.com/oauth/v2/authorization
       SMP_LINKEDIN_TOKEN_BASE_URL: https://www.linkedin.com/oauth/v2/accessToken
       SMP_LINKEDIN_API_VERSION: '202606'
-      SMP_LOCAL_JWT_SECRET: ${{ secrets.CI_LOCAL_JWT_SECRET }}
-      PUBLISHING_CREDENTIALS_KEY: ${{ secrets.CI_PUBLISHING_CREDENTIALS_KEY }}
-      E2E_TEST_USER_PASSWORD: ${{ secrets.CI_E2E_TEST_USER_PASSWORD }}
+      SMP_LOCAL_JWT_SECRET: ${{ secrets.SMP_LOCAL_JWT_SECRET }}
+      PUBLISHING_CREDENTIALS_KEY: ${{ secrets.PUBLISHING_CREDENTIALS_KEY }}
+      E2E_TEST_USER_PASSWORD: ${{ secrets.E2E_TEST_USER_PASSWORD }}
 
     services:
       postgres:
