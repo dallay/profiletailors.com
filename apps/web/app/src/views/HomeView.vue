@@ -46,7 +46,7 @@ function handleCreated() {
 </script>
 
 <template>
-  <div class="space-y-8">
+  <div class="mx-auto w-full max-w-7xl space-y-8">
     <!-- Welcome Header + Create Post -->
     <div class="flex items-center justify-between">
       <div class="space-y-1">

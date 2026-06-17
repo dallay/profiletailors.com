@@ -150,7 +150,7 @@ onMounted(() => {
 </script>
 
 <template>
-  <div data-testid="settings-shell" class="space-y-8">
+  <div data-testid="settings-shell" class="mx-auto w-full max-w-4xl space-y-8">
     <section
       data-testid="settings-overview"
       class="rounded-[32px] border border-border-subtle bg-bg-surface/90 p-6 shadow-[0_0_0_1px_rgba(255,255,255,0.02)] sm:p-8"
