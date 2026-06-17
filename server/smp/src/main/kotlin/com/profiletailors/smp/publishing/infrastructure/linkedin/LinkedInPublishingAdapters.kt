@@ -241,6 +241,13 @@ class RealLinkedInPublisher(
     private val storage: Storage?,
     private val attachmentsBucket: String,
 ) : SocialPublisher {
+    /**
+     * Publishes a social media post to LinkedIn.
+     *
+     * @return The publication result containing the external publication ID and the provider's response message.
+     * @throws RetryablePublishingException if the request is rate-limited (429) or receives a server error (500-599).
+     * @throws IllegalStateException if the request fails with any other HTTP status code.
+     */
     override suspend fun publish(command: ProviderPublishCommand): ProviderPublishResult {
         val requestBody = buildPostBody(command)
         val accessToken = credentialResolver.resolve(command.socialAccount)
@@ -273,6 +280,14 @@ class RealLinkedInPublisher(
         }
     }
 
+    /**
+     * Constructs the request body for publishing a post to LinkedIn.
+     *
+     * Requires the social account to have a profile URN; throws [IllegalStateException] if missing.
+     *
+     * @return A map containing the post author, commentary, visibility settings, and optional media or article content formatted for the LinkedIn API.
+     * @throws IllegalStateException If the social account is missing a profile URN.
+     */
     private suspend fun buildPostBody(command: ProviderPublishCommand): Map<String, Any> {
         val authorUrn = command.socialAccount.profileUrn
             ?: throw IllegalStateException(
@@ -315,6 +330,11 @@ class RealLinkedInPublisher(
         }
     }
 
+    /**
+     * Constructs the asset content structure for a LinkedIn post.
+     *
+     * @return A map representing the asset content for the LinkedIn API, with `multiImage` for multiple images, `media` for a single image, video, or document, or an empty map if no assets are present or match.
+     */
     private suspend fun buildAssetContent(
         command: ProviderPublishCommand,
         assets: List<com.profiletailors.smp.publishing.domain.PublicationAsset>,
@@ -354,6 +374,12 @@ class RealLinkedInPublisher(
         }
     }
 
+    /**
+     * Converts publication assets into provider asset references for LinkedIn publication.
+     *
+     * @return A list of provider asset references.
+     * @throws IllegalStateException if an uploaded asset lacks a storage key or an external URL asset lacks a URL.
+     */
     private suspend fun resolveAssetRefs(
         command: ProviderPublishCommand,
         assets: List<com.profiletailors.smp.publishing.domain.PublicationAsset>,

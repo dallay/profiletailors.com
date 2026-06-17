@@ -60,9 +60,11 @@ class SocialAccountNotFoundException(
 ) : IllegalArgumentException("Social account '$socialAccountId' was not found in the active workspace.")
 
 /**
- * Validates that a SCHEDULED_AT publication is scheduled in the future.
- * This is a belt-and-suspenders guard used by handlers that bypass [PublicationLifecyclePolicy.validateForCreation].
- * NOW and NEXT_SLOT modes are not checked here — they are resolved by the system.
+ * Validates that a SCHEDULED_AT publication is scheduled at least [MIN_SCHEDULE_OFFSET] after the given time.
+ *
+ * When [scheduleMode] is SCHEDULED_AT, requires [scheduledFor] to be non-null and throws if it would occur before [now] + [MIN_SCHEDULE_OFFSET].
+ *
+ * @throws IllegalArgumentException If [scheduleMode] is SCHEDULED_AT, [scheduledFor] is null, or [scheduledFor] is before [now] + [MIN_SCHEDULE_OFFSET].
  */
 private fun requireScheduledInFuture(scheduleMode: ScheduleMode, scheduledFor: Instant?, now: Instant) {
     if (scheduleMode == ScheduleMode.SCHEDULED_AT) {
@@ -576,6 +578,12 @@ internal class GetCalendarPublicationsHandler(
     }
 }
 
+/**
+ * Converts this publication draft to a calendar view result.
+ *
+ * @param conflictingPublicationIds IDs of publications that conflict with this draft.
+ * @return A calendar view result with conflict information.
+ */
 private fun PublicationDraft.toCalendarResult(
     conflictingPublicationIds: List<String>,
 ): CalendarPublicationResult = CalendarPublicationResult(
@@ -596,6 +604,11 @@ private fun PublicationDraft.toCalendarResult(
     publishedAt = publishedAt,
 )
 
+/**
+ * Converts a publication draft to its result DTO.
+ *
+ * @return A PublicationResult containing the publication draft's fields.
+ */
 private fun PublicationDraft.toResult(): PublicationResult = PublicationResult(
     publicationId = id,
     workspaceId = workspaceId,
