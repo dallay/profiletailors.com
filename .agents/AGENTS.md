@@ -126,7 +126,7 @@ If it fails, do not push. Fix first, then re-run.
 
 | Command         | What it covers                                                   |
 |-----------------|------------------------------------------------------------------|
-| `just ci`       | Everything — the single gate that proves the codebase is healthy |
+| `just ci`       | Full local CI: lint, unit tests, build, marketing E2E (no scheduler E2E, no Postgres) |
 | `just ci-local` | Fast subset — lint, unit tests, builds (no E2E, no Postgres)     |
 | `just ci-full`  | ci-local + Postgres BDD (requires `just infra-up` first)         |
 

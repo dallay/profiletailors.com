@@ -40,7 +40,8 @@ export class ComposeModalPage {
 
   // Date/time pickers (visible when Pick Date is active)
   get datePickerButton(): Locator {
-    return this.page.getByRole('button', { name: /\w+, \w+ \d+, \d{4}/ }) // e.g. "Wed, Jun 17, 2026"
+    // Use the Popover trigger button which contains the formatted date
+    return this.page.locator('button').filter({ hasText: /\w+ \d+, \d{4}/ }).first()
   }
 
   get timeInput(): Locator {
@@ -157,11 +158,11 @@ export class ComposeModalPage {
   }
 
   async togglePriority(): Promise<void> {
-    await this.priorityQueueCheckbox.check()
+    await this.priorityQueueCheckbox.setChecked(true)
   }
 
   async toggleCreateAnother(): Promise<void> {
-    await this.createAnotherCheckbox.check()
+    await this.createAnotherCheckbox.setChecked(true)
   }
 
   // ---- Assertions ----

@@ -40,7 +40,7 @@ test.describe('Scheduler — Views & Navigation', () => {
 
     // Day view
     await scheduler.switchToDay()
-    await expect(page.locator(/all day/i)).toBeVisible()
+    await expect(page.getByText(/all day/i)).toBeVisible()
 
     // TODAY button should be present
     await expect(scheduler.todayButton).toBeVisible()
@@ -67,10 +67,11 @@ test.describe('Scheduler — Views & Navigation', () => {
     await page.waitForTimeout(500)
 
     // Past cells should have cursor-not-allowed and aria-disabled
+    // (depends on day of month — some test runs may have 0 past cells)
     const pastCells = page.locator('[aria-disabled="true"]')
-    const count = await pastCells.count()
-    // At least some cells should be past (depends on day of month)
-    expect(count).toBeGreaterThanOrEqual(0)
+    await expect(pastCells.first()).toBeAttached({ timeout: 2_000 }).catch(() => {
+      // No past cells on this day of month — navigation still validated
+    })
 
     // Past cells with post cards should be clickable (read-only detail)
     // This is validated in TC-15 separately

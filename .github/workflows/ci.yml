@@ -10,6 +10,9 @@ concurrency:
   group: ci-${{ github.ref }}
   cancel-in-progress: true
 
+permissions:
+  contents: read
+
 # ═══════════════════════════════════════════════════════════════
 # All jobs run in parallel — no job depends on another.
 # This maximises throughput on GitHub Actions runners.
@@ -26,6 +29,7 @@ jobs:
       - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5
         with:
           fetch-depth: 0
+          persist-credentials: false
       - uses: gitleaks/gitleaks-action@dcedce43c6f43de0b836d1fe38946645c9c638dc
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -38,6 +42,8 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5
+        with:
+          persist-credentials: false
 
       - uses: ./.github/actions/setup-frontend
 
@@ -59,6 +65,8 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5
+        with:
+          persist-credentials: false
 
       - uses: ./.github/actions/setup-frontend
 
@@ -74,6 +82,8 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5
+        with:
+          persist-credentials: false
 
       - uses: ./.github/actions/setup-frontend
 
@@ -89,6 +99,8 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5
+        with:
+          persist-credentials: false
 
       - uses: ./.github/actions/setup-backend
 
@@ -104,6 +116,8 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5
+        with:
+          persist-credentials: false
 
       - uses: ./.github/actions/setup-backend
 
@@ -119,6 +133,8 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5
+        with:
+          persist-credentials: false
 
       - uses: ./.github/actions/setup-frontend
         with:
@@ -194,7 +210,6 @@ jobs:
           - 8089:8080
         volumes:
           - ./infra/wiremock/linkedin:/home/wiremock:ro
-        entrypoint: ["java", "-cp", "/wiremock.jar:/__root__/*:", "wiremock.Run", "--global-response-templating", "--verbose"]
         options: >-
           --health-cmd "curl -f http://localhost:8080/__admin/health || exit 1"
           --health-interval 10s
@@ -203,6 +218,8 @@ jobs:
 
     steps:
       - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5
+        with:
+          persist-credentials: false
 
       # ── Java + Gradle ──
       - uses: ./.github/actions/setup-backend

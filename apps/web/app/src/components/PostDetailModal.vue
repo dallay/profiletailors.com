@@ -106,7 +106,8 @@ const publishedAtLabel = computed(() => {
   })
 })
 
-const isDeleting = computed(() => false)
+const isDeleting = ref(false)
+const deleteError = ref('')
 
 function closeModal() {
   emit('close')
@@ -119,13 +120,18 @@ function openPostInNewTab() {
 }
 
 async function deletePublication() {
-  if (!props.publication) return
+  if (!props.publication || isDeleting.value) return
+  isDeleting.value = true
+  deleteError.value = ''
   try {
     await publishingStore.deletePost(props.publication.id)
     emit('deleted', props.publication.id)
     closeModal()
   } catch (err) {
+    deleteError.value = err instanceof Error ? err.message : 'Failed to delete post'
     console.error('Failed to delete publication', err)
+  } finally {
+    isDeleting.value = false
   }
 }
 </script>
@@ -236,7 +242,11 @@ async function deletePublication() {
         </div>
 
         <!-- Footer -->
-        <footer class="flex items-center justify-between gap-3 p-6 border-t border-border-subtle bg-bg-primary/40">
+        <footer class="border-t border-border-subtle bg-bg-primary/40">
+          <div v-if="deleteError" class="px-6 pt-3">
+            <p class="text-[10px] font-mono text-error">{{ deleteError }}</p>
+          </div>
+          <div class="flex items-center justify-between gap-3 p-6">
           <button
             v-if="!isReadOnly"
             @click="deletePublication"

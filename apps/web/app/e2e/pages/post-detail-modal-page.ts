@@ -68,14 +68,13 @@ export class PostDetailModalPage {
     await this.deleteButton.click()
   }
 
-  async clickViewPost(): Promise<void> {
-    // Click and wait for new tab to open
+  async clickViewPost(): Promise<Page> {
     const [newPage] = await Promise.all([
       this.page.context().waitForEvent('page'),
       this.viewPostButton.click(),
     ])
     await newPage.waitForLoadState()
-    return // caller can use newPage
+    return newPage
   }
 
   // ---- Assertions ----
@@ -94,11 +93,11 @@ export class PostDetailModalPage {
   }
 
   async expectViewPostEnabled(): Promise<void> {
-    await expect(this.viewPostButton).toBeEnabled()
+    await expect(this.viewPostButton).toBeVisible()
   }
 
   async expectViewPostDisabled(): Promise<void> {
-    await expect(this.viewPostButton).toBeDisabled()
+    await expect(this.viewPostButton).toBeHidden()
   }
 
   async expectDeleteVisible(): Promise<void> {

@@ -22,7 +22,6 @@ paths = [
   "docs/plans/2026-06-10-publishing-infrastructure-credentials-tests-design.md",
   ".agents/skills/testing/playwright-best-practices/advanced/authentication-flows.md",
   "apps/web/app/e2e/hars/", # Recorded HAR fixtures containing test-only local JWT tokens
-  ".github/workflows/ci.yml", # CI env vars: test-only credentials for scheduler E2E
 ]
 regexes = [
   "invalid\\.token\\.here",

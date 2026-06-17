@@ -68,7 +68,7 @@ export class SchedulerPage {
 
   // Post cards in the scheduler
   get postCards(): Locator {
-    return this.page.locator('.group/card, .group/card')
+    return this.page.locator('.group\\/card')
   }
 
   // Delete buttons on post cards

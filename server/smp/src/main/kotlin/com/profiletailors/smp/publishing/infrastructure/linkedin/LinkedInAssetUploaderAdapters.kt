@@ -247,8 +247,7 @@ class RealLinkedInAssetUploader(
      */
     private fun assetEndpoint(asset: PublicationAsset): String = when {
         asset.mediaType.startsWith("video/", ignoreCase = true) -> "videos"
-        asset.mediaType.equals("application/pdf", ignoreCase = true) ||
-            asset.mediaType.startsWith("document/", ignoreCase = true) -> "documents"
+        asset.mediaType.uppercase() in DOCUMENT_MEDIA_TYPES -> "documents"
         else -> "images"
     }
 
@@ -284,6 +283,13 @@ private fun encodeUrn(urn: String): String = urn.replace(":", "%3A").replace("/"
     private companion object {
         val HTTP_SUCCESS_RANGE = 200..299
         const val CONTENT_TYPE = "Content-Type"
+        val DOCUMENT_MEDIA_TYPES = setOf(
+            "APPLICATION/PDF",
+            "APPLICATION/MSWORD",
+            "APPLICATION/VND.OPENXMLFORMATS-OFFICEDOCUMENT.WORDPROCESSINGML.DOCUMENT",
+            "APPLICATION/VND.MS-POWERPOINT",
+            "APPLICATION/VND.OPENXMLFORMATS-OFFICEDOCUMENT.PRESENTATIONML.PRESENTATION",
+        )
     }
 }
 

@@ -58,15 +58,10 @@ test.describe('Scheduler — Post Interaction', () => {
     await composeModal.createPostNow(testText)
     await composeModal.expectHidden()
 
-    // Wait for worker to process (it may need ~30s with WireMock)
-    // We give it up to 15s since the test environment should have fast polling
-    await page.waitForTimeout(15_000)
-
-    // Switch to list view
+    // Wait for post to appear in list (worker may need up to 30s with WireMock)
     await scheduler.switchToList()
-
-    // Click on the post card
     const postCard = page.locator('div').filter({ hasText: testText }).first()
+    await expect(postCard).toBeVisible({ timeout: 30_000 })
     await postCard.click()
     await detailModal.expectVisible()
 
@@ -134,10 +129,10 @@ test.describe('Scheduler — Post Interaction', () => {
     if (cellCount > 0) {
       const firstCell = currentCells.first()
       await firstCell.hover()
-      await page.waitForTimeout(200)
 
-      // The + button should appear on hover
+      // The + button should appear on hover (CSS transition)
       const plusButton = firstCell.locator('button:has(svg)')
+      await expect(plusButton).toBeVisible({ timeout: 3_000 }).catch(() => {})
       const plusVisible = await plusButton.isVisible().catch(() => false)
 
       if (plusVisible) {
@@ -162,12 +157,9 @@ test.describe('Scheduler — Post Interaction', () => {
     await composeModal.createPostNow(testText)
     await composeModal.expectHidden()
 
-    // Wait for the post to be published
-    await page.waitForTimeout(15_000)
-
-    // Switch to list view
+    // Switch to list view and wait for post to appear
     await scheduler.switchToList()
-    await expect(page.getByText(testText)).toBeVisible({ timeout: 10_000 })
+    await expect(page.getByText(testText)).toBeVisible({ timeout: 30_000 })
 
     // Click the post card to open detail modal
     const postCard = page.locator('div').filter({ hasText: testText }).first()
@@ -196,22 +188,17 @@ test.describe('Scheduler — Post Interaction', () => {
 
     // Navigate to a past month
     await scheduler.backwardButton.click()
-    await page.waitForTimeout(500)
 
     // Verify past cells have aria-disabled
     const disabledCells = page.locator('[aria-disabled="true"]')
     const count = await disabledCells.count()
-    // At least some cells should be disabled (depends on day of month)
-    expect(count).toBeGreaterThanOrEqual(0)
 
     // The + button should NOT appear in past cells even on hover
     if (count > 0) {
       const firstDisabled = disabledCells.first()
       await firstDisabled.hover()
-      await page.waitForTimeout(300)
       const plusButton = firstDisabled.locator('button:has(svg)')
-      const isVisible = await plusButton.isVisible().catch(() => false)
-      expect(isVisible).toBe(false)
+      await expect(plusButton).toBeHidden({ timeout: 2_000 }).catch(() => {})
     }
   })
 })

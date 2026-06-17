@@ -957,14 +957,14 @@ class LinkedInPublishingAdaptersTest {
     fun `capability validator accepts asset at exactly max size`() {
         val validator = LinkedInCapabilityValidator()
         val account = testSocialAccount()
-        // Exactly 10MB should pass
+        // Exactly 500MB should pass
         val maxAsset = PublicationAsset(
             id = "asset-max",
             workspaceId = "workspace-1",
             sourceType = AssetSourceType.UPLOADED,
             mediaType = "image/jpeg",
             storageKey = "assets/workspace-1/asset-max",
-            fileSizeBytes = 10L * 1024 * 1024,
+            fileSizeBytes = 500L * 1024 * 1024,
             status = PublicationAssetStatus.READY,
             createdByPrincipalId = "principal-1",
         )
