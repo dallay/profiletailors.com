@@ -1,0 +1,19 @@
+{
+  "priority": 5,
+  "request": {
+    "method": "POST",
+    "urlPath": "/rest/posts",
+    "headers": {
+      "Authorization": { "equalTo": "Bearer invalid-token" }
+    }
+  },
+  "response": {
+    "status": 401,
+    "headers": { "Content-Type": "application/json" },
+    "jsonBody": {
+      "message": "Mocked LinkedIn invalid token",
+      "status": 401,
+      "code": "UNAUTHORIZED"
+    }
+  }
+}

@@ -1,15 +1,13 @@
 <script setup lang="ts">
 import { ref, computed, watch, onMounted, onUnmounted } from 'vue'
+import type { DateValue } from 'reka-ui'
+import { CalendarDate, getLocalTimeZone, today } from '@internationalized/date'
 // biome-ignore lint/correctness/noUnusedImports: used in template
 import { Image as ImageIcon } from '@lucide/vue'
 import {
-  Calendar,
+  Calendar as CalendarIcon,
   Check,
-  ChevronDown,
-  FileImage,
   Hash,
-  Paperclip,
-  Smile,
   Sparkles,
   X,
 } from '@lucide/vue'
@@ -17,6 +15,10 @@ import { useAuthStore } from '@/stores/auth'
 import { usePublishingStore } from '@/stores/publishing'
 import { proxyImageUrl } from '@/lib/auth-api'
 import { Button } from '@/components/ui/button'
+import { Calendar } from '@/components/ui/calendar'
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
+
+type ComposerScheduleMode = 'now' | 'next' | 'custom'
 
 const props = withDefaults(
   defineProps<{
@@ -47,10 +49,11 @@ const fileInput = ref<HTMLInputElement | null>(null)
 const firstComment = ref('')
 const createAnother = ref(false)
 const priorityMode = ref(false)
-const scheduleMode = ref<'now' | 'custom'>('now')
+const scheduleMode = ref<ComposerScheduleMode>('now')
+const isDatePickerOpen = ref(false)
 
-// Custom Datepicker state
-const scheduleDate = ref('')
+// Calendar selector state
+const selectedCalendarDate = ref<DateValue>()
 const scheduleTime = ref('10:00')
 
 // ---------------------------------------------------------------------------
@@ -67,18 +70,15 @@ onMounted(() => {
 
 onUnmounted(() => clearInterval(timer))
 
-const minDate = computed(() => {
-  const d = new Date(now.value)
-  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
-})
+const todayDateValue = computed(() => today(getLocalTimeZone()))
 
 const minTimeForDate = computed(() => {
-  if (scheduleDate.value === minDate.value) {
+  if (selectedCalendarDate.value?.compare(todayDateValue.value) === 0) {
     const future = new Date(now.value.getTime() + 5 * 60_000)
     // Check for midnight rollover: if now+5min crosses into tomorrow,
     // no valid time remains for today — return an impossible value
-    const futureDateStr = `${future.getFullYear()}-${String(future.getMonth() + 1).padStart(2, '0')}-${String(future.getDate()).padStart(2, '0')}`
-    if (futureDateStr !== minDate.value) {
+    const futureDate = new CalendarDate(future.getFullYear(), future.getMonth() + 1, future.getDate())
+    if (futureDate.compare(todayDateValue.value) !== 0) {
       return '23:59'
     }
     return `${String(future.getHours()).padStart(2, '0')}:${String(future.getMinutes()).padStart(2, '0')}`
@@ -100,15 +100,16 @@ watch(
       priorityMode.value = false
       submitError.value = ''
       scheduleMode.value = props.initialDate ? 'custom' : 'now'
+      isDatePickerOpen.value = false
       avatarLoadFailed.value = {}
       selectedChannelId.value = publishingStore.channels[0]?.id ?? null
 
       const defaultDate = props.initialDate ? new Date(props.initialDate) : new Date()
-      // format to YYYY-MM-DD
-      const year = defaultDate.getFullYear()
-      const month = String(defaultDate.getMonth() + 1).padStart(2, '0')
-      const day = String(defaultDate.getDate()).padStart(2, '0')
-      scheduleDate.value = `${year}-${month}-${day}`
+      selectedCalendarDate.value = new CalendarDate(
+        defaultDate.getFullYear(),
+        defaultDate.getMonth() + 1,
+        defaultDate.getDate(),
+      )
       
       const hours = String(defaultDate.getHours()).padStart(2, '0')
       const minutes = String(defaultDate.getMinutes()).padStart(2, '0')
@@ -159,6 +160,23 @@ const selectedChannelInitials = computed(() => {
     .map((part) => part[0] ?? '')
     .join('')
     .toUpperCase()
+})
+
+const selectedDateLabel = computed(() => {
+  if (!selectedCalendarDate.value) return 'Select date'
+  const date = selectedCalendarDate.value.toDate(getLocalTimeZone())
+  return date.toLocaleDateString(undefined, {
+    weekday: 'short',
+    month: 'short',
+    day: 'numeric',
+    year: 'numeric',
+  })
+})
+
+const scheduleHelperText = computed(() => {
+  if (scheduleMode.value === 'now') return 'Publishes with the creation date and time.'
+  if (scheduleMode.value === 'next') return 'Publishes in the next available schedule slot.'
+  return `Publishes on ${selectedDateLabel.value} at ${scheduleTime.value}.`
 })
 
 const canSubmit = computed(() => {
@@ -267,53 +285,47 @@ async function handleSchedule() {
   submitError.value = ''
 
   try {
-    let finalScheduledDate: Date
-    if (scheduleMode.value === 'custom' && scheduleDate.value) {
-      const [yearRaw, monthRaw, dayRaw] = scheduleDate.value.split('-').map(Number)
+    let finalScheduledDate: Date | undefined
+    if (scheduleMode.value === 'custom') {
+      if (!selectedCalendarDate.value) {
+        submitError.value = 'Select a date.'
+        return
+      }
+
       const [hoursRaw, minutesRaw] = scheduleTime.value.split(':').map(Number)
-      const year = yearRaw ?? Number.NaN
-      const month = monthRaw ?? Number.NaN
-      const day = dayRaw ?? Number.NaN
       const hours = hoursRaw ?? Number.NaN
       const minutes = minutesRaw ?? Number.NaN
-      // Guard against NaN from parsing and validate ranges
-      const isValidYear = Number.isInteger(year) && year >= 2000 && year <= 2100
-      const isValidMonth = Number.isInteger(month) && month >= 1 && month <= 12
-      const isValidDay = Number.isInteger(day) && day >= 1 && day <= 31
       const isValidHours = Number.isInteger(hours) && hours >= 0 && hours <= 23
       const isValidMinutes = Number.isInteger(minutes) && minutes >= 0 && minutes <= 59
-      if (isValidYear && isValidMonth && isValidDay && isValidHours && isValidMinutes) {
-        finalScheduledDate = new Date(year, month - 1, day, hours, minutes)
-        // Guard against silent Date normalization (e.g. Feb 31 → Mar 3)
-        if (finalScheduledDate.getFullYear() !== year ||
-            finalScheduledDate.getMonth() + 1 !== month ||
-            finalScheduledDate.getDate() !== day) {
-          submitError.value = 'Invalid date selected.'
-          return
-        }
-      } else {
-        submitError.value = 'Invalid date or time selected.'
+      if (!isValidHours || !isValidMinutes) {
+        submitError.value = 'Invalid time selected.'
         return
       }
 
-      // Validate: scheduled time must be at least 5 minutes in the future
-      const earliestAllowed = new Date(Date.now() + 5 * 60_000)
+      finalScheduledDate = selectedCalendarDate.value.toDate(getLocalTimeZone())
+      finalScheduledDate.setHours(hours, minutes, 0, 0)
+
+      const earliestAllowed = new Date(now.value.getTime() + 5 * 60_000)
       if (finalScheduledDate < earliestAllowed) {
-        submitError.value = 'Scheduled time must be at least 5 minutes in the future.'
+        submitError.value = 'Selected date and time must be in the future.'
         return
       }
-    } else {
-      // NOW mode — backend resolves to clock.instant(), no need to compute offset
-      finalScheduledDate = new Date()
     }
 
-    // Schedule through store — pass scheduleMode so NOW mode sends NOR scheduleFor
+    const backendScheduleMode = scheduleMode.value === 'now'
+      ? 'NOW'
+      : scheduleMode.value === 'next'
+        ? 'NEXT_SLOT'
+        : 'SCHEDULED_AT'
+
+    // Schedule through store — pass scheduleMode so NOW and NEXT_SLOT modes omit scheduledFor
     await publishingStore.schedulePost({
       content: postText.value,
       title: 'Post from App',
       channels: selectedProviders.value,
-      scheduledAt: scheduleMode.value === 'now' ? undefined : finalScheduledDate.toISOString(),
-      scheduleMode: scheduleMode.value === 'now' ? 'NOW' : 'SCHEDULED_AT',
+      scheduledAt: finalScheduledDate?.toISOString(),
+      nextSlotAfter: scheduleMode.value === 'next' ? now.value.toISOString() : undefined,
+      scheduleMode: backendScheduleMode,
       priority: priorityMode.value,
       mediaFiles: mediaFiles.value,
       socialAccountId: selectedChannel.value?.accountId,
@@ -585,36 +597,60 @@ async function handleSchedule() {
             <!-- Schedule controls -->
             <div class="space-y-3">
               <div class="flex items-center gap-4 bg-bg-surface border border-border-subtle p-3 rounded-xl">
-                <Calendar class="size-4 text-text-secondary shrink-0" />
-                <div class="flex-1 flex items-center justify-between text-xs">
+                <CalendarIcon class="size-4 text-text-secondary shrink-0" />
+                <div class="flex-1 space-y-2 text-xs">
                   <span class="text-text-secondary">Schedule Mode:</span>
-                  <div class="flex gap-2">
+                  <div class="grid grid-cols-3 gap-1 rounded-lg bg-bg-primary/60 p-1">
                     <button
                       @click="scheduleMode = 'now'"
-                      class="px-2 py-0.5 rounded font-mono text-[9px] uppercase tracking-wider font-bold transition-all cursor-pointer"
+                      class="px-2 py-1 rounded font-mono text-[9px] uppercase tracking-wider font-bold transition-all cursor-pointer"
                       :class="scheduleMode === 'now' ? 'bg-text-display text-bg-primary' : 'bg-transparent text-text-secondary hover:text-text-display'"
                     >
                       Now
                     </button>
                     <button
+                      @click="scheduleMode = 'next'"
+                      class="px-2 py-1 rounded font-mono text-[9px] uppercase tracking-wider font-bold transition-all cursor-pointer"
+                      :class="scheduleMode === 'next' ? 'bg-text-display text-bg-primary' : 'bg-transparent text-text-secondary hover:text-text-display'"
+                    >
+                      Next Schedule
+                    </button>
+                    <button
                       @click="scheduleMode = 'custom'"
-                      class="px-2 py-0.5 rounded font-mono text-[9px] uppercase tracking-wider font-bold transition-all cursor-pointer"
+                      class="px-2 py-1 rounded font-mono text-[9px] uppercase tracking-wider font-bold transition-all cursor-pointer"
                       :class="scheduleMode === 'custom' ? 'bg-text-display text-bg-primary' : 'bg-transparent text-text-secondary hover:text-text-display'"
                     >
-                      Custom
+                      Pick Date
                     </button>
                   </div>
+                  <p class="text-[10px] leading-4 text-text-secondary">
+                    {{ scheduleHelperText }}
+                  </p>
                 </div>
               </div>
 
               <!-- Date Picker Row -->
-              <div v-if="scheduleMode === 'custom'" class="grid grid-cols-2 gap-3 animate-slide-down">
-                <input
-                  v-model="scheduleDate"
-                  type="date"
-                  :min="minDate"
-                  class="bg-bg-surface border border-border-subtle rounded-xl px-3 py-2 text-xs text-text-body focus:outline-none focus:border-text-display font-sans"
-                />
+              <div v-if="scheduleMode === 'custom'" class="grid grid-cols-[1fr_112px] gap-3 animate-slide-down">
+                <Popover v-model:open="isDatePickerOpen">
+                  <PopoverTrigger as-child>
+                    <button
+                      type="button"
+                      class="flex items-center justify-between gap-2 bg-bg-surface border border-border-subtle rounded-xl px-3 py-2 text-xs text-text-body hover:border-text-display focus:outline-none focus:border-text-display font-sans"
+                    >
+                      <span>{{ selectedDateLabel }}</span>
+                      <CalendarIcon class="size-3.5 text-text-secondary" />
+                    </button>
+                  </PopoverTrigger>
+                  <PopoverContent class="w-auto p-0 bg-bg-surface border-border-subtle" align="start">
+                    <Calendar
+                      v-model="selectedCalendarDate"
+                      :min-value="todayDateValue"
+                      layout="month-and-year"
+                      initial-focus
+                      @update:model-value="isDatePickerOpen = false"
+                    />
+                  </PopoverContent>
+                </Popover>
                 <input
                   v-model="scheduleTime"
                   type="time"
@@ -655,7 +691,7 @@ async function handleSchedule() {
                 :disabled="!canSubmit"
                 class="col-span-2 justify-center py-2.5 font-bold"
               >
-                {{ scheduleMode === 'now' ? 'Schedule Now' : $t('composer.scheduleBtn') }}
+                {{ scheduleMode === 'now' ? 'Schedule Now' : scheduleMode === 'next' ? 'Next Schedule' : $t('composer.scheduleBtn') }}
               </Button>
             </div>
           </div>

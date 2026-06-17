@@ -24,6 +24,35 @@
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <meta name="apple-mobile-web-app-title" content="Profile Tailors">
+
+    <!-- Pre-hydration theme bootstrap: avoid flash of wrong theme.
+         Must run before the body renders. Keys are kept in sync with
+         stores/settings.ts. Default to dark when no preference is stored. -->
+    <script>
+      (function () {
+        try {
+          var raw = localStorage.getItem('pt_settings_v1');
+          var theme = 'dark';
+          var locale = 'en';
+          if (raw) {
+            var parsed = JSON.parse(raw);
+            if (parsed && (parsed.theme === 'dark' || parsed.theme === 'light')) {
+              theme = parsed.theme;
+            }
+            if (parsed && (parsed.locale === 'en' || parsed.locale === 'es')) {
+              locale = parsed.locale;
+            }
+          }
+          var root = document.documentElement;
+          root.classList.toggle('light', theme === 'light');
+          root.classList.toggle('dark', theme === 'dark');
+          root.style.colorScheme = theme;
+          root.setAttribute('lang', locale);
+        } catch (e) {
+          // localStorage may be unavailable; the store will fall back to defaults.
+        }
+      })();
+    </script>
   </head>
   <body>
     <div id="app"></div>

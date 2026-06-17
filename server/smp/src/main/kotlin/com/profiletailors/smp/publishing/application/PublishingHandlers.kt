@@ -60,7 +60,7 @@ class SocialAccountNotFoundException(
 ) : IllegalArgumentException("Social account '$socialAccountId' was not found in the active workspace.")
 
 /**
- * Validates that a SCHEDULED_AT publication is scheduled at least 5 minutes in the future.
+ * Validates that a SCHEDULED_AT publication is scheduled in the future.
  * This is a belt-and-suspenders guard used by handlers that bypass [PublicationLifecyclePolicy.validateForCreation].
  * NOW and NEXT_SLOT modes are not checked here — they are resolved by the system.
  */
@@ -72,7 +72,7 @@ private fun requireScheduledInFuture(scheduleMode: ScheduleMode, scheduledFor: I
         val earliestAllowed = now.plus(MIN_SCHEDULE_OFFSET)
         require(!forTime.isBefore(earliestAllowed)) {
             "Cannot schedule a publication for $forTime. " +
-                "Scheduled time must be at least 5 minutes in the future. " +
+                "Scheduled time must be in the future. " +
                 "Earliest allowed: $earliestAllowed"
         }
     }
@@ -591,6 +591,9 @@ private fun PublicationDraft.toCalendarResult(
     scheduledFor = scheduledFor,
     hasConflict = conflictingPublicationIds.isNotEmpty(),
     conflictingPublicationIds = conflictingPublicationIds,
+    externalPublicationId = externalPublicationId,
+    publicUrl = publicUrl,
+    publishedAt = publishedAt,
 )
 
 private fun PublicationDraft.toResult(): PublicationResult = PublicationResult(
@@ -605,6 +608,9 @@ private fun PublicationDraft.toResult(): PublicationResult = PublicationResult(
     assetIds = assetIds,
     scheduledFor = scheduledFor,
     nextSlotAfter = nextSlotAfter,
+    externalPublicationId = externalPublicationId,
+    publicUrl = publicUrl,
+    publishedAt = publishedAt,
 )
 
 @Service

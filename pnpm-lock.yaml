@@ -16,6 +16,9 @@ importers:
       '@atlaskit/pragmatic-drag-and-drop':
         specifier: ^1.8.1
         version: 1.8.1
+      '@internationalized/date':
+        specifier: 3.12.1
+        version: 3.12.1
       '@lucide/vue':
         specifier: 1.18.0
         version: 1.18.0(vue@3.5.38(typescript@6.0.3))

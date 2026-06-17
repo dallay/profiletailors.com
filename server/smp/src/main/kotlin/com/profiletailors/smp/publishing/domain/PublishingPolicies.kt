@@ -3,7 +3,7 @@ package com.profiletailors.smp.publishing.domain
 import java.time.Duration
 import java.time.Instant
 
-internal val MIN_SCHEDULE_OFFSET: Duration = Duration.ofMinutes(5)
+internal val MIN_SCHEDULE_OFFSET: Duration = Duration.ZERO
 
 open class PublicationStateTransitionException(
     message: String,
@@ -244,7 +244,7 @@ object PublicationLifecyclePolicy {
                 val earliestAllowed = now.plus(MIN_SCHEDULE_OFFSET)
                 require(!scheduledFor.isBefore(earliestAllowed)) {
                     "Cannot schedule a publication for a date and time in the past. " +
-                        "Scheduled time must be at least 5 minutes in the future. " +
+                        "Scheduled time must be in the future. " +
                         "Earliest allowed: $earliestAllowed"
                 }
             }

@@ -346,7 +346,7 @@ class PublishingHandlersTest {
     }
 
     @Test
-    fun `rejects create publication when scheduledFor is now`() = runTest {
+    fun `allows create publication when scheduledFor is now`() = runTest {
         val publicationRepository = InMemoryPublicationRepository()
         val jobRepository = InMemoryPublicationJobRepository()
         val socialAccountRepository = InMemorySocialAccountRepository().apply {
@@ -376,18 +376,16 @@ class PublishingHandlersTest {
             clock = fixedClock,
         )
 
-        assertThrows(IllegalArgumentException::class.java) {
-            kotlinx.coroutines.runBlocking {
-                handler.handle(
-                    CreatePublicationCommand(
-                        socialAccountId = "account-1",
-                        bodyText = "Now post",
-                        scheduleMode = ScheduleMode.SCHEDULED_AT,
-                        scheduledFor = Instant.parse("2026-05-26T12:00:00Z"),
-                    ),
-                )
-            }
-        }
+        val result = handler.handle(
+            CreatePublicationCommand(
+                socialAccountId = "account-1",
+                bodyText = "Now post",
+                scheduleMode = ScheduleMode.SCHEDULED_AT,
+                scheduledFor = Instant.parse("2026-05-26T12:00:00Z"),
+            ),
+        )
+
+        assertEquals(PublicationStatus.SCHEDULED, result.status)
     }
 
     @Test
@@ -701,7 +699,7 @@ class PublishingHandlersTest {
             e
         }
         assertNotNull(exception)
-        assertTrue(exception!!.message!!.contains("at least 5 minutes"))
+        assertTrue(exception!!.message!!.contains("Scheduled time must be in the future"))
     }
 
     @Test

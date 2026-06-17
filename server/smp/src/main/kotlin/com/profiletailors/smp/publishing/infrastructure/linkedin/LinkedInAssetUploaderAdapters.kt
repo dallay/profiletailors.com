@@ -23,7 +23,26 @@ data class LinkedInAssetUploadProperties(
 @JsonIgnoreProperties(ignoreUnknown = true)
 data class LinkedInAssetRegisterResponse(
     @JsonProperty("asset") val asset: String? = null,
+    @JsonProperty("image") val image: String? = null,
+    @JsonProperty("document") val document: String? = null,
+    @JsonProperty("video") val video: String? = null,
     @JsonProperty("uploadUrl") val uploadUrl: String? = null,
+    @JsonProperty("uploadInstructions") val uploadInstructions: List<LinkedInUploadInstruction>? = null,
+    @JsonProperty("uploadToken") val uploadToken: String? = null,
+)
+
+/** Unwraps LinkedIn's {"value":{...}} envelope if present. */
+private fun unwrapLinkedInResponse(body: String, objectMapper: ObjectMapper): LinkedInAssetRegisterResponse {
+    val tree = objectMapper.readTree(body)
+    val node = if (tree.has("value") && tree.get("value").isObject) tree.get("value") else tree
+    return objectMapper.treeToValue(node, LinkedInAssetRegisterResponse::class.java)
+}
+
+@JsonIgnoreProperties(ignoreUnknown = true)
+data class LinkedInUploadInstruction(
+    @JsonProperty("uploadUrl") val uploadUrl: String? = null,
+    @JsonProperty("firstByte") val firstByte: Long? = null,
+    @JsonProperty("lastByte") val lastByte: Long? = null,
 )
 
 @JsonIgnoreProperties(ignoreUnknown = true)
@@ -47,14 +66,18 @@ class RealLinkedInAssetUploader(
         assetRepository.updateStatus(asset.id, PublicationAssetStatus.PROCESSING)
 
         val providerRef = runCatching {
-            val registerResponse = registerAsset(context)
+            val registerResponse = registerAsset(asset, context)
             val uploadUrl = registerResponse.uploadUrl
+                ?: registerResponse.uploadInstructions?.firstOrNull()?.uploadUrl
                 .orThrow { "LinkedIn asset registration response missing uploadUrl" }
             val assetUrn = registerResponse.asset
+                ?: registerResponse.image
+                ?: registerResponse.document
+                ?: registerResponse.video
                 .orThrow { "LinkedIn asset registration response missing asset URN" }
 
             uploadBinary(uploadUrl, content)
-            confirmAsset(assetUrn, context)
+            confirmAsset(assetUrn, registerResponse.uploadToken, asset, context)
 
             ProviderAssetRef(
                 providerAssetId = assetUrn,
@@ -77,6 +100,7 @@ class RealLinkedInAssetUploader(
     }
 
     private suspend fun registerAsset(
+        asset: PublicationAsset,
         context: AssetUploadContext,
     ): LinkedInAssetRegisterResponse {
         val ownerUrn = context.socialAccount.profileUrn
@@ -84,16 +108,20 @@ class RealLinkedInAssetUploader(
                 "Social account is missing a profile URN for asset registration."
             )
 
-        val registerBody = mapOf(
+        val initializeUploadRequest = linkedMapOf<String, Any>(
             "owner" to ownerUrn,
-            "serviceRelationship" to mapOf(
-                "relationshipType" to "OWNER",
-                "identifier" to "urn:li:user:generated",
-            ),
-        )
+        ).also {
+            if (asset.mediaType.startsWith("video/", ignoreCase = true)) {
+                it["fileSizeBytes"] = asset.fileSizeBytes ?: 0L
+                it["uploadCaptions"] = false
+                it["uploadThumbnail"] = false
+            }
+        }
+        val registerBody = mapOf("initializeUploadRequest" to initializeUploadRequest)
+        val endpoint = assetEndpoint(asset)
 
         val response = httpTransport.send(
-            HttpRequest.newBuilder(URI.create("${context.apiBaseUrl}/rest/images"))
+            HttpRequest.newBuilder(URI.create("${context.apiBaseUrl}/rest/$endpoint?action=initializeUpload"))
                 .header("Authorization", "Bearer ${context.accessToken}")
                 .header(CONTENT_TYPE, "application/json")
                 .header("X-Restli-Protocol-Version", "2.0.0")
@@ -109,7 +137,7 @@ class RealLinkedInAssetUploader(
         }
 
         return runCatching {
-            objectMapper.readValue(response.body, LinkedInAssetRegisterResponse::class.java)
+            unwrapLinkedInResponse(response.body, objectMapper)
         }.getOrThrow()
     }
 
@@ -129,15 +157,36 @@ class RealLinkedInAssetUploader(
         }
     }
 
-    private suspend fun confirmAsset(assetUrn: String, context: AssetUploadContext) {
-        val confirmUrl = "${context.apiBaseUrl}/rest/images/${encodeUrn(assetUrn)}?action=checkStatus"
+    private suspend fun confirmAsset(
+        assetUrn: String,
+        uploadToken: String?,
+        asset: PublicationAsset,
+        context: AssetUploadContext,
+    ) {
+        val endpoint = assetEndpoint(asset)
+        val confirmUrl = if (endpoint == "videos") {
+            "${context.apiBaseUrl}/rest/videos?action=finalizeUpload"
+        } else {
+            "${context.apiBaseUrl}/rest/$endpoint/${encodeUrn(assetUrn)}?action=checkStatus"
+        }
+        val confirmBody = if (endpoint == "videos") {
+            mapOf(
+                "finalizeUploadRequest" to mapOf(
+                    "video" to assetUrn,
+                    "uploadToken" to (uploadToken ?: ""),
+                    "uploadedPartIds" to emptyList<String>(),
+                ),
+            )
+        } else {
+            emptyMap<String, Any>()
+        }
         val response = httpTransport.send(
             HttpRequest.newBuilder(URI.create(confirmUrl))
                 .header("Authorization", "Bearer ${context.accessToken}")
                 .header(CONTENT_TYPE, "application/json")
                 .header("X-Restli-Protocol-Version", "2.0.0")
                 .header("LinkedIn-Version", context.apiVersion)
-                .POST(HttpRequest.BodyPublishers.ofString("{}"))
+                .POST(HttpRequest.BodyPublishers.ofString(objectMapper.writeValueAsString(confirmBody)))
                 .build(),
         )
 
@@ -146,6 +195,13 @@ class RealLinkedInAssetUploader(
                 "LinkedIn asset confirmation failed: ${response.statusCode} ${response.body}"
             )
         }
+    }
+
+    private fun assetEndpoint(asset: PublicationAsset): String = when {
+        asset.mediaType.startsWith("video/", ignoreCase = true) -> "videos"
+        asset.mediaType.equals("application/pdf", ignoreCase = true) ||
+            asset.mediaType.startsWith("document/", ignoreCase = true) -> "documents"
+        else -> "images"
     }
 
     private fun encodeUrn(urn: String): String = urn.replace(":", "%3A").replace("/", "%2F")

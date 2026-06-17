@@ -48,6 +48,12 @@ export interface Publication {
   conflictingPublicationIds?: string[]
   /** The originating social account ID; used for direct account-level filtering. */
   accountId?: string
+  /** LinkedIn external publication id (e.g. urn:li:share:...) — only set after a successful publish. */
+  externalPublicationId?: string
+  /** Direct URL to the published post on the provider (LinkedIn share URL). */
+  publicUrl?: string
+  /** Wall-clock instant the provider confirmed publish. */
+  publishedAt?: string
   /** Reason the publication was blocked (e.g., account DISABLED or REQUIRES_RECONNECT). */
   blockedReason?: string
 }
@@ -71,6 +77,9 @@ export interface CalendarPublicationResult {
   scheduledFor: string | null
   hasConflict: boolean
   conflictingPublicationIds: string[]
+  externalPublicationId?: string | null
+  publicUrl?: string | null
+  publishedAt?: string | null
 }
 
 export interface ConflictEntry {
@@ -169,6 +178,9 @@ function apiResultToPublication(api: CalendarPublicationResult): Publication {
     hasConflict: api.hasConflict,
     conflictingPublicationIds: api.conflictingPublicationIds,
     accountId: api.socialAccountId,
+    externalPublicationId: api.externalPublicationId ?? undefined,
+    publicUrl: api.publicUrl ?? undefined,
+    publishedAt: api.publishedAt ?? undefined,
   }
 }
 
@@ -558,15 +570,18 @@ export const usePublishingStore = defineStore('publishing', () => {
     title?: string
     channels: ('twitter' | 'linkedin' | 'instagram' | 'facebook')[]
     scheduledAt?: string
-    scheduleMode?: 'NOW' | 'SCHEDULED_AT'
+    nextSlotAfter?: string
+    scheduleMode?: 'NOW' | 'SCHEDULED_AT' | 'NEXT_SLOT'
     priority: boolean
     mediaFiles?: File[]
     socialAccountId?: string
   }) {
     const publicationId = `pub-${Date.now()}`
 
-    const effectiveMode = post.scheduleMode === 'NOW' ? 'NOW' : 'SCHEDULED_AT'
-    const effectiveScheduledAt = effectiveMode === 'NOW' ? new Date().toISOString() : (post.scheduledAt ?? new Date().toISOString())
+    const effectiveMode = post.scheduleMode ?? 'SCHEDULED_AT'
+    const effectiveScheduledAt = effectiveMode === 'SCHEDULED_AT'
+      ? (post.scheduledAt ?? new Date().toISOString())
+      : (post.nextSlotAfter ?? new Date().toISOString())
 
     // Create new publication object
     const newPub: Publication = {
@@ -622,6 +637,7 @@ export const usePublishingStore = defineStore('publishing', () => {
               assetIds: [],
               scheduleMode: effectiveMode,
               ...(effectiveMode === 'SCHEDULED_AT' ? { scheduledFor: post.scheduledAt } : {}),
+              ...(effectiveMode === 'NEXT_SLOT' ? { nextSlotAfter: post.nextSlotAfter } : {}),
               priority: post.priority,
             }),
             workspaceScoped: true,

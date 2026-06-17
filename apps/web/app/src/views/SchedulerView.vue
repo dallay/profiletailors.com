@@ -7,6 +7,7 @@ import {
 } from '@lucide/vue'
 import { usePublishingStore, type Publication, type ActivityEntry } from '@/stores/publishing'
 import CreatePostModal from '@/components/CreatePostModal.vue'
+import PostDetailModal from '@/components/PostDetailModal.vue'
 import CalendarHeader from '@/components/CalendarHeader.vue'
 import CalendarCell from '@/components/CalendarCell.vue'
 import ConflictBadge from '@/components/ConflictBadge.vue'
@@ -22,6 +23,8 @@ const { locale: i18nLocale } = useI18n()
 // ---------------------------------------------------------------------------
 const isModalOpen = ref(false)
 const selectedCellDate = ref<string | undefined>(undefined)
+const isDetailModalOpen = ref(false)
+const detailPublication = ref<Publication | null>(null)
 
 /** Calendar sub-view: month | week | day */
 const calendarView = ref<'month' | 'week' | 'day'>('week')
@@ -335,18 +338,25 @@ function openDayView(date: Date) {
   calendarView.value = 'day'
 }
 
-// Time slots mapping
-const hourSlots = [
-  { label: '6 AM', hour: 6 },
-  { label: '8 AM', hour: 8 },
-  { label: '10 AM', hour: 10 },
-  { label: '12 PM', hour: 12 },
-  { label: '2 PM', hour: 14 },
-  { label: '4 PM', hour: 16 },
-  { label: '6 PM', hour: 18 },
-  { label: '8 PM', hour: 20 },
-  { label: '10 PM', hour: 22 },
-]
+function openPostDetail(pub: Publication) {
+  detailPublication.value = pub
+  isDetailModalOpen.value = true
+}
+
+function closePostDetail() {
+  isDetailModalOpen.value = false
+  detailPublication.value = null
+}
+
+// Time slots mapping (24 hours starting at 12 AM)
+const hourSlots = Array.from({ length: 24 }, (_, i) => {
+  const ampm = i >= 12 ? 'PM' : 'AM'
+  const displayHour = i % 12 === 0 ? 12 : i % 12
+  return {
+    label: `${displayHour} ${ampm}`,
+    hour: i,
+  }
+})
 
 // ---------------------------------------------------------------------------
 // Init
@@ -475,7 +485,7 @@ onMounted(() => {
 
               <!-- Grid Body: Single left time-axis + 7 day columns -->
               <div class="relative">
-                <div v-for="slot in hourSlots" :key="slot.hour" class="grid grid-cols-[48px_repeat(7,1fr)] border-b border-border-subtle last:border-b-0 min-h-[140px]">
+                <div v-for="slot in hourSlots" :key="slot.hour" class="grid grid-cols-[48px_repeat(7,1fr)] border-b border-border-subtle last:border-b-0 min-h-[76px]">
                   <!-- Single left time-axis label -->
                   <div class="py-2 border-r border-border-subtle flex items-start justify-center">
                     <span class="font-mono text-[9px] tracking-wider text-text-secondary">
@@ -491,17 +501,20 @@ onMounted(() => {
                     @drop.prevent="!isPastSlot(day, slot.hour) ? onDropCell($event, day, slot.hour) : undefined"
                     class="relative p-2 border-r border-border-subtle last:border-r-0 transition-all group/cell flex flex-col justify-start gap-2 select-none"
                     :class="isPastSlot(day, slot.hour)
-                      ? 'opacity-40 cursor-not-allowed pointer-events-none'
+                      ? 'bg-text-secondary/5 text-text-secondary c‍ursor-not-allowed after:absolute after:inset-0 after:bg-[repeating-linear-gradient(-45deg,transparent,transparent_10px,var(--border-color)_10px,var(--border-color)_11px)] after:opacity-10 after:z-0'
                       : 'hover:bg-bg-primary/20 cursor-pointer'"
+                    :aria-disabled="isPastSlot(day, slot.hour)"
+                    :title="isPastSlot(day, slot.hour) ? 'Past time slots are disabled (read-only)' : undefined"
                   >
                     <!-- Scheduled Posts -->
                     <div
                       v-for="pub in getPublicationsForSlot(day, slot.hour)"
                       :key="pub.id"
                       :draggable="true"
+                      @click.stop="openPostDetail(pub)"
                       @dragstart="onDragStart($event, pub)"
                       @dragend="onDragEnd($event)"
-                      class="relative border rounded-xl p-3 space-y-2.5 transition-all text-left shadow-sm group/card bg-bg-surface overflow-hidden"
+                      class="relative z-10 border rounded-xl p-3 space-y-2.5 transition-all text-left shadow-sm group/card bg-bg-surface overflow-hidden cursor-pointer"
                       :class="getProviderColor(pub.channels[0] || 'linkedin')"
                     >
                       <!-- Header -->
@@ -565,6 +578,16 @@ onMounted(() => {
                         <Trash2 class="size-2.5" />
                       </button>
                     </div>
+
+                    <!-- Add post button (only in enabled slots) -->
+                    <button
+                      v-if="!isPastSlot(day, slot.hour)"
+                      @click.stop="openNewPostForSlot(day, slot.hour)"
+                      class="hidden group-hover/cell:flex items-center justify-center size-6 rounded-lg border border-dashed border-text-secondary/30 text-text-secondary/50 hover:border-text-display/40 hover:text-text-display/60 hover:bg-bg-primary/30 transition-all mt-auto cursor-pointer"
+                      :title="$t('scheduler.addPost')"
+                    >
+                      <Plus class="size-3" />
+                    </button>
                   </div>
                 </div>
               </div>
@@ -586,9 +609,10 @@ onMounted(() => {
                   v-for="pub in getPublicationsForDate(currentBaseDate)"
                   :key="pub.id"
                   :draggable="true"
+                  @click.stop="openPostDetail(pub)"
                   @dragstart="onDragStart($event, pub)"
                   @dragend="onDragEnd($event)"
-                  class="relative border rounded-xl p-4 space-y-2.5 transition-all text-left shadow-sm group/card bg-bg-surface overflow-hidden mb-3 last:mb-0"
+                  class="relative border rounded-xl p-4 space-y-2.5 transition-all text-left shadow-sm group/card bg-bg-surface overflow-hidden mb-3 last:mb-0 cursor-pointer"
                   :class="getProviderColor(pub.channels[0] || 'linkedin')"
                 >
                   <div class="flex items-center justify-between">
@@ -659,7 +683,8 @@ onMounted(() => {
             <div
               v-for="pub in filteredPublications"
               :key="pub.id"
-              class="flex flex-col md:flex-row md:items-center justify-between gap-4 p-5 rounded-2xl border border-border-subtle bg-bg-surface hover:border-text-secondary transition-all"
+              class="flex flex-col md:flex-row md:items-center justify-between gap-4 p-5 rounded-2xl border border-border-subtle bg-bg-surface hover:border-text-secondary transition-all cursor-pointer"
+              @click="openPostDetail(pub)"
             >
               <div class="space-y-2 flex-1 min-w-0">
                 <div class="flex items-center gap-3">
@@ -725,6 +750,14 @@ onMounted(() => {
       :initial-date="selectedCellDate"
       @close="isModalOpen = false"
       @created="isModalOpen = false"
+    />
+
+    <!-- Read-only post detail modal -->
+    <PostDetailModal
+      :is-open="isDetailModalOpen"
+      :publication="detailPublication"
+      @close="closePostDetail"
+      @deleted="closePostDetail"
     />
   </div>
 </template>

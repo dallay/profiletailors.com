@@ -51,6 +51,7 @@ data class LinkedInPublishingProperties(
     val redirectUri: String = "",
     val scopes: String = "",
     val apiBaseUrl: String = "https://api.linkedin.com",
+    val publishingApiBaseUrl: String = apiBaseUrl,
     val authorizationBaseUrl: String = "https://www.linkedin.com/oauth/v2/authorization",
     val tokenBaseUrl: String = "https://www.linkedin.com/oauth/v2/accessToken",
     val apiVersion: String = "202601",
@@ -213,7 +214,8 @@ class LinkedInCapabilityValidator(
 
     private companion object {
         const val MAX_ASSETS_PER_POST = 10
-        const val MAX_ASSET_SIZE_BYTES = 10L * 1024 * 1024 // 10MB
+        // LinkedIn videos support up to 500MB; documents are capped lower by API.
+        const val MAX_ASSET_SIZE_BYTES = 500L * 1024 * 1024
         const val MB = 1024 * 1024
         val SUPPORTED_MEDIA_TYPES = setOf(
             "IMAGE/JPEG",
@@ -221,6 +223,11 @@ class LinkedInCapabilityValidator(
             "IMAGE/GIF",
             "IMAGE/WEBP",
             "VIDEO/MP4",
+            "APPLICATION/PDF",
+            "APPLICATION/MSWORD",
+            "APPLICATION/VND.OPENXMLFORMATS-OFFICEDOCUMENT.WORDPROCESSINGML.DOCUMENT",
+            "APPLICATION/VND.MS-POWERPOINT",
+            "APPLICATION/VND.OPENXMLFORMATS-OFFICEDOCUMENT.PRESENTATIONML.PRESENTATION",
         )
     }
 }
@@ -238,7 +245,7 @@ class RealLinkedInPublisher(
         val requestBody = buildPostBody(command)
         val accessToken = credentialResolver.resolve(command.socialAccount)
         val response = httpTransport.send(
-            HttpRequest.newBuilder(URI.create("${properties.apiBaseUrl}/rest/posts"))
+            HttpRequest.newBuilder(URI.create("${properties.publishingApiBaseUrl}/rest/posts"))
                 .header("Authorization", "Bearer $accessToken")
                 .header(CONTENT_TYPE, "application/json")
                 .header("X-Restli-Protocol-Version", "2.0.0")
@@ -274,23 +281,18 @@ class RealLinkedInPublisher(
         val commentary = command.publication.bodyText.orEmpty()
         val articleLink = extractFirstUrl(commentary)
 
-        val assetContentEntities = buildAssetContentEntities(command, command.assets)
+        val assetContent = buildAssetContent(command, command.assets)
 
-        val content = if (articleLink != null) {
-            val articleContent = mapOf(
+        val content = if (assetContent.isNotEmpty()) {
+            assetContent
+        } else if (articleLink != null) {
+            mapOf(
                 "article" to mapOf(
                     "source" to articleLink,
                     "title" to (command.publication.title ?: articleLink),
                     "description" to commentary,
                 ),
             )
-            if (assetContentEntities.isNotEmpty()) {
-                articleContent + ("contentEntities" to assetContentEntities)
-            } else {
-                articleContent
-            }
-        } else if (assetContentEntities.isNotEmpty()) {
-            mapOf("contentEntities" to assetContentEntities)
         } else {
             emptyMap()
         }
@@ -313,17 +315,54 @@ class RealLinkedInPublisher(
         }
     }
 
-    private suspend fun buildAssetContentEntities(
+    private suspend fun buildAssetContent(
         command: ProviderPublishCommand,
         assets: List<com.profiletailors.smp.publishing.domain.PublicationAsset>,
-    ): List<Map<String, Any>> {
-        if (assets.isEmpty()) return emptyList()
+    ): Map<String, Any> {
+        if (assets.isEmpty()) return emptyMap()
 
+        val refs = resolveAssetRefs(command, assets)
+        val imageRefs = refs.filter { it.mediaType.startsWith("image/", ignoreCase = true) }
+        val videoRef = refs.firstOrNull { it.mediaType.startsWith("video/", ignoreCase = true) }
+        val documentRef = refs.firstOrNull {
+            it.mediaType.equals("application/pdf", ignoreCase = true) ||
+                it.mediaType.startsWith("document/", ignoreCase = true)
+        }
+
+        return when {
+            imageRefs.size > 1 -> mapOf(
+                "multiImage" to mapOf(
+                    "images" to imageRefs.map { mapOf("id" to it.providerAssetId) },
+                ),
+            )
+            imageRefs.size == 1 -> mapOf(
+                "media" to mapOf("id" to imageRefs.first().providerAssetId),
+            )
+            videoRef != null -> mapOf(
+                "media" to mapOf(
+                    "id" to videoRef.providerAssetId,
+                    "title" to (command.publication.title ?: "Video"),
+                ),
+            )
+            documentRef != null -> mapOf(
+                "media" to mapOf(
+                    "id" to documentRef.providerAssetId,
+                    "title" to (command.publication.title ?: "Document"),
+                ),
+            )
+            else -> emptyMap()
+        }
+    }
+
+    private suspend fun resolveAssetRefs(
+        command: ProviderPublishCommand,
+        assets: List<com.profiletailors.smp.publishing.domain.PublicationAsset>,
+    ): List<com.profiletailors.smp.publishing.domain.ProviderAssetRef> {
         val accessToken = credentialResolver.resolve(command.socialAccount)
         val context = AssetUploadContext(
             socialAccount = command.socialAccount,
             accessToken = accessToken,
-            apiBaseUrl = properties.apiBaseUrl,
+            apiBaseUrl = properties.publishingApiBaseUrl,
             apiVersion = properties.apiVersion,
         )
 
@@ -332,19 +371,22 @@ class RealLinkedInPublisher(
                 AssetSourceType.UPLOADED -> {
                     val existingRef = asset.providerAssetRef
                     if (existingRef != null) {
-                        mapOf("entity" to existingRef.providerAssetId)
+                        existingRef
                     } else {
                         val storageKey = asset.storageKey
                             ?: throw IllegalStateException("Uploaded asset is missing storage key")
                         val content = storage!!.download(attachmentsBucket, storageKey)
-                        val assetRef = assetUploader.uploadAsset(asset, content, context)
-                        mapOf("entity" to assetRef.providerAssetId)
+                        assetUploader.uploadAsset(asset, content, context)
                     }
                 }
                 AssetSourceType.EXTERNAL_URL -> {
                     val url = asset.externalUrl
                         ?: throw IllegalStateException("External URL asset is missing external URL")
-                    mapOf("entity" to mapOf("source" to url))
+                    com.profiletailors.smp.publishing.domain.ProviderAssetRef(
+                        providerAssetId = url,
+                        mediaType = asset.mediaType,
+                        accessUrl = url,
+                    )
                 }
             }
         }
