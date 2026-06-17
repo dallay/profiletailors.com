@@ -159,6 +159,8 @@ jobs:
       SMP_POSTGRES_DB: profiletailors_smp
       SMP_POSTGRES_USER: profiletailors
       SMP_POSTGRES_PASSWORD: ${{ secrets.SMP_POSTGRES_PASSWORD }}
+      # Disable Spring Boot Docker Compose to avoid port conflict with services.postgres
+      SPRING_DOCKER_COMPOSE_ENABLED: 'false'
       SMP_PUBLISHING_WORKER_ENABLED: 'true'
       SMP_PUBLISHING_WORKER_POLL_INTERVAL: PT5S
       SMP_LINKEDIN_PUBLISHING_API_BASE_URL: http://localhost:8089

@@ -23,6 +23,12 @@ tasks.bootRun {
                 environment(key, value)
             }
     }
+
+    // Allow disabling Spring Boot Docker Compose via env var (used in CI)
+    // to avoid port conflicts with pre-existing service containers.
+    jvmArgs(
+        "-Dspring.docker.compose.enabled=${System.getenv("SPRING_DOCKER_COMPOSE_ENABLED") ?: "true"}",
+    )
 }
 
 dependencies {
