@@ -1,8 +1,6 @@
 import { test, expect } from '@playwright/test'
 import { SchedulerPage } from '../pages/scheduler-page'
 import { authenticateAs } from '../fixtures/auth-helpers'
-import { safeGoto } from '../fixtures/navigation'
-import { APP_URL } from '../fixtures/test-data'
 
 test.describe('Scheduler — Views & Navigation', () => {
   // Authenticate before each test in this describe block

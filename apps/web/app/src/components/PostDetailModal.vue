@@ -120,11 +120,13 @@ function openPostInNewTab() {
 
 async function deletePublication() {
   if (!props.publication) return
-  // For PUBLISHED posts, the backend might disallow deletion. The store
-  // throws on failure, so we surface that to the caller.
-  await publishingStore.deletePost(props.publication.id)
-  emit('deleted', props.publication.id)
-  closeModal()
+  try {
+    await publishingStore.deletePost(props.publication.id)
+    emit('deleted', props.publication.id)
+    closeModal()
+  } catch (err) {
+    console.error('Failed to delete publication', err)
+  }
 }
 </script>
 

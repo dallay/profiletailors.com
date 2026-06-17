@@ -1,10 +1,7 @@
 import { test, expect } from '@playwright/test'
 import { SchedulerPage } from '../pages/scheduler-page'
 import { ComposeModalPage } from '../pages/compose-modal-page'
-import { PostDetailModalPage } from '../pages/post-detail-modal-page'
 import { authenticateAs } from '../fixtures/auth-helpers'
-import { safeGoto } from '../fixtures/navigation'
-import { APP_URL } from '../fixtures/test-data'
 
 test.describe('Scheduler — Create Post', () => {
   test.beforeEach(async ({ page }) => {
