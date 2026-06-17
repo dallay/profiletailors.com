@@ -164,9 +164,7 @@ infra-restart:
 # CI / VALIDATION
 # ═══════════════════════════════════════════════════════════════
 
-# Run all fast checks locally — simulates CI pipeline
-# Order: security → frontend (lint, test, build) → backend (lint, test, build)
-# NOTE: Postgres BDD tests require 'just infra-up' first — not included here
+# Fast CI checks — lint, unit tests, builds (no E2E, no Postgres BDD)
 ci-local:
     @echo "══════════════════════════════════════════════"
     @echo "  CI Pipeline Simulation"
@@ -207,6 +205,37 @@ ci-full: infra-up
     @echo "══════════════════════════════════════════════"
     @echo "  ✅ Full CI Suite Complete (incl. Postgres)"
     @echo "══════════════════════════════════════════════"
+
+# Full CI pipeline — all checks, all tests (unit + E2E + BDD-fast), all builds
+ci:
+    @echo "════════════════════════════════════════════════"
+    @echo "  🚀 Full CI Pipeline"
+    @echo "════════════════════════════════════════════════"
+    @echo ""
+    @echo "▸ [1/7] Gitleaks (secrets scan)..."
+    gitleaks protect --staged --redact --exit-code 1 --config .gitleaks.toml
+    @echo ""
+    @echo "▸ [2/7] Frontend: Biome lint..."
+    cd {{frontend-dir}} && pnpm lint
+    @echo ""
+    @echo "▸ [3/7] Frontend: unit tests + coverage..."
+    cd {{frontend-dir}} && pnpm test:coverage
+    @echo ""
+    @echo "▸ [4/7] Backend: Detekt static analysis..."
+    {{gradle-root}} :server:smp:detekt --no-daemon
+    @echo ""
+    @echo "▸ [5/7] Backend: unit tests (fast)..."
+    {{gradle-root}} :server:smp:test --no-daemon -PexcludeTags=modularity,postgres
+    @echo ""
+    @echo "▸ [6/7] Backend: BDD fast suite..."
+    {{gradle-root}} :server:smp:bddFastTest --no-daemon -x :shared:common:test -x :shared:spring-boot-common:test
+    @echo ""
+    @echo "▸ [7/7] Frontend: E2E tests (Playwright, all browsers)..."
+    cd {{frontend-dir}} && pnpm test:e2e
+    @echo ""
+    @echo "════════════════════════════════════════════════"
+    @echo "  ✅ Full CI Pipeline Complete — everything passed"
+    @echo "════════════════════════════════════════════════"
 
 # ═══════════════════════════════════════════════════════════════
 # CLEANUP

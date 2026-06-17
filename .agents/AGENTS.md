@@ -96,8 +96,8 @@ All user-facing strings must live in a single locale object — never hardcoded 
 
 ```ts
 const content = {
-  en: { nav, hero, platforms, features, audiences, finalCta, footer },
-  es: { nav, hero, platforms, features, audiences, finalCta, footer },
+  en: {nav, hero, platforms, features, audiences, finalCta, footer},
+  es: {nav, hero, platforms, features, audiences, finalCta, footer},
 }
 ```
 
@@ -117,6 +117,18 @@ const content = {
   docs, and agent instructions) MUST be in English. Files must follow the lowercase `kebab-case.md`
   naming convention (except `README.md`) and adhere to the standard structure: Overview → Changes →
   Usage → Troubleshooting → References. No exceptions.
+
+## CI Gate (mandatory)
+
+**Before pushing any commit or creating a PR, run `just ci` and confirm it passes.** This runs
+secrets scan, frontend lint/tests/build, backend Detekt/tests/build, and E2E tests end-to-end.
+If it fails, do not push. Fix first, then re-run.
+
+| Command         | What it covers                                                   |
+|-----------------|------------------------------------------------------------------|
+| `just ci`       | Everything — the single gate that proves the codebase is healthy |
+| `just ci-local` | Fast subset — lint, unit tests, builds (no E2E, no Postgres)     |
+| `just ci-full`  | ci-local + Postgres BDD (requires `just infra-up` first)         |
 
 ## Testing & Delivery Discipline
 

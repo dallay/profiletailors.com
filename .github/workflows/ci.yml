@@ -1,321 +1,261 @@
 name: CI
 
 on:
-  pull_request:
-    types: [opened, synchronize, reopened, ready_for_review]
   push:
-    branches: [main]
-  workflow_dispatch:
-
-env:
-  NODE_VERSION: "22.13.0"
-  JAVA_VERSION: "21"
+    branches: [main, develop]
+  pull_request:
+    branches: [main, develop]
 
 concurrency:
-  group: ${{ github.workflow }}-${{ github.head_ref || github.ref }}
-  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
 
+# ═══════════════════════════════════════════════════════════════
+# All jobs run in parallel — no job depends on another.
+# This maximises throughput on GitHub Actions runners.
+# ═══════════════════════════════════════════════════════════════
 jobs:
-  # ============================================================================
-  # Change Detection — single source of truth for which jobs to run
-  # ============================================================================
-  changes:
-    name: Detect Changes
+
+  # ──────────────────────────────────────────────────────────────
+  # 1. Secrets scan (Gitleaks)
+  # ──────────────────────────────────────────────────────────────
+  secrets-scan:
+    name: 🔒 Secrets Scan
     runs-on: ubuntu-latest
-    permissions:
-      contents: read
-      pull-requests: read
-    outputs:
-      backend: ${{ steps.filter.outputs.backend }}
-      frontend: ${{ steps.filter.outputs.frontend }}
-      docs: ${{ steps.filter.outputs.docs }}
-      meta: ${{ steps.filter.outputs.meta }}
     steps:
-      - name: Checkout repository
-        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4.3.1
-
-      - name: Path filter
-        uses: dorny/paths-filter@d1c1ffe0248fe513906c8e24db8ea791d46f8590 # v3.0.2
-        id: filter
-        with:
-          token: ${{ secrets.GITHUB_TOKEN }}
-          filters: |
-            backend:
-              - 'server/smp/**'
-              - 'shared/**'
-              - 'server/smp/build.gradle.kts'
-              - 'server/smp/settings.gradle.kts'
-              - 'server/smp/gradlew'
-              - 'server/smp/gradle/**'
-              - 'shared/*/build.gradle.kts'
-              - '.github/workflows/ci.yml'
-            frontend:
-              - 'apps/web/marketing/**'
-              - 'package.json'
-              - 'pnpm-lock.yaml'
-              - 'pnpm-workspace.yaml'
-              - '.github/workflows/ci.yml'
-            docs:
-              - '**/*.md'
-              - '**/*.mdx'
-              - 'docs/**'
-            meta:
-              - '.github/**'
-              - 'scripts/**'
-              - '**/*.yml'
-              - '**/*.yaml'
-              - '**/*.json'
-              - '**/*.sh'
-              - '**/Dockerfile'
-              - '**/Dockerfile.*'
-
-      - name: Summary
-        run: |
-          {
-            echo "## Changes detected"
-            echo "- backend: ${{ steps.filter.outputs.backend }}"
-            echo "- frontend: ${{ steps.filter.outputs.frontend }}"
-            echo "- docs: ${{ steps.filter.outputs.docs }}"
-            echo "- meta: ${{ steps.filter.outputs.meta }}"
-          } >> "$GITHUB_STEP_SUMMARY"
-
-  # ============================================================================
-  # Backend — lint, build, test, coverage
-  # ============================================================================
-  lint-backend:
-    name: Backend Lint (Detekt)
-    runs-on: ubuntu-latest
-    needs: changes
-    if: needs.changes.outputs.backend == 'true'
-    permissions:
-      contents: read
-    steps:
-      - name: Checkout repository
-        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4.3.1
-
-      - name: Set up JDK ${{ env.JAVA_VERSION }}
-        uses: actions/setup-java@c1e323688fd81a25caa38c78aa6df2d33d3e20d9 # v4.7.1
-        with:
-          distribution: 'temurin'
-          java-version: ${{ env.JAVA_VERSION }}
-          cache: 'gradle'
-
-      - name: Run Detekt
-        run: ./gradlew detekt --no-daemon
-
-      - name: Upload Detekt report
-        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
-        if: always()
-        with:
-          name: detekt-report
-          path: build/reports/detekt/
-          retention-days: 7
-
-  backend-pipeline:
-    name: Backend Build & Test
-    runs-on: ubuntu-latest
-    needs: changes
-    if: needs.changes.outputs.backend == 'true'
-    permissions:
-      contents: read
-      checks: write
-      pull-requests: write
-    outputs:
-      codecov-failed: ${{ steps.codecov-report.outputs.failed }}
-    steps:
-      - name: Checkout repository
-        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4.3.1
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5
         with:
           fetch-depth: 0
+      - uses: gitleaks/gitleaks-action@dcedce43c6f43de0b836d1fe38946645c9c638dc
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Set up JDK ${{ env.JAVA_VERSION }}
-        uses: actions/setup-java@c1e323688fd81a25caa38c78aa6df2d33d3e20d9 # v4.7.1
-        with:
-          distribution: 'temurin'
-          java-version: ${{ env.JAVA_VERSION }}
-          cache: 'gradle'
+  # ──────────────────────────────────────────────────────────────
+  # 2. Lint — Biome (marketing) + Detekt (backend)
+  # ──────────────────────────────────────────────────────────────
+  lint:
+    name: 🧹 Lint
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5
 
-      - name: Run unit tests with coverage
-        run: ./gradlew :server:smp:test :server:smp:jacocoTestReport --no-daemon -PexcludeTags=modularity,postgres
+      - uses: ./.github/actions/setup-frontend
 
-      - name: Run fast BDD suite
+      - uses: ./.github/actions/setup-backend
+
+      - name: Biome lint (marketing)
+        shell: bash
+        run: cd apps/web/marketing && pnpm lint
+
+      - name: Detekt (backend)
+        shell: bash
+        run: ./gradlew :server:smp:detekt --no-daemon
+
+  # ──────────────────────────────────────────────────────────────
+  # 3. Frontend unit tests (marketing)
+  # ──────────────────────────────────────────────────────────────
+  frontend-unit:
+    name: 🧪 Frontend Unit Tests
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5
+
+      - uses: ./.github/actions/setup-frontend
+
+      - name: Run unit tests + coverage
+        shell: bash
+        run: cd apps/web/marketing && pnpm test:coverage
+
+  # ──────────────────────────────────────────────────────────────
+  # 4. App unit tests (SMP app — Vue + Pinia)
+  # ──────────────────────────────────────────────────────────────
+  app-unit:
+    name: 🧪 App Unit Tests
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5
+
+      - uses: ./.github/actions/setup-frontend
+
+      - name: Run unit tests
+        shell: bash
+        run: pnpm --filter app test:run
+
+  # ──────────────────────────────────────────────────────────────
+  # 5. Backend unit tests (Kotlin — no Postgres)
+  # ──────────────────────────────────────────────────────────────
+  backend-unit:
+    name: 🧪 Backend Unit Tests
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5
+
+      - uses: ./.github/actions/setup-backend
+
+      - name: Run unit tests (exclude Postgres BDD)
+        shell: bash
+        run: ./gradlew :server:smp:test --no-daemon -PexcludeTags=modularity,postgres
+
+  # ──────────────────────────────────────────────────────────────
+  # 6. Backend BDD fast suite
+  # ──────────────────────────────────────────────────────────────
+  backend-bdd:
+    name: 🔨 Backend BDD
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5
+
+      - uses: ./.github/actions/setup-backend
+
+      - name: Run BDD fast suite
+        shell: bash
         run: ./gradlew :server:smp:bddFastTest --no-daemon -x :shared:common:test -x :shared:spring-boot-common:test
 
-      - name: Run Postgres BDD suite
-        run: ./gradlew :server:smp:bddPostgresTest --no-daemon -x :shared:common:test -x :shared:spring-boot-common:test
-
-      - name: Upload coverage to Codecov
-        id: codecov
-        uses: codecov/codecov-action@7f8b4b4bde536c465e797be725718b88c5d95e0e # v5.1.2
-        with:
-          token: ${{ secrets.CODECOV_TOKEN }}
-          files: ./server/smp/build/reports/jacoco/test/jacocoTestReport.xml
-          flags: backend,smp
-          name: backend-coverage
-          fail_ci_if_error: false
-          verbose: true
-          skip_validation: true
-
-      - name: Report Codecov status
-        id: codecov-report
-        if: always()
-        run: |
-          failed="${{ steps.codecov.outcome == 'failure' && steps.codecov.conclusion == 'failure' }}"
-          echo "failed=$failed" >> "$GITHUB_OUTPUT"
-
-      - name: Upload test results
-        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
-        if: always()
-        with:
-          name: test-results
-          path: server/smp/build/reports/tests/
-          retention-days: 7
-
-      - name: Upload coverage report
-        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
-        if: always()
-        with:
-          name: coverage-report
-          path: server/smp/build/reports/jacoco/
-          retention-days: 7
-
-  # ============================================================================
-  # Frontend — install, lint, test, build
-  # ============================================================================
-  frontend-pipeline:
-    name: Frontend Test & Build
+  # ──────────────────────────────────────────────────────────────
+  # 7. Marketing E2E (Playwright — all browsers)
+  # ──────────────────────────────────────────────────────────────
+  marketing-e2e:
+    name: 🌐 Marketing E2E
     runs-on: ubuntu-latest
-    needs: changes
-    if: needs.changes.outputs.frontend == 'true'
-    permissions:
-      contents: read
-      checks: write
-      pull-requests: write
-    outputs:
-      codecov-failed: ${{ steps.codecov-report.outputs.failed }}
     steps:
-      - name: Checkout repository
-        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4.3.1
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5
+
+      - uses: ./.github/actions/setup-frontend
         with:
-          fetch-depth: 0
+          install-playwright: 'true'
+          playwright-browsers: 'chromium firefox webkit'
 
-      - name: Setup pnpm
-        uses: pnpm/action-setup@f40ffcd9367d9f12939873eb1018b921a783ffaa # v4
+      - name: Run Marketing E2E
+        shell: bash
+        run: cd apps/web/marketing && pnpm test:e2e
 
-      - name: Setup Node.js ${{ env.NODE_VERSION }}
-        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+      - name: Upload Playwright report
+        if: failure()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
         with:
-          node-version: ${{ env.NODE_VERSION }}
-          cache: 'pnpm'
-          cache-dependency-path: apps/web/marketing/pnpm-lock.yaml
-
-      - name: Install dependencies
-        working-directory: apps/web/marketing
-        run: pnpm install --frozen-lockfile --ignore-scripts
-
-      - name: Run tests with coverage
-        working-directory: apps/web/marketing
-        run: pnpm test:coverage
-
-      - name: Build
-        working-directory: apps/web/marketing
-        env:
-          CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
-        run: pnpm build
-
-      - name: Upload coverage to Codecov
-        id: codecov
-        uses: codecov/codecov-action@7f8b4b4bde536c465e797be725718b88c5d95e0e # v5.1.2
-        with:
-          token: ${{ secrets.CODECOV_TOKEN }}
-          files: ./apps/web/marketing/coverage/lcov.info
-          flags: frontend
-          name: frontend-coverage
-          fail_ci_if_error: false
-          verbose: true
-          skip_validation: true
-
-      - name: Report Codecov status
-        id: codecov-report
-        if: always()
-        run: |
-          failed="${{ steps.codecov.outcome == 'failure' && steps.codecov.conclusion == 'failure' }}"
-          echo "failed=$failed" >> "$GITHUB_OUTPUT"
-
-      - name: Upload coverage report
-        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
-        if: always()
-        with:
-          name: frontend-coverage-report
-          path: apps/web/marketing/coverage/
+          name: marketing-e2e-report
+          path: apps/web/marketing/playwright-report/
           retention-days: 7
 
-  # ============================================================================
-  # Quality Gate — ensures every relevant job passed
-  # ============================================================================
-  gatekeeper:
-    name: Quality Gate
+  # ──────────────────────────────────────────────────────────────
+  # 8. Scheduler E2E (Playwright — full stack required)
+  #
+  # Spins up: PostgreSQL, WireMock (LinkedIn mock), Spring Boot, Vite.
+  # Runs serially within the job since tests share browser state.
+  # ──────────────────────────────────────────────────────────────
+  scheduler-e2e:
+    name: 📅 Scheduler E2E
     runs-on: ubuntu-latest
-    if: always()
-    needs:
-      - changes
-      - lint-backend
-      - backend-pipeline
-      - frontend-pipeline
-    steps:
-      - name: Check pipeline results
+    env:
+      SMP_POSTGRES_DB: profiletailors_smp
+      SMP_POSTGRES_USER: profiletailors
+      SMP_POSTGRES_PASSWORD: test_password_ci
+      SMP_PUBLISHING_WORKER_ENABLED: 'true'
+      SMP_PUBLISHING_WORKER_POLL_INTERVAL: PT5S
+      SMP_LINKEDIN_PUBLISHING_API_BASE_URL: http://localhost:8089
+      SMP_LINKEDIN_CLIENT_ID: test-client-id
+      SMP_LINKEDIN_CLIENT_SECRET: test-client-secret
+      SMP_LINKEDIN_REDIRECT_URI: http://localhost:5173/integrations/linkedin/callback
+      SMP_LINKEDIN_SCOPES: w_member_social,openid,profile,email
+      SMP_LINKEDIN_API_BASE_URL: https://api.linkedin.com
+      SMP_LINKEDIN_AUTHORIZATION_BASE_URL: https://www.linkedin.com/oauth/v2/authorization
+      SMP_LINKEDIN_TOKEN_BASE_URL: https://www.linkedin.com/oauth/v2/accessToken
+      SMP_LINKEDIN_API_VERSION: '202606'
+      SMP_LOCAL_JWT_SECRET: test-jwt-secret-ci
+      PUBLISHING_CREDENTIALS_KEY: dGVzdC1wYXNzd29yZC1lbmNyeXB0aW9uLWtleQ==
+      E2E_TEST_USER_PASSWORD: S3cr3tP@ssw0rd*123
+
+    services:
+      postgres:
+        image: postgres:16-alpine
         env:
-          BACKEND_CHANGED: ${{ needs.changes.outputs.backend }}
-          FRONTEND_CHANGED: ${{ needs.changes.outputs.frontend }}
-          LINT_BACKEND_RESULT: ${{ needs.lint-backend.result }}
-          BACKEND_RESULT: ${{ needs.backend-pipeline.result }}
-          FRONTEND_RESULT: ${{ needs.frontend-pipeline.result }}
+          POSTGRES_DB: ${{ env.SMP_POSTGRES_DB }}
+          POSTGRES_USER: ${{ env.SMP_POSTGRES_USER }}
+          POSTGRES_PASSWORD: ${{ env.SMP_POSTGRES_PASSWORD }}
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+      wiremock:
+        image: wiremock/wiremock:3.10.0
+        ports:
+          - 8089:8080
+        volumes:
+          - ./infra/wiremock/linkedin:/home/wiremock:ro
+        entrypoint: ["java", "-cp", "/wiremock.jar:/__root__/*:", "wiremock.Run", "--global-response-templating", "--verbose"]
+        options: >-
+          --health-cmd "curl -f http://localhost:8080/__admin/health || exit 1"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+    steps:
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5
+
+      # ── Java + Gradle ──
+      - uses: ./.github/actions/setup-backend
+
+      # ── Node + pnpm ──
+      - uses: ./.github/actions/setup-frontend
+        with:
+          install-playwright: 'true'
+          playwright-browsers: 'chromium'
+
+      # ── Build backend ──
+      - name: Build backend
+        shell: bash
+        run: ./gradlew :server:smp:classes :server:smp:bootJar --no-daemon
+
+      # ── Start backend ──
+      - name: Start Spring Boot
+        shell: bash
         run: |
-          echo "Checking all job results..."
-
-          # Backend must pass if backend changed
-          if [ "$BACKEND_CHANGED" == "true" ]; then
-            if [ "$LINT_BACKEND_RESULT" != "success" ]; then
-              echo "❌ Backend lint failed: $LINT_BACKEND_RESULT"
+          ./gradlew :server:smp:bootRun --no-daemon &
+          for i in $(seq 1 60); do
+            if curl -sf http://localhost:8080/actuator/health > /dev/null 2>&1; then
+              echo "✅ Backend is healthy"
+              break
+            fi
+            if [ "$i" -eq 60 ]; then
+              echo "❌ Backend failed to start"
               exit 1
             fi
-            if [ "$BACKEND_RESULT" != "success" ]; then
-              echo "❌ Backend pipeline failed: $BACKEND_RESULT"
-              exit 1
-            fi
-            echo "✅ Backend checks passed"
-          else
-            echo "⏭️  No backend changes — backend jobs skipped"
-          fi
+            sleep 2
+          done
 
-          # Frontend must pass if frontend changed
-          if [ "$FRONTEND_CHANGED" == "true" ]; then
-            if [ "$FRONTEND_RESULT" != "success" ]; then
-              echo "❌ Frontend pipeline failed: $FRONTEND_RESULT"
-              exit 1
-            fi
-            echo "✅ Frontend checks passed"
-          else
-            echo "⏭️  No frontend changes — frontend jobs skipped"
-          fi
-
-          echo ""
-          echo "✅ All relevant checks passed!"
-
-      - name: CI Summary
-        if: always()
+      # ── Start frontend dev server ──
+      - name: Start Vite dev server
+        shell: bash
         run: |
-          {
-            echo "## CI Pipeline Summary"
-            echo ""
-            echo "| Job | Status |"
-            echo "|-----|--------|"
-            echo "| Changes Detection | ${{ needs.changes.result }} |"
-            echo "| Backend Lint | ${{ needs.lint-backend.result }} |"
-            echo "| Backend Pipeline | ${{ needs.backend-pipeline.result }} |"
-            echo "| Frontend Pipeline | ${{ needs.frontend-pipeline.result }} |"
-            echo ""
-            echo "### Coverage Uploads"
-            echo "- Backend: ${{ needs.backend-pipeline.outputs.codecov-failed == 'true' && '⚠️ Upload failed' || '✅ Uploaded' }}"
-            echo "- Frontend: ${{ needs.frontend-pipeline.outputs.codecov-failed == 'true' && '⚠️ Upload failed' || '✅ Uploaded' }}"
-          } >> "$GITHUB_STEP_SUMMARY"
+          cd apps/web/app && pnpm dev:app &
+          for i in $(seq 1 30); do
+            if curl -sf http://localhost:5173 > /dev/null 2>&1; then
+              echo "✅ Frontend is ready"
+              break
+            fi
+            if [ "$i" -eq 30 ]; then
+              echo "❌ Frontend failed to start"
+              exit 1
+            fi
+            sleep 2
+          done
+
+      # ── Run Scheduler E2E tests (serial, chromium only) ──
+      - name: Run Scheduler E2E
+        shell: bash
+        run: |
+          pnpm --filter app exec playwright test \
+            -c e2e/playwright.scheduler.config.ts \
+            --reporter=list
+
+      - name: Upload Scheduler E2E report
+        if: failure()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: scheduler-e2e-report
+          path: apps/web/app/e2e/playwright-scheduler-report/
+          retention-days: 7

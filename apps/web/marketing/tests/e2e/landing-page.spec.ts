@@ -28,15 +28,15 @@ test.describe('Landing Page - Hero Section', () => {
 test.describe('Bilingual Support', () => {
   test('should switch between English and Spanish', async ({ page }) => {
     await page.goto('/');
-    
-    // Check if language switcher exists
-    const langSwitcher = page.getByRole('button', { name: /es|en|español|english/i });
-    
+
+    // The language switcher is an <a> link with aria-label "Cambiar a español" or "Switch to English"
+    const langSwitcher = page.getByRole('link', { name: /cambiar a español|switch to english/i });
+
     // Assert switcher is present
-    await expect(langSwitcher.first()).toBeVisible();
-    
+    await expect(langSwitcher.first()).toBeVisible({ timeout: 10_000 });
+
     await langSwitcher.first().click();
-    
+
     // Wait for navigation or content change
     await page.waitForLoadState('domcontentloaded');
     const url = page.url();
