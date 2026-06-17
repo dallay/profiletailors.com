@@ -33,6 +33,7 @@ jobs:
       - uses: gitleaks/gitleaks-action@dcedce43c6f43de0b836d1fe38946645c9c638dc
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITLEAKS_LICENSE: ${{ secrets.GITLEAKS_LICENSE }}
 
   # ──────────────────────────────────────────────────────────────
   # 2. Lint — Biome (marketing) + Detekt (backend)
@@ -204,22 +205,32 @@ jobs:
           --health-timeout 5s
           --health-retries 5
 
-      wiremock:
-        image: wiremock/wiremock:3.10.0
-        ports:
-          - 8089:8080
-        volumes:
-          - ./infra/wiremock/linkedin:/home/wiremock:ro
-        options: >-
-          --health-cmd "curl -f http://localhost:8080/__admin/health || exit 1"
-          --health-interval 10s
-          --health-timeout 5s
-          --health-retries 5
-
     steps:
       - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5
         with:
           persist-credentials: false
+
+      # ── WireMock (must start after checkout for volume mount) ──
+      - name: Start WireMock
+        shell: bash
+        run: |
+          docker run -d --name wiremock \
+            -p 8089:8080 \
+            -v ${{ github.workspace }}/infra/wiremock/linkedin:/home/wiremock:ro \
+            wiremock/wiremock:3.10.0 \
+            --global-response-templating --verbose
+          for i in $(seq 1 30); do
+            if curl -sf http://localhost:8089/__admin/health > /dev/null 2>&1; then
+              echo "✅ WireMock is healthy"
+              break
+            fi
+            if [ "$i" -eq 30 ]; then
+              echo "❌ WireMock failed to start"
+              docker logs wiremock
+              exit 1
+            fi
+            sleep 2
+          done
 
       # ── Java + Gradle ──
       - uses: ./.github/actions/setup-backend
@@ -284,3 +295,8 @@ jobs:
           name: scheduler-e2e-report
           path: apps/web/app/e2e/playwright-scheduler-report/
           retention-days: 7
+
+      - name: Stop WireMock
+        if: always()
+        shell: bash
+        run: docker stop wiremock || true
