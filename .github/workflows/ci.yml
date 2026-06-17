@@ -159,6 +159,8 @@ jobs:
       SMP_POSTGRES_DB: profiletailors_smp
       SMP_POSTGRES_USER: profiletailors
       SMP_POSTGRES_PASSWORD: ${{ secrets.SMP_POSTGRES_PASSWORD }}
+      SMP_DB_PASSWORD: ${{ secrets.SMP_POSTGRES_PASSWORD }}
+      SMP_DB_USERNAME: profiletailors
       # Disable Spring Boot Docker Compose to avoid port conflict with services.postgres
       SPRING_DOCKER_COMPOSE_ENABLED: 'false'
       SMP_PUBLISHING_WORKER_ENABLED: 'true'
@@ -206,13 +208,13 @@ jobs:
             wiremock/wiremock:3.10.0 \
             --global-response-templating --verbose
           for i in $(seq 1 30); do
-            if curl -sf http://localhost:8089/__admin/health > /dev/null 2>&1; then
+            if wget -qO /dev/null http://localhost:8089/__admin/health 2>/dev/null; then
               echo "✅ WireMock is healthy"
               break
             fi
             if [ "$i" -eq 30 ]; then
               echo "❌ WireMock failed to start"
-              docker logs wiremock
+              docker logs wiremock 2>&1 | tail -20
               exit 1
             fi
             sleep 2
