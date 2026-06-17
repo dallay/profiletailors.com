@@ -197,9 +197,6 @@ const messages = {
       nextAvailable: 'Next Available',
       characterLimit: '{count} characters left',
     },
-    scheduler: {
-      addPost: 'Add post',
-    },
     postDetail: {
       title: 'Post Details',
       titleLabel: 'Title',
@@ -276,6 +273,7 @@ const messages = {
       calendar: 'Calendar',
       weekView: 'Week',
       today: 'Today',
+      addPost: 'Add post',
       timezoneMadrid: 'Madrid',
     },
     channels: {
@@ -551,9 +549,6 @@ const messages = {
       nextAvailable: 'Siguiente disponible',
       characterLimit: 'quedan {count} caracteres',
     },
-    scheduler: {
-      addPost: 'Agregar publicación',
-    },
     postDetail: {
       title: 'Detalles de la Publicación',
       titleLabel: 'Título',
@@ -630,6 +625,7 @@ const messages = {
       calendar: 'Calendario',
       weekView: 'Semana',
       today: 'Hoy',
+      addPost: 'Agregar publicación',
       timezoneMadrid: 'Madrid',
     },
     channels: {
