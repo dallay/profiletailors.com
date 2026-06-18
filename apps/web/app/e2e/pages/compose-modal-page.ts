@@ -143,20 +143,15 @@ export class ComposeModalPage {
   }
 
   async clickScheduleNow(): Promise<void> {
-    // Wait for the button to be enabled (channels must be loaded).
-    // If it's still disabled after 8s, force-click anyway.
-    await expect(this.scheduleNowButton).toBeEnabled({ timeout: 8_000 }).catch(() => {})
-    await this.scheduleNowButton.click({ force: true })
+    await this.scheduleNowButton.click()
   }
 
   async clickSchedulePost(): Promise<void> {
-    await expect(this.schedulePostButton).toBeEnabled({ timeout: 8_000 }).catch(() => {})
-    await this.schedulePostButton.click({ force: true })
+    await this.schedulePostButton.click()
   }
 
   async clickNextSchedule(): Promise<void> {
-    await expect(this.nextScheduleSubmitButton).toBeEnabled({ timeout: 8_000 }).catch(() => {})
-    await this.nextScheduleSubmitButton.click({ force: true })
+    await this.nextScheduleSubmitButton.click()
   }
 
   async clickCancel(): Promise<void> {

@@ -3,6 +3,7 @@ import { SchedulerPage } from '../pages/scheduler-page'
 import { ComposeModalPage } from '../pages/compose-modal-page'
 import { PostDetailModalPage } from '../pages/post-detail-modal-page'
 import { authenticateAs } from '../fixtures/auth-helpers'
+import { createPublicationInStore, ensureChannelsLoaded } from '../fixtures/scheduler-mocks'
 
 test.describe('Scheduler — Post Interaction', () => {
   test.beforeEach(async ({ page }) => {
@@ -10,8 +11,8 @@ test.describe('Scheduler — Post Interaction', () => {
     const scheduler = new SchedulerPage(page)
     await scheduler.goto()
     await scheduler.expectVisible()
-    // Wait for AppShell to fetch channels after authentication
-    await page.waitForTimeout(2_000)
+    // Inject mock channel so compose modal submit button works in TC-14
+    await ensureChannelsLoaded(page)
   })
 
   /**
@@ -19,29 +20,20 @@ test.describe('Scheduler — Post Interaction', () => {
    */
   test('TC-11: post detail modal @post-detail @read-only', async ({ page }) => {
     const scheduler = new SchedulerPage(page)
-    const composeModal = new ComposeModalPage(page)
     const detailModal = new PostDetailModalPage(page)
 
-    // First create a post so we have something to click
+    // Inject a publication directly into the store (no UI / backend needed)
     const testText = `Detail modal test ${Date.now()}`
-    await scheduler.clickNewPost()
-    await composeModal.createPostNow(testText)
-    await composeModal.expectHidden().catch(async () => {
-      await composeModal.clickCancel()
-      await composeModal.expectHidden()
-    })
+    await createPublicationInStore(page, testText)
 
-    // Switch to list view and wait for post to appear
+    // Switch to list view and click the card
     await scheduler.switchToList()
-    await page.waitForTimeout(500) // Let list re-render after modal close
+    await page.waitForTimeout(300)
     const postCard = page.locator('[role="button"]').filter({ hasText: testText }).first()
     await expect(postCard).toBeVisible({ timeout: 10_000 })
     await postCard.click()
 
-    // Verify detail modal opens
     await detailModal.expectVisible()
-
-    // Close modal
     await detailModal.clickClose()
     await detailModal.expectHidden()
   })
@@ -51,20 +43,14 @@ test.describe('Scheduler — Post Interaction', () => {
    */
   test('TC-12: view post link opens LinkedIn @post-detail @external-link', async ({ page }) => {
     const scheduler = new SchedulerPage(page)
-    const composeModal = new ComposeModalPage(page)
     const detailModal = new PostDetailModalPage(page)
 
-    // Create a post
+    // Inject a publication directly into the store (no UI / backend needed)
     const testText = `View Post link test ${Date.now()}`
-    await scheduler.clickNewPost()
-    await composeModal.createPostNow(testText)
-    await composeModal.expectHidden().catch(async () => {
-      await composeModal.clickCancel()
-      await composeModal.expectHidden()
-    })
+    await createPublicationInStore(page, testText)
 
-    // Wait for post to appear in list (worker may need up to 30s with WireMock)
     await scheduler.switchToList()
+    await page.waitForTimeout(300)
     const postCard = page.locator('[role="button"]').filter({ hasText: testText }).first()
     await expect(postCard).toBeVisible({ timeout: 10_000 })
     await postCard.click()
@@ -94,20 +80,14 @@ test.describe('Scheduler — Post Interaction', () => {
    */
   test('TC-13: delete post @post-delete', async ({ page }) => {
     const scheduler = new SchedulerPage(page)
-    const composeModal = new ComposeModalPage(page)
 
-    // Create a post specifically for deletion
+    // Inject a publication directly into the store (no UI / backend needed)
     const testText = `Delete me ${Date.now()}`
-    await scheduler.clickNewPost()
-    await composeModal.createPostNow(testText)
-    await composeModal.expectHidden().catch(async () => {
-      await composeModal.clickCancel()
-      await composeModal.expectHidden()
-    })
+    await createPublicationInStore(page, testText)
 
     // Switch to list view to find it
     await scheduler.switchToList()
-    await page.waitForTimeout(1_000) // Let list re-render after modal close
+    await page.waitForTimeout(300)
     const postCard = page.locator('[role="button"]').filter({ hasText: testText }).first()
     await expect(postCard).toBeVisible({ timeout: 10_000 })
 
@@ -162,21 +142,15 @@ test.describe('Scheduler — Post Interaction', () => {
    */
   test('TC-15: past slots read-only posts @past @read-only', async ({ page }) => {
     const scheduler = new SchedulerPage(page)
-    const composeModal = new ComposeModalPage(page)
     const detailModal = new PostDetailModalPage(page)
 
-    // First create a post in NOW mode so it becomes PUBLISHED quickly
+    // Inject a publication directly into the store (no UI / backend needed)
     const testText = `Past read-only test ${Date.now()}`
-    await scheduler.clickNewPost()
-    await composeModal.createPostNow(testText)
-    await composeModal.expectHidden().catch(async () => {
-      await composeModal.clickCancel()
-      await composeModal.expectHidden()
-    })
+    await createPublicationInStore(page, testText)
 
-    // Switch to list view and wait for post to appear
+    // Switch to list view and find the card
     await scheduler.switchToList()
-    await page.waitForTimeout(1_000) // Let list re-render after modal close
+    await page.waitForTimeout(300)
     const postCard = page.locator('[role="button"]').filter({ hasText: testText }).first()
     await expect(postCard).toBeVisible({ timeout: 10_000 })
 

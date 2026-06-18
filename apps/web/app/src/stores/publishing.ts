@@ -628,45 +628,35 @@ export const usePublishingStore = defineStore('publishing', () => {
                   c.status === 'ACTIVE',
               )
             : channels.value.find((c) => c.provider === 'linkedin' && c.status === 'ACTIVE')
-
-          // In test/E2E mode, channels may not be populated. Fall back to
-          // the first LinkedIn channel regardless of status so the local
-          // publication is always created.
-          const fallbackChannel = channels.value.find((c) => c.provider === 'linkedin')
-          const resolvedChannel = linkedInChannel ?? fallbackChannel
-
-          if (!resolvedChannel?.accountId) {
+          if (!linkedInChannel?.accountId) {
             throw new Error('Connect a LinkedIn profile before scheduling authenticated posts.')
           }
 
           // Sync the resolved account ID back to the local publication object
-          newPub.accountId = resolvedChannel.accountId
+          newPub.accountId = linkedInChannel.accountId
 
           // Call the Spring Boot API
-          try {
-            await auth.apiFetch<unknown>('/api/publishing/publications', {
-              method: 'POST',
-              body: JSON.stringify({
-                socialAccountId: resolvedChannel.accountId,
-                title: post.title || 'Post via Web App',
-                bodyText: post.content,
-                assetIds: [],
-                scheduleMode: effectiveMode,
-                ...(effectiveMode === 'SCHEDULED_AT' ? { scheduledFor: post.scheduledAt } : {}),
-                ...(effectiveMode === 'NEXT_SLOT' ? { nextSlotAfter: post.nextSlotAfter } : {}),
-                priority: post.priority,
-              }),
-              workspaceScoped: true,
-            })
-            console.log('Successfully synced publication with backend API!')
-          } catch (apiErr) {
-            // Backend unavailable (test mode without real backend) — log and continue
-            console.warn('Backend API unavailable, saving locally:', apiErr)
-          }
+          await auth.apiFetch<unknown>('/api/publishing/publications', {
+            method: 'POST',
+            body: JSON.stringify({
+              socialAccountId: linkedInChannel.accountId,
+              title: post.title || 'Post via Web App',
+              bodyText: post.content,
+              assetIds: [],
+              scheduleMode: effectiveMode,
+              ...(effectiveMode === 'SCHEDULED_AT' ? { scheduledFor: post.scheduledAt } : {}),
+              ...(effectiveMode === 'NEXT_SLOT' ? { nextSlotAfter: post.nextSlotAfter } : {}),
+              priority: post.priority,
+            }),
+            workspaceScoped: true,
+          })
+          console.log('Successfully synced publication with backend API!')
         }
       } catch (err) {
-        // Don't re-throw for LinkedIn — we want the local publication to be created
-        console.warn('schedulePost warning:', err)
+        if (post.channels.includes('linkedin')) {
+          throw err
+        }
+        console.warn('Backend API unavailable. Saving to local storage mock queue instead.', err)
       }
     }
 

@@ -257,3 +257,72 @@ export async function registerSchedulerMocks(context: BrowserContext): Promise<v
 export function resetSchedulerMocks(): void {
   publications = []
 }
+
+/**
+ * Injects the mock LinkedIn channel directly into the live Pinia publishing
+ * store so the compose modal's submit button becomes enabled immediately.
+ *
+ * Call this after `authenticateAs + scheduler.goto()` when tests need to
+ * open the compose modal and create a post via the UI.
+ */
+export async function ensureChannelsLoaded(page: import('@playwright/test').Page): Promise<void> {
+  await page.evaluate(() => {
+    const channel = {
+      id: 'sa-linkedin-001',
+      accountId: 'sa-linkedin-001',
+      name: 'Dev User',
+      provider: 'linkedin',
+      avatar: '',
+      handle: 'Dev User',
+      status: 'ACTIVE',
+    }
+    const app = (document.querySelector('#app') as any)?.__vue_app__
+    const pinia = app?.config?.globalProperties?.$pinia
+    if (pinia?.state?.value?.publishing) {
+      const channels = pinia.state.value.publishing.channels
+      if (!channels.some((c: any) => c.id === channel.id)) {
+        channels.push(channel)
+      }
+    }
+  })
+}
+
+/**
+ * Creates a publication directly in the Pinia publishing store, bypassing the
+ * UI and backend. Useful in interaction tests that just need a post to exist
+ * in the list without testing the creation flow.
+ *
+ * Writes to localStorage (key: `pt_publications`) and then updates the live
+ * Pinia state so the change is immediately visible without a page reload.
+ */
+export async function createPublicationInStore(
+  page: import('@playwright/test').Page,
+  text: string,
+): Promise<void> {
+  const pub = {
+    id: `pub-e2e-${Date.now()}`,
+    content: text,
+    title: 'E2E Test Post',
+    channels: ['linkedin'],
+    scheduledAt: new Date().toISOString(),
+    status: 'QUEUED',
+    priority: false,
+    accountId: 'sa-linkedin-001',
+  }
+
+  await page.evaluate((p) => {
+    // 1. Persist to localStorage so the store has it on next boot
+    try {
+      const stored = JSON.parse(localStorage.getItem('pt_publications') || '[]')
+      stored.unshift(p)
+      localStorage.setItem('pt_publications', JSON.stringify(stored))
+    } catch {}
+
+    // 2. Inject into the live Pinia state so it's visible right now
+    const app = (document.querySelector('#app') as any)?.__vue_app__
+    const pinia = app?.config?.globalProperties?.$pinia
+    if (pinia?.state?.value?.publishing?.publications) {
+      pinia.state.value.publishing.publications.unshift(p)
+    }
+  }, pub)
+}

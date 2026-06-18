@@ -72,7 +72,7 @@ const viewPostUrl = computed(() => {
   if (props.publication.publicUrl) return props.publication.publicUrl
   // Fallback: build a LinkedIn share URL from the URN when the backend did not return one
   const urn = props.publication.externalPublicationId
-  if (urn && urn.startsWith('urn:li:')) {
+  if (urn?.startsWith('urn:li:')) {
     return `https://www.linkedin.com/feed/update/${encodeURIComponent(urn)}`
   }
   return null
@@ -113,12 +113,6 @@ function closeModal() {
   emit('close')
 }
 
-function openPostInNewTab() {
-  const url = viewPostUrl.value
-  if (!url) return
-  window.open(url, '_blank', 'noopener,noreferrer')
-}
-
 async function deletePublication() {
   if (!props.publication || isDeleting.value) return
   isDeleting.value = true
@@ -138,6 +132,8 @@ async function deletePublication() {
 
 <template>
   <Teleport to="body">
+    <!-- biome-ignore lint/a11y/noStaticElementInteractions: modal backdrop intentionally uses click only -->
+    <!-- biome-ignore lint/a11y/useKeyWithClickEvents: modal backdrop intentionally uses click only -->
     <div
       v-if="isOpen && publication"
       class="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm p-4"
@@ -266,12 +262,12 @@ async function deletePublication() {
             >
               {{ t('postDetail.close') }}
             </button>
+            <!-- biome-ignore lint/a11y/useValidAnchor: viewPostUrl is conditionally bound, always present when this renders -->
             <a
               v-if="viewPostUrl"
               :href="viewPostUrl"
               target="_blank"
               rel="noopener noreferrer"
-              @click.stop
               class="inline-flex items-center gap-1.5 px-3 py-2 rounded-xl bg-text-display text-bg-primary hover:opacity-90 transition-opacity text-xs font-mono uppercase tracking-wider font-bold cursor-pointer"
             >
               <ExternalLink class="size-3.5" />

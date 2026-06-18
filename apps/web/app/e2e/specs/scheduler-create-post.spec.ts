@@ -2,6 +2,7 @@ import { test, expect } from '../fixtures/scheduler-base-test'
 import { SchedulerPage } from '../pages/scheduler-page'
 import { ComposeModalPage } from '../pages/compose-modal-page'
 import { authenticateAs } from '../fixtures/auth-helpers'
+import { ensureChannelsLoaded } from '../fixtures/scheduler-mocks'
 
 test.describe('Scheduler — Create Post', () => {
   test.beforeEach(async ({ page }) => {
@@ -9,8 +10,9 @@ test.describe('Scheduler — Create Post', () => {
     const scheduler = new SchedulerPage(page)
     await scheduler.goto()
     await scheduler.expectVisible()
-    // Wait for AppShell to fetch channels after authentication
-    await page.waitForTimeout(2_000)
+    // Inject mock channel directly into Pinia so the compose modal's
+    // submit button is enabled without waiting for AppShell fetchChannels.
+    await ensureChannelsLoaded(page)
   })
 
   /**
@@ -43,7 +45,7 @@ test.describe('Scheduler — Create Post', () => {
 
     // Switch to list view to verify the post was created
     await scheduler.switchToList()
-    await expect(page.getByText(testText)).toBeVisible({ timeout: 10_000 })
+    await expect(page.getByText(testText).first()).toBeVisible({ timeout: 10_000 })
 
     // Verify the post card is in the list
     const postCard = page.locator('div').filter({ hasText: testText }).first()
@@ -78,7 +80,7 @@ test.describe('Scheduler — Create Post', () => {
 
     // Verify the post appears
     await scheduler.switchToList()
-    await expect(page.getByText(testText)).toBeVisible({ timeout: 10_000 })
+    await expect(page.getByText(testText).first()).toBeVisible({ timeout: 10_000 })
   })
 
   /**
