@@ -26,6 +26,35 @@
 import type { BrowserContext } from '@playwright/test'
 
 // ---------------------------------------------------------------------------
+// Vue / Pinia internal types — used only for the evaluate() injection below.
+// We model exactly the property chain we access so no `any` is needed.
+// ---------------------------------------------------------------------------
+
+interface PiniaStateValue {
+  publishing?: {
+    publications?: Array<Record<string, unknown>>
+  }
+}
+
+interface PiniaInstance {
+  state: { value: PiniaStateValue }
+}
+
+interface VueAppConfig {
+  globalProperties: {
+    $pinia?: PiniaInstance
+  }
+}
+
+interface VueApp {
+  config: VueAppConfig
+}
+
+interface VueAppElement extends HTMLElement {
+  __vue_app__?: VueApp
+}
+
+// ---------------------------------------------------------------------------
 // State — mutable so tests can add publications dynamically
 // ---------------------------------------------------------------------------
 
@@ -319,7 +348,7 @@ export async function createPublicationInStore(
     } catch {}
 
     // 2. Inject into the live Pinia state so it's visible right now
-    const app = (document.querySelector('#app') as any)?.__vue_app__
+    const app = (document.querySelector('#app') as VueAppElement)?.__vue_app__
     const pinia = app?.config?.globalProperties?.$pinia
     if (pinia?.state?.value?.publishing?.publications) {
       pinia.state.value.publishing.publications.unshift(p)
