@@ -98,7 +98,7 @@ const xLabels = computed(() => {
   const xs = xScale.value
   const indices = [0, Math.floor(n / 2), n - 1]
   return indices.map((i) => ({
-    label: props.data[i]!.date,
+    label: props.data[i]?.date,
     x: xs[i] ?? 0,
   }))
 })

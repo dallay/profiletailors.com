@@ -5,7 +5,6 @@ import { CalendarDate, getLocalTimeZone, today } from '@internationalized/date'
 // biome-ignore lint/correctness/noUnusedImports: used in template
 import { Image as ImageIcon } from '@lucide/vue'
 import {
-  Calendar as CalendarIcon,
   Check,
   Hash,
   Sparkles,
@@ -283,7 +282,7 @@ async function handleSchedule() {
 
   // Capture createAnother state before any async work
   const shouldCreateAnother = createAnother.value
-  const capturedText = postText.value
+  const _capturedText = postText.value
 
   isSubmitting.value = true
   submitError.value = ''
@@ -362,11 +361,14 @@ async function handleSchedule() {
 
 <template>
   <Teleport to="body">
-    <!-- Modal Backdrop -->
+    <!-- Modal Backdrop — click.self closes modal; role=presentation intentional for overlay -->
+    <!-- biome-ignore lint/a11y/noStaticElementInteractions: overlay backdrop, closes on outside click -->
     <div
       v-if="isOpen"
       class="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm p-4 animate-fade-in"
+      role="presentation"
       @click.self="emit('close')"
+      @keydown.escape="emit('close')"
     >
       <!-- Modal Wrapper -->
       <div
@@ -411,7 +413,7 @@ async function handleSchedule() {
               >
                 <img
                   v-if="shouldShowChannelAvatar(ch.id, ch.avatarUrl)"
-                  :src="proxyImageUrl(ch.avatarUrl!)"
+                  :src="proxyImageUrl(ch.avatarUrl ?? '')"
                   :alt="`${ch.name} avatar`"
                   class="size-4.5 rounded-full object-cover border border-border-subtle"
                   @error="onChannelAvatarError(ch.id)"
@@ -482,15 +484,17 @@ async function handleSchedule() {
               Media Attachment (Max 10MB)
             </span>
 
-            <div
+            <button
+              type="button"
               @dragover="handleDragOver"
               @dragleave="handleDragLeave"
               @drop="handleDrop"
-              class="border border-dashed border-border-visible rounded-xl p-5 text-center transition-all flex flex-col items-center justify-center min-h-[96px] cursor-pointer hover:border-text-secondary"
+              class="border border-dashed border-border-visible rounded-xl p-5 text-center transition-all flex flex-col items-center justify-center min-h-[96px] cursor-pointer hover:border-text-secondary w-full"
               :class="{
                 'border-text-display bg-bg-primary/40': isDragging,
                 'bg-bg-primary/20': !isDragging,
               }"
+              :aria-label="$t('composer.dragDrop')"
               @click="fileInput?.click()"
             >
               <input
@@ -519,7 +523,7 @@ async function handleSchedule() {
                   <X class="size-3" />
                 </button>
               </div>
-            </div>
+            </button>
           </div>
 
           <!-- First Comment option -->
@@ -551,7 +555,7 @@ async function handleSchedule() {
               <div class="p-3.5 flex gap-3">
                 <img
                   v-if="selectedChannel?.avatarUrl"
-                  :src="proxyImageUrl(selectedChannel.avatarUrl!)"
+                  :src="proxyImageUrl(selectedChannel.avatarUrl ?? '')"
                   :alt="`${selectedChannel.name} avatar`"
                   class="size-10 rounded-full object-cover border border-[#404448]"
                 />

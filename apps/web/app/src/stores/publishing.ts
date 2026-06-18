@@ -30,7 +30,16 @@ export interface Channel {
   avatar: string
   avatarUrl?: string
   handle: string
-  status: 'ACTIVE' | 'INACTIVE' | 'PENDING' | 'DISABLED' | 'REQUIRES_RECONNECT' | 'DELETED' | 'ERROR' | 'REVOKED' | 'EXPIRED'
+  status:
+    | 'ACTIVE'
+    | 'INACTIVE'
+    | 'PENDING'
+    | 'DISABLED'
+    | 'REQUIRES_RECONNECT'
+    | 'DELETED'
+    | 'ERROR'
+    | 'REVOKED'
+    | 'EXPIRED'
   accountId: string // Maps to backend socialAccountId if available
 }
 
@@ -40,7 +49,15 @@ export interface Publication {
   title?: string
   channels: ('twitter' | 'linkedin' | 'instagram' | 'facebook')[]
   scheduledAt: string // ISO string
-  status: 'DRAFT' | 'QUEUED' | 'SCHEDULED' | 'PROCESSING' | 'PUBLISHED' | 'BLOCKED' | 'FAILED' | 'CANCELLED'
+  status:
+    | 'DRAFT'
+    | 'QUEUED'
+    | 'SCHEDULED'
+    | 'PROCESSING'
+    | 'PUBLISHED'
+    | 'BLOCKED'
+    | 'FAILED'
+    | 'CANCELLED'
   priority: boolean
   thumbnail?: string
   mediaFiles?: File[] // Local file list for previewing uploads
@@ -106,7 +123,16 @@ export interface ConnectedSocialChannelSummary {
   provider: 'LINKEDIN' | string
   accountKind: 'PERSONAL_PROFILE' | 'ORGANIZATION_PAGE' | string
   displayName: string
-  status: 'ACTIVE' | 'PENDING' | 'DISABLED' | 'REQUIRES_RECONNECT' | 'DELETED' | 'ERROR' | 'REVOKED' | 'EXPIRED' | string
+  status:
+    | 'ACTIVE'
+    | 'PENDING'
+    | 'DISABLED'
+    | 'REQUIRES_RECONNECT'
+    | 'DELETED'
+    | 'ERROR'
+    | 'REVOKED'
+    | 'EXPIRED'
+    | string
   avatarUrl?: string | null
   connectedAt: string | null
   lastSyncedAt: string | null
@@ -275,10 +301,16 @@ export const usePublishingStore = defineStore('publishing', () => {
 
   // Reconnect state
   const hasReconnectRequiredChannels = computed(() =>
-    channels.value.some((ch) => ch.status === 'REQUIRES_RECONNECT' || ch.status === 'REVOKED' || ch.status === 'EXPIRED'),
+    channels.value.some(
+      (ch) =>
+        ch.status === 'REQUIRES_RECONNECT' || ch.status === 'REVOKED' || ch.status === 'EXPIRED',
+    ),
   )
   const reconnectRequiredChannels = computed(() =>
-    channels.value.filter((ch) => ch.status === 'REQUIRES_RECONNECT' || ch.status === 'REVOKED' || ch.status === 'EXPIRED'),
+    channels.value.filter(
+      (ch) =>
+        ch.status === 'REQUIRES_RECONNECT' || ch.status === 'REVOKED' || ch.status === 'EXPIRED',
+    ),
   )
 
   /** Filters for the calendar API — derived from reactive filter state. */
@@ -587,9 +619,10 @@ export const usePublishingStore = defineStore('publishing', () => {
     const publicationId = `pub-${Date.now()}`
 
     const effectiveMode = post.scheduleMode ?? 'SCHEDULED_AT'
-    const effectiveScheduledAt = effectiveMode === 'SCHEDULED_AT'
-      ? (post.scheduledAt ?? new Date().toISOString())
-      : (post.nextSlotAfter ?? new Date().toISOString())
+    const effectiveScheduledAt =
+      effectiveMode === 'SCHEDULED_AT'
+        ? (post.scheduledAt ?? new Date().toISOString())
+        : (post.nextSlotAfter ?? new Date().toISOString())
 
     // Create new publication object
     const newPub: Publication = {

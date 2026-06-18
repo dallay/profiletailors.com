@@ -145,7 +145,7 @@ describe('CreatePostModal.vue — avatar rendering', () => {
     expect(img).toBeTruthy()
 
     // Dispatch error event
-    img!.dispatchEvent(new Event('error'))
+    img?.dispatchEvent(new Event('error'))
 
     await wrapper.vm.$nextTick()
 

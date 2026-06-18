@@ -68,7 +68,12 @@ function setupBrowserStubs(initialStored: string | null): Stubs {
   const originalSetAttribute = document.documentElement.setAttribute
   document.documentElement.setAttribute = setAttribute as typeof originalSetAttribute
 
-  return { storage, classList, setAttribute, localStorageMock: localStorageMock as unknown as Stubs['localStorageMock'] }
+  return {
+    storage,
+    classList,
+    setAttribute,
+    localStorageMock: localStorageMock as unknown as Stubs['localStorageMock'],
+  }
 }
 
 describe('settings store', () => {
@@ -176,4 +181,3 @@ describe('settings store', () => {
     expect(store.currentLocale).toBe('en')
   })
 })
-
