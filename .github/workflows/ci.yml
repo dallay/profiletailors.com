@@ -189,7 +189,7 @@ jobs:
   #   SMP_LINKEDIN_CLIENT_SECRET     - dummy LinkedIn client secret
   #   SMP_LOCAL_JWT_SECRET           - test JWT signing secret
   #   PUBLISHING_CREDENTIALS_KEY     - base64-encoded test encryption key
-  #   E2E_TEST_USER_PASSWORD         - dev user password (S3cr3tP@ssw0rd*123)
+  #   E2E_TEST_USER_PASSWORD         - dev user password
   # ──────────────────────────────────────────────────────────────
   scheduler-e2e:
     name: 📅 Scheduler E2E
@@ -219,6 +219,8 @@ jobs:
       SMP_LOCAL_JWT_SECRET: ${{ secrets.SMP_LOCAL_JWT_SECRET }}
       PUBLISHING_CREDENTIALS_KEY: ${{ secrets.PUBLISHING_CREDENTIALS_KEY }}
       E2E_TEST_USER_PASSWORD: ${{ secrets.E2E_TEST_USER_PASSWORD }}
+      # Force management port to 8080 so the health check curl matches
+      MANAGEMENT_PORT: '8080'
 
     services:
       postgres:
