@@ -116,6 +116,7 @@ async function handleSubmit() {
 
           <form class="mt-8 space-y-5" @submit.prevent="handleSubmit">
             <div class="space-y-2">
+              <!-- biome-ignore lint/a11y/noLabelWithoutControl: for/id link is correct; biome cannot evaluate Vue i18n interpolation as label text -->
               <label class="font-mono text-[10px] font-bold uppercase tracking-[0.16em] text-text-secondary" for="email">
                 {{ $t('auth.email') }}
               </label>
@@ -131,6 +132,7 @@ async function handleSubmit() {
             </div>
 
             <div class="space-y-2">
+              <!-- biome-ignore lint/a11y/noLabelWithoutControl: for/id link is correct; biome cannot evaluate Vue i18n interpolation as label text -->
               <label class="font-mono text-[10px] font-bold uppercase tracking-[0.16em] text-text-secondary" for="password">
                 {{ $t('auth.password') }}
               </label>
