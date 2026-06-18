@@ -69,7 +69,7 @@ export default defineConfig({
   webServer: {
     command: 'VITE_API_BASE_URL="" pnpm run dev:app',
     port: 5173,
-    reuseExistingServer: !process.env.CI,
+    reuseExistingServer: true,
     cwd: path.resolve(__dirname, '..'),
     timeout: 30_000,
   },

@@ -295,24 +295,8 @@ jobs:
             sleep 2
           done
 
-      # ── Start frontend dev server ──
-      - name: Start Vite dev server
-        shell: bash
-        run: |
-          cd apps/web/app && pnpm dev:app &
-          for i in $(seq 1 30); do
-            if curl -sf http://localhost:5173 > /dev/null 2>&1; then
-              echo "✅ Frontend is ready"
-              break
-            fi
-            if [ "$i" -eq 30 ]; then
-              echo "❌ Frontend failed to start"
-              exit 1
-            fi
-            sleep 2
-          done
-
       # ── Run Scheduler E2E tests (serial, chromium only) ──
+      # Playwright manages the Vite dev server via webServer in the config.
       - name: Run Scheduler E2E
         shell: bash
         run: |
