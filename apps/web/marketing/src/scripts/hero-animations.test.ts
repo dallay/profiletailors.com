@@ -78,6 +78,7 @@ describe('initHeroAnimations', () => {
   afterEach(() => {
     vi.useRealTimers()
     // Restore native animate if it existed (it doesn't in jsdom)
+    // biome-ignore lint/suspicious/noExplicitAny: jsdom lacks Element.animate; we must delete the injected mock
     delete (Element.prototype as any).animate
     // Restore document.querySelector to guarantee cleanup
     document.querySelector = origQuerySelector

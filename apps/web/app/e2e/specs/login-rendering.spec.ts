@@ -11,12 +11,9 @@ import { LoginPage } from '../pages/login-page'
 import { APP_URL } from '../fixtures/test-data'
 
 test.describe('Login Page Rendering', { tag: '@frontend' }, () => {
-  test.beforeEach(async ({ page }) => {
+  test.beforeEach(async ({ resetSession }) => {
     // Clear any leftover session before each render test
-    await page.context().clearCookies()
-    await page.evaluate(() => {
-      try { localStorage.clear(); sessionStorage.clear() } catch {}
-    }).catch(() => {})
+    await resetSession()
   })
 
   test('1.1 Full login page renders correctly', async ({ page }) => {

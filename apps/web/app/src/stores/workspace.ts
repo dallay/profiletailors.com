@@ -75,8 +75,8 @@ export const useWorkspaceStore = defineStore('workspace', () => {
         !selectedWorkspaceId.value ||
         !list.some((ws) => ws.workspaceId === selectedWorkspaceId.value)
       ) {
-        if (list.length > 0) {
-          const first = list[0]!
+        const [first] = list
+        if (first) {
           setActiveWorkspaceId(first.workspaceId)
         } else {
           // No workspaces available — clear stale selection

@@ -18,7 +18,7 @@ const __dirname = path.dirname(__filename)
  * - **Record mode** (UPDATE_HAR=true): API calls hit the real SMP
  *   backend and responses are captured into the HAR file.
  *
- * ## Recording the HAR for the first time
+ * ## Refreshing the HAR capture
  *
  *   UPDATE_HAR=true npx playwright test --grep @integration
  *
@@ -30,13 +30,13 @@ const __dirname = path.dirname(__filename)
  *
  * - @frontend     — Tests that only need the Vite dev server (rendering,
  *                    validation, responsive, i18n text)
- * - @integration  — Tests that make API calls (login, registration,
- *                    session, logout, security)
+ * - @integration  — Tests that exercise API-backed flows via HAR replay
+ *                    and targeted Playwright route overrides
  *
  * Run only frontend tests (no API needed):
  *   npx playwright test --grep @frontend
  *
- * Run only integration tests:
+ * Run only integration tests (HAR replay by default):
  *   npx playwright test --grep @integration
  *
  * @see https://playwright.dev/docs/test-configuration
@@ -62,7 +62,7 @@ export default defineConfig({
     screenshot: 'only-on-failure',
   },
 
-  /* ── Frontend dev server only (no SMP backend) ────────────── */
+  /* ── Frontend dev server only (no backend) ────────────── */
   webServer: {
     command: 'pnpm run dev:app',
     port: 5173,

@@ -4,7 +4,11 @@
  * built-in recordHar feature on the browser context.
  *
  * Usage: node scripts/record-har.mjs
- * Prereq: SMP backend running + Vite dev server on :5173
+ * Prereq: target API/backend running + Vite dev server on :5173
+ *
+ * In replay mode, tests use the credentials already captured in the HAR.
+ * In record mode, you can override them with E2E_TEST_USER_EMAIL and
+ * E2E_TEST_USER_PASSWORD before regenerating the archive.
  */
 
 import { chromium } from '@playwright/test'
@@ -15,6 +19,8 @@ import { readFileSync } from 'node:fs'
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
 const HAR_PATH = path.resolve(__dirname, '../hars/auth-flow.har')
 const BASE_URL = 'http://localhost:5173'
+const E2E_TEST_USER_EMAIL = process.env.E2E_TEST_USER_EMAIL || 'dev@profiletailors.com'
+const E2E_TEST_USER_PASSWORD = process.env.E2E_TEST_USER_PASSWORD || 'S3cr3tP@ssw0rd*123'
 
 async function main() {
   const browser = await chromium.launch({ headless: true })
@@ -33,8 +39,8 @@ async function main() {
     // 1. Successful login
     console.log('1. Logging in with valid credentials...')
     await page.goto(`${BASE_URL}/login`, { waitUntil: 'networkidle' })
-    await page.getByLabel(/email/i).fill('dev@profiletailors.com')
-    await page.getByLabel(/password/i).fill('S3cr3tP@ssw0rd*123')
+    await page.getByLabel(/email/i).fill(E2E_TEST_USER_EMAIL)
+    await page.getByLabel(/password/i).fill(E2E_TEST_USER_PASSWORD)
     await page.getByRole('button', { name: /sign in/i }).click()
     await page.waitForURL('**/')
     await page.waitForTimeout(1000)

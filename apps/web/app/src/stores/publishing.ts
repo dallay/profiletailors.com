@@ -30,7 +30,16 @@ export interface Channel {
   avatar: string
   avatarUrl?: string
   handle: string
-  status: 'ACTIVE' | 'INACTIVE' | 'PENDING' | 'DISABLED' | 'REQUIRES_RECONNECT' | 'DELETED' | 'ERROR' | 'REVOKED' | 'EXPIRED'
+  status:
+    | 'ACTIVE'
+    | 'INACTIVE'
+    | 'PENDING'
+    | 'DISABLED'
+    | 'REQUIRES_RECONNECT'
+    | 'DELETED'
+    | 'ERROR'
+    | 'REVOKED'
+    | 'EXPIRED'
   accountId: string // Maps to backend socialAccountId if available
 }
 
@@ -40,7 +49,15 @@ export interface Publication {
   title?: string
   channels: ('twitter' | 'linkedin' | 'instagram' | 'facebook')[]
   scheduledAt: string // ISO string
-  status: 'DRAFT' | 'QUEUED' | 'SCHEDULED' | 'PROCESSING' | 'PUBLISHED' | 'BLOCKED' | 'FAILED' | 'CANCELLED'
+  status:
+    | 'DRAFT'
+    | 'QUEUED'
+    | 'SCHEDULED'
+    | 'PROCESSING'
+    | 'PUBLISHED'
+    | 'BLOCKED'
+    | 'FAILED'
+    | 'CANCELLED'
   priority: boolean
   thumbnail?: string
   mediaFiles?: File[] // Local file list for previewing uploads
@@ -48,6 +65,12 @@ export interface Publication {
   conflictingPublicationIds?: string[]
   /** The originating social account ID; used for direct account-level filtering. */
   accountId?: string
+  /** LinkedIn external publication id (e.g. urn:li:share:...) — only set after a successful publish. */
+  externalPublicationId?: string
+  /** Direct URL to the published post on the provider (LinkedIn share URL). */
+  publicUrl?: string
+  /** Wall-clock instant the provider confirmed publish. */
+  publishedAt?: string
   /** Reason the publication was blocked (e.g., account DISABLED or REQUIRES_RECONNECT). */
   blockedReason?: string
 }
@@ -71,6 +94,9 @@ export interface CalendarPublicationResult {
   scheduledFor: string | null
   hasConflict: boolean
   conflictingPublicationIds: string[]
+  externalPublicationId?: string | null
+  publicUrl?: string | null
+  publishedAt?: string | null
 }
 
 export interface ConflictEntry {
@@ -97,7 +123,16 @@ export interface ConnectedSocialChannelSummary {
   provider: 'LINKEDIN' | string
   accountKind: 'PERSONAL_PROFILE' | 'ORGANIZATION_PAGE' | string
   displayName: string
-  status: 'ACTIVE' | 'PENDING' | 'DISABLED' | 'REQUIRES_RECONNECT' | 'DELETED' | 'ERROR' | 'REVOKED' | 'EXPIRED' | string
+  status:
+    | 'ACTIVE'
+    | 'PENDING'
+    | 'DISABLED'
+    | 'REQUIRES_RECONNECT'
+    | 'DELETED'
+    | 'ERROR'
+    | 'REVOKED'
+    | 'EXPIRED'
+    | string
   avatarUrl?: string | null
   connectedAt: string | null
   lastSyncedAt: string | null
@@ -169,6 +204,9 @@ function apiResultToPublication(api: CalendarPublicationResult): Publication {
     hasConflict: api.hasConflict,
     conflictingPublicationIds: api.conflictingPublicationIds,
     accountId: api.socialAccountId,
+    externalPublicationId: api.externalPublicationId ?? undefined,
+    publicUrl: api.publicUrl ?? undefined,
+    publishedAt: api.publishedAt ?? undefined,
   }
 }
 
@@ -263,10 +301,16 @@ export const usePublishingStore = defineStore('publishing', () => {
 
   // Reconnect state
   const hasReconnectRequiredChannels = computed(() =>
-    channels.value.some((ch) => ch.status === 'REQUIRES_RECONNECT' || ch.status === 'REVOKED' || ch.status === 'EXPIRED'),
+    channels.value.some(
+      (ch) =>
+        ch.status === 'REQUIRES_RECONNECT' || ch.status === 'REVOKED' || ch.status === 'EXPIRED',
+    ),
   )
   const reconnectRequiredChannels = computed(() =>
-    channels.value.filter((ch) => ch.status === 'REQUIRES_RECONNECT' || ch.status === 'REVOKED' || ch.status === 'EXPIRED'),
+    channels.value.filter(
+      (ch) =>
+        ch.status === 'REQUIRES_RECONNECT' || ch.status === 'REVOKED' || ch.status === 'EXPIRED',
+    ),
   )
 
   /** Filters for the calendar API — derived from reactive filter state. */
@@ -551,22 +595,34 @@ export const usePublishingStore = defineStore('publishing', () => {
 
   // -----------------------------------------------------------------------
   // Actions — Existing  (modified with fallback awareness)
-  // -----------------------------------------------------------------------
+  /**
+   * Creates and queues a publication for the specified channels.
+   *
+   * @param post - The publication details
+   * @param post.scheduleMode - The scheduling mode: 'NOW' executes immediately, 'SCHEDULED_AT' uses the `scheduledAt` field, 'NEXT_SLOT' uses the `nextSlotAfter` field. Defaults to 'SCHEDULED_AT'.
+   * @param post.nextSlotAfter - When `scheduleMode` is 'NEXT_SLOT', the earliest time to schedule the publication.
+   * @returns The created Publication object.
+   * @throws Error if LinkedIn channels are requested but no active LinkedIn account is available.
+   */
 
   async function schedulePost(post: {
     content: string
     title?: string
     channels: ('twitter' | 'linkedin' | 'instagram' | 'facebook')[]
     scheduledAt?: string
-    scheduleMode?: 'NOW' | 'SCHEDULED_AT'
+    nextSlotAfter?: string
+    scheduleMode?: 'NOW' | 'SCHEDULED_AT' | 'NEXT_SLOT'
     priority: boolean
     mediaFiles?: File[]
     socialAccountId?: string
   }) {
     const publicationId = `pub-${Date.now()}`
 
-    const effectiveMode = post.scheduleMode === 'NOW' ? 'NOW' : 'SCHEDULED_AT'
-    const effectiveScheduledAt = effectiveMode === 'NOW' ? new Date().toISOString() : (post.scheduledAt ?? new Date().toISOString())
+    const effectiveMode = post.scheduleMode ?? 'SCHEDULED_AT'
+    const effectiveScheduledAt =
+      effectiveMode === 'SCHEDULED_AT'
+        ? (post.scheduledAt ?? new Date().toISOString())
+        : (post.nextSlotAfter ?? new Date().toISOString())
 
     // Create new publication object
     const newPub: Publication = {
@@ -622,6 +678,7 @@ export const usePublishingStore = defineStore('publishing', () => {
               assetIds: [],
               scheduleMode: effectiveMode,
               ...(effectiveMode === 'SCHEDULED_AT' ? { scheduledFor: post.scheduledAt } : {}),
+              ...(effectiveMode === 'NEXT_SLOT' ? { nextSlotAfter: post.nextSlotAfter } : {}),
               priority: post.priority,
             }),
             workspaceScoped: true,

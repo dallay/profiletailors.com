@@ -1,0 +1,19 @@
+{
+  "priority": 5,
+  "request": {
+    "method": "POST",
+    "urlPath": "/rest/posts",
+    "bodyPatterns": [
+      { "matchesJsonPath": "$[?(@.commentary =~ /.*LINKEDIN_RATE_LIMIT_TEST.*/)]" }
+    ]
+  },
+  "response": {
+    "status": 429,
+    "headers": { "Content-Type": "application/json" },
+    "jsonBody": {
+      "message": "Mocked LinkedIn rate limit",
+      "status": 429,
+      "serviceErrorCode": 429
+    }
+  }
+}

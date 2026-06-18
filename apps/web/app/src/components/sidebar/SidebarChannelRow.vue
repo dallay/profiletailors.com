@@ -41,7 +41,7 @@ function onAvatarError() {
     <span class="relative flex size-5 shrink-0 items-center justify-center">
       <img
         v-if="channel.avatarUrl && !avatarLoadFailed"
-        :src="proxyImageUrl(channel.avatarUrl!)"
+        :src="proxyImageUrl(channel.avatarUrl ?? '')"
         :alt="`${channel.name} avatar`"
         class="size-5 rounded-full border border-border-visible object-cover grayscale"
         @error="onAvatarError"

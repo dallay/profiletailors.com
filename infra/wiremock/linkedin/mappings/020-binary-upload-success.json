@@ -1,0 +1,13 @@
+{
+  "priority": 20,
+  "request": {
+    "method": "PUT",
+    "urlPathPattern": "/.*"
+  },
+  "response": {
+    "status": 201,
+    "headers": {
+      "ETag": "mock-upload-etag-{{randomValue length=8 type='ALPHANUMERIC'}}"
+    }
+  }
+}

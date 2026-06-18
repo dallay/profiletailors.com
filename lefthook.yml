@@ -34,15 +34,13 @@ pre-commit:
       skip: true
 
     # ========== BACKEND (Kotlin + Spring Boot) ==========
-    # Detekt: lint estático en Kotlin
+    # Detekt: lint estático en Kotlin — SIEMPRE se ejecuta, debe pasar para commit
     backend-detekt:
-      glob: 'server/**/*.kt'
       run: './gradlew :server:smp:detekt --no-daemon'
 
     # Detekt en shared modules
     shared-detekt:
-      glob: 'shared/**/*.kt'
-      run: './gradlew detekt --no-daemon 2>/dev/null || echo "No detekt config in shared"'
+      run: './gradlew detekt --no-daemon'
 
     # Gitleaks: scan staged content before commit
     gitleaks:

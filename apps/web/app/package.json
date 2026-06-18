@@ -18,10 +18,14 @@
     "format": "biome format --write .",
     "test": "vitest",
     "test:run": "vitest run",
-    "test:ui": "vitest --ui"
+    "test:ui": "vitest --ui",
+    "test:e2e:scheduler": "playwright test -c e2e/playwright.scheduler.config.ts",
+    "test:e2e:scheduler:headed": "playwright test -c e2e/playwright.scheduler.config.ts --headed",
+    "test:e2e:scheduler:debug": "playwright test -c e2e/playwright.scheduler.config.ts --debug"
   },
   "dependencies": {
     "@atlaskit/pragmatic-drag-and-drop": "^1.8.1",
+    "@internationalized/date": "3.12.1",
     "@lucide/vue": "1.18.0",
     "@tanstack/vue-table": "^8.21.3",
     "@unovis/vue": "^1.6.5",
@@ -45,6 +49,7 @@
   },
   "devDependencies": {
     "@biomejs/biome": "2.5.0",
+    "@playwright/test": "^1.60.0",
     "@tailwindcss/vite": "4.3.1",
     "@tsconfig/node24": "24.0.4",
     "@types/node": "25.9.3",

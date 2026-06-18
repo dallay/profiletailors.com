@@ -60,9 +60,13 @@ class SocialAccountNotFoundException(
 ) : IllegalArgumentException("Social account '$socialAccountId' was not found in the active workspace.")
 
 /**
- * Validates that a SCHEDULED_AT publication is scheduled at least 5 minutes in the future.
- * This is a belt-and-suspenders guard used by handlers that bypass [PublicationLifecyclePolicy.validateForCreation].
- * NOW and NEXT_SLOT modes are not checked here — they are resolved by the system.
+ * Validates that a SCHEDULED_AT publication is scheduled at least [MIN_SCHEDULE_OFFSET] after the given time.
+ *
+ * When [scheduleMode] is SCHEDULED_AT, requires [scheduledFor] to be non-null and
+ * throws if it would occur before [now] + [MIN_SCHEDULE_OFFSET].
+ *
+ * @throws IllegalArgumentException If [scheduleMode] is SCHEDULED_AT,
+ * [scheduledFor] is null, or [scheduledFor] is before [now] + [MIN_SCHEDULE_OFFSET].
  */
 private fun requireScheduledInFuture(scheduleMode: ScheduleMode, scheduledFor: Instant?, now: Instant) {
     if (scheduleMode == ScheduleMode.SCHEDULED_AT) {
@@ -72,7 +76,7 @@ private fun requireScheduledInFuture(scheduleMode: ScheduleMode, scheduledFor: I
         val earliestAllowed = now.plus(MIN_SCHEDULE_OFFSET)
         require(!forTime.isBefore(earliestAllowed)) {
             "Cannot schedule a publication for $forTime. " +
-                "Scheduled time must be at least 5 minutes in the future. " +
+                "Scheduled time must be in the future. " +
                 "Earliest allowed: $earliestAllowed"
         }
     }
@@ -576,6 +580,12 @@ internal class GetCalendarPublicationsHandler(
     }
 }
 
+/**
+ * Converts this publication draft to a calendar view result.
+ *
+ * @param conflictingPublicationIds IDs of publications that conflict with this draft.
+ * @return A calendar view result with conflict information.
+ */
 private fun PublicationDraft.toCalendarResult(
     conflictingPublicationIds: List<String>,
 ): CalendarPublicationResult = CalendarPublicationResult(
@@ -591,8 +601,16 @@ private fun PublicationDraft.toCalendarResult(
     scheduledFor = scheduledFor,
     hasConflict = conflictingPublicationIds.isNotEmpty(),
     conflictingPublicationIds = conflictingPublicationIds,
+    externalPublicationId = externalPublicationId,
+    publicUrl = publicUrl,
+    publishedAt = publishedAt,
 )
 
+/**
+ * Converts a publication draft to its result DTO.
+ *
+ * @return A PublicationResult containing the publication draft's fields.
+ */
 private fun PublicationDraft.toResult(): PublicationResult = PublicationResult(
     publicationId = id,
     workspaceId = workspaceId,
@@ -605,6 +623,9 @@ private fun PublicationDraft.toResult(): PublicationResult = PublicationResult(
     assetIds = assetIds,
     scheduledFor = scheduledFor,
     nextSlotAfter = nextSlotAfter,
+    externalPublicationId = externalPublicationId,
+    publicUrl = publicUrl,
+    publishedAt = publishedAt,
 )
 
 @Service

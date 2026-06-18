@@ -12,11 +12,8 @@ import { APP_URL, INVALID_CREDENTIALS, VALID_CREDENTIALS } from '../fixtures/tes
 import { mockLoginResponse } from '../fixtures/auth-helpers'
 
 test.describe('Error Banner Visual States', () => {
-  test.beforeEach(async ({ page }) => {
-    await page.context().clearCookies()
-    await page.evaluate(() => {
-      try { localStorage.clear(); sessionStorage.clear() } catch {}
-    }).catch(() => {})
+  test.beforeEach(async ({ resetSession }) => {
+    await resetSession()
   })
 
   test('12.1 Error banner hidden by default', { tag: '@frontend' }, async ({ page }) => {

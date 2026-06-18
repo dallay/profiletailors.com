@@ -4,6 +4,16 @@ name: profile-tailors
 include:
   - ./infra/common.yml
 services:
+  linkedin-wiremock:
+    image: wiremock/wiremock:3.10.0
+    ports:
+      - "${LINKEDIN_WIREMOCK_PORT:-8089}:8080"
+    volumes:
+      - ./infra/wiremock/linkedin:/home/wiremock:ro
+    command:
+      - --global-response-templating
+      - --verbose
+
   postgresql:
     extends:
       service: postgres

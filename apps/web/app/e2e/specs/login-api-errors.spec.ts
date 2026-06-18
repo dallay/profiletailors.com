@@ -17,11 +17,8 @@ import {
 import { mockLoginResponse } from '../fixtures/auth-helpers'
 
 test.describe('Login API — Error Paths', { tag: '@integration' }, () => {
-  test.beforeEach(async ({ page }) => {
-    await page.context().clearCookies()
-    await page.evaluate(() => {
-      try { localStorage.clear(); sessionStorage.clear() } catch {}
-    }).catch(() => {})
+  test.beforeEach(async ({ resetSession }) => {
+    await resetSession()
   })
 
   test('4.1 Invalid email or password shows error banner', async ({ page }) => {

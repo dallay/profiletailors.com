@@ -1,0 +1,13 @@
+${AnsiColor.BRIGHT_WHITE}╔══════════════════════════════════════════════════════════════════════════════════════════════════════════════════╗
+${AnsiColor.MAGENTA} ███████╗███╗   ███╗██████╗
+${AnsiColor.MAGENTA}██╔════╝████╗ ████║██╔══██╗
+${AnsiColor.MAGENTA}███████╗██╔████╔██║██████╔╝
+${AnsiColor.MAGENTA}╚════██║██║╚██╔╝██║██╔═══╝
+${AnsiColor.MAGENTA}███████║██║ ╚═╝ ██║██║
+${AnsiColor.MAGENTA}╚══════╝╚═╝     ╚═╝╚═╝
+${AnsiColor.BRIGHT_WHITE}╠══════════════════════════════════════════════════════════════════════════════════════════════════════════════════╣
+${AnsiColor.BRIGHT_YELLOW}:: Profile Tailors SMP ::${AnsiColor.BRIGHT_CYAN}  Spring Boot ${spring-boot.version}
+${AnsiColor.BRIGHT_GREEN}:: ${app.homepage:https://profiletailors.com}
+${AnsiColor.BRIGHT_MAGENTA}:: Environment: ${spring.profiles.active:default}  |  Started: ${start.time}
+${AnsiColor.BRIGHT_WHITE}╚══════════════════════════════════════════════════════════════════════════════════════════════════════════════════╝
+${AnsiColor.DEFAULT}

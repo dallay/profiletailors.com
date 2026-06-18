@@ -21,6 +21,13 @@ const $globals: ObserverGlobals = {
   unobserveSpy: vi.fn(),
 }
 
+/** Query an element and assert it exists (avoids non-null assertions in tests). */
+function queryRequired(selector: string): Element {
+  const el = document.querySelector(selector)
+  expect(el).not.toBeNull()
+  return el as Element
+}
+
 function makeEntry(el: Element, isIntersecting: boolean): IntersectionObserverEntry {
   return {
     target: el,
@@ -83,7 +90,7 @@ describe('initScrollReveal', () => {
 
     // IntersectionObserver should never have been constructed
     expect(IntersectionObserver).not.toHaveBeenCalled()
-    const el = document.querySelector('[data-animate-scroll]')!
+    const el = queryRequired('[data-animate-scroll]')
     expect(el.classList.contains('is-visible')).toBe(false)
   })
 
@@ -103,7 +110,7 @@ describe('initScrollReveal', () => {
   it('does not add is-visible when element never intersects', () => {
     document.body.innerHTML = '<div data-animate-scroll></div>'
     initScrollReveal()
-    const el = document.querySelector('[data-animate-scroll]')!
+    const el = queryRequired('[data-animate-scroll]')
     expect(el.classList.contains('is-visible')).toBe(false)
   })
 
@@ -113,7 +120,7 @@ describe('initScrollReveal', () => {
   it('adds is-visible when element intersects viewport', () => {
     document.body.innerHTML = '<div data-animate-scroll></div>'
     initScrollReveal()
-    const el = document.querySelector('[data-animate-scroll]')!
+    const el = queryRequired('[data-animate-scroll]')
 
     // Trigger intersection
     $globals.observeCb?.(
@@ -133,8 +140,8 @@ describe('initScrollReveal', () => {
       <div data-animate-scroll id="b"></div>
     `
     initScrollReveal()
-    const elA = document.querySelector('#a')!
-    const elB = document.querySelector('#b')!
+    const elA = queryRequired('#a')
+    const elB = queryRequired('#b')
 
     // Only elA intersects
     $globals.observeCb?.(
@@ -152,7 +159,7 @@ describe('initScrollReveal', () => {
   it('stops observing element after it becomes visible (one-shot)', () => {
     document.body.innerHTML = '<div data-animate-scroll></div>'
     initScrollReveal()
-    const el = document.querySelector('[data-animate-scroll]')!
+    const el = queryRequired('[data-animate-scroll]')
 
     // Trigger intersection
     $globals.observeCb?.(

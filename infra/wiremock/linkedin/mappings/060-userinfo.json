@@ -1,0 +1,22 @@
+{
+  "priority": 10,
+  "request": {
+    "method": "GET",
+    "urlPath": "/v2/userinfo",
+    "headers": {
+      "Authorization": { "matches": "Bearer .+" }
+    }
+  },
+  "response": {
+    "status": 200,
+    "headers": { "Content-Type": "application/json" },
+    "jsonBody": {
+      "sub": "local-wiremock-user-001",
+      "name": "WireMock Dev User",
+      "given_name": "Dev",
+      "family_name": "User",
+      "email": "dev@wiremock.local",
+      "picture": "https://media.licdn.com/dms/image/v2/C5603AQHplaceholder.jpg"
+    }
+  }
+}

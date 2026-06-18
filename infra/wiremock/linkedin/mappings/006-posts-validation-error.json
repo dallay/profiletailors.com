@@ -1,0 +1,19 @@
+{
+  "priority": 5,
+  "request": {
+    "method": "POST",
+    "urlPath": "/rest/posts",
+    "bodyPatterns": [
+      { "matchesJsonPath": "$[?(@.commentary =~ /.*LINKEDIN_VALIDATION_TEST.*/)]" }
+    ]
+  },
+  "response": {
+    "status": 400,
+    "headers": { "Content-Type": "application/json" },
+    "jsonBody": {
+      "message": "Mocked LinkedIn validation error",
+      "status": 400,
+      "code": "INVALID_VALUE_FOR_FIELD"
+    }
+  }
+}

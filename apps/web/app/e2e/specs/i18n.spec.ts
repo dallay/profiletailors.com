@@ -15,11 +15,8 @@ import { LoginPage } from '../pages/login-page'
 import { I18N_TEXT, APP_URL } from '../fixtures/test-data'
 
 test.describe('Internationalization', () => {
-  test.beforeEach(async ({ page }) => {
-    await page.context().clearCookies()
-    await page.evaluate(() => {
-      try { localStorage.clear(); sessionStorage.clear() } catch {}
-    }).catch(() => {})
+  test.beforeEach(async ({ resetSession }) => {
+    await resetSession()
   })
 
   test('10.1 English locale renders correctly', { tag: '@frontend' }, async ({ page }) => {

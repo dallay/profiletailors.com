@@ -1,0 +1,31 @@
+{
+  "priority": 10,
+  "request": {
+    "method": "POST",
+    "urlPath": "/rest/posts",
+    "headers": {
+      "Authorization": { "matches": "Bearer .+" },
+      "X-Restli-Protocol-Version": { "equalTo": "2.0.0" },
+      "Content-Type": { "contains": "application/json" }
+    },
+    "bodyPatterns": [
+      { "matchesJsonPath": "$.author" },
+      { "matchesJsonPath": "$.commentary" },
+      { "matchesJsonPath": "$.visibility" },
+      { "matchesJsonPath": "$.lifecycleState" }
+    ]
+  },
+  "response": {
+    "status": 201,
+    "headers": {
+      "Content-Type": "application/json",
+      "x-restli-id": "urn:li:ugcPost:local-wiremock-{{randomValue length=12 type='NUMERIC'}}"
+    },
+    "jsonBody": {
+      "mocked": true,
+      "provider": "linkedin",
+      "endpoint": "posts"
+    },
+    "transformers": ["response-template"]
+  }
+}

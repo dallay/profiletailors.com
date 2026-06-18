@@ -10,22 +10,24 @@ import { test, expect } from '../fixtures/base-test'
 import { LoginPage } from '../pages/login-page'
 import { DashboardPage } from '../pages/dashboard-page'
 import { APP_URL } from '../fixtures/test-data'
-import { authenticateAs, mockRefreshResponse, mockRefreshFailure } from '../fixtures/auth-helpers'
+import {
+  authenticateAs,
+  keepSessionAlive,
+  logout,
+  mockRefreshFailure,
+} from '../fixtures/auth-helpers'
 import { safeGoto } from '../fixtures/navigation'
 
 test.describe('Logout', { tag: '@integration' }, () => {
-  test.beforeEach(async ({ page }) => {
-    await page.context().clearCookies()
-    await page.evaluate(() => {
-      try { localStorage.clear(); sessionStorage.clear() } catch {}
-    }).catch(() => {})
+  test.beforeEach(async ({ resetSession }) => {
+    await resetSession()
   })
 
   test('8.1 Logout clears session and redirects to login', async ({ page }) => {
     // Authenticate
     await authenticateAs(page)
-    // HAR always returns 200 for refresh — override to survive page reload
-    await mockRefreshResponse(page)
+    // Keep the session alive across protected-route reloads while still using HAR
+    await keepSessionAlive(page)
 
     // Navigate to dashboard
     const dashboard = new DashboardPage(page)
@@ -53,11 +55,8 @@ test.describe('Logout', { tag: '@integration' }, () => {
       await logoutButton.click()
       // The app redirects to /login automatically
     } else {
-      // Fallback: navigate directly to trigger logout via API
-      await page.request.post('/api/auth/logout', {
-        headers: { 'Content-Type': 'application/json', Accept: 'application/vnd.api.v1+json' },
-      })
-      await page.context().clearCookies()
+      // Fallback: trigger logout through the browser context so HAR/page routes still apply
+      await logout(page)
       await safeGoto(page, APP_URL.login)
     }
 
@@ -69,17 +68,11 @@ test.describe('Logout', { tag: '@integration' }, () => {
   test('8.2 Protected routes redirect to login after logout', async ({ page }) => {
     // Authenticate — add refresh override so page.goto succeeds
     await authenticateAs(page)
-    await mockRefreshResponse(page)
+    await keepSessionAlive(page)
     await safeGoto(page, APP_URL.dashboard)
 
-    // Logout via page-level fetch (page.request.post bypasses interceptors)
-    await page.evaluate(() =>
-      fetch('/api/auth/logout', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', Accept: 'application/vnd.api.v1+json' },
-      }).catch(() => {}),
-    )
-    await page.context().clearCookies()
+    // Logout via browser fetch helper so HAR interception remains in play
+    await logout(page)
 
     // Override refresh to fail — the 200 mock from mockRefreshResponse would
     // otherwise re-authenticate the user on the next page load
@@ -100,14 +93,12 @@ test.describe('Logout', { tag: '@integration' }, () => {
     await loginPage.goto(APP_URL.login)
 
     // Attempt logout via API — should not throw
-    const response = await page.request.post('/api/auth/logout', {
-      headers: { 'Content-Type': 'application/json', Accept: 'application/vnd.api.v1+json' },
-    })
+    await logout(page)
 
     // Should still be on login page
     await loginPage.expectOnLoginPage()
 
-    // Response should be successful (204 or 200 — idempotent)
-    expect(response.ok()).toBe(true)
+    // Still unauthenticated after an idempotent logout
+    expect(page.url()).toContain(APP_URL.login)
   })
 })

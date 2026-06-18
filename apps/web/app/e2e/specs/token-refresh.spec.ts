@@ -5,27 +5,28 @@
  * Covers silent token refresh on 401, logout on refresh failure,
  * and non-401 errors bypassing refresh.
  *
- * These tests mock the API to simulate expired tokens.
+ * These tests layer targeted route overrides on top of HAR replay.
  */
 
 import { test, expect } from '../fixtures/base-test'
 import { LoginPage } from '../pages/login-page'
 import { APP_URL } from '../fixtures/test-data'
-import { authenticateAs, mockRefreshResponse } from '../fixtures/auth-helpers'
+import {
+  authenticateAs,
+  fallbackAfterDelay,
+  keepSessionAlive,
+} from '../fixtures/auth-helpers'
 import { safeGoto } from '../fixtures/navigation'
 
 test.describe('Token Refresh', { tag: '@integration' }, () => {
-  test.beforeEach(async ({ page }) => {
-    await page.context().clearCookies()
-    await page.evaluate(() => {
-      try { localStorage.clear(); sessionStorage.clear() } catch {}
-    }).catch(() => {})
+  test.beforeEach(async ({ resetSession }) => {
+    await resetSession()
   })
 
   test('7.1 API fetch retries on 401 with successful refresh', async ({ page }) => {
     // Authenticate — add refresh override so page loads succeed
     await authenticateAs(page)
-    await mockRefreshResponse(page)
+    await keepSessionAlive(page)
     await safeGoto(page, APP_URL.dashboard)
     await expect(page).toHaveURL(APP_URL.dashboard)
 
@@ -44,7 +45,7 @@ test.describe('Token Refresh', { tag: '@integration' }, () => {
         })
       } else {
         retriedRequestSeen = true
-        await route.continue()
+        await fallbackAfterDelay(route, 0)
       }
     })
 
@@ -60,7 +61,7 @@ test.describe('Token Refresh', { tag: '@integration' }, () => {
   test('7.2 API fetch retry fails → logout', async ({ page }) => {
     // Authenticate — add refresh override so page loads succeed
     await authenticateAs(page)
-    await mockRefreshResponse(page)
+    await keepSessionAlive(page)
     await safeGoto(page, APP_URL.dashboard)
     await expect(page).toHaveURL(APP_URL.dashboard)
 
@@ -93,6 +94,7 @@ test.describe('Token Refresh', { tag: '@integration' }, () => {
   test('7.3 Non-401 errors skip refresh', async ({ page }) => {
     // Authenticate
     await authenticateAs(page)
+    await keepSessionAlive(page)
 
     // Mock /api/auth/me to return 403 — _loadProfile() calls this
     // during hydration. A non-401 error should NOT trigger refresh.
@@ -104,8 +106,8 @@ test.describe('Token Refresh', { tag: '@integration' }, () => {
       })
     })
 
-    // Use mockRefreshResponse so page reload succeeds
-    await mockRefreshResponse(page)
+    // Keep session alive so page reload succeeds
+    await keepSessionAlive(page)
     await safeGoto(page, APP_URL.dashboard)
 
     // The 403 from /api/auth/me should NOT have triggered a session

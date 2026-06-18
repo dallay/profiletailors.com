@@ -1,8 +1,12 @@
 /**
  * Test data constants for E2E login tests.
  *
- * All test user accounts MUST be pre-seeded in the SMP backend or created
- * during test setup and cleaned up during teardown.
+ * Replay mode is intentionally backend-free: credentials must match the
+ * login payload recorded in hars/auth-flow.har so Playwright can serve the
+ * mocked responses from HAR.
+ *
+ * Record mode (UPDATE_HAR=true) may override these values via env vars to
+ * refresh the HAR against a live backend.
  */
 
 export const APP_URL = {
@@ -17,8 +21,8 @@ export const APP_URL = {
 
 export const E2E_TEST_USER = {
   email: process.env.E2E_TEST_USER_EMAIL || 'dev@profiletailors.com',
-  password: process.env.E2E_TEST_USER_PASSWORD ?? (() => { throw new Error('E2E_TEST_USER_PASSWORD env var must be set'); })(),
-  /** Auto-derived from email prefix by the backend */
+  password: process.env.E2E_TEST_USER_PASSWORD || 'S3cr3tP@ssw0rd*123',
+  /** Must match the HAR payload in replay mode */
   username: 'dev',
 } as const
 

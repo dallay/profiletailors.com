@@ -42,6 +42,7 @@ const scoreColor = computed(() => {
       :height="size"
       :viewBox="`0 0 ${size} ${size}`"
       class="rotate-[-90deg]"
+      aria-hidden="true"
     >
       <!-- Track -->
       <circle

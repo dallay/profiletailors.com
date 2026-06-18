@@ -5,8 +5,8 @@
  * Covers successful login, redirect preservation, token validation,
  * profile loading, and loading state.
  *
- * These tests REQUIRE the SMP backend to be running with a seeded
- * E2E test user (e2e-test@profiletailors.com / E2eTestPass123!).
+ * Runs against HAR replay by default, so no backend is required.
+ * To refresh the recorded responses, run in UPDATE_HAR=true mode.
  */
 
 import { test, expect } from '../fixtures/base-test'
@@ -17,14 +17,12 @@ import {
   APP_URL,
   E2E_TEST_USER,
 } from '../fixtures/test-data'
+import { fallbackAfterDelay } from '../fixtures/auth-helpers'
 import { safeGoto } from '../fixtures/navigation'
 
 test.describe('Login API — Success Path', { tag: '@integration' }, () => {
-  test.beforeEach(async ({ page }) => {
-    await page.context().clearCookies()
-    await page.evaluate(() => {
-      try { localStorage.clear(); sessionStorage.clear() } catch {}
-    }).catch(() => {})
+  test.beforeEach(async ({ resetSession }) => {
+    await resetSession()
   })
 
   test('3.1 Successful login redirects to dashboard', async ({ page }) => {
@@ -117,8 +115,7 @@ test.describe('Login API — Success Path', { tag: '@integration' }, () => {
   test('3.5 Submit button shows loading state during login', async ({ page }) => {
     // Delay the API response to observe loading state
     await page.route('**/api/auth/login', async (route) => {
-      await new Promise((resolve) => setTimeout(resolve, 1_000))
-      await route.continue()
+      await fallbackAfterDelay(route, 1_000)
     })
 
     const loginPage = new LoginPage(page)
