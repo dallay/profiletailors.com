@@ -213,10 +213,12 @@ class RealLinkedInAssetUploader(
             "${context.apiBaseUrl}/rest/$endpoint/${encodeUrn(assetUrn)}?action=checkStatus"
         }
         val confirmBody = if (endpoint == "videos") {
+            val requiredUploadToken = uploadToken
+                ?: throw ProviderUploadException("LinkedIn video upload missing uploadToken for finalizeUpload")
             mapOf(
                 "finalizeUploadRequest" to mapOf(
                     "video" to assetUrn,
-                    "uploadToken" to (uploadToken ?: ""),
+                    "uploadToken" to requiredUploadToken,
                     "uploadedPartIds" to emptyList<String>(),
                 ),
             )

@@ -512,10 +512,14 @@ onMounted(() => {
                       :key="pub.id"
                       :draggable="true"
                       @click.stop="openPostDetail(pub)"
+                      @keydown.enter.stop.prevent="openPostDetail(pub)"
+                      @keydown.space.stop.prevent="openPostDetail(pub)"
                       @dragstart="onDragStart($event, pub)"
                       @dragend="onDragEnd($event)"
                       class="relative z-10 border rounded-xl p-3 space-y-2.5 transition-all text-left shadow-sm group/card bg-bg-surface overflow-hidden cursor-pointer"
                       :class="getProviderColor(pub.channels[0] || 'linkedin')"
+                      role="button"
+                      tabindex="0"
                     >
                       <!-- Header -->
                       <div class="flex items-center justify-between">
@@ -611,10 +615,14 @@ onMounted(() => {
                   :key="pub.id"
                   :draggable="true"
                   @click.stop="openPostDetail(pub)"
+                  @keydown.enter.stop.prevent="openPostDetail(pub)"
+                  @keydown.space.stop.prevent="openPostDetail(pub)"
                   @dragstart="onDragStart($event, pub)"
                   @dragend="onDragEnd($event)"
                   class="relative border rounded-xl p-4 space-y-2.5 transition-all text-left shadow-sm group/card bg-bg-surface overflow-hidden mb-3 last:mb-0 cursor-pointer"
                   :class="getProviderColor(pub.channels[0] || 'linkedin')"
+                  role="button"
+                  tabindex="0"
                 >
                   <div class="flex items-center justify-between">
                     <span class="font-mono text-[9px] font-bold tracking-wider opacity-80 uppercase">
@@ -687,6 +695,10 @@ onMounted(() => {
               :key="pub.id"
               class="flex flex-col md:flex-row md:items-center justify-between gap-4 p-5 rounded-2xl border border-border-subtle bg-bg-surface hover:border-text-secondary transition-all cursor-pointer"
               @click="openPostDetail(pub)"
+              @keydown.enter.stop.prevent="openPostDetail(pub)"
+              @keydown.space.stop.prevent="openPostDetail(pub)"
+              role="button"
+              tabindex="0"
             >
               <div class="space-y-2 flex-1 min-w-0">
                 <div class="flex items-center gap-3">
