@@ -77,7 +77,6 @@ function onKeyDown(e: KeyboardEvent) {
 </script>
 
 <template>
-  <!-- biome-ignore lint/a11y/noStaticElementInteractions: role is set conditionally via :role binding -->
   <div
     class="relative min-h-[90px] border-r border-border-subtle last:border-r-0 p-1.5 transition-all group/cell"
     :class="{
@@ -117,7 +116,6 @@ function onKeyDown(e: KeyboardEvent) {
 
     <!-- Publication snippets -->
     <div class="space-y-0.5">
-      <!-- biome-ignore lint/a11y/noStaticElementInteractions: draggable publication badge, interaction is drag-only -->
       <div
         v-for="pub in visiblePublications"
         :key="pub.id"
