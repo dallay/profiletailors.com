@@ -328,16 +328,37 @@ export async function createPublicationInStore(
   page: import('@playwright/test').Page,
   text: string,
 ): Promise<void> {
-  const pub = {
-    id: `pub-e2e-${Date.now()}`,
-    content: text,
+  const timestamp = Date.now()
+
+  const calendarPublication: MockPublication = {
+    id: `pub-e2e-${timestamp}`,
+    workspaceId: MOCK_WORKSPACE_ID,
+    socialAccountId: MOCK_SOCIAL_ACCOUNT_ID,
+    provider: 'linkedin',
+    status: 'QUEUED',
+    scheduleMode: 'NOW',
+    priority: false,
     title: 'E2E Test Post',
+    bodyText: text,
+    scheduledFor: new Date().toISOString(),
+    hasConflict: false,
+    conflictingPublicationIds: [],
+  }
+
+  const frontendPublication = {
+    id: calendarPublication.id,
+    content: text,
+    title: calendarPublication.title ?? 'E2E Test Post',
     channels: ['linkedin'],
-    scheduledAt: new Date().toISOString(),
+    scheduledAt: calendarPublication.scheduledFor ?? new Date().toISOString(),
     status: 'QUEUED',
     priority: false,
-    accountId: 'sa-linkedin-001',
+    accountId: MOCK_SOCIAL_ACCOUNT_ID,
   }
+
+  // Keep the route-backed mock source of truth in sync so an in-flight
+  // fetchCalendar() call cannot overwrite the injected post.
+  publications.unshift(calendarPublication)
 
   await page.evaluate((p) => {
     // 1. Persist to localStorage so the store has it on next boot
@@ -353,5 +374,5 @@ export async function createPublicationInStore(
     if (pinia?.state?.value?.publishing?.publications) {
       pinia.state.value.publishing.publications.unshift(p)
     }
-  }, pub)
+  }, frontendPublication)
 }

@@ -29,7 +29,7 @@ test.describe('Scheduler — Post Interaction', () => {
     // Switch to list view and click the card
     await scheduler.switchToList()
     await page.waitForTimeout(300)
-    const postCard = page.locator('[role="button"]').filter({ hasText: testText }).first()
+    const postCard = page.getByRole('button', { name: new RegExp(testText) }).first()
     await expect(postCard).toBeVisible({ timeout: 10_000 })
     await postCard.click()
 
@@ -51,7 +51,7 @@ test.describe('Scheduler — Post Interaction', () => {
 
     await scheduler.switchToList()
     await page.waitForTimeout(300)
-    const postCard = page.locator('[role="button"]').filter({ hasText: testText }).first()
+    const postCard = page.getByRole('button', { name: new RegExp(testText) }).first()
     await expect(postCard).toBeVisible({ timeout: 10_000 })
     await postCard.click()
     await detailModal.expectVisible()
@@ -88,28 +88,17 @@ test.describe('Scheduler — Post Interaction', () => {
     // Switch to list view to find it
     await scheduler.switchToList()
     await page.waitForTimeout(300)
-    const postCard = page.locator('[role="button"]').filter({ hasText: testText }).first()
+    const postCard = page.getByRole('button', { name: new RegExp(testText) }).first()
     await expect(postCard).toBeVisible({ timeout: 10_000 })
 
-    // Trigger delete directly via the store — the hover-only button has
-    // tricky actionability requirements that are not worth chasing for an
-    // end-to-end test.
-    await page.evaluate((text) => {
-      const cards = document.querySelectorAll('[role="button"]')
-      for (const card of cards) {
-        if (card.textContent?.includes(text)) {
-          const deleteBtn = card.querySelector('button[title="Delete publication"]') as HTMLButtonElement | null
-          if (deleteBtn) {
-            deleteBtn.click()
-            return true
-          }
-        }
-      }
-      return false
-    }, testText)
+    // Delete through the exact card action. A broad getByText() assertion is
+    // too loose because the same text may still exist in hidden/duplicated DOM
+    // nodes during transitions.
+    const deleteButton = postCard.locator('button[title="Delete publication"]')
+    await deleteButton.click({ force: true })
 
-    // Verify the post is gone
-    await expect(page.getByText(testText)).toBeHidden({ timeout: 5_000 })
+    // Verify the specific interactive card is gone.
+    await expect(page.getByRole('button', { name: new RegExp(testText) })).toHaveCount(0, { timeout: 5_000 })
   })
 
   /**
@@ -151,7 +140,7 @@ test.describe('Scheduler — Post Interaction', () => {
     // Switch to list view and find the card
     await scheduler.switchToList()
     await page.waitForTimeout(300)
-    const postCard = page.locator('[role="button"]').filter({ hasText: testText }).first()
+    const postCard = page.getByRole('button', { name: new RegExp(testText) }).first()
     await expect(postCard).toBeVisible({ timeout: 10_000 })
 
     // Click the post card to open detail modal
