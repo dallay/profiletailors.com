@@ -8,27 +8,35 @@ const __dirname = path.dirname(__filename)
 /**
  * Playwright config for scheduler E2E tests.
  *
- * These tests require the FULL stack running:
- *   - Vite dev server on port 5173
- *   - Spring Boot backend on port 8080
- *   - WireMock (LinkedIn mock) on port 8089
- *   - PostgreSQL on port 5432
+ * ## Mock strategy
+ *
+ * Scheduler tests use a two-layer mock approach:
+ *
+ * 1. **Auth replay** (auth-flow.har via routeFromHAR): Login, refresh,
+ *    logout, and profile endpoints are served from the recorded HAR file.
+ * 2. **Scheduler mocks** (scheduler-mocks.ts via context.route):
+ *    Publications, channels, workspaces, and LinkedIn connection endpoints
+ *    are mocked programmatically with realistic response shapes.
+ *
+ * Together, these layers make ALL scheduler tests backend-free.
+ *
+ * ## Recording a real HAR (optional)
+ *
+ * If you want to capture real backend responses instead of mocks:
+ *
+ *   UPDATE_HAR=true npx playwright test -c e2e/playwright.scheduler.config.ts
+ *
+ * This records actual API responses into the HAR file. The scheduler
+ * mocks will still be active but unmatched requests fall through to HAR.
  *
  * ## Running
  *
- * Full stack first:
- *   docker compose up -d linkedin-wiremock postgresql
- *   SMP_PUBLISHING_WORKER_ENABLED=true SMP_PUBLISHING_WORKER_POLL_INTERVAL=PT5S \
- *     SMP_LINKEDIN_PUBLISHING_API_BASE_URL=http://localhost:8089 \
- *     ./gradlew :server:smp:bootRun --args='--spring.profiles.active=dev'
- *   pnpm --filter app dev
- *
- * Then:
- *   npx playwright test -c e2e/playwright.scheduler.config.ts
- *
- * Or use the npm script:
  *   pnpm --filter app test:e2e:scheduler
  *
+ * Or directly:
+ *   npx playwright test -c e2e/playwright.scheduler.config.ts
+ *
+ * @see fixtures/scheduler-mocks.ts for mock definitions
  * @see specs/e2e/scheduler-posts-test-plan.md
  */
 export default defineConfig({
@@ -55,6 +63,15 @@ export default defineConfig({
     video: process.env.CI ? 'on' : 'off',
     locale: 'en-US',
     timezoneId: 'Europe/Madrid',
+  },
+
+  /* ── Frontend dev server (no backend required) ─────────── */
+  webServer: {
+    command: 'VITE_API_BASE_URL="" pnpm run dev:app',
+    port: 5173,
+    reuseExistingServer: !process.env.CI,
+    cwd: path.resolve(__dirname, '..'),
+    timeout: 30_000,
   },
 
   projects: [

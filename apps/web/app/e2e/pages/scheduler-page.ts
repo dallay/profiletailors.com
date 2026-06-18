@@ -14,7 +14,7 @@ export class SchedulerPage {
   // ---- Locators ----
 
   get heading(): Locator {
-    return this.page.getByRole('heading', { level: 1, name: /scheduler/i })
+    return this.page.getByRole('heading', { name: /all channels/i })
   }
 
   get newPostButton(): Locator {
@@ -31,11 +31,11 @@ export class SchedulerPage {
   }
 
   get dayViewButton(): Locator {
-    return this.page.getByRole('button', { name: /day$/i })
+    return this.page.getByRole('button', { name: 'Day', exact: true })
   }
 
   get listViewButton(): Locator {
-    return this.page.getByRole('button', { name: /^list$/i })
+    return this.page.getByRole('button', { name: 'List', exact: true })
   }
 
   // Navigation
@@ -80,7 +80,8 @@ export class SchedulerPage {
 
   async goto(): Promise<void> {
     await this.page.goto('/scheduler')
-    await this.heading.waitFor({ state: 'visible', timeout: 10_000 })
+    await this.page.waitForLoadState('networkidle')
+    await this.heading.waitFor({ state: 'visible', timeout: 15_000 })
   }
 
   async switchToMonth(): Promise<void> {
@@ -130,8 +131,8 @@ export class SchedulerPage {
 
   async expectWeekView(): Promise<void> {
     // Verify 24 hour slots are present (12 AM through 11 PM)
-    await expect(this.page.locator('text=12 AM')).toBeVisible()
-    await expect(this.page.locator('text=11 PM')).toBeVisible()
+    await expect(this.page.getByText('12 AM', { exact: true })).toBeVisible()
+    await expect(this.page.getByText('11 PM', { exact: true })).toBeVisible()
   }
 
   async expectMonthView(): Promise<void> {
@@ -152,17 +153,19 @@ export class SchedulerPage {
 
   /**
    * Find the slot grid cell for a specific day-of-week column and hour.
-   * weekDays array is 0=Sun, 1=Mon, ... 6=Sat
+   * Uses the time-axis label text to locate the correct row, then indexes
+   * into the day columns (0=Sun, 1=Mon, ... 6=Sat).
    */
   getSlotCell(dayOfWeek: number, hour: number): Locator {
-    // The week grid has 24 rows, each with 7 day columns
-    const row = this.page.locator(`[data-slot-hour="${hour}"]`).or(
-      // Fallback: nth slot row, then nth day column
-      this.page.locator('.grid.grid-cols-\\[48px_repeat\\(7\\,1fr\\)\\]').nth(hour)
-    )
-    // If we can't target by data attribute, use a broader approach
-    // Each slot row has time-axis label + 7 day columns
-    return this.page.locator('div[class*="grid-cols"]').nth(24 + hour) // +1 for header, +1 for time-axis
+    const ampm = hour >= 12 ? 'PM' : 'AM'
+    const displayHour = hour % 12 === 0 ? 12 : hour % 12
+    const timeLabel = `${displayHour} ${ampm}`
+
+    // Each slot row has a time-axis label followed by 7 day columns.
+    // Find the row by its time label, then pick the day column by index.
+    const timeAxisLabel = this.page.locator('span.font-mono').filter({ hasText: new RegExp(`^${displayHour} ${ampm}$`) })
+    // The day column is a sibling of the time-axis label within the same grid row
+    return timeAxisLabel.locator('..').locator('div[aria-disabled]').nth(dayOfWeek)
   }
 
   /**
@@ -170,12 +173,11 @@ export class SchedulerPage {
    * Uses the + button that appears on hover.
    */
   async clickAddPostInSlot(dayOfWeek: number, hour: number): Promise<void> {
-    // Hover over the slot area, then click the + button
-    const slotArea = this.page.locator('[role="button"][aria-disabled="false"]').nth(dayOfWeek)
-    await slotArea.hover()
+    const cell = this.getSlotCell(dayOfWeek, hour)
+    await cell.hover()
     await this.page.waitForTimeout(200)
     // Click the + button that appears on hover
-    const addButton = slotArea.locator('button:has(svg)')
+    const addButton = cell.locator('button:has(svg)')
     await addButton.click()
   }
 }

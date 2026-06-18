@@ -1,4 +1,4 @@
-import { test, expect } from '@playwright/test'
+import { test, expect } from '../fixtures/scheduler-base-test'
 import { SchedulerPage } from '../pages/scheduler-page'
 import { authenticateAs } from '../fixtures/auth-helpers'
 
@@ -16,10 +16,10 @@ test.describe('Scheduler — Views & Navigation', () => {
    */
   test('TC-02: default week view with 24h slots @navigation @scheduler', async ({ page }) => {
     // Week view should be default
-    await expect(page.locator('text=12 AM')).toBeVisible()
-    await expect(page.locator('text=1 AM')).toBeVisible()
-    await expect(page.locator('text=6 PM')).toBeVisible()
-    await expect(page.locator('text=11 PM')).toBeVisible()
+    await expect(page.getByText('12 AM', { exact: true })).toBeVisible()
+    await expect(page.getByText('1 AM', { exact: true })).toBeVisible()
+    await expect(page.getByText('6 PM', { exact: true })).toBeVisible()
+    await expect(page.getByText('11 PM', { exact: true })).toBeVisible()
   })
 
   /**
@@ -30,13 +30,13 @@ test.describe('Scheduler — Views & Navigation', () => {
 
     // Month view
     await scheduler.switchToMonth()
-    // Month grid should show 42 cells (6 weeks × 7 days)
-    const cells = page.locator('[role="button"]').filter({ hasText: /^\d{1,2}$/ })
+    // Month grid should render 42 cells (6 weeks × 7 days)
+    const cells = page.locator('.group\\/cell')
     await expect(cells).toHaveCount(42)
 
     // Week view
     await scheduler.switchToWeek()
-    await expect(page.locator('text=12 AM')).toBeVisible()
+    await expect(page.getByText('12 AM', { exact: true })).toBeVisible()
 
     // Day view
     await scheduler.switchToDay()

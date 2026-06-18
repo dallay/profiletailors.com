@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed } from 'vue'
+import { ref, computed } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { CalendarClock, ExternalLink, Trash2, X, AlertTriangle, CheckCircle2, Clock } from '@lucide/vue'
 import { usePublishingStore, type Publication } from '@/stores/publishing'
@@ -286,6 +286,7 @@ async function deletePublication() {
               <ExternalLink class="size-3.5" />
               {{ t('postDetail.viewPost') }}
             </button>
+          </div>
           </div>
         </footer>
       </div>

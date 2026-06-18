@@ -10,11 +10,8 @@ import { LoginPage } from '../pages/login-page'
 import { APP_URL } from '../fixtures/test-data'
 
 test.describe('Responsive Design', { tag: '@frontend' }, () => {
-  test.beforeEach(async ({ page }) => {
-    await page.context().clearCookies()
-    await page.evaluate(() => {
-      try { localStorage.clear(); sessionStorage.clear() } catch {}
-    }).catch(() => {})
+  test.beforeEach(async ({ resetSession }) => {
+    await resetSession()
   })
 
   test('14.1 Login page renders on mobile viewport', async ({ page }) => {

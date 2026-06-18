@@ -130,14 +130,17 @@ class PublicationLifecyclePolicyTest {
     }
 
     @Test
-    fun `accepts scheduled publication at current time`() {
+    fun `rejects scheduled publication at current time (within 1s offset)`() {
         val now = Instant.parse("2026-05-26T12:00:00Z")
         val draft = baseDraft.copy(
             scheduleMode = ScheduleMode.SCHEDULED_AT,
             scheduledFor = now,
         )
 
-        PublicationLifecyclePolicy.validateForCreation(draft, now)
+        val exception = assertThrows(IllegalArgumentException::class.java) {
+            PublicationLifecyclePolicy.validateForCreation(draft, now)
+        }
+        assertTrue(exception.message!!.contains("Cannot schedule"))
     }
 
     @Test

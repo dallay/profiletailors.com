@@ -3,7 +3,7 @@ package com.profiletailors.smp.publishing.domain
 import java.time.Duration
 import java.time.Instant
 
-internal val MIN_SCHEDULE_OFFSET: Duration = Duration.ZERO
+internal val MIN_SCHEDULE_OFFSET: Duration = Duration.ofSeconds(1)
 
 open class PublicationStateTransitionException(
     message: String,

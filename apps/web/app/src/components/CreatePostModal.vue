@@ -281,6 +281,10 @@ function handleAiAssist() {
 async function handleSchedule() {
   if (!canSubmit.value) return
 
+  // Capture createAnother state before any async work
+  const shouldCreateAnother = createAnother.value
+  const capturedText = postText.value
+
   isSubmitting.value = true
   submitError.value = ''
 
@@ -333,17 +337,23 @@ async function handleSchedule() {
 
     emit('created')
 
-    if (!createAnother.value) {
-      emit('close')
-    } else {
-      // Reset text
+    if (shouldCreateAnother) {
+      // Reset text so the modal is ready for the next post
       postText.value = ''
       removeFile()
       firstComment.value = ''
+    } else {
+      emit('close')
     }
   } catch (err) {
     submitError.value = err instanceof Error ? err.message : 'Unable to schedule post.'
     console.error('Error scheduling post', err)
+    // Always reset form when "Create Another" was checked, even on error
+    if (shouldCreateAnother) {
+      postText.value = ''
+      removeFile()
+      firstComment.value = ''
+    }
   } finally {
     isSubmitting.value = false
   }

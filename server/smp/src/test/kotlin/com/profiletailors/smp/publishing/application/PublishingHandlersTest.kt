@@ -346,7 +346,7 @@ class PublishingHandlersTest {
     }
 
     @Test
-    fun `allows create publication when scheduledFor is now`() = runTest {
+    fun `allows create publication when scheduledFor is just after now`() = runTest {
         val publicationRepository = InMemoryPublicationRepository()
         val jobRepository = InMemoryPublicationJobRepository()
         val socialAccountRepository = InMemorySocialAccountRepository().apply {
@@ -381,11 +381,57 @@ class PublishingHandlersTest {
                 socialAccountId = "account-1",
                 bodyText = "Now post",
                 scheduleMode = ScheduleMode.SCHEDULED_AT,
-                scheduledFor = Instant.parse("2026-05-26T12:00:00Z"),
+                scheduledFor = Instant.parse("2026-05-26T12:00:01Z"),
             ),
         )
 
         assertEquals(PublicationStatus.SCHEDULED, result.status)
+    }
+
+    @Test
+    fun `rejects create publication when scheduledFor is within offset of now`() = runTest {
+        val publicationRepository = InMemoryPublicationRepository()
+        val jobRepository = InMemoryPublicationJobRepository()
+        val socialAccountRepository = InMemorySocialAccountRepository().apply {
+            upsert(
+                SocialAccount(
+                    id = "account-1",
+                    socialConnectionId = "connection-1",
+                    workspaceId = "workspace-1",
+                    provider = SocialProvider.LINKEDIN,
+                    providerAccountId = "linkedin-account-1",
+                    kind = SocialAccountKind.PERSONAL_PROFILE,
+                    displayName = "Yuniel",
+                    status = SocialConnectionStatus.ACTIVE,
+                ),
+            )
+        }
+        val assetRepository = InMemoryPublicationAssetRepository(emptyList())
+        val handler = CreatePublicationHandler(
+            principalContextProvider = FixedPrincipalContextProvider(principalContext),
+            resourceContextProvider = FixedResourceContextProvider(workspaceContext),
+            socialAccountRepository = socialAccountRepository,
+            publicationRepository = publicationRepository,
+            publicationAssetRepository = assetRepository,
+            publicationJobRepository = jobRepository,
+            providerCapabilityValidator = AcceptingCapabilityValidator(),
+            schedulingPolicy = PublicationSchedulingPolicy(),
+            clock = fixedClock,
+        )
+
+        val exception = assertThrows(IllegalArgumentException::class.java) {
+            kotlinx.coroutines.runBlocking {
+                handler.handle(
+                    CreatePublicationCommand(
+                        socialAccountId = "account-1",
+                        bodyText = "Past post",
+                        scheduleMode = ScheduleMode.SCHEDULED_AT,
+                        scheduledFor = Instant.parse("2026-05-26T12:00:00Z"),
+                    ),
+                )
+            }
+        }
+        assertTrue(exception.message!!.contains("Scheduled time must be in the future"))
     }
 
     @Test

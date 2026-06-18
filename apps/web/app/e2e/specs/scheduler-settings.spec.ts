@@ -1,57 +1,40 @@
-import { test, expect } from '@playwright/test'
-import { authenticateAs } from '../fixtures/auth-helpers'
+import { test, expect } from '../fixtures/scheduler-base-test'
+import { authenticateAs, keepSessionAlive } from '../fixtures/auth-helpers'
 import { safeGoto } from '../fixtures/navigation'
 import { APP_URL } from '../fixtures/test-data'
 
 test.describe('Scheduler — Settings Persistence', () => {
   test.beforeEach(async ({ page }) => {
     await authenticateAs(page)
+    await keepSessionAlive(page)
   })
 
   /**
    * TC-21: Theme persistence across page reload.
    */
   test('TC-21: theme persistence @settings @theme @persistence', async ({ page }) => {
-    // Navigate to settings
-    await safeGoto(page, APP_URL.settings)
-    await page.waitForTimeout(500)
+    // Theme controls live in the sidebar account menu, not the Settings page.
+    const accountMenuTrigger = page.getByRole('button', { name: /dev user|profile tailors/i }).first()
+    await accountMenuTrigger.click()
 
-    // Get the theme toggle button
-    const themeToggle = page.locator('button').filter({ hasText: /light|dark|light|oscuro|claro/i }).first()
-
-    // Check initial theme from localStorage
-    const initialSettings = await page.evaluate(() => {
-      return JSON.parse(localStorage.getItem('pt_settings_v1') || '{}')
-    })
+    const initialSettings = await page.evaluate(() => JSON.parse(localStorage.getItem('pt_settings_v1') || '{}'))
     const initialTheme = initialSettings.theme || 'dark'
+    const nextTheme = initialTheme === 'dark' ? 'light' : 'dark'
 
-    // Toggle to the other theme
-    await themeToggle.click()
+    const themeRadio = page.getByRole('radio', { name: new RegExp(nextTheme, 'i') })
+    await themeRadio.click({ force: true })
     await page.waitForTimeout(300)
 
-    // Verify localStorage updated
-    const updatedSettings = await page.evaluate(() => {
-      return JSON.parse(localStorage.getItem('pt_settings_v1') || '{}')
-    })
-    expect(updatedSettings.theme).not.toBe(initialTheme)
+    const updatedSettings = await page.evaluate(() => JSON.parse(localStorage.getItem('pt_settings_v1') || '{}'))
+    expect(updatedSettings.theme).toBe(nextTheme)
 
-    // Reload page and verify theme persists
     await page.reload()
-    await page.waitForTimeout(500)
+    await page.waitForLoadState('networkidle')
 
-    const afterReloadSettings = await page.evaluate(() => {
-      return JSON.parse(localStorage.getItem('pt_settings_v1') || '{}')
-    })
-    expect(afterReloadSettings.theme).toBe(updatedSettings.theme)
+    const afterReloadSettings = await page.evaluate(() => JSON.parse(localStorage.getItem('pt_settings_v1') || '{}'))
+    expect(afterReloadSettings.theme).toBe(nextTheme)
 
-    // Toggle back
-    await themeToggle.click()
-    await page.waitForTimeout(300)
-
-    const finalSettings = await page.evaluate(() => {
-      return JSON.parse(localStorage.getItem('pt_settings_v1') || '{}')
-    })
-    expect(finalSettings.theme).toBe(initialTheme)
+    // No need to toggle back in the same test — persistence already verified.
   })
 
   /**
@@ -61,39 +44,25 @@ test.describe('Scheduler — Settings Persistence', () => {
     await safeGoto(page, APP_URL.settings)
     await page.waitForTimeout(500)
 
-    // Get initial locale
-    const initialSettings = await page.evaluate(() => {
-      return JSON.parse(localStorage.getItem('pt_settings_v1') || '{}')
-    })
+    const initialSettings = await page.evaluate(() => JSON.parse(localStorage.getItem('pt_settings_v1') || '{}'))
     const initialLocale = initialSettings.locale || 'en'
+    const nextLocale = initialLocale === 'en' ? 'es' : 'en'
 
-    // Switch to the other locale
-    const localeToggle = page.locator('button').filter({ hasText: /english|español|spanish/i }).first()
-    await localeToggle.click()
+    await page.getByTestId(`settings-language-${nextLocale}`).click({ force: true })
     await page.waitForTimeout(300)
 
-    // Verify localStorage updated
-    const updatedSettings = await page.evaluate(() => {
-      return JSON.parse(localStorage.getItem('pt_settings_v1') || '{}')
-    })
-    expect(updatedSettings.locale).not.toBe(initialLocale)
+    const updatedSettings = await page.evaluate(() => JSON.parse(localStorage.getItem('pt_settings_v1') || '{}'))
+    expect(updatedSettings.locale).toBe(nextLocale)
 
-    // Reload and verify persistence
     await page.reload()
-    await page.waitForTimeout(500)
+    await page.waitForLoadState('networkidle')
 
-    const afterReloadSettings = await page.evaluate(() => {
-      return JSON.parse(localStorage.getItem('pt_settings_v1') || '{}')
-    })
-    expect(afterReloadSettings.locale).toBe(updatedSettings.locale)
+    const afterReloadSettings = await page.evaluate(() => JSON.parse(localStorage.getItem('pt_settings_v1') || '{}'))
+    expect(afterReloadSettings.locale).toBe(nextLocale)
 
-    // Toggle back
-    await localeToggle.click()
-    await page.waitForTimeout(300)
+    // Verify we're still on settings page after reload (data-testid is language-agnostic)
+    await expect(page.getByTestId('settings-shell')).toBeVisible({ timeout: 10_000 })
 
-    const finalSettings = await page.evaluate(() => {
-      return JSON.parse(localStorage.getItem('pt_settings_v1') || '{}')
-    })
-    expect(finalSettings.locale).toBe(initialLocale)
+    // Persistence already verified — no need to toggle back.
   })
 })

@@ -16,14 +16,16 @@ import {
   VALID_CREDENTIALS,
   APP_URL,
 } from '../fixtures/test-data'
-import { logout, mockRegisterResponse, mockRefreshFailure } from '../fixtures/auth-helpers'
+import {
+  keepSessionAlive,
+  logout,
+  mockRegisterResponse,
+  mockRefreshFailure,
+} from '../fixtures/auth-helpers'
 
 test.describe('Registration', { tag: '@integration' }, () => {
-  test.beforeEach(async ({ page }) => {
-    await page.context().clearCookies()
-    await page.evaluate(() => {
-      try { localStorage.clear(); sessionStorage.clear() } catch {}
-    }).catch(() => {})
+  test.beforeEach(async ({ resetSession }) => {
+    await resetSession()
   })
 
   test('5.1 Successful registration creates account and logs in', async ({ page }) => {

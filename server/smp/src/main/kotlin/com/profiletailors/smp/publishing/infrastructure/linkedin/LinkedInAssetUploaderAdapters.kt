@@ -214,7 +214,9 @@ class RealLinkedInAssetUploader(
         }
         val confirmBody = if (endpoint == "videos") {
             val requiredUploadToken = uploadToken
-                ?: throw ProviderUploadException("LinkedIn video upload missing uploadToken for finalizeUpload")
+                ?: throw ProviderUploadException(
+                    "LinkedIn video upload missing uploadToken for finalizeUpload (asset: ${asset.id})"
+                )
             mapOf(
                 "finalizeUploadRequest" to mapOf(
                     "video" to assetUrn,
@@ -254,11 +256,11 @@ class RealLinkedInAssetUploader(
     }
 
     /**
- * Encodes a URN by percent-encoding characters that are reserved in URI paths.
- *
- * @return The URN with `:` encoded as `%3A` and `/` encoded as `%2F`.
- */
-private fun encodeUrn(urn: String): String = urn.replace(":", "%3A").replace("/", "%2F")
+     * Encodes a URN by percent-encoding characters that are reserved in URI paths.
+     *
+     * @return The URN with `:` encoded as `%3A` and `/` encoded as `%2F`.
+     */
+    private fun encodeUrn(urn: String): String = urn.replace(":", "%3A").replace("/", "%2F")
 
     /**
      * Concatenates all byte arrays emitted by the flow.
@@ -285,15 +287,20 @@ private fun encodeUrn(urn: String): String = urn.replace(":", "%3A").replace("/"
     private companion object {
         val HTTP_SUCCESS_RANGE = 200..299
         const val CONTENT_TYPE = "Content-Type"
-        val DOCUMENT_MEDIA_TYPES = setOf(
-            "APPLICATION/PDF",
-            "APPLICATION/MSWORD",
-            "APPLICATION/VND.OPENXMLFORMATS-OFFICEDOCUMENT.WORDPROCESSINGML.DOCUMENT",
-            "APPLICATION/VND.MS-POWERPOINT",
-            "APPLICATION/VND.OPENXMLFORMATS-OFFICEDOCUMENT.PRESENTATIONML.PRESENTATION",
-        )
     }
 }
+
+/**
+ * Media types that LinkedIn treats as documents (uploaded via `/rest/documents`).
+ * Shared between asset upload and post publishing logic.
+ */
+internal val DOCUMENT_MEDIA_TYPES = setOf(
+    "APPLICATION/PDF",
+    "APPLICATION/MSWORD",
+    "APPLICATION/VND.OPENXMLFORMATS-OFFICEDOCUMENT.WORDPROCESSINGML.DOCUMENT",
+    "APPLICATION/VND.MS-POWERPOINT",
+    "APPLICATION/VND.OPENXMLFORMATS-OFFICEDOCUMENT.PRESENTATIONML.PRESENTATION",
+)
 
 private fun <T> T?.orThrow(lazyMessage: () -> String): T =
     this ?: throw ProviderUploadException(lazyMessage())

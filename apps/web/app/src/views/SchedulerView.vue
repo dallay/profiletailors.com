@@ -512,8 +512,8 @@ onMounted(() => {
                       :key="pub.id"
                       :draggable="true"
                       @click.stop="openPostDetail(pub)"
-                      @keydown.enter.stop.prevent="openPostDetail(pub)"
-                      @keydown.space.stop.prevent="openPostDetail(pub)"
+                      @keydown.enter.self.stop.prevent="openPostDetail(pub)"
+                      @keydown.space.self.stop.prevent="openPostDetail(pub)"
                       @dragstart="onDragStart($event, pub)"
                       @dragend="onDragEnd($event)"
                       class="relative z-10 border rounded-xl p-3 space-y-2.5 transition-all text-left shadow-sm group/card bg-bg-surface overflow-hidden cursor-pointer"
@@ -615,8 +615,8 @@ onMounted(() => {
                   :key="pub.id"
                   :draggable="true"
                   @click.stop="openPostDetail(pub)"
-                  @keydown.enter.stop.prevent="openPostDetail(pub)"
-                  @keydown.space.stop.prevent="openPostDetail(pub)"
+                  @keydown.enter.self.stop.prevent="openPostDetail(pub)"
+                  @keydown.space.self.stop.prevent="openPostDetail(pub)"
                   @dragstart="onDragStart($event, pub)"
                   @dragend="onDragEnd($event)"
                   class="relative border rounded-xl p-4 space-y-2.5 transition-all text-left shadow-sm group/card bg-bg-surface overflow-hidden mb-3 last:mb-0 cursor-pointer"
@@ -695,8 +695,8 @@ onMounted(() => {
               :key="pub.id"
               class="flex flex-col md:flex-row md:items-center justify-between gap-4 p-5 rounded-2xl border border-border-subtle bg-bg-surface hover:border-text-secondary transition-all cursor-pointer"
               @click="openPostDetail(pub)"
-              @keydown.enter.stop.prevent="openPostDetail(pub)"
-              @keydown.space.stop.prevent="openPostDetail(pub)"
+              @keydown.enter.self.stop.prevent="openPostDetail(pub)"
+              @keydown.space.self.stop.prevent="openPostDetail(pub)"
               role="button"
               tabindex="0"
             >
@@ -748,8 +748,9 @@ onMounted(() => {
 
                 <button
                   v-if="pub.status !== 'PUBLISHED'"
-                  @click="publishingStore.deletePost(pub.id)"
+                  @click.stop="publishingStore.deletePost(pub.id)"
                   class="size-8 flex items-center justify-center rounded-xl border border-border-visible hover:border-error text-text-secondary hover:text-error transition-colors bg-bg-primary cursor-pointer"
+                  title="Delete publication"
                 >
                   <Trash2 class="size-4" />
                 </button>

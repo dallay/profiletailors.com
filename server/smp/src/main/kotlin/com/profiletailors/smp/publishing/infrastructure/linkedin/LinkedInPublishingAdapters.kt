@@ -348,8 +348,7 @@ class RealLinkedInPublisher(
         val imageRefs = refs.filter { it.mediaType.startsWith("image/", ignoreCase = true) }
         val videoRef = refs.firstOrNull { it.mediaType.startsWith("video/", ignoreCase = true) }
         val documentRef = refs.firstOrNull {
-            it.mediaType.equals("application/pdf", ignoreCase = true) ||
-                it.mediaType.startsWith("document/", ignoreCase = true)
+            it.mediaType.uppercase() in DOCUMENT_MEDIA_TYPES
         }
 
         return when {

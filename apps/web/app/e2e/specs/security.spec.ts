@@ -6,7 +6,8 @@
  * flags, no credential exposure in URL, no user enumeration, and
  * required API headers.
  *
- * Tests with real backend required for cookie inspection.
+ * Uses HAR replay by default. Cookie assertions rely on the Set-Cookie
+ * captured in the HAR response and remain skipped on WebKit.
  */
 
 import { test, expect } from '../fixtures/base-test'
@@ -15,11 +16,8 @@ import { APP_URL, VALID_CREDENTIALS, NONEXISTENT_EMAIL_CREDENTIALS } from '../fi
 import { mockLoginResponse } from '../fixtures/auth-helpers'
 
 test.describe('Security', { tag: '@integration' }, () => {
-  test.beforeEach(async ({ page }) => {
-    await page.context().clearCookies()
-    await page.evaluate(() => {
-      try { localStorage.clear(); sessionStorage.clear() } catch {}
-    }).catch(() => {})
+  test.beforeEach(async ({ resetSession }) => {
+    await resetSession()
   })
 
   test('11.1 Access token never persisted to localStorage', async ({ page }) => {

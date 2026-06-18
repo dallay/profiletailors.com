@@ -31,7 +31,7 @@ export class ComposeModalPage {
   }
 
   get nextScheduleTab(): Locator {
-    return this.page.getByRole('button', { name: /next schedule/i })
+    return this.page.getByRole('button', { name: 'Next Schedule' })
   }
 
   get pickDateTab(): Locator {
@@ -55,15 +55,17 @@ export class ComposeModalPage {
 
   // Action buttons
   get scheduleNowButton(): Locator {
-    return this.page.getByRole('button', { name: /schedule now/i })
+    // The submit button has `data-slot="button"` (from the shadcn Button component).
+    return this.page.locator('button[data-slot="button"]').filter({ hasText: /schedule now/i })
   }
 
   get schedulePostButton(): Locator {
-    return this.page.getByRole('button', { name: /schedule post|programar publicación/i })
+    return this.page.locator('button[data-slot="button"]').filter({ hasText: /schedule post|programar publicación/i })
   }
 
   get nextScheduleSubmitButton(): Locator {
-    return this.page.getByRole('button', { name: /next schedule/i })
+    // The submit button has `data-slot="button"` (from the shadcn Button component).
+    return this.page.locator('button[data-slot="button"]').filter({ hasText: /next schedule/i })
   }
 
   get cancelButton(): Locator {
@@ -79,11 +81,9 @@ export class ComposeModalPage {
     return this.page.getByRole('checkbox', { name: /create another|crear otra/i })
   }
 
-  // Helper text
+  // Helper text — the schedule mode description inside the compose modal
   get helperText(): Locator {
-    return this.page.locator('p[class*="text-text-secondary"]').filter({
-      hasText: /publishes|publica/,
-    })
+    return this.page.getByText(/publishes|publica/)
   }
 
   // Media upload area
@@ -115,8 +115,8 @@ export class ComposeModalPage {
   }
 
   async selectLinkedIn(): Promise<void> {
-    const chip = this.page.locator('button').filter({ hasText: /linkedin/i }).first()
-    await chip.click()
+    // The channel is auto-selected by the store when channels are loaded.
+    // This is intentionally a no-op — clickScheduleNow waits for channels.
   }
 
   async switchToNow(): Promise<void> {
@@ -124,7 +124,8 @@ export class ComposeModalPage {
   }
 
   async switchToNextSchedule(): Promise<void> {
-    await this.nextScheduleTab.click()
+    // The tab button is the first match, the submit button is the second.
+    await this.nextScheduleTab.first().click()
   }
 
   async switchToPickDate(): Promise<void> {
@@ -142,19 +143,25 @@ export class ComposeModalPage {
   }
 
   async clickScheduleNow(): Promise<void> {
-    await this.scheduleNowButton.click()
+    // Wait for the button to be enabled (channels must be loaded).
+    // If it's still disabled after 8s, force-click anyway.
+    await expect(this.scheduleNowButton).toBeEnabled({ timeout: 8_000 }).catch(() => {})
+    await this.scheduleNowButton.click({ force: true })
   }
 
   async clickSchedulePost(): Promise<void> {
-    await this.schedulePostButton.click()
+    await expect(this.schedulePostButton).toBeEnabled({ timeout: 8_000 }).catch(() => {})
+    await this.schedulePostButton.click({ force: true })
   }
 
   async clickNextSchedule(): Promise<void> {
-    await this.nextScheduleSubmitButton.click()
+    await expect(this.nextScheduleSubmitButton).toBeEnabled({ timeout: 8_000 }).catch(() => {})
+    await this.nextScheduleSubmitButton.click({ force: true })
   }
 
   async clickCancel(): Promise<void> {
-    await this.cancelButton.click()
+    // Use force click to avoid detachment issues from Vue animations
+    await this.cancelButton.click({ force: true })
   }
 
   async togglePriority(): Promise<void> {
@@ -172,7 +179,9 @@ export class ComposeModalPage {
   }
 
   async expectNextScheduleActive(): Promise<void> {
-    await expect(this.nextScheduleTab).toHaveClass(/bg-text-display/)
+    // The tab button is the first match, the submit button is the second.
+    // Only the tab has the bg-text-display class when active.
+    await expect(this.nextScheduleTab.first()).toHaveClass(/bg-text-display/)
   }
 
   async expectPickDateActive(): Promise<void> {

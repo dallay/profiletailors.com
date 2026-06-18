@@ -17,6 +17,11 @@ export class PostDetailModalPage {
     return this.page.getByRole('dialog').getByRole('heading', { name: /post detail/i })
   }
 
+  get visible(): Locator {
+    // Match the dialog by aria-label since the modal uses role="dialog"
+    return this.page.getByRole('dialog', { name: /post detail/i })
+  }
+
   get titleLabel(): Locator {
     return this.page.getByText(/title/i).first()
   }
@@ -46,13 +51,14 @@ export class PostDetailModalPage {
   }
 
   get closeButton(): Locator {
-    return this.page.getByRole('button', { name: /close|cerrar/i })
+    // Use the X icon button in the modal header (identified by aria-label)
+    return this.page.getByRole('button', { name: 'Close' }).last()
   }
 
   // ---- Actions ----
 
   async expectVisible(): Promise<void> {
-    await expect(this.heading).toBeVisible({ timeout: 5_000 })
+    await expect(this.visible).toBeVisible({ timeout: 5_000 })
   }
 
   async expectHidden(): Promise<void> {

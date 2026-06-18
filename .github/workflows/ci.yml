@@ -13,14 +13,43 @@ concurrency:
 permissions:
   contents: read
 
-# ═══════════════════════════════════════════════════════════════
-# All jobs run in parallel — no job depends on another.
-# This maximises throughput on GitHub Actions runners.
-# ═══════════════════════════════════════════════════════════════
 jobs:
+  # ═══════════════════════════════════════════════════════════════
+  # Change Detection — decides which expensive jobs to run
+  # ═══════════════════════════════════════════════════════════════
+  changes:
+    name: Detect Changes
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pull-requests: read
+    outputs:
+      backend: ${{ steps.filter.outputs.backend }}
+      frontend: ${{ steps.filter.outputs.frontend }}
+    steps:
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5
+        with:
+          persist-credentials: false
+
+      - uses: dorny/paths-filter@d1c1ffe0248fe513906c8e24db8ea791d46f8590
+        id: filter
+        with:
+          filters: |
+            backend:
+              - 'server/smp/**'
+              - 'shared/**'
+              - 'server/smp/build.gradle.kts'
+            frontend:
+              - 'apps/web/marketing/**'
+              - 'apps/web/app/**'
+              - 'pnpm-lock.yaml'
+
+  # ═══════════════════════════════════════════════════════════════
+  # Always-on jobs — fast, run on every push
+  # ═══════════════════════════════════════════════════════════════
 
   # ──────────────────────────────────────────────────────────────
-  # 1. Lint — Biome (marketing) + Detekt (backend)
+  # 1. Lint — Biome (marketing/app) + Detekt (backend)
   # ──────────────────────────────────────────────────────────────
   lint:
     name: 🧹 Lint
@@ -34,16 +63,18 @@ jobs:
 
       - uses: ./.github/actions/setup-backend
 
-      - name: Biome lint (marketing)
+      - name: Biome lint (marketing + app)
         shell: bash
-        run: cd apps/web/marketing && pnpm lint
+        run: |
+          cd apps/web/marketing && pnpm lint
+          cd ../app && pnpm lint
 
       - name: Detekt (backend)
         shell: bash
         run: ./gradlew :server:smp:detekt --no-daemon
 
   # ──────────────────────────────────────────────────────────────
-  # 3. Frontend unit tests (marketing)
+  # 2. Frontend unit tests (marketing)
   # ──────────────────────────────────────────────────────────────
   frontend-unit:
     name: 🧪 Frontend Unit Tests
@@ -60,7 +91,7 @@ jobs:
         run: cd apps/web/marketing && pnpm test:coverage
 
   # ──────────────────────────────────────────────────────────────
-  # 4. App unit tests (SMP app — Vue + Pinia)
+  # 3. App unit tests (SMP app — Vue + Pinia)
   # ──────────────────────────────────────────────────────────────
   app-unit:
     name: 🧪 App Unit Tests
@@ -77,7 +108,7 @@ jobs:
         run: pnpm --filter app test:run
 
   # ──────────────────────────────────────────────────────────────
-  # 5. Backend unit tests (Kotlin — no Postgres)
+  # 4. Backend unit tests (Kotlin — no Postgres)
   # ──────────────────────────────────────────────────────────────
   backend-unit:
     name: 🧪 Backend Unit Tests
@@ -93,11 +124,17 @@ jobs:
         shell: bash
         run: ./gradlew :server:smp:test --no-daemon -PexcludeTags=modularity,postgres
 
+  # ═══════════════════════════════════════════════════════════════
+  # Conditional jobs — only run when relevant paths change
+  # ═══════════════════════════════════════════════════════════════
+
   # ──────────────────────────────────────────────────────────────
-  # 6. Backend BDD fast suite
+  # 5. Backend BDD fast suite
   # ──────────────────────────────────────────────────────────────
   backend-bdd:
     name: 🔨 Backend BDD
+    needs: changes
+    if: needs.changes.outputs.backend == 'true'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5
@@ -111,10 +148,12 @@ jobs:
         run: ./gradlew :server:smp:bddFastTest --no-daemon -x :shared:common:test -x :shared:spring-boot-common:test
 
   # ──────────────────────────────────────────────────────────────
-  # 7. Marketing E2E (Playwright — all browsers)
+  # 6. Marketing E2E (Playwright — all browsers)
   # ──────────────────────────────────────────────────────────────
   marketing-e2e:
     name: 🌐 Marketing E2E
+    needs: changes
+    if: needs.changes.outputs.frontend == 'true'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5
@@ -139,7 +178,7 @@ jobs:
           retention-days: 7
 
   # ──────────────────────────────────────────────────────────────
-  # 8. Scheduler E2E (Playwright — full stack required)
+  # 7. Scheduler E2E (Playwright — full stack required)
   #
   # Spins up: PostgreSQL, WireMock (LinkedIn mock), Spring Boot, Vite.
   # Runs serially within the job since tests share browser state.
@@ -154,7 +193,10 @@ jobs:
   # ──────────────────────────────────────────────────────────────
   scheduler-e2e:
     name: 📅 Scheduler E2E
+    needs: changes
+    if: needs.changes.outputs.frontend == 'true' || needs.changes.outputs.backend == 'true'
     runs-on: ubuntu-latest
+    timeout-minutes: 20
     env:
       SMP_POSTGRES_DB: profiletailors_smp
       SMP_POSTGRES_USER: profiletailors

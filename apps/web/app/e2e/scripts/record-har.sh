@@ -7,10 +7,10 @@
 #   UPDATE_HAR=true ./scripts/record-har.sh    # explicit (same)
 #
 # Prerequisites:
-#   1. SMP backend running on http://localhost:8080
-#      (or the URL in your .env)
-#   2. E2E test user seeded in the backend
-#   3. Frontend dev server can start (pnpm dev)
+#   1. Backend / API running
+#   2. Frontend dev server can start (pnpm dev)
+#   3. Optional: E2E_TEST_USER_EMAIL / E2E_TEST_USER_PASSWORD to record
+#      with a different account than the HAR defaults
 #
 # What it does:
 #   - Starts the frontend dev server (if not already running)
@@ -29,8 +29,8 @@ HAR_FILE="$(cd "$(dirname "$0")/.." && pwd)/hars/auth-flow.har"
 
 echo "🎙️  Recording HAR to: $HAR_FILE"
 echo ""
-echo "Make sure the SMP backend is running!"
-echo "  (e.g., ./gradlew :server:smp:bootRun --args='--spring.profiles.active=dev')"
+echo "Make sure the backend is running!"
+echo "Using E2E credentials: ${E2E_TEST_USER_EMAIL:-dev@profiletailors.com}"
 echo ""
 
 # Kill frontend on exit
