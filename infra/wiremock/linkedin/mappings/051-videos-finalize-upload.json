@@ -1,0 +1,18 @@
+{
+  "priority": 10,
+  "request": {
+    "method": "POST",
+    "urlPath": "/rest/videos",
+    "queryParameters": {
+      "action": { "equalTo": "finalizeUpload" }
+    },
+    "bodyPatterns": [
+      { "matchesJsonPath": "$.finalizeUploadRequest.video" }
+    ]
+  },
+  "response": {
+    "status": 200,
+    "headers": { "Content-Type": "application/json" },
+    "jsonBody": { "status": "AVAILABLE" }
+  }
+}

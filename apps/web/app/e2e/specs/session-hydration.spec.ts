@@ -10,14 +10,18 @@ import { test, expect } from '../fixtures/base-test'
 import { LoginPage } from '../pages/login-page'
 import { DashboardPage } from '../pages/dashboard-page'
 import { APP_URL } from '../fixtures/test-data'
-import { authenticateAs, mockRefreshResponse } from '../fixtures/auth-helpers'
+import {
+  authenticateAs,
+  keepSessionAlive,
+  resetSession,
+} from '../fixtures/auth-helpers'
 import { safeGoto } from '../fixtures/navigation'
 
 test.describe('Session Hydration', { tag: '@integration' }, () => {
   test('6.1 Page refresh maintains session via refresh cookie', async ({ page }) => {
     // Authenticate via form, then mock refresh so the session survives re-navigation
     await authenticateAs(page)
-    await mockRefreshResponse(page)
+    await keepSessionAlive(page)
 
     // Navigate to dashboard (will hydrateSession via mocked refresh → 200)
     await safeGoto(page, APP_URL.dashboard)
@@ -33,7 +37,7 @@ test.describe('Session Hydration', { tag: '@integration' }, () => {
   test('6.2 Expired session shows login page after refresh', async ({ page }) => {
     // Authenticate via form, then mock refresh so dashboard loads
     await authenticateAs(page)
-    await mockRefreshResponse(page)
+    await keepSessionAlive(page)
     await safeGoto(page, APP_URL.dashboard)
     await expect(page).toHaveURL(APP_URL.dashboard)
 
@@ -50,8 +54,8 @@ test.describe('Session Hydration', { tag: '@integration' }, () => {
       })
     })
 
-    // Also clear cookies to prevent real refresh
-    await page.context().clearCookies()
+    // Also clear cookies to prevent refresh after the forced 401
+    await resetSession(page)
 
     // Reload — should redirect to login
     await page.reload()

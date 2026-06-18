@@ -22,6 +22,7 @@ lefthook-local.yml
 
 # Temporary debug files (screenshots, login notes, npm lockfiles)
 *.png
+!apps/web/app/public/*.png
 login-page.txt
 package-lock.json
 **/package-lock.json
@@ -108,3 +109,8 @@ node_modules/
 /GEMINI.md.bak
 /opencode.json
 # END AI Agent Symlinks
+
+# Playwright reports (all frontend projects)
+**/playwright-report/
+**/playwright-scheduler-report/
+**/test-results/

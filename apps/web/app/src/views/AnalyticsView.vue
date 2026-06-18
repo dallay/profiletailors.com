@@ -3,7 +3,7 @@ import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card'
 </script>
 
 <template>
-  <div class="space-y-12">
+  <div class="mx-auto w-full max-w-7xl space-y-12">
     <!-- Header -->
     <div class="space-y-2">
       <h2 class="text-3xl font-light tracking-tight text-text-display">

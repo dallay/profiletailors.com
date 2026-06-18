@@ -454,12 +454,17 @@ class PublishingWorkerLifecycle(
 ) {
     fun start() {
         if (!enabled) return
+        // Use initialDelay = pollInterval to give Liquibase migrations time
+        // to complete before the first poll attempt (avoids race condition
+        // where worker queries tables that don't exist yet).
         taskScheduler.scheduleAtFixedRate(
             { runBlocking { worker.pollOnce() } },
+            java.time.Instant.now().plus(pollInterval),
             pollInterval,
         )
         taskScheduler.scheduleAtFixedRate(
             { runBlocking { worker.scanBlockedForRecovery() } },
+            java.time.Instant.now().plus(blockedRecoveryInterval),
             blockedRecoveryInterval,
         )
     }

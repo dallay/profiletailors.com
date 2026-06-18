@@ -56,7 +56,7 @@ function handleMoveCard(cardId: string, fromColumn: string, toColumn: string, to
     <div class="grid grid-cols-1 lg:grid-cols-2 gap-4">
       <div
         v-for="i in 4"
-        :key="'row-' + i"
+        :key="`row-${i}`"
         class="h-64 rounded-xl bg-[var(--background-surface)] animate-pulse"
       />
     </div>

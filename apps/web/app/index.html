@@ -7,23 +7,106 @@
     <!-- Primary Meta Tags -->
     <title>Profile Tailors — Social Media Management Platform</title>
     <meta name="title" content="Profile Tailors — Social Media Management Platform">
-    <meta name="description" content="Schedule, publish, analyze, engage, and collaborate across all your social media platforms">
-    
+    <meta name="description" content="Schedule, publish, analyze, engage, and collaborate across all your social media platforms from one dashboard.">
+
+    <!-- Canonical -->
+    <link rel="canonical" href="https://app.profiletailors.com/" />
+
+    <!-- Open Graph -->
+    <meta property="og:type" content="website" />
+    <meta property="og:url" content="https://app.profiletailors.com/" />
+    <meta property="og:title" content="Profile Tailors — Social Media Management Platform" />
+    <meta property="og:description" content="Schedule, publish, analyze, engage, and collaborate across all your social media platforms from one dashboard." />
+    <meta property="og:site_name" content="Profile Tailors" />
+    <meta property="og:locale" content="en_US" />
+    <meta property="og:locale:alternate" content="es_ES" />
+    <meta property="og:image" content="https://app.profiletailors.com/og.png" />
+    <meta property="og:image:width" content="1200" />
+    <meta property="og:image:height" content="630" />
+    <meta property="og:image:alt" content="Profile Tailors — Social Media Management Platform" />
+
+    <!-- Twitter Card -->
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:site" content="@profiletailors" />
+    <meta name="twitter:title" content="Profile Tailors — Social Media Management Platform" />
+    <meta name="twitter:description" content="Schedule, publish, analyze, engage, and collaborate across all your social media platforms from one dashboard." />
+    <meta name="twitter:image" content="https://app.profiletailors.com/og.png" />
+
     <!-- Favicon -->
-    <link rel="icon" href="/favicon.ico" sizes="32x32">
-    <link rel="apple-touch-icon" href="/apple-touch-icon.png">
-    
+    <link rel="icon" href="/favicon.ico" sizes="any" />
+    <link rel="icon" href="/icon-192.png" type="image/png" sizes="192x192" />
+    <link rel="icon" href="/icon-512.png" type="image/png" sizes="512x512" />
+    <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
+
     <!-- PWA Manifest -->
-    <link rel="manifest" href="/manifest.webmanifest">
-    
+    <link rel="manifest" href="/manifest.webmanifest" />
+
     <!-- Theme Color -->
     <meta name="theme-color" content="#000000" media="(prefers-color-scheme: dark)">
     <meta name="theme-color" content="#ffffff" media="(prefers-color-scheme: light)">
-    
+
     <!-- iOS Meta Tags -->
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <meta name="apple-mobile-web-app-title" content="Profile Tailors">
+
+    <!-- JSON-LD Structured Data -->
+    <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@type": "WebApplication",
+      "name": "Profile Tailors",
+      "description": "Schedule, publish, analyze, engage, and collaborate across all your social media platforms from one dashboard.",
+      "url": "https://app.profiletailors.com",
+      "applicationCategory": "BusinessApplication",
+      "operatingSystem": "Web",
+      "offers": {
+        "@type": "Offer",
+        "price": "0",
+        "priceCurrency": "USD"
+      },
+      "featureList": [
+        "Schedule posts to Instagram, Twitter/X, LinkedIn, Facebook",
+        "Analytics dashboard",
+        "Engagement management",
+        "Team collaboration"
+      ],
+      "provider": {
+        "@type": "Organization",
+        "name": "Profile Tailors",
+        "url": "https://profiletailors.com"
+      }
+    }
+    </script>
+
+    <!-- Pre-hydration theme bootstrap: avoid flash of wrong theme.
+         Must run before the body renders. Keys are kept in sync with
+         stores/settings.ts. Default to dark when no preference is stored. -->
+    <script>
+      (function () {
+        try {
+          var raw = localStorage.getItem('pt_settings_v1');
+          var theme = 'dark';
+          var locale = 'en';
+          if (raw) {
+            var parsed = JSON.parse(raw);
+            if (parsed && (parsed.theme === 'dark' || parsed.theme === 'light')) {
+              theme = parsed.theme;
+            }
+            if (parsed && (parsed.locale === 'en' || parsed.locale === 'es')) {
+              locale = parsed.locale;
+            }
+          }
+          var root = document.documentElement;
+          root.classList.toggle('light', theme === 'light');
+          root.classList.toggle('dark', theme === 'dark');
+          root.style.colorScheme = theme;
+          root.setAttribute('lang', locale);
+        } catch (e) {
+          // localStorage may be unavailable; the store will fall back to defaults.
+        }
+      })();
+    </script>
   </head>
   <body>
     <div id="app"></div>

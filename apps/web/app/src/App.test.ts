@@ -139,7 +139,7 @@ describe('App.vue — avatar rendering', () => {
     const imgs = wrapper.findAll('img')
     const avatarImg = imgs.find((img) => img.attributes('src') === 'https://example.com/avatar.jpg')
     expect(avatarImg).toBeTruthy()
-    expect(avatarImg!.attributes('alt')).toBe('Channel ch-1 avatar')
+    expect(avatarImg?.attributes('alt')).toBe('Channel ch-1 avatar')
   })
 
   it('renders fallback badge when avatarUrl is null/undefined', () => {

@@ -882,14 +882,14 @@ class LinkedInPublishingAdaptersTest {
     fun `capability validator rejects unsupported media type`() {
         val validator = LinkedInCapabilityValidator()
         val account = testSocialAccount()
-        val asset = testAsset("application/pdf")
+        val asset = testAsset("application/zip")
 
         val error = assertThrows(PublicationValidationException::class.java) {
             validator.validate(testValidationInput(account, listOf(asset)))
         }
 
         assertTrue(error.message!!.contains("Unsupported media type"))
-        assertTrue(error.message!!.contains("application/pdf"))
+        assertTrue(error.message!!.contains("application/zip"))
     }
 
     @Test
@@ -897,16 +897,16 @@ class LinkedInPublishingAdaptersTest {
         val validator = LinkedInCapabilityValidator()
         val account = testSocialAccount()
         val assets = listOf(
-            testAsset("application/pdf"),
             testAsset("application/zip"),
+            testAsset("text/html"),
         )
 
         val error = assertThrows(PublicationValidationException::class.java) {
             validator.validate(testValidationInput(account, assets))
         }
 
-        assertTrue(error.message!!.contains("application/pdf"))
         assertTrue(error.message!!.contains("application/zip"))
+        assertTrue(error.message!!.contains("text/html"))
     }
 
     @Test
@@ -941,7 +941,7 @@ class LinkedInPublishingAdaptersTest {
             sourceType = AssetSourceType.UPLOADED,
             mediaType = "image/jpeg",
             storageKey = "assets/workspace-1/asset-big",
-            fileSizeBytes = 15L * 1024 * 1024, // 15MB > 10MB limit
+            fileSizeBytes = 600L * 1024 * 1024, // 600MB > 500MB limit
             status = PublicationAssetStatus.READY,
             createdByPrincipalId = "principal-1",
         )
@@ -957,14 +957,14 @@ class LinkedInPublishingAdaptersTest {
     fun `capability validator accepts asset at exactly max size`() {
         val validator = LinkedInCapabilityValidator()
         val account = testSocialAccount()
-        // Exactly 10MB should pass
+        // Exactly 500MB should pass
         val maxAsset = PublicationAsset(
             id = "asset-max",
             workspaceId = "workspace-1",
             sourceType = AssetSourceType.UPLOADED,
             mediaType = "image/jpeg",
             storageKey = "assets/workspace-1/asset-max",
-            fileSizeBytes = 10L * 1024 * 1024,
+            fileSizeBytes = 500L * 1024 * 1024,
             status = PublicationAssetStatus.READY,
             createdByPrincipalId = "principal-1",
         )
@@ -1005,7 +1005,7 @@ class LinkedInPublishingAdaptersTest {
                 LinkedInHttpResponse(
                     200,
                     emptyHeaders(),
-                    """{"asset":"urn:li:digitalmediaAsset:image:abc123","uploadUrl":"https://upload.linkedin.com/upload"}""",
+                    """{"image":"urn:li:image:abc123","uploadUrl":"https://upload.linkedin.com/upload"}""",
                 ),
                 LinkedInHttpResponse(
                     200,
@@ -1028,7 +1028,7 @@ class LinkedInPublishingAdaptersTest {
 
         val result = uploader.uploadAsset(asset, flowOf(ByteArray(1024)), context)
 
-        assertEquals("urn:li:digitalmediaAsset:image:abc123", result.providerAssetId)
+        assertEquals("urn:li:image:abc123", result.providerAssetId)
         assertEquals("image/jpeg", result.mediaType)
         assertNotNull(result)
     }

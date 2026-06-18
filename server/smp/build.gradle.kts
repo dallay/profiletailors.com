@@ -23,6 +23,13 @@ tasks.bootRun {
                 environment(key, value)
             }
     }
+
+    // In CI (where PostgreSQL is already running as a service container),
+    // disable Spring Boot Docker Compose integration to avoid port conflicts.
+    // Uses a JVM system property so Spring Boot reads it during startup.
+    if (providers.environmentVariable("SPRING_DOCKER_COMPOSE_ENABLED").orNull == "false") {
+        jvmArgs("-Dspring.docker.compose.enabled=false")
+    }
 }
 
 dependencies {

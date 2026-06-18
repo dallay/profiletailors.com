@@ -11,11 +11,8 @@ import { LoginPage } from '../pages/login-page'
 import { APP_URL } from '../fixtures/test-data'
 
 test.describe('Login Form Validation', { tag: '@frontend' }, () => {
-  test.beforeEach(async ({ page }) => {
-    await page.context().clearCookies()
-    await page.evaluate(() => {
-      try { localStorage.clear(); sessionStorage.clear() } catch {}
-    }).catch(() => {})
+  test.beforeEach(async ({ resetSession }) => {
+    await resetSession()
   })
 
   test('2.1 Empty fields trigger HTML5 validation', async ({ page }) => {

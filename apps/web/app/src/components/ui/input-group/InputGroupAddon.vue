@@ -14,10 +14,10 @@ const props = withDefaults(defineProps<{
 function handleInputGroupAddonClick(e: MouseEvent) {
   const currentTarget = e.currentTarget as HTMLElement | null
   const target = e.target as HTMLElement | null
-  if (target && target.closest("button")) {
+  if (target?.closest("button")) {
     return
   }
-  if (currentTarget && currentTarget?.parentElement) {
+  if (currentTarget?.parentElement) {
     currentTarget.parentElement?.querySelector("input")?.focus()
   }
 }

@@ -120,6 +120,9 @@ data class PublicationResult(
     val assetIds: List<String>,
     val scheduledFor: Instant?,
     val nextSlotAfter: Instant?,
+    val externalPublicationId: String? = null,
+    val publicUrl: String? = null,
+    val publishedAt: Instant? = null,
 )
 
 data class PublicationAssetSummary(
@@ -172,6 +175,9 @@ data class CalendarPublicationResult(
     val scheduledFor: Instant?,
     val hasConflict: Boolean,
     val conflictingPublicationIds: List<String>,
+    val externalPublicationId: String? = null,
+    val publicUrl: String? = null,
+    val publishedAt: Instant? = null,
 )
 
 data class ConflictEntry(

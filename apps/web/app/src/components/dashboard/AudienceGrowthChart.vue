@@ -65,8 +65,8 @@ const areaPath = computed(() => {
   const ys = yScale.value
   if (xs.length < 2) return ''
   const h = chartDims.height - MARGIN.bottom
-  const firstX = xs[0]!
-  const lastX = xs[xs.length - 1]!
+  const firstX = xs.at(0) ?? 0
+  const lastX = xs.at(-1) ?? 0
   const points = xs.map((x, i) => `${x.toFixed(1)},${(ys[i] ?? 0).toFixed(1)}`).join('L')
   return `M${firstX.toFixed(1)},${h}L${points}L${lastX.toFixed(1)},${h}Z`
 })
@@ -98,7 +98,7 @@ const xLabels = computed(() => {
   const xs = xScale.value
   const indices = [0, Math.floor(n / 2), n - 1]
   return indices.map((i) => ({
-    label: props.data[i]!.date,
+    label: props.data[i]?.date,
     x: xs[i] ?? 0,
   }))
 })
@@ -186,6 +186,7 @@ function formatTooltipValue(value: number): string {
             />
 
             <!-- Data points -->
+            <!-- biome-ignore lint/a11y/noStaticElementInteractions: SVG <g> hover for chart tooltip, no semantic alternative -->
             <g
               v-for="(point, i) in xScale"
               :key="i"
@@ -244,10 +245,10 @@ function formatTooltipValue(value: number): string {
             }"
           >
             <p class="text-[var(--text-secondary)] font-[var(--font-space-mono)] text-[10px] uppercase tracking-wider">
-              {{ data[hoveredIndex]!.date }}
+              {{ data[hoveredIndex]?.date }}
             </p>
             <p class="text-[var(--text-display)] font-semibold tabular-nums mt-0.5">
-              {{ formatTooltipValue(data[hoveredIndex]!.followers) }}
+              {{ formatTooltipValue(data[hoveredIndex]?.followers ?? 0) }}
             </p>
           </div>
         </div>

@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { computed } from 'vue'
+import { Plus } from '@lucide/vue'
 import ConflictBadge from '@/components/ConflictBadge.vue'
 import type { Publication, ActivityEntry } from '@/stores/publishing'
 import { getProviderColor, getProviderBadge } from '@/lib/provider-styles'
@@ -13,7 +14,7 @@ const props = withDefaults(
     /** Whether the date is today */
     isToday: boolean
     /** Whether this cell is in the past (no interaction allowed) */
-    isPast: boolean
+    isPast?: boolean
     /** Publications scheduled for this date */
     publications: Publication[]
     /** Activity density entry for this date (optional) */
@@ -26,6 +27,7 @@ const props = withDefaults(
   {
     activityEntry: null,
     draggable: false,
+    isPast: false,
     maxVisible: 3,
   },
 )
@@ -76,11 +78,11 @@ function onKeyDown(e: KeyboardEvent) {
 
 <template>
   <div
-    class="relative min-h-[90px] border-r border-border-subtle last:border-r-0 p-1.5 transition-all"
+    class="relative min-h-[90px] border-r border-border-subtle last:border-r-0 p-1.5 transition-all group/cell"
     :class="{
       'bg-bg-surface/30': !isCurrentMonth,
       'bg-bg-primary/10': isCurrentMonth && !isPast,
-      'opacity-40 cursor-not-allowed pointer-events-none': isPast,
+      'bg-text-secondary/5 text-text-secondary cursor-not-allowed after:absolute after:inset-0 after:bg-[repeating-linear-gradient(-45deg,transparent,transparent_10px,var(--border-color)_10px,var(--border-color)_11px)] after:opacity-10 after:z-0': isPast,
       'cursor-pointer hover:bg-bg-primary/20': isCurrentMonth && !isPast,
     }"
     :tabindex="isCurrentMonth && !isPast ? 0 : -1"
@@ -117,7 +119,7 @@ function onKeyDown(e: KeyboardEvent) {
       <div
         v-for="pub in visiblePublications"
         :key="pub.id"
-        class="flex items-center gap-1 rounded-md px-1 py-0.5 text-[7px] font-mono truncate"
+        class="relative z-10 flex items-center gap-1 rounded-md px-1 py-0.5 text-[7px] font-mono truncate"
         :class="getProviderColor(pub.channels[0] || 'linkedin')"
         :draggable="draggable"
         @dragstart="onDragStart($event, pub)"
@@ -137,5 +139,15 @@ function onKeyDown(e: KeyboardEvent) {
         +{{ remainingCount }} more
       </div>
     </div>
+
+    <!-- Add post button (only in enabled current-month cells) -->
+    <button
+      v-if="isCurrentMonth && !isPast"
+      @click.stop="emit('click-day', date)"
+      class="hidden group-hover/cell:flex items-center justify-center size-5 mt-auto ml-auto rounded border border-dashed border-text-secondary/30 text-text-secondary/50 hover:border-text-display/40 hover:text-text-display/60 hover:bg-bg-primary/30 transition-all cursor-pointer"
+      aria-label="Add post"
+    >
+      <Plus class="size-2.5" />
+    </button>
   </div>
 </template>

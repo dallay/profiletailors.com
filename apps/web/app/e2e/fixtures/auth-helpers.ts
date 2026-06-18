@@ -4,19 +4,17 @@
  * IMPORTANT: All API calls use page-level fetch() to ensure they go through
  * the Playwright route interception layer (page.route() and context.routeFromHAR()).
  * Playwright's APIRequestContext (page.request.*) bypasses these interceptors.
- *
- * Headers and credentials are passed EXPLICITLY into page.evaluate()
- * because the callback runs in the browser context, not Node.js.
  */
 
-import type { Page } from '@playwright/test'
-import { expect } from '@playwright/test'
+import type { Page, Route } from '@playwright/test'
 import { VALID_CREDENTIALS, APP_URL } from './test-data'
 
 const API_HEADERS: Record<string, string> = {
   'Content-Type': 'application/json',
   Accept: 'application/vnd.api.v1+json',
 }
+
+const HAR_REPLAY = process.env.UPDATE_HAR !== 'true'
 
 /**
  * Authenticate by logging in via the Vue form and waiting for dashboard.
@@ -41,31 +39,43 @@ export async function authenticateAs(
 }
 
 /**
- * Register a new user via page-level fetch().
+ * Clear all session state so each test starts from a known unauthenticated state.
  */
-export async function registerUser(
-  page: Page,
-  credentials: { email: string; password: string },
-): Promise<{ status: number; ok: boolean; body: unknown }> {
-  const result = await page.evaluate(
-    (args: {
-      creds: { email: string; password: string }
-      headers: Record<string, string>
-    }) => {
-      const { creds, headers } = args
-      return fetch('/api/auth/register', {
-        method: 'POST',
-        headers,
-        body: JSON.stringify(creds),
-      }).then(async (res) => {
-        const body = await res.json().catch(() => ({}))
-        return { status: res.status, ok: res.ok, body }
-      })
-    },
-    { creds: credentials, headers: API_HEADERS },
-  )
+export async function resetSession(page: Page): Promise<void> {
+  await page.context().clearCookies()
+  await clearClientStorage(page)
+}
 
-  return result
+/**
+ * Route helper for tests that want to delay/inspect a request while still
+ * letting HAR replay (or a later route handler) provide the final response.
+ */
+export async function fallbackAfterDelay(route: Route, delayMs: number): Promise<void> {
+  await new Promise((resolve) => setTimeout(resolve, delayMs))
+  await route.fallback()
+}
+
+/**
+ * Apply the default HAR replay auth behavior explicitly.
+ *
+ * In replay mode, login/logout already come from the HAR and refresh returns
+ * 401 by default. In record mode, these helpers are inert so the real backend
+ * remains reachable.
+ */
+export async function useReplayAuthDefaults(page: Page): Promise<void> {
+  if (!HAR_REPLAY) {
+    return
+  }
+
+  await mockRefreshFailure(page)
+}
+
+/**
+ * Keep the authenticated session alive across reloads/navigation by overriding
+ * the HAR's default refresh failure.
+ */
+export async function keepSessionAlive(page: Page): Promise<void> {
+  await mockRefreshResponse(page)
 }
 
 /**
@@ -97,42 +107,6 @@ export async function clearClientStorage(page: Page): Promise<void> {
   } catch {
     // Page may be on about:blank or cross-origin
   }
-}
-
-/**
- * Assert the user is on the login page (not authenticated).
- */
-export async function assertOnLoginPage(page: Page): Promise<void> {
-  await page.waitForURL('**/login')
-  await page.getByRole('heading', { name: /welcome back|bienvenido/i }).waitFor()
-}
-
-/**
- * Assert the user is on the dashboard (authenticated).
- */
-export async function assertOnDashboard(page: Page): Promise<void> {
-  await page.waitForURL('**/')
-  await expect(page.getByRole('heading', { name: /welcome back|bienvenido/i })).toBeVisible()
-}
-
-/**
- * Navigate to login and fill credentials, then submit via form.
- */
-export async function loginViaForm(
-  page: Page,
-  credentials: { email: string; password: string },
-): Promise<void> {
-  await page.goto(APP_URL.login)
-  await page.getByLabel(/email/i).fill(credentials.email)
-  await page.getByLabel(/password/i).fill(credentials.password)
-  await page.getByRole('button', { name: /sign in|iniciar sesión/i }).click()
-}
-
-/**
- * Wait for network to settle after a login attempt.
- */
-export async function waitForAuthSettle(page: Page): Promise<void> {
-  await page.waitForTimeout(500)
 }
 
 /**

@@ -2,7 +2,7 @@
 
 <div align="center">
 
-<img src="shared/assets/profiletailors-logotype-light.svg" alt="Profile Tailors Logo" width="320" />
+![Profile Tailors Logo](shared/assets/og.svg)
 
 **Schedule smarter. Post everywhere.**
 

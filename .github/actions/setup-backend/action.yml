@@ -1,0 +1,22 @@
+name: Setup Backend
+description: >
+  Install Java and configure Gradle for the Kotlin backend.
+  Reusable composite action for all backend jobs.
+
+inputs:
+  java-version:
+    description: Java version (Eclipse Temurin)
+    default: '21'
+
+runs:
+  using: composite
+  steps:
+    - name: Setup Java ${{ inputs.java-version }}
+      uses: actions/setup-java@c1e323688fd81a25caa38c78aa6df2d33d3e20d9
+      with:
+        distribution: temurin
+        java-version: ${{ inputs.java-version }}
+        cache: gradle
+
+    - name: Setup Gradle
+      uses: gradle/actions/setup-gradle@0b6dd653ba04f4f93bf581ec31e66cbd7dcb644d

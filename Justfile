@@ -22,6 +22,7 @@ set positional-arguments := true
 
 # ——— Paths ———————————————————————————————————————————————————
 frontend-dir   := "apps/web/marketing"
+app-dir        := "apps/web/app"
 # Auto-detect Gradle wrapper: `gradlew.bat` on Windows (CMD/PowerShell), `./gradlew` otherwise
 gradle-root    := `if [ -n "${COMSPEC:-}" ] && [ -z "${MSYSTEM:-}" ]; then echo "gradlew.bat"; else echo "./gradlew"; fi`
 docker-compose := "docker compose"
@@ -164,9 +165,7 @@ infra-restart:
 # CI / VALIDATION
 # ═══════════════════════════════════════════════════════════════
 
-# Run all fast checks locally — simulates CI pipeline
-# Order: security → frontend (lint, test, build) → backend (lint, test, build)
-# NOTE: Postgres BDD tests require 'just infra-up' first — not included here
+# Fast CI checks — lint, unit tests, builds (no E2E, no Postgres BDD)
 ci-local:
     @echo "══════════════════════════════════════════════"
     @echo "  CI Pipeline Simulation"
@@ -175,8 +174,14 @@ ci-local:
     @echo "▸ Gitleaks (secrets scan)..."
     gitleaks protect --staged --redact --exit-code 1 --config .gitleaks.toml
     @echo ""
-    @echo "▸ Frontend: Biome lint..."
+    @echo "▸ Marketing: Biome lint..."
     cd {{frontend-dir}} && pnpm lint
+    @echo ""
+    @echo "▸ App: Biome lint..."
+    cd {{app-dir}} && pnpm lint
+    @echo ""
+    @echo "▸ App: unit tests..."
+    cd {{app-dir}} && pnpm test:run
     @echo ""
     @echo "▸ Frontend: unit tests + coverage..."
     cd {{frontend-dir}} && pnpm test:coverage
@@ -207,6 +212,41 @@ ci-full: infra-up
     @echo "══════════════════════════════════════════════"
     @echo "  ✅ Full CI Suite Complete (incl. Postgres)"
     @echo "══════════════════════════════════════════════"
+
+# Full CI pipeline — all checks, all tests (unit + E2E + BDD-fast), all builds
+ci:
+    @echo "════════════════════════════════════════════════"
+    @echo "  🚀 Full CI Pipeline"
+    @echo "════════════════════════════════════════════════"
+    @echo ""
+    @echo "▸ [1/8] Gitleaks (secrets scan)..."
+    gitleaks protect --staged --redact --exit-code 1 --config .gitleaks.toml
+    @echo ""
+    @echo "▸ [2/8] Marketing: Biome lint..."
+    cd {{frontend-dir}} && pnpm lint
+    @echo ""
+    @echo "▸ [3/8] App: Biome lint + unit tests..."
+    cd {{app-dir}} && pnpm lint
+    cd {{app-dir}} && pnpm test:run
+    @echo ""
+    @echo "▸ [4/8] Frontend: unit tests + coverage..."
+    cd {{frontend-dir}} && pnpm test:coverage
+    @echo ""
+    @echo "▸ [5/8] Backend: Detekt static analysis..."
+    {{gradle-root}} :server:smp:detekt --no-daemon
+    @echo ""
+    @echo "▸ [6/8] Backend: unit tests (fast)..."
+    {{gradle-root}} :server:smp:test --no-daemon -PexcludeTags=modularity,postgres
+    @echo ""
+    @echo "▸ [7/8] Backend: BDD fast suite..."
+    {{gradle-root}} :server:smp:bddFastTest --no-daemon -x :shared:common:test -x :shared:spring-boot-common:test
+    @echo ""
+    @echo "▸ [8/8] Frontend: E2E tests (Playwright, all browsers)..."
+    cd {{frontend-dir}} && pnpm test:e2e
+    @echo ""
+    @echo "════════════════════════════════════════════════"
+    @echo "  ✅ Full CI Pipeline Complete — everything passed"
+    @echo "════════════════════════════════════════════════"
 
 # ═══════════════════════════════════════════════════════════════
 # CLEANUP
