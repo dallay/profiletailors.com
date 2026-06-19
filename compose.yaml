@@ -4,6 +4,11 @@ name: profile-tailors
 include:
   - ./infra/common.yml
 services:
+  mailpit:
+    extends:
+      service: mailpit
+      file: ./infra/mailpit/compose.yaml
+
   linkedin-wiremock:
     image: wiremock/wiremock:3.10.0
     ports:

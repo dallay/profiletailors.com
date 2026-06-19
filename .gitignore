@@ -55,6 +55,11 @@ node_modules/
 
 # pnpm store (local cache, not for repo)
 .pnpm-store/
+
+# Playwright reports (all frontend projects)
+**/playwright-report/
+**/playwright-scheduler-report/
+**/test-results/
 # START AI Agent Symlinks
 .agents/skills/*.bak
 .claude/commands
@@ -109,8 +114,3 @@ node_modules/
 /GEMINI.md.bak
 /opencode.json
 # END AI Agent Symlinks
-
-# Playwright reports (all frontend projects)
-**/playwright-report/
-**/playwright-scheduler-report/
-**/test-results/
