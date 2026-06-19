@@ -73,8 +73,7 @@ const processingAsset = (assetId: string) => ({
   createdAt: '2026-06-19T12:00:00Z',
 })
 
-const mockFile = (name = 'photo.jpg') =>
-  new File(['fake-image-data'], name, { type: 'image/jpeg' })
+const mockFile = (name = 'photo.jpg') => new File(['fake-image-data'], name, { type: 'image/jpeg' })
 
 // ---------------------------------------------------------------------------
 // Tests
@@ -261,11 +260,7 @@ describe('media store', () => {
         mediaType: 'image/jpeg',
         originalFilename: 'photo.jpg',
       })
-      expect(mockUploadAsset).toHaveBeenCalledWith(
-        'reserved-asset',
-        file,
-        expect.any(Function),
-      )
+      expect(mockUploadAsset).toHaveBeenCalledWith('reserved-asset', file, expect.any(Function))
       expect(result.assetId).toBe('reserved-asset')
       expect(result.status).toBe('READY')
     })
@@ -416,9 +411,7 @@ describe('media store', () => {
     it('throws when no upload found for temp key', async () => {
       const store = useMediaStore()
 
-      await expect(store.retryUpload('nonexistent-key')).rejects.toThrow(
-        'No upload found with key',
-      )
+      await expect(store.retryUpload('nonexistent-key')).rejects.toThrow('No upload found with key')
     })
 
     it('throws when upload is already in progress', async () => {
@@ -431,9 +424,7 @@ describe('media store', () => {
         status: 'uploading',
       }
 
-      await expect(store.retryUpload('in-progress-key')).rejects.toThrow(
-        'already in progress',
-      )
+      await expect(store.retryUpload('in-progress-key')).rejects.toThrow('already in progress')
     })
   })
 
@@ -562,14 +553,14 @@ describe('media store', () => {
   describe('computed lists', () => {
     it('pendingUploads includes only uploading items', () => {
       const store = useMediaStore()
-      store.uploads['uploading'] = {
+      store.uploads.uploading = {
         tempKey: 'uploading',
         assetId: 'a1',
         file: mockFile(),
         progress: 50,
         status: 'uploading',
       }
-      store.uploads['done'] = {
+      store.uploads.done = {
         tempKey: 'done',
         assetId: 'a2',
         file: mockFile(),
@@ -583,7 +574,7 @@ describe('media store', () => {
 
     it('failedUploads includes failed and conflict items', () => {
       const store = useMediaStore()
-      store.uploads['failed'] = {
+      store.uploads.failed = {
         tempKey: 'failed',
         assetId: 'a1',
         file: mockFile(),
@@ -592,7 +583,7 @@ describe('media store', () => {
         errorTitle: 'Error',
         errorDetail: 'Detail',
       }
-      store.uploads['conflict'] = {
+      store.uploads.conflict = {
         tempKey: 'conflict',
         assetId: 'a2',
         file: mockFile(),
