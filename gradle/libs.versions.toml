@@ -13,6 +13,7 @@ coroutines = "1.10.2"
 jackson = "3.0.+"
 slf4j = "2.0.17"
 commonsText = "1.12.0"
+resend = "4.4.0"
 awsS3 = "2.20.15"
 bucket4j = "8.10.1"
 caffeine = "3.1.8"
@@ -58,6 +59,7 @@ jackson-module-kotlin = { module = "tools.jackson.module:jackson-module-kotlin",
 # Other Utils
 slf4j-api = { module = "org.slf4j:slf4j-api", version.ref = "slf4j" }
 commons-text = { module = "org.apache.commons:commons-text", version.ref = "commonsText" }
+resend-java = { module = "com.resend:resend-java", version.ref = "resend" }
 aws-s3 = { module = "software.amazon.awssdk:s3", version.ref = "awsS3" }
 springdoc-openapi-webflux = { module = "org.springdoc:springdoc-openapi-starter-webflux-ui", version.ref = "springdoc" }
 micrometer-prometheus = { module = "io.micrometer:micrometer-registry-prometheus" }
