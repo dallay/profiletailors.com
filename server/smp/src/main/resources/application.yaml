@@ -37,6 +37,8 @@ app:
   email:
     sender: ${SMP_EMAIL_SENDER:noreply@profiletailors.com}
     verification-subject-prefix: ${SMP_EMAIL_VERIFICATION_SUBJECT_PREFIX:[Profile Tailors]}
+    resend:
+      api-key: ${SMP_RESEND_API_KEY:}  # empty = disabled; ResendEmailSender is not loaded
 
 platform:
   workspace-context:

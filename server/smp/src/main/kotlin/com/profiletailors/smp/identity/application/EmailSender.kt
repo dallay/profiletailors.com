@@ -3,9 +3,10 @@ package com.profiletailors.smp.identity.application
 /**
  * Port for sending email messages.
  *
- * Implementations live in the infrastructure layer:
- * - [SmtpEmailSender] — sends via SMTP (production)
- * - [MockEmailSender] — logs to console (dev/test)
+ * Implementations live in the infrastructure layer, selected by priority:
+ * 1. [ResendEmailSender] — Resend API (primary, active when `app.email.resend.api-key` is set)
+ * 2. [SmtpEmailSender]  — raw SMTP via Spring Mail (active when `spring.mail.host` is set)
+ * 3. [MockEmailSender]  — logs to console (dev/test fallback)
  */
 fun interface EmailSender {
     /** Send an email. Returns [EmailSendResult] indicating success or failure. */
