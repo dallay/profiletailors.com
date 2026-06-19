@@ -57,6 +57,7 @@ dependencies {
     @Suppress("GradleDependency")
     implementation("com.fasterxml.jackson.module:jackson-module-kotlin:2.21.2")
     implementation("org.springframework.boot:spring-boot-starter-mail")
+    implementation(libs.resend.java)
     implementation(libs.spring.boot.starter.actuator)
     implementation(libs.micrometer.prometheus)
 
