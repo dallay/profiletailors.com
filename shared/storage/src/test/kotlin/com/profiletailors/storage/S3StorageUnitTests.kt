@@ -393,10 +393,9 @@ class S3StorageUnitTests {
         val storage = S3Storage(client, "bucket", presigner)
 
         val noSuchKey = NoSuchKeyException.builder().message("Key 'missing.txt' does not exist").build()
-        val future = CompletableFuture.completedFuture<DeleteObjectResponse>(DeleteObjectResponse.builder().build())
-        io.mockk.coEvery { client.deleteObject(any<DeleteObjectRequest>()) } coAnswers {
-            throw noSuchKey
-        }
+        val future = CompletableFuture<DeleteObjectResponse>()
+        future.completeExceptionally(noSuchKey)
+        io.mockk.every { client.deleteObject(any<DeleteObjectRequest>()) } returns future
 
         assertThrows<StorageObjectNotFoundException> {
             runBlocking { storage.delete("bucket", "missing.txt") }
@@ -468,11 +467,10 @@ class S3StorageUnitTests {
         val storage = S3Storage(client, "bucket", presigner)
 
         val noSuchKey = NoSuchKeyException.builder().message("Key 'prefix' does not exist").build()
-        val listResp = ListObjectsV2Response.builder().contents(emptyList<S3Object>()).isTruncated(false).build()
+        val future = CompletableFuture<ListObjectsV2Response>()
+        future.completeExceptionally(noSuchKey)
 
-        every { client.listObjectsV2(any<ListObjectsV2Request>()) } answers {
-            throw noSuchKey
-        }
+        every { client.listObjectsV2(any<ListObjectsV2Request>()) } returns future
 
         assertThrows<StorageObjectNotFoundException> {
             runBlocking { storage.list("bucket", "prefix") }

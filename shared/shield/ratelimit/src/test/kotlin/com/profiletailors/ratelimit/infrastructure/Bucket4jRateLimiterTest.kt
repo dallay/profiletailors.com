@@ -425,13 +425,14 @@ class Bucket4jRateLimiterTest {
     fun `should return cache size`() = runTest {
         // Given
         val identifier = "CACHE-SIZE-TEST"
+        val initialSize = rateLimiter.getCacheSize()
         rateLimiter.consumeToken(identifier, RateLimitStrategy.AUTH)
 
         // When
         val size = rateLimiter.getCacheSize()
 
-        // Then
-        size shouldBeGreaterThanOrEqual 0
+        // Then - cache should have at least one entry after consuming a token
+        size shouldBe initialSize + 1
     }
 
     @Test
@@ -444,8 +445,8 @@ class Bucket4jRateLimiterTest {
         // When
         val stats = rateLimiter.getCacheStats()
 
-        // Then
-        stats.requestCount() shouldBeGreaterThanOrEqual 0
+        // Then - two consumeToken calls should result in at least 2 requests tracked
+        stats.requestCount() shouldBeGreaterThanOrEqual 2L
     }
 
     @Test

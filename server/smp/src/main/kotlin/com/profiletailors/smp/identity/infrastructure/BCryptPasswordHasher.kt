@@ -7,5 +7,10 @@ class BCryptPasswordHasher : PasswordHasher {
     override fun hash(rawPassword: String): String = BCrypt.hashpw(rawPassword, BCrypt.gensalt())
 
     override fun matches(rawPassword: String, passwordHash: String): Boolean =
-        BCrypt.checkpw(rawPassword, passwordHash)
+        try {
+            BCrypt.checkpw(rawPassword, passwordHash)
+        } catch (_: IllegalArgumentException) {
+            // Malformed hash (e.g., dev placeholder) — fail secure instead of crashing
+            false
+        }
 }
