@@ -12,7 +12,7 @@ All infrastructure documentation has been moved to the centralized docs director
 
 ## Quick Structure
 
-```
+```text
 infra/
 ├── common.yml                    # Shared network bridge
 ├── mailpit/                      # Local SMTP email capture (dev)
