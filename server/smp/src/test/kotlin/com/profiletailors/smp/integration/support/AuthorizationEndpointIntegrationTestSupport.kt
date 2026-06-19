@@ -55,6 +55,7 @@ abstract class AuthorizationEndpointIntegrationTestSupport {
             "DELETE FROM workspace_ownerships",
             "DELETE FROM workspaces",
         ) + additionalCleanupStatements() + listOf(
+            "DELETE FROM local_password_credentials",
             "DELETE FROM user_identities",
             "DELETE FROM principals",
         )
