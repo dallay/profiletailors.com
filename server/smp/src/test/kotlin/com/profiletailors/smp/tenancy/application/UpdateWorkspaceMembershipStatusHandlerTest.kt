@@ -175,6 +175,12 @@ class UpdateWorkspaceMembershipStatusHandlerTest {
             ownerships.removeIf { it.workspaceId == workspaceId && it.ownerPrincipalId == principalId }
         }
 
+        override suspend fun removeIfReplacementExists(workspaceId: String, principalId: String): Boolean {
+            val hasOtherOwner = ownerships.any { it.workspaceId == workspaceId && it.ownerPrincipalId != principalId }
+            if (!hasOtherOwner) return false
+            return ownerships.removeIf { it.workspaceId == workspaceId && it.ownerPrincipalId == principalId }
+        }
+
         override suspend fun exists(workspaceId: String, principalId: String): Boolean =
             ownerships.any { it.workspaceId == workspaceId && it.ownerPrincipalId == principalId }
     }

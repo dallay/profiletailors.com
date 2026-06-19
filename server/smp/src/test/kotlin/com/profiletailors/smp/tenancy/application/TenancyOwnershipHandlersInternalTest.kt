@@ -11,6 +11,7 @@ import com.profiletailors.common.domain.workspace.WorkspaceMembershipStatus
 import com.profiletailors.smp.audit.domain.AuditHook
 import com.profiletailors.smp.audit.domain.AuthorizationDecisionAuditFact
 import com.profiletailors.smp.audit.domain.MutationAuditFact
+import com.profiletailors.smp.tenancy.domain.LastOwnerRemovalRequiresReplacementException
 import com.profiletailors.smp.tenancy.domain.WorkspaceMembership
 import com.profiletailors.smp.tenancy.domain.WorkspaceOwnership
 import kotlinx.coroutines.test.runTest
@@ -326,6 +327,50 @@ class TenancyOwnershipHandlersInternalTest {
         assertInstanceOf(OwnerTargetMustBeActiveMemberException::class.java, exception)
     }
 
+    @Test
+    fun `TransferWorkspaceOwnershipHandler throws LastOwnerRemovalRequiresReplacementException when concurrent transfer removes replacement`() = runTest {
+        // Simulates the TOCTOU scenario: by the time removeIfReplacementExists runs, the
+        // replacement owner no longer exists (simulated via a repository that always refuses).
+        val ownershipRepository = InMemoryWorkspaceOwnershipRepository(
+            ownerships = mutableSetOf(
+                WorkspaceOwnership(
+                    workspaceId = "workspace-1",
+                    ownerPrincipalId = "owner-1",
+                    ownerPrincipalType = PrincipalType.USER,
+                ),
+            ),
+            removeIfReplacementAlwaysFails = true,
+        )
+        val targetMembership = WorkspaceMembership(
+            id = "membership-2",
+            workspaceId = "workspace-1",
+            principalId = "member-2",
+            principalType = PrincipalType.USER,
+            status = WorkspaceMembershipStatus.ACTIVE,
+        )
+        val membershipLookup = StubWorkspaceMembershipLookup(mapOf("member-2" to targetMembership))
+        val auditHook = CapturingAuditHook()
+
+        val handler = TransferWorkspaceOwnershipHandler(
+            principalContextProvider = FixedPrincipalContextProvider(ownerPrincipal),
+            resourceContextProvider = FixedResourceContextProvider(workspaceContext),
+            workspaceOwnershipRepository = ownershipRepository,
+            workspaceMembershipLookup = membershipLookup,
+            clock = fixedClock,
+            tenancyMutationAuditor = TenancyMutationAuditor(
+                FixedPrincipalContextProvider(ownerPrincipal),
+                auditHook,
+            ),
+        )
+
+        val exception = runCatching {
+            handler.handle(TransferWorkspaceOwnershipCommand(targetPrincipalId = "member-2"))
+        }.exceptionOrNull()
+        assertInstanceOf(LastOwnerRemovalRequiresReplacementException::class.java, exception)
+        // Verify the business invariant: workspace must always have at least one owner.
+        assertTrue(ownershipRepository.findByWorkspaceId("workspace-1").isNotEmpty())
+    }
+
     // -------------------------------------------------------------------------
     // Helper classes — same pattern as UpdateWorkspaceMembershipStatusHandlerTest
     // -------------------------------------------------------------------------
@@ -353,7 +398,10 @@ class TenancyOwnershipHandlersInternalTest {
         }
     }
 
-    private class InMemoryWorkspaceOwnershipRepository(private val ownerships: MutableSet<WorkspaceOwnership>) : WorkspaceOwnershipRepository {
+    private class InMemoryWorkspaceOwnershipRepository(
+        private val ownerships: MutableSet<WorkspaceOwnership>,
+        private val removeIfReplacementAlwaysFails: Boolean = false,
+    ) : WorkspaceOwnershipRepository {
         override suspend fun findByWorkspaceId(workspaceId: String): Set<WorkspaceOwnership> =
             ownerships.filterTo(linkedSetOf()) { it.workspaceId == workspaceId }
 
@@ -363,6 +411,13 @@ class TenancyOwnershipHandlersInternalTest {
 
         override suspend fun remove(workspaceId: String, principalId: String) {
             ownerships.removeIf { it.workspaceId == workspaceId && it.ownerPrincipalId == principalId }
+        }
+
+        override suspend fun removeIfReplacementExists(workspaceId: String, principalId: String): Boolean {
+            if (removeIfReplacementAlwaysFails) return false
+            val hasOtherOwner = ownerships.any { it.workspaceId == workspaceId && it.ownerPrincipalId != principalId }
+            if (!hasOtherOwner) return false
+            return ownerships.removeIf { it.workspaceId == workspaceId && it.ownerPrincipalId == principalId }
         }
 
         override suspend fun exists(workspaceId: String, principalId: String): Boolean =
