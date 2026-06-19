@@ -45,7 +45,7 @@ class R2dbcMediaAssetRepository(
             .bind("uploadStartedAt", asset.uploadStartedAt)
             .bind("createdAt", OffsetDateTime.ofInstant(asset.createdAt, ZoneOffset.UTC))
             .then()
-            .awaitSingle()
+            .awaitSingleOrNull()
 
         return asset
     }
@@ -206,7 +206,7 @@ class R2dbcMediaAssetRepository(
             .bind("assetId", assetId)
             .bind("workspaceId", workspaceId)
             .then()
-            .awaitSingle()
+            .awaitSingleOrNull()
 
         return findByWorkspaceAndId(workspaceId, assetId)
     }
@@ -223,7 +223,7 @@ class R2dbcMediaAssetRepository(
             .bind("assetId", assetId)
             .bind("workspaceId", workspaceId)
             .then()
-            .awaitSingle()
+            .awaitSingleOrNull()
 
         return findByWorkspaceAndId(workspaceId, assetId)
     }
@@ -284,7 +284,7 @@ class R2dbcMediaAssetRepository(
             mediaType = requireNotNull(row.get("media_type", String::class.java)),
             storageKey = requireNotNull(row.get("storage_key", String::class.java)),
             originalFilename = row.get("original_filename", String::class.java),
-            fileSizeBytes = row.get("file_size_bytes", java.lang.Long::class.java)?.toLong(),
+            fileSizeBytes = row.get("file_size_bytes", Long::class.javaObjectType),
             status = MediaAssetStatus.valueOf(requireNotNull(row.get("status", String::class.java))),
             uploadStartedAt = row.get("upload_started_at", OffsetDateTime::class.java)?.toInstant(),
             createdAt = requireNotNull(row.get("created_at", OffsetDateTime::class.java)).toInstant(),
@@ -302,13 +302,13 @@ class R2dbcMediaRateLimitRepository(
         databaseClient.sql(
             """
             INSERT INTO workspace_upload_slots (workspace_id, active_uploads, created_at, updated_at)
-            VALUES (:workspaceId, 1, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
+            VALUES (:workspaceId, 0, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
             ON CONFLICT (workspace_id) DO NOTHING
             """.trimIndent(),
         )
             .bind("workspaceId", workspaceId)
             .then()
-            .awaitSingle()
+            .awaitSingleOrNull()
 
         // Then try to increment atomically
         val result = databaseClient.sql(
@@ -340,7 +340,7 @@ class R2dbcMediaRateLimitRepository(
         )
             .bind("workspaceId", workspaceId)
             .then()
-            .awaitSingle()
+            .awaitSingleOrNull()
     }
 
     override suspend fun tryIncrementHourlyCreationCount(workspaceId: String, maxPerHour: Int): Boolean {
@@ -354,13 +354,16 @@ class R2dbcMediaRateLimitRepository(
             """
             INSERT INTO media_rate_limits (workspace_id, hourly_creation_count, hour_bucket, created_at, updated_at)
             VALUES (:workspaceId, 0, :currentHour, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
-            ON CONFLICT (workspace_id) DO NOTHING
+            ON CONFLICT (workspace_id) DO UPDATE SET
+                hour_bucket = :currentHour,
+                hourly_creation_count = 0,
+                updated_at = CURRENT_TIMESTAMP
             """.trimIndent(),
         )
             .bind("workspaceId", workspaceId)
             .bind("currentHour", currentHour)
             .then()
-            .awaitSingle()
+            .awaitSingleOrNull()
 
         // Then try to increment atomically
         val result = databaseClient.sql(

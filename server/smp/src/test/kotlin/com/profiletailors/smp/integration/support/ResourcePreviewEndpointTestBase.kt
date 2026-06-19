@@ -13,6 +13,7 @@ import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.reactor.awaitSingle
 import org.junit.jupiter.api.Assertions.assertEquals
+import java.util.concurrent.ConcurrentHashMap
 import org.junit.jupiter.api.Test
 import org.springframework.boot.test.context.TestConfiguration
 import org.springframework.context.annotation.Bean
@@ -234,7 +235,7 @@ abstract class ResourcePreviewEndpointTestBase : AuthorizationEndpointIntegratio
         @Bean
         @Primary
         fun inMemoryFakeStorage(): Storage = object : Storage {
-            private val objects = mutableMapOf<String, ByteArray>()
+            private val objects = ConcurrentHashMap<String, ByteArray>()
 
             override suspend fun upload(bucket: String, key: String, content: Flow<ByteArray>, metadata: Map<String, String>) {
                 val chunks = mutableListOf<ByteArray>()
@@ -253,7 +254,9 @@ abstract class ResourcePreviewEndpointTestBase : AuthorizationEndpointIntegratio
             }
 
             override suspend fun list(bucket: String, prefix: String): List<String> =
-                objects.keys.filter { it.startsWith("$bucket/$prefix") }
+                objects.keys
+                    .filter { it.startsWith("$bucket/$prefix") }
+                    .map { it.removePrefix("$bucket/") }
 
             override suspend fun exists(bucket: String, key: String): Boolean =
                 objects.containsKey("$bucket/$key")

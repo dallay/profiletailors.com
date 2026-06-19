@@ -89,7 +89,7 @@ data class MediaAsset(
         }
 
         // OOXML formats require originalFilename
-        if (mediaType in OOXML_MEDIA_TYPES) {
+        if (mediaType in OFFICE_DOCUMENT_MEDIA_TYPES) {
             require(!originalFilename.isNullOrBlank()) {
                 "originalFilename is required for OOXML media types"
             }
@@ -121,9 +121,9 @@ data class MediaAsset(
         )
 
         /**
-         * OOXML media types that require originalFilename.
+         * Office document media types (legacy binary and OOXML) that require originalFilename.
          */
-        val OOXML_MEDIA_TYPES = setOf(
+        val OFFICE_DOCUMENT_MEDIA_TYPES = setOf(
             "application/msword",
             "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
             "application/vnd.ms-powerpoint",

@@ -56,7 +56,7 @@ open class StorageAutoConfiguration {
         storageProperties.providers.forEach { (name, config) ->
             try {
                 map[name] = createProvider(config)
-            } catch (e: Throwable) {
+            } catch (e: Exception) {
                 logger.warn(
                     "Failed to create storage provider '$name' (type={}): {}. " +
                     "This provider will not be available.",

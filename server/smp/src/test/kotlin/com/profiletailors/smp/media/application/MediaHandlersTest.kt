@@ -930,31 +930,28 @@ class MediaHandlersTest {
         }
 
         override suspend fun claimUploadSlot(assetId: String, workspaceId: String, now: Instant): Boolean {
-            return if (uploadSlotClaimable[workspaceId] == true) {
-                val asset = items[assetId]
-                if (asset != null && asset.uploadStartedAt == null) {
-                    items[assetId] = asset.copy(uploadStartedAt = now)
-                    true
-                } else false
+            if (uploadSlotClaimable[workspaceId] != true) {
+                return false
+            }
+
+            val asset = items[assetId]
+            return if (asset != null && asset.workspaceId == workspaceId && asset.uploadStartedAt == null) {
+                items[assetId] = asset.copy(uploadStartedAt = now)
+                true
             } else {
-                // Fallback: always succeed if uploadStartedAt is null
-                val asset = items[assetId]
-                if (asset != null && asset.uploadStartedAt == null) {
-                    items[assetId] = asset.copy(uploadStartedAt = now)
-                    true
-                } else false
+                false
             }
         }
 
         override suspend fun markAsReady(assetId: String, workspaceId: String, fileSizeBytes: Long): MediaAsset? {
-            val asset = items[assetId] ?: return null
+            val asset = items[assetId]?.takeIf { it.workspaceId == workspaceId } ?: return null
             val updated = asset.copy(status = MediaAssetStatus.READY, fileSizeBytes = fileSizeBytes, uploadStartedAt = null)
             items[assetId] = updated
             return updated
         }
 
         override suspend fun markAsFailed(assetId: String, workspaceId: String): MediaAsset? {
-            val asset = items[assetId] ?: return null
+            val asset = items[assetId]?.takeIf { it.workspaceId == workspaceId } ?: return null
             val updated = asset.copy(status = MediaAssetStatus.FAILED, uploadStartedAt = null)
             items[assetId] = updated
             return updated

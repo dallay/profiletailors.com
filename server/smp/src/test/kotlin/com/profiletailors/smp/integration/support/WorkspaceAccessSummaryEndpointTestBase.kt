@@ -27,6 +27,7 @@ import org.springframework.security.oauth2.jwt.BadJwtException
 import org.springframework.security.oauth2.jwt.Jwt
 import org.springframework.security.oauth2.jwt.ReactiveJwtDecoder
 import java.time.Instant
+import java.util.concurrent.ConcurrentHashMap
 
 /**
  * Abstract base for workspace-access-summary endpoint integration tests.
@@ -810,7 +811,7 @@ abstract class WorkspaceAccessSummaryEndpointTestBase : AuthorizationEndpointInt
         @Bean
         @Primary
         fun inMemoryFakeStorage(): Storage = object : Storage {
-            private val objects = mutableMapOf<String, ByteArray>()
+            private val objects = ConcurrentHashMap<String, ByteArray>()
 
             override suspend fun upload(bucket: String, key: String, content: Flow<ByteArray>, metadata: Map<String, String>) {
                 val chunks = mutableListOf<ByteArray>()
@@ -829,7 +830,9 @@ abstract class WorkspaceAccessSummaryEndpointTestBase : AuthorizationEndpointInt
             }
 
             override suspend fun list(bucket: String, prefix: String): List<String> =
-                objects.keys.filter { it.startsWith("$bucket/$prefix") }
+                objects.keys
+                    .filter { it.startsWith("$bucket/$prefix") }
+                    .map { it.removePrefix("$bucket/") }
 
             override suspend fun exists(bucket: String, key: String): Boolean =
                 objects.containsKey("$bucket/$key")

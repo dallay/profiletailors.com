@@ -12,6 +12,7 @@ import com.profiletailors.smp.media.application.UploadInProgressException
 import org.slf4j.LoggerFactory
 import org.springframework.http.HttpStatus
 import org.springframework.http.ProblemDetail
+import org.springframework.http.ResponseEntity
 import org.springframework.web.bind.annotation.ExceptionHandler
 import org.springframework.web.bind.annotation.RestControllerAdvice
 import org.springframework.web.server.ResponseStatusException
@@ -105,7 +106,7 @@ class MediaProblemDetailsHandler {
     }
 
     @ExceptionHandler(RateLimitExceededException::class)
-    fun handle(exception: RateLimitExceededException): ProblemDetail {
+    fun handle(exception: RateLimitExceededException): ResponseEntity<ProblemDetail> {
         logger.info(
             "media.ratelimit.exceeded workspaceId={} limitType={} currentValue={} limitValue={}",
             exception.workspaceId,
@@ -123,11 +124,13 @@ class MediaProblemDetailsHandler {
             setProperty("limitType", exception.limitType)
             setProperty("currentValue", exception.currentValue)
             setProperty("limitValue", exception.limitValue)
+            setProperty("retryAfterSeconds", exception.retryAfterSeconds)
         }
 
-        // Add Retry-After header via response headers
-        problemDetail.setProperty("retryAfterSeconds", exception.retryAfterSeconds)
-        return problemDetail
+        return ResponseEntity
+            .status(HttpStatus.TOO_MANY_REQUESTS)
+            .header("Retry-After", exception.retryAfterSeconds.toString())
+            .body(problemDetail)
     }
 
     @ExceptionHandler(InvalidCursorException::class)

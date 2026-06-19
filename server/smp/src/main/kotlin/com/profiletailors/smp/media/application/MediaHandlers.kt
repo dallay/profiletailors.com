@@ -32,8 +32,8 @@ class CreateUploadedAssetHandler(
     }
 
     override suspend fun handle(command: CreateUploadedAssetCommand): CreateUploadedAssetResult {
-        enforceCreationRateLimit(command.workspaceId)
         validateCreateCommand(command)
+        enforceCreationRateLimit(command.workspaceId)
 
         val assetId = MediaAsset.generateAssetId()
         val storageKey = MediaAsset.generateStorageKey(command.workspaceId, assetId)
@@ -98,7 +98,7 @@ class CreateUploadedAssetHandler(
     }
 
     private fun validateOriginalFilenameForOoxml(mediaType: String, originalFilename: String?) {
-        if (mediaType !in MediaAsset.OOXML_MEDIA_TYPES) {
+        if (mediaType !in MediaAsset.OFFICE_DOCUMENT_MEDIA_TYPES) {
             return
         }
 

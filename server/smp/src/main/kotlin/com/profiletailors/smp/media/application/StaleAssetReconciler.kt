@@ -97,7 +97,12 @@ class StaleAssetReconciler(
                 }
                 mediaAssetRepository.markAsFailed(asset.assetId, asset.workspaceId)
                 transitions++
-                releaseUploadSlot(asset)
+                // Only release a slot if the asset actually had an upload started,
+                // which means it claimed a slot. Assets with uploadStartedAt == null
+                // never claimed a slot.
+                if (asset.uploadStartedAt != null) {
+                    releaseUploadSlot(asset)
+                }
                 logger.info(
                     "Stale PROCESSING asset transitioned to FAILED: assetId={} workspaceId={} " +
                         "storageKey={} storageDeleted={}",
@@ -125,8 +130,8 @@ class StaleAssetReconciler(
 
         for (asset in assets) {
             try {
-                val storageDeleteSucceeded = attemptStorageDelete(asset)
-                if (!storageDeleteSucceeded) {
+                val deleted = attemptStorageDelete(asset)
+                if (!deleted) {
                     errors++
                 }
             } catch (e: IllegalStateException) {

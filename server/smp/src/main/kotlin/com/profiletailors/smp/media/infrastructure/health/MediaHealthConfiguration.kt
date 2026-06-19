@@ -27,6 +27,7 @@ class MediaReadinessHealthIndicator(
     @Value("\${media.storage.bucket:attachments}") private val storageBucket: String,
 ) : HealthIndicator {
 
+    @Suppress("TooGenericExceptionCaught")
     override fun health(): Health? {
         return runBlocking(Dispatchers.IO) {
             var dbHealthy = false
@@ -39,7 +40,7 @@ class MediaReadinessHealthIndicator(
                     .one()
                     .awaitSingleOrNull()
                 dbHealthy = true
-            } catch (e: IllegalStateException) {
+            } catch (e: Exception) {
                 dbHealthy = false
                 logger.debug("media health: database check failed", e)
             }
@@ -59,7 +60,7 @@ class MediaReadinessHealthIndicator(
                     storageBucket,
                     e,
                 )
-            } catch (e: IllegalStateException) {
+            } catch (e: Exception) {
                 storageHealthy = false
                 logger.debug("media health: storage reachability check failed", e)
             }
@@ -95,6 +96,7 @@ class MediaLivenessHealthIndicator(
     private val databaseClient: DatabaseClient,
 ) : HealthIndicator {
 
+    @Suppress("TooGenericExceptionCaught")
     override fun health(): Health? {
         return try {
             runBlocking(Dispatchers.IO) {
@@ -103,7 +105,7 @@ class MediaLivenessHealthIndicator(
             Health.up()
                 .withDetail("db", "alive")
                 .build()
-        } catch (e: IllegalStateException) {
+        } catch (e: Exception) {
             Health.down()
                 .withException(e)
                 .build()
