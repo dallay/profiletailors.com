@@ -5,7 +5,7 @@ import com.profiletailors.smp.identity.application.EmailSender
 import com.resend.core.exception.ResendException
 import com.resend.services.emails.model.CreateEmailOptions
 import org.slf4j.LoggerFactory
-import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty
+import org.springframework.boot.autoconfigure.condition.ConditionalOnExpression
 import org.springframework.context.annotation.Primary
 import org.springframework.stereotype.Component
 
@@ -13,13 +13,13 @@ import org.springframework.stereotype.Component
  * Resend-backed implementation of [EmailSender].
  *
  * Takes priority over [SmtpEmailSender] and [MockEmailSender] via [@Primary].
- * Only activated when `app.email.resend.api-key` is set in the environment.
+ * Only activated when `app.email.resend.api-key` is set to a non-blank value.
  *
  * Plain text is used for now; React Email / HTML support is future work tracked separately.
  */
 @Component
 @Primary
-@ConditionalOnProperty(name = ["app.email.resend.api-key"])
+@ConditionalOnExpression("'\${app.email.resend.api-key:}'.trim().length() > 0")
 class ResendEmailSender(
     private val emailProperties: EmailProperties,
     private val emailGateway: ResendEmailGateway,
