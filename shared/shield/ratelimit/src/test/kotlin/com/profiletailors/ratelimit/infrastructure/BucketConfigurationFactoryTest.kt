@@ -5,6 +5,7 @@ import com.profiletailors.ratelimit.infrastructure.config.BucketConfigurationFac
 import com.profiletailors.ratelimit.infrastructure.config.RateLimitProperties
 import io.kotest.assertions.throwables.shouldThrow
 import io.kotest.matchers.collections.shouldContain
+import io.kotest.matchers.collections.shouldContainExactly
 import io.kotest.matchers.shouldBe
 import io.kotest.matchers.string.shouldContain
 import java.time.Duration
@@ -17,6 +18,8 @@ import org.junit.jupiter.api.Test
  * Tests cover:
  * - Auth bucket configuration creation
  * - Business bucket configuration creation
+ * - Resume bucket configuration creation
+ * - Waitlist bucket configuration creation
  * - Multiple limit handling
  * - Invalid plan handling
  * - Enable/disable flags
@@ -71,6 +74,26 @@ class BucketConfigurationFactoryTest {
                         refillTokens = 100,
                         refillDuration = Duration.ofHours(1),
                     ),
+                ),
+            ),
+            resume = RateLimitProperties.ResumeRateLimitConfig(
+                enabled = true,
+                endpoints = listOf("/api/resume/generate"),
+                limit = RateLimitProperties.BandwidthLimit(
+                    name = "resume-limit",
+                    capacity = 10,
+                    refillTokens = 10,
+                    refillDuration = Duration.ofMinutes(1),
+                ),
+            ),
+            waitlist = RateLimitProperties.WaitlistRateLimitConfig(
+                enabled = true,
+                endpoints = listOf("/api/waitlist/join"),
+                limit = RateLimitProperties.BandwidthLimit(
+                    name = "waitlist-limit",
+                    capacity = 5,
+                    refillTokens = 5,
+                    refillDuration = Duration.ofMinutes(1),
                 ),
             ),
         )
@@ -346,5 +369,144 @@ class BucketConfigurationFactoryTest {
         shouldThrow<IllegalArgumentException> {
             invalidStrategy.createConfiguration(RateLimitStrategy.AUTH)
         }
+    }
+
+    // --- RESUME strategy tests ---
+
+    @Test
+    fun `should create resume bucket configuration`() {
+        // When
+        val config = factory.createConfiguration(RateLimitStrategy.RESUME)
+
+        // Then
+        config.bandwidths.size shouldBe 1
+        config.bandwidths[0].capacity shouldBe 10
+    }
+
+    @Test
+    fun `should return true when resume rate limiting is enabled`() {
+        // When
+        val isEnabled = factory.isRateLimitEnabled(RateLimitStrategy.RESUME)
+
+        // Then
+        isEnabled shouldBe true
+    }
+
+    @Test
+    fun `should return false when resume rate limiting is disabled globally`() {
+        // Given
+        val disabledProperties = properties.copy(enabled = false)
+        val disabledFactory = BucketConfigurationFactory(disabledProperties)
+
+        // When
+        val isEnabled = disabledFactory.isRateLimitEnabled(RateLimitStrategy.RESUME)
+
+        // Then
+        isEnabled shouldBe false
+    }
+
+    @Test
+    fun `should return false when resume rate limiting is disabled specifically`() {
+        // Given
+        val disabledResumeProperties = properties.copy(
+            resume = properties.resume.copy(enabled = false),
+        )
+        val disabledFactory = BucketConfigurationFactory(disabledResumeProperties)
+
+        // When
+        val isEnabled = disabledFactory.isRateLimitEnabled(RateLimitStrategy.RESUME)
+
+        // Then
+        isEnabled shouldBe false
+    }
+
+    @Test
+    fun `should return resume endpoints list`() {
+        // When
+        val endpoints = factory.getEndpoints(RateLimitStrategy.RESUME)
+
+        // Then
+        endpoints shouldContainExactly listOf("/api/resume/generate")
+    }
+
+    // --- WAITLIST strategy tests ---
+
+    @Test
+    fun `should create waitlist bucket configuration`() {
+        // When
+        val config = factory.createConfiguration(RateLimitStrategy.WAITLIST)
+
+        // Then
+        config.bandwidths.size shouldBe 1
+        config.bandwidths[0].capacity shouldBe 5
+    }
+
+    @Test
+    fun `should return true when waitlist rate limiting is enabled`() {
+        // When
+        val isEnabled = factory.isRateLimitEnabled(RateLimitStrategy.WAITLIST)
+
+        // Then
+        isEnabled shouldBe true
+    }
+
+    @Test
+    fun `should return false when waitlist rate limiting is disabled globally`() {
+        // Given
+        val disabledProperties = properties.copy(enabled = false)
+        val disabledFactory = BucketConfigurationFactory(disabledProperties)
+
+        // When
+        val isEnabled = disabledFactory.isRateLimitEnabled(RateLimitStrategy.WAITLIST)
+
+        // Then
+        isEnabled shouldBe false
+    }
+
+    @Test
+    fun `should return false when waitlist rate limiting is disabled specifically`() {
+        // Given
+        val disabledWaitlistProperties = properties.copy(
+            waitlist = properties.waitlist.copy(enabled = false),
+        )
+        val disabledFactory = BucketConfigurationFactory(disabledWaitlistProperties)
+
+        // When
+        val isEnabled = disabledFactory.isRateLimitEnabled(RateLimitStrategy.WAITLIST)
+
+        // Then
+        isEnabled shouldBe false
+    }
+
+    @Test
+    fun `should return waitlist endpoints list`() {
+        // When
+        val endpoints = factory.getEndpoints(RateLimitStrategy.WAITLIST)
+
+        // Then
+        endpoints shouldContainExactly listOf("/api/waitlist/join")
+    }
+
+    // --- getEndpoints tests ---
+
+    @Test
+    fun `should return empty list for BUSINESS strategy endpoints`() {
+        // When
+        val endpoints = factory.getEndpoints(RateLimitStrategy.BUSINESS)
+
+        // Then
+        endpoints shouldContainExactly emptyList()
+    }
+
+    // --- createConfiguration overload tests ---
+
+    @Test
+    fun `should use default free plan when business strategy called without plan name`() {
+        // When
+        val config = factory.createConfiguration(RateLimitStrategy.BUSINESS)
+
+        // Then
+        config.bandwidths.size shouldBe 1
+        config.bandwidths[0].capacity shouldBe 20 // free plan capacity
     }
 }
