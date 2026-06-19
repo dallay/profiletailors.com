@@ -47,7 +47,6 @@ import com.profiletailors.smp.publishing.domain.SocialConnectionStatus
 import com.profiletailors.smp.publishing.domain.SocialProvider
 import com.profiletailors.smp.tenancy.application.requireWorkspaceContext
 import kotlinx.coroutines.withTimeoutOrNull
-import org.springframework.beans.factory.annotation.Value
 import java.time.Clock
 import java.time.Instant
 import java.util.Locale
@@ -245,6 +244,10 @@ internal class ListConnectedChannelsHandler(
     }
 }
 
+data class PublishingMediaIntegrationSettings(
+    val enabled: Boolean,
+)
+
 private fun ConnectedSocialChannel.toSummary(): ConnectedSocialChannelSummary = ConnectedSocialChannelSummary(
     socialAccountId = socialAccountId,
     connectionId = connectionId,
@@ -268,8 +271,7 @@ internal class CreatePublicationHandler(
     private val providerCapabilityValidator: ProviderCapabilityValidator,
     private val schedulingPolicy: PublicationSchedulingPolicy,
     private val mediaAssetResolver: MediaAssetResolver,
-    @Value("\${platform.media.context.integration.enabled:true}")
-    private val mediaContextIntegrationEnabled: Boolean,
+    private val mediaIntegrationSettings: PublishingMediaIntegrationSettings,
     private val clock: Clock,
 ) : CommandWithResultHandler<CreatePublicationCommand, PublicationResult> {
     override suspend fun handle(command: CreatePublicationCommand): PublicationResult {
@@ -328,7 +330,7 @@ internal class CreatePublicationHandler(
      * HTTP 503 rather than allowing publication creation to silently skip validation.
      */
     private suspend fun resolveAssets(workspaceId: String, assetIds: List<String>): List<PublicationAsset> {
-        val shouldUseLegacyLookup = assetIds.isEmpty() || !mediaContextIntegrationEnabled
+        val shouldUseLegacyLookup = assetIds.isEmpty() || !mediaIntegrationSettings.enabled
         if (shouldUseLegacyLookup) {
             return legacyAssetLookup(workspaceId, assetIds)
         }
@@ -388,8 +390,7 @@ internal class EditPublicationHandler(
     private val providerCapabilityValidator: ProviderCapabilityValidator,
     private val schedulingPolicy: PublicationSchedulingPolicy,
     private val mediaAssetResolver: MediaAssetResolver,
-    @Value("\${platform.media.context.integration.enabled:true}")
-    private val mediaContextIntegrationEnabled: Boolean,
+    private val mediaIntegrationSettings: PublishingMediaIntegrationSettings,
     private val clock: Clock,
 ) : CommandWithResultHandler<EditPublicationCommand, PublicationResult> {
     override suspend fun handle(command: EditPublicationCommand): PublicationResult {
@@ -449,7 +450,7 @@ internal class EditPublicationHandler(
      * @see CreatePublicationHandler.resolveAssets
      */
     private suspend fun resolveAssets(workspaceId: String, assetIds: List<String>): List<PublicationAsset> {
-        val shouldUseLegacyLookup = assetIds.isEmpty() || !mediaContextIntegrationEnabled
+        val shouldUseLegacyLookup = assetIds.isEmpty() || !mediaIntegrationSettings.enabled
         if (shouldUseLegacyLookup) {
             return legacyAssetLookup(workspaceId, assetIds)
         }

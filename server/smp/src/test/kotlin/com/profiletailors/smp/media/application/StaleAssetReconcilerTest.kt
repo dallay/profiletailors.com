@@ -401,8 +401,11 @@ class StaleAssetReconcilerTest {
         mediaAssetRepository = repository,
         mediaRateLimitRepository = rateLimitRepo,
         storageApplicationService = storage,
-        staleThresholdHours = STALE_THRESHOLD_HOURS,
-        gracePeriodMinutes = GRACE_PERIOD_MINUTES,
+        reconcilerSettings = MediaReconcilerSettings(
+            storageBucket = "attachments",
+            staleThresholdHours = STALE_THRESHOLD_HOURS,
+            gracePeriodMinutes = GRACE_PERIOD_MINUTES,
+        ),
     )
 
     // --- In-memory test doubles ---

@@ -287,7 +287,7 @@ class PublishingHandlersTest {
             providerCapabilityValidator = AcceptingCapabilityValidator(),
             schedulingPolicy = PublicationSchedulingPolicy(),
             mediaAssetResolver = FakeMediaAssetResolver(),
-            mediaContextIntegrationEnabled = true,
+            mediaIntegrationSettings = PublishingMediaIntegrationSettings(enabled = true),
             clock = fixedClock,
         )
 
@@ -336,7 +336,7 @@ class PublishingHandlersTest {
             providerCapabilityValidator = AcceptingCapabilityValidator(),
             schedulingPolicy = PublicationSchedulingPolicy(),
             mediaAssetResolver = FakeMediaAssetResolver(),
-            mediaContextIntegrationEnabled = true,
+            mediaIntegrationSettings = PublishingMediaIntegrationSettings(enabled = true),
             clock = fixedClock,
         )
 
@@ -383,7 +383,7 @@ class PublishingHandlersTest {
             providerCapabilityValidator = AcceptingCapabilityValidator(),
             schedulingPolicy = PublicationSchedulingPolicy(),
             mediaAssetResolver = FakeMediaAssetResolver(),
-            mediaContextIntegrationEnabled = true,
+            mediaIntegrationSettings = PublishingMediaIntegrationSettings(enabled = true),
             clock = fixedClock,
         )
 
@@ -428,7 +428,7 @@ class PublishingHandlersTest {
             providerCapabilityValidator = AcceptingCapabilityValidator(),
             schedulingPolicy = PublicationSchedulingPolicy(),
             mediaAssetResolver = FakeMediaAssetResolver(),
-            mediaContextIntegrationEnabled = true,
+            mediaIntegrationSettings = PublishingMediaIntegrationSettings(enabled = true),
             clock = fixedClock,
         )
 
@@ -476,7 +476,7 @@ class PublishingHandlersTest {
             providerCapabilityValidator = AcceptingCapabilityValidator(),
             schedulingPolicy = PublicationSchedulingPolicy(),
             mediaAssetResolver = FakeMediaAssetResolver(),
-            mediaContextIntegrationEnabled = true,
+            mediaIntegrationSettings = PublishingMediaIntegrationSettings(enabled = true),
             clock = fixedClock,
         )
 
@@ -568,7 +568,7 @@ class PublishingHandlersTest {
             providerCapabilityValidator = AcceptingCapabilityValidator(),
             schedulingPolicy = PublicationSchedulingPolicy(),
             mediaAssetResolver = FakeMediaAssetResolver(),
-            mediaContextIntegrationEnabled = true,
+            mediaIntegrationSettings = PublishingMediaIntegrationSettings(enabled = true),
             clock = fixedClock,
         )
 
@@ -627,7 +627,7 @@ class PublishingHandlersTest {
             providerCapabilityValidator = RejectingCapabilityValidator(),
             schedulingPolicy = PublicationSchedulingPolicy(),
             mediaAssetResolver = FakeMediaAssetResolver(),
-            mediaContextIntegrationEnabled = true,
+            mediaIntegrationSettings = PublishingMediaIntegrationSettings(enabled = true),
             clock = fixedClock,
         )
 
@@ -683,7 +683,7 @@ class PublishingHandlersTest {
             providerCapabilityValidator = AcceptingCapabilityValidator(),
             schedulingPolicy = PublicationSchedulingPolicy(),
             mediaAssetResolver = FakeMediaAssetResolver(),
-            mediaContextIntegrationEnabled = true,
+            mediaIntegrationSettings = PublishingMediaIntegrationSettings(enabled = true),
             clock = fixedClock,
         )
 
@@ -1136,7 +1136,7 @@ class PublishingHandlersTest {
             providerCapabilityValidator = AcceptingCapabilityValidator(),
             schedulingPolicy = PublicationSchedulingPolicy(),
             mediaAssetResolver = FakeMediaAssetResolver(),
-            mediaContextIntegrationEnabled = true,
+            mediaIntegrationSettings = PublishingMediaIntegrationSettings(enabled = true),
             clock = fixedClock,
         )
 
@@ -1169,7 +1169,7 @@ class PublishingHandlersTest {
             providerCapabilityValidator = AcceptingCapabilityValidator(),
             schedulingPolicy = PublicationSchedulingPolicy(),
             mediaAssetResolver = FakeMediaAssetResolver(),
-            mediaContextIntegrationEnabled = true,
+            mediaIntegrationSettings = PublishingMediaIntegrationSettings(enabled = true),
             clock = fixedClock,
         )
 
@@ -1756,7 +1756,7 @@ class PublishingHandlersTest {
             providerCapabilityValidator = AcceptingCapabilityValidator(),
             schedulingPolicy = PublicationSchedulingPolicy(),
             mediaAssetResolver = mediaResolver,
-            mediaContextIntegrationEnabled = true,
+            mediaIntegrationSettings = PublishingMediaIntegrationSettings(enabled = true),
             clock = fixedClock,
         )
 
@@ -1807,7 +1807,7 @@ class PublishingHandlersTest {
             providerCapabilityValidator = AcceptingCapabilityValidator(),
             schedulingPolicy = PublicationSchedulingPolicy(),
             mediaAssetResolver = mediaResolver,
-            mediaContextIntegrationEnabled = true,
+            mediaIntegrationSettings = PublishingMediaIntegrationSettings(enabled = true),
             clock = fixedClock,
         )
 
@@ -1867,7 +1867,7 @@ class PublishingHandlersTest {
             providerCapabilityValidator = AcceptingCapabilityValidator(),
             schedulingPolicy = PublicationSchedulingPolicy(),
             mediaAssetResolver = mediaResolver,
-            mediaContextIntegrationEnabled = true,
+            mediaIntegrationSettings = PublishingMediaIntegrationSettings(enabled = true),
             clock = fixedClock,
         )
 
@@ -1915,7 +1915,7 @@ class PublishingHandlersTest {
             providerCapabilityValidator = AcceptingCapabilityValidator(),
             schedulingPolicy = PublicationSchedulingPolicy(),
             mediaAssetResolver = mediaResolver,
-            mediaContextIntegrationEnabled = true,
+            mediaIntegrationSettings = PublishingMediaIntegrationSettings(enabled = true),
             clock = fixedClock,
         )
 
@@ -1978,7 +1978,7 @@ class PublishingHandlersTest {
             providerCapabilityValidator = AcceptingCapabilityValidator(),
             schedulingPolicy = PublicationSchedulingPolicy(),
             mediaAssetResolver = mediaResolver,
-            mediaContextIntegrationEnabled = false, // legacy fallback
+            mediaIntegrationSettings = PublishingMediaIntegrationSettings(enabled = false), // legacy fallback
             clock = fixedClock,
         )
 
@@ -2028,7 +2028,7 @@ class PublishingHandlersTest {
             providerCapabilityValidator = AcceptingCapabilityValidator(),
             schedulingPolicy = PublicationSchedulingPolicy(),
             mediaAssetResolver = mediaResolver,
-            mediaContextIntegrationEnabled = true,
+            mediaIntegrationSettings = PublishingMediaIntegrationSettings(enabled = true),
             clock = fixedClock,
         )
 
@@ -2087,7 +2087,7 @@ class PublishingHandlersTest {
             providerCapabilityValidator = AcceptingCapabilityValidator(),
             schedulingPolicy = PublicationSchedulingPolicy(),
             mediaAssetResolver = mediaResolver,
-            mediaContextIntegrationEnabled = true,
+            mediaIntegrationSettings = PublishingMediaIntegrationSettings(enabled = true),
             clock = fixedClock,
         )
 
@@ -2148,7 +2148,7 @@ class PublishingHandlersTest {
             providerCapabilityValidator = AcceptingCapabilityValidator(),
             schedulingPolicy = PublicationSchedulingPolicy(),
             mediaAssetResolver = mediaResolver,
-            mediaContextIntegrationEnabled = true,
+            mediaIntegrationSettings = PublishingMediaIntegrationSettings(enabled = true),
             clock = fixedClock,
         )
 
@@ -2209,7 +2209,7 @@ class PublishingHandlersTest {
             providerCapabilityValidator = AcceptingCapabilityValidator(),
             schedulingPolicy = PublicationSchedulingPolicy(),
             mediaAssetResolver = mediaResolver,
-            mediaContextIntegrationEnabled = true,
+            mediaIntegrationSettings = PublishingMediaIntegrationSettings(enabled = true),
             clock = fixedClock,
         )
 

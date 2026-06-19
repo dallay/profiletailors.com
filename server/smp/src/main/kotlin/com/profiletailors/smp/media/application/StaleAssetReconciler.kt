@@ -8,8 +8,6 @@ import com.profiletailors.storage.domain.StorageException
 import kotlinx.coroutines.TimeoutCancellationException
 import kotlinx.coroutines.withTimeout
 import org.slf4j.LoggerFactory
-import org.springframework.beans.factory.annotation.Value
-import org.springframework.scheduling.annotation.Scheduled
 import java.time.Instant
 
 /**
@@ -38,9 +36,7 @@ class StaleAssetReconciler(
     private val mediaAssetRepository: MediaAssetRepository,
     private val mediaRateLimitRepository: MediaRateLimitRepository,
     private val storageApplicationService: StorageApplicationService,
-    @Value("\${media.storage.bucket:attachments}") private val storageBucket: String = "attachments",
-    @Value("\${media.stale.threshold-hours:2}") private val staleThresholdHours: Long = 2,
-    @Value("\${media.stale.grace-period-minutes:30}") private val gracePeriodMinutes: Long = 30,
+    private val reconcilerSettings: MediaReconcilerSettings,
 ) {
     private val logger = LoggerFactory.getLogger(StaleAssetReconciler::class.java)
 
@@ -56,16 +52,8 @@ class StaleAssetReconciler(
 
     /**
      * Runs the stale asset reconciliation.
-     * Configured to run every 15 minutes via @Scheduled.
-     * Can also be triggered manually for testing.
+     * Scheduling is owned by infrastructure; application exposes only the use case.
      */
-    @Scheduled(
-        fixedRate = SCHEDULED_FIXED_RATE_MILLIS,
-        initialDelay = SCHEDULED_INITIAL_DELAY_MILLIS,
-    )
-    suspend fun runScheduled() {
-        run()
-    }
 
     /**
      * Run the reconciliation. Public for testing and manual trigger.
@@ -79,8 +67,8 @@ class StaleAssetReconciler(
 
         try {
             val staleAssets = mediaAssetRepository.findStaleProcessingAssets(
-                thresholdHours = staleThresholdHours,
-                gracePeriodMinutes = gracePeriodMinutes,
+                thresholdHours = reconcilerSettings.staleThresholdHours,
+                gracePeriodMinutes = reconcilerSettings.gracePeriodMinutes,
             )
             recordsScanned = staleAssets.size
             val staleResult = reconcileStaleProcessingAssets(staleAssets)
@@ -159,7 +147,7 @@ class StaleAssetReconciler(
         return try {
             withTimeout(STORAGE_DELETE_TIMEOUT_MILLIS) {
                 storageApplicationService.delete(
-                    bucket = storageBucket,
+                    bucket = reconcilerSettings.storageBucket,
                     key = asset.storageKey,
                     deleterId = "stale-reconciler",
                 )

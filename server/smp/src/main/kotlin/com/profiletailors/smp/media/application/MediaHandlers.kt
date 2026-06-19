@@ -11,7 +11,6 @@ import com.profiletailors.storage.domain.StorageException
 import kotlinx.coroutines.TimeoutCancellationException
 import kotlinx.coroutines.withTimeout
 import org.slf4j.LoggerFactory
-import org.springframework.beans.factory.annotation.Value
 import java.time.Instant
 import java.time.ZoneOffset
 import java.time.format.DateTimeFormatter
@@ -20,8 +19,7 @@ import java.time.format.DateTimeFormatter
 class CreateUploadedAssetHandler(
     private val mediaAssetRepository: MediaAssetRepository,
     private val mediaRateLimitRepository: MediaRateLimitRepository,
-    @Value("\${media.max-concurrent-uploads:5}") private val maxConcurrentUploads: Int = 5,
-    @Value("\${media.max-creations-per-hour:200}") private val maxCreationsPerHour: Int = 200,
+    private val uploadSettings: MediaUploadSettings,
 ) : CommandWithResultHandler<CreateUploadedAssetCommand, CreateUploadedAssetResult> {
 
     private val logger = LoggerFactory.getLogger(CreateUploadedAssetHandler::class.java)
@@ -70,14 +68,14 @@ class CreateUploadedAssetHandler(
     private suspend fun enforceCreationRateLimit(workspaceId: String) {
         val rateLimitOk = mediaRateLimitRepository.tryIncrementHourlyCreationCount(
             workspaceId,
-            maxCreationsPerHour,
+            uploadSettings.maxCreationsPerHour,
         )
         if (!rateLimitOk) {
             throw RateLimitExceededException(
                 workspaceId = workspaceId,
                 limitType = "hourly_creations",
-                currentValue = maxCreationsPerHour,
-                limitValue = maxCreationsPerHour,
+                currentValue = uploadSettings.maxCreationsPerHour,
+                limitValue = uploadSettings.maxCreationsPerHour,
                 retryAfterSeconds = HOURLY_CREATIONS_RETRY_AFTER_SECONDS,
             )
         }
@@ -149,8 +147,7 @@ class UploadAssetHandler(
     private val mediaAssetRepository: MediaAssetRepository,
     private val mediaRateLimitRepository: MediaRateLimitRepository,
     private val storageApplicationService: StorageApplicationService,
-    @Value("\${media.max-concurrent-uploads:5}") private val maxConcurrentUploads: Int = 5,
-    @Value("\${media.storage.bucket:attachments}") private val storageBucket: String = "attachments",
+    private val uploadSettings: MediaUploadSettings,
 ) : CommandWithResultHandler<UploadAssetCommand, UploadAssetResult> {
 
     private val logger = LoggerFactory.getLogger(UploadAssetHandler::class.java)
@@ -193,7 +190,7 @@ class UploadAssetHandler(
             )
 
             val startTime = System.currentTimeMillis()
-            val fileSize = uploadWithStreamingValidation(command, asset, storageBucket)
+            val fileSize = uploadWithStreamingValidation(command, asset, uploadSettings.storageBucket)
 
             val updated = mediaAssetRepository.markAsReady(assetId, workspaceId, fileSize)
                 ?: throw IllegalStateException("Asset not found after upload: $assetId")
@@ -225,14 +222,14 @@ class UploadAssetHandler(
     private suspend fun claimConcurrentUploadSlot(workspaceId: String) {
         val slotClaimed = mediaRateLimitRepository.tryClaimConcurrentUploadSlot(
             workspaceId,
-            maxConcurrentUploads,
+            uploadSettings.maxConcurrentUploads,
         )
         if (!slotClaimed) {
             throw RateLimitExceededException(
                 workspaceId = workspaceId,
                 limitType = "concurrent_uploads",
-                currentValue = maxConcurrentUploads,
-                limitValue = maxConcurrentUploads,
+                currentValue = uploadSettings.maxConcurrentUploads,
+                limitValue = uploadSettings.maxConcurrentUploads,
                 retryAfterSeconds = CONCURRENT_UPLOADS_RETRY_AFTER_SECONDS,
             )
         }
@@ -324,7 +321,7 @@ class UploadAssetHandler(
         return try {
             withTimeout(CLEANUP_TIMEOUT_MILLIS) {
                 storageApplicationService.delete(
-                    storageBucket,
+                    uploadSettings.storageBucket,
                     storageKey,
                     "media-reconciler",
                 )

@@ -89,6 +89,18 @@ class MediaServiceUnavailableException(
     cause: Throwable? = null,
 ) : RuntimeException(message, cause)
 
+data class MediaUploadSettings(
+    val maxConcurrentUploads: Int,
+    val maxCreationsPerHour: Int,
+    val storageBucket: String,
+)
+
+data class MediaReconcilerSettings(
+    val storageBucket: String,
+    val staleThresholdHours: Long,
+    val gracePeriodMinutes: Long,
+)
+
 /**
  * Exception thrown when media type validation fails.
  */

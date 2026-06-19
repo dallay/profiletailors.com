@@ -18,6 +18,11 @@ import java.time.ZoneOffset
 class MediaHandlersTest {
 
     private val fixedClock: Clock = Clock.fixed(Instant.parse("2026-06-19T12:00:00Z"), ZoneOffset.UTC)
+    private val uploadSettings = MediaUploadSettings(
+        maxConcurrentUploads = 5,
+        maxCreationsPerHour = 200,
+        storageBucket = "attachments",
+    )
 
     // --- CreateUploadedAssetHandler tests ---
 
@@ -28,6 +33,7 @@ class MediaHandlersTest {
         val handler = CreateUploadedAssetHandler(
             mediaAssetRepository = repository,
             mediaRateLimitRepository = rateLimitRepo,
+            uploadSettings = uploadSettings,
         )
 
         val result = handler.handle(
@@ -55,6 +61,7 @@ class MediaHandlersTest {
         val handler = CreateUploadedAssetHandler(
             mediaAssetRepository = repository,
             mediaRateLimitRepository = rateLimitRepo,
+            uploadSettings = uploadSettings,
         )
 
         val result = handler.handle(
@@ -77,6 +84,7 @@ class MediaHandlersTest {
         val handler = CreateUploadedAssetHandler(
             mediaAssetRepository = repository,
             mediaRateLimitRepository = rateLimitRepo,
+            uploadSettings = uploadSettings,
         )
 
         val error = assertThrows(UnsupportedMediaTypeException::class.java) {
@@ -103,6 +111,7 @@ class MediaHandlersTest {
         val handler = CreateUploadedAssetHandler(
             mediaAssetRepository = repository,
             mediaRateLimitRepository = rateLimitRepo,
+            uploadSettings = uploadSettings,
         )
 
         val error = assertThrows(UnsupportedMediaTypeException::class.java) {
@@ -128,6 +137,7 @@ class MediaHandlersTest {
         val handler = CreateUploadedAssetHandler(
             mediaAssetRepository = repository,
             mediaRateLimitRepository = rateLimitRepo,
+            uploadSettings = uploadSettings,
         )
 
         val error = assertThrows(UnsupportedMediaTypeException::class.java) {
@@ -153,6 +163,7 @@ class MediaHandlersTest {
         val handler = CreateUploadedAssetHandler(
             mediaAssetRepository = repository,
             mediaRateLimitRepository = rateLimitRepo,
+            uploadSettings = uploadSettings,
         )
 
         val result = handler.handle(
@@ -174,6 +185,7 @@ class MediaHandlersTest {
         val handler = CreateUploadedAssetHandler(
             mediaAssetRepository = repository,
             mediaRateLimitRepository = rateLimitRepo,
+            uploadSettings = uploadSettings,
         )
 
         val error = assertThrows(UnsupportedMediaTypeException::class.java) {
@@ -199,7 +211,7 @@ class MediaHandlersTest {
         val handler = CreateUploadedAssetHandler(
             mediaAssetRepository = repository,
             mediaRateLimitRepository = rateLimitRepo,
-            maxCreationsPerHour = 0,
+            uploadSettings = uploadSettings.copy(maxCreationsPerHour = 0),
         )
 
         val error = assertThrows(RateLimitExceededException::class.java) {
@@ -244,6 +256,7 @@ class MediaHandlersTest {
             mediaAssetRepository = repository,
             mediaRateLimitRepository = rateLimitRepo,
             storageApplicationService = storage,
+            uploadSettings = uploadSettings,
         )
 
         // JPEG magic bytes (SOI + APP0 marker)
@@ -289,6 +302,7 @@ class MediaHandlersTest {
             mediaAssetRepository = repository,
             mediaRateLimitRepository = rateLimitRepo,
             storageApplicationService = storage,
+            uploadSettings = uploadSettings,
         )
         val pngBytes = readMediaFixtureBytes("sample.png")
 
@@ -331,6 +345,7 @@ class MediaHandlersTest {
             mediaAssetRepository = repository,
             mediaRateLimitRepository = rateLimitRepo,
             storageApplicationService = storage,
+            uploadSettings = uploadSettings,
         )
         val pngBytes = readMediaFixtureBytes("sample.png")
 
@@ -372,7 +387,7 @@ class MediaHandlersTest {
         )
         repository.setUploadSlotClaimable("ws-1")
 
-        val handler = UploadAssetHandler(repository, rateLimitRepo, storage)
+        val handler = UploadAssetHandler(repository, rateLimitRepo, storage, uploadSettings)
         val jpegBytes = readMediaFixtureBytes("sample.jpeg")
 
         val result = handler.handle(
@@ -409,7 +424,7 @@ class MediaHandlersTest {
         )
         repository.setUploadSlotClaimable("ws-1")
 
-        val handler = UploadAssetHandler(repository, rateLimitRepo, storage)
+        val handler = UploadAssetHandler(repository, rateLimitRepo, storage, uploadSettings)
         val gifBytes = readMediaFixtureBytes("sample.gif")
 
         val result = handler.handle(
@@ -446,7 +461,7 @@ class MediaHandlersTest {
         )
         repository.setUploadSlotClaimable("ws-1")
 
-        val handler = UploadAssetHandler(repository, rateLimitRepo, storage)
+        val handler = UploadAssetHandler(repository, rateLimitRepo, storage, uploadSettings)
         val webpBytes = readMediaFixtureBytes("sample.webp")
 
         val result = handler.handle(
@@ -483,7 +498,7 @@ class MediaHandlersTest {
         )
         repository.setUploadSlotClaimable("ws-1")
 
-        val handler = UploadAssetHandler(repository, rateLimitRepo, storage)
+        val handler = UploadAssetHandler(repository, rateLimitRepo, storage, uploadSettings)
         val mp4Bytes = readMediaFixtureBytes("sample.mp4")
 
         val result = handler.handle(
@@ -520,7 +535,7 @@ class MediaHandlersTest {
         )
         repository.setUploadSlotClaimable("ws-1")
 
-        val handler = UploadAssetHandler(repository, rateLimitRepo, storage)
+        val handler = UploadAssetHandler(repository, rateLimitRepo, storage, uploadSettings)
         val avifBytes = readMediaFixtureBytes("sample.avif")
 
         val error = assertThrows(UnsupportedMediaTypeException::class.java) {
@@ -548,6 +563,7 @@ class MediaHandlersTest {
         val handler = CreateUploadedAssetHandler(
             mediaAssetRepository = repository,
             mediaRateLimitRepository = rateLimitRepo,
+            uploadSettings = uploadSettings,
         )
         val mp3Bytes = readMediaFixtureBytes("sample.mp3")
 
@@ -592,6 +608,7 @@ class MediaHandlersTest {
             mediaAssetRepository = repository,
             mediaRateLimitRepository = rateLimitRepo,
             storageApplicationService = storage,
+            uploadSettings = uploadSettings,
         )
 
         val error = assertThrows(UploadConflictException::class.java) {
@@ -623,6 +640,7 @@ class MediaHandlersTest {
             mediaAssetRepository = repository,
             mediaRateLimitRepository = rateLimitRepo,
             storageApplicationService = storage,
+            uploadSettings = uploadSettings,
         )
 
         val error = assertThrows(AssetNotFoundException::class.java) {
