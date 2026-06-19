@@ -9,8 +9,8 @@ import com.profiletailors.smp.tenancy.application.OwnerTargetMustBeActiveMemberE
 import com.profiletailors.smp.tenancy.application.TransferWorkspaceOwnershipCommand
 import com.profiletailors.smp.tenancy.application.WorkspaceOwnerAccessDeniedException
 import com.profiletailors.smp.tenancy.application.WorkspaceOwnershipResult
+import com.profiletailors.smp.tenancy.domain.LastOwnerRemovalRequiresReplacementException
 import com.profiletailors.smp.tenancy.domain.WorkspaceOwnership
-import com.profiletailors.smp.tenancy.domain.WorkspaceOwnershipPolicy
 import java.time.Clock
 
 internal class AddWorkspaceOwnerHandler(
@@ -94,7 +94,6 @@ internal class TransferWorkspaceOwnershipHandler(
     private val workspaceMembershipLookup: WorkspaceMembershipLookup,
     private val clock: Clock,
     private val tenancyMutationAuditor: TenancyMutationAuditor,
-    private val ownershipPolicy: WorkspaceOwnershipPolicy = WorkspaceOwnershipPolicy(),
 ) : CommandWithResultHandler<TransferWorkspaceOwnershipCommand, WorkspaceOwnershipResult> {
     @Suppress("ThrowsCount", "LongMethod")
     override suspend fun handle(command: TransferWorkspaceOwnershipCommand): WorkspaceOwnershipResult {
@@ -126,9 +125,17 @@ internal class TransferWorkspaceOwnershipHandler(
                 )
             }
 
-            val updatedOwners = workspaceOwnershipRepository.findByWorkspaceId(workspaceId)
-            ownershipPolicy.ensureOwnerRemovalAllowed(updatedOwners, actorOwnership)
-            workspaceOwnershipRepository.remove(workspaceId, actorOwnership.ownerPrincipalId)
+            // Atomically removes the actor's ownership only when a replacement owner already
+            // exists in the DB.  This closes the TOCTOU race: a concurrent transfer that removed
+            // the replacement between the "add" above and this delete cannot cause the workspace
+            // to become ownerless — the database operation simply returns false in that case.
+            val removed = workspaceOwnershipRepository.removeIfReplacementExists(
+                workspaceId,
+                actorOwnership.ownerPrincipalId,
+            )
+            if (!removed) {
+                throw LastOwnerRemovalRequiresReplacementException(workspaceId)
+            }
 
             WorkspaceOwnershipResult(
                 workspaceId = workspaceId,
