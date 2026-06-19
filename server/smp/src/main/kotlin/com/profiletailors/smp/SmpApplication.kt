@@ -1,15 +1,18 @@
 package com.profiletailors.smp
 
+import com.profiletailors.common.domain.Service
+import com.profiletailors.storage.infrastructure.StorageAutoConfiguration
 import org.springframework.boot.autoconfigure.SpringBootApplication
 import org.springframework.boot.runApplication
 import org.springframework.context.annotation.ComponentScan
 import org.springframework.context.annotation.FilterType
+import org.springframework.context.annotation.Import
+import org.springframework.scheduling.annotation.EnableScheduling
 import org.springframework.stereotype.Component
 import org.springframework.stereotype.Repository
 import org.springframework.stereotype.Service as SpringService
 import org.springframework.web.bind.annotation.RestController
 import org.springframework.web.bind.annotation.RestControllerAdvice
-import com.profiletailors.common.domain.Service
 
 /**
  * Entry point for the `profiletailors-backend` server module.
@@ -23,6 +26,8 @@ import com.profiletailors.common.domain.Service
  * classes (e.g. BDD glue, integration harnesses) into the main source set.
  */
 @SpringBootApplication
+@EnableScheduling
+@Import(StorageAutoConfiguration::class)
 @ComponentScan(
     includeFilters = [
         ComponentScan.Filter(

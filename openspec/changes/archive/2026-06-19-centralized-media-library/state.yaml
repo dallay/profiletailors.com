@@ -1,0 +1,81 @@
+change: centralized-media-library
+artifact_store: openspec
+current_phase: archive
+completed:
+  - directory
+  - exploration
+  - proposal
+  - specification
+  - design
+  - tasks
+  - apply
+  - verify
+  - archive
+archived_to: archive/2026-06-19-centralized-media-library
+phases:
+  directory:
+    status: completed
+  exploration:
+    status: completed
+    artifact: exploration.md
+  proposal:
+    status: completed
+    artifact: proposal.md
+  specification:
+    status: completed
+  design:
+    status: completed
+    artifact: design.md
+  tasks:
+    status: completed
+    artifact: tasks.md
+  apply:
+    status: completed
+    completed_tasks:
+      - "1.1 Create media domain models"
+      - "1.2 Add media application commands, queries, and port"
+      - "1.3 Implement media persistence repositories"
+      - "1.4 Storage bucket audit"
+      - "2.1 Add media HTTP controllers, DTOs, and health probes"
+      - "2.2 Wire backend-managed multipart upload through shared/storage"
+      - "2.3 Enforce validation, conflict semantics, and DB-backed rate limits"
+      - "2.4 Add stale PROCESSING asset reconciler and cleanup metrics"
+      - "3.1 Update CreatePublicationHandler with MediaAssetResolver, 5s timeout, and feature flag"
+      - "3.1b Update EditPublicationHandler with same media resolver validation"
+      - "3.2 Wrap storage.download in RealLinkedInPublisher to propagate StorageException as RetryablePublishingException"
+      - "3.3 MediaAssetResolverImpl resolves legacy publication_assets rows during transition"
+      - "4.1 Create media-api.ts with typed reserve/upload/list/get helpers"
+      - "4.2 Add media.ts store with create/upload/list/paging/retry and selected asset ids"
+      - "4.3 Update CreatePostModal.vue with persisted upload flow and dangling upload recovery"
+      - "4.4 Update publishing.ts schedulePost to submit real persisted assetIds"
+      - "5.1 Add backend tests for media creation, upload, lifecycle, paging, and stale cleanup"
+      - "5.2 Update publishing tests with MediaAssetResolver validation (READY/cross-workspace/503)"
+      - "5.3 Add frontend media/publishing tests for persisted upload, retry, paging, and schedulePost"
+      - "5.4 Run test suites, fix StorageApplicationService wiring, document remaining 2 actuator warnings"
+      - "5.5 Add stale PROCESSING reconciler tests with threshold, grace, idempotency, cleanup"
+  verify:
+    status: completed
+    verdict: PASS
+    test_results:
+      backend_tests: "591 passed, 0 failed"
+      frontend_tests: "336 passed, 0 failed"
+      detekt: passed
+      build: passed
+    resolved_blockers:
+      - "ReconcileBatchResult data class now defined at StaleAssetReconciler.kt:255"
+      - "RetryablePublishingException now takes 1 arg (message), usage at line 445 is correct"
+      - "logger defined in RealLinkedInPublisher at line 245"
+    resolved_warnings:
+      - "ActuatorEndpointsIntegrationTest isolation gap resolved — 0 failures in current run"
+    spec_coverage: "40/40 scenarios compliant (100%)"
+  archive:
+    status: completed
+    artifact: archive-report.md
+    specs_synced:
+      - domain: media-library
+        action: created
+      - domain: publishing
+        action: updated
+        requirements_added: 4
+updated_by: sdd-archive
+updated: "2026-06-19T20:56:00+02:00"

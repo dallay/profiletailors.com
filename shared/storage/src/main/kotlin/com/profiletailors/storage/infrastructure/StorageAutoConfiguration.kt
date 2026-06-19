@@ -1,8 +1,12 @@
 package com.profiletailors.storage.infrastructure
 
+import com.profiletailors.common.domain.bus.event.BaseDomainEvent
+import com.profiletailors.common.domain.bus.event.EventPublisher
+import com.profiletailors.storage.application.StorageApplicationService
 import com.profiletailors.storage.domain.BucketNotFoundException
 import com.profiletailors.storage.domain.BucketRegistry
 import com.profiletailors.storage.domain.Storage
+import com.profiletailors.storage.infrastructure.metrics.StorageMetrics
 import org.slf4j.LoggerFactory
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean
 import org.springframework.boot.context.properties.EnableConfigurationProperties
@@ -50,14 +54,27 @@ open class StorageAutoConfiguration {
     open fun bucketRegistry(storageProperties: StorageProperties): BucketRegistry {
         val map = mutableMapOf<String, Storage>()
         storageProperties.providers.forEach { (name, config) ->
-            map[name] = createProvider(config)
+            try {
+                map[name] = createProvider(config)
+            } catch (e: Throwable) {
+                logger.warn(
+                    "Failed to create storage provider '$name' (type={}): {}. " +
+                    "This provider will not be available.",
+                    config.type,
+                    e.message,
+                )
+            }
         }
 
-        // Validate default provider exists
+        // Validate default provider exists; if validation fails, surface a clear error
         val defaultName = storageProperties.default
-        check(!(defaultName.isNotBlank() && !map.containsKey(defaultName))) {
-            "Configured default storage provider '$defaultName' not found. " +
-            "Available providers: ${map.keys.joinToString(", ")}"
+        if (defaultName.isNotBlank() && !map.containsKey(defaultName)) {
+            val available = map.keys.joinToString(", ")
+            throw IllegalStateException(
+                "Configured default storage provider '$defaultName' not found. " +
+                "Available providers: ${if (available.isNotBlank()) available else "(none — all providers failed to initialize)"}. " +
+                "Ensure platform.storage.default references a valid, initialized provider."
+            )
         }
 
         return InMemoryBucketRegistry(map)

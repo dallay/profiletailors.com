@@ -5,6 +5,9 @@ import com.profiletailors.common.domain.bus.command.CommandWithResultHandler
 import com.profiletailors.common.domain.bus.query.QueryHandler
 import com.profiletailors.common.domain.context.PrincipalContextProvider
 import com.profiletailors.common.domain.context.ResourceContextProvider
+import com.profiletailors.smp.media.application.AssetNotReadyException
+import com.profiletailors.smp.media.application.MediaAssetResolver
+import com.profiletailors.smp.media.application.MediaServiceUnavailableException
 import com.profiletailors.smp.publishing.domain.ActivityThresholds
 import com.profiletailors.smp.publishing.domain.MIN_SCHEDULE_OFFSET
 import com.profiletailors.smp.publishing.domain.AssetSourceType
@@ -43,9 +46,8 @@ import com.profiletailors.smp.publishing.domain.SocialConnectionRepository
 import com.profiletailors.smp.publishing.domain.SocialConnectionStatus
 import com.profiletailors.smp.publishing.domain.SocialProvider
 import com.profiletailors.smp.tenancy.application.requireWorkspaceContext
-import kotlinx.coroutines.flow.Flow
-import kotlinx.coroutines.flow.asFlow
-import kotlinx.coroutines.flow.onEach
+import kotlinx.coroutines.withTimeoutOrNull
+import org.springframework.beans.factory.annotation.Value
 import java.time.Clock
 import java.time.Instant
 import java.util.Locale
@@ -265,6 +267,9 @@ internal class CreatePublicationHandler(
     private val publicationJobRepository: PublicationJobRepository,
     private val providerCapabilityValidator: ProviderCapabilityValidator,
     private val schedulingPolicy: PublicationSchedulingPolicy,
+    private val mediaAssetResolver: MediaAssetResolver,
+    @Value("\${platform.media.context.integration.enabled:true}")
+    private val mediaContextIntegrationEnabled: Boolean,
     private val clock: Clock,
 ) : CommandWithResultHandler<CreatePublicationCommand, PublicationResult> {
     override suspend fun handle(command: CreatePublicationCommand): PublicationResult {
@@ -272,7 +277,11 @@ internal class CreatePublicationHandler(
         val resourceContext = resourceContextProvider.requireWorkspaceContext()
         val workspaceId = requireNotNull(resourceContext.workspaceId)
         val socialAccount = requireSocialAccount(workspaceId, command.socialAccountId)
-        val assets = publicationAssetRepository.findByWorkspaceAndIds(workspaceId, command.assetIds)
+
+        // Resolve assets through media context if feature flag is enabled
+        // Short-circuit for empty assetIds so zero-asset publications succeed even when media is unavailable
+        val assets = resolveAssets(workspaceId, command.assetIds)
+
         val now = clock.instant()
         val draft = PublicationDraft(
             id = "pub-${UUID.randomUUID()}",
@@ -304,6 +313,49 @@ internal class CreatePublicationHandler(
         return persisted.toResult()
     }
 
+    /**
+     * Resolves assets through the media context or falls back to legacy lookup.
+     *
+     * When `mediaContextIntegrationEnabled` is true and `assetIds` is non-empty:
+     *   - Calls `mediaAssetResolver.resolveReadyAssets(workspaceId, assetIds)` with a 5-second timeout
+     *   - Throws `MediaServiceUnavailableException` on timeout or infrastructure failure
+     *   - Throws `AssetNotReadyException` for missing, cross-workspace, or non-READY assets
+     *
+     * When `mediaContextIntegrationEnabled` is false or `assetIds` is empty:
+     *   - Falls back to the legacy `publicationAssetRepository` lookup (no media context call)
+     *
+     * The 5-second timeout ensures that media context unavailability fails fast and returns
+     * HTTP 503 rather than allowing publication creation to silently skip validation.
+     */
+    private suspend fun resolveAssets(workspaceId: String, assetIds: List<String>): List<PublicationAsset> {
+        val shouldUseLegacyLookup = assetIds.isEmpty() || !mediaContextIntegrationEnabled
+        if (shouldUseLegacyLookup) {
+            return legacyAssetLookup(workspaceId, assetIds)
+        }
+
+        resolveReadyAssetsFromMedia(workspaceId, assetIds)
+        return legacyAssetLookup(workspaceId, assetIds)
+    }
+
+    private suspend fun resolveReadyAssetsFromMedia(workspaceId: String, assetIds: List<String>) {
+        withTimeoutOrNull(TIMEOUT_MILLIS) {
+            mediaAssetResolver.resolveReadyAssets(workspaceId, assetIds)
+        } ?: throw MediaServiceUnavailableException(
+            "Media asset resolution timed out after ${TIMEOUT_MILLIS / MILLIS_PER_SECOND} seconds",
+        )
+    }
+
+    private suspend fun legacyAssetLookup(
+        workspaceId: String,
+        assetIds: List<String>,
+    ): List<PublicationAsset> {
+        return if (assetIds.isEmpty()) {
+            emptyList()
+        } else {
+            publicationAssetRepository.findByWorkspaceAndIds(workspaceId, assetIds)
+        }
+    }
+
     private suspend fun requireSocialAccount(workspaceId: String, socialAccountId: String): SocialAccount =
         socialAccountRepository.findByWorkspaceAndId(workspaceId, socialAccountId)
             ?: throw SocialAccountNotFoundException(socialAccountId)
@@ -318,6 +370,12 @@ internal class CreatePublicationHandler(
         attemptCount = 0,
         maxAttempts = 1,
     )
+
+    private companion object {
+        /** 5-second timeout for media asset resolution, matching the design spec. */
+        const val TIMEOUT_MILLIS = 5_000L
+        const val MILLIS_PER_SECOND = 1_000L
+    }
 }
 
 @Service
@@ -329,6 +387,9 @@ internal class EditPublicationHandler(
     private val publicationJobRepository: PublicationJobRepository,
     private val providerCapabilityValidator: ProviderCapabilityValidator,
     private val schedulingPolicy: PublicationSchedulingPolicy,
+    private val mediaAssetResolver: MediaAssetResolver,
+    @Value("\${platform.media.context.integration.enabled:true}")
+    private val mediaContextIntegrationEnabled: Boolean,
     private val clock: Clock,
 ) : CommandWithResultHandler<EditPublicationCommand, PublicationResult> {
     override suspend fun handle(command: EditPublicationCommand): PublicationResult {
@@ -338,7 +399,10 @@ internal class EditPublicationHandler(
         PublicationLifecyclePolicy.requireEditable(current)
         val account = socialAccountRepository.findByWorkspaceAndId(workspaceId, current.socialAccountId)
             ?: throw SocialAccountNotFoundException(current.socialAccountId)
-        val assets = publicationAssetRepository.findByWorkspaceAndIds(workspaceId, command.assetIds)
+
+        // Resolve assets through media context (same contract as publication creation)
+        val assets = resolveAssets(workspaceId, command.assetIds)
+
         val now = clock.instant()
         val updatedDraft = current.copy(
             title = command.title,
@@ -376,6 +440,46 @@ internal class EditPublicationHandler(
             ),
         )
         return persisted.toResult()
+    }
+
+    /**
+     * Resolves assets through the media context or falls back to legacy lookup.
+     * Identical contract to [CreatePublicationHandler.resolveAssets].
+     *
+     * @see CreatePublicationHandler.resolveAssets
+     */
+    private suspend fun resolveAssets(workspaceId: String, assetIds: List<String>): List<PublicationAsset> {
+        val shouldUseLegacyLookup = assetIds.isEmpty() || !mediaContextIntegrationEnabled
+        if (shouldUseLegacyLookup) {
+            return legacyAssetLookup(workspaceId, assetIds)
+        }
+
+        resolveReadyAssetsFromMedia(workspaceId, assetIds)
+        return legacyAssetLookup(workspaceId, assetIds)
+    }
+
+    private suspend fun resolveReadyAssetsFromMedia(workspaceId: String, assetIds: List<String>) {
+        withTimeoutOrNull(TIMEOUT_MILLIS) {
+            mediaAssetResolver.resolveReadyAssets(workspaceId, assetIds)
+        } ?: throw MediaServiceUnavailableException(
+            "Media asset resolution timed out after ${TIMEOUT_MILLIS / MILLIS_PER_SECOND} seconds",
+        )
+    }
+
+    private suspend fun legacyAssetLookup(
+        workspaceId: String,
+        assetIds: List<String>,
+    ): List<PublicationAsset> {
+        return if (assetIds.isEmpty()) {
+            emptyList()
+        } else {
+            publicationAssetRepository.findByWorkspaceAndIds(workspaceId, assetIds)
+        }
+    }
+
+    private companion object {
+        const val TIMEOUT_MILLIS = 5_000L
+        const val MILLIS_PER_SECOND = 1_000L
     }
 }
 
