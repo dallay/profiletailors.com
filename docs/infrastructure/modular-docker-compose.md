@@ -98,7 +98,7 @@ messages without delivering them to real inboxes.
 
 ### How it works
 
-```
+```text
 SmtpEmailSender → localhost:1025 (Mailpit) → captured, never delivered
 ```
 
