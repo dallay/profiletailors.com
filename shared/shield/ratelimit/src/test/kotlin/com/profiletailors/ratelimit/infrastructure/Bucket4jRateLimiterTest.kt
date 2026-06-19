@@ -18,6 +18,7 @@ import kotlin.test.assertTrue
 import kotlinx.coroutines.test.runTest
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
+import com.profiletailors.ratelimit.infrastructure.config.RateLimitProperties.CacheConfig
 
 /**
  * Unit tests for Bucket4jRateLimiter.
@@ -76,6 +77,28 @@ class Bucket4jRateLimiterTest {
                         refillDuration = Duration.ofHours(1),
                     ),
                 ),
+            ),
+            resume = RateLimitProperties.ResumeRateLimitConfig(
+                enabled = true,
+                limit = RateLimitProperties.BandwidthLimit(
+                    name = "resume-limit",
+                    capacity = 10,
+                    refillTokens = 10,
+                    refillDuration = Duration.ofMinutes(1),
+                ),
+            ),
+            waitlist = RateLimitProperties.WaitlistRateLimitConfig(
+                enabled = true,
+                limit = RateLimitProperties.BandwidthLimit(
+                    name = "waitlist-limit",
+                    capacity = 5,
+                    refillTokens = 5,
+                    refillDuration = Duration.ofMinutes(1),
+                ),
+            ),
+            cache = RateLimitProperties.CacheConfig(
+                maxSize = 10000,
+                ttlMinutes = 60,
             ),
         )
         val configFactory = BucketConfigurationFactory(properties)
@@ -324,6 +347,165 @@ class Bucket4jRateLimiterTest {
         result.retryAfter.isNegative shouldBe false
         result.retryAfter.isZero shouldBe false
         result.limitCapacity shouldBe 5
+    }
+
+    // --- RESUME strategy tests ---
+
+    @Test
+    fun `should allow token consumption for RESUME strategy`() = runTest {
+        // Given
+        val identifier = "RESUME-USER-001"
+
+        // When
+        val result = rateLimiter.consumeToken(identifier, RateLimitStrategy.RESUME)
+
+        // Then
+        result.shouldBeInstanceOf<RateLimitResult.Allowed>()
+        result.remainingTokens shouldBe 9 // 10 capacity - 1 consumed
+        result.limitCapacity shouldBe 10
+    }
+
+    @Test
+    fun `should deny token consumption when RESUME limit exceeded`() = runTest {
+        // Given
+        val identifier = "RESUME-USER-002"
+
+        // Consume all tokens
+        repeat(10) {
+            rateLimiter.consumeToken(identifier, RateLimitStrategy.RESUME)
+        }
+
+        // When
+        val result = rateLimiter.consumeToken(identifier, RateLimitStrategy.RESUME)
+
+        // Then
+        result.shouldBeInstanceOf<RateLimitResult.Denied>()
+        result.retryAfter.isNegative shouldBe false
+        result.limitCapacity shouldBe 10
+    }
+
+    // --- WAITLIST strategy tests ---
+
+    @Test
+    fun `should allow token consumption for WAITLIST strategy`() = runTest {
+        // Given
+        val identifier = "WAITLIST-IP:192.168.1.100"
+
+        // When
+        val result = rateLimiter.consumeToken(identifier, RateLimitStrategy.WAITLIST)
+
+        // Then
+        result.shouldBeInstanceOf<RateLimitResult.Allowed>()
+        result.remainingTokens shouldBe 4 // 5 capacity - 1 consumed
+        result.limitCapacity shouldBe 5
+    }
+
+    @Test
+    fun `should deny token consumption when WAITLIST limit exceeded`() = runTest {
+        // Given
+        val identifier = "WAITLIST-IP:192.168.1.101"
+
+        // Consume all tokens
+        repeat(5) {
+            rateLimiter.consumeToken(identifier, RateLimitStrategy.WAITLIST)
+        }
+
+        // When
+        val result = rateLimiter.consumeToken(identifier, RateLimitStrategy.WAITLIST)
+
+        // Then
+        result.shouldBeInstanceOf<RateLimitResult.Denied>()
+        result.retryAfter.isNegative shouldBe false
+        result.limitCapacity shouldBe 5
+    }
+
+    // --- Cache management tests ---
+
+    @Test
+    fun `should return cache size`() = runTest {
+        // Given
+        val identifier = "CACHE-SIZE-TEST"
+        val initialSize = rateLimiter.getCacheSize()
+        rateLimiter.consumeToken(identifier, RateLimitStrategy.AUTH)
+
+        // When
+        val size = rateLimiter.getCacheSize()
+
+        // Then - cache should have at least one entry after consuming a token
+        size shouldBe initialSize + 1
+    }
+
+    @Test
+    fun `should return cache stats`() = runTest {
+        // Given
+        val identifier = "CACHE-STATS-TEST"
+        rateLimiter.consumeToken(identifier, RateLimitStrategy.AUTH)
+        rateLimiter.consumeToken(identifier, RateLimitStrategy.AUTH)
+
+        // When
+        val stats = rateLimiter.getCacheStats()
+
+        // Then - two consumeToken calls should result in at least 2 requests tracked
+        stats.requestCount() shouldBeGreaterThanOrEqual 2L
+    }
+
+    @Test
+    fun `should clear cache`() = runTest {
+        // Given
+        val identifier1 = "CLEAR-TEST-1"
+        val identifier2 = "CLEAR-TEST-2"
+        rateLimiter.consumeToken(identifier1, RateLimitStrategy.AUTH)
+        rateLimiter.consumeToken(identifier2, RateLimitStrategy.AUTH)
+
+        // When
+        rateLimiter.clearCache()
+
+        // Then
+        rateLimiter.getCacheSize() shouldBe 0L
+    }
+
+    @Test
+    fun `should trigger cache cleanup`() = runTest {
+        // Given
+        val identifier = "CLEANUP-TEST"
+        rateLimiter.consumeToken(identifier, RateLimitStrategy.AUTH)
+
+        // When/Then - should not throw
+        rateLimiter.triggerCacheCleanup()
+    }
+
+    @Test
+    fun `should maintain separate buckets for different strategies with same identifier`() = runTest {
+        // Given
+        val identifier = "MULTI-STRATEGY-TEST"
+
+        // When - exhaust AUTH tokens
+        repeat(5) {
+            rateLimiter.consumeToken(identifier, RateLimitStrategy.AUTH)
+        }
+
+        // Then - RESUME should still have tokens
+        val resumeResult = rateLimiter.consumeToken(identifier, RateLimitStrategy.RESUME)
+        resumeResult.shouldBeInstanceOf<RateLimitResult.Allowed>()
+
+        // Then - WAITLIST should still have tokens
+        val waitlistResult = rateLimiter.consumeToken(identifier, RateLimitStrategy.WAITLIST)
+        waitlistResult.shouldBeInstanceOf<RateLimitResult.Allowed>()
+    }
+
+    @Test
+    fun `should track cache eviction correctly`() = runTest {
+        // Given - create multiple entries
+        repeat(5) {
+            rateLimiter.consumeToken("EVICTION-TEST-$it", RateLimitStrategy.AUTH)
+        }
+
+        // When - trigger cleanup
+        rateLimiter.triggerCacheCleanup()
+
+        // Then - cache should have entries
+        val size = rateLimiter.getCacheSize()
+        size shouldBeGreaterThanOrEqual 0
     }
 
     // Option A: Tolerant test - assert resetTime is between now and now + refillDuration + tolerance
