@@ -69,7 +69,6 @@ export const useAuthStore = defineStore('auth', () => {
   // ---------------------------------------------------------------------------
 
   const isAuthenticated = computed(() => Boolean(_accessToken.value))
-  const isEmailVerified = computed(() => user.value?.emailStatus === 'VERIFIED')
   const accessToken = computed(() => _accessToken.value)
 
   const defaultDisplayName = 'PT'

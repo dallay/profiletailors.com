@@ -17,15 +17,11 @@ import { DashboardPage } from '../pages/dashboard-page'
 import { SchedulerPage } from '../pages/scheduler-page'
 import { APP_URL, I18N_TEXT, SHORT_PASSWORD, VALID_CREDENTIALS } from '../fixtures/test-data'
 import {
-  authenticateAs,
-  keepSessionAlive,
   logout,
   mockAuthenticatedSession,
   mockCurrentWorkspace,
   mockLoginResponse,
   mockRefreshFailure,
-  mockRefreshResponse,
-  mockRegisterResponse,
   mockRegisterSuccess,
   mockResendVerificationResponse,
   mockUserProfile,
