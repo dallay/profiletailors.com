@@ -8,6 +8,7 @@ import com.profiletailors.common.domain.context.ResourceContextProvider
 import com.profiletailors.common.domain.context.ResourceContextType
 import com.profiletailors.smp.identity.application.AuthFeature
 import com.profiletailors.smp.identity.application.EmailVerificationPolicy
+import com.profiletailors.smp.identity.application.FeatureEmailVerificationRequired
 import com.profiletailors.smp.identity.application.PrincipalIdentityFacts
 import com.profiletailors.smp.identity.application.PrincipalIdentityLookup
 import com.profiletailors.smp.identity.domain.EmailStatus
@@ -127,6 +128,53 @@ class PublishingHandlersTest {
 
     private class NoOpEmailVerificationPolicy : EmailVerificationPolicy {
         override fun requiresVerification(feature: AuthFeature): Boolean = false
+    }
+
+    /** Always returns true — email verification gate is enforced. */
+    private val strictEmailVerificationPolicy = StrictEmailVerificationPolicy()
+
+    private class StrictEmailVerificationPolicy : EmailVerificationPolicy {
+        override fun requiresVerification(feature: AuthFeature): Boolean = true
+    }
+
+    /** Returns emailStatus = PENDING so strict gate blocks the call. */
+    private class PendingEmailIdentityLookup : PrincipalIdentityLookup {
+        override suspend fun findBySubject(
+            principalType: PrincipalType,
+            subject: String,
+            provider: String?,
+        ): PrincipalIdentityFacts? = PrincipalIdentityFacts(
+            principalId = "principal-1",
+            principalType = principalType,
+            subject = subject,
+            provider = provider,
+            displayIdentity = "Test User",
+            email = "owner@example.com",
+            username = "testuser",
+            emailStatus = EmailStatus.PENDING,
+        )
+
+        override suspend fun findByEmail(email: String): PrincipalIdentityFacts? = PrincipalIdentityFacts(
+            principalId = "principal-1",
+            principalType = PrincipalType.USER,
+            subject = "local:$email",
+            provider = null,
+            displayIdentity = "Test User",
+            email = email,
+            username = "testuser",
+            emailStatus = EmailStatus.PENDING,
+        )
+
+        override suspend fun findByPrincipalId(principalId: String): PrincipalIdentityFacts? = PrincipalIdentityFacts(
+            principalId = principalId,
+            principalType = PrincipalType.USER,
+            subject = "local:owner@example.com",
+            provider = null,
+            displayIdentity = "Test User",
+            email = "owner@example.com",
+            username = "testuser",
+            emailStatus = EmailStatus.PENDING,
+        )
     }
 
     @Test
@@ -2296,5 +2344,235 @@ class PublishingHandlersTest {
         assertEquals("Updated text", result.bodyText)
         // Media resolver should NOT be called when assetIds is empty
         assertTrue(mediaResolver.requestedCalls.isEmpty())
+    }
+
+    @Test
+    fun `complete linkedin connection requires verified email when policy is strict`() = runTest {
+        val connectionRepository = InMemorySocialConnectionRepository()
+        val accountRepository = InMemorySocialAccountRepository()
+        val stateSigner = CapturingOAuthStateSigner()
+        val state = stateSigner.sign(validStatePayload())
+        val handler = CompleteLinkedInConnectionHandler(
+            principalContextProvider = FixedPrincipalContextProvider(principalContext),
+            resourceContextProvider = FixedResourceContextProvider(workspaceContext),
+            socialConnectionProvider = FakeSocialConnectionProvider(),
+            oauthStateSigner = stateSigner,
+            socialConnectionRepository = connectionRepository,
+            socialAccountRepository = accountRepository,
+            channelEventPublisher = CapturingChannelEventPublisher(),
+            clock = fixedClock,
+            principalIdentityLookup = PendingEmailIdentityLookup(),
+            emailVerificationPolicy = strictEmailVerificationPolicy,
+        )
+
+        assertThrows(FeatureEmailVerificationRequired::class.java) {
+            kotlinx.coroutines.runBlocking {
+                handler.handle(
+                    CompleteLinkedInConnectionCommand(
+                        authorizationCode = "oauth-code-123",
+                        redirectUri = "https://app.example.com/callback",
+                        state = state,
+                    ),
+                )
+            }
+        }
+    }
+
+    @Test
+    fun `create publication requires verified email when policy is strict`() = runTest {
+        val publicationRepository = InMemoryPublicationRepository()
+        val jobRepository = InMemoryPublicationJobRepository()
+        val socialAccountRepository = InMemorySocialAccountRepository().apply {
+            upsert(
+                SocialAccount(
+                    id = "account-1",
+                    socialConnectionId = "connection-1",
+                    workspaceId = "workspace-1",
+                    provider = SocialProvider.LINKEDIN,
+                    providerAccountId = "linkedin-account-1",
+                    kind = SocialAccountKind.PERSONAL_PROFILE,
+                    displayName = "Yuniel",
+                    status = SocialConnectionStatus.ACTIVE,
+                ),
+            )
+        }
+        val handler = CreatePublicationHandler(
+            principalContextProvider = FixedPrincipalContextProvider(principalContext),
+            resourceContextProvider = FixedResourceContextProvider(workspaceContext),
+            socialAccountRepository = socialAccountRepository,
+            publicationRepository = publicationRepository,
+            publicationAssetRepository = InMemoryPublicationAssetRepository(emptyList()),
+            publicationJobRepository = jobRepository,
+            providerCapabilityValidator = AcceptingCapabilityValidator(),
+            schedulingPolicy = PublicationSchedulingPolicy(),
+            mediaAssetResolver = FakeMediaAssetResolver(),
+            mediaIntegrationSettings = PublishingMediaIntegrationSettings(enabled = true),
+            clock = fixedClock,
+            principalIdentityLookup = PendingEmailIdentityLookup(),
+            emailVerificationPolicy = strictEmailVerificationPolicy,
+        )
+
+        assertThrows(FeatureEmailVerificationRequired::class.java) {
+            kotlinx.coroutines.runBlocking {
+                handler.handle(
+                    CreatePublicationCommand(
+                        socialAccountId = "account-1",
+                        bodyText = "Schedule me",
+                        scheduleMode = ScheduleMode.SCHEDULED_AT,
+                        scheduledFor = fixedClock.instant().plusSeconds(600),
+                    ),
+                )
+            }
+        }
+    }
+
+    @Test
+    fun `edit publication requires verified email when policy is strict`() = runTest {
+        val publication = PublicationDraft(
+            id = "pub-1",
+            workspaceId = "workspace-1",
+            authorPrincipalId = "principal-1",
+            provider = SocialProvider.LINKEDIN,
+            socialAccountId = "account-1",
+            status = PublicationStatus.QUEUED,
+            scheduleMode = ScheduleMode.NOW,
+            priority = false,
+            bodyText = "Old text",
+        )
+        val publicationRepository = InMemoryPublicationRepository(publication)
+        val socialAccountRepository = InMemorySocialAccountRepository().apply {
+            upsert(
+                SocialAccount(
+                    id = "account-1",
+                    socialConnectionId = "connection-1",
+                    workspaceId = "workspace-1",
+                    provider = SocialProvider.LINKEDIN,
+                    providerAccountId = "linkedin-account-1",
+                    kind = SocialAccountKind.PERSONAL_PROFILE,
+                    displayName = "Yuniel",
+                    status = SocialConnectionStatus.ACTIVE,
+                ),
+            )
+        }
+        val handler = EditPublicationHandler(
+            principalContextProvider = FixedPrincipalContextProvider(principalContext),
+            resourceContextProvider = FixedResourceContextProvider(workspaceContext),
+            socialAccountRepository = socialAccountRepository,
+            publicationRepository = publicationRepository,
+            publicationAssetRepository = InMemoryPublicationAssetRepository(emptyList()),
+            publicationJobRepository = InMemoryPublicationJobRepository(),
+            providerCapabilityValidator = AcceptingCapabilityValidator(),
+            schedulingPolicy = PublicationSchedulingPolicy(),
+            mediaAssetResolver = FakeMediaAssetResolver(),
+            mediaIntegrationSettings = PublishingMediaIntegrationSettings(enabled = true),
+            clock = fixedClock,
+            principalIdentityLookup = PendingEmailIdentityLookup(),
+            emailVerificationPolicy = strictEmailVerificationPolicy,
+        )
+
+        assertThrows(FeatureEmailVerificationRequired::class.java) {
+            kotlinx.coroutines.runBlocking {
+                handler.handle(EditPublicationCommand(publicationId = "pub-1", bodyText = "Updated text", scheduleMode = ScheduleMode.NOW))
+            }
+        }
+    }
+
+    @Test
+    fun `cancel publication requires verified email when policy is strict`() = runTest {
+        val publication = PublicationDraft(
+            id = "pub-1",
+            workspaceId = "workspace-1",
+            authorPrincipalId = "principal-1",
+            provider = SocialProvider.LINKEDIN,
+            socialAccountId = "account-1",
+            status = PublicationStatus.QUEUED,
+            scheduleMode = ScheduleMode.NOW,
+            priority = false,
+            bodyText = "Cancelable",
+        )
+        val handler = CancelPublicationHandler(
+            principalContextProvider = FixedPrincipalContextProvider(principalContext),
+            resourceContextProvider = FixedResourceContextProvider(workspaceContext),
+            publicationRepository = InMemoryPublicationRepository(publication),
+            publicationJobRepository = InMemoryPublicationJobRepository(),
+            clock = fixedClock,
+            principalIdentityLookup = PendingEmailIdentityLookup(),
+            emailVerificationPolicy = strictEmailVerificationPolicy,
+        )
+
+        assertThrows(FeatureEmailVerificationRequired::class.java) {
+            kotlinx.coroutines.runBlocking {
+                handler.handle(CancelPublicationCommand("pub-1"))
+            }
+        }
+    }
+
+    @Test
+    fun `retry publication requires verified email when policy is strict`() = runTest {
+        val publication = PublicationDraft(
+            id = "pub-1",
+            workspaceId = "workspace-1",
+            authorPrincipalId = "principal-1",
+            provider = SocialProvider.LINKEDIN,
+            socialAccountId = "account-1",
+            status = PublicationStatus.FAILED,
+            scheduleMode = ScheduleMode.NOW,
+            priority = false,
+            bodyText = "Retry me",
+            failedAt = Instant.parse("2026-05-26T11:00:00Z"),
+        )
+        val handler = RetryPublicationHandler(
+            principalContextProvider = FixedPrincipalContextProvider(principalContext),
+            resourceContextProvider = FixedResourceContextProvider(workspaceContext),
+            publicationRepository = InMemoryPublicationRepository(publication),
+            publicationJobRepository = InMemoryPublicationJobRepository(),
+            schedulingPolicy = PublicationSchedulingPolicy(),
+            clock = fixedClock,
+            principalIdentityLookup = PendingEmailIdentityLookup(),
+            emailVerificationPolicy = strictEmailVerificationPolicy,
+        )
+
+        assertThrows(FeatureEmailVerificationRequired::class.java) {
+            kotlinx.coroutines.runBlocking {
+                handler.handle(RetryPublicationCommand(publicationId = "pub-1", priority = true))
+            }
+        }
+    }
+
+    @Test
+    fun `reschedule publication requires verified email when policy is strict`() = runTest {
+        val publication = PublicationDraft(
+            id = "pub-1",
+            workspaceId = "workspace-1",
+            authorPrincipalId = "principal-1",
+            provider = SocialProvider.LINKEDIN,
+            socialAccountId = "account-1",
+            status = PublicationStatus.QUEUED,
+            scheduleMode = ScheduleMode.NOW,
+            priority = false,
+            bodyText = "Reschedule me",
+        )
+        val handler = ReschedulePublicationHandler(
+            principalContextProvider = FixedPrincipalContextProvider(principalContext),
+            resourceContextProvider = FixedResourceContextProvider(workspaceContext),
+            publicationRepository = InMemoryPublicationRepository(publication),
+            publicationJobRepository = InMemoryPublicationJobRepository(),
+            schedulingPolicy = PublicationSchedulingPolicy(),
+            clock = fixedClock,
+            principalIdentityLookup = PendingEmailIdentityLookup(),
+            emailVerificationPolicy = strictEmailVerificationPolicy,
+        )
+
+        assertThrows(FeatureEmailVerificationRequired::class.java) {
+            kotlinx.coroutines.runBlocking {
+                handler.handle(
+                    ReschedulePublicationCommand(
+                        publicationId = "pub-1",
+                        scheduleMode = ScheduleMode.SCHEDULED_AT,
+                        scheduledFor = fixedClock.instant().plusSeconds(600),
+                    ),
+                )
+            }
+        }
     }
 }
