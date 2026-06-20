@@ -2,7 +2,7 @@ package com.profiletailors.smp.credentials.infrastructure
 
 import com.profiletailors.smp.credentials.application.ApiKeyCredentialFailureReason
 import com.profiletailors.smp.credentials.application.ApiKeyCredentialNotActiveException
-import com.profiletailors.smp.credentials.application.BCryptApiKeySecretVerifier
+import com.profiletailors.smp.credentials.infrastructure.BCryptApiKeySecretVerifier
 import com.profiletailors.smp.credentials.application.ReplaceApiKeyCredentialCommand
 import io.r2dbc.h2.H2ConnectionConfiguration
 import io.r2dbc.h2.H2ConnectionFactory

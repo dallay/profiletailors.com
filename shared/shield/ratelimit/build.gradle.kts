@@ -34,4 +34,5 @@ dependencies {
     testImplementation(libs.kotest.assertions.core)
     testImplementation(libs.reactor.test)
     testImplementation(libs.spring.boot.starter.test)
+    testImplementation(libs.archunit.junit5)
 }

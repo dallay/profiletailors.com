@@ -1,7 +1,7 @@
 package com.profiletailors.smp.credentials.application
 
 import com.profiletailors.common.domain.context.PrincipalType
-import org.springframework.security.authentication.BadCredentialsException
+import com.profiletailors.smp.credentials.domain.CredentialException
 
 data class ActiveServiceAccountCredential(
     val principalId: String,
@@ -28,7 +28,7 @@ class ServiceAccountCredentialNotActiveException(
     val principalId: String? = null,
     val principalType: PrincipalType = PrincipalType.SERVICE_ACCOUNT,
     val reason: ServiceAccountCredentialFailureReason,
-) : BadCredentialsException(
+) : CredentialException(
     when (reason) {
         ServiceAccountCredentialFailureReason.MISSING -> "Service account credential is not active."
         ServiceAccountCredentialFailureReason.REVOKED -> "Service account credential is revoked."

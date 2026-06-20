@@ -2,7 +2,6 @@ package com.profiletailors.smp.media.application
 
 import com.profiletailors.common.domain.bus.command.CommandWithResult
 import com.profiletailors.smp.media.domain.MediaSourceType
-import reactor.core.publisher.Flux
 
 /**
  * Command to create a new uploaded media asset in PROCESSING state.

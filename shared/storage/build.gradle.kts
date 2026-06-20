@@ -29,6 +29,7 @@ dependencies {
     testImplementation(libs.kotlinx.coroutines.test)
     testImplementation(libs.kotlin.test.junit5)
     testImplementation(libs.mockk)
+    testImplementation(libs.archunit.junit5)
     
     testImplementation(platform(libs.testcontainers.bom))
     testImplementation("org.testcontainers:testcontainers")

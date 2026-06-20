@@ -8,13 +8,12 @@ import com.profiletailors.smp.authorization.domain.AuthorizationDeniedException
 import com.profiletailors.smp.authorization.domain.PermissionKey
 import com.profiletailors.smp.authorization.domain.WorkspaceAuthorizationDecider
 import com.profiletailors.smp.tenancy.application.requireWorkspaceContext
-import kotlinx.coroutines.reactor.awaitSingle
-import org.springframework.r2dbc.core.DatabaseClient
+import com.profiletailors.smp.tenancy.domain.WorkspaceMutationRepository
 
 @Service
 internal class RenameWorkspaceHandler(
     private val resourceContextProvider: ResourceContextProvider,
-    private val databaseClient: DatabaseClient,
+    private val workspaceMutationRepository: WorkspaceMutationRepository,
     private val workspaceAuthorizationDecider: WorkspaceAuthorizationDecider,
 ) : CommandWithResultHandler<RenameWorkspaceCommand, RenameWorkspaceResult> {
 
@@ -31,16 +30,9 @@ internal class RenameWorkspaceHandler(
         require(trimmedName.isNotEmpty()) { "Workspace name cannot be blank." }
         require(trimmedName.length <= MAX_NAME_LENGTH) { "Workspace name cannot exceed $MAX_NAME_LENGTH characters." }
 
-        val rowsUpdated = databaseClient.sql(
-            "UPDATE workspaces SET name = :name WHERE id = :id",
-        )
-            .bind("name", trimmedName)
-            .bind("id", workspaceId)
-            .fetch()
-            .rowsUpdated()
-            .awaitSingle()
-
-        check(rowsUpdated != 0L) { "Workspace '$workspaceId' not found." }
+        check(workspaceMutationRepository.rename(workspaceId, trimmedName)) {
+            "Workspace '$workspaceId' not found."
+        }
 
         return RenameWorkspaceResult(
             workspaceId = workspaceId,

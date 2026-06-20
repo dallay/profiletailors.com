@@ -4,19 +4,17 @@ import com.profiletailors.common.domain.context.ResourceContext
 import com.profiletailors.common.domain.context.ResourceContextProvider
 import com.profiletailors.common.domain.context.ResourceContextType
 import com.profiletailors.smp.authorization.domain.AuthorizationDecision
+import com.profiletailors.smp.authorization.domain.AuthorizationDecisionResult
 import com.profiletailors.smp.authorization.domain.AuthorizationDeniedException
+import com.profiletailors.smp.authorization.domain.AuthorizationReasonCode
 import com.profiletailors.smp.authorization.domain.PermissionKey
 import com.profiletailors.smp.authorization.domain.WorkspaceAuthorizationDecider
-import io.r2dbc.h2.H2ConnectionConfiguration
-import io.r2dbc.h2.H2ConnectionFactory
-import kotlinx.coroutines.reactor.awaitSingleOrNull
+import com.profiletailors.smp.tenancy.domain.WorkspaceMutationRepository
 import kotlinx.coroutines.test.runTest
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertNull
 import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.Test
-import org.springframework.r2dbc.core.DatabaseClient
-import java.util.UUID
 
 class UpdateWorkspaceIconHandlerTest {
 
@@ -40,9 +38,9 @@ class UpdateWorkspaceIconHandlerTest {
             requiredPermission: PermissionKey,
             requiredEntitlementKey: String?,
             resourceContextOverride: ResourceContext?,
-        ) = com.profiletailors.smp.authorization.domain.AuthorizationDecisionResult(
+        ) = AuthorizationDecisionResult(
             decision = AuthorizationDecision.ALLOW,
-            reasonCode = com.profiletailors.smp.authorization.domain.AuthorizationReasonCode.ROLE_PERMISSION,
+            reasonCode = AuthorizationReasonCode.ROLE_PERMISSION,
             roleKeys = setOf("owner"),
         )
     }
@@ -58,47 +56,17 @@ class UpdateWorkspaceIconHandlerTest {
             requiredPermission: PermissionKey,
             requiredEntitlementKey: String?,
             resourceContextOverride: ResourceContext?,
-        ) = com.profiletailors.smp.authorization.domain.AuthorizationDecisionResult(
+        ) = AuthorizationDecisionResult(
             decision = AuthorizationDecision.DENY,
-            reasonCode = com.profiletailors.smp.authorization.domain.AuthorizationReasonCode.MISSING_PERMISSION,
+            reasonCode = AuthorizationReasonCode.MISSING_PERMISSION,
             roleKeys = emptySet(),
         )
     }
 
-    private suspend fun createDb(): DatabaseClient {
-        val uid = UUID.randomUUID().toString().substring(0, 8)
-        val r2dbcUrl = "r2dbc:h2:mem:///wicon_$uid?options=MODE=PostgreSQL;DB_CLOSE_DELAY=-1;DB_CLOSE_ON_EXIT=FALSE"
-
-        val connectionFactory = H2ConnectionFactory(
-            H2ConnectionConfiguration.builder()
-                .url(r2dbcUrl)
-                .username("sa")
-                .password("")
-                .build(),
-        )
-
-        val db = DatabaseClient.create(connectionFactory)
-        db.sql(
-            """CREATE TABLE workspaces (
-                id VARCHAR(36) PRIMARY KEY,
-                name VARCHAR(255) NOT NULL,
-                status VARCHAR(20) NOT NULL DEFAULT 'ACTIVE',
-                icon VARCHAR(64) NULL,
-                created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
-                updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
-            )""",
-        ).then().awaitSingleOrNull()
-
-        db.sql("INSERT INTO workspaces (id, name, status, icon) VALUES ('ws-icon', 'Test Workspace', 'ACTIVE', NULL)")
-            .then().awaitSingleOrNull()
-
-        return db
-    }
-
     @Test
     fun `sets icon successfully`() = runTest {
-        val db = createDb()
-        val handler = UpdateWorkspaceIconHandler(resourceContextProvider, db, allowDecider)
+        val repository = FakeWorkspaceMutationRepository()
+        val handler = UpdateWorkspaceIconHandler(resourceContextProvider, repository, allowDecider)
 
         val result = handler.handle(UpdateWorkspaceIconCommand(icon = "briefcase"))
 
@@ -108,9 +76,9 @@ class UpdateWorkspaceIconHandlerTest {
 
     @Test
     fun `removes icon by setting null`() = runTest {
-        val db = createDb()
+        val repository = FakeWorkspaceMutationRepository()
         // First set an icon
-        val handler = UpdateWorkspaceIconHandler(resourceContextProvider, db, allowDecider)
+        val handler = UpdateWorkspaceIconHandler(resourceContextProvider, repository, allowDecider)
         handler.handle(UpdateWorkspaceIconCommand(icon = "rocket"))
 
         // Then remove it
@@ -122,8 +90,8 @@ class UpdateWorkspaceIconHandlerTest {
 
     @Test
     fun `accepts single-character icon name`() = runTest {
-        val db = createDb()
-        val handler = UpdateWorkspaceIconHandler(resourceContextProvider, db, allowDecider)
+        val repository = FakeWorkspaceMutationRepository()
+        val handler = UpdateWorkspaceIconHandler(resourceContextProvider, repository, allowDecider)
 
         val result = handler.handle(UpdateWorkspaceIconCommand(icon = "x"))
 
@@ -132,8 +100,8 @@ class UpdateWorkspaceIconHandlerTest {
 
     @Test
     fun `accepts hyphenated icon name`() = runTest {
-        val db = createDb()
-        val handler = UpdateWorkspaceIconHandler(resourceContextProvider, db, allowDecider)
+        val repository = FakeWorkspaceMutationRepository()
+        val handler = UpdateWorkspaceIconHandler(resourceContextProvider, repository, allowDecider)
 
         val result = handler.handle(UpdateWorkspaceIconCommand(icon = "trending-up"))
 
@@ -142,8 +110,8 @@ class UpdateWorkspaceIconHandlerTest {
 
     @Test
     fun `rejects icon name with consecutive hyphens`() = runTest {
-        val db = createDb()
-        val handler = UpdateWorkspaceIconHandler(resourceContextProvider, db, allowDecider)
+        val repository = FakeWorkspaceMutationRepository()
+        val handler = UpdateWorkspaceIconHandler(resourceContextProvider, repository, allowDecider)
 
         val ex = runCatching { handler.handle(UpdateWorkspaceIconCommand(icon = "a--b")) }.exceptionOrNull()
         assertTrue(ex is IllegalArgumentException)
@@ -152,8 +120,8 @@ class UpdateWorkspaceIconHandlerTest {
 
     @Test
     fun `rejects icon name starting with hyphen`() = runTest {
-        val db = createDb()
-        val handler = UpdateWorkspaceIconHandler(resourceContextProvider, db, allowDecider)
+        val repository = FakeWorkspaceMutationRepository()
+        val handler = UpdateWorkspaceIconHandler(resourceContextProvider, repository, allowDecider)
 
         val ex = runCatching { handler.handle(UpdateWorkspaceIconCommand(icon = "-briefcase")) }.exceptionOrNull()
         assertTrue(ex is IllegalArgumentException)
@@ -161,8 +129,8 @@ class UpdateWorkspaceIconHandlerTest {
 
     @Test
     fun `rejects icon name ending with hyphen`() = runTest {
-        val db = createDb()
-        val handler = UpdateWorkspaceIconHandler(resourceContextProvider, db, allowDecider)
+        val repository = FakeWorkspaceMutationRepository()
+        val handler = UpdateWorkspaceIconHandler(resourceContextProvider, repository, allowDecider)
 
         val ex = runCatching { handler.handle(UpdateWorkspaceIconCommand(icon = "briefcase-")) }.exceptionOrNull()
         assertTrue(ex is IllegalArgumentException)
@@ -170,8 +138,8 @@ class UpdateWorkspaceIconHandlerTest {
 
     @Test
     fun `rejects uppercase icon name`() = runTest {
-        val db = createDb()
-        val handler = UpdateWorkspaceIconHandler(resourceContextProvider, db, allowDecider)
+        val repository = FakeWorkspaceMutationRepository()
+        val handler = UpdateWorkspaceIconHandler(resourceContextProvider, repository, allowDecider)
 
         val ex = runCatching { handler.handle(UpdateWorkspaceIconCommand(icon = "Briefcase")) }.exceptionOrNull()
         assertTrue(ex is IllegalArgumentException)
@@ -179,8 +147,8 @@ class UpdateWorkspaceIconHandlerTest {
 
     @Test
     fun `rejects icon name with spaces`() = runTest {
-        val db = createDb()
-        val handler = UpdateWorkspaceIconHandler(resourceContextProvider, db, allowDecider)
+        val repository = FakeWorkspaceMutationRepository()
+        val handler = UpdateWorkspaceIconHandler(resourceContextProvider, repository, allowDecider)
 
         val ex = runCatching { handler.handle(UpdateWorkspaceIconCommand(icon = "brief case")) }.exceptionOrNull()
         assertTrue(ex is IllegalArgumentException)
@@ -188,7 +156,6 @@ class UpdateWorkspaceIconHandlerTest {
 
     @Test
     fun `throws on non-existent workspace`() = runTest {
-        val db = createDb()
         val badContext = ResourceContext(
             type = ResourceContextType.WORKSPACE,
             workspaceId = "i-dont-exist",
@@ -196,7 +163,8 @@ class UpdateWorkspaceIconHandlerTest {
         val badContextProvider = object : ResourceContextProvider {
             override fun current(): ResourceContext = badContext
         }
-        val handler = UpdateWorkspaceIconHandler(badContextProvider, db, allowDecider)
+        val repository = FakeWorkspaceMutationRepository()
+        val handler = UpdateWorkspaceIconHandler(badContextProvider, repository, allowDecider)
 
         val ex = runCatching { handler.handle(UpdateWorkspaceIconCommand(icon = "rocket")) }.exceptionOrNull()
         assertTrue(ex is IllegalStateException)
@@ -205,10 +173,24 @@ class UpdateWorkspaceIconHandlerTest {
 
     @Test
     fun `denies access when authorization fails`() = runTest {
-        val db = createDb()
-        val handler = UpdateWorkspaceIconHandler(resourceContextProvider, db, denyDecider)
+        val repository = FakeWorkspaceMutationRepository()
+        val handler = UpdateWorkspaceIconHandler(resourceContextProvider, repository, denyDecider)
 
         val ex = runCatching { handler.handle(UpdateWorkspaceIconCommand(icon = "rocket")) }.exceptionOrNull()
         assertTrue(ex is AuthorizationDeniedException)
+    }
+
+    private class FakeWorkspaceMutationRepository : WorkspaceMutationRepository {
+        private val icons = mutableMapOf<String, String?>("ws-icon" to null)
+
+        override suspend fun rename(workspaceId: String, newName: String): Boolean {
+            return icons.containsKey(workspaceId)
+        }
+
+        override suspend fun updateIcon(workspaceId: String, icon: String?): Boolean {
+            if (!icons.containsKey(workspaceId)) return false
+            icons[workspaceId] = icon
+            return true
+        }
     }
 }

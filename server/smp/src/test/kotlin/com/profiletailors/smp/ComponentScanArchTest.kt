@@ -50,31 +50,22 @@ internal class ComponentScanArchTest {
     }
 
     /**
-     * Spec scenario "Build SHOULD fail on Spring `@Repository` in the smp application layer":
-     * advisory only — the rule records the violation message but never fails JUnit. The
-     * `try`/`catch` swallow is the documented mechanism for advise-only ArchUnit rules.
+     * Spec scenario "Build fails on Spring `@Repository` in the smp application layer":
+     * hard fail — persistence adapters belong in infrastructure and must never be introduced in
+     * application classes.
      */
     @Test
     fun applicationLayerShouldNotUseSpringRepository() {
-        var violation: AssertionError? = null
-        try {
-            ArchRuleDefinition.noClasses()
-                .that()
-                .resideInAPackage("..application..")
-                .should()
-                .beAnnotatedWith(org.springframework.stereotype.Repository::class.java)
-                .because(
-                    "smp application-layer classes should not carry Spring's @Repository; " +
-                        "persistence ports belong in the infrastructure layer",
-                )
-                .check(importedClasses)
-        } catch (e: AssertionError) {
-            violation = e
-        }
-        // advise-only: log and swallow. The captured message is left for future CI hooks.
-        if (violation != null) {
-            println("Advisory: smp application layer uses Spring's @Repository: ${violation.message}")
-        }
+        ArchRuleDefinition.noClasses()
+            .that()
+            .resideInAPackage("..application..")
+            .should()
+            .beAnnotatedWith(org.springframework.stereotype.Repository::class.java)
+            .because(
+                "smp application-layer classes must not carry Spring's @Repository; " +
+                    "persistence adapters belong in the infrastructure layer",
+            )
+            .check(importedClasses)
     }
 
     /**
