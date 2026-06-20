@@ -1,10 +1,11 @@
 package com.profiletailors.smp.identity.infrastructure.http
 
 import com.profiletailors.common.domain.bus.Mediator
-import com.profiletailors.smp.credentials.application.RefreshSessionCookieFactory
 import com.profiletailors.smp.credentials.application.RefreshSessionFailureReason
 import com.profiletailors.smp.credentials.application.RefreshSessionNotActiveException
 import com.profiletailors.smp.credentials.application.RefreshSessionProperties
+import com.profiletailors.smp.credentials.domain.SessionCookie
+import com.profiletailors.smp.credentials.infrastructure.RefreshSessionCookieFactory
 import com.profiletailors.smp.identity.application.AuthTokens
 import com.profiletailors.smp.identity.application.LocalAuthSessionResult
 import com.profiletailors.smp.identity.application.LoginUserCommand
@@ -23,6 +24,7 @@ import jakarta.validation.constraints.NotBlank
 import jakarta.validation.constraints.Size
 import org.springframework.http.HttpHeaders
 import org.springframework.http.HttpStatus
+import org.springframework.http.ResponseCookie
 import org.springframework.http.ResponseEntity
 import org.springframework.http.server.reactive.ServerHttpRequest
 import org.springframework.validation.annotation.Validated
@@ -32,6 +34,7 @@ import org.springframework.web.bind.annotation.RequestBody
 import org.springframework.web.bind.annotation.RequestMapping
 import org.springframework.web.bind.annotation.RequestParam
 import org.springframework.web.bind.annotation.RestController
+import java.time.Duration
 
 @Validated
 @RestController
@@ -55,7 +58,10 @@ class LocalAuthController(
             ),
         )
         return ResponseEntity.status(HttpStatus.CREATED)
-            .header(HttpHeaders.SET_COOKIE, refreshSessionCookieFactory.buildSetCookie(result.refreshToken).toString())
+            .header(
+                HttpHeaders.SET_COOKIE,
+                refreshSessionCookieFactory.buildSetCookie(result.refreshToken).toResponseCookie().toString(),
+            )
             .body(result.tokens)
     }
 
@@ -92,7 +98,10 @@ class LocalAuthController(
     suspend fun logout(request: ServerHttpRequest): ResponseEntity<Unit> {
         mediator.send(LogoutUserSessionCommand(readRefreshCookie(request)))
         return ResponseEntity.noContent()
-            .header(HttpHeaders.SET_COOKIE, refreshSessionCookieFactory.buildClearCookie().toString())
+            .header(
+                HttpHeaders.SET_COOKIE,
+                refreshSessionCookieFactory.buildClearCookie().toResponseCookie().toString(),
+            )
             .build()
     }
 
@@ -120,11 +129,23 @@ class LocalAuthController(
 
     private fun sessionResponse(result: LocalAuthSessionResult): ResponseEntity<AuthTokens> =
         ResponseEntity.ok()
-            .header(HttpHeaders.SET_COOKIE, refreshSessionCookieFactory.buildSetCookie(result.refreshToken).toString())
+            .header(
+                HttpHeaders.SET_COOKIE,
+                refreshSessionCookieFactory.buildSetCookie(result.refreshToken).toResponseCookie().toString(),
+            )
             .body(result.tokens)
 
     private fun readRefreshCookie(request: ServerHttpRequest): String? =
         request.cookies.getFirst(refreshSessionProperties.cookieName)?.value
+
+    private fun SessionCookie.toResponseCookie(): ResponseCookie =
+        ResponseCookie.from(name, value)
+            .httpOnly(httpOnly)
+            .secure(secure)
+            .sameSite(sameSite)
+            .path(path)
+            .maxAge(Duration.ofSeconds(maxAgeSeconds))
+            .build()
 }
 
 /**

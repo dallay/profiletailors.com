@@ -1,6 +1,6 @@
 package com.profiletailors.smp.credentials.application
 
-import org.springframework.security.authentication.BadCredentialsException
+import com.profiletailors.smp.credentials.domain.CredentialException
 import java.time.Instant
 
 interface RefreshSessionGateway {
@@ -26,7 +26,7 @@ class RefreshSessionNotActiveException(
     val lookupKey: String,
     val principalId: String? = null,
     val reason: RefreshSessionFailureReason,
-) : BadCredentialsException(
+) : CredentialException(
     when (reason) {
         RefreshSessionFailureReason.MISSING -> "Refresh session was not found."
         RefreshSessionFailureReason.INVALID -> "Refresh session is invalid."

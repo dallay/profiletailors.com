@@ -4,13 +4,11 @@ import com.profiletailors.common.domain.bus.event.BaseDomainEvent
 import com.profiletailors.common.domain.bus.event.EventPublisher
 import com.profiletailors.storage.application.GeneratePresignedUrlUseCase
 import com.profiletailors.storage.domain.PresignableStorage
-import com.profiletailors.storage.domain.StorageObjectNotFoundException
 import com.profiletailors.storage.domain.RateLimitExceededException
+import com.profiletailors.storage.domain.StorageObjectNotFoundException
+import com.profiletailors.storage.domain.StorageObservation
 import com.profiletailors.ratelimit.domain.RateLimitResult
 import com.profiletailors.ratelimit.domain.RateLimiter
-import com.profiletailors.storage.infrastructure.metrics.StorageMetrics
-import io.micrometer.core.instrument.MeterRegistry
-import io.micrometer.core.instrument.simple.SimpleMeterRegistry
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.test.runTest
@@ -20,9 +18,9 @@ import org.junit.jupiter.api.assertThrows
 import kotlinx.coroutines.runBlocking
 
 /**
- * Test implementation of StorageMetrics that doesn't require mocking Micrometer internals.
+ * Test implementation of StorageObservation that avoids infrastructure coupling.
  */
-class TestStorageMetrics(registry: MeterRegistry = SimpleMeterRegistry()) : StorageMetrics(registry) {
+class TestStorageMetrics : StorageObservation {
     override fun recordOperation(operation: String, provider: String, bucket: String, success: Boolean) {}
     override fun recordBytesUploaded(bytes: Long, provider: String, bucket: String) {}
     override fun recordBytesDownloaded(bytes: Long, provider: String, bucket: String) {}

@@ -1,6 +1,5 @@
 package com.profiletailors.smp.credentials.infrastructure
 
-import com.profiletailors.smp.credentials.application.BCryptApiKeySecretVerifier
 import com.profiletailors.smp.credentials.application.RefreshSessionFailureReason
 import com.profiletailors.smp.credentials.application.RefreshSessionGateway
 import com.profiletailors.smp.credentials.application.RefreshSessionNotActiveException

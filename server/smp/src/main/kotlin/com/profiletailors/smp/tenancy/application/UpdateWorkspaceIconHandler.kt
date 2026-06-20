@@ -7,13 +7,12 @@ import com.profiletailors.smp.authorization.domain.AuthorizationDecision
 import com.profiletailors.smp.authorization.domain.AuthorizationDeniedException
 import com.profiletailors.smp.authorization.domain.PermissionKey
 import com.profiletailors.smp.authorization.domain.WorkspaceAuthorizationDecider
-import kotlinx.coroutines.reactor.awaitSingle
-import org.springframework.r2dbc.core.DatabaseClient
+import com.profiletailors.smp.tenancy.domain.WorkspaceMutationRepository
 
 @Service
 internal class UpdateWorkspaceIconHandler(
     private val resourceContextProvider: ResourceContextProvider,
-    private val databaseClient: DatabaseClient,
+    private val workspaceMutationRepository: WorkspaceMutationRepository,
     private val workspaceAuthorizationDecider: WorkspaceAuthorizationDecider,
 ) : CommandWithResultHandler<UpdateWorkspaceIconCommand, UpdateWorkspaceIconResult> {
 
@@ -32,15 +31,9 @@ internal class UpdateWorkspaceIconHandler(
             }
         }
 
-        val rowsUpdated = databaseClient.sql("UPDATE workspaces SET icon = :icon WHERE id = :id")
-            .let {
-                if (command.icon == null) it.bindNull("icon", String::class.java)
-                else it.bind("icon", command.icon)
-            }
-            .bind("id", workspaceId)
-            .fetch().rowsUpdated().awaitSingle()
-
-        check(rowsUpdated != 0L) { "Workspace '$workspaceId' not found." }
+        check(workspaceMutationRepository.updateIcon(workspaceId, command.icon)) {
+            "Workspace '$workspaceId' not found."
+        }
 
         return UpdateWorkspaceIconResult(workspaceId = workspaceId, icon = command.icon)
     }

@@ -1,7 +1,7 @@
-package com.profiletailors.smp.credentials.application
+package com.profiletailors.smp.credentials.infrastructure
 
-import org.springframework.security.crypto.bcrypt.BCrypt
 import com.profiletailors.smp.credentials.application.ApiKeySecretVerifier
+import org.springframework.security.crypto.bcrypt.BCrypt
 
 class BCryptApiKeySecretVerifier : ApiKeySecretVerifier {
     override fun matches(presentedSecret: String, storedVerifier: String): Boolean =

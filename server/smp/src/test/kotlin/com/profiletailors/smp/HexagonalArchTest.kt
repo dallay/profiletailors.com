@@ -98,6 +98,91 @@ internal class HexagonalArchTest {
             .check(importedClasses)
     }
 
+    /**
+     * Guards against the real violation: application layer using Spring R2DBC, HTTP, or Security
+     * imports directly — bypassing the domain port/abstraction layer.
+     */
+    @Test
+    fun applicationLayerShouldNotDependOnSpringR2dbcHttpOrSecurity() {
+        ArchRuleDefinition.noClasses()
+            .that()
+            .resideInAPackage("..application..")
+            .should()
+            .dependOnClassesThat()
+            .resideInAnyPackage(
+                "org.springframework.r2dbc..",
+                "io.r2dbc..",
+                "org.springframework.http..",
+                "org.springframework.security..",
+            )
+            .because(
+                "application layer must remain framework-agnostic; " +
+                    "persistence uses domain repository ports, HTTP transport belongs in infrastructure",
+            )
+            .check(importedClasses)
+    }
+
+    /**
+     * Guards against reactive/infrastructure imports leaking into application via coroutine adapters.
+     */
+    @Test
+    fun applicationLayerShouldNotDependOnReactorOrCoroutinesReactor() {
+        ArchRuleDefinition.noClasses()
+            .that()
+            .resideInAPackage("..application..")
+            .should()
+            .dependOnClassesThat()
+            .resideInAnyPackage(
+                "reactor..",
+                "kotlinx.coroutines.reactor..",
+            )
+            .because(
+                "application layer must not depend on reactive/infrastructure transports; " +
+                    "use domain ports instead",
+            )
+            .check(importedClasses)
+    }
+
+    /**
+     * Guards against Spring Security base classes leaking into application exceptions.
+     */
+    @Test
+    fun applicationLayerShouldNotExtendSpringSecurityClasses() {
+        ArchRuleDefinition.noClasses()
+            .that()
+            .resideInAPackage("..application..")
+            .should()
+            .dependOnClassesThat()
+            .resideInAnyPackage("org.springframework.security.authentication..")
+            .because(
+                "application business exceptions must extend domain exceptions, " +
+                    "not Spring Security types like BadCredentialsException",
+            )
+            .check(importedClasses)
+    }
+
+    /**
+     * Guards domain from any infrastructure framework — even narrower than the existing Spring check.
+     */
+    @Test
+    fun domainLayerShouldNotDependOnInfrastructureFrameworks() {
+        ArchRuleDefinition.noClasses()
+            .that()
+            .resideInAPackage("..domain..")
+            .should()
+            .dependOnClassesThat()
+            .resideInAnyPackage(
+                "org.springframework..",
+                "io.r2dbc..",
+                "reactor..",
+                "kotlinx.coroutines.reactor..",
+                "jakarta.persistence..",
+                "javax.persistence..",
+            )
+            .because("domain layer must stay pure Kotlin")
+            .check(importedClasses)
+    }
+
     @Test
     fun boundedContextsShouldExposeAllLayers() {
         val contexts = discoverBoundedContexts()

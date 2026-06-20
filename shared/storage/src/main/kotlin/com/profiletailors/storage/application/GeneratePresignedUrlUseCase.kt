@@ -5,10 +5,10 @@ import com.profiletailors.common.domain.bus.event.BaseDomainEvent
 import com.profiletailors.common.domain.bus.event.EventPublisher
 import com.profiletailors.storage.domain.PresignedUrlGeneratedEvent
 import com.profiletailors.storage.domain.PresignableStorage
-import com.profiletailors.storage.domain.StorageObjectNotFoundException
-import com.profiletailors.storage.domain.StorageServiceException
-import com.profiletailors.storage.infrastructure.metrics.StorageMetrics
 import com.profiletailors.storage.domain.RateLimitExceededException
+import com.profiletailors.storage.domain.StorageObjectNotFoundException
+import com.profiletailors.storage.domain.StorageObservation
+import com.profiletailors.storage.domain.StorageServiceException
 import com.profiletailors.ratelimit.domain.RateLimitResult
 import com.profiletailors.ratelimit.domain.RateLimiter
 import kotlinx.coroutines.CancellationException
@@ -38,10 +38,10 @@ import java.time.Instant
 class GeneratePresignedUrlUseCase(
     private val storage: PresignableStorage,
     private val eventPublisher: EventPublisher<BaseDomainEvent>,
-    private val metrics: StorageMetrics,
+    private val metrics: StorageObservation,
     private val rateLimiter: RateLimiter,
     private val maxExpirySeconds: Long = DEFAULT_MAX_EXPIRY_SECONDS,
-    private val provider: String = StorageMetrics.Providers.S3
+    private val provider: String = StorageObservation.Providers.S3
 ) {
     private val logger = LoggerFactory.getLogger(GeneratePresignedUrlUseCase::class.java)
 
@@ -68,7 +68,7 @@ class GeneratePresignedUrlUseCase(
         val rateLimitResult = rateLimiter.consumeToken(requesterId)
         if (rateLimitResult is RateLimitResult.Denied) {
             metrics.recordPresignedUrlGenerated(provider, false)
-            metrics.recordError(StorageMetrics.Operations.PRESIGN, provider, bucket, StorageMetrics.ErrorTypes.RATE_LIMITED)
+            metrics.recordError(StorageObservation.Operations.PRESIGN, provider, bucket, StorageObservation.ErrorTypes.RATE_LIMITED)
             throw RateLimitExceededException(
                 retryAfterSeconds = rateLimitResult.retryAfter.seconds,
                 message = "Rate limit exceeded for presigned URL generation. Retry after ${rateLimitResult.retryAfter.seconds}s"
@@ -76,17 +76,17 @@ class GeneratePresignedUrlUseCase(
         }
 
         val url = try {
-            metrics.recordOperationTime(StorageMetrics.Operations.PRESIGN, provider) {
+            metrics.recordOperationTime(StorageObservation.Operations.PRESIGN, provider) {
                 storage.presignGet(bucket, key, expirySeconds)
             }
         } catch (e: IllegalArgumentException) {
             // Validation errors (e.g., bucket validation) should not be wrapped as service errors
             metrics.recordPresignedUrlGenerated(provider, false)
-            metrics.recordError(StorageMetrics.Operations.PRESIGN, provider, bucket, StorageMetrics.ErrorTypes.SECURITY)
+            metrics.recordError(StorageObservation.Operations.PRESIGN, provider, bucket, StorageObservation.ErrorTypes.SECURITY)
             throw e
         } catch (e: StorageObjectNotFoundException) {
             metrics.recordPresignedUrlGenerated(provider, false)
-            metrics.recordError(StorageMetrics.Operations.PRESIGN, provider, bucket, StorageMetrics.ErrorTypes.NOT_FOUND)
+            metrics.recordError(StorageObservation.Operations.PRESIGN, provider, bucket, StorageObservation.ErrorTypes.NOT_FOUND)
             throw StorageServiceException(
                 "Failed to generate presigned URL for '$key' in bucket '$bucket'", e
             )
@@ -94,7 +94,7 @@ class GeneratePresignedUrlUseCase(
             throw e  // Don't swallow coroutine cancellation
         } catch (e: Exception) {
             metrics.recordPresignedUrlGenerated(provider, false)
-            metrics.recordError(StorageMetrics.Operations.PRESIGN, provider, bucket, StorageMetrics.ErrorTypes.SERVICE)
+            metrics.recordError(StorageObservation.Operations.PRESIGN, provider, bucket, StorageObservation.ErrorTypes.SERVICE)
             throw StorageServiceException(
                 "Failed to generate presigned URL for '$key' in bucket '$bucket'", e
             )
