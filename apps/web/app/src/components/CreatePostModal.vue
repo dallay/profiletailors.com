@@ -7,11 +7,17 @@ import { Image as ImageIcon } from '@lucide/vue'
 import {
   Check,
   Hash,
+  Loader2,
   Sparkles,
   X,
+  Upload,
+  AlertCircle,
+  RotateCcw,
+  Library,
 } from '@lucide/vue'
 import { useAuthStore } from '@/stores/auth'
 import { usePublishingStore } from '@/stores/publishing'
+import { useMediaStore } from '@/stores/media'
 import { proxyImageUrl } from '@/lib/auth-api'
 import { Button } from '@/components/ui/button'
 import { Calendar } from '@/components/ui/calendar'
@@ -36,20 +42,31 @@ const emit = defineEmits<{
 
 const auth = useAuthStore()
 const publishingStore = usePublishingStore()
+const mediaStore = useMediaStore()
 
 // State
 const postText = ref('')
 const selectedChannelId = ref<string | null>(null)
 const avatarLoadFailed = ref<Record<string, boolean>>({})
-const mediaFiles = ref<File[]>([])
 const submitError = ref('')
-const mediaPreviews = ref<string[]>([])
-const fileInput = ref<HTMLInputElement | null>(null)
 const firstComment = ref('')
 const createAnother = ref(false)
 const priorityMode = ref(false)
 const scheduleMode = ref<ComposerScheduleMode>('now')
 const isDatePickerOpen = ref(false)
+
+// ---------------------------------------------------------------------------
+// Media picker state (replaces local-only File attachment truth)
+// ---------------------------------------------------------------------------
+const isMediaPickerOpen = ref(false)
+const isMediaPickerLoading = ref(false)
+const mediaPickerError = ref<string | null>(null)
+// Blob URL for instant preview during upload (purely transient UX)
+const uploadPreviewBlob = ref<string | null>(null)
+const uploadTempKey = ref<string | null>(null)
+const uploadProgress = ref(0)
+const fileInput = ref<HTMLInputElement | null>(null)
+const isDragging = ref(false)
 
 // Calendar selector state
 const selectedCalendarDate = ref<DateValue>()
@@ -89,12 +106,10 @@ const minTimeForDate = computed(() => {
 // Initialize Date
 watch(
   () => props.isOpen,
-  (open) => {
+  async (open) => {
     if (open) {
       // Clear form
       postText.value = ''
-      mediaFiles.value = []
-      mediaPreviews.value = []
       firstComment.value = ''
       priorityMode.value = false
       submitError.value = ''
@@ -103,16 +118,33 @@ watch(
       avatarLoadFailed.value = {}
       selectedChannelId.value = publishingStore.channels[0]?.id ?? null
 
+      // Clear media picker state
+      mediaStore.clearSelection()
+      uploadPreviewBlob.value = null
+      uploadTempKey.value = null
+      uploadProgress.value = 0
+      isMediaPickerOpen.value = false
+
       const defaultDate = props.initialDate ? new Date(props.initialDate) : new Date()
       selectedCalendarDate.value = new CalendarDate(
         defaultDate.getFullYear(),
         defaultDate.getMonth() + 1,
         defaultDate.getDate(),
       )
-      
+
       const hours = String(defaultDate.getHours()).padStart(2, '0')
       const minutes = String(defaultDate.getMinutes()).padStart(2, '0')
       scheduleTime.value = `${hours}:${minutes}`
+
+      // Load dangling uploads from prior sessions (PROCESSING + FAILED)
+      // so the user can recover or retry them.
+      if (auth.isAuthenticated) {
+        try {
+          await mediaStore.loadDanglingAssets()
+        } catch {
+          // Non-critical — dangling load failure shouldn't block the composer
+        }
+      }
     }
   }
 )
@@ -188,7 +220,7 @@ const canSubmit = computed(() => {
 })
 
 // Drag and drop state
-const isDragging = ref(false)
+// isDragging is declared above in the state block
 
 // Methods
 function handleDragOver(e: DragEvent) {
@@ -229,19 +261,156 @@ function addFiles(filesList: File[]) {
 
   // Limit to max 1 image for LinkedIn MVP simple preview
   if (validFiles.length > 0) {
-    mediaFiles.value = [validFiles[0] as File]
-    
-    // Revoke old previews
-    mediaPreviews.value.forEach(URL.revokeObjectURL)
-    mediaPreviews.value = [URL.createObjectURL(validFiles[0] as File)]
+    uploadAndTrack(validFiles[0])
   }
 }
 
-function removeFile() {
-  mediaFiles.value = []
-  mediaPreviews.value.forEach(URL.revokeObjectURL)
-  mediaPreviews.value = []
+/**
+ * Reserves an asset, begins upload, and tracks progress.
+ * On success, the READY asset is added to the media store selection.
+ */
+async function uploadAndTrack(file: File) {
+  // Revoke any previous preview blob
+  if (uploadPreviewBlob.value) {
+    URL.revokeObjectURL(uploadPreviewBlob.value)
+  }
+  uploadPreviewBlob.value = URL.createObjectURL(file)
+  uploadProgress.value = 0
+
+  const tempKey = `modal-upload-${Date.now()}`
+  uploadTempKey.value = tempKey
+
+  try {
+    const asset = await mediaStore.createAndUpload(file, tempKey, (pct) => {
+      uploadProgress.value = pct
+    })
+
+    // Upload succeeded — add to selection for the publication
+    mediaStore.addToSelection(asset.assetId)
+
+    // Clean up transient preview blob
+    if (uploadPreviewBlob.value) {
+      URL.revokeObjectURL(uploadPreviewBlob.value)
+      uploadPreviewBlob.value = null
+    }
+    uploadTempKey.value = null
+    uploadProgress.value = 0
+  } catch {
+    // Error is already tracked in mediaStore.uploadList
+    // Blob preview stays so user can see what failed
+    uploadTempKey.value = null
+    uploadProgress.value = 0
+  }
 }
+
+/**
+ * Removes the current upload selection (READY asset from store + any in-progress state).
+ */
+function removeFile() {
+  // Remove all selected assets from the media store
+  mediaStore.clearSelection()
+
+  // Clean up any in-progress upload tracking
+  if (uploadPreviewBlob.value) {
+    URL.revokeObjectURL(uploadPreviewBlob.value)
+    uploadPreviewBlob.value = null
+  }
+  uploadTempKey.value = null
+  uploadProgress.value = 0
+  mediaStore.clearUploads()
+}
+
+// ---------------------------------------------------------------------------
+// Media Picker (browse existing READY assets)
+// ---------------------------------------------------------------------------
+
+/**
+ * Opens the media picker and loads READY assets if not already loaded.
+ */
+async function openMediaPicker() {
+  isMediaPickerOpen.value = true
+  mediaPickerError.value = null
+  isMediaPickerLoading.value = true
+
+  try {
+    // If no READY assets are loaded yet, fetch them
+    if (mediaStore.assetIds.length === 0) {
+      await mediaStore.loadAssets('READY')
+    }
+  } catch (err) {
+    mediaPickerError.value = (err as { detail?: string }).detail ?? 'Failed to load media library.'
+  } finally {
+    isMediaPickerLoading.value = false
+  }
+}
+
+/**
+ * Closes the media picker.
+ */
+function closeMediaPicker() {
+  isMediaPickerOpen.value = false
+}
+
+/**
+ * Selects an asset from the picker and closes the picker.
+ */
+function pickAsset(assetId: string) {
+  mediaStore.addToSelection(assetId)
+  closeMediaPicker()
+}
+
+/**
+ * Retries a failed upload tracked in the media store.
+ */
+async function retryUploadItem(tempKey: string) {
+  try {
+    await mediaStore.retryUpload(tempKey, () => {
+      // progress is tracked in the store
+    })
+  } catch {
+    // Error already reflected in the store
+  }
+}
+
+/**
+ * Whether the selected asset (first selected) is an image type that can be previewed.
+ */
+const selectedAssetIsImage = computed(() => {
+  const assets = mediaStore.selectedAssets
+  if (assets.length === 0) return false
+  return assets[0].mediaType.startsWith('image/')
+})
+
+/**
+ * The object URL for the first selected READY asset (or null for video/pdf).
+ */
+const selectedAssetPreviewUrl = computed<string | null>(() => {
+  const assets = mediaStore.selectedAssets
+  if (assets.length === 0) return null
+  const first = assets[0]
+  if (!first.mediaType.startsWith('image/')) return null
+  // For READY assets served from backend storage, the download URL would be:
+  // GET /api/media/assets/{assetId}/download (not yet defined in MVP).
+  // We fall back to the transient blob URL if the upload just completed.
+  return uploadPreviewBlob.value
+})
+
+/**
+ * Has any upload (in-progress or failed) that hasn't been resolved yet.
+ */
+const hasPendingOrFailedUpload = computed(() => {
+  return (
+    mediaStore.pendingUploads.length > 0 ||
+    mediaStore.failedUploads.length > 0
+  )
+})
+
+/**
+ * The current upload item being tracked (max 1 for MVP).
+ */
+const currentUpload = computed(() => {
+  return mediaStore.uploadList[0] ?? null
+})
 
 function selectChannel(channelId: string) {
   selectedChannelId.value = channelId
@@ -322,6 +491,7 @@ async function handleSchedule() {
         : 'SCHEDULED_AT'
 
     // Schedule through store — pass scheduleMode so NOW and NEXT_SLOT modes omit scheduledFor
+    // Pass persisted assetIds (not local File objects) now that the media library is centralized.
     await publishingStore.schedulePost({
       content: postText.value,
       title: 'Post from App',
@@ -330,7 +500,7 @@ async function handleSchedule() {
       nextSlotAfter: scheduleMode.value === 'next' ? now.value.toISOString() : undefined,
       scheduleMode: backendScheduleMode,
       priority: priorityMode.value,
-      mediaFiles: mediaFiles.value,
+      assetIds: [...mediaStore.selectedAssetIds],
       socialAccountId: selectedChannel.value?.accountId,
     })
 
@@ -478,18 +648,96 @@ async function handleSchedule() {
             </div>
           </div>
 
-          <!-- Drag and Drop Media Upload -->
+          <!-- Media Attachment (Persisted Upload + Library Picker) -->
           <div class="space-y-2">
-            <span class="font-mono text-[9px] tracking-widest text-text-secondary uppercase block">
-              Media Attachment (Max 10MB)
-            </span>
+            <div class="flex items-center justify-between">
+              <span class="font-mono text-[9px] tracking-widest text-text-secondary uppercase block">
+                Media Attachment
+              </span>
+              <button
+                v-if="!hasPendingOrFailedUpload && mediaStore.selectedAssetIds.length === 0"
+                @click="openMediaPicker"
+                class="font-mono text-[8px] uppercase tracking-wider font-bold text-text-display hover:underline cursor-pointer"
+              >
+                Browse Library
+              </button>
+            </div>
 
+            <!-- Upload progress or failed upload state -->
+            <div
+              v-if="currentUpload"
+              class="border border-border-visible rounded-xl p-4 space-y-2"
+            >
+              <!-- In-progress upload -->
+              <div v-if="currentUpload.status === 'uploading'" class="flex items-center gap-3">
+                <Loader2 class="size-4 text-text-secondary animate-spin shrink-0" />
+                <div class="flex-1 min-w-0">
+                  <p class="text-xs text-text-secondary truncate">
+                    Uploading {{ currentUpload.file.name }}
+                  </p>
+                  <div class="mt-1.5 h-1 bg-border-visible rounded-full overflow-hidden">
+                    <div
+                      class="h-full bg-text-display rounded-full transition-all duration-300"
+                      :style="{ width: `${uploadProgress}%` }"
+                    />
+                  </div>
+                  <p class="mt-0.5 font-mono text-[9px] text-text-secondary">{{ uploadProgress }}%</p>
+                </div>
+                <button
+                  @click="removeFile"
+                  class="shrink-0 p-1 hover:bg-error/10 rounded transition-colors cursor-pointer"
+                  title="Cancel upload"
+                >
+                  <X class="size-3 text-text-secondary hover:text-error" />
+                </button>
+              </div>
+
+              <!-- Failed upload -->
+              <div v-if="currentUpload.status === 'failed' || currentUpload.status === 'conflict'" class="flex items-start gap-2">
+                <AlertCircle class="size-4 text-error shrink-0 mt-0.5" />
+                <div class="flex-1 min-w-0">
+                  <p class="text-xs text-error font-medium">{{ currentUpload.errorTitle ?? 'Upload failed' }}</p>
+                  <p class="text-[10px] text-text-secondary mt-0.5">{{ currentUpload.errorDetail }}</p>
+                  <div class="flex gap-2 mt-2">
+                    <button
+                      @click="retryUploadItem(currentUpload.tempKey)"
+                      class="flex items-center gap-1 font-mono text-[8px] uppercase tracking-wider font-bold text-text-display hover:underline cursor-pointer"
+                    >
+                      <RotateCcw class="size-3" /> Retry
+                    </button>
+                    <button
+                      @click="removeFile"
+                      class="font-mono text-[8px] uppercase tracking-wider font-bold text-text-secondary hover:text-error cursor-pointer"
+                    >
+                      Dismiss
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Selected READY asset preview -->
+            <div
+              v-else-if="mediaStore.selectedAssetIds.length > 0 && selectedAssetIsImage && uploadPreviewBlob"
+              class="relative w-full max-w-[180px] h-16 rounded-lg overflow-hidden group"
+            >
+              <img :src="uploadPreviewBlob" alt="Selected media preview" class="w-full h-full object-cover" />
+              <button
+                @click.stop="removeFile"
+                class="absolute top-1 right-1 bg-black/60 text-white rounded-full p-1 hover:bg-black/90 transition-colors cursor-pointer"
+              >
+                <X class="size-3" />
+              </button>
+            </div>
+
+            <!-- Drop zone / select file button -->
             <button
+              v-if="!currentUpload"
               type="button"
               @dragover="handleDragOver"
               @dragleave="handleDragLeave"
               @drop="handleDrop"
-              class="border border-dashed border-border-visible rounded-xl p-5 text-center transition-all flex flex-col items-center justify-center min-h-[96px] cursor-pointer hover:border-text-secondary w-full"
+              class="border border-dashed border-border-visible rounded-xl p-5 text-center transition-all flex flex-col items-center justify-center min-h-[80px] cursor-pointer hover:border-text-secondary w-full"
               :class="{
                 'border-text-display bg-bg-primary/40': isDragging,
                 'bg-bg-primary/20': !isDragging,
@@ -504,26 +752,81 @@ async function handleSchedule() {
                 accept="image/*,video/mp4"
                 @change="handleFileSelect"
               />
-
-              <div v-if="mediaPreviews.length === 0" class="space-y-1.5">
-                <ImageIcon class="size-5 text-text-secondary mx-auto" />
-                <p class="text-xs text-text-secondary font-light">
-                  {{ $t('composer.dragDrop') }}
-                  <span class="underline text-text-display cursor-pointer font-medium">{{ $t('composer.selectFile') }}</span>
-                </p>
-              </div>
-
-              <!-- Media Preview -->
-              <div v-else class="relative w-full max-w-[180px] h-16 rounded-lg overflow-hidden group">
-                <img :src="mediaPreviews[0]" alt="Media preview" class="w-full h-full object-cover" />
-                <button
-                  @click.stop="removeFile"
-                  class="absolute top-1 right-1 bg-black/60 text-white rounded-full p-1 hover:bg-black/90 transition-colors"
-                >
-                  <X class="size-3" />
-                </button>
-              </div>
+              <ImageIcon class="size-5 text-text-secondary mx-auto" />
+              <p class="text-xs text-text-secondary font-light mt-1.5">
+                {{ $t('composer.dragDrop') }}
+                <span class="underline text-text-display cursor-pointer font-medium">{{ $t('composer.selectFile') }}</span>
+              </p>
             </button>
+
+            <!-- Media Picker Modal (inline) -->
+            <div v-if="isMediaPickerOpen" class="border border-border-visible rounded-xl overflow-hidden">
+              <div class="flex items-center justify-between p-3 bg-bg-primary border-b border-border-subtle">
+                <div class="flex items-center gap-2">
+                  <Library class="size-4 text-text-secondary" />
+                  <span class="font-mono text-[9px] tracking-widest text-text-secondary uppercase">
+                    Media Library
+                  </span>
+                  <span v-if="isMediaPickerLoading" class="flex items-center gap-1 text-text-secondary">
+                    <Loader2 class="size-3 animate-spin" />
+                    <span class="font-mono text-[8px]">Loading...</span>
+                  </span>
+                </div>
+                <div class="flex items-center gap-2">
+                  <button
+                    @click="openMediaPicker"
+                    class="font-mono text-[8px] uppercase tracking-wider font-bold text-text-display hover:underline cursor-pointer"
+                  >
+                    Upload New
+                  </button>
+                  <button @click="closeMediaPicker" class="cursor-pointer">
+                    <X class="size-3 text-text-secondary hover:text-text-display" />
+                  </button>
+                </div>
+              </div>
+
+              <p v-if="mediaPickerError" class="px-3 py-2 text-xs text-error">
+                {{ mediaPickerError }}
+              </p>
+
+              <!-- Dangling uploads section (PROCESSING / FAILED from prior sessions) -->
+              <div
+                v-if="mediaStore.assetIds.length > 0"
+                class="p-2 space-y-1"
+              >
+                <p class="font-mono text-[8px] tracking-widest text-text-secondary uppercase px-1 mb-1">
+                  Prior Uploads
+                </p>
+                <div class="grid grid-cols-4 gap-2">
+                  <button
+                    v-for="assetId in mediaStore.assetIds.slice(0, 8)"
+                    :key="assetId"
+                    class="relative group cursor-pointer rounded overflow-hidden border bg-transparent p-0 border-none"
+                    :class="mediaStore.selectedAssetIds.includes(assetId)
+                      ? 'border-text-display'
+                      : 'border-border-visible hover:border-text-display'"
+                    @click="pickAsset(assetId)"
+                  >
+                    <div class="aspect-square bg-bg-primary/50 flex items-center justify-center">
+                      <span class="font-mono text-[8px] text-text-secondary uppercase">
+                        {{ mediaStore.assetsById[assetId]?.status ?? '?' }}
+                      </span>
+                    </div>
+                    <div
+                      v-if="mediaStore.selectedAssetIds.includes(assetId)"
+                      class="absolute inset-0 bg-text-display/30 flex items-center justify-center"
+                    >
+                      <Check class="size-4 text-white" />
+                    </div>
+                  </button>
+                </div>
+              </div>
+
+              <div v-if="!isMediaPickerLoading && mediaStore.assetIds.length === 0" class="p-6 text-center">
+                <p class="text-xs text-text-secondary">No assets in your library yet.</p>
+                <p class="text-[10px] text-text-secondary mt-1">Upload a file to get started.</p>
+              </div>
+            </div>
           </div>
 
           <!-- First Comment option -->
@@ -591,9 +894,17 @@ async function handleSchedule() {
                 <span v-else>{{ postText }}</span>
               </div>
 
-              <!-- Uploaded Media Preview -->
-              <div v-if="mediaPreviews.length > 0" class="border-t border-[#2d3135] max-h-[220px] overflow-hidden bg-black/30 flex items-center justify-center">
-                <img :src="mediaPreviews[0]" alt="Media preview" class="w-full h-auto max-h-[220px] object-contain" />
+              <!-- Uploaded Media Preview (uses transient blob URL for UX) -->
+              <div v-if="uploadPreviewBlob || mediaStore.selectedAssetIds.length > 0" class="border-t border-[#2d3135] max-h-[220px] overflow-hidden bg-black/30 flex items-center justify-center">
+                <img
+                  v-if="uploadPreviewBlob"
+                  :src="uploadPreviewBlob"
+                  alt="Media preview"
+                  class="w-full h-auto max-h-[220px] object-contain"
+                />
+                <div v-else class="p-4 text-gray-400 text-xs font-mono">
+                  Asset selected — preview available after upload completes
+                </div>
               </div>
 
               <!-- LinkedIn Action Buttons -->

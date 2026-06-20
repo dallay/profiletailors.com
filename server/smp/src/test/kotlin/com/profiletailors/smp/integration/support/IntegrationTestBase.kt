@@ -1,8 +1,17 @@
 package com.profiletailors.smp.integration.support
 
+import com.profiletailors.common.domain.bus.event.BaseDomainEvent
+import com.profiletailors.common.domain.bus.event.EventPublisher
+import com.profiletailors.storage.application.StorageApplicationService
+import com.profiletailors.storage.domain.Storage
+import com.profiletailors.storage.domain.StorageObjectNotFoundException
+import com.profiletailors.storage.infrastructure.metrics.StorageMetrics
+import io.micrometer.core.instrument.simple.SimpleMeterRegistry
 import io.r2dbc.h2.H2ConnectionConfiguration
 import io.r2dbc.h2.H2ConnectionFactory
 import io.r2dbc.spi.ConnectionFactory
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.reactor.awaitSingle
 import liquibase.Contexts
 import liquibase.LabelExpression
@@ -247,6 +256,62 @@ abstract class IntegrationTestBase {
                 .property("DB_CLOSE_ON_EXIT", "FALSE")
                 .username("sa")
                 .build()
+        )
+
+        /**
+         * In-memory [Storage] stub for H2 integration tests.
+         * Satisfies [StorageApplicationService] dependencies (e.g. [StaleAssetReconciler],
+         * [UploadAssetHandler]) without requiring real cloud storage credentials.
+         */
+        @Bean
+        @Primary
+        fun inMemoryFakeStorage(): Storage = object : Storage {
+            private val objects = mutableMapOf<String, ByteArray>()
+
+            override suspend fun upload(bucket: String, key: String, content: Flow<ByteArray>, metadata: Map<String, String>) {
+                val chunks = mutableListOf<ByteArray>()
+                content.collect { chunks += it }
+                objects["$bucket/$key"] = chunks.flatMap { it.toList() }.toByteArray()
+            }
+
+            override fun download(bucket: String, key: String): Flow<ByteArray> {
+                val data = objects["$bucket/$key"]
+                    ?: throw StorageObjectNotFoundException(bucket, key)
+                return flowOf(data)
+            }
+
+            override suspend fun delete(bucket: String, key: String) {
+                objects.remove("$bucket/$key")
+            }
+
+            override suspend fun list(bucket: String, prefix: String): List<String> =
+                objects.keys.filter { it.startsWith("$bucket/$prefix") }
+
+            override suspend fun exists(bucket: String, key: String): Boolean =
+                objects.containsKey("$bucket/$key")
+        }
+
+        /** No-op [EventPublisher] — domain events are silently discarded in tests. */
+        @Bean
+        fun noOpEventPublisher(): EventPublisher<BaseDomainEvent> = object : EventPublisher<BaseDomainEvent> {
+            override suspend fun publish(event: BaseDomainEvent) {
+                // discard
+            }
+        }
+
+        /**
+         * Provides a [StorageApplicationService] backed by the in-memory stub.
+         * Satisfies [StaleAssetReconciler] and [UploadAssetHandler] in full-context H2 tests.
+         */
+        @Bean
+        @Primary
+        fun storageApplicationService(
+            inMemoryFakeStorage: Storage,
+            noOpEventPublisher: EventPublisher<BaseDomainEvent>,
+        ): StorageApplicationService = StorageApplicationService(
+            storage = inMemoryFakeStorage,
+            eventPublisher = noOpEventPublisher,
+            metrics = StorageMetrics(SimpleMeterRegistry()),
         )
     }
 }

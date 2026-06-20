@@ -44,9 +44,22 @@ platform:
   workspace-context:
     header-name: ${SMP_WORKSPACE_HEADER_NAME:X-Workspace-Id}
   storage:
+    default: ${SMP_STORAGE_DEFAULT:attachments}
     providers:
       attachments:
+        type: ${SMP_STORAGE_PROVIDER_TYPE:local}
         bucket: ${SMP_STORAGE_ATTACHMENTS_BUCKET:profiletailors-attachments}
+        account-id: ${SMP_STORAGE_R2_ACCOUNT_ID:}
+        access-key-id: ${SMP_STORAGE_R2_ACCESS_KEY_ID:}
+        secret-access-key: ${SMP_STORAGE_R2_SECRET_ACCESS_KEY:}
+        endpoint: ${SMP_STORAGE_R2_ENDPOINT:}
+      local:
+        type: local
+        base-path: ${SMP_STORAGE_LOCAL_BASE_PATH:/tmp/profiletailors-storage}
+  media:
+    context:
+      integration:
+        enabled: ${SMP_MEDIA_CONTEXT_INTEGRATION_ENABLED:true}
   hooks:
     audit:
       enabled: ${SMP_PLATFORM_AUDIT_ENABLED:false}

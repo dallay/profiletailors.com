@@ -4,61 +4,64 @@
 
 ## Project Identity
 
-**Profile Tailors** — a social media management platform (schedule, publish, analyze, engage,
-collaborate). This repo hosts the marketing site and the backend service. The product name is
-**Profile Tailors**; `profiletailors.com` is the domain/org name only.
+**Profile Tailors** — social media management platform (schedule, publish, analyze, engage,
+collaborate).
+The product name is **Profile Tailors**; `profiletailors.com` is the domain/org name only.
 
 ## Monorepo Structure
 
 ```text
-apps/web/marketing/ ← Astro 6 landing page
-server/smp/         ← Spring Boot 4 backend (Kotlin, WebFlux)
-shared/             ← Reusable Kotlin libraries (bus, common, storage, security, etc.)
-docs/plans/         ← Design specs and implementation plans (read before coding)
-docs/architecture/  ← C4 architecture docs
-tmp/                ← Research notes and feature briefs (context only, not deployed)
-.agents/            ← Agent tooling config (agentsync.toml, skills, commands)
+apps/web/marketing/   # Astro 6 landing page (EN + ES)
+apps/web/app/         # Vue 3 + shadcn-vue SPA (dashboard)
+server/smp/          # Spring Boot 4 backend (Kotlin, WebFlux, R2DBC)
+shared/               # Kotlin libraries + shared assets
+docs/                 # Architecture docs, design specs
+openspec/             # SDD artifacts (spec-driven development)
+.agents/              # Agent tooling (skills, commands)
 ```
 
-## Active App: `apps/web/marketing`
+## Command Hub
 
-- **Framework:** Astro 6, static-first, no SSR
-- **Package manager:** pnpm
-- **Node requirement:** `>=22.12.0`
+**All commands go through `just`** — run `just -l` to list everything.
 
-### Dev Commands (run from `apps/web/marketing/`)
+### Frontend Dev (run from repo root)
 
-| Command        | Action                           |
-|----------------|----------------------------------|
-| `pnpm install` | Install dependencies             |
-| `pnpm dev`     | Dev server at `localhost:4321`   |
-| `pnpm build`   | Build to `./dist/`               |
-| `pnpm preview` | Preview production build locally |
+| Command                  | Action                          |
+|--------------------------|---------------------------------|
+| `just frontend-dev`      | Start both frontend dev servers |
+| `just frontend-build`    | Build marketing site            |
+| `just frontend-lint`     | Biome lint                      |
+| `just frontend-format`   | Biome format                    |
+| `just frontend-test`     | Vitest unit tests               |
+| `just frontend-test-e2e` | Playwright E2E tests            |
 
-## Backend: `server/smp/`
+### Backend Dev (run from repo root)
 
-- **Framework:** Spring Boot 4, Kotlin, WebFlux, R2DBC
-- **Build tool:** Gradle (run from repo root)
+| Command                     | Action                             |
+|-----------------------------|------------------------------------|
+| `just backend-run`          | Start Spring Boot (dev profile)    |
+| `just backend-build`        | Compile and package                |
+| `just backend-test-fast`    | Fast tests (excludes BDD)          |
+| `just backend-check`        | Detekt + tests                     |
+| `just backend-bdd-fast`     | Fast BDD suite                     |
+| `just backend-bdd-postgres` | Postgres BDD (requires `infra-up`) |
 
-### Dev Commands (run from repo root)
+### Infrastructure
 
-| Command                                                               | Action                         |
-|-----------------------------------------------------------------------|--------------------------------|
-| `./gradlew :server:smp:build`                                         | Compile and package            |
-| `./gradlew :server:smp:test`                                          | Run unit and integration tests |
-| `./gradlew :server:smp:check`                                         | Tests + detekt                 |
-| `./gradlew :server:smp:bootRun --args='--spring.profiles.active=dev'` | Start dev server               |
+| Command           | Action                    |
+|-------------------|---------------------------|
+| `just infra-up`   | Start Postgres + services |
+| `just infra-down` | Stop containers           |
 
-### Hexagonal Architecture (mandatory)
+### CI (mandatory before push/PR)
 
-**Every feature (bounded context) follows this structure:**
+| Command         | What it covers                                      |
+|-----------------|-----------------------------------------------------|
+| `just ci`       | Full CI: gitleaks, lint, tests, build, E2E          |
+| `just ci-local` | Fast subset (no E2E, no Postgres BDD)               |
+| `just ci-full`  | ci-local + Postgres BDD (requires `infra-up` first) |
 
-```
-{feature}/
-├── domain/          # Pure Kotlin — NO Spring annotations
-├── application/     # Use cases, CQRS handlers, ports consumed by handlers
-└── infrastructure/  # Spring Boot, R2DBC, HTTP, external adapters
-```
+## Backend Architecture (Hexagonal)
 
 **Dependency rule:** `domain ← application ← infrastructure`
 
@@ -68,76 +71,86 @@ tmp/                ← Research notes and feature briefs (context only, not dep
 | **Application**    | Domain                | Infrastructure, Spring stereotypes  |
 | **Infrastructure** | Domain + Application  | —                                   |
 
-- **Package convention:** `com.profiletailors.smp.{context}.{layer}`
-- **CQRS naming:** `GetXQuery`, `{Verb}XCommand`, `XHandler`, `R2dbcXRepository`
-- **Application marker:** use `com.profiletailors.common.domain.Service` (not Spring `@Service`)
-- **Source of truth:** `.agents/skills/backend-platform/hexagonal-architecture/SKILL.md`
-- **Shared libs** (`shared/common`, `shared/bus`, `shared/spring-boot-common`) are cross-cutting
-  libraries, not feature slices — they do not follow the per-feature folder rule.
+- Package convention: `com.profiletailors.smp.{context}.{layer}`
+- CQRS naming: `GetXQuery`, `{Verb}XCommand`, `XHandler`, `R2dbcXRepository`
+- Use `com.profiletailors.common.domain.Service` (not Spring `@Service`)
+- Shared libs (`shared/common`, `shared/bus`, etc.) are cross-cutting, not feature slices
 
-## Design Spec (source of truth)
+## Frontend Apps
 
-Read `docs/plans/2026-05-13-socialnexus-landing-design.md` before any UI work. Key constraints:
+### `apps/web/marketing` (Astro 6)
 
-- **Style:** Nothing-inspired, monochrome, typographically driven — avoid generic SaaS aesthetics
-  and heavy card grids.
-- **Fonts:** Space Grotesk (body/headings), Space Mono (labels/metadata), Doto (**once** in hero
-  only).
-- **Color:** Dark-first (OLED black); light mode is a designed system, not a color inversion.
-- **Tokens:** CSS custom properties — `--bg-primary-dark`, `--text-display`, `--text-secondary`,
-  etc. Define tokens independently per mode.
-- **Spacing rhythm:** 8px base; jumps at 32 / 64 / 96px for section breaks.
-- **Motion:** Minimal and precise — no bounce, blur, or ornamental animation; respect
-  `prefers-reduced-motion`.
+- Static-first, no SSR
+- i18n: English (default) + Spanish (`/es/`)
+- All user-facing strings in locale files (`src/i18n/`), never hardcoded
+- Fonts: Space Grotesk (body), Space Mono (labels), Doto (hero only)
+- Style: Nothing-inspired, monochrome, dark-first
+- Package manager: pnpm, Node >= 22.12.0
+- Linter: Biome
 
-## Bilingual Content Model
+### `apps/web/app` (Vue 3 + shadcn-vue)
 
-All user-facing strings must live in a single locale object — never hardcoded inline:
+- SPA dashboard with Vue Router + Pinia
+- shadcn-vue components via `npx shadcn-vue@latest add`
+- E2E tests: `playwright -c e2e/playwright.scheduler.config.ts`
+- Linter: Biome
 
-```ts
-const content = {
-  en: {nav, hero, platforms, features, audiences, finalCta, footer},
-  es: {nav, hero, platforms, features, audiences, finalCta, footer},
-}
-```
+### Shared Assets
 
-- Default locale: English. Language switch updates copy and `lang` attribute.
-- Spanish copy is longer — never use fixed-width containers that assume English length.
-- EN/ES switcher lives in the header.
+- `shared/assets/web/*` is copied to `dist/` at build time via Vite plugin
+- Import with `@shared/assets/` alias
 
-## Implementation Constraints
+## Environment Setup
 
-- Keep `apps/web/marketing` lightweight and static — no backend, no CMS, no heavy deps.
-- Add dependencies only when Astro-native primitives are insufficient.
-- Always check dependency scores with the depscore tool when you add a new dependency. If the score
-  is low, consider using an alternative library or writing the code yourself.
-- Waitlist form is client-side only for now (no persistence backend defined yet).
-- Prefer few files with clear content/style boundaries over many small fragments.
-- **Documentation:** All internal and external documentation (READMEs, design specs, architecture
-  docs, and agent instructions) MUST be in English. Files must follow the lowercase `kebab-case.md`
-  naming convention (except `README.md`) and adhere to the standard structure: Overview → Changes →
-  Usage → Troubleshooting → References. No exceptions.
+1. Copy `.env.example` → `.env` and fill in values
+2. Run `bin/setup-env.sh` (creates symlinks for subprojects)
+3. `just install` to install all dependencies
+4. `just hooks-install` to set up git hooks (Lefthook)
 
-## CI Gate (mandatory)
+## Backend .env Loading
 
-**Before pushing any commit or creating a PR, run `just ci` and confirm it passes.** This runs
-secrets scan, frontend lint/tests/build, backend Detekt/tests/build, and E2E tests end-to-end.
-If it fails, do not push. Fix first, then re-run.
+The `bootRun` task reads the root `.env` file and exports vars to the JVM — works for both CLI and
+IntelliJ.
 
-| Command         | What it covers                                                   |
-|-----------------|------------------------------------------------------------------|
-| `just ci`       | Full local CI: lint, unit tests, build, marketing E2E (no scheduler E2E, no Postgres) |
-| `just ci-local` | Fast subset — lint, unit tests, builds (no E2E, no Postgres)     |
-| `just ci-full`  | ci-local + Postgres BDD (requires `just infra-up` first)         |
+## Test Tags (Pre-existing Exclusions)
 
-## Testing & Delivery Discipline
+These tags are excluded in CI due to known pre-existing failures:
 
-- Apply **BDD** when defining behavior: describe features from the user perspective with clear
-  scenarios and expected outcomes before implementation.
-- Apply **TDD** when implementing changes: start with a failing test when practical, implement the
-  smallest change that makes it pass, then refactor safely.
-- Keep acceptance criteria, scenarios, and tests aligned so product behavior, implementation, and
-  verification stay consistent.
-- Prefer focused, maintainable tests over broad brittle coverage, and update tests alongside
-  behavior changes.
+| Tag          | Reason                                                     |
+|--------------|------------------------------------------------------------|
+| `modularity` | Spring Modulith named-interface issue (on main)            |
+| `postgres`   | Postgres/Testcontainers integration tests (not configured) |
 
+## Design Spec
+
+Read `docs/architecture/` (C4 models) before architectural decisions.
+Read design specs in docs before UI work.
+
+## Documentation Rules
+
+All documentation MUST be:
+
+- In English
+- Files: lowercase `kebab-case.md` (except `README.md`)
+- Structure: Overview → Changes → Usage → Troubleshooting → References
+
+## Dependency Policy
+
+- Check dependency scores with `socket-mcp_depscore` before adding new deps
+- Keep marketing site lightweight — prefer Astro primitives over dependencies
+- Use existing skills from `.agents/skills/` when available
+
+## Skills
+
+Repo-local skills in `.agents/skills/` cover: backend-platform, frontend-platform,
+kotlin, typescript, vue, pinia, shadcn-vue, astro, pnpm, gradle, spring-boot,
+testing (vitest, playwright), hexagonal-architecture, docker.
+
+## Key Gotchas
+
+- **Gradle wrapper detection:** Windows (CMD/PowerShell) uses `gradlew.bat`, POSIX uses `./gradlew`
+- **Spanish copy:** Longer than English — never use fixed-width containers
+- **Portless:** Both frontend apps use named local URLs (e.g., `https://profile-tailors.localhost`)
+- **Shared assets plugin:** Copies `shared/assets/web/*` to `dist/` at build time
+- **CI is mandatory:** Never push without `just ci` passing
+- **Conventional commits:** `feat(scope):`, `fix(scope):`, `docs(scope):`, `chore(scope):`

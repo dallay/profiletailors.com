@@ -1,0 +1,599 @@
+import { describe, it, expect, vi, beforeEach } from 'vitest'
+import { setActivePinia, createPinia } from 'pinia'
+import { useMediaStore } from './media'
+
+// ---------------------------------------------------------------------------
+// Mock auth-api
+// ---------------------------------------------------------------------------
+vi.mock('@/lib/auth-api', () => ({
+  createApiFetch: () =>
+    Object.assign(
+      async function apiFetch<T>() {
+        return {} as T
+      },
+      {
+        raw: async () => new Response(null, { status: 204 }),
+      },
+    ),
+  refreshSession: vi.fn().mockResolvedValue(null),
+  getCurrentUserProfile: vi.fn().mockResolvedValue(null),
+  login: vi.fn(),
+  register: vi.fn(),
+  logoutSession: vi.fn(),
+}))
+
+// ---------------------------------------------------------------------------
+// Mock media-api
+// ---------------------------------------------------------------------------
+const mockReserveAsset = vi.fn()
+const mockUploadAsset = vi.fn()
+const mockListAssets = vi.fn()
+const mockGetAsset = vi.fn()
+
+vi.mock('@/lib/media-api', () => ({
+  reserveAsset: (...args: unknown[]) => mockReserveAsset(...args),
+  uploadAsset: (...args: unknown[]) => mockUploadAsset(...args),
+  listAssets: (...args: unknown[]) => mockListAssets(...args),
+  getAsset: (...args: unknown[]) => mockGetAsset(...args),
+}))
+
+// ---------------------------------------------------------------------------
+// Mock auth store
+// ---------------------------------------------------------------------------
+vi.mock('@/stores/auth', () => ({
+  useAuthStore: () => ({
+    isAuthenticated: true,
+    accessToken: { value: 'fake-token' },
+    workspace: { activeWorkspaceId: 'ws-test-1' },
+  }),
+}))
+
+// ---------------------------------------------------------------------------
+// Helpers
+// ---------------------------------------------------------------------------
+const readyAsset = (assetId: string) => ({
+  assetId,
+  workspaceId: 'ws-test-1',
+  sourceType: 'UPLOADED' as const,
+  mediaType: 'image/jpeg',
+  status: 'READY' as const,
+  originalFilename: 'test.jpg',
+  fileSizeBytes: 1024,
+  createdAt: '2026-06-19T12:00:00Z',
+})
+
+const processingAsset = (assetId: string) => ({
+  assetId,
+  workspaceId: 'ws-test-1',
+  sourceType: 'UPLOADED' as const,
+  mediaType: 'image/png',
+  status: 'PROCESSING' as const,
+  originalFilename: null,
+  fileSizeBytes: null,
+  createdAt: '2026-06-19T12:00:00Z',
+})
+
+const mockFile = (name = 'photo.jpg') => new File(['fake-image-data'], name, { type: 'image/jpeg' })
+
+// ---------------------------------------------------------------------------
+// Tests
+// ---------------------------------------------------------------------------
+describe('media store', () => {
+  beforeEach(() => {
+    setActivePinia(createPinia())
+    vi.clearAllMocks()
+  })
+
+  describe('initial state', () => {
+    it('starts with empty asset list', () => {
+      const store = useMediaStore()
+      expect(store.assetIds).toEqual([])
+      expect(store.assetsById).toEqual({})
+      expect(store.nextCursor).toBeNull()
+    })
+
+    it('starts with empty selected asset ids', () => {
+      const store = useMediaStore()
+      expect(store.selectedAssetIds).toEqual([])
+    })
+
+    it('starts with no uploads', () => {
+      const store = useMediaStore()
+      expect(store.uploads).toEqual({})
+      expect(store.pendingUploads).toEqual([])
+      expect(store.completedUploads).toEqual([])
+      expect(store.failedUploads).toEqual([])
+    })
+
+    it('starts not loading', () => {
+      const store = useMediaStore()
+      expect(store.isLoading).toBe(false)
+      expect(store.loadError).toBeNull()
+    })
+  })
+
+  describe('loadAssets', () => {
+    it('loads READY assets by default', async () => {
+      const store = useMediaStore()
+      mockListAssets.mockResolvedValueOnce({
+        assets: [readyAsset('asset-1')],
+        nextCursor: null,
+      })
+
+      await store.loadAssets()
+
+      expect(mockListAssets).toHaveBeenCalledWith({
+        status: 'READY',
+        pageSize: 50,
+      })
+      expect(store.assetIds).toContain('asset-1')
+      expect(store.assetsById['asset-1']?.status).toBe('READY')
+    })
+
+    it('loads PROCESSING assets when requested', async () => {
+      const store = useMediaStore()
+      mockListAssets.mockResolvedValueOnce({
+        assets: [processingAsset('asset-2')],
+        nextCursor: null,
+      })
+
+      await store.loadAssets('PROCESSING')
+
+      expect(mockListAssets).toHaveBeenCalledWith({
+        status: 'PROCESSING',
+        pageSize: 50,
+      })
+      expect(store.assetIds).toContain('asset-2')
+      expect(store.assetIds).not.toContain('asset-1')
+    })
+
+    it('loads all statuses when querying dangling assets', async () => {
+      const store = useMediaStore()
+      mockListAssets.mockResolvedValueOnce({
+        assets: [readyAsset('ready-1'), processingAsset('proc-1')],
+        nextCursor: null,
+      })
+
+      await store.loadDanglingAssets()
+
+      expect(mockListAssets).toHaveBeenCalledWith({
+        status: 'PROCESSING,FAILED',
+        pageSize: 50,
+      })
+    })
+
+    it('prepends new assets maintaining newest-first order', async () => {
+      const store = useMediaStore()
+      // Simulate existing assets in store
+      store.assetIds.push('existing-asset')
+      store.assetsById['existing-asset'] = readyAsset('existing-asset')
+
+      mockListAssets.mockResolvedValueOnce({
+        assets: [readyAsset('new-asset')],
+        nextCursor: null,
+      })
+
+      await store.loadAssets()
+
+      // New asset should be at the front
+      expect(store.assetIds[0]).toBe('new-asset')
+    })
+
+    it('clears previous assets on reload', async () => {
+      const store = useMediaStore()
+      store.assetIds.push('old-asset')
+      store.assetsById['old-asset'] = readyAsset('old-asset')
+
+      mockListAssets.mockResolvedValueOnce({
+        assets: [readyAsset('new-asset')],
+        nextCursor: null,
+      })
+
+      await store.loadAssets()
+
+      expect(store.assetIds).not.toContain('old-asset')
+      expect(store.assetIds).toContain('new-asset')
+    })
+
+    it('records load error on API failure', async () => {
+      const store = useMediaStore()
+      mockListAssets.mockRejectedValueOnce(
+        Object.assign(new Error('Server error'), {
+          status: 500,
+          title: 'Server Error',
+          detail: 'Internal server error',
+        }),
+      )
+
+      await expect(store.loadAssets()).rejects.toThrow()
+      expect(store.loadError).toBeTruthy()
+    })
+  })
+
+  describe('loadNextPage', () => {
+    it('does nothing when no cursor available', async () => {
+      const store = useMediaStore()
+      store.nextCursor = null
+
+      await store.loadNextPage()
+
+      expect(mockListAssets).not.toHaveBeenCalled()
+    })
+
+    it('fetches next page with cursor', async () => {
+      const store = useMediaStore()
+      store.nextCursor = 'cursor-abc'
+
+      mockListAssets.mockResolvedValueOnce({
+        assets: [readyAsset('page-2-asset')],
+        nextCursor: null,
+      })
+
+      await store.loadNextPage()
+
+      expect(mockListAssets).toHaveBeenCalledWith({
+        status: 'READY',
+        pageSize: 50,
+        cursor: 'cursor-abc',
+      })
+      expect(store.assetIds).toContain('page-2-asset')
+      expect(store.nextCursor).toBeNull()
+    })
+  })
+
+  describe('createAndUpload', () => {
+    it('reserves asset then uploads the file', async () => {
+      const store = useMediaStore()
+      mockReserveAsset.mockResolvedValueOnce({
+        assetId: 'reserved-asset',
+        workspaceId: 'ws-test-1',
+        sourceType: 'UPLOADED',
+        mediaType: 'image/jpeg',
+        status: 'PROCESSING',
+      })
+      mockUploadAsset.mockResolvedValueOnce(readyAsset('reserved-asset'))
+
+      const file = mockFile()
+      const result = await store.createAndUpload(file, 'temp-key-1')
+
+      expect(mockReserveAsset).toHaveBeenCalledWith({
+        mediaType: 'image/jpeg',
+        originalFilename: 'photo.jpg',
+      })
+      expect(mockUploadAsset).toHaveBeenCalledWith('reserved-asset', file, expect.any(Function))
+      expect(result.assetId).toBe('reserved-asset')
+      expect(result.status).toBe('READY')
+    })
+
+    it('tracks upload item in uploads map during upload', async () => {
+      const store = useMediaStore()
+      let resolveUpload: ((asset: ReturnType<typeof readyAsset>) => void) | undefined
+      mockReserveAsset.mockResolvedValueOnce({
+        assetId: 'tracked-asset',
+        workspaceId: 'ws-test-1',
+        sourceType: 'UPLOADED',
+        mediaType: 'image/jpeg',
+        status: 'PROCESSING',
+      })
+      mockUploadAsset.mockImplementationOnce(
+        () =>
+          new Promise((resolve) => {
+            resolveUpload = resolve
+          }),
+      )
+
+      const file = mockFile()
+      const uploadPromise = store.createAndUpload(file, 'temp-tracking-key')
+      await Promise.resolve()
+      await Promise.resolve()
+
+      // After reserve completes and upload starts, the upload should be tracked as 'uploading'
+      expect(store.uploads['temp-tracking-key']?.status).toBe('uploading')
+      expect(store.uploads['temp-tracking-key']?.assetId).toBe('tracked-asset')
+
+      resolveUpload?.(readyAsset('tracked-asset'))
+      await uploadPromise
+
+      // After completion, status should be 'done'
+      expect(store.uploads['temp-tracking-key']?.status).toBe('done')
+      expect(store.uploads['temp-tracking-key']?.progress).toBe(100)
+    })
+
+    it('transitions to failed on upload error with retry policy', async () => {
+      vi.useFakeTimers()
+      try {
+        const store = useMediaStore()
+        mockReserveAsset.mockResolvedValue({
+          assetId: 'fail-asset',
+          workspaceId: 'ws-test-1',
+          sourceType: 'UPLOADED',
+          mediaType: 'image/jpeg',
+          status: 'PROCESSING',
+        })
+        // Fail on all retry attempts
+        mockUploadAsset.mockRejectedValue(
+          Object.assign(new Error('Server error'), {
+            status: 500,
+            errorCode: 'INTERNAL_ERROR',
+            detail: 'Server error',
+          }),
+        )
+
+        const file = mockFile()
+        const promise = store.createAndUpload(file, 'fail-temp-key')
+        const rejection = expect(promise).rejects.toThrow()
+
+        await Promise.resolve()
+        await vi.runAllTimersAsync()
+
+        await rejection
+        expect(mockUploadAsset).toHaveBeenCalledTimes(3)
+        expect(store.failedUploads.length).toBeGreaterThan(0)
+      } finally {
+        vi.useRealTimers()
+      }
+    })
+
+    it('records conflict status on HTTP 409', async () => {
+      const store = useMediaStore()
+      mockReserveAsset.mockResolvedValueOnce({
+        assetId: 'conflict-asset',
+        workspaceId: 'ws-test-1',
+        sourceType: 'UPLOADED',
+        mediaType: 'image/jpeg',
+        status: 'PROCESSING',
+      })
+      mockUploadAsset.mockRejectedValue(
+        Object.assign(new Error('Conflict'), {
+          status: 409,
+          errorCode: 'ASSET_UPLOAD_CONFLICT',
+          detail: 'Asset already ready',
+        }),
+      )
+
+      const file = mockFile()
+
+      await expect(store.createAndUpload(file, 'conflict-key')).rejects.toThrow()
+      expect(store.uploads['conflict-key']?.status).toBe('conflict')
+    })
+
+    it('records file-too-large error on HTTP 413', async () => {
+      const store = useMediaStore()
+      mockReserveAsset.mockResolvedValueOnce({
+        assetId: 'large-asset',
+        workspaceId: 'ws-test-1',
+        sourceType: 'UPLOADED',
+        mediaType: 'image/jpeg',
+        status: 'PROCESSING',
+      })
+      mockUploadAsset.mockRejectedValue(
+        Object.assign(new Error('Payload too large'), {
+          status: 413,
+          errorCode: 'FILE_TOO_LARGE',
+          detail: 'File exceeds 500 MB',
+        }),
+      )
+
+      const file = mockFile()
+
+      await expect(store.createAndUpload(file, 'large-key')).rejects.toThrow()
+      expect(store.uploads['large-key']?.status).toBe('failed')
+      expect(store.uploads['large-key']?.errorTitle).toBe('File too large')
+    })
+  })
+
+  describe('retryUpload', () => {
+    it('re-uploads a failed upload item', async () => {
+      const store = useMediaStore()
+      // Pre-seed a failed upload
+      store.uploads['retry-key'] = {
+        tempKey: 'retry-key',
+        assetId: 'retry-asset',
+        file: mockFile(),
+        progress: 0,
+        status: 'failed',
+        errorTitle: 'Upload failed',
+        errorDetail: 'Server error',
+      }
+      mockUploadAsset.mockResolvedValueOnce(readyAsset('retry-asset'))
+
+      const result = await store.retryUpload('retry-key')
+
+      expect(mockUploadAsset).toHaveBeenCalledWith(
+        'retry-asset',
+        expect.any(File),
+        expect.any(Function),
+      )
+      expect(result.status).toBe('READY')
+      expect(store.uploads['retry-key']?.status).toBe('done')
+    })
+
+    it('throws when no upload found for temp key', async () => {
+      const store = useMediaStore()
+
+      await expect(store.retryUpload('nonexistent-key')).rejects.toThrow('No upload found with key')
+    })
+
+    it('throws when upload is already in progress', async () => {
+      const store = useMediaStore()
+      store.uploads['in-progress-key'] = {
+        tempKey: 'in-progress-key',
+        assetId: 'asset-1',
+        file: mockFile(),
+        progress: 50,
+        status: 'uploading',
+      }
+
+      await expect(store.retryUpload('in-progress-key')).rejects.toThrow('already in progress')
+    })
+  })
+
+  describe('addToSelection / removeFromSelection', () => {
+    it('adds asset to selection', () => {
+      const store = useMediaStore()
+      store.assetsById['asset-1'] = readyAsset('asset-1')
+
+      store.addToSelection('asset-1')
+
+      expect(store.selectedAssetIds).toContain('asset-1')
+      expect(store.selectedAssets).toHaveLength(1)
+    })
+
+    it('addToSelection is idempotent — duplicate adds are ignored', () => {
+      const store = useMediaStore()
+      store.assetsById['asset-1'] = readyAsset('asset-1')
+
+      store.addToSelection('asset-1')
+      store.addToSelection('asset-1')
+
+      expect(store.selectedAssetIds.filter((id) => id === 'asset-1')).toHaveLength(1)
+    })
+
+    it('removes asset from selection', () => {
+      const store = useMediaStore()
+      store.selectedAssetIds.push('asset-1')
+
+      store.removeFromSelection('asset-1')
+
+      expect(store.selectedAssetIds).not.toContain('asset-1')
+    })
+
+    it('clearSelection removes all assets', () => {
+      const store = useMediaStore()
+      store.selectedAssetIds.push('asset-1', 'asset-2')
+
+      store.clearSelection()
+
+      expect(store.selectedAssetIds).toEqual([])
+    })
+  })
+
+  describe('selectedAssets computed', () => {
+    it('returns selected assets in order', () => {
+      const store = useMediaStore()
+      store.assetsById['asset-1'] = readyAsset('asset-1')
+      store.assetsById['asset-2'] = readyAsset('asset-2')
+      store.selectedAssetIds.push('asset-1', 'asset-2')
+
+      const selected = store.selectedAssets
+
+      expect(selected).toHaveLength(2)
+      expect(selected[0].assetId).toBe('asset-1')
+      expect(selected[1].assetId).toBe('asset-2')
+    })
+
+    it('excludes unknown asset ids from selectedAssets', () => {
+      const store = useMediaStore()
+      store.assetsById['known-asset'] = readyAsset('known-asset')
+      store.selectedAssetIds.push('known-asset', 'unknown-asset')
+
+      const selected = store.selectedAssets
+
+      // Only the known asset should appear
+      expect(selected).toHaveLength(1)
+      expect(selected[0].assetId).toBe('known-asset')
+    })
+  })
+
+  describe('dismissUpload / clearUploads', () => {
+    it('removes a single failed upload tracking entry', () => {
+      const store = useMediaStore()
+      store.uploads['dismiss-key'] = {
+        tempKey: 'dismiss-key',
+        assetId: 'asset-1',
+        file: mockFile(),
+        progress: 0,
+        status: 'failed',
+        errorTitle: 'Error',
+        errorDetail: 'Detail',
+      }
+
+      store.dismissUpload('dismiss-key')
+
+      expect(store.uploads['dismiss-key']).toBeUndefined()
+    })
+
+    it('clears all upload tracking entries', () => {
+      const store = useMediaStore()
+      store.uploads['key-1'] = {
+        tempKey: 'key-1',
+        assetId: 'asset-1',
+        file: mockFile(),
+        progress: 0,
+        status: 'failed',
+      }
+      store.uploads['key-2'] = {
+        tempKey: 'key-2',
+        assetId: 'asset-2',
+        file: mockFile(),
+        progress: 0,
+        status: 'done',
+      }
+
+      store.clearUploads()
+
+      expect(Object.keys(store.uploads)).toHaveLength(0)
+    })
+  })
+
+  describe('paging', () => {
+    it('sets nextCursor from list response', async () => {
+      const store = useMediaStore()
+      mockListAssets.mockResolvedValueOnce({
+        assets: [readyAsset('asset-1')],
+        nextCursor: 'cursor-page-2',
+      })
+
+      await store.loadAssets()
+
+      expect(store.nextCursor).toBe('cursor-page-2')
+    })
+  })
+
+  describe('computed lists', () => {
+    it('pendingUploads includes only uploading items', () => {
+      const store = useMediaStore()
+      store.uploads.uploading = {
+        tempKey: 'uploading',
+        assetId: 'a1',
+        file: mockFile(),
+        progress: 50,
+        status: 'uploading',
+      }
+      store.uploads.done = {
+        tempKey: 'done',
+        assetId: 'a2',
+        file: mockFile(),
+        progress: 100,
+        status: 'done',
+      }
+
+      expect(store.pendingUploads).toHaveLength(1)
+      expect(store.pendingUploads[0].tempKey).toBe('uploading')
+    })
+
+    it('failedUploads includes failed and conflict items', () => {
+      const store = useMediaStore()
+      store.uploads.failed = {
+        tempKey: 'failed',
+        assetId: 'a1',
+        file: mockFile(),
+        progress: 0,
+        status: 'failed',
+        errorTitle: 'Error',
+        errorDetail: 'Detail',
+      }
+      store.uploads.conflict = {
+        tempKey: 'conflict',
+        assetId: 'a2',
+        file: mockFile(),
+        progress: 0,
+        status: 'conflict',
+        errorTitle: 'Conflict',
+        errorDetail: 'Already ready',
+      }
+
+      expect(store.failedUploads).toHaveLength(2)
+    })
+  })
+})

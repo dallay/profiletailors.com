@@ -6,6 +6,10 @@ import com.profiletailors.common.domain.context.PrincipalType
 import com.profiletailors.common.domain.context.ResourceContext
 import com.profiletailors.common.domain.context.ResourceContextProvider
 import com.profiletailors.common.domain.context.ResourceContextType
+import com.profiletailors.smp.media.application.AssetNotReadyException
+import com.profiletailors.smp.media.application.MediaAssetResolver
+import com.profiletailors.smp.media.application.MediaServiceUnavailableException
+import com.profiletailors.smp.media.application.ResolvedAssetSummary
 import com.profiletailors.smp.publishing.domain.ActivityDensity
 import com.profiletailors.smp.publishing.domain.AssetSourceType
 import com.profiletailors.smp.publishing.domain.ChannelEvent
@@ -52,6 +56,7 @@ import org.junit.jupiter.api.Assertions.assertNull
 import org.junit.jupiter.api.Assertions.assertThrows
 import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.Test
+import org.springframework.beans.factory.annotation.Value
 import java.time.Clock
 import java.time.Instant
 import java.time.LocalDate
@@ -281,6 +286,8 @@ class PublishingHandlersTest {
             publicationJobRepository = jobRepository,
             providerCapabilityValidator = AcceptingCapabilityValidator(),
             schedulingPolicy = PublicationSchedulingPolicy(),
+            mediaAssetResolver = FakeMediaAssetResolver(),
+            mediaIntegrationSettings = PublishingMediaIntegrationSettings(enabled = true),
             clock = fixedClock,
         )
 
@@ -328,6 +335,8 @@ class PublishingHandlersTest {
             publicationJobRepository = jobRepository,
             providerCapabilityValidator = AcceptingCapabilityValidator(),
             schedulingPolicy = PublicationSchedulingPolicy(),
+            mediaAssetResolver = FakeMediaAssetResolver(),
+            mediaIntegrationSettings = PublishingMediaIntegrationSettings(enabled = true),
             clock = fixedClock,
         )
 
@@ -373,6 +382,8 @@ class PublishingHandlersTest {
             publicationJobRepository = jobRepository,
             providerCapabilityValidator = AcceptingCapabilityValidator(),
             schedulingPolicy = PublicationSchedulingPolicy(),
+            mediaAssetResolver = FakeMediaAssetResolver(),
+            mediaIntegrationSettings = PublishingMediaIntegrationSettings(enabled = true),
             clock = fixedClock,
         )
 
@@ -416,6 +427,8 @@ class PublishingHandlersTest {
             publicationJobRepository = jobRepository,
             providerCapabilityValidator = AcceptingCapabilityValidator(),
             schedulingPolicy = PublicationSchedulingPolicy(),
+            mediaAssetResolver = FakeMediaAssetResolver(),
+            mediaIntegrationSettings = PublishingMediaIntegrationSettings(enabled = true),
             clock = fixedClock,
         )
 
@@ -462,6 +475,8 @@ class PublishingHandlersTest {
             publicationJobRepository = jobRepository,
             providerCapabilityValidator = AcceptingCapabilityValidator(),
             schedulingPolicy = PublicationSchedulingPolicy(),
+            mediaAssetResolver = FakeMediaAssetResolver(),
+            mediaIntegrationSettings = PublishingMediaIntegrationSettings(enabled = true),
             clock = fixedClock,
         )
 
@@ -552,6 +567,8 @@ class PublishingHandlersTest {
             publicationJobRepository = jobRepository,
             providerCapabilityValidator = AcceptingCapabilityValidator(),
             schedulingPolicy = PublicationSchedulingPolicy(),
+            mediaAssetResolver = FakeMediaAssetResolver(),
+            mediaIntegrationSettings = PublishingMediaIntegrationSettings(enabled = true),
             clock = fixedClock,
         )
 
@@ -609,6 +626,8 @@ class PublishingHandlersTest {
             publicationJobRepository = jobRepository,
             providerCapabilityValidator = RejectingCapabilityValidator(),
             schedulingPolicy = PublicationSchedulingPolicy(),
+            mediaAssetResolver = FakeMediaAssetResolver(),
+            mediaIntegrationSettings = PublishingMediaIntegrationSettings(enabled = true),
             clock = fixedClock,
         )
 
@@ -663,6 +682,8 @@ class PublishingHandlersTest {
             publicationJobRepository = jobRepository,
             providerCapabilityValidator = AcceptingCapabilityValidator(),
             schedulingPolicy = PublicationSchedulingPolicy(),
+            mediaAssetResolver = FakeMediaAssetResolver(),
+            mediaIntegrationSettings = PublishingMediaIntegrationSettings(enabled = true),
             clock = fixedClock,
         )
 
@@ -1114,6 +1135,8 @@ class PublishingHandlersTest {
             publicationJobRepository = jobRepository,
             providerCapabilityValidator = AcceptingCapabilityValidator(),
             schedulingPolicy = PublicationSchedulingPolicy(),
+            mediaAssetResolver = FakeMediaAssetResolver(),
+            mediaIntegrationSettings = PublishingMediaIntegrationSettings(enabled = true),
             clock = fixedClock,
         )
 
@@ -1145,6 +1168,8 @@ class PublishingHandlersTest {
             publicationJobRepository = jobRepository,
             providerCapabilityValidator = AcceptingCapabilityValidator(),
             schedulingPolicy = PublicationSchedulingPolicy(),
+            mediaAssetResolver = FakeMediaAssetResolver(),
+            mediaIntegrationSettings = PublishingMediaIntegrationSettings(enabled = true),
             clock = fixedClock,
         )
 
@@ -1662,5 +1687,543 @@ class PublishingHandlersTest {
         override suspend fun cancel(jobId: String, cancelledAt: Instant) {
             lastCancelledPublicationId = jobId
         }
+    }
+
+    // --- MediaAssetResolver test doubles ---
+
+    /**
+     * Fake MediaAssetResolver that can be configured to throw specific exceptions.
+     */
+    private class FakeMediaAssetResolver : MediaAssetResolver {
+        var shouldThrowMissing = false
+        var shouldThrowNotReady = false
+        var shouldThrowUnavailable = false
+        val requestedCalls = mutableListOf<Pair<String, List<String>>>()
+        var resolvedAssets: List<ResolvedAssetSummary> = emptyList()
+
+        override suspend fun resolveReadyAssets(
+            workspaceId: String,
+            assetIds: List<String>,
+        ): List<ResolvedAssetSummary> {
+            requestedCalls.add(workspaceId to assetIds)
+            when {
+                shouldThrowUnavailable -> throw MediaServiceUnavailableException(
+                    "Media context unavailable",
+                )
+                shouldThrowMissing -> throw AssetNotReadyException(
+                    assetIds.first(),
+                    "asset not found",
+                )
+                shouldThrowNotReady -> throw AssetNotReadyException(
+                    assetIds.first(),
+                    "asset not READY",
+                )
+            }
+            return resolvedAssets
+        }
+    }
+
+    // --- Media-context-aware publication handler tests ---
+
+    @Test
+    fun `create publication rejects missing asset through media resolver`() = runTest {
+        val publicationRepository = InMemoryPublicationRepository()
+        val jobRepository = InMemoryPublicationJobRepository()
+        val socialAccountRepository = InMemorySocialAccountRepository().apply {
+            upsert(
+                SocialAccount(
+                    id = "account-1",
+                    socialConnectionId = "connection-1",
+                    workspaceId = "workspace-1",
+                    provider = SocialProvider.LINKEDIN,
+                    providerAccountId = "linkedin-account-1",
+                    kind = SocialAccountKind.PERSONAL_PROFILE,
+                    displayName = "Yuniel",
+                    status = SocialConnectionStatus.ACTIVE,
+                ),
+            )
+        }
+        val assetRepository = InMemoryPublicationAssetRepository(emptyList())
+        val mediaResolver = FakeMediaAssetResolver().apply { shouldThrowMissing = true }
+
+        val handler = CreatePublicationHandler(
+            principalContextProvider = FixedPrincipalContextProvider(principalContext),
+            resourceContextProvider = FixedResourceContextProvider(workspaceContext),
+            socialAccountRepository = socialAccountRepository,
+            publicationRepository = publicationRepository,
+            publicationAssetRepository = assetRepository,
+            publicationJobRepository = jobRepository,
+            providerCapabilityValidator = AcceptingCapabilityValidator(),
+            schedulingPolicy = PublicationSchedulingPolicy(),
+            mediaAssetResolver = mediaResolver,
+            mediaIntegrationSettings = PublishingMediaIntegrationSettings(enabled = true),
+            clock = fixedClock,
+        )
+
+        val error = assertThrows(AssetNotReadyException::class.java) {
+            kotlinx.coroutines.runBlocking {
+                handler.handle(
+                    CreatePublicationCommand(
+                        socialAccountId = "account-1",
+                        bodyText = "Post with missing asset",
+                        assetIds = listOf("missing-asset-1"),
+                        scheduleMode = ScheduleMode.NOW,
+                    ),
+                )
+            }
+        }
+
+        assertTrue(error.message!!.contains("missing-asset-1"))
+    }
+
+    @Test
+    fun `create publication rejects non-READY asset through media resolver`() = runTest {
+        val publicationRepository = InMemoryPublicationRepository()
+        val jobRepository = InMemoryPublicationJobRepository()
+        val socialAccountRepository = InMemorySocialAccountRepository().apply {
+            upsert(
+                SocialAccount(
+                    id = "account-1",
+                    socialConnectionId = "connection-1",
+                    workspaceId = "workspace-1",
+                    provider = SocialProvider.LINKEDIN,
+                    providerAccountId = "linkedin-account-1",
+                    kind = SocialAccountKind.PERSONAL_PROFILE,
+                    displayName = "Yuniel",
+                    status = SocialConnectionStatus.ACTIVE,
+                ),
+            )
+        }
+        val assetRepository = InMemoryPublicationAssetRepository(emptyList())
+        val mediaResolver = FakeMediaAssetResolver().apply { shouldThrowNotReady = true }
+
+        val handler = CreatePublicationHandler(
+            principalContextProvider = FixedPrincipalContextProvider(principalContext),
+            resourceContextProvider = FixedResourceContextProvider(workspaceContext),
+            socialAccountRepository = socialAccountRepository,
+            publicationRepository = publicationRepository,
+            publicationAssetRepository = assetRepository,
+            publicationJobRepository = jobRepository,
+            providerCapabilityValidator = AcceptingCapabilityValidator(),
+            schedulingPolicy = PublicationSchedulingPolicy(),
+            mediaAssetResolver = mediaResolver,
+            mediaIntegrationSettings = PublishingMediaIntegrationSettings(enabled = true),
+            clock = fixedClock,
+        )
+
+        val error = assertThrows(AssetNotReadyException::class.java) {
+            kotlinx.coroutines.runBlocking {
+                handler.handle(
+                    CreatePublicationCommand(
+                        socialAccountId = "account-1",
+                        bodyText = "Post with processing asset",
+                        assetIds = listOf("processing-asset-1"),
+                        scheduleMode = ScheduleMode.NOW,
+                    ),
+                )
+            }
+        }
+
+        assertTrue(error.message!!.contains("processing-asset-1"))
+    }
+
+    @Test
+    fun `create publication succeeds when all assets are READY in media resolver`() = runTest {
+        val publicationRepository = InMemoryPublicationRepository()
+        val jobRepository = InMemoryPublicationJobRepository()
+        val socialAccountRepository = InMemorySocialAccountRepository().apply {
+            upsert(
+                SocialAccount(
+                    id = "account-1",
+                    socialConnectionId = "connection-1",
+                    workspaceId = "workspace-1",
+                    provider = SocialProvider.LINKEDIN,
+                    providerAccountId = "linkedin-account-1",
+                    kind = SocialAccountKind.PERSONAL_PROFILE,
+                    displayName = "Yuniel",
+                    status = SocialConnectionStatus.ACTIVE,
+                ),
+            )
+        }
+        val assetRepository = InMemoryPublicationAssetRepository(emptyList())
+        val mediaResolver = FakeMediaAssetResolver().apply {
+            resolvedAssets = listOf(
+                ResolvedAssetSummary(
+                    assetId = "ready-asset-1",
+                    workspaceId = "workspace-1",
+                    storageKey = "assets/workspace-1/ready-asset-1",
+                    mediaType = "image/jpeg",
+                ),
+            )
+        }
+
+        val handler = CreatePublicationHandler(
+            principalContextProvider = FixedPrincipalContextProvider(principalContext),
+            resourceContextProvider = FixedResourceContextProvider(workspaceContext),
+            socialAccountRepository = socialAccountRepository,
+            publicationRepository = publicationRepository,
+            publicationAssetRepository = assetRepository,
+            publicationJobRepository = jobRepository,
+            providerCapabilityValidator = AcceptingCapabilityValidator(),
+            schedulingPolicy = PublicationSchedulingPolicy(),
+            mediaAssetResolver = mediaResolver,
+            mediaIntegrationSettings = PublishingMediaIntegrationSettings(enabled = true),
+            clock = fixedClock,
+        )
+
+        val result = handler.handle(
+            CreatePublicationCommand(
+                socialAccountId = "account-1",
+                bodyText = "Post with ready asset",
+                assetIds = listOf("ready-asset-1"),
+                scheduleMode = ScheduleMode.NOW,
+            ),
+        )
+
+        assertEquals(PublicationStatus.QUEUED, result.status)
+        assertEquals(listOf("ready-asset-1"), mediaResolver.requestedCalls.last().second)
+    }
+
+    @Test
+    fun `create publication throws MediaServiceUnavailableException when media context is unavailable`() = runTest {
+        val publicationRepository = InMemoryPublicationRepository()
+        val jobRepository = InMemoryPublicationJobRepository()
+        val socialAccountRepository = InMemorySocialAccountRepository().apply {
+            upsert(
+                SocialAccount(
+                    id = "account-1",
+                    socialConnectionId = "connection-1",
+                    workspaceId = "workspace-1",
+                    provider = SocialProvider.LINKEDIN,
+                    providerAccountId = "linkedin-account-1",
+                    kind = SocialAccountKind.PERSONAL_PROFILE,
+                    displayName = "Yuniel",
+                    status = SocialConnectionStatus.ACTIVE,
+                ),
+            )
+        }
+        val assetRepository = InMemoryPublicationAssetRepository(emptyList())
+        val mediaResolver = FakeMediaAssetResolver().apply { shouldThrowUnavailable = true }
+
+        val handler = CreatePublicationHandler(
+            principalContextProvider = FixedPrincipalContextProvider(principalContext),
+            resourceContextProvider = FixedResourceContextProvider(workspaceContext),
+            socialAccountRepository = socialAccountRepository,
+            publicationRepository = publicationRepository,
+            publicationAssetRepository = assetRepository,
+            publicationJobRepository = jobRepository,
+            providerCapabilityValidator = AcceptingCapabilityValidator(),
+            schedulingPolicy = PublicationSchedulingPolicy(),
+            mediaAssetResolver = mediaResolver,
+            mediaIntegrationSettings = PublishingMediaIntegrationSettings(enabled = true),
+            clock = fixedClock,
+        )
+
+        val error = assertThrows(MediaServiceUnavailableException::class.java) {
+            kotlinx.coroutines.runBlocking {
+                handler.handle(
+                    CreatePublicationCommand(
+                        socialAccountId = "account-1",
+                        bodyText = "Post with asset",
+                        assetIds = listOf("asset-1"),
+                        scheduleMode = ScheduleMode.NOW,
+                    ),
+                )
+            }
+        }
+
+        assertTrue(error.message!!.contains("unavailable") || error.message!!.contains("timeout"))
+    }
+
+    @Test
+    fun `create publication falls back to legacy asset when media context integration disabled`() = runTest {
+        val publicationRepository = InMemoryPublicationRepository()
+        val jobRepository = InMemoryPublicationJobRepository()
+        val socialAccountRepository = InMemorySocialAccountRepository().apply {
+            upsert(
+                SocialAccount(
+                    id = "account-1",
+                    socialConnectionId = "connection-1",
+                    workspaceId = "workspace-1",
+                    provider = SocialProvider.LINKEDIN,
+                    providerAccountId = "linkedin-account-1",
+                    kind = SocialAccountKind.PERSONAL_PROFILE,
+                    displayName = "Yuniel",
+                    status = SocialConnectionStatus.ACTIVE,
+                ),
+            )
+        }
+        val assetRepository = InMemoryPublicationAssetRepository(
+            listOf(
+                PublicationAsset(
+                    id = "legacy-asset-1",
+                    workspaceId = "workspace-1",
+                    sourceType = AssetSourceType.UPLOADED,
+                    mediaType = "IMAGE/JPEG",
+                    storageKey = "assets/workspace-1/legacy-asset-1",
+                    status = PublicationAssetStatus.READY,
+                    createdByPrincipalId = "principal-1",
+                ),
+            ),
+        )
+        val mediaResolver = FakeMediaAssetResolver().apply { shouldThrowUnavailable = true }
+
+        val handler = CreatePublicationHandler(
+            principalContextProvider = FixedPrincipalContextProvider(principalContext),
+            resourceContextProvider = FixedResourceContextProvider(workspaceContext),
+            socialAccountRepository = socialAccountRepository,
+            publicationRepository = publicationRepository,
+            publicationAssetRepository = assetRepository,
+            publicationJobRepository = jobRepository,
+            providerCapabilityValidator = AcceptingCapabilityValidator(),
+            schedulingPolicy = PublicationSchedulingPolicy(),
+            mediaAssetResolver = mediaResolver,
+            mediaIntegrationSettings = PublishingMediaIntegrationSettings(enabled = false), // legacy fallback
+            clock = fixedClock,
+        )
+
+        // With feature flag disabled, the handler should use legacy lookup and succeed
+        val result = handler.handle(
+            CreatePublicationCommand(
+                socialAccountId = "account-1",
+                bodyText = "Post with legacy asset",
+                assetIds = listOf("legacy-asset-1"),
+                scheduleMode = ScheduleMode.NOW,
+            ),
+        )
+
+        assertEquals(PublicationStatus.QUEUED, result.status)
+        // Media resolver should NOT have been called (feature flag disabled)
+        assertTrue(mediaResolver.requestedCalls.isEmpty())
+    }
+
+    @Test
+    fun `create publication skips media validation when assetIds is empty`() = runTest {
+        val publicationRepository = InMemoryPublicationRepository()
+        val jobRepository = InMemoryPublicationJobRepository()
+        val socialAccountRepository = InMemorySocialAccountRepository().apply {
+            upsert(
+                SocialAccount(
+                    id = "account-1",
+                    socialConnectionId = "connection-1",
+                    workspaceId = "workspace-1",
+                    provider = SocialProvider.LINKEDIN,
+                    providerAccountId = "linkedin-account-1",
+                    kind = SocialAccountKind.PERSONAL_PROFILE,
+                    displayName = "Yuniel",
+                    status = SocialConnectionStatus.ACTIVE,
+                ),
+            )
+        }
+        val assetRepository = InMemoryPublicationAssetRepository(emptyList())
+        val mediaResolver = FakeMediaAssetResolver()
+
+        val handler = CreatePublicationHandler(
+            principalContextProvider = FixedPrincipalContextProvider(principalContext),
+            resourceContextProvider = FixedResourceContextProvider(workspaceContext),
+            socialAccountRepository = socialAccountRepository,
+            publicationRepository = publicationRepository,
+            publicationAssetRepository = assetRepository,
+            publicationJobRepository = jobRepository,
+            providerCapabilityValidator = AcceptingCapabilityValidator(),
+            schedulingPolicy = PublicationSchedulingPolicy(),
+            mediaAssetResolver = mediaResolver,
+            mediaIntegrationSettings = PublishingMediaIntegrationSettings(enabled = true),
+            clock = fixedClock,
+        )
+
+        val result = handler.handle(
+            CreatePublicationCommand(
+                socialAccountId = "account-1",
+                bodyText = "Post with no assets",
+                assetIds = emptyList(),
+                scheduleMode = ScheduleMode.NOW,
+            ),
+        )
+
+        assertEquals(PublicationStatus.QUEUED, result.status)
+        // Media resolver should NOT be called when assetIds is empty
+        assertTrue(mediaResolver.requestedCalls.isEmpty())
+    }
+
+    @Test
+    fun `edit publication rejects non-READY asset through media resolver`() = runTest {
+        val publication = PublicationDraft(
+            id = "pub-1",
+            workspaceId = "workspace-1",
+            authorPrincipalId = "principal-1",
+            provider = SocialProvider.LINKEDIN,
+            socialAccountId = "account-1",
+            status = PublicationStatus.QUEUED,
+            scheduleMode = ScheduleMode.NOW,
+            priority = false,
+            bodyText = "Old text",
+        )
+        val publicationRepository = InMemoryPublicationRepository(publication)
+        val jobRepository = InMemoryPublicationJobRepository()
+        val socialAccountRepository = InMemorySocialAccountRepository().apply {
+            upsert(
+                SocialAccount(
+                    id = "account-1",
+                    socialConnectionId = "connection-1",
+                    workspaceId = "workspace-1",
+                    provider = SocialProvider.LINKEDIN,
+                    providerAccountId = "linkedin-account-1",
+                    kind = SocialAccountKind.PERSONAL_PROFILE,
+                    displayName = "Yuniel",
+                    status = SocialConnectionStatus.ACTIVE,
+                ),
+            )
+        }
+        val assetRepository = InMemoryPublicationAssetRepository(emptyList())
+        val mediaResolver = FakeMediaAssetResolver().apply { shouldThrowNotReady = true }
+
+        val handler = EditPublicationHandler(
+            resourceContextProvider = FixedResourceContextProvider(workspaceContext),
+            socialAccountRepository = socialAccountRepository,
+            publicationRepository = publicationRepository,
+            publicationAssetRepository = assetRepository,
+            publicationJobRepository = jobRepository,
+            providerCapabilityValidator = AcceptingCapabilityValidator(),
+            schedulingPolicy = PublicationSchedulingPolicy(),
+            mediaAssetResolver = mediaResolver,
+            mediaIntegrationSettings = PublishingMediaIntegrationSettings(enabled = true),
+            clock = fixedClock,
+        )
+
+        val error = assertThrows(AssetNotReadyException::class.java) {
+            kotlinx.coroutines.runBlocking {
+                handler.handle(
+                    EditPublicationCommand(
+                        publicationId = "pub-1",
+                        bodyText = "Updated text",
+                        assetIds = listOf("processing-asset-1"),
+                        scheduleMode = ScheduleMode.NOW,
+                    ),
+                )
+            }
+        }
+
+        assertTrue(error.message!!.contains("processing-asset-1"))
+    }
+
+    @Test
+    fun `edit publication throws MediaServiceUnavailableException when media context is unavailable`() = runTest {
+        val publication = PublicationDraft(
+            id = "pub-1",
+            workspaceId = "workspace-1",
+            authorPrincipalId = "principal-1",
+            provider = SocialProvider.LINKEDIN,
+            socialAccountId = "account-1",
+            status = PublicationStatus.QUEUED,
+            scheduleMode = ScheduleMode.NOW,
+            priority = false,
+            bodyText = "Old text",
+        )
+        val publicationRepository = InMemoryPublicationRepository(publication)
+        val jobRepository = InMemoryPublicationJobRepository()
+        val socialAccountRepository = InMemorySocialAccountRepository().apply {
+            upsert(
+                SocialAccount(
+                    id = "account-1",
+                    socialConnectionId = "connection-1",
+                    workspaceId = "workspace-1",
+                    provider = SocialProvider.LINKEDIN,
+                    providerAccountId = "linkedin-account-1",
+                    kind = SocialAccountKind.PERSONAL_PROFILE,
+                    displayName = "Yuniel",
+                    status = SocialConnectionStatus.ACTIVE,
+                ),
+            )
+        }
+        val assetRepository = InMemoryPublicationAssetRepository(emptyList())
+        val mediaResolver = FakeMediaAssetResolver().apply { shouldThrowUnavailable = true }
+
+        val handler = EditPublicationHandler(
+            resourceContextProvider = FixedResourceContextProvider(workspaceContext),
+            socialAccountRepository = socialAccountRepository,
+            publicationRepository = publicationRepository,
+            publicationAssetRepository = assetRepository,
+            publicationJobRepository = jobRepository,
+            providerCapabilityValidator = AcceptingCapabilityValidator(),
+            schedulingPolicy = PublicationSchedulingPolicy(),
+            mediaAssetResolver = mediaResolver,
+            mediaIntegrationSettings = PublishingMediaIntegrationSettings(enabled = true),
+            clock = fixedClock,
+        )
+
+        val error = assertThrows(MediaServiceUnavailableException::class.java) {
+            kotlinx.coroutines.runBlocking {
+                handler.handle(
+                    EditPublicationCommand(
+                        publicationId = "pub-1",
+                        bodyText = "Updated text",
+                        assetIds = listOf("asset-1"),
+                        scheduleMode = ScheduleMode.NOW,
+                    ),
+                )
+            }
+        }
+
+        assertTrue(error.message!!.contains("unavailable") || error.message!!.contains("timeout"))
+    }
+
+    @Test
+    fun `edit publication skips media validation when assetIds is empty`() = runTest {
+        val publication = PublicationDraft(
+            id = "pub-1",
+            workspaceId = "workspace-1",
+            authorPrincipalId = "principal-1",
+            provider = SocialProvider.LINKEDIN,
+            socialAccountId = "account-1",
+            status = PublicationStatus.QUEUED,
+            scheduleMode = ScheduleMode.NOW,
+            priority = false,
+            bodyText = "Old text",
+        )
+        val publicationRepository = InMemoryPublicationRepository(publication)
+        val jobRepository = InMemoryPublicationJobRepository()
+        val socialAccountRepository = InMemorySocialAccountRepository().apply {
+            upsert(
+                SocialAccount(
+                    id = "account-1",
+                    socialConnectionId = "connection-1",
+                    workspaceId = "workspace-1",
+                    provider = SocialProvider.LINKEDIN,
+                    providerAccountId = "linkedin-account-1",
+                    kind = SocialAccountKind.PERSONAL_PROFILE,
+                    displayName = "Yuniel",
+                    status = SocialConnectionStatus.ACTIVE,
+                ),
+            )
+        }
+        val assetRepository = InMemoryPublicationAssetRepository(emptyList())
+        val mediaResolver = FakeMediaAssetResolver()
+
+        val handler = EditPublicationHandler(
+            resourceContextProvider = FixedResourceContextProvider(workspaceContext),
+            socialAccountRepository = socialAccountRepository,
+            publicationRepository = publicationRepository,
+            publicationAssetRepository = assetRepository,
+            publicationJobRepository = jobRepository,
+            providerCapabilityValidator = AcceptingCapabilityValidator(),
+            schedulingPolicy = PublicationSchedulingPolicy(),
+            mediaAssetResolver = mediaResolver,
+            mediaIntegrationSettings = PublishingMediaIntegrationSettings(enabled = true),
+            clock = fixedClock,
+        )
+
+        val result = handler.handle(
+            EditPublicationCommand(
+                publicationId = "pub-1",
+                bodyText = "Updated text",
+                assetIds = emptyList(),
+                scheduleMode = ScheduleMode.NOW,
+            ),
+        )
+
+        assertEquals("Updated text", result.bodyText)
+        // Media resolver should NOT be called when assetIds is empty
+        assertTrue(mediaResolver.requestedCalls.isEmpty())
     }
 }

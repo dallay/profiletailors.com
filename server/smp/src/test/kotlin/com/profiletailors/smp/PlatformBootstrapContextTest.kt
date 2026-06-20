@@ -1,10 +1,12 @@
 package com.profiletailors.smp
 
 import com.profiletailors.common.domain.bus.Mediator
+import com.profiletailors.smp.test.TestStorageConfiguration
 import org.junit.jupiter.api.Assertions.assertNotNull
 import org.junit.jupiter.api.Test
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.test.context.SpringBootTest
+import org.springframework.context.annotation.Import
 
 @SpringBootTest(
     properties = [
@@ -20,6 +22,7 @@ import org.springframework.boot.test.context.SpringBootTest
         "management.endpoint.health.group.liveness.include=livenessState",
     ]
 )
+@Import(TestStorageConfiguration::class)
 class PlatformBootstrapContextTest(
     @Autowired private val mediator: Mediator,
 ) {

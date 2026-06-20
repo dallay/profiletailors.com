@@ -82,6 +82,23 @@ internal class HexagonalArchTest {
     }
 
     @Test
+    fun applicationLayerShouldNotDependOnSpringConfigurationAnnotations() {
+        ArchRuleDefinition.noClasses()
+            .that()
+            .resideInAPackage("..application..")
+            .should()
+            .dependOnClassesThat()
+            .resideInAnyPackage(
+                "org.springframework.beans.factory.annotation..",
+                "org.springframework.context.annotation..",
+                "org.springframework.scheduling.annotation..",
+                "org.springframework.stereotype..",
+            )
+            .because("application layer must not depend on Spring configuration or stereotype annotations")
+            .check(importedClasses)
+    }
+
+    @Test
     fun boundedContextsShouldExposeAllLayers() {
         val contexts = discoverBoundedContexts()
         assertTrue(

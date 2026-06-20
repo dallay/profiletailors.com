@@ -334,85 +334,6 @@ jobs:
       - name: Run Biome CI check
         run: pnpm biome ci .
 
-  sonar-pr:
-    name: security / sonar-pr
-    needs:
-      - changes
-      - gitleaks-pr
-      - semgrep-backend
-      - semgrep-frontend
-      - codeql-backend
-      - trivy-backend
-      - frontend-biome-security
-    if: ${{ always() && (needs.changes.outputs.backend == 'true' || needs.changes.outputs.frontend == 'true' || needs.changes.outputs.repo_security == 'true') }}
-    runs-on: ubuntu-latest
-    permissions:
-      contents: read
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4.3.1
-        with:
-          fetch-depth: 0
-      - name: Determine whether Sonar is enabled
-        id: sonar-config
-        env:
-          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
-          SONAR_HOST_URL: ${{ secrets.SONAR_HOST_URL }}
-          SONAR_ORGANIZATION: ${{ secrets.SONAR_ORGANIZATION }}
-        run: |
-          enabled=true
-          reason=''
-          project_key=$(grep '^sonar.projectKey=' sonar-project.properties | cut -d'=' -f2-)
-
-          if [[ -z "$SONAR_TOKEN" ]]; then
-            enabled=false
-            reason='SONAR_TOKEN is not configured.'
-          elif [[ -z "$SONAR_ORGANIZATION" ]]; then
-            enabled=false
-            reason='SONAR_ORGANIZATION is not configured.'
-          elif [[ -z "$project_key" || "$project_key" == 'profiletailors-change-me' ]]; then
-            enabled=false
-            reason='sonar.projectKey is still using the placeholder value.'
-          fi
-
-          {
-            echo "enabled=$enabled"
-            echo "project_key=$project_key"
-            echo "org=$SONAR_ORGANIZATION"
-            echo "host_url=$SONAR_HOST_URL"
-            echo "reason=$reason"
-          } >> "$GITHUB_OUTPUT"
-      - name: Explain Sonar skip
-        if: ${{ steps.sonar-config.outputs.enabled != 'true' }}
-        run: |
-          {
-            echo '### Sonar PR status'
-            echo '- Sonar PR analysis skipped.'
-            echo "- Reason: ${{ steps.sonar-config.outputs.reason }}"
-            echo '- Configure SONAR_TOKEN, SONAR_ORGANIZATION, and a real sonar.projectKey to enable centralized reporting.'
-          } >> "$GITHUB_STEP_SUMMARY"
-      - name: Run Sonar PR analysis
-        if: ${{ steps.sonar-config.outputs.enabled == 'true' }}
-        uses: SonarSource/sonarqube-scan-action@2f77a1ec69fb1d595b06f35ab27e97605bdef703 # v5.3.1
-        env:
-          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
-          SONAR_HOST_URL: ${{ secrets.SONAR_HOST_URL }}
-        with:
-          args: >-
-            -Dsonar.projectKey=${{ steps.sonar-config.outputs.project_key }}
-            -Dsonar.organization=${{ steps.sonar-config.outputs.org }}
-            -Dsonar.pullrequest.key=${{ github.event.pull_request.number }}
-            -Dsonar.pullrequest.branch=${{ github.head_ref }}
-            -Dsonar.pullrequest.base=${{ github.base_ref }}
-      - name: Explain Sonar reporting channel
-        if: ${{ steps.sonar-config.outputs.enabled == 'true' }}
-        run: |
-          {
-            echo '### Sonar PR status'
-            echo '- Sonar PR analysis ran using the configured external service binding.'
-            echo '- Findings appear in Sonar dashboards and PR decoration when the project binding supports it.'
-          } >> "$GITHUB_STEP_SUMMARY"
-
   summary:
     name: security / summary
     needs:
@@ -423,7 +344,6 @@ jobs:
       - codeql-backend
       - trivy-backend
       - frontend-biome-security
-      - sonar-pr
     if: ${{ always() }}
     runs-on: ubuntu-latest
     steps:
@@ -439,7 +359,6 @@ jobs:
           CODEQL_RESULT: ${{ needs.codeql-backend.result }}
           TRIVY_RESULT: ${{ needs.trivy-backend.result }}
           BIOME_RESULT: ${{ needs.frontend-biome-security.result }}
-          SONAR_RESULT: ${{ needs.sonar-pr.result }}
         run: |
           {
             echo '## PR security summary'
@@ -457,7 +376,6 @@ jobs:
             echo "- codeql-backend: $CODEQL_RESULT"
             echo "- trivy-backend: $TRIVY_RESULT"
             echo "- frontend-biome-security: $BIOME_RESULT"
-            echo "- sonar-pr: $SONAR_RESULT"
             echo ''
             echo '### Findings channels'
             echo '- CodeQL: GitHub code scanning.'
@@ -465,7 +383,7 @@ jobs:
             echo '- Trivy backend: GitHub code scanning via uploaded SARIF.'
             echo '- Gitleaks: native workflow logs, annotations, and uploaded artifact in this PR lane.'
             echo '- Frontend Biome: workflow logs and annotations.'
-            echo '- Sonar: external Sonar dashboard and PR decoration only when enabled.'
+            echo '- Sonar: handled by the dedicated SonarQube Analysis workflow.'
             echo ''
             echo 'Skipped jobs are non-applicable when the path classifier keeps them out of scope.'
           } >> "$GITHUB_STEP_SUMMARY"

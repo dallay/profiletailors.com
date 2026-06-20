@@ -1,9 +1,19 @@
 package com.profiletailors.smp.integration.support
 
+import com.profiletailors.common.domain.bus.event.BaseDomainEvent
+import com.profiletailors.common.domain.bus.event.EventPublisher
 import com.profiletailors.smp.audit.domain.AuthorizationDecisionAuditFact
 import com.profiletailors.smp.authorization.domain.AuthorizationReasonCode
+import com.profiletailors.storage.application.StorageApplicationService
+import com.profiletailors.storage.domain.Storage
+import com.profiletailors.storage.domain.StorageObjectNotFoundException
+import com.profiletailors.storage.infrastructure.metrics.StorageMetrics
+import io.micrometer.core.instrument.simple.SimpleMeterRegistry
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.reactor.awaitSingle
 import org.junit.jupiter.api.Assertions.assertEquals
+import java.util.concurrent.ConcurrentHashMap
 import org.junit.jupiter.api.Test
 import org.springframework.boot.test.context.TestConfiguration
 import org.springframework.context.annotation.Bean
@@ -221,5 +231,53 @@ abstract class ResourcePreviewEndpointTestBase : AuthorizationEndpointIntegratio
         @Bean
         @Primary
         fun testAuditHook(): CapturingAuditHook = CapturingAuditHook()
+
+        @Bean
+        @Primary
+        fun inMemoryFakeStorage(): Storage = object : Storage {
+            private val objects = ConcurrentHashMap<String, ByteArray>()
+
+            override suspend fun upload(bucket: String, key: String, content: Flow<ByteArray>, metadata: Map<String, String>) {
+                val chunks = mutableListOf<ByteArray>()
+                content.collect { chunks += it }
+                objects["$bucket/$key"] = chunks.flatMap { it.toList() }.toByteArray()
+            }
+
+            override fun download(bucket: String, key: String): Flow<ByteArray> {
+                val data = objects["$bucket/$key"]
+                    ?: throw StorageObjectNotFoundException(bucket, key)
+                return flowOf(data)
+            }
+
+            override suspend fun delete(bucket: String, key: String) {
+                objects.remove("$bucket/$key")
+            }
+
+            override suspend fun list(bucket: String, prefix: String): List<String> =
+                objects.keys
+                    .filter { it.startsWith("$bucket/$prefix") }
+                    .map { it.removePrefix("$bucket/") }
+
+            override suspend fun exists(bucket: String, key: String): Boolean =
+                objects.containsKey("$bucket/$key")
+        }
+
+        @Bean
+        fun noOpEventPublisher(): EventPublisher<BaseDomainEvent> = object : EventPublisher<BaseDomainEvent> {
+            override suspend fun publish(event: BaseDomainEvent) {
+                // discard
+            }
+        }
+
+        @Bean
+        @Primary
+        fun storageApplicationService(
+            inMemoryFakeStorage: Storage,
+            noOpEventPublisher: EventPublisher<BaseDomainEvent>,
+        ): StorageApplicationService = StorageApplicationService(
+            storage = inMemoryFakeStorage,
+            eventPublisher = noOpEventPublisher,
+            metrics = StorageMetrics(SimpleMeterRegistry()),
+        )
     }
 }

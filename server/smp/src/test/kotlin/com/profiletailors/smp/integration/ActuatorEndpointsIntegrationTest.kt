@@ -1,5 +1,9 @@
 package com.profiletailors.smp.integration
 
+import com.profiletailors.smp.test.TestStorageConfiguration
+import io.r2dbc.h2.H2ConnectionConfiguration
+import io.r2dbc.h2.H2ConnectionFactory
+import io.r2dbc.spi.ConnectionFactory
 import org.junit.jupiter.api.Test
 import org.springframework.beans.factory.annotation.Value
 import org.springframework.boot.test.context.SpringBootTest
@@ -21,17 +25,14 @@ import org.springframework.test.web.reactive.server.WebTestClient
  * - Prometheus metrics endpoint exposes metrics
  * 
  */
-@ContextConfiguration(classes = [ActuatorEndpointsIntegrationTest.TestSecurityConfig::class])
+@ContextConfiguration(classes = [ActuatorEndpointsIntegrationTest.TestSecurityConfig::class, TestStorageConfiguration::class])
 @SpringBootTest(
     webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT,
     properties = [
         "spring.r2dbc.url=r2dbc:h2:mem:///actuator_test?options=MODE=PostgreSQL;DB_CLOSE_DELAY=-1;DB_CLOSE_ON_EXIT=FALSE",
         "spring.r2dbc.username=sa",
         "spring.r2dbc.password=",
-        "spring.liquibase.enabled=true",
-        "spring.liquibase.url=jdbc:h2:mem:actuator_test;MODE=PostgreSQL;DB_CLOSE_DELAY=-1;DB_CLOSE_ON_EXIT=FALSE",
-        "spring.liquibase.user=sa",
-        "spring.liquibase.password=",
+        "spring.liquibase.enabled=false",
         "spring.main.allow-bean-definition-overriding=true",
         "management.server.port=0",
         "management.endpoints.web.exposure.include=health,prometheus",
@@ -52,6 +53,17 @@ class ActuatorEndpointsIntegrationTest {
 
     @TestConfiguration
     class TestSecurityConfig {
+        @Bean
+        fun connectionFactory(): ConnectionFactory = H2ConnectionFactory(
+            H2ConnectionConfiguration.builder()
+                .inMemory("actuator_test")
+                .property("MODE", "PostgreSQL")
+                .property("DB_CLOSE_DELAY", "-1")
+                .property("DB_CLOSE_ON_EXIT", "FALSE")
+                .username("sa")
+                .build()
+        )
+
         @Bean
         @Primary
         fun testSecurityWebFilterChain(http: ServerHttpSecurity): SecurityWebFilterChain =

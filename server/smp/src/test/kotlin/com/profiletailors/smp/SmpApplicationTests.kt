@@ -4,10 +4,12 @@ import com.profiletailors.common.domain.bus.event.EventConsumer
 import com.profiletailors.smp.authorization.infrastructure.http.AuthorizationProblemDetailsHandler
 import com.profiletailors.smp.credentials.infrastructure.R2dbcApiKeyCredentialReplacementGateway
 import com.profiletailors.smp.publishing.infrastructure.credentials.R2dbcLinkedInCredentialGateway
+import com.profiletailors.smp.test.TestStorageConfiguration
 import org.junit.jupiter.api.Test
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.test.context.SpringBootTest
 import org.springframework.context.ApplicationContext
+import org.springframework.context.annotation.Import
 
 @SpringBootTest(
     properties = [
@@ -21,8 +23,13 @@ import org.springframework.context.ApplicationContext
         "spring.main.allow-bean-definition-overriding=true",
         "management.endpoint.health.group.readiness.include=readinessState",
         "management.endpoint.health.group.liveness.include=livenessState",
+        // Storage — local filesystem for tests (StorageAutoConfiguration)
+        "platform.storage.default=local",
+        "platform.storage.providers.local.type=local",
+        "platform.storage.providers.local.base-path=/tmp/smp-test-storage",
     ]
 )
+@Import(TestStorageConfiguration::class)
 class SmpApplicationTests {
 
 	@Autowired
