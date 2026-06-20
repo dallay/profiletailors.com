@@ -369,6 +369,7 @@ class PublishingJobExecutor(
                     category = NotificationCategory.PUBLICATION_FAILED,
                     message = "Publication failed: ${exception.message}",
                     occurredAt = now,
+                    provider = publication.provider,
                 ),
             )
         }

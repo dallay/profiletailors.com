@@ -159,13 +159,15 @@ class R2dbcMediaAssetRepository(
 
         return try {
             val decoded = String(Base64.getUrlDecoder().decode(cursor))
-            val parts = decoded.split(":", limit = 2)
-            if (parts.size == 2) {
-                Pair(Instant.parse(parts[0]), parts[1])
-            } else {
+            val separatorIndex = decoded.lastIndexOf(':')
+            if (separatorIndex <= 0 || separatorIndex == decoded.lastIndex) {
                 Pair(null, null)
+            } else {
+                val createdAt = decoded.substring(0, separatorIndex)
+                val assetId = decoded.substring(separatorIndex + 1)
+                Pair(Instant.parse(createdAt), assetId)
             }
-        } catch (_: IllegalArgumentException) {
+        } catch (_: Exception) {
             Pair(null, null)
         }
     }
