@@ -32,6 +32,6 @@ dependencies {
     testImplementation(libs.kotlinx.coroutines.test)
     testImplementation(libs.mockk)
     testImplementation(libs.kotest.assertions.core)
-    testImplementation("io.projectreactor:reactor-test")
-    testImplementation("org.springframework.boot:spring-boot-starter-test")
+    testImplementation(libs.reactor.test)
+    testImplementation(libs.spring.boot.starter.test)
 }

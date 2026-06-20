@@ -6,7 +6,6 @@ import com.profiletailors.ratelimit.domain.RateLimitResult
 import com.profiletailors.ratelimit.domain.RateLimitStrategy
 import com.profiletailors.ratelimit.domain.RateLimiter
 import com.profiletailors.ratelimit.domain.event.RateLimitExceededEvent
-import java.security.MessageDigest
 import java.time.Duration
 import java.time.Instant
 
@@ -63,19 +62,6 @@ class RateLimitingService(
         return result
     }
 
-    /**
-     * Creates a non-reversible hash of the identifier for safe logging of PII.
-     */
-    private fun hashIdentifier(identifier: String): String {
-        return try {
-            val digest = MessageDigest.getInstance("SHA-256")
-            val hashBytes = digest.digest(identifier.toByteArray())
-            hashBytes.joinToString("") { "%02x".format(it.toInt() and BYTE_MASK) }.take(HASH_LOG_LENGTH) + ELLIPSIS
-        } catch (_: Exception) {
-            "unknown-id-hash-failed"
-        }
-    }
-
     private suspend fun publishRateLimitExceededEvent(
         identifier: String,
         endpoint: String,
@@ -95,9 +81,4 @@ class RateLimitingService(
         eventPublisher.publish(event)
     }
 
-    companion object {
-        private const val HASH_LOG_LENGTH = 8
-        private const val ELLIPSIS = "..."
-        private const val BYTE_MASK = 0xff
-    }
 }

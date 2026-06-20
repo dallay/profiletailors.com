@@ -30,39 +30,39 @@ class MediaReadinessHealthIndicator(
     @Suppress("TooGenericExceptionCaught")
     override fun health(): Health? {
         return runBlocking(Dispatchers.IO) {
-            var dbHealthy = false
-            var storageHealthy = false
+            val dbHealthy: Boolean
+            val storageHealthy: Boolean
 
             // Check DB connectivity without depending on media schema migrations.
-            try {
+            dbHealthy = try {
                 databaseClient.sql("SELECT 1")
                     .map { _, _ -> 1 }
                     .one()
                     .awaitSingleOrNull()
-                dbHealthy = true
+                true
             } catch (e: Exception) {
-                dbHealthy = false
                 logger.debug("media health: database check failed", e)
+                false
             }
 
             // Check storage reachability; if the bucket is not configured (no such provider),
             // treat as degraded rather than DOWN so the readiness probe does not fail
             // when cloud storage credentials are not configured (e.g. dev/test environments).
-            try {
+            storageHealthy = try {
                 val storage = bucketRegistry.getStorage(storageBucket)
                 storage.list(storageBucket)
-                storageHealthy = true
+                true
             } catch (e: com.profiletailors.storage.domain.BucketNotFoundException) {
                 // Bucket provider not configured — degrade gracefully, do not fail readiness
-                storageHealthy = true
                 logger.debug(
                     "media health: bucket provider '{}' not configured; skipping storage reachability check",
                     storageBucket,
                     e,
                 )
+                true
             } catch (e: Exception) {
-                storageHealthy = false
                 logger.debug("media health: storage reachability check failed", e)
+                false
             }
 
             if (dbHealthy && storageHealthy) {
