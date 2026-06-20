@@ -36,9 +36,5 @@ class KotlinLibraryPlugin : ConventionPlugin {
             useJUnitPlatform()
         }
 
-        // Generate Kover XML report for SonarQube/Codecov on every test run
-        tasks.withType<Test>().configureEach {
-            finalizedBy(tasks.named("koverXmlReport"))
-        }
     }
 }
