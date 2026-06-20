@@ -1,5 +1,6 @@
 package com.profiletailors.smp.identity.infrastructure.security
 
+import com.profiletailors.common.domain.context.MissingPrincipalContextException
 import com.profiletailors.smp.credentials.application.ApiKeyCredentialNotActiveException
 import com.profiletailors.smp.identity.infrastructure.security.IdentitySecurityConfiguration.Companion.WORKSPACE_ACCESS_PATH
 import org.springframework.http.HttpHeaders
@@ -40,6 +41,12 @@ class ApiKeyAuthenticationWebFilter(
                             .contextWrite(ReactiveSecurityContextHolder.withAuthentication(authentication))
                     }
                     .onErrorResume(ApiKeyCredentialNotActiveException::class.java) { exception ->
+                        authenticationEntryPoint.commence(
+                            exchange,
+                            BadCredentialsException(exception.message, exception),
+                        )
+                    }
+                    .onErrorResume(MissingPrincipalContextException::class.java) { exception ->
                         authenticationEntryPoint.commence(
                             exchange,
                             BadCredentialsException(exception.message, exception),

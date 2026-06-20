@@ -72,6 +72,8 @@ class StorageApplicationService(
             metrics.recordBytesUploaded(totalSize, provider, bucket)
             metrics.recordOperation(StorageObservation.Operations.UPLOAD, provider, bucket, true)
             onUploadSuccess(bucket, key, totalSize, uploaderId, metadata)
+        } catch (e: CancellationException) {
+            throw e
         } catch (e: Exception) {
             val errorType = when (e) {
                 is StorageSecurityException -> StorageObservation.ErrorTypes.SECURITY
@@ -152,11 +154,13 @@ class StorageApplicationService(
                 }
                 metrics.recordBytesDownloaded(bytesDownloaded, provider, bucket)
                 metrics.recordOperation(StorageObservation.Operations.DOWNLOAD, provider, bucket, true)
+            } catch (e: CancellationException) {
+                throw e
             } catch (e: Exception) {
                 val errorType = when (e) {
-                is StorageSecurityException -> StorageObservation.ErrorTypes.SECURITY
-                is StorageObjectNotFoundException -> StorageObservation.ErrorTypes.NOT_FOUND
-                else -> StorageObservation.ErrorTypes.SERVICE
+                    is StorageSecurityException -> StorageObservation.ErrorTypes.SECURITY
+                    is StorageObjectNotFoundException -> StorageObservation.ErrorTypes.NOT_FOUND
+                    else -> StorageObservation.ErrorTypes.SERVICE
                 }
                 metrics.recordError(StorageObservation.Operations.DOWNLOAD, provider, bucket, errorType)
                 metrics.recordOperation(StorageObservation.Operations.DOWNLOAD, provider, bucket, false)
@@ -187,6 +191,8 @@ class StorageApplicationService(
             }
             metrics.recordOperation(StorageObservation.Operations.DELETE, provider, bucket, true)
             onDeleteSuccess(bucket, key, deleterId)
+        } catch (e: CancellationException) {
+            throw e
         } catch (e: Exception) {
             val errorType = when (e) {
                 is StorageSecurityException -> StorageObservation.ErrorTypes.SECURITY
@@ -224,10 +230,23 @@ class StorageApplicationService(
      * @return List of object keys
      */
     suspend fun list(bucket: String, prefix: String = ""): List<String> =
-        metrics.recordOperationTime(StorageObservation.Operations.LIST, provider) {
-            storage.list(bucket, prefix)
-        }.also {
-            metrics.recordOperation(StorageObservation.Operations.LIST, provider, bucket, true)
+        try {
+            metrics.recordOperationTime(StorageObservation.Operations.LIST, provider) {
+                storage.list(bucket, prefix)
+            }.also {
+                metrics.recordOperation(StorageObservation.Operations.LIST, provider, bucket, true)
+            }
+        } catch (e: CancellationException) {
+            throw e
+        } catch (e: Exception) {
+            val errorType = when (e) {
+                is StorageSecurityException -> StorageObservation.ErrorTypes.SECURITY
+                is StorageObjectNotFoundException -> StorageObservation.ErrorTypes.NOT_FOUND
+                else -> StorageObservation.ErrorTypes.SERVICE
+            }
+            metrics.recordError(StorageObservation.Operations.LIST, provider, bucket, errorType)
+            metrics.recordOperation(StorageObservation.Operations.LIST, provider, bucket, false)
+            throw e
         }
 
     /**
