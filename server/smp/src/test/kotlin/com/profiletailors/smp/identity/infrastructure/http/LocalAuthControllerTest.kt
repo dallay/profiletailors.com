@@ -7,7 +7,7 @@ import com.profiletailors.common.domain.bus.command.CommandWithResult
 import com.profiletailors.common.domain.bus.notification.Notification
 import com.profiletailors.common.domain.bus.query.Query
 import com.profiletailors.common.testfixture.CredentialGenerator
-import com.profiletailors.smp.credentials.application.RefreshSessionCookieFactory
+import com.profiletailors.smp.credentials.infrastructure.RefreshSessionCookieFactory
 import com.profiletailors.smp.credentials.application.RefreshSessionProperties
 import com.profiletailors.smp.credentials.application.RefreshSessionToken
 import com.profiletailors.smp.identity.application.AuthTokens

@@ -1,5 +1,6 @@
 package com.profiletailors.storage.infrastructure.metrics
 
+import com.profiletailors.storage.domain.StorageObservation
 import io.micrometer.core.instrument.Counter
 import io.micrometer.core.instrument.MeterRegistry
 import io.micrometer.core.instrument.Tag
@@ -27,7 +28,7 @@ private const val BUCKET = "bucket"
  * @property meterRegistry Micrometer meter registry for metric registration
  */
 @Component
-class StorageMetrics(private val meterRegistry: MeterRegistry) {
+open class StorageMetrics(private val meterRegistry: MeterRegistry) : StorageObservation {
 
     /**
      * Records a storage operation (upload, download, delete, list).
@@ -37,7 +38,7 @@ class StorageMetrics(private val meterRegistry: MeterRegistry) {
      * @param bucket The bucket name
      * @param success Whether the operation succeeded
      */
-    fun recordOperation(operation: String, provider: String, bucket: String, success: Boolean) {
+    override fun recordOperation(operation: String, provider: String, bucket: String, success: Boolean) {
         val result = if (success) "success" else "failure"
 
         Counter.builder("storage.operations.total")
@@ -57,7 +58,7 @@ class StorageMetrics(private val meterRegistry: MeterRegistry) {
      * @param provider The storage provider
      * @param bucket The bucket name
      */
-    fun recordBytesUploaded(bytes: Long, provider: String, bucket: String) {
+    override fun recordBytesUploaded(bytes: Long, provider: String, bucket: String) {
         Counter.builder("storage.bytes.uploaded.total")
             .tag(PROVIDER, provider)
             .tag(BUCKET, sanitizeBucketTag(bucket))
@@ -73,7 +74,7 @@ class StorageMetrics(private val meterRegistry: MeterRegistry) {
      * @param provider The storage provider
      * @param bucket The bucket name
      */
-    fun recordBytesDownloaded(bytes: Long, provider: String, bucket: String) {
+    override fun recordBytesDownloaded(bytes: Long, provider: String, bucket: String) {
         Counter.builder("storage.bytes.downloaded.total")
             .tag(PROVIDER, provider)
             .tag(BUCKET, sanitizeBucketTag(bucket))
@@ -89,7 +90,7 @@ class StorageMetrics(private val meterRegistry: MeterRegistry) {
      * @param provider The storage provider
      * @param durationNanos Operation duration in nanoseconds
      */
-    fun recordOperationLatency(operation: String, provider: String, durationNanos: Long) {
+    override fun recordOperationLatency(operation: String, provider: String, durationNanos: Long) {
         Timer.builder("storage.operation.time")
             .tag(OPERATION, operation)
             .tag(PROVIDER, provider)
@@ -106,7 +107,7 @@ class StorageMetrics(private val meterRegistry: MeterRegistry) {
      * @param bucket The bucket name
      * @param errorType Type of error (not_found, security, service, timeout)
      */
-    fun recordError(operation: String, provider: String, bucket: String, errorType: String) {
+    override fun recordError(operation: String, provider: String, bucket: String, errorType: String) {
         Counter.builder("storage.errors.total")
             .tag(OPERATION, operation)
             .tag(PROVIDER, provider)
@@ -123,7 +124,7 @@ class StorageMetrics(private val meterRegistry: MeterRegistry) {
      * @param provider The storage provider
      * @param success Whether the URL was generated successfully
      */
-    fun recordPresignedUrlGenerated(provider: String, success: Boolean) {
+    override fun recordPresignedUrlGenerated(provider: String, success: Boolean) {
         val result = if (success) "success" else "failure"
 
         Counter.builder("storage.presigned.urls.generated")
@@ -142,7 +143,7 @@ class StorageMetrics(private val meterRegistry: MeterRegistry) {
      * @param action The operation to measure
      * @return The result of the operation
      */
-    suspend fun <T : Any> recordOperationTime(
+    override suspend fun <T : Any> recordOperationTime(
         operation: String,
         provider: String,
         action: suspend () -> T

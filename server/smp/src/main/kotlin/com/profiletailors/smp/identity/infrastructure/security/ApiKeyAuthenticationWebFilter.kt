@@ -1,5 +1,6 @@
 package com.profiletailors.smp.identity.infrastructure.security
 
+import com.profiletailors.smp.credentials.application.ApiKeyCredentialNotActiveException
 import com.profiletailors.smp.identity.infrastructure.security.IdentitySecurityConfiguration.Companion.WORKSPACE_ACCESS_PATH
 import org.springframework.http.HttpHeaders
 import org.springframework.security.authentication.BadCredentialsException
@@ -38,8 +39,11 @@ class ApiKeyAuthenticationWebFilter(
                         chain.filter(filteredExchange)
                             .contextWrite(ReactiveSecurityContextHolder.withAuthentication(authentication))
                     }
-                    .onErrorResume(BadCredentialsException::class.java) { exception ->
-                        authenticationEntryPoint.commence(exchange, exception)
+                    .onErrorResume(ApiKeyCredentialNotActiveException::class.java) { exception ->
+                        authenticationEntryPoint.commence(
+                            exchange,
+                            BadCredentialsException(exception.message, exception),
+                        )
                     }
             }
             ?: chain.filter(exchange)
