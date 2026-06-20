@@ -2,6 +2,7 @@ import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 import { mount } from '@vue/test-utils'
 import { createPinia, setActivePinia } from 'pinia'
 import { usePublishingStore } from '@/stores/publishing'
+import { useMediaStore } from '@/stores/media'
 import CreatePostModalComponent from './CreatePostModal.vue'
 
 // ---------------------------------------------------------------------------
@@ -152,5 +153,192 @@ describe('CreatePostModal.vue — avatar rendering', () => {
     const bodyAfterError = document.body.innerHTML
     // After error, fallback badge "in" should be shown
     expect(bodyAfterError).toContain('in')
+  })
+})
+
+describe('CreatePostModal.vue — media asset integration', () => {
+  beforeEach(() => {
+    setActivePinia(createPinia())
+    document.body.innerHTML = ''
+    vi.clearAllMocks()
+  })
+
+  afterEach(() => {
+    document.body.innerHTML = ''
+  })
+
+  it('media store exposes persisted selected asset ids', () => {
+    const mediaStore = useMediaStore()
+    // Seed an asset in the store
+    mediaStore.assetsById['media-asset-1'] = {
+      assetId: 'media-asset-1',
+      workspaceId: 'ws-1',
+      sourceType: 'UPLOADED',
+      mediaType: 'image/jpeg',
+      status: 'READY',
+      originalFilename: 'hero.jpg',
+      fileSizeBytes: 1024,
+      createdAt: '2026-06-19T12:00:00Z',
+    }
+
+    mediaStore.selectedAssetIds.push('media-asset-1')
+
+    expect(mediaStore.selectedAssets).toHaveLength(1)
+    expect(mediaStore.selectedAssets[0]?.assetId).toBe('media-asset-1')
+  })
+
+  it('selected assets include asset metadata for display', () => {
+    const mediaStore = useMediaStore()
+    mediaStore.assetsById['display-asset'] = {
+      assetId: 'display-asset',
+      workspaceId: 'ws-1',
+      sourceType: 'UPLOADED',
+      mediaType: 'image/jpeg',
+      status: 'READY',
+      originalFilename: 'display-photo.jpg',
+      fileSizeBytes: 2048,
+      createdAt: '2026-06-19T12:00:00Z',
+    }
+    mediaStore.selectedAssetIds.push('display-asset')
+
+    const selected = mediaStore.selectedAssets[0]
+    expect(selected?.mediaType).toBe('image/jpeg')
+    expect(selected?.originalFilename).toBe('display-photo.jpg')
+    expect(selected?.fileSizeBytes).toBe(2048)
+  })
+
+  it('adds selected media asset to selection', () => {
+    const mediaStore = useMediaStore()
+    mediaStore.assetsById['selectable-asset'] = {
+      assetId: 'selectable-asset',
+      workspaceId: 'ws-1',
+      sourceType: 'UPLOADED',
+      mediaType: 'image/png',
+      status: 'READY',
+      originalFilename: 'chart.png',
+      fileSizeBytes: 512,
+      createdAt: '2026-06-19T12:00:00Z',
+    }
+
+    mediaStore.addToSelection('selectable-asset')
+
+    expect(mediaStore.selectedAssetIds).toContain('selectable-asset')
+  })
+
+  it('prevents duplicate asset ids in selection', () => {
+    const mediaStore = useMediaStore()
+    mediaStore.assetsById['dup-asset'] = {
+      assetId: 'dup-asset',
+      workspaceId: 'ws-1',
+      sourceType: 'UPLOADED',
+      mediaType: 'image/jpeg',
+      status: 'READY',
+      originalFilename: null,
+      fileSizeBytes: null,
+      createdAt: '2026-06-19T12:00:00Z',
+    }
+
+    mediaStore.addToSelection('dup-asset')
+    mediaStore.addToSelection('dup-asset')
+
+    expect(mediaStore.selectedAssetIds.filter((id) => id === 'dup-asset')).toHaveLength(1)
+  })
+
+  it('removes asset from selection', () => {
+    const mediaStore = useMediaStore()
+    mediaStore.selectedAssetIds.push('remove-me')
+
+    mediaStore.removeFromSelection('remove-me')
+
+    expect(mediaStore.selectedAssetIds).not.toContain('remove-me')
+  })
+
+  it('clears all selected assets', () => {
+    const mediaStore = useMediaStore()
+    mediaStore.selectedAssetIds.push('asset-a', 'asset-b')
+
+    mediaStore.clearSelection()
+
+    expect(mediaStore.selectedAssetIds).toEqual([])
+  })
+})
+
+describe('CreatePostModal.vue — dangling upload recovery', () => {
+  beforeEach(() => {
+    setActivePinia(createPinia())
+    vi.clearAllMocks()
+  })
+
+  it('media store tracks failed uploads for retry', () => {
+    const mediaStore = useMediaStore()
+    mediaStore.uploads['retry-key'] = {
+      tempKey: 'retry-key',
+      assetId: 'dangling-asset-id',
+      file: new File(['fake'], 'dangling.jpg', { type: 'image/jpeg' }),
+      progress: 0,
+      status: 'failed',
+      errorTitle: 'Upload failed',
+      errorDetail: 'Server error',
+    }
+
+    expect(mediaStore.failedUploads).toHaveLength(1)
+    expect(mediaStore.failedUploads[0].tempKey).toBe('retry-key')
+  })
+
+  it('failed uploads are separate from completed uploads', () => {
+    const mediaStore = useMediaStore()
+    mediaStore.uploads['done-key'] = {
+      tempKey: 'done-key',
+      assetId: 'done-asset',
+      file: new File(['fake'], 'done.jpg', { type: 'image/jpeg' }),
+      progress: 100,
+      status: 'done',
+    }
+    mediaStore.uploads['fail-key'] = {
+      tempKey: 'fail-key',
+      assetId: 'fail-asset',
+      file: new File(['fake'], 'fail.jpg', { type: 'image/jpeg' }),
+      progress: 0,
+      status: 'failed',
+      errorTitle: 'Failed',
+      errorDetail: 'Error',
+    }
+
+    expect(mediaStore.completedUploads).toHaveLength(1)
+    expect(mediaStore.failedUploads).toHaveLength(1)
+    expect(mediaStore.failedUploads).not.toContainEqual(
+      expect.objectContaining({ tempKey: 'done-key' }),
+    )
+  })
+
+  it('dismissing upload removes it from tracking', () => {
+    const mediaStore = useMediaStore()
+    mediaStore.uploads['dismiss-key'] = {
+      tempKey: 'dismiss-key',
+      assetId: 'dismiss-asset',
+      file: new File(['fake'], 'dismiss.jpg', { type: 'image/jpeg' }),
+      progress: 0,
+      status: 'failed',
+      errorTitle: 'Error',
+      errorDetail: 'Detail',
+    }
+
+    mediaStore.dismissUpload('dismiss-key')
+
+    expect(mediaStore.uploads['dismiss-key']).toBeUndefined()
+  })
+
+  it('pending uploads are separate from completed and failed', () => {
+    const mediaStore = useMediaStore()
+    mediaStore.uploads['pending-key'] = {
+      tempKey: 'pending-key',
+      assetId: 'pending-asset',
+      file: new File(['fake'], 'pending.jpg', { type: 'image/jpeg' }),
+      progress: 50,
+      status: 'uploading',
+    }
+
+    expect(mediaStore.pendingUploads).toHaveLength(1)
+    expect(mediaStore.pendingUploads[0].tempKey).toBe('pending-key')
   })
 })

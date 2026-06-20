@@ -26,6 +26,7 @@ import com.profiletailors.smp.publishing.domain.SocialPublisher
 import com.profiletailors.smp.publishing.infrastructure.scheduling.RetryablePublishingException
 import com.profiletailors.storage.domain.PresignableStorage
 import com.profiletailors.storage.domain.Storage
+import com.profiletailors.storage.domain.StorageException
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.reactor.awaitSingle
 import org.springframework.beans.factory.annotation.Value
@@ -241,6 +242,7 @@ class RealLinkedInPublisher(
     private val storage: Storage?,
     private val attachmentsBucket: String,
 ) : SocialPublisher {
+    private val log = LoggerFactory.getLogger(javaClass)
     /**
      * Publishes a social media post to LinkedIn.
      *
@@ -381,6 +383,8 @@ class RealLinkedInPublisher(
      *
      * @return A list of provider asset references.
      * @throws IllegalStateException if an uploaded asset lacks a storage key or an external URL asset lacks a URL.
+     * @throws RetryablePublishingException if storage is unavailable when downloading an asset binary.
+     *   This is surfaced as a retriable infrastructure error, NOT as silent success.
      */
     private suspend fun resolveAssetRefs(
         command: ProviderPublishCommand,
@@ -396,28 +400,55 @@ class RealLinkedInPublisher(
 
         return assets.map { asset ->
             when (asset.sourceType) {
-                AssetSourceType.UPLOADED -> {
-                    val existingRef = asset.providerAssetRef
-                    if (existingRef != null) {
-                        existingRef
-                    } else {
-                        val storageKey = asset.storageKey
-                            ?: throw IllegalStateException("Uploaded asset is missing storage key")
-                        val content = storage!!.download(attachmentsBucket, storageKey)
-                        assetUploader.uploadAsset(asset, content, context)
-                    }
-                }
-                AssetSourceType.EXTERNAL_URL -> {
-                    val url = asset.externalUrl
-                        ?: throw IllegalStateException("External URL asset is missing external URL")
-                    com.profiletailors.smp.publishing.domain.ProviderAssetRef(
-                        providerAssetId = url,
-                        mediaType = asset.mediaType,
-                        accessUrl = url,
-                    )
-                }
+                AssetSourceType.UPLOADED -> resolveUploadedAssetRef(asset, context)
+                AssetSourceType.EXTERNAL_URL -> resolveExternalAssetRef(asset)
             }
         }
+    }
+
+    private suspend fun resolveUploadedAssetRef(
+        asset: com.profiletailors.smp.publishing.domain.PublicationAsset,
+        context: AssetUploadContext,
+    ): com.profiletailors.smp.publishing.domain.ProviderAssetRef {
+        asset.providerAssetRef?.let { return it }
+
+        val storageKey = asset.storageKey
+            ?: throw IllegalStateException("Uploaded asset is missing storage key")
+        val content = downloadAssetContent(asset, storageKey)
+        return assetUploader.uploadAsset(asset, content, context)
+    }
+
+    private fun resolveExternalAssetRef(
+        asset: com.profiletailors.smp.publishing.domain.PublicationAsset,
+    ): com.profiletailors.smp.publishing.domain.ProviderAssetRef {
+        val url = asset.externalUrl
+            ?: throw IllegalStateException("External URL asset is missing external URL")
+        return com.profiletailors.smp.publishing.domain.ProviderAssetRef(
+            providerAssetId = url,
+            mediaType = asset.mediaType,
+            accessUrl = url,
+        )
+    }
+
+    @Suppress("SwallowedException")
+    private fun downloadAssetContent(
+        asset: com.profiletailors.smp.publishing.domain.PublicationAsset,
+        storageKey: String,
+    ) = try {
+        storage?.download(attachmentsBucket, storageKey)
+            ?: throw RetryablePublishingException(
+                "Storage is not configured; asset ${asset.id} (key=$storageKey) cannot be resolved",
+            )
+    } catch (e: StorageException) {
+        log.warn(
+            "Storage download failed for asset {} (key={})",
+            asset.id,
+            storageKey,
+            e,
+        )
+        throw RetryablePublishingException(
+            "Storage download failed for asset ${asset.id} (key=$storageKey): ${e.message}",
+        )
     }
 
     private fun extractFirstUrl(text: String): String? =

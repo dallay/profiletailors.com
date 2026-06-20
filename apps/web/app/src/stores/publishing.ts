@@ -613,7 +613,7 @@ export const usePublishingStore = defineStore('publishing', () => {
     nextSlotAfter?: string
     scheduleMode?: 'NOW' | 'SCHEDULED_AT' | 'NEXT_SLOT'
     priority: boolean
-    mediaFiles?: File[]
+    assetIds?: string[]
     socialAccountId?: string
   }) {
     const publicationId = `pub-${Date.now()}`
@@ -624,7 +624,7 @@ export const usePublishingStore = defineStore('publishing', () => {
         ? (post.scheduledAt ?? new Date().toISOString())
         : (post.nextSlotAfter ?? new Date().toISOString())
 
-    // Create new publication object
+    // Create new publication object — no longer carries local File objects
     const newPub: Publication = {
       id: publicationId,
       content: post.content,
@@ -634,17 +634,6 @@ export const usePublishingStore = defineStore('publishing', () => {
       scheduledAt: effectiveScheduledAt,
       status: 'QUEUED',
       priority: post.priority,
-      mediaFiles: post.mediaFiles,
-    }
-
-    // Generate static image thumbnail for file preview if uploaded
-    if (post.mediaFiles && post.mediaFiles.length > 0) {
-      const file = post.mediaFiles[0]
-      if (file?.type?.startsWith('image/')) {
-        const objectUrl = URL.createObjectURL(file)
-        newPub.thumbnail = objectUrl
-        objectUrls.set(publicationId, objectUrl)
-      }
     }
 
     // Try backend integration if authenticated
@@ -668,6 +657,11 @@ export const usePublishingStore = defineStore('publishing', () => {
           // Sync the resolved account ID back to the local publication object
           newPub.accountId = linkedInChannel.accountId
 
+          // Submit persisted media asset IDs from the centralized media library.
+          // The assetIds come from the media store (useMediaStore) which
+          // manages real persisted assets created via POST /api/media/assets.
+          const resolvedAssetIds = post.assetIds ?? []
+
           // Call the Spring Boot API
           await auth.apiFetch<unknown>('/api/publishing/publications', {
             method: 'POST',
@@ -675,7 +669,7 @@ export const usePublishingStore = defineStore('publishing', () => {
               socialAccountId: linkedInChannel.accountId,
               title: post.title || 'Post via Web App',
               bodyText: post.content,
-              assetIds: [],
+              assetIds: resolvedAssetIds,
               scheduleMode: effectiveMode,
               ...(effectiveMode === 'SCHEDULED_AT' ? { scheduledFor: post.scheduledAt } : {}),
               ...(effectiveMode === 'NEXT_SLOT' ? { nextSlotAfter: post.nextSlotAfter } : {}),
