@@ -248,6 +248,8 @@ data class PublishingMediaIntegrationSettings(
     val enabled: Boolean,
 )
 
+private const val MEDIA_CONTEXT_PRINCIPAL_ID = "media-context"
+
 private fun ConnectedSocialChannel.toSummary(): ConnectedSocialChannelSummary = ConnectedSocialChannelSummary(
     socialAccountId = socialAccountId,
     connectionId = connectionId,
@@ -335,16 +337,31 @@ internal class CreatePublicationHandler(
             return legacyAssetLookup(workspaceId, assetIds)
         }
 
-        resolveReadyAssetsFromMedia(workspaceId, assetIds)
-        return legacyAssetLookup(workspaceId, assetIds)
+        return resolveReadyAssetsFromMedia(workspaceId, assetIds)
     }
 
-    private suspend fun resolveReadyAssetsFromMedia(workspaceId: String, assetIds: List<String>) {
-        withTimeoutOrNull(TIMEOUT_MILLIS) {
+    private suspend fun resolveReadyAssetsFromMedia(
+        workspaceId: String,
+        assetIds: List<String>,
+    ): List<PublicationAsset> {
+        val resolvedAssets = withTimeoutOrNull(TIMEOUT_MILLIS) {
             mediaAssetResolver.resolveReadyAssets(workspaceId, assetIds)
         } ?: throw MediaServiceUnavailableException(
-            "Media asset resolution timed out after ${TIMEOUT_MILLIS / MILLIS_PER_SECOND} seconds",
+            "Media asset resolution timed out after " +
+                "${TIMEOUT_MILLIS / MILLIS_PER_SECOND} seconds",
         )
+
+        return resolvedAssets.map { resolvedAsset ->
+            PublicationAsset(
+                id = resolvedAsset.assetId,
+                workspaceId = resolvedAsset.workspaceId,
+                sourceType = AssetSourceType.UPLOADED,
+                mediaType = resolvedAsset.mediaType,
+                storageKey = resolvedAsset.storageKey,
+                status = PublicationAssetStatus.READY,
+                createdByPrincipalId = MEDIA_CONTEXT_PRINCIPAL_ID,
+            )
+        }
     }
 
     private suspend fun legacyAssetLookup(
@@ -455,16 +472,31 @@ internal class EditPublicationHandler(
             return legacyAssetLookup(workspaceId, assetIds)
         }
 
-        resolveReadyAssetsFromMedia(workspaceId, assetIds)
-        return legacyAssetLookup(workspaceId, assetIds)
+        return resolveReadyAssetsFromMedia(workspaceId, assetIds)
     }
 
-    private suspend fun resolveReadyAssetsFromMedia(workspaceId: String, assetIds: List<String>) {
-        withTimeoutOrNull(TIMEOUT_MILLIS) {
+    private suspend fun resolveReadyAssetsFromMedia(
+        workspaceId: String,
+        assetIds: List<String>,
+    ): List<PublicationAsset> {
+        val resolvedAssets = withTimeoutOrNull(TIMEOUT_MILLIS) {
             mediaAssetResolver.resolveReadyAssets(workspaceId, assetIds)
         } ?: throw MediaServiceUnavailableException(
-            "Media asset resolution timed out after ${TIMEOUT_MILLIS / MILLIS_PER_SECOND} seconds",
+            "Media asset resolution timed out after " +
+                "${TIMEOUT_MILLIS / MILLIS_PER_SECOND} seconds",
         )
+
+        return resolvedAssets.map { resolvedAsset ->
+            PublicationAsset(
+                id = resolvedAsset.assetId,
+                workspaceId = resolvedAsset.workspaceId,
+                sourceType = AssetSourceType.UPLOADED,
+                mediaType = resolvedAsset.mediaType,
+                storageKey = resolvedAsset.storageKey,
+                status = PublicationAssetStatus.READY,
+                createdByPrincipalId = MEDIA_CONTEXT_PRINCIPAL_ID,
+            )
+        }
     }
 
     private suspend fun legacyAssetLookup(

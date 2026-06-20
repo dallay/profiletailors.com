@@ -356,7 +356,10 @@ class R2dbcMediaRateLimitRepository(
             VALUES (:workspaceId, 0, :currentHour, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
             ON CONFLICT (workspace_id) DO UPDATE SET
                 hour_bucket = :currentHour,
-                hourly_creation_count = 0,
+                hourly_creation_count = CASE
+                    WHEN media_rate_limits.hour_bucket <> :currentHour THEN 0
+                    ELSE media_rate_limits.hourly_creation_count
+                END,
                 updated_at = CURRENT_TIMESTAMP
             """.trimIndent(),
         )

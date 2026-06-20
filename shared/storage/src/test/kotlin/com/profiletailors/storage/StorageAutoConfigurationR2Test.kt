@@ -1,7 +1,10 @@
 package com.profiletailors.storage
 
+import com.profiletailors.common.domain.bus.event.BaseDomainEvent
+import com.profiletailors.common.domain.bus.event.EventPublisher
 import com.profiletailors.storage.infrastructure.ProviderConfig
 import com.profiletailors.storage.infrastructure.StorageAutoConfiguration
+import io.micrometer.core.instrument.simple.SimpleMeterRegistry
 import io.mockk.every
 import io.mockk.mockk
 import io.mockk.mockkStatic
@@ -232,5 +235,20 @@ class StorageAutoConfigurationR2Test {
             // Assert credentialsProvider was called on the S3Presigner builder
             verify(exactly = 1) { presignerBuilderMock.credentialsProvider(any<AwsCredentialsProvider>()) }
         }
+    }
+
+    @Test
+    fun `baseDomainEventPublisher returns a usable event publisher`() {
+        val publisher = config.baseDomainEventPublisher()
+
+        assertNotNull(publisher)
+        assertTrue(publisher is EventPublisher<BaseDomainEvent>)
+    }
+
+    @Test
+    fun `storageMetrics creates metrics wrapper from meter registry`() {
+        val metrics = config.storageMetrics(SimpleMeterRegistry())
+
+        assertNotNull(metrics)
     }
 }

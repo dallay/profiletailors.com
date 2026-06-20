@@ -93,13 +93,37 @@ data class MediaUploadSettings(
     val maxConcurrentUploads: Int,
     val maxCreationsPerHour: Int,
     val storageBucket: String,
-)
+) {
+    init {
+        require(maxConcurrentUploads > 0) {
+            "media.max-concurrent-uploads must be greater than zero"
+        }
+        require(maxCreationsPerHour > 0) {
+            "media.max-creations-per-hour must be greater than zero"
+        }
+        require(storageBucket.isNotBlank()) {
+            "media.storage.bucket must not be blank"
+        }
+    }
+}
 
 data class MediaReconcilerSettings(
     val storageBucket: String,
     val staleThresholdHours: Long,
     val gracePeriodMinutes: Long,
-)
+) {
+    init {
+        require(storageBucket.isNotBlank()) {
+            "media.storage.bucket must not be blank"
+        }
+        require(staleThresholdHours > 0) {
+            "media.stale.threshold-hours must be greater than zero"
+        }
+        require(gracePeriodMinutes > 0) {
+            "media.stale.grace-period-minutes must be greater than zero"
+        }
+    }
+}
 
 /**
  * Exception thrown when media type validation fails.

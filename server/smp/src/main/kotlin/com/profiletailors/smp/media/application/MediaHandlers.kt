@@ -368,6 +368,7 @@ class UploadAssetHandler(
         }
     }
 
+    @Suppress("ThrowsCount")
     private suspend fun uploadWithStreamingValidation(
         command: UploadAssetCommand,
         asset: MediaAsset,
@@ -376,39 +377,60 @@ class UploadAssetHandler(
         val maxSize = command.maxFileSizeBytes
         var bytesReceived = 0L
         var validatedMagicBytes = false
+        val pendingChunks = mutableListOf<ByteArray>()
 
-        // Collect bytes in small chunks, validating magic bytes
-        val validatedContent = mutableListOf<ByteArray>()
+        val uploadFlow = kotlinx.coroutines.flow.flow {
+            command.fileStream.collect { bytes ->
+                val newTotal = bytesReceived + bytes.size
+                if (newTotal > maxSize) {
+                    throw FileTooLargeException(newTotal, maxSize)
+                }
+                bytesReceived = newTotal
 
-        command.fileStream.collect { bytes ->
-            // Magic-byte validation: check first few bytes on first chunk
-            if (!validatedMagicBytes && bytesReceived == 0L) {
-                val detectedType = detectMediaType(bytes, command.contentType)
-                if (detectedType != null && detectedType != asset.mediaType) {
+                if (!validatedMagicBytes) {
+                    pendingChunks.add(bytes)
+                    val headerBytes = pendingChunks
+                        .asSequence()
+                        .flatMap { it.asSequence() }
+                        .take(WEBP_SIGNATURE_SIZE)
+                        .toList()
+                        .toByteArray()
+                    val detectedType = detectMediaType(headerBytes, command.contentType)
+                    if (detectedType != null) {
+                        if (detectedType != asset.mediaType) {
+                            throw UnsupportedMediaTypeException(
+                                "Magic-byte validation failed: detected $detectedType but declared " +
+                                    asset.mediaType,
+                                declaredType = asset.mediaType,
+                                detectedType = detectedType,
+                            )
+                        }
+                        validatedMagicBytes = true
+                        pendingChunks.forEach { emit(it) }
+                        pendingChunks.clear()
+                    }
+                } else {
+                    emit(bytes)
+                }
+            }
+
+            if (!validatedMagicBytes) {
+                val headerBytes = pendingChunks
+                    .asSequence()
+                    .flatMap { it.asSequence() }
+                    .take(WEBP_SIGNATURE_SIZE)
+                    .toList()
+                    .toByteArray()
+                val detectedType = detectMediaType(headerBytes, command.contentType)
+                if (detectedType == null || detectedType != asset.mediaType) {
                     throw UnsupportedMediaTypeException(
-                        "Magic-byte validation failed: detected $detectedType but declared " +
-                            asset.mediaType,
+                        "Magic-byte validation failed: detected ${detectedType ?: "unknown"} " +
+                            "but declared ${asset.mediaType}",
                         declaredType = asset.mediaType,
                         detectedType = detectedType,
                     )
                 }
-                validatedMagicBytes = true
-            }
-
-            // Size check
-            val newTotal = bytesReceived + bytes.size
-            if (newTotal > maxSize) {
-                throw FileTooLargeException(newTotal, maxSize)
-            }
-
-            bytesReceived = newTotal
-            validatedContent.add(bytes)
-        }
-
-        // Stream to storage
-        val uploadFlow = kotlinx.coroutines.flow.flow {
-            for (chunk in validatedContent) {
-                emit(chunk)
+                pendingChunks.forEach { emit(it) }
             }
         }
 

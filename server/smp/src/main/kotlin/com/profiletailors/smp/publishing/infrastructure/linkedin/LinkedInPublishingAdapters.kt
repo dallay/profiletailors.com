@@ -430,13 +430,26 @@ class RealLinkedInPublisher(
         )
     }
 
+    @Suppress("SwallowedException")
     private fun downloadAssetContent(
         asset: com.profiletailors.smp.publishing.domain.PublicationAsset,
         storageKey: String,
-    ) = storage?.download(attachmentsBucket, storageKey)
-        ?: throw RetryablePublishingException(
-            "Storage is not configured; asset ${asset.id} (key=$storageKey) cannot be resolved",
+    ) = try {
+        storage?.download(attachmentsBucket, storageKey)
+            ?: throw RetryablePublishingException(
+                "Storage is not configured; asset ${asset.id} (key=$storageKey) cannot be resolved",
+            )
+    } catch (e: StorageException) {
+        log.warn(
+            "Storage download failed for asset {} (key={})",
+            asset.id,
+            storageKey,
+            e,
         )
+        throw RetryablePublishingException(
+            "Storage download failed for asset ${asset.id} (key=$storageKey): ${e.message}",
+        )
+    }
 
     private fun extractFirstUrl(text: String): String? =
         Regex("https?://\\S+").find(text)?.value

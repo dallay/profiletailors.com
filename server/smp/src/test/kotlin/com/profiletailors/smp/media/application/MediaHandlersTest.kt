@@ -207,11 +207,20 @@ class MediaHandlersTest {
     @Test
     fun `createUploadedAsset throws RateLimitExceededException when hourly creation limit reached`() = runTest {
         val repository = InMemoryMediaAssetRepository()
-        val rateLimitRepo = InMemoryMediaRateLimitRepository(maxCreationsPerHour = 0)
+        val rateLimitRepo = InMemoryMediaRateLimitRepository(maxCreationsPerHour = 1)
         val handler = CreateUploadedAssetHandler(
             mediaAssetRepository = repository,
             mediaRateLimitRepository = rateLimitRepo,
-            uploadSettings = uploadSettings.copy(maxCreationsPerHour = 0),
+            uploadSettings = uploadSettings.copy(maxCreationsPerHour = 1),
+        )
+
+        handler.handle(
+            CreateUploadedAssetCommand(
+                workspaceId = "ws-1",
+                sourceType = MediaSourceType.UPLOADED,
+                mediaType = "image/jpeg",
+                originalFilename = null,
+            ),
         )
 
         val error = assertThrows(RateLimitExceededException::class.java) {
@@ -228,7 +237,7 @@ class MediaHandlersTest {
         }
 
         assertEquals("hourly_creations", error.limitType)
-        assertEquals(0, error.currentValue)
+        assertEquals(1, error.currentValue)
     }
 
     // --- UploadAssetHandler tests ---
