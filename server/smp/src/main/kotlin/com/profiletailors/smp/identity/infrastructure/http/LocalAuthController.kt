@@ -88,7 +88,7 @@ class LocalAuthController(
 
     @Operation(summary = "Logout user and invalidate session")
     @PostMapping("/logout", version = "1")
-    suspend fun logout(request: ServerHttpRequest): ResponseEntity<Void> {
+    suspend fun logout(request: ServerHttpRequest): ResponseEntity<Unit> {
         mediator.send(LogoutUserSessionCommand(readRefreshCookie(request)))
         return ResponseEntity.noContent()
             .header(HttpHeaders.SET_COOKIE, refreshSessionCookieFactory.buildClearCookie().toString())
