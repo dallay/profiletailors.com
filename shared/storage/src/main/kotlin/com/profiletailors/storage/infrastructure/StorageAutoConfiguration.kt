@@ -1,12 +1,14 @@
 package com.profiletailors.storage.infrastructure
 
 import com.profiletailors.common.domain.bus.event.BaseDomainEvent
+import com.profiletailors.common.domain.bus.event.EventBroadcaster
 import com.profiletailors.common.domain.bus.event.EventPublisher
 import com.profiletailors.storage.application.StorageApplicationService
 import com.profiletailors.storage.domain.BucketNotFoundException
 import com.profiletailors.storage.domain.BucketRegistry
 import com.profiletailors.storage.domain.Storage
 import com.profiletailors.storage.infrastructure.metrics.StorageMetrics
+import io.micrometer.core.instrument.MeterRegistry
 import org.slf4j.LoggerFactory
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean
 import org.springframework.boot.context.properties.EnableConfigurationProperties
@@ -49,6 +51,30 @@ open class StorageAutoConfiguration {
     open fun defaultStorage(storageProperties: StorageProperties, bucketRegistry: BucketRegistry): Storage {
         return bucketRegistry.getStorage(storageProperties.default)
     }
+
+    @Bean
+    @ConditionalOnMissingBean
+    open fun baseDomainEventPublisher(): EventPublisher<BaseDomainEvent> {
+        return EventBroadcaster()
+    }
+
+    @Bean
+    @ConditionalOnMissingBean
+    open fun storageMetrics(meterRegistry: MeterRegistry): StorageMetrics = StorageMetrics(meterRegistry)
+
+    @Bean
+    @ConditionalOnMissingBean
+    open fun storageApplicationService(
+        defaultStorage: Storage,
+        eventPublisher: EventPublisher<BaseDomainEvent>,
+        storageMetrics: StorageMetrics,
+        storageProperties: StorageProperties,
+    ): StorageApplicationService = StorageApplicationService(
+        storage = defaultStorage,
+        eventPublisher = eventPublisher,
+        metrics = storageMetrics,
+        provider = storageProperties.default,
+    )
 
     @Bean
     open fun bucketRegistry(storageProperties: StorageProperties): BucketRegistry {

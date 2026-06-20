@@ -47,7 +47,7 @@ platform:
     default: ${SMP_STORAGE_DEFAULT:attachments}
     providers:
       attachments:
-        type: ${SMP_STORAGE_PROVIDER_TYPE:r2}
+        type: ${SMP_STORAGE_PROVIDER_TYPE:local}
         bucket: ${SMP_STORAGE_ATTACHMENTS_BUCKET:profiletailors-attachments}
         account-id: ${SMP_STORAGE_R2_ACCOUNT_ID:}
         access-key-id: ${SMP_STORAGE_R2_ACCESS_KEY_ID:}
