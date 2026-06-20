@@ -312,18 +312,14 @@ internal class CreatePublicationHandler(
             emailVerificationPolicy,
             AuthFeature.PUBLISH_CONTENT,
         )
-        requireEmailVerification(
-            principalCtx,
-            principalIdentityLookup,
-            emailVerificationPolicy,
-            AuthFeature.SCHEDULE_POST,
-        )
-        requireEmailVerification(
-            principalCtx,
-            principalIdentityLookup,
-            emailVerificationPolicy,
-            AuthFeature.SCHEDULE_POST,
-        )
+        if (command.scheduleMode != ScheduleMode.NOW) {
+            requireEmailVerification(
+                principalCtx,
+                principalIdentityLookup,
+                emailVerificationPolicy,
+                AuthFeature.SCHEDULE_POST,
+            )
+        }
         val resourceContext = resourceContextProvider.requireWorkspaceContext()
         val workspaceId = requireNotNull(resourceContext.workspaceId)
         val socialAccount = requireSocialAccount(workspaceId, command.socialAccountId)
@@ -445,8 +441,7 @@ internal class CreatePublicationHandler(
 
 @Service
 internal class EditPublicationHandler(
-    private val principalContextProvider: PrincipalContextProvider =
-        permissivePrincipalContextProvider(),
+    private val principalContextProvider: PrincipalContextProvider,
     private val resourceContextProvider: ResourceContextProvider,
     private val socialAccountRepository: SocialAccountRepository,
     private val publicationRepository: PublicationRepository,
@@ -575,7 +570,7 @@ internal class EditPublicationHandler(
 
 @Service
 internal class CancelPublicationHandler(
-    private val principalContextProvider: PrincipalContextProvider = permissivePrincipalContextProvider(),
+    private val principalContextProvider: PrincipalContextProvider,
     private val resourceContextProvider: ResourceContextProvider,
     private val publicationRepository: PublicationRepository,
     private val publicationJobRepository: PublicationJobRepository,
@@ -604,8 +599,7 @@ internal class CancelPublicationHandler(
 
 @Service
 internal class RetryPublicationHandler(
-    private val principalContextProvider: PrincipalContextProvider =
-        permissivePrincipalContextProvider(),
+    private val principalContextProvider: PrincipalContextProvider,
     private val resourceContextProvider: ResourceContextProvider,
     private val publicationRepository: PublicationRepository,
     private val publicationJobRepository: PublicationJobRepository,
@@ -656,8 +650,7 @@ internal class RetryPublicationHandler(
 
 @Service
 internal class ReschedulePublicationHandler(
-    private val principalContextProvider: PrincipalContextProvider =
-        permissivePrincipalContextProvider(),
+    private val principalContextProvider: PrincipalContextProvider,
     private val resourceContextProvider: ResourceContextProvider,
     private val publicationRepository: PublicationRepository,
     private val publicationJobRepository: PublicationJobRepository,

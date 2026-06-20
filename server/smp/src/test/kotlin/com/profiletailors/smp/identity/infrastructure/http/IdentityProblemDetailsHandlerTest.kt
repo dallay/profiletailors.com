@@ -5,7 +5,9 @@ import com.profiletailors.smp.identity.application.FeatureEmailVerificationRequi
 import com.profiletailors.smp.identity.application.UnverifiedEmailException
 import java.net.URI
 import org.junit.jupiter.api.Assertions.assertEquals
-import org.junit.jupiter.api.Test
+import org.junit.jupiter.params.ParameterizedTest
+import org.junit.jupiter.params.provider.Arguments
+import org.junit.jupiter.params.provider.MethodSource
 import org.springframework.http.HttpStatus
 
 /**
@@ -19,11 +21,23 @@ class IdentityProblemDetailsHandlerTest {
 
     private val handler = IdentityProblemDetailsHandler()
 
-    @Test
-    fun `UnverifiedEmailException returns 403 with structured problem detail`() {
-        val exception = UnverifiedEmailException("test@example.com")
-        val result = handler.handle(exception)
+    @ParameterizedTest
+    @MethodSource("emailVerificationExceptions")
+    fun `email verification exceptions map to RFC 9457 problem detail`(
+        exception: UnverifiedEmailException,
+    ) {
+        assertProblemDetail(handler.handle(exception))
+    }
 
+    @ParameterizedTest
+    @MethodSource("featureExceptions")
+    fun `feature email verification exceptions map to RFC 9457 problem detail`(
+        exception: FeatureEmailVerificationRequired,
+    ) {
+        assertProblemDetail(handler.handle(exception))
+    }
+
+    private fun assertProblemDetail(result: org.springframework.http.ProblemDetail) {
         assertEquals(HttpStatus.FORBIDDEN.value(), result.status)
         assertEquals("Email verification required", result.title)
         assertEquals(
@@ -34,66 +48,17 @@ class IdentityProblemDetailsHandlerTest {
         assertEquals("EMAIL_VERIFICATION_REQUIRED", result.properties?.get("code"))
     }
 
-    @Test
-    fun `FeatureEmailVerificationRequired CONNECT_SOCIAL returns 403 with structured problem detail`() {
-        val exception = FeatureEmailVerificationRequired(AuthFeature.CONNECT_SOCIAL)
-        val result = handler.handle(exception)
-
-        assertEquals(HttpStatus.FORBIDDEN.value(), result.status)
-        assertEquals("Email verification required", result.title)
-        assertEquals(
-            URI("https://api.profiletailors.com/errors/email-verification-required"),
-            result.type,
+    companion object {
+        @JvmStatic
+        fun emailVerificationExceptions() = listOf(
+            Arguments.of(UnverifiedEmailException("test@example.com")),
         )
-        assertEquals("Please verify your email before using this feature.", result.detail)
-        assertEquals("EMAIL_VERIFICATION_REQUIRED", result.properties?.get("code"))
-    }
 
-    @Test
-    fun `FeatureEmailVerificationRequired PUBLISH_CONTENT returns 403 with structured problem detail`() {
-        val exception = FeatureEmailVerificationRequired(AuthFeature.PUBLISH_CONTENT)
-        val result = handler.handle(exception)
-
-        assertEquals(HttpStatus.FORBIDDEN.value(), result.status)
-        assertEquals("Email verification required", result.title)
-        assertEquals(
-            URI("https://api.profiletailors.com/errors/email-verification-required"),
-            result.type,
+        @JvmStatic
+        fun featureExceptions() = listOf(
+            Arguments.of(FeatureEmailVerificationRequired(AuthFeature.CONNECT_SOCIAL)),
+            Arguments.of(FeatureEmailVerificationRequired(AuthFeature.PUBLISH_CONTENT)),
+            Arguments.of(FeatureEmailVerificationRequired(AuthFeature.SCHEDULE_POST)),
         )
-        assertEquals("Please verify your email before using this feature.", result.detail)
-        assertEquals("EMAIL_VERIFICATION_REQUIRED", result.properties?.get("code"))
-    }
-
-    @Test
-    fun `FeatureEmailVerificationRequired SCHEDULE_POST returns 403 with structured problem detail`() {
-        val exception = FeatureEmailVerificationRequired(AuthFeature.SCHEDULE_POST)
-        val result = handler.handle(exception)
-
-        assertEquals(HttpStatus.FORBIDDEN.value(), result.status)
-        assertEquals("Email verification required", result.title)
-        assertEquals(
-            URI("https://api.profiletailors.com/errors/email-verification-required"),
-            result.type,
-        )
-        assertEquals("Please verify your email before using this feature.", result.detail)
-        assertEquals("EMAIL_VERIFICATION_REQUIRED", result.properties?.get("code"))
-    }
-
-    @Test
-    fun `UnverifiedEmailException problem detail has correct RFC 9457 structure`() {
-        val exception = UnverifiedEmailException("user@profiletailors.com")
-        val problemDetail = handler.handle(exception)
-
-        // RFC 9457 requires: type, title, status (derived from status)
-        assertEquals(HttpStatus.FORBIDDEN.value(), problemDetail.status)
-        assertEquals("Email verification required", problemDetail.title)
-        assertEquals(
-            URI("https://api.profiletailors.com/errors/email-verification-required"),
-            problemDetail.type,
-        )
-        // Custom property: code
-        assertEquals("EMAIL_VERIFICATION_REQUIRED", problemDetail.properties?.get("code"))
-        // detail
-        assertEquals("Please verify your email before using this feature.", problemDetail.detail)
     }
 }

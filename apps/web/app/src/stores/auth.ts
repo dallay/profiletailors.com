@@ -39,12 +39,12 @@ function mapTokensToUser(tokens: AuthTokens): AuthUser {
   }
 }
 
-function mapProfileToUser(profile: CurrentUserProfile): AuthUser {
+function mapProfileToUser(profile: CurrentUserProfile, currentUser: AuthUser | null): AuthUser {
   return {
     principalId: profile.principalId,
     email: profile.email,
     username: profile.username,
-    emailStatus: null,
+    emailStatus: currentUser?.emailStatus ?? null,
     displayIdentity: profile.displayIdentity,
   }
 }
@@ -227,7 +227,7 @@ export const useAuthStore = defineStore('auth', () => {
 
     try {
       const profile = await getCurrentUserProfile(_accessToken.value)
-      user.value = mapProfileToUser(profile)
+      user.value = mapProfileToUser(profile, user.value)
       error.value = null
       sessionChecked.value = true
       return profile
@@ -265,7 +265,7 @@ export const useAuthStore = defineStore('auth', () => {
 
     try {
       const profile = await getCurrentUserProfile(_accessToken.value)
-      user.value = mapProfileToUser(profile)
+      user.value = mapProfileToUser(profile, user.value)
       error.value = null
     } catch {
       // Non-critical — user data from tokens is good enough for now

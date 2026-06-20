@@ -564,6 +564,7 @@ class PublishingHandlersTest {
         val publicationRepository = InMemoryPublicationRepository(publication)
         val jobRepository = InMemoryPublicationJobRepository()
         val handler = ReschedulePublicationHandler(
+            principalContextProvider = FixedPrincipalContextProvider(principalContext),
             resourceContextProvider = FixedResourceContextProvider(workspaceContext),
             publicationRepository = publicationRepository,
             publicationJobRepository = jobRepository,
@@ -614,6 +615,7 @@ class PublishingHandlersTest {
             )
         }
         val handler = EditPublicationHandler(
+            principalContextProvider = FixedPrincipalContextProvider(principalContext),
             resourceContextProvider = FixedResourceContextProvider(workspaceContext),
             socialAccountRepository = socialAccountRepository,
             publicationRepository = publicationRepository,
@@ -729,6 +731,7 @@ class PublishingHandlersTest {
             )
         }
         val handler = EditPublicationHandler(
+            principalContextProvider = FixedPrincipalContextProvider(principalContext),
             resourceContextProvider = FixedResourceContextProvider(workspaceContext),
             socialAccountRepository = socialAccountRepository,
             publicationRepository = publicationRepository,
@@ -771,6 +774,7 @@ class PublishingHandlersTest {
         val publicationRepository = InMemoryPublicationRepository(publication)
         val jobRepository = InMemoryPublicationJobRepository()
         val handler = CancelPublicationHandler(
+            principalContextProvider = FixedPrincipalContextProvider(principalContext),
             resourceContextProvider = FixedResourceContextProvider(workspaceContext),
             publicationRepository = publicationRepository,
             publicationJobRepository = jobRepository,
@@ -800,6 +804,7 @@ class PublishingHandlersTest {
         val publicationRepository = InMemoryPublicationRepository(publication)
         val jobRepository = InMemoryPublicationJobRepository()
         val handler = RetryPublicationHandler(
+            principalContextProvider = FixedPrincipalContextProvider(principalContext),
             resourceContextProvider = FixedResourceContextProvider(workspaceContext),
             publicationRepository = publicationRepository,
             publicationJobRepository = jobRepository,
@@ -840,6 +845,7 @@ class PublishingHandlersTest {
         val publicationRepository = InMemoryPublicationRepository(publication)
         val jobRepository = InMemoryPublicationJobRepository()
         val handler = RetryPublicationHandler(
+            principalContextProvider = FixedPrincipalContextProvider(principalContext),
             resourceContextProvider = FixedResourceContextProvider(workspaceContext),
             publicationRepository = publicationRepository,
             publicationJobRepository = jobRepository,
@@ -878,6 +884,7 @@ class PublishingHandlersTest {
         val publicationRepository = InMemoryPublicationRepository(publication)
         val jobRepository = InMemoryPublicationJobRepository()
         val handler = RetryPublicationHandler(
+            principalContextProvider = FixedPrincipalContextProvider(principalContext),
             resourceContextProvider = FixedResourceContextProvider(workspaceContext),
             publicationRepository = publicationRepository,
             publicationJobRepository = jobRepository,
@@ -908,6 +915,7 @@ class PublishingHandlersTest {
         val publicationRepository = InMemoryPublicationRepository(publication)
         val jobRepository = InMemoryPublicationJobRepository()
         val handler = ReschedulePublicationHandler(
+            principalContextProvider = FixedPrincipalContextProvider(principalContext),
             resourceContextProvider = FixedResourceContextProvider(workspaceContext),
             publicationRepository = publicationRepository,
             publicationJobRepository = jobRepository,
@@ -944,6 +952,7 @@ class PublishingHandlersTest {
         val publicationRepository = InMemoryPublicationRepository(publication)
         val jobRepository = InMemoryPublicationJobRepository()
         val handler = ReschedulePublicationHandler(
+            principalContextProvider = FixedPrincipalContextProvider(principalContext),
             resourceContextProvider = FixedResourceContextProvider(workspaceContext),
             publicationRepository = publicationRepository,
             publicationJobRepository = jobRepository,
@@ -1106,6 +1115,7 @@ class PublishingHandlersTest {
         val publicationRepository = InMemoryPublicationRepository(publication)
         val jobRepository = InMemoryPublicationJobRepository()
         val handler = ReschedulePublicationHandler(
+            principalContextProvider = FixedPrincipalContextProvider(principalContext),
             resourceContextProvider = FixedResourceContextProvider(workspaceContext),
             publicationRepository = publicationRepository,
             publicationJobRepository = jobRepository,
@@ -1215,6 +1225,7 @@ class PublishingHandlersTest {
         val jobRepository = InMemoryPublicationJobRepository()
         val socialAccountRepository = InMemorySocialAccountRepository()
         val handler = EditPublicationHandler(
+            principalContextProvider = FixedPrincipalContextProvider(principalContext),
             resourceContextProvider = FixedResourceContextProvider(workspaceContext),
             socialAccountRepository = socialAccountRepository,
             publicationRepository = publicationRepository,
@@ -1247,6 +1258,7 @@ class PublishingHandlersTest {
         val publicationRepository = InMemoryPublicationRepository()
         val jobRepository = InMemoryPublicationJobRepository()
         val handler = CancelPublicationHandler(
+            principalContextProvider = FixedPrincipalContextProvider(principalContext),
             resourceContextProvider = FixedResourceContextProvider(workspaceContext),
             publicationRepository = publicationRepository,
             publicationJobRepository = jobRepository,
@@ -1267,6 +1279,7 @@ class PublishingHandlersTest {
         val publicationRepository = InMemoryPublicationRepository()
         val jobRepository = InMemoryPublicationJobRepository()
         val handler = RetryPublicationHandler(
+            principalContextProvider = FixedPrincipalContextProvider(principalContext),
             resourceContextProvider = FixedResourceContextProvider(workspaceContext),
             publicationRepository = publicationRepository,
             publicationJobRepository = jobRepository,
@@ -1288,6 +1301,7 @@ class PublishingHandlersTest {
         val publicationRepository = InMemoryPublicationRepository()
         val jobRepository = InMemoryPublicationJobRepository()
         val handler = ReschedulePublicationHandler(
+            principalContextProvider = FixedPrincipalContextProvider(principalContext),
             resourceContextProvider = FixedResourceContextProvider(workspaceContext),
             publicationRepository = publicationRepository,
             publicationJobRepository = jobRepository,
@@ -2133,6 +2147,7 @@ class PublishingHandlersTest {
         val mediaResolver = FakeMediaAssetResolver().apply { shouldThrowNotReady = true }
 
         val handler = EditPublicationHandler(
+            principalContextProvider = FixedPrincipalContextProvider(principalContext),
             resourceContextProvider = FixedResourceContextProvider(workspaceContext),
             socialAccountRepository = socialAccountRepository,
             publicationRepository = publicationRepository,
@@ -2194,6 +2209,7 @@ class PublishingHandlersTest {
         val mediaResolver = FakeMediaAssetResolver().apply { shouldThrowUnavailable = true }
 
         val handler = EditPublicationHandler(
+            principalContextProvider = FixedPrincipalContextProvider(principalContext),
             resourceContextProvider = FixedResourceContextProvider(workspaceContext),
             socialAccountRepository = socialAccountRepository,
             publicationRepository = publicationRepository,
@@ -2255,6 +2271,7 @@ class PublishingHandlersTest {
         val mediaResolver = FakeMediaAssetResolver()
 
         val handler = EditPublicationHandler(
+            principalContextProvider = FixedPrincipalContextProvider(principalContext),
             resourceContextProvider = FixedResourceContextProvider(workspaceContext),
             socialAccountRepository = socialAccountRepository,
             publicationRepository = publicationRepository,

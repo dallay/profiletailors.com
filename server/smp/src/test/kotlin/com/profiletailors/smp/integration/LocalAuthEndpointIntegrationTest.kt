@@ -133,7 +133,7 @@ class LocalAuthEndpointIntegrationTest : IntegrationTestBase() {
     }
 
     @Test
-    fun `registers user then verifies with valid token and logs in`() {
+    fun `registers user then login succeeds with pending email status`() {
         // Step 1: Register
         webTestClient.post()
             .uri("/api/auth/register")

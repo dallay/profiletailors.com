@@ -53,10 +53,24 @@ class JwtAuthenticatedPrincipalMaterializer(
                 attributes = token.claims,
             ),
             credentialType = CredentialType.JWT,
-            emailStatus = token.claims["emailStatus"]?.let {
-                EmailStatus.valueOf(it.toString())
-            } ?: principalFacts?.emailStatus,
+            emailStatus = emailStatusFromClaim(token, principalFacts),
         )
+    }
+
+    private fun emailStatusFromClaim(
+        token: ValidatedToken,
+        principalFacts: com.profiletailors.smp.identity.application.PrincipalIdentityFacts?,
+    ): EmailStatus? {
+        val raw = token.claims["emailStatus"]
+        return if (raw is String) {
+            try {
+                EmailStatus.valueOf(raw)
+            } catch (_: IllegalArgumentException) {
+                principalFacts?.emailStatus
+            }
+        } else {
+            principalFacts?.emailStatus
+        }
     }
 
     private suspend fun materializeServiceAccount(token: ValidatedToken): AuthenticatedPrincipal {

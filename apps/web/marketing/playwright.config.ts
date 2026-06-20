@@ -22,7 +22,7 @@ export default defineConfig({
     [
       '@bgotink/playwright-coverage',
       defineCoverageReporterConfig({
-        sourceRoot: __dirname,
+        sourceRoot: path.join(__dirname, 'src'),
         resultDir: path.join(__dirname, 'coverage/e2e'),
         reports: [
           ['html'],

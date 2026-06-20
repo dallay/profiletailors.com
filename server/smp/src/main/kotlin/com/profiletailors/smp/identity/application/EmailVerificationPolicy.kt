@@ -14,17 +14,7 @@ interface EmailVerificationPolicy {
 }
 
 class DefaultEmailVerificationPolicy : EmailVerificationPolicy {
-    private val restrictedFeatures = setOf(
-        AuthFeature.PUBLISH_CONTENT,
-        AuthFeature.SCHEDULE_POST,
-        AuthFeature.INVITE_TEAM,
-        AuthFeature.CONNECT_SOCIAL,
-        AuthFeature.ACCESS_BILLING,
-        AuthFeature.ENABLE_AUTOMATIONS,
-    )
-
-    override fun requiresVerification(feature: AuthFeature): Boolean =
-        feature in restrictedFeatures
+    override fun requiresVerification(feature: AuthFeature): Boolean = true
 }
 
 /**

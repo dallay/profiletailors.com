@@ -240,7 +240,6 @@ test.describe('Registration API — Success Path', { tag: '@integration' }, () =
     expect(body).toHaveProperty('expiresIn')
     expect(body).toHaveProperty('principalId')
     expect(body).toHaveProperty('emailStatus', 'PENDING')
-    expect(body).not.toHaveProperty('emailStatus', 'VERIFIED')
 
     await dashboard.expectAuthenticated()
     await expect(page).toHaveURL(APP_URL.dashboard)

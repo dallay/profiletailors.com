@@ -60,5 +60,4 @@ data class RegistrationResult(
 
 data class ResendVerificationResult(
     val accepted: Boolean = true,
-    val requiresVerification: Boolean? = null,
 )
