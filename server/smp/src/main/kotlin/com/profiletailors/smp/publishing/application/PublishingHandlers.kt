@@ -5,6 +5,13 @@ import com.profiletailors.common.domain.bus.command.CommandWithResultHandler
 import com.profiletailors.common.domain.bus.query.QueryHandler
 import com.profiletailors.common.domain.context.PrincipalContextProvider
 import com.profiletailors.common.domain.context.ResourceContextProvider
+import com.profiletailors.smp.identity.application.AuthFeature
+import com.profiletailors.smp.identity.application.EmailVerificationPolicy
+import com.profiletailors.smp.identity.application.NoOpPrincipalIdentityLookup
+import com.profiletailors.smp.identity.application.PermissiveEmailVerificationPolicy
+import com.profiletailors.smp.identity.application.PrincipalIdentityLookup
+import com.profiletailors.smp.identity.application.permissivePrincipalContextProvider
+import com.profiletailors.smp.identity.application.requireEmailVerification
 import com.profiletailors.smp.media.application.AssetNotReadyException
 import com.profiletailors.smp.media.application.MediaAssetResolver
 import com.profiletailors.smp.media.application.MediaServiceUnavailableException
@@ -90,12 +97,21 @@ internal class InitiateLinkedInConnectionHandler(
     private val oauthStateSigner: OAuthStateSigner,
     private val authorizationUrlBuilder: LinkedInAuthorizationUrlBuilder,
     private val clock: Clock,
+    private val principalIdentityLookup: PrincipalIdentityLookup = NoOpPrincipalIdentityLookup(),
+    private val emailVerificationPolicy: EmailVerificationPolicy = PermissiveEmailVerificationPolicy(),
 ) : CommandWithResultHandler<InitiateLinkedInConnectionCommand, LinkedInConnectionInitiationResult> {
     override suspend fun handle(command: InitiateLinkedInConnectionCommand): LinkedInConnectionInitiationResult {
+        val principalCtx = principalContextProvider.require()
+        requireEmailVerification(
+            principalCtx,
+            principalIdentityLookup,
+            emailVerificationPolicy,
+            AuthFeature.CONNECT_SOCIAL,
+        )
+
         if (!authorizationUrlBuilder.isConfigured()) {
             throw ProviderNotConfiguredException(SocialProvider.LINKEDIN)
         }
-        val principal = principalContextProvider.require()
         val workspaceId = requireNotNull(resourceContextProvider.requireWorkspaceContext().workspaceId)
         val issuedAt = clock.instant()
         val expiresAt = issuedAt.plus(STATE_TTL)
@@ -103,7 +119,7 @@ internal class InitiateLinkedInConnectionHandler(
             LinkedInOAuthStatePayload(
                 provider = SocialProvider.LINKEDIN,
                 workspaceId = workspaceId,
-                principalId = principal.principalId,
+                principalId = principalCtx.principalId,
                 redirectUri = command.redirectUri,
                 nonce = UUID.randomUUID().toString(),
                 issuedAt = issuedAt,
@@ -135,16 +151,25 @@ internal class CompleteLinkedInConnectionHandler(
     private val socialAccountRepository: SocialAccountRepository,
     private val channelEventPublisher: ChannelEventPublisher,
     private val clock: Clock,
+    private val principalIdentityLookup: PrincipalIdentityLookup = NoOpPrincipalIdentityLookup(),
+    private val emailVerificationPolicy: EmailVerificationPolicy =
+        PermissiveEmailVerificationPolicy(),
 ) : CommandWithResultHandler<CompleteLinkedInConnectionCommand, SocialConnectionResult> {
     override suspend fun handle(command: CompleteLinkedInConnectionCommand): SocialConnectionResult {
-        val principal = principalContextProvider.require()
+        val principalCtx = principalContextProvider.require()
+        requireEmailVerification(
+            principalCtx,
+            principalIdentityLookup,
+            emailVerificationPolicy,
+            AuthFeature.CONNECT_SOCIAL,
+        )
         val resourceContext = resourceContextProvider.requireWorkspaceContext()
         val workspaceId = requireNotNull(resourceContext.workspaceId)
-        validateState(command, principal.principalId, workspaceId)
+        validateState(command, principalCtx.principalId, workspaceId)
         val providerResult = socialConnectionProvider.completeConnection(
             CompleteProviderConnectionCommand(
                 workspaceId = workspaceId,
-                actorPrincipalId = principal.principalId,
+                actorPrincipalId = principalCtx.principalId,
                 authorizationCode = command.authorizationCode,
                 redirectUri = command.redirectUri,
             ),
@@ -275,9 +300,30 @@ internal class CreatePublicationHandler(
     private val mediaAssetResolver: MediaAssetResolver,
     private val mediaIntegrationSettings: PublishingMediaIntegrationSettings,
     private val clock: Clock,
+    private val principalIdentityLookup: PrincipalIdentityLookup = NoOpPrincipalIdentityLookup(),
+    private val emailVerificationPolicy: EmailVerificationPolicy =
+        PermissiveEmailVerificationPolicy(),
 ) : CommandWithResultHandler<CreatePublicationCommand, PublicationResult> {
     override suspend fun handle(command: CreatePublicationCommand): PublicationResult {
-        val principal = principalContextProvider.require()
+        val principalCtx = principalContextProvider.require()
+        requireEmailVerification(
+            principalCtx,
+            principalIdentityLookup,
+            emailVerificationPolicy,
+            AuthFeature.PUBLISH_CONTENT,
+        )
+        requireEmailVerification(
+            principalCtx,
+            principalIdentityLookup,
+            emailVerificationPolicy,
+            AuthFeature.SCHEDULE_POST,
+        )
+        requireEmailVerification(
+            principalCtx,
+            principalIdentityLookup,
+            emailVerificationPolicy,
+            AuthFeature.SCHEDULE_POST,
+        )
         val resourceContext = resourceContextProvider.requireWorkspaceContext()
         val workspaceId = requireNotNull(resourceContext.workspaceId)
         val socialAccount = requireSocialAccount(workspaceId, command.socialAccountId)
@@ -290,7 +336,7 @@ internal class CreatePublicationHandler(
         val draft = PublicationDraft(
             id = "pub-${UUID.randomUUID()}",
             workspaceId = workspaceId,
-            authorPrincipalId = principal.principalId,
+            authorPrincipalId = principalCtx.principalId,
             provider = socialAccount.provider,
             socialAccountId = socialAccount.id,
             status = PublicationStatus.DRAFT,
@@ -399,6 +445,8 @@ internal class CreatePublicationHandler(
 
 @Service
 internal class EditPublicationHandler(
+    private val principalContextProvider: PrincipalContextProvider =
+        permissivePrincipalContextProvider(),
     private val resourceContextProvider: ResourceContextProvider,
     private val socialAccountRepository: SocialAccountRepository,
     private val publicationRepository: PublicationRepository,
@@ -409,8 +457,17 @@ internal class EditPublicationHandler(
     private val mediaAssetResolver: MediaAssetResolver,
     private val mediaIntegrationSettings: PublishingMediaIntegrationSettings,
     private val clock: Clock,
+    private val principalIdentityLookup: PrincipalIdentityLookup = NoOpPrincipalIdentityLookup(),
+    private val emailVerificationPolicy: EmailVerificationPolicy = PermissiveEmailVerificationPolicy(),
 ) : CommandWithResultHandler<EditPublicationCommand, PublicationResult> {
     override suspend fun handle(command: EditPublicationCommand): PublicationResult {
+        val principalCtx = principalContextProvider.require()
+        requireEmailVerification(
+            principalCtx,
+            principalIdentityLookup,
+            emailVerificationPolicy,
+            AuthFeature.PUBLISH_CONTENT,
+        )
         val workspaceId = requireNotNull(resourceContextProvider.requireWorkspaceContext().workspaceId)
         val current = publicationRepository.findByWorkspaceAndId(workspaceId, command.publicationId)
             ?: throw PublicationNotFoundException(command.publicationId)
@@ -518,12 +575,22 @@ internal class EditPublicationHandler(
 
 @Service
 internal class CancelPublicationHandler(
+    private val principalContextProvider: PrincipalContextProvider = permissivePrincipalContextProvider(),
     private val resourceContextProvider: ResourceContextProvider,
     private val publicationRepository: PublicationRepository,
     private val publicationJobRepository: PublicationJobRepository,
     private val clock: Clock,
+    private val principalIdentityLookup: PrincipalIdentityLookup = NoOpPrincipalIdentityLookup(),
+    private val emailVerificationPolicy: EmailVerificationPolicy = PermissiveEmailVerificationPolicy(),
 ) : CommandWithResultHandler<CancelPublicationCommand, PublicationResult> {
     override suspend fun handle(command: CancelPublicationCommand): PublicationResult {
+        val principalCtx = principalContextProvider.require()
+        requireEmailVerification(
+            principalCtx,
+            principalIdentityLookup,
+            emailVerificationPolicy,
+            AuthFeature.PUBLISH_CONTENT,
+        )
         val workspaceId = requireNotNull(resourceContextProvider.requireWorkspaceContext().workspaceId)
         val current = publicationRepository.findByWorkspaceAndId(workspaceId, command.publicationId)
             ?: throw PublicationNotFoundException(command.publicationId)
@@ -537,13 +604,24 @@ internal class CancelPublicationHandler(
 
 @Service
 internal class RetryPublicationHandler(
+    private val principalContextProvider: PrincipalContextProvider =
+        permissivePrincipalContextProvider(),
     private val resourceContextProvider: ResourceContextProvider,
     private val publicationRepository: PublicationRepository,
     private val publicationJobRepository: PublicationJobRepository,
     private val schedulingPolicy: PublicationSchedulingPolicy,
     private val clock: Clock,
+    private val principalIdentityLookup: PrincipalIdentityLookup = NoOpPrincipalIdentityLookup(),
+    private val emailVerificationPolicy: EmailVerificationPolicy = PermissiveEmailVerificationPolicy(),
 ) : CommandWithResultHandler<RetryPublicationCommand, PublicationResult> {
     override suspend fun handle(command: RetryPublicationCommand): PublicationResult {
+        val principalCtx = principalContextProvider.require()
+        requireEmailVerification(
+            principalCtx,
+            principalIdentityLookup,
+            emailVerificationPolicy,
+            AuthFeature.SCHEDULE_POST,
+        )
         val workspaceId = requireNotNull(resourceContextProvider.requireWorkspaceContext().workspaceId)
         val current = publicationRepository.findByWorkspaceAndId(workspaceId, command.publicationId)
             ?: throw PublicationNotFoundException(command.publicationId)
@@ -578,13 +656,24 @@ internal class RetryPublicationHandler(
 
 @Service
 internal class ReschedulePublicationHandler(
+    private val principalContextProvider: PrincipalContextProvider =
+        permissivePrincipalContextProvider(),
     private val resourceContextProvider: ResourceContextProvider,
     private val publicationRepository: PublicationRepository,
     private val publicationJobRepository: PublicationJobRepository,
     private val schedulingPolicy: PublicationSchedulingPolicy,
     private val clock: Clock,
+    private val principalIdentityLookup: PrincipalIdentityLookup = NoOpPrincipalIdentityLookup(),
+    private val emailVerificationPolicy: EmailVerificationPolicy = PermissiveEmailVerificationPolicy(),
 ) : CommandWithResultHandler<ReschedulePublicationCommand, PublicationResult> {
     override suspend fun handle(command: ReschedulePublicationCommand): PublicationResult {
+        val principalCtx = principalContextProvider.require()
+        requireEmailVerification(
+            principalCtx,
+            principalIdentityLookup,
+            emailVerificationPolicy,
+            AuthFeature.SCHEDULE_POST,
+        )
         val workspaceId = requireNotNull(resourceContextProvider.requireWorkspaceContext().workspaceId)
         val current = publicationRepository.findByWorkspaceAndId(workspaceId, command.publicationId)
             ?: throw PublicationNotFoundException(command.publicationId)

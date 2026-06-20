@@ -9,6 +9,7 @@ export interface AuthTokens {
   principalId: string
   email: string
   username: string | null
+  emailStatus: string
   workspaceId: string | null
 }
 

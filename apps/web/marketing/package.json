@@ -37,6 +37,7 @@
   },
   "devDependencies": {
     "@astrojs/check": "^0.9.9",
+    "@bgotink/playwright-coverage": "^0.3.2",
     "@biomejs/biome": "2.4.15",
     "@codecov/vite-plugin": "^2.0.1",
     "@playwright/test": "^1.60.0",

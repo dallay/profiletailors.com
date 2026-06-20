@@ -11,7 +11,6 @@ import com.profiletailors.smp.identity.application.LoginUserCommand
 import com.profiletailors.smp.identity.application.LogoutUserSessionCommand
 import com.profiletailors.smp.identity.application.RefreshUserSessionCommand
 import com.profiletailors.smp.identity.application.RegisterUserCommand
-import com.profiletailors.smp.identity.application.RegistrationResult
 import com.profiletailors.smp.identity.application.ResendVerificationCommand
 import com.profiletailors.smp.identity.application.ResendVerificationResult
 import com.profiletailors.smp.identity.application.VerifyEmailCommand
@@ -48,14 +47,16 @@ class LocalAuthController(
     @PostMapping("/register", consumes = ["application/json"], version = "1")
     suspend fun register(
         @Valid @RequestBody request: RegisterUserRequest,
-    ): ResponseEntity<RegistrationResult> {
+    ): ResponseEntity<AuthTokens> {
         val result = mediator.send(
             RegisterUserCommand(
                 email = request.email,
                 password = request.password,
             ),
         )
-        return ResponseEntity.status(HttpStatus.CREATED).body(result)
+        return ResponseEntity.status(HttpStatus.CREATED)
+            .header(HttpHeaders.SET_COOKIE, refreshSessionCookieFactory.buildSetCookie(result.refreshToken).toString())
+            .body(result.tokens)
     }
 
     @Operation(summary = "Authenticate user with email and password")

@@ -8,7 +8,7 @@ data class RegisterUserCommand(
     val email: String,
     val password: String,
     val username: String? = null,
-) : CommandWithResult<RegistrationResult>
+) : CommandWithResult<LocalAuthSessionResult>
 
 data class LoginUserCommand(
     val email: String,
@@ -60,4 +60,5 @@ data class RegistrationResult(
 
 data class ResendVerificationResult(
     val accepted: Boolean = true,
+    val requiresVerification: Boolean? = null,
 )

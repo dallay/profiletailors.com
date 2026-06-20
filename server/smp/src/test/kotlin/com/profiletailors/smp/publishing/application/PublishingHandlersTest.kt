@@ -6,6 +6,11 @@ import com.profiletailors.common.domain.context.PrincipalType
 import com.profiletailors.common.domain.context.ResourceContext
 import com.profiletailors.common.domain.context.ResourceContextProvider
 import com.profiletailors.common.domain.context.ResourceContextType
+import com.profiletailors.smp.identity.application.AuthFeature
+import com.profiletailors.smp.identity.application.EmailVerificationPolicy
+import com.profiletailors.smp.identity.application.PrincipalIdentityFacts
+import com.profiletailors.smp.identity.application.PrincipalIdentityLookup
+import com.profiletailors.smp.identity.domain.EmailStatus
 import com.profiletailors.smp.media.application.AssetNotReadyException
 import com.profiletailors.smp.media.application.MediaAssetResolver
 import com.profiletailors.smp.media.application.MediaServiceUnavailableException
@@ -74,6 +79,55 @@ class PublishingHandlersTest {
         workspaceId = "workspace-1",
     )
     private val fixedClock: Clock = Clock.fixed(Instant.parse("2026-05-26T12:00:00Z"), ZoneOffset.UTC)
+
+    /** Returns emailStatus = VERIFIED for all lookups so the email-verification gate passes. */
+    private val verifiedPrincipalIdentityLookup = VerifiedPrincipalIdentityLookup()
+
+    /** Always returns false — email verification gate is disabled in unit tests. */
+    private val noOpEmailVerificationPolicy = NoOpEmailVerificationPolicy()
+
+    private class VerifiedPrincipalIdentityLookup : PrincipalIdentityLookup {
+        override suspend fun findBySubject(
+            principalType: PrincipalType,
+            subject: String,
+            provider: String?,
+        ): PrincipalIdentityFacts? = PrincipalIdentityFacts(
+            principalId = "principal-1",
+            principalType = principalType,
+            subject = subject,
+            provider = provider,
+            displayIdentity = "Test User",
+            email = "owner@example.com",
+            username = "testuser",
+            emailStatus = EmailStatus.VERIFIED,
+        )
+
+        override suspend fun findByEmail(email: String): PrincipalIdentityFacts? = PrincipalIdentityFacts(
+            principalId = "principal-1",
+            principalType = PrincipalType.USER,
+            subject = "local:$email",
+            provider = null,
+            displayIdentity = "Test User",
+            email = email,
+            username = "testuser",
+            emailStatus = EmailStatus.VERIFIED,
+        )
+
+        override suspend fun findByPrincipalId(principalId: String): PrincipalIdentityFacts? = PrincipalIdentityFacts(
+            principalId = principalId,
+            principalType = PrincipalType.USER,
+            subject = "local:owner@example.com",
+            provider = null,
+            displayIdentity = "Test User",
+            email = "owner@example.com",
+            username = "testuser",
+            emailStatus = EmailStatus.VERIFIED,
+        )
+    }
+
+    private class NoOpEmailVerificationPolicy : EmailVerificationPolicy {
+        override fun requiresVerification(feature: AuthFeature): Boolean = false
+    }
 
     @Test
     fun `connects linkedin profile in active workspace`() = runTest {

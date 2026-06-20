@@ -1,6 +1,7 @@
 import { defineConfig, devices } from '@playwright/test'
 import path from 'node:path'
 import { fileURLToPath } from 'node:url'
+import {defineCoverageReporterConfig} from '@bgotink/playwright-coverage'
 
 const __filename = fileURLToPath(import.meta.url)
 const __dirname = path.dirname(__filename)
@@ -52,8 +53,20 @@ export default defineConfig({
   expect: { timeout: 10_000 },
 
   reporter: [
-    ['html', { outputFolder: 'playwright-report' }],
     ['list'],
+    ['html', { outputFolder: 'playwright-report' }],
+    [
+      '@bgotink/playwright-coverage',
+      defineCoverageReporterConfig({
+        sourceRoot: path.resolve(__dirname, '..'),
+        resultDir: path.resolve(__dirname, '../coverage/e2e'),
+        reports: [
+          ['html'],
+          ['lcovonly', { file: 'coverage.lcov' }],
+          ['text-summary', { file: null }],
+        ],
+      }),
+    ],
   ],
 
   use: {

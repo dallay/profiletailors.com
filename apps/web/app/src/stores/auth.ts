@@ -21,6 +21,7 @@ interface AuthUser {
   principalId: string
   email: string | null
   username: string | null
+  emailStatus: string | null
   displayIdentity: string
 }
 
@@ -33,6 +34,7 @@ function mapTokensToUser(tokens: AuthTokens): AuthUser {
     principalId: tokens.principalId,
     email: tokens.email,
     username: tokens.username,
+    emailStatus: tokens.emailStatus,
     displayIdentity: tokens.username || tokens.email || tokens.principalId,
   }
 }
@@ -42,6 +44,7 @@ function mapProfileToUser(profile: CurrentUserProfile): AuthUser {
     principalId: profile.principalId,
     email: profile.email,
     username: profile.username,
+    emailStatus: null,
     displayIdentity: profile.displayIdentity,
   }
 }
@@ -66,6 +69,7 @@ export const useAuthStore = defineStore('auth', () => {
   // ---------------------------------------------------------------------------
 
   const isAuthenticated = computed(() => Boolean(_accessToken.value))
+  const isEmailVerified = computed(() => user.value?.emailStatus === 'VERIFIED')
   const accessToken = computed(() => _accessToken.value)
 
   const defaultDisplayName = 'PT'

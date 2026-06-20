@@ -1,4 +1,10 @@
 import { defineConfig, devices } from '@playwright/test';
+import path from 'node:path';
+import { fileURLToPath } from 'node:url';
+import {defineCoverageReporterConfig} from '@bgotink/playwright-coverage';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
 /**
  * Playwright configuration for Profile Tailors marketing site
@@ -10,7 +16,22 @@ export default defineConfig({
   forbidOnly: !!process.env.CI,
   retries: process.env.CI ? 2 : 0,
   workers: process.env.CI ? 1 : undefined,
-  reporter: 'html',
+  reporter: [
+    ['list'],
+    ['html', { outputFolder: 'playwright-report' }],
+    [
+      '@bgotink/playwright-coverage',
+      defineCoverageReporterConfig({
+        sourceRoot: __dirname,
+        resultDir: path.join(__dirname, 'coverage/e2e'),
+        reports: [
+          ['html'],
+          ['lcovonly', { file: 'coverage.lcov' }],
+          ['text-summary', { file: null }],
+        ],
+      }),
+    ],
+  ],
   
   use: {
     baseURL: 'http://localhost:4321',
