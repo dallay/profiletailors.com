@@ -29,6 +29,7 @@ internal suspend fun issueAuthSession(context: AuthSessionContext): LocalAuthSes
         subject = context.subject,
         email = context.email,
         username = context.username,
+        emailStatus = context.emailStatus,
         issuedAt = context.clock.instant(),
     )
     val refreshSession = context.refreshSessionLifecycleService.issue(context.principalId)
@@ -55,9 +56,11 @@ internal class RegisterUserHandler(
     private val workspaceProvisioningService: com.profiletailors.smp.tenancy.application.WorkspaceProvisioningService,
     private val eventPublisher: EventPublisher<DomainEvent>,
     private val clock: Clock,
-) : CommandWithResultHandler<RegisterUserCommand, RegistrationResult> {
+    private val localJwtIssuer: LocalJwtIssuer,
+    private val refreshSessionLifecycleService: RefreshSessionLifecycleService,
+) : CommandWithResultHandler<RegisterUserCommand, LocalAuthSessionResult> {
 
-    override suspend fun handle(command: RegisterUserCommand): RegistrationResult {
+    override suspend fun handle(command: RegisterUserCommand): LocalAuthSessionResult {
         val normalizedEmail = command.email.trim().lowercase()
         val normalizedUsername =
             command.username?.trim()?.takeIf { it.isNotEmpty() } ?: normalizedEmail.substringBefore('@')
@@ -112,11 +115,17 @@ internal class RegisterUserHandler(
             ),
         )
 
-        return RegistrationResult(
-            principalId = principalId,
-            email = normalizedEmail,
-            username = normalizedUsername,
-            emailStatus = EmailStatus.PENDING,
+        return issueAuthSession(
+            AuthSessionContext(
+                principalId = principalId,
+                subject = subject,
+                email = normalizedEmail,
+                username = normalizedUsername,
+                emailStatus = EmailStatus.PENDING,
+                clock = clock,
+                localJwtIssuer = localJwtIssuer,
+                refreshSessionLifecycleService = refreshSessionLifecycleService,
+            ),
         )
     }
 
@@ -157,10 +166,6 @@ internal class LoginUserHandler(
         val identityFacts = principalIdentityLookup.findByEmail(normalizedEmail)
         val emailStatus = identityFacts?.emailStatus ?: EmailStatus.VERIFIED
 
-        if (emailStatus != EmailStatus.VERIFIED) {
-            throw UnverifiedEmailException(normalizedEmail)
-        }
-
         return issueAuthSession(
             AuthSessionContext(
                 principalId = credential.principalId,
@@ -193,15 +198,12 @@ internal class RefreshUserSessionHandler(
         val username = identityFacts.username
         val emailStatus = identityFacts.emailStatus ?: EmailStatus.VERIFIED
 
-        if (emailStatus != EmailStatus.VERIFIED) {
-            throw UnverifiedEmailException(email)
-        }
-
         val token = localJwtIssuer.issue(
             principalId = rotatedSession.current.principalId,
             subject = "local:$email",
             email = email,
             username = username,
+            emailStatus = emailStatus,
             issuedAt = clock.instant(),
         )
 

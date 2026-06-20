@@ -91,6 +91,77 @@ The platform MUST NOT collapse these concerns into one undifferentiated token-ba
 - THEN the principal identity model MUST remain stable across credential mechanisms
 - AND a change in credential transport MUST NOT require redefining the principal taxonomy
 
+### Requirement: Authenticated Session for Unverified Users
+
+The system SHALL allow users with `emailStatus = PENDING` to authenticate and receive a valid session.
+
+Login SHALL return a valid session comprising an access token and a refresh token cookie.
+The access token SHALL include `emailStatus = PENDING` in the JWT claims.
+Refresh SHALL succeed for users with `emailStatus = PENDING`.
+No feature gating SHALL be applied within the authentication flow itself.
+
+#### Scenario: Login succeeds for unverified user
+
+- GIVEN a user exists with `emailStatus = PENDING`
+- WHEN the user submits valid credentials to the login endpoint
+- THEN the system SHALL return HTTP 200 with AuthTokens payload
+- AND the response SHALL include an access token with `emailStatus = PENDING` in claims
+- AND the response SHALL set an HttpOnly refresh token cookie
+
+#### Scenario: Refresh succeeds for unverified user
+
+- GIVEN a user has a valid refresh token cookie
+- AND the user's `emailStatus = PENDING`
+- WHEN the user calls the refresh endpoint
+- THEN the system SHALL return a new access token
+- AND the access token SHALL include `emailStatus = PENDING` in claims
+
+#### Scenario: Login includes email status in claims
+
+- GIVEN a user with `emailStatus = PENDING` authenticates successfully
+- WHEN the system generates the access token
+- THEN the JWT claims SHALL include `emailStatus: "PENDING"`
+
+### Requirement: EMAIL_VERIFICATION_REQUIRED Error Code
+
+When `UnverifiedEmailException` is thrown, the system SHALL return a structured problem detail.
+
+The problem detail SHALL include:
+- `status`: 403
+- `title`: "Email verification required"
+- `detail`: "Please verify your email before using this feature."
+- `code`: "EMAIL_VERIFICATION_REQUIRED"
+- `type`: "https://api.profiletailors.com/errors/email-verification-required"
+
+#### Scenario: Feature-gated endpoint returns structured error
+
+- GIVEN a user with `emailStatus = PENDING` attempts to access a feature that requires verification
+- WHEN the system throws `UnverifiedEmailException`
+- THEN the response SHALL be HTTP 403
+- AND the response body SHALL be a valid RFC 9457 problem detail
+- AND the problem detail SHALL include `code: "EMAIL_VERIFICATION_REQUIRED"`
+- AND the problem detail SHALL include `type: "https://api.profiletailors.com/errors/email-verification-required"`
+
+### Requirement: EmailVerificationPolicy Interface (Design Only)
+
+The system SHOULD define an `EmailVerificationPolicy` interface in `identity/application`.
+
+The interface SHALL declare: `requiresVerification(feature: AuthFeature): Boolean`
+The interface SHALL define an enum `AuthFeature` with values: `PUBLISH_CONTENT`, `INVITE_TEAM`,
+`CONNECT_SOCIAL`, `ACCESS_BILLING`, and future extensibility.
+The default implementation SHALL return `true` for all features (all features require VERIFIED
+status).
+
+This requirement is DESIGN ONLY. Implementation is deferred.
+
+#### Scenario: EmailVerificationPolicy interface design
+
+- GIVEN the design specifies EmailVerificationPolicy in identity/application
+- WHEN the design is reviewed
+- THEN the interface SHALL declare `requiresVerification(feature: AuthFeature): Boolean`
+- AND the AuthFeature enum SHALL include PUBLISH_CONTENT, INVITE_TEAM, CONNECT_SOCIAL, ACCESS_BILLING
+- AND a default implementation SHALL specify all features require verification
+
 ### Requirement: JWT-First Identity Materialization for Phase One
 
 The system MUST support repo-local authenticated principal materialization for the proving slice.
@@ -104,18 +175,12 @@ login or refresh and keep it only in memory for subsequent protected API calls.
 For the dedicated refresh endpoint, the backend MUST materialize the same USER principal only after
 validating the refresh credential against authoritative backend state and issuing a new JWT for the
 session.
-For SERVICE_ACCOUNT principals on the proving slice, the system MUST materialize the authenticated
-principal from the validated service-account bearer credential path.
-For API_KEY principals on the proving slice, the system MUST materialize the authenticated principal
-from the validated API-key credential path.
 The system MUST treat credential transport as an authentication and principal materialization seam,
 not as the source of authorization truth.
 The system MUST NOT rely on credential claims or credential presence alone to determine workspace
 membership, permission grants, or effective authorization.
-Federated social login, external account linking, broader identity lifecycle breadth, and
-generalized multi-principal onboarding flows remain deferred.
 
-(Previously: Registration issued JWT+refresh immediately without email verification)
+(Previously: Login guard rejects unverified email; Refresh guard rejects unverified email)
 
 #### Scenario: Valid JWT materializes an authenticated principal
 
@@ -131,6 +196,59 @@ generalized multi-principal onboarding flows remain deferred.
 - WHEN the platform evaluates authentication
 - THEN the system MUST reject the request as unauthenticated
 - AND no protected use case MUST execute
+
+#### Scenario: Refresh bootstrap re-establishes the authenticated USER principal
+
+- GIVEN a browser no longer has an in-memory access token for a previously authenticated local USER
+- AND the backend still recognizes a valid refresh credential for that USER session
+- WHEN the frontend calls the dedicated refresh endpoint during session bootstrap
+- THEN the backend MUST issue a new JWT that materializes the same authenticated USER principal
+- AND downstream protected API behavior MUST continue to consume the platform principal rather than
+  raw cookie state
+
+#### Scenario: Missing or invalid refresh session prevents renewed USER principal establishment
+
+- GIVEN a browser attempts to bootstrap or recover a local USER session through the dedicated
+  refresh endpoint
+- AND the presented refresh credential is missing, invalid, expired, or revoked in authoritative
+  backend state
+- WHEN the backend evaluates the refresh request
+- THEN the system MUST reject renewed principal establishment for that session
+- AND the frontend MUST treat the browser as unauthenticated until a new login occurs
+
+#### Scenario: Login succeeds for unverified user
+
+- GIVEN a user exists with `emailStatus = PENDING`
+- WHEN the user submits valid credentials to the login endpoint
+- THEN the system SHALL return HTTP 200 with AuthTokens payload
+- AND the response SHALL include an access token with `emailStatus = PENDING` in claims
+- AND the response SHALL set an HttpOnly refresh token cookie
+
+#### Scenario: Refresh succeeds for unverified user
+
+- GIVEN a user has a valid refresh token cookie
+- AND the user's `emailStatus = PENDING`
+- WHEN the user calls the refresh endpoint
+- THEN the system SHALL return a new access token
+- AND the access token SHALL include `emailStatus = PENDING` in claims
+
+#### Scenario: Registration emits domain event and creates session
+
+- GIVEN a new user submits registration with valid email and password
+- WHEN the registration handler processes the request
+- THEN the system MUST persist the user with `email_status = PENDING`
+- AND the system MUST emit a `UserRegistered` domain event
+- AND the system SHALL issue JWT and refresh tokens
+- AND the response SHALL be HTTP 201 with AuthTokens payload
+
+### Requirement: Service Account and API Key Principal Support
+
+The system MUST additionally implement persisted `SERVICE_ACCOUNT` principal support for the existing
+`/api/authorization/workspace-access/current` proving slice.
+The system MUST additionally implement persisted `API_KEY` principal support for the existing
+`/api/authorization/workspace-access/current` proving slice.
+Persisted service-account and API-key support MUST include only the minimal metadata required to
+identify and operate these actor types on that slice.
 
 #### Scenario: Valid service-account bearer credential materializes an authenticated principal
 
@@ -165,60 +283,6 @@ generalized multi-principal onboarding flows remain deferred.
 - WHEN the platform evaluates authentication
 - THEN the system MUST reject the request as unauthenticated
 - AND no protected use case MUST execute
-
-#### Scenario: Refresh bootstrap re-establishes the authenticated USER principal
-
-- GIVEN a browser no longer has an in-memory access token for a previously authenticated local USER
-- AND the backend still recognizes a valid refresh credential for that USER session
-- WHEN the frontend calls the dedicated refresh endpoint during session bootstrap
-- THEN the backend MUST issue a new JWT that materializes the same authenticated USER principal
-- AND downstream protected API behavior MUST continue to consume the platform principal rather than
-  raw cookie state
-
-#### Scenario: Missing or invalid refresh session prevents renewed USER principal establishment
-
-- GIVEN a browser attempts to bootstrap or recover a local USER session through the dedicated
-  refresh endpoint
-- AND the presented refresh credential is missing, invalid, expired, or revoked in authoritative
-  backend state
-- WHEN the backend evaluates the refresh request
-- THEN the system MUST reject renewed principal establishment for that session
-- AND the frontend MUST treat the browser as unauthenticated until a new login occurs
-
-#### Scenario: Registration emits domain event without issuing tokens
-
-- GIVEN a new user submits registration with valid email and password
-- WHEN the registration handler processes the request
-- THEN the system MUST persist the user with `email_status = UNVERIFIED`
-- AND the system MUST emit a `UserRegistered` domain event
-- AND the system MUST NOT issue JWT or refresh tokens
-- AND the response MUST return 201 with verification instructions
-
-#### Scenario: Login guard rejects unverified email
-
-- GIVEN a user attempts to login with valid credentials
-- AND the user's `email_status` is `UNVERIFIED`
-- WHEN the login handler processes the request
-- THEN the system MUST reject the request with 403 status
-- AND the error MUST indicate email verification required
-- AND the system MUST NOT issue JWT or refresh tokens
-
-#### Scenario: Login guard accepts verified email
-
-- GIVEN a user attempts to login with valid credentials
-- AND the user's `email_status` is `VERIFIED`
-- WHEN the login handler processes the request
-- THEN the system MUST issue JWT and refresh tokens
-- AND the system MUST return successful authentication response
-
-#### Scenario: Refresh guard rejects unverified email
-
-- GIVEN a user attempts to refresh with valid refresh token
-- AND the user's `email_status` is `UNVERIFIED`
-- WHEN the refresh handler processes the request
-- THEN the system MUST reject the request with 403 status
-- AND the error MUST indicate email verification required
-- AND the system MUST NOT issue new JWT
 
 ### Requirement: Local User Session Bootstrap and In-Memory Access Token Handling
 

@@ -32,7 +32,7 @@
  * @see https://playwright.dev/docs/mock#mock-network-requests
  */
 
-import { test as base, expect } from '@playwright/test'
+import { test as base, expect } from '@bgotink/playwright-coverage'
 import path from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { resetSession } from './auth-helpers'
