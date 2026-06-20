@@ -48,8 +48,22 @@ export const NEW_USER = {
 
 export const SHORT_PASSWORD = 'Ab1'
 
+export const LONG_PASSWORD = 'a'.repeat(129)
+
 export const WHITESPACE_EMAIL = '  Test@Example.com  '
 export const NORMALIZED_EMAIL = 'test@example.com'
+
+export const INVALID_EMAIL_FORMATS = [
+  'not-an-email',
+  'missing@domain',
+  '@nodomain.com',
+  'spaces in@email.com',
+] as const
+
+export const DUPLICATE_EMAIL = {
+  email: 'existing@profiletailors.com',
+  password: 'SecurePass123!',
+} as const
 
 export const PROTECTED_ROUTES = [
   { path: APP_URL.scheduler, name: 'scheduler' },

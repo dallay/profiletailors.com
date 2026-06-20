@@ -1,4 +1,4 @@
-import { test, expect } from '@playwright/test';
+import { test, expect } from '@bgotink/playwright-coverage';
 
 test.describe('Landing Page - Hero Section', () => {
   test('should display hero section with value proposition', async ({ page }) => {

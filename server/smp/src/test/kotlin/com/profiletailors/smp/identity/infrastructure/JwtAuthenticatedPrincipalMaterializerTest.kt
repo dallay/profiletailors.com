@@ -11,6 +11,7 @@ import com.profiletailors.smp.identity.application.PrincipalIdentityFacts
 import com.profiletailors.smp.identity.application.PrincipalIdentityLookup
 import com.profiletailors.common.domain.context.PrincipalType
 import com.profiletailors.smp.identity.domain.AuthenticatedPrincipal
+import com.profiletailors.smp.identity.domain.EmailStatus
 import kotlinx.coroutines.test.runTest
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertThrows
@@ -48,6 +49,55 @@ class JwtAuthenticatedPrincipalMaterializerTest {
         assertEquals("jwt-1", authenticatedPrincipal.context.issuedCredentialReference)
         assertEquals("yuniel@example.com", authenticatedPrincipal.context.attributes["email"])
         assertEquals(CredentialType.JWT, authenticatedPrincipal.credentialType)
+    }
+
+    @Test
+    fun `materializes emailStatus from jwt claim when present`() = runTest {
+        val materializer = JwtAuthenticatedPrincipalMaterializer()
+        val token = ValidatedToken(
+            credentialType = CredentialType.JWT,
+            tokenValue = "token-value",
+            subject = "user-pending",
+            issuer = "http://localhost/profiletailors-local",
+            audience = setOf("profiletailors-api"),
+            issuedAt = Instant.parse("2026-05-15T10:15:30Z"),
+            expiresAt = Instant.parse("2026-05-15T11:15:30Z"),
+            tokenId = "jwt-pending",
+            claims = mapOf(
+                "principal_id" to "user-pending",
+                "email" to "pending@example.com",
+                "emailStatus" to "PENDING",
+            ),
+        )
+
+        val authenticatedPrincipal = materializer.materialize(token)
+
+        assertEquals(EmailStatus.PENDING, authenticatedPrincipal.emailStatus)
+        assertEquals("user-pending", authenticatedPrincipal.context.principalId)
+    }
+
+    @Test
+    fun `materializes emailStatus VERIFIED from jwt claim`() = runTest {
+        val materializer = JwtAuthenticatedPrincipalMaterializer()
+        val token = ValidatedToken(
+            credentialType = CredentialType.JWT,
+            tokenValue = "token-value",
+            subject = "user-verified",
+            issuer = "http://localhost/profiletailors-local",
+            audience = setOf("profiletailors-api"),
+            issuedAt = Instant.parse("2026-05-15T10:15:30Z"),
+            expiresAt = Instant.parse("2026-05-15T11:15:30Z"),
+            tokenId = "jwt-verified",
+            claims = mapOf(
+                "principal_id" to "user-verified",
+                "email" to "verified@example.com",
+                "emailStatus" to "VERIFIED",
+            ),
+        )
+
+        val authenticatedPrincipal = materializer.materialize(token)
+
+        assertEquals(EmailStatus.VERIFIED, authenticatedPrincipal.emailStatus)
     }
 
     @Test

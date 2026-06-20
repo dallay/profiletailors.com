@@ -3,6 +3,7 @@ package com.profiletailors.smp.identity.infrastructure.security
 import com.profiletailors.common.domain.context.PrincipalType
 import com.profiletailors.smp.identity.application.IssuedAccessToken
 import com.profiletailors.smp.identity.application.LocalJwtIssuer
+import com.profiletailors.smp.identity.domain.EmailStatus
 import java.time.Instant
 import org.springframework.security.oauth2.jose.jws.MacAlgorithm
 import org.springframework.security.oauth2.jwt.JwsHeader
@@ -21,6 +22,7 @@ class NimbusLocalJwtIssuer(
         subject: String,
         email: String,
         username: String?,
+        emailStatus: EmailStatus,
         issuedAt: Instant,
     ): IssuedAccessToken {
         val expiresAt = issuedAt.plusSeconds(ttlSeconds)
@@ -32,6 +34,7 @@ class NimbusLocalJwtIssuer(
             .claim("principal_id", principalId)
             .claim("principal_type", PrincipalType.USER.name)
             .claim("email", email)
+            .claim("emailStatus", emailStatus.name)
 
         if (!username.isNullOrBlank()) {
             claimsBuilder.claim("preferred_username", username)
