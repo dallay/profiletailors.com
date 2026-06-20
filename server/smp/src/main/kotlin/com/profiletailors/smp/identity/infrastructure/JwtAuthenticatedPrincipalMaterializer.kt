@@ -9,6 +9,7 @@ import com.profiletailors.smp.credentials.domain.ValidatedToken
 import com.profiletailors.smp.identity.application.NoOpPrincipalIdentityLookup
 import com.profiletailors.smp.identity.application.PrincipalIdentityLookup
 import com.profiletailors.smp.identity.domain.AuthenticatedPrincipal
+import com.profiletailors.smp.identity.domain.EmailStatus
 import com.profiletailors.common.domain.context.PrincipalContext
 import com.profiletailors.common.domain.context.PrincipalType
 import com.profiletailors.common.domain.context.MissingPrincipalContextException
@@ -52,7 +53,24 @@ class JwtAuthenticatedPrincipalMaterializer(
                 attributes = token.claims,
             ),
             credentialType = CredentialType.JWT,
+            emailStatus = emailStatusFromClaim(token, principalFacts),
         )
+    }
+
+    private fun emailStatusFromClaim(
+        token: ValidatedToken,
+        principalFacts: com.profiletailors.smp.identity.application.PrincipalIdentityFacts?,
+    ): EmailStatus? {
+        val raw = token.claims["emailStatus"]
+        return if (raw is String) {
+            try {
+                EmailStatus.valueOf(raw)
+            } catch (_: IllegalArgumentException) {
+                principalFacts?.emailStatus
+            }
+        } else {
+            principalFacts?.emailStatus
+        }
     }
 
     private suspend fun materializeServiceAccount(token: ValidatedToken): AuthenticatedPrincipal {
@@ -88,6 +106,7 @@ class JwtAuthenticatedPrincipalMaterializer(
                 attributes = token.claims,
             ),
             credentialType = CredentialType.SERVICE_ACCOUNT,
+            emailStatus = null,
         )
     }
 }

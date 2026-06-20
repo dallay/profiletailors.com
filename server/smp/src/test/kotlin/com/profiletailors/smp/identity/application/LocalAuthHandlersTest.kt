@@ -13,6 +13,7 @@ import com.profiletailors.smp.credentials.application.RefreshSessionToken
 import com.profiletailors.smp.credentials.application.RefreshSessionTokenService
 import com.profiletailors.smp.identity.domain.EmailStatus
 import com.profiletailors.smp.identity.domain.UserRegistered
+import com.profiletailors.smp.identity.infrastructure.BCryptPasswordHasher
 import com.profiletailors.smp.tenancy.application.WorkspaceProvisioningService
 import java.time.Instant
 import kotlinx.coroutines.test.runTest
@@ -36,12 +37,14 @@ class LocalAuthHandlersTest {
     )
 
     @Test
-    fun `registers user and returns result without tokens`() = runTest {
+    fun `registers user and returns session with tokens`() = runTest {
         val identityRegistrationGateway = FakeIdentityRegistrationGateway()
         val principalLookup = FakePrincipalIdentityLookup()
         val passwordGateway = FakeLocalPasswordCredentialGateway()
         val passwordHasher = FakePasswordHasher()
         val eventPublisher = RecordingEventPublisher()
+        val jwtIssuer = FakeLocalJwtIssuer()
+        val refreshSvc = fakeRefreshLifecycleService()
         val handler = RegisterUserHandler(
             identityRegistrationGateway = identityRegistrationGateway,
             principalIdentityLookup = principalLookup,
@@ -50,6 +53,8 @@ class LocalAuthHandlersTest {
             workspaceProvisioningService = FakeWorkspaceProvisioningService(),
             eventPublisher = eventPublisher,
             clock = fixedClock,
+            localJwtIssuer = jwtIssuer,
+            refreshSessionLifecycleService = refreshSvc,
         )
 
         val result = handler.handle(
@@ -60,10 +65,13 @@ class LocalAuthHandlersTest {
             ),
         )
 
-        assertEquals("yuniel@example.com", result.email)
-        assertEquals("yuniel", result.username)
-        assertEquals(EmailStatus.PENDING, result.emailStatus)
-        assertNotNull(result.principalId)
+        // Verify session tokens are returned
+        assertEquals("token-for-yuniel@example.com", result.tokens.accessToken)
+        assertEquals("yuniel@example.com", result.tokens.email)
+        assertEquals("yuniel", result.tokens.username)
+        assertEquals(EmailStatus.PENDING.name, result.tokens.emailStatus)
+        assertNotNull(result.tokens.principalId)
+        assertEquals("refresh-secret", result.refreshToken.secret)
 
         // Verify identity was created with PENDING status
         val createdIdentity = identityRegistrationGateway.created
@@ -94,6 +102,8 @@ class LocalAuthHandlersTest {
             workspaceProvisioningService = FakeWorkspaceProvisioningService(),
             eventPublisher = RecordingEventPublisher(),
             clock = fixedClock,
+            localJwtIssuer = FakeLocalJwtIssuer(),
+            refreshSessionLifecycleService = fakeRefreshLifecycleService(),
         )
 
         try {
@@ -141,7 +151,7 @@ class LocalAuthHandlersTest {
     }
 
     @Test
-    fun `rejects login with unverified email`() = runTest {
+    fun `allows login with unverified email`() = runTest {
         val handler = LoginUserHandler(
             localPasswordCredentialGateway = FakeLocalPasswordCredentialGateway(
                 record = LocalPasswordCredentialRecord(
@@ -169,12 +179,12 @@ class LocalAuthHandlersTest {
             clock = fixedClock,
         )
 
-        try {
-            handler.handle(LoginUserCommand("yuniel@example.com", validPassword))
-            throw AssertionError("Expected UnverifiedEmailException")
-        } catch (e: UnverifiedEmailException) {
-            assertEquals("yuniel@example.com", e.email)
-        }
+        val result = handler.handle(LoginUserCommand("yuniel@example.com", validPassword))
+
+        assertEquals("token-for-yuniel@example.com", result.tokens.accessToken)
+        assertEquals("user-1", result.tokens.principalId)
+        assertEquals(EmailStatus.PENDING.name, result.tokens.emailStatus)
+        assertEquals("refresh-secret", result.refreshToken.secret)
     }
 
     @Test
@@ -205,7 +215,7 @@ class LocalAuthHandlersTest {
     }
 
     @Test
-    fun `rejects refresh with unverified email`() = runTest {
+    fun `allows refresh with unverified email`() = runTest {
         val handler = RefreshUserSessionHandler(
             principalIdentityLookup = FakePrincipalIdentityLookup(
                 principalFacts = PrincipalIdentityFacts(
@@ -224,12 +234,12 @@ class LocalAuthHandlersTest {
             clock = fixedClock,
         )
 
-        try {
-            handler.handle(RefreshUserSessionCommand("refresh-lookup.refresh-secret"))
-            throw AssertionError("Expected UnverifiedEmailException")
-        } catch (e: UnverifiedEmailException) {
-            assertEquals("yuniel@example.com", e.email)
-        }
+        val result = handler.handle(RefreshUserSessionCommand("refresh-lookup.refresh-secret"))
+
+        assertEquals("token-for-yuniel@example.com", result.tokens.accessToken)
+        assertEquals("user-1", result.tokens.principalId)
+        assertEquals(EmailStatus.PENDING.name, result.tokens.emailStatus)
+        assertEquals("refresh-secret", result.refreshToken.secret)
     }
 
     @Test
@@ -294,6 +304,20 @@ class LocalAuthHandlersTest {
         assertTrue(result.accepted)
     }
 
+    @Test
+    fun `default email verification policy requires verification for all features`() {
+        val policy = DefaultEmailVerificationPolicy()
+
+        AuthFeature.entries.forEach { feature ->
+            assertTrue(policy.requiresVerification(feature))
+        }
+    }
+
+    @Test
+    fun `bcrypt password hasher exposes bcrypt algorithm`() {
+        assertEquals("bcrypt", BCryptPasswordHasher().algorithm)
+    }
+
     // ── issueAuthSession tests (covers AuthSessionContext data class) ─────────
 
     @Test
@@ -333,6 +357,7 @@ class LocalAuthHandlersTest {
                 subject: String,
                 email: String,
                 username: String?,
+                emailStatus: com.profiletailors.smp.identity.domain.EmailStatus,
                 issuedAt: Instant,
             ): IssuedAccessToken = IssuedAccessToken(
                 value = "anon-token",
@@ -488,6 +513,8 @@ class LocalAuthHandlersTest {
 
         override fun matches(rawPassword: String, passwordHash: String): Boolean =
             passwordHash == "hashed-$rawPassword"
+
+        override val algorithm: String = "fake"
     }
 
     private open class FakeLocalJwtIssuer : LocalJwtIssuer {
@@ -496,6 +523,7 @@ class LocalAuthHandlersTest {
             subject: String,
             email: String,
             username: String?,
+            emailStatus: com.profiletailors.smp.identity.domain.EmailStatus,
             issuedAt: Instant,
         ): IssuedAccessToken = IssuedAccessToken(
             value = "token-for-$email",

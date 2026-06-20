@@ -17,11 +17,9 @@ import com.profiletailors.smp.identity.application.LogoutUserSessionCommand
 import com.profiletailors.smp.identity.application.LogoutUserSessionResult
 import com.profiletailors.smp.identity.application.RefreshUserSessionCommand
 import com.profiletailors.smp.identity.application.RegisterUserCommand
-import com.profiletailors.smp.identity.application.RegistrationResult
 import com.profiletailors.smp.identity.application.ResendVerificationCommand
 import com.profiletailors.smp.identity.application.ResendVerificationResult
 import com.profiletailors.smp.identity.application.VerifyEmailCommand
-import com.profiletailors.smp.identity.domain.EmailStatus
 import kotlinx.coroutines.test.runTest
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertTrue
@@ -49,14 +47,9 @@ class LocalAuthControllerTest {
     )
 
     @Test
-    fun `dispatches register command and returns 201 without tokens`() = runTest {
-        val registrationResult = RegistrationResult(
-            principalId = "user-1",
-            email = "yuniel@example.com",
-            username = "yuniel",
-            emailStatus = EmailStatus.PENDING,
-        )
-        val mediator = CapturingMediator(registrationResult = registrationResult)
+    fun `dispatches register command and returns 201 with session tokens`() = runTest {
+        val registrationResult = sessionResult("token-1", "user-1", "yuniel@example.com", "yuniel", "PENDING")
+        val mediator = CapturingMediator(sessionResult = registrationResult)
         val controller = LocalAuthController(mediator, cookieFactory, cookieProperties)
 
         val response = controller.register(
@@ -67,11 +60,12 @@ class LocalAuthControllerTest {
         )
 
         assertEquals(201, response.statusCode.value())
+        assertEquals("token-1", response.body?.accessToken)
         assertEquals("user-1", response.body?.principalId)
         assertEquals("yuniel@example.com", response.body?.email)
-        assertEquals(EmailStatus.PENDING, response.body?.emailStatus)
-        // Verify no tokens or cookie set
-        assertTrue(response.headers["Set-Cookie"] == null)
+        assertEquals("PENDING", response.body?.emailStatus)
+        // Verify refresh cookie is set
+        assertTrue(response.headers["Set-Cookie"]?.first()?.contains("pt_refresh=refresh-lookup.refresh-secret") == true)
         assertEquals(
             RegisterUserCommand(
                 email = "yuniel@example.com",
@@ -82,8 +76,8 @@ class LocalAuthControllerTest {
     }
 
     @Test
-    fun `dispatches login command and sets refresh cookie`() = runTest {
-        val expected = sessionResult("token-2", "user-2", "login@example.com", "login")
+    fun `dispatches login command for pending user and sets refresh cookie`() = runTest {
+        val expected = sessionResult("token-2", "user-2", "login@example.com", "login", "PENDING")
         val mediator = CapturingMediator(sessionResult = expected)
         val controller = LocalAuthController(mediator, cookieFactory, cookieProperties)
 
@@ -94,7 +88,9 @@ class LocalAuthControllerTest {
             ),
         )
 
+        assertEquals(200, response.statusCode.value())
         assertEquals("token-2", response.body?.accessToken)
+        assertEquals("PENDING", response.body?.emailStatus)
         assertTrue(response.headers["Set-Cookie"]?.first()?.contains("pt_refresh=refresh-lookup.refresh-secret") == true)
         assertEquals(
             LoginUserCommand(
@@ -107,7 +103,7 @@ class LocalAuthControllerTest {
 
     @Test
     fun `dispatches refresh command using refresh cookie`() = runTest {
-        val expected = sessionResult("token-3", "user-3", "refresh@example.com", "refresh")
+        val expected = sessionResult("token-3", "user-3", "refresh@example.com", "refresh", "VERIFIED")
         val mediator = CapturingMediator(sessionResult = expected)
         val controller = LocalAuthController(mediator, cookieFactory, cookieProperties)
 
@@ -119,7 +115,7 @@ class LocalAuthControllerTest {
 
     @Test
     fun `dispatches logout command and clears refresh cookie`() = runTest {
-        val mediator = CapturingMediator(sessionResult = sessionResult("token-4", "user-4", "logout@example.com", "logout"))
+        val mediator = CapturingMediator(sessionResult = sessionResult("token-4", "user-4", "logout@example.com", "logout", "VERIFIED"))
         mediator.logoutResult = LogoutUserSessionResult()
         val controller = LocalAuthController(mediator, cookieFactory, cookieProperties)
 
@@ -132,7 +128,7 @@ class LocalAuthControllerTest {
 
     @Test
     fun `dispatches verify email command and returns session`() = runTest {
-        val expected = sessionResult("token-5", "user-5", "verify@example.com", "verify")
+        val expected = sessionResult("token-5", "user-5", "verify@example.com", "verify", "VERIFIED")
         val mediator = CapturingMediator(sessionResult = expected)
         val controller = LocalAuthController(mediator, cookieFactory, cookieProperties)
 
@@ -163,17 +159,23 @@ class LocalAuthControllerTest {
         )
     }
 
-    private fun sessionResult(accessToken: String, principalId: String, email: String, username: String) =
-        LocalAuthSessionResult(
-            tokens = AuthTokens(
-                accessToken = accessToken,
-                expiresIn = 900,
-                principalId = principalId,
-                email = email,
-                username = username,
-            ),
-            refreshToken = RefreshSessionToken("refresh-lookup", "refresh-secret"),
-        )
+    private fun sessionResult(
+        accessToken: String,
+        principalId: String,
+        email: String,
+        username: String,
+        emailStatus: String,
+    ) = LocalAuthSessionResult(
+        tokens = AuthTokens(
+            accessToken = accessToken,
+            expiresIn = 900,
+            principalId = principalId,
+            email = email,
+            username = username,
+            emailStatus = emailStatus,
+        ),
+        refreshToken = RefreshSessionToken("refresh-lookup", "refresh-secret"),
+    )
 
     private fun requestWithCookie(name: String, value: String): ServerHttpRequest =
         org.springframework.mock.http.server.reactive.MockServerHttpRequest.post("/api/auth/refresh")
@@ -182,7 +184,6 @@ class LocalAuthControllerTest {
 
     private class CapturingMediator(
         private val sessionResult: LocalAuthSessionResult? = null,
-        private val registrationResult: RegistrationResult? = null,
     ) : Mediator {
         var lastRequest: Any? = null
         var logoutResult: LogoutUserSessionResult = LogoutUserSessionResult()
@@ -202,7 +203,6 @@ class LocalAuthControllerTest {
             lastRequest = command
             return when (command) {
                 is LogoutUserSessionCommand -> logoutResult as TResult
-                is RegisterUserCommand -> registrationResult as TResult
                 is ResendVerificationCommand -> resendResult as TResult
                 else -> sessionResult as TResult
             }

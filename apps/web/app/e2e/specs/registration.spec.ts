@@ -43,7 +43,7 @@ test.describe('Registration', { tag: '@integration' }, () => {
 
     // Intercept API to validate token response
     const responsePromise = page.waitForResponse(
-      (res) => res.url().includes('/api/auth/register') && res.status() === 200,
+      (res) => res.url().includes('/api/auth/register') && res.status() === 201,
     )
 
     await loginPage.submit()
@@ -51,8 +51,9 @@ test.describe('Registration', { tag: '@integration' }, () => {
     // Verify API returns tokens
     const response = await responsePromise
     const body = await response.json()
-    expect(body).toHaveProperty('accessToken')
-    expect(body.accessToken.length).toBeGreaterThan(0)
+    expect(body).toHaveProperty('principalId')
+    expect(body).toHaveProperty('email')
+    expect(body).toHaveProperty('emailStatus', 'PENDING')
 
     // Verify redirect to dashboard
     await dashboard.expectAuthenticated()

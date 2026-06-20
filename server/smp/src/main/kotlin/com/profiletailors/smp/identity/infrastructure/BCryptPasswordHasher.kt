@@ -13,4 +13,6 @@ class BCryptPasswordHasher : PasswordHasher {
             // Malformed hash (e.g., dev placeholder) — fail secure instead of crashing
             false
         }
+
+    override val algorithm: String = "bcrypt"
 }

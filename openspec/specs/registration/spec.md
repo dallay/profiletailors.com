@@ -68,6 +68,32 @@ The derived username MUST be stored in the `username` column in the database.
 - WHEN the account is created
 - THEN the username MUST be derived from the full email prefix `alice.smith+test`
 
+### Requirement: Registration Creates Authenticated Session
+
+Registration SHALL create an authenticated session immediately upon successful completion.
+
+The registration handler SHALL issue JWT and refresh tokens.
+The response SHALL be HTTP 201 Created with AuthTokens payload.
+The response SHALL set an HttpOnly refresh token cookie.
+The registration payload SHALL no longer return only RegistrationResult (breaking change from prior
+behavior).
+
+#### Scenario: Registration creates session and returns tokens
+
+- GIVEN a new user submits valid registration payload with email and password
+- WHEN the registration handler processes the request successfully
+- THEN the response SHALL be HTTP 201 Created
+- AND the response SHALL include an access token in the body
+- AND the response SHALL set an HttpOnly refresh token cookie
+- AND the user SHALL be immediately authenticated
+
+#### Scenario: Registration response matches AuthTokens payload
+
+- GIVEN a user completes registration
+- WHEN the response is returned
+- THEN the payload SHALL conform to the AuthTokens schema
+- AND SHALL NOT conform to the legacy RegistrationResult schema
+
 ### Requirement: Username in API Responses
 
 The system MUST continue to include `username` in API responses.
