@@ -1,5 +1,6 @@
 package com.profiletailors.smp.identity.infrastructure.http
 
+import com.profiletailors.smp.identity.application.FeatureEmailVerificationRequired
 import com.profiletailors.smp.identity.application.InvalidEmailPasswordException
 import com.profiletailors.smp.identity.application.InvalidRegistrationInputException
 import com.profiletailors.smp.identity.application.InvalidVerificationTokenException
@@ -9,6 +10,7 @@ import org.springframework.http.HttpStatus
 import org.springframework.http.ProblemDetail
 import org.springframework.web.bind.annotation.ExceptionHandler
 import org.springframework.web.bind.annotation.RestControllerAdvice
+import java.net.URI
 
 @RestControllerAdvice
 class IdentityProblemDetailsHandler {
@@ -32,9 +34,27 @@ class IdentityProblemDetailsHandler {
         }
 
     @ExceptionHandler(UnverifiedEmailException::class)
+    @Suppress("UNUSED_PARAMETER")
     fun handle(exception: UnverifiedEmailException): ProblemDetail =
-        ProblemDetail.forStatusAndDetail(HttpStatus.FORBIDDEN, exception.message ?: "Forbidden").apply {
+        ProblemDetail.forStatusAndDetail(
+            HttpStatus.FORBIDDEN,
+            "Please verify your email before using this feature.",
+        ).apply {
             title = "Email verification required"
+            type = URI("https://api.profiletailors.com/errors/email-verification-required")
+            setProperty("code", "EMAIL_VERIFICATION_REQUIRED")
+        }
+
+    @ExceptionHandler(FeatureEmailVerificationRequired::class)
+    @Suppress("UNUSED_PARAMETER")
+    fun handle(exception: FeatureEmailVerificationRequired): ProblemDetail =
+        ProblemDetail.forStatusAndDetail(
+            HttpStatus.FORBIDDEN,
+            "Please verify your email before using this feature.",
+        ).apply {
+            title = "Email verification required"
+            type = URI("https://api.profiletailors.com/errors/email-verification-required")
+            setProperty("code", "EMAIL_VERIFICATION_REQUIRED")
         }
 
     @ExceptionHandler(InvalidVerificationTokenException::class)

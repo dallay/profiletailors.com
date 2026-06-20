@@ -48,6 +48,7 @@
     "zod": "4.4.3"
   },
   "devDependencies": {
+    "@bgotink/playwright-coverage": "^0.3.2",
     "@biomejs/biome": "2.5.0",
     "@playwright/test": "^1.60.0",
     "@tailwindcss/vite": "4.3.1",

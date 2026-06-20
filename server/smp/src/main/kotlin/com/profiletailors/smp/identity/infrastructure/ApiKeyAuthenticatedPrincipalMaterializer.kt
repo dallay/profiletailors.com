@@ -29,6 +29,7 @@ open class ApiKeyAuthenticatedPrincipalMaterializer(
                 issuedCredentialReference = activeCredential.credentialReference,
             ),
             credentialType = CredentialType.API_KEY,
+            emailStatus = principalFacts.emailStatus,
         )
     }
 }

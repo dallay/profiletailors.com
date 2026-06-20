@@ -19,11 +19,13 @@ export class LoginPage {
   // ---- Locators ----
 
   get emailInput(): Locator {
-    return this.page.getByLabel(/email/i)
+    // Prefer #email id, fall back to input[type=email], then label-based as last resort.
+    // This works across EN/ES locales without brittle label text matching.
+    return this.page.locator('#email, input[type="email"]').first()
   }
 
   get passwordInput(): Locator {
-    return this.page.getByLabel(/password/i)
+    return this.page.locator('#password, input[type="password"]').first()
   }
 
   get submitButton(): Locator {
