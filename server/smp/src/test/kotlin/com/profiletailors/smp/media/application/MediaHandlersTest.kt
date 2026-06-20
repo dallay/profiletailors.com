@@ -669,6 +669,127 @@ class MediaHandlersTest {
         assertEquals("non-existent", error.assetId)
     }
 
+    @Test
+    fun `uploadAsset validates jpeg when signature arrives across multiple chunks`() = runTest {
+        val repository = InMemoryMediaAssetRepository()
+        val rateLimitRepo = InMemoryMediaRateLimitRepository()
+        val storageBackend = InMemoryFakeStorage()
+        val storage = testStorageApplicationService(storageBackend)
+        repository.createSync(
+            MediaAsset(
+                assetId = "asset-chunked-jpeg",
+                workspaceId = "ws-1",
+                sourceType = MediaSourceType.UPLOADED,
+                mediaType = "image/jpeg",
+                storageKey = "assets/ws-1/asset-chunked-jpeg",
+                status = MediaAssetStatus.PROCESSING,
+                createdAt = fixedClock.instant(),
+            ),
+        )
+        repository.setUploadSlotClaimable("ws-1")
+
+        val handler = UploadAssetHandler(repository, rateLimitRepo, storage, uploadSettings)
+
+        val result = handler.handle(
+            UploadAssetCommand(
+                assetId = "asset-chunked-jpeg",
+                workspaceId = "ws-1",
+                fileStream = kotlinx.coroutines.flow.flowOf(
+                    byteArrayOf(0xFF.toByte(), 0xD8.toByte()),
+                    byteArrayOf(0xFF.toByte(), 0xE0.toByte(), 0x00, 0x10),
+                    "rest-of-image".toByteArray(),
+                ),
+                contentLength = 19L,
+                maxFileSizeBytes = 500L * 1024 * 1024,
+                contentType = "image/jpeg",
+            ),
+        )
+
+        assertEquals("READY", result.status)
+        assertEquals(19L, result.fileSizeBytes)
+        assertTrue(storageBackend.uploadedKeys.contains("assets/ws-1/asset-chunked-jpeg"))
+    }
+
+    @Test
+    fun `uploadAsset rejects stream that ends before media type can be detected`() = runTest {
+        val repository = InMemoryMediaAssetRepository()
+        val rateLimitRepo = InMemoryMediaRateLimitRepository()
+        val storageBackend = InMemoryFakeStorage()
+        val storage = testStorageApplicationService(storageBackend)
+        repository.createSync(
+            MediaAsset(
+                assetId = "asset-unknown-signature",
+                workspaceId = "ws-1",
+                sourceType = MediaSourceType.UPLOADED,
+                mediaType = "image/jpeg",
+                storageKey = "assets/ws-1/asset-unknown-signature",
+                status = MediaAssetStatus.PROCESSING,
+                createdAt = fixedClock.instant(),
+            ),
+        )
+        repository.setUploadSlotClaimable("ws-1")
+
+        val handler = UploadAssetHandler(repository, rateLimitRepo, storage, uploadSettings)
+
+        val error = assertThrows(UnsupportedMediaTypeException::class.java) {
+            kotlinx.coroutines.runBlocking {
+                handler.handle(
+                    UploadAssetCommand(
+                        assetId = "asset-unknown-signature",
+                        workspaceId = "ws-1",
+                        fileStream = kotlinx.coroutines.flow.flowOf(byteArrayOf(0x01, 0x02, 0x03)),
+                        contentLength = 3L,
+                        maxFileSizeBytes = 500L * 1024 * 1024,
+                        contentType = "image/jpeg",
+                    ),
+                )
+            }
+        }
+
+        assertEquals("image/jpeg", error.declaredType)
+        assertNull(error.detectedType)
+    }
+
+    @Test
+    fun `uploadAsset accepts OOXML signature using declared content type`() = runTest {
+        val repository = InMemoryMediaAssetRepository()
+        val rateLimitRepo = InMemoryMediaRateLimitRepository()
+        val storageBackend = InMemoryFakeStorage()
+        val storage = testStorageApplicationService(storageBackend)
+        repository.createSync(
+            MediaAsset(
+                assetId = "asset-docx",
+                workspaceId = "ws-1",
+                sourceType = MediaSourceType.UPLOADED,
+                mediaType = "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+                storageKey = "assets/ws-1/asset-docx",
+                originalFilename = "report.docx",
+                status = MediaAssetStatus.PROCESSING,
+                createdAt = fixedClock.instant(),
+            ),
+        )
+        repository.setUploadSlotClaimable("ws-1")
+
+        val handler = UploadAssetHandler(repository, rateLimitRepo, storage, uploadSettings)
+
+        val result = handler.handle(
+            UploadAssetCommand(
+                assetId = "asset-docx",
+                workspaceId = "ws-1",
+                fileStream = kotlinx.coroutines.flow.flowOf(
+                    byteArrayOf(0x50.toByte(), 0x4B.toByte()),
+                    byteArrayOf(0x03.toByte(), 0x04.toByte(), 0x14, 0x00),
+                ),
+                contentLength = 6L,
+                maxFileSizeBytes = 500L * 1024 * 1024,
+                contentType = "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+            ),
+        )
+
+        assertEquals("READY", result.status)
+        assertEquals(6L, result.fileSizeBytes)
+    }
+
     // --- ListWorkspaceAssetsHandler tests ---
 
     @Test
