@@ -8,7 +8,7 @@ import com.profiletailors.common.domain.context.ResourceContextProvider
 import com.profiletailors.smp.identity.application.AuthFeature
 import com.profiletailors.smp.identity.application.EmailVerificationPolicy
 import com.profiletailors.smp.identity.application.NoOpPrincipalIdentityLookup
-import com.profiletailors.smp.identity.application.PermissiveEmailVerificationPolicy
+import com.profiletailors.smp.identity.application.permissiveEmailVerificationPolicy
 import com.profiletailors.smp.identity.application.PrincipalIdentityLookup
 import com.profiletailors.smp.identity.application.permissivePrincipalContextProvider
 import com.profiletailors.smp.identity.application.requireEmailVerification
@@ -98,7 +98,7 @@ internal class InitiateLinkedInConnectionHandler(
     private val authorizationUrlBuilder: LinkedInAuthorizationUrlBuilder,
     private val clock: Clock,
     private val principalIdentityLookup: PrincipalIdentityLookup = NoOpPrincipalIdentityLookup(),
-    private val emailVerificationPolicy: EmailVerificationPolicy = PermissiveEmailVerificationPolicy(),
+    private val emailVerificationPolicy: EmailVerificationPolicy = permissiveEmailVerificationPolicy,
 ) : CommandWithResultHandler<InitiateLinkedInConnectionCommand, LinkedInConnectionInitiationResult> {
     override suspend fun handle(command: InitiateLinkedInConnectionCommand): LinkedInConnectionInitiationResult {
         val principalCtx = principalContextProvider.require()
@@ -153,7 +153,7 @@ internal class CompleteLinkedInConnectionHandler(
     private val clock: Clock,
     private val principalIdentityLookup: PrincipalIdentityLookup = NoOpPrincipalIdentityLookup(),
     private val emailVerificationPolicy: EmailVerificationPolicy =
-        PermissiveEmailVerificationPolicy(),
+        permissiveEmailVerificationPolicy,
 ) : CommandWithResultHandler<CompleteLinkedInConnectionCommand, SocialConnectionResult> {
     override suspend fun handle(command: CompleteLinkedInConnectionCommand): SocialConnectionResult {
         val principalCtx = principalContextProvider.require()
@@ -302,7 +302,7 @@ internal class CreatePublicationHandler(
     private val clock: Clock,
     private val principalIdentityLookup: PrincipalIdentityLookup = NoOpPrincipalIdentityLookup(),
     private val emailVerificationPolicy: EmailVerificationPolicy =
-        PermissiveEmailVerificationPolicy(),
+        permissiveEmailVerificationPolicy,
 ) : CommandWithResultHandler<CreatePublicationCommand, PublicationResult> {
     override suspend fun handle(command: CreatePublicationCommand): PublicationResult {
         val principalCtx = principalContextProvider.require()
@@ -453,7 +453,7 @@ internal class EditPublicationHandler(
     private val mediaIntegrationSettings: PublishingMediaIntegrationSettings,
     private val clock: Clock,
     private val principalIdentityLookup: PrincipalIdentityLookup = NoOpPrincipalIdentityLookup(),
-    private val emailVerificationPolicy: EmailVerificationPolicy = PermissiveEmailVerificationPolicy(),
+    private val emailVerificationPolicy: EmailVerificationPolicy = permissiveEmailVerificationPolicy,
 ) : CommandWithResultHandler<EditPublicationCommand, PublicationResult> {
     override suspend fun handle(command: EditPublicationCommand): PublicationResult {
         val principalCtx = principalContextProvider.require()
@@ -576,7 +576,7 @@ internal class CancelPublicationHandler(
     private val publicationJobRepository: PublicationJobRepository,
     private val clock: Clock,
     private val principalIdentityLookup: PrincipalIdentityLookup = NoOpPrincipalIdentityLookup(),
-    private val emailVerificationPolicy: EmailVerificationPolicy = PermissiveEmailVerificationPolicy(),
+    private val emailVerificationPolicy: EmailVerificationPolicy = permissiveEmailVerificationPolicy,
 ) : CommandWithResultHandler<CancelPublicationCommand, PublicationResult> {
     override suspend fun handle(command: CancelPublicationCommand): PublicationResult {
         val principalCtx = principalContextProvider.require()
@@ -606,7 +606,7 @@ internal class RetryPublicationHandler(
     private val schedulingPolicy: PublicationSchedulingPolicy,
     private val clock: Clock,
     private val principalIdentityLookup: PrincipalIdentityLookup = NoOpPrincipalIdentityLookup(),
-    private val emailVerificationPolicy: EmailVerificationPolicy = PermissiveEmailVerificationPolicy(),
+    private val emailVerificationPolicy: EmailVerificationPolicy = permissiveEmailVerificationPolicy,
 ) : CommandWithResultHandler<RetryPublicationCommand, PublicationResult> {
     override suspend fun handle(command: RetryPublicationCommand): PublicationResult {
         val principalCtx = principalContextProvider.require()
@@ -657,7 +657,7 @@ internal class ReschedulePublicationHandler(
     private val schedulingPolicy: PublicationSchedulingPolicy,
     private val clock: Clock,
     private val principalIdentityLookup: PrincipalIdentityLookup = NoOpPrincipalIdentityLookup(),
-    private val emailVerificationPolicy: EmailVerificationPolicy = PermissiveEmailVerificationPolicy(),
+    private val emailVerificationPolicy: EmailVerificationPolicy = permissiveEmailVerificationPolicy,
 ) : CommandWithResultHandler<ReschedulePublicationCommand, PublicationResult> {
     override suspend fun handle(command: ReschedulePublicationCommand): PublicationResult {
         val principalCtx = principalContextProvider.require()

@@ -48,14 +48,7 @@ class PublishingSchedulingConfiguration(
 
     @Bean
     fun publishingJobExecutor(
-        publicationJobRepository: PublicationJobRepository,
-        publicationRepository: PublicationRepository,
-        socialAccountRepository: SocialAccountRepository,
-        publicationAssetRepository: PublicationAssetRepository,
-        deliveryAttemptRepository: DeliveryAttemptRepository,
         notificationEventRepository: NotificationEventRepository?,
-        providerCapabilityValidator: ProviderCapabilityValidator,
-        socialPublisher: SocialPublisher,
         publishingRetryPolicy: DeliveryRetryPolicy,
     ): PublishingJobExecutor = PublishingJobExecutor(
         publicationJobRepository = publicationJobRepository,
