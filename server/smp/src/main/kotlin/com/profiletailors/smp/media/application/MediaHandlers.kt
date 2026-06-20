@@ -368,69 +368,42 @@ class UploadAssetHandler(
         }
     }
 
-    @Suppress("ThrowsCount")
+    @Suppress("ThrowsCount", "CognitiveComplexMethod")
     private suspend fun uploadWithStreamingValidation(
         command: UploadAssetCommand,
         asset: MediaAsset,
         bucket: String,
     ): Long {
-        val maxSize = command.maxFileSizeBytes
         var bytesReceived = 0L
-        var validatedMagicBytes = false
-        val pendingChunks = mutableListOf<ByteArray>()
 
         val uploadFlow = kotlinx.coroutines.flow.flow {
+            val pendingChunks = mutableListOf<ByteArray>()
+            var validatedMagicBytes = false
+
             command.fileStream.collect { bytes ->
                 val newTotal = bytesReceived + bytes.size
-                if (newTotal > maxSize) {
-                    throw FileTooLargeException(newTotal, maxSize)
+                if (newTotal > maxFileSize(command)) {
+                    throw FileTooLargeException(newTotal, maxFileSize(command))
                 }
                 bytesReceived = newTotal
 
-                if (!validatedMagicBytes) {
-                    pendingChunks.add(bytes)
-                    val headerBytes = pendingChunks
-                        .asSequence()
-                        .flatMap { it.asSequence() }
-                        .take(WEBP_SIGNATURE_SIZE)
-                        .toList()
-                        .toByteArray()
-                    val detectedType = detectMediaType(headerBytes, command.contentType)
-                    if (detectedType != null) {
-                        if (detectedType != asset.mediaType) {
-                            throw UnsupportedMediaTypeException(
-                                "Magic-byte validation failed: detected $detectedType but declared " +
-                                    asset.mediaType,
-                                declaredType = asset.mediaType,
-                                detectedType = detectedType,
-                            )
-                        }
-                        validatedMagicBytes = true
-                        pendingChunks.forEach { emit(it) }
-                        pendingChunks.clear()
-                    }
-                } else {
-                    emit(bytes)
-                }
+                validatedMagicBytes = collectOrEmitChunk(
+                    validatedMagicBytes = validatedMagicBytes,
+                    chunk = bytes,
+                    pendingChunks = pendingChunks,
+                    declaredType = asset.mediaType,
+                    declaredContentType = command.contentType,
+                    emit = { emit(it) },
+                )
             }
 
             if (!validatedMagicBytes) {
-                val headerBytes = pendingChunks
-                    .asSequence()
-                    .flatMap { it.asSequence() }
-                    .take(WEBP_SIGNATURE_SIZE)
-                    .toList()
-                    .toByteArray()
-                val detectedType = detectMediaType(headerBytes, command.contentType)
-                if (detectedType == null || detectedType != asset.mediaType) {
-                    throw UnsupportedMediaTypeException(
-                        "Magic-byte validation failed: detected ${detectedType ?: "unknown"} " +
-                            "but declared ${asset.mediaType}",
-                        declaredType = asset.mediaType,
-                        detectedType = detectedType,
-                    )
-                }
-                pendingChunks.forEach { emit(it) }
+                emitRemainingChunks(
+                    pendingChunks = pendingChunks,
+                    declaredType = asset.mediaType,
+                    declaredContentType = command.contentType,
+                    emit = { emit(it) },
+                )
             }
         }
 
@@ -449,6 +422,73 @@ class UploadAssetHandler(
         }
 
         return bytesReceived
+    }
+
+    private fun maxFileSize(command: UploadAssetCommand): Long = command.maxFileSizeBytes
+
+    private suspend fun collectOrEmitChunk(
+        validatedMagicBytes: Boolean,
+        chunk: ByteArray,
+        pendingChunks: MutableList<ByteArray>,
+        declaredType: String,
+        declaredContentType: String?,
+        emit: suspend (ByteArray) -> Unit,
+    ): Boolean {
+        if (validatedMagicBytes) {
+            emit(chunk)
+            return true
+        }
+
+        pendingChunks.add(chunk)
+        val headerBytes = buildHeaderBytes(pendingChunks)
+        val detectedType = detectMediaType(headerBytes, declaredContentType)
+        val isValidated = detectedType != null
+        if (isValidated) {
+            validateMediaTypeMatch(detectedType, declaredType)
+            pendingChunks.forEach { emit(it) }
+            pendingChunks.clear()
+        } else if (headerBytes.size >= WEBP_SIGNATURE_SIZE) {
+            throw UnsupportedMediaTypeException(
+                "Magic-byte validation failed: detected unknown but declared $declaredType",
+                declaredType = declaredType,
+                detectedType = null,
+            )
+        }
+        return isValidated
+    }
+
+    private suspend fun emitRemainingChunks(
+        pendingChunks: MutableList<ByteArray>,
+        declaredType: String,
+        declaredContentType: String?,
+        emit: suspend (ByteArray) -> Unit,
+    ) {
+        val headerBytes = buildHeaderBytes(pendingChunks)
+        val detectedType = detectMediaType(headerBytes, declaredContentType)
+            ?: throw UnsupportedMediaTypeException(
+                "Magic-byte validation failed: detected unknown but declared $declaredType",
+                declaredType = declaredType,
+                detectedType = null,
+            )
+        validateMediaTypeMatch(detectedType, declaredType)
+        pendingChunks.forEach { emit(it) }
+    }
+
+    private fun buildHeaderBytes(pendingChunks: List<ByteArray>): ByteArray =
+        pendingChunks.asSequence()
+            .flatMap { it.asSequence() }
+            .take(WEBP_SIGNATURE_SIZE)
+            .toList()
+            .toByteArray()
+
+    private fun validateMediaTypeMatch(detectedType: String?, declaredType: String) {
+        if (detectedType != declaredType) {
+            throw UnsupportedMediaTypeException(
+                "Magic-byte validation failed: detected $detectedType but declared $declaredType",
+                declaredType = declaredType,
+                detectedType = detectedType,
+            )
+        }
     }
 
     private fun detectMediaType(headerBytes: ByteArray, declaredType: String?): String? {
