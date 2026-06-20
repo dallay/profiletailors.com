@@ -440,12 +440,19 @@ class UploadAssetHandler(
         }
 
         pendingChunks.add(chunk)
-        val detectedType = detectMediaType(buildHeaderBytes(pendingChunks), declaredContentType)
+        val headerBytes = buildHeaderBytes(pendingChunks)
+        val detectedType = detectMediaType(headerBytes, declaredContentType)
         val isValidated = detectedType != null
         if (isValidated) {
             validateMediaTypeMatch(detectedType, declaredType)
             pendingChunks.forEach { emit(it) }
             pendingChunks.clear()
+        } else if (headerBytes.size >= WEBP_SIGNATURE_SIZE) {
+            throw UnsupportedMediaTypeException(
+                "Magic-byte validation failed: detected unknown but declared $declaredType",
+                declaredType = declaredType,
+                detectedType = null,
+            )
         }
         return isValidated
     }
