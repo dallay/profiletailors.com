@@ -361,7 +361,7 @@ Keep copy precise and free of filler. Copy IS design.
 ## Do's and Don'ts
 
 ### Do
-- Use the semantic scale to rank information: `1000` for primary text, `900` for secondary, `700` for disabled.
+- Use the semantic scale to rank information: `1000` for display text, `900` for primary/body text, `800` for secondary text, `700` for muted/disabled text.
 - Maintain WCAG AA contrast (4.5:1).
 - Show the focus ring on every interactive element at `:focus-visible`.
 - Apply typography tokens strictly; don't set manual font sizes or weights.
