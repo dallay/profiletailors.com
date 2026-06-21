@@ -344,7 +344,7 @@ All buttons: Space Mono, ALL CAPS, letter-spacing 0.06em, padding 12px 24px, min
 
 - No shadows. Layering through background contrast and subtle translucent borders.
 - Modal: backdrop `rgba(0,0,0,0.8)`, dialog `--background-surface` + border + 16px radius.
-- Toast: Inline status text at bottom or corner: `[SAVED]`, `[ERROR: ...]`. Drop trailing periods.
+- Toast: Inline status text at bottom or corner: `[Saved]`, `[Error: ...]`. Drop trailing periods.
 
 ## Voice & Content
 
