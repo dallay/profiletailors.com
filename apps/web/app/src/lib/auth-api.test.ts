@@ -6,6 +6,7 @@ import {
   logoutSession,
   getCurrentUserProfile,
   createApiFetch,
+  proxyImageUrl,
   type AuthTokens,
   type CurrentUserProfile,
 } from './auth-api'
@@ -560,5 +561,39 @@ describe('createApiFetch', () => {
     } else {
       process.env.VITE_API_BASE_URL = original
     }
+  })
+})
+
+// ---------------------------------------------------------------------------
+// proxyImageUrl
+// ---------------------------------------------------------------------------
+
+describe('proxyImageUrl', () => {
+  beforeEach(() => {
+    mockImportMetaEnv({})
+  })
+
+  it('uses the media proxy path when the API base is same-origin', () => {
+    process.env.VITE_API_BASE_URL = ''
+
+    expect(proxyImageUrl('https://media.licdn.com/dms/image/v2/avatar.jpg')).toBe(
+      '/api/media/proxy?url=https%3A%2F%2Fmedia.licdn.com%2Fdms%2Fimage%2Fv2%2Favatar.jpg',
+    )
+  })
+
+  it('returns already proxied URLs unchanged in same-origin mode', () => {
+    process.env.VITE_API_BASE_URL = ''
+
+    expect(proxyImageUrl('http://localhost:3000/api/media/proxy?url=https%3A%2F%2Fmedia.licdn.com%2Fa.jpg')).toBe(
+      'http://localhost:3000/api/media/proxy?url=https%3A%2F%2Fmedia.licdn.com%2Fa.jpg',
+    )
+  })
+
+  it('uses the configured absolute API base for external images', () => {
+    process.env.VITE_API_BASE_URL = 'https://api.example.com'
+
+    expect(proxyImageUrl('https://media.licdn.com/dms/image/v2/avatar.jpg')).toBe(
+      'https://api.example.com/api/media/proxy?url=https%3A%2F%2Fmedia.licdn.com%2Fdms%2Fimage%2Fv2%2Favatar.jpg',
+    )
   })
 })
