@@ -357,11 +357,14 @@ export function proxyImageUrl(originalUrl: string): string {
   try {
     const url = new URL(originalUrl)
     const apiBase = resolveApiBaseUrl()
+    const proxyBase = apiBase || window.location.origin
+    const proxyUrl = new URL('/api/media/proxy', proxyBase)
     // Don't proxy URLs that are ALREADY proxied through OUR backend
-    if (url.origin === new URL(apiBase).origin && url.pathname.startsWith('/api/media/proxy')) {
+    if (url.origin === proxyUrl.origin && url.pathname.startsWith(proxyUrl.pathname)) {
       return originalUrl
     }
-    return `${apiBase}/api/media/proxy?url=${encodeURIComponent(originalUrl)}`
+    proxyUrl.searchParams.set('url', originalUrl)
+    return apiBase ? proxyUrl.toString() : `${proxyUrl.pathname}${proxyUrl.search}`
   } catch {
     return originalUrl
   }
