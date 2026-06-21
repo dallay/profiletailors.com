@@ -1,13 +1,12 @@
 package com.profiletailors.ratelimit.infrastructure
 
+import com.fasterxml.jackson.module.kotlin.jacksonObjectMapper
 import com.profiletailors.ratelimit.domain.RateLimitResult
 import com.profiletailors.ratelimit.domain.RateLimitStrategy
 import com.profiletailors.ratelimit.infrastructure.adapter.ReactiveRateLimitingAdapter
 import com.profiletailors.ratelimit.infrastructure.config.BucketConfigurationFactory
 import com.profiletailors.ratelimit.infrastructure.filter.RateLimitingFilter
 import io.kotest.matchers.shouldBe
-import io.kotest.matchers.shouldNotBe
-import io.mockk.clearAllMocks
 import io.mockk.clearMocks
 import io.mockk.every
 import io.mockk.mockk
@@ -15,161 +14,48 @@ import io.mockk.verify
 import java.net.InetSocketAddress
 import java.time.Duration
 import java.time.Instant
-import org.junit.jupiter.api.AfterEach
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
+import org.springframework.core.io.buffer.DataBufferUtils
 import org.springframework.http.HttpStatus
 import org.springframework.mock.http.server.reactive.MockServerHttpRequest
 import org.springframework.mock.web.server.MockServerWebExchange
 import org.springframework.web.server.WebFilterChain
 import reactor.core.publisher.Mono
 import reactor.test.StepVerifier
-import tools.jackson.databind.json.JsonMapper
-import tools.jackson.module.kotlin.jsonMapper
-import tools.jackson.module.kotlin.kotlinModule
+import java.nio.charset.StandardCharsets
 
-/**
- * Unit tests for core [RateLimitingFilter] behavior.
- *
- * Tests cover:
- * - Filter behavior for authentication endpoints
- * - Filter bypass for non-auth endpoints
- * - Rate limit headers addition
- * - Rate limit error response generation
- * - Enable/disable configuration
- * - Request already processed handling
- * - Path matching logic
- *
- * Additional test classes:
- * - [RateLimitingFilterIpExtractionTest] - IP extraction and sanitization
- * - [RateLimitingFilterStrategyTest] - Strategy-specific behavior (RESUME, WAITLIST)
- */
+class RateLimitingFilterTest {
 
-internal class RateLimitingFilterTest {
-
-    private lateinit var filter: RateLimitingFilter
     private lateinit var reactiveRateLimitingAdapter: ReactiveRateLimitingAdapter
     private lateinit var configurationFactory: BucketConfigurationFactory
-    private lateinit var jsonMapper: JsonMapper
     private lateinit var chain: WebFilterChain
+    private lateinit var filter: RateLimitingFilter
 
     @BeforeEach
     fun setUp() {
         reactiveRateLimitingAdapter = mockk()
         configurationFactory = mockk()
-        jsonMapper = jsonMapper { addModule(kotlinModule()) }
         chain = mockk()
 
-        filter = RateLimitingFilter(reactiveRateLimitingAdapter, jsonMapper, configurationFactory)
-
-        // Default mocks
-        every { configurationFactory.isRateLimitEnabled(RateLimitStrategy.AUTH) } returns true
-        every { configurationFactory.isRateLimitEnabled(RateLimitStrategy.BUSINESS) } returns true
-        every { configurationFactory.isRateLimitEnabled(RateLimitStrategy.RESUME) } returns true
-        every { configurationFactory.isRateLimitEnabled(RateLimitStrategy.WAITLIST) } returns true
-        every {
-            configurationFactory.getEndpoints(RateLimitStrategy.AUTH)
-        } returns listOf("/api/auth/login", "/api/auth/register")
-        every {
-            configurationFactory.getEndpoints(RateLimitStrategy.BUSINESS)
-        } returns emptyList()
-        every {
-            configurationFactory.getEndpoints(RateLimitStrategy.RESUME)
-        } returns listOf("/api/resume/generate")
-        every {
-            configurationFactory.getEndpoints(RateLimitStrategy.WAITLIST)
-        } returns listOf("/api/waitlist")
+        every { configurationFactory.isRateLimitEnabled(any()) } returns true
+        every { configurationFactory.getEndpoints(RateLimitStrategy.AUTH) } returns listOf("/api/auth/login", "/api/auth/register")
+        every { configurationFactory.getEndpoints(RateLimitStrategy.BUSINESS) } returns emptyList()
+        every { configurationFactory.getEndpoints(RateLimitStrategy.RESUME) } returns listOf("/api/resume/generate")
+        every { configurationFactory.getEndpoints(RateLimitStrategy.WAITLIST) } returns listOf("/api/waitlist/join")
         every { chain.filter(any()) } returns Mono.empty()
-    }
 
-    @AfterEach
-    fun tearDown() {
-        clearAllMocks()
-    }
-
-    @Test
-    fun `should allow request when rate limit not exceeded`() {
-        // Given
-        val request = MockServerHttpRequest.post("/api/auth/login")
-            .remoteAddress(InetSocketAddress("127.0.0.1", 8080))
-            .build()
-        val exchange = MockServerWebExchange.from(request)
-        val identifier = "IP:127.0.0.1"
-
-        every {
-            reactiveRateLimitingAdapter.consumeToken(identifier, "/api/auth/login", RateLimitStrategy.AUTH)
-        } returns Mono.just(
-            RateLimitResult.Allowed(
-                remainingTokens = 9,
-                limitCapacity = 10,
-                resetTime = Instant.now().plusSeconds(60),
-            ),
+        filter = RateLimitingFilter(
+            reactiveRateLimitingAdapter,
+            jacksonObjectMapper(),
+            configurationFactory,
         )
-
-        // When
-        val result = filter.filter(exchange, chain)
-
-        // Then
-        StepVerifier.create(result)
-            .verifyComplete()
-
-        verify(exactly = 1) { chain.filter(exchange) }
-        verify(exactly = 1) {
-            reactiveRateLimitingAdapter.consumeToken(identifier, "/api/auth/login", RateLimitStrategy.AUTH)
-        }
-
-        // Verify standard rate limit headers
-        exchange.response.headers["X-RateLimit-Limit"]?.get(0) shouldBe "10"
-        exchange.response.headers["X-RateLimit-Remaining"]?.get(0) shouldBe "9"
-        // X-RateLimit-Reset should be present (Unix timestamp)
-        exchange.response.headers["X-RateLimit-Reset"]?.get(0) shouldNotBe null
     }
 
     @Test
-    fun `should deny request when rate limit exceeded`() {
+    fun `should skip rate limiting if strategy not found`() {
         // Given
-        val request = MockServerHttpRequest.post("/api/auth/login")
-            .remoteAddress(InetSocketAddress("127.0.0.1", 8080))
-            .build()
-        val exchange = MockServerWebExchange.from(request)
-        val identifier = "IP:127.0.0.1"
-        val retryAfter = Duration.ofMinutes(5)
-
-        every {
-            reactiveRateLimitingAdapter.consumeToken(identifier, "/api/auth/login", RateLimitStrategy.AUTH)
-        } returns Mono.just(
-            RateLimitResult.Denied(
-                retryAfter = retryAfter,
-                limitCapacity = 10,
-                windowDuration = Duration.ofMinutes(1),
-            ),
-        )
-
-        // When
-        val result = filter.filter(exchange, chain)
-
-        // Then
-        StepVerifier.create(result)
-            .verifyComplete()
-
-        verify(exactly = 0) { chain.filter(exchange) }
-        verify(exactly = 1) {
-            reactiveRateLimitingAdapter.consumeToken(identifier, "/api/auth/login", RateLimitStrategy.AUTH)
-        }
-
-        exchange.response.statusCode shouldBe HttpStatus.TOO_MANY_REQUESTS
-        // Verify standard HTTP Retry-After header
-        exchange.response.headers["Retry-After"]?.get(0) shouldBe "300"
-        // Verify rate limit headers
-        exchange.response.headers["X-RateLimit-Limit"]?.get(0) shouldBe "10"
-        // Backward compatibility header (deprecated)
-        exchange.response.headers["X-Rate-Limit-Retry-After-Seconds"]?.get(0) shouldBe "300"
-    }
-
-    @Test
-    fun `should skip rate limiting for non-authentication endpoints`() {
-        // Given
-        val request = MockServerHttpRequest.get("/api/users/profile").build()
+        val request = MockServerHttpRequest.get("/api/unknown").build()
         val exchange = MockServerWebExchange.from(request)
 
         // When
@@ -184,7 +70,7 @@ internal class RateLimitingFilterTest {
     }
 
     @Test
-    fun `should skip rate limiting when auth rate limiting is disabled`() {
+    fun `should skip rate limiting if disabled for strategy`() {
         // Given
         every { configurationFactory.isRateLimitEnabled(RateLimitStrategy.AUTH) } returns false
         val request = MockServerHttpRequest.post("/api/auth/login").build()
@@ -483,5 +369,309 @@ internal class RateLimitingFilterTest {
         verify(exactly = 1) {
             reactiveRateLimitingAdapter.consumeToken(identifier, "/api/auth/login", RateLimitStrategy.AUTH)
         }
+    }
+
+    @Test
+    fun `should extract identifier from X-Forwarded-For header`() {
+        // Given
+        val request = MockServerHttpRequest.post("/api/auth/login")
+            .header("X-Forwarded-For", "192.168.1.100, 10.0.0.1")
+            .build()
+        val exchange = MockServerWebExchange.from(request)
+        val identifier = "IP:192.168.1.100"
+
+        every {
+            reactiveRateLimitingAdapter.consumeToken(identifier, "/api/auth/login", RateLimitStrategy.AUTH)
+        } returns Mono.just(RateLimitResult.Allowed(9, 10, Instant.now()))
+
+        // When
+        filter.filter(exchange, chain).block()
+
+        // Then
+        verify(exactly = 1) {
+            reactiveRateLimitingAdapter.consumeToken(identifier, any(), any())
+        }
+    }
+
+    @Test
+    fun `should sanitize and truncate IP from header`() {
+        // Given
+        val maliciousIp = "192.168.1.100\nINJECTED"
+        val longIp = "1".repeat(100)
+
+        val request1 = MockServerHttpRequest.post("/api/auth/login")
+            .header("X-Forwarded-For", maliciousIp)
+            .build()
+        val exchange1 = MockServerWebExchange.from(request1)
+
+        val request2 = MockServerHttpRequest.post("/api/auth/login")
+            .header("X-Forwarded-For", longIp)
+            .build()
+        val exchange2 = MockServerWebExchange.from(request2)
+
+        every {
+            reactiveRateLimitingAdapter.consumeToken(any(), any(), any())
+        } returns Mono.just(RateLimitResult.Allowed(9, 10, Instant.now()))
+
+        // When
+        filter.filter(exchange1, chain).block()
+        filter.filter(exchange2, chain).block()
+
+        // Then
+        verify {
+            reactiveRateLimitingAdapter.consumeToken("IP:192.168.1.100INJECTED", any(), any())
+            reactiveRateLimitingAdapter.consumeToken("IP:" + "1".repeat(50), any(), any())
+        }
+    }
+
+    @Test
+    fun `should use unknown IP when remoteAddress is null`() {
+        // Given
+        val request = MockServerHttpRequest.post("/api/auth/login").build()
+        val exchange = MockServerWebExchange.from(request)
+        // MockServerWebExchange's request has null remoteAddress by default if not set
+
+        every {
+            reactiveRateLimitingAdapter.consumeToken("IP:unknown", "/api/auth/login", RateLimitStrategy.AUTH)
+        } returns Mono.just(RateLimitResult.Allowed(9, 10, Instant.now()))
+
+        // When
+        filter.filter(exchange, chain).block()
+
+        // Then
+        verify(exactly = 1) {
+            reactiveRateLimitingAdapter.consumeToken("IP:unknown", any(), any())
+        }
+    }
+
+    @Test
+    fun `should return specific error messages for each strategy`() {
+        val strategies = listOf(
+            RateLimitStrategy.AUTH to "Too many authentication attempts. Please try again later.",
+            RateLimitStrategy.BUSINESS to "Rate limit exceeded for business API. Please try again later.",
+            RateLimitStrategy.RESUME to "Rate limit exceeded for resume generation. Please try again later.",
+            RateLimitStrategy.WAITLIST to "Too many waitlist requests. Please try again later."
+        )
+
+        strategies.forEach { (strategy, expectedMessage) ->
+            // Given
+            val path = when(strategy) {
+                RateLimitStrategy.AUTH -> "/api/auth/login"
+                RateLimitStrategy.BUSINESS -> "/api/business/data"
+                RateLimitStrategy.RESUME -> "/api/resume/generate"
+                RateLimitStrategy.WAITLIST -> "/api/waitlist/join"
+            }
+
+            if (strategy == RateLimitStrategy.BUSINESS) return@forEach
+
+            val request = MockServerHttpRequest.post(path).build()
+            val exchange = MockServerWebExchange.from(request)
+
+            every {
+                reactiveRateLimitingAdapter.consumeToken(any(), path, strategy)
+            } returns Mono.just(
+                RateLimitResult.Denied(Duration.ofMinutes(1), 10, Duration.ofMinutes(1))
+            )
+
+            // When
+            filter.filter(exchange, chain).block()
+
+            // Then
+            val body = exchange.response.bodyAsString()
+            body.contains(expectedMessage) shouldBe true
+
+            clearMocks(reactiveRateLimitingAdapter, answers = false)
+        }
+    }
+
+    @Test
+    fun `should apply rate limiting to RESUME strategy endpoint`() {
+        // Given
+        val request = MockServerHttpRequest.post("/api/resume/generate")
+            .remoteAddress(InetSocketAddress("10.0.0.1", 8080))
+            .build()
+        val exchange = MockServerWebExchange.from(request)
+        val identifier = "IP:10.0.0.1"
+
+        every {
+            reactiveRateLimitingAdapter.consumeToken(identifier, "/api/resume/generate", RateLimitStrategy.RESUME)
+        } returns Mono.just(RateLimitResult.Allowed(8, 10, Instant.now()))
+
+        // When
+        filter.filter(exchange, chain).block()
+
+        // Then
+        verify(exactly = 1) {
+            reactiveRateLimitingAdapter.consumeToken(identifier, "/api/resume/generate", RateLimitStrategy.RESUME)
+        }
+    }
+
+    @Test
+    fun `should apply rate limiting to WAITLIST strategy endpoint`() {
+        // Given
+        val request = MockServerHttpRequest.post("/api/waitlist/join")
+            .remoteAddress(InetSocketAddress("10.0.0.2", 8080))
+            .build()
+        val exchange = MockServerWebExchange.from(request)
+        val identifier = "IP:10.0.0.2"
+
+        every {
+            reactiveRateLimitingAdapter.consumeToken(identifier, "/api/waitlist/join", RateLimitStrategy.WAITLIST)
+        } returns Mono.just(RateLimitResult.Allowed(7, 10, Instant.now()))
+
+        // When
+        filter.filter(exchange, chain).block()
+
+        // Then
+        verify(exactly = 1) {
+            reactiveRateLimitingAdapter.consumeToken(identifier, "/api/waitlist/join", RateLimitStrategy.WAITLIST)
+        }
+    }
+
+    @Test
+    fun `should add all standard rate limit headers on allowed request`() {
+        // Given
+        val resetTime = Instant.now().plusSeconds(60)
+        val request = MockServerHttpRequest.post("/api/auth/login")
+            .remoteAddress(InetSocketAddress("127.0.0.1", 8080))
+            .build()
+        val exchange = MockServerWebExchange.from(request)
+
+        every {
+            reactiveRateLimitingAdapter.consumeToken(any(), any(), RateLimitStrategy.AUTH)
+        } returns Mono.just(
+            RateLimitResult.Allowed(
+                remainingTokens = 7,
+                limitCapacity = 10,
+                resetTime = resetTime,
+            ),
+        )
+
+        // When
+        filter.filter(exchange, chain).block()
+
+        // Then
+        exchange.response.headers["X-RateLimit-Limit"]?.get(0) shouldBe "10"
+        exchange.response.headers["X-RateLimit-Remaining"]?.get(0) shouldBe "7"
+        exchange.response.headers["X-RateLimit-Reset"]?.get(0) shouldBe resetTime.epochSecond.toString()
+    }
+
+    @Test
+    fun `should set 429 status when rate limit denied`() {
+        // Given
+        val request = MockServerHttpRequest.post("/api/auth/login").build()
+        val exchange = MockServerWebExchange.from(request)
+
+        every {
+            reactiveRateLimitingAdapter.consumeToken(any(), any(), RateLimitStrategy.AUTH)
+        } returns Mono.just(
+            RateLimitResult.Denied(
+                retryAfter = Duration.ofMinutes(5),
+                limitCapacity = 10,
+                windowDuration = Duration.ofMinutes(1),
+            ),
+        )
+
+        // When
+        filter.filter(exchange, chain).block()
+
+        // Then
+        exchange.response.statusCode shouldBe HttpStatus.TOO_MANY_REQUESTS
+        verify(exactly = 0) { chain.filter(exchange) }
+    }
+
+    @Test
+    fun `should set standard Retry-After header on denied request`() {
+        // Given
+        val request = MockServerHttpRequest.post("/api/auth/login").build()
+        val exchange = MockServerWebExchange.from(request)
+
+        every {
+            reactiveRateLimitingAdapter.consumeToken(any(), any(), RateLimitStrategy.AUTH)
+        } returns Mono.just(
+            RateLimitResult.Denied(
+                retryAfter = Duration.ofMinutes(10),
+                limitCapacity = 10,
+                windowDuration = Duration.ofMinutes(1),
+            ),
+        )
+
+        // When
+        filter.filter(exchange, chain).block()
+
+        // Then
+        exchange.response.headers["Retry-After"]?.get(0) shouldBe "600"
+        exchange.response.headers["X-RateLimit-Limit"]?.get(0) shouldBe "10"
+    }
+
+    @Test
+    fun `should use first IP from comma-separated X-Forwarded-For`() {
+        // Given - proxy chain with multiple IPs
+        val request = MockServerHttpRequest.post("/api/auth/login")
+            .header("X-Forwarded-For", "203.0.113.1, 198.51.100.1, 192.0.2.1")
+            .build()
+        val exchange = MockServerWebExchange.from(request)
+
+        every {
+            reactiveRateLimitingAdapter.consumeToken("IP:203.0.113.1", any(), any())
+        } returns Mono.just(RateLimitResult.Allowed(9, 10, Instant.now()))
+
+        // When
+        filter.filter(exchange, chain).block()
+
+        // Then
+        verify(exactly = 1) {
+            reactiveRateLimitingAdapter.consumeToken("IP:203.0.113.1", any(), any())
+        }
+    }
+
+    @Test
+    fun `should prefer X-Forwarded-For over remoteAddress`() {
+        // Given
+        val request = MockServerHttpRequest.post("/api/auth/login")
+            .remoteAddress(InetSocketAddress("10.0.0.1", 8080))
+            .header("X-Forwarded-For", "203.0.113.50")
+            .build()
+        val exchange = MockServerWebExchange.from(request)
+
+        every {
+            reactiveRateLimitingAdapter.consumeToken("IP:203.0.113.50", any(), any())
+        } returns Mono.just(RateLimitResult.Allowed(9, 10, Instant.now()))
+
+        // When
+        filter.filter(exchange, chain).block()
+
+        // Then
+        verify(exactly = 1) {
+            reactiveRateLimitingAdapter.consumeToken("IP:203.0.113.50", any(), any())
+        }
+        verify(exactly = 0) {
+            reactiveRateLimitingAdapter.consumeToken("IP:10.0.0.1", any(), any())
+        }
+    }
+
+    @Test
+    fun `should match sub-paths of a configured endpoint`() {
+        // Given - sub-path of /api/auth/login
+        val request = MockServerHttpRequest.post("/api/auth/login/callback").build()
+        val exchange = MockServerWebExchange.from(request)
+
+        every {
+            reactiveRateLimitingAdapter.consumeToken(any(), any(), RateLimitStrategy.AUTH)
+        } returns Mono.just(RateLimitResult.Allowed(9, 10, Instant.now()))
+
+        // When
+        filter.filter(exchange, chain).block()
+
+        // Then
+        verify(exactly = 1) {
+            reactiveRateLimitingAdapter.consumeToken(any(), "/api/auth/login/callback", RateLimitStrategy.AUTH)
+        }
+    }
+
+    private fun org.springframework.http.server.reactive.ServerHttpResponse.bodyAsString(): String {
+        return DataBufferUtils.join(this.body)
+            .map { it.toString(StandardCharsets.UTF_8) }
+            .block() ?: ""
     }
 }
