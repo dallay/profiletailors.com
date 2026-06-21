@@ -31,6 +31,7 @@ vi.mock('@/lib/auth-api', () => ({
   register: vi.fn(),
   logoutSession: vi.fn(),
   proxyImageUrl: (url: string) => url,
+  resolveApiUrl: (url: string) => url,
 }))
 
 vi.mock('@/components/ui/button', () => ({
@@ -161,6 +162,38 @@ describe('CreatePostModal.vue — media asset integration', () => {
     setActivePinia(createPinia())
     document.body.innerHTML = ''
     vi.clearAllMocks()
+  })
+
+  it('shows the selected asset preview instead of the completed upload card', async () => {
+    const mediaStore = useMediaStore()
+    mediaStore.assetsById['preview-asset'] = {
+      assetId: 'preview-asset',
+      workspaceId: 'ws-1',
+      sourceType: 'UPLOADED',
+      mediaType: 'image/png',
+      status: 'READY',
+      originalFilename: 'preview.png',
+      fileSizeBytes: 1024,
+      createdAt: '2026-06-19T12:00:00Z',
+      previewUrl: '/api/media/assets/preview-asset/preview',
+    }
+    mediaStore.selectedAssetIds.push('preview-asset')
+    mediaStore.uploads['done-key'] = {
+      tempKey: 'done-key',
+      assetId: 'preview-asset',
+      file: new File(['fake'], 'preview.png', { type: 'image/png' }),
+      progress: 100,
+      status: 'done',
+      asset: mediaStore.assetsById['preview-asset'],
+    }
+
+    mountModal([makeChannel('ch-preview')])
+
+    await new Promise((resolve) => setTimeout(resolve, 0))
+
+    const body = document.body.innerHTML
+    expect(body).toContain('Selected media preview')
+    expect(body).not.toContain('Uploading preview.png')
   })
 
   afterEach(() => {

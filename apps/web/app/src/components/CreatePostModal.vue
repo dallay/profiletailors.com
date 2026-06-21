@@ -348,10 +348,11 @@ const selectedAssetPreviewUrl = computed<string | null>(() => {
 })
 
 /**
- * The current upload item being tracked (max 1 for MVP).
+ * The current in-flight or failed upload item being tracked (max 1 for MVP).
+ * Completed uploads should fall through to the selected asset preview state.
  */
 const currentUpload = computed(() => {
-  return mediaStore.uploadList[0] ?? null
+  return mediaStore.uploadList.find((upload) => upload.status !== 'done') ?? null
 })
 
 function selectChannel(channelId: string) {
