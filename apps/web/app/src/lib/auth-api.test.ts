@@ -584,9 +584,11 @@ describe('proxyImageUrl', () => {
   it('returns already proxied URLs unchanged in same-origin mode', () => {
     process.env.VITE_API_BASE_URL = ''
 
-    expect(proxyImageUrl('http://localhost:3000/api/media/proxy?url=https%3A%2F%2Fmedia.licdn.com%2Fa.jpg')).toBe(
-      'http://localhost:3000/api/media/proxy?url=https%3A%2F%2Fmedia.licdn.com%2Fa.jpg',
-    )
+    expect(
+      proxyImageUrl(
+        'http://localhost:3000/api/media/proxy?url=https%3A%2F%2Fmedia.licdn.com%2Fa.jpg',
+      ),
+    ).toBe('http://localhost:3000/api/media/proxy?url=https%3A%2F%2Fmedia.licdn.com%2Fa.jpg')
   })
 
   it('uses the configured absolute API base for external images', () => {
