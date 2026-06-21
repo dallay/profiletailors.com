@@ -115,7 +115,7 @@ jobs:
       # identical coverage. Flags are aligned with codecov.yml flags so per-component
       # status checks work correctly.
       - name: Upload coverage to Codecov
-        uses: codecov/codecov-action@1e1e6d9a05cc0de80e5de44f6f71a1c7b08ef754 # v5.2.0
+        uses: codecov/codecov-action@fb8b3582c8e4def4969c97caa2f19720cb33a72f
         with:
           files: |
             server/smp/build/reports/kover/report.xml
