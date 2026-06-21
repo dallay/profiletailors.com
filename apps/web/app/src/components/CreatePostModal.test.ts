@@ -263,6 +263,63 @@ describe('CreatePostModal.vue — media asset integration', () => {
   })
 })
 
+describe('CreatePostModal.vue — submit normalization', () => {
+  beforeEach(() => {
+    setActivePinia(createPinia())
+    document.body.innerHTML = ''
+    vi.clearAllMocks()
+  })
+
+  afterEach(() => {
+    document.body.innerHTML = ''
+  })
+
+  it('submits trimmed post content to the publishing store', async () => {
+    const channel = makeChannel('submit-ch-1')
+    const store = usePublishingStore()
+    store.channels = [channel]
+
+    const wrapper = mount(CreatePostModalComponent, {
+      props: { isOpen: true },
+      global: { mocks: { $t: mockT } },
+    })
+    await wrapper.vm.$nextTick()
+
+    const schedulePost = vi.spyOn(store, 'schedulePost').mockResolvedValue({
+      id: 'pub-1',
+      content: 'Hello world',
+      channels: ['linkedin'],
+      scheduledAt: '2026-06-20T14:00:00Z',
+      status: 'QUEUED',
+      priority: false,
+    })
+
+    // The textarea is teleported to body — query it directly
+    const textarea = document.body.querySelector('textarea')
+    expect(textarea).not.toBeNull()
+
+    // Simulate typing with leading/trailing whitespace
+    ;(textarea as HTMLTextAreaElement).value = '  Hello world  '
+    textarea?.dispatchEvent(new Event('input', { bubbles: true }))
+
+    await wrapper.vm.$nextTick()
+
+    // Click the schedule button (the ui-button rendered in the teleported content)
+    const button = document.body.querySelector('.ui-button')
+    expect(button).not.toBeNull()
+    ;(button as HTMLButtonElement).click()
+
+    await wrapper.vm.$nextTick()
+
+    expect(schedulePost).toHaveBeenCalledTimes(1)
+    expect(schedulePost).toHaveBeenCalledWith(
+      expect.objectContaining({
+        content: 'Hello world',
+      }),
+    )
+  })
+})
+
 describe('CreatePostModal.vue — dangling upload recovery', () => {
   beforeEach(() => {
     setActivePinia(createPinia())

@@ -2,6 +2,7 @@
 import { computed, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { Button } from '@/components/ui/button'
+import { authCredentialsSchema } from '@/lib/validation/schemas'
 import { useAuthStore } from '@/stores/auth'
 
 const auth = useAuthStore()
@@ -14,6 +15,7 @@ const alternateRoute = computed(() => isRegisterMode.value ? '/login' : '/regist
 const email = ref('')
 const password = ref('')
 const formError = ref<string | null>(null)
+const fieldErrors = ref<{ email?: string; password?: string }>({})
 
 if (auth.error) {
   formError.value = auth.error
@@ -23,6 +25,7 @@ if (auth.error) {
 // (both use the same AuthView component, so setup() runs only once)
 watch(() => route.name, () => {
   formError.value = null
+  fieldErrors.value = {}
   email.value = ''
   password.value = ''
   auth.clearError()
@@ -30,19 +33,29 @@ watch(() => route.name, () => {
 
 async function handleSubmit() {
   formError.value = null
+  fieldErrors.value = {}
   auth.clearError()
+
+  const validationResult = authCredentialsSchema.safeParse({
+    email: email.value,
+    password: password.value,
+  })
+
+  if (!validationResult.success) {
+    fieldErrors.value = {
+      email: validationResult.error.flatten().fieldErrors.email?.[0],
+      password: validationResult.error.flatten().fieldErrors.password?.[0],
+    }
+    return
+  }
+
+  const payload = validationResult.data
 
   try {
     if (isRegisterMode.value) {
-      await auth.registerWithPassword({
-        email: email.value,
-        password: password.value,
-      })
+      await auth.registerWithPassword(payload)
     } else {
-      await auth.loginWithPassword({
-        email: email.value,
-        password: password.value,
-      })
+      await auth.loginWithPassword(payload)
     }
 
     const redirectTo = typeof route.query.redirect === 'string' ? route.query.redirect : '/'
@@ -126,9 +139,13 @@ async function handleSubmit() {
                 type="email"
                 autocomplete="email"
                 :placeholder="$t('auth.emailPlaceholder', { at: '@' })"
+                :aria-invalid="fieldErrors.email ? 'true' : 'false'"
                 class="w-full rounded-2xl border border-border-visible bg-bg-primary px-4 py-3 text-sm text-text-body placeholder:text-text-secondary focus:border-text-display focus:outline-none"
                 required
               >
+              <p v-if="fieldErrors.email" class="text-sm text-error">
+                {{ fieldErrors.email }}
+              </p>
             </div>
 
             <div class="space-y-2">
@@ -142,9 +159,13 @@ async function handleSubmit() {
                 type="password"
                 autocomplete="current-password"
                 :placeholder="$t('auth.passwordPlaceholder')"
+                :aria-invalid="fieldErrors.password ? 'true' : 'false'"
                 class="w-full rounded-2xl border border-border-visible bg-bg-primary px-4 py-3 text-sm text-text-body placeholder:text-text-secondary focus:border-text-display focus:outline-none"
                 required
               >
+              <p v-if="fieldErrors.password" class="text-sm text-error">
+                {{ fieldErrors.password }}
+              </p>
             </div>
 
             <div

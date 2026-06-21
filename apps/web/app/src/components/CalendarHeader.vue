@@ -137,7 +137,12 @@ const emit = defineEmits<{
       </div>
 
       <!-- Create Button -->
-      <Button @click="emit('newPost')" class="gap-1.5 h-8.5 text-[10px] uppercase font-mono tracking-wider">
+      <Button
+        @click="emit('newPost')"
+        :disabled="publishingStore.hasNoChannels"
+        :title="publishingStore.hasNoChannels ? 'Connect a channel before creating posts.' : undefined"
+        class="gap-1.5 h-8.5 text-[10px] uppercase font-mono tracking-wider disabled:cursor-not-allowed disabled:opacity-50"
+      >
         <Plus class="size-3.5" />
         <span>{{ $t('scheduler.newPost') || 'New Post' }}</span>
       </Button>

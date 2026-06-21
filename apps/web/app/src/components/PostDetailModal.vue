@@ -206,6 +206,19 @@ async function deletePublication() {
             </p>
           </div>
 
+          <div v-if="publication.thumbnail" class="space-y-2">
+            <span class="font-mono text-[9px] font-bold tracking-widest text-text-secondary uppercase">
+              Media
+            </span>
+            <div class="overflow-hidden rounded-2xl border border-border-subtle bg-bg-primary/30">
+              <img
+                :src="publication.thumbnail"
+                alt="Publication media preview"
+                class="block max-h-80 w-full object-cover"
+              />
+            </div>
+          </div>
+
           <!-- Schedule / publish metadata -->
           <div class="grid grid-cols-2 gap-3 pt-2 border-t border-border-subtle">
             <div class="space-y-1">

@@ -13,12 +13,11 @@ import {
   Upload,
   AlertCircle,
   RotateCcw,
-  Library,
 } from '@lucide/vue'
 import { useAuthStore } from '@/stores/auth'
 import { usePublishingStore } from '@/stores/publishing'
 import { useMediaStore } from '@/stores/media'
-import { proxyImageUrl } from '@/lib/auth-api'
+import { proxyImageUrl, resolveApiUrl } from '@/lib/auth-api'
 import { Button } from '@/components/ui/button'
 import { Calendar } from '@/components/ui/calendar'
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
@@ -58,15 +57,19 @@ const isDatePickerOpen = ref(false)
 // ---------------------------------------------------------------------------
 // Media picker state (replaces local-only File attachment truth)
 // ---------------------------------------------------------------------------
-const isMediaPickerOpen = ref(false)
-const isMediaPickerLoading = ref(false)
-const mediaPickerError = ref<string | null>(null)
 // Blob URL for instant preview during upload (purely transient UX)
 const uploadPreviewBlob = ref<string | null>(null)
 const uploadTempKey = ref<string | null>(null)
 const uploadProgress = ref(0)
 const fileInput = ref<HTMLInputElement | null>(null)
 const isDragging = ref(false)
+
+function clearUploadPreviewBlob() {
+  if (uploadPreviewBlob.value) {
+    URL.revokeObjectURL(uploadPreviewBlob.value)
+    uploadPreviewBlob.value = null
+  }
+}
 
 // Calendar selector state
 const selectedCalendarDate = ref<DateValue>()
@@ -118,12 +121,11 @@ watch(
       avatarLoadFailed.value = {}
       selectedChannelId.value = publishingStore.channels[0]?.id ?? null
 
-      // Clear media picker state
+      // Clear selected/uploaded media state
       mediaStore.clearSelection()
-      uploadPreviewBlob.value = null
+      clearUploadPreviewBlob()
       uploadTempKey.value = null
       uploadProgress.value = 0
-      isMediaPickerOpen.value = false
 
       const defaultDate = props.initialDate ? new Date(props.initialDate) : new Date()
       selectedCalendarDate.value = new CalendarDate(
@@ -271,9 +273,7 @@ function addFiles(filesList: File[]) {
  */
 async function uploadAndTrack(file: File) {
   // Revoke any previous preview blob
-  if (uploadPreviewBlob.value) {
-    URL.revokeObjectURL(uploadPreviewBlob.value)
-  }
+  clearUploadPreviewBlob()
   uploadPreviewBlob.value = URL.createObjectURL(file)
   uploadProgress.value = 0
 
@@ -288,11 +288,8 @@ async function uploadAndTrack(file: File) {
     // Upload succeeded — add to selection for the publication
     mediaStore.addToSelection(asset.assetId)
 
-    // Clean up transient preview blob
-    if (uploadPreviewBlob.value) {
-      URL.revokeObjectURL(uploadPreviewBlob.value)
-      uploadPreviewBlob.value = null
-    }
+    // Keep the transient preview blob alive until the user closes/removes the media.
+    // The backend does not yet expose a download/thumbnail URL for READY assets.
     uploadTempKey.value = null
     uploadProgress.value = 0
   } catch {
@@ -311,52 +308,10 @@ function removeFile() {
   mediaStore.clearSelection()
 
   // Clean up any in-progress upload tracking
-  if (uploadPreviewBlob.value) {
-    URL.revokeObjectURL(uploadPreviewBlob.value)
-    uploadPreviewBlob.value = null
-  }
+  clearUploadPreviewBlob()
   uploadTempKey.value = null
   uploadProgress.value = 0
   mediaStore.clearUploads()
-}
-
-// ---------------------------------------------------------------------------
-// Media Picker (browse existing READY assets)
-// ---------------------------------------------------------------------------
-
-/**
- * Opens the media picker and loads READY assets if not already loaded.
- */
-async function openMediaPicker() {
-  isMediaPickerOpen.value = true
-  mediaPickerError.value = null
-  isMediaPickerLoading.value = true
-
-  try {
-    // If no READY assets are loaded yet, fetch them
-    if (mediaStore.assetIds.length === 0) {
-      await mediaStore.loadAssets('READY')
-    }
-  } catch (err) {
-    mediaPickerError.value = (err as { detail?: string }).detail ?? 'Failed to load media library.'
-  } finally {
-    isMediaPickerLoading.value = false
-  }
-}
-
-/**
- * Closes the media picker.
- */
-function closeMediaPicker() {
-  isMediaPickerOpen.value = false
-}
-
-/**
- * Selects an asset from the picker and closes the picker.
- */
-function pickAsset(assetId: string) {
-  mediaStore.addToSelection(assetId)
-  closeMediaPicker()
 }
 
 /**
@@ -389,20 +344,7 @@ const selectedAssetPreviewUrl = computed<string | null>(() => {
   if (assets.length === 0) return null
   const first = assets[0]
   if (!first.mediaType.startsWith('image/')) return null
-  // For READY assets served from backend storage, the download URL would be:
-  // GET /api/media/assets/{assetId}/download (not yet defined in MVP).
-  // We fall back to the transient blob URL if the upload just completed.
-  return uploadPreviewBlob.value
-})
-
-/**
- * Has any upload (in-progress or failed) that hasn't been resolved yet.
- */
-const hasPendingOrFailedUpload = computed(() => {
-  return (
-    mediaStore.pendingUploads.length > 0 ||
-    mediaStore.failedUploads.length > 0
-  )
+  return uploadPreviewBlob.value ?? (first.previewUrl ? resolveApiUrl(first.previewUrl) : null)
 })
 
 /**
@@ -446,40 +388,57 @@ function handleAiAssist() {
   }, 800)
 }
 
+/**
+ * Validates the custom schedule date and time inputs.
+ * Returns an error message string on failure, or undefined on success.
+ * Sets finalScheduledDate when the date is valid.
+ */
+function validateCustomSchedule(finalScheduledDate: Date): string | undefined {
+  if (!selectedCalendarDate.value) {
+    return 'Select a date.'
+  }
+
+  const [hoursRaw, minutesRaw] = scheduleTime.value.split(':').map(Number)
+  const hours = hoursRaw ?? Number.NaN
+  const minutes = minutesRaw ?? Number.NaN
+
+  const isValidHours = Number.isInteger(hours) && hours >= 0 && hours <= 23
+  const isValidMinutes = Number.isInteger(minutes) && minutes >= 0 && minutes <= 59
+  if (!isValidHours || !isValidMinutes) {
+    return 'Invalid time selected.'
+  }
+
+  finalScheduledDate.setHours(hours, minutes, 0, 0)
+
+  const earliestAllowed = new Date(now.value.getTime() + 5 * 60_000)
+  if (finalScheduledDate < earliestAllowed) {
+    return 'Selected date and time must be in the future.'
+  }
+
+  return undefined
+}
+
 async function handleSchedule() {
   if (!canSubmit.value) return
 
-  // Capture createAnother state before any async work
+  const normalizedPostText = postText.value.trim()
   const shouldCreateAnother = createAnother.value
-  const _capturedText = postText.value
 
   isSubmitting.value = true
   submitError.value = ''
 
   try {
     let finalScheduledDate: Date | undefined
+
     if (scheduleMode.value === 'custom') {
       if (!selectedCalendarDate.value) {
         submitError.value = 'Select a date.'
         return
       }
-
-      const [hoursRaw, minutesRaw] = scheduleTime.value.split(':').map(Number)
-      const hours = hoursRaw ?? Number.NaN
-      const minutes = minutesRaw ?? Number.NaN
-      const isValidHours = Number.isInteger(hours) && hours >= 0 && hours <= 23
-      const isValidMinutes = Number.isInteger(minutes) && minutes >= 0 && minutes <= 59
-      if (!isValidHours || !isValidMinutes) {
-        submitError.value = 'Invalid time selected.'
-        return
-      }
-
       finalScheduledDate = selectedCalendarDate.value.toDate(getLocalTimeZone())
-      finalScheduledDate.setHours(hours, minutes, 0, 0)
-
-      const earliestAllowed = new Date(now.value.getTime() + 5 * 60_000)
-      if (finalScheduledDate < earliestAllowed) {
-        submitError.value = 'Selected date and time must be in the future.'
+      const error = validateCustomSchedule(finalScheduledDate)
+      if (error) {
+        submitError.value = error
         return
       }
     }
@@ -490,16 +449,17 @@ async function handleSchedule() {
         ? 'NEXT_SLOT'
         : 'SCHEDULED_AT'
 
-    // Schedule through store — pass scheduleMode so NOW and NEXT_SLOT modes omit scheduledFor
-    // Pass persisted assetIds (not local File objects) now that the media library is centralized.
     await publishingStore.schedulePost({
-      content: postText.value,
+      content: normalizedPostText,
       title: 'Post from App',
       channels: selectedProviders.value,
       scheduledAt: finalScheduledDate?.toISOString(),
       nextSlotAfter: scheduleMode.value === 'next' ? now.value.toISOString() : undefined,
       scheduleMode: backendScheduleMode,
       priority: priorityMode.value,
+      thumbnail: selectedAssetIsImage.value
+        ? (uploadPreviewBlob.value ?? selectedAssetPreviewUrl.value ?? undefined)
+        : undefined,
       assetIds: [...mediaStore.selectedAssetIds],
       socialAccountId: selectedChannel.value?.accountId,
     })
@@ -507,7 +467,6 @@ async function handleSchedule() {
     emit('created')
 
     if (shouldCreateAnother) {
-      // Reset text so the modal is ready for the next post
       postText.value = ''
       removeFile()
       firstComment.value = ''
@@ -517,7 +476,6 @@ async function handleSchedule() {
   } catch (err) {
     submitError.value = err instanceof Error ? err.message : 'Unable to schedule post.'
     console.error('Error scheduling post', err)
-    // Always reset form when "Create Another" was checked, even on error
     if (shouldCreateAnother) {
       postText.value = ''
       removeFile()
@@ -648,19 +606,12 @@ async function handleSchedule() {
             </div>
           </div>
 
-          <!-- Media Attachment (Persisted Upload + Library Picker) -->
+          <!-- Media Attachment (direct upload only for now) -->
           <div class="space-y-2">
             <div class="flex items-center justify-between">
               <span class="font-mono text-[9px] tracking-widest text-text-secondary uppercase block">
                 Media Attachment
               </span>
-              <button
-                v-if="!hasPendingOrFailedUpload && mediaStore.selectedAssetIds.length === 0"
-                @click="openMediaPicker"
-                class="font-mono text-[8px] uppercase tracking-wider font-bold text-text-display hover:underline cursor-pointer"
-              >
-                Browse Library
-              </button>
             </div>
 
             <!-- Upload progress or failed upload state -->
@@ -718,10 +669,10 @@ async function handleSchedule() {
 
             <!-- Selected READY asset preview -->
             <div
-              v-else-if="mediaStore.selectedAssetIds.length > 0 && selectedAssetIsImage && uploadPreviewBlob"
+              v-else-if="mediaStore.selectedAssetIds.length > 0 && selectedAssetIsImage && selectedAssetPreviewUrl"
               class="relative w-full max-w-[180px] h-16 rounded-lg overflow-hidden group"
             >
-              <img :src="uploadPreviewBlob" alt="Selected media preview" class="w-full h-full object-cover" />
+              <img :src="selectedAssetPreviewUrl" alt="Selected media preview" class="w-full h-full object-cover" />
               <button
                 @click.stop="removeFile"
                 class="absolute top-1 right-1 bg-black/60 text-white rounded-full p-1 hover:bg-black/90 transition-colors cursor-pointer"
@@ -759,74 +710,6 @@ async function handleSchedule() {
               </p>
             </button>
 
-            <!-- Media Picker Modal (inline) -->
-            <div v-if="isMediaPickerOpen" class="border border-border-visible rounded-xl overflow-hidden">
-              <div class="flex items-center justify-between p-3 bg-bg-primary border-b border-border-subtle">
-                <div class="flex items-center gap-2">
-                  <Library class="size-4 text-text-secondary" />
-                  <span class="font-mono text-[9px] tracking-widest text-text-secondary uppercase">
-                    Media Library
-                  </span>
-                  <span v-if="isMediaPickerLoading" class="flex items-center gap-1 text-text-secondary">
-                    <Loader2 class="size-3 animate-spin" />
-                    <span class="font-mono text-[8px]">Loading...</span>
-                  </span>
-                </div>
-                <div class="flex items-center gap-2">
-                  <button
-                    @click="openMediaPicker"
-                    class="font-mono text-[8px] uppercase tracking-wider font-bold text-text-display hover:underline cursor-pointer"
-                  >
-                    Upload New
-                  </button>
-                  <button @click="closeMediaPicker" class="cursor-pointer">
-                    <X class="size-3 text-text-secondary hover:text-text-display" />
-                  </button>
-                </div>
-              </div>
-
-              <p v-if="mediaPickerError" class="px-3 py-2 text-xs text-error">
-                {{ mediaPickerError }}
-              </p>
-
-              <!-- Dangling uploads section (PROCESSING / FAILED from prior sessions) -->
-              <div
-                v-if="mediaStore.assetIds.length > 0"
-                class="p-2 space-y-1"
-              >
-                <p class="font-mono text-[8px] tracking-widest text-text-secondary uppercase px-1 mb-1">
-                  Prior Uploads
-                </p>
-                <div class="grid grid-cols-4 gap-2">
-                  <button
-                    v-for="assetId in mediaStore.assetIds.slice(0, 8)"
-                    :key="assetId"
-                    class="relative group cursor-pointer rounded overflow-hidden border bg-transparent p-0 border-none"
-                    :class="mediaStore.selectedAssetIds.includes(assetId)
-                      ? 'border-text-display'
-                      : 'border-border-visible hover:border-text-display'"
-                    @click="pickAsset(assetId)"
-                  >
-                    <div class="aspect-square bg-bg-primary/50 flex items-center justify-center">
-                      <span class="font-mono text-[8px] text-text-secondary uppercase">
-                        {{ mediaStore.assetsById[assetId]?.status ?? '?' }}
-                      </span>
-                    </div>
-                    <div
-                      v-if="mediaStore.selectedAssetIds.includes(assetId)"
-                      class="absolute inset-0 bg-text-display/30 flex items-center justify-center"
-                    >
-                      <Check class="size-4 text-white" />
-                    </div>
-                  </button>
-                </div>
-              </div>
-
-              <div v-if="!isMediaPickerLoading && mediaStore.assetIds.length === 0" class="p-6 text-center">
-                <p class="text-xs text-text-secondary">No assets in your library yet.</p>
-                <p class="text-[10px] text-text-secondary mt-1">Upload a file to get started.</p>
-              </div>
-            </div>
           </div>
 
           <!-- First Comment option -->
@@ -895,16 +778,12 @@ async function handleSchedule() {
               </div>
 
               <!-- Uploaded Media Preview (uses transient blob URL for UX) -->
-              <div v-if="uploadPreviewBlob || mediaStore.selectedAssetIds.length > 0" class="border-t border-[#2d3135] max-h-[220px] overflow-hidden bg-black/30 flex items-center justify-center">
+              <div v-if="selectedAssetPreviewUrl" class="border-t border-[#2d3135] max-h-[220px] overflow-hidden bg-black/30 flex items-center justify-center">
                 <img
-                  v-if="uploadPreviewBlob"
-                  :src="uploadPreviewBlob"
+                  :src="selectedAssetPreviewUrl"
                   alt="Media preview"
                   class="w-full h-auto max-h-[220px] object-contain"
                 />
-                <div v-else class="p-4 text-gray-400 text-xs font-mono">
-                  Asset selected — preview available after upload completes
-                </div>
               </div>
 
               <!-- LinkedIn Action Buttons -->

@@ -228,25 +228,47 @@ function goToToday() {
 // Publication queries
 // ---------------------------------------------------------------------------
 
-const filteredPublications = computed(() => {
-  return publishingStore.publications.filter((pub) => {
-    if (publishingStore.filterChannel && !(pub.channels as string[]).includes(publishingStore.filterChannel)) {
-      return false
-    }
-    if (publishingStore.filterSocialAccountId && pub.accountId !== publishingStore.filterSocialAccountId) {
-      return false
-    }
-    if (publishingStore.filterTag && !pub.content.toLowerCase().includes(publishingStore.filterTag.toLowerCase())) {
-      return false
-    }
-    if (publishingStore.filterPostType !== 'all') {
-      if (publishingStore.filterPostType === 'queued' && pub.status !== 'QUEUED') return false
-      if (publishingStore.filterPostType === 'published' && pub.status !== 'PUBLISHED') return false
-      if (publishingStore.filterPostType === 'cancelled' && pub.status !== 'CANCELLED') return false
-    }
-    return true
-  })
-})
+function publicationMatchesFilters(
+  pub: Publication,
+  filters: {
+    channel?: string
+    socialAccountId?: string
+    tag?: string
+    postType?: string
+  },
+): boolean {
+  if (filters.channel && !(pub.channels as string[]).includes(filters.channel)) {
+    return false
+  }
+  if (filters.socialAccountId && pub.accountId !== filters.socialAccountId) {
+    return false
+  }
+  if (filters.tag && !pub.content.toLowerCase().includes(filters.tag.toLowerCase())) {
+    return false
+  }
+
+  switch (filters.postType) {
+    case 'queued':
+      return pub.status === 'QUEUED'
+    case 'published':
+      return pub.status === 'PUBLISHED'
+    case 'cancelled':
+      return pub.status === 'CANCELLED'
+    default:
+      return true
+  }
+}
+
+const filteredPublications = computed(() =>
+  publishingStore.publications.filter((pub) =>
+    publicationMatchesFilters(pub, {
+      channel: publishingStore.filterChannel || undefined,
+      socialAccountId: publishingStore.filterSocialAccountId || undefined,
+      tag: publishingStore.filterTag || undefined,
+      postType: publishingStore.filterPostType !== 'all' ? publishingStore.filterPostType : undefined,
+    }),
+  ),
+)
 
 function getPublicationsForDate(date: Date): Publication[] {
   return filteredPublications.value.filter((pub) => {
@@ -321,6 +343,8 @@ function activityForDate(date: Date): ActivityEntry | undefined {
 // ---------------------------------------------------------------------------
 
 function openNewPostForSlot(date: Date, hour?: number) {
+  if (publishingStore.hasNoChannels) return
+
   const d = new Date(date)
   if (hour !== undefined) d.setHours(hour, 0, 0, 0)
   else d.setHours(12, 0, 0, 0)
@@ -329,6 +353,8 @@ function openNewPostForSlot(date: Date, hour?: number) {
 }
 
 function openNewPostGeneral() {
+  if (publishingStore.hasNoChannels) return
+
   selectedCellDate.value = undefined
   isModalOpen.value = true
 }
@@ -733,6 +759,13 @@ onMounted(() => {
                 <p class="text-sm font-light text-text-body leading-relaxed break-words">
                   {{ pub.content }}
                 </p>
+                <div v-if="pub.thumbnail" class="h-24 w-full overflow-hidden rounded-xl border border-border-subtle">
+                  <img
+                    :src="pub.thumbnail"
+                    class="h-full w-full object-cover"
+                    alt=""
+                  />
+                </div>
               </div>
 
               <div class="flex items-center gap-3 shrink-0">

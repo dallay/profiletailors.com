@@ -12,6 +12,7 @@ import com.profiletailors.smp.identity.application.permissiveEmailVerificationPo
 import com.profiletailors.smp.identity.application.PrincipalIdentityLookup
 import com.profiletailors.smp.identity.application.permissivePrincipalContextProvider
 import com.profiletailors.smp.identity.application.requireEmailVerification
+import com.profiletailors.smp.media.application.AssetPreviewUrlResolver
 import com.profiletailors.smp.media.application.AssetNotReadyException
 import com.profiletailors.smp.media.application.MediaAssetResolver
 import com.profiletailors.smp.media.application.MediaServiceUnavailableException
@@ -757,6 +758,8 @@ internal class CreateAssetHandler(
 internal class GetCalendarPublicationsHandler(
     private val resourceContextProvider: ResourceContextProvider,
     private val publicationRepository: PublicationRepository,
+    private val publicationAssetRepository: PublicationAssetRepository,
+    private val assetPreviewUrlResolver: AssetPreviewUrlResolver,
 ) : QueryHandler<GetCalendarPublicationsQuery, CalendarResponse> {
     override suspend fun handle(query: GetCalendarPublicationsQuery): CalendarResponse {
         val workspaceId = requireNotNull(resourceContextProvider.requireWorkspaceContext().workspaceId)
@@ -771,6 +774,9 @@ internal class GetCalendarPublicationsHandler(
             statuses = statuses,
             socialAccountIds = accountIds,
         )
+        val assetsById = publicationAssetRepository
+            .findByWorkspaceAndIds(workspaceId, publications.flatMap { it.assetIds }.distinct())
+            .associateBy { it.id }
 
         val conflictMap = ConflictDetectionPolicy.findConflicts(publications)
         val conflicts = conflictMap.map { (pubId, conflictingIds) ->
@@ -789,13 +795,39 @@ internal class GetCalendarPublicationsHandler(
             ActivityEntry(date = dc.date, density = ActivityThresholds.classify(dc.count), count = dc.count)
         }
 
-        val publicationResults = publications.map { it.toCalendarResult(conflictMap[it.id].orEmpty()) }
+        val publicationResults = publications.map { publication ->
+            publication.toCalendarResult(
+                conflictingPublicationIds = conflictMap[publication.id].orEmpty(),
+                previewUrl = resolvePreviewUrl(publication, assetsById),
+            )
+        }
 
         return CalendarResponse(
             publications = publicationResults,
             conflicts = conflicts,
             activity = activity,
         )
+    }
+
+    private suspend fun resolvePreviewUrl(
+        publication: PublicationDraft,
+        assetsById: Map<String, PublicationAsset>,
+    ): String? {
+        val readyAssets = publication.assetIds
+            .mapNotNull { assetsById[it] }
+            .filter { it.status == PublicationAssetStatus.READY }
+
+        for (asset in readyAssets) {
+            val previewUrl = assetPreviewUrlResolver.resolvePreviewUrl(
+                assetId = asset.id,
+                workspaceId = asset.workspaceId,
+                mediaType = asset.mediaType,
+                storageKey = asset.storageKey,
+                externalUrl = asset.externalUrl,
+            )
+            if (previewUrl != null) return previewUrl
+        }
+        return null
     }
 }
 
@@ -807,6 +839,7 @@ internal class GetCalendarPublicationsHandler(
  */
 private fun PublicationDraft.toCalendarResult(
     conflictingPublicationIds: List<String>,
+    previewUrl: String?,
 ): CalendarPublicationResult = CalendarPublicationResult(
     id = id,
     workspaceId = workspaceId,
@@ -823,6 +856,7 @@ private fun PublicationDraft.toCalendarResult(
     externalPublicationId = externalPublicationId,
     publicUrl = publicUrl,
     publishedAt = publishedAt,
+    previewUrl = previewUrl,
 )
 
 /**

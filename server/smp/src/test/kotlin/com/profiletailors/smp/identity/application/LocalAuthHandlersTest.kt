@@ -91,6 +91,35 @@ class LocalAuthHandlersTest {
     }
 
     @Test
+    fun `registers user with email local-part when username is blank`() = runTest {
+        val identityRegistrationGateway = FakeIdentityRegistrationGateway()
+        val handler = RegisterUserHandler(
+            identityRegistrationGateway = identityRegistrationGateway,
+            principalIdentityLookup = FakePrincipalIdentityLookup(),
+            localPasswordCredentialGateway = FakeLocalPasswordCredentialGateway(),
+            passwordHasher = FakePasswordHasher(),
+            workspaceProvisioningService = FakeWorkspaceProvisioningService(),
+            eventPublisher = RecordingEventPublisher(),
+            clock = fixedClock,
+            localJwtIssuer = FakeLocalJwtIssuer(),
+            refreshSessionLifecycleService = fakeRefreshLifecycleService(),
+        )
+
+        val result = handler.handle(
+            RegisterUserCommand(
+                email = " Yuniel@Example.com ",
+                password = validPassword,
+                username = "   ",
+            ),
+        )
+
+        assertEquals("yuniel@example.com", result.tokens.email)
+        assertEquals("yuniel", result.tokens.username)
+        assertEquals("yuniel", identityRegistrationGateway.created?.username)
+        assertEquals("yuniel", identityRegistrationGateway.created?.displayIdentity)
+    }
+
+    @Test
     fun `rejects duplicate registration`() = runTest {
         val handler = RegisterUserHandler(
             identityRegistrationGateway = FakeIdentityRegistrationGateway(),

@@ -1,8 +1,10 @@
+import { authCredentialsSchema, workspaceNameSchema } from '@/lib/validation/schemas'
+
 // ---------------------------------------------------------------------------
 // Types
 // ---------------------------------------------------------------------------
-
-export interface AuthTokens {
+ 
+ export interface AuthTokens {
   accessToken: string
   tokenType: string
   expiresIn: number
@@ -51,6 +53,12 @@ function resolveApiBaseUrl(): string {
     return envValue
   }
   return DEFAULT_API_BASE_URL
+}
+
+export function resolveApiUrl(path: string): string {
+  if (!path.startsWith('/')) return path
+  const apiBase = resolveApiBaseUrl()
+  return apiBase ? `${apiBase}${path}` : path
 }
 
 /**
@@ -111,16 +119,20 @@ async function request<T>(path: string, init: RequestInit = {}, token?: string |
 // ---------------------------------------------------------------------------
 
 export async function register(payload: RegisterPayload) {
+  const validatedPayload = authCredentialsSchema.parse(payload)
+
   return request<AuthTokens>('/api/auth/register', {
     method: 'POST',
-    body: JSON.stringify(payload),
+    body: JSON.stringify(validatedPayload),
   })
 }
 
 export async function login(payload: LoginPayload) {
+  const validatedPayload = authCredentialsSchema.parse(payload)
+
   return request<AuthTokens>('/api/auth/login', {
     method: 'POST',
-    body: JSON.stringify(payload),
+    body: JSON.stringify(validatedPayload),
   })
 }
 
@@ -167,11 +179,13 @@ export async function renameWorkspace(
   token: string,
   workspaceId: string,
 ): Promise<RenameWorkspaceResult> {
+  const validatedName = workspaceNameSchema.parse(name)
+
   return request<RenameWorkspaceResult>(
     '/api/tenancy/workspaces/current/name',
     {
       method: 'PATCH',
-      body: JSON.stringify({ name }),
+      body: JSON.stringify({ name: validatedName }),
       headers: { 'X-Workspace-Id': workspaceId },
     },
     token,

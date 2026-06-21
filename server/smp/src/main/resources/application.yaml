@@ -18,7 +18,6 @@ spring:
     password: ${SMP_DB_PASSWORD:CHANGE_ME}
   # SMTP is intentionally absent here. Set SMP_SMTP_HOST via environment variable to
   # activate SmtpEmailSender (staging/prod). Without it, MockEmailSender is used.
-  # In the dev profile below, Mailpit is configured automatically.
 
 app:
   security:
@@ -55,7 +54,7 @@ platform:
         endpoint: ${SMP_STORAGE_R2_ENDPOINT:}
       local:
         type: local
-        base-path: ${SMP_STORAGE_LOCAL_BASE_PATH:/tmp/profiletailors-storage}
+        base-path: ${SMP_STORAGE_LOCAL_BASE_PATH:./tmp/profiletailors-storage}
   media:
     context:
       integration:
@@ -127,49 +126,6 @@ management:
         step: 30s
   server:
     port: ${MANAGEMENT_PORT:9091}  # Puerto separado para management
-
----
-spring:
-  config:
-    activate:
-      on-profile: dev
-  docker:
-    compose:
-      enabled: true
-  # Mailpit local SMTP — captures emails without delivering them.
-  # Web UI: http://localhost:8025
-  mail:
-    host: ${SMP_SMTP_HOST:localhost}
-    port: ${SMP_SMTP_PORT:1025}
-    username: ${SMP_SMTP_USERNAME:}
-    password: ${SMP_SMTP_PASSWORD:}
-    properties:
-      mail.smtp.auth: false
-      mail.smtp.starttls.enable: false
-      mail.smtp.starttls.required: false
-
-publishing:
-  credentials:
-    encryption:
-      key: ${PUBLISHING_CREDENTIALS_KEY:dGVzdC1lbmNyeXB0aW9uLWtleS0xMjM0NTY3ODkwMTI=}  # Base64 test key for dev
-
-management:
-  server:
-    port: ${MANAGEMENT_PORT:8080}  # En dev, mismo puerto está OK
-
-logging:
-  level:
-    com.profiletailors: DEBUG
-    org.springframework.security: DEBUG
-    org.springframework.web.reactive: DEBUG
-
-app:
-  security:
-    cors:
-      allowed-origins:
-        - "http://localhost:5173"
-        - "https://pt-app.localhost:1355"
-        - "https://pt-app.localhost"
 
 ---
 spring:

@@ -1,6 +1,7 @@
 import { ref, computed } from 'vue'
 import { defineStore } from 'pinia'
 import { consumeSseStream } from '@/lib/sse'
+import { resolveApiUrl } from '@/lib/auth-api'
 import { useAuthStore } from './auth'
 
 // ---------------------------------------------------------------------------
@@ -97,6 +98,7 @@ export interface CalendarPublicationResult {
   externalPublicationId?: string | null
   publicUrl?: string | null
   publishedAt?: string | null
+  previewUrl?: string | null
 }
 
 export interface ConflictEntry {
@@ -158,6 +160,14 @@ export interface CalendarFilters {
 // Helpers
 // ---------------------------------------------------------------------------
 
+/**
+ * Normalizes a text input by trimming leading/trailing whitespace.
+ * Internal spacing and intentional newlines are preserved.
+ */
+function normalizeText(input: string): string {
+  return input.trim()
+}
+
 function deriveTimezone(): string {
   try {
     return Intl.DateTimeFormat().resolvedOptions().timeZone
@@ -191,6 +201,50 @@ function apiChannelToChannel(api: ConnectedSocialChannelSummary): Channel {
   }
 }
 
+function findActiveLinkedInChannel(
+  channels: Channel[],
+  socialAccountId?: string,
+): Channel | undefined {
+  if (socialAccountId) {
+    return channels.find(
+      (c) => c.accountId === socialAccountId && c.provider === 'linkedin' && c.status === 'ACTIVE',
+    )
+  }
+
+  return channels.find((c) => c.provider === 'linkedin' && c.status === 'ACTIVE')
+}
+
+function matchesPublicationFilters(
+  pub: Publication,
+  filters: {
+    channel?: string
+    socialAccountId?: string
+    tag?: string
+    postType?: string
+  },
+): boolean {
+  if (filters.channel && !(pub.channels as string[]).includes(filters.channel)) {
+    return false
+  }
+  if (filters.socialAccountId && pub.accountId !== filters.socialAccountId) {
+    return false
+  }
+  if (filters.tag && !pub.content.toLowerCase().includes(filters.tag.toLowerCase())) {
+    return false
+  }
+
+  switch (filters.postType) {
+    case 'queued':
+      return pub.status === 'QUEUED'
+    case 'published':
+      return pub.status === 'PUBLISHED'
+    case 'cancelled':
+      return pub.status === 'CANCELLED'
+    default:
+      return true
+  }
+}
+
 /** Converts a single API result to a frontend Publication. */
 function apiResultToPublication(api: CalendarPublicationResult): Publication {
   return {
@@ -207,6 +261,7 @@ function apiResultToPublication(api: CalendarPublicationResult): Publication {
     externalPublicationId: api.externalPublicationId ?? undefined,
     publicUrl: api.publicUrl ?? undefined,
     publishedAt: api.publishedAt ?? undefined,
+    thumbnail: api.previewUrl ? resolveApiUrl(api.previewUrl) : undefined,
   }
 }
 
@@ -306,6 +361,12 @@ export const usePublishingStore = defineStore('publishing', () => {
         ch.status === 'REQUIRES_RECONNECT' || ch.status === 'REVOKED' || ch.status === 'EXPIRED',
     ),
   )
+
+  /**
+   * True when no connected channels are available.
+   * Used as a guard to block post creation UI when the workspace has no channels.
+   */
+  const hasNoChannels = computed(() => channels.value.length === 0)
   const reconnectRequiredChannels = computed(() =>
     channels.value.filter(
       (ch) =>
@@ -613,6 +674,7 @@ export const usePublishingStore = defineStore('publishing', () => {
     nextSlotAfter?: string
     scheduleMode?: 'NOW' | 'SCHEDULED_AT' | 'NEXT_SLOT'
     priority: boolean
+    thumbnail?: string
     assetIds?: string[]
     socialAccountId?: string
   }) {
@@ -624,51 +686,37 @@ export const usePublishingStore = defineStore('publishing', () => {
         ? (post.scheduledAt ?? new Date().toISOString())
         : (post.nextSlotAfter ?? new Date().toISOString())
 
-    // Create new publication object — no longer carries local File objects
     const newPub: Publication = {
       id: publicationId,
-      content: post.content,
+      content: normalizeText(post.content),
       title: post.title || undefined,
       channels: post.channels,
       accountId: post.socialAccountId,
       scheduledAt: effectiveScheduledAt,
       status: 'QUEUED',
       priority: post.priority,
+      thumbnail: post.thumbnail,
     }
 
-    // Try backend integration if authenticated
     if (auth.isAuthenticated) {
+      const hasLinkedIn = post.channels.includes('linkedin')
+
       try {
-        // LinkedIn is the only active integration on the backend
-        const hasLinkedIn = post.channels.includes('linkedin')
         if (hasLinkedIn) {
-          const linkedInChannel = post.socialAccountId
-            ? channels.value.find(
-                (c) =>
-                  c.accountId === post.socialAccountId &&
-                  c.provider === 'linkedin' &&
-                  c.status === 'ACTIVE',
-              )
-            : channels.value.find((c) => c.provider === 'linkedin' && c.status === 'ACTIVE')
+          const linkedInChannel = findActiveLinkedInChannel(channels.value, post.socialAccountId)
           if (!linkedInChannel?.accountId) {
             throw new Error('Connect a LinkedIn profile before scheduling authenticated posts.')
           }
 
-          // Sync the resolved account ID back to the local publication object
           newPub.accountId = linkedInChannel.accountId
-
-          // Submit persisted media asset IDs from the centralized media library.
-          // The assetIds come from the media store (useMediaStore) which
-          // manages real persisted assets created via POST /api/media/assets.
           const resolvedAssetIds = post.assetIds ?? []
 
-          // Call the Spring Boot API
           await auth.apiFetch<unknown>('/api/publishing/publications', {
             method: 'POST',
             body: JSON.stringify({
               socialAccountId: linkedInChannel.accountId,
               title: post.title || 'Post via Web App',
-              bodyText: post.content,
+              bodyText: normalizeText(post.content),
               assetIds: resolvedAssetIds,
               scheduleMode: effectiveMode,
               ...(effectiveMode === 'SCHEDULED_AT' ? { scheduledFor: post.scheduledAt } : {}),
@@ -680,15 +728,17 @@ export const usePublishingStore = defineStore('publishing', () => {
           console.log('Successfully synced publication with backend API!')
         }
       } catch (err) {
-        if (post.channels.includes('linkedin')) {
+        if (hasLinkedIn) {
           throw err
         }
         console.warn('Backend API unavailable. Saving to local storage mock queue instead.', err)
       }
     }
 
-    // Push local state
     publications.value.unshift(newPub)
+    if (typeof newPub.thumbnail === 'string' && newPub.thumbnail.startsWith('blob:')) {
+      objectUrls.set(newPub.id, newPub.thumbnail)
+    }
     saveToStorage()
     return newPub
   }
@@ -737,23 +787,14 @@ export const usePublishingStore = defineStore('publishing', () => {
   // -----------------------------------------------------------------------
 
   function applyLocalFilters(list: Publication[]): Publication[] {
-    return list.filter((pub) => {
-      if (filterChannel.value && !(pub.channels as string[]).includes(filterChannel.value)) {
-        return false
-      }
-      if (filterSocialAccountId.value && pub.accountId !== filterSocialAccountId.value) {
-        return false
-      }
-      if (filterTag.value && !pub.content.toLowerCase().includes(filterTag.value.toLowerCase())) {
-        return false
-      }
-      if (filterPostType.value !== 'all') {
-        if (filterPostType.value === 'queued' && pub.status !== 'QUEUED') return false
-        if (filterPostType.value === 'published' && pub.status !== 'PUBLISHED') return false
-        if (filterPostType.value === 'cancelled' && pub.status !== 'CANCELLED') return false
-      }
-      return true
-    })
+    return list.filter((pub) =>
+      matchesPublicationFilters(pub, {
+        channel: filterChannel.value || undefined,
+        socialAccountId: filterSocialAccountId.value || undefined,
+        tag: filterTag.value || undefined,
+        postType: filterPostType.value !== 'all' ? filterPostType.value : undefined,
+      }),
+    )
   }
 
   // -----------------------------------------------------------------------
@@ -782,6 +823,7 @@ export const usePublishingStore = defineStore('publishing', () => {
     isLinkedInConfigured,
     hasReconnectRequiredChannels,
     reconnectRequiredChannels,
+    hasNoChannels,
     // Actions
     fetchChannels,
     fetchConfiguredProviders,

@@ -5,30 +5,26 @@ spring:
   docker:
     compose:
       enabled: true
-  security:
-    oauth2:
-      resourceserver:
-        jwt:
-          issuer-uri: ${SMP_JWT_ISSUER_URI:http://localhost/profiletailors-local}
-  r2dbc:
-    url: ${SMP_R2DBC_URL:r2dbc:postgresql://localhost:5432/profiletailors_smp}
-    username: ${SMP_DB_USERNAME:profiletailors}
-    password: ${SMP_DB_PASSWORD:CHANGE_ME}
-  liquibase:
-    url: ${SMP_LIQUIBASE_JDBC_URL:jdbc:postgresql://localhost:5432/profiletailors_smp}
-    user: ${SMP_DB_USERNAME:profiletailors}
-    password: ${SMP_DB_PASSWORD:CHANGE_ME}
+  # Mailpit local SMTP — no auth, no TLS. Web UI: http://localhost:8025
+  mail:
+    host: ${SMP_SMTP_HOST:localhost}
+    port: ${SMP_SMTP_PORT:1025}
+    username: ${SMP_SMTP_USERNAME:}
+    password: ${SMP_SMTP_PASSWORD:}
+    properties:
+      mail.smtp.auth: false
+      mail.smtp.starttls.enable: false
+      mail.smtp.starttls.required: false
 
-# Mailpit local SMTP — no auth, no TLS. Activates SmtpEmailSender in dev.
-mail:
-  host: ${SMP_SMTP_HOST:localhost}
-  port: ${SMP_SMTP_PORT:1025}
-  username: ${SMP_SMTP_USERNAME:}
-  password: ${SMP_SMTP_PASSWORD:}
-  properties:
-    mail.smtp.auth: false
-    mail.smtp.starttls.enable: false
-    mail.smtp.starttls.required: false
+logging:
+  level:
+    com.profiletailors: DEBUG
+    com.profiletailors.smp.media: DEBUG
+    com.profiletailors.storage: DEBUG
+    org.springframework.security: DEBUG
+    org.springframework.web: DEBUG
+    org.springframework.web.reactive: DEBUG
+    org.springframework.http.codec.multipart: DEBUG
 
 publishing:
   credentials:
@@ -37,13 +33,7 @@ publishing:
 
 management:
   server:
-    port: ${MANAGEMENT_PORT:8080}  # En dev, mismo puerto está OK
-
-logging:
-  level:
-    com.profiletailors: DEBUG
-    org.springframework.security: DEBUG
-    org.springframework.web.reactive: DEBUG
+    port: ${MANAGEMENT_PORT:8080}  # En dev, mismo puerto que la app
 
 app:
   security:
@@ -52,5 +42,13 @@ app:
         - "http://localhost:5173"
         - "https://pt-app.localhost:1355"
         - "https://pt-app.localhost"
-    local-jwt:
-      issuer: ${SMP_LOCAL_JWT_ISSUER:http://localhost/profiletailors-local}
+
+platform:
+  storage:
+    default: attachments
+    providers:
+      attachments:
+        type: local
+      local:
+        type: local
+        base-path: ${SMP_STORAGE_LOCAL_BASE_PATH:./tmp/profiletailors-storage}

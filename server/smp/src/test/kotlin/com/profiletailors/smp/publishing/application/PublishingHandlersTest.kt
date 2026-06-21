@@ -14,6 +14,7 @@ import com.profiletailors.smp.identity.application.FeatureEmailVerificationRequi
 import com.profiletailors.smp.identity.application.PrincipalIdentityFacts
 import com.profiletailors.smp.identity.application.PrincipalIdentityLookup
 import com.profiletailors.smp.identity.domain.EmailStatus
+import com.profiletailors.smp.media.application.AssetPreviewUrlResolver
 import com.profiletailors.smp.media.application.AssetNotReadyException
 import com.profiletailors.smp.media.application.MediaAssetResolver
 import com.profiletailors.smp.media.application.MediaServiceUnavailableException
@@ -1017,9 +1018,22 @@ class PublishingHandlersTest {
 
     @Test
     fun `gets calendar publications with conflicts and activity`() = runTest {
+        val publicationAssetRepository = InMemoryPublicationAssetRepository(
+            assets = listOf(
+                PublicationAsset(
+                    id = "asset-1",
+                    workspaceId = "workspace-1",
+                    sourceType = AssetSourceType.UPLOADED,
+                    mediaType = "image/jpeg",
+                    storageKey = "assets/workspace-1/asset-1",
+                    status = PublicationAssetStatus.READY,
+                    createdByPrincipalId = "principal-1",
+                ),
+            ),
+        )
         val publicationRepository = InMemoryPublicationRepository(
             seedMany = listOf(
-                calendarPublication("pub-1", "account-1", "2026-06-15T10:00:00Z"),
+                calendarPublication("pub-1", "account-1", "2026-06-15T10:00:00Z", assetIds = listOf("asset-1")),
                 calendarPublication("pub-2", "account-1", "2026-06-15T10:10:00Z"),
                 calendarPublication("pub-3", "account-2", "2026-06-16T10:00:00Z"),
             ),
@@ -1031,6 +1045,8 @@ class PublishingHandlersTest {
         val handler = GetCalendarPublicationsHandler(
             resourceContextProvider = FixedResourceContextProvider(workspaceContext),
             publicationRepository = publicationRepository,
+            publicationAssetRepository = publicationAssetRepository,
+            assetPreviewUrlResolver = FakeAssetPreviewUrlResolver(),
         )
 
         val result = handler.handle(
@@ -1046,6 +1062,7 @@ class PublishingHandlersTest {
         assertEquals(ActivityDensity.LIGHT, result.activity.first { it.date == LocalDate.parse("2026-06-15") }.density)
         assertEquals(ActivityDensity.HIGH, result.activity.first { it.date == LocalDate.parse("2026-06-16") }.density)
         assertEquals("Europe/Madrid", publicationRepository.lastCountTimezone)
+        assertEquals("https://preview.local/assets/workspace-1/asset-1", result.publications.first().previewUrl)
     }
 
     @Test
@@ -1060,6 +1077,8 @@ class PublishingHandlersTest {
         val handler = GetCalendarPublicationsHandler(
             resourceContextProvider = FixedResourceContextProvider(workspaceContext),
             publicationRepository = publicationRepository,
+            publicationAssetRepository = InMemoryPublicationAssetRepository(),
+            assetPreviewUrlResolver = FakeAssetPreviewUrlResolver(),
         )
 
         val result = handler.handle(
@@ -1082,6 +1101,8 @@ class PublishingHandlersTest {
         val handler = GetCalendarPublicationsHandler(
             resourceContextProvider = FixedResourceContextProvider(workspaceContext),
             publicationRepository = publicationRepository,
+            publicationAssetRepository = InMemoryPublicationAssetRepository(),
+            assetPreviewUrlResolver = FakeAssetPreviewUrlResolver(),
         )
 
         val result = handler.handle(
@@ -1107,6 +1128,8 @@ class PublishingHandlersTest {
         val handler = GetCalendarPublicationsHandler(
             resourceContextProvider = FixedResourceContextProvider(workspaceContext),
             publicationRepository = publicationRepository,
+            publicationAssetRepository = InMemoryPublicationAssetRepository(),
+            assetPreviewUrlResolver = FakeAssetPreviewUrlResolver(),
         )
 
         val result = handler.handle(
@@ -1127,6 +1150,8 @@ class PublishingHandlersTest {
         val handler = GetCalendarPublicationsHandler(
             resourceContextProvider = FixedResourceContextProvider(workspaceContext),
             publicationRepository = publicationRepository,
+            publicationAssetRepository = InMemoryPublicationAssetRepository(),
+            assetPreviewUrlResolver = FakeAssetPreviewUrlResolver(),
         )
 
         val result = handler.handle(
@@ -1524,6 +1549,7 @@ class PublishingHandlersTest {
         socialAccountId: String,
         scheduledFor: String,
         status: PublicationStatus = PublicationStatus.SCHEDULED,
+        assetIds: List<String> = emptyList(),
     ): PublicationDraft = PublicationDraft(
         id = id,
         workspaceId = "workspace-1",
@@ -1535,6 +1561,7 @@ class PublishingHandlersTest {
         priority = false,
         title = id,
         bodyText = "Calendar publication $id",
+        assetIds = assetIds,
         scheduledFor = Instant.parse(scheduledFor),
     )
 
@@ -1770,6 +1797,20 @@ class PublishingHandlersTest {
 
         override suspend fun updateProviderAssetRef(assetId: String, providerAssetRef: ProviderAssetRef) {
             items[assetId] = items[assetId]!!.copy(status = PublicationAssetStatus.READY, providerAssetRef = providerAssetRef)
+        }
+    }
+
+    private class FakeAssetPreviewUrlResolver : AssetPreviewUrlResolver {
+        override suspend fun resolvePreviewUrl(
+            assetId: String,
+            workspaceId: String,
+            mediaType: String,
+            storageKey: String?,
+            externalUrl: String?,
+        ): String? = if (mediaType.startsWith("image/")) {
+            externalUrl ?: storageKey?.let { "https://preview.local/$it" }
+        } else {
+            null
         }
     }
 

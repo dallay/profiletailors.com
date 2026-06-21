@@ -8,7 +8,7 @@ const cache = new Map<string, string>()
 
 // Convert object to a consistent string key
 function serializeKey(key: Record<string, any>): string {
-  return JSON.stringify(key, Object.keys(key).sort())
+  return JSON.stringify(key, Object.keys(key).sort((a, b) => a.localeCompare(b)))
 }
 
 interface Constructor<P = any> {
