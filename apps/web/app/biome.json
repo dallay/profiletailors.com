@@ -8,7 +8,11 @@
     "useIgnoreFile": true
   },
   "files": {
-    "includes": ["src/**/*.{js,ts,jsx,tsx,vue,mjs}"],
+    "includes": [
+      "src/**/*.{js,ts,jsx,tsx,vue,mjs}",
+      "e2e/**/*.{js,ts}",
+      "*.{js,ts,mjs}"
+    ],
     "ignoreUnknown": true
   },
   "formatter": {

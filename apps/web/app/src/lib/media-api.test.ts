@@ -106,10 +106,10 @@ describe('deleteAsset', () => {
   it('constructs the correct path for an asset with a complex id', async () => {
     mockApiFetch.mockResolvedValueOnce(undefined)
 
-    await deleteAsset('01JVMQ5ABCDEF0123456789AB')
+    await deleteAsset('asset/with spaces?special=chars')
 
     expect(mockApiFetch.mock.calls[0]?.[0]).toBe(
-      '/api/media/assets/01JVMQ5ABCDEF0123456789AB',
+      `/api/media/assets/${encodeURIComponent('asset/with spaces?special=chars')}`,
     )
   })
 })
