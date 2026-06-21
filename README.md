@@ -110,10 +110,36 @@ profiletailors.com/
 
 ### Install and run locally
 
+#### 1) Install `just`
+
+- **macOS:** `brew install just`
+- **Windows:** `winget install Casey.Just`
+- **Ubuntu/Debian (recommended):**
+
+```bash
+curl --proto '=https' --tlsv1.2 -sSf https://just.systems/install.sh | sudo bash -s -- --to /usr/local/bin
+just --version
+```
+
+Alternative Ubuntu/Debian installation methods are also documented in the repository `Justfile`.
+
+#### 2) Bootstrap the workspace
+
 ```bash
 git clone https://github.com/dallay/profiletailors.com.git
 cd profiletailors.com
-just install       # installs all dependencies (frontend + backend)
+just setup
+```
+
+`just setup` will:
+
+- copy `.env.example` to `.env` when needed,
+- install workspace dependencies with `pnpm install --frozen-lockfile`,
+- install Lefthook unless Git hooks are globally disabled (`core.hooksPath=/dev/null`, e.g. Jules).
+
+#### 3) Start local development
+
+```bash
 just frontend-dev  # starts the Astro dev server
 ```
 

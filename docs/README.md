@@ -30,6 +30,7 @@
 - [SonarQube Coverage](./sonarqube-coverage.md) - Technical guide for SonarQube coverage
 - [SonarQube Setup](./sonarqube-setup.md) - Step-by-step SonarQube configuration guide
 - [Coverage Summary](./coverage-setup-summary.md) - Summary of the test coverage implementation
+- [Root README](../README.md) - Developer onboarding, `just` installation, and `just setup`
 
 ### Security
 
