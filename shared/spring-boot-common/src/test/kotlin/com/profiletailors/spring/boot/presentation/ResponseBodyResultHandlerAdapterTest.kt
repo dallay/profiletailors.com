@@ -2,6 +2,7 @@ package com.profiletailors.spring.boot.presentation
 
 import io.kotest.matchers.shouldBe
 import io.mockk.coEvery
+import io.mockk.coVerify
 import io.mockk.mockk
 import org.junit.jupiter.api.Test
 import org.springframework.core.MethodParameter
@@ -58,7 +59,7 @@ class ResponseBodyResultHandlerAdapterTest {
         StepVerifier.create(handleResult)
             .verifyComplete()
 
-        coEvery { presenter.present(exchange, result) }
+        coVerify(exactly = 1) { presenter.present(exchange, result) }
     }
 
     class TestEntity

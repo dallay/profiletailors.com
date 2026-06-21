@@ -40,7 +40,7 @@ class RateLimitingFilterTest {
 
         every { configurationFactory.isRateLimitEnabled(any()) } returns true
         every { configurationFactory.getEndpoints(RateLimitStrategy.AUTH) } returns listOf("/api/auth/login", "/api/auth/register")
-        every { configurationFactory.getEndpoints(RateLimitStrategy.BUSINESS) } returns emptyList()
+        every { configurationFactory.getEndpoints(RateLimitStrategy.BUSINESS) } returns listOf("/api/business/data")
         every { configurationFactory.getEndpoints(RateLimitStrategy.RESUME) } returns listOf("/api/resume/generate")
         every { configurationFactory.getEndpoints(RateLimitStrategy.WAITLIST) } returns listOf("/api/waitlist/join")
         every { chain.filter(any()) } returns Mono.empty()
@@ -461,8 +461,6 @@ class RateLimitingFilterTest {
                 RateLimitStrategy.RESUME -> "/api/resume/generate"
                 RateLimitStrategy.WAITLIST -> "/api/waitlist/join"
             }
-
-            if (strategy == RateLimitStrategy.BUSINESS) return@forEach
 
             val request = MockServerHttpRequest.post(path).build()
             val exchange = MockServerWebExchange.from(request)

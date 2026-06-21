@@ -34,7 +34,7 @@ class FlowReactorAdaptersTest {
 
         val results = flow.toList()
         results.size shouldBe 2
-        String(results[0]) shouldBe "hello"
-        String(results[1]) shouldBe "world"
+        String(results[0], Charsets.UTF_8) shouldBe "hello"
+        String(results[1], Charsets.UTF_8) shouldBe "world"
     }
 }
