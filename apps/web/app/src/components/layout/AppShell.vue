@@ -39,20 +39,29 @@ const router = useRouter()
 const route = useRoute()
 
 // ---------------------------------------------------------------------------
-// Auth bootstrap watcher — fires on token change
+// Auth/workspace bootstrap watchers
 // ---------------------------------------------------------------------------
 
 watch(
   () => [auth.isAuthenticated, auth.accessToken] as const,
   ([isAuthenticated, accessToken]) => {
-    if (isAuthenticated && accessToken) {
-      workspace.loadWorkspaces(accessToken).catch((err) => {
-        console.warn('Unable to load workspaces', err)
-      })
-      publishingStore.fetchChannels().catch((err) => {
-        console.warn('Unable to load connected channels', err)
-      })
-    }
+    if (!isAuthenticated || !accessToken) return
+
+    workspace.loadWorkspaces(accessToken).catch((err) => {
+      console.warn('Unable to load workspaces', err)
+    })
+  },
+  { immediate: true },
+)
+
+watch(
+  () => [auth.isAuthenticated, workspace.activeWorkspaceId] as const,
+  ([isAuthenticated, activeWorkspaceId]) => {
+    if (!isAuthenticated || !activeWorkspaceId) return
+
+    publishingStore.fetchChannels().catch((err) => {
+      console.warn('Unable to load connected channels', err)
+    })
   },
   { immediate: true },
 )

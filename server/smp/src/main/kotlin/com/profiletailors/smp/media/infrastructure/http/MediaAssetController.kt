@@ -77,7 +77,7 @@ class MediaAssetController(
             ),
         ],
     )
-    @PostMapping(consumes = [MediaType.APPLICATION_JSON_VALUE], produces = [MediaType.APPLICATION_JSON_VALUE])
+    @PostMapping(consumes = [MediaType.APPLICATION_JSON_VALUE], version = "1")
     suspend fun createAsset(
         @Valid @RequestBody request: CreateMediaAssetRequest,
     ): MediaAssetResponse {
@@ -152,7 +152,7 @@ class MediaAssetController(
     @PostMapping(
         value = ["/{assetId}/upload"],
         consumes = [MediaType.MULTIPART_FORM_DATA_VALUE],
-        produces = [MediaType.APPLICATION_JSON_VALUE],
+        version = "1",
     )
     suspend fun uploadAsset(
         @Parameter(description = "Asset ID", example = "550e8400-e29b-41d4-a716-446655440000")
@@ -220,7 +220,7 @@ class MediaAssetController(
             ),
         ],
     )
-    @GetMapping(produces = [MediaType.APPLICATION_JSON_VALUE])
+    @GetMapping(version = "1")
     suspend fun listAssets(
         @Parameter(description = "Asset status filter (READY, PROCESSING, FAILED). Comma-separated for multiple.")
         @RequestParam(required = false, defaultValue = "READY") status: String? = null,
@@ -273,7 +273,7 @@ class MediaAssetController(
     )
     @GetMapping(
         value = ["/{assetId}"],
-        produces = [MediaType.APPLICATION_JSON_VALUE],
+        version = "1",
     )
     suspend fun getAsset(
         @Parameter(description = "Asset ID", example = "550e8400-e29b-41d4-a716-446655440000")
@@ -291,7 +291,7 @@ class MediaAssetController(
         return result.toResponse()
     }
 
-    @DeleteMapping(value = ["/{assetId}"])
+    @DeleteMapping(value = ["/{assetId}"], version = "1")
     suspend fun deleteAsset(
         @PathVariable assetId: String,
     ): org.springframework.http.ResponseEntity<Void> {
