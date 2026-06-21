@@ -1,4 +1,4 @@
-name: SonarQube Analysis
+name: Quality Gate
 
 on:
   push:
@@ -8,15 +8,15 @@ on:
     types: [opened, synchronize, reopened]
 
 concurrency:
-  group: sonarqube-${{ github.event.pull_request.number || github.ref }}
+  group: quality-gate-${{ github.event.pull_request.number || github.ref }}
   cancel-in-progress: true
 
 permissions:
   contents: read
 
 jobs:
-  sonarqube:
-    name: SonarQube Scan
+  quality-gate:
+    name: Quality Gate
     runs-on: ubuntu-latest
     permissions:
       contents: read
@@ -97,7 +97,7 @@ jobs:
           fi
           echo "✅ Web/app coverage report generated"
 
-      # SonarQube scan
+      # Quality gate: SonarQube scan + Codecov upload
       # Uses sonar-project.properties from repo root — do NOT override projectKey here
       # unless the secret matches the value in sonar-project.properties.
       - name: SonarQube Scan
@@ -109,6 +109,29 @@ jobs:
         with:
           args: >
             -Dsonar.organization=${{ env.SONAR_ORG }}
+
+      # ── Codecov upload ──────────────────────────────────────────────────────────
+      # Uses the same reports generated above so Codecov and SonarQube measure
+      # identical coverage. Flags are aligned with codecov.yml flags so per-component
+      # status checks work correctly.
+      - name: Upload coverage to Codecov
+        uses: codecov/codecov-action@1e1e6d9a05cc0de80e5de44f6f71a1c7b08ef754 # v5.2.0
+        with:
+          files: |
+            server/smp/build/reports/kover/report.xml
+            shared/common/build/reports/kover/report.xml
+            shared/bus/build/reports/kover/report.xml
+            shared/presentation/build/reports/kover/report.xml
+            shared/security/build/reports/kover/report.xml
+            shared/spring-boot-common/build/reports/kover/report.xml
+            shared/storage/build/reports/kover/report.xml
+            shared/shield/ratelimit/build/reports/kover/report.xml
+            apps/web/marketing/coverage/lcov.info
+            apps/web/app/coverage/lcov.info
+          flags: backend,frontend
+          token: ${{ secrets.CODECOV_TOKEN }}
+          fail_ci_if_error: false
+          verbose: true
 
       - name: SonarQube Quality Gate check
         uses: sonarsource/sonarqube-quality-gate-action@d304d050d930b02a896b0f85935344f023928496 # v1.1.0
