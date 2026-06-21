@@ -11,6 +11,7 @@ import io.mockk.coEvery
 import io.mockk.coVerify
 import io.mockk.mockk
 import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.reactor.mono
 import kotlinx.coroutines.test.runTest
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.assertThrows
@@ -252,10 +253,4 @@ class ApiControllerTest {
     }
 
     private class TestResponse : Response
-
-    // Bridge mono for suspend functions in tests
-    private fun <T> mono(block: suspend () -> T): Mono<T> = Mono.defer {
-        val result = kotlinx.coroutines.runBlocking { block() }
-        if (result == null) Mono.empty() else Mono.just(result)
-    }
 }

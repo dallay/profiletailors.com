@@ -3,6 +3,7 @@ package com.profiletailors.storage.infrastructure
 import io.kotest.matchers.shouldBe
 import io.mockk.coEvery
 import io.mockk.coVerify
+import io.mockk.every
 import io.mockk.mockk
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.test.runTest
@@ -55,13 +56,14 @@ class S3RetryHelperTest {
         every { mockS3Exception.message } returns "Too Many Requests"
 
         // When/Then
-        val exception = assertThrows<S3Exception> {
+        try {
             S3RetryHelper.withRetry {
                 throw mockS3Exception
             }
+            error("Expected S3Exception to be thrown")
+        } catch (exception: S3Exception) {
+            exception shouldBe mockS3Exception
         }
-
-        exception shouldBe mockS3Exception
     }
 
     @Test
@@ -74,14 +76,15 @@ class S3RetryHelperTest {
         var attempts = 0
 
         // When/Then
-        assertThrows<S3Exception> {
+        try {
             S3RetryHelper.withRetry {
                 attempts++
                 throw mockS3Exception
             }
+            error("Expected S3Exception to be thrown")
+        } catch (exception: S3Exception) {
+            attempts shouldBe 1
         }
-
-        attempts shouldBe 1
     }
 
     @Test
@@ -91,16 +94,14 @@ class S3RetryHelperTest {
         var attempts = 0
 
         // When/Then
-        assertThrows<RuntimeException> {
+        try {
             S3RetryHelper.withRetry {
                 attempts++
                 throw error
             }
+            error("Expected RuntimeException to be thrown")
+        } catch (exception: RuntimeException) {
+            attempts shouldBe 1
         }
-
-        attempts shouldBe 1
     }
 }
-
-// Helper to mock S3Exception properly as it might have some final methods or internal logic
-private fun every(call: Any?, answer: () -> Any?) = io.mockk.every { call } answers { answer() }
