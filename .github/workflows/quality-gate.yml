@@ -111,14 +111,12 @@ jobs:
             -Dsonar.organization=${{ env.SONAR_ORG }}
 
       # ── Codecov upload ──────────────────────────────────────────────────────────
-      # Uses the same reports generated above so Codecov and SonarQube measure
-      # identical coverage. Flags are aligned with codecov.yml flags so per-component
-      # status checks work correctly.
-      - name: Upload coverage to Codecov
+      # Upload coverage in granular steps to ensure monorepo flags are correctly
+      # attributed. Flags are aligned with codecov.yml.
+      - name: Upload Backend coverage (shared)
         uses: codecov/codecov-action@fb8b3582c8e4def4969c97caa2f19720cb33a72f
         with:
           files: |
-            server/smp/build/reports/kover/report.xml
             shared/common/build/reports/kover/report.xml
             shared/bus/build/reports/kover/report.xml
             shared/presentation/build/reports/kover/report.xml
@@ -126,9 +124,27 @@ jobs:
             shared/spring-boot-common/build/reports/kover/report.xml
             shared/storage/build/reports/kover/report.xml
             shared/shield/ratelimit/build/reports/kover/report.xml
+          flags: backend
+          token: ${{ secrets.CODECOV_TOKEN }}
+          fail_ci_if_error: false
+          verbose: true
+
+      - name: Upload SMP coverage (server)
+        uses: codecov/codecov-action@fb8b3582c8e4def4969c97caa2f19720cb33a72f
+        with:
+          files: server/smp/build/reports/kover/report.xml
+          flags: smp
+          token: ${{ secrets.CODECOV_TOKEN }}
+          fail_ci_if_error: false
+          verbose: true
+
+      - name: Upload Frontend coverage
+        uses: codecov/codecov-action@fb8b3582c8e4def4969c97caa2f19720cb33a72f
+        with:
+          files: |
             apps/web/marketing/coverage/lcov.info
             apps/web/app/coverage/lcov.info
-          flags: backend,frontend
+          flags: frontend
           token: ${{ secrets.CODECOV_TOKEN }}
           fail_ci_if_error: false
           verbose: true
