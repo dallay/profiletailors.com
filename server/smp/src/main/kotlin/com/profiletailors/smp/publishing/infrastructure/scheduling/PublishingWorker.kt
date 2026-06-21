@@ -192,14 +192,16 @@ class PublishingJobExecutor(
         publicationJobRepository.complete(claim.jobId, now)
 
         recordNotificationEvent(
-            workspaceId = workspaceId,
-            socialAccountId = publication.socialAccountId,
-            publicationId = publication.id,
-            category = NotificationCategory.PUBLICATION_BLOCKED,
-            message = "Publication blocked: $reason",
-            suggestedAction = "Reconnect the LinkedIn account to retry blocked publications.",
-            now = now,
-            provider = provider,
+            NotificationEventPayload(
+                workspaceId = workspaceId,
+                socialAccountId = publication.socialAccountId,
+                publicationId = publication.id,
+                category = NotificationCategory.PUBLICATION_BLOCKED,
+                message = "Publication blocked: $reason",
+                suggestedAction = "Reconnect the LinkedIn account to retry blocked publications.",
+                occurredAt = now,
+                provider = provider,
+            ),
         )
     }
 
@@ -215,13 +217,15 @@ class PublishingJobExecutor(
         publicationJobRepository.fail(claim.jobId, now)
 
         recordNotificationEvent(
-            workspaceId = workspaceId,
-            socialAccountId = publication.socialAccountId,
-            publicationId = publication.id,
-            category = NotificationCategory.PUBLICATION_FAILED,
-            message = "Publication failed terminally: $reason",
-            now = now,
-            provider = provider,
+            NotificationEventPayload(
+                workspaceId = workspaceId,
+                socialAccountId = publication.socialAccountId,
+                publicationId = publication.id,
+                category = NotificationCategory.PUBLICATION_FAILED,
+                message = "Publication failed terminally: $reason",
+                occurredAt = now,
+                provider = provider,
+            ),
         )
     }
 
@@ -242,38 +246,42 @@ class PublishingJobExecutor(
         publicationJobRepository.complete(claim.jobId, now)
 
         recordNotificationEvent(
-            workspaceId = publication.workspaceId,
-            socialAccountId = socialAccount.id,
-            publicationId = publication.id,
-            category = NotificationCategory.RECONNECT_REQUIRED,
-            message = exception.message ?: "Reconnect required",
-            suggestedAction = "Re-authenticate the LinkedIn account.",
-            now = now,
-            provider = socialAccount.provider,
+            NotificationEventPayload(
+                workspaceId = publication.workspaceId,
+                socialAccountId = socialAccount.id,
+                publicationId = publication.id,
+                category = NotificationCategory.RECONNECT_REQUIRED,
+                message = exception.message ?: "Reconnect required",
+                suggestedAction = "Re-authenticate the LinkedIn account.",
+                occurredAt = now,
+                provider = socialAccount.provider,
+            ),
         )
     }
 
-    private suspend fun recordNotificationEvent(
-        workspaceId: String,
-        socialAccountId: String,
-        publicationId: String?,
-        category: NotificationCategory,
-        message: String,
-        suggestedAction: String? = null,
-        now: Instant,
-        provider: com.profiletailors.smp.publishing.domain.SocialProvider? = null,
-    ) {
+    private data class NotificationEventPayload(
+        val workspaceId: String,
+        val socialAccountId: String,
+        val publicationId: String?,
+        val category: NotificationCategory,
+        val message: String,
+        val suggestedAction: String? = null,
+        val occurredAt: Instant,
+        val provider: com.profiletailors.smp.publishing.domain.SocialProvider? = null,
+    )
+
+    private suspend fun recordNotificationEvent(payload: NotificationEventPayload) {
         notificationEventRepository?.record(
             NotificationEvent(
                 id = "",
-                workspaceId = workspaceId,
-                provider = provider ?: com.profiletailors.smp.publishing.domain.SocialProvider.LINKEDIN,
-                socialAccountId = socialAccountId,
-                publicationId = publicationId,
-                category = category,
-                message = message,
-                suggestedAction = suggestedAction,
-                occurredAt = now,
+                workspaceId = payload.workspaceId,
+                provider = payload.provider ?: com.profiletailors.smp.publishing.domain.SocialProvider.LINKEDIN,
+                socialAccountId = payload.socialAccountId,
+                publicationId = payload.publicationId,
+                category = payload.category,
+                message = payload.message,
+                suggestedAction = payload.suggestedAction,
+                occurredAt = payload.occurredAt,
             ),
         )
     }
@@ -354,12 +362,15 @@ class PublishingJobExecutor(
             )
             publicationJobRepository.fail(claim.jobId, now)
             recordNotificationEvent(
-                workspaceId = publication.workspaceId,
-                socialAccountId = publication.socialAccountId,
-                publicationId = publication.id,
-                category = NotificationCategory.PUBLICATION_FAILED,
-                message = "Publication failed: ${exception.message}",
-                now = now,
+                NotificationEventPayload(
+                    workspaceId = publication.workspaceId,
+                    socialAccountId = publication.socialAccountId,
+                    publicationId = publication.id,
+                    category = NotificationCategory.PUBLICATION_FAILED,
+                    message = "Publication failed: ${exception.message}",
+                    occurredAt = now,
+                    provider = publication.provider,
+                ),
             )
         }
     }

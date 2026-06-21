@@ -18,6 +18,7 @@
     "format": "biome format --write .",
     "test": "vitest",
     "test:run": "vitest run",
+    "test:coverage": "vitest run --coverage",
     "test:ui": "vitest --ui",
     "test:e2e:scheduler": "playwright test -c e2e/playwright.scheduler.config.ts",
     "test:e2e:scheduler:headed": "playwright test -c e2e/playwright.scheduler.config.ts --headed",

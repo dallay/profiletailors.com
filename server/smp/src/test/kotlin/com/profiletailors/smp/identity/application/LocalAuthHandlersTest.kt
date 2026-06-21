@@ -306,10 +306,10 @@ class LocalAuthHandlersTest {
 
     @Test
     fun `default email verification policy requires verification for all features`() {
-        val policy = DefaultEmailVerificationPolicy()
+        val policy = emailVerificationPolicyOf()
 
         AuthFeature.entries.forEach { feature ->
-            assertTrue(policy.requiresVerification(feature))
+            assertTrue(policy(feature))
         }
     }
 

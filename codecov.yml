@@ -45,6 +45,7 @@ flags:
   frontend:
     paths:
       - apps/web/marketing/
+      - apps/web/app/
     carryforward: true
 
 component_management:
@@ -64,6 +65,11 @@ component_management:
       name: Frontend Marketing Site
       paths:
         - apps/web/marketing/**
+
+    - component_id: web-app
+      name: Web App SPA
+      paths:
+        - apps/web/app/**
 
 github_checks:
   annotations: true

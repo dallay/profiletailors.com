@@ -51,7 +51,6 @@ class SpringBootApplicationPlugin : ConventionPlugin {
 
         // Configure standard test task
         val testTask = tasks.named("test", Test::class.java) {
-            finalizedBy(tasks.named("jacocoTestReport"))
             exclude("**/CucumberFastIntegrationTest.class", "**/CucumberPostgresIntegrationTest.class")
         }
 
@@ -83,30 +82,7 @@ class SpringBootApplicationPlugin : ConventionPlugin {
             }
         }
 
-        // Configure Jacoco Reports and Exclusions
-        tasks.named("jacocoTestReport", JacocoReport::class.java) {
-            dependsOn(testTask)
-            reports {
-                xml.required.set(true)
-                html.required.set(true)
-                csv.required.set(false)
-            }
-            classDirectories.setFrom(
-                files(classDirectories.files.map { dir ->
-                    fileTree(dir) {
-                        exclude(
-                            "**/config/**",
-                            "**/dto/**",
-                            "**/entity/**",
-                            "**/Application.kt",
-                            "**/ApplicationKt.class"
-                        )
-                    }
-                })
-            )
-        }
-
-        // Configure Jacoco Coverage Verification
+        // Configure Jacoco Coverage Verification (report generation is handled by Kover for all modules)
         tasks.named("jacocoTestCoverageVerification", JacocoCoverageVerification::class.java) {
             violationRules {
                 rule {

@@ -38,7 +38,7 @@ suspend fun requireEmailVerification(
     policy: EmailVerificationPolicy,
     feature: AuthFeature,
 ) {
-    if (!policy.requiresVerification(feature)) return
+    if (!policy(feature)) return
     val emailStatus = principalIdentityLookup.findByPrincipalId(principal.principalId)?.emailStatus
     if (emailStatus != EmailStatus.VERIFIED) {
         throw FeatureEmailVerificationRequired(feature)

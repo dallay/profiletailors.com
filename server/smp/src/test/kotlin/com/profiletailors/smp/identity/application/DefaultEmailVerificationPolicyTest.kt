@@ -6,7 +6,7 @@ import org.junit.jupiter.params.provider.ValueSource
 
 class DefaultEmailVerificationPolicyTest {
 
-    private val policy = DefaultEmailVerificationPolicy()
+    private val policy = emailVerificationPolicyOf()
 
     @ParameterizedTest
     @ValueSource(strings = [
@@ -19,6 +19,6 @@ class DefaultEmailVerificationPolicyTest {
     ])
     fun `requiresVerification returns true for restricted feature`(featureName: String) {
         val feature = AuthFeature.valueOf(featureName)
-        assertTrue(policy.requiresVerification(feature))
+        assertTrue(policy(feature))
     }
 }

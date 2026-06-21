@@ -35,5 +35,6 @@ class KotlinLibraryPlugin : ConventionPlugin {
         tasks.withType<Test>().configureEach {
             useJUnitPlatform()
         }
+
     }
 }
