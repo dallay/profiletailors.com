@@ -15,19 +15,10 @@ reports for both the backend and frontend.
 
 ### Backend (Kotlin/Spring Boot)
 
-**Coverage Tool**: JaCoCo
+**Coverage Tool**: Kover (JaCoCo-compatible XML output)
 
-JaCoCo is configured in `server/smp/build.gradle.kts`:
-
-```kotlin
-tasks.jacocoTestReport {
-    dependsOn(tasks.test)
-    reports {
-        xml.required.set(true)
-        html.required.set(true)
-    }
-}
-```
+Backend coverage reports are generated from the Gradle Kover plugin and exported as XML files
+that SonarQube can ingest via the JaCoCo XML import property.
 
 ### Frontend (TypeScript/Astro)
 
@@ -50,7 +41,7 @@ coverage: {
 **Backend**:
 
 ```bash
-cd server/smp && ./gradlew test jacocoTestReport
+./gradlew :server:smp:test :server:smp:koverXmlReport :shared:common:test :shared:common:koverXmlReport :shared:bus:test :shared:bus:koverXmlReport :shared:presentation:test :shared:presentation:koverXmlReport :shared:security:test :shared:security:koverXmlReport :shared:spring-boot-common:test :shared:spring-boot-common:koverXmlReport :shared:storage:test :shared:storage:koverXmlReport :shared:shield:ratelimit:test :shared:shield:ratelimit:koverXmlReport --no-daemon -PexcludeTags=modularity,postgres
 ```
 
 **Frontend**:
@@ -64,17 +55,17 @@ cd apps/web/marketing && pnpm test:coverage
 The following properties in `sonar-project.properties` link the generated reports to SonarQube:
 
 ```properties
-sonar.coverage.jacoco.xmlReportPaths=server/smp/build/reports/jacoco/test/jacocoTestReport.xml
-sonar.javascript.lcov.reportPaths=apps/web/marketing/coverage/lcov.info
-sonar.typescript.lcov.reportPaths=apps/web/marketing/coverage/lcov.info
+sonar.coverage.jacoco.xmlReportPaths=server/smp/build/reports/kover/report.xml,shared/common/build/reports/kover/report.xml,shared/bus/build/reports/kover/report.xml,shared/presentation/build/reports/kover/report.xml,shared/security/build/reports/kover/report.xml,shared/spring-boot-common/build/reports/kover/report.xml,shared/storage/build/reports/kover/report.xml,shared/shield/ratelimit/build/reports/kover/report.xml
+sonar.javascript.lcov.reportPaths=apps/web/marketing/coverage/lcov.info,apps/web/app/coverage/lcov.info
+sonar.typescript.lcov.reportPaths=apps/web/marketing/coverage/lcov.info,apps/web/app/coverage/lcov.info
 ```
 
 ## Troubleshooting
 
 ### Backend Coverage Not Showing
 
-1. Verify XML report exists: `ls -la server/smp/build/reports/jacoco/test/jacocoTestReport.xml`
-2. Check JaCoCo task ran: `./gradlew test jacocoTestReport --info`
+1. Verify XML report exists: `ls -la server/smp/build/reports/kover/report.xml`
+2. Check Kover task ran: `./gradlew :server:smp:koverXmlReport --info`
 
 ### Frontend Coverage Not Showing
 

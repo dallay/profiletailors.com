@@ -27,48 +27,42 @@ This project uses [Codecov](https://about.codecov.io/) for code coverage trackin
 
 Main Codecov configuration at the repository root:
 
-- **Coverage targets**: 80% project, 70% patch
-- **Flags**: `backend`, `smp` for component tracking
+- **Coverage targets**: 80% project, 80% patch
+- **Flags**: `backend`, `frontend` for per-component status checks
 - **Ignore patterns**: Tests, docs, build artifacts
+- **Aligns with**: SonarQube — both tools ingest the same report files
 
-### `.github/workflows/test-coverage.yml`
+### `.github/workflows/quality-gate.yml`
 
 CI workflow that:
 
-- Runs backend tests with JaCoCo
-- Generates XML coverage reports
-- Uploads to Codecov with flags
-- Stores test results as artifacts
+- Runs backend tests and generates Kover XML reports
+- Runs frontend tests and generates LCOV reports
+- Uploads the same reports to both SonarQube and Codecov
+- Stores coverage reports as artifacts for debugging
 
-### `server/smp/build.gradle.kts`
 
-Gradle configuration with:
+### Backend coverage reports
 
-- JaCoCo plugin enabled
-- XML report generation (required by Codecov)
-- HTML reports for local viewing
-- Coverage verification (80% minimum)
-- Exclusions for config/dto/entity classes
+Gradle build logic provides:
+
+- Kover plugin enabled across backend modules
+- XML report generation (required by SonarQube and Codecov)
+- Consistent JVM test execution across `server/` and `shared/` modules
+- Coverage verification target of 80%
 
 ## Local Usage
 
 ### Run tests with coverage
 
 ```bash
-cd server/smp
-./gradlew test jacocoTestReport
-```
-
-### View coverage report
-
-```bash
-open server/smp/build/reports/jacoco/test/html/index.html
+./gradlew :server:smp:test :server:smp:koverXmlReport --no-daemon
 ```
 
 ### Verify coverage thresholds
 
 ```bash
-./gradlew jacocoTestCoverageVerification
+./gradlew :server:smp:koverCheck --no-daemon
 ```
 
 ## CI/CD Integration
@@ -98,34 +92,34 @@ Add to your README.md:
 ## Coverage Targets
 
 - **Project coverage**: 80% (±2% threshold)
-- **Patch coverage**: 70% (±5% threshold)
+- **Patch coverage**: 80% (±2% threshold)
 - **Precision**: 2 decimal places
 - **Range**: 70-100%
 
 ## Flags
 
-- `backend`: All backend code (server/ + shared/)
-- `smp`: Social Media Platform service (server/smp/)
+- `backend`: All backend code (`server/` + `shared/`)
+- `frontend`: All frontend code (`apps/web/marketing/` + `apps/web/app/`)
 
 ## Troubleshooting
 
 ### Coverage not uploading
 
 1. Check `CODECOV_TOKEN` is set in GitHub secrets
-2. Verify workflow has `contents: read` permission
-3. Check JaCoCo XML report exists at expected path
+2. Verify `CODECOV_TOKEN` secret is present in the repository
+3. Check Kover XML report exists at expected path
 
 ### Low coverage warnings
 
-1. Run `./gradlew jacocoTestReport` locally
-2. Open HTML report to see uncovered lines
+1. Run `./gradlew :server:smp:test :server:smp:koverXmlReport --no-daemon` locally
+2. Open HTML report in `server/smp/build/reports/kover/html/index.html`
 3. Add tests for uncovered code
-4. Verify exclusions in `build.gradle.kts` are correct
+4. Verify exclusions in the build configuration are correct
 
 ### Workflow failing
 
-1. Check test execution: `./gradlew test`
-2. Verify JaCoCo report generation: `./gradlew jacocoTestReport`
+1. Check test execution: `./gradlew :server:smp:test --no-daemon`
+2. Verify Kover report generation: `./gradlew :server:smp:koverXmlReport --no-daemon`
 3. Check workflow logs in GitHub Actions
 
 ## Next Steps

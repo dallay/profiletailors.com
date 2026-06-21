@@ -3,6 +3,8 @@
 
 coverage:
   status:
+    default_rules:
+      flag_coverage_not_uploaded_behavior: exclude
     project:
       default:
         target: 80%
@@ -10,9 +12,10 @@ coverage:
         if_ci_failed: error
     patch:
       default:
-        target: 70%
-        threshold: 5%
+        target: 80%
+        threshold: 2%
         if_ci_failed: error
+    changes: false
 
   precision: 2
   round: down
@@ -35,18 +38,23 @@ ignore:
   - "**/build/**"
   - "**/generated/**"
 
+# Align Codecov's scope with SonarQube:
+# - project status reflects overall repo coverage across uploaded backend + frontend reports
+# - patch status enforces the same 80% standard expected on changed code
+# - carryforward is disabled so stale flag data cannot mask missing uploads
+
 flags:
   backend:
     paths:
       - server/
       - shared/
-    carryforward: true
-  
+    carryforward: false
+
   frontend:
     paths:
       - apps/web/marketing/
       - apps/web/app/
-    carryforward: true
+    carryforward: false
 
 component_management:
   individual_components:

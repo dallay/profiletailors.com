@@ -20,7 +20,7 @@ ensures continuous monitoring of code quality and testing rigor across the entir
 
 ### CI/CD Workflows
 
-- ✅ `.github/workflows/sonarqube.yml` - Implemented full SonarQube analysis workflow.
+- ✅ `.github/workflows/quality-gate.yml` - Implemented full coverage and quality-gate workflow.
 
 ### Project Configuration
 
@@ -32,18 +32,23 @@ ensures continuous monitoring of code quality and testing rigor across the entir
 
 ### Backend (Kotlin/Spring Boot)
 
-**Coverage Tool**: JaCoCo
+**Coverage Tool**: Kover (JaCoCo-compatible XML output)
 
-**Reports**:
+**Reports** (one per Gradle module):
 
-- XML: `server/smp/build/reports/jacoco/test/jacocoTestReport.xml`
-- HTML: `server/smp/build/reports/jacoco/test/html/index.html`
+- `server/smp/build/reports/kover/report.xml`
+- `shared/common/build/reports/kover/report.xml`
+- `shared/bus/build/reports/kover/report.xml`
+- `shared/presentation/build/reports/kover/report.xml`
+- `shared/security/build/reports/kover/report.xml`
+- `shared/spring-boot-common/build/reports/kover/report.xml`
+- `shared/storage/build/reports/kover/report.xml`
+- `shared/shield/ratelimit/build/reports/kover/report.xml`
 
 **Command**:
 
 ```bash
-cd server/smp
-./gradlew test jacocoTestReport
+./gradlew :server:smp:test :server:smp:koverXmlReport --no-daemon
 ```
 
 **Threshold**: 80% minimum
@@ -54,16 +59,15 @@ cd server/smp
 
 **Reports**:
 
-- LCOV: `apps/web/marketing/coverage/lcov.info`
+- Marketing LCOV: `apps/web/marketing/coverage/lcov.info`
+- App LCOV: `apps/web/app/coverage/lcov.info`
 - HTML: `apps/web/marketing/coverage/index.html`
 
 **Commands**:
 
 ```bash
-cd apps/web/marketing
-pnpm install          # Install dependencies
-pnpm test             # Run tests
-pnpm test:coverage    # Run tests with coverage
+cd apps/web/marketing && pnpm test:coverage
+cd apps/web/app && pnpm test:coverage
 ```
 
 **Threshold**: 80% minimum
@@ -74,7 +78,7 @@ pnpm test:coverage    # Run tests with coverage
 
 - Verify that tests were executed successfully.
 - Check if the report paths in `sonar-project.properties` match the actual generation paths.
-- Ensure the respective coverage tasks (`jacocoTestReport` for backend, `test:coverage` for
+- Ensure the respective coverage tasks (`koverXmlReport` for backend, `test:coverage` for
   frontend) were triggered.
 
 ## References
