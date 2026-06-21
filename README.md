@@ -131,6 +131,8 @@ cd profiletailors.com
 just setup
 ```
 
+For full onboarding and troubleshooting, see [docs/getting-started.md](docs/getting-started.md).
+
 `just setup` will:
 
 - copy `.env.example` to `.env` when needed,
