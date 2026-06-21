@@ -1,7 +1,6 @@
 package com.profiletailors.ratelimit.application
 
 import com.profiletailors.common.domain.bus.event.EventPublisher
-import com.profiletailors.ratelimit.application.RateLimitingService
 import com.profiletailors.ratelimit.domain.RateLimitResult
 import com.profiletailors.ratelimit.domain.RateLimitStrategy
 import com.profiletailors.ratelimit.domain.RateLimiter
@@ -23,22 +22,12 @@ import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.assertThrows
 
-/**
- * Unit tests for RateLimitingService.
- *
- * Tests cover:
- * - Token consumption with default and specific strategies
- * - Event publishing when rate limit is exceeded
- * - Integration with Bucket4jRateLimiter
- * - Coroutine-based flow handling
- */
-
 @OptIn(ExperimentalCoroutinesApi::class)
 class RateLimitingServiceTest {
 
-    private lateinit var service: RateLimitingService
     private lateinit var rateLimiter: RateLimiter
     private lateinit var eventPublisher: EventPublisher<RateLimitExceededEvent>
+    private lateinit var service: RateLimitingService
 
     @BeforeEach
     fun setUp() {
@@ -353,5 +342,32 @@ class RateLimitingServiceTest {
         coVerify(exactly = 1) {
             rateLimiter.consumeToken(identifier2, RateLimitStrategy.BUSINESS)
         }
+    }
+
+    @Test
+    fun `should handle event publisher error gracefully`() = runTest {
+        // Given
+        val identifier = "IP:192.168.1.4"
+        val endpoint = "/api/auth/login"
+        val expectedResult = RateLimitResult.Denied(
+            retryAfter = Duration.ofMinutes(1),
+            limitCapacity = 10,
+            windowDuration = Duration.ofMinutes(1),
+        )
+
+        coEvery {
+            rateLimiter.consumeToken(identifier, RateLimitStrategy.AUTH)
+        } returns expectedResult
+
+        coEvery {
+            eventPublisher.publish(any())
+        } throws RuntimeException("Event publishing failed")
+
+        // When
+        val result = service.consumeToken(identifier, endpoint, RateLimitStrategy.AUTH)
+
+        // Then
+        result shouldBe expectedResult
+        coVerify(exactly = 1) { eventPublisher.publish(any()) }
     }
 }
