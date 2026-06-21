@@ -1,7 +1,6 @@
 package com.profiletailors.ratelimit.application
 
 import com.profiletailors.common.domain.bus.event.EventPublisher
-import com.profiletailors.ratelimit.application.RateLimitingService
 import com.profiletailors.ratelimit.domain.RateLimitResult
 import com.profiletailors.ratelimit.domain.RateLimitStrategy
 import com.profiletailors.ratelimit.domain.RateLimiter
@@ -23,22 +22,12 @@ import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.assertThrows
 
-/**
- * Unit tests for RateLimitingService.
- *
- * Tests cover:
- * - Token consumption with default and specific strategies
- * - Event publishing when rate limit is exceeded
- * - Integration with Bucket4jRateLimiter
- * - Coroutine-based flow handling
- */
-
 @OptIn(ExperimentalCoroutinesApi::class)
 class RateLimitingServiceTest {
 
-    private lateinit var service: RateLimitingService
     private lateinit var rateLimiter: RateLimiter
     private lateinit var eventPublisher: EventPublisher<RateLimitExceededEvent>
+    private lateinit var service: RateLimitingService
 
     @BeforeEach
     fun setUp() {
@@ -353,5 +342,136 @@ class RateLimitingServiceTest {
         coVerify(exactly = 1) {
             rateLimiter.consumeToken(identifier2, RateLimitStrategy.BUSINESS)
         }
+    }
+
+    @Test
+    fun `should handle event publisher error gracefully`() = runTest {
+        // Given
+        val identifier = "IP:192.168.1.4"
+        val endpoint = "/api/auth/login"
+        val expectedResult = RateLimitResult.Denied(
+            retryAfter = Duration.ofMinutes(1),
+            limitCapacity = 10,
+            windowDuration = Duration.ofMinutes(1),
+        )
+
+        coEvery {
+            rateLimiter.consumeToken(identifier, RateLimitStrategy.AUTH)
+        } returns expectedResult
+
+        coEvery {
+            eventPublisher.publish(any())
+        } throws RuntimeException("Event publishing failed")
+
+        // When
+        val result = service.consumeToken(identifier, endpoint, RateLimitStrategy.AUTH)
+
+        // Then
+        result shouldBe expectedResult
+        coVerify(exactly = 1) { eventPublisher.publish(any()) }
+    }
+
+    @Test
+    fun `should publish event with correct endpoint when RESUME strategy limit exceeded`() = runTest {
+        // Given
+        val identifier = "IP:10.0.0.5"
+        val endpoint = "/api/resume/generate"
+        val expectedResult = RateLimitResult.Denied(
+            retryAfter = Duration.ofMinutes(1),
+            limitCapacity = 10,
+            windowDuration = Duration.ofMinutes(1),
+        )
+
+        coEvery {
+            rateLimiter.consumeToken(identifier, RateLimitStrategy.RESUME)
+        } returns expectedResult
+
+        coEvery {
+            eventPublisher.publish(any<RateLimitExceededEvent>())
+        } just Runs
+
+        // When
+        val result = service.consumeToken(identifier, endpoint, RateLimitStrategy.RESUME)
+
+        // Then
+        result.shouldBeInstanceOf<RateLimitResult.Denied>()
+        coVerify(exactly = 1) { eventPublisher.publish(any<RateLimitExceededEvent>()) }
+    }
+
+    @Test
+    fun `should publish event with WAITLIST strategy when limit exceeded`() = runTest {
+        // Given
+        val identifier = "IP:10.0.0.6"
+        val endpoint = "/api/waitlist/join"
+        val expectedResult = RateLimitResult.Denied(
+            retryAfter = Duration.ofSeconds(30),
+            limitCapacity = 10,
+            windowDuration = Duration.ofMinutes(1),
+        )
+
+        coEvery {
+            rateLimiter.consumeToken(identifier, RateLimitStrategy.WAITLIST)
+        } returns expectedResult
+
+        coEvery {
+            eventPublisher.publish(any<RateLimitExceededEvent>())
+        } just Runs
+
+        // When
+        val result = service.consumeToken(identifier, endpoint, RateLimitStrategy.WAITLIST)
+
+        // Then
+        result.shouldBeInstanceOf<RateLimitResult.Denied>()
+        coVerify(exactly = 1) { eventPublisher.publish(any<RateLimitExceededEvent>()) }
+    }
+
+    @Test
+    fun `should use BUSINESS strategy when no strategy specified`() = runTest {
+        // Given
+        val identifier = "API:some-key"
+        val endpoint = "/api/data"
+
+        coEvery {
+            rateLimiter.consumeToken(identifier, RateLimitStrategy.BUSINESS)
+        } returns RateLimitResult.Allowed(
+            remainingTokens = 50,
+            limitCapacity = 100,
+            resetTime = Instant.now().plusSeconds(3600),
+        )
+
+        // When
+        val result = service.consumeToken(identifier, endpoint)
+
+        // Then
+        result.shouldBeInstanceOf<RateLimitResult.Allowed>()
+        coVerify(exactly = 0) {
+            rateLimiter.consumeToken(identifier, RateLimitStrategy.AUTH)
+        }
+        coVerify(exactly = 1) {
+            rateLimiter.consumeToken(identifier, RateLimitStrategy.BUSINESS)
+        }
+    }
+
+    @Test
+    fun `should return Allowed result without publishing event`() = runTest {
+        // Given - zero-remaining tokens still allowed (last token consumed)
+        val identifier = "API:last-token"
+        val endpoint = "/api/business/data"
+
+        coEvery {
+            rateLimiter.consumeToken(identifier, RateLimitStrategy.BUSINESS)
+        } returns RateLimitResult.Allowed(
+            remainingTokens = 0,
+            limitCapacity = 100,
+            resetTime = Instant.now().plusSeconds(3600),
+        )
+
+        // When
+        val result = service.consumeToken(identifier, endpoint)
+
+        // Then
+        result.shouldBeInstanceOf<RateLimitResult.Allowed>()
+        result.remainingTokens shouldBe 0
+        coVerify(exactly = 0) { eventPublisher.publish(any()) }
     }
 }
