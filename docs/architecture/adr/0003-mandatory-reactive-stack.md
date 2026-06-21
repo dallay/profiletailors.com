@@ -53,7 +53,7 @@ Blocking I/O operations MUST be avoided or carefully isolated on dedicated threa
 - Controller and Repository interfaces use `suspend`.
 
 ## Migration or remediation
-Codebase is already 100% reactive.
+The codebase is reactive at its core: all domain and application layer methods use `suspend` functions. The infrastructure layer contains necessary `runBlocking` adapters only at framework boundaries where required to bridge synchronous contracts (e.g., `PublishingWorker.kt` for Spring's `TaskScheduler` Runnable interface and `MediaHealthConfiguration.kt` for Spring's `HealthIndicator.health()` synchronous interface).
 
 ## Revisit conditions
 - Critical library dependencies do not support reactive/coroutines.

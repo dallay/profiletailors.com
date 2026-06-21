@@ -44,8 +44,8 @@ The backend MUST support a "Silent Refresh" flow where the frontend can obtain a
 - Automated tests for HttpOnly cookie presence.
 
 ## Verification
-- `LocalAuthHandlers.kt` issues cookies with `httpOnly(true)`.
-- Vue `auth.ts` store does not use `localStorage` for the access token.
+- `RefreshSessionCookieFactory.kt` issues cookies with `httpOnly = true` (lines 16 and 26, confirmed by tests in `RefreshSessionCookieFactoryTest.kt` at line 31).
+- Vue `auth.ts` keeps access tokens in memory only (line 59: `_accessToken` ref) and never persists them to `localStorage`.
 
 ## Migration or remediation
 None required; already implemented.

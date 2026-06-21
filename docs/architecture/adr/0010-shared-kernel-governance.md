@@ -46,6 +46,10 @@ The `shared/` modules MUST follow strict governance rules:
 ## Compliance and enforcement
 Enforced via Gradle build configuration and ArchUnit tests.
 
+**Automated dependency validation** for the framework-free constraint in `shared:common` can be implemented using:
+- **ArchUnit tests**: Add rules to verify that no classes in `shared:common` import Spring, R2DBC, or other framework packages (e.g., `noClasses().that().resideInAPackage("com.profiletailors.common..").should().dependOnClassesThat().resideInAnyPackage("org.springframework..", "io.r2dbc..")`)
+- **Gradle dependency constraints**: Configure the `shared:common` module's `build.gradle.kts` to explicitly exclude framework dependencies and fail the build if they are transitively introduced
+
 ## Verification
 - `:shared:common` build file has minimal/no dependencies.
 - No circular dependencies between `:server:smp` and `:shared:*`.

@@ -47,7 +47,10 @@ A "relaxed" CQRS approach is permitted where Commands MAY return data (using `Co
 - Increased file count is accepted for improved modularity and SRP.
 
 ## Compliance and enforcement
-Enforced via naming conventions and dependency rules.
+Enforced via naming conventions and dependency rules:
+- **Naming conventions**: Commands use the `Command` suffix; Queries use the `Query` suffix; Handlers use the `Handler` suffix.
+- **Handler interfaces**: All command handlers MUST implement `CommandHandler<TCommand>` or `CommandWithResultHandler<TCommand, TResult>`; all query handlers MUST implement `QueryHandler<TQuery, TResult>`.
+- **Dependency injection**: Controllers MUST only inject the `Mediator` and MUST NOT directly inject service or handler classes. All use-case execution flows through `mediator.send(command)` or `mediator.send(query)`.
 
 ## Verification
 - Usage of `mediator.send(command)` in Controllers.
