@@ -1,12 +1,11 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 import { mount } from '@vue/test-utils'
-import { h } from 'vue'
 import SidebarMenuSkeleton from './SidebarMenuSkeleton.vue'
 
 // ---------------------------------------------------------------------------
 // Stub crypto.getRandomValues so the test is deterministic
 // ---------------------------------------------------------------------------
-const originalGetRandomValues = globalThis.crypto?.getRandomValues.bind(globalThis.crypto)
+const _originalGetRandomValues = globalThis.crypto?.getRandomValues.bind(globalThis.crypto)
 
 function stubGetRandomValues(returnValue: Uint32Array) {
   vi.stubGlobal('crypto', {
@@ -86,13 +85,15 @@ describe('SidebarMenuSkeleton', () => {
   it('generates varying widths when given different random values', () => {
     stubGetRandomValues(new Uint32Array([0xffffff])) // max uint32 → ~90%
     const wrapperMax = mount(SidebarMenuSkeleton, { props: { showIcon: false } })
-    const maxStyle = wrapperMax.find('[data-sidebar="menu-skeleton-text"]').attributes('style') ?? ''
+    const maxStyle =
+      wrapperMax.find('[data-sidebar="menu-skeleton-text"]').attributes('style') ?? ''
     const maxMatch = maxStyle.match(/--skeleton-width:\s*([^;]+)/)
     const maxPct = parseFloat(maxMatch![1])
 
     stubGetRandomValues(new Uint32Array([0])) // 0 → 50%
     const wrapperMin = mount(SidebarMenuSkeleton, { props: { showIcon: false } })
-    const minStyle = wrapperMin.find('[data-sidebar="menu-skeleton-text"]').attributes('style') ?? ''
+    const minStyle =
+      wrapperMin.find('[data-sidebar="menu-skeleton-text"]').attributes('style') ?? ''
     const minMatch = minStyle.match(/--skeleton-width:\s*([^;]+)/)
     const minPct = parseFloat(minMatch![1])
 

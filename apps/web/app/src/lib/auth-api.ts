@@ -3,8 +3,8 @@ import { authCredentialsSchema, workspaceNameSchema } from '@/lib/validation/sch
 // ---------------------------------------------------------------------------
 // Types
 // ---------------------------------------------------------------------------
- 
- export interface AuthTokens {
+
+export interface AuthTokens {
   accessToken: string
   tokenType: string
   expiresIn: number

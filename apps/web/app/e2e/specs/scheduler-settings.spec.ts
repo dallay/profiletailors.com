@@ -14,10 +14,14 @@ test.describe('Scheduler — Settings Persistence', () => {
    */
   test('TC-21: theme persistence @settings @theme @persistence', async ({ page }) => {
     // Theme controls live in the sidebar account menu, not the Settings page.
-    const accountMenuTrigger = page.getByRole('button', { name: /dev user|profile tailors/i }).first()
+    const accountMenuTrigger = page
+      .getByRole('button', { name: /dev user|profile tailors/i })
+      .first()
     await accountMenuTrigger.click()
 
-    const initialSettings = await page.evaluate(() => JSON.parse(localStorage.getItem('pt_settings_v1') || '{}'))
+    const initialSettings = await page.evaluate(() =>
+      JSON.parse(localStorage.getItem('pt_settings_v1') || '{}'),
+    )
     const initialTheme = initialSettings.theme || 'dark'
     const nextTheme = initialTheme === 'dark' ? 'light' : 'dark'
 
@@ -25,13 +29,17 @@ test.describe('Scheduler — Settings Persistence', () => {
     await themeRadio.click({ force: true })
     await page.waitForTimeout(300)
 
-    const updatedSettings = await page.evaluate(() => JSON.parse(localStorage.getItem('pt_settings_v1') || '{}'))
+    const updatedSettings = await page.evaluate(() =>
+      JSON.parse(localStorage.getItem('pt_settings_v1') || '{}'),
+    )
     expect(updatedSettings.theme).toBe(nextTheme)
 
     await page.reload()
     await page.waitForLoadState('networkidle')
 
-    const afterReloadSettings = await page.evaluate(() => JSON.parse(localStorage.getItem('pt_settings_v1') || '{}'))
+    const afterReloadSettings = await page.evaluate(() =>
+      JSON.parse(localStorage.getItem('pt_settings_v1') || '{}'),
+    )
     expect(afterReloadSettings.theme).toBe(nextTheme)
 
     // No need to toggle back in the same test — persistence already verified.
@@ -44,20 +52,26 @@ test.describe('Scheduler — Settings Persistence', () => {
     await safeGoto(page, APP_URL.settings)
     await page.waitForTimeout(500)
 
-    const initialSettings = await page.evaluate(() => JSON.parse(localStorage.getItem('pt_settings_v1') || '{}'))
+    const initialSettings = await page.evaluate(() =>
+      JSON.parse(localStorage.getItem('pt_settings_v1') || '{}'),
+    )
     const initialLocale = initialSettings.locale || 'en'
     const nextLocale = initialLocale === 'en' ? 'es' : 'en'
 
     await page.getByTestId(`settings-language-${nextLocale}`).click({ force: true })
     await page.waitForTimeout(300)
 
-    const updatedSettings = await page.evaluate(() => JSON.parse(localStorage.getItem('pt_settings_v1') || '{}'))
+    const updatedSettings = await page.evaluate(() =>
+      JSON.parse(localStorage.getItem('pt_settings_v1') || '{}'),
+    )
     expect(updatedSettings.locale).toBe(nextLocale)
 
     await page.reload()
     await page.waitForLoadState('networkidle')
 
-    const afterReloadSettings = await page.evaluate(() => JSON.parse(localStorage.getItem('pt_settings_v1') || '{}'))
+    const afterReloadSettings = await page.evaluate(() =>
+      JSON.parse(localStorage.getItem('pt_settings_v1') || '{}'),
+    )
     expect(afterReloadSettings.locale).toBe(nextLocale)
 
     // Verify we're still on settings page after reload (data-testid is language-agnostic)

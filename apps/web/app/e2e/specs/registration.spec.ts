@@ -16,12 +16,7 @@ import {
   VALID_CREDENTIALS,
   APP_URL,
 } from '../fixtures/test-data'
-import {
-  keepSessionAlive,
-  logout,
-  mockRegisterResponse,
-  mockRefreshFailure,
-} from '../fixtures/auth-helpers'
+import { logout, mockRegisterResponse, mockRefreshFailure } from '../fixtures/auth-helpers'
 
 test.describe('Registration', { tag: '@integration' }, () => {
   test.beforeEach(async ({ resetSession }) => {
@@ -64,7 +59,11 @@ test.describe('Registration', { tag: '@integration' }, () => {
     // Mock register to return 409 conflict
     await mockRegisterResponse(page, {
       status: 409,
-      body: { title: 'Conflict', detail: 'An account with this email already exists.', status: 409 },
+      body: {
+        title: 'Conflict',
+        detail: 'An account with this email already exists.',
+        status: 409,
+      },
     })
 
     const loginPage = new LoginPage(page)
@@ -100,7 +99,12 @@ test.describe('Registration', { tag: '@integration' }, () => {
     // Mock register to return 422 for short password
     await mockRegisterResponse(page, {
       status: 422,
-      body: { title: 'Validation Error', detail: 'Password must be at least 8 characters.', status: 422, errors: { password: ['too short'] } },
+      body: {
+        title: 'Validation Error',
+        detail: 'Password must be at least 8 characters.',
+        status: 422,
+        errors: { password: ['too short'] },
+      },
     })
 
     const loginPage = new LoginPage(page)
@@ -150,5 +154,3 @@ test.describe('Registration', { tag: '@integration' }, () => {
     await dashboard.expectAuthenticated()
   })
 })
-
-

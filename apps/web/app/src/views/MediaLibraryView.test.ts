@@ -240,13 +240,17 @@ describe('MediaLibraryView', () => {
     const wrapper = mountView()
     await flushPromises()
 
-    const selectVisibleButton = wrapper.findAll('button').find((button) => button.text().includes('media.selectAllVisible'))
+    const selectVisibleButton = wrapper
+      .findAll('button')
+      .find((button) => button.text().includes('media.selectAllVisible'))
     expect(selectVisibleButton).toBeTruthy()
     await selectVisibleButton?.trigger('click')
 
     expect(wrapper.text()).toContain('2 media.selectedCountSuffix')
 
-    const deleteSelectedButtons = wrapper.findAll('button').filter((button) => button.text().includes('media.deleteSelectedAction'))
+    const deleteSelectedButtons = wrapper
+      .findAll('button')
+      .filter((button) => button.text().includes('media.deleteSelectedAction'))
     expect(deleteSelectedButtons.length).toBeGreaterThan(0)
     await deleteSelectedButtons[deleteSelectedButtons.length - 1]?.trigger('click')
 

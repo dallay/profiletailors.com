@@ -1,6 +1,12 @@
 import { ref, computed } from 'vue'
 import { defineStore } from 'pinia'
-import { type MediaAssetSummary, reserveAsset, uploadAsset, listAssets, deleteAsset } from '@/lib/media-api'
+import {
+  type MediaAssetSummary,
+  reserveAsset,
+  uploadAsset,
+  listAssets,
+  deleteAsset,
+} from '@/lib/media-api'
 
 // ---------------------------------------------------------------------------
 // Retry configuration (SPA upload contract)

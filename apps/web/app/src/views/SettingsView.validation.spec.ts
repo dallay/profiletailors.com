@@ -74,7 +74,10 @@ describe('SettingsView workspace rename validation', () => {
     const wrapper = mountSettings()
     await flushPromises()
 
-    await wrapper.findAll('button').find((button) => button.text().includes('workspace.rename'))?.trigger('click')
+    await wrapper
+      .findAll('button')
+      .find((button) => button.text().includes('workspace.rename'))
+      ?.trigger('click')
     const input = wrapper.find('input[type="text"]')
     await input.setValue('   ')
     await input.trigger('keyup.enter')
@@ -92,10 +95,16 @@ describe('SettingsView workspace rename validation', () => {
     const wrapper = mountSettings()
     await flushPromises()
 
-    await wrapper.findAll('button').find((button) => button.text().includes('workspace.rename'))?.trigger('click')
+    await wrapper
+      .findAll('button')
+      .find((button) => button.text().includes('workspace.rename'))
+      ?.trigger('click')
     const input = wrapper.find('input[type="text"]')
     await input.setValue('  Studio PT  ')
-    await wrapper.findAll('button').find((button) => button.text().includes('workspace.save'))?.trigger('click')
+    await wrapper
+      .findAll('button')
+      .find((button) => button.text().includes('workspace.save'))
+      ?.trigger('click')
 
     expect(renameWorkspaceMock).toHaveBeenCalledWith('Studio PT', expect.anything(), 'ws-1')
   })

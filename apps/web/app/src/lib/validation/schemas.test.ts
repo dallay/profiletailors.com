@@ -22,7 +22,9 @@ describe('authCredentialsSchema', () => {
 
     expect(result.success).toBe(false)
     if (!result.success) {
-      expect(result.error.flatten().fieldErrors.email).toContain('Please enter a valid email address.')
+      expect(result.error.flatten().fieldErrors.email).toContain(
+        'Please enter a valid email address.',
+      )
     }
   })
 
@@ -60,7 +62,9 @@ describe('workspaceNameSchema', () => {
 
     expect(result.success).toBe(false)
     if (!result.success) {
-      expect(result.error.issues[0]?.message).toBe('Workspace name must be 255 characters or fewer.')
+      expect(result.error.issues[0]?.message).toBe(
+        'Workspace name must be 255 characters or fewer.',
+      )
     }
   })
 })

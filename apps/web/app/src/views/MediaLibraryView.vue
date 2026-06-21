@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { computed, onMounted, ref } from 'vue'
-import { Download, FileText, Image as ImageIcon, Loader2, RefreshCw, Trash2, UploadCloud, Video } from '@lucide/vue'
+import { Download, FileText, Image, Loader2, RefreshCw, Trash2, UploadCloud, Video } from '@lucide/vue'
 import { useMediaStore } from '@/stores/media'
 import { resolveApiUrl } from '@/lib/auth-api'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
@@ -65,8 +65,7 @@ const visibleAssets = computed(() => {
         return (right.fileSizeBytes ?? 0) - (left.fileSizeBytes ?? 0)
       case 'status':
         return left.status.localeCompare(right.status)
-      case 'newest':
-      default:
+        default:
         return new Date(right.createdAt).getTime() - new Date(left.createdAt).getTime()
     }
   })
@@ -318,25 +317,25 @@ onMounted(async () => {
       <CardContent>
         <div class="mb-4 flex flex-col gap-3 rounded-2xl border border-border-subtle bg-bg-primary/30 p-4 lg:flex-row lg:items-end lg:justify-between">
           <div class="grid gap-3 sm:grid-cols-2">
-            <label class="space-y-1 text-xs text-text-secondary">
+            <div class="space-y-1 text-xs text-text-secondary">
               <span class="font-mono text-[9px] uppercase tracking-[0.12em]">{{ $t('media.statusFilter') }}</span>
-              <select v-model="statusFilter" class="w-full rounded-xl border border-border-visible bg-bg-surface px-3 py-2 text-sm text-text-display">
+              <select v-model="statusFilter" :aria-label="$t('media.statusFilter')" class="w-full rounded-xl border border-border-visible bg-bg-surface px-3 py-2 text-sm text-text-display">
                 <option value="ALL">{{ $t('media.filterAll') }}</option>
                 <option value="READY">READY</option>
                 <option value="PROCESSING">PROCESSING</option>
                 <option value="FAILED">FAILED</option>
               </select>
-            </label>
-            <label class="space-y-1 text-xs text-text-secondary">
+            </div>
+            <div class="space-y-1 text-xs text-text-secondary">
               <span class="font-mono text-[9px] uppercase tracking-[0.12em]">{{ $t('media.typeFilter') }}</span>
-              <select v-model="typeFilter" class="w-full rounded-xl border border-border-visible bg-bg-surface px-3 py-2 text-sm text-text-display">
+              <select v-model="typeFilter" :aria-label="$t('media.typeFilter')" class="w-full rounded-xl border border-border-visible bg-bg-surface px-3 py-2 text-sm text-text-display">
                 <option value="ALL">{{ $t('media.filterAll') }}</option>
                 <option value="IMAGE">{{ $t('media.typeImage') }}</option>
                 <option value="VIDEO">{{ $t('media.typeVideo') }}</option>
                 <option value="PDF">{{ $t('media.typePdf') }}</option>
                 <option value="OTHER">{{ $t('media.typeOther') }}</option>
               </select>
-            </label>
+            </div>
           </div>
 
           <p class="text-xs text-text-secondary">
@@ -346,18 +345,19 @@ onMounted(async () => {
 
         <div class="mb-4 flex flex-col gap-3 rounded-2xl border border-border-subtle bg-bg-primary/20 p-4 lg:flex-row lg:items-end lg:justify-between">
           <div class="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
-            <label class="space-y-1 text-xs text-text-secondary md:col-span-2 xl:col-span-1">
+            <div class="space-y-1 text-xs text-text-secondary md:col-span-2 xl:col-span-1">
               <span class="font-mono text-[9px] uppercase tracking-[0.12em]">{{ $t('media.searchLabel') }}</span>
               <input
                 v-model="searchQuery"
+                :aria-label="$t('media.searchLabel')"
                 type="search"
                 class="w-full rounded-xl border border-border-visible bg-bg-surface px-3 py-2 text-sm text-text-display"
                 :placeholder="$t('media.searchPlaceholder')"
               />
-            </label>
-            <label class="space-y-1 text-xs text-text-secondary">
+            </div>
+            <div class="space-y-1 text-xs text-text-secondary">
               <span class="font-mono text-[9px] uppercase tracking-[0.12em]">{{ $t('media.sortLabel') }}</span>
-              <select v-model="sortBy" class="w-full rounded-xl border border-border-visible bg-bg-surface px-3 py-2 text-sm text-text-display">
+              <select v-model="sortBy" :aria-label="$t('media.sortLabel')" class="w-full rounded-xl border border-border-visible bg-bg-surface px-3 py-2 text-sm text-text-display">
                 <option value="newest">{{ $t('media.sortNewest') }}</option>
                 <option value="oldest">{{ $t('media.sortOldest') }}</option>
                 <option value="filename-asc">{{ $t('media.sortFilenameAsc') }}</option>
@@ -366,7 +366,7 @@ onMounted(async () => {
                 <option value="size-asc">{{ $t('media.sortSizeAsc') }}</option>
                 <option value="status">{{ $t('media.sortStatus') }}</option>
               </select>
-            </label>
+            </div>
             <div class="flex flex-wrap items-end gap-2">
               <Button type="button" variant="outline" @click="toggleSelectAllVisible">
                 {{ allVisibleSelected ? $t('media.clearSelection') : $t('media.selectAllVisible') }}
@@ -416,13 +416,13 @@ onMounted(async () => {
         </div>
 
         <div v-else-if="assets.length === 0" class="rounded-2xl border border-dashed border-border-visible bg-bg-primary/30 p-10 text-center">
-          <ImageIcon class="mx-auto size-8 text-text-secondary" />
+          <Image class="mx-auto size-8 text-text-secondary" />
           <p class="mt-3 text-sm text-text-display">{{ $t('media.emptyTitle') }}</p>
           <p class="mt-1 text-xs text-text-secondary">{{ $t('media.emptyBody') }}</p>
         </div>
 
         <div v-else-if="visibleAssets.length === 0" class="rounded-2xl border border-dashed border-border-visible bg-bg-primary/30 p-10 text-center">
-          <ImageIcon class="mx-auto size-8 text-text-secondary" />
+          <Image class="mx-auto size-8 text-text-secondary" />
           <p class="mt-3 text-sm text-text-display">{{ $t('media.noFilteredAssetsTitle') }}</p>
           <p class="mt-1 text-xs text-text-secondary">{{ $t('media.noFilteredAssetsBody') }}</p>
         </div>
@@ -435,15 +435,16 @@ onMounted(async () => {
               class="relative overflow-hidden rounded-2xl border border-border-subtle bg-bg-primary/40"
             >
               <div class="flex aspect-video items-center justify-center overflow-hidden bg-bg-primary/70">
-                <label class="absolute left-3 top-3 z-10 inline-flex items-center gap-2 rounded-full border border-border-visible bg-black/60 px-2 py-1 text-[10px] text-white">
+                <div class="absolute left-3 top-3 z-10 inline-flex items-center gap-2 rounded-full border border-border-visible bg-black/60 px-2 py-1 text-[10px] text-white">
                   <input
                     :checked="selectedLibraryAssetIds.includes(asset.assetId)"
+                    :aria-label="$t('media.selectLabel')"
                     type="checkbox"
                     class="size-3"
                     @change="toggleAssetSelection(asset.assetId)"
                   />
                   <span>{{ $t('media.selectLabel') }}</span>
-                </label>
+                </div>
                 <img
                   v-if="isImage(asset.mediaType) && assetContentUrl(asset)"
                   :src="assetContentUrl(asset) ?? ''"
@@ -466,7 +467,7 @@ onMounted(async () => {
                 <div v-else class="px-4 text-center">
                   <Video v-if="isVideo(asset.mediaType)" class="mx-auto size-8 text-text-secondary" />
                   <FileText v-else-if="isPdf(asset.mediaType)" class="mx-auto size-8 text-text-secondary" />
-                  <ImageIcon v-else class="mx-auto size-8 text-text-secondary" />
+                  <Image v-else class="mx-auto size-8 text-text-secondary" />
                   <p class="mt-2 font-mono text-[10px] uppercase tracking-[0.16em] text-text-secondary">
                     {{ asset.mediaType }}
                   </p>

@@ -36,22 +36,31 @@ test.describe('Scheduler — Filtering & Views', () => {
 
     // The filter is a native <select> element. Use evaluate to set value directly
     // since Playwright's selectOption can have issues with empty-string values.
-    const filter = page.locator('select').filter({
-      hasText: /all posts|queued|published|cancelled/i,
-    }).first()
+    const filter = page
+      .locator('select')
+      .filter({
+        hasText: /all posts|queued|published|cancelled/i,
+      })
+      .first()
 
     // Select "Queued"
-    await filter.evaluate((el: HTMLSelectElement) => { el.value = 'queued' })
+    await filter.evaluate((el: HTMLSelectElement) => {
+      el.value = 'queued'
+    })
     await filter.dispatchEvent('change')
     await page.waitForTimeout(500)
 
     // Select "Published"
-    await filter.evaluate((el: HTMLSelectElement) => { el.value = 'published' })
+    await filter.evaluate((el: HTMLSelectElement) => {
+      el.value = 'published'
+    })
     await filter.dispatchEvent('change')
     await page.waitForTimeout(500)
 
     // Select "All Posts" to reset (value is empty string)
-    await filter.evaluate((el: HTMLSelectElement) => { el.value = '' })
+    await filter.evaluate((el: HTMLSelectElement) => {
+      el.value = ''
+    })
     await filter.dispatchEvent('change')
     await page.waitForTimeout(500)
   })
@@ -67,7 +76,10 @@ test.describe('Scheduler — Filtering & Views', () => {
     await expect(page.getByText(/all day/i)).toBeVisible()
 
     // Today's posts should be listed (may be empty, but the section renders)
-    const allDaySection = page.locator('span').filter({ hasText: /all day/i }).first()
+    const allDaySection = page
+      .locator('span')
+      .filter({ hasText: /all day/i })
+      .first()
     await expect(allDaySection).toBeVisible()
   })
 

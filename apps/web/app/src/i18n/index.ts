@@ -379,10 +379,12 @@ const messages = {
       selectedCountSuffix: 'selected',
       filteredCountSuffix: 'assets visible',
       deleteConfirmTitle: 'Delete media asset?',
-      deleteConfirmBody: 'This permanently removes the asset from the workspace library and local storage.',
+      deleteConfirmBody:
+        'This permanently removes the asset from the workspace library and local storage.',
       deleteAction: 'Delete asset',
       bulkDeleteConfirmTitle: 'Delete selected media assets?',
-      bulkDeleteConfirmBody: 'This permanently removes all selected assets from the workspace library and local storage.',
+      bulkDeleteConfirmBody:
+        'This permanently removes all selected assets from the workspace library and local storage.',
       deleteSelectedAction: 'Delete selected',
       loadMore: 'Load more',
     },
@@ -740,7 +742,8 @@ const messages = {
       live: 'En Vivo',
     },
     media: {
-      subtitle: 'Sube, inspecciona y gestiona los assets multimedia del workspace desde un solo lugar.',
+      subtitle:
+        'Sube, inspecciona y gestiona los assets multimedia del workspace desde un solo lugar.',
       refresh: 'Actualizar',
       uploadAction: 'Subir archivos',
       readyTitle: 'Assets listos',
@@ -782,10 +785,12 @@ const messages = {
       selectedCountSuffix: 'seleccionados',
       filteredCountSuffix: 'assets visibles',
       deleteConfirmTitle: '¿Eliminar asset multimedia?',
-      deleteConfirmBody: 'Esto elimina permanentemente el asset de la librería del workspace y del storage local.',
+      deleteConfirmBody:
+        'Esto elimina permanentemente el asset de la librería del workspace y del storage local.',
       deleteAction: 'Eliminar asset',
       bulkDeleteConfirmTitle: '¿Eliminar los assets seleccionados?',
-      bulkDeleteConfirmBody: 'Esto elimina permanentemente todos los assets seleccionados de la librería del workspace y del storage local.',
+      bulkDeleteConfirmBody:
+        'Esto elimina permanentemente todos los assets seleccionados de la librería del workspace y del storage local.',
       deleteSelectedAction: 'Eliminar seleccionados',
       loadMore: 'Cargar más',
     },

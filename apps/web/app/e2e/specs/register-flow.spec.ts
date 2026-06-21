@@ -64,12 +64,17 @@ test.describe('Register Page Rendering', { tag: '@frontend' }, () => {
 
     await expect(page).toHaveTitle('Profile Tailors — Social Media Management Platform')
     await expect(page.getByRole('heading', { level: 2, name: /create account/i })).toBeVisible()
-    await expect(page.getByText(/start managing your channels with local email and password access/i)).toBeVisible()
+    await expect(
+      page.getByText(/start managing your channels with local email and password access/i),
+    ).toBeVisible()
     await expect(auth.emailInput).toBeVisible()
     await expect(auth.passwordInput).toBeVisible()
     await expect(auth.submitButton).toHaveText(/create account/i)
     await expect(page.getByText(/already have an account/i)).toBeVisible()
-    await expect(page.locator('a').filter({ hasText: /sign in/i })).toHaveAttribute('href', '/login')
+    await expect(page.locator('a').filter({ hasText: /sign in/i })).toHaveAttribute(
+      'href',
+      '/login',
+    )
     await expect(page.getByText(/security/i).first()).toBeVisible()
     await expect(page.getByText(/focus/i).first()).toBeVisible()
     await expect(page.getByText(/workflow/i).first()).toBeVisible()
@@ -100,10 +105,16 @@ test.describe('Register Page Rendering', { tag: '@frontend' }, () => {
 
     await auth.goto(APP_URL.login)
     await expect(page.getByRole('heading', { level: 2, name: /welcome back/i })).toBeVisible()
-    await page.locator('a').filter({ hasText: /register/i }).click()
+    await page
+      .locator('a')
+      .filter({ hasText: /register/i })
+      .click()
     await auth.expectOnRegisterPage()
 
-    await page.locator('a').filter({ hasText: /sign in/i }).click()
+    await page
+      .locator('a')
+      .filter({ hasText: /sign in/i })
+      .click()
     await auth.expectOnLoginPage()
   })
 
@@ -113,7 +124,10 @@ test.describe('Register Page Rendering', { tag: '@frontend' }, () => {
 
     await auth.fillEmail('test@example.com')
     await auth.fillPassword('password123')
-    await page.locator('a').filter({ hasText: /sign in/i }).click()
+    await page
+      .locator('a')
+      .filter({ hasText: /sign in/i })
+      .click()
 
     await expect(auth.emailInput).toHaveValue('')
     await expect(auth.passwordInput).toHaveValue('')
@@ -218,8 +232,12 @@ test.describe('Registration API — Success Path', { tag: '@integration' }, () =
       workspaceId: 'workspace-001',
     })
 
-    const requestPromise = page.waitForRequest((req) => req.url().includes('/api/auth/register') && req.method() === 'POST')
-    const responsePromise = page.waitForResponse((res) => res.url().includes('/api/auth/register') && res.status() === 201)
+    const requestPromise = page.waitForRequest(
+      (req) => req.url().includes('/api/auth/register') && req.method() === 'POST',
+    )
+    const responsePromise = page.waitForResponse(
+      (res) => res.url().includes('/api/auth/register') && res.status() === 201,
+    )
 
     await auth.goto(APP_URL.register)
     await auth.fillEmail(email)
@@ -231,7 +249,7 @@ test.describe('Registration API — Success Path', { tag: '@integration' }, () =
     expect(payload.email).toBe(email)
     expect(payload.password).toBe('SecurePass123!')
     expect(request.headers()['content-type']).toContain('application/json')
-    expect(request.headers()['accept']).toContain('application/vnd.api.v1+json')
+    expect(request.headers().accept).toContain('application/vnd.api.v1+json')
 
     const response = await responsePromise
     const body = await response.json()
@@ -315,7 +333,9 @@ test.describe('Registration API — Success Path', { tag: '@integration' }, () =
 
   test('3.4 Registration response contains username derived from email', async ({ page }) => {
     const auth = new LoginPage(page)
-    const responsePromise = page.waitForResponse((res) => res.url().includes('/api/auth/register') && res.status() === 201)
+    const responsePromise = page.waitForResponse(
+      (res) => res.url().includes('/api/auth/register') && res.status() === 201,
+    )
 
     await mockRegisterSuccess(page, {
       email: 'john.doe@example.com',
@@ -387,7 +407,12 @@ test.describe('Registration API — Error Paths', { tag: '@integration' }, () =>
   })
 
   test('4.1 Duplicate email returns 409', async ({ page }) => {
-    await mockRegisterProblem(page, 409, "A user with email 'existing@profiletailors.com' already exists.", 'User already exists')
+    await mockRegisterProblem(
+      page,
+      409,
+      "A user with email 'existing@profiletailors.com' already exists.",
+      'User already exists',
+    )
 
     const auth = new LoginPage(page)
     await auth.goto(APP_URL.register)
@@ -401,7 +426,12 @@ test.describe('Registration API — Error Paths', { tag: '@integration' }, () =>
   })
 
   test('4.2 Case-insensitive duplicate check', async ({ page }) => {
-    await mockRegisterProblem(page, 409, "A user with email 'test@example.com' already exists.", 'User already exists')
+    await mockRegisterProblem(
+      page,
+      409,
+      "A user with email 'test@example.com' already exists.",
+      'User already exists',
+    )
 
     const auth = new LoginPage(page)
     await auth.goto(APP_URL.register)
@@ -556,10 +586,14 @@ test.describe('Email Verification Flow', { tag: '@integration' }, () => {
     await resetSession(page)
   })
 
-  test('6.1 Registration returns PENDING session and implies verification lifecycle', async ({ page }) => {
+  test('6.1 Registration returns PENDING session and implies verification lifecycle', async ({
+    page,
+  }) => {
     const auth = new LoginPage(page)
     const email = uniqueEmail()
-    const responsePromise = page.waitForResponse((res) => res.url().includes('/api/auth/register') && res.status() === 201)
+    const responsePromise = page.waitForResponse(
+      (res) => res.url().includes('/api/auth/register') && res.status() === 201,
+    )
 
     await mockRegisterSuccess(page, {
       email,
@@ -603,7 +637,9 @@ test.describe('Email Verification Flow', { tag: '@integration' }, () => {
     })
     await mockCurrentWorkspace(page, { workspaceId: 'workspace-001' })
 
-    const responsePromise = page.waitForResponse((res) => res.url().includes('/api/auth/login') && res.status() === 200)
+    const responsePromise = page.waitForResponse(
+      (res) => res.url().includes('/api/auth/login') && res.status() === 200,
+    )
 
     await auth.goto(APP_URL.login)
     await auth.login(VALID_CREDENTIALS.email, VALID_CREDENTIALS.password)
@@ -709,7 +745,9 @@ test.describe('Feature Gating for Unverified Users', { tag: '@integration' }, ()
     await expect(page).toHaveURL(APP_URL.dashboard)
   })
 
-  test('7.2 Feature-gated endpoint returns EMAIL_VERIFICATION_REQUIRED problem detail', async ({ page }) => {
+  test('7.2 Feature-gated endpoint returns EMAIL_VERIFICATION_REQUIRED problem detail', async ({
+    page,
+  }) => {
     await page.route('**/api/publishing/channels/providers', async (route) => {
       await route.fulfill({
         status: 403,
@@ -832,7 +870,10 @@ test.describe('Security', { tag: '@integration' }, () => {
   })
 
   test('9.2 Refresh token cookie is scoped to /api/auth when present', async ({ page }) => {
-    test.skip(test.info().project.name.includes('webkit'), 'WebKit cookie behavior differs for intercepted responses')
+    test.skip(
+      test.info().project.name.includes('webkit'),
+      'WebKit cookie behavior differs for intercepted responses',
+    )
 
     const auth = new LoginPage(page)
 
@@ -890,8 +931,12 @@ test.describe('Security', { tag: '@integration' }, () => {
 
   test('9.4 Password is sent in request but never returned in response', async ({ page }) => {
     const auth = new LoginPage(page)
-    const requestPromise = page.waitForRequest((req) => req.url().includes('/api/auth/register') && req.method() === 'POST')
-    const responsePromise = page.waitForResponse((res) => res.url().includes('/api/auth/register') && res.status() === 201)
+    const requestPromise = page.waitForRequest(
+      (req) => req.url().includes('/api/auth/register') && req.method() === 'POST',
+    )
+    const responsePromise = page.waitForResponse(
+      (res) => res.url().includes('/api/auth/register') && res.status() === 201,
+    )
 
     await mockRegisterSuccess(page, {
       email: 'test@example.com',
@@ -916,10 +961,17 @@ test.describe('Security', { tag: '@integration' }, () => {
   })
 
   test('9.5 Email enumeration does not reveal extra account details', async ({ page }) => {
-    await mockRegisterProblem(page, 409, "A user with email 'existing@profiletailors.com' already exists.", 'User already exists')
+    await mockRegisterProblem(
+      page,
+      409,
+      "A user with email 'existing@profiletailors.com' already exists.",
+      'User already exists',
+    )
 
     const auth = new LoginPage(page)
-    const responsePromise = page.waitForResponse((res) => res.url().includes('/api/auth/register') && res.status() === 409)
+    const responsePromise = page.waitForResponse(
+      (res) => res.url().includes('/api/auth/register') && res.status() === 409,
+    )
     await auth.goto(APP_URL.register)
     await auth.fillEmail('existing@profiletailors.com')
     await auth.fillPassword('SecurePass123!')
@@ -934,7 +986,9 @@ test.describe('Security', { tag: '@integration' }, () => {
 
   test('9.6 Auth endpoints send required Content-Type and Accept headers', async ({ page }) => {
     const auth = new LoginPage(page)
-    const requestPromise = page.waitForRequest((req) => req.url().includes('/api/auth/register') && req.method() === 'POST')
+    const requestPromise = page.waitForRequest(
+      (req) => req.url().includes('/api/auth/register') && req.method() === 'POST',
+    )
 
     await auth.goto(APP_URL.register)
     await auth.fillEmail(uniqueEmail())
@@ -943,7 +997,7 @@ test.describe('Security', { tag: '@integration' }, () => {
 
     const request = await requestPromise
     expect(request.headers()['content-type']).toContain('application/json')
-    expect(request.headers()['accept']).toContain('application/vnd.api.v1+json')
+    expect(request.headers().accept).toContain('application/vnd.api.v1+json')
   })
 })
 
@@ -972,7 +1026,7 @@ test.describe('Error Banner Visual States', { tag: '@integration' }, () => {
     await auth.submit()
 
     await auth.expectErrorVisible(/already exists/i)
-    const classAttr = await auth.errorBanner.getAttribute('class') ?? ''
+    const classAttr = (await auth.errorBanner.getAttribute('class')) ?? ''
     expect(classAttr).toContain('error')
   })
 
@@ -986,7 +1040,10 @@ test.describe('Error Banner Visual States', { tag: '@integration' }, () => {
     await auth.submit()
     await auth.expectErrorVisible()
 
-    await page.locator('a').filter({ hasText: /sign in/i }).click()
+    await page
+      .locator('a')
+      .filter({ hasText: /sign in/i })
+      .click()
     await expect(page).toHaveURL(/\/login/)
     await expect(auth.errorBanner).toHaveCount(0)
   })
