@@ -1,6 +1,6 @@
 ---
 name: Profile Tailors
-version: "1.0"
+version: "1.1"
 description: Social media management platform marketing site. Nothing-inspired, monochrome, typographically driven. Dark-first with equal-rigor light mode.
 
 colors:
@@ -161,6 +161,19 @@ print. Every element earns its pixel — structure is ornament, type does the he
 
 ## Color System
 
+The system follows a semantic scale where the step encodes intent:
+
+- `100` Default background (`primary`)
+- `200` Secondary background / Hover background (`secondary`)
+- `300` Surface background / Active background (`surface`)
+- `400` Default border (`border`)
+- `500` Hover border
+- `600` Active border (`border-visible`)
+- `700` Muted text / Disabled / High-contrast fill (`muted`)
+- `800` Secondary text / Solid fill hover (`secondary-text`)
+- `900` Primary text (`body`)
+- `1000` High-contrast Display text (`display`)
+
 ### Dark Mode (default)
 
 - **Primary (#0a0a0a):** OLED black — the canvas
@@ -261,10 +274,14 @@ shadows, no blur — flat surfaces, border separation.
 
 ## Motion
 
-- **Duration:** 150–250ms for micro-interactions, 300–400ms for transitions
-- **Easing:** `cubic-bezier(0.25, 0.1, 0.25, 1)` — subtle ease-out only. No spring/bounce.
-- **Preferred:** Opacity over position (fade, don't slide)
-- **Hover:** Border/text brightens. No scale, no shadows.
+Use motion only when it clarifies a change, never for decoration. Snappiness is preferred.
+
+- **Snappy (0ms):** Best for most state changes (hover, active).
+- **Fast (150ms):** For micro-interactions and state changes.
+- **Standard (200ms):** For popovers, tooltips, and small element entries.
+- **Overlay (300ms):** For modals, dialogs, and large transitions.
+- **Easing:** `cubic-bezier(0.175, 0.885, 0.32, 1.1)` for physical entry, or `cubic-bezier(0.25, 0.1, 0.25, 1)` for subtle ease-out.
+- **Preferred:** Opacity over position (fade, don't slide).
 - **Reduced motion:** Respect `prefers-reduced-motion`. Disable all animations when set.
 
 ## Iconography
@@ -286,6 +303,12 @@ shadows, no blur — flat surfaces, border separation.
 | Secondary | transparent      | `1px solid --border-visible` | `--text-body`          | `full` |
 | Ghost     | transparent      | none                         | `--text-secondary`     | `none` |
 
+**States:**
+- **Hover:** Background/border steps up the scale (e.g., `100` -> `200`, `400` -> `500`).
+- **Active:** Background/border steps up again (e.g., `200` -> `300`, `500` -> `600`).
+- **Disabled:** `gray-100` fill (light) or `gray-200` (dark), `gray-700` text, `not-allowed` cursor.
+- **Focus:** Two-layer ring: 2px gap in surface color, then 2px `accent` ring (`box-shadow: 0 0 0 2px var(--background-primary), 0 0 0 4px var(--accent-color)`).
+
 All buttons: Space Mono, ALL CAPS, letter-spacing 0.06em, padding 12px 24px, min-height 44px.
 
 ### Cards
@@ -294,7 +317,7 @@ All buttons: Space Mono, ALL CAPS, letter-spacing 0.06em, padding 12px 24px, min
 - Border: `1px solid --border` or none
 - Radius: 12–16px
 - Padding: 16–24px
-- No shadows
+- No shadows. Hierachy through tonal surfaces.
 
 ### Inputs
 
@@ -319,9 +342,37 @@ All buttons: Space Mono, ALL CAPS, letter-spacing 0.06em, padding 12px 24px, min
 
 ### Overlays
 
-- No shadows. Layering through background contrast.
-- Modal: backdrop `rgba(0,0,0,0.8)`, dialog `--background-surface` + border + 16px radius
-- Toast: None. Inline status text: `[SAVED]`, `[ERROR: ...]`
+- No shadows. Layering through background contrast and subtle translucent borders.
+- Modal: backdrop `rgba(0,0,0,0.8)`, dialog `--background-surface` + border + 16px radius.
+- Toast: Inline status text at bottom or corner: `[SAVED]`, `[ERROR: ...]`. Drop trailing periods.
+
+## Voice & Content
+
+Keep copy precise and free of filler. Copy IS design.
+
+- **Capitalization:** Title Case for labels, buttons, titles, and tabs. Sentence case for body, helper text, and toasts.
+- **Action Naming:** Use [Verb] + [Noun] (e.g., `Deploy Project`, `Delete Member`). Never just `Confirm` or `OK`.
+- **Error Messages:** State what happened + what to do next. `Build failed. Bundle exceeds 50 MB. Reduce it or raise the limit.`
+- **Toasts:** Name the specific change, drop trailing period, avoid "successfully". `Project deleted`, not `Successfully deleted project.`
+- **In-progress:** Use present participle with ellipsis. `Deploying...`, `Saving...`.
+- **Numbers:** Use numerals (`3 projects`).
+- **Style:** Use curly quotes and the ellipsis character (\u2026); skip "please" and marketing superlatives.
+
+## Do's and Don'ts
+
+### Do
+- Use the semantic scale to rank information: `1000` for primary text, `900` for secondary, `700` for disabled.
+- Maintain WCAG AA contrast (4.5:1).
+- Show the focus ring on every interactive element at `:focus-visible`.
+- Apply typography tokens strictly; don't set manual font sizes or weights.
+- Pair color status with an icon or text label; don't rely on color alone.
+
+### Don't
+- Use gradients, shadows, or blurs.
+- Mix rounded and sharp corners in the same view.
+- Use more than two font weights in one view.
+- Use `background-200` for general fills; it's for subtle separation or hovers only.
+- Swap `gray-*` for `background-*`; they are separate scales.
 
 ## Bilingual Content Model
 
@@ -338,21 +389,6 @@ const content = {
 - Language switch updates copy AND `lang` attribute
 - Spanish copy is 20–30% longer — never use fixed-width containers
 - EN/ES switcher lives in the header
-
-## Anti-Patterns
-
-**Never do:**
-
-- Gradients in UI chrome
-- Shadows or blur
-- Skeleton loading screens (use `[LOADING...]` text or segmented spinner)
-- Toast popups
-- Zebra striping in tables
-- Filled icons, multi-color icons, or emoji as UI
-- Parallax, scroll-jacking, or gratuitous animation
-- Spring/bounce easing
-- Border-radius > 16px on cards
-- Data visualization differentiated with color before opacity/pattern
 
 ## Dot-Matrix Motif
 
