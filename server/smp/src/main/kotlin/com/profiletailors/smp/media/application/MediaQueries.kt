@@ -58,6 +58,8 @@ data class MediaAssetSummary(
     val originalFilename: String?,
     val fileSizeBytes: Long?,
     val createdAt: String,
+    val previewUrl: String? = null,
+    val downloadUrl: String? = null,
 )
 
 /**

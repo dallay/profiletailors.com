@@ -17,6 +17,7 @@ function makeGroups(): NavGroup[] {
         { labelKey: 'nav.dashboard', to: '/', icon: StubIcon },
         { labelKey: 'nav.scheduler', to: '/scheduler', icon: StubIcon },
         { labelKey: 'nav.analytics', to: '/analytics', icon: StubIcon, badge: 'Live' },
+        { labelKey: 'nav.media', to: '/media', icon: StubIcon },
       ],
     },
     {
@@ -38,6 +39,7 @@ describe('SidebarNavSection', () => {
     expect(text).toContain('nav.dashboard')
     expect(text).toContain('nav.scheduler')
     expect(text).toContain('nav.analytics')
+    expect(text).toContain('nav.media')
     expect(text).toContain('nav.settings')
   })
 

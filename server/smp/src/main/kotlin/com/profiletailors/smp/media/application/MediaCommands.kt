@@ -64,6 +64,17 @@ data class UploadAssetResult(
     val createdAt: String,
 )
 
+data class DeleteWorkspaceAssetCommand(
+    val assetId: String,
+    val workspaceId: String,
+) : CommandWithResult<DeleteWorkspaceAssetResult>
+
+data class DeleteWorkspaceAssetResult(
+    val assetId: String,
+    val workspaceId: String,
+    val deleted: Boolean,
+)
+
 /**
  * Command to transition a stale PROCESSING asset to FAILED.
  */

@@ -866,7 +866,10 @@ class MediaHandlersTest {
             ),
         )
 
-        val handler = ListWorkspaceAssetsHandler(mediaAssetRepository = repository)
+        val handler = ListWorkspaceAssetsHandler(
+            mediaAssetRepository = repository,
+            assetPreviewUrlResolver = FakeAssetPreviewUrlResolver(),
+        )
 
         val result = handler.handle(
             ListWorkspaceAssetsQuery(
@@ -909,7 +912,10 @@ class MediaHandlersTest {
             ),
         )
 
-        val handler = ListWorkspaceAssetsHandler(mediaAssetRepository = repository)
+        val handler = ListWorkspaceAssetsHandler(
+            mediaAssetRepository = repository,
+            assetPreviewUrlResolver = FakeAssetPreviewUrlResolver(),
+        )
 
         val result = handler.handle(
             ListWorkspaceAssetsQuery(
@@ -939,7 +945,10 @@ class MediaHandlersTest {
             ),
         )
 
-        val handler = ListWorkspaceAssetsHandler(mediaAssetRepository = repository)
+        val handler = ListWorkspaceAssetsHandler(
+            mediaAssetRepository = repository,
+            assetPreviewUrlResolver = FakeAssetPreviewUrlResolver(),
+        )
 
         val result = handler.handle(
             ListWorkspaceAssetsQuery(
@@ -979,7 +988,10 @@ class MediaHandlersTest {
             ),
         )
 
-        val handler = ListWorkspaceAssetsHandler(mediaAssetRepository = repository)
+        val handler = ListWorkspaceAssetsHandler(
+            mediaAssetRepository = repository,
+            assetPreviewUrlResolver = FakeAssetPreviewUrlResolver(),
+        )
 
         val result = handler.handle(
             ListWorkspaceAssetsQuery(
@@ -1010,7 +1022,10 @@ class MediaHandlersTest {
             ),
         )
 
-        val handler = GetWorkspaceAssetHandler(mediaAssetRepository = repository)
+        val handler = GetWorkspaceAssetHandler(
+            mediaAssetRepository = repository,
+            assetPreviewUrlResolver = FakeAssetPreviewUrlResolver(),
+        )
 
         val result = handler.handle(
             GetWorkspaceAssetQuery(
@@ -1039,7 +1054,10 @@ class MediaHandlersTest {
             ),
         )
 
-        val handler = GetWorkspaceAssetHandler(mediaAssetRepository = repository)
+        val handler = GetWorkspaceAssetHandler(
+            mediaAssetRepository = repository,
+            assetPreviewUrlResolver = FakeAssetPreviewUrlResolver(),
+        )
 
         val error = assertThrows(AssetNotFoundException::class.java) {
             kotlinx.coroutines.runBlocking {
@@ -1061,6 +1079,20 @@ class MediaHandlersTest {
         val stream = javaClass.classLoader.getResourceAsStream("media-fixtures/$fileName")
             ?: error("Missing test media fixture: $fileName")
         return stream.use { it.readAllBytes() }
+    }
+
+    private class FakeAssetPreviewUrlResolver : AssetPreviewUrlResolver {
+        override suspend fun resolvePreviewUrl(
+            assetId: String,
+            workspaceId: String,
+            mediaType: String,
+            storageKey: String?,
+            externalUrl: String?,
+        ): String? = if (mediaType.startsWith("image/")) {
+            externalUrl ?: storageKey?.let { "https://preview.local/$it" }
+        } else {
+            null
+        }
     }
 
     private class InMemoryMediaAssetRepository : MediaAssetRepository {

@@ -2,6 +2,7 @@ package com.profiletailors.smp.media.infrastructure.http
 
 import com.profiletailors.common.domain.bus.Mediator
 import com.profiletailors.smp.media.application.CreateUploadedAssetCommand
+import com.profiletailors.smp.media.application.DeleteWorkspaceAssetCommand
 import com.profiletailors.smp.media.application.GetWorkspaceAssetQuery
 import com.profiletailors.smp.media.application.ListWorkspaceAssetsQuery
 import com.profiletailors.smp.media.application.MediaAssetSummary
@@ -23,6 +24,7 @@ import org.slf4j.LoggerFactory
 import org.springframework.http.HttpStatus
 import org.springframework.http.MediaType
 import org.springframework.validation.annotation.Validated
+import org.springframework.web.bind.annotation.DeleteMapping
 import org.springframework.web.bind.annotation.GetMapping
 import org.springframework.web.bind.annotation.PathVariable
 import org.springframework.web.bind.annotation.PostMapping
@@ -289,6 +291,23 @@ class MediaAssetController(
         return result.toResponse()
     }
 
+    @DeleteMapping(value = ["/{assetId}"])
+    suspend fun deleteAsset(
+        @PathVariable assetId: String,
+    ): org.springframework.http.ResponseEntity<Void> {
+        val workspaceContext = resourceContextProvider.requireWorkspaceContext()
+        val workspaceId = workspaceContext.workspaceId!!
+
+        mediator.send(
+            DeleteWorkspaceAssetCommand(
+                assetId = assetId,
+                workspaceId = workspaceId,
+            ),
+        )
+
+        return org.springframework.http.ResponseEntity.noContent().build()
+    }
+
     private fun parseStatuses(status: String?): Set<MediaAssetStatus> {
         if (status.isNullOrBlank()) {
             return setOf(MediaAssetStatus.READY)
@@ -317,4 +336,6 @@ private fun MediaAssetSummary.toResponse() = MediaAssetResponse(
     originalFilename = originalFilename,
     fileSizeBytes = fileSizeBytes,
     createdAt = createdAt,
+    previewUrl = previewUrl,
+    downloadUrl = downloadUrl,
 )

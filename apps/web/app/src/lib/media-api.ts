@@ -26,6 +26,8 @@ export interface MediaAssetSummary {
   originalFilename: string | null
   fileSizeBytes: number | null
   createdAt: string
+  previewUrl?: string | null
+  downloadUrl?: string | null
 }
 
 /** Paginated list response from GET /api/media/assets */
@@ -222,6 +224,19 @@ export async function getAsset(assetId: string): Promise<MediaAssetSummary> {
 
   return auth.apiFetch<MediaAssetSummary>(`/api/media/assets/${assetId}`, {
     method: 'GET',
+    workspaceScoped: true,
+  })
+}
+
+export async function deleteAsset(assetId: string): Promise<void> {
+  const auth = useAuthStore()
+
+  if (!auth.isAuthenticated) {
+    throw { title: 'Not authenticated', detail: 'You must be signed in.', status: 401 }
+  }
+
+  await auth.apiFetch<unknown>(`/api/media/assets/${assetId}`, {
+    method: 'DELETE',
     workspaceScoped: true,
   })
 }
