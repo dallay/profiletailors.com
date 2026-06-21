@@ -228,6 +228,7 @@ class PublishingSchedulingConfigurationTest {
             to: Instant,
             statuses: Set<PublicationStatus>?,
             socialAccountIds: Set<String>?,
+            hydrateAssets: Boolean,
         ): List<PublicationDraft> = emptyList()
         override suspend fun countByDate(
             workspaceId: String,

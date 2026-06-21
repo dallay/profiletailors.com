@@ -636,6 +636,11 @@ class DeleteWorkspaceAssetHandler(
                 key = asset.storageKey,
                 deleterId = command.workspaceId,
             )
+        }.getOrElse { cause ->
+            throw MediaServiceUnavailableException(
+                "Storage deletion failed for asset ${command.assetId}",
+                cause,
+            )
         }
 
         val deleted = mediaAssetRepository.delete(command.assetId, command.workspaceId) != null

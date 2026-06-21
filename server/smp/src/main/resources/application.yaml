@@ -54,7 +54,7 @@ platform:
         endpoint: ${SMP_STORAGE_R2_ENDPOINT:}
       local:
         type: local
-        base-path: ${SMP_STORAGE_LOCAL_BASE_PATH:./tmp/profiletailors-storage}
+        base-path: ${SMP_STORAGE_LOCAL_BASE_PATH:/tmp/profiletailors-storage}
   media:
     context:
       integration:
@@ -132,6 +132,9 @@ spring:
   config:
     activate:
       on-profile: test
+
+media:
+  preview-signing-secret: ${SMP_MEDIA_PREVIEW_SIGNING_SECRET:test-media-preview-signing-secret}
 
 publishing:
   credentials:

@@ -216,7 +216,7 @@ class R2dbcMediaAssetRepository(
     override suspend fun delete(assetId: String, workspaceId: String): MediaAsset? {
         val existing = findByWorkspaceAndId(workspaceId, assetId) ?: return null
 
-        databaseClient.sql(
+        val rowsDeleted = databaseClient.sql(
             """
             DELETE FROM media_assets
             WHERE asset_id = :assetId AND workspace_id = :workspaceId
@@ -224,10 +224,11 @@ class R2dbcMediaAssetRepository(
         )
             .bind("assetId", assetId)
             .bind("workspaceId", workspaceId)
-            .then()
-            .awaitSingleOrNull()
+            .fetch()
+            .rowsUpdated()
+            .awaitSingle()
 
-        return existing
+        return if (rowsDeleted > 0) existing else null
     }
 
     override suspend fun findStaleProcessingAssets(

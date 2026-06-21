@@ -321,7 +321,7 @@ describe('publishing store', () => {
       expect(store.hasNoChannels).toBe(true)
     })
 
-    it('returns false when there is at least one connected channel', () => {
+    it('returns false when there is at least one ACTIVE channel', () => {
       const store = usePublishingStore()
 
       store.channels = [
@@ -337,6 +337,33 @@ describe('publishing store', () => {
       ]
 
       expect(store.hasNoChannels).toBe(false)
+    })
+
+    it('returns true when channels exist but none are ACTIVE', () => {
+      const store = usePublishingStore()
+
+      store.channels = [
+        {
+          id: 'soc-inactive-1',
+          accountId: 'soc-inactive-1',
+          name: 'Inactive 1',
+          provider: 'linkedin',
+          avatar: '',
+          handle: 'Inactive 1',
+          status: 'EXPIRED',
+        },
+        {
+          id: 'soc-inactive-2',
+          accountId: 'soc-inactive-2',
+          name: 'Inactive 2',
+          provider: 'linkedin',
+          avatar: '',
+          handle: 'Inactive 2',
+          status: 'REVOKED',
+        },
+      ]
+
+      expect(store.hasNoChannels).toBe(true)
     })
   })
 

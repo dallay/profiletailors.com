@@ -8,7 +8,7 @@
     "useIgnoreFile": true
   },
   "files": {
-    "includes": ["src/**/*.{js,ts,vue,mjs}"],
+    "includes": ["src/**/*.{js,ts,jsx,tsx,vue,mjs}"],
     "ignoreUnknown": true
   },
   "formatter": {

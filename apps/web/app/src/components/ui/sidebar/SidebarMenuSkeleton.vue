@@ -12,7 +12,7 @@ const props = defineProps<{
 const width = computed(() => {
   const arr = new Uint32Array(1)
   crypto.getRandomValues(arr)
-  return `${Math.floor((arr[0] / 0xffffffff) * 40) + 50}%`
+  return `${Math.floor((arr[0] / 0x100000000) * 40) + 50}%`
 })
 </script>
 

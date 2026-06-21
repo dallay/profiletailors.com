@@ -1733,6 +1733,7 @@ class PublishingHandlersTest {
             to: Instant,
             statuses: Set<PublicationStatus>?,
             socialAccountIds: Set<String>?,
+            hydrateAssets: Boolean,
         ): List<PublicationDraft> {
             lastFindStatuses = statuses
             lastFindSocialAccountIds = socialAccountIds

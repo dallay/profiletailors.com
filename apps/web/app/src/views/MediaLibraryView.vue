@@ -105,7 +105,7 @@ function isPdf(mediaType: string) {
 }
 
 function assetContentUrl(asset: { downloadUrl?: string | null; previewUrl?: string | null }) {
-  return asset.downloadUrl ? resolveApiUrl(asset.downloadUrl) : asset.previewUrl ? resolveApiUrl(asset.previewUrl) : null
+  return asset.previewUrl ? resolveApiUrl(asset.previewUrl) : asset.downloadUrl ? resolveApiUrl(asset.downloadUrl) : null
 }
 
 function triggerDownload(asset: { originalFilename?: string | null; downloadUrl?: string | null; previewUrl?: string | null }) {
@@ -144,8 +144,12 @@ function toggleSelectAllVisible() {
 }
 
 async function deletePersistedAsset(assetId: string) {
-  await mediaStore.deletePersistedAsset(assetId)
-  selectedLibraryAssetIds.value = selectedLibraryAssetIds.value.filter((id) => id !== assetId)
+  try {
+    await mediaStore.deletePersistedAsset(assetId)
+    selectedLibraryAssetIds.value = selectedLibraryAssetIds.value.filter((id) => id !== assetId)
+  } catch {
+    // Error state is tracked in mediaStore; selection is preserved on failure
+  }
 }
 
 async function deleteSelectedAssets() {
@@ -319,7 +323,7 @@ onMounted(async () => {
           <div class="grid gap-3 sm:grid-cols-2">
             <div class="space-y-1 text-xs text-text-secondary">
               <span class="font-mono text-[9px] uppercase tracking-[0.12em]">{{ $t('media.statusFilter') }}</span>
-              <select v-model="statusFilter" :aria-label="$t('media.statusFilter')" class="w-full rounded-xl border border-border-visible bg-bg-surface px-3 py-2 text-sm text-text-display">
+              <select v-model="statusFilter" data-testid="filter-status" :aria-label="$t('media.statusFilter')" class="w-full rounded-xl border border-border-visible bg-bg-surface px-3 py-2 text-sm text-text-display">
                 <option value="ALL">{{ $t('media.filterAll') }}</option>
                 <option value="READY">READY</option>
                 <option value="PROCESSING">PROCESSING</option>
@@ -328,7 +332,7 @@ onMounted(async () => {
             </div>
             <div class="space-y-1 text-xs text-text-secondary">
               <span class="font-mono text-[9px] uppercase tracking-[0.12em]">{{ $t('media.typeFilter') }}</span>
-              <select v-model="typeFilter" :aria-label="$t('media.typeFilter')" class="w-full rounded-xl border border-border-visible bg-bg-surface px-3 py-2 text-sm text-text-display">
+              <select v-model="typeFilter" data-testid="filter-type" :aria-label="$t('media.typeFilter')" class="w-full rounded-xl border border-border-visible bg-bg-surface px-3 py-2 text-sm text-text-display">
                 <option value="ALL">{{ $t('media.filterAll') }}</option>
                 <option value="IMAGE">{{ $t('media.typeImage') }}</option>
                 <option value="VIDEO">{{ $t('media.typeVideo') }}</option>
@@ -357,7 +361,7 @@ onMounted(async () => {
             </div>
             <div class="space-y-1 text-xs text-text-secondary">
               <span class="font-mono text-[9px] uppercase tracking-[0.12em]">{{ $t('media.sortLabel') }}</span>
-              <select v-model="sortBy" :aria-label="$t('media.sortLabel')" class="w-full rounded-xl border border-border-visible bg-bg-surface px-3 py-2 text-sm text-text-display">
+              <select v-model="sortBy" data-testid="filter-sort" :aria-label="$t('media.sortLabel')" class="w-full rounded-xl border border-border-visible bg-bg-surface px-3 py-2 text-sm text-text-display">
                 <option value="newest">{{ $t('media.sortNewest') }}</option>
                 <option value="oldest">{{ $t('media.sortOldest') }}</option>
                 <option value="filename-asc">{{ $t('media.sortFilenameAsc') }}</option>

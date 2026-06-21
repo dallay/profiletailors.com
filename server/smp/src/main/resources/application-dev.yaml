@@ -51,4 +51,4 @@ platform:
         type: local
       local:
         type: local
-        base-path: ${SMP_STORAGE_LOCAL_BASE_PATH:./tmp/profiletailors-storage}
+        base-path: ${SMP_STORAGE_LOCAL_BASE_PATH:/tmp/profiletailors-storage}

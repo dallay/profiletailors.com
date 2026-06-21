@@ -16,6 +16,7 @@ Run `just -l` to see every available recipe.
 
 | Requirement | Version | Install |
 |-------------|---------|---------|
+| Java | `>= 21` | [sdkman.io](https://sdkman.io) or [adoptium.net](https://adoptium.net) |
 | Node.js | `>= 22.12.0` | [nodejs.org](https://nodejs.org) |
 | pnpm | `>= 10` | `npm install -g pnpm` |
 | just | `>= 1.30` | See below |

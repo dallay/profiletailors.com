@@ -36,7 +36,7 @@ class MediaApplicationConfiguration {
 
     @Bean
     fun mediaPreviewTokenService(
-        @Value("\${media.preview-signing-secret:profiletailors-dev-media-preview-secret}") signingSecret: String,
+        @Value("\${media.preview-signing-secret}") signingSecret: String,
         @Value("\${media.preview-url-expiry-seconds:3600}") previewUrlExpirySeconds: Long,
     ): MediaPreviewTokenService = MediaPreviewTokenService(
         signingSecret = signingSecret,

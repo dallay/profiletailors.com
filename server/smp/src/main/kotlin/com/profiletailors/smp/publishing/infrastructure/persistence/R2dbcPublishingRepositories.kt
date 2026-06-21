@@ -110,6 +110,7 @@ class R2dbcPublicationRepository(
         to: Instant,
         statuses: Set<PublicationStatus>?,
         socialAccountIds: Set<String>?,
+        hydrateAssets: Boolean,
     ): List<PublicationDraft> {
         val conditions = mutableListOf("workspace_id = :workspaceId", "scheduled_for >= :from", "scheduled_for < :to")
         val paramKeys = mutableMapOf(
@@ -163,7 +164,7 @@ class R2dbcPublicationRepository(
             .collectList()
             .awaitSingle()
 
-        return hydrateAssetIds(drafts)
+        return if (hydrateAssets) hydrateAssetIds(drafts) else drafts
     }
 
     override suspend fun countByDate(
@@ -179,6 +180,7 @@ class R2dbcPublicationRepository(
             to = to,
             statuses = statuses,
             socialAccountIds = null,
+            hydrateAssets = false,
         )
 
         val zoneId = java.time.ZoneId.of(timezone)

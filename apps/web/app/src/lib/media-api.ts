@@ -235,7 +235,7 @@ export async function deleteAsset(assetId: string): Promise<void> {
     throw { title: 'Not authenticated', detail: 'You must be signed in.', status: 401 }
   }
 
-  await auth.apiFetch<unknown>(`/api/media/assets/${assetId}`, {
+  await auth.apiFetch<unknown>(`/api/media/assets/${encodeURIComponent(assetId)}`, {
     method: 'DELETE',
     workspaceScoped: true,
   })

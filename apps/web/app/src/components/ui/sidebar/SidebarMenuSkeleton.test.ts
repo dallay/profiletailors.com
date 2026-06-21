@@ -20,7 +20,10 @@ function stubGetRandomValues(returnValue: Uint32Array) {
 }
 
 function restoreCrypto() {
-  vi.stubGlobal('crypto', globalThis.crypto)
+  vi.stubGlobal('crypto', {
+    ...globalThis.crypto,
+    getRandomValues: _originalGetRandomValues,
+  } as Crypto)
 }
 
 // ---------------------------------------------------------------------------
@@ -83,7 +86,7 @@ describe('SidebarMenuSkeleton', () => {
   })
 
   it('generates varying widths when given different random values', () => {
-    stubGetRandomValues(new Uint32Array([0xffffff])) // max uint32 → ~90%
+    stubGetRandomValues(new Uint32Array([0xffffffff])) // max uint32 → ~90%
     const wrapperMax = mount(SidebarMenuSkeleton, { props: { showIcon: false } })
     const maxStyle =
       wrapperMax.find('[data-sidebar="menu-skeleton-text"]').attributes('style') ?? ''
@@ -97,14 +100,13 @@ describe('SidebarMenuSkeleton', () => {
     const minMatch = minStyle.match(/--skeleton-width:\s*([^;]+)/)
     const minPct = parseFloat(minMatch![1])
 
-    // Both are in the valid range
+    // Both are in the valid range; max should be strictly < 90%
     expect(maxPct).toBeGreaterThanOrEqual(50)
     expect(maxPct).toBeLessThan(90)
     expect(minPct).toBeGreaterThanOrEqual(50)
     expect(minPct).toBeLessThan(90)
-    // At least one should differ (though both could be 50 due to Math.floor)
-    expect(maxPct).toBeLessThan(90)
-    expect(minPct).toBeLessThan(90)
+    // Max differs from min (different random values)
+    expect(maxPct).not.toBe(minPct)
   })
 
   it('passes through the class prop', () => {

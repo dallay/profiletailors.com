@@ -366,7 +366,9 @@ export const usePublishingStore = defineStore('publishing', () => {
    * True when no connected channels are available.
    * Used as a guard to block post creation UI when the workspace has no channels.
    */
-  const hasNoChannels = computed(() => channels.value.length === 0)
+  const hasNoChannels = computed(
+    () => channels.value.filter((ch) => ch.status === 'ACTIVE').length === 0,
+  )
   const reconnectRequiredChannels = computed(() =>
     channels.value.filter(
       (ch) =>
@@ -552,6 +554,15 @@ export const usePublishingStore = defineStore('publishing', () => {
         publications.value = data.publications.map(apiResultToPublication)
         activity.value = data.activity
         conflicts.value = data.conflicts
+        // Prune object URLs for publications no longer in the current set
+        const activeIds = new Set(publications.value.map((p) => p.id))
+        for (const id of objectUrls.keys()) {
+          if (!activeIds.has(id)) {
+            const url = objectUrls.get(id)
+            if (url) URL.revokeObjectURL(url)
+            objectUrls.delete(id)
+          }
+        }
         saveToStorage()
         return
       } catch (err) {

@@ -125,9 +125,8 @@ describe('MediaLibraryView', () => {
     const wrapper = mountView()
     await flushPromises()
 
-    const selects = wrapper.findAll('select')
-    await selects[0].setValue('READY')
-    await selects[1].setValue('IMAGE')
+    await wrapper.find('[data-testid="filter-status"]').setValue('READY')
+    await wrapper.find('[data-testid="filter-type"]').setValue('IMAGE')
 
     expect(wrapper.text()).toContain('hero.jpg')
     expect(wrapper.text()).not.toContain('clip.mp4')
@@ -200,8 +199,7 @@ describe('MediaLibraryView', () => {
     const wrapper = mountView()
     await flushPromises()
 
-    const selects = wrapper.findAll('select')
-    await selects[2].setValue('filename-asc')
+    await wrapper.find('[data-testid="filter-sort"]').setValue('filename-asc')
 
     const cards = wrapper.findAll('article')
     expect(cards[0].text()).toContain('apple.jpg')

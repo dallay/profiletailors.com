@@ -208,12 +208,12 @@ async function deletePublication() {
 
           <div v-if="publication.thumbnail" class="space-y-2">
             <span class="font-mono text-[9px] font-bold tracking-widest text-text-secondary uppercase">
-              Media
+              {{ t('postDetail.mediaLabel') }}
             </span>
             <div class="overflow-hidden rounded-2xl border border-border-subtle bg-bg-primary/30">
               <img
                 :src="publication.thumbnail"
-                alt="Publication media preview"
+                :alt="t('postDetail.mediaPreviewAlt')"
                 class="block max-h-80 w-full object-cover"
               />
             </div>

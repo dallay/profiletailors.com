@@ -96,7 +96,7 @@ class StorageAssetPreviewUrlResolver(
     ): String? {
         val storage = bucketRegistry.getStorage(storageBucket)
         if (storage is PresignableStorage) {
-            return runCatching {
+            val presigned = runCatching {
                 storage.presignGet(
                     bucket = storageBucket,
                     key = storageKey,
@@ -110,6 +110,7 @@ class StorageAssetPreviewUrlResolver(
                     err.message,
                 )
             }.getOrNull()
+            if (presigned != null) return presigned
         }
 
         logger.debug("Falling back to signed local preview endpoint for assetId={}", assetId)

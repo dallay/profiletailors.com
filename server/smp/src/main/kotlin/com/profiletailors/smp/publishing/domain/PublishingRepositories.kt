@@ -27,6 +27,7 @@ interface PublicationRepository {
         to: Instant,
         statuses: Set<PublicationStatus>? = null,
         socialAccountIds: Set<String>? = null,
+        hydrateAssets: Boolean = true,
     ): List<PublicationDraft>
 
     suspend fun countByDate(
