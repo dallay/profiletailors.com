@@ -9,7 +9,7 @@
 
 # Lefthook Git Hooks
 .lefthook/
-.lefthookrc.yml
+# .lefthookrc.yml is intentionally tracked in the repo; use lefthook-local.yml for local overrides
 lefthook-local.yml
 
 # Environment variables (all directories)
