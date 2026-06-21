@@ -39,6 +39,9 @@ app:
     resend:
       api-key: ${SMP_RESEND_API_KEY:}  # empty = disabled; ResendEmailSender is not loaded
 
+media:
+  preview-signing-secret: ${SMP_MEDIA_PREVIEW_SIGNING_SECRET:${random.uuid}}
+
 platform:
   workspace-context:
     header-name: ${SMP_WORKSPACE_HEADER_NAME:X-Workspace-Id}
