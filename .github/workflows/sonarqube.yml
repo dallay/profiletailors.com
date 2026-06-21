@@ -36,16 +36,29 @@ jobs:
           java-version: '21'
           cache: 'gradle'
 
-      - name: Run backend tests with coverage
-        run: ./gradlew :server:smp:test :server:smp:jacocoTestReport --no-daemon -PexcludeTags=modularity,postgres
+      - name: Run backend tests
+        run: ./gradlew :server:smp:test -x :server:smp:bddFastTest -x :server:smp:bddPostgresTest :shared:common:test :shared:bus:test :shared:presentation:test :shared:security:test :shared:spring-boot-common:test :shared:storage:test :shared:shield:ratelimit:test --no-daemon -PexcludeTags=modularity,postgres
 
-      - name: Verify backend coverage report
+      - name: Generate backend coverage reports
+        run: ./gradlew :server:smp:koverXmlReport :shared:common:koverXmlReport :shared:bus:koverXmlReport :shared:presentation:koverXmlReport :shared:security:koverXmlReport :shared:spring-boot-common:koverXmlReport :shared:storage:koverXmlReport :shared:shield:ratelimit:koverXmlReport --no-daemon -PexcludeTags=modularity,postgres
+
+      - name: Verify backend coverage reports
         run: |
-          if [ ! -f server/smp/build/reports/jacoco/test/jacocoTestReport.xml ]; then
-            echo "❌ Backend coverage report not found"
-            exit 1
-          fi
-          echo "✅ Backend coverage report generated"
+          for report in \
+            server/smp/build/reports/kover/report.xml \
+            shared/common/build/reports/kover/report.xml \
+            shared/bus/build/reports/kover/report.xml \
+            shared/presentation/build/reports/kover/report.xml \
+            shared/security/build/reports/kover/report.xml \
+            shared/spring-boot-common/build/reports/kover/report.xml \
+            shared/storage/build/reports/kover/report.xml \
+            shared/shield/ratelimit/build/reports/kover/report.xml; do
+            if [ ! -f "$report" ]; then
+              echo "❌ Backend coverage report not found: $report"
+              exit 1
+            fi
+          done
+          echo "✅ Backend coverage reports generated"
 
       # Frontend: Node.js setup and tests
       - name: Setup pnpm
@@ -58,20 +71,31 @@ jobs:
           cache: 'pnpm'
 
       - name: Install frontend dependencies
-        working-directory: apps/web/marketing
         run: pnpm install --frozen-lockfile --ignore-scripts
 
-      - name: Run frontend tests with coverage
+      - name: Run marketing tests with coverage
         working-directory: apps/web/marketing
         run: pnpm test:coverage
 
-      - name: Verify frontend coverage report
+      - name: Verify marketing coverage report
         run: |
           if [ ! -f apps/web/marketing/coverage/lcov.info ]; then
-            echo "❌ Frontend coverage report not found"
+            echo "❌ Marketing coverage report not found"
             exit 1
           fi
-          echo "✅ Frontend coverage report generated"
+          echo "✅ Marketing coverage report generated"
+
+      - name: Run web/app tests with coverage
+        working-directory: apps/web/app
+        run: pnpm test:coverage
+
+      - name: Verify web/app coverage report
+        run: |
+          if [ ! -f apps/web/app/coverage/lcov.info ]; then
+            echo "❌ Web/app coverage report not found"
+            exit 1
+          fi
+          echo "✅ Web/app coverage report generated"
 
       # SonarQube scan
       # Uses sonar-project.properties from repo root — do NOT override projectKey here
@@ -94,18 +118,28 @@ jobs:
           SONAR_HOST_URL: ${{ secrets.SONAR_HOST_URL }}
 
       # Upload coverage artifacts for debugging
-      - name: Upload backend coverage report
+      - name: Upload backend coverage reports
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
         if: always()
         with:
           name: backend-coverage
-          path: server/smp/build/reports/jacoco/
+          path: |
+            server/smp/build/reports/kover/
+            shared/common/build/reports/kover/
+            shared/bus/build/reports/kover/
+            shared/presentation/build/reports/kover/
+            shared/security/build/reports/kover/
+            shared/spring-boot-common/build/reports/kover/
+            shared/storage/build/reports/kover/
+            shared/shield/ratelimit/build/reports/kover/
           retention-days: 7
 
-      - name: Upload frontend coverage report
+      - name: Upload frontend coverage reports
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
         if: always()
         with:
           name: frontend-coverage
-          path: apps/web/marketing/coverage/
+          path: |
+            apps/web/marketing/coverage/
+            apps/web/app/coverage/
           retention-days: 7

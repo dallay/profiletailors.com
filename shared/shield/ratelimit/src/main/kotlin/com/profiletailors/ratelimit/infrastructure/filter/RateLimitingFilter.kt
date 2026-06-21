@@ -199,9 +199,8 @@ class RateLimitingFilter(
         exchange: ServerWebExchange,
         result: RateLimitResult.Denied,
         path: String,
-        strategy: RateLimitStrategy
-    ): Mono<Void> {
-        val response = exchange.response
+        strategy: RateLimitStrategy,
+    ) = exchange.response.let { response ->
         response.statusCode = HttpStatus.TOO_MANY_REQUESTS
         response.headers.contentType = MediaType.APPLICATION_JSON
 
@@ -233,7 +232,7 @@ class RateLimitingFilter(
 
         val bytes = jsonMapper.writeValueAsBytes(errorResponse)
         val buffer: DataBuffer = response.bufferFactory().wrap(bytes)
-        return response.writeWith(Mono.just(buffer))
+        response.writeWith(Mono.just(buffer))
     }
 
     companion object {

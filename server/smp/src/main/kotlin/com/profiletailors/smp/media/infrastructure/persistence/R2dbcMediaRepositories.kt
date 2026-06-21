@@ -98,22 +98,7 @@ class R2dbcMediaAssetRepository(
     ): PagedMediaAssets {
         val effectivePageSize = pageSize.coerceIn(1, 100)
 
-        // Parse cursor: base64url(createdAt:assetId)
-        val (cursorCreatedAt, cursorAssetId) = if (cursor != null) {
-            try {
-                val decoded = String(Base64.getUrlDecoder().decode(cursor))
-                val parts = decoded.split(":", limit = 2)
-                if (parts.size == 2) {
-                    Pair(Instant.parse(parts[0]), parts[1])
-                } else {
-                    Pair(null, null)
-                }
-            } catch (_: IllegalArgumentException) {
-                Pair(null, null)
-            }
-        } else {
-            Pair(null, null)
-        }
+        val (cursorCreatedAt, cursorAssetId) = parseCursor(cursor)
 
         // Build conditions
         val conditions = mutableListOf("workspace_id = :workspaceId")
@@ -167,6 +152,24 @@ class R2dbcMediaAssetRepository(
         }
 
         return PagedMediaAssets(assets = resultAssets, nextCursor = nextCursor)
+    }
+
+    private fun parseCursor(cursor: String?): Pair<Instant?, String?> {
+        if (cursor == null) return Pair(null, null)
+
+        return try {
+            val decoded = String(Base64.getUrlDecoder().decode(cursor))
+            val separatorIndex = decoded.lastIndexOf(':')
+            if (separatorIndex <= 0 || separatorIndex == decoded.lastIndex) {
+                Pair(null, null)
+            } else {
+                val createdAt = decoded.substring(0, separatorIndex)
+                val assetId = decoded.substring(separatorIndex + 1)
+                Pair(Instant.parse(createdAt), assetId)
+            }
+        } catch (_: Exception) {
+            Pair(null, null)
+        }
     }
 
     override suspend fun claimUploadSlot(assetId: String, workspaceId: String, now: Instant): Boolean {
@@ -388,4 +391,5 @@ class R2dbcMediaRateLimitRepository(
 
         return result > 0
     }
+
 }

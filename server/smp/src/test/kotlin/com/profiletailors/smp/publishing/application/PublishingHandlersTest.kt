@@ -8,6 +8,8 @@ import com.profiletailors.common.domain.context.ResourceContextProvider
 import com.profiletailors.common.domain.context.ResourceContextType
 import com.profiletailors.smp.identity.application.AuthFeature
 import com.profiletailors.smp.identity.application.EmailVerificationPolicy
+import com.profiletailors.smp.identity.application.emailVerificationPolicyOf
+import com.profiletailors.smp.identity.application.permissiveEmailVerificationPolicy
 import com.profiletailors.smp.identity.application.FeatureEmailVerificationRequired
 import com.profiletailors.smp.identity.application.PrincipalIdentityFacts
 import com.profiletailors.smp.identity.application.PrincipalIdentityLookup
@@ -85,7 +87,7 @@ class PublishingHandlersTest {
     private val verifiedPrincipalIdentityLookup = VerifiedPrincipalIdentityLookup()
 
     /** Always returns false — email verification gate is disabled in unit tests. */
-    private val noOpEmailVerificationPolicy = NoOpEmailVerificationPolicy()
+    private val noOpEmailVerificationPolicy = permissiveEmailVerificationPolicy
 
     private class VerifiedPrincipalIdentityLookup : PrincipalIdentityLookup {
         override suspend fun findBySubject(
@@ -126,16 +128,8 @@ class PublishingHandlersTest {
         )
     }
 
-    private class NoOpEmailVerificationPolicy : EmailVerificationPolicy {
-        override fun requiresVerification(feature: AuthFeature): Boolean = false
-    }
-
     /** Always returns true — email verification gate is enforced. */
-    private val strictEmailVerificationPolicy = StrictEmailVerificationPolicy()
-
-    private class StrictEmailVerificationPolicy : EmailVerificationPolicy {
-        override fun requiresVerification(feature: AuthFeature): Boolean = true
-    }
+    private val strictEmailVerificationPolicy: EmailVerificationPolicy = emailVerificationPolicyOf()
 
     /** Returns emailStatus = PENDING so strict gate blocks the call. */
     private class PendingEmailIdentityLookup : PrincipalIdentityLookup {

@@ -9,18 +9,22 @@ enum class AuthFeature {
     ENABLE_AUTOMATIONS,
 }
 
-interface EmailVerificationPolicy {
-    fun requiresVerification(feature: AuthFeature): Boolean
+/**
+ * Policy for determining whether a feature requires email verification.
+ *
+ * A functional interface allows concise lambda syntax: `EmailVerificationPolicy { true }`
+ */
+fun interface EmailVerificationPolicy {
+    operator fun invoke(feature: AuthFeature): Boolean
 }
 
-class DefaultEmailVerificationPolicy : EmailVerificationPolicy {
-    override fun requiresVerification(feature: AuthFeature): Boolean = true
-}
+/**
+ * Default policy that requires email verification for all features.
+ */
+fun emailVerificationPolicyOf(): EmailVerificationPolicy = EmailVerificationPolicy { true }
 
 /**
  * Permissive policy that never requires email verification.
  * Use as default constructor parameter in tests or when gating is handled externally.
  */
-class PermissiveEmailVerificationPolicy : EmailVerificationPolicy {
-    override fun requiresVerification(feature: AuthFeature): Boolean = false
-}
+val permissiveEmailVerificationPolicy: EmailVerificationPolicy = EmailVerificationPolicy { false }
