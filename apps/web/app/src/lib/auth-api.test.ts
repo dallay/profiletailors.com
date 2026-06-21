@@ -7,6 +7,8 @@ import {
   getCurrentUserProfile,
   createApiFetch,
   proxyImageUrl,
+  resolveApiUrl,
+  renameWorkspace,
   type AuthTokens,
   type CurrentUserProfile,
 } from './auth-api'
@@ -561,6 +563,229 @@ describe('createApiFetch', () => {
     } else {
       process.env.VITE_API_BASE_URL = original
     }
+  })
+})
+
+// ---------------------------------------------------------------------------
+// resolveApiUrl
+// ---------------------------------------------------------------------------
+
+describe('resolveApiUrl', () => {
+  beforeEach(() => {
+    mockImportMetaEnv({})
+  })
+
+  it('prepends the default API base URL to an absolute path', () => {
+    delete process.env.VITE_API_BASE_URL
+    expect(resolveApiUrl('/api/media/assets/abc')).toBe(
+      'http://localhost:8080/api/media/assets/abc',
+    )
+  })
+
+  it('returns the path unchanged when it does not start with /', () => {
+    delete process.env.VITE_API_BASE_URL
+    expect(resolveApiUrl('https://cdn.example.com/image.jpg')).toBe(
+      'https://cdn.example.com/image.jpg',
+    )
+  })
+
+  it('prepends a custom API base URL configured via env', () => {
+    process.env.VITE_API_BASE_URL = 'https://api.staging.example.com'
+    expect(resolveApiUrl('/api/media/assets/xyz')).toBe(
+      'https://api.staging.example.com/api/media/assets/xyz',
+    )
+    delete process.env.VITE_API_BASE_URL
+  })
+
+  it('returns the path as-is when API base is empty string (same-origin)', () => {
+    process.env.VITE_API_BASE_URL = ''
+    // resolveApiBaseUrl() returns '' → apiBase is falsy → returns path unchanged
+    expect(resolveApiUrl('/api/media/assets/abc')).toBe('/api/media/assets/abc')
+    delete process.env.VITE_API_BASE_URL
+  })
+})
+
+// ---------------------------------------------------------------------------
+// login — Zod validation
+// ---------------------------------------------------------------------------
+
+describe('login — Zod validation', () => {
+  beforeEach(() => {
+    mockImportMetaEnv({})
+  })
+
+  it('trims and lowercases the email before sending', async () => {
+    const tokens = {
+      accessToken: 'tok',
+      tokenType: 'Bearer',
+      expiresIn: 3600,
+      principalId: 'p1',
+      email: 'user@example.com',
+      username: null,
+      emailStatus: 'ACTIVE',
+      workspaceId: null,
+    }
+    const fetchMock = mockFetch(
+      new Response(JSON.stringify(tokens), {
+        status: 200,
+        headers: { 'Content-Type': 'application/json' },
+      }),
+    )
+
+    await login({ email: '  User@Example.COM  ', password: 'secret123' })
+
+    const sentBody = JSON.parse(fetchMock.mock.calls[0]?.[1]?.body as string)
+    expect(sentBody.email).toBe('user@example.com')
+    expect(sentBody.password).toBe('secret123')
+  })
+
+  it('trims whitespace from the password before sending', async () => {
+    const tokens = {
+      accessToken: 'tok',
+      tokenType: 'Bearer',
+      expiresIn: 3600,
+      principalId: 'p1',
+      email: 'user@example.com',
+      username: null,
+      emailStatus: 'ACTIVE',
+      workspaceId: null,
+    }
+    const fetchMock = mockFetch(
+      new Response(JSON.stringify(tokens), {
+        status: 200,
+        headers: { 'Content-Type': 'application/json' },
+      }),
+    )
+
+    await login({ email: 'user@example.com', password: '  mypassword  ' })
+
+    const sentBody = JSON.parse(fetchMock.mock.calls[0]?.[1]?.body as string)
+    expect(sentBody.password).toBe('mypassword')
+  })
+
+  it('rejects invalid email format before making a fetch call', async () => {
+    const fetchMock = vi.fn()
+    vi.stubGlobal('fetch', fetchMock)
+
+    await expect(login({ email: 'not-an-email', password: 'secret' })).rejects.toThrow()
+
+    expect(fetchMock).not.toHaveBeenCalled()
+  })
+
+  it('rejects blank password before making a fetch call', async () => {
+    const fetchMock = vi.fn()
+    vi.stubGlobal('fetch', fetchMock)
+
+    await expect(login({ email: 'user@example.com', password: '   ' })).rejects.toThrow()
+
+    expect(fetchMock).not.toHaveBeenCalled()
+  })
+})
+
+// ---------------------------------------------------------------------------
+// register — Zod validation
+// ---------------------------------------------------------------------------
+
+describe('register — Zod validation', () => {
+  beforeEach(() => {
+    mockImportMetaEnv({})
+  })
+
+  it('trims and lowercases the email before sending', async () => {
+    const tokens = {
+      accessToken: 'tok',
+      tokenType: 'Bearer',
+      expiresIn: 3600,
+      principalId: 'p1',
+      email: 'newuser@example.com',
+      username: null,
+      emailStatus: 'PENDING',
+      workspaceId: null,
+    }
+    const fetchMock = mockFetch(
+      new Response(JSON.stringify(tokens), {
+        status: 200,
+        headers: { 'Content-Type': 'application/json' },
+      }),
+    )
+
+    await register({ email: '  NewUser@Example.COM  ', password: 'password123' })
+
+    const sentBody = JSON.parse(fetchMock.mock.calls[0]?.[1]?.body as string)
+    expect(sentBody.email).toBe('newuser@example.com')
+  })
+
+  it('rejects invalid email format before making a fetch call', async () => {
+    const fetchMock = vi.fn()
+    vi.stubGlobal('fetch', fetchMock)
+
+    await expect(register({ email: 'bad@@email', password: 'password' })).rejects.toThrow()
+
+    expect(fetchMock).not.toHaveBeenCalled()
+  })
+
+  it('rejects blank password before making a fetch call', async () => {
+    const fetchMock = vi.fn()
+    vi.stubGlobal('fetch', fetchMock)
+
+    await expect(register({ email: 'user@example.com', password: '   ' })).rejects.toThrow()
+
+    expect(fetchMock).not.toHaveBeenCalled()
+  })
+})
+
+// ---------------------------------------------------------------------------
+// renameWorkspace — Zod validation
+// ---------------------------------------------------------------------------
+
+describe('renameWorkspace', () => {
+  beforeEach(() => {
+    mockImportMetaEnv({})
+  })
+
+  it('trims the workspace name before sending', async () => {
+    const fetchMock = mockFetch(
+      new Response(JSON.stringify({ workspaceId: 'ws-1', name: 'My Studio' }), {
+        status: 200,
+        headers: { 'Content-Type': 'application/json' },
+      }),
+    )
+
+    await renameWorkspace('  My Studio  ', 'access-token', 'ws-1')
+
+    const sentBody = JSON.parse(fetchMock.mock.calls[0]?.[1]?.body as string)
+    expect(sentBody.name).toBe('My Studio')
+  })
+
+  it('rejects blank workspace name before making a fetch call', async () => {
+    const fetchMock = vi.fn()
+    vi.stubGlobal('fetch', fetchMock)
+
+    await expect(renameWorkspace('   ', 'access-token', 'ws-1')).rejects.toThrow()
+
+    expect(fetchMock).not.toHaveBeenCalled()
+  })
+
+  it('rejects workspace name longer than 255 characters', async () => {
+    const fetchMock = vi.fn()
+    vi.stubGlobal('fetch', fetchMock)
+
+    await expect(renameWorkspace('a'.repeat(256), 'access-token', 'ws-1')).rejects.toThrow()
+
+    expect(fetchMock).not.toHaveBeenCalled()
+  })
+
+  it('sends the workspace id as a header', async () => {
+    const fetchMock = mockFetch(
+      new Response(JSON.stringify({ workspaceId: 'ws-1', name: 'Studio' }), {
+        status: 200,
+        headers: { 'Content-Type': 'application/json' },
+      }),
+    )
+
+    await renameWorkspace('Studio', 'access-token', 'ws-1')
+
+    expect(fetchHeaders(fetchMock)['X-Workspace-Id']).toBe('ws-1')
   })
 })
 
