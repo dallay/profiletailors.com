@@ -12,7 +12,6 @@ const props = defineProps<{
 
 const activePreviewComponent = computed(() => {
   switch (props.provider) {
-    case PREVIEW_PROVIDERS.LINKEDIN:
     default:
       return LinkedInPostPreview
   }
@@ -20,7 +19,6 @@ const activePreviewComponent = computed(() => {
 
 const activePreviewProps = computed(() => {
   switch (props.provider) {
-    case PREVIEW_PROVIDERS.LINKEDIN:
     default:
       return { preview: props.linkedinPreview }
   }

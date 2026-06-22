@@ -579,10 +579,20 @@ onMounted(() => {
                         </div>
                       </div>
 
-                      <!-- Text content -->
-                      <p class="min-w-0 flex-1 overflow-hidden text-[11px] font-light leading-relaxed text-text-body break-words [display:-webkit-box] [-webkit-box-orient:vertical] [-webkit-line-clamp:2] [overflow-wrap:anywhere]">
-                        {{ pub.content }}
-                      </p>
+                      <div class="flex flex-row items-stretch gap-2 min-h-0 flex-1">
+                        <!-- Text content -->
+                        <p class="min-w-0 flex-1 overflow-hidden text-[11px] font-light leading-relaxed text-text-body break-words [display:-webkit-box] [-webkit-box-orient:vertical] [-webkit-line-clamp:3] [overflow-wrap:anywhere]">
+                          {{ pub.content }}
+                        </p>
+
+                        <div v-if="pub.thumbnail" class="h-full w-14 shrink-0 overflow-hidden rounded-md border border-border-subtle/80">
+                          <img
+                            :src="pub.thumbnail"
+                            class="h-full w-full object-cover"
+                            alt=""
+                          />
+                        </div>
+                      </div>
 
                       <!-- Delete button overlay on card hover (not for published posts) -->
                       <button
@@ -698,15 +708,15 @@ onMounted(() => {
           </div>
 
           <div v-else class="space-y-3">
-            <button
-              v-for="pub in filteredPublications"
-              :key="pub.id"
-              type="button"
-              class="flex flex-col md:flex-row md:items-center justify-between gap-4 p-5 rounded-2xl border border-border-subtle bg-bg-surface hover:border-text-secondary transition-all cursor-pointer w-full text-left"
-              @click="openPostDetail(pub)"
-              @keydown.enter.self.stop.prevent="openPostDetail(pub)"
-              @keydown.space.self.stop.prevent="openPostDetail(pub)"
-            >
+              <button
+                v-for="pub in filteredPublications"
+                :key="pub.id"
+                type="button"
+                class="group/card flex flex-col md:flex-row md:items-center justify-between gap-4 p-5 rounded-2xl border border-border-subtle bg-bg-surface hover:border-text-secondary transition-all cursor-pointer w-full text-left"
+                @click="openPostDetail(pub)"
+                @keydown.enter.self.stop.prevent="openPostDetail(pub)"
+                @keydown.space.self.stop.prevent="openPostDetail(pub)"
+              >
               <div class="space-y-2 flex-1 min-w-0">
                 <div class="flex items-center gap-3">
                   <span class="font-mono text-[9px] uppercase tracking-widest text-text-secondary bg-bg-primary border border-border-visible px-2 py-0.5 rounded-md">
@@ -763,7 +773,7 @@ onMounted(() => {
                 <button
                   v-if="pub.status !== 'PUBLISHED'"
                   @click.stop="publishingStore.deletePost(pub.id)"
-                  class="size-8 flex items-center justify-center rounded-xl border border-border-visible hover:border-error text-text-secondary hover:text-error transition-colors bg-bg-primary cursor-pointer"
+                  class="group-hover/card:opacity-100 opacity-0 size-8 flex items-center justify-center rounded-xl border border-border-visible hover:border-error text-text-secondary hover:text-error transition-all bg-bg-primary cursor-pointer"
                   title="Delete publication"
                 >
                   <Trash2 class="size-4" />

@@ -366,12 +366,14 @@ describe('CreatePostModal.vue — preview composition', () => {
   })
 
   it('renders the shared preview shell with the LinkedIn child preview', async () => {
-    const wrapper = mountModal([makeChannel('preview-shell', { name: 'Acme Corp', handle: 'acme-corp' })])
+    const wrapper = mountModal([
+      makeChannel('preview-shell', { name: 'Acme Corp', handle: 'acme-corp' }),
+    ])
     await wrapper.vm.$nextTick()
 
     expect(document.body.innerHTML).toContain('composer.linkedinPreview')
     expect(document.body.innerHTML).toContain('Acme Corp')
-    expect(document.body.innerHTML).toContain("composer.seePreviewHere")
+    expect(document.body.innerHTML).toContain('composer.seePreviewHere')
   })
 
   it('shows the more affordance for very long preview text without mutating the textarea value', async () => {
@@ -423,7 +425,9 @@ describe('CreatePostModal.vue — preview composition', () => {
     const previewMore = document.body.querySelector('[data-testid="linkedin-preview-more"]')
 
     expect(previewImage).not.toBeNull()
-    expect((previewImage as HTMLImageElement).getAttribute('src')).toBe('/api/media/assets/preview-media/preview')
+    expect((previewImage as HTMLImageElement).getAttribute('src')).toBe(
+      '/api/media/assets/preview-media/preview',
+    )
     expect(previewMore?.textContent?.trim()).toBe('...more')
   })
 })
