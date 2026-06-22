@@ -1045,7 +1045,16 @@ class PublishingHandlersTest {
         val handler = GetCalendarPublicationsHandler(
             resourceContextProvider = FixedResourceContextProvider(workspaceContext),
             publicationRepository = publicationRepository,
-            publicationAssetRepository = publicationAssetRepository,
+            mediaAssetResolver = FakeMediaAssetResolver().apply {
+                resolvedAssets = listOf(
+                    ResolvedAssetSummary(
+                        assetId = "asset-1",
+                        workspaceId = "workspace-1",
+                        storageKey = "assets/workspace-1/asset-1",
+                        mediaType = "image/png",
+                    ),
+                )
+            },
             assetPreviewUrlResolver = FakeAssetPreviewUrlResolver(),
         )
 
@@ -1077,7 +1086,7 @@ class PublishingHandlersTest {
         val handler = GetCalendarPublicationsHandler(
             resourceContextProvider = FixedResourceContextProvider(workspaceContext),
             publicationRepository = publicationRepository,
-            publicationAssetRepository = InMemoryPublicationAssetRepository(),
+            mediaAssetResolver = FakeMediaAssetResolver(),
             assetPreviewUrlResolver = FakeAssetPreviewUrlResolver(),
         )
 
@@ -1101,7 +1110,7 @@ class PublishingHandlersTest {
         val handler = GetCalendarPublicationsHandler(
             resourceContextProvider = FixedResourceContextProvider(workspaceContext),
             publicationRepository = publicationRepository,
-            publicationAssetRepository = InMemoryPublicationAssetRepository(),
+            mediaAssetResolver = FakeMediaAssetResolver(),
             assetPreviewUrlResolver = FakeAssetPreviewUrlResolver(),
         )
 
@@ -1128,7 +1137,7 @@ class PublishingHandlersTest {
         val handler = GetCalendarPublicationsHandler(
             resourceContextProvider = FixedResourceContextProvider(workspaceContext),
             publicationRepository = publicationRepository,
-            publicationAssetRepository = InMemoryPublicationAssetRepository(),
+            mediaAssetResolver = FakeMediaAssetResolver(),
             assetPreviewUrlResolver = FakeAssetPreviewUrlResolver(),
         )
 
@@ -1150,7 +1159,7 @@ class PublishingHandlersTest {
         val handler = GetCalendarPublicationsHandler(
             resourceContextProvider = FixedResourceContextProvider(workspaceContext),
             publicationRepository = publicationRepository,
-            publicationAssetRepository = InMemoryPublicationAssetRepository(),
+            mediaAssetResolver = FakeMediaAssetResolver(),
             assetPreviewUrlResolver = FakeAssetPreviewUrlResolver(),
         )
 

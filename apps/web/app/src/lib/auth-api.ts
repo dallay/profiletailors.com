@@ -73,11 +73,14 @@ async function requestRaw(
   init: RequestInit = {},
   token?: string | null,
 ): Promise<Response> {
+  const hasExplicitContentType = new Headers(init.headers ?? {}).has('Content-Type')
+  const isFormDataBody = typeof FormData !== 'undefined' && init.body instanceof FormData
+
   const response = await fetch(`${resolveApiBaseUrl()}${path}`, {
     ...init,
     credentials: 'include',
     headers: {
-      'Content-Type': 'application/json',
+      ...(!hasExplicitContentType && !isFormDataBody ? { 'Content-Type': 'application/json' } : {}),
       Accept: 'application/vnd.api.v1+json',
       ...(token ? { Authorization: `Bearer ${token}` } : {}),
       ...(init.headers ?? {}),

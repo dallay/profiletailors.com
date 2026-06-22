@@ -118,9 +118,11 @@ class ApiControllerTest {
 
     @Test
     fun `should return userEmail from JwtAuthenticationToken`() = runTest {
-        val jwt = mockk<Jwt>()
-        val attributes = mapOf("email" to "test@example.com")
-        coEvery { jwt.claims } returns attributes
+        val jwt = Jwt.withTokenValue("token")
+            .header("alg", "none")
+            .subject("user-123")
+            .claim("email", "test@example.com")
+            .build()
         val auth = JwtAuthenticationToken(jwt)
         val context = SecurityContextImpl(auth)
 
@@ -235,6 +237,65 @@ class ApiControllerTest {
         val message = controller.testGetLocalizedMessage("key", request, messageSource)
 
         message shouldBe "hola"
+    }
+
+    @Test
+    fun `should return null userId when no security context`() = runTest {
+        val result = mono { controller.testGetUserId() }.block()
+
+        result shouldBe null
+    }
+
+    @Test
+    fun `should return null userEmail when email claim absent from JWT`() = runTest {
+        val jwt = Jwt.withTokenValue("token")
+            .header("alg", "none")
+            .subject("user-123")
+            .build()
+        val auth = JwtAuthenticationToken(jwt)
+        val context = SecurityContextImpl(auth)
+
+        val result = Mono.defer {
+            Mono.just(controller)
+        }.flatMap {
+            mono { it.testGetUserEmail() }
+        }.contextWrite(ReactiveSecurityContextHolder.withSecurityContext(Mono.just(context)))
+        .block()
+
+        result shouldBe null
+    }
+
+    @Test
+    fun `should allow path variable with underscores and hyphens`() {
+        controller.testSanitizePathVariable("my_variable-123") shouldBe "my_variable-123"
+    }
+
+    @Test
+    fun `should reject path variable with dots`() {
+        assertThrows<IllegalArgumentException> {
+            controller.testSanitizePathVariable("../traversal")
+        }
+    }
+
+    @Test
+    fun `should reject empty path variable`() {
+        assertThrows<IllegalArgumentException> {
+            controller.testSanitizePathVariable("")
+        }
+    }
+
+    @Test
+    fun `should fallback to English locale when no accept-language header`() {
+        val request = mockk<ServerHttpRequest>()
+        val headers = HttpHeaders()  // no Accept-Language
+        coEvery { request.headers } returns headers
+
+        val messageSource = mockk<MessageSource>()
+        coEvery { messageSource.getMessage("key", null, Locale.ENGLISH) } returns "hello"
+
+        val message = controller.testGetLocalizedMessage("key", request, messageSource)
+
+        message shouldBe "hello"
     }
 
     // Helper classes

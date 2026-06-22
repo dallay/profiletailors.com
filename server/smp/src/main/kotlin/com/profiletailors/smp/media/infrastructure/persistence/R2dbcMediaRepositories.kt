@@ -69,25 +69,20 @@ class R2dbcMediaAssetRepository(
     override suspend fun findByWorkspaceAndIds(workspaceId: String, assetIds: List<String>): List<MediaAsset> {
         if (assetIds.isEmpty()) return emptyList()
 
-        val idBindings = assetIds.mapIndexed { index, _ -> ":id$index" }
-        val idParams = assetIds.mapIndexed { index, id -> "id$index" to id }.toMap()
-
         return databaseClient.sql(
             """
             SELECT asset_id, workspace_id, source_type, media_type, storage_key,
                    original_filename, file_size_bytes, status, upload_started_at, created_at
             FROM media_assets
-            WHERE workspace_id = :workspaceId AND asset_id IN (${idBindings.joinToString(", ")})
+            WHERE workspace_id = :workspaceId
             """.trimIndent(),
         )
             .bind("workspaceId", workspaceId)
-            .apply {
-                idParams.forEach { (key, value) -> bind(key, value) }
-            }
             .map { row, _ -> rowToMediaAsset(row) }
             .all()
             .collectList()
             .awaitSingle()
+            .filter { it.assetId in assetIds }
     }
 
     override suspend fun listByWorkspace(

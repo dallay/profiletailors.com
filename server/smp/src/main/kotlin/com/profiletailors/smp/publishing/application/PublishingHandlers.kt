@@ -13,8 +13,9 @@ import com.profiletailors.smp.identity.application.PrincipalIdentityLookup
 import com.profiletailors.smp.identity.application.permissivePrincipalContextProvider
 import com.profiletailors.smp.identity.application.requireEmailVerification
 import com.profiletailors.smp.media.application.AssetPreviewUrlResolver
-import com.profiletailors.smp.media.application.AssetNotReadyException
 import com.profiletailors.smp.media.application.MediaAssetResolver
+import com.profiletailors.smp.media.application.ResolvedAssetSummary
+
 import com.profiletailors.smp.media.application.MediaServiceUnavailableException
 import com.profiletailors.smp.publishing.domain.ActivityThresholds
 import com.profiletailors.smp.publishing.domain.MIN_SCHEDULE_OFFSET
@@ -760,7 +761,7 @@ internal class CreateAssetHandler(
 internal class GetCalendarPublicationsHandler(
     private val resourceContextProvider: ResourceContextProvider,
     private val publicationRepository: PublicationRepository,
-    private val publicationAssetRepository: PublicationAssetRepository,
+    private val mediaAssetResolver: MediaAssetResolver,
     private val assetPreviewUrlResolver: AssetPreviewUrlResolver,
 ) : QueryHandler<GetCalendarPublicationsQuery, CalendarResponse> {
     private val logger: Logger = LoggerFactory.getLogger(GetCalendarPublicationsHandler::class.java)
@@ -777,9 +778,13 @@ internal class GetCalendarPublicationsHandler(
             statuses = statuses,
             socialAccountIds = accountIds,
         )
-        val assetsById = publicationAssetRepository
-            .findByWorkspaceAndIds(workspaceId, publications.flatMap { it.assetIds }.distinct())
-            .associateBy { it.id }
+        val assetIds = publications.flatMap { it.assetIds }.distinct()
+        val assetsById = if (assetIds.isEmpty()) {
+            emptyMap()
+        } else {
+            mediaAssetResolver.resolveReadyAssets(workspaceId, assetIds)
+                .associateBy { it.assetId }
+        }
 
         val conflictMap = ConflictDetectionPolicy.findConflicts(publications)
         val conflicts = conflictMap.map { (pubId, conflictingIds) ->
@@ -814,23 +819,22 @@ internal class GetCalendarPublicationsHandler(
 
     private suspend fun resolvePreviewUrl(
         publication: PublicationDraft,
-        assetsById: Map<String, PublicationAsset>,
+        assetsById: Map<String, ResolvedAssetSummary>,
     ): String? {
         val readyAssets = publication.assetIds
             .mapNotNull { assetsById[it] }
-            .filter { it.status == PublicationAssetStatus.READY }
 
         for (asset in readyAssets) {
             val previewUrl = runCatching {
                 assetPreviewUrlResolver.resolvePreviewUrl(
-                    assetId = asset.id,
+                    assetId = asset.assetId,
                     workspaceId = asset.workspaceId,
                     mediaType = asset.mediaType,
                     storageKey = asset.storageKey,
-                    externalUrl = asset.externalUrl,
+                    externalUrl = null,
                 )
             }.onFailure { error ->
-                logger.warn("Failed to resolve preview URL for assetId={}", asset.id, error)
+                logger.warn("Failed to resolve preview URL for assetId={}", asset.assetId, error)
             }.getOrNull()
             if (previewUrl != null) return previewUrl
         }

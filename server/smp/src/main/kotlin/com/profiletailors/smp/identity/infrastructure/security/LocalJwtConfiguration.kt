@@ -2,8 +2,8 @@ package com.profiletailors.smp.identity.infrastructure.security
 
 import com.nimbusds.jose.jwk.source.ImmutableSecret
 import javax.crypto.spec.SecretKeySpec
-import org.springframework.beans.factory.annotation.Value
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean
+import org.springframework.boot.context.properties.EnableConfigurationProperties
 import org.springframework.context.annotation.Bean
 import org.springframework.context.annotation.Configuration
 import org.springframework.security.oauth2.jose.jws.MacAlgorithm
@@ -13,21 +13,22 @@ import org.springframework.security.oauth2.jwt.NimbusReactiveJwtDecoder
 import org.springframework.security.oauth2.jwt.ReactiveJwtDecoder
 
 @Configuration
+@EnableConfigurationProperties(LocalJwtProperties::class)
 class LocalJwtConfiguration {
 
     @Bean
     @ConditionalOnMissingBean(ReactiveJwtDecoder::class)
     fun reactiveJwtDecoder(
-        @Value("\${app.security.local-jwt.secret:}") secret: String,
+        properties: LocalJwtProperties,
     ): ReactiveJwtDecoder = NimbusReactiveJwtDecoder
-        .withSecretKey(secret.effectiveSecret().toSecretKey())
+        .withSecretKey(properties.secret.effectiveSecret().toSecretKey())
         .macAlgorithm(MacAlgorithm.HS256)
         .build()
 
     @Bean
     fun jwtEncoder(
-        @Value("\${app.security.local-jwt.secret:}") secret: String,
-    ): JwtEncoder = NimbusJwtEncoder(ImmutableSecret(secret.effectiveSecret().toSecretKey()))
+        properties: LocalJwtProperties,
+    ): JwtEncoder = NimbusJwtEncoder(ImmutableSecret(properties.secret.effectiveSecret().toSecretKey()))
 
     private fun String.effectiveSecret(): String =
         if (isBlank()) {

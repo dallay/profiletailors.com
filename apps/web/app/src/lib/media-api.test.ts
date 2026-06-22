@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { setActivePinia, createPinia } from 'pinia'
-import { deleteAsset } from './media-api'
+import { deleteAsset, reserveAsset } from './media-api'
 
 // ---------------------------------------------------------------------------
 // Mock auth-api (createApiFetch + refreshSession)
@@ -36,11 +36,18 @@ vi.mock('@/stores/auth', () => ({
   }),
 }))
 
+vi.mock('@/stores/workspace', () => ({
+  useWorkspaceStore: () => ({
+    activeWorkspaceId: 'ws-media-test',
+  }),
+}))
+
 let mockIsAuthenticated = true
 
 // ---------------------------------------------------------------------------
 // Tests
 // ---------------------------------------------------------------------------
+
 
 describe('deleteAsset', () => {
   beforeEach(() => {

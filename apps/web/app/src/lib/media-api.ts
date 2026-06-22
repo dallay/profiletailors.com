@@ -61,12 +61,13 @@ function isMediaApiError(body: unknown): body is MediaApiError {
 
 import { createApiFetch, refreshSession } from '@/lib/auth-api'
 import { useAuthStore } from '@/stores/auth'
+import { useWorkspaceStore } from '@/stores/workspace'
 
 /** Creates an authenticated fetch wrapper scoped to the media API. */
 function createMediaFetch() {
   return createApiFetch({
     getToken: () => useAuthStore().accessToken.value,
-    getWorkspaceId: () => useAuthStore().workspace?.activeWorkspaceId ?? null,
+    getWorkspaceId: () => useWorkspaceStore().activeWorkspaceId,
     onRefresh: async () => {
       const tokens = await refreshSession()
       if (tokens) return tokens.accessToken

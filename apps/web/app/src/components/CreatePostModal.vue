@@ -59,6 +59,7 @@ const isDatePickerOpen = ref(false)
 // ---------------------------------------------------------------------------
 // Blob URL for instant preview during upload (purely transient UX)
 const uploadPreviewBlob = ref<string | null>(null)
+const selectedUploadFile = ref<File | null>(null)
 const uploadTempKey = ref<string | null>(null)
 const uploadProgress = ref(0)
 const fileInput = ref<HTMLInputElement | null>(null)
@@ -124,6 +125,7 @@ watch(
       // Clear selected/uploaded media state
       mediaStore.clearSelection()
       clearUploadPreviewBlob()
+      selectedUploadFile.value = null
       uploadTempKey.value = null
       uploadProgress.value = 0
 
@@ -242,10 +244,15 @@ function handleDrop(e: DragEvent) {
   }
 }
 
+function openFilePicker() {
+  fileInput.value?.click()
+}
+
 function handleFileSelect(e: Event) {
   const target = e.target as HTMLInputElement
-  if (target.files) {
+  if (target.files?.length) {
     addFiles(Array.from(target.files))
+    target.value = ''
   }
 }
 
@@ -261,9 +268,15 @@ function addFiles(filesList: File[]) {
     return isSupported && isUnderLimit
   })
 
-  // Limit to max 1 image for LinkedIn MVP simple preview
+  // Limit to max 1 image for LinkedIn MVP simple preview.
+  // File is stored locally for deferred upload — no server call until Schedule Post.
   if (validFiles.length > 0) {
-    uploadAndTrack(validFiles[0])
+    const file = validFiles[0]
+    clearUploadPreviewBlob()
+    selectedUploadFile.value = file
+    uploadPreviewBlob.value = URL.createObjectURL(file)
+    uploadTempKey.value = `modal-upload-${Date.now()}`
+    uploadProgress.value = 0
   }
 }
 
@@ -309,6 +322,7 @@ function removeFile() {
 
   // Clean up any in-progress upload tracking
   clearUploadPreviewBlob()
+  selectedUploadFile.value = null
   uploadTempKey.value = null
   uploadProgress.value = 0
   mediaStore.clearUploads()
@@ -328,23 +342,36 @@ async function retryUploadItem(tempKey: string) {
 }
 
 /**
- * Whether the selected asset (first selected) is an image type that can be previewed.
+ * Whether the current composer media is an image that can be previewed.
+ * Prefer the transient upload file while an upload is in progress, then fall back
+ * to the first selected READY asset once the upload completes.
  */
 const selectedAssetIsImage = computed(() => {
+  const uploadFile = currentUpload.value?.file ?? selectedUploadFile.value
+  if (uploadFile) {
+    return uploadFile.type.startsWith('image/')
+  }
+
   const assets = mediaStore.selectedAssets
   if (assets.length === 0) return false
   return assets[0].mediaType.startsWith('image/')
 })
 
 /**
- * The object URL for the first selected READY asset (or null for video/pdf).
+ * The preview URL for the composer media.
+ * Uses the transient blob immediately after file selection so the LinkedIn preview
+ * updates before the backend upload finishes.
  */
 const selectedAssetPreviewUrl = computed<string | null>(() => {
+  if (uploadPreviewBlob.value && selectedAssetIsImage.value) {
+    return uploadPreviewBlob.value
+  }
+
   const assets = mediaStore.selectedAssets
   if (assets.length === 0) return null
   const first = assets[0]
   if (!first.mediaType.startsWith('image/')) return null
-  return uploadPreviewBlob.value ?? (first.previewUrl ? resolveApiUrl(first.previewUrl) : null)
+  return first.previewUrl ? resolveApiUrl(first.previewUrl) : null
 })
 
 /**
@@ -440,6 +467,26 @@ async function handleSchedule() {
       const error = validateCustomSchedule(finalScheduledDate)
       if (error) {
         submitError.value = error
+        return
+      }
+    }
+
+    // Deferred upload: if a file was selected but not yet uploaded, upload it now
+    // before creating the post. This ensures the asset is READY before the
+    // publication references it via assetIds.
+    if (selectedUploadFile.value && uploadTempKey.value) {
+      try {
+        const asset = await mediaStore.createAndUpload(
+          selectedUploadFile.value,
+          uploadTempKey.value,
+          (pct) => {
+            uploadProgress.value = pct
+          },
+        )
+        mediaStore.addToSelection(asset.assetId)
+      } catch {
+        // Error is already tracked in mediaStore.uploadList; surface it to the user
+        submitError.value = 'Media upload failed. Please try again.'
         return
       }
     }
@@ -683,6 +730,14 @@ async function handleSchedule() {
             </div>
 
             <!-- Drop zone / select file button -->
+            <input
+              v-if="!currentUpload"
+              ref="fileInput"
+              type="file"
+              class="hidden"
+              accept="image/*,video/mp4"
+              @change="handleFileSelect"
+            />
             <button
               v-if="!currentUpload"
               type="button"
@@ -695,15 +750,8 @@ async function handleSchedule() {
                 'bg-bg-primary/20': !isDragging,
               }"
               :aria-label="$t('composer.dragDrop')"
-              @click="fileInput?.click()"
+              @click="openFilePicker"
             >
-              <input
-                ref="fileInput"
-                type="file"
-                class="hidden"
-                accept="image/*,video/mp4"
-                @change="handleFileSelect"
-              />
               <ImageIcon class="size-5 text-text-secondary mx-auto" />
               <p class="text-xs text-text-secondary font-light mt-1.5">
                 {{ $t('composer.dragDrop') }}

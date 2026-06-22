@@ -535,6 +535,31 @@ describe('createApiFetch', () => {
     )
   })
 
+  it('does not force application/json content type for FormData bodies', async () => {
+    const fetchMock = mockFetch(new Response(null, { status: 204 }))
+    const apiFetch = createApiFetch({
+      getToken: () => 'token',
+      getWorkspaceId: () => 'workspace-1',
+      onRefresh: async () => null,
+      onUnauthenticated: vi.fn(),
+    })
+
+    const formData = new FormData()
+    formData.append('file', new Blob(['abc'], { type: 'text/plain' }), 'sample.txt')
+
+    await apiFetch.raw('/api/media/assets/asset-1/upload', {
+      method: 'POST',
+      body: formData,
+      workspaceScoped: true,
+    })
+
+    const headers = fetchHeaders(fetchMock)
+    expect(headers.Accept).toBe('application/vnd.api.v1+json')
+    expect(headers.Authorization).toBe('Bearer token')
+    expect(headers['X-Workspace-Id']).toBe('workspace-1')
+    expect(headers['Content-Type']).toBeUndefined()
+  })
+
   it('uses custom API base URL from environment', async () => {
     // Vite maps process.env to import.meta.env — use this to override
     const original = process.env.VITE_API_BASE_URL

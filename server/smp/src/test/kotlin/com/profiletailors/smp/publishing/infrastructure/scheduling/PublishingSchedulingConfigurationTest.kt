@@ -1,5 +1,7 @@
 package com.profiletailors.smp.publishing.infrastructure.scheduling
 
+import com.profiletailors.smp.media.application.MediaAssetResolver
+import com.profiletailors.smp.media.application.ResolvedAssetSummary
 import com.profiletailors.smp.publishing.domain.DateCount
 import com.profiletailors.smp.publishing.domain.DeliveryAttempt
 import com.profiletailors.smp.publishing.domain.DeliveryAttemptRepository
@@ -12,10 +14,6 @@ import com.profiletailors.smp.publishing.domain.ProviderCapabilityValidationInpu
 import com.profiletailors.smp.publishing.domain.ProviderPublishCommand
 import com.profiletailors.smp.publishing.domain.ProviderPublishResult
 import com.profiletailors.smp.publishing.domain.ProviderCapabilityValidator
-import com.profiletailors.smp.publishing.domain.ProviderAssetRef
-import com.profiletailors.smp.publishing.domain.PublicationAsset
-import com.profiletailors.smp.publishing.domain.PublicationAssetRepository
-import com.profiletailors.smp.publishing.domain.PublicationAssetStatus
 import com.profiletailors.smp.publishing.domain.PublicationDraft
 import com.profiletailors.smp.publishing.domain.PublicationJob
 import com.profiletailors.smp.publishing.domain.PublicationJobClaim
@@ -52,7 +50,7 @@ class PublishingSchedulingConfigurationTest {
     private val publicationJobRepository = NoOpPublicationJobRepository()
     private val publicationRepository = NoOpPublicationRepository()
     private val socialAccountRepository = NoOpSocialAccountRepository()
-    private val publicationAssetRepository = NoOpPublicationAssetRepository()
+    private val mediaAssetResolver = NoOpMediaAssetResolver()
     private val deliveryAttemptRepository = NoOpDeliveryAttemptRepository()
     private val providerCapabilityValidator = ProviderCapabilityValidator { _: ProviderCapabilityValidationInput -> }
     private val socialPublisher = SocialPublisher {
@@ -63,7 +61,7 @@ class PublishingSchedulingConfigurationTest {
         publicationJobRepository = publicationJobRepository,
         publicationRepository = publicationRepository,
         socialAccountRepository = socialAccountRepository,
-        publicationAssetRepository = publicationAssetRepository,
+        mediaAssetResolver = mediaAssetResolver,
         deliveryAttemptRepository = deliveryAttemptRepository,
         providerCapabilityValidator = providerCapabilityValidator,
         socialPublisher = socialPublisher,
@@ -82,8 +80,10 @@ class PublishingSchedulingConfigurationTest {
     @Test
     fun `publishingRetryPolicy uses configured values`() {
         val retryPolicy = configuration.publishingRetryPolicy(
-            maxRetries = 5,
-            retryBackoff = Duration.ofMinutes(7),
+            properties = PublishingWorkerProperties(
+                maxRetries = 5,
+                retryBackoff = Duration.ofMinutes(7),
+            ),
         )
 
         assertEquals(true, retryPolicy.shouldRetry(currentAttemptNumber = 5, retryable = true))
@@ -126,9 +126,11 @@ class PublishingSchedulingConfigurationTest {
         val scheduler = RecordingTaskScheduler()
 
         configuration.publishingWorkerLifecycle(
-            enabled = true,
-            pollInterval = Duration.ofSeconds(30),
-            blockedRecoveryInterval = Duration.ofMinutes(5),
+            properties = PublishingWorkerProperties(
+                enabled = true,
+                pollInterval = Duration.ofSeconds(30),
+                blockedRecoveryInterval = Duration.ofMinutes(5),
+            ),
             publishingTaskScheduler = scheduler,
             publishingWorker = worker,
         )
@@ -153,9 +155,11 @@ class PublishingSchedulingConfigurationTest {
         val scheduler = RecordingTaskScheduler()
 
         configuration.publishingWorkerLifecycle(
-            enabled = false,
-            pollInterval = Duration.ofSeconds(30),
-            blockedRecoveryInterval = Duration.ofMinutes(5),
+            properties = PublishingWorkerProperties(
+                enabled = false,
+                pollInterval = Duration.ofSeconds(30),
+                blockedRecoveryInterval = Duration.ofMinutes(5),
+            ),
             publishingTaskScheduler = scheduler,
             publishingWorker = worker,
         )
@@ -249,11 +253,8 @@ class PublishingSchedulingConfigurationTest {
         override suspend fun findByWorkspaceAndId(workspaceId: String, accountId: String): SocialAccount = account()
     }
 
-    private class NoOpPublicationAssetRepository : PublicationAssetRepository {
-        override suspend fun findByWorkspaceAndIds(workspaceId: String, assetIds: Collection<String>): List<PublicationAsset> = emptyList()
-        override suspend fun create(asset: PublicationAsset): PublicationAsset = asset
-        override suspend fun updateStatus(assetId: String, status: PublicationAssetStatus) = Unit
-        override suspend fun updateProviderAssetRef(assetId: String, providerAssetRef: ProviderAssetRef) = Unit
+    private class NoOpMediaAssetResolver : MediaAssetResolver {
+        override suspend fun resolveReadyAssets(workspaceId: String, assetIds: List<String>): List<ResolvedAssetSummary> = emptyList()
     }
 
     private class NoOpDeliveryAttemptRepository : DeliveryAttemptRepository {

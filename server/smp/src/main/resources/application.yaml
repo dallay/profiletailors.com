@@ -55,9 +55,10 @@ platform:
         access-key-id: ${SMP_STORAGE_R2_ACCESS_KEY_ID:}
         secret-access-key: ${SMP_STORAGE_R2_SECRET_ACCESS_KEY:}
         endpoint: ${SMP_STORAGE_R2_ENDPOINT:}
+        base-path: ${SMP_STORAGE_LOCAL_BASE_PATH:./tmp/profiletailors-storage}
       local:
         type: local
-        base-path: ${SMP_STORAGE_LOCAL_BASE_PATH:/tmp/profiletailors-storage}
+        base-path: ${SMP_STORAGE_LOCAL_BASE_PATH:./tmp/profiletailors-storage}
   media:
     context:
       integration:

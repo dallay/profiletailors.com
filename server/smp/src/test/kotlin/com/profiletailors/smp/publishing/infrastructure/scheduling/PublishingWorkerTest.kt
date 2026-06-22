@@ -1,5 +1,7 @@
 package com.profiletailors.smp.publishing.infrastructure.scheduling
 
+import com.profiletailors.smp.media.application.MediaAssetResolver
+import com.profiletailors.smp.media.application.ResolvedAssetSummary
 import com.profiletailors.smp.publishing.domain.AssetSourceType
 import com.profiletailors.smp.publishing.domain.DateCount
 import com.profiletailors.smp.publishing.domain.DeliveryAttempt
@@ -8,12 +10,8 @@ import com.profiletailors.smp.publishing.domain.DeliveryAttemptOutcome
 import com.profiletailors.smp.publishing.domain.DeliveryRetryPolicy
 import com.profiletailors.smp.publishing.domain.ProviderCapabilityValidationInput
 import com.profiletailors.smp.publishing.domain.ProviderCapabilityValidator
-import com.profiletailors.smp.publishing.domain.ProviderAssetRef
 import com.profiletailors.smp.publishing.domain.ProviderPublishCommand
 import com.profiletailors.smp.publishing.domain.ProviderPublishResult
-import com.profiletailors.smp.publishing.domain.PublicationAsset
-import com.profiletailors.smp.publishing.domain.PublicationAssetRepository
-import com.profiletailors.smp.publishing.domain.PublicationAssetStatus
 import com.profiletailors.smp.publishing.domain.PublicationDraft
 import com.profiletailors.smp.publishing.domain.PublicationJobClaim
 import com.profiletailors.smp.publishing.domain.PublicationJobRepository
@@ -48,7 +46,7 @@ class PublishingWorkerTest {
             publicationJobRepository = jobRepository,
             publicationRepository = publicationRepository,
             socialAccountRepository = InMemoryAccountRepository(successAccount()),
-            publicationAssetRepository = InMemoryAssetRepository(emptyList()),
+            mediaAssetResolver = InMemoryMediaAssetResolver(emptyList()),
             deliveryAttemptRepository = attemptRepository,
             notificationEventRepository = null,
             providerCapabilityValidator = AcceptingCapabilityValidator(),
@@ -81,7 +79,7 @@ class PublishingWorkerTest {
             publicationJobRepository = jobRepository,
             publicationRepository = publicationRepository,
             socialAccountRepository = InMemoryAccountRepository(successAccount()),
-            publicationAssetRepository = InMemoryAssetRepository(emptyList()),
+            mediaAssetResolver = InMemoryMediaAssetResolver(emptyList()),
             deliveryAttemptRepository = attemptRepository,
             notificationEventRepository = null,
             providerCapabilityValidator = AcceptingCapabilityValidator(),
@@ -113,7 +111,7 @@ class PublishingWorkerTest {
             publicationJobRepository = jobRepository,
             publicationRepository = publicationRepository,
             socialAccountRepository = InMemoryAccountRepository(successAccount()),
-            publicationAssetRepository = InMemoryAssetRepository(emptyList()),
+            mediaAssetResolver = InMemoryMediaAssetResolver(emptyList()),
             deliveryAttemptRepository = attemptRepository,
             notificationEventRepository = null,
             providerCapabilityValidator = AcceptingCapabilityValidator(),
@@ -147,7 +145,7 @@ class PublishingWorkerTest {
             publicationJobRepository = jobRepository,
             publicationRepository = publicationRepository,
             socialAccountRepository = InMemoryAccountRepository(successAccount()),
-            publicationAssetRepository = InMemoryAssetRepository(emptyList()),
+            mediaAssetResolver = InMemoryMediaAssetResolver(emptyList()),
             deliveryAttemptRepository = InMemoryAttemptRepository(),
             notificationEventRepository = null,
             providerCapabilityValidator = AcceptingCapabilityValidator(),
@@ -278,30 +276,11 @@ class PublishingWorkerTest {
         override suspend fun findByWorkspaceAndId(workspaceId: String, accountId: String): SocialAccount? = account
     }
 
-    private class InMemoryAssetRepository(
-        private val assets: List<PublicationAsset>,
-    ) : PublicationAssetRepository {
-        private val items = linkedMapOf<String, PublicationAsset>()
-
-        init {
-            assets.forEach { items[it.id] = it }
-        }
-
-        override suspend fun findByWorkspaceAndIds(workspaceId: String, assetIds: Collection<String>): List<PublicationAsset> =
-            items.values.filter { it.workspaceId == workspaceId && it.id in assetIds }
-
-        override suspend fun create(asset: PublicationAsset): PublicationAsset {
-            items[asset.id] = asset
-            return asset
-        }
-
-        override suspend fun updateStatus(assetId: String, status: PublicationAssetStatus) {
-            items[assetId] = items[assetId]!!.copy(status = status)
-        }
-
-        override suspend fun updateProviderAssetRef(assetId: String, providerAssetRef: ProviderAssetRef) {
-            items[assetId] = items[assetId]!!.copy(status = PublicationAssetStatus.READY, providerAssetRef = providerAssetRef)
-        }
+    private class InMemoryMediaAssetResolver(
+        private val assets: List<ResolvedAssetSummary>,
+    ) : MediaAssetResolver {
+        override suspend fun resolveReadyAssets(workspaceId: String, assetIds: List<String>): List<ResolvedAssetSummary> =
+            assets.filter { it.workspaceId == workspaceId && it.assetId in assetIds }
     }
 
     private class InMemoryAttemptRepository : DeliveryAttemptRepository {
@@ -348,7 +327,7 @@ class PublishingWorkerTest {
             publicationJobRepository = jobRepository,
             publicationRepository = publicationRepository,
             socialAccountRepository = InMemoryAccountRepository(disabledAccount),
-            publicationAssetRepository = InMemoryAssetRepository(emptyList()),
+            mediaAssetResolver = InMemoryMediaAssetResolver(emptyList()),
             deliveryAttemptRepository = InMemoryAttemptRepository(),
             notificationEventRepository = null,
             providerCapabilityValidator = AcceptingCapabilityValidator(),
@@ -385,7 +364,7 @@ class PublishingWorkerTest {
             publicationJobRepository = jobRepository,
             publicationRepository = publicationRepository,
             socialAccountRepository = InMemoryAccountRepository(reconnectAccount),
-            publicationAssetRepository = InMemoryAssetRepository(emptyList()),
+            mediaAssetResolver = InMemoryMediaAssetResolver(emptyList()),
             deliveryAttemptRepository = InMemoryAttemptRepository(),
             notificationEventRepository = null,
             providerCapabilityValidator = AcceptingCapabilityValidator(),
@@ -419,7 +398,7 @@ class PublishingWorkerTest {
             publicationJobRepository = jobRepository,
             publicationRepository = publicationRepository,
             socialAccountRepository = InMemoryAccountRepository(deletedAccount),
-            publicationAssetRepository = InMemoryAssetRepository(emptyList()),
+            mediaAssetResolver = InMemoryMediaAssetResolver(emptyList()),
             deliveryAttemptRepository = InMemoryAttemptRepository(),
             notificationEventRepository = null,
             providerCapabilityValidator = AcceptingCapabilityValidator(),

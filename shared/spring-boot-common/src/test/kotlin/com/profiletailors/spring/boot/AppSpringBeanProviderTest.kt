@@ -60,7 +60,31 @@ class AppSpringBeanProviderTest {
 
         // Then
         result.size shouldBe 2
-        result.contains(String::class.java) shouldBe true
-        result.contains(StringBuilder::class.java) shouldBe true
+        result.any { it == String::class.java } shouldBe true
+        result.any { it == StringBuilder::class.java } shouldBe true
+    }
+
+    @Test
+    fun `should return empty collection when no subtypes found`() {
+        // Given
+        every { applicationContext.getBeanNamesForType(CharSequence::class.java) } returns emptyArray()
+
+        // When
+        val result = provider.getSubTypesOf(CharSequence::class.java)
+
+        // Then
+        result.size shouldBe 0
+    }
+
+    @Test
+    fun `should include error message about expected count in exception`() {
+        // Given - no beans
+        every { applicationContext.getBeanNamesForType(String::class.java) } returns emptyArray()
+
+        // When/Then
+        val ex = shouldThrow<IllegalArgumentException> {
+            provider.getSingleInstanceOf(String::class.java)
+        }
+        ex.message?.contains("0") shouldBe true
     }
 }
