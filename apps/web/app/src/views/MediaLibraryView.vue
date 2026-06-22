@@ -84,9 +84,15 @@ const visibleAssets = computed(() => {
   })
 })
 
-const allVisibleSelected = computed(() =>
-  visibleAssets.value.length > 0 && visibleAssets.value.every((asset) => selectedLibraryAssetIds.value.includes(asset.assetId)),
-)
+const allVisibleSelected = computed(() => {
+  const deletableVisibleAssets = visibleAssets.value.filter(
+    (asset) => asset.status === 'READY' || asset.status === 'FAILED',
+  )
+  return (
+    deletableVisibleAssets.length > 0 &&
+    deletableVisibleAssets.every((asset) => selectedLibraryAssetIds.value.includes(asset.assetId))
+  )
+})
 
 const readyAssets = computed(() => assets.value.filter((asset) => asset.status === 'READY'))
 const processingAssets = computed(() => assets.value.filter((asset) => asset.status === 'PROCESSING'))
@@ -136,7 +142,7 @@ function assetContentUrl(asset: { downloadUrl?: string | null; previewUrl?: stri
 }
 
 function triggerDownload(asset: { originalFilename?: string | null; downloadUrl?: string | null; previewUrl?: string | null }) {
-  const url = assetContentUrl(asset)
+  const url = asset.downloadUrl ? resolveApiUrl(asset.downloadUrl) : null
   if (!url) return
 
   const link = document.createElement('a')
@@ -150,6 +156,10 @@ function triggerDownload(asset: { originalFilename?: string | null; downloadUrl?
 }
 
 function toggleAssetSelection(assetId: string) {
+  const asset = mediaStore.assetsById[assetId]
+  if (!asset || (asset.status !== 'READY' && asset.status !== 'FAILED')) {
+    return
+  }
   if (selectedLibraryAssetIds.value.includes(assetId)) {
     selectedLibraryAssetIds.value = selectedLibraryAssetIds.value.filter((id) => id !== assetId)
     return
@@ -167,7 +177,9 @@ function toggleSelectAllVisible() {
     return
   }
 
-  selectedLibraryAssetIds.value = visibleAssets.value.map((asset) => asset.assetId)
+  selectedLibraryAssetIds.value = visibleAssets.value
+    .filter((asset) => asset.status === 'READY' || asset.status === 'FAILED')
+    .map((asset) => asset.assetId)
 }
 
 async function deletePersistedAsset(assetId: string) {
@@ -181,9 +193,13 @@ async function deletePersistedAsset(assetId: string) {
 
 async function deleteSelectedAssets() {
   for (const assetId of [...selectedLibraryAssetIds.value]) {
-    await mediaStore.deletePersistedAsset(assetId)
+    try {
+      await mediaStore.deletePersistedAsset(assetId)
+      selectedLibraryAssetIds.value = selectedLibraryAssetIds.value.filter((id) => id !== assetId)
+    } catch {
+      // Keep failed deletions selected so the user can retry.
+    }
   }
-  clearAssetSelection()
 }
 
 async function refreshLibrary() {
@@ -254,15 +270,15 @@ onMounted(async () => {
         <div class="flex flex-wrap items-center gap-2">
           <Badge variant="default" class="h-6 gap-1.5 rounded-full px-3 text-[11px] font-medium">
             <span class="size-1.5 rounded-full bg-current" />
-            {{ readyAssets.length }} ready
+            {{ readyAssets.length }} {{ $t('media.readyStatus') }}
           </Badge>
           <Badge variant="secondary" class="h-6 gap-1.5 rounded-full px-3 text-[11px] font-medium">
             <span class="size-1.5 rounded-full bg-current" />
-            {{ processingAssets.length + mediaStore.pendingUploads.length }} processing
+            {{ processingAssets.length + mediaStore.pendingUploads.length }} {{ $t('media.processingStatus') }}
           </Badge>
           <Badge variant="destructive" class="h-6 gap-1.5 rounded-full px-3 text-[11px] font-medium">
             <span class="size-1.5 rounded-full bg-current" />
-            {{ failedAssets.length + mediaStore.failedUploads.length }} failed
+            {{ failedAssets.length + mediaStore.failedUploads.length }} {{ $t('media.failedStatus') }}
           </Badge>
         </div>
       </div>
@@ -281,7 +297,7 @@ onMounted(async () => {
           multiple
           @change="handleFileChange"
         />
-        <Button type="button" variant="outline" size="icon" @click="refreshLibrary" :disabled="isRefreshing">
+        <Button type="button" variant="outline" size="icon" @click="refreshLibrary" :disabled="isRefreshing" :aria-label="$t('media.refreshLibrary')">
           <RefreshCw :class="['size-4', isRefreshing ? 'animate-spin' : '']" />
         </Button>
         <Button type="button" @click="openFilePicker">
@@ -377,7 +393,7 @@ onMounted(async () => {
 
       <AlertDialog>
         <AlertDialogTrigger as-child>
-          <Button type="button" variant="outline" size="sm" class="text-xs">
+          <Button type="button" variant="outline" size="sm" class="text-xs" :disabled="!visibleAssets.some((asset) => asset.status === 'READY' || asset.status === 'FAILED')">
             <Trash2 class="mr-1.5 size-3.5" />
             Delete selected
           </Button>
@@ -523,11 +539,12 @@ onMounted(async () => {
             <!-- Selection checkbox (top-left) — visible on hover or when selected -->
             <div
               class="absolute left-2.5 top-2.5 z-20 transition-opacity duration-150"
-              :class="selectedLibraryAssetIds.includes(asset.assetId) ? 'opacity-100' : 'opacity-0 group-hover:opacity-100'"
+              :class="selectedLibraryAssetIds.includes(asset.assetId) ? 'opacity-100' : 'opacity-0 group-hover:opacity-100 group-focus-within:opacity-100'"
             >
               <input
                 :checked="selectedLibraryAssetIds.includes(asset.assetId)"
                 :aria-label="$t('media.selectLabel')"
+                :disabled="asset.status !== 'READY' && asset.status !== 'FAILED'"
                 type="checkbox"
                 class="size-4 cursor-pointer accent-primary"
                 @change="toggleAssetSelection(asset.assetId)"
@@ -541,7 +558,7 @@ onMounted(async () => {
                 :class="statusClass(asset.status)"
               >
                 <span class="size-1.5 rounded-full bg-current" />
-                {{ asset.status === 'READY' ? 'Ready' : asset.status === 'PROCESSING' ? 'Processing' : 'Failed' }}
+                {{ asset.status === 'READY' ? $t('media.readyStatus') : asset.status === 'PROCESSING' ? $t('media.processingStatus') : $t('media.failedStatus') }}
               </span>
             </div>
 
@@ -582,7 +599,7 @@ onMounted(async () => {
 
             <!-- Hover overlay actions -->
             <div
-              class="absolute inset-x-0 bottom-0 z-20 flex translate-y-full items-center justify-center gap-2 bg-gradient-to-t from-black/70 via-black/30 to-transparent p-3 pt-8 transition-transform duration-200 group-hover:translate-y-0"
+              class="absolute inset-x-0 bottom-0 z-20 flex translate-y-full items-center justify-center gap-2 bg-gradient-to-t from-black/70 via-black/30 to-transparent p-3 pt-8 transition-transform duration-200 group-hover:translate-y-0 group-focus-within:translate-y-0"
             >
               <Button
                 v-if="assetContentUrl(asset)"
