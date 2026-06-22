@@ -63,7 +63,7 @@ Chain strategy: pending
 
 ## Implementation Order
 
-1. Domain和政策 (Phase 1: 1.1) → defines the rule everything else gates on
+1. Domain and policies (Phase 1: 1.1) → defines the rule everything else gates on
 2. Application commands/handlers (Phase 1: 1.2–1.4) → uses domain policy, repository contract
 3. Persistence (Phase 2: 2.1) → implements repository contract with cascade
 4. HTTP layer (Phase 2: 2.2–2.3) → wires controller and error handlers

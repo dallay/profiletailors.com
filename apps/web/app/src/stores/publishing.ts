@@ -298,15 +298,22 @@ function mapApiStatus(s: string): Publication['status'] {
 }
 
 /** Converts a Partial<Publication> into the backend PATCH body shape. */
-function toBackendFormat(updates: Partial<Publication>): Record<string, unknown> {
-  const body: Record<string, unknown> = {}
+function toBackendFormat(
+  existing: Publication,
+  updates: Partial<Publication>,
+): Record<string, unknown> {
+  const scheduleMode = existing.status === 'QUEUED' ? 'NOW' : 'SCHEDULED_AT'
+  const body: Record<string, unknown> = {
+    socialAccountId: existing.accountId,
+    scheduleMode,
+  }
   if (updates.content !== undefined) body.bodyText = updates.content
   if (updates.title !== undefined) body.title = updates.title
-  if (updates.scheduledAt !== undefined) {
-    body.scheduleMode = 'SCHEDULED_AT'
-    body.scheduledFor = updates.scheduledAt
+  if (scheduleMode === 'SCHEDULED_AT') {
+    body.scheduledFor = updates.scheduledAt ?? existing.scheduledAt
   }
   if (updates.priority !== undefined) body.priority = updates.priority
+  else body.priority = existing.priority
   return body
 }
 
@@ -808,9 +815,9 @@ export const usePublishingStore = defineStore('publishing', () => {
     // Optimistic local removal
     const url = objectUrls.get(id)
     if (url) {
-      URL.revokeObjectURL(url)
       objectUrls.delete(id)
     }
+    const originalIndex = publications.value.findIndex((p) => p.id === id)
     publications.value = publications.value.filter((p) => p.id !== id)
     saveToStorage()
 
@@ -821,14 +828,19 @@ export const usePublishingStore = defineStore('publishing', () => {
         method: 'DELETE',
         workspaceScoped: true,
       })
+      if (url) {
+        URL.revokeObjectURL(url)
+      }
     } catch (err) {
-      // Re-hydrate from backend source of truth on failure
-      const now = new Date()
-      const from = new Date(now)
-      from.setMonth(from.getMonth() - 3)
-      const to = new Date(now)
-      to.setMonth(to.getMonth() + 1)
-      await fetchCalendar(from.toISOString(), to.toISOString())
+      if (originalIndex === -1) {
+        publications.value.push(existing)
+      } else {
+        publications.value.splice(originalIndex, 0, existing)
+      }
+      if (url) {
+        objectUrls.set(id, url)
+      }
+      saveToStorage()
       throw err
     }
   }
@@ -845,10 +857,15 @@ export const usePublishingStore = defineStore('publishing', () => {
     const idx = publications.value.findIndex((p) => p.id === id)
     if (idx === -1) return
     const original = { ...publications.value[idx] }
+    const originalObjectUrl = objectUrls.get(id)
+    const hadOriginalObjectUrl = objectUrls.has(id)
+    const pendingRevokeUrl =
+      updates.thumbnail && original.thumbnail && hadOriginalObjectUrl
+        ? originalObjectUrl
+        : undefined
 
     // Optimistic merge
-    if (updates.thumbnail && original.thumbnail && objectUrls.has(id)) {
-      URL.revokeObjectURL(objectUrls.get(id)!)
+    if (pendingRevokeUrl) {
       objectUrls.delete(id)
     }
     if (typeof updates.thumbnail === 'string' && updates.thumbnail.startsWith('blob:')) {
@@ -864,13 +881,21 @@ export const usePublishingStore = defineStore('publishing', () => {
     try {
       const result = await auth.apiFetch<PublicationResult>(`/api/publishing/publications/${id}`, {
         method: 'PATCH',
-        body: JSON.stringify(toBackendFormat(updates)),
+        body: JSON.stringify(toBackendFormat(original, updates)),
         workspaceScoped: true,
       })
+      if (pendingRevokeUrl) {
+        URL.revokeObjectURL(pendingRevokeUrl)
+      }
       publications.value[idx] = fromBackendFormat(result, publications.value[idx])
       saveToStorage()
     } catch (err) {
       publications.value[idx] = original
+      if (hadOriginalObjectUrl && originalObjectUrl) {
+        objectUrls.set(id, originalObjectUrl)
+      } else {
+        objectUrls.delete(id)
+      }
       saveToStorage()
       throw err
     }

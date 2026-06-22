@@ -4,6 +4,7 @@
 Fix a broken publication-management flow in the scheduler. Today `apps/web/app/src/stores/publishing.ts` deletes and updates only local state, so removed or edited unpublished posts are not persisted and reappear after refresh. This change makes edit/delete real workspace-scoped publishing operations, enforced by backend lifecycle rules.
 
 ## Scope
+
 ### In Scope
 - Wire frontend delete to `DELETE /api/publishing/publications/{publicationId}`
 - Wire frontend edit/save to existing `PATCH /api/publishing/publications/{publicationId}`
@@ -17,6 +18,7 @@ Fix a broken publication-management flow in the scheduler. Today `apps/web/app/s
 - Changes to cancel/retry/reschedule behavior
 
 ## Capabilities
+
 ### New Capabilities
 - None
 
@@ -31,6 +33,7 @@ Fix a broken publication-management flow in the scheduler. Today `apps/web/app/s
 - **Frontend**: in `apps/web/app/src/stores/publishing.ts`, call backend `DELETE` from `deletePost()` and existing `PATCH` from `updatePost()`; wire save UI in `apps/web/app/src/components/PostDetailModal.vue`.
 
 ## Affected Areas
+
 | Area | Impact | Description |
 |------|--------|-------------|
 | `server/smp/.../PublishingPolicies.kt` | Modified | Add delete rule |
@@ -43,6 +46,7 @@ Fix a broken publication-management flow in the scheduler. Today `apps/web/app/s
 | `apps/web/app/src/components/PostDetailModal.vue` | Modified | Wire save action |
 
 ## Risks
+
 | Risk | Likelihood | Mitigation |
 |------|------------|------------|
 | Missing FK cascades | Med | Inspect migrations; delete child rows explicitly |

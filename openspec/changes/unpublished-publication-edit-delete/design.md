@@ -32,7 +32,7 @@ Wire frontend `deletePost()` and `updatePost()` in `publishing.ts` to the existi
 
 ## Data Flow
 
-```
+```text
 Frontend (delete)
   └── deletePost(id)               [publishing.ts:757]
        ├── optimistic remove from publications.value + revoke blob URL

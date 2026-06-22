@@ -440,7 +440,7 @@ describe('MediaLibraryView', () => {
     const mediaStore = useMediaStore()
     vi.spyOn(mediaStore, 'loadAssets').mockResolvedValue()
 
-    mediaStore.assetsById['img'] = {
+    mediaStore.assetsById.img = {
       assetId: 'img',
       workspaceId: 'ws-1',
       sourceType: 'UPLOADED',
@@ -452,7 +452,7 @@ describe('MediaLibraryView', () => {
       previewUrl: '/api/media/assets/img/preview',
       downloadUrl: '/api/media/assets/img/content',
     }
-    mediaStore.assetsById['vid'] = {
+    mediaStore.assetsById.vid = {
       assetId: 'vid',
       workspaceId: 'ws-1',
       sourceType: 'UPLOADED',
@@ -463,7 +463,7 @@ describe('MediaLibraryView', () => {
       createdAt: '2026-06-18T12:00:00Z',
       downloadUrl: '/api/media/assets/vid/content',
     }
-    mediaStore.assetsById['pdf'] = {
+    mediaStore.assetsById.pdf = {
       assetId: 'pdf',
       workspaceId: 'ws-1',
       sourceType: 'UPLOADED',
@@ -474,7 +474,7 @@ describe('MediaLibraryView', () => {
       createdAt: '2026-06-17T12:00:00Z',
       downloadUrl: '/api/media/assets/pdf/content',
     }
-    mediaStore.assetsById['other'] = {
+    mediaStore.assetsById.other = {
       assetId: 'other',
       workspaceId: 'ws-1',
       sourceType: 'UPLOADED',

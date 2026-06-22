@@ -228,9 +228,20 @@ export async function registerSchedulerMocks(context: BrowserContext): Promise<v
     const id = match?.[1]
 
     if (method === 'DELETE') {
-      if (id) {
-        publications = publications.filter((p) => p.id !== id)
+      const existingIndex = id ? publications.findIndex((p) => p.id === id) : -1
+      if (!id || existingIndex === -1) {
+        route.fulfill({
+          status: 404,
+          contentType: 'application/json',
+          body: JSON.stringify({
+            title: 'Publication not found',
+            detail: 'Publication not found.',
+          }),
+        })
+        return
       }
+
+      publications = publications.filter((p) => p.id !== id)
       route.fulfill({ status: 204, body: '' })
       return
     }

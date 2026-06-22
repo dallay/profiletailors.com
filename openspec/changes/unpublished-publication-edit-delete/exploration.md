@@ -43,6 +43,7 @@ These are wired into the existing handlers:
 ### Frontend — Delete only (broken)
 
 **`usePublishingStore.deletePost(id)`** (`publishing.ts:757`):
+
 ```typescript
 function deletePost(id: string) {
   const url = objectUrls.get(id)
@@ -51,6 +52,7 @@ function deletePost(id: string) {
   saveToStorage()
 }
 ```
+
 - Mutates only local Pinia state and `localStorage`
 - Makes **zero API calls** to the backend
 - Called from three places in `SchedulerView.vue` (calendar day, day view, list mode) and one place in `PostDetailModal.vue`

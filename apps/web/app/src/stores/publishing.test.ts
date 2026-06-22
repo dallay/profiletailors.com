@@ -777,7 +777,7 @@ describe('publishing store', () => {
       expect(store.publications.find((p) => p.id === 'pub-optimistic-delete')).toBeUndefined()
     })
 
-    it('re-hydrates state and re-throws on 4xx error', async () => {
+    it('restores the removed publication and re-throws on 4xx error', async () => {
       const store = usePublishingStore()
       const auth = useAuthStore()
       store.publications = [
@@ -791,13 +791,13 @@ describe('publishing store', () => {
         },
       ]
       Object.defineProperty(auth, 'isAuthenticated', { value: true, configurable: true })
-      vi.spyOn(auth, 'apiFetch')
-        .mockRejectedValueOnce(new Error('409 Conflict'))
-        .mockResolvedValueOnce({ publications: [], conflicts: [], activity: [] })
+      vi.spyOn(auth, 'apiFetch').mockRejectedValueOnce(new Error('409 Conflict'))
 
       await expect(store.deletePost('pub-delete-error')).rejects.toThrow('409 Conflict')
-      // fetchCalendar restores from empty API response — the publication is gone after re-hydration
-      expect(store.publications.find((p) => p.id === 'pub-delete-error')).toBeUndefined()
+      expect(store.publications.find((p) => p.id === 'pub-delete-error')).toMatchObject({
+        id: 'pub-delete-error',
+        content: 'Should reappear',
+      })
     })
 
     it('no-ops gracefully when publication is not found', async () => {
@@ -841,11 +841,18 @@ describe('publishing store', () => {
         nextSlotAfter: null,
       })
 
+      store.publications[0]!.accountId = 'acc-li-1'
+
       await store.updatePost('pub-to-update', { content: 'Updated content' })
 
       expect(apiFetch).toHaveBeenCalledWith('/api/publishing/publications/pub-to-update', {
         method: 'PATCH',
-        body: JSON.stringify({ bodyText: 'Updated content' }),
+        body: JSON.stringify({
+          socialAccountId: 'acc-li-1',
+          scheduleMode: 'NOW',
+          bodyText: 'Updated content',
+          priority: false,
+        }),
         workspaceScoped: true,
       })
     })

@@ -61,11 +61,25 @@ async function handleReconnect() {
   }
 }
 
+const deletableStatuses: Publication['status'][] = ['DRAFT', 'QUEUED', 'SCHEDULED']
+
+function isPublicationDeletable(status: Publication['status']) {
+  return deletableStatuses.includes(status)
+}
+
+function toErrorMessage(err: unknown) {
+  if (err && typeof err === 'object') {
+    const maybeError = err as { detail?: string; title?: string; message?: string }
+    return maybeError.detail ?? maybeError.title ?? maybeError.message ?? 'Failed to delete publication.'
+  }
+  return 'Failed to delete publication.'
+}
+
 async function handleDelete(publicationId: string) {
   try {
     await publishingStore.deletePost(publicationId)
   } catch (err: unknown) {
-    console.error('Failed to delete publication', err)
+    window.alert(`Delete failed: ${toErrorMessage(err)}`)
   }
 }
 
@@ -590,7 +604,7 @@ onMounted(() => {
 
                       <!-- Delete button overlay on card hover (not for published posts) -->
                       <button
-                        v-if="pub.status !== 'PUBLISHED'"
+                        v-if="isPublicationDeletable(pub.status)"
                         @click.stop="handleDelete(pub.id)"
                         class="absolute top-1 right-1 opacity-0 group-hover/card:opacity-100 size-5 flex items-center justify-center rounded-full bg-black/60 text-white hover:bg-error transition-all"
                         title="Delete publication"
