@@ -126,6 +126,16 @@
           }
         }
       }
+    },
+    {
+      "includes": ["src/components/CreatePostModal.vue"],
+      "linter": {
+        "rules": {
+          "correctness": {
+            "noUnusedImports": "off"
+          }
+        }
+      }
     }
   ]
 }
