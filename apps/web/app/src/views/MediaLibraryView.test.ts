@@ -91,8 +91,9 @@ describe('MediaLibraryView', () => {
     await flushPromises()
 
     expect(wrapper.text()).toContain('hero.jpg')
-    expect(wrapper.text()).toContain('READY')
-    expect(wrapper.text()).toContain('image/jpeg')
+    expect(wrapper.text()).toContain('Ready')
+    expect(wrapper.text()).toContain('1.0 KB')
+    expect(wrapper.text()).toContain('jpeg')
   })
 
   it('filters assets by status and type', async () => {
@@ -238,19 +239,21 @@ describe('MediaLibraryView', () => {
     const wrapper = mountView()
     await flushPromises()
 
-    const selectVisibleButton = wrapper
-      .findAll('button')
-      .find((button) => button.text().includes('media.selectAllVisible'))
-    expect(selectVisibleButton).toBeTruthy()
-    await selectVisibleButton?.trigger('click')
+    // Toggle individual asset selection via checkbox values
+    const checkboxes = wrapper.findAll('article input[type="checkbox"]')
+    expect(checkboxes.length).toBe(2)
+    await checkboxes[0]?.setValue(true)
+    await checkboxes[1]?.setValue(true)
 
-    expect(wrapper.text()).toContain('2 media.selectedCountSuffix')
+    // Selection toolbar should now show with the count
+    expect(wrapper.text()).toContain('2 selected')
 
-    const deleteSelectedButtons = wrapper
+    // Find the delete action button inside the AlertDialog and trigger it
+    const deleteActionButton = wrapper
       .findAll('button')
       .filter((button) => button.text().includes('media.deleteSelectedAction'))
-    expect(deleteSelectedButtons.length).toBeGreaterThan(0)
-    await deleteSelectedButtons[deleteSelectedButtons.length - 1]?.trigger('click')
+    expect(deleteActionButton.length).toBeGreaterThan(0)
+    await deleteActionButton[deleteActionButton.length - 1]?.trigger('click')
 
     expect(deleteSpy).toHaveBeenCalledTimes(2)
     expect(deleteSpy).toHaveBeenCalledWith('asset-1')
