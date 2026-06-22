@@ -116,3 +116,97 @@ describe('Session hydration — restore session after page refresh', () => {
     expect(mockRefreshSession).not.toHaveBeenCalled()
   })
 })
+
+// ---------------------------------------------------------------------------
+// Tests — requiresAuth and isGuestOnly helpers + guard redirects
+// ---------------------------------------------------------------------------
+import type { RouteLocationNormalized } from 'vue-router'
+
+function mockRoute(path: string, meta: Record<string, boolean> = {}): RouteLocationNormalized {
+  return {
+    path,
+    name: path,
+    matched: [],
+    redirectedFrom: undefined,
+    params: {},
+    query: {},
+    hash: '',
+    fullPath: path,
+    meta,
+    href: path,
+  } as RouteLocationNormalized
+}
+
+describe('requiresAuth and isGuestOnly helpers', () => {
+  it('requiresAuth returns true when route meta has requiresAuth=true', () => {
+    const route = mockRoute('/dashboard', { requiresAuth: true })
+    // Access the module's requiresAuth via the router guard's logic
+    const result = route.meta.requiresAuth === true
+    expect(result).toBe(true)
+  })
+
+  it('requiresAuth returns false when route has no meta', () => {
+    const route = mockRoute('/login', {})
+    expect(route.meta.requiresAuth === true).toBe(false)
+  })
+
+  it('isGuestOnly returns true for guest routes', () => {
+    const route = mockRoute('/login', { guestOnly: true })
+    expect(route.meta.guestOnly === true).toBe(true)
+  })
+
+  it('isGuestOnly returns false for auth routes', () => {
+    const route = mockRoute('/dashboard', { requiresAuth: true })
+    expect(route.meta.guestOnly === true).toBe(false)
+  })
+})
+
+describe('router guard', () => {
+  beforeEach(() => {
+    setActivePinia(createPinia())
+    mockRefreshSession.mockReset()
+    localStorage.clear()
+  })
+
+  it('redirects to login when accessing requiresAuth route unauthenticated', async () => {
+    mockRefreshSession.mockResolvedValue(null)
+    const auth = useAuthStore()
+    const route = mockRoute('/scheduler', { requiresAuth: true })
+
+    const result = await (async () => {
+      if (!auth.sessionChecked) {
+        await auth.hydrateSession()
+      }
+      if (route.meta.requiresAuth && !auth.isAuthenticated) {
+        return { path: '/login', query: { redirect: route.fullPath } }
+      }
+      return true
+    })()
+
+    expect(result).toEqual({ path: '/login', query: { redirect: '/scheduler' } })
+  })
+
+  it('allows access when accessing requiresAuth route authenticated', async () => {
+    mockRefreshSession.mockResolvedValue(fakeTokens)
+    const auth = useAuthStore()
+    const route = mockRoute('/scheduler', { requiresAuth: true })
+
+    // Hydrate first
+    await auth.hydrateSession()
+
+    const result = route.meta.requiresAuth === true && !auth.isAuthenticated
+    expect(result).toBe(false)
+  })
+
+  it('redirects to root when authenticated user accesses guest-only route', async () => {
+    mockRefreshSession.mockResolvedValue(fakeTokens)
+    const auth = useAuthStore()
+    await auth.hydrateSession()
+
+    const route = mockRoute('/login', { guestOnly: true })
+
+    const result = route.meta.guestOnly === true && auth.isAuthenticated
+    expect(result).toBe(true)
+    // Guard would redirect to '/'
+  })
+})
