@@ -66,7 +66,7 @@ import { useWorkspaceStore } from '@/stores/workspace'
 /** Creates an authenticated fetch wrapper scoped to the media API. */
 function createMediaFetch() {
   return createApiFetch({
-    getToken: () => useAuthStore().accessToken.value,
+    getToken: () => useAuthStore().accessToken,
     getWorkspaceId: () => useWorkspaceStore().activeWorkspaceId,
     onRefresh: async () => {
       const tokens = await refreshSession()

@@ -202,8 +202,8 @@ describe('MediaLibraryView', () => {
     await wrapper.find('[data-testid="filter-sort"]').setValue('filename-asc')
 
     const cards = wrapper.findAll('article')
-    expect(cards[0].text()).toContain('apple.jpg')
-    expect(cards[1].text()).toContain('zebra.jpg')
+    expect(cards[0]?.text()).toContain('apple.jpg')
+    expect(cards[1]?.text()).toContain('zebra.jpg')
   })
 
   it('selects visible assets and bulk deletes them', async () => {
