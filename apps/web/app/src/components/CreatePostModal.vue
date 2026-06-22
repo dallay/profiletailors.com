@@ -5,10 +5,8 @@ import type { DateValue } from 'reka-ui'
 import { CalendarDate, getLocalTimeZone, today } from '@internationalized/date'
 import {
   AlertCircle,
-  Calendar as CalendarIcon,
   Check,
   Hash,
-  Image as ImageIcon,
   Loader2,
   RotateCcw,
   Sparkles,
