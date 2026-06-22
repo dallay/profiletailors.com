@@ -222,10 +222,15 @@ onMounted(async () => {
       </div>
 
       <div class="flex flex-wrap items-center gap-2">
+        <label for="media-library-file-input" class="sr-only">
+          Upload media files
+        </label>
         <input
+          id="media-library-file-input"
           ref="fileInput"
           type="file"
           class="hidden"
+          aria-label="Upload media files"
           accept="image/*,video/mp4,application/pdf"
           multiple
           @change="handleFileChange"

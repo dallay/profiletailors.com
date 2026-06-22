@@ -730,8 +730,12 @@ async function handleSchedule() {
             </div>
 
             <!-- Drop zone / select file button -->
+            <label v-if="!currentUpload" for="create-post-file-input" class="sr-only">
+              Upload media file
+            </label>
             <input
               v-if="!currentUpload"
+              id="create-post-file-input"
               ref="fileInput"
               type="file"
               class="hidden"
