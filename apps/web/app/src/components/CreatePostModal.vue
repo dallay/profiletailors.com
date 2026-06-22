@@ -1,23 +1,27 @@
 <script setup lang="ts">
 import { ref, computed, watch, onMounted, onUnmounted } from 'vue'
+import { useI18n } from 'vue-i18n'
 import type { DateValue } from 'reka-ui'
 import { CalendarDate, getLocalTimeZone, today } from '@internationalized/date'
-// biome-ignore lint/correctness/noUnusedImports: used in template
-import { Image as ImageIcon } from '@lucide/vue'
 import {
+  AlertCircle,
+  Calendar as CalendarIcon,
   Check,
   Hash,
+  Image as ImageIcon,
   Loader2,
-  Sparkles,
-  X,
-  Upload,
-  AlertCircle,
   RotateCcw,
+  Sparkles,
+  Upload,
+  X,
 } from '@lucide/vue'
 import { useAuthStore } from '@/stores/auth'
 import { usePublishingStore } from '@/stores/publishing'
 import { useMediaStore } from '@/stores/media'
 import { proxyImageUrl, resolveApiUrl } from '@/lib/auth-api'
+import PostPreviewPanel from '@/components/composer/PostPreviewPanel.vue'
+import { PREVIEW_PROVIDERS } from '@/components/composer/post-preview.types'
+import type { LinkedInPreviewModel, PostPreviewMedia } from '@/components/composer/post-preview.types'
 import { Button } from '@/components/ui/button'
 import { Calendar } from '@/components/ui/calendar'
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
@@ -39,6 +43,7 @@ const emit = defineEmits<{
   (e: 'created'): void
 }>()
 
+const { t } = useI18n()
 const auth = useAuthStore()
 const publishingStore = usePublishingStore()
 const mediaStore = useMediaStore()
@@ -181,6 +186,7 @@ const selectedChannel = computed(() =>
 const selectedProviders = computed(() =>
   selectedChannel.value ? [selectedChannel.value.provider] : [],
 )
+const selectedPreviewProvider = computed(() => PREVIEW_PROVIDERS.LINKEDIN)
 const selectedChannelInitials = computed(() => {
   const name = selectedChannel.value?.name?.trim()
   if (!name) return 'PT'
@@ -270,14 +276,18 @@ function addFiles(filesList: File[]) {
 
   // Limit to max 1 image for LinkedIn MVP simple preview.
   // File is stored locally for deferred upload — no server call until Schedule Post.
-  if (validFiles.length > 0) {
-    const file = validFiles[0]
-    clearUploadPreviewBlob()
-    selectedUploadFile.value = file
-    uploadPreviewBlob.value = URL.createObjectURL(file)
-    uploadTempKey.value = `modal-upload-${Date.now()}`
-    uploadProgress.value = 0
+  const file = validFiles[0]
+  if (!file) {
+    return
   }
+
+  // Limit to max 1 image for LinkedIn MVP simple preview.
+  // File is stored locally for deferred upload — no server call until Schedule Post.
+  clearUploadPreviewBlob()
+  selectedUploadFile.value = file
+  uploadPreviewBlob.value = URL.createObjectURL(file)
+  uploadTempKey.value = `modal-upload-${Date.now()}`
+  uploadProgress.value = 0
 }
 
 /**
@@ -352,9 +362,9 @@ const selectedAssetIsImage = computed(() => {
     return uploadFile.type.startsWith('image/')
   }
 
-  const assets = mediaStore.selectedAssets
-  if (assets.length === 0) return false
-  return assets[0].mediaType.startsWith('image/')
+  const first = mediaStore.selectedAssets[0]
+  if (!first) return false
+  return first.mediaType.startsWith('image/')
 })
 
 /**
@@ -367,12 +377,47 @@ const selectedAssetPreviewUrl = computed<string | null>(() => {
     return uploadPreviewBlob.value
   }
 
-  const assets = mediaStore.selectedAssets
-  if (assets.length === 0) return null
-  const first = assets[0]
+  const first = mediaStore.selectedAssets[0]
+  if (!first) return null
   if (!first.mediaType.startsWith('image/')) return null
   return first.previewUrl ? resolveApiUrl(first.previewUrl) : null
 })
+
+const selectedPreviewMedia = computed<PostPreviewMedia | null>(() => {
+  const uploadFile = currentUpload.value?.file ?? selectedUploadFile.value
+  if (uploadFile) {
+    const isImage = uploadFile.type.startsWith('image/')
+
+    return {
+      kind: isImage ? 'image' : 'video',
+      url: isImage ? uploadPreviewBlob.value : null,
+      alt: 'Media preview',
+      name: uploadFile.name,
+    }
+  }
+
+  const first = mediaStore.selectedAssets[0]
+  if (!first) return null
+
+  const isImage = first.mediaType.startsWith('image/')
+
+  return {
+    kind: isImage ? 'image' : 'video',
+    url: isImage ? selectedAssetPreviewUrl.value : null,
+    alt: 'Media preview',
+    name: first.originalFilename,
+  }
+})
+
+const linkedinPreview = computed<LinkedInPreviewModel>(() => ({
+  authorName: selectedChannel.value?.name || auth.user?.username || 'Profile Tailors',
+  authorHandle: selectedChannel.value?.handle || 'LinkedIn Member',
+  authorAvatarUrl: selectedChannel.value?.avatarUrl ?? null,
+  authorInitials: selectedChannelInitials.value,
+  text: postText.value,
+  placeholderText: t('composer.seePreviewHere'),
+  media: selectedPreviewMedia.value,
+}))
 
 /**
  * The current in-flight or failed upload item being tracked (max 1 for MVP).
@@ -779,81 +824,17 @@ async function handleSchedule() {
           </div>
         </div>
 
-        <!-- Right Column: LinkedIn Live Preview -->
-        <div class="w-full lg:w-[420px] bg-bg-primary p-6 flex flex-col justify-between overflow-y-auto space-y-6">
-          <div class="border-b border-border-subtle pb-4">
-            <h3 class="font-mono text-xs font-bold tracking-widest text-text-display uppercase">
-              {{ $t('composer.linkedinPreview') }}
-            </h3>
-          </div>
-
-          <!-- LinkedIn Card Body -->
-          <div class="flex-1 flex items-center justify-center p-2">
-            <div class="w-full max-w-[360px] bg-[#1d2226] text-white border border-[#2d3135] rounded-xl overflow-hidden shadow-md font-sans text-xs">
-              <!-- Post Header -->
-              <div class="p-3.5 flex gap-3">
-                <img
-                  v-if="selectedChannel?.avatarUrl"
-                  :src="proxyImageUrl(selectedChannel.avatarUrl ?? '')"
-                  :alt="`${selectedChannel.name} avatar`"
-                  class="size-10 rounded-full object-cover border border-[#404448]"
-                />
-                <div
-                  v-else
-                  class="flex size-10 shrink-0 items-center justify-center rounded-full border border-[#404448] bg-[#111417] font-mono text-[11px] font-bold uppercase text-white"
-                >
-                  {{ selectedChannelInitials }}
-                </div>
-                <div class="min-w-0 flex-1">
-                  <div class="flex items-center gap-1.5">
-                    <p class="font-semibold text-white text-[13px] hover:text-[#70b5f9] hover:underline cursor-pointer truncate">
-                      {{ selectedChannel?.name || auth.user?.username || 'Profile Tailors' }}
-                    </p>
-                    <span class="text-[10px] text-gray-400 font-normal shrink-0"> • 1st</span>
-                  </div>
-                  <p class="text-[11px] text-gray-400 truncate">
-                    {{ selectedChannel?.handle || 'LinkedIn Member' }}
-                  </p>
-                  <p class="text-[10px] text-gray-400 flex items-center gap-1 mt-0.5">
-                    <span>Just now</span>
-                    <span>•</span>
-                    <span>🌐</span>
-                  </p>
-                </div>
-              </div>
-
-              <!-- Post text -->
-              <div class="px-3.5 pb-3.5 text-white text-[13px] leading-relaxed whitespace-pre-wrap break-words">
-                <span v-if="postText.trim().length === 0" class="text-gray-500 italic">
-                  {{ $t('composer.seePreviewHere') }}
-                </span>
-                <span v-else>{{ postText }}</span>
-              </div>
-
-              <!-- Uploaded Media Preview (uses transient blob URL for UX) -->
-              <div v-if="selectedAssetPreviewUrl" class="border-t border-[#2d3135] max-h-[220px] overflow-hidden bg-black/30 flex items-center justify-center">
-                <img
-                  :src="selectedAssetPreviewUrl"
-                  alt="Media preview"
-                  class="w-full h-auto max-h-[220px] object-contain"
-                />
-              </div>
-
-              <!-- LinkedIn Action Buttons -->
-              <div class="border-t border-[#2d3135] py-2 px-1 flex justify-around text-gray-400 font-semibold text-[11px]">
-                <span class="flex items-center gap-1 px-2 py-1 rounded hover:bg-white/5 cursor-pointer">👍 Like</span>
-                <span class="flex items-center gap-1 px-2 py-1 rounded hover:bg-white/5 cursor-pointer">💬 Comment</span>
-                <span class="flex items-center gap-1 px-2 py-1 rounded hover:bg-white/5 cursor-pointer">🔄 Repost</span>
-                <span class="flex items-center gap-1 px-2 py-1 rounded hover:bg-white/5 cursor-pointer">📤 Send</span>
-              </div>
-            </div>
-          </div>
-
-          <!-- Bottom controls (Scheduler picker) -->
-          <div class="border-t border-border-subtle pt-6 space-y-4">
-            <!-- Schedule controls -->
-            <div class="space-y-3">
-              <div class="flex items-center gap-4 bg-bg-surface border border-border-subtle p-3 rounded-xl">
+        <!-- Right Column: Social Preview -->
+        <PostPreviewPanel
+          :provider="selectedPreviewProvider"
+          :title="$t('composer.linkedinPreview')"
+          :linkedin-preview="linkedinPreview"
+        >
+          <template #footer>
+            <div class="border-t border-border-subtle pt-6 space-y-4">
+              <!-- Schedule controls -->
+              <div class="space-y-3">
+                <div class="flex items-center gap-4 bg-bg-surface border border-border-subtle p-3 rounded-xl">
                 <CalendarIcon class="size-4 text-text-secondary shrink-0" />
                 <div class="flex-1 space-y-2 text-xs">
                   <span class="text-text-secondary">Schedule Mode:</span>
@@ -935,24 +916,24 @@ async function handleSchedule() {
 
               <!-- Primary Action Buttons -->
               <div class="grid grid-cols-3 gap-3">
+                <button
+                  @click="emit('close')"
+                  class="col-span-1 border border-border-visible text-text-body hover:border-text-display hover:text-text-display font-mono text-[10px] font-bold uppercase tracking-wider rounded-full py-2.5 transition-all text-center cursor-pointer"
+                >
+                  {{ $t('composer.cancelBtn') }}
+                </button>
 
-              <button
-                @click="emit('close')"
-                class="col-span-1 border border-border-visible text-text-body hover:border-text-display hover:text-text-display font-mono text-[10px] font-bold uppercase tracking-wider rounded-full py-2.5 transition-all text-center cursor-pointer"
-              >
-                {{ $t('composer.cancelBtn') }}
-              </button>
-
-              <Button
-                @click="handleSchedule"
-                :disabled="!canSubmit"
-                class="col-span-2 justify-center py-2.5 font-bold"
-              >
-                {{ scheduleMode === 'now' ? 'Schedule Now' : scheduleMode === 'next' ? 'Next Schedule' : $t('composer.scheduleBtn') }}
-              </Button>
+                <Button
+                  @click="handleSchedule"
+                  :disabled="!canSubmit"
+                  class="col-span-2 justify-center py-2.5 font-bold"
+                >
+                  {{ scheduleMode === 'now' ? 'Schedule Now' : scheduleMode === 'next' ? 'Next Schedule' : $t('composer.scheduleBtn') }}
+                </Button>
+              </div>
             </div>
-          </div>
-        </div>
+          </template>
+        </PostPreviewPanel>
       </div>
     </div>
   </Teleport>
