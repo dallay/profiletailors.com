@@ -15,7 +15,10 @@ export class DashboardPage {
   }
 
   get userDisplayName(): Locator {
-    return this.page.locator('button').filter({ hasText: /DU|dev user|profile tailors/i }).first()
+    return this.page
+      .locator('button')
+      .filter({ hasText: /DU|dev user|profile tailors/i })
+      .first()
   }
 
   get newPostButton(): Locator {

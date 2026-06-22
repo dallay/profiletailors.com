@@ -62,10 +62,7 @@ test.describe('Scheduler — Post Interaction', () => {
 
     if (isVisible) {
       // Verify View Post opens a new tab with LinkedIn URL
-      const [newTab] = await Promise.all([
-        page.context().waitForEvent('page'),
-        viewPostBtn.click(),
-      ])
+      const [newTab] = await Promise.all([page.context().waitForEvent('page'), viewPostBtn.click()])
       await newTab.waitForLoadState()
       const url = newTab.url()
       expect(url).toContain('linkedin.com/feed/update')
@@ -98,7 +95,9 @@ test.describe('Scheduler — Post Interaction', () => {
     await deleteButton.click({ force: true })
 
     // Verify the specific interactive card is gone.
-    await expect(page.getByRole('button', { name: new RegExp(testText) })).toHaveCount(0, { timeout: 5_000 })
+    await expect(page.getByRole('button', { name: new RegExp(testText) })).toHaveCount(0, {
+      timeout: 5_000,
+    })
   })
 
   /**
@@ -114,7 +113,9 @@ test.describe('Scheduler — Post Interaction', () => {
     // Trigger click on a future cell directly via JS to bypass hover-only
     // visibility (CSS transitions are hard to wait for in E2E).
     const clicked = await page.evaluate(() => {
-      const addButton = document.querySelector('button[title="Add post"]') as HTMLButtonElement | null
+      const addButton = document.querySelector(
+        'button[title="Add post"]',
+      ) as HTMLButtonElement | null
       if (!addButton) return false
       addButton.click()
       return true

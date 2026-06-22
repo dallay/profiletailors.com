@@ -20,14 +20,10 @@ export default defineConfig({
       },
     },
   },
-  plugins: [
-    vue(),
-    vueDevTools(),
-    tailwind(),
-  ],
+  plugins: [vue(), vueDevTools(), tailwind()],
   resolve: {
     alias: {
-      '@': fileURLToPath(new URL('./src', import.meta.url))
+      '@': fileURLToPath(new URL('./src', import.meta.url)),
     },
   },
   // @ts-expect-error Vitest extends Vite config with a test property.

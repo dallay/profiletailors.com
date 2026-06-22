@@ -452,6 +452,12 @@ class StaleAssetReconcilerTest {
             return updated
         }
 
+        override suspend fun delete(assetId: String, workspaceId: String): MediaAsset? {
+            val existing = items[assetId]?.takeIf { it.workspaceId == workspaceId } ?: return null
+            items.remove(assetId)
+            return existing
+        }
+
         override suspend fun findStaleProcessingAssets(
             thresholdHours: Long,
             gracePeriodMinutes: Long,

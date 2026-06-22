@@ -5,6 +5,7 @@ import kotlinx.coroutines.flow.asFlow
 import kotlinx.coroutines.flow.toList
 import kotlinx.coroutines.test.runTest
 import org.junit.jupiter.api.Test
+import org.springframework.core.io.buffer.DataBuffer
 import org.springframework.core.io.buffer.DefaultDataBufferFactory
 import reactor.core.publisher.Flux
 
@@ -28,7 +29,7 @@ class FlowReactorAdaptersTest {
     @Test
     fun `should convert Flux to Flow`() = runTest {
         val data = listOf("hello", "world")
-        val flux = Flux.fromIterable(data).map { factory.wrap(it.toByteArray()) }
+        val flux: Flux<DataBuffer> = Flux.fromIterable(data).map { factory.wrap(it.toByteArray()) }
 
         val flow = flux.asFlow()
 
@@ -50,7 +51,7 @@ class FlowReactorAdaptersTest {
 
     @Test
     fun `should convert empty Flux to empty Flow`() = runTest {
-        val emptyFlux = Flux.empty<org.springframework.core.io.buffer.DataBuffer>()
+        val emptyFlux: Flux<DataBuffer> = Flux.empty() 
 
         val flow = emptyFlux.asFlow()
 

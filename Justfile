@@ -16,6 +16,47 @@
 #
 # Every recipe delegates to its tool's native commands —
 # nothing is replaced, just coordinated.
+#
+# ────────────────────────────────────────────────────────────────
+# PREREQUISITES
+# ────────────────────────────────────────────────────────────────
+# Before running any `just` command, ensure you have:
+#
+#   1. Node.js >= 22.12.0 (for pnpm)
+#   2. pnpm (npm install -g pnpm)
+#   3. Docker & Docker Compose (for infra)
+#   4. just command runner
+#
+# ────────────────────────────────────────────────────────────────
+# Install `just` on Ubuntu/Debian:
+#
+#   # Option A: Official install script (recommended)
+#   curl --proto '=https' --tlsv1.2 -sSf https://just.systems/install.sh | sudo bash -s -- --to /usr/local/bin
+#
+#   # Option B: Via cargo (requires Rust)
+#   cargo install just
+#
+#   # Option C: Via snap
+#   sudo snap install just --classic
+#
+#   # Option D: Prebuilt binary
+#   JUST_VERSION=$(curl -s https://api.github.com/repos/casey/just/releases/latest | grep tag_name | cut -d'"' -f4)
+#   wget "https://github.com/casey/just/releases/download/${JUST_VERSION}/just-${JUST_VERSION}-x86_64-unknown-linux-musl.tar.gz"
+#   tar -xzf just-*.tar.gz just && sudo mv just /usr/local/bin/
+#
+#   # Verify installation
+#   just --version
+#
+# ────────────────────────────────────────────────────────────────
+# Install `just` on macOS:
+#
+#   brew install just
+#
+# ────────────────────────────────────────────────────────────────
+# First time setup:
+#
+#   just setup
+#
 # ────────────────────────────────────────────────────────────────
 
 set positional-arguments := true
@@ -41,9 +82,14 @@ setup:
     just install
     just hooks-install
 
-# Install Lefthook git hooks
+# Install Lefthook git hooks unless globally disabled
 hooks-install:
-    npx lefthook install
+    @HOOKS_PATH="$$(git config --global core.hooksPath 2>/dev/null || true)"; \
+    if [ "$$HOOKS_PATH" = "/dev/null" ]; then \
+        echo "Skipping Lefthook install: core.hooksPath=/dev/null"; \
+    else \
+        pnpm exec lefthook install; \
+    fi
 
 # ═══════════════════════════════════════════════════════════════
 # FRONTEND  (pnpm / Astro / Biome / Vitest / Playwright)

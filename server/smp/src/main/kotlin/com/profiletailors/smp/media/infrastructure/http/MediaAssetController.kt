@@ -2,6 +2,7 @@ package com.profiletailors.smp.media.infrastructure.http
 
 import com.profiletailors.common.domain.bus.Mediator
 import com.profiletailors.smp.media.application.CreateUploadedAssetCommand
+import com.profiletailors.smp.media.application.DeleteWorkspaceAssetCommand
 import com.profiletailors.smp.media.application.GetWorkspaceAssetQuery
 import com.profiletailors.smp.media.application.ListWorkspaceAssetsQuery
 import com.profiletailors.smp.media.application.MediaAssetSummary
@@ -23,6 +24,7 @@ import org.slf4j.LoggerFactory
 import org.springframework.http.HttpStatus
 import org.springframework.http.MediaType
 import org.springframework.validation.annotation.Validated
+import org.springframework.web.bind.annotation.DeleteMapping
 import org.springframework.web.bind.annotation.GetMapping
 import org.springframework.web.bind.annotation.PathVariable
 import org.springframework.web.bind.annotation.PostMapping
@@ -75,7 +77,7 @@ class MediaAssetController(
             ),
         ],
     )
-    @PostMapping(consumes = [MediaType.APPLICATION_JSON_VALUE], produces = [MediaType.APPLICATION_JSON_VALUE])
+    @PostMapping(consumes = [MediaType.APPLICATION_JSON_VALUE], version = "1")
     suspend fun createAsset(
         @Valid @RequestBody request: CreateMediaAssetRequest,
     ): MediaAssetResponse {
@@ -150,7 +152,7 @@ class MediaAssetController(
     @PostMapping(
         value = ["/{assetId}/upload"],
         consumes = [MediaType.MULTIPART_FORM_DATA_VALUE],
-        produces = [MediaType.APPLICATION_JSON_VALUE],
+        version = "1",
     )
     suspend fun uploadAsset(
         @Parameter(description = "Asset ID", example = "550e8400-e29b-41d4-a716-446655440000")
@@ -218,7 +220,7 @@ class MediaAssetController(
             ),
         ],
     )
-    @GetMapping(produces = [MediaType.APPLICATION_JSON_VALUE])
+    @GetMapping(version = "1")
     suspend fun listAssets(
         @Parameter(description = "Asset status filter (READY, PROCESSING, FAILED). Comma-separated for multiple.")
         @RequestParam(required = false, defaultValue = "READY") status: String? = null,
@@ -271,7 +273,7 @@ class MediaAssetController(
     )
     @GetMapping(
         value = ["/{assetId}"],
-        produces = [MediaType.APPLICATION_JSON_VALUE],
+        version = "1",
     )
     suspend fun getAsset(
         @Parameter(description = "Asset ID", example = "550e8400-e29b-41d4-a716-446655440000")
@@ -287,6 +289,23 @@ class MediaAssetController(
 
         val result = mediator.send(query)
         return result.toResponse()
+    }
+
+    @DeleteMapping(value = ["/{assetId}"], version = "1")
+    suspend fun deleteAsset(
+        @PathVariable assetId: String,
+    ): org.springframework.http.ResponseEntity<Void> {
+        val workspaceContext = resourceContextProvider.requireWorkspaceContext()
+        val workspaceId = workspaceContext.workspaceId!!
+
+        mediator.send(
+            DeleteWorkspaceAssetCommand(
+                assetId = assetId,
+                workspaceId = workspaceId,
+            ),
+        )
+
+        return org.springframework.http.ResponseEntity.noContent().build()
     }
 
     private fun parseStatuses(status: String?): Set<MediaAssetStatus> {
@@ -317,4 +336,6 @@ private fun MediaAssetSummary.toResponse() = MediaAssetResponse(
     originalFilename = originalFilename,
     fileSizeBytes = fileSizeBytes,
     createdAt = createdAt,
+    previewUrl = previewUrl,
+    downloadUrl = downloadUrl,
 )

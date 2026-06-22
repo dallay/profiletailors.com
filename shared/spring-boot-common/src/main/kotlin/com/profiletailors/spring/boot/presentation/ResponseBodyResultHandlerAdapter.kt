@@ -14,7 +14,7 @@ open class ResponseBodyResultHandlerAdapter<T : Any>(
     private val presenter: Presenter<T>,
 ) : ResponseBodyResultHandler(writers, resolver) {
     override fun supports(result: HandlerResult): Boolean =
-        result.returnType.rawClass == presenter.type.java
+        result.returnType.getGeneric(0).rawClass == presenter.type.java
 
     override fun handleResult(exchange: ServerWebExchange, result: HandlerResult): Mono<Void> {
         return mono { presenter.present(exchange, result) }

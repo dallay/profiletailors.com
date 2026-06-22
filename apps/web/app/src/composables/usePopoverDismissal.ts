@@ -63,7 +63,7 @@ export function usePopoverDismissal(opts: UsePopoverDismissalOptions): UsePopove
     close()
     if (trigger) {
       // Defer focus so the popover's removal from the DOM doesn't suppress the call.
-      void nextTick().then(() => {
+      nextTick().then(() => {
         const t = trigger.value
         if (t && document.contains(t)) {
           t.focus()
@@ -78,7 +78,7 @@ export function usePopoverDismissal(opts: UsePopoverDismissalOptions): UsePopove
     event.stopPropagation()
     close()
     if (trigger) {
-      void nextTick().then(() => {
+      nextTick().then(() => {
         const t = trigger.value
         if (t && document.contains(t)) {
           t.focus()

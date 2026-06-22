@@ -1,3 +1,5 @@
+import { authCredentialsSchema, workspaceNameSchema } from '@/lib/validation/schemas'
+
 // ---------------------------------------------------------------------------
 // Types
 // ---------------------------------------------------------------------------
@@ -53,6 +55,12 @@ function resolveApiBaseUrl(): string {
   return DEFAULT_API_BASE_URL
 }
 
+export function resolveApiUrl(path: string): string {
+  if (!path.startsWith('/')) return path
+  const apiBase = resolveApiBaseUrl()
+  return apiBase ? `${apiBase}${path}` : path
+}
+
 /**
  * Low-level fetch wrapper.
  * Always sends cookies (`credentials: 'include'`) so the refresh-token
@@ -65,11 +73,14 @@ async function requestRaw(
   init: RequestInit = {},
   token?: string | null,
 ): Promise<Response> {
+  const hasExplicitContentType = new Headers(init.headers ?? {}).has('Content-Type')
+  const isFormDataBody = typeof FormData !== 'undefined' && init.body instanceof FormData
+
   const response = await fetch(`${resolveApiBaseUrl()}${path}`, {
     ...init,
     credentials: 'include',
     headers: {
-      'Content-Type': 'application/json',
+      ...(!hasExplicitContentType && !isFormDataBody ? { 'Content-Type': 'application/json' } : {}),
       Accept: 'application/vnd.api.v1+json',
       ...(token ? { Authorization: `Bearer ${token}` } : {}),
       ...(init.headers ?? {}),
@@ -111,16 +122,20 @@ async function request<T>(path: string, init: RequestInit = {}, token?: string |
 // ---------------------------------------------------------------------------
 
 export async function register(payload: RegisterPayload) {
+  const validatedPayload = authCredentialsSchema.parse(payload)
+
   return request<AuthTokens>('/api/auth/register', {
     method: 'POST',
-    body: JSON.stringify(payload),
+    body: JSON.stringify(validatedPayload),
   })
 }
 
 export async function login(payload: LoginPayload) {
+  const validatedPayload = authCredentialsSchema.parse(payload)
+
   return request<AuthTokens>('/api/auth/login', {
     method: 'POST',
-    body: JSON.stringify(payload),
+    body: JSON.stringify(validatedPayload),
   })
 }
 
@@ -167,11 +182,13 @@ export async function renameWorkspace(
   token: string,
   workspaceId: string,
 ): Promise<RenameWorkspaceResult> {
+  const validatedName = workspaceNameSchema.parse(name)
+
   return request<RenameWorkspaceResult>(
     '/api/tenancy/workspaces/current/name',
     {
       method: 'PATCH',
-      body: JSON.stringify({ name }),
+      body: JSON.stringify({ name: validatedName }),
       headers: { 'X-Workspace-Id': workspaceId },
     },
     token,

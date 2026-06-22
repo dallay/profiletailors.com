@@ -23,6 +23,10 @@ dependencies {
     implementation(libs.springdoc.openapi.webflux)
 
     testImplementation(libs.kotlin.test.junit5)
+    testImplementation(libs.kotlinx.coroutines.test)
+    testImplementation(libs.mockk)
+    testImplementation(libs.kotest.assertions.core)
+    testImplementation(libs.reactor.test)
     testImplementation("org.springframework.boot:spring-boot-starter-test")
     testRuntimeOnly(libs.junit.platform.launcher)
 }

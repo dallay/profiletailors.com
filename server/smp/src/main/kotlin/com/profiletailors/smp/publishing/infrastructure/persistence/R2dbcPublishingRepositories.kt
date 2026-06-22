@@ -110,6 +110,7 @@ class R2dbcPublicationRepository(
         to: Instant,
         statuses: Set<PublicationStatus>?,
         socialAccountIds: Set<String>?,
+        hydrateAssets: Boolean,
     ): List<PublicationDraft> {
         val conditions = mutableListOf("workspace_id = :workspaceId", "scheduled_for >= :from", "scheduled_for < :to")
         val paramKeys = mutableMapOf(
@@ -158,10 +159,12 @@ class R2dbcPublicationRepository(
             spec = spec.bind("account_$i", paramKeys["account_$i"]!!)
         }
 
-        return spec.map { row, _ -> row.toPublicationDraft() }
+        val drafts = spec.map { row, _ -> row.toPublicationDraft() }
             .all()
             .collectList()
             .awaitSingle()
+
+        return if (hydrateAssets) hydrateAssetIds(drafts) else drafts
     }
 
     override suspend fun countByDate(
@@ -177,6 +180,7 @@ class R2dbcPublicationRepository(
             to = to,
             statuses = statuses,
             socialAccountIds = null,
+            hydrateAssets = false,
         )
 
         val zoneId = java.time.ZoneId.of(timezone)
@@ -187,6 +191,35 @@ class R2dbcPublicationRepository(
             .eachCount()
             .map { (date, count) -> DateCount(date = date, count = count) }
             .sortedBy { it.date }
+    }
+
+    private suspend fun hydrateAssetIds(drafts: List<PublicationDraft>): List<PublicationDraft> {
+        val publicationIds = drafts.map { it.id }
+        if (publicationIds.isEmpty()) return drafts
+
+        val assetLinks = databaseClient.sql(
+            """
+            SELECT publication_id, asset_id FROM publication_asset_links
+            WHERE publication_id IN (:ids)
+            ORDER BY publication_id, position_index ASC
+            """.trimIndent(),
+        )
+            .bind("ids", publicationIds)
+            .map { row, _ ->
+                requireNotNull(row.get("publication_id", String::class.java)) to
+                    requireNotNull(row.get("asset_id", String::class.java))
+            }
+            .all()
+            .collectList()
+            .awaitSingle()
+
+        val assetsByPublication: Map<String, List<String>> = assetLinks
+            .groupBy({ it.first }, { it.second })
+            .mapValues { (_, value) -> value.filterNotNull() }
+
+        return drafts.map { draft ->
+            draft.copy(assetIds = assetsByPublication[draft.id].orEmpty())
+        }
     }
 
     override suspend fun markPublished(publicationId: String, externalPublicationId: String, publishedAt: Instant) {

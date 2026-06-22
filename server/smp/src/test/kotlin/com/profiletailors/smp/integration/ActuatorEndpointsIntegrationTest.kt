@@ -41,6 +41,10 @@ import org.springframework.test.web.reactive.server.WebTestClient
         "management.endpoint.health.group.liveness.include=livenessState",
         "management.health.livenessState.enabled=true",
         "management.health.readinessState.enabled=true",
+        "platform.storage.default=attachments",
+        "platform.storage.providers.attachments.type=local",
+        "platform.storage.providers.attachments.base-path=./tmp/actuator-test-storage",
+        "media.storage.bucket=attachments",
     ]
 )
 class ActuatorEndpointsIntegrationTest {

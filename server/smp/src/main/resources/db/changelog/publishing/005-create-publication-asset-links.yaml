@@ -18,8 +18,6 @@ databaseChangeLog:
                   type: varchar(64)
                   constraints:
                     nullable: false
-                    foreignKeyName: fk_publication_asset_links_asset
-                    references: publication_assets(id)
               - column:
                   name: position_index
                   type: integer

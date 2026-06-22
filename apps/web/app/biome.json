@@ -1,4 +1,6 @@
 {
+  "root": false,
+  "extends": ["../biome.json"],
   "$schema": "https://biomejs.dev/schemas/2.5.0/schema.json",
   "vcs": {
     "enabled": true,
@@ -6,7 +8,11 @@
     "useIgnoreFile": true
   },
   "files": {
-    "includes": ["src/**/*.{js,ts,vue,mjs}"],
+    "includes": [
+      "src/**/*.{js,ts,jsx,tsx,vue,mjs}",
+      "e2e/**/*.{js,ts}",
+      "*.{js,ts,mjs}"
+    ],
     "ignoreUnknown": true
   },
   "formatter": {

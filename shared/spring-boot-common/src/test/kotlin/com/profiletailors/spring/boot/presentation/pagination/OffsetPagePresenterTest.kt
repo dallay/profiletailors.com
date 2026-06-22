@@ -109,8 +109,8 @@ class OffsetPagePresenterTest {
         val actualJson = exchange.response.getBody()
             .reduce { a, b -> a.write(b) }
             .block()!!
-            .toByteBuffer()
-            .array()
+            .asByteBuffer()
+            .let { buffer -> ByteArray(buffer.remaining()).also { buffer.get(it) } }
 
         assertEquals(expectedJson.toList(), actualJson.toList())
     }

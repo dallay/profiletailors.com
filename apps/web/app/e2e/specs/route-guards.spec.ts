@@ -10,15 +10,14 @@ import { test, expect } from '../fixtures/base-test'
 import { LoginPage } from '../pages/login-page'
 import { DashboardPage } from '../pages/dashboard-page'
 import { APP_URL, GUEST_ROUTES, PROTECTED_ROUTES, VALID_CREDENTIALS } from '../fixtures/test-data'
-import {
-  authenticateAs,
-  keepSessionAlive,
-  useReplayAuthDefaults,
-} from '../fixtures/auth-helpers'
+import { authenticateAs, keepSessionAlive, useReplayAuthDefaults } from '../fixtures/auth-helpers'
 import { safeGoto } from '../fixtures/navigation'
 
 test.describe('Route Guards', { tag: '@integration' }, () => {
-  test('9.1 All protected routes redirect unauthenticated users to login', async ({ page, resetSession }) => {
+  test('9.1 All protected routes redirect unauthenticated users to login', async ({
+    page,
+    resetSession,
+  }) => {
     const loginPage = new LoginPage(page)
 
     for (const route of PROTECTED_ROUTES) {

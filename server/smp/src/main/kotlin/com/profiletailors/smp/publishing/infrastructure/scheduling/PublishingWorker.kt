@@ -1,5 +1,6 @@
 package com.profiletailors.smp.publishing.infrastructure.scheduling
 
+import com.profiletailors.smp.media.application.MediaAssetResolver
 import com.profiletailors.smp.publishing.domain.DeliveryAttempt
 import com.profiletailors.smp.publishing.domain.DeliveryAttemptOutcome
 import com.profiletailors.smp.publishing.domain.DeliveryAttemptRepository
@@ -15,7 +16,6 @@ import com.profiletailors.smp.publishing.domain.PublicationJobClaim
 import com.profiletailors.smp.publishing.domain.PublicationJobRepository
 import com.profiletailors.smp.publishing.domain.PublicationLifecyclePolicy
 import com.profiletailors.smp.publishing.domain.PublicationRepository
-import com.profiletailors.smp.publishing.domain.PublicationAssetRepository
 import com.profiletailors.smp.publishing.domain.PublicationStatus
 import com.profiletailors.smp.publishing.domain.ReconnectRequiredException
 import com.profiletailors.smp.publishing.domain.SocialAccountRepository
@@ -33,7 +33,7 @@ class PublishingJobExecutor(
     private val publicationJobRepository: PublicationJobRepository,
     private val publicationRepository: PublicationRepository,
     private val socialAccountRepository: SocialAccountRepository,
-    private val publicationAssetRepository: PublicationAssetRepository,
+    private val mediaAssetResolver: MediaAssetResolver,
     private val deliveryAttemptRepository: DeliveryAttemptRepository,
     private val notificationEventRepository: NotificationEventRepository?,
     private val providerCapabilityValidator: ProviderCapabilityValidator,
@@ -55,10 +55,20 @@ class PublishingJobExecutor(
             publication.socialAccountId
         ) ?: error("Social account '${publication.socialAccountId}' not found.")
         
-        val assets = publicationAssetRepository.findByWorkspaceAndIds(
+        val assets = mediaAssetResolver.resolveReadyAssets(
             publication.workspaceId,
-            publication.assetIds
-        )
+            publication.assetIds,
+        ).map { resolvedAsset ->
+            com.profiletailors.smp.publishing.domain.PublicationAsset(
+                id = resolvedAsset.assetId,
+                workspaceId = resolvedAsset.workspaceId,
+                sourceType = com.profiletailors.smp.publishing.domain.AssetSourceType.UPLOADED,
+                mediaType = resolvedAsset.mediaType,
+                storageKey = resolvedAsset.storageKey,
+                status = com.profiletailors.smp.publishing.domain.PublicationAssetStatus.READY,
+                createdByPrincipalId = "media-context",
+            )
+        }
 
         // Preflight gate: check account status before calling LinkedIn
         val blocked = preflightCheck(claim, socialAccount, publication, now)

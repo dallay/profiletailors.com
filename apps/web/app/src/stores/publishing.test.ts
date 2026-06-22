@@ -312,6 +312,150 @@ describe('publishing store', () => {
     })
   })
 
+  describe('hasNoChannels', () => {
+    it('returns true when there are no connected channels', () => {
+      const store = usePublishingStore()
+
+      store.channels = []
+
+      expect(store.hasNoChannels).toBe(true)
+    })
+
+    it('returns false when there is at least one ACTIVE channel', () => {
+      const store = usePublishingStore()
+
+      store.channels = [
+        {
+          id: 'soc-real-1',
+          accountId: 'soc-real-1',
+          name: 'Real Profile 1',
+          provider: 'linkedin',
+          avatar: '',
+          handle: 'Real Profile 1',
+          status: 'ACTIVE',
+        },
+      ]
+
+      expect(store.hasNoChannels).toBe(false)
+    })
+
+    it('returns true when channels exist but none are ACTIVE', () => {
+      const store = usePublishingStore()
+
+      store.channels = [
+        {
+          id: 'soc-inactive-1',
+          accountId: 'soc-inactive-1',
+          name: 'Inactive 1',
+          provider: 'linkedin',
+          avatar: '',
+          handle: 'Inactive 1',
+          status: 'EXPIRED',
+        },
+        {
+          id: 'soc-inactive-2',
+          accountId: 'soc-inactive-2',
+          name: 'Inactive 2',
+          provider: 'linkedin',
+          avatar: '',
+          handle: 'Inactive 2',
+          status: 'REVOKED',
+        },
+      ]
+
+      expect(store.hasNoChannels).toBe(true)
+    })
+  })
+
+  describe('content normalization', () => {
+    it('trims leading and trailing whitespace from post content', async () => {
+      const store = usePublishingStore()
+      const auth = useAuthStore()
+      Object.defineProperty(auth, 'isAuthenticated', { value: true, configurable: true })
+      store.channels = [
+        {
+          id: 'ch-trim-1',
+          accountId: 'ch-trim-1',
+          name: 'Trim Test',
+          provider: 'linkedin',
+          avatar: '',
+          handle: 'Trim Test',
+          status: 'ACTIVE',
+        },
+      ]
+      const apiFetch = vi.spyOn(auth, 'apiFetch').mockResolvedValue({})
+
+      await store.schedulePost({
+        content: '  Hello World  ',
+        title: 'Title',
+        channels: ['linkedin'],
+        scheduledAt: '2026-06-20T14:00:00Z',
+        priority: false,
+      })
+
+      const body = JSON.parse(apiFetch.mock.calls[0]?.[1]?.body as string)
+      expect(body.bodyText).toBe('Hello World')
+    })
+
+    it('trims content with only whitespace', async () => {
+      const store = usePublishingStore()
+      const auth = useAuthStore()
+      Object.defineProperty(auth, 'isAuthenticated', { value: true, configurable: true })
+      store.channels = [
+        {
+          id: 'ch-trim-2',
+          accountId: 'ch-trim-2',
+          name: 'Trim Test 2',
+          provider: 'linkedin',
+          avatar: '',
+          handle: 'Trim Test 2',
+          status: 'ACTIVE',
+        },
+      ]
+      const apiFetch = vi.spyOn(auth, 'apiFetch').mockResolvedValue({})
+
+      await store.schedulePost({
+        content: '   \n\t  ',
+        title: 'Title',
+        channels: ['linkedin'],
+        scheduledAt: '2026-06-20T14:00:00Z',
+        priority: false,
+      })
+
+      const body = JSON.parse(apiFetch.mock.calls[0]?.[1]?.body as string)
+      expect(body.bodyText).toBe('')
+    })
+
+    it('preserves internal whitespace and intentional newlines while trimming edges', async () => {
+      const store = usePublishingStore()
+      const auth = useAuthStore()
+      Object.defineProperty(auth, 'isAuthenticated', { value: true, configurable: true })
+      store.channels = [
+        {
+          id: 'ch-trim-3',
+          accountId: 'ch-trim-3',
+          name: 'Trim Test 3',
+          provider: 'linkedin',
+          avatar: '',
+          handle: 'Trim Test 3',
+          status: 'ACTIVE',
+        },
+      ]
+      const apiFetch = vi.spyOn(auth, 'apiFetch').mockResolvedValue({})
+
+      await store.schedulePost({
+        content: '  Line one\nLine two  ',
+        title: 'Title',
+        channels: ['linkedin'],
+        scheduledAt: '2026-06-20T14:00:00Z',
+        priority: false,
+      })
+
+      const body = JSON.parse(apiFetch.mock.calls[0]?.[1]?.body as string)
+      expect(body.bodyText).toBe('Line one\nLine two')
+    })
+  })
+
   describe('schedulePost', () => {
     it('uses the selected connected LinkedIn account id for authenticated scheduling', async () => {
       const store = usePublishingStore()

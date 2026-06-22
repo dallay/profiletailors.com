@@ -10,11 +10,7 @@ import { test, expect } from '../fixtures/base-test'
 import { LoginPage } from '../pages/login-page'
 import { DashboardPage } from '../pages/dashboard-page'
 import { APP_URL } from '../fixtures/test-data'
-import {
-  authenticateAs,
-  keepSessionAlive,
-  resetSession,
-} from '../fixtures/auth-helpers'
+import { authenticateAs, keepSessionAlive, resetSession } from '../fixtures/auth-helpers'
 import { safeGoto } from '../fixtures/navigation'
 
 test.describe('Session Hydration', { tag: '@integration' }, () => {

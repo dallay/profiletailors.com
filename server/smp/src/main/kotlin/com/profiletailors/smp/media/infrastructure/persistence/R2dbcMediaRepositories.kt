@@ -69,25 +69,20 @@ class R2dbcMediaAssetRepository(
     override suspend fun findByWorkspaceAndIds(workspaceId: String, assetIds: List<String>): List<MediaAsset> {
         if (assetIds.isEmpty()) return emptyList()
 
-        val idBindings = assetIds.mapIndexed { index, _ -> ":id$index" }
-        val idParams = assetIds.mapIndexed { index, id -> "id$index" to id }.toMap()
-
         return databaseClient.sql(
             """
             SELECT asset_id, workspace_id, source_type, media_type, storage_key,
                    original_filename, file_size_bytes, status, upload_started_at, created_at
             FROM media_assets
-            WHERE workspace_id = :workspaceId AND asset_id IN (${idBindings.joinToString(", ")})
+            WHERE workspace_id = :workspaceId
             """.trimIndent(),
         )
             .bind("workspaceId", workspaceId)
-            .apply {
-                idParams.forEach { (key, value) -> bind(key, value) }
-            }
             .map { row, _ -> rowToMediaAsset(row) }
             .all()
             .collectList()
             .awaitSingle()
+            .filter { it.assetId in assetIds }
     }
 
     override suspend fun listByWorkspace(
@@ -154,24 +149,6 @@ class R2dbcMediaAssetRepository(
         return PagedMediaAssets(assets = resultAssets, nextCursor = nextCursor)
     }
 
-    private fun parseCursor(cursor: String?): Pair<Instant?, String?> {
-        if (cursor == null) return Pair(null, null)
-
-        return try {
-            val decoded = String(Base64.getUrlDecoder().decode(cursor))
-            val separatorIndex = decoded.lastIndexOf(':')
-            if (separatorIndex <= 0 || separatorIndex == decoded.lastIndex) {
-                Pair(null, null)
-            } else {
-                val createdAt = decoded.substring(0, separatorIndex)
-                val assetId = decoded.substring(separatorIndex + 1)
-                Pair(Instant.parse(createdAt), assetId)
-            }
-        } catch (_: Exception) {
-            Pair(null, null)
-        }
-    }
-
     override suspend fun claimUploadSlot(assetId: String, workspaceId: String, now: Instant): Boolean {
         val threshold = now.minusSeconds(30 * 60) // 30 minutes ago
 
@@ -229,6 +206,24 @@ class R2dbcMediaAssetRepository(
             .awaitSingleOrNull()
 
         return findByWorkspaceAndId(workspaceId, assetId)
+    }
+
+    override suspend fun delete(assetId: String, workspaceId: String): MediaAsset? {
+        val existing = findByWorkspaceAndId(workspaceId, assetId) ?: return null
+
+        val rowsDeleted = databaseClient.sql(
+            """
+            DELETE FROM media_assets
+            WHERE asset_id = :assetId AND workspace_id = :workspaceId
+            """.trimIndent(),
+        )
+            .bind("assetId", assetId)
+            .bind("workspaceId", workspaceId)
+            .fetch()
+            .rowsUpdated()
+            .awaitSingle()
+
+        return if (rowsDeleted > 0) existing else null
     }
 
     override suspend fun findStaleProcessingAssets(
@@ -292,6 +287,24 @@ class R2dbcMediaAssetRepository(
             uploadStartedAt = row.get("upload_started_at", OffsetDateTime::class.java)?.toInstant(),
             createdAt = requireNotNull(row.get("created_at", OffsetDateTime::class.java)).toInstant(),
         )
+    }
+}
+
+private fun parseCursor(cursor: String?): Pair<Instant?, String?> {
+    if (cursor == null) return Pair(null, null)
+
+    return try {
+        val decoded = String(Base64.getUrlDecoder().decode(cursor))
+        val separatorIndex = decoded.lastIndexOf(':')
+        if (separatorIndex <= 0 || separatorIndex == decoded.lastIndex) {
+            Pair(null, null)
+        } else {
+            val createdAt = decoded.substring(0, separatorIndex)
+            val assetId = decoded.substring(separatorIndex + 1)
+            Pair(Instant.parse(createdAt), assetId)
+        }
+    } catch (_: Exception) {
+        Pair(null, null)
     }
 }
 

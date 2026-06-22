@@ -60,8 +60,8 @@ class AppSpringBeanProviderTest {
 
         // Then
         result.size shouldBe 2
-        result.contains(String::class.java) shouldBe true
-        result.contains(StringBuilder::class.java) shouldBe true
+        result.any { it == String::class.java } shouldBe true
+        result.any { it == StringBuilder::class.java } shouldBe true
     }
 
     @Test

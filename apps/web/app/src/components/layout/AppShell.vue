@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { computed, onBeforeUnmount, watch } from 'vue'
 import { RouterView, useRoute, useRouter } from 'vue-router'
-import { LayoutGrid } from '@lucide/vue'
+import { Images, LayoutGrid } from '@lucide/vue'
 import {
   Sidebar,
   SidebarContent,
@@ -39,20 +39,29 @@ const router = useRouter()
 const route = useRoute()
 
 // ---------------------------------------------------------------------------
-// Auth bootstrap watcher — fires on token change
+// Auth/workspace bootstrap watchers
 // ---------------------------------------------------------------------------
 
 watch(
   () => [auth.isAuthenticated, auth.accessToken] as const,
   ([isAuthenticated, accessToken]) => {
-    if (isAuthenticated && accessToken) {
-      workspace.loadWorkspaces(accessToken).catch((err) => {
-        console.warn('Unable to load workspaces', err)
-      })
-      publishingStore.fetchChannels().catch((err) => {
-        console.warn('Unable to load connected channels', err)
-      })
-    }
+    if (!isAuthenticated || !accessToken) return
+
+    workspace.loadWorkspaces(accessToken).catch((err) => {
+      console.warn('Unable to load workspaces', err)
+    })
+  },
+  { immediate: true },
+)
+
+watch(
+  () => [auth.isAuthenticated, workspace.activeWorkspaceId] as const,
+  ([isAuthenticated, activeWorkspaceId]) => {
+    if (!isAuthenticated || !activeWorkspaceId) return
+
+    publishingStore.fetchChannels().catch((err) => {
+      console.warn('Unable to load connected channels', err)
+    })
   },
   { immediate: true },
 )
@@ -70,6 +79,7 @@ const navigationGroups = computed<NavGroup[]>(() => [
       { labelKey: 'nav.dashboard', to: '/', icon: LayoutGrid },
       { labelKey: 'nav.scheduler', to: '/scheduler', icon: LayoutGrid },
       { labelKey: 'nav.analytics', to: '/analytics', icon: LayoutGrid, badge: 'Live' },
+      { labelKey: 'nav.media', to: '/media', icon: Images },
     ],
   },
   {

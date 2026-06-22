@@ -98,6 +98,17 @@ internal class HexagonalArchTest {
             .check(importedClasses)
     }
 
+    @Test
+    fun applicationLayerShouldNotUseSpringValueAnnotation() {
+        ArchRuleDefinition.noClasses()
+            .that()
+            .resideInAPackage("..application..")
+            .should()
+            .beAnnotatedWith(org.springframework.beans.factory.annotation.Value::class.java)
+            .because("application layer configuration values must be wired in infrastructure, not via Spring @Value")
+            .check(importedClasses)
+    }
+
     /**
      * Guards against the real violation: application layer using Spring R2DBC, HTTP, or Security
      * imports directly — bypassing the domain port/abstraction layer.

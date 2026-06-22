@@ -9,12 +9,13 @@ import com.profiletailors.smp.credentials.application.RefreshTokenHasher
 import com.profiletailors.smp.credentials.application.ServiceAccountCredentialStateLookup
 import com.profiletailors.smp.credentials.infrastructure.BCryptApiKeySecretVerifier
 import com.profiletailors.smp.credentials.infrastructure.BCryptRefreshTokenHasher
+import com.profiletailors.smp.credentials.infrastructure.RefreshSessionConfigurationProperties
 import com.profiletailors.smp.credentials.infrastructure.RefreshSessionCookieFactory
 import com.profiletailors.smp.identity.application.LocalJwtIssuer
 import com.profiletailors.smp.identity.application.PasswordHasher
 import com.profiletailors.smp.identity.application.PrincipalIdentityLookup
+import com.profiletailors.smp.identity.infrastructure.security.LocalJwtProperties
 import com.profiletailors.smp.identity.infrastructure.security.NimbusLocalJwtIssuer
-import org.springframework.beans.factory.annotation.Value
 import org.springframework.context.annotation.Bean
 import org.springframework.context.annotation.Configuration
 import org.springframework.security.oauth2.jwt.JwtEncoder
@@ -53,17 +54,13 @@ class IdentityBootstrapConfiguration {
 
     @Bean
     fun refreshSessionProperties(
-        @Value("\${app.security.refresh-session.cookie-name:pt_refresh}") cookieName: String,
-        @Value("\${app.security.refresh-session.cookie-path:/api/auth}") cookiePath: String,
-        @Value("\${app.security.refresh-session.same-site:Lax}") sameSite: String,
-        @Value("\${app.security.refresh-session.secure:true}") secure: Boolean,
-        @Value("\${app.security.refresh-session.ttl-seconds:604800}") ttlSeconds: Long,
+        config: RefreshSessionConfigurationProperties,
     ): RefreshSessionProperties = RefreshSessionProperties(
-        cookieName = cookieName,
-        cookiePath = cookiePath,
-        sameSite = sameSite,
-        secure = secure,
-        ttlSeconds = ttlSeconds,
+        cookieName = config.cookieName,
+        cookiePath = config.cookiePath,
+        sameSite = config.sameSite,
+        secure = config.secure,
+        ttlSeconds = config.ttlSeconds,
     )
 
     @Bean
@@ -86,8 +83,7 @@ class IdentityBootstrapConfiguration {
     @Bean
     fun localJwtIssuer(
         jwtEncoder: JwtEncoder,
-        @Value("\${app.security.local-jwt.issuer:profiletailors-local}") issuer: String,
-        @Value("\${app.security.local-jwt.ttl-seconds:3600}") ttlSeconds: Long,
-    ): LocalJwtIssuer = NimbusLocalJwtIssuer(jwtEncoder, issuer, ttlSeconds)
+        properties: LocalJwtProperties,
+    ): LocalJwtIssuer = NimbusLocalJwtIssuer(jwtEncoder, properties.issuer, properties.ttlSeconds)
 
 }

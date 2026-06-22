@@ -52,6 +52,7 @@ abstract class DatabaseUnitTestBase {
         databaseClient.sql("DELETE FROM publication_jobs").fetch().rowsUpdated().awaitSingle()
         databaseClient.sql("DELETE FROM publication_asset_links").fetch().rowsUpdated().awaitSingle()
         databaseClient.sql("DELETE FROM publications").fetch().rowsUpdated().awaitSingle()
+        databaseClient.sql("DELETE FROM media_assets").fetch().rowsUpdated().awaitSingle()
         databaseClient.sql("DELETE FROM publication_assets").fetch().rowsUpdated().awaitSingle()
         databaseClient.sql("DELETE FROM social_accounts").fetch().rowsUpdated().awaitSingle()
         databaseClient.sql("DELETE FROM social_connections").fetch().rowsUpdated().awaitSingle()
