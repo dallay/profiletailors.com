@@ -5,11 +5,9 @@ import type { DateValue } from 'reka-ui'
 import { CalendarDate, getLocalTimeZone, today } from '@internationalized/date'
 import {
   AlertCircle,
-  // biome-ignore lint/correctness/noUnusedImports: used in template
   Calendar as CalendarIcon,
   Check,
   Hash,
-  // biome-ignore lint/correctness/noUnusedImports: used in template
   Image as ImageIcon,
   Loader2,
   RotateCcw,
