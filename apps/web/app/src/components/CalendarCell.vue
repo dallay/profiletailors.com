@@ -119,18 +119,29 @@ function onKeyDown(e: KeyboardEvent) {
       <div
         v-for="pub in visiblePublications"
         :key="pub.id"
-        class="relative z-10 flex items-center gap-1 rounded-md px-1 py-0.5 text-[7px] font-mono truncate"
-        :class="getProviderColor(pub.channels[0] || 'linkedin')"
-        :draggable="draggable"
-        @dragstart="onDragStart($event, pub)"
-        @dragend="onDragEnd"
+        class="relative z-10 overflow-hidden rounded-md"
       >
-        <span class="shrink-0">{{ getProviderBadge(pub.channels[0] || 'linkedin') }}</span>
-        <span class="truncate">{{ pub.title || pub.content.substring(0, 20) }}</span>
-        <ConflictBadge
-          v-if="pub.hasConflict"
-          variant="dot"
-        />
+        <div
+          class="flex flex-row items-center gap-1 rounded-md px-1 py-0.5 text-[7px] font-mono"
+          :class="getProviderColor(pub.channels[0] || 'linkedin')"
+          :draggable="draggable"
+          @dragstart="onDragStart($event, pub)"
+          @dragend="onDragEnd"
+        >
+          <span class="shrink-0">{{ getProviderBadge(pub.channels[0] || 'linkedin') }}</span>
+          <span class="min-w-0 flex-1 truncate">{{ pub.title || pub.content.substring(0, 20) }}</span>
+          <img
+            v-if="pub.thumbnail"
+            :src="pub.thumbnail"
+            alt=""
+            class="h-5 w-5 shrink-0 rounded-sm object-cover opacity-85"
+            :draggable="false"
+          >
+          <ConflictBadge
+            v-if="pub.hasConflict"
+            variant="dot"
+          />
+        </div>
       </div>
       <div
         v-if="remainingCount > 0"

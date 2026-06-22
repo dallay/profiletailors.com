@@ -47,9 +47,13 @@ describe('LinkedInPostPreview.vue', () => {
       },
     })
 
-    expect(wrapper.get('[data-testid="linkedin-preview-text"]').classes()).toContain('preview-text-clamp')
+    expect(wrapper.get('[data-testid="linkedin-preview-text"]').classes()).toContain(
+      'preview-text-clamp',
+    )
     expect(wrapper.get('[data-testid="linkedin-preview-more"]').text()).toBe('...more')
-    expect(wrapper.get('[data-testid="linkedin-preview-text"]').text()).toContain('Launching something new')
+    expect(wrapper.get('[data-testid="linkedin-preview-text"]').text()).toContain(
+      'Launching something new',
+    )
   })
 
   it('renders placeholder copy when there is no post text', () => {
@@ -98,7 +102,9 @@ describe('LinkedInPostPreview.vue', () => {
       },
     })
 
-    expect(wrapper.get('[data-testid="linkedin-preview-media"]').text()).toContain('launch-demo.mp4')
+    expect(wrapper.get('[data-testid="linkedin-preview-media"]').text()).toContain(
+      'launch-demo.mp4',
+    )
     expect(wrapper.get('[data-testid="linkedin-preview-media"]').text()).toContain('Video')
   })
 })

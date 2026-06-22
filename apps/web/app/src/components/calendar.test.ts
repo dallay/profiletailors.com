@@ -269,6 +269,48 @@ describe('CalendarCell', () => {
     expect(conflictBadge.exists()).toBe(true)
   })
 
+  it('renders thumbnail image when publication has one', () => {
+    const pubs = [
+      makePublication({
+        id: 'pub-with-thumb',
+        thumbnail: 'https://example.com/image.jpg',
+      }),
+    ]
+    const wrapper = mount(CalendarCell, {
+      props: {
+        date: new Date(2026, 5, 15),
+        isCurrentMonth: true,
+        isToday: false,
+        publications: pubs,
+      },
+    })
+    const img = wrapper.find('img')
+    expect(img.exists()).toBe(true)
+    expect(img.attributes('src')).toBe('https://example.com/image.jpg')
+  })
+
+  it('keeps text visible beside the thumbnail in month view', () => {
+    const pubs = [
+      makePublication({
+        id: 'pub-with-thumb-and-text',
+        title: 'Visible Title',
+        thumbnail: 'https://example.com/image.jpg',
+      }),
+    ]
+    const wrapper = mount(CalendarCell, {
+      props: {
+        date: new Date(2026, 5, 15),
+        isCurrentMonth: true,
+        isToday: false,
+        publications: pubs,
+      },
+    })
+    const row = wrapper.findAll('div').find((d) => d.classes().some((c) => c.includes('flex-row')))
+    expect(row?.exists()).toBe(true)
+    expect(wrapper.text()).toContain('Visible Title')
+    expect(row?.find('img').exists()).toBe(true)
+  })
+
   it('emits click-day when current-month cell is clicked', async () => {
     const date = new Date(2026, 5, 15)
     const wrapper = mount(CalendarCell, {
