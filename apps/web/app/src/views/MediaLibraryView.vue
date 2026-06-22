@@ -378,14 +378,15 @@ onMounted(async () => {
     >
       <div class="flex items-center gap-3">
         <input
+          id="select-all-visible"
           :checked="allVisibleSelected"
           type="checkbox"
           class="size-4"
           @change="toggleSelectAllVisible"
         />
-        <span class="text-sm text-text-display">
+        <label for="select-all-visible" class="text-sm text-text-display">
           {{ selectedLibraryAssetIds.length }} selected
-        </span>
+        </label>
         <Button type="button" variant="ghost" size="sm" class="text-xs" @click="clearAssetSelection">
           Clear selection
         </Button>
