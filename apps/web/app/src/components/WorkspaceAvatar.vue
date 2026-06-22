@@ -24,7 +24,7 @@ const iconComponent = computed<Component | null>(() => {
   if (!props.icon) return null
   const iconName = toPascalCase(props.icon)
   // biome-ignore lint/performance/noDynamicNamespaceImportAccess: icon name is user-provided at runtime, static imports are not feasible
-  return LucideIcons[iconName as keyof typeof LucideIcons] ?? null
+  return LucideIcons[iconName as keyof typeof LucideIcons] as Component ?? null
 })
 
 </script>

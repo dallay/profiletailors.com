@@ -480,8 +480,8 @@ describe('media store', () => {
       const selected = store.selectedAssets
 
       expect(selected).toHaveLength(2)
-      expect(selected[0].assetId).toBe('asset-1')
-      expect(selected[1].assetId).toBe('asset-2')
+      expect(selected[0]?.assetId).toBe('asset-1')
+      expect(selected[1]?.assetId).toBe('asset-2')
     })
 
     it('excludes unknown asset ids from selectedAssets', () => {
@@ -493,7 +493,7 @@ describe('media store', () => {
 
       // Only the known asset should appear
       expect(selected).toHaveLength(1)
-      expect(selected[0].assetId).toBe('known-asset')
+      expect(selected[0]?.assetId).toBe('known-asset')
     })
   })
 
@@ -571,7 +571,7 @@ describe('media store', () => {
       }
 
       expect(store.pendingUploads).toHaveLength(1)
-      expect(store.pendingUploads[0].tempKey).toBe('uploading')
+      expect(store.pendingUploads[0]?.tempKey).toBe('uploading')
     })
 
     it('failedUploads includes failed and conflict items', () => {

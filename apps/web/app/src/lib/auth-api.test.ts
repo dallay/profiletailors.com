@@ -18,7 +18,7 @@ import {
 // ---------------------------------------------------------------------------
 
 function mockFetch(response: Response) {
-  const fetchMock = vi.fn(() => response)
+  const fetchMock = vi.fn(() => response) as ReturnType<typeof vi.fn>
   vi.stubGlobal('fetch', fetchMock)
   return fetchMock
 }
@@ -53,6 +53,7 @@ describe('login', () => {
       principalId: 'user-1',
       email: 'user@example.com',
       username: 'testuser',
+      emailStatus: 'ACTIVE',
       workspaceId: null,
     }
     const fetchMock = mockFetch(
@@ -145,6 +146,7 @@ describe('register', () => {
       principalId: 'user-2',
       email: 'newuser@example.com',
       username: 'newuser',
+      emailStatus: 'PENDING',
       workspaceId: null,
     }
     const fetchMock = mockFetch(
@@ -190,6 +192,7 @@ describe('refreshSession', () => {
       principalId: 'user-1',
       email: 'user@example.com',
       username: null,
+      emailStatus: 'ACTIVE',
       workspaceId: null,
     }
     mockFetch(
@@ -659,7 +662,9 @@ describe('login — Zod validation', () => {
 
     await login({ email: '  User@Example.COM  ', password: 'secret123' })
 
-    const sentBody = JSON.parse(fetchMock.mock.calls[0]?.[1]?.body as string)
+    const sentBody = JSON.parse(
+      (fetchMock.mock.calls[0]?.[1] as RequestInit | undefined)?.body as string,
+    )
     expect(sentBody.email).toBe('user@example.com')
     expect(sentBody.password).toBe('secret123')
   })
@@ -684,7 +689,9 @@ describe('login — Zod validation', () => {
 
     await login({ email: 'user@example.com', password: '  mypassword  ' })
 
-    const sentBody = JSON.parse(fetchMock.mock.calls[0]?.[1]?.body as string)
+    const sentBody = JSON.parse(
+      (fetchMock.mock.calls[0]?.[1] as RequestInit | undefined)?.body as string,
+    )
     expect(sentBody.password).toBe('mypassword')
   })
 
@@ -736,7 +743,9 @@ describe('register — Zod validation', () => {
 
     await register({ email: '  NewUser@Example.COM  ', password: 'password123' })
 
-    const sentBody = JSON.parse(fetchMock.mock.calls[0]?.[1]?.body as string)
+    const sentBody = JSON.parse(
+      (fetchMock.mock.calls[0]?.[1] as RequestInit | undefined)?.body as string,
+    )
     expect(sentBody.email).toBe('newuser@example.com')
   })
 
@@ -778,7 +787,9 @@ describe('renameWorkspace', () => {
 
     await renameWorkspace('  My Studio  ', 'access-token', 'ws-1')
 
-    const sentBody = JSON.parse(fetchMock.mock.calls[0]?.[1]?.body as string)
+    const sentBody = JSON.parse(
+      (fetchMock.mock.calls[0]?.[1] as RequestInit | undefined)?.body as string,
+    )
     expect(sentBody.name).toBe('My Studio')
   })
 

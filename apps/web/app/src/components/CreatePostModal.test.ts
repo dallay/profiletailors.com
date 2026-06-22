@@ -354,6 +354,84 @@ describe('CreatePostModal.vue — media asset integration', () => {
   })
 })
 
+describe('CreatePostModal.vue — preview composition', () => {
+  beforeEach(() => {
+    setActivePinia(createPinia())
+    document.body.innerHTML = ''
+    vi.clearAllMocks()
+  })
+
+  afterEach(() => {
+    document.body.innerHTML = ''
+  })
+
+  it('renders the shared preview shell with the LinkedIn child preview', async () => {
+    const wrapper = mountModal([
+      makeChannel('preview-shell', { name: 'Acme Corp', handle: 'acme-corp' }),
+    ])
+    await wrapper.vm.$nextTick()
+
+    expect(document.body.innerHTML).toContain('composer.linkedinPreview')
+    expect(document.body.innerHTML).toContain('Acme Corp')
+    expect(document.body.innerHTML).toContain('composer.seePreviewHere')
+  })
+
+  it('shows the more affordance for very long preview text without mutating the textarea value', async () => {
+    const wrapper = mountModal([makeChannel('preview-long')])
+    await wrapper.vm.$nextTick()
+
+    const textarea = document.body.querySelector('textarea') as HTMLTextAreaElement | null
+    expect(textarea).not.toBeNull()
+
+    const longText = `${'Long LinkedIn preview text '.repeat(20)}\n\n${'Extra paragraph '.repeat(14)}`
+    textarea!.value = longText
+    textarea!.dispatchEvent(new Event('input', { bubbles: true }))
+
+    await wrapper.vm.$nextTick()
+
+    const previewText = document.body.querySelector('[data-testid="linkedin-preview-text"]')
+    const previewMore = document.body.querySelector('[data-testid="linkedin-preview-more"]')
+
+    expect(previewText).not.toBeNull()
+    expect(previewMore?.textContent?.trim()).toBe('...more')
+    expect((textarea as HTMLTextAreaElement).value).toBe(longText)
+  })
+
+  it('keeps the preview media visible when text is truncated', async () => {
+    const mediaStore = useMediaStore()
+    mediaStore.assetsById['preview-media'] = {
+      assetId: 'preview-media',
+      workspaceId: 'ws-1',
+      sourceType: 'UPLOADED',
+      mediaType: 'image/png',
+      status: 'READY',
+      originalFilename: 'preview.png',
+      fileSizeBytes: 1024,
+      createdAt: '2026-06-19T12:00:00Z',
+      previewUrl: '/api/media/assets/preview-media/preview',
+    }
+    mediaStore.selectedAssetIds.push('preview-media')
+
+    const wrapper = mountModal([makeChannel('preview-with-media')])
+    await wrapper.vm.$nextTick()
+
+    const textarea = document.body.querySelector('textarea') as HTMLTextAreaElement | null
+    textarea!.value = 'A'.repeat(320)
+    textarea?.dispatchEvent(new Event('input', { bubbles: true }))
+
+    await wrapper.vm.$nextTick()
+
+    const previewImage = document.body.querySelector('[data-testid="linkedin-preview-media"] img')
+    const previewMore = document.body.querySelector('[data-testid="linkedin-preview-more"]')
+
+    expect(previewImage).not.toBeNull()
+    expect((previewImage as HTMLImageElement).getAttribute('src')).toBe(
+      '/api/media/assets/preview-media/preview',
+    )
+    expect(previewMore?.textContent?.trim()).toBe('...more')
+  })
+})
+
 describe('CreatePostModal.vue — submit normalization', () => {
   beforeEach(() => {
     setActivePinia(createPinia())
@@ -408,6 +486,32 @@ describe('CreatePostModal.vue — submit normalization', () => {
         content: 'Hello world',
       }),
     )
+  })
+
+  it('renders "Next Schedule" label when scheduleMode is set to next', async () => {
+    const channel = makeChannel('submit-ch-1')
+    const store = usePublishingStore()
+    store.channels = [channel]
+
+    const wrapper = mount(CreatePostModalComponent, {
+      props: { isOpen: true },
+      global: { mocks: { $t: mockT } },
+    })
+    await wrapper.vm.$nextTick()
+
+    // Switch to "Next Schedule" mode via the visible schedule toggle button
+    const nextScheduleToggle = Array.from(document.body.querySelectorAll('button')).find(
+      (button) => button.textContent?.trim() === 'Next Schedule',
+    ) as HTMLButtonElement | undefined
+    expect(nextScheduleToggle).toBeDefined()
+    nextScheduleToggle?.click()
+    await wrapper.vm.$nextTick()
+
+    // Verify the primary action button shows the Next Schedule label
+    const actionButton = document.body.querySelector('.ui-button')
+    expect(actionButton).not.toBeNull()
+    // The mock $t returns the key unchanged, so we check for the i18n key
+    expect(actionButton?.textContent?.trim()).toBe('composer.nextScheduleBtn')
   })
 })
 
@@ -535,8 +639,9 @@ describe('CreatePostModal.vue — deferred media upload on submit', () => {
     textarea.dispatchEvent(new Event('input', { bubbles: true }))
     await wrapper.vm.$nextTick()
 
-    const button = document.body.querySelector('.ui-button')!
-    button.click()
+    const button = document.body.querySelector('.ui-button') as HTMLButtonElement | null
+    expect(button).not.toBeNull()
+    button?.click()
     await wrapper.vm.$nextTick()
     await Promise.resolve()
 
@@ -590,8 +695,9 @@ describe('CreatePostModal.vue — deferred media upload on submit', () => {
     textarea.dispatchEvent(new Event('input', { bubbles: true }))
     await wrapper.vm.$nextTick()
 
-    const button = document.body.querySelector('.ui-button')!
-    button.click()
+    const button = document.body.querySelector('.ui-button') as HTMLButtonElement | null
+    expect(button).not.toBeNull()
+    button?.click()
     await wrapper.vm.$nextTick()
     await Promise.resolve()
 
@@ -624,7 +730,7 @@ describe('CreatePostModal.vue — dangling upload recovery', () => {
     }
 
     expect(mediaStore.failedUploads).toHaveLength(1)
-    expect(mediaStore.failedUploads[0].tempKey).toBe('retry-key')
+    expect(mediaStore.failedUploads[0]?.tempKey).toBe('retry-key')
   })
 
   it('failed uploads are separate from completed uploads', () => {
@@ -681,6 +787,6 @@ describe('CreatePostModal.vue — dangling upload recovery', () => {
     }
 
     expect(mediaStore.pendingUploads).toHaveLength(1)
-    expect(mediaStore.pendingUploads[0].tempKey).toBe('pending-key')
+    expect(mediaStore.pendingUploads[0]?.tempKey).toBe('pending-key')
   })
 })

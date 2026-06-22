@@ -33,6 +33,7 @@ const fakeTokens: AuthTokens = {
   principalId: 'user-1',
   email: 'user@example.com',
   username: 'testuser',
+  emailStatus: 'ACTIVE',
   workspaceId: 'ws-1',
 }
 

@@ -12,7 +12,7 @@ function stubGetRandomValues(returnValue: Uint32Array) {
     ...globalThis.crypto,
     getRandomValues: vi.fn((arr: Uint32Array) => {
       if (arr instanceof Uint32Array && arr.length > 0) {
-        arr[0] = returnValue[0]
+        arr[0] = returnValue[0]!
       }
       return arr
     }),
@@ -62,7 +62,7 @@ describe('SidebarMenuSkeleton', () => {
     const widthMatch = style.match(/--skeleton-width:\s*([^;]+)/)
     expect(widthMatch).toBeTruthy()
 
-    const pct = parseFloat(widthMatch![1])
+    const pct = parseFloat(widthMatch![1]!)
     expect(pct).toBeGreaterThanOrEqual(50)
     expect(pct).toBeLessThan(90)
   })
@@ -91,14 +91,14 @@ describe('SidebarMenuSkeleton', () => {
     const maxStyle =
       wrapperMax.find('[data-sidebar="menu-skeleton-text"]').attributes('style') ?? ''
     const maxMatch = maxStyle.match(/--skeleton-width:\s*([^;]+)/)
-    const maxPct = parseFloat(maxMatch![1])
+    const maxPct = parseFloat(maxMatch![1]!)
 
     stubGetRandomValues(new Uint32Array([0])) // 0 → 50%
     const wrapperMin = mount(SidebarMenuSkeleton, { props: { showIcon: false } })
     const minStyle =
       wrapperMin.find('[data-sidebar="menu-skeleton-text"]').attributes('style') ?? ''
     const minMatch = minStyle.match(/--skeleton-width:\s*([^;]+)/)
-    const minPct = parseFloat(minMatch![1])
+    const minPct = parseFloat(minMatch![1]!)
 
     // Both are in the valid range; max should be strictly < 90%
     expect(maxPct).toBeGreaterThanOrEqual(50)

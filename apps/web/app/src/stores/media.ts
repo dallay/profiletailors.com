@@ -144,8 +144,13 @@ export const useMediaStore = defineStore('media', () => {
   }
 
   function updateUpload(tempKey: string, updates: Partial<UploadItem>) {
+    const current = uploads.value[tempKey]
+    if (!current) {
+      return
+    }
+
     uploads.value[tempKey] = {
-      ...uploads.value[tempKey],
+      ...current,
       ...updates,
     }
   }
