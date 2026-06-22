@@ -3,15 +3,13 @@ package com.profiletailors.smp.publishing.infrastructure.linkedin
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties
 import com.fasterxml.jackson.annotation.JsonProperty
 import com.fasterxml.jackson.databind.ObjectMapper
-import org.springframework.beans.factory.annotation.Autowired
 import com.profiletailors.smp.publishing.domain.AssetSourceType
+import com.profiletailors.smp.publishing.domain.AssetUploadContext
 import com.profiletailors.smp.publishing.domain.AssetUploader
+import com.profiletailors.smp.publishing.domain.CompleteProviderConnectionCommand
 import com.profiletailors.smp.publishing.domain.LinkedInAuthorizationUrlBuilder
 import com.profiletailors.smp.publishing.domain.OAuthStateSigner
-import com.profiletailors.smp.publishing.domain.AssetUploadContext
-import com.profiletailors.smp.publishing.domain.CompleteProviderConnectionCommand
 import com.profiletailors.smp.publishing.domain.ProviderAccountProfile
-import com.profiletailors.smp.publishing.domain.ProviderAssetRef
 import com.profiletailors.smp.publishing.domain.ProviderCapabilityValidationInput
 import com.profiletailors.smp.publishing.domain.ProviderCapabilityValidator
 import com.profiletailors.smp.publishing.domain.ProviderConnectionResult
@@ -19,31 +17,27 @@ import com.profiletailors.smp.publishing.domain.ProviderPublishCommand
 import com.profiletailors.smp.publishing.domain.ProviderPublishResult
 import com.profiletailors.smp.publishing.domain.PublicationValidationException
 import com.profiletailors.smp.publishing.domain.SocialAccountKind
-import com.profiletailors.smp.publishing.domain.SocialConnectionRepository
 import com.profiletailors.smp.publishing.domain.SocialConnectionProvider
 import com.profiletailors.smp.publishing.domain.SocialProvider
 import com.profiletailors.smp.publishing.domain.SocialPublisher
 import com.profiletailors.smp.publishing.infrastructure.scheduling.RetryablePublishingException
-import com.profiletailors.storage.domain.PresignableStorage
 import com.profiletailors.storage.domain.Storage
 import com.profiletailors.storage.domain.StorageException
-import kotlinx.coroutines.flow.first
-import kotlinx.coroutines.reactor.awaitSingle
+import org.slf4j.LoggerFactory
+import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.beans.factory.annotation.Value
 import org.springframework.boot.context.properties.ConfigurationProperties
 import org.springframework.boot.context.properties.EnableConfigurationProperties
 import org.springframework.context.annotation.Bean
 import org.springframework.context.annotation.Configuration
-import java.io.IOException
 import java.net.URI
-import java.time.Clock
 import java.net.URLEncoder
 import java.net.http.HttpClient
 import java.net.http.HttpRequest
 import java.net.http.HttpResponse
 import java.nio.charset.StandardCharsets
-import java.util.UUID
-import org.slf4j.LoggerFactory
+import java.time.Clock
+import java.util.*
 
 @ConfigurationProperties(prefix = "publishing.linkedin")
 data class LinkedInPublishingProperties(
