@@ -176,7 +176,9 @@ describe('SchedulerView', () => {
     const wrapper = mountView()
     await flushPromises()
     // Find the week card button that contains the pub
-    const card = wrapper.findAll('button').find((b) => b.text().includes('Side by side layout test'))
+    const card = wrapper
+      .findAll('button')
+      .find((b) => b.text().includes('Side by side layout test'))
     expect(card.exists()).toBe(true)
     // The body container that holds both text and thumbnail must be flex-row (not flex-col)
     const bodyDiv = card.findAll('div').find((d) => {
