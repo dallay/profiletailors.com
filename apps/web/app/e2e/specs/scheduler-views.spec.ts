@@ -69,9 +69,11 @@ test.describe('Scheduler — Views & Navigation', () => {
     // Past cells should have cursor-not-allowed and aria-disabled
     // (depends on day of month — some test runs may have 0 past cells)
     const pastCells = page.locator('[aria-disabled="true"]')
-    await expect(pastCells.first()).toBeAttached({ timeout: 2_000 }).catch(() => {
-      // No past cells on this day of month — navigation still validated
-    })
+    await expect(pastCells.first())
+      .toBeAttached({ timeout: 2_000 })
+      .catch(() => {
+        // No past cells on this day of month — navigation still validated
+      })
 
     // Past cells with post cards should be clickable (read-only detail)
     // This is validated in TC-15 separately

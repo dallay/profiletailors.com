@@ -61,9 +61,8 @@ internal class RegisterUserHandler(
 ) : CommandWithResultHandler<RegisterUserCommand, LocalAuthSessionResult> {
 
     override suspend fun handle(command: RegisterUserCommand): LocalAuthSessionResult {
-        val normalizedEmail = command.email.trim().lowercase()
-        val normalizedUsername =
-            command.username?.trim()?.takeIf { it.isNotEmpty() } ?: normalizedEmail.substringBefore('@')
+        val normalizedEmail = normalizeEmail(command.email)
+        val normalizedUsername = normalizeUsername(command.username, normalizedEmail)
 
         validateRegistration(normalizedEmail, command.password, normalizedUsername)
 
@@ -156,7 +155,7 @@ internal class LoginUserHandler(
 ) : CommandWithResultHandler<LoginUserCommand, LocalAuthSessionResult> {
 
     override suspend fun handle(command: LoginUserCommand): LocalAuthSessionResult {
-        val normalizedEmail = command.email.trim().lowercase()
+        val normalizedEmail = normalizeEmail(command.email)
         val credential = localPasswordCredentialGateway.findByEmail(normalizedEmail)
 
         if (credential == null || !passwordHasher.matches(command.password, credential.passwordHash)) {
@@ -289,7 +288,7 @@ internal class ResendVerificationHandler(
 ) : CommandWithResultHandler<ResendVerificationCommand, ResendVerificationResult> {
 
     override suspend fun handle(command: ResendVerificationCommand): ResendVerificationResult {
-        val normalizedEmail = command.email.trim().lowercase()
+        val normalizedEmail = normalizeEmail(command.email)
         val identityFacts = principalIdentityLookup.findByEmail(normalizedEmail)
 
         // Always return accepted to prevent email enumeration

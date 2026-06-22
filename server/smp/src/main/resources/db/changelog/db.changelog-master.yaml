@@ -67,6 +67,8 @@ databaseChangeLog:
       file: db/changelog/publishing/012-add-avatar-to-social-accounts.yaml
   - include:
       file: db/changelog/publishing/013-linkedin-integration-publication.yaml
+  - include:
+      file: db/changelog/media/001-create-media-assets.yaml
   # ── Dev seed data (context: dev only) ──────────────────────────
   - include:
       file: db/changelog/dev/001-seed-test-data.yaml

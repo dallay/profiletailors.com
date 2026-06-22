@@ -11,11 +11,7 @@
 import { test, expect } from '../fixtures/base-test'
 import { LoginPage } from '../pages/login-page'
 import { APP_URL } from '../fixtures/test-data'
-import {
-  authenticateAs,
-  fallbackAfterDelay,
-  keepSessionAlive,
-} from '../fixtures/auth-helpers'
+import { authenticateAs, fallbackAfterDelay, keepSessionAlive } from '../fixtures/auth-helpers'
 import { safeGoto } from '../fixtures/navigation'
 
 test.describe('Token Refresh', { tag: '@integration' }, () => {
@@ -32,7 +28,7 @@ test.describe('Token Refresh', { tag: '@integration' }, () => {
 
     // Track refresh calls
     let originalRequestSeen = false
-    let retriedRequestSeen = false
+    let _retriedRequestSeen = false
 
     // Intercept an authenticated API call — fail first time, then succeed
     await page.route('**/api/auth/me', async (route) => {
@@ -44,7 +40,7 @@ test.describe('Token Refresh', { tag: '@integration' }, () => {
           body: JSON.stringify({ title: 'Unauthorized', detail: 'Token expired', status: 401 }),
         })
       } else {
-        retriedRequestSeen = true
+        _retriedRequestSeen = true
         await fallbackAfterDelay(route, 0)
       }
     })

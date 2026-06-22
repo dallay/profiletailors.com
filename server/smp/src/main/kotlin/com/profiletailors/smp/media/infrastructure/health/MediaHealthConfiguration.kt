@@ -1,10 +1,10 @@
 package com.profiletailors.smp.media.infrastructure.health
 
+import com.profiletailors.smp.media.infrastructure.MediaProperties
 import com.profiletailors.storage.domain.BucketRegistry
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.reactor.awaitSingleOrNull
 import kotlinx.coroutines.runBlocking
-import org.springframework.beans.factory.annotation.Value
 import org.springframework.boot.health.contributor.Health
 import org.springframework.boot.health.contributor.HealthIndicator
 import org.springframework.r2dbc.core.DatabaseClient
@@ -24,8 +24,9 @@ private val logger = LoggerFactory.getLogger(MediaReadinessHealthIndicator::clas
 class MediaReadinessHealthIndicator(
     private val databaseClient: DatabaseClient,
     private val bucketRegistry: BucketRegistry,
-    @Value("\${media.storage.bucket:attachments}") private val storageBucket: String,
+    mediaProperties: MediaProperties,
 ) : HealthIndicator {
+    private val storageBucket: String = mediaProperties.storage.bucket
 
     @Suppress("TooGenericExceptionCaught")
     override fun health(): Health? {

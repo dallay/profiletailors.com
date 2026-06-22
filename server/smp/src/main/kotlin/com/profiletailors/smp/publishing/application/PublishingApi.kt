@@ -178,6 +178,7 @@ data class CalendarPublicationResult(
     val externalPublicationId: String? = null,
     val publicUrl: String? = null,
     val publishedAt: Instant? = null,
+    val previewUrl: String? = null,
 )
 
 data class ConflictEntry(

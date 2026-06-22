@@ -11,6 +11,7 @@ import io.mockk.coEvery
 import io.mockk.coVerify
 import io.mockk.mockk
 import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.reactor.mono
 import kotlinx.coroutines.test.runTest
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.assertThrows
@@ -117,9 +118,11 @@ class ApiControllerTest {
 
     @Test
     fun `should return userEmail from JwtAuthenticationToken`() = runTest {
-        val jwt = mockk<Jwt>()
-        val attributes = mapOf("email" to "test@example.com")
-        coEvery { jwt.claims } returns attributes
+        val jwt = Jwt.withTokenValue("token")
+            .header("alg", "none")
+            .subject("user-123")
+            .claim("email", "test@example.com")
+            .build()
         val auth = JwtAuthenticationToken(jwt)
         val context = SecurityContextImpl(auth)
 
@@ -245,9 +248,10 @@ class ApiControllerTest {
 
     @Test
     fun `should return null userEmail when email claim absent from JWT`() = runTest {
-        val jwt = mockk<Jwt>()
-        val attributes = mapOf<String, Any>()  // no email claim
-        coEvery { jwt.claims } returns attributes
+        val jwt = Jwt.withTokenValue("token")
+            .header("alg", "none")
+            .subject("user-123")
+            .build()
         val auth = JwtAuthenticationToken(jwt)
         val context = SecurityContextImpl(auth)
 
@@ -310,10 +314,4 @@ class ApiControllerTest {
     }
 
     private class TestResponse : Response
-
-    // Bridge mono for suspend functions in tests
-    private fun <T> mono(block: suspend () -> T): Mono<T> = Mono.defer {
-        val result = kotlinx.coroutines.runBlocking { block() }
-        if (result == null) Mono.empty() else Mono.just(result)
-    }
 }

@@ -31,6 +31,7 @@ vi.mock('@/lib/auth-api', () => ({
   register: vi.fn(),
   logoutSession: vi.fn(),
   proxyImageUrl: (url: string) => url,
+  resolveApiUrl: (url: string) => url,
 }))
 
 vi.mock('@/components/ui/button', () => ({
@@ -50,6 +51,10 @@ vi.mock('@lucide/vue', () => {
     Smile: stub,
     Sparkles: stub,
     X: stub,
+    Loader2: stub,
+    Upload: stub,
+    AlertCircle: stub,
+    RotateCcw: stub,
   }
 })
 
@@ -163,6 +168,92 @@ describe('CreatePostModal.vue — media asset integration', () => {
     vi.clearAllMocks()
   })
 
+  it('shows a transient blob preview immediately after file selection without uploading yet', async () => {
+    const mediaStore = useMediaStore()
+    const createAndUpload = vi.spyOn(mediaStore, 'createAndUpload')
+    Object.defineProperty(URL, 'createObjectURL', {
+      configurable: true,
+      value: vi.fn(() => 'blob:test-preview'),
+    })
+    const createObjectUrl = URL.createObjectURL as unknown as ReturnType<typeof vi.fn>
+
+    const wrapper = mountModal([makeChannel('ch-preview')])
+    await wrapper.vm.$nextTick()
+
+    const input = document.body.querySelector('input[type="file"]') as HTMLInputElement | null
+    expect(input).not.toBeNull()
+
+    const file = new File(['fake'], 'preview.png', { type: 'image/png' })
+    Object.defineProperty(input, 'files', {
+      configurable: true,
+      value: [file],
+    })
+    input?.dispatchEvent(new Event('change', { bubbles: true }))
+
+    await wrapper.vm.$nextTick()
+
+    const preview = document.body.querySelector(
+      'img[alt="Media preview"]',
+    ) as HTMLImageElement | null
+    expect(preview).not.toBeNull()
+    expect(preview?.getAttribute('src')).toBe('blob:test-preview')
+    expect(createAndUpload).not.toHaveBeenCalled()
+    expect(createObjectUrl).toHaveBeenCalledWith(file)
+    expect(input?.value).toBe('')
+  })
+
+  it('opens the hidden file input when the media drop zone is clicked', async () => {
+    const wrapper = mountModal([makeChannel('ch-picker')])
+    await wrapper.vm.$nextTick()
+
+    const input = document.body.querySelector('input[type="file"]') as HTMLInputElement | null
+    expect(input).not.toBeNull()
+
+    const clickSpy = vi.spyOn(input as HTMLInputElement, 'click')
+    const dropZone = Array.from(document.body.querySelectorAll('button')).find(
+      (button) => button.getAttribute('aria-label') === 'composer.dragDrop',
+    ) as HTMLButtonElement | undefined
+
+    expect(dropZone).toBeDefined()
+    dropZone?.click()
+
+    expect(clickSpy).toHaveBeenCalled()
+
+    wrapper.unmount()
+  })
+
+  it('shows the selected asset preview instead of the completed upload card', async () => {
+    const mediaStore = useMediaStore()
+    mediaStore.assetsById['preview-asset'] = {
+      assetId: 'preview-asset',
+      workspaceId: 'ws-1',
+      sourceType: 'UPLOADED',
+      mediaType: 'image/png',
+      status: 'READY',
+      originalFilename: 'preview.png',
+      fileSizeBytes: 1024,
+      createdAt: '2026-06-19T12:00:00Z',
+      previewUrl: '/api/media/assets/preview-asset/preview',
+    }
+    mediaStore.selectedAssetIds.push('preview-asset')
+    mediaStore.uploads['done-key'] = {
+      tempKey: 'done-key',
+      assetId: 'preview-asset',
+      file: new File(['fake'], 'preview.png', { type: 'image/png' }),
+      progress: 100,
+      status: 'done',
+      asset: mediaStore.assetsById['preview-asset'],
+    }
+
+    mountModal([makeChannel('ch-preview')])
+
+    await new Promise((resolve) => setTimeout(resolve, 0))
+
+    const body = document.body.innerHTML
+    expect(body).toContain('Selected media preview')
+    expect(body).not.toContain('Uploading preview.png')
+  })
+
   afterEach(() => {
     document.body.innerHTML = ''
   })
@@ -260,6 +351,257 @@ describe('CreatePostModal.vue — media asset integration', () => {
     mediaStore.clearSelection()
 
     expect(mediaStore.selectedAssetIds).toEqual([])
+  })
+})
+
+describe('CreatePostModal.vue — submit normalization', () => {
+  beforeEach(() => {
+    setActivePinia(createPinia())
+    document.body.innerHTML = ''
+    vi.clearAllMocks()
+  })
+
+  afterEach(() => {
+    document.body.innerHTML = ''
+  })
+
+  it('submits trimmed post content to the publishing store', async () => {
+    const channel = makeChannel('submit-ch-1')
+    const store = usePublishingStore()
+    store.channels = [channel]
+
+    const wrapper = mount(CreatePostModalComponent, {
+      props: { isOpen: true },
+      global: { mocks: { $t: mockT } },
+    })
+    await wrapper.vm.$nextTick()
+
+    const schedulePost = vi.spyOn(store, 'schedulePost').mockResolvedValue({
+      id: 'pub-1',
+      content: 'Hello world',
+      channels: ['linkedin'],
+      scheduledAt: '2026-06-20T14:00:00Z',
+      status: 'QUEUED',
+      priority: false,
+    })
+
+    // The textarea is teleported to body — query it directly
+    const textarea = document.body.querySelector('textarea')
+    expect(textarea).not.toBeNull()
+
+    // Simulate typing with leading/trailing whitespace
+    ;(textarea as HTMLTextAreaElement).value = '  Hello world  '
+    textarea?.dispatchEvent(new Event('input', { bubbles: true }))
+
+    await wrapper.vm.$nextTick()
+
+    // Click the schedule button (the ui-button rendered in the teleported content)
+    const button = document.body.querySelector('.ui-button')
+    expect(button).not.toBeNull()
+    ;(button as HTMLButtonElement).click()
+
+    await wrapper.vm.$nextTick()
+
+    expect(schedulePost).toHaveBeenCalledTimes(1)
+    expect(schedulePost).toHaveBeenCalledWith(
+      expect.objectContaining({
+        content: 'Hello world',
+      }),
+    )
+  })
+})
+
+describe('CreatePostModal.vue — deferred media upload on submit', () => {
+  beforeEach(() => {
+    setActivePinia(createPinia())
+    document.body.innerHTML = ''
+    vi.clearAllMocks()
+  })
+
+  afterEach(() => {
+    document.body.innerHTML = ''
+  })
+
+  it('uploads the selected file only when Schedule Post is clicked', async () => {
+    const mediaStore = useMediaStore()
+    const publishingStore = usePublishingStore()
+    publishingStore.channels = [makeChannel('submit-with-media')]
+
+    const schedulePost = vi.spyOn(publishingStore, 'schedulePost').mockResolvedValue({
+      id: 'pub-1',
+      content: 'Hello world',
+      channels: ['linkedin'],
+      scheduledAt: '2026-06-22T10:00:00Z',
+      status: 'QUEUED',
+      priority: false,
+    })
+    const createAndUpload = vi.spyOn(mediaStore, 'createAndUpload').mockResolvedValue({
+      assetId: 'uploaded-asset',
+      workspaceId: 'ws-1',
+      sourceType: 'UPLOADED',
+      mediaType: 'image/png',
+      status: 'READY',
+      originalFilename: 'preview.png',
+      fileSizeBytes: 1234,
+      createdAt: '2026-06-22T10:00:00Z',
+      previewUrl: '/api/media/assets/uploaded-asset/preview',
+    })
+
+    Object.defineProperty(URL, 'createObjectURL', {
+      configurable: true,
+      value: vi.fn(() => 'blob:test-preview'),
+    })
+
+    const wrapper = mount(CreatePostModalComponent, {
+      props: { isOpen: true },
+      global: { mocks: { $t: mockT } },
+    })
+    await wrapper.vm.$nextTick()
+
+    const input = document.body.querySelector('input[type="file"]') as HTMLInputElement | null
+    expect(input).not.toBeNull()
+
+    const file = new File(['fake'], 'preview.png', { type: 'image/png' })
+    Object.defineProperty(input, 'files', {
+      configurable: true,
+      value: [file],
+    })
+    input?.dispatchEvent(new Event('change', { bubbles: true }))
+
+    const textarea = document.body.querySelector('textarea')
+    expect(textarea).not.toBeNull()
+    ;(textarea as HTMLTextAreaElement).value = 'Hello world'
+    textarea?.dispatchEvent(new Event('input', { bubbles: true }))
+
+    await wrapper.vm.$nextTick()
+    expect(createAndUpload).not.toHaveBeenCalled()
+
+    const button = document.body.querySelector('.ui-button')
+    expect(button).not.toBeNull()
+    ;(button as HTMLButtonElement).click()
+
+    await wrapper.vm.$nextTick()
+    await Promise.resolve()
+
+    expect(createAndUpload).toHaveBeenCalledTimes(1)
+    expect(createAndUpload).toHaveBeenCalledWith(
+      file,
+      expect.stringMatching(/^modal-upload-/),
+      expect.any(Function),
+    )
+    expect(mediaStore.selectedAssetIds).toContain('uploaded-asset')
+    expect(schedulePost).toHaveBeenCalledWith(
+      expect.objectContaining({
+        content: 'Hello world',
+      }),
+    )
+  })
+
+  it('blocks schedulePost when the deferred upload fails', async () => {
+    const mediaStore = useMediaStore()
+    const publishingStore = usePublishingStore()
+    publishingStore.channels = [makeChannel('submit-media-fail')]
+
+    const schedulePost = vi.spyOn(publishingStore, 'schedulePost').mockResolvedValue({
+      id: 'pub-should-not-exist',
+      content: 'Hello world',
+      channels: ['linkedin'],
+      scheduledAt: '2026-06-22T10:00:00Z',
+      status: 'QUEUED',
+      priority: false,
+    })
+    const createAndUpload = vi
+      .spyOn(mediaStore, 'createAndUpload')
+      .mockRejectedValue(new Error('Network error: upload failed'))
+
+    Object.defineProperty(URL, 'createObjectURL', {
+      configurable: true,
+      value: vi.fn(() => 'blob:test-preview'),
+    })
+
+    const wrapper = mount(CreatePostModalComponent, {
+      props: { isOpen: true },
+      global: { mocks: { $t: mockT } },
+    })
+    await wrapper.vm.$nextTick()
+
+    const input = document.body.querySelector('input[type="file"]') as HTMLInputElement | null
+    const file = new File(['fake'], 'fail.png', { type: 'image/png' })
+    Object.defineProperty(input!, 'files', { configurable: true, value: [file] })
+    input?.dispatchEvent(new Event('change', { bubbles: true }))
+
+    const textarea = document.body.querySelector('textarea')!
+    textarea.value = 'Hello world'
+    textarea.dispatchEvent(new Event('input', { bubbles: true }))
+    await wrapper.vm.$nextTick()
+
+    const button = document.body.querySelector('.ui-button')!
+    button.click()
+    await wrapper.vm.$nextTick()
+    await Promise.resolve()
+
+    expect(createAndUpload).toHaveBeenCalledTimes(1)
+    expect(schedulePost).not.toHaveBeenCalled()
+  })
+
+  it('passes the uploaded assetId to schedulePost when deferred upload succeeds', async () => {
+    const mediaStore = useMediaStore()
+    const publishingStore = usePublishingStore()
+    publishingStore.channels = [makeChannel('submit-media-success')]
+
+    const schedulePost = vi.spyOn(publishingStore, 'schedulePost').mockResolvedValue({
+      id: 'pub-with-asset',
+      content: 'Post with image',
+      channels: ['linkedin'],
+      scheduledAt: '2026-06-22T10:00:00Z',
+      status: 'QUEUED',
+      priority: false,
+    })
+    const createAndUpload = vi.spyOn(mediaStore, 'createAndUpload').mockResolvedValue({
+      assetId: 'persistent-asset-id',
+      workspaceId: 'ws-1',
+      sourceType: 'UPLOADED',
+      mediaType: 'image/jpeg',
+      status: 'READY',
+      originalFilename: 'hero.jpg',
+      fileSizeBytes: 5678,
+      createdAt: '2026-06-22T10:00:00Z',
+      previewUrl: '/api/media/assets/persistent-asset-id/preview',
+    })
+
+    Object.defineProperty(URL, 'createObjectURL', {
+      configurable: true,
+      value: vi.fn(() => 'blob:test-preview'),
+    })
+
+    const wrapper = mount(CreatePostModalComponent, {
+      props: { isOpen: true },
+      global: { mocks: { $t: mockT } },
+    })
+    await wrapper.vm.$nextTick()
+
+    const input = document.body.querySelector('input[type="file"]') as HTMLInputElement | null
+    const file = new File(['fake'], 'hero.jpg', { type: 'image/jpeg' })
+    Object.defineProperty(input!, 'files', { configurable: true, value: [file] })
+    input?.dispatchEvent(new Event('change', { bubbles: true }))
+
+    const textarea = document.body.querySelector('textarea')!
+    textarea.value = 'Post with image'
+    textarea.dispatchEvent(new Event('input', { bubbles: true }))
+    await wrapper.vm.$nextTick()
+
+    const button = document.body.querySelector('.ui-button')!
+    button.click()
+    await wrapper.vm.$nextTick()
+    await Promise.resolve()
+
+    expect(createAndUpload).toHaveBeenCalledTimes(1)
+    expect(schedulePost).toHaveBeenCalledTimes(1)
+    expect(schedulePost).toHaveBeenCalledWith(
+      expect.objectContaining({
+        assetIds: ['persistent-asset-id'],
+      }),
+    )
   })
 })
 

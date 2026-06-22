@@ -85,7 +85,7 @@ async function main() {
   console.log(`HAR entries recorded: ${entries.length}`)
   for (const e of entries) {
     const url = e.request.url
-    const p = url.includes('/api') ? '/api' + url.split('/api')[1] : url
+    const p = url.includes('/api') ? `/api${url.split('/api')[1]}` : url
     console.log(`  ${e.request.method} ${p} -> ${e.response.status}`)
   }
 }

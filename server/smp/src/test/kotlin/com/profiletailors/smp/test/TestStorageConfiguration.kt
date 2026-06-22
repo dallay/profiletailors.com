@@ -3,6 +3,7 @@ package com.profiletailors.smp.test
 import com.profiletailors.common.domain.bus.event.BaseDomainEvent
 import com.profiletailors.common.domain.bus.event.EventPublisher
 import com.profiletailors.storage.application.StorageApplicationService
+import com.profiletailors.storage.domain.BucketRegistry
 import com.profiletailors.storage.domain.Storage
 import com.profiletailors.storage.domain.StorageObjectNotFoundException
 import com.profiletailors.storage.infrastructure.metrics.StorageMetrics
@@ -61,6 +62,21 @@ class TestStorageConfiguration {
 
         override suspend fun exists(bucket: String, key: String): Boolean =
             objects.containsKey("$bucket/$key")
+    }
+
+    /**
+     * Bucket registry that resolves the standard `attachments` bucket to the in-memory storage.
+     *
+     * This keeps full-context tests (including Actuator health) aligned with production code,
+     * where media readiness probes go through [BucketRegistry] rather than the application service.
+     */
+    @Bean
+    @Primary
+    fun testBucketRegistry(inMemoryFakeStorage: Storage): BucketRegistry = BucketRegistry { bucketName ->
+        when (bucketName) {
+            "attachments" -> inMemoryFakeStorage
+            else -> inMemoryFakeStorage
+        }
     }
 
     /**

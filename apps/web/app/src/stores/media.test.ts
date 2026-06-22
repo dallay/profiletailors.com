@@ -29,12 +29,14 @@ const mockReserveAsset = vi.fn()
 const mockUploadAsset = vi.fn()
 const mockListAssets = vi.fn()
 const mockGetAsset = vi.fn()
+const mockDeleteAsset = vi.fn()
 
 vi.mock('@/lib/media-api', () => ({
   reserveAsset: (...args: unknown[]) => mockReserveAsset(...args),
   uploadAsset: (...args: unknown[]) => mockUploadAsset(...args),
   listAssets: (...args: unknown[]) => mockListAssets(...args),
   getAsset: (...args: unknown[]) => mockGetAsset(...args),
+  deleteAsset: (...args: unknown[]) => mockDeleteAsset(...args),
 }))
 
 // ---------------------------------------------------------------------------
@@ -594,6 +596,78 @@ describe('media store', () => {
       }
 
       expect(store.failedUploads).toHaveLength(2)
+    })
+  })
+
+  describe('deletePersistedAsset', () => {
+    it('calls deleteAsset API and removes the asset from local state', async () => {
+      const store = useMediaStore()
+      store.assetsById['del-asset-1'] = readyAsset('del-asset-1')
+      store.assetIds.push('del-asset-1')
+      mockDeleteAsset.mockResolvedValueOnce(undefined)
+
+      await store.deletePersistedAsset('del-asset-1')
+
+      expect(mockDeleteAsset).toHaveBeenCalledWith('del-asset-1')
+      expect(store.assetIds).not.toContain('del-asset-1')
+      expect(store.assetsById['del-asset-1']).toBeUndefined()
+    })
+
+    it('removes the deleted asset from selectedAssetIds', async () => {
+      const store = useMediaStore()
+      store.assetsById['del-asset-2'] = readyAsset('del-asset-2')
+      store.assetIds.push('del-asset-2')
+      store.selectedAssetIds.push('del-asset-2')
+      mockDeleteAsset.mockResolvedValueOnce(undefined)
+
+      await store.deletePersistedAsset('del-asset-2')
+
+      expect(store.selectedAssetIds).not.toContain('del-asset-2')
+    })
+
+    it('does not remove other assets when deleting one', async () => {
+      const store = useMediaStore()
+      store.assetsById['keep-asset'] = readyAsset('keep-asset')
+      store.assetIds.push('keep-asset')
+      store.assetsById['del-asset-3'] = readyAsset('del-asset-3')
+      store.assetIds.push('del-asset-3')
+      mockDeleteAsset.mockResolvedValueOnce(undefined)
+
+      await store.deletePersistedAsset('del-asset-3')
+
+      expect(store.assetIds).toContain('keep-asset')
+      expect(store.assetsById['keep-asset']).toBeDefined()
+    })
+
+    it('propagates API errors without modifying local state', async () => {
+      const store = useMediaStore()
+      store.assetsById['del-err-asset'] = readyAsset('del-err-asset')
+      store.assetIds.push('del-err-asset')
+      mockDeleteAsset.mockRejectedValueOnce(
+        Object.assign(new Error('Not found'), {
+          title: 'Not Found',
+          detail: 'Asset does not exist',
+          status: 404,
+        }),
+      )
+
+      await expect(store.deletePersistedAsset('del-err-asset')).rejects.toThrow()
+
+      // Local state should be unchanged after the API failure
+      expect(store.assetIds).toContain('del-err-asset')
+      expect(store.assetsById['del-err-asset']).toBeDefined()
+    })
+
+    it('removes the deleted asset from both assetIds array and assetsById map', async () => {
+      const store = useMediaStore()
+      store.assetsById['multi-check-asset'] = readyAsset('multi-check-asset')
+      store.assetIds.push('multi-check-asset')
+      mockDeleteAsset.mockResolvedValueOnce(undefined)
+
+      await store.deletePersistedAsset('multi-check-asset')
+
+      expect(store.assetIds.includes('multi-check-asset')).toBe(false)
+      expect('multi-check-asset' in store.assetsById).toBe(false)
     })
   })
 })

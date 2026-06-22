@@ -13,6 +13,7 @@ import com.profiletailors.smp.publishing.domain.SocialAccountKind
 import com.profiletailors.smp.publishing.domain.SocialConnection
 import com.profiletailors.smp.publishing.domain.SocialConnectionStatus
 import com.profiletailors.smp.publishing.domain.SocialProvider
+import com.profiletailors.smp.media.infrastructure.persistence.R2dbcMediaAssetRepository
 import com.profiletailors.smp.publishing.infrastructure.persistence.R2dbcConnectedSocialChannelReadRepository
 import com.profiletailors.smp.publishing.infrastructure.persistence.R2dbcPublicationAssetRepository
 import com.profiletailors.smp.publishing.infrastructure.persistence.R2dbcPublicationRepository
@@ -37,6 +38,7 @@ class R2dbcPublishingRepositoriesTest : DatabaseUnitTestBase() {
     private lateinit var connectedSocialChannelReadRepository: R2dbcConnectedSocialChannelReadRepository
     private lateinit var publicationRepository: R2dbcPublicationRepository
     private lateinit var publicationAssetRepository: R2dbcPublicationAssetRepository
+    private lateinit var mediaAssetRepository: R2dbcMediaAssetRepository
     private lateinit var meterRegistry: SimpleMeterRegistry
 
     @BeforeEach
@@ -48,6 +50,7 @@ class R2dbcPublishingRepositoriesTest : DatabaseUnitTestBase() {
         connectedSocialChannelReadRepository = R2dbcConnectedSocialChannelReadRepository(databaseClient)
         publicationRepository = R2dbcPublicationRepository(databaseClient)
         publicationAssetRepository = R2dbcPublicationAssetRepository(databaseClient, ObjectMapper())
+        mediaAssetRepository = R2dbcMediaAssetRepository(databaseClient)
     }
 
     @Test
@@ -211,8 +214,13 @@ class R2dbcPublishingRepositoriesTest : DatabaseUnitTestBase() {
         ).fetch().rowsUpdated().awaitSingle()
         databaseClient.sql(
             """
-            INSERT INTO publication_assets (id, workspace_id, source_type, media_type, storage_key, status, created_by_principal_id)
-            VALUES ('asset-1', 'workspace-1', 'UPLOADED', 'image/png', 'storage/key.png', 'READY', 'principal-1')
+            INSERT INTO media_assets (
+                asset_id, workspace_id, source_type, media_type, storage_key,
+                original_filename, file_size_bytes, status, upload_started_at, created_at
+            ) VALUES (
+                'asset-1', 'workspace-1', 'UPLOADED', 'image/png', 'storage/key.png',
+                'asset-1.png', 1024, 'READY', NULL, CURRENT_TIMESTAMP()
+            )
             """.trimIndent(),
         ).fetch().rowsUpdated().awaitSingle()
 
@@ -232,10 +240,43 @@ class R2dbcPublishingRepositoriesTest : DatabaseUnitTestBase() {
         )
 
         val loaded = publicationRepository.findByWorkspaceAndId("workspace-1", persisted.id)
-        val assets = publicationAssetRepository.findByWorkspaceAndIds("workspace-1", listOf("asset-1"))
 
         assertNotNull(loaded)
         assertEquals(listOf("asset-1"), loaded?.assetIds)
+    }
+
+    @Test
+    fun `media asset repository finds assets by workspace and ids`() = runTest {
+        databaseClient.sql(
+            """
+            INSERT INTO media_assets (
+                asset_id, workspace_id, source_type, media_type, storage_key,
+                original_filename, file_size_bytes, status, upload_started_at, created_at
+            ) VALUES (
+                'media-asset-1', 'workspace-1', 'UPLOADED', 'image/png', 'storage/key.png',
+                'hero.png', 1024, 'READY', NULL, CURRENT_TIMESTAMP()
+            )
+            """.trimIndent(),
+        ).fetch().rowsUpdated().awaitSingle()
+        databaseClient.sql(
+            """
+            INSERT INTO media_assets (
+                asset_id, workspace_id, source_type, media_type, storage_key,
+                original_filename, file_size_bytes, status, upload_started_at, created_at
+            ) VALUES (
+                'media-asset-2', 'workspace-1', 'UPLOADED', 'image/jpeg', 'storage/key-2.jpg',
+                'second.jpg', 2048, 'READY', NULL, CURRENT_TIMESTAMP()
+            )
+            """.trimIndent(),
+        ).fetch().rowsUpdated().awaitSingle()
+
+        val assets = mediaAssetRepository.findByWorkspaceAndIds(
+            "workspace-1",
+            listOf("media-asset-1"),
+        )
+
+        assertEquals(1, assets.size)
+        assertEquals("media-asset-1", assets.single().assetId)
         assertEquals("image/png", assets.single().mediaType)
     }
 

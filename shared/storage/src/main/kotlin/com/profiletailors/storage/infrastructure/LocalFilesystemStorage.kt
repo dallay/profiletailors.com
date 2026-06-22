@@ -16,7 +16,9 @@ import java.nio.file.Files
 import java.nio.file.Path
 import java.nio.file.StandardCopyOption
 
-class LocalFilesystemStorage(private val basePath: Path) : Storage {
+class LocalFilesystemStorage(basePath: Path) : Storage {
+
+    private val basePath: Path = basePath.toAbsolutePath().normalize()
 
     init {
         try {

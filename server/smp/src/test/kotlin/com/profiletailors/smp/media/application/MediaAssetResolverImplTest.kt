@@ -237,6 +237,8 @@ class MediaAssetResolverImplTest {
 
         override suspend fun markAsFailed(assetId: String, workspaceId: String): MediaAsset? = null
 
+        override suspend fun delete(assetId: String, workspaceId: String): MediaAsset? = null
+
         override suspend fun findStaleProcessingAssets(thresholdHours: Long, gracePeriodMinutes: Long): List<MediaAsset> = emptyList()
 
         override suspend fun findRecentlyFailedAssets(): List<MediaAsset> = emptyList()

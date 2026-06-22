@@ -27,8 +27,10 @@ dependencies {
 
     testImplementation(libs.junit.jupiter)
     testImplementation(libs.kotlinx.coroutines.test)
+    testImplementation(libs.kotlinx.coroutines.reactor)
     testImplementation(libs.kotlin.test.junit5)
     testImplementation(libs.mockk)
+    testImplementation(libs.kotest.assertions.core)
     testImplementation(libs.archunit.junit5)
     
     testImplementation(platform(libs.testcontainers.bom))
@@ -39,4 +41,8 @@ dependencies {
     
     testRuntimeOnly(libs.junit.jupiter.engine)
     testRuntimeOnly(libs.junit.platform.launcher)
+
+    // Generate Spring Boot configuration metadata so IDEs (IntelliJ) can resolve
+    // platform.storage.* and platform.storage.providers.* properties.
+    annotationProcessor("org.springframework.boot:spring-boot-configuration-processor:${libs.versions.springBoot.get()}")
 }

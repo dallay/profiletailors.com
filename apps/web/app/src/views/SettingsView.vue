@@ -7,6 +7,7 @@ import { usePublishingStore } from '@/stores/publishing'
 import { useAuthStore } from '@/stores/auth'
 import { useWorkspaceStore } from '@/stores/workspace'
 import { renameWorkspace, updateWorkspaceIcon, proxyImageUrl } from '@/lib/auth-api'
+import { workspaceNameSchema } from '@/lib/validation/schemas'
 import WorkspaceAvatar from '@/components/WorkspaceAvatar.vue'
 import WorkspaceIconModal from '@/components/workspace/WorkspaceIconModal.vue'
 import { getProviderBadge } from '@/lib/provider-styles'
@@ -105,15 +106,25 @@ function cancelRenameWorkspace() {
 }
 
 async function saveWorkspaceName() {
-  const newName = workspaceNameInput.value.trim()
-  if (!newName || !auth.accessToken || !workspace.activeWorkspaceId) return
+  const rawName = workspaceNameInput.value
+  if (!auth.accessToken || !workspace.activeWorkspaceId) return
 
   renamingWorkspace.value = true
   renameError.value = null
   renameSuccess.value = false
 
+  const validation = workspaceNameSchema.safeParse(rawName)
+
+  if (!validation.success) {
+    renameError.value = validation.error.issues[0]?.message ?? t('workspace.renameFailed')
+    renamingWorkspace.value = false
+    return
+  }
+
+  const validatedName = validation.data
+
   try {
-    const result = await renameWorkspace(newName, auth.accessToken, workspace.activeWorkspaceId)
+    const result = await renameWorkspace(validatedName, auth.accessToken, workspace.activeWorkspaceId)
     workspace.setWorkspaceName(result.name)
     editingWorkspaceName.value = false
     renameSuccess.value = true

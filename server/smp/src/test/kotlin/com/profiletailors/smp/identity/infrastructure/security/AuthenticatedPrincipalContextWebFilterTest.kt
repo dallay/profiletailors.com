@@ -48,4 +48,39 @@ class AuthenticatedPrincipalContextWebFilterTest {
         assertEquals(principal.context, seenDuringChain)
         assertNull(store.currentPrincipalContext())
     }
+
+    @Test
+    fun `clearing principal context preserves workspace and request path context`() = runTest {
+        val store = InMemoryRequestContextStore().apply {
+            setResourceContext(
+                com.profiletailors.common.domain.context.ResourceContext(
+                    type = com.profiletailors.common.domain.context.ResourceContextType.WORKSPACE,
+                    workspaceId = "workspace-1",
+                ),
+            )
+            setRequestPath("/api/media/assets")
+        }
+        val filter = AuthenticatedPrincipalContextWebFilter(store)
+        val principal = AuthenticatedPrincipal(
+            context = PrincipalContext(
+                principalId = "principal-1",
+                principalType = PrincipalType.USER,
+                subject = "user-123",
+                provider = "https://issuer.example",
+            ),
+            credentialType = CredentialType.JWT,
+        )
+        val authentication = TestingAuthenticationToken(principal, "token", emptyList()).apply {
+            isAuthenticated = true
+        }
+        val exchange = MockServerWebExchange.from(MockServerHttpRequest.get("/").build())
+
+        filter.filter(exchange, WebFilterChain { Mono.empty() })
+            .contextWrite(ReactiveSecurityContextHolder.withSecurityContext(Mono.just(SecurityContextImpl(authentication))))
+            .block()
+
+        assertNull(store.currentPrincipalContext())
+        assertEquals("workspace-1", store.currentResourceContext()?.workspaceId)
+        assertEquals("/api/media/assets", store.currentRequestPath())
+    }
 }

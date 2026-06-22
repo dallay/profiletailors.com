@@ -82,5 +82,4 @@ test.describe('Login Page Rendering', { tag: '@frontend' }, () => {
     await expect(loginPage.passwordInput).toBeVisible()
     await expect(page.getByLabel(/username/i)).toHaveCount(0)
   })
-
 })

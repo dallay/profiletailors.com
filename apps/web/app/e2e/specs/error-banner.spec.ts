@@ -39,11 +39,13 @@ test.describe('Error Banner Visual States', () => {
 
     // Check visual styling classes
     const errorBanner = loginPage.errorBanner
-    const classAttr = await errorBanner.getAttribute('class') ?? ''
+    const classAttr = (await errorBanner.getAttribute('class')) ?? ''
     expect(classAttr).toContain('error')
   })
 
-  test('12.3 Error banner clears on new form submission', { tag: '@integration' }, async ({ page }) => {
+  test('12.3 Error banner clears on new form submission', { tag: '@integration' }, async ({
+    page,
+  }) => {
     // Mock login: first call fails, second call succeeds (clears the error)
     let loginAttempt = 0
     await page.route('**/api/auth/login', async (route) => {
@@ -52,13 +54,24 @@ test.describe('Error Banner Visual States', () => {
         await route.fulfill({
           status: 401,
           contentType: 'application/problem+json',
-          body: JSON.stringify({ title: 'Invalid credentials', detail: 'Invalid email or password.', status: 401 }),
+          body: JSON.stringify({
+            title: 'Invalid credentials',
+            detail: 'Invalid email or password.',
+            status: 401,
+          }),
         })
       } else {
         await route.fulfill({
           status: 200,
           contentType: 'application/vnd.api.v1+json',
-          body: JSON.stringify({ accessToken: 'new-token', tokenType: 'Bearer', expiresIn: 3600, principalId: 'test', email: 'new@email.com', username: 'newuser' }),
+          body: JSON.stringify({
+            accessToken: 'new-token',
+            tokenType: 'Bearer',
+            expiresIn: 3600,
+            principalId: 'test',
+            email: 'new@email.com',
+            username: 'newuser',
+          }),
         })
       }
     })
@@ -79,7 +92,9 @@ test.describe('Error Banner Visual States', () => {
     await expect(loginPage.errorBanner).toHaveCount(0, { timeout: 5_000 })
   })
 
-  test('12.4 Error banner cleared on navigation away', { tag: '@integration' }, async ({ page }) => {
+  test('12.4 Error banner cleared on navigation away', { tag: '@integration' }, async ({
+    page,
+  }) => {
     await mockLoginResponse(page)
 
     const loginPage = new LoginPage(page)

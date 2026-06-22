@@ -1,8 +1,11 @@
 package com.profiletailors.smp.media.infrastructure
 
+import com.profiletailors.smp.media.application.AssetPreviewUrlResolver
+import com.profiletailors.smp.media.application.MediaPreviewTokenService
 import com.profiletailors.smp.media.application.MediaReconcilerSettings
 import com.profiletailors.smp.media.application.MediaUploadSettings
-import org.springframework.beans.factory.annotation.Value
+import com.profiletailors.smp.media.application.StorageAssetPreviewUrlResolver
+import com.profiletailors.storage.domain.BucketRegistry
 import org.springframework.context.annotation.Bean
 import org.springframework.context.annotation.Configuration
 
@@ -10,23 +13,39 @@ import org.springframework.context.annotation.Configuration
 class MediaApplicationConfiguration {
     @Bean
     fun mediaUploadSettings(
-        @Value("\${media.max-concurrent-uploads:5}") maxConcurrentUploads: Int,
-        @Value("\${media.max-creations-per-hour:200}") maxCreationsPerHour: Int,
-        @Value("\${media.storage.bucket:attachments}") storageBucket: String,
+        properties: MediaProperties,
     ): MediaUploadSettings = MediaUploadSettings(
-        maxConcurrentUploads = maxConcurrentUploads,
-        maxCreationsPerHour = maxCreationsPerHour,
-        storageBucket = storageBucket,
+        maxConcurrentUploads = properties.maxConcurrentUploads,
+        maxCreationsPerHour = properties.maxCreationsPerHour,
+        storageBucket = properties.storage.bucket,
     )
 
     @Bean
     fun mediaReconcilerSettings(
-        @Value("\${media.storage.bucket:attachments}") storageBucket: String,
-        @Value("\${media.stale.threshold-hours:2}") staleThresholdHours: Long,
-        @Value("\${media.stale.grace-period-minutes:30}") gracePeriodMinutes: Long,
+        properties: MediaProperties,
     ): MediaReconcilerSettings = MediaReconcilerSettings(
-        storageBucket = storageBucket,
-        staleThresholdHours = staleThresholdHours,
-        gracePeriodMinutes = gracePeriodMinutes,
+        storageBucket = properties.storage.bucket,
+        staleThresholdHours = properties.stale.thresholdHours,
+        gracePeriodMinutes = properties.stale.gracePeriodMinutes,
+    )
+
+    @Bean
+    fun mediaPreviewTokenService(
+        properties: MediaProperties,
+    ): MediaPreviewTokenService = MediaPreviewTokenService(
+        signingSecret = properties.previewSigningSecret,
+        previewUrlExpirySeconds = properties.previewUrlExpirySeconds,
+    )
+
+    @Bean
+    fun assetPreviewUrlResolver(
+        bucketRegistry: BucketRegistry,
+        mediaPreviewTokenService: MediaPreviewTokenService,
+        properties: MediaProperties,
+    ): AssetPreviewUrlResolver = StorageAssetPreviewUrlResolver(
+        bucketRegistry = bucketRegistry,
+        mediaPreviewTokenService = mediaPreviewTokenService,
+        storageBucket = properties.storage.bucket,
+        previewUrlExpirySeconds = properties.previewUrlExpirySeconds,
     )
 }

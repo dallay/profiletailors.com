@@ -12,8 +12,10 @@ import com.profiletailors.smp.identity.application.permissiveEmailVerificationPo
 import com.profiletailors.smp.identity.application.PrincipalIdentityLookup
 import com.profiletailors.smp.identity.application.permissivePrincipalContextProvider
 import com.profiletailors.smp.identity.application.requireEmailVerification
-import com.profiletailors.smp.media.application.AssetNotReadyException
+import com.profiletailors.smp.media.application.AssetPreviewUrlResolver
 import com.profiletailors.smp.media.application.MediaAssetResolver
+import com.profiletailors.smp.media.application.ResolvedAssetSummary
+
 import com.profiletailors.smp.media.application.MediaServiceUnavailableException
 import com.profiletailors.smp.publishing.domain.ActivityThresholds
 import com.profiletailors.smp.publishing.domain.MIN_SCHEDULE_OFFSET
@@ -48,6 +50,8 @@ import com.profiletailors.smp.publishing.domain.ScheduleMode
 import com.profiletailors.smp.publishing.domain.SocialAccount
 import com.profiletailors.smp.publishing.domain.SocialAccountRepository
 import com.profiletailors.smp.publishing.domain.SocialConnection
+import org.slf4j.Logger
+import org.slf4j.LoggerFactory
 import com.profiletailors.smp.publishing.domain.SocialConnectionProvider
 import com.profiletailors.smp.publishing.domain.SocialConnectionRepository
 import com.profiletailors.smp.publishing.domain.SocialConnectionStatus
@@ -757,7 +761,10 @@ internal class CreateAssetHandler(
 internal class GetCalendarPublicationsHandler(
     private val resourceContextProvider: ResourceContextProvider,
     private val publicationRepository: PublicationRepository,
+    private val mediaAssetResolver: MediaAssetResolver,
+    private val assetPreviewUrlResolver: AssetPreviewUrlResolver,
 ) : QueryHandler<GetCalendarPublicationsQuery, CalendarResponse> {
+    private val logger: Logger = LoggerFactory.getLogger(GetCalendarPublicationsHandler::class.java)
     override suspend fun handle(query: GetCalendarPublicationsQuery): CalendarResponse {
         val workspaceId = requireNotNull(resourceContextProvider.requireWorkspaceContext().workspaceId)
 
@@ -771,6 +778,13 @@ internal class GetCalendarPublicationsHandler(
             statuses = statuses,
             socialAccountIds = accountIds,
         )
+        val assetIds = publications.flatMap { it.assetIds }.distinct()
+        val assetsById = if (assetIds.isEmpty()) {
+            emptyMap()
+        } else {
+            mediaAssetResolver.resolveReadyAssets(workspaceId, assetIds)
+                .associateBy { it.assetId }
+        }
 
         val conflictMap = ConflictDetectionPolicy.findConflicts(publications)
         val conflicts = conflictMap.map { (pubId, conflictingIds) ->
@@ -789,13 +803,42 @@ internal class GetCalendarPublicationsHandler(
             ActivityEntry(date = dc.date, density = ActivityThresholds.classify(dc.count), count = dc.count)
         }
 
-        val publicationResults = publications.map { it.toCalendarResult(conflictMap[it.id].orEmpty()) }
+        val publicationResults = publications.map { publication ->
+            publication.toCalendarResult(
+                conflictingPublicationIds = conflictMap[publication.id].orEmpty(),
+                previewUrl = resolvePreviewUrl(publication, assetsById),
+            )
+        }
 
         return CalendarResponse(
             publications = publicationResults,
             conflicts = conflicts,
             activity = activity,
         )
+    }
+
+    private suspend fun resolvePreviewUrl(
+        publication: PublicationDraft,
+        assetsById: Map<String, ResolvedAssetSummary>,
+    ): String? {
+        val readyAssets = publication.assetIds
+            .mapNotNull { assetsById[it] }
+
+        for (asset in readyAssets) {
+            val previewUrl = runCatching {
+                assetPreviewUrlResolver.resolvePreviewUrl(
+                    assetId = asset.assetId,
+                    workspaceId = asset.workspaceId,
+                    mediaType = asset.mediaType,
+                    storageKey = asset.storageKey,
+                    externalUrl = null,
+                )
+            }.onFailure { error ->
+                logger.warn("Failed to resolve preview URL for assetId={}", asset.assetId, error)
+            }.getOrNull()
+            if (previewUrl != null) return previewUrl
+        }
+        return null
     }
 }
 
@@ -807,6 +850,7 @@ internal class GetCalendarPublicationsHandler(
  */
 private fun PublicationDraft.toCalendarResult(
     conflictingPublicationIds: List<String>,
+    previewUrl: String?,
 ): CalendarPublicationResult = CalendarPublicationResult(
     id = id,
     workspaceId = workspaceId,
@@ -823,6 +867,7 @@ private fun PublicationDraft.toCalendarResult(
     externalPublicationId = externalPublicationId,
     publicUrl = publicUrl,
     publishedAt = publishedAt,
+    previewUrl = previewUrl,
 )
 
 /**

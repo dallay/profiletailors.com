@@ -52,6 +52,12 @@ data class MediaAssetResponse(
 
     @field:Schema(description = "When the asset was created", example = "2026-06-20T10:00:00Z")
     val createdAt: String,
+
+    @field:Schema(description = "Temporary URL for previewing image assets", required = false)
+    val previewUrl: String? = null,
+
+    @field:Schema(description = "Temporary signed URL for downloading/streaming the asset content", required = false)
+    val downloadUrl: String? = null,
 )
 
 @Schema(description = "Paginated list of media assets")

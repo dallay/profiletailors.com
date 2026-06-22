@@ -20,16 +20,16 @@ pre-commit:
   source: .lefthookrc.yml
 
   commands:
-    # ========== FRONTEND (Astro + TypeScript) ==========
-    # Biome: lint + format en archivos TypeScript/TSX del frontend
-    # Se ejecuta en paralelo con backend commands
+    # ========== FRONTEND (Astro + Vue + TypeScript) ==========
+    # Biome: lint + format para TODOS los proyectos bajo apps/web
+    # Cubre marketing (Astro) y app (Vue 3) con un solo comando
     frontend-biome:
-      glob: 'apps/web/marketing/**/*.{ts,tsx}'
-      run: 'cd apps/web/marketing && pnpm biome check --write --unsafe .'
+      glob: 'apps/web/**/*.{ts,tsx,js,jsx,vue,astro}'
+      run: 'cd apps/web && pnpm biome check --write --unsafe .'
 
-    # Astro type check
+    # Astro type check (solo marketing)
     frontend-typecheck:
-      glob: 'apps/web/marketing/**/*.{ts,tsx}'
+      glob: 'apps/web/**/*.{ts,tsx}'
       run: 'cd apps/web/marketing && pnpm astro check'
       skip: true
 

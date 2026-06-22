@@ -29,7 +29,9 @@ export class LoginPage {
   }
 
   get submitButton(): Locator {
-    return this.page.getByRole('button', { name: /sign in|iniciar sesión|create account|crear cuenta/i })
+    return this.page.getByRole('button', {
+      name: /sign in|iniciar sesión|create account|crear cuenta/i,
+    })
   }
 
   get errorBanner(): Locator {
@@ -45,7 +47,9 @@ export class LoginPage {
   }
 
   get alternateLink(): Locator {
-    return this.page.locator('a').filter({ hasText: /register|sign in|crear cuenta|iniciar sesión/i })
+    return this.page
+      .locator('a')
+      .filter({ hasText: /register|sign in|crear cuenta|iniciar sesión/i })
   }
 
   get badge(): Locator {

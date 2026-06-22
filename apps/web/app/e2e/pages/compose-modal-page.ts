@@ -41,7 +41,10 @@ export class ComposeModalPage {
   // Date/time pickers (visible when Pick Date is active)
   get datePickerButton(): Locator {
     // Use the Popover trigger button which contains the formatted date
-    return this.page.locator('button').filter({ hasText: /\w+ \d+, \d{4}/ }).first()
+    return this.page
+      .locator('button')
+      .filter({ hasText: /\w+ \d+, \d{4}/ })
+      .first()
   }
 
   get timeInput(): Locator {
@@ -60,7 +63,9 @@ export class ComposeModalPage {
   }
 
   get schedulePostButton(): Locator {
-    return this.page.locator('button[data-slot="button"]').filter({ hasText: /schedule post|programar publicación/i })
+    return this.page
+      .locator('button[data-slot="button"]')
+      .filter({ hasText: /schedule post|programar publicación/i })
   }
 
   get nextScheduleSubmitButton(): Locator {
@@ -138,7 +143,9 @@ export class ComposeModalPage {
 
   async pickDate(day: number): Promise<void> {
     // Click on a day number in the calendar popover
-    const dayButton = this.page.locator('[data-slot="calendar-cell-trigger"]').getByText(String(day), { exact: true })
+    const dayButton = this.page
+      .locator('[data-slot="calendar-cell-trigger"]')
+      .getByText(String(day), { exact: true })
     await dayButton.click()
   }
 

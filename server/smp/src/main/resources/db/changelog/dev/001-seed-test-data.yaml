@@ -8,61 +8,71 @@ databaseChangeLog:
         - tableExists:
             tableName: principals
       changes:
-        # ── Identity ──────────────────────────────────────────────
-        - insert:
+        - loadData:
+            file: db/changelog/data/dev/principals_dev.csv
+            relativeToChangelogFile: false
+            separator: ";"
+            quotchar: '"'
             tableName: principals
             columns:
-              - column: { name: id, value: dev-user-001 }
-              - column: { name: principal_type, value: USER }
-              - column: { name: subject, value: dev@profiletailors.com }
-              - column: { name: provider, value: local }
-              - column: { name: display_identity, value: Dev User }
-              - column: { name: created_at, valueComputed: "TIMESTAMP WITH TIME ZONE '2026-01-01 00:00:00+00'" }
+              - column:
+                  name: created_at
+                  type: STRING
 
-        - insert:
+        - loadData:
+            file: db/changelog/data/dev/user_identities_dev.csv
+            relativeToChangelogFile: false
+            separator: ";"
+            quotchar: '"'
             tableName: user_identities
             columns:
-              - column: { name: principal_id, value: dev-user-001 }
-              - column: { name: email, value: dev@profiletailors.com }
-              - column: { name: username, value: dev }
-              - column: { name: email_status, value: VERIFIED }
-              - column: { name: created_at, valueComputed: "TIMESTAMP WITH TIME ZONE '2026-01-01 00:00:00+00'" }
+              - column:
+                  name: created_at
+                  type: STRING
 
-        - insert:
+        - loadData:
+            file: db/changelog/data/dev/local_password_credentials_dev.csv
+            relativeToChangelogFile: false
+            separator: ";"
+            quotchar: '"'
             tableName: local_password_credentials
             columns:
-              - column: { name: principal_id, value: dev-user-001 }
-              # Dev-only: placeholder hash — login disabled for dev user.
-              # SonarCloud: intentionally excluded from secrets scan (dev-only seed data).
-              - column: { name: password_hash, value: "$2b$12$DEVPLCHldrPlaceholderHash00000000000000000000XXX" }
-              - column: { name: created_at, valueComputed: "TIMESTAMP WITH TIME ZONE '2026-01-01 00:00:00+00'" }
-              - column: { name: updated_at, valueComputed: "TIMESTAMP WITH TIME ZONE '2026-01-01 00:00:00+00'" }
+              - column:
+                  name: created_at
+                  type: STRING
+              - column:
+                  name: updated_at
+                  type: STRING
 
-        # ── Tenancy ───────────────────────────────────────────────
-        - insert:
+        - loadData:
+            file: db/changelog/data/dev/workspaces_dev.csv
+            relativeToChangelogFile: false
+            separator: ";"
+            quotchar: '"'
             tableName: workspaces
             columns:
-              - column: { name: id, value: dev-workspace-001 }
-              - column: { name: name, value: Dev Workspace }
-              - column: { name: status, value: ACTIVE }
-              - column: { name: icon, value: briefcase }
-              - column: { name: created_at, valueComputed: "TIMESTAMP WITH TIME ZONE '2026-01-01 00:00:00+00'" }
+              - column:
+                  name: created_at
+                  type: STRING
 
-        - insert:
+        - loadData:
+            file: db/changelog/data/dev/workspace_ownerships_dev.csv
+            relativeToChangelogFile: false
+            separator: ";"
+            quotchar: '"'
             tableName: workspace_ownerships
             columns:
-              - column: { name: workspace_id, value: dev-workspace-001 }
-              - column: { name: owner_principal_id, value: dev-user-001 }
-              - column: { name: owner_principal_type, value: USER }
-              - column: { name: created_by, value: dev-user-001 }
-              - column: { name: created_at, valueComputed: "TIMESTAMP WITH TIME ZONE '2026-01-01 00:00:00+00'" }
+              - column:
+                  name: created_at
+                  type: STRING
 
-        - insert:
+        - loadData:
+            file: db/changelog/data/dev/workspace_memberships_dev.csv
+            relativeToChangelogFile: false
+            separator: ";"
+            quotchar: '"'
             tableName: workspace_memberships
             columns:
-              - column: { name: id, value: dev-membership-001 }
-              - column: { name: workspace_id, value: dev-workspace-001 }
-              - column: { name: principal_id, value: dev-user-001 }
-              - column: { name: principal_type, value: USER }
-              - column: { name: status, value: ACTIVE }
-              - column: { name: created_at, valueComputed: "TIMESTAMP WITH TIME ZONE '2026-01-01 00:00:00+00'" }
+              - column:
+                  name: created_at
+                  type: STRING

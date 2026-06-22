@@ -1,0 +1,4 @@
+# Local ignore for apps/web to satisfy Biome
+node_modules/
+.dist/
+.DS_Store

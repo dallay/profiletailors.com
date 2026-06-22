@@ -68,6 +68,20 @@ internal class ComponentScanArchTest {
             .check(importedClasses)
     }
 
+    @Test
+    fun applicationLayerShouldNotUseSpringService() {
+        ArchRuleDefinition.noClasses()
+            .that()
+            .resideInAPackage("..application..")
+            .should()
+            .beAnnotatedWith(org.springframework.stereotype.Service::class.java)
+            .because(
+                "smp application-layer classes must use the project marker " +
+                    "com.profiletailors.common.domain.Service instead of Spring's @Service",
+            )
+            .check(importedClasses)
+    }
+
     /**
      * Spec scenario "Build fails on a nested `@ComponentScan` with `includeFilters` under
      * `infrastructure.config.*`": no class under

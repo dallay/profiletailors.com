@@ -19,7 +19,7 @@ class AuthenticatedPrincipalContextWebFilter(
             .flatMap { authenticatedPrincipal ->
                 requestContextStore.setPrincipalContext(authenticatedPrincipal.context)
                 chain.filter(exchange)
-                    .doFinally { requestContextStore.clear() }
+                    .doFinally { requestContextStore.setPrincipalContext(null) }
             }
             .switchIfEmpty(chain.filter(exchange))
 

@@ -63,7 +63,10 @@ export class SchedulerPage {
 
   // Post type filter dropdown
   get postTypeFilter(): Locator {
-    return this.page.locator('select, [role="combobox"]').filter({ hasText: /all posts|queued|published/i }).first()
+    return this.page
+      .locator('select, [role="combobox"]')
+      .filter({ hasText: /all posts|queued|published/i })
+      .first()
   }
 
   // Post cards in the scheduler
@@ -159,11 +162,13 @@ export class SchedulerPage {
   getSlotCell(dayOfWeek: number, hour: number): Locator {
     const ampm = hour >= 12 ? 'PM' : 'AM'
     const displayHour = hour % 12 === 0 ? 12 : hour % 12
-    const timeLabel = `${displayHour} ${ampm}`
+    const _timeLabel = `${displayHour} ${ampm}`
 
     // Each slot row has a time-axis label followed by 7 day columns.
     // Find the row by its time label, then pick the day column by index.
-    const timeAxisLabel = this.page.locator('span.font-mono').filter({ hasText: new RegExp(`^${displayHour} ${ampm}$`) })
+    const timeAxisLabel = this.page
+      .locator('span.font-mono')
+      .filter({ hasText: new RegExp(`^${displayHour} ${ampm}$`) })
     // The day column is a sibling of the time-axis label within the same grid row
     return timeAxisLabel.locator('..').locator('div[aria-disabled]').nth(dayOfWeek)
   }

@@ -124,9 +124,7 @@ test.describe('Security', { tag: '@integration' }, () => {
 
     // Intercept and validate the login request headers
     const requestPromise = page.waitForRequest(
-      (req) =>
-        req.url().includes('/api/auth/login') &&
-        req.method() === 'POST',
+      (req) => req.url().includes('/api/auth/login') && req.method() === 'POST',
     )
 
     await loginPage.goto(APP_URL.login)
@@ -136,6 +134,6 @@ test.describe('Security', { tag: '@integration' }, () => {
     const headers = request.headers()
 
     expect(headers['content-type']).toContain('application/json')
-    expect(headers['accept']).toContain('application/vnd.api.v1+json')
+    expect(headers.accept).toContain('application/vnd.api.v1+json')
   })
 })

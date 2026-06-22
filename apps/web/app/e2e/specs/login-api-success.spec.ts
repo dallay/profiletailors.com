@@ -12,11 +12,7 @@
 import { test, expect } from '../fixtures/base-test'
 import { LoginPage } from '../pages/login-page'
 import { DashboardPage } from '../pages/dashboard-page'
-import {
-  VALID_CREDENTIALS,
-  APP_URL,
-  E2E_TEST_USER,
-} from '../fixtures/test-data'
+import { VALID_CREDENTIALS, APP_URL, E2E_TEST_USER } from '../fixtures/test-data'
 import { fallbackAfterDelay } from '../fixtures/auth-helpers'
 import { safeGoto } from '../fixtures/navigation'
 

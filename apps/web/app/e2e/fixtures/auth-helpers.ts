@@ -328,9 +328,7 @@ export async function mockUserProfile(
     await route.fulfill({
       status: 200,
       contentType: 'application/vnd.api.v1+json',
-      body: JSON.stringify([
-        { workspaceId, name: workspaceName, role: workspaceRole, icon: null },
-      ]),
+      body: JSON.stringify([{ workspaceId, name: workspaceName, role: workspaceRole, icon: null }]),
     })
   })
 }
@@ -388,7 +386,13 @@ export async function mockAuthenticatedSession(
   } = overrides
 
   await mockRefreshResponse(page, { accessToken, email, username, emailStatus })
-  await mockUserProfile(page, { principalId, email, username, displayIdentity: username, workspaceId })
+  await mockUserProfile(page, {
+    principalId,
+    email,
+    username,
+    displayIdentity: username,
+    workspaceId,
+  })
   await mockCurrentWorkspace(page, { workspaceId })
 }
 
@@ -474,4 +478,3 @@ export async function mockRegisterSuccess(
 
   await mockCurrentWorkspace(page, { workspaceId: workspaceId ?? 'workspace-001' })
 }
-

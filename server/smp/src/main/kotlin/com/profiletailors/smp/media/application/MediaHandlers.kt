@@ -522,6 +522,8 @@ class UploadAssetHandler(
 @Service
 class ListWorkspaceAssetsHandler(
     private val mediaAssetRepository: MediaAssetRepository,
+    private val assetPreviewUrlResolver: AssetPreviewUrlResolver,
+    private val mediaPreviewTokenService: MediaPreviewTokenService,
 ) : QueryHandler<ListWorkspaceAssetsQuery, ListWorkspaceAssetsResult> {
 
     private val logger = LoggerFactory.getLogger(ListWorkspaceAssetsHandler::class.java)
@@ -549,6 +551,22 @@ class ListWorkspaceAssetsHandler(
                     originalFilename = asset.originalFilename,
                     fileSizeBytes = asset.fileSizeBytes,
                     createdAt = ISO_FORMATTER.format(asset.createdAt.atOffset(ZoneOffset.UTC)),
+                    previewUrl = if (asset.status == MediaAssetStatus.READY) {
+                        assetPreviewUrlResolver.resolvePreviewUrl(
+                            assetId = asset.assetId,
+                            workspaceId = asset.workspaceId,
+                            mediaType = asset.mediaType,
+                            storageKey = asset.storageKey,
+                            externalUrl = null,
+                        )
+                    } else {
+                        null
+                    },
+                    downloadUrl = if (asset.status == MediaAssetStatus.READY) {
+                        mediaPreviewTokenService.buildSignedContentPath(asset.assetId, asset.workspaceId)
+                    } else {
+                        null
+                    },
                 )
             },
             nextCursor = result.nextCursor,
@@ -559,6 +577,8 @@ class ListWorkspaceAssetsHandler(
 @Service
 class GetWorkspaceAssetHandler(
     private val mediaAssetRepository: MediaAssetRepository,
+    private val assetPreviewUrlResolver: AssetPreviewUrlResolver,
+    private val mediaPreviewTokenService: MediaPreviewTokenService,
 ) : QueryHandler<GetWorkspaceAssetQuery, MediaAssetSummary> {
 
     private val logger = LoggerFactory.getLogger(GetWorkspaceAssetHandler::class.java)
@@ -580,6 +600,54 @@ class GetWorkspaceAssetHandler(
             originalFilename = asset.originalFilename,
             fileSizeBytes = asset.fileSizeBytes,
             createdAt = ISO_FORMATTER.format(asset.createdAt.atOffset(ZoneOffset.UTC)),
+            previewUrl = if (asset.status == MediaAssetStatus.READY) {
+                assetPreviewUrlResolver.resolvePreviewUrl(
+                    assetId = asset.assetId,
+                    workspaceId = asset.workspaceId,
+                    mediaType = asset.mediaType,
+                    storageKey = asset.storageKey,
+                    externalUrl = null,
+                )
+            } else {
+                null
+            },
+            downloadUrl = if (asset.status == MediaAssetStatus.READY) {
+                mediaPreviewTokenService.buildSignedContentPath(asset.assetId, asset.workspaceId)
+            } else {
+                null
+            },
+        )
+    }
+}
+
+@Service
+class DeleteWorkspaceAssetHandler(
+    private val mediaAssetRepository: MediaAssetRepository,
+    private val storageApplicationService: StorageApplicationService,
+    private val uploadSettings: MediaUploadSettings,
+) : CommandWithResultHandler<DeleteWorkspaceAssetCommand, DeleteWorkspaceAssetResult> {
+    override suspend fun handle(command: DeleteWorkspaceAssetCommand): DeleteWorkspaceAssetResult {
+        val asset = mediaAssetRepository.findByWorkspaceAndId(command.workspaceId, command.assetId)
+            ?: throw AssetNotFoundException(command.assetId)
+
+        runCatching {
+            storageApplicationService.delete(
+                bucket = uploadSettings.storageBucket,
+                key = asset.storageKey,
+                deleterId = command.workspaceId,
+            )
+        }.getOrElse { cause ->
+            throw MediaServiceUnavailableException(
+                "Storage deletion failed for asset ${command.assetId}",
+                cause,
+            )
+        }
+
+        val deleted = mediaAssetRepository.delete(command.assetId, command.workspaceId) != null
+        return DeleteWorkspaceAssetResult(
+            assetId = command.assetId,
+            workspaceId = command.workspaceId,
+            deleted = deleted,
         )
     }
 }

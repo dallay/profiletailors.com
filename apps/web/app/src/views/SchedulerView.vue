@@ -228,25 +228,47 @@ function goToToday() {
 // Publication queries
 // ---------------------------------------------------------------------------
 
-const filteredPublications = computed(() => {
-  return publishingStore.publications.filter((pub) => {
-    if (publishingStore.filterChannel && !(pub.channels as string[]).includes(publishingStore.filterChannel)) {
-      return false
-    }
-    if (publishingStore.filterSocialAccountId && pub.accountId !== publishingStore.filterSocialAccountId) {
-      return false
-    }
-    if (publishingStore.filterTag && !pub.content.toLowerCase().includes(publishingStore.filterTag.toLowerCase())) {
-      return false
-    }
-    if (publishingStore.filterPostType !== 'all') {
-      if (publishingStore.filterPostType === 'queued' && pub.status !== 'QUEUED') return false
-      if (publishingStore.filterPostType === 'published' && pub.status !== 'PUBLISHED') return false
-      if (publishingStore.filterPostType === 'cancelled' && pub.status !== 'CANCELLED') return false
-    }
-    return true
-  })
-})
+function publicationMatchesFilters(
+  pub: Publication,
+  filters: {
+    channel?: string
+    socialAccountId?: string
+    tag?: string
+    postType?: string
+  },
+): boolean {
+  if (filters.channel && !(pub.channels as string[]).includes(filters.channel)) {
+    return false
+  }
+  if (filters.socialAccountId && pub.accountId !== filters.socialAccountId) {
+    return false
+  }
+  if (filters.tag && !pub.content.toLowerCase().includes(filters.tag.toLowerCase())) {
+    return false
+  }
+
+  switch (filters.postType) {
+    case 'queued':
+      return pub.status === 'QUEUED'
+    case 'published':
+      return pub.status === 'PUBLISHED'
+    case 'cancelled':
+      return pub.status === 'CANCELLED'
+    default:
+      return true
+  }
+}
+
+const filteredPublications = computed(() =>
+  publishingStore.publications.filter((pub) =>
+    publicationMatchesFilters(pub, {
+      channel: publishingStore.filterChannel || undefined,
+      socialAccountId: publishingStore.filterSocialAccountId || undefined,
+      tag: publishingStore.filterTag || undefined,
+      postType: publishingStore.filterPostType !== 'all' ? publishingStore.filterPostType : undefined,
+    }),
+  ),
+)
 
 function getPublicationsForDate(date: Date): Publication[] {
   return filteredPublications.value.filter((pub) => {
@@ -321,6 +343,8 @@ function activityForDate(date: Date): ActivityEntry | undefined {
 // ---------------------------------------------------------------------------
 
 function openNewPostForSlot(date: Date, hour?: number) {
+  if (publishingStore.hasNoChannels) return
+
   const d = new Date(date)
   if (hour !== undefined) d.setHours(hour, 0, 0, 0)
   else d.setHours(12, 0, 0, 0)
@@ -329,6 +353,8 @@ function openNewPostForSlot(date: Date, hour?: number) {
 }
 
 function openNewPostGeneral() {
+  if (publishingStore.hasNoChannels) return
+
   selectedCellDate.value = undefined
   isModalOpen.value = true
 }
@@ -485,7 +511,7 @@ onMounted(() => {
 
               <!-- Grid Body: Single left time-axis + 7 day columns -->
               <div class="relative">
-                <div v-for="slot in hourSlots" :key="slot.hour" class="grid grid-cols-[48px_repeat(7,1fr)] border-b border-border-subtle last:border-b-0 min-h-[76px]">
+                <div v-for="slot in hourSlots" :key="slot.hour" class="grid h-[96px] grid-cols-[48px_repeat(7,1fr)] border-b border-border-subtle last:border-b-0">
                   <!-- Single left time-axis label -->
                   <div class="py-2 border-r border-border-subtle flex items-start justify-center">
                     <span class="font-mono text-[9px] tracking-wider text-text-secondary">
@@ -522,15 +548,15 @@ onMounted(() => {
                       @keydown.space.self.stop.prevent="openPostDetail(pub)"
                       @dragstart="onDragStart($event, pub)"
                       @dragend="onDragEnd($event)"
-                      class="relative z-10 border rounded-xl p-3 space-y-2.5 transition-all text-left shadow-sm group/card bg-bg-surface overflow-hidden cursor-pointer w-full"
+                      class="relative z-10 flex h-[72px] w-full min-w-0 flex-col overflow-hidden rounded-xl border bg-bg-surface p-3 text-left shadow-sm transition-all group/card cursor-pointer"
                       :class="getProviderColor(pub.channels[0] || 'linkedin')"
                     >
                       <!-- Header -->
-                      <div class="flex items-center justify-between">
+                      <div class="flex shrink-0 items-center justify-between gap-2">
                         <span class="font-mono text-[8px] font-bold tracking-wider opacity-80 uppercase">
                           {{ new Date(pub.scheduledAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) }}
                         </span>
-                        <div class="flex gap-1">
+                        <div class="flex min-w-0 shrink-0 gap-1">
                           <span
                             v-for="channel in pub.channels"
                             :key="channel"
@@ -554,28 +580,9 @@ onMounted(() => {
                       </div>
 
                       <!-- Text content -->
-                      <p class="text-[11px] font-light leading-relaxed line-clamp-3 text-text-body">
+                      <p class="min-w-0 flex-1 overflow-hidden text-[11px] font-light leading-relaxed text-text-body break-words [display:-webkit-box] [-webkit-box-orient:vertical] [-webkit-line-clamp:2] [overflow-wrap:anywhere]">
                         {{ pub.content }}
                       </p>
-
-                      <!-- BLOCKED reconnect prompt -->
-                      <div
-                        v-if="pub.status === 'BLOCKED' && pub.blockedReason"
-                        class="text-[9px] text-warning/80 font-medium"
-                      >
-                        {{ pub.blockedReason }}
-                        <button
-                          @click.stop="publishingStore.connectLinkedInPersonalProfile()"
-                          class="underline ml-1 hover:text-warning"
-                        >
-                          Reconnect
-                        </button>
-                      </div>
-
-                      <!-- Preview Thumbnail if any -->
-                      <div v-if="pub.thumbnail" class="h-10 w-full rounded overflow-hidden">
-                        <img :src="pub.thumbnail" class="w-full h-full object-cover grayscale opacity-75 group-hover/card:grayscale-0 group-hover/card:opacity-100 transition-all" alt="" />
-                      </div>
 
                       <!-- Delete button overlay on card hover (not for published posts) -->
                       <button
@@ -733,6 +740,13 @@ onMounted(() => {
                 <p class="text-sm font-light text-text-body leading-relaxed break-words">
                   {{ pub.content }}
                 </p>
+                <div v-if="pub.thumbnail" class="h-24 w-full overflow-hidden rounded-xl border border-border-subtle">
+                  <img
+                    :src="pub.thumbnail"
+                    class="h-full w-full object-cover"
+                    alt=""
+                  />
+                </div>
               </div>
 
               <div class="flex items-center gap-3 shrink-0">

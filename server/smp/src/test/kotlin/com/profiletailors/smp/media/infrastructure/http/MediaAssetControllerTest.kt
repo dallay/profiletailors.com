@@ -1,6 +1,9 @@
 package com.profiletailors.smp.media.infrastructure.http
 
 import com.profiletailors.common.domain.bus.Mediator
+import org.springframework.web.bind.annotation.DeleteMapping
+import org.springframework.web.bind.annotation.GetMapping
+import org.springframework.web.bind.annotation.PostMapping
 import com.profiletailors.common.domain.bus.PublishStrategy
 import com.profiletailors.common.domain.bus.command.Command
 import com.profiletailors.common.domain.bus.command.CommandWithResult

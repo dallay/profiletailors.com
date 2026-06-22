@@ -37,6 +37,29 @@ class LocalFilesystemStorageTest {
     }
 
     @Test
+    fun `upload allows valid bucket and key when base path is relative`() = runTest {
+        val relativeBasePath = Path.of("./tmp/profiletailors-storage-test")
+        Files.createDirectories(relativeBasePath)
+        try {
+            val storage = LocalFilesystemStorage(relativeBasePath)
+            val flow = flowOf("data".toByteArray())
+
+            storage.upload("attachments", "assets/dev-workspace-001/asset-123", flow)
+
+            assertTrue(
+                Files.exists(
+                    relativeBasePath
+                        .resolve("attachments")
+                        .resolve("assets/dev-workspace-001/asset-123")
+                        .normalize(),
+                ),
+            )
+        } finally {
+            relativeBasePath.toFile().deleteRecursively()
+        }
+    }
+
+    @Test
     fun `prevent path traversal on upload`(@TempDir tempDir: Path) = runTest {
         val storage = LocalFilesystemStorage(tempDir)
         val flow = flow { emit("data".toByteArray()) }
@@ -107,6 +130,32 @@ class LocalFilesystemStorageTest {
                 storage.list(bucket, "../secret")
             }
         }
+    }
+
+    @Test
+    fun `delete succeeds with valid bucket and key without triggering path traversal false positive`(@TempDir tempDir: Path) = runTest {
+        val storage = LocalFilesystemStorage(tempDir)
+        val bucket = "attachments"
+        val key = "assets/dev-workspace-001/asset-456"
+
+        storage.upload(bucket, key, flowOf("delete-me".toByteArray()))
+        assertTrue(Files.exists(tempDir.resolve(bucket).resolve(key)))
+
+        storage.delete(bucket, key)
+        assertTrue(!Files.exists(tempDir.resolve(bucket).resolve(key)))
+    }
+
+    @Test
+    fun `bucket named attachments does not trigger path traversal false positive`(@TempDir tempDir: Path) = runTest {
+        val storage = LocalFilesystemStorage(tempDir)
+
+        storage.upload("attachments", "assets/ws-001/file-1", flowOf("data".toByteArray()))
+
+        val downloaded = storage.download("attachments", "assets/ws-001/file-1")
+            .toList().fold(ByteArray(0)) { acc, bytes -> acc + bytes }
+        assertEquals("data", String(downloaded))
+
+        storage.delete("attachments", "assets/ws-001/file-1")
     }
 
     @Test

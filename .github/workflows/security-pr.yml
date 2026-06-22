@@ -315,9 +315,6 @@ jobs:
     runs-on: ubuntu-latest
     permissions:
       contents: read
-    defaults:
-      run:
-        working-directory: apps/web/marketing
     steps:
       - name: Checkout code
         uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4.3.1
@@ -328,11 +325,11 @@ jobs:
         with:
           node-version: '22.13.0'
           cache: pnpm
-          cache-dependency-path: apps/web/marketing/pnpm-lock.yaml
+          cache-dependency-path: pnpm-lock.yaml
       - name: Install frontend dependencies
         run: pnpm install --frozen-lockfile --ignore-scripts
       - name: Run Biome CI check
-        run: pnpm biome ci .
+        run: cd apps/web && pnpm dlx @biomejs/biome ci .
 
   summary:
     name: security / summary

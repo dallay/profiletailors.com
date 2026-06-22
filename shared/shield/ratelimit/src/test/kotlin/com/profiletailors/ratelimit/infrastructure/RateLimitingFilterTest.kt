@@ -1,6 +1,7 @@
 package com.profiletailors.ratelimit.infrastructure
 
-import com.fasterxml.jackson.module.kotlin.jacksonObjectMapper
+import tools.jackson.databind.json.JsonMapper
+import tools.jackson.module.kotlin.jsonMapper
 import com.profiletailors.ratelimit.domain.RateLimitResult
 import com.profiletailors.ratelimit.domain.RateLimitStrategy
 import com.profiletailors.ratelimit.infrastructure.adapter.ReactiveRateLimitingAdapter
@@ -16,7 +17,6 @@ import java.time.Duration
 import java.time.Instant
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
-import org.springframework.core.io.buffer.DataBufferUtils
 import org.springframework.http.HttpStatus
 import org.springframework.mock.http.server.reactive.MockServerHttpRequest
 import org.springframework.mock.web.server.MockServerWebExchange
@@ -47,7 +47,7 @@ class RateLimitingFilterTest {
 
         filter = RateLimitingFilter(
             reactiveRateLimitingAdapter,
-            jacksonObjectMapper(),
+            jsonMapper(),
             configurationFactory,
         )
     }
@@ -670,8 +670,7 @@ class RateLimitingFilterTest {
     }
 
     private fun org.springframework.http.server.reactive.ServerHttpResponse.bodyAsString(): String {
-        return DataBufferUtils.join(this.body)
-            .map { it.toString(StandardCharsets.UTF_8) }
-            .block() ?: ""
+        val mockResponse = this as org.springframework.mock.http.server.reactive.MockServerHttpResponse
+        return mockResponse.getBodyAsString().block() ?: ""
     }
 }

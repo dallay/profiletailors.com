@@ -57,6 +57,11 @@ interface MediaAssetRepository {
     suspend fun markAsFailed(assetId: String, workspaceId: String): MediaAsset?
 
     /**
+     * Delete an asset row and return the previous aggregate when found.
+     */
+    suspend fun delete(assetId: String, workspaceId: String): MediaAsset?
+
+    /**
      * Find stale PROCESSING assets older than the threshold with no recent upload activity.
      */
     suspend fun findStaleProcessingAssets(

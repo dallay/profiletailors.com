@@ -1,0 +1,1 @@
+Learned that in a pnpm monorepo, running commands in a nested directory without its own package.json requires either executing from the root with specific paths or using 'pnpm dlx' to ensure the binary is available. Also, ensuring the cache-dependency-path points to the root lockfile is crucial for correct dependency caching in GitHub Actions.

@@ -243,27 +243,31 @@ export async function registerSchedulerMocks(context: BrowserContext): Promise<v
 
   // --- LinkedIn connections (settings page) ---
   await context.route('**/api/publishing/linkedin/connections/initiate**', (route) => {
-    route.fulfill(json({
-      authorizationUrl: 'https://www.linkedin.com/oauth/v2/authorization?mock=true',
-      state: 'mock-state',
-      expiresAt: new Date(Date.now() + 600_000).toISOString(),
-    }))
+    route.fulfill(
+      json({
+        authorizationUrl: 'https://www.linkedin.com/oauth/v2/authorization?mock=true',
+        state: 'mock-state',
+        expiresAt: new Date(Date.now() + 600_000).toISOString(),
+      }),
+    )
   })
 
   await context.route('**/api/publishing/linkedin/connections/complete**', (route) => {
-    route.fulfill(json({
-      connectionId: 'conn-001',
-      workspaceId: MOCK_WORKSPACE_ID,
-      provider: 'linkedin',
-      status: 'ACTIVE',
-      account: {
-        accountId: MOCK_SOCIAL_ACCOUNT_ID,
-        providerAccountId: 'li-12345',
-        displayName: 'Dev User',
-        kind: 'PERSONAL',
-        profileUrn: 'urn:li:person:12345',
-      },
-    }))
+    route.fulfill(
+      json({
+        connectionId: 'conn-001',
+        workspaceId: MOCK_WORKSPACE_ID,
+        provider: 'linkedin',
+        status: 'ACTIVE',
+        account: {
+          accountId: MOCK_SOCIAL_ACCOUNT_ID,
+          providerAccountId: 'li-12345',
+          displayName: 'Dev User',
+          kind: 'PERSONAL',
+          profileUrn: 'urn:li:person:12345',
+        },
+      }),
+    )
   })
 
   // --- Workspaces (broad pattern first, specific ones last) ---
@@ -305,10 +309,12 @@ export async function ensureChannelsLoaded(page: import('@playwright/test').Page
       handle: 'Dev User',
       status: 'ACTIVE',
     }
+    // biome-ignore lint/suspicious/noExplicitAny: Vue internals access
     const app = (document.querySelector('#app') as any)?.__vue_app__
     const pinia = app?.config?.globalProperties?.$pinia
     if (pinia?.state?.value?.publishing) {
       const channels = pinia.state.value.publishing.channels
+      // biome-ignore lint/suspicious/noExplicitAny: dynamic channel type from Pinia
       if (!channels.some((c: any) => c.id === channel.id)) {
         channels.push(channel)
       }

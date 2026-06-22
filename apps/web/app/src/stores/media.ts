@@ -1,6 +1,12 @@
 import { ref, computed } from 'vue'
 import { defineStore } from 'pinia'
-import { type MediaAssetSummary, reserveAsset, uploadAsset, listAssets } from '@/lib/media-api'
+import {
+  type MediaAssetSummary,
+  reserveAsset,
+  uploadAsset,
+  listAssets,
+  deleteAsset,
+} from '@/lib/media-api'
 
 // ---------------------------------------------------------------------------
 // Retry configuration (SPA upload contract)
@@ -131,6 +137,51 @@ export const useMediaStore = defineStore('media', () => {
     }
   }
 
+  function removeAssetLocally(assetId: string) {
+    delete assetsById.value[assetId]
+    assetIds.value = assetIds.value.filter((id) => id !== assetId)
+    selectedAssetIds.value = selectedAssetIds.value.filter((id) => id !== assetId)
+  }
+
+  function updateUpload(tempKey: string, updates: Partial<UploadItem>) {
+    uploads.value[tempKey] = {
+      ...uploads.value[tempKey],
+      ...updates,
+    }
+  }
+
+  function markUploadDone(tempKey: string, asset: MediaAssetSummary) {
+    updateUpload(tempKey, {
+      status: 'done',
+      asset,
+      progress: 100,
+    })
+  }
+
+  function terminalUploadState(err: unknown): {
+    status: UploadItem['status']
+    errorTitle: string
+    errorDetail: string
+    policy: RetryPolicy
+  } {
+    const apiErr = err as { status?: number; errorCode?: string; detail?: string }
+    const policy = classifyError(apiErr.status, apiErr.errorCode)
+    const errorTitle =
+      apiErr.status === 409
+        ? 'Upload conflict'
+        : apiErr.status === 413
+          ? 'File too large'
+          : (apiErr.errorCode ?? 'Upload failed')
+    const errorDetail = apiErr.detail ?? `Server returned ${apiErr.status ?? 'a network error'}.`
+
+    return {
+      status: apiErr.status === 409 ? 'conflict' : 'failed',
+      errorTitle,
+      errorDetail,
+      policy,
+    }
+  }
+
   async function executeWithRetry<T>(
     fn: () => Promise<T>,
     onNetworkError?: (attempt: number) => void,
@@ -166,6 +217,54 @@ export const useMediaStore = defineStore('media', () => {
       }
     }
 
+    throw lastError
+  }
+
+  async function attemptUploadWithRetries(
+    tempKey: string,
+    assetId: string,
+    file: File,
+    onProgress?: (pct: number) => void,
+  ): Promise<MediaAssetSummary> {
+    let lastError: unknown
+
+    for (let attempt = 1; attempt <= RETRY_MAX_ATTEMPTS; attempt++) {
+      try {
+        const uploaded = await uploadAsset(assetId, file, (pct) => {
+          updateUpload(tempKey, { progress: pct })
+          onProgress?.(pct)
+        })
+
+        upsertAsset(uploaded)
+        markUploadDone(tempKey, uploaded)
+        return uploaded
+      } catch (err) {
+        lastError = err
+        const terminalState = terminalUploadState(err)
+
+        if (terminalState.policy === 'no-retry' || terminalState.policy === 'terminal') {
+          updateUpload(tempKey, {
+            status: terminalState.status,
+            errorTitle: terminalState.errorTitle,
+            errorDetail: terminalState.errorDetail,
+          })
+          throw err
+        }
+
+        if (attempt < RETRY_MAX_ATTEMPTS) {
+          await new Promise<void>((resolve) => setTimeout(resolve, nextDelay(attempt)))
+          updateUpload(tempKey, { progress: 0 })
+          onProgress?.(0)
+        }
+      }
+    }
+
+    const err = lastError as { detail?: string }
+    updateUpload(tempKey, {
+      status: 'failed',
+      errorTitle: 'Upload failed',
+      errorDetail: err.detail ?? 'Maximum retry attempts exceeded.',
+    })
     throw lastError
   }
 
@@ -231,7 +330,6 @@ export const useMediaStore = defineStore('media', () => {
     tempKey: string,
     onProgress?: (pct: number) => void,
   ): Promise<MediaAssetSummary> {
-    // 1. Reserve
     const reserved = await executeWithRetry(() =>
       reserveAsset({
         mediaType: file.type,
@@ -239,7 +337,6 @@ export const useMediaStore = defineStore('media', () => {
       }),
     )
 
-    // Initialize upload tracking
     uploads.value[tempKey] = {
       tempKey,
       assetId: reserved.assetId,
@@ -249,87 +346,14 @@ export const useMediaStore = defineStore('media', () => {
     }
 
     try {
-      // 2. Upload with per-attempt progress tracking
-      // The retry wrapper handles retry; we track progress inside each attempt.
-      let lastError: unknown
-
-      for (let attempt = 1; attempt <= RETRY_MAX_ATTEMPTS; attempt++) {
-        try {
-          const uploaded = await uploadAsset(reserved.assetId, file, (pct) => {
-            uploads.value[tempKey] = { ...uploads.value[tempKey], progress: pct }
-            onProgress?.(pct)
-          })
-
-          upsertAsset(uploaded)
-          uploads.value[tempKey] = {
-            ...uploads.value[tempKey],
-            status: 'done',
-            asset: uploaded,
-            progress: 100,
-          }
-
-          return uploaded
-        } catch (err) {
-          lastError = err
-          const apiErr = err as { status?: number; errorCode?: string }
-          const policy = classifyError(apiErr.status, apiErr.errorCode)
-
-          if (policy === 'no-retry' || policy === 'terminal') {
-            const title =
-              apiErr.status === 409
-                ? 'Upload conflict'
-                : apiErr.status === 413
-                  ? 'File too large'
-                  : (apiErr.errorCode ?? 'Upload failed')
-
-            const detail =
-              (err as { detail?: string }).detail ??
-              `Server returned ${apiErr.status ?? 'a network error'}.`
-
-            uploads.value[tempKey] = {
-              ...uploads.value[tempKey],
-              status: apiErr.status === 409 ? 'conflict' : 'failed',
-              errorTitle: title,
-              errorDetail: detail,
-            }
-
-            if (policy === 'terminal') {
-              // Attempt to clean up the orphaned PROCESSING asset server-side
-              // by querying its current state (server will eventually clean via reconciler)
-            }
-
-            throw err
-          }
-
-          // retry — wait and retry
-          if (attempt < RETRY_MAX_ATTEMPTS) {
-            const delay = nextDelay(attempt)
-            await new Promise<void>((resolve) => setTimeout(resolve, delay))
-            // Reset progress to show retry attempt
-            uploads.value[tempKey] = { ...uploads.value[tempKey], progress: 0 }
-            onProgress?.(0)
-          }
-        }
-      }
-
-      // Exhausted retries
-      const err = lastError as { detail?: string; errorCode?: string }
-      uploads.value[tempKey] = {
-        ...uploads.value[tempKey],
-        status: 'failed',
-        errorTitle: 'Upload failed',
-        errorDetail: err.detail ?? 'Maximum retry attempts exceeded.',
-      }
-      throw lastError
+      return await attemptUploadWithRetries(tempKey, reserved.assetId, file, onProgress)
     } catch (err) {
-      // Ensure we don't leave an orphaned PROCESSING entry in uploads
       if (uploads.value[tempKey]?.status === 'uploading') {
-        uploads.value[tempKey] = {
-          ...uploads.value[tempKey],
+        updateUpload(tempKey, {
           status: 'failed',
           errorTitle: 'Upload failed',
           errorDetail: (err as { detail?: string }).detail ?? String(err),
-        }
+        })
       }
       throw err
     }
@@ -356,58 +380,7 @@ export const useMediaStore = defineStore('media', () => {
       errorDetail: undefined,
     }
 
-    let lastError: unknown
-
-    for (let attempt = 1; attempt <= RETRY_MAX_ATTEMPTS; attempt++) {
-      try {
-        const uploaded = await uploadAsset(item.assetId, item.file, (pct) => {
-          uploads.value[tempKey] = { ...uploads.value[tempKey], progress: pct }
-          onProgress?.(pct)
-        })
-
-        upsertAsset(uploaded)
-        uploads.value[tempKey] = {
-          ...uploads.value[tempKey],
-          status: 'done',
-          asset: uploaded,
-          progress: 100,
-        }
-        return uploaded
-      } catch (err) {
-        lastError = err
-        const apiErr = err as { status?: number; errorCode?: string }
-        const policy = classifyError(apiErr.status, apiErr.errorCode)
-
-        if (policy === 'no-retry' || policy === 'terminal') {
-          const title =
-            apiErr.status === 409 ? 'Upload conflict' : (apiErr.errorCode ?? 'Upload failed')
-          const detail = (err as { detail?: string }).detail ?? `Server returned ${apiErr.status}.`
-
-          uploads.value[tempKey] = {
-            ...uploads.value[tempKey],
-            status: apiErr.status === 409 ? 'conflict' : 'failed',
-            errorTitle: title,
-            errorDetail: detail,
-          }
-          throw err
-        }
-
-        if (attempt < RETRY_MAX_ATTEMPTS) {
-          await new Promise<void>((resolve) => setTimeout(resolve, nextDelay(attempt)))
-          uploads.value[tempKey] = { ...uploads.value[tempKey], progress: 0 }
-          onProgress?.(0)
-        }
-      }
-    }
-
-    const err = lastError as { detail?: string }
-    uploads.value[tempKey] = {
-      ...uploads.value[tempKey],
-      status: 'failed',
-      errorTitle: 'Upload failed',
-      errorDetail: err.detail ?? 'Maximum retry attempts exceeded.',
-    }
-    throw lastError
+    return attemptUploadWithRetries(tempKey, item.assetId, item.file, onProgress)
   }
 
   /**
@@ -440,6 +413,14 @@ export const useMediaStore = defineStore('media', () => {
    */
   function clearSelection() {
     selectedAssetIds.value = []
+  }
+
+  /**
+   * Deletes a persisted asset from the backend and removes it from local state.
+   */
+  async function deletePersistedAsset(assetId: string) {
+    await deleteAsset(assetId)
+    removeAssetLocally(assetId)
   }
 
   /**
@@ -484,6 +465,7 @@ export const useMediaStore = defineStore('media', () => {
     addToSelection,
     removeFromSelection,
     clearSelection,
+    deletePersistedAsset,
     dismissUpload,
     clearUploads,
   }

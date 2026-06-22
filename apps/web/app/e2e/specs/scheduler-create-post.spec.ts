@@ -56,7 +56,9 @@ test.describe('Scheduler — Create Post', () => {
    * TC-06: Create Post — NEXT SCHEDULE mode.
    * Creates a post with "Next Schedule" mode and verifies SCHEDULED status.
    */
-  test('TC-06: create post via Next Schedule mode @creation @next-schedule @e2e', async ({ page }) => {
+  test('TC-06: create post via Next Schedule mode @creation @next-schedule @e2e', async ({
+    page,
+  }) => {
     const scheduler = new SchedulerPage(page)
     const composeModal = new ComposeModalPage(page)
 
