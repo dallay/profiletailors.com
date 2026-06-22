@@ -192,7 +192,9 @@ describe('CreatePostModal.vue — media asset integration', () => {
 
     await wrapper.vm.$nextTick()
 
-    const preview = document.body.querySelector('img[alt="Media preview"]') as HTMLImageElement | null
+    const preview = document.body.querySelector(
+      'img[alt="Media preview"]',
+    ) as HTMLImageElement | null
     expect(preview).not.toBeNull()
     expect(preview?.getAttribute('src')).toBe('blob:test-preview')
     expect(createAndUpload).not.toHaveBeenCalled()
@@ -208,8 +210,8 @@ describe('CreatePostModal.vue — media asset integration', () => {
     expect(input).not.toBeNull()
 
     const clickSpy = vi.spyOn(input as HTMLInputElement, 'click')
-    const dropZone = Array.from(document.body.querySelectorAll('button')).find((button) =>
-      button.getAttribute('aria-label') === 'composer.dragDrop',
+    const dropZone = Array.from(document.body.querySelectorAll('button')).find(
+      (button) => button.getAttribute('aria-label') === 'composer.dragDrop',
     ) as HTMLButtonElement | undefined
 
     expect(dropZone).toBeDefined()
@@ -482,7 +484,11 @@ describe('CreatePostModal.vue — deferred media upload on submit', () => {
     await Promise.resolve()
 
     expect(createAndUpload).toHaveBeenCalledTimes(1)
-    expect(createAndUpload).toHaveBeenCalledWith(file, expect.stringMatching(/^modal-upload-/), expect.any(Function))
+    expect(createAndUpload).toHaveBeenCalledWith(
+      file,
+      expect.stringMatching(/^modal-upload-/),
+      expect.any(Function),
+    )
     expect(mediaStore.selectedAssetIds).toContain('uploaded-asset')
     expect(schedulePost).toHaveBeenCalledWith(
       expect.objectContaining({
@@ -504,9 +510,9 @@ describe('CreatePostModal.vue — deferred media upload on submit', () => {
       status: 'QUEUED',
       priority: false,
     })
-    const createAndUpload = vi.spyOn(mediaStore, 'createAndUpload').mockRejectedValue(
-      new Error('Network error: upload failed'),
-    )
+    const createAndUpload = vi
+      .spyOn(mediaStore, 'createAndUpload')
+      .mockRejectedValue(new Error('Network error: upload failed'))
 
     Object.defineProperty(URL, 'createObjectURL', {
       configurable: true,

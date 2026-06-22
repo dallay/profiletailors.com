@@ -48,7 +48,6 @@ let mockIsAuthenticated = true
 // Tests
 // ---------------------------------------------------------------------------
 
-
 describe('deleteAsset', () => {
   beforeEach(() => {
     setActivePinia(createPinia())

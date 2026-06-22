@@ -284,7 +284,7 @@ function addFiles(filesList: File[]) {
  * Reserves an asset, begins upload, and tracks progress.
  * On success, the READY asset is added to the media store selection.
  */
-async function uploadAndTrack(file: File) {
+async function _uploadAndTrack(file: File) {
   // Revoke any previous preview blob
   clearUploadPreviewBlob()
   uploadPreviewBlob.value = URL.createObjectURL(file)
