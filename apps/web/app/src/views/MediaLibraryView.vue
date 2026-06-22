@@ -517,8 +517,6 @@ onMounted(async () => {
           v-for="asset in visibleAssets"
           :key="asset.assetId"
           class="group relative overflow-hidden rounded-xl border border-border-subtle bg-bg-primary/40 transition-all duration-200 hover:border-text-display/20 hover:bg-bg-primary/60 hover:shadow-lg hover:shadow-black/20"
-          @mouseenter="hoveredAssetId = asset.assetId"
-          @mouseleave="hoveredAssetId = null"
         >
           <!-- Thumbnail area (aspect-square) -->
           <div class="relative aspect-square overflow-hidden bg-bg-surface/80">
