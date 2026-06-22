@@ -219,6 +219,65 @@ export async function registerSchedulerMocks(context: BrowserContext): Promise<v
     route.fulfill(json({ success: true }))
   })
 
+  // --- Update/Delete publication — overrides the broad publications pattern ---
+  // Matches PATCH/DELETE /api/publishing/publications/{id}
+  await context.route(/\/api\/publishing\/publications\/[^/]+$/, (route) => {
+    const method = route.request().method()
+    const url = route.request().url()
+    const match = url.match(/\/api\/publishing\/publications\/([^/]+)$/)
+    const id = match?.[1]
+
+    if (method === 'DELETE') {
+      if (id) {
+        publications = publications.filter((p) => p.id !== id)
+      }
+      route.fulfill({ status: 204, body: '' })
+      return
+    }
+
+    if (method === 'PATCH') {
+      const body = route.request().postDataJSON() as {
+        title?: string
+        bodyText?: string
+        priority?: boolean
+        scheduledFor?: string
+      } | null
+      const pub = publications.find((p) => p.id === id)
+      if (!pub) {
+        route.fulfill(json({ title: 'Not Found', status: 404 }, 404))
+        return
+      }
+      if (body?.title !== undefined) pub.title = body.title
+      if (body?.bodyText !== undefined) pub.bodyText = body.bodyText
+      if (body?.priority !== undefined) pub.priority = body.priority
+      if (body?.scheduledFor !== undefined) pub.scheduledFor = body.scheduledFor
+      route.fulfill(
+        json(
+          {
+            publicationId: pub.id,
+            workspaceId: pub.workspaceId,
+            socialAccountId: pub.socialAccountId,
+            status: pub.status,
+            scheduleMode: pub.scheduleMode,
+            priority: pub.priority,
+            title: pub.title,
+            bodyText: pub.bodyText,
+            assetIds: [],
+            scheduledFor: pub.scheduledFor,
+            nextSlotAfter: null,
+            externalPublicationId: pub.externalPublicationId ?? null,
+            publicUrl: pub.publicUrl ?? null,
+            publishedAt: pub.publishedAt ?? null,
+          },
+          200,
+        ),
+      )
+      return
+    }
+
+    route.fallback()
+  })
+
   // --- Connected channels (settings page + post creation guard) ---
   // Register the broad pattern FIRST, then override with specific ones.
   // Playwright uses the LAST matching route, so specific patterns must come last.

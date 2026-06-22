@@ -101,6 +101,23 @@ export interface CalendarPublicationResult {
   previewUrl?: string | null
 }
 
+export interface PublicationResult {
+  publicationId: string
+  workspaceId: string
+  socialAccountId: string
+  status: string
+  scheduleMode: string
+  priority: boolean
+  title: string | null
+  bodyText: string | null
+  assetIds: string[]
+  scheduledFor: string | null
+  nextSlotAfter: string | null
+  externalPublicationId?: string | null
+  publicUrl?: string | null
+  publishedAt?: string | null
+}
+
 export interface ConflictEntry {
   publicationId: string
   conflictingPublicationIds: string[]
@@ -278,6 +295,36 @@ function mapApiStatus(s: string): Publication['status'] {
     'CANCELLED',
   ])
   return valid.has(s) ? (s as Publication['status']) : 'DRAFT'
+}
+
+/** Converts a Partial<Publication> into the backend PATCH body shape. */
+function toBackendFormat(updates: Partial<Publication>): Record<string, unknown> {
+  const body: Record<string, unknown> = {}
+  if (updates.content !== undefined) body.bodyText = updates.content
+  if (updates.title !== undefined) body.title = updates.title
+  if (updates.scheduledAt !== undefined) {
+    body.scheduleMode = 'SCHEDULED_AT'
+    body.scheduledFor = updates.scheduledAt
+  }
+  if (updates.priority !== undefined) body.priority = updates.priority
+  return body
+}
+
+/** Merges server-returned PublicationResult fields into a frontend Publication. */
+function fromBackendFormat(result: PublicationResult, existing: Publication): Publication {
+  return {
+    ...existing,
+    id: result.publicationId,
+    content: result.bodyText ?? existing.content,
+    title: result.title ?? existing.title,
+    scheduledAt: result.scheduledFor ?? existing.scheduledAt,
+    status: mapApiStatus(result.status),
+    priority: result.priority,
+    externalPublicationId: result.externalPublicationId ?? existing.externalPublicationId,
+    publicUrl: result.publicUrl ?? existing.publicUrl,
+    publishedAt: result.publishedAt ?? existing.publishedAt,
+    thumbnail: existing.thumbnail,
+  }
 }
 
 // ---------------------------------------------------------------------------
@@ -754,8 +801,11 @@ export const usePublishingStore = defineStore('publishing', () => {
     return newPub
   }
 
-  function deletePost(id: string) {
-    // Revoke object URL if tracked
+  async function deletePost(id: string) {
+    const existing = publications.value.find((p) => p.id === id)
+    if (!existing) return
+
+    // Optimistic local removal
     const url = objectUrls.get(id)
     if (url) {
       URL.revokeObjectURL(url)
@@ -763,6 +813,24 @@ export const usePublishingStore = defineStore('publishing', () => {
     }
     publications.value = publications.value.filter((p) => p.id !== id)
     saveToStorage()
+
+    if (!auth.isAuthenticated) return
+
+    try {
+      await auth.apiFetch(`/api/publishing/publications/${id}`, {
+        method: 'DELETE',
+        workspaceScoped: true,
+      })
+    } catch (err) {
+      // Re-hydrate from backend source of truth on failure
+      const now = new Date()
+      const from = new Date(now)
+      from.setMonth(from.getMonth() - 3)
+      const to = new Date(now)
+      to.setMonth(to.getMonth() + 1)
+      await fetchCalendar(from.toISOString(), to.toISOString())
+      throw err
+    }
   }
 
   function cancelPost(id: string) {
@@ -773,23 +841,38 @@ export const usePublishingStore = defineStore('publishing', () => {
     }
   }
 
-  function updatePost(id: string, updates: Partial<Publication>) {
-    const post = publications.value.find((p) => p.id === id)
-    if (post) {
-      // If thumbnail is being replaced, revoke old object URL
-      if (updates.thumbnail && post.thumbnail && objectUrls.has(id)) {
-        const trackedUrl = objectUrls.get(id)
-        if (trackedUrl) URL.revokeObjectURL(trackedUrl)
-        objectUrls.delete(id)
-      }
-      // Track new blob URL for later revocation
-      if (typeof updates.thumbnail === 'string' && updates.thumbnail.startsWith('blob:')) {
-        objectUrls.set(id, updates.thumbnail)
-      } else if (updates.thumbnail == null && objectUrls.has(id)) {
-        objectUrls.delete(id)
-      }
-      Object.assign(post, updates)
+  async function updatePost(id: string, updates: Partial<Publication>) {
+    const idx = publications.value.findIndex((p) => p.id === id)
+    if (idx === -1) return
+    const original = { ...publications.value[idx] }
+
+    // Optimistic merge
+    if (updates.thumbnail && original.thumbnail && objectUrls.has(id)) {
+      URL.revokeObjectURL(objectUrls.get(id)!)
+      objectUrls.delete(id)
+    }
+    if (typeof updates.thumbnail === 'string' && updates.thumbnail.startsWith('blob:')) {
+      objectUrls.set(id, updates.thumbnail)
+    } else if (updates.thumbnail == null && objectUrls.has(id)) {
+      objectUrls.delete(id)
+    }
+    Object.assign(publications.value[idx], updates)
+    saveToStorage()
+
+    if (!auth.isAuthenticated) return
+
+    try {
+      const result = await auth.apiFetch<PublicationResult>(`/api/publishing/publications/${id}`, {
+        method: 'PATCH',
+        body: JSON.stringify(toBackendFormat(updates)),
+        workspaceScoped: true,
+      })
+      publications.value[idx] = fromBackendFormat(result, publications.value[idx])
       saveToStorage()
+    } catch (err) {
+      publications.value[idx] = original
+      saveToStorage()
+      throw err
     }
   }
 

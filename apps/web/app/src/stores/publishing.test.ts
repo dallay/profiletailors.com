@@ -730,4 +730,194 @@ describe('publishing store', () => {
       expect(store.publications[0]?.id).toBe('local-linkedin')
     })
   })
+
+  describe('deletePost', () => {
+    it('calls DELETE /api/publishing/publications/{id} for authenticated users', async () => {
+      const store = usePublishingStore()
+      const auth = useAuthStore()
+      store.publications = [
+        {
+          id: 'pub-to-delete',
+          content: 'Will be deleted',
+          channels: ['linkedin'],
+          scheduledAt: '2026-06-15T20:00:00Z',
+          status: 'QUEUED',
+          priority: false,
+        },
+      ]
+      Object.defineProperty(auth, 'isAuthenticated', { value: true, configurable: true })
+      const apiFetch = vi.spyOn(auth, 'apiFetch').mockResolvedValue(undefined)
+
+      await store.deletePost('pub-to-delete')
+
+      expect(apiFetch).toHaveBeenCalledWith('/api/publishing/publications/pub-to-delete', {
+        method: 'DELETE',
+        workspaceScoped: true,
+      })
+    })
+
+    it('removes publication from local state immediately (optimistic)', async () => {
+      const store = usePublishingStore()
+      const auth = useAuthStore()
+      store.publications = [
+        {
+          id: 'pub-optimistic-delete',
+          content: 'Optimistic delete',
+          channels: ['linkedin'],
+          scheduledAt: '2026-06-15T20:00:00Z',
+          status: 'QUEUED',
+          priority: false,
+        },
+      ]
+      Object.defineProperty(auth, 'isAuthenticated', { value: true, configurable: true })
+      vi.spyOn(auth, 'apiFetch').mockResolvedValue(undefined)
+
+      await store.deletePost('pub-optimistic-delete')
+
+      expect(store.publications.find((p) => p.id === 'pub-optimistic-delete')).toBeUndefined()
+    })
+
+    it('re-hydrates state and re-throws on 4xx error', async () => {
+      const store = usePublishingStore()
+      const auth = useAuthStore()
+      store.publications = [
+        {
+          id: 'pub-delete-error',
+          content: 'Should reappear',
+          channels: ['linkedin'],
+          scheduledAt: '2026-06-15T20:00:00Z',
+          status: 'QUEUED',
+          priority: false,
+        },
+      ]
+      Object.defineProperty(auth, 'isAuthenticated', { value: true, configurable: true })
+      vi.spyOn(auth, 'apiFetch')
+        .mockRejectedValueOnce(new Error('409 Conflict'))
+        .mockResolvedValueOnce({ publications: [], conflicts: [], activity: [] })
+
+      await expect(store.deletePost('pub-delete-error')).rejects.toThrow('409 Conflict')
+      // fetchCalendar restores from empty API response — the publication is gone after re-hydration
+      expect(store.publications.find((p) => p.id === 'pub-delete-error')).toBeUndefined()
+    })
+
+    it('no-ops gracefully when publication is not found', async () => {
+      const store = usePublishingStore()
+      const auth = useAuthStore()
+      Object.defineProperty(auth, 'isAuthenticated', { value: true, configurable: true })
+      const apiFetch = vi.spyOn(auth, 'apiFetch')
+
+      // Should not throw; publication does not exist
+      await store.deletePost('nonexistent-id')
+      expect(apiFetch).not.toHaveBeenCalled()
+    })
+  })
+
+  describe('updatePost', () => {
+    it('calls PATCH /api/publishing/publications/{id} with toBackendFormat body', async () => {
+      const store = usePublishingStore()
+      const auth = useAuthStore()
+      store.publications = [
+        {
+          id: 'pub-to-update',
+          content: 'Old content',
+          channels: ['linkedin'],
+          scheduledAt: '2026-06-15T20:00:00Z',
+          status: 'QUEUED',
+          priority: false,
+        },
+      ]
+      Object.defineProperty(auth, 'isAuthenticated', { value: true, configurable: true })
+      const apiFetch = vi.spyOn(auth, 'apiFetch').mockResolvedValue({
+        publicationId: 'pub-to-update',
+        workspaceId: 'ws-1',
+        socialAccountId: 'acc-li-1',
+        status: 'QUEUED',
+        scheduleMode: 'NOW',
+        priority: false,
+        title: null,
+        bodyText: 'Updated content',
+        assetIds: [],
+        scheduledFor: '2026-06-15T20:00:00Z',
+        nextSlotAfter: null,
+      })
+
+      await store.updatePost('pub-to-update', { content: 'Updated content' })
+
+      expect(apiFetch).toHaveBeenCalledWith('/api/publishing/publications/pub-to-update', {
+        method: 'PATCH',
+        body: JSON.stringify({ bodyText: 'Updated content' }),
+        workspaceScoped: true,
+      })
+    })
+
+    it('merges server response fields into local publication on success', async () => {
+      const store = usePublishingStore()
+      const auth = useAuthStore()
+      store.publications = [
+        {
+          id: 'pub-update-success',
+          content: 'Local text',
+          channels: ['linkedin'],
+          scheduledAt: '2026-06-15T20:00:00Z',
+          status: 'QUEUED',
+          priority: false,
+        },
+      ]
+      Object.defineProperty(auth, 'isAuthenticated', { value: true, configurable: true })
+      vi.spyOn(auth, 'apiFetch').mockResolvedValue({
+        publicationId: 'pub-update-success',
+        workspaceId: 'ws-1',
+        socialAccountId: 'acc-li-1',
+        status: 'QUEUED',
+        scheduleMode: 'NOW',
+        priority: true,
+        title: 'Server Title',
+        bodyText: 'Server body',
+        assetIds: [],
+        scheduledFor: '2026-06-15T20:00:00Z',
+        nextSlotAfter: null,
+      })
+
+      await store.updatePost('pub-update-success', { content: 'Updated' })
+
+      const updated = store.publications.find((p) => p.id === 'pub-update-success')
+      expect(updated?.content).toBe('Server body')
+      expect(updated?.title).toBe('Server Title')
+      expect(updated?.priority).toBe(true)
+    })
+
+    it('restores original publication and re-throws on error', async () => {
+      const store = usePublishingStore()
+      const auth = useAuthStore()
+      store.publications = [
+        {
+          id: 'pub-update-fail',
+          content: 'Original content',
+          channels: ['linkedin'],
+          scheduledAt: '2026-06-15T20:00:00Z',
+          status: 'QUEUED',
+          priority: false,
+        },
+      ]
+      Object.defineProperty(auth, 'isAuthenticated', { value: true, configurable: true })
+      vi.spyOn(auth, 'apiFetch').mockRejectedValue(new Error('422 Validation failed'))
+
+      await expect(
+        store.updatePost('pub-update-fail', { content: 'Changed content' }),
+      ).rejects.toThrow('422 Validation failed')
+
+      const restored = store.publications.find((p) => p.id === 'pub-update-fail')
+      expect(restored?.content).toBe('Original content')
+    })
+
+    it('no-ops when publication is not found in store', async () => {
+      const store = usePublishingStore()
+      const auth = useAuthStore()
+      Object.defineProperty(auth, 'isAuthenticated', { value: true, configurable: true })
+      const apiFetch = vi.spyOn(auth, 'apiFetch')
+
+      await store.updatePost('nonexistent-id', { content: 'New content' })
+      expect(apiFetch).not.toHaveBeenCalled()
+    })
+  })
 })

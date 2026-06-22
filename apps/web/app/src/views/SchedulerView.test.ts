@@ -136,4 +136,75 @@ describe('SchedulerView', () => {
 
     expect(wrapper.text()).toContain('Reconnect Required')
   })
+
+  it('renders thumbnail image in week view scheduled post cards', async () => {
+    const store = usePublishingStore()
+    store.publications = [
+      {
+        id: 'pub-week-thumb',
+        content: 'Post with image in week view',
+        channels: ['linkedin'],
+        scheduledAt: new Date(Date.now() + 3 * 60 * 60 * 1000).toISOString(),
+        status: 'QUEUED',
+        priority: false,
+        thumbnail: 'https://example.com/week-thumb.jpg',
+      },
+    ]
+
+    const wrapper = mountView()
+    await flushPromises()
+    // Switch to week view (default is week)
+    const img = wrapper.find('img')
+    expect(img.exists()).toBe(true)
+    expect(img.attributes('src')).toBe('https://example.com/week-thumb.jpg')
+  })
+
+  it('places thumbnail to the right of text content in week view card', async () => {
+    const store = usePublishingStore()
+    store.publications = [
+      {
+        id: 'pub-week-side-by-side',
+        content: 'Side by side layout test',
+        channels: ['linkedin'],
+        scheduledAt: new Date(Date.now() + 3 * 60 * 60 * 1000).toISOString(),
+        status: 'QUEUED',
+        priority: false,
+        thumbnail: 'https://example.com/side-thumb.jpg',
+      },
+    ]
+
+    const wrapper = mountView()
+    await flushPromises()
+    // Find the week card button that contains the pub
+    const card = wrapper
+      .findAll('button')
+      .find((b) => b.text().includes('Side by side layout test'))
+    expect(card.exists()).toBe(true)
+    // The body container that holds both text and thumbnail must be flex-row (not flex-col)
+    const bodyDiv = card.findAll('div').find((d) => {
+      const cls = d.classes()
+      return cls.some((c) => c.includes('flex-row'))
+    })
+    expect(bodyDiv?.exists()).toBe(true)
+    // Both the text paragraph and the img should be inside that flex-row container
+    const img = card.find('img')
+    const textEl = card.find('p')
+    expect(img.exists()).toBe(true)
+    expect(textEl.exists()).toBe(true)
+    expect(bodyDiv?.find('img').exists()).toBe(true)
+    expect(bodyDiv?.find('p').exists()).toBe(true)
+  })
+
+  it('keeps week view scrolling inside the calendar grid', async () => {
+    const wrapper = mountView()
+    await flushPromises()
+
+    const scrollContainer = wrapper
+      .findAll('div')
+      .find((div) => div.classes().includes('overflow-y-auto'))
+
+    expect(scrollContainer?.exists()).toBe(true)
+    expect(scrollContainer?.classes()).toContain('flex-1')
+    expect(scrollContainer?.classes()).toContain('min-h-0')
+  })
 })
