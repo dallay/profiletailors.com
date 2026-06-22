@@ -385,7 +385,7 @@ describe('CreatePostModal.vue — preview composition', () => {
 
     const longText = `${'Long LinkedIn preview text '.repeat(20)}\n\n${'Extra paragraph '.repeat(14)}`
     textarea!.value = longText
-    textarea?.dispatchEvent(new Event('input', { bubbles: true }))
+    textarea!.dispatchEvent(new Event('input', { bubbles: true }))
 
     await wrapper.vm.$nextTick()
 
@@ -486,6 +486,32 @@ describe('CreatePostModal.vue — submit normalization', () => {
         content: 'Hello world',
       }),
     )
+  })
+
+  it('renders "Next Schedule" label when scheduleMode is set to next', async () => {
+    const channel = makeChannel('submit-ch-1')
+    const store = usePublishingStore()
+    store.channels = [channel]
+
+    const wrapper = mount(CreatePostModalComponent, {
+      props: { isOpen: true },
+      global: { mocks: { $t: mockT } },
+    })
+    await wrapper.vm.$nextTick()
+
+    // Switch to "Next Schedule" mode via the visible schedule toggle button
+    const nextScheduleToggle = Array.from(document.body.querySelectorAll('button')).find(
+      (button) => button.textContent?.trim() === 'Next Schedule',
+    ) as HTMLButtonElement | undefined
+    expect(nextScheduleToggle).toBeDefined()
+    nextScheduleToggle?.click()
+    await wrapper.vm.$nextTick()
+
+    // Verify the primary action button shows the Next Schedule label
+    const actionButton = document.body.querySelector('.ui-button')
+    expect(actionButton).not.toBeNull()
+    // The mock $t returns the key unchanged, so we check for the i18n key
+    expect(actionButton?.textContent?.trim()).toBe('composer.nextScheduleBtn')
   })
 })
 

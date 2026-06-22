@@ -41,4 +41,4 @@ Chain strategy: pending
 - [ ] 3.1 Create `apps/web/app/src/components/composer/LinkedInPostPreview.test.ts` covering short text, long multiline text, truncation affordance visibility, and media-plus-text rendering.
 - [ ] 3.2 Update `apps/web/app/src/components/CreatePostModal.test.ts` to assert the modal delegates to the shared preview shell and keeps preview output stable through empty, short, and long text states.
 - [ ] 3.3 Add a regression assertion in `apps/web/app/src/components/CreatePostModal.test.ts` that long LinkedIn text does not replace or mutate the original composer text value.
-- [ ] 3.4 Run `just frontend-test` for the Vue app test suite and confirm the new preview tests cover the bounded-text scenarios from `openspec/changes/2026-06-22-linkedin-preview-truncation/specs/composer-preview/spec.md`.
+- [ ] 3.4 Run `pnpm vitest run` in `apps/web/app` and confirm the new preview tests cover the bounded-text scenarios from `openspec/changes/2026-06-22-linkedin-preview-truncation/specs/composer-preview/spec.md`.

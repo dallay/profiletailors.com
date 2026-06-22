@@ -1,4 +1,4 @@
-## Exploration: LinkedIn preview truncation in Create Post modal
+# Exploration: LinkedIn preview truncation in Create Post modal
 
 ### Current State
 `apps/web/app/src/components/CreatePostModal.vue` currently owns both the composer form and the full LinkedIn preview markup inline. The right-hand preview column is hard-coded as a LinkedIn card, and the post body renders `{{ postText }}` inside a `whitespace-pre-wrap break-words` container with no truncation or expansion control, so long text can grow the preview indefinitely. Media preview state is already computed in the parent (`selectedAssetPreviewUrl`, `selectedAssetIsImage`), and channel display data is also derived there (`selectedChannel`, `selectedChannelInitials`). Existing tests in `apps/web/app/src/components/CreatePostModal.test.ts` cover avatar fallback, media preview behavior, and submit flow, but there is no coverage for preview text truncation or preview component boundaries.

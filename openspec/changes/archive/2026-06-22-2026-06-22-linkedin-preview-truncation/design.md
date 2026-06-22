@@ -59,18 +59,25 @@ Sequence:
 ## Interfaces / Contracts
 
 ```ts
-interface PostPreviewModel {
-  provider: 'linkedin'
+interface PostPreviewMedia {
+  kind: 'image' | 'video'
+  url?: string | null
+  alt: string
+  name?: string | null
+}
+
+interface LinkedInPreviewModel {
   authorName: string
   authorHandle: string
   authorAvatarUrl?: string | null
   authorInitials: string
   text: string
-  mediaImageUrl?: string | null
+  placeholderText: string
+  media?: PostPreviewMedia | null
 }
 ```
 
-`CreatePostModal` owns this model. `PostPreviewPanel` accepts `{ provider, preview }`. `LinkedInPostPreview` accepts only the LinkedIn-shaped preview data and MUST NOT read Pinia stores directly.
+`CreatePostModal` owns the `LinkedInPreviewModel`. `PostPreviewPanel` accepts `{ provider, linkedinPreview }`. `LinkedInPostPreview` accepts only the LinkedIn-shaped preview data and MUST NOT read Pinia stores directly. Provider selection is handled separately via the `PREVIEW_PROVIDERS` constant and the `PreviewProvider` type union, not by embedding the provider inside the preview model itself.
 
 ## Testing Strategy
 

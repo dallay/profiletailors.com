@@ -5,8 +5,10 @@ import type { DateValue } from 'reka-ui'
 import { CalendarDate, getLocalTimeZone, today } from '@internationalized/date'
 import {
   AlertCircle,
+  Calendar as CalendarIcon,
   Check,
   Hash,
+  Image as ImageIcon,
   Loader2,
   RotateCcw,
   Sparkles,
@@ -926,7 +928,11 @@ async function handleSchedule() {
                   :disabled="!canSubmit"
                   class="col-span-2 justify-center py-2.5 font-bold"
                 >
-                  {{ scheduleMode === 'now' ? 'Schedule Now' : scheduleMode === 'next' ? 'Next Schedule' : $t('composer.scheduleBtn') }}
+                  {{ scheduleMode === 'now'
+                    ? $t('composer.scheduleNowBtn')
+                    : scheduleMode === 'next'
+                      ? $t('composer.nextScheduleBtn')
+                      : $t('composer.scheduleBtn') }}
                 </Button>
               </div>
             </div>
