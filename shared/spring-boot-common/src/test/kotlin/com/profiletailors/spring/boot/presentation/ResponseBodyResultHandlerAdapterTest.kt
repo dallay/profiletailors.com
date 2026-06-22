@@ -5,25 +5,25 @@ import io.mockk.coEvery
 import io.mockk.mockk
 import org.junit.jupiter.api.Test
 import org.springframework.core.MethodParameter
-import org.springframework.http.codec.HttpMessageWriter
 import org.springframework.web.reactive.HandlerResult
 import org.springframework.web.reactive.accept.RequestedContentTypeResolver
 import org.springframework.mock.web.server.MockServerWebExchange
 import org.springframework.mock.http.server.reactive.MockServerHttpRequest
 import reactor.core.publisher.Mono
 import reactor.test.StepVerifier
+import kotlin.reflect.KClass
 
 class ResponseBodyResultHandlerAdapterTest {
 
-    private val presenter = mockk<Presenter<TestEntity>>(relaxed = true)
-    private val resolver = mockk<RequestedContentTypeResolver>(relaxed = true)
-    private val writer = mockk<HttpMessageWriter<Any>>(relaxed = true)
-    private val adapter = ResponseBodyResultHandlerAdapter(listOf(writer), resolver, presenter)
+    private val presenter = mockk<Presenter<TestEntity>>()
+    private val resolver = mockk<RequestedContentTypeResolver>()
+    private val adapter = ResponseBodyResultHandlerAdapter(emptyList(), resolver, presenter)
 
     @Test
     fun `should support result type matching presenter type`() {
         // Given
-        val methodParameter = methodParameter("testEntity")
+        val methodParameter = mockk<MethodParameter>()
+        coEvery { methodParameter.nestedParameterType } returns TestEntity::class.java
         coEvery { presenter.type } returns TestEntity::class
         val result = HandlerResult(Any(), Mono.just(TestEntity()), methodParameter)
 
@@ -34,7 +34,8 @@ class ResponseBodyResultHandlerAdapterTest {
     @Test
     fun `should not support different result type`() {
         // Given
-        val methodParameter = methodParameter("string")
+        val methodParameter = mockk<MethodParameter>()
+        coEvery { methodParameter.nestedParameterType } returns String::class.java
         coEvery { presenter.type } returns TestEntity::class
         val result = HandlerResult(Any(), Mono.just("string"), methodParameter)
 
@@ -46,7 +47,7 @@ class ResponseBodyResultHandlerAdapterTest {
     fun `should handle result by delegating to presenter`() {
         // Given
         val exchange = MockServerWebExchange.from(MockServerHttpRequest.get("/").build())
-        val result = HandlerResult(Any(), Mono.just(TestEntity()), methodParameter("testEntity"))
+        val result = HandlerResult(Any(), Mono.just(TestEntity()), mockk())
 
         coEvery { presenter.present(exchange, result) } returns Unit
 
@@ -64,7 +65,7 @@ class ResponseBodyResultHandlerAdapterTest {
     fun `should propagate presenter exception as reactor error`() {
         // Given
         val exchange = MockServerWebExchange.from(MockServerHttpRequest.get("/").build())
-        val result = HandlerResult(Any(), Mono.just(TestEntity()), methodParameter("testEntity"))
+        val result = HandlerResult(Any(), Mono.just(TestEntity()), mockk())
 
         coEvery { presenter.present(exchange, result) } throws RuntimeException("Presenter failed")
 
@@ -80,25 +81,14 @@ class ResponseBodyResultHandlerAdapterTest {
     @Test
     fun `should not support result when return type is supertype of presenter type`() {
         // Given
-        val methodParameter = methodParameter("any")
+        val methodParameter = mockk<MethodParameter>()
+        coEvery { methodParameter.nestedParameterType } returns Any::class.java
         coEvery { presenter.type } returns TestEntity::class
         val result = HandlerResult(Any(), Mono.just(Any()), methodParameter)
 
         // When/Then
         adapter.supports(result) shouldBe false
     }
-
-    @Suppress("unused")
-    private fun testEntity(): TestEntity = TestEntity()
-
-    @Suppress("unused")
-    private fun string(): String = "string"
-
-    @Suppress("unused")
-    private fun any(): Any = Any()
-
-    private fun methodParameter(methodName: String): MethodParameter =
-        MethodParameter(this::class.java.getDeclaredMethod(methodName), -1)
 
     class TestEntity
 }

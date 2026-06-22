@@ -360,7 +360,7 @@ class RateLimitingServiceTest {
         } returns expectedResult
 
         coEvery {
-            eventPublisher.publish(any<RateLimitExceededEvent>())
+            eventPublisher.publish(any())
         } throws RuntimeException("Event publishing failed")
 
         // When
@@ -368,7 +368,7 @@ class RateLimitingServiceTest {
 
         // Then
         result shouldBe expectedResult
-        coVerify(exactly = 1) { eventPublisher.publish(any<RateLimitExceededEvent>()) }
+        coVerify(exactly = 1) { eventPublisher.publish(any()) }
     }
 
     @Test
@@ -472,6 +472,6 @@ class RateLimitingServiceTest {
         // Then
         result.shouldBeInstanceOf<RateLimitResult.Allowed>()
         result.remainingTokens shouldBe 0
-        coVerify(exactly = 0) { eventPublisher.publish(any<RateLimitExceededEvent>()) }
+        coVerify(exactly = 0) { eventPublisher.publish(any()) }
     }
 }

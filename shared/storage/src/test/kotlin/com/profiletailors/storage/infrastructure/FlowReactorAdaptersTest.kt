@@ -28,7 +28,7 @@ class FlowReactorAdaptersTest {
     @Test
     fun `should convert Flux to Flow`() = runTest {
         val data = listOf("hello", "world")
-        val flux: Flux<org.springframework.core.io.buffer.DataBuffer> = Flux.fromIterable(data).map { factory.wrap(it.toByteArray()) }
+        val flux = Flux.fromIterable(data).map { factory.wrap(it.toByteArray()) }
 
         val flow = flux.asFlow()
 
