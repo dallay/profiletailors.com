@@ -41,14 +41,10 @@ const textLengthScore = computed(() => {
   return whitespaceAdjustedLength + longWordBonus
 })
 
-const isTruncated = computed(() => textLengthScore.value > LINKEDIN_PREVIEW_MAX_LENGTH)
-
-const truncatedText = computed(() => {
-  if (!isTruncated.value) {
-    return props.preview.text
-  }
-
-  return normalizeTruncatedText(props.preview.text)
+const isTruncated = computed(() => {
+  const text = props.preview.text || ''
+  const lineCount = text.split('\n').length
+  return lineCount > 3 || textLengthScore.value > LINKEDIN_PREVIEW_MAX_LENGTH
 })
 </script>
 
@@ -85,14 +81,20 @@ const truncatedText = computed(() => {
       </div>
     </div>
 
-    <div class="px-3.5 pb-3.5 text-white text-[13px] leading-relaxed whitespace-pre-wrap break-words [overflow-wrap:anywhere]">
-      <span v-if="preview.text.trim().length === 0" class="text-gray-500 italic">
+    <div class="px-3.5 pb-3.5 text-white text-[13px] leading-relaxed">
+      <span v-if="!preview.text?.trim()" class="text-gray-500 italic">
         {{ preview.placeholderText }}
       </span>
       <template v-else>
-        <p :class="isTruncated ? LINKEDIN_PREVIEW_CLAMP_CLASS : ''" data-testid="linkedin-preview-text">
-          {{ truncatedText }}
-        </p>
+        <div
+          :class="[
+            'whitespace-pre-wrap break-words [overflow-wrap:anywhere]',
+            isTruncated ? LINKEDIN_PREVIEW_CLAMP_CLASS : ''
+          ]"
+          data-testid="linkedin-preview-text"
+        >
+          {{ preview.text }}
+        </div>
         <span
           v-if="isTruncated"
           class="mt-1 inline-flex text-[12px] font-semibold text-gray-300"
