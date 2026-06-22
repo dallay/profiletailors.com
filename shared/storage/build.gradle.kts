@@ -27,6 +27,7 @@ dependencies {
 
     testImplementation(libs.junit.jupiter)
     testImplementation(libs.kotlinx.coroutines.test)
+    testImplementation(libs.kotlinx.coroutines.reactor)
     testImplementation(libs.kotlin.test.junit5)
     testImplementation(libs.mockk)
     testImplementation(libs.kotest.assertions.core)
