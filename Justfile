@@ -76,11 +76,12 @@ docker-compose := "docker compose"
 install:
     pnpm install --frozen-lockfile
 
-# Full initial setup: .env → install → git hooks
+# Full initial setup: .env → install → git hooks → agentsync
 setup:
     cp -n .env.example .env 2>/dev/null || true
     just install
     just hooks-install
+    pnpm dlx @dallay/agentsync apply
 
 # Install Lefthook git hooks unless globally disabled
 hooks-install:
