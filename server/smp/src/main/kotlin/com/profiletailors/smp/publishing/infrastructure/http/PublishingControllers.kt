@@ -1,23 +1,24 @@
 package com.profiletailors.smp.publishing.infrastructure.http
 
 import com.profiletailors.common.domain.bus.Mediator
+import com.profiletailors.common.domain.context.ResourceContextProvider
 import com.profiletailors.smp.publishing.application.CalendarResponse
 import com.profiletailors.smp.publishing.application.CancelPublicationCommand
 import com.profiletailors.smp.publishing.application.CompleteLinkedInConnectionCommand
+import com.profiletailors.smp.publishing.application.ConnectedChannelsResponse
 import com.profiletailors.smp.publishing.application.CreatePublicationCommand
+import com.profiletailors.smp.publishing.application.DeletePublicationCommand
 import com.profiletailors.smp.publishing.application.EditPublicationCommand
 import com.profiletailors.smp.publishing.application.GetCalendarPublicationsQuery
 import com.profiletailors.smp.publishing.application.InitiateLinkedInConnectionCommand
 import com.profiletailors.smp.publishing.application.LinkedInConnectionInitiationResult
 import com.profiletailors.smp.publishing.application.ListConnectedChannelsQuery
-import com.profiletailors.smp.publishing.application.ConnectedChannelsResponse
 import com.profiletailors.smp.publishing.application.ListPublicationsQuery
 import com.profiletailors.smp.publishing.application.ListPublicationsResponse
 import com.profiletailors.smp.publishing.application.PublicationResult
 import com.profiletailors.smp.publishing.application.ReschedulePublicationCommand
 import com.profiletailors.smp.publishing.application.RetryPublicationCommand
 import com.profiletailors.smp.publishing.application.SocialConnectionResult
-import com.profiletailors.common.domain.context.ResourceContextProvider
 import com.profiletailors.smp.publishing.domain.ChannelEvent
 import com.profiletailors.smp.publishing.domain.ChannelEventType
 import com.profiletailors.smp.publishing.domain.PublicationStatus
@@ -35,10 +36,11 @@ import jakarta.validation.constraints.NotBlank
 import org.springframework.format.annotation.DateTimeFormat
 import org.springframework.http.HttpStatus
 import org.springframework.http.MediaType
+import org.springframework.http.ResponseEntity
 import org.springframework.http.codec.ServerSentEvent
 import org.springframework.validation.annotation.Validated
+import org.springframework.web.bind.annotation.DeleteMapping
 import org.springframework.web.bind.annotation.GetMapping
-import org.springframework.web.server.ResponseStatusException
 import org.springframework.web.bind.annotation.PatchMapping
 import org.springframework.web.bind.annotation.PathVariable
 import org.springframework.web.bind.annotation.PostMapping
@@ -46,11 +48,13 @@ import org.springframework.web.bind.annotation.RequestBody
 import org.springframework.web.bind.annotation.RequestMapping
 import org.springframework.web.bind.annotation.RequestParam
 import org.springframework.web.bind.annotation.RestController
+import org.springframework.web.server.ResponseStatusException
 import reactor.core.publisher.Flux
 import java.time.DateTimeException
 import java.time.Duration
 import java.time.Instant
 import java.time.ZoneId
+
 
 @Validated
 @RestController
@@ -199,6 +203,15 @@ class PublishingPublicationController(
     suspend fun cancelPublication(
         @PathVariable publicationId: String,
     ): PublicationResult = mediator.send(CancelPublicationCommand(publicationId))
+
+    @Operation(summary = "Delete an unpublished publication")
+    @DeleteMapping("/{publicationId}", version = "1")
+    suspend fun deletePublication(
+        @PathVariable publicationId: String,
+    ): ResponseEntity<Unit> {
+        mediator.send(DeletePublicationCommand(publicationId))
+        return ResponseEntity.noContent().build()
+    }
 
     @Operation(summary = "Retry a failed publication")
     @PostMapping("/{publicationId}/retry", consumes = ["application/json"], version = "1")

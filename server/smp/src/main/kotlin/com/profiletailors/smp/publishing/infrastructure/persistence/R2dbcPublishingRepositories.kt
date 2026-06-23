@@ -314,6 +314,30 @@ class R2dbcPublicationRepository(
             .awaitSingle()
     }
 
+    override suspend fun deleteById(workspaceId: String, publicationId: String) {
+        // delivery_attempts has FKs to both publications and publication_jobs.
+        // Delete by publication_id first (covers all attempts for this publication).
+        databaseClient.sql("DELETE FROM delivery_attempts WHERE publication_id = :id")
+            .bind("id", publicationId)
+            .fetch().rowsUpdated().awaitSingleOrNull() ?: 0
+
+        // publication_jobs (FK to publications)
+        databaseClient.sql("DELETE FROM publication_jobs WHERE publication_id = :id")
+            .bind("id", publicationId)
+            .fetch().rowsUpdated().awaitSingleOrNull() ?: 0
+
+        // publication_asset_links (FK to publications)
+        databaseClient.sql("DELETE FROM publication_asset_links WHERE publication_id = :id")
+            .bind("id", publicationId)
+            .fetch().rowsUpdated().awaitSingleOrNull() ?: 0
+
+        // The publication itself (workspace-scoped)
+        databaseClient.sql("DELETE FROM publications WHERE workspace_id = :ws AND id = :id")
+            .bind("ws", workspaceId)
+            .bind("id", publicationId)
+            .fetch().rowsUpdated().awaitSingle()
+    }
+
     override suspend fun findBlockedForRecovery(
         maxRetries: Int,
     ): List<PublicationDraft> {
