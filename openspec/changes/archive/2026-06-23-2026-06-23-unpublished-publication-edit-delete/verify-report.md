@@ -37,7 +37,7 @@
 
 | Requirement / Scenario | Implementation Evidence | Runtime Test Evidence | Judge |
 |---|---|---|---|
-| Requirement: Unpublished Publication Deletion API | `DeletePublicationCommand`, `DeletePublicationHandler`, `DELETE /api/publishing/publications/{publicationId}`, `PublicationRepository.deleteUnpublished(...)` added | Backend focused tests passed: controller dispatch, handler allow/reject/auth, repository cleanup | ✅ Compliant |
+| Requirement: Unpublished Publication Deletion API | `DeletePublicationCommand`, `DeletePublicationHandler`, `DELETE /api/publishing/publications/{publicationId}`, `PublicationRepository.deleteUnpublished(...)` added with `: Boolean` return type | Backend focused tests passed: controller dispatch, handler allow/reject/auth, repository cleanup, return type (Boolean) contract verified and used for status-gating in `DeletePublicationHandler` | ✅ Compliant |
 | Scenario: Delete scheduled publication succeeds | Handler enforces deletable states; repository removes publication, asset links, and unclaimed jobs | `PublishingHandlersTest` delete success test passed; `R2dbcPublishingRepositoriesUnitTest` cleanup test passed | ✅ Compliant |
 | Scenario: Delete published publication is rejected | `PublicationLifecyclePolicy.requireDeletable(...)` rejects non pre-delivery states | `PublishingHandlersTest` delete reject test passed | ✅ Compliant |
 | Requirement: Publication Edit/Delete Status Matrix | Shared mutable status set in frontend store (`DRAFT`,`QUEUED`,`SCHEDULED`); backend policy uses same matrix | Frontend modal/store tests passed for gating and mutations; backend tests passed for delete rejection and edit flow protection | ✅ Compliant |

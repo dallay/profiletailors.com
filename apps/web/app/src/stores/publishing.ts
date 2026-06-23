@@ -171,6 +171,7 @@ interface LinkedInConnectionInitiationResult {
 export interface CalendarFilters {
   status?: string
   socialAccountId?: string
+  timezone?: string
 }
 
 // ---------------------------------------------------------------------------
@@ -589,7 +590,7 @@ export const usePublishingStore = defineStore('publishing', () => {
     const params = new URLSearchParams({
       from,
       to,
-      timezone: userTimezone.value,
+      timezone: filters?.timezone ?? userTimezone.value,
     })
     if (filters?.status) params.set('status', filters.status)
     if (filters?.socialAccountId) params.set('socialAccountId', filters.socialAccountId)
@@ -846,17 +847,6 @@ export const usePublishingStore = defineStore('publishing', () => {
 
     const previous: Publication = { ...current }
 
-    if (updates.thumbnail && current.thumbnail && objectUrls.has(id)) {
-      const trackedUrl = objectUrls.get(id)
-      if (trackedUrl) URL.revokeObjectURL(trackedUrl)
-      objectUrls.delete(id)
-    }
-    if (typeof updates.thumbnail === 'string' && updates.thumbnail.startsWith('blob:')) {
-      objectUrls.set(id, updates.thumbnail)
-    } else if (updates.thumbnail == null && objectUrls.has(id)) {
-      objectUrls.delete(id)
-    }
-
     if (auth.isAuthenticated) {
       const result = await auth.apiFetch<PublicationMutationResult>(
         `/api/publishing/publications/${id}`,
@@ -866,7 +856,10 @@ export const usePublishingStore = defineStore('publishing', () => {
             socialAccountId: current.accountId,
             title: updates.title ?? current.title ?? null,
             bodyText: updates.content ?? current.content,
-            assetIds: [],
+            assetIds:
+              (updates as { assetIds?: string[] }).assetIds ??
+              (current as { assetIds?: string[] }).assetIds ??
+              [],
             scheduleMode: 'SCHEDULED_AT',
             scheduledFor: updates.scheduledAt ?? current.scheduledAt,
             priority: updates.priority ?? current.priority,
@@ -875,6 +868,18 @@ export const usePublishingStore = defineStore('publishing', () => {
         },
       )
 
+      // Object URL mutations only after successful PATCH
+      if (updates.thumbnail && current.thumbnail && objectUrls.has(id)) {
+        const trackedUrl = objectUrls.get(id)
+        if (trackedUrl) URL.revokeObjectURL(trackedUrl)
+        objectUrls.delete(id)
+      }
+      if (typeof updates.thumbnail === 'string' && updates.thumbnail.startsWith('blob:')) {
+        objectUrls.set(id, updates.thumbnail)
+      } else if (updates.thumbnail == null && objectUrls.has(id)) {
+        objectUrls.delete(id)
+      }
+
       const merged = publicationMutationResultToPublication(result, {
         ...current,
         ...updates,
@@ -882,6 +887,18 @@ export const usePublishingStore = defineStore('publishing', () => {
       publications.value[idx] = merged
       saveToStorage()
       return merged
+    }
+
+    // Unauthenticated path — object URL mutations before local update
+    if (updates.thumbnail && current.thumbnail && objectUrls.has(id)) {
+      const trackedUrl = objectUrls.get(id)
+      if (trackedUrl) URL.revokeObjectURL(trackedUrl)
+      objectUrls.delete(id)
+    }
+    if (typeof updates.thumbnail === 'string' && updates.thumbnail.startsWith('blob:')) {
+      objectUrls.set(id, updates.thumbnail)
+    } else if (updates.thumbnail == null && objectUrls.has(id)) {
+      objectUrls.delete(id)
     }
 
     publications.value[idx] = { ...previous, ...updates }

@@ -1215,6 +1215,10 @@ describe('publishing store', () => {
       await store.updatePost('blob-update', { thumbnail: 'blob:new-thumb' })
 
       expect(stubUrl.revokeObjectURL).toHaveBeenCalledWith('blob:tracked-thumb')
+
+      // Verify blob:new-thumb is tracked — a third replacement revokes it
+      await store.updatePost('blob-update', { thumbnail: 'blob:final-thumb' })
+      expect(stubUrl.revokeObjectURL).toHaveBeenCalledWith('blob:new-thumb')
     })
   })
 

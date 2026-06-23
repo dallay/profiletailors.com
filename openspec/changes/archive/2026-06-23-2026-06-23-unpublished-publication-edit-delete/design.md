@@ -61,7 +61,7 @@ Sequence note: controller → mediator → handler → repository/job repository
 data class DeletePublicationCommand(val publicationId: String) : CommandWithResult<PublicationResult>
 
 interface PublicationRepository {
-    suspend fun deleteUnpublished(workspaceId: String, publicationId: String)
+    suspend fun deleteUnpublished(workspaceId: String, publicationId: String): Boolean
 }
 ```
 

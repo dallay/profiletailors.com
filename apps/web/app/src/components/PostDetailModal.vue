@@ -292,10 +292,12 @@ function cancelReschedule() {
         <div class="flex-1 overflow-y-auto p-6 space-y-5">
           <!-- Title -->
           <div class="space-y-1">
-            <span class="font-mono text-[9px] font-bold tracking-widest text-text-secondary uppercase">
+            <!-- biome-ignore lint/a11y/noLabelWithoutControl: label has for="edit-title"; input is conditionally rendered with v-if="canEdit" -->
+            <label for="edit-title" class="font-mono text-[9px] font-bold tracking-widest text-text-secondary uppercase">
               {{ t('postDetail.titleLabel') }}
-            </span>
+            </label>
             <input
+              id="edit-title"
               v-if="canEdit"
               v-model="editTitle"
               class="w-full rounded-xl border border-border-visible bg-bg-surface px-3 py-2 text-sm text-text-display"
@@ -306,10 +308,12 @@ function cancelReschedule() {
 
           <!-- Body text -->
           <div class="space-y-1">
-            <span class="font-mono text-[9px] font-bold tracking-widest text-text-secondary uppercase">
+            <!-- biome-ignore lint/a11y/noLabelWithoutControl: label has for="edit-body"; textarea is conditionally rendered with v-if="canEdit" -->
+            <label for="edit-body" class="font-mono text-[9px] font-bold tracking-widest text-text-secondary uppercase">
               {{ t('postDetail.bodyLabel') }}
-            </span>
+            </label>
             <textarea
+              id="edit-body"
               v-if="canEdit"
               v-model="editContent"
               class="min-h-32 w-full rounded-xl border border-border-visible bg-bg-surface px-3 py-2 text-sm font-light leading-relaxed text-text-body"
@@ -335,10 +339,12 @@ function cancelReschedule() {
           <!-- Schedule / publish metadata -->
           <div class="grid grid-cols-2 gap-3 pt-2 border-t border-border-subtle">
             <div class="space-y-1">
-              <span class="font-mono text-[9px] font-bold tracking-widest text-text-secondary uppercase">
+              <!-- biome-ignore lint/a11y/noLabelWithoutControl: label has for="edit-schedule"; input is conditionally rendered with v-if="canEdit" -->
+              <label for="edit-schedule" class="font-mono text-[9px] font-bold tracking-widest text-text-secondary uppercase">
                 {{ t('postDetail.scheduledFor') }}
-              </span>
+              </label>
               <input
+                id="edit-schedule"
                 v-if="canEdit"
                 v-model="editScheduledAt"
                 type="datetime-local"

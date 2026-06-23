@@ -43,7 +43,7 @@ describe('SidebarChannelsSection', () => {
     const wrapper = mount(SidebarChannelsSection, {
       props: {
         channels: [],
-        activeProvider: null,
+        activeChannelId: null,
         totalQueuedCount: 4,
         isSchedulerRoute: true,
       },
@@ -58,7 +58,7 @@ describe('SidebarChannelsSection', () => {
     const wrapper = mount(SidebarChannelsSection, {
       props: {
         channels: [],
-        activeProvider: null,
+        activeChannelId: null,
         totalQueuedCount: 0,
         isSchedulerRoute: true,
       },
@@ -78,7 +78,7 @@ describe('SidebarChannelsSection', () => {
     const wrapper = mount(SidebarChannelsSection, {
       props: {
         channels,
-        activeProvider: null,
+        activeChannelId: null,
         totalQueuedCount: 0,
         isSchedulerRoute: false,
       },
@@ -94,7 +94,7 @@ describe('SidebarChannelsSection', () => {
     const wrapper = mount(SidebarChannelsSection, {
       props: {
         channels: [makeChannel({ id: 'ch-1' })],
-        activeProvider: null,
+        activeChannelId: null,
         totalQueuedCount: 0,
         isSchedulerRoute: false,
       },
@@ -120,7 +120,7 @@ describe('SidebarChannelsSection', () => {
     const wrapper = mount(SidebarChannelsSection, {
       props: {
         channels: [],
-        activeProvider: null,
+        activeChannelId: null,
         totalQueuedCount: 0,
         isSchedulerRoute: true,
       },
@@ -142,7 +142,7 @@ describe('SidebarChannelsSection', () => {
     const wrapper = mount(SidebarChannelsSection, {
       props: {
         channels,
-        activeProvider: null,
+        activeChannelId: null,
         totalQueuedCount: 0,
         isSchedulerRoute: false,
       },

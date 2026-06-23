@@ -11,7 +11,7 @@ export interface SidebarChannel extends Channel {
 
 const props = defineProps<{
   channels: SidebarChannel[]
-  activeProvider: string | null
+  activeChannelId: string | null
   totalQueuedCount: number
   isSchedulerRoute: boolean
 }>()
@@ -37,8 +37,8 @@ watch(
   { deep: false },
 )
 
-function isRowActive(provider: string): boolean {
-  return props.isSchedulerRoute && props.activeProvider === provider
+function isRowActive(accountId: string): boolean {
+  return props.isSchedulerRoute && props.activeChannelId === accountId
 }
 
 const allBadge = computed(() => {
@@ -53,7 +53,7 @@ const allBadge = computed(() => {
     <button
       type="button"
       class="flex w-full items-center gap-3 rounded-xl border border-transparent px-3 py-2 text-left text-sm text-text-secondary transition-colors hover:border-border-subtle hover:bg-bg-primary/70 hover:text-text-display"
-      :class="isSchedulerRoute && !activeProvider ? 'border-border-visible bg-bg-primary text-text-display' : ''"
+      :class="isSchedulerRoute && !activeChannelId ? 'border-border-visible bg-bg-primary text-text-display' : ''"
       @click="emit('selectAll')"
     >
       <Users class="size-4 shrink-0 text-text-secondary" />
@@ -70,7 +70,7 @@ const allBadge = computed(() => {
       v-for="channel in channels"
       :key="channel.id"
       :channel="channel"
-      :is-active="isRowActive(channel.provider)"
+      :is-active="isRowActive(channel.accountId)"
       :queued-count="channel.queuedCount"
       @select="emit('selectChannel', channel)"
       @avatar-error="() => { avatarLoadFailedMap[channel.id] = true }"

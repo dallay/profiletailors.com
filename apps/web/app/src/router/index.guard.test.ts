@@ -39,15 +39,15 @@ describe('router real guard navigation', () => {
     vi.resetModules()
   })
 
-  it('redirects unauthenticated user from /scheduler to /login', async () => {
+  it('redirects unauthenticated user from canonical scheduler route to /login', async () => {
     mockRefreshSession.mockResolvedValue(null)
     const { default: router } = await import('./index')
 
-    await router.push('/scheduler')
+    await router.push('/scheduler/calendar/week')
     await router.isReady()
 
     expect(router.currentRoute.value.path).toBe('/login')
-    expect(router.currentRoute.value.query.redirect).toBe('/scheduler')
+    expect(router.currentRoute.value.query.redirect).toBe('/scheduler/calendar/week')
   })
 
   it('redirects authenticated user away from /login to /', async () => {

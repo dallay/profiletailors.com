@@ -317,6 +317,24 @@ class R2dbcPublicationRepository(
 
     @Transactional
     override suspend fun deleteUnpublished(workspaceId: String, publicationId: String): Boolean {
+        // Check if publication is in a deletable status first (guards FK constraints)
+        val deletable = databaseClient.sql(
+            """
+            SELECT COUNT(*) AS cnt FROM publications
+            WHERE workspace_id = :workspaceId
+              AND id = :publicationId
+              AND status IN ('DRAFT', 'QUEUED', 'SCHEDULED')
+            """.trimIndent(),
+        )
+            .bind("workspaceId", workspaceId)
+            .bind("publicationId", publicationId)
+            .map { row, _ -> requireNotNull(row.get("cnt", java.lang.Long::class.java)).toLong() }
+            .one()
+            .awaitSingle() > 0L
+
+        if (!deletable) return false
+
+        // Delete child records first (FK constraints) — only unclaimed jobs
         databaseClient.sql(
             """
             DELETE FROM publication_jobs
@@ -344,7 +362,8 @@ class R2dbcPublicationRepository(
             .rowsUpdated()
             .awaitSingle()
 
-        val deleted = databaseClient.sql(
+        // Delete parent publication
+        databaseClient.sql(
             """
             DELETE FROM publications
             WHERE workspace_id = :workspaceId
@@ -358,7 +377,7 @@ class R2dbcPublicationRepository(
             .rowsUpdated()
             .awaitSingle()
 
-        return deleted == 1L
+        return true
     }
 
     override suspend fun findBlockedForRecovery(
