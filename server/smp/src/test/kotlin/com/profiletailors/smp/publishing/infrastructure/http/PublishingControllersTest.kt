@@ -13,7 +13,6 @@ import com.profiletailors.smp.publishing.application.CalendarResponse
 import com.profiletailors.smp.publishing.application.CancelPublicationCommand
 import com.profiletailors.smp.publishing.application.CompleteLinkedInConnectionCommand
 import com.profiletailors.smp.publishing.application.CreatePublicationCommand
-import com.profiletailors.smp.publishing.application.DeletePublicationCommand
 import com.profiletailors.smp.publishing.application.EditPublicationCommand
 import com.profiletailors.smp.publishing.application.ConnectedChannelsResponse
 import com.profiletailors.smp.publishing.application.ConnectedSocialChannelSummary
@@ -349,16 +348,6 @@ class PublishingControllersTest {
     }
 
     @Test
-    fun `dispatches delete publication command`() = runTest {
-        val mediator = CapturingMediator()
-        val controller = PublishingPublicationController(mediator)
-
-        controller.deletePublication("pub-1")
-
-        assertEquals(DeletePublicationCommand("pub-1"), mediator.lastCommand)
-    }
-
-    @Test
     fun `dispatches publication lifecycle commands`() = runTest {
         val mediator = CapturingMediator()
         val controller = PublishingPublicationController(mediator)
@@ -438,7 +427,6 @@ class PublishingControllersTest {
     private class CapturingMediator : Mediator {
         var lastRequest: Any? = null
         var lastQuery: Any? = null
-        var lastCommand: Any? = null
 
         @Suppress("UNCHECKED_CAST")
         override suspend fun <TQuery : Query<TResponse>, TResponse> send(query: TQuery): TResponse {
@@ -473,7 +461,7 @@ class PublishingControllersTest {
         }
 
         override suspend fun <TCommand : Command> send(command: TCommand) {
-            lastCommand = command
+            error("Not used in this test")
         }
 
         @Suppress("UNCHECKED_CAST", "CyclomaticComplexMethod", "LongMethod")

@@ -1,7 +1,8 @@
 <script setup lang="ts">
-import { ref, computed, watch, onMounted, onUnmounted } from 'vue'
+import { ref, computed, watch, onMounted, onUnmounted, nextTick } from 'vue'
 import { useI18n } from 'vue-i18n'
 import type { DateValue } from 'reka-ui'
+import { useFocusTrap } from '@/composables/useFocusTrap'
 import { CalendarDate, getLocalTimeZone, today } from '@internationalized/date'
 import {
   AlertCircle,
@@ -59,6 +60,9 @@ const priorityMode = ref(false)
 const scheduleMode = ref<ComposerScheduleMode>('now')
 const isDatePickerOpen = ref(false)
 
+const modalContainer = ref<HTMLElement | null>(null)
+const { activate: activateFocusTrap, deactivate: deactivateFocusTrap } = useFocusTrap(modalContainer, () => emit('close'))
+
 // ---------------------------------------------------------------------------
 // Media picker state (replaces local-only File attachment truth)
 // ---------------------------------------------------------------------------
@@ -112,7 +116,7 @@ const minTimeForDate = computed(() => {
   return '00:00'
 })
 
-// Initialize Date
+// Initialize Date + focus trap
 watch(
   () => props.isOpen,
   async (open) => {
@@ -154,6 +158,14 @@ watch(
           // Non-critical — dangling load failure shouldn't block the composer
         }
       }
+
+      // Activate focus trap after next render
+      await nextTick()
+      if (props.isOpen) {
+        activateFocusTrap()
+      }
+    } else {
+      deactivateFocusTrap()
     }
   }
 )
@@ -593,6 +605,10 @@ async function handleSchedule() {
     >
       <!-- Modal Wrapper -->
       <div
+        ref="modalContainer"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="create-post-title"
         class="flex flex-col lg:flex-row w-full max-w-5xl h-[90vh] lg:h-[750px] bg-bg-surface border border-border-subtle rounded-2xl overflow-hidden shadow-2xl animate-zoom-in"
       >
         <!-- Close Button (Absolute Mobile) -->
@@ -606,7 +622,7 @@ async function handleSchedule() {
         <!-- Left Column: Composer Editor -->
         <div class="flex-1 flex flex-col border-b lg:border-b-0 lg:border-r border-border-subtle p-6 overflow-y-auto space-y-6">
           <div class="flex items-center justify-between">
-            <h3 class="font-mono text-xs font-bold tracking-widest text-text-display uppercase">
+            <h3 id="create-post-title" class="font-mono text-xs font-bold tracking-widest text-text-display uppercase">
               {{ $t('composer.title') }}
             </h3>
             <button
@@ -665,7 +681,9 @@ async function handleSchedule() {
 
           <!-- Textarea + Editor controls -->
           <div class="space-y-2 flex-1 flex flex-col min-h-[160px]">
+            <label for="create-post-text" class="sr-only">Post content</label>
             <textarea
+              id="create-post-text"
               v-model="postText"
               :placeholder="$t('composer.placeholder')"
               class="w-full flex-1 bg-bg-primary border border-border-visible rounded-xl p-4 text-sm text-text-body placeholder:text-text-secondary focus:outline-none focus:border-text-display resize-none font-sans"
@@ -812,10 +830,12 @@ async function handleSchedule() {
 
           <!-- First Comment option -->
           <div class="space-y-2">
-            <span class="font-mono text-[9px] tracking-widest text-text-secondary uppercase block">
+            <!-- biome-ignore lint/a11y/noLabelWithoutControl: $t() provides accessible text, Biome can't resolve i18n keys statically -->
+            <label for="create-post-first-comment" class="font-mono text-[9px] tracking-widest text-text-secondary uppercase block">
               {{ $t('composer.firstComment') }}
-            </span>
+            </label>
             <input
+              id="create-post-first-comment"
               v-model="firstComment"
               type="text"
               :placeholder="$t('composer.firstCommentPlaceholder')"
@@ -838,28 +858,41 @@ async function handleSchedule() {
                 <CalendarIcon class="size-4 text-text-secondary shrink-0" />
                 <div class="flex-1 space-y-2 text-xs">
                   <span class="text-text-secondary">Schedule Mode:</span>
-                  <div class="grid grid-cols-3 gap-1 rounded-lg bg-bg-primary/60 p-1">
-                    <button
-                      @click="scheduleMode = 'now'"
-                      class="px-2 py-1 rounded font-mono text-[9px] uppercase tracking-wider font-bold transition-all cursor-pointer"
-                      :class="scheduleMode === 'now' ? 'bg-text-display text-bg-primary' : 'bg-transparent text-text-secondary hover:text-text-display'"
-                    >
-                      Now
-                    </button>
-                    <button
-                      @click="scheduleMode = 'next'"
-                      class="px-2 py-1 rounded font-mono text-[9px] uppercase tracking-wider font-bold transition-all cursor-pointer"
-                      :class="scheduleMode === 'next' ? 'bg-text-display text-bg-primary' : 'bg-transparent text-text-secondary hover:text-text-display'"
-                    >
-                      Next Schedule
-                    </button>
-                    <button
-                      @click="scheduleMode = 'custom'"
-                      class="px-2 py-1 rounded font-mono text-[9px] uppercase tracking-wider font-bold transition-all cursor-pointer"
-                      :class="scheduleMode === 'custom' ? 'bg-text-display text-bg-primary' : 'bg-transparent text-text-secondary hover:text-text-display'"
-                    >
-                      Pick Date
-                    </button>
+                  <div
+                    class="grid grid-cols-3 gap-1 rounded-lg bg-bg-primary/60 p-1"
+                    role="radiogroup"
+                    aria-label="Schedule mode"
+                  >
+                  <!-- biome-ignore lint/a11y/useSemanticElements: <button role="radio"> is a valid ARIA pattern for styled toggle buttons that don't look like native radio inputs -->
+                  <button
+                    @click="scheduleMode = 'now'"
+                    role="radio"
+                    :aria-checked="scheduleMode === 'now'"
+                    class="px-2 py-1 rounded font-mono text-[9px] uppercase tracking-wider font-bold transition-all cursor-pointer"
+                    :class="scheduleMode === 'now' ? 'bg-text-display text-bg-primary' : 'bg-transparent text-text-secondary hover:text-text-display'"
+                  >
+                    Now
+                  </button>
+                  <!-- biome-ignore lint/a11y/useSemanticElements: <button role="radio"> is a valid ARIA pattern for styled toggle buttons -->
+                  <button
+                    @click="scheduleMode = 'next'"
+                    role="radio"
+                    :aria-checked="scheduleMode === 'next'"
+                    class="px-2 py-1 rounded font-mono text-[9px] uppercase tracking-wider font-bold transition-all cursor-pointer"
+                    :class="scheduleMode === 'next' ? 'bg-text-display text-bg-primary' : 'bg-transparent text-text-secondary hover:text-text-display'"
+                  >
+                    Next Schedule
+                  </button>
+                  <!-- biome-ignore lint/a11y/useSemanticElements: <button role="radio"> is a valid ARIA pattern for styled toggle buttons -->
+                  <button
+                    @click="scheduleMode = 'custom'"
+                    role="radio"
+                    :aria-checked="scheduleMode === 'custom'"
+                    class="px-2 py-1 rounded font-mono text-[9px] uppercase tracking-wider font-bold transition-all cursor-pointer"
+                    :class="scheduleMode === 'custom' ? 'bg-text-display text-bg-primary' : 'bg-transparent text-text-secondary hover:text-text-display'"
+                  >
+                    Pick Date
+                  </button>
                   </div>
                   <p class="text-[10px] leading-4 text-text-secondary">
                     {{ scheduleHelperText }}
@@ -889,7 +922,9 @@ async function handleSchedule() {
                     />
                   </PopoverContent>
                 </Popover>
+                <label for="create-post-schedule-time" class="sr-only">Schedule time</label>
                 <input
+                  id="create-post-schedule-time"
                   v-model="scheduleTime"
                   type="time"
                   :min="minTimeForDate"

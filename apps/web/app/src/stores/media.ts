@@ -5,6 +5,7 @@ import {
   reserveAsset,
   uploadAsset,
   listAssets,
+  getAsset,
   deleteAsset,
 } from '@/lib/media-api'
 
@@ -235,14 +236,11 @@ export const useMediaStore = defineStore('media', () => {
 
     for (let attempt = 1; attempt <= RETRY_MAX_ATTEMPTS; attempt++) {
       try {
-        const uploaded = await uploadAsset(assetId, file, (pct) => {
+        await uploadAsset(assetId, file, (pct) => {
           updateUpload(tempKey, { progress: pct })
           onProgress?.(pct)
         })
-
-        upsertAsset(uploaded)
-        markUploadDone(tempKey, uploaded)
-        return uploaded
+        break
       } catch (err) {
         lastError = err
         const terminalState = terminalUploadState(err)
@@ -262,6 +260,16 @@ export const useMediaStore = defineStore('media', () => {
           onProgress?.(0)
         }
       }
+    }
+
+    try {
+      // Re-fetch the asset to get full data (previewUrl, downloadUrl) after upload.
+      const hydrated = await executeWithRetry(() => getAsset(assetId))
+      upsertAsset(hydrated)
+      markUploadDone(tempKey, hydrated)
+      return hydrated
+    } catch (err) {
+      lastError = err
     }
 
     const err = lastError as { detail?: string }

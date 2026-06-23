@@ -92,7 +92,9 @@ const emit = defineEmits<{
 
       <!-- Timezone Location Dropdown -->
       <div class="relative shrink-0">
+        <label for="calendar-timezone-select" class="sr-only">Timezone</label>
         <select
+          id="calendar-timezone-select"
           v-model="publishingStore.userTimezone"
           class="bg-bg-surface border border-border-subtle rounded-full px-3 py-1.5 text-[10px] font-mono font-bold text-text-secondary appearance-none pr-8 cursor-pointer focus:outline-none focus:border-text-display"
         >
@@ -106,7 +108,9 @@ const emit = defineEmits<{
 
       <!-- Platform/Account filter -->
       <div class="relative shrink-0">
+        <label for="calendar-platform-select" class="sr-only">Platform</label>
         <select
+          id="calendar-platform-select"
           v-model="publishingStore.filterSocialAccountId"
           class="bg-bg-surface border border-border-subtle rounded-full px-3 py-1.5 text-[10px] font-mono font-bold text-text-secondary appearance-none pr-8 cursor-pointer focus:outline-none focus:border-text-display"
         >
@@ -124,7 +128,9 @@ const emit = defineEmits<{
 
       <!-- Post Status Filter -->
       <div class="relative shrink-0">
+        <label for="calendar-post-status-select" class="sr-only">Post status</label>
         <select
+          id="calendar-post-status-select"
           v-model="publishingStore.filterPostType"
           class="bg-bg-surface border border-border-subtle rounded-full px-3 py-1.5 text-[10px] font-mono font-bold text-text-secondary appearance-none pr-8 cursor-pointer focus:outline-none focus:border-text-display"
         >

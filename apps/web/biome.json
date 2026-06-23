@@ -6,7 +6,7 @@
     "useIgnoreFile": true
   },
   "files": {
-    "includes": ["**/*.{js,ts,vue,mjs,astro}", "!**/coverage", "!**/dist"],
+    "includes": ["**/*.{js,ts,vue,mjs,astro}"],
     "ignoreUnknown": true
   },
   "formatter": {
