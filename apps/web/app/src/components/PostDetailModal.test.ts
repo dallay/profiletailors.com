@@ -116,6 +116,13 @@ describe('PostDetailModal', () => {
       const wrapper = mountModal(makePublication({ status }))
       expect(wrapper.html()).toContain(expectedClass)
     })
+
+    it('falls back to raw status string for unknown status in label', () => {
+      const wrapper = mountModal(
+        makePublication({ status: 'UNKNOWN_STATUS' as Publication['status'] }),
+      )
+      expect(wrapper.text()).toContain('UNKNOWN_STATUS')
+    })
   })
 
   describe('viewPostUrl', () => {
@@ -190,6 +197,40 @@ describe('PostDetailModal', () => {
       expect(wrapper.text()).not.toContain('postDetail.delete')
       expect(wrapper.text()).toContain('postDetail.readOnlyHint')
     })
+
+    it('prevents double-click by guarding with isDeleting', async () => {
+      const wrapper = mountModal(makePublication())
+      const publishingStore = usePublishingStore()
+      // Make deletePost never resolve — isDeleting stays true
+      vi.spyOn(publishingStore, 'deletePost').mockReturnValue(new Promise(() => {}))
+
+      const deleteButton = wrapper
+        .findAll('button')
+        .find((button) => button.text().includes('postDetail.delete'))
+      expect(deleteButton).toBeDefined()
+      await deleteButton!.trigger('click')
+      // Click again while still deleting
+      await deleteButton!.trigger('click')
+
+      // deletePost should only be called once
+      expect(publishingStore.deletePost).toHaveBeenCalledTimes(1)
+    })
+
+    it('shows delete error and does not close modal on failure', async () => {
+      const wrapper = mountModal(makePublication())
+      const publishingStore = usePublishingStore()
+      vi.spyOn(publishingStore, 'deletePost').mockRejectedValue(new Error('Delete failed'))
+
+      const deleteButton = wrapper
+        .findAll('button')
+        .find((button) => button.text().includes('postDetail.delete'))
+      await deleteButton!.trigger('click')
+      await flushPromises()
+
+      expect(wrapper.text()).toContain('Delete failed')
+      // Modal should still be open (close not emitted on failure)
+      expect(wrapper.emitted('close')).toBeUndefined()
+    })
   })
 
   describe('save publication', () => {
@@ -204,7 +245,7 @@ describe('PostDetailModal', () => {
 
       const saveButton = wrapper
         .findAll('button')
-        .find((button) => button.text().includes('postDetail.rescheduleConfirm'))
+        .find((button) => button.text().includes('postDetail.save'))
       await saveButton!.trigger('click')
       await flushPromises()
 
@@ -222,7 +263,7 @@ describe('PostDetailModal', () => {
 
       const saveButton = wrapper
         .findAll('button')
-        .find((button) => button.text().includes('postDetail.rescheduleConfirm'))
+        .find((button) => button.text().includes('postDetail.save'))
       await saveButton!.trigger('click')
       await flushPromises()
 
@@ -338,6 +379,16 @@ describe('PostDetailModal', () => {
         .find((b) => b.text().includes('postDetail.rescheduleCancel'))
       await cancelBtn!.trigger('click')
 
+      expect(wrapper.text()).not.toContain('postDetail.rescheduleConfirm')
+      expect(wrapper.text()).not.toContain('postDetail.rescheduleCancel')
+    })
+
+    it('reschedule form is hidden by default', () => {
+      const wrapper = mountModal(
+        makePublication({ status: 'PROCESSING', scheduledAt: '2026-07-01T10:00:00Z' }),
+      )
+
+      // The reschedule form should not be visible initially
       expect(wrapper.text()).not.toContain('postDetail.rescheduleConfirm')
       expect(wrapper.text()).not.toContain('postDetail.rescheduleCancel')
     })

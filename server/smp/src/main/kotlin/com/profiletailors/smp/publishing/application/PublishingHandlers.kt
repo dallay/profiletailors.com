@@ -39,6 +39,7 @@ import com.profiletailors.smp.publishing.domain.PublicationAsset
 import com.profiletailors.smp.publishing.domain.PublicationAssetRepository
 import com.profiletailors.smp.publishing.domain.PublicationAssetStatus
 import com.profiletailors.smp.publishing.domain.PublicationDraft
+import com.profiletailors.smp.publishing.domain.PublicationDeletionNotAllowedException
 import com.profiletailors.smp.publishing.domain.PublicationLifecyclePolicy
 import com.profiletailors.smp.publishing.domain.PublicationRepository
 import com.profiletailors.smp.publishing.domain.PublicationSchedulingPolicy
@@ -593,8 +594,8 @@ internal class DeletePublicationHandler(
         val workspaceId = requireNotNull(resourceContextProvider.requireWorkspaceContext().workspaceId)
         val current = publicationRepository.findByWorkspaceAndId(workspaceId, command.publicationId)
             ?: throw PublicationNotFoundException(command.publicationId)
-        PublicationLifecyclePolicy.requireDeletable(current)
-        publicationRepository.deleteUnpublished(workspaceId, current.id)
+        val deleted = publicationRepository.deleteUnpublished(workspaceId, current.id)
+        if (!deleted) throw PublicationDeletionNotAllowedException(current.id)
         return current.toResult()
     }
 }

@@ -554,11 +554,13 @@ onMounted(() => {
                     :title="isPastSlot(day, slot.hour) ? 'Past time slots are disabled (read-only)' : undefined"
                   >
                     <!-- Scheduled Posts -->
-                    <button
+                    <!-- biome-ignore lint/a11y/useSemanticElements: non-button container required to avoid nested buttons (delete btn inside card) -->
+                    <div
                       v-for="pub in getPublicationsForSlot(day, slot.hour)"
                       :key="pub.id"
                       :draggable="true"
-                      type="button"
+                      role="button"
+                      tabindex="0"
                       @click.stop="openPostDetail(pub)"
                       @keydown.enter.self.stop.prevent="openPostDetail(pub)"
                       @keydown.space.self.stop.prevent="openPostDetail(pub)"
@@ -619,7 +621,7 @@ onMounted(() => {
                       >
                         <Trash2 class="size-2.5" />
                       </button>
-                    </button>
+                    </div>
 
                     <!-- Add post button (only in enabled slots) -->
                     <button
@@ -647,11 +649,13 @@ onMounted(() => {
                   {{ $t('scheduler.allDay') }} · {{ currentBaseDate.toLocaleDateString(i18nLocale === 'es' ? 'es-ES' : 'en-US', { weekday: 'long', month: 'long', day: 'numeric' }) }}
                 </span>
 
-                <button
+                <!-- biome-ignore lint/a11y/useSemanticElements: non-button container required to avoid nested buttons (delete btn inside card) -->
+                <div
                   v-for="pub in getPublicationsForDate(currentBaseDate)"
                   :key="pub.id"
                   :draggable="true"
-                  type="button"
+                  role="button"
+                  tabindex="0"
                   @click.stop="openPostDetail(pub)"
                   @keydown.enter.self.stop.prevent="openPostDetail(pub)"
                   @keydown.space.self.stop.prevent="openPostDetail(pub)"
@@ -695,7 +699,7 @@ onMounted(() => {
                   >
                     <Trash2 class="size-3" />
                   </button>
-                </button>
+                </div>
                 <div
                   v-if="getPublicationsForDate(currentBaseDate).length === 0"
                   class="border border-dashed border-border-visible rounded-xl p-12 text-center"
@@ -724,10 +728,12 @@ onMounted(() => {
           </div>
 
           <div v-else class="space-y-3">
-              <button
+              <!-- biome-ignore lint/a11y/useSemanticElements: non-button container required to avoid nested buttons (delete btn inside card) -->
+              <div
                 v-for="pub in filteredPublications"
                 :key="pub.id"
-                type="button"
+                role="button"
+                tabindex="0"
                 class="group/card flex flex-col md:flex-row md:items-center justify-between gap-4 p-5 rounded-2xl border border-border-subtle bg-bg-surface hover:border-text-secondary transition-all cursor-pointer w-full text-left"
                 @click="openPostDetail(pub)"
                 @keydown.enter.self.stop.prevent="openPostDetail(pub)"
@@ -795,7 +801,7 @@ onMounted(() => {
                   <Trash2 class="size-4" />
                 </button>
               </div>
-            </button>
+            </div>
           </div>
         </div>
     </div>

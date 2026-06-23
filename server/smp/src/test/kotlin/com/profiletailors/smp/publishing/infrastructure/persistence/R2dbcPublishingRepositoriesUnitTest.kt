@@ -185,6 +185,49 @@ class R2dbcPublishingRepositoriesUnitTest : DatabaseUnitTestBase() {
         }
 
         @Test
+        fun `deleteUnpublished returns false when publication not found`() = runTest {
+            val result = publicationRepository.deleteUnpublished("workspace-1", "non-existent-pub")
+            assertFalse(result)
+        }
+
+        @Test
+        fun `deleteUnpublished returns false when publication has PUBLISHED status`() = runTest {
+            val pubId = insertPublication(status = PublicationStatus.PUBLISHED.name)
+
+            val result = publicationRepository.deleteUnpublished("workspace-1", pubId)
+
+            assertFalse(result)
+            // Publication should still exist (not deleted)
+            val loaded = publicationRepository.findByWorkspaceAndId("workspace-1", pubId)
+            assertNotNull(loaded)
+            assertEquals(PublicationStatus.PUBLISHED, loaded!!.status)
+        }
+
+        @Test
+        fun `deleteUnpublished returns false when publication has FAILED status`() = runTest {
+            val pubId = insertPublication(status = PublicationStatus.FAILED.name)
+
+            val result = publicationRepository.deleteUnpublished("workspace-1", pubId)
+
+            assertFalse(result)
+            val loaded = publicationRepository.findByWorkspaceAndId("workspace-1", pubId)
+            assertNotNull(loaded)
+            assertEquals(PublicationStatus.FAILED, loaded!!.status)
+        }
+
+        @Test
+        fun `deleteUnpublished has transactional annotation`() {
+            // Kotlin suspend functions require checking all declared methods
+            val methods = R2dbcPublicationRepository::class.java.declaredMethods
+            val deleteMethod = methods.firstOrNull { it.name == "deleteUnpublished" }
+            assertNotNull(deleteMethod) { "deleteUnpublished method must be declared" }
+            val annotation = deleteMethod!!.getAnnotation(
+                org.springframework.transaction.annotation.Transactional::class.java,
+            )
+            assertNotNull(annotation) { "deleteUnpublished must be annotated with @Transactional" }
+        }
+
+        @Test
         fun `deleteUnpublished removes publication asset links and unclaimed jobs`() = runTest {
             val assetId = "asset-delete-${System.nanoTime()}"
             val publicationId = "pub-delete-${System.nanoTime()}"

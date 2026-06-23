@@ -26,6 +26,7 @@ import kotlinx.coroutines.reactor.awaitSingle
 import kotlinx.coroutines.reactor.awaitSingleOrNull
 import org.springframework.r2dbc.core.DatabaseClient
 import org.springframework.stereotype.Repository
+import org.springframework.transaction.annotation.Transactional
 import java.time.Instant
 import java.time.OffsetDateTime
 
@@ -314,7 +315,8 @@ class R2dbcPublicationRepository(
             .awaitSingle()
     }
 
-    override suspend fun deleteUnpublished(workspaceId: String, publicationId: String) {
+    @Transactional
+    override suspend fun deleteUnpublished(workspaceId: String, publicationId: String): Boolean {
         databaseClient.sql(
             """
             DELETE FROM publication_jobs
@@ -342,10 +344,12 @@ class R2dbcPublicationRepository(
             .rowsUpdated()
             .awaitSingle()
 
-        databaseClient.sql(
+        val deleted = databaseClient.sql(
             """
             DELETE FROM publications
-            WHERE workspace_id = :workspaceId AND id = :publicationId
+            WHERE workspace_id = :workspaceId
+              AND id = :publicationId
+              AND status IN ('DRAFT', 'QUEUED', 'SCHEDULED')
             """.trimIndent(),
         )
             .bind("workspaceId", workspaceId)
@@ -353,6 +357,8 @@ class R2dbcPublicationRepository(
             .fetch()
             .rowsUpdated()
             .awaitSingle()
+
+        return deleted == 1L
     }
 
     override suspend fun findBlockedForRecovery(

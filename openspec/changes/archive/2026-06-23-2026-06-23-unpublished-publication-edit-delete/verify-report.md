@@ -4,7 +4,7 @@
 - **Change**: `2026-06-23-unpublished-publication-edit-delete`
 - **Mode**: openspec
 - **Strict TDD**: inactive (`openspec/config.yaml` sets `apply.tdd: false`; no strict TDD signal found)
-- **Final Verdict**: **PASS**
+- **Final Verdict**: **PASS** (delta-scope verification only; full backend and frontend suites were intentionally not re-executed)
 
 ## Completeness
 
@@ -75,7 +75,7 @@
 - Focused verification is strong, but broader repo-wide frontend and backend suites were intentionally not run because this change was validated with targeted commands per repo guidance.
 
 ### SUGGESTION
-- If this change is about to ship with other scheduler work, running the broader scheduler E2E pack or `just frontend-test-e2e` would provide extra confidence, though it is not required to satisfy this delta.
+- If this change is about to ship with other scheduler work, running the broader scheduler E2E pack or `just frontend-test-e2e` would provide extra confidence. This is optional but recommended per the delta scope — team policy does not require it for scoped changes.
 
 ## Summary
 The implementation now fully matches the proposal, spec, design, and task list. Backend delete support exists, frontend edit/delete flows are backend-backed, focused unit/integration/type-check verification passed, and the scheduler Playwright interaction suite passed end-to-end after restoring `aria-disabled` semantics for past month cells. The change satisfies the OpenSpec verification gate.

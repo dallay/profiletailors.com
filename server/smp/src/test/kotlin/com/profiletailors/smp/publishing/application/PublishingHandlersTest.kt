@@ -47,6 +47,7 @@ import com.profiletailors.smp.publishing.domain.PublicationJob
 import com.profiletailors.smp.publishing.domain.PublicationJobClaim
 import com.profiletailors.smp.publishing.domain.PublicationJobRepository
 import com.profiletailors.smp.publishing.domain.PublicationRepository
+import com.profiletailors.smp.publishing.domain.JobStatus
 import com.profiletailors.smp.publishing.domain.PublicationStatus
 import com.profiletailors.smp.publishing.domain.PublicationValidationException
 import com.profiletailors.smp.publishing.domain.ScheduleMode
@@ -1709,6 +1710,7 @@ class PublishingHandlersTest {
         seed: PublicationDraft? = null,
         seedMany: List<PublicationDraft> = emptyList(),
         private val dateCounts: List<DateCount> = emptyList(),
+        private val jobRepository: InMemoryPublicationJobRepository? = null,
     ) : PublicationRepository {
         var deletedPublication: Pair<String, String>? = null
         var lastFindStatuses: Set<PublicationStatus>? = null
@@ -1781,9 +1783,17 @@ class PublishingHandlersTest {
 
         override suspend fun markBlocked(publicationId: String, blockedAt: Instant, reason: String?) = Unit
 
-        override suspend fun deleteUnpublished(workspaceId: String, publicationId: String) {
-            deletedPublication = workspaceId to publicationId
-            items.remove(publicationId)
+        override suspend fun deleteUnpublished(workspaceId: String, publicationId: String): Boolean {
+            val item = items[publicationId]
+            if (item != null && item.workspaceId == workspaceId) {
+                val deletableStatuses = setOf(PublicationStatus.DRAFT, PublicationStatus.QUEUED, PublicationStatus.SCHEDULED)
+                if (item.status !in deletableStatuses) return false
+                deletedPublication = workspaceId to publicationId
+                items.remove(publicationId)
+                jobRepository?.removeUnclaimedForPublication(publicationId)
+                return true
+            }
+            return false
         }
 
         override suspend fun findBlockedForRecovery(
@@ -2553,8 +2563,30 @@ class PublishingHandlersTest {
             bodyText = "Delete me",
             scheduledFor = fixedClock.instant().plusSeconds(600),
         )
-        val publicationRepository = InMemoryPublicationRepository(publication)
         val jobRepository = InMemoryPublicationJobRepository()
+        val pendingJob = PublicationJob(
+            id = "pjob-pending-1",
+            publicationId = publication.id,
+            workspaceId = "workspace-1",
+            status = JobStatus.PENDING,
+            dueAt = fixedClock.instant(),
+            priorityRank = 0,
+            attemptCount = 0,
+            maxAttempts = 1,
+        )
+        val retryJob = PublicationJob(
+            id = "pjob-retry-1",
+            publicationId = publication.id,
+            workspaceId = "workspace-1",
+            status = JobStatus.RETRY_WAITING,
+            dueAt = fixedClock.instant(),
+            priorityRank = 0,
+            attemptCount = 1,
+            maxAttempts = 3,
+        )
+        jobRepository.enqueue(pendingJob)
+        jobRepository.enqueue(retryJob)
+        val publicationRepository = InMemoryPublicationRepository(publication, jobRepository = jobRepository)
         val handler = DeletePublicationHandler(
             principalContextProvider = FixedPrincipalContextProvider(principalContext),
             resourceContextProvider = FixedResourceContextProvider(workspaceContext),
@@ -2568,6 +2600,31 @@ class PublishingHandlersTest {
         assertEquals(publication.id, result.publicationId)
         assertEquals(PublicationStatus.SCHEDULED, result.status)
         assertEquals("workspace-1" to publication.id, publicationRepository.deletedPublication)
+        val remainingJobs = jobRepository.jobsByPublicationId[publication.id].orEmpty()
+        assertTrue(remainingJobs.none { it.status == JobStatus.PENDING || it.status == JobStatus.RETRY_WAITING }) {
+            "Expected all PENDING and RETRY_WAITING jobs to be removed, but found: ${remainingJobs.map { it.id }}"
+        }
+    }
+
+    @Test
+    fun `delete publication throws when publication not found`() = runTest {
+        val publicationRepository = InMemoryPublicationRepository()
+        val jobRepository = InMemoryPublicationJobRepository()
+        val handler = DeletePublicationHandler(
+            principalContextProvider = FixedPrincipalContextProvider(principalContext),
+            resourceContextProvider = FixedResourceContextProvider(workspaceContext),
+            publicationRepository = publicationRepository,
+            publicationJobRepository = jobRepository,
+            clock = fixedClock,
+        )
+
+        val error = assertThrows(PublicationNotFoundException::class.java) {
+            kotlinx.coroutines.runBlocking {
+                handler.handle(DeletePublicationCommand("non-existent-pub"))
+            }
+        }
+
+        assertTrue(error.message!!.contains("non-existent-pub"))
     }
 
     @Test

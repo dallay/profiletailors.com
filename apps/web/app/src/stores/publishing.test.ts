@@ -481,6 +481,36 @@ describe('publishing store', () => {
     })
   })
 
+  describe('isPublicationEditable / isPublicationDeletable', () => {
+    it.each([
+      ['DRAFT', true],
+      ['QUEUED', true],
+      ['SCHEDULED', true],
+      ['PROCESSING', false],
+      ['PUBLISHED', false],
+      ['BLOCKED', false],
+      ['FAILED', false],
+      ['CANCELLED', false],
+    ] as const)('isPublicationEditable returns %s for status %s', (status, expected) => {
+      const store = usePublishingStore()
+      expect(store.isPublicationEditable(status)).toBe(expected)
+    })
+
+    it.each([
+      ['DRAFT', true],
+      ['QUEUED', true],
+      ['SCHEDULED', true],
+      ['PROCESSING', false],
+      ['PUBLISHED', false],
+      ['BLOCKED', false],
+      ['FAILED', false],
+      ['CANCELLED', false],
+    ] as const)('isPublicationDeletable returns %s for status %s', (status, expected) => {
+      const store = usePublishingStore()
+      expect(store.isPublicationDeletable(status)).toBe(expected)
+    })
+  })
+
   describe('content normalization', () => {
     it('trims leading and trailing whitespace from post content', async () => {
       const store = usePublishingStore()
@@ -668,6 +698,25 @@ describe('publishing store', () => {
         }),
       ).rejects.toThrow('Connect a LinkedIn profile before scheduling authenticated posts.')
       expect(apiFetch).not.toHaveBeenCalled()
+    })
+
+    it('saves locally when user is not authenticated', async () => {
+      const store = usePublishingStore()
+      const auth = useAuthStore()
+      Object.defineProperty(auth, 'isAuthenticated', { value: false, configurable: true })
+      const apiFetch = vi.spyOn(auth, 'apiFetch')
+
+      const result = await store.schedulePost({
+        content: 'Offline post',
+        title: 'Title',
+        channels: ['linkedin'],
+        scheduledAt: '2026-06-20T14:00:00Z',
+        priority: false,
+      })
+
+      expect(apiFetch).not.toHaveBeenCalled()
+      expect(store.publications[0]?.content).toBe('Offline post')
+      expect(result.content).toBe('Offline post')
     })
   })
 
@@ -1017,7 +1066,10 @@ describe('publishing store', () => {
       await expect(store.updatePost('update-fail', { content: 'Changed body' })).rejects.toThrow(
         'PATCH failed',
       )
-      expect(store.publications[0]).toMatchObject({ content: 'Original body', title: 'Original title' })
+      expect(store.publications[0]).toMatchObject({
+        content: 'Original body',
+        title: 'Original title',
+      })
     })
 
     it('deletes a post through the backend and revokes tracked blob urls', async () => {
@@ -1082,6 +1134,87 @@ describe('publishing store', () => {
       await expect(store.deletePost('delete-fail')).rejects.toThrow('DELETE failed')
       expect(store.publications).toHaveLength(1)
       expect(store.publications[0]?.id).toBe('delete-fail')
+    })
+
+    it('throws when publication is not found in deletePost', async () => {
+      const store = usePublishingStore()
+      store.publications = []
+
+      await expect(store.deletePost('non-existent')).rejects.toThrow(
+        'Publication non-existent not found',
+      )
+    })
+
+    it('deletes a post locally when unauthenticated', async () => {
+      const store = usePublishingStore()
+      const auth = useAuthStore()
+      Object.defineProperty(auth, 'isAuthenticated', { value: false, configurable: true })
+      store.publications = [
+        {
+          id: 'delete-local',
+          content: 'Queued post',
+          channels: ['linkedin'],
+          scheduledAt: '2026-06-15T20:00:00Z',
+          status: 'QUEUED',
+          priority: false,
+        },
+      ]
+
+      await store.deletePost('delete-local')
+
+      expect(store.publications).toEqual([])
+    })
+
+    it('updates a post locally when unauthenticated', async () => {
+      const store = usePublishingStore()
+      const auth = useAuthStore()
+      Object.defineProperty(auth, 'isAuthenticated', { value: false, configurable: true })
+      store.publications = [
+        {
+          id: 'update-local',
+          content: 'Original body',
+          title: 'Original title',
+          channels: ['linkedin'],
+          scheduledAt: '2026-06-15T20:00:00Z',
+          status: 'QUEUED',
+          priority: false,
+        },
+      ]
+
+      await store.updatePost('update-local', { content: 'Updated body', title: 'Updated title' })
+
+      expect(store.publications[0]).toMatchObject({
+        content: 'Updated body',
+        title: 'Updated title',
+      })
+    })
+
+    it('revokes old blob thumbnail and tracks new one on unauthenticated update', async () => {
+      const store = usePublishingStore()
+      const auth = useAuthStore()
+      Object.defineProperty(auth, 'isAuthenticated', { value: false, configurable: true })
+      const stubUrl = { revokeObjectURL: vi.fn(), createObjectURL: vi.fn() }
+      vi.stubGlobal('URL', stubUrl)
+
+      store.publications = [
+        {
+          id: 'blob-update',
+          content: 'Body',
+          channels: ['linkedin'],
+          scheduledAt: '2026-06-15T20:00:00Z',
+          status: 'QUEUED',
+          priority: false,
+          thumbnail: 'blob:old-thumb',
+        },
+      ]
+
+      // First update to track the blob
+      await store.updatePost('blob-update', { thumbnail: 'blob:tracked-thumb' })
+
+      // Second update replaces the blob — old one should be revoked
+      await store.updatePost('blob-update', { thumbnail: 'blob:new-thumb' })
+
+      expect(stubUrl.revokeObjectURL).toHaveBeenCalledWith('blob:tracked-thumb')
     })
   })
 

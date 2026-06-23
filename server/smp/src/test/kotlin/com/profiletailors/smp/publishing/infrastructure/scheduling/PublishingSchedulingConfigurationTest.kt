@@ -245,7 +245,7 @@ class PublishingSchedulingConfigurationTest {
         override suspend fun markFailed(publicationId: String, failedAt: Instant, reasonCode: String?, reasonMessage: String?) = Unit
         override suspend fun markCancelled(publicationId: String, cancelledAt: Instant) = Unit
         override suspend fun markBlocked(publicationId: String, blockedAt: Instant, reason: String?) = Unit
-        override suspend fun deleteUnpublished(workspaceId: String, publicationId: String) = Unit
+        override suspend fun deleteUnpublished(workspaceId: String, publicationId: String): Boolean = false
         override suspend fun findBlockedForRecovery(maxRetries: Int): List<PublicationDraft> = emptyList()
     }
 

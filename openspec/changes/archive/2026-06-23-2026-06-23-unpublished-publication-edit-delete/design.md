@@ -81,5 +81,12 @@ No migration required for the scoped fix. Optional SQL-level hardening remains f
 
 ## Open Questions
 
-- [ ] Should delete physically remove `publication_jobs` rows or mark them cancelled once delete succeeds for unclaimed jobs?
-- [ ] If PATCH succeeds with server-normalized fields, should the modal stay open with refreshed values or close on save?
+- [x] Should delete physically remove `publication_jobs` rows or mark them cancelled once delete succeeds for unclaimed jobs?
+- [x] If PATCH succeeds with server-normalized fields, should the modal stay open with refreshed values or close on save?
+
+## Resolved Questions
+
+| Question | Decision | Rationale |
+|---|---|---|
+| Should delete physically remove `publication_jobs` rows or mark them cancelled for unclaimed jobs? | Physical deletion of unclaimed (PENDING or RETRY_WAITING) `publication_jobs` rows was chosen. | Since the publication itself is hard-deleted, leaving orphaned job rows would cause confusion in scheduling queries. Cancellation only makes sense when the publication record survives. Physical deletion keeps the job table clean and avoids stale orphaned rows. |
+| If PATCH succeeds with server-normalized fields, should the modal stay open with refreshed values or close on save? | Modal closes on save success (same as current behavior). | The backend response already updates the store with normalized values. Keeping the modal open after save adds unnecessary complexity and would require additional UX work for stale-vs-fresh indication. Closing on save is the expected user pattern (edit → save → done). |

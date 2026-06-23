@@ -315,7 +315,11 @@ function mapApiStatus(s: string): Publication['status'] {
   return valid.has(s) ? (s as Publication['status']) : 'DRAFT'
 }
 
-const MUTABLE_PUBLICATION_STATUSES = new Set<Publication['status']>(['DRAFT', 'QUEUED', 'SCHEDULED'])
+const MUTABLE_PUBLICATION_STATUSES = new Set<Publication['status']>([
+  'DRAFT',
+  'QUEUED',
+  'SCHEDULED',
+])
 
 function isPublicationEditable(status: Publication['status']): boolean {
   return MUTABLE_PUBLICATION_STATUSES.has(status)
@@ -878,17 +882,6 @@ export const usePublishingStore = defineStore('publishing', () => {
       publications.value[idx] = merged
       saveToStorage()
       return merged
-    }
-
-    if (updates.thumbnail && current.thumbnail && objectUrls.has(id)) {
-      const trackedUrl = objectUrls.get(id)
-      if (trackedUrl) URL.revokeObjectURL(trackedUrl)
-      objectUrls.delete(id)
-    }
-    if (typeof updates.thumbnail === 'string' && updates.thumbnail.startsWith('blob:')) {
-      objectUrls.set(id, updates.thumbnail)
-    } else if (updates.thumbnail == null && objectUrls.has(id)) {
-      objectUrls.delete(id)
     }
 
     publications.value[idx] = { ...previous, ...updates }

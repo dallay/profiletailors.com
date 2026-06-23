@@ -181,7 +181,7 @@ async function savePublication() {
   saveError.value = ''
   try {
     await publishingStore.updatePost(props.publication.id, {
-      title: editTitle.value || undefined,
+      title: editTitle.value ?? undefined,
       content: editContent.value,
       scheduledAt: editScheduledAt.value ? new Date(editScheduledAt.value).toISOString() : undefined,
     })
@@ -420,7 +420,7 @@ function cancelReschedule() {
             :disabled="isSaving"
             class="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-text-display text-bg-primary hover:opacity-90 transition-opacity text-xs font-mono uppercase tracking-wider font-bold cursor-pointer"
           >
-            {{ t('postDetail.rescheduleConfirm') }}
+            {{ t('postDetail.save') }}
           </button>
           <button
             v-else-if="!isReadOnly && publication?.scheduledAt"
