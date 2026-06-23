@@ -190,7 +190,7 @@ describe('router guard', () => {
   it('allows access when accessing requiresAuth route authenticated', async () => {
     mockRefreshSession.mockResolvedValue(fakeTokens)
     const auth = useAuthStore()
-    const route = mockRoute('/scheduler', { requiresAuth: true })
+    const route = mockRoute('/scheduler/calendar/week', { requiresAuth: true })
 
     // Hydrate first
     await auth.hydrateSession()
@@ -209,5 +209,28 @@ describe('router guard', () => {
     const result = route.meta.guestOnly === true && auth.isAuthenticated
     expect(result).toBe(true)
     // Guard would redirect to '/'
+  })
+})
+
+describe('scheduler route contract', () => {
+  it('defines canonical scheduler route names', async () => {
+    const { default: router } = await import('./index')
+
+    expect(router.resolve('/scheduler/calendar/week').name).toBe('scheduler-calendar-week')
+    expect(router.resolve('/scheduler/calendar/month').name).toBe('scheduler-calendar-month')
+    expect(router.resolve('/scheduler/list').name).toBe('scheduler-list')
+  })
+
+  it('redirects /scheduler to canonical week route preserving query params', async () => {
+    const { default: router } = await import('./index')
+
+    await router.push('/scheduler?q=post&timezone=Europe/Madrid')
+    await router.isReady()
+
+    expect(router.currentRoute.value.path).toBe('/scheduler/calendar/week')
+    expect(router.currentRoute.value.query).toMatchObject({
+      q: 'post',
+      timezone: 'Europe/Madrid',
+    })
   })
 })
