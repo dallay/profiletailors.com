@@ -74,9 +74,15 @@ function retryUpload(tempKey: string) {
         aria-live="polite"
       >
         <!-- ── Header ── -->
+        <!-- biome-ignore lint/a11y/useSemanticElements: the header div role="button" is correct — it contains nested interactive controls (buttons), making a <button> wrapper invalid per HTML spec (interactive content inside button) -->
         <div
           class="flex cursor-pointer items-center justify-between gap-3 px-4 py-3"
+          role="button"
+          tabindex="0"
+          :aria-expanded="expanded"
           @click="expanded = !expanded"
+          @keydown.enter.prevent="expanded = !expanded"
+          @keydown.space.prevent="expanded = !expanded"
         >
           <!-- Icon + title -->
           <div class="flex min-w-0 items-center gap-3">
@@ -118,8 +124,8 @@ function retryUpload(tempKey: string) {
             </span>
           </div>
 
-          <!-- Controls (not clickable, stop propagation) -->
-          <div class="flex shrink-0 items-center gap-1" @click.stop>
+          <!-- Controls — each button handles its own click propagation -->
+          <div class="flex shrink-0 items-center gap-1">
             <!-- Expand/collapse -->
             <button
               type="button"

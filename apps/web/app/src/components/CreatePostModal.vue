@@ -828,6 +828,7 @@ async function handleSchedule() {
 
           <!-- First Comment option -->
           <div class="space-y-2">
+            <!-- biome-ignore lint/a11y/noLabelWithoutControl: $t() provides accessible text, Biome can't resolve i18n keys statically -->
             <label for="create-post-first-comment" class="font-mono text-[9px] tracking-widest text-text-secondary uppercase block">
               {{ $t('composer.firstComment') }}
             </label>
@@ -860,33 +861,36 @@ async function handleSchedule() {
                     role="radiogroup"
                     aria-label="Schedule mode"
                   >
-                    <button
-                      @click="scheduleMode = 'now'"
-                      role="radio"
-                      :aria-checked="scheduleMode === 'now'"
-                      class="px-2 py-1 rounded font-mono text-[9px] uppercase tracking-wider font-bold transition-all cursor-pointer"
-                      :class="scheduleMode === 'now' ? 'bg-text-display text-bg-primary' : 'bg-transparent text-text-secondary hover:text-text-display'"
-                    >
-                      Now
-                    </button>
-                    <button
-                      @click="scheduleMode = 'next'"
-                      role="radio"
-                      :aria-checked="scheduleMode === 'next'"
-                      class="px-2 py-1 rounded font-mono text-[9px] uppercase tracking-wider font-bold transition-all cursor-pointer"
-                      :class="scheduleMode === 'next' ? 'bg-text-display text-bg-primary' : 'bg-transparent text-text-secondary hover:text-text-display'"
-                    >
-                      Next Schedule
-                    </button>
-                    <button
-                      @click="scheduleMode = 'custom'"
-                      role="radio"
-                      :aria-checked="scheduleMode === 'custom'"
-                      class="px-2 py-1 rounded font-mono text-[9px] uppercase tracking-wider font-bold transition-all cursor-pointer"
-                      :class="scheduleMode === 'custom' ? 'bg-text-display text-bg-primary' : 'bg-transparent text-text-secondary hover:text-text-display'"
-                    >
-                      Pick Date
-                    </button>
+                  <!-- biome-ignore lint/a11y/useSemanticElements: <button role="radio"> is a valid ARIA pattern for styled toggle buttons that don't look like native radio inputs -->
+                  <button
+                    @click="scheduleMode = 'now'"
+                    role="radio"
+                    :aria-checked="scheduleMode === 'now'"
+                    class="px-2 py-1 rounded font-mono text-[9px] uppercase tracking-wider font-bold transition-all cursor-pointer"
+                    :class="scheduleMode === 'now' ? 'bg-text-display text-bg-primary' : 'bg-transparent text-text-secondary hover:text-text-display'"
+                  >
+                    Now
+                  </button>
+                  <!-- biome-ignore lint/a11y/useSemanticElements: <button role="radio"> is a valid ARIA pattern for styled toggle buttons -->
+                  <button
+                    @click="scheduleMode = 'next'"
+                    role="radio"
+                    :aria-checked="scheduleMode === 'next'"
+                    class="px-2 py-1 rounded font-mono text-[9px] uppercase tracking-wider font-bold transition-all cursor-pointer"
+                    :class="scheduleMode === 'next' ? 'bg-text-display text-bg-primary' : 'bg-transparent text-text-secondary hover:text-text-display'"
+                  >
+                    Next Schedule
+                  </button>
+                  <!-- biome-ignore lint/a11y/useSemanticElements: <button role="radio"> is a valid ARIA pattern for styled toggle buttons -->
+                  <button
+                    @click="scheduleMode = 'custom'"
+                    role="radio"
+                    :aria-checked="scheduleMode === 'custom'"
+                    class="px-2 py-1 rounded font-mono text-[9px] uppercase tracking-wider font-bold transition-all cursor-pointer"
+                    :class="scheduleMode === 'custom' ? 'bg-text-display text-bg-primary' : 'bg-transparent text-text-secondary hover:text-text-display'"
+                  >
+                    Pick Date
+                  </button>
                   </div>
                   <p class="text-[10px] leading-4 text-text-secondary">
                     {{ scheduleHelperText }}
