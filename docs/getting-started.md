@@ -81,13 +81,14 @@ cd profiletailors.com
 just setup
 ```
 
-`just setup` performs three steps automatically:
+`just setup` performs four steps automatically:
 
 1. **`.env` bootstrap** — copies `.env.example` to `.env` (skipped if `.env` already exists).
 2. **Dependency installation** — runs `pnpm install --frozen-lockfile` to install all workspace
    dependencies (frontend + backend).
 3. **Git hooks** — runs `just hooks-install` to install Lefthook (skipped if Git hooks are globally
    disabled, e.g. `core.hooksPath=/dev/null` in Jules or CI environments).
+4. **AI agents** — runs `pnpm dlx @dallay/agentsync apply` to synchronize AI agent configurations and instructions.
 
 If hooks are not installed, CI will catch any issues — so there is no risk in skipping them locally.
 
@@ -145,7 +146,7 @@ Key recipes:
 
 | Command | Description |
 |---------|-------------|
-| `just setup` | Full bootstrap: .env + deps + hooks |
+| `just setup` | Full bootstrap: .env + deps + hooks + agentsync |
 | `just frontend-dev` | Start Astro dev server |
 | `just frontend-test` | Run Vitest unit tests |
 | `just frontend-test-e2e` | Run Playwright E2E tests |
