@@ -16,6 +16,7 @@ vi.mock('@/lib/auth-api', () => ({
         raw: async () => new Response(null, { status: 204 }),
       },
     ),
+  resolveApiUrl: vi.fn((path: string) => `https://api.test${path}`),
   refreshSession: vi.fn().mockResolvedValue(null),
   getCurrentUserProfile: vi.fn().mockResolvedValue(null),
   login: vi.fn(),
@@ -167,6 +168,31 @@ describe('publishing store', () => {
       ])
     })
 
+    it('falls back to linkedin when backend provider is unknown', async () => {
+      const store = usePublishingStore()
+      const auth = useAuthStore()
+      Object.defineProperty(auth, 'isAuthenticated', { value: true, configurable: true })
+      vi.spyOn(auth, 'apiFetch').mockResolvedValue({
+        channels: [
+          {
+            socialAccountId: 'soc-unknown',
+            connectionId: 'conn-unknown',
+            provider: 'MASTODON',
+            accountKind: 'PERSONAL_PROFILE',
+            displayName: 'Unknown Network',
+            status: 'ACTIVE',
+            avatarUrl: null,
+            connectedAt: '2026-06-12T12:00:00Z',
+            lastSyncedAt: null,
+          },
+        ],
+      })
+
+      await store.fetchChannels()
+
+      expect(store.channels[0]?.provider).toBe('linkedin')
+    })
+
     it('maps null avatarUrl to undefined when backend omits avatar', async () => {
       const store = usePublishingStore()
       const auth = useAuthStore()
@@ -190,6 +216,17 @@ describe('publishing store', () => {
       await store.fetchChannels()
 
       expect(store.channels[0]?.avatarUrl).toBeUndefined()
+    })
+
+    it('stores error message and rethrows when fetch fails', async () => {
+      const store = usePublishingStore()
+      const auth = useAuthStore()
+      Object.defineProperty(auth, 'isAuthenticated', { value: true, configurable: true })
+      vi.spyOn(auth, 'apiFetch').mockRejectedValue(new Error('boom'))
+
+      await expect(store.fetchChannels()).rejects.toThrow('boom')
+      expect(store.channelsError).toBe('boom')
+      expect(store.channelsLoading).toBe(false)
     })
 
     it('does not fetch channels when unauthenticated', async () => {
@@ -263,6 +300,51 @@ describe('publishing store', () => {
     })
   })
 
+  describe('fetchConfiguredProviders', () => {
+    it('keeps only configured provider names', async () => {
+      const store = usePublishingStore()
+      const auth = useAuthStore()
+      Object.defineProperty(auth, 'isAuthenticated', { value: true, configurable: true })
+      vi.spyOn(auth, 'apiFetch').mockResolvedValue({
+        providers: [
+          { name: 'linkedin', configured: true },
+          { name: 'twitter', configured: false },
+          { name: 'instagram', configured: true },
+        ],
+      })
+
+      await store.fetchConfiguredProviders()
+
+      expect(store.configuredProviders).toEqual(['linkedin', 'instagram'])
+      expect(store.isLinkedInConfigured).toBe(true)
+      expect(store.providersLoading).toBe(false)
+    })
+
+    it('preserves existing providers when request fails', async () => {
+      const store = usePublishingStore()
+      const auth = useAuthStore()
+      Object.defineProperty(auth, 'isAuthenticated', { value: true, configurable: true })
+      store.configuredProviders = ['linkedin']
+      vi.spyOn(auth, 'apiFetch').mockRejectedValue(new Error('provider fetch failed'))
+
+      await store.fetchConfiguredProviders()
+
+      expect(store.configuredProviders).toEqual(['linkedin'])
+      expect(store.providersLoading).toBe(false)
+    })
+
+    it('clears configured providers when unauthenticated', async () => {
+      const store = usePublishingStore()
+      const auth = useAuthStore()
+      store.configuredProviders = ['linkedin']
+      Object.defineProperty(auth, 'isAuthenticated', { value: false, configurable: true })
+
+      await store.fetchConfiguredProviders()
+
+      expect(store.configuredProviders).toEqual([])
+    })
+  })
+
   describe('subscribeChannelEvents', () => {
     it('opens fetch-streaming events endpoint and refreshes channels on channel events', async () => {
       const store = usePublishingStore()
@@ -294,6 +376,38 @@ describe('publishing store', () => {
         method: 'GET',
         workspaceScoped: true,
       })
+      expect(store.channelEventsConnected).toBe(false)
+    })
+
+    it('ignores non-refresh events from the SSE stream', async () => {
+      const store = usePublishingStore()
+      const auth = useAuthStore()
+      Object.defineProperty(auth, 'isAuthenticated', { value: true, configurable: true })
+      const stream = new ReadableStream<Uint8Array>({
+        start(controller) {
+          const encoder = new TextEncoder()
+          controller.enqueue(encoder.encode('event: heartbeat\ndata: {}\n\n'))
+          controller.close()
+        },
+      })
+      vi.spyOn(auth, 'apiFetchRaw').mockResolvedValue(new Response(stream))
+      const apiFetch = vi.spyOn(auth, 'apiFetch').mockResolvedValue({ channels: [] })
+
+      await store.subscribeChannelEvents()
+
+      expect(apiFetch).not.toHaveBeenCalled()
+    })
+
+    it('returns null without connecting when unauthenticated', async () => {
+      const store = usePublishingStore()
+      const auth = useAuthStore()
+      Object.defineProperty(auth, 'isAuthenticated', { value: false, configurable: true })
+      const apiFetchRaw = vi.spyOn(auth, 'apiFetchRaw')
+
+      const result = await store.subscribeChannelEvents()
+
+      expect(result).toBeNull()
+      expect(apiFetchRaw).not.toHaveBeenCalled()
       expect(store.channelEventsConnected).toBe(false)
     })
 
@@ -578,6 +692,41 @@ describe('publishing store', () => {
       expect(store.activity[0]?.density).toBe('MEDIUM')
     })
 
+    it('maps unknown backend status to DRAFT and preview urls through resolveApiUrl', async () => {
+      const store = usePublishingStore()
+      const auth = useAuthStore()
+      Object.defineProperty(auth, 'isAuthenticated', { value: true, configurable: true })
+      vi.spyOn(auth, 'apiFetch').mockResolvedValue({
+        publications: [
+          {
+            id: 'api-pub-draft',
+            workspaceId: 'ws_1',
+            socialAccountId: 'acc-li-1',
+            provider: 'UNKNOWN',
+            status: 'SOMETHING_NEW',
+            scheduleMode: 'SCHEDULED_AT',
+            priority: false,
+            title: null,
+            bodyText: null,
+            scheduledFor: null,
+            hasConflict: false,
+            conflictingPublicationIds: [],
+            previewUrl: '/media/preview.png',
+          },
+        ],
+        conflicts: [],
+        activity: [],
+      })
+
+      await store.fetchCalendar('2026-06-01T00:00:00Z', '2026-07-01T00:00:00Z')
+
+      expect(store.publications[0]).toMatchObject({
+        status: 'DRAFT',
+        channels: ['linkedin'],
+        thumbnail: 'https://api.test/media/preview.png',
+      })
+    })
+
     it('falls back to local data on API error', async () => {
       const store = usePublishingStore()
       const auth = useAuthStore()
@@ -601,6 +750,59 @@ describe('publishing store', () => {
       // Should still have the local publication
       expect(store.publications.some((p) => p.id === 'local-1')).toBe(true)
     })
+
+    it('applies local filters in fallback mode and clears api-only state', async () => {
+      const store = usePublishingStore()
+      const auth = useAuthStore()
+      Object.defineProperty(auth, 'isAuthenticated', { value: false, configurable: true })
+      store.publications = [
+        {
+          id: 'queued-linkedin',
+          content: 'Architecture notes',
+          channels: ['linkedin'],
+          accountId: 'acc-1',
+          scheduledAt: '2026-06-10T12:00:00Z',
+          status: 'QUEUED',
+          priority: false,
+        },
+        {
+          id: 'published-linkedin',
+          content: 'Architecture shipped',
+          channels: ['linkedin'],
+          accountId: 'acc-1',
+          scheduledAt: '2026-06-11T12:00:00Z',
+          status: 'PUBLISHED',
+          priority: false,
+        },
+        {
+          id: 'queued-instagram',
+          content: 'Visual post',
+          channels: ['instagram'],
+          accountId: 'acc-2',
+          scheduledAt: '2026-06-12T12:00:00Z',
+          status: 'QUEUED',
+          priority: false,
+        },
+      ]
+      store.activity = [{ date: '2026-06-10', density: 'HIGH', count: 3 }]
+      store.conflicts = [
+        {
+          publicationId: 'queued-linkedin',
+          conflictingPublicationIds: ['published-linkedin'],
+          reason: 'OVERLAPPING_SCHEDULE',
+        },
+      ]
+      store.filterChannel = 'linkedin'
+      store.filterSocialAccountId = 'acc-1'
+      store.filterTag = 'arch'
+      store.filterPostType = 'queued'
+
+      await store.fetchCalendar('2026-06-01T00:00:00Z', '2026-07-01T00:00:00Z')
+
+      expect(store.publications.map((pub) => pub.id)).toEqual(['queued-linkedin'])
+      expect(store.activity).toEqual([])
+      expect(store.conflicts).toEqual([])
+    })
   })
 
   describe('quickCreatePost', () => {
@@ -617,6 +819,34 @@ describe('publishing store', () => {
       expect(result.content).toBe('Quick post content')
       expect(result.channels).toContain('linkedin')
       // Should be added to the beginning of the list
+      expect(store.publications[0]?.id).toBe(result.id)
+    })
+
+    it('sends quick-create request when authenticated and preserves local insert', async () => {
+      const store = usePublishingStore()
+      const auth = useAuthStore()
+      Object.defineProperty(auth, 'isAuthenticated', { value: true, configurable: true })
+      const apiFetch = vi.spyOn(auth, 'apiFetch').mockResolvedValue({})
+
+      const result = await store.quickCreatePost({
+        socialAccountId: 'acc-li-99',
+        title: 'Quick Auth',
+        bodyText: 'Authenticated quick create',
+        scheduledFor: '2026-06-20T14:00:00Z',
+        priority: true,
+      })
+
+      expect(apiFetch).toHaveBeenCalledWith('/api/publishing/publications/quick-create', {
+        method: 'POST',
+        body: JSON.stringify({
+          socialAccountId: 'acc-li-99',
+          title: 'Quick Auth',
+          bodyText: 'Authenticated quick create',
+          scheduledFor: '2026-06-20T14:00:00Z',
+          priority: true,
+        }),
+        workspaceScoped: true,
+      })
       expect(store.publications[0]?.id).toBe(result.id)
     })
   })
@@ -674,11 +904,104 @@ describe('publishing store', () => {
       expect(store.publications[0]?.scheduledAt).toBe('2026-06-16T10:00:00Z')
     })
 
+    it('saves locally when unauthenticated', async () => {
+      const store = usePublishingStore()
+      const auth = useAuthStore()
+      Object.defineProperty(auth, 'isAuthenticated', { value: false, configurable: true })
+      store.publications = [
+        {
+          id: 'pub-local',
+          content: 'Test',
+          channels: ['linkedin'],
+          scheduledAt: '2026-06-15T20:00:00Z',
+          status: 'QUEUED',
+          priority: false,
+        },
+      ]
+
+      const result = await store.reschedulePublication('pub-local', '2026-06-16T10:00:00Z')
+
+      expect(result?.scheduledAt).toBe('2026-06-16T10:00:00Z')
+      expect(store.publications[0]?.scheduledAt).toBe('2026-06-16T10:00:00Z')
+    })
+
     it('throws when publication is not found', async () => {
       const store = usePublishingStore()
       await expect(
         store.reschedulePublication('nonexistent', '2026-07-01T00:00:00Z'),
       ).rejects.toThrow('Publication nonexistent not found')
+    })
+  })
+
+  describe('local mutations', () => {
+    it('cancels a post in place', () => {
+      const store = usePublishingStore()
+      store.publications = [
+        {
+          id: 'cancel-me',
+          content: 'Queued post',
+          channels: ['linkedin'],
+          scheduledAt: '2026-06-15T20:00:00Z',
+          status: 'QUEUED',
+          priority: false,
+        },
+      ]
+
+      store.cancelPost('cancel-me')
+
+      expect(store.publications[0]?.status).toBe('CANCELLED')
+    })
+
+    it('updates post fields and manages blob thumbnail lifecycle', () => {
+      const store = usePublishingStore()
+      // Stub URL globally since jsdom does not expose it
+      const stubUrl = { revokeObjectURL: vi.fn(), createObjectURL: vi.fn() }
+      vi.stubGlobal('URL', stubUrl)
+
+      store.publications = [
+        {
+          id: 'update-me',
+          content: 'Queued post',
+          channels: ['linkedin'],
+          scheduledAt: '2026-06-15T20:00:00Z',
+          status: 'QUEUED',
+          priority: false,
+          thumbnail: 'blob:old-thumb',
+        },
+      ]
+
+      // Replacing thumbnail: old blob gets revoked, new blob tracked.
+      store.updatePost('update-me', { thumbnail: 'blob:new-thumb', title: 'Updated' })
+      // Title-only update: no thumbnail touch.
+      store.updatePost('update-me', { title: 'Updated again' })
+      // Clearing thumbnail with undefined: tracked blob gets revoked.
+      store.updatePost('update-me', { thumbnail: undefined })
+
+      expect(store.publications[0]).toMatchObject({ title: 'Updated again', thumbnail: undefined })
+    })
+
+    it('deletes a post and revokes tracked blob urls', () => {
+      const store = usePublishingStore()
+      const stubUrl = { revokeObjectURL: vi.fn(), createObjectURL: vi.fn() }
+      vi.stubGlobal('URL', stubUrl)
+
+      store.publications = [
+        {
+          id: 'delete-me',
+          content: 'Queued post',
+          channels: ['linkedin'],
+          scheduledAt: '2026-06-15T20:00:00Z',
+          status: 'QUEUED',
+          priority: false,
+          thumbnail: 'blob:to-delete',
+        },
+      ]
+
+      store.updatePost('delete-me', { thumbnail: 'blob:to-delete' })
+      store.deletePost('delete-me')
+
+      expect(store.publications).toEqual([])
+      expect(stubUrl.revokeObjectURL).toHaveBeenCalledWith('blob:to-delete')
     })
   })
 
