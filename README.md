@@ -137,8 +137,8 @@ For full onboarding and troubleshooting, see [docs/getting-started.md](docs/gett
 
 - copy `.env.example` to `.env` when needed,
 - install workspace dependencies with `pnpm install --frozen-lockfile`,
-- apply AI agent configurations with `pnpm dlx @dallay/agentsync apply`,
 - install Lefthook unless Git hooks are globally disabled (`core.hooksPath=/dev/null`, e.g. Jules).
+- apply AI agent configurations with `pnpm dlx @dallay/agentsync apply`,
 
 #### 3) Start local development
 
