@@ -1,6 +1,5 @@
 package com.profiletailors.smp.publishing.application
 
-import com.profiletailors.common.domain.bus.command.Command
 import com.profiletailors.common.domain.bus.command.CommandWithResult
 import com.profiletailors.common.domain.bus.query.Query
 import com.profiletailors.smp.publishing.domain.ActivityDensity
@@ -76,10 +75,6 @@ data class EditPublicationCommand(
 data class CancelPublicationCommand(
     val publicationId: String,
 ) : CommandWithResult<PublicationResult>
-
-data class DeletePublicationCommand(
-    val publicationId: String,
-) : Command
 
 data class RetryPublicationCommand(
     val publicationId: String,

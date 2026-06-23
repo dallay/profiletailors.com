@@ -53,14 +53,6 @@ interface PublicationRepository {
     suspend fun findBlockedForRecovery(
         maxRetries: Int,
     ): List<PublicationDraft>
-
-    /**
-     * Hard-deletes a publication and all its child rows (delivery_attempts,
-     * publication_jobs, publication_asset_links) within the same workspace.
-     * The delete is workspace-scoped: returns without error if the publication
-     * does not exist in the given workspace.
-     */
-    suspend fun deleteById(workspaceId: String, publicationId: String)
 }
 
 interface PublicationAssetRepository {

@@ -17,7 +17,7 @@ const props = withDefaults(
 const sizeClasses = computed(() => {
   switch (props.variant) {
     case 'dot':
-      return 'size-2.5 rounded-full bg-error/30'
+      return 'size-3 rounded-full bg-error/60'  /* larger size + more opaque for visibility */
     case 'badge':
       return 'size-4 rounded-full bg-error/15 text-error flex items-center justify-center font-mono text-[7px] font-bold cursor-help'
     case 'inline':

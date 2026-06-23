@@ -143,7 +143,7 @@ async function handleSubmit() {
                 class="w-full rounded-2xl border border-border-visible bg-bg-primary px-4 py-3 text-sm text-text-body placeholder:text-text-secondary focus:border-text-display focus:outline-none"
                 required
               >
-              <p v-if="fieldErrors.email" class="text-sm text-error">
+              <p v-if="fieldErrors.email" role="alert" class="text-sm text-error">
                 {{ fieldErrors.email }}
               </p>
             </div>
@@ -163,13 +163,14 @@ async function handleSubmit() {
                 class="w-full rounded-2xl border border-border-visible bg-bg-primary px-4 py-3 text-sm text-text-body placeholder:text-text-secondary focus:border-text-display focus:outline-none"
                 required
               >
-              <p v-if="fieldErrors.password" class="text-sm text-error">
+              <p v-if="fieldErrors.password" role="alert" class="text-sm text-error">
                 {{ fieldErrors.password }}
               </p>
             </div>
 
             <div
               v-if="formError"
+              role="alert"
               class="rounded-2xl border border-error/30 bg-error/10 px-4 py-3 text-sm text-error"
             >
               {{ formError }}

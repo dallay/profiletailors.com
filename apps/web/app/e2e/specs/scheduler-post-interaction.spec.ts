@@ -161,72 +161,10 @@ test.describe('Scheduler — Post Interaction', () => {
   })
 
   /**
-   * TC-16: Delete persists after page reload.
-   * Verifies the backend DELETE mock removes the publication from the mocked source of truth,
-   * so the scheduler does not resurrect it after a full page reload.
-   */
-  test('TC-16: deleted draft does not reappear after refresh @backend-delete @post-delete', async ({
-    page,
-  }) => {
-    const scheduler = new SchedulerPage(page)
-
-    const testText = `Persistent delete ${Date.now()}`
-    await createPublicationInStore(page, testText)
-
-    await scheduler.switchToList()
-    await page.waitForTimeout(300)
-    const postCard = page.getByRole('button', { name: new RegExp(testText) }).first()
-    await expect(postCard).toBeVisible({ timeout: 10_000 })
-
-    const deleteButton = postCard.locator('button[title="Delete publication"]')
-    await deleteButton.click({ force: true })
-
-    await expect(page.getByRole('button', { name: new RegExp(testText) })).toHaveCount(0, {
-      timeout: 5_000,
-    })
-
-    await page.reload({ waitUntil: 'domcontentloaded' })
-    await scheduler.expectVisible()
-    await scheduler.switchToList()
-    await expect(page.getByRole('button', { name: new RegExp(testText) })).toHaveCount(0, {
-      timeout: 5_000,
-    })
-  })
-
-  /**
-   * TC-17: Delete a scheduled publication from the post detail modal.
-   */
-  test('TC-17: delete scheduled publication from modal @backend-delete @modal', async ({
-    page,
-  }) => {
-    const scheduler = new SchedulerPage(page)
-
-    const detailModal = new PostDetailModalPage(page)
-
-    const testText = `Modal delete ${Date.now()}`
-    await createPublicationInStore(page, testText)
-
-    await scheduler.switchToList()
-    await page.waitForTimeout(300)
-    const postCard = page.getByRole('button', { name: new RegExp(testText) }).first()
-    await expect(postCard).toBeVisible({ timeout: 10_000 })
-    await postCard.click()
-
-    await detailModal.expectVisible()
-    await detailModal.expectDeleteVisible()
-    await detailModal.clickDelete()
-    await detailModal.expectHidden()
-
-    await expect(page.getByRole('button', { name: new RegExp(testText) })).toHaveCount(0, {
-      timeout: 5_000,
-    })
-  })
-
-  /**
-   * TC-18: Past slots cannot create or drop posts.
+   * TC-16: Past slots cannot create or drop posts.
    * Past slots should have aria-disabled="true" and the + button should not appear.
    */
-  test('TC-18: past slots disabled @past @disabled @a11y', async ({ page }) => {
+  test('TC-16: past slots disabled @past @disabled @a11y', async ({ page }) => {
     const scheduler = new SchedulerPage(page)
     await scheduler.switchToMonth()
 
@@ -236,17 +174,16 @@ test.describe('Scheduler — Post Interaction', () => {
     // Verify past cells have aria-disabled
     const disabledCells = page.locator('[aria-disabled="true"]')
     const count = await disabledCells.count()
+    expect(count).toBeGreaterThan(0)
 
     // The + button should NOT appear in past cells even on hover
-    if (count > 0) {
-      const firstDisabled = disabledCells.first()
-      await firstDisabled.hover()
-      const plusButton = firstDisabled.locator('button:has(svg)')
-      const plusAppeared = await plusButton.isVisible({ timeout: 2_000 }).catch(() => false)
-      if (plusAppeared) {
-        console.warn('TC-18: + button unexpectedly visible in past cell')
-      }
-      expect(plusAppeared).toBe(false)
+    const firstDisabled = disabledCells.first()
+    await firstDisabled.hover()
+    const plusButton = firstDisabled.locator('button:has(svg)')
+    const plusAppeared = await plusButton.isVisible({ timeout: 2_000 }).catch(() => false)
+    if (plusAppeared) {
+      console.warn('TC-16: + button unexpectedly visible in past cell')
     }
+    expect(plusAppeared).toBe(false)
   })
 })

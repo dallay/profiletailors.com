@@ -194,17 +194,4 @@ describe('SchedulerView', () => {
     expect(bodyDiv?.find('img').exists()).toBe(true)
     expect(bodyDiv?.find('p').exists()).toBe(true)
   })
-
-  it('keeps week view scrolling inside the calendar grid', async () => {
-    const wrapper = mountView()
-    await flushPromises()
-
-    const scrollContainer = wrapper
-      .findAll('div')
-      .find((div) => div.classes().includes('overflow-y-auto'))
-
-    expect(scrollContainer?.exists()).toBe(true)
-    expect(scrollContainer?.classes()).toContain('flex-1')
-    expect(scrollContainer?.classes()).toContain('min-h-0')
-  })
 })

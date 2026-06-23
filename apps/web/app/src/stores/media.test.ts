@@ -253,7 +253,18 @@ describe('media store', () => {
         mediaType: 'image/jpeg',
         status: 'PROCESSING',
       })
-      mockUploadAsset.mockResolvedValueOnce(readyAsset('reserved-asset'))
+      mockUploadAsset.mockResolvedValueOnce({
+        assetId: 'reserved-asset',
+        workspaceId: 'ws-test-1',
+        sourceType: 'UPLOADED',
+        mediaType: 'image/jpeg',
+        status: 'READY',
+      })
+      mockGetAsset.mockResolvedValueOnce({
+        ...readyAsset('reserved-asset'),
+        previewUrl: '/api/media/assets/reserved-asset/preview',
+        downloadUrl: '/api/media/assets/reserved-asset/content',
+      })
 
       const file = mockFile()
       const result = await store.createAndUpload(file, 'temp-key-1')
@@ -265,6 +276,49 @@ describe('media store', () => {
       expect(mockUploadAsset).toHaveBeenCalledWith('reserved-asset', file, expect.any(Function))
       expect(result.assetId).toBe('reserved-asset')
       expect(result.status).toBe('READY')
+    })
+
+    it('hydrates previewUrl and downloadUrl after upload by re-fetching the asset', async () => {
+      const store = useMediaStore()
+      mockReserveAsset.mockResolvedValueOnce({
+        assetId: 'hydrated-asset',
+        workspaceId: 'ws-test-1',
+        sourceType: 'UPLOADED',
+        mediaType: 'image/jpeg',
+        status: 'PROCESSING',
+      })
+      mockUploadAsset.mockResolvedValueOnce({
+        assetId: 'hydrated-asset',
+        workspaceId: 'ws-test-1',
+        sourceType: 'UPLOADED',
+        mediaType: 'image/jpeg',
+        status: 'READY',
+        // NOTE: upload response intentionally omits URLs — they come from the re-fetch
+      })
+      mockGetAsset.mockResolvedValueOnce({
+        assetId: 'hydrated-asset',
+        workspaceId: 'ws-test-1',
+        sourceType: 'UPLOADED',
+        mediaType: 'image/jpeg',
+        status: 'READY',
+        originalFilename: 'photo.jpg',
+        fileSizeBytes: 1024,
+        createdAt: '2026-06-19T12:00:00Z',
+        previewUrl: '/api/media/assets/hydrated-asset/preview',
+        downloadUrl: '/api/media/assets/hydrated-asset/content',
+      })
+
+      const file = mockFile()
+      const result = await store.createAndUpload(file, 'hydrated-key')
+
+      // getAsset was called to fill in the missing URLs
+      expect(mockGetAsset).toHaveBeenCalledWith('hydrated-asset')
+      // The returned asset now has previewUrl so the library grid renders correctly
+      expect(result.previewUrl).toBe('/api/media/assets/hydrated-asset/preview')
+      // The store holds the full asset
+      expect(store.assetsById['hydrated-asset']?.previewUrl).toBe(
+        '/api/media/assets/hydrated-asset/preview',
+      )
     })
 
     it('tracks upload item in uploads map during upload', async () => {
@@ -293,7 +347,18 @@ describe('media store', () => {
       expect(store.uploads['temp-tracking-key']?.status).toBe('uploading')
       expect(store.uploads['temp-tracking-key']?.assetId).toBe('tracked-asset')
 
-      resolveUpload?.(readyAsset('tracked-asset'))
+      mockGetAsset.mockResolvedValueOnce({
+        ...readyAsset('tracked-asset'),
+        previewUrl: '/api/media/assets/tracked-asset/preview',
+        downloadUrl: '/api/media/assets/tracked-asset/content',
+      })
+      resolveUpload?.({
+        assetId: 'tracked-asset',
+        workspaceId: 'ws-test-1',
+        sourceType: 'UPLOADED',
+        mediaType: 'image/jpeg',
+        status: 'READY',
+      } as ReturnType<typeof readyAsset>)
       await uploadPromise
 
       // After completion, status should be 'done'
@@ -397,7 +462,18 @@ describe('media store', () => {
         errorTitle: 'Upload failed',
         errorDetail: 'Server error',
       }
-      mockUploadAsset.mockResolvedValueOnce(readyAsset('retry-asset'))
+      mockUploadAsset.mockResolvedValueOnce({
+        assetId: 'retry-asset',
+        workspaceId: 'ws-test-1',
+        sourceType: 'UPLOADED',
+        mediaType: 'image/jpeg',
+        status: 'READY',
+      })
+      mockGetAsset.mockResolvedValueOnce({
+        ...readyAsset('retry-asset'),
+        previewUrl: '/api/media/assets/retry-asset/preview',
+        downloadUrl: '/api/media/assets/retry-asset/content',
+      })
 
       const result = await store.retryUpload('retry-key')
 

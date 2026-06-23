@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { computed, onBeforeUnmount, watch } from 'vue'
 import { RouterView, useRoute, useRouter } from 'vue-router'
+import { useI18n } from 'vue-i18n'
 import { Images, LayoutGrid } from '@lucide/vue'
 import {
   Sidebar,
@@ -26,6 +27,7 @@ import SidebarNavSection, { type NavGroup } from '@/components/sidebar/SidebarNa
 import SidebarChannelsSection, { type SidebarChannel } from '@/components/sidebar/SidebarChannelsSection.vue'
 import SidebarConnectSection, { type ConnectChannel } from '@/components/sidebar/SidebarConnectSection.vue'
 import SidebarAccountSection from '@/components/sidebar/SidebarAccountSection.vue'
+import UploadProgressToast from '@/components/UploadProgressToast.vue'
 import { useQueuedCounts } from '@/composables/useQueuedCounts'
 
 // ---------------------------------------------------------------------------
@@ -37,6 +39,17 @@ const workspace = useWorkspaceStore()
 const publishingStore = usePublishingStore()
 const router = useRouter()
 const route = useRoute()
+const { t } = useI18n()
+
+// Page title for SPA route announcer (screen readers)
+const pageTitle = computed(() => {
+  const name = route.name
+  if (typeof name === 'string' && t(`nav.${name}`) !== `nav.${name}`) {
+    return t(`nav.${name}`)
+  }
+  if (name === 'linkedin-callback') return 'LinkedIn'
+  return String(name ?? '')
+})
 
 // ---------------------------------------------------------------------------
 // Auth/workspace bootstrap watchers
@@ -203,6 +216,16 @@ onBeforeUnmount(() => {
     Skip to main content
   </a>
 
+  <!-- SPA route announcer — announces page changes to screen readers -->
+  <div
+    role="status"
+    aria-live="polite"
+    aria-atomic="true"
+    class="sr-only"
+  >
+    {{ pageTitle }}
+  </div>
+
   <TooltipProvider>
     <SidebarProvider :default-open="true" class="bg-bg-primary font-sans text-text-body transition-colors duration-250">
       <Sidebar collapsible="icon">
@@ -280,6 +303,8 @@ onBeforeUnmount(() => {
           >
             <RouterView />
           </main>
+
+          <UploadProgressToast />
         </div>
       </SidebarInset>
     </SidebarProvider>
