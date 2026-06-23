@@ -284,6 +284,10 @@ const messages = {
       weekView: 'Week',
       today: 'Today',
       addPost: 'Add post',
+      allDay: 'All day',
+      pastDaysReadOnly: 'Past days are read-only',
+      noPublicationsForDay: 'No publications for this day',
+      addPublication: 'Add Publication',
       timezoneMadrid: 'Madrid',
     },
     channels: {
@@ -706,6 +710,10 @@ const messages = {
       weekView: 'Semana',
       today: 'Hoy',
       addPost: 'Agregar publicación',
+      allDay: 'Todo el día',
+      pastDaysReadOnly: 'Los días pasados son de solo lectura',
+      noPublicationsForDay: 'No hay publicaciones para este día',
+      addPublication: 'Agregar publicación',
       timezoneMadrid: 'Madrid',
     },
     channels: {

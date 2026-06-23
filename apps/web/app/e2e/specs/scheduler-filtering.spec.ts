@@ -72,14 +72,8 @@ test.describe('Scheduler — Filtering & Views', () => {
     const scheduler = new SchedulerPage(page)
     await scheduler.switchToDay()
 
-    // Verify "All day" section is visible
-    await expect(page.getByText(/all day/i)).toBeVisible()
-
-    // Today's posts should be listed (may be empty, but the section renders)
-    const allDaySection = page
-      .locator('span')
-      .filter({ hasText: /all day/i })
-      .first()
+    // Verify all-day section is visible
+    const allDaySection = page.getByTestId('scheduler-all-day-section')
     await expect(allDaySection).toBeVisible()
   })
 

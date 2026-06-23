@@ -123,7 +123,10 @@ watch(
   async (open) => {
     if (open) {
       await nextTick()
-      activateFocusTrap()
+      // Guard against the modal being closed during the await window
+      if (props.isOpen) {
+        activateFocusTrap()
+      }
     } else {
       deactivateFocusTrap()
     }
@@ -164,8 +167,13 @@ function openReschedule() {
 async function confirmReschedule() {
   if (!props.publication || !newScheduledAt.value) return
   rescheduleError.value = ''
+  const newDate = new Date(newScheduledAt.value)
+  if (Number.isNaN(newDate.getTime()) || newDate <= new Date()) {
+    rescheduleError.value = 'Please select a valid future date and time.'
+    return
+  }
   try {
-    const newIso = new Date(newScheduledAt.value).toISOString()
+    const newIso = newDate.toISOString()
     await publishingStore.reschedulePublication(props.publication.id, newIso)
     emit('reschedule', { id: props.publication.id, scheduledAt: newIso })
     showReschedule.value = false
@@ -321,7 +329,7 @@ function cancelReschedule() {
               class="w-full rounded-xl border border-border-visible bg-bg-surface text-text-body px-3 py-2 text-xs font-mono focus:outline-none focus:ring-2 focus:ring-text-display/30"
               :aria-label="t('postDetail.scheduledFor')"
             />
-            <p v-if="rescheduleError" class="text-[10px] font-mono text-error">{{ rescheduleError }}</p>
+            <p v-if="rescheduleError" role="alert" class="text-[10px] font-mono text-error">{{ rescheduleError }}</p>
             <div class="flex gap-2">
               <button
                 @click="confirmReschedule"
@@ -355,9 +363,9 @@ function cancelReschedule() {
           <CalendarClock class="size-3.5" />
           {{ t('postDetail.reschedule') }}
         </button>
-          <div v-else class="text-[10px] font-mono uppercase tracking-wider text-text-secondary">
-            {{ t('postDetail.readOnlyHint') }}
-          </div>
+        <div v-else-if="isReadOnly" class="text-[10px] font-mono uppercase tracking-wider text-text-secondary">
+          {{ t('postDetail.readOnlyHint') }}
+        </div>
           <div class="flex items-center gap-2">
             <button
               @click="closeModal"

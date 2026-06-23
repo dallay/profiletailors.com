@@ -537,7 +537,7 @@ onMounted(() => {
                     @drop.prevent="!isPastSlot(day, slot.hour) ? onDropCell($event, day, slot.hour) : undefined"
                     class="relative p-2 border-r border-border-subtle last:border-r-0 transition-all group/cell flex flex-col justify-start gap-2 select-none"
                     :class="isPastSlot(day, slot.hour)
-                      ? 'bg-text-secondary/5 text-text-secondary c‍ursor-not-allowed after:absolute after:inset-0 after:bg-[repeating-linear-gradient(-45deg,transparent,transparent_10px,var(--border-color)_10px,var(--border-color)_11px)] after:opacity-10 after:z-0'
+                      ? 'bg-text-secondary/5 text-text-secondary cursor-not-allowed after:absolute after:inset-0 after:bg-[repeating-linear-gradient(-45deg,transparent,transparent_10px,var(--border-color)_10px,var(--border-color)_11px)] after:opacity-10 after:z-0'
                       : 'hover:bg-bg-primary/20 cursor-pointer'"
                     :aria-disabled="isPastSlot(day, slot.hour)"
                     :title="isPastSlot(day, slot.hour) ? 'Past time slots are disabled (read-only)' : undefined"
@@ -632,8 +632,8 @@ onMounted(() => {
             <Card class="bg-bg-surface border border-border-subtle p-4 overflow-hidden">
               <!-- All-day publications -->
               <div class="mb-4">
-                <span class="font-mono text-[9px] font-bold tracking-widest text-text-secondary uppercase block mb-2">
-                  All day · {{ currentBaseDate.toLocaleDateString(i18nLocale === 'es' ? 'es-ES' : 'en-US', { weekday: 'long', month: 'long', day: 'numeric' }) }}
+                <span data-testid="scheduler-all-day-section" class="font-mono text-[9px] font-bold tracking-widest text-text-secondary uppercase block mb-2">
+                  {{ $t('scheduler.allDay') }} · {{ currentBaseDate.toLocaleDateString(i18nLocale === 'es' ? 'es-ES' : 'en-US', { weekday: 'long', month: 'long', day: 'numeric' }) }}
                 </span>
 
                 <button
@@ -690,7 +690,7 @@ onMounted(() => {
                   class="border border-dashed border-border-visible rounded-xl p-12 text-center"
                 >
                   <p class="font-mono text-[10px] uppercase tracking-wider text-text-secondary">
-                    {{ isPastDate(currentBaseDate) ? 'Past days are read-only' : 'No publications for this day' }}
+                    {{ isPastDate(currentBaseDate) ? $t('scheduler.pastDaysReadOnly') : $t('scheduler.noPublicationsForDay') }}
                   </p>
                   <Button
                     v-if="!isPastDate(currentBaseDate)"
@@ -698,7 +698,7 @@ onMounted(() => {
                     class="mt-3 gap-1.5 text-[10px] uppercase font-mono tracking-wider"
                   >
                     <Plus class="size-3" />
-                    <span>Add Publication</span>
+                    <span>{{ $t('scheduler.addPublication') }}</span>
                   </Button>
                 </div>
               </div>

@@ -240,12 +240,7 @@ export const useMediaStore = defineStore('media', () => {
           updateUpload(tempKey, { progress: pct })
           onProgress?.(pct)
         })
-
-        // Re-fetch the asset to get full data (previewUrl, downloadUrl) after upload.
-        const hydrated = await getAsset(assetId)
-        upsertAsset(hydrated)
-        markUploadDone(tempKey, hydrated)
-        return hydrated
+        break
       } catch (err) {
         lastError = err
         const terminalState = terminalUploadState(err)
@@ -265,6 +260,16 @@ export const useMediaStore = defineStore('media', () => {
           onProgress?.(0)
         }
       }
+    }
+
+    try {
+      // Re-fetch the asset to get full data (previewUrl, downloadUrl) after upload.
+      const hydrated = await executeWithRetry(() => getAsset(assetId))
+      upsertAsset(hydrated)
+      markUploadDone(tempKey, hydrated)
+      return hydrated
+    } catch (err) {
+      lastError = err
     }
 
     const err = lastError as { detail?: string }

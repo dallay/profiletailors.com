@@ -103,8 +103,12 @@ function isPdf(mediaType: string) {
   return mediaType === 'application/pdf'
 }
 
-function assetContentUrl(asset: { downloadUrl?: string | null; previewUrl?: string | null }) {
+function assetPreviewUrl(asset: { downloadUrl?: string | null; previewUrl?: string | null }) {
   return asset.previewUrl ? resolveApiUrl(asset.previewUrl) : asset.downloadUrl ? resolveApiUrl(asset.downloadUrl) : null
+}
+
+function assetDownloadUrl(asset: { downloadUrl?: string | null; previewUrl?: string | null }) {
+  return asset.downloadUrl ? resolveApiUrl(asset.downloadUrl) : asset.previewUrl ? resolveApiUrl(asset.previewUrl) : null
 }
 
 function formatFileSize(bytes: number | null | undefined) {
@@ -124,7 +128,7 @@ function formatFileSize(bytes: number | null | undefined) {
 }
 
 function triggerDownload(asset: { originalFilename?: string | null; downloadUrl?: string | null; previewUrl?: string | null }) {
-  const url = assetContentUrl(asset)
+  const url = assetDownloadUrl(asset)
   if (!url) return
 
   const link = document.createElement('a')
@@ -155,7 +159,9 @@ function toggleSelectAllVisible() {
     return
   }
 
-  selectedLibraryAssetIds.value = visibleAssets.value.map((asset) => asset.assetId)
+  selectedLibraryAssetIds.value = visibleAssets.value
+    .filter((asset) => asset.status === 'READY' || asset.status === 'FAILED')
+    .map((asset) => asset.assetId)
 }
 
 async function deletePersistedAsset(assetId: string) {
@@ -169,7 +175,11 @@ async function deletePersistedAsset(assetId: string) {
 
 async function deleteSelectedAssets() {
   for (const assetId of [...selectedLibraryAssetIds.value]) {
-    await mediaStore.deletePersistedAsset(assetId)
+    try {
+      await mediaStore.deletePersistedAsset(assetId)
+    } catch {
+      // Continue deleting other selected assets even if one fails
+    }
   }
   clearAssetSelection()
 }
@@ -416,7 +426,7 @@ onMounted(async () => {
                 <!-- Hover actions overlay (bottom) -->
                 <div class="absolute bottom-3 right-3 z-20 flex items-center gap-2 opacity-0 transition-opacity group-hover:opacity-100">
                   <Button
-                    v-if="assetContentUrl(asset)"
+                    v-if="assetDownloadUrl(asset)"
                     type="button"
                     variant="outline"
                     size="icon"
@@ -456,21 +466,21 @@ onMounted(async () => {
 
                 <!-- Thumbnail content -->
                 <img
-                  v-if="isImage(asset.mediaType) && assetContentUrl(asset)"
-                  :src="assetContentUrl(asset) ?? ''"
+                  v-if="isImage(asset.mediaType) && assetPreviewUrl(asset)"
+                  :src="assetPreviewUrl(asset) ?? ''"
                   :alt="asset.originalFilename ?? asset.assetId"
                   class="h-full w-full object-cover"
                 />
                 <video
-                  v-else-if="isVideo(asset.mediaType) && assetContentUrl(asset)"
-                  :src="assetContentUrl(asset) ?? ''"
+                  v-else-if="isVideo(asset.mediaType) && assetPreviewUrl(asset)"
+                  :src="assetPreviewUrl(asset) ?? ''"
                   class="h-full w-full object-cover"
                   controls
                   preload="metadata"
                 />
                 <iframe
-                  v-else-if="isPdf(asset.mediaType) && assetContentUrl(asset)"
-                  :src="assetContentUrl(asset) ?? ''"
+                  v-else-if="isPdf(asset.mediaType) && assetPreviewUrl(asset)"
+                  :src="assetPreviewUrl(asset) ?? ''"
                   class="h-full w-full border-0 bg-white"
                   title="PDF preview"
                 />

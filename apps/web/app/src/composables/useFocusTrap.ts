@@ -68,6 +68,8 @@ export function useFocusTrap(containerRef: Ref<HTMLElement | null>, onClose: () 
   }
 
   function activate() {
+    if (!containerRef.value) return
+
     previousActiveElement = document.activeElement as HTMLElement | null
 
     const focusable = getFocusableElements()

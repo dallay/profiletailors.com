@@ -9,7 +9,6 @@ const props = withDefaults(defineProps<{
   defaultValue?: string | number
   modelValue?: string | number
   class?: HTMLAttributes["class"]
-  id?: HTMLAttributes["id"]
 }>(), {})
 
 const emits = defineEmits<(e: "update:modelValue", payload: string | number) => void>()

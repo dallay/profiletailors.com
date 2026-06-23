@@ -174,17 +174,16 @@ test.describe('Scheduler — Post Interaction', () => {
     // Verify past cells have aria-disabled
     const disabledCells = page.locator('[aria-disabled="true"]')
     const count = await disabledCells.count()
+    expect(count).toBeGreaterThan(0)
 
     // The + button should NOT appear in past cells even on hover
-    if (count > 0) {
-      const firstDisabled = disabledCells.first()
-      await firstDisabled.hover()
-      const plusButton = firstDisabled.locator('button:has(svg)')
-      const plusAppeared = await plusButton.isVisible({ timeout: 2_000 }).catch(() => false)
-      if (plusAppeared) {
-        console.warn('TC-16: + button unexpectedly visible in past cell')
-      }
-      expect(plusAppeared).toBe(false)
+    const firstDisabled = disabledCells.first()
+    await firstDisabled.hover()
+    const plusButton = firstDisabled.locator('button:has(svg)')
+    const plusAppeared = await plusButton.isVisible({ timeout: 2_000 }).catch(() => false)
+    if (plusAppeared) {
+      console.warn('TC-16: + button unexpectedly visible in past cell')
     }
+    expect(plusAppeared).toBe(false)
   })
 })

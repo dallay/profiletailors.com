@@ -40,7 +40,7 @@ test.describe('Scheduler — Views & Navigation', () => {
 
     // Day view
     await scheduler.switchToDay()
-    await expect(page.getByText(/all day/i)).toBeVisible()
+    await expect(page.getByTestId('scheduler-all-day-section')).toBeVisible()
 
     // TODAY button should be present
     await expect(scheduler.todayButton).toBeVisible()

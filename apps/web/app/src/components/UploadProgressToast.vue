@@ -131,6 +131,7 @@ function retryUpload(tempKey: string) {
               type="button"
               class="rounded p-1 text-text-secondary hover:bg-bg-primary hover:text-text-display"
               :aria-label="expanded ? 'Collapse' : 'Expand'"
+              @click="expanded = !expanded"
             >
               <ChevronDown v-if="!expanded" class="size-4" />
               <ChevronUp v-else class="size-4" />

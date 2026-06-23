@@ -206,7 +206,7 @@ describe('MediaLibraryView', () => {
     expect(cards[1]?.text()).toContain('zebra.jpg')
   })
 
-  it('selects visible assets and bulk deletes them', async () => {
+  it('selects deletable assets only and handles per-item failures gracefully', async () => {
     const mediaStore = useMediaStore()
     mediaStore.assetsById['asset-1'] = {
       assetId: 'asset-1',
@@ -231,9 +231,24 @@ describe('MediaLibraryView', () => {
       createdAt: '2026-06-18T12:00:00Z',
       downloadUrl: '/api/media/assets/asset-2/content',
     }
-    mediaStore.assetIds.push('asset-1', 'asset-2')
+    mediaStore.assetsById['asset-3'] = {
+      assetId: 'asset-3',
+      workspaceId: 'ws-1',
+      sourceType: 'UPLOADED',
+      mediaType: 'image/png',
+      status: 'PROCESSING',
+      originalFilename: 'three.png',
+      fileSizeBytes: 100,
+      createdAt: '2026-06-20T12:00:00Z',
+    }
+    mediaStore.assetIds.push('asset-1', 'asset-2', 'asset-3')
 
-    const deleteSpy = vi.spyOn(mediaStore, 'deletePersistedAsset').mockResolvedValue()
+    // asset-2 delete will fail; test that loop continues and PROCESSING assets are excluded
+    const deleteSpy = vi
+      .spyOn(mediaStore, 'deletePersistedAsset')
+      .mockImplementation(async (assetId) => {
+        if (assetId === 'asset-2') throw new Error('delete failed')
+      })
 
     const wrapper = mountView()
     await flushPromises()
@@ -242,7 +257,9 @@ describe('MediaLibraryView', () => {
     expect(selectVisibleCheckbox.exists()).toBe(true)
     await selectVisibleCheckbox.setValue(true)
 
+    // Only READY and FAILED assets are selected (PROCESSING excluded)
     expect(wrapper.text()).toContain('2 media.selectedCountSuffix')
+    expect(wrapper.text()).not.toContain('3 media.selectedCountSuffix')
 
     const deleteSelectedButtons = wrapper
       .findAll('button')
@@ -250,8 +267,10 @@ describe('MediaLibraryView', () => {
     expect(deleteSelectedButtons.length).toBeGreaterThan(0)
     await deleteSelectedButtons[deleteSelectedButtons.length - 1]?.trigger('click')
 
+    // asset-1 and asset-2 were attempted; asset-3 (PROCESSING) was skipped
     expect(deleteSpy).toHaveBeenCalledTimes(2)
     expect(deleteSpy).toHaveBeenCalledWith('asset-1')
     expect(deleteSpy).toHaveBeenCalledWith('asset-2')
+    expect(deleteSpy).not.toHaveBeenCalledWith('asset-3')
   })
 })

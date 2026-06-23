@@ -161,7 +161,9 @@ watch(
 
       // Activate focus trap after next render
       await nextTick()
-      activateFocusTrap()
+      if (props.isOpen) {
+        activateFocusTrap()
+      }
     } else {
       deactivateFocusTrap()
     }

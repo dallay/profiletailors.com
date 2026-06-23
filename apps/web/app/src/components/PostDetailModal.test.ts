@@ -68,6 +68,7 @@ describe('PostDetailModal', () => {
     setActivePinia(createPinia())
     const publishingStore = usePublishingStore()
     vi.spyOn(publishingStore, 'deletePost').mockResolvedValue()
+    vi.spyOn(publishingStore, 'reschedulePublication').mockResolvedValue()
   })
 
   describe('renders publication details', () => {
@@ -175,6 +176,111 @@ describe('PostDetailModal', () => {
 
       expect(wrapper.text()).not.toContain('postDetail.delete')
       expect(wrapper.text()).toContain('postDetail.readOnlyHint')
+    })
+  })
+
+  describe('reschedule', () => {
+    it('shows Reschedule button when publication has scheduledAt and is not read-only', () => {
+      const wrapper = mountModal(makePublication({ scheduledAt: '2026-07-01T10:00:00Z' }))
+
+      expect(wrapper.text()).toContain('postDetail.reschedule')
+    })
+
+    it('hides Reschedule button for published posts', () => {
+      const wrapper = mountModal(makePublication({ status: 'PUBLISHED' }))
+
+      expect(wrapper.text()).not.toContain('postDetail.reschedule')
+    })
+
+    it('hides Reschedule button when publication has no scheduledAt', () => {
+      const wrapper = mountModal(makePublication({ scheduledAt: undefined }))
+
+      expect(wrapper.text()).not.toContain('postDetail.reschedule')
+    })
+
+    it('opens the reschedule form on button click', async () => {
+      const wrapper = mountModal(makePublication())
+
+      const rescheduleBtn = wrapper
+        .findAll('button')
+        .find((b) => b.text().includes('postDetail.reschedule'))
+      expect(rescheduleBtn).toBeDefined()
+      await rescheduleBtn!.trigger('click')
+
+      // The reschedule input and confirm/cancel buttons should appear
+      expect(wrapper.text()).toContain('postDetail.scheduledFor')
+      expect(wrapper.text()).toContain('postDetail.rescheduleConfirm')
+      expect(wrapper.text()).toContain('postDetail.rescheduleCancel')
+    })
+
+    it('calls reschedulePublication and emits reschedule on confirm', async () => {
+      const wrapper = mountModal(
+        makePublication({ id: 'pub-2', scheduledAt: '2026-07-01T10:00:00Z' }),
+      )
+      const publishingStore = usePublishingStore()
+
+      // Open reschedule
+      const rescheduleBtn = wrapper
+        .findAll('button')
+        .find((b) => b.text().includes('postDetail.reschedule'))
+      await rescheduleBtn!.trigger('click')
+
+      // Click confirm
+      const confirmBtn = wrapper
+        .findAll('button')
+        .find((b) => b.text().includes('postDetail.rescheduleConfirm'))
+      await confirmBtn!.trigger('click')
+
+      expect(publishingStore.reschedulePublication).toHaveBeenCalledWith(
+        'pub-2',
+        expect.any(String),
+      )
+      expect(wrapper.emitted('reschedule')).toBeDefined()
+      expect(wrapper.emitted('reschedule')![0]).toEqual([
+        { id: 'pub-2', scheduledAt: expect.any(String) },
+      ])
+      expect(wrapper.emitted('close')).toHaveLength(1)
+    })
+
+    it('displays error when reschedule fails', async () => {
+      const wrapper = mountModal(makePublication({ scheduledAt: '2026-07-01T10:00:00Z' }))
+      const publishingStore = usePublishingStore()
+      vi.spyOn(publishingStore, 'reschedulePublication').mockRejectedValue(
+        new Error('Reschedule failed'),
+      )
+
+      const rescheduleBtn = wrapper
+        .findAll('button')
+        .find((b) => b.text().includes('postDetail.reschedule'))
+      await rescheduleBtn!.trigger('click')
+
+      const confirmBtn = wrapper
+        .findAll('button')
+        .find((b) => b.text().includes('postDetail.rescheduleConfirm'))
+      await confirmBtn!.trigger('click')
+
+      await flushPromises()
+      expect(wrapper.text()).toContain('Reschedule failed')
+    })
+
+    it('cancelReschedule hides the reschedule form', async () => {
+      const wrapper = mountModal(makePublication())
+
+      // Open reschedule
+      const rescheduleBtn = wrapper
+        .findAll('button')
+        .find((b) => b.text().includes('postDetail.reschedule'))
+      await rescheduleBtn!.trigger('click')
+      expect(wrapper.text()).toContain('postDetail.rescheduleConfirm')
+
+      // Cancel
+      const cancelBtn = wrapper
+        .findAll('button')
+        .find((b) => b.text().includes('postDetail.rescheduleCancel'))
+      await cancelBtn!.trigger('click')
+
+      expect(wrapper.text()).not.toContain('postDetail.rescheduleConfirm')
+      expect(wrapper.text()).not.toContain('postDetail.rescheduleCancel')
     })
   })
 })
