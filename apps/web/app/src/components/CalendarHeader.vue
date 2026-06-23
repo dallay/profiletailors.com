@@ -19,6 +19,8 @@ defineProps<{
   surface: SchedulerSurface
   /** Formatted period label (e.g. "June 2026", "Jun 8 – 14, 2026") */
   periodLabel: string
+  /** Active timezone (from URL) */
+  timezone: string
 }>()
 
 const emit = defineEmits<{
@@ -94,7 +96,7 @@ const emit = defineEmits<{
           class="bg-bg-surface border border-border-subtle rounded-full px-3 py-1.5 text-[10px] font-mono font-bold text-text-secondary appearance-none pr-8 cursor-pointer focus:outline-none focus:border-text-display"
           @change="(e) => emit('update:timezone', (e.target as HTMLSelectElement).value)"
         >
-          <option :value="publishingStore.userTimezone">🌐 {{ publishingStore.userTimezone || 'UTC' }}</option>
+          <option :value="timezone">🌐 {{ timezone || 'UTC' }}</option>
           <option value="Europe/Madrid">📍 Europe/Madrid</option>
           <option value="UTC">🌐 UTC</option>
           <option value="America/New_York">🇺🇸 America/New_York</option>
