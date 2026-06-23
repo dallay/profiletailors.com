@@ -343,4 +343,75 @@ class PublicationLifecyclePolicyTest {
         // 2^6 = 64, capped to 60 min
         assertEquals(Duration.ofMinutes(60), PublicationLifecyclePolicy.blockedRetryDelay(6))
     }
+
+    // ---------------------------------------------------------------------------
+    // Exception message content tests (PR change: updated error message text)
+    // ---------------------------------------------------------------------------
+
+    @Test
+    fun `PublicationEditNotAllowedException message includes retry endpoint guidance`() {
+        val exception = PublicationEditNotAllowedException("pub-edit-msg")
+
+        assertTrue(
+            exception.message!!.contains("Failed publications must use the retry endpoint instead."),
+            "Edit exception should guide callers to the retry endpoint for FAILED publications",
+        )
+    }
+
+    @Test
+    fun `PublicationEditNotAllowedException message includes publication id and status context`() {
+        val exception = PublicationEditNotAllowedException("pub-edit-ctx")
+
+        assertTrue(exception.message!!.contains("pub-edit-ctx"))
+        assertTrue(
+            exception.message!!.contains("in draft, queued, or scheduled status"),
+            "Edit exception should state the allowed statuses using the updated phrasing",
+        )
+    }
+
+    @Test
+    fun `PublicationDeletionNotAllowedException message includes publication id and allowed statuses`() {
+        val exception = PublicationDeletionNotAllowedException("pub-del-msg")
+
+        assertTrue(exception.message!!.contains("pub-del-msg"))
+        assertTrue(
+            exception.message!!.contains("in draft, queued, or scheduled status"),
+            "Deletion exception should state the allowed statuses using the updated phrasing",
+        )
+    }
+
+    @Test
+    fun `PublicationDeletionNotAllowedException message does not contain retry endpoint guidance`() {
+        val exception = PublicationDeletionNotAllowedException("pub-del-no-retry")
+
+        // Deletion errors should NOT mention the retry endpoint — only edit errors do
+        assertTrue(
+            !exception.message!!.contains("retry endpoint"),
+            "Deletion exception must not reference the retry endpoint",
+        )
+    }
+
+    @Test
+    fun `requireEditable throws with correct message for PROCESSING status`() {
+        val processing = baseDraft.copy(status = PublicationStatus.PROCESSING)
+
+        val exception = assertThrows(PublicationEditNotAllowedException::class.java) {
+            PublicationLifecyclePolicy.requireEditable(processing)
+        }
+
+        assertTrue(exception.message!!.contains("pub-1"))
+        assertTrue(exception.message!!.contains("retry endpoint"))
+    }
+
+    @Test
+    fun `requireDeletable throws with correct message for FAILED status`() {
+        val failed = baseDraft.copy(status = PublicationStatus.FAILED)
+
+        val exception = assertThrows(PublicationDeletionNotAllowedException::class.java) {
+            PublicationLifecyclePolicy.requireDeletable(failed)
+        }
+
+        assertTrue(exception.message!!.contains("pub-1"))
+        assertTrue(exception.message!!.contains("in draft, queued, or scheduled status"))
+    }
 }
