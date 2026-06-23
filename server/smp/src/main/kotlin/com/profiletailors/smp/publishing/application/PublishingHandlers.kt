@@ -1,6 +1,8 @@
 package com.profiletailors.smp.publishing.application
 
 import com.profiletailors.common.domain.Service
+import com.profiletailors.common.domain.bus.command.Command
+import com.profiletailors.common.domain.bus.command.CommandHandler
 import com.profiletailors.common.domain.bus.command.CommandWithResultHandler
 import com.profiletailors.common.domain.bus.query.QueryHandler
 import com.profiletailors.common.domain.context.PrincipalContextProvider
@@ -598,6 +600,48 @@ internal class CancelPublicationHandler(
         publicationRepository.markCancelled(cancelled.id, cancelledAt)
         publicationJobRepository.cancel(cancelled.id, cancelledAt)
         return cancelled.toResult()
+    }
+}
+
+@Service
+internal class DeletePublicationHandler(
+    private val principalContextProvider: PrincipalContextProvider,
+    private val resourceContextProvider: ResourceContextProvider,
+    private val publicationRepository: PublicationRepository,
+    private val publicationJobRepository: PublicationJobRepository,
+    private val clock: Clock,
+    private val principalIdentityLookup: PrincipalIdentityLookup = NoOpPrincipalIdentityLookup(),
+    private val emailVerificationPolicy: EmailVerificationPolicy = permissiveEmailVerificationPolicy,
+) : CommandHandler<DeletePublicationCommand> {
+    override suspend fun handle(command: DeletePublicationCommand) {
+        val principalCtx = principalContextProvider.require()
+        requireEmailVerification(
+            principalCtx,
+            principalIdentityLookup,
+            emailVerificationPolicy,
+            AuthFeature.PUBLISH_CONTENT,
+        )
+        val workspaceId = requireNotNull(resourceContextProvider.requireWorkspaceContext().workspaceId)
+        val draft = publicationRepository.findByWorkspaceAndId(workspaceId, command.publicationId)
+            ?: throw PublicationNotFoundException(command.publicationId)
+        PublicationLifecyclePolicy.requireDeletable(draft)
+        // Replace any pending job with a CANCELLED one to clean up the job queue.
+        // Uses replaceForPublication (same pattern as EditPublicationHandler and
+        // ReschedulePublicationHandler) to avoid the pre-existing bug in cancel()
+        // which uses jobId where publicationId should be used.
+        publicationJobRepository.replaceForPublication(
+            PublicationJob(
+                id = "pjob-${UUID.randomUUID()}",
+                publicationId = draft.id,
+                workspaceId = draft.workspaceId,
+                status = com.profiletailors.smp.publishing.domain.JobStatus.CANCELLED,
+                dueAt = clock.instant(),
+                priorityRank = 0,
+                attemptCount = 0,
+                maxAttempts = 1,
+            ),
+        )
+        publicationRepository.deleteById(workspaceId, command.publicationId)
     }
 }
 

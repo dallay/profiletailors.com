@@ -267,6 +267,7 @@ class PublishingWorkerTest {
         override suspend fun findBlockedForRecovery(
             maxRetries: Int,
         ): List<PublicationDraft> = blockedForRecovery.filter { it.retryCount < maxRetries }
+        override suspend fun deleteById(workspaceId: String, publicationId: String) = Unit
     }
 
     private class InMemoryAccountRepository(

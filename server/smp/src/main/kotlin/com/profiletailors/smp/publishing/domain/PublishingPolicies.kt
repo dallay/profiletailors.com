@@ -21,6 +21,14 @@ class PublicationCancellationNotAllowedException(
     "Publication '$publicationId' can only be cancelled before processing begins."
 )
 
+class PublicationDeletionNotAllowedException(
+    val publicationId: String,
+    val currentStatus: PublicationStatus,
+) : PublicationStateTransitionException(
+    "Publication '$publicationId' cannot be deleted in status $currentStatus. " +
+        "Only DRAFT, QUEUED, and SCHEDULED publications may be deleted."
+)
+
 class PublicationRetryNotAllowedException(
     publicationId: String,
 ) : PublicationStateTransitionException("Publication '$publicationId' can only be retried after failure.")
@@ -67,6 +75,17 @@ object PublicationLifecyclePolicy {
         )
         if (publication.status !in cancellableStatuses) {
             throw PublicationCancellationNotAllowedException(publication.id)
+        }
+    }
+
+    fun requireDeletable(publication: PublicationDraft) {
+        val deletableStatuses = setOf(
+            PublicationStatus.DRAFT,
+            PublicationStatus.QUEUED,
+            PublicationStatus.SCHEDULED,
+        )
+        if (publication.status !in deletableStatuses) {
+            throw PublicationDeletionNotAllowedException(publication.id, publication.status)
         }
     }
 

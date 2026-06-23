@@ -1782,6 +1782,13 @@ class PublishingHandlersTest {
         override suspend fun findBlockedForRecovery(
             maxRetries: Int,
         ): List<PublicationDraft> = emptyList()
+
+        override suspend fun deleteById(workspaceId: String, publicationId: String) {
+            val publication = items[publicationId]
+            if (publication?.workspaceId == workspaceId) {
+                items.remove(publicationId)
+            }
+        }
     }
 
     private class InMemoryPublicationAssetRepository(
@@ -2518,6 +2525,123 @@ class PublishingHandlersTest {
         assertThrows(FeatureEmailVerificationRequired::class.java) {
             kotlinx.coroutines.runBlocking {
                 handler.handle(EditPublicationCommand(publicationId = "pub-1", bodyText = "Updated text", scheduleMode = ScheduleMode.NOW))
+            }
+        }
+    }
+
+    @Test
+    fun `deletes draft publication in active workspace`() = runTest {
+        val publication = PublicationDraft(
+            id = "pub-1",
+            workspaceId = "workspace-1",
+            authorPrincipalId = "principal-1",
+            provider = SocialProvider.LINKEDIN,
+            socialAccountId = "account-1",
+            status = PublicationStatus.DRAFT,
+            scheduleMode = ScheduleMode.NOW,
+            priority = false,
+            bodyText = "Delete me",
+        )
+        val publicationRepository = InMemoryPublicationRepository(publication)
+        val jobRepository = InMemoryPublicationJobRepository()
+        val handler = DeletePublicationHandler(
+            principalContextProvider = FixedPrincipalContextProvider(principalContext),
+            resourceContextProvider = FixedResourceContextProvider(workspaceContext),
+            publicationRepository = publicationRepository,
+            publicationJobRepository = jobRepository,
+            clock = fixedClock,
+        )
+
+        handler.handle(DeletePublicationCommand("pub-1"))
+
+        assertNotNull(jobRepository.lastReplaced)
+        assertEquals("pub-1", jobRepository.lastReplaced?.publicationId)
+        assertEquals(com.profiletailors.smp.publishing.domain.JobStatus.CANCELLED, jobRepository.lastReplaced?.status)
+        assertTrue(publicationRepository.findByWorkspaceAndId("workspace-1", "pub-1") == null)
+    }
+
+    @Test
+    fun `delete publication returns not found across workspace boundary`() = runTest {
+        val otherWorkspacePublication = PublicationDraft(
+            id = "pub-1",
+            workspaceId = "workspace-2",
+            authorPrincipalId = "principal-2",
+            provider = SocialProvider.LINKEDIN,
+            socialAccountId = "account-2",
+            status = PublicationStatus.DRAFT,
+            scheduleMode = ScheduleMode.NOW,
+            priority = false,
+            bodyText = "Other workspace post",
+        )
+        val handler = DeletePublicationHandler(
+            principalContextProvider = FixedPrincipalContextProvider(principalContext),
+            resourceContextProvider = FixedResourceContextProvider(workspaceContext),
+            publicationRepository = InMemoryPublicationRepository(otherWorkspacePublication),
+            publicationJobRepository = InMemoryPublicationJobRepository(),
+            clock = fixedClock,
+        )
+
+        assertThrows(PublicationNotFoundException::class.java) {
+            kotlinx.coroutines.runBlocking {
+                handler.handle(DeletePublicationCommand("pub-1"))
+            }
+        }
+    }
+
+    @Test
+    fun `delete publication rejects non-deletable status`() = runTest {
+        val publication = PublicationDraft(
+            id = "pub-1",
+            workspaceId = "workspace-1",
+            authorPrincipalId = "principal-1",
+            provider = SocialProvider.LINKEDIN,
+            socialAccountId = "account-1",
+            status = PublicationStatus.PUBLISHED,
+            scheduleMode = ScheduleMode.NOW,
+            priority = false,
+            bodyText = "Already published",
+        )
+        val handler = DeletePublicationHandler(
+            principalContextProvider = FixedPrincipalContextProvider(principalContext),
+            resourceContextProvider = FixedResourceContextProvider(workspaceContext),
+            publicationRepository = InMemoryPublicationRepository(publication),
+            publicationJobRepository = InMemoryPublicationJobRepository(),
+            clock = fixedClock,
+        )
+
+        assertThrows(com.profiletailors.smp.publishing.domain.PublicationDeletionNotAllowedException::class.java) {
+            kotlinx.coroutines.runBlocking {
+                handler.handle(DeletePublicationCommand("pub-1"))
+            }
+        }
+    }
+
+    @Test
+    fun `delete publication requires verified email when policy is strict`() = runTest {
+        val publication = PublicationDraft(
+            id = "pub-1",
+            workspaceId = "workspace-1",
+            authorPrincipalId = "principal-1",
+            provider = SocialProvider.LINKEDIN,
+            socialAccountId = "account-1",
+            status = PublicationStatus.DRAFT,
+            scheduleMode = ScheduleMode.NOW,
+            priority = false,
+            bodyText = "Delete me",
+        )
+        val handler = DeletePublicationHandler(
+            principalContextProvider = FixedPrincipalContextProvider(principalContext),
+            resourceContextProvider = FixedResourceContextProvider(workspaceContext),
+            publicationRepository = InMemoryPublicationRepository(publication),
+            publicationJobRepository = InMemoryPublicationJobRepository(),
+            clock = fixedClock,
+            principalIdentityLookup = PendingEmailIdentityLookup(),
+            emailVerificationPolicy = strictEmailVerificationPolicy,
+        )
+
+        assertThrows(FeatureEmailVerificationRequired::class.java) {
+            kotlinx.coroutines.runBlocking {
+                handler.handle(DeletePublicationCommand("pub-1"))
             }
         }
     }

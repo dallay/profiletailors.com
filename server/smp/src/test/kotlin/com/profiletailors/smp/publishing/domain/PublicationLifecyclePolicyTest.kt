@@ -343,4 +343,73 @@ class PublicationLifecyclePolicyTest {
         // 2^6 = 64, capped to 60 min
         assertEquals(Duration.ofMinutes(60), PublicationLifecyclePolicy.blockedRetryDelay(6))
     }
+
+    @Test
+    fun `allows deletion for DRAFT`() {
+        val draft = baseDraft.copy(status = PublicationStatus.DRAFT)
+        PublicationLifecyclePolicy.requireDeletable(draft) // must not throw
+    }
+
+    @Test
+    fun `allows deletion for QUEUED`() {
+        val queued = baseDraft.copy(status = PublicationStatus.QUEUED)
+        PublicationLifecyclePolicy.requireDeletable(queued) // must not throw
+    }
+
+    @Test
+    fun `allows deletion for SCHEDULED`() {
+        val scheduled = baseDraft.copy(status = PublicationStatus.SCHEDULED)
+        PublicationLifecyclePolicy.requireDeletable(scheduled) // must not throw
+    }
+
+    @Test
+    fun `prevents deletion once processing has started`() {
+        val processing = baseDraft.copy(status = PublicationStatus.PROCESSING)
+        assertThrows(PublicationDeletionNotAllowedException::class.java) {
+            PublicationLifecyclePolicy.requireDeletable(processing)
+        }
+    }
+
+    @Test
+    fun `prevents deletion for published`() {
+        val published = baseDraft.copy(status = PublicationStatus.PUBLISHED)
+        assertThrows(PublicationDeletionNotAllowedException::class.java) {
+            PublicationLifecyclePolicy.requireDeletable(published)
+        }
+    }
+
+    @Test
+    fun `prevents deletion for blocked`() {
+        val blocked = baseDraft.copy(status = PublicationStatus.BLOCKED)
+        assertThrows(PublicationDeletionNotAllowedException::class.java) {
+            PublicationLifecyclePolicy.requireDeletable(blocked)
+        }
+    }
+
+    @Test
+    fun `prevents deletion for failed`() {
+        val failed = baseDraft.copy(status = PublicationStatus.FAILED)
+        assertThrows(PublicationDeletionNotAllowedException::class.java) {
+            PublicationLifecyclePolicy.requireDeletable(failed)
+        }
+    }
+
+    @Test
+    fun `prevents deletion for cancelled`() {
+        val cancelled = baseDraft.copy(status = PublicationStatus.CANCELLED)
+        assertThrows(PublicationDeletionNotAllowedException::class.java) {
+            PublicationLifecyclePolicy.requireDeletable(cancelled)
+        }
+    }
+
+    @Test
+    fun `PublicationDeletionNotAllowedException carries the correct status`() {
+        val published = baseDraft.copy(status = PublicationStatus.PUBLISHED)
+        val error = assertThrows(PublicationDeletionNotAllowedException::class.java) {
+            PublicationLifecyclePolicy.requireDeletable(published)
+        }
+        assertEquals("pub-1", error.publicationId)
+        assertEquals(PublicationStatus.PUBLISHED, error.currentStatus)
+        assertTrue(error.message!!.contains("cannot be deleted"))
+    }
 }

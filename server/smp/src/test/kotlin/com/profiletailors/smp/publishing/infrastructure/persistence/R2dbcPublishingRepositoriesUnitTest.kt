@@ -183,6 +183,93 @@ class R2dbcPublishingRepositoriesUnitTest : DatabaseUnitTestBase() {
             assertEquals("Updated body", loaded!!.bodyText)
             assertEquals(listOf("asset-x"), loaded.assetIds)
         }
+
+        @Test
+        fun `deleteById cascades delivery attempts jobs asset links and publication`() = runTest {
+            val pubId = insertPublication(PublicationStatus.DRAFT.name, "pub-delete-1")
+            insertPublicationAsset("asset-delete-1", PublicationAssetStatus.READY)
+            databaseClient.sql(
+                """
+                INSERT INTO publication_asset_links (publication_id, asset_id, position_index)
+                VALUES (:publicationId, 'asset-delete-1', 0)
+                """.trimIndent(),
+            )
+                .bind("publicationId", pubId)
+                .fetch().rowsUpdated().awaitSingle()
+            insertPublicationJob("job-delete-1", pubId, JobStatus.PENDING, Instant.parse("2026-06-01T12:00:00Z"))
+            deliveryAttemptRepository.record(
+                DeliveryAttempt(
+                    id = "attempt-delete-1",
+                    publicationId = pubId,
+                    publicationJobId = "job-delete-1",
+                    attemptNumber = 1,
+                    outcome = DeliveryAttemptOutcome.FAILED,
+                    retryable = true,
+                    attemptedAt = Instant.parse("2026-06-01T12:01:00Z"),
+                ),
+            )
+
+            publicationRepository.deleteById("workspace-1", pubId)
+
+            val loaded = publicationRepository.findByWorkspaceAndId("workspace-1", pubId)
+            assertNull(loaded)
+
+            val assetLinkCount = databaseClient.sql("SELECT COUNT(*) AS c FROM publication_asset_links WHERE publication_id = :id")
+                .bind("id", pubId)
+                .map { row, _ -> requireNotNull(row.get("c", java.lang.Long::class.java)).toLong() }
+                .one().awaitSingle()
+            assertEquals(0L, assetLinkCount)
+
+            val jobCount = databaseClient.sql("SELECT COUNT(*) AS c FROM publication_jobs WHERE publication_id = :id")
+                .bind("id", pubId)
+                .map { row, _ -> requireNotNull(row.get("c", java.lang.Long::class.java)).toLong() }
+                .one().awaitSingle()
+            assertEquals(0L, jobCount)
+
+            val attemptCount = databaseClient.sql("SELECT COUNT(*) AS c FROM delivery_attempts WHERE publication_id = :id")
+                .bind("id", pubId)
+                .map { row, _ -> requireNotNull(row.get("c", java.lang.Long::class.java)).toLong() }
+                .one().awaitSingle()
+            assertEquals(0L, attemptCount)
+        }
+
+        @Test
+        fun `deleteById only deletes within the correct workspace`() = runTest {
+            databaseClient.sql(
+                """
+                INSERT INTO workspaces (id, name, status, icon)
+                VALUES ('workspace-2', 'Workspace 2', 'ACTIVE', NULL)
+                """.trimIndent(),
+            ).fetch().rowsUpdated().awaitSingle()
+            databaseClient.sql(
+                """
+                INSERT INTO social_connections (id, workspace_id, provider, provider_connection_ref, status, credential_reference)
+                VALUES ('soconn-2', 'workspace-2', 'LINKEDIN', 'linkedin-conn-2', 'ACTIVE', '00000000-0000-0000-0000-000000000000')
+                """.trimIndent(),
+            ).fetch().rowsUpdated().awaitSingle()
+            databaseClient.sql(
+                """
+                INSERT INTO social_accounts (id, social_connection_id, workspace_id, provider, provider_account_id, account_type, display_name, status)
+                VALUES ('soacc-2', 'soconn-2', 'workspace-2', 'LINKEDIN', 'linkedin-account-2', 'PERSONAL_PROFILE', 'Other', 'ACTIVE')
+                """.trimIndent(),
+            ).fetch().rowsUpdated().awaitSingle()
+            databaseClient.sql(
+                """
+                INSERT INTO publications (id, workspace_id, author_principal_id, provider, social_account_id, status, schedule_mode, priority, title, body_text, created_at, updated_at)
+                VALUES ('pub-delete-ws', 'workspace-2', 'principal-1', 'LINKEDIN', 'soacc-2', 'DRAFT', 'NOW', false, 'Other', 'Other body', :createdAt, :updatedAt)
+                """.trimIndent(),
+            )
+                .bind("createdAt", Instant.now())
+                .bind("updatedAt", Instant.now())
+                .fetch().rowsUpdated().awaitSingle()
+
+            publicationRepository.deleteById("workspace-1", "pub-delete-ws")
+
+            val workspace2Count = databaseClient.sql("SELECT COUNT(*) AS c FROM publications WHERE workspace_id = 'workspace-2' AND id = 'pub-delete-ws'")
+                .map { row, _ -> requireNotNull(row.get("c", java.lang.Long::class.java)).toLong() }
+                .one().awaitSingle()
+            assertEquals(1L, workspace2Count)
+        }
     }
 
     // -------------------------------------------------------------------------

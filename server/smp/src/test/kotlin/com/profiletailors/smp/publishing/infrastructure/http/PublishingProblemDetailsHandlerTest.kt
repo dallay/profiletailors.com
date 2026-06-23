@@ -1,8 +1,11 @@
 package com.profiletailors.smp.publishing.infrastructure.http
 
+import com.profiletailors.smp.publishing.application.PublicationNotFoundException
 import com.profiletailors.smp.publishing.domain.ExpiredOAuthStateException
 import com.profiletailors.smp.publishing.domain.InvalidOAuthStateException
 import com.profiletailors.smp.publishing.domain.ProviderNotConfiguredException
+import com.profiletailors.smp.publishing.domain.PublicationDeletionNotAllowedException
+import com.profiletailors.smp.publishing.domain.PublicationStatus
 import com.profiletailors.smp.publishing.domain.SocialProvider
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Test
@@ -39,5 +42,27 @@ class PublishingProblemDetailsHandlerTest {
         assertEquals(HttpStatus.BAD_REQUEST.value(), problem.status)
         assertEquals("OAuth state invalid", problem.title)
         assertEquals("Custom message", problem.detail)
+    }
+
+    @Test
+    fun `maps PublicationNotFoundException to 404 NOT_FOUND`() {
+        val exception = PublicationNotFoundException("pub-404")
+        val problem = handler.handle(exception)
+
+        assertEquals(HttpStatus.NOT_FOUND.value(), problem.status)
+        assertEquals("Publication not found", problem.title)
+        assertEquals("Publication 'pub-404' was not found in the active workspace.", problem.detail)
+    }
+
+    @Test
+    fun `maps PublicationDeletionNotAllowedException to 409 CONFLICT with machine-readable properties`() {
+        val exception = PublicationDeletionNotAllowedException("pub-409", PublicationStatus.PUBLISHED)
+        val problem = handler.handle(exception)
+
+        assertEquals(HttpStatus.CONFLICT.value(), problem.status)
+        assertEquals("Publication deletion not allowed", problem.title)
+        assertEquals("DELETION_NOT_ALLOWED", problem.properties?.get("errorCode"))
+        assertEquals("pub-409", problem.properties?.get("publicationId"))
+        assertEquals("PUBLISHED", problem.properties?.get("currentStatus"))
     }
 }

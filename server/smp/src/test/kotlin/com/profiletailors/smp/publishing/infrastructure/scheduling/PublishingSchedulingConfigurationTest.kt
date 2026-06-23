@@ -246,6 +246,7 @@ class PublishingSchedulingConfigurationTest {
         override suspend fun markCancelled(publicationId: String, cancelledAt: Instant) = Unit
         override suspend fun markBlocked(publicationId: String, blockedAt: Instant, reason: String?) = Unit
         override suspend fun findBlockedForRecovery(maxRetries: Int): List<PublicationDraft> = emptyList()
+        override suspend fun deleteById(workspaceId: String, publicationId: String) = Unit
     }
 
     private class NoOpSocialAccountRepository : SocialAccountRepository {
