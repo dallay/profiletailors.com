@@ -2,7 +2,7 @@ import { computed, type Ref } from 'vue'
 import type { LocationQueryRaw, RouteLocationNormalizedLoaded, Router } from 'vue-router'
 import { useRoute, useRouter } from 'vue-router'
 
-export type SchedulerSurface = 'calendar-week' | 'calendar-month' | 'list'
+export type SchedulerSurface = 'calendar-week' | 'calendar-month' | 'calendar-day' | 'list'
 export type SchedulerStatus = 'all' | 'queued' | 'published' | 'cancelled'
 
 export interface CalendarUrlState {
@@ -26,12 +26,18 @@ export interface CalendarUrlController {
   setChannelIds: (channelIds: string[]) => Promise<void>
 }
 
-const VALID_SURFACES = new Set<SchedulerSurface>(['calendar-week', 'calendar-month', 'list'])
+const VALID_SURFACES = new Set<SchedulerSurface>([
+  'calendar-week',
+  'calendar-month',
+  'calendar-day',
+  'list',
+])
 const VALID_STATUSES = new Set<SchedulerStatus>(['all', 'queued', 'published', 'cancelled'])
 
 const CALENDAR_ROUTE_NAMES: Record<SchedulerSurface, string> = {
   'calendar-week': 'scheduler-calendar-week',
   'calendar-month': 'scheduler-calendar-month',
+  'calendar-day': 'scheduler-calendar-day',
   list: 'scheduler-list',
 }
 

@@ -15,6 +15,12 @@ class PublicationEditNotAllowedException(
     "Publication '$publicationId' can only be edited while draft, queued, or scheduled."
 )
 
+class PublicationDeletionNotAllowedException(
+    publicationId: String,
+) : PublicationStateTransitionException(
+    "Publication '$publicationId' can only be deleted while draft, queued, or scheduled."
+)
+
 class PublicationCancellationNotAllowedException(
     publicationId: String,
 ) : PublicationStateTransitionException(
@@ -49,23 +55,19 @@ object PublicationLifecyclePolicy {
     }
 
     fun requireEditable(publication: PublicationDraft) {
-        val editableStatuses = setOf(
-            PublicationStatus.DRAFT,
-            PublicationStatus.QUEUED,
-            PublicationStatus.SCHEDULED
-        )
-        if (publication.status !in editableStatuses) {
+        if (publication.status !in preDeliveryMutableStatuses()) {
             throw PublicationEditNotAllowedException(publication.id)
         }
     }
 
+    fun requireDeletable(publication: PublicationDraft) {
+        if (publication.status !in preDeliveryMutableStatuses()) {
+            throw PublicationDeletionNotAllowedException(publication.id)
+        }
+    }
+
     fun requireCancellable(publication: PublicationDraft) {
-        val cancellableStatuses = setOf(
-            PublicationStatus.DRAFT,
-            PublicationStatus.QUEUED,
-            PublicationStatus.SCHEDULED
-        )
-        if (publication.status !in cancellableStatuses) {
+        if (publication.status !in preDeliveryMutableStatuses()) {
             throw PublicationCancellationNotAllowedException(publication.id)
         }
     }
@@ -262,6 +264,12 @@ object PublicationLifecyclePolicy {
     private fun terminalStatuses(): Set<PublicationStatus> = setOf(
         PublicationStatus.PUBLISHED,
         PublicationStatus.CANCELLED,
+    )
+
+    private fun preDeliveryMutableStatuses(): Set<PublicationStatus> = setOf(
+        PublicationStatus.DRAFT,
+        PublicationStatus.QUEUED,
+        PublicationStatus.SCHEDULED,
     )
 
     private const val BLOCKED_MAX_RETRIES = 5

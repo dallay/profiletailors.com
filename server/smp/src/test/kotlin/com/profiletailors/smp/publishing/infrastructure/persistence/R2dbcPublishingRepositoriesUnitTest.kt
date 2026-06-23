@@ -183,6 +183,183 @@ class R2dbcPublishingRepositoriesUnitTest : DatabaseUnitTestBase() {
             assertEquals("Updated body", loaded!!.bodyText)
             assertEquals(listOf("asset-x"), loaded.assetIds)
         }
+
+        @Test
+        fun `deleteUnpublished returns false when publication not found`() = runTest {
+            val result = publicationRepository.deleteUnpublished("workspace-1", "non-existent-pub")
+            assertFalse(result)
+        }
+
+        @Test
+        fun `deleteUnpublished returns false when publication has PUBLISHED status`() = runTest {
+            val pubId = insertPublication(status = PublicationStatus.PUBLISHED.name)
+
+            // Insert child records to verify they survive the failed deletion
+            val assetId = "asset-published-${System.nanoTime()}"
+            insertPublicationAsset(assetId, PublicationAssetStatus.READY)
+            databaseClient.sql(
+                """
+                INSERT INTO publication_asset_links (publication_id, asset_id, position_index)
+                VALUES (:publicationId, :assetId, 0)
+                """.trimIndent(),
+            )
+                .bind("publicationId", pubId)
+                .bind("assetId", assetId)
+                .fetch()
+                .rowsUpdated()
+                .awaitSingle()
+
+            insertPublicationJob(
+                id = "job-published-${System.nanoTime()}",
+                publicationId = pubId,
+                status = JobStatus.PENDING,
+                dueAt = Instant.parse("2026-06-01T13:00:00Z"),
+            )
+
+            val result = publicationRepository.deleteUnpublished("workspace-1", pubId)
+
+            assertFalse(result)
+            // Publication should still exist (not deleted)
+            val loaded = publicationRepository.findByWorkspaceAndId("workspace-1", pubId)
+            assertNotNull(loaded)
+            assertEquals(PublicationStatus.PUBLISHED, loaded!!.status)
+
+            // Child records must NOT have been deleted
+            val remainingLinks = databaseClient.sql(
+                "SELECT COUNT(*) AS total FROM publication_asset_links WHERE publication_id = :publicationId",
+            )
+                .bind("publicationId", pubId)
+                .map { row, _ -> requireNotNull(row.get("total", java.lang.Long::class.java)).toLong() }
+                .one()
+                .awaitSingle()
+            assertEquals(1L, remainingLinks, "publication_asset_links must NOT be deleted for PUBLISHED publication")
+
+            val remainingJobs = databaseClient.sql(
+                "SELECT COUNT(*) AS total FROM publication_jobs WHERE publication_id = :publicationId",
+            )
+                .bind("publicationId", pubId)
+                .map { row, _ -> requireNotNull(row.get("total", java.lang.Long::class.java)).toLong() }
+                .one()
+                .awaitSingle()
+            assertEquals(1L, remainingJobs, "publication_jobs must NOT be deleted for PUBLISHED publication")
+        }
+
+        @Test
+        fun `deleteUnpublished returns false when publication has FAILED status`() = runTest {
+            val pubId = insertPublication(status = PublicationStatus.FAILED.name)
+
+            // Insert child records to verify they survive the failed deletion
+            val assetId = "asset-failed-${System.nanoTime()}"
+            insertPublicationAsset(assetId, PublicationAssetStatus.READY)
+            databaseClient.sql(
+                """
+                INSERT INTO publication_asset_links (publication_id, asset_id, position_index)
+                VALUES (:publicationId, :assetId, 0)
+                """.trimIndent(),
+            )
+                .bind("publicationId", pubId)
+                .bind("assetId", assetId)
+                .fetch()
+                .rowsUpdated()
+                .awaitSingle()
+
+            insertPublicationJob(
+                id = "job-failed-${System.nanoTime()}",
+                publicationId = pubId,
+                status = JobStatus.PENDING,
+                dueAt = Instant.parse("2026-06-01T13:00:00Z"),
+            )
+
+            val result = publicationRepository.deleteUnpublished("workspace-1", pubId)
+
+            assertFalse(result)
+            val loaded = publicationRepository.findByWorkspaceAndId("workspace-1", pubId)
+            assertNotNull(loaded)
+            assertEquals(PublicationStatus.FAILED, loaded!!.status)
+
+            // Child records must NOT have been deleted
+            val remainingLinks = databaseClient.sql(
+                "SELECT COUNT(*) AS total FROM publication_asset_links WHERE publication_id = :publicationId",
+            )
+                .bind("publicationId", pubId)
+                .map { row, _ -> requireNotNull(row.get("total", java.lang.Long::class.java)).toLong() }
+                .one()
+                .awaitSingle()
+            assertEquals(1L, remainingLinks, "publication_asset_links must NOT be deleted for FAILED publication")
+
+            val remainingJobs = databaseClient.sql(
+                "SELECT COUNT(*) AS total FROM publication_jobs WHERE publication_id = :publicationId",
+            )
+                .bind("publicationId", pubId)
+                .map { row, _ -> requireNotNull(row.get("total", java.lang.Long::class.java)).toLong() }
+                .one()
+                .awaitSingle()
+            assertEquals(1L, remainingJobs, "publication_jobs must NOT be deleted for FAILED publication")
+        }
+
+        @Test
+        fun `deleteUnpublished has transactional annotation`() {
+            // Kotlin suspend functions require checking all declared methods
+            val methods = R2dbcPublicationRepository::class.java.declaredMethods
+            val deleteMethod = methods.firstOrNull { it.name == "deleteUnpublished" }
+            assertNotNull(deleteMethod) { "deleteUnpublished method must be declared" }
+            val annotation = deleteMethod!!.getAnnotation(
+                org.springframework.transaction.annotation.Transactional::class.java,
+            )
+            assertNotNull(annotation) { "deleteUnpublished must be annotated with @Transactional" }
+        }
+
+        @Test
+        fun `deleteUnpublished removes publication asset links and unclaimed jobs`() = runTest {
+            val assetId = "asset-delete-${System.nanoTime()}"
+            val publicationId = "pub-delete-${System.nanoTime()}"
+            insertPublicationAsset(assetId, PublicationAssetStatus.READY)
+
+            insertPublication(status = PublicationStatus.SCHEDULED.name, id = publicationId)
+            publicationRepository.updateEditableDraft(
+                PublicationDraft(
+                    id = publicationId,
+                    workspaceId = "workspace-1",
+                    authorPrincipalId = "principal-1",
+                    provider = SocialProvider.LINKEDIN,
+                    socialAccountId = "soacc-1",
+                    status = PublicationStatus.SCHEDULED,
+                    scheduleMode = ScheduleMode.SCHEDULED_AT,
+                    priority = false,
+                    bodyText = "Delete body",
+                    assetIds = listOf(assetId),
+                    scheduledFor = Instant.parse("2026-06-01T13:00:00Z"),
+                ),
+            )
+            insertPublicationJob(
+                id = "job-delete-pending-${System.nanoTime()}",
+                publicationId = publicationId,
+                status = JobStatus.PENDING,
+                dueAt = Instant.parse("2026-06-01T13:00:00Z"),
+            )
+
+            publicationRepository.deleteUnpublished("workspace-1", publicationId)
+
+            assertNull(publicationRepository.findByWorkspaceAndId("workspace-1", publicationId))
+
+            val remainingLinks = databaseClient.sql(
+                "SELECT COUNT(*) AS total FROM publication_asset_links WHERE publication_id = :publicationId",
+            )
+                .bind("publicationId", publicationId)
+                .map { row, _ -> requireNotNull(row.get("total", java.lang.Long::class.java)).toLong() }
+                .one()
+                .awaitSingle()
+            assertEquals(0L, remainingLinks)
+
+            val remainingJobs = databaseClient.sql(
+                "SELECT COUNT(*) AS total FROM publication_jobs WHERE publication_id = :publicationId",
+            )
+                .bind("publicationId", publicationId)
+                .map { row, _ -> requireNotNull(row.get("total", java.lang.Long::class.java)).toLong() }
+                .one()
+                .awaitSingle()
+            assertEquals(0L, remainingJobs)
+        }
     }
 
     // -------------------------------------------------------------------------

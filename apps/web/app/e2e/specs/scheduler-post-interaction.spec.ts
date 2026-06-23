@@ -88,13 +88,9 @@ test.describe('Scheduler — Post Interaction', () => {
     const postCard = page.getByRole('button', { name: new RegExp(testText) }).first()
     await expect(postCard).toBeVisible({ timeout: 10_000 })
 
-    // Delete through the exact card action. A broad getByText() assertion is
-    // too loose because the same text may still exist in hidden/duplicated DOM
-    // nodes during transitions.
     const deleteButton = postCard.locator('button[title="Delete publication"]')
     await deleteButton.click({ force: true })
 
-    // Verify the specific interactive card is gone.
     await expect(page.getByRole('button', { name: new RegExp(testText) })).toHaveCount(0, {
       timeout: 5_000,
     })

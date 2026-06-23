@@ -46,6 +46,8 @@ interface PublicationRepository {
 
     suspend fun markBlocked(publicationId: String, blockedAt: Instant, reason: String?)
 
+    suspend fun deleteUnpublished(workspaceId: String, publicationId: String): Boolean
+
     /**
      * Find publications that are BLOCKED and may be eligible for retry.
      * Used by the BLOCKED-recovery scan when account status restores to ACTIVE.

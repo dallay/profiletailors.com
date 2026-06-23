@@ -39,6 +39,7 @@ import com.profiletailors.smp.publishing.domain.PublicationAsset
 import com.profiletailors.smp.publishing.domain.PublicationAssetRepository
 import com.profiletailors.smp.publishing.domain.PublicationAssetStatus
 import com.profiletailors.smp.publishing.domain.PublicationDraft
+import com.profiletailors.smp.publishing.domain.PublicationDeletionNotAllowedException
 import com.profiletailors.smp.publishing.domain.PublicationLifecyclePolicy
 import com.profiletailors.smp.publishing.domain.PublicationRepository
 import com.profiletailors.smp.publishing.domain.PublicationSchedulingPolicy
@@ -569,6 +570,33 @@ internal class EditPublicationHandler(
     private companion object {
         const val TIMEOUT_MILLIS = 5_000L
         const val MILLIS_PER_SECOND = 1_000L
+    }
+}
+
+@Service
+internal class DeletePublicationHandler(
+    private val principalContextProvider: PrincipalContextProvider,
+    private val resourceContextProvider: ResourceContextProvider,
+    private val publicationRepository: PublicationRepository,
+    private val publicationJobRepository: PublicationJobRepository,
+    private val clock: Clock,
+    private val principalIdentityLookup: PrincipalIdentityLookup = NoOpPrincipalIdentityLookup(),
+    private val emailVerificationPolicy: EmailVerificationPolicy = permissiveEmailVerificationPolicy,
+) : CommandWithResultHandler<DeletePublicationCommand, PublicationResult> {
+    override suspend fun handle(command: DeletePublicationCommand): PublicationResult {
+        val principalCtx = principalContextProvider.require()
+        requireEmailVerification(
+            principalCtx,
+            principalIdentityLookup,
+            emailVerificationPolicy,
+            AuthFeature.PUBLISH_CONTENT,
+        )
+        val workspaceId = requireNotNull(resourceContextProvider.requireWorkspaceContext().workspaceId)
+        val current = publicationRepository.findByWorkspaceAndId(workspaceId, command.publicationId)
+            ?: throw PublicationNotFoundException(command.publicationId)
+        val deleted = publicationRepository.deleteUnpublished(workspaceId, current.id)
+        if (!deleted) throw PublicationDeletionNotAllowedException(current.id)
+        return current.toResult()
     }
 }
 

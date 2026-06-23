@@ -5,6 +5,7 @@ import com.profiletailors.smp.publishing.application.CalendarResponse
 import com.profiletailors.smp.publishing.application.CancelPublicationCommand
 import com.profiletailors.smp.publishing.application.CompleteLinkedInConnectionCommand
 import com.profiletailors.smp.publishing.application.CreatePublicationCommand
+import com.profiletailors.smp.publishing.application.DeletePublicationCommand
 import com.profiletailors.smp.publishing.application.EditPublicationCommand
 import com.profiletailors.smp.publishing.application.GetCalendarPublicationsQuery
 import com.profiletailors.smp.publishing.application.InitiateLinkedInConnectionCommand
@@ -37,6 +38,7 @@ import org.springframework.http.HttpStatus
 import org.springframework.http.MediaType
 import org.springframework.http.codec.ServerSentEvent
 import org.springframework.validation.annotation.Validated
+import org.springframework.web.bind.annotation.DeleteMapping
 import org.springframework.web.bind.annotation.GetMapping
 import org.springframework.web.server.ResponseStatusException
 import org.springframework.web.bind.annotation.PatchMapping
@@ -199,6 +201,12 @@ class PublishingPublicationController(
     suspend fun cancelPublication(
         @PathVariable publicationId: String,
     ): PublicationResult = mediator.send(CancelPublicationCommand(publicationId))
+
+    @Operation(summary = "Delete an unpublished publication")
+    @DeleteMapping("/{publicationId}", version = "1")
+    suspend fun deletePublication(
+        @PathVariable publicationId: String,
+    ): PublicationResult = mediator.send(DeletePublicationCommand(publicationId))
 
     @Operation(summary = "Retry a failed publication")
     @PostMapping("/{publicationId}/retry", consumes = ["application/json"], version = "1")

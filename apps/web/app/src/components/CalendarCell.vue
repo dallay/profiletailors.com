@@ -87,6 +87,7 @@ function onKeyDown(e: KeyboardEvent) {
     }"
     :tabindex="isCurrentMonth && !isPast ? 0 : -1"
     :role="isCurrentMonth && !isPast ? 'button' : undefined"
+    :aria-disabled="isCurrentMonth && isPast ? true : undefined"
     :aria-label="isCurrentMonth ? `Calendar cell for ${date.toLocaleDateString()}${isPast ? ' (past)' : ''}` : undefined"
     @click="isCurrentMonth && !isPast ? emit('click-day', date) : undefined"
     @keydown="onKeyDown"
