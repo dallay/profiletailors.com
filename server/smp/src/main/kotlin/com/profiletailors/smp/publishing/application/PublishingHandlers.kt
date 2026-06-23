@@ -573,6 +573,33 @@ internal class EditPublicationHandler(
 }
 
 @Service
+internal class DeletePublicationHandler(
+    private val principalContextProvider: PrincipalContextProvider,
+    private val resourceContextProvider: ResourceContextProvider,
+    private val publicationRepository: PublicationRepository,
+    private val publicationJobRepository: PublicationJobRepository,
+    private val clock: Clock,
+    private val principalIdentityLookup: PrincipalIdentityLookup = NoOpPrincipalIdentityLookup(),
+    private val emailVerificationPolicy: EmailVerificationPolicy = permissiveEmailVerificationPolicy,
+) : CommandWithResultHandler<DeletePublicationCommand, PublicationResult> {
+    override suspend fun handle(command: DeletePublicationCommand): PublicationResult {
+        val principalCtx = principalContextProvider.require()
+        requireEmailVerification(
+            principalCtx,
+            principalIdentityLookup,
+            emailVerificationPolicy,
+            AuthFeature.PUBLISH_CONTENT,
+        )
+        val workspaceId = requireNotNull(resourceContextProvider.requireWorkspaceContext().workspaceId)
+        val current = publicationRepository.findByWorkspaceAndId(workspaceId, command.publicationId)
+            ?: throw PublicationNotFoundException(command.publicationId)
+        PublicationLifecyclePolicy.requireDeletable(current)
+        publicationRepository.deleteUnpublished(workspaceId, current.id)
+        return current.toResult()
+    }
+}
+
+@Service
 internal class CancelPublicationHandler(
     private val principalContextProvider: PrincipalContextProvider,
     private val resourceContextProvider: ResourceContextProvider,

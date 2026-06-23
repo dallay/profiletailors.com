@@ -55,7 +55,8 @@ describe('useFocusTrap', () => {
 
     wrapper.vm.activate()
     const buttons = wrapper.findAll('button')
-    expect(document.activeElement).toBe(buttons[0].element)
+    expect(buttons[0]).toBeDefined()
+    expect(document.activeElement).toBe(buttons[0]!.element)
   })
 
   it('focuses the container itself when no focusable children exist', () => {
@@ -100,12 +101,15 @@ describe('useFocusTrap', () => {
     const buttons = wrapper.findAll('button')
 
     // Focus is on first button after activate
-    expect(document.activeElement).toBe(buttons[0].element)
+    expect(buttons[0]).toBeDefined()
+    expect(document.activeElement).toBe(buttons[0]!.element)
 
     // Press Tab on the last button should wrap to first
-    ;(buttons[2].element as HTMLElement).focus()
+    expect(buttons[2]).toBeDefined()
+    ;(buttons[2]!.element as HTMLElement).focus()
     document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Tab' }))
-    expect(document.activeElement).toBe(buttons[0].element)
+    expect(buttons[0]).toBeDefined()
+    expect(document.activeElement).toBe(buttons[0]!.element)
   })
 
   it('traps Shift+Tab cycling backward', () => {
@@ -117,7 +121,9 @@ describe('useFocusTrap', () => {
 
     // Focus is on first button after activate. Press Shift+Tab should wrap to last.
     document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Tab', shiftKey: true }))
-    expect(document.activeElement).toBe(buttons[buttons.length - 1].element)
+    const lastButton = buttons[buttons.length - 1]
+    expect(lastButton).toBeDefined()
+    expect(document.activeElement).toBe(lastButton!.element)
   })
 
   it('prevents default Tab when there are no focusable elements', () => {
@@ -160,7 +166,8 @@ describe('useFocusTrap', () => {
     wrapper.vm.activate()
     // Focus moves inside the trap
     const buttons = wrapper.findAll('button')
-    expect(document.activeElement).toBe(buttons[0].element)
+    expect(buttons[0]).toBeDefined()
+    expect(document.activeElement).toBe(buttons[0]!.element)
 
     wrapper.vm.deactivate()
     // Focus should return to trigger

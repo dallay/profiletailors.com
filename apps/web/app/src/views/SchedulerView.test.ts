@@ -179,16 +179,18 @@ describe('SchedulerView', () => {
     const card = wrapper
       .findAll('button')
       .find((b) => b.text().includes('Side by side layout test'))
-    expect(card.exists()).toBe(true)
+    expect(card).toBeDefined()
+    const resolvedCard = card!
+    expect(resolvedCard.exists()).toBe(true)
     // The body container that holds both text and thumbnail must be flex-row (not flex-col)
-    const bodyDiv = card.findAll('div').find((d) => {
+    const bodyDiv = resolvedCard.findAll('div').find((d) => {
       const cls = d.classes()
       return cls.some((c) => c.includes('flex-row'))
     })
     expect(bodyDiv?.exists()).toBe(true)
     // Both the text paragraph and the img should be inside that flex-row container
-    const img = card.find('img')
-    const textEl = card.find('p')
+    const img = resolvedCard.find('img')
+    const textEl = resolvedCard.find('p')
     expect(img.exists()).toBe(true)
     expect(textEl.exists()).toBe(true)
     expect(bodyDiv?.find('img').exists()).toBe(true)

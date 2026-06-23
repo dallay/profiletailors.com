@@ -314,6 +314,47 @@ class R2dbcPublicationRepository(
             .awaitSingle()
     }
 
+    override suspend fun deleteUnpublished(workspaceId: String, publicationId: String) {
+        databaseClient.sql(
+            """
+            DELETE FROM publication_jobs
+            WHERE publication_id = :publicationId
+              AND workspace_id = :workspaceId
+              AND status IN (:pendingStatus, :retryWaitingStatus)
+            """.trimIndent(),
+        )
+            .bind("publicationId", publicationId)
+            .bind("workspaceId", workspaceId)
+            .bind("pendingStatus", JobStatus.PENDING.name)
+            .bind("retryWaitingStatus", JobStatus.RETRY_WAITING.name)
+            .fetch()
+            .rowsUpdated()
+            .awaitSingle()
+
+        databaseClient.sql(
+            """
+            DELETE FROM publication_asset_links
+            WHERE publication_id = :publicationId
+            """.trimIndent(),
+        )
+            .bind("publicationId", publicationId)
+            .fetch()
+            .rowsUpdated()
+            .awaitSingle()
+
+        databaseClient.sql(
+            """
+            DELETE FROM publications
+            WHERE workspace_id = :workspaceId AND id = :publicationId
+            """.trimIndent(),
+        )
+            .bind("workspaceId", workspaceId)
+            .bind("publicationId", publicationId)
+            .fetch()
+            .rowsUpdated()
+            .awaitSingle()
+    }
+
     override suspend fun findBlockedForRecovery(
         maxRetries: Int,
     ): List<PublicationDraft> {

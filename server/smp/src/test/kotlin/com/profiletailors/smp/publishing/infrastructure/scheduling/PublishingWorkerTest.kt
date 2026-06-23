@@ -264,6 +264,7 @@ class PublishingWorkerTest {
         override suspend fun markBlocked(publicationId: String, blockedAt: Instant, reason: String?) {
             blockedPublicationId = publicationId
         }
+        override suspend fun deleteUnpublished(workspaceId: String, publicationId: String) = Unit
         override suspend fun findBlockedForRecovery(
             maxRetries: Int,
         ): List<PublicationDraft> = blockedForRecovery.filter { it.retryCount < maxRetries }

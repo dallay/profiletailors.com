@@ -13,6 +13,7 @@ import com.profiletailors.smp.publishing.application.CalendarResponse
 import com.profiletailors.smp.publishing.application.CancelPublicationCommand
 import com.profiletailors.smp.publishing.application.CompleteLinkedInConnectionCommand
 import com.profiletailors.smp.publishing.application.CreatePublicationCommand
+import com.profiletailors.smp.publishing.application.DeletePublicationCommand
 import com.profiletailors.smp.publishing.application.EditPublicationCommand
 import com.profiletailors.smp.publishing.application.ConnectedChannelsResponse
 import com.profiletailors.smp.publishing.application.ConnectedSocialChannelSummary
@@ -407,6 +408,9 @@ class PublishingControllersTest {
             ),
             mediator.lastRequest,
         )
+
+        controller.deletePublication("pub-1")
+        assertEquals(DeletePublicationCommand("pub-1"), mediator.lastRequest)
     }
 
     private class FixedResourceContextProvider(
@@ -488,6 +492,7 @@ class PublishingControllersTest {
                 ) as TResult
                 is CreatePublicationCommand,
                 is EditPublicationCommand,
+                is DeletePublicationCommand,
                 is CancelPublicationCommand,
                 is RetryPublicationCommand,
                 is ReschedulePublicationCommand,

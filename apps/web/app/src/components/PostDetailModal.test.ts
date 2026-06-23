@@ -67,18 +67,23 @@ describe('PostDetailModal', () => {
   beforeEach(() => {
     setActivePinia(createPinia())
     const publishingStore = usePublishingStore()
-    vi.spyOn(publishingStore, 'deletePost').mockResolvedValue()
-    vi.spyOn(publishingStore, 'reschedulePublication').mockResolvedValue()
+    vi.spyOn(publishingStore, 'deletePost').mockResolvedValue(undefined)
+    vi.spyOn(publishingStore, 'reschedulePublication').mockResolvedValue(makePublication())
+    vi.spyOn(publishingStore, 'updatePost').mockResolvedValue(makePublication())
   })
 
   describe('renders publication details', () => {
-    it('displays title and body content', () => {
+    it('displays editable title and body values for editable publications', async () => {
       const wrapper = mountModal(
         makePublication({ title: 'My Great Post', content: 'Body text here' }),
       )
+      await flushPromises()
 
-      expect(wrapper.text()).toContain('My Great Post')
-      expect(wrapper.text()).toContain('Body text here')
+      const titleInput = wrapper.find('input[placeholder="postDetail.titleLabel"]')
+      const textarea = wrapper.find('textarea')
+
+      expect((titleInput.element as HTMLInputElement).value).toBe('My Great Post')
+      expect((textarea.element as HTMLTextAreaElement).value).toBe('Body text here')
     })
 
     it('displays the thumbnail image when present', () => {
@@ -171,6 +176,14 @@ describe('PostDetailModal', () => {
       expect(wrapper.text()).toContain('Network error')
     })
 
+    it('hides destructive actions for non-deletable statuses', () => {
+      const wrapper = mountModal(makePublication({ status: 'PROCESSING' }))
+
+      expect(wrapper.text()).not.toContain('postDetail.delete')
+      expect(wrapper.text()).toContain('postDetail.reschedule')
+      expect(wrapper.text()).not.toContain('postDetail.rescheduleConfirm')
+    })
+
     it('isReadOnly hides delete button for published posts', () => {
       const wrapper = mountModal(makePublication({ status: 'PUBLISHED' }))
 
@@ -179,9 +192,49 @@ describe('PostDetailModal', () => {
     })
   })
 
+  describe('save publication', () => {
+    it('calls updatePost and closes modal on successful save', async () => {
+      const wrapper = mountModal(makePublication())
+      const publishingStore = usePublishingStore()
+
+      const titleInput = wrapper.find('input[placeholder="postDetail.titleLabel"]')
+      await titleInput.setValue('Updated title')
+      const textarea = wrapper.find('textarea')
+      await textarea.setValue('Updated content')
+
+      const saveButton = wrapper
+        .findAll('button')
+        .find((button) => button.text().includes('postDetail.rescheduleConfirm'))
+      await saveButton!.trigger('click')
+      await flushPromises()
+
+      expect(publishingStore.updatePost).toHaveBeenCalledWith(
+        'pub-1',
+        expect.objectContaining({ title: 'Updated title', content: 'Updated content' }),
+      )
+      expect(wrapper.emitted('close')).toHaveLength(1)
+    })
+
+    it('shows save error when update fails', async () => {
+      const wrapper = mountModal(makePublication())
+      const publishingStore = usePublishingStore()
+      vi.spyOn(publishingStore, 'updatePost').mockRejectedValue(new Error('Save failed'))
+
+      const saveButton = wrapper
+        .findAll('button')
+        .find((button) => button.text().includes('postDetail.rescheduleConfirm'))
+      await saveButton!.trigger('click')
+      await flushPromises()
+
+      expect(wrapper.text()).toContain('Save failed')
+    })
+  })
+
   describe('reschedule', () => {
-    it('shows Reschedule button when publication has scheduledAt and is not read-only', () => {
-      const wrapper = mountModal(makePublication({ scheduledAt: '2026-07-01T10:00:00Z' }))
+    it('shows Reschedule button when publication has scheduledAt and is not editable or read-only', () => {
+      const wrapper = mountModal(
+        makePublication({ status: 'PROCESSING', scheduledAt: '2026-07-01T10:00:00Z' }),
+      )
 
       expect(wrapper.text()).toContain('postDetail.reschedule')
     })
@@ -193,13 +246,15 @@ describe('PostDetailModal', () => {
     })
 
     it('hides Reschedule button when publication has no scheduledAt', () => {
-      const wrapper = mountModal(makePublication({ scheduledAt: undefined }))
+      const wrapper = mountModal(makePublication({ status: 'PROCESSING', scheduledAt: undefined }))
 
       expect(wrapper.text()).not.toContain('postDetail.reschedule')
     })
 
     it('opens the reschedule form on button click', async () => {
-      const wrapper = mountModal(makePublication())
+      const wrapper = mountModal(
+        makePublication({ status: 'PROCESSING', scheduledAt: '2026-07-01T10:00:00Z' }),
+      )
 
       const rescheduleBtn = wrapper
         .findAll('button')
@@ -215,7 +270,7 @@ describe('PostDetailModal', () => {
 
     it('calls reschedulePublication and emits reschedule on confirm', async () => {
       const wrapper = mountModal(
-        makePublication({ id: 'pub-2', scheduledAt: '2026-07-01T10:00:00Z' }),
+        makePublication({ id: 'pub-2', status: 'PROCESSING', scheduledAt: '2026-07-01T10:00:00Z' }),
       )
       const publishingStore = usePublishingStore()
 
@@ -243,7 +298,9 @@ describe('PostDetailModal', () => {
     })
 
     it('displays error when reschedule fails', async () => {
-      const wrapper = mountModal(makePublication({ scheduledAt: '2026-07-01T10:00:00Z' }))
+      const wrapper = mountModal(
+        makePublication({ status: 'PROCESSING', scheduledAt: '2026-07-01T10:00:00Z' }),
+      )
       const publishingStore = usePublishingStore()
       vi.spyOn(publishingStore, 'reschedulePublication').mockRejectedValue(
         new Error('Reschedule failed'),
@@ -264,7 +321,9 @@ describe('PostDetailModal', () => {
     })
 
     it('cancelReschedule hides the reschedule form', async () => {
-      const wrapper = mountModal(makePublication())
+      const wrapper = mountModal(
+        makePublication({ status: 'PROCESSING', scheduledAt: '2026-07-01T10:00:00Z' }),
+      )
 
       // Open reschedule
       const rescheduleBtn = wrapper

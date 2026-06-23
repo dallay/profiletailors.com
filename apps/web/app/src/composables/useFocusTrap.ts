@@ -57,6 +57,7 @@ export function useFocusTrap(containerRef: Ref<HTMLElement | null>, onClose: () 
 
     const first = focusable[0]
     const last = focusable[focusable.length - 1]
+    if (!first || !last) return
 
     if (e.shiftKey && document.activeElement === first) {
       e.preventDefault()
@@ -73,8 +74,9 @@ export function useFocusTrap(containerRef: Ref<HTMLElement | null>, onClose: () 
     previousActiveElement = document.activeElement as HTMLElement | null
 
     const focusable = getFocusableElements()
-    if (focusable.length > 0) {
-      focusable[0].focus()
+    const firstFocusable = focusable[0]
+    if (firstFocusable) {
+      firstFocusable.focus()
     } else {
       // If no focusable elements, focus the container itself
       containerRef.value?.focus()

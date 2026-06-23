@@ -24,6 +24,18 @@ const { t, locale: i18nLocale } = useI18n()
 const publishingStore = usePublishingStore()
 
 const isReadOnly = computed(() => props.publication?.status === 'PUBLISHED')
+const canEdit = computed(() =>
+  props.publication ? publishingStore.isPublicationEditable(props.publication.status) : false,
+)
+const canDelete = computed(() =>
+  props.publication ? publishingStore.isPublicationDeletable(props.publication.status) : false,
+)
+
+const editTitle = ref('')
+const editContent = ref('')
+const editScheduledAt = ref('')
+const isSaving = ref(false)
+const saveError = ref('')
 
 const statusLabel = computed(() => {
   if (!props.publication) return ''
@@ -119,9 +131,18 @@ const modalContainer = ref<HTMLElement | null>(null)
 const { activate: activateFocusTrap, deactivate: deactivateFocusTrap } = useFocusTrap(modalContainer, closeModal)
 
 watch(
-  () => props.isOpen,
-  async (open) => {
+  () => [props.isOpen, props.publication] as const,
+  async ([open, publication]) => {
     if (open) {
+      editTitle.value = publication?.title ?? ''
+      editContent.value = publication?.content ?? ''
+      editScheduledAt.value = publication?.scheduledAt
+        ? new Date(new Date(publication.scheduledAt).getTime() - new Date(publication.scheduledAt).getTimezoneOffset() * 60_000)
+            .toISOString()
+            .slice(0, 16)
+        : ''
+      saveError.value = ''
+      deleteError.value = ''
       await nextTick()
       // Guard against the modal being closed during the await window
       if (props.isOpen) {
@@ -131,6 +152,7 @@ watch(
       deactivateFocusTrap()
     }
   },
+  { immediate: true },
 )
 
 function closeModal() {
@@ -138,7 +160,7 @@ function closeModal() {
 }
 
 async function deletePublication() {
-  if (!props.publication || isDeleting.value) return
+  if (!props.publication || isDeleting.value || !canDelete.value) return
   isDeleting.value = true
   deleteError.value = ''
   try {
@@ -150,6 +172,24 @@ async function deletePublication() {
     console.error('Failed to delete publication', err)
   } finally {
     isDeleting.value = false
+  }
+}
+
+async function savePublication() {
+  if (!props.publication || isSaving.value || !canEdit.value) return
+  isSaving.value = true
+  saveError.value = ''
+  try {
+    await publishingStore.updatePost(props.publication.id, {
+      title: editTitle.value || undefined,
+      content: editContent.value,
+      scheduledAt: editScheduledAt.value ? new Date(editScheduledAt.value).toISOString() : undefined,
+    })
+    closeModal()
+  } catch (err) {
+    saveError.value = err instanceof Error ? err.message : 'Failed to save post'
+  } finally {
+    isSaving.value = false
   }
 }
 
@@ -251,11 +291,17 @@ function cancelReschedule() {
         <!-- Body -->
         <div class="flex-1 overflow-y-auto p-6 space-y-5">
           <!-- Title -->
-          <div v-if="publication.title" class="space-y-1">
+          <div class="space-y-1">
             <span class="font-mono text-[9px] font-bold tracking-widest text-text-secondary uppercase">
               {{ t('postDetail.titleLabel') }}
             </span>
-            <p class="text-sm font-semibold text-text-display">{{ publication.title }}</p>
+            <input
+              v-if="canEdit"
+              v-model="editTitle"
+              class="w-full rounded-xl border border-border-visible bg-bg-surface px-3 py-2 text-sm text-text-display"
+              :placeholder="t('postDetail.titleLabel')"
+            />
+            <p v-else-if="publication.title" class="text-sm font-semibold text-text-display">{{ publication.title }}</p>
           </div>
 
           <!-- Body text -->
@@ -263,7 +309,12 @@ function cancelReschedule() {
             <span class="font-mono text-[9px] font-bold tracking-widest text-text-secondary uppercase">
               {{ t('postDetail.bodyLabel') }}
             </span>
-            <p class="text-sm font-light leading-relaxed text-text-body whitespace-pre-wrap">
+            <textarea
+              v-if="canEdit"
+              v-model="editContent"
+              class="min-h-32 w-full rounded-xl border border-border-visible bg-bg-surface px-3 py-2 text-sm font-light leading-relaxed text-text-body"
+            />
+            <p v-else class="text-sm font-light leading-relaxed text-text-body whitespace-pre-wrap">
               {{ publication.content }}
             </p>
           </div>
@@ -287,7 +338,13 @@ function cancelReschedule() {
               <span class="font-mono text-[9px] font-bold tracking-widest text-text-secondary uppercase">
                 {{ t('postDetail.scheduledFor') }}
               </span>
-              <p class="text-xs text-text-body flex items-center gap-1.5">
+              <input
+                v-if="canEdit"
+                v-model="editScheduledAt"
+                type="datetime-local"
+                class="w-full rounded-xl border border-border-visible bg-bg-surface px-3 py-2 text-xs text-text-body"
+              />
+              <p v-else class="text-xs text-text-body flex items-center gap-1.5">
                 <CalendarClock class="size-3" />
                 {{ scheduledAtLabel }}
               </p>
@@ -314,8 +371,9 @@ function cancelReschedule() {
 
         <!-- Footer -->
         <footer class="border-t border-border-subtle bg-bg-primary/40">
-          <div v-if="deleteError" class="px-6 pt-3">
-            <p class="text-[10px] font-mono text-error">{{ deleteError }}</p>
+          <div v-if="saveError || deleteError" class="px-6 pt-3 space-y-1">
+            <p v-if="saveError" class="text-[10px] font-mono text-error">{{ saveError }}</p>
+            <p v-if="deleteError" class="text-[10px] font-mono text-error">{{ deleteError }}</p>
           </div>
           <div v-if="showReschedule" class="px-6 pt-3 pb-2 space-y-2">
             <!-- biome-ignore lint/a11y/noLabelWithoutControl: t() provides accessible text, Biome can't resolve i18n keys statically -->
@@ -346,25 +404,35 @@ function cancelReschedule() {
             </div>
           </div>
           <div v-if="!showReschedule" class="flex items-center justify-between gap-3 p-6">
-        <button
-          v-if="!isReadOnly"
-          @click="deletePublication"
-          :disabled="isDeleting"
-          class="flex items-center gap-1.5 px-3 py-2 rounded-xl border border-border-visible text-text-secondary hover:border-error hover:text-error transition-colors bg-bg-surface text-xs font-mono uppercase tracking-wider font-bold cursor-pointer"
-        >
-          <Trash2 class="size-3.5" />
-          {{ t('postDetail.delete') }}
-        </button>
-        <button
-          v-if="!isReadOnly && publication?.scheduledAt"
-          @click="openReschedule"
-          class="flex items-center gap-1.5 px-3 py-2 rounded-xl border border-border-visible text-text-secondary hover:border-text-display hover:text-text-display transition-colors bg-bg-surface text-xs font-mono uppercase tracking-wider font-bold cursor-pointer"
-        >
-          <CalendarClock class="size-3.5" />
-          {{ t('postDetail.reschedule') }}
-        </button>
-        <div v-else-if="isReadOnly" class="text-[10px] font-mono uppercase tracking-wider text-text-secondary">
-          {{ t('postDetail.readOnlyHint') }}
+        <div class="flex items-center gap-2">
+          <button
+            v-if="canDelete"
+            @click="deletePublication"
+            :disabled="isDeleting"
+            class="flex items-center gap-1.5 px-3 py-2 rounded-xl border border-border-visible text-text-secondary hover:border-error hover:text-error transition-colors bg-bg-surface text-xs font-mono uppercase tracking-wider font-bold cursor-pointer"
+          >
+            <Trash2 class="size-3.5" />
+            {{ t('postDetail.delete') }}
+          </button>
+          <button
+            v-if="canEdit"
+            @click="savePublication"
+            :disabled="isSaving"
+            class="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-text-display text-bg-primary hover:opacity-90 transition-opacity text-xs font-mono uppercase tracking-wider font-bold cursor-pointer"
+          >
+            {{ t('postDetail.rescheduleConfirm') }}
+          </button>
+          <button
+            v-else-if="!isReadOnly && publication?.scheduledAt"
+            @click="openReschedule"
+            class="flex items-center gap-1.5 px-3 py-2 rounded-xl border border-border-visible text-text-secondary hover:border-text-display hover:text-text-display transition-colors bg-bg-surface text-xs font-mono uppercase tracking-wider font-bold cursor-pointer"
+          >
+            <CalendarClock class="size-3.5" />
+            {{ t('postDetail.reschedule') }}
+          </button>
+          <div v-else-if="isReadOnly" class="text-[10px] font-mono uppercase tracking-wider text-text-secondary">
+            {{ t('postDetail.readOnlyHint') }}
+          </div>
         </div>
           <div class="flex items-center gap-2">
             <button

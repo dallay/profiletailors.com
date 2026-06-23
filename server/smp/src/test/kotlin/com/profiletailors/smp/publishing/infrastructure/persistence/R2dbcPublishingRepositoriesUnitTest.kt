@@ -183,6 +183,58 @@ class R2dbcPublishingRepositoriesUnitTest : DatabaseUnitTestBase() {
             assertEquals("Updated body", loaded!!.bodyText)
             assertEquals(listOf("asset-x"), loaded.assetIds)
         }
+
+        @Test
+        fun `deleteUnpublished removes publication asset links and unclaimed jobs`() = runTest {
+            val assetId = "asset-delete-${System.nanoTime()}"
+            val publicationId = "pub-delete-${System.nanoTime()}"
+            insertPublicationAsset(assetId, PublicationAssetStatus.READY)
+
+            insertPublication(status = PublicationStatus.SCHEDULED.name, id = publicationId)
+            publicationRepository.updateEditableDraft(
+                PublicationDraft(
+                    id = publicationId,
+                    workspaceId = "workspace-1",
+                    authorPrincipalId = "principal-1",
+                    provider = SocialProvider.LINKEDIN,
+                    socialAccountId = "soacc-1",
+                    status = PublicationStatus.SCHEDULED,
+                    scheduleMode = ScheduleMode.SCHEDULED_AT,
+                    priority = false,
+                    bodyText = "Delete body",
+                    assetIds = listOf(assetId),
+                    scheduledFor = Instant.parse("2026-06-01T13:00:00Z"),
+                ),
+            )
+            insertPublicationJob(
+                id = "job-delete-pending-${System.nanoTime()}",
+                publicationId = publicationId,
+                status = JobStatus.PENDING,
+                dueAt = Instant.parse("2026-06-01T13:00:00Z"),
+            )
+
+            publicationRepository.deleteUnpublished("workspace-1", publicationId)
+
+            assertNull(publicationRepository.findByWorkspaceAndId("workspace-1", publicationId))
+
+            val remainingLinks = databaseClient.sql(
+                "SELECT COUNT(*) AS total FROM publication_asset_links WHERE publication_id = :publicationId",
+            )
+                .bind("publicationId", publicationId)
+                .map { row, _ -> requireNotNull(row.get("total", java.lang.Long::class.java)).toLong() }
+                .one()
+                .awaitSingle()
+            assertEquals(0L, remainingLinks)
+
+            val remainingJobs = databaseClient.sql(
+                "SELECT COUNT(*) AS total FROM publication_jobs WHERE publication_id = :publicationId",
+            )
+                .bind("publicationId", publicationId)
+                .map { row, _ -> requireNotNull(row.get("total", java.lang.Long::class.java)).toLong() }
+                .one()
+                .awaitSingle()
+            assertEquals(0L, remainingJobs)
+        }
     }
 
     // -------------------------------------------------------------------------

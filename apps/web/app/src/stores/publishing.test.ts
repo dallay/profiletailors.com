@@ -952,8 +952,10 @@ describe('publishing store', () => {
       expect(store.publications[0]?.status).toBe('CANCELLED')
     })
 
-    it('updates post fields and manages blob thumbnail lifecycle', () => {
+    it('updates post fields and manages blob thumbnail lifecycle', async () => {
       const store = usePublishingStore()
+      const auth = useAuthStore()
+      Object.defineProperty(auth, 'isAuthenticated', { value: true, configurable: true })
       // Stub URL globally since jsdom does not expose it
       const stubUrl = { revokeObjectURL: vi.fn(), createObjectURL: vi.fn() }
       vi.stubGlobal('URL', stubUrl)
@@ -962,26 +964,66 @@ describe('publishing store', () => {
         {
           id: 'update-me',
           content: 'Queued post',
+          title: 'Original title',
           channels: ['linkedin'],
           scheduledAt: '2026-06-15T20:00:00Z',
           status: 'QUEUED',
           priority: false,
           thumbnail: 'blob:old-thumb',
+          accountId: 'soc-1',
         },
       ]
 
-      // Replacing thumbnail: old blob gets revoked, new blob tracked.
-      store.updatePost('update-me', { thumbnail: 'blob:new-thumb', title: 'Updated' })
-      // Title-only update: no thumbnail touch.
-      store.updatePost('update-me', { title: 'Updated again' })
-      // Clearing thumbnail with undefined: tracked blob gets revoked.
-      store.updatePost('update-me', { thumbnail: undefined })
+      vi.spyOn(auth, 'apiFetch').mockResolvedValue({
+        publicationId: 'update-me',
+        workspaceId: 'workspace-1',
+        socialAccountId: 'soc-1',
+        status: 'SCHEDULED',
+        scheduleMode: 'SCHEDULED_AT',
+        priority: false,
+        title: 'Updated again',
+        bodyText: 'Queued post',
+        assetIds: [],
+        scheduledFor: '2026-06-15T20:00:00Z',
+        nextSlotAfter: null,
+        externalPublicationId: null,
+        publicUrl: null,
+        publishedAt: null,
+      })
 
-      expect(store.publications[0]).toMatchObject({ title: 'Updated again', thumbnail: undefined })
+      await store.updatePost('update-me', { thumbnail: 'blob:new-thumb', title: 'Updated again' })
+
+      expect(store.publications[0]).toMatchObject({ title: 'Updated again', status: 'SCHEDULED' })
     })
 
-    it('deletes a post and revokes tracked blob urls', () => {
+    it('rolls back local publication when update fails', async () => {
       const store = usePublishingStore()
+      const auth = useAuthStore()
+      Object.defineProperty(auth, 'isAuthenticated', { value: true, configurable: true })
+      store.publications = [
+        {
+          id: 'update-fail',
+          content: 'Original body',
+          title: 'Original title',
+          channels: ['linkedin'],
+          scheduledAt: '2026-06-15T20:00:00Z',
+          status: 'QUEUED',
+          priority: false,
+          accountId: 'soc-1',
+        },
+      ]
+      vi.spyOn(auth, 'apiFetch').mockRejectedValue(new Error('PATCH failed'))
+
+      await expect(store.updatePost('update-fail', { content: 'Changed body' })).rejects.toThrow(
+        'PATCH failed',
+      )
+      expect(store.publications[0]).toMatchObject({ content: 'Original body', title: 'Original title' })
+    })
+
+    it('deletes a post through the backend and revokes tracked blob urls', async () => {
+      const store = usePublishingStore()
+      const auth = useAuthStore()
+      Object.defineProperty(auth, 'isAuthenticated', { value: true, configurable: true })
       const stubUrl = { revokeObjectURL: vi.fn(), createObjectURL: vi.fn() }
       vi.stubGlobal('URL', stubUrl)
 
@@ -997,11 +1039,49 @@ describe('publishing store', () => {
         },
       ]
 
-      store.updatePost('delete-me', { thumbnail: 'blob:to-delete' })
-      store.deletePost('delete-me')
+      vi.spyOn(auth, 'apiFetch').mockResolvedValue({
+        publicationId: 'delete-me',
+        workspaceId: 'workspace-1',
+        socialAccountId: 'soc-1',
+        status: 'QUEUED',
+        scheduleMode: 'SCHEDULED_AT',
+        priority: false,
+        title: null,
+        bodyText: 'Queued post',
+        assetIds: [],
+        scheduledFor: '2026-06-15T20:00:00Z',
+        nextSlotAfter: null,
+        externalPublicationId: null,
+        publicUrl: null,
+        publishedAt: null,
+      })
+
+      await store.updatePost('delete-me', { thumbnail: 'blob:to-delete' })
+      await store.deletePost('delete-me')
 
       expect(store.publications).toEqual([])
       expect(stubUrl.revokeObjectURL).toHaveBeenCalledWith('blob:to-delete')
+    })
+
+    it('retains local publication when delete fails', async () => {
+      const store = usePublishingStore()
+      const auth = useAuthStore()
+      Object.defineProperty(auth, 'isAuthenticated', { value: true, configurable: true })
+      store.publications = [
+        {
+          id: 'delete-fail',
+          content: 'Queued post',
+          channels: ['linkedin'],
+          scheduledAt: '2026-06-15T20:00:00Z',
+          status: 'QUEUED',
+          priority: false,
+        },
+      ]
+      vi.spyOn(auth, 'apiFetch').mockRejectedValue(new Error('DELETE failed'))
+
+      await expect(store.deletePost('delete-fail')).rejects.toThrow('DELETE failed')
+      expect(store.publications).toHaveLength(1)
+      expect(store.publications[0]?.id).toBe('delete-fail')
     })
   })
 
