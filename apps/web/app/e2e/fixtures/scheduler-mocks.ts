@@ -333,8 +333,12 @@ export async function ensureChannelsLoaded(page: import('@playwright/test').Page
 export async function createPublicationInStore(
   page: import('@playwright/test').Page,
   text: string,
+  options?: {
+    title?: string | null
+  },
 ): Promise<void> {
   const timestamp = Date.now()
+  const title = options?.title === undefined ? 'E2E Test Post' : options.title
 
   const calendarPublication: MockPublication = {
     id: `pub-e2e-${timestamp}`,
@@ -344,7 +348,7 @@ export async function createPublicationInStore(
     status: 'QUEUED',
     scheduleMode: 'NOW',
     priority: false,
-    title: 'E2E Test Post',
+    title,
     bodyText: text,
     scheduledFor: new Date().toISOString(),
     hasConflict: false,
@@ -354,7 +358,7 @@ export async function createPublicationInStore(
   const frontendPublication = {
     id: calendarPublication.id,
     content: text,
-    title: calendarPublication.title ?? 'E2E Test Post',
+    title: calendarPublication.title ?? undefined,
     channels: ['linkedin'],
     scheduledAt: calendarPublication.scheduledFor ?? new Date().toISOString(),
     status: 'QUEUED',
