@@ -12,7 +12,7 @@ describe('Table', () => {
       },
     })
 
-    expect(wrapper.get('[data-slot="table-container"]').exists()).toBe(true)
+    expect(wrapper.find('[data-slot="table-container"]').exists()).toBe(true)
     expect(wrapper.get('thead').text()).toContain('Title')
     expect(wrapper.get('table').classes()).toContain('custom-table')
     expect(wrapper.text()).toContain('Row 1')

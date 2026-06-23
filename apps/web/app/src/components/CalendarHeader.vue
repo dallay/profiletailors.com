@@ -14,7 +14,7 @@ const publishingStore = usePublishingStore()
 
 defineProps<{
   /** Current calendar sub-view */
-  calendarView: 'month' | 'week'
+  calendarView: 'month' | 'week' | 'day'
   /** Full scheduler surface */
   surface: SchedulerSurface
   /** Formatted period label (e.g. "June 2026", "Jun 8 – 14, 2026") */
@@ -24,7 +24,7 @@ defineProps<{
 }>()
 
 const emit = defineEmits<{
-  (e: 'update:calendarView', view: 'month' | 'week'): void
+  (e: 'update:calendarView', view: 'month' | 'week' | 'day'): void
   (e: 'update:surface', surface: SchedulerSurface): void
   (e: 'update:status', status: SchedulerStatus): void
   (e: 'update:timezone', timezone: string): void

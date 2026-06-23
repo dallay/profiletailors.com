@@ -119,6 +119,23 @@ export interface CalendarResponse {
   activity: ActivityEntry[]
 }
 
+interface PublicationMutationResult {
+  publicationId: string
+  workspaceId: string
+  socialAccountId: string
+  status: string
+  scheduleMode: string
+  priority: boolean
+  title: string | null
+  bodyText: string | null
+  assetIds: string[]
+  scheduledFor: string | null
+  nextSlotAfter: string | null
+  externalPublicationId?: string | null
+  publicUrl?: string | null
+  publishedAt?: string | null
+}
+
 export interface ConnectedSocialChannelSummary {
   socialAccountId: string
   connectionId: string
@@ -266,6 +283,24 @@ function apiResultToPublication(api: CalendarPublicationResult): Publication {
   }
 }
 
+function publicationMutationResultToPublication(
+  result: PublicationMutationResult,
+  current: Publication,
+): Publication {
+  return {
+    ...current,
+    title: result.title ?? undefined,
+    content: result.bodyText ?? result.title ?? '',
+    scheduledAt: result.scheduledFor ?? current.scheduledAt,
+    status: mapApiStatus(result.status),
+    priority: result.priority,
+    accountId: result.socialAccountId,
+    externalPublicationId: result.externalPublicationId ?? undefined,
+    publicUrl: result.publicUrl ?? undefined,
+    publishedAt: result.publishedAt ?? undefined,
+  }
+}
+
 /** Converts backend status strings to frontend union. */
 function mapApiStatus(s: string): Publication['status'] {
   const valid: Set<string> = new Set([
@@ -279,6 +314,20 @@ function mapApiStatus(s: string): Publication['status'] {
     'CANCELLED',
   ])
   return valid.has(s) ? (s as Publication['status']) : 'DRAFT'
+}
+
+const MUTABLE_PUBLICATION_STATUSES = new Set<Publication['status']>([
+  'DRAFT',
+  'QUEUED',
+  'SCHEDULED',
+])
+
+function isPublicationEditable(status: Publication['status']): boolean {
+  return MUTABLE_PUBLICATION_STATUSES.has(status)
+}
+
+function isPublicationDeletable(status: Publication['status']): boolean {
+  return MUTABLE_PUBLICATION_STATUSES.has(status)
 }
 
 // ---------------------------------------------------------------------------
@@ -755,8 +804,19 @@ export const usePublishingStore = defineStore('publishing', () => {
     return newPub
   }
 
-  function deletePost(id: string) {
-    // Revoke object URL if tracked
+  async function deletePost(id: string) {
+    const publication = publications.value.find((p) => p.id === id)
+    if (!publication) {
+      throw new Error(`Publication ${id} not found`)
+    }
+
+    if (auth.isAuthenticated) {
+      await auth.apiFetch<PublicationMutationResult>(`/api/publishing/publications/${id}`, {
+        method: 'DELETE',
+        workspaceScoped: true,
+      })
+    }
+
     const url = objectUrls.get(id)
     if (url) {
       URL.revokeObjectURL(url)
@@ -774,24 +834,76 @@ export const usePublishingStore = defineStore('publishing', () => {
     }
   }
 
-  function updatePost(id: string, updates: Partial<Publication>) {
-    const post = publications.value.find((p) => p.id === id)
-    if (post) {
-      // If thumbnail is being replaced, revoke old object URL
-      if (updates.thumbnail && post.thumbnail && objectUrls.has(id)) {
+  async function updatePost(id: string, updates: Partial<Publication>) {
+    const idx = publications.value.findIndex((p) => p.id === id)
+    if (idx === -1) {
+      throw new Error(`Publication ${id} not found`)
+    }
+
+    const current = publications.value[idx]
+    if (!current) {
+      throw new Error(`Publication ${id} not found`)
+    }
+
+    const previous: Publication = { ...current }
+
+    if (auth.isAuthenticated) {
+      const result = await auth.apiFetch<PublicationMutationResult>(
+        `/api/publishing/publications/${id}`,
+        {
+          method: 'PATCH',
+          body: JSON.stringify({
+            socialAccountId: current.accountId,
+            title: updates.title ?? current.title ?? null,
+            bodyText: updates.content ?? current.content,
+            assetIds:
+              (updates as { assetIds?: string[] }).assetIds ??
+              (current as { assetIds?: string[] }).assetIds ??
+              [],
+            scheduleMode: 'SCHEDULED_AT',
+            scheduledFor: updates.scheduledAt ?? current.scheduledAt,
+            priority: updates.priority ?? current.priority,
+          }),
+          workspaceScoped: true,
+        },
+      )
+
+      // Object URL mutations only after successful PATCH
+      if (updates.thumbnail && current.thumbnail && objectUrls.has(id)) {
         const trackedUrl = objectUrls.get(id)
         if (trackedUrl) URL.revokeObjectURL(trackedUrl)
         objectUrls.delete(id)
       }
-      // Track new blob URL for later revocation
       if (typeof updates.thumbnail === 'string' && updates.thumbnail.startsWith('blob:')) {
         objectUrls.set(id, updates.thumbnail)
       } else if (updates.thumbnail == null && objectUrls.has(id)) {
         objectUrls.delete(id)
       }
-      Object.assign(post, updates)
+
+      const merged = publicationMutationResultToPublication(result, {
+        ...current,
+        ...updates,
+      })
+      publications.value[idx] = merged
       saveToStorage()
+      return merged
     }
+
+    // Unauthenticated path — object URL mutations before local update
+    if (updates.thumbnail && current.thumbnail && objectUrls.has(id)) {
+      const trackedUrl = objectUrls.get(id)
+      if (trackedUrl) URL.revokeObjectURL(trackedUrl)
+      objectUrls.delete(id)
+    }
+    if (typeof updates.thumbnail === 'string' && updates.thumbnail.startsWith('blob:')) {
+      objectUrls.set(id, updates.thumbnail)
+    } else if (updates.thumbnail == null && objectUrls.has(id)) {
+      objectUrls.delete(id)
+    }
+
+    publications.value[idx] = { ...previous, ...updates }
+    saveToStorage()
+    return publications.value[idx]
   }
 
   // -----------------------------------------------------------------------
@@ -836,6 +948,8 @@ export const usePublishingStore = defineStore('publishing', () => {
     hasReconnectRequiredChannels,
     reconnectRequiredChannels,
     hasNoChannels,
+    isPublicationEditable,
+    isPublicationDeletable,
     // Actions
     fetchChannels,
     fetchConfiguredProviders,

@@ -76,6 +76,10 @@ data class CancelPublicationCommand(
     val publicationId: String,
 ) : CommandWithResult<PublicationResult>
 
+data class DeletePublicationCommand(
+    val publicationId: String,
+) : CommandWithResult<PublicationResult>
+
 data class RetryPublicationCommand(
     val publicationId: String,
     val scheduleMode: ScheduleMode? = null,

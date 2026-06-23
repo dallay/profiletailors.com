@@ -27,6 +27,7 @@ const url = useCalendarUrl()
 /** Calendar sub-view derived from URL surface */
 const calendarView = computed(() => {
   if (url.state.value.surface === 'calendar-month') return 'month' as const
+  if (url.state.value.surface === 'calendar-day') return 'day' as const
   return 'week' as const
 })
 
@@ -378,6 +379,17 @@ function openDayView(date: Date) {
   url.setDate(date.toISOString().slice(0, 10))
 }
 
+async function handleDeletePublication(id: string) {
+  try {
+    await publishingStore.deletePost(id)
+    if (detailPublication.value?.id === id) {
+      closePostDetail()
+    }
+  } catch (err) {
+    console.warn('Delete failed', err)
+  }
+}
+
 function openPostDetail(pub: Publication) {
   detailPublication.value = pub
   isDetailModalOpen.value = true
@@ -590,11 +602,13 @@ watch(
                     :title="isPastSlot(day, slot.hour) ? 'Past time slots are disabled (read-only)' : undefined"
                   >
                     <!-- Scheduled Posts -->
-                    <button
+                    <!-- biome-ignore lint/a11y/useSemanticElements: non-button container required to avoid nested buttons (delete btn inside card) -->
+                    <div
                       v-for="pub in getPublicationsForSlot(day, slot.hour)"
                       :key="pub.id"
                       :draggable="true"
-                      type="button"
+                      role="button"
+                      tabindex="0"
                       @click.stop="openPostDetail(pub)"
                       @keydown.enter.self.stop.prevent="openPostDetail(pub)"
                       @keydown.space.self.stop.prevent="openPostDetail(pub)"
@@ -648,14 +662,14 @@ watch(
 
                       <!-- Delete button overlay on card hover (not for published posts) -->
                       <button
-                        v-if="pub.status !== 'PUBLISHED'"
-                        @click.stop="publishingStore.deletePost(pub.id)"
+                        v-if="publishingStore.isPublicationDeletable(pub.status)"
+                        @click.stop="handleDeletePublication(pub.id)"
                         class="absolute top-1 right-1 opacity-0 group-hover/card:opacity-100 size-5 flex items-center justify-center rounded-full bg-black/60 text-white hover:bg-error transition-all"
                         title="Delete publication"
                       >
                         <Trash2 class="size-2.5" />
                       </button>
-                    </button>
+                    </div>
 
                     <!-- Add post button (only in enabled slots) -->
                     <button
@@ -683,11 +697,13 @@ watch(
                   {{ $t('scheduler.allDay') }} · {{ currentBaseDate.toLocaleDateString(i18nLocale === 'es' ? 'es-ES' : 'en-US', { weekday: 'long', month: 'long', day: 'numeric' }) }}
                 </span>
 
-                <button
+                <!-- biome-ignore lint/a11y/useSemanticElements: non-button container required to avoid nested buttons (delete btn inside card) -->
+                <div
                   v-for="pub in getPublicationsForDate(currentBaseDate)"
                   :key="pub.id"
                   :draggable="true"
-                  type="button"
+                  role="button"
+                  tabindex="0"
                   @click.stop="openPostDetail(pub)"
                   @keydown.enter.self.stop.prevent="openPostDetail(pub)"
                   @keydown.space.self.stop.prevent="openPostDetail(pub)"
@@ -724,14 +740,14 @@ watch(
                     <img :src="pub.thumbnail" class="w-full h-full object-cover grayscale opacity-75 group-hover/card:grayscale-0 group-hover/card:opacity-100 transition-all" alt="" />
                   </div>
                   <button
-                    v-if="pub.status !== 'PUBLISHED'"
-                    @click.stop="publishingStore.deletePost(pub.id)"
+                    v-if="publishingStore.isPublicationDeletable(pub.status)"
+                    @click.stop="handleDeletePublication(pub.id)"
                     class="absolute top-2 right-2 opacity-0 group-hover/card:opacity-100 size-6 flex items-center justify-center rounded-full bg-black/60 text-white hover:bg-error transition-all"
                     title="Delete publication"
                   >
                     <Trash2 class="size-3" />
                   </button>
-                </button>
+                </div>
                 <div
                   v-if="getPublicationsForDate(currentBaseDate).length === 0"
                   class="border border-dashed border-border-visible rounded-xl p-12 text-center"
@@ -760,10 +776,12 @@ watch(
           </div>
 
           <div v-else class="space-y-3">
-              <button
+              <!-- biome-ignore lint/a11y/useSemanticElements: non-button container required to avoid nested buttons (delete btn inside card) -->
+              <div
                 v-for="pub in filteredPublications"
                 :key="pub.id"
-                type="button"
+                role="button"
+                tabindex="0"
                 class="group/card flex flex-col md:flex-row md:items-center justify-between gap-4 p-5 rounded-2xl border border-border-subtle bg-bg-surface hover:border-text-secondary transition-all cursor-pointer w-full text-left"
                 @click="openPostDetail(pub)"
                 @keydown.enter.self.stop.prevent="openPostDetail(pub)"
@@ -788,7 +806,7 @@ watch(
                   <!-- BLOCKED reconnect prompt in list view -->
                   <button
                     v-if="pub.status === 'BLOCKED'"
-                    @click="handleReconnect"
+                    @click.stop="handleReconnect"
                     class="text-[9px] underline text-warning hover:text-warning/80 font-medium"
                   >
                     Reconnect
@@ -823,15 +841,15 @@ watch(
                 </div>
 
                 <button
-                  v-if="pub.status !== 'PUBLISHED'"
-                  @click.stop="publishingStore.deletePost(pub.id)"
+                  v-if="publishingStore.isPublicationDeletable(pub.status)"
+                  @click.stop="handleDeletePublication(pub.id)"
                   class="group-hover/card:opacity-100 opacity-0 size-8 flex items-center justify-center rounded-xl border border-border-visible hover:border-error text-text-secondary hover:text-error transition-all bg-bg-primary cursor-pointer"
                   title="Delete publication"
                 >
                   <Trash2 class="size-4" />
                 </button>
               </div>
-            </button>
+            </div>
           </div>
         </div>
     </div>

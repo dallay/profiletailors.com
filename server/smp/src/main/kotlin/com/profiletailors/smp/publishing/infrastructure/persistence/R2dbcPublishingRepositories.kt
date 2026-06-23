@@ -26,6 +26,7 @@ import kotlinx.coroutines.reactor.awaitSingle
 import kotlinx.coroutines.reactor.awaitSingleOrNull
 import org.springframework.r2dbc.core.DatabaseClient
 import org.springframework.stereotype.Repository
+import org.springframework.transaction.annotation.Transactional
 import java.time.Instant
 import java.time.OffsetDateTime
 
@@ -312,6 +313,71 @@ class R2dbcPublicationRepository(
             .fetch()
             .rowsUpdated()
             .awaitSingle()
+    }
+
+    @Transactional
+    override suspend fun deleteUnpublished(workspaceId: String, publicationId: String): Boolean {
+        // Check if publication is in a deletable status first (guards FK constraints)
+        val deletable = databaseClient.sql(
+            """
+            SELECT COUNT(*) AS cnt FROM publications
+            WHERE workspace_id = :workspaceId
+              AND id = :publicationId
+              AND status IN ('DRAFT', 'QUEUED', 'SCHEDULED')
+            """.trimIndent(),
+        )
+            .bind("workspaceId", workspaceId)
+            .bind("publicationId", publicationId)
+            .map { row, _ -> requireNotNull(row.get("cnt", java.lang.Long::class.java)).toLong() }
+            .one()
+            .awaitSingle() > 0L
+
+        if (!deletable) return false
+
+        // Delete child records first (FK constraints) — only unclaimed jobs
+        databaseClient.sql(
+            """
+            DELETE FROM publication_jobs
+            WHERE publication_id = :publicationId
+              AND workspace_id = :workspaceId
+              AND status IN (:pendingStatus, :retryWaitingStatus)
+            """.trimIndent(),
+        )
+            .bind("publicationId", publicationId)
+            .bind("workspaceId", workspaceId)
+            .bind("pendingStatus", JobStatus.PENDING.name)
+            .bind("retryWaitingStatus", JobStatus.RETRY_WAITING.name)
+            .fetch()
+            .rowsUpdated()
+            .awaitSingle()
+
+        databaseClient.sql(
+            """
+            DELETE FROM publication_asset_links
+            WHERE publication_id = :publicationId
+            """.trimIndent(),
+        )
+            .bind("publicationId", publicationId)
+            .fetch()
+            .rowsUpdated()
+            .awaitSingle()
+
+        // Delete parent publication
+        databaseClient.sql(
+            """
+            DELETE FROM publications
+            WHERE workspace_id = :workspaceId
+              AND id = :publicationId
+              AND status IN ('DRAFT', 'QUEUED', 'SCHEDULED')
+            """.trimIndent(),
+        )
+            .bind("workspaceId", workspaceId)
+            .bind("publicationId", publicationId)
+            .fetch()
+            .rowsUpdated()
+            .awaitSingle()
+
+        return true
     }
 
     override suspend fun findBlockedForRecovery(
