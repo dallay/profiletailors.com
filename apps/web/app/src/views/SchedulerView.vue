@@ -420,13 +420,6 @@ watch(
 watch(
   () => url.state.value,
   async (state) => {
-    // Compatibility mirrors for existing UI pieces during migration
-    publishingStore.viewMode = state.surface === 'list' ? 'list' : 'calendar'
-    publishingStore.userTimezone = state.timezone
-    publishingStore.filterSocialAccountId = state.channelIds[0] ?? ''
-    publishingStore.filterPostType = state.status
-    publishingStore.filterTag = state.q
-
     const baseDate = new Date(`${state.date}T00:00:00`)
     const from =
       state.surface === 'calendar-month'
@@ -454,6 +447,7 @@ watch(
       :calendar-view="calendarView"
       :period-label="periodLabel"
       :surface="url.state.value.surface"
+      :timezone="url.state.value.timezone"
       @update:calendar-view="(view) => {
         const surface = view === 'month' ? 'calendar-month' : 'calendar-week'
         url.setSurface(surface)

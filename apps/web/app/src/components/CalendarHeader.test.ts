@@ -43,7 +43,6 @@ describe('CalendarHeader', () => {
   beforeEach(() => {
     setActivePinia(createPinia())
     const publishingStore = usePublishingStore()
-    publishingStore.viewMode = 'calendar'
     publishingStore.channels = [
       {
         id: 'acc-1',
@@ -63,6 +62,7 @@ describe('CalendarHeader', () => {
         calendarView: 'week',
         surface: 'calendar-week',
         periodLabel: 'Jun 8 – 14, 2026',
+        timezone: 'UTC',
         ...overrides,
       },
       global: {
