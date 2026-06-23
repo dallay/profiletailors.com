@@ -47,7 +47,7 @@ export class PostDetailModalPage {
   }
 
   get deleteButton(): Locator {
-    return this.visible.getByRole('button', { name: /delete|eliminar/i })
+    return this.page.getByRole('button', { name: /delete|eliminar/i })
   }
 
   get closeButton(): Locator {

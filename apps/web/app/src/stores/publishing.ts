@@ -101,23 +101,6 @@ export interface CalendarPublicationResult {
   previewUrl?: string | null
 }
 
-export interface PublicationResult {
-  publicationId: string
-  workspaceId: string
-  socialAccountId: string
-  status: string
-  scheduleMode: string
-  priority: boolean
-  title: string | null
-  bodyText: string | null
-  assetIds: string[]
-  scheduledFor: string | null
-  nextSlotAfter: string | null
-  externalPublicationId?: string | null
-  publicUrl?: string | null
-  publishedAt?: string | null
-}
-
 export interface ConflictEntry {
   publicationId: string
   conflictingPublicationIds: string[]
@@ -295,43 +278,6 @@ function mapApiStatus(s: string): Publication['status'] {
     'CANCELLED',
   ])
   return valid.has(s) ? (s as Publication['status']) : 'DRAFT'
-}
-
-/** Converts a Partial<Publication> into the backend PATCH body shape. */
-function toBackendFormat(
-  existing: Publication,
-  updates: Partial<Publication>,
-): Record<string, unknown> {
-  const scheduleMode = existing.status === 'QUEUED' ? 'NOW' : 'SCHEDULED_AT'
-  const body: Record<string, unknown> = {
-    socialAccountId: existing.accountId,
-    scheduleMode,
-  }
-  if (updates.content !== undefined) body.bodyText = updates.content
-  if (updates.title !== undefined) body.title = updates.title
-  if (scheduleMode === 'SCHEDULED_AT') {
-    body.scheduledFor = updates.scheduledAt ?? existing.scheduledAt
-  }
-  if (updates.priority !== undefined) body.priority = updates.priority
-  else body.priority = existing.priority
-  return body
-}
-
-/** Merges server-returned PublicationResult fields into a frontend Publication. */
-function fromBackendFormat(result: PublicationResult, existing: Publication): Publication {
-  return {
-    ...existing,
-    id: result.publicationId,
-    content: result.bodyText ?? existing.content,
-    title: result.title ?? existing.title,
-    scheduledAt: result.scheduledFor ?? existing.scheduledAt,
-    status: mapApiStatus(result.status),
-    priority: result.priority,
-    externalPublicationId: result.externalPublicationId ?? existing.externalPublicationId,
-    publicUrl: result.publicUrl ?? existing.publicUrl,
-    publishedAt: result.publishedAt ?? existing.publishedAt,
-    thumbnail: existing.thumbnail,
-  }
 }
 
 // ---------------------------------------------------------------------------
@@ -808,41 +754,15 @@ export const usePublishingStore = defineStore('publishing', () => {
     return newPub
   }
 
-  async function deletePost(id: string) {
-    const existing = publications.value.find((p) => p.id === id)
-    if (!existing) return
-
-    // Optimistic local removal
+  function deletePost(id: string) {
+    // Revoke object URL if tracked
     const url = objectUrls.get(id)
     if (url) {
+      URL.revokeObjectURL(url)
       objectUrls.delete(id)
     }
-    const originalIndex = publications.value.findIndex((p) => p.id === id)
     publications.value = publications.value.filter((p) => p.id !== id)
     saveToStorage()
-
-    if (!auth.isAuthenticated) return
-
-    try {
-      await auth.apiFetch(`/api/publishing/publications/${id}`, {
-        method: 'DELETE',
-        workspaceScoped: true,
-      })
-      if (url) {
-        URL.revokeObjectURL(url)
-      }
-    } catch (err) {
-      if (originalIndex === -1) {
-        publications.value.push(existing)
-      } else {
-        publications.value.splice(originalIndex, 0, existing)
-      }
-      if (url) {
-        objectUrls.set(id, url)
-      }
-      saveToStorage()
-      throw err
-    }
   }
 
   function cancelPost(id: string) {
@@ -853,51 +773,23 @@ export const usePublishingStore = defineStore('publishing', () => {
     }
   }
 
-  async function updatePost(id: string, updates: Partial<Publication>) {
-    const idx = publications.value.findIndex((p) => p.id === id)
-    if (idx === -1) return
-    const original = { ...publications.value[idx] }
-    const originalObjectUrl = objectUrls.get(id)
-    const hadOriginalObjectUrl = objectUrls.has(id)
-    const pendingRevokeUrl =
-      updates.thumbnail && original.thumbnail && hadOriginalObjectUrl
-        ? originalObjectUrl
-        : undefined
-
-    // Optimistic merge
-    if (pendingRevokeUrl) {
-      objectUrls.delete(id)
-    }
-    if (typeof updates.thumbnail === 'string' && updates.thumbnail.startsWith('blob:')) {
-      objectUrls.set(id, updates.thumbnail)
-    } else if (updates.thumbnail == null && objectUrls.has(id)) {
-      objectUrls.delete(id)
-    }
-    Object.assign(publications.value[idx], updates)
-    saveToStorage()
-
-    if (!auth.isAuthenticated) return
-
-    try {
-      const result = await auth.apiFetch<PublicationResult>(`/api/publishing/publications/${id}`, {
-        method: 'PATCH',
-        body: JSON.stringify(toBackendFormat(original, updates)),
-        workspaceScoped: true,
-      })
-      if (pendingRevokeUrl) {
-        URL.revokeObjectURL(pendingRevokeUrl)
-      }
-      publications.value[idx] = fromBackendFormat(result, publications.value[idx])
-      saveToStorage()
-    } catch (err) {
-      publications.value[idx] = original
-      if (hadOriginalObjectUrl && originalObjectUrl) {
-        objectUrls.set(id, originalObjectUrl)
-      } else {
+  function updatePost(id: string, updates: Partial<Publication>) {
+    const post = publications.value.find((p) => p.id === id)
+    if (post) {
+      // If thumbnail is being replaced, revoke old object URL
+      if (updates.thumbnail && post.thumbnail && objectUrls.has(id)) {
+        const trackedUrl = objectUrls.get(id)
+        if (trackedUrl) URL.revokeObjectURL(trackedUrl)
         objectUrls.delete(id)
       }
+      // Track new blob URL for later revocation
+      if (typeof updates.thumbnail === 'string' && updates.thumbnail.startsWith('blob:')) {
+        objectUrls.set(id, updates.thumbnail)
+      } else if (updates.thumbnail == null && objectUrls.has(id)) {
+        objectUrls.delete(id)
+      }
+      Object.assign(post, updates)
       saveToStorage()
-      throw err
     }
   }
 

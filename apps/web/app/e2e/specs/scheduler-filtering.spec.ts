@@ -66,6 +66,24 @@ test.describe('Scheduler — Filtering & Views', () => {
   })
 
   /**
+   * TC-19: Day view — all posts for a day.
+   */
+  test('TC-19: day view @day-view @posts', async ({ page }) => {
+    const scheduler = new SchedulerPage(page)
+    await scheduler.switchToDay()
+
+    // Verify "All day" section is visible
+    await expect(page.getByText(/all day/i)).toBeVisible()
+
+    // Today's posts should be listed (may be empty, but the section renders)
+    const allDaySection = page
+      .locator('span')
+      .filter({ hasText: /all day/i })
+      .first()
+    await expect(allDaySection).toBeVisible()
+  })
+
+  /**
    * TC-20: List view — shows all posts with correct structure.
    */
   test('TC-20: list view structure @list-view @posts', async ({ page }) => {

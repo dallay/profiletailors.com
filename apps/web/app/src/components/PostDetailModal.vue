@@ -1,7 +1,8 @@
 <script setup lang="ts">
-import { ref, computed } from 'vue'
+import { ref, computed, watch, nextTick } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { CalendarClock, ExternalLink, Trash2, X, AlertTriangle, CheckCircle2, Clock } from '@lucide/vue'
+import { useFocusTrap } from '@/composables/useFocusTrap'
 import { usePublishingStore, type Publication } from '@/stores/publishing'
 import { getProviderColor, getProviderBadge } from '@/lib/provider-styles'
 
@@ -16,6 +17,7 @@ const props = withDefaults(
 const emit = defineEmits<{
   (e: 'close'): void
   (e: 'deleted', id: string): void
+  (e: 'reschedule', payload: { id: string; scheduledAt: string }): void
 }>()
 
 const { t, locale: i18nLocale } = useI18n()
@@ -109,6 +111,25 @@ const publishedAtLabel = computed(() => {
 const isDeleting = ref(false)
 const deleteError = ref('')
 
+const showReschedule = ref(false)
+const newScheduledAt = ref('')
+const rescheduleError = ref('')
+
+const modalContainer = ref<HTMLElement | null>(null)
+const { activate: activateFocusTrap, deactivate: deactivateFocusTrap } = useFocusTrap(modalContainer, closeModal)
+
+watch(
+  () => props.isOpen,
+  async (open) => {
+    if (open) {
+      await nextTick()
+      activateFocusTrap()
+    } else {
+      deactivateFocusTrap()
+    }
+  },
+)
+
 function closeModal() {
   emit('close')
 }
@@ -128,6 +149,36 @@ async function deletePublication() {
     isDeleting.value = false
   }
 }
+
+function openReschedule() {
+  if (!props.publication?.scheduledAt) return
+  // Pre-fill with current scheduled date, local datetime-local format
+  const d = new Date(props.publication.scheduledAt)
+  const offset = d.getTimezoneOffset()
+  const local = new Date(d.getTime() - offset * 60_000)
+  newScheduledAt.value = local.toISOString().slice(0, 16)
+  showReschedule.value = true
+  rescheduleError.value = ''
+}
+
+async function confirmReschedule() {
+  if (!props.publication || !newScheduledAt.value) return
+  rescheduleError.value = ''
+  try {
+    const newIso = new Date(newScheduledAt.value).toISOString()
+    await publishingStore.reschedulePublication(props.publication.id, newIso)
+    emit('reschedule', { id: props.publication.id, scheduledAt: newIso })
+    showReschedule.value = false
+    closeModal()
+  } catch (err) {
+    rescheduleError.value = err instanceof Error ? err.message : 'Failed to reschedule'
+  }
+}
+
+function cancelReschedule() {
+  showReschedule.value = false
+  rescheduleError.value = ''
+}
 </script>
 
 <template>
@@ -140,9 +191,12 @@ async function deletePublication() {
       @click.self="closeModal"
     >
       <div
+        ref="modalContainer"
         class="flex flex-col w-full max-w-2xl max-h-[90vh] bg-bg-surface border border-border-subtle rounded-2xl overflow-hidden shadow-2xl"
         role="dialog"
-        :aria-label="t('postDetail.title')"
+        aria-modal="true"
+        aria-labelledby="post-detail-title"
+        @keydown.escape="closeModal"
       >
         <!-- Header -->
         <header class="flex items-center justify-between p-6 border-b border-border-subtle">
@@ -153,7 +207,7 @@ async function deletePublication() {
               {{ getProviderBadge(publication.channels[0] || 'linkedin') }}
             </span>
             <div class="space-y-0.5">
-              <h3 class="font-mono text-xs font-bold tracking-widest text-text-display uppercase">
+              <h3 id="post-detail-title" class="font-mono text-xs font-bold tracking-widest text-text-display uppercase">
                 {{ t('postDetail.title') }}
               </h3>
               <div class="flex items-center gap-2 text-[10px] font-mono uppercase tracking-wider">
@@ -255,16 +309,51 @@ async function deletePublication() {
           <div v-if="deleteError" class="px-6 pt-3">
             <p class="text-[10px] font-mono text-error">{{ deleteError }}</p>
           </div>
-          <div class="flex items-center justify-between gap-3 p-6">
-          <button
-            v-if="!isReadOnly"
-            @click="deletePublication"
-            :disabled="isDeleting"
-            class="flex items-center gap-1.5 px-3 py-2 rounded-xl border border-border-visible text-text-secondary hover:border-error hover:text-error transition-colors bg-bg-surface text-xs font-mono uppercase tracking-wider font-bold cursor-pointer"
-          >
-            <Trash2 class="size-3.5" />
-            {{ t('postDetail.delete') }}
-          </button>
+          <div v-if="showReschedule" class="px-6 pt-3 pb-2 space-y-2">
+            <label for="reschedule-datetime" class="font-mono text-[9px] font-bold tracking-widest text-text-secondary uppercase">
+              {{ t('postDetail.scheduledFor') }}
+            </label>
+            <input
+              id="reschedule-datetime"
+              v-model="newScheduledAt"
+              type="datetime-local"
+              class="w-full rounded-xl border border-border-visible bg-bg-surface text-text-body px-3 py-2 text-xs font-mono focus:outline-none focus:ring-2 focus:ring-text-display/30"
+              :aria-label="t('postDetail.scheduledFor')"
+            />
+            <p v-if="rescheduleError" class="text-[10px] font-mono text-error">{{ rescheduleError }}</p>
+            <div class="flex gap-2">
+              <button
+                @click="confirmReschedule"
+                class="px-3 py-2 rounded-xl bg-text-display text-bg-primary hover:opacity-90 transition-opacity text-xs font-mono uppercase tracking-wider font-bold cursor-pointer"
+              >
+                {{ t('postDetail.rescheduleConfirm') }}
+              </button>
+              <button
+                @click="cancelReschedule"
+                class="px-3 py-2 rounded-xl border border-border-visible text-text-body hover:border-text-display hover:text-text-display transition-colors bg-bg-surface text-xs font-mono uppercase tracking-wider font-bold cursor-pointer"
+              >
+                {{ t('postDetail.rescheduleCancel') }}
+              </button>
+            </div>
+          </div>
+          <div v-if="!showReschedule" class="flex items-center justify-between gap-3 p-6">
+        <button
+          v-if="!isReadOnly"
+          @click="deletePublication"
+          :disabled="isDeleting"
+          class="flex items-center gap-1.5 px-3 py-2 rounded-xl border border-border-visible text-text-secondary hover:border-error hover:text-error transition-colors bg-bg-surface text-xs font-mono uppercase tracking-wider font-bold cursor-pointer"
+        >
+          <Trash2 class="size-3.5" />
+          {{ t('postDetail.delete') }}
+        </button>
+        <button
+          v-if="!isReadOnly && publication?.scheduledAt"
+          @click="openReschedule"
+          class="flex items-center gap-1.5 px-3 py-2 rounded-xl border border-border-visible text-text-secondary hover:border-text-display hover:text-text-display transition-colors bg-bg-surface text-xs font-mono uppercase tracking-wider font-bold cursor-pointer"
+        >
+          <CalendarClock class="size-3.5" />
+          {{ t('postDetail.reschedule') }}
+        </button>
           <div v-else class="text-[10px] font-mono uppercase tracking-wider text-text-secondary">
             {{ t('postDetail.readOnlyHint') }}
           </div>

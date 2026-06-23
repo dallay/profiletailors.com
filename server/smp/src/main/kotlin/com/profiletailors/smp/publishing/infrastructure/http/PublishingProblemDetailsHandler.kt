@@ -2,11 +2,9 @@ package com.profiletailors.smp.publishing.infrastructure.http
 
 import com.profiletailors.smp.media.application.AssetNotReadyException
 import com.profiletailors.smp.media.application.MediaServiceUnavailableException
-import com.profiletailors.smp.publishing.application.PublicationNotFoundException
 import com.profiletailors.smp.publishing.domain.ExpiredOAuthStateException
 import com.profiletailors.smp.publishing.domain.InvalidOAuthStateException
 import com.profiletailors.smp.publishing.domain.ProviderNotConfiguredException
-import com.profiletailors.smp.publishing.domain.PublicationDeletionNotAllowedException
 import org.springframework.http.HttpStatus
 import org.springframework.http.ProblemDetail
 import org.springframework.web.bind.annotation.ExceptionHandler
@@ -73,33 +71,5 @@ class PublishingProblemDetailsHandler {
             title = "Asset not ready"
             setProperty("errorCode", "ASSET_NOT_READY")
             setProperty("assetId", exception.assetId)
-        }
-
-    /**
-     * Returns HTTP 404 Not Found when the publication does not exist in the active workspace.
-     */
-    @ExceptionHandler(PublicationNotFoundException::class)
-    fun handle(exception: PublicationNotFoundException): ProblemDetail =
-        ProblemDetail.forStatusAndDetail(
-            HttpStatus.NOT_FOUND,
-            exception.message ?: "Publication not found",
-        ).apply {
-            title = "Publication not found"
-        }
-
-    /**
-     * Returns HTTP 409 Conflict when the publication cannot be deleted in its current
-     * lifecycle status. Only DRAFT, QUEUED, and SCHEDULED publications may be deleted.
-     */
-    @ExceptionHandler(PublicationDeletionNotAllowedException::class)
-    fun handle(exception: PublicationDeletionNotAllowedException): ProblemDetail =
-        ProblemDetail.forStatusAndDetail(
-            HttpStatus.CONFLICT,
-            exception.message ?: "Publication cannot be deleted in current status",
-        ).apply {
-            title = "Publication deletion not allowed"
-            setProperty("errorCode", "DELETION_NOT_ALLOWED")
-            setProperty("publicationId", exception.publicationId)
-            setProperty("currentStatus", exception.currentStatus.name)
         }
 }

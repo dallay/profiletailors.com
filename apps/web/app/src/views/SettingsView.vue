@@ -424,7 +424,9 @@ onMounted(() => {
           </div>
 
           <div v-else class="space-y-3">
+            <label for="workspace-name-input" class="sr-only">{{ $t('workspace.rename') }}</label>
             <input
+              id="workspace-name-input"
               v-model="workspaceNameInput"
               type="text"
               :placeholder="$t('workspace.namePlaceholder')"
