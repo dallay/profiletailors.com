@@ -86,7 +86,10 @@ function normalizeTimezone(rawTimezone: string): string {
   return rawTimezone || resolveBrowserTimezone()
 }
 
-function normalizeQuery(route: { name: unknown; query: Record<string, unknown> }): CalendarUrlState {
+function normalizeQuery(route: {
+  name: unknown
+  query: Record<string, unknown>
+}): CalendarUrlState {
   return {
     surface: normalizeSurface(route),
     date: normalizeDate(trimOrEmpty(route.query.date)),
