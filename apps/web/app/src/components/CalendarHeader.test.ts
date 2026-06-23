@@ -57,11 +57,13 @@ describe('CalendarHeader', () => {
     ]
   })
 
-  function mountHeader() {
+  function mountHeader(overrides: Record<string, unknown> = {}) {
     return mount(CalendarHeader, {
       props: {
         calendarView: 'week',
+        surface: 'calendar-week',
         periodLabel: 'Jun 8 – 14, 2026',
+        ...overrides,
       },
       global: {
         mocks: {
@@ -80,42 +82,52 @@ describe('CalendarHeader', () => {
     expect(wrapper.text()).toContain('scheduler.weekView')
   })
 
-  it('emits update calendar view when month week and day are clicked', async () => {
+  it('emits update calendar view when month and week are clicked', async () => {
     const wrapper = mountHeader()
     const buttons = wrapper.findAll('button')
 
     await buttons[0]?.trigger('click') // month
     await buttons[1]?.trigger('click') // week
-    await buttons[2]?.trigger('click') // day
 
-    expect(wrapper.emitted('update:calendarView')).toEqual([['month'], ['week'], ['day']])
+    expect(wrapper.emitted('update:calendarView')).toEqual([['month'], ['week']])
   })
 
-  it('switches publishing view mode between calendar and list', async () => {
+  it('emits surface=list when list toggle is clicked', async () => {
     const wrapper = mountHeader()
-    const publishingStore = usePublishingStore()
     const buttons = wrapper.findAll('button')
 
-    await buttons[4]?.trigger('click') // list toggle
-    expect(publishingStore.viewMode).toBe('list')
+    // List button is the second in the surface toggle group
+    await buttons[3]?.trigger('click') // list toggle
 
-    await buttons[3]?.trigger('click') // calendar toggle
-    expect(publishingStore.viewMode).toBe('calendar')
+    expect(wrapper.emitted('update:surface')).toEqual([['list']])
+  })
+
+  it('emits surface=calendar-month when calendar toggle is clicked from list mode', async () => {
+    // When surface='list', only the calendar toggle button renders (no month/week split)
+    // Clicking it emits the current calendarView (here 'month') as the calendar surface.
+    const wrapper = mountHeader({ surface: 'list', calendarView: 'month' })
+    const calendarToggle = wrapper
+      .findAll('button')
+      .find((button) => button.text().includes('scheduler.calendar'))
+
+    await calendarToggle?.trigger('click')
+
+    expect(wrapper.emitted('update:surface')).toEqual([['calendar-month']])
   })
 
   it('emits navigation and action events', async () => {
     const wrapper = mountHeader()
     const buttons = wrapper.findAll('button')
 
-    await buttons[5]?.trigger('click') // new post
-    await buttons[6]?.trigger('click') // backward
-    await buttons[7]?.trigger('click') // forward
-    await buttons[8]?.trigger('click') // today
+    await buttons[5]?.trigger('click') // backward
+    await buttons[6]?.trigger('click') // forward
+    await buttons[7]?.trigger('click') // today
+    await buttons[4]?.trigger('click') // new post
 
-    expect(wrapper.emitted('newPost')).toHaveLength(1)
     expect(wrapper.emitted('backward')).toHaveLength(1)
     expect(wrapper.emitted('forward')).toHaveLength(1)
     expect(wrapper.emitted('today')).toHaveLength(1)
+    expect(wrapper.emitted('newPost')).toHaveLength(1)
   })
 
   it('disables new post button when there are no channels', () => {
@@ -124,7 +136,7 @@ describe('CalendarHeader', () => {
 
     const wrapper = mountHeader()
     const buttons = wrapper.findAll('button')
-    const newPostButton = buttons[5]
+    const newPostButton = buttons[4]
 
     expect(newPostButton?.attributes('disabled')).toBeDefined()
   })

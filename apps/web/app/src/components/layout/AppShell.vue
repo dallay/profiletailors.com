@@ -133,24 +133,26 @@ const connectChannels = computed<ConnectChannel[]>(() => [
 // ---------------------------------------------------------------------------
 
 function isSchedulerRoute() {
-  return route.path === '/scheduler'
+  return route.path.startsWith('/scheduler')
 }
 
 async function showAllChannels() {
-  publishingStore.filterChannel = ''
-  publishingStore.filterSocialAccountId = ''
   try {
-    await router.push('/scheduler')
+    await router.push({
+      path: '/scheduler/calendar/week',
+      query: {},
+    })
   } catch (e) {
     console.error('Failed to navigate to scheduler', e)
   }
 }
 
 async function selectChannel(channel: SidebarChannel) {
-  publishingStore.filterChannel = channel.provider
-  publishingStore.filterSocialAccountId = ''
   try {
-    await router.push('/scheduler')
+    await router.push({
+      path: '/scheduler/calendar/week',
+      query: { channels: [channel.accountId] },
+    })
   } catch (e) {
     console.error('Failed to navigate to scheduler', e)
   }
@@ -261,7 +263,11 @@ onBeforeUnmount(() => {
 
             <SidebarChannelsSection
               :channels="sidebarChannels"
-              :active-provider="publishingStore.filterChannel"
+              :active-channel-id="typeof route.query.channels === 'string'
+                ? route.query.channels
+                : Array.isArray(route.query.channels)
+                  ? route.query.channels[0] || null
+                  : null"
               :total-queued-count="totalQueuedCount"
               :is-scheduler-route="isSchedulerRoute()"
               @select-all="showAllChannels"
