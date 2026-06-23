@@ -1,29 +1,34 @@
 <script setup lang="ts">
 import {
-  Bookmark,
   CalendarDays,
   ChevronDown,
   ChevronLeft,
   ChevronRight,
-  Clock,
-  Filter,
-  Globe,
   Plus,
 } from '@lucide/vue'
-import { usePublishingStore, type Channel } from '@/stores/publishing'
+import { usePublishingStore } from '@/stores/publishing'
+import type { SchedulerStatus, SchedulerSurface } from '@/composables/useCalendarUrl'
 import { Button } from '@/components/ui/button'
 
 const publishingStore = usePublishingStore()
 
 defineProps<{
   /** Current calendar sub-view */
-  calendarView: 'month' | 'week' | 'day'
+  calendarView: 'month' | 'week'
+  /** Full scheduler surface */
+  surface: SchedulerSurface
   /** Formatted period label (e.g. "June 2026", "Jun 8 – 14, 2026") */
   periodLabel: string
+  /** Active timezone (from URL) */
+  timezone: string
 }>()
 
 const emit = defineEmits<{
-  (e: 'update:calendarView', view: 'month' | 'week' | 'day'): void
+  (e: 'update:calendarView', view: 'month' | 'week'): void
+  (e: 'update:surface', surface: SchedulerSurface): void
+  (e: 'update:status', status: SchedulerStatus): void
+  (e: 'update:timezone', timezone: string): void
+  (e: 'update:channels', channelIds: string[]): void
   (e: 'forward'): void
   (e: 'backward'): void
   (e: 'today'): void
@@ -44,9 +49,9 @@ const emit = defineEmits<{
 
     <!-- Filters & Action buttons -->
     <div class="flex flex-wrap items-center gap-3 w-full lg:w-auto">
-      <!-- Calendar View toggle (month/week/day) — only in calendar mode -->
+      <!-- Calendar View toggle (month/week) — only in calendar mode -->
       <div
-        v-if="publishingStore.viewMode === 'calendar'"
+        v-if="surface !== 'list'"
         class="flex items-center rounded-full border border-border-visible bg-bg-surface p-0.5 font-mono text-[9px] tracking-wider uppercase font-bold"
       >
         <button
@@ -63,28 +68,21 @@ const emit = defineEmits<{
         >
           {{ $t('scheduler.weekView') || 'Week' }}
         </button>
-        <button
-          class="cursor-pointer rounded-full px-2.5 py-1 transition-all"
-          :class="calendarView === 'day' ? 'bg-text-display text-bg-primary' : 'text-text-secondary hover:text-text-display'"
-          @click="emit('update:calendarView', 'day')"
-        >
-          Day
-        </button>
       </div>
 
       <!-- View mode toggle (calendar / list) -->
       <div class="flex items-center rounded-full border border-border-visible bg-bg-surface p-0.5 font-mono text-[9px] tracking-wider uppercase font-bold">
         <button
           class="cursor-pointer rounded-full px-3 py-1 transition-all"
-          :class="publishingStore.viewMode === 'calendar' ? 'bg-text-display text-bg-primary' : 'text-text-secondary hover:text-text-display'"
-          @click="publishingStore.viewMode = 'calendar'"
+          :class="surface !== 'list' ? 'bg-text-display text-bg-primary' : 'text-text-secondary hover:text-text-display'"
+          @click="emit('update:surface', calendarView === 'month' ? 'calendar-month' : 'calendar-week')"
         >
           {{ $t('scheduler.calendar') || 'Calendar' }}
         </button>
         <button
           class="cursor-pointer rounded-full px-3 py-1 transition-all"
-          :class="publishingStore.viewMode === 'list' ? 'bg-text-display text-bg-primary' : 'text-text-secondary hover:text-text-display'"
-          @click="publishingStore.viewMode = 'list'"
+          :class="surface === 'list' ? 'bg-text-display text-bg-primary' : 'text-text-secondary hover:text-text-display'"
+          @click="emit('update:surface', 'list')"
         >
           {{ $t('scheduler.list') || 'List' }}
         </button>
@@ -95,10 +93,10 @@ const emit = defineEmits<{
         <label for="calendar-timezone-select" class="sr-only">Timezone</label>
         <select
           id="calendar-timezone-select"
-          v-model="publishingStore.userTimezone"
           class="bg-bg-surface border border-border-subtle rounded-full px-3 py-1.5 text-[10px] font-mono font-bold text-text-secondary appearance-none pr-8 cursor-pointer focus:outline-none focus:border-text-display"
+          @change="(e) => emit('update:timezone', (e.target as HTMLSelectElement).value)"
         >
-          <option :value="publishingStore.userTimezone">🌐 {{ publishingStore.userTimezone || 'UTC' }}</option>
+          <option :value="timezone">🌐 {{ timezone || 'UTC' }}</option>
           <option value="Europe/Madrid">📍 Europe/Madrid</option>
           <option value="UTC">🌐 UTC</option>
           <option value="America/New_York">🇺🇸 America/New_York</option>
@@ -111,8 +109,11 @@ const emit = defineEmits<{
         <label for="calendar-platform-select" class="sr-only">Platform</label>
         <select
           id="calendar-platform-select"
-          v-model="publishingStore.filterSocialAccountId"
           class="bg-bg-surface border border-border-subtle rounded-full px-3 py-1.5 text-[10px] font-mono font-bold text-text-secondary appearance-none pr-8 cursor-pointer focus:outline-none focus:border-text-display"
+          @change="(e) => {
+            const val = (e.target as HTMLSelectElement).value
+            emit('update:channels', val ? [val] : [])
+          }"
         >
           <option value="">👤 {{ $t('scheduler.channelsLabel') || 'Platform' }}</option>
           <option
@@ -131,8 +132,8 @@ const emit = defineEmits<{
         <label for="calendar-post-status-select" class="sr-only">Post status</label>
         <select
           id="calendar-post-status-select"
-          v-model="publishingStore.filterPostType"
           class="bg-bg-surface border border-border-subtle rounded-full px-3 py-1.5 text-[10px] font-mono font-bold text-text-secondary appearance-none pr-8 cursor-pointer focus:outline-none focus:border-text-display"
+          @change="(e) => emit('update:status', (e.target as HTMLSelectElement).value as SchedulerStatus)"
         >
           <option value="all">📁 {{ $t('scheduler.allPosts') || 'All Posts' }}</option>
           <option value="queued">⏳ Queued</option>
@@ -187,7 +188,7 @@ const emit = defineEmits<{
         {{ $t('scheduler.today') || 'Today' }}
       </button>
       <span class="font-mono text-[9px] uppercase tracking-wider text-text-secondary bg-bg-primary border border-border-visible px-2.5 py-1 rounded-lg">
-        {{ calendarView === 'month' ? 'Month' : calendarView === 'week' ? 'Week' : 'Day' }}
+        {{ calendarView === 'month' ? 'Month' : 'Week' }}
       </span>
     </div>
   </div>

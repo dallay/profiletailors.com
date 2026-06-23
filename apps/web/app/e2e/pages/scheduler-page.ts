@@ -30,10 +30,6 @@ export class SchedulerPage {
     return this.page.getByRole('button', { name: /week/i })
   }
 
-  get dayViewButton(): Locator {
-    return this.page.getByRole('button', { name: 'Day', exact: true })
-  }
-
   get listViewButton(): Locator {
     return this.page.getByRole('button', { name: 'List', exact: true })
   }
@@ -94,11 +90,6 @@ export class SchedulerPage {
 
   async switchToWeek(): Promise<void> {
     await this.weekViewButton.click()
-    await this.page.waitForTimeout(300)
-  }
-
-  async switchToDay(): Promise<void> {
-    await this.dayViewButton.click()
     await this.page.waitForTimeout(300)
   }
 

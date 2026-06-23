@@ -34,7 +34,27 @@ const router = createRouter({
     },
     {
       path: '/scheduler',
-      name: 'scheduler',
+      redirect: (to) => ({
+        name: 'scheduler-calendar-week',
+        query: to.query,
+      }),
+      meta: { requiresAuth: true },
+    },
+    {
+      path: '/scheduler/calendar/week',
+      name: 'scheduler-calendar-week',
+      component: () => import('../views/SchedulerView.vue'),
+      meta: { requiresAuth: true },
+    },
+    {
+      path: '/scheduler/calendar/month',
+      name: 'scheduler-calendar-month',
+      component: () => import('../views/SchedulerView.vue'),
+      meta: { requiresAuth: true },
+    },
+    {
+      path: '/scheduler/list',
+      name: 'scheduler-list',
       component: () => import('../views/SchedulerView.vue'),
       meta: { requiresAuth: true },
     },

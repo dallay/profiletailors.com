@@ -1,11 +1,12 @@
 <script setup lang="ts">
-import { ref, computed, watch, onMounted } from 'vue'
+import { ref, computed, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import {
   Plus,
   Trash2,
 } from '@lucide/vue'
 import { usePublishingStore, type Publication, type ActivityEntry } from '@/stores/publishing'
+import { useCalendarUrl } from '@/composables/useCalendarUrl'
 import CreatePostModal from '@/components/CreatePostModal.vue'
 import PostDetailModal from '@/components/PostDetailModal.vue'
 import CalendarHeader from '@/components/CalendarHeader.vue'
@@ -19,18 +20,34 @@ const publishingStore = usePublishingStore()
 const { locale: i18nLocale } = useI18n()
 
 // ---------------------------------------------------------------------------
+// URL-driven scheduler state
+// ---------------------------------------------------------------------------
+const url = useCalendarUrl()
+
+/** Calendar sub-view derived from URL surface */
+const calendarView = computed(() => {
+  if (url.state.value.surface === 'calendar-month') return 'month' as const
+  return 'week' as const
+})
+
+/** Navigation base date derived from URL date param */
+const currentBaseDate = computed(() => {
+  const parsed = new Date(`${url.state.value.date}T00:00:00`)
+  return Number.isNaN(parsed.getTime()) ? new Date() : parsed
+})
+
+/** View mode derived from URL surface */
+const viewMode = computed(() =>
+  url.state.value.surface === 'list' ? 'list' : 'calendar',
+)
+
+// ---------------------------------------------------------------------------
 // State
 // ---------------------------------------------------------------------------
 const isModalOpen = ref(false)
 const selectedCellDate = ref<string | undefined>(undefined)
 const isDetailModalOpen = ref(false)
 const detailPublication = ref<Publication | null>(null)
-
-/** Calendar sub-view: month | week | day */
-const calendarView = ref<'month' | 'week' | 'day'>('week')
-
-/** Navigation base date */
-const currentBaseDate = ref(new Date())
 
 // ---------------------------------------------------------------------------
 // Drag-and-drop state
@@ -206,22 +223,20 @@ const periodLabel = computed(() => {
 
 function goForward() {
   const d = new Date(currentBaseDate.value)
-  if (calendarView.value === 'month') d.setMonth(d.getMonth() + 1)
-  else if (calendarView.value === 'week') d.setDate(d.getDate() + 7)
-  else d.setDate(d.getDate() + 1)
-  currentBaseDate.value = d
+  if (url.state.value.surface === 'calendar-month') d.setMonth(d.getMonth() + 1)
+  else d.setDate(d.getDate() + 7)
+  url.setDate(d.toISOString().slice(0, 10))
 }
 
 function goBackward() {
   const d = new Date(currentBaseDate.value)
-  if (calendarView.value === 'month') d.setMonth(d.getMonth() - 1)
-  else if (calendarView.value === 'week') d.setDate(d.getDate() - 7)
-  else d.setDate(d.getDate() - 1)
-  currentBaseDate.value = d
+  if (url.state.value.surface === 'calendar-month') d.setMonth(d.getMonth() - 1)
+  else d.setDate(d.getDate() - 7)
+  url.setDate(d.toISOString().slice(0, 10))
 }
 
 function goToToday() {
-  currentBaseDate.value = new Date()
+  url.setDate(new Date().toISOString().slice(0, 10))
 }
 
 // ---------------------------------------------------------------------------
@@ -259,16 +274,16 @@ function publicationMatchesFilters(
   }
 }
 
-const filteredPublications = computed(() =>
-  publishingStore.publications.filter((pub) =>
+const filteredPublications = computed(() => {
+  const activeChannelId = url.state.value.channelIds[0]
+  return publishingStore.publications.filter((pub) =>
     publicationMatchesFilters(pub, {
-      channel: publishingStore.filterChannel || undefined,
-      socialAccountId: publishingStore.filterSocialAccountId || undefined,
-      tag: publishingStore.filterTag || undefined,
-      postType: publishingStore.filterPostType !== 'all' ? publishingStore.filterPostType : undefined,
+      socialAccountId: activeChannelId || undefined,
+      tag: url.state.value.q || undefined,
+      postType: url.state.value.status !== 'all' ? url.state.value.status : undefined,
     }),
-  ),
-)
+  )
+})
 
 function getPublicationsForDate(date: Date): Publication[] {
   return filteredPublications.value.filter((pub) => {
@@ -360,8 +375,7 @@ function openNewPostGeneral() {
 }
 
 function openDayView(date: Date) {
-  currentBaseDate.value = new Date(date)
-  calendarView.value = 'day'
+  url.setDate(date.toISOString().slice(0, 10))
 }
 
 function openPostDetail(pub: Publication) {
@@ -390,16 +404,40 @@ const hourSlots = Array.from({ length: 24 }, (_, i) => {
 })
 
 // ---------------------------------------------------------------------------
-// Init
+// URL synchronization + fetching
 // ---------------------------------------------------------------------------
 
-onMounted(() => {
-  // Attempt to load from API on mount (range = current month)
-  const now = new Date()
-  const from = new Date(now.getFullYear(), now.getMonth(), 1)
-  const to = new Date(now.getFullYear(), now.getMonth() + 3, 0)
-  publishingStore.fetchCalendar(from.toISOString(), to.toISOString())
-})
+watch(
+  () => url.needsCanonicalization.value,
+  async (needsCanonicalization) => {
+    if (needsCanonicalization) {
+      await url.canonicalize()
+    }
+  },
+  { immediate: true },
+)
+
+watch(
+  () => url.state.value,
+  async (state) => {
+    const baseDate = new Date(`${state.date}T00:00:00`)
+    const from =
+      state.surface === 'calendar-month'
+        ? new Date(baseDate.getFullYear(), baseDate.getMonth(), 1)
+        : new Date(baseDate.getFullYear(), baseDate.getMonth(), baseDate.getDate() - baseDate.getDay())
+    const to =
+      state.surface === 'calendar-month'
+        ? new Date(baseDate.getFullYear(), baseDate.getMonth() + 1, 0)
+        : new Date(from.getFullYear(), from.getMonth(), from.getDate() + 6)
+
+    await publishingStore.fetchCalendar(from.toISOString(), to.toISOString(), {
+      status: state.status !== 'all' ? state.status : undefined,
+      socialAccountId: state.channelIds[0],
+      timezone: state.timezone,
+    })
+  },
+  { immediate: true, deep: true },
+)
 </script>
 
 <template>
@@ -408,7 +446,16 @@ onMounted(() => {
     <CalendarHeader
       :calendar-view="calendarView"
       :period-label="periodLabel"
-      @update:calendar-view="calendarView = $event"
+      :surface="url.state.value.surface"
+      :timezone="url.state.value.timezone"
+      @update:calendar-view="(view) => {
+        const surface = view === 'month' ? 'calendar-month' : 'calendar-week'
+        url.setSurface(surface)
+      }"
+      @update:surface="(surface) => url.setSurface(surface)"
+      @update:status="(status) => url.setStatus(status)"
+      @update:timezone="(tz) => url.setTimezone(tz)"
+      @update:channels="(ids) => url.setChannelIds(ids)"
       @forward="goForward"
       @backward="goBackward"
       @today="goToToday"
@@ -437,7 +484,7 @@ onMounted(() => {
     <!-- Main Workspace Layout -->
     <div class="min-w-0">
         <!-- Calendar Mode -->
-        <div v-if="publishingStore.viewMode === 'calendar'" class="space-y-4">
+        <div v-if="viewMode === 'calendar'" class="space-y-4">
           <!-- ================================================================ -->
           <!-- MONTH VIEW -->
           <!-- ================================================================ -->
@@ -472,7 +519,7 @@ onMounted(() => {
                     :is-past="isPastDate(day)"
                     :publications="getPublicationsForDate(day)"
                     :activity-entry="activityForDate(day) ?? null"
-                    :draggable="publishingStore.viewMode === 'calendar'"
+                    :draggable="viewMode === 'calendar'"
                     @click-day="openDayView"
                     @dragstart="(p) => onDragStart(p.event, p.pub)"
                     @dragend="onDragEnd"

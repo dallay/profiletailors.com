@@ -154,6 +154,7 @@ interface LinkedInConnectionInitiationResult {
 export interface CalendarFilters {
   status?: string
   socialAccountId?: string
+  timezone?: string
 }
 
 // ---------------------------------------------------------------------------
@@ -540,7 +541,7 @@ export const usePublishingStore = defineStore('publishing', () => {
     const params = new URLSearchParams({
       from,
       to,
-      timezone: userTimezone.value,
+      timezone: filters?.timezone ?? userTimezone.value,
     })
     if (filters?.status) params.set('status', filters.status)
     if (filters?.socialAccountId) params.set('socialAccountId', filters.socialAccountId)

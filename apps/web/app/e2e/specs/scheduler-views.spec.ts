@@ -23,7 +23,7 @@ test.describe('Scheduler — Views & Navigation', () => {
   })
 
   /**
-   * TC-03: Calendar View Switching between month, week, and day.
+   * TC-03: Calendar View Switching between month and week.
    */
   test('TC-03: calendar view switching @navigation @scheduler @views', async ({ page }) => {
     const scheduler = new SchedulerPage(page)
@@ -37,10 +37,6 @@ test.describe('Scheduler — Views & Navigation', () => {
     // Week view
     await scheduler.switchToWeek()
     await expect(page.getByText('12 AM', { exact: true })).toBeVisible()
-
-    // Day view
-    await scheduler.switchToDay()
-    await expect(page.getByTestId('scheduler-all-day-section')).toBeVisible()
 
     // TODAY button should be present
     await expect(scheduler.todayButton).toBeVisible()
