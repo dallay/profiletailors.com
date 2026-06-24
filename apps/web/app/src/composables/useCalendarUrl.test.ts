@@ -401,7 +401,10 @@ describe('useCalendarUrl — needsCanonicalization / areQueriesEquivalent', () =
     const route = makeRoute({
       query: { status: 'queued', channels: ['acc-1', 'acc-2'] },
     })
-    const controller = createCalendarUrlController(route as unknown as RouteLocationNormalizedLoaded, mockRouter)
+    const controller = createCalendarUrlController(
+      route as unknown as RouteLocationNormalizedLoaded,
+      mockRouter,
+    )
 
     // The state query will have channels normalized in the same order — equivalent
     // We build the state by calling normalizeQuery, which produces same result
@@ -412,7 +415,10 @@ describe('useCalendarUrl — needsCanonicalization / areQueriesEquivalent', () =
     const route = makeRoute({
       query: { status: 'QUEUED' },
     })
-    const controller = createCalendarUrlController(route as unknown as RouteLocationNormalizedLoaded, mockRouter)
+    const controller = createCalendarUrlController(
+      route as unknown as RouteLocationNormalizedLoaded,
+      mockRouter,
+    )
 
     // 'QUEUED' is stored uppercase but the canonical form is lowercase 'queued'
     expect(controller.needsCanonicalization.value).toBe(true)
@@ -422,7 +428,10 @@ describe('useCalendarUrl — needsCanonicalization / areQueriesEquivalent', () =
     const route = makeRoute({
       query: { status: 'all' },
     })
-    const controller = createCalendarUrlController(route as unknown as RouteLocationNormalizedLoaded, mockRouter)
+    const controller = createCalendarUrlController(
+      route as unknown as RouteLocationNormalizedLoaded,
+      mockRouter,
+    )
 
     // 'all' is the default status — canonical form omits it
     expect(controller.needsCanonicalization.value).toBe(true)
