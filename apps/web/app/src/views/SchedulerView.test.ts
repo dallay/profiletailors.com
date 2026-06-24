@@ -37,6 +37,7 @@ function makeUrlController(
     canonicalize: vi.fn().mockResolvedValue(undefined),
     setSurface: vi.fn().mockResolvedValue(undefined),
     setDate: vi.fn().mockResolvedValue(undefined),
+    stepPeriod: vi.fn().mockResolvedValue(undefined),
     setTimezone: vi.fn().mockResolvedValue(undefined),
     setStatus: vi.fn().mockResolvedValue(undefined),
     setSearch: vi.fn().mockResolvedValue(undefined),
@@ -94,17 +95,7 @@ vi.mock('@/components/CalendarHeader.vue', () => ({
     template:
       '<div data-testid="calendar-header"><button data-testid="header-new-post" @click="$emit(\'new-post\')">New Post</button></div>',
     props: ['calendarView', 'surface', 'periodLabel'],
-    emits: [
-      'update:calendarView',
-      'update:surface',
-      'update:status',
-      'update:timezone',
-      'update:channels',
-      'forward',
-      'backward',
-      'today',
-      'new-post',
-    ],
+    emits: ['change:view', 'change:date', 'change:filter', 'new-post'],
   },
 }))
 
@@ -145,7 +136,6 @@ describe('SchedulerView', () => {
   beforeEach(() => {
     setActivePinia(createPinia())
     const store = usePublishingStore()
-    store.viewMode = 'calendar'
     store.publications = []
     store.activity = []
     store.channels = [

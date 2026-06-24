@@ -2,7 +2,7 @@ import { computed, type Ref } from 'vue'
 import type { LocationQueryRaw, RouteLocationNormalizedLoaded, Router } from 'vue-router'
 import { useRoute, useRouter } from 'vue-router'
 
-export type SchedulerSurface = 'calendar-week' | 'calendar-month' | 'calendar-day' | 'list'
+export type SchedulerSurface = 'calendar-week' | 'calendar-month' | 'list'
 export type SchedulerStatus = 'all' | 'queued' | 'published' | 'cancelled'
 
 export interface CalendarUrlState {
@@ -20,6 +20,7 @@ export interface CalendarUrlController {
   canonicalize: () => Promise<void>
   setSurface: (surface: SchedulerSurface) => Promise<void>
   setDate: (date: string) => Promise<void>
+  stepPeriod: (direction: 'forward' | 'backward') => Promise<void>
   setTimezone: (timezone: string) => Promise<void>
   setStatus: (status: SchedulerStatus) => Promise<void>
   setSearch: (q: string) => Promise<void>
@@ -29,7 +30,6 @@ export interface CalendarUrlController {
 const VALID_SURFACES = new Set<SchedulerSurface>([
   'calendar-week',
   'calendar-month',
-  'calendar-day',
   'list',
 ])
 const VALID_STATUSES = new Set<SchedulerStatus>(['all', 'queued', 'published', 'cancelled'])
@@ -37,7 +37,6 @@ const VALID_STATUSES = new Set<SchedulerStatus>(['all', 'queued', 'published', '
 const CALENDAR_ROUTE_NAMES: Record<SchedulerSurface, string> = {
   'calendar-week': 'scheduler-calendar-week',
   'calendar-month': 'scheduler-calendar-month',
-  'calendar-day': 'scheduler-calendar-day',
   list: 'scheduler-list',
 }
 
@@ -55,6 +54,18 @@ function resolveBrowserTimezone(): string {
 
 function isIsoLocalDate(value: string): boolean {
   return /^\d{4}-\d{2}-\d{2}$/.test(value)
+}
+
+/**
+ * Extracts the first channel ID from a route query object, handling both
+ * `channels[]` (array-style) and `channels` (scalar) query param shapes.
+ * Returns `null` if no valid channel ID is present.
+ */
+export function extractFirstChannelId(query: Record<string, unknown>): string | null {
+  const raw = query['channels[]'] ?? query.channels
+  if (Array.isArray(raw)) return (raw[0] as string) ?? null
+  if (typeof raw === 'string') return raw
+  return null
 }
 
 function toArray(value: unknown): string[] {
@@ -84,6 +95,11 @@ function normalizeStatus(rawStatus: string): SchedulerStatus {
   return VALID_STATUSES.has(lowered) ? lowered : 'all'
 }
 
+function isInvalidStatus(rawStatus: string): boolean {
+  const normalized = rawStatus.toLowerCase() as SchedulerStatus
+  return rawStatus.length > 0 && !VALID_STATUSES.has(normalized)
+}
+
 function normalizeDate(rawDate: string): string {
   return isIsoLocalDate(rawDate) ? rawDate : resolveToday()
 }
@@ -96,13 +112,15 @@ function normalizeQuery(route: {
   name: unknown
   query: Record<string, unknown>
 }): CalendarUrlState {
+  const rawChannels = route.query['channels[]'] ?? route.query.channels
+
   return {
     surface: normalizeSurface(route),
     date: normalizeDate(trimOrEmpty(route.query.date)),
     timezone: normalizeTimezone(trimOrEmpty(route.query.timezone)),
     status: normalizeStatus(trimOrEmpty(route.query.status)),
     q: trimOrEmpty(route.query.q),
-    channelIds: [...new Set(toArray(route.query.channels))],
+    channelIds: [...new Set(toArray(rawChannels))],
   }
 }
 
@@ -126,20 +144,23 @@ function buildQuery(state: CalendarUrlState): LocationQueryRaw {
   }
 
   if (state.channelIds.length > 0) {
-    query.channels = state.channelIds
+    query['channels[]'] = state.channelIds
   }
 
   return query
 }
 
 function areQueriesEquivalent(left: Record<string, unknown>, right: LocationQueryRaw): boolean {
+  // Normalize `channels` → `channels[]` so that route queries using either form
+  // compare as equivalent to the canonical `channels[]` built query.
   const normalizeEntries = (query: Record<string, unknown>): Array<[string, string]> =>
     Object.entries(query)
       .flatMap(([key, value]): Array<[string, string]> => {
+        const normalizedKey = key === 'channels' ? 'channels[]' : key
         if (Array.isArray(value)) {
           return [
             [
-              key,
+              normalizedKey,
               value
                 .map(String)
                 .sort((a, b) => a.localeCompare(b))
@@ -148,7 +169,7 @@ function areQueriesEquivalent(left: Record<string, unknown>, right: LocationQuer
           ]
         }
         if (value == null) return []
-        return [[key, String(value)]]
+        return [[normalizedKey, String(value)]]
       })
       .sort(([leftKey], [rightKey]) => leftKey.localeCompare(rightKey))
 
@@ -174,6 +195,8 @@ export function createCalendarUrlController(
 
   const needsCanonicalization = computed(() => {
     if (!VALID_SURFACES.has(state.value.surface)) return true
+    const rawStatus = trimOrEmpty(route.query.status)
+    if (isInvalidStatus(rawStatus)) return true
     return !areQueriesEquivalent(route.query, buildQuery(state.value))
   })
 
@@ -189,6 +212,16 @@ export function createCalendarUrlController(
     },
     setDate: async (date) => {
       await navigate(router, { ...state.value, date: normalizeDate(date) }, 'push')
+    },
+    stepPeriod: async (direction: 'forward' | 'backward') => {
+      const date = new Date(`${state.value.date}T00:00:00`)
+      const sign = direction === 'forward' ? 1 : -1
+      if (state.value.surface === 'calendar-month') {
+        date.setMonth(date.getMonth() + sign)
+      } else {
+        date.setDate(date.getDate() + sign * 7)
+      }
+      await navigate(router, { ...state.value, date: normalizeDate(date.toISOString().slice(0, 10)) }, 'push')
     },
     setTimezone: async (timezone) => {
       await navigate(router, { ...state.value, timezone: normalizeTimezone(timezone) }, 'replace')

@@ -27,7 +27,6 @@ const url = useCalendarUrl()
 /** Calendar sub-view derived from URL surface */
 const calendarView = computed(() => {
   if (url.state.value.surface === 'calendar-month') return 'month' as const
-  if (url.state.value.surface === 'calendar-day') return 'day' as const
   return 'week' as const
 })
 
@@ -36,11 +35,6 @@ const currentBaseDate = computed(() => {
   const parsed = new Date(`${url.state.value.date}T00:00:00`)
   return Number.isNaN(parsed.getTime()) ? new Date() : parsed
 })
-
-/** View mode derived from URL surface */
-const viewMode = computed(() =>
-  url.state.value.surface === 'list' ? 'list' : 'calendar',
-)
 
 // ---------------------------------------------------------------------------
 // State
@@ -224,21 +218,47 @@ const periodLabel = computed(() => {
 })
 
 function goForward() {
-  const d = new Date(currentBaseDate.value)
-  if (url.state.value.surface === 'calendar-month') d.setMonth(d.getMonth() + 1)
-  else d.setDate(d.getDate() + 7)
-  url.setDate(d.toISOString().slice(0, 10))
+  url.stepPeriod('forward')
 }
 
 function goBackward() {
-  const d = new Date(currentBaseDate.value)
-  if (url.state.value.surface === 'calendar-month') d.setMonth(d.getMonth() - 1)
-  else d.setDate(d.getDate() - 7)
-  url.setDate(d.toISOString().slice(0, 10))
+  url.stepPeriod('backward')
 }
 
 function goToToday() {
   url.setDate(new Date().toISOString().slice(0, 10))
+}
+
+function handleHeaderViewChange(surface: 'calendar-week' | 'calendar-month' | 'list') {
+  url.setSurface(surface)
+}
+
+function handleHeaderDateChange(action: 'forward' | 'backward' | 'today') {
+  if (action === 'forward') {
+    goForward()
+    return
+  }
+  if (action === 'backward') {
+    goBackward()
+    return
+  }
+  goToToday()
+}
+
+function handleHeaderFilterChange(filter: {
+  status?: 'all' | 'queued' | 'published' | 'cancelled'
+  timezone?: string
+  channelIds?: string[]
+}) {
+  if (filter.status !== undefined) {
+    url.setStatus(filter.status)
+  }
+  if (filter.timezone !== undefined) {
+    url.setTimezone(filter.timezone)
+  }
+  if (filter.channelIds !== undefined) {
+    url.setChannelIds(filter.channelIds)
+  }
 }
 
 // ---------------------------------------------------------------------------
@@ -490,17 +510,9 @@ watch(
       :period-label="periodLabel"
       :surface="url.state.value.surface"
       :timezone="url.state.value.timezone"
-      @update:calendar-view="(view) => {
-        const surface = view === 'month' ? 'calendar-month' : 'calendar-week'
-        url.setSurface(surface)
-      }"
-      @update:surface="(surface) => url.setSurface(surface)"
-      @update:status="(status) => url.setStatus(status)"
-      @update:timezone="(tz) => url.setTimezone(tz)"
-      @update:channels="(ids) => url.setChannelIds(ids)"
-      @forward="goForward"
-      @backward="goBackward"
-      @today="goToToday"
+      @change:view="handleHeaderViewChange"
+      @change:date="handleHeaderDateChange"
+      @change:filter="handleHeaderFilterChange"
       @new-post="openNewPostGeneral"
     />
 
@@ -526,7 +538,7 @@ watch(
     <!-- Main Workspace Layout -->
     <div class="min-w-0">
         <!-- Calendar Mode -->
-        <div v-if="viewMode === 'calendar'" class="space-y-4">
+        <div v-if="url.state.value.surface !== 'list'" class="space-y-4">
           <!-- ================================================================ -->
           <!-- MONTH VIEW -->
           <!-- ================================================================ -->
@@ -561,7 +573,7 @@ watch(
                     :is-past="isPastDate(day)"
                     :publications="getPublicationsForDate(day)"
                     :activity-entry="activityForDate(day) ?? null"
-                    :draggable="viewMode === 'calendar'"
+                    :draggable="true"
                     @click-day="openDayView"
                     @click-publication="openPostDetail"
                     @dragstart="(p) => onDragStart(p.event, p.pub)"
@@ -717,87 +729,6 @@ watch(
             </Card>
           </div>
 
-          <!-- ================================================================ -->
-          <!-- DAY VIEW -->
-          <!-- ================================================================ -->
-          <div v-if="calendarView === 'day'">
-            <Card class="bg-bg-surface border border-border-subtle p-4 overflow-hidden">
-              <!-- All-day publications -->
-              <div class="mb-4">
-                <span data-testid="scheduler-all-day-section" class="font-mono text-[9px] font-bold tracking-widest text-text-secondary uppercase block mb-2">
-                  {{ $t('scheduler.allDay') }} · {{ currentBaseDate.toLocaleDateString(i18nLocale === 'es' ? 'es-ES' : 'en-US', { weekday: 'long', month: 'long', day: 'numeric' }) }}
-                </span>
-
-                <!-- biome-ignore lint/a11y/useSemanticElements: non-button container required to avoid nested buttons (delete btn inside card) -->
-                <div
-                  v-for="pub in getPublicationsForDate(currentBaseDate)"
-                  :key="pub.id"
-                  :draggable="true"
-                  role="button"
-                  tabindex="0"
-                  @click.stop="openPostDetail(pub)"
-                  @keydown.enter.self.stop.prevent="openPostDetail(pub)"
-                  @keydown.space.self.stop.prevent="openPostDetail(pub)"
-                  @dragstart="onDragStart($event, pub)"
-                  @dragend="onDragEnd($event)"
-                  class="relative border rounded-xl p-4 space-y-2.5 transition-all text-left shadow-sm group/card bg-bg-surface overflow-hidden mb-3 last:mb-0 cursor-pointer w-full"
-                  :class="getProviderColor(pub.channels[0] || 'linkedin')"
-                >
-                  <div class="flex items-center justify-between">
-                    <span class="font-mono text-[9px] font-bold tracking-wider opacity-80 uppercase">
-                      {{ new Date(pub.scheduledAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) }}
-                    </span>
-                    <div class="flex items-center gap-1.5">
-                      <span
-                        v-for="channel in pub.channels"
-                        :key="channel"
-                        class="size-5 rounded-full border border-current/20 flex items-center justify-center font-mono text-[9px] uppercase tracking-wider font-bold"
-                      >
-                        {{ getProviderBadge(channel) }}
-                      </span>
-                      <ConflictBadge
-                        v-if="pub.hasConflict"
-                        variant="badge"
-                      />
-                    </div>
-                  </div>
-                  <p class="text-sm font-light leading-relaxed text-text-body">
-                    {{ pub.content }}
-                  </p>
-                  <div v-if="pub.title" class="text-xs font-semibold text-text-display">
-                    {{ pub.title }}
-                  </div>
-                  <div v-if="pub.thumbnail" class="h-24 w-full rounded overflow-hidden mt-2">
-                    <img :src="pub.thumbnail" class="w-full h-full object-cover grayscale opacity-75 group-hover/card:grayscale-0 group-hover/card:opacity-100 transition-all" alt="" />
-                  </div>
-                  <button
-                    v-if="publishingStore.isPublicationDeletable(pub.status)"
-                    @click.stop="handleDeletePublication(pub.id)"
-                    class="absolute top-2 right-2 opacity-0 group-hover/card:opacity-100 size-6 flex items-center justify-center rounded-full bg-black/60 text-white hover:bg-error transition-all"
-                    title="Delete publication"
-                  >
-                    <Trash2 class="size-3" />
-                  </button>
-                </div>
-                <div
-                  v-if="getPublicationsForDate(currentBaseDate).length === 0"
-                  class="border border-dashed border-border-visible rounded-xl p-12 text-center"
-                >
-                  <p class="font-mono text-[10px] uppercase tracking-wider text-text-secondary">
-                    {{ isPastDate(currentBaseDate) ? $t('scheduler.pastDaysReadOnly') : $t('scheduler.noPublicationsForDay') }}
-                  </p>
-                  <Button
-                    v-if="!isPastDate(currentBaseDate)"
-                    @click="openNewPostForSlot(currentBaseDate)"
-                    class="mt-3 gap-1.5 text-[10px] uppercase font-mono tracking-wider"
-                  >
-                    <Plus class="size-3" />
-                    <span>{{ $t('scheduler.addPublication') }}</span>
-                  </Button>
-                </div>
-              </div>
-            </Card>
-          </div>
         </div>
 
         <!-- List Mode -->

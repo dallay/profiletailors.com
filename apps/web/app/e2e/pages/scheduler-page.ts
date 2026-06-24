@@ -40,12 +40,13 @@ export class SchedulerPage {
   }
 
   get forwardButton(): Locator {
-    // The forward arrow button is the second navigation button
-    return this.page.locator('button').filter({ hasText: /^\s*$/ }).nth(1)
+    // Locate the nav button by its Lucide ChevronRight icon class inside the button
+    return this.page.locator('button').filter({ has: this.page.locator('svg.lucide-chevron-right') }).first()
   }
 
   get backwardButton(): Locator {
-    return this.page.locator('button').filter({ hasText: /^\s*$/ }).nth(0)
+    // Locate the nav button by its Lucide ChevronLeft icon class inside the button
+    return this.page.locator('button').filter({ has: this.page.locator('svg.lucide-chevron-left') }).first()
   }
 
   // Sidebar channel filters
@@ -54,7 +55,10 @@ export class SchedulerPage {
   }
 
   get linkedInFilterButton(): Locator {
-    return this.page.getByRole('button', { name: /linkedin/i }).first()
+    return this.page
+      .locator('aside button')
+      .filter({ hasText: /dev user|linkedin/i })
+      .first()
   }
 
   // Post type filter dropdown

@@ -1,22 +1,32 @@
+import type { RouteLocationNormalizedLoaded, Router } from 'vue-router'
 import { describe, it, expect, vi } from 'vitest'
-import { createCalendarUrlController } from './useCalendarUrl'
-import type { RouteLocationNormalizedLoaded } from 'vue-router'
+import { createCalendarUrlController, extractFirstChannelId } from './useCalendarUrl'
 
 // ---------------------------------------------------------------------------
 // Mock router and route factories
 // ---------------------------------------------------------------------------
 
-function createMockRoute(overrides: { name?: string; query?: Record<string, unknown> } = {}) {
+function createMockRoute(
+  overrides: { name?: string; query?: Record<string, unknown> } = {},
+): RouteLocationNormalizedLoaded {
   return {
     name: overrides.name ?? 'scheduler-calendar-week',
     query: overrides.query ?? {},
-  }
+    fullPath: '/scheduler/calendar/week',
+    hash: '',
+    matched: [],
+    meta: {},
+    params: {},
+    path: '/scheduler/calendar/week',
+    redirectedFrom: undefined,
+    href: '/scheduler/calendar/week',
+  } as unknown as RouteLocationNormalizedLoaded
 }
 
-function createMockRouter() {
+function createMockRouter(): Router {
   const push = vi.fn().mockResolvedValue(undefined)
   const replace = vi.fn().mockResolvedValue(undefined)
-  return { push, replace }
+  return { push, replace } as unknown as Router
 }
 
 // ---------------------------------------------------------------------------
@@ -26,6 +36,26 @@ function createMockRouter() {
 // We test through the composable factory by injecting the mock route/router.
 // The composable is tested by verifying router.push/replace calls match the
 // current route state after each action.
+
+describe('extractFirstChannelId', () => {
+  it('prefers the first channels[] value when query contains an array', () => {
+    expect(extractFirstChannelId({ 'channels[]': ['alpha', 'beta'] })).toBe('alpha')
+  })
+
+  it('returns channels[] when query contains a single string', () => {
+    expect(extractFirstChannelId({ 'channels[]': 'alpha' })).toBe('alpha')
+  })
+
+  it('falls back to legacy channels when channels[] is absent', () => {
+    expect(extractFirstChannelId({ channels: ['legacy-alpha', 'legacy-beta'] })).toBe('legacy-alpha')
+    expect(extractFirstChannelId({ channels: 'legacy-alpha' })).toBe('legacy-alpha')
+  })
+
+  it('returns null when no valid channel id is present', () => {
+    expect(extractFirstChannelId({})).toBeNull()
+    expect(extractFirstChannelId({ channels: [] })).toBeNull()
+  })
+})
 
 describe('useCalendarUrl — route normalization', () => {
   // These tests cover the core normalization logic by importing the composable
@@ -310,14 +340,14 @@ describe('useCalendarUrl — query serialization', () => {
     expect(query.status).toBe('queued')
   })
 
-  it('serializes channels array to query', () => {
-    const channelIds = ['acc-1', 'acc-2']
+    it('serializes channels array to channels[] query param', () => {
+      const channelIds = ['acc-1', 'acc-2']
 
-    const query: Record<string, unknown> = {}
-    if (channelIds.length > 0) query.channels = channelIds
+      const query: Record<string, unknown> = {}
+      if (channelIds.length > 0) query['channels[]'] = channelIds
 
-    expect(query.channels).toEqual(['acc-1', 'acc-2'])
-  })
+      expect(query['channels[]']).toEqual(['acc-1', 'acc-2'])
+    })
 
   it('serializes non-empty search query to query', () => {
     const state = { q: 'DDD patterns' }
@@ -403,7 +433,7 @@ describe('useCalendarUrl — needsCanonicalization / areQueriesEquivalent', () =
     })
     const controller = createCalendarUrlController(
       route as unknown as RouteLocationNormalizedLoaded,
-      mockRouter,
+      mockRouter as unknown as Router,
     )
 
     // 'acc-2', 'acc-1' is reverse order — canonical form sorts to 'acc-1', 'acc-2'
@@ -418,7 +448,7 @@ describe('useCalendarUrl — needsCanonicalization / areQueriesEquivalent', () =
     })
     const controller = createCalendarUrlController(
       route as unknown as RouteLocationNormalizedLoaded,
-      mockRouter,
+      mockRouter as unknown as Router,
     )
 
     // 'QUEUED' is stored uppercase but the canonical form is lowercase 'queued'
@@ -431,10 +461,38 @@ describe('useCalendarUrl — needsCanonicalization / areQueriesEquivalent', () =
     })
     const controller = createCalendarUrlController(
       route as unknown as RouteLocationNormalizedLoaded,
-      mockRouter,
+      mockRouter as unknown as Router,
     )
 
     // 'all' is the default status — canonical form omits it
     expect(controller.needsCanonicalization.value).toBe(true)
+  })
+})
+
+describe('useCalendarUrl controller — list surface uses canonical path only', () => {
+  it('setSurface(list) navigates to scheduler-list route with no mode query', async () => {
+    const route = createMockRoute({ name: 'scheduler-calendar-week', query: {} })
+    const router = createMockRouter()
+    const ctrl = createCalendarUrlController(route, router)
+
+    await ctrl.setSurface('list')
+
+    expect(router.push).toHaveBeenCalledWith(
+      expect.objectContaining({ name: 'scheduler-list' }),
+    )
+    const call = (router.push as ReturnType<typeof vi.fn>).mock.calls[0]![0]
+    expect(call.query).not.toHaveProperty('mode')
+  })
+
+  it('scheduler-list route derives surface=list without needing mode query', () => {
+    const route = createMockRoute({ name: 'scheduler-list', query: {} })
+    const ctrl = createCalendarUrlController(route, createMockRouter())
+    expect(ctrl.state.value.surface).toBe('list')
+  })
+
+  it('scheduler-calendar-week route derives surface=calendar-week (no calendar-day fallback)', () => {
+    const route = createMockRoute({ name: 'scheduler-calendar-week', query: {} })
+    const ctrl = createCalendarUrlController(route, createMockRouter())
+    expect(ctrl.state.value.surface).toBe('calendar-week')
   })
 })

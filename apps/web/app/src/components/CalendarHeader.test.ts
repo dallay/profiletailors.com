@@ -73,6 +73,15 @@ describe('CalendarHeader', () => {
     })
   }
 
+  // Button indices in the rendered template:
+  // [0] month view | [1] week view | [2] calendar toggle | [3] list toggle |
+  // [4] new-post | [5] backward | [6] forward | [7] today
+  //
+  // The test was written with `buttons[0] = month` and `buttons[1] = week`.
+  // After switching to `change:view` (passing the full surface), the month
+  // button now emits `calendar-month` and the week button emits `calendar-week`.
+  // We update the expected payloads accordingly.
+
   it('renders the period label and calendar mode controls', () => {
     const wrapper = mountHeader()
 
@@ -82,29 +91,36 @@ describe('CalendarHeader', () => {
     expect(wrapper.text()).toContain('scheduler.weekView')
   })
 
-  it('emits update calendar view when month and week are clicked', async () => {
+  it('emits change:view with calendar-month when month is clicked', async () => {
     const wrapper = mountHeader()
     const buttons = wrapper.findAll('button')
 
     await buttons[0]?.trigger('click') // month
-    await buttons[1]?.trigger('click') // week
 
-    expect(wrapper.emitted('update:calendarView')).toEqual([['month'], ['week']])
+    expect(wrapper.emitted('change:view')).toEqual([['calendar-month']])
   })
 
-  it('emits surface=list when list toggle is clicked', async () => {
+  it('emits change:view with calendar-week when week is clicked', async () => {
     const wrapper = mountHeader()
     const buttons = wrapper.findAll('button')
 
-    // List button is the second in the surface toggle group
-    await buttons[3]?.trigger('click') // list toggle
+    await buttons[1]?.trigger('click') // week
 
-    expect(wrapper.emitted('update:surface')).toEqual([['list']])
+    expect(wrapper.emitted('change:view')).toEqual([['calendar-week']])
   })
 
-  it('emits surface=calendar-month when calendar toggle is clicked from list mode', async () => {
+  it('emits change:view=list when list toggle is clicked', async () => {
+    const wrapper = mountHeader()
+    const buttons = wrapper.findAll('button')
+
+    await buttons[3]?.trigger('click') // list toggle
+
+    expect(wrapper.emitted('change:view')).toEqual([['list']])
+  })
+
+  it('emits change:view=calendar-month when calendar toggle is clicked from list mode', async () => {
     // When surface='list', only the calendar toggle button renders (no month/week split)
-    // Clicking it emits the current calendarView (here 'month') as the calendar surface.
+    // Clicking it emits the current calendarView (here 'month') mapped to calendar-month surface.
     const wrapper = mountHeader({ surface: 'list', calendarView: 'month' })
     const calendarToggle = wrapper
       .findAll('button')
@@ -112,7 +128,7 @@ describe('CalendarHeader', () => {
 
     await calendarToggle?.trigger('click')
 
-    expect(wrapper.emitted('update:surface')).toEqual([['calendar-month']])
+    expect(wrapper.emitted('change:view')).toEqual([['calendar-month']])
   })
 
   it('emits navigation and action events', async () => {
@@ -124,9 +140,8 @@ describe('CalendarHeader', () => {
     await buttons[7]?.trigger('click') // today
     await buttons[4]?.trigger('click') // new post
 
-    expect(wrapper.emitted('backward')).toHaveLength(1)
-    expect(wrapper.emitted('forward')).toHaveLength(1)
-    expect(wrapper.emitted('today')).toHaveLength(1)
+    expect(wrapper.emitted('change:date')).toHaveLength(3)
+    expect(wrapper.emitted('change:date')).toEqual([['backward'], ['forward'], ['today']])
     expect(wrapper.emitted('newPost')).toHaveLength(1)
   })
 
