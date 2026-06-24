@@ -1,5 +1,6 @@
 import type { Page, Locator } from '@playwright/test'
 import { expect } from '@playwright/test'
+import { keepSessionAlive } from '../fixtures/auth-helpers'
 
 /**
  * Page Object Model for the Scheduler view (SchedulerView.vue).
@@ -85,8 +86,11 @@ export class SchedulerPage {
   }
 
   async switchToDay(): Promise<void> {
-    // Navigate to day route — the day surface derives from the route name.
-    // openDayView only sets the date without changing the surface.
+    // Mock the refresh endpoint before navigating — page.goto() triggers
+    // a full SPA reload and the HAR replay returns 401 on refresh, which
+    // would redirect to the login page. keepSessionAlive() overrides
+    // the refresh endpoint to return 200, keeping the session alive.
+    await keepSessionAlive(this.page)
     await this.page.goto('/scheduler/calendar/day')
     await this.page.waitForLoadState('networkidle')
     await this.page.waitForTimeout(300)
