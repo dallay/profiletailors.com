@@ -4,6 +4,7 @@ import { createPinia, setActivePinia } from 'pinia'
 import { ref } from 'vue'
 import SchedulerView from './SchedulerView.vue'
 import { usePublishingStore } from '@/stores/publishing'
+import type { Publication } from '@/stores/publishing'
 import type { CalendarUrlController } from '@/composables/useCalendarUrl'
 
 // ---------------------------------------------------------------------------
@@ -73,7 +74,7 @@ vi.mock('@/lib/auth-api', () => ({
 vi.mock('@/components/CreatePostModal.vue', () => ({
   default: {
     template:
-      '<div data-testid="create-post-modal"><button data-testid="create-post-updated" @click="$emit(\'updated\')">updated</button></div>',
+      '<div v-if="isOpen" data-testid="create-post-modal"><button data-testid="create-post-updated" @click="$emit(\'updated\')">updated</button></div>',
     props: ['isOpen', 'initialDate', 'editingPublication'],
     emits: ['close', 'created', 'updated'],
   },
@@ -82,7 +83,7 @@ vi.mock('@/components/CreatePostModal.vue', () => ({
 vi.mock('@/components/PostDetailModal.vue', () => ({
   default: {
     template:
-      '<div data-testid="post-detail-modal"><button data-testid="detail-edit" @click="$emit(\'edit\', publication)">edit</button></div>',
+      '<div v-if="isOpen" data-testid="post-detail-modal"><button data-testid="detail-edit" @click="$emit(\'edit\', publication)">edit</button></div>',
     props: ['isOpen', 'publication'],
     emits: ['close', 'deleted', 'reschedule', 'edit'],
   },
@@ -347,12 +348,12 @@ describe('SchedulerView', () => {
 
   it('opens CreatePostModal in edit mode when PostDetailModal emits edit', async () => {
     const store = usePublishingStore()
-    const pub = {
+    const pub: Publication = {
       id: 'pub-edit-flow',
       content: 'Editable post',
-      channels: ['linkedin'] as const,
+      channels: ['linkedin'],
       scheduledAt: '2026-06-25T10:00:00Z',
-      status: 'SCHEDULED' as const,
+      status: 'SCHEDULED',
       priority: false,
     }
     store.publications = [pub]
@@ -361,7 +362,7 @@ describe('SchedulerView', () => {
     await flushPromises()
 
     // Open detail modal by clicking publication card if available
-    const vm = wrapper.vm as unknown as { openPostDetail: (pub: typeof pub) => void }
+    const vm = wrapper.vm as unknown as { openPostDetail: (pub: Publication) => void }
     vm.openPostDetail(pub)
     await wrapper.vm.$nextTick()
 

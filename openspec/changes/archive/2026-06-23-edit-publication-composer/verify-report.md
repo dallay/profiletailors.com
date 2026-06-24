@@ -34,7 +34,7 @@
 
 **`./gradlew build`**: ❌ Failed (pre-existing Detekt violations — not introduced by this change)
 
-```
+```text
 e: .../R2dbcPublishingRepositories.kt:440:25 The function insertOrUpdate is too long (103).
    The maximum length is 90. [LongMethod]
 e: .../R2dbcPublishingRepositories.kt:35:7 Class R2dbcPublicationRepository is too large.

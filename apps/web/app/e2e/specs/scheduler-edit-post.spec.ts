@@ -35,7 +35,6 @@ test.describe('Scheduler — Edit Post', () => {
 
     // Open the publication detail
     await scheduler.switchToList()
-    await page.waitForTimeout(300)
     const postCard = page.getByRole('button', { name: new RegExp(originalText) }).first()
     await expect(postCard).toBeVisible({ timeout: 10_000 })
     await postCard.click()
@@ -75,8 +74,7 @@ test.describe('Scheduler — Edit Post', () => {
 
     // Verify updated text appears in scheduler
     await scheduler.switchToList()
-    await page.waitForTimeout(300)
-    await expect(page.getByRole('button', { name: new RegExp(updatedText) })).toBeVisible()
+    await expect(page.getByRole('button', { name: new RegExp(updatedText) })).toBeVisible({ timeout: 10_000 })
   })
 
   /**
@@ -95,7 +93,6 @@ test.describe('Scheduler — Edit Post', () => {
     })
 
     await scheduler.switchToList()
-    await page.waitForTimeout(300)
     const postCard = page.getByRole('button', { name: /Priority edit test/i }).first()
     await expect(postCard).toBeVisible({ timeout: 10_000 })
     await postCard.click()
@@ -127,7 +124,6 @@ test.describe('Scheduler — Edit Post', () => {
     })
 
     await scheduler.switchToList()
-    await page.waitForTimeout(300)
     const postCard = page.getByRole('button', { name: /Channel lock test/i }).first()
     await expect(postCard).toBeVisible({ timeout: 10_000 })
     await postCard.click()

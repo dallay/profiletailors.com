@@ -117,13 +117,13 @@ function makeEditingPublication(
   return {
     id: 'pub-edit-1',
     content: 'Existing scheduled content',
-    channels: ['linkedin'] as const,
+    channels: ['linkedin'] as ('linkedin' | 'twitter' | 'instagram' | 'facebook')[],
     scheduledAt: '2026-06-25T14:30:00Z',
     scheduleMode: 'SCHEDULED_AT' as const,
     status: 'SCHEDULED' as const,
     priority: true,
     accountId: 'ch-edit-1',
-    assetIds: ['asset-1', 'asset-2'],
+    assetIds: ['asset-1', 'asset-2'] as string[],
     ...overrides,
   }
 }
@@ -768,6 +768,76 @@ describe('CreatePostModal.vue — edit mode', () => {
     expect(
       document.body.querySelector('button[role="radio"][aria-checked="true"]')?.textContent,
     ).toContain('Next Schedule')
+  })
+
+  it('submits NOW mode edit through updatePost with NOW scheduleMode preserved', async () => {
+    const store = usePublishingStore()
+    const updatePost = vi.spyOn(store, 'updatePost').mockResolvedValue({
+      ...makeEditingPublication({ scheduleMode: 'NOW' }),
+      content: 'Updated NOW content',
+    })
+
+    const wrapper = mountModal([makeChannel('ch-edit-now')], {
+      editingPublication: makeEditingPublication({ scheduleMode: 'NOW' }),
+    })
+    await wrapper.vm.$nextTick()
+
+    const textarea = document.body.querySelector('textarea') as HTMLTextAreaElement | null
+    textarea!.value = 'Updated NOW content'
+    textarea?.dispatchEvent(new Event('input', { bubbles: true }))
+    await wrapper.vm.$nextTick()
+
+    const submitButton = Array.from(document.body.querySelectorAll('button')).find((button) =>
+      button.textContent?.includes('composer.saveChanges'),
+    ) as HTMLButtonElement | undefined
+    submitButton?.click()
+
+    await wrapper.vm.$nextTick()
+    await Promise.resolve()
+
+    expect(updatePost).toHaveBeenCalledWith('pub-edit-1', {
+      content: 'Updated NOW content',
+      scheduledAt: expect.any(String),
+      priority: true,
+      assetIds: ['asset-1', 'asset-2'],
+      scheduleMode: 'NOW',
+    })
+    expect(wrapper.emitted('updated')).toHaveLength(1)
+  })
+
+  it('submits NEXT_SLOT mode edit through updatePost with NEXT_SLOT scheduleMode preserved', async () => {
+    const store = usePublishingStore()
+    const updatePost = vi.spyOn(store, 'updatePost').mockResolvedValue({
+      ...makeEditingPublication({ scheduleMode: 'NEXT_SLOT' }),
+      content: 'Updated NEXT_SLOT content',
+    })
+
+    const wrapper = mountModal([makeChannel('ch-edit-next')], {
+      editingPublication: makeEditingPublication({ scheduleMode: 'NEXT_SLOT' }),
+    })
+    await wrapper.vm.$nextTick()
+
+    const textarea = document.body.querySelector('textarea') as HTMLTextAreaElement | null
+    textarea!.value = 'Updated NEXT_SLOT content'
+    textarea?.dispatchEvent(new Event('input', { bubbles: true }))
+    await wrapper.vm.$nextTick()
+
+    const submitButton = Array.from(document.body.querySelectorAll('button')).find((button) =>
+      button.textContent?.includes('composer.saveChanges'),
+    ) as HTMLButtonElement | undefined
+    submitButton?.click()
+
+    await wrapper.vm.$nextTick()
+    await Promise.resolve()
+
+    expect(updatePost).toHaveBeenCalledWith('pub-edit-1', {
+      content: 'Updated NEXT_SLOT content',
+      scheduledAt: expect.any(String),
+      priority: true,
+      assetIds: ['asset-1', 'asset-2'],
+      scheduleMode: 'NEXT_SLOT',
+    })
+    expect(wrapper.emitted('updated')).toHaveLength(1)
   })
 
   it('locks channel selection and hides create-another in edit mode', async () => {

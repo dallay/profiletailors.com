@@ -15,12 +15,14 @@ Harden the publication editing feature so the backend quality gate passes, edit-
 ## Scope
 
 ### In Scope
+
 - Refactor `R2dbcPublishingRepositories.kt` to remove the current Detekt violations without changing behavior.
 - Add dedicated `CreatePostModal` edit-mode unit tests.
 - Add Playwright coverage for the full scheduler edit flow.
 - Verify with targeted backend, frontend unit, lint, and E2E commands.
 
 ### Out of Scope
+
 - Large-scale repository pattern rewrites outside publishing persistence.
 - Broader scheduler UX changes unrelated to edit-flow correctness.
 - New publishing features beyond hardening existing behavior.

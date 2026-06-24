@@ -889,7 +889,7 @@ watch(
     <CreatePostModal
       :is-open="isModalOpen"
       :initial-date="selectedCellDate"
-      :editing-publication="editingPublication"
+      :editing-publication="editingPublication ?? undefined"
       @close="isModalOpen = false; editingPublication = null"
       @created="isModalOpen = false"
       @updated="handleUpdated"

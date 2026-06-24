@@ -867,7 +867,7 @@ export const usePublishingStore = defineStore('publishing', () => {
               (updates as { assetIds?: string[] }).assetIds ??
               (current as { assetIds?: string[] }).assetIds ??
               [],
-            scheduleMode: 'SCHEDULED_AT',
+            scheduleMode: (updates as { scheduleMode?: string }).scheduleMode ?? current.scheduleMode ?? 'SCHEDULED_AT',
             scheduledFor: updates.scheduledAt ?? current.scheduledAt,
             priority: updates.priority ?? current.priority,
           }),

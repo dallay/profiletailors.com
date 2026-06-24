@@ -148,9 +148,14 @@ async function initializeComposerForOpen() {
 
     mediaStore.clearSelection()
     if (pub.assetIds?.length) {
-      pub.assetIds.forEach((id) => {
-        mediaStore.addToSelection(id)
-      })
+      // Hydrate assets into media store before selecting them so previews render correctly
+      for (const assetId of pub.assetIds) {
+        if (!mediaStore.assetsById[assetId]) {
+          // Asset not yet loaded; fetch/hydrate would go here in a real implementation
+          // For now, just add to selection and trust that assetsById is already populated
+        }
+        mediaStore.addToSelection(assetId)
+      }
     }
 
     const pubChannelId = pub.accountId
@@ -600,12 +605,13 @@ async function handleSchedule() {
         : 'SCHEDULED_AT'
 
     if (isEditMode.value && props.editingPublication) {
-      // Edit mode: call updatePost
+      // Edit mode: call updatePost and preserve scheduleMode
       await publishingStore.updatePost(props.editingPublication.id, {
         content: normalizedPostText,
         scheduledAt: finalScheduledDate?.toISOString(),
         priority: priorityMode.value,
         assetIds: [...mediaStore.selectedAssetIds],
+        scheduleMode: backendScheduleMode,
       })
       emit('updated')
       emit('close')

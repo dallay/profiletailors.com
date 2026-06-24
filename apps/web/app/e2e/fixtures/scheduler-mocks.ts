@@ -227,26 +227,28 @@ export async function registerSchedulerMocks(context: BrowserContext): Promise<v
       const url = route.request().url()
       const id = url.split('/publications/')[1]?.split('?')[0]
       const pub = publications.find((p) => p.id === id)
-      if (pub) {
-        pub.bodyText = body?.bodyText ?? pub.bodyText
-        pub.title = body?.title ?? pub.title
-        pub.scheduledFor = body?.scheduledFor ?? pub.scheduledFor
-        pub.scheduleMode = body?.scheduleMode ?? pub.scheduleMode
-        pub.priority = body?.priority ?? pub.priority
-        pub.assetIds = body?.assetIds ?? pub.assetIds
+      if (!pub) {
+        route.fulfill(json({ error: 'Publication not found' }, 404))
+        return
       }
+      pub.bodyText = body?.bodyText ?? pub.bodyText
+      pub.title = body?.title ?? pub.title
+      pub.scheduledFor = body?.scheduledFor ?? pub.scheduledFor
+      pub.scheduleMode = body?.scheduleMode ?? pub.scheduleMode
+      pub.priority = body?.priority ?? pub.priority
+      pub.assetIds = body?.assetIds ?? pub.assetIds
       route.fulfill(
         json({
           publicationId: id,
           workspaceId: MOCK_WORKSPACE_ID,
           socialAccountId: body?.socialAccountId ?? MOCK_SOCIAL_ACCOUNT_ID,
-          status: pub?.status ?? 'QUEUED',
-          scheduleMode: body?.scheduleMode ?? 'SCHEDULED_AT',
-          priority: body?.priority ?? false,
-          title: body?.title ?? null,
-          bodyText: body?.bodyText ?? null,
-          assetIds: body?.assetIds ?? [],
-          scheduledFor: body?.scheduledFor ?? null,
+          status: pub.status,
+          scheduleMode: pub.scheduleMode,
+          priority: pub.priority,
+          title: pub.title,
+          bodyText: pub.bodyText,
+          assetIds: pub.assetIds ?? [],
+          scheduledFor: pub.scheduledFor,
           nextSlotAfter: null,
         }),
       )
