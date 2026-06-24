@@ -200,7 +200,7 @@ jobs:
     needs: changes
     if: needs.changes.outputs.frontend == 'true' || needs.changes.outputs.backend == 'true'
     runs-on: ubuntu-latest
-    timeout-minutes: 20
+    timeout-minutes: 30
     env:
       SMP_POSTGRES_DB: profiletailors_smp
       SMP_POSTGRES_USER: profiletailors
