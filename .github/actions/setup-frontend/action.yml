@@ -34,4 +34,4 @@ runs:
       shell: bash
       env:
         PLAYWRIGHT_BROWSERS: ${{ inputs.playwright-browsers }}
-      run: pnpm --filter app exec playwright install --with-deps "$PLAYWRIGHT_BROWSERS"
+      run: pnpm --filter app exec playwright install --with-deps $PLAYWRIGHT_BROWSERS
