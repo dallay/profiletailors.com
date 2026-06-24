@@ -1,4 +1,6 @@
 import { describe, it, expect, vi } from 'vitest'
+import { createCalendarUrlController } from './useCalendarUrl'
+import type { RouteLocationNormalizedLoaded } from 'vue-router'
 
 // ---------------------------------------------------------------------------
 // Mock router and route factories
@@ -358,5 +360,81 @@ describe('useCalendarUrl — canonicalization', () => {
     // When invalid status is normalized to 'all', query should not have it
     const queryStatus = normalized === 'all' ? undefined : normalized
     expect(queryStatus).toBeUndefined()
+  })
+})
+
+// ---------------------------------------------------------------------------
+// Composable integration — needsCanonicalization / areQueriesEquivalent
+// ---------------------------------------------------------------------------
+
+interface RouteLike {
+  name: string
+  query: Record<string, unknown>
+  params: Record<string, string>
+  path: string
+  fullPath: string
+  hash: string
+  matched: []
+  redirectedFrom: undefined
+  meta: Record<string, unknown>
+}
+
+function makeRoute(overrides: Partial<RouteLike>): RouteLike {
+  return {
+    name: 'scheduler-calendar-week',
+    query: {},
+    params: {},
+    path: '/scheduler/week',
+    fullPath: '/scheduler/week',
+    hash: '',
+    matched: [],
+    redirectedFrom: undefined,
+    meta: {},
+    ...overrides,
+  }
+}
+
+const mockRouter = { push: vi.fn(), replace: vi.fn() }
+
+describe('useCalendarUrl — needsCanonicalization / areQueriesEquivalent', () => {
+  it('returns false when array values are in different order (localeCompare sorts before comparison)', () => {
+    const route = makeRoute({
+      query: { channels: ['acc-2', 'acc-1'] },
+    })
+    const controller = createCalendarUrlController(
+      route as unknown as RouteLocationNormalizedLoaded,
+      mockRouter,
+    )
+
+    // 'acc-2', 'acc-1' is reverse order — canonical form sorts to 'acc-1', 'acc-2'
+    // areQueriesEquivalent must sort both sides before comparing; if localeCompare
+    // is missing (default sort), this would produce ['acc-2', 'acc-1'] !== ['acc-1', 'acc-2']
+    expect(controller.needsCanonicalization.value).toBe(false)
+  })
+
+  it('returns true when query has non-canonical status', () => {
+    const route = makeRoute({
+      query: { status: 'QUEUED' },
+    })
+    const controller = createCalendarUrlController(
+      route as unknown as RouteLocationNormalizedLoaded,
+      mockRouter,
+    )
+
+    // 'QUEUED' is stored uppercase but the canonical form is lowercase 'queued'
+    expect(controller.needsCanonicalization.value).toBe(true)
+  })
+
+  it('returns true when query contains a filter that is set to default', () => {
+    const route = makeRoute({
+      query: { status: 'all' },
+    })
+    const controller = createCalendarUrlController(
+      route as unknown as RouteLocationNormalizedLoaded,
+      mockRouter,
+    )
+
+    // 'all' is the default status — canonical form omits it
+    expect(controller.needsCanonicalization.value).toBe(true)
   })
 })
