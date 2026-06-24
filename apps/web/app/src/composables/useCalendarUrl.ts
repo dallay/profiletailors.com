@@ -217,11 +217,10 @@ export function createCalendarUrlController(
       } else {
         date.setDate(date.getDate() + sign * 7)
       }
-      await navigate(
-        router,
-        { ...state.value, date: normalizeDate(date.toISOString().slice(0, 10)) },
-        'push',
-      )
+      const y = date.getFullYear()
+      const m = String(date.getMonth() + 1).padStart(2, '0')
+      const d = String(date.getDate()).padStart(2, '0')
+      await navigate(router, { ...state.value, date: `${y}-${m}-${d}` }, 'push')
     },
     setTimezone: async (timezone) => {
       await navigate(router, { ...state.value, timezone: normalizeTimezone(timezone) }, 'replace')

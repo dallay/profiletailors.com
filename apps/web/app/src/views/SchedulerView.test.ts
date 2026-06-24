@@ -363,6 +363,88 @@ describe('SchedulerView', () => {
     expect(wrapper.find('[data-testid="create-post-modal"]').exists()).toBe(true)
   })
 
+  it('handles header date backward navigation via handleHeaderDateChange', async () => {
+    const wrapper = mountView()
+    await flushPromises()
+
+    const vm = wrapper.vm as unknown as {
+      handleHeaderDateChange: (action: 'forward' | 'backward' | 'today') => void
+    }
+
+    await vm.handleHeaderDateChange('backward')
+    await flushPromises()
+
+    expect(mockController.stepPeriod).toHaveBeenCalledWith('backward')
+  })
+
+  it('handles header date today navigation via handleHeaderDateChange', async () => {
+    const store = usePublishingStore()
+    const wrapper = mountView()
+    await flushPromises()
+
+    const vm = wrapper.vm as unknown as {
+      handleHeaderDateChange: (action: 'forward' | 'backward' | 'today') => void
+    }
+
+    await vm.handleHeaderDateChange('today')
+    await flushPromises()
+
+    // setDate should be called with a valid YYYY-MM-DD local date string
+    const calledDate = (mockController.setDate as ReturnType<typeof vi.fn>).mock.calls[0]![0]
+    expect(calledDate).toMatch(/^\d{4}-\d{2}-\d{2}$/)
+  })
+
+  it('handles header filter change for timezone via handleHeaderFilterChange', async () => {
+    const store = usePublishingStore()
+    const wrapper = mountView()
+    await flushPromises()
+
+    const vm = wrapper.vm as unknown as {
+      handleHeaderFilterChange: (filter: {
+        status?: 'all' | 'queued' | 'published' | 'cancelled'
+        timezone?: string
+        channelIds?: string[]
+      }) => void
+    }
+
+    await vm.handleHeaderFilterChange({ timezone: 'America/New_York' })
+    await flushPromises()
+
+    expect(mockController.setTimezone).toHaveBeenCalledWith('America/New_York')
+  })
+
+  it('handles header filter change for channelIds via handleHeaderFilterChange', async () => {
+    const store = usePublishingStore()
+    const wrapper = mountView()
+    await flushPromises()
+
+    const vm = wrapper.vm as unknown as {
+      handleHeaderFilterChange: (filter: {
+        status?: 'all' | 'queued' | 'published' | 'cancelled'
+        timezone?: string
+        channelIds?: string[]
+      }) => void
+    }
+
+    await vm.handleHeaderFilterChange({ channelIds: ['acc-1'] })
+    await flushPromises()
+
+    expect(mockController.setChannelIds).toHaveBeenCalledWith(['acc-1'])
+  })
+
+  it('opens day view and updates URL date when openDayView is called', async () => {
+    const wrapper = mountView({ date: '2026-06-15' })
+    await flushPromises()
+
+    const vm = wrapper.vm as unknown as { openDayView: (date: Date) => void }
+    const targetDate = new Date('2026-06-20')
+
+    await vm.openDayView(targetDate)
+    await flushPromises()
+
+    expect(mockController.setDate).toHaveBeenCalledWith('2026-06-20')
+  })
+
   it('refreshes calendar when CreatePostModal emits updated', async () => {
     const store = usePublishingStore()
     const wrapper = mountView()
