@@ -214,6 +214,9 @@ export function createCalendarUrlController(
       const date = new Date(`${state.value.date}T00:00:00`)
       const sign = direction === 'forward' ? 1 : -1
       if (state.value.surface === 'calendar-month') {
+        // Clamp to first of month before stepping to avoid overflow
+        // (e.g. Jan 31 → setMonth(1) would overflow to March 3).
+        date.setDate(1)
         date.setMonth(date.getMonth() + sign)
       } else {
         date.setDate(date.getDate() + sign * 7)

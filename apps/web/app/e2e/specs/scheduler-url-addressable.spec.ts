@@ -198,9 +198,9 @@ test.describe('URL-addressable scheduler — sidebar channels', () => {
     page,
   }) => {
     // The channel row lives inside the sidebar <aside> element.
-    // Use a precise locator to avoid matching the account-menu button
-    // which also contains the channel name.
-    const channelButton = page.getByRole('button', { name: /dev user 0|dev user/i }).nth(0)
+    // Scope the locator to the sidebar to avoid matching the account-menu button.
+    const sidebar = page.locator('aside')
+    const channelButton = sidebar.getByRole('button', { name: /dev user 0|dev user/i }).first()
     await channelButton.click()
     await page.waitForTimeout(300)
 

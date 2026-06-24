@@ -401,7 +401,11 @@ function openNewPostGeneral() {
 }
 
 function openDayView(date: Date) {
-  url.setDate(date.toISOString().slice(0, 10))
+  // Format using local date components to avoid UTC-offset day shifts.
+  const y = date.getFullYear()
+  const m = String(date.getMonth() + 1).padStart(2, '0')
+  const d = String(date.getDate()).padStart(2, '0')
+  url.setDate(`${y}-${m}-${d}`)
 }
 
 async function handleDeletePublication(id: string) {
@@ -514,6 +518,8 @@ watch(
       :period-label="periodLabel"
       :surface="url.state.value.surface"
       :timezone="url.state.value.timezone"
+      :status="url.state.value.status"
+      :channel-ids="url.state.value.channelIds"
       @change:view="handleHeaderViewChange"
       @change:date="handleHeaderDateChange"
       @change:filter="handleHeaderFilterChange"

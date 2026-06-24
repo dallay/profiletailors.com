@@ -437,12 +437,18 @@ describe('SchedulerView', () => {
     await flushPromises()
 
     const vm = wrapper.vm as unknown as { openDayView: (date: Date) => void }
-    const targetDate = new Date('2026-06-20')
+    // Build date from local components to avoid UTC-offset day shifts.
+    const targetDate = new Date(2026, 5, 20) // June 20, 2026 local
+    const expectedDate = [
+      targetDate.getFullYear(),
+      String(targetDate.getMonth() + 1).padStart(2, '0'),
+      String(targetDate.getDate()).padStart(2, '0'),
+    ].join('-')
 
     await vm.openDayView(targetDate)
     await flushPromises()
 
-    expect(mockController.setDate).toHaveBeenCalledWith('2026-06-20')
+    expect(mockController.setDate).toHaveBeenCalledWith(expectedDate)
   })
 
   it('refreshes calendar when CreatePostModal emits updated', async () => {

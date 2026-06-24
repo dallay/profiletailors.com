@@ -63,6 +63,8 @@ describe('CalendarHeader', () => {
         surface: 'calendar-week',
         periodLabel: 'Jun 8 – 14, 2026',
         timezone: 'UTC',
+        status: 'all',
+        channelIds: [],
         ...overrides,
       },
       global: {
