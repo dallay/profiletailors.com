@@ -28,7 +28,7 @@ function estimateVisualLength(text: string): number {
 }
 
 function normalizeTruncatedText(text: string): string {
-  return text.replace(/[\s\n]+$/u, '').trimEnd()
+  return text.trimEnd()
 }
 
 const textLengthScore = computed(() => {
