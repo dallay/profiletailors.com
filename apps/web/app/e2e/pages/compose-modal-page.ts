@@ -14,7 +14,9 @@ export class ComposeModalPage {
   // ---- Locators ----
 
   get heading(): Locator {
-    return this.page.getByRole('heading', { name: /create post|crear publicación/i })
+    return this.page.getByRole('heading', {
+      name: /create post|crear publicación|edit post|editar publicación/i,
+    })
   }
 
   get textarea(): Locator {

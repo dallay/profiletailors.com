@@ -49,6 +49,7 @@ const isModalOpen = ref(false)
 const selectedCellDate = ref<string | undefined>(undefined)
 const isDetailModalOpen = ref(false)
 const detailPublication = ref<Publication | null>(null)
+const editingPublication = ref<Publication | null>(null)
 
 // ---------------------------------------------------------------------------
 // Drag-and-drop state
@@ -400,6 +401,35 @@ function closePostDetail() {
   detailPublication.value = null
 }
 
+function handleEditPublication(publication: Publication) {
+  isDetailModalOpen.value = false
+  detailPublication.value = null
+  editingPublication.value = publication
+  isModalOpen.value = true
+}
+
+async function handleUpdated() {
+  isModalOpen.value = false
+  editingPublication.value = null
+
+  const state = url.state.value
+  const baseDate = new Date(`${state.date}T00:00:00`)
+  const from =
+    state.surface === 'calendar-month'
+      ? new Date(baseDate.getFullYear(), baseDate.getMonth(), 1)
+      : new Date(baseDate.getFullYear(), baseDate.getMonth(), baseDate.getDate() - baseDate.getDay())
+  const to =
+    state.surface === 'calendar-month'
+      ? new Date(baseDate.getFullYear(), baseDate.getMonth() + 1, 0)
+      : new Date(from.getFullYear(), from.getMonth(), from.getDate() + 6)
+
+  await publishingStore.fetchCalendar(from.toISOString(), to.toISOString(), {
+    status: state.status !== 'all' ? state.status : undefined,
+    socialAccountId: state.channelIds[0],
+    timezone: state.timezone,
+  })
+}
+
 function onReschedule() {
   // Store already updated by PostDetailModal; just close
   closePostDetail()
@@ -500,10 +530,10 @@ watch(
           <!-- ================================================================ -->
           <!-- MONTH VIEW -->
           <!-- ================================================================ -->
-          <div v-if="calendarView === 'month'">
-            <Card class="bg-bg-surface border border-border-subtle p-0 overflow-hidden">
+          <div v-if="calendarView === 'month'" class="flex h-full min-h-0 flex-col">
+            <Card class="bg-bg-surface border border-border-subtle p-0 overflow-hidden flex min-h-0 flex-1 flex-col">
               <!-- Day-of-week header -->
-              <div class="grid grid-cols-7 border-b border-border-subtle bg-bg-primary">
+              <div class="grid grid-cols-7 border-b border-border-subtle bg-bg-primary shrink-0">
                 <div
                   v-for="(_, idx) in 7"
                   :key="idx"
@@ -516,7 +546,7 @@ watch(
               </div>
 
               <!-- Grid body: 6 weeks × 7 days -->
-              <div class="divide-y divide-border-subtle">
+              <div class="min-h-0 flex-1 overflow-y-auto divide-y divide-border-subtle">
                 <div
                   v-for="(week, wkIdx) in monthGrid"
                   :key="wkIdx"
@@ -533,6 +563,7 @@ watch(
                     :activity-entry="activityForDate(day) ?? null"
                     :draggable="viewMode === 'calendar'"
                     @click-day="openDayView"
+                    @click-publication="openPostDetail"
                     @dragstart="(p) => onDragStart(p.event, p.pub)"
                     @dragend="onDragEnd"
                     @drop-cell="(p) => onDropCell(p.event, p.date)"
@@ -858,8 +889,10 @@ watch(
     <CreatePostModal
       :is-open="isModalOpen"
       :initial-date="selectedCellDate"
-      @close="isModalOpen = false"
+      :editing-publication="editingPublication ?? undefined"
+      @close="isModalOpen = false; editingPublication = null"
       @created="isModalOpen = false"
+      @updated="handleUpdated"
     />
 
     <!-- Read-only post detail modal -->
@@ -869,6 +902,7 @@ watch(
       @close="closePostDetail"
       @deleted="closePostDetail"
       @reschedule="onReschedule"
+      @edit="handleEditPublication"
     />
   </div>
 </template>

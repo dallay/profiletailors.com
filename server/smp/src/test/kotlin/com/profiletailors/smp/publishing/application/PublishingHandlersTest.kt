@@ -1074,6 +1074,7 @@ class PublishingHandlersTest {
         assertEquals(ActivityDensity.HIGH, result.activity.first { it.date == LocalDate.parse("2026-06-16") }.density)
         assertEquals("Europe/Madrid", publicationRepository.lastCountTimezone)
         assertEquals("https://preview.local/assets/workspace-1/asset-1", result.publications.first().previewUrl)
+        assertEquals(listOf("asset-1"), result.publications.first().assetIds)
     }
 
     @Test

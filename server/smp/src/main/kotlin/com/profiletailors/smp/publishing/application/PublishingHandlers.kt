@@ -889,6 +889,7 @@ private fun PublicationDraft.toCalendarResult(
     priority = priority,
     title = title,
     bodyText = bodyText,
+    assetIds = assetIds,
     scheduledFor = scheduledFor,
     hasConflict = conflictingPublicationIds.isNotEmpty(),
     conflictingPublicationIds = conflictingPublicationIds,

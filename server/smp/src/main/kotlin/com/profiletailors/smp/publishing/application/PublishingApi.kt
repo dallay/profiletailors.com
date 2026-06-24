@@ -176,6 +176,7 @@ data class CalendarPublicationResult(
     val priority: Boolean,
     val title: String?,
     val bodyText: String?,
+    val assetIds: List<String>,
     val scheduledFor: Instant?,
     val hasConflict: Boolean,
     val conflictingPublicationIds: List<String>,

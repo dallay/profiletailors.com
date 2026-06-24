@@ -5,6 +5,12 @@ import com.profiletailors.smp.media.application.MediaServiceUnavailableException
 import com.profiletailors.smp.publishing.domain.ExpiredOAuthStateException
 import com.profiletailors.smp.publishing.domain.InvalidOAuthStateException
 import com.profiletailors.smp.publishing.domain.ProviderNotConfiguredException
+import com.profiletailors.smp.publishing.domain.PublicationAlreadyTerminalException
+import com.profiletailors.smp.publishing.domain.PublicationCancellationNotAllowedException
+import com.profiletailors.smp.publishing.domain.PublicationDeletionNotAllowedException
+import com.profiletailors.smp.publishing.domain.PublicationEditNotAllowedException
+import com.profiletailors.smp.publishing.domain.PublicationRetryNotAllowedException
+import com.profiletailors.smp.publishing.domain.PublicationStateTransitionException
 import org.springframework.http.HttpStatus
 import org.springframework.http.ProblemDetail
 import org.springframework.web.bind.annotation.ExceptionHandler
@@ -19,6 +25,22 @@ class PublishingProblemDetailsHandler {
             exception.message ?: "Provider not configured",
         ).apply {
             title = "Provider not configured"
+        }
+
+    @ExceptionHandler(
+        PublicationEditNotAllowedException::class,
+        PublicationDeletionNotAllowedException::class,
+        PublicationCancellationNotAllowedException::class,
+        PublicationRetryNotAllowedException::class,
+        PublicationAlreadyTerminalException::class,
+        PublicationStateTransitionException::class,
+    )
+    fun handle(exception: PublicationStateTransitionException): ProblemDetail =
+        ProblemDetail.forStatusAndDetail(
+            HttpStatus.CONFLICT,
+            exception.message ?: "Publication state transition conflict",
+        ).apply {
+            title = "Publication state conflict"
         }
 
     @ExceptionHandler(ExpiredOAuthStateException::class)

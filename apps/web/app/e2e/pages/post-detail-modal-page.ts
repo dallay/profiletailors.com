@@ -87,6 +87,18 @@ export class PostDetailModalPage {
 
   async expectTitle(text: string | RegExp): Promise<void> {
     const dialog = this.page.getByRole('dialog')
+    const titleInput = dialog.locator('#edit-title')
+    const hasEditableTitle = await titleInput.isVisible().catch(() => false)
+
+    if (hasEditableTitle) {
+      if (typeof text === 'string') {
+        await expect(titleInput).toHaveValue(text)
+      } else {
+        await expect(titleInput).toHaveValue(text)
+      }
+      return
+    }
+
     await expect(dialog).toContainText(text)
   }
 
