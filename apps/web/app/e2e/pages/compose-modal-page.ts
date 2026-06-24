@@ -29,15 +29,15 @@ export class ComposeModalPage {
 
   // Schedule mode tabs
   get nowTab(): Locator {
-    return this.page.getByRole('button', { name: /^now$/i })
+    return this.page.getByRole('radio', { name: /^now$/i })
   }
 
   get nextScheduleTab(): Locator {
-    return this.page.getByRole('button', { name: 'Next Schedule' })
+    return this.page.getByRole('radio', { name: 'Next Schedule' })
   }
 
   get pickDateTab(): Locator {
-    return this.page.getByRole('button', { name: /pick date|seleccionar fecha/i })
+    return this.page.getByRole('radio', { name: /pick date|seleccionar fecha/i })
   }
 
   // Date/time pickers (visible when Pick Date is active)
@@ -131,8 +131,8 @@ export class ComposeModalPage {
   }
 
   async switchToNextSchedule(): Promise<void> {
-    // The tab button is the first match, the submit button is the second.
-    await this.nextScheduleTab.first().click()
+    // nextScheduleTab resolves the Next Schedule radio (exact name match).
+    await this.nextScheduleTab.click()
   }
 
   async switchToPickDate(): Promise<void> {
@@ -183,9 +183,8 @@ export class ComposeModalPage {
   }
 
   async expectNextScheduleActive(): Promise<void> {
-    // The tab button is the first match, the submit button is the second.
-    // Only the tab has the bg-text-display class when active.
-    await expect(this.nextScheduleTab.first()).toHaveClass(/bg-text-display/)
+    // nextScheduleTab resolves a single radio. Only it has the bg-text-display class when active.
+    await expect(this.nextScheduleTab).toHaveClass(/bg-text-display/)
   }
 
   async expectPickDateActive(): Promise<void> {

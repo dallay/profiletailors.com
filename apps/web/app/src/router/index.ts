@@ -53,6 +53,12 @@ const router = createRouter({
       meta: { requiresAuth: true },
     },
     {
+      path: '/scheduler/calendar/day',
+      name: 'scheduler-calendar-day',
+      component: () => import('../views/SchedulerView.vue'),
+      meta: { requiresAuth: true },
+    },
+    {
       path: '/scheduler/list',
       name: 'scheduler-list',
       component: () => import('../views/SchedulerView.vue'),

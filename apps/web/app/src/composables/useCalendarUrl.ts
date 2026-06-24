@@ -75,6 +75,7 @@ function trimOrEmpty(value: unknown): string {
 function normalizeSurface(route: { name: unknown }): SchedulerSurface {
   const name = String(route.name ?? '')
   if (name === 'scheduler-calendar-month') return 'calendar-month'
+  if (name === 'scheduler-calendar-day') return 'calendar-day'
   if (name === 'scheduler-list') return 'list'
   return 'calendar-week'
 }
