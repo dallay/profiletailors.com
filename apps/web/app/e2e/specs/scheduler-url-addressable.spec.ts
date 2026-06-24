@@ -130,15 +130,17 @@ test.describe('URL-addressable scheduler — navigation', () => {
   })
 
   test('TC-NAV-03: clicking Week toggle from month changes URL @scheduler', async ({ page }) => {
-    // Switch to month first
+    const scheduler = await setup(page)
     await page.goto('/scheduler/calendar/month')
+    await scheduler.expectVisible()
     await page.waitForLoadState('networkidle')
 
-    // Click "Week" button to go back to week
-    await page.getByRole('button', { name: /week/i }).first().click()
+    // Click "Week" button in the Month/Week toggle to go back to week
+    await page.getByRole('button', { name: 'Week', exact: true }).click()
     await page.waitForTimeout(300)
 
     expect(page.url()).toContain('/scheduler/calendar/week')
+    await expect(page.getByText('12 AM', { exact: true })).toBeVisible()
   })
 
   test('TC-NAV-04: forward/backward buttons update date param @scheduler @navigation', async ({
@@ -192,7 +194,8 @@ test.describe('URL-addressable scheduler — sidebar channels', () => {
   test('TC-SIDE-02: selecting a channel adds channels query param @scheduler', async ({ page }) => {
     const scheduler = new SchedulerPage(page)
     // Select the LinkedIn channel from the dropdown
-    await scheduler.selectPlatform('linkedin')
+    // Mock channels use the accountId as option value, not the provider name
+    await scheduler.selectPlatform('sa-linkedin-001')
 
     expect(page.url()).toContain('/scheduler/calendar/week')
     expect(page.url()).toContain('channels')

@@ -85,10 +85,10 @@ export class SchedulerPage {
   }
 
   async switchToDay(): Promise<void> {
-    // Click on a day cell in month view to switch to day view,
-    // or just navigate to it. For now, we click a cell if visible.
-    const firstCell = this.page.locator('.group\\/cell').first()
-    await firstCell.click()
+    // Navigate to day surface via URL — openDayView only sets the date
+    // without changing the surface to calendar-day.
+    await this.page.goto('/scheduler/calendar/week?surface=calendar-day')
+    await this.page.waitForLoadState('networkidle')
     await this.page.waitForTimeout(300)
   }
 
