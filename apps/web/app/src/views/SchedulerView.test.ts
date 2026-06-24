@@ -74,7 +74,7 @@ vi.mock('@/lib/auth-api', () => ({
 vi.mock('@/components/CreatePostModal.vue', () => ({
   default: {
     template:
-      '<div v-if="isOpen" data-testid="create-post-modal"><button data-testid="create-post-updated" @click="$emit(\'updated\')">updated</button></div>',
+      '<div v-if="isOpen" data-testid="create-post-modal"><button data-testid="create-post-updated" @click="$emit(\'updated\')">updated</button></div><div v-if="isOpen" data-testid="create-post-modal-open">open</div>',
     props: ['isOpen', 'initialDate', 'editingPublication'],
     emits: ['close', 'created', 'updated'],
   },
@@ -92,7 +92,7 @@ vi.mock('@/components/PostDetailModal.vue', () => ({
 vi.mock('@/components/CalendarHeader.vue', () => ({
   default: {
     template:
-      '<div data-testid="calendar-header"><button data-testid="header-new-post">New Post</button></div>',
+      '<div data-testid="calendar-header"><button data-testid="header-new-post" @click="$emit(\'new-post\')">New Post</button></div>',
     props: ['calendarView', 'surface', 'periodLabel'],
     emits: [
       'update:calendarView',
@@ -103,7 +103,7 @@ vi.mock('@/components/CalendarHeader.vue', () => ({
       'forward',
       'backward',
       'today',
-      'newPost',
+      'new-post',
     ],
   },
 }))
@@ -376,6 +376,9 @@ describe('SchedulerView', () => {
   it('refreshes calendar when CreatePostModal emits updated', async () => {
     const store = usePublishingStore()
     const wrapper = mountView()
+    await flushPromises()
+
+    await wrapper.find('[data-testid="header-new-post"]').trigger('click')
     await flushPromises()
 
     const initialCalls = (store.fetchCalendar as ReturnType<typeof vi.fn>).mock.calls.length

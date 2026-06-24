@@ -74,7 +74,9 @@ test.describe('Scheduler — Edit Post', () => {
 
     // Verify updated text appears in scheduler
     await scheduler.switchToList()
-    await expect(page.getByRole('button', { name: new RegExp(updatedText) })).toBeVisible({ timeout: 10_000 })
+    await expect(page.getByRole('button', { name: new RegExp(updatedText) })).toBeVisible({
+      timeout: 10_000,
+    })
   })
 
   /**

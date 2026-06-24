@@ -797,7 +797,7 @@ describe('CreatePostModal.vue — edit mode', () => {
 
     expect(updatePost).toHaveBeenCalledWith('pub-edit-1', {
       content: 'Updated NOW content',
-      scheduledAt: expect.any(String),
+      scheduledAt: undefined,
       priority: true,
       assetIds: ['asset-1', 'asset-2'],
       scheduleMode: 'NOW',
@@ -832,7 +832,7 @@ describe('CreatePostModal.vue — edit mode', () => {
 
     expect(updatePost).toHaveBeenCalledWith('pub-edit-1', {
       content: 'Updated NEXT_SLOT content',
-      scheduledAt: expect.any(String),
+      scheduledAt: undefined,
       priority: true,
       assetIds: ['asset-1', 'asset-2'],
       scheduleMode: 'NEXT_SLOT',
@@ -887,6 +887,7 @@ describe('CreatePostModal.vue — edit mode', () => {
       scheduledAt: '2026-06-25T14:30:00.000Z',
       priority: true,
       assetIds: ['asset-1', 'asset-2'],
+      scheduleMode: 'SCHEDULED_AT',
     })
     expect(schedulePost).not.toHaveBeenCalled()
     expect(wrapper.emitted('updated')).toHaveLength(1)
