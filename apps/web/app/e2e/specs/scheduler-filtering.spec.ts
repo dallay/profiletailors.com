@@ -21,8 +21,9 @@ test.describe('Scheduler — Filtering & Views', () => {
     // Ensure we are on week view
     await scheduler.switchToWeek()
 
-    // Select "All Channels" from the platform filter to ensure we start from a clean state
-    await scheduler.selectPlatform('')
+    // Click "All Channels" button to ensure we start from a clean state
+    await scheduler.allChannelsButton.click({ force: true })
+    await page.waitForTimeout(300)
 
     // Verify the scheduler header shows "All Channels"
     await expect(page.getByRole('heading', { name: 'All Channels' })).toBeVisible()

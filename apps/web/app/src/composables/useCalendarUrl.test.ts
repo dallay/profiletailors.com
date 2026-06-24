@@ -514,7 +514,7 @@ describe('useCalendarUrl — needsCanonicalization / areQueriesEquivalent', () =
         date: '2026-06-15',
         q: 'test',
         status: 'queued',
-        channels: ['acc-1'],
+        'channels[]': ['acc-1'],
       },
     })
   })
