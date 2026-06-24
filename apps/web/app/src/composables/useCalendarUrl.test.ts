@@ -397,17 +397,18 @@ function makeRoute(overrides: Partial<RouteLike>): RouteLike {
 const mockRouter = { push: vi.fn(), replace: vi.fn() }
 
 describe('useCalendarUrl — needsCanonicalization / areQueriesEquivalent', () => {
-  it('returns false when query is already canonical (same values, different key order)', () => {
+  it('returns false when array values are in different order (localeCompare sorts before comparison)', () => {
     const route = makeRoute({
-      query: { status: 'queued', channels: ['acc-1', 'acc-2'] },
+      query: { channels: ['acc-2', 'acc-1'] },
     })
     const controller = createCalendarUrlController(
       route as unknown as RouteLocationNormalizedLoaded,
       mockRouter,
     )
 
-    // The state query will have channels normalized in the same order — equivalent
-    // We build the state by calling normalizeQuery, which produces same result
+    // 'acc-2', 'acc-1' is reverse order — canonical form sorts to 'acc-1', 'acc-2'
+    // areQueriesEquivalent must sort both sides before comparing; if localeCompare
+    // is missing (default sort), this would produce ['acc-2', 'acc-1'] !== ['acc-1', 'acc-2']
     expect(controller.needsCanonicalization.value).toBe(false)
   })
 
