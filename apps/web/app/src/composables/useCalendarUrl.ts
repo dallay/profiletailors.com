@@ -137,7 +137,15 @@ function areQueriesEquivalent(left: Record<string, unknown>, right: LocationQuer
     Object.entries(query)
       .flatMap(([key, value]): Array<[string, string]> => {
         if (Array.isArray(value)) {
-          return [[key, value.map(String).sort().join(',')]]
+          return [
+            [
+              key,
+              value
+                .map(String)
+                .sort((a, b) => a.localeCompare(b))
+                .join(','),
+            ],
+          ]
         }
         if (value == null) return []
         return [[key, String(value)]]
