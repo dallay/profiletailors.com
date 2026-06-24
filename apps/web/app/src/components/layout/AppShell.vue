@@ -2,6 +2,7 @@
 import { computed, onBeforeUnmount, watch } from 'vue'
 import { RouterView, useRoute, useRouter } from 'vue-router'
 import { useI18n } from 'vue-i18n'
+import { extractFirstChannelId } from '@/composables/useCalendarUrl'
 import { Images, LayoutGrid } from '@lucide/vue'
 import {
   Sidebar,
@@ -29,6 +30,7 @@ import SidebarConnectSection, { type ConnectChannel } from '@/components/sidebar
 import SidebarAccountSection from '@/components/sidebar/SidebarAccountSection.vue'
 import UploadProgressToast from '@/components/UploadProgressToast.vue'
 import { useQueuedCounts } from '@/composables/useQueuedCounts'
+import { useCalendarUrl } from '@/composables/useCalendarUrl'
 
 // ---------------------------------------------------------------------------
 // Stores
@@ -40,6 +42,7 @@ const publishingStore = usePublishingStore()
 const router = useRouter()
 const route = useRoute()
 const { t } = useI18n()
+const calendarUrl = useCalendarUrl()
 
 // Page title for SPA route announcer (screen readers)
 const pageTitle = computed(() => {
@@ -138,8 +141,13 @@ function isSchedulerRoute() {
 
 async function showAllChannels() {
   try {
+    if (isSchedulerRoute()) {
+      await calendarUrl.setChannelIds([])
+      return
+    }
+
     await router.push({
-      path: '/scheduler/calendar/week',
+      name: 'scheduler-calendar-week',
       query: {},
     })
   } catch (e) {
@@ -147,11 +155,20 @@ async function showAllChannels() {
   }
 }
 
-async function selectChannel(channel: SidebarChannel) {
+async function selectChannel(accountId: string) {
   try {
+    const nextChannelIds = isSchedulerRoute()
+      ? [...new Set([...calendarUrl.state.value.channelIds, accountId])]
+      : [accountId]
+
+    if (isSchedulerRoute()) {
+      await calendarUrl.setChannelIds(nextChannelIds)
+      return
+    }
+
     await router.push({
-      path: '/scheduler/calendar/week',
-      query: { channels: [channel.accountId] },
+      name: 'scheduler-calendar-week',
+      query: { 'channels[]': nextChannelIds },
     })
   } catch (e) {
     console.error('Failed to navigate to scheduler', e)
@@ -263,11 +280,7 @@ onBeforeUnmount(() => {
 
             <SidebarChannelsSection
               :channels="sidebarChannels"
-              :active-channel-id="typeof route.query.channels === 'string'
-                ? route.query.channels
-                : Array.isArray(route.query.channels)
-                  ? route.query.channels[0] || null
-                  : null"
+              :active-channel-id="extractFirstChannelId(route.query)"
               :total-queued-count="totalQueuedCount"
               :is-scheduler-route="isSchedulerRoute()"
               @select-all="showAllChannels"

@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { computed } from 'vue'
 import {
   CalendarDays,
   ChevronDown,
@@ -12,7 +13,7 @@ import { Button } from '@/components/ui/button'
 
 const publishingStore = usePublishingStore()
 
-defineProps<{
+const props = defineProps<{
   /** Current calendar sub-view */
   calendarView: 'month' | 'week' | 'day'
   /** Full scheduler surface */
@@ -24,16 +25,20 @@ defineProps<{
 }>()
 
 const emit = defineEmits<{
-  (e: 'update:calendarView', view: 'month' | 'week' | 'day'): void
-  (e: 'update:surface', surface: SchedulerSurface): void
-  (e: 'update:status', status: SchedulerStatus): void
-  (e: 'update:timezone', timezone: string): void
-  (e: 'update:channels', channelIds: string[]): void
-  (e: 'forward'): void
-  (e: 'backward'): void
-  (e: 'today'): void
+  (e: 'change:view', surface: SchedulerSurface): void
+  (e: 'change:date', action: 'forward' | 'backward' | 'today'): void
+  (e: 'change:filter', filter: {
+    status?: SchedulerStatus
+    timezone?: string
+    channelIds?: string[]
+  }): void
   (e: 'newPost'): void
 }>()
+
+/** Derives the calendar surface from the current calendarView prop for the calendar toggle. */
+const calendarSurface = computed<SchedulerSurface>(() =>
+  props.calendarView === 'month' ? 'calendar-month' : 'calendar-week',
+)
 </script>
 
 <template>
@@ -57,14 +62,14 @@ const emit = defineEmits<{
         <button
           class="cursor-pointer rounded-full px-2.5 py-1 transition-all"
           :class="calendarView === 'month' ? 'bg-text-display text-bg-primary' : 'text-text-secondary hover:text-text-display'"
-          @click="emit('update:calendarView', 'month')"
+          @click="emit('change:view', 'calendar-month')"
         >
           {{ $t('scheduler.calendar') || 'Month' }}
         </button>
         <button
           class="cursor-pointer rounded-full px-2.5 py-1 transition-all"
           :class="calendarView === 'week' ? 'bg-text-display text-bg-primary' : 'text-text-secondary hover:text-text-display'"
-          @click="emit('update:calendarView', 'week')"
+          @click="emit('change:view', 'calendar-week')"
         >
           {{ $t('scheduler.weekView') || 'Week' }}
         </button>
@@ -75,14 +80,14 @@ const emit = defineEmits<{
         <button
           class="cursor-pointer rounded-full px-3 py-1 transition-all"
           :class="surface !== 'list' ? 'bg-text-display text-bg-primary' : 'text-text-secondary hover:text-text-display'"
-          @click="emit('update:surface', calendarView === 'month' ? 'calendar-month' : 'calendar-week')"
+          @click="emit('change:view', calendarSurface)"
         >
           {{ $t('scheduler.calendar') || 'Calendar' }}
         </button>
         <button
           class="cursor-pointer rounded-full px-3 py-1 transition-all"
           :class="surface === 'list' ? 'bg-text-display text-bg-primary' : 'text-text-secondary hover:text-text-display'"
-          @click="emit('update:surface', 'list')"
+          @click="emit('change:view', 'list')"
         >
           {{ $t('scheduler.list') || 'List' }}
         </button>
@@ -94,7 +99,7 @@ const emit = defineEmits<{
         <select
           id="calendar-timezone-select"
           class="bg-bg-surface border border-border-subtle rounded-full px-3 py-1.5 text-[10px] font-mono font-bold text-text-secondary appearance-none pr-8 cursor-pointer focus:outline-none focus:border-text-display"
-          @change="(e) => emit('update:timezone', (e.target as HTMLSelectElement).value)"
+          @change="(e) => emit('change:filter', { timezone: (e.target as HTMLSelectElement).value })"
         >
           <option :value="timezone">🌐 {{ timezone || 'UTC' }}</option>
           <option value="Europe/Madrid">📍 Europe/Madrid</option>
@@ -112,7 +117,7 @@ const emit = defineEmits<{
           class="bg-bg-surface border border-border-subtle rounded-full px-3 py-1.5 text-[10px] font-mono font-bold text-text-secondary appearance-none pr-8 cursor-pointer focus:outline-none focus:border-text-display"
           @change="(e) => {
             const val = (e.target as HTMLSelectElement).value
-            emit('update:channels', val ? [val] : [])
+            emit('change:filter', { channelIds: val ? [val] : [] })
           }"
         >
           <option value="">👤 {{ $t('scheduler.channelsLabel') || 'Platform' }}</option>
@@ -133,7 +138,7 @@ const emit = defineEmits<{
         <select
           id="calendar-post-status-select"
           class="bg-bg-surface border border-border-subtle rounded-full px-3 py-1.5 text-[10px] font-mono font-bold text-text-secondary appearance-none pr-8 cursor-pointer focus:outline-none focus:border-text-display"
-          @change="(e) => emit('update:status', (e.target as HTMLSelectElement).value as SchedulerStatus)"
+          @change="(e) => emit('change:filter', { status: (e.target as HTMLSelectElement).value as SchedulerStatus })"
         >
           <option value="all">📁 {{ $t('scheduler.allPosts') || 'All Posts' }}</option>
           <option value="queued">⏳ Queued</option>
@@ -161,13 +166,13 @@ const emit = defineEmits<{
     <!-- Navigation arrows -->
     <div class="flex items-center gap-1">
       <button
-        @click="emit('backward')"
+        @click="emit('change:date', 'backward')"
         class="size-8 flex items-center justify-center rounded-lg border border-border-visible hover:border-text-secondary hover:text-text-display bg-bg-primary transition-colors cursor-pointer text-text-secondary"
       >
         <ChevronLeft class="size-4" />
       </button>
       <button
-        @click="emit('forward')"
+        @click="emit('change:date', 'forward')"
         class="size-8 flex items-center justify-center rounded-lg border border-border-visible hover:border-text-secondary hover:text-text-display bg-bg-primary transition-colors cursor-pointer text-text-secondary"
       >
         <ChevronRight class="size-4" />
@@ -182,7 +187,7 @@ const emit = defineEmits<{
     <!-- Actions -->
     <div class="flex items-center gap-2">
       <button
-        @click="emit('today')"
+        @click="emit('change:date', 'today')"
         class="border border-border-visible hover:border-text-secondary bg-bg-primary text-text-secondary hover:text-text-display font-mono text-[9px] uppercase tracking-wider font-bold rounded-lg px-3 py-1.5 transition-colors cursor-pointer"
       >
         {{ $t('scheduler.today') || 'Today' }}
