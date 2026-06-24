@@ -49,6 +49,7 @@ const isModalOpen = ref(false)
 const selectedCellDate = ref<string | undefined>(undefined)
 const isDetailModalOpen = ref(false)
 const detailPublication = ref<Publication | null>(null)
+const editingPublication = ref<Publication | null>(null)
 
 // ---------------------------------------------------------------------------
 // Drag-and-drop state
@@ -398,6 +399,35 @@ function openPostDetail(pub: Publication) {
 function closePostDetail() {
   isDetailModalOpen.value = false
   detailPublication.value = null
+}
+
+function handleEditPublication(publication: Publication) {
+  isDetailModalOpen.value = false
+  detailPublication.value = null
+  editingPublication.value = publication
+  isModalOpen.value = true
+}
+
+async function handleUpdated() {
+  isModalOpen.value = false
+  editingPublication.value = null
+
+  const state = url.state.value
+  const baseDate = new Date(`${state.date}T00:00:00`)
+  const from =
+    state.surface === 'calendar-month'
+      ? new Date(baseDate.getFullYear(), baseDate.getMonth(), 1)
+      : new Date(baseDate.getFullYear(), baseDate.getMonth(), baseDate.getDate() - baseDate.getDay())
+  const to =
+    state.surface === 'calendar-month'
+      ? new Date(baseDate.getFullYear(), baseDate.getMonth() + 1, 0)
+      : new Date(from.getFullYear(), from.getMonth(), from.getDate() + 6)
+
+  await publishingStore.fetchCalendar(from.toISOString(), to.toISOString(), {
+    status: state.status !== 'all' ? state.status : undefined,
+    socialAccountId: state.channelIds[0],
+    timezone: state.timezone,
+  })
 }
 
 function onReschedule() {
@@ -859,8 +889,10 @@ watch(
     <CreatePostModal
       :is-open="isModalOpen"
       :initial-date="selectedCellDate"
-      @close="isModalOpen = false"
+      :editing-publication="editingPublication"
+      @close="isModalOpen = false; editingPublication = null"
       @created="isModalOpen = false"
+      @updated="handleUpdated"
     />
 
     <!-- Read-only post detail modal -->
@@ -870,6 +902,7 @@ watch(
       @close="closePostDetail"
       @deleted="closePostDetail"
       @reschedule="onReschedule"
+      @edit="handleEditPublication"
     />
   </div>
 </template>

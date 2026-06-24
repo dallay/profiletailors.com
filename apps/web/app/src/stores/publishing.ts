@@ -50,6 +50,7 @@ export interface Publication {
   title?: string
   channels: ('twitter' | 'linkedin' | 'instagram' | 'facebook')[]
   scheduledAt: string // ISO string
+  scheduleMode?: 'NOW' | 'NEXT_SLOT' | 'SCHEDULED_AT'
   status:
     | 'DRAFT'
     | 'QUEUED'
@@ -61,6 +62,7 @@ export interface Publication {
     | 'CANCELLED'
   priority: boolean
   thumbnail?: string
+  assetIds?: string[]
   mediaFiles?: File[] // Local file list for previewing uploads
   hasConflict?: boolean
   conflictingPublicationIds?: string[]
@@ -92,6 +94,7 @@ export interface CalendarPublicationResult {
   priority: boolean
   title: string | null
   bodyText: string | null
+  assetIds: string[]
   scheduledFor: string | null
   hasConflict: boolean
   conflictingPublicationIds: string[]
@@ -271,8 +274,10 @@ function apiResultToPublication(api: CalendarPublicationResult): Publication {
     title: api.title ?? undefined,
     channels: [toChannelProvider(api.provider)],
     scheduledAt: api.scheduledFor ?? new Date().toISOString(),
+    scheduleMode: api.scheduleMode as Publication['scheduleMode'],
     status: mapApiStatus(api.status),
     priority: api.priority,
+    assetIds: api.assetIds,
     hasConflict: api.hasConflict,
     conflictingPublicationIds: api.conflictingPublicationIds,
     accountId: api.socialAccountId,
@@ -292,8 +297,10 @@ function publicationMutationResultToPublication(
     title: result.title ?? undefined,
     content: result.bodyText ?? result.title ?? '',
     scheduledAt: result.scheduledFor ?? current.scheduledAt,
+    scheduleMode: result.scheduleMode as Publication['scheduleMode'],
     status: mapApiStatus(result.status),
     priority: result.priority,
+    assetIds: result.assetIds,
     accountId: result.socialAccountId,
     externalPublicationId: result.externalPublicationId ?? undefined,
     publicUrl: result.publicUrl ?? undefined,

@@ -87,16 +87,45 @@ function makeChannel(id: string, overrides: Partial<Omit<TestChannel, 'id'>> = {
   }
 }
 
-function mountModal(channels: TestChannel[]) {
+function mountModal(channels: TestChannel[], props: Record<string, unknown> = {}) {
   const store = usePublishingStore()
   store.channels = channels
 
   return mount(CreatePostModalComponent, {
-    props: { isOpen: true },
+    props: { isOpen: true, ...props },
     global: {
       mocks: { $t: mockT },
     },
   })
+}
+
+function makeEditingPublication(
+  overrides: Partial<
+    Parameters<typeof mountModal>[1] & {
+      id: string
+      content: string
+      channels: ('linkedin' | 'twitter' | 'instagram' | 'facebook')[]
+      scheduledAt: string
+      scheduleMode: 'NOW' | 'NEXT_SLOT' | 'SCHEDULED_AT'
+      status: 'DRAFT' | 'QUEUED' | 'SCHEDULED'
+      priority: boolean
+      accountId: string
+      assetIds: string[]
+    }
+  > = {},
+) {
+  return {
+    id: 'pub-edit-1',
+    content: 'Existing scheduled content',
+    channels: ['linkedin'] as const,
+    scheduledAt: '2026-06-25T14:30:00Z',
+    scheduleMode: 'SCHEDULED_AT' as const,
+    status: 'SCHEDULED' as const,
+    priority: true,
+    accountId: 'ch-edit-1',
+    assetIds: ['asset-1', 'asset-2'],
+    ...overrides,
+  }
 }
 
 // ---------------------------------------------------------------------------
@@ -682,6 +711,136 @@ describe('CreatePostModal.vue — deferred media upload on submit', () => {
         assetIds: ['persistent-asset-id'],
       }),
     )
+  })
+})
+
+describe('CreatePostModal.vue — edit mode', () => {
+  beforeEach(() => {
+    setActivePinia(createPinia())
+    document.body.innerHTML = ''
+    vi.clearAllMocks()
+  })
+
+  afterEach(() => {
+    document.body.innerHTML = ''
+  })
+
+  it('pre-fills content, schedule mode, date, time, priority, and media in edit mode', async () => {
+    const mediaStore = useMediaStore()
+    const wrapper = mountModal([makeChannel('ch-edit-1')], {
+      editingPublication: makeEditingPublication(),
+    })
+
+    await wrapper.vm.$nextTick()
+    await Promise.resolve()
+
+    const textarea = document.body.querySelector('textarea') as HTMLTextAreaElement | null
+    const timeInput = document.body.querySelector('input[type="time"]') as HTMLInputElement | null
+    const customModeButton = document.body.querySelector(
+      'button[role="radio"][aria-checked="true"]',
+    ) as HTMLButtonElement | null
+    const checkboxes = document.body.querySelectorAll('input[type="checkbox"]')
+
+    expect(textarea?.value).toBe('Existing scheduled content')
+    expect(customModeButton?.textContent).toContain('Pick Date')
+    // time is parsed from scheduledAt UTC and rendered in local TZ — only verify format
+    expect(timeInput?.value).toMatch(/^\d{2}:\d{2}$/)
+    expect((checkboxes[0] as HTMLInputElement | undefined)?.checked).toBe(true)
+    expect(mediaStore.selectedAssetIds).toEqual(['asset-1', 'asset-2'])
+    expect(document.body.innerHTML).toContain('Jun 25, 2026')
+  })
+
+  it('maps NOW and NEXT_SLOT schedule modes into edit-mode toggle state', async () => {
+    const nowWrapper = mountModal([makeChannel('ch-edit-1')], {
+      editingPublication: makeEditingPublication({ scheduleMode: 'NOW' }),
+    })
+    await nowWrapper.vm.$nextTick()
+    expect(
+      document.body.querySelector('button[role="radio"][aria-checked="true"]')?.textContent,
+    ).toContain('Now')
+    nowWrapper.unmount()
+    document.body.innerHTML = ''
+
+    const nextWrapper = mountModal([makeChannel('ch-edit-1')], {
+      editingPublication: makeEditingPublication({ scheduleMode: 'NEXT_SLOT' }),
+    })
+    await nextWrapper.vm.$nextTick()
+    expect(
+      document.body.querySelector('button[role="radio"][aria-checked="true"]')?.textContent,
+    ).toContain('Next Schedule')
+  })
+
+  it('locks channel selection and hides create-another in edit mode', async () => {
+    const wrapper = mountModal([makeChannel('ch-edit-1'), makeChannel('ch-edit-2')], {
+      editingPublication: makeEditingPublication(),
+    })
+    await wrapper.vm.$nextTick()
+
+    const channelButtons = Array.from(document.body.querySelectorAll('button')).filter((button) =>
+      button.textContent?.includes('Channel ch-edit-'),
+    ) as HTMLButtonElement[]
+
+    expect(channelButtons.length).toBeGreaterThan(0)
+    channelButtons.forEach((button) => expect(button.disabled).toBe(true))
+    expect(document.body.innerHTML).toContain('composer.saveChanges')
+    expect(document.body.innerHTML).not.toContain('Create Another')
+  })
+
+  it('submits through updatePost, emits updated, and does not call schedulePost in edit mode', async () => {
+    const store = usePublishingStore()
+    const updatePost = vi.spyOn(store, 'updatePost').mockResolvedValue({
+      ...makeEditingPublication(),
+      content: 'Updated content',
+    })
+    const schedulePost = vi.spyOn(store, 'schedulePost')
+
+    const wrapper = mountModal([makeChannel('ch-edit-1')], {
+      editingPublication: makeEditingPublication(),
+    })
+    await wrapper.vm.$nextTick()
+
+    const textarea = document.body.querySelector('textarea') as HTMLTextAreaElement | null
+    textarea!.value = 'Updated content'
+    textarea?.dispatchEvent(new Event('input', { bubbles: true }))
+    await wrapper.vm.$nextTick()
+
+    const submitButton = Array.from(document.body.querySelectorAll('button')).find((button) =>
+      button.textContent?.includes('composer.saveChanges'),
+    ) as HTMLButtonElement | undefined
+    submitButton?.click()
+
+    await wrapper.vm.$nextTick()
+    await Promise.resolve()
+
+    expect(updatePost).toHaveBeenCalledWith('pub-edit-1', {
+      content: 'Updated content',
+      scheduledAt: '2026-06-25T14:30:00.000Z',
+      priority: true,
+      assetIds: ['asset-1', 'asset-2'],
+    })
+    expect(schedulePost).not.toHaveBeenCalled()
+    expect(wrapper.emitted('updated')).toHaveLength(1)
+  })
+
+  it('surfaces update errors in edit mode', async () => {
+    const store = usePublishingStore()
+    vi.spyOn(store, 'updatePost').mockRejectedValue(new Error('Update failed'))
+
+    const wrapper = mountModal([makeChannel('ch-edit-1')], {
+      editingPublication: makeEditingPublication(),
+    })
+    await wrapper.vm.$nextTick()
+
+    const submitButton = Array.from(document.body.querySelectorAll('button')).find((button) =>
+      button.textContent?.includes('composer.saveChanges'),
+    ) as HTMLButtonElement | undefined
+    submitButton?.click()
+
+    await wrapper.vm.$nextTick()
+    await Promise.resolve()
+
+    expect(document.body.innerHTML).toContain('Update failed')
+    expect(wrapper.emitted('updated')).toBeUndefined()
   })
 })
 

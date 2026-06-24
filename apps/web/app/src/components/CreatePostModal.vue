@@ -17,7 +17,7 @@ import {
   X,
 } from '@lucide/vue'
 import { useAuthStore } from '@/stores/auth'
-import { usePublishingStore } from '@/stores/publishing'
+import { usePublishingStore, type Publication } from '@/stores/publishing'
 import { useMediaStore } from '@/stores/media'
 import { proxyImageUrl, resolveApiUrl } from '@/lib/auth-api'
 import PostPreviewPanel from '@/components/composer/PostPreviewPanel.vue'
@@ -33,6 +33,7 @@ const props = withDefaults(
   defineProps<{
     isOpen: boolean
     initialDate?: string // ISO string
+    editingPublication?: Publication // Pre-fill for editing
   }>(),
   {
     isOpen: false,
@@ -42,6 +43,7 @@ const props = withDefaults(
 const emit = defineEmits<{
   (e: 'close'): void
   (e: 'created'): void
+  (e: 'updated'): void
 }>()
 
 const { t } = useI18n()
@@ -62,6 +64,12 @@ const isDatePickerOpen = ref(false)
 
 const modalContainer = ref<HTMLElement | null>(null)
 const { activate: activateFocusTrap, deactivate: deactivateFocusTrap } = useFocusTrap(modalContainer, () => emit('close'))
+
+// ---------------------------------------------------------------------------
+// Edit mode
+// ---------------------------------------------------------------------------
+const isEditMode = computed(() => !!props.editingPublication)
+const isCreating = computed(() => !isEditMode.value)
 
 // ---------------------------------------------------------------------------
 // Media picker state (replaces local-only File attachment truth)
@@ -116,59 +124,96 @@ const minTimeForDate = computed(() => {
   return '00:00'
 })
 
+async function initializeComposerForOpen() {
+  submitError.value = ''
+  isDatePickerOpen.value = false
+  avatarLoadFailed.value = {}
+  clearUploadPreviewBlob()
+  selectedUploadFile.value = null
+  uploadTempKey.value = null
+  uploadProgress.value = 0
+
+  if (isEditMode.value && props.editingPublication) {
+    // ---- Edit mode: pre-fill from existing publication ----
+    const pub = props.editingPublication
+    postText.value = pub.content ?? ''
+    firstComment.value = ''
+    priorityMode.value = pub.priority ?? false
+    const modeMap: Record<string, ComposerScheduleMode> = {
+      NOW: 'now',
+      NEXT_SLOT: 'next',
+      SCHEDULED_AT: 'custom',
+    }
+    scheduleMode.value = modeMap[pub.scheduleMode ?? 'SCHEDULED_AT'] ?? 'custom'
+
+    mediaStore.clearSelection()
+    if (pub.assetIds?.length) {
+      pub.assetIds.forEach((id) => {
+        mediaStore.addToSelection(id)
+      })
+    }
+
+    const pubChannelId = pub.accountId
+      ?? publishingStore.channels.find((ch) => pub.channels?.includes(ch.provider))?.id
+      ?? null
+    selectedChannelId.value = pubChannelId
+
+    const dateSrc = pub.scheduledAt ? new Date(pub.scheduledAt) : new Date()
+    selectedCalendarDate.value = new CalendarDate(
+      dateSrc.getFullYear(),
+      dateSrc.getMonth() + 1,
+      dateSrc.getDate(),
+    )
+    scheduleTime.value = `${String(dateSrc.getHours()).padStart(2, '0')}:${String(dateSrc.getMinutes()).padStart(2, '0')}`
+  } else {
+    // ---- Create mode: start with empty form ----
+    postText.value = ''
+    firstComment.value = ''
+    priorityMode.value = false
+    scheduleMode.value = props.initialDate ? 'custom' : 'now'
+    mediaStore.clearSelection()
+    selectedChannelId.value = publishingStore.channels[0]?.id ?? null
+
+    const defaultDate = props.initialDate ? new Date(props.initialDate) : new Date()
+    selectedCalendarDate.value = new CalendarDate(
+      defaultDate.getFullYear(),
+      defaultDate.getMonth() + 1,
+      defaultDate.getDate(),
+    )
+    scheduleTime.value = `${String(defaultDate.getHours()).padStart(2, '0')}:${String(defaultDate.getMinutes()).padStart(2, '0')}`
+  }
+
+  if (auth.isAuthenticated) {
+    try {
+      await mediaStore.loadDanglingAssets()
+    } catch {
+      // Non-critical — dangling load failure shouldn't block the composer
+    }
+  }
+
+  await nextTick()
+  if (props.isOpen) {
+    activateFocusTrap()
+  }
+}
+
 // Initialize Date + focus trap
 watch(
   () => props.isOpen,
   async (open) => {
     if (open) {
-      // Clear form
-      postText.value = ''
-      firstComment.value = ''
-      priorityMode.value = false
-      submitError.value = ''
-      scheduleMode.value = props.initialDate ? 'custom' : 'now'
-      isDatePickerOpen.value = false
-      avatarLoadFailed.value = {}
-      selectedChannelId.value = publishingStore.channels[0]?.id ?? null
-
-      // Clear selected/uploaded media state
-      mediaStore.clearSelection()
-      clearUploadPreviewBlob()
-      selectedUploadFile.value = null
-      uploadTempKey.value = null
-      uploadProgress.value = 0
-
-      const defaultDate = props.initialDate ? new Date(props.initialDate) : new Date()
-      selectedCalendarDate.value = new CalendarDate(
-        defaultDate.getFullYear(),
-        defaultDate.getMonth() + 1,
-        defaultDate.getDate(),
-      )
-
-      const hours = String(defaultDate.getHours()).padStart(2, '0')
-      const minutes = String(defaultDate.getMinutes()).padStart(2, '0')
-      scheduleTime.value = `${hours}:${minutes}`
-
-      // Load dangling uploads from prior sessions (PROCESSING + FAILED)
-      // so the user can recover or retry them.
-      if (auth.isAuthenticated) {
-        try {
-          await mediaStore.loadDanglingAssets()
-        } catch {
-          // Non-critical — dangling load failure shouldn't block the composer
-        }
-      }
-
-      // Activate focus trap after next render
-      await nextTick()
-      if (props.isOpen) {
-        activateFocusTrap()
-      }
+      await initializeComposerForOpen()
     } else {
       deactivateFocusTrap()
     }
-  }
+  },
 )
+
+onMounted(async () => {
+  if (props.isOpen && isEditMode.value) {
+    await initializeComposerForOpen()
+  }
+})
 
 watch(
   () => publishingStore.channels,
@@ -554,29 +599,42 @@ async function handleSchedule() {
         ? 'NEXT_SLOT'
         : 'SCHEDULED_AT'
 
-    await publishingStore.schedulePost({
-      content: normalizedPostText,
-      title: 'Post from App',
-      channels: selectedProviders.value,
-      scheduledAt: finalScheduledDate?.toISOString(),
-      nextSlotAfter: scheduleMode.value === 'next' ? now.value.toISOString() : undefined,
-      scheduleMode: backendScheduleMode,
-      priority: priorityMode.value,
-      thumbnail: selectedAssetIsImage.value
-        ? (uploadPreviewBlob.value ?? selectedAssetPreviewUrl.value ?? undefined)
-        : undefined,
-      assetIds: [...mediaStore.selectedAssetIds],
-      socialAccountId: selectedChannel.value?.accountId,
-    })
-
-    emit('created')
-
-    if (shouldCreateAnother) {
-      postText.value = ''
-      removeFile()
-      firstComment.value = ''
-    } else {
+    if (isEditMode.value && props.editingPublication) {
+      // Edit mode: call updatePost
+      await publishingStore.updatePost(props.editingPublication.id, {
+        content: normalizedPostText,
+        scheduledAt: finalScheduledDate?.toISOString(),
+        priority: priorityMode.value,
+        assetIds: [...mediaStore.selectedAssetIds],
+      })
+      emit('updated')
       emit('close')
+    } else {
+      // Create mode
+      await publishingStore.schedulePost({
+        content: normalizedPostText,
+        title: 'Post from App',
+        channels: selectedProviders.value,
+        scheduledAt: finalScheduledDate?.toISOString(),
+        nextSlotAfter: scheduleMode.value === 'next' ? now.value.toISOString() : undefined,
+        scheduleMode: backendScheduleMode,
+        priority: priorityMode.value,
+        thumbnail: selectedAssetIsImage.value
+          ? (uploadPreviewBlob.value ?? selectedAssetPreviewUrl.value ?? undefined)
+          : undefined,
+        assetIds: [...mediaStore.selectedAssetIds],
+        socialAccountId: selectedChannel.value?.accountId,
+      })
+
+      emit('created')
+
+      if (shouldCreateAnother) {
+        postText.value = ''
+        removeFile()
+        firstComment.value = ''
+      } else {
+        emit('close')
+      }
     }
   } catch (err) {
     submitError.value = err instanceof Error ? err.message : 'Unable to schedule post.'
@@ -622,9 +680,9 @@ async function handleSchedule() {
         <!-- Left Column: Composer Editor -->
         <div class="flex-1 flex flex-col border-b lg:border-b-0 lg:border-r border-border-subtle p-6 overflow-y-auto space-y-6">
           <div class="flex items-center justify-between">
-            <h3 id="create-post-title" class="font-mono text-xs font-bold tracking-widest text-text-display uppercase">
-              {{ $t('composer.title') }}
-            </h3>
+              <h3 id="create-post-title" class="font-mono text-xs font-bold tracking-widest text-text-display uppercase">
+                {{ isEditMode ? $t('composer.editTitle') : $t('composer.title') }}
+              </h3>
             <button
               @click="emit('close')"
               class="hidden lg:flex size-7 items-center justify-center rounded-xl border border-border-subtle bg-bg-primary text-text-secondary hover:text-text-display cursor-pointer"
@@ -642,11 +700,16 @@ async function handleSchedule() {
               <button
                 v-for="ch in publishingStore.channels.filter(ch => ch.status === 'ACTIVE')"
                 :key="ch.id"
-                @click="selectChannel(ch.id)"
-                class="relative flex items-center gap-2 border rounded-full px-3 py-1.5 font-mono text-[10px] tracking-wide transition-all cursor-pointer"
-                :class="selectedChannelId === ch.id
-                  ? 'border-text-display bg-bg-primary text-text-display font-bold'
-                  : 'border-border-visible text-text-secondary hover:text-text-display bg-bg-primary/50'"
+                @click="isEditMode ? undefined : selectChannel(ch.id)"
+                :disabled="isEditMode"
+                class="relative flex items-center gap-2 border rounded-full px-3 py-1.5 font-mono text-[10px] tracking-wide transition-all"
+                :class="[
+                  selectedChannelId === ch.id
+                    ? 'border-text-display bg-bg-primary text-text-display font-bold'
+                    : 'border-border-visible text-text-secondary hover:text-text-display bg-bg-primary/50',
+                  isEditMode ? 'opacity-60 cursor-not-allowed' : 'cursor-pointer',
+                ]"
+                :data-edit-disabled="isEditMode ? 'true' : 'false'"
               >
                 <img
                   v-if="shouldShowChannelAvatar(ch.id, ch.avatarUrl)"
@@ -938,7 +1001,7 @@ async function handleSchedule() {
                   <input type="checkbox" v-model="priorityMode" class="accent-text-display" />
                   <span>Priority Queue</span>
                 </label>
-                <label class="flex items-center gap-1.5 cursor-pointer hover:text-text-display select-none">
+                <label v-if="!isEditMode" class="flex items-center gap-1.5 cursor-pointer hover:text-text-display select-none">
                   <input type="checkbox" v-model="createAnother" class="accent-text-display" />
                   <span>Create Another</span>
                 </label>
@@ -963,7 +1026,7 @@ async function handleSchedule() {
                   :disabled="!canSubmit"
                   class="col-span-2 justify-center py-2.5 font-bold"
                 >
-                  {{ scheduleMode === 'now' ? 'Schedule Now' : scheduleMode === 'next' ? 'Next Schedule' : $t('composer.scheduleBtn') }}
+                  {{ isEditMode ? $t('composer.saveChanges') : scheduleMode === 'now' ? 'Schedule Now' : scheduleMode === 'next' ? 'Next Schedule' : $t('composer.scheduleBtn') }}
                 </Button>
               </div>
             </div>

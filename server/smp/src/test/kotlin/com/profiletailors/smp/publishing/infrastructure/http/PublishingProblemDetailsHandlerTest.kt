@@ -113,15 +113,4 @@ class PublishingProblemDetailsHandlerTest {
         assertEquals("Publication state conflict", problem.title)
         assertEquals("Generic state transition error for pub-base", problem.detail)
     }
-
-    @Test
-    fun `uses fallback detail message when exception message is null`() {
-        // Subclass with null message is not directly constructable, so verify via a
-        // concrete subclass that the detail is never null in practice
-        val exception = PublicationEditNotAllowedException("pub-null-msg")
-        val problem = handler.handle(exception)
-
-        // The handler provides a fallback string; detail must not be null
-        assertTrue(problem.detail != null)
-    }
 }

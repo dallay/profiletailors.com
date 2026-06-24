@@ -71,13 +71,20 @@ vi.mock('@/lib/auth-api', () => ({
 }))
 
 vi.mock('@/components/CreatePostModal.vue', () => ({
-  default: { template: '<div data-testid="create-post-modal" />' },
+  default: {
+    template:
+      '<div data-testid="create-post-modal"><button data-testid="create-post-updated" @click="$emit(\'updated\')">updated</button></div>',
+    props: ['isOpen', 'initialDate', 'editingPublication'],
+    emits: ['close', 'created', 'updated'],
+  },
 }))
 
 vi.mock('@/components/PostDetailModal.vue', () => ({
   default: {
-    template: '<div data-testid="post-detail-modal" />',
+    template:
+      '<div data-testid="post-detail-modal"><button data-testid="detail-edit" @click="$emit(\'edit\', publication)">edit</button></div>',
     props: ['isOpen', 'publication'],
+    emits: ['close', 'deleted', 'reschedule', 'edit'],
   },
 }))
 
@@ -336,5 +343,47 @@ describe('SchedulerView', () => {
 
     // Verify the view is still rendered - onDropCell catches the error internally
     expect(wrapper.exists()).toBe(true)
+  })
+
+  it('opens CreatePostModal in edit mode when PostDetailModal emits edit', async () => {
+    const store = usePublishingStore()
+    const pub = {
+      id: 'pub-edit-flow',
+      content: 'Editable post',
+      channels: ['linkedin'] as const,
+      scheduledAt: '2026-06-25T10:00:00Z',
+      status: 'SCHEDULED' as const,
+      priority: false,
+    }
+    store.publications = [pub]
+
+    const wrapper = mountView({ date: '2026-06-25' })
+    await flushPromises()
+
+    // Open detail modal by clicking publication card if available
+    const vm = wrapper.vm as unknown as { openPostDetail: (pub: typeof pub) => void }
+    vm.openPostDetail(pub)
+    await wrapper.vm.$nextTick()
+
+    const editBtn = wrapper.find('[data-testid="detail-edit"]')
+    await editBtn.trigger('click')
+    await wrapper.vm.$nextTick()
+
+    expect(wrapper.find('[data-testid="create-post-modal"]').exists()).toBe(true)
+  })
+
+  it('refreshes calendar when CreatePostModal emits updated', async () => {
+    const store = usePublishingStore()
+    const wrapper = mountView()
+    await flushPromises()
+
+    const initialCalls = (store.fetchCalendar as ReturnType<typeof vi.fn>).mock.calls.length
+    const updatedBtn = wrapper.find('[data-testid="create-post-updated"]')
+    await updatedBtn.trigger('click')
+    await flushPromises()
+
+    expect((store.fetchCalendar as ReturnType<typeof vi.fn>).mock.calls.length).toBeGreaterThan(
+      initialCalls,
+    )
   })
 })

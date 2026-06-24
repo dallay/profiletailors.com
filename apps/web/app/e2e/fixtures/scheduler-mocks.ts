@@ -219,6 +219,43 @@ export async function registerSchedulerMocks(context: BrowserContext): Promise<v
     route.fulfill(json({ success: true }))
   })
 
+  // --- Publication PATCH (updatePost) — overrides the broad publications pattern ---
+  await context.route(/\/api\/publishing\/publications\/[^/]+$/, async (route) => {
+    const method = route.request().method()
+    if (method === 'PATCH') {
+      const body = route.request().postDataJSON()
+      const url = route.request().url()
+      const id = url.split('/publications/')[1]?.split('?')[0]
+      const pub = publications.find((p) => p.id === id)
+      if (pub) {
+        pub.bodyText = body?.bodyText ?? pub.bodyText
+        pub.title = body?.title ?? pub.title
+        pub.scheduledFor = body?.scheduledFor ?? pub.scheduledFor
+        pub.scheduleMode = body?.scheduleMode ?? pub.scheduleMode
+        pub.priority = body?.priority ?? pub.priority
+        pub.assetIds = body?.assetIds ?? pub.assetIds
+      }
+      route.fulfill(
+        json({
+          publicationId: id,
+          workspaceId: MOCK_WORKSPACE_ID,
+          socialAccountId: body?.socialAccountId ?? MOCK_SOCIAL_ACCOUNT_ID,
+          status: pub?.status ?? 'QUEUED',
+          scheduleMode: body?.scheduleMode ?? 'SCHEDULED_AT',
+          priority: body?.priority ?? false,
+          title: body?.title ?? null,
+          bodyText: body?.bodyText ?? null,
+          assetIds: body?.assetIds ?? [],
+          scheduledFor: body?.scheduledFor ?? null,
+          nextSlotAfter: null,
+        }),
+      )
+      return
+    }
+    // GET — fall through to the existing GET handler registered earlier
+    route.fallback()
+  })
+
   // --- Connected channels (settings page + post creation guard) ---
   // Register the broad pattern FIRST, then override with specific ones.
   // Playwright uses the LAST matching route, so specific patterns must come last.
@@ -335,10 +372,12 @@ export async function createPublicationInStore(
   text: string,
   options?: {
     title?: string | null
+    priority?: boolean
   },
 ): Promise<void> {
   const timestamp = Date.now()
   const title = options?.title === undefined ? 'E2E Test Post' : options.title
+  const priority = options?.priority ?? false
 
   const calendarPublication: MockPublication = {
     id: `pub-e2e-${timestamp}`,
@@ -347,7 +386,7 @@ export async function createPublicationInStore(
     provider: 'linkedin',
     status: 'QUEUED',
     scheduleMode: 'NOW',
-    priority: false,
+    priority,
     title,
     bodyText: text,
     scheduledFor: new Date().toISOString(),
@@ -362,7 +401,7 @@ export async function createPublicationInStore(
     channels: ['linkedin'],
     scheduledAt: calendarPublication.scheduledFor ?? new Date().toISOString(),
     status: 'QUEUED',
-    priority: false,
+    priority,
     accountId: MOCK_SOCIAL_ACCOUNT_ID,
   }
 

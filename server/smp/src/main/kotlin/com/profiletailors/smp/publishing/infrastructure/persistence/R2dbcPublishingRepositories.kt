@@ -30,6 +30,45 @@ import org.springframework.transaction.annotation.Transactional
 import java.time.Instant
 import java.time.OffsetDateTime
 
+private const val PUBLICATION_WRITE_COLUMNS = """
+    workspace_id = :workspaceId,
+    author_principal_id = :authorPrincipalId,
+    provider = :provider,
+    social_account_id = :socialAccountId,
+    status = :status,
+    schedule_mode = :scheduleMode,
+    priority = :priority,
+    title = :title,
+    body_text = :bodyText,
+    public_url = :publicUrl,
+    blocked_at = :blockedAt,
+    blocked_reason = :blockedReason,
+    retry_count = :retryCount,
+    scheduled_for = :scheduledFor,
+    next_slot_after = :nextSlotAfter,
+    published_at = :publishedAt,
+    failed_at = :failedAt,
+    external_publication_id = :externalPublicationId,
+    last_error_code = :lastErrorCode,
+    last_error_message = :lastErrorMessage,
+    created_at = :createdAt,
+    updated_at = :updatedAt
+"""
+
+private const val PUBLICATION_INSERT_COLUMNS = """
+    id, workspace_id, author_principal_id, provider, social_account_id, status, schedule_mode, priority,
+    title, body_text, public_url, blocked_at, blocked_reason, retry_count,
+    scheduled_for, next_slot_after, published_at, failed_at, external_publication_id,
+    last_error_code, last_error_message, created_at, updated_at
+"""
+
+private const val PUBLICATION_INSERT_VALUES = """
+    :id, :workspaceId, :authorPrincipalId, :provider, :socialAccountId, :status, :scheduleMode, :priority,
+    :title, :bodyText, :publicUrl, :blockedAt, :blockedReason, :retryCount,
+    :scheduledFor, :nextSlotAfter, :publishedAt, :failedAt, :externalPublicationId,
+    :lastErrorCode, :lastErrorMessage, :createdAt, :updatedAt
+"""
+
 @Repository
 @Suppress("TooManyFunctions")
 class R2dbcPublicationRepository(
@@ -438,29 +477,61 @@ class R2dbcPublicationRepository(
     }
 
     private suspend fun insertOrUpdate(draft: PublicationDraft) {
-        databaseClient.sql("DELETE FROM publications WHERE id = :id")
-            .bind("id", draft.id)
+        val now = Instant.now()
+        val createdAt = draft.createdAt ?: now
+        val updatedAt = draft.updatedAt ?: now
+
+        val updatedRows = databaseClient.sql(
+            """
+            UPDATE publications
+            SET $PUBLICATION_WRITE_COLUMNS
+            WHERE id = :id
+            """.trimIndent(),
+        )
+            .bindPublicationUpdateParams(draft, createdAt, updatedAt)
             .fetch()
             .rowsUpdated()
             .awaitSingle()
 
+        if (updatedRows > 0) return
+
         databaseClient.sql(
             """
             INSERT INTO publications (
-                id, workspace_id, author_principal_id, provider, social_account_id, status, schedule_mode, priority,
-                title, body_text, public_url, blocked_at, blocked_reason, retry_count,
-                scheduled_for, next_slot_after, published_at, failed_at, external_publication_id,
-                last_error_code, last_error_message, created_at, updated_at
+                $PUBLICATION_INSERT_COLUMNS
             ) VALUES (
-                :id, :workspaceId, :authorPrincipalId, :provider, :socialAccountId, :status, :scheduleMode, :priority,
-                :title, :bodyText, :publicUrl, :blockedAt, :blockedReason, :retryCount,
-                :scheduledFor, :nextSlotAfter, :publishedAt, :failedAt, :externalPublicationId,
-                :lastErrorCode, :lastErrorMessage, :createdAt, :updatedAt
+                $PUBLICATION_INSERT_VALUES
             )
             """.trimIndent(),
         )
+            .bindPublicationInsertParams(draft, createdAt, updatedAt)
+            .fetch()
+            .rowsUpdated()
+            .awaitSingle()
+    }
+
+    private fun org.springframework.r2dbc.core.DatabaseClient.GenericExecuteSpec.bindPublicationUpdateParams(
+        draft: PublicationDraft,
+        createdAt: Instant,
+        updatedAt: Instant,
+    ): org.springframework.r2dbc.core.DatabaseClient.GenericExecuteSpec =
+        bindPublicationWriteParams(draft, createdAt, updatedAt)
             .bind("id", draft.id)
-            .bind("workspaceId", draft.workspaceId)
+
+    private fun org.springframework.r2dbc.core.DatabaseClient.GenericExecuteSpec.bindPublicationInsertParams(
+        draft: PublicationDraft,
+        createdAt: Instant,
+        updatedAt: Instant,
+    ): org.springframework.r2dbc.core.DatabaseClient.GenericExecuteSpec =
+        bind("id", draft.id)
+            .bindPublicationWriteParams(draft, createdAt, updatedAt)
+
+    private fun org.springframework.r2dbc.core.DatabaseClient.GenericExecuteSpec.bindPublicationWriteParams(
+        draft: PublicationDraft,
+        createdAt: Instant,
+        updatedAt: Instant,
+    ): org.springframework.r2dbc.core.DatabaseClient.GenericExecuteSpec =
+        bind("workspaceId", draft.workspaceId)
             .bind("authorPrincipalId", draft.authorPrincipalId)
             .bind("provider", draft.provider.name)
             .bind("socialAccountId", draft.socialAccountId)
@@ -480,12 +551,8 @@ class R2dbcPublicationRepository(
             .bindNullable("externalPublicationId", draft.externalPublicationId, String::class.java)
             .bindNullable("lastErrorCode", draft.lastErrorCode, String::class.java)
             .bindNullable("lastErrorMessage", draft.lastErrorMessage, String::class.java)
-            .bindNullable("createdAt", draft.createdAt ?: Instant.now(), Instant::class.java)
-            .bindNullable("updatedAt", draft.updatedAt ?: Instant.now(), Instant::class.java)
-            .fetch()
-            .rowsUpdated()
-            .awaitSingle()
-    }
+            .bind("createdAt", createdAt)
+            .bind("updatedAt", updatedAt)
 
     private suspend fun replaceAssetLinks(draft: PublicationDraft) {
         databaseClient.sql(

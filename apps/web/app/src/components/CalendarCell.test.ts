@@ -81,6 +81,7 @@ describe('CalendarCell', () => {
 
     expect(wrapper.emitted('click-publication')).toHaveLength(1)
     expect(wrapper.emitted('click-publication')?.[0]?.[0]).toMatchObject({ id: 'pub-enter' })
+    expect(wrapper.emitted('click-day')).toBeUndefined()
   })
 
   it('emits click-publication when Space key is pressed on a publication chip', async () => {
@@ -99,6 +100,7 @@ describe('CalendarCell', () => {
 
     expect(wrapper.emitted('click-publication')).toHaveLength(1)
     expect(wrapper.emitted('click-publication')?.[0]?.[0]).toMatchObject({ id: 'pub-space' })
+    expect(wrapper.emitted('click-day')).toBeUndefined()
   })
 
   it('emits click-publication with the correct publication when multiple chips are rendered', async () => {
@@ -146,7 +148,9 @@ describe('CalendarCell', () => {
         isCurrentMonth: true,
         isToday: false,
         isPast: false,
-        publications: [makePublication({ title: undefined, content: 'Content without title here' })],
+        publications: [
+          makePublication({ title: undefined, content: 'Content without title here' }),
+        ],
       },
     })
 

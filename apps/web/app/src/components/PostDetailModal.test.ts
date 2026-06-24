@@ -26,6 +26,7 @@ vi.mock('@lucide/vue', () => {
   return {
     CalendarClock: stub,
     ExternalLink: stub,
+    Pencil: stub,
     Trash2: stub,
     X: stub,
     AlertTriangle: stub,
@@ -69,21 +70,20 @@ describe('PostDetailModal', () => {
     const publishingStore = usePublishingStore()
     vi.spyOn(publishingStore, 'deletePost').mockResolvedValue(undefined)
     vi.spyOn(publishingStore, 'reschedulePublication').mockResolvedValue(makePublication())
-    vi.spyOn(publishingStore, 'updatePost').mockResolvedValue(makePublication())
   })
 
   describe('renders publication details', () => {
-    it('displays editable title and body values for editable publications', async () => {
+    it('displays title and body as read-only text for all publication statuses', async () => {
       const wrapper = mountModal(
         makePublication({ title: 'My Great Post', content: 'Body text here' }),
       )
       await flushPromises()
 
-      const titleInput = wrapper.find('input[placeholder="postDetail.titleLabel"]')
-      const textarea = wrapper.find('textarea')
-
-      expect((titleInput.element as HTMLInputElement).value).toBe('My Great Post')
-      expect((textarea.element as HTMLTextAreaElement).value).toBe('Body text here')
+      // Title and body are displayed as read-only <p> elements
+      expect(wrapper.text()).toContain('My Great Post')
+      expect(wrapper.text()).toContain('Body text here')
+      // No editable input/textarea for title
+      expect(wrapper.find('input[placeholder="postDetail.titleLabel"]').exists()).toBe(false)
     })
 
     it('displays the thumbnail image when present', () => {
@@ -233,41 +233,31 @@ describe('PostDetailModal', () => {
     })
   })
 
-  describe('save publication', () => {
-    it('calls updatePost and closes modal on successful save', async () => {
-      const wrapper = mountModal(makePublication())
-      const publishingStore = usePublishingStore()
-
-      const titleInput = wrapper.find('input[placeholder="postDetail.titleLabel"]')
-      await titleInput.setValue('Updated title')
-      const textarea = wrapper.find('textarea')
-      await textarea.setValue('Updated content')
-
-      const saveButton = wrapper
-        .findAll('button')
-        .find((button) => button.text().includes('postDetail.save'))
-      await saveButton!.trigger('click')
-      await flushPromises()
-
-      expect(publishingStore.updatePost).toHaveBeenCalledWith(
-        'pub-1',
-        expect.objectContaining({ title: 'Updated title', content: 'Updated content' }),
-      )
-      expect(wrapper.emitted('close')).toHaveLength(1)
+  describe('edit button', () => {
+    it('renders Edit button for editable publication statuses', () => {
+      const wrapper = mountModal(makePublication({ status: 'SCHEDULED' }))
+      expect(wrapper.text()).toContain('postDetail.edit')
     })
 
-    it('shows save error when update fails', async () => {
-      const wrapper = mountModal(makePublication())
-      const publishingStore = usePublishingStore()
-      vi.spyOn(publishingStore, 'updatePost').mockRejectedValue(new Error('Save failed'))
+    it('does NOT render Edit button for PUBLISHED posts', () => {
+      const wrapper = mountModal(makePublication({ status: 'PUBLISHED' }))
+      expect(wrapper.text()).not.toContain('postDetail.edit')
+    })
 
-      const saveButton = wrapper
+    it('does NOT render Edit button for non-editable statuses (PROCESSING)', () => {
+      const wrapper = mountModal(makePublication({ status: 'PROCESSING' }))
+      expect(wrapper.text()).not.toContain('postDetail.edit')
+    })
+
+    it('clicking Edit emits edit event with the publication', async () => {
+      const pub = makePublication()
+      const wrapper = mountModal(pub)
+      const editButton = wrapper
         .findAll('button')
-        .find((button) => button.text().includes('postDetail.save'))
-      await saveButton!.trigger('click')
-      await flushPromises()
-
-      expect(wrapper.text()).toContain('Save failed')
+        .find((button) => button.text().includes('postDetail.edit'))
+      expect(editButton).toBeDefined()
+      await editButton!.trigger('click')
+      expect(wrapper.emitted('edit')).toEqual([[pub]])
     })
   })
 
