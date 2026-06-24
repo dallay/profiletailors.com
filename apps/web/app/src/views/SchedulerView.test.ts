@@ -378,7 +378,7 @@ describe('SchedulerView', () => {
   })
 
   it('handles header date today navigation via handleHeaderDateChange', async () => {
-    const store = usePublishingStore()
+    const _store = usePublishingStore()
     const wrapper = mountView()
     await flushPromises()
 
@@ -395,7 +395,7 @@ describe('SchedulerView', () => {
   })
 
   it('handles header filter change for timezone via handleHeaderFilterChange', async () => {
-    const store = usePublishingStore()
+    const _store = usePublishingStore()
     const wrapper = mountView()
     await flushPromises()
 
@@ -414,7 +414,7 @@ describe('SchedulerView', () => {
   })
 
   it('handles header filter change for channelIds via handleHeaderFilterChange', async () => {
-    const store = usePublishingStore()
+    const _store = usePublishingStore()
     const wrapper = mountView()
     await flushPromises()
 

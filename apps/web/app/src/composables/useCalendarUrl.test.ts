@@ -564,21 +564,24 @@ describe('useCalendarUrl controller — isInvalidStatus', () => {
   it('returns false for empty status string', () => {
     const rawStatus = ''
     const lowered = rawStatus.toLowerCase() as import('./useCalendarUrl').SchedulerStatus
-    const invalid = rawStatus.length > 0 && !new Set(['all', 'queued', 'published', 'cancelled']).has(lowered)
+    const invalid =
+      rawStatus.length > 0 && !new Set(['all', 'queued', 'published', 'cancelled']).has(lowered)
     expect(invalid).toBe(false)
   })
 
   it('returns true for an unrecognized status value', () => {
     const rawStatus = 'pending'
     const lowered = rawStatus.toLowerCase() as import('./useCalendarUrl').SchedulerStatus
-    const invalid = rawStatus.length > 0 && !new Set(['all', 'queued', 'published', 'cancelled']).has(lowered)
+    const invalid =
+      rawStatus.length > 0 && !new Set(['all', 'queued', 'published', 'cancelled']).has(lowered)
     expect(invalid).toBe(true)
   })
 
   it('returns false for a valid status value', () => {
     const rawStatus = 'queued'
     const lowered = rawStatus.toLowerCase() as import('./useCalendarUrl').SchedulerStatus
-    const invalid = rawStatus.length > 0 && !new Set(['all', 'queued', 'published', 'cancelled']).has(lowered)
+    const invalid =
+      rawStatus.length > 0 && !new Set(['all', 'queued', 'published', 'cancelled']).has(lowered)
     expect(invalid).toBe(false)
   })
 })
