@@ -134,10 +134,10 @@ describe('SidebarChannelsSection', () => {
     expect(wrapper.emitted('selectAll')?.length).toBe(1)
   })
 
-  it('emits selectChannel with the channel when a row is clicked', async () => {
+  it('emits selectChannel with the accountId when a row is clicked', async () => {
     const channels = [
-      makeChannel({ id: 'ch-1', provider: 'linkedin' }),
-      makeChannel({ id: 'ch-2', provider: 'twitter' }),
+      makeChannel({ id: 'ch-1', accountId: 'acc-1', provider: 'linkedin' }),
+      makeChannel({ id: 'ch-2', accountId: 'acc-2', provider: 'twitter' }),
     ]
     const wrapper = mount(SidebarChannelsSection, {
       props: {
@@ -152,7 +152,7 @@ describe('SidebarChannelsSection', () => {
     await rows[1]?.vm.$emit('select')
 
     expect(wrapper.emitted('selectChannel')).toBeTruthy()
-    const payload = wrapper.emitted('selectChannel')?.[0]?.[0] as SidebarChannel
-    expect(payload.id).toBe('ch-2')
+    const payload = wrapper.emitted('selectChannel')?.[0]?.[0] as string
+    expect(payload).toBe('acc-2')
   })
 })

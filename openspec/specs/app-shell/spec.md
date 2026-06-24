@@ -183,12 +183,13 @@ export interface NavGroup { label: string; items: NavItem[] }
 File: `components/sidebar/SidebarChannelsSection.vue`. Renders "All channels" + per-channel
 rows (delegated to `SidebarChannelRow`). Avatar fallback state (`avatarLoadFailedMap`) is
 OWNED by this component, not by `AppShell`. When `publishingStore.channels` changes
-(new reference), the map is reset to `{}`.
+(new reference), the map is reset to `{}`. Active channel state is derived from the
+`activeChannelId` prop (the account ID currently in the URL's `channels[]` query param).
 
 | Aspect | Value |
 |--------|-------|
-| Props | `channels: SidebarChannel[]`, `activeProvider: string \| null`, `totalQueuedCount: number` |
-| Emits | `selectAll: []`, `selectChannel: [channel: SidebarChannel]` |
+| Props | `channels: SidebarChannel[]`, `activeChannelId: string | null`, `totalQueuedCount: number` |
+| Emits | `selectAll: []`, `selectChannel: [accountId: string]` |
 | Local state | `avatarLoadFailedMap: Ref<Record<string, boolean>>` + private helpers |
 | Stores touched | `usePublishingStore` (read-only — derives `sidebarChannels`; does not mutate) |
 
@@ -220,14 +221,156 @@ OWNED by this component, not by `AppShell`. When `publishingStore.channels` chan
 - GIVEN the section is rendered
 - WHEN the user clicks the "All channels" row
 - THEN `selectAll()` is emitted
-- AND the shell clears filters and pushes `/scheduler`
+- AND the shell navigates to the current scheduler route without `channels[]` in the query
 
-#### Scenario: Activating a channel row emits `selectChannel`
+#### Scenario: Activating a channel row emits `selectChannel` with accountId
 
 - GIVEN the section is rendered with 2 channels
 - WHEN the user clicks the second channel row
-- THEN `selectChannel(channel)` is emitted
-- AND the shell sets `filterChannel` and pushes `/scheduler`
+- THEN `selectChannel(accountId)` is emitted
+- AND the shell navigates to the current scheduler route with `channels[]=<accountId>` as a query param
+
+#### Scenario: Active channel state derives from URL
+
+- GIVEN the URL is `/scheduler/calendar/week?channels[]=acc-123`
+- WHEN `SidebarChannelsSection` renders
+- THEN the channel row for `acc-123` is visually marked as active
+
+---
+
+### Requirement: Canonical Scheduler Route Family
+
+The router MUST define `/scheduler/calendar/week`, `/scheduler/calendar/month`, and `/scheduler/list` as named routes. Navigating to `/scheduler` MUST redirect to `/scheduler/calendar/week` preserving any existing query params.
+
+#### Scenario: `/scheduler` redirects to canonical week route
+
+- GIVEN a user is on `/scheduler`
+- WHEN the route resolves
+- THEN the browser URL becomes `/scheduler/calendar/week`
+- AND any query params present on `/scheduler` are preserved (e.g., `/scheduler?q=post` → `/scheduler/calendar/week?q=post`)
+
+#### Scenario: Canonical routes are directly accessible
+
+- GIVEN a user opens `/scheduler/calendar/month`
+- WHEN the page loads
+- THEN the month view renders with the current month
+- AND no redirect occurs
+
+---
+
+### Requirement: Route Query Param Contract
+
+The system MUST parse and serialize `date`, `channels[]`, `timezone`, `status`, `q`, and `mode` as URL query params. Absent params MUST default to: `date` = today (local), `mode` = `calendar`, all others = show-all/unfiltered.
+
+#### Scenario: `channels[]` uses account IDs in URL
+
+- GIVEN the user has selected a LinkedIn account with `accountId = "acc-123"`
+- WHEN the sidebar channel is clicked
+- THEN the URL contains `?channels[]=acc-123`
+- AND `filterChannel` (provider name) is NOT written to the URL
+
+#### Scenario: All Channels navigates without filter
+
+- GIVEN the user is on `/scheduler/calendar/week?channels[]=acc-123`
+- WHEN the user clicks "All channels" in the sidebar
+- THEN the URL becomes `/scheduler/calendar/week` (no `channels[]` param)
+- AND no `channels[]` key appears in the query string
+
+#### Scenario: Missing params default correctly
+
+- GIVEN the user opens `/scheduler/calendar/week?date=2026-06-15&timezone=America/New_York`
+- WHEN the view renders
+- THEN the calendar centers on 2026-06-15
+- AND timezone is `America/New_York`
+- AND status filter is cleared (show all)
+- AND no `channels[]` filter is applied
+
+---
+
+### Requirement: Route State Derivation
+
+`SchedulerView.vue` MUST derive `calendarView` (week/month), `currentBaseDate`, `timezone`, and filter values from `useRoute()`. The Pinia `publishingStore` MUST be updated with explicit fetch args, NOT read route state internally.
+
+#### Scenario: Refresh preserves view and filters
+
+- GIVEN the user is on `/scheduler/calendar/week?date=2026-06-15&status=SCHEDULED`
+- WHEN the browser refreshes
+- THEN the week view renders centered on 2026-06-15
+- AND only SCHEDULED publications are shown
+
+#### Scenario: `fetchCalendar` refetches on route change
+
+- GIVEN `SchedulerView` has fetched publications for week A
+- WHEN the user navigates to week B (via date picker or arrow)
+- THEN `fetchCalendar(from, to, { status, socialAccountId, timezone })` is called with the new range
+- AND the calendar updates without a full page reload
+
+---
+
+### Requirement: CalendarHeader Navigates with Route Updates
+
+`CalendarHeader.vue` MUST emit navigation intent (`change:view`, `change:date`, `change:filter`) instead of mutating Pinia refs directly. The shell MUST update the route using `router.push()` for deliberate view/date changes and `router.replace()` for transient filter keystrokes.
+
+#### Scenario: Changing view updates URL path
+
+- GIVEN the user is on `/scheduler/calendar/week`
+- WHEN the user clicks "Month"
+- THEN the URL becomes `/scheduler/calendar/month`
+- AND query params (`date`, `channels[]`, `status`) are preserved
+
+#### Scenario: Changing filter updates URL query string
+
+- GIVEN the user is on `/scheduler/calendar/week`
+- WHEN the user selects "SCHEDULED" status
+- THEN `router.replace()` is called adding `?status=SCHEDULED` to the URL
+- AND browser history is NOT polluted with filter-only entries
+
+#### Scenario: `date` param updates on navigation
+
+- GIVEN the user is on `/scheduler/calendar/week?date=2026-06-15`
+- WHEN the user clicks the next-week arrow
+- THEN the URL updates to `/scheduler/calendar/week?date=2026-06-22`
+- AND the calendar re-renders for the new week
+
+---
+
+### Requirement: Browser History Integration
+
+Browser back/forward buttons MUST restore scheduler state from the URL without manual store resets or extra hydration logic.
+
+#### Scenario: Back button restores previous state
+
+- GIVEN the user visits `/scheduler/calendar/week?status=SCHEDULED`
+- AND navigates to `/scheduler/calendar/month?status=SCHEDULED`
+- WHEN the user clicks the browser back button
+- THEN the URL returns to `/scheduler/calendar/week?status=SCHEDULED`
+- AND the week view renders with SCHEDULED filter active
+
+#### Scenario: Forward button restores forward state
+
+- GIVEN the user navigates back using browser back
+- WHEN the user clicks browser forward
+- THEN the URL returns to `/scheduler/calendar/month?status=SCHEDULED`
+- AND the month view renders correctly
+
+---
+
+### Requirement: SidebarChannelsSection Navigation (app-shell)
+
+`SidebarChannelsSection.vue` MUST emit `selectAll` and `selectChannel` with the channel's `accountId`. The shell MUST navigate to the current scheduler route with `channels[]=<accountId>` as a query param, NOT mutate `filterChannel` directly.
+
+#### Scenario: Channel click writes `channels[]` to URL
+
+- GIVEN the user is on `/scheduler/calendar/week`
+- WHEN the user clicks the "LinkedIn" channel row
+- THEN `router.push({ query: { channels[]: 'acc-linkedin' } })` is called
+- AND the URL becomes `/scheduler/calendar/week?channels[]=acc-linkedin`
+
+#### Scenario: Multiple channels accumulate in URL
+
+- GIVEN the user is on `/scheduler/calendar/week?channels[]=acc-linkedin`
+- WHEN the user additionally selects the "Bluesky" channel
+- THEN the URL becomes `/scheduler/calendar/week?channels[]=acc-linkedin&channels[]=acc-bluesky`
 
 ---
 

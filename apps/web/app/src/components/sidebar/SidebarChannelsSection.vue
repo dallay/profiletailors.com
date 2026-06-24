@@ -18,7 +18,7 @@ const props = defineProps<{
 
 const emit = defineEmits<{
   (e: 'selectAll'): void
-  (e: 'selectChannel', channel: SidebarChannel): void
+  (e: 'selectChannel', accountId: string): void
 }>()
 
 /**
@@ -72,7 +72,7 @@ const allBadge = computed(() => {
       :channel="channel"
       :is-active="isRowActive(channel.accountId)"
       :queued-count="channel.queuedCount"
-      @select="emit('selectChannel', channel)"
+      @select="emit('selectChannel', channel.accountId)"
       @avatar-error="() => { avatarLoadFailedMap[channel.id] = true }"
     />
   </div>
