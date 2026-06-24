@@ -32,4 +32,6 @@ runs:
     - name: Install Playwright browsers
       if: inputs.install-playwright == 'true'
       shell: bash
-      run: pnpm --filter app exec playwright install --with-deps ${{ inputs.playwright-browsers }}
+      env:
+        PLAYWRIGHT_BROWSERS: ${{ inputs.playwright-browsers }}
+      run: pnpm --filter app exec playwright install --with-deps "$PLAYWRIGHT_BROWSERS"
