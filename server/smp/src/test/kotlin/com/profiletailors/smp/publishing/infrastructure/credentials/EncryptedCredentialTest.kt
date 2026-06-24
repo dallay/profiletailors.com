@@ -21,8 +21,9 @@ internal class EncryptedCredentialTest {
 
     @Test
     fun `should auto-generate id`() {
-        val c1 = EncryptedCredential(ownerType = "user", ownerId = UUID.randomUUID(), encryptedPayload = byteArrayOf())
-        val c2 = EncryptedCredential(ownerType = "user", ownerId = UUID.randomUUID(), encryptedPayload = byteArrayOf())
+        val ownerId = UUID.randomUUID()
+        val c1 = EncryptedCredential(ownerType = "user", ownerId = ownerId, encryptedPayload = byteArrayOf())
+        val c2 = EncryptedCredential(ownerType = "user", ownerId = ownerId, encryptedPayload = byteArrayOf())
 
         assertThat(c1.id).isNotEqualTo(c2.id)
     }
