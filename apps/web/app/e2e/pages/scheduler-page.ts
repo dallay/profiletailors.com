@@ -48,7 +48,6 @@ export class SchedulerPage {
     return this.page.locator('button:has(svg.lucide-chevron-left)')
   }
 
-
   get platformFilter(): Locator {
     return this.page.locator('select#calendar-platform-select')
   }
@@ -87,7 +86,7 @@ export class SchedulerPage {
   async switchToDay(): Promise<void> {
     // Click on a day cell in month view to switch to day view,
     // or just navigate to it. For now, we click a cell if visible.
-    const firstCell = this.page.locator(".group\/cell").first()
+    const firstCell = this.page.locator('.group\\/cell').first()
     await firstCell.click()
     await this.page.waitForTimeout(300)
   }
