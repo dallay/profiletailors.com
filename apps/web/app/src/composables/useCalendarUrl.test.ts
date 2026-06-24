@@ -490,6 +490,34 @@ describe('useCalendarUrl — needsCanonicalization / areQueriesEquivalent', () =
     // 'all' is the default status — canonical form omits it
     expect(controller.needsCanonicalization.value).toBe(true)
   })
+
+  it('canonicalize replaces route with normalized query for mixed non-canonical values', async () => {
+    const router = { push: vi.fn(), replace: vi.fn().mockResolvedValue(undefined) }
+    const route = makeRoute({
+      query: {
+        date: '2026-06-15',
+        q: '  test  ',
+        status: 'QUEUED',
+        channels: 'acc-1',
+      },
+    })
+    const controller = createCalendarUrlController(
+      route as unknown as RouteLocationNormalizedLoaded,
+      router,
+    )
+
+    await controller.canonicalize()
+
+    expect(router.replace).toHaveBeenCalledWith({
+      name: 'scheduler-calendar-week',
+      query: {
+        date: '2026-06-15',
+        q: 'test',
+        status: 'queued',
+        channels: ['acc-1'],
+      },
+    })
+  })
 })
 
 describe('useCalendarUrl controller — stepPeriod navigation', () => {

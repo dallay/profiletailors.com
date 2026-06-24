@@ -1,12 +1,14 @@
 import { test, expect } from '../fixtures/scheduler-base-test'
 import { SchedulerPage } from '../pages/scheduler-page'
 import { authenticateAs } from '../fixtures/auth-helpers'
+import { ensureChannelsLoaded } from '../fixtures/scheduler-mocks'
 
 test.describe('Scheduler — Filtering & Views', () => {
   test.beforeEach(async ({ page }) => {
     await authenticateAs(page)
     const scheduler = new SchedulerPage(page)
     await scheduler.goto()
+    await ensureChannelsLoaded(page)
     await scheduler.expectVisible()
   })
 
@@ -19,9 +21,8 @@ test.describe('Scheduler — Filtering & Views', () => {
     // Ensure we are on week view
     await scheduler.switchToWeek()
 
-    // Click "All channels" to ensure we start from a clean state
-    await scheduler.allChannelsButton.click({ force: true })
-    await page.waitForTimeout(300)
+    // Select "All Channels" from the platform filter to ensure we start from a clean state
+    await scheduler.selectPlatform('')
 
     // Verify the scheduler header shows "All Channels"
     await expect(page.getByRole('heading', { name: 'All Channels' })).toBeVisible()
