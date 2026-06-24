@@ -166,6 +166,45 @@ The frontend MUST hide or disable edit/delete actions for disallowed statuses, a
 - THEN the backend MUST reject the request
 - AND the scheduler MUST preserve current server state after refresh or rollback
 
+### Requirement: Composer-Based Publication Editing
+
+The scheduler MUST use the full composer edit flow for editable unpublished publications instead of inline detail-modal editing.
+
+When a user opens an editable publication from the scheduler and chooses to edit it, the system MUST close the read-only detail modal and reopen the full composer in edit mode with publication data pre-filled from authoritative server-backed publication state. The composer edit flow MUST support editing content, scheduling, priority, and media asset references while keeping the selected channel read-only for the duration of the edit. The client MUST persist edits through the existing backend PATCH publication contract, update local state from the successful backend response, and refresh the scheduler view so the calendar reflects the saved server truth. In edit mode, the composer MUST hide create-only affordances that imply a new publication is being created.
+
+#### Scenario: User edits a scheduled publication from the scheduler
+
+- GIVEN a user is viewing a scheduler publication in status `DRAFT`, `QUEUED`, or `SCHEDULED`
+- WHEN the user selects the edit action
+- THEN the detail modal MUST close
+- AND the full composer MUST open in edit mode
+- AND the composer MUST pre-fill content, schedule date/time, schedule mode, priority, attached media asset references, and the existing channel selection
+- AND the existing channel selection MUST be read-only
+
+#### Scenario: Published publications remain read-only in the scheduler
+
+- GIVEN a user is viewing a scheduler publication in status `PUBLISHED`
+- WHEN the scheduler renders publication actions
+- THEN the edit action MUST NOT be rendered
+- AND the publication details MUST remain read-only
+
+#### Scenario: Saving composer edits uses backend response and refreshes the scheduler
+
+- GIVEN the full composer is open in edit mode for an editable publication
+- WHEN the user saves valid changes
+- THEN the client MUST call the backend publication update API
+- AND the client MUST update its state from the successful backend response
+- AND the composer MUST close after the update succeeds
+- AND the scheduler calendar MUST refresh to reflect the saved publication state
+
+#### Scenario: Edit mode keeps channel locked and hides create-only controls
+
+- GIVEN the full composer is open in edit mode
+- WHEN the user views scheduling controls
+- THEN the current channel MUST be shown as pre-selected and disabled
+- AND the user MUST NOT be able to switch channels
+- AND the create-another control MUST NOT be rendered
+
 ### Requirement: Delivery Attempts, Retries, and Failure Recovery
 
 The system MUST persist delivery attempts and apply bounded automatic retry behavior.
@@ -1514,6 +1553,36 @@ reference contract or remain explicitly out of scope for this change.
 - THEN the system MUST validate that the asset is `READY` and workspace-scoped before execution
 - AND the downstream provider integration MUST resolve the stored binary through the existing
   storage-backed asset path
+
+### Requirement: Publication Edit Hardening Quality Gates
+
+The publication editing flow MUST remain protected by backend quality gates plus dedicated unit and end-to-end regression coverage.
+
+Hardening changes to publication editing MUST preserve existing persistence contracts while keeping the backend publishing quality gate green. The composer edit-mode behavior MUST remain covered by focused unit tests for prefill, locked channel state, create-only control hiding, update submission branching, success emission, and surfaced error handling. The scheduler edit journey MUST remain covered by end-to-end browser tests that verify edit entry from the detail modal, composer prefill behavior, successful save, and scheduler refresh after the update.
+
+#### Scenario: Backend publishing quality gate passes after persistence hardening
+
+- GIVEN the publishing persistence adapter is refactored to satisfy code-quality constraints
+- WHEN backend quality checks are run
+- THEN the publishing behavior MUST remain unchanged
+- AND the backend quality gate MUST pass without `LargeClass` or `LongMethod` failures in `R2dbcPublishingRepositories.kt`
+
+#### Scenario: Composer edit mode has focused regression coverage
+
+- GIVEN `CreatePostModal` opens in edit mode for an existing publication
+- WHEN the unit test suite runs
+- THEN dedicated tests MUST verify prefill of content, scheduling, priority, media, and locked channel state
+- AND dedicated tests MUST verify that edit mode calls `updatePost()` rather than create-mode submission
+- AND dedicated tests MUST verify that create-only controls are hidden and update errors are surfaced
+
+#### Scenario: Scheduler publication edit flow is protected end-to-end
+
+- GIVEN a user opens an editable unpublished publication from the scheduler
+- WHEN the user enters edit mode, updates the publication, and saves
+- THEN end-to-end coverage MUST verify that the detail modal closes
+- AND the composer MUST open in edit mode with pre-filled values
+- AND the update MUST succeed through the existing edit flow
+- AND the scheduler MUST refresh to show the saved state
 
 ### Note on Legacy Publishing Asset Records
 

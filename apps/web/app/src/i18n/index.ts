@@ -180,6 +180,7 @@ const messages = {
     },
     composer: {
       title: 'Create Post',
+      editTitle: 'Edit Post',
       placeholder: 'Start writing or get inspired with...',
       scheduleBtn: 'Schedule Post',
       scheduleNowBtn: 'Schedule Now',
@@ -199,6 +200,7 @@ const messages = {
       saveDraft: 'Save Draft',
       nextAvailable: 'Next Available',
       characterLimit: '{count} characters left',
+      saveChanges: 'Save Changes',
     },
     postDetail: {
       title: 'Post Details',
@@ -216,7 +218,7 @@ const messages = {
       rescheduleCancel: 'Cancel',
       rescheduleSuccess: 'Rescheduled successfully',
       delete: 'Delete',
-      save: 'Save',
+      edit: 'Edit',
       close: 'Close',
       viewPost: 'View Post',
       viewPostUnavailable: 'View Post URL is not available yet.',

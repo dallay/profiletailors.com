@@ -34,6 +34,7 @@ const props = withDefaults(
 
 const emit = defineEmits<{
   (e: 'click-day', date: Date): void
+  (e: 'click-publication', pub: Publication): void
   (e: 'dragstart', payload: { event: DragEvent; pub: Publication }): void
   (e: 'dragend', event: DragEvent): void
   (e: 'drop-cell', payload: { event: DragEvent; date: Date }): void
@@ -122,10 +123,16 @@ function onKeyDown(e: KeyboardEvent) {
         :key="pub.id"
         class="relative z-10 overflow-hidden rounded-md"
       >
+        <!-- biome-ignore lint/a11y/useSemanticElements: non-button container required to preserve drag behavior within clickable month cell -->
         <div
-          class="flex flex-row items-center gap-1 rounded-md px-1 py-0.5 text-[7px] font-mono"
+          class="flex flex-row items-center gap-1 rounded-md px-1 py-0.5 text-[7px] font-mono cursor-pointer"
           :class="getProviderColor(pub.channels[0] || 'linkedin')"
           :draggable="draggable"
+          role="button"
+          tabindex="0"
+          @click.stop="emit('click-publication', pub)"
+          @keydown.enter.stop.prevent="emit('click-publication', pub)"
+          @keydown.space.stop.prevent="emit('click-publication', pub)"
           @dragstart="onDragStart($event, pub)"
           @dragend="onDragEnd"
         >

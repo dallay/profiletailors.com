@@ -322,6 +322,7 @@ class PublishingApiTest {
             priority = true,
             title = "Title",
             bodyText = "Body",
+            assetIds = listOf("asset-1"),
             scheduledFor = now,
             hasConflict = true,
             conflictingPublicationIds = listOf("pub-2"),
@@ -329,6 +330,7 @@ class PublishingApiTest {
 
         assertEquals("pub-1", result.id)
         assertTrue(result.hasConflict)
+        assertEquals(listOf("asset-1"), result.assetIds)
         assertEquals(listOf("pub-2"), result.conflictingPublicationIds)
     }
 

@@ -12,13 +12,14 @@ open class PublicationStateTransitionException(
 class PublicationEditNotAllowedException(
     publicationId: String,
 ) : PublicationStateTransitionException(
-    "Publication '$publicationId' can only be edited while draft, queued, or scheduled."
+    "Publication '$publicationId' can only be edited while in draft, queued, or scheduled status. " +
+        "Failed publications must use the retry endpoint instead."
 )
 
 class PublicationDeletionNotAllowedException(
     publicationId: String,
 ) : PublicationStateTransitionException(
-    "Publication '$publicationId' can only be deleted while draft, queued, or scheduled."
+    "Publication '$publicationId' can only be deleted while in draft, queued, or scheduled status."
 )
 
 class PublicationCancellationNotAllowedException(

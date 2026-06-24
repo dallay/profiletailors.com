@@ -124,6 +124,32 @@ test.describe('Scheduler — Post Interaction', () => {
   })
 
   /**
+   * TC-14A: Month view publications open the detail modal.
+   */
+  test('TC-14A: month view publication opens detail modal @scheduler @month-view @post-detail', async ({
+    page,
+  }) => {
+    const scheduler = new SchedulerPage(page)
+    const detailModal = new PostDetailModalPage(page)
+
+    const testText = `Month detail test ${Date.now()}`
+    // Pass testText as title so it appears in the month chip
+    // (month chip renders pub.title || pub.content.substring(0, 20))
+    await createPublicationInStore(page, testText, { title: testText })
+
+    await scheduler.switchToMonth()
+    await page.waitForTimeout(300)
+
+    const publicationChip = page.getByRole('button', { name: new RegExp(testText) }).first()
+    await expect(publicationChip).toBeVisible({ timeout: 10_000 })
+    await publicationChip.click()
+
+    await detailModal.expectVisible()
+    await detailModal.expectTitle(new RegExp(testText))
+    await detailModal.clickClose()
+  })
+
+  /**
    * TC-15: Past slots show posts as read-only.
    */
   test('TC-15: past slots read-only posts @past @read-only', async ({ page }) => {

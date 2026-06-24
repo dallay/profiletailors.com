@@ -143,7 +143,8 @@ class R2dbcPublishingRepositoriesUnitTest : DatabaseUnitTestBase() {
             databaseClient.sql(
                 """
                 INSERT INTO publication_assets (id, workspace_id, source_type, media_type, storage_key, status, created_by_principal_id)
-                VALUES ('asset-x', 'workspace-1', 'UPLOADED', 'image/jpeg', 'keyx.jpg', 'READY', 'principal-1')
+                VALUES ('asset-old', 'workspace-1', 'UPLOADED', 'image/jpeg', 'key-old.jpg', 'READY', 'principal-1'),
+                       ('asset-x', 'workspace-1', 'UPLOADED', 'image/jpeg', 'keyx.jpg', 'READY', 'principal-1')
                 """.trimIndent(),
             ).fetch().rowsUpdated().awaitSingle()
 
@@ -159,7 +160,7 @@ class R2dbcPublishingRepositoriesUnitTest : DatabaseUnitTestBase() {
                     scheduleMode = ScheduleMode.NOW,
                     priority = true,
                     bodyText = "Original body",
-                    assetIds = emptyList(),
+                    assetIds = listOf("asset-old"),
                 ),
             )
 
