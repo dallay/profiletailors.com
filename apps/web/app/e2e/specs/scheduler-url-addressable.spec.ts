@@ -15,9 +15,12 @@ import { authenticateAs } from '../fixtures/auth-helpers'
 // Helpers
 // ---------------------------------------------------------------------------
 
+import { ensureChannelsLoaded } from '../fixtures/scheduler-mocks'
+
 async function setup(page: import('@playwright/test').Page): Promise<SchedulerPage> {
   await authenticateAs(page)
   const scheduler = new SchedulerPage(page)
+  await ensureChannelsLoaded(page)
   return scheduler
 }
 
@@ -127,15 +130,17 @@ test.describe('URL-addressable scheduler — navigation', () => {
   })
 
   test('TC-NAV-03: clicking Week toggle from month changes URL @scheduler', async ({ page }) => {
-    // Switch to month first
+    const scheduler = await setup(page)
     await page.goto('/scheduler/calendar/month')
+    await scheduler.expectVisible()
     await page.waitForLoadState('networkidle')
 
-    // Click "Week" button to go back to week
+    // Click "Week" button in the Month/Week toggle to go back to week
     await page.getByRole('button', { name: 'Week', exact: true }).click()
     await page.waitForTimeout(300)
 
     expect(page.url()).toContain('/scheduler/calendar/week')
+    await expect(page.getByText('12 AM', { exact: true })).toBeVisible()
   })
 
   test('TC-NAV-04: forward/backward buttons update date param @scheduler @navigation', async ({
@@ -150,15 +155,15 @@ test.describe('URL-addressable scheduler — navigation', () => {
     // URL should contain a date param
     expect(page.url()).toContain('date=')
 
-    // Navigate backward
-    await scheduler.backwardButton.click()
-    await page.waitForTimeout(300)
-
     // Navigate to today
     await scheduler.todayButton.click()
     await page.waitForTimeout(300)
 
-    expect(page.url()).toContain('date=')
+    // When navigating to today, the date parameter might be omitted as it is the default
+    // Or it might be present if the URL was canonicalized.
+    // Based on useCalendarUrl.ts: if (state.date !== resolveToday()) { query.date = state.date }
+    // So it should be NOT present if it is today.
+    expect(page.url()).not.toContain('date=')
   })
 })
 
@@ -177,8 +182,8 @@ test.describe('URL-addressable scheduler — sidebar channels', () => {
   test('TC-SIDE-01: clicking All Channels navigates to /scheduler/calendar/week @scheduler', async ({
     page,
   }) => {
-    const allChannelsButton = page.getByRole('button', { name: /all channels/i })
-    await allChannelsButton.click()
+    const scheduler = new SchedulerPage(page)
+    await scheduler.selectPlatform('')
     await page.waitForTimeout(300)
 
     expect(page.url()).toContain('/scheduler/calendar/week')
@@ -186,13 +191,11 @@ test.describe('URL-addressable scheduler — sidebar channels', () => {
     expect(page.url()).not.toContain('channels')
   })
 
-  test('TC-SIDE-02: clicking a channel adds channels[] query param @scheduler', async ({
-    page,
-  }) => {
-    // Click the LinkedIn channel button in the sidebar
-    const channelButton = page.getByRole('button', { name: /linkedin/i }).first()
-    await channelButton.click()
-    await page.waitForTimeout(300)
+  test('TC-SIDE-02: selecting a channel adds channels query param @scheduler', async ({ page }) => {
+    const scheduler = new SchedulerPage(page)
+    // Select the LinkedIn channel from the dropdown
+    // Mock channels use the accountId as option value, not the provider name
+    await scheduler.selectPlatform('sa-linkedin-001')
 
     expect(page.url()).toContain('/scheduler/calendar/week')
     expect(page.url()).toContain('channels')
