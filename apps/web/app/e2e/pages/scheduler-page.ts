@@ -41,12 +41,18 @@ export class SchedulerPage {
 
   get forwardButton(): Locator {
     // Locate the nav button by its Lucide ChevronRight icon class inside the button
-    return this.page.locator('button').filter({ has: this.page.locator('svg.lucide-chevron-right') }).first()
+    return this.page
+      .locator('button')
+      .filter({ has: this.page.locator('svg.lucide-chevron-right') })
+      .first()
   }
 
   get backwardButton(): Locator {
     // Locate the nav button by its Lucide ChevronLeft icon class inside the button
-    return this.page.locator('button').filter({ has: this.page.locator('svg.lucide-chevron-left') }).first()
+    return this.page
+      .locator('button')
+      .filter({ has: this.page.locator('svg.lucide-chevron-left') })
+      .first()
   }
 
   // Sidebar channel filters

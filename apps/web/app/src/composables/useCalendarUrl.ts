@@ -27,11 +27,7 @@ export interface CalendarUrlController {
   setChannelIds: (channelIds: string[]) => Promise<void>
 }
 
-const VALID_SURFACES = new Set<SchedulerSurface>([
-  'calendar-week',
-  'calendar-month',
-  'list',
-])
+const VALID_SURFACES = new Set<SchedulerSurface>(['calendar-week', 'calendar-month', 'list'])
 const VALID_STATUSES = new Set<SchedulerStatus>(['all', 'queued', 'published', 'cancelled'])
 
 const CALENDAR_ROUTE_NAMES: Record<SchedulerSurface, string> = {
@@ -221,7 +217,11 @@ export function createCalendarUrlController(
       } else {
         date.setDate(date.getDate() + sign * 7)
       }
-      await navigate(router, { ...state.value, date: normalizeDate(date.toISOString().slice(0, 10)) }, 'push')
+      await navigate(
+        router,
+        { ...state.value, date: normalizeDate(date.toISOString().slice(0, 10)) },
+        'push',
+      )
     },
     setTimezone: async (timezone) => {
       await navigate(router, { ...state.value, timezone: normalizeTimezone(timezone) }, 'replace')
