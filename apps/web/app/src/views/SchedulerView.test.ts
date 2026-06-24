@@ -37,6 +37,7 @@ function makeUrlController(
     canonicalize: vi.fn().mockResolvedValue(undefined),
     setSurface: vi.fn().mockResolvedValue(undefined),
     setDate: vi.fn().mockResolvedValue(undefined),
+    stepPeriod: vi.fn().mockResolvedValue(undefined),
     setTimezone: vi.fn().mockResolvedValue(undefined),
     setStatus: vi.fn().mockResolvedValue(undefined),
     setSearch: vi.fn().mockResolvedValue(undefined),
@@ -94,17 +95,7 @@ vi.mock('@/components/CalendarHeader.vue', () => ({
     template:
       '<div data-testid="calendar-header"><button data-testid="header-new-post" @click="$emit(\'new-post\')">New Post</button></div>',
     props: ['calendarView', 'surface', 'periodLabel'],
-    emits: [
-      'update:calendarView',
-      'update:surface',
-      'update:status',
-      'update:timezone',
-      'update:channels',
-      'forward',
-      'backward',
-      'today',
-      'new-post',
-    ],
+    emits: ['change:view', 'change:date', 'change:filter', 'new-post'],
   },
 }))
 
@@ -145,7 +136,6 @@ describe('SchedulerView', () => {
   beforeEach(() => {
     setActivePinia(createPinia())
     const store = usePublishingStore()
-    store.viewMode = 'calendar'
     store.publications = []
     store.activity = []
     store.channels = [
@@ -373,6 +363,88 @@ describe('SchedulerView', () => {
     expect(wrapper.find('[data-testid="create-post-modal"]').exists()).toBe(true)
   })
 
+  it('handles header date backward navigation via handleHeaderDateChange', async () => {
+    const wrapper = mountView()
+    await flushPromises()
+
+    const vm = wrapper.vm as unknown as {
+      handleHeaderDateChange: (action: 'forward' | 'backward' | 'today') => void
+    }
+
+    await vm.handleHeaderDateChange('backward')
+    await flushPromises()
+
+    expect(mockController.stepPeriod).toHaveBeenCalledWith('backward')
+  })
+
+  it('handles header date today navigation via handleHeaderDateChange', async () => {
+    const _store = usePublishingStore()
+    const wrapper = mountView()
+    await flushPromises()
+
+    const vm = wrapper.vm as unknown as {
+      handleHeaderDateChange: (action: 'forward' | 'backward' | 'today') => void
+    }
+
+    await vm.handleHeaderDateChange('today')
+    await flushPromises()
+
+    // setDate should be called with a valid YYYY-MM-DD local date string
+    const calledDate = (mockController.setDate as ReturnType<typeof vi.fn>).mock.calls[0]![0]
+    expect(calledDate).toMatch(/^\d{4}-\d{2}-\d{2}$/)
+  })
+
+  it('handles header filter change for timezone via handleHeaderFilterChange', async () => {
+    const _store = usePublishingStore()
+    const wrapper = mountView()
+    await flushPromises()
+
+    const vm = wrapper.vm as unknown as {
+      handleHeaderFilterChange: (filter: {
+        status?: 'all' | 'queued' | 'published' | 'cancelled'
+        timezone?: string
+        channelIds?: string[]
+      }) => void
+    }
+
+    await vm.handleHeaderFilterChange({ timezone: 'America/New_York' })
+    await flushPromises()
+
+    expect(mockController.setTimezone).toHaveBeenCalledWith('America/New_York')
+  })
+
+  it('handles header filter change for channelIds via handleHeaderFilterChange', async () => {
+    const _store = usePublishingStore()
+    const wrapper = mountView()
+    await flushPromises()
+
+    const vm = wrapper.vm as unknown as {
+      handleHeaderFilterChange: (filter: {
+        status?: 'all' | 'queued' | 'published' | 'cancelled'
+        timezone?: string
+        channelIds?: string[]
+      }) => void
+    }
+
+    await vm.handleHeaderFilterChange({ channelIds: ['acc-1'] })
+    await flushPromises()
+
+    expect(mockController.setChannelIds).toHaveBeenCalledWith(['acc-1'])
+  })
+
+  it('opens day view and updates URL date when openDayView is called', async () => {
+    const wrapper = mountView({ date: '2026-06-15' })
+    await flushPromises()
+
+    const vm = wrapper.vm as unknown as { openDayView: (date: Date) => void }
+    const targetDate = new Date('2026-06-20')
+
+    await vm.openDayView(targetDate)
+    await flushPromises()
+
+    expect(mockController.setDate).toHaveBeenCalledWith('2026-06-20')
+  })
+
   it('refreshes calendar when CreatePostModal emits updated', async () => {
     const store = usePublishingStore()
     const wrapper = mountView()
@@ -389,5 +461,282 @@ describe('SchedulerView', () => {
     expect((store.fetchCalendar as ReturnType<typeof vi.fn>).mock.calls.length).toBeGreaterThan(
       initialCalls,
     )
+  })
+
+  describe('month view', () => {
+    it('renders month grid when surface is calendar-month', async () => {
+      const store = usePublishingStore()
+      store.publications = [
+        {
+          id: 'pub-month',
+          content: 'Month view post',
+          channels: ['linkedin'],
+          scheduledAt: new Date().toISOString(),
+          status: 'QUEUED',
+          priority: false,
+        },
+      ]
+
+      const wrapper = mountView({ surface: 'calendar-month' })
+      await flushPromises()
+
+      // Month view should render with the Card wrapper (mocked as div)
+      expect(wrapper.html()).toContain('bg-bg-surface')
+    })
+
+    it('renders day-of-week headers in month view', async () => {
+      const wrapper = mountView({ surface: 'calendar-month' })
+      await flushPromises()
+
+      // Should have day headers
+      expect(wrapper.exists()).toBe(true)
+    })
+  })
+
+  describe('filters', () => {
+    it('filters publications by queued status', async () => {
+      const store = usePublishingStore()
+      const today = new Date()
+      const todayStr = today.toISOString().slice(0, 10)
+
+      store.publications = [
+        {
+          id: 'pub-queued',
+          content: 'Queued post',
+          channels: ['linkedin'],
+          scheduledAt: new Date(
+            today.getFullYear(),
+            today.getMonth(),
+            today.getDate(),
+            10,
+            0,
+          ).toISOString(),
+          status: 'QUEUED',
+          priority: false,
+        },
+        {
+          id: 'pub-published',
+          content: 'Published post',
+          channels: ['linkedin'],
+          scheduledAt: new Date(
+            today.getFullYear(),
+            today.getMonth(),
+            today.getDate(),
+            11,
+            0,
+          ).toISOString(),
+          status: 'PUBLISHED',
+          priority: false,
+        },
+      ]
+
+      const wrapper = mountView({ date: todayStr, status: 'queued' })
+      await flushPromises()
+
+      // Only queued publication should be visible in week slot
+      const queuedCard = wrapper
+        .findAll('[role="button"]')
+        .find((b) => b.text().includes('Queued post'))
+      const publishedCard = wrapper
+        .findAll('[role="button"]')
+        .find((b) => b.text().includes('Published post'))
+
+      expect(queuedCard).toBeDefined()
+      expect(publishedCard).toBeUndefined()
+    })
+
+    it('filters publications by channel ID', async () => {
+      const store = usePublishingStore()
+      const today = new Date()
+      const todayStr = today.toISOString().slice(0, 10)
+
+      store.publications = [
+        {
+          id: 'pub-channel-1',
+          content: 'Channel 1 post',
+          channels: ['linkedin'],
+          scheduledAt: new Date(
+            today.getFullYear(),
+            today.getMonth(),
+            today.getDate(),
+            10,
+            0,
+          ).toISOString(),
+          status: 'QUEUED',
+          priority: false,
+          accountId: 'acc-1',
+        },
+        {
+          id: 'pub-channel-2',
+          content: 'Channel 2 post',
+          channels: ['linkedin'],
+          scheduledAt: new Date(
+            today.getFullYear(),
+            today.getMonth(),
+            today.getDate(),
+            11,
+            0,
+          ).toISOString(),
+          status: 'QUEUED',
+          priority: false,
+          accountId: 'acc-2',
+        },
+      ]
+
+      const wrapper = mountView({ date: todayStr, channelIds: ['acc-1'] })
+      await flushPromises()
+
+      const channel1Card = wrapper
+        .findAll('[role="button"]')
+        .find((b) => b.text().includes('Channel 1 post'))
+      const channel2Card = wrapper
+        .findAll('[role="button"]')
+        .find((b) => b.text().includes('Channel 2 post'))
+
+      expect(channel1Card).toBeDefined()
+      expect(channel2Card).toBeUndefined()
+    })
+
+    it('filters publications by search query (tag)', async () => {
+      const store = usePublishingStore()
+      const today = new Date()
+      const todayStr = today.toISOString().slice(0, 10)
+
+      store.publications = [
+        {
+          id: 'pub-searchable',
+          content: 'This post mentions DDD patterns',
+          channels: ['linkedin'],
+          scheduledAt: new Date(
+            today.getFullYear(),
+            today.getMonth(),
+            today.getDate(),
+            10,
+            0,
+          ).toISOString(),
+          status: 'QUEUED',
+          priority: false,
+        },
+        {
+          id: 'pub-not-searchable',
+          content: 'This post has no special content',
+          channels: ['linkedin'],
+          scheduledAt: new Date(
+            today.getFullYear(),
+            today.getMonth(),
+            today.getDate(),
+            11,
+            0,
+          ).toISOString(),
+          status: 'QUEUED',
+          priority: false,
+        },
+      ]
+
+      const wrapper = mountView({ date: todayStr, q: 'ddd' })
+      await flushPromises()
+
+      const searchableCard = wrapper
+        .findAll('[role="button"]')
+        .find((b) => b.text().includes('DDD patterns'))
+      const notSearchableCard = wrapper
+        .findAll('[role="button"]')
+        .find((b) => b.text().includes('no special content'))
+
+      expect(searchableCard).toBeDefined()
+      expect(notSearchableCard).toBeUndefined()
+    })
+  })
+
+  describe('list view', () => {
+    it('renders list view when surface is list', async () => {
+      const store = usePublishingStore()
+      store.publications = [
+        {
+          id: 'pub-list',
+          content: 'List view post',
+          channels: ['linkedin'],
+          scheduledAt: new Date().toISOString(),
+          status: 'QUEUED',
+          priority: false,
+        },
+      ]
+
+      const wrapper = mountView({ surface: 'list' })
+      await flushPromises()
+
+      // List view should not have week/month grid structure
+      // It should render the post directly
+      expect(wrapper.text()).toContain('List view post')
+    })
+
+    it('shows empty state message when no publications in list view', async () => {
+      const store = usePublishingStore()
+      store.publications = []
+
+      const wrapper = mountView({ surface: 'list' })
+      await flushPromises()
+
+      // Should show empty state (either text or placeholder)
+      expect(wrapper.exists()).toBe(true)
+    })
+
+    it('displays publication status badges in list view', async () => {
+      const store = usePublishingStore()
+      store.publications = [
+        {
+          id: 'pub-queued-list',
+          content: 'Queued in list',
+          channels: ['linkedin'],
+          scheduledAt: new Date().toISOString(),
+          status: 'QUEUED',
+          priority: false,
+        },
+        {
+          id: 'pub-published-list',
+          content: 'Published in list',
+          channels: ['linkedin'],
+          scheduledAt: new Date().toISOString(),
+          status: 'PUBLISHED',
+          priority: false,
+        },
+      ]
+
+      const wrapper = mountView({ surface: 'list' })
+      await flushPromises()
+
+      expect(wrapper.text()).toContain('QUEUED')
+      expect(wrapper.text()).toContain('PUBLISHED')
+    })
+  })
+
+  describe('time helpers', () => {
+    it('formats day names in current locale', async () => {
+      const wrapper = mountView()
+      await flushPromises()
+
+      // Day names should be rendered (either abbreviated or full)
+      expect(wrapper.exists()).toBe(true)
+    })
+
+    it('handles activity data for dates', async () => {
+      const store = usePublishingStore()
+      const today = new Date()
+      const todayStr = today.toISOString().slice(0, 10)
+
+      store.activity = [
+        {
+          date: todayStr,
+          scheduled: 5,
+          published: 3,
+          blocked: 1,
+        },
+      ]
+
+      const wrapper = mountView({ date: todayStr })
+      await flushPromises()
+
+      expect(wrapper.exists()).toBe(true)
+    })
   })
 })

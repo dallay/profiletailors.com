@@ -1,6 +1,5 @@
 import type { Page, Locator } from '@playwright/test'
 import { expect } from '@playwright/test'
-import { keepSessionAlive } from '../fixtures/auth-helpers'
 
 /**
  * Page Object Model for the Scheduler view (SchedulerView.vue).
@@ -24,11 +23,11 @@ export class SchedulerPage {
 
   // View toggles
   get monthViewButton(): Locator {
-    return this.page.getByRole('button', { name: /calendar|month/i }).first()
+    return this.page.getByRole('button', { name: /^calendar$/i }).first()
   }
 
   get weekViewButton(): Locator {
-    return this.page.getByRole('button', { name: /week/i }).first()
+    return this.page.getByRole('button', { name: /week/i })
   }
 
   get listViewButton(): Locator {
@@ -41,17 +40,31 @@ export class SchedulerPage {
   }
 
   get forwardButton(): Locator {
-    // Icon-only button with chevron-right icon
-    return this.page.locator('button:has(svg.lucide-chevron-right)')
+    // Locate the nav button by its Lucide ChevronRight icon class inside the button
+    return this.page
+      .locator('button')
+      .filter({ has: this.page.locator('svg.lucide-chevron-right') })
+      .first()
   }
 
   get backwardButton(): Locator {
-    // Icon-only button with chevron-left icon
-    return this.page.locator('button:has(svg.lucide-chevron-left)')
+    // Locate the nav button by its Lucide ChevronLeft icon class inside the button
+    return this.page
+      .locator('button')
+      .filter({ has: this.page.locator('svg.lucide-chevron-left') })
+      .first()
   }
 
-  get platformFilter(): Locator {
-    return this.page.locator('select#calendar-platform-select')
+  // Sidebar channel filters
+  get allChannelsButton(): Locator {
+    return this.page.getByRole('button', { name: /all channels/i })
+  }
+
+  get linkedInFilterButton(): Locator {
+    return this.page
+      .locator('aside button')
+      .filter({ hasText: /dev user|linkedin/i })
+      .first()
   }
 
   // Post type filter dropdown
@@ -85,17 +98,6 @@ export class SchedulerPage {
     await this.page.waitForTimeout(300)
   }
 
-  async switchToDay(): Promise<void> {
-    // Mock the refresh endpoint before navigating — page.goto() triggers
-    // a full SPA reload and the HAR replay returns 401 on refresh, which
-    // would redirect to the login page. keepSessionAlive() overrides
-    // the refresh endpoint to return 200, keeping the session alive.
-    await keepSessionAlive(this.page)
-    await this.page.goto('/scheduler/calendar/day')
-    await this.page.waitForLoadState('networkidle')
-    await this.page.waitForTimeout(300)
-  }
-
   async switchToWeek(): Promise<void> {
     await this.weekViewButton.click()
     await this.page.waitForTimeout(300)
@@ -123,16 +125,6 @@ export class SchedulerPage {
   async clickDeleteButton(index: number): Promise<void> {
     const btn = this.deleteButtons.nth(index)
     await btn.click()
-  }
-
-  async selectPlatform(value: string): Promise<void> {
-    if (value === '') {
-      await this.platformFilter.selectOption({ index: 0 })
-    } else {
-      // Options use provider IDs as their value attribute (e.g. "linkedin").
-      await this.platformFilter.selectOption({ value })
-    }
-    await this.page.waitForTimeout(300)
   }
 
   // ---- Assertions ----

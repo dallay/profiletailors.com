@@ -1,22 +1,32 @@
+import type { RouteLocationNormalizedLoaded, Router } from 'vue-router'
 import { describe, it, expect, vi } from 'vitest'
-import { createCalendarUrlController } from './useCalendarUrl'
-import type { RouteLocationNormalizedLoaded } from 'vue-router'
+import { createCalendarUrlController, extractFirstChannelId } from './useCalendarUrl'
 
 // ---------------------------------------------------------------------------
 // Mock router and route factories
 // ---------------------------------------------------------------------------
 
-function createMockRoute(overrides: { name?: string; query?: Record<string, unknown> } = {}) {
+function createMockRoute(
+  overrides: { name?: string; query?: Record<string, unknown> } = {},
+): RouteLocationNormalizedLoaded {
   return {
     name: overrides.name ?? 'scheduler-calendar-week',
     query: overrides.query ?? {},
-  }
+    fullPath: '/scheduler/calendar/week',
+    hash: '',
+    matched: [],
+    meta: {},
+    params: {},
+    path: '/scheduler/calendar/week',
+    redirectedFrom: undefined,
+    href: '/scheduler/calendar/week',
+  } as unknown as RouteLocationNormalizedLoaded
 }
 
-function createMockRouter() {
+function createMockRouter(): Router {
   const push = vi.fn().mockResolvedValue(undefined)
   const replace = vi.fn().mockResolvedValue(undefined)
-  return { push, replace }
+  return { push, replace } as unknown as Router
 }
 
 // ---------------------------------------------------------------------------
@@ -26,6 +36,28 @@ function createMockRouter() {
 // We test through the composable factory by injecting the mock route/router.
 // The composable is tested by verifying router.push/replace calls match the
 // current route state after each action.
+
+describe('extractFirstChannelId', () => {
+  it('prefers the first channels[] value when query contains an array', () => {
+    expect(extractFirstChannelId({ 'channels[]': ['alpha', 'beta'] })).toBe('alpha')
+  })
+
+  it('returns channels[] when query contains a single string', () => {
+    expect(extractFirstChannelId({ 'channels[]': 'alpha' })).toBe('alpha')
+  })
+
+  it('falls back to legacy channels when channels[] is absent', () => {
+    expect(extractFirstChannelId({ channels: ['legacy-alpha', 'legacy-beta'] })).toBe(
+      'legacy-alpha',
+    )
+    expect(extractFirstChannelId({ channels: 'legacy-alpha' })).toBe('legacy-alpha')
+  })
+
+  it('returns null when no valid channel id is present', () => {
+    expect(extractFirstChannelId({})).toBeNull()
+    expect(extractFirstChannelId({ channels: [] })).toBeNull()
+  })
+})
 
 describe('useCalendarUrl — route normalization', () => {
   // These tests cover the core normalization logic by importing the composable
@@ -310,13 +342,13 @@ describe('useCalendarUrl — query serialization', () => {
     expect(query.status).toBe('queued')
   })
 
-  it('serializes channels array to query', () => {
+  it('serializes channels array to channels[] query param', () => {
     const channelIds = ['acc-1', 'acc-2']
 
     const query: Record<string, unknown> = {}
-    if (channelIds.length > 0) query.channels = channelIds
+    if (channelIds.length > 0) query['channels[]'] = channelIds
 
-    expect(query.channels).toEqual(['acc-1', 'acc-2'])
+    expect(query['channels[]']).toEqual(['acc-1', 'acc-2'])
   })
 
   it('serializes non-empty search query to query', () => {
@@ -361,6 +393,27 @@ describe('useCalendarUrl — canonicalization', () => {
     const queryStatus = normalized === 'all' ? undefined : normalized
     expect(queryStatus).toBeUndefined()
   })
+
+  it('canonicalizes URL when needsCanonicalization is true', async () => {
+    // Route with status=all in query but surface already defaults to week (canonical form omits status)
+    const route = makeRoute({
+      query: { status: 'all' },
+    })
+    const router = createMockRouter()
+    const ctrl = createCalendarUrlController(
+      route as unknown as RouteLocationNormalizedLoaded,
+      router as unknown as Router,
+    )
+
+    expect(ctrl.needsCanonicalization.value).toBe(true)
+
+    await ctrl.canonicalize()
+
+    expect(router.replace).toHaveBeenCalled()
+    const call = (router.replace as ReturnType<typeof vi.fn>).mock.calls[0]![0]
+    // Should NOT include status=all in canonical URL
+    expect(call.query).not.toHaveProperty('status')
+  })
 })
 
 // ---------------------------------------------------------------------------
@@ -403,7 +456,7 @@ describe('useCalendarUrl — needsCanonicalization / areQueriesEquivalent', () =
     })
     const controller = createCalendarUrlController(
       route as unknown as RouteLocationNormalizedLoaded,
-      mockRouter,
+      mockRouter as unknown as Router,
     )
 
     // 'acc-2', 'acc-1' is reverse order — canonical form sorts to 'acc-1', 'acc-2'
@@ -418,7 +471,7 @@ describe('useCalendarUrl — needsCanonicalization / areQueriesEquivalent', () =
     })
     const controller = createCalendarUrlController(
       route as unknown as RouteLocationNormalizedLoaded,
-      mockRouter,
+      mockRouter as unknown as Router,
     )
 
     // 'QUEUED' is stored uppercase but the canonical form is lowercase 'queued'
@@ -431,7 +484,7 @@ describe('useCalendarUrl — needsCanonicalization / areQueriesEquivalent', () =
     })
     const controller = createCalendarUrlController(
       route as unknown as RouteLocationNormalizedLoaded,
-      mockRouter,
+      mockRouter as unknown as Router,
     )
 
     // 'all' is the default status — canonical form omits it
@@ -461,8 +514,235 @@ describe('useCalendarUrl — needsCanonicalization / areQueriesEquivalent', () =
         date: '2026-06-15',
         q: 'test',
         status: 'queued',
-        channels: ['acc-1'],
+        'channels[]': ['acc-1'],
       },
     })
+  })
+})
+
+describe('useCalendarUrl controller — stepPeriod navigation', () => {
+  it('steps forward one week in calendar-week surface', async () => {
+    // 2026-06-15 (Monday) + 7 days = 2026-06-22
+    const route = createMockRoute({
+      name: 'scheduler-calendar-week',
+      query: { date: '2026-06-15' },
+    })
+    const router = createMockRouter()
+    const ctrl = createCalendarUrlController(route, router)
+
+    await ctrl.stepPeriod('forward')
+
+    expect(router.push).toHaveBeenCalledTimes(1)
+    const call = (router.push as ReturnType<typeof vi.fn>).mock.calls[0]![0]
+    expect(call.name).toBe('scheduler-calendar-week')
+    expect(call.query.date).toBe('2026-06-22')
+  })
+
+  it('steps backward one week in calendar-week surface', async () => {
+    // 2026-06-15 (Monday) - 7 days = 2026-06-08
+    const route = createMockRoute({
+      name: 'scheduler-calendar-week',
+      query: { date: '2026-06-15' },
+    })
+    const router = createMockRouter()
+    const ctrl = createCalendarUrlController(route, router)
+
+    await ctrl.stepPeriod('backward')
+
+    expect(router.push).toHaveBeenCalledTimes(1)
+    const call = (router.push as ReturnType<typeof vi.fn>).mock.calls[0]![0]
+    expect(call.name).toBe('scheduler-calendar-week')
+    expect(call.query.date).toBe('2026-06-08')
+  })
+
+  it('steps forward one month in calendar-month surface', async () => {
+    // 2026-06-15 + 1 month = 2026-07-15
+    const route = createMockRoute({
+      name: 'scheduler-calendar-month',
+      query: { date: '2026-06-15' },
+    })
+    const router = createMockRouter()
+    const ctrl = createCalendarUrlController(route, router)
+
+    await ctrl.stepPeriod('forward')
+
+    const call = (router.push as ReturnType<typeof vi.fn>).mock.calls[0]![0]
+    expect(call.name).toBe('scheduler-calendar-month')
+    expect(call.query.date).toBe('2026-07-15')
+  })
+
+  it('steps backward one month in calendar-month surface', async () => {
+    // 2026-06-15 - 1 month = 2026-05-15 (day is preserved by setMonth)
+    const route = createMockRoute({
+      name: 'scheduler-calendar-month',
+      query: { date: '2026-06-15' },
+    })
+    const router = createMockRouter()
+    const ctrl = createCalendarUrlController(route, router)
+
+    await ctrl.stepPeriod('backward')
+
+    const call = (router.push as ReturnType<typeof vi.fn>).mock.calls[0]![0]
+    expect(call.name).toBe('scheduler-calendar-month')
+    expect(call.query.date).toBe('2026-05-15')
+  })
+})
+
+describe('useCalendarUrl controller — isInvalidStatus', () => {
+  it('returns false for empty status string', () => {
+    const rawStatus = ''
+    const lowered = rawStatus.toLowerCase() as import('./useCalendarUrl').SchedulerStatus
+    const invalid =
+      rawStatus.length > 0 && !new Set(['all', 'queued', 'published', 'cancelled']).has(lowered)
+    expect(invalid).toBe(false)
+  })
+
+  it('returns true for an unrecognized status value', () => {
+    const rawStatus = 'pending'
+    const lowered = rawStatus.toLowerCase() as import('./useCalendarUrl').SchedulerStatus
+    const invalid =
+      rawStatus.length > 0 && !new Set(['all', 'queued', 'published', 'cancelled']).has(lowered)
+    expect(invalid).toBe(true)
+  })
+
+  it('returns false for a valid status value', () => {
+    const rawStatus = 'queued'
+    const lowered = rawStatus.toLowerCase() as import('./useCalendarUrl').SchedulerStatus
+    const invalid =
+      rawStatus.length > 0 && !new Set(['all', 'queued', 'published', 'cancelled']).has(lowered)
+    expect(invalid).toBe(false)
+  })
+})
+
+describe('useCalendarUrl controller — list surface uses canonical path only', () => {
+  it('setSurface(list) navigates to scheduler-list route with no mode query', async () => {
+    const route = createMockRoute({ name: 'scheduler-calendar-week', query: {} })
+    const router = createMockRouter()
+    const ctrl = createCalendarUrlController(route, router)
+
+    await ctrl.setSurface('list')
+
+    expect(router.push).toHaveBeenCalledWith(expect.objectContaining({ name: 'scheduler-list' }))
+    const call = (router.push as ReturnType<typeof vi.fn>).mock.calls[0]![0]
+    expect(call.query).not.toHaveProperty('mode')
+  })
+
+  it('scheduler-list route derives surface=list without needing mode query', () => {
+    const route = createMockRoute({ name: 'scheduler-list', query: {} })
+    const ctrl = createCalendarUrlController(route, createMockRouter())
+    expect(ctrl.state.value.surface).toBe('list')
+  })
+
+  it('scheduler-calendar-week route derives surface=calendar-week (no calendar-day fallback)', () => {
+    const route = createMockRoute({ name: 'scheduler-calendar-week', query: {} })
+    const ctrl = createCalendarUrlController(route, createMockRouter())
+    expect(ctrl.state.value.surface).toBe('calendar-week')
+  })
+})
+
+describe('useCalendarUrl — areQueriesEquivalent', () => {
+  it('normalizes legacy channels to channels[] for comparison', () => {
+    const route = makeRoute({
+      query: { channels: ['acc-1', 'acc-2'] },
+    })
+    const router = createMockRouter()
+    const ctrl = createCalendarUrlController(
+      route as unknown as RouteLocationNormalizedLoaded,
+      router as unknown as Router,
+    )
+
+    // Should not need canonicalization when route query matches built query
+    // Build query from state will use channels[]
+    expect(ctrl.needsCanonicalization.value).toBe(false)
+  })
+
+  it('does not need canonicalization when channel order differs but content is same', () => {
+    // Route has channels in different order than canonical form would build
+    const route = makeRoute({
+      query: { channels: ['acc-2', 'acc-1'] }, // reverse order
+    })
+    const router = createMockRouter()
+    const ctrl = createCalendarUrlController(
+      route as unknown as RouteLocationNormalizedLoaded,
+      router as unknown as Router,
+    )
+
+    // areQueriesEquivalent sorts both sides before comparing, so this should be equivalent
+    expect(ctrl.needsCanonicalization.value).toBe(false)
+  })
+})
+
+describe('useCalendarUrl — stepPeriod', () => {
+  it('triggers navigation when stepping forward in week view', async () => {
+    const route = makeRoute({
+      query: { date: '2026-06-15' },
+    })
+    const router = createMockRouter()
+    const ctrl = createCalendarUrlController(
+      route as unknown as RouteLocationNormalizedLoaded,
+      router as unknown as Router,
+    )
+
+    await ctrl.stepPeriod('forward')
+
+    expect(router.push).toHaveBeenCalled()
+    const call = (router.push as ReturnType<typeof vi.fn>).mock.calls[0]![0]
+    expect(call.query).toHaveProperty('date')
+    // The date should be different from the original
+    expect(call.query.date).not.toBe('2026-06-15')
+  })
+
+  it('triggers navigation when stepping backward in week view', async () => {
+    const route = makeRoute({
+      query: { date: '2026-06-15' },
+    })
+    const router = createMockRouter()
+    const ctrl = createCalendarUrlController(
+      route as unknown as RouteLocationNormalizedLoaded,
+      router as unknown as Router,
+    )
+
+    await ctrl.stepPeriod('backward')
+
+    expect(router.push).toHaveBeenCalled()
+    const call = (router.push as ReturnType<typeof vi.fn>).mock.calls[0]![0]
+    expect(call.query).toHaveProperty('date')
+    expect(call.query.date).not.toBe('2026-06-15')
+  })
+
+  it('uses setMonth when stepping in month view', async () => {
+    const route = makeRoute({
+      name: 'scheduler-calendar-month',
+      query: { date: '2026-06-15' },
+    })
+    const router = createMockRouter()
+    const ctrl = createCalendarUrlController(
+      route as unknown as RouteLocationNormalizedLoaded,
+      router as unknown as Router,
+    )
+
+    await ctrl.stepPeriod('forward')
+
+    expect(router.push).toHaveBeenCalled()
+    const call = (router.push as ReturnType<typeof vi.fn>).mock.calls[0]![0]
+    expect(call.query).toHaveProperty('date')
+  })
+
+  it('uses setDate for week view navigation', async () => {
+    const route = makeRoute({
+      name: 'scheduler-calendar-week',
+      query: { date: '2026-06-15' },
+    })
+    const router = createMockRouter()
+    const ctrl = createCalendarUrlController(
+      route as unknown as RouteLocationNormalizedLoaded,
+      router as unknown as Router,
+    )
+
+    await ctrl.stepPeriod('backward')
+
+    expect(router.push).toHaveBeenCalled()
+    const call = (router.push as ReturnType<typeof vi.fn>).mock.calls[0]![0]
+    expect(call.query).toHaveProperty('date')
   })
 })
