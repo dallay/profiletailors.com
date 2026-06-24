@@ -504,7 +504,13 @@ describe('SchedulerView', () => {
           id: 'pub-queued',
           content: 'Queued post',
           channels: ['linkedin'],
-          scheduledAt: new Date(today.getFullYear(), today.getMonth(), today.getDate(), 10, 0).toISOString(),
+          scheduledAt: new Date(
+            today.getFullYear(),
+            today.getMonth(),
+            today.getDate(),
+            10,
+            0,
+          ).toISOString(),
           status: 'QUEUED',
           priority: false,
         },
@@ -512,7 +518,13 @@ describe('SchedulerView', () => {
           id: 'pub-published',
           content: 'Published post',
           channels: ['linkedin'],
-          scheduledAt: new Date(today.getFullYear(), today.getMonth(), today.getDate(), 11, 0).toISOString(),
+          scheduledAt: new Date(
+            today.getFullYear(),
+            today.getMonth(),
+            today.getDate(),
+            11,
+            0,
+          ).toISOString(),
           status: 'PUBLISHED',
           priority: false,
         },
@@ -522,12 +534,12 @@ describe('SchedulerView', () => {
       await flushPromises()
 
       // Only queued publication should be visible in week slot
-      const queuedCard = wrapper.findAll('[role="button"]').find((b) =>
-        b.text().includes('Queued post'),
-      )
-      const publishedCard = wrapper.findAll('[role="button"]').find((b) =>
-        b.text().includes('Published post'),
-      )
+      const queuedCard = wrapper
+        .findAll('[role="button"]')
+        .find((b) => b.text().includes('Queued post'))
+      const publishedCard = wrapper
+        .findAll('[role="button"]')
+        .find((b) => b.text().includes('Published post'))
 
       expect(queuedCard).toBeDefined()
       expect(publishedCard).toBeUndefined()
@@ -543,7 +555,13 @@ describe('SchedulerView', () => {
           id: 'pub-channel-1',
           content: 'Channel 1 post',
           channels: ['linkedin'],
-          scheduledAt: new Date(today.getFullYear(), today.getMonth(), today.getDate(), 10, 0).toISOString(),
+          scheduledAt: new Date(
+            today.getFullYear(),
+            today.getMonth(),
+            today.getDate(),
+            10,
+            0,
+          ).toISOString(),
           status: 'QUEUED',
           priority: false,
           accountId: 'acc-1',
@@ -552,7 +570,13 @@ describe('SchedulerView', () => {
           id: 'pub-channel-2',
           content: 'Channel 2 post',
           channels: ['linkedin'],
-          scheduledAt: new Date(today.getFullYear(), today.getMonth(), today.getDate(), 11, 0).toISOString(),
+          scheduledAt: new Date(
+            today.getFullYear(),
+            today.getMonth(),
+            today.getDate(),
+            11,
+            0,
+          ).toISOString(),
           status: 'QUEUED',
           priority: false,
           accountId: 'acc-2',
@@ -562,12 +586,12 @@ describe('SchedulerView', () => {
       const wrapper = mountView({ date: todayStr, channelIds: ['acc-1'] })
       await flushPromises()
 
-      const channel1Card = wrapper.findAll('[role="button"]').find((b) =>
-        b.text().includes('Channel 1 post'),
-      )
-      const channel2Card = wrapper.findAll('[role="button"]').find((b) =>
-        b.text().includes('Channel 2 post'),
-      )
+      const channel1Card = wrapper
+        .findAll('[role="button"]')
+        .find((b) => b.text().includes('Channel 1 post'))
+      const channel2Card = wrapper
+        .findAll('[role="button"]')
+        .find((b) => b.text().includes('Channel 2 post'))
 
       expect(channel1Card).toBeDefined()
       expect(channel2Card).toBeUndefined()
@@ -583,7 +607,13 @@ describe('SchedulerView', () => {
           id: 'pub-searchable',
           content: 'This post mentions DDD patterns',
           channels: ['linkedin'],
-          scheduledAt: new Date(today.getFullYear(), today.getMonth(), today.getDate(), 10, 0).toISOString(),
+          scheduledAt: new Date(
+            today.getFullYear(),
+            today.getMonth(),
+            today.getDate(),
+            10,
+            0,
+          ).toISOString(),
           status: 'QUEUED',
           priority: false,
         },
@@ -591,7 +621,13 @@ describe('SchedulerView', () => {
           id: 'pub-not-searchable',
           content: 'This post has no special content',
           channels: ['linkedin'],
-          scheduledAt: new Date(today.getFullYear(), today.getMonth(), today.getDate(), 11, 0).toISOString(),
+          scheduledAt: new Date(
+            today.getFullYear(),
+            today.getMonth(),
+            today.getDate(),
+            11,
+            0,
+          ).toISOString(),
           status: 'QUEUED',
           priority: false,
         },
@@ -600,12 +636,12 @@ describe('SchedulerView', () => {
       const wrapper = mountView({ date: todayStr, q: 'ddd' })
       await flushPromises()
 
-      const searchableCard = wrapper.findAll('[role="button"]').find((b) =>
-        b.text().includes('DDD patterns'),
-      )
-      const notSearchableCard = wrapper.findAll('[role="button"]').find((b) =>
-        b.text().includes('no special content'),
-      )
+      const searchableCard = wrapper
+        .findAll('[role="button"]')
+        .find((b) => b.text().includes('DDD patterns'))
+      const notSearchableCard = wrapper
+        .findAll('[role="button"]')
+        .find((b) => b.text().includes('no special content'))
 
       expect(searchableCard).toBeDefined()
       expect(notSearchableCard).toBeUndefined()
