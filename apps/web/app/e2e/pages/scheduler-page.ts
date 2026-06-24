@@ -85,9 +85,9 @@ export class SchedulerPage {
   }
 
   async switchToDay(): Promise<void> {
-    // Navigate to day surface via URL — openDayView only sets the date
-    // without changing the surface to calendar-day.
-    await this.page.goto('/scheduler/calendar/week?surface=calendar-day')
+    // Navigate to day route — the day surface derives from the route name.
+    // openDayView only sets the date without changing the surface.
+    await this.page.goto('/scheduler/calendar/day')
     await this.page.waitForLoadState('networkidle')
     await this.page.waitForTimeout(300)
   }
