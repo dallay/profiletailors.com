@@ -40,11 +40,12 @@ export class SchedulerPage {
   }
 
   get forwardButton(): Locator {
-    // The forward arrow button is the second navigation button
+    // Icon-only button with chevron-right icon
     return this.page.locator('button:has(svg.lucide-chevron-right)')
   }
 
   get backwardButton(): Locator {
+    // Icon-only button with chevron-left icon
     return this.page.locator('button:has(svg.lucide-chevron-left)')
   }
 
@@ -124,7 +125,8 @@ export class SchedulerPage {
     if (value === '') {
       await this.platformFilter.selectOption({ index: 0 })
     } else {
-      await this.platformFilter.selectOption({ label: new RegExp(value, 'i') })
+      // Options use provider IDs as their value attribute (e.g. "linkedin").
+      await this.platformFilter.selectOption({ value })
     }
     await this.page.waitForTimeout(300)
   }
