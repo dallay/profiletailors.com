@@ -189,9 +189,7 @@ test.describe('URL-addressable scheduler — sidebar channels', () => {
     expect(page.url()).not.toContain('channels')
   })
 
-  test('TC-SIDE-02: selecting a channel adds channels query param @scheduler', async ({
-    page,
-  }) => {
+  test('TC-SIDE-02: selecting a channel adds channels query param @scheduler', async ({ page }) => {
     const scheduler = new SchedulerPage(page)
     // Select the LinkedIn channel from the dropdown
     await scheduler.selectPlatform('linkedin')
