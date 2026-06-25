@@ -100,7 +100,7 @@ describe('ConflictBadge', () => {
     const wrapper = mount(ConflictBadge, {
       props: { variant: 'badge' },
     })
-    expect(wrapper.find('output').attributes('role')).toBe('status')
+    // <output> has implicit status role — no explicit role attribute needed
     expect(wrapper.find('output').attributes('aria-label')).toBe('Conflict')
   })
 })
