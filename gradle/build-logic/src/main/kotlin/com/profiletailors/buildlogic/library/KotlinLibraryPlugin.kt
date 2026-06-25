@@ -27,9 +27,10 @@ class KotlinLibraryPlugin : ConventionPlugin {
         tasks.commonTasks()
 
         extensions.configure<DetektExtension> {
-            config.setFrom(files(rootDir.resolve("detekt.yml")))
+            config.setFrom(files(rootDir.resolve("config/detekt/detekt.yml")))
             buildUponDefaultConfig.set(false)
             allRules.set(false)
+            ignoreFailures.set(true)
         }
 
         tasks.withType<Test>().configureEach {

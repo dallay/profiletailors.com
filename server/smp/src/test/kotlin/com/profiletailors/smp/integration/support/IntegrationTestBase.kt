@@ -181,6 +181,10 @@ abstract class IntegrationTestBase {
         "DELETE FROM publication_jobs",
         "DELETE FROM publication_asset_links",
         "DELETE FROM publications",
+        "DELETE FROM media_assets",
+        "DELETE FROM workspace_file_blobs",
+        "DELETE FROM workspace_upload_slots",
+        "DELETE FROM media_rate_limits",
         "DELETE FROM publication_assets",
         "DELETE FROM social_accounts",
         "DELETE FROM social_connections",
@@ -289,6 +293,13 @@ abstract class IntegrationTestBase {
 
             override suspend fun exists(bucket: String, key: String): Boolean =
                 objects.containsKey("$bucket/$key")
+
+            override suspend fun copyObject(bucket: String, sourceKey: String, destKey: String) {
+                val data = objects["$bucket/$sourceKey"]
+                if (data != null) {
+                    objects["$bucket/$destKey"] = data
+                }
+            }
         }
 
         /** No-op [EventPublisher] — domain events are silently discarded in tests. */

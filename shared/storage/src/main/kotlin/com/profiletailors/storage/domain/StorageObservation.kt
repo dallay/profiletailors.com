@@ -25,6 +25,7 @@ interface StorageObservation {
         const val DELETE = "delete"
         const val LIST = "list"
         const val PRESIGN = "presign"
+        const val COPY = "copy"
     }
 
     object ErrorTypes {

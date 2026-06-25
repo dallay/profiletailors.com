@@ -178,6 +178,22 @@ class LocalFilesystemStorage(basePath: Path) : Storage {
             Files.exists(target)
         }
 
+    override suspend fun copyObject(bucket: String, sourceKey: String, destKey: String) {
+        val source = resolveSafe(bucket, sourceKey)
+        val dest = resolveSafe(bucket, destKey)
+        if (!Files.exists(source)) {
+            throw StorageObjectNotFoundException(bucket, sourceKey)
+        }
+        ensureParentDirectories(dest)
+        withContext(Dispatchers.IO) {
+            try {
+                Files.copy(source, dest, StandardCopyOption.REPLACE_EXISTING)
+            } catch (e: IOException) {
+                throw StorageServiceException("Failed to copy '$sourceKey' to '$destKey' in bucket '$bucket'", e)
+            }
+        }
+    }
+
     private fun resolveBucketPath(bucket: String): Path {
         return try {
             resolveSafe(bucket, "")

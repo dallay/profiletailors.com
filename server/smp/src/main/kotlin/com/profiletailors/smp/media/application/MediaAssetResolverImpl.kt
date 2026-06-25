@@ -80,16 +80,17 @@ class MediaAssetResolverImpl(
                 ResolvedAssetSummary(
                     assetId = asset.assetId,
                     workspaceId = asset.workspaceId,
-                    storageKey = asset.storageKey,
+                    storageKey = asset.storageKey ?: error("READY asset ${asset.assetId} has no storageKey"),
                     mediaType = asset.mediaType,
                 )
             }
 
-        val resolvedLegacy = legacyAssets.map { asset ->
+        val resolvedLegacy = legacyAssets.mapNotNull { asset ->
+            val key = asset.storageKey ?: return@mapNotNull null
             ResolvedAssetSummary(
                 assetId = asset.id,
                 workspaceId = asset.workspaceId,
-                storageKey = asset.storageKey!!,
+                storageKey = key,
                 mediaType = asset.mediaType,
             )
         }

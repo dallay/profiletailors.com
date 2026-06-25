@@ -47,13 +47,15 @@ class MediaAssetPreviewController(
     ): ResponseEntity<Flux<DataBuffer>> {
         val asset = validateAndLoadAsset(assetId, workspaceId, expiresAt, signature)
 
+        val storageKey = asset?.storageKey
         return when {
             asset == null -> forbiddenResponse()
+            storageKey == null -> ResponseEntity.notFound().build()
             !isReadyImage(asset.mediaType, asset.status) -> ResponseEntity.notFound().build()
             else -> ResponseEntity.ok()
                 .contentType(MediaType.parseMediaType(asset.mediaType))
                 .cacheControl(CacheControl.maxAge(Duration.ofMinutes(PREVIEW_CACHE_MINUTES)))
-                .body(downloadBody(assetId, asset.storageKey, "media-preview"))
+                .body(downloadBody(assetId, storageKey, "media-preview"))
         }
     }
 
@@ -84,9 +86,11 @@ class MediaAssetPreviewController(
                     }
                 }
 
+                val storageKey = asset.storageKey
+                    ?: return ResponseEntity.notFound().build()
                 ResponseEntity.ok()
                     .headers(headers)
-                    .body(downloadBody(assetId, asset.storageKey, "media-content"))
+                    .body(downloadBody(assetId, storageKey, "media-content"))
             }
         }
     }

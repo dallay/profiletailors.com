@@ -57,6 +57,7 @@ data class MediaAssetSummary(
     val status: String,
     val originalFilename: String?,
     val fileSizeBytes: Long?,
+    val fileHash: String?,  // CAS: SHA-256 of file content (null for pre-CAS assets)
     val createdAt: String,
     val previewUrl: String? = null,
     val downloadUrl: String? = null,

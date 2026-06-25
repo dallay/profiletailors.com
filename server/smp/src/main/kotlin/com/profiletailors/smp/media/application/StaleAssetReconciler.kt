@@ -1,266 +1,314 @@
 package com.profiletailors.smp.media.application
 
 import com.profiletailors.common.domain.Service
+import com.profiletailors.smp.media.domain.BlobStatus
 import com.profiletailors.smp.media.domain.MediaAsset
 import com.profiletailors.smp.media.domain.MediaAssetStatus
+import com.profiletailors.smp.media.domain.MediaAsset.Companion.ASSET_EXPIRATION_TTL_HOURS
+import com.profiletailors.smp.media.domain.MediaAsset.Companion.GC_MAX_FAILURE_COUNT
+import com.profiletailors.smp.media.domain.MediaAsset.Companion.GC_RETENTION_DAYS
+import com.profiletailors.smp.media.domain.WorkspaceFileBlob
 import com.profiletailors.storage.application.StorageApplicationService
 import com.profiletailors.storage.domain.StorageException
 import kotlinx.coroutines.TimeoutCancellationException
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.withTimeout
 import org.slf4j.LoggerFactory
 import java.time.Instant
 
 /**
- * Stale asset reconciler that transitions abandoned PROCESSING assets to FAILED.
+ * Blob Garbage Collector.
  *
- * An asset is considered stale when:
- * - status == PROCESSING
- * - created_at < (now - 2 hours)
- * - (uploadStartedAt IS NULL OR uploadStartedAt < (now - 30 minutes))
+ * Runs hourly and physically deletes storage objects for orphaned blobs that have
+ * exceeded the 7-day retention period.
  *
- * This grace period allows large uploads that are actively streaming.
+ * The job NEVER deletes `workspace_file_blobs` rows — it only updates status to
+ * `GARBAGE_COLLECTED` and deletes the storage object.
  *
- * The reconciler also retries storage deletion for FAILED assets with unresolved
- * cleanup failures (logged during upload failure paths).
+ * Uses `FOR UPDATE SKIP LOCKED` for safe concurrent processing across multiple instances.
  *
- * Metrics emitted per run:
- * - recordsScanned: total PROCESSING assets scanned
- * - recordsTransitioned: assets transitioned to FAILED
- * - durationMs: total run duration
- * - errors: count of errors during the run
- *
- * Alert: fire when errors > 0 on 3 consecutive runs.
+ * Blobs with `gc_failure_count >= 5` are skipped — they require manual intervention.
  */
 @Service
-class StaleAssetReconciler(
+class BlobGarbageCollector(
+    private val workspaceFileBlobRepository: WorkspaceFileBlobRepository,
     private val mediaAssetRepository: MediaAssetRepository,
-    private val mediaRateLimitRepository: MediaRateLimitRepository,
     private val storageApplicationService: StorageApplicationService,
     private val reconcilerSettings: MediaReconcilerSettings,
 ) {
-    private val logger = LoggerFactory.getLogger(StaleAssetReconciler::class.java)
+    private val logger = LoggerFactory.getLogger(BlobGarbageCollector::class.java)
 
     companion object {
-        private const val SCHEDULED_FIXED_RATE_MILLIS = 15 * 60 * 1000L
-        private const val SCHEDULED_INITIAL_DELAY_MILLIS = 60 * 1000L
-        private const val STORAGE_DELETE_TIMEOUT_MILLIS = 30_000L
-        private const val ALERT_THRESHOLD_RUNS = 3
+        private const val BATCH_SIZE = 100
+        private const val GC_LOCK_TIMEOUT_MILLIS = 30_000L
     }
 
-    // Track consecutive error runs for alerting
-    private var consecutiveErrorRuns = 0
-
     /**
-     * Runs the stale asset reconciliation.
-     * Scheduling is owned by infrastructure; application exposes only the use case.
+     * Run one GC cycle.
+     * Public for testing and manual trigger.
+     * @return GCRunResult with metrics.
      */
-
-    /**
-     * Run the reconciliation. Public for testing and manual trigger.
-     * @return ReconcilerRunResult with metrics for the run.
-     */
-    suspend fun run(): ReconcilerRunResult {
+    suspend fun run(): GCRunResult {
         val startTime = System.currentTimeMillis()
-        var recordsScanned = 0
-        var recordsTransitioned = 0
+        var blobsScanned = 0
+        var blobsDeleted = 0
+        var storageErrors = 0
+        var skippedBlobs = 0
+
+        val threshold = Instant.now().minusSeconds(GC_RETENTION_DAYS * 24 * 3600)
+
+        try {
+            workspaceFileBlobRepository.findReadyForGC(threshold, BATCH_SIZE)
+                .onEach { blobsScanned++ }
+                .collect { blob ->
+                    val result = processBlob(blob)
+                    when (result) {
+                        BlobGCResult.Deleted -> blobsDeleted++
+                        BlobGCResult.StorageFailed -> storageErrors++
+                        BlobGCResult.Skipped -> skippedBlobs++
+                    }
+                }
+        } catch (e: IllegalStateException) {
+            logger.error("BlobGarbageCollector run failed", e)
+        }
+
+        val durationMs = System.currentTimeMillis() - startTime
+        logger.info(
+            "media.gc.run blobsScanned={} blobsDeleted={} storageErrors={} skippedBlobs={} durationMs={}",
+            blobsScanned, blobsDeleted, storageErrors, skippedBlobs, durationMs,
+        )
+
+        return GCRunResult(
+            blobsScanned = blobsScanned,
+            blobsDeleted = blobsDeleted,
+            storageErrors = storageErrors,
+            skippedBlobs = skippedBlobs,
+            durationMs = durationMs,
+            timestamp = Instant.now(),
+        )
+    }
+
+    @Suppress("TooGenericExceptionCaught") // Defensive: catches unexpected RuntimeException from DB operations
+    private suspend fun processBlob(blob: WorkspaceFileBlob): BlobGCResult {
+        val storageKey = blob.storageKey
+        if (storageKey.isNullOrBlank()) {
+            logger.warn(
+                "media.gc.skip.noStorageKey workspaceId={} fileHash={}",
+                blob.workspaceId, blob.fileHash,
+            )
+            return BlobGCResult.Skipped
+        }
+
+        return try {
+            withTimeout(GC_LOCK_TIMEOUT_MILLIS) {
+                storageApplicationService.delete(
+                    bucket = reconcilerSettings.storageBucket,
+                    key = storageKey,
+                    deleterId = "blob-gc",
+                )
+            }
+
+            workspaceFileBlobRepository.markAsGarbageCollected(blob.workspaceId, blob.fileHash)
+
+            logger.info(
+                "media.gc.deleted workspaceId={} fileHash={} storageKey={}",
+                blob.workspaceId, blob.fileHash, storageKey,
+            )
+            BlobGCResult.Deleted
+
+        } catch (e: StorageException) {
+            workspaceFileBlobRepository.recordGCFailure(
+                blob.workspaceId,
+                blob.fileHash,
+                "storage.delete.failed: ${e.message}",
+            )
+            logger.warn(
+                "media.gc.storageFailed workspaceId={} fileHash={} storageKey={} error={}",
+                blob.workspaceId, blob.fileHash, storageKey, e.message,
+            )
+            BlobGCResult.StorageFailed
+
+        } catch (e: TimeoutCancellationException) {
+            workspaceFileBlobRepository.recordGCFailure(
+                blob.workspaceId,
+                blob.fileHash,
+                "storage.delete.timeout",
+            )
+            logger.warn(
+                "media.gc.storageTimeout workspaceId={} fileHash={} storageKey={}",
+                blob.workspaceId, blob.fileHash, storageKey,
+                e,
+            )
+            BlobGCResult.StorageFailed
+
+        } catch (e: RuntimeException) {
+            // Defensive: unexpected runtime errors should not silently disappear
+            workspaceFileBlobRepository.recordGCFailure(
+                blob.workspaceId,
+                blob.fileHash,
+                "gc.error: ${e.message}",
+            )
+            logger.error(
+                "media.gc.error workspaceId={} fileHash={}",
+                blob.workspaceId, blob.fileHash,
+                e,
+            )
+            BlobGCResult.StorageFailed
+        }
+    }
+
+    enum class BlobGCResult { Deleted, StorageFailed, Skipped }
+}
+
+data class GCRunResult(
+    val blobsScanned: Int,
+    val blobsDeleted: Int,
+    val storageErrors: Int,
+    val skippedBlobs: Int,
+    val durationMs: Long,
+    val timestamp: Instant,
+)
+
+/**
+ * Media Asset Expiration Job.
+ *
+ * Runs every 6 hours and transitions stale PENDING_UPLOAD and UPLOADING assets to FAILED.
+ * After marking the asset FAILED, it evaluates whether the underlying blob has any remaining
+ * active references. If not, the blob is scheduled for GC.
+ *
+ * Handles both:
+ * - PENDING_UPLOAD assets that were never started (>24h since creation)
+ * - UPLOADING assets where the upload stalled (>24h since upload started)
+ */
+@Service
+class MediaAssetExpirationJob(
+    private val mediaAssetRepository: MediaAssetRepository,
+    private val workspaceFileBlobRepository: WorkspaceFileBlobRepository,
+    private val mediaRateLimitRepository: MediaRateLimitRepository,
+) {
+    private val logger = LoggerFactory.getLogger(MediaAssetExpirationJob::class.java)
+
+    companion object {
+        private const val BATCH_SIZE = 100
+    }
+
+    /**
+     * Run one expiration cycle.
+     */
+    suspend fun run(): ExpirationRunResult {
+        val startTime = System.currentTimeMillis()
+        var pendingExpired = 0
+        var uploadingExpired = 0
+        var blobsScheduledForGC = 0
         var errors = 0
 
         try {
-            val staleAssets = mediaAssetRepository.findStaleProcessingAssets(
-                thresholdHours = reconcilerSettings.staleThresholdHours,
-                gracePeriodMinutes = reconcilerSettings.gracePeriodMinutes,
-            )
-            recordsScanned = staleAssets.size
-            val staleResult = reconcileStaleProcessingAssets(staleAssets)
-            recordsTransitioned += staleResult.transitions
-            errors += staleResult.errors
+            // Expire PENDING_UPLOAD assets
+            val pendingAssets = mediaAssetRepository.findExpiredPendingUploadAssets(BATCH_SIZE)
+            for (asset in pendingAssets) {
+                try {
+                    val scheduled = expirePendingUploadAsset(asset)
+                    if (scheduled) blobsScheduledForGC++
+                    pendingExpired++
+                } catch (e: IllegalStateException) {
+                    errors++
+                    logger.error("Failed to expire PENDING_UPLOAD asset: {}", asset.assetId, e)
+                }
+            }
 
-            val recentlyFailedAssets = mediaAssetRepository.findRecentlyFailedAssets()
-            errors += retryFailedAssetCleanup(recentlyFailedAssets)
+            // Expire UPLOADING assets
+            val uploadingAssets = mediaAssetRepository.findExpiredUploadingAssets(BATCH_SIZE)
+            for (asset in uploadingAssets) {
+                try {
+                    val scheduled = expireUploadingAsset(asset)
+                    if (scheduled) blobsScheduledForGC++
+                    uploadingExpired++
+                } catch (e: IllegalStateException) {
+                    errors++
+                    logger.error("Failed to expire UPLOADING asset: {}", asset.assetId, e)
+                }
+            }
         } catch (e: IllegalStateException) {
             errors++
-            logger.error("Stale asset reconciler run failed", e)
+            logger.error("MediaAssetExpirationJob run failed", e)
         }
 
-        return finalizeRun(startTime, recordsScanned, recordsTransitioned, errors)
+        val durationMs = System.currentTimeMillis() - startTime
+        logger.info(
+            "media.expiration.run pendingExpired={} uploadingExpired={} blobsScheduledForGC={} errors={} durationMs={}",
+            pendingExpired, uploadingExpired, blobsScheduledForGC, errors, durationMs,
+        )
+
+        return ExpirationRunResult(
+            pendingExpired = pendingExpired,
+            uploadingExpired = uploadingExpired,
+            blobsScheduledForGC = blobsScheduledForGC,
+            errors = errors,
+            durationMs = durationMs,
+            timestamp = Instant.now(),
+        )
     }
 
-    private suspend fun reconcileStaleProcessingAssets(assets: List<MediaAsset>): ReconcileBatchResult {
-        var transitions = 0
-        var errors = 0
+    private suspend fun expirePendingUploadAsset(asset: MediaAsset): Boolean {
+        mediaAssetRepository.markAsFailed(asset.assetId, asset.workspaceId, "expired:pending_upload_ttl")
+        releaseUploadSlot(asset)
+        logger.info(
+            "media.asset.expired.pendingUpload assetId={} workspaceId={}",
+            asset.assetId, asset.workspaceId,
+        )
 
-        for (asset in assets) {
-            try {
-                val storageDeleteSucceeded = attemptStorageDelete(asset)
-                if (!storageDeleteSucceeded) {
-                    errors++
-                }
-                mediaAssetRepository.markAsFailed(asset.assetId, asset.workspaceId)
-                transitions++
-                // Only release a slot if the asset actually had an upload started,
-                // which means it claimed a slot. Assets with uploadStartedAt == null
-                // never claimed a slot.
-                if (asset.uploadStartedAt != null) {
-                    releaseUploadSlot(asset)
-                }
-                logger.info(
-                    "Stale PROCESSING asset transitioned to FAILED: assetId={} workspaceId={} " +
-                        "storageKey={} storageDeleted={}",
-                    asset.assetId,
-                    asset.workspaceId,
-                    asset.storageKey,
-                    storageDeleteSucceeded,
-                )
-            } catch (e: IllegalStateException) {
-                errors++
-                logger.error(
-                    "Failed to transition stale asset: assetId={} error={}",
-                    asset.assetId,
-                    e.message,
-                    e,
-                )
-            }
-        }
-
-        return ReconcileBatchResult(transitions = transitions, errors = errors)
+        // Check if blob needs GC
+        val fileHash = asset.fileHash ?: return false
+        return scheduleBlobGCIfOrphaned(asset.workspaceId, fileHash)
     }
 
-    private suspend fun retryFailedAssetCleanup(assets: List<MediaAsset>): Int {
-        var errors = 0
+    private suspend fun expireUploadingAsset(asset: MediaAsset): Boolean {
+        mediaAssetRepository.markAsFailed(asset.assetId, asset.workspaceId, "expired:uploading_ttl")
+        releaseUploadSlot(asset)
+        logger.info(
+            "media.asset.expired.uploading assetId={} workspaceId={}",
+            asset.assetId, asset.workspaceId,
+        )
 
-        for (asset in assets) {
-            try {
-                val deleted = attemptStorageDelete(asset)
-                if (!deleted) {
-                    errors++
-                }
-            } catch (e: IllegalStateException) {
-                errors++
-                logger.error(
-                    "Failed to retry cleanup for FAILED asset: assetId={} error={}",
-                    asset.assetId,
-                    e.message,
-                    e,
-                )
-            }
-        }
-
-        return errors
+        // Check if blob needs GC
+        val fileHash = asset.fileHash ?: return false
+        return scheduleBlobGCIfOrphaned(asset.workspaceId, fileHash)
     }
 
-    private suspend fun attemptStorageDelete(asset: MediaAsset): Boolean {
-        return try {
-            withTimeout(STORAGE_DELETE_TIMEOUT_MILLIS) {
-                storageApplicationService.delete(
-                    bucket = reconcilerSettings.storageBucket,
-                    key = asset.storageKey,
-                    deleterId = "stale-reconciler",
-                )
-            }
+    private suspend fun scheduleBlobGCIfOrphaned(workspaceId: String, fileHash: String): Boolean {
+        // Lock blob before counting references
+        val blob = workspaceFileBlobRepository.findBlobForUpdate(workspaceId, fileHash)
+            ?: return false
+
+        val activeCount = mediaAssetRepository.countActiveReferences(workspaceId, fileHash)
+        if (activeCount == 0) {
+            val orphanedAt = Instant.now()
+            workspaceFileBlobRepository.markReadyForGC(workspaceId, fileHash, orphanedAt)
             logger.info(
-                "media.asset.cleanup.attempted assetId={} storageKey={} success=true",
-                asset.assetId,
-                asset.storageKey,
+                "media.blob.expired.markedReadyForGC workspaceId={} fileHash={}",
+                workspaceId, fileHash,
             )
-            true
-        } catch (e: StorageException) {
-            logStorageDeleteFailure(asset, e)
-            false
-        } catch (e: TimeoutCancellationException) {
-            logStorageDeleteFailure(asset, e)
-            false
+            return true
         }
+        return false
     }
 
     private suspend fun releaseUploadSlot(asset: MediaAsset) {
         try {
             mediaRateLimitRepository.releaseConcurrentUploadSlot(asset.workspaceId)
         } catch (e: IllegalStateException) {
-            logger.debug(
-                "No upload slot to release for stale asset: assetId={}",
-                asset.assetId,
-                e,
-            )
+            // No active upload slot — nothing to release, which is fine
+            logger.debug("No upload slot to release for asset: {}", asset.assetId, e)
         }
-    }
-
-    private fun logStorageDeleteFailure(asset: MediaAsset, error: Throwable) {
-        logger.warn(
-            "media.asset.cleanup.attempted assetId={} storageKey={} success=false error={}",
-            asset.assetId,
-            asset.storageKey,
-            error.message,
-            error,
-        )
-    }
-
-    private fun finalizeRun(
-        startTime: Long,
-        recordsScanned: Int,
-        recordsTransitioned: Int,
-        errors: Int,
-    ): ReconcilerRunResult {
-        val durationMs = System.currentTimeMillis() - startTime
-        consecutiveErrorRuns = if (errors > 0) {
-            consecutiveErrorRuns + 1
-        } else {
-            0
-        }
-
-        logger.info(
-            "media.reconciler.run recordsScanned={} recordsTransitioned={} durationMs={} errors={} " +
-                "consecutiveErrorRuns={}",
-            recordsScanned,
-            recordsTransitioned,
-            durationMs,
-            errors,
-            consecutiveErrorRuns,
-        )
-
-        if (consecutiveErrorRuns >= ALERT_THRESHOLD_RUNS) {
-            logger.error(
-                "ALERT: Stale reconciler has errors > 0 on 3 consecutive runs. consecutiveErrorRuns={}",
-                consecutiveErrorRuns,
-            )
-        }
-
-        return ReconcilerRunResult(
-            recordsScanned = recordsScanned,
-            recordsTransitioned = recordsTransitioned,
-            durationMs = durationMs,
-            errors = errors,
-            consecutiveErrorRuns = consecutiveErrorRuns,
-            timestamp = Instant.now(),
-        )
-    }
-
-    /**
-     * Check if the reconciler should fire an alert.
-     * Called externally by monitoring/health systems.
-     */
-    fun shouldAlert(): Boolean = consecutiveErrorRuns >= ALERT_THRESHOLD_RUNS
-
-    /**
-     * Reset consecutive error counter. For testing.
-     */
-    fun resetAlertState() {
-        consecutiveErrorRuns = 0
     }
 }
 
-/**
- * Result of a reconciler run.
- */
-private data class ReconcileBatchResult(
-    val transitions: Int,
+data class ExpirationRunResult(
+    val pendingExpired: Int,
+    val uploadingExpired: Int,
+    val blobsScheduledForGC: Int,
     val errors: Int,
-)
-
-data class ReconcilerRunResult(
-    val recordsScanned: Int,
-    val recordsTransitioned: Int,
     val durationMs: Long,
-    val errors: Int,
-    val consecutiveErrorRuns: Int,
     val timestamp: Instant,
 )

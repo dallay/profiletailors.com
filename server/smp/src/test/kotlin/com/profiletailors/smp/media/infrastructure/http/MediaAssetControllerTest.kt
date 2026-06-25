@@ -132,6 +132,7 @@ class MediaAssetControllerTest {
                         status = "READY",
                         originalFilename = "photo.jpg",
                         fileSizeBytes = 1024L,
+                        fileHash = null,
                         createdAt = "2026-06-20T10:00:00Z",
                     ),
                 ),
@@ -211,6 +212,7 @@ class MediaAssetControllerTest {
                 status = "READY",
                 originalFilename = "photo.jpg",
                 fileSizeBytes = 2048L,
+                fileHash = null,
                 createdAt = "2026-06-20T12:00:00Z",
             ),
         )

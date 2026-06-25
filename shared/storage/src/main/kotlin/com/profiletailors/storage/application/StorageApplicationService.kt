@@ -223,6 +223,38 @@ class StorageApplicationService(
     }
 
     /**
+     * Copy an object from source to destination within the same bucket.
+     *
+     * @param bucket The bucket name
+     * @param sourceKey The source object key
+     * @param destKey The destination object key
+     * @throws StorageSecurityException If path traversal is detected
+     * @throws StorageServiceException If copy fails
+     */
+    suspend fun copyObject(bucket: String, sourceKey: String, destKey: String) {
+        validateBucketAndKey(bucket, sourceKey)
+        validateBucketAndKey(bucket, destKey)
+
+        try {
+            metrics.recordOperationTime(StorageObservation.Operations.COPY, provider) {
+                storage.copyObject(bucket, sourceKey, destKey)
+            }
+            metrics.recordOperation(StorageObservation.Operations.COPY, provider, bucket, true)
+        } catch (e: CancellationException) {
+            throw e
+        } catch (e: Exception) {
+            val errorType = when (e) {
+                is StorageSecurityException -> StorageObservation.ErrorTypes.SECURITY
+                is StorageObjectNotFoundException -> StorageObservation.ErrorTypes.NOT_FOUND
+                else -> StorageObservation.ErrorTypes.SERVICE
+            }
+            metrics.recordError(StorageObservation.Operations.COPY, provider, bucket, errorType)
+            metrics.recordOperation(StorageObservation.Operations.COPY, provider, bucket, false)
+            throw e
+        }
+    }
+
+    /**
      * List objects in a bucket with prefix filtering.
      *
      * @param bucket The bucket name

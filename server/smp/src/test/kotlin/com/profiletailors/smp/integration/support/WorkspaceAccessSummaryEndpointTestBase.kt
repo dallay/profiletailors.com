@@ -836,6 +836,13 @@ abstract class WorkspaceAccessSummaryEndpointTestBase : AuthorizationEndpointInt
 
             override suspend fun exists(bucket: String, key: String): Boolean =
                 objects.containsKey("$bucket/$key")
+
+            override suspend fun copyObject(bucket: String, sourceKey: String, destKey: String) {
+                val data = objects["$bucket/$sourceKey"]
+                if (data != null) {
+                    objects["$bucket/$destKey"] = data
+                }
+            }
         }
 
         @Bean

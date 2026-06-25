@@ -249,4 +249,28 @@ abstract class AbstractS3CompatibleStorage(
             }
         }
     }
+
+    override suspend fun copyObject(bucket: String, sourceKey: String, destKey: String) {
+        validateBucket(bucket)
+        validateKey(sourceKey)
+        validateKey(destKey)
+        withTimeout(timeoutSeconds * 1000L) {
+            S3RetryHelper.withRetry {
+                try {
+                    val request = CopyObjectRequest.builder()
+                        .sourceBucket(bucketName)
+                        .sourceKey(sourceKey)
+                        .destinationBucket(bucketName)
+                        .destinationKey(destKey)
+                        .build()
+                    client.copyObject(request).await()
+                } catch (e: Exception) {
+                    mapToStorageException(
+                        "Failed to copy '$sourceKey' to '$destKey' in bucket '$bucketName'",
+                        e,
+                    )
+                }
+            }
+        }
+    }
 }

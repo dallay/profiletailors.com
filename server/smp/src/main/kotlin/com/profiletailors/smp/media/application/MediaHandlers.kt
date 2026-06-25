@@ -3,17 +3,29 @@ package com.profiletailors.smp.media.application
 import com.profiletailors.common.domain.Service
 import com.profiletailors.common.domain.bus.command.CommandWithResultHandler
 import com.profiletailors.common.domain.bus.query.QueryHandler
+import com.profiletailors.smp.media.domain.BlobStatus
 import com.profiletailors.smp.media.domain.MediaAsset
 import com.profiletailors.smp.media.domain.MediaAssetStatus
 import com.profiletailors.smp.media.domain.MediaSourceType
+import com.profiletailors.smp.media.domain.MediaStorageKeys
+import com.profiletailors.smp.media.domain.WorkspaceFileBlob
 import com.profiletailors.storage.application.StorageApplicationService
 import com.profiletailors.storage.domain.StorageException
 import kotlinx.coroutines.TimeoutCancellationException
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.flow
+import kotlinx.coroutines.flow.onEach
+import kotlinx.coroutines.flow.toList
 import kotlinx.coroutines.withTimeout
 import org.slf4j.LoggerFactory
+import java.nio.ByteBuffer
+import java.security.MessageDigest
 import java.time.Instant
 import java.time.ZoneOffset
 import java.time.format.DateTimeFormatter
+
+private fun ByteArray.toHexString(): String =
+    joinToString("") { "%02x".format(it) }
 
 @Service
 class CreateUploadedAssetHandler(
@@ -45,6 +57,7 @@ class CreateUploadedAssetHandler(
             sourceType = command.sourceType,
             mediaType = command.mediaType,
             storageKey = storageKey,
+            fileHash = null,
             originalFilename = command.originalFilename,
             status = MediaAssetStatus.PROCESSING,
             createdAt = now,
@@ -148,7 +161,7 @@ class UploadAssetHandler(
     private val mediaRateLimitRepository: MediaRateLimitRepository,
     private val storageApplicationService: StorageApplicationService,
     private val uploadSettings: MediaUploadSettings,
-) : CommandWithResultHandler<UploadAssetCommand, UploadAssetResult> {
+) : CommandWithResultHandler<LegacyUploadAssetCommand, LegacyUploadAssetResult> {
 
     private val logger = LoggerFactory.getLogger(UploadAssetHandler::class.java)
 
@@ -174,7 +187,7 @@ class UploadAssetHandler(
     }
 
     @Suppress("TooGenericExceptionCaught")
-    override suspend fun handle(command: UploadAssetCommand): UploadAssetResult {
+    override suspend fun handle(command: LegacyUploadAssetCommand): LegacyUploadAssetResult {
         val now = Instant.now()
         val assetId = command.assetId
         val workspaceId = command.workspaceId
@@ -201,7 +214,7 @@ class UploadAssetHandler(
                     "fileSizeBytes=$fileSize durationMs=$durationMs",
             )
 
-            return UploadAssetResult(
+            return LegacyUploadAssetResult(
                 assetId = assetId,
                 workspaceId = workspaceId,
                 sourceType = updated.sourceType.name,
@@ -303,7 +316,7 @@ class UploadAssetHandler(
         workspaceId: String,
     ): Boolean? {
         val asset = tryLoadAssetForCleanup(assetId, workspaceId)
-        if (!storageWriteAttempted || asset == null || asset.storageKey.isBlank()) {
+        if (!storageWriteAttempted || asset == null || asset.storageKey.isNullOrBlank()) {
             return null
         }
         return deletePartialStorageObject(assetId, asset.storageKey)
@@ -370,7 +383,7 @@ class UploadAssetHandler(
 
     @Suppress("ThrowsCount", "CognitiveComplexMethod")
     private suspend fun uploadWithStreamingValidation(
-        command: UploadAssetCommand,
+        command: LegacyUploadAssetCommand,
         asset: MediaAsset,
         bucket: String,
     ): Long {
@@ -410,7 +423,7 @@ class UploadAssetHandler(
         withTimeout(command.timeoutSeconds * MILLIS_PER_SECOND) {
             storageApplicationService.upload(
                 bucket = bucket,
-                key = asset.storageKey,
+                key = asset.storageKey ?: error("asset must have storageKey before upload"),
                 content = uploadFlow,
                 uploaderId = command.workspaceId,
                 metadata = mapOf(
@@ -424,7 +437,7 @@ class UploadAssetHandler(
         return bytesReceived
     }
 
-    private fun maxFileSize(command: UploadAssetCommand): Long = command.maxFileSizeBytes
+    private fun maxFileSize(command: LegacyUploadAssetCommand): Long = command.maxFileSizeBytes
 
     private suspend fun collectOrEmitChunk(
         validatedMagicBytes: Boolean,
@@ -550,6 +563,7 @@ class ListWorkspaceAssetsHandler(
                     status = asset.status.name,
                     originalFilename = asset.originalFilename,
                     fileSizeBytes = asset.fileSizeBytes,
+                    fileHash = asset.fileHash,
                     createdAt = ISO_FORMATTER.format(asset.createdAt.atOffset(ZoneOffset.UTC)),
                     previewUrl = if (asset.status == MediaAssetStatus.READY) {
                         assetPreviewUrlResolver.resolvePreviewUrl(
@@ -599,6 +613,7 @@ class GetWorkspaceAssetHandler(
             status = asset.status.name,
             originalFilename = asset.originalFilename,
             fileSizeBytes = asset.fileSizeBytes,
+            fileHash = asset.fileHash,
             createdAt = ISO_FORMATTER.format(asset.createdAt.atOffset(ZoneOffset.UTC)),
             previewUrl = if (asset.status == MediaAssetStatus.READY) {
                 assetPreviewUrlResolver.resolvePreviewUrl(
@@ -630,20 +645,22 @@ class DeleteWorkspaceAssetHandler(
         val asset = mediaAssetRepository.findByWorkspaceAndId(command.workspaceId, command.assetId)
             ?: throw AssetNotFoundException(command.assetId)
 
-        runCatching {
-            storageApplicationService.delete(
-                bucket = uploadSettings.storageBucket,
-                key = asset.storageKey,
-                deleterId = command.workspaceId,
-            )
-        }.getOrElse { cause ->
-            throw MediaServiceUnavailableException(
-                "Storage deletion failed for asset ${command.assetId}",
-                cause,
-            )
+        asset.storageKey?.let { storageKey ->
+            runCatching {
+                storageApplicationService.delete(
+                    bucket = uploadSettings.storageBucket,
+                    key = storageKey,
+                    deleterId = command.workspaceId,
+                )
+            }.getOrElse { cause ->
+                throw MediaServiceUnavailableException(
+                    "Storage deletion failed for asset ${command.assetId}",
+                    cause,
+                )
+            }
         }
 
-        val deleted = mediaAssetRepository.delete(command.assetId, command.workspaceId) != null
+        val deleted = mediaAssetRepository.softDelete(command.assetId, command.workspaceId) != null
         return DeleteWorkspaceAssetResult(
             assetId = command.assetId,
             workspaceId = command.workspaceId,
@@ -651,3 +668,684 @@ class DeleteWorkspaceAssetHandler(
         )
     }
 }
+
+// ─── PUT Asset Handler (CAS dedup) ───────────────────────────────────────────
+
+@Service
+class PutAssetHandler(
+    private val mediaAssetRepository: MediaAssetRepository,
+    private val workspaceFileBlobRepository: WorkspaceFileBlobRepository,
+    private val mediaRateLimitRepository: MediaRateLimitRepository,
+    private val uploadSettings: MediaUploadSettings,
+) : CommandWithResultHandler<PutAssetCommand, PutAssetResult> {
+
+    private val logger = LoggerFactory.getLogger(PutAssetHandler::class.java)
+
+    companion object {
+        private val ISO_FORMATTER = DateTimeFormatter.ISO_INSTANT
+        private const val HOURLY_CREATIONS_RETRY_AFTER_SECONDS = 3_600
+        private val WORD_EXTENSIONS = setOf("doc", "docx")
+        private val POWERPOINT_EXTENSIONS = setOf("ppt", "pptx")
+    }
+
+    override suspend fun handle(command: PutAssetCommand): PutAssetResult {
+        // 1. Validate UUID v4
+        validateAssetId(command.assetId)
+
+        // 2. Validate fileHash format (lowercase 64-char SHA-256)
+        validateFileHash(command.fileHash)
+
+        // 3. Validate file size
+        validateFileSize(command.fileSizeBytes)
+
+        // 4. Validate declared media type
+        validateDeclaredMediaType(command.declaredMediaType)
+
+        // 5. Validate original filename
+        validateOriginalFilename(command.declaredMediaType, command.originalFilename)
+
+        // 6. Rate limit check — BEFORE any asset/blob creation
+        enforceCreationRateLimit(command.workspaceId)
+
+        // 7. Check if asset already exists
+        val existingAsset = mediaAssetRepository.findByWorkspaceAndId(command.workspaceId, command.assetId)
+        if (existingAsset != null) {
+            return when {
+                existingAsset.fileHash == command.fileHash -> {
+                    // Idempotent: same assetId + same hash
+                    PutAssetResult.AlreadyExists(
+                        assetId = existingAsset.assetId,
+                        workspaceId = existingAsset.workspaceId,
+                        status = existingAsset.status.name,
+                        mediaType = existingAsset.mediaType,
+                        deduped = existingAsset.status == MediaAssetStatus.READY,
+                        createdAt = ISO_FORMATTER.format(existingAsset.createdAt.atOffset(ZoneOffset.UTC)),
+                    )
+                }
+                else -> {
+                    // Hash mismatch
+                    PutAssetResult.HashMismatch(
+                        assetId = existingAsset.assetId,
+                        existingFileHash = existingAsset.fileHash ?: "unknown",
+                    )
+                }
+            }
+        }
+
+        // 8. Upsert blob and determine what to do
+        val blobResult = workspaceFileBlobRepository.upsertBlob(command.workspaceId, command.fileHash)
+
+        return when (val blob = blobResult) {
+            is com.profiletailors.smp.media.domain.BlobUpsertResult.Existed -> {
+                handleExistedBlob(command, blob.blob)
+            }
+            is com.profiletailors.smp.media.domain.BlobUpsertResult.Created -> {
+                handleNewBlob(command)
+            }
+        }
+    }
+
+    private suspend fun handleExistedBlob(
+        command: PutAssetCommand,
+        blob: WorkspaceFileBlob,
+    ): PutAssetResult {
+        return when (blob.status) {
+            BlobStatus.READY -> {
+                // Dedup hit — create asset as READY
+                val now = Instant.now()
+                val asset = MediaAsset(
+                    assetId = command.assetId,
+                    workspaceId = command.workspaceId,
+                    sourceType = MediaSourceType.UPLOADED,
+                    fileHash = command.fileHash,
+                    mediaType = command.declaredMediaType,
+                    storageKey = blob.storageKey!!, // DB invariant: READY blob always has storageKey
+                    detectedMediaType = blob.detectedMediaType,
+                    originalFilename = command.originalFilename,
+                    fileSizeBytes = blob.fileSizeBytes,
+                    status = MediaAssetStatus.READY,
+                    createdAt = now,
+                )
+                mediaAssetRepository.create(asset)
+                logger.info(
+                    "media.asset.put.dedup assetId={} workspaceId={} fileHash={}",
+                    command.assetId, command.workspaceId, command.fileHash,
+                )
+                PutAssetResult.AlreadyExists(
+                    assetId = command.assetId,
+                    workspaceId = command.workspaceId,
+                    status = MediaAssetStatus.READY.name,
+                    mediaType = blob.detectedMediaType ?: command.declaredMediaType,
+                    deduped = true,
+                    createdAt = ISO_FORMATTER.format(now.atOffset(ZoneOffset.UTC)),
+                )
+            }
+            BlobStatus.UPLOADING -> {
+                // Another upload in progress
+                PutAssetResult.WaitingForBlob(
+                    assetId = command.assetId,
+                    retryAfterSeconds = 3,
+                )
+            }
+            BlobStatus.FAILED, BlobStatus.READY_FOR_GC, BlobStatus.GARBAGE_COLLECTED -> {
+                // Reset blob to UPLOADING and create asset as PENDING_UPLOAD
+                workspaceFileBlobRepository.resetBlobToUploading(command.workspaceId, command.fileHash)
+                createPendingAsset(command)
+            }
+        }
+    }
+
+    private suspend fun handleNewBlob(command: PutAssetCommand): PutAssetResult {
+        return createPendingAsset(command)
+    }
+
+    private suspend fun createPendingAsset(command: PutAssetCommand): PutAssetResult {
+        val now = Instant.now()
+        val asset = MediaAsset(
+            assetId = command.assetId,
+            workspaceId = command.workspaceId,
+            sourceType = MediaSourceType.UPLOADED,
+            fileHash = command.fileHash,
+            mediaType = command.declaredMediaType,
+            storageKey = null,
+            originalFilename = command.originalFilename,
+            fileSizeBytes = command.fileSizeBytes,
+            status = MediaAssetStatus.PENDING_UPLOAD,
+            createdAt = now,
+        )
+        mediaAssetRepository.create(asset)
+        logger.info(
+            "media.asset.put.created assetId={} workspaceId={} fileHash={} mediaType={}",
+            command.assetId, command.workspaceId, command.fileHash, command.declaredMediaType,
+        )
+        return PutAssetResult.Created(
+            assetId = command.assetId,
+            workspaceId = command.workspaceId,
+            status = MediaAssetStatus.PENDING_UPLOAD.name,
+            mediaType = command.declaredMediaType,
+            deduped = false,
+            uploadUrl = "/api/workspaces/${command.workspaceId}/media/assets/${command.assetId}/upload",
+            createdAt = ISO_FORMATTER.format(now.atOffset(ZoneOffset.UTC)),
+        )
+    }
+
+    private fun validateAssetId(assetId: String) {
+        val uuidRegex = Regex("^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$")
+        if (!assetId.matches(uuidRegex)) {
+            throw IllegalArgumentException("Invalid assetId format: must be a valid UUID v4")
+        }
+    }
+
+    private fun validateFileHash(fileHash: String) {
+        if (!MediaAsset.isValidHash(fileHash)) {
+            throw IllegalArgumentException(
+                "Invalid fileHash format: must be a lowercase 64-character SHA-256 hex string",
+            )
+        }
+    }
+
+    private fun validateFileSize(fileSizeBytes: Long) {
+        if (fileSizeBytes < 1) {
+            throw IllegalArgumentException("fileSizeBytes must be at least 1")
+        }
+        if (fileSizeBytes > MediaAsset.MAX_FILE_SIZE_BYTES) {
+            throw IllegalArgumentException("fileSizeBytes exceeds maximum of ${MediaAsset.MAX_FILE_SIZE_BYTES}")
+        }
+    }
+
+    private fun validateDeclaredMediaType(mediaType: String) {
+        if (mediaType !in MediaAsset.SUPPORTED_MEDIA_TYPES) {
+            val supportedTypes = MediaAsset.SUPPORTED_MEDIA_TYPES.joinToString()
+            throw UnsupportedMediaTypeException(
+                "Unsupported media type: $mediaType. Supported types: $supportedTypes",
+                declaredType = mediaType,
+            )
+        }
+    }
+
+    private fun validateOriginalFilename(mediaType: String, originalFilename: String?) {
+        if (mediaType !in MediaAsset.OFFICE_DOCUMENT_MEDIA_TYPES) return
+
+        if (originalFilename.isNullOrBlank()) {
+            throw UnsupportedMediaTypeException(
+                "originalFilename is required for OOXML formats",
+                declaredType = mediaType,
+            )
+        }
+
+        val extension = originalFilename.substringAfterLast('.', "").lowercase()
+        val validExtensions = when (mediaType) {
+            "application/msword",
+            "application/vnd.openxmlformats-officedocument.wordprocessingml.document" -> WORD_EXTENSIONS
+            "application/vnd.ms-powerpoint",
+            "application/vnd.openxmlformats-officedocument.presentationml.presentation" -> POWERPOINT_EXTENSIONS
+            else -> emptySet()
+        }
+
+        if (extension !in validExtensions) {
+            throw UnsupportedMediaTypeException(
+                "Invalid file extension for OOXML format: $extension",
+                declaredType = mediaType,
+            )
+        }
+    }
+
+    private suspend fun enforceCreationRateLimit(workspaceId: String) {
+        val rateLimitOk = mediaRateLimitRepository.tryIncrementHourlyCreationCount(
+            workspaceId,
+            uploadSettings.maxCreationsPerHour,
+        )
+        if (!rateLimitOk) {
+            throw RateLimitExceededException(
+                workspaceId = workspaceId,
+                limitType = "hourly_creations",
+                currentValue = uploadSettings.maxCreationsPerHour,
+                limitValue = uploadSettings.maxCreationsPerHour,
+                retryAfterSeconds = HOURLY_CREATIONS_RETRY_AFTER_SECONDS,
+            )
+        }
+    }
+}
+
+// ─── CAS Upload Asset Handler ────────────────────────────────────────────────
+
+@Service
+class CasUploadAssetHandler(
+    private val mediaAssetRepository: MediaAssetRepository,
+    private val workspaceFileBlobRepository: WorkspaceFileBlobRepository,
+    private val storageApplicationService: StorageApplicationService,
+    private val uploadSettings: MediaUploadSettings,
+) : CommandWithResultHandler<CasUploadAssetCommand, CasUploadAssetResult> {
+
+    private val logger = LoggerFactory.getLogger(CasUploadAssetHandler::class.java)
+
+    companion object {
+        private val ISO_FORMATTER = DateTimeFormatter.ISO_INSTANT
+        private const val JPEG_MAGIC_SIZE = 3
+        private const val PNG_MAGIC_SIZE = 4
+        private const val GIF_MAGIC_SIZE = 4
+        private const val WEBP_MAGIC_SIZE = 12
+        private const val MP4_MAGIC_SIZE = 8
+        private val JPEG_MAGIC = byteArrayOf(0xFF.toByte(), 0xD8.toByte(), 0xFF.toByte())
+        private val PNG_MAGIC = byteArrayOf(0x89.toByte(), 0x50.toByte(), 0x4E.toByte(), 0x47.toByte())
+        private val GIF_MAGIC = byteArrayOf(0x47.toByte(), 0x49.toByte(), 0x46.toByte(), 0x38.toByte())
+        private val RIFF_MAGIC = byteArrayOf(0x52.toByte(), 0x49.toByte(), 0x46.toByte(), 0x46.toByte())
+        private val WEBP_MAGIC = byteArrayOf(0x57.toByte(), 0x45.toByte(), 0x42.toByte(), 0x50.toByte())
+        private val MP4_MAGIC = byteArrayOf(0x66.toByte(), 0x74.toByte(), 0x79.toByte(), 0x70.toByte())
+        private val OOXML_MAGIC = byteArrayOf(0x50.toByte(), 0x4B.toByte(), 0x03.toByte(), 0x04.toByte())
+        private const val RIFF_OFFSET = 8
+        private const val MP4_OFFSET = 4
+        private const val MILLIS_PER_SECOND = 1_000L
+    }
+
+    override suspend fun handle(command: CasUploadAssetCommand): CasUploadAssetResult {
+        val assetId = command.assetId
+        val workspaceId = command.workspaceId
+
+        // Step 1: claim upload slot
+        val claimResult = claimUploadSlot(assetId, workspaceId)
+        if (claimResult != null) return claimResult
+
+        // Step 2: Stream bytes, compute hash, count bytes, detect type
+        val tempKey = MediaStorageKeys.tempKey(workspaceId, assetId, command.declaredMediaType)
+
+        val uploadOutcome = streamToTemp(command, tempKey)
+        val actualBytes = uploadOutcome.actualBytes
+        val detectedMediaType = uploadOutcome.detectedMediaType
+        val computedHash = uploadOutcome.computedHash
+
+        // Step 3: Verify byte count
+        if (actualBytes != command.declaredFileSizeBytes) {
+            cleanupTemp(tempKey)
+            markBothFailed(assetId, workspaceId, "FILE_SIZE_MISMATCH")
+            throw UploadFileSizeMismatchException(
+                expected = command.declaredFileSizeBytes,
+                actual = actualBytes,
+            )
+        }
+
+        // Step 4: Verify hash
+        if (computedHash != command.declaredFileHash) {
+            cleanupTemp(tempKey)
+            markBothFailed(assetId, workspaceId, "HASH_MISMATCH")
+            throw UploadHashMismatchException(
+                expected = command.declaredFileHash,
+                actual = computedHash,
+            )
+        }
+
+        // Step 5: Get asset to find fileHash
+        val asset = mediaAssetRepository.findByWorkspaceAndId(workspaceId, assetId)
+            ?: run {
+                cleanupTemp(tempKey)
+                markBothFailed(assetId, workspaceId, "ASSET_NOT_FOUND")
+                return CasUploadAssetResult.NotFound(assetId)
+            }
+        val fileHash = asset.fileHash ?: run {
+            cleanupTemp(tempKey)
+            markBothFailed(assetId, workspaceId, "MISSING_FILE_HASH")
+            return CasUploadAssetResult.NotFound(assetId)
+        }
+
+        // Step 6: Acquire lock on blob
+        val blob = workspaceFileBlobRepository.findBlobForUpdate(workspaceId, fileHash)
+            ?: run {
+                cleanupTemp(tempKey)
+                markBothFailed(assetId, workspaceId, "BLOB_NOT_FOUND")
+                return CasUploadAssetResult.NotFound(assetId)
+            }
+
+        return when (blob.status) {
+            BlobStatus.READY -> {
+                // Dedup hit: another upload completed first
+                cleanupTemp(tempKey)
+                val updatedAsset = mediaAssetRepository.markAsReadyFromDedup(
+                    assetId = assetId,
+                    workspaceId = workspaceId,
+                    storageKey = blob.storageKey ?: return CasUploadAssetResult.NotFound(assetId),
+                    detectedMediaType = blob.detectedMediaType ?: return CasUploadAssetResult.NotFound(assetId),
+                    fileSizeBytes = blob.fileSizeBytes,
+                ) ?: return CasUploadAssetResult.NotFound(assetId)
+
+                logger.info(
+                    "media.asset.upload.dedupHit assetId={} workspaceId={} fileHash={}",
+                    assetId, workspaceId, fileHash,
+                )
+                CasUploadAssetResult.Ready(
+                    assetId = assetId,
+                    workspaceId = workspaceId,
+                    status = MediaAssetStatus.READY.name,
+                    mediaType = updatedAsset.detectedMediaType ?: command.declaredMediaType,
+                    detectedMediaType = blob.detectedMediaType ?: command.declaredMediaType,
+                    deduped = true,
+                    fileSizeBytes = blob.fileSizeBytes ?: 0L,
+                    createdAt = ISO_FORMATTER.format(updatedAsset.createdAt.atOffset(ZoneOffset.UTC)),
+                )
+            }
+            BlobStatus.UPLOADING, BlobStatus.FAILED, BlobStatus.READY_FOR_GC, BlobStatus.GARBAGE_COLLECTED -> {
+                // We won the race: finalize the blob
+                val canonicalKey = MediaStorageKeys.canonicalKey(workspaceId, fileHash, detectedMediaType)
+
+                // Copy temp → canonical
+                try {
+                    storageApplicationService.copyObject(
+                        uploadSettings.storageBucket,
+                        sourceKey = tempKey,
+                        destKey = canonicalKey,
+                    )
+                } catch (e: StorageException) {
+                    cleanupTemp(tempKey)
+                    markBothFailed(assetId, workspaceId, "COPY_FAILED")
+                    throw e
+                }
+
+                // Delete temp
+                cleanupTemp(tempKey)
+
+                // Mark blob READY
+                workspaceFileBlobRepository.markBlobReady(
+                    workspaceId = workspaceId,
+                    fileHash = fileHash,
+                    storageKey = canonicalKey,
+                    detectedMediaType = detectedMediaType,
+                    fileSizeBytes = actualBytes,
+                )
+
+                // Mark asset READY
+                val updatedAsset = mediaAssetRepository.markAsReadyFromDedup(
+                    assetId = assetId,
+                    workspaceId = workspaceId,
+                    storageKey = canonicalKey,
+                    detectedMediaType = detectedMediaType,
+                    fileSizeBytes = actualBytes,
+                ) ?: return CasUploadAssetResult.NotFound(assetId)
+
+                logger.info(
+                    "media.asset.upload.completed assetId={} workspaceId={} fileHash={} " +
+                        "canonicalKey={} detectedMediaType={} fileSizeBytes={}",
+                    assetId, workspaceId, fileHash, canonicalKey, detectedMediaType, actualBytes,
+                )
+
+                CasUploadAssetResult.Ready(
+                    assetId = assetId,
+                    workspaceId = workspaceId,
+                    status = MediaAssetStatus.READY.name,
+                    mediaType = detectedMediaType,
+                    detectedMediaType = detectedMediaType,
+                    deduped = false,
+                    fileSizeBytes = actualBytes,
+                    createdAt = ISO_FORMATTER.format(updatedAsset.createdAt.atOffset(ZoneOffset.UTC)),
+                )
+            }
+        }
+    }
+
+    private suspend fun claimUploadSlot(
+        assetId: String,
+        workspaceId: String,
+    ): CasUploadAssetResult? {
+        val asset = mediaAssetRepository.findByWorkspaceAndId(workspaceId, assetId)
+            ?: return CasUploadAssetResult.NotFound(assetId)
+
+        if (asset.status == MediaAssetStatus.DELETED) {
+            return CasUploadAssetResult.NotFound(assetId)
+        }
+
+        if (asset.status == MediaAssetStatus.READY) {
+            // Idempotent: already uploaded
+            return CasUploadAssetResult.Ready(
+                assetId = assetId,
+                workspaceId = workspaceId,
+                status = MediaAssetStatus.READY.name,
+                mediaType = asset.detectedMediaType ?: asset.mediaType,
+                detectedMediaType = asset.detectedMediaType ?: asset.mediaType,
+                deduped = true,
+                fileSizeBytes = asset.fileSizeBytes ?: 0L,
+                createdAt = ISO_FORMATTER.format(asset.createdAt.atOffset(ZoneOffset.UTC)),
+            )
+        }
+
+        val now = Instant.now()
+        // Only PENDING_UPLOAD or FAILED can be claimed
+        val claimable = asset.status == MediaAssetStatus.PENDING_UPLOAD || asset.status == MediaAssetStatus.FAILED
+
+        if (!claimable) {
+            if (asset.status == MediaAssetStatus.UPLOADING && asset.fileHash != null) {
+                val blob = workspaceFileBlobRepository.findByWorkspaceAndHash(workspaceId, asset.fileHash)
+                if (blob?.status == BlobStatus.READY) {
+                    return null
+                }
+            }
+            // Status is UPLOADING and the blob is not READY — another upload is still in progress
+            return CasUploadAssetResult.UploadInProgress(assetId)
+        }
+
+        // Transition PENDING_UPLOAD/FAILED → UPLOADING
+        val claimed = mediaAssetRepository.claimCasUploadSlot(assetId, workspaceId, now)
+        if (!claimed) {
+            // Race: another upload started — check current state
+            val reloaded = mediaAssetRepository.findByWorkspaceAndId(workspaceId, assetId)
+            if (reloaded?.status == MediaAssetStatus.READY) {
+                return CasUploadAssetResult.Ready(
+                    assetId = assetId,
+                    workspaceId = workspaceId,
+                    status = MediaAssetStatus.READY.name,
+                    mediaType = reloaded.detectedMediaType ?: reloaded.mediaType,
+                    detectedMediaType = reloaded.detectedMediaType ?: reloaded.mediaType,
+                    deduped = true,
+                    fileSizeBytes = reloaded.fileSizeBytes ?: 0L,
+                    createdAt = ISO_FORMATTER.format(reloaded.createdAt.atOffset(ZoneOffset.UTC)),
+                )
+            }
+            return CasUploadAssetResult.UploadInProgress(assetId)
+        }
+
+        return null // Proceed with upload
+    }
+
+    private data class UploadOutcome(
+        val actualBytes: Long,
+        val detectedMediaType: String,
+        val computedHash: String,
+    )
+
+    private suspend fun streamToTemp(
+        command: CasUploadAssetCommand,
+        tempKey: String,
+    ): UploadOutcome {
+        val digest = MessageDigest.getInstance("SHA-256")
+        var actualBytes = 0L
+        var detectedMediaType: String? = null
+        var validatedMagicBytes = false
+        val pendingChunks = mutableListOf<ByteArray>()
+
+        val uploadFlow = flow {
+            command.fileStream.collect { chunk ->
+                actualBytes += chunk.size.toLong()
+
+                // Update hash with every chunk
+                digest.update(chunk)
+
+                if (!validatedMagicBytes) {
+                    pendingChunks.add(chunk)
+                    val headerBytes = buildHeaderBytes(pendingChunks)
+                    val detected = detectMediaType(headerBytes, command.declaredMediaType)
+                    if (detected != null) {
+                        detectedMediaType = detected
+                        validatedMagicBytes = true
+                        // Emit all pending
+                        pendingChunks.forEach { emit(it) }
+                        pendingChunks.clear()
+                    } else if (headerBytes.size >= WEBP_MAGIC_SIZE) {
+                        throw UnsupportedMediaTypeException(
+                            "Magic-byte validation failed: detected unknown but declared ${command.declaredMediaType}",
+                            declaredType = command.declaredMediaType,
+                            detectedType = null,
+                        )
+                    }
+                } else {
+                    emit(chunk)
+                }
+            }
+
+            // Handle case where magic bytes validated at end of stream
+            if (!validatedMagicBytes) {
+                val headerBytes = buildHeaderBytes(pendingChunks)
+                val detected = detectMediaType(headerBytes, command.declaredMediaType)
+                    ?: throw UnsupportedMediaTypeException(
+                        "Magic-byte validation failed: detected unknown but declared ${command.declaredMediaType}",
+                        declaredType = command.declaredMediaType,
+                        detectedType = null,
+                    )
+                detectedMediaType = detected
+                validatedMagicBytes = true
+                pendingChunks.forEach { emit(it) }
+                pendingChunks.clear()
+            }
+        }
+
+        withTimeout(command.timeoutSeconds * MILLIS_PER_SECOND) {
+            storageApplicationService.upload(
+                bucket = uploadSettings.storageBucket,
+                key = tempKey,
+                content = uploadFlow,
+                uploaderId = command.workspaceId,
+                metadata = mapOf(
+                    "assetId" to command.assetId,
+                    "workspaceId" to command.workspaceId,
+                    "declaredMediaType" to command.declaredMediaType,
+                    "detectedMediaType" to (detectedMediaType ?: "pending"),
+                ),
+            )
+        }
+
+        val computedHash = digest.digest().toHexString()
+        val effectiveMediaType = detectedMediaType ?: command.declaredMediaType
+
+        return UploadOutcome(
+            actualBytes = actualBytes,
+            detectedMediaType = effectiveMediaType,
+            computedHash = computedHash,
+        )
+    }
+
+    private fun buildHeaderBytes(pendingChunks: List<ByteArray>): ByteArray =
+        pendingChunks.asSequence()
+            .flatMap { it.asSequence() }
+            .take(WEBP_MAGIC_SIZE)
+            .toList()
+            .toByteArray()
+
+    private fun detectMediaType(headerBytes: ByteArray, declaredType: String): String? {
+        val sig = headerBytes.take(WEBP_MAGIC_SIZE).toByteArray()
+        return when {
+            hasPrefix(sig, JPEG_MAGIC, JPEG_MAGIC_SIZE) -> "image/jpeg"
+            hasPrefix(sig, PNG_MAGIC, PNG_MAGIC_SIZE) -> "image/png"
+            hasPrefix(sig, GIF_MAGIC, GIF_MAGIC_SIZE) -> "image/gif"
+            hasOffsetPrefix(sig, RIFF_MAGIC, 0) && hasOffsetPrefix(sig, WEBP_MAGIC, RIFF_OFFSET) -> "image/webp"
+            hasOffsetPrefix(sig, MP4_MAGIC, MP4_OFFSET) -> "video/mp4"
+            hasPrefix(sig, OOXML_MAGIC, PNG_MAGIC_SIZE) -> declaredType // OOXML: trust declared type
+            else -> null
+        }
+    }
+
+    private fun hasPrefix(signature: ByteArray, magic: ByteArray, requiredSize: Int): Boolean =
+        signature.size >= requiredSize &&
+            magic.indices.all { signature[it] == magic[it] }
+
+    private fun hasOffsetPrefix(signature: ByteArray, magic: ByteArray, offset: Int): Boolean {
+        val requiredSize = offset + magic.size
+        return signature.size >= requiredSize &&
+            magic.indices.all { signature[offset + it] == magic[it] }
+    }
+
+    private suspend fun cleanupTemp(tempKey: String) {
+        try {
+            storageApplicationService.delete(
+                bucket = uploadSettings.storageBucket,
+                key = tempKey,
+                deleterId = "upload-handler",
+            )
+        } catch (e: StorageException) {
+            // Best-effort cleanup — log and move on
+            logger.warn("Failed to cleanup temp key {}: {}", tempKey, e.message)
+        }
+    }
+
+    private suspend fun markBothFailed(assetId: String, workspaceId: String, reason: String) {
+        val asset = mediaAssetRepository.markAsFailed(assetId, workspaceId, reason)
+        val fileHash = asset?.fileHash
+        if (fileHash != null) {
+            workspaceFileBlobRepository.markBlobFailed(workspaceId, fileHash, reason)
+        }
+        logger.info(
+            "media.asset.upload.failed assetId={} workspaceId={} reason={}",
+            assetId, workspaceId, reason,
+        )
+    }
+}
+
+// ─── Delete Asset Handler (CAS soft-delete) ────────────────────────────────
+
+@Service
+class DeleteAssetHandler(
+    private val mediaAssetRepository: MediaAssetRepository,
+    private val workspaceFileBlobRepository: WorkspaceFileBlobRepository,
+) : CommandWithResultHandler<DeleteAssetCommand, DeleteAssetResult> {
+
+    private val logger = LoggerFactory.getLogger(DeleteAssetHandler::class.java)
+
+    override suspend fun handle(command: DeleteAssetCommand): DeleteAssetResult {
+        val assetId = command.assetId
+        val workspaceId = command.workspaceId
+
+        // Step 1: Find asset
+        val asset = mediaAssetRepository.findByWorkspaceAndId(workspaceId, assetId)
+            ?: throw AssetNotFoundException(assetId)
+
+        // Step 2: Idempotent if already deleted
+        if (asset.status == MediaAssetStatus.DELETED) {
+            logger.info("media.asset.delete.idempotent assetId={} workspaceId={}", assetId, workspaceId)
+            return DeleteAssetResult(deleted = true, blobScheduledForGC = false)
+        }
+
+        // Step 3: Soft-delete asset
+        mediaAssetRepository.softDelete(assetId, workspaceId)
+        logger.info("media.asset.delete.softDeleted assetId={} workspaceId={}", assetId, workspaceId)
+
+        // Step 4: Get fileHash (nullable for pre-CAS assets)
+        val fileHash = asset.fileHash ?: return DeleteAssetResult(deleted = true, blobScheduledForGC = false)
+
+        // Step 5: Lock blob before ref-count check
+        val blob = workspaceFileBlobRepository.findBlobForUpdate(workspaceId, fileHash)
+            ?: return DeleteAssetResult(deleted = true, blobScheduledForGC = false)
+
+        // Step 6: Count active references
+        val activeCount = mediaAssetRepository.countActiveReferences(workspaceId, fileHash)
+
+        if (activeCount == 0) {
+            // No active assets reference this blob → schedule GC
+            val orphanedAt = Instant.now()
+            workspaceFileBlobRepository.markReadyForGC(workspaceId, fileHash, orphanedAt)
+            logger.info(
+                "media.blob.markedReadyForGC workspaceId={} fileHash={}",
+                workspaceId, fileHash,
+            )
+            return DeleteAssetResult(deleted = true, blobScheduledForGC = true)
+        }
+
+        return DeleteAssetResult(deleted = true, blobScheduledForGC = false)
+    }
+}
+
+// ─── Exception helpers for upload ────────────────────────────────────────────
+
+class UploadHashMismatchException(
+    val expected: String,
+    val actual: String,
+) : RuntimeException("Hash mismatch: expected $expected, got $actual")
+
+class UploadFileSizeMismatchException(
+    val expected: Long,
+    val actual: Long,
+) : RuntimeException("File size mismatch: expected $expected bytes, got $actual bytes")

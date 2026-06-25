@@ -216,10 +216,12 @@ class R2dbcPublishingRepositoriesTest : DatabaseUnitTestBase() {
             """
             INSERT INTO media_assets (
                 asset_id, workspace_id, source_type, media_type, storage_key,
-                original_filename, file_size_bytes, status, upload_started_at, created_at
+                original_filename, file_size_bytes, status, upload_started_at, created_at,
+                file_hash, detected_media_type
             ) VALUES (
                 'asset-1', 'workspace-1', 'UPLOADED', 'image/png', 'storage/key.png',
-                'asset-1.png', 1024, 'READY', NULL, CURRENT_TIMESTAMP()
+                'asset-1.png', 1024, 'READY', NULL, CURRENT_TIMESTAMP(),
+                'aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa', 'image/png'
             )
             """.trimIndent(),
         ).fetch().rowsUpdated().awaitSingle()
@@ -251,10 +253,12 @@ class R2dbcPublishingRepositoriesTest : DatabaseUnitTestBase() {
             """
             INSERT INTO media_assets (
                 asset_id, workspace_id, source_type, media_type, storage_key,
-                original_filename, file_size_bytes, status, upload_started_at, created_at
+                original_filename, file_size_bytes, status, upload_started_at, created_at,
+                file_hash, detected_media_type
             ) VALUES (
                 'media-asset-1', 'workspace-1', 'UPLOADED', 'image/png', 'storage/key.png',
-                'hero.png', 1024, 'READY', NULL, CURRENT_TIMESTAMP()
+                'hero.png', 1024, 'READY', NULL, CURRENT_TIMESTAMP(),
+                'bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb', 'image/png'
             )
             """.trimIndent(),
         ).fetch().rowsUpdated().awaitSingle()
@@ -262,10 +266,12 @@ class R2dbcPublishingRepositoriesTest : DatabaseUnitTestBase() {
             """
             INSERT INTO media_assets (
                 asset_id, workspace_id, source_type, media_type, storage_key,
-                original_filename, file_size_bytes, status, upload_started_at, created_at
+                original_filename, file_size_bytes, status, upload_started_at, created_at,
+                file_hash, detected_media_type
             ) VALUES (
                 'media-asset-2', 'workspace-1', 'UPLOADED', 'image/jpeg', 'storage/key-2.jpg',
-                'second.jpg', 2048, 'READY', NULL, CURRENT_TIMESTAMP()
+                'second.jpg', 2048, 'READY', NULL, CURRENT_TIMESTAMP(),
+                'cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc', 'image/jpeg'
             )
             """.trimIndent(),
         ).fetch().rowsUpdated().awaitSingle()

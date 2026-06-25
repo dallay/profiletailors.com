@@ -178,11 +178,16 @@ class MediaAssetPreviewControllerTest {
             override suspend fun findByWorkspaceAndIds(workspaceId: String, assetIds: List<String>): List<MediaAsset> = emptyList()
             override suspend fun listByWorkspace(workspaceId: String, statuses: Set<MediaAssetStatus>, pageSize: Int, cursor: String?): PagedMediaAssets = PagedMediaAssets(emptyList(), null)
             override suspend fun claimUploadSlot(assetId: String, workspaceId: String, now: Instant): Boolean = false
+            override suspend fun claimCasUploadSlot(assetId: String, workspaceId: String, now: Instant): Boolean = false
             override suspend fun markAsReady(assetId: String, workspaceId: String, fileSizeBytes: Long): MediaAsset? = null
-            override suspend fun markAsFailed(assetId: String, workspaceId: String): MediaAsset? = null
-            override suspend fun delete(assetId: String, workspaceId: String): MediaAsset? = null
+            override suspend fun markAsReadyFromDedup(assetId: String, workspaceId: String, storageKey: String, detectedMediaType: String, fileSizeBytes: Long?): MediaAsset? = null
+            override suspend fun markAsFailed(assetId: String, workspaceId: String, reason: String?): MediaAsset? = null
+            override suspend fun softDelete(assetId: String, workspaceId: String): MediaAsset? = null
             override suspend fun findStaleProcessingAssets(thresholdHours: Long, gracePeriodMinutes: Long): List<MediaAsset> = emptyList()
             override suspend fun findRecentlyFailedAssets(): List<MediaAsset> = emptyList()
+            override suspend fun findExpiredPendingUploadAssets(limit: Int): List<MediaAsset> = emptyList()
+            override suspend fun findExpiredUploadingAssets(limit: Int): List<MediaAsset> = emptyList()
+            override suspend fun countActiveReferences(workspaceId: String, fileHash: String): Int = 0
         }
 
         val storageService = StorageApplicationService(
@@ -192,6 +197,7 @@ class MediaAssetPreviewControllerTest {
                 override suspend fun delete(bucket: String, key: String) {}
                 override suspend fun list(bucket: String, prefix: String): List<String> = emptyList()
                 override suspend fun exists(bucket: String, key: String): Boolean = true
+                override suspend fun copyObject(bucket: String, sourceKey: String, destKey: String) {}
             },
             eventPublisher = object : EventPublisher<BaseDomainEvent> {
                 override suspend fun publish(event: BaseDomainEvent) {}
@@ -223,6 +229,7 @@ class MediaAssetPreviewControllerTest {
         assetId = "asset-1",
         workspaceId = "ws-1",
         sourceType = MediaSourceType.UPLOADED,
+        fileHash = "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa", // 64-char hex
         mediaType = mediaType,
         storageKey = "assets/ws-1/asset-1",
         originalFilename = originalFilename,

@@ -1,13 +1,8 @@
 package com.profiletailors.smp.media.application
 
-import com.profiletailors.common.domain.bus.event.BaseDomainEvent
-import com.profiletailors.common.domain.bus.event.EventPublisher
-import com.profiletailors.storage.application.StorageApplicationService
 import com.profiletailors.storage.domain.Storage
 import com.profiletailors.storage.domain.StorageObjectNotFoundException
 import com.profiletailors.storage.domain.StorageServiceException
-import com.profiletailors.storage.infrastructure.metrics.StorageMetrics
-import io.micrometer.core.instrument.simple.SimpleMeterRegistry
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.flowOf
 
@@ -57,15 +52,11 @@ class InMemoryFakeStorage(
 
     override suspend fun exists(bucket: String, key: String): Boolean =
         objects.containsKey("$bucket/$key")
-}
 
-class NoOpEventPublisher : EventPublisher<BaseDomainEvent> {
-    override suspend fun publish(event: BaseDomainEvent) = Unit
+    override suspend fun copyObject(bucket: String, sourceKey: String, destKey: String) {
+        val data = objects["$bucket/$sourceKey"]
+        if (data != null) {
+            objects["$bucket/$destKey"] = data
+        }
+    }
 }
-
-fun testStorageApplicationService(storage: InMemoryFakeStorage): StorageApplicationService =
-    StorageApplicationService(
-        storage = storage,
-        eventPublisher = NoOpEventPublisher(),
-        metrics = StorageMetrics(SimpleMeterRegistry()),
-    )
