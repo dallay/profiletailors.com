@@ -299,8 +299,8 @@ data class ValidatedToken(
 
 Contract notes:
 
-- `principalTypeHint` is derived from a narrow service-account claim convention, such as
-  `principal_type=SERVICE_ACCOUNT` or `actor_type=service_account`.
+- `principalTypeHint` is derived from a narrow claim convention (e.g.,
+  `principal_type=EXAMPLE_PRINCIPAL` or `actor_type=example_principal`).
 - `credentialReference` is the stable lookup key for revocation, normally JWT `jti` in this change.
 - User tokens continue to materialize exactly as today unless explicitly marked as service-account
   tokens.

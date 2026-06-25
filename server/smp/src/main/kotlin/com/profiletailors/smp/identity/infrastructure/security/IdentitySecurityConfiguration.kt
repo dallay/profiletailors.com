@@ -130,6 +130,10 @@ class IdentitySecurityConfiguration {
         authenticationEntryPoint: ServerAuthenticationEntryPoint,
     ): SecurityWebFilterChain =
         http
+            // Stateless REST API: CSRF disabled by design.
+            // Authentication uses JWT Bearer tokens (Authorization header) and API keys,
+            // NOT cookies. Browsers do not automatically attach these headers to cross-origin
+            // requests, so CSRF attacks are not applicable. CORS is configured separately.
             .csrf { it.disable() }
             .cors { }
             .authorizeExchange {

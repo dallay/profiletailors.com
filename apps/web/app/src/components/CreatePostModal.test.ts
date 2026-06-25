@@ -118,7 +118,9 @@ function makeEditingPublication(
     id: 'pub-edit-1',
     content: 'Existing scheduled content',
     channels: ['linkedin'] as ('linkedin' | 'twitter' | 'instagram' | 'facebook')[],
-    scheduledAt: '2026-06-25T14:30:00Z',
+    // Use a date far in the future to avoid validateCustomSchedule rejecting it
+    // as "must be in the future" in CI / local environments with different current times.
+    scheduledAt: '2030-06-25T14:30:00Z',
     scheduleMode: 'SCHEDULED_AT' as const,
     status: 'SCHEDULED' as const,
     priority: true,
@@ -748,7 +750,7 @@ describe('CreatePostModal.vue — edit mode', () => {
     expect(timeInput?.value).toMatch(/^\d{2}:\d{2}$/)
     expect((checkboxes[0] as HTMLInputElement | undefined)?.checked).toBe(true)
     expect(mediaStore.selectedAssetIds).toEqual(['asset-1', 'asset-2'])
-    expect(document.body.innerHTML).toContain('Jun 25, 2026')
+    expect(document.body.innerHTML).toContain('Jun 25, 2030')
   })
 
   it('maps NOW and NEXT_SLOT schedule modes into edit-mode toggle state', async () => {
@@ -887,7 +889,7 @@ describe('CreatePostModal.vue — edit mode', () => {
 
     expect(updatePost).toHaveBeenCalledWith('pub-edit-1', {
       content: 'Updated content',
-      scheduledAt: '2026-06-25T14:30:00.000Z',
+      scheduledAt: '2030-06-25T14:30:00.000Z',
       priority: true,
       assetIds: ['asset-1', 'asset-2'],
       scheduleMode: 'SCHEDULED_AT',
