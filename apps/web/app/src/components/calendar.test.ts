@@ -64,10 +64,10 @@ describe('ConflictBadge', () => {
     const wrapper = mount(ConflictBadge, {
       props: { variant: 'dot' },
     })
-    const span = wrapper.find('span')
-    expect(span.classes()).toContain('rounded-full')
+    const badge = wrapper.find('output')
+    expect(badge.classes()).toContain('rounded-full')
     // Dot variant should be small with no text content
-    expect(span.text()).toBe('')
+    expect(badge.text()).toBe('')
   })
 
   it('renders badge variant with exclamation mark', () => {
@@ -93,15 +93,15 @@ describe('ConflictBadge', () => {
     const wrapper = mount(ConflictBadge, {
       props: { variant: 'badge', reason: 'Custom conflict reason' },
     })
-    expect(wrapper.find('span').attributes('title')).toBe('Custom conflict reason')
+    expect(wrapper.find('output').attributes('title')).toBe('Custom conflict reason')
   })
 
   it('has accessible role and aria-label', () => {
     const wrapper = mount(ConflictBadge, {
       props: { variant: 'badge' },
     })
-    expect(wrapper.find('span').attributes('role')).toBe('status')
-    expect(wrapper.find('span').attributes('aria-label')).toBe('Conflict')
+    expect(wrapper.find('output').attributes('role')).toBe('status')
+    expect(wrapper.find('output').attributes('aria-label')).toBe('Conflict')
   })
 })
 
@@ -225,7 +225,7 @@ describe('CalendarCell', () => {
     })
     // Activity dot should not render when isCurrentMonth is false
     const dots = wrapper.findAll('.bg-orange-400')
-    expect(dots.length).toBe(0)
+    expect(dots).toHaveLength(0)
   })
 
   it('shows correct density colors', () => {
@@ -305,7 +305,9 @@ describe('CalendarCell', () => {
         publications: pubs,
       },
     })
-    const row = wrapper.findAll('div').find((d) => d.classes().some((c) => c.includes('flex-row')))
+    const row = wrapper
+      .findAll('button')
+      .find((b) => b.classes().some((c) => c.includes('flex-row')))
     expect(row?.exists()).toBe(true)
     expect(wrapper.text()).toContain('Visible Title')
     expect(row?.find('img').exists()).toBe(true)

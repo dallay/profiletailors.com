@@ -151,7 +151,7 @@ describe('App.vue — avatar rendering', () => {
 
     // No img with a src attribute should be rendered
     const imgs = wrapper.findAll('img[src]')
-    expect(imgs.length).toBe(0)
+    expect(imgs).toHaveLength(0)
   })
 
   it('shows fallback badge when avatar image fails to load', async () => {

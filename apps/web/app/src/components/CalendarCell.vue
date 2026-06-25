@@ -123,13 +123,11 @@ function onKeyDown(e: KeyboardEvent) {
         :key="pub.id"
         class="relative z-10 overflow-hidden rounded-md"
       >
-        <!-- biome-ignore lint/a11y/useSemanticElements: non-button container required to preserve drag behavior within clickable month cell -->
-        <div
-          class="flex flex-row items-center gap-1 rounded-md px-1 py-0.5 text-[7px] font-mono cursor-pointer"
+        <button
+          type="button"
+          class="flex flex-row items-center gap-1 rounded-md px-1 py-0.5 text-[7px] font-mono cursor-pointer w-full text-left"
           :class="getProviderColor(pub.channels[0] || 'linkedin')"
           :draggable="draggable"
-          role="button"
-          tabindex="0"
           @click.stop="emit('click-publication', pub)"
           @keydown.enter.stop.prevent="emit('click-publication', pub)"
           @keydown.space.stop.prevent="emit('click-publication', pub)"
@@ -149,7 +147,7 @@ function onKeyDown(e: KeyboardEvent) {
             v-if="pub.hasConflict"
             variant="dot"
           />
-        </div>
+        </button>
       </div>
       <div
         v-if="remainingCount > 0"

@@ -123,6 +123,16 @@
   --input: 0 0% 20%;
   --ring: 0 0% 100%;
   --radius: 8px;
+
+  /* Dashboard tokens */
+  --chart-line: var(--text-secondary);
+  --chart-area: var(--accent-color);
+  --sparkline-stroke: var(--accent-color);
+  --sparkline-fill: color-mix(in srgb, var(--accent-color) 20%, transparent);
+  --heatmap-low: var(--background-surface);
+  --heatmap-high: var(--accent-color);
+  --score-gauge-track: var(--border-color);
+  --score-gauge-fill: var(--accent-color);
 }
 
 /* Light Mode overrides */
@@ -156,18 +166,6 @@
   --border: 60 9.1% 81.2%;
   --input: 60 9.1% 81.2%;
   --ring: 0 0% 0%;
-}
-
-/* Dashboard tokens */
-:root {
-  --chart-line: var(--text-secondary);
-  --chart-area: var(--accent-color);
-  --sparkline-stroke: var(--accent-color);
-  --sparkline-fill: color-mix(in srgb, var(--accent-color) 20%, transparent);
-  --heatmap-low: var(--background-surface);
-  --heatmap-high: var(--accent-color);
-  --score-gauge-track: var(--border-color);
-  --score-gauge-fill: var(--accent-color);
 }
 
 /* Base resets & layout rules */

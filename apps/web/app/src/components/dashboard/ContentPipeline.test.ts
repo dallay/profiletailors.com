@@ -143,8 +143,8 @@ describe('ContentPipeline', () => {
     })
     const cards = wrapper.findAll('[data-dnd-draggable]')
     const columns = wrapper.findAll('[data-dnd-column]')
-    expect(cards.length).toBe(1)
-    expect(columns.length).toBe(4)
+    expect(cards).toHaveLength(1)
+    expect(columns).toHaveLength(4)
     expect(cards[0]?.attributes('data-dnd-draggable')).toBe('c1')
     expect(cards[0]?.attributes('draggable')).toBe('true')
   })
@@ -155,7 +155,7 @@ describe('ContentPipeline', () => {
     })
     // Each column card container should have min-h for drop zone
     const dropZones = wrapper.findAll('.min-h-\\[48px\\]')
-    expect(dropZones.length).toBe(4)
+    expect(dropZones).toHaveLength(4)
   })
 
   it('renders platform badges on cards', () => {

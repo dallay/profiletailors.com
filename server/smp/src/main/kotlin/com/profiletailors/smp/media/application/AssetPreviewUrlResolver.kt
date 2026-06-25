@@ -8,7 +8,7 @@ import javax.crypto.Mac
 import javax.crypto.spec.SecretKeySpec
 import org.slf4j.LoggerFactory
 
-interface AssetPreviewUrlResolver {
+fun interface AssetPreviewUrlResolver {
     suspend fun resolvePreviewUrl(
         assetId: String,
         workspaceId: String,

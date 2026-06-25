@@ -15,7 +15,7 @@ const { t } = useI18n()
 const status = ref<'loading' | 'success' | 'error'>('loading')
 const message = ref(t('linkedinCallback.loadingMessage'))
 
-const redirectUri = computed(() => `${window.location.origin}/integrations/linkedin/callback`)
+const redirectUri = computed(() => `${globalThis.location.origin}/integrations/linkedin/callback`)
 
 function firstQueryValue(value: unknown): string | null {
   if (Array.isArray(value)) {
@@ -100,9 +100,9 @@ onMounted(() => {
       </CardHeader>
 
       <CardContent class="mt-6 space-y-6 p-0 text-center">
-        <p class="text-sm leading-6 text-text-secondary" role="status">
+        <output class="text-sm leading-6 text-text-secondary">
           {{ message }}
-        </p>
+        </output>
 
         <div v-if="status === 'error'" class="flex flex-col justify-center gap-3 sm:flex-row">
           <Button type="button" @click="retryConnection">

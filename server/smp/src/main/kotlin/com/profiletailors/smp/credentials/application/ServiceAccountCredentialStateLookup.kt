@@ -8,7 +8,7 @@ data class ActiveServiceAccountCredential(
     val credentialReference: String,
 )
 
-interface ServiceAccountCredentialStateLookup {
+fun interface ServiceAccountCredentialStateLookup {
     suspend fun requireActive(
         credentialReference: String,
         subject: String,

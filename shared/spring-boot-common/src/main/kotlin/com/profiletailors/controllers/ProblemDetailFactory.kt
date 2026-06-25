@@ -26,6 +26,7 @@ import org.springframework.web.server.ServerWebExchange
  * @return A fully populated [ProblemDetail].
  * @since 1.0.0
  */
+@Suppress("LongParameterList")
 fun createProblemDetail(
     status: HttpStatus,
     title: String,

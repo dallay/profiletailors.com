@@ -82,7 +82,7 @@ describe('SidebarMenuSkeleton', () => {
     expect(getRandomValuesSpy).toHaveBeenCalled()
     const calledWith = getRandomValuesSpy.mock.calls[0]?.[0] as Uint32Array
     expect(calledWith).toBeInstanceOf(Uint32Array)
-    expect(calledWith.length).toBe(1)
+    expect(calledWith).toHaveLength(1)
   })
 
   it('generates varying widths when given different random values', () => {

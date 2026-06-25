@@ -139,7 +139,7 @@ class RuntimeCriteriaParser<T : Any>(
         val pattern = Pattern.compile(SqlLikeTranspiler.toRegEx(criteria.value), regexFlags)
         return {
             properties[criteria.key]?.get(it)?.let { v ->
-                if (v is CharSequence) pattern.matcher(v).find() else false
+                v is CharSequence && pattern.matcher(v).find()
             } == true
         }
     }
@@ -151,20 +151,20 @@ class RuntimeCriteriaParser<T : Any>(
         val pattern = Pattern.compile(SqlLikeTranspiler.toRegEx(criteria.value))
         return {
             properties[criteria.key]?.get(it)?.let { v ->
-                if (v is CharSequence) !pattern.matcher(v).find() else false
+                v is CharSequence && !pattern.matcher(v).find()
             } == true
         }
     }
 
     private fun parse(criteria: Criteria.Regexp): (T) -> Boolean = {
         properties[criteria.key]?.get(it)?.let { v ->
-            if (v is CharSequence) criteria.value.matcher(v).find() else false
+            v is CharSequence && criteria.value.matcher(v).find()
         } == true
     }
 
     private fun parse(criteria: Criteria.NotRegexp): (T) -> Boolean = {
         properties[criteria.key]?.get(it)?.let { v ->
-            if (v is CharSequence) !criteria.value.matcher(v).find() else false
+            v is CharSequence && !criteria.value.matcher(v).find()
         } == true
     }
 

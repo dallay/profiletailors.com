@@ -26,7 +26,7 @@ describe('SparklineChart', () => {
       props: { data: [10] },
     })
     const paths = wrapper.findAll('path')
-    expect(paths.length).toBe(0)
+    expect(paths).toHaveLength(0)
   })
 
   it('renders no path when data is empty', () => {
@@ -34,7 +34,7 @@ describe('SparklineChart', () => {
       props: { data: [] },
     })
     const paths = wrapper.findAll('path')
-    expect(paths.length).toBe(0)
+    expect(paths).toHaveLength(0)
   })
 
   it('applies custom stroke and fill colors', () => {

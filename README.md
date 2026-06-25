@@ -14,6 +14,16 @@ Public-facing marketing site for the Profile Tailors social media management pla
 [![Node.js](https://img.shields.io/badge/Node.js-22.12%2B-2d3748?style=for-the-badge&logo=node.js&logoColor=5fa04e)](https://nodejs.org)
 [![pnpm](https://img.shields.io/badge/pnpm-10.x-2d3748?style=for-the-badge&logo=pnpm&logoColor=f69220)](https://pnpm.io)
 
+[![Quality Gate Status](https://sonarcloud.io/api/project_badges/measure?project=dallay_profiletailors.com&metric=alert_status)](https://sonarcloud.io/summary/new_code?id=dallay_profiletailors.com)
+[![Bugs](https://sonarcloud.io/api/project_badges/measure?project=dallay_profiletailors.com&metric=bugs)](https://sonarcloud.io/summary/new_code?id=dallay_profiletailors.com)
+[![Code Smells](https://sonarcloud.io/api/project_badges/measure?project=dallay_profiletailors.com&metric=code_smells)](https://sonarcloud.io/summary/new_code?id=dallay_profiletailors.com)
+[![Coverage](https://sonarcloud.io/api/project_badges/measure?project=dallay_profiletailors.com&metric=coverage)](https://sonarcloud.io/summary/new_code?id=dallay_profiletailors.com)
+[![Duplicated Lines (%)](https://sonarcloud.io/api/project_badges/measure?project=dallay_profiletailors.com&metric=duplicated_lines_density)](https://sonarcloud.io/summary/new_code?id=dallay_profiletailors.com)
+[![Reliability Rating](https://sonarcloud.io/api/project_badges/measure?project=dallay_profiletailors.com&metric=reliability_rating)](https://sonarcloud.io/summary/new_code?id=dallay_profiletailors.com)
+[![Security Rating](https://sonarcloud.io/api/project_badges/measure?project=dallay_profiletailors.com&metric=security_rating)](https://sonarcloud.io/summary/new_code?id=dallay_profiletailors.com)
+[![Maintainability Rating](https://sonarcloud.io/api/project_badges/measure?project=dallay_profiletailors.com&metric=sqale_rating)](https://sonarcloud.io/summary/new_code?id=dallay_profiletailors.com)
+[![codecov](https://codecov.io/gh/dallay/profiletailors.com/graph/badge.svg?token=B70EGR3KBD)](https://codecov.io/gh/dallay/profiletailors.com)
+
 </div>
 
 ---

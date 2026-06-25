@@ -306,7 +306,7 @@ const filteredPublications = computed(() => {
     publicationMatchesFilters(pub, {
       socialAccountId: activeChannelId || undefined,
       tag: url.state.value.q || undefined,
-      postType: url.state.value.status !== 'all' ? url.state.value.status : undefined,
+      postType: url.state.value.status === 'all' ? undefined : url.state.value.status,
     }),
   )
 })
@@ -387,8 +387,8 @@ function openNewPostForSlot(date: Date, hour?: number) {
   if (publishingStore.hasNoChannels) return
 
   const d = new Date(date)
-  if (hour !== undefined) d.setHours(hour, 0, 0, 0)
-  else d.setHours(12, 0, 0, 0)
+  if (hour === undefined) d.setHours(12, 0, 0, 0)
+  else d.setHours(hour, 0, 0, 0)
   selectedCellDate.value = d.toISOString()
   isModalOpen.value = true
 }
@@ -452,7 +452,7 @@ async function handleUpdated() {
       : new Date(from.getFullYear(), from.getMonth(), from.getDate() + 6)
 
   await publishingStore.fetchCalendar(from.toISOString(), to.toISOString(), {
-    status: state.status !== 'all' ? state.status : undefined,
+    status: state.status === 'all' ? undefined : state.status,
     socialAccountId: state.channelIds[0],
     timezone: state.timezone,
   })
@@ -501,7 +501,7 @@ watch(
         : new Date(from.getFullYear(), from.getMonth(), from.getDate() + 6)
 
     await publishingStore.fetchCalendar(from.toISOString(), to.toISOString(), {
-      status: state.status !== 'all' ? state.status : undefined,
+      status: state.status === 'all' ? undefined : state.status,
       socialAccountId: state.channelIds[0],
       timezone: state.timezone,
     })
@@ -636,15 +636,14 @@ watch(
                     </span>
                   </div>
                   <!-- Day columns -->
-                  <!-- biome-ignore lint/a11y/noStaticElementInteractions: role is set conditionally, dragover/drop handlers are passive -->
-                  <div
+                  <button
                     v-for="day in weekDays"
                     :key="day.toISOString()"
-                    :role="!isPastSlot(day, slot.hour) ? 'button' : undefined"
-                    :tabindex="!isPastSlot(day, slot.hour) ? 0 : -1"
-                    @click="!isPastSlot(day, slot.hour) ? openNewPostForSlot(day, slot.hour) : undefined"
-                    @keydown.enter.prevent="!isPastSlot(day, slot.hour) ? openNewPostForSlot(day, slot.hour) : undefined"
-                    @keydown.space.prevent="!isPastSlot(day, slot.hour) ? openNewPostForSlot(day, slot.hour) : undefined"
+                    type="button"
+                    :disabled="isPastSlot(day, slot.hour)"
+                    @click="isPastSlot(day, slot.hour) ? undefined : openNewPostForSlot(day, slot.hour)"
+                    @keydown.enter.prevent="isPastSlot(day, slot.hour) ? undefined : openNewPostForSlot(day, slot.hour)"
+                    @keydown.space.prevent="isPastSlot(day, slot.hour) ? undefined : openNewPostForSlot(day, slot.hour)"
                     @dragover.prevent="!isPastSlot(day, slot.hour)"
                     @drop.prevent="!isPastSlot(day, slot.hour) ? onDropCell($event, day, slot.hour) : undefined"
                     class="relative p-2 border-r border-border-subtle last:border-r-0 transition-all group/cell flex flex-col justify-start gap-2 select-none"
@@ -659,8 +658,8 @@ watch(
                     <div
                       v-for="pub in getPublicationsForSlot(day, slot.hour)"
                       :key="pub.id"
-                      :draggable="true"
                       role="button"
+                      :draggable="true"
                       tabindex="0"
                       @click.stop="openPostDetail(pub)"
                       @keydown.enter.self.stop.prevent="openPostDetail(pub)"
@@ -733,7 +732,7 @@ watch(
                     >
                       <Plus class="size-3" />
                     </button>
-                  </div>
+                  </button>
                 </div>
               </div>
             </Card>

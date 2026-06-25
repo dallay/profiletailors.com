@@ -251,7 +251,7 @@ describe('SchedulerView', () => {
     await flushPromises()
     // Find the week card (now a div role="button") that contains the pub
     const card = wrapper
-      .findAll('[role="button"]')
+      .findAll('button')
       .find((b) => b.text().includes('Side by side layout test'))
     expect(card).toBeDefined()
     const resolvedCard = card!
@@ -540,11 +540,9 @@ describe('SchedulerView', () => {
       await flushPromises()
 
       // Only queued publication should be visible in week slot
-      const queuedCard = wrapper
-        .findAll('[role="button"]')
-        .find((b) => b.text().includes('Queued post'))
+      const queuedCard = wrapper.findAll('button').find((b) => b.text().includes('Queued post'))
       const publishedCard = wrapper
-        .findAll('[role="button"]')
+        .findAll('button')
         .find((b) => b.text().includes('Published post'))
 
       expect(queuedCard).toBeDefined()
@@ -593,10 +591,10 @@ describe('SchedulerView', () => {
       await flushPromises()
 
       const channel1Card = wrapper
-        .findAll('[role="button"]')
+        .findAll('button')
         .find((b) => b.text().includes('Channel 1 post'))
       const channel2Card = wrapper
-        .findAll('[role="button"]')
+        .findAll('button')
         .find((b) => b.text().includes('Channel 2 post'))
 
       expect(channel1Card).toBeDefined()
@@ -643,10 +641,10 @@ describe('SchedulerView', () => {
       await flushPromises()
 
       const searchableCard = wrapper
-        .findAll('[role="button"]')
+        .findAll('button')
         .find((b) => b.text().includes('DDD patterns'))
       const notSearchableCard = wrapper
-        .findAll('[role="button"]')
+        .findAll('button')
         .find((b) => b.text().includes('no special content'))
 
       expect(searchableCard).toBeDefined()

@@ -197,10 +197,11 @@ test.describe('URL-addressable scheduler — sidebar channels', () => {
   test('TC-SIDE-02: clicking a channel adds channels[] query param @scheduler', async ({
     page,
   }) => {
-    // The channel row lives inside the sidebar <aside> element.
+    // The channel row lives inside the shadcn-vue Sidebar component
+    // (renders as <div data-slot="sidebar">, not <aside>).
     // Scope the locator to the sidebar to avoid matching the account-menu button.
-    const sidebar = page.locator('aside')
-    const channelButton = sidebar.getByRole('button', { name: /dev user 0|dev user/i }).first()
+    const sidebar = page.locator('[data-slot="sidebar"]')
+    const channelButton = sidebar.getByRole('button', { name: /dev user/i }).first()
     await channelButton.click()
     await page.waitForTimeout(300)
 

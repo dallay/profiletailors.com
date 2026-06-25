@@ -28,13 +28,12 @@ const scoreColor = computed(() => {
 </script>
 
 <template>
-  <div
+  <meter
     class="relative inline-flex items-center justify-center"
     :style="{ width: `${size}px`, height: `${size}px` }"
-    role="meter"
-    :aria-valuenow="score"
-    aria-valuemin="0"
-    aria-valuemax="100"
+    :value="score"
+    min="0"
+    max="100"
     :aria-label="`${score} ${t('dashboard.growthScore.outOf100')}`"
   >
     <svg
@@ -75,5 +74,5 @@ const scoreColor = computed(() => {
         {{ t('dashboard.growthScore.outOf100') }}
       </span>
     </div>
-  </div>
+  </meter>
 </template>

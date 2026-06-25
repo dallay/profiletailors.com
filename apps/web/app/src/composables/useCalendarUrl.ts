@@ -80,7 +80,7 @@ function trimOrEmpty(value: unknown): string {
 }
 
 function normalizeSurface(route: { name: unknown }): SchedulerSurface {
-  const name = String(route.name ?? '')
+  const name = typeof route.name === 'string' ? route.name : ''
   if (name === 'scheduler-calendar-month') return 'calendar-month'
   if (name === 'scheduler-calendar-day') return 'calendar-day'
   if (name === 'scheduler-list') return 'list'
@@ -166,7 +166,7 @@ function areQueriesEquivalent(left: Record<string, unknown>, right: LocationQuer
           ]
         }
         if (value == null) return []
-        return [[normalizedKey, String(value)]]
+        return [[normalizedKey, typeof value === 'string' ? value : String(value)]]
       })
       .sort(([leftKey], [rightKey]) => leftKey.localeCompare(rightKey))
 

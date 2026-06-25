@@ -52,6 +52,7 @@ class EventConfiguration(
             TypeMatchEventFilter(mapping.filterBy as KClass<T>)
         }
 
+        @Suppress("USELESS_IS_CHECK")
         return if (filterBeen is EventFilter<*>) {
             filterBeen as EventFilter<T>
         } else {
