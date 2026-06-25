@@ -151,8 +151,7 @@ jobs:
           config-file: ./.github/codeql/codeql-config.yml
           build-mode: manual
       - name: Build backend for CodeQL extraction
-        working-directory: server/smp
-        run: ./gradlew build -x test --no-daemon
+        run: ./gradlew -p server/smp build -x test --no-daemon
       - name: Analyze with CodeQL
         uses: github/codeql-action/analyze@v4
         with:
