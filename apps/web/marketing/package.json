@@ -48,13 +48,6 @@
     "vitest": "^3.2.6"
   },
   "pnpm": {
-    "overrides": {
-      "devalue": ">=5.8.1",
-      "yaml": "^2.9.0",
-      "undici": ">=7.28.0 <8.0.0",
-      "js-yaml": ">=4.2.0",
-      "@babel/core": ">=7.27.0"
-    },
     "packageExtensions": {
       "vscode-json-languageservice": {
         "dependencies": {
