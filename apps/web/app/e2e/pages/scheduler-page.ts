@@ -81,9 +81,9 @@ export class SchedulerPage {
     return this.page.locator('.group\\/card')
   }
 
-  // Delete buttons on post cards
+  // Delete actions on post cards
   get deleteButtons(): Locator {
-    return this.page.locator('button[title="Delete publication"]')
+    return this.page.locator('[title="Delete publication"]')
   }
 
   // ---- Actions ----
