@@ -760,40 +760,7 @@ export const usePublishingStore = defineStore('publishing', () => {
     }
 
     if (auth.isAuthenticated) {
-      const hasLinkedIn = post.channels.includes('linkedin')
-
-      try {
-        if (hasLinkedIn) {
-          const linkedInChannel = findActiveLinkedInChannel(channels.value, post.socialAccountId)
-          if (!linkedInChannel?.accountId) {
-            throw new Error('Connect a LinkedIn profile before scheduling authenticated posts.')
-          }
-
-          newPub.accountId = linkedInChannel.accountId
-          const resolvedAssetIds = post.assetIds ?? []
-
-          await auth.apiFetch<unknown>('/api/publishing/publications', {
-            method: 'POST',
-            body: JSON.stringify({
-              socialAccountId: linkedInChannel.accountId,
-              title: post.title || 'Post via Web App',
-              bodyText: normalizeText(post.content),
-              assetIds: resolvedAssetIds,
-              scheduleMode: effectiveMode,
-              ...(effectiveMode === 'SCHEDULED_AT' ? { scheduledFor: post.scheduledAt } : {}),
-              ...(effectiveMode === 'NEXT_SLOT' ? { nextSlotAfter: post.nextSlotAfter } : {}),
-              priority: post.priority,
-            }),
-            workspaceScoped: true,
-          })
-          console.log('Successfully synced publication with backend API!')
-        }
-      } catch (err) {
-        if (hasLinkedIn) {
-          throw err
-        }
-        console.warn('Backend API unavailable. Saving to local storage mock queue instead.', err)
-      }
+      await syncPublicationWithApi(post, newPub, effectiveMode)
     }
 
     publications.value.unshift(newPub)
@@ -802,6 +769,51 @@ export const usePublishingStore = defineStore('publishing', () => {
     }
     saveToStorage()
     return newPub
+  }
+
+  /**
+   * Syncs a new publication with the backend API if a LinkedIn channel is selected.
+   * Falls back silently to local-only mode if the API is unavailable for non-LinkedIn posts.
+   */
+  async function syncPublicationWithApi(
+    post: Parameters<typeof schedulePost>[0],
+    newPub: Publication,
+    effectiveMode: string,
+  ): Promise<void> {
+    const hasLinkedIn = post.channels.includes('linkedin')
+
+    try {
+      if (!hasLinkedIn) return
+
+      const linkedInChannel = findActiveLinkedInChannel(channels.value, post.socialAccountId)
+      if (!linkedInChannel?.accountId) {
+        throw new Error('Connect a LinkedIn profile before scheduling authenticated posts.')
+      }
+
+      newPub.accountId = linkedInChannel.accountId
+      const resolvedAssetIds = post.assetIds ?? []
+
+      await auth.apiFetch<unknown>('/api/publishing/publications', {
+        method: 'POST',
+        body: JSON.stringify({
+          socialAccountId: linkedInChannel.accountId,
+          title: post.title || 'Post via Web App',
+          bodyText: normalizeText(post.content),
+          assetIds: resolvedAssetIds,
+          scheduleMode: effectiveMode,
+          ...(effectiveMode === 'SCHEDULED_AT' ? { scheduledFor: post.scheduledAt } : {}),
+          ...(effectiveMode === 'NEXT_SLOT' ? { nextSlotAfter: post.nextSlotAfter } : {}),
+          priority: post.priority,
+        }),
+        workspaceScoped: true,
+      })
+      console.log('Successfully synced publication with backend API!')
+    } catch (err) {
+      if (hasLinkedIn) {
+        throw err
+      }
+      console.warn('Backend API unavailable. Saving to local storage mock queue instead.', err)
+    }
   }
 
   async function deletePost(id: string) {

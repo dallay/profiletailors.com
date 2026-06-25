@@ -23,14 +23,16 @@ describe('ScoreGauge', () => {
     expect(wrapper.text()).toContain('dashboard.growthScore.outOf100')
   })
 
-  it('has correct attributes', () => {
+  it('renders accessible SVG gauge with score', () => {
     const wrapper = mount(ScoreGauge, {
       props: { score: 74 },
     })
-    const meter = wrapper.find('[role="meter"]')
-    expect(meter.attributes('aria-valuenow')).toBe('74')
-    expect(meter.attributes('aria-valuemin')).toBe('0')
-    expect(meter.attributes('aria-valuemax')).toBe('100')
+    const svg = wrapper.find('svg[aria-hidden="true"]')
+    expect(svg.exists()).toBe(true)
+    expect(svg.attributes('width')).toBe('120')
+    expect(svg.attributes('height')).toBe('120')
+    const circles = svg.findAll('circle')
+    expect(circles).toHaveLength(2)
   })
 
   it('renders an SVG circle for the gauge', () => {

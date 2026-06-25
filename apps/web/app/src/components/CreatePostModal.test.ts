@@ -903,6 +903,8 @@ describe('CreatePostModal.vue — edit mode', () => {
     const wrapper = mountModal([makeChannel('ch-edit-1')], {
       editingPublication: makeEditingPublication(),
     })
+    // Flush all async initialization (loadDanglingAssets, nextTick, focus trap)
+    await new Promise((resolve) => setTimeout(resolve, 10))
     await wrapper.vm.$nextTick()
 
     const submitButton = Array.from(document.body.querySelectorAll('button')).find((button) =>
@@ -911,7 +913,7 @@ describe('CreatePostModal.vue — edit mode', () => {
     submitButton?.click()
 
     await wrapper.vm.$nextTick()
-    await Promise.resolve()
+    await new Promise((resolve) => setTimeout(resolve, 10))
 
     expect(document.body.innerHTML).toContain('Update failed')
     expect(wrapper.emitted('updated')).toBeUndefined()

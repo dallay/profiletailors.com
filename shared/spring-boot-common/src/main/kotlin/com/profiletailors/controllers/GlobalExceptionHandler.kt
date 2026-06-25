@@ -42,9 +42,11 @@ class GlobalExceptionHandler(
             typeSuffix = "entity-not-found",
             errorCategory = "NOT_FOUND",
             exchange = exchange,
-            messageKey = MSG_ENTITY_NOT_FOUND,
-            localizedMessage = localizedMessage,
-            includeInstance = true,
+            options = ProblemDetailOptions(
+                messageKey = MSG_ENTITY_NOT_FOUND,
+                localizedMessage = localizedMessage,
+                includeInstance = true,
+            ),
         )
     }
 
@@ -75,8 +77,10 @@ class GlobalExceptionHandler(
             typeSuffix = "bad-request",
             errorCategory = "BAD_REQUEST",
             exchange = exchange,
-            messageKey = MSG_BAD_REQUEST,
-            localizedMessage = localizedTitle,
+            options = ProblemDetailOptions(
+                messageKey = MSG_BAD_REQUEST,
+                localizedMessage = localizedTitle,
+            ),
         )
     }
 
@@ -106,8 +110,10 @@ class GlobalExceptionHandler(
             typeSuffix = "json-parsing-error",
             errorCategory = "JSON_PARSING",
             exchange = exchange,
-            additionalProperties = mapOf("rootCause" to (rootCause::class.simpleName ?: "Unknown")),
-            includeInstance = true,
+            options = ProblemDetailOptions(
+                additionalProperties = mapOf("rootCause" to (rootCause::class.simpleName ?: "Unknown")),
+                includeInstance = true,
+            ),
         )
     }
 
@@ -141,8 +147,10 @@ class GlobalExceptionHandler(
             typeSuffix = "input-error",
             errorCategory = "INPUT_ERROR",
             exchange = exchange,
-            additionalProperties = mapOf("rootCause" to (rootCause::class.simpleName ?: "Unknown")),
-            includeInstance = true,
+            options = ProblemDetailOptions(
+                additionalProperties = mapOf("rootCause" to (rootCause::class.simpleName ?: "Unknown")),
+                includeInstance = true,
+            ),
         )
         return Mono.just(ResponseEntity.status(HttpStatus.BAD_REQUEST).body(problemDetail))
     }
@@ -176,9 +184,11 @@ class GlobalExceptionHandler(
             typeSuffix = "validation-error",
             errorCategory = "VALIDATION",
             exchange = exchange,
-            messageKey = MSG_VALIDATION_ERROR,
-            localizedMessage = title,
-            additionalProperties = mapOf("errors" to fieldErrors),
+            options = ProblemDetailOptions(
+                messageKey = MSG_VALIDATION_ERROR,
+                localizedMessage = title,
+                additionalProperties = mapOf("errors" to fieldErrors),
+            ),
         )
         return Mono.just(ResponseEntity.status(HttpStatus.BAD_REQUEST).body(problemDetail))
     }
@@ -197,8 +207,10 @@ class GlobalExceptionHandler(
             typeSuffix = "internal-server-error",
             errorCategory = "INTERNAL_SERVER_ERROR",
             exchange = exchange,
-            messageKey = MSG_INTERNAL_SERVER_ERROR,
-            localizedMessage = localizedMessage,
+            options = ProblemDetailOptions(
+                messageKey = MSG_INTERNAL_SERVER_ERROR,
+                localizedMessage = localizedMessage,
+            ),
         )
     }
 
@@ -220,7 +232,6 @@ class GlobalExceptionHandler(
         )
     }
 
-    @Suppress("LongParameterList")
     private fun createProblemDetail(
         status: HttpStatus,
         title: String,
@@ -228,10 +239,7 @@ class GlobalExceptionHandler(
         typeSuffix: String,
         errorCategory: String,
         exchange: ServerWebExchange,
-        messageKey: String? = null,
-        localizedMessage: String? = null,
-        additionalProperties: Map<String, Any>? = null,
-        includeInstance: Boolean = false,
+        options: ProblemDetailOptions = ProblemDetailOptions(),
     ): ProblemDetail {
         val problemDetail = ProblemDetail.forStatusAndDetail(status, detail ?: title)
         problemDetail.title = title
@@ -240,18 +248,18 @@ class GlobalExceptionHandler(
         problemDetail.setProperty(TIMESTAMP, Instant.now())
         problemDetail.setProperty(TRACE_ID, exchange.request.id)
 
-        if (includeInstance) {
+        if (options.includeInstance) {
             problemDetail.instance = URI.create(exchange.request.path.toString())
         }
 
-        if (messageKey != null) {
-            problemDetail.setProperty(MESSAGE_KEY, messageKey)
+        if (options.messageKey != null) {
+            problemDetail.setProperty(MESSAGE_KEY, options.messageKey)
         }
-        if (localizedMessage != null) {
-            problemDetail.setProperty(LOCALIZED_MESSAGE, localizedMessage)
+        if (options.localizedMessage != null) {
+            problemDetail.setProperty(LOCALIZED_MESSAGE, options.localizedMessage)
         }
 
-        additionalProperties?.forEach { (key, value) ->
+        options.additionalProperties?.forEach { (key, value) ->
             problemDetail.setProperty(key, value)
         }
 
