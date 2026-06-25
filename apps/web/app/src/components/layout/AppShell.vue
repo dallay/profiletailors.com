@@ -2,7 +2,7 @@
 import { computed, onBeforeUnmount, watch } from 'vue'
 import { RouterView, useRoute, useRouter } from 'vue-router'
 import { useI18n } from 'vue-i18n'
-import { extractFirstChannelId } from '@/composables/useCalendarUrl'
+import { extractFirstChannelId, useCalendarUrl } from '@/composables/useCalendarUrl'
 import { Images, LayoutGrid } from '@lucide/vue'
 import {
   Sidebar,
@@ -30,7 +30,6 @@ import SidebarConnectSection, { type ConnectChannel } from '@/components/sidebar
 import SidebarAccountSection from '@/components/sidebar/SidebarAccountSection.vue'
 import UploadProgressToast from '@/components/UploadProgressToast.vue'
 import { useQueuedCounts } from '@/composables/useQueuedCounts'
-import { useCalendarUrl } from '@/composables/useCalendarUrl'
 
 // ---------------------------------------------------------------------------
 // Stores
@@ -232,14 +231,13 @@ onBeforeUnmount(() => {
   </a>
 
   <!-- SPA route announcer — announces page changes to screen readers -->
-  <div
-    role="status"
+  <output
     aria-live="polite"
     aria-atomic="true"
     class="sr-only"
   >
     {{ pageTitle }}
-  </div>
+  </output>
 
   <TooltipProvider>
     <SidebarProvider :default-open="true" class="bg-bg-primary font-sans text-text-body transition-colors duration-250">

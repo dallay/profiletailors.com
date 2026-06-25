@@ -1,7 +1,6 @@
 <script setup lang="ts">
 import { computed } from 'vue'
 import LinkedInPostPreview from './LinkedInPostPreview.vue'
-import { PREVIEW_PROVIDERS } from './post-preview.types'
 import type { LinkedInPreviewModel, PreviewProvider } from './post-preview.types'
 
 const props = defineProps<{
@@ -11,17 +10,11 @@ const props = defineProps<{
 }>()
 
 const activePreviewComponent = computed(() => {
-  switch (props.provider) {
-    default:
-      return LinkedInPostPreview
-  }
+  return LinkedInPostPreview
 })
 
 const activePreviewProps = computed(() => {
-  switch (props.provider) {
-    default:
-      return { preview: props.linkedinPreview }
-  }
+  return { preview: props.linkedinPreview }
 })
 </script>
 

@@ -17,12 +17,12 @@ class Tokenizer {
         var position = 0
         while (copy != "") {
             var found = false
-            for ((pattern, fn) in patterns) {
+            for ((pattern, createToken) in patterns) {
                 val m = pattern.matcher(copy)
                 if (m.find()) {
                     found = true
                     val token = m.group(1)
-                    tokens.add(fn(token))
+                    tokens.add(createToken(token))
                     copy = m.replaceFirst("")
                     position += token.length
                     break

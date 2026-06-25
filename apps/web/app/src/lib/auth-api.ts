@@ -88,7 +88,7 @@ async function requestRaw(
       ...(!hasExplicitContentType && !isFormDataBody ? { 'Content-Type': 'application/json' } : {}),
       Accept: 'application/vnd.api.v1+json',
       ...(token ? { Authorization: `Bearer ${token}` } : {}),
-      ...(init.headers ?? {}),
+      ...init.headers,
     },
   })
 
@@ -306,7 +306,7 @@ export function createApiFetch(opts: {
     return {
       ...requestInit,
       headers: {
-        ...(requestInit.headers ?? {}),
+        ...requestInit.headers,
         'X-Workspace-Id': workspaceId,
       },
     }
