@@ -111,7 +111,7 @@ class R2dbcApiKeyCredentialReplacementGatewayTest {
 
         assertEquals(ApiKeyCredentialFailureReason.REPLACED, error.reason)
         val count = databaseClient.sql("SELECT COUNT(*) AS total FROM api_key_credentials")
-            .map { row, _ -> requireNotNull(row.get("total", java.lang.Long::class.java)).toLong() }
+            .map { row, _ -> requireNotNull(row.get("total", Long::class.javaObjectType)) }
             .one()
             .awaitSingle()
         assertEquals(1L, count)
