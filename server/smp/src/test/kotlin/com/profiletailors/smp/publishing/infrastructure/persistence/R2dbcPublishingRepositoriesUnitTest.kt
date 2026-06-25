@@ -230,7 +230,7 @@ class R2dbcPublishingRepositoriesUnitTest : DatabaseUnitTestBase() {
                 "SELECT COUNT(*) AS total FROM publication_asset_links WHERE publication_id = :publicationId",
             )
                 .bind("publicationId", pubId)
-                .map { row, _ -> requireNotNull(row.get("total", java.lang.Long::class.java)).toLong() }
+                .map { row, _ -> requireNotNull(row.get("total", Long::class.javaObjectType)) }
                 .one()
                 .awaitSingle()
             assertEquals(1L, remainingLinks, "publication_asset_links must NOT be deleted for PUBLISHED publication")
@@ -239,7 +239,7 @@ class R2dbcPublishingRepositoriesUnitTest : DatabaseUnitTestBase() {
                 "SELECT COUNT(*) AS total FROM publication_jobs WHERE publication_id = :publicationId",
             )
                 .bind("publicationId", pubId)
-                .map { row, _ -> requireNotNull(row.get("total", java.lang.Long::class.java)).toLong() }
+                .map { row, _ -> requireNotNull(row.get("total", Long::class.javaObjectType)) }
                 .one()
                 .awaitSingle()
             assertEquals(1L, remainingJobs, "publication_jobs must NOT be deleted for PUBLISHED publication")
@@ -283,7 +283,7 @@ class R2dbcPublishingRepositoriesUnitTest : DatabaseUnitTestBase() {
                 "SELECT COUNT(*) AS total FROM publication_asset_links WHERE publication_id = :publicationId",
             )
                 .bind("publicationId", pubId)
-                .map { row, _ -> requireNotNull(row.get("total", java.lang.Long::class.java)).toLong() }
+                .map { row, _ -> requireNotNull(row.get("total", Long::class.javaObjectType)) }
                 .one()
                 .awaitSingle()
             assertEquals(1L, remainingLinks, "publication_asset_links must NOT be deleted for FAILED publication")
@@ -292,7 +292,7 @@ class R2dbcPublishingRepositoriesUnitTest : DatabaseUnitTestBase() {
                 "SELECT COUNT(*) AS total FROM publication_jobs WHERE publication_id = :publicationId",
             )
                 .bind("publicationId", pubId)
-                .map { row, _ -> requireNotNull(row.get("total", java.lang.Long::class.java)).toLong() }
+                .map { row, _ -> requireNotNull(row.get("total", Long::class.javaObjectType)) }
                 .one()
                 .awaitSingle()
             assertEquals(1L, remainingJobs, "publication_jobs must NOT be deleted for FAILED publication")
@@ -347,7 +347,7 @@ class R2dbcPublishingRepositoriesUnitTest : DatabaseUnitTestBase() {
                 "SELECT COUNT(*) AS total FROM publication_asset_links WHERE publication_id = :publicationId",
             )
                 .bind("publicationId", publicationId)
-                .map { row, _ -> requireNotNull(row.get("total", java.lang.Long::class.java)).toLong() }
+                .map { row, _ -> requireNotNull(row.get("total", Long::class.javaObjectType)) }
                 .one()
                 .awaitSingle()
             assertEquals(0L, remainingLinks)
@@ -356,7 +356,7 @@ class R2dbcPublishingRepositoriesUnitTest : DatabaseUnitTestBase() {
                 "SELECT COUNT(*) AS total FROM publication_jobs WHERE publication_id = :publicationId",
             )
                 .bind("publicationId", publicationId)
-                .map { row, _ -> requireNotNull(row.get("total", java.lang.Long::class.java)).toLong() }
+                .map { row, _ -> requireNotNull(row.get("total", Long::class.javaObjectType)) }
                 .one()
                 .awaitSingle()
             assertEquals(0L, remainingJobs)

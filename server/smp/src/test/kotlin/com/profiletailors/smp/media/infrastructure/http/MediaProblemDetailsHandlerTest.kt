@@ -139,9 +139,7 @@ class MediaProblemDetailsHandlerTest {
         )
         val response = handler.handle(exception)
 
-        assertSame(ResponseEntity::class.java, response.javaClass)
-        @Suppress("UNCHECKED_CAST")
-        val entity = response as ResponseEntity<ProblemDetail>
+        val entity = response
         assertEquals(HttpStatus.TOO_MANY_REQUESTS, entity.statusCode)
         assertEquals("3600", entity.headers[HttpHeaders.RETRY_AFTER]?.first())
 
