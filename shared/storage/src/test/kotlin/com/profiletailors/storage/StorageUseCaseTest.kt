@@ -84,6 +84,12 @@ class MockPresignableStorage : PresignableStorage {
     override suspend fun exists(bucket: String, key: String): Boolean {
         return storage.containsKey("$bucket:$key")
     }
+
+    override suspend fun copyObject(bucket: String, sourceKey: String, destKey: String) {
+        val sourceKey_ = "$bucket:$sourceKey"
+        val data = storage[sourceKey_] ?: throw StorageObjectNotFoundException(bucket, sourceKey)
+        storage["$bucket:$destKey"] = data
+    }
 }
 
 /**
