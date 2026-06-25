@@ -52,6 +52,33 @@ data class CorsConfigurationProperties(
 @EnableConfigurationProperties(CorsConfigurationProperties::class)
 class IdentitySecurityConfiguration {
 
+    /**
+     * Groups all [WebFilter] beans consumed by [securityWebFilterChain] so the method
+     * signature stays under SonarQube's 7-parameter limit.
+     */
+    data class IdentityWebFilters(
+        val apiKeyAuthentication: WebFilter,
+        val authenticatedPrincipalContext: WebFilter,
+        val requestPath: WebFilter,
+        val workspaceContext: WebFilter,
+        val revokedCredentialAudit: WebFilter,
+    )
+
+    @Bean
+    fun identityWebFilters(
+        apiKeyAuthenticationWebFilter: WebFilter,
+        authenticatedPrincipalContextWebFilter: WebFilter,
+        requestPathWebFilter: WebFilter,
+        workspaceContextWebFilter: WebFilter,
+        revokedCredentialAuditWebFilter: WebFilter,
+    ): IdentityWebFilters = IdentityWebFilters(
+        apiKeyAuthentication = apiKeyAuthenticationWebFilter,
+        authenticatedPrincipalContext = authenticatedPrincipalContextWebFilter,
+        requestPath = requestPathWebFilter,
+        workspaceContext = workspaceContextWebFilter,
+        revokedCredentialAudit = revokedCredentialAuditWebFilter,
+    )
+
     @Bean
     fun corsConfigurationSource(corsProperties: CorsConfigurationProperties): CorsConfigurationSource {
         val configuration = CorsConfiguration()
@@ -96,15 +123,10 @@ class IdentitySecurityConfiguration {
         AuthenticatedPrincipalContextWebFilter(requestContextStore)
 
     @Bean
-    @Suppress("LongParameterList")
     fun securityWebFilterChain(
         http: ServerHttpSecurity,
         jwtPrincipalAuthenticationConverter: JwtPrincipalAuthenticationConverter,
-        apiKeyAuthenticationWebFilter: WebFilter,
-        authenticatedPrincipalContextWebFilter: WebFilter,
-        requestPathWebFilter: WebFilter,
-        workspaceContextWebFilter: WebFilter,
-        revokedCredentialAuditWebFilter: WebFilter,
+        filters: IdentityWebFilters,
         authenticationEntryPoint: ServerAuthenticationEntryPoint,
     ): SecurityWebFilterChain =
         http
@@ -143,11 +165,11 @@ class IdentitySecurityConfiguration {
                     jwt.jwtAuthenticationConverter(jwtPrincipalAuthenticationConverter)
                 }
             }
-            .addFilterAt(apiKeyAuthenticationWebFilter, SecurityWebFiltersOrder.AUTHENTICATION)
-            .addFilterBefore(revokedCredentialAuditWebFilter, SecurityWebFiltersOrder.AUTHENTICATION)
-            .addFilterAfter(authenticatedPrincipalContextWebFilter, SecurityWebFiltersOrder.AUTHENTICATION)
-            .addFilterAfter(requestPathWebFilter, SecurityWebFiltersOrder.AUTHENTICATION)
-            .addFilterAfter(workspaceContextWebFilter, SecurityWebFiltersOrder.AUTHENTICATION)
+            .addFilterAt(filters.apiKeyAuthentication, SecurityWebFiltersOrder.AUTHENTICATION)
+            .addFilterBefore(filters.revokedCredentialAudit, SecurityWebFiltersOrder.AUTHENTICATION)
+            .addFilterAfter(filters.authenticatedPrincipalContext, SecurityWebFiltersOrder.AUTHENTICATION)
+            .addFilterAfter(filters.requestPath, SecurityWebFiltersOrder.AUTHENTICATION)
+            .addFilterAfter(filters.workspaceContext, SecurityWebFiltersOrder.AUTHENTICATION)
             .build()
 
     @Bean

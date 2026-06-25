@@ -166,7 +166,7 @@ function areQueriesEquivalent(left: Record<string, unknown>, right: LocationQuer
           ]
         }
         if (value == null) return []
-        return [[normalizedKey, typeof value === 'string' ? value : String(value)]]
+        return [[normalizedKey, typeof value === 'string' ? value : JSON.stringify(value)]]
       })
       .sort(([leftKey], [rightKey]) => leftKey.localeCompare(rightKey))
 

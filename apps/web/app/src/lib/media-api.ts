@@ -200,7 +200,7 @@ export async function listAssets(opts: ListAssetsOptions = {}): Promise<MediaAss
   if (opts.cursor) params.set('cursor', opts.cursor)
 
   const qs = params.toString()
-  const path = `/api/media/assets${qs ? `?${qs}` : ''}`
+  const path = qs ? `/api/media/assets?${qs}` : '/api/media/assets'
 
   return auth.apiFetch<MediaAssetListResponse>(path, {
     method: 'GET',

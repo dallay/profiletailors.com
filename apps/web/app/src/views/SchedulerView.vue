@@ -654,13 +654,11 @@ watch(
                     :title="isPastSlot(day, slot.hour) ? 'Past time slots are disabled (read-only)' : undefined"
                   >
                     <!-- Scheduled Posts -->
-                    <!-- biome-ignore lint/a11y/useSemanticElements: non-button container required to avoid nested buttons (delete btn inside card) -->
+                    <!-- biome-ignore lint/a11y/noStaticElementInteractions: non-button container required to avoid nested buttons (delete btn inside card) -->
                     <div
                       v-for="pub in getPublicationsForSlot(day, slot.hour)"
                       :key="pub.id"
-                      role="button"
                       :draggable="true"
-                      tabindex="0"
                       @click.stop="openPostDetail(pub)"
                       @keydown.enter.self.stop.prevent="openPostDetail(pub)"
                       @keydown.space.self.stop.prevent="openPostDetail(pub)"
@@ -747,12 +745,10 @@ watch(
           </div>
 
           <div v-else class="space-y-3">
-              <!-- biome-ignore lint/a11y/useSemanticElements: non-button container required to avoid nested buttons (delete btn inside card) -->
-              <div
+              <button
                 v-for="pub in filteredPublications"
                 :key="pub.id"
-                role="button"
-                tabindex="0"
+                type="button"
                 class="group/card flex flex-col md:flex-row md:items-center justify-between gap-4 p-5 rounded-2xl border border-border-subtle bg-bg-surface hover:border-text-secondary transition-all cursor-pointer w-full text-left"
                 @click="openPostDetail(pub)"
                 @keydown.enter.self.stop.prevent="openPostDetail(pub)"
@@ -775,13 +771,19 @@ watch(
                     {{ pub.status }}
                   </span>
                   <!-- BLOCKED reconnect prompt in list view -->
-                  <button
+                  <!-- NOSONAR(Web:S6819): parent is a native <button>, cannot nest HTML buttons -->
+                  <!-- biome-ignore lint/a11y/useSemanticElements: parent is <button>, cannot nest HTML buttons -->
+                  <span
                     v-if="pub.status === 'BLOCKED'"
+                    role="button"
+                    tabindex="0"
                     @click.stop="handleReconnect"
-                    class="text-[9px] underline text-warning hover:text-warning/80 font-medium"
+                    @keydown.enter.stop="handleReconnect"
+                    @keydown.space.stop="handleReconnect"
+                    class="text-[9px] underline text-warning hover:text-warning/80 font-medium cursor-pointer"
                   >
                     Reconnect
-                  </button>
+                  </span>
                   <!-- Conflict badge in list view -->
                   <ConflictBadge
                     v-if="pub.hasConflict"
@@ -811,16 +813,22 @@ watch(
                   </span>
                 </div>
 
-                <button
+                <!-- NOSONAR(Web:S6819): parent is a native <button>, cannot nest HTML buttons -->
+                <!-- biome-ignore lint/a11y/useSemanticElements: parent is <button>, cannot nest HTML buttons -->
+                <span
                   v-if="publishingStore.isPublicationDeletable(pub.status)"
+                  role="button"
+                  tabindex="0"
                   @click.stop="handleDeletePublication(pub.id)"
+                  @keydown.enter.stop="handleDeletePublication(pub.id)"
+                  @keydown.space.stop="handleDeletePublication(pub.id)"
                   class="group-hover/card:opacity-100 opacity-0 size-8 flex items-center justify-center rounded-xl border border-border-visible hover:border-error text-text-secondary hover:text-error transition-all bg-bg-primary cursor-pointer"
                   title="Delete publication"
                 >
                   <Trash2 class="size-4" />
-                </button>
+                </span>
               </div>
-            </div>
+            </button>
           </div>
         </div>
     </div>

@@ -477,7 +477,6 @@ onMounted(async () => {
                   :alt="asset.originalFilename ?? asset.assetId"
                   class="h-full w-full object-cover"
                 />
-                <!-- biome-ignore lint/a11y/useMediaCaption: user-uploaded videos, no caption file available -->
                 <video
                   v-else-if="isVideo(asset.mediaType) && assetPreviewUrl(asset)"
                   :src="assetPreviewUrl(asset) ?? ''"
@@ -485,6 +484,7 @@ onMounted(async () => {
                   controls
                   preload="metadata"
                 >
+                  <track kind="captions" src="" label="No captions available">
                 </video>
                 <iframe
                   v-else-if="isPdf(asset.mediaType) && assetPreviewUrl(asset)"

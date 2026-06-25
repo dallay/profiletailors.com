@@ -122,6 +122,55 @@ const minTimeForDate = computed(() => {
   return '00:00'
 })
 
+function initEditMode(pub: NonNullable<typeof props.editingPublication>) {
+  postText.value = pub.content ?? ''
+  firstComment.value = ''
+  priorityMode.value = pub.priority ?? false
+  const modeMap: Record<string, ComposerScheduleMode> = {
+    NOW: 'now',
+    NEXT_SLOT: 'next',
+    SCHEDULED_AT: 'custom',
+  }
+  scheduleMode.value = modeMap[pub.scheduleMode ?? 'SCHEDULED_AT'] ?? 'custom'
+
+  mediaStore.clearSelection()
+  if (pub.assetIds?.length) {
+    for (const assetId of pub.assetIds) {
+      mediaStore.addToSelection(assetId)
+    }
+  }
+
+  const pubChannelId = pub.accountId
+    ?? publishingStore.channels.find((ch) => pub.channels?.includes(ch.provider))?.id
+    ?? null
+  selectedChannelId.value = pubChannelId
+
+  const dateSrc = pub.scheduledAt ? new Date(pub.scheduledAt) : new Date()
+  selectedCalendarDate.value = new CalendarDate(
+    dateSrc.getFullYear(),
+    dateSrc.getMonth() + 1,
+    dateSrc.getDate(),
+  )
+  scheduleTime.value = `${String(dateSrc.getHours()).padStart(2, '0')}:${String(dateSrc.getMinutes()).padStart(2, '0')}`
+}
+
+function initCreateMode() {
+  postText.value = ''
+  firstComment.value = ''
+  priorityMode.value = false
+  scheduleMode.value = props.initialDate ? 'custom' : 'now'
+  mediaStore.clearSelection()
+  selectedChannelId.value = publishingStore.channels[0]?.id ?? null
+
+  const defaultDate = props.initialDate ? new Date(props.initialDate) : new Date()
+  selectedCalendarDate.value = new CalendarDate(
+    defaultDate.getFullYear(),
+    defaultDate.getMonth() + 1,
+    defaultDate.getDate(),
+  )
+  scheduleTime.value = `${String(defaultDate.getHours()).padStart(2, '0')}:${String(defaultDate.getMinutes()).padStart(2, '0')}`
+}
+
 async function initializeComposerForOpen() {
   submitError.value = ''
   isDatePickerOpen.value = false
@@ -132,58 +181,9 @@ async function initializeComposerForOpen() {
   uploadProgress.value = 0
 
   if (isEditMode.value && props.editingPublication) {
-    // ---- Edit mode: pre-fill from existing publication ----
-    const pub = props.editingPublication
-    postText.value = pub.content ?? ''
-    firstComment.value = ''
-    priorityMode.value = pub.priority ?? false
-    const modeMap: Record<string, ComposerScheduleMode> = {
-      NOW: 'now',
-      NEXT_SLOT: 'next',
-      SCHEDULED_AT: 'custom',
-    }
-    scheduleMode.value = modeMap[pub.scheduleMode ?? 'SCHEDULED_AT'] ?? 'custom'
-
-    mediaStore.clearSelection()
-    if (pub.assetIds?.length) {
-      // Hydrate assets into media store before selecting them so previews render correctly
-      for (const assetId of pub.assetIds) {
-        if (!mediaStore.assetsById[assetId]) {
-          // Asset not yet loaded; fetch/hydrate would go here in a real implementation
-          // For now, just add to selection and trust that assetsById is already populated
-        }
-        mediaStore.addToSelection(assetId)
-      }
-    }
-
-    const pubChannelId = pub.accountId
-      ?? publishingStore.channels.find((ch) => pub.channels?.includes(ch.provider))?.id
-      ?? null
-    selectedChannelId.value = pubChannelId
-
-    const dateSrc = pub.scheduledAt ? new Date(pub.scheduledAt) : new Date()
-    selectedCalendarDate.value = new CalendarDate(
-      dateSrc.getFullYear(),
-      dateSrc.getMonth() + 1,
-      dateSrc.getDate(),
-    )
-    scheduleTime.value = `${String(dateSrc.getHours()).padStart(2, '0')}:${String(dateSrc.getMinutes()).padStart(2, '0')}`
+    initEditMode(props.editingPublication)
   } else {
-    // ---- Create mode: start with empty form ----
-    postText.value = ''
-    firstComment.value = ''
-    priorityMode.value = false
-    scheduleMode.value = props.initialDate ? 'custom' : 'now'
-    mediaStore.clearSelection()
-    selectedChannelId.value = publishingStore.channels[0]?.id ?? null
-
-    const defaultDate = props.initialDate ? new Date(props.initialDate) : new Date()
-    selectedCalendarDate.value = new CalendarDate(
-      defaultDate.getFullYear(),
-      defaultDate.getMonth() + 1,
-      defaultDate.getDate(),
-    )
-    scheduleTime.value = `${String(defaultDate.getHours()).padStart(2, '0')}:${String(defaultDate.getMinutes()).padStart(2, '0')}`
+    initCreateMode()
   }
 
   if (auth.isAuthenticated) {
@@ -323,7 +323,7 @@ function handleFileSelect(e: Event) {
 }
 
 function addFiles(filesList: File[]) {
-  const validFiles = filesList.filter((file) => {
+  const file = filesList.find((file) => {
     const isSupported =
       file.type.startsWith('image/') ||
       file.type === 'video/mp4' ||
@@ -334,12 +334,7 @@ function addFiles(filesList: File[]) {
     return isSupported && isUnderLimit
   })
 
-  // Limit to max 1 image for LinkedIn MVP simple preview.
-  // File is stored locally for deferred upload — no server call until Schedule Post.
-  const file = validFiles[0]
-  if (!file) {
-    return
-  }
+  if (!file) return
 
   // Limit to max 1 image for LinkedIn MVP simple preview.
   // File is stored locally for deferred upload — no server call until Schedule Post.
@@ -629,32 +624,9 @@ async function handleSchedule() {
     const backendScheduleMode = resolveScheduleMode(scheduleMode.value)
 
     if (isEditMode.value && props.editingPublication) {
-      await publishingStore.updatePost(props.editingPublication.id, {
-        content: normalizedPostText,
-        scheduledAt: scheduledDate?.toISOString(),
-        priority: priorityMode.value,
-        assetIds: [...mediaStore.selectedAssetIds],
-        scheduleMode: backendScheduleMode,
-      })
-      emit('updated')
-      emit('close')
+      await handleEditSubmit(normalizedPostText, scheduledDate, backendScheduleMode)
     } else {
-      await publishingStore.schedulePost({
-        content: normalizedPostText,
-        title: 'Post from App',
-        channels: selectedProviders.value,
-        scheduledAt: scheduledDate?.toISOString(),
-        nextSlotAfter: scheduleMode.value === 'next' ? now.value.toISOString() : undefined,
-        scheduleMode: backendScheduleMode,
-        priority: priorityMode.value,
-        thumbnail: selectedAssetIsImage.value
-          ? (uploadPreviewBlob.value ?? selectedAssetPreviewUrl.value ?? undefined)
-          : undefined,
-        assetIds: [...mediaStore.selectedAssetIds],
-        socialAccountId: selectedChannel.value?.accountId,
-      })
-      emit('created')
-      finalizeAfterCreate(shouldCreateAnother)
+      await handleCreateSubmit(normalizedPostText, scheduledDate, backendScheduleMode)
     }
   } catch (err) {
     submitError.value = err instanceof Error ? err.message : 'Unable to schedule post.'
@@ -665,6 +637,45 @@ async function handleSchedule() {
   } finally {
     isSubmitting.value = false
   }
+}
+
+async function handleEditSubmit(
+  normalizedPostText: string,
+  scheduledDate: Date | null,
+  backendScheduleMode: string,
+) {
+  await publishingStore.updatePost(props.editingPublication?.id, {
+    content: normalizedPostText,
+    scheduledAt: scheduledDate?.toISOString(),
+    priority: priorityMode.value,
+    assetIds: [...mediaStore.selectedAssetIds],
+    scheduleMode: backendScheduleMode,
+  })
+  emit('updated')
+  emit('close')
+}
+
+async function handleCreateSubmit(
+  normalizedPostText: string,
+  scheduledDate: Date | null,
+  backendScheduleMode: string,
+) {
+  await publishingStore.schedulePost({
+    content: normalizedPostText,
+    title: 'Post from App',
+    channels: selectedProviders.value,
+    scheduledAt: scheduledDate?.toISOString(),
+    nextSlotAfter: scheduleMode.value === 'next' ? now.value.toISOString() : undefined,
+    scheduleMode: backendScheduleMode,
+    priority: priorityMode.value,
+    thumbnail: selectedAssetIsImage.value
+      ? (uploadPreviewBlob.value ?? selectedAssetPreviewUrl.value ?? undefined)
+      : undefined,
+    assetIds: [...mediaStore.selectedAssetIds],
+    socialAccountId: selectedChannel.value?.accountId,
+  })
+  emit('created')
+  finalizeAfterCreate(createAnother.value)
 }
 </script>
 

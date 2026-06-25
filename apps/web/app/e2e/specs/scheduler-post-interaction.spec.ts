@@ -88,7 +88,7 @@ test.describe('Scheduler — Post Interaction', () => {
     const postCard = page.getByRole('button', { name: new RegExp(testText) }).first()
     await expect(postCard).toBeVisible({ timeout: 10_000 })
 
-    const deleteButton = postCard.locator('button[title="Delete publication"]')
+    const deleteButton = postCard.locator('[title="Delete publication"]')
     await deleteButton.click({ force: true })
 
     await expect(page.getByRole('button', { name: new RegExp(testText) })).toHaveCount(0, {
