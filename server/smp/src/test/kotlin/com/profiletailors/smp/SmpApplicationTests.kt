@@ -75,19 +75,15 @@ class SmpApplicationTests {
 	 */
 	@Test
 	fun loadsAllExpectedBeanStereotypes() {
-		val customServiceBean = applicationContext.getBean(
+		applicationContext.getBean(
 			Class.forName("com.profiletailors.smp.authorization.application.WorkspaceAuthorizationService"),
 		)
-		check(customServiceBean != null) { "custom-@Service bean WorkspaceAuthorizationService is missing" }
 
-		val repositoryBean = applicationContext.getBean(R2dbcApiKeyCredentialReplacementGateway::class.java)
-		check(repositoryBean != null) { "@Repository bean R2dbcApiKeyCredentialReplacementGateway is missing" }
+		applicationContext.getBean(R2dbcApiKeyCredentialReplacementGateway::class.java)
 
-		val componentBean = applicationContext.getBean(R2dbcLinkedInCredentialGateway::class.java)
-		check(componentBean != null) { "@Component bean R2dbcLinkedInCredentialGateway is missing" }
+		applicationContext.getBean(R2dbcLinkedInCredentialGateway::class.java)
 
-		val adviceBean = applicationContext.getBean(AuthorizationProblemDetailsHandler::class.java)
-		check(adviceBean != null) { "@RestControllerAdvice bean AuthorizationProblemDetailsHandler is missing" }
+		applicationContext.getBean(AuthorizationProblemDetailsHandler::class.java)
 	}
 
 }
