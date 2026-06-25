@@ -91,6 +91,12 @@ dependencies {
 
     testRuntimeOnly(libs.junit.platform.launcher)
     testRuntimeOnly(libs.cucumber.junit.platform.engine)
+
+    constraints {
+        implementation(libs.okio.jvm)
+        implementation(libs.bouncycastle.prov)
+        implementation(libs.bouncycastle.pgp)
+    }
 }
 
 dependencyManagement {
