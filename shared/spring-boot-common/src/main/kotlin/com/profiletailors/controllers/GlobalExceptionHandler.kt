@@ -220,6 +220,7 @@ class GlobalExceptionHandler(
         )
     }
 
+    @Suppress("LongParameterList")
     private fun createProblemDetail(
         status: HttpStatus,
         title: String,

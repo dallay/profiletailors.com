@@ -12,7 +12,7 @@ data class ReplaceApiKeyCredentialResult(
     val successorPlaintextApiKey: String,
 )
 
-interface ApiKeyCredentialReplacementGateway {
+fun interface ApiKeyCredentialReplacementGateway {
     suspend fun replaceActiveCredential(command: ReplaceApiKeyCredentialCommand): ReplaceApiKeyCredentialResult
 }
 

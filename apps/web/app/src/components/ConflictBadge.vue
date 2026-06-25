@@ -29,10 +29,9 @@ const sizeClasses = computed(() => {
 </script>
 
 <template>
-  <span
+  <output
     :class="sizeClasses"
     :title="reason"
-    role="status"
     aria-label="Conflict"
   >
     <!-- Dot: no inner content -->
@@ -46,5 +45,5 @@ const sizeClasses = computed(() => {
       <span class="size-2 rounded-full bg-error inline-block" />
       Conflict
     </template>
-  </span>
+  </output>
 </template>

@@ -4,7 +4,7 @@ import { useI18n } from 'vue-i18n'
 import { CalendarClock, ExternalLink, Pencil, Trash2, X, AlertTriangle, CheckCircle2, Clock } from '@lucide/vue'
 import { useFocusTrap } from '@/composables/useFocusTrap'
 import { usePublishingStore, type Publication } from '@/stores/publishing'
-import { getProviderColor, getProviderBadge } from '@/lib/provider-styles'
+import { getProviderBadge } from '@/lib/provider-styles'
 
 const props = withDefaults(
   defineProps<{
@@ -207,10 +207,9 @@ function cancelReschedule() {
       class="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm p-4"
       @click.self="closeModal"
     >
-      <div
+      <dialog
         ref="modalContainer"
         class="flex flex-col w-full max-w-2xl max-h-[90vh] bg-bg-surface border border-border-subtle rounded-2xl overflow-hidden shadow-2xl"
-        role="dialog"
         aria-modal="true"
         aria-labelledby="post-detail-title"
         @keydown.escape="closeModal"
@@ -261,19 +260,17 @@ function cancelReschedule() {
         <div class="flex-1 overflow-y-auto p-6 space-y-5">
           <!-- Title -->
           <div class="space-y-1">
-            <!-- biome-ignore lint/a11y/noLabelWithoutControl: label has for="edit-title"; input is conditionally rendered with v-if="canEdit" -->
-            <label for="edit-title" class="font-mono text-[9px] font-bold tracking-widest text-text-secondary uppercase">
+            <span class="font-mono text-[9px] font-bold tracking-widest text-text-secondary uppercase">
               {{ t('postDetail.titleLabel') }}
-            </label>
+            </span>
             <p v-if="publication.title" class="text-sm font-semibold text-text-display">{{ publication.title }}</p>
           </div>
 
           <!-- Body text -->
           <div class="space-y-1">
-            <!-- biome-ignore lint/a11y/noLabelWithoutControl: label has for="edit-body"; textarea is conditionally rendered with v-if="canEdit" -->
-            <label for="edit-body" class="font-mono text-[9px] font-bold tracking-widest text-text-secondary uppercase">
+            <span class="font-mono text-[9px] font-bold tracking-widest text-text-secondary uppercase">
               {{ t('postDetail.bodyLabel') }}
-            </label>
+            </span>
             <p class="text-sm font-light leading-relaxed text-text-body whitespace-pre-wrap">
               {{ publication.content }}
             </p>
@@ -417,7 +414,7 @@ function cancelReschedule() {
           </div>
           </div>
         </footer>
-      </div>
+      </dialog>
     </div>
   </Teleport>
 </template>

@@ -65,12 +65,12 @@ describe('SidebarAccountSection', () => {
     expect(panel.attributes('role')).toBe('menu')
 
     const items = panel.findAll('[role="menuitem"]')
-    expect(items.length).toBe(2)
+    expect(items).toHaveLength(2)
     expect(panel.text()).toContain('Account settings')
     expect(panel.text()).toContain('settings.themeLabel')
     expect(panel.text()).toContain('settings.languageLabel')
     expect(panel.text()).toContain('Log Out')
-    expect(panel.findAll('[role="radiogroup"]').length).toBe(2)
+    expect(panel.findAll('[role="radiogroup"]')).toHaveLength(2)
   })
 
   it('emits openSettings when Account settings is clicked, then closes the popover', async () => {

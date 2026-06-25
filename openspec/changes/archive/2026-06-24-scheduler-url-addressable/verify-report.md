@@ -79,7 +79,7 @@ E2E (playwright — scheduler-url-addressable.spec.ts, 12/12):
 
 ## Spec Compliance Matrix
 
-All 16 spec scenarios now have COMPLIANT status based on E2E runtime evidence and unit/integration tests.
+All 17 spec scenarios now have COMPLIANT status based on E2E runtime evidence and unit/integration tests.
 
 | Requirement | Scenario | Test | Result |
 |------------|----------|------|--------|
@@ -145,7 +145,7 @@ All 16 spec scenarios now have COMPLIANT status based on E2E runtime evidence an
 | RED phase (failing test) verified | ⚠️ Cannot verify — no git history to inspect commit ordering |
 | Config says TDD was disabled (`tdd: false`) | ✅ Yes — `openspec/config.yaml` line 27 |
 
-> NOTE: TDD was explicitly disabled in config. Implementation followed a conventional write-then-test approach. Tests are structurally sound and correctly mock the implementation interface. No code-before-test anti-pattern detected.
+> NOTE: TDD was explicitly disabled in config (`tdd: false`). Whether implementation followed a write-then-test or test-then-write approach cannot be determined from squashed commit history. Tests are structurally sound and correctly mock the implementation interface.
 
 ---
 

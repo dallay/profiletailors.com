@@ -29,9 +29,9 @@ const scoreColor = computed(() => {
 
 <template>
   <div
+    role="meter"
     class="relative inline-flex items-center justify-center"
     :style="{ width: `${size}px`, height: `${size}px` }"
-    role="meter"
     :aria-valuenow="score"
     aria-valuemin="0"
     aria-valuemax="100"

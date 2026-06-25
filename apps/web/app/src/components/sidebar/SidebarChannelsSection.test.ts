@@ -85,7 +85,7 @@ describe('SidebarChannelsSection', () => {
     })
 
     const rows = wrapper.findAllComponents({ name: 'SidebarChannelRow' })
-    expect(rows.length).toBe(3)
+    expect(rows).toHaveLength(3)
     expect(rows[0]?.props('channel').id).toBe('ch-1')
     expect(rows[2]?.props('channel').id).toBe('ch-3')
   })
@@ -113,7 +113,7 @@ describe('SidebarChannelsSection', () => {
     // After props change, the watcher resets the map. The DOM still shows the
     // new rows; no error is thrown. We just confirm the rows re-render.
     const rows = wrapper.findAllComponents({ name: 'SidebarChannelRow' })
-    expect(rows.length).toBe(2)
+    expect(rows).toHaveLength(2)
   })
 
   it('emits selectAll when the All-channels row is clicked', async () => {

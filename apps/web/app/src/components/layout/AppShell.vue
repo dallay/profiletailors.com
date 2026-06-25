@@ -157,18 +157,14 @@ async function showAllChannels() {
 
 async function selectChannel(accountId: string) {
   try {
-    const nextChannelIds = isSchedulerRoute()
-      ? [...new Set([...calendarUrl.state.value.channelIds, accountId])]
-      : [accountId]
-
     if (isSchedulerRoute()) {
-      await calendarUrl.setChannelIds(nextChannelIds)
+      await calendarUrl.setChannelIds([accountId])
       return
     }
 
     await router.push({
       name: 'scheduler-calendar-week',
-      query: { 'channels[]': nextChannelIds },
+      query: { 'channels[]': [accountId] },
     })
   } catch (e) {
     console.error('Failed to navigate to scheduler', e)

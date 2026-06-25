@@ -28,7 +28,7 @@ back/forward fully restores state.
 | Merge action (visual-calendar) | MODIFIED `### Requirement: Multi-View Calendar` — updated description to reflect URL addressability; ADDED 2 new scenarios (day-focus in month view, shareable week URL) |
 | Merge action (app-shell) | MODIFIED `### Requirement: SidebarChannelsSection` — `activeProvider` → `activeChannelId`, `selectChannel(channel)` → `selectChannel(accountId)`, 3 updated + 1 new scenario; ADDED 5 new requirements (Canonical Route Family, Route Query Param Contract, Route State Derivation, CalendarHeader Navigates, Browser History Integration) |
 
-**Merged scenarios (total 8 added):**
+**Merged scenarios (total 17 added):**
 1. Clicking day in month view focuses date (no separate route)
 2. Week view accessible and shareable
 3. `/scheduler` redirects to week route preserving query

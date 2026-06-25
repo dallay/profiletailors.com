@@ -61,6 +61,48 @@ export interface UploadItem {
 }
 
 // ---------------------------------------------------------------------------
+// Retry utility (moved to module level for SonarCloud S7721)
+// ---------------------------------------------------------------------------
+
+async function executeWithRetry<T>(
+  fn: () => Promise<T>,
+  onNetworkError?: (attempt: number) => void,
+): Promise<T> {
+  let lastError: unknown
+
+  for (let attempt = 1; attempt <= RETRY_MAX_ATTEMPTS; attempt++) {
+    try {
+      return await fn()
+    } catch (err) {
+      lastError = err
+
+      const apiErr = err as {
+        status?: number
+        errorCode?: string
+        title?: string
+        detail?: string
+      }
+      const policy = classifyError(apiErr.status, apiErr.errorCode)
+
+      if (policy === 'no-retry' || policy === 'terminal') {
+        throw err
+      }
+
+      // policy === 'retry'
+      if (attempt < RETRY_MAX_ATTEMPTS) {
+        const delay = nextDelay(attempt)
+        if (apiErr.status === undefined) {
+          onNetworkError?.(attempt)
+        }
+        await new Promise<void>((resolve) => setTimeout(resolve, delay))
+      }
+    }
+  }
+
+  throw lastError
+}
+
+// ---------------------------------------------------------------------------
 // Store
 // ---------------------------------------------------------------------------
 
@@ -172,12 +214,14 @@ export const useMediaStore = defineStore('media', () => {
   } {
     const apiErr = err as { status?: number; errorCode?: string; detail?: string }
     const policy = classifyError(apiErr.status, apiErr.errorCode)
-    const errorTitle =
-      apiErr.status === 409
-        ? 'Upload conflict'
-        : apiErr.status === 413
-          ? 'File too large'
-          : (apiErr.errorCode ?? 'Upload failed')
+    let errorTitle: string
+    if (apiErr.status === 409) {
+      errorTitle = 'Upload conflict'
+    } else if (apiErr.status === 413) {
+      errorTitle = 'File too large'
+    } else {
+      errorTitle = apiErr.errorCode ?? 'Upload failed'
+    }
     const errorDetail = apiErr.detail ?? `Server returned ${apiErr.status ?? 'a network error'}.`
 
     return {
@@ -186,44 +230,6 @@ export const useMediaStore = defineStore('media', () => {
       errorDetail,
       policy,
     }
-  }
-
-  async function executeWithRetry<T>(
-    fn: () => Promise<T>,
-    onNetworkError?: (attempt: number) => void,
-  ): Promise<T> {
-    let lastError: unknown
-
-    for (let attempt = 1; attempt <= RETRY_MAX_ATTEMPTS; attempt++) {
-      try {
-        return await fn()
-      } catch (err) {
-        lastError = err
-
-        const apiErr = err as {
-          status?: number
-          errorCode?: string
-          title?: string
-          detail?: string
-        }
-        const policy = classifyError(apiErr.status, apiErr.errorCode)
-
-        if (policy === 'no-retry' || policy === 'terminal') {
-          throw err
-        }
-
-        // policy === 'retry'
-        if (attempt < RETRY_MAX_ATTEMPTS) {
-          const delay = nextDelay(attempt)
-          if (apiErr.status === undefined) {
-            onNetworkError?.(attempt)
-          }
-          await new Promise<void>((resolve) => setTimeout(resolve, delay))
-        }
-      }
-    }
-
-    throw lastError
   }
 
   async function attemptUploadWithRetries(
