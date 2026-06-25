@@ -19,8 +19,15 @@ import { readFileSync } from 'node:fs'
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
 const HAR_PATH = path.resolve(__dirname, '../hars/auth-flow.har')
 const BASE_URL = 'http://localhost:5173'
-const E2E_TEST_USER_EMAIL = process.env.E2E_TEST_USER_EMAIL || 'dev@profiletailors.com'
-const E2E_TEST_USER_PASSWORD = process.env.E2E_TEST_USER_PASSWORD || 'S3cr3tP@ssw0rd*123'
+const E2E_EMAIL = process.env.E2E_TEST_USER_EMAIL || 'dev@profiletailors.com'
+const E2E_PASSWORD = process.env.E2E_TEST_USER_PASSWORD
+
+if (!E2E_PASSWORD) {
+  throw new Error(
+    'E2E_TEST_USER_PASSWORD environment variable is required. ' +
+    'Set it in your shell or CI pipeline before running HAR recording.',
+  )
+}
 
 async function main() {
   const browser = await chromium.launch({ headless: true })
@@ -39,8 +46,8 @@ async function main() {
     // 1. Successful login
     console.log('1. Logging in with valid credentials...')
     await page.goto(`${BASE_URL}/login`, { waitUntil: 'networkidle' })
-    await page.getByLabel(/email/i).fill(E2E_TEST_USER_EMAIL)
-    await page.getByLabel(/password/i).fill(E2E_TEST_USER_PASSWORD)
+    await page.getByLabel(/email/i).fill(E2E_EMAIL)
+    await page.getByLabel(/password/i).fill(E2E_PASSWORD)
     await page.getByRole('button', { name: /sign in/i }).click()
     await page.waitForURL('**/')
     await page.waitForTimeout(1000)

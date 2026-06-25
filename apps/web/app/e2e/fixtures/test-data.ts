@@ -19,9 +19,23 @@ export const APP_URL = {
   linkedinCallback: '/integrations/linkedin/callback',
 } as const
 
+/**
+ * E2E credentials — must be provided via environment variables.
+ * No fallback values are allowed: tests should fail fast if credentials are missing.
+ */
+const E2E_EMAIL = process.env.E2E_TEST_USER_EMAIL || 'dev@profiletailors.com'
+const E2E_PASSWORD = process.env.E2E_TEST_USER_PASSWORD
+
+if (!E2E_PASSWORD) {
+  throw new Error(
+    'E2E_TEST_USER_PASSWORD environment variable is required. ' +
+    'Set it in your shell or CI pipeline before running E2E tests.',
+  )
+}
+
 export const E2E_TEST_USER = {
-  email: process.env.E2E_TEST_USER_EMAIL || 'dev@profiletailors.com',
-  password: process.env.E2E_TEST_USER_PASSWORD || 'S3cr3tP@ssw0rd*123',
+  email: E2E_EMAIL,
+  password: E2E_PASSWORD,
   /** Must match the HAR payload in replay mode */
   username: 'dev',
 } as const
