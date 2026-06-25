@@ -104,13 +104,13 @@ class R2dbcPublicationRepository(
                     socialAccountId = requireNotNull(row.get("social_account_id", String::class.java)),
                     status = PublicationStatus.valueOf(requireNotNull(row.get("status", String::class.java))),
                     scheduleMode = ScheduleMode.valueOf(requireNotNull(row.get("schedule_mode", String::class.java))),
-                    priority = requireNotNull(row.get("priority", java.lang.Boolean::class.java)).booleanValue(),
+                    priority = requireNotNull(row.get("priority", Boolean::class.javaObjectType)),
                     title = row.get("title", String::class.java),
                     bodyText = row.get("body_text", String::class.java),
                     publicUrl = row.get("public_url", String::class.java),
                     blockedAt = row.get("blocked_at", OffsetDateTime::class.java)?.toInstant(),
                     blockedReason = row.get("blocked_reason", String::class.java),
-                    retryCount = row.get("retry_count", Integer::class.java)?.toInt() ?: 0,
+                    retryCount = row.get("retry_count", Int::class.javaObjectType) ?: 0,
                     assetIds = emptyList(),
                     scheduledFor = row.get("scheduled_for", OffsetDateTime::class.java)?.toInstant(),
                     nextSlotAfter = row.get("next_slot_after", OffsetDateTime::class.java)?.toInstant(),
@@ -366,7 +366,7 @@ class R2dbcPublicationRepository(
         )
             .bind("workspaceId", workspaceId)
             .bind("publicationId", publicationId)
-            .map { row, _ -> requireNotNull(row.get("cnt", java.lang.Long::class.java)).toLong() }
+            .map { row, _ -> requireNotNull(row.get("cnt", Long::class.javaObjectType)) }
             .one()
             .awaitSingle() > 0L
 
@@ -614,7 +614,7 @@ class R2dbcPublicationAssetRepository(
                     storageKey = row.get("storage_key", String::class.java),
                     externalUrl = row.get("external_url", String::class.java),
                     originalFilename = row.get("original_filename", String::class.java),
-                    fileSizeBytes = row.get("file_size_bytes", java.lang.Long::class.java)?.toLong(),
+                    fileSizeBytes = row.get("file_size_bytes", Long::class.javaObjectType),
                     status = PublicationAssetStatus.valueOf(requireNotNull(row.get("status", String::class.java))),
                     providerAssetRef = row.get("provider_asset_ref", String::class.java)?.let { json ->
                         runCatching {
@@ -659,9 +659,9 @@ class R2dbcPublicationAssetRepository(
             .let { spec ->
                 val fileSize = asset.fileSizeBytes
                 if (fileSize != null) {
-                    spec.bind("fileSizeBytes", java.lang.Long.valueOf(fileSize))
+                    spec.bind("fileSizeBytes", fileSize)
                 } else {
-                    spec.bindNull("fileSizeBytes", java.lang.Long::class.java)
+                    spec.bindNull("fileSizeBytes", Long::class.javaObjectType)
                 }
             }
             .bind("status", asset.status.name)
@@ -747,7 +747,7 @@ class R2dbcPublicationJobRepository(
                         requireNotNull(resultRow.get("publication_id", String::class.java)),
                         requireNotNull(resultRow.get("workspace_id", String::class.java)),
                     ),
-                    requireNotNull(resultRow.get("attempt_count", Integer::class.java)).toInt(),
+                    requireNotNull(resultRow.get("attempt_count", Int::class.javaObjectType)),
                 )
             }
             .one()
@@ -933,15 +933,15 @@ internal fun org.springframework.r2dbc.core.DatabaseClient.GenericExecuteSpec.bi
 
 internal fun org.springframework.r2dbc.core.DatabaseClient.GenericExecuteSpec.bindNullable(
     name: String,
-    value: java.lang.Long?,
-    type: Class<java.lang.Long>,
+    value: Long?,
+    type: Class<Long>,
 ): org.springframework.r2dbc.core.DatabaseClient.GenericExecuteSpec =
     value?.let { bind(name, it) } ?: bindNull(name, type)
 
 internal fun org.springframework.r2dbc.core.DatabaseClient.GenericExecuteSpec.bindNullable(
     name: String,
-    value: java.lang.Integer?,
-    type: Class<java.lang.Integer>,
+    value: Int?,
+    type: Class<Int>,
 ): org.springframework.r2dbc.core.DatabaseClient.GenericExecuteSpec =
     value?.let { bind(name, it) } ?: bindNull(name, type)
 
@@ -953,13 +953,13 @@ private fun Readable.toPublicationDraft(): PublicationDraft = PublicationDraft(
     socialAccountId = requireNotNull(get("social_account_id", String::class.java)),
     status = PublicationStatus.valueOf(requireNotNull(get("status", String::class.java))),
     scheduleMode = ScheduleMode.valueOf(requireNotNull(get("schedule_mode", String::class.java))),
-    priority = requireNotNull(get("priority", java.lang.Boolean::class.java)).booleanValue(),
+    priority = requireNotNull(get("priority", Boolean::class.javaObjectType)),
     title = get("title", String::class.java),
     bodyText = get("body_text", String::class.java),
     publicUrl = get("public_url", String::class.java),
     blockedAt = get("blocked_at", OffsetDateTime::class.java)?.toInstant(),
     blockedReason = get("blocked_reason", String::class.java),
-    retryCount = get("retry_count", Integer::class.java)?.toInt() ?: 0,
+    retryCount = get("retry_count", Int::class.javaObjectType) ?: 0,
     assetIds = emptyList(),
     scheduledFor = get("scheduled_for", OffsetDateTime::class.java)?.toInstant(),
     nextSlotAfter = get("next_slot_after", OffsetDateTime::class.java)?.toInstant(),
