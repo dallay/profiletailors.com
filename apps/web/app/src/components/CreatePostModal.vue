@@ -282,7 +282,7 @@ const scheduleHelperText = computed(() => {
 
 const canSubmit = computed(() => {
   return (
-    selectedChannel.value !== null &&
+    !!selectedChannel.value &&
     postText.value.trim().length > 0 &&
     !isTextTooLong.value &&
     !isSubmitting.value
