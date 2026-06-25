@@ -26,7 +26,7 @@ describe('SidebarConnectSection', () => {
     const wrapper = mount(SidebarConnectSection, { props: { providers } })
     const buttons = wrapper.findAll('button')
     // 4 providers + 1 More button = 5
-    expect(buttons.length).toBe(5)
+    expect(buttons).toHaveLength(5)
   })
 
   it('emits connect(linkedin) when the LinkedIn row is clicked', async () => {

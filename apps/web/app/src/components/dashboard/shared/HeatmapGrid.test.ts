@@ -61,7 +61,7 @@ describe('HeatmapGrid', () => {
     })
     // 7 days * 24 cells = 168 cells
     const cells = wrapper.findAll('.aspect-square')
-    expect(cells.length).toBe(168)
+    expect(cells).toHaveLength(168)
   })
 
   it('handles empty slots gracefully', () => {
@@ -69,6 +69,6 @@ describe('HeatmapGrid', () => {
       props: { slots: [] },
     })
     const cells = wrapper.findAll('.aspect-square')
-    expect(cells.length).toBe(168) // still renders grid with score=0
+    expect(cells).toHaveLength(168) // still renders grid with score=0
   })
 })

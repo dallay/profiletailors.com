@@ -294,7 +294,7 @@ class MediaAssetController(
     @DeleteMapping(value = ["/{assetId}"], version = "1")
     suspend fun deleteAsset(
         @PathVariable assetId: String,
-    ): org.springframework.http.ResponseEntity<Void> {
+    ): org.springframework.http.ResponseEntity<Unit> {
         val workspaceContext = resourceContextProvider.requireWorkspaceContext()
         val workspaceId = workspaceContext.workspaceId!!
 

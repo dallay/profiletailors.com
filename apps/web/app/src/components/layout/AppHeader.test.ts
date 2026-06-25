@@ -43,7 +43,7 @@ describe('AppHeader', () => {
     // No role="status" (status pill removed)
     expect(wrapper.find('[role="status"]').exists()).toBe(false)
     // No role="radio" (language pill removed)
-    expect(wrapper.findAll('[role="radio"]').length).toBe(0)
+    expect(wrapper.findAll('[role="radio"]')).toHaveLength(0)
     // No ThemeToggle component
     expect(wrapper.find('.theme-toggle').exists()).toBe(false)
     // No language button

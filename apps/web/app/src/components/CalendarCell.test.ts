@@ -41,7 +41,7 @@ describe('CalendarCell', () => {
       },
     })
 
-    const publicationChip = wrapper.get('[role="button"][tabindex="0"].provider-color')
+    const publicationChip = wrapper.get('button.provider-color')
     await publicationChip.trigger('click')
 
     expect(wrapper.emitted('click-publication')).toHaveLength(1)
@@ -59,7 +59,7 @@ describe('CalendarCell', () => {
       },
     })
 
-    const publicationChip = wrapper.get('[role="button"][tabindex="0"].provider-color')
+    const publicationChip = wrapper.get('button.provider-color')
     await publicationChip.trigger('click')
 
     expect(wrapper.emitted('click-day')).toBeUndefined()
@@ -76,7 +76,7 @@ describe('CalendarCell', () => {
       },
     })
 
-    const publicationChip = wrapper.get('[role="button"][tabindex="0"].provider-color')
+    const publicationChip = wrapper.get('button.provider-color')
     await publicationChip.trigger('keydown', { key: 'Enter' })
 
     expect(wrapper.emitted('click-publication')).toHaveLength(1)
@@ -95,7 +95,7 @@ describe('CalendarCell', () => {
       },
     })
 
-    const publicationChip = wrapper.get('[role="button"][tabindex="0"].provider-color')
+    const publicationChip = wrapper.get('button.provider-color')
     await publicationChip.trigger('keydown', { key: ' ' })
 
     expect(wrapper.emitted('click-publication')).toHaveLength(1)
@@ -117,7 +117,7 @@ describe('CalendarCell', () => {
       },
     })
 
-    const chips = wrapper.findAll('[role="button"][tabindex="0"].provider-color')
+    const chips = wrapper.findAll('button.provider-color')
     expect(chips).toHaveLength(2)
 
     await chips[1]!.trigger('click')
@@ -137,7 +137,7 @@ describe('CalendarCell', () => {
       },
     })
 
-    const publicationChip = wrapper.get('[role="button"][tabindex="0"].provider-color')
+    const publicationChip = wrapper.get('button.provider-color')
     expect(publicationChip.text()).toContain('My scheduled post')
   })
 
@@ -154,7 +154,7 @@ describe('CalendarCell', () => {
       },
     })
 
-    const publicationChip = wrapper.get('[role="button"][tabindex="0"].provider-color')
+    const publicationChip = wrapper.get('button.provider-color')
     // title is falsy → renders pub.content.substring(0, 20)
     expect(publicationChip.text()).toContain('Content without titl')
   })
@@ -175,7 +175,7 @@ describe('CalendarCell', () => {
       },
     })
 
-    const chips = wrapper.findAll('[role="button"][tabindex="0"].provider-color')
+    const chips = wrapper.findAll('button.provider-color')
     expect(chips).toHaveLength(3)
     expect(wrapper.text()).toContain('+2 more')
   })

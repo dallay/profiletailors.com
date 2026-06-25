@@ -10,7 +10,7 @@ data class ActiveApiKeyCredential(
     val provider: String?,
 )
 
-interface ApiKeyCredentialStateLookup {
+fun interface ApiKeyCredentialStateLookup {
     suspend fun requireActive(presentedApiKey: String): ActiveApiKeyCredential
 }
 

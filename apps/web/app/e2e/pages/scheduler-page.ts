@@ -61,9 +61,10 @@ export class SchedulerPage {
   }
 
   get linkedInFilterButton(): Locator {
+    // The shadcn-vue Sidebar renders as <div data-slot="sidebar">, not <aside>.
     return this.page
-      .locator('aside button')
-      .filter({ hasText: /dev user|linkedin/i })
+      .locator('[data-slot="sidebar"] button')
+      .filter({ hasText: /dev user/i })
       .first()
   }
 

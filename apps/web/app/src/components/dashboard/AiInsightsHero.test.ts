@@ -59,7 +59,7 @@ describe('AiInsightsHero', () => {
     })
     // 1 hero + 3 grid cards = 4 total
     const cards = wrapper.findAll('.border-l-2')
-    expect(cards.length).toBe(4)
+    expect(cards).toHaveLength(4)
   })
 
   it('emits dismiss event when dismiss button is clicked', async () => {

@@ -154,10 +154,10 @@ export const useAuthStore = defineStore('auth', () => {
       _applyTokens(tokens)
       await _loadProfile()
       return tokens
-    } catch (caught) {
-      const apiError = caught as ApiError
+    } catch (error_) {
+      const apiError = error_ as ApiError
       error.value = apiError.detail ?? 'Unable to sign in.'
-      throw caught
+      throw error_
     } finally {
       isLoading.value = false
       sessionChecked.value = true
@@ -173,10 +173,10 @@ export const useAuthStore = defineStore('auth', () => {
       _applyTokens(tokens)
       await _loadProfile()
       return tokens
-    } catch (caught) {
-      const apiError = caught as ApiError
+    } catch (error_) {
+      const apiError = error_ as ApiError
       error.value = apiError.detail ?? 'Unable to create your account.'
-      throw caught
+      throw error_
     } finally {
       isLoading.value = false
       sessionChecked.value = true
@@ -231,14 +231,14 @@ export const useAuthStore = defineStore('auth', () => {
       error.value = null
       sessionChecked.value = true
       return profile
-    } catch (caught) {
-      const apiError = caught as ApiError
+    } catch (error_) {
+      const apiError = error_ as ApiError
       if (apiError.status === 401) {
         _clearSession()
       } else {
         error.value = apiError.detail ?? 'Unable to refresh your session.'
       }
-      throw caught
+      throw error_
     } finally {
       isRefreshingProfile.value = false
     }

@@ -63,6 +63,10 @@ import { createApiFetch, refreshSession } from '@/lib/auth-api'
 import { useAuthStore } from '@/stores/auth'
 import { useWorkspaceStore } from '@/stores/workspace'
 
+function mediaApiError(title: string, detail: string, status: number, errorCode?: string) {
+  return Object.assign(new Error(title), { title, detail, status, errorCode })
+}
+
 /** Creates an authenticated fetch wrapper scoped to the media API. */
 function createMediaFetch() {
   return createApiFetch({
@@ -84,7 +88,7 @@ function createMediaFetch() {
 // ---------------------------------------------------------------------------
 
 export interface ReserveAssetPayload {
-  mediaType: MediaType | string
+  mediaType: string
   originalFilename?: string
 }
 
@@ -93,11 +97,7 @@ export async function reserveAsset(payload: ReserveAssetPayload): Promise<MediaA
   const auth = useAuthStore()
 
   if (!auth.isAuthenticated) {
-    throw {
-      title: 'Not authenticated',
-      detail: 'You must be signed in to upload media.',
-      status: 401,
-    }
+    throw mediaApiError('Not authenticated', 'You must be signed in to upload media.', 401)
   }
 
   return fetch_<MediaAssetSummary>('/api/media/assets', {
@@ -132,11 +132,7 @@ export async function uploadAsset(
   const auth = useAuthStore()
 
   if (!auth.isAuthenticated) {
-    throw {
-      title: 'Not authenticated',
-      detail: 'You must be signed in to upload media.',
-      status: 401,
-    }
+    throw mediaApiError('Not authenticated', 'You must be signed in to upload media.', 401)
   }
 
   const formData = new FormData()
@@ -161,12 +157,12 @@ export async function uploadAsset(
     const title = isMediaApiError(body) ? body.errorCode : `Upload failed (${response.status})`
     const detail = isMediaApiError(body) ? body.message : `Server returned ${response.status}.`
 
-    throw {
+    throw mediaApiError(
       title,
       detail,
-      status: response.status,
-      errorCode: isMediaApiError(body) ? body.errorCode : undefined,
-    }
+      response.status,
+      isMediaApiError(body) ? body.errorCode : undefined,
+    )
   }
 
   return response.json() as Promise<MediaAssetSummary>
@@ -220,7 +216,7 @@ export async function getAsset(assetId: string): Promise<MediaAssetSummary> {
   const auth = useAuthStore()
 
   if (!auth.isAuthenticated) {
-    throw { title: 'Not authenticated', detail: 'You must be signed in.', status: 401 }
+    throw mediaApiError('Not authenticated', 'You must be signed in.', 401)
   }
 
   return auth.apiFetch<MediaAssetSummary>(`/api/media/assets/${assetId}`, {
@@ -233,7 +229,7 @@ export async function deleteAsset(assetId: string): Promise<void> {
   const auth = useAuthStore()
 
   if (!auth.isAuthenticated) {
-    throw { title: 'Not authenticated', detail: 'You must be signed in.', status: 401 }
+    throw mediaApiError('Not authenticated', 'You must be signed in.', 401)
   }
 
   await auth.apiFetch<unknown>(`/api/media/assets/${encodeURIComponent(assetId)}`, {

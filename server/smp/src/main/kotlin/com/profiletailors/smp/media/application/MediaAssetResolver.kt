@@ -6,7 +6,7 @@ package com.profiletailors.smp.media.application
  * This is the primary integration contract consumed by publishing and other contexts.
  * All returned assets are guaranteed to be READY, workspace-scoped, and available for use.
  */
-interface MediaAssetResolver {
+fun interface MediaAssetResolver {
     /**
      * Resolve ready assets by workspace and asset IDs.
      *

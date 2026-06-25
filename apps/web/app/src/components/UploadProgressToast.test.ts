@@ -74,7 +74,7 @@ describe('UploadProgressToast', () => {
     const wrapper = mountToast()
     wrappers.push(wrapper)
 
-    expect(wrapper.find('[role="status"]').exists()).toBe(false)
+    expect(wrapper.find('output').exists()).toBe(false)
   })
 
   it('shows when there are active uploads', async () => {
@@ -86,7 +86,7 @@ describe('UploadProgressToast', () => {
 
     await flushPromises()
     // With stubbed Teleport, content renders inside the wrapper
-    expect(wrapper.find('[role="status"]').exists()).toBe(true)
+    expect(wrapper.find('output').exists()).toBe(true)
     expect(wrapper.text()).toContain('media.uploadProgress.uploading')
   })
 
@@ -137,7 +137,7 @@ describe('UploadProgressToast', () => {
     expect(wrapper.text()).not.toContain('photo.jpg')
 
     // Click header to expand
-    const header = wrapper.find('[role="button"]')
+    const header = wrapper.find('button')
     await header.trigger('click')
 
     expect(wrapper.text()).toContain('photo.jpg')
@@ -171,7 +171,7 @@ describe('UploadProgressToast', () => {
     await flushPromises()
 
     // Expand to see detail
-    const header = wrapper.find('[role="button"]')
+    const header = wrapper.find('button')
     await header.trigger('click')
 
     expect(wrapper.text()).toContain('42%')
@@ -191,7 +191,7 @@ describe('UploadProgressToast', () => {
     wrappers.push(wrapper)
     await flushPromises()
 
-    const header = wrapper.find('[role="button"]')
+    const header = wrapper.find('button')
     await header.trigger('click')
 
     // errorTitle is shown as visible text; errorDetail is in the title attribute

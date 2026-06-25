@@ -128,7 +128,7 @@ async function saveWorkspaceName() {
     workspace.setWorkspaceName(result.name)
     editingWorkspaceName.value = false
     renameSuccess.value = true
-    renameSuccessTimer = window.setTimeout(() => { renameSuccess.value = false }, 3000)
+    renameSuccessTimer = globalThis.setTimeout(() => { renameSuccess.value = false }, 3000)
   } catch (err) {
     renameError.value = err instanceof Error ? err.message : t('workspace.renameFailed')
   } finally {
@@ -242,30 +242,36 @@ onMounted(() => {
                 role="radiogroup"
                 :aria-label="$t('settings.languageLabel')"
               >
-                <!-- biome-ignore lint/a11y/useSemanticElements: spec requires role="radio" on a button for the radiogroup pill design (R-A11Y-4) -->
-                <button
-                  type="button"
-                  role="radio"
-                  :aria-checked="settings.currentLocale === 'en' ? 'true' : 'false'"
+                <label
                   data-testid="settings-language-en"
                   class="cursor-pointer rounded-full px-3 py-1.5 font-bold uppercase tracking-[0.14em] transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-text-display"
                   :class="segmentedControlClass(settings.currentLocale === 'en')"
-                  @click="settings.setLocale('en')"
                 >
+                  <input
+                    type="radio"
+                    name="locale"
+                    value="en"
+                    :checked="settings.currentLocale === 'en'"
+                    class="sr-only"
+                    @change="settings.setLocale('en')"
+                  />
                   EN
-                </button>
-                <!-- biome-ignore lint/a11y/useSemanticElements: spec requires role="radio" on a button for the radiogroup pill design (R-A11Y-4) -->
-                <button
-                  type="button"
-                  role="radio"
-                  :aria-checked="settings.currentLocale === 'es' ? 'true' : 'false'"
+                </label>
+                <label
                   data-testid="settings-language-es"
                   class="cursor-pointer rounded-full px-3 py-1.5 font-bold uppercase tracking-[0.14em] transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-text-display"
                   :class="segmentedControlClass(settings.currentLocale === 'es')"
-                  @click="settings.setLocale('es')"
                 >
+                  <input
+                    type="radio"
+                    name="locale"
+                    value="es"
+                    :checked="settings.currentLocale === 'es'"
+                    class="sr-only"
+                    @change="settings.setLocale('es')"
+                  />
                   ES
-                </button>
+                </label>
               </div>
             </div>
           </div>

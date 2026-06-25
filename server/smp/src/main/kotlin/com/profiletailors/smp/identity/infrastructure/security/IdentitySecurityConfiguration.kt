@@ -96,6 +96,7 @@ class IdentitySecurityConfiguration {
         AuthenticatedPrincipalContextWebFilter(requestContextStore)
 
     @Bean
+    @Suppress("LongParameterList")
     fun securityWebFilterChain(
         http: ServerHttpSecurity,
         jwtPrincipalAuthenticationConverter: JwtPrincipalAuthenticationConverter,

@@ -11,7 +11,7 @@ describe('contentPipeline store', () => {
   describe('initial state', () => {
     it('loads mock columns on creation', () => {
       const store = useContentPipelineStore()
-      expect(store.columns.length).toBe(4)
+      expect(store.columns).toHaveLength(4)
       expect(store.columns[0]?.id).toBe('ideas')
     })
 

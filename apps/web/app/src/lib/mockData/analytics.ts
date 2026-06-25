@@ -25,7 +25,7 @@ export const kpiMetrics: KpiMetric[] = [
     value: '4.2%',
     delta: 1.1,
     deltaLabel: 'dashboard.kpi.vsLast30Days',
-    sparklineData: [3.1, 3.4, 3.6, 3.9, 4.0, 4.1, 4.2],
+    sparklineData: [3.1, 3.4, 3.6, 3.9, 4, 4.1, 4.2],
     trend: 'up',
   },
   {

@@ -53,7 +53,7 @@ describe('ExecutiveOverview', () => {
       props: { kpis },
     })
     const cards = wrapper.findAllComponents({ name: 'KpiCard' })
-    expect(cards.length).toBe(4)
+    expect(cards).toHaveLength(4)
   })
 
   it('handles empty KPI array gracefully', () => {

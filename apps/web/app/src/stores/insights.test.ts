@@ -11,12 +11,12 @@ describe('insights store', () => {
   describe('initial state', () => {
     it('loads mock insights on creation', () => {
       const store = useInsightsStore()
-      expect(store.insights.length).toBe(5)
+      expect(store.insights).toHaveLength(5)
     })
 
     it('all insights are not dismissed initially', () => {
       const store = useInsightsStore()
-      expect(store.activeInsights.length).toBe(5)
+      expect(store.activeInsights).toHaveLength(5)
     })
 
     it('counts high priority insights', () => {
@@ -30,13 +30,13 @@ describe('insights store', () => {
       const store = useInsightsStore()
       store.dismiss('insight-1')
       expect(store.insights.find((i) => i.id === 'insight-1')?.dismissed).toBe(true)
-      expect(store.activeInsights.length).toBe(4)
+      expect(store.activeInsights).toHaveLength(4)
     })
 
     it('does nothing for unknown id', () => {
       const store = useInsightsStore()
       store.dismiss('nonexistent')
-      expect(store.activeInsights.length).toBe(5)
+      expect(store.activeInsights).toHaveLength(5)
     })
   })
 
@@ -44,7 +44,7 @@ describe('insights store', () => {
     it('dismisses all insights', () => {
       const store = useInsightsStore()
       store.dismissAll()
-      expect(store.activeInsights.length).toBe(0)
+      expect(store.activeInsights).toHaveLength(0)
       expect(store.highPriorityCount).toBe(0)
     })
   })

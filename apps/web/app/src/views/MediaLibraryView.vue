@@ -103,12 +103,18 @@ function isPdf(mediaType: string) {
   return mediaType === 'application/pdf'
 }
 
+function resolveUrl(first: string | null | undefined, second: string | null | undefined): string | null {
+  if (first) return resolveApiUrl(first)
+  if (second) return resolveApiUrl(second)
+  return null
+}
+
 function assetPreviewUrl(asset: { downloadUrl?: string | null; previewUrl?: string | null }) {
-  return asset.previewUrl ? resolveApiUrl(asset.previewUrl) : asset.downloadUrl ? resolveApiUrl(asset.downloadUrl) : null
+  return resolveUrl(asset.previewUrl, asset.downloadUrl)
 }
 
 function assetDownloadUrl(asset: { downloadUrl?: string | null; previewUrl?: string | null }) {
-  return asset.downloadUrl ? resolveApiUrl(asset.downloadUrl) : asset.previewUrl ? resolveApiUrl(asset.previewUrl) : null
+  return resolveUrl(asset.downloadUrl, asset.previewUrl)
 }
 
 function formatFileSize(bytes: number | null | undefined) {
@@ -138,7 +144,7 @@ function triggerDownload(asset: { originalFilename?: string | null; downloadUrl?
   link.rel = 'noopener noreferrer'
   document.body.appendChild(link)
   link.click()
-  document.body.removeChild(link)
+  link.remove()
 }
 
 function toggleAssetSelection(assetId: string) {
@@ -174,7 +180,7 @@ async function deletePersistedAsset(assetId: string) {
 }
 
 async function deleteSelectedAssets() {
-  for (const assetId of [...selectedLibraryAssetIds.value]) {
+  for (const assetId of selectedLibraryAssetIds.value) {
     try {
       await mediaStore.deletePersistedAsset(assetId)
     } catch {
@@ -471,13 +477,15 @@ onMounted(async () => {
                   :alt="asset.originalFilename ?? asset.assetId"
                   class="h-full w-full object-cover"
                 />
+                <!-- biome-ignore lint/a11y/useMediaCaption: user-uploaded videos, no caption file available -->
                 <video
                   v-else-if="isVideo(asset.mediaType) && assetPreviewUrl(asset)"
                   :src="assetPreviewUrl(asset) ?? ''"
                   class="h-full w-full object-cover"
                   controls
                   preload="metadata"
-                />
+                >
+                </video>
                 <iframe
                   v-else-if="isPdf(asset.mediaType) && assetPreviewUrl(asset)"
                   :src="assetPreviewUrl(asset) ?? ''"

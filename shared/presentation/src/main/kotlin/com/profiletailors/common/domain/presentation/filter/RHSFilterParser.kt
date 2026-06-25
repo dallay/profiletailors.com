@@ -55,6 +55,7 @@ class RHSFilterParser<T : Any>(
                 converted = objectMapper.convertValue(candidate, clazz.java)
                 break
             } catch (_: RuntimeException) {
+                // Candidate conversion failed, continue to next candidate
             }
         }
         if (converted == null) throw FilterInvalidException("Can't convert operand. Operand: $operand, Type: $clazz")

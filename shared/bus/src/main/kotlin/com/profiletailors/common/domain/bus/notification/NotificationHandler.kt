@@ -6,7 +6,7 @@ package com.profiletailors.common.domain.bus.notification
  *
  * @param T the notification type this handler can process
  */
-interface NotificationHandler<in T> where T : Notification {
+fun interface NotificationHandler<in T> where T : Notification {
     /** Process a published notification. */
     suspend fun handle(notification: T)
 }

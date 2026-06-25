@@ -4,7 +4,7 @@ import com.profiletailors.common.domain.context.PrincipalContext
 import com.profiletailors.common.domain.context.ResourceContext
 import com.profiletailors.common.domain.workspace.WorkspaceMembershipSnapshot
 
-interface WorkspaceMembershipResolver {
+fun interface WorkspaceMembershipResolver {
     suspend fun resolve(
         principalContext: PrincipalContext,
         resourceContext: ResourceContext,

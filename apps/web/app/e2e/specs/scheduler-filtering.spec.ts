@@ -27,6 +27,21 @@ test.describe('Scheduler — Filtering & Views', () => {
 
     // Verify the scheduler header shows "All Channels"
     await expect(page.getByRole('heading', { name: 'All Channels' })).toBeVisible()
+
+    // Select a single channel — LinkedIn
+    await scheduler.linkedInFilterButton.click()
+    await page.waitForTimeout(300)
+
+    // Verify the URL now contains channels[] filter
+    expect(page.url()).toContain('channels')
+
+    // Reset to all channels
+    await scheduler.allChannelsButton.click({ force: true })
+    await page.waitForTimeout(300)
+
+    // Verify we are back to "All Channels" with no filter
+    expect(page.url()).not.toContain('channels')
+    await expect(page.getByRole('heading', { name: 'All Channels' })).toBeVisible()
   })
 
   /**

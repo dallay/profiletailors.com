@@ -14,9 +14,9 @@ test.describe('Scheduler — Settings Persistence', () => {
    */
   test('TC-21: theme persistence @settings @theme @persistence', async ({ page }) => {
     // Theme controls live in the sidebar account menu, not the Settings page.
-    const accountMenuTrigger = page
-      .getByRole('button', { name: /dev user|profile tailors/i })
-      .first()
+    // Use aria-controls to uniquely target the account trigger, avoiding
+    // collision with the LinkedIn channel button (also named "Dev User").
+    const accountMenuTrigger = page.locator('button[aria-controls="sidebar-account-menu"]')
     await accountMenuTrigger.click()
 
     const initialSettings = await page.evaluate(() =>
@@ -25,7 +25,9 @@ test.describe('Scheduler — Settings Persistence', () => {
     const initialTheme = initialSettings.theme || 'dark'
     const nextTheme = initialTheme === 'dark' ? 'light' : 'dark'
 
-    const themeRadio = page.getByRole('radio', { name: new RegExp(nextTheme, 'i') })
+    const themeRadio = page
+      .locator('label')
+      .filter({ has: page.getByRole('radio', { name: new RegExp(nextTheme, 'i') }) })
     await themeRadio.click({ force: true })
     await page.waitForTimeout(300)
 

@@ -556,7 +556,7 @@ describe('useCalendarUrl controller — stepPeriod navigation', () => {
   })
 
   it('steps forward one month in calendar-month surface', async () => {
-    // 2026-06-15 + 1 month = 2026-07-15
+    // 2026-06-15 → clamp to 1st → +1 month = 2026-07-01
     const route = createMockRoute({
       name: 'scheduler-calendar-month',
       query: { date: '2026-06-15' },
@@ -568,11 +568,11 @@ describe('useCalendarUrl controller — stepPeriod navigation', () => {
 
     const call = (router.push as ReturnType<typeof vi.fn>).mock.calls[0]![0]
     expect(call.name).toBe('scheduler-calendar-month')
-    expect(call.query.date).toBe('2026-07-15')
+    expect(call.query.date).toBe('2026-07-01')
   })
 
   it('steps backward one month in calendar-month surface', async () => {
-    // 2026-06-15 - 1 month = 2026-05-15 (day is preserved by setMonth)
+    // 2026-06-15 → clamp to 1st → -1 month = 2026-05-01
     const route = createMockRoute({
       name: 'scheduler-calendar-month',
       query: { date: '2026-06-15' },
@@ -584,7 +584,7 @@ describe('useCalendarUrl controller — stepPeriod navigation', () => {
 
     const call = (router.push as ReturnType<typeof vi.fn>).mock.calls[0]![0]
     expect(call.name).toBe('scheduler-calendar-month')
-    expect(call.query.date).toBe('2026-05-15')
+    expect(call.query.date).toBe('2026-05-01')
   })
 })
 

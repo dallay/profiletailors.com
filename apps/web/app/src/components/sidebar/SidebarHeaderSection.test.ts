@@ -62,7 +62,7 @@ describe('SidebarHeaderSection', () => {
     expect(panel.attributes('role')).toBe('menu')
 
     const items = wrapper.findAll('[role="menuitem"]')
-    expect(items.length).toBe(baseWorkspaces.length)
+    expect(items).toHaveLength(baseWorkspaces.length)
   })
 
   it('selecting a workspace emits select(workspace) and closes the popover', async () => {

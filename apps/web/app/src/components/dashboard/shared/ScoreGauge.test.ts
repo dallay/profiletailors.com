@@ -23,7 +23,7 @@ describe('ScoreGauge', () => {
     expect(wrapper.text()).toContain('dashboard.growthScore.outOf100')
   })
 
-  it('has correct aria attributes', () => {
+  it('has correct attributes', () => {
     const wrapper = mount(ScoreGauge, {
       props: { score: 74 },
     })
@@ -38,7 +38,7 @@ describe('ScoreGauge', () => {
       props: { score: 74 },
     })
     const circles = wrapper.findAll('circle')
-    expect(circles.length).toBe(2) // track + fill
+    expect(circles).toHaveLength(2) // track + fill
   })
 
   it('applies success color for score >= 80', () => {

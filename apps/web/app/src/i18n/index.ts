@@ -598,7 +598,7 @@ const messages = {
         step2Title: '2. Conectar proveedores',
         step2Desc: 'Añade cuentas en {providers}. Soporta OAuth, Clave API y niveles gratuitos.',
         step3Title: '3. Dirige tu cliente',
-        step3Desc: 'Establece la URL base en {url} en tu IDE o cliente API.',
+        step3Desc: 'Establece la URL base en {url} en tu IDE o cliente API.', // NOSONAR
         step4Title: '4. Monitorear y optimizar',
         step4Desc: 'Rastrea tokens, costes y errores en {logs} y {analytics}.',
         endpoint: 'Punto de acceso',

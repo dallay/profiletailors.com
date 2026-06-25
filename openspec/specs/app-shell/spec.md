@@ -188,7 +188,7 @@ OWNED by this component, not by `AppShell`. When `publishingStore.channels` chan
 
 | Aspect | Value |
 |--------|-------|
-| Props | `channels: SidebarChannel[]`, `activeChannelId: string | null`, `totalQueuedCount: number` |
+| Props | `channels: SidebarChannel[]`, `activeChannelId: string \| null`, `totalQueuedCount: number` |
 | Emits | `selectAll: []`, `selectChannel: [accountId: string]` |
 | Local state | `avatarLoadFailedMap: Ref<Record<string, boolean>>` + private helpers |
 | Stores touched | `usePublishingStore` (read-only — derives `sidebarChannels`; does not mutate) |
@@ -260,7 +260,7 @@ The router MUST define `/scheduler/calendar/week`, `/scheduler/calendar/month`, 
 
 ### Requirement: Route Query Param Contract
 
-The system MUST parse and serialize `date`, `channels[]`, `timezone`, `status`, `q`, and `mode` as URL query params. Absent params MUST default to: `date` = today (local), `mode` = `calendar`, all others = show-all/unfiltered.
+The system MUST parse and serialize `date`, `channels[]`, `timezone`, `status`, and `q` as URL query params. Absent params MUST default to: `date` = today (local), all others = show-all/unfiltered. View selection is encoded by the canonical path (handled by scheduler routes), not by a query param.
 
 #### Scenario: `channels[]` uses account IDs in URL
 
@@ -293,10 +293,10 @@ The system MUST parse and serialize `date`, `channels[]`, `timezone`, `status`, 
 
 #### Scenario: Refresh preserves view and filters
 
-- GIVEN the user is on `/scheduler/calendar/week?date=2026-06-15&status=SCHEDULED`
+- GIVEN the user is on `/scheduler/calendar/week?date=2026-06-15&status=published`
 - WHEN the browser refreshes
 - THEN the week view renders centered on 2026-06-15
-- AND only SCHEDULED publications are shown
+- AND only published publications are shown
 
 #### Scenario: `fetchCalendar` refetches on route change
 

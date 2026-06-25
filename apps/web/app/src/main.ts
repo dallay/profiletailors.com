@@ -33,4 +33,8 @@ async function main() {
   app.mount('#app')
 }
 
-main().catch(console.error)
+try {
+  await main()
+} catch (error) {
+  console.error(error)
+}

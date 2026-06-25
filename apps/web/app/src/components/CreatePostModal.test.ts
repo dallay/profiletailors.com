@@ -197,6 +197,10 @@ describe('CreatePostModal.vue — media asset integration', () => {
     vi.clearAllMocks()
   })
 
+  afterEach(() => {
+    document.body.innerHTML = ''
+  })
+
   it('shows a transient blob preview immediately after file selection without uploading yet', async () => {
     const mediaStore = useMediaStore()
     const createAndUpload = vi.spyOn(mediaStore, 'createAndUpload')
@@ -281,10 +285,6 @@ describe('CreatePostModal.vue — media asset integration', () => {
     const body = document.body.innerHTML
     expect(body).toContain('Selected media preview')
     expect(body).not.toContain('Uploading preview.png')
-  })
-
-  afterEach(() => {
-    document.body.innerHTML = ''
   })
 
   it('media store exposes persisted selected asset ids', () => {
@@ -736,9 +736,10 @@ describe('CreatePostModal.vue — edit mode', () => {
 
     const textarea = document.body.querySelector('textarea') as HTMLTextAreaElement | null
     const timeInput = document.body.querySelector('input[type="time"]') as HTMLInputElement | null
-    const customModeButton = document.body.querySelector(
-      'button[role="radio"][aria-checked="true"]',
-    ) as HTMLButtonElement | null
+    const checkedRadio = document.body.querySelector<HTMLInputElement>(
+      'input[type="radio"]:checked',
+    )
+    const customModeButton = checkedRadio?.closest('label')
     const checkboxes = document.body.querySelectorAll('input[type="checkbox"]')
 
     expect(textarea?.value).toBe('Existing scheduled content')
@@ -756,7 +757,8 @@ describe('CreatePostModal.vue — edit mode', () => {
     })
     await nowWrapper.vm.$nextTick()
     expect(
-      document.body.querySelector('button[role="radio"][aria-checked="true"]')?.textContent,
+      document.body.querySelector<HTMLInputElement>('input[type="radio"]:checked')?.closest('label')
+        ?.textContent,
     ).toContain('Now')
     nowWrapper.unmount()
     document.body.innerHTML = ''
@@ -766,7 +768,8 @@ describe('CreatePostModal.vue — edit mode', () => {
     })
     await nextWrapper.vm.$nextTick()
     expect(
-      document.body.querySelector('button[role="radio"][aria-checked="true"]')?.textContent,
+      document.body.querySelector<HTMLInputElement>('input[type="radio"]:checked')?.closest('label')
+        ?.textContent,
     ).toContain('Next Schedule')
   })
 

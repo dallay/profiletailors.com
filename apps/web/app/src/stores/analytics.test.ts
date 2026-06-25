@@ -11,13 +11,13 @@ describe('analytics store', () => {
   describe('initial state', () => {
     it('loads mock KPI metrics on creation', () => {
       const store = useAnalyticsStore()
-      expect(store.kpiMetrics.length).toBe(4)
+      expect(store.kpiMetrics).toHaveLength(4)
       expect(store.kpiMetrics[0]?.id).toBe('total-followers')
     })
 
     it('loads channel performance data', () => {
       const store = useAnalyticsStore()
-      expect(store.channelPerformance.length).toBe(4)
+      expect(store.channelPerformance).toHaveLength(4)
       expect(store.channelPerformance[0]?.platform).toBe('linkedin')
     })
 

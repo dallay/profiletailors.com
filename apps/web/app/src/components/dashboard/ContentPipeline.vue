@@ -218,7 +218,9 @@ function handleDrop(event: ElementEventPayloadMap['onDrop']): void {
 function registerDragAndDrop(): void {
   cleanupDragAndDrop()
 
-  cleanupFns.value.push(
+  const fns: CleanupFn[] = []
+
+  fns.push(
     monitorForElements({
       onDragStart: ({ source }) => {
         draggedCardId.value = typeof source.data.cardId === 'string' ? source.data.cardId : null
@@ -230,7 +232,7 @@ function registerDragAndDrop(): void {
   for (const column of props.columns) {
     const columnElement = columnElements.get(column.id)
     if (columnElement) {
-      cleanupFns.value.push(
+      fns.push(
         dropTargetForElements({
           element: columnElement,
           getData: () => ({
@@ -247,7 +249,7 @@ function registerDragAndDrop(): void {
         continue
       }
 
-      cleanupFns.value.push(
+      fns.push(
         draggable({
           element: cardElement,
           getInitialData: (): DragData => ({
@@ -255,9 +257,6 @@ function registerDragAndDrop(): void {
             columnId: column.id,
           }),
         }),
-      )
-
-      cleanupFns.value.push(
         dropTargetForElements({
           element: cardElement,
           getData: (): DropTargetData => ({
@@ -269,6 +268,8 @@ function registerDragAndDrop(): void {
       )
     }
   }
+
+  cleanupFns.value = fns
 }
 
 watch(

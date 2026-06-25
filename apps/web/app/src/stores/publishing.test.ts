@@ -733,13 +733,13 @@ describe('publishing store', () => {
 
       await store.fetchCalendar('2026-06-01T00:00:00Z', '2026-07-01T00:00:00Z')
 
-      expect(store.publications.length).toBe(2)
+      expect(store.publications).toHaveLength(2)
       expect(store.publications[0]?.content).toBe('First post content')
       expect(store.publications[0]?.hasConflict).toBe(true)
       expect(store.publications[0]?.conflictingPublicationIds).toEqual(['api-pub-2'])
 
-      expect(store.conflicts.length).toBe(2)
-      expect(store.activity.length).toBe(1)
+      expect(store.conflicts).toHaveLength(2)
+      expect(store.activity).toHaveLength(1)
       expect(store.activity[0]?.density).toBe('MEDIUM')
     })
 

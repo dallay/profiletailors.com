@@ -96,28 +96,36 @@ function segmentedControlClass(isActive: boolean) {
               role="radiogroup"
               :aria-label="t('settings.themeLabel')"
             >
-              <!-- biome-ignore lint/a11y/useSemanticElements: segmented control intentionally uses button-based radios for the pill interaction pattern -->
-              <button
-                type="button"
-                role="radio"
-                :aria-checked="settings.currentTheme === 'dark' ? 'true' : 'false'"
-                class="cursor-pointer rounded-full px-3 py-1.5 font-bold uppercase tracking-[0.14em] transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-text-display"
+              <!-- biome-ignore lint/a11y/noLabelWithoutControl: label wraps sr-only input, valid association -->
+              <label
+                class="cursor-pointer rounded-full px-3 py-1.5 font-bold uppercase tracking-[0.14em] transition-colors focus-within:outline focus-within:outline-2 focus-within:outline-offset-2 focus-within:outline-text-display"
                 :class="segmentedControlClass(settings.currentTheme === 'dark')"
-                @click="settings.setTheme('dark')"
               >
+                <input
+                  type="radio"
+                  name="theme"
+                  value="dark"
+                  :checked="settings.currentTheme === 'dark'"
+                  class="sr-only"
+                  @change="settings.setTheme('dark')"
+                />
                 {{ t('settings.themeDark') }}
-              </button>
-              <!-- biome-ignore lint/a11y/useSemanticElements: segmented control intentionally uses button-based radios for the pill interaction pattern -->
-              <button
-                type="button"
-                role="radio"
-                :aria-checked="settings.currentTheme === 'light' ? 'true' : 'false'"
-                class="cursor-pointer rounded-full px-3 py-1.5 font-bold uppercase tracking-[0.14em] transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-text-display"
+              </label>
+              <!-- biome-ignore lint/a11y/noLabelWithoutControl: label wraps sr-only input, valid association -->
+              <label
+                class="cursor-pointer rounded-full px-3 py-1.5 font-bold uppercase tracking-[0.14em] transition-colors focus-within:outline focus-within:outline-2 focus-within:outline-offset-2 focus-within:outline-text-display"
                 :class="segmentedControlClass(settings.currentTheme === 'light')"
-                @click="settings.setTheme('light')"
               >
+                <input
+                  type="radio"
+                  name="theme"
+                  value="light"
+                  :checked="settings.currentTheme === 'light'"
+                  class="sr-only"
+                  @change="settings.setTheme('light')"
+                />
                 {{ t('settings.themeLight') }}
-              </button>
+              </label>
             </div>
           </div>
         </div>
@@ -138,28 +146,34 @@ function segmentedControlClass(isActive: boolean) {
               role="radiogroup"
               :aria-label="t('settings.languageLabel')"
             >
-              <!-- biome-ignore lint/a11y/useSemanticElements: segmented control intentionally uses button-based radios for the pill interaction pattern -->
-              <button
-                type="button"
-                role="radio"
-                :aria-checked="settings.currentLocale === 'en' ? 'true' : 'false'"
-                class="cursor-pointer rounded-full px-3 py-1.5 font-bold uppercase tracking-[0.14em] transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-text-display"
+              <label
+                class="cursor-pointer rounded-full px-3 py-1.5 font-bold uppercase tracking-[0.14em] transition-colors focus-within:outline focus-within:outline-2 focus-within:outline-offset-2 focus-within:outline-text-display"
                 :class="segmentedControlClass(settings.currentLocale === 'en')"
-                @click="settings.setLocale('en')"
               >
+                <input
+                  type="radio"
+                  name="locale"
+                  value="en"
+                  :checked="settings.currentLocale === 'en'"
+                  class="sr-only"
+                  @change="settings.setLocale('en')"
+                />
                 EN
-              </button>
-              <!-- biome-ignore lint/a11y/useSemanticElements: segmented control intentionally uses button-based radios for the pill interaction pattern -->
-              <button
-                type="button"
-                role="radio"
-                :aria-checked="settings.currentLocale === 'es' ? 'true' : 'false'"
-                class="cursor-pointer rounded-full px-3 py-1.5 font-bold uppercase tracking-[0.14em] transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-text-display"
+              </label>
+              <label
+                class="cursor-pointer rounded-full px-3 py-1.5 font-bold uppercase tracking-[0.14em] transition-colors focus-within:outline focus-within:outline-2 focus-within:outline-offset-2 focus-within:outline-text-display"
                 :class="segmentedControlClass(settings.currentLocale === 'es')"
-                @click="settings.setLocale('es')"
               >
+                <input
+                  type="radio"
+                  name="locale"
+                  value="es"
+                  :checked="settings.currentLocale === 'es'"
+                  class="sr-only"
+                  @change="settings.setLocale('es')"
+                />
                 ES
-              </button>
+              </label>
             </div>
           </div>
         </div>

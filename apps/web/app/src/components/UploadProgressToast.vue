@@ -44,11 +44,9 @@ watch(
       dismissTimer.value = setTimeout(() => {
         mediaStore.clearUploads()
       }, 3000)
-    } else {
-      if (dismissTimer.value !== null) {
-        clearTimeout(dismissTimer.value)
-        dismissTimer.value = null
-      }
+    } else if (dismissTimer.value !== null) {
+      clearTimeout(dismissTimer.value)
+      dismissTimer.value = null
     }
   },
 )
@@ -67,22 +65,16 @@ function retryUpload(tempKey: string) {
 <template>
   <Teleport to="body">
     <Transition name="toast-slide">
-      <div
+      <output
         v-if="visible"
         class="fixed bottom-6 right-6 z-50 w-80 overflow-hidden rounded-xl border border-border-visible bg-bg-surface shadow-2xl"
-        role="status"
         aria-live="polite"
       >
-        <!-- ── Header ── -->
-        <!-- biome-ignore lint/a11y/useSemanticElements: the header div role="button" is correct — it contains nested interactive controls (buttons), making a <button> wrapper invalid per HTML spec (interactive content inside button) -->
-        <div
-          class="flex cursor-pointer items-center justify-between gap-3 px-4 py-3"
-          role="button"
-          tabindex="0"
+        <button
+          type="button"
+          class="flex cursor-pointer items-center justify-between gap-3 px-4 py-3 w-full"
           :aria-expanded="expanded"
           @click="expanded = !expanded"
-          @keydown.enter.prevent="expanded = !expanded"
-          @keydown.space.prevent="expanded = !expanded"
         >
           <!-- Icon + title -->
           <div class="flex min-w-0 items-center gap-3">
@@ -147,7 +139,7 @@ function retryUpload(tempKey: string) {
               <X class="size-4" />
             </button>
           </div>
-        </div>
+        </button>
 
         <!-- ── Overall progress bar ── -->
         <div
@@ -220,7 +212,7 @@ function retryUpload(tempKey: string) {
             </div>
           </div>
         </Transition>
-      </div>
+      </output>
     </Transition>
   </Teleport>
 </template>

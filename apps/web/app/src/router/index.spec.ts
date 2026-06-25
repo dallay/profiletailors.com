@@ -148,17 +148,17 @@ describe('requiresAuth and isGuestOnly helpers', () => {
 
   it('requiresAuth returns false when route has no meta', () => {
     const route = mockRoute('/login', {})
-    expect(route.meta.requiresAuth === true).toBe(false)
+    expect(route.meta.requiresAuth).toBeUndefined()
   })
 
   it('isGuestOnly returns true for guest routes', () => {
     const route = mockRoute('/login', { guestOnly: true })
-    expect(route.meta.guestOnly === true).toBe(true)
+    expect(route.meta.guestOnly).toBe(true)
   })
 
   it('isGuestOnly returns false for auth routes', () => {
     const route = mockRoute('/dashboard', { requiresAuth: true })
-    expect(route.meta.guestOnly === true).toBe(false)
+    expect(route.meta.guestOnly).toBeUndefined()
   })
 })
 
