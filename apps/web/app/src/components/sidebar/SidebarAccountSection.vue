@@ -98,7 +98,7 @@ function segmentedControlClass(isActive: boolean) {
             >
               <!-- biome-ignore lint/a11y/noLabelWithoutControl: label wraps sr-only input, valid association -->
               <label
-                class="cursor-pointer rounded-full px-3 py-1.5 font-bold uppercase tracking-[0.14em] transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-text-display"
+                class="cursor-pointer rounded-full px-3 py-1.5 font-bold uppercase tracking-[0.14em] transition-colors focus-within:outline focus-within:outline-2 focus-within:outline-offset-2 focus-within:outline-text-display"
                 :class="segmentedControlClass(settings.currentTheme === 'dark')"
               >
                 <input
@@ -113,7 +113,7 @@ function segmentedControlClass(isActive: boolean) {
               </label>
               <!-- biome-ignore lint/a11y/noLabelWithoutControl: label wraps sr-only input, valid association -->
               <label
-                class="cursor-pointer rounded-full px-3 py-1.5 font-bold uppercase tracking-[0.14em] transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-text-display"
+                class="cursor-pointer rounded-full px-3 py-1.5 font-bold uppercase tracking-[0.14em] transition-colors focus-within:outline focus-within:outline-2 focus-within:outline-offset-2 focus-within:outline-text-display"
                 :class="segmentedControlClass(settings.currentTheme === 'light')"
               >
                 <input
@@ -147,7 +147,7 @@ function segmentedControlClass(isActive: boolean) {
               :aria-label="t('settings.languageLabel')"
             >
               <label
-                class="cursor-pointer rounded-full px-3 py-1.5 font-bold uppercase tracking-[0.14em] transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-text-display"
+                class="cursor-pointer rounded-full px-3 py-1.5 font-bold uppercase tracking-[0.14em] transition-colors focus-within:outline focus-within:outline-2 focus-within:outline-offset-2 focus-within:outline-text-display"
                 :class="segmentedControlClass(settings.currentLocale === 'en')"
               >
                 <input
@@ -161,7 +161,7 @@ function segmentedControlClass(isActive: boolean) {
                 EN
               </label>
               <label
-                class="cursor-pointer rounded-full px-3 py-1.5 font-bold uppercase tracking-[0.14em] transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-text-display"
+                class="cursor-pointer rounded-full px-3 py-1.5 font-bold uppercase tracking-[0.14em] transition-colors focus-within:outline focus-within:outline-2 focus-within:outline-offset-2 focus-within:outline-text-display"
                 :class="segmentedControlClass(settings.currentLocale === 'es')"
               >
                 <input

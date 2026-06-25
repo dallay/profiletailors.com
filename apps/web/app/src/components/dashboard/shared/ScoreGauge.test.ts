@@ -27,10 +27,10 @@ describe('ScoreGauge', () => {
     const wrapper = mount(ScoreGauge, {
       props: { score: 74 },
     })
-    const meter = wrapper.find('meter')
-    expect(meter.attributes('value')).toBe('74')
-    expect(meter.attributes('min')).toBe('0')
-    expect(meter.attributes('max')).toBe('100')
+    const meter = wrapper.find('[role="meter"]')
+    expect(meter.attributes('aria-valuenow')).toBe('74')
+    expect(meter.attributes('aria-valuemin')).toBe('0')
+    expect(meter.attributes('aria-valuemax')).toBe('100')
   })
 
   it('renders an SVG circle for the gauge', () => {

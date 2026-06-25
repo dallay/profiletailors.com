@@ -249,9 +249,9 @@ describe('SchedulerView', () => {
     const todayStr = today.toISOString().slice(0, 10)
     const wrapper = mountView({ date: todayStr })
     await flushPromises()
-    // Find the week card (now a div role="button") that contains the pub
+    // Find the week card (div role="button") that contains the pub
     const card = wrapper
-      .findAll('button')
+      .findAll('[role="button"]')
       .find((b) => b.text().includes('Side by side layout test'))
     expect(card).toBeDefined()
     const resolvedCard = card!

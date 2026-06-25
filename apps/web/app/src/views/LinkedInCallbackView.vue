@@ -100,7 +100,7 @@ onMounted(() => {
       </CardHeader>
 
       <CardContent class="mt-6 space-y-6 p-0 text-center">
-        <output class="text-sm leading-6 text-text-secondary">
+        <output aria-live="polite" class="text-sm leading-6 text-text-secondary">
           {{ message }}
         </output>
 
