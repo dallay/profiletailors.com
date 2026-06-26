@@ -235,16 +235,19 @@ export const useMediaStore = defineStore('media', () => {
   ): Promise<MediaAssetSummary> {
     const workspaceId = useWorkspaceStore().activeWorkspaceId
 
+    // Generate assetId ONCE so retries are idempotent
+    const stableAssetId = crypto.randomUUID()
+
     uploads.value[tempKey] = {
       tempKey,
-      assetId: '', // filled in after PUT
+      assetId: stableAssetId,
       file,
       progress: 0,
       status: 'uploading',
     }
 
     try {
-      const result = await executeWithRetry(() => putAsset(file, workspaceId))
+      const result = await executeWithRetry(() => putAsset(file, workspaceId, stableAssetId))
 
       // Update with assetId after PUT
       uploads.value[tempKey] = {

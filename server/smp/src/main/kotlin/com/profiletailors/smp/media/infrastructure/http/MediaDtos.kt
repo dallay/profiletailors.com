@@ -2,6 +2,7 @@ package com.profiletailors.smp.media.infrastructure.http
 
 import io.swagger.v3.oas.annotations.media.Schema
 import jakarta.validation.constraints.NotBlank
+import jakarta.validation.constraints.Pattern
 import jakarta.validation.constraints.Positive
 
 // ─── CAS PUT Request/Response ────────────────────────────────────────────────
@@ -9,6 +10,7 @@ import jakarta.validation.constraints.Positive
 @Schema(description = "Request to register a media asset with CAS dedup (PUT)")
 data class PutAssetRequest(
     @field:NotBlank
+    @field:Pattern(regexp = "^[a-f0-9]{64}$")
     @field:Schema(description = "SHA-256 hex of the file content (lowercase, 64 chars)", example = "a1b2c3d4e5f6...")
     val fileHash: String,
 

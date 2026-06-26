@@ -133,8 +133,7 @@ async function pollUntilReady(
   maxAttempts = 10,
 ): Promise<PutAssetResponse | UploadAssetResponse> {
   for (let attempt = 0; attempt < maxAttempts; attempt++) {
-    await new Promise<void>((resolve) => setTimeout(resolve, DEFAULT_POLL_DELAY_MS))
-
+    // Respect Retry-After if server provided it; fall back to 3s default
     const pollResp = await createMediaFetch()(`/api/media/assets/${assetId}`, {
       method: 'PUT',
       body: JSON.stringify({
@@ -147,12 +146,15 @@ async function pollUntilReady(
 
     const body = await pollResp.json()
 
-    if (pollResp.status === 200 && body.status === 'READY') {
+    if ((pollResp.status === 200 || pollResp.status === 201) && body.status === 'READY') {
       return body as PutAssetResponse
     }
 
     if (pollResp.status === 202) {
-      // Still waiting — blob is still uploading
+      // Still waiting — respect Retry-After or use default
+      const retryAfter = pollResp.headers.get('Retry-After')
+      const delayMs = retryAfter ? parseInt(retryAfter, 10) * 1000 : DEFAULT_POLL_DELAY_MS
+      await new Promise<void>((resolve) => setTimeout(resolve, delayMs))
       continue
     }
 
@@ -202,6 +204,8 @@ async function pollUntilReady(
 export async function putAsset(
   file: File,
   workspaceId: string,
+  /** Pass a stable assetId on retries so the PUT is idempotent. */
+  assetId?: string,
 ): Promise<PutAssetResponse | UploadAssetResponse> {
   const auth = useAuthStore()
 
@@ -213,10 +217,10 @@ export async function putAsset(
     }
   }
 
-  const assetId = crypto.randomUUID()
+  const stableId = assetId ?? crypto.randomUUID()
   const fileHash = await computeFileHash(file)
 
-  const putResp = await createMediaFetch()(`/api/media/assets/${assetId}`, {
+  const putResp = await createMediaFetch()(`/api/media/assets/${stableId}`, {
     method: 'PUT',
     body: JSON.stringify({
       fileHash,
@@ -228,7 +232,7 @@ export async function putAsset(
 
   // Handle 202: another upload in progress — poll
   if (putResp.status === 202) {
-    return pollUntilReady(workspaceId, assetId, file, fileHash)
+    return pollUntilReady(workspaceId, stableId, file, fileHash)
   }
 
   // Handle 429: rate limited

@@ -112,7 +112,7 @@ class MediaCasHandlersTest {
     }
 
     @Test
-    fun `PUT rate limit is checked before creating asset or blob`() = runTest {
+    fun `PUT rate limit is checked before creating asset`() = runTest {
         val media = InMemoryMediaAssetRepository()
         val blobs = InMemoryWorkspaceFileBlobRepository()
         val limiter = InMemoryRateLimitRepository(allowCreates = false)
@@ -121,8 +121,11 @@ class MediaCasHandlersTest {
             putHandler(media, blobs, limiter).handle(putCommand(assetId = ASSET_A, fileHash = HASH_A))
         }
 
+        // No asset is created because the rate limit check fires inside createPendingAsset
         assertEquals(0, media.assets.size)
-        assertEquals(0, blobs.blobs.size)
+        // A blob row IS created by upsertBlob (INSERT ON CONFLICT DO NOTHING) before
+        // the rate limit check — this is correct: the blob exists for the next caller
+        assertEquals(1, blobs.blobs.size)
     }
 
     @Test
@@ -301,7 +304,7 @@ class MediaCasHandlersTest {
         media.create(pendingAsset(ASSET_A, HASH_A).copy(createdAt = Instant.now().minusSeconds(25 * 3600)))
         blobs.saveBlob(uploadingBlob(HASH_A))
 
-        val result = MediaAssetExpirationJob(media, blobs, limiter).run()
+        val result = MediaAssetExpirationJob(media, blobs, limiter, NoopAtomicTransactionRunner).run()
 
         assertEquals(1, result.pendingExpired)
         assertEquals("expired:pending_upload_ttl", media.asset(WORKSPACE, ASSET_A)?.failureReason)
@@ -319,7 +322,7 @@ class MediaCasHandlersTest {
         )
         blobs.saveBlob(uploadingBlob(HASH_A))
 
-        val result = MediaAssetExpirationJob(media, blobs, limiter).run()
+        val result = MediaAssetExpirationJob(media, blobs, limiter, NoopAtomicTransactionRunner).run()
 
         assertEquals(1, result.uploadingExpired)
         assertEquals("expired:uploading_ttl", media.asset(WORKSPACE, ASSET_A)?.failureReason)
@@ -437,7 +440,10 @@ private class FakeStorage : Storage {
     override suspend fun delete(bucket: String, key: String) { deletedKeys += key }
     override suspend fun list(bucket: String, prefix: String) = emptyList<String>()
     override suspend fun exists(bucket: String, key: String) = key in uploaded
-    override suspend fun copyObject(bucket: String, sourceKey: String, destKey: String) { copies += sourceKey to destKey }
+    override suspend fun copyObject(bucket: String, sourceKey: String, destKey: String) {
+        if (sourceKey !in uploaded) throw IllegalStateException("copyObject: source not found: $sourceKey")
+        copies += sourceKey to destKey
+    }
 }
 
 private class NoopEventPublisher : EventPublisher<BaseDomainEvent> {
@@ -455,7 +461,7 @@ private class NoopStorageObservation : StorageObservation {
     override suspend fun <T : Any> recordOperationTime(operation: String, provider: String, action: suspend () -> T): T = action()
 }
 
-private fun putHandler(media: InMemoryMediaAssetRepository, blobs: InMemoryWorkspaceFileBlobRepository, limiter: InMemoryRateLimitRepository = InMemoryRateLimitRepository()) = PutAssetHandler(media, blobs, limiter, MediaUploadSettings(1, 200, "bucket"))
+private fun putHandler(media: InMemoryMediaAssetRepository, blobs: InMemoryWorkspaceFileBlobRepository, limiter: InMemoryRateLimitRepository = InMemoryRateLimitRepository()) = PutAssetHandler(media, blobs, limiter, MediaUploadSettings(1, 200, "bucket"), NoopAtomicTransactionRunner)
 private fun uploadHandler(media: InMemoryMediaAssetRepository, blobs: InMemoryWorkspaceFileBlobRepository, storage: FakeStorage) = CasUploadAssetHandler(media, blobs, storage.service(), MediaUploadSettings(1, 200, "bucket"), NoopAtomicTransactionRunner)
 private fun deleteHandler(media: InMemoryMediaAssetRepository, blobs: InMemoryWorkspaceFileBlobRepository) = DeleteAssetHandler(media, blobs, NoopAtomicTransactionRunner)
 

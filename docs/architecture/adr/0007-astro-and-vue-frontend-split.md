@@ -29,6 +29,7 @@ Both apps SHOULD share common assets (logos, colors) via the `shared/assets` dir
 ## Alternatives considered
 ### Single Unified App (Vue or Astro only)
 - Reason rejected: Vue-only misses SEO benefits for marketing; Astro-only is less suited for the highly dynamic, stateful dashboard experience.
+
 ### React for Dashboard
 - Reason rejected: Vue 3 was selected for its performance, ease of use with Tailwind, and established patterns in the current team. (Note: Documentation mentioning React is stale).
 
@@ -37,6 +38,7 @@ Both apps SHOULD share common assets (logos, colors) via the `shared/assets` dir
 - Marketing site achieves near-perfect Lighthouse scores.
 - Dashboard remains responsive and modular.
 - Decoupled deployments for marketing and product.
+
 ### Negative
 - Duplication of some components or styles across frameworks.
 - Multiple dev servers to manage.

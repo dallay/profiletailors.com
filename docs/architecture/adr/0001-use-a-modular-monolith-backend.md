@@ -41,11 +41,14 @@ Spring Modulith MUST be used to enforce these boundaries.
 - Fast local development and testing.
 - Strong type safety across boundaries.
 - Simplified CI/CD pipeline.
+
 ### Negative
 - Single point of failure for the entire backend.
 - Shared resource contention (e.g., CPU, Memory, DB connections).
+
 ### Risks
 - "Big ball of mud" if Modulith boundaries are not strictly guarded.
+
 ### Accepted trade-offs
 - Deployment coupling is accepted in exchange for development speed.
 

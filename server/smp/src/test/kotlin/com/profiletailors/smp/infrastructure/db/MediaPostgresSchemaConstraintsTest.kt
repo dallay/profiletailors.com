@@ -201,10 +201,20 @@ class MediaPostgresSchemaConstraintsTest : PostgresDatabaseTestBase() {
         spec.fetch().rowsUpdated().awaitSingle()
     }
 
-    private suspend fun countRows(tableName: String): Int = databaseClient.sql("SELECT COUNT(*) AS cnt FROM $tableName")
-        .map { row, _ -> (row.get("cnt") as Number).toInt() }
-        .one()
-        .awaitSingle()
+    /**
+     * Count rows in a table. `tableName` is validated to contain only alphanumeric
+     * characters and underscores to prevent SQL injection. Callers pass compile-time
+     * constants (e.g. `"media_assets"`), not user input.
+     */
+    private suspend fun countRows(tableName: String): Int {
+        require(tableName.matches(Regex("^[a-zA-Z_][a-zA-Z0-9_]*$"))) {
+            "countRows: invalid table name — must be alphanumeric with optional underscores: $tableName"
+        }
+        return databaseClient.sql("SELECT COUNT(*) AS cnt FROM $tableName")
+            .map { row, _ -> (row.get("cnt") as Number).toInt() }
+            .one()
+            .awaitSingle()
+    }
 
     companion object {
         private const val HASH_A = "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"

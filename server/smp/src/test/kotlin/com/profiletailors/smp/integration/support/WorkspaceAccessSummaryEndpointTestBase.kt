@@ -838,10 +838,10 @@ abstract class WorkspaceAccessSummaryEndpointTestBase : AuthorizationEndpointInt
                 objects.containsKey("$bucket/$key")
 
             override suspend fun copyObject(bucket: String, sourceKey: String, destKey: String) {
-                val data = objects["$bucket/$sourceKey"]
-                if (data != null) {
-                    objects["$bucket/$destKey"] = data
-                }
+                val sourcePath = "$bucket/$sourceKey"
+                val data = objects[sourcePath]
+                    ?: throw IllegalStateException("copyObject: source not found: $sourceKey")
+                objects["$bucket/$destKey"] = data
             }
         }
 

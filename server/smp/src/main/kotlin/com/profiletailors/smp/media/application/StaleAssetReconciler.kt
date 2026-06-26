@@ -186,6 +186,7 @@ class MediaAssetExpirationJob(
     private val mediaAssetRepository: MediaAssetRepository,
     private val workspaceFileBlobRepository: WorkspaceFileBlobRepository,
     private val mediaRateLimitRepository: MediaRateLimitRepository,
+    private val transactionRunner: AtomicTransactionRunner,
 ) {
     private val logger = LoggerFactory.getLogger(MediaAssetExpirationJob::class.java)
 
@@ -277,21 +278,25 @@ class MediaAssetExpirationJob(
     }
 
     private suspend fun scheduleBlobGCIfOrphaned(workspaceId: String, fileHash: String): Boolean {
-        // Lock blob before counting references
-        val blob = workspaceFileBlobRepository.findBlobForUpdate(workspaceId, fileHash)
-            ?: return false
+        // Run findBlobForUpdate + countActiveReferences + markReadyForGC in a single
+        // transaction so FOR UPDATE actually locks the row for the whole decision window.
+        return transactionRunner.runAtomically {
+            val blob = workspaceFileBlobRepository.findBlobForUpdate(workspaceId, fileHash)
+                ?: return@runAtomically false
 
-        val activeCount = mediaAssetRepository.countActiveReferences(workspaceId, fileHash)
-        if (activeCount == 0) {
-            val orphanedAt = Instant.now()
-            workspaceFileBlobRepository.markReadyForGC(workspaceId, fileHash, orphanedAt)
-            logger.info(
-                "media.blob.expired.markedReadyForGC workspaceId={} fileHash={}",
-                workspaceId, fileHash,
-            )
-            return true
+            val activeCount = mediaAssetRepository.countActiveReferences(workspaceId, fileHash)
+            if (activeCount == 0) {
+                val orphanedAt = Instant.now()
+                workspaceFileBlobRepository.markReadyForGC(workspaceId, fileHash, orphanedAt)
+                logger.info(
+                    "media.blob.expired.markedReadyForGC workspaceId={} fileHash={}",
+                    workspaceId, fileHash,
+                )
+                true
+            } else {
+                false
+            }
         }
-        return false
     }
 
     private suspend fun releaseUploadSlot(asset: MediaAsset) {

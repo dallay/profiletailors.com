@@ -507,6 +507,7 @@ pnpm --filter app dev
 ## 8. CI Integration
 
 ```yaml
+
 # Example GitHub Actions step
 - name: Run E2E Tests
   run: |

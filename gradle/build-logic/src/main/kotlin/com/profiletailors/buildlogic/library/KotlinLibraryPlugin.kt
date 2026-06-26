@@ -30,7 +30,7 @@ class KotlinLibraryPlugin : ConventionPlugin {
             config.setFrom(files(rootDir.resolve("config/detekt/detekt.yml")))
             buildUponDefaultConfig.set(false)
             allRules.set(false)
-            ignoreFailures.set(true)
+            ignoreFailures.set(false)
         }
 
         tasks.withType<Test>().configureEach {

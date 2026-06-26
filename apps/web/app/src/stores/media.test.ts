@@ -270,7 +270,7 @@ describe('media store', () => {
       const file = mockFile()
       const result = await store.createAndUpload(file, 'temp-key-1')
 
-      expect(mockPutAsset).toHaveBeenCalledWith(file, 'ws-test-1')
+      expect(mockPutAsset).toHaveBeenCalledWith(file, 'ws-test-1', expect.any(String))
       expect(result.assetId).toBe('reserved-asset')
       expect(result.status).toBe('READY')
     })
@@ -426,7 +426,7 @@ describe('media store', () => {
 
       const result = await store.retryUpload('retry-key')
 
-      expect(mockPutAsset).toHaveBeenCalledWith(expect.any(File), 'ws-test-1')
+      expect(mockPutAsset).toHaveBeenCalledWith(expect.any(File), 'ws-test-1', expect.any(String))
       expect(result.status).toBe('READY')
       expect(store.uploads['retry-key']?.status).toBe('done')
     })

@@ -1247,7 +1247,9 @@ class LinkedInPublishingAdaptersTest {
 
         override suspend fun exists(bucket: String, key: String): Boolean = false
 
-        override suspend fun copyObject(bucket: String, sourceKey: String, destKey: String) {}
+        override suspend fun copyObject(bucket: String, sourceKey: String, destKey: String) {
+            throw IllegalStateException("copyObject: source not found: $sourceKey")
+        }
     }
 
     private class FakePublicationAssetRepository : com.profiletailors.smp.publishing.domain.PublicationAssetRepository {

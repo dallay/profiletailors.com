@@ -37,10 +37,12 @@ Blocking I/O operations MUST be avoided or carefully isolated on dedicated threa
 ### Positive
 - High throughput and low memory footprint.
 - Natural fit for SSE and long-polling features.
+
 ### Negative
 - Steeper learning curve.
 - Difficult to debug (stack traces are less useful).
 - Risk of "locking up" the event loop if blocking code is introduced.
+
 ### Accepted trade-offs
 - Complexity is accepted for operational efficiency.
 

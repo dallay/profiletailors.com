@@ -197,7 +197,9 @@ class MediaAssetPreviewControllerTest {
                 override suspend fun delete(bucket: String, key: String) {}
                 override suspend fun list(bucket: String, prefix: String): List<String> = emptyList()
                 override suspend fun exists(bucket: String, key: String): Boolean = true
-                override suspend fun copyObject(bucket: String, sourceKey: String, destKey: String) {}
+                override suspend fun copyObject(bucket: String, sourceKey: String, destKey: String) {
+                    throw IllegalStateException("copyObject: source not found: $sourceKey")
+                }
             },
             eventPublisher = object : EventPublisher<BaseDomainEvent> {
                 override suspend fun publish(event: BaseDomainEvent) {}

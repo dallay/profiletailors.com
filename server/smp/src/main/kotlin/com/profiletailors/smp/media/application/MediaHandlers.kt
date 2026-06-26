@@ -678,6 +678,7 @@ class PutAssetHandler(
     private val workspaceFileBlobRepository: WorkspaceFileBlobRepository,
     private val mediaRateLimitRepository: MediaRateLimitRepository,
     private val uploadSettings: MediaUploadSettings,
+    private val transactionRunner: AtomicTransactionRunner,
 ) : CommandWithResultHandler<PutAssetCommand, PutAssetResult> {
 
     private val logger = LoggerFactory.getLogger(PutAssetHandler::class.java)
@@ -705,10 +706,8 @@ class PutAssetHandler(
         // 5. Validate original filename
         validateOriginalFilename(command.declaredMediaType, command.originalFilename)
 
-        // 6. Rate limit check — BEFORE any asset/blob creation
-        enforceCreationRateLimit(command.workspaceId)
-
-        // 7. Check if asset already exists
+        // 6. Check if asset already exists — rate limit check moved after this
+        //    so idempotent/202-polling retries do not burn creation quota
         val existingAsset = mediaAssetRepository.findByWorkspaceAndId(command.workspaceId, command.assetId)
         if (existingAsset != null) {
             return when {
@@ -752,34 +751,61 @@ class PutAssetHandler(
     ): PutAssetResult {
         return when (blob.status) {
             BlobStatus.READY -> {
-                // Dedup hit — create asset as READY
+                // Dedup hit — lock blob row and re-check READY status to prevent
+                // a race where the blob transitioned to FAILED/READY_FOR_GC/GC
+                // between upsertBlob's read and this asset creation.
                 val now = Instant.now()
-                val asset = MediaAsset(
-                    assetId = command.assetId,
-                    workspaceId = command.workspaceId,
-                    sourceType = MediaSourceType.UPLOADED,
-                    fileHash = command.fileHash,
-                    mediaType = command.declaredMediaType,
-                    storageKey = blob.storageKey!!, // DB invariant: READY blob always has storageKey
-                    detectedMediaType = blob.detectedMediaType,
-                    originalFilename = command.originalFilename,
-                    fileSizeBytes = blob.fileSizeBytes,
-                    status = MediaAssetStatus.READY,
-                    createdAt = now,
-                )
-                mediaAssetRepository.create(asset)
-                logger.info(
-                    "media.asset.put.dedup assetId={} workspaceId={} fileHash={}",
-                    command.assetId, command.workspaceId, command.fileHash,
-                )
-                PutAssetResult.AlreadyExists(
-                    assetId = command.assetId,
-                    workspaceId = command.workspaceId,
-                    status = MediaAssetStatus.READY.name,
-                    mediaType = blob.detectedMediaType ?: command.declaredMediaType,
-                    deduped = true,
-                    createdAt = ISO_FORMATTER.format(now.atOffset(ZoneOffset.UTC)),
-                )
+                transactionRunner.runAtomically {
+                    val lockedBlob = workspaceFileBlobRepository
+                        .findBlobForUpdate(command.workspaceId, command.fileHash)
+                        ?: throw BlobGoneException(command.fileHash)
+
+                    when (lockedBlob.status) {
+                        BlobStatus.READY -> {
+                            // Still READY — safe to dedup
+                            val asset = MediaAsset(
+                                assetId = command.assetId,
+                                workspaceId = command.workspaceId,
+                                sourceType = MediaSourceType.UPLOADED,
+                                fileHash = command.fileHash,
+                                mediaType = command.declaredMediaType,
+                                storageKey = lockedBlob.storageKey!!,
+                                detectedMediaType = lockedBlob.detectedMediaType,
+                                originalFilename = command.originalFilename,
+                                fileSizeBytes = lockedBlob.fileSizeBytes,
+                                status = MediaAssetStatus.READY,
+                                createdAt = now,
+                            )
+                            mediaAssetRepository.create(asset)
+                            logger.info(
+                                "media.asset.put.dedup assetId={} workspaceId={} fileHash={}",
+                                command.assetId, command.workspaceId, command.fileHash,
+                            )
+                            PutAssetResult.AlreadyExists(
+                                assetId = command.assetId,
+                                workspaceId = command.workspaceId,
+                                status = MediaAssetStatus.READY.name,
+                                mediaType = lockedBlob.detectedMediaType ?: command.declaredMediaType,
+                                deduped = true,
+                                createdAt = ISO_FORMATTER.format(now.atOffset(ZoneOffset.UTC)),
+                            )
+                        }
+                        BlobStatus.FAILED, BlobStatus.READY_FOR_GC, BlobStatus.GARBAGE_COLLECTED -> {
+                            // Blob changed under our feet — reset and create pending
+                            workspaceFileBlobRepository.resetBlobToUploading(
+                                command.workspaceId, command.fileHash,
+                            )
+                            createPendingAsset(command)
+                        }
+                        BlobStatus.UPLOADING -> {
+                            // Another upload won the race
+                            PutAssetResult.WaitingForBlob(
+                                assetId = command.assetId,
+                                retryAfterSeconds = 3,
+                            )
+                        }
+                    }
+                }
             }
             BlobStatus.UPLOADING -> {
                 // Another upload in progress
@@ -801,6 +827,9 @@ class PutAssetHandler(
     }
 
     private suspend fun createPendingAsset(command: PutAssetCommand): PutAssetResult {
+        // Rate limit check only when actually creating a new asset — not on 202 polling or idempotent retries
+        enforceCreationRateLimit(command.workspaceId)
+
         val now = Instant.now()
         val asset = MediaAsset(
             assetId = command.assetId,
@@ -1039,6 +1068,8 @@ class CasUploadAssetHandler(
     private class BlobOrAssetMissingException(val assetId: String) :
         RuntimeException("Blob or asset missing for $assetId")
 
+
+
     /**
      * Inner finalize logic that runs inside the [transactionalOperator] subscription.
      *
@@ -1227,9 +1258,15 @@ class CasUploadAssetHandler(
         var validatedMagicBytes = false
         val pendingChunks = mutableListOf<ByteArray>()
 
+        val maxBytes = command.declaredFileSizeBytes + 1 // reject anything over declared + 1
         val uploadFlow = flow {
             command.fileStream.collect { chunk ->
                 actualBytes += chunk.size.toLong()
+
+                // Early size guard: abort before digest.update to avoid wasting CPU on oversized uploads
+                if (actualBytes > maxBytes) {
+                    throw UploadFileSizeMismatchException(command.declaredFileSizeBytes, actualBytes)
+                }
 
                 // Update hash with every chunk
                 digest.update(chunk)
@@ -1436,3 +1473,6 @@ class UploadFileSizeMismatchException(
     val expected: Long,
     val actual: Long,
 ) : RuntimeException("File size mismatch: expected $expected bytes, got $actual bytes")
+
+class BlobGoneException(val fileHash: String) :
+    RuntimeException("Blob disappeared (likely GC'd) for fileHash=$fileHash")

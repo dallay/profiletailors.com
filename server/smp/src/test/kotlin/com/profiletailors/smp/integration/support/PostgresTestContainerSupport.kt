@@ -105,10 +105,23 @@ abstract class PostgresDatabaseTestBase {
 
     @BeforeEach
     fun setUpPostgresDatabase() {
-        applyLiquibaseBaseline()
+        applyLiquibaseBaselineOnce()
         kotlinx.coroutines.runBlocking {
             PostgresDatabaseCleanup.clean(databaseClient)
         }
+    }
+
+    private val liquibaseApplied: Boolean
+        get() = PostgresDatabaseTestBase._liquibaseApplied
+
+    private fun markLiquibaseApplied() {
+        PostgresDatabaseTestBase._liquibaseApplied = true
+    }
+
+    private fun applyLiquibaseBaselineOnce() {
+        if (liquibaseApplied) return
+        applyLiquibaseBaseline()
+        markLiquibaseApplied()
     }
 
     private fun applyLiquibaseBaseline() {
@@ -121,6 +134,10 @@ abstract class PostgresDatabaseTestBase {
                 database,
             ).update(Contexts(), LabelExpression())
         }
+    }
+
+    companion object {
+        private var _liquibaseApplied = false
     }
 }
 

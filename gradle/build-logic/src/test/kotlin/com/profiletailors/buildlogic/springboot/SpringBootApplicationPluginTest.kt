@@ -1,6 +1,9 @@
 package com.profiletailors.buildlogic.springboot
 
+import org.gradle.testkit.runner.BuildResult
 import org.gradle.testkit.runner.GradleRunner
+import org.gradle.testkit.runner.TaskOutcome
+import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.io.TempDir
@@ -45,11 +48,13 @@ class SpringBootApplicationPluginTest {
             """.trimIndent(),
         )
 
-        GradleRunner.create()
+        val result: BuildResult = GradleRunner.create()
             .withProjectDir(projectDir)
             .withPluginClasspath()
             .withArguments("test", "-PexcludeTags=postgres", "--stacktrace")
             .build()
+
+        assertEquals(TaskOutcome.SUCCESS, result.task(":test")?.outcome) { "test task outcome should be SUCCESS — test lifecycle must execute" }
     }
 
     private fun writeProject(testSource: String = "class PlaceholderTest") {

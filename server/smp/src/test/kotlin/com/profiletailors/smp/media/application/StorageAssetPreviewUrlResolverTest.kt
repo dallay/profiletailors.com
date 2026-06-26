@@ -156,7 +156,9 @@ class StorageAssetPreviewUrlResolverTest {
         override suspend fun delete(bucket: String, key: String) {}
         override suspend fun list(bucket: String, prefix: String): List<String> = emptyList()
         override suspend fun exists(bucket: String, key: String): Boolean = false
-        override suspend fun copyObject(bucket: String, sourceKey: String, destKey: String) {}
+        override suspend fun copyObject(bucket: String, sourceKey: String, destKey: String) {
+            throw IllegalStateException("copyObject: source not found: $sourceKey")
+        }
     }
 
     private class FailingPresignableStorage : FakeStorage {
@@ -167,7 +169,9 @@ class StorageAssetPreviewUrlResolverTest {
         override suspend fun delete(bucket: String, key: String) {}
         override suspend fun list(bucket: String, prefix: String): List<String> = emptyList()
         override suspend fun exists(bucket: String, key: String): Boolean = false
-        override suspend fun copyObject(bucket: String, sourceKey: String, destKey: String) {}
+        override suspend fun copyObject(bucket: String, sourceKey: String, destKey: String) {
+            throw IllegalStateException("copyObject: source not found: $sourceKey")
+        }
     }
 
     // NonPresignableStorage only implements Storage, not PresignableStorage
@@ -177,6 +181,8 @@ class StorageAssetPreviewUrlResolverTest {
         override suspend fun delete(bucket: String, key: String) {}
         override suspend fun list(bucket: String, prefix: String): List<String> = emptyList()
         override suspend fun exists(bucket: String, key: String): Boolean = false
-        override suspend fun copyObject(bucket: String, sourceKey: String, destKey: String) {}
+        override suspend fun copyObject(bucket: String, sourceKey: String, destKey: String) {
+            throw IllegalStateException("copyObject: source not found: $sourceKey")
+        }
     }
 }
