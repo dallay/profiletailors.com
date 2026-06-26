@@ -1,6 +1,7 @@
 package com.profiletailors.smp.integration.support
 
 import org.junit.jupiter.api.Assertions.assertEquals
+import org.junit.jupiter.api.Assertions.assertThrows
 import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.Test
 import org.testcontainers.containers.PostgreSQLContainer
@@ -57,6 +58,37 @@ class PostgresTestContainerSupportTest {
         assertTrue(!tracker.shouldApply("jdbc:postgresql://host:5432/db-b"))
         assertTrue(tracker.shouldApply("jdbc:postgresql://host:5433/db-a"))
         assertTrue(tracker.shouldApply("jdbc:postgresql://host:5432/db-c"))
+    }
+
+    @Test
+    fun `password resolver returns env value when set`() {
+        val resolved = PostgresTestContainerSupport.resolvePassword { "env-supplied-password" }
+
+        assertEquals("env-supplied-password", resolved)
+    }
+
+    @Test
+    fun `password resolver fails fast when env var is missing`() {
+        val ex = assertThrows(IllegalStateException::class.java) {
+            PostgresTestContainerSupport.resolvePassword { null }
+        }
+
+        assertEquals(
+            "${PostgresTestContainerSupport.PASSWORD_ENV} must be set to run PostgreSQL-backed tests",
+            ex.message,
+        )
+    }
+
+    @Test
+    fun `password resolver fails fast when env var is blank`() {
+        val ex = assertThrows(IllegalStateException::class.java) {
+            PostgresTestContainerSupport.resolvePassword { "" }
+        }
+
+        assertEquals(
+            "${PostgresTestContainerSupport.PASSWORD_ENV} must be set to run PostgreSQL-backed tests",
+            ex.message,
+        )
     }
 
     private class FakePostgresContainer(
