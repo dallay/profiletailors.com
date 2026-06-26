@@ -625,7 +625,10 @@ abstract class WorkspaceAccessSummaryEndpointTestBase : AuthorizationEndpointInt
             "INSERT INTO workspaces (id, name, status, icon) VALUES ('workspace-1', 'Profile Tailors', 'ACTIVE', NULL)",
         ).fetch().rowsUpdated().awaitSingle()
         databaseClient.sql(
-            "INSERT INTO workspace_memberships (id, workspace_id, principal_id, principal_type, status) VALUES ('membership-1', 'workspace-1', :principalId, :principalType, 'ACTIVE')",
+            """
+            INSERT INTO workspace_memberships (id, workspace_id, principal_id, principal_type, status)
+            VALUES ('membership-1', 'workspace-1', :principalId, :principalType, 'ACTIVE')
+            """.trimIndent(),
         )
             .bind("principalId", principalId)
             .bind("principalType", principalType)
@@ -652,7 +655,10 @@ abstract class WorkspaceAccessSummaryEndpointTestBase : AuthorizationEndpointInt
             displayIdentity = "yuniel",
         )
         databaseClient.sql(
-            "INSERT INTO user_identities (principal_id, email, username) VALUES ('principal-1', 'yuniel@example.com', 'yuniel')",
+            """
+            INSERT INTO user_identities (principal_id, email, username)
+            VALUES ('principal-1', 'yuniel@example.com', 'yuniel')
+            """.trimIndent(),
         )
             .fetch()
             .rowsUpdated()
@@ -667,7 +673,10 @@ abstract class WorkspaceAccessSummaryEndpointTestBase : AuthorizationEndpointInt
         displayIdentity: String,
     ) {
         databaseClient.sql(
-            "INSERT INTO principals (id, principal_type, subject, provider, display_identity) VALUES (:principalId, :principalType, :subject, :provider, :displayIdentity)",
+            """
+            INSERT INTO principals (id, principal_type, subject, provider, display_identity)
+            VALUES (:principalId, :principalType, :subject, :provider, :displayIdentity)
+            """.trimIndent(),
         )
             .bind("principalId", principalId)
             .bind("principalType", principalType)
@@ -689,7 +698,10 @@ abstract class WorkspaceAccessSummaryEndpointTestBase : AuthorizationEndpointInt
 
     private suspend fun seedWorkspaceEntitlement() {
         databaseClient.sql(
-            "INSERT INTO workspace_entitlements (id, workspace_id, entitlement_key, enabled) VALUES ('entitlement-1', 'workspace-1', 'workspace.access.summary', TRUE)",
+            """
+            INSERT INTO workspace_entitlements (id, workspace_id, entitlement_key, enabled)
+            VALUES ('entitlement-1', 'workspace-1', 'workspace.access.summary', TRUE)
+            """.trimIndent(),
         )
             .fetch()
             .rowsUpdated()
@@ -699,13 +711,24 @@ abstract class WorkspaceAccessSummaryEndpointTestBase : AuthorizationEndpointInt
     protected fun seedTargetScope(allowedTargetIdsJson: String) {
         kotlinx.coroutines.runBlocking {
             databaseClient.sql(
-                "INSERT INTO permissions (id, permission_key) VALUES ('permission-resource-read', 'workspace:resource:read')",
+                """
+                INSERT INTO permissions (id, permission_key)
+                VALUES ('permission-resource-read', 'workspace:resource:read')
+                """.trimIndent(),
             )
                 .fetch()
                 .rowsUpdated()
                 .awaitSingle()
             databaseClient.sql(
-                "INSERT INTO workspace_target_scopes (id, workspace_id, principal_id, principal_type, permission_id, target_resource_type, allowed_target_ids_json) VALUES ('scope-legacy-1', 'workspace-1', 'principal-1', 'USER', 'permission-resource-read', 'RESOURCE', :allowedTargetIdsJson)",
+                """
+                INSERT INTO workspace_target_scopes (
+                    id, workspace_id, principal_id, principal_type, permission_id,
+                    target_resource_type, allowed_target_ids_json
+                ) VALUES (
+                    'scope-legacy-1', 'workspace-1', 'principal-1', 'USER',
+                    'permission-resource-read', 'RESOURCE', :allowedTargetIdsJson
+                )
+                """.trimIndent(),
             )
                 .bind("allowedTargetIdsJson", allowedTargetIdsJson)
                 .fetch()
@@ -716,7 +739,14 @@ abstract class WorkspaceAccessSummaryEndpointTestBase : AuthorizationEndpointInt
 
     private suspend fun seedServiceAccountCredential(status: String) {
         databaseClient.sql(
-            "INSERT INTO service_account_credentials (id, principal_id, provider, credential_reference, status, revoked_at) VALUES ('svc-cred-row-1', 'service-principal-1', 'https://issuer.example', 'svc-cred-1', :status, :revokedAt)",
+            """
+            INSERT INTO service_account_credentials (
+                id, principal_id, provider, credential_reference, status, revoked_at
+            ) VALUES (
+                'svc-cred-row-1', 'service-principal-1', 'https://issuer.example',
+                'svc-cred-1', :status, :revokedAt
+            )
+            """.trimIndent(),
         )
             .bind("status", status)
             .let { spec ->
@@ -739,7 +769,15 @@ abstract class WorkspaceAccessSummaryEndpointTestBase : AuthorizationEndpointInt
             org.springframework.security.crypto.bcrypt.BCrypt.gensalt(),
         )
         databaseClient.sql(
-            "INSERT INTO api_key_credentials (id, principal_id, lookup_key, key_prefix, secret_verifier, status, revoked_at, replaced_by_credential_id, replaced_credential_id, replaced_at) VALUES ('api-key-cred-1', 'api-key-principal-1', 'ptk_lookup', 'ptk_lookup', :verifier, :status, :revokedAt, NULL, NULL, NULL)",
+            """
+            INSERT INTO api_key_credentials (
+                id, principal_id, lookup_key, key_prefix, secret_verifier, status, revoked_at,
+                replaced_by_credential_id, replaced_credential_id, replaced_at
+            ) VALUES (
+                'api-key-cred-1', 'api-key-principal-1', 'ptk_lookup', 'ptk_lookup',
+                :verifier, :status, :revokedAt, NULL, NULL, NULL
+            )
+            """.trimIndent(),
         )
             .bind("verifier", verifier)
             .bind("status", status)
@@ -797,7 +835,15 @@ abstract class WorkspaceAccessSummaryEndpointTestBase : AuthorizationEndpointInt
             }
 
             databaseClient.sql(
-                "INSERT INTO workspace_direct_grants (id, workspace_id, principal_id, principal_type, permission_id, effect, expires_at, conditions_json) VALUES (:id, :workspaceId, :principalId, :principalType, :permissionId, :effect, :expiresAt, :conditionsJson)",
+                """
+                INSERT INTO workspace_direct_grants (
+                    id, workspace_id, principal_id, principal_type, permission_id,
+                    effect, expires_at, conditions_json
+                ) VALUES (
+                    :id, :workspaceId, :principalId, :principalType, :permissionId,
+                    :effect, :expiresAt, :conditionsJson
+                )
+                """.trimIndent(),
             )
                 .bind("id", "grant-$effect-$permissionId")
                 .bind("workspaceId", "workspace-1")

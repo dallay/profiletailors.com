@@ -15,7 +15,10 @@ package com.profiletailors.smp.identity.infrastructure.security
  * holds no hardcoded credentials and stays clear of static-analysis rules that flag
  * secret literals in production source.
  */
-fun resolveLocalJwtSecret(configuredSecret: String, envSupplier: (String) -> String? = System::getenv): String {
+fun resolveLocalJwtSecret(
+    configuredSecret: String,
+    envSupplier: (String) -> String? = System::getenv,
+): String {
     if (configuredSecret.isNotBlank()) return configuredSecret
     val fromEnv = envSupplier(SMP_LOCAL_JWT_DEV_FALLBACK_ENV).orEmpty()
     if (fromEnv.isNotBlank()) return fromEnv

@@ -106,9 +106,15 @@ class R2dbcPublishingRepositoriesUnitTest : DatabaseUnitTestBase() {
         fun `createDraft with multiple assets replaces asset links`() = runTest {
             databaseClient.sql(
                 """
-                INSERT INTO publication_assets (id, workspace_id, source_type, media_type, storage_key, status, created_by_principal_id)
-                VALUES ('asset-1', 'workspace-1', 'UPLOADED', 'image/png', 'key1.png', 'READY', 'principal-1'),
-                       ('asset-2', 'workspace-1', 'UPLOADED', 'video/mp4', 'key2.mp4', 'READY', 'principal-1')
+                INSERT INTO publication_assets (
+                    id, workspace_id, source_type, media_type, storage_key, status,
+                    created_by_principal_id
+                ) VALUES (
+                    'asset-1', 'workspace-1', 'UPLOADED', 'image/png', 'key1.png',
+                    'READY', 'principal-1'
+                ),
+                       ('asset-2', 'workspace-1', 'UPLOADED', 'video/mp4', 'key2.mp4',
+                        'READY', 'principal-1')
                 """.trimIndent(),
             ).fetch().rowsUpdated().awaitSingle()
 
@@ -142,9 +148,15 @@ class R2dbcPublishingRepositoriesUnitTest : DatabaseUnitTestBase() {
         fun `updateEditableDraft replaces publication and asset links`() = runTest {
             databaseClient.sql(
                 """
-                INSERT INTO publication_assets (id, workspace_id, source_type, media_type, storage_key, status, created_by_principal_id)
-                VALUES ('asset-old', 'workspace-1', 'UPLOADED', 'image/jpeg', 'key-old.jpg', 'READY', 'principal-1'),
-                       ('asset-x', 'workspace-1', 'UPLOADED', 'image/jpeg', 'keyx.jpg', 'READY', 'principal-1')
+                INSERT INTO publication_assets (
+                    id, workspace_id, source_type, media_type, storage_key, status,
+                    created_by_principal_id
+                ) VALUES (
+                    'asset-old', 'workspace-1', 'UPLOADED', 'image/jpeg', 'key-old.jpg',
+                    'READY', 'principal-1'
+                ),
+                       ('asset-x', 'workspace-1', 'UPLOADED', 'image/jpeg', 'keyx.jpg',
+                        'READY', 'principal-1')
                 """.trimIndent(),
             ).fetch().rowsUpdated().awaitSingle()
 
@@ -715,14 +727,23 @@ class R2dbcPublishingRepositoriesUnitTest : DatabaseUnitTestBase() {
         ).fetch().rowsUpdated().awaitSingle()
         databaseClient.sql(
             """
-            INSERT INTO social_connections (id, workspace_id, provider, provider_connection_ref, status, credential_reference)
-            VALUES ('soconn-1', 'workspace-1', 'LINKEDIN', 'linkedin-conn-1', 'ACTIVE', '00000000-0000-0000-0000-000000000000')
+            INSERT INTO social_connections (
+                id, workspace_id, provider, provider_connection_ref, status, credential_reference
+            ) VALUES (
+                'soconn-1', 'workspace-1', 'LINKEDIN', 'linkedin-conn-1',
+                'ACTIVE', '00000000-0000-0000-0000-000000000000'
+            )
             """.trimIndent(),
         ).fetch().rowsUpdated().awaitSingle()
         databaseClient.sql(
             """
-            INSERT INTO social_accounts (id, social_connection_id, workspace_id, provider, provider_account_id, account_type, display_name, status)
-            VALUES ('soacc-1', 'soconn-1', 'workspace-1', 'LINKEDIN', 'linkedin-account-1', 'PERSONAL_PROFILE', 'Yuniel', 'ACTIVE')
+            INSERT INTO social_accounts (
+                id, social_connection_id, workspace_id, provider, provider_account_id,
+                account_type, display_name, status
+            ) VALUES (
+                'soacc-1', 'soconn-1', 'workspace-1', 'LINKEDIN',
+                'linkedin-account-1', 'PERSONAL_PROFILE', 'Yuniel', 'ACTIVE'
+            )
             """.trimIndent(),
         ).fetch().rowsUpdated().awaitSingle()
     }
@@ -730,8 +751,13 @@ class R2dbcPublishingRepositoriesUnitTest : DatabaseUnitTestBase() {
     private suspend fun insertPublication(status: String, id: String = "pub-mark-${System.nanoTime()}"): String {
         databaseClient.sql(
             """
-            INSERT INTO publications (id, workspace_id, author_principal_id, provider, social_account_id, status, schedule_mode, priority, title, body_text, created_at, updated_at)
-            VALUES (:id, 'workspace-1', 'principal-1', 'LINKEDIN', 'soacc-1', :status, 'NOW', false, 'Test', 'Body', :createdAt, :updatedAt)
+            INSERT INTO publications (
+                id, workspace_id, author_principal_id, provider, social_account_id,
+                status, schedule_mode, priority, title, body_text, created_at, updated_at
+            ) VALUES (
+                :id, 'workspace-1', 'principal-1', 'LINKEDIN', 'soacc-1',
+                :status, 'NOW', false, 'Test', 'Body', :createdAt, :updatedAt
+            )
             """.trimIndent(),
         )
             .bind("id", id)
@@ -747,8 +773,12 @@ class R2dbcPublishingRepositoriesUnitTest : DatabaseUnitTestBase() {
     private suspend fun insertPublicationAsset(id: String, status: PublicationAssetStatus) {
         databaseClient.sql(
             """
-            INSERT INTO publication_assets (id, workspace_id, source_type, media_type, storage_key, status, created_by_principal_id)
-            VALUES (:id, 'workspace-1', 'UPLOADED', 'image/png', 'key.png', :status, 'principal-1')
+            INSERT INTO publication_assets (
+                id, workspace_id, source_type, media_type, storage_key, status,
+                created_by_principal_id
+            ) VALUES (
+                :id, 'workspace-1', 'UPLOADED', 'image/png', 'key.png', :status, 'principal-1'
+            )
             """.trimIndent(),
         )
             .bind("id", id)
@@ -767,8 +797,13 @@ class R2dbcPublishingRepositoriesUnitTest : DatabaseUnitTestBase() {
     ) {
         databaseClient.sql(
             """
-            INSERT INTO publication_jobs (id, publication_id, workspace_id, status, due_at, priority_rank, attempt_count, max_attempts, created_at)
-            VALUES (:id, :publicationId, 'workspace-1', :status, :dueAt, :priorityRank, 0, 3, :createdAt)
+            INSERT INTO publication_jobs (
+                id, publication_id, workspace_id, status, due_at, priority_rank,
+                attempt_count, max_attempts, created_at
+            ) VALUES (
+                :id, :publicationId, 'workspace-1', :status, :dueAt,
+                :priorityRank, 0, 3, :createdAt
+            )
             """.trimIndent(),
         )
             .bind("id", id)

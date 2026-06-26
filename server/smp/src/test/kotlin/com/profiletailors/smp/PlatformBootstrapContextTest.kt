@@ -10,7 +10,8 @@ import org.springframework.context.annotation.Import
 
 @SpringBootTest(
     properties = [
-        "spring.r2dbc.url=r2dbc:h2:mem:///platform_test?options=MODE=PostgreSQL;DB_CLOSE_DELAY=-1;DB_CLOSE_ON_EXIT=FALSE",
+        "spring.r2dbc.url=r2dbc:h2:mem:///platform_test" +
+            "?options=MODE=PostgreSQL;DB_CLOSE_DELAY=-1;DB_CLOSE_ON_EXIT=FALSE",
         "spring.r2dbc.username=sa",
         "spring.r2dbc.password=",
         "spring.liquibase.enabled=true",

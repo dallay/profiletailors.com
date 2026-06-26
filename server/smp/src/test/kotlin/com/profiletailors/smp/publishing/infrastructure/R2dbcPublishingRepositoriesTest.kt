@@ -199,14 +199,23 @@ class R2dbcPublishingRepositoriesTest : DatabaseUnitTestBase() {
     fun `persists publication with asset links and reads it back`() = runTest {
         databaseClient.sql(
             """
-            INSERT INTO social_connections (id, workspace_id, provider, provider_connection_ref, status, credential_reference)
-            VALUES ('soconn-1', 'workspace-1', 'LINKEDIN', 'linkedin-conn-1', 'ACTIVE', '00000000-0000-0000-0000-000000000000')
+            INSERT INTO social_connections (
+                id, workspace_id, provider, provider_connection_ref, status, credential_reference
+            ) VALUES (
+                'soconn-1', 'workspace-1', 'LINKEDIN', 'linkedin-conn-1',
+                'ACTIVE', '00000000-0000-0000-0000-000000000000'
+            )
             """.trimIndent(),
         ).fetch().rowsUpdated().awaitSingle()
         databaseClient.sql(
             """
-            INSERT INTO social_accounts (id, social_connection_id, workspace_id, provider, provider_account_id, account_type, display_name, status)
-            VALUES ('soacc-1', 'soconn-1', 'workspace-1', 'LINKEDIN', 'linkedin-account-1', 'PERSONAL_PROFILE', 'Yuniel', 'ACTIVE')
+            INSERT INTO social_accounts (
+                id, social_connection_id, workspace_id, provider, provider_account_id,
+                account_type, display_name, status
+            ) VALUES (
+                'soacc-1', 'soconn-1', 'workspace-1', 'LINKEDIN',
+                'linkedin-account-1', 'PERSONAL_PROFILE', 'Yuniel', 'ACTIVE'
+            )
             """.trimIndent(),
         ).fetch().rowsUpdated().awaitSingle()
         databaseClient.sql(
@@ -380,14 +389,23 @@ class R2dbcPublishingRepositoriesTest : DatabaseUnitTestBase() {
         seedSocialAccount()
         databaseClient.sql(
             """
-            INSERT INTO social_connections (id, workspace_id, provider, provider_connection_ref, status, credential_reference)
-            VALUES ('soconn-2', 'workspace-1', 'LINKEDIN', 'linkedin-conn-2', 'ACTIVE', '00000000-0000-0000-0000-000000000000')
+            INSERT INTO social_connections (
+                id, workspace_id, provider, provider_connection_ref, status, credential_reference
+            ) VALUES (
+                'soconn-2', 'workspace-1', 'LINKEDIN', 'linkedin-conn-2',
+                'ACTIVE', '00000000-0000-0000-0000-000000000000'
+            )
             """.trimIndent(),
         ).fetch().rowsUpdated().awaitSingle()
         databaseClient.sql(
             """
-            INSERT INTO social_accounts (id, social_connection_id, workspace_id, provider, provider_account_id, account_type, display_name, status)
-            VALUES ('soacc-2', 'soconn-2', 'workspace-1', 'LINKEDIN', 'linkedin-account-2', 'PERSONAL_PROFILE', 'Another', 'ACTIVE')
+            INSERT INTO social_accounts (
+                id, social_connection_id, workspace_id, provider, provider_account_id,
+                account_type, display_name, status
+            ) VALUES (
+                'soacc-2', 'soconn-2', 'workspace-1', 'LINKEDIN',
+                'linkedin-account-2', 'PERSONAL_PROFILE', 'Another', 'ACTIVE'
+            )
             """.trimIndent(),
         ).fetch().rowsUpdated().awaitSingle()
 
@@ -520,14 +538,23 @@ class R2dbcPublishingRepositoriesTest : DatabaseUnitTestBase() {
     private suspend fun seedSocialAccount() {
         databaseClient.sql(
             """
-            INSERT INTO social_connections (id, workspace_id, provider, provider_connection_ref, status, credential_reference)
-            VALUES ('soconn-1', 'workspace-1', 'LINKEDIN', 'linkedin-conn-1', 'ACTIVE', '00000000-0000-0000-0000-000000000000')
+            INSERT INTO social_connections (
+                id, workspace_id, provider, provider_connection_ref, status, credential_reference
+            ) VALUES (
+                'soconn-1', 'workspace-1', 'LINKEDIN', 'linkedin-conn-1',
+                'ACTIVE', '00000000-0000-0000-0000-000000000000'
+            )
             """.trimIndent(),
         ).fetch().rowsUpdated().awaitSingle()
         databaseClient.sql(
             """
-            INSERT INTO social_accounts (id, social_connection_id, workspace_id, provider, provider_account_id, account_type, display_name, status)
-            VALUES ('soacc-1', 'soconn-1', 'workspace-1', 'LINKEDIN', 'linkedin-account-1', 'PERSONAL_PROFILE', 'Yuniel', 'ACTIVE')
+            INSERT INTO social_accounts (
+                id, social_connection_id, workspace_id, provider, provider_account_id,
+                account_type, display_name, status
+            ) VALUES (
+                'soacc-1', 'soconn-1', 'workspace-1', 'LINKEDIN',
+                'linkedin-account-1', 'PERSONAL_PROFILE', 'Yuniel', 'ACTIVE'
+            )
             """.trimIndent(),
         ).fetch().rowsUpdated().awaitSingle()
     }

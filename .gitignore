@@ -60,9 +60,6 @@ node_modules/
 **/playwright-report/
 **/playwright-scheduler-report/
 **/test-results/
-
-# SonarScanner working directory
-.scannerwork/
 # START AI Agent Symlinks
 .agents/skills/*.bak
 .claude/commands
@@ -117,3 +114,6 @@ node_modules/
 /GEMINI.md.bak
 /opencode.json
 # END AI Agent Symlinks
+
+# SonarScanner working directory
+.scannerwork/

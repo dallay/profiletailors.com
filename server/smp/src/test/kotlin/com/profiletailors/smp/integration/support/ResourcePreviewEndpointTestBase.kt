@@ -159,16 +159,28 @@ abstract class ResourcePreviewEndpointTestBase : AuthorizationEndpointIntegratio
 
     private suspend fun seedPrincipalAndMembership() {
         databaseClient.sql(
-            "INSERT INTO principals (id, principal_type, subject, provider, display_identity) VALUES ('$PRINCIPAL_ID', 'USER', 'subject-123', 'https://issuer.example', 'yuniel')",
+            """
+            INSERT INTO principals (id, principal_type, subject, provider, display_identity)
+            VALUES ('$PRINCIPAL_ID', 'USER', 'subject-123', 'https://issuer.example', 'yuniel')
+            """.trimIndent(),
         ).fetch().rowsUpdated().awaitSingle()
         databaseClient.sql(
-            "INSERT INTO user_identities (principal_id, email, username) VALUES ('$PRINCIPAL_ID', 'yuniel@example.com', 'yuniel')",
+            """
+            INSERT INTO user_identities (principal_id, email, username)
+            VALUES ('$PRINCIPAL_ID', 'yuniel@example.com', 'yuniel')
+            """.trimIndent(),
         ).fetch().rowsUpdated().awaitSingle()
         databaseClient.sql(
-            "INSERT INTO workspaces (id, name, status, icon) VALUES ('$WORKSPACE_ID', 'Profile Tailors', 'ACTIVE', NULL)",
+            """
+            INSERT INTO workspaces (id, name, status, icon)
+            VALUES ('$WORKSPACE_ID', 'Profile Tailors', 'ACTIVE', NULL)
+            """.trimIndent(),
         ).fetch().rowsUpdated().awaitSingle()
         databaseClient.sql(
-            "INSERT INTO workspace_memberships (id, workspace_id, principal_id, principal_type, status) VALUES ('membership-1', '$WORKSPACE_ID', '$PRINCIPAL_ID', 'USER', 'ACTIVE')",
+            """
+            INSERT INTO workspace_memberships (id, workspace_id, principal_id, principal_type, status)
+            VALUES ('membership-1', '$WORKSPACE_ID', '$PRINCIPAL_ID', 'USER', 'ACTIVE')
+            """.trimIndent(),
         ).fetch().rowsUpdated().awaitSingle()
         databaseClient.sql(
             "INSERT INTO roles (id, role_key, category) VALUES ('role-1', 'member', 'WORKSPACE')",
@@ -181,7 +193,15 @@ abstract class ResourcePreviewEndpointTestBase : AuthorizationEndpointIntegratio
     protected fun seedTargetScope(allowedTargetIdsJson: String) {
         kotlinx.coroutines.runBlocking {
             databaseClient.sql(
-                "INSERT INTO workspace_target_scopes (id, workspace_id, principal_id, principal_type, permission_id, target_resource_type, allowed_target_ids_json) VALUES ('scope-1', '$WORKSPACE_ID', '$PRINCIPAL_ID', 'USER', 'permission-resource-read', 'RESOURCE', :allowedTargetIdsJson)",
+                """
+                INSERT INTO workspace_target_scopes (
+                    id, workspace_id, principal_id, principal_type, permission_id,
+                    target_resource_type, allowed_target_ids_json
+                ) VALUES (
+                    'scope-1', '$WORKSPACE_ID', '$PRINCIPAL_ID', 'USER',
+                    'permission-resource-read', 'RESOURCE', :allowedTargetIdsJson
+                )
+                """.trimIndent(),
             )
                 .bind("allowedTargetIdsJson", allowedTargetIdsJson)
                 .fetch()
@@ -193,7 +213,10 @@ abstract class ResourcePreviewEndpointTestBase : AuthorizationEndpointIntegratio
     protected fun seedScopePermission() {
         kotlinx.coroutines.runBlocking {
             databaseClient.sql(
-                "INSERT INTO permissions (id, permission_key) VALUES ('permission-resource-read', '$PERMISSION_RESOURCE_READ')",
+                """
+                INSERT INTO permissions (id, permission_key)
+                VALUES ('permission-resource-read', '$PERMISSION_RESOURCE_READ')
+                """.trimIndent(),
             )
                 .fetch()
                 .rowsUpdated()

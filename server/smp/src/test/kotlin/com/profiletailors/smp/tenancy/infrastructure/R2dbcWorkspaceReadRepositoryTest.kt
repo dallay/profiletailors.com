@@ -78,19 +78,31 @@ class R2dbcWorkspaceReadRepositoryTest {
         )
             .then().block()
         databaseClient.sql(
-            "INSERT INTO workspace_memberships (id, workspace_id, principal_id, status) VALUES ('m1', 'ws-a', 'user-1', 'ACTIVE')",
+            """
+            INSERT INTO workspace_memberships (id, workspace_id, principal_id, status)
+            VALUES ('m1', 'ws-a', 'user-1', 'ACTIVE')
+            """.trimIndent(),
         )
             .then().block()
         databaseClient.sql(
-            "INSERT INTO workspace_memberships (id, workspace_id, principal_id, status) VALUES ('m2', 'ws-b', 'user-1', 'ACTIVE')",
+            """
+            INSERT INTO workspace_memberships (id, workspace_id, principal_id, status)
+            VALUES ('m2', 'ws-b', 'user-1', 'ACTIVE')
+            """.trimIndent(),
         )
             .then().block()
         databaseClient.sql(
-            "INSERT INTO workspace_memberships (id, workspace_id, principal_id, status) VALUES ('m3', 'ws-c', 'user-1', 'ACTIVE')",
+            """
+            INSERT INTO workspace_memberships (id, workspace_id, principal_id, status)
+            VALUES ('m3', 'ws-c', 'user-1', 'ACTIVE')
+            """.trimIndent(),
         )
             .then().block()
         databaseClient.sql(
-            "INSERT INTO workspace_ownerships (workspace_id, owner_principal_id, owner_principal_type) VALUES ('ws-a', 'user-1', 'USER')",
+            """
+            INSERT INTO workspace_ownerships (workspace_id, owner_principal_id, owner_principal_type)
+            VALUES ('ws-a', 'user-1', 'USER')
+            """.trimIndent(),
         )
             .then().block()
     }

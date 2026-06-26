@@ -25,7 +25,8 @@ import javax.crypto.spec.SecretKeySpec
 @SpringBootTest(
     webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT,
     properties = [
-        "spring.r2dbc.url=r2dbc:h2:mem:///local_auth_e2e?options=MODE=PostgreSQL;DB_CLOSE_DELAY=-1;DB_CLOSE_ON_EXIT=FALSE",
+        "spring.r2dbc.url=r2dbc:h2:mem:///local_auth_e2e" +
+            "?options=MODE=PostgreSQL;DB_CLOSE_DELAY=-1;DB_CLOSE_ON_EXIT=FALSE",
         "spring.r2dbc.username=sa",
         "spring.r2dbc.password=",
         "spring.liquibase.enabled=true",

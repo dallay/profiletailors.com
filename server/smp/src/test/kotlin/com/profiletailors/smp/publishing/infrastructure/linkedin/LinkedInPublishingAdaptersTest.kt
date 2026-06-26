@@ -56,7 +56,8 @@ class LinkedInPublishingAdaptersTest {
                 LinkedInHttpResponse(
                     200,
                     emptyHeaders(),
-                    """{"access_token":"access-123","expires_in":5184000,"scope":"openid profile email w_member_social"}""",
+                    """{"access_token":"access-123","expires_in":5184000,"scope":""" +
+                        """"openid profile email w_member_social"}""",
                 ),
                 LinkedInHttpResponse(
                     200,
@@ -706,7 +707,8 @@ class LinkedInPublishingAdaptersTest {
                 LinkedInHttpResponse(
                     200,
                     emptyHeaders(),
-                    """{"sub":"user-123","name":"Yuniel","picture":"https://media.licdn.com/dms/image/v2/example.jpg"}""",
+                    """{"sub":"user-123","name":"Yuniel",""" +
+                        """"picture":"https://media.licdn.com/dms/image/v2/example.jpg"}""",
                 ),
             ),
         )

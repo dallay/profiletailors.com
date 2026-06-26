@@ -55,7 +55,10 @@ class R2dbcPrincipalIdentityLookupTest : DatabaseUnitTestBase() {
         databaseClient.sql(
             """
             INSERT INTO principals (id, principal_type, subject, provider, display_identity)
-            VALUES ('service-principal-1', 'SERVICE_ACCOUNT', 'service-account-subject', 'https://issuer.example', 'scheduler-bot')
+            VALUES (
+                'service-principal-1', 'SERVICE_ACCOUNT',
+                'service-account-subject', 'https://issuer.example', 'scheduler-bot'
+            )
             """.trimIndent(),
         ).fetch().rowsUpdated().awaitSingle()
 

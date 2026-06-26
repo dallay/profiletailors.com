@@ -105,8 +105,12 @@ class BddDatabaseSupport(
 
         databaseClient.sql(
             """
-            INSERT INTO workspace_direct_grants (id, workspace_id, principal_id, principal_type, permission_id, effect, expires_at, conditions_json)
-            VALUES (:id, :workspaceId, :principalId, 'USER', :permissionId, :effect, NULL, NULL)
+            INSERT INTO workspace_direct_grants (
+                id, workspace_id, principal_id, principal_type, permission_id,
+                effect, expires_at, conditions_json
+            ) VALUES (
+                :id, :workspaceId, :principalId, 'USER', :permissionId, :effect, NULL, NULL
+            )
             """.trimIndent(),
         )
             .bind("id", "grant-$effect-$permissionId")
@@ -123,11 +127,17 @@ class BddDatabaseSupport(
         // Seed workspace with owner-1 (current user) and owner-2 (target for transfer)
         seedUserPrincipal()
         databaseClient.sql(
-            "INSERT INTO workspaces (id, name, status, icon) VALUES ('$WORKSPACE_ID', 'Profile Tailors', 'ACTIVE', NULL)",
+            """
+            INSERT INTO workspaces (id, name, status, icon)
+            VALUES ('$WORKSPACE_ID', 'Profile Tailors', 'ACTIVE', NULL)
+            """.trimIndent(),
         ).fetch().rowsUpdated().awaitSingle()
 
         databaseClient.sql(
-            "INSERT INTO workspace_ownerships (workspace_id, owner_principal_id, owner_principal_type) VALUES ('$WORKSPACE_ID', '$PRINCIPAL_ID', 'USER')",
+            """
+            INSERT INTO workspace_ownerships (workspace_id, owner_principal_id, owner_principal_type)
+            VALUES ('$WORKSPACE_ID', '$PRINCIPAL_ID', 'USER')
+            """.trimIndent(),
         ).fetch().rowsUpdated().awaitSingle()
 
         // Seed owner-2 principal
@@ -139,11 +149,17 @@ class BddDatabaseSupport(
             displayIdentity = "owner-2",
         )
         databaseClient.sql(
-            "INSERT INTO user_identities (principal_id, email, username) VALUES ('owner-2', 'owner2@example.com', 'owner2')",
+            """
+            INSERT INTO user_identities (principal_id, email, username)
+            VALUES ('owner-2', 'owner2@example.com', 'owner2')
+            """.trimIndent(),
         ).fetch().rowsUpdated().awaitSingle()
 
         databaseClient.sql(
-            "INSERT INTO workspace_ownerships (workspace_id, owner_principal_id, owner_principal_type) VALUES ('$WORKSPACE_ID', 'owner-2', 'USER')",
+            """
+            INSERT INTO workspace_ownerships (workspace_id, owner_principal_id, owner_principal_type)
+            VALUES ('$WORKSPACE_ID', 'owner-2', 'USER')
+            """.trimIndent(),
         ).fetch().rowsUpdated().awaitSingle()
     }
 
@@ -151,7 +167,10 @@ class BddDatabaseSupport(
         // Seed workspace with member-2 to update status
         seedUserPrincipal()
         databaseClient.sql(
-            "INSERT INTO workspaces (id, name, status, icon) VALUES ('$WORKSPACE_ID', 'Profile Tailors', 'ACTIVE', NULL)",
+            """
+            INSERT INTO workspaces (id, name, status, icon)
+            VALUES ('$WORKSPACE_ID', 'Profile Tailors', 'ACTIVE', NULL)
+            """.trimIndent(),
         ).fetch().rowsUpdated().awaitSingle()
 
         // Seed member-2 principal
@@ -163,11 +182,17 @@ class BddDatabaseSupport(
             displayIdentity = "member-2",
         )
         databaseClient.sql(
-            "INSERT INTO user_identities (principal_id, email, username) VALUES ('member-2', 'member2@example.com', 'member2')",
+            """
+            INSERT INTO user_identities (principal_id, email, username)
+            VALUES ('member-2', 'member2@example.com', 'member2')
+            """.trimIndent(),
         ).fetch().rowsUpdated().awaitSingle()
 
         databaseClient.sql(
-            "INSERT INTO workspace_memberships (id, workspace_id, principal_id, principal_type, status) VALUES ('membership-2', '$WORKSPACE_ID', 'member-2', 'USER', 'ACTIVE')",
+            """
+            INSERT INTO workspace_memberships (id, workspace_id, principal_id, principal_type, status)
+            VALUES ('membership-2', '$WORKSPACE_ID', 'member-2', 'USER', 'ACTIVE')
+            """.trimIndent(),
         ).fetch().rowsUpdated().awaitSingle()
     }
 
@@ -217,8 +242,12 @@ class BddDatabaseSupport(
         databaseClient.sql(
             """
             INSERT INTO workspace_target_scopes (
-                id, workspace_id, principal_id, principal_type, permission_id, target_resource_type, allowed_target_ids_json
-            ) VALUES ('scope-1', '$WORKSPACE_ID', '$PRINCIPAL_ID', 'USER', 'permission-resource-read', 'RESOURCE', :allowedTargetIdsJson)
+                id, workspace_id, principal_id, principal_type, permission_id,
+                target_resource_type, allowed_target_ids_json
+            ) VALUES (
+                'scope-1', '$WORKSPACE_ID', '$PRINCIPAL_ID', 'USER',
+                'permission-resource-read', 'RESOURCE', :allowedTargetIdsJson
+            )
             """.trimIndent(),
         )
             .bind("allowedTargetIdsJson", "[\"$allowedResourceId\"]")
@@ -322,7 +351,14 @@ class BddDatabaseSupport(
 
     private suspend fun seedServiceAccountCredential(status: String) {
         databaseClient.sql(
-            "INSERT INTO service_account_credentials (id, principal_id, provider, credential_reference, status, revoked_at) VALUES ('svc-cred-row-1', 'service-principal-1', 'https://issuer.example', 'svc-cred-1', :status, :revokedAt)",
+            """
+            INSERT INTO service_account_credentials (
+                id, principal_id, provider, credential_reference, status, revoked_at
+            ) VALUES (
+                'svc-cred-row-1', 'service-principal-1', 'https://issuer.example',
+                'svc-cred-1', :status, :revokedAt
+            )
+            """.trimIndent(),
         )
             .bind("status", status)
             .let { spec ->
@@ -345,7 +381,15 @@ class BddDatabaseSupport(
             org.springframework.security.crypto.bcrypt.BCrypt.gensalt(),
         )
         databaseClient.sql(
-            "INSERT INTO api_key_credentials (id, principal_id, lookup_key, key_prefix, secret_verifier, status, revoked_at, replaced_by_credential_id, replaced_credential_id, replaced_at) VALUES ('api-key-cred-1', 'api-key-principal-1', 'ptk_lookup', 'ptk_lookup', :verifier, :status, :revokedAt, NULL, NULL, NULL)",
+            """
+            INSERT INTO api_key_credentials (
+                id, principal_id, lookup_key, key_prefix, secret_verifier, status, revoked_at,
+                replaced_by_credential_id, replaced_credential_id, replaced_at
+            ) VALUES (
+                'api-key-cred-1', 'api-key-principal-1', 'ptk_lookup', 'ptk_lookup',
+                :verifier, :status, :revokedAt, NULL, NULL, NULL
+            )
+            """.trimIndent(),
         )
             .bind("verifier", verifier)
             .bind("status", status)
@@ -408,7 +452,10 @@ class BddDatabaseSupport(
             displayIdentity = "yuniel",
         )
         databaseClient.sql(
-            "INSERT INTO user_identities (principal_id, email, username) VALUES ('$PRINCIPAL_ID', 'yuniel@example.com', 'yuniel')",
+            """
+            INSERT INTO user_identities (principal_id, email, username)
+            VALUES ('$PRINCIPAL_ID', 'yuniel@example.com', 'yuniel')
+            """.trimIndent(),
         ).fetch().rowsUpdated().awaitSingle()
     }
 
@@ -420,7 +467,10 @@ class BddDatabaseSupport(
         displayIdentity: String,
     ) {
         databaseClient.sql(
-            "INSERT INTO principals (id, principal_type, subject, provider, display_identity) VALUES (:principalId, :principalType, :subject, :provider, :displayIdentity)",
+            """
+            INSERT INTO principals (id, principal_type, subject, provider, display_identity)
+            VALUES (:principalId, :principalType, :subject, :provider, :displayIdentity)
+            """.trimIndent(),
         )
             .bind("principalId", principalId)
             .bind("principalType", principalType)
@@ -446,10 +496,16 @@ class BddDatabaseSupport(
         entitled: Boolean,
     ) {
         databaseClient.sql(
-            "INSERT INTO workspaces (id, name, status, icon) VALUES ('$WORKSPACE_ID', 'Profile Tailors', 'ACTIVE', NULL)",
+            """
+            INSERT INTO workspaces (id, name, status, icon)
+            VALUES ('$WORKSPACE_ID', 'Profile Tailors', 'ACTIVE', NULL)
+            """.trimIndent(),
         ).fetch().rowsUpdated().awaitSingle()
         databaseClient.sql(
-            "INSERT INTO workspace_memberships (id, workspace_id, principal_id, principal_type, status) VALUES ('membership-1', '$WORKSPACE_ID', :principalId, :principalType, 'ACTIVE')",
+            """
+            INSERT INTO workspace_memberships (id, workspace_id, principal_id, principal_type, status)
+            VALUES ('membership-1', '$WORKSPACE_ID', :principalId, :principalType, 'ACTIVE')
+            """.trimIndent(),
         )
             .bind("principalId", principalId)
             .bind("principalType", principalType)
@@ -464,7 +520,10 @@ class BddDatabaseSupport(
         ).fetch().rowsUpdated().awaitSingle()
         if (entitled) {
             databaseClient.sql(
-                "INSERT INTO workspace_entitlements (id, workspace_id, entitlement_key, enabled) VALUES ('entitlement-1', '$WORKSPACE_ID', '$WORKSPACE_ACCESS_ENTITLEMENT', TRUE)",
+                """
+                INSERT INTO workspace_entitlements (id, workspace_id, entitlement_key, enabled)
+                VALUES ('entitlement-1', '$WORKSPACE_ID', '$WORKSPACE_ACCESS_ENTITLEMENT', TRUE)
+                """.trimIndent(),
             ).fetch().rowsUpdated().awaitSingle()
         }
     }
