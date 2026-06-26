@@ -19,12 +19,7 @@ class InMemoryFakeStorage(
     val uploadedMetadata = mutableMapOf<String, Map<String, String>>()
     private val objects = mutableMapOf<String, ByteArray>()
 
-    override suspend fun upload(
-        bucket: String,
-        key: String,
-        content: Flow<ByteArray>,
-        metadata: Map<String, String>,
-    ) {
+    override suspend fun upload(bucket: String, key: String, content: Flow<ByteArray>, metadata: Map<String, String>) {
         if (failUpload) throw StorageServiceException("Simulated upload failure")
         uploadedKeys += key
         uploadedMetadata[key] = metadata
@@ -47,11 +42,11 @@ class InMemoryFakeStorage(
         objects.remove("$bucket/$key")
     }
 
-    override suspend fun list(bucket: String, prefix: String): List<String> =
-        objects.keys.filter { it.startsWith("$bucket/$prefix") }
+    override suspend fun list(bucket: String, prefix: String): List<String> = objects.keys.filter {
+        it.startsWith("$bucket/$prefix")
+    }
 
-    override suspend fun exists(bucket: String, key: String): Boolean =
-        objects.containsKey("$bucket/$key")
+    override suspend fun exists(bucket: String, key: String): Boolean = objects.containsKey("$bucket/$key")
 
     override suspend fun copyObject(bucket: String, sourceKey: String, destKey: String) {
         val sourcePath = "$bucket/$sourceKey"

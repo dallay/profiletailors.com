@@ -64,40 +64,26 @@ data class UploadAssetResult(
     val createdAt: String,
 )
 
-data class DeleteWorkspaceAssetCommand(
-    val assetId: String,
-    val workspaceId: String,
-) : CommandWithResult<DeleteWorkspaceAssetResult>
+data class DeleteWorkspaceAssetCommand(val assetId: String, val workspaceId: String) :
+    CommandWithResult<DeleteWorkspaceAssetResult>
 
-data class DeleteWorkspaceAssetResult(
-    val assetId: String,
-    val workspaceId: String,
-    val deleted: Boolean,
-)
+data class DeleteWorkspaceAssetResult(val assetId: String, val workspaceId: String, val deleted: Boolean)
 
 /**
  * Command to transition a stale PROCESSING asset to FAILED.
  */
-data class TransitionStaleAssetCommand(
-    val assetId: String,
-    val workspaceId: String,
-)
+data class TransitionStaleAssetCommand(val assetId: String, val workspaceId: String)
 
 /**
  * Exception thrown when an asset is not ready for use.
  */
-class AssetNotReadyException(
-    val assetId: String,
-    val reason: String,
-) : RuntimeException("Asset $assetId is not ready: $reason")
+class AssetNotReadyException(val assetId: String, val reason: String) :
+    RuntimeException("Asset $assetId is not ready: $reason")
 
 /**
  * Exception thrown when the media context is unavailable.
  */
-class MediaServiceUnavailableException(
-    message: String,
-    cause: Throwable? = null,
-) : RuntimeException(message, cause)
+class MediaServiceUnavailableException(message: String, cause: Throwable? = null) : RuntimeException(message, cause)
 
 // ── PUT Asset (CAS dedup) ──────────────────────────────────────────────
 
@@ -154,19 +140,13 @@ sealed class PutAssetResult {
     /**
      * Hash mismatch: assetId exists but with a different fileHash.
      */
-    data class HashMismatch(
-        val assetId: String,
-        val existingFileHash: String,
-    ) : PutAssetResult()
+    data class HashMismatch(val assetId: String, val existingFileHash: String) : PutAssetResult()
 
     /**
      * Blob is currently being uploaded by another request.
      * Client should poll after retryAfterSeconds.
      */
-    data class WaitingForBlob(
-        val assetId: String,
-        val retryAfterSeconds: Int,
-    ) : PutAssetResult()
+    data class WaitingForBlob(val assetId: String, val retryAfterSeconds: Int) : PutAssetResult()
 }
 
 // ── Legacy Upload (multipart, kept for backward compatibility) ─────────────────
@@ -242,13 +222,9 @@ sealed class CasUploadAssetResult {
         val createdAt: String,
     ) : CasUploadAssetResult()
 
-    data class UploadInProgress(
-        val assetId: String,
-    ) : CasUploadAssetResult()
+    data class UploadInProgress(val assetId: String) : CasUploadAssetResult()
 
-    data class NotFound(
-        val assetId: String,
-    ) : CasUploadAssetResult()
+    data class NotFound(val assetId: String) : CasUploadAssetResult()
 }
 
 // ── Delete Asset (CAS soft-delete) ──────────────────────────────────────
@@ -256,18 +232,12 @@ sealed class CasUploadAssetResult {
 /**
  * Command to soft-delete a media asset and potentially schedule its blob for GC.
  */
-data class DeleteAssetCommand(
-    val assetId: String,
-    val workspaceId: String,
-) : CommandWithResult<DeleteAssetResult>
+data class DeleteAssetCommand(val assetId: String, val workspaceId: String) : CommandWithResult<DeleteAssetResult>
 
 /**
  * Result of a delete asset operation.
  */
-data class DeleteAssetResult(
-    val deleted: Boolean,
-    val blobScheduledForGC: Boolean,
-)
+data class DeleteAssetResult(val deleted: Boolean, val blobScheduledForGC: Boolean)
 
 data class MediaUploadSettings(
     val maxConcurrentUploads: Int,
@@ -317,18 +287,14 @@ class UnsupportedMediaTypeException(
 /**
  * Exception thrown when upload conflict is detected.
  */
-class UploadConflictException(
-    val assetId: String,
-    val currentStatus: String,
-) : RuntimeException("Asset $assetId is already $currentStatus and cannot be re-uploaded.")
+class UploadConflictException(val assetId: String, val currentStatus: String) :
+    RuntimeException("Asset $assetId is already $currentStatus and cannot be re-uploaded.")
 
 /**
  * Exception thrown when an upload is already in progress.
  */
-class UploadInProgressException(
-    val assetId: String,
-    val currentStatus: String,
-) : RuntimeException("Asset $assetId already has an upload in progress.")
+class UploadInProgressException(val assetId: String, val currentStatus: String) :
+    RuntimeException("Asset $assetId already has an upload in progress.")
 
 /**
  * Exception thrown when a rate limit is exceeded.
@@ -344,21 +310,15 @@ class RateLimitExceededException(
 /**
  * Exception thrown when a pagination cursor is invalid.
  */
-class InvalidCursorException(
-    message: String,
-) : RuntimeException(message)
+class InvalidCursorException(message: String) : RuntimeException(message)
 
 /**
  * Exception thrown when an asset is not found (cross-workspace or missing).
  */
-class AssetNotFoundException(
-    val assetId: String,
-) : RuntimeException("Asset $assetId not found")
+class AssetNotFoundException(val assetId: String) : RuntimeException("Asset $assetId not found")
 
 /**
  * Exception thrown when file size exceeds the limit during streaming.
  */
-class FileTooLargeException(
-    val actualSize: Long,
-    val maxAllowed: Long,
-) : RuntimeException("File size $actualSize exceeds max $maxAllowed")
+class FileTooLargeException(val actualSize: Long, val maxAllowed: Long) :
+    RuntimeException("File size $actualSize exceeds max $maxAllowed")

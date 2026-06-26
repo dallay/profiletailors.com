@@ -2,20 +2,20 @@ package com.profiletailors.storage
 
 import com.profiletailors.common.domain.bus.event.BaseDomainEvent
 import com.profiletailors.common.domain.bus.event.EventPublisher
+import com.profiletailors.ratelimit.domain.RateLimitResult
+import com.profiletailors.ratelimit.domain.RateLimiter
 import com.profiletailors.storage.application.GeneratePresignedUrlUseCase
 import com.profiletailors.storage.domain.PresignableStorage
 import com.profiletailors.storage.domain.RateLimitExceededException
 import com.profiletailors.storage.domain.StorageObjectNotFoundException
 import com.profiletailors.storage.domain.StorageObservation
-import com.profiletailors.ratelimit.domain.RateLimitResult
-import com.profiletailors.ratelimit.domain.RateLimiter
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.flowOf
+import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.test.runTest
 import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.assertThrows
-import kotlinx.coroutines.runBlocking
 
 /**
  * Test implementation of StorageObservation that avoids infrastructure coupling.
@@ -30,7 +30,7 @@ class TestStorageMetrics : StorageObservation {
     override suspend fun <T : Any> recordOperationTime(
         operation: String,
         provider: String,
-        action: suspend () -> T
+        action: suspend () -> T,
     ): T = action()
 }
 
@@ -43,21 +43,16 @@ class TestStorageMetrics : StorageObservation {
 class MockPresignableStorage : PresignableStorage {
     private val storage = mutableMapOf<String, ByteArray>()
 
-    override suspend fun upload(
-        bucket: String,
-        key: String,
-        content: Flow<ByteArray>,
-        metadata: Map<String, String>
-    ) {
-        val key_ = "$bucket:$key"
+    override suspend fun upload(bucket: String, key: String, content: Flow<ByteArray>, metadata: Map<String, String>) {
+        val storageKey = "$bucket:$key"
         val bytes = mutableListOf<ByteArray>()
         content.collect { bytes.add(it) }
-        storage[key_] = if (bytes.isEmpty()) ByteArray(0) else bytes.reduce { acc, b -> acc + b }
+        storage[storageKey] = if (bytes.isEmpty()) ByteArray(0) else bytes.reduce { acc, b -> acc + b }
     }
 
     override fun download(bucket: String, key: String): Flow<ByteArray> {
-        val key_ = "$bucket:$key"
-        val content = storage[key_]
+        val storageKey = "$bucket:$key"
+        val content = storage[storageKey]
             ?: throw StorageObjectNotFoundException(bucket, key)
         return kotlinx.coroutines.flow.flowOf(content)
     }
@@ -67,27 +62,25 @@ class MockPresignableStorage : PresignableStorage {
     }
 
     override suspend fun list(bucket: String, prefix: String): List<String> {
-        val prefix_ = "$bucket:$prefix"
+        val keyPrefix = "$bucket:$prefix"
         return storage.keys
-            .filter { it.startsWith(prefix_) }
+            .filter { it.startsWith(keyPrefix) }
             .map { it.removePrefix("$bucket:") }
     }
 
     override suspend fun presignGet(bucket: String, key: String, expirySeconds: Long): String {
-        val key_ = "$bucket:$key"
-        if (!storage.containsKey(key_)) {
+        val storageKey = "$bucket:$key"
+        if (!storage.containsKey(storageKey)) {
             throw StorageObjectNotFoundException(bucket, key)
         }
         return "https://mock-storage.example.com/$bucket/$key?expiry=$expirySeconds&signature=mock"
     }
 
-    override suspend fun exists(bucket: String, key: String): Boolean {
-        return storage.containsKey("$bucket:$key")
-    }
+    override suspend fun exists(bucket: String, key: String): Boolean = storage.containsKey("$bucket:$key")
 
     override suspend fun copyObject(bucket: String, sourceKey: String, destKey: String) {
-        val sourceKey_ = "$bucket:$sourceKey"
-        val data = storage[sourceKey_] ?: throw StorageObjectNotFoundException(bucket, sourceKey)
+        val sourceStorageKey = "$bucket:$sourceKey"
+        val data = storage[sourceStorageKey] ?: throw StorageObjectNotFoundException(bucket, sourceKey)
         storage["$bucket:$destKey"] = data
     }
 }
@@ -96,22 +89,40 @@ class MockPresignableStorage : PresignableStorage {
  * Mock [RateLimiter] that always allows requests (no rate limiting in tests).
  */
 class MockRateLimiter : RateLimiter {
-    override suspend fun consumeToken(identifier: String): RateLimitResult =
-        RateLimitResult.Allowed(remainingTokens = 100, limitCapacity = 100, resetTime = java.time.Instant.now().plusSeconds(3600))
+    override suspend fun consumeToken(identifier: String): RateLimitResult = RateLimitResult.Allowed(
+        remainingTokens = 100,
+        limitCapacity = 100,
+        resetTime = java.time.Instant.now().plusSeconds(3600),
+    )
 
-    override suspend fun consumeToken(identifier: String, strategy: com.profiletailors.ratelimit.domain.RateLimitStrategy): RateLimitResult =
-        RateLimitResult.Allowed(remainingTokens = 100, limitCapacity = 100, resetTime = java.time.Instant.now().plusSeconds(3600))
+    override suspend fun consumeToken(
+        identifier: String,
+        strategy: com.profiletailors.ratelimit.domain.RateLimitStrategy,
+    ): RateLimitResult = RateLimitResult.Allowed(
+        remainingTokens = 100,
+        limitCapacity = 100,
+        resetTime = java.time.Instant.now().plusSeconds(3600),
+    )
 }
 
 /**
  * Mock [RateLimiter] that always denies with rate limit exceeded.
  */
 class MockRateLimiterDenied : RateLimiter {
-    override suspend fun consumeToken(identifier: String): RateLimitResult =
-        RateLimitResult.Denied(retryAfter = java.time.Duration.ofSeconds(30), limitCapacity = 100, windowDuration = java.time.Duration.ofMinutes(1))
+    override suspend fun consumeToken(identifier: String): RateLimitResult = RateLimitResult.Denied(
+        retryAfter = java.time.Duration.ofSeconds(30),
+        limitCapacity = 100,
+        windowDuration = java.time.Duration.ofMinutes(1),
+    )
 
-    override suspend fun consumeToken(identifier: String, strategy: com.profiletailors.ratelimit.domain.RateLimitStrategy): RateLimitResult =
-        RateLimitResult.Denied(retryAfter = java.time.Duration.ofSeconds(30), limitCapacity = 100, windowDuration = java.time.Duration.ofMinutes(1))
+    override suspend fun consumeToken(
+        identifier: String,
+        strategy: com.profiletailors.ratelimit.domain.RateLimitStrategy,
+    ): RateLimitResult = RateLimitResult.Denied(
+        retryAfter = java.time.Duration.ofSeconds(30),
+        limitCapacity = 100,
+        windowDuration = java.time.Duration.ofMinutes(1),
+    )
 }
 
 class GeneratePresignedUrlUseCaseTest {
@@ -125,7 +136,8 @@ class GeneratePresignedUrlUseCaseTest {
         val storage = MockPresignableStorage()
         val eventPublisher = createMockEventPublisher()
         val metrics = TestStorageMetrics()
-        val useCase = GeneratePresignedUrlUseCase(storage, eventPublisher, metrics, MockRateLimiter(), maxExpirySeconds = 3600)
+        val useCase =
+            GeneratePresignedUrlUseCase(storage, eventPublisher, metrics, MockRateLimiter(), maxExpirySeconds = 3600)
 
         val bucket = "test-bucket"
         val key = "test.txt"
@@ -142,7 +154,8 @@ class GeneratePresignedUrlUseCaseTest {
         val storage = MockPresignableStorage()
         val eventPublisher = createMockEventPublisher()
         val metrics = TestStorageMetrics()
-        val useCase = GeneratePresignedUrlUseCase(storage, eventPublisher, metrics, MockRateLimiter(), maxExpirySeconds = 3600)
+        val useCase =
+            GeneratePresignedUrlUseCase(storage, eventPublisher, metrics, MockRateLimiter(), maxExpirySeconds = 3600)
 
         assertThrows<IllegalArgumentException> {
             runBlocking {
@@ -156,7 +169,8 @@ class GeneratePresignedUrlUseCaseTest {
         val storage = MockPresignableStorage()
         val eventPublisher = createMockEventPublisher()
         val metrics = TestStorageMetrics()
-        val useCase = GeneratePresignedUrlUseCase(storage, eventPublisher, metrics, MockRateLimiter(), maxExpirySeconds = 3600)
+        val useCase =
+            GeneratePresignedUrlUseCase(storage, eventPublisher, metrics, MockRateLimiter(), maxExpirySeconds = 3600)
 
         assertThrows<IllegalArgumentException> {
             runBlocking {
@@ -170,7 +184,8 @@ class GeneratePresignedUrlUseCaseTest {
         val storage = MockPresignableStorage()
         val eventPublisher = createMockEventPublisher()
         val metrics = TestStorageMetrics()
-        val useCase = GeneratePresignedUrlUseCase(storage, eventPublisher, metrics, MockRateLimiter(), maxExpirySeconds = 3600)
+        val useCase =
+            GeneratePresignedUrlUseCase(storage, eventPublisher, metrics, MockRateLimiter(), maxExpirySeconds = 3600)
 
         assertThrows<IllegalArgumentException> {
             runBlocking {
@@ -184,7 +199,8 @@ class GeneratePresignedUrlUseCaseTest {
         val storage = MockPresignableStorage()
         val eventPublisher = createMockEventPublisher()
         val metrics = TestStorageMetrics()
-        val useCase = GeneratePresignedUrlUseCase(storage, eventPublisher, metrics, MockRateLimiter(), maxExpirySeconds = 3600)
+        val useCase =
+            GeneratePresignedUrlUseCase(storage, eventPublisher, metrics, MockRateLimiter(), maxExpirySeconds = 3600)
 
         val bucket = "test-bucket"
         val key = "test.txt"
@@ -199,7 +215,8 @@ class GeneratePresignedUrlUseCaseTest {
         val storage = MockPresignableStorage()
         val eventPublisher = createMockEventPublisher()
         val metrics = TestStorageMetrics()
-        val useCase = GeneratePresignedUrlUseCase(storage, eventPublisher, metrics, MockRateLimiter(), maxExpirySeconds = 3600)
+        val useCase =
+            GeneratePresignedUrlUseCase(storage, eventPublisher, metrics, MockRateLimiter(), maxExpirySeconds = 3600)
 
         val exception = assertThrows<Exception> {
             runBlocking {
@@ -221,7 +238,14 @@ class GeneratePresignedUrlUseCaseTest {
         val storage = MockPresignableStorage()
         val eventPublisher = createMockEventPublisher()
         val metrics = TestStorageMetrics()
-        val useCase = GeneratePresignedUrlUseCase(storage, eventPublisher, metrics, MockRateLimiterDenied(), maxExpirySeconds = 3600)
+        val useCase =
+            GeneratePresignedUrlUseCase(
+                storage,
+                eventPublisher,
+                metrics,
+                MockRateLimiterDenied(),
+                maxExpirySeconds = 3600,
+            )
 
         val exception = assertThrows<RateLimitExceededException> {
             runBlocking {

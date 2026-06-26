@@ -1,9 +1,11 @@
 package com.profiletailors.smp.publishing.infrastructure.http
 
 import com.profiletailors.common.domain.bus.Mediator
+import com.profiletailors.common.domain.context.ResourceContextProvider
 import com.profiletailors.smp.publishing.application.CalendarResponse
 import com.profiletailors.smp.publishing.application.CancelPublicationCommand
 import com.profiletailors.smp.publishing.application.CompleteLinkedInConnectionCommand
+import com.profiletailors.smp.publishing.application.ConnectedChannelsResponse
 import com.profiletailors.smp.publishing.application.CreatePublicationCommand
 import com.profiletailors.smp.publishing.application.DeletePublicationCommand
 import com.profiletailors.smp.publishing.application.EditPublicationCommand
@@ -11,14 +13,12 @@ import com.profiletailors.smp.publishing.application.GetCalendarPublicationsQuer
 import com.profiletailors.smp.publishing.application.InitiateLinkedInConnectionCommand
 import com.profiletailors.smp.publishing.application.LinkedInConnectionInitiationResult
 import com.profiletailors.smp.publishing.application.ListConnectedChannelsQuery
-import com.profiletailors.smp.publishing.application.ConnectedChannelsResponse
 import com.profiletailors.smp.publishing.application.ListPublicationsQuery
 import com.profiletailors.smp.publishing.application.ListPublicationsResponse
 import com.profiletailors.smp.publishing.application.PublicationResult
 import com.profiletailors.smp.publishing.application.ReschedulePublicationCommand
 import com.profiletailors.smp.publishing.application.RetryPublicationCommand
 import com.profiletailors.smp.publishing.application.SocialConnectionResult
-import com.profiletailors.common.domain.context.ResourceContextProvider
 import com.profiletailors.smp.publishing.domain.ChannelEvent
 import com.profiletailors.smp.publishing.domain.ChannelEventType
 import com.profiletailors.smp.publishing.domain.PublicationStatus
@@ -40,7 +40,6 @@ import org.springframework.http.codec.ServerSentEvent
 import org.springframework.validation.annotation.Validated
 import org.springframework.web.bind.annotation.DeleteMapping
 import org.springframework.web.bind.annotation.GetMapping
-import org.springframework.web.server.ResponseStatusException
 import org.springframework.web.bind.annotation.PatchMapping
 import org.springframework.web.bind.annotation.PathVariable
 import org.springframework.web.bind.annotation.PostMapping
@@ -48,6 +47,7 @@ import org.springframework.web.bind.annotation.RequestBody
 import org.springframework.web.bind.annotation.RequestMapping
 import org.springframework.web.bind.annotation.RequestParam
 import org.springframework.web.bind.annotation.RestController
+import org.springframework.web.server.ResponseStatusException
 import reactor.core.publisher.Flux
 import java.time.DateTimeException
 import java.time.Duration
@@ -58,9 +58,7 @@ import java.time.ZoneId
 @RestController
 @RequestMapping(value = ["/api/publishing/linkedin/connections"])
 @Tag(name = "Publishing Connections", description = "Social publishing connection endpoints")
-class PublishingConnectionController(
-    private val mediator: Mediator,
-) {
+class PublishingConnectionController(private val mediator: Mediator) {
     @Operation(summary = "Initiate LinkedIn profile connection")
     @PostMapping("/initiate", consumes = ["application/json"], version = "1")
     suspend fun initiateLinkedInConnection(
@@ -157,25 +155,22 @@ private fun ChannelEventType.eventName(): String = when (this) {
 @RestController
 @RequestMapping(value = ["/api/publishing/publications"])
 @Tag(name = "Publishing Publications", description = "Social publication lifecycle endpoints")
-class PublishingPublicationController(
-    private val mediator: Mediator,
-) {
+class PublishingPublicationController(private val mediator: Mediator) {
     @Operation(summary = "Create a publication")
     @PostMapping(consumes = ["application/json"], version = "1")
-    suspend fun createPublication(
-        @Valid @RequestBody request: PublicationUpsertRequest,
-    ): PublicationResult = mediator.send(
-        CreatePublicationCommand(
-            socialAccountId = request.socialAccountId,
-            title = request.title,
-            bodyText = request.bodyText,
-            assetIds = request.assetIds,
-            scheduleMode = request.toScheduleMode(),
-            scheduledFor = request.scheduledFor,
-            nextSlotAfter = request.nextSlotAfter,
-            priority = request.priority,
-        ),
-    )
+    suspend fun createPublication(@Valid @RequestBody request: PublicationUpsertRequest): PublicationResult =
+        mediator.send(
+            CreatePublicationCommand(
+                socialAccountId = request.socialAccountId,
+                title = request.title,
+                bodyText = request.bodyText,
+                assetIds = request.assetIds,
+                scheduleMode = request.toScheduleMode(),
+                scheduledFor = request.scheduledFor,
+                nextSlotAfter = request.nextSlotAfter,
+                priority = request.priority,
+            ),
+        )
 
     @Operation(summary = "Edit a publication before delivery")
     @PatchMapping("/{publicationId}", consumes = ["application/json"], version = "1")
@@ -198,15 +193,13 @@ class PublishingPublicationController(
 
     @Operation(summary = "Cancel a queued or scheduled publication")
     @PostMapping("/{publicationId}/cancel", version = "1")
-    suspend fun cancelPublication(
-        @PathVariable publicationId: String,
-    ): PublicationResult = mediator.send(CancelPublicationCommand(publicationId))
+    suspend fun cancelPublication(@PathVariable publicationId: String): PublicationResult =
+        mediator.send(CancelPublicationCommand(publicationId))
 
     @Operation(summary = "Delete an unpublished publication")
     @DeleteMapping("/{publicationId}", version = "1")
-    suspend fun deletePublication(
-        @PathVariable publicationId: String,
-    ): PublicationResult = mediator.send(DeletePublicationCommand(publicationId))
+    suspend fun deletePublication(@PathVariable publicationId: String): PublicationResult =
+        mediator.send(DeletePublicationCommand(publicationId))
 
     @Operation(summary = "Retry a failed publication")
     @PostMapping("/{publicationId}/retry", consumes = ["application/json"], version = "1")
@@ -254,19 +247,18 @@ class PublishingPublicationController(
 
     @Operation(summary = "Quick-create a scheduled publication")
     @PostMapping("/quick-create", consumes = ["application/json"], version = "1")
-    suspend fun quickCreatePublication(
-        @Valid @RequestBody request: QuickCreateRequest,
-    ): PublicationResult = mediator.send(
-        CreatePublicationCommand(
-            socialAccountId = request.socialAccountId,
-            title = request.title,
-            bodyText = request.bodyText,
-            scheduleMode = ScheduleMode.SCHEDULED_AT,
-            scheduledFor = request.scheduledFor,
-            assetIds = emptyList(),
-            priority = request.priority,
-        ),
-    )
+    suspend fun quickCreatePublication(@Valid @RequestBody request: QuickCreateRequest): PublicationResult =
+        mediator.send(
+            CreatePublicationCommand(
+                socialAccountId = request.socialAccountId,
+                title = request.title,
+                bodyText = request.bodyText,
+                scheduleMode = ScheduleMode.SCHEDULED_AT,
+                scheduledFor = request.scheduledFor,
+                assetIds = emptyList(),
+                priority = request.priority,
+            ),
+        )
 
     @Operation(summary = "Reschedule an editable publication (PATCH)")
     @PatchMapping("/{publicationId}/reschedule", consumes = ["application/json"], version = "1")
@@ -368,18 +360,12 @@ data class PublicationRescheduleRequest(
     val nextSlotAfter: Instant? = null,
     val priority: Boolean? = null,
 ) {
-    fun requiredScheduleMode(): ScheduleMode =
-        scheduleMode?.let(ScheduleMode::valueOf)
-            ?: throw IllegalArgumentException("scheduleMode is required for reschedule.")
+    fun requiredScheduleMode(): ScheduleMode = scheduleMode?.let(ScheduleMode::valueOf)
+        ?: throw IllegalArgumentException("scheduleMode is required for reschedule.")
 }
 
 @Schema(description = "List of configured publishing providers")
-data class ConfiguredProvidersResponse(
-    val providers: List<ConfiguredProvider>,
-)
+data class ConfiguredProvidersResponse(val providers: List<ConfiguredProvider>)
 
 @Schema(description = "A configured publishing provider")
-data class ConfiguredProvider(
-    val name: String,
-    val configured: Boolean,
-)
+data class ConfiguredProvider(val name: String, val configured: Boolean)

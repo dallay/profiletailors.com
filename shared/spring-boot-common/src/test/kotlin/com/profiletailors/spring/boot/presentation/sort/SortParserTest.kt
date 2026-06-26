@@ -2,11 +2,11 @@ package com.profiletailors.spring.boot.presentation.sort
 
 import com.profiletailors.common.domain.presentation.SortInvalidException
 import com.profiletailors.common.domain.presentation.sort.Direction
+import org.springframework.data.relational.core.mapping.Column
+import tools.jackson.module.kotlin.jsonMapper
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFailsWith
-import org.springframework.data.relational.core.mapping.Column
-import tools.jackson.module.kotlin.jsonMapper
 
 class SortParserTest {
 

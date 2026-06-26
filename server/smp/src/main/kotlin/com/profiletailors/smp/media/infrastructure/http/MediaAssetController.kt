@@ -1,28 +1,29 @@
 package com.profiletailors.smp.media.infrastructure.http
 
 import com.profiletailors.common.domain.bus.Mediator
+import com.profiletailors.common.domain.context.ResourceContextProvider
+import com.profiletailors.smp.media.application.CasUploadAssetCommand
+import com.profiletailors.smp.media.application.CasUploadAssetResult
 import com.profiletailors.smp.media.application.CreateUploadedAssetCommand
 import com.profiletailors.smp.media.application.DeleteAssetCommand
 import com.profiletailors.smp.media.application.DeleteWorkspaceAssetCommand
 import com.profiletailors.smp.media.application.GetWorkspaceAssetQuery
+import com.profiletailors.smp.media.application.LegacyUploadAssetCommand
 import com.profiletailors.smp.media.application.ListWorkspaceAssetsQuery
 import com.profiletailors.smp.media.application.MediaAssetSummary
 import com.profiletailors.smp.media.application.PutAssetCommand
 import com.profiletailors.smp.media.application.PutAssetResult
-import com.profiletailors.smp.media.application.CasUploadAssetCommand
-import com.profiletailors.smp.media.application.CasUploadAssetResult
-import com.profiletailors.smp.media.application.LegacyUploadAssetCommand
-import com.profiletailors.smp.media.application.LegacyUploadAssetResult
 import com.profiletailors.smp.media.domain.MediaAssetStatus
 import com.profiletailors.smp.media.domain.MediaSourceType
 import com.profiletailors.smp.tenancy.application.requireWorkspaceContext
-import com.profiletailors.common.domain.context.ResourceContextProvider
+import com.profiletailors.storage.infrastructure.asFlow
 import io.swagger.v3.oas.annotations.Operation
 import io.swagger.v3.oas.annotations.Parameter
 import io.swagger.v3.oas.annotations.media.Content
 import io.swagger.v3.oas.annotations.media.Schema
 import io.swagger.v3.oas.annotations.responses.ApiResponse
 import io.swagger.v3.oas.annotations.tags.Tag
+import jakarta.validation.Valid
 import jakarta.validation.constraints.Max
 import jakarta.validation.constraints.Min
 import org.slf4j.LoggerFactory
@@ -40,9 +41,7 @@ import org.springframework.web.bind.annotation.RequestMapping
 import org.springframework.web.bind.annotation.RequestParam
 import org.springframework.web.bind.annotation.RequestPart
 import org.springframework.web.bind.annotation.RestController
-import jakarta.validation.Valid
 import org.springframework.web.server.ResponseStatusException
-import com.profiletailors.storage.infrastructure.asFlow
 import reactor.core.publisher.Flux
 
 private val logger = LoggerFactory.getLogger(MediaAssetController::class.java)
@@ -122,6 +121,7 @@ class MediaAssetController(
                     ),
                 )
             }
+
             is PutAssetResult.AlreadyExists -> {
                 ResponseEntity.ok(
                     mapOf(
@@ -134,6 +134,7 @@ class MediaAssetController(
                     ),
                 )
             }
+
             is PutAssetResult.WaitingForBlob -> {
                 ResponseEntity.status(HttpStatus.ACCEPTED)
                     .header("Retry-After", result.retryAfterSeconds.toString())
@@ -145,6 +146,7 @@ class MediaAssetController(
                         ),
                     )
             }
+
             is PutAssetResult.HashMismatch -> {
                 ResponseEntity.status(HttpStatus.CONFLICT).body(
                     MediaErrorResponse(
@@ -233,12 +235,14 @@ class MediaAssetController(
                     createdAt = result.createdAt,
                 )
             }
+
             is CasUploadAssetResult.UploadInProgress -> {
                 throw ResponseStatusException(
                     HttpStatus.CONFLICT,
                     "An upload is already in progress for this asset",
                 )
             }
+
             is CasUploadAssetResult.NotFound -> {
                 throw ResponseStatusException(
                     HttpStatus.NOT_FOUND,
@@ -292,9 +296,7 @@ class MediaAssetController(
         ],
     )
     @PostMapping(consumes = [MediaType.APPLICATION_JSON_VALUE], version = "1")
-    suspend fun createAsset(
-        @Valid @RequestBody request: CreateMediaAssetRequest,
-    ): MediaAssetResponse {
+    suspend fun createAsset(@Valid @RequestBody request: CreateMediaAssetRequest): MediaAssetResponse {
         val workspaceContext = resourceContextProvider.requireWorkspaceContext()
         val workspaceId = workspaceContext.workspaceId!!
 
@@ -434,8 +436,11 @@ class MediaAssetController(
             .map { it.trim().uppercase() }
             .filter { it.isNotBlank() }
             .mapNotNull {
-                try { MediaAssetStatus.valueOf(it) }
-                catch (_: IllegalArgumentException) { null }
+                try {
+                    MediaAssetStatus.valueOf(it)
+                } catch (_: IllegalArgumentException) {
+                    null
+                }
             }
             .toSet()
             .ifEmpty { setOf(MediaAssetStatus.READY) }

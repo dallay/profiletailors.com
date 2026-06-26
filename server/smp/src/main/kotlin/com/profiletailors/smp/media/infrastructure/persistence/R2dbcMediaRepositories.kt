@@ -11,10 +11,8 @@ import com.profiletailors.smp.media.domain.MediaAssetStatus
 import com.profiletailors.smp.media.domain.MediaSourceType
 import com.profiletailors.smp.media.domain.WorkspaceFileBlob
 import io.r2dbc.spi.Readable
-import io.r2dbc.spi.Row
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
-import kotlinx.coroutines.flow.toList
 import kotlinx.coroutines.reactive.asFlow
 import kotlinx.coroutines.reactor.awaitSingle
 import kotlinx.coroutines.reactor.awaitSingleOrNull
@@ -27,9 +25,7 @@ import java.time.ZoneOffset
 import java.util.Base64
 
 @Repository
-class R2dbcMediaAssetRepository(
-    private val databaseClient: DatabaseClient,
-) : MediaAssetRepository {
+class R2dbcMediaAssetRepository(private val databaseClient: DatabaseClient) : MediaAssetRepository {
 
     override suspend fun create(asset: MediaAsset): MediaAsset {
         databaseClient.sql(
@@ -58,30 +54,31 @@ class R2dbcMediaAssetRepository(
             .bind("failureReason", asset.failureReason)
             .bind("uploadStartedAt", asset.uploadStartedAt?.let { OffsetDateTime.ofInstant(it, ZoneOffset.UTC) })
             .bind("createdAt", OffsetDateTime.ofInstant(asset.createdAt, ZoneOffset.UTC))
-            .bind("updatedAt", asset.updatedAt?.let { OffsetDateTime.ofInstant(it, ZoneOffset.UTC) }
-                ?: OffsetDateTime.ofInstant(asset.createdAt, ZoneOffset.UTC))
+            .bind(
+                "updatedAt",
+                asset.updatedAt?.let { OffsetDateTime.ofInstant(it, ZoneOffset.UTC) }
+                    ?: OffsetDateTime.ofInstant(asset.createdAt, ZoneOffset.UTC),
+            )
             .then()
             .awaitSingleOrNull()
 
         return asset
     }
 
-    override suspend fun findByWorkspaceAndId(workspaceId: String, assetId: String): MediaAsset? {
-        return databaseClient.sql(
-            """
+    override suspend fun findByWorkspaceAndId(workspaceId: String, assetId: String): MediaAsset? = databaseClient.sql(
+        """
             SELECT asset_id, workspace_id, source_type, file_hash, media_type, storage_key,
                    detected_media_type, original_filename, file_size_bytes, status,
                    failure_reason, upload_started_at, created_at, updated_at
             FROM media_assets
             WHERE workspace_id = :workspaceId AND asset_id = :assetId
-            """.trimIndent(),
-        )
-            .bind("workspaceId", workspaceId)
-            .bind("assetId", assetId)
-            .map { row, _ -> rowToMediaAsset(row) }
-            .one()
-            .awaitSingleOrNull()
-    }
+        """.trimIndent(),
+    )
+        .bind("workspaceId", workspaceId)
+        .bind("assetId", assetId)
+        .map { row, _ -> rowToMediaAsset(row) }
+        .one()
+        .awaitSingleOrNull()
 
     override suspend fun findByWorkspaceAndIds(workspaceId: String, assetIds: List<String>): List<MediaAsset> {
         if (assetIds.isEmpty()) return emptyList()
@@ -302,10 +299,7 @@ class R2dbcMediaAssetRepository(
         return findByWorkspaceAndId(workspaceId, assetId)
     }
 
-    override suspend fun findStaleProcessingAssets(
-        thresholdHours: Long,
-        gracePeriodMinutes: Long,
-    ): List<MediaAsset> {
+    override suspend fun findStaleProcessingAssets(thresholdHours: Long, gracePeriodMinutes: Long): List<MediaAsset> {
         val threshold = OffsetDateTime.now(ZoneOffset.UTC).minusHours(thresholdHours)
         val graceThreshold = OffsetDateTime.now(ZoneOffset.UTC).minusMinutes(gracePeriodMinutes)
 
@@ -398,47 +392,41 @@ class R2dbcMediaAssetRepository(
             .awaitSingle()
     }
 
-    override suspend fun countActiveReferences(workspaceId: String, fileHash: String): Int {
-        return databaseClient.sql(
-            """
+    override suspend fun countActiveReferences(workspaceId: String, fileHash: String): Int = databaseClient.sql(
+        """
             SELECT COUNT(*) AS cnt
             FROM media_assets
             WHERE workspace_id = :workspaceId
               AND file_hash = :fileHash
               AND status NOT IN ('DELETED', 'FAILED')
-            """.trimIndent(),
-        )
-            .bind("workspaceId", workspaceId)
-            .bind("fileHash", fileHash)
-            .map { row, _ -> row.get("cnt", java.lang.Long::class.java)?.toInt() ?: 0 }
-            .one()
-            .awaitSingle()
-    }
+        """.trimIndent(),
+    )
+        .bind("workspaceId", workspaceId)
+        .bind("fileHash", fileHash)
+        .map { row, _ -> row.get("cnt", java.lang.Long::class.java)?.toInt() ?: 0 }
+        .one()
+        .awaitSingle()
 
-    private fun rowToMediaAsset(row: Readable): MediaAsset {
-        return MediaAsset(
-            assetId = requireNotNull(row.get("asset_id", String::class.java)),
-            workspaceId = requireNotNull(row.get("workspace_id", String::class.java)),
-            sourceType = MediaSourceType.valueOf(requireNotNull(row.get("source_type", String::class.java))),
-            fileHash = row.get("file_hash", String::class.java),
-            mediaType = requireNotNull(row.get("media_type", String::class.java)),
-            storageKey = row.get("storage_key", String::class.java),
-            detectedMediaType = row.get("detected_media_type", String::class.java),
-            originalFilename = row.get("original_filename", String::class.java),
-            fileSizeBytes = row.get("file_size_bytes", java.lang.Long::class.javaObjectType)?.toLong(),
-            status = MediaAssetStatus.valueOf(requireNotNull(row.get("status", String::class.java))),
-            failureReason = row.get("failure_reason", String::class.java),
-            uploadStartedAt = row.get("upload_started_at", OffsetDateTime::class.java)?.toInstant(),
-            createdAt = requireNotNull(row.get("created_at", OffsetDateTime::class.java)).toInstant(),
-            updatedAt = row.get("updated_at", OffsetDateTime::class.java)?.toInstant(),
-        )
-    }
+    private fun rowToMediaAsset(row: Readable): MediaAsset = MediaAsset(
+        assetId = requireNotNull(row.get("asset_id", String::class.java)),
+        workspaceId = requireNotNull(row.get("workspace_id", String::class.java)),
+        sourceType = MediaSourceType.valueOf(requireNotNull(row.get("source_type", String::class.java))),
+        fileHash = row.get("file_hash", String::class.java),
+        mediaType = requireNotNull(row.get("media_type", String::class.java)),
+        storageKey = row.get("storage_key", String::class.java),
+        detectedMediaType = row.get("detected_media_type", String::class.java),
+        originalFilename = row.get("original_filename", String::class.java),
+        fileSizeBytes = row.get("file_size_bytes", java.lang.Long::class.javaObjectType)?.toLong(),
+        status = MediaAssetStatus.valueOf(requireNotNull(row.get("status", String::class.java))),
+        failureReason = row.get("failure_reason", String::class.java),
+        uploadStartedAt = row.get("upload_started_at", OffsetDateTime::class.java)?.toInstant(),
+        createdAt = requireNotNull(row.get("created_at", OffsetDateTime::class.java)).toInstant(),
+        updatedAt = row.get("updated_at", OffsetDateTime::class.java)?.toInstant(),
+    )
 }
 
 @Repository
-class R2dbcWorkspaceFileBlobRepository(
-    private val databaseClient: DatabaseClient,
-) : WorkspaceFileBlobRepository {
+class R2dbcWorkspaceFileBlobRepository(private val databaseClient: DatabaseClient) : WorkspaceFileBlobRepository {
 
     override suspend fun upsertBlob(workspaceId: String, fileHash: String): BlobUpsertResult {
         val inserted = databaseClient.sql(
@@ -467,8 +455,8 @@ class R2dbcWorkspaceFileBlobRepository(
         }
     }
 
-    override suspend fun findByWorkspaceAndHash(workspaceId: String, fileHash: String): WorkspaceFileBlob? {
-        return databaseClient.sql(
+    override suspend fun findByWorkspaceAndHash(workspaceId: String, fileHash: String): WorkspaceFileBlob? =
+        databaseClient.sql(
             """
             SELECT workspace_id, file_hash, storage_key, file_size_bytes, detected_media_type,
                    status, failure_reason, orphaned_at, gc_failure_count, last_gc_attempt_at,
@@ -482,10 +470,9 @@ class R2dbcWorkspaceFileBlobRepository(
             .map { row, _ -> rowToBlob(row) }
             .one()
             .awaitSingleOrNull()
-    }
 
-    override suspend fun findBlobForUpdate(workspaceId: String, fileHash: String): WorkspaceFileBlob? {
-        return databaseClient.sql(
+    override suspend fun findBlobForUpdate(workspaceId: String, fileHash: String): WorkspaceFileBlob? =
+        databaseClient.sql(
             """
             SELECT workspace_id, file_hash, storage_key, file_size_bytes, detected_media_type,
                    status, failure_reason, orphaned_at, gc_failure_count, last_gc_attempt_at,
@@ -500,24 +487,21 @@ class R2dbcWorkspaceFileBlobRepository(
             .map { row, _ -> rowToBlob(row) }
             .one()
             .awaitSingleOrNull()
-    }
 
-    override suspend fun countActiveReferences(workspaceId: String, fileHash: String): Int {
-        return databaseClient.sql(
-            """
+    override suspend fun countActiveReferences(workspaceId: String, fileHash: String): Int = databaseClient.sql(
+        """
             SELECT COUNT(*) AS cnt
             FROM media_assets
             WHERE workspace_id = :workspaceId
               AND file_hash = :fileHash
               AND status NOT IN ('DELETED', 'FAILED')
-            """.trimIndent(),
-        )
-            .bind("workspaceId", workspaceId)
-            .bind("fileHash", fileHash)
-            .map { row, _ -> row.get("cnt", java.lang.Long::class.java)?.toInt() ?: 0 }
-            .one()
-            .awaitSingle()
-    }
+        """.trimIndent(),
+    )
+        .bind("workspaceId", workspaceId)
+        .bind("fileHash", fileHash)
+        .map { row, _ -> row.get("cnt", java.lang.Long::class.java)?.toInt() ?: 0 }
+        .one()
+        .awaitSingle()
 
     override suspend fun markReadyForGC(workspaceId: String, fileHash: String, orphanedAt: Instant) {
         databaseClient.sql(
@@ -552,8 +536,8 @@ class R2dbcWorkspaceFileBlobRepository(
             .awaitSingleOrNull()
     }
 
-    override suspend fun findReadyForGC(threshold: Instant, batchSize: Int): Flow<WorkspaceFileBlob> {
-        return databaseClient.sql(
+    override suspend fun findReadyForGC(threshold: Instant, batchSize: Int): Flow<WorkspaceFileBlob> =
+        databaseClient.sql(
             """
             SELECT workspace_id, file_hash, storage_key, file_size_bytes, detected_media_type,
                    status, failure_reason, orphaned_at, gc_failure_count, last_gc_attempt_at,
@@ -573,7 +557,6 @@ class R2dbcWorkspaceFileBlobRepository(
             .map { row, _ -> rowToBlob(row) }
             .all()
             .asFlow()
-    }
 
     override suspend fun recordGCFailure(workspaceId: String, fileHash: String, failureReason: String) {
         databaseClient.sql(
@@ -659,28 +642,24 @@ class R2dbcWorkspaceFileBlobRepository(
             .awaitSingleOrNull()
     }
 
-    private fun rowToBlob(row: Readable): WorkspaceFileBlob {
-        return WorkspaceFileBlob(
-            workspaceId = requireNotNull(row.get("workspace_id", String::class.java)),
-            fileHash = requireNotNull(row.get("file_hash", String::class.java)),
-            storageKey = row.get("storage_key", String::class.java),
-            fileSizeBytes = row.get("file_size_bytes", java.lang.Long::class.javaObjectType)?.toLong(),
-            detectedMediaType = row.get("detected_media_type", String::class.java),
-            status = BlobStatus.valueOf(requireNotNull(row.get("status", String::class.java))),
-            failureReason = row.get("failure_reason", String::class.java),
-            orphanedAt = row.get("orphaned_at", OffsetDateTime::class.java)?.toInstant(),
-            gcFailureCount = row.get("gc_failure_count", java.lang.Integer::class.javaObjectType)?.toInt() ?: 0,
-            lastGcAttemptAt = row.get("last_gc_attempt_at", OffsetDateTime::class.java)?.toInstant(),
-            createdAt = requireNotNull(row.get("created_at", OffsetDateTime::class.java)).toInstant(),
-            updatedAt = row.get("updated_at", OffsetDateTime::class.java)?.toInstant(),
-        )
-    }
+    private fun rowToBlob(row: Readable): WorkspaceFileBlob = WorkspaceFileBlob(
+        workspaceId = requireNotNull(row.get("workspace_id", String::class.java)),
+        fileHash = requireNotNull(row.get("file_hash", String::class.java)),
+        storageKey = row.get("storage_key", String::class.java),
+        fileSizeBytes = row.get("file_size_bytes", java.lang.Long::class.javaObjectType)?.toLong(),
+        detectedMediaType = row.get("detected_media_type", String::class.java),
+        status = BlobStatus.valueOf(requireNotNull(row.get("status", String::class.java))),
+        failureReason = row.get("failure_reason", String::class.java),
+        orphanedAt = row.get("orphaned_at", OffsetDateTime::class.java)?.toInstant(),
+        gcFailureCount = row.get("gc_failure_count", java.lang.Integer::class.javaObjectType)?.toInt() ?: 0,
+        lastGcAttemptAt = row.get("last_gc_attempt_at", OffsetDateTime::class.java)?.toInstant(),
+        createdAt = requireNotNull(row.get("created_at", OffsetDateTime::class.java)).toInstant(),
+        updatedAt = row.get("updated_at", OffsetDateTime::class.java)?.toInstant(),
+    )
 }
 
 @Repository
-class R2dbcMediaRateLimitRepository(
-    private val databaseClient: DatabaseClient,
-) : MediaRateLimitRepository {
+class R2dbcMediaRateLimitRepository(private val databaseClient: DatabaseClient) : MediaRateLimitRepository {
 
     override suspend fun tryClaimConcurrentUploadSlot(workspaceId: String, maxConcurrent: Int): Boolean {
         databaseClient.sql(

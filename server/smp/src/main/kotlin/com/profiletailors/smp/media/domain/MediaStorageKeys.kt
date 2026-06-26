@@ -78,6 +78,5 @@ object MediaStorageKeys {
      * @param mediaType A MIME type string (e.g. "image/jpeg").
      * @return Extension with leading dot, e.g. ".jpg".
      */
-    fun parseMediaTypeExtension(mediaType: String): String =
-        MIME_TO_EXTENSION[mediaType] ?: ".bin"
+    fun parseMediaTypeExtension(mediaType: String): String = MIME_TO_EXTENSION[mediaType] ?: ".bin"
 }

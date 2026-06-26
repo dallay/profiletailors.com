@@ -12,21 +12,16 @@ import com.profiletailors.smp.media.domain.WorkspaceFileBlob
 import com.profiletailors.storage.application.StorageApplicationService
 import com.profiletailors.storage.domain.StorageException
 import kotlinx.coroutines.TimeoutCancellationException
-import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.flow
-import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.flow.toList
-import kotlinx.coroutines.reactor.awaitSingleOrNull
 import kotlinx.coroutines.withTimeout
 import org.slf4j.LoggerFactory
-import java.nio.ByteBuffer
 import java.security.MessageDigest
 import java.time.Instant
 import java.time.ZoneOffset
 import java.time.format.DateTimeFormatter
 
-private fun ByteArray.toHexString(): String =
-    joinToString("") { "%02x".format(it) }
+private fun ByteArray.toHexString(): String = joinToString("") { "%02x".format(it) }
 
 @Service
 class CreateUploadedAssetHandler(
@@ -127,13 +122,17 @@ class CreateUploadedAssetHandler(
         val extension = filename.substringAfterLast('.', "").lowercase()
         val validExtensions = when (mediaType) {
             "application/msword",
-            "application/vnd.openxmlformats-officedocument.wordprocessingml.document" -> {
+            "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+            -> {
                 WORD_EXTENSIONS
             }
+
             "application/vnd.ms-powerpoint",
-            "application/vnd.openxmlformats-officedocument.presentationml.presentation" -> {
+            "application/vnd.openxmlformats-officedocument.presentationml.presentation",
+            -> {
                 POWERPOINT_EXTENSIONS
             }
+
             else -> emptySet()
         }
 
@@ -249,11 +248,7 @@ class UploadAssetHandler(
         }
     }
 
-    private suspend fun requireUploadableAsset(
-        workspaceId: String,
-        assetId: String,
-        now: Instant,
-    ): MediaAsset {
+    private suspend fun requireUploadableAsset(workspaceId: String, assetId: String, now: Instant): MediaAsset {
         val asset = mediaAssetRepository.findByWorkspaceAndId(workspaceId, assetId)
             ?: throw AssetNotFoundException(assetId)
         validateAssetIsNotReady(assetId, asset)
@@ -267,21 +262,14 @@ class UploadAssetHandler(
         }
     }
 
-    private suspend fun verifyUploadSlotCanBeClaimed(
-        assetId: String,
-        workspaceId: String,
-        now: Instant,
-    ) {
+    private suspend fun verifyUploadSlotCanBeClaimed(assetId: String, workspaceId: String, now: Instant) {
         val claimed = mediaAssetRepository.claimUploadSlot(assetId, workspaceId, now)
         if (!claimed) {
             throw resolveUploadConflict(assetId, workspaceId)
         }
     }
 
-    private suspend fun resolveUploadConflict(
-        assetId: String,
-        workspaceId: String,
-    ): RuntimeException {
+    private suspend fun resolveUploadConflict(assetId: String, workspaceId: String): RuntimeException {
         val reloaded = mediaAssetRepository.findByWorkspaceAndId(workspaceId, assetId)
         return if (reloaded?.status == MediaAssetStatus.READY) {
             UploadConflictException(assetId, MediaAssetStatus.READY.name)
@@ -302,14 +290,12 @@ class UploadAssetHandler(
         )
     }
 
-    private fun didStorageWriteStart(error: Exception): Boolean {
-        return error !is UnsupportedMediaTypeException &&
-            error !is FileTooLargeException &&
-            error !is RateLimitExceededException &&
-            error !is AssetNotFoundException &&
-            error !is UploadConflictException &&
-            error !is UploadInProgressException
-    }
+    private fun didStorageWriteStart(error: Exception): Boolean = error !is UnsupportedMediaTypeException &&
+        error !is FileTooLargeException &&
+        error !is RateLimitExceededException &&
+        error !is AssetNotFoundException &&
+        error !is UploadConflictException &&
+        error !is UploadInProgressException
 
     private suspend fun cleanupPartialStorageIfNeeded(
         storageWriteAttempted: Boolean,
@@ -323,34 +309,30 @@ class UploadAssetHandler(
         return deletePartialStorageObject(assetId, asset.storageKey)
     }
 
-    private suspend fun tryLoadAssetForCleanup(assetId: String, workspaceId: String): MediaAsset? {
-        return try {
-            mediaAssetRepository.findByWorkspaceAndId(workspaceId, assetId)
-        } catch (_: IllegalStateException) {
-            null
-        }
+    private suspend fun tryLoadAssetForCleanup(assetId: String, workspaceId: String): MediaAsset? = try {
+        mediaAssetRepository.findByWorkspaceAndId(workspaceId, assetId)
+    } catch (_: IllegalStateException) {
+        null
     }
 
-    private suspend fun deletePartialStorageObject(assetId: String, storageKey: String): Boolean {
-        return try {
-            withTimeout(CLEANUP_TIMEOUT_MILLIS) {
-                storageApplicationService.delete(
-                    uploadSettings.storageBucket,
-                    storageKey,
-                    "media-reconciler",
-                )
-            }
-            logger.info(
-                "media.asset.cleanup.attempted assetId=$assetId storageKey=$storageKey success=true",
+    private suspend fun deletePartialStorageObject(assetId: String, storageKey: String): Boolean = try {
+        withTimeout(CLEANUP_TIMEOUT_MILLIS) {
+            storageApplicationService.delete(
+                uploadSettings.storageBucket,
+                storageKey,
+                "media-reconciler",
             )
-            true
-        } catch (cleanupError: StorageException) {
-            logCleanupFailure(assetId, storageKey, cleanupError)
-            false
-        } catch (cleanupError: TimeoutCancellationException) {
-            logCleanupFailure(assetId, storageKey, cleanupError)
-            false
         }
+        logger.info(
+            "media.asset.cleanup.attempted assetId=$assetId storageKey=$storageKey success=true",
+        )
+        true
+    } catch (cleanupError: StorageException) {
+        logCleanupFailure(assetId, storageKey, cleanupError)
+        false
+    } catch (cleanupError: TimeoutCancellationException) {
+        logCleanupFailure(assetId, storageKey, cleanupError)
+        false
     }
 
     private fun logCleanupFailure(assetId: String, storageKey: String, cleanupError: Throwable) {
@@ -369,17 +351,15 @@ class UploadAssetHandler(
         }
     }
 
-    private fun uploadFailureReason(error: Exception): String {
-        return when (error) {
-            is AssetNotFoundException -> "asset not found"
-            is UploadConflictException -> "asset already ready"
-            is UploadInProgressException -> "upload already in progress"
-            is UnsupportedMediaTypeException -> "unsupported media type"
-            is FileTooLargeException -> "file too large"
-            is RateLimitExceededException -> "rate limit exceeded"
-            is TimeoutCancellationException -> "upload timeout"
-            else -> "storage error: ${error.message}"
-        }
+    private fun uploadFailureReason(error: Exception): String = when (error) {
+        is AssetNotFoundException -> "asset not found"
+        is UploadConflictException -> "asset already ready"
+        is UploadInProgressException -> "upload already in progress"
+        is UnsupportedMediaTypeException -> "unsupported media type"
+        is FileTooLargeException -> "file too large"
+        is RateLimitExceededException -> "rate limit exceeded"
+        is TimeoutCancellationException -> "upload timeout"
+        else -> "storage error: ${error.message}"
     }
 
     @Suppress("ThrowsCount", "CognitiveComplexMethod")
@@ -488,12 +468,11 @@ class UploadAssetHandler(
         pendingChunks.forEach { emit(it) }
     }
 
-    private fun buildHeaderBytes(pendingChunks: List<ByteArray>): ByteArray =
-        pendingChunks.asSequence()
-            .flatMap { it.asSequence() }
-            .take(WEBP_SIGNATURE_SIZE)
-            .toList()
-            .toByteArray()
+    private fun buildHeaderBytes(pendingChunks: List<ByteArray>): ByteArray = pendingChunks.asSequence()
+        .flatMap { it.asSequence() }
+        .take(WEBP_SIGNATURE_SIZE)
+        .toList()
+        .toByteArray()
 
     private fun validateMediaTypeMatch(detectedType: String?, declaredType: String) {
         if (detectedType != declaredType) {
@@ -510,21 +489,26 @@ class UploadAssetHandler(
 
         return when {
             hasPrefix(sig, JPEG_MAGIC, JPEG_SIGNATURE_SIZE) -> "image/jpeg"
+
             hasPrefix(sig, PNG_MAGIC, PNG_SIGNATURE_SIZE) -> "image/png"
+
             hasPrefix(sig, GIF_MAGIC, GIF_SIGNATURE_SIZE) -> "image/gif"
+
             hasOffsetPrefix(sig, RIFF_MAGIC, 0) && hasOffsetPrefix(sig, WEBP_MAGIC, RIFF_OFFSET) -> {
                 "image/webp"
             }
+
             hasOffsetPrefix(sig, MP4_MAGIC, MP4_OFFSET) -> "video/mp4"
+
             hasPrefix(sig, OOXML_MAGIC, PNG_SIGNATURE_SIZE) -> declaredType
+
             else -> null
         }
     }
 
-    private fun hasPrefix(signature: ByteArray, magic: ByteArray, requiredSize: Int): Boolean {
-        return signature.size >= requiredSize &&
+    private fun hasPrefix(signature: ByteArray, magic: ByteArray, requiredSize: Int): Boolean =
+        signature.size >= requiredSize &&
             magic.indices.all { index -> signature[index] == magic[index] }
-    }
 
     private fun hasOffsetPrefix(signature: ByteArray, magic: ByteArray, offset: Int): Boolean {
         val requiredSize = offset + magic.size
@@ -722,6 +706,7 @@ class PutAssetHandler(
                         createdAt = ISO_FORMATTER.format(existingAsset.createdAt.atOffset(ZoneOffset.UTC)),
                     )
                 }
+
                 else -> {
                     // Hash mismatch
                     PutAssetResult.HashMismatch(
@@ -739,17 +724,15 @@ class PutAssetHandler(
             is com.profiletailors.smp.media.domain.BlobUpsertResult.Existed -> {
                 handleExistedBlob(command, blob.blob)
             }
+
             is com.profiletailors.smp.media.domain.BlobUpsertResult.Created -> {
                 handleNewBlob(command)
             }
         }
     }
 
-    private suspend fun handleExistedBlob(
-        command: PutAssetCommand,
-        blob: WorkspaceFileBlob,
-    ): PutAssetResult {
-        return when (blob.status) {
+    private suspend fun handleExistedBlob(command: PutAssetCommand, blob: WorkspaceFileBlob): PutAssetResult =
+        when (blob.status) {
             BlobStatus.READY -> {
                 // Dedup hit — lock blob row and re-check READY status to prevent
                 // a race where the blob transitioned to FAILED/READY_FOR_GC/GC
@@ -779,7 +762,9 @@ class PutAssetHandler(
                             mediaAssetRepository.create(asset)
                             logger.info(
                                 "media.asset.put.dedup assetId={} workspaceId={} fileHash={}",
-                                command.assetId, command.workspaceId, command.fileHash,
+                                command.assetId,
+                                command.workspaceId,
+                                command.fileHash,
                             )
                             PutAssetResult.AlreadyExists(
                                 assetId = command.assetId,
@@ -790,13 +775,16 @@ class PutAssetHandler(
                                 createdAt = ISO_FORMATTER.format(now.atOffset(ZoneOffset.UTC)),
                             )
                         }
+
                         BlobStatus.FAILED, BlobStatus.READY_FOR_GC, BlobStatus.GARBAGE_COLLECTED -> {
                             // Blob changed under our feet — reset and create pending
                             workspaceFileBlobRepository.resetBlobToUploading(
-                                command.workspaceId, command.fileHash,
+                                command.workspaceId,
+                                command.fileHash,
                             )
                             createPendingAsset(command)
                         }
+
                         BlobStatus.UPLOADING -> {
                             // Another upload won the race
                             PutAssetResult.WaitingForBlob(
@@ -807,6 +795,7 @@ class PutAssetHandler(
                     }
                 }
             }
+
             BlobStatus.UPLOADING -> {
                 // Another upload in progress
                 PutAssetResult.WaitingForBlob(
@@ -814,17 +803,15 @@ class PutAssetHandler(
                     retryAfterSeconds = 3,
                 )
             }
+
             BlobStatus.FAILED, BlobStatus.READY_FOR_GC, BlobStatus.GARBAGE_COLLECTED -> {
                 // Reset blob to UPLOADING and create asset as PENDING_UPLOAD
                 workspaceFileBlobRepository.resetBlobToUploading(command.workspaceId, command.fileHash)
                 createPendingAsset(command)
             }
         }
-    }
 
-    private suspend fun handleNewBlob(command: PutAssetCommand): PutAssetResult {
-        return createPendingAsset(command)
-    }
+    private suspend fun handleNewBlob(command: PutAssetCommand): PutAssetResult = createPendingAsset(command)
 
     private suspend fun createPendingAsset(command: PutAssetCommand): PutAssetResult {
         // Rate limit check only when actually creating a new asset — not on 202 polling or idempotent retries
@@ -846,7 +833,10 @@ class PutAssetHandler(
         mediaAssetRepository.create(asset)
         logger.info(
             "media.asset.put.created assetId={} workspaceId={} fileHash={} mediaType={}",
-            command.assetId, command.workspaceId, command.fileHash, command.declaredMediaType,
+            command.assetId,
+            command.workspaceId,
+            command.fileHash,
+            command.declaredMediaType,
         )
         return PutAssetResult.Created(
             assetId = command.assetId,
@@ -906,9 +896,13 @@ class PutAssetHandler(
         val extension = originalFilename.substringAfterLast('.', "").lowercase()
         val validExtensions = when (mediaType) {
             "application/msword",
-            "application/vnd.openxmlformats-officedocument.wordprocessingml.document" -> WORD_EXTENSIONS
+            "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+            -> WORD_EXTENSIONS
+
             "application/vnd.ms-powerpoint",
-            "application/vnd.openxmlformats-officedocument.presentationml.presentation" -> POWERPOINT_EXTENSIONS
+            "application/vnd.openxmlformats-officedocument.presentationml.presentation",
+            -> POWERPOINT_EXTENSIONS
+
             else -> emptySet()
         }
 
@@ -1046,7 +1040,8 @@ class CasUploadAssetHandler(
             markBothFailed(assetId, workspaceId, "BLOB_OR_ASSET_MISSING")
             logger.warn(
                 "media.asset.upload.transactionalEmpty assetId={} workspaceId={}",
-                assetId, workspaceId,
+                assetId,
+                workspaceId,
             )
             CasUploadAssetResult.NotFound(assetId)
         } catch (e: StorageException) {
@@ -1067,8 +1062,6 @@ class CasUploadAssetHandler(
      */
     private class BlobOrAssetMissingException(val assetId: String) :
         RuntimeException("Blob or asset missing for $assetId")
-
-
 
     /**
      * Inner finalize logic that runs inside the [transactionalOperator] subscription.
@@ -1105,7 +1098,9 @@ class CasUploadAssetHandler(
 
                 logger.info(
                     "media.asset.upload.dedupHit assetId={} workspaceId={} fileHash={}",
-                    assetId, workspaceId, fileHash,
+                    assetId,
+                    workspaceId,
+                    fileHash,
                 )
                 CasUploadAssetResult.Ready(
                     assetId = assetId,
@@ -1118,6 +1113,7 @@ class CasUploadAssetHandler(
                     createdAt = ISO_FORMATTER.format(updatedAsset.createdAt.atOffset(ZoneOffset.UTC)),
                 )
             }
+
             BlobStatus.UPLOADING, BlobStatus.FAILED, BlobStatus.READY_FOR_GC, BlobStatus.GARBAGE_COLLECTED -> {
                 // We won the race: finalize the blob
                 val canonicalKey = MediaStorageKeys.canonicalKey(workspaceId, fileHash, detectedMediaType)
@@ -1162,7 +1158,12 @@ class CasUploadAssetHandler(
                 logger.info(
                     "media.asset.upload.completed assetId={} workspaceId={} fileHash={} " +
                         "canonicalKey={} detectedMediaType={} fileSizeBytes={}",
-                    assetId, workspaceId, fileHash, canonicalKey, detectedMediaType, actualBytes,
+                    assetId,
+                    workspaceId,
+                    fileHash,
+                    canonicalKey,
+                    detectedMediaType,
+                    actualBytes,
                 )
 
                 CasUploadAssetResult.Ready(
@@ -1179,10 +1180,7 @@ class CasUploadAssetHandler(
         }
     }
 
-    private suspend fun claimUploadSlot(
-        assetId: String,
-        workspaceId: String,
-    ): CasUploadAssetResult? {
+    private suspend fun claimUploadSlot(assetId: String, workspaceId: String): CasUploadAssetResult? {
         val asset = mediaAssetRepository.findByWorkspaceAndId(workspaceId, assetId)
             ?: return CasUploadAssetResult.NotFound(assetId)
 
@@ -1242,16 +1240,9 @@ class CasUploadAssetHandler(
         return null // Proceed with upload
     }
 
-    private data class UploadOutcome(
-        val actualBytes: Long,
-        val detectedMediaType: String,
-        val computedHash: String,
-    )
+    private data class UploadOutcome(val actualBytes: Long, val detectedMediaType: String, val computedHash: String)
 
-    private suspend fun streamToTemp(
-        command: CasUploadAssetCommand,
-        tempKey: String,
-    ): UploadOutcome {
+    private suspend fun streamToTemp(command: CasUploadAssetCommand, tempKey: String): UploadOutcome {
         val digest = MessageDigest.getInstance("SHA-256")
         var actualBytes = 0L
         var detectedMediaType: String? = null
@@ -1334,22 +1325,28 @@ class CasUploadAssetHandler(
         )
     }
 
-    private fun buildHeaderBytes(pendingChunks: List<ByteArray>): ByteArray =
-        pendingChunks.asSequence()
-            .flatMap { it.asSequence() }
-            .take(WEBP_MAGIC_SIZE)
-            .toList()
-            .toByteArray()
+    private fun buildHeaderBytes(pendingChunks: List<ByteArray>): ByteArray = pendingChunks.asSequence()
+        .flatMap { it.asSequence() }
+        .take(WEBP_MAGIC_SIZE)
+        .toList()
+        .toByteArray()
 
     private fun detectMediaType(headerBytes: ByteArray, declaredType: String): String? {
         val sig = headerBytes.take(WEBP_MAGIC_SIZE).toByteArray()
         return when {
             hasPrefix(sig, JPEG_MAGIC, JPEG_MAGIC_SIZE) -> "image/jpeg"
+
             hasPrefix(sig, PNG_MAGIC, PNG_MAGIC_SIZE) -> "image/png"
+
             hasPrefix(sig, GIF_MAGIC, GIF_MAGIC_SIZE) -> "image/gif"
+
             hasOffsetPrefix(sig, RIFF_MAGIC, 0) && hasOffsetPrefix(sig, WEBP_MAGIC, RIFF_OFFSET) -> "image/webp"
+
             hasOffsetPrefix(sig, MP4_MAGIC, MP4_OFFSET) -> "video/mp4"
-            hasPrefix(sig, OOXML_MAGIC, PNG_MAGIC_SIZE) -> declaredType // OOXML: trust declared type
+
+            hasPrefix(sig, OOXML_MAGIC, PNG_MAGIC_SIZE) -> declaredType
+
+            // OOXML: trust declared type
             else -> null
         }
     }
@@ -1385,7 +1382,9 @@ class CasUploadAssetHandler(
         }
         logger.info(
             "media.asset.upload.failed assetId={} workspaceId={} reason={}",
-            assetId, workspaceId, reason,
+            assetId,
+            workspaceId,
+            reason,
         )
     }
 }
@@ -1439,10 +1438,7 @@ class DeleteAssetHandler(
      * Locks the blob row with `FOR UPDATE`, counts active references, and conditionally marks
      * the blob `READY_FOR_GC` if no active references remain. Runs in a single R2DBC transaction.
      */
-    private suspend fun countAndMaybeScheduleGc(
-        workspaceId: String,
-        fileHash: String,
-    ): DeleteAssetResult {
+    private suspend fun countAndMaybeScheduleGc(workspaceId: String, fileHash: String): DeleteAssetResult {
         val blob = workspaceFileBlobRepository.findBlobForUpdate(workspaceId, fileHash)
             ?: return DeleteAssetResult(deleted = true, blobScheduledForGC = false)
 
@@ -1453,7 +1449,8 @@ class DeleteAssetHandler(
             workspaceFileBlobRepository.markReadyForGC(workspaceId, fileHash, orphanedAt)
             logger.info(
                 "media.blob.markedReadyForGC workspaceId={} fileHash={}",
-                workspaceId, fileHash,
+                workspaceId,
+                fileHash,
             )
             return DeleteAssetResult(deleted = true, blobScheduledForGC = true)
         }
@@ -1464,15 +1461,11 @@ class DeleteAssetHandler(
 
 // ─── Exception helpers for upload ────────────────────────────────────────────
 
-class UploadHashMismatchException(
-    val expected: String,
-    val actual: String,
-) : RuntimeException("Hash mismatch: expected $expected, got $actual")
+class UploadHashMismatchException(val expected: String, val actual: String) :
+    RuntimeException("Hash mismatch: expected $expected, got $actual")
 
-class UploadFileSizeMismatchException(
-    val expected: Long,
-    val actual: Long,
-) : RuntimeException("File size mismatch: expected $expected bytes, got $actual bytes")
+class UploadFileSizeMismatchException(val expected: Long, val actual: Long) :
+    RuntimeException("File size mismatch: expected $expected bytes, got $actual bytes")
 
 class BlobGoneException(val fileHash: String) :
     RuntimeException("Blob disappeared (likely GC'd) for fileHash=$fileHash")

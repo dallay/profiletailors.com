@@ -221,9 +221,8 @@ internal class RefreshUserSessionHandler(
 }
 
 @Service
-internal class LogoutUserSessionHandler(
-    private val refreshSessionLifecycleService: RefreshSessionLifecycleService,
-) : CommandWithResultHandler<LogoutUserSessionCommand, LogoutUserSessionResult> {
+internal class LogoutUserSessionHandler(private val refreshSessionLifecycleService: RefreshSessionLifecycleService) :
+    CommandWithResultHandler<LogoutUserSessionCommand, LogoutUserSessionResult> {
 
     override suspend fun handle(command: LogoutUserSessionCommand): LogoutUserSessionResult {
         val rawRefreshToken = command.rawRefreshToken ?: return LogoutUserSessionResult()

@@ -1,12 +1,9 @@
 package com.profiletailors.smp.media.application
 
-import com.profiletailors.common.domain.Service
+import com.profiletailors.smp.media.domain.BlobUpsertResult
 import com.profiletailors.smp.media.domain.MediaAsset
 import com.profiletailors.smp.media.domain.MediaAssetStatus
-import com.profiletailors.smp.media.domain.MediaSourceType
 import com.profiletailors.smp.media.domain.WorkspaceFileBlob
-import com.profiletailors.smp.media.domain.BlobStatus
-import com.profiletailors.smp.media.domain.BlobUpsertResult
 import kotlinx.coroutines.flow.Flow
 import java.time.Instant
 
@@ -94,10 +91,7 @@ interface MediaAssetRepository {
      * Find stale PROCESSING assets older than the threshold with no recent upload activity.
      * (Legacy flow — only used by StaleAssetReconciler.)
      */
-    suspend fun findStaleProcessingAssets(
-        thresholdHours: Long,
-        gracePeriodMinutes: Long,
-    ): List<MediaAsset>
+    suspend fun findStaleProcessingAssets(thresholdHours: Long, gracePeriodMinutes: Long): List<MediaAsset>
 
     /**
      * Find recently FAILED assets that may need storage cleanup retry.
@@ -217,10 +211,7 @@ interface WorkspaceFileBlobRepository {
 /**
  * Paged result for media assets.
  */
-data class PagedMediaAssets(
-    val assets: List<MediaAsset>,
-    val nextCursor: String?,
-)
+data class PagedMediaAssets(val assets: List<MediaAsset>, val nextCursor: String?)
 
 /**
  * Repository port for rate limiting.

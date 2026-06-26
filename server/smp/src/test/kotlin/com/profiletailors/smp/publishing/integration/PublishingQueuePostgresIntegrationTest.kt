@@ -31,10 +31,10 @@ import java.time.Instant
 
 /**
  * PostgreSQL-specific integration tests for publishing queue claim and update operations.
- * 
+ *
  * These tests verify that the SQL operations in R2dbcPublicationJobRepository work correctly
  * against a real PostgreSQL database, beyond what H2 semantics can validate.
- * 
+ *
  * Key scenarios tested:
  * - Concurrent claim operations with ORDER BY and LIMIT
  * - UPDATE with status transitions and NULL handling
@@ -69,12 +69,20 @@ class PublishingQueuePostgresIntegrationTest {
     }
 
     private suspend fun cleanupTestData() {
-        databaseClient.sql("DELETE FROM delivery_attempts WHERE publication_id LIKE 'pub-%'").fetch().rowsUpdated().awaitSingle()
-        databaseClient.sql("DELETE FROM publication_jobs WHERE publication_id LIKE 'pub-%'").fetch().rowsUpdated().awaitSingle()
-        databaseClient.sql("DELETE FROM publication_asset_links WHERE publication_id LIKE 'pub-%'").fetch().rowsUpdated().awaitSingle()
+        databaseClient.sql(
+            "DELETE FROM delivery_attempts WHERE publication_id LIKE 'pub-%'",
+        ).fetch().rowsUpdated().awaitSingle()
+        databaseClient.sql(
+            "DELETE FROM publication_jobs WHERE publication_id LIKE 'pub-%'",
+        ).fetch().rowsUpdated().awaitSingle()
+        databaseClient.sql(
+            "DELETE FROM publication_asset_links WHERE publication_id LIKE 'pub-%'",
+        ).fetch().rowsUpdated().awaitSingle()
         databaseClient.sql("DELETE FROM publications WHERE id LIKE 'pub-%'").fetch().rowsUpdated().awaitSingle()
         databaseClient.sql("DELETE FROM social_accounts WHERE id LIKE 'account-%'").fetch().rowsUpdated().awaitSingle()
-        databaseClient.sql("DELETE FROM social_connections WHERE id LIKE 'connection-%' OR id LIKE 'conn-%'").fetch().rowsUpdated().awaitSingle()
+        databaseClient.sql(
+            "DELETE FROM social_connections WHERE id LIKE 'connection-%' OR id LIKE 'conn-%'",
+        ).fetch().rowsUpdated().awaitSingle()
     }
 
     @Test
@@ -323,7 +331,9 @@ class PublishingQueuePostgresIntegrationTest {
             }
 
             val r2dbcUrl =
-                "r2dbc:postgresql://${postgres.host}:${postgres.getMappedPort(PostgreSQLContainer.POSTGRESQL_PORT)}/${postgres.databaseName}"
+                "r2dbc:postgresql://${postgres.host}:${postgres.getMappedPort(
+                    PostgreSQLContainer.POSTGRESQL_PORT,
+                )}/${postgres.databaseName}"
 
             registry.add("spring.r2dbc.url") { r2dbcUrl }
             registry.add("spring.r2dbc.username", postgres::getUsername)

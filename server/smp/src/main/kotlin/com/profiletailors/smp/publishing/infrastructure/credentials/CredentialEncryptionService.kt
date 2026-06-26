@@ -9,9 +9,7 @@ import javax.crypto.spec.GCMParameterSpec
 import javax.crypto.spec.SecretKeySpec
 
 @Service
-class CredentialEncryptionService(
-    private val properties: PublishingCredentialsProperties
-) {
+class CredentialEncryptionService(private val properties: PublishingCredentialsProperties) {
     private val secureRandom = SecureRandom()
     private val key: SecretKey
 

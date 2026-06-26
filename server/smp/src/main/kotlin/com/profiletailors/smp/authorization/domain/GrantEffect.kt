@@ -4,4 +4,3 @@ enum class GrantEffect {
     ALLOW,
     DENY,
 }
-

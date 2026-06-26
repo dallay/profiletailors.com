@@ -28,10 +28,13 @@ class WorkspaceContextWebFilterTest {
         )
         var resolvedWorkspaceId: String? = null
 
-        filter.filter(exchange, WebFilterChain {
-            resolvedWorkspaceId = store.currentResourceContext()?.workspaceId
-            Mono.empty()
-        }).block()
+        filter.filter(
+            exchange,
+            WebFilterChain {
+                resolvedWorkspaceId = store.currentResourceContext()?.workspaceId
+                Mono.empty()
+            },
+        ).block()
 
         assertEquals("workspace-123", resolvedWorkspaceId)
         assertNull(store.currentResourceContext())
@@ -48,10 +51,13 @@ class WorkspaceContextWebFilterTest {
         val exchange = MockServerWebExchange.from(MockServerHttpRequest.get("/").build())
         var resolvedWorkspaceId: String? = "unexpected"
 
-        filter.filter(exchange, WebFilterChain {
-            resolvedWorkspaceId = store.currentResourceContext()?.workspaceId
-            Mono.empty()
-        }).block()
+        filter.filter(
+            exchange,
+            WebFilterChain {
+                resolvedWorkspaceId = store.currentResourceContext()?.workspaceId
+                Mono.empty()
+            },
+        ).block()
 
         assertNull(resolvedWorkspaceId)
         assertNull(store.currentResourceContext())

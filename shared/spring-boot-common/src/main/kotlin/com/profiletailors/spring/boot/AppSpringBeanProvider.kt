@@ -5,9 +5,7 @@ package com.profiletailors.spring.boot
 import com.profiletailors.common.domain.bus.DependencyProvider
 import org.springframework.context.ApplicationContext
 
-class AppSpringBeanProvider(
-    private val applicationContext: ApplicationContext,
-) : DependencyProvider {
+class AppSpringBeanProvider(private val applicationContext: ApplicationContext) : DependencyProvider {
     override fun <T> getSingleInstanceOf(clazz: Class<T>): T {
         val beanNames = applicationContext.getBeanNamesForType(clazz)
         require(beanNames.size == 1) {

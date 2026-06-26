@@ -46,12 +46,7 @@ class LocalFilesystemStorage(basePath: Path) : Storage {
         return resolved
     }
 
-    override suspend fun upload(
-        bucket: String,
-        key: String,
-        content: Flow<ByteArray>,
-        metadata: Map<String, String>
-    ) {
+    override suspend fun upload(bucket: String, key: String, content: Flow<ByteArray>, metadata: Map<String, String>) {
         val target = resolveSafe(bucket, key)
         ensureParentDirectories(target)
         val tmp = createTempFile()
@@ -68,13 +63,11 @@ class LocalFilesystemStorage(basePath: Path) : Storage {
         }
     }
 
-    private suspend fun createTempFile(): Path {
-        return withContext(Dispatchers.IO) {
-            try {
-                Files.createTempFile(basePath, "upload", ".tmp")
-            } catch (e: IOException) {
-                throw StorageServiceException("Failed to create temp file for upload", e)
-            }
+    private suspend fun createTempFile(): Path = withContext(Dispatchers.IO) {
+        try {
+            Files.createTempFile(basePath, "upload", ".tmp")
+        } catch (e: IOException) {
+            throw StorageServiceException("Failed to create temp file for upload", e)
         }
     }
 
@@ -126,16 +119,13 @@ class LocalFilesystemStorage(basePath: Path) : Storage {
         }
     }
 
-    
-
-    override fun download(bucket: String, key: String): Flow<ByteArray> =
-        channelFlow {
-            val source = resolveSafe(bucket, key)
-            if (!Files.exists(source)) throw StorageObjectNotFoundException(bucket, key)
-            launch(Dispatchers.IO) {
-                readFileToChannel(source, this@channelFlow)
-            }.invokeOnCompletion { cause -> if (cause != null) close(cause) else close() }
-        }
+    override fun download(bucket: String, key: String): Flow<ByteArray> = channelFlow {
+        val source = resolveSafe(bucket, key)
+        if (!Files.exists(source)) throw StorageObjectNotFoundException(bucket, key)
+        launch(Dispatchers.IO) {
+            readFileToChannel(source, this@channelFlow)
+        }.invokeOnCompletion { cause -> if (cause != null) close(cause) else close() }
+    }
 
     private suspend fun readFileToChannel(source: Path, channel: SendChannel<ByteArray>) {
         try {
@@ -164,19 +154,17 @@ class LocalFilesystemStorage(basePath: Path) : Storage {
         }
     }
 
-    override suspend fun list(bucket: String, prefix: String): List<String> =
-        withContext(Dispatchers.IO) {
-            val bucketPath = resolveBucketPath(bucket)
-            val dir = resolveListDirectory(bucket, prefix, bucketPath)
-            validateDirectoryBounds(dir, bucketPath, prefix)
-            walkDirectory(dir, bucketPath, prefix)
-        }
+    override suspend fun list(bucket: String, prefix: String): List<String> = withContext(Dispatchers.IO) {
+        val bucketPath = resolveBucketPath(bucket)
+        val dir = resolveListDirectory(bucket, prefix, bucketPath)
+        validateDirectoryBounds(dir, bucketPath, prefix)
+        walkDirectory(dir, bucketPath, prefix)
+    }
 
-    override suspend fun exists(bucket: String, key: String): Boolean =
-        withContext(Dispatchers.IO) {
-            val target = resolveSafe(bucket, key)
-            Files.exists(target)
-        }
+    override suspend fun exists(bucket: String, key: String): Boolean = withContext(Dispatchers.IO) {
+        val target = resolveSafe(bucket, key)
+        Files.exists(target)
+    }
 
     override suspend fun copyObject(bucket: String, sourceKey: String, destKey: String) {
         val source = resolveSafe(bucket, sourceKey)
@@ -194,12 +182,10 @@ class LocalFilesystemStorage(basePath: Path) : Storage {
         }
     }
 
-    private fun resolveBucketPath(bucket: String): Path {
-        return try {
-            resolveSafe(bucket, "")
-        } catch (e: StorageSecurityException) {
-            throw StorageSecurityException("Path traversal attempt in bucket: $bucket")
-        }
+    private fun resolveBucketPath(bucket: String): Path = try {
+        resolveSafe(bucket, "")
+    } catch (e: StorageSecurityException) {
+        throw StorageSecurityException("Path traversal attempt in bucket: $bucket")
     }
 
     private fun resolveListDirectory(bucket: String, prefix: String, bucketPath: Path): Path {

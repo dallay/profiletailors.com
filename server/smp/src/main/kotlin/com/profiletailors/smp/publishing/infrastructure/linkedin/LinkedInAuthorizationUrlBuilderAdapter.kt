@@ -2,9 +2,8 @@ package com.profiletailors.smp.publishing.infrastructure.linkedin
 
 import com.profiletailors.smp.publishing.domain.LinkedInAuthorizationUrlBuilder
 
-class LinkedInAuthorizationUrlBuilderAdapter(
-    private val properties: LinkedInPublishingProperties,
-) : LinkedInAuthorizationUrlBuilder {
+class LinkedInAuthorizationUrlBuilderAdapter(private val properties: LinkedInPublishingProperties) :
+    LinkedInAuthorizationUrlBuilder {
     override fun buildAuthorizationUrl(state: String, redirectUri: String): String {
         require(isConfigured()) { "LinkedIn OAuth provider is not configured." }
         val query = formUrlEncoded(
@@ -17,8 +16,7 @@ class LinkedInAuthorizationUrlBuilderAdapter(
         return "${properties.authorizationBaseUrl}?$query"
     }
 
-    override fun isConfigured(): Boolean =
-        properties.clientId.isNotBlank() &&
-            properties.authorizationBaseUrl.isNotBlank() &&
-            properties.scopes.isNotBlank()
+    override fun isConfigured(): Boolean = properties.clientId.isNotBlank() &&
+        properties.authorizationBaseUrl.isNotBlank() &&
+        properties.scopes.isNotBlank()
 }

@@ -19,9 +19,8 @@ class GetWorkspacesForPrincipalHandlerTest {
         override suspend fun current(): PrincipalContext = principalContext
     }
 
-    private class InMemoryWorkspaceReadRepository(
-        private val data: Map<String, List<WorkspaceSummary>> = emptyMap(),
-    ) : WorkspaceReadRepository {
+    private class InMemoryWorkspaceReadRepository(private val data: Map<String, List<WorkspaceSummary>> = emptyMap()) :
+        WorkspaceReadRepository {
         override suspend fun findWorkspacesByPrincipal(principalId: String): List<WorkspaceSummary> =
             data[principalId] ?: emptyList()
     }

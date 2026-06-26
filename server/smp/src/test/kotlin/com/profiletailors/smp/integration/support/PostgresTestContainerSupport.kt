@@ -24,7 +24,9 @@ object PostgresTestContainerSupport {
         .withPassword(PASSWORD)
 
     fun r2dbcUrl(container: PostgreSQLContainer<*>): String =
-        "r2dbc:postgresql://${container.host}:${container.getMappedPort(PostgreSQLContainer.POSTGRESQL_PORT)}/${container.databaseName}"
+        "r2dbc:postgresql://${container.host}:${container.getMappedPort(
+            PostgreSQLContainer.POSTGRESQL_PORT,
+        )}/${container.databaseName}"
 
     fun jdbcUrl(container: PostgreSQLContainer<*>): String = container.jdbcUrl
 
@@ -112,10 +114,10 @@ abstract class PostgresDatabaseTestBase {
     }
 
     private val liquibaseApplied: Boolean
-        get() = PostgresDatabaseTestBase._liquibaseApplied
+        get() = PostgresDatabaseTestBase.liquibaseMigrationApplied
 
     private fun markLiquibaseApplied() {
-        PostgresDatabaseTestBase._liquibaseApplied = true
+        PostgresDatabaseTestBase.liquibaseMigrationApplied = true
     }
 
     private fun applyLiquibaseBaselineOnce() {
@@ -137,7 +139,7 @@ abstract class PostgresDatabaseTestBase {
     }
 
     companion object {
-        private var _liquibaseApplied = false
+        private var liquibaseMigrationApplied = false
     }
 }
 

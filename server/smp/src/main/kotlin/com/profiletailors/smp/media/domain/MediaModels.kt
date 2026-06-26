@@ -269,14 +269,12 @@ data class MediaAsset(
          * Generate a legacy storage key for PROCESSING assets.
          * @deprecated Use MediaStorageKeys.canonicalKey() or MediaStorageKeys.tempKey() for CAS assets.
          */
-        fun generateStorageKey(workspaceId: String, assetId: String): String =
-            "assets/$workspaceId/$assetId"
+        fun generateStorageKey(workspaceId: String, assetId: String): String = "assets/$workspaceId/$assetId"
 
         /**
          * Validates a SHA-256 hex string.
          */
-        fun isValidHash(hash: String): Boolean =
-            hash.matches(Regex("^[a-f0-9]{64}$"))
+        fun isValidHash(hash: String): Boolean = hash.matches(Regex("^[a-f0-9]{64}$"))
     }
 }
 

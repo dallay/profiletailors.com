@@ -2,14 +2,9 @@ package com.profiletailors.smp.bdd.postgres
 
 import com.profiletailors.smp.bdd.glue.CommonBddTestConfiguration
 import io.cucumber.spring.CucumberContextConfiguration
-import io.r2dbc.spi.ConnectionFactories
-import io.r2dbc.spi.ConnectionFactory
 import org.springframework.boot.test.context.SpringBootTest
-import org.springframework.boot.test.context.TestConfiguration
 import org.springframework.boot.webtestclient.autoconfigure.AutoConfigureWebTestClient
-import org.springframework.context.annotation.Bean
 import org.springframework.context.annotation.Import
-import org.springframework.context.annotation.Primary
 import org.springframework.test.context.DynamicPropertyRegistry
 import org.springframework.test.context.DynamicPropertySource
 import org.testcontainers.containers.PostgreSQLContainer
@@ -50,7 +45,9 @@ class CucumberPostgresSpringConfiguration {
             }
 
             val r2dbcUrl =
-                "r2dbc:postgresql://${postgres.host}:${postgres.getMappedPort(PostgreSQLContainer.POSTGRESQL_PORT)}/${postgres.databaseName}"
+                "r2dbc:postgresql://${postgres.host}:${postgres.getMappedPort(
+                    PostgreSQLContainer.POSTGRESQL_PORT,
+                )}/${postgres.databaseName}"
 
             registry.add("spring.r2dbc.url") { r2dbcUrl }
             registry.add("spring.r2dbc.username", postgres::getUsername)

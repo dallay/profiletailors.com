@@ -15,9 +15,7 @@ import org.springframework.stereotype.Component
  */
 @Component
 @Subscribe(filterBy = UserRegistered::class)
-class SendVerificationEmailConsumer(
-    private val emailSender: EmailSender,
-) : EventConsumer<UserRegistered> {
+class SendVerificationEmailConsumer(private val emailSender: EmailSender) : EventConsumer<UserRegistered> {
 
     private val log = LoggerFactory.getLogger(SendVerificationEmailConsumer::class.java)
 

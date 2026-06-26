@@ -15,20 +15,24 @@ internal class CriteriaTest {
 
     @Test
     fun `and criteria should combine with AND`() {
-        val criteria = Criteria.And(listOf(
-            Criteria.Equals("status", "published"),
-            Criteria.Equals("featured", true),
-        ))
+        val criteria = Criteria.And(
+            listOf(
+                Criteria.Equals("status", "published"),
+                Criteria.Equals("featured", true),
+            ),
+        )
 
         assertThat(criteria.toString()).isEqualTo("(status = published AND featured = true)")
     }
 
     @Test
     fun `or criteria should combine with OR`() {
-        val criteria = Criteria.Or(listOf(
-            Criteria.Equals("status", "draft"),
-            Criteria.Equals("status", "published"),
-        ))
+        val criteria = Criteria.Or(
+            listOf(
+                Criteria.Equals("status", "draft"),
+                Criteria.Equals("status", "published"),
+            ),
+        )
 
         assertThat(criteria.toString()).isEqualTo("(status = draft OR status = published)")
     }
@@ -108,13 +112,17 @@ internal class CriteriaTest {
 
     @Test
     fun `nested and or should produce correct string`() {
-        val criteria = Criteria.And(listOf(
-            Criteria.Equals("type", "post"),
-            Criteria.Or(listOf(
-                Criteria.Equals("status", "draft"),
-                Criteria.Equals("status", "published"),
-            )),
-        ))
+        val criteria = Criteria.And(
+            listOf(
+                Criteria.Equals("type", "post"),
+                Criteria.Or(
+                    listOf(
+                        Criteria.Equals("status", "draft"),
+                        Criteria.Equals("status", "published"),
+                    ),
+                ),
+            ),
+        )
 
         assertThat(criteria.toString()).isEqualTo("(type = post AND (status = draft OR status = published))")
     }

@@ -28,10 +28,7 @@ class MediaAssetResolverImpl(
 
     private val logger = LoggerFactory.getLogger(MediaAssetResolverImpl::class.java)
 
-    override suspend fun resolveReadyAssets(
-        workspaceId: String,
-        assetIds: List<String>,
-    ): List<ResolvedAssetSummary> {
+    override suspend fun resolveReadyAssets(workspaceId: String, assetIds: List<String>): List<ResolvedAssetSummary> {
         if (assetIds.isEmpty()) return emptyList()
 
         // 1. Resolve media-context-owned assets

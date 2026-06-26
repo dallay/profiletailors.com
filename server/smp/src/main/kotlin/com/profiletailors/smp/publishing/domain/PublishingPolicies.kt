@@ -5,41 +5,31 @@ import java.time.Instant
 
 internal val MIN_SCHEDULE_OFFSET: Duration = Duration.ofSeconds(1)
 
-open class PublicationStateTransitionException(
-    message: String,
-) : IllegalStateException(message)
+open class PublicationStateTransitionException(message: String) : IllegalStateException(message)
 
-class PublicationEditNotAllowedException(
-    publicationId: String,
-) : PublicationStateTransitionException(
-    "Publication '$publicationId' can only be edited while in draft, queued, or scheduled status. " +
-        "Failed publications must use the retry endpoint instead."
-)
+class PublicationEditNotAllowedException(publicationId: String) :
+    PublicationStateTransitionException(
+        "Publication '$publicationId' can only be edited while in draft, queued, or scheduled status. " +
+            "Failed publications must use the retry endpoint instead.",
+    )
 
-class PublicationDeletionNotAllowedException(
-    publicationId: String,
-) : PublicationStateTransitionException(
-    "Publication '$publicationId' can only be deleted while in draft, queued, or scheduled status."
-)
+class PublicationDeletionNotAllowedException(publicationId: String) :
+    PublicationStateTransitionException(
+        "Publication '$publicationId' can only be deleted while in draft, queued, or scheduled status.",
+    )
 
-class PublicationCancellationNotAllowedException(
-    publicationId: String,
-) : PublicationStateTransitionException(
-    "Publication '$publicationId' can only be cancelled before processing begins."
-)
+class PublicationCancellationNotAllowedException(publicationId: String) :
+    PublicationStateTransitionException(
+        "Publication '$publicationId' can only be cancelled before processing begins.",
+    )
 
-class PublicationRetryNotAllowedException(
-    publicationId: String,
-) : PublicationStateTransitionException("Publication '$publicationId' can only be retried after failure.")
+class PublicationRetryNotAllowedException(publicationId: String) :
+    PublicationStateTransitionException("Publication '$publicationId' can only be retried after failure.")
 
-class PublicationAlreadyTerminalException(
-    publicationId: String,
-    status: PublicationStatus,
-) : PublicationStateTransitionException("Publication '$publicationId' is already terminal in status $status.")
+class PublicationAlreadyTerminalException(publicationId: String, status: PublicationStatus) :
+    PublicationStateTransitionException("Publication '$publicationId' is already terminal in status $status.")
 
-class PublicationValidationException(
-    message: String,
-) : IllegalArgumentException(message)
+class PublicationValidationException(message: String) : IllegalArgumentException(message)
 
 // Policy object for publication lifecycle state transitions
 @Suppress("TooManyFunctions")
@@ -120,7 +110,7 @@ object PublicationLifecyclePolicy {
     fun markPublished(
         publication: PublicationDraft,
         externalPublicationId: String,
-        publishedAt: Instant
+        publishedAt: Instant,
     ): PublicationDraft {
         if (publication.status == PublicationStatus.CANCELLED) {
             throw PublicationAlreadyTerminalException(publication.id, publication.status)
@@ -139,25 +129,20 @@ object PublicationLifecyclePolicy {
         publication: PublicationDraft,
         failedAt: Instant,
         errorCode: String?,
-        errorMessage: String?
-    ): PublicationDraft =
-        publication.copy(
-            status = PublicationStatus.FAILED,
-            failedAt = failedAt,
-            lastErrorCode = errorCode,
-            lastErrorMessage = errorMessage,
-        )
+        errorMessage: String?,
+    ): PublicationDraft = publication.copy(
+        status = PublicationStatus.FAILED,
+        failedAt = failedAt,
+        lastErrorCode = errorCode,
+        lastErrorMessage = errorMessage,
+    )
 
     /**
      * Marks a publication as BLOCKED due to non-publishable account status
      * (DISABLED, REQUIRES_RECONNECT). BLOCKED publications can auto-retry
      * when the account status restores to ACTIVE.
      */
-    fun markBlocked(
-        publication: PublicationDraft,
-        blockedAt: Instant,
-        reason: String?,
-    ): PublicationDraft {
+    fun markBlocked(publication: PublicationDraft, blockedAt: Instant, reason: String?): PublicationDraft {
         val inflightStatuses = setOf(
             PublicationStatus.QUEUED,
             PublicationStatus.SCHEDULED,
@@ -245,6 +230,7 @@ object PublicationLifecyclePolicy {
             ScheduleMode.NOW -> require(scheduledFor == null) {
                 "NOW publications must not provide scheduledFor."
             }
+
             ScheduleMode.SCHEDULED_AT -> {
                 requireNotNull(scheduledFor) {
                     "SCHEDULED_AT publications require scheduledFor."
@@ -256,6 +242,7 @@ object PublicationLifecyclePolicy {
                         "Earliest allowed: $earliestAllowed"
                 }
             }
+
             ScheduleMode.NEXT_SLOT -> require(nextSlotAfter != null || scheduledFor == null) {
                 "NEXT_SLOT publications use nextSlotAfter instead of scheduledFor."
             }
@@ -280,13 +267,15 @@ object PublicationLifecyclePolicy {
 class PublicationSchedulingPolicy {
     fun resolveDueAt(publication: PublicationDraft, now: Instant): Instant = when (publication.scheduleMode) {
         ScheduleMode.NOW -> now
-        ScheduleMode.SCHEDULED_AT -> publication.scheduledFor
-            ?: throw PublicationValidationException("SCHEDULED_AT publications require scheduledFor.")
+
+        ScheduleMode.SCHEDULED_AT ->
+            publication.scheduledFor
+                ?: throw PublicationValidationException("SCHEDULED_AT publications require scheduledFor.")
+
         ScheduleMode.NEXT_SLOT -> publication.nextSlotAfter ?: now
     }
 
-    fun priorityRank(publication: PublicationDraft): Int =
-        if (publication.priority) PRIORITY_RANK else NORMAL_RANK
+    fun priorityRank(publication: PublicationDraft): Int = if (publication.priority) PRIORITY_RANK else NORMAL_RANK
 
     private companion object {
         const val PRIORITY_RANK = 100
@@ -294,10 +283,7 @@ class PublicationSchedulingPolicy {
     }
 }
 
-class DeliveryRetryPolicy(
-    private val maxRetries: Int,
-    private val retryBackoff: Duration,
-) {
+class DeliveryRetryPolicy(private val maxRetries: Int, private val retryBackoff: Duration) {
     init {
         require(maxRetries >= 0) { "maxRetries must be non-negative." }
         require(!retryBackoff.isNegative) { "retryBackoff must not be negative." }

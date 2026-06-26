@@ -35,6 +35,7 @@ abstract class Registrar {
                     .map { extractParameter(handler.genericSuperclass as ParameterizedType) }
                     .forEach { registrar(it, handler) }
             }
+
             is Class<*> -> {
                 val inheritedHandler = handler.genericSuperclass as Class<*>
                 if (interfaceOrBaseClass.isAssignableFrom(inheritedHandler)) {
@@ -54,10 +55,7 @@ abstract class Registrar {
         registerFor<T>(handler) { value -> registrar(value as Class<T>) }
     }
 
-    protected inline fun <reified T> registerFor(
-        handler: Class<*>,
-        registrar: (value: Class<*>) -> Unit,
-    ) {
+    protected inline fun <reified T> registerFor(handler: Class<*>, registrar: (value: Class<*>) -> Unit) {
         val interfaceOrBaseClass = T::class.java
         if (!interfaceOrBaseClass.isAssignableFrom(handler)) return
         registrar(handler)
@@ -66,9 +64,11 @@ abstract class Registrar {
     protected fun extractParameter(genericInterface: ParameterizedType): Class<*> =
         when (val typeArgument = genericInterface.actualTypeArguments[0]) {
             is ParameterizedType -> typeArgument.rawType as Class<*>
+
             is TypeVariable<*> -> extractParameter(
                 (genericInterface.rawType as Class<*>).genericInterfaces[0] as ParameterizedType,
             )
+
             else -> typeArgument as Class<*>
         }
 }

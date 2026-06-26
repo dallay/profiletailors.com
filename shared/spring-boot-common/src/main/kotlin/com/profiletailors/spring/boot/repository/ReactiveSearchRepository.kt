@@ -2,12 +2,12 @@ package com.profiletailors.spring.boot.repository
 
 import com.profiletailors.common.domain.presentation.pagination.Cursor
 import com.profiletailors.common.domain.presentation.pagination.CursorPageResponse
-import kotlin.reflect.KClass
 import kotlinx.coroutines.flow.Flow
 import org.springframework.data.domain.Page
 import org.springframework.data.domain.Pageable
 import org.springframework.data.domain.Sort
 import org.springframework.data.relational.core.query.Criteria
+import kotlin.reflect.KClass
 
 /**
  * ReactiveSearchRepository is an interface for performing reactive database operations.

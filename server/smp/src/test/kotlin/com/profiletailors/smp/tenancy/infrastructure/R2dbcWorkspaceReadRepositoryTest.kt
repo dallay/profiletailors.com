@@ -65,19 +65,33 @@ class R2dbcWorkspaceReadRepositoryTest {
         ).then().block()
 
         // Seed data
-        databaseClient.sql("INSERT INTO workspaces (id, name, status, icon) VALUES ('ws-a', 'Workspace Alpha', 'ACTIVE', NULL)")
+        databaseClient.sql(
+            "INSERT INTO workspaces (id, name, status, icon) VALUES ('ws-a', 'Workspace Alpha', 'ACTIVE', NULL)",
+        )
             .then().block()
-        databaseClient.sql("INSERT INTO workspaces (id, name, status, icon) VALUES ('ws-b', 'Workspace Beta', 'ACTIVE', NULL)")
+        databaseClient.sql(
+            "INSERT INTO workspaces (id, name, status, icon) VALUES ('ws-b', 'Workspace Beta', 'ACTIVE', NULL)",
+        )
             .then().block()
-        databaseClient.sql("INSERT INTO workspaces (id, name, status, icon) VALUES ('ws-c', 'Archived Workspace', 'ARCHIVED', NULL)")
+        databaseClient.sql(
+            "INSERT INTO workspaces (id, name, status, icon) VALUES ('ws-c', 'Archived Workspace', 'ARCHIVED', NULL)",
+        )
             .then().block()
-        databaseClient.sql("INSERT INTO workspace_memberships (id, workspace_id, principal_id, status) VALUES ('m1', 'ws-a', 'user-1', 'ACTIVE')")
+        databaseClient.sql(
+            "INSERT INTO workspace_memberships (id, workspace_id, principal_id, status) VALUES ('m1', 'ws-a', 'user-1', 'ACTIVE')",
+        )
             .then().block()
-        databaseClient.sql("INSERT INTO workspace_memberships (id, workspace_id, principal_id, status) VALUES ('m2', 'ws-b', 'user-1', 'ACTIVE')")
+        databaseClient.sql(
+            "INSERT INTO workspace_memberships (id, workspace_id, principal_id, status) VALUES ('m2', 'ws-b', 'user-1', 'ACTIVE')",
+        )
             .then().block()
-        databaseClient.sql("INSERT INTO workspace_memberships (id, workspace_id, principal_id, status) VALUES ('m3', 'ws-c', 'user-1', 'ACTIVE')")
+        databaseClient.sql(
+            "INSERT INTO workspace_memberships (id, workspace_id, principal_id, status) VALUES ('m3', 'ws-c', 'user-1', 'ACTIVE')",
+        )
             .then().block()
-        databaseClient.sql("INSERT INTO workspace_ownerships (workspace_id, owner_principal_id, owner_principal_type) VALUES ('ws-a', 'user-1', 'USER')")
+        databaseClient.sql(
+            "INSERT INTO workspace_ownerships (workspace_id, owner_principal_id, owner_principal_type) VALUES ('ws-a', 'user-1', 'USER')",
+        )
             .then().block()
     }
 

@@ -20,12 +20,10 @@ import org.springframework.context.annotation.Import
         "spring.main.allow-bean-definition-overriding=true",
         "management.endpoint.health.group.readiness.include=readinessState",
         "management.endpoint.health.group.liveness.include=livenessState",
-    ]
+    ],
 )
 @Import(TestStorageConfiguration::class)
-class PlatformBootstrapContextTest(
-    @Autowired private val mediator: Mediator,
-) {
+class PlatformBootstrapContextTest(@Autowired private val mediator: Mediator) {
 
     @Test
     fun `registers mediator platform bean`() {

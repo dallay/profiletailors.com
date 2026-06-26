@@ -4,9 +4,6 @@ import com.profiletailors.smp.integration.support.IntegrationTestBase
 import io.r2dbc.h2.H2ConnectionConfiguration
 import io.r2dbc.h2.H2ConnectionFactory
 import io.r2dbc.spi.ConnectionFactory
-import javax.crypto.spec.SecretKeySpec
-import kotlinx.coroutines.reactor.awaitSingle
-import org.springframework.security.crypto.bcrypt.BCrypt
 import org.junit.jupiter.api.Test
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.beans.factory.annotation.Value
@@ -17,10 +14,12 @@ import org.springframework.context.annotation.Bean
 import org.springframework.context.annotation.Import
 import org.springframework.context.annotation.Primary
 import org.springframework.http.HttpHeaders
+import org.springframework.security.crypto.bcrypt.BCrypt
 import org.springframework.security.oauth2.jose.jws.MacAlgorithm
 import org.springframework.security.oauth2.jwt.Jwt
 import org.springframework.security.oauth2.jwt.NimbusReactiveJwtDecoder
 import org.springframework.security.oauth2.jwt.ReactiveJwtDecoder
+import javax.crypto.spec.SecretKeySpec
 
 @AutoConfigureWebTestClient
 @SpringBootTest(
@@ -42,7 +41,10 @@ import org.springframework.security.oauth2.jwt.ReactiveJwtDecoder
         "management.endpoint.health.group.liveness.include=livenessState",
     ],
 )
-@Import(IntegrationTestBase.SharedTestConfiguration::class, LocalAuthEndpointIntegrationTest.H2ConnectionFactoryConfiguration::class)
+@Import(
+    IntegrationTestBase.SharedTestConfiguration::class,
+    LocalAuthEndpointIntegrationTest.H2ConnectionFactoryConfiguration::class,
+)
 class LocalAuthEndpointIntegrationTest : IntegrationTestBase() {
 
     @Autowired
@@ -364,15 +366,10 @@ class LocalAuthEndpointIntegrationTest : IntegrationTestBase() {
         return RegisterResult(accessToken, refreshCookie.substringBefore(';'))
     }
 
-    private data class RegisterResult(
-        val accessToken: String,
-        val refreshCookie: String,
-    )
+    private data class RegisterResult(val accessToken: String, val refreshCookie: String)
 
-    private fun decodeJwt(tokenValue: String): Jwt {
-        return reactiveJwtDecoder.decode(tokenValue).block()
-            ?: error("Failed to decode JWT")
-    }
+    private fun decodeJwt(tokenValue: String): Jwt = reactiveJwtDecoder.decode(tokenValue).block()
+        ?: error("Failed to decode JWT")
 
     @TestConfiguration
     class H2ConnectionFactoryConfiguration {
@@ -389,11 +386,10 @@ class LocalAuthEndpointIntegrationTest : IntegrationTestBase() {
 
         @Bean
         @Primary
-        fun reactiveJwtDecoder(
-            @Value("\${app.security.local-jwt.secret}") secret: String,
-        ): ReactiveJwtDecoder = NimbusReactiveJwtDecoder
-            .withSecretKey(SecretKeySpec(secret.toByteArray(Charsets.UTF_8), "HmacSHA256"))
-            .macAlgorithm(MacAlgorithm.HS256)
-            .build()
+        fun reactiveJwtDecoder(@Value("\${app.security.local-jwt.secret}") secret: String): ReactiveJwtDecoder =
+            NimbusReactiveJwtDecoder
+                .withSecretKey(SecretKeySpec(secret.toByteArray(Charsets.UTF_8), "HmacSHA256"))
+                .macAlgorithm(MacAlgorithm.HS256)
+                .build()
     }
 }

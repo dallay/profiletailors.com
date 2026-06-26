@@ -25,9 +25,7 @@ import org.springframework.web.bind.annotation.RestController
 @RestController
 @RequestMapping(value = ["/api/tenancy/workspaces"])
 @Tag(name = "Workspace", description = "Workspace management endpoints")
-class WorkspaceController(
-    private val mediator: Mediator,
-) {
+class WorkspaceController(private val mediator: Mediator) {
     @Operation(
         summary = "List workspaces for the authenticated user",
         description = "Returns all workspaces the authenticated principal belongs to (active memberships only).",
@@ -41,11 +39,10 @@ class WorkspaceController(
         description = "Renames the workspace identified by the X-Workspace-Id header.",
     )
     @PatchMapping("/current/name", consumes = ["application/json"], version = "1")
-    suspend fun renameWorkspace(
-        @Valid @RequestBody request: RenameWorkspaceRequest,
-    ): RenameWorkspaceResult = mediator.send(
-        RenameWorkspaceCommand(newName = request.name),
-    )
+    suspend fun renameWorkspace(@Valid @RequestBody request: RenameWorkspaceRequest): RenameWorkspaceResult =
+        mediator.send(
+            RenameWorkspaceCommand(newName = request.name),
+        )
 
     @Operation(
         summary = "Update the active workspace icon",

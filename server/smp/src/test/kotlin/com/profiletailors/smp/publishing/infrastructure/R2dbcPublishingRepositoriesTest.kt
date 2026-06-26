@@ -2,9 +2,7 @@ package com.profiletailors.smp.publishing.infrastructure
 
 import com.fasterxml.jackson.databind.ObjectMapper
 import com.profiletailors.smp.integration.support.DatabaseUnitTestBase
-import com.profiletailors.smp.publishing.domain.AssetSourceType
-import com.profiletailors.smp.publishing.domain.PublicationAsset
-import com.profiletailors.smp.publishing.domain.PublicationAssetStatus
+import com.profiletailors.smp.media.infrastructure.persistence.R2dbcMediaAssetRepository
 import com.profiletailors.smp.publishing.domain.PublicationDraft
 import com.profiletailors.smp.publishing.domain.PublicationStatus
 import com.profiletailors.smp.publishing.domain.ScheduleMode
@@ -13,14 +11,12 @@ import com.profiletailors.smp.publishing.domain.SocialAccountKind
 import com.profiletailors.smp.publishing.domain.SocialConnection
 import com.profiletailors.smp.publishing.domain.SocialConnectionStatus
 import com.profiletailors.smp.publishing.domain.SocialProvider
-import com.profiletailors.smp.media.infrastructure.persistence.R2dbcMediaAssetRepository
 import com.profiletailors.smp.publishing.infrastructure.persistence.R2dbcConnectedSocialChannelReadRepository
 import com.profiletailors.smp.publishing.infrastructure.persistence.R2dbcPublicationAssetRepository
 import com.profiletailors.smp.publishing.infrastructure.persistence.R2dbcPublicationRepository
 import com.profiletailors.smp.publishing.infrastructure.persistence.R2dbcSocialAccountRepository
 import com.profiletailors.smp.publishing.infrastructure.persistence.R2dbcSocialConnectionRepository
 import io.micrometer.core.instrument.simple.SimpleMeterRegistry
-import java.time.Instant
 import kotlinx.coroutines.reactor.awaitSingle
 import kotlinx.coroutines.test.runTest
 import org.junit.jupiter.api.Assertions.assertEquals
@@ -28,6 +24,7 @@ import org.junit.jupiter.api.Assertions.assertNotNull
 import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
+import java.time.Instant
 
 class R2dbcPublishingRepositoriesTest : DatabaseUnitTestBase() {
 
@@ -517,10 +514,8 @@ class R2dbcPublishingRepositoriesTest : DatabaseUnitTestBase() {
         assertEquals(counterBefore, avatarPersistedCounterValue(), 0.001)
     }
 
-    private fun avatarPersistedCounterValue(): Double {
-        return meterRegistry.find("publishing.linkedin.avatar.persisted")
-            .counter()?.count() ?: 0.0
-    }
+    private fun avatarPersistedCounterValue(): Double = meterRegistry.find("publishing.linkedin.avatar.persisted")
+        .counter()?.count() ?: 0.0
 
     private suspend fun seedSocialAccount() {
         databaseClient.sql(

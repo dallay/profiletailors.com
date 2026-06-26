@@ -1,21 +1,20 @@
 package com.profiletailors.smp.publishing.infrastructure.scheduling
 
 import com.profiletailors.smp.media.application.MediaAssetResolver
+import com.profiletailors.smp.publishing.domain.DeliveryAttemptRepository
 import com.profiletailors.smp.publishing.domain.DeliveryRetryPolicy
 import com.profiletailors.smp.publishing.domain.NotificationEventRepository
+import com.profiletailors.smp.publishing.domain.ProviderCapabilityValidator
 import com.profiletailors.smp.publishing.domain.PublicationJobRepository
 import com.profiletailors.smp.publishing.domain.PublicationRepository
 import com.profiletailors.smp.publishing.domain.PublicationSchedulingPolicy
 import com.profiletailors.smp.publishing.domain.SocialAccountRepository
-import com.profiletailors.smp.publishing.domain.ProviderCapabilityValidator
 import com.profiletailors.smp.publishing.domain.SocialPublisher
-import com.profiletailors.smp.publishing.domain.DeliveryAttemptRepository
 import org.springframework.context.annotation.Bean
 import org.springframework.context.annotation.Configuration
 import org.springframework.scheduling.TaskScheduler
 import org.springframework.scheduling.concurrent.ThreadPoolTaskScheduler
 import java.time.Clock
-import java.time.Duration
 import java.util.UUID
 
 @Configuration
@@ -40,9 +39,7 @@ class PublishingSchedulingConfiguration(
     fun publicationSchedulingPolicy(): PublicationSchedulingPolicy = PublicationSchedulingPolicy()
 
     @Bean
-    fun publishingRetryPolicy(
-        properties: PublishingWorkerProperties,
-    ): DeliveryRetryPolicy = DeliveryRetryPolicy(
+    fun publishingRetryPolicy(properties: PublishingWorkerProperties): DeliveryRetryPolicy = DeliveryRetryPolicy(
         maxRetries = properties.maxRetries,
         retryBackoff = properties.retryBackoff,
     )

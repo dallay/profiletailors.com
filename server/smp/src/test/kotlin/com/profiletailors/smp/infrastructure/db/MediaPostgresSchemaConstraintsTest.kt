@@ -66,7 +66,14 @@ class MediaPostgresSchemaConstraintsTest : PostgresDatabaseTestBase() {
             runTest { insertWorkspaceBlob(workspaceId = "workspace-1", fileHash = "short", status = "READY") }
         }
         assertThrows<RuntimeException> {
-            runTest { insertMediaAsset(assetId = "asset-bogus-status", workspaceId = "workspace-1", fileHash = HASH_A, status = "PROCESSING") }
+            runTest {
+                insertMediaAsset(
+                    assetId = "asset-bogus-status",
+                    workspaceId = "workspace-1",
+                    fileHash = HASH_A,
+                    status = "PROCESSING",
+                )
+            }
         }
     }
 
@@ -115,7 +122,9 @@ class MediaPostgresSchemaConstraintsTest : PostgresDatabaseTestBase() {
         insertWorkspaceBlob(workspaceId = "workspace-1", fileHash = HASH_A, status = "UPLOADING", storageKey = null)
 
         assertThrows<RuntimeException> {
-            runTest { insertWorkspaceBlob(workspaceId = "workspace-1", fileHash = HASH_B, status = "READY", storageKey = null) }
+            runTest {
+                insertWorkspaceBlob(workspaceId = "workspace-1", fileHash = HASH_B, status = "READY", storageKey = null)
+            }
         }
     }
 
@@ -169,9 +178,30 @@ class MediaPostgresSchemaConstraintsTest : PostgresDatabaseTestBase() {
             .bind("workspaceId", workspaceId)
             .bind("fileHash", fileHash)
             .bind("status", status)
-        spec = if (storageKey == null) spec.bindNull("storageKey", String::class.java) else spec.bind("storageKey", storageKey)
-        spec = if (detectedMediaType == null) spec.bindNull("detectedMediaType", String::class.java) else spec.bind("detectedMediaType", detectedMediaType)
-        spec = if (fileSizeBytes == null) spec.bindNull("fileSizeBytes", java.lang.Long::class.java) else spec.bind("fileSizeBytes", fileSizeBytes)
+        spec =
+            if (storageKey ==
+                null
+            ) {
+                spec.bindNull("storageKey", String::class.java)
+            } else {
+                spec.bind("storageKey", storageKey)
+            }
+        spec =
+            if (detectedMediaType ==
+                null
+            ) {
+                spec.bindNull("detectedMediaType", String::class.java)
+            } else {
+                spec.bind("detectedMediaType", detectedMediaType)
+            }
+        spec =
+            if (fileSizeBytes ==
+                null
+            ) {
+                spec.bindNull("fileSizeBytes", java.lang.Long::class.java)
+            } else {
+                spec.bind("fileSizeBytes", fileSizeBytes)
+            }
         spec.fetch().rowsUpdated().awaitSingle()
     }
 
@@ -197,7 +227,14 @@ class MediaPostgresSchemaConstraintsTest : PostgresDatabaseTestBase() {
             .bind("workspaceId", workspaceId)
             .bind("fileHash", fileHash)
             .bind("status", status)
-        spec = if (storageKey == null) spec.bindNull("storageKey", String::class.java) else spec.bind("storageKey", storageKey)
+        spec =
+            if (storageKey ==
+                null
+            ) {
+                spec.bindNull("storageKey", String::class.java)
+            } else {
+                spec.bind("storageKey", storageKey)
+            }
         spec.fetch().rowsUpdated().awaitSingle()
     }
 

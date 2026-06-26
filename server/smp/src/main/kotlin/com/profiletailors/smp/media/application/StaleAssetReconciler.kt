@@ -1,17 +1,12 @@
 package com.profiletailors.smp.media.application
 
 import com.profiletailors.common.domain.Service
-import com.profiletailors.smp.media.domain.BlobStatus
 import com.profiletailors.smp.media.domain.MediaAsset
-import com.profiletailors.smp.media.domain.MediaAssetStatus
-import com.profiletailors.smp.media.domain.MediaAsset.Companion.ASSET_EXPIRATION_TTL_HOURS
-import com.profiletailors.smp.media.domain.MediaAsset.Companion.GC_MAX_FAILURE_COUNT
 import com.profiletailors.smp.media.domain.MediaAsset.Companion.GC_RETENTION_DAYS
 import com.profiletailors.smp.media.domain.WorkspaceFileBlob
 import com.profiletailors.storage.application.StorageApplicationService
 import com.profiletailors.storage.domain.StorageException
 import kotlinx.coroutines.TimeoutCancellationException
-import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.withTimeout
 import org.slf4j.LoggerFactory
@@ -76,7 +71,11 @@ class BlobGarbageCollector(
         val durationMs = System.currentTimeMillis() - startTime
         logger.info(
             "media.gc.run blobsScanned={} blobsDeleted={} storageErrors={} skippedBlobs={} durationMs={}",
-            blobsScanned, blobsDeleted, storageErrors, skippedBlobs, durationMs,
+            blobsScanned,
+            blobsDeleted,
+            storageErrors,
+            skippedBlobs,
+            durationMs,
         )
 
         return GCRunResult(
@@ -95,7 +94,8 @@ class BlobGarbageCollector(
         if (storageKey.isNullOrBlank()) {
             logger.warn(
                 "media.gc.skip.noStorageKey workspaceId={} fileHash={}",
-                blob.workspaceId, blob.fileHash,
+                blob.workspaceId,
+                blob.fileHash,
             )
             return BlobGCResult.Skipped
         }
@@ -113,10 +113,11 @@ class BlobGarbageCollector(
 
             logger.info(
                 "media.gc.deleted workspaceId={} fileHash={} storageKey={}",
-                blob.workspaceId, blob.fileHash, storageKey,
+                blob.workspaceId,
+                blob.fileHash,
+                storageKey,
             )
             BlobGCResult.Deleted
-
         } catch (e: StorageException) {
             workspaceFileBlobRepository.recordGCFailure(
                 blob.workspaceId,
@@ -125,10 +126,12 @@ class BlobGarbageCollector(
             )
             logger.warn(
                 "media.gc.storageFailed workspaceId={} fileHash={} storageKey={} error={}",
-                blob.workspaceId, blob.fileHash, storageKey, e.message,
+                blob.workspaceId,
+                blob.fileHash,
+                storageKey,
+                e.message,
             )
             BlobGCResult.StorageFailed
-
         } catch (e: TimeoutCancellationException) {
             workspaceFileBlobRepository.recordGCFailure(
                 blob.workspaceId,
@@ -137,11 +140,12 @@ class BlobGarbageCollector(
             )
             logger.warn(
                 "media.gc.storageTimeout workspaceId={} fileHash={} storageKey={}",
-                blob.workspaceId, blob.fileHash, storageKey,
+                blob.workspaceId,
+                blob.fileHash,
+                storageKey,
                 e,
             )
             BlobGCResult.StorageFailed
-
         } catch (e: RuntimeException) {
             // Defensive: unexpected runtime errors should not silently disappear
             workspaceFileBlobRepository.recordGCFailure(
@@ -151,7 +155,8 @@ class BlobGarbageCollector(
             )
             logger.error(
                 "media.gc.error workspaceId={} fileHash={}",
-                blob.workspaceId, blob.fileHash,
+                blob.workspaceId,
+                blob.fileHash,
                 e,
             )
             BlobGCResult.StorageFailed
@@ -238,7 +243,11 @@ class MediaAssetExpirationJob(
         val durationMs = System.currentTimeMillis() - startTime
         logger.info(
             "media.expiration.run pendingExpired={} uploadingExpired={} blobsScheduledForGC={} errors={} durationMs={}",
-            pendingExpired, uploadingExpired, blobsScheduledForGC, errors, durationMs,
+            pendingExpired,
+            uploadingExpired,
+            blobsScheduledForGC,
+            errors,
+            durationMs,
         )
 
         return ExpirationRunResult(
@@ -256,7 +265,8 @@ class MediaAssetExpirationJob(
         releaseUploadSlot(asset)
         logger.info(
             "media.asset.expired.pendingUpload assetId={} workspaceId={}",
-            asset.assetId, asset.workspaceId,
+            asset.assetId,
+            asset.workspaceId,
         )
 
         // Check if blob needs GC
@@ -269,7 +279,8 @@ class MediaAssetExpirationJob(
         releaseUploadSlot(asset)
         logger.info(
             "media.asset.expired.uploading assetId={} workspaceId={}",
-            asset.assetId, asset.workspaceId,
+            asset.assetId,
+            asset.workspaceId,
         )
 
         // Check if blob needs GC
@@ -290,7 +301,8 @@ class MediaAssetExpirationJob(
                 workspaceFileBlobRepository.markReadyForGC(workspaceId, fileHash, orphanedAt)
                 logger.info(
                     "media.blob.expired.markedReadyForGC workspaceId={} fileHash={}",
-                    workspaceId, fileHash,
+                    workspaceId,
+                    fileHash,
                 )
                 true
             } else {

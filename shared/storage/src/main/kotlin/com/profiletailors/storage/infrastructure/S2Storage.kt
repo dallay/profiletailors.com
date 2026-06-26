@@ -30,9 +30,5 @@ import software.amazon.awssdk.services.s3.presigner.S3Presigner
  * @param presigner The R2-configured S3 presigner
  * @param timeoutSeconds Timeout for operations in seconds
  */
-class S2Storage(
-    client: S3AsyncClient,
-    bucketName: String,
-    presigner: S3Presigner,
-    timeoutSeconds: Long = 30
-) : PresignableStorage by S3Storage(client, bucketName, presigner, timeoutSeconds)
+class S2Storage(client: S3AsyncClient, bucketName: String, presigner: S3Presigner, timeoutSeconds: Long = 30) :
+    PresignableStorage by S3Storage(client, bucketName, presigner, timeoutSeconds)

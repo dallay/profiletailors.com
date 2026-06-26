@@ -10,11 +10,10 @@ internal class NoOpServiceAccountCredentialStateLookup : ServiceAccountCredentia
         credentialReference: String,
         subject: String,
         provider: String,
-    ): ActiveServiceAccountCredential =
-        throw ServiceAccountCredentialNotActiveException(
-            credentialReference = credentialReference,
-            subject = subject,
-            provider = provider,
-            reason = ServiceAccountCredentialFailureReason.MISSING,
-        )
+    ): ActiveServiceAccountCredential = throw ServiceAccountCredentialNotActiveException(
+        credentialReference = credentialReference,
+        subject = subject,
+        provider = provider,
+        reason = ServiceAccountCredentialFailureReason.MISSING,
+    )
 }

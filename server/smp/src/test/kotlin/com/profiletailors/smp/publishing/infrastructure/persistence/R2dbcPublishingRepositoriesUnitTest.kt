@@ -6,9 +6,9 @@ import com.profiletailors.smp.publishing.domain.AssetSourceType
 import com.profiletailors.smp.publishing.domain.DeliveryAttempt
 import com.profiletailors.smp.publishing.domain.DeliveryAttemptOutcome
 import com.profiletailors.smp.publishing.domain.JobStatus
+import com.profiletailors.smp.publishing.domain.ProviderAssetRef
 import com.profiletailors.smp.publishing.domain.PublicationAsset
 import com.profiletailors.smp.publishing.domain.PublicationAssetStatus
-import com.profiletailors.smp.publishing.domain.ProviderAssetRef
 import com.profiletailors.smp.publishing.domain.PublicationDraft
 import com.profiletailors.smp.publishing.domain.PublicationJob
 import com.profiletailors.smp.publishing.domain.PublicationStatus
@@ -37,7 +37,7 @@ class R2dbcPublishingRepositoriesUnitTest : DatabaseUnitTestBase() {
 
     private val fixedClock = java.time.Clock.fixed(
         Instant.parse("2026-06-01T12:00:00Z"),
-        java.time.ZoneId.systemDefault()
+        java.time.ZoneId.systemDefault(),
     )
 
     @BeforeEach
@@ -79,7 +79,7 @@ class R2dbcPublishingRepositoriesUnitTest : DatabaseUnitTestBase() {
                 pubId,
                 Instant.parse("2026-06-01T12:00:00Z"),
                 reasonCode = "RATE_LIMITED",
-                reasonMessage = "LinkedIn rate limit exceeded"
+                reasonMessage = "LinkedIn rate limit exceeded",
             )
 
             val loaded = publicationRepository.findByWorkspaceAndId("workspace-1", pubId)
@@ -489,8 +489,12 @@ class R2dbcPublishingRepositoriesUnitTest : DatabaseUnitTestBase() {
         @Test
         fun `claimNextDue returns null when no jobs are due`() = runTest {
             val pubId = insertPublication(PublicationStatus.PROCESSING.name)
-            insertPublicationJob("job-future", pubId, JobStatus.PENDING,
-                dueAt = Instant.parse("2026-06-02T00:00:00Z"))
+            insertPublicationJob(
+                "job-future",
+                pubId,
+                JobStatus.PENDING,
+                dueAt = Instant.parse("2026-06-02T00:00:00Z"),
+            )
 
             val claim = publicationJobRepository.claimNextDue(Instant.parse("2026-06-01T12:00:00Z"), "worker-1")
             assertNull(claim)
@@ -500,10 +504,20 @@ class R2dbcPublishingRepositoriesUnitTest : DatabaseUnitTestBase() {
         fun `claimNextDue claims highest priority due job`() = runTest {
             val pubLow = insertPublication(PublicationStatus.PROCESSING.name, "pub-low")
             val pubHigh = insertPublication(PublicationStatus.PROCESSING.name, "pub-high")
-            insertPublicationJob("job-low-priority", pubLow, JobStatus.PENDING,
-                dueAt = Instant.parse("2026-06-01T10:00:00Z"), priorityRank = 1)
-            insertPublicationJob("job-high-priority", pubHigh, JobStatus.PENDING,
-                dueAt = Instant.parse("2026-06-01T10:00:00Z"), priorityRank = 100)
+            insertPublicationJob(
+                "job-low-priority",
+                pubLow,
+                JobStatus.PENDING,
+                dueAt = Instant.parse("2026-06-01T10:00:00Z"),
+                priorityRank = 1,
+            )
+            insertPublicationJob(
+                "job-high-priority",
+                pubHigh,
+                JobStatus.PENDING,
+                dueAt = Instant.parse("2026-06-01T10:00:00Z"),
+                priorityRank = 100,
+            )
 
             val claim = publicationJobRepository.claimNextDue(Instant.parse("2026-06-01T12:00:00Z"), "worker-1")
             assertNotNull(claim)
@@ -513,8 +527,13 @@ class R2dbcPublishingRepositoriesUnitTest : DatabaseUnitTestBase() {
         @Test
         fun `claimNextDue returns RETRY_WAITING jobs past due_at`() = runTest {
             val pubId = insertPublication(PublicationStatus.PROCESSING.name)
-            insertPublicationJob("job-retry", pubId, JobStatus.RETRY_WAITING,
-                dueAt = Instant.parse("2026-06-01T08:00:00Z"), priorityRank = 50)
+            insertPublicationJob(
+                "job-retry",
+                pubId,
+                JobStatus.RETRY_WAITING,
+                dueAt = Instant.parse("2026-06-01T08:00:00Z"),
+                priorityRank = 50,
+            )
 
             val claim = publicationJobRepository.claimNextDue(Instant.parse("2026-06-01T12:00:00Z"), "worker-1")
             assertNotNull(claim)
@@ -590,8 +609,12 @@ class R2dbcPublishingRepositoriesUnitTest : DatabaseUnitTestBase() {
         fun `record stores attempt and returns it`() = runTest {
             val pubId = insertPublication(PublicationStatus.PROCESSING.name, "pub-da-1")
             val jobId = "job-da-1"
-            insertPublicationJob(jobId, pubId, JobStatus.PENDING,
-                dueAt = Instant.parse("2026-06-01T12:00:00Z"))
+            insertPublicationJob(
+                jobId,
+                pubId,
+                JobStatus.PENDING,
+                dueAt = Instant.parse("2026-06-01T12:00:00Z"),
+            )
 
             val attempt = DeliveryAttempt(
                 id = "attempt-1",
@@ -614,8 +637,12 @@ class R2dbcPublishingRepositoriesUnitTest : DatabaseUnitTestBase() {
         fun `record with null optional fields succeeds`() = runTest {
             val pubId = insertPublication(PublicationStatus.PROCESSING.name, "pub-da-2")
             val jobId = "job-da-2"
-            insertPublicationJob(jobId, pubId, JobStatus.PENDING,
-                dueAt = Instant.parse("2026-06-01T12:00:00Z"))
+            insertPublicationJob(
+                jobId,
+                pubId,
+                JobStatus.PENDING,
+                dueAt = Instant.parse("2026-06-01T12:00:00Z"),
+            )
 
             val attempt = DeliveryAttempt(
                 id = "attempt-2",
@@ -640,8 +667,12 @@ class R2dbcPublishingRepositoriesUnitTest : DatabaseUnitTestBase() {
         fun `record with all fields set succeeds`() = runTest {
             val pubId = insertPublication(PublicationStatus.PROCESSING.name, "pub-da-3")
             val jobId = "job-da-3"
-            insertPublicationJob(jobId, pubId, JobStatus.PENDING,
-                dueAt = Instant.parse("2026-06-01T12:00:00Z"))
+            insertPublicationJob(
+                jobId,
+                pubId,
+                JobStatus.PENDING,
+                dueAt = Instant.parse("2026-06-01T12:00:00Z"),
+            )
 
             val attempt = DeliveryAttempt(
                 id = "attempt-3",
@@ -751,16 +782,14 @@ class R2dbcPublishingRepositoriesUnitTest : DatabaseUnitTestBase() {
             .awaitSingle()
     }
 
-    private fun makeJob(id: String, publicationId: String, status: JobStatus): PublicationJob {
-        return PublicationJob(
-            id = id,
-            publicationId = publicationId,
-            workspaceId = "workspace-1",
-            status = status,
-            dueAt = Instant.parse("2026-06-01T12:00:00Z"),
-            priorityRank = 10,
-            attemptCount = 0,
-            maxAttempts = 3,
-        )
-    }
+    private fun makeJob(id: String, publicationId: String, status: JobStatus): PublicationJob = PublicationJob(
+        id = id,
+        publicationId = publicationId,
+        workspaceId = "workspace-1",
+        status = status,
+        dueAt = Instant.parse("2026-06-01T12:00:00Z"),
+        priorityRank = 10,
+        attemptCount = 0,
+        maxAttempts = 3,
+    )
 }

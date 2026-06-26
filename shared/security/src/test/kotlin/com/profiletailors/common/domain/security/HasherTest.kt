@@ -2,11 +2,11 @@ package com.profiletailors.common.domain.security
 
 import com.profiletailors.common.infrastructure.security.HmacHasher
 import com.profiletailors.common.infrastructure.security.Sha256Hasher
-import javax.crypto.Mac
-import javax.crypto.spec.SecretKeySpec
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertThrows
 import org.junit.jupiter.api.Test
+import javax.crypto.Mac
+import javax.crypto.spec.SecretKeySpec
 
 internal class HasherTest {
 

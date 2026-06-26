@@ -92,9 +92,9 @@ abstract class IntegrationTestBase {
     protected suspend fun seedPrincipal(principalId: String) {
         databaseClient.sql(
             """
-            INSERT INTO principals (id, principal_type, subject, provider, display_identity) 
+            INSERT INTO principals (id, principal_type, subject, provider, display_identity)
             VALUES (:id, 'USER', :subject, 'https://issuer.example', :displayIdentity)
-            """.trimIndent()
+            """.trimIndent(),
         )
             .bind("id", principalId)
             .bind("subject", "subject-$principalId")
@@ -106,7 +106,7 @@ abstract class IntegrationTestBase {
 
     protected suspend fun seedUserIdentity(principalId: String, email: String, username: String) {
         databaseClient.sql(
-            "INSERT INTO user_identities (principal_id, email, username) VALUES (:principalId, :email, :username)"
+            "INSERT INTO user_identities (principal_id, email, username) VALUES (:principalId, :email, :username)",
         )
             .bind("principalId", principalId)
             .bind("email", email)
@@ -116,16 +116,24 @@ abstract class IntegrationTestBase {
             .awaitSingle()
     }
 
-    protected suspend fun seedWorkspace(workspaceId: String, name: String, status: String = "ACTIVE", icon: String? = null) {
+    protected suspend fun seedWorkspace(
+        workspaceId: String,
+        name: String,
+        status: String = "ACTIVE",
+        icon: String? = null,
+    ) {
         databaseClient.sql(
-            "INSERT INTO workspaces (id, name, status, icon) VALUES (:id, :name, :status, :icon)"
+            "INSERT INTO workspaces (id, name, status, icon) VALUES (:id, :name, :status, :icon)",
         )
             .bind("id", workspaceId)
             .bind("name", name)
             .bind("status", status)
             .let { spec ->
-                if (icon == null) spec.bindNull("icon", String::class.java)
-                else spec.bind("icon", icon)
+                if (icon == null) {
+                    spec.bindNull("icon", String::class.java)
+                } else {
+                    spec.bind("icon", icon)
+                }
             }
             .fetch()
             .rowsUpdated()
@@ -137,13 +145,13 @@ abstract class IntegrationTestBase {
         workspaceId: String,
         principalId: String,
         principalType: String = "USER",
-        status: String = "ACTIVE"
+        status: String = "ACTIVE",
     ) {
         databaseClient.sql(
             """
-            INSERT INTO workspace_memberships (id, workspace_id, principal_id, principal_type, status) 
+            INSERT INTO workspace_memberships (id, workspace_id, principal_id, principal_type, status)
             VALUES (:id, :workspaceId, :principalId, :principalType, :status)
-            """.trimIndent()
+            """.trimIndent(),
         )
             .bind("id", id)
             .bind("workspaceId", workspaceId)
@@ -159,13 +167,13 @@ abstract class IntegrationTestBase {
         workspaceId: String,
         ownerPrincipalId: String,
         ownerPrincipalType: String = "USER",
-        createdBy: String
+        createdBy: String,
     ) {
         databaseClient.sql(
             """
-            INSERT INTO workspace_ownerships (workspace_id, owner_principal_id, owner_principal_type, created_by) 
+            INSERT INTO workspace_ownerships (workspace_id, owner_principal_id, owner_principal_type, created_by)
             VALUES (:workspaceId, :ownerPrincipalId, :ownerPrincipalType, :createdBy)
-            """.trimIndent()
+            """.trimIndent(),
         )
             .bind("workspaceId", workspaceId)
             .bind("ownerPrincipalId", ownerPrincipalId)
@@ -216,7 +224,7 @@ abstract class IntegrationTestBase {
             Liquibase(
                 "db/changelog/db.changelog-master.yaml",
                 ClassLoaderResourceAccessor(),
-                database
+                database,
             ).update(Contexts(), LabelExpression())
         }
     }
@@ -241,8 +249,9 @@ abstract class IntegrationTestBase {
                         .claim("principal_type", "USER")
                         .issuedAt(Instant.parse("2026-05-20T10:15:30Z"))
                         .expiresAt(Instant.parse("2026-05-20T11:15:30Z"))
-                        .build()
+                        .build(),
                 )
+
                 else -> Mono.error(BadJwtException("Invalid token"))
             }
         }
@@ -259,7 +268,7 @@ abstract class IntegrationTestBase {
                 .property("DB_CLOSE_DELAY", "-1")
                 .property("DB_CLOSE_ON_EXIT", "FALSE")
                 .username("sa")
-                .build()
+                .build(),
         )
 
         /**
@@ -272,7 +281,12 @@ abstract class IntegrationTestBase {
         fun inMemoryFakeStorage(): Storage = object : Storage {
             private val objects = mutableMapOf<String, ByteArray>()
 
-            override suspend fun upload(bucket: String, key: String, content: Flow<ByteArray>, metadata: Map<String, String>) {
+            override suspend fun upload(
+                bucket: String,
+                key: String,
+                content: Flow<ByteArray>,
+                metadata: Map<String, String>,
+            ) {
                 val chunks = mutableListOf<ByteArray>()
                 content.collect { chunks += it }
                 objects["$bucket/$key"] = chunks.flatMap { it.toList() }.toByteArray()
@@ -291,8 +305,7 @@ abstract class IntegrationTestBase {
             override suspend fun list(bucket: String, prefix: String): List<String> =
                 objects.keys.filter { it.startsWith("$bucket/$prefix") }
 
-            override suspend fun exists(bucket: String, key: String): Boolean =
-                objects.containsKey("$bucket/$key")
+            override suspend fun exists(bucket: String, key: String): Boolean = objects.containsKey("$bucket/$key")
 
             override suspend fun copyObject(bucket: String, sourceKey: String, destKey: String) {
                 val sourcePath = "$bucket/$sourceKey"

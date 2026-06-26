@@ -8,6 +8,4 @@ import kotlin.reflect.KClass
  * @param filterBy optional event type filter — only events of this type (or subtypes)
  *                 will be delivered to the consumer. Defaults to no filtering.
  */
-annotation class Subscribe(
-    val filterBy: KClass<*>
-)
+annotation class Subscribe(val filterBy: KClass<*>)

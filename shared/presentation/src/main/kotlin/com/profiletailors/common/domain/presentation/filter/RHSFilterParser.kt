@@ -2,17 +2,14 @@ package com.profiletailors.common.domain.presentation.filter
 
 import com.profiletailors.common.domain.criteria.Criteria
 import com.profiletailors.common.domain.presentation.FilterInvalidException
+import org.slf4j.LoggerFactory
+import tools.jackson.databind.ObjectMapper
 import kotlin.reflect.KClass
 import kotlin.reflect.KProperty1
 import kotlin.reflect.full.memberProperties
-import org.slf4j.LoggerFactory
-import tools.jackson.databind.ObjectMapper
 
 @Suppress("UNCHECKED_CAST")
-class RHSFilterParser<T : Any>(
-    private val clazz: KClass<T>,
-    private val objectMapper: ObjectMapper
-) {
+class RHSFilterParser<T : Any>(private val clazz: KClass<T>, private val objectMapper: ObjectMapper) {
     private val regex = Regex("(.[^:]+):(.+)")
 
     @Suppress("TooGenericExceptionCaught", "SwallowedException")
@@ -48,7 +45,8 @@ class RHSFilterParser<T : Any>(
     }
 
     private fun convert(operand: String, clazz: KClass<*>): Any {
-        val candidates = listOfNotNull(operand, operand.toIntOrNull(), operand.toLongOrNull(), operand.toBooleanStrictOrNull())
+        val candidates =
+            listOfNotNull(operand, operand.toIntOrNull(), operand.toLongOrNull(), operand.toBooleanStrictOrNull())
         var converted: Any? = null
         for (candidate in candidates) {
             try {

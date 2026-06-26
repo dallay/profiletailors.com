@@ -39,7 +39,7 @@ interface Storage {
         bucket: String,
         key: String,
         content: Flow<ByteArray>,
-        metadata: Map<String, String> = emptyMap()
+        metadata: Map<String, String> = emptyMap(),
     )
 
     /**

@@ -2,7 +2,6 @@ package com.profiletailors.smp.media.infrastructure.persistence
 
 import com.profiletailors.smp.integration.support.PostgresDatabaseTestBase
 import com.profiletailors.smp.integration.support.PostgresTestContainerSupport
-import com.profiletailors.smp.media.domain.BlobStatus
 import kotlinx.coroutines.flow.toList
 import kotlinx.coroutines.reactor.awaitSingle
 import kotlinx.coroutines.test.runTest
@@ -43,8 +42,16 @@ class R2dbcMediaRepositoriesPostgresTest : PostgresDatabaseTestBase() {
         insertWorkspaceBlob("workspace-1", HASH_A, "UPLOADING")
         insertMediaAsset("asset-1", "workspace-1", HASH_A, "PENDING_UPLOAD")
 
-        val firstClaim = mediaRepository.claimCasUploadSlot("asset-1", "workspace-1", Instant.parse("2026-06-25T10:00:00Z"))
-        val secondClaim = mediaRepository.claimCasUploadSlot("asset-1", "workspace-1", Instant.parse("2026-06-25T10:01:00Z"))
+        val firstClaim = mediaRepository.claimCasUploadSlot(
+            "asset-1",
+            "workspace-1",
+            Instant.parse("2026-06-25T10:00:00Z"),
+        )
+        val secondClaim = mediaRepository.claimCasUploadSlot(
+            "asset-1",
+            "workspace-1",
+            Instant.parse("2026-06-25T10:01:00Z"),
+        )
 
         assertTrue(firstClaim)
         assertTrue(!secondClaim)
@@ -101,8 +108,11 @@ class R2dbcMediaRepositoriesPostgresTest : PostgresDatabaseTestBase() {
             .bind("fileHash", fileHash)
             .bind("status", status)
             .let { spec ->
-                if (orphanedAt == null) spec.bindNull("orphanedAt", java.time.OffsetDateTime::class.java)
-                else spec.bind("orphanedAt", java.time.OffsetDateTime.ofInstant(orphanedAt, java.time.ZoneOffset.UTC))
+                if (orphanedAt == null) {
+                    spec.bindNull("orphanedAt", java.time.OffsetDateTime::class.java)
+                } else {
+                    spec.bind("orphanedAt", java.time.OffsetDateTime.ofInstant(orphanedAt, java.time.ZoneOffset.UTC))
+                }
             }
             .fetch()
             .rowsUpdated()

@@ -37,28 +37,28 @@ class ResponseBodyResultHandlerAdapterTest {
     private val methodParamForTestEntity: MethodParameter by lazy {
         MethodParameter.forExecutable(
             this::class.java.getDeclaredMethod("stubReturningTestEntity"),
-            -1
+            -1,
         )
     }
 
     private val methodParamForString: MethodParameter by lazy {
         MethodParameter.forExecutable(
             this::class.java.getDeclaredMethod("stubReturningString"),
-            -1
+            -1,
         )
     }
 
     private val methodParamForAny: MethodParameter by lazy {
         MethodParameter.forExecutable(
             this::class.java.getDeclaredMethod("stubReturningAny"),
-            -1
+            -1,
         )
     }
 
     private val methodParamForVoid: MethodParameter by lazy {
         MethodParameter.forExecutable(
             this::class.java.getDeclaredMethod("stubReturningVoid"),
-            -1
+            -1,
         )
     }
 

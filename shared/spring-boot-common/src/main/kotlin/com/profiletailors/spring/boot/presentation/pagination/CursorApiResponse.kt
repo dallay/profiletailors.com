@@ -9,9 +9,7 @@ data class CursorApiResponse<T>(
     override val message: String = "Operation successful",
 ) : ApiEnvelope<Collection<T>>(message, data)
 
-inline fun <T, U> CursorApiResponse<T>.map(
-    func: (Collection<T>) -> Collection<U>,
-) = CursorApiResponse(
+inline fun <T, U> CursorApiResponse<T>.map(func: (Collection<T>) -> Collection<U>) = CursorApiResponse(
     data = func(data),
     prevPageCursor = prevPageCursor,
     nextPageCursor = nextPageCursor,

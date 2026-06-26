@@ -1,7 +1,7 @@
 package com.profiletailors.smp.identity.infrastructure
 
-import com.profiletailors.smp.identity.application.PrincipalIdentityLookup
 import com.profiletailors.common.domain.context.PrincipalType
+import com.profiletailors.smp.identity.application.PrincipalIdentityLookup
 import com.profiletailors.smp.integration.support.DatabaseUnitTestBase
 import kotlinx.coroutines.reactor.awaitSingle
 import kotlinx.coroutines.test.runTest

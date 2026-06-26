@@ -9,7 +9,12 @@ import org.springframework.boot.test.context.SpringBootTest
 import org.springframework.test.context.ActiveProfiles
 import java.util.Base64
 
-@SpringBootTest(properties = ["publishing.credentials.encryption.key=", "spring.main.lazy-initialization=true"]) // ensure property injection
+@SpringBootTest(
+    properties = [
+        "publishing.credentials.encryption.key=",
+        "spring.main.lazy-initialization=true",
+    ],
+) // ensure property injection
 @ActiveProfiles("test")
 class CredentialEncryptionServiceTests {
 

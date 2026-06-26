@@ -10,7 +10,5 @@ import com.profiletailors.common.domain.error.BusinessRuleValidationException
  *
  * @since 1.0.0
  */
-class CredentialException(
-    override val message: String,
-    override val cause: Throwable? = null
-) : BusinessRuleValidationException(message, cause)
+class CredentialException(override val message: String, override val cause: Throwable? = null) :
+    BusinessRuleValidationException(message, cause)

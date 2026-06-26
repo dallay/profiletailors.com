@@ -13,10 +13,7 @@ import javax.crypto.spec.SecretKeySpec
  * @param secretKey the HMAC secret key (must not be blank)
  * @param algorithm the HMAC algorithm (default: HmacSHA256)
  */
-class HmacHasher(
-    private val secretKey: String,
-    private val algorithm: String = "HmacSHA256"
-) : Hasher {
+class HmacHasher(private val secretKey: String, private val algorithm: String = "HmacSHA256") : Hasher {
     override fun hash(input: String): String {
         require(secretKey.isNotBlank()) { "Secret key must not be empty or blank for HMAC" }
         val mac = Mac.getInstance(algorithm)

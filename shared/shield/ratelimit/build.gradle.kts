@@ -9,23 +9,23 @@ dependencies {
     implementation(project(":shared:common"))
     implementation(project(":shared:bus"))
     implementation(project(":shared:spring-boot-common"))
-    
+
     // Spring Boot
     implementation(libs.spring.boot.starter.webflux)
     implementation(libs.kotlinx.coroutines.reactor)
-    
+
     // Bucket4j for rate limiting
     implementation(libs.bucket4j.core)
-    
+
     // Caffeine cache
     implementation(libs.caffeine)
-    
+
     // Jackson for JSON
     implementation(libs.jackson.module.kotlin)
-    
+
     // Micrometer for metrics
     implementation(libs.micrometer.prometheus)
-    
+
     // Testing
     testImplementation(libs.kotlin.test.junit5)
     testImplementation(libs.kotlin.reflect)

@@ -4,10 +4,13 @@ package com.profiletailors.common.domain.context
 enum class ResourceContextType {
     /** Global — no specific scope. */
     GLOBAL,
+
     /** User-scoped — owned by a single user. */
     USER,
+
     /** Workspace-scoped — multi-tenant context. */
     WORKSPACE,
+
     /** System-level — internal operations. */
     SYSTEM,
 }

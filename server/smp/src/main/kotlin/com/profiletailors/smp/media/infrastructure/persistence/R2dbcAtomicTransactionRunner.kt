@@ -16,9 +16,8 @@ import org.springframework.transaction.reactive.TransactionalOperator
  * remain held until the subscription terminates.
  */
 @Component
-class R2dbcAtomicTransactionRunner(
-    private val transactionalOperator: TransactionalOperator,
-) : AtomicTransactionRunner {
+class R2dbcAtomicTransactionRunner(private val transactionalOperator: TransactionalOperator) :
+    AtomicTransactionRunner {
 
     override suspend fun <T : Any> runAtomically(block: suspend () -> T): T =
         transactionalOperator.transactional(mono { block() }).awaitSingle()

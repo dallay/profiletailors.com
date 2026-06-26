@@ -3,7 +3,6 @@ package com.profiletailors.storage.infrastructure.metrics
 import com.profiletailors.storage.domain.StorageObservation
 import io.micrometer.core.instrument.Counter
 import io.micrometer.core.instrument.MeterRegistry
-import io.micrometer.core.instrument.Tag
 import io.micrometer.core.instrument.Timer
 import org.springframework.stereotype.Component
 
@@ -146,7 +145,7 @@ open class StorageMetrics(private val meterRegistry: MeterRegistry) : StorageObs
     override suspend fun <T : Any> recordOperationTime(
         operation: String,
         provider: String,
-        action: suspend () -> T
+        action: suspend () -> T,
     ): T {
         val timer = Timer.builder("storage.operation.time")
             .tag(OPERATION, operation)

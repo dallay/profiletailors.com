@@ -6,9 +6,7 @@ import org.springframework.web.server.WebFilter
 import org.springframework.web.server.WebFilterChain
 import reactor.core.publisher.Mono
 
-class RequestPathWebFilter(
-    private val requestContextStore: RequestContextStore,
-) : WebFilter {
+class RequestPathWebFilter(private val requestContextStore: RequestContextStore) : WebFilter {
     override fun filter(exchange: ServerWebExchange, chain: WebFilterChain): Mono<Void> {
         requestContextStore.setRequestPath(exchange.request.path.pathWithinApplication().value())
         return chain.filter(exchange)

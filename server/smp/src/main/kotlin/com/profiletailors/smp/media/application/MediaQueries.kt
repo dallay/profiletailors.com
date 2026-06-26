@@ -16,35 +16,24 @@ data class ListWorkspaceAssetsQuery(
 /**
  * Result of listing workspace assets.
  */
-data class ListWorkspaceAssetsResult(
-    val assets: List<MediaAssetSummary>,
-    val nextCursor: String?,
-)
+data class ListWorkspaceAssetsResult(val assets: List<MediaAssetSummary>, val nextCursor: String?)
 
 /**
  * Query to get a single workspace asset by ID.
  */
-data class GetWorkspaceAssetQuery(
-    val assetId: String,
-    val workspaceId: String,
-) : Query<MediaAssetSummary>
+data class GetWorkspaceAssetQuery(val assetId: String, val workspaceId: String) : Query<MediaAssetSummary>
 
 /**
  * Query to resolve ready assets for publishing consumption.
  *
  * This is the media-owned port consumed by publishing.
  */
-data class ResolveReadyAssetsQuery(
-    val workspaceId: String,
-    val assetIds: List<String>,
-)
+data class ResolveReadyAssetsQuery(val workspaceId: String, val assetIds: List<String>)
 
 /**
  * Result of resolving ready assets.
  */
-data class ResolveReadyAssetsResult(
-    val assets: List<ResolvedAssetSummary>,
-)
+data class ResolveReadyAssetsResult(val assets: List<ResolvedAssetSummary>)
 
 /**
  * Summary of a media asset.
@@ -57,7 +46,7 @@ data class MediaAssetSummary(
     val status: String,
     val originalFilename: String?,
     val fileSizeBytes: Long?,
-    val fileHash: String?,  // CAS: SHA-256 of file content (null for pre-CAS assets)
+    val fileHash: String?, // CAS: SHA-256 of file content (null for pre-CAS assets)
     val createdAt: String,
     val previewUrl: String? = null,
     val downloadUrl: String? = null,

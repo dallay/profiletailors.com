@@ -1,10 +1,10 @@
 package com.profiletailors.controllers
 
-import java.net.URI
-import java.time.Instant
 import org.springframework.http.HttpStatus
 import org.springframework.http.ProblemDetail
 import org.springframework.web.server.ServerWebExchange
+import java.net.URI
+import java.time.Instant
 
 /**
  * Options for [createProblemDetail] — groups all optional/problem-detail-specific fields

@@ -18,8 +18,14 @@ class PostgresTestContainerSupportTest {
             jdbcUrl = "jdbc:postgresql://localhost:55432/profiletailors_test",
         )
 
-        assertEquals("r2dbc:postgresql://localhost:55432/profiletailors_test", PostgresTestContainerSupport.r2dbcUrl(container))
-        assertEquals("jdbc:postgresql://localhost:55432/profiletailors_test", PostgresTestContainerSupport.jdbcUrl(container))
+        assertEquals(
+            "r2dbc:postgresql://localhost:55432/profiletailors_test",
+            PostgresTestContainerSupport.r2dbcUrl(container),
+        )
+        assertEquals(
+            "jdbc:postgresql://localhost:55432/profiletailors_test",
+            PostgresTestContainerSupport.jdbcUrl(container),
+        )
         assertEquals("profiletailors", PostgresTestContainerSupport.username(container))
         assertEquals("secret", PostgresTestContainerSupport.password(container))
     }
@@ -28,8 +34,12 @@ class PostgresTestContainerSupportTest {
     fun `cleanup statements delete workspace file blobs before workspaces`() {
         val statements = PostgresDatabaseCleanup.statements
 
-        assertTrue(statements.indexOf("DELETE FROM media_assets") < statements.indexOf("DELETE FROM workspace_file_blobs"))
-        assertTrue(statements.indexOf("DELETE FROM workspace_file_blobs") < statements.indexOf("DELETE FROM workspaces"))
+        assertTrue(
+            statements.indexOf("DELETE FROM media_assets") < statements.indexOf("DELETE FROM workspace_file_blobs"),
+        )
+        assertTrue(
+            statements.indexOf("DELETE FROM workspace_file_blobs") < statements.indexOf("DELETE FROM workspaces"),
+        )
     }
 
     private class FakePostgresContainer(

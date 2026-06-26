@@ -6,20 +6,17 @@ import com.profiletailors.smp.publishing.domain.DateCount
 import com.profiletailors.smp.publishing.domain.DeliveryAttempt
 import com.profiletailors.smp.publishing.domain.DeliveryAttemptRepository
 import com.profiletailors.smp.publishing.domain.DeliveryRetryPolicy
-import com.profiletailors.smp.publishing.domain.JobStatus
 import com.profiletailors.smp.publishing.domain.NotificationCategory
 import com.profiletailors.smp.publishing.domain.NotificationEvent
 import com.profiletailors.smp.publishing.domain.NotificationEventRepository
 import com.profiletailors.smp.publishing.domain.ProviderCapabilityValidationInput
-import com.profiletailors.smp.publishing.domain.ProviderPublishCommand
-import com.profiletailors.smp.publishing.domain.ProviderPublishResult
 import com.profiletailors.smp.publishing.domain.ProviderCapabilityValidator
+import com.profiletailors.smp.publishing.domain.ProviderPublishResult
 import com.profiletailors.smp.publishing.domain.PublicationDraft
 import com.profiletailors.smp.publishing.domain.PublicationJob
 import com.profiletailors.smp.publishing.domain.PublicationJobClaim
 import com.profiletailors.smp.publishing.domain.PublicationJobRepository
 import com.profiletailors.smp.publishing.domain.PublicationRepository
-import com.profiletailors.smp.publishing.domain.PublicationSchedulingPolicy
 import com.profiletailors.smp.publishing.domain.PublicationStatus
 import com.profiletailors.smp.publishing.domain.ScheduleMode
 import com.profiletailors.smp.publishing.domain.SocialAccount
@@ -168,10 +165,7 @@ class PublishingSchedulingConfigurationTest {
     }
 
     private class RecordingTaskScheduler : TaskScheduler {
-        data class FixedRateSchedule(
-            val startTime: Instant,
-            val period: Duration,
-        )
+        data class FixedRateSchedule(val startTime: Instant, val period: Duration)
 
         val fixedRateSchedules = mutableListOf<FixedRateSchedule>()
 
@@ -179,11 +173,7 @@ class PublishingSchedulingConfigurationTest {
 
         override fun schedule(task: Runnable, startTime: Instant): ScheduledFuture<*> = CompletedScheduledFuture
 
-        override fun scheduleAtFixedRate(
-            task: Runnable,
-            startTime: Instant,
-            period: Duration,
-        ): ScheduledFuture<*> {
+        override fun scheduleAtFixedRate(task: Runnable, startTime: Instant, period: Duration): ScheduledFuture<*> {
             fixedRateSchedules += FixedRateSchedule(startTime, period)
             return CompletedScheduledFuture
         }
@@ -193,13 +183,11 @@ class PublishingSchedulingConfigurationTest {
             return CompletedScheduledFuture
         }
 
-        override fun scheduleWithFixedDelay(
-            task: Runnable,
-            startTime: Instant,
-            delay: Duration,
-        ): ScheduledFuture<*> = CompletedScheduledFuture
+        override fun scheduleWithFixedDelay(task: Runnable, startTime: Instant, delay: Duration): ScheduledFuture<*> =
+            CompletedScheduledFuture
 
-        override fun scheduleWithFixedDelay(task: Runnable, delay: Duration): ScheduledFuture<*> = CompletedScheduledFuture
+        override fun scheduleWithFixedDelay(task: Runnable, delay: Duration): ScheduledFuture<*> =
+            CompletedScheduledFuture
     }
 
     private object CompletedScheduledFuture : ScheduledFuture<Unit> {
@@ -225,7 +213,8 @@ class PublishingSchedulingConfigurationTest {
     private class NoOpPublicationRepository : PublicationRepository {
         override suspend fun createDraft(draft: PublicationDraft): PublicationDraft = draft
         override suspend fun updateEditableDraft(draft: PublicationDraft): PublicationDraft = draft
-        override suspend fun findByWorkspaceAndId(workspaceId: String, publicationId: String): PublicationDraft? = publication()
+        override suspend fun findByWorkspaceAndId(workspaceId: String, publicationId: String): PublicationDraft? =
+            publication()
         override suspend fun findInDateRange(
             workspaceId: String,
             from: Instant,
@@ -241,8 +230,14 @@ class PublishingSchedulingConfigurationTest {
             statuses: Set<PublicationStatus>?,
             timezone: String,
         ): List<DateCount> = emptyList()
-        override suspend fun markPublished(publicationId: String, externalPublicationId: String, publishedAt: Instant) = Unit
-        override suspend fun markFailed(publicationId: String, failedAt: Instant, reasonCode: String?, reasonMessage: String?) = Unit
+        override suspend fun markPublished(publicationId: String, externalPublicationId: String, publishedAt: Instant) =
+            Unit
+        override suspend fun markFailed(
+            publicationId: String,
+            failedAt: Instant,
+            reasonCode: String?,
+            reasonMessage: String?,
+        ) = Unit
         override suspend fun markCancelled(publicationId: String, cancelledAt: Instant) = Unit
         override suspend fun markBlocked(publicationId: String, blockedAt: Instant, reason: String?) = Unit
         override suspend fun deleteUnpublished(workspaceId: String, publicationId: String): Boolean = false
@@ -255,7 +250,10 @@ class PublishingSchedulingConfigurationTest {
     }
 
     private class NoOpMediaAssetResolver : MediaAssetResolver {
-        override suspend fun resolveReadyAssets(workspaceId: String, assetIds: List<String>): List<ResolvedAssetSummary> = emptyList()
+        override suspend fun resolveReadyAssets(
+            workspaceId: String,
+            assetIds: List<String>,
+        ): List<ResolvedAssetSummary> = emptyList()
     }
 
     private class NoOpDeliveryAttemptRepository : DeliveryAttemptRepository {

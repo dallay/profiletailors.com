@@ -1,16 +1,14 @@
 package com.profiletailors.smp.identity.infrastructure
 
+import com.profiletailors.common.domain.context.PrincipalType
 import com.profiletailors.smp.credentials.application.ActiveServiceAccountCredential
 import com.profiletailors.smp.credentials.application.ServiceAccountCredentialFailureReason
 import com.profiletailors.smp.credentials.application.ServiceAccountCredentialNotActiveException
 import com.profiletailors.smp.credentials.application.ServiceAccountCredentialStateLookup
 import com.profiletailors.smp.credentials.domain.CredentialType
 import com.profiletailors.smp.credentials.domain.ValidatedToken
-import com.profiletailors.smp.identity.application.NoOpPrincipalIdentityLookup
 import com.profiletailors.smp.identity.application.PrincipalIdentityFacts
 import com.profiletailors.smp.identity.application.PrincipalIdentityLookup
-import com.profiletailors.common.domain.context.PrincipalType
-import com.profiletailors.smp.identity.domain.AuthenticatedPrincipal
 import com.profiletailors.smp.identity.domain.EmailStatus
 import kotlinx.coroutines.test.runTest
 import org.junit.jupiter.api.Assertions.assertEquals
@@ -191,15 +189,13 @@ class JwtAuthenticatedPrincipalMaterializerTest {
                     credentialReference: String,
                     subject: String,
                     provider: String,
-                ): ActiveServiceAccountCredential {
-                    throw ServiceAccountCredentialNotActiveException(
-                        credentialReference = credentialReference,
-                        subject = subject,
-                        provider = provider,
-                        principalId = "service-principal-1",
-                        reason = ServiceAccountCredentialFailureReason.REVOKED,
-                    )
-                }
+                ): ActiveServiceAccountCredential = throw ServiceAccountCredentialNotActiveException(
+                    credentialReference = credentialReference,
+                    subject = subject,
+                    provider = provider,
+                    principalId = "service-principal-1",
+                    reason = ServiceAccountCredentialFailureReason.REVOKED,
+                )
             },
         )
         val token = serviceAccountToken()
@@ -250,9 +246,8 @@ class JwtAuthenticatedPrincipalMaterializerTest {
         credentialReference = "svc-cred-1",
     )
 
-    private class StubPrincipalIdentityLookup(
-        private val facts: PrincipalIdentityFacts? = null,
-    ) : PrincipalIdentityLookup {
+    private class StubPrincipalIdentityLookup(private val facts: PrincipalIdentityFacts? = null) :
+        PrincipalIdentityLookup {
         override suspend fun findBySubject(
             principalType: PrincipalType,
             subject: String,
@@ -265,9 +260,8 @@ class JwtAuthenticatedPrincipalMaterializerTest {
             facts?.takeIf { it.principalId == principalId }
     }
 
-    private class StubServiceAccountCredentialStateLookup(
-        private val credential: ActiveServiceAccountCredential,
-    ) : ServiceAccountCredentialStateLookup {
+    private class StubServiceAccountCredentialStateLookup(private val credential: ActiveServiceAccountCredential) :
+        ServiceAccountCredentialStateLookup {
         override suspend fun requireActive(
             credentialReference: String,
             subject: String,

@@ -2,9 +2,6 @@ package com.profiletailors.controllers
 
 import com.profiletailors.common.domain.error.BusinessRuleValidationException
 import com.profiletailors.common.domain.error.EntityNotFoundException
-import java.net.URI
-import java.time.Instant
-import java.util.*
 import org.slf4j.LoggerFactory
 import org.springframework.context.MessageSource
 import org.springframework.context.NoSuchMessageException
@@ -22,12 +19,13 @@ import org.springframework.web.reactive.result.method.annotation.ResponseEntityE
 import org.springframework.web.server.ServerWebExchange
 import org.springframework.web.server.ServerWebInputException
 import reactor.core.publisher.Mono
+import java.net.URI
+import java.time.Instant
+import java.util.*
 
 @RestControllerAdvice
 @org.springframework.core.annotation.Order(org.springframework.core.Ordered.LOWEST_PRECEDENCE)
-class GlobalExceptionHandler(
-    private val messageSource: MessageSource
-) : ResponseEntityExceptionHandler() {
+class GlobalExceptionHandler(private val messageSource: MessageSource) : ResponseEntityExceptionHandler() {
 
     private val log = LoggerFactory.getLogger(GlobalExceptionHandler::class.java)
 
@@ -86,10 +84,7 @@ class GlobalExceptionHandler(
 
     @ResponseStatus(HttpStatus.BAD_REQUEST)
     @ExceptionHandler(DecodingException::class)
-    fun handleDecodingException(
-        ex: DecodingException,
-        exchange: ServerWebExchange
-    ): ProblemDetail {
+    fun handleDecodingException(ex: DecodingException, exchange: ServerWebExchange): ProblemDetail {
         logRequestException("JSON deserialization failed", exchange, ex)
 
         val locale = exchange.localeContext.locale ?: Locale.getDefault()
@@ -121,7 +116,7 @@ class GlobalExceptionHandler(
         ex: ServerWebInputException,
         headers: HttpHeaders,
         status: HttpStatusCode,
-        exchange: ServerWebExchange
+        exchange: ServerWebExchange,
     ): Mono<ResponseEntity<Any>> {
         logRequestException("Server web input exception", exchange, ex)
 

@@ -90,15 +90,14 @@ class HmacOAuthStateSignerTest {
         }
     }
 
-    private fun validPayload(
-        expiresAt: Instant = Instant.parse("2026-05-26T12:10:00Z"),
-    ): LinkedInOAuthStatePayload = LinkedInOAuthStatePayload(
-        provider = SocialProvider.LINKEDIN,
-        workspaceId = "workspace-1",
-        principalId = "principal-1",
-        redirectUri = "https://app.example.com/callback",
-        nonce = "nonce-1",
-        issuedAt = Instant.parse("2026-05-26T12:00:00Z"),
-        expiresAt = expiresAt,
-    )
+    private fun validPayload(expiresAt: Instant = Instant.parse("2026-05-26T12:10:00Z")): LinkedInOAuthStatePayload =
+        LinkedInOAuthStatePayload(
+            provider = SocialProvider.LINKEDIN,
+            workspaceId = "workspace-1",
+            principalId = "principal-1",
+            redirectUri = "https://app.example.com/callback",
+            nonce = "nonce-1",
+            issuedAt = Instant.parse("2026-05-26T12:00:00Z"),
+            expiresAt = expiresAt,
+        )
 }

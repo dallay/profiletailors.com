@@ -1,14 +1,9 @@
 package com.profiletailors.smp.media.application
 
-import kotlinx.coroutines.test.runTest
-import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertFalse
-import org.junit.jupiter.api.Assertions.assertNotEquals
 import org.junit.jupiter.api.Assertions.assertNotNull
-import org.junit.jupiter.api.Assertions.assertNull
 import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.Test
-import org.junit.jupiter.api.assertThrows
 import java.time.Instant
 
 class MediaPreviewTokenServiceTest {
@@ -133,9 +128,13 @@ class MediaPreviewTokenServiceTest {
         val wrong = "abcdefghijklmnop"
         // Note: the private method is tested implicitly via isValid(false) above.
         // Direct white-box test of the security-critical path:
-        assertFalse(service.isValid("asset-1", "ws-1",
-            Instant.now().epochSecond + 3600,
-            "x".repeat(44) // same length, all wrong chars
-        ))
+        assertFalse(
+            service.isValid(
+                "asset-1",
+                "ws-1",
+                Instant.now().epochSecond + 3600,
+                "x".repeat(44), // same length, all wrong chars
+            ),
+        )
     }
 }
