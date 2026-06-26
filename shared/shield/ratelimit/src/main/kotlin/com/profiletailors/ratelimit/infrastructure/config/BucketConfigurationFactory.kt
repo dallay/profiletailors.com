@@ -151,12 +151,13 @@ class BucketConfigurationFactory(private val properties: RateLimitProperties) {
     /**
      * Checks if rate limiting is enabled for the specified strategy.
      */
-    fun isRateLimitEnabled(strategy: RateLimitStrategy): Boolean = properties.enabled && when (strategy) {
-        RateLimitStrategy.AUTH -> properties.auth.enabled
-        RateLimitStrategy.BUSINESS -> properties.business.enabled
-        RateLimitStrategy.RESUME -> properties.resume.enabled
-        RateLimitStrategy.WAITLIST -> properties.waitlist.enabled
-    }
+    fun isRateLimitEnabled(strategy: RateLimitStrategy): Boolean = properties.enabled &&
+        when (strategy) {
+            RateLimitStrategy.AUTH -> properties.auth.enabled
+            RateLimitStrategy.BUSINESS -> properties.business.enabled
+            RateLimitStrategy.RESUME -> properties.resume.enabled
+            RateLimitStrategy.WAITLIST -> properties.waitlist.enabled
+        }
 
     /**
      * Gets the list of endpoints that should be rate limited for the specified strategy.
