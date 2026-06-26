@@ -35,13 +35,11 @@ object PostgresTestContainerSupport {
         error("$PASSWORD_ENV must be set to run PostgreSQL-backed tests")
     }
 
-    fun newContainer(
-        databaseName: String = DATABASE,
-        password: String = resolvePassword(),
-    ): PostgreSQLContainer<*> = PostgreSQLContainer(IMAGE)
-        .withDatabaseName(databaseName)
-        .withUsername(USERNAME)
-        .withPassword(password)
+    fun newContainer(databaseName: String = DATABASE, password: String = resolvePassword()): PostgreSQLContainer<*> =
+        PostgreSQLContainer(IMAGE)
+            .withDatabaseName(databaseName)
+            .withUsername(USERNAME)
+            .withPassword(password)
 
     fun r2dbcUrl(container: PostgreSQLContainer<*>): String =
         "r2dbc:postgresql://${container.host}:${container.getMappedPort(
