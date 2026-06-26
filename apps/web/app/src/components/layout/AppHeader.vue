@@ -4,12 +4,25 @@ import { useRoute } from 'vue-router'
 import { useI18n } from 'vue-i18n'
 import { SidebarTrigger } from '@/components/ui/sidebar'
 
+/**
+ * Maps sub-route names to their parent nav key so the header shows the
+ * correct section label (e.g. "Scheduler") for all scheduler views.
+ * Direct matches (dashboard, analytics, media, settings) pass through.
+ */
+const routeNameToNavKey: Record<string, string> = {
+  'scheduler-calendar-week': 'scheduler',
+  'scheduler-calendar-month': 'scheduler',
+  'scheduler-calendar-day': 'scheduler',
+  'scheduler-list': 'scheduler',
+}
+
 const route = useRoute()
 const { t } = useI18n()
 
 const currentSectionLabel = computed(() => {
   if (!route.name) return 'dashboard'
-  return String(route.name)
+  const name = String(route.name)
+  return routeNameToNavKey[name] ?? name
 })
 </script>
 
@@ -21,10 +34,10 @@ const currentSectionLabel = computed(() => {
 
         <div class="min-w-0">
           <p class="font-mono text-[10px] uppercase tracking-[0.18em] text-text-secondary">
-            Workspace
+            {{ t('workspace.title') }}
           </p>
           <h1 class="truncate text-sm font-medium text-text-display md:text-base">
-            {{ t(`nav.${currentSectionLabel}`) || currentSectionLabel }}
+            {{ t(`nav.${currentSectionLabel}`) }}
           </h1>
         </div>
       </div>

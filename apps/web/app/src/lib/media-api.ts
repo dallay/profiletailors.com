@@ -134,8 +134,9 @@ async function pollUntilReady(
 ): Promise<PutAssetResponse | UploadAssetResponse> {
   for (let attempt = 0; attempt < maxAttempts; attempt++) {
     // Respect Retry-After if server provided it; fall back to 3s default
-    const pollResp = await createMediaFetch()(`/api/media/assets/${assetId}`, {
+    const pollResp = await createMediaFetch().raw(`/api/media/assets/${assetId}`, {
       method: 'PUT',
+      workspaceScoped: true,
       body: JSON.stringify({
         fileHash,
         fileSizeBytes: file.size,
@@ -220,8 +221,9 @@ export async function putAsset(
   const stableId = assetId ?? crypto.randomUUID()
   const fileHash = await computeFileHash(file)
 
-  const putResp = await createMediaFetch()(`/api/media/assets/${stableId}`, {
+  const putResp = await createMediaFetch().raw(`/api/media/assets/${stableId}`, {
     method: 'PUT',
+    workspaceScoped: true,
     body: JSON.stringify({
       fileHash,
       fileSizeBytes: file.size,
@@ -287,8 +289,9 @@ export async function putAsset(
 
   // 201: need to upload bytes
   if (putBody.status === 'PENDING_UPLOAD' && putBody.uploadUrl) {
-    const uploadResp = await createMediaFetch()(putBody.uploadUrl, {
+    const uploadResp = await createMediaFetch().raw(putBody.uploadUrl, {
       method: 'POST',
+      workspaceScoped: true,
       body: file,
       // Override Content-Type to raw bytes
       headers: { 'Content-Type': 'application/octet-stream' },

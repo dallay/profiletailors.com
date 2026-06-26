@@ -11,6 +11,7 @@ const messages = {
       analytics: 'Analytics',
       media: 'Media Library',
       settings: 'Settings',
+      system: 'System',
       logout: 'Log Out',
       login: 'Login',
       register: 'Register',
@@ -313,6 +314,7 @@ const messages = {
         'Set your LinkedIn app credentials in the server environment to enable this integration.',
       loading: 'Loading channels...',
       more: 'More channels',
+      moreChannels: 'More channels',
       threadsComingSoon: 'coming soon',
       connectionAvailableSoon: 'connection available soon',
       accountLabel: 'Account ID',
@@ -440,6 +442,7 @@ const messages = {
       analytics: 'Analítica',
       media: 'Librería de Medios',
       settings: 'Ajustes',
+      system: 'Sistema',
       logout: 'Cerrar Sesión',
       login: 'Iniciar Sesión',
       register: 'Crear Cuenta',
@@ -740,6 +743,7 @@ const messages = {
         'Configura las credenciales de tu aplicación LinkedIn en el entorno del servidor para habilitar esta integración.',
       loading: 'Cargando canales...',
       more: 'Más canales',
+      moreChannels: 'Más canales',
       accountLabel: 'ID de cuenta',
     },
     linkedinCallback: {
@@ -861,10 +865,30 @@ const messages = {
   },
 }
 
+export type Translations = typeof messages.en
+
+/** Flatten a nested translation object into dot‑notation keys. */
+export function flattenTranslations(
+  obj: Record<string, unknown>,
+  prefix = '',
+): string[] {
+  return Object.entries(obj).flatMap(([key, value]) => {
+    const path = prefix ? `${prefix}.${key}` : key
+    if (typeof value === 'object' && value !== null && !Array.isArray(value)) {
+      return flattenTranslations(value as Record<string, unknown>, path)
+    }
+    return [path]
+  })
+}
+
+export const messages_en = messages.en
+export const messages_es = messages.es
+
 const i18n = createI18n({
   legacy: false, // Use Composition API
   locale: 'en', // default locale
   fallbackLocale: 'en',
+  missingWarn: true,
   messages,
 })
 

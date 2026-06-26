@@ -449,7 +449,9 @@ async function handleUpdated() {
   const to =
     state.surface === 'calendar-month'
       ? new Date(baseDate.getFullYear(), baseDate.getMonth() + 1, 0)
-      : new Date(from.getFullYear(), from.getMonth(), from.getDate() + 6)
+      // Week view: end is exclusive (backend uses `scheduled_for < :to`),
+      // so add 7 days to cover Sunday→Saturday fully including the last day.
+      : new Date(from.getFullYear(), from.getMonth(), from.getDate() + 7)
 
   await publishingStore.fetchCalendar(from.toISOString(), to.toISOString(), {
     status: state.status === 'all' ? undefined : state.status,
@@ -498,7 +500,9 @@ watch(
     const to =
       state.surface === 'calendar-month'
         ? new Date(baseDate.getFullYear(), baseDate.getMonth() + 1, 0)
-        : new Date(from.getFullYear(), from.getMonth(), from.getDate() + 6)
+        // Week view: end is exclusive (backend uses `scheduled_for < :to`),
+        // so add 7 days to cover Sunday→Saturday fully including the last day.
+        : new Date(from.getFullYear(), from.getMonth(), from.getDate() + 7)
 
     await publishingStore.fetchCalendar(from.toISOString(), to.toISOString(), {
       status: state.status === 'all' ? undefined : state.status,

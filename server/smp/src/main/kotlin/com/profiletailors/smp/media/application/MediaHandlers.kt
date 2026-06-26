@@ -844,7 +844,7 @@ class PutAssetHandler(
             status = MediaAssetStatus.PENDING_UPLOAD.name,
             mediaType = command.declaredMediaType,
             deduped = false,
-            uploadUrl = "/api/workspaces/${command.workspaceId}/media/assets/${command.assetId}/upload",
+            uploadUrl = "/api/media/assets/${command.assetId}/upload",
             createdAt = ISO_FORMATTER.format(now.atOffset(ZoneOffset.UTC)),
         )
     }
