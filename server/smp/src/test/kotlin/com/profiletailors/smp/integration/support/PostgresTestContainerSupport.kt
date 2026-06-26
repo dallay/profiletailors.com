@@ -113,17 +113,11 @@ abstract class PostgresDatabaseTestBase {
         }
     }
 
-    private val liquibaseApplied: Boolean
-        get() = PostgresDatabaseTestBase.liquibaseMigrationApplied
-
-    private fun markLiquibaseApplied() {
-        PostgresDatabaseTestBase.liquibaseMigrationApplied = true
-    }
-
     private fun applyLiquibaseBaselineOnce() {
-        if (liquibaseApplied) return
+        val key = postgres.jdbcUrl
+        if (!liquibaseTracker.shouldApply(key)) return
         applyLiquibaseBaseline()
-        markLiquibaseApplied()
+        liquibaseTracker.markApplied(key)
     }
 
     private fun applyLiquibaseBaseline() {
@@ -139,7 +133,33 @@ abstract class PostgresDatabaseTestBase {
     }
 
     companion object {
-        private var liquibaseMigrationApplied = false
+        // Each test class has its own PostgreSQL container with a distinct database name.
+        // The tracker keys on the JDBC URL so every database gets its Liquibase baseline
+        // applied exactly once, regardless of which test class runs first.
+        private val liquibaseTracker = LiquibaseBaselineTracker()
+    }
+}
+
+/**
+ * Tracks which PostgreSQL databases have already had the Liquibase baseline applied.
+ * Each test class points at a distinct database (see `newContainer` in
+ * `PostgresTestContainerSupport`), so a single Boolean flag would silently skip
+ * Liquibase on the second and subsequent databases and leave them empty.
+ */
+class LiquibaseBaselineTracker {
+    private val applied = mutableSetOf<String>()
+
+    @Synchronized
+    fun shouldApply(jdbcUrl: String): Boolean = jdbcUrl !in applied
+
+    @Synchronized
+    fun markApplied(jdbcUrl: String) {
+        applied.add(jdbcUrl)
+    }
+
+    @Synchronized
+    fun reset() {
+        applied.clear()
     }
 }
 

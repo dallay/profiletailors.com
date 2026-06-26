@@ -42,6 +42,23 @@ class PostgresTestContainerSupportTest {
         )
     }
 
+    @Test
+    fun `liquibase baseline tracker applies once per distinct database`() {
+        val tracker = LiquibaseBaselineTracker()
+
+        assertTrue(tracker.shouldApply("jdbc:postgresql://host:5432/db-a"))
+        assertTrue(tracker.shouldApply("jdbc:postgresql://host:5432/db-b"))
+        assertTrue(tracker.shouldApply("jdbc:postgresql://host:5433/db-a"))
+
+        tracker.markApplied("jdbc:postgresql://host:5432/db-a")
+        tracker.markApplied("jdbc:postgresql://host:5432/db-b")
+
+        assertTrue(!tracker.shouldApply("jdbc:postgresql://host:5432/db-a"))
+        assertTrue(!tracker.shouldApply("jdbc:postgresql://host:5432/db-b"))
+        assertTrue(tracker.shouldApply("jdbc:postgresql://host:5433/db-a"))
+        assertTrue(tracker.shouldApply("jdbc:postgresql://host:5432/db-c"))
+    }
+
     private class FakePostgresContainer(
         private val host: String,
         private val mappedPort: Int,
