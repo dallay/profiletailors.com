@@ -1,4 +1,4 @@
-import { describe, it, expect, vi, beforeEach, afterAll } from 'vitest'
+import { describe, it, expect, vi, beforeEach, afterAll, afterEach } from 'vitest'
 import { setActivePinia, createPinia } from 'pinia'
 import { deleteAsset, getAsset, listAssets, putAsset, reserveAsset, uploadAsset } from './media-api'
 
@@ -713,6 +713,113 @@ describe('putAsset', () => {
       title: 'STORAGE_UNAVAILABLE',
       detail: 'Object store is unreachable.',
       status: 500,
+    })
+  })
+
+  // -----------------------------------------------------------------------
+  // pollUntilReady (via 202 from putAsset)
+  // -----------------------------------------------------------------------
+
+  describe('pollUntilReady (putAsset returns 202)', () => {
+    beforeEach(() => {
+      vi.useFakeTimers()
+    })
+
+    afterEach(() => {
+      vi.useRealTimers()
+    })
+
+    it('polls once and returns when status becomes READY', async () => {
+      mockMediaApiFetch
+        .mockResolvedValueOnce(jsonResponse(202, { status: 'WAITING_FOR_BLOB' }))
+        .mockResolvedValueOnce(jsonResponse(200, { status: 'READY' }))
+
+      const promise = putAsset(new File(['hello'], 'photo.jpg', { type: 'image/jpeg' }), 'ws-1')
+      await vi.advanceTimersByTimeAsync(3_100)
+      const result = await promise
+
+      expect(result).toMatchObject({ status: 'READY' })
+    })
+
+    it('retries on 202 and returns when READY after multiple polls', async () => {
+      mockMediaApiFetch
+        .mockResolvedValueOnce(jsonResponse(202, { status: 'WAITING_FOR_BLOB' }))
+        .mockResolvedValueOnce(jsonResponse(202, { status: 'WAITING_FOR_BLOB' }))
+        .mockResolvedValueOnce(jsonResponse(202, { status: 'WAITING_FOR_BLOB' }))
+        .mockResolvedValueOnce(jsonResponse(200, { status: 'READY' }))
+
+      const promise = putAsset(new File(['hello'], 'photo.jpg', { type: 'image/jpeg' }), 'ws-1')
+
+      // Advance past each poll interval
+      for (let i = 0; i < 3; i++) {
+        await vi.advanceTimersByTimeAsync(3_100)
+      }
+
+      const result = await promise
+      expect(result).toMatchObject({ status: 'READY' })
+    })
+
+    it('throws ASSET_HASH_MISMATCH when poll returns 409', async () => {
+      mockMediaApiFetch
+        .mockResolvedValueOnce(jsonResponse(202, { status: 'WAITING_FOR_BLOB' }))
+        .mockResolvedValueOnce(jsonResponse(409, { status: 'HASH_MISMATCH' }))
+
+      let error: unknown
+      const promise = putAsset(new File(['hello'], 'photo.jpg', { type: 'image/jpeg' }), 'ws-1')
+      // Attach catch handler BEFORE advancing timers so the rejection is claimed
+      promise.catch((e) => {
+        error = e
+      })
+
+      await vi.advanceTimersByTimeAsync(3_100)
+      // Wait an extra microtask for the catch callback to fire
+      await vi.advanceTimersByTimeAsync(0)
+
+      expect(error).toMatchObject({ title: 'Asset hash mismatch', status: 409 })
+    })
+
+    it('throws server error when poll returns non-OK, non-409 response', async () => {
+      mockMediaApiFetch
+        .mockResolvedValueOnce(jsonResponse(202, { status: 'WAITING_FOR_BLOB' }))
+        .mockResolvedValueOnce(
+          jsonResponse(500, { errorCode: 'STORAGE_ERROR', message: 'Cannot check blob status.' }),
+        )
+
+      let error: unknown
+      const promise = putAsset(new File(['hello'], 'photo.jpg', { type: 'image/jpeg' }), 'ws-1')
+      promise.catch((e) => {
+        error = e
+      })
+
+      await vi.advanceTimersByTimeAsync(3_100)
+      await vi.advanceTimersByTimeAsync(0)
+
+      expect(error).toMatchObject({
+        title: 'STORAGE_ERROR',
+        detail: 'Cannot check blob status.',
+        status: 500,
+      })
+    })
+
+    it('throws upload timeout when all poll attempts return 202', async () => {
+      // 1 call from putAsset + 10 calls from pollUntilReady (default maxAttempts = 10)
+      for (let i = 0; i < 11; i++) {
+        mockMediaApiFetch.mockResolvedValueOnce(jsonResponse(202, { status: 'WAITING_FOR_BLOB' }))
+      }
+
+      let error: unknown
+      const promise = putAsset(new File(['hello'], 'photo.jpg', { type: 'image/jpeg' }), 'ws-1')
+      promise.catch((e) => {
+        error = e
+      })
+
+      // Advance past all 10 poll intervals (3s each = 30s)
+      for (let i = 0; i < 10; i++) {
+        await vi.advanceTimersByTimeAsync(3_100)
+      }
+      await vi.advanceTimersByTimeAsync(0)
+
+      expect(error).toMatchObject({ title: 'Upload timeout', status: 408 })
     })
   })
 })
