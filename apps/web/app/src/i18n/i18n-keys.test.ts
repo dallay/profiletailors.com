@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest'
-import { readdirSync, readFileSync } from 'fs'
-import { join, relative } from 'path'
+import { readdirSync, readFileSync } from 'node:fs'
+import { join, relative } from 'node:path'
 import { flattenTranslations, messages_en, messages_es } from './index'
 
 // ---------------------------------------------------------------------------
@@ -65,10 +65,7 @@ function extractKeys(content: string): string[] {
 /**
  * Flatten both locale objects into a set of known dot‑notation keys.
  */
-function getKnownKeys(
-  en: Record<string, unknown>,
-  es: Record<string, unknown>,
-): Set<string> {
+function getKnownKeys(en: Record<string, unknown>, es: Record<string, unknown>): Set<string> {
   return new Set([...flattenTranslations(en), ...flattenTranslations(es)])
 }
 
@@ -98,9 +95,7 @@ for (const file of allFiles) {
 describe('i18n key validation', () => {
   it('every referenced i18n key exists in both en and es locales', () => {
     if (results.length > 0) {
-      const report = results
-        .map((r) => `  ❌ ${r.file} → "${r.key}"`)
-        .join('\n')
+      const report = results.map((r) => `  ❌ ${r.file} → "${r.key}"`).join('\n')
       expect(results, `Missing i18n keys:\n${report}`).toEqual([])
     }
   })

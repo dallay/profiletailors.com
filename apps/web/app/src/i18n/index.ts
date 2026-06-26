@@ -868,10 +868,7 @@ const messages = {
 export type Translations = typeof messages.en
 
 /** Flatten a nested translation object into dot‑notation keys. */
-export function flattenTranslations(
-  obj: Record<string, unknown>,
-  prefix = '',
-): string[] {
+export function flattenTranslations(obj: Record<string, unknown>, prefix = ''): string[] {
   return Object.entries(obj).flatMap(([key, value]) => {
     const path = prefix ? `${prefix}.${key}` : key
     if (typeof value === 'object' && value !== null && !Array.isArray(value)) {
