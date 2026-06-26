@@ -16,6 +16,7 @@ import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.flow.toList
+import kotlinx.coroutines.reactor.awaitSingleOrNull
 import kotlinx.coroutines.withTimeout
 import org.slf4j.LoggerFactory
 import java.nio.ByteBuffer
@@ -915,6 +916,7 @@ class CasUploadAssetHandler(
     private val workspaceFileBlobRepository: WorkspaceFileBlobRepository,
     private val storageApplicationService: StorageApplicationService,
     private val uploadSettings: MediaUploadSettings,
+    private val transactionRunner: AtomicTransactionRunner,
 ) : CommandWithResultHandler<CasUploadAssetCommand, CasUploadAssetResult> {
 
     private val logger = LoggerFactory.getLogger(CasUploadAssetHandler::class.java)
@@ -987,13 +989,76 @@ class CasUploadAssetHandler(
             return CasUploadAssetResult.NotFound(assetId)
         }
 
-        // Step 6: Acquire lock on blob
+        // Step 6: Acquire lock on blob and finalize atomically.
+        // The `FOR UPDATE` row lock must remain held until all subsequent DB writes commit,
+        // otherwise concurrent requests can race between the SELECT and the UPDATEs and corrupt
+        // the blob/asset state (data loss via premature READY_FOR_GC, or two requests both
+        // claiming the canonical key). `transactionRunner.runAtomically` binds the lock to
+        // the Reactor Context (Subscription), not the thread, which is the correct reactive
+        // model.
+        return try {
+            transactionRunner.runAtomically {
+                finalizeBlobWithinTransaction(
+                    command = command,
+                    assetId = assetId,
+                    workspaceId = workspaceId,
+                    fileHash = fileHash,
+                    tempKey = tempKey,
+                    detectedMediaType = detectedMediaType,
+                    actualBytes = actualBytes,
+                ) ?: throw BlobOrAssetMissingException(assetId)
+            } ?: throw BlobOrAssetMissingException(assetId)
+        } catch (e: BlobOrAssetMissingException) {
+            // The transactional block returned null because the blob was missing,
+            // the asset was missing, or a required metadata field on the blob was null.
+            // The transaction has already committed cleanly (no writes happened) so it is
+            // safe to perform cleanup outside the transaction.
+            cleanupTemp(tempKey)
+            markBothFailed(assetId, workspaceId, "BLOB_OR_ASSET_MISSING")
+            logger.warn(
+                "media.asset.upload.transactionalEmpty assetId={} workspaceId={}",
+                assetId, workspaceId,
+            )
+            CasUploadAssetResult.NotFound(assetId)
+        } catch (e: StorageException) {
+            // The transactional block terminated with an error (typically a `StorageException`
+            // from `storageApplicationService.copyObject`). The transaction has already rolled
+            // back via the transaction manager semantics. We now perform the storage cleanup
+            // and mark the asset/blob as failed OUTSIDE the transaction.
+            cleanupTemp(tempKey)
+            markBothFailed(assetId, workspaceId, "COPY_FAILED")
+            throw e
+        }
+    }
+
+    /**
+     * Internal sentinel exception used to signal "the inner finalize step observed a missing
+     * blob/asset and wants the outer transaction to commit cleanly without writes". The outer
+     * try/catch maps it back to a `NotFound` result.
+     */
+    private class BlobOrAssetMissingException(val assetId: String) :
+        RuntimeException("Blob or asset missing for $assetId")
+
+    /**
+     * Inner finalize logic that runs inside the [transactionalOperator] subscription.
+     *
+     * Extracted so the entire `findBlobForUpdate` + status branching + DB mutation sequence
+     * shares a single R2DBC transaction. Returns `null` for failure paths that must short-circuit
+     * before mutating (e.g. blob missing, asset missing) so the caller can emit a `NotFound`
+     * result without leaking intermediate state.
+     */
+    private suspend fun finalizeBlobWithinTransaction(
+        command: CasUploadAssetCommand,
+        assetId: String,
+        workspaceId: String,
+        fileHash: String,
+        tempKey: String,
+        detectedMediaType: String,
+        actualBytes: Long,
+    ): CasUploadAssetResult {
+        // Step 6a: Acquire lock on blob
         val blob = workspaceFileBlobRepository.findBlobForUpdate(workspaceId, fileHash)
-            ?: run {
-                cleanupTemp(tempKey)
-                markBothFailed(assetId, workspaceId, "BLOB_NOT_FOUND")
-                return CasUploadAssetResult.NotFound(assetId)
-            }
+            ?: throw BlobOrAssetMissingException(assetId)
 
         return when (blob.status) {
             BlobStatus.READY -> {
@@ -1002,10 +1067,10 @@ class CasUploadAssetHandler(
                 val updatedAsset = mediaAssetRepository.markAsReadyFromDedup(
                     assetId = assetId,
                     workspaceId = workspaceId,
-                    storageKey = blob.storageKey ?: return CasUploadAssetResult.NotFound(assetId),
-                    detectedMediaType = blob.detectedMediaType ?: return CasUploadAssetResult.NotFound(assetId),
+                    storageKey = blob.storageKey ?: throw BlobOrAssetMissingException(assetId),
+                    detectedMediaType = blob.detectedMediaType ?: throw BlobOrAssetMissingException(assetId),
                     fileSizeBytes = blob.fileSizeBytes,
-                ) ?: return CasUploadAssetResult.NotFound(assetId)
+                ) ?: throw BlobOrAssetMissingException(assetId)
 
                 logger.info(
                     "media.asset.upload.dedupHit assetId={} workspaceId={} fileHash={}",
@@ -1026,7 +1091,9 @@ class CasUploadAssetHandler(
                 // We won the race: finalize the blob
                 val canonicalKey = MediaStorageKeys.canonicalKey(workspaceId, fileHash, detectedMediaType)
 
-                // Copy temp → canonical
+                // Copy temp → canonical. If this fails the transaction rolls back automatically
+                // when the `transactional {}` Mono terminates with an error, so we do not need
+                // an explicit rollback path here.
                 try {
                     storageApplicationService.copyObject(
                         uploadSettings.storageBucket,
@@ -1034,8 +1101,9 @@ class CasUploadAssetHandler(
                         destKey = canonicalKey,
                     )
                 } catch (e: StorageException) {
-                    cleanupTemp(tempKey)
-                    markBothFailed(assetId, workspaceId, "COPY_FAILED")
+                    // Surface the exception to `transactional {}` so it rolls back the DB writes.
+                    // Storage cleanup happens in the caller (outside the transaction) only after
+                    // the transaction has settled to a known state.
                     throw e
                 }
 
@@ -1058,7 +1126,7 @@ class CasUploadAssetHandler(
                     storageKey = canonicalKey,
                     detectedMediaType = detectedMediaType,
                     fileSizeBytes = actualBytes,
-                ) ?: return CasUploadAssetResult.NotFound(assetId)
+                ) ?: throw BlobOrAssetMissingException(assetId)
 
                 logger.info(
                     "media.asset.upload.completed assetId={} workspaceId={} fileHash={} " +
@@ -1291,6 +1359,7 @@ class CasUploadAssetHandler(
 class DeleteAssetHandler(
     private val mediaAssetRepository: MediaAssetRepository,
     private val workspaceFileBlobRepository: WorkspaceFileBlobRepository,
+    private val transactionRunner: AtomicTransactionRunner,
 ) : CommandWithResultHandler<DeleteAssetCommand, DeleteAssetResult> {
 
     private val logger = LoggerFactory.getLogger(DeleteAssetHandler::class.java)
@@ -1316,15 +1385,33 @@ class DeleteAssetHandler(
         // Step 4: Get fileHash (nullable for pre-CAS assets)
         val fileHash = asset.fileHash ?: return DeleteAssetResult(deleted = true, blobScheduledForGC = false)
 
-        // Step 5: Lock blob before ref-count check
+        // Step 5: Lock blob, count references, and (if zero) mark READY_FOR_GC — atomically.
+        // Without this transaction, another request can create a new asset referencing the
+        // same blob between the ref-count read and the `markReadyForGC` write, and we would
+        // mark the blob for GC while it still has an active reference (data loss). The
+        // `FOR UPDATE` row lock + atomic transaction scope guarantees that no other request
+        // can observe an inconsistent intermediate state.
+        return transactionRunner.runAtomically {
+            countAndMaybeScheduleGc(workspaceId, fileHash)
+        }
+    }
+
+    /**
+     * Inner logic that runs inside the [transactionalOperator] subscription.
+     *
+     * Locks the blob row with `FOR UPDATE`, counts active references, and conditionally marks
+     * the blob `READY_FOR_GC` if no active references remain. Runs in a single R2DBC transaction.
+     */
+    private suspend fun countAndMaybeScheduleGc(
+        workspaceId: String,
+        fileHash: String,
+    ): DeleteAssetResult {
         val blob = workspaceFileBlobRepository.findBlobForUpdate(workspaceId, fileHash)
             ?: return DeleteAssetResult(deleted = true, blobScheduledForGC = false)
 
-        // Step 6: Count active references
         val activeCount = mediaAssetRepository.countActiveReferences(workspaceId, fileHash)
 
         if (activeCount == 0) {
-            // No active assets reference this blob → schedule GC
             val orphanedAt = Instant.now()
             workspaceFileBlobRepository.markReadyForGC(workspaceId, fileHash, orphanedAt)
             logger.info(

@@ -224,7 +224,7 @@ class MediaCasHandlersTest {
         media.create(readyAsset(ASSET_A, HASH_A))
         blobs.saveBlob(readyBlob(HASH_A))
 
-        val result = DeleteAssetHandler(media, blobs).handle(DeleteAssetCommand(ASSET_A, WORKSPACE))
+        val result = deleteHandler(media, blobs).handle(DeleteAssetCommand(ASSET_A, WORKSPACE))
 
         assertTrue(result.blobScheduledForGC)
         assertEquals(MediaAssetStatus.DELETED, media.asset(WORKSPACE, ASSET_A)?.status)
@@ -240,7 +240,7 @@ class MediaCasHandlersTest {
         media.create(readyAsset(ASSET_B, HASH_A))
         blobs.saveBlob(readyBlob(HASH_A))
 
-        val result = DeleteAssetHandler(media, blobs).handle(DeleteAssetCommand(ASSET_A, WORKSPACE))
+        val result = deleteHandler(media, blobs).handle(DeleteAssetCommand(ASSET_A, WORKSPACE))
 
         assertFalse(result.blobScheduledForGC)
         assertEquals(BlobStatus.READY, blobs.blob(WORKSPACE, HASH_A)?.status)
@@ -253,7 +253,7 @@ class MediaCasHandlersTest {
         media.create(readyAsset(ASSET_A, HASH_A).copy(status = MediaAssetStatus.DELETED))
         blobs.saveBlob(readyBlob(HASH_A))
 
-        val result = DeleteAssetHandler(media, blobs).handle(DeleteAssetCommand(ASSET_A, WORKSPACE))
+        val result = deleteHandler(media, blobs).handle(DeleteAssetCommand(ASSET_A, WORKSPACE))
 
         assertTrue(result.deleted)
         assertFalse(result.blobScheduledForGC)
@@ -456,7 +456,18 @@ private class NoopStorageObservation : StorageObservation {
 }
 
 private fun putHandler(media: InMemoryMediaAssetRepository, blobs: InMemoryWorkspaceFileBlobRepository, limiter: InMemoryRateLimitRepository = InMemoryRateLimitRepository()) = PutAssetHandler(media, blobs, limiter, MediaUploadSettings(1, 200, "bucket"))
-private fun uploadHandler(media: InMemoryMediaAssetRepository, blobs: InMemoryWorkspaceFileBlobRepository, storage: FakeStorage) = CasUploadAssetHandler(media, blobs, storage.service(), MediaUploadSettings(1, 200, "bucket"))
+private fun uploadHandler(media: InMemoryMediaAssetRepository, blobs: InMemoryWorkspaceFileBlobRepository, storage: FakeStorage) = CasUploadAssetHandler(media, blobs, storage.service(), MediaUploadSettings(1, 200, "bucket"), NoopAtomicTransactionRunner)
+private fun deleteHandler(media: InMemoryMediaAssetRepository, blobs: InMemoryWorkspaceFileBlobRepository) = DeleteAssetHandler(media, blobs, NoopAtomicTransactionRunner)
+
+/**
+ * No-op `AtomicTransactionRunner` for handler unit tests. Real transactional behaviour
+ * (the `FOR UPDATE` row lock, atomicity, etc.) is covered separately by Postgres Testcontainers
+ * integration tests. This stub satisfies the application-layer port without depending on the
+ * infrastructure-layer R2DBC implementation.
+ */
+private object NoopAtomicTransactionRunner : AtomicTransactionRunner {
+    override suspend fun <T : Any> runAtomically(block: suspend () -> T): T = block()
+}
 private fun reconcilerSettings() = MediaReconcilerSettings("bucket", 2, 30)
 private fun putCommand(assetId: String, fileHash: String, fileSizeBytes: Long = 1024, mediaType: String = "image/jpeg") = PutAssetCommand(assetId, WORKSPACE, fileHash, fileSizeBytes, mediaType, "photo.jpg")
 private fun uploadCommand(assetId: String, hash: String, bytes: ByteArray, declaredSize: Long = bytes.size.toLong(), declaredType: String = "image/jpeg") = CasUploadAssetCommand(assetId, WORKSPACE, flowOf(bytes), hash, declaredSize, declaredType)
