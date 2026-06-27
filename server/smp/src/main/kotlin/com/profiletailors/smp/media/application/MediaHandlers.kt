@@ -746,35 +746,51 @@ class PutAssetHandler(
 
                     when (lockedBlob.status) {
                         BlobStatus.READY -> {
-                            // Still READY — safe to dedup
-                            val asset = MediaAsset(
-                                assetId = command.assetId,
-                                workspaceId = command.workspaceId,
-                                sourceType = MediaSourceType.UPLOADED,
-                                fileHash = command.fileHash,
-                                mediaType = command.declaredMediaType,
-                                storageKey = lockedBlob.storageKey!!,
-                                detectedMediaType = lockedBlob.detectedMediaType,
-                                originalFilename = command.originalFilename,
-                                fileSizeBytes = lockedBlob.fileSizeBytes,
-                                status = MediaAssetStatus.READY,
-                                createdAt = now,
-                            )
-                            mediaAssetRepository.create(asset)
-                            logger.info(
-                                "media.asset.put.dedup assetId={} workspaceId={} fileHash={}",
-                                command.assetId,
-                                command.workspaceId,
-                                command.fileHash,
-                            )
-                            PutAssetResult.AlreadyExists(
-                                assetId = command.assetId,
-                                workspaceId = command.workspaceId,
-                                status = MediaAssetStatus.READY.name,
-                                mediaType = lockedBlob.detectedMediaType ?: command.declaredMediaType,
-                                deduped = true,
-                                createdAt = ISO_FORMATTER.format(now.atOffset(ZoneOffset.UTC)),
-                            )
+                            // Still READY — safe to dedup.
+                            // First, check if another active asset already exists for this hash.
+                            // If so, return THAT asset's id so the client collapses onto the
+                            // canonical row instead of creating a duplicate asset row pointing
+                            // at the same blob.
+                            val existingAsset = mediaAssetRepository
+                                .findActiveByWorkspaceAndHash(command.workspaceId, command.fileHash)
+                            if (existingAsset != null && existingAsset.assetId != command.assetId) {
+                                logger.info(
+                                    "media.asset.put.dedup.existing assetId={} workspaceId={} fileHash={}",
+                                    existingAsset.assetId,
+                                    command.workspaceId,
+                                    command.fileHash,
+                                )
+                                buildAlreadyExistsFromExisting(existingAsset)
+                            } else {
+                                val asset = MediaAsset(
+                                    assetId = command.assetId,
+                                    workspaceId = command.workspaceId,
+                                    sourceType = MediaSourceType.UPLOADED,
+                                    fileHash = command.fileHash,
+                                    mediaType = command.declaredMediaType,
+                                    storageKey = lockedBlob.storageKey!!,
+                                    detectedMediaType = lockedBlob.detectedMediaType,
+                                    originalFilename = command.originalFilename,
+                                    fileSizeBytes = lockedBlob.fileSizeBytes,
+                                    status = MediaAssetStatus.READY,
+                                    createdAt = now,
+                                )
+                                mediaAssetRepository.create(asset)
+                                logger.info(
+                                    "media.asset.put.dedup assetId={} workspaceId={} fileHash={}",
+                                    command.assetId,
+                                    command.workspaceId,
+                                    command.fileHash,
+                                )
+                                PutAssetResult.AlreadyExists(
+                                    assetId = command.assetId,
+                                    workspaceId = command.workspaceId,
+                                    status = MediaAssetStatus.READY.name,
+                                    mediaType = lockedBlob.detectedMediaType ?: command.declaredMediaType,
+                                    deduped = true,
+                                    createdAt = ISO_FORMATTER.format(now.atOffset(ZoneOffset.UTC)),
+                                )
+                            }
                         }
 
                         BlobStatus.FAILED, BlobStatus.READY_FOR_GC, BlobStatus.GARBAGE_COLLECTED -> {
@@ -849,6 +865,16 @@ class PutAssetHandler(
             createdAt = ISO_FORMATTER.format(now.atOffset(ZoneOffset.UTC)),
         )
     }
+
+    private fun buildAlreadyExistsFromExisting(existing: MediaAsset): PutAssetResult.AlreadyExists =
+        PutAssetResult.AlreadyExists(
+            assetId = existing.assetId,
+            workspaceId = existing.workspaceId,
+            status = existing.status.name,
+            mediaType = existing.detectedMediaType ?: existing.mediaType,
+            deduped = existing.status == MediaAssetStatus.READY,
+            createdAt = ISO_FORMATTER.format(existing.createdAt.atOffset(ZoneOffset.UTC)),
+        )
 
     private fun validateAssetId(assetId: String) {
         val uuidRegex = Regex("^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$")

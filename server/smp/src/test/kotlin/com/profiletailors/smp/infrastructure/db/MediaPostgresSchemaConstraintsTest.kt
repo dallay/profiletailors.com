@@ -145,6 +145,72 @@ class MediaPostgresSchemaConstraintsTest : PostgresDatabaseTestBase() {
         assertNotNull(constraint)
     }
 
+    @Test
+    fun `media assets expose partial UNIQUE index on workspace and hash for active rows`() = runTest {
+        val indexDefinition = databaseClient.sql(
+            """
+            SELECT indexdef
+            FROM pg_indexes
+            WHERE tablename = 'media_assets'
+              AND indexname = 'uq_media_assets_active_per_hash'
+            """.trimIndent(),
+        )
+            .map { row, _ -> requireNotNull(row.get("indexdef", String::class.java)) }
+            .one()
+            .awaitSingle()
+
+        assertTrue(indexDefinition.contains("UNIQUE", ignoreCase = true), indexDefinition)
+        assertTrue(indexDefinition.contains("workspace_id", ignoreCase = true), indexDefinition)
+        assertTrue(indexDefinition.contains("file_hash", ignoreCase = true), indexDefinition)
+        assertTrue(indexDefinition.contains("WHERE", ignoreCase = true), indexDefinition)
+        assertTrue(indexDefinition.contains("DELETED", ignoreCase = true), indexDefinition)
+        assertTrue(indexDefinition.contains("FAILED", ignoreCase = true), indexDefinition)
+    }
+
+    @Test
+    fun `partial UNIQUE on media assets rejects duplicate active rows but allows soft-deleted`() = runTest {
+        seedWorkspace("workspace-dup")
+        insertWorkspaceBlob(workspaceId = "workspace-dup", fileHash = HASH_A, status = "READY")
+        insertMediaAsset(assetId = "asset-dup-1", workspaceId = "workspace-dup", fileHash = HASH_A, status = "READY")
+
+        // Second ACTIVE row with the same hash in the same workspace must be rejected.
+        assertThrows<RuntimeException> {
+            runTest {
+                insertMediaAsset(
+                    assetId = "asset-dup-2",
+                    workspaceId = "workspace-dup",
+                    fileHash = HASH_A,
+                    status = "READY",
+                )
+            }
+        }
+
+        // DELETED + retry must be allowed: soft-deleted rows do not occupy the partial index.
+        insertMediaAsset(
+            assetId = "asset-dup-3",
+            workspaceId = "workspace-dup",
+            fileHash = HASH_A,
+            status = "DELETED",
+            storageKey = null,
+        )
+        insertMediaAsset(
+            assetId = "asset-dup-4",
+            workspaceId = "workspace-dup",
+            fileHash = HASH_A,
+            status = "FAILED",
+            storageKey = null,
+        )
+        insertMediaAsset(
+            assetId = "asset-dup-5",
+            workspaceId = "workspace-dup",
+            fileHash = HASH_A,
+            status = "FAILED",
+            storageKey = null,
+        )
+
+        assertEquals(4, countRows("media_assets"))
+    }
+
     private suspend fun seedWorkspace(workspaceId: String) {
         databaseClient.sql(
             """

@@ -76,6 +76,30 @@ class R2dbcMediaRepositoriesPostgresTest : PostgresDatabaseTestBase() {
         assertNull(blobRepository.findByWorkspaceAndHash("workspace-1", HASH_A))
     }
 
+    @Test
+    fun `findActiveByWorkspaceAndHash returns the active asset that references the hash`() = runTest {
+        seedWorkspace("workspace-1")
+        insertWorkspaceBlob("workspace-1", HASH_A, "READY")
+        insertMediaAsset("asset-a", "workspace-1", HASH_A, "READY")
+
+        val active = mediaRepository.findActiveByWorkspaceAndHash("workspace-1", HASH_A)
+
+        assertEquals("asset-a", active?.assetId)
+    }
+
+    @Test
+    fun `findActiveByWorkspaceAndHash ignores DELETED and FAILED rows`() = runTest {
+        seedWorkspace("workspace-1")
+        insertWorkspaceBlob("workspace-1", HASH_A, "READY")
+        // Only DELETED + FAILED rows reference HASH_A — neither should match.
+        insertMediaAsset("asset-deleted", "workspace-1", HASH_A, "DELETED")
+        insertMediaAsset("asset-failed", "workspace-1", HASH_A, "FAILED")
+
+        val active = mediaRepository.findActiveByWorkspaceAndHash("workspace-1", HASH_A)
+
+        assertNull(active, "DELETED/FAILED must not block re-upload of the same hash")
+    }
+
     private suspend fun seedWorkspace(workspaceId: String) {
         databaseClient.sql(
             """
