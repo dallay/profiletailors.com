@@ -94,6 +94,9 @@ class MediaCasHandlersTest {
         assertTrue(result is PutAssetResult.AlreadyExists, "Blob is READY so dedup still hits the blob path")
         val response = result as PutAssetResult.AlreadyExists
         assertEquals(ASSET_B, response.assetId, "No active asset exists — new assetId should win")
+        val created = media.asset(WORKSPACE, ASSET_B)
+        assertNotNull(created, "A new asset row should be persisted when only soft-deleted assets share the hash")
+        assertEquals(MediaAssetStatus.READY, created?.status, "New asset must be READY")
     }
 
     @Test

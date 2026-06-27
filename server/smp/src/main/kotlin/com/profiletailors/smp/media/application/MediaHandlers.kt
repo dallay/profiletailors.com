@@ -871,7 +871,7 @@ class PutAssetHandler(
             workspaceId = existing.workspaceId,
             status = existing.status.name,
             mediaType = existing.detectedMediaType ?: existing.mediaType,
-            deduped = true,
+            deduped = existing.status == MediaAssetStatus.READY,
             createdAt = ISO_FORMATTER.format(existing.createdAt.atOffset(ZoneOffset.UTC)),
         )
 

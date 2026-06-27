@@ -81,7 +81,6 @@ class R2dbcMediaRepositoriesPostgresTest : PostgresDatabaseTestBase() {
         seedWorkspace("workspace-1")
         insertWorkspaceBlob("workspace-1", HASH_A, "READY")
         insertMediaAsset("asset-a", "workspace-1", HASH_A, "READY")
-        insertMediaAsset("asset-b", "workspace-1", HASH_A, "READY")
 
         val active = mediaRepository.findActiveByWorkspaceAndHash("workspace-1", HASH_A)
 
@@ -92,10 +91,9 @@ class R2dbcMediaRepositoriesPostgresTest : PostgresDatabaseTestBase() {
     fun `findActiveByWorkspaceAndHash ignores DELETED and FAILED rows`() = runTest {
         seedWorkspace("workspace-1")
         insertWorkspaceBlob("workspace-1", HASH_A, "READY")
-        // Only DELETED + FAILED + PENDING_UPLOAD rows reference HASH_A — none should match.
+        // Only DELETED + FAILED rows reference HASH_A — neither should match.
         insertMediaAsset("asset-deleted", "workspace-1", HASH_A, "DELETED")
         insertMediaAsset("asset-failed", "workspace-1", HASH_A, "FAILED")
-        insertMediaAsset("asset-pending", "workspace-1", HASH_A, "PENDING_UPLOAD")
 
         val active = mediaRepository.findActiveByWorkspaceAndHash("workspace-1", HASH_A)
 

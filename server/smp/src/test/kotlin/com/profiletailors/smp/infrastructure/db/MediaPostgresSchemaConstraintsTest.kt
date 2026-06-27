@@ -191,18 +191,21 @@ class MediaPostgresSchemaConstraintsTest : PostgresDatabaseTestBase() {
             workspaceId = "workspace-dup",
             fileHash = HASH_A,
             status = "DELETED",
+            storageKey = null,
         )
         insertMediaAsset(
             assetId = "asset-dup-4",
             workspaceId = "workspace-dup",
             fileHash = HASH_A,
             status = "FAILED",
+            storageKey = null,
         )
         insertMediaAsset(
             assetId = "asset-dup-5",
             workspaceId = "workspace-dup",
             fileHash = HASH_A,
-            status = "PENDING_UPLOAD",
+            status = "FAILED",
+            storageKey = null,
         )
 
         assertEquals(4, countRows("media_assets"))
