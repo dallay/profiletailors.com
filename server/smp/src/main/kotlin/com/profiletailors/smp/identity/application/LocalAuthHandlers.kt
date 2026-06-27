@@ -4,6 +4,7 @@ import com.profiletailors.common.domain.Service
 import com.profiletailors.common.domain.bus.command.CommandWithResultHandler
 import com.profiletailors.common.domain.bus.event.DomainEvent
 import com.profiletailors.common.domain.bus.event.EventPublisher
+import com.profiletailors.common.domain.persistence.AtomicTransactionRunner
 import com.profiletailors.smp.credentials.application.RefreshSessionLifecycleService
 import com.profiletailors.smp.credentials.application.RefreshSessionNotActiveException
 import com.profiletailors.smp.identity.domain.EmailStatus
@@ -55,6 +56,7 @@ internal class RegisterUserHandler(
     private val passwordHasher: PasswordHasher,
     private val workspaceProvisioningService: com.profiletailors.smp.tenancy.application.WorkspaceProvisioningService,
     private val eventPublisher: EventPublisher<DomainEvent>,
+    private val transactionRunner: AtomicTransactionRunner,
     private val clock: Clock,
     private val localJwtIssuer: LocalJwtIssuer,
     private val refreshSessionLifecycleService: RefreshSessionLifecycleService,
@@ -76,33 +78,36 @@ internal class RegisterUserHandler(
         val principalId = "user-${UUID.randomUUID()}"
         val subject = "local:$normalizedEmail"
 
-        identityRegistrationGateway.createUserIdentity(
-            principalId = principalId,
-            subject = subject,
-            email = normalizedEmail,
-            username = normalizedUsername,
-            provider = null,
-            displayIdentity = normalizedUsername,
-            emailStatus = EmailStatus.PENDING,
-        )
-        localPasswordCredentialGateway.create(
-            principalId = principalId,
-            passwordHash = passwordHasher.hash(command.password),
-        )
+        val rawVerificationToken = transactionRunner.runAtomically {
+            identityRegistrationGateway.createUserIdentity(
+                principalId = principalId,
+                subject = subject,
+                email = normalizedEmail,
+                username = normalizedUsername,
+                provider = null,
+                displayIdentity = normalizedUsername,
+                emailStatus = EmailStatus.PENDING,
+            )
+            localPasswordCredentialGateway.create(
+                principalId = principalId,
+                passwordHash = passwordHasher.hash(command.password),
+            )
 
-        // Provision a default workspace for the new user
-        workspaceProvisioningService.provisionDefaultWorkspace(
-            principalId = principalId,
-            displayName = normalizedUsername,
-        )
+            // Provision a default workspace for the new user
+            workspaceProvisioningService.provisionDefaultWorkspace(
+                principalId = principalId,
+                displayName = normalizedUsername,
+            )
 
-        // Generate verification token and store hashed
-        val generated = EmailVerificationTokenHasher.generate(clock.instant())
-        identityRegistrationGateway.createEmailVerificationToken(
-            email = normalizedEmail,
-            tokenHash = generated.tokenHash,
-            expiresAt = generated.expiresAt,
-        )
+            // Generate verification token and store hashed
+            val generated = EmailVerificationTokenHasher.generate(clock.instant())
+            identityRegistrationGateway.createEmailVerificationToken(
+                email = normalizedEmail,
+                tokenHash = generated.tokenHash,
+                expiresAt = generated.expiresAt,
+            )
+            generated.rawToken
+        }
 
         // Publish domain event for async email dispatch
         eventPublisher.publish(
@@ -110,7 +115,7 @@ internal class RegisterUserHandler(
                 principalId = principalId,
                 email = normalizedEmail,
                 username = normalizedUsername,
-                rawVerificationToken = generated.rawToken,
+                rawVerificationToken = rawVerificationToken,
             ),
         )
 
