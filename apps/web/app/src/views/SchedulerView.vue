@@ -745,7 +745,7 @@ watch(
         <!-- List Mode -->
         <div v-else class="space-y-4">
           <div v-if="filteredPublications.length === 0" class="border border-dashed border-border-visible rounded-2xl p-12 text-center text-text-secondary font-mono text-xs uppercase tracking-wider">
-            {{ $t('dashboard.noPosts') || 'No scheduled posts for today.' }}
+            {{ $t('dashboard.noPosts') || 'No posts match your current filters.' }}
           </div>
 
           <div v-else class="space-y-3">
