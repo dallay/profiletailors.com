@@ -32,13 +32,14 @@ function onAvatarError() {
 <template>
   <button
     type="button"
-    class="flex w-full items-center gap-3 rounded-xl border px-3 py-2 text-left text-sm transition-all"
+    class="flex w-full items-center gap-3 rounded-xl border px-3 py-2 text-left text-sm transition-all group-data-[collapsible=icon]:px-0 group-data-[collapsible=icon]:justify-center"
     :class="isActive
       ? 'border-border-visible bg-bg-primary text-text-display'
       : 'border-transparent text-text-secondary hover:border-border-subtle hover:bg-bg-primary/70 hover:text-text-display'"
     @click="emit('select')"
   >
     <span class="relative flex size-5 shrink-0 items-center justify-center">
+      <span class="sr-only">{{ channel.name }}</span>
       <img
         v-if="channel.avatarUrl && !avatarLoadFailed"
         :src="proxyImageUrl(channel.avatarUrl ?? '')"
@@ -57,11 +58,11 @@ function onAvatarError() {
       </span>
     </span>
 
-    <span class="min-w-0 flex-1 text-left">
+    <span class="min-w-0 flex-1 text-left group-data-[collapsible=icon]:hidden">
       <span class="block truncate text-sm leading-none">{{ channel.name }}</span>
     </span>
 
-    <span class="ml-auto inline-flex min-w-6 items-center justify-end font-mono text-[10px] text-text-secondary">
+    <span class="ml-auto inline-flex min-w-6 items-center justify-end font-mono text-[10px] text-text-secondary group-data-[collapsible=icon]:hidden">
       {{ queuedCount }}
     </span>
   </button>

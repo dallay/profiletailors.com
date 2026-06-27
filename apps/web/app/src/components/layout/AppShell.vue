@@ -240,7 +240,7 @@ onBeforeUnmount(() => {
   </output>
 
   <TooltipProvider>
-    <SidebarProvider :default-open="true" class="bg-bg-primary font-sans text-text-body transition-colors duration-250">
+    <SidebarProvider class="bg-bg-primary font-sans text-text-body transition-colors duration-250">
       <Sidebar collapsible="icon">
         <SidebarHeader class="gap-3">
           <SidebarHeaderSection
