@@ -708,9 +708,7 @@ describe('media store', () => {
       mockPutAsset.mockImplementation(
         async (file: File, _workspaceId: string, stableAssetId?: string) => {
           const buffer = await file.arrayBuffer()
-          const hashBytes = new Uint8Array(
-            await crypto.subtle.digest('SHA-256', buffer),
-          )
+          const hashBytes = new Uint8Array(await crypto.subtle.digest('SHA-256', buffer))
           const hashHex = Array.from(hashBytes)
             .map((b) => b.toString(16).padStart(2, '0'))
             .join('')
