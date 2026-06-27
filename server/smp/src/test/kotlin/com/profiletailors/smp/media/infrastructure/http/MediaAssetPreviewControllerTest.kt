@@ -210,6 +210,7 @@ class MediaAssetPreviewControllerTest {
             override suspend fun findExpiredPendingUploadAssets(limit: Int): List<MediaAsset> = emptyList()
             override suspend fun findExpiredUploadingAssets(limit: Int): List<MediaAsset> = emptyList()
             override suspend fun countActiveReferences(workspaceId: String, fileHash: String): Int = 0
+            override suspend fun findActiveByWorkspaceAndHash(workspaceId: String, fileHash: String): MediaAsset? = null
         }
 
         val storageService = StorageApplicationService(

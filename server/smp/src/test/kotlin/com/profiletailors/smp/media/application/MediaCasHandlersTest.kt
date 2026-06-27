@@ -61,6 +61,45 @@ class MediaCasHandlersTest {
     }
 
     @Test
+    fun `PUT dedup returns existing assetId when another active asset shares the hash`() = runTest {
+        val media = InMemoryMediaAssetRepository()
+        val blobs = InMemoryWorkspaceFileBlobRepository()
+        media.create(readyAsset(ASSET_A, HASH_A))
+        blobs.saveBlob(readyBlob(HASH_A))
+        val handler = putHandler(media, blobs)
+
+        val result = handler.handle(putCommand(assetId = ASSET_B, fileHash = HASH_A))
+
+        assertTrue(result is PutAssetResult.AlreadyExists)
+        val response = result as PutAssetResult.AlreadyExists
+        assertEquals(ASSET_A, response.assetId, "Dedup hit must return the existing asset's id")
+        assertTrue(response.deduped)
+        assertNull(
+            media.asset(WORKSPACE, ASSET_B),
+            "No new asset row should be created when an active asset already references this hash",
+        )
+    }
+
+    @Test
+    fun `PUT dedup does not block new asset creation when only soft-deleted assets share the hash`() = runTest {
+        val media = InMemoryMediaAssetRepository()
+        val blobs = InMemoryWorkspaceFileBlobRepository()
+        // Soft-deleted asset for HASH_A must NOT block creating a new active asset.
+        media.create(readyAsset(ASSET_A, HASH_A).copy(status = MediaAssetStatus.DELETED))
+        blobs.saveBlob(readyBlob(HASH_A))
+        val handler = putHandler(media, blobs)
+
+        val result = handler.handle(putCommand(assetId = ASSET_B, fileHash = HASH_A))
+
+        assertTrue(result is PutAssetResult.AlreadyExists, "Blob is READY so dedup still hits the blob path")
+        val response = result as PutAssetResult.AlreadyExists
+        assertEquals(ASSET_B, response.assetId, "No active asset exists — new assetId should win")
+        val created = media.asset(WORKSPACE, ASSET_B)
+        assertNotNull(created, "A new asset row should be persisted when only soft-deleted assets share the hash")
+        assertEquals(MediaAssetStatus.READY, created?.status, "New asset must be READY")
+    }
+
+    @Test
     fun `PUT with UPLOADING blob returns waiting for blob`() = runTest {
         val media = InMemoryMediaAssetRepository()
         val blobs = InMemoryWorkspaceFileBlobRepository()
@@ -434,6 +473,15 @@ private class InMemoryMediaAssetRepository : MediaAssetRepository {
             it.fileHash == fileHash &&
             it.status !in setOf(MediaAssetStatus.DELETED, MediaAssetStatus.FAILED)
     }
+
+    override suspend fun findActiveByWorkspaceAndHash(workspaceId: String, fileHash: String): MediaAsset? =
+        assets.values
+            .filter {
+                it.workspaceId == workspaceId &&
+                    it.fileHash == fileHash &&
+                    it.status !in setOf(MediaAssetStatus.DELETED, MediaAssetStatus.FAILED)
+            }
+            .minByOrNull { it.createdAt }
 }
 
 private class InMemoryWorkspaceFileBlobRepository : WorkspaceFileBlobRepository {

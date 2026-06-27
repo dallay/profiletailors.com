@@ -117,6 +117,16 @@ interface MediaAssetRepository {
      * Used to decide whether to mark a blob READY_FOR_GC.
      */
     suspend fun countActiveReferences(workspaceId: String, fileHash: String): Int
+
+    /**
+     * Find an existing active (non-DELETED, non-FAILED) asset for the given (workspaceId, fileHash).
+     * Used by the CAS dedup flow to return the canonical assetId when a client uploads a file
+     * whose bytes already exist in the workspace — preventing duplicate asset rows for the same
+     * physical content.
+     *
+     * @return the oldest active asset for that hash, or null if none exists.
+     */
+    suspend fun findActiveByWorkspaceAndHash(workspaceId: String, fileHash: String): MediaAsset?
 }
 
 /**
