@@ -61,8 +61,7 @@ class MediaCasHandlersTest {
     }
 
     @Test
-    fun `PUT dedup returns existing assetId when another active asset shares the hash`() =
-        runTest {
+    fun `PUT dedup returns existing assetId when another active asset shares the hash`() = runTest {
         val media = InMemoryMediaAssetRepository()
         val blobs = InMemoryWorkspaceFileBlobRepository()
         media.create(readyAsset(ASSET_A, HASH_A))
@@ -82,8 +81,7 @@ class MediaCasHandlersTest {
     }
 
     @Test
-    fun `PUT dedup does not block new asset creation when only soft-deleted assets share the hash`() =
-        runTest {
+    fun `PUT dedup does not block new asset creation when only soft-deleted assets share the hash`() = runTest {
         val media = InMemoryMediaAssetRepository()
         val blobs = InMemoryWorkspaceFileBlobRepository()
         // Soft-deleted asset for HASH_A must NOT block creating a new active asset.
