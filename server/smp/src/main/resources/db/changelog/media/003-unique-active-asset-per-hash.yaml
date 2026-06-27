@@ -1,0 +1,27 @@
+databaseChangeLog:
+  # ── 1. Partial UNIQUE index on (workspace_id, file_hash) for active assets ──
+  # Rationale: prevents the user-visible "duplicate images in media library" bug where
+  # a second upload of the same file would create a NEW media_assets row pointing at
+  # the SAME workspace_file_blobs row. The application handler now collapses dedup
+  # hits onto the existing assetId, and this constraint is the DB-level safety net
+  # against future regressions and races.
+  #
+  # The index is PARTIAL: it covers only rows whose status is NOT IN ('DELETED', 'FAILED').
+  # This preserves the legitimate "multiple FAILED retry attempts" workflow and keeps
+  # soft-deleted history from blocking re-upload after a previous asset was deleted.
+  - changeSet:
+      id: media-003-unique-active-asset-per-hash
+      author: sdd-apply
+      dbms: postgresql
+      changes:
+        - sql:
+            sql: >
+              CREATE UNIQUE INDEX uq_media_assets_active_per_hash
+              ON media_assets (workspace_id, file_hash)
+              WHERE status NOT IN ('DELETED', 'FAILED')
+
+  # ── 2. H2 variant is intentionally omitted ──
+  # H2 does not support partial unique indexes (WHERE clause on CREATE UNIQUE INDEX).
+  # Handler-level dedup in PutAssetHandler + the existing tests cover this on H2.
+  # The DB-level safety net runs only on Postgres (and in @Tag("postgres") tests
+  # via Testcontainers).
