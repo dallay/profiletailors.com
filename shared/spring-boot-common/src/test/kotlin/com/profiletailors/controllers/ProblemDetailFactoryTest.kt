@@ -1,12 +1,12 @@
 package com.profiletailors.controllers
 
+import org.springframework.http.HttpStatus
+import org.springframework.mock.http.server.reactive.MockServerHttpRequest
+import org.springframework.mock.web.server.MockServerWebExchange
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertNotNull
 import kotlin.test.assertNull
-import org.springframework.http.HttpStatus
-import org.springframework.mock.http.server.reactive.MockServerHttpRequest
-import org.springframework.mock.web.server.MockServerWebExchange
 
 class ProblemDetailFactoryTest {
 

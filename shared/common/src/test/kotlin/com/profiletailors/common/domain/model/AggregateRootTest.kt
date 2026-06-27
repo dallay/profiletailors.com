@@ -45,13 +45,9 @@ internal class AggregateRootTest {
         assertThat(agg1.hashCode()).isEqualTo(agg2.hashCode())
     }
 
-    private class TestAggregateRoot(
-        override val id: String,
-    ) : AggregateRoot<String>()
+    private class TestAggregateRoot(override val id: String) : AggregateRoot<String>()
 
-    private data class TestDomainEvent(
-        private val version: Int = 1,
-    ) : DomainEvent {
+    private data class TestDomainEvent(private val version: Int = 1) : DomainEvent {
         override fun eventVersion(): Int = version
         override fun occurredOn(): LocalDateTime? = LocalDateTime.now()
     }

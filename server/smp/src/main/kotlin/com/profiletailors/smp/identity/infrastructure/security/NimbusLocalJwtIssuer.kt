@@ -4,12 +4,12 @@ import com.profiletailors.common.domain.context.PrincipalType
 import com.profiletailors.smp.identity.application.IssuedAccessToken
 import com.profiletailors.smp.identity.application.LocalJwtIssuer
 import com.profiletailors.smp.identity.domain.EmailStatus
-import java.time.Instant
 import org.springframework.security.oauth2.jose.jws.MacAlgorithm
 import org.springframework.security.oauth2.jwt.JwsHeader
 import org.springframework.security.oauth2.jwt.JwtClaimsSet
 import org.springframework.security.oauth2.jwt.JwtEncoder
 import org.springframework.security.oauth2.jwt.JwtEncoderParameters
+import java.time.Instant
 
 class NimbusLocalJwtIssuer(
     private val jwtEncoder: JwtEncoder,

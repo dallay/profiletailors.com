@@ -16,9 +16,7 @@ import org.springframework.web.bind.annotation.RestController
 @RestController
 @RequestMapping(value = ["/api/authorization/resources"])
 @Tag(name = "Resource Preview", description = "Resource preview and metadata endpoints")
-class ResourcePreviewController(
-    private val mediator: Mediator,
-) {
+class ResourcePreviewController(private val mediator: Mediator) {
     @Operation(summary = "Get resource preview by ID")
     @GetMapping("/{resourceId}/preview", version = "1")
     suspend fun getResourcePreview(

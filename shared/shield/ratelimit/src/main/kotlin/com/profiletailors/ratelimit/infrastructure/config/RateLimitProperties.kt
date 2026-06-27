@@ -1,7 +1,7 @@
 package com.profiletailors.ratelimit.infrastructure.config
 
-import java.time.Duration
 import org.springframework.boot.context.properties.ConfigurationProperties
+import java.time.Duration
 
 /**
  * Configuration properties for rate limiting.
@@ -82,7 +82,7 @@ data class RateLimitProperties(
     /**
      * Configuration for waitlist endpoints rate limiting.
      */
-    val waitlist: WaitlistRateLimitConfig = WaitlistRateLimitConfig()
+    val waitlist: WaitlistRateLimitConfig = WaitlistRateLimitConfig(),
 ) {
 
     companion object {
@@ -121,7 +121,7 @@ data class RateLimitProperties(
          *
          * Default: 60 minutes (1 hour)
          */
-        val ttlMinutes: Long = 60
+        val ttlMinutes: Long = 60,
     ) {
         init {
             require(maxSize > 0) { "maxSize must be positive" }
@@ -144,7 +144,7 @@ data class RateLimitProperties(
          * Prefix for basic tier API keys.
          * Example: "BX001-xyz789..." indicates a basic tier key.
          */
-        val basic: String = "BX001-"
+        val basic: String = "BX001-",
     )
 
     /**
@@ -186,7 +186,7 @@ data class RateLimitProperties(
                 refillTokens = 100,
                 refillDuration = Duration.ofHours(1),
             ),
-        )
+        ),
     )
 
     /**
@@ -222,7 +222,7 @@ data class RateLimitProperties(
                 refillTokens = 100,
                 refillDuration = Duration.ofHours(1),
             ),
-        )
+        ),
     )
 
     /**
@@ -250,7 +250,7 @@ data class RateLimitProperties(
             capacity = 10,
             refillTokens = 10,
             refillDuration = Duration.ofMinutes(1),
-        )
+        ),
     )
 
     /**
@@ -278,7 +278,7 @@ data class RateLimitProperties(
             capacity = 10,
             refillTokens = 10,
             refillDuration = Duration.ofMinutes(1),
-        )
+        ),
     )
 
     /**
@@ -308,6 +308,6 @@ data class RateLimitProperties(
         /**
          * Initial number of tokens in the bucket. Defaults to capacity if not specified.
          */
-        val initialTokens: Long? = null
+        val initialTokens: Long? = null,
     )
 }

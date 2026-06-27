@@ -6,13 +6,13 @@ import org.springframework.boot.context.properties.NestedConfigurationProperty
 @ConfigurationProperties(prefix = "platform.storage")
 class StorageProperties(
     var default: String = "local",
-    
+
     /**
      * Map of storage provider configurations.
      * Key is the provider name, value is the configuration map.
      */
     @NestedConfigurationProperty
-    var providers: Map<String, ProviderConfig> = emptyMap()
+    var providers: Map<String, ProviderConfig> = emptyMap(),
 )
 
 /**
@@ -77,7 +77,7 @@ data class ProviderConfig(
      * Timeout for S3/R2 operations in seconds.
      * Default is 30 seconds. Must be positive.
      */
-    val timeoutSeconds: Long = 30
+    val timeoutSeconds: Long = 30,
 ) {
     init {
         require(timeoutSeconds > 0) { "timeoutSeconds must be positive, got $timeoutSeconds" }

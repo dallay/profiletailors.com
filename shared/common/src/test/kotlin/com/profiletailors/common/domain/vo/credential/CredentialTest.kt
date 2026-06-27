@@ -1,14 +1,14 @@
 package com.profiletailors.common.domain.vo.credential
 
-import com.profiletailors.common.testfixture.CredentialFixtures.strongCredentialPassword
-import com.profiletailors.common.testfixture.CredentialFixtures.weakPasswordNoNumber
-import com.profiletailors.common.testfixture.CredentialFixtures.weakPasswordNoSpecial
-import com.profiletailors.common.testfixture.CredentialFixtures.weakPasswordNoUppercase
-import com.profiletailors.common.testfixture.CredentialFixtures.weakPasswordTooShort
-import com.profiletailors.common.testfixture.CredentialFixtures.blankPassword
-import com.profiletailors.common.testfixture.CredentialFixtures.whitespacePassword
-import com.profiletailors.common.testfixture.CredentialFixtures.weakPasswordNoLowercase
+import com.profiletailors.common.testfixture.CredentialFixtures.BLANK_PASSWORD
+import com.profiletailors.common.testfixture.CredentialFixtures.WEAK_PASSWORD_NO_LOWERCASE
+import com.profiletailors.common.testfixture.CredentialFixtures.WEAK_PASSWORD_NO_NUMBER
+import com.profiletailors.common.testfixture.CredentialFixtures.WEAK_PASSWORD_NO_SPECIAL
+import com.profiletailors.common.testfixture.CredentialFixtures.WEAK_PASSWORD_NO_UPPERCASE
+import com.profiletailors.common.testfixture.CredentialFixtures.WEAK_PASSWORD_TOO_SHORT
+import com.profiletailors.common.testfixture.CredentialFixtures.WHITESPACE_PASSWORD
 import com.profiletailors.common.testfixture.CredentialFixtures.aStrongCredential
+import com.profiletailors.common.testfixture.CredentialFixtures.strongCredentialPassword
 import org.assertj.core.api.Assertions.assertThat
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertThrows
@@ -27,7 +27,7 @@ internal class CredentialTest {
     @Test
     fun `should not create a credential with a weak password must have at least one number`() {
         val exception = assertThrows(CredentialException::class.java) {
-            Credential.create(weakPasswordNoNumber)
+            Credential.create(WEAK_PASSWORD_NO_NUMBER)
         }
         assertThat(exception.message).isEqualTo("The password must have at least one number")
     }
@@ -35,7 +35,7 @@ internal class CredentialTest {
     @Test
     fun `should not create a credential with a weak password must have at least one uppercase`() {
         val exception = assertThrows(CredentialException::class.java) {
-            Credential.create(weakPasswordNoUppercase)
+            Credential.create(WEAK_PASSWORD_NO_UPPERCASE)
         }
         assertThat(exception.message).isEqualTo("The password must have at least one uppercase character")
     }
@@ -43,7 +43,7 @@ internal class CredentialTest {
     @Test
     fun `should not create a credential with a weak password must have at least one lowercase`() {
         val exception = assertThrows(CredentialException::class.java) {
-            Credential.create(weakPasswordNoLowercase)
+            Credential.create(WEAK_PASSWORD_NO_LOWERCASE)
         }
         assertThat(exception.message).isEqualTo("The password must have at least one lowercase character")
     }
@@ -51,7 +51,7 @@ internal class CredentialTest {
     @Test
     fun `should not create a credential with a weak password must have at least one special character`() {
         val exception = assertThrows(CredentialException::class.java) {
-            Credential.create(weakPasswordNoSpecial)
+            Credential.create(WEAK_PASSWORD_NO_SPECIAL)
         }
         assertThat(exception.message).isEqualTo("The password must have at least one special character")
     }
@@ -59,7 +59,7 @@ internal class CredentialTest {
     @Test
     fun `should not create a credential with a empty password`() {
         val exception = assertThrows(CredentialException::class.java) {
-            Credential.create(blankPassword)
+            Credential.create(BLANK_PASSWORD)
         }
         assertThat(exception.message).isEqualTo("Credential value cannot be blank")
     }
@@ -67,7 +67,7 @@ internal class CredentialTest {
     @Test
     fun `should not create a credential with a blank password`() {
         val exception = assertThrows(CredentialException::class.java) {
-            Credential.create(whitespacePassword)
+            Credential.create(WHITESPACE_PASSWORD)
         }
         assertThat(exception.message).isEqualTo("Credential value cannot be blank")
     }
@@ -75,7 +75,7 @@ internal class CredentialTest {
     @Test
     fun `should not create a credential with less than 8 characters`() {
         val exception = assertThrows(CredentialException::class.java) {
-            Credential.create(weakPasswordTooShort)
+            Credential.create(WEAK_PASSWORD_TOO_SHORT)
         }
         assertThat(exception.message).isEqualTo("Credential value must be at least 8 characters")
     }

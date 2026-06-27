@@ -27,14 +27,13 @@ class AppAutoConfiguration {
      */
     @Bean
     @ConditionalOnMissingBean(JsonMapper::class)
-    fun jsonMapper(): JsonMapper =
-        JsonMapper.builder()
-            .addModule(
-                kotlinModule {
-                    enable(KotlinFeature.NullToEmptyCollection)
-                    enable(KotlinFeature.NullToEmptyMap)
-                    enable(KotlinFeature.StrictNullChecks)
-                },
-            )
-            .build()
+    fun jsonMapper(): JsonMapper = JsonMapper.builder()
+        .addModule(
+            kotlinModule {
+                enable(KotlinFeature.NullToEmptyCollection)
+                enable(KotlinFeature.NullToEmptyMap)
+                enable(KotlinFeature.StrictNullChecks)
+            },
+        )
+        .build()
 }

@@ -2,12 +2,12 @@ package com.profiletailors.common.domain.bus
 
 import com.profiletailors.common.domain.bus.notification.Notification
 import com.profiletailors.common.domain.bus.notification.NotificationHandler
-import java.util.concurrent.CountDownLatch
-import kotlin.test.assertEquals
-import kotlin.test.assertTrue
 import kotlinx.coroutines.test.runTest
 import org.junit.jupiter.api.Nested
 import org.junit.jupiter.api.Test
+import java.util.concurrent.CountDownLatch
+import kotlin.test.assertEquals
+import kotlin.test.assertTrue
 
 private var asyncCountDownLatch = CountDownLatch(1)
 

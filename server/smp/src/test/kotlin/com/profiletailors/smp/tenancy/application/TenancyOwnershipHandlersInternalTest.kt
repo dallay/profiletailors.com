@@ -18,7 +18,6 @@ import kotlinx.coroutines.test.runTest
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertFalse
 import org.junit.jupiter.api.Assertions.assertInstanceOf
-import org.junit.jupiter.api.Assertions.assertThrows
 import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.Test
 import java.time.Clock
@@ -45,13 +44,15 @@ class TenancyOwnershipHandlersInternalTest {
 
     @Test
     fun `AddWorkspaceOwnerHandler adds new owner and returns result with both owners`() = runTest {
-        val ownershipRepository = InMemoryWorkspaceOwnershipRepository(mutableSetOf(
-            WorkspaceOwnership(
-                workspaceId = "workspace-1",
-                ownerPrincipalId = "owner-1",
-                ownerPrincipalType = PrincipalType.USER,
+        val ownershipRepository = InMemoryWorkspaceOwnershipRepository(
+            mutableSetOf(
+                WorkspaceOwnership(
+                    workspaceId = "workspace-1",
+                    ownerPrincipalId = "owner-1",
+                    ownerPrincipalType = PrincipalType.USER,
+                ),
             ),
-        ))
+        )
         val targetMembership = WorkspaceMembership(
             id = "membership-2",
             workspaceId = "workspace-1",
@@ -79,20 +80,24 @@ class TenancyOwnershipHandlersInternalTest {
         assertEquals("workspace-1", result.workspaceId)
         assertTrue(result.ownerPrincipalIds.contains("owner-1"))
         assertTrue(result.ownerPrincipalIds.contains("member-2"))
-        assertTrue(auditHook.mutations.any {
-            it.action == "workspace.owner.add" && it.targetId == "member-2" && it.outcome.name == "SUCCESS"
-        })
+        assertTrue(
+            auditHook.mutations.any {
+                it.action == "workspace.owner.add" && it.targetId == "member-2" && it.outcome.name == "SUCCESS"
+            },
+        )
     }
 
     @Test
     fun `AddWorkspaceOwnerHandler throws WorkspaceOwnerAccessDeniedException when actor is not an owner`() = runTest {
-        val ownershipRepository = InMemoryWorkspaceOwnershipRepository(mutableSetOf(
-            WorkspaceOwnership(
-                workspaceId = "workspace-1",
-                ownerPrincipalId = "other-owner",
-                ownerPrincipalType = PrincipalType.USER,
+        val ownershipRepository = InMemoryWorkspaceOwnershipRepository(
+            mutableSetOf(
+                WorkspaceOwnership(
+                    workspaceId = "workspace-1",
+                    ownerPrincipalId = "other-owner",
+                    ownerPrincipalType = PrincipalType.USER,
+                ),
             ),
-        ))
+        )
         val membershipLookup = StubWorkspaceMembershipLookup(emptyMap())
         val auditHook = CapturingAuditHook()
 
@@ -108,19 +113,23 @@ class TenancyOwnershipHandlersInternalTest {
             ),
         )
 
-        val exception = runCatching { handler.handle(AddWorkspaceOwnerCommand(targetPrincipalId = "member-2")) }.exceptionOrNull()
+        val exception = runCatching {
+            handler.handle(AddWorkspaceOwnerCommand(targetPrincipalId = "member-2"))
+        }.exceptionOrNull()
         assertInstanceOf(WorkspaceOwnerAccessDeniedException::class.java, exception)
     }
 
     @Test
     fun `AddWorkspaceOwnerHandler throws OwnerTargetMustBeActiveMemberException when target is not active`() = runTest {
-        val ownershipRepository = InMemoryWorkspaceOwnershipRepository(mutableSetOf(
-            WorkspaceOwnership(
-                workspaceId = "workspace-1",
-                ownerPrincipalId = "owner-1",
-                ownerPrincipalType = PrincipalType.USER,
+        val ownershipRepository = InMemoryWorkspaceOwnershipRepository(
+            mutableSetOf(
+                WorkspaceOwnership(
+                    workspaceId = "workspace-1",
+                    ownerPrincipalId = "owner-1",
+                    ownerPrincipalType = PrincipalType.USER,
+                ),
             ),
-        ))
+        )
         val targetMembership = WorkspaceMembership(
             id = "membership-2",
             workspaceId = "workspace-1",
@@ -143,24 +152,28 @@ class TenancyOwnershipHandlersInternalTest {
             ),
         )
 
-        val exception = runCatching { handler.handle(AddWorkspaceOwnerCommand(targetPrincipalId = "member-2")) }.exceptionOrNull()
+        val exception = runCatching {
+            handler.handle(AddWorkspaceOwnerCommand(targetPrincipalId = "member-2"))
+        }.exceptionOrNull()
         assertInstanceOf(OwnerTargetMustBeActiveMemberException::class.java, exception)
     }
 
     @Test
     fun `AddWorkspaceOwnerHandler is idempotent when target is already an owner`() = runTest {
-        val ownershipRepository = InMemoryWorkspaceOwnershipRepository(mutableSetOf(
-            WorkspaceOwnership(
-                workspaceId = "workspace-1",
-                ownerPrincipalId = "owner-1",
-                ownerPrincipalType = PrincipalType.USER,
+        val ownershipRepository = InMemoryWorkspaceOwnershipRepository(
+            mutableSetOf(
+                WorkspaceOwnership(
+                    workspaceId = "workspace-1",
+                    ownerPrincipalId = "owner-1",
+                    ownerPrincipalType = PrincipalType.USER,
+                ),
+                WorkspaceOwnership(
+                    workspaceId = "workspace-1",
+                    ownerPrincipalId = "member-2",
+                    ownerPrincipalType = PrincipalType.USER,
+                ),
             ),
-            WorkspaceOwnership(
-                workspaceId = "workspace-1",
-                ownerPrincipalId = "member-2",
-                ownerPrincipalType = PrincipalType.USER,
-            ),
-        ))
+        )
         val targetMembership = WorkspaceMembership(
             id = "membership-2",
             workspaceId = "workspace-1",
@@ -196,13 +209,15 @@ class TenancyOwnershipHandlersInternalTest {
 
     @Test
     fun `TransferWorkspaceOwnershipHandler transfers ownership and removes old owner`() = runTest {
-        val ownershipRepository = InMemoryWorkspaceOwnershipRepository(mutableSetOf(
-            WorkspaceOwnership(
-                workspaceId = "workspace-1",
-                ownerPrincipalId = "owner-1",
-                ownerPrincipalType = PrincipalType.USER,
+        val ownershipRepository = InMemoryWorkspaceOwnershipRepository(
+            mutableSetOf(
+                WorkspaceOwnership(
+                    workspaceId = "workspace-1",
+                    ownerPrincipalId = "owner-1",
+                    ownerPrincipalType = PrincipalType.USER,
+                ),
             ),
-        ))
+        )
         val targetMembership = WorkspaceMembership(
             id = "membership-2",
             workspaceId = "workspace-1",
@@ -230,125 +245,25 @@ class TenancyOwnershipHandlersInternalTest {
         assertEquals("workspace-1", result.workspaceId)
         assertTrue(result.ownerPrincipalIds.contains("member-2"))
         assertFalse(result.ownerPrincipalIds.contains("owner-1"))
-        assertTrue(auditHook.mutations.any {
-            it.action == "workspace.owner.transfer" && it.targetId == "member-2" && it.outcome.name == "SUCCESS"
-        })
+        assertTrue(
+            auditHook.mutations.any {
+                it.action == "workspace.owner.transfer" && it.targetId == "member-2" && it.outcome.name == "SUCCESS"
+            },
+        )
     }
 
     @Test
     fun `TransferWorkspaceOwnershipHandler throws IllegalArgumentException when transferring to self`() = runTest {
-        val ownershipRepository = InMemoryWorkspaceOwnershipRepository(mutableSetOf(
-            WorkspaceOwnership(
-                workspaceId = "workspace-1",
-                ownerPrincipalId = "owner-1",
-                ownerPrincipalType = PrincipalType.USER,
-            ),
-        ))
-        val membershipLookup = StubWorkspaceMembershipLookup(emptyMap())
-        val auditHook = CapturingAuditHook()
-
-        val handler = TransferWorkspaceOwnershipHandler(
-            principalContextProvider = FixedPrincipalContextProvider(ownerPrincipal),
-            resourceContextProvider = FixedResourceContextProvider(workspaceContext),
-            workspaceOwnershipRepository = ownershipRepository,
-            workspaceMembershipLookup = membershipLookup,
-            clock = fixedClock,
-            tenancyMutationAuditor = TenancyMutationAuditor(
-                FixedPrincipalContextProvider(ownerPrincipal),
-                auditHook,
-            ),
-        )
-
-        val exception = runCatching { handler.handle(TransferWorkspaceOwnershipCommand(targetPrincipalId = "owner-1")) }.exceptionOrNull()
-        assertInstanceOf(IllegalArgumentException::class.java, exception)
-        assertEquals("Cannot transfer ownership to yourself", (exception as IllegalArgumentException).message)
-    }
-
-    @Test
-    fun `TransferWorkspaceOwnershipHandler throws WorkspaceOwnerAccessDeniedException when actor is not an owner`() = runTest {
-        val ownershipRepository = InMemoryWorkspaceOwnershipRepository(mutableSetOf(
-            WorkspaceOwnership(
-                workspaceId = "workspace-1",
-                ownerPrincipalId = "other-owner",
-                ownerPrincipalType = PrincipalType.USER,
-            ),
-        ))
-        val membershipLookup = StubWorkspaceMembershipLookup(emptyMap())
-        val auditHook = CapturingAuditHook()
-
-        val handler = TransferWorkspaceOwnershipHandler(
-            principalContextProvider = FixedPrincipalContextProvider(ownerPrincipal),
-            resourceContextProvider = FixedResourceContextProvider(workspaceContext),
-            workspaceOwnershipRepository = ownershipRepository,
-            workspaceMembershipLookup = membershipLookup,
-            clock = fixedClock,
-            tenancyMutationAuditor = TenancyMutationAuditor(
-                FixedPrincipalContextProvider(ownerPrincipal),
-                auditHook,
-            ),
-        )
-
-        val exception = runCatching { handler.handle(TransferWorkspaceOwnershipCommand(targetPrincipalId = "member-2")) }.exceptionOrNull()
-        assertInstanceOf(WorkspaceOwnerAccessDeniedException::class.java, exception)
-    }
-
-    @Test
-    fun `TransferWorkspaceOwnershipHandler throws OwnerTargetMustBeActiveMemberException when target is not active`() = runTest {
-        val ownershipRepository = InMemoryWorkspaceOwnershipRepository(mutableSetOf(
-            WorkspaceOwnership(
-                workspaceId = "workspace-1",
-                ownerPrincipalId = "owner-1",
-                ownerPrincipalType = PrincipalType.USER,
-            ),
-        ))
-        val targetMembership = WorkspaceMembership(
-            id = "membership-2",
-            workspaceId = "workspace-1",
-            principalId = "member-2",
-            principalType = PrincipalType.USER,
-            status = WorkspaceMembershipStatus.SUSPENDED,
-        )
-        val membershipLookup = StubWorkspaceMembershipLookup(mapOf("member-2" to targetMembership))
-        val auditHook = CapturingAuditHook()
-
-        val handler = TransferWorkspaceOwnershipHandler(
-            principalContextProvider = FixedPrincipalContextProvider(ownerPrincipal),
-            resourceContextProvider = FixedResourceContextProvider(workspaceContext),
-            workspaceOwnershipRepository = ownershipRepository,
-            workspaceMembershipLookup = membershipLookup,
-            clock = fixedClock,
-            tenancyMutationAuditor = TenancyMutationAuditor(
-                FixedPrincipalContextProvider(ownerPrincipal),
-                auditHook,
-            ),
-        )
-
-        val exception = runCatching { handler.handle(TransferWorkspaceOwnershipCommand(targetPrincipalId = "member-2")) }.exceptionOrNull()
-        assertInstanceOf(OwnerTargetMustBeActiveMemberException::class.java, exception)
-    }
-
-    @Test
-    fun `TransferWorkspaceOwnershipHandler throws LastOwnerRemovalRequiresReplacementException when concurrent transfer removes replacement`() = runTest {
-        // Simulates the TOCTOU scenario: by the time removeIfReplacementExists runs, the
-        // replacement owner no longer exists (simulated via a repository that always refuses).
         val ownershipRepository = InMemoryWorkspaceOwnershipRepository(
-            ownerships = mutableSetOf(
+            mutableSetOf(
                 WorkspaceOwnership(
                     workspaceId = "workspace-1",
                     ownerPrincipalId = "owner-1",
                     ownerPrincipalType = PrincipalType.USER,
                 ),
             ),
-            removeIfReplacementAlwaysFails = true,
         )
-        val targetMembership = WorkspaceMembership(
-            id = "membership-2",
-            workspaceId = "workspace-1",
-            principalId = "member-2",
-            principalType = PrincipalType.USER,
-            status = WorkspaceMembershipStatus.ACTIVE,
-        )
-        val membershipLookup = StubWorkspaceMembershipLookup(mapOf("member-2" to targetMembership))
+        val membershipLookup = StubWorkspaceMembershipLookup(emptyMap())
         val auditHook = CapturingAuditHook()
 
         val handler = TransferWorkspaceOwnershipHandler(
@@ -364,18 +279,136 @@ class TenancyOwnershipHandlersInternalTest {
         )
 
         val exception = runCatching {
-            handler.handle(TransferWorkspaceOwnershipCommand(targetPrincipalId = "member-2"))
+            handler.handle(TransferWorkspaceOwnershipCommand(targetPrincipalId = "owner-1"))
         }.exceptionOrNull()
-        assertInstanceOf(LastOwnerRemovalRequiresReplacementException::class.java, exception)
-        // Verify the business invariant: workspace must always have at least one owner.
-        assertTrue(ownershipRepository.findByWorkspaceId("workspace-1").isNotEmpty())
+        assertInstanceOf(IllegalArgumentException::class.java, exception)
+        assertEquals("Cannot transfer ownership to yourself", (exception as IllegalArgumentException).message)
     }
+
+    @Test
+    fun `TransferWorkspaceOwnershipHandler throws WorkspaceOwnerAccessDeniedException when actor is not an owner`() =
+        runTest {
+            val ownershipRepository = InMemoryWorkspaceOwnershipRepository(
+                mutableSetOf(
+                    WorkspaceOwnership(
+                        workspaceId = "workspace-1",
+                        ownerPrincipalId = "other-owner",
+                        ownerPrincipalType = PrincipalType.USER,
+                    ),
+                ),
+            )
+            val membershipLookup = StubWorkspaceMembershipLookup(emptyMap())
+            val auditHook = CapturingAuditHook()
+
+            val handler = TransferWorkspaceOwnershipHandler(
+                principalContextProvider = FixedPrincipalContextProvider(ownerPrincipal),
+                resourceContextProvider = FixedResourceContextProvider(workspaceContext),
+                workspaceOwnershipRepository = ownershipRepository,
+                workspaceMembershipLookup = membershipLookup,
+                clock = fixedClock,
+                tenancyMutationAuditor = TenancyMutationAuditor(
+                    FixedPrincipalContextProvider(ownerPrincipal),
+                    auditHook,
+                ),
+            )
+
+            val exception = runCatching {
+                handler.handle(TransferWorkspaceOwnershipCommand(targetPrincipalId = "member-2"))
+            }.exceptionOrNull()
+            assertInstanceOf(WorkspaceOwnerAccessDeniedException::class.java, exception)
+        }
+
+    @Test
+    fun `TransferWorkspaceOwnershipHandler throws OwnerTargetMustBeActiveMemberException when target is not active`() =
+        runTest {
+            val ownershipRepository = InMemoryWorkspaceOwnershipRepository(
+                mutableSetOf(
+                    WorkspaceOwnership(
+                        workspaceId = "workspace-1",
+                        ownerPrincipalId = "owner-1",
+                        ownerPrincipalType = PrincipalType.USER,
+                    ),
+                ),
+            )
+            val targetMembership = WorkspaceMembership(
+                id = "membership-2",
+                workspaceId = "workspace-1",
+                principalId = "member-2",
+                principalType = PrincipalType.USER,
+                status = WorkspaceMembershipStatus.SUSPENDED,
+            )
+            val membershipLookup = StubWorkspaceMembershipLookup(mapOf("member-2" to targetMembership))
+            val auditHook = CapturingAuditHook()
+
+            val handler = TransferWorkspaceOwnershipHandler(
+                principalContextProvider = FixedPrincipalContextProvider(ownerPrincipal),
+                resourceContextProvider = FixedResourceContextProvider(workspaceContext),
+                workspaceOwnershipRepository = ownershipRepository,
+                workspaceMembershipLookup = membershipLookup,
+                clock = fixedClock,
+                tenancyMutationAuditor = TenancyMutationAuditor(
+                    FixedPrincipalContextProvider(ownerPrincipal),
+                    auditHook,
+                ),
+            )
+
+            val exception = runCatching {
+                handler.handle(TransferWorkspaceOwnershipCommand(targetPrincipalId = "member-2"))
+            }.exceptionOrNull()
+            assertInstanceOf(OwnerTargetMustBeActiveMemberException::class.java, exception)
+        }
+
+    @Test
+    fun `TransferWorkspaceOwnershipHandler throws LastOwnerRemovalRequiresReplacementException concurrent transfer`() =
+        runTest {
+            // Simulates the TOCTOU scenario: by the time removeIfReplacementExists runs, the
+            // replacement owner no longer exists (simulated via a repository that always refuses).
+            val ownershipRepository = InMemoryWorkspaceOwnershipRepository(
+                ownerships = mutableSetOf(
+                    WorkspaceOwnership(
+                        workspaceId = "workspace-1",
+                        ownerPrincipalId = "owner-1",
+                        ownerPrincipalType = PrincipalType.USER,
+                    ),
+                ),
+                removeIfReplacementAlwaysFails = true,
+            )
+            val targetMembership = WorkspaceMembership(
+                id = "membership-2",
+                workspaceId = "workspace-1",
+                principalId = "member-2",
+                principalType = PrincipalType.USER,
+                status = WorkspaceMembershipStatus.ACTIVE,
+            )
+            val membershipLookup = StubWorkspaceMembershipLookup(mapOf("member-2" to targetMembership))
+            val auditHook = CapturingAuditHook()
+
+            val handler = TransferWorkspaceOwnershipHandler(
+                principalContextProvider = FixedPrincipalContextProvider(ownerPrincipal),
+                resourceContextProvider = FixedResourceContextProvider(workspaceContext),
+                workspaceOwnershipRepository = ownershipRepository,
+                workspaceMembershipLookup = membershipLookup,
+                clock = fixedClock,
+                tenancyMutationAuditor = TenancyMutationAuditor(
+                    FixedPrincipalContextProvider(ownerPrincipal),
+                    auditHook,
+                ),
+            )
+
+            val exception = runCatching {
+                handler.handle(TransferWorkspaceOwnershipCommand(targetPrincipalId = "member-2"))
+            }.exceptionOrNull()
+            assertInstanceOf(LastOwnerRemovalRequiresReplacementException::class.java, exception)
+            // Verify the business invariant: workspace must always have at least one owner.
+            assertTrue(ownershipRepository.findByWorkspaceId("workspace-1").isNotEmpty())
+        }
 
     // -------------------------------------------------------------------------
     // Helper classes — same pattern as UpdateWorkspaceMembershipStatusHandlerTest
     // -------------------------------------------------------------------------
 
-    private class FixedPrincipalContextProvider(private val principalContext: PrincipalContext) : PrincipalContextProvider {
+    private class FixedPrincipalContextProvider(private val principalContext: PrincipalContext) :
+        PrincipalContextProvider {
         override suspend fun current(): PrincipalContext = principalContext
     }
 
@@ -383,7 +416,8 @@ class TenancyOwnershipHandlersInternalTest {
         override fun current(): ResourceContext = resourceContext
     }
 
-    private class StubWorkspaceMembershipLookup(private val memberships: Map<String, WorkspaceMembership>) : WorkspaceMembershipLookup {
+    private class StubWorkspaceMembershipLookup(private val memberships: Map<String, WorkspaceMembership>) :
+        WorkspaceMembershipLookup {
         override suspend fun resolve(principalId: String, resourceContext: ResourceContext): WorkspaceMembership? =
             memberships[principalId]
     }

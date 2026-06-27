@@ -137,7 +137,13 @@ class R2dbcApiKeyCredentialStateLookupTest {
             .bind("verifier", verifier)
             .bind("status", status)
             .let { spec ->
-                if (status == "REVOKED") spec.bind("revokedAt", Instant.parse("2026-05-15T10:45:30Z")) else spec.bindNull("revokedAt", Instant::class.java)
+                if (status ==
+                    "REVOKED"
+                ) {
+                    spec.bind("revokedAt", Instant.parse("2026-05-15T10:45:30Z"))
+                } else {
+                    spec.bindNull("revokedAt", Instant::class.java)
+                }
             }
             .fetch()
             .rowsUpdated()

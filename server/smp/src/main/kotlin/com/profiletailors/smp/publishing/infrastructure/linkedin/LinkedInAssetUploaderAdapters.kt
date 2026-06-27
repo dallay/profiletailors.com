@@ -16,9 +16,7 @@ import kotlinx.coroutines.flow.Flow
 import java.net.URI
 import java.net.http.HttpRequest
 
-data class LinkedInAssetUploadProperties(
-    val attachmentsBucket: String,
-)
+data class LinkedInAssetUploadProperties(val attachmentsBucket: String)
 
 @JsonIgnoreProperties(ignoreUnknown = true)
 data class LinkedInAssetRegisterResponse(
@@ -54,9 +52,7 @@ data class LinkedInUploadInstruction(
 )
 
 @JsonIgnoreProperties(ignoreUnknown = true)
-data class LinkedInAssetStatusResponse(
-    @JsonProperty("status") val status: String? = null,
-)
+data class LinkedInAssetStatusResponse(@JsonProperty("status") val status: String? = null)
 
 class RealLinkedInAssetUploader(
     private val properties: LinkedInPublishingProperties,
@@ -90,12 +86,12 @@ class RealLinkedInAssetUploader(
             val registerResponse = registerAsset(asset, context)
             val uploadUrl = registerResponse.uploadUrl
                 ?: registerResponse.uploadInstructions?.firstOrNull()?.uploadUrl
-                .orThrow { "LinkedIn asset registration response missing uploadUrl" }
+                    .orThrow { "LinkedIn asset registration response missing uploadUrl" }
             val assetUrn = registerResponse.asset
                 ?: registerResponse.image
                 ?: registerResponse.document
                 ?: registerResponse.video
-                .orThrow { "LinkedIn asset registration response missing asset URN" }
+                    .orThrow { "LinkedIn asset registration response missing asset URN" }
 
             uploadBinary(uploadUrl, content)
             confirmAsset(assetUrn, registerResponse.uploadToken, asset, context)
@@ -135,7 +131,7 @@ class RealLinkedInAssetUploader(
     ): LinkedInAssetRegisterResponse {
         val ownerUrn = context.socialAccount.profileUrn
             ?: throw ProviderUploadException(
-                "Social account is missing a profile URN for asset registration."
+                "Social account is missing a profile URN for asset registration.",
             )
 
         val initializeUploadRequest = linkedMapOf<String, Any>(
@@ -162,7 +158,7 @@ class RealLinkedInAssetUploader(
 
         if (response.statusCode !in HTTP_SUCCESS_RANGE) {
             throw ProviderUploadException(
-                "LinkedIn asset registration failed: ${response.statusCode} ${response.body}"
+                "LinkedIn asset registration failed: ${response.statusCode} ${response.body}",
             )
         }
 
@@ -187,7 +183,7 @@ class RealLinkedInAssetUploader(
 
         if (response.statusCode !in HTTP_SUCCESS_RANGE) {
             throw ProviderUploadException(
-                "LinkedIn binary upload failed: ${response.statusCode} ${response.body}"
+                "LinkedIn binary upload failed: ${response.statusCode} ${response.body}",
             )
         }
     }
@@ -215,7 +211,7 @@ class RealLinkedInAssetUploader(
         val confirmBody = if (endpoint == "videos") {
             val requiredUploadToken = uploadToken
                 ?: throw ProviderUploadException(
-                    "LinkedIn video upload missing uploadToken for finalizeUpload (asset: ${asset.id})"
+                    "LinkedIn video upload missing uploadToken for finalizeUpload (asset: ${asset.id})",
                 )
             mapOf(
                 "finalizeUploadRequest" to mapOf(
@@ -239,7 +235,7 @@ class RealLinkedInAssetUploader(
 
         if (response.statusCode !in HTTP_SUCCESS_RANGE) {
             throw ProviderUploadException(
-                "LinkedIn asset confirmation failed: ${response.statusCode} ${response.body}"
+                "LinkedIn asset confirmation failed: ${response.statusCode} ${response.body}",
             )
         }
     }
@@ -302,5 +298,4 @@ internal val DOCUMENT_MEDIA_TYPES = setOf(
     "APPLICATION/VND.OPENXMLFORMATS-OFFICEDOCUMENT.PRESENTATIONML.PRESENTATION",
 )
 
-private fun <T> T?.orThrow(lazyMessage: () -> String): T =
-    this ?: throw ProviderUploadException(lazyMessage())
+private fun <T> T?.orThrow(lazyMessage: () -> String): T = this ?: throw ProviderUploadException(lazyMessage())

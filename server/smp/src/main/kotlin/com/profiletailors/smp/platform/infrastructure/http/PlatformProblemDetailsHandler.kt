@@ -1,9 +1,9 @@
 package com.profiletailors.smp.platform.infrastructure.http
 
-import com.profiletailors.smp.credentials.application.ApiKeyCredentialNotActiveException
-import com.profiletailors.smp.credentials.application.RefreshSessionNotActiveException
 import com.profiletailors.common.domain.context.MissingPrincipalContextException
 import com.profiletailors.common.domain.context.MissingResourceContextException
+import com.profiletailors.smp.credentials.application.ApiKeyCredentialNotActiveException
+import com.profiletailors.smp.credentials.application.RefreshSessionNotActiveException
 import org.springframework.http.HttpStatus
 import org.springframework.http.ProblemDetail
 import org.springframework.web.bind.annotation.ExceptionHandler
@@ -35,5 +35,4 @@ class PlatformProblemDetailsHandler {
         ProblemDetail.forStatusAndDetail(HttpStatus.UNAUTHORIZED, exception.message ?: "Unauthorized").apply {
             title = "Refresh session invalid"
         }
-
 }

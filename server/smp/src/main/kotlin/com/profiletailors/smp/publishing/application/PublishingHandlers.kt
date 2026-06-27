@@ -8,29 +8,27 @@ import com.profiletailors.common.domain.context.ResourceContextProvider
 import com.profiletailors.smp.identity.application.AuthFeature
 import com.profiletailors.smp.identity.application.EmailVerificationPolicy
 import com.profiletailors.smp.identity.application.NoOpPrincipalIdentityLookup
-import com.profiletailors.smp.identity.application.permissiveEmailVerificationPolicy
 import com.profiletailors.smp.identity.application.PrincipalIdentityLookup
-import com.profiletailors.smp.identity.application.permissivePrincipalContextProvider
+import com.profiletailors.smp.identity.application.permissiveEmailVerificationPolicy
 import com.profiletailors.smp.identity.application.requireEmailVerification
 import com.profiletailors.smp.media.application.AssetPreviewUrlResolver
 import com.profiletailors.smp.media.application.MediaAssetResolver
-import com.profiletailors.smp.media.application.ResolvedAssetSummary
-
 import com.profiletailors.smp.media.application.MediaServiceUnavailableException
+import com.profiletailors.smp.media.application.ResolvedAssetSummary
 import com.profiletailors.smp.publishing.domain.ActivityThresholds
-import com.profiletailors.smp.publishing.domain.MIN_SCHEDULE_OFFSET
 import com.profiletailors.smp.publishing.domain.AssetSourceType
 import com.profiletailors.smp.publishing.domain.ChannelEvent
 import com.profiletailors.smp.publishing.domain.ChannelEventPublisher
 import com.profiletailors.smp.publishing.domain.ChannelEventType
 import com.profiletailors.smp.publishing.domain.CompleteProviderConnectionCommand
+import com.profiletailors.smp.publishing.domain.ConflictDetectionPolicy
 import com.profiletailors.smp.publishing.domain.ConnectedSocialChannel
 import com.profiletailors.smp.publishing.domain.ConnectedSocialChannelReadRepository
-import com.profiletailors.smp.publishing.domain.ConflictDetectionPolicy
 import com.profiletailors.smp.publishing.domain.ExpiredOAuthStateException
 import com.profiletailors.smp.publishing.domain.InvalidOAuthStateException
 import com.profiletailors.smp.publishing.domain.LinkedInAuthorizationUrlBuilder
 import com.profiletailors.smp.publishing.domain.LinkedInOAuthStatePayload
+import com.profiletailors.smp.publishing.domain.MIN_SCHEDULE_OFFSET
 import com.profiletailors.smp.publishing.domain.OAuthStateSigner
 import com.profiletailors.smp.publishing.domain.ProviderCapabilityValidationInput
 import com.profiletailors.smp.publishing.domain.ProviderCapabilityValidator
@@ -38,39 +36,36 @@ import com.profiletailors.smp.publishing.domain.ProviderNotConfiguredException
 import com.profiletailors.smp.publishing.domain.PublicationAsset
 import com.profiletailors.smp.publishing.domain.PublicationAssetRepository
 import com.profiletailors.smp.publishing.domain.PublicationAssetStatus
-import com.profiletailors.smp.publishing.domain.PublicationDraft
 import com.profiletailors.smp.publishing.domain.PublicationDeletionNotAllowedException
+import com.profiletailors.smp.publishing.domain.PublicationDraft
+import com.profiletailors.smp.publishing.domain.PublicationJob
+import com.profiletailors.smp.publishing.domain.PublicationJobRepository
 import com.profiletailors.smp.publishing.domain.PublicationLifecyclePolicy
 import com.profiletailors.smp.publishing.domain.PublicationRepository
 import com.profiletailors.smp.publishing.domain.PublicationSchedulingPolicy
 import com.profiletailors.smp.publishing.domain.PublicationStatus
-import com.profiletailors.smp.publishing.domain.PublicationValidationException
-import com.profiletailors.smp.publishing.domain.PublicationJob
-import com.profiletailors.smp.publishing.domain.PublicationJobRepository
 import com.profiletailors.smp.publishing.domain.ScheduleMode
 import com.profiletailors.smp.publishing.domain.SocialAccount
 import com.profiletailors.smp.publishing.domain.SocialAccountRepository
 import com.profiletailors.smp.publishing.domain.SocialConnection
-import org.slf4j.Logger
-import org.slf4j.LoggerFactory
 import com.profiletailors.smp.publishing.domain.SocialConnectionProvider
 import com.profiletailors.smp.publishing.domain.SocialConnectionRepository
 import com.profiletailors.smp.publishing.domain.SocialConnectionStatus
 import com.profiletailors.smp.publishing.domain.SocialProvider
 import com.profiletailors.smp.tenancy.application.requireWorkspaceContext
 import kotlinx.coroutines.withTimeoutOrNull
+import org.slf4j.Logger
+import org.slf4j.LoggerFactory
 import java.time.Clock
 import java.time.Instant
 import java.util.Locale
 import java.util.UUID
 
-class PublicationNotFoundException(
-    publicationId: String,
-) : IllegalArgumentException("Publication '$publicationId' was not found in the active workspace.")
+class PublicationNotFoundException(publicationId: String) :
+    IllegalArgumentException("Publication '$publicationId' was not found in the active workspace.")
 
-class SocialAccountNotFoundException(
-    socialAccountId: String,
-) : IllegalArgumentException("Social account '$socialAccountId' was not found in the active workspace.")
+class SocialAccountNotFoundException(socialAccountId: String) :
+    IllegalArgumentException("Social account '$socialAccountId' was not found in the active workspace.")
 
 /**
  * Validates that a SCHEDULED_AT publication is scheduled at least [MIN_SCHEDULE_OFFSET] after the given time.
@@ -229,11 +224,7 @@ internal class CompleteLinkedInConnectionHandler(
         )
     }
 
-    private fun validateState(
-        command: CompleteLinkedInConnectionCommand,
-        principalId: String,
-        workspaceId: String,
-    ) {
+    private fun validateState(command: CompleteLinkedInConnectionCommand, principalId: String, workspaceId: String) {
         val payload = oauthStateSigner.verify(command.state)
         if (!payload.expiresAt.isAfter(clock.instant())) {
             throw ExpiredOAuthStateException()
@@ -274,9 +265,7 @@ internal class ListConnectedChannelsHandler(
     }
 }
 
-data class PublishingMediaIntegrationSettings(
-    val enabled: Boolean,
-)
+data class PublishingMediaIntegrationSettings(val enabled: Boolean)
 
 private const val MEDIA_CONTEXT_PRINCIPAL_ID = "media-context"
 
@@ -411,16 +400,12 @@ internal class CreatePublicationHandler(
         }
     }
 
-    private suspend fun legacyAssetLookup(
-        workspaceId: String,
-        assetIds: List<String>,
-    ): List<PublicationAsset> {
-        return if (assetIds.isEmpty()) {
+    private suspend fun legacyAssetLookup(workspaceId: String, assetIds: List<String>): List<PublicationAsset> =
+        if (assetIds.isEmpty()) {
             emptyList()
         } else {
             publicationAssetRepository.findByWorkspaceAndIds(workspaceId, assetIds)
         }
-    }
 
     private suspend fun requireSocialAccount(workspaceId: String, socialAccountId: String): SocialAccount =
         socialAccountRepository.findByWorkspaceAndId(workspaceId, socialAccountId)
@@ -499,7 +484,7 @@ internal class EditPublicationHandler(
         )
         val queued = PublicationLifecyclePolicy.queue(
             updatedDraft,
-            schedulingPolicy.resolveDueAt(updatedDraft, now)
+            schedulingPolicy.resolveDueAt(updatedDraft, now),
         )
         val persisted = publicationRepository.updateEditableDraft(queued)
         publicationJobRepository.replaceForPublication(
@@ -556,16 +541,12 @@ internal class EditPublicationHandler(
         }
     }
 
-    private suspend fun legacyAssetLookup(
-        workspaceId: String,
-        assetIds: List<String>,
-    ): List<PublicationAsset> {
-        return if (assetIds.isEmpty()) {
+    private suspend fun legacyAssetLookup(workspaceId: String, assetIds: List<String>): List<PublicationAsset> =
+        if (assetIds.isEmpty()) {
             emptyList()
         } else {
             publicationAssetRepository.findByWorkspaceAndIds(workspaceId, assetIds)
         }
-    }
 
     private companion object {
         const val TIMEOUT_MILLIS = 5_000L

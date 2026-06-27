@@ -63,10 +63,9 @@ class PlatformBootstrapConfiguration {
      * nullable types, and default parameter values during serialization.
      */
     @Bean
-    fun objectMapper(): ObjectMapper =
-        ObjectMapper().apply {
-            registerModule(kotlinModule())
-        }
+    fun objectMapper(): ObjectMapper = ObjectMapper().apply {
+        registerModule(kotlinModule())
+    }
 
     @Bean
     fun clock(): Clock = Clock.systemUTC()

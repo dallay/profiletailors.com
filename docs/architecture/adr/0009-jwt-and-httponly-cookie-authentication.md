@@ -35,6 +35,7 @@ The backend MUST support a "Silent Refresh" flow where the frontend can obtain a
 ### Positive
 - High security posture.
 - Seamless user experience after browser restarts (via Refresh cookie).
+
 ### Negative
 - Complexity in frontend (silent refresh logic).
 - Complexity in backend (managing refresh session state).

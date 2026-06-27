@@ -10,7 +10,4 @@ package com.profiletailors.common.domain.error
  *
  * @since 1.0.0
  */
-class DomainMappingException(
-    message: String,
-    cause: Throwable? = null
-) : RuntimeException(message, cause)
+class DomainMappingException(message: String, cause: Throwable? = null) : RuntimeException(message, cause)

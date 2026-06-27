@@ -11,12 +11,9 @@ import com.profiletailors.smp.media.application.UploadConflictException
 import com.profiletailors.smp.media.application.UploadInProgressException
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertNull
-import org.junit.jupiter.api.Assertions.assertSame
 import org.junit.jupiter.api.Test
 import org.springframework.http.HttpHeaders
 import org.springframework.http.HttpStatus
-import org.springframework.http.ProblemDetail
-import org.springframework.http.ResponseEntity
 import org.springframework.web.server.ResponseStatusException
 
 class MediaProblemDetailsHandlerTest {

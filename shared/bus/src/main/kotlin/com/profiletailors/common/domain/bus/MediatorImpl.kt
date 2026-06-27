@@ -26,8 +26,7 @@ class MediatorImpl(
             registry.resolveCommandWithResultHandler(command.javaClass).handle(command)
         }
 
-    override suspend fun <T : Notification> publish(notification: T) =
-        publish(notification, defaultPublishStrategy)
+    override suspend fun <T : Notification> publish(notification: T) = publish(notification, defaultPublishStrategy)
 
     override suspend fun <T : Notification> publish(notification: T, publishStrategy: PublishStrategy) =
         processPipeline(registry.getPipelineBehaviors(), notification) {

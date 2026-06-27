@@ -13,7 +13,6 @@ import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.reactor.awaitSingle
 import org.junit.jupiter.api.Assertions.assertEquals
-import java.util.concurrent.ConcurrentHashMap
 import org.junit.jupiter.api.Test
 import org.springframework.boot.test.context.TestConfiguration
 import org.springframework.context.annotation.Bean
@@ -23,6 +22,7 @@ import org.springframework.security.oauth2.jwt.BadJwtException
 import org.springframework.security.oauth2.jwt.Jwt
 import org.springframework.security.oauth2.jwt.ReactiveJwtDecoder
 import java.time.Instant
+import java.util.concurrent.ConcurrentHashMap
 
 abstract class ResourcePreviewEndpointTestBase : AuthorizationEndpointIntegrationTestSupport() {
 
@@ -113,18 +113,14 @@ abstract class ResourcePreviewEndpointTestBase : AuthorizationEndpointIntegratio
             .isEqualTo(detail)
     }
 
-    private fun previewRequest() =
-        webTestClient.get()
-            .uri(RESOURCE_PREVIEW_PATH)
-            .header(HttpHeaders.AUTHORIZATION, BEARER_TOKEN)
-            .header(WORKSPACE_HEADER, WORKSPACE_ID)
-            .header(HttpHeaders.ACCEPT, API_V1_MEDIA_TYPE)
-            .exchange()
+    private fun previewRequest() = webTestClient.get()
+        .uri(RESOURCE_PREVIEW_PATH)
+        .header(HttpHeaders.AUTHORIZATION, BEARER_TOKEN)
+        .header(WORKSPACE_HEADER, WORKSPACE_ID)
+        .header(HttpHeaders.ACCEPT, API_V1_MEDIA_TYPE)
+        .exchange()
 
-    private fun expectedFact(
-        reasonCode: AuthorizationReasonCode,
-        allow: Boolean,
-    ) = AuthorizationDecisionAuditFact(
+    private fun expectedFact(reasonCode: AuthorizationReasonCode, allow: Boolean) = AuthorizationDecisionAuditFact(
         requestName = GET_RESOURCE_PREVIEW_QUERY,
         requestPath = RESOURCE_PREVIEW_PATH,
         permission = PERMISSION_RESOURCE_READ,
@@ -163,16 +159,28 @@ abstract class ResourcePreviewEndpointTestBase : AuthorizationEndpointIntegratio
 
     private suspend fun seedPrincipalAndMembership() {
         databaseClient.sql(
-            "INSERT INTO principals (id, principal_type, subject, provider, display_identity) VALUES ('$PRINCIPAL_ID', 'USER', 'subject-123', 'https://issuer.example', 'yuniel')",
+            """
+            INSERT INTO principals (id, principal_type, subject, provider, display_identity)
+            VALUES ('$PRINCIPAL_ID', 'USER', 'subject-123', 'https://issuer.example', 'yuniel')
+            """.trimIndent(),
         ).fetch().rowsUpdated().awaitSingle()
         databaseClient.sql(
-            "INSERT INTO user_identities (principal_id, email, username) VALUES ('$PRINCIPAL_ID', 'yuniel@example.com', 'yuniel')",
+            """
+            INSERT INTO user_identities (principal_id, email, username)
+            VALUES ('$PRINCIPAL_ID', 'yuniel@example.com', 'yuniel')
+            """.trimIndent(),
         ).fetch().rowsUpdated().awaitSingle()
         databaseClient.sql(
-            "INSERT INTO workspaces (id, name, status, icon) VALUES ('$WORKSPACE_ID', 'Profile Tailors', 'ACTIVE', NULL)",
+            """
+            INSERT INTO workspaces (id, name, status, icon)
+            VALUES ('$WORKSPACE_ID', 'Profile Tailors', 'ACTIVE', NULL)
+            """.trimIndent(),
         ).fetch().rowsUpdated().awaitSingle()
         databaseClient.sql(
-            "INSERT INTO workspace_memberships (id, workspace_id, principal_id, principal_type, status) VALUES ('membership-1', '$WORKSPACE_ID', '$PRINCIPAL_ID', 'USER', 'ACTIVE')",
+            """
+            INSERT INTO workspace_memberships (id, workspace_id, principal_id, principal_type, status)
+            VALUES ('membership-1', '$WORKSPACE_ID', '$PRINCIPAL_ID', 'USER', 'ACTIVE')
+            """.trimIndent(),
         ).fetch().rowsUpdated().awaitSingle()
         databaseClient.sql(
             "INSERT INTO roles (id, role_key, category) VALUES ('role-1', 'member', 'WORKSPACE')",
@@ -182,11 +190,18 @@ abstract class ResourcePreviewEndpointTestBase : AuthorizationEndpointIntegratio
         ).fetch().rowsUpdated().awaitSingle()
     }
 
-
     protected fun seedTargetScope(allowedTargetIdsJson: String) {
         kotlinx.coroutines.runBlocking {
             databaseClient.sql(
-                "INSERT INTO workspace_target_scopes (id, workspace_id, principal_id, principal_type, permission_id, target_resource_type, allowed_target_ids_json) VALUES ('scope-1', '$WORKSPACE_ID', '$PRINCIPAL_ID', 'USER', 'permission-resource-read', 'RESOURCE', :allowedTargetIdsJson)",
+                """
+                INSERT INTO workspace_target_scopes (
+                    id, workspace_id, principal_id, principal_type, permission_id,
+                    target_resource_type, allowed_target_ids_json
+                ) VALUES (
+                    'scope-1', '$WORKSPACE_ID', '$PRINCIPAL_ID', 'USER',
+                    'permission-resource-read', 'RESOURCE', :allowedTargetIdsJson
+                )
+                """.trimIndent(),
             )
                 .bind("allowedTargetIdsJson", allowedTargetIdsJson)
                 .fetch()
@@ -198,7 +213,10 @@ abstract class ResourcePreviewEndpointTestBase : AuthorizationEndpointIntegratio
     protected fun seedScopePermission() {
         kotlinx.coroutines.runBlocking {
             databaseClient.sql(
-                "INSERT INTO permissions (id, permission_key) VALUES ('permission-resource-read', '$PERMISSION_RESOURCE_READ')",
+                """
+                INSERT INTO permissions (id, permission_key)
+                VALUES ('permission-resource-read', '$PERMISSION_RESOURCE_READ')
+                """.trimIndent(),
             )
                 .fetch()
                 .rowsUpdated()
@@ -237,7 +255,12 @@ abstract class ResourcePreviewEndpointTestBase : AuthorizationEndpointIntegratio
         fun inMemoryFakeStorage(): Storage = object : Storage {
             private val objects = ConcurrentHashMap<String, ByteArray>()
 
-            override suspend fun upload(bucket: String, key: String, content: Flow<ByteArray>, metadata: Map<String, String>) {
+            override suspend fun upload(
+                bucket: String,
+                key: String,
+                content: Flow<ByteArray>,
+                metadata: Map<String, String>,
+            ) {
                 val chunks = mutableListOf<ByteArray>()
                 content.collect { chunks += it }
                 objects["$bucket/$key"] = chunks.flatMap { it.toList() }.toByteArray()
@@ -253,13 +276,18 @@ abstract class ResourcePreviewEndpointTestBase : AuthorizationEndpointIntegratio
                 objects.remove("$bucket/$key")
             }
 
-            override suspend fun list(bucket: String, prefix: String): List<String> =
-                objects.keys
-                    .filter { it.startsWith("$bucket/$prefix") }
-                    .map { it.removePrefix("$bucket/") }
+            override suspend fun list(bucket: String, prefix: String): List<String> = objects.keys
+                .filter { it.startsWith("$bucket/$prefix") }
+                .map { it.removePrefix("$bucket/") }
 
-            override suspend fun exists(bucket: String, key: String): Boolean =
-                objects.containsKey("$bucket/$key")
+            override suspend fun exists(bucket: String, key: String): Boolean = objects.containsKey("$bucket/$key")
+
+            override suspend fun copyObject(bucket: String, sourceKey: String, destKey: String) {
+                val sourcePath = "$bucket/$sourceKey"
+                val data = objects[sourcePath]
+                    ?: throw IllegalStateException("copyObject: source not found: $sourceKey")
+                objects["$bucket/$destKey"] = data
+            }
         }
 
         @Bean

@@ -4,8 +4,5 @@ import com.profiletailors.common.domain.context.PrincipalContext
 import com.profiletailors.common.domain.context.ResourceContext
 
 fun interface ScopeResolver {
-    suspend fun resolve(
-        principalContext: PrincipalContext,
-        resourceContext: ResourceContext,
-    ): Set<AuthorizationScope>
+    suspend fun resolve(principalContext: PrincipalContext, resourceContext: ResourceContext): Set<AuthorizationScope>
 }

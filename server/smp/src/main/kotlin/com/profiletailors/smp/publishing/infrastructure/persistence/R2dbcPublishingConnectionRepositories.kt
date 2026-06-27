@@ -20,9 +20,7 @@ import org.springframework.stereotype.Repository
 import java.time.OffsetDateTime
 
 @Repository
-class R2dbcSocialConnectionRepository(
-    private val databaseClient: DatabaseClient,
-) : SocialConnectionRepository {
+class R2dbcSocialConnectionRepository(private val databaseClient: DatabaseClient) : SocialConnectionRepository {
     @Suppress("SwallowedException")
     override suspend fun upsert(connection: SocialConnection): SocialConnection = try {
         upsertPostgres(connection)
@@ -247,9 +245,8 @@ class R2dbcSocialAccountRepository(
 }
 
 @Repository
-class R2dbcConnectedSocialChannelReadRepository(
-    private val databaseClient: DatabaseClient,
-) : ConnectedSocialChannelReadRepository {
+class R2dbcConnectedSocialChannelReadRepository(private val databaseClient: DatabaseClient) :
+    ConnectedSocialChannelReadRepository {
     override suspend fun listByWorkspace(
         workspaceId: String,
         statuses: Set<SocialConnectionStatus>,

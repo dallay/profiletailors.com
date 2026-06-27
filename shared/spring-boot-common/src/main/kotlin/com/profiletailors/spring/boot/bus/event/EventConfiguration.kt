@@ -5,11 +5,11 @@ import com.profiletailors.common.domain.bus.event.EventConsumer
 import com.profiletailors.common.domain.bus.event.EventFilter
 import com.profiletailors.common.domain.bus.event.Subscribe
 import com.profiletailors.common.domain.bus.event.TypeMatchEventFilter
-import kotlin.reflect.KClass
 import org.springframework.beans.BeansException
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.context.ApplicationContext
 import org.springframework.context.annotation.Configuration
+import kotlin.reflect.KClass
 
 /**
  * Configuration class for handling event configuration in the application.
@@ -18,9 +18,7 @@ import org.springframework.context.annotation.Configuration
  */
 @Suppress("UNCHECKED_CAST")
 @Configuration
-class EventConfiguration(
-    private val applicationContext: ApplicationContext
-) {
+class EventConfiguration(private val applicationContext: ApplicationContext) {
     /**
      * Configures the event emitter by subscribing all event consumers to the given event emitter.
      *

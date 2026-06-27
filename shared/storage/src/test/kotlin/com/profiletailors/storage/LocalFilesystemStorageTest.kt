@@ -1,21 +1,20 @@
 package com.profiletailors.storage
 
-import com.profiletailors.storage.application.GeneratePresignedUrlUseCase
 import com.profiletailors.storage.domain.StorageSecurityException
 import com.profiletailors.storage.domain.StorageServiceException
 import com.profiletailors.storage.infrastructure.LocalFilesystemStorage
 import kotlinx.coroutines.flow.flow
+import kotlinx.coroutines.flow.flowOf
+import kotlinx.coroutines.flow.toList
+import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.test.runTest
+import org.junit.jupiter.api.Assertions.assertEquals
+import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.Test
+import org.junit.jupiter.api.assertThrows
 import org.junit.jupiter.api.io.TempDir
 import java.nio.file.Files
 import java.nio.file.Path
-import org.junit.jupiter.api.Assertions.assertEquals
-import org.junit.jupiter.api.Assertions.assertTrue
-import kotlinx.coroutines.flow.toList
-import kotlinx.coroutines.flow.flowOf
-import org.junit.jupiter.api.assertThrows
-import kotlinx.coroutines.runBlocking
 
 class LocalFilesystemStorageTest {
 
@@ -63,7 +62,7 @@ class LocalFilesystemStorageTest {
     fun `prevent path traversal on upload`(@TempDir tempDir: Path) = runTest {
         val storage = LocalFilesystemStorage(tempDir)
         val flow = flow { emit("data".toByteArray()) }
-        
+
         assertThrows<StorageSecurityException> {
             runBlocking {
                 storage.upload("local", "../secret.txt", flow)
@@ -110,10 +109,10 @@ class LocalFilesystemStorageTest {
         val bucket = "test-bucket"
         val key = "files/test.txt"
         val data = "test content".toByteArray()
-        
+
         // Upload a file
         storage.upload(bucket, key, flowOf(data))
-        
+
         // List should work with valid paths
         val listed = storage.list(bucket, "")
         assertTrue(listed.any { it.contains("test.txt") })
@@ -123,7 +122,7 @@ class LocalFilesystemStorageTest {
     fun `list files with nested directory traversal attempt fails`(@TempDir tempDir: Path) = runTest {
         val storage = LocalFilesystemStorage(tempDir)
         val bucket = "test-bucket"
-        
+
         // Attempt to access parent directory
         assertThrows<StorageSecurityException> {
             runBlocking {
@@ -133,7 +132,9 @@ class LocalFilesystemStorageTest {
     }
 
     @Test
-    fun `delete succeeds with valid bucket and key without triggering path traversal false positive`(@TempDir tempDir: Path) = runTest {
+    fun `delete succeeds with valid bucket and key without triggering path traversal false positive`(
+        @TempDir tempDir: Path,
+    ) = runTest {
         val storage = LocalFilesystemStorage(tempDir)
         val bucket = "attachments"
         val key = "assets/dev-workspace-001/asset-456"

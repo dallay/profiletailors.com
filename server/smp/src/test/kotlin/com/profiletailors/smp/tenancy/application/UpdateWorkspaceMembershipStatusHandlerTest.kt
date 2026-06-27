@@ -101,7 +101,8 @@ class UpdateWorkspaceMembershipStatusHandlerTest {
             principalType = PrincipalType.USER,
             status = WorkspaceMembershipStatus.ACTIVE,
         )
-        val membershipRepository = InMemoryWorkspaceMembershipRepository(mutableSetOf(ownerMembership, memberMembership))
+        val membershipRepository =
+            InMemoryWorkspaceMembershipRepository(mutableSetOf(ownerMembership, memberMembership))
         val auditHook = CapturingAuditHook()
         val handler = UpdateWorkspaceMembershipStatusHandler(
             principalContextProvider = FixedPrincipalContextProvider(principalContext),
@@ -127,24 +128,26 @@ class UpdateWorkspaceMembershipStatusHandlerTest {
         assertEquals("workspace-1", result.workspaceId)
         assertEquals("member-2", result.principalId)
         assertEquals(WorkspaceMembershipStatus.REMOVED, result.status)
-        assertTrue(auditHook.mutations.any { it.action == "workspace.membership.status.update" && it.targetId == "member-2" })
+        assertTrue(
+            auditHook.mutations.any {
+                it.action == "workspace.membership.status.update" &&
+                    it.targetId == "member-2"
+            },
+        )
     }
 
-    private class FixedPrincipalContextProvider(
-        private val principalContext: PrincipalContext,
-    ) : PrincipalContextProvider {
+    private class FixedPrincipalContextProvider(private val principalContext: PrincipalContext) :
+        PrincipalContextProvider {
         override suspend fun current(): PrincipalContext = principalContext
     }
 
-    private class FixedResourceContextProvider(
-        private val resourceContext: ResourceContext,
-    ) : ResourceContextProvider {
+    private class FixedResourceContextProvider(private val resourceContext: ResourceContext) :
+        ResourceContextProvider {
         override fun current(): ResourceContext = resourceContext
     }
 
-    private class StubWorkspaceMembershipLookup(
-        private val memberships: Map<String, WorkspaceMembership>,
-    ) : WorkspaceMembershipLookup {
+    private class StubWorkspaceMembershipLookup(private val memberships: Map<String, WorkspaceMembership>) :
+        WorkspaceMembershipLookup {
         override suspend fun resolve(principalId: String, resourceContext: ResourceContext): WorkspaceMembership? =
             memberships[principalId]
     }
@@ -161,9 +164,8 @@ class UpdateWorkspaceMembershipStatusHandlerTest {
         }
     }
 
-    private class InMemoryWorkspaceOwnershipRepository(
-        private val ownerships: MutableSet<WorkspaceOwnership>,
-    ) : WorkspaceOwnershipRepository {
+    private class InMemoryWorkspaceOwnershipRepository(private val ownerships: MutableSet<WorkspaceOwnership>) :
+        WorkspaceOwnershipRepository {
         override suspend fun findByWorkspaceId(workspaceId: String): Set<WorkspaceOwnership> =
             ownerships.filterTo(linkedSetOf()) { it.workspaceId == workspaceId }
 
@@ -185,9 +187,8 @@ class UpdateWorkspaceMembershipStatusHandlerTest {
             ownerships.any { it.workspaceId == workspaceId && it.ownerPrincipalId == principalId }
     }
 
-    private class InMemoryWorkspaceMembershipRepository(
-        private val memberships: MutableSet<WorkspaceMembership>,
-    ) : WorkspaceMembershipRepository {
+    private class InMemoryWorkspaceMembershipRepository(private val memberships: MutableSet<WorkspaceMembership>) :
+        WorkspaceMembershipRepository {
         override suspend fun findByWorkspaceId(workspaceId: String): Set<WorkspaceMembership> =
             memberships.filterTo(linkedSetOf()) { it.workspaceId == workspaceId }
 

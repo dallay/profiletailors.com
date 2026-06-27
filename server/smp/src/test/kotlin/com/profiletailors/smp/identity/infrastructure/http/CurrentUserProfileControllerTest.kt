@@ -23,12 +23,11 @@ class CurrentUserProfileControllerTest {
         assertEquals(expected, response.body)
     }
 
-    private class FakeGetCurrentUserProfileService(
-        private val result: CurrentUserProfile,
-    ) : GetCurrentUserProfileService(
-        principalContextProvider = FakePrincipalContextProvider(),
-        principalIdentityLookup = FakePrincipalIdentityLookup(),
-    ) {
+    private class FakeGetCurrentUserProfileService(private val result: CurrentUserProfile) :
+        GetCurrentUserProfileService(
+            principalContextProvider = FakePrincipalContextProvider(),
+            principalIdentityLookup = FakePrincipalIdentityLookup(),
+        ) {
         override suspend fun execute(): CurrentUserProfile = result
     }
 }

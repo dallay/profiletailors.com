@@ -71,20 +71,19 @@ internal class AddWorkspaceOwnerHandler(
                     )
                     throw exception
                 }
+
                 else -> throw exception
             }
         }
     }
 
-    private suspend fun requireActiveMembership(
-        targetPrincipalId: String,
-        resourceContext: ResourceContext,
-    ) = workspaceMembershipLookup.resolve(targetPrincipalId, resourceContext)
-        ?.takeIf { membership -> membership.isActive() }
-        ?: throw OwnerTargetMustBeActiveMemberException(
-            targetPrincipalId,
-            requireNotNull(resourceContext.workspaceId),
-        )
+    private suspend fun requireActiveMembership(targetPrincipalId: String, resourceContext: ResourceContext) =
+        workspaceMembershipLookup.resolve(targetPrincipalId, resourceContext)
+            ?.takeIf { membership -> membership.isActive() }
+            ?: throw OwnerTargetMustBeActiveMemberException(
+                targetPrincipalId,
+                requireNotNull(resourceContext.workspaceId),
+            )
 }
 
 internal class TransferWorkspaceOwnershipHandler(
@@ -168,6 +167,7 @@ internal class TransferWorkspaceOwnershipHandler(
                     )
                     throw exception
                 }
+
                 else -> throw exception
             }
         }

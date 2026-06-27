@@ -1,6 +1,9 @@
 package com.profiletailors.smp.identity.infrastructure.security
 
+import com.profiletailors.smp.audit.domain.AuditHook
+import com.profiletailors.smp.audit.domain.AuthorizationDecisionAuditFact
 import com.profiletailors.smp.authorization.domain.AuthorizationDecision
+import com.profiletailors.smp.authorization.domain.AuthorizationReasonCode
 import com.profiletailors.smp.credentials.application.ApiKeyCredentialFailureReason
 import com.profiletailors.smp.credentials.application.ApiKeyCredentialNotActiveException
 import com.profiletailors.smp.credentials.application.FederatedTokenValidator
@@ -8,9 +11,6 @@ import com.profiletailors.smp.credentials.application.ServiceAccountCredentialFa
 import com.profiletailors.smp.credentials.application.ServiceAccountCredentialNotActiveException
 import com.profiletailors.smp.identity.infrastructure.ApiKeyAuthenticatedPrincipalMaterializer
 import com.profiletailors.smp.identity.infrastructure.JwtAuthenticatedPrincipalMaterializer
-import com.profiletailors.smp.audit.domain.AuditHook
-import com.profiletailors.smp.audit.domain.AuthorizationDecisionAuditFact
-import com.profiletailors.smp.authorization.domain.AuthorizationReasonCode
 import com.profiletailors.smp.platform.domain.RequestContextStore
 import kotlinx.coroutines.reactor.mono
 import org.springframework.boot.context.properties.ConfigurationProperties
@@ -128,57 +128,55 @@ class IdentitySecurityConfiguration {
         jwtPrincipalAuthenticationConverter: JwtPrincipalAuthenticationConverter,
         filters: IdentityWebFilters,
         authenticationEntryPoint: ServerAuthenticationEntryPoint,
-    ): SecurityWebFilterChain =
-        http
-            // Stateless REST API: CSRF disabled by design.
-            // Authentication uses JWT Bearer tokens (Authorization header) and API keys,
-            // NOT cookies. Browsers do not automatically attach these headers to cross-origin
-            // requests, so CSRF attacks are not applicable. CORS is configured separately.
-            .csrf { it.disable() }
-            .cors { }
-            .authorizeExchange {
-                it.pathMatchers(
-                        HttpMethod.GET,
-                        "/actuator/health",
-                        "/actuator/health/**",
-                        "/actuator/prometheus",
-                        "/api/media/proxy",
-                        "/api/media/assets/*/preview",
-                        "/api/media/assets/*/content",
-                    ).permitAll()
-                    .pathMatchers(
-                        HttpMethod.POST,
-                        "/api/auth/verify-email",
-                    ).permitAll()
-                    .pathMatchers(
-                        HttpMethod.POST,
-                        "/api/auth/login",
-                        "/api/auth/register",
-                        "/api/auth/refresh",
-                        "/api/auth/logout",
-                        "/api/auth/resend-verification",
-                    ).permitAll()
-                    .anyExchange().authenticated()
+    ): SecurityWebFilterChain = http
+        // Stateless REST API: CSRF disabled by design.
+        // Authentication uses JWT Bearer tokens (Authorization header) and API keys,
+        // NOT cookies. Browsers do not automatically attach these headers to cross-origin
+        // requests, so CSRF attacks are not applicable. CORS is configured separately.
+        .csrf { it.disable() }
+        .cors { }
+        .authorizeExchange {
+            it.pathMatchers(
+                HttpMethod.GET,
+                "/actuator/health",
+                "/actuator/health/**",
+                "/actuator/prometheus",
+                "/api/media/proxy",
+                "/api/media/assets/*/preview",
+                "/api/media/assets/*/content",
+            ).permitAll()
+                .pathMatchers(
+                    HttpMethod.POST,
+                    "/api/auth/verify-email",
+                ).permitAll()
+                .pathMatchers(
+                    HttpMethod.POST,
+                    "/api/auth/login",
+                    "/api/auth/register",
+                    "/api/auth/refresh",
+                    "/api/auth/logout",
+                    "/api/auth/resend-verification",
+                ).permitAll()
+                .anyExchange().authenticated()
+        }
+        .exceptionHandling { exceptions ->
+            exceptions.authenticationEntryPoint(authenticationEntryPoint)
+        }
+        .oauth2ResourceServer { oauth2 ->
+            oauth2.authenticationEntryPoint(authenticationEntryPoint)
+            oauth2.jwt { jwt ->
+                jwt.jwtAuthenticationConverter(jwtPrincipalAuthenticationConverter)
             }
-            .exceptionHandling { exceptions ->
-                exceptions.authenticationEntryPoint(authenticationEntryPoint)
-            }
-            .oauth2ResourceServer { oauth2 ->
-                oauth2.authenticationEntryPoint(authenticationEntryPoint)
-                oauth2.jwt { jwt ->
-                    jwt.jwtAuthenticationConverter(jwtPrincipalAuthenticationConverter)
-                }
-            }
-            .addFilterAt(filters.apiKeyAuthentication, SecurityWebFiltersOrder.AUTHENTICATION)
-            .addFilterBefore(filters.revokedCredentialAudit, SecurityWebFiltersOrder.AUTHENTICATION)
-            .addFilterAfter(filters.authenticatedPrincipalContext, SecurityWebFiltersOrder.AUTHENTICATION)
-            .addFilterAfter(filters.requestPath, SecurityWebFiltersOrder.AUTHENTICATION)
-            .addFilterAfter(filters.workspaceContext, SecurityWebFiltersOrder.AUTHENTICATION)
-            .build()
+        }
+        .addFilterAt(filters.apiKeyAuthentication, SecurityWebFiltersOrder.AUTHENTICATION)
+        .addFilterBefore(filters.revokedCredentialAudit, SecurityWebFiltersOrder.AUTHENTICATION)
+        .addFilterAfter(filters.authenticatedPrincipalContext, SecurityWebFiltersOrder.AUTHENTICATION)
+        .addFilterAfter(filters.requestPath, SecurityWebFiltersOrder.AUTHENTICATION)
+        .addFilterAfter(filters.workspaceContext, SecurityWebFiltersOrder.AUTHENTICATION)
+        .build()
 
     @Bean
-    fun revokedCredentialAuditWebFilter(auditHook: AuditHook): WebFilter =
-        RevokedCredentialAuditWebFilter(auditHook)
+    fun revokedCredentialAuditWebFilter(auditHook: AuditHook): WebFilter = RevokedCredentialAuditWebFilter(auditHook)
 
     @Bean
     fun authenticationEntryPoint(auditHook: AuditHook): ServerAuthenticationEntryPoint =
@@ -203,6 +201,7 @@ class IdentitySecurityConfiguration {
                         )
                     }
                 }
+
                 apiKeyCredentialException != null &&
                     apiKeyCredentialException.reason in setOf(
                         ApiKeyCredentialFailureReason.REVOKED,
@@ -224,6 +223,7 @@ class IdentitySecurityConfiguration {
                         )
                     }
                 }
+
                 else -> Mono.empty()
             }
 
@@ -231,11 +231,8 @@ class IdentitySecurityConfiguration {
             auditMono.then(exchange.response.setComplete())
         }
 
-private class RevokedCredentialAuditWebFilter(
-    private val auditHook: AuditHook,
-) : WebFilter {
-    override fun filter(exchange: ServerWebExchange, chain: WebFilterChain): Mono<Void> =
-        chain.filter(exchange)
+    private class RevokedCredentialAuditWebFilter(private val auditHook: AuditHook) : WebFilter {
+        override fun filter(exchange: ServerWebExchange, chain: WebFilterChain): Mono<Void> = chain.filter(exchange)
             .onErrorResume(ServiceAccountCredentialNotActiveException::class.java) { exception ->
                 if (
                     exception.reason == ServiceAccountCredentialFailureReason.REVOKED &&
@@ -283,7 +280,7 @@ private class RevokedCredentialAuditWebFilter(
                     Mono.error(exception)
                 }
             }
-}
+    }
 
     companion object {
         internal fun Throwable.findServiceAccountCredentialException(): ServiceAccountCredentialNotActiveException? {

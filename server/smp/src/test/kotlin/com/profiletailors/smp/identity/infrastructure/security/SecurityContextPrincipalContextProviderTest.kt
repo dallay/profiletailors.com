@@ -37,7 +37,9 @@ class SecurityContextPrincipalContextProviderTest {
                 provider.require()
             }
         }
-            .contextWrite(ReactiveSecurityContextHolder.withSecurityContext(Mono.just(SecurityContextImpl(authentication))))
+            .contextWrite(
+                ReactiveSecurityContextHolder.withSecurityContext(Mono.just(SecurityContextImpl(authentication))),
+            )
             .awaitSingle()
 
         assertEquals(principal.context, resolved)
@@ -54,7 +56,11 @@ class SecurityContextPrincipalContextProviderTest {
                         provider.require()
                     }
                 }
-                    .contextWrite(ReactiveSecurityContextHolder.withSecurityContext(Mono.just(SecurityContextImpl(authentication))))
+                    .contextWrite(
+                        ReactiveSecurityContextHolder.withSecurityContext(
+                            Mono.just(SecurityContextImpl(authentication)),
+                        ),
+                    )
                     .awaitSingle()
             }
         }

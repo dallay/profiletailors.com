@@ -9,9 +9,5 @@ import software.amazon.awssdk.services.s3.presigner.S3Presigner
  * All logic is inherited from [AbstractS3CompatibleStorage].
  * This class only configures the S3 client and provides type-specific documentation.
  */
-class S3Storage(
-    client: S3AsyncClient,
-    bucketName: String,
-    presigner: S3Presigner,
-    timeoutSeconds: Long = 30
-) : AbstractS3CompatibleStorage(client, bucketName, presigner, timeoutSeconds)
+class S3Storage(client: S3AsyncClient, bucketName: String, presigner: S3Presigner, timeoutSeconds: Long = 30) :
+    AbstractS3CompatibleStorage(client, bucketName, presigner, timeoutSeconds)

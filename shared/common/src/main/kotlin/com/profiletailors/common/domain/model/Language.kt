@@ -2,13 +2,13 @@ package com.profiletailors.common.domain.model
 
 enum class Language(val code: String) {
     ENGLISH("en"),
-    SPANISH("es");
+    SPANISH("es"),
+    ;
 
     companion object {
-        fun fromString(code: String?): Language =
-            entries.find { it.code.equals(code, ignoreCase = true) }
-                ?: throw IllegalArgumentException(
-                    "Invalid language code '$code'. Supported codes: ${entries.joinToString { it.code }}",
-                )
+        fun fromString(code: String?): Language = entries.find { it.code.equals(code, ignoreCase = true) }
+            ?: throw IllegalArgumentException(
+                "Invalid language code '$code'. Supported codes: ${entries.joinToString { it.code }}",
+            )
     }
 }

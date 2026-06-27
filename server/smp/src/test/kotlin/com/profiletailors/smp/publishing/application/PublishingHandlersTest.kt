@@ -6,16 +6,15 @@ import com.profiletailors.common.domain.context.PrincipalType
 import com.profiletailors.common.domain.context.ResourceContext
 import com.profiletailors.common.domain.context.ResourceContextProvider
 import com.profiletailors.common.domain.context.ResourceContextType
-import com.profiletailors.smp.identity.application.AuthFeature
 import com.profiletailors.smp.identity.application.EmailVerificationPolicy
-import com.profiletailors.smp.identity.application.emailVerificationPolicyOf
-import com.profiletailors.smp.identity.application.permissiveEmailVerificationPolicy
 import com.profiletailors.smp.identity.application.FeatureEmailVerificationRequired
 import com.profiletailors.smp.identity.application.PrincipalIdentityFacts
 import com.profiletailors.smp.identity.application.PrincipalIdentityLookup
+import com.profiletailors.smp.identity.application.emailVerificationPolicyOf
+import com.profiletailors.smp.identity.application.permissiveEmailVerificationPolicy
 import com.profiletailors.smp.identity.domain.EmailStatus
-import com.profiletailors.smp.media.application.AssetPreviewUrlResolver
 import com.profiletailors.smp.media.application.AssetNotReadyException
+import com.profiletailors.smp.media.application.AssetPreviewUrlResolver
 import com.profiletailors.smp.media.application.MediaAssetResolver
 import com.profiletailors.smp.media.application.MediaServiceUnavailableException
 import com.profiletailors.smp.media.application.ResolvedAssetSummary
@@ -29,25 +28,26 @@ import com.profiletailors.smp.publishing.domain.ConnectedSocialChannelReadReposi
 import com.profiletailors.smp.publishing.domain.DateCount
 import com.profiletailors.smp.publishing.domain.ExpiredOAuthStateException
 import com.profiletailors.smp.publishing.domain.InvalidOAuthStateException
+import com.profiletailors.smp.publishing.domain.JobStatus
 import com.profiletailors.smp.publishing.domain.LinkedInAuthorizationUrlBuilder
 import com.profiletailors.smp.publishing.domain.LinkedInOAuthStatePayload
 import com.profiletailors.smp.publishing.domain.OAuthStateSigner
 import com.profiletailors.smp.publishing.domain.ProviderAccountProfile
+import com.profiletailors.smp.publishing.domain.ProviderAssetRef
 import com.profiletailors.smp.publishing.domain.ProviderCapabilityValidationInput
 import com.profiletailors.smp.publishing.domain.ProviderCapabilityValidator
-import com.profiletailors.smp.publishing.domain.ProviderAssetRef
 import com.profiletailors.smp.publishing.domain.ProviderConnectionResult
 import com.profiletailors.smp.publishing.domain.ProviderNotConfiguredException
 import com.profiletailors.smp.publishing.domain.PublicationAsset
-import com.profiletailors.smp.publishing.domain.PublicationDeletionNotAllowedException
 import com.profiletailors.smp.publishing.domain.PublicationAssetRepository
 import com.profiletailors.smp.publishing.domain.PublicationAssetStatus
+import com.profiletailors.smp.publishing.domain.PublicationDeletionNotAllowedException
 import com.profiletailors.smp.publishing.domain.PublicationDraft
 import com.profiletailors.smp.publishing.domain.PublicationJob
 import com.profiletailors.smp.publishing.domain.PublicationJobClaim
 import com.profiletailors.smp.publishing.domain.PublicationJobRepository
 import com.profiletailors.smp.publishing.domain.PublicationRepository
-import com.profiletailors.smp.publishing.domain.JobStatus
+import com.profiletailors.smp.publishing.domain.PublicationSchedulingPolicy
 import com.profiletailors.smp.publishing.domain.PublicationStatus
 import com.profiletailors.smp.publishing.domain.PublicationValidationException
 import com.profiletailors.smp.publishing.domain.ScheduleMode
@@ -59,7 +59,6 @@ import com.profiletailors.smp.publishing.domain.SocialConnectionProvider
 import com.profiletailors.smp.publishing.domain.SocialConnectionRepository
 import com.profiletailors.smp.publishing.domain.SocialConnectionStatus
 import com.profiletailors.smp.publishing.domain.SocialProvider
-import com.profiletailors.smp.publishing.domain.PublicationSchedulingPolicy
 import kotlinx.coroutines.test.runTest
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertNotNull
@@ -67,7 +66,6 @@ import org.junit.jupiter.api.Assertions.assertNull
 import org.junit.jupiter.api.Assertions.assertThrows
 import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.Test
-import org.springframework.beans.factory.annotation.Value
 import java.time.Clock
 import java.time.Instant
 import java.time.LocalDate
@@ -1577,15 +1575,13 @@ class PublishingHandlersTest {
         scheduledFor = Instant.parse(scheduledFor),
     )
 
-    private class FixedPrincipalContextProvider(
-        private val principalContext: PrincipalContext,
-    ) : PrincipalContextProvider {
+    private class FixedPrincipalContextProvider(private val principalContext: PrincipalContext) :
+        PrincipalContextProvider {
         override suspend fun current(): PrincipalContext = principalContext
     }
 
-    private class FixedResourceContextProvider(
-        private val resourceContext: ResourceContext,
-    ) : ResourceContextProvider {
+    private class FixedResourceContextProvider(private val resourceContext: ResourceContext) :
+        ResourceContextProvider {
         override fun current(): ResourceContext = resourceContext
     }
 
@@ -1608,9 +1604,8 @@ class PublishingHandlersTest {
         }
     }
 
-    private class CapturingOAuthStateSigner(
-        private val payload: LinkedInOAuthStatePayload? = null,
-    ) : OAuthStateSigner {
+    private class CapturingOAuthStateSigner(private val payload: LinkedInOAuthStatePayload? = null) :
+        OAuthStateSigner {
         var lastPayload: LinkedInOAuthStatePayload? = null
 
         override fun sign(payload: LinkedInOAuthStatePayload): String {
@@ -1621,18 +1616,16 @@ class PublishingHandlersTest {
         override fun verify(state: String): LinkedInOAuthStatePayload = payload ?: validStatePayload()
     }
 
-    private class FakeAuthorizationUrlBuilder(
-        private val configured: Boolean = true,
-    ) : LinkedInAuthorizationUrlBuilder {
+    private class FakeAuthorizationUrlBuilder(private val configured: Boolean = true) :
+        LinkedInAuthorizationUrlBuilder {
         override fun buildAuthorizationUrl(state: String, redirectUri: String): String =
             "https://linkedin.example/authorize?state=$state"
 
         override fun isConfigured(): Boolean = configured
     }
 
-    private class InMemoryConnectedSocialChannelReadRepository(
-        private val channels: List<ConnectedSocialChannel>,
-    ) : ConnectedSocialChannelReadRepository {
+    private class InMemoryConnectedSocialChannelReadRepository(private val channels: List<ConnectedSocialChannel>) :
+        ConnectedSocialChannelReadRepository {
         var lastStatuses: Set<SocialConnectionStatus>? = null
 
         override suspend fun listByWorkspace(
@@ -1666,9 +1659,8 @@ class PublishingHandlersTest {
     }
 
     private class RejectingCapabilityValidator : ProviderCapabilityValidator {
-        override fun validate(input: ProviderCapabilityValidationInput) {
+        override fun validate(input: ProviderCapabilityValidationInput): Unit =
             throw PublicationValidationException("Unsupported provider-content combination.")
-        }
     }
 
     private class InMemorySocialConnectionRepository : SocialConnectionRepository {
@@ -1776,9 +1768,15 @@ class PublishingHandlersTest {
             return dateCounts
         }
 
-        override suspend fun markPublished(publicationId: String, externalPublicationId: String, publishedAt: Instant) = Unit
+        override suspend fun markPublished(publicationId: String, externalPublicationId: String, publishedAt: Instant) =
+            Unit
 
-        override suspend fun markFailed(publicationId: String, failedAt: Instant, reasonCode: String?, reasonMessage: String?) = Unit
+        override suspend fun markFailed(
+            publicationId: String,
+            failedAt: Instant,
+            reasonCode: String?,
+            reasonMessage: String?,
+        ) = Unit
 
         override suspend fun markCancelled(publicationId: String, cancelledAt: Instant) = Unit
 
@@ -1787,7 +1785,8 @@ class PublishingHandlersTest {
         override suspend fun deleteUnpublished(workspaceId: String, publicationId: String): Boolean {
             val item = items[publicationId]
             if (item != null && item.workspaceId == workspaceId) {
-                val deletableStatuses = setOf(PublicationStatus.DRAFT, PublicationStatus.QUEUED, PublicationStatus.SCHEDULED)
+                val deletableStatuses =
+                    setOf(PublicationStatus.DRAFT, PublicationStatus.QUEUED, PublicationStatus.SCHEDULED)
                 if (item.status !in deletableStatuses) return false
                 deletedPublication = workspaceId to publicationId
                 items.remove(publicationId)
@@ -1797,22 +1796,21 @@ class PublishingHandlersTest {
             return false
         }
 
-        override suspend fun findBlockedForRecovery(
-            maxRetries: Int,
-        ): List<PublicationDraft> = emptyList()
+        override suspend fun findBlockedForRecovery(maxRetries: Int): List<PublicationDraft> = emptyList()
     }
 
-    private class InMemoryPublicationAssetRepository(
-        private val assets: List<PublicationAsset> = emptyList(),
-    ) : PublicationAssetRepository {
+    private class InMemoryPublicationAssetRepository(private val assets: List<PublicationAsset> = emptyList()) :
+        PublicationAssetRepository {
         private val items = linkedMapOf<String, PublicationAsset>()
 
         init {
             assets.forEach { items[it.id] = it }
         }
 
-        override suspend fun findByWorkspaceAndIds(workspaceId: String, assetIds: Collection<String>): List<PublicationAsset> =
-            items.values.filter { it.workspaceId == workspaceId && it.id in assetIds }
+        override suspend fun findByWorkspaceAndIds(
+            workspaceId: String,
+            assetIds: Collection<String>,
+        ): List<PublicationAsset> = items.values.filter { it.workspaceId == workspaceId && it.id in assetIds }
 
         override suspend fun create(asset: PublicationAsset): PublicationAsset {
             items[asset.id] = asset
@@ -1824,7 +1822,8 @@ class PublishingHandlersTest {
         }
 
         override suspend fun updateProviderAssetRef(assetId: String, providerAssetRef: ProviderAssetRef) {
-            items[assetId] = items[assetId]!!.copy(status = PublicationAssetStatus.READY, providerAssetRef = providerAssetRef)
+            items[assetId] =
+                items[assetId]!!.copy(status = PublicationAssetStatus.READY, providerAssetRef = providerAssetRef)
         }
     }
 
@@ -1872,7 +1871,10 @@ class PublishingHandlersTest {
 
         fun removeUnclaimedForPublication(publicationId: String) {
             jobsByPublicationId[publicationId] = jobsByPublicationId[publicationId]
-                ?.filterNot { it.status == com.profiletailors.smp.publishing.domain.JobStatus.PENDING || it.status == com.profiletailors.smp.publishing.domain.JobStatus.RETRY_WAITING }
+                ?.filterNot {
+                    it.status == com.profiletailors.smp.publishing.domain.JobStatus.PENDING ||
+                        it.status == com.profiletailors.smp.publishing.domain.JobStatus.RETRY_WAITING
+                }
                 ?.toMutableList()
                 ?: mutableListOf()
         }
@@ -1899,10 +1901,12 @@ class PublishingHandlersTest {
                 shouldThrowUnavailable -> throw MediaServiceUnavailableException(
                     "Media context unavailable",
                 )
+
                 shouldThrowMissing -> throw AssetNotReadyException(
                     assetIds.first(),
                     "asset not found",
                 )
+
                 shouldThrowNotReady -> throw AssetNotReadyException(
                     assetIds.first(),
                     "asset not READY",
@@ -2545,7 +2549,13 @@ class PublishingHandlersTest {
 
         assertThrows(FeatureEmailVerificationRequired::class.java) {
             kotlinx.coroutines.runBlocking {
-                handler.handle(EditPublicationCommand(publicationId = "pub-1", bodyText = "Updated text", scheduleMode = ScheduleMode.NOW))
+                handler.handle(
+                    EditPublicationCommand(
+                        publicationId = "pub-1",
+                        bodyText = "Updated text",
+                        scheduleMode = ScheduleMode.NOW,
+                    ),
+                )
             }
         }
     }

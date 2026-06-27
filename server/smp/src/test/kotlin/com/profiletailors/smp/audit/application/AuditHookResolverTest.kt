@@ -44,15 +44,11 @@ class AuditHookResolverTest {
             fact: com.profiletailors.smp.audit.domain.AuthorizationDecisionAuditFact,
         ) = Unit
 
-        override suspend fun onMutation(
-            fact: com.profiletailors.smp.audit.domain.MutationAuditFact,
-        ) = Unit
+        override suspend fun onMutation(fact: com.profiletailors.smp.audit.domain.MutationAuditFact) = Unit
     }
 
-    private class FakeAuditHookSupplier(
-        private val r2dbcHook: AuditHook,
-        private val noOpHook: AuditHook,
-    ) : AuditHookSupplier {
+    private class FakeAuditHookSupplier(private val r2dbcHook: AuditHook, private val noOpHook: AuditHook) :
+        AuditHookSupplier {
         override fun createR2dbcHook(): AuditHook = r2dbcHook
         override fun createNoOpHook(): AuditHook = noOpHook
     }

@@ -17,7 +17,9 @@ fun interface ChannelEventStreamRegistry {
  * REST channel listing remains the canonical source of truth.
  */
 @Component
-class ReactorChannelEventPublisher : ChannelEventPublisher, ChannelEventStreamRegistry {
+class ReactorChannelEventPublisher :
+    ChannelEventPublisher,
+    ChannelEventStreamRegistry {
     private val sink = Sinks.many().multicast().directBestEffort<ChannelEvent>()
 
     override fun publish(event: ChannelEvent) {

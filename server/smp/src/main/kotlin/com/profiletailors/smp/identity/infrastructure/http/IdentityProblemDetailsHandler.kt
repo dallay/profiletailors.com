@@ -35,27 +35,25 @@ class IdentityProblemDetailsHandler {
 
     @ExceptionHandler(UnverifiedEmailException::class)
     @Suppress("UNUSED_PARAMETER")
-    fun handle(exception: UnverifiedEmailException): ProblemDetail =
-        ProblemDetail.forStatusAndDetail(
-            HttpStatus.FORBIDDEN,
-            "Please verify your email before using this feature.",
-        ).apply {
-            title = "Email verification required"
-            type = URI("https://api.profiletailors.com/errors/email-verification-required")
-            setProperty("code", "EMAIL_VERIFICATION_REQUIRED")
-        }
+    fun handle(exception: UnverifiedEmailException): ProblemDetail = ProblemDetail.forStatusAndDetail(
+        HttpStatus.FORBIDDEN,
+        "Please verify your email before using this feature.",
+    ).apply {
+        title = "Email verification required"
+        type = URI("https://api.profiletailors.com/errors/email-verification-required")
+        setProperty("code", "EMAIL_VERIFICATION_REQUIRED")
+    }
 
     @ExceptionHandler(FeatureEmailVerificationRequired::class)
     @Suppress("UNUSED_PARAMETER")
-    fun handle(exception: FeatureEmailVerificationRequired): ProblemDetail =
-        ProblemDetail.forStatusAndDetail(
-            HttpStatus.FORBIDDEN,
-            "Please verify your email before using this feature.",
-        ).apply {
-            title = "Email verification required"
-            type = URI("https://api.profiletailors.com/errors/email-verification-required")
-            setProperty("code", "EMAIL_VERIFICATION_REQUIRED")
-        }
+    fun handle(exception: FeatureEmailVerificationRequired): ProblemDetail = ProblemDetail.forStatusAndDetail(
+        HttpStatus.FORBIDDEN,
+        "Please verify your email before using this feature.",
+    ).apply {
+        title = "Email verification required"
+        type = URI("https://api.profiletailors.com/errors/email-verification-required")
+        setProperty("code", "EMAIL_VERIFICATION_REQUIRED")
+    }
 
     @ExceptionHandler(InvalidVerificationTokenException::class)
     fun handle(exception: InvalidVerificationTokenException): ProblemDetail =

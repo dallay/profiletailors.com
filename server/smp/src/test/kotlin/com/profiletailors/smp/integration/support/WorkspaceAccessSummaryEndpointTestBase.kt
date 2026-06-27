@@ -2,11 +2,11 @@ package com.profiletailors.smp.integration.support
 
 import com.profiletailors.common.domain.bus.event.BaseDomainEvent
 import com.profiletailors.common.domain.bus.event.EventPublisher
-import com.profiletailors.smp.credentials.application.ReplaceApiKeyCredentialCommand
-import com.profiletailors.smp.credentials.application.ReplaceApiKeyCredentialHandler
 import com.profiletailors.smp.audit.domain.AuditHook
 import com.profiletailors.smp.audit.domain.AuthorizationDecisionAuditFact
 import com.profiletailors.smp.authorization.domain.AuthorizationReasonCode
+import com.profiletailors.smp.credentials.application.ReplaceApiKeyCredentialCommand
+import com.profiletailors.smp.credentials.application.ReplaceApiKeyCredentialHandler
 import com.profiletailors.storage.application.StorageApplicationService
 import com.profiletailors.storage.domain.Storage
 import com.profiletailors.storage.domain.StorageObjectNotFoundException
@@ -22,7 +22,6 @@ import org.springframework.boot.test.context.TestConfiguration
 import org.springframework.context.annotation.Bean
 import org.springframework.context.annotation.Primary
 import org.springframework.http.HttpHeaders
-import org.springframework.http.MediaType
 import org.springframework.security.oauth2.jwt.BadJwtException
 import org.springframework.security.oauth2.jwt.Jwt
 import org.springframework.security.oauth2.jwt.ReactiveJwtDecoder
@@ -562,7 +561,11 @@ abstract class WorkspaceAccessSummaryEndpointTestBase : AuthorizationEndpointInt
                 provider = "https://issuer.example",
                 displayIdentity = "scheduler-bot",
             )
-            seedWorkspaceAndRole(principalId = "service-principal-1", principalType = "SERVICE_ACCOUNT", entitled = entitled)
+            seedWorkspaceAndRole(
+                principalId = "service-principal-1",
+                principalType = "SERVICE_ACCOUNT",
+                entitled = entitled,
+            )
             seedRolePermission(permissionId = "permission-1", permissionKey = "workspace:access:read")
             seedServiceAccountCredential(status = credentialStatus)
         }
@@ -577,7 +580,11 @@ abstract class WorkspaceAccessSummaryEndpointTestBase : AuthorizationEndpointInt
                 provider = "https://issuer.example",
                 displayIdentity = "scheduler-bot",
             )
-            seedWorkspaceAndRole(principalId = "service-principal-1", principalType = "SERVICE_ACCOUNT", entitled = entitled)
+            seedWorkspaceAndRole(
+                principalId = "service-principal-1",
+                principalType = "SERVICE_ACCOUNT",
+                entitled = entitled,
+            )
             seedRolePermission(permissionId = "permission-2", permissionKey = "workspace:members:manage")
             seedServiceAccountCredential(status = "ACTIVE")
         }
@@ -614,15 +621,26 @@ abstract class WorkspaceAccessSummaryEndpointTestBase : AuthorizationEndpointInt
     }
 
     private suspend fun seedWorkspaceAndRole(principalId: String, principalType: String, entitled: Boolean = false) {
-        databaseClient.sql("INSERT INTO workspaces (id, name, status, icon) VALUES ('workspace-1', 'Profile Tailors', 'ACTIVE', NULL)").fetch().rowsUpdated().awaitSingle()
-        databaseClient.sql("INSERT INTO workspace_memberships (id, workspace_id, principal_id, principal_type, status) VALUES ('membership-1', 'workspace-1', :principalId, :principalType, 'ACTIVE')")
+        databaseClient.sql(
+            "INSERT INTO workspaces (id, name, status, icon) VALUES ('workspace-1', 'Profile Tailors', 'ACTIVE', NULL)",
+        ).fetch().rowsUpdated().awaitSingle()
+        databaseClient.sql(
+            """
+            INSERT INTO workspace_memberships (id, workspace_id, principal_id, principal_type, status)
+            VALUES ('membership-1', 'workspace-1', :principalId, :principalType, 'ACTIVE')
+            """.trimIndent(),
+        )
             .bind("principalId", principalId)
             .bind("principalType", principalType)
             .fetch()
             .rowsUpdated()
             .awaitSingle()
-        databaseClient.sql("INSERT INTO roles (id, role_key, category) VALUES ('role-1', 'member', 'WORKSPACE')").fetch().rowsUpdated().awaitSingle()
-        databaseClient.sql("INSERT INTO membership_roles (membership_id, role_id) VALUES ('membership-1', 'role-1')").fetch().rowsUpdated().awaitSingle()
+        databaseClient.sql(
+            "INSERT INTO roles (id, role_key, category) VALUES ('role-1', 'member', 'WORKSPACE')",
+        ).fetch().rowsUpdated().awaitSingle()
+        databaseClient.sql(
+            "INSERT INTO membership_roles (membership_id, role_id) VALUES ('membership-1', 'role-1')",
+        ).fetch().rowsUpdated().awaitSingle()
         if (entitled) {
             seedWorkspaceEntitlement()
         }
@@ -636,7 +654,12 @@ abstract class WorkspaceAccessSummaryEndpointTestBase : AuthorizationEndpointInt
             provider = "https://issuer.example",
             displayIdentity = "yuniel",
         )
-        databaseClient.sql("INSERT INTO user_identities (principal_id, email, username) VALUES ('principal-1', 'yuniel@example.com', 'yuniel')")
+        databaseClient.sql(
+            """
+            INSERT INTO user_identities (principal_id, email, username)
+            VALUES ('principal-1', 'yuniel@example.com', 'yuniel')
+            """.trimIndent(),
+        )
             .fetch()
             .rowsUpdated()
             .awaitSingle()
@@ -650,12 +673,23 @@ abstract class WorkspaceAccessSummaryEndpointTestBase : AuthorizationEndpointInt
         displayIdentity: String,
     ) {
         databaseClient.sql(
-            "INSERT INTO principals (id, principal_type, subject, provider, display_identity) VALUES (:principalId, :principalType, :subject, :provider, :displayIdentity)",
+            """
+            INSERT INTO principals (id, principal_type, subject, provider, display_identity)
+            VALUES (:principalId, :principalType, :subject, :provider, :displayIdentity)
+            """.trimIndent(),
         )
             .bind("principalId", principalId)
             .bind("principalType", principalType)
             .bind("subject", subject)
-            .let { spec -> if (provider == null) spec.bindNull("provider", String::class.java) else spec.bind("provider", provider) }
+            .let { spec ->
+                if (provider ==
+                    null
+                ) {
+                    spec.bindNull("provider", String::class.java)
+                } else {
+                    spec.bind("provider", provider)
+                }
+            }
             .bind("displayIdentity", displayIdentity)
             .fetch()
             .rowsUpdated()
@@ -664,7 +698,10 @@ abstract class WorkspaceAccessSummaryEndpointTestBase : AuthorizationEndpointInt
 
     private suspend fun seedWorkspaceEntitlement() {
         databaseClient.sql(
-            "INSERT INTO workspace_entitlements (id, workspace_id, entitlement_key, enabled) VALUES ('entitlement-1', 'workspace-1', 'workspace.access.summary', TRUE)",
+            """
+            INSERT INTO workspace_entitlements (id, workspace_id, entitlement_key, enabled)
+            VALUES ('entitlement-1', 'workspace-1', 'workspace.access.summary', TRUE)
+            """.trimIndent(),
         )
             .fetch()
             .rowsUpdated()
@@ -673,12 +710,25 @@ abstract class WorkspaceAccessSummaryEndpointTestBase : AuthorizationEndpointInt
 
     protected fun seedTargetScope(allowedTargetIdsJson: String) {
         kotlinx.coroutines.runBlocking {
-            databaseClient.sql("INSERT INTO permissions (id, permission_key) VALUES ('permission-resource-read', 'workspace:resource:read')")
+            databaseClient.sql(
+                """
+                INSERT INTO permissions (id, permission_key)
+                VALUES ('permission-resource-read', 'workspace:resource:read')
+                """.trimIndent(),
+            )
                 .fetch()
                 .rowsUpdated()
                 .awaitSingle()
             databaseClient.sql(
-                "INSERT INTO workspace_target_scopes (id, workspace_id, principal_id, principal_type, permission_id, target_resource_type, allowed_target_ids_json) VALUES ('scope-legacy-1', 'workspace-1', 'principal-1', 'USER', 'permission-resource-read', 'RESOURCE', :allowedTargetIdsJson)",
+                """
+                INSERT INTO workspace_target_scopes (
+                    id, workspace_id, principal_id, principal_type, permission_id,
+                    target_resource_type, allowed_target_ids_json
+                ) VALUES (
+                    'scope-legacy-1', 'workspace-1', 'principal-1', 'USER',
+                    'permission-resource-read', 'RESOURCE', :allowedTargetIdsJson
+                )
+                """.trimIndent(),
             )
                 .bind("allowedTargetIdsJson", allowedTargetIdsJson)
                 .fetch()
@@ -688,10 +738,25 @@ abstract class WorkspaceAccessSummaryEndpointTestBase : AuthorizationEndpointInt
     }
 
     private suspend fun seedServiceAccountCredential(status: String) {
-        databaseClient.sql("INSERT INTO service_account_credentials (id, principal_id, provider, credential_reference, status, revoked_at) VALUES ('svc-cred-row-1', 'service-principal-1', 'https://issuer.example', 'svc-cred-1', :status, :revokedAt)")
+        databaseClient.sql(
+            """
+            INSERT INTO service_account_credentials (
+                id, principal_id, provider, credential_reference, status, revoked_at
+            ) VALUES (
+                'svc-cred-row-1', 'service-principal-1', 'https://issuer.example',
+                'svc-cred-1', :status, :revokedAt
+            )
+            """.trimIndent(),
+        )
             .bind("status", status)
             .let { spec ->
-                if (status == "REVOKED") spec.bind("revokedAt", Instant.parse("2026-05-15T10:45:30Z")) else spec.bindNull("revokedAt", Instant::class.java)
+                if (status ==
+                    "REVOKED"
+                ) {
+                    spec.bind("revokedAt", Instant.parse("2026-05-15T10:45:30Z"))
+                } else {
+                    spec.bindNull("revokedAt", Instant::class.java)
+                }
             }
             .fetch()
             .rowsUpdated()
@@ -699,31 +764,51 @@ abstract class WorkspaceAccessSummaryEndpointTestBase : AuthorizationEndpointInt
     }
 
     private suspend fun seedApiKeyCredential(status: String) {
-        val verifier = org.springframework.security.crypto.bcrypt.BCrypt.hashpw("secret-value", org.springframework.security.crypto.bcrypt.BCrypt.gensalt())
-        databaseClient.sql("INSERT INTO api_key_credentials (id, principal_id, lookup_key, key_prefix, secret_verifier, status, revoked_at, replaced_by_credential_id, replaced_credential_id, replaced_at) VALUES ('api-key-cred-1', 'api-key-principal-1', 'ptk_lookup', 'ptk_lookup', :verifier, :status, :revokedAt, NULL, NULL, NULL)")
+        val verifier = org.springframework.security.crypto.bcrypt.BCrypt.hashpw(
+            "secret-value",
+            org.springframework.security.crypto.bcrypt.BCrypt.gensalt(),
+        )
+        databaseClient.sql(
+            """
+            INSERT INTO api_key_credentials (
+                id, principal_id, lookup_key, key_prefix, secret_verifier, status, revoked_at,
+                replaced_by_credential_id, replaced_credential_id, replaced_at
+            ) VALUES (
+                'api-key-cred-1', 'api-key-principal-1', 'ptk_lookup', 'ptk_lookup',
+                :verifier, :status, :revokedAt, NULL, NULL, NULL
+            )
+            """.trimIndent(),
+        )
             .bind("verifier", verifier)
             .bind("status", status)
             .let { spec ->
-                if (status == "REVOKED") spec.bind("revokedAt", Instant.parse("2026-05-15T10:45:30Z")) else spec.bindNull("revokedAt", Instant::class.java)
+                if (status ==
+                    "REVOKED"
+                ) {
+                    spec.bind("revokedAt", Instant.parse("2026-05-15T10:45:30Z"))
+                } else {
+                    spec.bindNull("revokedAt", Instant::class.java)
+                }
             }
             .fetch()
             .rowsUpdated()
             .awaitSingle()
     }
 
-    private suspend fun readApiKeyRows(): List<ApiKeyCredentialRow> =
-        databaseClient.sql("SELECT id, status, replaced_by_credential_id, replaced_credential_id FROM api_key_credentials ORDER BY id")
-            .map { row, _ ->
-                ApiKeyCredentialRow(
-                    id = requireNotNull(row.get("id", String::class.java)),
-                    status = requireNotNull(row.get("status", String::class.java)),
-                    replacedByCredentialId = row.get("replaced_by_credential_id", String::class.java),
-                    replacedCredentialId = row.get("replaced_credential_id", String::class.java),
-                )
-            }
-            .all()
-            .collectList()
-            .awaitSingle()
+    private suspend fun readApiKeyRows(): List<ApiKeyCredentialRow> = databaseClient.sql(
+        "SELECT id, status, replaced_by_credential_id, replaced_credential_id FROM api_key_credentials ORDER BY id",
+    )
+        .map { row, _ ->
+            ApiKeyCredentialRow(
+                id = requireNotNull(row.get("id", String::class.java)),
+                status = requireNotNull(row.get("status", String::class.java)),
+                replacedByCredentialId = row.get("replaced_by_credential_id", String::class.java),
+                replacedCredentialId = row.get("replaced_credential_id", String::class.java),
+            )
+        }
+        .all()
+        .collectList()
+        .awaitSingle()
 
     private data class ApiKeyCredentialRow(
         val id: String,
@@ -749,7 +834,17 @@ abstract class WorkspaceAccessSummaryEndpointTestBase : AuthorizationEndpointInt
                     .awaitSingle()
             }
 
-            databaseClient.sql("INSERT INTO workspace_direct_grants (id, workspace_id, principal_id, principal_type, permission_id, effect, expires_at, conditions_json) VALUES (:id, :workspaceId, :principalId, :principalType, :permissionId, :effect, :expiresAt, :conditionsJson)")
+            databaseClient.sql(
+                """
+                INSERT INTO workspace_direct_grants (
+                    id, workspace_id, principal_id, principal_type, permission_id,
+                    effect, expires_at, conditions_json
+                ) VALUES (
+                    :id, :workspaceId, :principalId, :principalType, :permissionId,
+                    :effect, :expiresAt, :conditionsJson
+                )
+                """.trimIndent(),
+            )
                 .bind("id", "grant-$effect-$permissionId")
                 .bind("workspaceId", "workspace-1")
                 .bind("principalId", "principal-1")
@@ -757,7 +852,13 @@ abstract class WorkspaceAccessSummaryEndpointTestBase : AuthorizationEndpointInt
                 .bind("permissionId", permissionId)
                 .bind("effect", effect)
                 .let { spec ->
-                    if (expiresAt == null) spec.bindNull("expiresAt", Instant::class.java) else spec.bind("expiresAt", Instant.parse(expiresAt))
+                    if (expiresAt ==
+                        null
+                    ) {
+                        spec.bindNull("expiresAt", Instant::class.java)
+                    } else {
+                        spec.bind("expiresAt", Instant.parse(expiresAt))
+                    }
                 }
                 .bindNull("conditionsJson", String::class.java)
                 .fetch()
@@ -797,12 +898,13 @@ abstract class WorkspaceAccessSummaryEndpointTestBase : AuthorizationEndpointInt
                         .build()
                 }
 
-                "ptk_lookup.secret-value" -> reactor.core.publisher.Mono.error(BadJwtException("API key is handled by API-key authentication path"))
+                "ptk_lookup.secret-value" -> reactor.core.publisher.Mono.error(
+                    BadJwtException("API key is handled by API-key authentication path"),
+                )
 
                 else -> reactor.core.publisher.Mono.error(BadJwtException("Invalid token"))
             }
         }
-
 
         @Bean
         @Primary
@@ -813,7 +915,12 @@ abstract class WorkspaceAccessSummaryEndpointTestBase : AuthorizationEndpointInt
         fun inMemoryFakeStorage(): Storage = object : Storage {
             private val objects = ConcurrentHashMap<String, ByteArray>()
 
-            override suspend fun upload(bucket: String, key: String, content: Flow<ByteArray>, metadata: Map<String, String>) {
+            override suspend fun upload(
+                bucket: String,
+                key: String,
+                content: Flow<ByteArray>,
+                metadata: Map<String, String>,
+            ) {
                 val chunks = mutableListOf<ByteArray>()
                 content.collect { chunks += it }
                 objects["$bucket/$key"] = chunks.flatMap { it.toList() }.toByteArray()
@@ -829,13 +936,18 @@ abstract class WorkspaceAccessSummaryEndpointTestBase : AuthorizationEndpointInt
                 objects.remove("$bucket/$key")
             }
 
-            override suspend fun list(bucket: String, prefix: String): List<String> =
-                objects.keys
-                    .filter { it.startsWith("$bucket/$prefix") }
-                    .map { it.removePrefix("$bucket/") }
+            override suspend fun list(bucket: String, prefix: String): List<String> = objects.keys
+                .filter { it.startsWith("$bucket/$prefix") }
+                .map { it.removePrefix("$bucket/") }
 
-            override suspend fun exists(bucket: String, key: String): Boolean =
-                objects.containsKey("$bucket/$key")
+            override suspend fun exists(bucket: String, key: String): Boolean = objects.containsKey("$bucket/$key")
+
+            override suspend fun copyObject(bucket: String, sourceKey: String, destKey: String) {
+                val sourcePath = "$bucket/$sourceKey"
+                val data = objects[sourcePath]
+                    ?: throw IllegalStateException("copyObject: source not found: $sourceKey")
+                objects["$bucket/$destKey"] = data
+            }
         }
 
         @Bean

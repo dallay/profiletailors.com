@@ -1,11 +1,13 @@
+@file:Suppress("ktlint:standard:max-line-length")
+
 package com.profiletailors.smp.identity.infrastructure.security
 
+import com.profiletailors.common.domain.context.PrincipalContext
+import com.profiletailors.common.domain.context.PrincipalType
 import com.profiletailors.smp.credentials.application.ActiveApiKeyCredential
 import com.profiletailors.smp.credentials.application.ApiKeyCredentialFailureReason
 import com.profiletailors.smp.credentials.application.ApiKeyCredentialNotActiveException
 import com.profiletailors.smp.credentials.application.ApiKeyCredentialStateLookup
-import com.profiletailors.common.domain.context.PrincipalContext
-import com.profiletailors.common.domain.context.PrincipalType
 import com.profiletailors.smp.identity.domain.AuthenticatedPrincipal
 import com.profiletailors.smp.identity.infrastructure.ApiKeyAuthenticatedPrincipalMaterializer
 import kotlinx.coroutines.reactor.awaitSingle
@@ -36,13 +38,12 @@ class ApiKeyPrincipalAuthenticationConverterTest {
     fun `propagates revoked api key failures`() = runTest {
         val converter = ApiKeyPrincipalAuthenticationConverter(
             apiKeyCredentialStateLookup = object : ApiKeyCredentialStateLookup {
-                override suspend fun requireActive(presentedApiKey: String): ActiveApiKeyCredential {
+                override suspend fun requireActive(presentedApiKey: String): ActiveApiKeyCredential =
                     throw ApiKeyCredentialNotActiveException(
                         credentialReference = "api-key-cred-1",
                         principalId = "api-key-principal-1",
                         reason = ApiKeyCredentialFailureReason.REVOKED,
                     )
-                }
             },
             principalMaterializer = StubApiKeyAuthenticatedPrincipalMaterializer(),
         )
@@ -65,29 +66,28 @@ class ApiKeyPrincipalAuthenticationConverterTest {
         )
     }
 
-    private class StubApiKeyAuthenticatedPrincipalMaterializer : ApiKeyAuthenticatedPrincipalMaterializer(
-        principalIdentityLookup = object : com.profiletailors.smp.identity.application.PrincipalIdentityLookup {
-            override suspend fun findBySubject(
-                principalType: PrincipalType,
-                subject: String,
-                provider: String?,
-            ) = null
+    private class StubApiKeyAuthenticatedPrincipalMaterializer :
+        ApiKeyAuthenticatedPrincipalMaterializer(
+            principalIdentityLookup = object : com.profiletailors.smp.identity.application.PrincipalIdentityLookup {
+                override suspend fun findBySubject(principalType: PrincipalType, subject: String, provider: String?) =
+                    null
 
-            override suspend fun findByEmail(email: String) = null
-            override suspend fun findByPrincipalId(principalId: String) = null
-        },
-    ) {
-        override suspend fun materialize(activeCredential: ActiveApiKeyCredential): AuthenticatedPrincipal = AuthenticatedPrincipal(
-            context = PrincipalContext(
-                principalId = activeCredential.principalId,
-                principalType = PrincipalType.API_KEY,
-                subject = activeCredential.subject,
-                provider = activeCredential.provider,
-                displayIdentity = "integration-key",
-                authenticationMethod = "API_KEY",
-                issuedCredentialReference = activeCredential.credentialReference,
-            ),
-            credentialType = com.profiletailors.smp.credentials.domain.CredentialType.API_KEY,
-        )
+                override suspend fun findByEmail(email: String) = null
+                override suspend fun findByPrincipalId(principalId: String) = null
+            },
+        ) {
+        override suspend fun materialize(activeCredential: ActiveApiKeyCredential): AuthenticatedPrincipal =
+            AuthenticatedPrincipal(
+                context = PrincipalContext(
+                    principalId = activeCredential.principalId,
+                    principalType = PrincipalType.API_KEY,
+                    subject = activeCredential.subject,
+                    provider = activeCredential.provider,
+                    displayIdentity = "integration-key",
+                    authenticationMethod = "API_KEY",
+                    issuedCredentialReference = activeCredential.credentialReference,
+                ),
+                credentialType = com.profiletailors.smp.credentials.domain.CredentialType.API_KEY,
+            )
     }
 }

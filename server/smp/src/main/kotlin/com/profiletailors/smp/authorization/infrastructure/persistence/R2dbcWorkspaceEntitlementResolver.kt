@@ -1,17 +1,15 @@
 package com.profiletailors.smp.authorization.infrastructure.persistence
 
-import com.profiletailors.smp.authorization.domain.EntitlementResolver
-import com.profiletailors.smp.authorization.domain.Entitlement
 import com.profiletailors.common.domain.context.ResourceContext
 import com.profiletailors.common.domain.context.ResourceContextType
+import com.profiletailors.smp.authorization.domain.Entitlement
+import com.profiletailors.smp.authorization.domain.EntitlementResolver
 import kotlinx.coroutines.reactor.awaitSingle
 import org.springframework.r2dbc.core.DatabaseClient
 import org.springframework.stereotype.Repository
 
 @Repository
-class R2dbcWorkspaceEntitlementResolver(
-    private val databaseClient: DatabaseClient,
-) : EntitlementResolver {
+class R2dbcWorkspaceEntitlementResolver(private val databaseClient: DatabaseClient) : EntitlementResolver {
     override suspend fun resolve(resourceContext: ResourceContext): Set<Entitlement> {
         val workspaceId = resourceContext.workspaceId
             ?.takeIf { resourceContext.type == ResourceContextType.WORKSPACE && it.isNotBlank() }

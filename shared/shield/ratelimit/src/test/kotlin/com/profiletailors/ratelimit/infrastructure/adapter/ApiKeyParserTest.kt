@@ -5,7 +5,6 @@ import io.kotest.matchers.shouldBe
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.assertAll
 
-
 internal class ApiKeyParserTest {
 
     @Test

@@ -1,12 +1,12 @@
 package com.profiletailors.spring.boot.repository
 
 import com.profiletailors.common.domain.criteria.Criteria
+import org.springframework.data.relational.core.mapping.Column
 import java.time.LocalDate
 import java.util.regex.Pattern
 import kotlin.test.Test
 import kotlin.test.assertFailsWith
 import kotlin.test.assertTrue
-import org.springframework.data.relational.core.mapping.Column
 
 class R2DBCCriteriaParserTest {
 
@@ -79,8 +79,18 @@ class R2DBCCriteriaParserTest {
 
     @Test
     fun `should parse between criteria`() {
-        val between = parser.parse(Criteria.Between("createdAt", LocalDate.parse("2024-01-01")..LocalDate.parse("2024-12-31"))).toString()
-        val notBetween = parser.parse(Criteria.NotBetween("createdAt", LocalDate.parse("2023-01-01")..LocalDate.parse("2023-12-31"))).toString()
+        val between = parser.parse(
+            Criteria.Between(
+                "createdAt",
+                LocalDate.parse("2024-01-01")..LocalDate.parse("2024-12-31"),
+            ),
+        ).toString()
+        val notBetween = parser.parse(
+            Criteria.NotBetween(
+                "createdAt",
+                LocalDate.parse("2023-01-01")..LocalDate.parse("2023-12-31"),
+            ),
+        ).toString()
 
         assertContains(between, "created_at")
         assertContains(notBetween, "created_at")

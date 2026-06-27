@@ -22,6 +22,5 @@ class DelegatingPrincipalContextProvider(
     private val securityContextProvider: SecurityContextPrincipalContextProvider,
     private val requestContextStore: RequestContextStore,
 ) : PrincipalContextProvider {
-    override suspend fun current() =
-        securityContextProvider.current() ?: requestContextStore.currentPrincipalContext()
+    override suspend fun current() = securityContextProvider.current() ?: requestContextStore.currentPrincipalContext()
 }

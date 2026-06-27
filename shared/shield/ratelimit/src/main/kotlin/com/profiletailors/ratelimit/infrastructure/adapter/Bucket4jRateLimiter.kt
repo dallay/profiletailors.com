@@ -1,22 +1,22 @@
 package com.profiletailors.ratelimit.infrastructure.adapter
 
+import com.github.benmanes.caffeine.cache.Cache
+import com.github.benmanes.caffeine.cache.Caffeine
 import com.profiletailors.ratelimit.domain.RateLimitResult
 import com.profiletailors.ratelimit.domain.RateLimitStrategy
 import com.profiletailors.ratelimit.domain.RateLimiter
 import com.profiletailors.ratelimit.infrastructure.config.BucketConfigurationFactory
 import com.profiletailors.ratelimit.infrastructure.config.RateLimitProperties
 import com.profiletailors.ratelimit.infrastructure.metrics.RateLimitMetrics
-import com.github.benmanes.caffeine.cache.Cache
-import com.github.benmanes.caffeine.cache.Caffeine
 import io.github.bucket4j.Bucket
 import io.github.bucket4j.ConsumptionProbe
-import java.time.Clock
-import java.time.Duration
-import java.time.Instant
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import org.slf4j.LoggerFactory
 import org.springframework.stereotype.Component
+import java.time.Clock
+import java.time.Duration
+import java.time.Instant
 
 /**
  * Adapter that implements the RateLimiter port using Bucket4j.
@@ -51,7 +51,7 @@ class Bucket4jRateLimiter(
     private val apiKeyParser: ApiKeyParser,
     private val metrics: RateLimitMetrics,
     private val properties: RateLimitProperties,
-    private val clock: Clock = Clock.systemUTC()
+    private val clock: Clock = Clock.systemUTC(),
 ) : RateLimiter {
 
     private val logger = LoggerFactory.getLogger(Bucket4jRateLimiter::class.java)
@@ -60,11 +60,7 @@ class Bucket4jRateLimiter(
      * Bounded, TTL-based cache for rate limit buckets.
      * Prevents unbounded memory growth in long-running services with many unique identifiers.
      */
-    private data class CachedBucketEntry(
-        val bucket: Bucket,
-        val limitCapacity: Long,
-        val refillPeriodNanos: Long
-    )
+    private data class CachedBucketEntry(val bucket: Bucket, val limitCapacity: Long, val refillPeriodNanos: Long)
 
     private val cache: Cache<String, CachedBucketEntry> = Caffeine.newBuilder()
         .maximumSize(properties.cache.maxSize)
@@ -78,7 +74,8 @@ class Bucket4jRateLimiter(
     init {
         logger.info(
             "Initialized Bucket4jRateLimiter with cache config: maxSize={}, ttlMinutes={}",
-            properties.cache.maxSize, properties.cache.ttlMinutes,
+            properties.cache.maxSize,
+            properties.cache.ttlMinutes,
         )
     }
 
@@ -92,10 +89,7 @@ class Bucket4jRateLimiter(
      * @param strategy The rate limiting strategy to apply.
      * @return A [RateLimitResult] indicating if the request was allowed or denied.
      */
-    override suspend fun consumeToken(
-        identifier: String,
-        strategy: RateLimitStrategy
-    ): RateLimitResult {
+    override suspend fun consumeToken(identifier: String, strategy: RateLimitStrategy): RateLimitResult {
         // Record token consumption time and update cache size metric
         return metrics.recordTokenConsumption(strategy) {
             // Caffeine synchronous lookups and Bucket4j operations are blocking
@@ -117,7 +111,11 @@ class Bucket4jRateLimiter(
                     val resetTime = calculateResetTime(refillDuration)
                     logger.debug(
                         "Token consumed for identifier: {}, strategy: {}, remaining: {}, limit: {}, reset: {}",
-                        identifier, strategy, probe.remainingTokens, limitCapacity, resetTime,
+                        identifier,
+                        strategy,
+                        probe.remainingTokens,
+                        limitCapacity,
+                        resetTime,
                     )
                     RateLimitResult.Allowed(
                         remainingTokens = probe.remainingTokens,
@@ -128,7 +126,10 @@ class Bucket4jRateLimiter(
                     val retryAfter = Duration.ofNanos(probe.nanosToWaitForRefill)
                     logger.warn(
                         "Rate limit exceeded for identifier: {}, strategy: {}, retry after: {}, limit: {}",
-                        identifier, strategy, retryAfter, limitCapacity,
+                        identifier,
+                        strategy,
+                        retryAfter,
+                        limitCapacity,
                     )
                     RateLimitResult.Denied(
                         retryAfter = retryAfter,
@@ -179,27 +180,26 @@ class Bucket4jRateLimiter(
      */
     private fun getBucketConfiguration(
         identifier: String,
-        strategy: RateLimitStrategy
-    ): io.github.bucket4j.BucketConfiguration {
-        return when (strategy) {
-            RateLimitStrategy.AUTH ->
-                configurationFactory.createConfiguration(RateLimitStrategy.AUTH)
+        strategy: RateLimitStrategy,
+    ): io.github.bucket4j.BucketConfiguration = when (strategy) {
+        RateLimitStrategy.AUTH ->
+            configurationFactory.createConfiguration(RateLimitStrategy.AUTH)
 
-            RateLimitStrategy.BUSINESS -> {
-                val planName = resolvePlanNameFromApiKey(identifier)
-                logger.debug(
-                    "Resolved plan: {} for identifier: {}",
-                    planName, identifier,
-                )
-                configurationFactory.createConfiguration(RateLimitStrategy.BUSINESS, planName)
-            }
-
-            RateLimitStrategy.RESUME ->
-                configurationFactory.createConfiguration(RateLimitStrategy.RESUME)
-
-            RateLimitStrategy.WAITLIST ->
-                configurationFactory.createConfiguration(RateLimitStrategy.WAITLIST)
+        RateLimitStrategy.BUSINESS -> {
+            val planName = resolvePlanNameFromApiKey(identifier)
+            logger.debug(
+                "Resolved plan: {} for identifier: {}",
+                planName,
+                identifier,
+            )
+            configurationFactory.createConfiguration(RateLimitStrategy.BUSINESS, planName)
         }
+
+        RateLimitStrategy.RESUME ->
+            configurationFactory.createConfiguration(RateLimitStrategy.RESUME)
+
+        RateLimitStrategy.WAITLIST ->
+            configurationFactory.createConfiguration(RateLimitStrategy.WAITLIST)
     }
 
     /**

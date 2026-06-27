@@ -13,9 +13,7 @@ import tools.jackson.databind.ObjectMapper
 
 @Suppress("UNCHECKED_CAST")
 @Component
-class OffsetPagePresenter(
-    private val objectMapper: ObjectMapper,
-) : Presenter<OffsetPageResponse<*>> {
+class OffsetPagePresenter(private val objectMapper: ObjectMapper) : Presenter<OffsetPageResponse<*>> {
     override val type = OffsetPageResponse::class
 
     override suspend fun present(exchange: ServerWebExchange, result: HandlerResult) {

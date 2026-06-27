@@ -39,6 +39,7 @@ A social connection MUST be associated with exactly one workspace and one provid
 - THEN the system MUST update the existing connection and account records
 - AND MUST NOT create duplicate records
 - AND connection status MUST be `ACTIVE` with refreshed metadata
+
 ### Requirement: Provider-Neutral Publication Lifecycle
 
 The system MUST model publications independently from provider-specific transport details.

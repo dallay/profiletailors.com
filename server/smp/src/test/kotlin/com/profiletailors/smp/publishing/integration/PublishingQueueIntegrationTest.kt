@@ -154,14 +154,23 @@ class PublishingQueueIntegrationTest : DatabaseUnitTestBase() {
         ).fetch().rowsUpdated().awaitSingle()
         databaseClient.sql(
             """
-            INSERT INTO social_connections (id, workspace_id, provider, provider_connection_ref, status, credential_reference)
-            VALUES ('connection-1', 'workspace-1', 'LINKEDIN', 'linkedin-connection-1', 'ACTIVE', '00000000-0000-0000-0000-000000000000')
+            INSERT INTO social_connections (
+                id, workspace_id, provider, provider_connection_ref, status, credential_reference
+            ) VALUES (
+                'connection-1', 'workspace-1', 'LINKEDIN', 'linkedin-connection-1',
+                'ACTIVE', '00000000-0000-0000-0000-000000000000'
+            )
             """.trimIndent(),
         ).fetch().rowsUpdated().awaitSingle()
         databaseClient.sql(
             """
-            INSERT INTO social_accounts (id, social_connection_id, workspace_id, provider, provider_account_id, account_type, display_name, status)
-            VALUES ('account-1', 'connection-1', 'workspace-1', 'LINKEDIN', 'linkedin-account-1', 'PERSONAL_PROFILE', 'Yuniel', 'ACTIVE')
+            INSERT INTO social_accounts (
+                id, social_connection_id, workspace_id, provider, provider_account_id,
+                account_type, display_name, status
+            ) VALUES (
+                'account-1', 'connection-1', 'workspace-1', 'LINKEDIN',
+                'linkedin-account-1', 'PERSONAL_PROFILE', 'Yuniel', 'ACTIVE'
+            )
             """.trimIndent(),
         ).fetch().rowsUpdated().awaitSingle()
     }

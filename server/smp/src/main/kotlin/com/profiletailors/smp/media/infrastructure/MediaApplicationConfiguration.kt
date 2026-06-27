@@ -12,27 +12,21 @@ import org.springframework.context.annotation.Configuration
 @Configuration
 class MediaApplicationConfiguration {
     @Bean
-    fun mediaUploadSettings(
-        properties: MediaProperties,
-    ): MediaUploadSettings = MediaUploadSettings(
+    fun mediaUploadSettings(properties: MediaProperties): MediaUploadSettings = MediaUploadSettings(
         maxConcurrentUploads = properties.maxConcurrentUploads,
         maxCreationsPerHour = properties.maxCreationsPerHour,
         storageBucket = properties.storage.bucket,
     )
 
     @Bean
-    fun mediaReconcilerSettings(
-        properties: MediaProperties,
-    ): MediaReconcilerSettings = MediaReconcilerSettings(
+    fun mediaReconcilerSettings(properties: MediaProperties): MediaReconcilerSettings = MediaReconcilerSettings(
         storageBucket = properties.storage.bucket,
         staleThresholdHours = properties.stale.thresholdHours,
         gracePeriodMinutes = properties.stale.gracePeriodMinutes,
     )
 
     @Bean
-    fun mediaPreviewTokenService(
-        properties: MediaProperties,
-    ): MediaPreviewTokenService = MediaPreviewTokenService(
+    fun mediaPreviewTokenService(properties: MediaProperties): MediaPreviewTokenService = MediaPreviewTokenService(
         signingSecret = properties.previewSigningSecret,
         previewUrlExpirySeconds = properties.previewUrlExpirySeconds,
     )

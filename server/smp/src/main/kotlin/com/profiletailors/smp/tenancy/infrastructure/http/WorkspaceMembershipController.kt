@@ -40,9 +40,7 @@ import org.springframework.web.bind.annotation.RestController
 @RestController
 @RequestMapping(value = ["/api/tenancy/workspace-memberships"])
 @Tag(name = "Workspace Membership", description = "Workspace membership management endpoints")
-class WorkspaceMembershipController(
-    private val mediator: Mediator,
-) {
+class WorkspaceMembershipController(private val mediator: Mediator) {
     @Operation(
         summary = "Update workspace membership status",
         description = "Updates a workspace member status using one of the allowed values: ACTIVE, SUSPENDED, INACTIVE.",
