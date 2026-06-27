@@ -407,6 +407,26 @@ class R2dbcMediaAssetRepository(private val databaseClient: DatabaseClient) : Me
         .one()
         .awaitSingle()
 
+    override suspend fun findActiveByWorkspaceAndHash(workspaceId: String, fileHash: String): MediaAsset? =
+        databaseClient.sql(
+            """
+                SELECT asset_id, workspace_id, source_type, file_hash, media_type, storage_key,
+                       detected_media_type, original_filename, file_size_bytes, status,
+                       failure_reason, upload_started_at, created_at, updated_at
+                FROM media_assets
+                WHERE workspace_id = :workspaceId
+                  AND file_hash = :fileHash
+                  AND status NOT IN ('DELETED', 'FAILED')
+                ORDER BY created_at ASC, asset_id ASC
+                LIMIT 1
+            """.trimIndent(),
+        )
+            .bind("workspaceId", workspaceId)
+            .bind("fileHash", fileHash)
+            .map { row, _ -> rowToMediaAsset(row) }
+            .one()
+            .awaitSingleOrNull()
+
     private fun rowToMediaAsset(row: Readable): MediaAsset = MediaAsset(
         assetId = requireNotNull(row.get("asset_id", String::class.java)),
         workspaceId = requireNotNull(row.get("workspace_id", String::class.java)),
