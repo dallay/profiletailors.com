@@ -34,7 +34,7 @@ Inject `AtomicTransactionRunner` domain port into `RegisterUserHandler`. Wrap st
 | Area | Impact | Description |
 |------|--------|-------------|
 | `server/smp/src/main/kotlin/com/profiletailors/smp/identity/application/LocalAuthHandlers.kt` | Modified | Inject `AtomicTransactionRunner` into `RegisterUserHandler` and wrap DB operations. |
-| `server/smp/src/main/kotlin/com/profiletailors/smp/media/application/AtomicTransactionRunner.kt` | Modified | Promote domain port interface to `com.profiletailors.common.domain.persistence`. |
+| `server/smp/src/main/kotlin/com/profiletailors/smp/media/application/AtomicTransactionRunner.kt` | Removed | Interface promoted to `com.profiletailors.common.domain.persistence` — old file deleted, new file at `shared/common/.../persistence/AtomicTransactionRunner.kt`. |
 | `server/smp/src/main/kotlin/com/profiletailors/smp/media/infrastructure/persistence/R2dbcAtomicTransactionRunner.kt` | Modified | Update infrastructure implementation imports and package locations. |
 | `server/smp/src/test/kotlin/com/profiletailors/smp/identity/application/LocalAuthHandlersTest.kt` | Modified | Pass `NoopAtomicTransactionRunner` in unit test constructions. |
 | `server/smp/src/test/kotlin/com/profiletailors/smp/integration/LocalAuthEndpointIntegrationTest.kt` | Modified | Add rollback test case for mid-registration database failure. |

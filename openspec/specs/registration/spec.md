@@ -95,7 +95,7 @@ Registration SHALL create an authenticated session only after successful complet
 
 The registration handler SHALL issue JWT and refresh tokens only after the transaction commits successfully. The response SHALL be HTTP 201 Created with AuthTokens payload. The response SHALL set an HttpOnly refresh token cookie. The registration payload SHALL no longer return only RegistrationResult (breaking change from prior behavior). Post-registration side effects, including `UserRegistered` event publication, SHALL occur only after commit succeeds and SHALL NOT occur for rolled-back registrations.
 
-(Previously: Registration issued tokens on successful handler completion without specifying transaction commit ordering or post-commit side-effect timing.)
+> **Historical note:** Prior to this change, registration issued tokens on successful handler completion without specifying transaction commit ordering or post-commit side-effect timing. The new contract commits first, then publishes and issues tokens.
 
 #### Scenario: Registration creates session after commit
 
@@ -107,10 +107,18 @@ The registration handler SHALL issue JWT and refresh tokens only after the trans
 
 #### Scenario: Post-commit side effects run only after successful commit
 
-- GIVEN a registration attempt reaches side-effect processing
-- WHEN the registration transaction has committed successfully
-- THEN the system SHALL publish `UserRegistered` and issue session credentials after commit
-- AND if the transaction rolls back, the system SHALL NOT publish the event or issue session credentials
+- GIVEN a registration attempt with email `alice@example.com`
+- WHEN the transaction commits successfully
+- THEN the system SHALL publish `UserRegistered` event for `alice@example.com`
+- AND the system SHALL issue a refresh session for the new principal
+- AND the response SHALL include an access token
+- 
+- GIVEN a registration attempt with email `bob@example.com`
+- AND a workspace provisioning failure occurs inside the transaction
+- WHEN the transaction rolls back
+- THEN the system SHALL NOT publish any `UserRegistered` event
+- AND the system SHALL NOT issue any refresh session
+- AND no user_identities, credentials, workspaces, or verification tokens SHALL persist for `bob@example.com`
 
 ### Requirement: Username in API Responses
 

@@ -105,6 +105,17 @@ class LocalAuthEndpointIntegrationTest : IntegrationTestBase() {
         assertEquals(0, countRows("SELECT COUNT(*) FROM workspace_ownerships"))
         assertEquals(0, countRows("SELECT COUNT(*) FROM workspace_memberships"))
         assertEquals(0, countRows("SELECT COUNT(*) FROM membership_roles"))
+        assertEquals(
+            0,
+            countRows(
+                """
+                SELECT COUNT(*)
+                FROM refresh_sessions rs
+                JOIN principals p ON p.id = rs.principal_id
+                WHERE p.subject = 'local:$email'
+                """.trimIndent(),
+            ),
+        )
     }
 
     private suspend fun assertRegistrationArtifactsCreated(email: String) {
@@ -141,6 +152,17 @@ class LocalAuthEndpointIntegrationTest : IntegrationTestBase() {
         assertEquals(1, countRows("SELECT COUNT(*) FROM workspace_ownerships"))
         assertEquals(1, countRows("SELECT COUNT(*) FROM workspace_memberships"))
         assertEquals(1, countRows("SELECT COUNT(*) FROM membership_roles"))
+        assertEquals(
+            1,
+            countRows(
+                """
+                SELECT COUNT(*)
+                FROM refresh_sessions rs
+                JOIN principals p ON p.id = rs.principal_id
+                WHERE p.subject = 'local:$email'
+                """.trimIndent(),
+            ),
+        )
     }
 
     override fun cleanupStatements(): List<String> = listOf(
@@ -520,10 +542,11 @@ class LocalAuthEndpointIntegrationTest : IntegrationTestBase() {
         @Primary
         fun workspaceProvisioningService(realService: R2dbcWorkspaceProvisioningService): WorkspaceProvisioningService =
             WorkspaceProvisioningService { principalId, displayName ->
+                val result = realService.provisionDefaultWorkspace(principalId, displayName)
                 if (failWorkspaceProvisioning) {
-                    error("Simulated workspace provisioning failure")
+                    error("Simulated workspace provisioning failure (post-write)")
                 }
-                realService.provisionDefaultWorkspace(principalId, displayName)
+                result
             }
 
         @Bean
