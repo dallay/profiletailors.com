@@ -2,13 +2,13 @@ package com.profiletailors.spring.boot.bus.event
 
 import com.profiletailors.common.domain.bus.event.DomainEvent
 import com.profiletailors.common.domain.bus.event.EventConsumer
+import kotlinx.coroutines.runBlocking
 import java.time.LocalDateTime
 import java.util.concurrent.atomic.AtomicReference
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertNotNull
 import kotlin.test.assertNull
-import kotlinx.coroutines.runBlocking
 
 class EventEmitterTest {
 

@@ -12,9 +12,7 @@ import com.profiletailors.common.domain.bus.pipeline.PipelineBehavior
 import com.profiletailors.common.domain.bus.query.Query
 import com.profiletailors.common.domain.bus.query.QueryHandler
 
-class RegistryImpl(
-    dependencyProvider: DependencyProvider,
-) : Registry {
+class RegistryImpl(dependencyProvider: DependencyProvider) : Registry {
     private val registry = Container(dependencyProvider)
 
     override fun <TCommand : Command> resolveCommandHandler(
@@ -47,6 +45,5 @@ class RegistryImpl(
         return handler as QueryHandler<TQuery, TResult>
     }
 
-    override fun getPipelineBehaviors(): Collection<PipelineBehavior> =
-        registry.pipelineSet.map { it.get() }
+    override fun getPipelineBehaviors(): Collection<PipelineBehavior> = registry.pipelineSet.map { it.get() }
 }

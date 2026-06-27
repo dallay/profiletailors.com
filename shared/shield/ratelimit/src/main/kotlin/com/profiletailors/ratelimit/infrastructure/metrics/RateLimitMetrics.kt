@@ -6,8 +6,8 @@ import io.micrometer.core.instrument.Counter
 import io.micrometer.core.instrument.MeterRegistry
 import io.micrometer.core.instrument.Tag
 import io.micrometer.core.instrument.Timer
-import java.util.concurrent.atomic.AtomicInteger
 import org.springframework.stereotype.Component
+import java.util.concurrent.atomic.AtomicInteger
 
 private const val STRATEGY = "strategy"
 
@@ -77,10 +77,7 @@ class RateLimitMetrics(private val meterRegistry: MeterRegistry) {
      * @param operation A function that performs the token consumption
      * @return The result of the operation
      */
-    suspend fun <T : Any> recordTokenConsumption(
-        strategy: RateLimitStrategy,
-        operation: suspend () -> T
-    ): T {
+    suspend fun <T : Any> recordTokenConsumption(strategy: RateLimitStrategy, operation: suspend () -> T): T {
         val timer = Timer.builder("rate_limit.token.consumption.time")
             .tag(STRATEGY, strategy.name.lowercase())
             .description("Time taken to consume a rate limit token")

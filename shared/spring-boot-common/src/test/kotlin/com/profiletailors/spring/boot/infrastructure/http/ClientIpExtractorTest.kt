@@ -1,11 +1,11 @@
 package com.profiletailors.spring.boot.infrastructure.http
 
+import org.springframework.mock.http.server.reactive.MockServerHttpRequest
 import java.net.InetSocketAddress
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
 import kotlin.test.assertTrue
-import org.springframework.mock.http.server.reactive.MockServerHttpRequest
 
 class ClientIpExtractorTest {
 

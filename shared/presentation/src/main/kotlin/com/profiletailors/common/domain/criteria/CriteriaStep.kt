@@ -21,9 +21,11 @@ data class CriteriaStep(val key: String) {
     fun notLike(value: String) = Criteria.NotLike(key, value)
     fun regexp(value: Pattern) = Criteria.Regexp(key, value)
     fun notRegexp(value: Pattern) = Criteria.NotRegexp(key, value)
+
     @Suppress("FunctionNaming")
     fun `in`(vararg value: Any) = Criteria.In(key, value.toList())
     fun notIn(vararg value: Any) = Criteria.NotIn(key, value.toList())
+
     @Suppress("FunctionNaming")
     fun `in`(value: List<Any>) = Criteria.In(key, value)
     fun notIn(value: List<Any>) = Criteria.NotIn(key, value)

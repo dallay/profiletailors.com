@@ -79,7 +79,7 @@ class ApiControllerTest {
         }.flatMap {
             mono { it.testGetAuthentication() }
         }.contextWrite(ReactiveSecurityContextHolder.withSecurityContext(Mono.just(context)))
-        .block()
+            .block()
 
         result shouldBe auth
     }
@@ -96,7 +96,7 @@ class ApiControllerTest {
         }.flatMap {
             mono { it.testGetUserId() }
         }.contextWrite(ReactiveSecurityContextHolder.withSecurityContext(Mono.just(context)))
-        .block()
+            .block()
 
         result shouldBe "user-123"
     }
@@ -111,7 +111,7 @@ class ApiControllerTest {
         }.flatMap {
             mono { it.testGetUserId() }
         }.contextWrite(ReactiveSecurityContextHolder.withSecurityContext(Mono.just(context)))
-        .block()
+            .block()
 
         result shouldBe null
     }
@@ -131,7 +131,7 @@ class ApiControllerTest {
         }.flatMap {
             mono { it.testGetUserEmail() }
         }.contextWrite(ReactiveSecurityContextHolder.withSecurityContext(Mono.just(context)))
-        .block()
+            .block()
 
         result shouldBe "test@example.com"
     }
@@ -149,7 +149,7 @@ class ApiControllerTest {
         }.flatMap {
             mono { it.testGetUserIdFromToken() }
         }.contextWrite(ReactiveSecurityContextHolder.withSecurityContext(Mono.just(context)))
-        .block()
+            .block()
 
         result shouldBe userId
     }
@@ -260,7 +260,7 @@ class ApiControllerTest {
         }.flatMap {
             mono { it.testGetUserEmail() }
         }.contextWrite(ReactiveSecurityContextHolder.withSecurityContext(Mono.just(context)))
-        .block()
+            .block()
 
         result shouldBe null
     }
@@ -287,7 +287,7 @@ class ApiControllerTest {
     @Test
     fun `should fallback to English locale when no accept-language header`() {
         val request = mockk<ServerHttpRequest>()
-        val headers = HttpHeaders()  // no Accept-Language
+        val headers = HttpHeaders() // no Accept-Language
         coEvery { request.headers } returns headers
 
         val messageSource = mockk<MessageSource>()

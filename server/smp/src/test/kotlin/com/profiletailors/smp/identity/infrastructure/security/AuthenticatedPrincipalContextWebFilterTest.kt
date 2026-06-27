@@ -1,8 +1,8 @@
 package com.profiletailors.smp.identity.infrastructure.security
 
-import com.profiletailors.smp.credentials.domain.CredentialType
 import com.profiletailors.common.domain.context.PrincipalContext
 import com.profiletailors.common.domain.context.PrincipalType
+import com.profiletailors.smp.credentials.domain.CredentialType
 import com.profiletailors.smp.identity.domain.AuthenticatedPrincipal
 import com.profiletailors.smp.platform.infrastructure.InMemoryRequestContextStore
 import kotlinx.coroutines.test.runTest
@@ -38,11 +38,16 @@ class AuthenticatedPrincipalContextWebFilterTest {
         val exchange = MockServerWebExchange.from(MockServerHttpRequest.get("/").build())
         var seenDuringChain: PrincipalContext? = null
 
-        filter.filter(exchange, WebFilterChain {
-            seenDuringChain = store.currentPrincipalContext()
-            Mono.empty()
-        })
-            .contextWrite(ReactiveSecurityContextHolder.withSecurityContext(Mono.just(SecurityContextImpl(authentication))))
+        filter.filter(
+            exchange,
+            WebFilterChain {
+                seenDuringChain = store.currentPrincipalContext()
+                Mono.empty()
+            },
+        )
+            .contextWrite(
+                ReactiveSecurityContextHolder.withSecurityContext(Mono.just(SecurityContextImpl(authentication))),
+            )
             .block()
 
         assertEquals(principal.context, seenDuringChain)
@@ -76,7 +81,9 @@ class AuthenticatedPrincipalContextWebFilterTest {
         val exchange = MockServerWebExchange.from(MockServerHttpRequest.get("/").build())
 
         filter.filter(exchange, WebFilterChain { Mono.empty() })
-            .contextWrite(ReactiveSecurityContextHolder.withSecurityContext(Mono.just(SecurityContextImpl(authentication))))
+            .contextWrite(
+                ReactiveSecurityContextHolder.withSecurityContext(Mono.just(SecurityContextImpl(authentication))),
+            )
             .block()
 
         assertNull(store.currentPrincipalContext())

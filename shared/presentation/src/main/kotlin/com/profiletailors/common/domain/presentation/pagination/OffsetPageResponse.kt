@@ -23,9 +23,7 @@ data class OffsetPageResponse<T>(
     val totalPages: Int? = null,
 ) : PageResponse<T>(data)
 
-inline fun <T, U> OffsetPageResponse<T>.map(
-    func: (Collection<T>) -> Collection<U>
-) = OffsetPageResponse(
+inline fun <T, U> OffsetPageResponse<T>.map(func: (Collection<T>) -> Collection<U>) = OffsetPageResponse(
     data = func(data),
     total = total,
     perPage = perPage,

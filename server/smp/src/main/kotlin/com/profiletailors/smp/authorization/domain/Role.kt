@@ -6,8 +6,4 @@ enum class RoleCategory {
     CUSTOM,
 }
 
-data class Role(
-    val key: String,
-    val category: RoleCategory,
-    val permissions: Set<PermissionKey>,
-)
+data class Role(val key: String, val category: RoleCategory, val permissions: Set<PermissionKey>)

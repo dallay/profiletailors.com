@@ -65,18 +65,19 @@ class R2dbcRefreshSessionGateway(
         )
     }
 
-    override suspend fun requireActive(
-        refreshToken: RefreshSessionToken,
-        now: Instant,
-    ): ActiveRefreshSession {
+    override suspend fun requireActive(refreshToken: RefreshSessionToken, now: Instant): ActiveRefreshSession {
         val record = lookup(refreshToken.lookupKey)
 
         val failureReason = when {
             record.status == RefreshSessionStatus.REVOKED -> RefreshSessionFailureReason.REVOKED
+
             record.status == RefreshSessionStatus.ROTATED -> RefreshSessionFailureReason.ROTATED
+
             record.expiresAt.isBefore(now) -> RefreshSessionFailureReason.EXPIRED
+
             !refreshTokenHasher.matches(refreshToken.secret, record.tokenVerifier) ->
                 RefreshSessionFailureReason.INVALID
+
             else -> null
         }
 

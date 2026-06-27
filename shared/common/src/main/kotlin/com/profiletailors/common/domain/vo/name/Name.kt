@@ -33,7 +33,6 @@ data class Name(val firstName: FirstName, val lastName: LastName?) : Comparable<
          * @param lastName the optional last name (validated by [LastName])
          * @return a validated [Name]
          */
-        fun of(firstName: String, lastName: String?): Name =
-            Name(FirstName(firstName), lastName?.let { LastName(it) })
+        fun of(firstName: String, lastName: String?): Name = Name(FirstName(firstName), lastName?.let { LastName(it) })
     }
 }

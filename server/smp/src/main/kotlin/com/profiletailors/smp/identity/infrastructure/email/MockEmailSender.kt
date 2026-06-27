@@ -1,7 +1,7 @@
 package com.profiletailors.smp.identity.infrastructure.email
 
-import com.profiletailors.smp.identity.application.EmailSender
 import com.profiletailors.smp.identity.application.EmailSendResult
+import com.profiletailors.smp.identity.application.EmailSender
 import org.slf4j.LoggerFactory
 import org.springframework.stereotype.Component
 

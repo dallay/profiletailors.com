@@ -1,9 +1,9 @@
 package com.profiletailors.smp.publishing.infrastructure.credentials
 
 import com.fasterxml.jackson.databind.ObjectMapper
-import com.profiletailors.smp.publishing.domain.RefreshAwareCredentialResolver
 import com.profiletailors.smp.publishing.domain.ReconnectReason
 import com.profiletailors.smp.publishing.domain.ReconnectRequiredException
+import com.profiletailors.smp.publishing.domain.RefreshAwareCredentialResolver
 import com.profiletailors.smp.publishing.domain.SocialAccount
 import com.profiletailors.smp.publishing.domain.SocialConnectionRepository
 import com.profiletailors.smp.publishing.infrastructure.linkedin.LinkedInHttpTransport
@@ -11,11 +11,11 @@ import com.profiletailors.smp.publishing.infrastructure.linkedin.LinkedInPublish
 import com.profiletailors.smp.publishing.infrastructure.linkedin.formUrlEncoded
 import org.slf4j.LoggerFactory
 import org.springframework.stereotype.Component
+import java.io.IOException
 import java.net.URI
 import java.net.http.HttpRequest
 import java.net.http.HttpTimeoutException
 import java.time.Clock
-import java.io.IOException
 import java.util.UUID
 
 /**
@@ -188,6 +188,7 @@ class RefreshAwareCredentialResolverImpl(
     private companion object {
         /** Refresh access token 5 minutes before expiry */
         const val REFRESH_AHEAD_SECONDS = 5 * 60L
+
         /** Valid HTTP status range for successful token exchange responses */
         val HTTP_SUCCESS_RANGE = 200..299
     }

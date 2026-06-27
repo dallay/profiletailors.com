@@ -10,11 +10,7 @@ import kotlin.reflect.KProperty1
 
 internal class RHSFilterParserTest {
 
-    data class TestResource(
-        val name: String = "",
-        val age: Int = 0,
-        val status: String = "",
-    )
+    data class TestResource(val name: String = "", val age: Int = 0, val status: String = "")
 
     private val parser = RHSFilterParser(TestResource::class, ObjectMapper())
 
@@ -62,10 +58,12 @@ internal class RHSFilterParserTest {
 
     @Test
     fun `should combine multiple fields with AND by default`() {
-        val result = parser.parse(queryOf(
-            TestResource::status to listOf("eq:active"),
-            TestResource::age to listOf("gte:18"),
-        ))
+        val result = parser.parse(
+            queryOf(
+                TestResource::status to listOf("eq:active"),
+                TestResource::age to listOf("gte:18"),
+            ),
+        )
 
         assertThat(result).isInstanceOf(Criteria.And::class.java)
         val and = result as Criteria.And

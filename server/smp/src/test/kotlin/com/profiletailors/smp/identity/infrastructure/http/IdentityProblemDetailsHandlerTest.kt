@@ -3,12 +3,12 @@ package com.profiletailors.smp.identity.infrastructure.http
 import com.profiletailors.smp.identity.application.AuthFeature
 import com.profiletailors.smp.identity.application.FeatureEmailVerificationRequired
 import com.profiletailors.smp.identity.application.UnverifiedEmailException
-import java.net.URI
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.params.ParameterizedTest
 import org.junit.jupiter.params.provider.Arguments
 import org.junit.jupiter.params.provider.MethodSource
 import org.springframework.http.HttpStatus
+import java.net.URI
 
 /**
  * Unit tests for [IdentityProblemDetailsHandler] exception-to-ProblemDetail mappings.
@@ -23,9 +23,7 @@ class IdentityProblemDetailsHandlerTest {
 
     @ParameterizedTest
     @MethodSource("emailVerificationExceptions")
-    fun `email verification exceptions map to RFC 9457 problem detail`(
-        exception: UnverifiedEmailException,
-    ) {
+    fun `email verification exceptions map to RFC 9457 problem detail`(exception: UnverifiedEmailException) {
         assertProblemDetail(handler.handle(exception))
     }
 

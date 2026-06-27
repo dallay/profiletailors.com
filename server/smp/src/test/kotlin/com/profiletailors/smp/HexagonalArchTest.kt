@@ -37,13 +37,12 @@ internal class HexagonalArchTest {
             .importPackages("com.profiletailors.smp")
     }
 
-    private fun discoverBoundedContexts(): List<String> =
-        importedClasses.map { it.packageName }
-            .filterNot { it.isBlank() }
-            .mapNotNull { THREE_LAYER_PACKAGE.matchEntire(it) }
-            .map { it.value.removePrefix("com.profiletailors.smp.").substringBefore('.') }
-            .distinct()
-            .sorted()
+    private fun discoverBoundedContexts(): List<String> = importedClasses.map { it.packageName }
+        .filterNot { it.isBlank() }
+        .mapNotNull { THREE_LAYER_PACKAGE.matchEntire(it) }
+        .map { it.value.removePrefix("com.profiletailors.smp.").substringBefore('.') }
+        .distinct()
+        .sorted()
 
     @Test
     fun domainLayerShouldNotDependOnSpring() {

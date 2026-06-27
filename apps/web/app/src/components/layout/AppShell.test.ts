@@ -198,6 +198,7 @@ describe('AppShell scheduler sidebar navigation', () => {
     await wrapper.find('[data-testid="all-channels"]').trigger('click')
 
     expect(push).not.toHaveBeenCalled()
+    expect(routeState.query).toEqual({})
   })
 
   it('adds selected account id to scheduler route state when already on scheduler', async () => {
@@ -212,6 +213,7 @@ describe('AppShell scheduler sidebar navigation', () => {
     await wrapper.find('[data-testid="channel-linkedin"]').trigger('click')
 
     expect(push).not.toHaveBeenCalled()
+    expect(routeState.query).toEqual({ 'channels[]': ['acc-linkedin'] })
   })
 
   it('navigates to canonical scheduler week route with channels[] when outside scheduler', async () => {

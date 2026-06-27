@@ -28,10 +28,7 @@ class MediaAssetResolverImpl(
 
     private val logger = LoggerFactory.getLogger(MediaAssetResolverImpl::class.java)
 
-    override suspend fun resolveReadyAssets(
-        workspaceId: String,
-        assetIds: List<String>,
-    ): List<ResolvedAssetSummary> {
+    override suspend fun resolveReadyAssets(workspaceId: String, assetIds: List<String>): List<ResolvedAssetSummary> {
         if (assetIds.isEmpty()) return emptyList()
 
         // 1. Resolve media-context-owned assets
@@ -80,16 +77,17 @@ class MediaAssetResolverImpl(
                 ResolvedAssetSummary(
                     assetId = asset.assetId,
                     workspaceId = asset.workspaceId,
-                    storageKey = asset.storageKey,
+                    storageKey = asset.storageKey ?: error("READY asset ${asset.assetId} has no storageKey"),
                     mediaType = asset.mediaType,
                 )
             }
 
-        val resolvedLegacy = legacyAssets.map { asset ->
+        val resolvedLegacy = legacyAssets.mapNotNull { asset ->
+            val key = asset.storageKey ?: return@mapNotNull null
             ResolvedAssetSummary(
                 assetId = asset.id,
                 workspaceId = asset.workspaceId,
-                storageKey = asset.storageKey!!,
+                storageKey = key,
                 mediaType = asset.mediaType,
             )
         }

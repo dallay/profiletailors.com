@@ -27,17 +27,21 @@ export class ComposeModalPage {
     return this.page.getByPlaceholder(/your comment|tu comentario/i)
   }
 
-  // Schedule mode tabs
+  // Schedule mode tabs — labels wrap the visually-hidden radio inputs,
+  // so we target the <label> for both clicking (toggles the radio) and
+  // class checks (bg-text-display is on the label, not the input).
   get nowTab(): Locator {
-    return this.page.getByRole('radio', { name: /^now$/i })
+    return this.page.getByRole('radio', { name: /^now$/i }).locator('xpath=..')
   }
 
   get nextScheduleTab(): Locator {
-    return this.page.getByRole('radio', { name: 'Next Schedule' })
+    return this.page.getByRole('radio', { name: 'Next Schedule' }).locator('xpath=..')
   }
 
   get pickDateTab(): Locator {
-    return this.page.getByRole('radio', { name: /pick date|seleccionar fecha/i })
+    return this.page
+      .getByRole('radio', { name: /pick date|seleccionar fecha/i })
+      .locator('xpath=..')
   }
 
   // Date/time pickers (visible when Pick Date is active)

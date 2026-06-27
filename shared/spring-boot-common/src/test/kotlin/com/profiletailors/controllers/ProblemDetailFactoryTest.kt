@@ -1,12 +1,12 @@
 package com.profiletailors.controllers
 
+import org.springframework.http.HttpStatus
+import org.springframework.mock.http.server.reactive.MockServerHttpRequest
+import org.springframework.mock.web.server.MockServerWebExchange
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertNotNull
 import kotlin.test.assertNull
-import org.springframework.http.HttpStatus
-import org.springframework.mock.http.server.reactive.MockServerHttpRequest
-import org.springframework.mock.web.server.MockServerWebExchange
 
 class ProblemDetailFactoryTest {
 
@@ -18,7 +18,6 @@ class ProblemDetailFactoryTest {
             detail = "Invalid input",
             typeSuffix = "bad-request",
             errorCategory = "VALIDATION",
-            exchange = null,
         )
 
         assertEquals(HttpStatus.BAD_REQUEST.value(), problem.status)
@@ -38,7 +37,6 @@ class ProblemDetailFactoryTest {
             detail = null,
             typeSuffix = "entity-not-found",
             errorCategory = "NOT_FOUND",
-            exchange = null,
         )
 
         assertEquals(ENTITY_NOT_FOUND, problem.detail)
@@ -55,8 +53,7 @@ class ProblemDetailFactoryTest {
             detail = "missing",
             typeSuffix = "entity-not-found",
             errorCategory = "NOT_FOUND",
-            exchange = exchange,
-            includeInstance = true,
+            options = ProblemDetailOptions(exchange = exchange, includeInstance = true),
         )
 
         assertEquals(exchange.request.id, problem.properties!![TRACE_ID])
@@ -71,10 +68,11 @@ class ProblemDetailFactoryTest {
             detail = "Invalid request",
             typeSuffix = "validation/constraint-violation",
             errorCategory = "VALIDATION",
-            exchange = null,
-            messageKey = "error.validation.failed",
-            localizedMessage = "La validación falló",
-            additionalProperties = mapOf("field" to "email"),
+            options = ProblemDetailOptions(
+                messageKey = "error.validation.failed",
+                localizedMessage = "La validación falló",
+                additionalProperties = mapOf("field" to "email"),
+            ),
         )
 
         assertEquals("error.validation.failed", problem.properties!![MESSAGE_KEY])

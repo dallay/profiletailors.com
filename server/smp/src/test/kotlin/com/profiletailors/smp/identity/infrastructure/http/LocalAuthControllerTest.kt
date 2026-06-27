@@ -7,9 +7,9 @@ import com.profiletailors.common.domain.bus.command.CommandWithResult
 import com.profiletailors.common.domain.bus.notification.Notification
 import com.profiletailors.common.domain.bus.query.Query
 import com.profiletailors.common.testfixture.CredentialGenerator
-import com.profiletailors.smp.credentials.infrastructure.RefreshSessionCookieFactory
 import com.profiletailors.smp.credentials.application.RefreshSessionProperties
 import com.profiletailors.smp.credentials.application.RefreshSessionToken
+import com.profiletailors.smp.credentials.infrastructure.RefreshSessionCookieFactory
 import com.profiletailors.smp.identity.application.AuthTokens
 import com.profiletailors.smp.identity.application.LocalAuthSessionResult
 import com.profiletailors.smp.identity.application.LoginUserCommand
@@ -65,7 +65,9 @@ class LocalAuthControllerTest {
         assertEquals("yuniel@example.com", response.body?.email)
         assertEquals("PENDING", response.body?.emailStatus)
         // Verify refresh cookie is set
-        assertTrue(response.headers["Set-Cookie"]?.first()?.contains("pt_refresh=refresh-lookup.refresh-secret") == true)
+        assertTrue(
+            response.headers["Set-Cookie"]?.first()?.contains("pt_refresh=refresh-lookup.refresh-secret") == true,
+        )
         assertEquals(
             RegisterUserCommand(
                 email = "yuniel@example.com",
@@ -91,7 +93,9 @@ class LocalAuthControllerTest {
         assertEquals(200, response.statusCode.value())
         assertEquals("token-2", response.body?.accessToken)
         assertEquals("PENDING", response.body?.emailStatus)
-        assertTrue(response.headers["Set-Cookie"]?.first()?.contains("pt_refresh=refresh-lookup.refresh-secret") == true)
+        assertTrue(
+            response.headers["Set-Cookie"]?.first()?.contains("pt_refresh=refresh-lookup.refresh-secret") == true,
+        )
         assertEquals(
             LoginUserCommand(
                 email = "login@example.com",
@@ -115,7 +119,10 @@ class LocalAuthControllerTest {
 
     @Test
     fun `dispatches logout command and clears refresh cookie`() = runTest {
-        val mediator = CapturingMediator(sessionResult = sessionResult("token-4", "user-4", "logout@example.com", "logout", "VERIFIED"))
+        val mediator =
+            CapturingMediator(
+                sessionResult = sessionResult("token-4", "user-4", "logout@example.com", "logout", "VERIFIED"),
+            )
         mediator.logoutResult = LogoutUserSessionResult()
         val controller = LocalAuthController(mediator, cookieFactory, cookieProperties)
 
@@ -136,7 +143,9 @@ class LocalAuthControllerTest {
 
         assertEquals(200, response.statusCode.value())
         assertEquals("token-5", response.body?.accessToken)
-        assertTrue(response.headers["Set-Cookie"]?.first()?.contains("pt_refresh=refresh-lookup.refresh-secret") == true)
+        assertTrue(
+            response.headers["Set-Cookie"]?.first()?.contains("pt_refresh=refresh-lookup.refresh-secret") == true,
+        )
         assertEquals(VerifyEmailCommand(token = "test-token"), mediator.lastRequest)
     }
 
@@ -182,9 +191,7 @@ class LocalAuthControllerTest {
             .cookie(org.springframework.http.HttpCookie(name, value))
             .build()
 
-    private class CapturingMediator(
-        private val sessionResult: LocalAuthSessionResult? = null,
-    ) : Mediator {
+    private class CapturingMediator(private val sessionResult: LocalAuthSessionResult? = null) : Mediator {
         var lastRequest: Any? = null
         var logoutResult: LogoutUserSessionResult = LogoutUserSessionResult()
         var resendResult: ResendVerificationResult = ResendVerificationResult()

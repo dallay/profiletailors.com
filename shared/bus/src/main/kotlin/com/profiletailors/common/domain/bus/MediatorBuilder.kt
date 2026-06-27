@@ -12,9 +12,7 @@ package com.profiletailors.common.domain.bus
  *
  * @param dependencyProvider provides handler instances by type
  */
-class MediatorBuilder(
-    private val dependencyProvider: DependencyProvider,
-) {
+class MediatorBuilder(private val dependencyProvider: DependencyProvider) {
     internal var defaultPublishStrategy: PublishStrategy = StopOnExceptionPublishStrategy()
         private set
 

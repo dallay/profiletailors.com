@@ -3,12 +3,9 @@ package com.profiletailors.smp.credentials.application
 import com.profiletailors.common.domain.context.PrincipalType
 import com.profiletailors.smp.credentials.domain.CredentialException
 
-data class ActiveServiceAccountCredential(
-    val principalId: String,
-    val credentialReference: String,
-)
+data class ActiveServiceAccountCredential(val principalId: String, val credentialReference: String)
 
-interface ServiceAccountCredentialStateLookup {
+fun interface ServiceAccountCredentialStateLookup {
     suspend fun requireActive(
         credentialReference: String,
         subject: String,

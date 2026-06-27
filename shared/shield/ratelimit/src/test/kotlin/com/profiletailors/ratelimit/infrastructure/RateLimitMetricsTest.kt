@@ -7,11 +7,11 @@ import io.kotest.matchers.shouldBe
 import io.kotest.matchers.string.shouldStartWith
 import io.micrometer.core.instrument.MeterRegistry
 import io.micrometer.core.instrument.simple.SimpleMeterRegistry
-import java.time.Duration
-import java.time.Instant
 import kotlinx.coroutines.test.runTest
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
+import java.time.Duration
+import java.time.Instant
 
 /**
  * Unit tests for RateLimitMetrics.
@@ -50,8 +50,10 @@ class RateLimitMetricsTest {
         // Then
         val counter = meterRegistry.counter(
             "rate_limit.requests.total",
-            "strategy", "auth",
-            "result", "allowed",
+            "strategy",
+            "auth",
+            "result",
+            "allowed",
         )
         counter.count() shouldBe 1.0
     }
@@ -72,14 +74,17 @@ class RateLimitMetricsTest {
         // Then
         val requestsCounter = meterRegistry.counter(
             "rate_limit.requests.total",
-            "strategy", "business",
-            "result", "denied",
+            "strategy",
+            "business",
+            "result",
+            "denied",
         )
         requestsCounter.count() shouldBe 1.0
 
         val deniedCounter = meterRegistry.counter(
             "rate_limit.denied.total",
-            "strategy", "business",
+            "strategy",
+            "business",
         )
         deniedCounter.count() shouldBe 1.0
     }
@@ -106,21 +111,26 @@ class RateLimitMetricsTest {
         // Then
         val allowedCounter = meterRegistry.counter(
             "rate_limit.requests.total",
-            "strategy", "business",
-            "result", "allowed",
+            "strategy",
+            "business",
+            "result",
+            "allowed",
         )
         allowedCounter.count() shouldBe 3.0
 
         val deniedCounter = meterRegistry.counter(
             "rate_limit.requests.total",
-            "strategy", "business",
-            "result", "denied",
+            "strategy",
+            "business",
+            "result",
+            "denied",
         )
         deniedCounter.count() shouldBe 2.0
 
         val totalDenied = meterRegistry.counter(
             "rate_limit.denied.total",
-            "strategy", "business",
+            "strategy",
+            "business",
         )
         totalDenied.count() shouldBe 2.0
     }
@@ -138,15 +148,19 @@ class RateLimitMetricsTest {
         // Then
         val authCounter = meterRegistry.counter(
             "rate_limit.requests.total",
-            "strategy", "auth",
-            "result", "allowed",
+            "strategy",
+            "auth",
+            "result",
+            "allowed",
         )
         authCounter.count() shouldBe 1.0
 
         val businessCounter = meterRegistry.counter(
             "rate_limit.requests.total",
-            "strategy", "business",
-            "result", "allowed",
+            "strategy",
+            "business",
+            "result",
+            "allowed",
         )
         businessCounter.count() shouldBe 1.0
     }
@@ -188,7 +202,8 @@ class RateLimitMetricsTest {
 
         val timer = meterRegistry.timer(
             "rate_limit.token.consumption.time",
-            "strategy", "waitlist",
+            "strategy",
+            "waitlist",
         )
         timer.count() shouldBe 1L
     }
@@ -210,7 +225,8 @@ class RateLimitMetricsTest {
         // Then
         val timer = meterRegistry.timer(
             "rate_limit.token.consumption.time",
-            "strategy", "auth",
+            "strategy",
+            "auth",
         )
         timer.count() shouldBe 5L
     }
@@ -225,13 +241,15 @@ class RateLimitMetricsTest {
         // Then
         val authTimer = meterRegistry.timer(
             "rate_limit.token.consumption.time",
-            "strategy", "auth",
+            "strategy",
+            "auth",
         )
         authTimer.count() shouldBe 2L
 
         val businessTimer = meterRegistry.timer(
             "rate_limit.token.consumption.time",
-            "strategy", "business",
+            "strategy",
+            "business",
         )
         businessTimer.count() shouldBe 1L
     }

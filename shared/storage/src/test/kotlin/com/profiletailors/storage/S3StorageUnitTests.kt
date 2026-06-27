@@ -69,9 +69,14 @@ class S3StorageUnitTests {
 
         val responsePublisher = mockk<ResponsePublisher<GetObjectResponse>>()
         val future = java.util.concurrent.CompletableFuture.completedFuture(responsePublisher)
-        
-        io.mockk.every { client.getObject(any<GetObjectRequest>(), any<AsyncResponseTransformer<GetObjectResponse, ResponsePublisher<GetObjectResponse>>>()) } returns future
-        
+
+        io.mockk.every {
+            client.getObject(
+                any<GetObjectRequest>(),
+                any<AsyncResponseTransformer<GetObjectResponse, ResponsePublisher<GetObjectResponse>>>(),
+            )
+        } returns future
+
         // Mock publisher to emit one byte buffer
         val byteBuffer = ByteBuffer.wrap("hello".toByteArray())
         io.mockk.every { responsePublisher.subscribe(any<org.reactivestreams.Subscriber<in ByteBuffer>>()) } answers {
@@ -86,7 +91,9 @@ class S3StorageUnitTests {
         }
 
         val emitted = runBlocking {
-            storage.download(bucket, key).toList().fold(ByteArray(0)) { acc: ByteArray, bytes: ByteArray -> acc + bytes }
+            storage.download(bucket, key).toList().fold(ByteArray(0)) { acc: ByteArray, bytes: ByteArray ->
+                acc + bytes
+            }
         }
         assertEquals("hello", String(emitted))
     }
@@ -453,7 +460,8 @@ class S3StorageUnitTests {
         val future2: CompletableFuture<ListObjectsV2Response> = CompletableFuture.completedFuture(listResp2)
 
         every { client.listObjectsV2(match<ListObjectsV2Request> { it.continuationToken() == null }) } returns future1
-        every { client.listObjectsV2(match<ListObjectsV2Request> { it.continuationToken() == "token123" }) } returns future2
+        every { client.listObjectsV2(match<ListObjectsV2Request> { it.continuationToken() == "token123" }) } returns
+            future2
 
         val result = runBlocking { storage.list(bucket, "uploads/") }
 

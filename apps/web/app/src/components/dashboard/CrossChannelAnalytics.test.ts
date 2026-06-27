@@ -69,6 +69,6 @@ describe('CrossChannelAnalytics', () => {
       props: { channels: [makeChannel('linkedin'), makeChannel('twitter')] },
     })
     const bars = wrapper.findAll('.rounded-full.overflow-hidden > div')
-    expect(bars.length).toBe(2)
+    expect(bars).toHaveLength(2)
   })
 })

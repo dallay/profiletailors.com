@@ -13,7 +13,6 @@ import {
   Loader2,
   RotateCcw,
   Sparkles,
-  Upload,
   X,
 } from '@lucide/vue'
 import { useAuthStore } from '@/stores/auth'
@@ -21,7 +20,6 @@ import { usePublishingStore, type Publication } from '@/stores/publishing'
 import { useMediaStore } from '@/stores/media'
 import { proxyImageUrl, resolveApiUrl } from '@/lib/auth-api'
 import PostPreviewPanel from '@/components/composer/PostPreviewPanel.vue'
-import { PREVIEW_PROVIDERS } from '@/components/composer/post-preview.types'
 import type { LinkedInPreviewModel, PostPreviewMedia } from '@/components/composer/post-preview.types'
 import { Button } from '@/components/ui/button'
 import { Calendar } from '@/components/ui/calendar'
@@ -124,6 +122,55 @@ const minTimeForDate = computed(() => {
   return '00:00'
 })
 
+function initEditMode(pub: NonNullable<typeof props.editingPublication>) {
+  postText.value = pub.content ?? ''
+  firstComment.value = ''
+  priorityMode.value = pub.priority ?? false
+  const modeMap: Record<string, ComposerScheduleMode> = {
+    NOW: 'now',
+    NEXT_SLOT: 'next',
+    SCHEDULED_AT: 'custom',
+  }
+  scheduleMode.value = modeMap[pub.scheduleMode ?? 'SCHEDULED_AT'] ?? 'custom'
+
+  mediaStore.clearSelection()
+  if (pub.assetIds?.length) {
+    for (const assetId of pub.assetIds) {
+      mediaStore.addToSelection(assetId)
+    }
+  }
+
+  const pubChannelId = pub.accountId
+    ?? publishingStore.channels.find((ch) => pub.channels?.includes(ch.provider))?.id
+    ?? null
+  selectedChannelId.value = pubChannelId
+
+  const dateSrc = pub.scheduledAt ? new Date(pub.scheduledAt) : new Date()
+  selectedCalendarDate.value = new CalendarDate(
+    dateSrc.getFullYear(),
+    dateSrc.getMonth() + 1,
+    dateSrc.getDate(),
+  )
+  scheduleTime.value = `${String(dateSrc.getHours()).padStart(2, '0')}:${String(dateSrc.getMinutes()).padStart(2, '0')}`
+}
+
+function initCreateMode() {
+  postText.value = ''
+  firstComment.value = ''
+  priorityMode.value = false
+  scheduleMode.value = props.initialDate ? 'custom' : 'now'
+  mediaStore.clearSelection()
+  selectedChannelId.value = publishingStore.channels[0]?.id ?? null
+
+  const defaultDate = props.initialDate ? new Date(props.initialDate) : new Date()
+  selectedCalendarDate.value = new CalendarDate(
+    defaultDate.getFullYear(),
+    defaultDate.getMonth() + 1,
+    defaultDate.getDate(),
+  )
+  scheduleTime.value = `${String(defaultDate.getHours()).padStart(2, '0')}:${String(defaultDate.getMinutes()).padStart(2, '0')}`
+}
+
 async function initializeComposerForOpen() {
   submitError.value = ''
   isDatePickerOpen.value = false
@@ -134,58 +181,9 @@ async function initializeComposerForOpen() {
   uploadProgress.value = 0
 
   if (isEditMode.value && props.editingPublication) {
-    // ---- Edit mode: pre-fill from existing publication ----
-    const pub = props.editingPublication
-    postText.value = pub.content ?? ''
-    firstComment.value = ''
-    priorityMode.value = pub.priority ?? false
-    const modeMap: Record<string, ComposerScheduleMode> = {
-      NOW: 'now',
-      NEXT_SLOT: 'next',
-      SCHEDULED_AT: 'custom',
-    }
-    scheduleMode.value = modeMap[pub.scheduleMode ?? 'SCHEDULED_AT'] ?? 'custom'
-
-    mediaStore.clearSelection()
-    if (pub.assetIds?.length) {
-      // Hydrate assets into media store before selecting them so previews render correctly
-      for (const assetId of pub.assetIds) {
-        if (!mediaStore.assetsById[assetId]) {
-          // Asset not yet loaded; fetch/hydrate would go here in a real implementation
-          // For now, just add to selection and trust that assetsById is already populated
-        }
-        mediaStore.addToSelection(assetId)
-      }
-    }
-
-    const pubChannelId = pub.accountId
-      ?? publishingStore.channels.find((ch) => pub.channels?.includes(ch.provider))?.id
-      ?? null
-    selectedChannelId.value = pubChannelId
-
-    const dateSrc = pub.scheduledAt ? new Date(pub.scheduledAt) : new Date()
-    selectedCalendarDate.value = new CalendarDate(
-      dateSrc.getFullYear(),
-      dateSrc.getMonth() + 1,
-      dateSrc.getDate(),
-    )
-    scheduleTime.value = `${String(dateSrc.getHours()).padStart(2, '0')}:${String(dateSrc.getMinutes()).padStart(2, '0')}`
+    initEditMode(props.editingPublication)
   } else {
-    // ---- Create mode: start with empty form ----
-    postText.value = ''
-    firstComment.value = ''
-    priorityMode.value = false
-    scheduleMode.value = props.initialDate ? 'custom' : 'now'
-    mediaStore.clearSelection()
-    selectedChannelId.value = publishingStore.channels[0]?.id ?? null
-
-    const defaultDate = props.initialDate ? new Date(props.initialDate) : new Date()
-    selectedCalendarDate.value = new CalendarDate(
-      defaultDate.getFullYear(),
-      defaultDate.getMonth() + 1,
-      defaultDate.getDate(),
-    )
-    scheduleTime.value = `${String(defaultDate.getHours()).padStart(2, '0')}:${String(defaultDate.getMinutes()).padStart(2, '0')}`
+    initCreateMode()
   }
 
   if (auth.isAuthenticated) {
@@ -248,7 +246,7 @@ const selectedChannel = computed(() =>
 const selectedProviders = computed(() =>
   selectedChannel.value ? [selectedChannel.value.provider] : [],
 )
-const selectedPreviewProvider = computed(() => PREVIEW_PROVIDERS.LINKEDIN)
+const selectedPreviewProvider = 'linkedin'
 const selectedChannelInitials = computed(() => {
   const name = selectedChannel.value?.name?.trim()
   if (!name) return 'PT'
@@ -284,7 +282,7 @@ const scheduleHelperText = computed(() => {
 
 const canSubmit = computed(() => {
   return (
-    selectedChannel.value !== null &&
+    !!selectedChannel.value &&
     postText.value.trim().length > 0 &&
     !isTextTooLong.value &&
     !isSubmitting.value
@@ -325,7 +323,7 @@ function handleFileSelect(e: Event) {
 }
 
 function addFiles(filesList: File[]) {
-  const validFiles = filesList.filter((file) => {
+  const file = filesList.find((file) => {
     const isSupported =
       file.type.startsWith('image/') ||
       file.type === 'video/mp4' ||
@@ -336,12 +334,7 @@ function addFiles(filesList: File[]) {
     return isSupported && isUnderLimit
   })
 
-  // Limit to max 1 image for LinkedIn MVP simple preview.
-  // File is stored locally for deferred upload — no server call until Schedule Post.
-  const file = validFiles[0]
-  if (!file) {
-    return
-  }
+  if (!file) return
 
   // Limit to max 1 image for LinkedIn MVP simple preview.
   // File is stored locally for deferred upload — no server call until Schedule Post.
@@ -553,127 +546,156 @@ function validateCustomSchedule(finalScheduledDate: Date): string | undefined {
   return undefined
 }
 
+// ---------------------------------------------------------------------------
+// Schedule helpers — extracted to reduce cognitive complexity
+// ---------------------------------------------------------------------------
+
+function resolveScheduleMode(mode: ComposerScheduleMode): string {
+  if (mode === 'now') return 'NOW'
+  if (mode === 'next') return 'NEXT_SLOT'
+  return 'SCHEDULED_AT'
+}
+
+function resolveScheduledDate(): Date | undefined {
+  if (scheduleMode.value !== 'custom') return undefined
+  if (!selectedCalendarDate.value) {
+    submitError.value = 'Select a date.'
+    return undefined
+  }
+  const date = selectedCalendarDate.value.toDate(getLocalTimeZone())
+  const error = validateCustomSchedule(date)
+  if (error) {
+    submitError.value = error
+    return undefined
+  }
+  return date
+}
+
+async function uploadDeferredFile(): Promise<boolean> {
+  if (!selectedUploadFile.value || !uploadTempKey.value) return true
+  try {
+    const asset = await mediaStore.createAndUpload(
+      selectedUploadFile.value,
+      uploadTempKey.value,
+      (pct) => {
+        uploadProgress.value = pct
+      },
+    )
+    mediaStore.addToSelection(asset.assetId)
+    return true
+  } catch {
+    submitError.value = 'Media upload failed. Please try again.'
+    return false
+  }
+}
+
+function resetPostForm() {
+  postText.value = ''
+  removeFile()
+  firstComment.value = ''
+}
+
+function finalizeAfterCreate(shouldCreateAnother: boolean) {
+  if (shouldCreateAnother) {
+    resetPostForm()
+  } else {
+    emit('close')
+  }
+}
+
 async function handleSchedule() {
   if (!canSubmit.value) return
 
-  const normalizedPostText = postText.value.trim()
   const shouldCreateAnother = createAnother.value
 
   isSubmitting.value = true
   submitError.value = ''
 
   try {
-    let finalScheduledDate: Date | undefined
+    const scheduledDate = resolveScheduledDate()
+    if (submitError.value) return
 
-    if (scheduleMode.value === 'custom') {
-      if (!selectedCalendarDate.value) {
-        submitError.value = 'Select a date.'
-        return
-      }
-      finalScheduledDate = selectedCalendarDate.value.toDate(getLocalTimeZone())
-      const error = validateCustomSchedule(finalScheduledDate)
-      if (error) {
-        submitError.value = error
-        return
-      }
-    }
+    const uploadOk = selectedUploadFile.value && uploadTempKey.value
+      ? await uploadDeferredFile()
+      : true
+    if (!uploadOk) return
 
-    // Deferred upload: if a file was selected but not yet uploaded, upload it now
-    // before creating the post. This ensures the asset is READY before the
-    // publication references it via assetIds.
-    if (selectedUploadFile.value && uploadTempKey.value) {
-      try {
-        const asset = await mediaStore.createAndUpload(
-          selectedUploadFile.value,
-          uploadTempKey.value,
-          (pct) => {
-            uploadProgress.value = pct
-          },
-        )
-        mediaStore.addToSelection(asset.assetId)
-      } catch {
-        // Error is already tracked in mediaStore.uploadList; surface it to the user
-        submitError.value = 'Media upload failed. Please try again.'
-        return
-      }
-    }
-
-    const backendScheduleMode = scheduleMode.value === 'now'
-      ? 'NOW'
-      : scheduleMode.value === 'next'
-        ? 'NEXT_SLOT'
-        : 'SCHEDULED_AT'
+    const normalizedPostText = postText.value.trim()
+    const backendScheduleMode = resolveScheduleMode(scheduleMode.value)
 
     if (isEditMode.value && props.editingPublication) {
-      // Edit mode: call updatePost and preserve scheduleMode
-      await publishingStore.updatePost(props.editingPublication.id, {
-        content: normalizedPostText,
-        scheduledAt: finalScheduledDate?.toISOString(),
-        priority: priorityMode.value,
-        assetIds: [...mediaStore.selectedAssetIds],
-        scheduleMode: backendScheduleMode,
-      })
-      emit('updated')
-      emit('close')
+      await handleEditSubmit(normalizedPostText, scheduledDate, backendScheduleMode)
     } else {
-      // Create mode
-      await publishingStore.schedulePost({
-        content: normalizedPostText,
-        title: 'Post from App',
-        channels: selectedProviders.value,
-        scheduledAt: finalScheduledDate?.toISOString(),
-        nextSlotAfter: scheduleMode.value === 'next' ? now.value.toISOString() : undefined,
-        scheduleMode: backendScheduleMode,
-        priority: priorityMode.value,
-        thumbnail: selectedAssetIsImage.value
-          ? (uploadPreviewBlob.value ?? selectedAssetPreviewUrl.value ?? undefined)
-          : undefined,
-        assetIds: [...mediaStore.selectedAssetIds],
-        socialAccountId: selectedChannel.value?.accountId,
-      })
-
-      emit('created')
-
-      if (shouldCreateAnother) {
-        postText.value = ''
-        removeFile()
-        firstComment.value = ''
-      } else {
-        emit('close')
-      }
+      await handleCreateSubmit(normalizedPostText, scheduledDate, backendScheduleMode)
     }
   } catch (err) {
     submitError.value = err instanceof Error ? err.message : 'Unable to schedule post.'
     console.error('Error scheduling post', err)
     if (shouldCreateAnother) {
-      postText.value = ''
-      removeFile()
-      firstComment.value = ''
+      resetPostForm()
     }
   } finally {
     isSubmitting.value = false
   }
 }
+
+async function handleEditSubmit(
+  normalizedPostText: string,
+  scheduledDate: Date | null,
+  backendScheduleMode: string,
+) {
+  await publishingStore.updatePost(props.editingPublication?.id, {
+    content: normalizedPostText,
+    scheduledAt: scheduledDate?.toISOString(),
+    priority: priorityMode.value,
+    assetIds: [...mediaStore.selectedAssetIds],
+    scheduleMode: backendScheduleMode,
+  })
+  emit('updated')
+  emit('close')
+}
+
+async function handleCreateSubmit(
+  normalizedPostText: string,
+  scheduledDate: Date | null,
+  backendScheduleMode: string,
+) {
+  await publishingStore.schedulePost({
+    content: normalizedPostText,
+    title: 'Post from App',
+    channels: selectedProviders.value,
+    scheduledAt: scheduledDate?.toISOString(),
+    nextSlotAfter: scheduleMode.value === 'next' ? now.value.toISOString() : undefined,
+    scheduleMode: backendScheduleMode,
+    priority: priorityMode.value,
+    thumbnail: selectedAssetIsImage.value
+      ? (uploadPreviewBlob.value ?? selectedAssetPreviewUrl.value ?? undefined)
+      : undefined,
+    assetIds: [...mediaStore.selectedAssetIds],
+    socialAccountId: selectedChannel.value?.accountId,
+  })
+  emit('created')
+  finalizeAfterCreate(createAnother.value)
+}
 </script>
 
 <template>
   <Teleport to="body">
-    <!-- Modal Backdrop — click.self closes modal; role=presentation intentional for overlay -->
+    <!-- Modal Backdrop — click.self closes modal -->
     <!-- biome-ignore lint/a11y/noStaticElementInteractions: overlay backdrop, closes on outside click -->
     <div
       v-if="isOpen"
       class="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm p-4 animate-fade-in"
-      role="presentation"
       @click.self="emit('close')"
       @keydown.escape="emit('close')"
     >
-      <!-- Modal Wrapper -->
+      <!-- Modal Wrapper: using <div role="dialog"> instead of <dialog> to avoid UA default margin/padding that breaks flex centering -->
       <div
         ref="modalContainer"
         role="dialog"
         aria-modal="true"
         aria-labelledby="create-post-title"
-        class="flex flex-col lg:flex-row w-full max-w-5xl h-[90vh] lg:h-[750px] bg-bg-surface border border-border-subtle rounded-2xl overflow-hidden shadow-2xl animate-zoom-in"
+        class="flex flex-col lg:flex-row w-full max-w-5xl max-h-[90vh] lg:h-[750px] bg-bg-surface border border-border-subtle rounded-2xl overflow-y-auto lg:overflow-hidden shadow-2xl animate-zoom-in m-0 relative"
       >
         <!-- Close Button (Absolute Mobile) -->
         <button
@@ -932,36 +954,27 @@ async function handleSchedule() {
                     role="radiogroup"
                     aria-label="Schedule mode"
                   >
-                  <!-- biome-ignore lint/a11y/useSemanticElements: <button role="radio"> is a valid ARIA pattern for styled toggle buttons that don't look like native radio inputs -->
-                  <button
-                    @click="scheduleMode = 'now'"
-                    role="radio"
-                    :aria-checked="scheduleMode === 'now'"
+                  <label
                     class="px-2 py-1 rounded font-mono text-[9px] uppercase tracking-wider font-bold transition-all cursor-pointer"
                     :class="scheduleMode === 'now' ? 'bg-text-display text-bg-primary' : 'bg-transparent text-text-secondary hover:text-text-display'"
                   >
+                    <input type="radio" v-model="scheduleMode" value="now" class="sr-only" />
                     Now
-                  </button>
-                  <!-- biome-ignore lint/a11y/useSemanticElements: <button role="radio"> is a valid ARIA pattern for styled toggle buttons -->
-                  <button
-                    @click="scheduleMode = 'next'"
-                    role="radio"
-                    :aria-checked="scheduleMode === 'next'"
+                  </label>
+                  <label
                     class="px-2 py-1 rounded font-mono text-[9px] uppercase tracking-wider font-bold transition-all cursor-pointer"
                     :class="scheduleMode === 'next' ? 'bg-text-display text-bg-primary' : 'bg-transparent text-text-secondary hover:text-text-display'"
                   >
+                    <input type="radio" v-model="scheduleMode" value="next" class="sr-only" />
                     Next Schedule
-                  </button>
-                  <!-- biome-ignore lint/a11y/useSemanticElements: <button role="radio"> is a valid ARIA pattern for styled toggle buttons -->
-                  <button
-                    @click="scheduleMode = 'custom'"
-                    role="radio"
-                    :aria-checked="scheduleMode === 'custom'"
+                  </label>
+                  <label
                     class="px-2 py-1 rounded font-mono text-[9px] uppercase tracking-wider font-bold transition-all cursor-pointer"
                     :class="scheduleMode === 'custom' ? 'bg-text-display text-bg-primary' : 'bg-transparent text-text-secondary hover:text-text-display'"
                   >
+                    <input type="radio" v-model="scheduleMode" value="custom" class="sr-only" />
                     Pick Date
-                  </button>
+                  </label>
                   </div>
                   <p class="text-[10px] leading-4 text-text-secondary">
                     {{ scheduleHelperText }}

@@ -1,9 +1,6 @@
 package com.profiletailors.spring.boot.presentation.pagination
 
 import com.profiletailors.common.domain.presentation.pagination.OffsetPageResponse
-import kotlin.test.Test
-import kotlin.test.assertEquals
-import kotlin.test.assertNull
 import kotlinx.coroutines.runBlocking
 import org.springframework.core.MethodParameter
 import org.springframework.http.HttpHeaders
@@ -13,6 +10,9 @@ import org.springframework.mock.web.server.MockServerWebExchange
 import org.springframework.web.reactive.HandlerResult
 import reactor.core.publisher.Mono
 import tools.jackson.databind.ObjectMapper
+import kotlin.test.Test
+import kotlin.test.assertEquals
+import kotlin.test.assertNull
 
 class OffsetPagePresenterTest {
 

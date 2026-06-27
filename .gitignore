@@ -60,6 +60,9 @@ node_modules/
 **/playwright-report/
 **/playwright-scheduler-report/
 **/test-results/
+
+# SonarScanner working directory
+.scannerwork/
 # START AI Agent Symlinks
 .agents/skills/*.bak
 .claude/commands

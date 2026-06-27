@@ -1,10 +1,11 @@
 [versions]
 kotlin = "2.3.21"
-springBoot = "4.0.6"
+springBoot = "4.0.7"
 springManagement = "1.1.7"
 springModulith = "2.0.6"
 springdoc = "3.0.2"
 detekt = "2.0.0-alpha.3"
+spotless = "8.7.0"
 owasp = "12.1.9"
 jdk = "21"
 
@@ -18,10 +19,14 @@ awsS3 = "2.20.15"
 bucket4j = "8.10.1"
 caffeine = "3.1.8"
 
+# Transitive deps requiring explicit versions
+okio = "3.17.0"
+bouncycastle = "1.84"
+
 # Testing
 reactor = "3.7.5"
 junit = "6.0.3"
-assertj = "3.27.3"
+assertj = "3.27.7"
 mockk = "1.14.11"
 testcontainers = "1.20.6"
 cucumber = "7.18.1"
@@ -68,6 +73,11 @@ micrometer-prometheus = { module = "io.micrometer:micrometer-registry-prometheus
 bucket4j-core = { module = "com.bucket4j:bucket4j-core", version.ref = "bucket4j" }
 caffeine = { module = "com.github.ben-manes.caffeine:caffeine", version.ref = "caffeine" }
 
+# Transitive deps version pins
+okio-jvm = { module = "com.squareup.okio:okio-jvm", version.ref = "okio" }
+bouncycastle-prov = { module = "org.bouncycastle:bcprov-jdk18on", version.ref = "bouncycastle" }
+bouncycastle-pgp = { module = "org.bouncycastle:bcpg-jdk18on", version.ref = "bouncycastle" }
+
 # Testing
 reactor-test = { module = "io.projectreactor:reactor-test", version.ref = "reactor" }
 junit-jupiter = { module = "org.junit.jupiter:junit-jupiter", version.ref = "junit" }
@@ -107,6 +117,7 @@ gradle-spring-boot = { module = "org.springframework.boot:spring-boot-gradle-plu
 gradle-spring-dependency = { module = "io.spring.dependency-management:io.spring.dependency-management.gradle.plugin", version.ref = "springManagement" }
 gradle-detekt = { module = "dev.detekt:detekt-gradle-plugin", version.ref = "detekt" }
 gradle-owasp-depcheck = { module = "org.owasp:dependency-check-gradle", version.ref = "owasp" }
+gradle-spotless = { module = "com.diffplug.spotless:com.diffplug.spotless.gradle.plugin", version.ref = "spotless" }
 
 [plugins]
 kotlin-jvm = { id = "org.jetbrains.kotlin.jvm", version.ref = "kotlin" }
@@ -115,4 +126,5 @@ spring-boot = { id = "org.springframework.boot", version.ref = "springBoot" }
 spring-dependency-management = { id = "io.spring.dependency-management", version.ref = "springManagement" }
 detekt = { id = "dev.detekt", version.ref = "detekt" }
 owasp-dependencycheck = { id = "org.owasp.dependencycheck", version.ref = "owasp" }
+spotless = { id = "com.diffplug.spotless", version.ref = "spotless" }
 kover = { id = "org.jetbrains.kotlinx.kover", version.ref = "kover" }

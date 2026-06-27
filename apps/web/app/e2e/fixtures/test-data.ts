@@ -20,30 +20,42 @@ export const APP_URL = {
 } as const
 
 /**
- * E2E credentials — must be provided via environment variables.
- * No fallback values are allowed: tests should fail fast if credentials are missing.
+ * E2E credentials — sourced from environment variables.
+ * Email falls back to a default dev account; password is validated lazily
+ * so that files importing credential-free constants (APP_URL, I18N_TEXT, …)
+ * never need E2E_TEST_USER_PASSWORD set.
  */
 const E2E_EMAIL = process.env.E2E_TEST_USER_EMAIL || 'dev@profiletailors.com'
-const E2E_PASSWORD = process.env.E2E_TEST_USER_PASSWORD
 
-if (!E2E_PASSWORD) {
-  throw new Error(
-    'E2E_TEST_USER_PASSWORD environment variable is required. ' +
-    'Set it in your shell or CI pipeline before running E2E tests.',
-  )
-}
-
-export const E2E_TEST_USER = {
+export const E2E_TEST_USER: {
+  readonly email: string
+  readonly password: string
+  readonly username: 'dev'
+} = {
   email: E2E_EMAIL,
-  password: E2E_PASSWORD,
   /** Must match the HAR payload in replay mode */
   username: 'dev',
-} as const
+  get password(): string {
+    const pw = process.env.E2E_TEST_USER_PASSWORD
+    if (!pw) {
+      throw new Error(
+        'E2E_TEST_USER_PASSWORD environment variable is required. ' +
+          'Set it in your shell or CI pipeline before running E2E tests.',
+      )
+    }
+    return pw
+  },
+}
 
-export const VALID_CREDENTIALS = {
+export const VALID_CREDENTIALS: {
+  readonly email: string
+  readonly password: string
+} = {
   email: E2E_TEST_USER.email,
-  password: E2E_TEST_USER.password,
-} as const
+  get password(): string {
+    return E2E_TEST_USER.password
+  },
+}
 
 export const INVALID_CREDENTIALS = {
   email: 'wrong@email.com',

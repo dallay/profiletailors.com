@@ -2,7 +2,6 @@ package com.profiletailors.common.domain.criteria
 
 import org.assertj.core.api.Assertions.assertThat
 import org.junit.jupiter.api.Test
-import java.util.regex.Pattern
 
 internal class CriteriaStepTest {
 

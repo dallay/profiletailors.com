@@ -1,6 +1,5 @@
 package com.profiletailors.config
 
-import java.util.UUID
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
 import org.springframework.core.Ordered
@@ -10,6 +9,7 @@ import org.springframework.web.server.ServerWebExchange
 import org.springframework.web.server.WebFilter
 import org.springframework.web.server.WebFilterChain
 import reactor.core.publisher.Mono
+import java.util.UUID
 
 /**
  * WebFilter that extracts the workspace ID from the request and propagates it
@@ -49,14 +49,12 @@ class WorkspaceContextWebFilter : WebFilter {
         return null
     }
 
-    private fun parseUuid(value: String, source: String): UUID? {
-        return try {
-            UUID.fromString(value)
-        } catch (e: IllegalArgumentException) {
-            val sanitized = value.filter { it.isLetterOrDigit() || it == '-' }.take(MAX_UUID_LENGTH)
-            log.warn("Invalid workspace ID format from {}: [sanitized: {}] - {}", source, sanitized, e.message)
-            null
-        }
+    private fun parseUuid(value: String, source: String): UUID? = try {
+        UUID.fromString(value)
+    } catch (e: IllegalArgumentException) {
+        val sanitized = value.filter { it.isLetterOrDigit() || it == '-' }.take(MAX_UUID_LENGTH)
+        log.warn("Invalid workspace ID format from {}: [sanitized: {}] - {}", source, sanitized, e.message)
+        null
     }
 
     companion object {

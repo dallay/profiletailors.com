@@ -1,0 +1,18 @@
+change: media-asset-dedup
+current_phase: archive
+completed:
+  - explore
+  - propose
+  - spec
+  - design
+  - tasks
+  - apply
+  - verify
+  - archive
+next: none
+updated: '2026-06-25T17:45:00Z'
+revision: v3.2
+verify_outcome: PASS
+apply_outcome: PASS
+archive_outcome: PASS
+notes: 'Post-PR #174 CI fix re-applied on 2026-06-25: added copyObject override to MockPresignableStorage in StorageUseCaseTest.kt. Full backend fast suite, Postgres integration suite, detekt, just backend-test-fast, just backend-test-postgres, and targeted frontend media tests (useFileHash.test.ts, media-api.test.ts, media.test.ts) all green. The pre-existing CreatePostModal.test.ts edit-mode failures remain out of scope per PR body and were left untouched.'

@@ -14,8 +14,12 @@ class WorkspaceDomainModelsTest {
 
     @Test
     fun `workspace is operational only while active`() {
-        assertTrue(Workspace(id = "workspace-1", name = "Profile Tailors", status = WorkspaceStatus.ACTIVE).isOperational())
-        assertFalse(Workspace(id = "workspace-1", name = "Profile Tailors", status = WorkspaceStatus.SUSPENDED).isOperational())
+        assertTrue(
+            Workspace(id = "workspace-1", name = "Profile Tailors", status = WorkspaceStatus.ACTIVE).isOperational(),
+        )
+        assertFalse(
+            Workspace(id = "workspace-1", name = "Profile Tailors", status = WorkspaceStatus.SUSPENDED).isOperational(),
+        )
     }
 
     @Test

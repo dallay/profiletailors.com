@@ -5,7 +5,6 @@ import com.profiletailors.common.domain.presentation.pagination.CursorPageRespon
 import com.profiletailors.common.domain.presentation.pagination.TimestampCursor
 import com.profiletailors.common.domain.presentation.sort.Direction
 import com.profiletailors.spring.boot.presentation.sort.toSpringSort
-import kotlin.reflect.KClass
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.async
 import kotlinx.coroutines.coroutineScope
@@ -22,52 +21,42 @@ import org.springframework.data.domain.Sort
 import org.springframework.data.r2dbc.core.R2dbcEntityTemplate
 import org.springframework.data.relational.core.query.Criteria
 import org.springframework.data.relational.core.query.Query.query
+import kotlin.reflect.KClass
 
-class ReactiveSearchRepositoryImpl<T : Any>(
-    private val r2dbcTemplate: R2dbcEntityTemplate
-) : ReactiveSearchRepository<T> {
+class ReactiveSearchRepositoryImpl<T : Any>(private val r2dbcTemplate: R2dbcEntityTemplate) :
+    ReactiveSearchRepository<T> {
 
     /**
      * Fetches all entities that match the given criteria.
      */
-    override suspend fun findAll(criteria: Criteria, domainType: KClass<T>): Flow<T> {
-        return r2dbcTemplate.select(domainType.java)
+    override suspend fun findAll(criteria: Criteria, domainType: KClass<T>): Flow<T> =
+        r2dbcTemplate.select(domainType.java)
             .matching(query(criteria))
             .all().asFlow()
-    }
 
     /**
      * Fetches all entities that match the given criteria, with support for offset pagination.
      */
-    override suspend fun findAll(
-        criteria: Criteria,
-        pageable: Pageable,
-        domainType: KClass<T>
-    ): Page<T> = coroutineScope {
-        val listDeferred = async { fetchEntities(criteria, pageable, domainType) }
-        val countDeferred = async { countEntities(criteria, domainType) }
+    override suspend fun findAll(criteria: Criteria, pageable: Pageable, domainType: KClass<T>): Page<T> =
+        coroutineScope {
+            val listDeferred = async { fetchEntities(criteria, pageable, domainType) }
+            val countDeferred = async { countEntities(criteria, domainType) }
 
-        val list = listDeferred.await()
-        val count = countDeferred.await()
-        PageImpl(list, pageable, count)
-    }
+            val list = listDeferred.await()
+            val count = countDeferred.await()
+            PageImpl(list, pageable, count)
+        }
 
-    private suspend fun fetchEntities(
-        criteria: Criteria,
-        pageable: Pageable,
-        domainType: KClass<T>
-    ): List<T> = withContext(Dispatchers.IO) {
-        r2dbcTemplate.select(domainType.java)
-            .matching(query(criteria).with(pageable))
-            .all()
-            .collectList()
-            .awaitSingle()
-    }
+    private suspend fun fetchEntities(criteria: Criteria, pageable: Pageable, domainType: KClass<T>): List<T> =
+        withContext(Dispatchers.IO) {
+            r2dbcTemplate.select(domainType.java)
+                .matching(query(criteria).with(pageable))
+                .all()
+                .collectList()
+                .awaitSingle()
+        }
 
-    private suspend fun countEntities(
-        criteria: Criteria,
-        domainType: KClass<T>
-    ): Long = withContext(Dispatchers.IO) {
+    private suspend fun countEntities(criteria: Criteria, domainType: KClass<T>): Long = withContext(Dispatchers.IO) {
         r2dbcTemplate.select(domainType.java)
             .matching(query(criteria))
             .count()
@@ -82,7 +71,7 @@ class ReactiveSearchRepositoryImpl<T : Any>(
         size: Int,
         domainType: KClass<T>,
         sort: Sort,
-        cursor: Cursor
+        cursor: Cursor,
     ): CursorPageResponse<T> {
         val pageSize = size + 1
         val cursorCriteriaParsed = R2DBCCriteriaParser(domainType).parse(cursor.getCriteria())
@@ -104,11 +93,7 @@ class ReactiveSearchRepositoryImpl<T : Any>(
         return processContent(list, size, cursor)
     }
 
-    private fun processContent(
-        list: List<T>,
-        size: Int,
-        cursor: Cursor
-    ): CursorPageResponse<T> {
+    private fun processContent(list: List<T>, size: Int, cursor: Cursor): CursorPageResponse<T> {
         val content = list.take(size)
         val hasNextPage = list.size > size
 
@@ -121,11 +106,7 @@ class ReactiveSearchRepositoryImpl<T : Any>(
         return CursorPageResponse(content, prevCursor, nextCursor)
     }
 
-    private fun getCursorsForAsc(
-        content: List<T>,
-        hasNextPage: Boolean,
-        cursor: Cursor
-    ): Pair<String?, String?> {
+    private fun getCursorsForAsc(content: List<T>, hasNextPage: Boolean, cursor: Cursor): Pair<String?, String?> {
         val nextCursor = if (hasNextPage) cursor.serialize(content.last()) else null
         val prevCursor = if (cursor != TimestampCursor.DEFAULT_CURSOR && content.isNotEmpty()) {
             cursor.serialize(content.first(), cursor.direction.reversed())
@@ -135,11 +116,7 @@ class ReactiveSearchRepositoryImpl<T : Any>(
         return Pair(nextCursor, prevCursor)
     }
 
-    private fun getCursorsForDesc(
-        content: List<T>,
-        hasNextPage: Boolean,
-        cursor: Cursor
-    ): Pair<String?, String?> {
+    private fun getCursorsForDesc(content: List<T>, hasNextPage: Boolean, cursor: Cursor): Pair<String?, String?> {
         val nextCursor = if (content.isNotEmpty()) {
             cursor.serialize(content.first(), cursor.direction.reversed())
         } else {

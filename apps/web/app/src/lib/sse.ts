@@ -10,7 +10,7 @@ export interface ParsedSseEvent<T = unknown> {
 
 export function parseSseFrames(input: string): SseMessage[] {
   return input
-    .replace(/\r\n/g, '\n')
+    .replaceAll('\r\n', '\n')
     .split(/\n\n+/)
     .map((frame) => frame.trimEnd())
     .filter(Boolean)
@@ -22,7 +22,7 @@ export function parseSseFrame(frame: string): SseMessage | null {
   let event = 'message'
   const dataLines: string[] = []
 
-  for (const line of frame.replace(/\r\n/g, '\n').split('\n')) {
+  for (const line of frame.replaceAll('\r\n', '\n').split('\n')) {
     if (!line || line.startsWith(':')) continue
     const separatorIndex = line.indexOf(':')
     const field = separatorIndex === -1 ? line : line.slice(0, separatorIndex)

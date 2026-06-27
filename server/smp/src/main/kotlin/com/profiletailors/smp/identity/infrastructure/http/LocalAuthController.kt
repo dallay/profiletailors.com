@@ -13,7 +13,6 @@ import com.profiletailors.smp.identity.application.LogoutUserSessionCommand
 import com.profiletailors.smp.identity.application.RefreshUserSessionCommand
 import com.profiletailors.smp.identity.application.RegisterUserCommand
 import com.profiletailors.smp.identity.application.ResendVerificationCommand
-import com.profiletailors.smp.identity.application.ResendVerificationResult
 import com.profiletailors.smp.identity.application.VerifyEmailCommand
 import io.swagger.v3.oas.annotations.Operation
 import io.swagger.v3.oas.annotations.media.Schema
@@ -28,11 +27,9 @@ import org.springframework.http.ResponseCookie
 import org.springframework.http.ResponseEntity
 import org.springframework.http.server.reactive.ServerHttpRequest
 import org.springframework.validation.annotation.Validated
-import org.springframework.web.bind.annotation.GetMapping
 import org.springframework.web.bind.annotation.PostMapping
 import org.springframework.web.bind.annotation.RequestBody
 import org.springframework.web.bind.annotation.RequestMapping
-import org.springframework.web.bind.annotation.RequestParam
 import org.springframework.web.bind.annotation.RestController
 import java.time.Duration
 
@@ -48,9 +45,7 @@ class LocalAuthController(
 
     @Operation(summary = "Register a new user account")
     @PostMapping("/register", consumes = ["application/json"], version = "1")
-    suspend fun register(
-        @Valid @RequestBody request: RegisterUserRequest,
-    ): ResponseEntity<AuthTokens> {
+    suspend fun register(@Valid @RequestBody request: RegisterUserRequest): ResponseEntity<AuthTokens> {
         val result = mediator.send(
             RegisterUserCommand(
                 email = request.email,
@@ -67,17 +62,14 @@ class LocalAuthController(
 
     @Operation(summary = "Authenticate user with email and password")
     @PostMapping("/login", consumes = ["application/json"], version = "1")
-    suspend fun login(
-        @Valid @RequestBody request: LoginUserRequest,
-    ): ResponseEntity<AuthTokens> =
-        sessionResponse(
-            mediator.send(
-                LoginUserCommand(
-                    email = request.email,
-                    password = request.password,
-                ),
+    suspend fun login(@Valid @RequestBody request: LoginUserRequest): ResponseEntity<AuthTokens> = sessionResponse(
+        mediator.send(
+            LoginUserCommand(
+                email = request.email,
+                password = request.password,
             ),
-        )
+        ),
+    )
 
     @Operation(summary = "Refresh user session")
     @PostMapping("/refresh", version = "1")
@@ -107,18 +99,14 @@ class LocalAuthController(
 
     @Operation(summary = "Verify email address using verification token")
     @PostMapping("/verify-email", consumes = ["application/json"], version = "1")
-    suspend fun verifyEmail(
-        @Valid @RequestBody request: VerifyEmailRequest,
-    ): ResponseEntity<AuthTokens> =
+    suspend fun verifyEmail(@Valid @RequestBody request: VerifyEmailRequest): ResponseEntity<AuthTokens> =
         sessionResponse(
             mediator.send(VerifyEmailCommand(token = request.token)),
         )
 
     @Operation(summary = "Resend verification email")
     @PostMapping("/resend-verification", consumes = ["application/json"], version = "1")
-    suspend fun resendVerification(
-        @Valid @RequestBody request: ResendVerificationRequest,
-    ): ResponseEntity<Unit> {
+    suspend fun resendVerification(@Valid @RequestBody request: ResendVerificationRequest): ResponseEntity<Unit> {
         mediator.send(
             ResendVerificationCommand(
                 email = request.email,
@@ -127,25 +115,23 @@ class LocalAuthController(
         return ResponseEntity.accepted().build()
     }
 
-    private fun sessionResponse(result: LocalAuthSessionResult): ResponseEntity<AuthTokens> =
-        ResponseEntity.ok()
-            .header(
-                HttpHeaders.SET_COOKIE,
-                refreshSessionCookieFactory.buildSetCookie(result.refreshToken).toResponseCookie().toString(),
-            )
-            .body(result.tokens)
+    private fun sessionResponse(result: LocalAuthSessionResult): ResponseEntity<AuthTokens> = ResponseEntity.ok()
+        .header(
+            HttpHeaders.SET_COOKIE,
+            refreshSessionCookieFactory.buildSetCookie(result.refreshToken).toResponseCookie().toString(),
+        )
+        .body(result.tokens)
 
     private fun readRefreshCookie(request: ServerHttpRequest): String? =
         request.cookies.getFirst(refreshSessionProperties.cookieName)?.value
 
-    private fun SessionCookie.toResponseCookie(): ResponseCookie =
-        ResponseCookie.from(name, value)
-            .httpOnly(httpOnly)
-            .secure(secure)
-            .sameSite(sameSite)
-            .path(path)
-            .maxAge(Duration.ofSeconds(maxAgeSeconds))
-            .build()
+    private fun SessionCookie.toResponseCookie(): ResponseCookie = ResponseCookie.from(name, value)
+        .httpOnly(httpOnly)
+        .secure(secure)
+        .sameSite(sameSite)
+        .path(path)
+        .maxAge(Duration.ofSeconds(maxAgeSeconds))
+        .build()
 }
 
 /**

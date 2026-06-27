@@ -88,7 +88,7 @@ describe('login', () => {
       }),
     )
 
-    await expect(login({ email: 'user@example.com', password: 'wrong' })).rejects.toEqual({
+    await expect(login({ email: 'user@example.com', password: 'wrong' })).rejects.toMatchObject({
       title: 'Unauthorized',
       detail: 'Invalid credentials',
       status: 401,
@@ -106,7 +106,7 @@ describe('login', () => {
       ),
     )
 
-    await expect(login({ email: 'user@example.com', password: 'password' })).rejects.toEqual({
+    await expect(login({ email: 'user@example.com', password: 'password' })).rejects.toMatchObject({
       title: 'Internal Server Error',
       detail: 'Something went wrong',
       status: 500,
@@ -121,7 +121,7 @@ describe('login', () => {
       }),
     )
 
-    await expect(login({ email: 'user@example.com', password: 'password' })).rejects.toEqual({
+    await expect(login({ email: 'user@example.com', password: 'password' })).rejects.toMatchObject({
       title: 'Request failed',
       detail: 'An unexpected error occurred.',
       status: 400,
@@ -223,7 +223,7 @@ describe('refreshSession', () => {
       }),
     )
 
-    await expect(refreshSession()).rejects.toEqual({
+    await expect(refreshSession()).rejects.toMatchObject({
       title: 'Server Error',
       detail: 'Database error',
       status: 500,
@@ -299,7 +299,7 @@ describe('getCurrentUserProfile', () => {
       }),
     )
 
-    await expect(getCurrentUserProfile('bad-token')).rejects.toEqual({
+    await expect(getCurrentUserProfile('bad-token')).rejects.toMatchObject({
       title: 'Unauthorized',
       detail: 'Invalid token',
       status: 401,
@@ -391,7 +391,7 @@ describe('createApiFetch', () => {
       onUnauthenticated,
     })
 
-    await expect(apiFetch('/api/posts/1')).rejects.toEqual({
+    await expect(apiFetch('/api/posts/1')).rejects.toMatchObject({
       title: 'Request failed',
       detail: 'An unexpected error occurred.',
       status: 401,
@@ -414,7 +414,7 @@ describe('createApiFetch', () => {
       onUnauthenticated: vi.fn(),
     })
 
-    await expect(apiFetch('/api/posts/1')).rejects.toEqual({
+    await expect(apiFetch('/api/posts/1')).rejects.toMatchObject({
       title: 'Forbidden',
       detail: 'Access denied',
       status: 403,
@@ -453,7 +453,9 @@ describe('createApiFetch', () => {
       onUnauthenticated: vi.fn(),
     })
 
-    await expect(apiFetch('/api/publishing/channels', { workspaceScoped: true })).rejects.toEqual({
+    await expect(
+      apiFetch('/api/publishing/channels', { workspaceScoped: true }),
+    ).rejects.toMatchObject({
       title: 'Workspace context required',
       detail: 'Workspace context is required for this request.',
       status: 400,

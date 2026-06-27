@@ -10,14 +10,7 @@ package com.profiletailors.smp.identity.application
  */
 fun interface EmailSender {
     /** Send an email. Returns [EmailSendResult] indicating success or failure. */
-    suspend fun send(
-        to: String,
-        subject: String,
-        body: String,
-    ): EmailSendResult
+    suspend fun send(to: String, subject: String, body: String): EmailSendResult
 }
 
-data class EmailSendResult(
-    val success: Boolean,
-    val error: String? = null,
-)
+data class EmailSendResult(val success: Boolean, val error: String? = null)

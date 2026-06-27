@@ -2,8 +2,9 @@ package com.profiletailors.smp.credentials.infrastructure
 
 import com.profiletailors.smp.credentials.application.ApiKeyCredentialFailureReason
 import com.profiletailors.smp.credentials.application.ApiKeyCredentialNotActiveException
-import com.profiletailors.smp.credentials.infrastructure.BCryptApiKeySecretVerifier
+import com.profiletailors.smp.credentials.application.ApiKeyCredentialValueFactory
 import com.profiletailors.smp.credentials.application.ReplaceApiKeyCredentialCommand
+import com.profiletailors.smp.credentials.infrastructure.BCryptApiKeySecretVerifier
 import io.r2dbc.h2.H2ConnectionConfiguration
 import io.r2dbc.h2.H2ConnectionFactory
 import kotlinx.coroutines.reactor.awaitSingle
@@ -111,7 +112,7 @@ class R2dbcApiKeyCredentialReplacementGatewayTest {
 
         assertEquals(ApiKeyCredentialFailureReason.REPLACED, error.reason)
         val count = databaseClient.sql("SELECT COUNT(*) AS total FROM api_key_credentials")
-            .map { row, _ -> requireNotNull(row.get("total", java.lang.Long::class.java)).toLong() }
+            .map { row, _ -> requireNotNull(row.get("total", Long::class.javaObjectType)) }
             .one()
             .awaitSingle()
         assertEquals(1L, count)
@@ -141,7 +142,8 @@ class R2dbcApiKeyCredentialReplacementGatewayTest {
         val verifiers = databaseClient.sql(
             "SELECT id, secret_verifier FROM api_key_credentials ORDER BY id",
         ).map { row, _ ->
-            requireNotNull(row.get("id", String::class.java)) to requireNotNull(row.get("secret_verifier", String::class.java))
+            requireNotNull(row.get("id", String::class.java)) to
+                requireNotNull(row.get("secret_verifier", String::class.java))
         }.all().collectList().awaitSingle().toMap()
 
         assertNotNull(verifiers["api-key-cred-1"])
@@ -195,19 +197,26 @@ class R2dbcApiKeyCredentialReplacementGatewayTest {
             .bind("verifier", verifier)
             .bind("status", status)
             .let { spec ->
-                val withRevokedAt = if (revokedAt == null) spec.bindNull("revokedAt", Instant::class.java) else spec.bind("revokedAt", revokedAt)
+                val withRevokedAt = if (revokedAt == null) {
+                    spec.bindNull("revokedAt", Instant::class.java)
+                } else {
+                    spec.bind("revokedAt", revokedAt)
+                }
                 val withReplacedBy = if (replacedByCredentialId == null) {
                     withRevokedAt.bindNull("replacedByCredentialId", String::class.java)
                 } else {
                     withRevokedAt.bind("replacedByCredentialId", replacedByCredentialId)
                 }
-                if (replacedAt == null) withReplacedBy.bindNull("replacedAt", Instant::class.java) else withReplacedBy.bind("replacedAt", replacedAt)
+                if (replacedAt == null) {
+                    withReplacedBy.bindNull("replacedAt", Instant::class.java)
+                } else {
+                    withReplacedBy.bind("replacedAt", replacedAt)
+                }
             }
             .fetch()
             .rowsUpdated()
             .awaitSingle()
     }
-
 
     private fun applyLiquibaseBaseline() {
         DriverManager.getConnection(jdbcUrl, "sa", "").use { connection ->
@@ -234,10 +243,10 @@ class R2dbcApiKeyCredentialReplacementGatewayTest {
         databaseClient.sql("SET REFERENTIAL_INTEGRITY TRUE").fetch().rowsUpdated().awaitSingle()
     }
 
-    private class StubApiKeyCredentialValueFactory : com.profiletailors.smp.credentials.application.ApiKeyCredentialValueFactory {
+    private class StubApiKeyCredentialValueFactory : ApiKeyCredentialValueFactory {
         override fun nextCredentialReference(): String = "api-key-cred-2"
 
-        override fun nextPlaintextApiKey(): com.profiletailors.smp.credentials.application.ApiKeyCredentialValueFactory.PlaintextApiKey =
+        override fun nextPlaintextApiKey(): ApiKeyCredentialValueFactory.PlaintextApiKey =
             com.profiletailors.smp.credentials.application.ApiKeyCredentialValueFactory.PlaintextApiKey(
                 lookupKey = "ptk_successor",
                 keyPrefix = "ptk_successor",

@@ -16,6 +16,7 @@ class KotlinLibraryPlugin : ConventionPlugin {
         apply(plugin = catalogPlugin("kotlin-jvm").get().pluginId)
         apply(plugin = catalogPlugin("detekt").get().pluginId)
         apply(plugin = "com.profiletailors.security.owasp")
+        apply(plugin = "com.profiletailors.spotless")
         apply(plugin = catalogPlugin("kover").get().pluginId)
 
         repositories.mavenCentral()
@@ -27,9 +28,10 @@ class KotlinLibraryPlugin : ConventionPlugin {
         tasks.commonTasks()
 
         extensions.configure<DetektExtension> {
-            config.setFrom(files(rootDir.resolve("detekt.yml")))
+            config.setFrom(files(rootDir.resolve("config/detekt/detekt.yml")))
             buildUponDefaultConfig.set(false)
             allRules.set(false)
+            ignoreFailures.set(false)
         }
 
         tasks.withType<Test>().configureEach {

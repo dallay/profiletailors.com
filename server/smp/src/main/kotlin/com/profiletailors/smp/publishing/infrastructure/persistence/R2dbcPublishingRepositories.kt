@@ -5,13 +5,12 @@ import com.fasterxml.jackson.databind.ObjectMapper
 import com.profiletailors.smp.publishing.domain.AssetSourceType
 import com.profiletailors.smp.publishing.domain.DateCount
 import com.profiletailors.smp.publishing.domain.DeliveryAttempt
-import com.profiletailors.smp.publishing.domain.DeliveryAttemptOutcome
 import com.profiletailors.smp.publishing.domain.DeliveryAttemptRepository
 import com.profiletailors.smp.publishing.domain.JobStatus
+import com.profiletailors.smp.publishing.domain.ProviderAssetRef
 import com.profiletailors.smp.publishing.domain.PublicationAsset
 import com.profiletailors.smp.publishing.domain.PublicationAssetRepository
 import com.profiletailors.smp.publishing.domain.PublicationAssetStatus
-import com.profiletailors.smp.publishing.domain.ProviderAssetRef
 import com.profiletailors.smp.publishing.domain.PublicationDraft
 import com.profiletailors.smp.publishing.domain.PublicationJob
 import com.profiletailors.smp.publishing.domain.PublicationJobClaim
@@ -70,17 +69,14 @@ private const val PUBLICATION_INSERT_VALUES = """
 
 @Repository
 @Suppress("TooManyFunctions")
-class R2dbcPublicationRepository(
-    private val databaseClient: DatabaseClient,
-) : PublicationRepository {
+class R2dbcPublicationRepository(private val databaseClient: DatabaseClient) : PublicationRepository {
     override suspend fun createDraft(draft: PublicationDraft): PublicationDraft {
         insertOrUpdate(draft)
         replaceAssetLinks(draft)
         return draft
     }
 
-    override suspend fun updateEditableDraft(draft: PublicationDraft): PublicationDraft =
-        createDraft(draft)
+    override suspend fun updateEditableDraft(draft: PublicationDraft): PublicationDraft = createDraft(draft)
 
     override suspend fun findByWorkspaceAndId(workspaceId: String, publicationId: String): PublicationDraft? {
         val publication = databaseClient.sql(
@@ -104,13 +100,13 @@ class R2dbcPublicationRepository(
                     socialAccountId = requireNotNull(row.get("social_account_id", String::class.java)),
                     status = PublicationStatus.valueOf(requireNotNull(row.get("status", String::class.java))),
                     scheduleMode = ScheduleMode.valueOf(requireNotNull(row.get("schedule_mode", String::class.java))),
-                    priority = requireNotNull(row.get("priority", java.lang.Boolean::class.java)).booleanValue(),
+                    priority = requireNotNull(row.get("priority", Boolean::class.javaObjectType)),
                     title = row.get("title", String::class.java),
                     bodyText = row.get("body_text", String::class.java),
                     publicUrl = row.get("public_url", String::class.java),
                     blockedAt = row.get("blocked_at", OffsetDateTime::class.java)?.toInstant(),
                     blockedReason = row.get("blocked_reason", String::class.java),
-                    retryCount = row.get("retry_count", Integer::class.java)?.toInt() ?: 0,
+                    retryCount = row.get("retry_count", Int::class.javaObjectType) ?: 0,
                     assetIds = emptyList(),
                     scheduledFor = row.get("scheduled_for", OffsetDateTime::class.java)?.toInstant(),
                     nextSlotAfter = row.get("next_slot_after", OffsetDateTime::class.java)?.toInstant(),
@@ -128,9 +124,9 @@ class R2dbcPublicationRepository(
 
         val assetIds = databaseClient.sql(
             """
-            SELECT asset_id 
-            FROM publication_asset_links 
-            WHERE publication_id = :publicationId 
+            SELECT asset_id
+            FROM publication_asset_links
+            WHERE publication_id = :publicationId
             ORDER BY position_index ASC
             """.trimIndent(),
         )
@@ -289,7 +285,7 @@ class R2dbcPublicationRepository(
         publicationId: String,
         failedAt: Instant,
         reasonCode: String?,
-        reasonMessage: String?
+        reasonMessage: String?,
     ) {
         databaseClient.sql(
             """
@@ -366,7 +362,7 @@ class R2dbcPublicationRepository(
         )
             .bind("workspaceId", workspaceId)
             .bind("publicationId", publicationId)
-            .map { row, _ -> requireNotNull(row.get("cnt", java.lang.Long::class.java)).toLong() }
+            .map { row, _ -> requireNotNull(row.get("cnt", Long::class.javaObjectType)) }
             .one()
             .awaitSingle() > 0L
 
@@ -418,9 +414,7 @@ class R2dbcPublicationRepository(
         return true
     }
 
-    override suspend fun findBlockedForRecovery(
-        maxRetries: Int,
-    ): List<PublicationDraft> {
+    override suspend fun findBlockedForRecovery(maxRetries: Int): List<PublicationDraft> {
         val drafts = databaseClient.sql(
             """
             SELECT p.id, p.workspace_id, p.author_principal_id, p.provider, p.social_account_id, p.status, p.schedule_mode, p.priority,
@@ -519,35 +513,33 @@ class R2dbcPublicationRepository(
         draft: PublicationDraft,
         createdAt: Instant,
         updatedAt: Instant,
-    ): org.springframework.r2dbc.core.DatabaseClient.GenericExecuteSpec =
-        bind("id", draft.id)
-            .bindPublicationWriteParams(draft, createdAt, updatedAt)
+    ): org.springframework.r2dbc.core.DatabaseClient.GenericExecuteSpec = bind("id", draft.id)
+        .bindPublicationWriteParams(draft, createdAt, updatedAt)
 
     private fun org.springframework.r2dbc.core.DatabaseClient.GenericExecuteSpec.bindPublicationUpdateWriteParams(
         draft: PublicationDraft,
         updatedAt: Instant,
-    ): org.springframework.r2dbc.core.DatabaseClient.GenericExecuteSpec =
-        bind("workspaceId", draft.workspaceId)
-            .bind("authorPrincipalId", draft.authorPrincipalId)
-            .bind("provider", draft.provider.name)
-            .bind("socialAccountId", draft.socialAccountId)
-            .bind("status", draft.status.name)
-            .bind("scheduleMode", draft.scheduleMode.name)
-            .bind("priority", draft.priority)
-            .bindNullable("title", draft.title, String::class.java)
-            .bindNullable("bodyText", draft.bodyText, String::class.java)
-            .bindNullable("publicUrl", draft.publicUrl, String::class.java)
-            .bindNullable("blockedAt", draft.blockedAt, Instant::class.java)
-            .bindNullable("blockedReason", draft.blockedReason, String::class.java)
-            .bind("retryCount", draft.retryCount)
-            .bindNullable("scheduledFor", draft.scheduledFor, Instant::class.java)
-            .bindNullable("nextSlotAfter", draft.nextSlotAfter, Instant::class.java)
-            .bindNullable("publishedAt", draft.publishedAt, Instant::class.java)
-            .bindNullable("failedAt", draft.failedAt, Instant::class.java)
-            .bindNullable("externalPublicationId", draft.externalPublicationId, String::class.java)
-            .bindNullable("lastErrorCode", draft.lastErrorCode, String::class.java)
-            .bindNullable("lastErrorMessage", draft.lastErrorMessage, String::class.java)
-            .bind("updatedAt", updatedAt)
+    ): org.springframework.r2dbc.core.DatabaseClient.GenericExecuteSpec = bind("workspaceId", draft.workspaceId)
+        .bind("authorPrincipalId", draft.authorPrincipalId)
+        .bind("provider", draft.provider.name)
+        .bind("socialAccountId", draft.socialAccountId)
+        .bind("status", draft.status.name)
+        .bind("scheduleMode", draft.scheduleMode.name)
+        .bind("priority", draft.priority)
+        .bindNullable("title", draft.title, String::class.java)
+        .bindNullable("bodyText", draft.bodyText, String::class.java)
+        .bindNullable("publicUrl", draft.publicUrl, String::class.java)
+        .bindNullable("blockedAt", draft.blockedAt, Instant::class.java)
+        .bindNullable("blockedReason", draft.blockedReason, String::class.java)
+        .bind("retryCount", draft.retryCount)
+        .bindNullable("scheduledFor", draft.scheduledFor, Instant::class.java)
+        .bindNullable("nextSlotAfter", draft.nextSlotAfter, Instant::class.java)
+        .bindNullable("publishedAt", draft.publishedAt, Instant::class.java)
+        .bindNullable("failedAt", draft.failedAt, Instant::class.java)
+        .bindNullable("externalPublicationId", draft.externalPublicationId, String::class.java)
+        .bindNullable("lastErrorCode", draft.lastErrorCode, String::class.java)
+        .bindNullable("lastErrorMessage", draft.lastErrorMessage, String::class.java)
+        .bind("updatedAt", updatedAt)
 
     private fun org.springframework.r2dbc.core.DatabaseClient.GenericExecuteSpec.bindPublicationWriteParams(
         draft: PublicationDraft,
@@ -560,9 +552,9 @@ class R2dbcPublicationRepository(
     private suspend fun replaceAssetLinks(draft: PublicationDraft) {
         databaseClient.sql(
             """
-            DELETE FROM publication_asset_links 
+            DELETE FROM publication_asset_links
             WHERE publication_id = :publicationId
-            """.trimIndent()
+            """.trimIndent(),
         )
             .bind("publicationId", draft.id)
             .fetch()
@@ -572,8 +564,8 @@ class R2dbcPublicationRepository(
         draft.assetIds.forEachIndexed { index, assetId ->
             databaseClient.sql(
                 """
-                INSERT INTO publication_asset_links 
-                (publication_id, asset_id, position_index) 
+                INSERT INTO publication_asset_links
+                (publication_id, asset_id, position_index)
                 VALUES (:publicationId, :assetId, :positionIndex)
                 """.trimIndent(),
             )
@@ -594,7 +586,7 @@ class R2dbcPublicationAssetRepository(
 ) : PublicationAssetRepository {
     override suspend fun findByWorkspaceAndIds(
         workspaceId: String,
-        assetIds: Collection<String>
+        assetIds: Collection<String>,
     ): List<PublicationAsset> {
         if (assetIds.isEmpty()) return emptyList()
         return databaseClient.sql(
@@ -614,7 +606,7 @@ class R2dbcPublicationAssetRepository(
                     storageKey = row.get("storage_key", String::class.java),
                     externalUrl = row.get("external_url", String::class.java),
                     originalFilename = row.get("original_filename", String::class.java),
-                    fileSizeBytes = row.get("file_size_bytes", java.lang.Long::class.java)?.toLong(),
+                    fileSizeBytes = row.get("file_size_bytes", Long::class.javaObjectType),
                     status = PublicationAssetStatus.valueOf(requireNotNull(row.get("status", String::class.java))),
                     providerAssetRef = row.get("provider_asset_ref", String::class.java)?.let { json ->
                         runCatching {
@@ -659,9 +651,9 @@ class R2dbcPublicationAssetRepository(
             .let { spec ->
                 val fileSize = asset.fileSizeBytes
                 if (fileSize != null) {
-                    spec.bind("fileSizeBytes", java.lang.Long.valueOf(fileSize))
+                    spec.bind("fileSizeBytes", fileSize)
                 } else {
-                    spec.bindNull("fileSizeBytes", java.lang.Long::class.java)
+                    spec.bindNull("fileSizeBytes", Long::class.javaObjectType)
                 }
             }
             .bind("status", asset.status.name)
@@ -712,9 +704,7 @@ class R2dbcPublicationAssetRepository(
 }
 
 @Repository
-class R2dbcPublicationJobRepository(
-    private val databaseClient: DatabaseClient,
-) : PublicationJobRepository {
+class R2dbcPublicationJobRepository(private val databaseClient: DatabaseClient) : PublicationJobRepository {
     override suspend fun enqueue(job: PublicationJob) {
         insertJob(job)
     }
@@ -747,7 +737,7 @@ class R2dbcPublicationJobRepository(
                         requireNotNull(resultRow.get("publication_id", String::class.java)),
                         requireNotNull(resultRow.get("workspace_id", String::class.java)),
                     ),
-                    requireNotNull(resultRow.get("attempt_count", Integer::class.java)).toInt(),
+                    requireNotNull(resultRow.get("attempt_count", Int::class.javaObjectType)),
                 )
             }
             .one()
@@ -805,8 +795,8 @@ class R2dbcPublicationJobRepository(
     override suspend fun complete(jobId: String, completedAt: Instant) {
         databaseClient.sql(
             """
-            UPDATE publication_jobs 
-            SET status = :status, completed_at = :completedAt 
+            UPDATE publication_jobs
+            SET status = :status, completed_at = :completedAt
             WHERE id = :id
             """.trimIndent(),
         )
@@ -821,8 +811,8 @@ class R2dbcPublicationJobRepository(
     override suspend fun fail(jobId: String, failedAt: Instant) {
         databaseClient.sql(
             """
-            UPDATE publication_jobs 
-            SET status = :status, failed_at = :failedAt 
+            UPDATE publication_jobs
+            SET status = :status, failed_at = :failedAt
             WHERE id = :id
             """.trimIndent(),
         )
@@ -837,8 +827,8 @@ class R2dbcPublicationJobRepository(
     override suspend fun cancel(jobId: String, cancelledAt: Instant) {
         databaseClient.sql(
             """
-            UPDATE publication_jobs 
-            SET status = :status, cancelled_at = :cancelledAt 
+            UPDATE publication_jobs
+            SET status = :status, cancelled_at = :cancelledAt
             WHERE publication_id = :publicationId
             """.trimIndent(),
         )
@@ -884,9 +874,7 @@ class R2dbcPublicationJobRepository(
 }
 
 @Repository
-class R2dbcDeliveryAttemptRepository(
-    private val databaseClient: DatabaseClient,
-) : DeliveryAttemptRepository {
+class R2dbcDeliveryAttemptRepository(private val databaseClient: DatabaseClient) : DeliveryAttemptRepository {
     override suspend fun record(attempt: DeliveryAttempt): DeliveryAttempt {
         databaseClient.sql(
             """
@@ -933,15 +921,15 @@ internal fun org.springframework.r2dbc.core.DatabaseClient.GenericExecuteSpec.bi
 
 internal fun org.springframework.r2dbc.core.DatabaseClient.GenericExecuteSpec.bindNullable(
     name: String,
-    value: java.lang.Long?,
-    type: Class<java.lang.Long>,
+    value: Long?,
+    type: Class<Long>,
 ): org.springframework.r2dbc.core.DatabaseClient.GenericExecuteSpec =
     value?.let { bind(name, it) } ?: bindNull(name, type)
 
 internal fun org.springframework.r2dbc.core.DatabaseClient.GenericExecuteSpec.bindNullable(
     name: String,
-    value: java.lang.Integer?,
-    type: Class<java.lang.Integer>,
+    value: Int?,
+    type: Class<Int>,
 ): org.springframework.r2dbc.core.DatabaseClient.GenericExecuteSpec =
     value?.let { bind(name, it) } ?: bindNull(name, type)
 
@@ -953,13 +941,13 @@ private fun Readable.toPublicationDraft(): PublicationDraft = PublicationDraft(
     socialAccountId = requireNotNull(get("social_account_id", String::class.java)),
     status = PublicationStatus.valueOf(requireNotNull(get("status", String::class.java))),
     scheduleMode = ScheduleMode.valueOf(requireNotNull(get("schedule_mode", String::class.java))),
-    priority = requireNotNull(get("priority", java.lang.Boolean::class.java)).booleanValue(),
+    priority = requireNotNull(get("priority", Boolean::class.javaObjectType)),
     title = get("title", String::class.java),
     bodyText = get("body_text", String::class.java),
     publicUrl = get("public_url", String::class.java),
     blockedAt = get("blocked_at", OffsetDateTime::class.java)?.toInstant(),
     blockedReason = get("blocked_reason", String::class.java),
-    retryCount = get("retry_count", Integer::class.java)?.toInt() ?: 0,
+    retryCount = get("retry_count", Int::class.javaObjectType) ?: 0,
     assetIds = emptyList(),
     scheduledFor = get("scheduled_for", OffsetDateTime::class.java)?.toInstant(),
     nextSlotAfter = get("next_slot_after", OffsetDateTime::class.java)?.toInstant(),
