@@ -226,9 +226,7 @@ async function handleFileChange(event: Event) {
 }
 
 onMounted(async () => {
-  if (assets.value.length === 0) {
-    await refreshLibrary()
-  }
+  await refreshLibrary()
 })
 </script>
 

@@ -57,12 +57,12 @@ describe('MediaLibraryView', () => {
   beforeEach(() => {
     setActivePinia(createPinia())
     vi.clearAllMocks()
+    // Mock loadAssets so onMount's refreshLibrary() doesn't clear test data
+    const store = useMediaStore()
+    vi.spyOn(store, 'loadAssets').mockResolvedValue()
   })
 
   it('renders empty state when there are no assets', async () => {
-    const mediaStore = useMediaStore()
-    vi.spyOn(mediaStore, 'loadAssets').mockResolvedValue()
-
     const wrapper = mountView()
     await flushPromises()
 
