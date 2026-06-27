@@ -1,6 +1,6 @@
 package com.profiletailors.smp.media.infrastructure.persistence
 
-import com.profiletailors.smp.media.application.AtomicTransactionRunner
+import com.profiletailors.common.domain.persistence.AtomicTransactionRunner
 import kotlinx.coroutines.reactor.awaitSingle
 import kotlinx.coroutines.reactor.mono
 import org.springframework.stereotype.Component

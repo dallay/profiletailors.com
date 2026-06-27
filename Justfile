@@ -176,6 +176,16 @@ backend-lint-shared:
 backend-run:
     {{gradle-root}} :server:smp:bootRun --args='--spring.profiles.active=dev'
 
+# ═══════════════════════════════════════════════════════════════
+# SERVE  (Backend + Frontend App)
+# ═══════════════════════════════════════════════════════════════
+
+# Start backend + frontend app in parallel (both read root .env)
+serve:
+    @echo "Starting backend (Spring Boot) + frontend app (Vite)..."
+    {{gradle-root}} :server:smp:bootRun --args='--spring.profiles.active=dev' &
+    cd {{app-dir}} && pnpm exec vite --envDir ../../..
+
 # Run tests with JaCoCo coverage report
 backend-coverage:
     {{gradle-root}} :server:smp:test :server:smp:jacocoTestReport --no-daemon -PexcludeTags=modularity,postgres

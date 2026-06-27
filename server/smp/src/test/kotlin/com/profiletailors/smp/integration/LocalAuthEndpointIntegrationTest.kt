@@ -1,9 +1,13 @@
 package com.profiletailors.smp.integration
 
 import com.profiletailors.smp.integration.support.IntegrationTestBase
+import com.profiletailors.smp.tenancy.application.WorkspaceProvisioningService
+import com.profiletailors.smp.tenancy.infrastructure.R2dbcWorkspaceProvisioningService
 import io.r2dbc.h2.H2ConnectionConfiguration
 import io.r2dbc.h2.H2ConnectionFactory
 import io.r2dbc.spi.ConnectionFactory
+import kotlinx.coroutines.reactor.awaitSingle
+import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Test
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.beans.factory.annotation.Value
@@ -53,7 +57,113 @@ class LocalAuthEndpointIntegrationTest : IntegrationTestBase() {
 
     override fun databaseName(): String = "local_auth_e2e"
 
-    override suspend fun seedScenario() = Unit
+    override suspend fun seedScenario() {
+        failWorkspaceProvisioning = false
+
+        // Seed the WORKSPACE_OWNER role required by R2dbcWorkspaceProvisioningService
+        databaseClient.sql(
+            "INSERT INTO roles (id, role_key, category) VALUES ('role-owner', 'owner', 'WORKSPACE')",
+        ).fetch().rowsUpdated().awaitSingle()
+    }
+
+    private suspend fun countRows(sql: String): Long = databaseClient.sql(sql)
+        .map { row, _ -> (row.get(0) as Number).toLong() }
+        .one()
+        .awaitSingle()
+
+    private suspend fun assertNoRegistrationArtifacts(email: String) {
+        assertEquals(
+            0,
+            countRows("SELECT COUNT(*) FROM user_identities WHERE email = '$email'"),
+        )
+        assertEquals(
+            0,
+            countRows(
+                """
+                SELECT COUNT(*)
+                FROM principals p
+                WHERE p.subject = 'local:$email'
+                """.trimIndent(),
+            ),
+        )
+        assertEquals(
+            0,
+            countRows(
+                """
+                SELECT COUNT(*)
+                FROM local_password_credentials c
+                JOIN user_identities ui ON ui.principal_id = c.principal_id
+                WHERE ui.email = '$email'
+                """.trimIndent(),
+            ),
+        )
+        assertEquals(
+            0,
+            countRows("SELECT COUNT(*) FROM email_verification_tokens WHERE email = '$email'"),
+        )
+        assertEquals(0, countRows("SELECT COUNT(*) FROM workspaces"))
+        assertEquals(0, countRows("SELECT COUNT(*) FROM workspace_ownerships"))
+        assertEquals(0, countRows("SELECT COUNT(*) FROM workspace_memberships"))
+        assertEquals(0, countRows("SELECT COUNT(*) FROM membership_roles"))
+        assertEquals(
+            0,
+            countRows(
+                """
+                SELECT COUNT(*)
+                FROM refresh_sessions rs
+                JOIN principals p ON p.id = rs.principal_id
+                WHERE p.subject = 'local:$email'
+                """.trimIndent(),
+            ),
+        )
+    }
+
+    private suspend fun assertRegistrationArtifactsCreated(email: String) {
+        assertEquals(
+            1,
+            countRows("SELECT COUNT(*) FROM user_identities WHERE email = '$email'"),
+        )
+        assertEquals(
+            1,
+            countRows(
+                """
+                SELECT COUNT(*)
+                FROM principals p
+                WHERE p.subject = 'local:$email'
+                """.trimIndent(),
+            ),
+        )
+        assertEquals(
+            1,
+            countRows(
+                """
+                SELECT COUNT(*)
+                FROM local_password_credentials c
+                JOIN user_identities ui ON ui.principal_id = c.principal_id
+                WHERE ui.email = '$email'
+                """.trimIndent(),
+            ),
+        )
+        assertEquals(
+            1,
+            countRows("SELECT COUNT(*) FROM email_verification_tokens WHERE email = '$email'"),
+        )
+        assertEquals(1, countRows("SELECT COUNT(*) FROM workspaces"))
+        assertEquals(1, countRows("SELECT COUNT(*) FROM workspace_ownerships"))
+        assertEquals(1, countRows("SELECT COUNT(*) FROM workspace_memberships"))
+        assertEquals(1, countRows("SELECT COUNT(*) FROM membership_roles"))
+        assertEquals(
+            1,
+            countRows(
+                """
+                SELECT COUNT(*)
+                FROM refresh_sessions rs
+                JOIN principals p ON p.id = rs.principal_id
+                WHERE p.subject = 'local:$email'
+                """.trimIndent(),
+            ),
+        )
+    }
 
     override fun cleanupStatements(): List<String> = listOf(
         "DELETE FROM refresh_sessions",
@@ -162,6 +272,49 @@ class LocalAuthEndpointIntegrationTest : IntegrationTestBase() {
 
         // The verification token was generated during registration.
         // This test verifies that login succeeds with PENDING email status.
+    }
+
+    @Test
+    fun `registration failure during workspace provisioning rolls back prior writes`() {
+        val email = "rollback@example.com"
+        failWorkspaceProvisioning = true
+
+        webTestClient.post()
+            .uri("/api/auth/register")
+            .header(HttpHeaders.ACCEPT, API_V1_MEDIA_TYPE)
+            .bodyValue(
+                mapOf(
+                    "email" to email,
+                    "password" to "password123",
+                ),
+            )
+            .exchange()
+            .expectStatus().is5xxServerError
+
+        kotlinx.coroutines.runBlocking {
+            assertNoRegistrationArtifacts(email)
+        }
+    }
+
+    @Test
+    fun `successful registration persists all expected records`() {
+        val email = "success-artifacts@example.com"
+
+        webTestClient.post()
+            .uri("/api/auth/register")
+            .header(HttpHeaders.ACCEPT, API_V1_MEDIA_TYPE)
+            .bodyValue(
+                mapOf(
+                    "email" to email,
+                    "password" to "password123",
+                ),
+            )
+            .exchange()
+            .expectStatus().isCreated
+
+        kotlinx.coroutines.runBlocking {
+            assertRegistrationArtifactsCreated(email)
+        }
     }
 
     @Test
@@ -387,10 +540,26 @@ class LocalAuthEndpointIntegrationTest : IntegrationTestBase() {
 
         @Bean
         @Primary
+        fun workspaceProvisioningService(realService: R2dbcWorkspaceProvisioningService): WorkspaceProvisioningService =
+            WorkspaceProvisioningService { principalId, displayName ->
+                val result = realService.provisionDefaultWorkspace(principalId, displayName)
+                if (failWorkspaceProvisioning) {
+                    error("Simulated workspace provisioning failure (post-write)")
+                }
+                result
+            }
+
+        @Bean
+        @Primary
         fun reactiveJwtDecoder(@Value("\${app.security.local-jwt.secret}") secret: String): ReactiveJwtDecoder =
             NimbusReactiveJwtDecoder
                 .withSecretKey(SecretKeySpec(secret.toByteArray(Charsets.UTF_8), "HmacSHA256"))
                 .macAlgorithm(MacAlgorithm.HS256)
                 .build()
+    }
+
+    companion object {
+        @Volatile
+        var failWorkspaceProvisioning: Boolean = false
     }
 }

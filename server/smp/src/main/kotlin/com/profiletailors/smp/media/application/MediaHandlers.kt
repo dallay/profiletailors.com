@@ -3,6 +3,7 @@ package com.profiletailors.smp.media.application
 import com.profiletailors.common.domain.Service
 import com.profiletailors.common.domain.bus.command.CommandWithResultHandler
 import com.profiletailors.common.domain.bus.query.QueryHandler
+import com.profiletailors.common.domain.persistence.AtomicTransactionRunner
 import com.profiletailors.smp.media.domain.BlobStatus
 import com.profiletailors.smp.media.domain.MediaAsset
 import com.profiletailors.smp.media.domain.MediaAssetStatus

@@ -2,6 +2,7 @@ package com.profiletailors.smp.media.application
 
 import com.profiletailors.common.domain.bus.event.BaseDomainEvent
 import com.profiletailors.common.domain.bus.event.EventPublisher
+import com.profiletailors.common.domain.persistence.AtomicTransactionRunner
 import com.profiletailors.smp.media.domain.BlobStatus
 import com.profiletailors.smp.media.domain.BlobUpsertResult
 import com.profiletailors.smp.media.domain.MediaAsset
