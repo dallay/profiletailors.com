@@ -13,9 +13,8 @@ import org.springframework.stereotype.Component
  * @property applicationEventPublisher Spring's event publisher
  */
 @Component
-class SpringRateLimitEventPublisher(
-    private val applicationEventPublisher: ApplicationEventPublisher
-) : EventPublisher<RateLimitExceededEvent> {
+class SpringRateLimitEventPublisher(private val applicationEventPublisher: ApplicationEventPublisher) :
+    EventPublisher<RateLimitExceededEvent> {
 
     private val logger = LoggerFactory.getLogger(SpringRateLimitEventPublisher::class.java)
 

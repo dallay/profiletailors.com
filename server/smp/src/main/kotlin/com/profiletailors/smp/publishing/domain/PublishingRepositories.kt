@@ -52,9 +52,7 @@ interface PublicationRepository {
      * Find publications that are BLOCKED and may be eligible for retry.
      * Used by the BLOCKED-recovery scan when account status restores to ACTIVE.
      */
-    suspend fun findBlockedForRecovery(
-        maxRetries: Int,
-    ): List<PublicationDraft>
+    suspend fun findBlockedForRecovery(maxRetries: Int): List<PublicationDraft>
 }
 
 interface PublicationAssetRepository {

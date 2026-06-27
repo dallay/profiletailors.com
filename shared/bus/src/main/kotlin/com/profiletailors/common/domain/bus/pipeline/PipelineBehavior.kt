@@ -21,6 +21,6 @@ interface PipelineBehavior {
      */
     suspend fun <TRequest, TResponse> handle(
         request: TRequest,
-        next: RequestHandlerDelegate<TRequest, TResponse>
+        next: RequestHandlerDelegate<TRequest, TResponse>,
     ): TResponse
 }

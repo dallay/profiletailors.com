@@ -6,7 +6,7 @@ import com.profiletailors.common.domain.vo.credential.Credential
  * Test fixtures for [Credential] value object.
  * All passwords are intentionally safe/weak examples used ONLY in tests.
  * Use [strongCredentialPassword] for happy-path tests.
- * Use [weakPasswordNoNumber], [weakPasswordNoUppercase], etc. for validation error tests.
+ * Use [WEAK_PASSWORD_NO_NUMBER], [WEAK_PASSWORD_NO_UPPERCASE], etc. for validation error tests.
  */
 object CredentialFixtures {
 
@@ -19,25 +19,25 @@ object CredentialFixtures {
     // --- Weak passwords for validation error tests ---
 
     /** Missing: number */
-    const val weakPasswordNoNumber = "Weakpassword"
+    const val WEAK_PASSWORD_NO_NUMBER = "Weakpassword"
 
     /** Missing: uppercase */
-    const val weakPasswordNoUppercase = "weakpassword1"
+    const val WEAK_PASSWORD_NO_UPPERCASE = "weakpassword1"
 
     /** Missing: lowercase */
-    const val weakPasswordNoLowercase = "WEAKPASSWORD1"
+    const val WEAK_PASSWORD_NO_LOWERCASE = "WEAKPASSWORD1"
 
     /** Missing: special character */
-    const val weakPasswordNoSpecial = "Weakpassword1"
+    const val WEAK_PASSWORD_NO_SPECIAL = "Weakpassword1"
 
     /** Too short: less than 8 characters */
-    const val weakPasswordTooShort = "Weak@1"
+    const val WEAK_PASSWORD_TOO_SHORT = "Weak@1"
 
     /** Blank: empty string */
-    const val blankPassword = ""
+    const val BLANK_PASSWORD = ""
 
     /** Blank: whitespace only */
-    const val whitespacePassword = "   "
+    const val WHITESPACE_PASSWORD = "   "
 
     /**
      * Builds a weak password missing exactly one validation rule.

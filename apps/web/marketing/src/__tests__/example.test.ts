@@ -2,7 +2,7 @@ import { describe, it, expect } from 'vitest'
 
 describe('Vitest sanity check', () => {
   it('should pass a basic assertion', () => {
-    expect(1 + 1).toBe(2)
+    expect(typeof describe).toBe('function')
   })
 
   it('should handle string operations', () => {

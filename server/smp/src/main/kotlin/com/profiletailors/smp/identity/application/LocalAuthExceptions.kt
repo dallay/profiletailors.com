@@ -1,6 +1,5 @@
 package com.profiletailors.smp.identity.application
 
-import com.profiletailors.common.domain.context.MissingPrincipalContextException
 import com.profiletailors.common.domain.context.PrincipalContext
 import com.profiletailors.common.domain.context.PrincipalContextProvider
 import com.profiletailors.common.domain.context.PrincipalType
@@ -8,23 +7,16 @@ import com.profiletailors.smp.identity.domain.EmailStatus
 
 class InvalidEmailPasswordException : RuntimeException("Invalid email or password.")
 
-class UserAlreadyExistsException(
-    email: String,
-) : RuntimeException("A user with email '$email' already exists.")
+class UserAlreadyExistsException(email: String) : RuntimeException("A user with email '$email' already exists.")
 
-class InvalidRegistrationInputException(
-    message: String,
-) : RuntimeException(message)
+class InvalidRegistrationInputException(message: String) : RuntimeException(message)
 
-class UnverifiedEmailException(
-    val email: String,
-) : RuntimeException("Email verification required for '$email'.")
+class UnverifiedEmailException(val email: String) : RuntimeException("Email verification required for '$email'.")
 
 class InvalidVerificationTokenException : RuntimeException("Invalid or expired verification token.")
 
-class FeatureEmailVerificationRequired(
-    val feature: AuthFeature,
-) : RuntimeException("Email verification required for feature: ${feature.name}.")
+class FeatureEmailVerificationRequired(val feature: AuthFeature) :
+    RuntimeException("Email verification required for feature: ${feature.name}.")
 
 /**
  * Enforces email verification gating for [feature].

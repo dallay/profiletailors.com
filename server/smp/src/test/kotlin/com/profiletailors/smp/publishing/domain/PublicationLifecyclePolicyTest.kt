@@ -75,7 +75,9 @@ class PublicationLifecyclePolicyTest {
     fun `priority ordering yields higher rank for priority jobs`() {
         val schedulingPolicy = PublicationSchedulingPolicy()
 
-        assertTrue(schedulingPolicy.priorityRank(baseDraft.copy(priority = true)) > schedulingPolicy.priorityRank(baseDraft))
+        assertTrue(
+            schedulingPolicy.priorityRank(baseDraft.copy(priority = true)) > schedulingPolicy.priorityRank(baseDraft),
+        )
     }
 
     @Test
@@ -85,7 +87,10 @@ class PublicationLifecyclePolicyTest {
         assertTrue(retryPolicy.shouldRetry(currentAttemptNumber = 1, retryable = true))
         assertTrue(retryPolicy.shouldRetry(currentAttemptNumber = 2, retryable = true))
         assertEquals(false, retryPolicy.shouldRetry(currentAttemptNumber = 3, retryable = true))
-        assertEquals(Instant.parse("2026-05-26T12:05:00Z"), retryPolicy.nextRetryAt(Instant.parse("2026-05-26T12:00:00Z")))
+        assertEquals(
+            Instant.parse("2026-05-26T12:05:00Z"),
+            retryPolicy.nextRetryAt(Instant.parse("2026-05-26T12:00:00Z")),
+        )
         assertEquals(3, retryPolicy.maxAttempts())
     }
 

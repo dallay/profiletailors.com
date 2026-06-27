@@ -13,8 +13,7 @@ data class WorkspaceOwnership(
 ) {
     fun belongsTo(principalId: String): Boolean = ownerPrincipalId == principalId
 
-    fun matches(membership: WorkspaceMembership): Boolean =
-        workspaceId == membership.workspaceId &&
-            ownerPrincipalId == membership.principalId &&
-            ownerPrincipalType == membership.principalType
+    fun matches(membership: WorkspaceMembership): Boolean = workspaceId == membership.workspaceId &&
+        ownerPrincipalId == membership.principalId &&
+        ownerPrincipalType == membership.principalType
 }

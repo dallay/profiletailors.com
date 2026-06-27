@@ -15,7 +15,7 @@ data class PresignedUrlGeneratedEvent(
     val expirySeconds: Long,
     val requesterId: String,
     val timestamp: Instant = Instant.now(),
-    val expiryTime: Instant
+    val expiryTime: Instant,
 ) : BaseDomainEvent(LocalDateTime.ofInstant(timestamp, ZoneOffset.UTC)) {
     init {
         require(bucket.isNotBlank()) { "Bucket cannot be blank" }

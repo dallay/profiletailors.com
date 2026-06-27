@@ -19,9 +19,7 @@ data class CursorPageResponse<T>(
     val nextPageCursor: String?,
 ) : PageResponse<T>(data)
 
-inline fun <T, U> CursorPageResponse<T>.map(
-    func: (Collection<T>) -> Collection<U>
-) = CursorPageResponse(
+inline fun <T, U> CursorPageResponse<T>.map(func: (Collection<T>) -> Collection<U>) = CursorPageResponse(
     data = func(data),
     prevPageCursor = prevPageCursor,
     nextPageCursor = nextPageCursor,

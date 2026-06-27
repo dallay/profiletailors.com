@@ -1,6 +1,5 @@
 package com.profiletailors.storage.infrastructure
 
-import com.profiletailors.storage.domain.StorageServiceException
 import kotlinx.coroutines.delay
 import org.slf4j.LoggerFactory
 import software.amazon.awssdk.services.s3.model.S3Exception
@@ -36,7 +35,9 @@ object S3RetryHelper {
                 val statusCode = e.statusCode()
                 if (statusCode != null && statusCode in transientStatusCodes && attempt < maxAttempts) {
                     val delayMs = min(baseDelayMs * (1 shl (attempt - 1)), 2000L)
-                    logger.warn("Transient S3 error ($statusCode), retrying in ${delayMs}ms (attempt $attempt/$maxAttempts): ${e.message}")
+                    logger.warn(
+                        "Transient S3 error ($statusCode), retrying in ${delayMs}ms (attempt $attempt/$maxAttempts): ${e.message}",
+                    )
                     delay(delayMs)
                 } else {
                     // Don't wrap — let caller see the original S3Exception (e.g., NoSuchKeyException)

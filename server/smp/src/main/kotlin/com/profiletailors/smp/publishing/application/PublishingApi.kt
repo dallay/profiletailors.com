@@ -14,15 +14,10 @@ import com.profiletailors.smp.publishing.domain.SocialProvider
 import java.time.Instant
 import java.time.LocalDate
 
-data class InitiateLinkedInConnectionCommand(
-    val redirectUri: String,
-) : CommandWithResult<LinkedInConnectionInitiationResult>
+data class InitiateLinkedInConnectionCommand(val redirectUri: String) :
+    CommandWithResult<LinkedInConnectionInitiationResult>
 
-data class LinkedInConnectionInitiationResult(
-    val authorizationUrl: String,
-    val state: String,
-    val expiresAt: Instant,
-)
+data class LinkedInConnectionInitiationResult(val authorizationUrl: String, val state: String, val expiresAt: Instant)
 
 data class CompleteLinkedInConnectionCommand(
     val authorizationCode: String,
@@ -30,13 +25,9 @@ data class CompleteLinkedInConnectionCommand(
     val state: String,
 ) : CommandWithResult<SocialConnectionResult>
 
-data class ListConnectedChannelsQuery(
-    val status: SocialConnectionStatus? = null,
-) : Query<ConnectedChannelsResponse>
+data class ListConnectedChannelsQuery(val status: SocialConnectionStatus? = null) : Query<ConnectedChannelsResponse>
 
-data class ConnectedChannelsResponse(
-    val channels: List<ConnectedSocialChannelSummary>,
-)
+data class ConnectedChannelsResponse(val channels: List<ConnectedSocialChannelSummary>)
 
 data class ConnectedSocialChannelSummary(
     val socialAccountId: String,
@@ -72,13 +63,9 @@ data class EditPublicationCommand(
     val priority: Boolean = false,
 ) : CommandWithResult<PublicationResult>
 
-data class CancelPublicationCommand(
-    val publicationId: String,
-) : CommandWithResult<PublicationResult>
+data class CancelPublicationCommand(val publicationId: String) : CommandWithResult<PublicationResult>
 
-data class DeletePublicationCommand(
-    val publicationId: String,
-) : CommandWithResult<PublicationResult>
+data class DeletePublicationCommand(val publicationId: String) : CommandWithResult<PublicationResult>
 
 data class RetryPublicationCommand(
     val publicationId: String,
@@ -129,11 +116,7 @@ data class PublicationResult(
     val publishedAt: Instant? = null,
 )
 
-data class PublicationAssetSummary(
-    val assetId: String,
-    val sourceType: AssetSourceType,
-    val mediaType: String,
-)
+data class PublicationAssetSummary(val assetId: String, val sourceType: AssetSourceType, val mediaType: String)
 
 data class CreateAssetCommand(
     val mediaType: String,
@@ -192,11 +175,7 @@ data class ConflictEntry(
     val reason: String = "OVERLAPPING_SCHEDULE",
 )
 
-data class ActivityEntry(
-    val date: LocalDate,
-    val density: ActivityDensity,
-    val count: Int,
-)
+data class ActivityEntry(val date: LocalDate, val density: ActivityDensity, val count: Int)
 
 // --- List Publications Query DTOs ---
 
@@ -209,10 +188,7 @@ data class ListPublicationsQuery(
     val offset: Int = 0,
 ) : Query<ListPublicationsResponse>
 
-data class ListPublicationsResponse(
-    val publications: List<ListPublicationItem>,
-    val total: Int,
-)
+data class ListPublicationsResponse(val publications: List<ListPublicationItem>, val total: Int)
 
 data class ListPublicationItem(
     val id: String,
@@ -242,9 +218,7 @@ data class ListNotificationEventsQuery(
     val limit: Int = 50,
 ) : Query<NotificationEventsResponse>
 
-data class NotificationEventsResponse(
-    val events: List<NotificationEventItem>,
-)
+data class NotificationEventsResponse(val events: List<NotificationEventItem>)
 
 data class NotificationEventItem(
     val id: String,

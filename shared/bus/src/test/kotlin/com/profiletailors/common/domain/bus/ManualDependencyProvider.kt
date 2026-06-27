@@ -4,23 +4,16 @@ package com.profiletailors.common.domain.bus
 
 import java.lang.reflect.ParameterizedType
 
-class ManualDependencyProvider(
-    private val handlerMap: HashMap<Class<*>, Any>,
-) : DependencyProvider {
+class ManualDependencyProvider(private val handlerMap: HashMap<Class<*>, Any>) : DependencyProvider {
     override fun <T> getSingleInstanceOf(clazz: Class<T>): T = handlerMap[clazz] as T
 
-    override fun <T> getSubTypesOf(clazz: Class<T>): Collection<Class<T>> {
-        return handlerMap
-            .filter { filterInternal(it.key, clazz) }
-            .map {
-                it.key as Class<T>
-            }
-    }
+    override fun <T> getSubTypesOf(clazz: Class<T>): Collection<Class<T>> = handlerMap
+        .filter { filterInternal(it.key, clazz) }
+        .map {
+            it.key as Class<T>
+        }
 
-    private fun <THandler> filterInternal(
-        handler: Class<*>,
-        interfaceOrBaseClass: Class<THandler>,
-    ): Boolean {
+    private fun <THandler> filterInternal(handler: Class<*>, interfaceOrBaseClass: Class<THandler>): Boolean {
         if (interfaceOrBaseClass.isAssignableFrom(handler)) return true
 
         if (handler.genericInterfaces

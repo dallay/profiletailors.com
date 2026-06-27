@@ -2,9 +2,6 @@ package com.profiletailors.controllers
 
 import com.profiletailors.common.domain.error.BusinessRuleValidationException
 import com.profiletailors.common.domain.error.EntityNotFoundException
-import java.net.URI
-import java.time.Instant
-import java.util.*
 import org.slf4j.LoggerFactory
 import org.springframework.context.MessageSource
 import org.springframework.context.NoSuchMessageException
@@ -22,12 +19,13 @@ import org.springframework.web.reactive.result.method.annotation.ResponseEntityE
 import org.springframework.web.server.ServerWebExchange
 import org.springframework.web.server.ServerWebInputException
 import reactor.core.publisher.Mono
+import java.net.URI
+import java.time.Instant
+import java.util.*
 
 @RestControllerAdvice
 @org.springframework.core.annotation.Order(org.springframework.core.Ordered.LOWEST_PRECEDENCE)
-class GlobalExceptionHandler(
-    private val messageSource: MessageSource
-) : ResponseEntityExceptionHandler() {
+class GlobalExceptionHandler(private val messageSource: MessageSource) : ResponseEntityExceptionHandler() {
 
     private val log = LoggerFactory.getLogger(GlobalExceptionHandler::class.java)
 
@@ -42,9 +40,11 @@ class GlobalExceptionHandler(
             typeSuffix = "entity-not-found",
             errorCategory = "NOT_FOUND",
             exchange = exchange,
-            messageKey = MSG_ENTITY_NOT_FOUND,
-            localizedMessage = localizedMessage,
-            includeInstance = true,
+            options = ProblemDetailOptions(
+                messageKey = MSG_ENTITY_NOT_FOUND,
+                localizedMessage = localizedMessage,
+                includeInstance = true,
+            ),
         )
     }
 
@@ -75,17 +75,16 @@ class GlobalExceptionHandler(
             typeSuffix = "bad-request",
             errorCategory = "BAD_REQUEST",
             exchange = exchange,
-            messageKey = MSG_BAD_REQUEST,
-            localizedMessage = localizedTitle,
+            options = ProblemDetailOptions(
+                messageKey = MSG_BAD_REQUEST,
+                localizedMessage = localizedTitle,
+            ),
         )
     }
 
     @ResponseStatus(HttpStatus.BAD_REQUEST)
     @ExceptionHandler(DecodingException::class)
-    fun handleDecodingException(
-        ex: DecodingException,
-        exchange: ServerWebExchange
-    ): ProblemDetail {
+    fun handleDecodingException(ex: DecodingException, exchange: ServerWebExchange): ProblemDetail {
         logRequestException("JSON deserialization failed", exchange, ex)
 
         val locale = exchange.localeContext.locale ?: Locale.getDefault()
@@ -106,8 +105,10 @@ class GlobalExceptionHandler(
             typeSuffix = "json-parsing-error",
             errorCategory = "JSON_PARSING",
             exchange = exchange,
-            additionalProperties = mapOf("rootCause" to (rootCause::class.simpleName ?: "Unknown")),
-            includeInstance = true,
+            options = ProblemDetailOptions(
+                additionalProperties = mapOf("rootCause" to (rootCause::class.simpleName ?: "Unknown")),
+                includeInstance = true,
+            ),
         )
     }
 
@@ -115,7 +116,7 @@ class GlobalExceptionHandler(
         ex: ServerWebInputException,
         headers: HttpHeaders,
         status: HttpStatusCode,
-        exchange: ServerWebExchange
+        exchange: ServerWebExchange,
     ): Mono<ResponseEntity<Any>> {
         logRequestException("Server web input exception", exchange, ex)
 
@@ -141,8 +142,10 @@ class GlobalExceptionHandler(
             typeSuffix = "input-error",
             errorCategory = "INPUT_ERROR",
             exchange = exchange,
-            additionalProperties = mapOf("rootCause" to (rootCause::class.simpleName ?: "Unknown")),
-            includeInstance = true,
+            options = ProblemDetailOptions(
+                additionalProperties = mapOf("rootCause" to (rootCause::class.simpleName ?: "Unknown")),
+                includeInstance = true,
+            ),
         )
         return Mono.just(ResponseEntity.status(HttpStatus.BAD_REQUEST).body(problemDetail))
     }
@@ -176,9 +179,11 @@ class GlobalExceptionHandler(
             typeSuffix = "validation-error",
             errorCategory = "VALIDATION",
             exchange = exchange,
-            messageKey = MSG_VALIDATION_ERROR,
-            localizedMessage = title,
-            additionalProperties = mapOf("errors" to fieldErrors),
+            options = ProblemDetailOptions(
+                messageKey = MSG_VALIDATION_ERROR,
+                localizedMessage = title,
+                additionalProperties = mapOf("errors" to fieldErrors),
+            ),
         )
         return Mono.just(ResponseEntity.status(HttpStatus.BAD_REQUEST).body(problemDetail))
     }
@@ -197,8 +202,10 @@ class GlobalExceptionHandler(
             typeSuffix = "internal-server-error",
             errorCategory = "INTERNAL_SERVER_ERROR",
             exchange = exchange,
-            messageKey = MSG_INTERNAL_SERVER_ERROR,
-            localizedMessage = localizedMessage,
+            options = ProblemDetailOptions(
+                messageKey = MSG_INTERNAL_SERVER_ERROR,
+                localizedMessage = localizedMessage,
+            ),
         )
     }
 
@@ -227,10 +234,7 @@ class GlobalExceptionHandler(
         typeSuffix: String,
         errorCategory: String,
         exchange: ServerWebExchange,
-        messageKey: String? = null,
-        localizedMessage: String? = null,
-        additionalProperties: Map<String, Any>? = null,
-        includeInstance: Boolean = false,
+        options: ProblemDetailOptions = ProblemDetailOptions(),
     ): ProblemDetail {
         val problemDetail = ProblemDetail.forStatusAndDetail(status, detail ?: title)
         problemDetail.title = title
@@ -239,18 +243,18 @@ class GlobalExceptionHandler(
         problemDetail.setProperty(TIMESTAMP, Instant.now())
         problemDetail.setProperty(TRACE_ID, exchange.request.id)
 
-        if (includeInstance) {
+        if (options.includeInstance) {
             problemDetail.instance = URI.create(exchange.request.path.toString())
         }
 
-        if (messageKey != null) {
-            problemDetail.setProperty(MESSAGE_KEY, messageKey)
+        if (options.messageKey != null) {
+            problemDetail.setProperty(MESSAGE_KEY, options.messageKey)
         }
-        if (localizedMessage != null) {
-            problemDetail.setProperty(LOCALIZED_MESSAGE, localizedMessage)
+        if (options.localizedMessage != null) {
+            problemDetail.setProperty(LOCALIZED_MESSAGE, options.localizedMessage)
         }
 
-        additionalProperties?.forEach { (key, value) ->
+        options.additionalProperties?.forEach { (key, value) ->
             problemDetail.setProperty(key, value)
         }
 

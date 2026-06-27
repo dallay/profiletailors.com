@@ -80,7 +80,7 @@ function trimOrEmpty(value: unknown): string {
 }
 
 function normalizeSurface(route: { name: unknown }): SchedulerSurface {
-  const name = String(route.name ?? '')
+  const name = typeof route.name === 'string' ? route.name : ''
   if (name === 'scheduler-calendar-month') return 'calendar-month'
   if (name === 'scheduler-calendar-day') return 'calendar-day'
   if (name === 'scheduler-list') return 'list'
@@ -166,7 +166,7 @@ function areQueriesEquivalent(left: Record<string, unknown>, right: LocationQuer
           ]
         }
         if (value == null) return []
-        return [[normalizedKey, String(value)]]
+        return [[normalizedKey, typeof value === 'string' ? value : JSON.stringify(value)]]
       })
       .sort(([leftKey], [rightKey]) => leftKey.localeCompare(rightKey))
 
@@ -214,6 +214,9 @@ export function createCalendarUrlController(
       const date = new Date(`${state.value.date}T00:00:00`)
       const sign = direction === 'forward' ? 1 : -1
       if (state.value.surface === 'calendar-month') {
+        // Clamp to first of month before stepping to avoid overflow
+        // (e.g. Jan 31 → setMonth(1) would overflow to March 3).
+        date.setDate(1)
         date.setMonth(date.getMonth() + sign)
       } else {
         date.setDate(date.getDate() + sign * 7)

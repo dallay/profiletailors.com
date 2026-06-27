@@ -8,10 +8,6 @@ import org.springframework.boot.context.properties.ConfigurationProperties
  * Controls optional cross-cutting concerns like audit logging.
  */
 @ConfigurationProperties(prefix = "platform.hooks")
-class AuditHooksProperties(
-    val audit: Audit = Audit(),
-) {
-    class Audit(
-        val enabled: Boolean = false,
-    )
+class AuditHooksProperties(val audit: Audit = Audit()) {
+    class Audit(val enabled: Boolean = false)
 }

@@ -29,8 +29,6 @@ internal class EntityNotFoundExceptionTest {
         assertThat(exception).isInstanceOf(BusinessRuleValidationException::class.java)
     }
 
-    private class TestEntityNotFoundException(
-        message: String,
-        cause: Throwable? = null,
-    ) : EntityNotFoundException(message, cause)
+    private class TestEntityNotFoundException(message: String, cause: Throwable? = null) :
+        EntityNotFoundException(message, cause)
 }

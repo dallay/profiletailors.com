@@ -71,8 +71,16 @@ class ConflictDetectionPolicyTest {
         val now = Instant.parse("2026-06-09T10:00:00Z")
         val draft = baseScheduled.copy(id = "pub-draft", status = PublicationStatus.DRAFT, scheduledFor = now)
         val failed = baseScheduled.copy(id = "pub-failed", status = PublicationStatus.FAILED, scheduledFor = now)
-        val cancelled = baseScheduled.copy(id = "pub-cancelled", status = PublicationStatus.CANCELLED, scheduledFor = now)
-        val published = baseScheduled.copy(id = "pub-published", status = PublicationStatus.PUBLISHED, scheduledFor = now)
+        val cancelled = baseScheduled.copy(
+            id = "pub-cancelled",
+            status = PublicationStatus.CANCELLED,
+            scheduledFor = now,
+        )
+        val published = baseScheduled.copy(
+            id = "pub-published",
+            status = PublicationStatus.PUBLISHED,
+            scheduledFor = now,
+        )
 
         val conflicts = ConflictDetectionPolicy.findConflicts(
             listOf(draft, failed, cancelled, published),
@@ -125,10 +133,16 @@ class ConflictDetectionPolicyTest {
 
     @Test
     fun `queued publications also participate in conflict detection`() {
-        val queued1 = baseScheduled.copy(id = "pub-q1", status = PublicationStatus.QUEUED,
-            scheduledFor = Instant.parse("2026-06-09T10:00:00Z"))
-        val queued2 = baseScheduled.copy(id = "pub-q2", status = PublicationStatus.QUEUED,
-            scheduledFor = Instant.parse("2026-06-09T10:10:00Z"))
+        val queued1 = baseScheduled.copy(
+            id = "pub-q1",
+            status = PublicationStatus.QUEUED,
+            scheduledFor = Instant.parse("2026-06-09T10:00:00Z"),
+        )
+        val queued2 = baseScheduled.copy(
+            id = "pub-q2",
+            status = PublicationStatus.QUEUED,
+            scheduledFor = Instant.parse("2026-06-09T10:10:00Z"),
+        )
 
         val conflicts = ConflictDetectionPolicy.findConflicts(
             listOf(queued1, queued2),

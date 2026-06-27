@@ -17,12 +17,14 @@ internal class EmailTest {
     }
 
     @ParameterizedTest
-    @ValueSource(strings = [
-        "john.snow@gmail.", "Julia.abc@",
-        "Julia.abc@.com", "Samantha_21.", ".1Samantha",
-        "Samantha@10_2A", "JuliaZ007", "_Julia007.com",
-        "Willie_Zboncak@@yahoo.com",
-    ])
+    @ValueSource(
+        strings = [
+            "john.snow@gmail.", "Julia.abc@",
+            "Julia.abc@.com", "Samantha_21.", ".1Samantha",
+            "Samantha@10_2A", "JuliaZ007", "_Julia007.com",
+            "Willie_Zboncak@@yahoo.com",
+        ],
+    )
     fun `should throw exception when email is not valid`(invalidEmail: String) {
         assertThrows(IllegalArgumentException::class.java) {
             Email(invalidEmail)
@@ -95,11 +97,13 @@ internal class EmailTest {
     }
 
     @ParameterizedTest
-    @ValueSource(strings = [
-        ".user@example.com",
-        "user.@example.com",
-        "user..name@example.com",
-    ])
+    @ValueSource(
+        strings = [
+            ".user@example.com",
+            "user.@example.com",
+            "user..name@example.com",
+        ],
+    )
     fun `should throw exception for emails with invalid dots`(invalidEmail: String) {
         assertThrows(IllegalArgumentException::class.java) {
             Email(invalidEmail)

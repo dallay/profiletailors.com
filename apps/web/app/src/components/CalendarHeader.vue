@@ -22,6 +22,10 @@ const props = defineProps<{
   periodLabel: string
   /** Active timezone (from URL) */
   timezone: string
+  /** Active status filter (from URL) */
+  status: string
+  /** Active channel IDs filter (from URL) */
+  channelIds: string[]
 }>()
 
 const emit = defineEmits<{
@@ -115,6 +119,7 @@ const calendarSurface = computed<SchedulerSurface>(() =>
         <select
           id="calendar-platform-select"
           class="bg-bg-surface border border-border-subtle rounded-full px-3 py-1.5 text-[10px] font-mono font-bold text-text-secondary appearance-none pr-8 cursor-pointer focus:outline-none focus:border-text-display"
+          :value="props.channelIds?.[0] ?? ''"
           @change="(e) => {
             const val = (e.target as HTMLSelectElement).value
             emit('change:filter', { channelIds: val ? [val] : [] })
@@ -138,6 +143,7 @@ const calendarSurface = computed<SchedulerSurface>(() =>
         <select
           id="calendar-post-status-select"
           class="bg-bg-surface border border-border-subtle rounded-full px-3 py-1.5 text-[10px] font-mono font-bold text-text-secondary appearance-none pr-8 cursor-pointer focus:outline-none focus:border-text-display"
+          :value="props.status"
           @change="(e) => emit('change:filter', { status: (e.target as HTMLSelectElement).value as SchedulerStatus })"
         >
           <option value="all">📁 {{ $t('scheduler.allPosts') || 'All Posts' }}</option>

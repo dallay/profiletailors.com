@@ -11,12 +11,9 @@ import com.profiletailors.smp.media.application.UploadConflictException
 import com.profiletailors.smp.media.application.UploadInProgressException
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertNull
-import org.junit.jupiter.api.Assertions.assertSame
 import org.junit.jupiter.api.Test
 import org.springframework.http.HttpHeaders
 import org.springframework.http.HttpStatus
-import org.springframework.http.ProblemDetail
-import org.springframework.http.ResponseEntity
 import org.springframework.web.server.ResponseStatusException
 
 class MediaProblemDetailsHandlerTest {
@@ -139,9 +136,7 @@ class MediaProblemDetailsHandlerTest {
         )
         val response = handler.handle(exception)
 
-        assertSame(ResponseEntity::class.java, response.javaClass)
-        @Suppress("UNCHECKED_CAST")
-        val entity = response as ResponseEntity<ProblemDetail>
+        val entity = response
         assertEquals(HttpStatus.TOO_MANY_REQUESTS, entity.statusCode)
         assertEquals("3600", entity.headers[HttpHeaders.RETRY_AFTER]?.first())
 

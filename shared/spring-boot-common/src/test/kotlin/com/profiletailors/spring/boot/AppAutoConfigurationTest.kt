@@ -46,7 +46,6 @@ class AppAutoConfigurationTest {
     @Configuration
     open class CustomJsonMapperConfig {
         @Bean
-        open fun jsonMapper(): JsonMapper =
-            JsonMapper.builder().addModule(kotlinModule()).build()
+        open fun jsonMapper(): JsonMapper = JsonMapper.builder().addModule(kotlinModule()).build()
     }
 }

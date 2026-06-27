@@ -6,9 +6,7 @@ import kotlin.reflect.KClass
 import kotlin.reflect.full.memberProperties
 
 @Suppress("MethodOverloading")
-class RuntimeCriteriaParser<T : Any>(
-    clazz: KClass<T>
-) : CriteriaParser<((T) -> Boolean)?> {
+class RuntimeCriteriaParser<T : Any>(clazz: KClass<T>) : CriteriaParser<((T) -> Boolean)?> {
     private val properties = clazz.memberProperties.associateBy { it.name }
 
     @Suppress("CyclomaticComplexMethod", "CognitiveComplexMethod")
@@ -61,7 +59,9 @@ class RuntimeCriteriaParser<T : Any>(
                     @Suppress("UNCHECKED_CAST")
                     v as Comparable<Any?>
                     v >= criteria.value.start && v <= criteria.value.endInclusive
-                } else false
+                } else {
+                    false
+                }
             } == true
         } == true
     }
@@ -73,7 +73,9 @@ class RuntimeCriteriaParser<T : Any>(
                     @Suppress("UNCHECKED_CAST")
                     v as Comparable<Any?>
                     v < criteria.value.start || v > criteria.value.endInclusive
-                } else false
+                } else {
+                    false
+                }
             } != false
         } == true
     }
@@ -85,7 +87,9 @@ class RuntimeCriteriaParser<T : Any>(
                     @Suppress("UNCHECKED_CAST")
                     v as Comparable<Any?>
                     v < criteria.value
-                } else false
+                } else {
+                    false
+                }
             } == true
         } == true
     }
@@ -97,7 +101,9 @@ class RuntimeCriteriaParser<T : Any>(
                     @Suppress("UNCHECKED_CAST")
                     v as Comparable<Any?>
                     v <= criteria.value
-                } else false
+                } else {
+                    false
+                }
             } == true
         } == true
     }
@@ -109,7 +115,9 @@ class RuntimeCriteriaParser<T : Any>(
                     @Suppress("UNCHECKED_CAST")
                     v as Comparable<Any?>
                     v > criteria.value
-                } else false
+                } else {
+                    false
+                }
             } == true
         } == true
     }
@@ -121,7 +129,9 @@ class RuntimeCriteriaParser<T : Any>(
                     @Suppress("UNCHECKED_CAST")
                     v as Comparable<Any?>
                     v >= criteria.value
-                } else false
+                } else {
+                    false
+                }
             } == true
         } == true
     }
@@ -139,7 +149,7 @@ class RuntimeCriteriaParser<T : Any>(
         val pattern = Pattern.compile(SqlLikeTranspiler.toRegEx(criteria.value), regexFlags)
         return {
             properties[criteria.key]?.get(it)?.let { v ->
-                if (v is CharSequence) pattern.matcher(v).find() else false
+                v is CharSequence && pattern.matcher(v).find()
             } == true
         }
     }
@@ -151,20 +161,20 @@ class RuntimeCriteriaParser<T : Any>(
         val pattern = Pattern.compile(SqlLikeTranspiler.toRegEx(criteria.value))
         return {
             properties[criteria.key]?.get(it)?.let { v ->
-                if (v is CharSequence) !pattern.matcher(v).find() else false
+                v is CharSequence && !pattern.matcher(v).find()
             } == true
         }
     }
 
     private fun parse(criteria: Criteria.Regexp): (T) -> Boolean = {
         properties[criteria.key]?.get(it)?.let { v ->
-            if (v is CharSequence) criteria.value.matcher(v).find() else false
+            v is CharSequence && criteria.value.matcher(v).find()
         } == true
     }
 
     private fun parse(criteria: Criteria.NotRegexp): (T) -> Boolean = {
         properties[criteria.key]?.get(it)?.let { v ->
-            if (v is CharSequence) !criteria.value.matcher(v).find() else false
+            v is CharSequence && !criteria.value.matcher(v).find()
         } == true
     }
 

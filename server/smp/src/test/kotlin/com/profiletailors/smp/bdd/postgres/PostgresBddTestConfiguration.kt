@@ -16,7 +16,11 @@ class PostgresBddTestConfiguration {
     fun connectionFactory(): ConnectionFactory = PostgresqlConnectionFactory(
         PostgresqlConnectionConfiguration.builder()
             .host(CucumberPostgresSpringConfiguration.postgres.host)
-            .port(CucumberPostgresSpringConfiguration.postgres.getMappedPort(org.testcontainers.containers.PostgreSQLContainer.POSTGRESQL_PORT))
+            .port(
+                CucumberPostgresSpringConfiguration.postgres.getMappedPort(
+                    org.testcontainers.containers.PostgreSQLContainer.POSTGRESQL_PORT,
+                ),
+            )
             .database(CucumberPostgresSpringConfiguration.postgres.databaseName)
             .username(CucumberPostgresSpringConfiguration.postgres.username)
             .password(CucumberPostgresSpringConfiguration.postgres.password)

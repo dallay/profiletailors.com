@@ -1,8 +1,6 @@
 package com.profiletailors.smp.authorization.domain
 
-data class PermissionKey(
-    val value: String,
-) {
+data class PermissionKey(val value: String) {
     init {
         require(PATTERN.matches(value)) {
             "Permission keys must use the format <domain>:<resource>:<action>."

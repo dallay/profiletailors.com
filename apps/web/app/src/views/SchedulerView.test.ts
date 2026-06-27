@@ -249,9 +249,9 @@ describe('SchedulerView', () => {
     const todayStr = today.toISOString().slice(0, 10)
     const wrapper = mountView({ date: todayStr })
     await flushPromises()
-    // Find the week card (now a div role="button") that contains the pub
+    // Find the week card (div[draggable]) that contains the pub
     const card = wrapper
-      .findAll('[role="button"]')
+      .findAll('[draggable="true"]')
       .find((b) => b.text().includes('Side by side layout test'))
     expect(card).toBeDefined()
     const resolvedCard = card!
@@ -437,12 +437,18 @@ describe('SchedulerView', () => {
     await flushPromises()
 
     const vm = wrapper.vm as unknown as { openDayView: (date: Date) => void }
-    const targetDate = new Date('2026-06-20')
+    // Build date from local components to avoid UTC-offset day shifts.
+    const targetDate = new Date(2026, 5, 20) // June 20, 2026 local
+    const expectedDate = [
+      targetDate.getFullYear(),
+      String(targetDate.getMonth() + 1).padStart(2, '0'),
+      String(targetDate.getDate()).padStart(2, '0'),
+    ].join('-')
 
     await vm.openDayView(targetDate)
     await flushPromises()
 
-    expect(mockController.setDate).toHaveBeenCalledWith('2026-06-20')
+    expect(mockController.setDate).toHaveBeenCalledWith(expectedDate)
   })
 
   it('refreshes calendar when CreatePostModal emits updated', async () => {
@@ -534,11 +540,9 @@ describe('SchedulerView', () => {
       await flushPromises()
 
       // Only queued publication should be visible in week slot
-      const queuedCard = wrapper
-        .findAll('[role="button"]')
-        .find((b) => b.text().includes('Queued post'))
+      const queuedCard = wrapper.findAll('button').find((b) => b.text().includes('Queued post'))
       const publishedCard = wrapper
-        .findAll('[role="button"]')
+        .findAll('button')
         .find((b) => b.text().includes('Published post'))
 
       expect(queuedCard).toBeDefined()
@@ -587,10 +591,10 @@ describe('SchedulerView', () => {
       await flushPromises()
 
       const channel1Card = wrapper
-        .findAll('[role="button"]')
+        .findAll('button')
         .find((b) => b.text().includes('Channel 1 post'))
       const channel2Card = wrapper
-        .findAll('[role="button"]')
+        .findAll('button')
         .find((b) => b.text().includes('Channel 2 post'))
 
       expect(channel1Card).toBeDefined()
@@ -637,10 +641,10 @@ describe('SchedulerView', () => {
       await flushPromises()
 
       const searchableCard = wrapper
-        .findAll('[role="button"]')
+        .findAll('button')
         .find((b) => b.text().includes('DDD patterns'))
       const notSearchableCard = wrapper
-        .findAll('[role="button"]')
+        .findAll('button')
         .find((b) => b.text().includes('no special content'))
 
       expect(searchableCard).toBeDefined()

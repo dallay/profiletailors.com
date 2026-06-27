@@ -6,10 +6,8 @@ import com.profiletailors.smp.authorization.application.resource.getpreview.GetR
 import com.profiletailors.smp.authorization.application.resource.getpreview.ResourcePreview
 
 @Service
-internal class GetResourcePreviewHandler(
-    private val service: GetResourcePreviewService,
-) : QueryHandler<GetResourcePreviewQuery, ResourcePreview> {
+internal class GetResourcePreviewHandler(private val service: GetResourcePreviewService) :
+    QueryHandler<GetResourcePreviewQuery, ResourcePreview> {
 
-    override suspend fun handle(query: GetResourcePreviewQuery): ResourcePreview =
-        service.execute(query)
+    override suspend fun handle(query: GetResourcePreviewQuery): ResourcePreview = service.execute(query)
 }

@@ -46,17 +46,13 @@ internal class EventBroadcasterTest {
         assertThat(received).allMatch { it == event }
     }
 
-    private class TestPublisher(
-        private val onPublish: (TestDomainEvent) -> Unit,
-    ) : EventPublisher<TestDomainEvent> {
+    private class TestPublisher(private val onPublish: (TestDomainEvent) -> Unit) : EventPublisher<TestDomainEvent> {
         override suspend fun publish(event: TestDomainEvent) {
             onPublish(event)
         }
     }
 
-    private data class TestDomainEvent(
-        private val version: Int = 1,
-    ) : DomainEvent {
+    private data class TestDomainEvent(private val version: Int = 1) : DomainEvent {
         override fun eventVersion(): Int = version
         override fun occurredOn(): LocalDateTime? = LocalDateTime.now()
     }

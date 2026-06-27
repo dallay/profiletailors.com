@@ -39,6 +39,11 @@ export type ApiFetchOptions = RequestInit & {
   workspaceScoped?: boolean
 }
 
+/** Creates an Error that also satisfies the ApiError shape for throw sites. */
+function apiError(title: string, detail: string, status: number): Error & ApiError {
+  return Object.assign(new Error(title), { title, detail, status })
+}
+
 // ---------------------------------------------------------------------------
 // Base request helper
 // ---------------------------------------------------------------------------
@@ -83,7 +88,7 @@ async function requestRaw(
       ...(!hasExplicitContentType && !isFormDataBody ? { 'Content-Type': 'application/json' } : {}),
       Accept: 'application/vnd.api.v1+json',
       ...(token ? { Authorization: `Bearer ${token}` } : {}),
-      ...(init.headers ?? {}),
+      ...init.headers,
     },
   })
 
@@ -96,11 +101,11 @@ async function requestRaw(
       payload = null
     }
 
-    throw {
-      title: payload?.title ?? 'Request failed',
-      detail: payload?.detail ?? 'An unexpected error occurred.',
-      status: response.status,
-    } satisfies ApiError
+    throw apiError(
+      payload?.title ?? 'Request failed',
+      payload?.detail ?? 'An unexpected error occurred.',
+      response.status,
+    )
   }
 
   return response
@@ -111,7 +116,7 @@ async function request<T>(path: string, init: RequestInit = {}, token?: string |
 
   // 204 No Content — return empty object cast to T
   if (response.status === 204) {
-    return {} as T
+    return Object.create(null) as T
   }
 
   return response.json() as Promise<T>
@@ -291,17 +296,17 @@ export function createApiFetch(opts: {
 
     const workspaceId = opts.getWorkspaceId?.()
     if (!workspaceId) {
-      throw {
-        title: 'Workspace context required',
-        detail: 'Workspace context is required for this request.',
-        status: 400,
-      } satisfies ApiError
+      throw apiError(
+        'Workspace context required',
+        'Workspace context is required for this request.',
+        400,
+      )
     }
 
     return {
       ...requestInit,
       headers: {
-        ...(requestInit.headers ?? {}),
+        ...requestInit.headers,
         'X-Workspace-Id': workspaceId,
       },
     }
@@ -374,7 +379,7 @@ export function proxyImageUrl(originalUrl: string): string {
   try {
     const url = new URL(originalUrl)
     const apiBase = resolveApiBaseUrl()
-    const proxyBase = apiBase || window.location.origin
+    const proxyBase = apiBase || globalThis.location.origin
     const proxyUrl = new URL('/api/media/proxy', proxyBase)
     // Don't proxy URLs that are ALREADY proxied through OUR backend
     if (url.origin === proxyUrl.origin && url.pathname.startsWith(proxyUrl.pathname)) {

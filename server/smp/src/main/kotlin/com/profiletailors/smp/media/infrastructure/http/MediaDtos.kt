@@ -2,6 +2,85 @@ package com.profiletailors.smp.media.infrastructure.http
 
 import io.swagger.v3.oas.annotations.media.Schema
 import jakarta.validation.constraints.NotBlank
+import jakarta.validation.constraints.Pattern
+import jakarta.validation.constraints.Positive
+
+// ─── CAS PUT Request/Response ────────────────────────────────────────────────
+
+@Schema(description = "Request to register a media asset with CAS dedup (PUT)")
+data class PutAssetRequest(
+    @field:NotBlank
+    @field:Pattern(regexp = "^[a-f0-9]{64}$")
+    @field:Schema(description = "SHA-256 hex of the file content (lowercase, 64 chars)", example = "a1b2c3d4e5f6...")
+    val fileHash: String,
+
+    @field:Positive
+    @field:Schema(description = "File size in bytes", example = "1234567")
+    val fileSizeBytes: Long,
+
+    @field:NotBlank
+    @field:Schema(description = "MIME type declared by the client", example = "image/jpeg")
+    val declaredMediaType: String,
+
+    @field:Schema(description = "Original filename. Required for OOXML formats.", required = false)
+    val originalFilename: String? = null,
+)
+
+@Schema(description = "Response from POST /api/workspaces/{workspaceId}/media/assets/{assetId}/upload")
+data class UploadAssetResponse(
+    @field:Schema(description = "Asset identifier", example = "550e8400-e29b-41d4-a716-446655440000")
+    val assetId: String,
+
+    @field:Schema(description = "Workspace identifier", example = "ws-123")
+    val workspaceId: String,
+
+    @field:Schema(description = "Lifecycle status", example = "READY")
+    val status: String,
+
+    @field:Schema(description = "Media type", example = "image/jpeg")
+    val mediaType: String,
+
+    @field:Schema(description = "Server-detected media type", example = "image/jpeg")
+    val detectedMediaType: String,
+
+    @field:Schema(description = "True if this was a dedup hit during upload", example = "false")
+    val deduped: Boolean,
+
+    @field:Schema(description = "Final file size in bytes", example = "1234567")
+    val fileSizeBytes: Long,
+
+    @field:Schema(description = "When the asset was created", example = "2026-06-24T10:00:00Z")
+    val createdAt: String,
+)
+
+@Schema(description = "Response from DELETE /api/workspaces/{workspaceId}/media/assets/{assetId}")
+data class DeleteAssetResponse(
+    @field:Schema(description = "True if the asset was deleted", example = "true")
+    val deleted: Boolean,
+
+    @field:Schema(description = "True if the blob was scheduled for GC", example = "false")
+    val blobScheduledForGC: Boolean,
+)
+
+// ─── Error response ─────────────────────────────────────────────────────────
+
+@Schema(description = "Standard media error response")
+data class MediaErrorResponse(
+    @field:Schema(description = "Machine-readable error code", example = "VALIDATION_ERROR")
+    val errorCode: String,
+
+    @field:Schema(description = "Human-readable error message")
+    val message: String,
+
+    @field:Schema(description = "Additional error context", required = false)
+    val details: Map<String, Any>? = null,
+
+    @field:Schema(description = "Existing file hash when ASSET_HASH_MISMATCH", required = false)
+    val existingFileHash: String? = null,
+
+    @field:Schema(description = "Seconds to wait before retry", required = false)
+    val retryAfterSeconds: Int? = null,
+)
 
 @Schema(description = "Request to create a new uploaded media asset")
 data class CreateMediaAssetRequest(
@@ -67,16 +146,4 @@ data class MediaAssetListResponse(
 
     @field:Schema(description = "Opaque cursor for the next page, null if no more pages")
     val nextCursor: String?,
-)
-
-@Schema(description = "Standard error response envelope")
-data class MediaErrorResponse(
-    @field:Schema(description = "Machine-readable error code", example = "ASSET_NOT_READY")
-    val errorCode: String,
-
-    @field:Schema(description = "Human-readable error message")
-    val message: String,
-
-    @field:Schema(description = "Additional error context", required = false)
-    val details: Map<String, Any>? = null,
 )

@@ -118,7 +118,9 @@ function makeEditingPublication(
     id: 'pub-edit-1',
     content: 'Existing scheduled content',
     channels: ['linkedin'] as ('linkedin' | 'twitter' | 'instagram' | 'facebook')[],
-    scheduledAt: '2026-06-25T14:30:00Z',
+    // Use a date far in the future to avoid validateCustomSchedule rejecting it
+    // as "must be in the future" in CI / local environments with different current times.
+    scheduledAt: '2030-06-25T14:30:00Z',
     scheduleMode: 'SCHEDULED_AT' as const,
     status: 'SCHEDULED' as const,
     priority: true,
@@ -195,6 +197,10 @@ describe('CreatePostModal.vue — media asset integration', () => {
     setActivePinia(createPinia())
     document.body.innerHTML = ''
     vi.clearAllMocks()
+  })
+
+  afterEach(() => {
+    document.body.innerHTML = ''
   })
 
   it('shows a transient blob preview immediately after file selection without uploading yet', async () => {
@@ -281,10 +287,6 @@ describe('CreatePostModal.vue — media asset integration', () => {
     const body = document.body.innerHTML
     expect(body).toContain('Selected media preview')
     expect(body).not.toContain('Uploading preview.png')
-  })
-
-  afterEach(() => {
-    document.body.innerHTML = ''
   })
 
   it('media store exposes persisted selected asset ids', () => {
@@ -736,9 +738,10 @@ describe('CreatePostModal.vue — edit mode', () => {
 
     const textarea = document.body.querySelector('textarea') as HTMLTextAreaElement | null
     const timeInput = document.body.querySelector('input[type="time"]') as HTMLInputElement | null
-    const customModeButton = document.body.querySelector(
-      'button[role="radio"][aria-checked="true"]',
-    ) as HTMLButtonElement | null
+    const checkedRadio = document.body.querySelector<HTMLInputElement>(
+      'input[type="radio"]:checked',
+    )
+    const customModeButton = checkedRadio?.closest('label')
     const checkboxes = document.body.querySelectorAll('input[type="checkbox"]')
 
     expect(textarea?.value).toBe('Existing scheduled content')
@@ -747,7 +750,7 @@ describe('CreatePostModal.vue — edit mode', () => {
     expect(timeInput?.value).toMatch(/^\d{2}:\d{2}$/)
     expect((checkboxes[0] as HTMLInputElement | undefined)?.checked).toBe(true)
     expect(mediaStore.selectedAssetIds).toEqual(['asset-1', 'asset-2'])
-    expect(document.body.innerHTML).toContain('Jun 25, 2026')
+    expect(document.body.innerHTML).toContain('Jun 25, 2030')
   })
 
   it('maps NOW and NEXT_SLOT schedule modes into edit-mode toggle state', async () => {
@@ -756,7 +759,8 @@ describe('CreatePostModal.vue — edit mode', () => {
     })
     await nowWrapper.vm.$nextTick()
     expect(
-      document.body.querySelector('button[role="radio"][aria-checked="true"]')?.textContent,
+      document.body.querySelector<HTMLInputElement>('input[type="radio"]:checked')?.closest('label')
+        ?.textContent,
     ).toContain('Now')
     nowWrapper.unmount()
     document.body.innerHTML = ''
@@ -766,7 +770,8 @@ describe('CreatePostModal.vue — edit mode', () => {
     })
     await nextWrapper.vm.$nextTick()
     expect(
-      document.body.querySelector('button[role="radio"][aria-checked="true"]')?.textContent,
+      document.body.querySelector<HTMLInputElement>('input[type="radio"]:checked')?.closest('label')
+        ?.textContent,
     ).toContain('Next Schedule')
   })
 
@@ -884,7 +889,7 @@ describe('CreatePostModal.vue — edit mode', () => {
 
     expect(updatePost).toHaveBeenCalledWith('pub-edit-1', {
       content: 'Updated content',
-      scheduledAt: '2026-06-25T14:30:00.000Z',
+      scheduledAt: '2030-06-25T14:30:00.000Z',
       priority: true,
       assetIds: ['asset-1', 'asset-2'],
       scheduleMode: 'SCHEDULED_AT',
@@ -900,6 +905,8 @@ describe('CreatePostModal.vue — edit mode', () => {
     const wrapper = mountModal([makeChannel('ch-edit-1')], {
       editingPublication: makeEditingPublication(),
     })
+    // Flush all async initialization (loadDanglingAssets, nextTick, focus trap)
+    await new Promise((resolve) => setTimeout(resolve, 10))
     await wrapper.vm.$nextTick()
 
     const submitButton = Array.from(document.body.querySelectorAll('button')).find((button) =>
@@ -908,7 +915,7 @@ describe('CreatePostModal.vue — edit mode', () => {
     submitButton?.click()
 
     await wrapper.vm.$nextTick()
-    await Promise.resolve()
+    await new Promise((resolve) => setTimeout(resolve, 10))
 
     expect(document.body.innerHTML).toContain('Update failed')
     expect(wrapper.emitted('updated')).toBeUndefined()

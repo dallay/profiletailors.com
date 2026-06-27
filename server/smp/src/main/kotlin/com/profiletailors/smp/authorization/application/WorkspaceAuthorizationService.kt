@@ -1,6 +1,10 @@
 package com.profiletailors.smp.authorization.application
 
 import com.profiletailors.common.domain.Service
+import com.profiletailors.common.domain.context.PrincipalContext
+import com.profiletailors.common.domain.context.PrincipalContextProvider
+import com.profiletailors.common.domain.context.ResourceContext
+import com.profiletailors.common.domain.context.ResourceContextProvider
 import com.profiletailors.smp.authorization.application.noop.NoOpDirectGrantResolver
 import com.profiletailors.smp.authorization.application.noop.NoOpEntitlementResolver
 import com.profiletailors.smp.authorization.application.noop.NoOpScopeResolver
@@ -8,9 +12,7 @@ import com.profiletailors.smp.authorization.domain.AuthorizationDecision
 import com.profiletailors.smp.authorization.domain.AuthorizationDecisionResult
 import com.profiletailors.smp.authorization.domain.AuthorizationReasonCode
 import com.profiletailors.smp.authorization.domain.AuthorizationScope
-import com.profiletailors.smp.authorization.domain.DirectGrant
 import com.profiletailors.smp.authorization.domain.DirectGrantResolver
-import com.profiletailors.smp.authorization.domain.Entitlement
 import com.profiletailors.smp.authorization.domain.EntitlementResolver
 import com.profiletailors.smp.authorization.domain.GrantEffect
 import com.profiletailors.smp.authorization.domain.PermissionKey
@@ -19,10 +21,6 @@ import com.profiletailors.smp.authorization.domain.ScopeResolver
 import com.profiletailors.smp.authorization.domain.WorkspaceAuthorizationDecider
 import com.profiletailors.smp.authorization.domain.WorkspaceMembershipResolver
 import com.profiletailors.smp.authorization.domain.WorkspaceMembershipRoleResolver
-import com.profiletailors.common.domain.context.PrincipalContext
-import com.profiletailors.common.domain.context.PrincipalContextProvider
-import com.profiletailors.common.domain.context.ResourceContext
-import com.profiletailors.common.domain.context.ResourceContextProvider
 import java.time.Clock
 
 @Service
@@ -40,12 +38,11 @@ internal class WorkspaceAuthorizationService(
         requiredPermission: PermissionKey,
         requiredEntitlementKey: String?,
         resourceContextOverride: ResourceContext?,
-    ): AuthorizationDecision =
-        decideDetailed(
-            requiredPermission = requiredPermission,
-            requiredEntitlementKey = requiredEntitlementKey,
-            resourceContextOverride = resourceContextOverride,
-        ).decision
+    ): AuthorizationDecision = decideDetailed(
+        requiredPermission = requiredPermission,
+        requiredEntitlementKey = requiredEntitlementKey,
+        resourceContextOverride = resourceContextOverride,
+    ).decision
 
     override suspend fun decideDetailed(
         requiredPermission: PermissionKey,
@@ -78,11 +75,10 @@ internal class WorkspaceAuthorizationService(
         )
     }
 
-    private fun missingMembershipDecision(): AuthorizationDecisionResult =
-        AuthorizationDecisionResult(
-            decision = AuthorizationDecision.DENY,
-            reasonCode = AuthorizationReasonCode.MISSING_MEMBERSHIP,
-        )
+    private fun missingMembershipDecision(): AuthorizationDecisionResult = AuthorizationDecisionResult(
+        decision = AuthorizationDecision.DENY,
+        reasonCode = AuthorizationReasonCode.MISSING_MEMBERSHIP,
+    )
 
     private suspend fun decideBaseAccess(
         requiredPermission: PermissionKey,
@@ -97,26 +93,31 @@ internal class WorkspaceAuthorizationService(
             .filter { grant -> grant.permission == requiredPermission && grant.isActive(clock.instant()) }
             .toSet()
         val entitlements = entitlementResolver.resolve(resourceContext)
-        val entitlementSatisfied = requiredEntitlementKey == null || entitlements.any { entitlement ->
-            entitlement.key == requiredEntitlementKey && entitlement.enabled
-        }
+        val entitlementSatisfied = requiredEntitlementKey == null ||
+            entitlements.any { entitlement ->
+                entitlement.key == requiredEntitlementKey && entitlement.enabled
+            }
 
         return when {
             !entitlementSatisfied -> decision(AuthorizationReasonCode.MISSING_ENTITLEMENT, roleKeys)
+
             directGrants.any { it.effect == GrantEffect.DENY } ->
                 decision(AuthorizationReasonCode.DIRECT_DENY, roleKeys)
+
             directGrants.any { it.effect == GrantEffect.ALLOW } ->
                 decision(
                     reasonCode = AuthorizationReasonCode.DIRECT_ALLOW,
                     roleKeys = roleKeys,
                     authorizationDecision = AuthorizationDecision.ALLOW,
                 )
+
             requiredPermission in rolePermissions ->
                 decision(
                     reasonCode = AuthorizationReasonCode.ROLE_PERMISSION,
                     roleKeys = roleKeys,
                     authorizationDecision = AuthorizationDecision.ALLOW,
                 )
+
             else -> decision(AuthorizationReasonCode.MISSING_PERMISSION, roleKeys)
         }
     }
@@ -160,8 +161,11 @@ internal class WorkspaceAuthorizationService(
                 targetContext.targetResourceId in scope.allowedTargetResourceIds
             }
 
-        return if (scopeAllowsTarget) null
-        else decision(AuthorizationReasonCode.SCOPE_REDUCED_TARGET)
+        return if (scopeAllowsTarget) {
+            null
+        } else {
+            decision(AuthorizationReasonCode.SCOPE_REDUCED_TARGET)
+        }
     }
 
     private fun targetScopeContext(resourceContext: ResourceContext): TargetScopeContext? =
@@ -184,8 +188,5 @@ internal class WorkspaceAuthorizationService(
         roleKeys = roleKeys,
     )
 
-    private data class TargetScopeContext(
-        val targetResourceType: String,
-        val targetResourceId: String,
-    )
+    private data class TargetScopeContext(val targetResourceType: String, val targetResourceId: String)
 }

@@ -9,9 +9,6 @@ import com.profiletailors.common.domain.bus.query.QueryHandlerExecutionError
 import com.profiletailors.common.domain.bus.query.Response
 import com.profiletailors.config.ContextKeys.WORKSPACE_CONTEXT_KEY
 import io.swagger.v3.oas.annotations.security.SecurityRequirement
-import java.net.URLEncoder
-import java.util.Locale
-import java.util.UUID
 import kotlinx.coroutines.reactor.awaitSingle
 import kotlinx.coroutines.reactor.awaitSingleOrNull
 import org.springframework.context.MessageSource
@@ -24,6 +21,9 @@ import org.springframework.security.oauth2.server.resource.authentication.JwtAut
 import org.springframework.web.server.ResponseStatusException
 import org.springframework.web.util.HtmlUtils
 import reactor.core.publisher.Mono
+import java.net.URLEncoder
+import java.util.Locale
+import java.util.UUID
 
 /**
  * Abstract base class for API controllers.
@@ -32,9 +32,7 @@ import reactor.core.publisher.Mono
  * @property mediator The mediator used for sending commands and queries.
  */
 @SecurityRequirement(name = "Keycloak")
-abstract class ApiController(
-    private val mediator: Mediator
-) {
+abstract class ApiController(private val mediator: Mediator) {
 
     /**
      * Dispatches a command using the mediator.
@@ -136,20 +134,18 @@ abstract class ApiController(
      * @return The workspace UUID from the reactive context
      * @throws ResponseStatusException with 400 BAD REQUEST if workspace ID is not in context
      */
-    protected suspend fun workspaceIdFromContext(): UUID {
-        return Mono.deferContextual { contextView ->
-            if (contextView.hasKey(WORKSPACE_CONTEXT_KEY)) {
-                Mono.just(contextView.get<UUID>(WORKSPACE_CONTEXT_KEY))
-            } else {
-                Mono.error(
-                    ResponseStatusException(
-                        HttpStatus.BAD_REQUEST,
-                        "Missing X-Workspace-Id header. All workspace-scoped endpoints require this header.",
-                    ),
-                )
-            }
-        }.awaitSingle()
-    }
+    protected suspend fun workspaceIdFromContext(): UUID = Mono.deferContextual { contextView ->
+        if (contextView.hasKey(WORKSPACE_CONTEXT_KEY)) {
+            Mono.just(contextView.get<UUID>(WORKSPACE_CONTEXT_KEY))
+        } else {
+            Mono.error(
+                ResponseStatusException(
+                    HttpStatus.BAD_REQUEST,
+                    "Missing X-Workspace-Id header. All workspace-scoped endpoints require this header.",
+                ),
+            )
+        }
+    }.awaitSingle()
 
     /**
      * Validates a path variable against an allow-list regex (^[a-zA-Z0-9_-]+$)
@@ -175,11 +171,7 @@ abstract class ApiController(
      * @param messageSource The message source to retrieve the message from.
      * @return The localized message string.
      */
-    protected fun getLocalizedMessage(
-        key: String,
-        request: ServerHttpRequest,
-        messageSource: MessageSource,
-    ): String {
+    protected fun getLocalizedMessage(key: String, request: ServerHttpRequest, messageSource: MessageSource): String {
         val locale = request.headers.acceptLanguageAsLocales.firstOrNull() ?: Locale.ENGLISH
         return messageSource.getMessage(key, null, locale)
     }

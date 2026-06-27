@@ -2,9 +2,8 @@ package com.profiletailors.smp.credentials.application
 
 import com.profiletailors.common.domain.bus.command.CommandWithResult
 
-data class ReplaceApiKeyCredentialCommand(
-    val predecessorCredentialReference: String,
-) : CommandWithResult<ReplaceApiKeyCredentialResult>
+data class ReplaceApiKeyCredentialCommand(val predecessorCredentialReference: String) :
+    CommandWithResult<ReplaceApiKeyCredentialResult>
 
 data class ReplaceApiKeyCredentialResult(
     val predecessorCredentialReference: String,
@@ -12,7 +11,7 @@ data class ReplaceApiKeyCredentialResult(
     val successorPlaintextApiKey: String,
 )
 
-interface ApiKeyCredentialReplacementGateway {
+fun interface ApiKeyCredentialReplacementGateway {
     suspend fun replaceActiveCredential(command: ReplaceApiKeyCredentialCommand): ReplaceApiKeyCredentialResult
 }
 
@@ -21,13 +20,7 @@ interface ApiKeyCredentialValueFactory {
 
     fun nextPlaintextApiKey(): PlaintextApiKey
 
-    data class PlaintextApiKey(
-        val lookupKey: String,
-        val keyPrefix: String,
-        val secret: String,
-    ) {
+    data class PlaintextApiKey(val lookupKey: String, val keyPrefix: String, val secret: String) {
         val value: String = "$lookupKey.$secret"
     }
 }
-
-

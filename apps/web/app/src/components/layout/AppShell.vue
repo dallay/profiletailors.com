@@ -2,7 +2,7 @@
 import { computed, onBeforeUnmount, watch } from 'vue'
 import { RouterView, useRoute, useRouter } from 'vue-router'
 import { useI18n } from 'vue-i18n'
-import { extractFirstChannelId } from '@/composables/useCalendarUrl'
+import { extractFirstChannelId, useCalendarUrl } from '@/composables/useCalendarUrl'
 import { Images, LayoutGrid } from '@lucide/vue'
 import {
   Sidebar,
@@ -30,7 +30,6 @@ import SidebarConnectSection, { type ConnectChannel } from '@/components/sidebar
 import SidebarAccountSection from '@/components/sidebar/SidebarAccountSection.vue'
 import UploadProgressToast from '@/components/UploadProgressToast.vue'
 import { useQueuedCounts } from '@/composables/useQueuedCounts'
-import { useCalendarUrl } from '@/composables/useCalendarUrl'
 
 // ---------------------------------------------------------------------------
 // Stores
@@ -90,7 +89,7 @@ const { total: totalQueuedCount, byProvider: queuedByProvider } = useQueuedCount
 
 const navigationGroups = computed<NavGroup[]>(() => [
   {
-    label: 'Workspace',
+    label: t('workspace.title'),
     items: [
       { labelKey: 'nav.dashboard', to: '/', icon: LayoutGrid },
       { labelKey: 'nav.scheduler', to: '/scheduler', icon: LayoutGrid },
@@ -99,7 +98,7 @@ const navigationGroups = computed<NavGroup[]>(() => [
     ],
   },
   {
-    label: 'System',
+    label: t('nav.system'),
     items: [{ labelKey: 'nav.settings', to: '/settings', icon: LayoutGrid }],
   },
 ])
@@ -157,18 +156,14 @@ async function showAllChannels() {
 
 async function selectChannel(accountId: string) {
   try {
-    const nextChannelIds = isSchedulerRoute()
-      ? [...new Set([...calendarUrl.state.value.channelIds, accountId])]
-      : [accountId]
-
     if (isSchedulerRoute()) {
-      await calendarUrl.setChannelIds(nextChannelIds)
+      await calendarUrl.setChannelIds([accountId])
       return
     }
 
     await router.push({
       name: 'scheduler-calendar-week',
-      query: { 'channels[]': nextChannelIds },
+      query: { 'channels[]': [accountId] },
     })
   } catch (e) {
     console.error('Failed to navigate to scheduler', e)
@@ -236,14 +231,13 @@ onBeforeUnmount(() => {
   </a>
 
   <!-- SPA route announcer — announces page changes to screen readers -->
-  <div
-    role="status"
+  <output
     aria-live="polite"
     aria-atomic="true"
     class="sr-only"
   >
     {{ pageTitle }}
-  </div>
+  </output>
 
   <TooltipProvider>
     <SidebarProvider :default-open="true" class="bg-bg-primary font-sans text-text-body transition-colors duration-250">
@@ -260,7 +254,7 @@ onBeforeUnmount(() => {
         <SidebarContent class="gap-6">
           <SidebarGroup class="gap-2">
             <SidebarGroupLabel class="group-data-[collapsible=icon]:hidden">
-              Workspace
+              {{ $t('workspace.title') }}
             </SidebarGroupLabel>
             <SidebarMenu>
               <SidebarMenuItem>

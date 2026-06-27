@@ -13,9 +13,8 @@ private const val SECRET_BYTES = 24
 private const val CREDENTIAL_REFERENCE_BYTES = 16
 
 @Service
-class ReplaceApiKeyCredentialHandler(
-    private val gateway: ApiKeyCredentialReplacementGateway,
-) : CommandWithResultHandler<ReplaceApiKeyCredentialCommand, ReplaceApiKeyCredentialResult> {
+class ReplaceApiKeyCredentialHandler(private val gateway: ApiKeyCredentialReplacementGateway) :
+    CommandWithResultHandler<ReplaceApiKeyCredentialCommand, ReplaceApiKeyCredentialResult> {
     override suspend fun handle(command: ReplaceApiKeyCredentialCommand): ReplaceApiKeyCredentialResult =
         gateway.replaceActiveCredential(command)
 }

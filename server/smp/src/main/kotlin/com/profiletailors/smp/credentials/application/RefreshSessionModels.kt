@@ -9,10 +9,7 @@ enum class RefreshSessionStatus {
     EXPIRED,
 }
 
-data class RefreshSessionToken(
-    val lookupKey: String,
-    val secret: String,
-) {
+data class RefreshSessionToken(val lookupKey: String, val secret: String) {
     fun asCookieValue(): String = "$lookupKey.$secret"
 }
 
@@ -33,10 +30,7 @@ data class ActiveRefreshSession(
     val lastUsedAt: Instant?,
 )
 
-data class RotatedRefreshSession(
-    val previousSessionId: String,
-    val current: CreatedRefreshSession,
-)
+data class RotatedRefreshSession(val previousSessionId: String, val current: CreatedRefreshSession)
 
 enum class RefreshSessionFailureReason {
     MISSING,

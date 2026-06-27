@@ -10,9 +10,9 @@ import org.springframework.context.annotation.Import
 import org.springframework.scheduling.annotation.EnableScheduling
 import org.springframework.stereotype.Component
 import org.springframework.stereotype.Repository
-import org.springframework.stereotype.Service as SpringService
 import org.springframework.web.bind.annotation.RestController
 import org.springframework.web.bind.annotation.RestControllerAdvice
+import org.springframework.stereotype.Service as SpringService
 
 /**
  * Entry point for the `profiletailors-backend` server module.
@@ -56,5 +56,5 @@ import org.springframework.web.bind.annotation.RestControllerAdvice
 class SmpApplication
 
 fun main(args: Array<String>) {
-	runApplication<SmpApplication>(*args)
+    runApplication<SmpApplication>(*args)
 }

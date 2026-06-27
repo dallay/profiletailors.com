@@ -30,10 +30,7 @@ import java.util.UUID
  * @see CredentialValue
  * @see CredentialException
  */
-data class Credential(
-    val id: CredentialId,
-    val credentialValue: CredentialValue,
-) {
+data class Credential(val id: CredentialId, val credentialValue: CredentialValue) {
     companion object {
         private const val REQUIRED_TYPES = 4
         const val MIN_LENGTH = 8
@@ -64,6 +61,7 @@ data class Credential(
             repeat(targetLength - passwordChars.size) { passwordChars.add(charset.random()) }
             return passwordChars.shuffled().joinToString("")
         }
+
         /**
          * Creates a new [Credential] with a randomly generated ID.
          *
@@ -121,12 +119,35 @@ value class CredentialId(val value: UUID) {
 value class CredentialValue(val value: String) {
     init {
         if (value.isBlank()) throw CredentialException("Credential value cannot be blank")
-        if (value.length < MIN_LENGTH) throw CredentialException("Credential value must be at least $MIN_LENGTH characters")
-        if (value.length > MAX_CREDENTIAL_LENGTH) throw CredentialException("Credential value cannot exceed $MAX_CREDENTIAL_LENGTH characters")
+        if (value.length <
+            MIN_LENGTH
+        ) {
+            throw CredentialException("Credential value must be at least $MIN_LENGTH characters")
+        }
+        if (value.length >
+            MAX_CREDENTIAL_LENGTH
+        ) {
+            throw CredentialException("Credential value cannot exceed $MAX_CREDENTIAL_LENGTH characters")
+        }
         if (!value.any { it in charNumbers }) throw CredentialException("The password must have at least one number")
-        if (!value.any { it in charUppercase }) throw CredentialException("The password must have at least one uppercase character")
-        if (!value.any { it in charLowercase }) throw CredentialException("The password must have at least one lowercase character")
-        if (!value.any { it in charSpecial }) throw CredentialException("The password must have at least one special character")
+        if (!value.any {
+                it in charUppercase
+            }
+        ) {
+            throw CredentialException("The password must have at least one uppercase character")
+        }
+        if (!value.any {
+                it in charLowercase
+            }
+        ) {
+            throw CredentialException("The password must have at least one lowercase character")
+        }
+        if (!value.any {
+                it in charSpecial
+            }
+        ) {
+            throw CredentialException("The password must have at least one special character")
+        }
     }
     override fun toString(): String = "****"
     companion object {

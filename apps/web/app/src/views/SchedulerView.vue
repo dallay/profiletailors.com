@@ -306,7 +306,7 @@ const filteredPublications = computed(() => {
     publicationMatchesFilters(pub, {
       socialAccountId: activeChannelId || undefined,
       tag: url.state.value.q || undefined,
-      postType: url.state.value.status !== 'all' ? url.state.value.status : undefined,
+      postType: url.state.value.status === 'all' ? undefined : url.state.value.status,
     }),
   )
 })
@@ -387,8 +387,8 @@ function openNewPostForSlot(date: Date, hour?: number) {
   if (publishingStore.hasNoChannels) return
 
   const d = new Date(date)
-  if (hour !== undefined) d.setHours(hour, 0, 0, 0)
-  else d.setHours(12, 0, 0, 0)
+  if (hour === undefined) d.setHours(12, 0, 0, 0)
+  else d.setHours(hour, 0, 0, 0)
   selectedCellDate.value = d.toISOString()
   isModalOpen.value = true
 }
@@ -401,7 +401,11 @@ function openNewPostGeneral() {
 }
 
 function openDayView(date: Date) {
-  url.setDate(date.toISOString().slice(0, 10))
+  // Format using local date components to avoid UTC-offset day shifts.
+  const y = date.getFullYear()
+  const m = String(date.getMonth() + 1).padStart(2, '0')
+  const d = String(date.getDate()).padStart(2, '0')
+  url.setDate(`${y}-${m}-${d}`)
 }
 
 async function handleDeletePublication(id: string) {
@@ -445,10 +449,12 @@ async function handleUpdated() {
   const to =
     state.surface === 'calendar-month'
       ? new Date(baseDate.getFullYear(), baseDate.getMonth() + 1, 0)
-      : new Date(from.getFullYear(), from.getMonth(), from.getDate() + 6)
+      // Week view: end is exclusive (backend uses `scheduled_for < :to`),
+      // so add 7 days to cover Sunday→Saturday fully including the last day.
+      : new Date(from.getFullYear(), from.getMonth(), from.getDate() + 7)
 
   await publishingStore.fetchCalendar(from.toISOString(), to.toISOString(), {
-    status: state.status !== 'all' ? state.status : undefined,
+    status: state.status === 'all' ? undefined : state.status,
     socialAccountId: state.channelIds[0],
     timezone: state.timezone,
   })
@@ -494,10 +500,12 @@ watch(
     const to =
       state.surface === 'calendar-month'
         ? new Date(baseDate.getFullYear(), baseDate.getMonth() + 1, 0)
-        : new Date(from.getFullYear(), from.getMonth(), from.getDate() + 6)
+        // Week view: end is exclusive (backend uses `scheduled_for < :to`),
+        // so add 7 days to cover Sunday→Saturday fully including the last day.
+        : new Date(from.getFullYear(), from.getMonth(), from.getDate() + 7)
 
     await publishingStore.fetchCalendar(from.toISOString(), to.toISOString(), {
-      status: state.status !== 'all' ? state.status : undefined,
+      status: state.status === 'all' ? undefined : state.status,
       socialAccountId: state.channelIds[0],
       timezone: state.timezone,
     })
@@ -514,6 +522,8 @@ watch(
       :period-label="periodLabel"
       :surface="url.state.value.surface"
       :timezone="url.state.value.timezone"
+      :status="url.state.value.status"
+      :channel-ids="url.state.value.channelIds"
       @change:view="handleHeaderViewChange"
       @change:date="handleHeaderDateChange"
       @change:filter="handleHeaderFilterChange"
@@ -630,15 +640,14 @@ watch(
                     </span>
                   </div>
                   <!-- Day columns -->
-                  <!-- biome-ignore lint/a11y/noStaticElementInteractions: role is set conditionally, dragover/drop handlers are passive -->
-                  <div
+                  <button
                     v-for="day in weekDays"
                     :key="day.toISOString()"
-                    :role="!isPastSlot(day, slot.hour) ? 'button' : undefined"
-                    :tabindex="!isPastSlot(day, slot.hour) ? 0 : -1"
-                    @click="!isPastSlot(day, slot.hour) ? openNewPostForSlot(day, slot.hour) : undefined"
-                    @keydown.enter.prevent="!isPastSlot(day, slot.hour) ? openNewPostForSlot(day, slot.hour) : undefined"
-                    @keydown.space.prevent="!isPastSlot(day, slot.hour) ? openNewPostForSlot(day, slot.hour) : undefined"
+                    type="button"
+                    :disabled="isPastSlot(day, slot.hour)"
+                    @click="isPastSlot(day, slot.hour) ? undefined : openNewPostForSlot(day, slot.hour)"
+                    @keydown.enter.prevent="isPastSlot(day, slot.hour) ? undefined : openNewPostForSlot(day, slot.hour)"
+                    @keydown.space.prevent="isPastSlot(day, slot.hour) ? undefined : openNewPostForSlot(day, slot.hour)"
                     @dragover.prevent="!isPastSlot(day, slot.hour)"
                     @drop.prevent="!isPastSlot(day, slot.hour) ? onDropCell($event, day, slot.hour) : undefined"
                     class="relative p-2 border-r border-border-subtle last:border-r-0 transition-all group/cell flex flex-col justify-start gap-2 select-none"
@@ -649,13 +658,11 @@ watch(
                     :title="isPastSlot(day, slot.hour) ? 'Past time slots are disabled (read-only)' : undefined"
                   >
                     <!-- Scheduled Posts -->
-                    <!-- biome-ignore lint/a11y/useSemanticElements: non-button container required to avoid nested buttons (delete btn inside card) -->
+                    <!-- biome-ignore lint/a11y/noStaticElementInteractions: non-button container required to avoid nested buttons (delete btn inside card) -->
                     <div
                       v-for="pub in getPublicationsForSlot(day, slot.hour)"
                       :key="pub.id"
                       :draggable="true"
-                      role="button"
-                      tabindex="0"
                       @click.stop="openPostDetail(pub)"
                       @keydown.enter.self.stop.prevent="openPostDetail(pub)"
                       @keydown.space.self.stop.prevent="openPostDetail(pub)"
@@ -727,7 +734,7 @@ watch(
                     >
                       <Plus class="size-3" />
                     </button>
-                  </div>
+                  </button>
                 </div>
               </div>
             </Card>
@@ -738,16 +745,14 @@ watch(
         <!-- List Mode -->
         <div v-else class="space-y-4">
           <div v-if="filteredPublications.length === 0" class="border border-dashed border-border-visible rounded-2xl p-12 text-center text-text-secondary font-mono text-xs uppercase tracking-wider">
-            {{ $t('dashboard.noPosts') || 'No scheduled posts for today.' }}
+            {{ $t('dashboard.noPosts') || 'No posts match your current filters.' }}
           </div>
 
           <div v-else class="space-y-3">
-              <!-- biome-ignore lint/a11y/useSemanticElements: non-button container required to avoid nested buttons (delete btn inside card) -->
-              <div
+              <button
                 v-for="pub in filteredPublications"
                 :key="pub.id"
-                role="button"
-                tabindex="0"
+                type="button"
                 class="group/card flex flex-col md:flex-row md:items-center justify-between gap-4 p-5 rounded-2xl border border-border-subtle bg-bg-surface hover:border-text-secondary transition-all cursor-pointer w-full text-left"
                 @click="openPostDetail(pub)"
                 @keydown.enter.self.stop.prevent="openPostDetail(pub)"
@@ -770,13 +775,19 @@ watch(
                     {{ pub.status }}
                   </span>
                   <!-- BLOCKED reconnect prompt in list view -->
-                  <button
+                  <!-- NOSONAR(Web:S6819): parent is a native <button>, cannot nest HTML buttons -->
+                  <!-- biome-ignore lint/a11y/useSemanticElements: parent is <button>, cannot nest HTML buttons -->
+                  <span
                     v-if="pub.status === 'BLOCKED'"
+                    role="button"
+                    tabindex="0"
                     @click.stop="handleReconnect"
-                    class="text-[9px] underline text-warning hover:text-warning/80 font-medium"
+                    @keydown.enter.stop="handleReconnect"
+                    @keydown.space.stop="handleReconnect"
+                    class="text-[9px] underline text-warning hover:text-warning/80 font-medium cursor-pointer"
                   >
                     Reconnect
-                  </button>
+                  </span>
                   <!-- Conflict badge in list view -->
                   <ConflictBadge
                     v-if="pub.hasConflict"
@@ -806,16 +817,22 @@ watch(
                   </span>
                 </div>
 
-                <button
+                <!-- NOSONAR(Web:S6819): parent is a native <button>, cannot nest HTML buttons -->
+                <!-- biome-ignore lint/a11y/useSemanticElements: parent is <button>, cannot nest HTML buttons -->
+                <span
                   v-if="publishingStore.isPublicationDeletable(pub.status)"
+                  role="button"
+                  tabindex="0"
                   @click.stop="handleDeletePublication(pub.id)"
+                  @keydown.enter.stop="handleDeletePublication(pub.id)"
+                  @keydown.space.stop="handleDeletePublication(pub.id)"
                   class="group-hover/card:opacity-100 opacity-0 size-8 flex items-center justify-center rounded-xl border border-border-visible hover:border-error text-text-secondary hover:text-error transition-all bg-bg-primary cursor-pointer"
                   title="Delete publication"
                 >
                   <Trash2 class="size-4" />
-                </button>
+                </span>
               </div>
-            </div>
+            </button>
           </div>
         </div>
     </div>

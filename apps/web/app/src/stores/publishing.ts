@@ -8,6 +8,8 @@ import { useAuthStore } from './auth'
 // Types — Channel & Publication (frontend model)
 // ---------------------------------------------------------------------------
 
+export type SocialProvider = 'twitter' | 'linkedin' | 'instagram' | 'facebook'
+
 export interface SocialConnectionResult {
   connectionId: string
   workspaceId: string
@@ -27,7 +29,7 @@ export interface SocialAccountSummary {
 export interface Channel {
   id: string
   name: string
-  provider: 'twitter' | 'linkedin' | 'instagram' | 'facebook'
+  provider: SocialProvider
   avatar: string
   avatarUrl?: string
   handle: string
@@ -48,7 +50,7 @@ export interface Publication {
   id: string
   content: string
   title?: string
-  channels: ('twitter' | 'linkedin' | 'instagram' | 'facebook')[]
+  channels: SocialProvider[]
   scheduledAt: string // ISO string
   scheduleMode?: 'NOW' | 'NEXT_SLOT' | 'SCHEDULED_AT'
   status:
@@ -142,19 +144,10 @@ interface PublicationMutationResult {
 export interface ConnectedSocialChannelSummary {
   socialAccountId: string
   connectionId: string
-  provider: 'LINKEDIN' | string
-  accountKind: 'PERSONAL_PROFILE' | 'ORGANIZATION_PAGE' | string
+  provider: string
+  accountKind: string
   displayName: string
-  status:
-    | 'ACTIVE'
-    | 'PENDING'
-    | 'DISABLED'
-    | 'REQUIRES_RECONNECT'
-    | 'DELETED'
-    | 'ERROR'
-    | 'REVOKED'
-    | 'EXPIRED'
-    | string
+  status: string
   avatarUrl?: string | null
   connectedAt: string | null
   lastSyncedAt: string | null
@@ -435,7 +428,7 @@ export const usePublishingStore = defineStore('publishing', () => {
 
   /** Filters for the calendar API — derived from reactive filter state. */
   const calendarFilters = computed<CalendarFilters>(() => ({
-    ...(filterPostType.value !== 'all' ? { status: filterPostType.value.toUpperCase() } : {}),
+    ...(filterPostType.value === 'all' ? {} : { status: filterPostType.value.toUpperCase() }),
     ...(filterSocialAccountId.value ? { socialAccountId: filterSocialAccountId.value } : {}),
   }))
 
@@ -499,7 +492,7 @@ export const usePublishingStore = defineStore('publishing', () => {
   const isLinkedInConfigured = computed(() => configuredProviders.value.includes('linkedin'))
 
   async function connectLinkedInPersonalProfile(
-    redirectUri = `${window.location.origin}/integrations/linkedin/callback`,
+    redirectUri = `${globalThis.location.origin}/integrations/linkedin/callback`,
   ) {
     const data = await auth.apiFetch<LinkedInConnectionInitiationResult>(
       '/api/publishing/linkedin/connections/initiate',
@@ -509,7 +502,7 @@ export const usePublishingStore = defineStore('publishing', () => {
         workspaceScoped: true,
       },
     )
-    window.location.assign(data.authorizationUrl)
+    globalThis.location.assign(data.authorizationUrl)
     return data
   }
 
@@ -737,7 +730,7 @@ export const usePublishingStore = defineStore('publishing', () => {
   async function schedulePost(post: {
     content: string
     title?: string
-    channels: ('twitter' | 'linkedin' | 'instagram' | 'facebook')[]
+    channels: SocialProvider[]
     scheduledAt?: string
     nextSlotAfter?: string
     scheduleMode?: 'NOW' | 'SCHEDULED_AT' | 'NEXT_SLOT'
@@ -767,40 +760,7 @@ export const usePublishingStore = defineStore('publishing', () => {
     }
 
     if (auth.isAuthenticated) {
-      const hasLinkedIn = post.channels.includes('linkedin')
-
-      try {
-        if (hasLinkedIn) {
-          const linkedInChannel = findActiveLinkedInChannel(channels.value, post.socialAccountId)
-          if (!linkedInChannel?.accountId) {
-            throw new Error('Connect a LinkedIn profile before scheduling authenticated posts.')
-          }
-
-          newPub.accountId = linkedInChannel.accountId
-          const resolvedAssetIds = post.assetIds ?? []
-
-          await auth.apiFetch<unknown>('/api/publishing/publications', {
-            method: 'POST',
-            body: JSON.stringify({
-              socialAccountId: linkedInChannel.accountId,
-              title: post.title || 'Post via Web App',
-              bodyText: normalizeText(post.content),
-              assetIds: resolvedAssetIds,
-              scheduleMode: effectiveMode,
-              ...(effectiveMode === 'SCHEDULED_AT' ? { scheduledFor: post.scheduledAt } : {}),
-              ...(effectiveMode === 'NEXT_SLOT' ? { nextSlotAfter: post.nextSlotAfter } : {}),
-              priority: post.priority,
-            }),
-            workspaceScoped: true,
-          })
-          console.log('Successfully synced publication with backend API!')
-        }
-      } catch (err) {
-        if (hasLinkedIn) {
-          throw err
-        }
-        console.warn('Backend API unavailable. Saving to local storage mock queue instead.', err)
-      }
+      await syncPublicationWithApi(post, newPub, effectiveMode)
     }
 
     publications.value.unshift(newPub)
@@ -811,9 +771,53 @@ export const usePublishingStore = defineStore('publishing', () => {
     return newPub
   }
 
+  /**
+   * Syncs a new publication with the backend API if a LinkedIn channel is selected.
+   * Falls back silently to local-only mode if the API is unavailable for non-LinkedIn posts.
+   */
+  async function syncPublicationWithApi(
+    post: Parameters<typeof schedulePost>[0],
+    newPub: Publication,
+    effectiveMode: string,
+  ): Promise<void> {
+    const hasLinkedIn = post.channels.includes('linkedin')
+
+    try {
+      if (!hasLinkedIn) return
+
+      const linkedInChannel = findActiveLinkedInChannel(channels.value, post.socialAccountId)
+      if (!linkedInChannel?.accountId) {
+        throw new Error('Connect a LinkedIn profile before scheduling authenticated posts.')
+      }
+
+      newPub.accountId = linkedInChannel.accountId
+      const resolvedAssetIds = post.assetIds ?? []
+
+      await auth.apiFetch<unknown>('/api/publishing/publications', {
+        method: 'POST',
+        body: JSON.stringify({
+          socialAccountId: linkedInChannel.accountId,
+          title: post.title || 'Post via Web App',
+          bodyText: normalizeText(post.content),
+          assetIds: resolvedAssetIds,
+          scheduleMode: effectiveMode,
+          ...(effectiveMode === 'SCHEDULED_AT' ? { scheduledFor: post.scheduledAt } : {}),
+          ...(effectiveMode === 'NEXT_SLOT' ? { nextSlotAfter: post.nextSlotAfter } : {}),
+          priority: post.priority,
+        }),
+        workspaceScoped: true,
+      })
+      console.log('Successfully synced publication with backend API!')
+    } catch (err) {
+      if (hasLinkedIn) {
+        throw err
+      }
+      console.warn('Backend API unavailable. Saving to local storage mock queue instead.', err)
+    }
+  }
+
   async function deletePost(id: string) {
-    const publication = publications.value.find((p) => p.id === id)
-    if (!publication) {
+    if (!publications.value.some((p) => p.id === id)) {
       throw new Error(`Publication ${id} not found`)
     }
 
@@ -841,18 +845,33 @@ export const usePublishingStore = defineStore('publishing', () => {
     }
   }
 
-  async function updatePost(id: string, updates: Partial<Publication>) {
-    const idx = publications.value.findIndex((p) => p.id === id)
-    if (idx === -1) {
-      throw new Error(`Publication ${id} not found`)
+  /**
+   * Update tracked object URLs (blob revocations / assignments) for a publication.
+   * Shared between the authenticated and unauthenticated paths of updatePost
+   * to avoid duplicated cognitive complexity.
+   */
+  function updateTrackedObjectUrls(
+    id: string,
+    updates: { thumbnail?: string },
+    current: { thumbnail?: string },
+  ): void {
+    if (updates.thumbnail && current.thumbnail && objectUrls.has(id)) {
+      const trackedUrl = objectUrls.get(id)
+      if (trackedUrl) URL.revokeObjectURL(trackedUrl)
+      objectUrls.delete(id)
     }
+    if (typeof updates.thumbnail === 'string' && updates.thumbnail.startsWith('blob:')) {
+      objectUrls.set(id, updates.thumbnail)
+    } else if (updates.thumbnail == null && objectUrls.has(id)) {
+      objectUrls.delete(id)
+    }
+  }
 
-    const current = publications.value[idx]
+  async function updatePost(id: string, updates: Partial<Publication>) {
+    const current = publications.value.find((p) => p.id === id)
     if (!current) {
       throw new Error(`Publication ${id} not found`)
     }
-
-    const previous: Publication = { ...current }
 
     if (auth.isAuthenticated) {
       const result = await auth.apiFetch<PublicationMutationResult>(
@@ -878,42 +897,22 @@ export const usePublishingStore = defineStore('publishing', () => {
         },
       )
 
-      // Object URL mutations only after successful PATCH
-      if (updates.thumbnail && current.thumbnail && objectUrls.has(id)) {
-        const trackedUrl = objectUrls.get(id)
-        if (trackedUrl) URL.revokeObjectURL(trackedUrl)
-        objectUrls.delete(id)
-      }
-      if (typeof updates.thumbnail === 'string' && updates.thumbnail.startsWith('blob:')) {
-        objectUrls.set(id, updates.thumbnail)
-      } else if (updates.thumbnail == null && objectUrls.has(id)) {
-        objectUrls.delete(id)
-      }
+      updateTrackedObjectUrls(id, updates, current)
 
       const merged = publicationMutationResultToPublication(result, {
         ...current,
         ...updates,
       })
-      publications.value[idx] = merged
+      publications.value[publications.value.indexOf(current)] = merged
       saveToStorage()
       return merged
     }
 
-    // Unauthenticated path — object URL mutations before local update
-    if (updates.thumbnail && current.thumbnail && objectUrls.has(id)) {
-      const trackedUrl = objectUrls.get(id)
-      if (trackedUrl) URL.revokeObjectURL(trackedUrl)
-      objectUrls.delete(id)
-    }
-    if (typeof updates.thumbnail === 'string' && updates.thumbnail.startsWith('blob:')) {
-      objectUrls.set(id, updates.thumbnail)
-    } else if (updates.thumbnail == null && objectUrls.has(id)) {
-      objectUrls.delete(id)
-    }
-
-    publications.value[idx] = { ...previous, ...updates }
+    updateTrackedObjectUrls(id, updates, current)
+    const updated = { ...current, ...updates }
+    publications.value[publications.value.indexOf(current)] = updated
     saveToStorage()
-    return publications.value[idx]
+    return updated
   }
 
   // -----------------------------------------------------------------------
@@ -926,7 +925,7 @@ export const usePublishingStore = defineStore('publishing', () => {
         channel: filterChannel.value || undefined,
         socialAccountId: filterSocialAccountId.value || undefined,
         tag: filterTag.value || undefined,
-        postType: filterPostType.value !== 'all' ? filterPostType.value : undefined,
+        postType: filterPostType.value === 'all' ? undefined : filterPostType.value,
       }),
     )
   }

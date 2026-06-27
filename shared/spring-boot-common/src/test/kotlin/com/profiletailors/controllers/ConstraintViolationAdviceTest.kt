@@ -42,10 +42,7 @@ class ConstraintViolationAdviceTest {
     }
 
     /** Minimal [ConstraintViolation] for test purposes. */
-    private class FakeViolation(
-        private val field: String,
-        private val msg: String,
-    ) : ConstraintViolation<Any> {
+    private class FakeViolation(private val field: String, private val msg: String) : ConstraintViolation<Any> {
         override fun getMessage() = msg
         override fun getMessageTemplate() = msg
         override fun getRootBean() = this
@@ -68,6 +65,7 @@ class ConstraintViolationAdviceTest {
             override fun getIndex(): Int? = null
             override fun getKey(): Any? = null
             override fun getKind() = ElementKind.PROPERTY
+
             @Suppress("UNCHECKED_CAST")
             override fun <T : Node> `as`(type: Class<T>) = this as T
             override fun toString() = field

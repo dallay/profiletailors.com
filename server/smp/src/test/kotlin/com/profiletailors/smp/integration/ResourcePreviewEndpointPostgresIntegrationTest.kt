@@ -1,19 +1,16 @@
 package com.profiletailors.smp.integration
 
-import com.fasterxml.jackson.databind.ObjectMapper
 import com.profiletailors.smp.integration.support.ResourcePreviewEndpointTestBase
 import org.junit.jupiter.api.Tag
 import org.springframework.boot.test.context.SpringBootTest
 import org.springframework.boot.test.context.TestConfiguration
 import org.springframework.boot.webtestclient.autoconfigure.AutoConfigureWebTestClient
-import org.springframework.context.annotation.Bean
+import org.springframework.context.annotation.Import
 import org.springframework.test.context.DynamicPropertyRegistry
 import org.springframework.test.context.DynamicPropertySource
 import org.testcontainers.containers.PostgreSQLContainer
 import org.testcontainers.junit.jupiter.Container
 import org.testcontainers.junit.jupiter.Testcontainers
-
-import org.springframework.context.annotation.Import
 
 @Tag("postgres")
 @AutoConfigureWebTestClient
@@ -38,8 +35,7 @@ class ResourcePreviewEndpointPostgresIntegrationTest : ResourcePreviewEndpointTe
     override fun liquibasePassword(): String = postgres.password
 
     @TestConfiguration
-    class PostgresTestBeans {
-    }
+    class PostgresTestBeans
 
     companion object {
         @Container
@@ -57,7 +53,9 @@ class ResourcePreviewEndpointPostgresIntegrationTest : ResourcePreviewEndpointTe
             }
 
             val r2dbcUrl =
-                "r2dbc:postgresql://${postgres.host}:${postgres.getMappedPort(PostgreSQLContainer.POSTGRESQL_PORT)}/${postgres.databaseName}"
+                "r2dbc:postgresql://${postgres.host}:${postgres.getMappedPort(
+                    PostgreSQLContainer.POSTGRESQL_PORT,
+                )}/${postgres.databaseName}"
 
             registry.add("spring.r2dbc.url") { r2dbcUrl }
             registry.add("spring.r2dbc.username", postgres::getUsername)

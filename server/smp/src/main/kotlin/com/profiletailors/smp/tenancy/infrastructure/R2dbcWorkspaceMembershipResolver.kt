@@ -13,18 +13,15 @@ import org.springframework.r2dbc.core.DatabaseClient
 import org.springframework.stereotype.Repository
 
 @Repository
-class R2dbcWorkspaceMembershipResolver(
-    private val databaseClient: DatabaseClient,
-) : WorkspaceMembershipResolver, WorkspaceMembershipLookup {
+class R2dbcWorkspaceMembershipResolver(private val databaseClient: DatabaseClient) :
+    WorkspaceMembershipResolver,
+    WorkspaceMembershipLookup {
     override suspend fun resolve(
         principalContext: PrincipalContext,
         resourceContext: ResourceContext,
     ): WorkspaceMembership? = resolve(principalContext.principalId, resourceContext)
 
-    override suspend fun resolve(
-        principalId: String,
-        resourceContext: ResourceContext,
-    ): WorkspaceMembership? {
+    override suspend fun resolve(principalId: String, resourceContext: ResourceContext): WorkspaceMembership? {
         val workspaceId = resourceContext.workspaceId
             ?.takeIf { resourceContext.type == ResourceContextType.WORKSPACE && it.isNotBlank() }
             ?: return null

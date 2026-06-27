@@ -12,13 +12,13 @@ version = "0.0.1-SNAPSHOT"
 tasks.bootRun {
     val envFile = layout.projectDirectory.file(".env")
     if (envFile.asFile.exists()) {
-        envFile.asFile.readLines()
+        envFile.asFile
+            .readLines()
             .filter { it.isNotBlank() && !it.startsWith("#") && '=' in it }
             .map { line ->
                 val (key, value) = line.split("=", limit = 2)
                 key.trim() to value.trim()
-            }
-            .filter { (_, value) -> value.isNotBlank() }
+            }.filter { (_, value) -> value.isNotBlank() }
             .forEach { (key, value) ->
                 environment(key, value)
             }
@@ -84,18 +84,28 @@ dependencies {
     testImplementation(libs.cucumber.java)
     testImplementation(libs.cucumber.spring)
     testImplementation(libs.archunit.junit5)
-    
+
     testImplementation(platform(libs.testcontainers.bom))
     testImplementation(libs.testcontainers.junit.jupiter)
     testImplementation(libs.testcontainers.postgresql)
 
     testRuntimeOnly(libs.junit.platform.launcher)
     testRuntimeOnly(libs.cucumber.junit.platform.engine)
+
+    constraints {
+        implementation(libs.okio.jvm)
+        implementation(libs.bouncycastle.prov)
+        implementation(libs.bouncycastle.pgp)
+    }
 }
 
 dependencyManagement {
     imports {
         mavenBom(org.springframework.boot.gradle.plugin.SpringBootPlugin.BOM_COORDINATES)
-        mavenBom(libs.spring.modulith.bom.get().toString())
+        mavenBom(
+            libs.spring.modulith.bom
+                .get()
+                .toString(),
+        )
     }
 }

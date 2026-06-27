@@ -183,9 +183,7 @@ class UpdateWorkspaceIconHandlerTest {
     private class FakeWorkspaceMutationRepository : WorkspaceMutationRepository {
         private val icons = mutableMapOf<String, String?>("ws-icon" to null)
 
-        override suspend fun rename(workspaceId: String, newName: String): Boolean {
-            return icons.containsKey(workspaceId)
-        }
+        override suspend fun rename(workspaceId: String, newName: String): Boolean = icons.containsKey(workspaceId)
 
         override suspend fun updateIcon(workspaceId: String, icon: String?): Boolean {
             if (!icons.containsKey(workspaceId)) return false

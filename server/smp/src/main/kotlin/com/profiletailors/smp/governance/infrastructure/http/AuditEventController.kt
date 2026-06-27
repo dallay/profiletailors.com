@@ -20,9 +20,7 @@ import java.time.Instant
 @RestController
 @RequestMapping(value = ["/api/governance/audit-events"])
 @Tag(name = "Audit Events", description = "Workspace audit event retrieval endpoints")
-class AuditEventController(
-    private val mediator: Mediator,
-) {
+class AuditEventController(private val mediator: Mediator) {
     companion object {
         private const val DEFAULT_LIMIT_VALUE = "50"
         private const val MAX_LIMIT = 100L
@@ -55,12 +53,14 @@ class AuditEventController(
             description = "Filter for events created after this timestamp (ISO 8601 format)",
             example = "2026-05-01T00:00:00Z",
         )
-        @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) createdAfter: Instant?,
+        @RequestParam(required = false)
+        @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) createdAfter: Instant?,
         @Parameter(
             description = "Filter for events created before this timestamp (ISO 8601 format)",
             example = "2026-05-24T23:59:59Z",
         )
-        @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) createdBefore: Instant?,
+        @RequestParam(required = false)
+        @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) createdBefore: Instant?,
         @Parameter(
             description = "Cursor for pagination (opaque token from previous response)",
             example = "eyJpZCI6MTIzNDU2fQ==",

@@ -1,7 +1,15 @@
 package com.profiletailors.smp.authorization.application
 
+import com.profiletailors.common.domain.context.PrincipalContext
+import com.profiletailors.common.domain.context.PrincipalContextProvider
+import com.profiletailors.common.domain.context.PrincipalType
+import com.profiletailors.common.domain.context.ResourceContext
+import com.profiletailors.common.domain.context.ResourceContextProvider
+import com.profiletailors.common.domain.context.ResourceContextType
+import com.profiletailors.common.domain.workspace.WorkspaceMembershipStatus
 import com.profiletailors.smp.authorization.application.current.workspace.GetCurrentWorkspaceAccessSummaryQuery
 import com.profiletailors.smp.authorization.domain.AuthorizationDecision
+import com.profiletailors.smp.authorization.domain.AuthorizationReasonCode
 import com.profiletailors.smp.authorization.domain.AuthorizationScope
 import com.profiletailors.smp.authorization.domain.DirectGrant
 import com.profiletailors.smp.authorization.domain.DirectGrantResolver
@@ -14,14 +22,6 @@ import com.profiletailors.smp.authorization.domain.RoleCategory
 import com.profiletailors.smp.authorization.domain.ScopeResolver
 import com.profiletailors.smp.authorization.domain.WorkspaceMembershipResolver
 import com.profiletailors.smp.authorization.domain.WorkspaceMembershipRoleResolver
-import com.profiletailors.common.domain.context.PrincipalContext
-import com.profiletailors.common.domain.context.PrincipalContextProvider
-import com.profiletailors.common.domain.context.PrincipalType
-import com.profiletailors.common.domain.context.ResourceContext
-import com.profiletailors.common.domain.context.ResourceContextProvider
-import com.profiletailors.common.domain.context.ResourceContextType
-import com.profiletailors.common.domain.workspace.WorkspaceMembershipStatus
-import com.profiletailors.smp.authorization.domain.AuthorizationReasonCode
 import com.profiletailors.smp.tenancy.domain.WorkspaceMembership
 import kotlinx.coroutines.test.runTest
 import org.junit.jupiter.api.Assertions.assertEquals
@@ -235,19 +235,20 @@ class WorkspaceAuthorizationServiceTest {
     }
 
     @Test
-    fun `denies with scope-specific reason when base permission exists but target scope excludes requested resource`() = runTest {
-        val service = buildService(
-            currentResourceContext = targetAwareResourceContext,
-            membership = activeMembership(),
-            roles = setOf(workspaceRole("member", resourcePreviewPermission)),
-            scopes = setOf(targetScope("resource-2")),
-        )
+    fun `denies with scope-specific reason when base permission exists but target scope excludes requested resource`() =
+        runTest {
+            val service = buildService(
+                currentResourceContext = targetAwareResourceContext,
+                membership = activeMembership(),
+                roles = setOf(workspaceRole("member", resourcePreviewPermission)),
+                scopes = setOf(targetScope("resource-2")),
+            )
 
-        val detailedDecision = service.decideDetailed(requiredPermission = resourcePreviewPermission)
+            val detailedDecision = service.decideDetailed(requiredPermission = resourcePreviewPermission)
 
-        assertEquals(AuthorizationDecision.DENY, detailedDecision.decision)
-        assertEquals(AuthorizationReasonCode.SCOPE_REDUCED_TARGET, detailedDecision.reasonCode)
-    }
+            assertEquals(AuthorizationDecision.DENY, detailedDecision.decision)
+            assertEquals(AuthorizationReasonCode.SCOPE_REDUCED_TARGET, detailedDecision.reasonCode)
+        }
 
     @Test
     fun `scope cannot manufacture access when base permission is missing`() = runTest {
@@ -316,54 +317,46 @@ class WorkspaceAuthorizationServiceTest {
         allowedTargetResourceIds = setOf(allowedResourceId),
     )
 
-    private class FixedPrincipalContextProvider(
-        private val principalContext: PrincipalContext,
-    ) : PrincipalContextProvider {
+    private class FixedPrincipalContextProvider(private val principalContext: PrincipalContext) :
+        PrincipalContextProvider {
         override suspend fun current(): PrincipalContext = principalContext
     }
 
-    private class FixedResourceContextProvider(
-        private val resourceContext: ResourceContext,
-    ) : ResourceContextProvider {
+    private class FixedResourceContextProvider(private val resourceContext: ResourceContext) :
+        ResourceContextProvider {
         override fun current(): ResourceContext = resourceContext
     }
 
-    private class FixedWorkspaceMembershipResolver(
-        private val membership: WorkspaceMembership?,
-    ) : WorkspaceMembershipResolver {
+    private class FixedWorkspaceMembershipResolver(private val membership: WorkspaceMembership?) :
+        WorkspaceMembershipResolver {
         override suspend fun resolve(
             principalContext: PrincipalContext,
             resourceContext: ResourceContext,
         ): WorkspaceMembership? = membership
     }
 
-    private class FixedWorkspaceMembershipRoleResolver(
-        private val roles: Set<Role>,
-    ) : WorkspaceMembershipRoleResolver {
-        override suspend fun resolve(membership: com.profiletailors.common.domain.workspace.WorkspaceMembershipSnapshot): Set<Role> = roles
+    private class FixedWorkspaceMembershipRoleResolver(private val roles: Set<Role>) :
+        WorkspaceMembershipRoleResolver {
+        override suspend fun resolve(
+            membership: com.profiletailors.common.domain.workspace.WorkspaceMembershipSnapshot,
+        ): Set<Role> = roles
     }
 
-    private class FixedDirectGrantResolver(
-        private val grants: Set<DirectGrant>,
-    ) : DirectGrantResolver {
+    private class FixedDirectGrantResolver(private val grants: Set<DirectGrant>) : DirectGrantResolver {
         override suspend fun resolve(
             principalContext: PrincipalContext,
             resourceContext: ResourceContext,
         ): Set<DirectGrant> = grants
     }
 
-    private class FixedScopeResolver(
-        private val scopes: Set<AuthorizationScope>,
-    ) : ScopeResolver {
+    private class FixedScopeResolver(private val scopes: Set<AuthorizationScope>) : ScopeResolver {
         override suspend fun resolve(
             principalContext: PrincipalContext,
             resourceContext: ResourceContext,
         ): Set<AuthorizationScope> = scopes
     }
 
-    private class FixedEntitlementResolver(
-        private val entitlements: Set<Entitlement>,
-    ) : EntitlementResolver {
+    private class FixedEntitlementResolver(private val entitlements: Set<Entitlement>) : EntitlementResolver {
         override suspend fun resolve(resourceContext: ResourceContext): Set<Entitlement> = entitlements
     }
 }

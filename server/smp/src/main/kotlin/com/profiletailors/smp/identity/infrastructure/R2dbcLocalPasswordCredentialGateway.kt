@@ -8,9 +8,8 @@ import org.springframework.r2dbc.core.DatabaseClient
 import org.springframework.stereotype.Repository
 
 @Repository
-class R2dbcLocalPasswordCredentialGateway(
-    private val databaseClient: DatabaseClient,
-) : LocalPasswordCredentialGateway {
+class R2dbcLocalPasswordCredentialGateway(private val databaseClient: DatabaseClient) :
+    LocalPasswordCredentialGateway {
 
     override suspend fun create(principalId: String, passwordHash: String) {
         databaseClient.sql(
@@ -26,9 +25,8 @@ class R2dbcLocalPasswordCredentialGateway(
             .awaitSingle()
     }
 
-    override suspend fun findByEmail(email: String): LocalPasswordCredentialRecord? =
-        databaseClient.sql(
-            """
+    override suspend fun findByEmail(email: String): LocalPasswordCredentialRecord? = databaseClient.sql(
+        """
             SELECT ui.principal_id,
                    ui.email,
                    ui.username,
@@ -36,17 +34,17 @@ class R2dbcLocalPasswordCredentialGateway(
             FROM user_identities ui
             INNER JOIN local_password_credentials lpc ON lpc.principal_id = ui.principal_id
             WHERE ui.email = :email
-            """.trimIndent(),
-        )
-            .bind("email", email)
-            .map { row, _ ->
-                LocalPasswordCredentialRecord(
-                    principalId = requireNotNull(row.get("principal_id", String::class.java)),
-                    email = requireNotNull(row.get("email", String::class.java)),
-                    username = row.get("username", String::class.java),
-                    passwordHash = requireNotNull(row.get("password_hash", String::class.java)),
-                )
-            }
-            .one()
-            .awaitSingleOrNull()
+        """.trimIndent(),
+    )
+        .bind("email", email)
+        .map { row, _ ->
+            LocalPasswordCredentialRecord(
+                principalId = requireNotNull(row.get("principal_id", String::class.java)),
+                email = requireNotNull(row.get("email", String::class.java)),
+                username = row.get("username", String::class.java),
+                passwordHash = requireNotNull(row.get("password_hash", String::class.java)),
+            )
+        }
+        .one()
+        .awaitSingleOrNull()
 }
