@@ -303,7 +303,7 @@ class PublishingPublicationController(private val mediator: Mediator) {
 
     private companion object {
         const val MIN_LIMIT = 1
-        const val MAX_LIMIT = 1000
+        const val MAX_LIMIT = 100
     }
 }
 
