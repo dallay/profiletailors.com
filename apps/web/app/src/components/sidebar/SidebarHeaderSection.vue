@@ -96,7 +96,7 @@ const isEmpty = computed(() => props.options.length === 0 && !props.isLoading)
 
     <button
       ref="triggerRef"
-      class="flex w-full items-center gap-3 rounded-2xl border border-border-subtle bg-bg-surface/70 px-3 py-2 transition-all hover:border-border-visible hover:bg-bg-surface"
+      class="flex w-full items-center gap-3 rounded-2xl border border-border-subtle bg-bg-surface/70 px-3 py-2 transition-all hover:border-border-visible hover:bg-bg-surface group-data-[collapsible=icon]:p-0 group-data-[collapsible=icon]:size-10 group-data-[collapsible=icon]:justify-center"
       type="button"
       aria-haspopup="menu"
       :aria-expanded="open ? 'true' : 'false'"
@@ -109,7 +109,7 @@ const isEmpty = computed(() => props.options.length === 0 && !props.isLoading)
         size="md"
       />
 
-      <div class="min-w-0 flex-1 text-left">
+      <div class="min-w-0 flex-1 text-left group-data-[collapsible=icon]:hidden">
         <p class="truncate font-mono text-[11px] font-bold uppercase tracking-[0.18em] text-text-display">
           {{ activeWorkspace?.name ?? 'Select workspace' }}
         </p>
@@ -118,7 +118,7 @@ const isEmpty = computed(() => props.options.length === 0 && !props.isLoading)
         </p>
       </div>
 
-      <ChevronsUpDown class="size-4 shrink-0 text-text-secondary" />
+      <ChevronsUpDown class="size-4 shrink-0 text-text-secondary group-data-[collapsible=icon]:hidden" />
     </button>
   </div>
 </template>
