@@ -25,7 +25,7 @@ const E2E_PASSWORD = process.env.E2E_TEST_USER_PASSWORD
 if (!E2E_PASSWORD) {
   throw new Error(
     'E2E_TEST_USER_PASSWORD environment variable is required. ' +
-    'Set it in your shell or CI pipeline before running HAR recording.',
+      'Set it in your shell or CI pipeline before running HAR recording.',
   )
 }
 
