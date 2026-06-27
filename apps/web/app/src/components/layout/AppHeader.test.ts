@@ -31,10 +31,10 @@ describe('AppHeader', () => {
     vi.clearAllMocks()
   })
 
-  it('renders the Workspace eyebrow and the resolved nav.analytics h1', () => {
+  it('renders the workspace.title eyebrow and the resolved nav.analytics h1', () => {
     const wrapper = mountHeader()
     const text = wrapper.text()
-    expect(text).toContain('Workspace')
+    expect(text).toContain('workspace.title')
     expect(text).toContain('nav.analytics')
   })
 
@@ -59,5 +59,13 @@ describe('AppHeader', () => {
     routeState.name = 'scheduler'
     await nextTick()
     expect(wrapper.text()).toContain('nav.scheduler')
+  })
+
+  it('maps scheduler sub-routes to nav.scheduler in the h1', async () => {
+    routeState.name = 'scheduler-calendar-week'
+    const wrapper = mountHeader()
+    await nextTick()
+    expect(wrapper.text()).toContain('nav.scheduler')
+    expect(wrapper.text()).not.toContain('nav.scheduler-calendar-week')
   })
 })

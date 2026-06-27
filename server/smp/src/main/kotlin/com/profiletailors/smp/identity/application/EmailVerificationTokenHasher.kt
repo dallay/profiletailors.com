@@ -43,8 +43,4 @@ object EmailVerificationTokenHasher {
     }
 }
 
-data class GeneratedToken(
-    val rawToken: String,
-    val tokenHash: String,
-    val expiresAt: Instant,
-)
+data class GeneratedToken(val rawToken: String, val tokenHash: String, val expiresAt: Instant)

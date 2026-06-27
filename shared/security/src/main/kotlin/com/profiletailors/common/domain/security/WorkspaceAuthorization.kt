@@ -10,6 +10,7 @@ import java.util.UUID
 interface WorkspaceAuthorization {
     /** Ensure a user has access to a workspace (UUID overload). */
     suspend fun ensureAccess(workspaceId: UUID, userId: UUID)
+
     /** Ensure a user has access to a workspace (string overload). */
     suspend fun ensureAccess(workspaceId: String, userId: String)
 }

@@ -10,6 +10,4 @@ import com.profiletailors.common.domain.bus.query.Response
  *
  * @param T the type of items in the page
  */
-open class PageResponse<T>(
-    open val data: Collection<T>
-) : Response
+open class PageResponse<T>(open val data: Collection<T>) : Response

@@ -7,9 +7,9 @@ import com.profiletailors.smp.publishing.domain.LinkedInOAuthStatePayload
 import com.profiletailors.smp.publishing.domain.OAuthStateSigner
 import com.profiletailors.smp.publishing.domain.SocialProvider
 import java.nio.charset.StandardCharsets
-import java.time.Instant
 import java.security.MessageDigest
 import java.time.Clock
+import java.time.Instant
 import java.util.Base64
 import javax.crypto.Mac
 import javax.crypto.spec.SecretKeySpec
@@ -57,11 +57,10 @@ class HmacOAuthStateSigner(
         return base64UrlEncoder.encodeToString(mac.doFinal(encodedPayload.toByteArray(StandardCharsets.UTF_8)))
     }
 
-    private fun constantTimeEquals(left: String, right: String): Boolean =
-        MessageDigest.isEqual(
-            left.toByteArray(StandardCharsets.UTF_8),
-            right.toByteArray(StandardCharsets.UTF_8),
-        )
+    private fun constantTimeEquals(left: String, right: String): Boolean = MessageDigest.isEqual(
+        left.toByteArray(StandardCharsets.UTF_8),
+        right.toByteArray(StandardCharsets.UTF_8),
+    )
 
     private fun LinkedInOAuthStatePayload.toStateMap(): Map<String, String> = linkedMapOf(
         "provider" to provider.name,
@@ -83,14 +82,13 @@ class HmacOAuthStateSigner(
         expiresAt = Instant.parse(requiredString("expiresAt", "expires_at")),
     )
 
-    private fun Map<*, *>.requiredString(vararg keys: String): String =
-        keys.firstNotNullOfOrNull { key ->
-            (this[key] as? String)?.takeIf { it.isNotBlank() }
-                ?: entries.firstOrNull { normalizeKey(it.key?.toString()) == normalizeKey(key) }
-                    ?.value
-                    ?.toString()
-                    ?.takeIf { it.isNotBlank() }
-        } ?: throw InvalidOAuthStateException("OAuth state payload is missing '${keys.first()}'.")
+    private fun Map<*, *>.requiredString(vararg keys: String): String = keys.firstNotNullOfOrNull { key ->
+        (this[key] as? String)?.takeIf { it.isNotBlank() }
+            ?: entries.firstOrNull { normalizeKey(it.key?.toString()) == normalizeKey(key) }
+                ?.value
+                ?.toString()
+                ?.takeIf { it.isNotBlank() }
+    } ?: throw InvalidOAuthStateException("OAuth state payload is missing '${keys.first()}'.")
 
     private fun normalizeKey(key: String?): String = key.orEmpty().filter { it.isLetterOrDigit() }.lowercase()
 

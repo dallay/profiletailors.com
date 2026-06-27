@@ -8,10 +8,7 @@ package com.profiletailors.smp.tenancy.application
  * workspace management service.
  */
 fun interface WorkspaceProvisioningService {
-    data class ProvisionedWorkspace(
-        val workspaceId: String,
-        val name: String,
-    )
+    data class ProvisionedWorkspace(val workspaceId: String, val name: String)
 
     /**
      * Creates a default workspace for the given principal.
@@ -20,8 +17,5 @@ fun interface WorkspaceProvisioningService {
      * @param displayName The user's display name, used to derive the workspace name
      * @return The provisioned workspace with ID and name
      */
-    suspend fun provisionDefaultWorkspace(
-        principalId: String,
-        displayName: String,
-    ): ProvisionedWorkspace
+    suspend fun provisionDefaultWorkspace(principalId: String, displayName: String): ProvisionedWorkspace
 }

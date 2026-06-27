@@ -20,10 +20,8 @@ import org.springframework.stereotype.Component
 @Component
 @Primary
 @ConditionalOnExpression("'\${app.email.resend.api-key:}'.trim().length() > 0")
-class ResendEmailSender(
-    private val emailProperties: EmailProperties,
-    private val emailGateway: ResendEmailGateway,
-) : EmailSender {
+class ResendEmailSender(private val emailProperties: EmailProperties, private val emailGateway: ResendEmailGateway) :
+    EmailSender {
 
     private val log = LoggerFactory.getLogger(ResendEmailSender::class.java)
 

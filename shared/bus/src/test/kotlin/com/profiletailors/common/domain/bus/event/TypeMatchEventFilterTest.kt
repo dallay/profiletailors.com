@@ -1,10 +1,10 @@
 package com.profiletailors.common.domain.bus.event
 
 import kotlinx.coroutines.test.runTest
-import kotlin.reflect.KClass
 import org.assertj.core.api.Assertions.assertThat
 import org.junit.jupiter.api.Test
 import java.time.LocalDateTime
+import kotlin.reflect.KClass
 
 internal class TypeMatchEventFilterTest {
 

@@ -1,11 +1,14 @@
+@file:Suppress("ktlint:standard:max-line-length")
+
 package com.profiletailors.smp.identity.infrastructure.security
 
-import com.profiletailors.smp.credentials.application.ActiveApiKeyCredential
 import com.profiletailors.common.domain.context.PrincipalContext
 import com.profiletailors.common.domain.context.PrincipalType
+import com.profiletailors.smp.credentials.application.ActiveApiKeyCredential
+import com.profiletailors.smp.credentials.application.ApiKeyCredentialFailureReason
+import com.profiletailors.smp.credentials.application.ApiKeyCredentialStateLookup
 import com.profiletailors.smp.identity.domain.AuthenticatedPrincipal
 import com.profiletailors.smp.identity.infrastructure.ApiKeyAuthenticatedPrincipalMaterializer
-import kotlinx.coroutines.reactor.awaitSingle
 import kotlinx.coroutines.test.runTest
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Test
@@ -36,14 +39,17 @@ class ApiKeyAuthenticationWebFilterTest {
         )
         var principalId: String? = null
 
-        filter.filter(exchange, WebFilterChain { _ ->
-            ReactiveSecurityContextHolder.getContext()
-                .doOnNext { context ->
-                    val principal = context.authentication?.principal as? AuthenticatedPrincipal
-                    principalId = principal?.context?.principalId
-                }
-                .then(Mono.empty())
-        }).block()
+        filter.filter(
+            exchange,
+            WebFilterChain { _ ->
+                ReactiveSecurityContextHolder.getContext()
+                    .doOnNext { context ->
+                        val principal = context.authentication?.principal as? AuthenticatedPrincipal
+                        principalId = principal?.context?.principalId
+                    }
+                    .then(Mono.empty())
+            },
+        ).block()
 
         assertEquals("api-key-principal-1", principalId)
     }
@@ -64,12 +70,15 @@ class ApiKeyAuthenticationWebFilterTest {
         )
         var authSeen = false
 
-        filter.filter(exchange, WebFilterChain { _ ->
-            ReactiveSecurityContextHolder.getContext()
-                .doOnNext { authSeen = true }
-                .switchIfEmpty(Mono.fromRunnable { authSeen = false })
-                .then(Mono.empty())
-        }).block()
+        filter.filter(
+            exchange,
+            WebFilterChain { _ ->
+                ReactiveSecurityContextHolder.getContext()
+                    .doOnNext { authSeen = true }
+                    .switchIfEmpty(Mono.fromRunnable { authSeen = false })
+                    .then(Mono.empty())
+            },
+        ).block()
 
         assertEquals(false, authSeen)
     }
@@ -78,14 +87,13 @@ class ApiKeyAuthenticationWebFilterTest {
     fun `returns unauthorized when api key authentication fails`() = runTest {
         val filter = ApiKeyAuthenticationWebFilter(
             ApiKeyPrincipalAuthenticationConverter(
-                apiKeyCredentialStateLookup = object : com.profiletailors.smp.credentials.application.ApiKeyCredentialStateLookup {
-                    override suspend fun requireActive(presentedApiKey: String): ActiveApiKeyCredential {
+                apiKeyCredentialStateLookup = object : ApiKeyCredentialStateLookup {
+                    override suspend fun requireActive(presentedApiKey: String): ActiveApiKeyCredential =
                         throw com.profiletailors.smp.credentials.application.ApiKeyCredentialNotActiveException(
                             credentialReference = "api-key-cred-1",
                             principalId = "api-key-principal-1",
-                            reason = com.profiletailors.smp.credentials.application.ApiKeyCredentialFailureReason.REVOKED,
+                            reason = ApiKeyCredentialFailureReason.REVOKED,
                         )
-                    }
                 },
                 principalMaterializer = StubApiKeyAuthenticatedPrincipalMaterializer(),
             ),
@@ -102,7 +110,7 @@ class ApiKeyAuthenticationWebFilterTest {
         assertEquals(HttpStatus.UNAUTHORIZED, exchange.response.statusCode)
     }
 
-    private class StubApiKeyCredentialStateLookup : com.profiletailors.smp.credentials.application.ApiKeyCredentialStateLookup {
+    private class StubApiKeyCredentialStateLookup : ApiKeyCredentialStateLookup {
         override suspend fun requireActive(presentedApiKey: String): ActiveApiKeyCredential = ActiveApiKeyCredential(
             principalId = "api-key-principal-1",
             credentialReference = "api-key-cred-1",
@@ -111,34 +119,34 @@ class ApiKeyAuthenticationWebFilterTest {
         )
     }
 
-    private fun unauthorizedEntryPoint(): ServerAuthenticationEntryPoint = ServerAuthenticationEntryPoint { exchange, _ ->
-        exchange.response.statusCode = HttpStatus.UNAUTHORIZED
-        exchange.response.setComplete()
-    }
+    private fun unauthorizedEntryPoint(): ServerAuthenticationEntryPoint =
+        ServerAuthenticationEntryPoint { exchange, _ ->
+            exchange.response.statusCode = HttpStatus.UNAUTHORIZED
+            exchange.response.setComplete()
+        }
 
-    private class StubApiKeyAuthenticatedPrincipalMaterializer : ApiKeyAuthenticatedPrincipalMaterializer(
-        principalIdentityLookup = object : com.profiletailors.smp.identity.application.PrincipalIdentityLookup {
-            override suspend fun findBySubject(
-                principalType: PrincipalType,
-                subject: String,
-                provider: String?,
-            ) = null
+    private class StubApiKeyAuthenticatedPrincipalMaterializer :
+        ApiKeyAuthenticatedPrincipalMaterializer(
+            principalIdentityLookup = object : com.profiletailors.smp.identity.application.PrincipalIdentityLookup {
+                override suspend fun findBySubject(principalType: PrincipalType, subject: String, provider: String?) =
+                    null
 
-            override suspend fun findByEmail(email: String) = null
-            override suspend fun findByPrincipalId(principalId: String) = null
-        },
-    ) {
-        override suspend fun materialize(activeCredential: ActiveApiKeyCredential): AuthenticatedPrincipal = AuthenticatedPrincipal(
-            context = PrincipalContext(
-                principalId = activeCredential.principalId,
-                principalType = PrincipalType.API_KEY,
-                subject = activeCredential.subject,
-                provider = activeCredential.provider,
-                displayIdentity = "integration-key",
-                authenticationMethod = "API_KEY",
-                issuedCredentialReference = activeCredential.credentialReference,
-            ),
-            credentialType = com.profiletailors.smp.credentials.domain.CredentialType.API_KEY,
-        )
+                override suspend fun findByEmail(email: String) = null
+                override suspend fun findByPrincipalId(principalId: String) = null
+            },
+        ) {
+        override suspend fun materialize(activeCredential: ActiveApiKeyCredential): AuthenticatedPrincipal =
+            AuthenticatedPrincipal(
+                context = PrincipalContext(
+                    principalId = activeCredential.principalId,
+                    principalType = PrincipalType.API_KEY,
+                    subject = activeCredential.subject,
+                    provider = activeCredential.provider,
+                    displayIdentity = "integration-key",
+                    authenticationMethod = "API_KEY",
+                    issuedCredentialReference = activeCredential.credentialReference,
+                ),
+                credentialType = com.profiletailors.smp.credentials.domain.CredentialType.API_KEY,
+            )
     }
 }

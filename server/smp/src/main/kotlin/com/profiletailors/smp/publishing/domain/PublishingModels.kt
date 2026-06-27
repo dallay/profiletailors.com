@@ -14,6 +14,7 @@ enum class SocialConnectionStatus {
     REQUIRES_RECONNECT,
     DELETED,
     ERROR,
+
     // Legacy values kept for backward compatibility
     REVOKED,
     EXPIRED,
@@ -92,11 +93,7 @@ data class SocialAccount(
     val createdAt: Instant? = null,
 )
 
-data class ProviderAssetRef(
-    val providerAssetId: String,
-    val mediaType: String,
-    val accessUrl: String? = null,
-)
+data class ProviderAssetRef(val providerAssetId: String, val mediaType: String, val accessUrl: String? = null)
 
 data class PublicationAsset(
     val id: String,
@@ -117,6 +114,7 @@ data class PublicationAsset(
             AssetSourceType.UPLOADED -> require(!storageKey.isNullOrBlank()) {
                 "Uploaded assets require a storage key."
             }
+
             AssetSourceType.EXTERNAL_URL -> require(!externalUrl.isNullOrBlank()) {
                 "External assets require a source URL."
             }
@@ -156,10 +154,7 @@ data class PublicationDraft(
     }
 }
 
-data class DateCount(
-    val date: LocalDate,
-    val count: Int,
-)
+data class DateCount(val date: LocalDate, val count: Int)
 
 data class PublicationJob(
     val id: String,
@@ -271,10 +266,7 @@ enum class CapabilityMvpStatus {
 /**
  * Tracks which scopes were actually granted during OAuth for a social connection.
  */
-data class GrantedScopeBundle(
-    val grantedScopes: Set<String>,
-    val capabilityBundles: Set<LinkedinCapabilityBundle>,
-) {
+data class GrantedScopeBundle(val grantedScopes: Set<String>, val capabilityBundles: Set<LinkedinCapabilityBundle>) {
     companion object {
         fun fromGrantedScopes(scopes: Set<String>): GrantedScopeBundle {
             val bundles = LinkedinCapabilityBundle.entries

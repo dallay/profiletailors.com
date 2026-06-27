@@ -5,7 +5,6 @@ import com.profiletailors.storage.domain.Storage
 import com.profiletailors.storage.infrastructure.LocalFilesystemStorage
 import com.profiletailors.storage.infrastructure.S3Storage
 import com.profiletailors.storage.infrastructure.StorageAutoConfiguration
-import com.profiletailors.storage.infrastructure.metrics.StorageMetrics
 import io.micrometer.core.instrument.simple.SimpleMeterRegistry
 import org.junit.jupiter.api.Test
 import org.springframework.beans.factory.annotation.Autowired
@@ -19,16 +18,18 @@ import kotlin.test.assertNotNull
 import kotlin.test.assertTrue
 
 @SpringBootTest(classes = [StorageIntegrationTest.TestApplication::class])
-@TestPropertySource(properties = [
-    "platform.storage.default=local-bucket",
-    "platform.storage.providers.local-bucket.type=local",
-    "platform.storage.providers.local-bucket.base-path=\${java.io.tmpdir}/smp-tests",
-    "platform.storage.providers.s3-bucket.type=s3",
-    "platform.storage.providers.s3-bucket.bucket=my-s3-bucket",
-    "platform.storage.providers.s3-bucket.region=us-east-1",
-    "platform.storage.providers.s3-bucket.access-key-id=dummy",
-    "platform.storage.providers.s3-bucket.secret-access-key=dummy"
-])
+@TestPropertySource(
+    properties = [
+        "platform.storage.default=local-bucket",
+        "platform.storage.providers.local-bucket.type=local",
+        "platform.storage.providers.local-bucket.base-path=\${java.io.tmpdir}/smp-tests",
+        "platform.storage.providers.s3-bucket.type=s3",
+        "platform.storage.providers.s3-bucket.bucket=my-s3-bucket",
+        "platform.storage.providers.s3-bucket.region=us-east-1",
+        "platform.storage.providers.s3-bucket.access-key-id=dummy",
+        "platform.storage.providers.s3-bucket.secret-access-key=dummy",
+    ],
+)
 class StorageIntegrationTest {
 
     @Configuration

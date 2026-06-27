@@ -10,9 +10,8 @@ import org.springframework.r2dbc.core.DatabaseClient
 import org.springframework.stereotype.Repository
 
 @Repository
-class R2dbcWorkspaceMembershipRoleResolver(
-    private val databaseClient: DatabaseClient,
-) : WorkspaceMembershipRoleResolver {
+class R2dbcWorkspaceMembershipRoleResolver(private val databaseClient: DatabaseClient) :
+    WorkspaceMembershipRoleResolver {
     override suspend fun resolve(membership: WorkspaceMembershipSnapshot): Set<Role> {
         val rows = databaseClient.sql(
             """

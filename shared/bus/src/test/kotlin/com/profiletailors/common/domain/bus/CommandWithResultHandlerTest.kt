@@ -3,15 +3,15 @@ package com.profiletailors.common.domain.bus
 import com.profiletailors.common.domain.bus.command.Command
 import com.profiletailors.common.domain.bus.command.CommandWithResult
 import com.profiletailors.common.domain.bus.command.CommandWithResultHandler
-import kotlin.test.assertEquals
-import kotlin.test.assertFailsWith
-import kotlin.test.assertNotNull
-import kotlin.test.assertTrue
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.test.runTest
 import org.junit.jupiter.api.Nested
 import org.junit.jupiter.api.Test
 import java.util.HashMap
+import kotlin.test.assertEquals
+import kotlin.test.assertFailsWith
+import kotlin.test.assertNotNull
+import kotlin.test.assertTrue
 
 private var counter = 0
 private var asyncTestCounter = 0
@@ -38,20 +38,19 @@ class CommandWithResultHandlerTest {
     }
 
     @Test
-    fun `should throw exception if given async command has not been registered before`(): Unit =
-        runTest {
-            val provider = ManualDependencyProvider(hashMapOf())
-            val bus: Mediator = MediatorBuilder(provider).build()
-            val exception = assertFailsWith(HandlerNotFoundException::class) {
-                bus.send(NonExistCommandR())
-            }
-
-            assertNotNull(exception)
-            assertEquals(
-                "handler could not be found for com.profiletailors.common.domain.bus.NonExistCommandR",
-                exception.message,
-            )
+    fun `should throw exception if given async command has not been registered before`(): Unit = runTest {
+        val provider = ManualDependencyProvider(hashMapOf())
+        val bus: Mediator = MediatorBuilder(provider).build()
+        val exception = assertFailsWith(HandlerNotFoundException::class) {
+            bus.send(NonExistCommandR())
         }
+
+        assertNotNull(exception)
+        assertEquals(
+            "handler could not be found for com.profiletailors.common.domain.bus.NonExistCommandR",
+            exception.message,
+        )
+    }
 
     @Test
     fun inheritance_should_work() = runTest {
@@ -83,8 +82,7 @@ class CommandWithResultHandlerTest {
             asyncTestCounter = 0
         }
 
-        inner class ParameterizedCommandWithResult<TParam>(val param: TParam) :
-            CommandWithResult<String>
+        inner class ParameterizedCommandWithResult<TParam>(val param: TParam) : CommandWithResult<String>
 
         inner class ParatemerizedAsyncCommandWithResultHandler<TParam> :
             CommandWithResultHandler<ParameterizedCommandWithResult<TParam>, String> {

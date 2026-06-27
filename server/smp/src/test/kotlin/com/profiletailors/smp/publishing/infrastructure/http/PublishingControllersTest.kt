@@ -12,11 +12,11 @@ import com.profiletailors.common.domain.context.ResourceContextType
 import com.profiletailors.smp.publishing.application.CalendarResponse
 import com.profiletailors.smp.publishing.application.CancelPublicationCommand
 import com.profiletailors.smp.publishing.application.CompleteLinkedInConnectionCommand
+import com.profiletailors.smp.publishing.application.ConnectedChannelsResponse
+import com.profiletailors.smp.publishing.application.ConnectedSocialChannelSummary
 import com.profiletailors.smp.publishing.application.CreatePublicationCommand
 import com.profiletailors.smp.publishing.application.DeletePublicationCommand
 import com.profiletailors.smp.publishing.application.EditPublicationCommand
-import com.profiletailors.smp.publishing.application.ConnectedChannelsResponse
-import com.profiletailors.smp.publishing.application.ConnectedSocialChannelSummary
 import com.profiletailors.smp.publishing.application.GetCalendarPublicationsQuery
 import com.profiletailors.smp.publishing.application.InitiateLinkedInConnectionCommand
 import com.profiletailors.smp.publishing.application.LinkedInConnectionInitiationResult
@@ -28,18 +28,17 @@ import com.profiletailors.smp.publishing.application.ReschedulePublicationComman
 import com.profiletailors.smp.publishing.application.RetryPublicationCommand
 import com.profiletailors.smp.publishing.application.SocialAccountSummary
 import com.profiletailors.smp.publishing.application.SocialConnectionResult
+import com.profiletailors.smp.publishing.domain.ChannelEvent
+import com.profiletailors.smp.publishing.domain.ChannelEventType
 import com.profiletailors.smp.publishing.domain.PublicationStatus
 import com.profiletailors.smp.publishing.domain.ScheduleMode
 import com.profiletailors.smp.publishing.domain.SocialAccountKind
 import com.profiletailors.smp.publishing.domain.SocialConnectionStatus
-import com.profiletailors.smp.publishing.domain.ChannelEvent
-import com.profiletailors.smp.publishing.domain.ChannelEventType
 import com.profiletailors.smp.publishing.domain.SocialProvider
-import com.profiletailors.smp.publishing.infrastructure.linkedin.LinkedInPublishingProperties
 import com.profiletailors.smp.publishing.infrastructure.events.ChannelEventStreamRegistry
-import kotlinx.coroutines.test.runTest
-import reactor.core.publisher.Flux
+import com.profiletailors.smp.publishing.infrastructure.linkedin.LinkedInPublishingProperties
 import kotlinx.coroutines.runBlocking
+import kotlinx.coroutines.test.runTest
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertNotNull
 import org.junit.jupiter.api.Assertions.assertThrows
@@ -47,6 +46,7 @@ import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.Test
 import org.springframework.http.HttpStatus
 import org.springframework.web.server.ResponseStatusException
+import reactor.core.publisher.Flux
 import java.time.Instant
 
 class PublishingControllersTest {
@@ -413,18 +413,14 @@ class PublishingControllersTest {
         assertEquals(DeletePublicationCommand("pub-1"), mediator.lastRequest)
     }
 
-    private class FixedResourceContextProvider(
-        private val workspaceId: String,
-    ) : ResourceContextProvider {
+    private class FixedResourceContextProvider(private val workspaceId: String) : ResourceContextProvider {
         override fun current(): ResourceContext = ResourceContext(
             type = ResourceContextType.WORKSPACE,
             workspaceId = workspaceId,
         )
     }
 
-    private class FakeChannelEventStreamRegistry(
-        private val events: List<ChannelEvent>,
-    ) : ChannelEventStreamRegistry {
+    private class FakeChannelEventStreamRegistry(private val events: List<ChannelEvent>) : ChannelEventStreamRegistry {
         override fun stream(): Flux<ChannelEvent> = Flux.fromIterable(events)
     }
 
@@ -441,6 +437,7 @@ class PublishingControllersTest {
                     conflicts = emptyList(),
                     activity = emptyList(),
                 ) as TResponse
+
                 is ListConnectedChannelsQuery -> ConnectedChannelsResponse(
                     channels = listOf(
                         ConnectedSocialChannelSummary(
@@ -456,10 +453,12 @@ class PublishingControllersTest {
                         ),
                     ),
                 ) as TResponse
+
                 is ListPublicationsQuery -> ListPublicationsResponse(
                     publications = emptyList(),
                     total = 0,
                 ) as TResponse
+
                 else -> error("Unsupported query type ${query::class.simpleName}")
             }
         }
@@ -477,6 +476,7 @@ class PublishingControllersTest {
                     state = "state-1",
                     expiresAt = Instant.parse("2026-06-12T12:10:00Z"),
                 ) as TResult
+
                 is CompleteLinkedInConnectionCommand -> SocialConnectionResult(
                     connectionId = "conn-1",
                     workspaceId = "workspace-1",
@@ -490,6 +490,7 @@ class PublishingControllersTest {
                         profileUrn = "urn:li:person:123",
                     ),
                 ) as TResult
+
                 is CreatePublicationCommand,
                 is EditPublicationCommand,
                 is DeletePublicationCommand,
@@ -541,6 +542,7 @@ class PublishingControllersTest {
                         else -> null
                     },
                 ) as TResult
+
                 else -> error("Unsupported request type ${command::class.simpleName}")
             }
         }

@@ -60,8 +60,14 @@ class TestStorageConfiguration {
         override suspend fun list(bucket: String, prefix: String): List<String> =
             objects.keys.filter { it.startsWith("$bucket/$prefix") }
 
-        override suspend fun exists(bucket: String, key: String): Boolean =
-            objects.containsKey("$bucket/$key")
+        override suspend fun exists(bucket: String, key: String): Boolean = objects.containsKey("$bucket/$key")
+
+        override suspend fun copyObject(bucket: String, sourceKey: String, destKey: String) {
+            val sourcePath = "$bucket/$sourceKey"
+            val data = objects[sourcePath]
+                ?: throw IllegalStateException("copyObject: source not found: $sourceKey")
+            objects["$bucket/$destKey"] = data
+        }
     }
 
     /**

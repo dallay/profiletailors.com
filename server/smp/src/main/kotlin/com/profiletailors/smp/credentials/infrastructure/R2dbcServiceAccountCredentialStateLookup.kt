@@ -9,9 +9,8 @@ import org.springframework.r2dbc.core.DatabaseClient
 import org.springframework.stereotype.Repository
 
 @Repository
-class R2dbcServiceAccountCredentialStateLookup(
-    private val databaseClient: DatabaseClient,
-) : ServiceAccountCredentialStateLookup {
+class R2dbcServiceAccountCredentialStateLookup(private val databaseClient: DatabaseClient) :
+    ServiceAccountCredentialStateLookup {
     override suspend fun requireActive(
         credentialReference: String,
         subject: String,

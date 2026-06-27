@@ -2,9 +2,7 @@ package com.profiletailors.smp.publishing.infrastructure
 
 import com.fasterxml.jackson.databind.ObjectMapper
 import com.profiletailors.smp.integration.support.DatabaseUnitTestBase
-import com.profiletailors.smp.publishing.domain.AssetSourceType
-import com.profiletailors.smp.publishing.domain.PublicationAsset
-import com.profiletailors.smp.publishing.domain.PublicationAssetStatus
+import com.profiletailors.smp.media.infrastructure.persistence.R2dbcMediaAssetRepository
 import com.profiletailors.smp.publishing.domain.PublicationDraft
 import com.profiletailors.smp.publishing.domain.PublicationStatus
 import com.profiletailors.smp.publishing.domain.ScheduleMode
@@ -13,14 +11,12 @@ import com.profiletailors.smp.publishing.domain.SocialAccountKind
 import com.profiletailors.smp.publishing.domain.SocialConnection
 import com.profiletailors.smp.publishing.domain.SocialConnectionStatus
 import com.profiletailors.smp.publishing.domain.SocialProvider
-import com.profiletailors.smp.media.infrastructure.persistence.R2dbcMediaAssetRepository
 import com.profiletailors.smp.publishing.infrastructure.persistence.R2dbcConnectedSocialChannelReadRepository
 import com.profiletailors.smp.publishing.infrastructure.persistence.R2dbcPublicationAssetRepository
 import com.profiletailors.smp.publishing.infrastructure.persistence.R2dbcPublicationRepository
 import com.profiletailors.smp.publishing.infrastructure.persistence.R2dbcSocialAccountRepository
 import com.profiletailors.smp.publishing.infrastructure.persistence.R2dbcSocialConnectionRepository
 import io.micrometer.core.instrument.simple.SimpleMeterRegistry
-import java.time.Instant
 import kotlinx.coroutines.reactor.awaitSingle
 import kotlinx.coroutines.test.runTest
 import org.junit.jupiter.api.Assertions.assertEquals
@@ -28,6 +24,7 @@ import org.junit.jupiter.api.Assertions.assertNotNull
 import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
+import java.time.Instant
 
 class R2dbcPublishingRepositoriesTest : DatabaseUnitTestBase() {
 
@@ -202,24 +199,35 @@ class R2dbcPublishingRepositoriesTest : DatabaseUnitTestBase() {
     fun `persists publication with asset links and reads it back`() = runTest {
         databaseClient.sql(
             """
-            INSERT INTO social_connections (id, workspace_id, provider, provider_connection_ref, status, credential_reference)
-            VALUES ('soconn-1', 'workspace-1', 'LINKEDIN', 'linkedin-conn-1', 'ACTIVE', '00000000-0000-0000-0000-000000000000')
+            INSERT INTO social_connections (
+                id, workspace_id, provider, provider_connection_ref, status, credential_reference
+            ) VALUES (
+                'soconn-1', 'workspace-1', 'LINKEDIN', 'linkedin-conn-1',
+                'ACTIVE', '00000000-0000-0000-0000-000000000000'
+            )
             """.trimIndent(),
         ).fetch().rowsUpdated().awaitSingle()
         databaseClient.sql(
             """
-            INSERT INTO social_accounts (id, social_connection_id, workspace_id, provider, provider_account_id, account_type, display_name, status)
-            VALUES ('soacc-1', 'soconn-1', 'workspace-1', 'LINKEDIN', 'linkedin-account-1', 'PERSONAL_PROFILE', 'Yuniel', 'ACTIVE')
+            INSERT INTO social_accounts (
+                id, social_connection_id, workspace_id, provider, provider_account_id,
+                account_type, display_name, status
+            ) VALUES (
+                'soacc-1', 'soconn-1', 'workspace-1', 'LINKEDIN',
+                'linkedin-account-1', 'PERSONAL_PROFILE', 'Yuniel', 'ACTIVE'
+            )
             """.trimIndent(),
         ).fetch().rowsUpdated().awaitSingle()
         databaseClient.sql(
             """
             INSERT INTO media_assets (
                 asset_id, workspace_id, source_type, media_type, storage_key,
-                original_filename, file_size_bytes, status, upload_started_at, created_at
+                original_filename, file_size_bytes, status, upload_started_at, created_at,
+                file_hash, detected_media_type
             ) VALUES (
                 'asset-1', 'workspace-1', 'UPLOADED', 'image/png', 'storage/key.png',
-                'asset-1.png', 1024, 'READY', NULL, CURRENT_TIMESTAMP()
+                'asset-1.png', 1024, 'READY', NULL, CURRENT_TIMESTAMP(),
+                'aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa', 'image/png'
             )
             """.trimIndent(),
         ).fetch().rowsUpdated().awaitSingle()
@@ -251,10 +259,12 @@ class R2dbcPublishingRepositoriesTest : DatabaseUnitTestBase() {
             """
             INSERT INTO media_assets (
                 asset_id, workspace_id, source_type, media_type, storage_key,
-                original_filename, file_size_bytes, status, upload_started_at, created_at
+                original_filename, file_size_bytes, status, upload_started_at, created_at,
+                file_hash, detected_media_type
             ) VALUES (
                 'media-asset-1', 'workspace-1', 'UPLOADED', 'image/png', 'storage/key.png',
-                'hero.png', 1024, 'READY', NULL, CURRENT_TIMESTAMP()
+                'hero.png', 1024, 'READY', NULL, CURRENT_TIMESTAMP(),
+                'bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb', 'image/png'
             )
             """.trimIndent(),
         ).fetch().rowsUpdated().awaitSingle()
@@ -262,10 +272,12 @@ class R2dbcPublishingRepositoriesTest : DatabaseUnitTestBase() {
             """
             INSERT INTO media_assets (
                 asset_id, workspace_id, source_type, media_type, storage_key,
-                original_filename, file_size_bytes, status, upload_started_at, created_at
+                original_filename, file_size_bytes, status, upload_started_at, created_at,
+                file_hash, detected_media_type
             ) VALUES (
                 'media-asset-2', 'workspace-1', 'UPLOADED', 'image/jpeg', 'storage/key-2.jpg',
-                'second.jpg', 2048, 'READY', NULL, CURRENT_TIMESTAMP()
+                'second.jpg', 2048, 'READY', NULL, CURRENT_TIMESTAMP(),
+                'cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc', 'image/jpeg'
             )
             """.trimIndent(),
         ).fetch().rowsUpdated().awaitSingle()
@@ -377,14 +389,23 @@ class R2dbcPublishingRepositoriesTest : DatabaseUnitTestBase() {
         seedSocialAccount()
         databaseClient.sql(
             """
-            INSERT INTO social_connections (id, workspace_id, provider, provider_connection_ref, status, credential_reference)
-            VALUES ('soconn-2', 'workspace-1', 'LINKEDIN', 'linkedin-conn-2', 'ACTIVE', '00000000-0000-0000-0000-000000000000')
+            INSERT INTO social_connections (
+                id, workspace_id, provider, provider_connection_ref, status, credential_reference
+            ) VALUES (
+                'soconn-2', 'workspace-1', 'LINKEDIN', 'linkedin-conn-2',
+                'ACTIVE', '00000000-0000-0000-0000-000000000000'
+            )
             """.trimIndent(),
         ).fetch().rowsUpdated().awaitSingle()
         databaseClient.sql(
             """
-            INSERT INTO social_accounts (id, social_connection_id, workspace_id, provider, provider_account_id, account_type, display_name, status)
-            VALUES ('soacc-2', 'soconn-2', 'workspace-1', 'LINKEDIN', 'linkedin-account-2', 'PERSONAL_PROFILE', 'Another', 'ACTIVE')
+            INSERT INTO social_accounts (
+                id, social_connection_id, workspace_id, provider, provider_account_id,
+                account_type, display_name, status
+            ) VALUES (
+                'soacc-2', 'soconn-2', 'workspace-1', 'LINKEDIN',
+                'linkedin-account-2', 'PERSONAL_PROFILE', 'Another', 'ACTIVE'
+            )
             """.trimIndent(),
         ).fetch().rowsUpdated().awaitSingle()
 
@@ -511,22 +532,29 @@ class R2dbcPublishingRepositoriesTest : DatabaseUnitTestBase() {
         assertEquals(counterBefore, avatarPersistedCounterValue(), 0.001)
     }
 
-    private fun avatarPersistedCounterValue(): Double {
-        return meterRegistry.find("publishing.linkedin.avatar.persisted")
-            .counter()?.count() ?: 0.0
-    }
+    private fun avatarPersistedCounterValue(): Double = meterRegistry.find("publishing.linkedin.avatar.persisted")
+        .counter()?.count() ?: 0.0
 
     private suspend fun seedSocialAccount() {
         databaseClient.sql(
             """
-            INSERT INTO social_connections (id, workspace_id, provider, provider_connection_ref, status, credential_reference)
-            VALUES ('soconn-1', 'workspace-1', 'LINKEDIN', 'linkedin-conn-1', 'ACTIVE', '00000000-0000-0000-0000-000000000000')
+            INSERT INTO social_connections (
+                id, workspace_id, provider, provider_connection_ref, status, credential_reference
+            ) VALUES (
+                'soconn-1', 'workspace-1', 'LINKEDIN', 'linkedin-conn-1',
+                'ACTIVE', '00000000-0000-0000-0000-000000000000'
+            )
             """.trimIndent(),
         ).fetch().rowsUpdated().awaitSingle()
         databaseClient.sql(
             """
-            INSERT INTO social_accounts (id, social_connection_id, workspace_id, provider, provider_account_id, account_type, display_name, status)
-            VALUES ('soacc-1', 'soconn-1', 'workspace-1', 'LINKEDIN', 'linkedin-account-1', 'PERSONAL_PROFILE', 'Yuniel', 'ACTIVE')
+            INSERT INTO social_accounts (
+                id, social_connection_id, workspace_id, provider, provider_account_id,
+                account_type, display_name, status
+            ) VALUES (
+                'soacc-1', 'soconn-1', 'workspace-1', 'LINKEDIN',
+                'linkedin-account-1', 'PERSONAL_PROFILE', 'Yuniel', 'ACTIVE'
+            )
             """.trimIndent(),
         ).fetch().rowsUpdated().awaitSingle()
     }

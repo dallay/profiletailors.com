@@ -4,8 +4,8 @@ import com.profiletailors.common.infrastructure.security.HmacHasher
 import com.profiletailors.common.infrastructure.security.Sha256Hasher
 import kotlin.test.Test
 import kotlin.test.assertEquals
-import kotlin.test.assertNotNull
 import kotlin.test.assertFailsWith
+import kotlin.test.assertNotNull
 
 class HasherRegistryTest {
 

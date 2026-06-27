@@ -1,7 +1,7 @@
 package com.profiletailors.common.domain.regexp
 
-import kotlin.test.Test
 import org.junit.jupiter.api.Assertions.assertEquals
+import kotlin.test.Test
 
 class TokenTest {
     @Test

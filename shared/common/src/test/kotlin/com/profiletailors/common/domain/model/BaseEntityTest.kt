@@ -100,13 +100,11 @@ internal class BaseEntityTest {
 
     // ── Test doubles ─────────────────────────────────────────────────────────
 
-    private class TestEntity(
-        override val id: String
-    ) : BaseEntity<String>()
+    private class TestEntity(override val id: String) : BaseEntity<String>()
 
     private data class TestDomainEvent(
         private val version: Int = 1,
-        private val occurred: LocalDateTime? = LocalDateTime.now()
+        private val occurred: LocalDateTime? = LocalDateTime.now(),
     ) : DomainEvent {
         override fun eventVersion(): Int = version
         override fun occurredOn(): LocalDateTime? = occurred

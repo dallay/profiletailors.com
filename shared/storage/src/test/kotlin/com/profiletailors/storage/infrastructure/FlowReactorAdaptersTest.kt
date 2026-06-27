@@ -51,7 +51,7 @@ class FlowReactorAdaptersTest {
 
     @Test
     fun `should convert empty Flux to empty Flow`() = runTest {
-        val emptyFlux: Flux<DataBuffer> = Flux.empty() 
+        val emptyFlux: Flux<DataBuffer> = Flux.empty()
 
         val flow = emptyFlux.asFlow()
 

@@ -13,7 +13,8 @@ import org.springframework.context.annotation.Import
 
 @SpringBootTest(
     properties = [
-        "spring.r2dbc.url=r2dbc:h2:mem:///smp_app_test?options=MODE=PostgreSQL;DB_CLOSE_DELAY=-1;DB_CLOSE_ON_EXIT=FALSE",
+        "spring.r2dbc.url=r2dbc:h2:mem:///smp_app_test" +
+            "?options=MODE=PostgreSQL;DB_CLOSE_DELAY=-1;DB_CLOSE_ON_EXIT=FALSE",
         "spring.r2dbc.username=sa",
         "spring.r2dbc.password=",
         "spring.liquibase.enabled=true",
@@ -27,63 +28,62 @@ import org.springframework.context.annotation.Import
         "platform.storage.default=local",
         "platform.storage.providers.local.type=local",
         "platform.storage.providers.local.base-path=/tmp/smp-test-storage",
-    ]
+    ],
 )
 @Import(TestStorageConfiguration::class)
 class SmpApplicationTests {
 
-	@Autowired
-	private lateinit var applicationContext: ApplicationContext
+    @Autowired
+    private lateinit var applicationContext: ApplicationContext
 
-	@Test
-	fun contextLoads() {
-	}
+    @Test
+    fun contextLoads() {
+    }
 
-	/**
-	 * Spec scenario "No `EventConsumer` is registered more than once after `EventConfiguration` is
-	 * loaded" and "New test asserts `EventConsumer` registration uniqueness": after the smp
-	 * context is loaded (with `EventConfiguration` active), every `EventConsumer` bean must
-	 * appear exactly once.
-	 */
-	@Test
-	fun eventConsumersAreRegisteredUniquely() {
-		val consumers = applicationContext.getBeansOfType(EventConsumer::class.java)
+    /**
+     * Spec scenario "No `EventConsumer` is registered more than once after `EventConfiguration` is
+     * loaded" and "New test asserts `EventConsumer` registration uniqueness": after the smp
+     * context is loaded (with `EventConfiguration` active), every `EventConsumer` bean must
+     * appear exactly once.
+     */
+    @Test
+    fun eventConsumersAreRegisteredUniquely() {
+        val consumers = applicationContext.getBeansOfType(EventConsumer::class.java)
 
-		consumers.entries
-			.groupBy { it.value.javaClass.kotlin }
-			.forEach { (consumerClass, entries) ->
-				check(entries.size == 1) {
-					"EventConsumer of type $consumerClass is registered ${entries.size} times: " +
-						entries.joinToString { it.key }
-				}
-			}
+        consumers.entries
+            .groupBy { it.value.javaClass.kotlin }
+            .forEach { (consumerClass, entries) ->
+                check(entries.size == 1) {
+                    "EventConsumer of type $consumerClass is registered ${entries.size} times: " +
+                        entries.joinToString { it.key }
+                }
+            }
 
-		val identityHashes = consumers.entries.groupBy { System.identityHashCode(it.value) }
-		identityHashes.forEach { (hash, entries) ->
-			check(entries.size == 1) {
-				"Multiple EventConsumer bean names map to the same instance " +
-					"(identityHashCode=$hash): ${entries.joinToString { it.key }}"
-			}
-		}
-	}
+        val identityHashes = consumers.entries.groupBy { System.identityHashCode(it.value) }
+        identityHashes.forEach { (hash, entries) ->
+            check(entries.size == 1) {
+                "Multiple EventConsumer bean names map to the same instance " +
+                    "(identityHashCode=$hash): ${entries.joinToString { it.key }}"
+            }
+        }
+    }
 
-	/**
-	 * Spec scenario "New test asserts one bean per stereotype is present": asserts that at
-	 * least one bean of each stereotype the smp module uses is present in the context. The
-	 * custom-`@Service` handler is resolved via FQCN because
-	 * `WorkspaceAuthorizationService` is declared `internal` (per ADR 5.4 in `design.md`).
-	 */
-	@Test
-	fun loadsAllExpectedBeanStereotypes() {
-		applicationContext.getBean(
-			Class.forName("com.profiletailors.smp.authorization.application.WorkspaceAuthorizationService"),
-		)
+    /**
+     * Spec scenario "New test asserts one bean per stereotype is present": asserts that at
+     * least one bean of each stereotype the smp module uses is present in the context. The
+     * custom-`@Service` handler is resolved via FQCN because
+     * `WorkspaceAuthorizationService` is declared `internal` (per ADR 5.4 in `design.md`).
+     */
+    @Test
+    fun loadsAllExpectedBeanStereotypes() {
+        applicationContext.getBean(
+            Class.forName("com.profiletailors.smp.authorization.application.WorkspaceAuthorizationService"),
+        )
 
-		applicationContext.getBean(R2dbcApiKeyCredentialReplacementGateway::class.java)
+        applicationContext.getBean(R2dbcApiKeyCredentialReplacementGateway::class.java)
 
-		applicationContext.getBean(R2dbcLinkedInCredentialGateway::class.java)
+        applicationContext.getBean(R2dbcLinkedInCredentialGateway::class.java)
 
-		applicationContext.getBean(AuthorizationProblemDetailsHandler::class.java)
-	}
-
+        applicationContext.getBean(AuthorizationProblemDetailsHandler::class.java)
+    }
 }

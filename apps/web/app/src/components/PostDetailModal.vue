@@ -207,9 +207,11 @@ function cancelReschedule() {
       class="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm p-4"
       @click.self="closeModal"
     >
-      <dialog
+      <!-- Using <div role="dialog"> instead of <dialog> to avoid UA default margin/padding that breaks flex centering -->
+      <div
         ref="modalContainer"
-        class="flex flex-col w-full max-w-2xl max-h-[90vh] bg-bg-surface border border-border-subtle rounded-2xl overflow-hidden shadow-2xl"
+        class="flex flex-col w-full max-w-2xl max-h-[90vh] bg-bg-surface border border-border-subtle rounded-2xl overflow-hidden shadow-2xl m-0 relative"
+        role="dialog"
         aria-modal="true"
         aria-labelledby="post-detail-title"
         @keydown.escape="closeModal"
@@ -414,7 +416,7 @@ function cancelReschedule() {
           </div>
           </div>
         </footer>
-      </dialog>
+      </div>
     </div>
   </Teleport>
 </template>

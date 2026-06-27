@@ -8,7 +8,7 @@ import org.springframework.modulith.docs.Documenter
 
 /**
  * Spring Modulith verification test.
- * 
+ *
  * This test ensures that:
  * - All modules are properly defined
  * - Module boundaries are respected
@@ -22,7 +22,10 @@ class ModularStructureTest {
     private val modules = ApplicationModules.of(SmpApplication::class.java)
 
     @Test
-    @Disabled("Pre-existing modulith boundary violation: authorization -> audit :: application. Not related to publishing change.")
+    @Disabled(
+        "Pre-existing modulith boundary violation: authorization -> audit :: application." +
+            " Not related to publishing change.",
+    )
     fun `verifies modular structure`() {
         // This will fail if there are any violations of module boundaries
         modules.verify()

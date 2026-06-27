@@ -3,12 +3,12 @@ package com.profiletailors.common.domain.bus
 import com.profiletailors.common.domain.bus.command.Command
 import com.profiletailors.common.domain.bus.command.CommandHandler
 import com.profiletailors.common.domain.bus.pipeline.PipelineBehavior
-import kotlin.test.assertEquals
-import kotlin.test.assertTrue
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.test.runTest
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.assertThrows
+import kotlin.test.assertEquals
+import kotlin.test.assertTrue
 
 var exceptionPipelineBehaviorHandleCounter = 0
 var exceptionPipelineBehaviorHandleCatchCounter = 0

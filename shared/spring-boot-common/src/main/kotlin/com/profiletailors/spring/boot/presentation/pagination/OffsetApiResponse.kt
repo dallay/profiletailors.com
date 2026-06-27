@@ -11,9 +11,7 @@ data class OffsetApiResponse<T>(
     override val message: String = "Operation successful",
 ) : ApiEnvelope<Collection<T>>(message, data)
 
-inline fun <T, U> OffsetApiResponse<T>.map(
-    func: (Collection<T>) -> Collection<U>,
-) = OffsetApiResponse(
+inline fun <T, U> OffsetApiResponse<T>.map(func: (Collection<T>) -> Collection<U>) = OffsetApiResponse(
     data = func(data),
     total = total,
     perPage = perPage,

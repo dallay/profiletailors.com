@@ -9,6 +9,4 @@ import org.springframework.boot.context.properties.ConfigurationProperties
  *   When empty, [ResendEmailSender] is not loaded (conditional on this property).
  */
 @ConfigurationProperties(prefix = "app.email.resend")
-data class ResendProperties(
-    val apiKey: String = "",
-)
+data class ResendProperties(val apiKey: String = "")

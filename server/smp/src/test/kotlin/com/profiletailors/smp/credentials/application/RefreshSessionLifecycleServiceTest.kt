@@ -52,13 +52,16 @@ class RefreshSessionLifecycleServiceTest {
         var activeSession: ActiveRefreshSession? = null
         var revokedSessionId: String? = null
 
-        override suspend fun create(principalId: String, refreshToken: RefreshSessionToken, expiresAt: Instant): CreatedRefreshSession =
-            CreatedRefreshSession(
-                id = "created-session",
-                principalId = principalId,
-                refreshToken = refreshToken,
-                expiresAt = expiresAt,
-            )
+        override suspend fun create(
+            principalId: String,
+            refreshToken: RefreshSessionToken,
+            expiresAt: Instant,
+        ): CreatedRefreshSession = CreatedRefreshSession(
+            id = "created-session",
+            principalId = principalId,
+            refreshToken = refreshToken,
+            expiresAt = expiresAt,
+        )
 
         override suspend fun requireActive(refreshToken: RefreshSessionToken, now: Instant): ActiveRefreshSession =
             activeSession ?: error("No active session configured")

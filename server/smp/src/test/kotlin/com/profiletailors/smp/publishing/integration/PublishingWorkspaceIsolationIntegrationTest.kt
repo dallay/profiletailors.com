@@ -22,12 +22,12 @@ import org.junit.jupiter.api.Test
 
 /**
  * Integration test that explicitly validates workspace isolation for publishing connections and publications.
- * 
+ *
  * This test ensures that:
  * - Users in workspace A cannot see or access connections from workspace B
  * - Users in workspace A cannot see or access publications from workspace B
  * - Repository queries correctly filter by workspace_id
- * 
+ *
  * Workspace isolation is a critical security boundary in the publishing domain.
  */
 class PublishingWorkspaceIsolationIntegrationTest : DatabaseUnitTestBase() {
@@ -246,12 +246,12 @@ class PublishingWorkspaceIsolationIntegrationTest : DatabaseUnitTestBase() {
         // Even if workspace A knows the ID of workspace B's publication,
         // it cannot access it by querying with workspace B's ID
         val attemptCrossWorkspaceAccess = publicationRepository.findByWorkspaceAndId("workspace-b", "pub-b")
-        
+
         // This query would succeed if we were in workspace B's context,
         // but in this test we're simulating workspace A trying to access workspace B's data
         // The repository correctly enforces workspace_id filtering
         assertNull(publicationRepository.findByWorkspaceAndId("workspace-a", "pub-b"))
-        
+
         // Verify workspace B can access its own publication
         val pubB = publicationRepository.findByWorkspaceAndId("workspace-b", "pub-b")
         assertEquals("Publication B", pubB?.bodyText)

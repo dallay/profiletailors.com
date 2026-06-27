@@ -1,15 +1,15 @@
 package com.profiletailors.controllers
 
 import com.profiletailors.common.domain.error.EntityNotFoundException
-import java.util.Locale
-import kotlin.test.Test
-import kotlin.test.assertEquals
-import kotlin.test.assertNotNull
 import org.springframework.context.support.StaticMessageSource
 import org.springframework.http.HttpHeaders
 import org.springframework.http.HttpStatus
 import org.springframework.mock.http.server.reactive.MockServerHttpRequest
 import org.springframework.mock.web.server.MockServerWebExchange
+import java.util.Locale
+import kotlin.test.Test
+import kotlin.test.assertEquals
+import kotlin.test.assertNotNull
 
 class GlobalExceptionHandlerTest {
 

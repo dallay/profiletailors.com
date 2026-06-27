@@ -1,17 +1,17 @@
 package com.profiletailors.smp.authorization.application.resource.getpreview
 
 import com.profiletailors.common.domain.Service
-import com.profiletailors.smp.authorization.domain.AuthorizationDeniedException
-import com.profiletailors.smp.authorization.domain.AuthorizationDecision
-import com.profiletailors.smp.authorization.domain.PermissionKey
-import com.profiletailors.smp.authorization.domain.WorkspaceAuthorizationDecider
-import com.profiletailors.smp.audit.domain.AuditHook
-import com.profiletailors.smp.audit.domain.AuthorizationDecisionAuditFact
 import com.profiletailors.common.domain.context.PrincipalContextProvider
 import com.profiletailors.common.domain.context.RequestPathProvider
 import com.profiletailors.common.domain.context.ResourceContext
 import com.profiletailors.common.domain.context.ResourceContextProvider
 import com.profiletailors.common.domain.context.ResourceContextType
+import com.profiletailors.smp.audit.domain.AuditHook
+import com.profiletailors.smp.audit.domain.AuthorizationDecisionAuditFact
+import com.profiletailors.smp.authorization.domain.AuthorizationDecision
+import com.profiletailors.smp.authorization.domain.AuthorizationDeniedException
+import com.profiletailors.smp.authorization.domain.PermissionKey
+import com.profiletailors.smp.authorization.domain.WorkspaceAuthorizationDecider
 
 private const val RESOURCE_TARGET_TYPE = "RESOURCE"
 private val REQUIRED_PERMISSION = PermissionKey.of("workspace", "resource", "read")

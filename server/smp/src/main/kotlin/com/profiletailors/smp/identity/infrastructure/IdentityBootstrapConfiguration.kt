@@ -1,6 +1,5 @@
 package com.profiletailors.smp.identity.infrastructure
 
-import com.profiletailors.smp.credentials.application.ApiKeyCredentialStateLookup
 import com.profiletailors.smp.credentials.application.ApiKeySecretVerifier
 import com.profiletailors.smp.credentials.application.RefreshSessionLifecycleService
 import com.profiletailors.smp.credentials.application.RefreshSessionProperties
@@ -28,17 +27,15 @@ class IdentityBootstrapConfiguration {
     fun jwtAuthenticatedPrincipalMaterializer(
         principalIdentityLookup: PrincipalIdentityLookup,
         serviceAccountCredentialStateLookup: ServiceAccountCredentialStateLookup,
-    ): JwtAuthenticatedPrincipalMaterializer =
-        JwtAuthenticatedPrincipalMaterializer(
-            principalIdentityLookup = principalIdentityLookup,
-            serviceAccountCredentialStateLookup = serviceAccountCredentialStateLookup,
-        )
+    ): JwtAuthenticatedPrincipalMaterializer = JwtAuthenticatedPrincipalMaterializer(
+        principalIdentityLookup = principalIdentityLookup,
+        serviceAccountCredentialStateLookup = serviceAccountCredentialStateLookup,
+    )
 
     @Bean
     fun apiKeyAuthenticatedPrincipalMaterializer(
         principalIdentityLookup: PrincipalIdentityLookup,
-    ): ApiKeyAuthenticatedPrincipalMaterializer =
-        ApiKeyAuthenticatedPrincipalMaterializer(principalIdentityLookup)
+    ): ApiKeyAuthenticatedPrincipalMaterializer = ApiKeyAuthenticatedPrincipalMaterializer(principalIdentityLookup)
 
     @Bean
     fun apiKeySecretVerifier(): ApiKeySecretVerifier = BCryptApiKeySecretVerifier()
@@ -53,15 +50,14 @@ class IdentityBootstrapConfiguration {
     fun refreshSessionTokenService(): RefreshSessionTokenService = RefreshSessionTokenService()
 
     @Bean
-    fun refreshSessionProperties(
-        config: RefreshSessionConfigurationProperties,
-    ): RefreshSessionProperties = RefreshSessionProperties(
-        cookieName = config.cookieName,
-        cookiePath = config.cookiePath,
-        sameSite = config.sameSite,
-        secure = config.secure,
-        ttlSeconds = config.ttlSeconds,
-    )
+    fun refreshSessionProperties(config: RefreshSessionConfigurationProperties): RefreshSessionProperties =
+        RefreshSessionProperties(
+            cookieName = config.cookieName,
+            cookiePath = config.cookiePath,
+            sameSite = config.sameSite,
+            secure = config.secure,
+            ttlSeconds = config.ttlSeconds,
+        )
 
     @Bean
     fun refreshSessionCookieFactory(properties: RefreshSessionProperties): RefreshSessionCookieFactory =
@@ -81,9 +77,6 @@ class IdentityBootstrapConfiguration {
     )
 
     @Bean
-    fun localJwtIssuer(
-        jwtEncoder: JwtEncoder,
-        properties: LocalJwtProperties,
-    ): LocalJwtIssuer = NimbusLocalJwtIssuer(jwtEncoder, properties.issuer, properties.ttlSeconds)
-
+    fun localJwtIssuer(jwtEncoder: JwtEncoder, properties: LocalJwtProperties): LocalJwtIssuer =
+        NimbusLocalJwtIssuer(jwtEncoder, properties.issuer, properties.ttlSeconds)
 }

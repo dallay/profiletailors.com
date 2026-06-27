@@ -8,4 +8,3 @@ data class AuthorizationScope(
     val targetResourceType: String,
     val allowedTargetResourceIds: Set<String>,
 )
-

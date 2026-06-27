@@ -6,16 +6,14 @@ import com.profiletailors.smp.identity.application.IdentityRegistrationGateway
 import com.profiletailors.smp.identity.domain.EmailStatus
 import io.r2dbc.spi.Readable
 import io.r2dbc.spi.RowMetadata
-import java.time.Instant
 import kotlinx.coroutines.reactor.awaitSingle
 import kotlinx.coroutines.reactor.awaitSingleOrNull
 import org.springframework.r2dbc.core.DatabaseClient
 import org.springframework.stereotype.Repository
+import java.time.Instant
 
 @Repository
-class R2dbcIdentityRegistrationGateway(
-    private val databaseClient: DatabaseClient,
-) : IdentityRegistrationGateway {
+class R2dbcIdentityRegistrationGateway(private val databaseClient: DatabaseClient) : IdentityRegistrationGateway {
     override suspend fun createUserIdentity(
         principalId: String,
         subject: String,
@@ -62,11 +60,7 @@ class R2dbcIdentityRegistrationGateway(
             .awaitSingle()
     }
 
-    override suspend fun createEmailVerificationToken(
-        email: String,
-        tokenHash: String,
-        expiresAt: Instant,
-    ) {
+    override suspend fun createEmailVerificationToken(email: String, tokenHash: String, expiresAt: Instant) {
         databaseClient.sql(
             """
             INSERT INTO email_verification_tokens (email, token_hash, expires_at)
@@ -81,18 +75,17 @@ class R2dbcIdentityRegistrationGateway(
             .awaitSingle()
     }
 
-    override suspend fun verifyEmailToken(tokenHash: String): EmailVerificationTokenData? =
-        databaseClient.sql(
-            """
+    override suspend fun verifyEmailToken(tokenHash: String): EmailVerificationTokenData? = databaseClient.sql(
+        """
             SELECT evt.email, evt.token_hash, evt.expires_at, evt.used_at
             FROM email_verification_tokens evt
             WHERE evt.token_hash = :tokenHash
-            """.trimIndent(),
-        )
-            .bind("tokenHash", tokenHash)
-            .map(::mapTokenData)
-            .one()
-            .awaitSingleOrNull()
+        """.trimIndent(),
+    )
+        .bind("tokenHash", tokenHash)
+        .map(::mapTokenData)
+        .one()
+        .awaitSingleOrNull()
 
     override suspend fun markTokenUsed(tokenHash: String, now: Instant) {
         databaseClient.sql(
@@ -138,20 +131,19 @@ class R2dbcIdentityRegistrationGateway(
             .awaitSingle()
     }
 
-    override suspend fun findActiveTokenByEmail(email: String): EmailVerificationTokenData? =
-        databaseClient.sql(
-            """
+    override suspend fun findActiveTokenByEmail(email: String): EmailVerificationTokenData? = databaseClient.sql(
+        """
             SELECT evt.email, evt.token_hash, evt.expires_at, evt.used_at
             FROM email_verification_tokens evt
             WHERE evt.email = :email AND evt.used_at IS NULL AND evt.expires_at > CURRENT_TIMESTAMP
             ORDER BY evt.created_at DESC
             LIMIT 1
-            """.trimIndent(),
-        )
-            .bind("email", email)
-            .map(::mapTokenData)
-            .one()
-            .awaitSingleOrNull()
+        """.trimIndent(),
+    )
+        .bind("email", email)
+        .map(::mapTokenData)
+        .one()
+        .awaitSingleOrNull()
 
     private fun mapTokenData(
         row: Readable,

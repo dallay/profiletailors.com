@@ -11,10 +11,7 @@ data class AuditEventPage(
     val nextCursor: String?,
 )
 
-data class AuditEventCursor(
-    val createdAt: Instant,
-    val id: String,
-)
+data class AuditEventCursor(val createdAt: Instant, val id: String)
 
 class InvalidAuditEventCursorException(cause: Throwable? = null) :
     IllegalArgumentException("Invalid audit cursor", cause)
@@ -79,10 +76,7 @@ data class AuditEventFilter(
     val createdBefore: Instant? = null,
 )
 
-data class AuditEventPageRequest(
-    val cursor: AuditEventCursor? = null,
-    val limit: Int = 50,
-) {
+data class AuditEventPageRequest(val cursor: AuditEventCursor? = null, val limit: Int = 50) {
     init {
         require(limit > 0) { "limit must be a positive integer, got $limit" }
         require(limit <= MAX_LIMIT) { "limit must be at most $MAX_LIMIT, got $limit" }

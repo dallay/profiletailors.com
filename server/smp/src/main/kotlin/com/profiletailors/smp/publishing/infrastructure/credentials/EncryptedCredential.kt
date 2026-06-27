@@ -1,9 +1,9 @@
 package com.profiletailors.smp.publishing.infrastructure.credentials
 
-import java.time.OffsetDateTime
-import java.util.*
 import org.springframework.data.annotation.Id
 import org.springframework.data.relational.core.mapping.Table
+import java.time.OffsetDateTime
+import java.util.*
 
 @Table("secure_credentials")
 data class EncryptedCredential(

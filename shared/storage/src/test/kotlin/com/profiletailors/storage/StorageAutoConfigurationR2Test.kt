@@ -112,7 +112,7 @@ class StorageAutoConfigurationR2Test {
                 bucket = TEST_BUCKET,
                 accountId = TEST_ACCOUNT_ID,
                 accessKeyId = null,
-                secretAccessKey = TEST_SECRET_KEY
+                secretAccessKey = TEST_SECRET_KEY,
             )
 
             val ex = assertThrows<IllegalArgumentException> {
@@ -120,7 +120,7 @@ class StorageAutoConfigurationR2Test {
             }
             assertTrue(
                 ex.message!!.contains("accessKeyId", ignoreCase = true),
-                "Exception message should mention accessKeyId, got: ${ex.message}"
+                "Exception message should mention accessKeyId, got: ${ex.message}",
             )
         }
 
@@ -131,7 +131,7 @@ class StorageAutoConfigurationR2Test {
                 bucket = TEST_BUCKET,
                 accountId = TEST_ACCOUNT_ID,
                 accessKeyId = TEST_ACCESS_KEY,
-                secretAccessKey = null
+                secretAccessKey = null,
             )
 
             val ex = assertThrows<IllegalArgumentException> {
@@ -139,7 +139,7 @@ class StorageAutoConfigurationR2Test {
             }
             assertTrue(
                 ex.message!!.contains("secretAccessKey", ignoreCase = true),
-                "Exception message should mention secretAccessKey, got: ${ex.message}"
+                "Exception message should mention secretAccessKey, got: ${ex.message}",
             )
         }
 
@@ -150,7 +150,7 @@ class StorageAutoConfigurationR2Test {
                 bucket = TEST_BUCKET,
                 accountId = TEST_ACCOUNT_ID,
                 accessKeyId = null,
-                secretAccessKey = null
+                secretAccessKey = null,
             )
 
             val ex = assertThrows<IllegalArgumentException> {
@@ -159,7 +159,7 @@ class StorageAutoConfigurationR2Test {
             assertTrue(
                 ex.message!!.contains("credentials", ignoreCase = true) ||
                     ex.message!!.contains("accessKeyId", ignoreCase = true),
-                "Exception message should mention credentials, got: ${ex.message}"
+                "Exception message should mention credentials, got: ${ex.message}",
             )
         }
     }
@@ -205,7 +205,7 @@ class StorageAutoConfigurationR2Test {
                 bucket = TEST_BUCKET,
                 accountId = TEST_ACCOUNT_ID,
                 accessKeyId = TEST_ACCESS_KEY,
-                secretAccessKey = TEST_SECRET_KEY
+                secretAccessKey = TEST_SECRET_KEY,
             )
 
             val storage = config.createR2Storage(providerConfig)
@@ -224,7 +224,7 @@ class StorageAutoConfigurationR2Test {
                 bucket = TEST_BUCKET,
                 accountId = TEST_ACCOUNT_ID,
                 accessKeyId = TEST_ACCESS_KEY,
-                secretAccessKey = TEST_SECRET_KEY
+                secretAccessKey = TEST_SECRET_KEY,
             )
 
             val storage = config.createR2Storage(providerConfig)

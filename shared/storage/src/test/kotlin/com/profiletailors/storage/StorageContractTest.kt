@@ -8,7 +8,6 @@ import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.runBlocking
 import org.junit.jupiter.api.Assertions.assertArrayEquals
 import org.junit.jupiter.api.Assertions.assertEquals
-import org.junit.jupiter.api.Assertions.assertFalse
 import org.junit.jupiter.api.Assertions.assertInstanceOf
 import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.Assertions.fail
@@ -157,7 +156,7 @@ abstract class StorageContractTest {
             val target = thrown?.cause ?: thrown
             assertInstanceOf(
                 StorageObjectNotFoundException::class.java,
-                target
+                target,
             )
             Unit
         }
@@ -192,7 +191,7 @@ abstract class StorageContractTest {
             val target = thrown.cause ?: thrown
             assertInstanceOf(
                 StorageObjectNotFoundException::class.java,
-                target
+                target,
             )
             Unit
         }

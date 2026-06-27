@@ -14,14 +14,12 @@ import org.springframework.data.domain.Sort as SpringSort
  * @return Spring Data sort representation for repository queries.
  * @since 1.0.0
  */
-fun Sort?.toSpringSort(): SpringSort {
-    return this?.let { sort ->
-        val orders = sort.orders.map { order ->
-            when (order.direction) {
-                Direction.ASC -> SpringSort.Order.asc(order.property)
-                Direction.DESC -> SpringSort.Order.desc(order.property)
-            }
+fun Sort?.toSpringSort(): SpringSort = this?.let { sort ->
+    val orders = sort.orders.map { order ->
+        when (order.direction) {
+            Direction.ASC -> SpringSort.Order.asc(order.property)
+            Direction.DESC -> SpringSort.Order.desc(order.property)
         }
-        SpringSort.by(orders)
-    } ?: SpringSort.unsorted()
-}
+    }
+    SpringSort.by(orders)
+} ?: SpringSort.unsorted()

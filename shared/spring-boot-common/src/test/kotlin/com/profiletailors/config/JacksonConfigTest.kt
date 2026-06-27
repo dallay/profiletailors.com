@@ -1,13 +1,11 @@
 package com.profiletailors.config
 
-import kotlin.test.Test
-import kotlin.test.assertEquals
-import kotlin.test.assertNotNull
-import kotlin.test.assertTrue
 import tools.jackson.databind.DeserializationFeature
 import tools.jackson.databind.cfg.DateTimeFeature
-import tools.jackson.databind.json.JsonMapper
 import tools.jackson.module.kotlin.KotlinModule
+import kotlin.test.Test
+import kotlin.test.assertNotNull
+import kotlin.test.assertTrue
 
 class JacksonConfigTest {
 
@@ -38,5 +36,4 @@ class JacksonConfigTest {
         val hasKotlinModule = mapper.registeredModules().any { it is KotlinModule }
         assertTrue(hasKotlinModule)
     }
-
 }

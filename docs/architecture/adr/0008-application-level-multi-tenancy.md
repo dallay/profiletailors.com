@@ -36,6 +36,7 @@ Multi-tenancy MUST be enforced at the application level.
 ### Positive
 - Explicit code logic makes isolation clear to developers.
 - Easy to perform cross-tenant operations in administrative contexts.
+
 ### Negative
 - Risk of developer error (forgetting a `WHERE` clause).
 - Potential performance impact on very large tables if indexes aren't correctly applied to `workspace_id`.

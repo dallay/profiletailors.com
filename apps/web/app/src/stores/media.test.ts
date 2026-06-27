@@ -25,15 +25,13 @@ vi.mock('@/lib/auth-api', () => ({
 // ---------------------------------------------------------------------------
 // Mock media-api
 // ---------------------------------------------------------------------------
-const mockReserveAsset = vi.fn()
-const mockUploadAsset = vi.fn()
+const mockPutAsset = vi.fn()
 const mockListAssets = vi.fn()
 const mockGetAsset = vi.fn()
 const mockDeleteAsset = vi.fn()
 
 vi.mock('@/lib/media-api', () => ({
-  reserveAsset: (...args: unknown[]) => mockReserveAsset(...args),
-  uploadAsset: (...args: unknown[]) => mockUploadAsset(...args),
+  putAsset: (...args: unknown[]) => mockPutAsset(...args),
   listAssets: (...args: unknown[]) => mockListAssets(...args),
   getAsset: (...args: unknown[]) => mockGetAsset(...args),
   deleteAsset: (...args: unknown[]) => mockDeleteAsset(...args),
@@ -47,6 +45,15 @@ vi.mock('@/stores/auth', () => ({
     isAuthenticated: true,
     accessToken: { value: 'fake-token' },
     workspace: { activeWorkspaceId: 'ws-test-1' },
+  }),
+}))
+
+// ---------------------------------------------------------------------------
+// Mock workspace store
+// ---------------------------------------------------------------------------
+vi.mock('@/stores/workspace', () => ({
+  useWorkspaceStore: () => ({
+    activeWorkspaceId: 'ws-test-1',
   }),
 }))
 
@@ -159,7 +166,7 @@ describe('media store', () => {
       await store.loadDanglingAssets()
 
       expect(mockListAssets).toHaveBeenCalledWith({
-        status: 'PROCESSING,FAILED',
+        status: 'PENDING_UPLOAD,UPLOADING,FAILED',
         pageSize: 50,
       })
     })
@@ -244,21 +251,15 @@ describe('media store', () => {
   })
 
   describe('createAndUpload', () => {
-    it('reserves asset then uploads the file', async () => {
+    it('uploads the file and returns ready asset', async () => {
       const store = useMediaStore()
-      mockReserveAsset.mockResolvedValueOnce({
+      mockPutAsset.mockResolvedValueOnce({
         assetId: 'reserved-asset',
         workspaceId: 'ws-test-1',
-        sourceType: 'UPLOADED',
+        status: 'PENDING_UPLOAD',
         mediaType: 'image/jpeg',
-        status: 'PROCESSING',
-      })
-      mockUploadAsset.mockResolvedValueOnce({
-        assetId: 'reserved-asset',
-        workspaceId: 'ws-test-1',
-        sourceType: 'UPLOADED',
-        mediaType: 'image/jpeg',
-        status: 'READY',
+        deduped: false,
+        createdAt: '2026-06-19T12:00:00Z',
       })
       mockGetAsset.mockResolvedValueOnce({
         ...readyAsset('reserved-asset'),
@@ -269,31 +270,20 @@ describe('media store', () => {
       const file = mockFile()
       const result = await store.createAndUpload(file, 'temp-key-1')
 
-      expect(mockReserveAsset).toHaveBeenCalledWith({
-        mediaType: 'image/jpeg',
-        originalFilename: 'photo.jpg',
-      })
-      expect(mockUploadAsset).toHaveBeenCalledWith('reserved-asset', file, expect.any(Function))
+      expect(mockPutAsset).toHaveBeenCalledWith(file, 'ws-test-1', expect.any(String))
       expect(result.assetId).toBe('reserved-asset')
       expect(result.status).toBe('READY')
     })
 
     it('hydrates previewUrl and downloadUrl after upload by re-fetching the asset', async () => {
       const store = useMediaStore()
-      mockReserveAsset.mockResolvedValueOnce({
+      mockPutAsset.mockResolvedValueOnce({
         assetId: 'hydrated-asset',
         workspaceId: 'ws-test-1',
-        sourceType: 'UPLOADED',
+        status: 'PENDING_UPLOAD',
         mediaType: 'image/jpeg',
-        status: 'PROCESSING',
-      })
-      mockUploadAsset.mockResolvedValueOnce({
-        assetId: 'hydrated-asset',
-        workspaceId: 'ws-test-1',
-        sourceType: 'UPLOADED',
-        mediaType: 'image/jpeg',
-        status: 'READY',
-        // NOTE: upload response intentionally omits URLs — they come from the re-fetch
+        deduped: false,
+        createdAt: '2026-06-19T12:00:00Z',
       })
       mockGetAsset.mockResolvedValueOnce({
         assetId: 'hydrated-asset',
@@ -311,7 +301,7 @@ describe('media store', () => {
       const file = mockFile()
       const result = await store.createAndUpload(file, 'hydrated-key')
 
-      // getAsset was called to fill in the missing URLs
+      // getAsset was called to fill in the URLs
       expect(mockGetAsset).toHaveBeenCalledWith('hydrated-asset')
       // The returned asset now has previewUrl so the library grid renders correctly
       expect(result.previewUrl).toBe('/api/media/assets/hydrated-asset/preview')
@@ -321,47 +311,26 @@ describe('media store', () => {
       )
     })
 
-    it('tracks upload item in uploads map during upload', async () => {
+    it('tracks upload item and marks done after successful upload', async () => {
       const store = useMediaStore()
-      let resolveUpload: ((asset: ReturnType<typeof readyAsset>) => void) | undefined
-      mockReserveAsset.mockResolvedValueOnce({
+      mockPutAsset.mockResolvedValueOnce({
         assetId: 'tracked-asset',
         workspaceId: 'ws-test-1',
-        sourceType: 'UPLOADED',
+        status: 'PENDING_UPLOAD',
         mediaType: 'image/jpeg',
-        status: 'PROCESSING',
+        deduped: false,
+        createdAt: '2026-06-19T12:00:00Z',
       })
-      mockUploadAsset.mockImplementationOnce(
-        () =>
-          new Promise((resolve) => {
-            resolveUpload = resolve
-          }),
-      )
-
-      const file = mockFile()
-      const uploadPromise = store.createAndUpload(file, 'temp-tracking-key')
-      await Promise.resolve()
-      await Promise.resolve()
-
-      // After reserve completes and upload starts, the upload should be tracked as 'uploading'
-      expect(store.uploads['temp-tracking-key']?.status).toBe('uploading')
-      expect(store.uploads['temp-tracking-key']?.assetId).toBe('tracked-asset')
-
       mockGetAsset.mockResolvedValueOnce({
         ...readyAsset('tracked-asset'),
         previewUrl: '/api/media/assets/tracked-asset/preview',
         downloadUrl: '/api/media/assets/tracked-asset/content',
       })
-      resolveUpload?.({
-        assetId: 'tracked-asset',
-        workspaceId: 'ws-test-1',
-        sourceType: 'UPLOADED',
-        mediaType: 'image/jpeg',
-        status: 'READY',
-      } as ReturnType<typeof readyAsset>)
-      await uploadPromise
 
-      // After completion, status should be 'done'
+      const file = mockFile()
+      await store.createAndUpload(file, 'temp-tracking-key')
+
+      // After completion, the upload should be tracked as 'done'
       expect(store.uploads['temp-tracking-key']?.status).toBe('done')
       expect(store.uploads['temp-tracking-key']?.progress).toBe(100)
     })
@@ -370,15 +339,8 @@ describe('media store', () => {
       vi.useFakeTimers()
       try {
         const store = useMediaStore()
-        mockReserveAsset.mockResolvedValue({
-          assetId: 'fail-asset',
-          workspaceId: 'ws-test-1',
-          sourceType: 'UPLOADED',
-          mediaType: 'image/jpeg',
-          status: 'PROCESSING',
-        })
         // Fail on all retry attempts
-        mockUploadAsset.mockRejectedValue(
+        mockPutAsset.mockRejectedValue(
           Object.assign(new Error('Server error'), {
             status: 500,
             errorCode: 'INTERNAL_ERROR',
@@ -394,7 +356,7 @@ describe('media store', () => {
         await vi.runAllTimersAsync()
 
         await rejection
-        expect(mockUploadAsset).toHaveBeenCalledTimes(3)
+        expect(mockPutAsset).toHaveBeenCalledTimes(3)
         expect(store.failedUploads.length).toBeGreaterThan(0)
       } finally {
         vi.useRealTimers()
@@ -403,14 +365,7 @@ describe('media store', () => {
 
     it('records conflict status on HTTP 409', async () => {
       const store = useMediaStore()
-      mockReserveAsset.mockResolvedValueOnce({
-        assetId: 'conflict-asset',
-        workspaceId: 'ws-test-1',
-        sourceType: 'UPLOADED',
-        mediaType: 'image/jpeg',
-        status: 'PROCESSING',
-      })
-      mockUploadAsset.mockRejectedValue(
+      mockPutAsset.mockRejectedValue(
         Object.assign(new Error('Conflict'), {
           status: 409,
           errorCode: 'ASSET_UPLOAD_CONFLICT',
@@ -426,14 +381,7 @@ describe('media store', () => {
 
     it('records file-too-large error on HTTP 413', async () => {
       const store = useMediaStore()
-      mockReserveAsset.mockResolvedValueOnce({
-        assetId: 'large-asset',
-        workspaceId: 'ws-test-1',
-        sourceType: 'UPLOADED',
-        mediaType: 'image/jpeg',
-        status: 'PROCESSING',
-      })
-      mockUploadAsset.mockRejectedValue(
+      mockPutAsset.mockRejectedValue(
         Object.assign(new Error('Payload too large'), {
           status: 413,
           errorCode: 'FILE_TOO_LARGE',
@@ -462,12 +410,13 @@ describe('media store', () => {
         errorTitle: 'Upload failed',
         errorDetail: 'Server error',
       }
-      mockUploadAsset.mockResolvedValueOnce({
+      mockPutAsset.mockResolvedValueOnce({
         assetId: 'retry-asset',
         workspaceId: 'ws-test-1',
-        sourceType: 'UPLOADED',
+        status: 'PENDING_UPLOAD',
         mediaType: 'image/jpeg',
-        status: 'READY',
+        deduped: false,
+        createdAt: '2026-06-19T12:00:00Z',
       })
       mockGetAsset.mockResolvedValueOnce({
         ...readyAsset('retry-asset'),
@@ -477,11 +426,7 @@ describe('media store', () => {
 
       const result = await store.retryUpload('retry-key')
 
-      expect(mockUploadAsset).toHaveBeenCalledWith(
-        'retry-asset',
-        expect.any(File),
-        expect.any(Function),
-      )
+      expect(mockPutAsset).toHaveBeenCalledWith(expect.any(File), 'ws-test-1', expect.any(String))
       expect(result.status).toBe('READY')
       expect(store.uploads['retry-key']?.status).toBe('done')
     })

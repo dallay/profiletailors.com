@@ -1,19 +1,17 @@
 package com.profiletailors.smp.platform.infrastructure.http
 
+import kotlinx.coroutines.runBlocking
 import org.assertj.core.api.Assertions.assertThat
 import org.junit.jupiter.api.Test
+import org.springframework.core.io.buffer.DefaultDataBufferFactory
 import org.springframework.http.HttpHeaders
 import org.springframework.http.HttpStatus
 import org.springframework.http.MediaType
-import org.springframework.http.ResponseEntity
 import org.springframework.web.reactive.function.client.ClientResponse
 import org.springframework.web.reactive.function.client.ExchangeFunction
 import org.springframework.web.reactive.function.client.WebClient
 import reactor.core.publisher.Flux
 import reactor.core.publisher.Mono
-import org.springframework.core.io.buffer.DefaultDataBufferFactory
-import java.nio.charset.StandardCharsets
-import kotlinx.coroutines.runBlocking
 
 class ImageProxyControllerTest {
 
@@ -174,14 +172,13 @@ class ImageProxyControllerTest {
         }
     }
 
-    private fun errorExchange(statusCode: Int): ExchangeFunction =
-        ExchangeFunction {
-            Mono.just(
-                ClientResponse.create(HttpStatus.valueOf(statusCode))
-                    .body(Flux.empty())
-                    .build(),
-            )
-        }
+    private fun errorExchange(statusCode: Int): ExchangeFunction = ExchangeFunction {
+        Mono.just(
+            ClientResponse.create(HttpStatus.valueOf(statusCode))
+                .body(Flux.empty())
+                .build(),
+        )
+    }
 
     private fun shouldNotBeCalled(): ExchangeFunction = ExchangeFunction {
         throw AssertionError("ExchangeFunction should not be called for validation-only paths")

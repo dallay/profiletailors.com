@@ -3,12 +3,10 @@ package com.profiletailors.ratelimit.infrastructure.config
 import com.profiletailors.ratelimit.domain.RateLimitStrategy
 import io.github.bucket4j.Bandwidth
 import io.github.bucket4j.BucketConfiguration
-import java.time.Duration
 import org.slf4j.LoggerFactory
+import java.time.Duration
 
-class BucketConfigurationFactory(
-    private val properties: RateLimitProperties
-) {
+class BucketConfigurationFactory(private val properties: RateLimitProperties) {
     private val logger = LoggerFactory.getLogger(BucketConfigurationFactory::class.java)
 
     /**
@@ -19,17 +17,13 @@ class BucketConfigurationFactory(
      * @return A [BucketConfiguration] configured for the specified strategy.
      * @throws IllegalArgumentException if the strategy is BUSINESS and the plan name is invalid.
      */
-    fun createConfiguration(
-        strategy: RateLimitStrategy,
-        planName: String? = null
-    ): BucketConfiguration {
-        return when (strategy) {
+    fun createConfiguration(strategy: RateLimitStrategy, planName: String? = null): BucketConfiguration =
+        when (strategy) {
             RateLimitStrategy.AUTH -> createAuthConfiguration()
             RateLimitStrategy.BUSINESS -> createBusinessConfiguration(planName ?: "free")
             RateLimitStrategy.RESUME -> createResumeConfiguration()
             RateLimitStrategy.WAITLIST -> createWaitlistConfiguration()
         }
-    }
 
     /**
      * Creates a bucket configuration for authentication endpoints.
@@ -45,7 +39,10 @@ class BucketConfigurationFactory(
             builder.addLimit(bandwidth)
             logger.debug(
                 "Added auth limit: {} - capacity={}, refill={} tokens per {}",
-                limit.name, limit.capacity, limit.refillTokens, limit.refillDuration,
+                limit.name,
+                limit.capacity,
+                limit.refillTokens,
+                limit.refillDuration,
             )
         }
 
@@ -66,7 +63,10 @@ class BucketConfigurationFactory(
 
         logger.debug(
             "Creating business bucket configuration for plan: {} - capacity={}, refill={} tokens per {}",
-            planName, limit.capacity, limit.refillTokens, limit.refillDuration,
+            planName,
+            limit.capacity,
+            limit.refillTokens,
+            limit.refillDuration,
         )
 
         val bandwidth = createBandwidth(limit)
@@ -84,7 +84,9 @@ class BucketConfigurationFactory(
 
         logger.debug(
             "Creating resume bucket configuration - capacity={}, refill={} tokens per {}",
-            limit.capacity, limit.refillTokens, limit.refillDuration,
+            limit.capacity,
+            limit.refillTokens,
+            limit.refillDuration,
         )
 
         val bandwidth = createBandwidth(limit)
@@ -102,7 +104,9 @@ class BucketConfigurationFactory(
 
         logger.debug(
             "Creating waitlist bucket configuration - capacity={}, refill={} tokens per {}",
-            limit.capacity, limit.refillTokens, limit.refillDuration,
+            limit.capacity,
+            limit.refillTokens,
+            limit.refillDuration,
         )
 
         val bandwidth = createBandwidth(limit)
@@ -147,14 +151,13 @@ class BucketConfigurationFactory(
     /**
      * Checks if rate limiting is enabled for the specified strategy.
      */
-    fun isRateLimitEnabled(strategy: RateLimitStrategy): Boolean {
-        return properties.enabled && when (strategy) {
+    fun isRateLimitEnabled(strategy: RateLimitStrategy): Boolean = properties.enabled &&
+        when (strategy) {
             RateLimitStrategy.AUTH -> properties.auth.enabled
             RateLimitStrategy.BUSINESS -> properties.business.enabled
             RateLimitStrategy.RESUME -> properties.resume.enabled
             RateLimitStrategy.WAITLIST -> properties.waitlist.enabled
         }
-    }
 
     /**
      * Gets the list of endpoints that should be rate limited for the specified strategy.
@@ -162,12 +165,14 @@ class BucketConfigurationFactory(
      * Note: BUSINESS strategy returns an empty list because business endpoint detection
      * is based on API key presence rather than specific URL paths.
      */
-    fun getEndpoints(strategy: RateLimitStrategy): List<String> {
-        return when (strategy) {
-            RateLimitStrategy.AUTH -> properties.auth.endpoints
-            RateLimitStrategy.RESUME -> properties.resume.endpoints
-            RateLimitStrategy.BUSINESS -> emptyList() // Business endpoints are handled differently
-            RateLimitStrategy.WAITLIST -> properties.waitlist.endpoints
-        }
+    fun getEndpoints(strategy: RateLimitStrategy): List<String> = when (strategy) {
+        RateLimitStrategy.AUTH -> properties.auth.endpoints
+
+        RateLimitStrategy.RESUME -> properties.resume.endpoints
+
+        RateLimitStrategy.BUSINESS -> emptyList()
+
+        // Business endpoints are handled differently
+        RateLimitStrategy.WAITLIST -> properties.waitlist.endpoints
     }
 }

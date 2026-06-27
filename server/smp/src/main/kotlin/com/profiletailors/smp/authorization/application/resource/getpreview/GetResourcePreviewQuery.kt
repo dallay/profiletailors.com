@@ -2,10 +2,7 @@ package com.profiletailors.smp.authorization.application.resource.getpreview
 
 import com.profiletailors.common.domain.bus.query.Query
 
-
-data class GetResourcePreviewQuery(
-    val resourceId: String,
-) : Query<ResourcePreview>
+data class GetResourcePreviewQuery(val resourceId: String) : Query<ResourcePreview>
 
 data class ResourcePreview(
     val workspaceId: String,
@@ -13,4 +10,3 @@ data class ResourcePreview(
     val principalId: String,
     val previewAllowed: Boolean,
 )
-

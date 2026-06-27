@@ -19,11 +19,9 @@ class ObservabilityBootstrapConfiguration {
     fun rateLimitHook(): RateLimitHook = NoOpRateLimitHook()
 
     @Bean
-    fun observabilityHookRegistry(
-        metricsHook: MetricsHook,
-        rateLimitHook: RateLimitHook,
-    ): ObservabilityHookRegistry = ObservabilityHookRegistry(
-        metricsHook = metricsHook,
-        rateLimitHook = rateLimitHook,
-    )
+    fun observabilityHookRegistry(metricsHook: MetricsHook, rateLimitHook: RateLimitHook): ObservabilityHookRegistry =
+        ObservabilityHookRegistry(
+            metricsHook = metricsHook,
+            rateLimitHook = rateLimitHook,
+        )
 }

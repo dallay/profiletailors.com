@@ -6,9 +6,8 @@ import com.profiletailors.smp.authorization.application.current.workspace.GetCur
 import com.profiletailors.smp.authorization.application.current.workspace.WorkspaceAccessSummary
 
 @Service
-internal class GetCurrentWorkspaceAccessSummaryHandler(
-    private val service: GetCurrentWorkspaceAccessSummaryService,
-) : QueryHandler<GetCurrentWorkspaceAccessSummaryQuery, WorkspaceAccessSummary> {
+internal class GetCurrentWorkspaceAccessSummaryHandler(private val service: GetCurrentWorkspaceAccessSummaryService) :
+    QueryHandler<GetCurrentWorkspaceAccessSummaryQuery, WorkspaceAccessSummary> {
 
     override suspend fun handle(query: GetCurrentWorkspaceAccessSummaryQuery): WorkspaceAccessSummary =
         service.execute(query)

@@ -1,0 +1,12 @@
+<?xml version="1.0" ?>
+<SmellBaseline>
+  <ManuallySuppressedIssues/>
+  <CurrentIssues>
+    <ID>BracesOnWhenStatements:ManualDependencyProvider.kt:ManualDependencyProvider$when</ID>
+    <ID>FunctionNameMaxLength:Registry.kt:Registry$fun &lt;TCommand : CommandWithResult&lt;TResult&gt;, TResult&gt; resolveCommandWithResultHandler: CommandWithResultHandler&lt;TCommand, TResult&gt;</ID>
+    <ID>FunctionNameMinLength:EventMultiplexer.kt:EventMultiplexer$fun on</ID>
+    <ID>MaxLineLength:CommandHandler.kt:CommandHandler$*</ID>
+    <ID>MaxLineLength:Mediator.kt:Mediator$*</ID>
+    <ID>MaxLineLength:QueryHandler.kt:QueryHandler$*</ID>
+  </CurrentIssues>
+</SmellBaseline>

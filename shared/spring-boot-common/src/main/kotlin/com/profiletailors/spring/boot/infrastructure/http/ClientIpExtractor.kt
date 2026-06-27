@@ -1,8 +1,8 @@
 package com.profiletailors.spring.boot.infrastructure.http
 
+import org.springframework.http.server.reactive.ServerHttpRequest
 import java.net.InetAddress
 import java.net.UnknownHostException
-import org.springframework.http.server.reactive.ServerHttpRequest
 
 /**
  * Utility for extracting and validating client IP addresses from HTTP requests.
@@ -97,11 +97,12 @@ object ClientIpExtractor {
         val isBareNumber = !hasDot && !hasColon
         if (isMalformedIpv4 || isBareNumber) return false
 
-        return ip.matches(IP_FORMAT_REGEX) && try {
-            InetAddress.getByName(ip)
-            true
-        } catch (@Suppress("SwallowedException") e: UnknownHostException) {
-            false
-        }
+        return ip.matches(IP_FORMAT_REGEX) &&
+            try {
+                InetAddress.getByName(ip)
+                true
+            } catch (@Suppress("SwallowedException") e: UnknownHostException) {
+                false
+            }
     }
 }

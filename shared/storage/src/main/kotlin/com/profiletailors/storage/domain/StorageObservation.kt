@@ -13,11 +13,7 @@ interface StorageObservation {
 
     fun recordPresignedUrlGenerated(provider: String, success: Boolean)
 
-    suspend fun <T : Any> recordOperationTime(
-        operation: String,
-        provider: String,
-        action: suspend () -> T,
-    ): T
+    suspend fun <T : Any> recordOperationTime(operation: String, provider: String, action: suspend () -> T): T
 
     object Operations {
         const val UPLOAD = "upload"
@@ -25,6 +21,7 @@ interface StorageObservation {
         const val DELETE = "delete"
         const val LIST = "list"
         const val PRESIGN = "presign"
+        const val COPY = "copy"
     }
 
     object ErrorTypes {

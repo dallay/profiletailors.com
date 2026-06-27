@@ -43,8 +43,8 @@ class R2PresignableStorageContractTest : PresignableStorageContractTest() {
                 .endpointOverride(localstack.getEndpointOverride(LocalStackContainer.Service.S3))
                 .credentialsProvider(
                     StaticCredentialsProvider.create(
-                        AwsBasicCredentials.create(localstack.accessKey, localstack.secretKey)
-                    )
+                        AwsBasicCredentials.create(localstack.accessKey, localstack.secretKey),
+                    ),
                 )
                 // LocalStack rejects "auto" as a region; use the LocalStack-configured region
                 // (matches S3StorageIntegrationTest pattern). forcePathStyle(true) keeps the
@@ -57,8 +57,8 @@ class R2PresignableStorageContractTest : PresignableStorageContractTest() {
                 .endpointOverride(localstack.getEndpointOverride(LocalStackContainer.Service.S3))
                 .credentialsProvider(
                     StaticCredentialsProvider.create(
-                        AwsBasicCredentials.create(localstack.accessKey, localstack.secretKey)
-                    )
+                        AwsBasicCredentials.create(localstack.accessKey, localstack.secretKey),
+                    ),
                 )
                 .region(Region.of(localstack.region))
                 .build()
@@ -67,7 +67,6 @@ class R2PresignableStorageContractTest : PresignableStorageContractTest() {
         }
     }
 
-    override fun createStorage(tempDir: Path): PresignableStorage {
-        return R2StorageAdapter(r2Client, TEST_BUCKET, r2Presigner, TEST_ACCOUNT_ID)
-    }
+    override fun createStorage(tempDir: Path): PresignableStorage =
+        R2StorageAdapter(r2Client, TEST_BUCKET, r2Presigner, TEST_ACCOUNT_ID)
 }

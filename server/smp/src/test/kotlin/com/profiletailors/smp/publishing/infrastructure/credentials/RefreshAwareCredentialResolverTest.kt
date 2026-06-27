@@ -487,9 +487,8 @@ class RefreshAwareCredentialResolverTest {
             return ownerId
         }
 
-        override suspend fun resolveCredential(id: UUID): LinkedInCredentials {
-            return store[id] ?: throw IllegalStateException("No credentials for $id")
-        }
+        override suspend fun resolveCredential(id: UUID): LinkedInCredentials =
+            store[id] ?: throw IllegalStateException("No credentials for $id")
     }
 
     private class FakeConnectionRepository : SocialConnectionRepository {
@@ -504,9 +503,8 @@ class RefreshAwareCredentialResolverTest {
             return connection
         }
 
-        override suspend fun findByWorkspaceAndId(workspaceId: String, connectionId: String): SocialConnection? {
-            return connections["$workspaceId:$connectionId"]
-        }
+        override suspend fun findByWorkspaceAndId(workspaceId: String, connectionId: String): SocialConnection? =
+            connections["$workspaceId:$connectionId"]
     }
 
     private class ControllableFakeLinkedInHttpTransport(
@@ -516,7 +514,9 @@ class RefreshAwareCredentialResolverTest {
         var lastRequest: java.net.http.HttpRequest? = null
             private set
 
-        override suspend fun send(request: java.net.http.HttpRequest): com.profiletailors.smp.publishing.infrastructure.linkedin.LinkedInHttpResponse {
+        override suspend fun send(
+            request: java.net.http.HttpRequest,
+        ): com.profiletailors.smp.publishing.infrastructure.linkedin.LinkedInHttpResponse {
             lastRequest = request
             if (throwException != null) throw throwException
             return response!!

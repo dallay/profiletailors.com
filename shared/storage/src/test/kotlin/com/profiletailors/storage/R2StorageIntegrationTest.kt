@@ -11,8 +11,9 @@ import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertFalse
 import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.BeforeAll
-import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.DisplayName
+import org.junit.jupiter.api.Test
+import org.junit.jupiter.api.condition.EnabledIfEnvironmentVariable
 import org.testcontainers.containers.localstack.LocalStackContainer
 import org.testcontainers.junit.jupiter.Container
 import org.testcontainers.junit.jupiter.Testcontainers
@@ -23,8 +24,6 @@ import software.amazon.awssdk.regions.Region
 import software.amazon.awssdk.services.s3.S3AsyncClient
 import software.amazon.awssdk.services.s3.model.CreateBucketRequest
 import software.amazon.awssdk.services.s3.presigner.S3Presigner
-
-import org.junit.jupiter.api.condition.EnabledIfEnvironmentVariable
 
 /**
  * Integration tests for R2StorageAdapter using LocalStack.
@@ -61,19 +60,19 @@ class R2StorageIntegrationTest {
                 .endpointOverride(localstack.getEndpointOverride(LocalStackContainer.Service.S3))
                 .credentialsProvider(
                     StaticCredentialsProvider.create(
-                        AwsBasicCredentials.create(localstack.accessKey, localstack.secretKey)
-                    )
+                        AwsBasicCredentials.create(localstack.accessKey, localstack.secretKey),
+                    ),
                 )
                 .region(Region.of(localstack.region))
-                .forcePathStyle(true)  // R2 requires path-style
+                .forcePathStyle(true) // R2 requires path-style
                 .build()
 
             r2Presigner = S3Presigner.builder()
                 .endpointOverride(localstack.getEndpointOverride(LocalStackContainer.Service.S3))
                 .credentialsProvider(
                     StaticCredentialsProvider.create(
-                        AwsBasicCredentials.create(localstack.accessKey, localstack.secretKey)
-                    )
+                        AwsBasicCredentials.create(localstack.accessKey, localstack.secretKey),
+                    ),
                 )
                 .region(Region.of(localstack.region))
                 .build()

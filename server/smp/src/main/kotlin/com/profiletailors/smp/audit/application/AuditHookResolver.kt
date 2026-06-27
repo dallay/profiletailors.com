@@ -9,10 +9,9 @@ interface AuditHookSupplier {
 }
 
 object AuditHookResolver {
-    fun resolve(auditEnabled: Boolean, supplier: AuditHookSupplier): AuditHook =
-        if (auditEnabled) {
-            supplier.createR2dbcHook()
-        } else {
-            supplier.createNoOpHook()
-        }
+    fun resolve(auditEnabled: Boolean, supplier: AuditHookSupplier): AuditHook = if (auditEnabled) {
+        supplier.createR2dbcHook()
+    } else {
+        supplier.createNoOpHook()
+    }
 }

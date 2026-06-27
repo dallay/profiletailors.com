@@ -61,7 +61,9 @@ class WorkspaceAccessSummaryEndpointPostgresIntegrationTest : WorkspaceAccessSum
             }
 
             val r2dbcUrl =
-                "r2dbc:postgresql://${postgres.host}:${postgres.getMappedPort(PostgreSQLContainer.POSTGRESQL_PORT)}/${postgres.databaseName}"
+                "r2dbc:postgresql://${postgres.host}:${postgres.getMappedPort(
+                    PostgreSQLContainer.POSTGRESQL_PORT,
+                )}/${postgres.databaseName}"
 
             registry.add("spring.r2dbc.url") { r2dbcUrl }
             registry.add("spring.r2dbc.username", postgres::getUsername)

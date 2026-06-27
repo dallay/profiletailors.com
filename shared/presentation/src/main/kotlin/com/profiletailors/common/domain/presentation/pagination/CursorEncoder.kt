@@ -15,6 +15,7 @@ import kotlin.io.encoding.ExperimentalEncodingApi
 interface CursorEncoder {
     /** Encode a string into an opaque cursor. */
     fun encode(data: String): String = Base64.encode(data.toByteArray())
+
     /** Decode an opaque cursor back to its original string. Throws [InvalidCursor] on malformed input. */
     fun decode(encodedData: String): String {
         @Suppress("TooGenericExceptionCaught")

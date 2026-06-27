@@ -14,20 +14,13 @@ interface IdentityRegistrationGateway {
         emailStatus: EmailStatus = EmailStatus.PENDING,
     )
 
-    suspend fun createEmailVerificationToken(
-        email: String,
-        tokenHash: String,
-        expiresAt: Instant,
-    )
+    suspend fun createEmailVerificationToken(email: String, tokenHash: String, expiresAt: Instant)
 
     suspend fun verifyEmailToken(tokenHash: String): EmailVerificationTokenData?
 
     suspend fun markTokenUsed(tokenHash: String, now: Instant)
 
-    suspend fun updateEmailStatus(
-        email: String,
-        emailStatus: EmailStatus,
-    )
+    suspend fun updateEmailStatus(email: String, emailStatus: EmailStatus)
 
     suspend fun invalidateEmailTokens(email: String)
 

@@ -9,7 +9,6 @@ import org.springframework.web.bind.annotation.GetMapping
 import org.springframework.web.bind.annotation.RequestMapping
 import org.springframework.web.bind.annotation.RequestParam
 import org.springframework.web.bind.annotation.RestController
-import org.springframework.http.HttpHeaders
 import org.springframework.web.reactive.function.client.WebClient
 import org.springframework.web.reactive.function.client.WebClientResponseException
 import org.springframework.web.reactive.function.client.awaitEntity
@@ -19,9 +18,7 @@ import java.time.Duration
 @RestController
 @RequestMapping(value = ["/api/media"])
 @Tag(name = "Media Proxy", description = "Proxy external media to avoid browser blocking")
-class ImageProxyController(
-    private val webClient: WebClient,
-) {
+class ImageProxyController(private val webClient: WebClient) {
     companion object {
         private val CACHE_DURATION = Duration.ofMinutes(30)
     }
@@ -46,9 +43,7 @@ class ImageProxyController(
 
     @Operation(summary = "Proxy external image to bypass browser ad-blocker restrictions")
     @GetMapping("/proxy")
-    suspend fun proxyImage(
-        @RequestParam url: String,
-    ): ResponseEntity<ByteArray> {
+    suspend fun proxyImage(@RequestParam url: String): ResponseEntity<ByteArray> {
         val uri = validateUrl(url) ?: return ResponseEntity.badRequest().build()
 
         return try {

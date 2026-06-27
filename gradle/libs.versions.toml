@@ -5,6 +5,7 @@ springManagement = "1.1.7"
 springModulith = "2.0.6"
 springdoc = "3.0.2"
 detekt = "2.0.0-alpha.3"
+spotless = "8.7.0"
 owasp = "12.1.9"
 jdk = "21"
 
@@ -116,6 +117,7 @@ gradle-spring-boot = { module = "org.springframework.boot:spring-boot-gradle-plu
 gradle-spring-dependency = { module = "io.spring.dependency-management:io.spring.dependency-management.gradle.plugin", version.ref = "springManagement" }
 gradle-detekt = { module = "dev.detekt:detekt-gradle-plugin", version.ref = "detekt" }
 gradle-owasp-depcheck = { module = "org.owasp:dependency-check-gradle", version.ref = "owasp" }
+gradle-spotless = { module = "com.diffplug.spotless:com.diffplug.spotless.gradle.plugin", version.ref = "spotless" }
 
 [plugins]
 kotlin-jvm = { id = "org.jetbrains.kotlin.jvm", version.ref = "kotlin" }
@@ -124,4 +126,5 @@ spring-boot = { id = "org.springframework.boot", version.ref = "springBoot" }
 spring-dependency-management = { id = "io.spring.dependency-management", version.ref = "springManagement" }
 detekt = { id = "dev.detekt", version.ref = "detekt" }
 owasp-dependencycheck = { id = "org.owasp.dependencycheck", version.ref = "owasp" }
+spotless = { id = "com.diffplug.spotless", version.ref = "spotless" }
 kover = { id = "org.jetbrains.kotlinx.kover", version.ref = "kover" }

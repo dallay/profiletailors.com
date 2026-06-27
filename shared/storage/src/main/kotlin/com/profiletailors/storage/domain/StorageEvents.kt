@@ -26,7 +26,7 @@ data class FileUploadedEvent(
     val sizeBytes: Long,
     val uploaderId: String,
     val timestamp: Instant = Instant.now(),
-    val metadata: Map<String, String> = emptyMap()
+    val metadata: Map<String, String> = emptyMap(),
 ) : BaseDomainEvent(LocalDateTime.ofInstant(timestamp, ZoneOffset.UTC)) {
     init {
         require(bucket.isNotBlank()) { ValidationMessages.BUCKET_BLANK }
@@ -43,7 +43,7 @@ data class FileDownloadedEvent(
     val bucket: String,
     val key: String,
     val downloaderId: String,
-    val timestamp: Instant = Instant.now()
+    val timestamp: Instant = Instant.now(),
 ) : BaseDomainEvent(LocalDateTime.ofInstant(timestamp, ZoneOffset.UTC)) {
     init {
         require(bucket.isNotBlank()) { ValidationMessages.BUCKET_BLANK }
@@ -60,7 +60,7 @@ data class FileDeletedEvent(
     val bucket: String,
     val key: String,
     val deleterId: String,
-    val timestamp: Instant = Instant.now()
+    val timestamp: Instant = Instant.now(),
 ) : BaseDomainEvent(LocalDateTime.ofInstant(timestamp, ZoneOffset.UTC)) {
     init {
         require(bucket.isNotBlank()) { ValidationMessages.BUCKET_BLANK }
@@ -78,7 +78,7 @@ data class LargeFileUploadStartedEvent(
     val key: String,
     val expectedSizeBytes: Long,
     val uploaderId: String,
-    val timestamp: Instant = Instant.now()
+    val timestamp: Instant = Instant.now(),
 ) : BaseDomainEvent(LocalDateTime.ofInstant(timestamp, ZoneOffset.UTC)) {
     init {
         require(bucket.isNotBlank()) { ValidationMessages.BUCKET_BLANK }

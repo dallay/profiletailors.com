@@ -11,8 +11,7 @@ interface PrincipalContextProvider {
     suspend fun current(): PrincipalContext?
 
     /** Return the current principal, or throw if not authenticated. */
-    suspend fun require(): PrincipalContext =
-        current() ?: throw MissingPrincipalContextException()
+    suspend fun require(): PrincipalContext = current() ?: throw MissingPrincipalContextException()
 }
 
 /**
@@ -23,8 +22,7 @@ interface ResourceContextProvider {
     fun current(): ResourceContext?
 
     /** Return the current resource context, or throw if not available. */
-    fun require(): ResourceContext =
-        current() ?: throw MissingResourceContextException()
+    fun require(): ResourceContext = current() ?: throw MissingResourceContextException()
 }
 
 /**
@@ -35,21 +33,17 @@ interface RequestPathProvider {
     fun current(): String?
 
     /** Return the current request path, or throw if not available. */
-    fun require(): String =
-        current() ?: throw MissingRequestPathException()
+    fun require(): String = current() ?: throw MissingRequestPathException()
 }
 
 /** Thrown when [PrincipalContext] is required but not available. */
-class MissingPrincipalContextException(
-    message: String = "Authenticated principal context is required.",
-) : IllegalStateException(message)
+class MissingPrincipalContextException(message: String = "Authenticated principal context is required.") :
+    IllegalStateException(message)
 
 /** Thrown when [ResourceContext] is required but not available. */
-class MissingResourceContextException(
-    message: String = "Resolved resource context is required.",
-) : IllegalStateException(message)
+class MissingResourceContextException(message: String = "Resolved resource context is required.") :
+    IllegalStateException(message)
 
 /** Thrown when the request path is required but not available. */
-class MissingRequestPathException(
-    message: String = "Resolved request path is required.",
-) : IllegalStateException(message)
+class MissingRequestPathException(message: String = "Resolved request path is required.") :
+    IllegalStateException(message)

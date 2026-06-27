@@ -38,7 +38,7 @@ class RateLimitPropertiesTest {
             name = "test",
             capacity = 100,
             refillTokens = 10,
-            refillDuration = Duration.ofMinutes(1)
+            refillDuration = Duration.ofMinutes(1),
         )
 
         limit.name shouldBe "test"
@@ -55,7 +55,7 @@ class RateLimitPropertiesTest {
             capacity = 50,
             refillTokens = 5,
             refillDuration = Duration.ofMinutes(1),
-            initialTokens = 25L
+            initialTokens = 25L,
         )
 
         limit.initialTokens shouldBe 25L

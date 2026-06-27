@@ -1,5 +1,8 @@
 package com.profiletailors.smp.identity.infrastructure
 
+import com.profiletailors.common.domain.context.MissingPrincipalContextException
+import com.profiletailors.common.domain.context.PrincipalContext
+import com.profiletailors.common.domain.context.PrincipalType
 import com.profiletailors.smp.credentials.application.NoOpServiceAccountCredentialStateLookup
 import com.profiletailors.smp.credentials.application.ServiceAccountCredentialFailureReason
 import com.profiletailors.smp.credentials.application.ServiceAccountCredentialNotActiveException
@@ -10,14 +13,11 @@ import com.profiletailors.smp.identity.application.NoOpPrincipalIdentityLookup
 import com.profiletailors.smp.identity.application.PrincipalIdentityLookup
 import com.profiletailors.smp.identity.domain.AuthenticatedPrincipal
 import com.profiletailors.smp.identity.domain.EmailStatus
-import com.profiletailors.common.domain.context.PrincipalContext
-import com.profiletailors.common.domain.context.PrincipalType
-import com.profiletailors.common.domain.context.MissingPrincipalContextException
 
 class JwtAuthenticatedPrincipalMaterializer(
     private val principalIdentityLookup: PrincipalIdentityLookup = NoOpPrincipalIdentityLookup(),
     private val serviceAccountCredentialStateLookup:
-        ServiceAccountCredentialStateLookup = NoOpServiceAccountCredentialStateLookup(),
+    ServiceAccountCredentialStateLookup = NoOpServiceAccountCredentialStateLookup(),
 ) {
     suspend fun materialize(token: ValidatedToken): AuthenticatedPrincipal =
         if (token.principalTypeHint == PrincipalType.SERVICE_ACCOUNT) {

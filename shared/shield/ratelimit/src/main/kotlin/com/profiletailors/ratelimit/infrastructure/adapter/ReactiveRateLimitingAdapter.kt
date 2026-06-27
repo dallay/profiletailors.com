@@ -16,9 +16,7 @@ import reactor.core.publisher.Mono
  * without being aware of Kotlin coroutines.
  */
 @Component
-class ReactiveRateLimitingAdapter(
-    private val rateLimitingService: RateLimitingService
-) {
+class ReactiveRateLimitingAdapter(private val rateLimitingService: RateLimitingService) {
 
     /**
      * Consumes a token for a given identifier using the default BUSINESS strategy,
@@ -40,10 +38,6 @@ class ReactiveRateLimitingAdapter(
      * @param strategy The rate limiting strategy to apply.
      * @return A [Mono] of [RateLimitResult] indicating if the request was allowed or denied.
      */
-    fun consumeToken(
-        identifier: String,
-        endpoint: String,
-        strategy: RateLimitStrategy
-    ): Mono<RateLimitResult> =
+    fun consumeToken(identifier: String, endpoint: String, strategy: RateLimitStrategy): Mono<RateLimitResult> =
         mono { rateLimitingService.consumeToken(identifier, endpoint, strategy) }
 }

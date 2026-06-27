@@ -6,13 +6,12 @@ import org.springframework.security.crypto.bcrypt.BCrypt
 class BCryptPasswordHasher : PasswordHasher {
     override fun hash(rawPassword: String): String = BCrypt.hashpw(rawPassword, BCrypt.gensalt())
 
-    override fun matches(rawPassword: String, passwordHash: String): Boolean =
-        try {
-            BCrypt.checkpw(rawPassword, passwordHash)
-        } catch (_: IllegalArgumentException) {
-            // Malformed hash (e.g., dev placeholder) — fail secure instead of crashing
-            false
-        }
+    override fun matches(rawPassword: String, passwordHash: String): Boolean = try {
+        BCrypt.checkpw(rawPassword, passwordHash)
+    } catch (_: IllegalArgumentException) {
+        // Malformed hash (e.g., dev placeholder) — fail secure instead of crashing
+        false
+    }
 
     override val algorithm: String = "bcrypt"
 }

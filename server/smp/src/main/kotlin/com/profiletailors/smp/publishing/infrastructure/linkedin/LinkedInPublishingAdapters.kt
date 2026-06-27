@@ -64,9 +64,7 @@ class RealLinkedInConnectionProvider(
     private val log = LoggerFactory.getLogger(javaClass)
 
     @Suppress("LongMethod", "ThrowsCount")
-    override suspend fun completeConnection(
-        command: CompleteProviderConnectionCommand
-    ): ProviderConnectionResult {
+    override suspend fun completeConnection(command: CompleteProviderConnectionCommand): ProviderConnectionResult {
         require(properties.clientId.isNotBlank()) {
             "LinkedIn clientId is required in real mode."
         }
@@ -107,7 +105,7 @@ class RealLinkedInConnectionProvider(
         }
         val profile = objectMapper.readValue(
             profileResponse.body,
-            LinkedInUserInfoResponse::class.java
+            LinkedInUserInfoResponse::class.java,
         )
         val providerAccountId = profile.sub
             ?: throw IllegalStateException("LinkedIn user info response did not include subject id.")
@@ -173,7 +171,7 @@ class LinkedInCapabilityValidator(
         val assetCount = input.assets.size
         if (assetCount > MAX_ASSETS_PER_POST) {
             throw PublicationValidationException(
-                "LinkedIn MVP supports up to $MAX_ASSETS_PER_POST assets per publication."
+                "LinkedIn MVP supports up to $MAX_ASSETS_PER_POST assets per publication.",
             )
         }
         if (input.assets.any { it.mediaType.isBlank() }) {
@@ -191,7 +189,7 @@ class LinkedInCapabilityValidator(
             val types = unsupportedAssets.joinToString(", ") { it.mediaType }
             throw PublicationValidationException(
                 "Unsupported media type(s) for LinkedIn: $types. " +
-                    "Supported types: ${SUPPORTED_MEDIA_TYPES.joinToString(", ")}"
+                    "Supported types: ${SUPPORTED_MEDIA_TYPES.joinToString(", ")}",
             )
         }
     }
@@ -201,7 +199,7 @@ class LinkedInCapabilityValidator(
             val size = asset.fileSizeBytes
             if (size != null && size > MAX_ASSET_SIZE_BYTES) {
                 throw PublicationValidationException(
-                    "Asset ${asset.id} exceeds maximum size of ${MAX_ASSET_SIZE_BYTES / MB}MB"
+                    "Asset ${asset.id} exceeds maximum size of ${MAX_ASSET_SIZE_BYTES / MB}MB",
                 )
             }
         }
@@ -209,6 +207,7 @@ class LinkedInCapabilityValidator(
 
     private companion object {
         const val MAX_ASSETS_PER_POST = 10
+
         // LinkedIn videos support up to 500MB; documents are capped lower by API.
         const val MAX_ASSET_SIZE_BYTES = 500L * 1024 * 1024
         const val MB = 1024 * 1024
@@ -237,6 +236,7 @@ class RealLinkedInPublisher(
     private val attachmentsBucket: String,
 ) : SocialPublisher {
     private val log = LoggerFactory.getLogger(javaClass)
+
     /**
      * Publishes a social media post to LinkedIn.
      *
@@ -263,11 +263,13 @@ class RealLinkedInPublisher(
                     .orElse("linkedin-post-${command.publicationId}"),
                 providerMessage = response.body,
             )
+
             HTTP_TOO_MANY_REQUESTS, in HTTP_SERVER_ERROR_RANGE -> {
                 val message = "LinkedIn post publish retryable failure: " +
                     "${response.statusCode} ${response.body}"
                 throw RetryablePublishingException(message)
             }
+
             else -> {
                 val message = "LinkedIn post publish failed: " +
                     "${response.statusCode} ${response.body}"
@@ -288,7 +290,7 @@ class RealLinkedInPublisher(
     private suspend fun buildPostBody(command: ProviderPublishCommand): Map<String, Any> {
         val authorUrn = command.socialAccount.profileUrn
             ?: throw IllegalStateException(
-                "LinkedIn social account is missing a person URN for authoring."
+                "LinkedIn social account is missing a person URN for authoring.",
             )
         val commentary = command.publication.bodyText.orEmpty()
         val articleLink = extractFirstUrl(commentary)
@@ -353,21 +355,25 @@ class RealLinkedInPublisher(
                     "images" to imageRefs.map { mapOf("id" to it.providerAssetId) },
                 ),
             )
+
             imageRefs.size == 1 -> mapOf(
                 "media" to mapOf("id" to imageRefs.first().providerAssetId),
             )
+
             videoRef != null -> mapOf(
                 "media" to mapOf(
                     "id" to videoRef.providerAssetId,
                     "title" to (command.publication.title ?: "Video"),
                 ),
             )
+
             documentRef != null -> mapOf(
                 "media" to mapOf(
                     "id" to documentRef.providerAssetId,
                     "title" to (command.publication.title ?: "Document"),
                 ),
             )
+
             else -> emptyMap()
         }
     }
@@ -445,8 +451,7 @@ class RealLinkedInPublisher(
         )
     }
 
-    private fun extractFirstUrl(text: String): String? =
-        Regex("https?://\\S+").find(text)?.value
+    private fun extractFirstUrl(text: String): String? = Regex("https?://\\S+").find(text)?.value
 
     private companion object {
         val HTTP_SUCCESS_RANGE = 200..299
@@ -461,15 +466,9 @@ fun interface LinkedInHttpTransport {
     suspend fun send(request: HttpRequest): LinkedInHttpResponse
 }
 
-data class LinkedInHttpResponse(
-    val statusCode: Int,
-    val headers: java.net.http.HttpHeaders,
-    val body: String,
-)
+data class LinkedInHttpResponse(val statusCode: Int, val headers: java.net.http.HttpHeaders, val body: String)
 
-class JdkLinkedInHttpTransport(
-    private val httpClient: HttpClient,
-) : LinkedInHttpTransport {
+class JdkLinkedInHttpTransport(private val httpClient: HttpClient) : LinkedInHttpTransport {
     override suspend fun send(request: HttpRequest): LinkedInHttpResponse {
         val response = httpClient.send(request, HttpResponse.BodyHandlers.ofString())
         return LinkedInHttpResponse(
@@ -557,7 +556,10 @@ class LinkedInPublishingConfiguration(
         linkedInHttpTransport: LinkedInHttpTransport,
         credentialGateway: com.profiletailors.smp.publishing.infrastructure.credentials.LinkedInCredentialGateway,
     ): SocialConnectionProvider = RealLinkedInConnectionProvider(
-        properties, objectMapper, linkedInHttpTransport, credentialGateway,
+        properties,
+        objectMapper,
+        linkedInHttpTransport,
+        credentialGateway,
     )
 
     @Bean

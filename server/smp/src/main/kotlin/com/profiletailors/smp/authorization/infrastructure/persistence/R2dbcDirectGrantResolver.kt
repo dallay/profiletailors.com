@@ -2,23 +2,21 @@ package com.profiletailors.smp.authorization.infrastructure.persistence
 
 import com.fasterxml.jackson.core.type.TypeReference
 import com.fasterxml.jackson.databind.ObjectMapper
-import com.profiletailors.smp.authorization.domain.DirectGrantResolver
-import com.profiletailors.smp.authorization.domain.DirectGrant
-import com.profiletailors.smp.authorization.domain.GrantEffect
-import com.profiletailors.smp.authorization.domain.PermissionKey
 import com.profiletailors.common.domain.context.PrincipalContext
 import com.profiletailors.common.domain.context.ResourceContext
 import com.profiletailors.common.domain.context.ResourceContextType
+import com.profiletailors.smp.authorization.domain.DirectGrant
+import com.profiletailors.smp.authorization.domain.DirectGrantResolver
+import com.profiletailors.smp.authorization.domain.GrantEffect
+import com.profiletailors.smp.authorization.domain.PermissionKey
 import kotlinx.coroutines.reactor.awaitSingle
 import org.springframework.r2dbc.core.DatabaseClient
 import org.springframework.stereotype.Repository
 import java.time.OffsetDateTime
 
 @Repository
-class R2dbcDirectGrantResolver(
-    private val databaseClient: DatabaseClient,
-    private val objectMapper: ObjectMapper,
-) : DirectGrantResolver {
+class R2dbcDirectGrantResolver(private val databaseClient: DatabaseClient, private val objectMapper: ObjectMapper) :
+    DirectGrantResolver {
     override suspend fun resolve(
         principalContext: PrincipalContext,
         resourceContext: ResourceContext,

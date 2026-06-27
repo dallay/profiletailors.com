@@ -9,9 +9,7 @@ import org.springframework.web.server.WebFilter
 import org.springframework.web.server.WebFilterChain
 import reactor.core.publisher.Mono
 
-class AuthenticatedPrincipalContextWebFilter(
-    private val requestContextStore: RequestContextStore,
-) : WebFilter {
+class AuthenticatedPrincipalContextWebFilter(private val requestContextStore: RequestContextStore) : WebFilter {
     override fun filter(exchange: ServerWebExchange, chain: WebFilterChain): Mono<Void> =
         ReactiveSecurityContextHolder.getContext()
             .mapNotNull { it.authentication }

@@ -6,9 +6,7 @@ import org.springframework.r2dbc.core.DatabaseClient
 import org.springframework.stereotype.Repository
 
 @Repository
-class R2dbcWorkspaceMutationRepository(
-    private val databaseClient: DatabaseClient,
-) : WorkspaceMutationRepository {
+class R2dbcWorkspaceMutationRepository(private val databaseClient: DatabaseClient) : WorkspaceMutationRepository {
 
     override suspend fun rename(workspaceId: String, newName: String): Boolean {
         val rowsUpdated = databaseClient.sql("UPDATE workspaces SET name = :name WHERE id = :id")

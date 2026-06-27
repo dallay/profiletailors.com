@@ -14,7 +14,4 @@ fun interface LocalJwtIssuer {
     ): IssuedAccessToken
 }
 
-data class IssuedAccessToken(
-    val value: String,
-    val expiresInSeconds: Long,
-)
+data class IssuedAccessToken(val value: String, val expiresInSeconds: Long)

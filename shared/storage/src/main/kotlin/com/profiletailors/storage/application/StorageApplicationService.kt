@@ -12,12 +12,9 @@ import com.profiletailors.storage.domain.StorageObservation
 import com.profiletailors.storage.domain.StorageSecurityException
 import com.profiletailors.storage.domain.StorageServiceException
 import kotlinx.coroutines.CancellationException
-import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.channelFlow
 import kotlinx.coroutines.flow.map
-import kotlinx.coroutines.launch
-import kotlinx.coroutines.withContext
 import org.slf4j.LoggerFactory
 import java.time.Instant
 
@@ -36,7 +33,7 @@ class StorageApplicationService(
     private val storage: Storage,
     private val eventPublisher: EventPublisher<BaseDomainEvent>,
     private val metrics: StorageObservation,
-    private val provider: String = StorageObservation.Providers.LOCAL
+    private val provider: String = StorageObservation.Providers.LOCAL,
 ) {
 
     /**
@@ -55,7 +52,7 @@ class StorageApplicationService(
         key: String,
         content: Flow<ByteArray>,
         uploaderId: String,
-        metadata: Map<String, String> = emptyMap()
+        metadata: Map<String, String> = emptyMap(),
     ) {
         validateBucketAndKey(bucket, key)
 
@@ -91,7 +88,7 @@ class StorageApplicationService(
         key: String,
         totalSize: Long,
         uploaderId: String,
-        metadata: Map<String, String>
+        metadata: Map<String, String>,
     ) {
         try {
             eventPublisher.publish(
@@ -101,11 +98,11 @@ class StorageApplicationService(
                     sizeBytes = totalSize,
                     uploaderId = uploaderId,
                     timestamp = Instant.now(),
-                    metadata = metadata
-                )
+                    metadata = metadata,
+                ),
             )
         } catch (e: CancellationException) {
-            throw e  // Don't swallow coroutine cancellation
+            throw e // Don't swallow coroutine cancellation
         } catch (e: Exception) {
             logger.warn("Failed to publish FileUploadedEvent for bucket=$bucket, key=$key", e)
         }
@@ -121,11 +118,7 @@ class StorageApplicationService(
      * @throws StorageSecurityException If path traversal is detected
      * @throws StorageObjectNotFoundException If the object doesn't exist
      */
-    fun download(
-        bucket: String,
-        key: String,
-        downloaderId: String
-    ): Flow<ByteArray> {
+    fun download(bucket: String, key: String, downloaderId: String): Flow<ByteArray> {
         validateBucketAndKey(bucket, key)
 
         return channelFlow {
@@ -136,11 +129,11 @@ class StorageApplicationService(
                         bucket = bucket,
                         key = key,
                         downloaderId = downloaderId,
-                        timestamp = Instant.now()
-                    )
+                        timestamp = Instant.now(),
+                    ),
                 )
             } catch (e: CancellationException) {
-                throw e  // Don't swallow coroutine cancellation
+                throw e // Don't swallow coroutine cancellation
             } catch (e: Exception) {
                 logger.warn("Failed to publish FileDownloadedEvent for bucket=$bucket, key=$key", e)
             }
@@ -178,11 +171,7 @@ class StorageApplicationService(
      * @throws StorageSecurityException If path traversal is detected
      * @throws StorageServiceException If deletion fails
      */
-    suspend fun delete(
-        bucket: String,
-        key: String,
-        deleterId: String
-    ) {
+    suspend fun delete(bucket: String, key: String, deleterId: String) {
         validateBucketAndKey(bucket, key)
 
         try {
@@ -212,13 +201,45 @@ class StorageApplicationService(
                     bucket = bucket,
                     key = key,
                     deleterId = deleterId,
-                    timestamp = Instant.now()
-                )
+                    timestamp = Instant.now(),
+                ),
             )
         } catch (e: CancellationException) {
-            throw e  // Don't swallow coroutine cancellation
+            throw e // Don't swallow coroutine cancellation
         } catch (e: Exception) {
             logger.warn("Failed to publish FileDeletedEvent for bucket=$bucket, key=$key", e)
+        }
+    }
+
+    /**
+     * Copy an object from source to destination within the same bucket.
+     *
+     * @param bucket The bucket name
+     * @param sourceKey The source object key
+     * @param destKey The destination object key
+     * @throws StorageSecurityException If path traversal is detected
+     * @throws StorageServiceException If copy fails
+     */
+    suspend fun copyObject(bucket: String, sourceKey: String, destKey: String) {
+        validateBucketAndKey(bucket, sourceKey)
+        validateBucketAndKey(bucket, destKey)
+
+        try {
+            metrics.recordOperationTime(StorageObservation.Operations.COPY, provider) {
+                storage.copyObject(bucket, sourceKey, destKey)
+            }
+            metrics.recordOperation(StorageObservation.Operations.COPY, provider, bucket, true)
+        } catch (e: CancellationException) {
+            throw e
+        } catch (e: Exception) {
+            val errorType = when (e) {
+                is StorageSecurityException -> StorageObservation.ErrorTypes.SECURITY
+                is StorageObjectNotFoundException -> StorageObservation.ErrorTypes.NOT_FOUND
+                else -> StorageObservation.ErrorTypes.SERVICE
+            }
+            metrics.recordError(StorageObservation.Operations.COPY, provider, bucket, errorType)
+            metrics.recordOperation(StorageObservation.Operations.COPY, provider, bucket, false)
+            throw e
         }
     }
 
@@ -229,25 +250,24 @@ class StorageApplicationService(
      * @param prefix Optional prefix to filter objects
      * @return List of object keys
      */
-    suspend fun list(bucket: String, prefix: String = ""): List<String> =
-        try {
-            metrics.recordOperationTime(StorageObservation.Operations.LIST, provider) {
-                storage.list(bucket, prefix)
-            }.also {
-                metrics.recordOperation(StorageObservation.Operations.LIST, provider, bucket, true)
-            }
-        } catch (e: CancellationException) {
-            throw e
-        } catch (e: Exception) {
-            val errorType = when (e) {
-                is StorageSecurityException -> StorageObservation.ErrorTypes.SECURITY
-                is StorageObjectNotFoundException -> StorageObservation.ErrorTypes.NOT_FOUND
-                else -> StorageObservation.ErrorTypes.SERVICE
-            }
-            metrics.recordError(StorageObservation.Operations.LIST, provider, bucket, errorType)
-            metrics.recordOperation(StorageObservation.Operations.LIST, provider, bucket, false)
-            throw e
+    suspend fun list(bucket: String, prefix: String = ""): List<String> = try {
+        metrics.recordOperationTime(StorageObservation.Operations.LIST, provider) {
+            storage.list(bucket, prefix)
+        }.also {
+            metrics.recordOperation(StorageObservation.Operations.LIST, provider, bucket, true)
         }
+    } catch (e: CancellationException) {
+        throw e
+    } catch (e: Exception) {
+        val errorType = when (e) {
+            is StorageSecurityException -> StorageObservation.ErrorTypes.SECURITY
+            is StorageObjectNotFoundException -> StorageObservation.ErrorTypes.NOT_FOUND
+            else -> StorageObservation.ErrorTypes.SERVICE
+        }
+        metrics.recordError(StorageObservation.Operations.LIST, provider, bucket, errorType)
+        metrics.recordOperation(StorageObservation.Operations.LIST, provider, bucket, false)
+        throw e
+    }
 
     /**
      * Validates bucket and key for obvious path traversal patterns

@@ -5,10 +5,7 @@ import com.profiletailors.common.domain.workspace.WorkspaceMembershipStatus
 import com.profiletailors.smp.tenancy.domain.WorkspaceMembership
 
 class WorkspaceOwnershipPolicy {
-    fun ensureOwnersRemainActiveMembers(
-        ownerships: Set<WorkspaceOwnership>,
-        memberships: Set<WorkspaceMembership>,
-    ) {
+    fun ensureOwnersRemainActiveMembers(ownerships: Set<WorkspaceOwnership>, memberships: Set<WorkspaceMembership>) {
         val activeMemberships = memberships.filter { it.isActive() }.toSet()
         ownerships.forEach { ownership ->
             if (activeMemberships.none { membership -> ownership.matches(membership) }) {
@@ -47,10 +44,7 @@ class WorkspaceOwnershipPolicy {
         }
     }
 
-    fun ensureOwnerRemovalAllowed(
-        ownerships: Set<WorkspaceOwnership>,
-        ownershipToRemove: WorkspaceOwnership,
-    ) {
+    fun ensureOwnerRemovalAllowed(ownerships: Set<WorkspaceOwnership>, ownershipToRemove: WorkspaceOwnership) {
         if (ownerships.none { it == ownershipToRemove }) {
             return
         }
@@ -61,19 +55,17 @@ class WorkspaceOwnershipPolicy {
     }
 }
 
-class WorkspaceMustHaveAtLeastOneOwnerException : BusinessRuleValidationException(
-    "A workspace must always have at least one owner.",
-)
+class WorkspaceMustHaveAtLeastOneOwnerException :
+    BusinessRuleValidationException(
+        "A workspace must always have at least one owner.",
+    )
 
-class LastOwnerRemovalRequiresReplacementException(
-    workspaceId: String,
-) : BusinessRuleValidationException(
-    "The last owner of workspace '$workspaceId' cannot be removed without a replacement.",
-)
+class LastOwnerRemovalRequiresReplacementException(workspaceId: String) :
+    BusinessRuleValidationException(
+        "The last owner of workspace '$workspaceId' cannot be removed without a replacement.",
+    )
 
-class OwnerMustRemainActiveMemberException(
-    principalId: String,
-    workspaceId: String,
-) : BusinessRuleValidationException(
-    "Owner '$principalId' must remain an active member of workspace '$workspaceId'.",
-)
+class OwnerMustRemainActiveMemberException(principalId: String, workspaceId: String) :
+    BusinessRuleValidationException(
+        "Owner '$principalId' must remain an active member of workspace '$workspaceId'.",
+    )

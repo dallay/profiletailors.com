@@ -39,6 +39,7 @@ The `shared/` modules MUST follow strict governance rules:
 ### Positive
 - Clean, reusable foundation.
 - Enforced architectural layers.
+
 ### Negative
 - Higher barrier to sharing code (intentional).
 - Changes to `shared:common` require recompiling the entire system.

@@ -10,14 +10,11 @@ import com.profiletailors.smp.governance.domain.AuditEventReader
 import kotlinx.coroutines.reactor.awaitSingle
 import org.springframework.r2dbc.core.DatabaseClient
 import org.springframework.stereotype.Repository
-import java.time.Instant
 import java.time.OffsetDateTime
 
 @Repository
-class R2dbcAuditEventReader(
-    private val databaseClient: DatabaseClient,
-    private val objectMapper: ObjectMapper,
-) : AuditEventReader {
+class R2dbcAuditEventReader(private val databaseClient: DatabaseClient, private val objectMapper: ObjectMapper) :
+    AuditEventReader {
     override suspend fun readWorkspaceEvents(
         workspaceId: String,
         filter: AuditEventFilter,
@@ -37,10 +34,7 @@ class R2dbcAuditEventReader(
             .awaitSingle()
     }
 
-    private fun buildSqlQuery(
-        filter: AuditEventFilter,
-        cursor: AuditEventCursor?,
-    ): String = buildString {
+    private fun buildSqlQuery(filter: AuditEventFilter, cursor: AuditEventCursor?): String = buildString {
         append(
             """
             SELECT id, event_type, action, request_name, request_path, permission,

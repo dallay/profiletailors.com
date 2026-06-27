@@ -5,14 +5,12 @@ import com.profiletailors.common.domain.context.ResourceContextProvider
 import com.profiletailors.common.domain.context.ResourceContextType
 import com.profiletailors.smp.authorization.domain.AuthorizationDecision
 import com.profiletailors.smp.authorization.domain.AuthorizationDecisionResult
-import com.profiletailors.smp.authorization.domain.AuthorizationDeniedException
 import com.profiletailors.smp.authorization.domain.AuthorizationReasonCode
 import com.profiletailors.smp.authorization.domain.PermissionKey
 import com.profiletailors.smp.authorization.domain.WorkspaceAuthorizationDecider
 import com.profiletailors.smp.tenancy.domain.WorkspaceMutationRepository
 import kotlinx.coroutines.test.runTest
 import org.junit.jupiter.api.Assertions.assertEquals
-import org.junit.jupiter.api.Assertions.assertNull
 import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.Test
 
@@ -115,8 +113,7 @@ class RenameWorkspaceHandlerTest {
             return true
         }
 
-        override suspend fun updateIcon(workspaceId: String, icon: String?): Boolean {
-            return workspaces.containsKey(workspaceId)
-        }
+        override suspend fun updateIcon(workspaceId: String, icon: String?): Boolean =
+            workspaces.containsKey(workspaceId)
     }
 }

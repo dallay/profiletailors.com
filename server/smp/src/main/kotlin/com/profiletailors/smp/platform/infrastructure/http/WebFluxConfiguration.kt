@@ -2,13 +2,13 @@ package com.profiletailors.smp.platform.infrastructure.http
 
 import org.springframework.context.annotation.Bean
 import org.springframework.context.annotation.Configuration
+import org.springframework.http.client.reactive.ReactorClientHttpConnector
 import org.springframework.web.reactive.accept.ApiVersionResolver
 import org.springframework.web.reactive.config.ApiVersionConfigurer
 import org.springframework.web.reactive.config.WebFluxConfigurer
 import org.springframework.web.reactive.function.client.WebClient
 import org.springframework.web.server.ServerWebExchange
 import reactor.netty.http.client.HttpClient
-import org.springframework.http.client.reactive.ReactorClientHttpConnector
 import java.time.Duration
 
 /**

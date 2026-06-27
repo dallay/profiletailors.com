@@ -13,9 +13,7 @@ import org.springframework.stereotype.Repository
  * This is the read side of the CQRS pattern for the tenancy bounded context.
  */
 @Repository
-internal class R2dbcWorkspaceReadRepository(
-    private val databaseClient: DatabaseClient,
-) : WorkspaceReadRepository {
+internal class R2dbcWorkspaceReadRepository(private val databaseClient: DatabaseClient) : WorkspaceReadRepository {
     /**
      * Find all workspaces where the given principal has an ACTIVE membership.
      *
@@ -26,9 +24,8 @@ internal class R2dbcWorkspaceReadRepository(
      * @param principalId The authenticated user's principal ID
      * @return List of workspace summaries ordered by name
      */
-    override suspend fun findWorkspacesByPrincipal(principalId: String): List<WorkspaceSummary> =
-        databaseClient.sql(
-            """
+    override suspend fun findWorkspacesByPrincipal(principalId: String): List<WorkspaceSummary> = databaseClient.sql(
+        """
             SELECT w.id AS workspace_id,
                    w.name AS workspace_name,
                    w.icon AS workspace_icon,
@@ -41,20 +38,20 @@ internal class R2dbcWorkspaceReadRepository(
               AND wm.status = :membershipStatus
               AND w.status = :workspaceStatus
             ORDER BY w.name ASC
-            """.trimIndent(),
-        )
-            .bind("principalId", principalId)
-            .bind("membershipStatus", "ACTIVE")
-            .bind("workspaceStatus", "ACTIVE")
-            .map { row, _ ->
-                WorkspaceSummary(
-                    workspaceId = requireNotNull(row.get("workspace_id", String::class.java)),
-                    name = requireNotNull(row.get("workspace_name", String::class.java)),
-                    role = requireNotNull(row.get("role", String::class.java)),
-                    icon = row.get("workspace_icon", String::class.java),
-                )
-            }
-            .all()
-            .collectList()
-            .awaitSingle()
+        """.trimIndent(),
+    )
+        .bind("principalId", principalId)
+        .bind("membershipStatus", "ACTIVE")
+        .bind("workspaceStatus", "ACTIVE")
+        .map { row, _ ->
+            WorkspaceSummary(
+                workspaceId = requireNotNull(row.get("workspace_id", String::class.java)),
+                name = requireNotNull(row.get("workspace_name", String::class.java)),
+                role = requireNotNull(row.get("role", String::class.java)),
+                icon = row.get("workspace_icon", String::class.java),
+            )
+        }
+        .all()
+        .collectList()
+        .awaitSingle()
 }

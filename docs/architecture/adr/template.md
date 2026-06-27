@@ -34,10 +34,13 @@
 ## Consequences
 ### Positive
 - <...>
+
 ### Negative
 - <...>
+
 ### Risks
 - <...>
+
 ### Accepted trade-offs
 - <...>
 

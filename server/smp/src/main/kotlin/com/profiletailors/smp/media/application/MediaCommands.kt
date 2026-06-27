@@ -64,40 +64,180 @@ data class UploadAssetResult(
     val createdAt: String,
 )
 
-data class DeleteWorkspaceAssetCommand(
-    val assetId: String,
-    val workspaceId: String,
-) : CommandWithResult<DeleteWorkspaceAssetResult>
+data class DeleteWorkspaceAssetCommand(val assetId: String, val workspaceId: String) :
+    CommandWithResult<DeleteWorkspaceAssetResult>
 
-data class DeleteWorkspaceAssetResult(
-    val assetId: String,
-    val workspaceId: String,
-    val deleted: Boolean,
-)
+data class DeleteWorkspaceAssetResult(val assetId: String, val workspaceId: String, val deleted: Boolean)
 
 /**
  * Command to transition a stale PROCESSING asset to FAILED.
  */
-data class TransitionStaleAssetCommand(
-    val assetId: String,
-    val workspaceId: String,
-)
+data class TransitionStaleAssetCommand(val assetId: String, val workspaceId: String)
 
 /**
  * Exception thrown when an asset is not ready for use.
  */
-class AssetNotReadyException(
-    val assetId: String,
-    val reason: String,
-) : RuntimeException("Asset $assetId is not ready: $reason")
+class AssetNotReadyException(val assetId: String, val reason: String) :
+    RuntimeException("Asset $assetId is not ready: $reason")
 
 /**
  * Exception thrown when the media context is unavailable.
  */
-class MediaServiceUnavailableException(
-    message: String,
-    cause: Throwable? = null,
-) : RuntimeException(message, cause)
+class MediaServiceUnavailableException(message: String, cause: Throwable? = null) : RuntimeException(message, cause)
+
+// ── PUT Asset (CAS dedup) ──────────────────────────────────────────────
+
+/**
+ * Command to register a media asset with CAS dedup checking.
+ *
+ * The client generates the file hash client-side and sends it here.
+ * The server checks whether a blob already exists for (workspaceId, fileHash):
+ * - READY: dedup hit, return 200
+ * - UPLOADING: another upload in progress, return 202
+ * - FAILED/READY_FOR_GC/GARBAGE_COLLECTED: retry, reset blob to UPLOADING
+ * - missing: insert both blob and asset
+ */
+data class PutAssetCommand(
+    val assetId: String,
+    val workspaceId: String,
+    val fileHash: String,
+    val fileSizeBytes: Long,
+    val declaredMediaType: String,
+    val originalFilename: String?,
+) : CommandWithResult<PutAssetResult>
+
+/**
+ * Result of a PUT asset operation.
+ */
+sealed class PutAssetResult {
+    /**
+     * A new asset was created (blob did not exist before).
+     * Client must upload bytes to the provided uploadUrl.
+     */
+    data class Created(
+        val assetId: String,
+        val workspaceId: String,
+        val status: String,
+        val mediaType: String,
+        val deduped: Boolean,
+        val uploadUrl: String,
+        val createdAt: String,
+    ) : PutAssetResult()
+
+    /**
+     * Asset already exists with the same assetId and same fileHash.
+     * Idempotent — returns current state.
+     */
+    data class AlreadyExists(
+        val assetId: String,
+        val workspaceId: String,
+        val status: String,
+        val mediaType: String,
+        val deduped: Boolean,
+        val createdAt: String,
+    ) : PutAssetResult()
+
+    /**
+     * Hash mismatch: assetId exists but with a different fileHash.
+     */
+    data class HashMismatch(val assetId: String, val existingFileHash: String) : PutAssetResult()
+
+    /**
+     * Blob is currently being uploaded by another request.
+     * Client should poll after retryAfterSeconds.
+     */
+    data class WaitingForBlob(val assetId: String, val retryAfterSeconds: Int) : PutAssetResult()
+}
+
+// ── Legacy Upload (multipart, kept for backward compatibility) ─────────────────
+
+/**
+ * Legacy command to upload binary content to a created asset.
+ * @deprecated Use CAS upload flow (PUT + POST /upload with octet-stream) instead.
+ */
+data class LegacyUploadAssetCommand(
+    val assetId: String,
+    val workspaceId: String,
+    val fileStream: kotlinx.coroutines.flow.Flow<ByteArray>,
+    val contentLength: Long?,
+    val maxFileSizeBytes: Long = DEFAULT_MAX_FILE_SIZE_BYTES,
+    val contentType: String? = null,
+    val timeoutSeconds: Long = DEFAULT_TIMEOUT_SECONDS,
+) : CommandWithResult<LegacyUploadAssetResult> {
+    companion object {
+        private const val DEFAULT_MAX_FILE_SIZE_BYTES = 500L * 1024 * 1024
+        private const val DEFAULT_TIMEOUT_SECONDS = 10L * 60L
+    }
+}
+
+/**
+ * Result of a legacy asset upload.
+ * @deprecated Use CAS upload result instead.
+ */
+data class LegacyUploadAssetResult(
+    val assetId: String,
+    val workspaceId: String,
+    val sourceType: String,
+    val mediaType: String,
+    val status: String,
+    val originalFilename: String?,
+    val fileSizeBytes: Long?,
+    val createdAt: String,
+)
+
+// ── Upload Asset (streaming, CAS) ────────────────────────────────────────
+
+/**
+ * Command to upload binary content to a CAS media asset.
+ *
+ * Streams bytes to temp storage, computes SHA-256, validates magic bytes,
+ * then copies to canonical key on success.
+ */
+data class CasUploadAssetCommand(
+    val assetId: String,
+    val workspaceId: String,
+    val fileStream: kotlinx.coroutines.flow.Flow<ByteArray>,
+    val declaredFileHash: String,
+    val declaredFileSizeBytes: Long,
+    val declaredMediaType: String,
+    val timeoutSeconds: Long = DEFAULT_TIMEOUT_SECONDS,
+) : CommandWithResult<CasUploadAssetResult> {
+    companion object {
+        private const val DEFAULT_TIMEOUT_SECONDS = 10L * 60L
+    }
+}
+
+/**
+ * Result of a CAS upload asset operation.
+ */
+sealed class CasUploadAssetResult {
+    data class Ready(
+        val assetId: String,
+        val workspaceId: String,
+        val status: String,
+        val mediaType: String,
+        val detectedMediaType: String,
+        val deduped: Boolean,
+        val fileSizeBytes: Long,
+        val createdAt: String,
+    ) : CasUploadAssetResult()
+
+    data class UploadInProgress(val assetId: String) : CasUploadAssetResult()
+
+    data class NotFound(val assetId: String) : CasUploadAssetResult()
+}
+
+// ── Delete Asset (CAS soft-delete) ──────────────────────────────────────
+
+/**
+ * Command to soft-delete a media asset and potentially schedule its blob for GC.
+ */
+data class DeleteAssetCommand(val assetId: String, val workspaceId: String) : CommandWithResult<DeleteAssetResult>
+
+/**
+ * Result of a delete asset operation.
+ */
+data class DeleteAssetResult(val deleted: Boolean, val blobScheduledForGC: Boolean)
 
 data class MediaUploadSettings(
     val maxConcurrentUploads: Int,
@@ -147,18 +287,14 @@ class UnsupportedMediaTypeException(
 /**
  * Exception thrown when upload conflict is detected.
  */
-class UploadConflictException(
-    val assetId: String,
-    val currentStatus: String,
-) : RuntimeException("Asset $assetId is already $currentStatus and cannot be re-uploaded.")
+class UploadConflictException(val assetId: String, val currentStatus: String) :
+    RuntimeException("Asset $assetId is already $currentStatus and cannot be re-uploaded.")
 
 /**
  * Exception thrown when an upload is already in progress.
  */
-class UploadInProgressException(
-    val assetId: String,
-    val currentStatus: String,
-) : RuntimeException("Asset $assetId already has an upload in progress.")
+class UploadInProgressException(val assetId: String, val currentStatus: String) :
+    RuntimeException("Asset $assetId already has an upload in progress.")
 
 /**
  * Exception thrown when a rate limit is exceeded.
@@ -174,21 +310,15 @@ class RateLimitExceededException(
 /**
  * Exception thrown when a pagination cursor is invalid.
  */
-class InvalidCursorException(
-    message: String,
-) : RuntimeException(message)
+class InvalidCursorException(message: String) : RuntimeException(message)
 
 /**
  * Exception thrown when an asset is not found (cross-workspace or missing).
  */
-class AssetNotFoundException(
-    val assetId: String,
-) : RuntimeException("Asset $assetId not found")
+class AssetNotFoundException(val assetId: String) : RuntimeException("Asset $assetId not found")
 
 /**
  * Exception thrown when file size exceeds the limit during streaming.
  */
-class FileTooLargeException(
-    val actualSize: Long,
-    val maxAllowed: Long,
-) : RuntimeException("File size $actualSize exceeds max $maxAllowed")
+class FileTooLargeException(val actualSize: Long, val maxAllowed: Long) :
+    RuntimeException("File size $actualSize exceeds max $maxAllowed")

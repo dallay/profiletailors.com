@@ -3,13 +3,12 @@ package com.profiletailors.ratelimit.infrastructure.adapter
 import com.profiletailors.ratelimit.application.RateLimitingService
 import com.profiletailors.ratelimit.domain.RateLimitResult
 import com.profiletailors.ratelimit.domain.RateLimitStrategy
-import io.kotest.matchers.shouldBe
 import io.mockk.coEvery
 import io.mockk.mockk
-import java.time.Instant
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import org.junit.jupiter.api.Test
 import reactor.test.StepVerifier
+import java.time.Instant
 
 @OptIn(ExperimentalCoroutinesApi::class)
 class ReactiveRateLimitingAdapterTest {

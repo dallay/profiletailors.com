@@ -16,9 +16,7 @@ import org.springframework.stereotype.Component
  * @property properties Rate limit configuration containing API key prefix mappings
  */
 @Component
-class ApiKeyParser(
-    private val properties: RateLimitProperties
-) {
+class ApiKeyParser(private val properties: RateLimitProperties) {
 
     /**
      * Extracts the subscription tier name (lowercase) from an API key based on its prefix.

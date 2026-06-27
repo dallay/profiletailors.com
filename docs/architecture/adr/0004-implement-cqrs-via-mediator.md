@@ -40,9 +40,11 @@ A "relaxed" CQRS approach is permitted where Commands MAY return data (using `Co
 - Clearly defined use cases.
 - Easy to audit and log every action through the mediator.
 - Handlers are easy to unit test in isolation.
+
 ### Negative
 - More files (one for command, one for handler).
 - Slight indirection in the codebase.
+
 ### Accepted trade-offs
 - Increased file count is accepted for improved modularity and SRP.
 

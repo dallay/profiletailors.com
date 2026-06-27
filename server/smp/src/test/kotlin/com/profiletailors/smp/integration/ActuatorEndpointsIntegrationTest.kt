@@ -17,19 +17,22 @@ import org.springframework.test.web.reactive.server.WebTestClient
 
 /**
  * Integration tests for Spring Boot Actuator endpoints.
- * 
+ *
  * Tests verify:
  * - Health endpoint returns service status
  * - Readiness endpoint reports readiness state
  * - Liveness endpoint reports liveness state
  * - Prometheus metrics endpoint exposes metrics
- * 
+ *
  */
-@ContextConfiguration(classes = [ActuatorEndpointsIntegrationTest.TestSecurityConfig::class, TestStorageConfiguration::class])
+@ContextConfiguration(
+    classes = [ActuatorEndpointsIntegrationTest.TestSecurityConfig::class, TestStorageConfiguration::class],
+)
 @SpringBootTest(
     webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT,
     properties = [
-        "spring.r2dbc.url=r2dbc:h2:mem:///actuator_test?options=MODE=PostgreSQL;DB_CLOSE_DELAY=-1;DB_CLOSE_ON_EXIT=FALSE",
+        "spring.r2dbc.url=r2dbc:h2:mem:///actuator_test" +
+            "?options=MODE=PostgreSQL;DB_CLOSE_DELAY=-1;DB_CLOSE_ON_EXIT=FALSE",
         "spring.r2dbc.username=sa",
         "spring.r2dbc.password=",
         "spring.liquibase.enabled=false",
@@ -45,7 +48,7 @@ import org.springframework.test.web.reactive.server.WebTestClient
         "platform.storage.providers.attachments.type=local",
         "platform.storage.providers.attachments.base-path=./tmp/actuator-test-storage",
         "media.storage.bucket=attachments",
-    ]
+    ],
 )
 class ActuatorEndpointsIntegrationTest {
 
@@ -65,18 +68,17 @@ class ActuatorEndpointsIntegrationTest {
                 .property("DB_CLOSE_DELAY", "-1")
                 .property("DB_CLOSE_ON_EXIT", "FALSE")
                 .username("sa")
-                .build()
+                .build(),
         )
 
         @Bean
         @Primary
-        fun testSecurityWebFilterChain(http: ServerHttpSecurity): SecurityWebFilterChain =
-            http
-                .csrf { it.disable() }
-                .authorizeExchange {
-                    it.anyExchange().permitAll()
-                }
-                .build()
+        fun testSecurityWebFilterChain(http: ServerHttpSecurity): SecurityWebFilterChain = http
+            .csrf { it.disable() }
+            .authorizeExchange {
+                it.anyExchange().permitAll()
+            }
+            .build()
     }
 
     @Test

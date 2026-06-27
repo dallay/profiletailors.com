@@ -7,9 +7,7 @@ import org.springframework.web.server.WebFilter
 import org.springframework.web.server.WebFilterChain
 import reactor.core.publisher.Mono
 
-data class WorkspaceContextProperties(
-    val headerName: String = "X-Workspace-Id",
-)
+data class WorkspaceContextProperties(val headerName: String = "X-Workspace-Id")
 
 class WorkspaceContextWebFilter(
     private val requestContextStore: RequestContextStore,

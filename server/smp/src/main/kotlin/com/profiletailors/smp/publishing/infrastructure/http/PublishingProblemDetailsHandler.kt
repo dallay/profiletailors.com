@@ -19,13 +19,12 @@ import org.springframework.web.bind.annotation.RestControllerAdvice
 @RestControllerAdvice
 class PublishingProblemDetailsHandler {
     @ExceptionHandler(ProviderNotConfiguredException::class)
-    fun handle(exception: ProviderNotConfiguredException): ProblemDetail =
-        ProblemDetail.forStatusAndDetail(
-            HttpStatus.SERVICE_UNAVAILABLE,
-            exception.message ?: "Provider not configured",
-        ).apply {
-            title = "Provider not configured"
-        }
+    fun handle(exception: ProviderNotConfiguredException): ProblemDetail = ProblemDetail.forStatusAndDetail(
+        HttpStatus.SERVICE_UNAVAILABLE,
+        exception.message ?: "Provider not configured",
+    ).apply {
+        title = "Provider not configured"
+    }
 
     @ExceptionHandler(
         PublicationEditNotAllowedException::class,
@@ -35,13 +34,12 @@ class PublishingProblemDetailsHandler {
         PublicationAlreadyTerminalException::class,
         PublicationStateTransitionException::class,
     )
-    fun handle(exception: PublicationStateTransitionException): ProblemDetail =
-        ProblemDetail.forStatusAndDetail(
-            HttpStatus.CONFLICT,
-            exception.message ?: "Publication state transition conflict",
-        ).apply {
-            title = "Publication state conflict"
-        }
+    fun handle(exception: PublicationStateTransitionException): ProblemDetail = ProblemDetail.forStatusAndDetail(
+        HttpStatus.CONFLICT,
+        exception.message ?: "Publication state transition conflict",
+    ).apply {
+        title = "Publication state conflict"
+    }
 
     @ExceptionHandler(ExpiredOAuthStateException::class)
     fun handle(exception: ExpiredOAuthStateException): ProblemDetail =
@@ -67,14 +65,13 @@ class PublishingProblemDetailsHandler {
      * treated as a permanent client error.
      */
     @ExceptionHandler(MediaServiceUnavailableException::class)
-    fun handle(exception: MediaServiceUnavailableException): ProblemDetail =
-        ProblemDetail.forStatusAndDetail(
-            HttpStatus.SERVICE_UNAVAILABLE,
-            exception.message ?: "Media service is unavailable",
-        ).apply {
-            title = "Media service unavailable"
-            setProperty("errorCode", "MEDIA_SERVICE_UNAVAILABLE")
-        }
+    fun handle(exception: MediaServiceUnavailableException): ProblemDetail = ProblemDetail.forStatusAndDetail(
+        HttpStatus.SERVICE_UNAVAILABLE,
+        exception.message ?: "Media service is unavailable",
+    ).apply {
+        title = "Media service unavailable"
+        setProperty("errorCode", "MEDIA_SERVICE_UNAVAILABLE")
+    }
 
     /**
      * Returns HTTP 400 Bad Request when an asset is not ready for publishing use.
@@ -85,13 +82,12 @@ class PublishingProblemDetailsHandler {
      * - Asset is not in READY status (still PROCESSING or FAILED)
      */
     @ExceptionHandler(AssetNotReadyException::class)
-    fun handle(exception: AssetNotReadyException): ProblemDetail =
-        ProblemDetail.forStatusAndDetail(
-            HttpStatus.BAD_REQUEST,
-            exception.message ?: "Asset ${exception.assetId} is not ready for publishing",
-        ).apply {
-            title = "Asset not ready"
-            setProperty("errorCode", "ASSET_NOT_READY")
-            setProperty("assetId", exception.assetId)
-        }
+    fun handle(exception: AssetNotReadyException): ProblemDetail = ProblemDetail.forStatusAndDetail(
+        HttpStatus.BAD_REQUEST,
+        exception.message ?: "Asset ${exception.assetId} is not ready for publishing",
+    ).apply {
+        title = "Asset not ready"
+        setProperty("errorCode", "ASSET_NOT_READY")
+        setProperty("assetId", exception.assetId)
+    }
 }

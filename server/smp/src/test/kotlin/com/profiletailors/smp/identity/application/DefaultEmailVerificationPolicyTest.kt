@@ -9,14 +9,16 @@ class DefaultEmailVerificationPolicyTest {
     private val policy = emailVerificationPolicyOf()
 
     @ParameterizedTest
-    @ValueSource(strings = [
-        "PUBLISH_CONTENT",
-        "SCHEDULE_POST",
-        "INVITE_TEAM",
-        "CONNECT_SOCIAL",
-        "ACCESS_BILLING",
-        "ENABLE_AUTOMATIONS",
-    ])
+    @ValueSource(
+        strings = [
+            "PUBLISH_CONTENT",
+            "SCHEDULE_POST",
+            "INVITE_TEAM",
+            "CONNECT_SOCIAL",
+            "ACCESS_BILLING",
+            "ENABLE_AUTOMATIONS",
+        ],
+    )
     fun `requiresVerification returns true for restricted feature`(featureName: String) {
         val feature = AuthFeature.valueOf(featureName)
         assertTrue(policy(feature))

@@ -51,24 +51,22 @@ class JacksonConfig : WebFluxConfigurer {
      */
     @Bean
     @Primary
-    fun jsonMapper(): JsonMapper {
-        return jsonMapper {
-            // Add Kotlin module for proper Kotlin class support
-            addModule(kotlinModule())
+    fun jsonMapper(): JsonMapper = jsonMapper {
+        // Add Kotlin module for proper Kotlin class support
+        addModule(kotlinModule())
 
-            // Jackson 3: WRITE_DATES_AS_TIMESTAMPS defaults to false, but we explicitly disable
-            // to be clear about our intent. Ensures LocalDate -> "2018-09-05" not [2018, 9, 5]
-            disable(DateTimeFeature.WRITE_DATES_AS_TIMESTAMPS)
+        // Jackson 3: WRITE_DATES_AS_TIMESTAMPS defaults to false, but we explicitly disable
+        // to be clear about our intent. Ensures LocalDate -> "2018-09-05" not [2018, 9, 5]
+        disable(DateTimeFeature.WRITE_DATES_AS_TIMESTAMPS)
 
-            // Don't fail on unknown properties during deserialization
-            disable(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES)
+        // Don't fail on unknown properties during deserialization
+        disable(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES)
 
-            // CRITICAL: Register Spring's ProblemDetail mixin for proper error response serialization.
-            // This mixin uses @JsonAnyGetter/@JsonAnySetter to serialize custom properties
-            // (errorCategory, timestamp, traceId, etc.) as top-level JSON fields.
-            // Without this, ProblemDetail.setProperty() values would not appear in the response.
-            addMixIn(ProblemDetail::class.java, ProblemDetailJacksonMixin::class.java)
-        }
+        // CRITICAL: Register Spring's ProblemDetail mixin for proper error response serialization.
+        // This mixin uses @JsonAnyGetter/@JsonAnySetter to serialize custom properties
+        // (errorCategory, timestamp, traceId, etc.) as top-level JSON fields.
+        // Without this, ProblemDetail.setProperty() values would not appear in the response.
+        addMixIn(ProblemDetail::class.java, ProblemDetailJacksonMixin::class.java)
     }
 
     /**

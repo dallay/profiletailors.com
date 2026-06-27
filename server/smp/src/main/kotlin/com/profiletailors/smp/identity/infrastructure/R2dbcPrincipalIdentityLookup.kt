@@ -1,9 +1,9 @@
 package com.profiletailors.smp.identity.infrastructure
 
+import com.profiletailors.common.domain.context.PrincipalType
 import com.profiletailors.smp.identity.application.PrincipalIdentityFacts
 import com.profiletailors.smp.identity.application.PrincipalIdentityLookup
 import com.profiletailors.smp.identity.domain.EmailStatus
-import com.profiletailors.common.domain.context.PrincipalType
 import io.r2dbc.spi.Readable
 import io.r2dbc.spi.RowMetadata
 import kotlinx.coroutines.reactor.awaitSingleOrNull
@@ -11,12 +11,9 @@ import org.springframework.r2dbc.core.DatabaseClient
 import org.springframework.stereotype.Repository
 
 @Repository
-class R2dbcPrincipalIdentityLookup(
-    private val databaseClient: DatabaseClient,
-) : PrincipalIdentityLookup {
-    override suspend fun findByEmail(email: String): PrincipalIdentityFacts? =
-        databaseClient.sql(
-            """
+class R2dbcPrincipalIdentityLookup(private val databaseClient: DatabaseClient) : PrincipalIdentityLookup {
+    override suspend fun findByEmail(email: String): PrincipalIdentityFacts? = databaseClient.sql(
+        """
             SELECT p.id,
                    p.principal_type,
                    p.subject,
@@ -28,16 +25,15 @@ class R2dbcPrincipalIdentityLookup(
             FROM principals p
             INNER JOIN user_identities ui ON ui.principal_id = p.id
             WHERE ui.email = :email
-            """.trimIndent(),
-        )
-            .bind("email", email)
-            .map(::mapPrincipalIdentityFacts)
-            .one()
-            .awaitSingleOrNull()
+        """.trimIndent(),
+    )
+        .bind("email", email)
+        .map(::mapPrincipalIdentityFacts)
+        .one()
+        .awaitSingleOrNull()
 
-    override suspend fun findByPrincipalId(principalId: String): PrincipalIdentityFacts? =
-        databaseClient.sql(
-            """
+    override suspend fun findByPrincipalId(principalId: String): PrincipalIdentityFacts? = databaseClient.sql(
+        """
             SELECT p.id,
                    p.principal_type,
                    p.subject,
@@ -49,12 +45,12 @@ class R2dbcPrincipalIdentityLookup(
             FROM principals p
             LEFT JOIN user_identities ui ON ui.principal_id = p.id
             WHERE p.id = :principalId
-            """.trimIndent(),
-        )
-            .bind("principalId", principalId)
-            .map(::mapPrincipalIdentityFacts)
-            .one()
-            .awaitSingleOrNull()
+        """.trimIndent(),
+    )
+        .bind("principalId", principalId)
+        .map(::mapPrincipalIdentityFacts)
+        .one()
+        .awaitSingleOrNull()
 
     override suspend fun findBySubject(
         principalType: PrincipalType,

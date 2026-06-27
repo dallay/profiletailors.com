@@ -14,7 +14,7 @@ class R2StorageAdapter(
     bucketName: String,
     presigner: S3Presigner,
     private val accountId: String,
-    timeoutSeconds: Long = 30
+    timeoutSeconds: Long = 30,
 ) : AbstractS3CompatibleStorage(client, bucketName, presigner, timeoutSeconds) {
 
     init {

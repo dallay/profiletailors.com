@@ -59,6 +59,19 @@ class SpringBootApplicationPlugin : ConventionPlugin {
             val javaExtension = extensions.getByType<JavaPluginExtension>()
             val testSourceSet = javaExtension.sourceSets.getByName("test")
 
+            // Register PostgreSQL integration tests: tagged postgres tests, excluding Cucumber suites.
+            val postgresIntegrationTestTask = tasks.register("postgresIntegrationTest", Test::class.java) {
+                group = "verification"
+                description = "Runs PostgreSQL integration tests with Testcontainers"
+                testClassesDirs = testSourceSet.output.classesDirs
+                classpath = testSourceSet.runtimeClasspath
+                useJUnitPlatform {
+                    includeTags("postgres")
+                }
+                exclude("**/CucumberFastIntegrationTest.class", "**/CucumberPostgresIntegrationTest.class")
+                shouldRunAfter(testTask)
+            }
+
             // Register BDD Fast Test task
             val bddFastTestTask = tasks.register("bddFastTest", Test::class.java) {
                 group = "verification"
@@ -78,7 +91,7 @@ class SpringBootApplicationPlugin : ConventionPlugin {
                 classpath = testSourceSet.runtimeClasspath
                 useJUnitPlatform()
                 include("**/CucumberPostgresIntegrationTest.class")
-                shouldRunAfter(bddFastTestTask)
+                shouldRunAfter(postgresIntegrationTestTask, bddFastTestTask)
             }
         }
 

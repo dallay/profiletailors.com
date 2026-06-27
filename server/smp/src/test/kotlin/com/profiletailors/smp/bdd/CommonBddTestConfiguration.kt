@@ -19,13 +19,12 @@ class CommonBddTestConfiguration {
     fun bddDatabaseSupport(
         databaseClient: org.springframework.r2dbc.core.DatabaseClient,
         environment: org.springframework.core.env.Environment,
-    ): BddDatabaseSupport =
-        BddDatabaseSupport(
-            databaseClient = databaseClient,
-            liquibaseJdbcUrl = requireNotNull(environment.getProperty("bdd.liquibase.jdbc-url")),
-            liquibaseUsername = requireNotNull(environment.getProperty("bdd.liquibase.username")),
-            liquibasePassword = environment.getProperty("bdd.liquibase.password") ?: "",
-        )
+    ): BddDatabaseSupport = BddDatabaseSupport(
+        databaseClient = databaseClient,
+        liquibaseJdbcUrl = requireNotNull(environment.getProperty("bdd.liquibase.jdbc-url")),
+        liquibaseUsername = requireNotNull(environment.getProperty("bdd.liquibase.username")),
+        liquibasePassword = environment.getProperty("bdd.liquibase.password") ?: "",
+    )
 
     @Bean
     @Primary
@@ -45,6 +44,7 @@ class CommonBddTestConfiguration {
                     .expiresAt(Instant.now().plusSeconds(3600))
                     .build(),
             )
+
             "service-account-token" -> Mono.just(
                 Jwt.withTokenValue(token)
                     .header("alg", "RS256")

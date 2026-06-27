@@ -1,14 +1,14 @@
 package com.profiletailors.smp.governance.infrastructure.http
 
 import com.profiletailors.common.domain.bus.Mediator
+import com.profiletailors.common.domain.bus.PublishStrategy
 import com.profiletailors.common.domain.bus.command.Command
 import com.profiletailors.common.domain.bus.command.CommandWithResult
 import com.profiletailors.common.domain.bus.notification.Notification
-import com.profiletailors.common.domain.bus.PublishStrategy
 import com.profiletailors.common.domain.bus.query.Query
-import com.profiletailors.smp.governance.domain.AuditEventPage
 import com.profiletailors.smp.governance.application.GetWorkspaceAuditEventsQuery
 import com.profiletailors.smp.governance.application.WorkspaceAuditEventsResponse
+import com.profiletailors.smp.governance.domain.AuditEventPage
 import kotlinx.coroutines.test.runTest
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Test
@@ -62,9 +62,7 @@ class AuditEventControllerTest {
         )
     }
 
-    private class CapturingMediator(
-        private val result: WorkspaceAuditEventsResponse,
-    ) : Mediator {
+    private class CapturingMediator(private val result: WorkspaceAuditEventsResponse) : Mediator {
         var lastRequest: Any? = null
 
         @Suppress("UNCHECKED_CAST")

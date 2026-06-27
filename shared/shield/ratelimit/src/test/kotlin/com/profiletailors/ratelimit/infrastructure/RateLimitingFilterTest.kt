@@ -1,7 +1,5 @@
 package com.profiletailors.ratelimit.infrastructure
 
-import tools.jackson.databind.json.JsonMapper
-import tools.jackson.module.kotlin.jsonMapper
 import com.profiletailors.ratelimit.domain.RateLimitResult
 import com.profiletailors.ratelimit.domain.RateLimitStrategy
 import com.profiletailors.ratelimit.infrastructure.adapter.ReactiveRateLimitingAdapter
@@ -12,9 +10,6 @@ import io.mockk.clearMocks
 import io.mockk.every
 import io.mockk.mockk
 import io.mockk.verify
-import java.net.InetSocketAddress
-import java.time.Duration
-import java.time.Instant
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
 import org.springframework.http.HttpStatus
@@ -23,7 +18,10 @@ import org.springframework.mock.web.server.MockServerWebExchange
 import org.springframework.web.server.WebFilterChain
 import reactor.core.publisher.Mono
 import reactor.test.StepVerifier
-import java.nio.charset.StandardCharsets
+import tools.jackson.module.kotlin.jsonMapper
+import java.net.InetSocketAddress
+import java.time.Duration
+import java.time.Instant
 
 class RateLimitingFilterTest {
 
@@ -39,7 +37,8 @@ class RateLimitingFilterTest {
         chain = mockk()
 
         every { configurationFactory.isRateLimitEnabled(any()) } returns true
-        every { configurationFactory.getEndpoints(RateLimitStrategy.AUTH) } returns listOf("/api/auth/login", "/api/auth/register")
+        every { configurationFactory.getEndpoints(RateLimitStrategy.AUTH) } returns
+            listOf("/api/auth/login", "/api/auth/register")
         every { configurationFactory.getEndpoints(RateLimitStrategy.BUSINESS) } returns emptyList()
         every { configurationFactory.getEndpoints(RateLimitStrategy.RESUME) } returns listOf("/api/resume/generate")
         every { configurationFactory.getEndpoints(RateLimitStrategy.WAITLIST) } returns listOf("/api/waitlist/join")
@@ -450,12 +449,12 @@ class RateLimitingFilterTest {
             RateLimitStrategy.AUTH to "Too many authentication attempts. Please try again later.",
             RateLimitStrategy.BUSINESS to "Rate limit exceeded for business API. Please try again later.",
             RateLimitStrategy.RESUME to "Rate limit exceeded for resume generation. Please try again later.",
-            RateLimitStrategy.WAITLIST to "Too many waitlist requests. Please try again later."
+            RateLimitStrategy.WAITLIST to "Too many waitlist requests. Please try again later.",
         )
 
         strategies.forEach { (strategy, expectedMessage) ->
             // Given
-            val path = when(strategy) {
+            val path = when (strategy) {
                 RateLimitStrategy.AUTH -> "/api/auth/login"
                 RateLimitStrategy.BUSINESS -> "/api/business/data"
                 RateLimitStrategy.RESUME -> "/api/resume/generate"
@@ -470,7 +469,7 @@ class RateLimitingFilterTest {
             every {
                 reactiveRateLimitingAdapter.consumeToken(any(), path, strategy)
             } returns Mono.just(
-                RateLimitResult.Denied(Duration.ofMinutes(1), 10, Duration.ofMinutes(1))
+                RateLimitResult.Denied(Duration.ofMinutes(1), 10, Duration.ofMinutes(1)),
             )
 
             // When

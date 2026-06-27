@@ -3,12 +3,12 @@ package com.profiletailors.spring.boot.presentation.sort
 import com.profiletailors.common.domain.presentation.SortInvalidException
 import com.profiletailors.common.domain.presentation.sort.Sort
 import com.profiletailors.spring.boot.repository.columnName
+import tools.jackson.databind.ObjectMapper
+import tools.jackson.databind.introspect.AnnotatedField
 import kotlin.reflect.KClass
 import kotlin.reflect.KProperty
 import kotlin.reflect.full.memberProperties
 import kotlin.reflect.jvm.javaField
-import tools.jackson.databind.ObjectMapper
-import tools.jackson.databind.introspect.AnnotatedField
 
 /**
  * Parses API sort expressions into domain [Sort] objects for a target DTO/entity type.
@@ -23,17 +23,12 @@ import tools.jackson.databind.introspect.AnnotatedField
  * @property objectMapper Mapper used to honor Jackson property naming strategy.
  * @since 1.0.0
  */
-class SortParser<T : Any>(
-    private val clazz: KClass<T>,
-    private val objectMapper: ObjectMapper,
-) {
+class SortParser<T : Any>(private val clazz: KClass<T>, private val objectMapper: ObjectMapper) {
     private val regex = Regex("(.[^:]+):(.+)")
 
-    fun parse(sort: Collection<String>): Sort {
-        return sort
-            .map { parse(it) }
-            .reduce { acc, cur -> acc.and(cur) }
-    }
+    fun parse(sort: Collection<String>): Sort = sort
+        .map { parse(it) }
+        .reduce { acc, cur -> acc.and(cur) }
 
     fun parse(sort: String): Sort {
         try {

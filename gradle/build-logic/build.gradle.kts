@@ -19,6 +19,15 @@ dependencies {
     implementation(libs.gradle.detekt)
     implementation(libs.gradle.owasp.depcheck)
     implementation(libs.gradle.kover)
+    implementation(libs.gradle.spotless)
+
+    testImplementation(platform("org.junit:junit-bom:6.1.0"))
+    testImplementation("org.junit.jupiter:junit-jupiter")
+    testRuntimeOnly("org.junit.platform:junit-platform-launcher")
+}
+
+tasks.test {
+    useJUnitPlatform()
 }
 
 gradlePlugin {
@@ -38,6 +47,10 @@ gradlePlugin {
         register("owasp-dependency-check") {
             id = "com.profiletailors.security.owasp"
             implementationClass = "com.profiletailors.buildlogic.security.OwaspPlugin"
+        }
+        register("spotless") {
+            id = "com.profiletailors.spotless"
+            implementationClass = "com.profiletailors.buildlogic.formatting.SpotlessPlugin"
         }
     }
 }

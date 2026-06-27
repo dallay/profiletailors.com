@@ -5,22 +5,19 @@ import com.profiletailors.storage.domain.StorageConnectionException
 import com.profiletailors.storage.domain.StorageObjectNotFoundException
 import com.profiletailors.storage.domain.StorageSecurityException
 import com.profiletailors.storage.infrastructure.R2StorageAdapter
-import io.mockk.mockk
 import io.mockk.coEvery
-import io.mockk.every
 import io.mockk.coVerify
+import io.mockk.every
+import io.mockk.mockk
 import io.mockk.verify
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.toList
 import kotlinx.coroutines.runBlocking
-import org.junit.jupiter.api.Test
-import org.junit.jupiter.api.assertThrows
 import org.junit.jupiter.api.DisplayName
 import org.junit.jupiter.api.Nested
-import kotlin.test.assertFalse
-import kotlin.test.assertTrue
-import software.amazon.awssdk.core.async.AsyncResponseTransformer
+import org.junit.jupiter.api.Test
 import software.amazon.awssdk.core.async.AsyncRequestBody
+import software.amazon.awssdk.core.async.AsyncResponseTransformer
 import software.amazon.awssdk.core.async.ResponsePublisher
 import software.amazon.awssdk.services.s3.S3AsyncClient
 import software.amazon.awssdk.services.s3.model.DeleteObjectRequest
@@ -30,19 +27,20 @@ import software.amazon.awssdk.services.s3.model.HeadObjectRequest
 import software.amazon.awssdk.services.s3.model.HeadObjectResponse
 import software.amazon.awssdk.services.s3.model.ListObjectsV2Request
 import software.amazon.awssdk.services.s3.model.ListObjectsV2Response
+import software.amazon.awssdk.services.s3.model.NoSuchKeyException
 import software.amazon.awssdk.services.s3.model.PutObjectRequest
 import software.amazon.awssdk.services.s3.model.PutObjectResponse
-import software.amazon.awssdk.services.s3.model.S3Object
-import software.amazon.awssdk.services.s3.model.NoSuchKeyException
 import software.amazon.awssdk.services.s3.model.S3Exception
+import software.amazon.awssdk.services.s3.model.S3Object
 import software.amazon.awssdk.services.s3.presigner.S3Presigner
 import software.amazon.awssdk.services.s3.presigner.model.GetObjectPresignRequest
 import software.amazon.awssdk.services.s3.presigner.model.PresignedGetObjectRequest
 import java.nio.ByteBuffer
 import java.time.Instant
 import kotlin.test.assertEquals
-import kotlin.test.assertTrue
 import kotlin.test.assertFailsWith
+import kotlin.test.assertFalse
+import kotlin.test.assertTrue
 
 /**
  * Unit tests for R2StorageAdapter.
@@ -119,18 +117,19 @@ class R2StorageUnitTests {
 
             val expectedDomain = "$TEST_ACCOUNT_ID.r2.cloudflarestorage.com"
             val presignedRequest = mockk<PresignedGetObjectRequest>()
-            
-            every { 
-                presigner.presignGetObject(any<GetObjectPresignRequest>()) 
+
+            every {
+                presigner.presignGetObject(any<GetObjectPresignRequest>())
             } returns presignedRequest
-            every { presignedRequest.url() } returns java.net.URL("https://$expectedDomain/$TEST_BUCKET/$TEST_KEY?token=abc")
+            val presignedJavaUrl = java.net.URL("https://$expectedDomain/$TEST_BUCKET/$TEST_KEY?token=abc")
+            every { presignedRequest.url() } returns presignedJavaUrl
 
             val url = runBlocking { storage.presignGet(TEST_BUCKET, TEST_KEY, 600) }
 
             assertTrue(url.contains(expectedDomain), "URL should contain R2 domain: $expectedDomain")
             assertTrue(url.contains(TEST_BUCKET), "URL should contain bucket: $TEST_BUCKET")
             assertTrue(url.contains(TEST_KEY), "URL should contain key: $TEST_KEY")
-            
+
             verify { presigner.presignGetObject(any<GetObjectPresignRequest>()) }
         }
 
@@ -141,19 +140,19 @@ class R2StorageUnitTests {
             val storage = R2StorageAdapter(client, TEST_BUCKET, presigner, TEST_ACCOUNT_ID)
 
             val presignedRequest = mockk<PresignedGetObjectRequest>()
-            every { 
-                presigner.presignGetObject(any<GetObjectPresignRequest>()) 
+            every {
+                presigner.presignGetObject(any<GetObjectPresignRequest>())
             } returns presignedRequest
             every { presignedRequest.url() } returns java.net.URL("https://example.com/url")
 
             runBlocking { storage.presignGet(TEST_BUCKET, TEST_KEY, 3600) }
 
             // Verify presign request was called with the correct parameters
-            verify { 
+            verify {
                 presigner.presignGetObject(
                     match<GetObjectPresignRequest> { req ->
                         req.signatureDuration().seconds == 3600L
-                    }
+                    },
                 )
             }
         }
@@ -182,24 +181,24 @@ class R2StorageUnitTests {
 
             val putResponse = PutObjectResponse.builder().eTag("etag123").build()
             val future = java.util.concurrent.CompletableFuture.completedFuture(putResponse)
-            
-            coEvery { 
-                client.putObject(any<PutObjectRequest>(), any<AsyncRequestBody>()) 
+
+            coEvery {
+                client.putObject(any<PutObjectRequest>(), any<AsyncRequestBody>())
             } returns future
 
             val content = flowOf("test content".toByteArray())
-            runBlocking { 
+            runBlocking {
                 storage.upload(TEST_BUCKET, TEST_KEY, content, mapOf("content-type" to "image/png"))
             }
 
-            coVerify { 
+            coVerify {
                 client.putObject(
                     match<PutObjectRequest> { req ->
-                        req.bucket() == TEST_BUCKET && 
-                        req.key() == TEST_KEY &&
-                        req.metadata()["content-type"] == "image/png"
+                        req.bucket() == TEST_BUCKET &&
+                            req.key() == TEST_KEY &&
+                            req.metadata()["content-type"] == "image/png"
                     },
-                    any<AsyncRequestBody>()
+                    any<AsyncRequestBody>(),
                 )
             }
         }
@@ -211,7 +210,7 @@ class R2StorageUnitTests {
             val storage = R2StorageAdapter(client, TEST_BUCKET, presigner, TEST_ACCOUNT_ID)
 
             val content = flowOf("test".toByteArray())
-            
+
             assertFailsWith<IllegalArgumentException> {
                 runBlocking { storage.upload("wrong-bucket", TEST_KEY, content) }
             }
@@ -230,14 +229,19 @@ class R2StorageUnitTests {
 
             val responsePublisher = mockk<ResponsePublisher<GetObjectResponse>>()
             val future = java.util.concurrent.CompletableFuture.completedFuture(responsePublisher)
-            
-            every { 
-                client.getObject(any<GetObjectRequest>(), any<AsyncResponseTransformer<GetObjectResponse, ResponsePublisher<GetObjectResponse>>>())
+
+            every {
+                client.getObject(
+                    any<GetObjectRequest>(),
+                    any<AsyncResponseTransformer<GetObjectResponse, ResponsePublisher<GetObjectResponse>>>(),
+                )
             } returns future
 
             // Mock the publisher to emit data
             val byteBuffer = ByteBuffer.wrap("test content".toByteArray())
-            io.mockk.every { responsePublisher.subscribe(any<org.reactivestreams.Subscriber<in ByteBuffer>>()) } answers {
+            io.mockk.every {
+                responsePublisher.subscribe(any<org.reactivestreams.Subscriber<in ByteBuffer>>())
+            } answers {
                 val subscriber = it.invocation.args[0] as org.reactivestreams.Subscriber<ByteBuffer>
                 subscriber.onSubscribe(object : org.reactivestreams.Subscription {
                     override fun request(n: Long) {
@@ -278,17 +282,17 @@ class R2StorageUnitTests {
             val storage = R2StorageAdapter(client, TEST_BUCKET, presigner, TEST_ACCOUNT_ID)
 
             val future = java.util.concurrent.CompletableFuture.completedFuture(
-                software.amazon.awssdk.services.s3.model.DeleteObjectResponse.builder().build()
+                software.amazon.awssdk.services.s3.model.DeleteObjectResponse.builder().build(),
             )
             coEvery { client.deleteObject(any<DeleteObjectRequest>()) } returns future
 
             runBlocking { storage.delete(TEST_BUCKET, TEST_KEY) }
 
-            coVerify { 
+            coVerify {
                 client.deleteObject(
                     match<DeleteObjectRequest> { req ->
                         req.bucket() == TEST_BUCKET && req.key() == TEST_KEY
-                    }
+                    },
                 )
             }
         }
@@ -318,11 +322,11 @@ class R2StorageUnitTests {
             val listResponse = ListObjectsV2Response.builder()
                 .contents(
                     S3Object.builder().key("file1.txt").size(100).lastModified(Instant.now()).build(),
-                    S3Object.builder().key("file2.txt").size(200).lastModified(Instant.now()).build()
+                    S3Object.builder().key("file2.txt").size(200).lastModified(Instant.now()).build(),
                 )
                 .isTruncated(false)
                 .build()
-            
+
             val future = java.util.concurrent.CompletableFuture.completedFuture(listResponse)
             coEvery { client.listObjectsV2(any<ListObjectsV2Request>()) } returns future
 
@@ -343,7 +347,7 @@ class R2StorageUnitTests {
                 .contents(emptyList())
                 .isTruncated(false)
                 .build()
-            
+
             val future = java.util.concurrent.CompletableFuture.completedFuture(listResponse)
             coEvery { client.listObjectsV2(any<ListObjectsV2Request>()) } returns future
 
@@ -381,7 +385,13 @@ class R2StorageUnitTests {
             val result = runBlocking { storage.exists(TEST_BUCKET, TEST_KEY) }
 
             assertTrue(result)
-            coVerify { client.headObject(match<HeadObjectRequest> { req -> req.bucket() == TEST_BUCKET && req.key() == TEST_KEY }) }
+            coVerify {
+                client.headObject(
+                    match<HeadObjectRequest> { req ->
+                        req.bucket() == TEST_BUCKET && req.key() == TEST_KEY
+                    },
+                )
+            }
         }
 
         @Test
@@ -391,7 +401,7 @@ class R2StorageUnitTests {
             val storage = R2StorageAdapter(client, TEST_BUCKET, presigner, TEST_ACCOUNT_ID)
 
             val future = java.util.concurrent.CompletableFuture.failedFuture<HeadObjectResponse>(
-                NoSuchKeyException.builder().message("Not found").build()
+                NoSuchKeyException.builder().message("Not found").build(),
             )
             coEvery { client.headObject(any<HeadObjectRequest>()) } returns future
 
@@ -543,14 +553,21 @@ class R2StorageUnitTests {
 
             val responsePublisher = mockk<ResponsePublisher<GetObjectResponse>>()
             val future = java.util.concurrent.CompletableFuture.completedFuture(responsePublisher)
-            every { client.getObject(any<GetObjectRequest>(), any<AsyncResponseTransformer<GetObjectResponse, ResponsePublisher<GetObjectResponse>>>()) } returns future
+            every {
+                client.getObject(
+                    any<GetObjectRequest>(),
+                    any<AsyncResponseTransformer<GetObjectResponse, ResponsePublisher<GetObjectResponse>>>(),
+                )
+            } returns future
 
             // Mock subscriber to throw S3Exception with status code 503 (ServiceUnavailable)
             val serviceUnavailable = S3Exception.builder()
                 .message("Service unavailable")
                 .statusCode(503)
                 .build()
-            io.mockk.every { responsePublisher.subscribe(any<org.reactivestreams.Subscriber<in ByteBuffer>>()) } throws serviceUnavailable
+            io.mockk.every {
+                responsePublisher.subscribe(any<org.reactivestreams.Subscriber<in ByteBuffer>>())
+            } throws serviceUnavailable
 
             assertFailsWith<StorageConnectionException> {
                 runBlocking { storage.download(TEST_BUCKET, TEST_KEY).collect {} }
@@ -566,9 +583,13 @@ class R2StorageUnitTests {
             val noSuchKey = NoSuchKeyException.builder()
                 .message("The specified key does not exist")
                 .build()
-            val future = java.util.concurrent.CompletableFuture.failedFuture<ResponsePublisher<GetObjectResponse>>(noSuchKey)
+            val future = java.util.concurrent.CompletableFuture
+                .failedFuture<ResponsePublisher<GetObjectResponse>>(noSuchKey)
             every {
-                client.getObject(any<GetObjectRequest>(), any<AsyncResponseTransformer<GetObjectResponse, ResponsePublisher<GetObjectResponse>>>())
+                client.getObject(
+                    any<GetObjectRequest>(),
+                    any<AsyncResponseTransformer<GetObjectResponse, ResponsePublisher<GetObjectResponse>>>(),
+                )
             } returns future
 
             assertFailsWith<StorageObjectNotFoundException> {
@@ -586,7 +607,8 @@ class R2StorageUnitTests {
                 .message("Access denied")
                 .statusCode(403)
                 .build()
-            val future = java.util.concurrent.CompletableFuture.failedFuture<software.amazon.awssdk.services.s3.model.DeleteObjectResponse>(accessDenied)
+            val future = java.util.concurrent.CompletableFuture
+                .failedFuture<software.amazon.awssdk.services.s3.model.DeleteObjectResponse>(accessDenied)
             coEvery { client.deleteObject(any<DeleteObjectRequest>()) } returns future
 
             assertFailsWith<StorageAccessDeniedException> {

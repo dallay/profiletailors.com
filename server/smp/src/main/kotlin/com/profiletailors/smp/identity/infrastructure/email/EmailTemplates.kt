@@ -30,7 +30,7 @@ object EmailTemplates {
         |
         |Best,
         |The Profile Tailors Team
-        """.trimMargin()
+    """.trimMargin()
 
     private const val VERIFICATION_BASE_URL =
         "https://app.profiletailors.com/api/auth/verify-email"

@@ -22,18 +22,13 @@ interface LinkedInAuthorizationUrlBuilder {
     fun isConfigured(): Boolean
 }
 
-class ProviderNotConfiguredException(
-    provider: SocialProvider,
-) : IllegalStateException("Provider '$provider' is not configured.")
+class ProviderNotConfiguredException(provider: SocialProvider) :
+    IllegalStateException("Provider '$provider' is not configured.")
 
-open class InvalidOAuthStateException(
-    message: String = "OAuth state is invalid.",
-    cause: Throwable? = null,
-) : IllegalArgumentException(message, cause)
+open class InvalidOAuthStateException(message: String = "OAuth state is invalid.", cause: Throwable? = null) :
+    IllegalArgumentException(message, cause)
 
-class ExpiredOAuthStateException(
-    message: String = "OAuth state has expired.",
-) : InvalidOAuthStateException(message)
+class ExpiredOAuthStateException(message: String = "OAuth state has expired.") : InvalidOAuthStateException(message)
 
 data class ChannelEvent(
     val type: ChannelEventType,

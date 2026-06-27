@@ -18,9 +18,4 @@ object GetWorkspacesForPrincipalQuery : Query<List<WorkspaceSummary>>
  * @property name Display name of the workspace
  * @property role The principal's role in this workspace ("OWNER" or "MEMBER")
  */
-data class WorkspaceSummary(
-    val workspaceId: String,
-    val name: String,
-    val role: String,
-    val icon: String? = null,
-)
+data class WorkspaceSummary(val workspaceId: String, val name: String, val role: String, val icon: String? = null)

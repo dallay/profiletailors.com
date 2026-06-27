@@ -14,14 +14,13 @@ import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean
 import org.springframework.boot.context.properties.EnableConfigurationProperties
 import org.springframework.context.annotation.Bean
 import org.springframework.context.annotation.Configuration
-import java.nio.file.Path
-
 import software.amazon.awssdk.auth.credentials.AwsBasicCredentials
 import software.amazon.awssdk.auth.credentials.StaticCredentialsProvider
 import software.amazon.awssdk.regions.Region
 import software.amazon.awssdk.services.s3.S3AsyncClient
 import software.amazon.awssdk.services.s3.presigner.S3Presigner
 import java.net.URI
+import java.nio.file.Path
 
 @Configuration
 @EnableConfigurationProperties(StorageProperties::class)
@@ -29,13 +28,12 @@ open class StorageAutoConfiguration {
 
     companion object {
         private val logger = LoggerFactory.getLogger(StorageAutoConfiguration::class.java)
-        
+
         /**
          * R2 endpoint format: https://{accountId}.r2.cloudflarestorage.com
          */
-        private fun r2Endpoint(accountId: String): URI = 
-            URI.create("https://$accountId.r2.cloudflarestorage.com")
-        
+        private fun r2Endpoint(accountId: String): URI = URI.create("https://$accountId.r2.cloudflarestorage.com")
+
         /**
          * Extracts account ID from R2 endpoint if present.
          */
@@ -48,15 +46,12 @@ open class StorageAutoConfiguration {
 
     @Bean
     @ConditionalOnMissingBean
-    open fun defaultStorage(storageProperties: StorageProperties, bucketRegistry: BucketRegistry): Storage {
-        return bucketRegistry.getStorage(storageProperties.default)
-    }
+    open fun defaultStorage(storageProperties: StorageProperties, bucketRegistry: BucketRegistry): Storage =
+        bucketRegistry.getStorage(storageProperties.default)
 
     @Bean
     @ConditionalOnMissingBean
-    open fun baseDomainEventPublisher(): EventPublisher<BaseDomainEvent> {
-        return EventBroadcaster()
-    }
+    open fun baseDomainEventPublisher(): EventPublisher<BaseDomainEvent> = EventBroadcaster()
 
     @Bean
     @ConditionalOnMissingBean
@@ -85,7 +80,7 @@ open class StorageAutoConfiguration {
             } catch (e: Exception) {
                 logger.warn(
                     "Failed to create storage provider '$name' (type={}): {}. " +
-                    "This provider will not be available.",
+                        "This provider will not be available.",
                     config.type,
                     e.message,
                 )
@@ -96,44 +91,47 @@ open class StorageAutoConfiguration {
         val defaultName = storageProperties.default
         if (defaultName.isNotBlank() && !map.containsKey(defaultName)) {
             val available = map.keys.joinToString(", ")
+            val availableNames = if (available.isNotBlank()) available else "(none)"
             throw IllegalStateException(
                 "Configured default storage provider '$defaultName' not found. " +
-                "Available providers: ${if (available.isNotBlank()) available else "(none — all providers failed to initialize)"}. " +
-                "Ensure platform.storage.default references a valid, initialized provider."
+                    "Available providers: $availableNames. " +
+                    "Ensure platform.storage.default references a valid, initialized provider.",
             )
         }
 
         return InMemoryBucketRegistry(map)
     }
 
-    private fun createProvider(config: ProviderConfig): Storage {
-        return when (config.type) {
-            "local" -> {
-                val basePath = config.basePath ?: System.getProperty("java.io.tmpdir")
-                LocalFilesystemStorage(Path.of(basePath))
-            }
-            "s3" -> {
-                // AWS S3 - use default endpoint
-                val bucket = config.bucket
-                    ?: throw IllegalArgumentException("Bucket name is required for S3")
-                val region = config.region ?: "us-east-1"
-
-                val clientBuilder = S3AsyncClient.builder()
-                    .region(Region.of(region))
-
-                val presignerBuilder = S3Presigner.builder()
-                    .region(Region.of(region))
-
-                S3Storage(clientBuilder.build(), bucket, presignerBuilder.build(), config.timeoutSeconds)
-            }
-            "s2" -> {
-                // s2 is deprecated alias for R2
-                logger.warn("Storage type 's2' is deprecated. Use 'r2' for Cloudflare R2.")
-                createR2Storage(config)
-            }
-            "r2" -> createR2Storage(config)
-            else -> throw IllegalArgumentException("Unknown storage provider type: ${config.type}")
+    private fun createProvider(config: ProviderConfig): Storage = when (config.type) {
+        "local" -> {
+            val basePath = config.basePath ?: System.getProperty("java.io.tmpdir")
+            LocalFilesystemStorage(Path.of(basePath))
         }
+
+        "s3" -> {
+            // AWS S3 - use default endpoint
+            val bucket = config.bucket
+                ?: throw IllegalArgumentException("Bucket name is required for S3")
+            val region = config.region ?: "us-east-1"
+
+            val clientBuilder = S3AsyncClient.builder()
+                .region(Region.of(region))
+
+            val presignerBuilder = S3Presigner.builder()
+                .region(Region.of(region))
+
+            S3Storage(clientBuilder.build(), bucket, presignerBuilder.build(), config.timeoutSeconds)
+        }
+
+        "s2" -> {
+            // s2 is deprecated alias for R2
+            logger.warn("Storage type 's2' is deprecated. Use 'r2' for Cloudflare R2.")
+            createR2Storage(config)
+        }
+
+        "r2" -> createR2Storage(config)
+
+        else -> throw IllegalArgumentException("Unknown storage provider type: ${config.type}")
     }
 
     /**
@@ -150,8 +148,8 @@ open class StorageAutoConfiguration {
         val accountId = config.accountId ?: extractAccountId(config.endpoint)
             ?: throw IllegalArgumentException(
                 "accountId is required for R2. " +
-                "Provide it in config or include it in the endpoint URL: " +
-                "https://{accountId}.r2.cloudflarestorage.com"
+                    "Provide it in config or include it in the endpoint URL: " +
+                    "https://{accountId}.r2.cloudflarestorage.com",
             )
 
         // R2 has no implicit credentials chain; both keys are mandatory.
@@ -159,11 +157,11 @@ open class StorageAutoConfiguration {
         val secretAccessKey = config.secretAccessKey
         require(!accessKeyId.isNullOrBlank() && !secretAccessKey.isNullOrBlank()) {
             "R2 requires both accessKeyId and secretAccessKey in provider config. " +
-            "Configure them under platform.storage.providers.{name}.access-key-id " +
-            "and platform.storage.providers.{name}.secret-access-key."
+                "Configure them under platform.storage.providers.{name}.access-key-id " +
+                "and platform.storage.providers.{name}.secret-access-key."
         }
         val credentialsProvider = StaticCredentialsProvider.create(
-            AwsBasicCredentials.create(accessKeyId, secretAccessKey)
+            AwsBasicCredentials.create(accessKeyId, secretAccessKey),
         )
 
         // R2 requires region "auto"
@@ -174,7 +172,7 @@ open class StorageAutoConfiguration {
             .region(region)
             .endpointOverride(r2Endpoint(accountId))
             .credentialsProvider(credentialsProvider)
-            .forcePathStyle(true)  // R2 requires path-style
+            .forcePathStyle(true) // R2 requires path-style
 
         val presignerBuilder = S3Presigner.builder()
             .region(region)
@@ -186,7 +184,7 @@ open class StorageAutoConfiguration {
             bucket,
             presignerBuilder.build(),
             accountId,
-            config.timeoutSeconds
+            config.timeoutSeconds,
         )
     }
 }

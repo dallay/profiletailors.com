@@ -144,36 +144,61 @@ class StorageAssetPreviewUrlResolverTest {
 
     // --- Helpers ---
 
-    private fun fakeRegistry(storage: Storage): BucketRegistry =
-        BucketRegistry { storage }
+    private fun fakeRegistry(storage: Storage): BucketRegistry = BucketRegistry { storage }
 
-    private interface FakeStorage : Storage, PresignableStorage
+    private interface FakeStorage :
+        Storage,
+        PresignableStorage
 
     private class FakePresignableStorage(private val presignedUrl: String) : FakeStorage {
         override suspend fun presignGet(bucket: String, key: String, expirySeconds: Long): String = presignedUrl
-        override suspend fun upload(bucket: String, key: String, content: kotlinx.coroutines.flow.Flow<ByteArray>, metadata: Map<String, String>) {}
-        override fun download(bucket: String, key: String): kotlinx.coroutines.flow.Flow<ByteArray> = kotlinx.coroutines.flow.emptyFlow()
+        override suspend fun upload(
+            bucket: String,
+            key: String,
+            content: kotlinx.coroutines.flow.Flow<ByteArray>,
+            metadata: Map<String, String>,
+        ) {}
+        override fun download(bucket: String, key: String): kotlinx.coroutines.flow.Flow<ByteArray> =
+            kotlinx.coroutines.flow.emptyFlow()
         override suspend fun delete(bucket: String, key: String) {}
         override suspend fun list(bucket: String, prefix: String): List<String> = emptyList()
         override suspend fun exists(bucket: String, key: String): Boolean = false
+        override suspend fun copyObject(bucket: String, sourceKey: String, destKey: String): Unit =
+            throw IllegalStateException("copyObject: source not found: $sourceKey")
     }
 
     private class FailingPresignableStorage : FakeStorage {
         override suspend fun presignGet(bucket: String, key: String, expirySeconds: Long): String =
             throw IllegalStateException("Presigning failed")
-        override suspend fun upload(bucket: String, key: String, content: kotlinx.coroutines.flow.Flow<ByteArray>, metadata: Map<String, String>) {}
-        override fun download(bucket: String, key: String): kotlinx.coroutines.flow.Flow<ByteArray> = kotlinx.coroutines.flow.emptyFlow()
+        override suspend fun upload(
+            bucket: String,
+            key: String,
+            content: kotlinx.coroutines.flow.Flow<ByteArray>,
+            metadata: Map<String, String>,
+        ) {}
+        override fun download(bucket: String, key: String): kotlinx.coroutines.flow.Flow<ByteArray> =
+            kotlinx.coroutines.flow.emptyFlow()
         override suspend fun delete(bucket: String, key: String) {}
         override suspend fun list(bucket: String, prefix: String): List<String> = emptyList()
         override suspend fun exists(bucket: String, key: String): Boolean = false
+        override suspend fun copyObject(bucket: String, sourceKey: String, destKey: String): Unit =
+            throw IllegalStateException("copyObject: source not found: $sourceKey")
     }
 
     // NonPresignableStorage only implements Storage, not PresignableStorage
     private class NonPresignableStorage : Storage {
-        override suspend fun upload(bucket: String, key: String, content: kotlinx.coroutines.flow.Flow<ByteArray>, metadata: Map<String, String>) {}
-        override fun download(bucket: String, key: String): kotlinx.coroutines.flow.Flow<ByteArray> = kotlinx.coroutines.flow.emptyFlow()
+        override suspend fun upload(
+            bucket: String,
+            key: String,
+            content: kotlinx.coroutines.flow.Flow<ByteArray>,
+            metadata: Map<String, String>,
+        ) {}
+        override fun download(bucket: String, key: String): kotlinx.coroutines.flow.Flow<ByteArray> =
+            kotlinx.coroutines.flow.emptyFlow()
         override suspend fun delete(bucket: String, key: String) {}
         override suspend fun list(bucket: String, prefix: String): List<String> = emptyList()
         override suspend fun exists(bucket: String, key: String): Boolean = false
+        override suspend fun copyObject(bucket: String, sourceKey: String, destKey: String): Unit =
+            throw IllegalStateException("copyObject: source not found: $sourceKey")
     }
 }

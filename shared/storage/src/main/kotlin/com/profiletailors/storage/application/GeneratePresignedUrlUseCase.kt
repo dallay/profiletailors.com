@@ -1,16 +1,15 @@
 package com.profiletailors.storage.application
 
-import com.profiletailors.common.domain.Service
 import com.profiletailors.common.domain.bus.event.BaseDomainEvent
 import com.profiletailors.common.domain.bus.event.EventPublisher
-import com.profiletailors.storage.domain.PresignedUrlGeneratedEvent
+import com.profiletailors.ratelimit.domain.RateLimitResult
+import com.profiletailors.ratelimit.domain.RateLimiter
 import com.profiletailors.storage.domain.PresignableStorage
+import com.profiletailors.storage.domain.PresignedUrlGeneratedEvent
 import com.profiletailors.storage.domain.RateLimitExceededException
 import com.profiletailors.storage.domain.StorageObjectNotFoundException
 import com.profiletailors.storage.domain.StorageObservation
 import com.profiletailors.storage.domain.StorageServiceException
-import com.profiletailors.ratelimit.domain.RateLimitResult
-import com.profiletailors.ratelimit.domain.RateLimiter
 import kotlinx.coroutines.CancellationException
 import org.slf4j.LoggerFactory
 import java.time.Instant
@@ -41,7 +40,7 @@ class GeneratePresignedUrlUseCase(
     private val metrics: StorageObservation,
     private val rateLimiter: RateLimiter,
     private val maxExpirySeconds: Long = DEFAULT_MAX_EXPIRY_SECONDS,
-    private val provider: String = StorageObservation.Providers.S3
+    private val provider: String = StorageObservation.Providers.S3,
 ) {
     private val logger = LoggerFactory.getLogger(GeneratePresignedUrlUseCase::class.java)
 
@@ -56,22 +55,23 @@ class GeneratePresignedUrlUseCase(
      * @throws IllegalArgumentException If expirySeconds is out of range
      * @throws StorageServiceException If there's an error generating the URL
      */
-    suspend fun execute(
-        bucket: String,
-        key: String,
-        expirySeconds: Long,
-        requesterId: String
-    ): String {
+    suspend fun execute(bucket: String, key: String, expirySeconds: Long, requesterId: String): String {
         validateExpiry(expirySeconds)
 
         // Rate limit check before generating URL
         val rateLimitResult = rateLimiter.consumeToken(requesterId)
         if (rateLimitResult is RateLimitResult.Denied) {
             metrics.recordPresignedUrlGenerated(provider, false)
-            metrics.recordError(StorageObservation.Operations.PRESIGN, provider, bucket, StorageObservation.ErrorTypes.RATE_LIMITED)
+            metrics.recordError(
+                StorageObservation.Operations.PRESIGN,
+                provider,
+                bucket,
+                StorageObservation.ErrorTypes.RATE_LIMITED,
+            )
             throw RateLimitExceededException(
                 retryAfterSeconds = rateLimitResult.retryAfter.seconds,
-                message = "Rate limit exceeded for presigned URL generation. Retry after ${rateLimitResult.retryAfter.seconds}s"
+                message = "Rate limit exceeded for presigned URL generation. " +
+                    "Retry after ${rateLimitResult.retryAfter.seconds}s",
             )
         }
 
@@ -82,21 +82,38 @@ class GeneratePresignedUrlUseCase(
         } catch (e: IllegalArgumentException) {
             // Validation errors (e.g., bucket validation) should not be wrapped as service errors
             metrics.recordPresignedUrlGenerated(provider, false)
-            metrics.recordError(StorageObservation.Operations.PRESIGN, provider, bucket, StorageObservation.ErrorTypes.SECURITY)
+            metrics.recordError(
+                StorageObservation.Operations.PRESIGN,
+                provider,
+                bucket,
+                StorageObservation.ErrorTypes.SECURITY,
+            )
             throw e
         } catch (e: StorageObjectNotFoundException) {
             metrics.recordPresignedUrlGenerated(provider, false)
-            metrics.recordError(StorageObservation.Operations.PRESIGN, provider, bucket, StorageObservation.ErrorTypes.NOT_FOUND)
+            metrics.recordError(
+                StorageObservation.Operations.PRESIGN,
+                provider,
+                bucket,
+                StorageObservation.ErrorTypes.NOT_FOUND,
+            )
             throw StorageServiceException(
-                "Failed to generate presigned URL for '$key' in bucket '$bucket'", e
+                "Failed to generate presigned URL for '$key' in bucket '$bucket'",
+                e,
             )
         } catch (e: CancellationException) {
-            throw e  // Don't swallow coroutine cancellation
+            throw e // Don't swallow coroutine cancellation
         } catch (e: Exception) {
             metrics.recordPresignedUrlGenerated(provider, false)
-            metrics.recordError(StorageObservation.Operations.PRESIGN, provider, bucket, StorageObservation.ErrorTypes.SERVICE)
+            metrics.recordError(
+                StorageObservation.Operations.PRESIGN,
+                provider,
+                bucket,
+                StorageObservation.ErrorTypes.SERVICE,
+            )
             throw StorageServiceException(
-                "Failed to generate presigned URL for '$key' in bucket '$bucket'", e
+                "Failed to generate presigned URL for '$key' in bucket '$bucket'",
+                e,
             )
         }
 
@@ -110,11 +127,11 @@ class GeneratePresignedUrlUseCase(
                     expirySeconds = expirySeconds,
                     requesterId = requesterId,
                     timestamp = Instant.now(),
-                    expiryTime = Instant.now().plusSeconds(expirySeconds)
-                )
+                    expiryTime = Instant.now().plusSeconds(expirySeconds),
+                ),
             )
         } catch (e: CancellationException) {
-            throw e  // Don't swallow coroutine cancellation
+            throw e // Don't swallow coroutine cancellation
         } catch (e: Exception) {
             logger.warn("Failed to publish PresignedUrlGeneratedEvent for bucket=$bucket, key=$key", e)
         }
@@ -125,11 +142,8 @@ class GeneratePresignedUrlUseCase(
     /**
      * Generates a presigned URL using default expiry (1 hour).
      */
-    suspend fun execute(
-        bucket: String,
-        key: String,
-        requesterId: String
-    ): String = execute(bucket, key, DEFAULT_MAX_EXPIRY_SECONDS, requesterId)
+    suspend fun execute(bucket: String, key: String, requesterId: String): String =
+        execute(bucket, key, DEFAULT_MAX_EXPIRY_SECONDS, requesterId)
 
     private fun validateExpiry(expirySeconds: Long) {
         require(expirySeconds > 0) {

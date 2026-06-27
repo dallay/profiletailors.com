@@ -32,8 +32,10 @@ Idempotency for creation SHOULD be handled via specific logic (e.g., uniqueness 
 ### Positive
 - Predictable API behavior for consumers.
 - Simplified backend logic for ID generation.
+
 ### Negative
 - Requires a separate "Reserve/Draft" step for complex multi-part creations (e.g., Media uploads).
+
 ### Accepted trade-offs
 - Lack of native offline support is accepted for current development simplicity.
 

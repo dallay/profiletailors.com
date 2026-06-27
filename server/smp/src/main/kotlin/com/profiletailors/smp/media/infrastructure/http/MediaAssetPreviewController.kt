@@ -47,13 +47,18 @@ class MediaAssetPreviewController(
     ): ResponseEntity<Flux<DataBuffer>> {
         val asset = validateAndLoadAsset(assetId, workspaceId, expiresAt, signature)
 
+        val storageKey = asset?.storageKey
         return when {
             asset == null -> forbiddenResponse()
+
+            storageKey == null -> ResponseEntity.notFound().build()
+
             !isReadyImage(asset.mediaType, asset.status) -> ResponseEntity.notFound().build()
+
             else -> ResponseEntity.ok()
                 .contentType(MediaType.parseMediaType(asset.mediaType))
                 .cacheControl(CacheControl.maxAge(Duration.ofMinutes(PREVIEW_CACHE_MINUTES)))
-                .body(downloadBody(assetId, asset.storageKey, "media-preview"))
+                .body(downloadBody(assetId, storageKey, "media-preview"))
         }
     }
 
@@ -69,7 +74,9 @@ class MediaAssetPreviewController(
 
         return when {
             asset == null -> forbiddenResponse()
+
             asset.status != MediaAssetStatus.READY -> ResponseEntity.notFound().build()
+
             else -> {
                 val headers = HttpHeaders().apply {
                     contentType = MediaType.parseMediaType(asset.mediaType)
@@ -77,16 +84,20 @@ class MediaAssetPreviewController(
                     contentDisposition = when {
                         asset.mediaType.equals("application/pdf", ignoreCase = true) ->
                             ContentDisposition.inline().filename(asset.originalFilename ?: "$assetId.pdf").build()
+
                         asset.mediaType.startsWith("video/", ignoreCase = true) ->
                             ContentDisposition.inline().filename(asset.originalFilename ?: "$assetId.mp4").build()
+
                         else ->
                             ContentDisposition.attachment().filename(asset.originalFilename ?: assetId).build()
                     }
                 }
 
+                val storageKey = asset.storageKey
+                    ?: return ResponseEntity.notFound().build()
                 ResponseEntity.ok()
                     .headers(headers)
-                    .body(downloadBody(assetId, asset.storageKey, "media-content"))
+                    .body(downloadBody(assetId, storageKey, "media-content"))
             }
         }
     }
@@ -103,8 +114,7 @@ class MediaAssetPreviewController(
         null
     }
 
-    private fun forbiddenResponse(): ResponseEntity<Flux<DataBuffer>> =
-        ResponseEntity.status(HTTP_FORBIDDEN).build()
+    private fun forbiddenResponse(): ResponseEntity<Flux<DataBuffer>> = ResponseEntity.status(HTTP_FORBIDDEN).build()
 
     private fun isReadyImage(mediaType: String, status: MediaAssetStatus): Boolean =
         status == MediaAssetStatus.READY && mediaType.startsWith("image/", ignoreCase = true)

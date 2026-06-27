@@ -14,9 +14,7 @@ import org.springframework.web.bind.annotation.RestController
 @RestController
 @RequestMapping(value = ["/api/authorization/workspace-access"])
 @Tag(name = "Workspace Access", description = "Workspace access and permissions endpoints")
-class WorkspaceAccessSummaryController(
-    private val mediator: Mediator,
-) {
+class WorkspaceAccessSummaryController(private val mediator: Mediator) {
     @Operation(summary = "Get current workspace access summary")
     @GetMapping("/current", version = "1")
     suspend fun getCurrentWorkspaceAccessSummary(): WorkspaceAccessSummary =

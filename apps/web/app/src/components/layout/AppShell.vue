@@ -89,7 +89,7 @@ const { total: totalQueuedCount, byProvider: queuedByProvider } = useQueuedCount
 
 const navigationGroups = computed<NavGroup[]>(() => [
   {
-    label: 'Workspace',
+    label: t('workspace.title'),
     items: [
       { labelKey: 'nav.dashboard', to: '/', icon: LayoutGrid },
       { labelKey: 'nav.scheduler', to: '/scheduler', icon: LayoutGrid },
@@ -98,7 +98,7 @@ const navigationGroups = computed<NavGroup[]>(() => [
     ],
   },
   {
-    label: 'System',
+    label: t('nav.system'),
     items: [{ labelKey: 'nav.settings', to: '/settings', icon: LayoutGrid }],
   },
 ])
@@ -254,7 +254,7 @@ onBeforeUnmount(() => {
         <SidebarContent class="gap-6">
           <SidebarGroup class="gap-2">
             <SidebarGroupLabel class="group-data-[collapsible=icon]:hidden">
-              Workspace
+              {{ $t('workspace.title') }}
             </SidebarGroupLabel>
             <SidebarMenu>
               <SidebarMenuItem>

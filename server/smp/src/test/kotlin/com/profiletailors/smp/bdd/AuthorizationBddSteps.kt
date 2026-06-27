@@ -1,6 +1,5 @@
 package com.profiletailors.smp.bdd.glue
 
-import java.nio.charset.StandardCharsets
 import com.profiletailors.common.domain.bus.Mediator
 import com.profiletailors.common.domain.bus.PublishStrategy
 import com.profiletailors.common.domain.bus.command.Command
@@ -9,10 +8,8 @@ import com.profiletailors.common.domain.bus.notification.Notification
 import com.profiletailors.common.domain.bus.query.Query
 import com.profiletailors.common.domain.workspace.WorkspaceMembershipStatus
 import com.profiletailors.smp.authorization.domain.AuthorizationDecision
-import com.profiletailors.smp.governance.domain.AuditEventPage
-import com.profiletailors.smp.governance.application.GetWorkspaceAuditEventsQuery
 import com.profiletailors.smp.governance.application.WorkspaceAuditEventsResponse
-import com.profiletailors.smp.governance.infrastructure.http.AuditEventController
+import com.profiletailors.smp.governance.domain.AuditEventPage
 import com.profiletailors.smp.integration.support.CapturingAuditHook
 import com.profiletailors.smp.tenancy.application.TransferWorkspaceOwnershipCommand
 import com.profiletailors.smp.tenancy.application.UpdateWorkspaceMembershipStatusCommand
@@ -35,9 +32,9 @@ import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.http.HttpHeaders
 import org.springframework.test.web.reactive.server.EntityExchangeResult
 import org.springframework.test.web.reactive.server.WebTestClient
+import java.nio.charset.StandardCharsets
 
-class AuthorizationBddSteps(
-) {
+class AuthorizationBddSteps {
     @Autowired
     private lateinit var webTestClient: WebTestClient
 
@@ -365,7 +362,7 @@ class AuthorizationBddSteps(
     fun whenTheClientQueriesWorkspaceAuditEventsWithFiltersAndPagination() = runBlocking {
         // Seed audit event that matches the query filters
         bddDatabaseSupport.seedAuditEventRecords()
-        
+
         latestStatusCode = null
         latestResult = webTestClient.get()
             .uri { builder ->
@@ -394,7 +391,10 @@ class AuthorizationBddSteps(
     @And("the audit events response returned count should be {int}")
     fun andAuditEventsResponseReturnedCountShouldBe(count: Int) {
         val body = requireResponseBodyText()
-        assertTrue(body.contains("\"returned\":$count"), "Expected body to contain '\"returned\":$count' but got: $body")
+        assertTrue(
+            body.contains("\"returned\":$count"),
+            "Expected body to contain '\"returned\":$count' but got: $body",
+        )
     }
 
     @Given("a stubbed workspace ownership response is configured")
@@ -406,7 +406,8 @@ class AuthorizationBddSteps(
     fun whenTheClientTransfersWorkspaceOwnershipToPrincipal(principalId: String) = runBlocking {
         val response = requireNotNull(latestOwnershipResponse) { "Expected a stubbed ownership response" }
         val controller = WorkspaceOwnershipController(object : Mediator {
-            override suspend fun <TQuery : Query<TResponse>, TResponse> send(query: TQuery): TResponse = error("Not used")
+            override suspend fun <TQuery : Query<TResponse>, TResponse> send(query: TQuery): TResponse =
+                error("Not used")
             override suspend fun <TCommand : Command> send(command: TCommand) = error("Not used")
             override suspend fun <TCommand : CommandWithResult<TResult>, TResult> send(command: TCommand): TResult {
                 assertEquals(TransferWorkspaceOwnershipCommand(targetPrincipalId = principalId), command)
@@ -414,7 +415,8 @@ class AuthorizationBddSteps(
                 return response as TResult
             }
             override suspend fun <T : Notification> publish(notification: T) = error("Not used")
-            override suspend fun <T : Notification> publish(notification: T, publishStrategy: PublishStrategy) = error("Not used")
+            override suspend fun <T : Notification> publish(notification: T, publishStrategy: PublishStrategy) =
+                error("Not used")
         })
         latestOwnershipResponse = controller.transferOwnership(WorkspaceOwnerRequest(principalId))
         latestStatusCode = 200
@@ -446,9 +448,11 @@ class AuthorizationBddSteps(
 
     @When("the client updates workspace membership status for principal {string} to {string}")
     fun whenTheClientUpdatesWorkspaceMembershipStatusForPrincipal(principalId: String, status: String) = runBlocking {
-        val response = requireNotNull(latestMembershipStatusResponse) { "Expected a stubbed membership status response" }
+        val response =
+            requireNotNull(latestMembershipStatusResponse) { "Expected a stubbed membership status response" }
         val controller = WorkspaceMembershipController(object : Mediator {
-            override suspend fun <TQuery : Query<TResponse>, TResponse> send(query: TQuery): TResponse = error("Not used")
+            override suspend fun <TQuery : Query<TResponse>, TResponse> send(query: TQuery): TResponse =
+                error("Not used")
             override suspend fun <TCommand : Command> send(command: TCommand) = error("Not used")
             override suspend fun <TCommand : CommandWithResult<TResult>, TResult> send(command: TCommand): TResult {
                 assertEquals(
@@ -462,7 +466,8 @@ class AuthorizationBddSteps(
                 return response as TResult
             }
             override suspend fun <T : Notification> publish(notification: T) = error("Not used")
-            override suspend fun <T : Notification> publish(notification: T, publishStrategy: PublishStrategy) = error("Not used")
+            override suspend fun <T : Notification> publish(notification: T, publishStrategy: PublishStrategy) =
+                error("Not used")
         })
         latestMembershipStatusResponse = controller.updateMembershipStatus(
             principalId,

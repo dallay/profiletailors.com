@@ -1,0 +1,13 @@
+<?xml version="1.0" ?>
+<SmellBaseline>
+  <ManuallySuppressedIssues/>
+  <CurrentIssues>
+    <ID>FunctionNameMinLength:CriteriaStep.kt:CriteriaStep$@Suppress("FunctionNaming") fun `in`</ID>
+    <ID>FunctionNameMinLength:CriteriaStep.kt:CriteriaStep$@Suppress("FunctionNaming") fun `is`</ID>
+    <ID>FunctionNameMinLength:CriteriaStep.kt:fun Criteria.or</ID>
+    <ID>FunctionNameMinLength:Sort.kt:Sort.Companion$fun by: Sort</ID>
+    <ID>MaxLineLength:Criteria.kt:Criteria$*</ID>
+    <ID>StringShouldBeRawString:SqlLikeTranspilerTest.kt:SqlLikeTranspilerTest$"h%ld | ^\\Qh\\E.*\\Qld\\E$"</ID>
+    <ID>StringShouldBeRawString:SqlLikeTranspilerTest.kt:SqlLikeTranspilerTest$"h_llo | ^\\Qh\\E.\\Qllo\\E$"</ID>
+  </CurrentIssues>
+</SmellBaseline>

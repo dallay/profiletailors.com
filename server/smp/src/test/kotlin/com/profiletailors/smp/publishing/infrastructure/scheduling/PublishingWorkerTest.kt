@@ -2,11 +2,10 @@ package com.profiletailors.smp.publishing.infrastructure.scheduling
 
 import com.profiletailors.smp.media.application.MediaAssetResolver
 import com.profiletailors.smp.media.application.ResolvedAssetSummary
-import com.profiletailors.smp.publishing.domain.AssetSourceType
 import com.profiletailors.smp.publishing.domain.DateCount
 import com.profiletailors.smp.publishing.domain.DeliveryAttempt
-import com.profiletailors.smp.publishing.domain.DeliveryAttemptRepository
 import com.profiletailors.smp.publishing.domain.DeliveryAttemptOutcome
+import com.profiletailors.smp.publishing.domain.DeliveryAttemptRepository
 import com.profiletailors.smp.publishing.domain.DeliveryRetryPolicy
 import com.profiletailors.smp.publishing.domain.ProviderCapabilityValidationInput
 import com.profiletailors.smp.publishing.domain.ProviderCapabilityValidator
@@ -40,7 +39,8 @@ class PublishingWorkerTest {
     @Test
     fun `worker completes successful publish`() = runTest {
         val publicationRepository = InMemoryPublicationRepository(successPublication())
-        val jobRepository = InMemoryJobRepository(PublicationJobClaim("job-1", "pub-1", "workspace-1", 1, fixedClock.instant()))
+        val jobRepository =
+            InMemoryJobRepository(PublicationJobClaim("job-1", "pub-1", "workspace-1", 1, fixedClock.instant()))
         val attemptRepository = InMemoryAttemptRepository()
         val executor = PublishingJobExecutor(
             publicationJobRepository = jobRepository,
@@ -73,7 +73,8 @@ class PublishingWorkerTest {
     @Test
     fun `worker reschedules retryable failure`() = runTest {
         val publicationRepository = InMemoryPublicationRepository(successPublication())
-        val jobRepository = InMemoryJobRepository(PublicationJobClaim("job-1", "pub-1", "workspace-1", 1, fixedClock.instant()))
+        val jobRepository =
+            InMemoryJobRepository(PublicationJobClaim("job-1", "pub-1", "workspace-1", 1, fixedClock.instant()))
         val attemptRepository = InMemoryAttemptRepository()
         val executor = PublishingJobExecutor(
             publicationJobRepository = jobRepository,
@@ -105,7 +106,8 @@ class PublishingWorkerTest {
     @Test
     fun `worker marks terminal failure when retry budget is exhausted`() = runTest {
         val publicationRepository = InMemoryPublicationRepository(successPublication())
-        val jobRepository = InMemoryJobRepository(PublicationJobClaim("job-1", "pub-1", "workspace-1", 4, fixedClock.instant()))
+        val jobRepository =
+            InMemoryJobRepository(PublicationJobClaim("job-1", "pub-1", "workspace-1", 4, fixedClock.instant()))
         val attemptRepository = InMemoryAttemptRepository()
         val executor = PublishingJobExecutor(
             publicationJobRepository = jobRepository,
@@ -198,9 +200,7 @@ class PublishingWorkerTest {
         status = SocialConnectionStatus.ACTIVE,
     )
 
-    private class InMemoryJobRepository(
-        private val claim: PublicationJobClaim?,
-    ) : PublicationJobRepository {
+    private class InMemoryJobRepository(private val claim: PublicationJobClaim?) : PublicationJobRepository {
         var completedJobId: String? = null
         var retriedJobId: String? = null
         var retryAt: Instant? = null
@@ -238,7 +238,8 @@ class PublishingWorkerTest {
             updatedDraft = draft
             return draft
         }
-        override suspend fun findByWorkspaceAndId(workspaceId: String, publicationId: String): PublicationDraft? = publication
+        override suspend fun findByWorkspaceAndId(workspaceId: String, publicationId: String): PublicationDraft? =
+            publication
         override suspend fun findInDateRange(
             workspaceId: String,
             from: Instant,
@@ -257,7 +258,12 @@ class PublishingWorkerTest {
         override suspend fun markPublished(publicationId: String, externalPublicationId: String, publishedAt: Instant) {
             publishedPublicationId = publicationId
         }
-        override suspend fun markFailed(publicationId: String, failedAt: Instant, reasonCode: String?, reasonMessage: String?) {
+        override suspend fun markFailed(
+            publicationId: String,
+            failedAt: Instant,
+            reasonCode: String?,
+            reasonMessage: String?,
+        ) {
             failedPublicationId = publicationId
         }
         override suspend fun markCancelled(publicationId: String, cancelledAt: Instant) = Unit
@@ -265,23 +271,20 @@ class PublishingWorkerTest {
             blockedPublicationId = publicationId
         }
         override suspend fun deleteUnpublished(workspaceId: String, publicationId: String): Boolean = false
-        override suspend fun findBlockedForRecovery(
-            maxRetries: Int,
-        ): List<PublicationDraft> = blockedForRecovery.filter { it.retryCount < maxRetries }
+        override suspend fun findBlockedForRecovery(maxRetries: Int): List<PublicationDraft> =
+            blockedForRecovery.filter { it.retryCount < maxRetries }
     }
 
-    private class InMemoryAccountRepository(
-        private val account: SocialAccount,
-    ) : SocialAccountRepository {
+    private class InMemoryAccountRepository(private val account: SocialAccount) : SocialAccountRepository {
         override suspend fun upsert(account: SocialAccount): SocialAccount = account
         override suspend fun findByWorkspaceAndId(workspaceId: String, accountId: String): SocialAccount? = account
     }
 
-    private class InMemoryMediaAssetResolver(
-        private val assets: List<ResolvedAssetSummary>,
-    ) : MediaAssetResolver {
-        override suspend fun resolveReadyAssets(workspaceId: String, assetIds: List<String>): List<ResolvedAssetSummary> =
-            assets.filter { it.workspaceId == workspaceId && it.assetId in assetIds }
+    private class InMemoryMediaAssetResolver(private val assets: List<ResolvedAssetSummary>) : MediaAssetResolver {
+        override suspend fun resolveReadyAssets(
+            workspaceId: String,
+            assetIds: List<String>,
+        ): List<ResolvedAssetSummary> = assets.filter { it.workspaceId == workspaceId && it.assetId in assetIds }
     }
 
     private class InMemoryAttemptRepository : DeliveryAttemptRepository {
@@ -302,9 +305,8 @@ class PublishingWorkerTest {
     }
 
     private class RetryableFailingPublisher : SocialPublisher {
-        override suspend fun publish(command: ProviderPublishCommand): ProviderPublishResult {
+        override suspend fun publish(command: ProviderPublishCommand): ProviderPublishResult =
             throw RetryablePublishingException("transient provider error")
-        }
     }
 
     private class NeverPublishesPublisher : SocialPublisher {
@@ -322,7 +324,8 @@ class PublishingWorkerTest {
         val disabledAccount = successAccount().copy(status = SocialConnectionStatus.DISABLED)
         val publication = successPublication()
         val publicationRepository = InMemoryPublicationRepository(publication)
-        val jobRepository = InMemoryJobRepository(PublicationJobClaim("job-1", "pub-1", "workspace-1", 1, fixedClock.instant()))
+        val jobRepository =
+            InMemoryJobRepository(PublicationJobClaim("job-1", "pub-1", "workspace-1", 1, fixedClock.instant()))
         val publisher = NeverPublishesPublisher()
         val executor = PublishingJobExecutor(
             publicationJobRepository = jobRepository,
@@ -359,7 +362,8 @@ class PublishingWorkerTest {
         val reconnectAccount = successAccount().copy(status = SocialConnectionStatus.REQUIRES_RECONNECT)
         val publication = successPublication()
         val publicationRepository = InMemoryPublicationRepository(publication)
-        val jobRepository = InMemoryJobRepository(PublicationJobClaim("job-1", "pub-1", "workspace-1", 1, fixedClock.instant()))
+        val jobRepository =
+            InMemoryJobRepository(PublicationJobClaim("job-1", "pub-1", "workspace-1", 1, fixedClock.instant()))
         val publisher = NeverPublishesPublisher()
         val executor = PublishingJobExecutor(
             publicationJobRepository = jobRepository,
@@ -393,7 +397,8 @@ class PublishingWorkerTest {
         val deletedAccount = successAccount().copy(status = SocialConnectionStatus.DELETED)
         val publication = successPublication()
         val publicationRepository = InMemoryPublicationRepository(publication)
-        val jobRepository = InMemoryJobRepository(PublicationJobClaim("job-1", "pub-1", "workspace-1", 1, fixedClock.instant()))
+        val jobRepository =
+            InMemoryJobRepository(PublicationJobClaim("job-1", "pub-1", "workspace-1", 1, fixedClock.instant()))
         val publisher = NeverPublishesPublisher()
         val executor = PublishingJobExecutor(
             publicationJobRepository = jobRepository,

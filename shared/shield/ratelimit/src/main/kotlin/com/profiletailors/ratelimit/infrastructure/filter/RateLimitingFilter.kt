@@ -4,7 +4,6 @@ import com.profiletailors.ratelimit.domain.RateLimitResult
 import com.profiletailors.ratelimit.domain.RateLimitStrategy
 import com.profiletailors.ratelimit.infrastructure.adapter.ReactiveRateLimitingAdapter
 import com.profiletailors.ratelimit.infrastructure.config.BucketConfigurationFactory
-import java.time.Instant
 import org.slf4j.LoggerFactory
 import org.springframework.core.io.buffer.DataBuffer
 import org.springframework.http.HttpStatus
@@ -15,6 +14,7 @@ import org.springframework.web.server.WebFilter
 import org.springframework.web.server.WebFilterChain
 import reactor.core.publisher.Mono
 import tools.jackson.databind.json.JsonMapper
+import java.time.Instant
 
 /**
  * WebFlux filter for rate limiting endpoints based on configured strategies.
@@ -36,7 +36,7 @@ import tools.jackson.databind.json.JsonMapper
 class RateLimitingFilter(
     private val reactiveRateLimitingAdapter: ReactiveRateLimitingAdapter,
     private val jsonMapper: JsonMapper,
-    private val configurationFactory: BucketConfigurationFactory
+    private val configurationFactory: BucketConfigurationFactory,
 ) : WebFilter {
 
     private val logger = LoggerFactory.getLogger(RateLimitingFilter::class.java)
@@ -61,6 +61,7 @@ class RateLimitingFilter(
                         addRateLimitHeaders(exchange, result)
                         chain.filter(exchange)
                     }
+
                     is RateLimitResult.Denied -> {
                         logger.warn("Rate limit exceeded for identifier {} on path {}", identifier, path)
                         sendRateLimitResponse(exchange, result, path, strategy)
@@ -72,14 +73,12 @@ class RateLimitingFilter(
     /**
      * Determines the rate limiting strategy based on the request path.
      */
-    private fun determineRateLimitStrategy(path: String): RateLimitStrategy? {
-        return when {
-            isStrategyEndpoint(path, RateLimitStrategy.AUTH) -> RateLimitStrategy.AUTH
-            isStrategyEndpoint(path, RateLimitStrategy.BUSINESS) -> RateLimitStrategy.BUSINESS
-            isStrategyEndpoint(path, RateLimitStrategy.RESUME) -> RateLimitStrategy.RESUME
-            isStrategyEndpoint(path, RateLimitStrategy.WAITLIST) -> RateLimitStrategy.WAITLIST
-            else -> null
-        }
+    private fun determineRateLimitStrategy(path: String): RateLimitStrategy? = when {
+        isStrategyEndpoint(path, RateLimitStrategy.AUTH) -> RateLimitStrategy.AUTH
+        isStrategyEndpoint(path, RateLimitStrategy.BUSINESS) -> RateLimitStrategy.BUSINESS
+        isStrategyEndpoint(path, RateLimitStrategy.RESUME) -> RateLimitStrategy.RESUME
+        isStrategyEndpoint(path, RateLimitStrategy.WAITLIST) -> RateLimitStrategy.WAITLIST
+        else -> null
     }
 
     /**
@@ -108,10 +107,7 @@ class RateLimitingFilter(
     /**
      * Determines if rate limiting should be skipped for this request.
      */
-    private fun shouldSkipRateLimiting(
-        exchange: ServerWebExchange,
-        strategy: RateLimitStrategy
-    ): Boolean {
+    private fun shouldSkipRateLimiting(exchange: ServerWebExchange, strategy: RateLimitStrategy): Boolean {
         val alreadyProcessed = exchange.attributes.putIfAbsent(RATE_LIMIT_PROCESSED_KEY, true) != null
         if (alreadyProcessed) {
             logger.debug("Request already processed by rate limiter, skipping")
@@ -182,7 +178,9 @@ class RateLimitingFilter(
         response.headers.set("X-RateLimit-Reset", result.resetTime.epochSecond.toString())
         logger.debug(
             "Added rate limit headers: limit={}, remaining={}, reset={}",
-            result.limitCapacity, result.remainingTokens, result.resetTime,
+            result.limitCapacity,
+            result.remainingTokens,
+            result.resetTime,
         )
     }
 

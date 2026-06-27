@@ -38,9 +38,11 @@ Application services MUST use the custom `com.profiletailors.common.domain.Servi
 ### Positive
 - Business logic is clearly isolated and highly testable.
 - Infrastructure changes are local to the `infrastructure` package.
+
 ### Negative
 - Increased boilerplate (mappings between domain models and DTOs/Entities).
 - Higher cognitive load for new developers.
+
 ### Accepted trade-offs
 - The overhead of mapping and strict layering is accepted for long-term maintainability.
 

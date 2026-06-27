@@ -82,7 +82,7 @@ fun includeProjectsInDirectory(directoryPath: String) {
         }
 }
 
-val excludedProjects = listOf("build-logic", "wrapper")
+val excludedProjects = listOf("build-logic", "wrapper", "build")
 val scanDirectories = listOf("server", "shared")
 
 scanDirectories.forEach { includeGradleProjectsRecursively(it) }

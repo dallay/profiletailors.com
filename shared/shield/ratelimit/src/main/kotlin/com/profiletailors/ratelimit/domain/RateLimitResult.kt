@@ -24,11 +24,7 @@ sealed class RateLimitResult {
      * implement conservative retry/backoff strategies (exponential backoff or respect Retry-After)
      * instead of depending on resetTime for exact behavior.
      */
-    data class Allowed(
-        val remainingTokens: Long,
-        val limitCapacity: Long,
-        val resetTime: Instant
-    ) : RateLimitResult()
+    data class Allowed(val remainingTokens: Long, val limitCapacity: Long, val resetTime: Instant) : RateLimitResult()
 
     /**
      * The request was denied.
@@ -37,9 +33,6 @@ sealed class RateLimitResult {
      * @property limitCapacity The maximum number of tokens the bucket can hold (for X-RateLimit-Limit header).
      * @property windowDuration The configured time window for the rate limit (e.g., 1 minute, 1 hour).
      */
-    data class Denied(
-        val retryAfter: Duration,
-        val limitCapacity: Long,
-        val windowDuration: Duration
-    ) : RateLimitResult()
+    data class Denied(val retryAfter: Duration, val limitCapacity: Long, val windowDuration: Duration) :
+        RateLimitResult()
 }

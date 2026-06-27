@@ -17,10 +17,8 @@ import java.util.UUID
  * transactional flow during user registration.
  */
 @Service
-class R2dbcWorkspaceProvisioningService(
-    private val databaseClient: DatabaseClient,
-    private val clock: Clock,
-) : WorkspaceProvisioningService {
+class R2dbcWorkspaceProvisioningService(private val databaseClient: DatabaseClient, private val clock: Clock) :
+    WorkspaceProvisioningService {
 
     override suspend fun provisionDefaultWorkspace(
         principalId: String,

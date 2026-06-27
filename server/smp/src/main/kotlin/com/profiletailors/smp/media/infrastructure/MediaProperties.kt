@@ -16,12 +16,7 @@ class MediaProperties(
     val stale: Stale = Stale(),
     val previewUrlExpirySeconds: Long = 3600,
 ) {
-    class Storage(
-        val bucket: String = "attachments",
-    )
+    class Storage(val bucket: String = "attachments")
 
-    class Stale(
-        val thresholdHours: Long = 2,
-        val gracePeriodMinutes: Long = 30,
-    )
+    class Stale(val thresholdHours: Long = 2, val gracePeriodMinutes: Long = 30)
 }

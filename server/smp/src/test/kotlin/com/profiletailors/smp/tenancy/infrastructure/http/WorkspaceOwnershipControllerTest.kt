@@ -1,10 +1,10 @@
 package com.profiletailors.smp.tenancy.infrastructure.http
 
 import com.profiletailors.common.domain.bus.Mediator
+import com.profiletailors.common.domain.bus.PublishStrategy
 import com.profiletailors.common.domain.bus.command.Command
 import com.profiletailors.common.domain.bus.command.CommandWithResult
 import com.profiletailors.common.domain.bus.notification.Notification
-import com.profiletailors.common.domain.bus.PublishStrategy
 import com.profiletailors.common.domain.bus.query.Query
 import com.profiletailors.smp.tenancy.application.AddWorkspaceOwnerCommand
 import com.profiletailors.smp.tenancy.application.RemoveWorkspaceOwnerCommand
@@ -55,9 +55,7 @@ class WorkspaceOwnershipControllerTest {
         assertEquals(TransferWorkspaceOwnershipCommand(targetPrincipalId = "owner-2"), mediator.lastRequest)
     }
 
-    private class CapturingMediator(
-        private val result: WorkspaceOwnershipResult,
-    ) : Mediator {
+    private class CapturingMediator(private val result: WorkspaceOwnershipResult) : Mediator {
         var lastRequest: Any? = null
 
         override suspend fun <TQuery : Query<TResponse>, TResponse> send(query: TQuery): TResponse =

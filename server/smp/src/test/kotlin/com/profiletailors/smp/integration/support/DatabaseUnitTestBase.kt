@@ -16,7 +16,7 @@ import java.sql.DriverManager
 /**
  * Base class for unit tests that need H2 in-memory database with Liquibase migrations.
  * Lighter than IntegrationTestBase - no Spring Boot context, no WebTestClient.
- * 
+ *
  * Use for testing infrastructure components (repositories, hooks) in isolation.
  */
 abstract class DatabaseUnitTestBase {
@@ -31,7 +31,7 @@ abstract class DatabaseUnitTestBase {
                 .property("DB_CLOSE_DELAY", "-1")
                 .property("DB_CLOSE_ON_EXIT", "FALSE")
                 .username("sa")
-                .build()
+                .build(),
         )
     }
 
@@ -82,14 +82,14 @@ abstract class DatabaseUnitTestBase {
         DriverManager.getConnection(
             "jdbc:h2:mem:$dbName;MODE=PostgreSQL;DB_CLOSE_DELAY=-1;DB_CLOSE_ON_EXIT=FALSE",
             "sa",
-            ""
+            "",
         ).use { connection ->
             val database = DatabaseFactory.getInstance()
                 .findCorrectDatabaseImplementation(liquibase.database.jvm.JdbcConnection(connection))
             Liquibase(
                 "db/changelog/db.changelog-master.yaml",
                 ClassLoaderResourceAccessor(),
-                database
+                database,
             ).update(Contexts(), LabelExpression())
         }
     }

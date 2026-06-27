@@ -7,25 +7,19 @@ import com.profiletailors.storage.domain.StorageObjectNotFoundException
 import com.profiletailors.storage.domain.StorageSecurityException
 import com.profiletailors.storage.domain.StorageServiceException
 import kotlinx.coroutines.CancellationException
-import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.Flow
-import kotlinx.coroutines.flow.collect
 import kotlinx.coroutines.flow.channelFlow
+import kotlinx.coroutines.flow.collect
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.future.await
 import kotlinx.coroutines.reactive.asFlow
-import kotlinx.coroutines.reactive.asPublisher
-import kotlinx.coroutines.withContext
 import kotlinx.coroutines.withTimeout
-import org.reactivestreams.Publisher
 import software.amazon.awssdk.core.async.AsyncRequestBody
 import software.amazon.awssdk.core.async.AsyncResponseTransformer
-import software.amazon.awssdk.core.exception.SdkException
 import software.amazon.awssdk.services.s3.S3AsyncClient
 import software.amazon.awssdk.services.s3.model.*
 import software.amazon.awssdk.services.s3.presigner.S3Presigner
 import software.amazon.awssdk.services.s3.presigner.model.GetObjectPresignRequest
-import java.nio.ByteBuffer
 import java.time.Duration
 
 /**
@@ -39,7 +33,7 @@ abstract class AbstractS3CompatibleStorage(
     protected val client: S3AsyncClient,
     protected val bucketName: String,
     protected val presigner: S3Presigner,
-    protected val timeoutSeconds: Long = 30
+    protected val timeoutSeconds: Long = 30,
 ) : PresignableStorage {
 
     init {
@@ -50,7 +44,7 @@ abstract class AbstractS3CompatibleStorage(
     protected fun validateBucket(bucket: String) {
         require(bucket == bucketName) {
             "Bucket mismatch: this storage instance is bound to bucket '$bucketName'. " +
-            "Requested bucket '$bucket' is not supported."
+                "Requested bucket '$bucket' is not supported."
         }
     }
 
@@ -70,15 +64,13 @@ abstract class AbstractS3CompatibleStorage(
     /**
      * Checks if an S3Exception represents a ServiceUnavailable (503) error.
      */
-    private fun S3Exception.isServiceUnavailable(): Boolean =
-        statusCode() == 503
+    private fun S3Exception.isServiceUnavailable(): Boolean = statusCode() == 503
 
     /**
      * Checks if an S3Exception represents an AccessDenied (403) error.
      * In AWS SDK v2 S3, AccessDenied is represented as S3Exception with statusCode 403.
      */
-    private fun S3Exception.isAccessDenied(): Boolean =
-        statusCode() == 403
+    private fun S3Exception.isAccessDenied(): Boolean = statusCode() == 403
 
     /**
      * Maps S3Exception or SdkException to the appropriate domain exception.
@@ -87,14 +79,21 @@ abstract class AbstractS3CompatibleStorage(
         if (e is CancellationException) throw e
         when (e) {
             is NoSuchKeyException ->
-                throw StorageObjectNotFoundException(bucketName, message.substringAfter("'").substringBefore("'").takeIf { it.isNotEmpty() } ?: "unknown")
+                throw StorageObjectNotFoundException(
+                    bucketName,
+                    message.substringAfter("'").substringBefore("'").takeIf { it.isNotEmpty() } ?: "unknown",
+                )
+
             is S3Exception -> when {
                 e.isAccessDenied() ->
                     throw StorageAccessDeniedException("$message: access denied")
+
                 e.isServiceUnavailable() ->
                     throw StorageConnectionException("$message: service unavailable", e)
+
                 else -> throw StorageServiceException(message, e)
             }
+
             else -> throw StorageServiceException(message, e)
         }
     }
@@ -245,6 +244,30 @@ abstract class AbstractS3CompatibleStorage(
                     false
                 } catch (e: Exception) {
                     mapToStorageException("Failed to check existence of '$key' in bucket '$bucketName'", e)
+                }
+            }
+        }
+    }
+
+    override suspend fun copyObject(bucket: String, sourceKey: String, destKey: String) {
+        validateBucket(bucket)
+        validateKey(sourceKey)
+        validateKey(destKey)
+        withTimeout(timeoutSeconds * 1000L) {
+            S3RetryHelper.withRetry {
+                try {
+                    val request = CopyObjectRequest.builder()
+                        .sourceBucket(bucketName)
+                        .sourceKey(sourceKey)
+                        .destinationBucket(bucketName)
+                        .destinationKey(destKey)
+                        .build()
+                    client.copyObject(request).await()
+                } catch (e: Exception) {
+                    mapToStorageException(
+                        "Failed to copy '$sourceKey' to '$destKey' in bucket '$bucketName'",
+                        e,
+                    )
                 }
             }
         }

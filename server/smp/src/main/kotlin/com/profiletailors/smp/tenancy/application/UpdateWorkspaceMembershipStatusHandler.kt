@@ -66,6 +66,7 @@ internal class UpdateWorkspaceMembershipStatusHandler(
                     )
                     throw exception
                 }
+
                 else -> throw exception
             }
         }

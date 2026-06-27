@@ -689,12 +689,13 @@ async function handleCreateSubmit(
       @click.self="emit('close')"
       @keydown.escape="emit('close')"
     >
-      <!-- Modal Wrapper -->
-      <dialog
+      <!-- Modal Wrapper: using <div role="dialog"> instead of <dialog> to avoid UA default margin/padding that breaks flex centering -->
+      <div
         ref="modalContainer"
+        role="dialog"
         aria-modal="true"
         aria-labelledby="create-post-title"
-        class="flex flex-col lg:flex-row w-full max-w-5xl h-[90vh] lg:h-[750px] bg-bg-surface border border-border-subtle rounded-2xl overflow-hidden shadow-2xl animate-zoom-in"
+        class="flex flex-col lg:flex-row w-full max-w-5xl max-h-[90vh] lg:h-[750px] bg-bg-surface border border-border-subtle rounded-2xl overflow-y-auto lg:overflow-hidden shadow-2xl animate-zoom-in m-0 relative"
       >
         <!-- Close Button (Absolute Mobile) -->
         <button
@@ -1050,7 +1051,7 @@ async function handleCreateSubmit(
             </div>
           </template>
         </PostPreviewPanel>
-      </dialog>
+      </div>
     </div>
   </Teleport>
 </template>

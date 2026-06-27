@@ -2,10 +2,9 @@ package com.profiletailors.smp.publishing.infrastructure.linkedin
 
 import com.fasterxml.jackson.databind.ObjectMapper
 import com.profiletailors.smp.publishing.domain.AssetSourceType
-import com.profiletailors.smp.publishing.domain.AssetUploader
 import com.profiletailors.smp.publishing.domain.AssetUploadContext
+import com.profiletailors.smp.publishing.domain.AssetUploader
 import com.profiletailors.smp.publishing.domain.CompleteProviderConnectionCommand
-import com.profiletailors.smp.publishing.domain.ProviderAccountProfile
 import com.profiletailors.smp.publishing.domain.ProviderAssetRef
 import com.profiletailors.smp.publishing.domain.ProviderPublishCommand
 import com.profiletailors.smp.publishing.domain.PublicationAsset
@@ -57,7 +56,8 @@ class LinkedInPublishingAdaptersTest {
                 LinkedInHttpResponse(
                     200,
                     emptyHeaders(),
-                    """{"access_token":"access-123","expires_in":5184000,"scope":"openid profile email w_member_social"}""",
+                    """{"access_token":"access-123","expires_in":5184000,"scope":""" +
+                        """"openid profile email w_member_social"}""",
                 ),
                 LinkedInHttpResponse(
                     200,
@@ -707,7 +707,8 @@ class LinkedInPublishingAdaptersTest {
                 LinkedInHttpResponse(
                     200,
                     emptyHeaders(),
-                    """{"sub":"user-123","name":"Yuniel","picture":"https://media.licdn.com/dms/image/v2/example.jpg"}""",
+                    """{"sub":"user-123","name":"Yuniel",""" +
+                        """"picture":"https://media.licdn.com/dms/image/v2/example.jpg"}""",
                 ),
             ),
         )
@@ -1022,7 +1023,15 @@ class LinkedInPublishingAdaptersTest {
         val storage = FakeStorage()
         val assetUploadProperties = LinkedInAssetUploadProperties("test-bucket")
         val assetRepository = FakePublicationAssetRepository()
-        val uploader = RealLinkedInAssetUploader(properties, assetUploadProperties, objectMapper, transport, storage, assetRepository)
+        val uploader =
+            RealLinkedInAssetUploader(
+                properties,
+                assetUploadProperties,
+                objectMapper,
+                transport,
+                storage,
+                assetRepository,
+            )
         val asset = testAsset("image/jpeg")
         val context = testAssetUploadContext()
 
@@ -1046,7 +1055,15 @@ class LinkedInPublishingAdaptersTest {
         )
         val storage = FakeStorage()
         val assetUploadProperties = LinkedInAssetUploadProperties("test-bucket")
-        val uploader = RealLinkedInAssetUploader(properties, assetUploadProperties, objectMapper, transport, storage, FakePublicationAssetRepository())
+        val uploader =
+            RealLinkedInAssetUploader(
+                properties,
+                assetUploadProperties,
+                objectMapper,
+                transport,
+                storage,
+                FakePublicationAssetRepository(),
+            )
         val asset = testAsset("image/jpeg")
         val context = testAssetUploadContext()
 
@@ -1188,14 +1205,11 @@ class LinkedInPublishingAdaptersTest {
         private val gateway: LinkedInCredentialGateway,
         private val credentialId: UUID,
     ) : com.profiletailors.smp.publishing.domain.RefreshAwareCredentialResolver {
-        override suspend fun resolve(account: SocialAccount): String {
-            return gateway.resolveCredential(credentialId).accessToken
-        }
+        override suspend fun resolve(account: SocialAccount): String =
+            gateway.resolveCredential(credentialId).accessToken
     }
 
-    private class StubTransport(
-        private val responses: List<LinkedInHttpResponse>,
-    ) : LinkedInHttpTransport {
+    private class StubTransport(private val responses: List<LinkedInHttpResponse>) : LinkedInHttpTransport {
         private var index = 0
         override suspend fun send(request: java.net.http.HttpRequest): LinkedInHttpResponse =
             responses.getOrElse(index++) {
@@ -1211,18 +1225,16 @@ class LinkedInPublishingAdaptersTest {
             return ownerId
         }
 
-        override suspend fun resolveCredential(id: UUID): LinkedInCredentials {
-            return store[id] ?: throw IllegalStateException("No credentials found for $id")
-        }
+        override suspend fun resolveCredential(id: UUID): LinkedInCredentials =
+            store[id] ?: throw IllegalStateException("No credentials found for $id")
 
         fun store(id: UUID, credentials: LinkedInCredentials) {
             store[id] = credentials
         }
     }
 
-    private class FakeSocialConnectionRepository(
-        private val connection: SocialConnection,
-    ) : SocialConnectionRepository {
+    private class FakeSocialConnectionRepository(private val connection: SocialConnection) :
+        SocialConnectionRepository {
         override suspend fun upsert(connection: SocialConnection): SocialConnection = connection
 
         override suspend fun findByWorkspaceAndId(workspaceId: String, connectionId: String): SocialConnection? =
@@ -1246,30 +1258,49 @@ class LinkedInPublishingAdaptersTest {
         override suspend fun list(bucket: String, prefix: String): List<String> = emptyList()
 
         override suspend fun exists(bucket: String, key: String): Boolean = false
+
+        override suspend fun copyObject(bucket: String, sourceKey: String, destKey: String): Unit =
+            throw IllegalStateException("copyObject: source not found: $sourceKey")
     }
 
     private class FakePublicationAssetRepository : com.profiletailors.smp.publishing.domain.PublicationAssetRepository {
         private val items = linkedMapOf<String, com.profiletailors.smp.publishing.domain.PublicationAsset>()
 
-        override suspend fun findByWorkspaceAndIds(workspaceId: String, assetIds: Collection<String>): List<com.profiletailors.smp.publishing.domain.PublicationAsset> =
+        override suspend fun findByWorkspaceAndIds(
+            workspaceId: String,
+            assetIds: Collection<String>,
+        ): List<com.profiletailors.smp.publishing.domain.PublicationAsset> =
             items.values.filter { it.workspaceId == workspaceId && it.id in assetIds }
 
-        override suspend fun create(asset: com.profiletailors.smp.publishing.domain.PublicationAsset): com.profiletailors.smp.publishing.domain.PublicationAsset {
+        override suspend fun create(
+            asset: com.profiletailors.smp.publishing.domain.PublicationAsset,
+        ): com.profiletailors.smp.publishing.domain.PublicationAsset {
             items[asset.id] = asset
             return asset
         }
 
-        override suspend fun updateStatus(assetId: String, status: com.profiletailors.smp.publishing.domain.PublicationAssetStatus) {
+        override suspend fun updateStatus(
+            assetId: String,
+            status: com.profiletailors.smp.publishing.domain.PublicationAssetStatus,
+        ) {
             items[assetId]?.let { items[assetId] = it.copy(status = status) }
         }
 
-        override suspend fun updateProviderAssetRef(assetId: String, providerAssetRef: com.profiletailors.smp.publishing.domain.ProviderAssetRef) {
-            items[assetId]?.let { items[assetId] = it.copy(status = com.profiletailors.smp.publishing.domain.PublicationAssetStatus.READY, providerAssetRef = providerAssetRef) }
+        override suspend fun updateProviderAssetRef(
+            assetId: String,
+            providerAssetRef: com.profiletailors.smp.publishing.domain.ProviderAssetRef,
+        ) {
+            items[assetId]?.let {
+                items[assetId] =
+                    it.copy(
+                        status = com.profiletailors.smp.publishing.domain.PublicationAssetStatus.READY,
+                        providerAssetRef = providerAssetRef,
+                    )
+            }
         }
     }
 
-    private fun emptyHeaders(): HttpHeaders =
-        HttpHeaders.of(emptyMap()) { _, _ -> true }
+    private fun emptyHeaders(): HttpHeaders = HttpHeaders.of(emptyMap()) { _, _ -> true }
 
     private fun headersOf(vararg pairs: Pair<String, String>): HttpHeaders =
         HttpHeaders.of(pairs.groupBy({ it.first }, { it.second })) { _, _ -> true }

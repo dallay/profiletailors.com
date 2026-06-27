@@ -4,13 +4,9 @@ import com.profiletailors.common.domain.criteria.Criteria
 import com.profiletailors.common.domain.presentation.sort.Direction
 import com.profiletailors.common.domain.presentation.sort.Sort
 import java.time.LocalDateTime
-import java.time.format.DateTimeParseException
 import kotlin.reflect.full.declaredMemberProperties
 
-data class TimestampCursor(
-    val createdAt: LocalDateTime,
-    override val direction: Direction = Direction.ASC
-) : Cursor {
+data class TimestampCursor(val createdAt: LocalDateTime, override val direction: Direction = Direction.ASC) : Cursor {
     override fun getCursor(): String = String.format(CURSOR_FORMAT, createdAt, direction)
     override fun getSort(): Sort = Sort.by(Direction.ASC, CREATED_AT)
     override fun getCriteria(): Criteria = if (direction == Direction.ASC) {

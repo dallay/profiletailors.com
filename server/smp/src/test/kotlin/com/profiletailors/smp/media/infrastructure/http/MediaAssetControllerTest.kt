@@ -1,9 +1,6 @@
 package com.profiletailors.smp.media.infrastructure.http
 
 import com.profiletailors.common.domain.bus.Mediator
-import org.springframework.web.bind.annotation.DeleteMapping
-import org.springframework.web.bind.annotation.GetMapping
-import org.springframework.web.bind.annotation.PostMapping
 import com.profiletailors.common.domain.bus.PublishStrategy
 import com.profiletailors.common.domain.bus.command.Command
 import com.profiletailors.common.domain.bus.command.CommandWithResult
@@ -24,11 +21,7 @@ import kotlinx.coroutines.test.runTest
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertNotNull
 import org.junit.jupiter.api.Assertions.assertNull
-import org.junit.jupiter.api.Assertions.assertThrows
-import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.Test
-import org.springframework.http.HttpStatus
-import org.springframework.web.server.ResponseStatusException
 
 class MediaAssetControllerTest {
 
@@ -132,6 +125,7 @@ class MediaAssetControllerTest {
                         status = "READY",
                         originalFilename = "photo.jpg",
                         fileSizeBytes = 1024L,
+                        fileHash = null,
                         createdAt = "2026-06-20T10:00:00Z",
                     ),
                 ),
@@ -211,6 +205,7 @@ class MediaAssetControllerTest {
                 status = "READY",
                 originalFilename = "photo.jpg",
                 fileSizeBytes = 2048L,
+                fileHash = null,
                 createdAt = "2026-06-20T12:00:00Z",
             ),
         )
@@ -229,11 +224,10 @@ class MediaAssetControllerTest {
         assertEquals(workspaceId, sent.workspaceId)
     }
 
-    private fun controller(mediator: Mediator): MediaAssetController =
-        MediaAssetController(
-            mediator = mediator,
-            resourceContextProvider = FixedResourceContextProvider(workspaceId),
-        )
+    private fun controller(mediator: Mediator): MediaAssetController = MediaAssetController(
+        mediator = mediator,
+        resourceContextProvider = FixedResourceContextProvider(workspaceId),
+    )
 
     private class CapturingMediator(
         private val commandResult: CreateUploadedAssetResult? = null,

@@ -23,14 +23,11 @@ import org.springframework.web.bind.annotation.RestController
 @RestController
 @RequestMapping(value = ["/api/tenancy/workspace-ownership"])
 @Tag(name = "Workspace Ownership", description = "Workspace ownership management endpoints")
-class WorkspaceOwnershipController(
-    private val mediator: Mediator,
-) {
+class WorkspaceOwnershipController(private val mediator: Mediator) {
     @Operation(summary = "Add a new workspace owner")
     @PostMapping("/owners", consumes = ["application/json"], version = "1")
-    suspend fun addOwner(
-        @Valid @RequestBody request: WorkspaceOwnerRequest,
-    ): WorkspaceOwnershipResult = mediator.send(AddWorkspaceOwnerCommand(targetPrincipalId = request.principalId))
+    suspend fun addOwner(@Valid @RequestBody request: WorkspaceOwnerRequest): WorkspaceOwnershipResult =
+        mediator.send(AddWorkspaceOwnerCommand(targetPrincipalId = request.principalId))
 
     @Operation(summary = "Remove a workspace owner")
     @DeleteMapping("/owners/{principalId}", version = "1")
@@ -45,11 +42,10 @@ class WorkspaceOwnershipController(
 
     @Operation(summary = "Transfer workspace ownership")
     @PostMapping("/owners/transfer", consumes = ["application/json"], version = "1")
-    suspend fun transferOwnership(
-        @Valid @RequestBody request: WorkspaceOwnerRequest,
-    ): WorkspaceOwnershipResult = mediator.send(
-        TransferWorkspaceOwnershipCommand(targetPrincipalId = request.principalId),
-    )
+    suspend fun transferOwnership(@Valid @RequestBody request: WorkspaceOwnerRequest): WorkspaceOwnershipResult =
+        mediator.send(
+            TransferWorkspaceOwnershipCommand(targetPrincipalId = request.principalId),
+        )
 }
 
 /**

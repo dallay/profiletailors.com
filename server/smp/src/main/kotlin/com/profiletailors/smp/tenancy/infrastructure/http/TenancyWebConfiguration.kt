@@ -10,9 +10,7 @@ import org.springframework.context.annotation.Configuration
 import org.springframework.web.server.WebFilter
 
 @ConfigurationProperties(prefix = "platform.workspace-context")
-data class WorkspaceContextConfigurationProperties(
-    val headerName: String = "X-Workspace-Id",
-)
+data class WorkspaceContextConfigurationProperties(val headerName: String = "X-Workspace-Id")
 
 @Configuration
 @EnableConfigurationProperties(WorkspaceContextConfigurationProperties::class)

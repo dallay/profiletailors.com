@@ -2,7 +2,10 @@ package com.profiletailors.common.domain.presentation.sort
 
 /** Sort direction for query results. */
 enum class Direction {
-    ASC, DESC;
+    ASC,
+    DESC,
+    ;
+
     fun fromString(direction: String): Direction = Direction.fromString(direction)
     fun reversed(): Direction = if (this == ASC) DESC else ASC
     companion object {

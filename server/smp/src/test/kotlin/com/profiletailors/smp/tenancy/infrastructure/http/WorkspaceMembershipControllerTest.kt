@@ -1,10 +1,10 @@
 package com.profiletailors.smp.tenancy.infrastructure.http
 
 import com.profiletailors.common.domain.bus.Mediator
+import com.profiletailors.common.domain.bus.PublishStrategy
 import com.profiletailors.common.domain.bus.command.Command
 import com.profiletailors.common.domain.bus.command.CommandWithResult
 import com.profiletailors.common.domain.bus.notification.Notification
-import com.profiletailors.common.domain.bus.PublishStrategy
 import com.profiletailors.common.domain.bus.query.Query
 import com.profiletailors.common.domain.workspace.WorkspaceMembershipStatus
 import com.profiletailors.smp.tenancy.application.UpdateWorkspaceMembershipStatusCommand
@@ -41,9 +41,7 @@ class WorkspaceMembershipControllerTest {
         )
     }
 
-    private class CapturingMediator(
-        private val result: WorkspaceMembershipStatusResult,
-    ) : Mediator {
+    private class CapturingMediator(private val result: WorkspaceMembershipStatusResult) : Mediator {
         var lastRequest: Any? = null
 
         override suspend fun <TQuery : Query<TResponse>, TResponse> send(query: TQuery): TResponse =

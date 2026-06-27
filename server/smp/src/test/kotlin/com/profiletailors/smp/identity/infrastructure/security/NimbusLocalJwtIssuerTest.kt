@@ -2,13 +2,13 @@ package com.profiletailors.smp.identity.infrastructure.security
 
 import com.nimbusds.jose.jwk.source.ImmutableSecret
 import com.profiletailors.smp.identity.domain.EmailStatus
-import javax.crypto.spec.SecretKeySpec
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Test
 import org.springframework.security.oauth2.jose.jws.MacAlgorithm
 import org.springframework.security.oauth2.jwt.NimbusJwtEncoder
 import org.springframework.security.oauth2.jwt.NimbusReactiveJwtDecoder
 import java.time.Instant
+import javax.crypto.spec.SecretKeySpec
 
 class NimbusLocalJwtIssuerTest {
 

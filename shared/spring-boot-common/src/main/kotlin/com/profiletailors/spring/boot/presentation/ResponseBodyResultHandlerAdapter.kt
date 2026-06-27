@@ -16,8 +16,8 @@ open class ResponseBodyResultHandlerAdapter<T : Any>(
     override fun supports(result: HandlerResult): Boolean =
         result.returnType.getGeneric(0).rawClass == presenter.type.java
 
-    override fun handleResult(exchange: ServerWebExchange, result: HandlerResult): Mono<Void> {
-        return mono { presenter.present(exchange, result) }
-            .flatMap { Mono.empty() }
+    override fun handleResult(exchange: ServerWebExchange, result: HandlerResult): Mono<Void> = mono {
+        presenter.present(exchange, result)
     }
+        .flatMap { Mono.empty() }
 }

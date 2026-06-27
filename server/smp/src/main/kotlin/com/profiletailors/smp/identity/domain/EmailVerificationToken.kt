@@ -24,6 +24,5 @@ data class EmailVerificationToken(
      *
      * A token is valid when it has not been used yet and has not expired.
      */
-    fun isValid(now: Instant): Boolean =
-        usedAt == null && now.isBefore(expiresAt)
+    fun isValid(now: Instant): Boolean = usedAt == null && now.isBefore(expiresAt)
 }

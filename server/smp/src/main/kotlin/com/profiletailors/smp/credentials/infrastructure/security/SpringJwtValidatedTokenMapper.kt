@@ -1,9 +1,9 @@
 package com.profiletailors.smp.credentials.infrastructure.security
 
+import com.profiletailors.common.domain.context.PrincipalType
 import com.profiletailors.smp.credentials.application.FederatedTokenValidator
 import com.profiletailors.smp.credentials.domain.CredentialType
 import com.profiletailors.smp.credentials.domain.ValidatedToken
-import com.profiletailors.common.domain.context.PrincipalType
 import org.springframework.security.oauth2.jwt.Jwt
 
 class SpringJwtValidatedTokenMapper : FederatedTokenValidator<Jwt> {

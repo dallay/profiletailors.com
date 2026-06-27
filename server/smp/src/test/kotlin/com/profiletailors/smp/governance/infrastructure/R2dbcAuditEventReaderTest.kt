@@ -1,12 +1,12 @@
 package com.profiletailors.smp.governance.infrastructure
 
 import com.fasterxml.jackson.databind.ObjectMapper
+import com.profiletailors.smp.audit.domain.AuthorizationDecisionAuditFact
 import com.profiletailors.smp.authorization.domain.AuthorizationDecision
+import com.profiletailors.smp.authorization.domain.AuthorizationReasonCode
 import com.profiletailors.smp.governance.domain.AuditEventCursor
 import com.profiletailors.smp.governance.domain.AuditEventFilter
 import com.profiletailors.smp.governance.domain.AuditEventPageRequest
-import com.profiletailors.smp.audit.domain.AuthorizationDecisionAuditFact
-import com.profiletailors.smp.authorization.domain.AuthorizationReasonCode
 import io.r2dbc.h2.H2ConnectionConfiguration
 import io.r2dbc.h2.H2ConnectionFactory
 import kotlinx.coroutines.reactor.awaitSingle
@@ -69,18 +69,24 @@ class R2dbcAuditEventReaderTest {
         databaseClient.sql(
             """
             INSERT INTO audit_events (
-                id, event_type, action, actor_principal_id, workspace_id, target_type, target_id, outcome, role_keys_json, details_json, created_at
+                id, event_type, action, actor_principal_id, workspace_id,
+                target_type, target_id, outcome, role_keys_json, details_json, created_at
             ) VALUES (
-                'audit-manual-1', 'MUTATION', 'workspace.owner.add', 'owner-1', 'workspace-1', 'WORKSPACE_OWNER', 'owner-2', 'SUCCESS', '[]', '{"ownerPrincipalId":"owner-2"}', TIMESTAMP WITH TIME ZONE '2026-05-20T12:05:00Z'
+                'audit-manual-1', 'MUTATION', 'workspace.owner.add', 'owner-1',
+                'workspace-1', 'WORKSPACE_OWNER', 'owner-2', 'SUCCESS', '[]',
+                '{"ownerPrincipalId":"owner-2"}', TIMESTAMP WITH TIME ZONE '2026-05-20T12:05:00Z'
             )
             """.trimIndent(),
         ).fetch().rowsUpdated().awaitSingle()
         databaseClient.sql(
             """
             INSERT INTO audit_events (
-                id, event_type, action, actor_principal_id, workspace_id, target_type, target_id, outcome, role_keys_json, details_json, created_at
+                id, event_type, action, actor_principal_id, workspace_id,
+                target_type, target_id, outcome, role_keys_json, details_json, created_at
             ) VALUES (
-                'audit-manual-2', 'MUTATION', 'workspace.owner.add', 'owner-1', 'workspace-1', 'WORKSPACE_OWNER', 'owner-3', 'SUCCESS', '[]', '{"ownerPrincipalId":"owner-3"}', TIMESTAMP WITH TIME ZONE '2026-05-20T12:06:00Z'
+                'audit-manual-2', 'MUTATION', 'workspace.owner.add', 'owner-1',
+                'workspace-1', 'WORKSPACE_OWNER', 'owner-3', 'SUCCESS', '[]',
+                '{"ownerPrincipalId":"owner-3"}', TIMESTAMP WITH TIME ZONE '2026-05-20T12:06:00Z'
             )
             """.trimIndent(),
         ).fetch().rowsUpdated().awaitSingle()
@@ -125,9 +131,12 @@ class R2dbcAuditEventReaderTest {
         databaseClient.sql(
             """
             INSERT INTO audit_events (
-                id, event_type, action, actor_principal_id, workspace_id, target_type, target_id, outcome, role_keys_json, details_json, created_at
+                id, event_type, action, actor_principal_id, workspace_id,
+                target_type, target_id, outcome, role_keys_json, details_json, created_at
             ) VALUES (
-                'audit-plain-1', 'MUTATION', 'workspace.update', 'admin-1', 'workspace-2', 'WORKSPACE', 'ws-1', 'SUCCESS', '[]', '{}', TIMESTAMP WITH TIME ZONE '2026-05-20T12:10:00Z'
+                'audit-plain-1', 'MUTATION', 'workspace.update', 'admin-1',
+                'workspace-2', 'WORKSPACE', 'ws-1', 'SUCCESS', '[]', '{}',
+                TIMESTAMP WITH TIME ZONE '2026-05-20T12:10:00Z'
             )
             """.trimIndent(),
         ).fetch().rowsUpdated().awaitSingle()
@@ -149,11 +158,18 @@ class R2dbcAuditEventReaderTest {
         databaseClient.sql(
             """
             INSERT INTO audit_events (
-                id, event_type, action, actor_principal_id, workspace_id, target_type, target_id, outcome, role_keys_json, details_json, created_at
+                id, event_type, action, actor_principal_id, workspace_id,
+                target_type, target_id, outcome, role_keys_json, details_json, created_at
             ) VALUES
-                ('action-1', 'MUTATION', 'workspace.update', 'admin-1', 'workspace-3', 'WORKSPACE', 'ws-1', 'SUCCESS', '[]', '{}', TIMESTAMP WITH TIME ZONE '2026-05-20T12:20:00Z'),
-                ('action-2', 'MUTATION', 'workspace.delete', 'admin-1', 'workspace-3', 'WORKSPACE', 'ws-1', 'SUCCESS', '[]', '{}', TIMESTAMP WITH TIME ZONE '2026-05-20T12:21:00Z'),
-                ('action-3', 'MUTATION', 'workspace.update', 'admin-2', 'workspace-3', 'WORKSPACE', 'ws-1', 'SUCCESS', '[]', '{}', TIMESTAMP WITH TIME ZONE '2026-05-20T12:22:00Z')
+                ('action-1', 'MUTATION', 'workspace.update', 'admin-1', 'workspace-3',
+                 'WORKSPACE', 'ws-1', 'SUCCESS', '[]', '{}',
+                 TIMESTAMP WITH TIME ZONE '2026-05-20T12:20:00Z'),
+                ('action-2', 'MUTATION', 'workspace.delete', 'admin-1', 'workspace-3',
+                 'WORKSPACE', 'ws-1', 'SUCCESS', '[]', '{}',
+                 TIMESTAMP WITH TIME ZONE '2026-05-20T12:21:00Z'),
+                ('action-3', 'MUTATION', 'workspace.update', 'admin-2', 'workspace-3',
+                 'WORKSPACE', 'ws-1', 'SUCCESS', '[]', '{}',
+                 TIMESTAMP WITH TIME ZONE '2026-05-20T12:22:00Z')
             """.trimIndent(),
         ).fetch().rowsUpdated().awaitSingle()
 

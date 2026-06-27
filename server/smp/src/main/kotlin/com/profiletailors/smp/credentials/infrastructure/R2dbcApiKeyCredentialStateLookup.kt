@@ -39,27 +39,25 @@ class R2dbcApiKeyCredentialStateLookup(
         return segments[0] to segments[1]
     }
 
-    private suspend fun lookupCredential(lookupKey: String): ApiKeyCredentialRecord {
-        return databaseClient.sql(LOOKUP_SQL)
-            .bind("lookupKey", lookupKey)
-            .map { row, _ ->
-                ApiKeyCredentialRecord(
-                    principalId = requireNotNull(row.get("principal_id", String::class.java)),
-                    credentialReference = requireNotNull(row.get("id", String::class.java)),
-                    secretVerifier = requireNotNull(row.get("secret_verifier", String::class.java)),
-                    status = requireNotNull(row.get("status", String::class.java)),
-                    subject = requireNotNull(row.get("subject", String::class.java)),
-                    provider = row.get("provider", String::class.java),
-                    replacedAt = row.get("replaced_at", java.time.OffsetDateTime::class.java),
-                )
-            }
-            .one()
-            .awaitSingleOrNull()
-            ?: throw ApiKeyCredentialNotActiveException(
-                credentialReference = lookupKey,
-                reason = ApiKeyCredentialFailureReason.MISSING,
+    private suspend fun lookupCredential(lookupKey: String): ApiKeyCredentialRecord = databaseClient.sql(LOOKUP_SQL)
+        .bind("lookupKey", lookupKey)
+        .map { row, _ ->
+            ApiKeyCredentialRecord(
+                principalId = requireNotNull(row.get("principal_id", String::class.java)),
+                credentialReference = requireNotNull(row.get("id", String::class.java)),
+                secretVerifier = requireNotNull(row.get("secret_verifier", String::class.java)),
+                status = requireNotNull(row.get("status", String::class.java)),
+                subject = requireNotNull(row.get("subject", String::class.java)),
+                provider = row.get("provider", String::class.java),
+                replacedAt = row.get("replaced_at", java.time.OffsetDateTime::class.java),
             )
-    }
+        }
+        .one()
+        .awaitSingleOrNull()
+        ?: throw ApiKeyCredentialNotActiveException(
+            credentialReference = lookupKey,
+            reason = ApiKeyCredentialFailureReason.MISSING,
+        )
 
     private fun validateCredentialState(record: ApiKeyCredentialRecord, presentedSecret: String) {
         val reason = when {

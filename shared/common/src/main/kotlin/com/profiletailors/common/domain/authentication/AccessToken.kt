@@ -26,5 +26,5 @@ data class AccessToken(
     val tokenType: String,
     val notBeforePolicy: Int? = null,
     val sessionState: String? = null,
-    val scope: String? = null
+    val scope: String? = null,
 ) : Response

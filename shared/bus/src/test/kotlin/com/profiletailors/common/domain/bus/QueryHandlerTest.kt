@@ -2,13 +2,13 @@ package com.profiletailors.common.domain.bus
 
 import com.profiletailors.common.domain.bus.query.Query
 import com.profiletailors.common.domain.bus.query.QueryHandler
+import kotlinx.coroutines.test.runTest
+import org.junit.jupiter.api.Nested
+import org.junit.jupiter.api.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFailsWith
 import kotlin.test.assertNotNull
 import kotlin.test.assertTrue
-import kotlinx.coroutines.test.runTest
-import org.junit.jupiter.api.Nested
-import org.junit.jupiter.api.Test
 
 class QueryHandlerTest {
 
@@ -58,8 +58,7 @@ class QueryHandlerTest {
 
         inner class ParameterizedQueryHandler<TParam> :
             QueryHandler<ParameterizedQuery<TParam, String>, String> {
-            override suspend fun handle(query: ParameterizedQuery<TParam, String>): String =
-                query.param.toString()
+            override suspend fun handle(query: ParameterizedQuery<TParam, String>): String = query.param.toString()
         }
 
         @Test

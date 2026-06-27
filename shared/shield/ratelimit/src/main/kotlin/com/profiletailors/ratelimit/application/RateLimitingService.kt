@@ -18,7 +18,7 @@ import java.time.Instant
 @Service
 class RateLimitingService(
     private val rateLimiter: RateLimiter,
-    private val eventPublisher: EventPublisher<RateLimitExceededEvent>
+    private val eventPublisher: EventPublisher<RateLimitExceededEvent>,
 ) {
 
     /**
@@ -40,11 +40,7 @@ class RateLimitingService(
      * @param strategy The rate limiting strategy to apply.
      * @return A [RateLimitResult] indicating if the request was allowed or denied.
      */
-    suspend fun consumeToken(
-        identifier: String,
-        endpoint: String,
-        strategy: RateLimitStrategy
-    ): RateLimitResult {
+    suspend fun consumeToken(identifier: String, endpoint: String, strategy: RateLimitStrategy): RateLimitResult {
         val result = rateLimiter.consumeToken(identifier, strategy)
         if (result is RateLimitResult.Denied) {
             try {
@@ -67,7 +63,7 @@ class RateLimitingService(
         endpoint: String,
         retryAfter: Duration,
         windowDuration: Duration,
-        strategy: RateLimitStrategy
+        strategy: RateLimitStrategy,
     ) {
         val event = RateLimitExceededEvent(
             identifier = identifier,
@@ -80,5 +76,4 @@ class RateLimitingService(
         )
         eventPublisher.publish(event)
     }
-
 }

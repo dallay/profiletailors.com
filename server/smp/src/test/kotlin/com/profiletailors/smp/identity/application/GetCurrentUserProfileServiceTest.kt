@@ -46,15 +46,12 @@ class GetCurrentUserProfileServiceTest {
         assertEquals("yuniel", profile.displayIdentity)
     }
 
-    private class PrincipalContextProviderStub(
-        private val principalContext: PrincipalContext,
-    ) : PrincipalContextProvider {
+    private class PrincipalContextProviderStub(private val principalContext: PrincipalContext) :
+        PrincipalContextProvider {
         override suspend fun current(): PrincipalContext = principalContext
     }
 
-    private class PrincipalIdentityLookupStub(
-        private val facts: PrincipalIdentityFacts?,
-    ) : PrincipalIdentityLookup {
+    private class PrincipalIdentityLookupStub(private val facts: PrincipalIdentityFacts?) : PrincipalIdentityLookup {
         override suspend fun findBySubject(
             principalType: PrincipalType,
             subject: String,

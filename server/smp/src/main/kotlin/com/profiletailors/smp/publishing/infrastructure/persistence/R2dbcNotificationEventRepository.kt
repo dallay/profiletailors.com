@@ -7,7 +7,6 @@ import com.profiletailors.smp.publishing.domain.SocialProvider
 import kotlinx.coroutines.reactor.awaitSingle
 import org.springframework.r2dbc.core.DatabaseClient
 import org.springframework.stereotype.Repository
-import java.time.Instant
 import java.time.OffsetDateTime
 
 @Repository

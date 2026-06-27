@@ -2,11 +2,11 @@ package com.profiletailors.smp.media.application
 
 import com.profiletailors.storage.domain.BucketRegistry
 import com.profiletailors.storage.domain.PresignableStorage
+import org.slf4j.LoggerFactory
 import java.time.Instant
 import java.util.Base64
 import javax.crypto.Mac
 import javax.crypto.spec.SecretKeySpec
-import org.slf4j.LoggerFactory
 
 fun interface AssetPreviewUrlResolver {
     suspend fun resolvePreviewUrl(
@@ -18,10 +18,7 @@ fun interface AssetPreviewUrlResolver {
     ): String?
 }
 
-class MediaPreviewTokenService(
-    private val signingSecret: String,
-    private val previewUrlExpirySeconds: Long,
-) {
+class MediaPreviewTokenService(private val signingSecret: String, private val previewUrlExpirySeconds: Long) {
     fun buildSignedPreviewPath(assetId: String, workspaceId: String): String {
         val expiresAt = Instant.now().epochSecond + previewUrlExpirySeconds
         val signature = sign(assetId, workspaceId, expiresAt)
@@ -89,11 +86,7 @@ class StorageAssetPreviewUrlResolver(
         return previewUrl
     }
 
-    private suspend fun resolveStoredPreviewUrl(
-        assetId: String,
-        workspaceId: String,
-        storageKey: String,
-    ): String? {
+    private suspend fun resolveStoredPreviewUrl(assetId: String, workspaceId: String, storageKey: String): String? {
         val storage = bucketRegistry.getStorage(storageBucket)
         if (storage is PresignableStorage) {
             val presigned = runCatching {

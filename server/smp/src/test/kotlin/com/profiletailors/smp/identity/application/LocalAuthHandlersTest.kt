@@ -1,7 +1,6 @@
 package com.profiletailors.smp.identity.application
 
 import com.profiletailors.common.domain.bus.event.DomainEvent
-import com.profiletailors.common.domain.bus.event.EventConsumer
 import com.profiletailors.common.domain.bus.event.EventPublisher
 import com.profiletailors.common.testfixture.CredentialGenerator
 import com.profiletailors.smp.credentials.application.ActiveRefreshSession
@@ -15,13 +14,13 @@ import com.profiletailors.smp.identity.domain.EmailStatus
 import com.profiletailors.smp.identity.domain.UserRegistered
 import com.profiletailors.smp.identity.infrastructure.BCryptPasswordHasher
 import com.profiletailors.smp.tenancy.application.WorkspaceProvisioningService
-import java.time.Instant
 import kotlinx.coroutines.test.runTest
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertNotNull
 import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.Test
 import java.time.Clock
+import java.time.Instant
 import java.time.ZoneOffset
 
 class LocalAuthHandlersTest {
@@ -449,11 +448,7 @@ class LocalAuthHandlersTest {
             created = CreatedIdentity(principalId, subject, email, username, provider, displayIdentity, emailStatus)
         }
 
-        override suspend fun createEmailVerificationToken(
-            email: String,
-            tokenHash: String,
-            expiresAt: Instant,
-        ) {
+        override suspend fun createEmailVerificationToken(email: String, tokenHash: String, expiresAt: Instant) {
             createdToken = com.profiletailors.smp.identity.application.EmailVerificationTokenData(
                 email = email,
                 tokenHash = tokenHash,
@@ -462,7 +457,9 @@ class LocalAuthHandlersTest {
             )
         }
 
-        override suspend fun verifyEmailToken(tokenHash: String): com.profiletailors.smp.identity.application.EmailVerificationTokenData? {
+        override suspend fun verifyEmailToken(
+            tokenHash: String,
+        ): com.profiletailors.smp.identity.application.EmailVerificationTokenData? {
             verifiedTokenHash = tokenHash
             return createdToken?.takeIf { it.tokenHash == tokenHash }
         }
@@ -479,7 +476,9 @@ class LocalAuthHandlersTest {
             invalidatedTokens = true
         }
 
-        override suspend fun findActiveTokenByEmail(email: String): com.profiletailors.smp.identity.application.EmailVerificationTokenData? =
+        override suspend fun findActiveTokenByEmail(
+            email: String,
+        ): com.profiletailors.smp.identity.application.EmailVerificationTokenData? =
             createdToken?.takeIf { it.email == email && it.usedAt == null }
     }
 
@@ -503,28 +502,26 @@ class LocalAuthHandlersTest {
             provider: String?,
         ): PrincipalIdentityFacts? = principalFacts
 
-        override suspend fun findByEmail(email: String): PrincipalIdentityFacts? =
-            if (email == existingEmail) {
-                PrincipalIdentityFacts(
-                    principalId = "existing-user",
-                    principalType = com.profiletailors.common.domain.context.PrincipalType.USER,
-                    subject = "local:$email",
-                    provider = null,
-                    displayIdentity = "existing",
-                    email = email,
-                    username = "existing",
-                    emailStatus = EmailStatus.PENDING,
-                )
-            } else {
-                principalFacts
-            }
+        override suspend fun findByEmail(email: String): PrincipalIdentityFacts? = if (email == existingEmail) {
+            PrincipalIdentityFacts(
+                principalId = "existing-user",
+                principalType = com.profiletailors.common.domain.context.PrincipalType.USER,
+                subject = "local:$email",
+                provider = null,
+                displayIdentity = "existing",
+                email = email,
+                username = "existing",
+                emailStatus = EmailStatus.PENDING,
+            )
+        } else {
+            principalFacts
+        }
 
         override suspend fun findByPrincipalId(principalId: String): PrincipalIdentityFacts? = principalFacts
     }
 
-    private class FakeLocalPasswordCredentialGateway(
-        private val record: LocalPasswordCredentialRecord? = null,
-    ) : LocalPasswordCredentialGateway {
+    private class FakeLocalPasswordCredentialGateway(private val record: LocalPasswordCredentialRecord? = null) :
+        LocalPasswordCredentialGateway {
         var createdPrincipalId: String? = null
         var createdHash: String? = null
 
@@ -540,8 +537,7 @@ class LocalAuthHandlersTest {
     private class FakePasswordHasher : PasswordHasher {
         override fun hash(rawPassword: String): String = "hashed-$rawPassword"
 
-        override fun matches(rawPassword: String, passwordHash: String): Boolean =
-            passwordHash == "hashed-$rawPassword"
+        override fun matches(rawPassword: String, passwordHash: String): Boolean = passwordHash == "hashed-$rawPassword"
 
         override val algorithm: String = "fake"
     }
@@ -561,13 +557,16 @@ class LocalAuthHandlersTest {
     }
 
     private class FakeRefreshSessionGateway : RefreshSessionGateway {
-        override suspend fun create(principalId: String, refreshToken: RefreshSessionToken, expiresAt: Instant): CreatedRefreshSession =
-            CreatedRefreshSession(
-                id = "refresh-session-1",
-                principalId = principalId,
-                refreshToken = refreshToken,
-                expiresAt = expiresAt,
-            )
+        override suspend fun create(
+            principalId: String,
+            refreshToken: RefreshSessionToken,
+            expiresAt: Instant,
+        ): CreatedRefreshSession = CreatedRefreshSession(
+            id = "refresh-session-1",
+            principalId = principalId,
+            refreshToken = refreshToken,
+            expiresAt = expiresAt,
+        )
 
         override suspend fun requireActive(refreshToken: RefreshSessionToken, now: Instant): ActiveRefreshSession =
             ActiveRefreshSession(
@@ -601,7 +600,7 @@ class LocalAuthHandlersTest {
             displayName: String,
         ): WorkspaceProvisioningService.ProvisionedWorkspace = WorkspaceProvisioningService.ProvisionedWorkspace(
             workspaceId = "ws-fake-${principalId.hashCode().toUInt()}",
-            name = "${displayName}'s Workspace",
+            name = "$displayName's Workspace",
         )
     }
 

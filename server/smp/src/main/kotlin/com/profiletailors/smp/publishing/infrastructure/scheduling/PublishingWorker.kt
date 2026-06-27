@@ -16,7 +16,6 @@ import com.profiletailors.smp.publishing.domain.PublicationJobClaim
 import com.profiletailors.smp.publishing.domain.PublicationJobRepository
 import com.profiletailors.smp.publishing.domain.PublicationLifecyclePolicy
 import com.profiletailors.smp.publishing.domain.PublicationRepository
-import com.profiletailors.smp.publishing.domain.PublicationStatus
 import com.profiletailors.smp.publishing.domain.ReconnectRequiredException
 import com.profiletailors.smp.publishing.domain.SocialAccountRepository
 import com.profiletailors.smp.publishing.domain.SocialConnectionStatus
@@ -47,14 +46,14 @@ class PublishingJobExecutor(
         val now = clock.instant()
         val publication = publicationRepository.findByWorkspaceAndId(
             claim.workspaceId,
-            claim.publicationId
+            claim.publicationId,
         ) ?: error("Publication '${claim.publicationId}' not found for worker claim.")
-        
+
         val socialAccount = socialAccountRepository.findByWorkspaceAndId(
             publication.workspaceId,
-            publication.socialAccountId
+            publication.socialAccountId,
         ) ?: error("Social account '${publication.socialAccountId}' not found.")
-        
+
         val assets = mediaAssetResolver.resolveReadyAssets(
             publication.workspaceId,
             publication.assetIds,
@@ -97,95 +96,99 @@ class PublishingJobExecutor(
         socialAccount: com.profiletailors.smp.publishing.domain.SocialAccount,
         publication: com.profiletailors.smp.publishing.domain.PublicationDraft,
         now: Instant,
-    ): Boolean {
-        return when (socialAccount.status) {
-            SocialConnectionStatus.DISABLED -> {
-                log.info(
-                    "Preflight blocked publication {} — account {} is DISABLED",
-                    publication.id,
-                    socialAccount.id,
-                )
-                blockPublication(
-                    claim,
-                    publication,
-                    socialAccount.workspaceId,
-                    now,
-                    "Account is DISABLED",
-                    socialAccount.provider,
-                )
-                true
-            }
-            SocialConnectionStatus.REQUIRES_RECONNECT -> {
-                log.info(
-                    "Preflight blocked publication {} — account {} requires reconnect",
-                    publication.id,
-                    socialAccount.id,
-                )
-                blockPublication(
-                    claim,
-                    publication,
-                    socialAccount.workspaceId,
-                    now,
-                    "Account requires reconnect",
-                    socialAccount.provider,
-                )
-                true
-            }
-            SocialConnectionStatus.DELETED -> {
-                log.info(
-                    "Preflight failed publication {} — account {} is DELETED",
-                    publication.id,
-                    socialAccount.id,
-                )
-                failPublicationTerminal(
-                    claim,
-                    publication,
-                    socialAccount.workspaceId,
-                    now,
-                    "Account is DELETED",
-                    socialAccount.provider,
-                )
-                true
-            }
-            SocialConnectionStatus.PENDING -> {
-                log.info(
-                    "Preflight blocked publication {} — account {} is PENDING (not yet active)",
-                    publication.id,
-                    socialAccount.id,
-                )
-                blockPublication(
-                    claim,
-                    publication,
-                    socialAccount.workspaceId,
-                    now,
-                    "Account is PENDING activation",
-                    socialAccount.provider,
-                )
-                true
-            }
-            SocialConnectionStatus.ACTIVE -> {
-                false // Proceed with publishing
-            }
-            SocialConnectionStatus.ERROR -> {
-                false // Proceed — error status is non-publishable but may be recoverable
-            }
-            SocialConnectionStatus.REVOKED, SocialConnectionStatus.EXPIRED -> {
-                log.info(
-                    "Preflight blocked publication {} — account {} has legacy status {}",
-                    publication.id,
-                    socialAccount.id,
-                    socialAccount.status,
-                )
-                blockPublication(
-                    claim,
-                    publication,
-                    socialAccount.workspaceId,
-                    now,
-                    "Account status: ${socialAccount.status}",
-                    socialAccount.provider,
-                )
-                true
-            }
+    ): Boolean = when (socialAccount.status) {
+        SocialConnectionStatus.DISABLED -> {
+            log.info(
+                "Preflight blocked publication {} — account {} is DISABLED",
+                publication.id,
+                socialAccount.id,
+            )
+            blockPublication(
+                claim,
+                publication,
+                socialAccount.workspaceId,
+                now,
+                "Account is DISABLED",
+                socialAccount.provider,
+            )
+            true
+        }
+
+        SocialConnectionStatus.REQUIRES_RECONNECT -> {
+            log.info(
+                "Preflight blocked publication {} — account {} requires reconnect",
+                publication.id,
+                socialAccount.id,
+            )
+            blockPublication(
+                claim,
+                publication,
+                socialAccount.workspaceId,
+                now,
+                "Account requires reconnect",
+                socialAccount.provider,
+            )
+            true
+        }
+
+        SocialConnectionStatus.DELETED -> {
+            log.info(
+                "Preflight failed publication {} — account {} is DELETED",
+                publication.id,
+                socialAccount.id,
+            )
+            failPublicationTerminal(
+                claim,
+                publication,
+                socialAccount.workspaceId,
+                now,
+                "Account is DELETED",
+                socialAccount.provider,
+            )
+            true
+        }
+
+        SocialConnectionStatus.PENDING -> {
+            log.info(
+                "Preflight blocked publication {} — account {} is PENDING (not yet active)",
+                publication.id,
+                socialAccount.id,
+            )
+            blockPublication(
+                claim,
+                publication,
+                socialAccount.workspaceId,
+                now,
+                "Account is PENDING activation",
+                socialAccount.provider,
+            )
+            true
+        }
+
+        SocialConnectionStatus.ACTIVE -> {
+            false // Proceed with publishing
+        }
+
+        SocialConnectionStatus.ERROR -> {
+            false // Proceed — error status is non-publishable but may be recoverable
+        }
+
+        SocialConnectionStatus.REVOKED, SocialConnectionStatus.EXPIRED -> {
+            log.info(
+                "Preflight blocked publication {} — account {} has legacy status {}",
+                publication.id,
+                socialAccount.id,
+                socialAccount.status,
+            )
+            blockPublication(
+                claim,
+                publication,
+                socialAccount.workspaceId,
+                now,
+                "Account status: ${socialAccount.status}",
+                socialAccount.provider,
+            )
+            true
         }
     }
 
@@ -301,7 +304,7 @@ class PublishingJobExecutor(
         publication: com.profiletailors.smp.publishing.domain.PublicationDraft,
         socialAccount: com.profiletailors.smp.publishing.domain.SocialAccount,
         assets: List<com.profiletailors.smp.publishing.domain.PublicationAsset>,
-        now: Instant
+        now: Instant,
     ) {
         providerCapabilityValidator.validate(
             ProviderCapabilityValidationInput(
@@ -341,7 +344,7 @@ class PublishingJobExecutor(
         claim: PublicationJobClaim,
         publication: com.profiletailors.smp.publishing.domain.PublicationDraft,
         exception: Exception,
-        now: Instant
+        now: Instant,
     ) {
         val retryable = exception is RetryablePublishingException
         deliveryAttemptRepository.record(
@@ -361,14 +364,14 @@ class PublishingJobExecutor(
             publicationJobRepository.rescheduleRetry(
                 claim.jobId,
                 retryPolicy.nextRetryAt(now),
-                claim.attemptNumber
+                claim.attemptNumber,
             )
         } else {
             publicationRepository.markFailed(
                 publication.id,
                 now,
                 exception::class.simpleName,
-                exception.message
+                exception.message,
             )
             publicationJobRepository.fail(claim.jobId, now)
             recordNotificationEvent(
@@ -386,9 +389,7 @@ class PublishingJobExecutor(
     }
 }
 
-class RetryablePublishingException(
-    message: String,
-) : RuntimeException(message)
+class RetryablePublishingException(message: String) : RuntimeException(message)
 
 class PublishingWorker(
     private val publicationJobRepository: PublicationJobRepository,

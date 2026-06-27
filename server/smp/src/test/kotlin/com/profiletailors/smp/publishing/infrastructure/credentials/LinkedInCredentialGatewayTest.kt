@@ -47,7 +47,7 @@ class LinkedInCredentialGatewayTest : DatabaseUnitTestBase() {
             assertNotNull(returnedId)
             // Verify row exists in DB with encrypted payload
             val row = databaseClient.sql(
-                "SELECT encrypted_payload, owner_type, owner_id FROM secure_credentials WHERE id = :id"
+                "SELECT encrypted_payload, owner_type, owner_id FROM secure_credentials WHERE id = :id",
             )
                 .bind("id", returnedId)
                 .map { r, _ ->

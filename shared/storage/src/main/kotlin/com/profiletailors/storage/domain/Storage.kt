@@ -39,7 +39,7 @@ interface Storage {
         bucket: String,
         key: String,
         content: Flow<ByteArray>,
-        metadata: Map<String, String> = emptyMap()
+        metadata: Map<String, String> = emptyMap(),
     )
 
     /**
@@ -81,4 +81,18 @@ interface Storage {
      * @throws StorageServiceException if the check fails due to a service error
      */
     suspend fun exists(bucket: String, key: String): Boolean
+
+    /**
+     * Copies an object from a source key to a destination key within the same bucket.
+     *
+     * Used during the CAS upload finalization: the temp upload key is copied to the
+     * canonical key after hash validation. The temp key is deleted after a successful copy.
+     *
+     * @param bucket The bucket name (same for source and destination)
+     * @param sourceKey The source object key (e.g. temp upload key)
+     * @param destKey The destination object key (e.g. canonical CAS key)
+     * @throws StorageObjectNotFoundException if the source object does not exist
+     * @throws StorageServiceException if the copy operation fails
+     */
+    suspend fun copyObject(bucket: String, sourceKey: String, destKey: String)
 }

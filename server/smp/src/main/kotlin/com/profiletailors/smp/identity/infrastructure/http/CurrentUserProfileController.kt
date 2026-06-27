@@ -38,9 +38,7 @@ import org.springframework.web.bind.annotation.RestController
     name = "User Profile",
     description = "Current user profile endpoints",
 )
-class CurrentUserProfileController(
-    private val service: GetCurrentUserProfileService,
-) {
+class CurrentUserProfileController(private val service: GetCurrentUserProfileService) {
 
     /**
      * Get current authenticated user's profile.

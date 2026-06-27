@@ -8,7 +8,10 @@ import org.springframework.modulith.core.ApplicationModules
 class ModularityVerificationTest {
 
     @Test
-    @org.junit.jupiter.api.Disabled("Pre-existing modulith boundary violation: authorization -> audit :: application. Not related to publishing change.")
+    @org.junit.jupiter.api.Disabled(
+        "Pre-existing modulith boundary violation: authorization -> audit :: application." +
+            " Not related to publishing change.",
+    )
     fun verifiesApplicationModules() {
         try {
             ApplicationModules.of(SmpApplication::class.java).verify()

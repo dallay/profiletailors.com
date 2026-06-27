@@ -42,6 +42,7 @@ Exception: Purely internal or infrastructure-only records (e.g., `secure_credent
 ### Positive
 - Logs like "Failed to load ws-abc123" are self-documenting.
 - Prevents accidental usage of a User ID where a Workspace ID is expected.
+
 ### Negative
 - Slightly more storage and indexing overhead in PostgreSQL.
 - Requires string manipulation/concatenation in the backend.

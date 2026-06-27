@@ -3,7 +3,6 @@ package com.profiletailors.smp.credentials.infrastructure
 import com.profiletailors.smp.credentials.application.RefreshSessionFailureReason
 import com.profiletailors.smp.credentials.application.RefreshSessionGateway
 import com.profiletailors.smp.credentials.application.RefreshSessionNotActiveException
-import com.profiletailors.smp.credentials.application.RefreshSessionStatus
 import com.profiletailors.smp.credentials.application.RefreshSessionToken
 import com.profiletailors.smp.integration.support.DatabaseUnitTestBase
 import kotlinx.coroutines.reactor.awaitSingle

@@ -38,6 +38,10 @@ value class Email(val value: String) {
          * @param value the raw email string
          * @return a validated [Email], or `null` if validation fails
          */
-        fun of(value: String): Email? = try { Email(value) } catch (_: IllegalArgumentException) { null }
+        fun of(value: String): Email? = try {
+            Email(value)
+        } catch (_: IllegalArgumentException) {
+            null
+        }
     }
 }

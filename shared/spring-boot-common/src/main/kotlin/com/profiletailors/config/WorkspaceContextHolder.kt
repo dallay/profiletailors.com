@@ -1,8 +1,8 @@
 package com.profiletailors.config
 
-import java.util.UUID
 import reactor.core.publisher.Mono
 import reactor.util.context.Context
+import java.util.UUID
 
 /**
  * Provides reactive context propagation for the current workspace ID.
@@ -46,8 +46,7 @@ object WorkspaceContextHolder {
      * @return A function that modifies the context to include the workspace ID
      * @throws IllegalArgumentException if the string is not a valid UUID
      */
-    fun withWorkspace(workspaceId: String): (Context) -> Context =
-        withWorkspace(UUID.fromString(workspaceId))
+    fun withWorkspace(workspaceId: String): (Context) -> Context = withWorkspace(UUID.fromString(workspaceId))
 
     /**
      * Retrieves the current workspace ID from the reactive context.
@@ -66,12 +65,11 @@ object WorkspaceContextHolder {
      * Retrieves the current workspace ID directly from a Reactor Context.
      * Useful for coroutine bridging or direct context access.
      */
-    fun getFromContext(context: Context): UUID? =
-        if (context.hasKey(ContextKeys.WORKSPACE_CONTEXT_KEY)) {
-            context.get<UUID>(ContextKeys.WORKSPACE_CONTEXT_KEY)
-        } else {
-            null
-        }
+    fun getFromContext(context: Context): UUID? = if (context.hasKey(ContextKeys.WORKSPACE_CONTEXT_KEY)) {
+        context.get<UUID>(ContextKeys.WORKSPACE_CONTEXT_KEY)
+    } else {
+        null
+    }
 
     /**
      * Retrieves the current workspace ID from the reactive context, or throws if not set.

@@ -34,7 +34,11 @@ pre-commit:
       skip: true
 
     # ========== BACKEND (Kotlin + Spring Boot) ==========
-    # Detekt: lint estático en Kotlin — SIEMPRE se ejecuta, debe pasar para commit
+    # Spotless: auto-formatea Kotlin con ktlint — arregla lo arreglable
+    backend-spotless:
+      run: './gradlew spotlessApply --no-daemon'
+
+    # Detekt: análisis estático (NO formateo — eso lo hace spotless)
     backend-detekt:
       run: './gradlew :server:smp:detekt --no-daemon'
 
@@ -63,6 +67,38 @@ pre-push:
     # and are currently failing (pre-existing issue).
     backend-test:
       run: './gradlew :server:smp:test -x :server:smp:bddFastTest -x :server:smp:bddPostgresTest --no-daemon -PexcludeTags=modularity,postgres'
+
+
+# ---------- CONFIGURACIÓN DISTRIBUIDA ----------
+# Para agregar config específica por módulo, crea archivos .lefthookrc.yml
+# en cada directorio:
+#
+# Ejemplo: apps/web/marketing/.lefthookrc.yml
+# ```yaml
+# pre-commit:
+#   commands:
+#     lint:
+#       run: 'pnpm biome check --write --unsafe'
+# ```
+#
+# ---------- POST-CHECKOUT / POST-MERGE / POST-REWRITE ----------
+# AgentSync: sync agent config (skills, commands) after any
+# checkout, merge, or rewrite — keeps local tooling in sync
+# without inventing a second hook system.
+post-checkout:
+  commands:
+    agentsync-apply:
+      run: pnpm dlx @dallay/agentsync apply || true
+
+post-merge:
+  commands:
+    agentsync-apply:
+      run: pnpm dlx @dallay/agentsync apply || true
+
+post-rewrite:
+  commands:
+    agentsync-apply:
+      run: pnpm dlx @dallay/agentsync apply || true
 
 
 # ---------- CONFIGURACIÓN DISTRIBUIDA ----------
