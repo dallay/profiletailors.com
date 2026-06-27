@@ -20,8 +20,9 @@ export const APP_URL = {
 } as const
 
 /**
- * E2E credentials — must be provided via environment variables.
- * No fallback values are allowed: tests should fail fast if credentials are missing.
+ * E2E credentials — sourced from environment variables.
+ * Email falls back to a default dev account; the password is required and
+ * tests fail fast if E2E_TEST_USER_PASSWORD is missing.
  */
 const E2E_EMAIL = process.env.E2E_TEST_USER_EMAIL || 'dev@profiletailors.com'
 const E2E_PASSWORD = process.env.E2E_TEST_USER_PASSWORD
