@@ -37,7 +37,7 @@ const isEmpty = computed(() => props.options.length === 0 && !props.isLoading)
     <div
       v-if="open"
       id="sidebar-workspace-menu"
-      class="absolute top-0 left-0 z-50 w-full rounded-2xl border border-border-subtle bg-bg-surface p-2 shadow-2xl"
+      class="absolute top-0 left-0 z-50 w-full rounded-2xl border border-border-subtle bg-bg-surface p-2 shadow-2xl group-data-[collapsible=icon]:min-w-56"
       role="menu"
     >
       <div class="px-2 py-2">
@@ -108,6 +108,7 @@ const isEmpty = computed(() => props.options.length === 0 && !props.isLoading)
         :icon="activeWorkspace?.icon"
         size="md"
       />
+      <span class="sr-only">{{ activeWorkspace?.name ?? 'Select workspace' }}</span>
 
       <div class="min-w-0 flex-1 text-left group-data-[collapsible=icon]:hidden">
         <p class="truncate font-mono text-[11px] font-bold uppercase tracking-[0.18em] text-text-display">

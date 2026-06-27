@@ -52,6 +52,7 @@ function onMore() {
       <span class="flex size-5 shrink-0 items-center justify-center rounded-full border border-border-visible bg-bg-primary font-mono text-[9px] font-bold uppercase text-text-display">
         {{ channel.badge }}
       </span>
+      <span class="sr-only">{{ channel.label }} - {{ t('channels.connectAction') }}</span>
       <span class="min-w-0 flex-1 truncate group-data-[collapsible=icon]:hidden">{{ channel.label }}</span>
       <span class="font-mono text-[9px] uppercase tracking-[0.12em] text-text-secondary/80 group-data-[collapsible=icon]:hidden">+ {{ t('channels.connectAction') }}</span>
     </button>
@@ -61,13 +62,14 @@ function onMore() {
       type="button"
       @click="onMore"
     >
+      <span class="sr-only">{{ t('channels.more') }}</span>
       <span class="truncate group-data-[collapsible=icon]:hidden">{{ t('channels.more') }}</span>
       <span class="hidden group-data-[collapsible=icon]:block">+</span>
     </button>
 
     <p
       v-if="message"
-      class="mt-2 px-2 font-mono text-[9px] uppercase tracking-[0.12em] text-text-secondary group-data-[collapsible=icon]:hidden"
+      class="mt-2 px-2 font-mono text-[9px] uppercase tracking-[0.12em] text-text-secondary group-data-[collapsible=icon]:sr-only"
       aria-live="polite"
     >
       {{ message }}

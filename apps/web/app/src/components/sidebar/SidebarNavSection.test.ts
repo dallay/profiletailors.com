@@ -36,6 +36,7 @@ describe('SidebarNavSection', () => {
     const text = wrapper.text()
     expect(text).toContain('Workspace')
     expect(text).toContain('System')
+    expect(wrapper.findAll('.sr-only').length).toBeGreaterThan(0)
     expect(text).toContain('nav.dashboard')
     expect(text).toContain('nav.scheduler')
     expect(text).toContain('nav.analytics')

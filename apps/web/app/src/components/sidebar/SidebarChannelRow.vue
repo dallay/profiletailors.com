@@ -39,6 +39,7 @@ function onAvatarError() {
     @click="emit('select')"
   >
     <span class="relative flex size-5 shrink-0 items-center justify-center">
+      <span class="sr-only">{{ channel.name }}</span>
       <img
         v-if="channel.avatarUrl && !avatarLoadFailed"
         :src="proxyImageUrl(channel.avatarUrl ?? '')"

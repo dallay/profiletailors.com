@@ -202,6 +202,7 @@ function segmentedControlClass(isActive: boolean) {
       <div class="flex size-10 shrink-0 items-center justify-center rounded-xl border border-border-visible bg-bg-primary font-mono text-xs font-bold text-text-display group-data-[collapsible=icon]:size-full">
         {{ user.initials }}
       </div>
+      <span class="sr-only">{{ user.displayName }}</span>
 
       <div class="min-w-0 flex-1 group-data-[collapsible=icon]:hidden">
         <p class="truncate text-sm font-medium text-text-display">

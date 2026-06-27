@@ -1,8 +1,7 @@
 <script setup lang="ts">
 import { computed } from 'vue'
 import { useI18n } from 'vue-i18n'
-import type { LucideIcon } from 'lucide-vue-next'
-import { useCalendarUrl } from '@/composables/useCalendarUrl'
+import type { LucideIcon } from '@lucide/vue'
 
 export interface NavItem {
   labelKey: string
@@ -40,11 +39,12 @@ const renderedGroups = computed<NavGroup[]>(() =>
     ...group,
     items: group.items.map((item) => {
       if (item.to !== '/') return item
-      if (props.totalQueuedCount <= 0) {
+      const badge = formatBadge(props.totalQueuedCount)
+      if (badge === '') {
         const { badge: _omit, ...rest } = item
         return rest as NavItem
       }
-      return { ...item, badge: formatBadge(props.totalQueuedCount) }
+      return { ...item, badge }
     }),
   })),
 )
@@ -74,6 +74,7 @@ const renderedGroups = computed<NavGroup[]>(() =>
               :is="item.icon"
               class="size-4 shrink-0 text-text-secondary"
             />
+            <span class="sr-only">{{ t(item.labelKey) }}</span>
             <span class="truncate group-data-[collapsible=icon]:hidden">{{ t(item.labelKey) }}</span>
             <span
               v-if="item.badge"

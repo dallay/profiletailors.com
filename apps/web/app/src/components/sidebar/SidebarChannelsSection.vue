@@ -57,6 +57,7 @@ const allBadge = computed(() => {
       @click="emit('selectAll')"
     >
       <Users class="size-4 shrink-0 text-text-secondary" />
+      <span class="sr-only">All channels</span>
       <span class="truncate group-data-[collapsible=icon]:hidden">All channels</span>
       <span
         v-if="allBadge"
