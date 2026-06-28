@@ -17,7 +17,7 @@ package com.profiletailors.storage.domain
  *
  * @see Storage for the base contract without presigning
  */
-interface PresignableStorage : Storage {
+fun interface PresignableStorage : Storage {
 
     /**
      * Generates a presigned URL for downloading an object.

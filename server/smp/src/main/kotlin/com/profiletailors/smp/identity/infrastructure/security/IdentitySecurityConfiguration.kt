@@ -37,13 +37,14 @@ import reactor.core.publisher.Mono
 data class CorsConfigurationProperties(
     val allowedOrigins: List<String> = emptyList(),
     val allowedMethods: List<String> = listOf("GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"),
-    val allowedHeaders: List<String> = listOf("Content-Type", "Authorization", "X-Requested-With"),
+    val allowedHeaders: List<String> = listOf("Content-Type", "Authorization", "X-Requested-With", "X-Workspace-Id"),
     val exposedHeaders: List<String> = emptyList(),
     val allowCredentials: Boolean = false,
     val maxAge: Long = 1800,
 ) {
     companion object {
-        val REQUIRED_CORS_HEADERS: List<String> = listOf("Content-Type", "Authorization", "X-Requested-With")
+        val REQUIRED_CORS_HEADERS: List<String> =
+            listOf("Content-Type", "Authorization", "X-Requested-With", "X-Workspace-Id")
     }
 }
 
