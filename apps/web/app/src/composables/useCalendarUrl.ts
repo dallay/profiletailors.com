@@ -82,7 +82,7 @@ function trimOrEmpty(value: unknown): string {
 function normalizeSurface(route: { name: unknown }): SchedulerSurface {
   const name = typeof route.name === 'string' ? route.name : ''
   if (name === 'scheduler-calendar-month') return 'calendar-month'
-  if (name === 'scheduler-calendar-day') return 'calendar-day'
+  if (name === 'scheduler-calendar-day') return 'calendar-week'
   if (name === 'scheduler-list') return 'list'
   return 'calendar-week'
 }
@@ -192,6 +192,7 @@ export function createCalendarUrlController(
 
   const needsCanonicalization = computed(() => {
     if (!VALID_SURFACES.has(state.value.surface)) return true
+    if (route.name !== CALENDAR_ROUTE_NAMES[state.value.surface]) return true
     const rawStatus = trimOrEmpty(route.query.status)
     if (isInvalidStatus(rawStatus)) return true
     return !areQueriesEquivalent(route.query, buildQuery(state.value))

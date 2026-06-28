@@ -50,13 +50,15 @@ function extractKeys(content: string): string[] {
   // emit('close'), mount('#app'), split('-'), import('path'), etc.
   const dotCallRe = /(?<!\w)\$?t\(\s*['"]([^'"]+)['"]\s*\)/g
   for (const m of content.matchAll(dotCallRe)) {
-    keys.add(m[1])
+    const key = m[1]
+    if (key !== undefined) keys.add(key)
   }
 
   // labelKey: '...'  or  labelKey: "..."
   const labelKeyRe = /labelKey:\s*['"]([^'"]+)['"]/g
   for (const m of content.matchAll(labelKeyRe)) {
-    keys.add(m[1])
+    const key = m[1]
+    if (key !== undefined) keys.add(key)
   }
 
   return [...keys]

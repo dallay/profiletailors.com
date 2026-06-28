@@ -106,6 +106,25 @@ export class ComposeModalPage {
     return this.page.getByText(/select a file|selecciona un archivo/i)
   }
 
+  get mediaFileInput(): Locator {
+    return this.page.locator('#create-post-file-input')
+  }
+
+  get attachmentPreview(): Locator {
+    return this.page.locator('img[alt="Selected media preview"]')
+  }
+
+  get removeAttachmentButton(): Locator {
+    return this.page
+      .locator('div.relative.group')
+      .filter({ has: this.page.locator('img[alt="Selected media preview"]') })
+      .locator('button')
+  }
+
+  get uploadFailureMessage(): Locator {
+    return this.page.getByText(/media upload failed/i)
+  }
+
   // ---- Actions ----
 
   async expectVisible(): Promise<void> {
@@ -253,5 +272,35 @@ export class ComposeModalPage {
     await this.fillText(text)
     await this.selectLinkedIn()
     await this.clickSchedulePost()
+  }
+
+  // ---- Media attachment actions ----
+
+  /**
+   * Attach a media file to the post by absolute path.
+   */
+  async attachMedia(absolutePath: string): Promise<void> {
+    await this.mediaFileInput.setInputFiles(absolutePath)
+  }
+
+  /**
+   * Remove the attached media file.
+   */
+  async removeAttachment(): Promise<void> {
+    await this.removeAttachmentButton.click()
+  }
+
+  /**
+   * Get the attachment preview element (for assertions).
+   */
+  getAttachmentPreview(): Locator {
+    return this.attachmentPreview
+  }
+
+  /**
+   * Check if the upload failure message is visible.
+   */
+  async expectUploadFailure(): Promise<void> {
+    await expect(this.uploadFailureMessage).toBeVisible()
   }
 }

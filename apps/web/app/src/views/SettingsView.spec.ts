@@ -3,8 +3,11 @@ import { flushPromises, mount } from '@vue/test-utils'
 import { createPinia, setActivePinia } from 'pinia'
 import SettingsView from './SettingsView.vue'
 import { usePublishingStore } from '@/stores/publishing'
+import { useWorkspaceStore } from '@/stores/workspace'
 
 const routeQuery = vi.hoisted(() => ({ value: {} as Record<string, unknown> }))
+const renameWorkspaceMock = vi.hoisted(() => vi.fn())
+const authStoreState = vi.hoisted(() => ({ accessToken: 'access-token-1' }))
 
 vi.mock('vue-router', () => ({
   useRoute: () => ({ query: routeQuery.value }),
@@ -32,6 +35,12 @@ vi.mock('@/lib/auth-api', () => ({
   register: vi.fn(),
   logoutSession: vi.fn(),
   proxyImageUrl: (url: string) => url,
+  renameWorkspace: (...args: unknown[]) => renameWorkspaceMock(...args),
+  updateWorkspaceIcon: vi.fn(),
+}))
+
+vi.mock('@/stores/auth', () => ({
+  useAuthStore: () => authStoreState,
 }))
 
 function mountSettings() {
@@ -86,6 +95,68 @@ describe('SettingsView channel connection CTA', () => {
     await connectButton?.trigger('click')
 
     expect(connect).toHaveBeenCalledOnce()
+  })
+
+  it('dismisses rename success feedback after three seconds', async () => {
+    vi.useFakeTimers()
+    try {
+      const workspace = useWorkspaceStore()
+      workspace.setActiveWorkspaceId('ws-1')
+      workspace.setWorkspaceName('Current name')
+      renameWorkspaceMock.mockResolvedValue({ workspaceId: 'ws-1', name: 'Studio PT' })
+
+      const wrapper = mountSettings()
+      await flushPromises()
+      await wrapper
+        .findAll('button')
+        .find((button) => button.text().includes('workspace.rename'))
+        ?.trigger('click')
+      await wrapper.find('input[type="text"]').setValue('Studio PT')
+      await wrapper
+        .findAll('button')
+        .find((button) => button.text().includes('workspace.save'))
+        ?.trigger('click')
+      await flushPromises()
+
+      expect(wrapper.text()).toContain('workspace.renameSuccess')
+
+      await vi.advanceTimersByTimeAsync(3_000)
+
+      expect(wrapper.text()).not.toContain('workspace.renameSuccess')
+    } finally {
+      vi.useRealTimers()
+    }
+  })
+
+  it('clears pending rename feedback timer when unmounted', async () => {
+    vi.useFakeTimers()
+    const clearTimeoutSpy = vi.spyOn(globalThis, 'clearTimeout')
+    try {
+      const workspace = useWorkspaceStore()
+      workspace.setActiveWorkspaceId('ws-1')
+      workspace.setWorkspaceName('Current name')
+      renameWorkspaceMock.mockResolvedValue({ workspaceId: 'ws-1', name: 'Studio PT' })
+
+      const wrapper = mountSettings()
+      await flushPromises()
+      await wrapper
+        .findAll('button')
+        .find((button) => button.text().includes('workspace.rename'))
+        ?.trigger('click')
+      await wrapper.find('input[type="text"]').setValue('Studio PT')
+      await wrapper
+        .findAll('button')
+        .find((button) => button.text().includes('workspace.save'))
+        ?.trigger('click')
+      await flushPromises()
+
+      wrapper.unmount()
+
+      expect(clearTimeoutSpy).toHaveBeenCalledOnce()
+    } finally {
+      clearTimeoutSpy.mockRestore()
+      vi.useRealTimers()
+    }
   })
 
   it('renders the integrated settings overview layout', async () => {

@@ -144,6 +144,17 @@ frontend-test-e2e-headed:
 frontend-test-e2e-report:
     cd {{frontend-dir}} && pnpm test:e2e:report
 
+# Run app Media Library mocked E2E tests (Playwright headless)
+app-test-e2e-media-mocked:
+    pnpm --filter app test:e2e:media:mocked
+
+# Run app Media Library real-CAS smoke E2E tests (Playwright headless)
+app-test-e2e-media-real:
+    pnpm --filter app test:e2e:media:real
+
+# Run available app Media Library E2E lanes (mocked + real)
+app-test-e2e-media: app-test-e2e-media-mocked app-test-e2e-media-real
+
 # ═══════════════════════════════════════════════════════════════
 # BACKEND  (Gradle / Kotlin / Spring Boot / Detekt)
 # ═══════════════════════════════════════════════════════════════
