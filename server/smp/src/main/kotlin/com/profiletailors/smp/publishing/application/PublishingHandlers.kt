@@ -5,6 +5,7 @@ import com.profiletailors.common.domain.bus.command.CommandWithResultHandler
 import com.profiletailors.common.domain.bus.query.QueryHandler
 import com.profiletailors.common.domain.context.PrincipalContextProvider
 import com.profiletailors.common.domain.context.ResourceContextProvider
+import com.profiletailors.common.domain.persistence.AtomicTransactionRunner
 import com.profiletailors.smp.identity.application.AuthFeature
 import com.profiletailors.smp.identity.application.EmailVerificationPolicy
 import com.profiletailors.smp.identity.application.NoOpPrincipalIdentityLookup
@@ -53,12 +54,9 @@ import com.profiletailors.smp.publishing.domain.SocialConnectionRepository
 import com.profiletailors.smp.publishing.domain.SocialConnectionStatus
 import com.profiletailors.smp.publishing.domain.SocialProvider
 import com.profiletailors.smp.tenancy.application.requireWorkspaceContext
-import kotlinx.coroutines.reactor.awaitSingle
-import kotlinx.coroutines.reactor.mono
 import kotlinx.coroutines.withTimeoutOrNull
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
-import org.springframework.transaction.reactive.TransactionalOperator
 import java.time.Clock
 import java.time.Instant
 import java.util.Locale
@@ -292,7 +290,7 @@ internal class CreatePublicationHandler(
     private val publicationRepository: PublicationRepository,
     private val publicationAssetRepository: PublicationAssetRepository,
     private val publicationJobRepository: PublicationJobRepository,
-    private val transactionalOperator: TransactionalOperator,
+    private val transactionRunner: AtomicTransactionRunner,
     private val providerCapabilityValidator: ProviderCapabilityValidator,
     private val schedulingPolicy: PublicationSchedulingPolicy,
     private val mediaAssetResolver: MediaAssetResolver,
@@ -352,13 +350,11 @@ internal class CreatePublicationHandler(
             ),
         )
         val queued = PublicationLifecyclePolicy.queue(draft, schedulingPolicy.resolveDueAt(draft, now))
-        val persisted = transactionalOperator.transactional(
-            mono {
-                val created = publicationRepository.createDraft(queued)
-                publicationJobRepository.enqueue(newJobFor(created, now))
-                created
-            },
-        ).awaitSingle()
+        val persisted = transactionRunner.runAtomically {
+            val created = publicationRepository.createDraft(queued)
+            publicationJobRepository.enqueue(newJobFor(created, now))
+            created
+        }
         return persisted.toResult()
     }
 
@@ -420,15 +416,10 @@ internal class CreatePublicationHandler(
         socialAccountRepository.findByWorkspaceAndId(workspaceId, socialAccountId)
             ?: throw SocialAccountNotFoundException(socialAccountId)
 
-    private fun newJobFor(publication: PublicationDraft, now: Instant): PublicationJob = PublicationJob(
-        id = "pjob-${UUID.randomUUID()}",
-        publicationId = publication.id,
-        workspaceId = publication.workspaceId,
-        status = com.profiletailors.smp.publishing.domain.JobStatus.PENDING,
-        dueAt = schedulingPolicy.resolveDueAt(publication, now),
-        priorityRank = schedulingPolicy.priorityRank(publication),
-        attemptCount = 0,
-        maxAttempts = 1,
+    private fun newJobFor(publication: PublicationDraft, now: Instant): PublicationJob = replacementJobFor(
+        publication,
+        schedulingPolicy,
+        now,
     )
 
     private companion object {
@@ -446,7 +437,7 @@ internal class EditPublicationHandler(
     private val publicationRepository: PublicationRepository,
     private val publicationAssetRepository: PublicationAssetRepository,
     private val publicationJobRepository: PublicationJobRepository,
-    private val transactionalOperator: TransactionalOperator,
+    private val transactionRunner: AtomicTransactionRunner,
     private val providerCapabilityValidator: ProviderCapabilityValidator,
     private val schedulingPolicy: PublicationSchedulingPolicy,
     private val mediaAssetResolver: MediaAssetResolver,
@@ -496,21 +487,11 @@ internal class EditPublicationHandler(
             updatedDraft,
             schedulingPolicy.resolveDueAt(updatedDraft, now),
         )
-        val persisted = transactionalOperator.transactionalUpdate(
-            publicationRepository,
-            publicationJobRepository,
-            queued,
-            PublicationJob(
-                id = "pjob-${UUID.randomUUID()}",
-                publicationId = queued.id,
-                workspaceId = queued.workspaceId,
-                status = com.profiletailors.smp.publishing.domain.JobStatus.PENDING,
-                dueAt = schedulingPolicy.resolveDueAt(queued, now),
-                priorityRank = schedulingPolicy.priorityRank(queued),
-                attemptCount = 0,
-                maxAttempts = 1,
-            ),
-        )
+        val persisted = transactionRunner.runAtomically {
+            publicationRepository.updateEditableDraft(queued).also { persisted ->
+                publicationJobRepository.replaceForPublication(newJobFor(persisted, now))
+            }
+        }
         return persisted.toResult()
     }
 
@@ -560,6 +541,12 @@ internal class EditPublicationHandler(
             publicationAssetRepository.findByWorkspaceAndIds(workspaceId, assetIds)
         }
 
+    private fun newJobFor(publication: PublicationDraft, now: Instant): PublicationJob = replacementJobFor(
+        publication,
+        schedulingPolicy,
+        now,
+    )
+
     private companion object {
         const val TIMEOUT_MILLIS = 5_000L
         const val MILLIS_PER_SECOND = 1_000L
@@ -572,7 +559,6 @@ internal class DeletePublicationHandler(
     private val resourceContextProvider: ResourceContextProvider,
     private val publicationRepository: PublicationRepository,
     private val publicationJobRepository: PublicationJobRepository,
-    private val transactionalOperator: TransactionalOperator,
     private val clock: Clock,
     private val principalIdentityLookup: PrincipalIdentityLookup = NoOpPrincipalIdentityLookup(),
     private val emailVerificationPolicy: EmailVerificationPolicy = permissiveEmailVerificationPolicy,
@@ -600,7 +586,7 @@ internal class CancelPublicationHandler(
     private val resourceContextProvider: ResourceContextProvider,
     private val publicationRepository: PublicationRepository,
     private val publicationJobRepository: PublicationJobRepository,
-    private val transactionalOperator: TransactionalOperator,
+    private val transactionRunner: AtomicTransactionRunner,
     private val clock: Clock,
     private val principalIdentityLookup: PrincipalIdentityLookup = NoOpPrincipalIdentityLookup(),
     private val emailVerificationPolicy: EmailVerificationPolicy = permissiveEmailVerificationPolicy,
@@ -618,12 +604,10 @@ internal class CancelPublicationHandler(
             ?: throw PublicationNotFoundException(command.publicationId)
         val cancelledAt = clock.instant()
         val cancelled = PublicationLifecyclePolicy.cancel(current, cancelledAt)
-        transactionalOperator.transactional(
-            mono<Unit> {
-                publicationRepository.markCancelled(cancelled.id, cancelledAt)
-                publicationJobRepository.cancel(cancelled.id, cancelledAt)
-            },
-        ).awaitSingle()
+        transactionRunner.runAtomically {
+            publicationRepository.markCancelled(cancelled.id, cancelledAt)
+            publicationJobRepository.cancel(cancelled.id, cancelledAt)
+        }
         return cancelled.toResult()
     }
 }
@@ -634,7 +618,7 @@ internal class RetryPublicationHandler(
     private val resourceContextProvider: ResourceContextProvider,
     private val publicationRepository: PublicationRepository,
     private val publicationJobRepository: PublicationJobRepository,
-    private val transactionalOperator: TransactionalOperator,
+    private val transactionRunner: AtomicTransactionRunner,
     private val schedulingPolicy: PublicationSchedulingPolicy,
     private val clock: Clock,
     private val principalIdentityLookup: PrincipalIdentityLookup = NoOpPrincipalIdentityLookup(),
@@ -663,21 +647,11 @@ internal class RetryPublicationHandler(
                 priority = command.priority ?: current.priority,
             ),
         )
-        val persisted = transactionalOperator.transactionalUpdate(
-            publicationRepository,
-            publicationJobRepository,
-            prepared,
-            PublicationJob(
-                id = "pjob-${UUID.randomUUID()}",
-                publicationId = prepared.id,
-                workspaceId = prepared.workspaceId,
-                status = com.profiletailors.smp.publishing.domain.JobStatus.PENDING,
-                dueAt = schedulingPolicy.resolveDueAt(prepared, now),
-                priorityRank = schedulingPolicy.priorityRank(prepared),
-                attemptCount = 0,
-                maxAttempts = 1,
-            ),
-        )
+        val persisted = transactionRunner.runAtomically {
+            publicationRepository.updateEditableDraft(prepared).also { persisted ->
+                publicationJobRepository.replaceForPublication(replacementJobFor(persisted, schedulingPolicy, now))
+            }
+        }
         return persisted.toResult()
     }
 }
@@ -688,7 +662,7 @@ internal class ReschedulePublicationHandler(
     private val resourceContextProvider: ResourceContextProvider,
     private val publicationRepository: PublicationRepository,
     private val publicationJobRepository: PublicationJobRepository,
-    private val transactionalOperator: TransactionalOperator,
+    private val transactionRunner: AtomicTransactionRunner,
     private val schedulingPolicy: PublicationSchedulingPolicy,
     private val clock: Clock,
     private val principalIdentityLookup: PrincipalIdentityLookup = NoOpPrincipalIdentityLookup(),
@@ -725,21 +699,11 @@ internal class ReschedulePublicationHandler(
                 now,
             ),
         )
-        val persisted = transactionalOperator.transactionalUpdate(
-            publicationRepository,
-            publicationJobRepository,
-            rescheduled,
-            PublicationJob(
-                id = "pjob-${UUID.randomUUID()}",
-                publicationId = rescheduled.id,
-                workspaceId = rescheduled.workspaceId,
-                status = com.profiletailors.smp.publishing.domain.JobStatus.PENDING,
-                dueAt = schedulingPolicy.resolveDueAt(rescheduled, now),
-                priorityRank = schedulingPolicy.priorityRank(rescheduled),
-                attemptCount = 0,
-                maxAttempts = 1,
-            ),
-        )
+        val persisted = transactionRunner.runAtomically {
+            publicationRepository.updateEditableDraft(rescheduled).also { persisted ->
+                publicationJobRepository.replaceForPublication(replacementJobFor(persisted, schedulingPolicy, now))
+            }
+        }
         return persisted.toResult()
     }
 }
@@ -904,31 +868,20 @@ private fun PublicationDraft.toCalendarResult(
     previewUrl = previewUrl,
 )
 
-/**
- * Converts a publication draft to its result DTO.
- *
- * @return A PublicationResult containing the publication draft's fields.
- */
-/**
- * Wraps the publication + job mutation pair in a transaction.
- *
- * This helper ensures that the publication and its corresponding job are updated atomically.
- * It is used by Edit, Retry, and Reschedule handlers which follow the same pattern:
- * 1. Update the publication draft
- * 2. Replace the existing job with a new one
- */
-private suspend fun TransactionalOperator.transactionalUpdate(
-    publicationRepository: PublicationRepository,
-    publicationJobRepository: PublicationJobRepository,
-    draft: PublicationDraft,
-    job: PublicationJob,
-): PublicationDraft = transactional(
-    mono {
-        val persisted = publicationRepository.updateEditableDraft(draft)
-        publicationJobRepository.replaceForPublication(job.copy(publicationId = persisted.id))
-        persisted
-    },
-).awaitSingle()
+private fun replacementJobFor(
+    publication: PublicationDraft,
+    schedulingPolicy: PublicationSchedulingPolicy,
+    now: Instant,
+): PublicationJob = PublicationJob(
+    id = "pjob-${UUID.randomUUID()}",
+    publicationId = publication.id,
+    workspaceId = publication.workspaceId,
+    status = com.profiletailors.smp.publishing.domain.JobStatus.PENDING,
+    dueAt = schedulingPolicy.resolveDueAt(publication, now),
+    priorityRank = schedulingPolicy.priorityRank(publication),
+    attemptCount = 0,
+    maxAttempts = 1,
+)
 
 private fun PublicationDraft.toResult(): PublicationResult = PublicationResult(
     publicationId = id,

@@ -56,6 +56,16 @@ class BddDatabaseSupport(
         cleanupStatements().forEach { statement ->
             databaseClient.sql(statement).fetch().rowsUpdated().awaitSingle()
         }
+        restoreRequiredBaselineRoles()
+    }
+
+    private suspend fun restoreRequiredBaselineRoles() {
+        databaseClient.sql(
+            """
+            INSERT INTO roles (id, role_key, category)
+            VALUES ('role-owner', 'owner', 'WORKSPACE')
+            """.trimIndent(),
+        ).fetch().rowsUpdated().awaitSingle()
     }
 
     suspend fun seedEntitledAuthorizedMember() {
