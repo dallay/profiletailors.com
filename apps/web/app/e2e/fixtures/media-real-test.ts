@@ -77,9 +77,14 @@ export const test = base.extend<MediaRealFixtures>({
 
   page: async ({ page, context, runId }, use) => {
     // Authenticate the active page first via login form
+    const email = process.env.E2E_MEDIA_EMAIL
+    const password = process.env.E2E_MEDIA_PASSWORD
+    if (!email || !password) {
+      throw new Error('E2E_MEDIA_EMAIL and E2E_MEDIA_PASSWORD must be set for real media tests')
+    }
     await authenticateAs(page, {
-      email: process.env.E2E_MEDIA_EMAIL || 'dev@profiletailors.com',
-      password: process.env.E2E_MEDIA_PASSWORD || 'S3cr3tP@ssw0rd*123',
+      email,
+      password,
     })
 
     await page.setExtraHTTPHeaders({
@@ -100,7 +105,11 @@ export const test = base.extend<MediaRealFixtures>({
           ? `/api/publishing/publications?limit=100&cursor=${encodeURIComponent(cursor)}`
           : '/api/publishing/publications?limit=100'
         const res = await apiRequest.get(url, { headers: { 'X-Workspace-Id': workspaceId } })
-        if (!res.ok()) break
+        if (!res.ok()) {
+          throw new Error(
+            `Failed to list publications during teardown (${res.status()} ${res.statusText()}) for ${url}`,
+          )
+        }
         const data = (await res.json()) as {
           publications?: Array<Record<string, unknown>>
           cursor?: string
@@ -120,7 +129,11 @@ export const test = base.extend<MediaRealFixtures>({
           ? `/api/media/assets?pageSize=100&cursor=${encodeURIComponent(cursor)}`
           : '/api/media/assets?pageSize=100'
         const res = await apiRequest.get(url, { headers: { 'X-Workspace-Id': workspaceId } })
-        if (!res.ok()) break
+        if (!res.ok()) {
+          throw new Error(
+            `Failed to list assets during teardown (${res.status()} ${res.statusText()}) for ${url}`,
+          )
+        }
         const data = (await res.json()) as {
           assets?: Array<Record<string, unknown>>
           nextCursor?: string
@@ -164,24 +177,20 @@ export const test = base.extend<MediaRealFixtures>({
     }
 
     // 3. Double check — fail if any run-owned publications OR assets remain
-    try {
-      const remainingPublications = (await fetchAllPublications()).filter(
-        (pub) =>
-          ((pub.bodyText as string) || '').includes(`e2e-cas-${runId}-`) ||
-          ((pub.title as string) || '').includes(`e2e-cas-${runId}-`),
+    const remainingPublications = (await fetchAllPublications()).filter(
+      (pub) =>
+        ((pub.bodyText as string) || '').includes(`e2e-cas-${runId}-`) ||
+        ((pub.title as string) || '').includes(`e2e-cas-${runId}-`),
+    )
+    const remainingAssets = (await fetchAllAssets()).filter((asset) =>
+      ((asset.originalFilename as string) || '').startsWith(`e2e-cas-${runId}-`),
+    )
+    if (remainingPublications.length > 0 || remainingAssets.length > 0) {
+      const pubNames = remainingPublications.map((p) => (p as { id?: string }).id ?? '?')
+      const assetNames = remainingAssets.map((a) => (a.originalFilename as string) ?? '?')
+      throw new Error(
+        `Teardown failed: ${remainingPublications.length} run-owned publications (${pubNames.join(', ')}), ${remainingAssets.length} run-owned assets (${assetNames.join(', ')}) still remain.`,
       )
-      const remainingAssets = (await fetchAllAssets()).filter((asset) =>
-        ((asset.originalFilename as string) || '').startsWith(`e2e-cas-${runId}-`),
-      )
-      if (remainingPublications.length > 0 || remainingAssets.length > 0) {
-        const pubNames = remainingPublications.map((p) => (p as { id?: string }).id ?? '?')
-        const assetNames = remainingAssets.map((a) => (a.originalFilename as string) ?? '?')
-        throw new Error(
-          `Teardown failed: ${remainingPublications.length} run-owned publications (${pubNames.join(', ')}), ${remainingAssets.length} run-owned assets (${assetNames.join(', ')}) still remain.`,
-        )
-      }
-    } catch (err) {
-      console.warn('Failed to verify teardown:', err)
     }
   },
 

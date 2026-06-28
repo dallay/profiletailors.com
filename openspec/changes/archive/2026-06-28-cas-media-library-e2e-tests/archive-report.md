@@ -125,7 +125,7 @@ The CAS Media Library E2E test infrastructure has been:
 | Archived change | `openspec/changes/archive/2026-06-28-cas-media-library-e2e-tests/` |
 | Main spec (updated) | `openspec/specs/e2e/cas-media-library-test-plan.md` |
 | Implementation files | `apps/web/app/e2e/` (configs, fixtures, pages, specs) |
-| Commands | `apps/web/app/package.json`, `justfile` |
+| Commands | `apps/web/app/package.json`, `Justfile` |
 | Verification report | `openspec/changes/archive/2026-06-28-cas-media-library-e2e-tests/verify-report.md` |
 
 ---

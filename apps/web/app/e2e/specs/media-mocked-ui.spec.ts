@@ -18,7 +18,7 @@ test.describe(`Media Library mocked UI ${tags}`, () => {
     await expect(mediaPage.getCounter('FAILED')).toHaveText('0')
   })
 
-  test('ML-LOAD-003 error: shows load error and retry without false empty state', async ({
+  test('ML-LOAD-003 error: shows load error and retry while empty state still renders', async ({
     mediaPage,
     mockListResponse,
   }) => {

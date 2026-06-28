@@ -187,7 +187,10 @@ describe('MediaLibraryView', () => {
     const wrapper = mountView()
     await flushPromises()
 
-    const badge = wrapper.find('[data-testid="status-badge"]')
+    const cards = wrapper.findAll('article')
+    const deletedCard = cards.find((card) => card.text().includes('removed.png'))
+    expect(deletedCard?.exists()).toBe(true)
+    const badge = deletedCard!.find('[data-testid="status-badge"]')
     expect(badge.text()).toBe('DELETED')
     expect(badge.classes()).toContain('border-border-visible')
     expect(badge.classes()).toContain('bg-bg-primary')
