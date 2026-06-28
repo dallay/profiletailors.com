@@ -59,6 +59,10 @@ import com.profiletailors.smp.publishing.domain.SocialConnectionProvider
 import com.profiletailors.smp.publishing.domain.SocialConnectionRepository
 import com.profiletailors.smp.publishing.domain.SocialConnectionStatus
 import com.profiletailors.smp.publishing.domain.SocialProvider
+import io.mockk.coEvery
+import io.mockk.mockk
+import org.springframework.transaction.reactive.TransactionalOperator
+import reactor.core.publisher.Mono
 import kotlinx.coroutines.test.runTest
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertNotNull
@@ -89,6 +93,12 @@ class PublishingHandlersTest {
 
     /** Always returns false — email verification gate is disabled in unit tests. */
     private val noOpEmailVerificationPolicy = permissiveEmailVerificationPolicy
+
+    private val noOpTransactionalOperator = mockk<TransactionalOperator>().apply {
+        coEvery { transactional(any<Mono<Any>>()) } answers {
+            it.invocation.args[0] as Mono<Any>
+        }
+    }
 
     private class VerifiedPrincipalIdentityLookup : PrincipalIdentityLookup {
         override suspend fun findBySubject(
@@ -380,7 +390,7 @@ class PublishingHandlersTest {
             socialAccountRepository = socialAccountRepository,
             publicationRepository = publicationRepository,
             publicationAssetRepository = assetRepository,
-            publicationJobRepository = jobRepository,
+            publicationJobRepository = jobRepository, transactionalOperator = noOpTransactionalOperator,
             providerCapabilityValidator = AcceptingCapabilityValidator(),
             schedulingPolicy = PublicationSchedulingPolicy(),
             mediaAssetResolver = FakeMediaAssetResolver(),
@@ -429,7 +439,7 @@ class PublishingHandlersTest {
             socialAccountRepository = socialAccountRepository,
             publicationRepository = publicationRepository,
             publicationAssetRepository = assetRepository,
-            publicationJobRepository = jobRepository,
+            publicationJobRepository = jobRepository, transactionalOperator = noOpTransactionalOperator,
             providerCapabilityValidator = AcceptingCapabilityValidator(),
             schedulingPolicy = PublicationSchedulingPolicy(),
             mediaAssetResolver = FakeMediaAssetResolver(),
@@ -476,7 +486,7 @@ class PublishingHandlersTest {
             socialAccountRepository = socialAccountRepository,
             publicationRepository = publicationRepository,
             publicationAssetRepository = assetRepository,
-            publicationJobRepository = jobRepository,
+            publicationJobRepository = jobRepository, transactionalOperator = noOpTransactionalOperator,
             providerCapabilityValidator = AcceptingCapabilityValidator(),
             schedulingPolicy = PublicationSchedulingPolicy(),
             mediaAssetResolver = FakeMediaAssetResolver(),
@@ -521,7 +531,7 @@ class PublishingHandlersTest {
             socialAccountRepository = socialAccountRepository,
             publicationRepository = publicationRepository,
             publicationAssetRepository = assetRepository,
-            publicationJobRepository = jobRepository,
+            publicationJobRepository = jobRepository, transactionalOperator = noOpTransactionalOperator,
             providerCapabilityValidator = AcceptingCapabilityValidator(),
             schedulingPolicy = PublicationSchedulingPolicy(),
             mediaAssetResolver = FakeMediaAssetResolver(),
@@ -569,7 +579,7 @@ class PublishingHandlersTest {
             socialAccountRepository = socialAccountRepository,
             publicationRepository = publicationRepository,
             publicationAssetRepository = assetRepository,
-            publicationJobRepository = jobRepository,
+            publicationJobRepository = jobRepository, transactionalOperator = noOpTransactionalOperator,
             providerCapabilityValidator = AcceptingCapabilityValidator(),
             schedulingPolicy = PublicationSchedulingPolicy(),
             mediaAssetResolver = FakeMediaAssetResolver(),
@@ -610,7 +620,7 @@ class PublishingHandlersTest {
             principalContextProvider = FixedPrincipalContextProvider(principalContext),
             resourceContextProvider = FixedResourceContextProvider(workspaceContext),
             publicationRepository = publicationRepository,
-            publicationJobRepository = jobRepository,
+            publicationJobRepository = jobRepository, transactionalOperator = noOpTransactionalOperator,
             schedulingPolicy = PublicationSchedulingPolicy(),
             clock = fixedClock,
         )
@@ -663,7 +673,7 @@ class PublishingHandlersTest {
             socialAccountRepository = socialAccountRepository,
             publicationRepository = publicationRepository,
             publicationAssetRepository = InMemoryPublicationAssetRepository(emptyList()),
-            publicationJobRepository = jobRepository,
+            publicationJobRepository = jobRepository, transactionalOperator = noOpTransactionalOperator,
             providerCapabilityValidator = AcceptingCapabilityValidator(),
             schedulingPolicy = PublicationSchedulingPolicy(),
             mediaAssetResolver = FakeMediaAssetResolver(),
@@ -722,7 +732,7 @@ class PublishingHandlersTest {
             socialAccountRepository = socialAccountRepository,
             publicationRepository = publicationRepository,
             publicationAssetRepository = assetRepository,
-            publicationJobRepository = jobRepository,
+            publicationJobRepository = jobRepository, transactionalOperator = noOpTransactionalOperator,
             providerCapabilityValidator = RejectingCapabilityValidator(),
             schedulingPolicy = PublicationSchedulingPolicy(),
             mediaAssetResolver = FakeMediaAssetResolver(),
@@ -779,7 +789,7 @@ class PublishingHandlersTest {
             socialAccountRepository = socialAccountRepository,
             publicationRepository = publicationRepository,
             publicationAssetRepository = InMemoryPublicationAssetRepository(emptyList()),
-            publicationJobRepository = jobRepository,
+            publicationJobRepository = jobRepository, transactionalOperator = noOpTransactionalOperator,
             providerCapabilityValidator = AcceptingCapabilityValidator(),
             schedulingPolicy = PublicationSchedulingPolicy(),
             mediaAssetResolver = FakeMediaAssetResolver(),
@@ -820,7 +830,7 @@ class PublishingHandlersTest {
             principalContextProvider = FixedPrincipalContextProvider(principalContext),
             resourceContextProvider = FixedResourceContextProvider(workspaceContext),
             publicationRepository = publicationRepository,
-            publicationJobRepository = jobRepository,
+            publicationJobRepository = jobRepository, transactionalOperator = noOpTransactionalOperator,
             clock = fixedClock,
         )
 
@@ -850,7 +860,7 @@ class PublishingHandlersTest {
             principalContextProvider = FixedPrincipalContextProvider(principalContext),
             resourceContextProvider = FixedResourceContextProvider(workspaceContext),
             publicationRepository = publicationRepository,
-            publicationJobRepository = jobRepository,
+            publicationJobRepository = jobRepository, transactionalOperator = noOpTransactionalOperator,
             schedulingPolicy = PublicationSchedulingPolicy(),
             clock = fixedClock,
         )
@@ -891,7 +901,7 @@ class PublishingHandlersTest {
             principalContextProvider = FixedPrincipalContextProvider(principalContext),
             resourceContextProvider = FixedResourceContextProvider(workspaceContext),
             publicationRepository = publicationRepository,
-            publicationJobRepository = jobRepository,
+            publicationJobRepository = jobRepository, transactionalOperator = noOpTransactionalOperator,
             schedulingPolicy = PublicationSchedulingPolicy(),
             clock = fixedClock,
         )
@@ -930,7 +940,7 @@ class PublishingHandlersTest {
             principalContextProvider = FixedPrincipalContextProvider(principalContext),
             resourceContextProvider = FixedResourceContextProvider(workspaceContext),
             publicationRepository = publicationRepository,
-            publicationJobRepository = jobRepository,
+            publicationJobRepository = jobRepository, transactionalOperator = noOpTransactionalOperator,
             schedulingPolicy = PublicationSchedulingPolicy(),
             clock = fixedClock,
         )
@@ -961,7 +971,7 @@ class PublishingHandlersTest {
             principalContextProvider = FixedPrincipalContextProvider(principalContext),
             resourceContextProvider = FixedResourceContextProvider(workspaceContext),
             publicationRepository = publicationRepository,
-            publicationJobRepository = jobRepository,
+            publicationJobRepository = jobRepository, transactionalOperator = noOpTransactionalOperator,
             schedulingPolicy = PublicationSchedulingPolicy(),
             clock = fixedClock,
         )
@@ -998,7 +1008,7 @@ class PublishingHandlersTest {
             principalContextProvider = FixedPrincipalContextProvider(principalContext),
             resourceContextProvider = FixedResourceContextProvider(workspaceContext),
             publicationRepository = publicationRepository,
-            publicationJobRepository = jobRepository,
+            publicationJobRepository = jobRepository, transactionalOperator = noOpTransactionalOperator,
             schedulingPolicy = PublicationSchedulingPolicy(),
             clock = fixedClock,
         )
@@ -1195,7 +1205,7 @@ class PublishingHandlersTest {
             principalContextProvider = FixedPrincipalContextProvider(principalContext),
             resourceContextProvider = FixedResourceContextProvider(workspaceContext),
             publicationRepository = publicationRepository,
-            publicationJobRepository = jobRepository,
+            publicationJobRepository = jobRepository, transactionalOperator = noOpTransactionalOperator,
             schedulingPolicy = PublicationSchedulingPolicy(),
             clock = fixedClock,
         )
@@ -1273,7 +1283,7 @@ class PublishingHandlersTest {
             socialAccountRepository = socialAccountRepository,
             publicationRepository = publicationRepository,
             publicationAssetRepository = assetRepository,
-            publicationJobRepository = jobRepository,
+            publicationJobRepository = jobRepository, transactionalOperator = noOpTransactionalOperator,
             providerCapabilityValidator = AcceptingCapabilityValidator(),
             schedulingPolicy = PublicationSchedulingPolicy(),
             mediaAssetResolver = FakeMediaAssetResolver(),
@@ -1307,7 +1317,7 @@ class PublishingHandlersTest {
             socialAccountRepository = socialAccountRepository,
             publicationRepository = publicationRepository,
             publicationAssetRepository = InMemoryPublicationAssetRepository(emptyList()),
-            publicationJobRepository = jobRepository,
+            publicationJobRepository = jobRepository, transactionalOperator = noOpTransactionalOperator,
             providerCapabilityValidator = AcceptingCapabilityValidator(),
             schedulingPolicy = PublicationSchedulingPolicy(),
             mediaAssetResolver = FakeMediaAssetResolver(),
@@ -1338,7 +1348,7 @@ class PublishingHandlersTest {
             principalContextProvider = FixedPrincipalContextProvider(principalContext),
             resourceContextProvider = FixedResourceContextProvider(workspaceContext),
             publicationRepository = publicationRepository,
-            publicationJobRepository = jobRepository,
+            publicationJobRepository = jobRepository, transactionalOperator = noOpTransactionalOperator,
             clock = fixedClock,
         )
 
@@ -1359,7 +1369,7 @@ class PublishingHandlersTest {
             principalContextProvider = FixedPrincipalContextProvider(principalContext),
             resourceContextProvider = FixedResourceContextProvider(workspaceContext),
             publicationRepository = publicationRepository,
-            publicationJobRepository = jobRepository,
+            publicationJobRepository = jobRepository, transactionalOperator = noOpTransactionalOperator,
             schedulingPolicy = PublicationSchedulingPolicy(),
             clock = fixedClock,
         )
@@ -1381,7 +1391,7 @@ class PublishingHandlersTest {
             principalContextProvider = FixedPrincipalContextProvider(principalContext),
             resourceContextProvider = FixedResourceContextProvider(workspaceContext),
             publicationRepository = publicationRepository,
-            publicationJobRepository = jobRepository,
+            publicationJobRepository = jobRepository, transactionalOperator = noOpTransactionalOperator,
             schedulingPolicy = PublicationSchedulingPolicy(),
             clock = fixedClock,
         )
@@ -1945,7 +1955,7 @@ class PublishingHandlersTest {
             socialAccountRepository = socialAccountRepository,
             publicationRepository = publicationRepository,
             publicationAssetRepository = assetRepository,
-            publicationJobRepository = jobRepository,
+            publicationJobRepository = jobRepository, transactionalOperator = noOpTransactionalOperator,
             providerCapabilityValidator = AcceptingCapabilityValidator(),
             schedulingPolicy = PublicationSchedulingPolicy(),
             mediaAssetResolver = mediaResolver,
@@ -1996,7 +2006,7 @@ class PublishingHandlersTest {
             socialAccountRepository = socialAccountRepository,
             publicationRepository = publicationRepository,
             publicationAssetRepository = assetRepository,
-            publicationJobRepository = jobRepository,
+            publicationJobRepository = jobRepository, transactionalOperator = noOpTransactionalOperator,
             providerCapabilityValidator = AcceptingCapabilityValidator(),
             schedulingPolicy = PublicationSchedulingPolicy(),
             mediaAssetResolver = mediaResolver,
@@ -2056,7 +2066,7 @@ class PublishingHandlersTest {
             socialAccountRepository = socialAccountRepository,
             publicationRepository = publicationRepository,
             publicationAssetRepository = assetRepository,
-            publicationJobRepository = jobRepository,
+            publicationJobRepository = jobRepository, transactionalOperator = noOpTransactionalOperator,
             providerCapabilityValidator = AcceptingCapabilityValidator(),
             schedulingPolicy = PublicationSchedulingPolicy(),
             mediaAssetResolver = mediaResolver,
@@ -2104,7 +2114,7 @@ class PublishingHandlersTest {
             socialAccountRepository = socialAccountRepository,
             publicationRepository = publicationRepository,
             publicationAssetRepository = assetRepository,
-            publicationJobRepository = jobRepository,
+            publicationJobRepository = jobRepository, transactionalOperator = noOpTransactionalOperator,
             providerCapabilityValidator = AcceptingCapabilityValidator(),
             schedulingPolicy = PublicationSchedulingPolicy(),
             mediaAssetResolver = mediaResolver,
@@ -2167,7 +2177,7 @@ class PublishingHandlersTest {
             socialAccountRepository = socialAccountRepository,
             publicationRepository = publicationRepository,
             publicationAssetRepository = assetRepository,
-            publicationJobRepository = jobRepository,
+            publicationJobRepository = jobRepository, transactionalOperator = noOpTransactionalOperator,
             providerCapabilityValidator = AcceptingCapabilityValidator(),
             schedulingPolicy = PublicationSchedulingPolicy(),
             mediaAssetResolver = mediaResolver,
@@ -2217,7 +2227,7 @@ class PublishingHandlersTest {
             socialAccountRepository = socialAccountRepository,
             publicationRepository = publicationRepository,
             publicationAssetRepository = assetRepository,
-            publicationJobRepository = jobRepository,
+            publicationJobRepository = jobRepository, transactionalOperator = noOpTransactionalOperator,
             providerCapabilityValidator = AcceptingCapabilityValidator(),
             schedulingPolicy = PublicationSchedulingPolicy(),
             mediaAssetResolver = mediaResolver,
@@ -2277,7 +2287,7 @@ class PublishingHandlersTest {
             socialAccountRepository = socialAccountRepository,
             publicationRepository = publicationRepository,
             publicationAssetRepository = assetRepository,
-            publicationJobRepository = jobRepository,
+            publicationJobRepository = jobRepository, transactionalOperator = noOpTransactionalOperator,
             providerCapabilityValidator = AcceptingCapabilityValidator(),
             schedulingPolicy = PublicationSchedulingPolicy(),
             mediaAssetResolver = mediaResolver,
@@ -2339,7 +2349,7 @@ class PublishingHandlersTest {
             socialAccountRepository = socialAccountRepository,
             publicationRepository = publicationRepository,
             publicationAssetRepository = assetRepository,
-            publicationJobRepository = jobRepository,
+            publicationJobRepository = jobRepository, transactionalOperator = noOpTransactionalOperator,
             providerCapabilityValidator = AcceptingCapabilityValidator(),
             schedulingPolicy = PublicationSchedulingPolicy(),
             mediaAssetResolver = mediaResolver,
@@ -2401,7 +2411,7 @@ class PublishingHandlersTest {
             socialAccountRepository = socialAccountRepository,
             publicationRepository = publicationRepository,
             publicationAssetRepository = assetRepository,
-            publicationJobRepository = jobRepository,
+            publicationJobRepository = jobRepository, transactionalOperator = noOpTransactionalOperator,
             providerCapabilityValidator = AcceptingCapabilityValidator(),
             schedulingPolicy = PublicationSchedulingPolicy(),
             mediaAssetResolver = mediaResolver,
@@ -2479,7 +2489,7 @@ class PublishingHandlersTest {
             socialAccountRepository = socialAccountRepository,
             publicationRepository = publicationRepository,
             publicationAssetRepository = InMemoryPublicationAssetRepository(emptyList()),
-            publicationJobRepository = jobRepository,
+            publicationJobRepository = jobRepository, transactionalOperator = noOpTransactionalOperator,
             providerCapabilityValidator = AcceptingCapabilityValidator(),
             schedulingPolicy = PublicationSchedulingPolicy(),
             mediaAssetResolver = FakeMediaAssetResolver(),
@@ -2537,7 +2547,7 @@ class PublishingHandlersTest {
             socialAccountRepository = socialAccountRepository,
             publicationRepository = publicationRepository,
             publicationAssetRepository = InMemoryPublicationAssetRepository(emptyList()),
-            publicationJobRepository = InMemoryPublicationJobRepository(),
+            publicationJobRepository = InMemoryPublicationJobRepository(), transactionalOperator = noOpTransactionalOperator,
             providerCapabilityValidator = AcceptingCapabilityValidator(),
             schedulingPolicy = PublicationSchedulingPolicy(),
             mediaAssetResolver = FakeMediaAssetResolver(),
@@ -2602,7 +2612,7 @@ class PublishingHandlersTest {
             principalContextProvider = FixedPrincipalContextProvider(principalContext),
             resourceContextProvider = FixedResourceContextProvider(workspaceContext),
             publicationRepository = publicationRepository,
-            publicationJobRepository = jobRepository,
+            publicationJobRepository = jobRepository, transactionalOperator = noOpTransactionalOperator,
             clock = fixedClock,
         )
 
@@ -2625,7 +2635,7 @@ class PublishingHandlersTest {
             principalContextProvider = FixedPrincipalContextProvider(principalContext),
             resourceContextProvider = FixedResourceContextProvider(workspaceContext),
             publicationRepository = publicationRepository,
-            publicationJobRepository = jobRepository,
+            publicationJobRepository = jobRepository, transactionalOperator = noOpTransactionalOperator,
             clock = fixedClock,
         )
 
@@ -2656,7 +2666,7 @@ class PublishingHandlersTest {
             principalContextProvider = FixedPrincipalContextProvider(principalContext),
             resourceContextProvider = FixedResourceContextProvider(workspaceContext),
             publicationRepository = publicationRepository,
-            publicationJobRepository = InMemoryPublicationJobRepository(),
+            publicationJobRepository = InMemoryPublicationJobRepository(), transactionalOperator = noOpTransactionalOperator,
             clock = fixedClock,
         )
 
@@ -2684,7 +2694,7 @@ class PublishingHandlersTest {
             principalContextProvider = FixedPrincipalContextProvider(principalContext),
             resourceContextProvider = FixedResourceContextProvider(workspaceContext),
             publicationRepository = InMemoryPublicationRepository(publication),
-            publicationJobRepository = InMemoryPublicationJobRepository(),
+            publicationJobRepository = InMemoryPublicationJobRepository(), transactionalOperator = noOpTransactionalOperator,
             clock = fixedClock,
             principalIdentityLookup = PendingEmailIdentityLookup(),
             emailVerificationPolicy = strictEmailVerificationPolicy,
@@ -2714,7 +2724,7 @@ class PublishingHandlersTest {
             principalContextProvider = FixedPrincipalContextProvider(principalContext),
             resourceContextProvider = FixedResourceContextProvider(workspaceContext),
             publicationRepository = InMemoryPublicationRepository(publication),
-            publicationJobRepository = InMemoryPublicationJobRepository(),
+            publicationJobRepository = InMemoryPublicationJobRepository(), transactionalOperator = noOpTransactionalOperator,
             clock = fixedClock,
             principalIdentityLookup = PendingEmailIdentityLookup(),
             emailVerificationPolicy = strictEmailVerificationPolicy,
@@ -2745,7 +2755,7 @@ class PublishingHandlersTest {
             principalContextProvider = FixedPrincipalContextProvider(principalContext),
             resourceContextProvider = FixedResourceContextProvider(workspaceContext),
             publicationRepository = InMemoryPublicationRepository(publication),
-            publicationJobRepository = InMemoryPublicationJobRepository(),
+            publicationJobRepository = InMemoryPublicationJobRepository(), transactionalOperator = noOpTransactionalOperator,
             schedulingPolicy = PublicationSchedulingPolicy(),
             clock = fixedClock,
             principalIdentityLookup = PendingEmailIdentityLookup(),
@@ -2776,7 +2786,7 @@ class PublishingHandlersTest {
             principalContextProvider = FixedPrincipalContextProvider(principalContext),
             resourceContextProvider = FixedResourceContextProvider(workspaceContext),
             publicationRepository = InMemoryPublicationRepository(publication),
-            publicationJobRepository = InMemoryPublicationJobRepository(),
+            publicationJobRepository = InMemoryPublicationJobRepository(), transactionalOperator = noOpTransactionalOperator,
             schedulingPolicy = PublicationSchedulingPolicy(),
             clock = fixedClock,
             principalIdentityLookup = PendingEmailIdentityLookup(),
