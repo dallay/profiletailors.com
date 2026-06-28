@@ -1,6 +1,7 @@
 package com.profiletailors.smp.media.application
 
 import com.profiletailors.common.domain.Service
+import com.profiletailors.common.domain.persistence.AtomicTransactionRunner
 import com.profiletailors.smp.media.domain.MediaAsset
 import com.profiletailors.smp.media.domain.MediaAsset.Companion.GC_RETENTION_DAYS
 import com.profiletailors.smp.media.domain.WorkspaceFileBlob
