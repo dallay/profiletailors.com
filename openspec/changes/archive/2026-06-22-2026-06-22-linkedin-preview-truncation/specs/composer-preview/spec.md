@@ -2,13 +2,15 @@
 
 ## Purpose
 
-Define provider-specific compose preview behavior in the Create Post modal, starting with LinkedIn long-text rendering while preserving a stable preview panel for future networks.
+Define provider-specific compose preview behavior in the Create Post modal, starting with LinkedIn
+long-text rendering while preserving a stable preview panel for future networks.
 
 ## Requirements
 
 ### Requirement: Bounded Long-Text Preview
 
-The system MUST render long LinkedIn preview text within a bounded preview region so preview content does not grow without limit.
+The system MUST render long LinkedIn preview text within a bounded preview region so preview content
+does not grow without limit.
 
 #### Scenario: Long text is visually clamped
 
@@ -61,7 +63,8 @@ The system MUST preserve a stable Create Post modal layout while preview content
 
 ### Requirement: Media-Compatible Truncation
 
-The system MUST apply text truncation rules consistently whether the LinkedIn preview includes media or text only.
+The system MUST apply text truncation rules consistently whether the LinkedIn preview includes media
+or text only.
 
 #### Scenario: Truncated text with image attachment
 
@@ -79,7 +82,8 @@ The system MUST apply text truncation rules consistently whether the LinkedIn pr
 
 ### Requirement: Provider-Specific Preview Boundary
 
-The system MUST separate shared preview-panel behavior from provider-specific preview rendering so additional networks MAY be added without redefining the modal contract.
+The system MUST separate shared preview-panel behavior from provider-specific preview rendering so
+additional networks MAY be added without redefining the modal contract.
 
 #### Scenario: Shared shell delegates provider rendering
 

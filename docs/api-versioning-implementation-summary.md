@@ -173,6 +173,7 @@ Spring Boot 4's built-in resolvers don't support vendor media type patterns like
 ### Backend
 
 -
+
 `server/smp/src/main/kotlin/com/profiletailors/smp/identity/infrastructure/http/LocalAuthController.kt`
 -
 `server/smp/src/main/kotlin/com/profiletailors/smp/identity/infrastructure/http/CurrentUserProfileController.kt`
@@ -189,11 +190,13 @@ Spring Boot 4's built-in resolvers don't support vendor media type patterns like
 -
 `server/smp/src/main/kotlin/com/profiletailors/smp/platform/infrastructure/http/WebFluxConfiguration.kt` ←
 **NEW**
+
 - `server/smp/src/main/resources/application.yaml`
 
 ### Tests
 
 -
+
 `server/smp/src/test/kotlin/com/profiletailors/smp/integration/LocalAuthEndpointIntegrationTest.kt`
 -
 `server/smp/src/test/kotlin/com/profiletailors/smp/integration/WorkspaceAccessSummaryEndpointIntegrationTest.kt`
@@ -203,11 +206,14 @@ Spring Boot 4's built-in resolvers don't support vendor media type patterns like
 `server/smp/src/test/kotlin/com/profiletailors/smp/integration/WorkspaceAccessSummaryEndpointPostgresIntegrationTest.kt`
 -
 `server/smp/src/test/kotlin/com/profiletailors/smp/integration/ResourcePreviewEndpointPostgresIntegrationTest.kt`
+
 - `server/smp/src/test/kotlin/com/profiletailors/smp/integration/support/IntegrationTestBase.kt`
 -
+
 `server/smp/src/test/kotlin/com/profiletailors/smp/integration/support/WorkspaceAccessSummaryEndpointTestBase.kt`
 -
 `server/smp/src/test/kotlin/com/profiletailors/smp/integration/support/ResourcePreviewEndpointTestBase.kt`
+
 - `server/smp/src/test/kotlin/com/profiletailors/smp/SmpApplicationTests.kt`
 - `server/smp/src/test/kotlin/com/profiletailors/smp/PlatformBootstrapContextTest.kt`
 - `server/smp/src/test/resources/application-test.yaml` ← **NEW**

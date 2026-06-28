@@ -15,14 +15,14 @@ estimated_files_modified: 2
 
 ## Review Workload Forecast
 
-| Field | Value |
-|-------|-------|
-| Estimated changed lines | ~1400 (737-line `App.vue` removed; ~16 new SFCs/composables + ~16 new test files + thin `App.vue` + thin `AppShell.vue`) |
-| 400-line budget risk | High |
-| Chained PRs recommended | Yes |
-| Suggested split | PR1 — composables (Tasks 1-3) · PR2 — layout leaves (Tasks 4-5) · PR3 — sidebar leaves (Tasks 6-11) · PR4 — header + shell + `App.vue` (Tasks 12-14) · PR5 — verification (Tasks 15-16) |
-| Delivery strategy | ask-on-risk |
-| Chain strategy | pending |
+| Field                   | Value                                                                                                                                                                                   |
+|-------------------------|-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| Estimated changed lines | ~1400 (737-line `App.vue` removed; ~16 new SFCs/composables + ~16 new test files + thin `App.vue` + thin `AppShell.vue`)                                                                |
+| 400-line budget risk    | High                                                                                                                                                                                    |
+| Chained PRs recommended | Yes                                                                                                                                                                                     |
+| Suggested split         | PR1 — composables (Tasks 1-3) · PR2 — layout leaves (Tasks 4-5) · PR3 — sidebar leaves (Tasks 6-11) · PR4 — header + shell + `App.vue` (Tasks 12-14) · PR5 — verification (Tasks 15-16) |
+| Delivery strategy       | ask-on-risk                                                                                                                                                                             |
+| Chain strategy          | pending                                                                                                                                                                                 |
 
 Decision needed before apply: Yes
 Chained PRs recommended: Yes
@@ -31,13 +31,13 @@ Chain strategy: pending
 
 ### Suggested Work Units
 
-| Unit | Goal | Likely PR | Notes |
-|------|------|-----------|-------|
-| 1 | Three composables + their tests | PR 1 | Pure-logic foundation; no DOM, no SFCs. Base: `main`. |
-| 2 | `AppStatusPill` + `AppLanguagePill` | PR 2 | Two leaves; smallest scope. Depends on PR 1 (none strictly required). Base: `main`. |
-| 3 | Six sidebar components | PR 3 | Depends on PR 1 (`usePopoverDismissal`, `useConnectMessage`). Base: `main`. |
-| 4 | `AppHeader` + `AppShell` + thin `App.vue` | PR 4 | Final wiring. Depends on PRs 1, 2, 3. Base: `main`. |
-| 5 | Full verification + `App.test.ts` reconcile | PR 5 | No code change expected. Base: `main`. |
+| Unit | Goal                                        | Likely PR | Notes                                                                               |
+|------|---------------------------------------------|-----------|-------------------------------------------------------------------------------------|
+| 1    | Three composables + their tests             | PR 1      | Pure-logic foundation; no DOM, no SFCs. Base: `main`.                               |
+| 2    | `AppStatusPill` + `AppLanguagePill`         | PR 2      | Two leaves; smallest scope. Depends on PR 1 (none strictly required). Base: `main`. |
+| 3    | Six sidebar components                      | PR 3      | Depends on PR 1 (`usePopoverDismissal`, `useConnectMessage`). Base: `main`.         |
+| 4    | `AppHeader` + `AppShell` + thin `App.vue`   | PR 4      | Final wiring. Depends on PRs 1, 2, 3. Base: `main`.                                 |
+| 5    | Full verification + `App.test.ts` reconcile | PR 5      | No code change expected. Base: `main`.                                              |
 
 ---
 
@@ -234,8 +234,8 @@ Chain strategy: pending
 ## Phase 4: Shell (composition + thin wrapper)
 
 > The two files that close the loop: `AppHeader` composes the three leaves (Tasks 4-5 +
-  status pill via Task 4); `AppShell` mounts providers + bootstrap watcher + composes the
-  sidebar sections (Tasks 6-11) + the header (Task 12); `App.vue` collapses to ~10 lines.
+> status pill via Task 4); `AppShell` mounts providers + bootstrap watcher + composes the
+> sidebar sections (Tasks 6-11) + the header (Task 12); `App.vue` collapses to ~10 lines.
 
 ### 12. `AppHeader` — trigger + section title + status pill + language pill + outlet wrapper
 
@@ -303,19 +303,19 @@ Chain strategy: pending
 - **Input**: design §7 "Verification & rollout"
 - **Output**: none (verification only)
 - **Acceptance** — ALL of the following must pass:
-  1. `pnpm test:run` — full vitest suite passes (all 16+ test files green)
-  2. `pnpm test:run -- usePopoverDismissal` — the riskiest composable passes
-  3. `pnpm type-check` — `vue-tsc --build` passes with no new errors
-  4. `pnpm lint` — biome passes
-  5. **Manual smoke** (run the dev server, exercise the shell):
-     - Open workspace menu, press Escape → focus returns to trigger
-     - Click outside workspace menu → focus returns to trigger
-     - Navigate `/` → `/scheduler` → workspace menu closes, no focus steal
-     - Open account menu → verify exactly one `ThemeToggle` (account menu only), no static
-       "Theme" label, no theme pill in the header
-     - Tab from a fresh load → first focus is the skip link; activate it → focus moves to
-       `<main id="main-content">` and the page scrolls
-     - Visit every authenticated route → no accidental header/sidebar coupling
+    1. `pnpm test:run` — full vitest suite passes (all 16+ test files green)
+    2. `pnpm test:run -- usePopoverDismissal` — the riskiest composable passes
+    3. `pnpm type-check` — `vue-tsc --build` passes with no new errors
+    4. `pnpm lint` — biome passes
+    5. **Manual smoke** (run the dev server, exercise the shell):
+        - Open workspace menu, press Escape → focus returns to trigger
+        - Click outside workspace menu → focus returns to trigger
+        - Navigate `/` → `/scheduler` → workspace menu closes, no focus steal
+        - Open account menu → verify exactly one `ThemeToggle` (account menu only), no static
+          "Theme" label, no theme pill in the header
+        - Tab from a fresh load → first focus is the skip link; activate it → focus moves to
+          `<main id="main-content">` and the page scrolls
+        - Visit every authenticated route → no accidental header/sidebar coupling
 - **Notes**: This is the gate that decides the change is done. If any item fails, do NOT
   fix-and-merge; file a blocker and return. The visual regression check is qualitative —
   the sidebar, header, and outlet MUST look identical to the pre-refactor build (locked

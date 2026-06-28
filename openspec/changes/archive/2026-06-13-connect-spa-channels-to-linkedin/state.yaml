@@ -1,6 +1,6 @@
 change: connect-spa-channels-to-linkedin
 current_phase: archive
-completed: [explore, propose, spec, design, tasks, apply, verify, archive]
+completed: [ explore, propose, spec, design, tasks, apply, verify, archive ]
 next: none
 updated: 2026-06-13T17:00:00Z
 verify_result: PASS_WITH_WARNINGS

@@ -2,56 +2,69 @@
 
 ## Context
 
-Currently, `PostDetailModal` mixes the "view" and "edit" experience in one modal with inline editing (title input, textarea, datetime input). This is a limited UX: it doesn't support media attachment editing, doesn't show a social preview, and forces the user to work in a layout designed for reading.
+Currently, `PostDetailModal` mixes the "view" and "edit" experience in one modal with inline
+editing (title input, textarea, datetime input). This is a limited UX: it doesn't support media
+attachment editing, doesn't show a social preview, and forces the user to work in a layout designed
+for reading.
 
-The goal is to open the full `CreatePostModal` (the rich composer) when the user clicks "Edit" from `PostDetailModal`, with the publication data pre-filled.
+The goal is to open the full `CreatePostModal` (the rich composer) when the user clicks "Edit" from
+`PostDetailModal`, with the publication data pre-filled.
 
 ---
 
 ## Current State
 
-| Component | Role | Edits? |
-|-----------|------|--------|
-| `PostDetailModal.vue` | View detail + inline edit | Yes, but limited |
-| `CreatePostModal.vue` | Rich composer for creation | No |
-| `SchedulerView.vue` | Orchestrates both modals | Parent |
+| Component             | Role                       | Edits?           |
+|-----------------------|----------------------------|------------------|
+| `PostDetailModal.vue` | View detail + inline edit  | Yes, but limited |
+| `CreatePostModal.vue` | Rich composer for creation | No               |
+| `SchedulerView.vue`   | Orchestrates both modals   | Parent           |
 
-Backend `EditPublicationCommand` accepts: `title`, `bodyText`, `assetIds`, `scheduleMode`, `scheduledFor`, `priority`. `socialAccountId` is **not editable** — channel is fixed per the backend contract.
+Backend `EditPublicationCommand` accepts: `title`, `bodyText`, `assetIds`, `scheduleMode`,
+`scheduledFor`, `priority`. `socialAccountId` is **not editable** — channel is fixed per the backend
+contract.
 
 ---
 
 ## Prerequisite: Close the `assetIds` Data Contract
 
-Before the edit flow can pre-fill media, the `assetIds` field must travel end-to-end from the calendar API through to the frontend `Publication` type. There are two gaps currently.
+Before the edit flow can pre-fill media, the `assetIds` field must travel end-to-end from the
+calendar API through to the frontend `Publication` type. There are two gaps currently.
 
 ### Gap 1: Backend — `CalendarPublicationResult` doesn't expose `assetIds`
 
-The domain model (`PublicationDraft`) already holds `assetIds`, and the calendar handler already processes assets to compute `previewUrl`. However, the public DTO doesn't include the field, and the mapper doesn't pass it.
+The domain model (`PublicationDraft`) already holds `assetIds`, and the calendar handler already
+processes assets to compute `previewUrl`. However, the public DTO doesn't include the field, and the
+mapper doesn't pass it.
 
 **Files to change:**
 
-| File | Change |
-|------|--------|
-| `PublishingApi.kt` | Add `assetIds: List<String>` to `CalendarPublicationResult` |
-| `PublishingHandlers.kt` | Pass `assetIds = assetIds` in `PublicationDraft.toCalendarResult()` |
-| `PublishingApiTest.kt` | Add `assetIds` to the `CalendarPublicationResult` construction |
+| File                        | Change                                                                                                 |
+|-----------------------------|--------------------------------------------------------------------------------------------------------|
+| `PublishingApi.kt`          | Add `assetIds: List<String>` to `CalendarPublicationResult`                                            |
+| `PublishingHandlers.kt`     | Pass `assetIds = assetIds` in `PublicationDraft.toCalendarResult()`                                    |
+| `PublishingApiTest.kt`      | Add `assetIds` to the `CalendarPublicationResult` construction                                         |
 | `PublishingHandlersTest.kt` | Ensure existing `calendarPublication(..., assetIds = ...)` test fixture covers the field in the result |
 
 > **Evidence:**
 > - `PublicationDraft` already has `val assetIds: List<String> = emptyList()` (domain model)
-> - Handler already calls `mediaAssetResolver.resolveReadyAssets(...)` and `resolvePreviewUrl(publication, assetsById)` — assets are already resolved, just not forwarded
-> - Test fixture `calendarPublication(..., assetIds = listOf("asset-1"))` already exists; the mapper just needs to forward the field
+> - Handler already calls `mediaAssetResolver.resolveReadyAssets(...)` and
+    `resolvePreviewUrl(publication, assetsById)` — assets are already resolved, just not forwarded
+> - Test fixture `calendarPublication(..., assetIds = listOf("asset-1"))` already exists; the mapper
+    just needs to forward the field
 
 ### Gap 2: Frontend — `publicationMutationResultToPublication` doesn't copy `assetIds`
 
-After a successful `updatePost` PATCH, the merged result is mapped back into the store. The mapper currently skips `assetIds`, which would cause the store's `Publication` record to lose media information after an edit save.
+After a successful `updatePost` PATCH, the merged result is mapped back into the store. The mapper
+currently skips `assetIds`, which would cause the store's `Publication` record to lose media
+information after an edit save.
 
 **Files to change:**
 
-| File | Change |
-|------|--------|
+| File                   | Change                                                                        |
+|------------------------|-------------------------------------------------------------------------------|
 | `stores/publishing.ts` | Add `assetIds: result.assetIds` in `publicationMutationResultToPublication()` |
-| `stores/publishing.ts` | Add `assetIds?: string[]` to `Publication` interface |
+| `stores/publishing.ts` | Add `assetIds?: string[]` to `Publication` interface                          |
 
 ---
 
@@ -86,7 +99,8 @@ const isCreating = computed(() => !isEditMode.value)
 
 #### Channel selector
 
-In edit mode, the channel selector is rendered **disabled/read-only** with the existing channel pre-selected. No channel switching is possible (backend contract).
+In edit mode, the channel selector is rendered **disabled/read-only** with the existing channel
+pre-selected. No channel switching is possible (backend contract).
 
 ```html
 <button
@@ -104,10 +118,12 @@ When `isOpen` becomes `true` in edit mode, pre-fill:
 
 1. **`postText`** → `editingPublication.content`
 2. **`selectedCalendarDate` + `scheduleTime`** → derived from `editingPublication.scheduledAt`
-3. **`scheduleMode`** → derived from `editingPublication.scheduleMode` (`SCHEDULED_AT` → `'custom'`, `NOW` → `'now'`, `NEXT_SLOT` → `'next'`)
+3. **`scheduleMode`** → derived from `editingPublication.scheduleMode` (`SCHEDULED_AT` → `'custom'`,
+   `NOW` → `'now'`, `NEXT_SLOT` → `'next'`)
 4. **`priorityMode`** → `editingPublication.priority`
 5. **`selectedChannelId`** → channel from `editingPublication.channels[0]` (read-only)
-6. **`mediaStore.selectedAssetIds`** → `editingPublication.assetIds` (requires the backend DTO gap to be closed first)
+6. **`mediaStore.selectedAssetIds`** → `editingPublication.assetIds` (requires the backend DTO gap
+   to be closed first)
 
 ```typescript
 // On open, in edit mode:
@@ -118,7 +134,8 @@ if (isEditMode.value && props.editingPublication?.assetIds?.length) {
 }
 ```
 
-> **Note**: `Publication` type needs `assetIds?: string[]`. This is added in the prerequisite step above.
+> **Note**: `Publication` type needs `assetIds?: string[]`. This is added in the prerequisite step
+> above.
 
 #### Submit behavior (handleSchedule)
 
@@ -179,10 +196,12 @@ Only shown in create mode:
 ### 2. Simplify `PostDetailModal` — remove inline edit
 
 Remove all inline editing state and behavior from `PostDetailModal`:
+
 - Remove `editTitle`, `editContent`, `editScheduledAt` refs
 - Remove `savePublication()` function
 - Remove `isSaving`, `saveError` refs
-- Remove `canEdit` computed (replace with a new `canEditPublication` that only enables the Edit button)
+- Remove `canEdit` computed (replace with a new `canEditPublication` that only enables the Edit
+  button)
 - Remove the inline title/body/schedule inputs (keep the read-only display versions)
 - Remove the "Save" button from the footer
 
@@ -218,7 +237,8 @@ const emit = defineEmits<{
 }>()
 ```
 
-Remove: `canEdit` prop-related code, `isReadOnly` display toggle (no longer needed — all non-PUBLISHED show read-only text view, no toggle), and the old `savePublication()`.
+Remove: `canEdit` prop-related code, `isReadOnly` display toggle (no longer needed — all
+non-PUBLISHED show read-only text view, no toggle), and the old `savePublication()`.
 
 ---
 
@@ -294,22 +314,22 @@ The `fetchCalendar()` call ensures the calendar reflects the updated publication
 
 ### Prerequisite (data contract — must do first)
 
-| File | Change |
-|------|--------|
-| `server/smp/src/main/kotlin/.../PublishingApi.kt` | Add `assetIds: List<String>` to `CalendarPublicationResult` |
-| `server/smp/src/main/kotlin/.../PublishingHandlers.kt` | Pass `assetIds = assetIds` in `toCalendarResult()` |
-| `server/smp/src/test/kotlin/.../PublishingApiTest.kt` | Add `assetIds` to `CalendarPublicationResult` construction |
-| `apps/web/app/src/stores/publishing.ts` | Add `assetIds?: string[]` to `Publication` interface |
-| `apps/web/app/src/stores/publishing.ts` | Add `assetIds: result.assetIds` in `publicationMutationResultToPublication()` |
+| File                                                   | Change                                                                        |
+|--------------------------------------------------------|-------------------------------------------------------------------------------|
+| `server/smp/src/main/kotlin/.../PublishingApi.kt`      | Add `assetIds: List<String>` to `CalendarPublicationResult`                   |
+| `server/smp/src/main/kotlin/.../PublishingHandlers.kt` | Pass `assetIds = assetIds` in `toCalendarResult()`                            |
+| `server/smp/src/test/kotlin/.../PublishingApiTest.kt`  | Add `assetIds` to `CalendarPublicationResult` construction                    |
+| `apps/web/app/src/stores/publishing.ts`                | Add `assetIds?: string[]` to `Publication` interface                          |
+| `apps/web/app/src/stores/publishing.ts`                | Add `assetIds: result.assetIds` in `publicationMutationResultToPublication()` |
 
 ### Feature implementation
 
-| File | Change |
-|------|--------|
+| File                             | Change                                                                   |
+|----------------------------------|--------------------------------------------------------------------------|
 | `components/CreatePostModal.vue` | Add `editingPublication` prop, edit mode logic, pre-fill, submit changes |
-| `components/PostDetailModal.vue` | Add "Edit" button, remove inline edit state, emit `'edit'` event |
-| `views/SchedulerView.vue` | Add `handleEditPublication`, `handleUpdated`, wire new props/events |
-| `locales/*.json` | Add `composer.editTitle`, `postDetail.edit`, `composer.saveChanges` keys |
+| `components/PostDetailModal.vue` | Add "Edit" button, remove inline edit state, emit `'edit'` event         |
+| `views/SchedulerView.vue`        | Add `handleEditPublication`, `handleUpdated`, wire new props/events      |
+| `locales/*.json`                 | Add `composer.editTitle`, `postDetail.edit`, `composer.saveChanges` keys |
 
 ---
 
@@ -330,65 +350,74 @@ The `fetchCalendar()` call ensures the calendar reflects the updated publication
 
 ### Backend Tests
 
-| Test | What it covers |
-|------|---------------|
-| `CalendarPublicationResult` construction includes `assetIds` | DTO accepts and stores `assetIds` field |
-| `toCalendarResult()` forwards `assetIds` | Mapper correctly maps `assetIds` from domain to DTO |
+| Test                                                         | What it covers                                      |
+|--------------------------------------------------------------|-----------------------------------------------------|
+| `CalendarPublicationResult` construction includes `assetIds` | DTO accepts and stores `assetIds` field             |
+| `toCalendarResult()` forwards `assetIds`                     | Mapper correctly maps `assetIds` from domain to DTO |
 
 ### Unit Tests: `CreatePostModal.test.ts`
 
-| Test | What it covers |
-|------|---------------|
-| Opens in create mode with no pre-fill | Verify form is empty when no `editingPublication` |
-| Opens in edit mode with pre-filled content | `editingPublication.content` populates textarea |
-| Opens in edit mode with scheduled date pre-filled | Date + time picker pre-filled from `scheduledAt` |
-| Opens in edit mode with `NOW` schedule pre-filled | `scheduleMode = 'now'` pre-selected |
-| Opens in edit mode with `NEXT_SLOT` schedule pre-filled | `scheduleMode = 'next'` pre-selected |
-| Channel selector is disabled in edit mode | All channel buttons have `disabled` attribute |
-| Submit button text says "Save Changes" in edit mode | Button text is `composer.saveChanges` |
-| Submit button calls `updatePost` in edit mode | `publishingStore.updatePost` is called, not `schedulePost` |
-| `updated` event is emitted after successful edit | `emitted('updated')` has one entry |
-| Error state is handled in edit mode | `submitError` is displayed on failure |
-| Media assets are pre-loaded into mediaStore on open in edit mode | `mediaStore.selectedAssetIds` contains existing asset IDs |
-| Form is cleared on close (edit mode) | After close, form resets to clean state |
-| Priority toggle is pre-filled from existing publication | `priorityMode` matches `editingPublication.priority` |
-| "Create Another" toggle is hidden in edit mode | Toggle not rendered when `isEditMode` is true |
+| Test                                                             | What it covers                                             |
+|------------------------------------------------------------------|------------------------------------------------------------|
+| Opens in create mode with no pre-fill                            | Verify form is empty when no `editingPublication`          |
+| Opens in edit mode with pre-filled content                       | `editingPublication.content` populates textarea            |
+| Opens in edit mode with scheduled date pre-filled                | Date + time picker pre-filled from `scheduledAt`           |
+| Opens in edit mode with `NOW` schedule pre-filled                | `scheduleMode = 'now'` pre-selected                        |
+| Opens in edit mode with `NEXT_SLOT` schedule pre-filled          | `scheduleMode = 'next'` pre-selected                       |
+| Channel selector is disabled in edit mode                        | All channel buttons have `disabled` attribute              |
+| Submit button text says "Save Changes" in edit mode              | Button text is `composer.saveChanges`                      |
+| Submit button calls `updatePost` in edit mode                    | `publishingStore.updatePost` is called, not `schedulePost` |
+| `updated` event is emitted after successful edit                 | `emitted('updated')` has one entry                         |
+| Error state is handled in edit mode                              | `submitError` is displayed on failure                      |
+| Media assets are pre-loaded into mediaStore on open in edit mode | `mediaStore.selectedAssetIds` contains existing asset IDs  |
+| Form is cleared on close (edit mode)                             | After close, form resets to clean state                    |
+| Priority toggle is pre-filled from existing publication          | `priorityMode` matches `editingPublication.priority`       |
+| "Create Another" toggle is hidden in edit mode                   | Toggle not rendered when `isEditMode` is true              |
 
 ### Unit Tests: `PostDetailModal.test.ts`
 
-| Test | What it covers |
-|------|---------------|
-| "Edit" button is rendered when publication is editable | `isPublicationEditable` returns true |
-| "Edit" button is NOT rendered when publication is PUBLISHED | Only view-only mode |
-| "Edit" button is NOT rendered when publication is not editable | Status guard works |
-| Clicking "Edit" emits `'edit'` event with the publication | `emitted('edit')` contains publication |
-| Inline save button is removed | No `savePublication` call or `isSaving` state |
-| Inline title/body inputs are removed | Read-only display only |
+| Test                                                           | What it covers                                |
+|----------------------------------------------------------------|-----------------------------------------------|
+| "Edit" button is rendered when publication is editable         | `isPublicationEditable` returns true          |
+| "Edit" button is NOT rendered when publication is PUBLISHED    | Only view-only mode                           |
+| "Edit" button is NOT rendered when publication is not editable | Status guard works                            |
+| Clicking "Edit" emits `'edit'` event with the publication      | `emitted('edit')` contains publication        |
+| Inline save button is removed                                  | No `savePublication` call or `isSaving` state |
+| Inline title/body inputs are removed                           | Read-only display only                        |
 
 ### Integration Tests (Playwright)
 
-| Test | What it covers |
-|------|---------------|
-| Clicking "Edit" from PostDetailModal opens CreatePostModal in edit mode | E2E flow |
-| Edit mode pre-fills content, scheduling, and media | E2E pre-fill |
-| Saving edits updates the post and closes the modal | E2E save |
-| Calendar reflects the updated publication after edit | E2E refresh |
+| Test                                                                    | What it covers |
+|-------------------------------------------------------------------------|----------------|
+| Clicking "Edit" from PostDetailModal opens CreatePostModal in edit mode | E2E flow       |
+| Edit mode pre-fills content, scheduling, and media                      | E2E pre-fill   |
+| Saving edits updates the post and closes the modal                      | E2E save       |
+| Calendar reflects the updated publication after edit                    | E2E refresh    |
 
 ---
 
 ## Open Questions
 
-1. **Title field**: The backend accepts `title` in `EditPublicationCommand`, but the frontend `Publication` type maps to `title` (string). Should the composer also have a title input in edit mode? Currently `CreatePostModal` doesn't show a title field. For MVP, we keep the existing behavior (title is set server-side). This can be enhanced later.
+1. **Title field**: The backend accepts `title` in `EditPublicationCommand`, but the frontend
+   `Publication` type maps to `title` (string). Should the composer also have a title input in edit
+   mode? Currently `CreatePostModal` doesn't show a title field. For MVP, we keep the existing
+   behavior (title is set server-side). This can be enhanced later.
 
-2. **Asset preview**: When editing, existing assets are added to `mediaStore.selectedAssetIds`. The current `selectedAssetPreviewUrl` computed in `CreatePostModal` looks at `mediaStore.selectedAssets[0]` and falls back to the backend's `previewUrl`. If the publication has `thumbnail` or a `previewUrl`, this should render immediately. This should work without changes to the asset preview logic.
+2. **Asset preview**: When editing, existing assets are added to `mediaStore.selectedAssetIds`. The
+   current `selectedAssetPreviewUrl` computed in `CreatePostModal` looks at
+   `mediaStore.selectedAssets[0]` and falls back to the backend's `previewUrl`. If the publication
+   has `thumbnail` or a `previewUrl`, this should render immediately. This should work without
+   changes to the asset preview logic.
 
-3. ~~**"Create Another" toggle**~~: **Resolved**. The toggle is shown only when `!isEditMode` — it is hidden in edit mode (see code snippet above).
+3. ~~**"Create Another" toggle**~~: **Resolved**. The toggle is shown only when `!isEditMode` — it
+   is hidden in edit mode (see code snippet above).
 
 ---
 
 ## Scope for MVP
 
 **In scope:**
+
 - Edit content, scheduling, priority, and media via the full composer
 - Pre-fill all fields correctly (including media, after DTO gap is closed)
 - Update store and refresh calendar after save
@@ -398,6 +427,7 @@ The `fetchCalendar()` call ensures the calendar reflects the updated publication
 - All unit and E2E tests
 
 **Out of scope for now:**
+
 - Changing the channel (backend doesn't support it)
 - Editing the title field (no UI for it currently in composer)
 - Unlinking/removing individual assets (add/change supported, remove via clear)

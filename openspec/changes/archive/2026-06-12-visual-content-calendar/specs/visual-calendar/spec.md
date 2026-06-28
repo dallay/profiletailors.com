@@ -2,7 +2,9 @@
 
 ## Purpose
 
-Define visual content calendar UI for planning and managing publications across daily/weekly/monthly views with activity indicators, quick-create, drag-drop reschedule, conflict warnings, and filter controls.
+Define visual content calendar UI for planning and managing publications across daily/weekly/monthly
+views with activity indicators, quick-create, drag-drop reschedule, conflict warnings, and filter
+controls.
 
 ## Requirements
 
@@ -10,7 +12,8 @@ Define visual content calendar UI for planning and managing publications across 
 
 The system MUST provide day, week, and month views with toggle and date navigation.
 
-The daily view MUST show publications for the selected day with title, time, and status — each clickable for details. Date arrows and "Today" button MUST navigate the calendar.
+The daily view MUST show publications for the selected day with title, time, and status — each
+clickable for details. Date arrows and "Today" button MUST navigate the calendar.
 
 #### Scenario: User switches to week view
 
@@ -27,7 +30,8 @@ The daily view MUST show publications for the selected day with title, time, and
 
 ### Requirement: Activity Indicators
 
-The month view MUST show per-day activity density using these thresholds: 0 = none (no dot), 1–2 = low (yellow/small), 3–5 = medium (orange/medium), 6+ = high (green/large with "+").
+The month view MUST show per-day activity density using these thresholds: 0 = none (no dot), 1–2 =
+low (yellow/small), 3–5 = medium (orange/medium), 6+ = high (green/large with "+").
 
 #### Scenario: Cells show correct density levels
 
@@ -37,7 +41,9 @@ The month view MUST show per-day activity density using these thresholds: 0 = no
 
 ### Requirement: Quick-Create from Cell
 
-Clicking an empty calendar cell MUST open CreatePostModal with the clicked date-time prefilled. Submitting MUST call the quick-create endpoint. The calendar MUST refresh to show the new publication without a full reload.
+Clicking an empty calendar cell MUST open CreatePostModal with the clicked date-time prefilled.
+Submitting MUST call the quick-create endpoint. The calendar MUST refresh to show the new
+publication without a full reload.
 
 #### Scenario: Click empty slot creates scheduled post
 
@@ -48,7 +54,8 @@ Clicking an empty calendar cell MUST open CreatePostModal with the clicked date-
 
 ### Requirement: Drag-and-Drop Reschedule
 
-Dragging a publication to a new slot MUST optimistically update the UI and fire PATCH reschedule. On success the position is kept. On failure the publication MUST revert and an error toast MUST show.
+Dragging a publication to a new slot MUST optimistically update the UI and fire PATCH reschedule. On
+success the position is kept. On failure the publication MUST revert and an error toast MUST show.
 
 #### Scenario: Drag reschedule persists immediately
 
@@ -66,7 +73,9 @@ Dragging a publication to a new slot MUST optimistically update the UI and fire 
 
 ### Requirement: Conflict Warnings
 
-The system MUST warn when two SCHEDULED/QUEUED publications for the same social account overlap within the conflict window. The conflict badge MUST show on affected publications. The conflict view SHOULD suggest the next available slot. The user MAY confirm and keep the overlap.
+The system MUST warn when two SCHEDULED/QUEUED publications for the same social account overlap
+within the conflict window. The conflict badge MUST show on affected publications. The conflict view
+SHOULD suggest the next available slot. The user MAY confirm and keep the overlap.
 
 #### Scenario: Overlapping publications show conflict with alternatives
 
@@ -78,7 +87,8 @@ The system MUST warn when two SCHEDULED/QUEUED publications for the same social 
 
 ### Requirement: Platform Filter
 
-A filter dropdown MUST let users select a social account. The selection MUST propagate as `socialAccountId` to the API. Clearing the filter MUST return all accounts.
+A filter dropdown MUST let users select a social account. The selection MUST propagate as
+`socialAccountId` to the API. Clearing the filter MUST return all accounts.
 
 #### Scenario: Filter by LinkedIn clears back
 

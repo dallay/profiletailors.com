@@ -2,7 +2,8 @@
 
 ## Purpose
 
-Provides a kanban-style view of content flowing through four stages: Ideas → Drafts → Scheduled → Published. Gives the user a visual pipeline to understand content velocity and bottlenecks.
+Provides a kanban-style view of content flowing through four stages: Ideas → Drafts → Scheduled →
+Published. Gives the user a visual pipeline to understand content velocity and bottlenecks.
 
 ## Data Model
 

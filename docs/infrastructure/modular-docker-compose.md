@@ -81,14 +81,14 @@ docker compose -f infra/apps/smp/compose.yaml down
 Services use default values but can be overridden using a `.env` file in the application directory
 or by passing them directly.
 
-| Variable            | Default Value        | Description                      |
-|:--------------------|:---------------------|:---------------------------------|
-| `POSTGRES_PORT`     | `5432`               | External port for PostgreSQL     |
-| `POSTGRES_DB`       | `profiletailors_smp` | Database name                    |
-| `POSTGRES_USER`     | `pt_user`            | Database user                    |
-| `MANAGEMENT_PORT`   | `9091`               | Port for internal metrics        |
-| `MAILPIT_SMTP_PORT` | `1025`               | SMTP port for local email capture|
-| `MAILPIT_UI_PORT`   | `8025`               | Mailpit web UI port              |
+| Variable            | Default Value        | Description                       |
+|:--------------------|:---------------------|:----------------------------------|
+| `POSTGRES_PORT`     | `5432`               | External port for PostgreSQL      |
+| `POSTGRES_DB`       | `profiletailors_smp` | Database name                     |
+| `POSTGRES_USER`     | `pt_user`            | Database user                     |
+| `MANAGEMENT_PORT`   | `9091`               | Port for internal metrics         |
+| `MAILPIT_SMTP_PORT` | `1025`               | SMTP port for local email capture |
+| `MAILPIT_UI_PORT`   | `8025`               | Mailpit web UI port               |
 
 ## Local Email Capture with Mailpit
 
@@ -129,10 +129,10 @@ open http://localhost:8025
 
 ### Environment overrides for Mailpit
 
-| Variable            | Default | Description                |
-|:--------------------|:--------|:---------------------------|
-| `MAILPIT_SMTP_PORT` | `1025`  | Host port bound to SMTP    |
-| `MAILPIT_UI_PORT`   | `8025`  | Host port bound to web UI  |
+| Variable            | Default | Description               |
+|:--------------------|:--------|:--------------------------|
+| `MAILPIT_SMTP_PORT` | `1025`  | Host port bound to SMTP   |
+| `MAILPIT_UI_PORT`   | `8025`  | Host port bound to web UI |
 
 ### Disabling Mailpit (use MockEmailSender instead)
 
@@ -149,13 +149,13 @@ emails to the console with no SMTP server needed:
 Set these environment variables on the target environment. Any SMTP provider works (Resend,
 SendGrid, AWS SES, etc.):
 
-| Variable                | Required | Default    | Description                              |
-|:------------------------|:---------|:-----------|:-----------------------------------------|
-| `SMP_SMTP_HOST`         | yes      | —          | SMTP server hostname                     |
-| `SMP_SMTP_PORT`         | no       | `587`      | SMTP port                                |
-| `SMP_SMTP_USERNAME`     | yes      | —          | SMTP auth username                       |
-| `SMP_SMTP_PASSWORD`     | yes      | —          | SMTP auth password / API key             |
-| `SMP_EMAIL_SENDER`      | no       | `noreply@profiletailors.com` | From address        |
+| Variable            | Required | Default                      | Description                  |
+|:--------------------|:---------|:-----------------------------|:-----------------------------|
+| `SMP_SMTP_HOST`     | yes      | —                            | SMTP server hostname         |
+| `SMP_SMTP_PORT`     | no       | `587`                        | SMTP port                    |
+| `SMP_SMTP_USERNAME` | yes      | —                            | SMTP auth username           |
+| `SMP_SMTP_PASSWORD` | yes      | —                            | SMTP auth password / API key |
+| `SMP_EMAIL_SENDER`  | no       | `noreply@profiletailors.com` | From address                 |
 
 Example for Resend SMTP:
 

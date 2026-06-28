@@ -12,10 +12,10 @@ redirects, API clients, and tooling.
 Instead of remembering `http://localhost:4321` (Astro) and `http://localhost:5173` (Vite), you get
 consistent HTTPS URLs:
 
-| Project | URL |
-|---------|-----|
+| Project           | URL                                 |
+|-------------------|-------------------------------------|
 | Marketing (Astro) | `https://profile-tailors.localhost` |
-| App (Vue 3) | `https://pt-app.localhost` |
+| App (Vue 3)       | `https://pt-app.localhost`          |
 
 Portless auto-discovers packages through `pnpm-workspace.yaml` and respects per-package
 `"portless"` config in each `package.json`. Name resolution uses the closest config, with this
@@ -114,15 +114,15 @@ The root `portless.json` provides additional name resolution for the monorepo:
 
 ### Useful commands
 
-| Command | Description |
-|---------|-------------|
-| `portless proxy start` | Start the HTTPS proxy (sudo for port 443) |
-| `portless proxy stop` | Stop the proxy |
-| `portless service install` | Install as launchd service (auto-start on boot) |
-| `portless service uninstall` | Remove launchd service |
-| `portless list` | Show active routes |
-| `portless get <name>` | Resolve a named app URL |
-| `portless clean` | Clean local TLS state |
+| Command                      | Description                                     |
+|------------------------------|-------------------------------------------------|
+| `portless proxy start`       | Start the HTTPS proxy (sudo for port 443)       |
+| `portless proxy stop`        | Stop the proxy                                  |
+| `portless service install`   | Install as launchd service (auto-start on boot) |
+| `portless service uninstall` | Remove launchd service                          |
+| `portless list`              | Show active routes                              |
+| `portless get <name>`        | Resolve a named app URL                         |
+| `portless clean`             | Clean local TLS state                           |
 
 ## Troubleshooting
 

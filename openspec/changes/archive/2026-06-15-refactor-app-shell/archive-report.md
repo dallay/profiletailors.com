@@ -22,19 +22,19 @@ apply → verify → archive).
 
 ## Verification Results
 
-| Metric | Value |
-|--------|-------|
-| Verdict | PASS WITH WARNINGS |
-| Spec requirements | 19/19 (100%) |
-| Spec scenarios | 67/67 (100%) |
-| Tests total | 291 |
-| Tests passed | 289 |
-| Tests failed | 2 (pre-existing in `CreatePostModal.test.ts`, out of scope) |
-| New test files | 11 |
-| New tests | 56 |
-| Typecheck errors (new) | 0 |
-| Lint errors (new) | 0 |
-| Regressions | 0 |
+| Metric                 | Value                                                       |
+|------------------------|-------------------------------------------------------------|
+| Verdict                | PASS WITH WARNINGS                                          |
+| Spec requirements      | 19/19 (100%)                                                |
+| Spec scenarios         | 67/67 (100%)                                                |
+| Tests total            | 291                                                         |
+| Tests passed           | 289                                                         |
+| Tests failed           | 2 (pre-existing in `CreatePostModal.test.ts`, out of scope) |
+| New test files         | 11                                                          |
+| New tests              | 56                                                          |
+| Typecheck errors (new) | 0                                                           |
+| Lint errors (new)      | 0                                                           |
+| Regressions            | 0                                                           |
 
 ---
 
@@ -50,11 +50,11 @@ apply → verify → archive).
 
 ## Follow-Up Issues
 
-| # | Title | Severity | Description |
-|---|-------|----------|-------------|
-| 1 | Wire useQueuedCounts into AppShell | low | The composable is correct and tested. AppShell.vue line 65 hardcodes `totalQueuedCount = ref(0)`. Wire the composable and remove the hardcode. |
-| 2 | Add proxyImageUrl stub to CreatePostModal.test.ts auth-api mock | low | Same mock gap that the refactor fixed in App.test.ts. Pre-existing latent bug. |
-| 3 | Split refactor-app-shell into stacked PRs before merge | medium | Forecast recommended chained PRs (composables → layout leaves → sidebar leaves → shell → verify). Single-PR delivery works but reviewers may prefer stacked. |
+| # | Title                                                           | Severity | Description                                                                                                                                                  |
+|---|-----------------------------------------------------------------|----------|--------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| 1 | Wire useQueuedCounts into AppShell                              | low      | The composable is correct and tested. AppShell.vue line 65 hardcodes `totalQueuedCount = ref(0)`. Wire the composable and remove the hardcode.               |
+| 2 | Add proxyImageUrl stub to CreatePostModal.test.ts auth-api mock | low      | Same mock gap that the refactor fixed in App.test.ts. Pre-existing latent bug.                                                                               |
+| 3 | Split refactor-app-shell into stacked PRs before merge          | medium   | Forecast recommended chained PRs (composables → layout leaves → sidebar leaves → shell → verify). Single-PR delivery works but reviewers may prefer stacked. |
 
 ---
 
@@ -81,8 +81,8 @@ requirements satisfied:
 
 ## Specs Synced
 
-| Domain | Action | Details |
-|--------|--------|---------|
+| Domain      | Action  | Details                                                               |
+|-------------|---------|-----------------------------------------------------------------------|
 | `app-shell` | Created | New main spec created from delta spec (19 requirements, 67 scenarios) |
 
 **Source of truth updated**: `openspec/specs/app-shell/spec.md`

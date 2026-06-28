@@ -4,7 +4,8 @@
 
 ### Requirement: Argon2id Password Hashing Interface (Design Only)
 
-The system SHOULD extend the `PasswordHasher` interface to support algorithm identification for future password hashing migration.
+The system SHOULD extend the `PasswordHasher` interface to support algorithm identification for
+future password hashing migration.
 
 The interface SHALL get a new property: `algorithm: String`
 The BCrypt implementation SHALL return `algorithm = "bcrypt"`

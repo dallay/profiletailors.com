@@ -2,13 +2,16 @@
 
 ## Purpose
 
-Defines the responsive grid system that composes all 11 dashboard sections into a cohesive command center. Replaces the current monolithic HomeView with a section-per-component architecture.
+Defines the responsive grid system that composes all 11 dashboard sections into a cohesive command
+center. Replaces the current monolithic HomeView with a section-per-component architecture.
 
 ## Requirements
 
 ### Requirement: Section Composition
 
-The system SHALL render dashboard sections as independent components composed by `DashboardLayout.vue`. Each section component receives data via props and emits events — no section references another section's state.
+The system SHALL render dashboard sections as independent components composed by
+`DashboardLayout.vue`. Each section component receives data via props and emits events — no section
+references another section's state.
 
 #### Scenario: Desktop layout renders all sections
 
@@ -38,7 +41,8 @@ The system SHALL render dashboard sections as independent components composed by
 
 ### Requirement: Section Header Pattern
 
-Every dashboard section SHALL display a consistent header with title, optional subtitle, and optional action link.
+Every dashboard section SHALL display a consistent header with title, optional subtitle, and
+optional action link.
 
 #### Scenario: Section renders header
 
@@ -50,7 +54,8 @@ Every dashboard section SHALL display a consistent header with title, optional s
 
 ### Requirement: Section Loading States
 
-Each section component SHALL support independent loading, empty, and error states without affecting other sections.
+Each section component SHALL support independent loading, empty, and error states without affecting
+other sections.
 
 #### Scenario: Section shows skeleton while loading
 

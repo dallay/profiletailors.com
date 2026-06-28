@@ -15,14 +15,14 @@ credential mechanisms, and governance requirements that form the platform founda
 
 The system MUST define the following bounded contexts for the platform architecture:
 
-| Context | Ownership |
-|---------|-----------|
-| **Identity** | Principal identity semantics, principal taxonomy |
-| **Tenancy** | Workspace lifecycle, ownership, membership |
-| **Authorization** | Permissions, roles, grants, scopes, policies, effective evaluation |
-| **Credentials** | Authentication credential and token semantics |
-| **Governance** | Auditing, runtime proof, explainability |
-| **Platform** | Cross-cutting seams: mediator dispatch, context propagation, shared contracts |
+| Context           | Ownership                                                                     |
+|-------------------|-------------------------------------------------------------------------------|
+| **Identity**      | Principal identity semantics, principal taxonomy                              |
+| **Tenancy**       | Workspace lifecycle, ownership, membership                                    |
+| **Authorization** | Permissions, roles, grants, scopes, policies, effective evaluation            |
+| **Credentials**   | Authentication credential and token semantics                                 |
+| **Governance**    | Auditing, runtime proof, explainability                                       |
+| **Platform**      | Cross-cutting seams: mediator dispatch, context propagation, shared contracts |
 
 Phase one MUST implement only the minimum contracts and behaviors required by the proving slice.
 No single context MUST absorb unrelated responsibilities merely for convenience.
@@ -186,17 +186,17 @@ scopes, entitlements). Equivalent state MUST yield equivalent outcomes.
 
 ### Requirement: Phase One Proving Slice
 
-| Endpoint | What it proves |
-|----------|---------------|
-| `GET /api/authorization/workspace-access/current` | Combined permissions + entitlements + direct grants + denials for USER, SERVICE_ACCOUNT, and API_KEY principals |
-| `GET /api/authorization/resources/{resourceId}/preview` | Target-aware scope reduction for workspace-scoped authorization |
-| `POST /api/auth/login` | JWT issuance + refresh credential creation |
-| `POST /api/auth/refresh` | Refresh credential validation + access token renewal |
-| `POST /api/auth/logout` | Authoritative refresh credential invalidation |
-| `POST /api/auth/register` | User registration + domain event emission |
-| `GET /api/auth/verify-email` | Email verification token consumption |
-| `POST /api/auth/resend-verification` | Email verification resend |
-| API key replacement | Predecessor/successor cutover without overlap |
+| Endpoint                                                | What it proves                                                                                                  |
+|---------------------------------------------------------|-----------------------------------------------------------------------------------------------------------------|
+| `GET /api/authorization/workspace-access/current`       | Combined permissions + entitlements + direct grants + denials for USER, SERVICE_ACCOUNT, and API_KEY principals |
+| `GET /api/authorization/resources/{resourceId}/preview` | Target-aware scope reduction for workspace-scoped authorization                                                 |
+| `POST /api/auth/login`                                  | JWT issuance + refresh credential creation                                                                      |
+| `POST /api/auth/refresh`                                | Refresh credential validation + access token renewal                                                            |
+| `POST /api/auth/logout`                                 | Authoritative refresh credential invalidation                                                                   |
+| `POST /api/auth/register`                               | User registration + domain event emission                                                                       |
+| `GET /api/auth/verify-email`                            | Email verification token consumption                                                                            |
+| `POST /api/auth/resend-verification`                    | Email verification resend                                                                                       |
+| API key replacement                                     | Predecessor/successor cutover without overlap                                                                   |
 
 The proving slice MUST validate the platform model end-to-end without requiring full platform
 breadth. All endpoints MUST enforce deny-by-default, explicit-over-implicit, and deterministic

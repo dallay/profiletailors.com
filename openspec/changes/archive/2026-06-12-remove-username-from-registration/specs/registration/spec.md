@@ -2,7 +2,9 @@
 
 ## Overview
 
-Remove the `username` field from the registration form and API request payload. The backend continues auto-deriving username from the email prefix. Username remains in API responses for future profile settings.
+Remove the `username` field from the registration form and API request payload. The backend
+continues auto-deriving username from the email prefix. Username remains in API responses for future
+profile settings.
 
 ## REMOVED Requirements
 
@@ -50,7 +52,8 @@ Only `email` and `password` SHALL be accepted as request body parameters.
 
 ### Requirement: Backend Auto-Derives Username from Email
 
-The system MUST continue to auto-derive the username from the email prefix when creating a user account.
+The system MUST continue to auto-derive the username from the email prefix when creating a user
+account.
 
 The `RegisterUserHandler` MUST derive the username by taking the email prefix (the part before `@`).
 The derived username MUST be stored in the `username` column in the database.
@@ -89,14 +92,14 @@ Removing `username` from the response is out of scope for this change.
 
 ## Acceptance Criteria
 
-| ID | Criterion | Validation |
-|----|-----------|------------|
-| AC-1 | Registration form has no username field | Visual inspection + DOM query |
-| AC-2 | API register succeeds without `username` in body | Integration test |
-| AC-3 | Username auto-derived from email prefix | Unit test coverage |
-| AC-4 | Existing tests pass | `./gradlew test` green |
-| AC-5 | No dead i18n strings for registration username | Grep confirms removal |
-| AC-6 | API responses still include `username` | Integration test asserts response |
+| ID   | Criterion                                        | Validation                        |
+|------|--------------------------------------------------|-----------------------------------|
+| AC-1 | Registration form has no username field          | Visual inspection + DOM query     |
+| AC-2 | API register succeeds without `username` in body | Integration test                  |
+| AC-3 | Username auto-derived from email prefix          | Unit test coverage                |
+| AC-4 | Existing tests pass                              | `./gradlew test` green            |
+| AC-5 | No dead i18n strings for registration username   | Grep confirms removal             |
+| AC-6 | API responses still include `username`           | Integration test asserts response |
 
 ## Constraints
 

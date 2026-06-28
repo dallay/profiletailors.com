@@ -2,7 +2,8 @@
 
 ## Purpose
 
-Combines Inbox Summary (unread messages, comments, mentions across platforms) and Team Activity (recent actions by team members). Gives the user a pulse on engagement and team productivity.
+Combines Inbox Summary (unread messages, comments, mentions across platforms) and Team Activity (
+recent actions by team members). Gives the user a pulse on engagement and team productivity.
 
 ## Data Model
 

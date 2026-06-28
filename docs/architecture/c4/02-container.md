@@ -166,7 +166,8 @@ graph TB
 - **Purpose**: Core business logic and REST API
 - **Architecture**: Hexagonal architecture with bounded contexts
 - **Composition**: Multi-module Gradle project composed of:
-    - `shared:common` — **Shared Kernel**: domain primitives, base entities, value objects (pure Kotlin, zero Spring dependencies)
+    - `shared:common` — **Shared Kernel**: domain primitives, base entities, value objects (pure
+      Kotlin, zero Spring dependencies)
     - `shared:bus` — Event bus abstractions
     - `shared:spring-boot-common` — Spring Boot integration library
     - `shared:security` — Security primitives

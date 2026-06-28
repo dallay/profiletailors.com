@@ -41,7 +41,6 @@ CI workflow that:
 - Uploads the same reports to both SonarQube and Codecov
 - Stores coverage reports as artifacts for debugging
 
-
 ### Backend coverage reports
 
 Gradle build logic provides:

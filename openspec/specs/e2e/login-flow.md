@@ -34,13 +34,13 @@ login page rendering → form interaction → API integration → session manage
 
 ### Key Contracts
 
-| Endpoint       | Method | Request                | Success       | Failure                        |
-|----------------|--------|------------------------|---------------|--------------------------------|
-| `/api/auth/login`    | POST   | `{ email, password }`  | 200 + tokens  | 401 InvalidEmailPassword       |
-| `/api/auth/register` | POST   | `{ email, password }`  | 200 + tokens  | 409 UserAlreadyExists / 400 InvalidInput |
-| `/api/auth/refresh`  | POST   | (HttpOnly cookie)      | 200 + tokens  | 401 RefreshSessionNotActive    |
-| `/api/auth/logout`   | POST   | (HttpOnly cookie)      | 204           | —                              |
-| `/api/auth/me`       | GET    | Bearer token           | 200 profile   | 401                            |
+| Endpoint             | Method | Request               | Success      | Failure                                  |
+|----------------------|--------|-----------------------|--------------|------------------------------------------|
+| `/api/auth/login`    | POST   | `{ email, password }` | 200 + tokens | 401 InvalidEmailPassword                 |
+| `/api/auth/register` | POST   | `{ email, password }` | 200 + tokens | 409 UserAlreadyExists / 400 InvalidInput |
+| `/api/auth/refresh`  | POST   | (HttpOnly cookie)     | 200 + tokens | 401 RefreshSessionNotActive              |
+| `/api/auth/logout`   | POST   | (HttpOnly cookie)     | 204          | —                                        |
+| `/api/auth/me`       | GET    | Bearer token          | 200 profile  | 401                                      |
 
 ### Auth Token Flow
 
@@ -691,33 +691,36 @@ Then all text meets WCAG AA contrast ratios
 
 ## 16. Test Scenarios Matrix
 
-| ID    | Area                | Scenario                                | Priority | Auth Required | API Required |
-|-------|---------------------|-----------------------------------------|----------|---------------|--------------|
-| 1.1   | Rendering           | Login page renders fully                | P0       | No            | No           |
-| 1.4   | Rendering           | Registration page renders               | P0       | No            | No           |
-| 3.1   | Login API           | Successful login + redirect             | P0       | No            | Yes          |
-| 3.2   | Login API           | Login preserves redirect param          | P0       | No            | Yes          |
-| 4.1   | Login API           | Invalid credentials error               | P0       | No            | Yes          |
-| 4.2   | Login API           | No user enumeration                     | P1       | No            | Yes          |
-| 6.1   | Session             | Session survives page refresh           | P0       | Yes           | Yes          |
-| 6.2   | Session             | Expired session → login page            | P0       | Yes           | Yes          |
-| 6.3   | Session             | No session → login redirect             | P0       | No            | Yes          |
-| 7.1   | Token Refresh       | 401 + successful refresh retry          | P1       | Yes           | Yes          |
-| 7.2   | Token Refresh       | 401 + failed refresh → logout           | P1       | Yes           | Yes          |
-| 8.1   | Logout              | Logout clears session                   | P0       | Yes           | Yes          |
-| 9.1   | Route Guards        | Protected routes redirect to login      | P0       | No            | Yes          |
-| 9.2   | Route Guards        | Guest routes redirect when authenticated| P0       | Yes           | No           |
-| 10.1  | i18n                | English locale                          | P1       | No            | No           |
-| 10.2  | i18n                | Spanish locale                          | P1       | No            | No           |
-| 11.1  | Security            | No token in localStorage                | P0       | Yes           | Yes          |
-| 11.2  | Security            | HttpOnly cookie flags                   | P1       | Yes           | Yes          |
-| 12.2  | Error Banner        | Error display styling                   | P2       | No            | Yes          |
-| 14.1  | Responsive          | Mobile viewport                         | P1       | No            | No           |
-| 15.1  | Accessibility       | Form labels                             | P2       | No            | No           |
+| ID   | Area          | Scenario                                 | Priority | Auth Required | API Required |
+|------|---------------|------------------------------------------|----------|---------------|--------------|
+| 1.1  | Rendering     | Login page renders fully                 | P0       | No            | No           |
+| 1.4  | Rendering     | Registration page renders                | P0       | No            | No           |
+| 3.1  | Login API     | Successful login + redirect              | P0       | No            | Yes          |
+| 3.2  | Login API     | Login preserves redirect param           | P0       | No            | Yes          |
+| 4.1  | Login API     | Invalid credentials error                | P0       | No            | Yes          |
+| 4.2  | Login API     | No user enumeration                      | P1       | No            | Yes          |
+| 6.1  | Session       | Session survives page refresh            | P0       | Yes           | Yes          |
+| 6.2  | Session       | Expired session → login page             | P0       | Yes           | Yes          |
+| 6.3  | Session       | No session → login redirect              | P0       | No            | Yes          |
+| 7.1  | Token Refresh | 401 + successful refresh retry           | P1       | Yes           | Yes          |
+| 7.2  | Token Refresh | 401 + failed refresh → logout            | P1       | Yes           | Yes          |
+| 8.1  | Logout        | Logout clears session                    | P0       | Yes           | Yes          |
+| 9.1  | Route Guards  | Protected routes redirect to login       | P0       | No            | Yes          |
+| 9.2  | Route Guards  | Guest routes redirect when authenticated | P0       | Yes           | No           |
+| 10.1 | i18n          | English locale                           | P1       | No            | No           |
+| 10.2 | i18n          | Spanish locale                           | P1       | No            | No           |
+| 11.1 | Security      | No token in localStorage                 | P0       | Yes           | Yes          |
+| 11.2 | Security      | HttpOnly cookie flags                    | P1       | Yes           | Yes          |
+| 12.2 | Error Banner  | Error display styling                    | P2       | No            | Yes          |
+| 14.1 | Responsive    | Mobile viewport                          | P1       | No            | No           |
+| 15.1 | Accessibility | Form labels                              | P2       | No            | No           |
 
 **Priority definitions:**
-- **P0**: Critical path — must pass for release. Covers happy path login, basic error handling, session persistence, and route guards.
-- **P1**: Important — should pass for release. Covers i18n, token refresh, security headers, mobile rendering.
+
+- **P0**: Critical path — must pass for release. Covers happy path login, basic error handling,
+  session persistence, and route guards.
+- **P1**: Important — should pass for release. Covers i18n, token refresh, security headers, mobile
+  rendering.
 - **P2**: Nice to have — quality polish. Covers visual styling, accessibility, edge cases.
 
 ---
@@ -727,6 +730,7 @@ Then all text meets WCAG AA contrast ratios
 ### Test Setup
 
 For tests requiring authentication:
+
 1. Use Playwright `page.request` to call `POST /api/auth/login` with test credentials
 2. Save the resulting storage state (cookies) via `page.context().storageState()`
 3. Reuse the storage state in authenticated test suites via Playwright projects
@@ -744,11 +748,13 @@ async function authenticateAs(page: Page, email: string, password: string) {
 ### Test Teardown
 
 For tests that create users:
+
 1. Delete the test user via admin API or direct DB query to keep tests idempotent
 
 ### API Mocking Strategy
 
-- **Backend-dependent tests** (login success/failure, session): Use real backend with seeded test data
+- **Backend-dependent tests** (login success/failure, session): Use real backend with seeded test
+  data
 - **Token refresh tests**: Mock `POST /api/auth/refresh` via Playwright route interception
 - **Network error tests**: Use Playwright `page.route` to abort requests
 
@@ -782,15 +788,15 @@ DELETE FROM identity WHERE email LIKE 'e2e-test-%';
 
 ## Appendix A: Routes Map
 
-| Path                               | Component               | Auth Required | Guest Only |
-|------------------------------------|-------------------------|---------------|------------|
-| `/login`                           | AuthView (login mode)   | No            | Yes        |
-| `/register`                        | AuthView (register mode)| No            | Yes        |
-| `/`                                | HomeView (dashboard)    | Yes           | No         |
-| `/scheduler`                       | SchedulerView           | Yes           | No         |
-| `/analytics`                       | AnalyticsView           | Yes           | No         |
-| `/settings`                        | SettingsView            | Yes           | No         |
-| `/integrations/linkedin/callback`  | LinkedInCallbackView    | Yes           | No         |
+| Path                              | Component                | Auth Required | Guest Only |
+|-----------------------------------|--------------------------|---------------|------------|
+| `/login`                          | AuthView (login mode)    | No            | Yes        |
+| `/register`                       | AuthView (register mode) | No            | Yes        |
+| `/`                               | HomeView (dashboard)     | Yes           | No         |
+| `/scheduler`                      | SchedulerView            | Yes           | No         |
+| `/analytics`                      | AnalyticsView            | Yes           | No         |
+| `/settings`                       | SettingsView             | Yes           | No         |
+| `/integrations/linkedin/callback` | LinkedInCallbackView     | Yes           | No         |
 
 ## Appendix B: API Contract Reference
 

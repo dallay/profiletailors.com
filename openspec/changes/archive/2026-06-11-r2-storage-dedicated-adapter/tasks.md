@@ -92,9 +92,12 @@
 ### 4.3 Contract Tests
 
 - [x] Update `StorageContractTest.kt` to support R2 provider (via `R2StorageContractTest`)
-- [x] Add R2 to test parameter matrix (via `R2StorageContractTest` + `R2PresignableStorageContractTest`)
-- [x] Verify all platform specification scenarios pass for R2 (runs via LocalStack when Docker available) — **RE-ENTRY #3: 13/13 + 8/8 contract scenarios pass with `DOCKER_AVAILABLE=true`**
-- [x] Add R2-specific contract scenarios if needed (deferred — see WARNING #4 in verify report; existing general contract is sufficient)
+- [x] Add R2 to test parameter matrix (via `R2StorageContractTest` +
+  `R2PresignableStorageContractTest`)
+- [x] Verify all platform specification scenarios pass for R2 (runs via LocalStack when Docker
+  available) — **RE-ENTRY #3: 13/13 + 8/8 contract scenarios pass with `DOCKER_AVAILABLE=true`**
+- [x] Add R2-specific contract scenarios if needed (deferred — see WARNING #4 in verify report;
+  existing general contract is sufficient)
 
 ## Phase 5: Documentation
 
@@ -117,8 +120,10 @@
 
 - [x] Run `./gradlew :shared:storage:compileKotlin` (BUILD SUCCESSFUL)
 - [x] Run `./gradlew :shared:storage:test` (83 tests, 32 skipped Docker-only, 0 failures)
-- [ ] Run `./gradlew :shared:storage:koverReport` (verify >80% coverage) — *Kover not enabled in module, see Warnings*
-- [ ] Run `./gradlew :shared:storage:build` (full build not in apply scope; `compileKotlin` + `test` pass)
+- [ ] Run `./gradlew :shared:storage:koverReport` (verify >80% coverage) — *Kover not enabled in
+  module, see Warnings*
+- [ ] Run `./gradlew :shared:storage:build` (full build not in apply scope; `compileKotlin` + `test`
+  pass)
 
 ### 6.2 Manual Verification
 
@@ -159,14 +164,14 @@ applied in this re-entry:
   preserved for R2-compatible behavior.
 - **CRITICAL-2 (credentials)**: R2 has no AWS credentials chain, so `accessKeyId` and
   `secretAccessKey` MUST be wired explicitly. Three concrete changes:
-  1. Added `accessKeyId: String?` and `secretAccessKey: String?` to `ProviderConfig` in
-     `StorageProperties.kt`.
-  2. `createR2Storage` in `StorageAutoConfiguration.kt` now validates that both fields are
-     present (throws `IllegalArgumentException` with a YAML-keyed error message) and calls
-     `.credentialsProvider(StaticCredentialsProvider.create(AwsBasicCredentials.create(...)))`
-     on BOTH the `S3AsyncClient.builder()` and the `S3Presigner.builder()`.
-  3. Added `StorageAutoConfigurationR2Test` with 5 unit tests (3 validation, 2 wiring using
-     `mockkStatic` to capture `.credentialsProvider(...)` calls on both builders).
+    1. Added `accessKeyId: String?` and `secretAccessKey: String?` to `ProviderConfig` in
+       `StorageProperties.kt`.
+    2. `createR2Storage` in `StorageAutoConfiguration.kt` now validates that both fields are
+       present (throws `IllegalArgumentException` with a YAML-keyed error message) and calls
+       `.credentialsProvider(StaticCredentialsProvider.create(AwsBasicCredentials.create(...)))`
+       on BOTH the `S3AsyncClient.builder()` and the `S3Presigner.builder()`.
+    3. Added `StorageAutoConfigurationR2Test` with 5 unit tests (3 validation, 2 wiring using
+       `mockkStatic` to capture `.credentialsProvider(...)` calls on both builders).
 - **State-tracking gap**: Phase 3.1 checkboxes (`Add type: r2 case`, `Keep type: s2 as
   deprecated alias`, `Register R2StorageAdapter bean`, `Update BucketRegistry to handle R2
   provider type`) are now marked `[x]`. Phase 3.2 subitems also marked where code is in place
@@ -199,11 +204,11 @@ fixes made the tests runnable). Concrete fixes applied in this re-entry:
   asserted value, making the `runBlocking { ... }` body return non-`Unit`. JUnit Jupiter
   silently skips `@Test` methods that return a value. Three tests in the abstract base were
   affected:
-  - `DownloadOperations.should throw StorageObjectNotFoundException for non-existent object`
-  - `DownloadOperations.should return content as Flow of ByteArray`
-  - `DeleteOperations.should delete existing object`
-  Fix: added an explicit `Unit` statement at the end of each affected block. After this
-  change, 16/16 StorageContractTest nested tests run.
+    - `DownloadOperations.should throw StorageObjectNotFoundException for non-existent object`
+    - `DownloadOperations.should return content as Flow of ByteArray`
+    - `DeleteOperations.should delete existing object`
+      Fix: added an explicit `Unit` statement at the end of each affected block. After this
+      change, 16/16 StorageContractTest nested tests run.
 - **Test isolation for `list operations`**: `should return empty list for empty bucket`
   called `storage.list(TEST_BUCKET)` and asserted the result was empty. But `TEST_BUCKET`
   is shared across the whole class — other tests upload to it, and `validateBucket(...)`
@@ -211,7 +216,8 @@ fixes made the tests runnable). Concrete fixes applied in this re-entry:
   listing with a per-test unique prefix (`empty-${System.nanoTime()}/`) that no other
   test in the class writes to, while still using the bound `TEST_BUCKET`.
 
-### Fixes in `shared/storage/src/test/kotlin/com/profiletailors/storage/PresignableStorageContractTest.kt`
+### Fixes in
+`shared/storage/src/test/kotlin/com/profiletailors/storage/PresignableStorageContractTest.kt`
 
 - **CRITICAL-NEW-2 (`runTest` virtual time)**: Converted all 8 `runTest { ... }` invocations
   to `runBlocking { ... }` and swapped the import. Same root cause as above.
@@ -249,7 +255,8 @@ The prompt specified only 2 fixes (`@TempDir` and `runTest → runBlocking` in
 `PresignableStorageContractTest`). To meet the prompt's success criterion of 13/13
 `R2StorageContractTest` passing, **2 additional fixes were required**:
 
-1. `StorageContractTest` had the same `runTest` virtual-time bug as `PresignableStorageContractTest`.
+1. `StorageContractTest` had the same `runTest` virtual-time bug as
+   `PresignableStorageContractTest`.
    The prompt didn't mention it, but the bug was identical and would have caused 13/13 to still
    fail without this fix.
 2. Three tests in the abstract base silently returned a value, causing JUnit to skip them.
@@ -269,18 +276,19 @@ didn't fully anticipate.
 1.1 → 1.2 → 2.1 → 2.2 → 2.3 → 3.1 → 3.2 → 4.1 → 4.2 → 4.3 → 5.1 → 5.2 → 6.1 → 6.2
 ```
 
-**Note**: Phases 4.1-4.3 follow TDD - tests are written before implementation in real execution, but documented here as verification of implementation.
+**Note**: Phases 4.1-4.3 follow TDD - tests are written before implementation in real execution, but
+documented here as verification of implementation.
 
 ## Estimated Effort
 
-| Phase | Tasks | Estimated Time |
-|-------|-------|---------------|
-| Infrastructure | 2 | 1 hour |
-| Implementation | 6 | 3 hours |
-| Spring Integration | 4 | 2 hours |
-| Unit Tests | 14 | 4 hours |
-| Integration Tests | 5 | 2 hours |
-| Contract Tests | 3 | 1 hour |
-| Documentation | 5 | 1 hour |
-| Verification | 7 | 1 hour |
-| **Total** | **46** | **~15 hours** |
+| Phase              | Tasks  | Estimated Time |
+|--------------------|--------|----------------|
+| Infrastructure     | 2      | 1 hour         |
+| Implementation     | 6      | 3 hours        |
+| Spring Integration | 4      | 2 hours        |
+| Unit Tests         | 14     | 4 hours        |
+| Integration Tests  | 5      | 2 hours        |
+| Contract Tests     | 3      | 1 hour         |
+| Documentation      | 5      | 1 hour         |
+| Verification       | 7      | 1 hour         |
+| **Total**          | **46** | **~15 hours**  |

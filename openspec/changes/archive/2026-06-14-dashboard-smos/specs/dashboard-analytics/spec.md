@@ -2,7 +2,9 @@
 
 ## Purpose
 
-Combines two analytics views: Content Performance (top posts ranked by engagement) and Cross-Channel Analytics (platform comparison bars and audience growth). This gives the user both post-level and channel-level performance data in one section.
+Combines two analytics views: Content Performance (top posts ranked by engagement) and Cross-Channel
+Analytics (platform comparison bars and audience growth). This gives the user both post-level and
+channel-level performance data in one section.
 
 ## Data Model
 

@@ -31,11 +31,11 @@ they are allowed to do.
 
 **Distinctions**:
 
-| Concept | Answers | Owned by |
-|---------|---------|----------|
-| Identity | Who is the actor? | Identity |
-| Credentials | How did they prove it? | Credentials |
-| Authorization | What may they do? | Authorization |
+| Concept       | Answers                | Owned by      |
+|---------------|------------------------|---------------|
+| Identity      | Who is the actor?      | Identity      |
+| Credentials   | How did they prove it? | Credentials   |
+| Authorization | What may they do?      | Authorization |
 
 ---
 
@@ -111,12 +111,12 @@ they are allowed to do.
 
 **Credential transport**:
 
-| Credential | Transport | Storage |
-|------------|-----------|---------|
-| JWT access token | `Authorization: Bearer` header | Frontend memory only |
-| Refresh credential | `HttpOnly` + `SameSite` + `Secure` cookie | Backend authoritative state |
-| Service-account bearer | `Authorization: Bearer` header | Backend authoritative state |
-| API key | Custom header or parameter | Backend authoritative state (verifier, not plaintext) |
+| Credential             | Transport                                 | Storage                                               |
+|------------------------|-------------------------------------------|-------------------------------------------------------|
+| JWT access token       | `Authorization: Bearer` header            | Frontend memory only                                  |
+| Refresh credential     | `HttpOnly` + `SameSite` + `Secure` cookie | Backend authoritative state                           |
+| Service-account bearer | `Authorization: Bearer` header            | Backend authoritative state                           |
+| API key                | Custom header or parameter                | Backend authoritative state (verifier, not plaintext) |
 
 ---
 
@@ -169,14 +169,14 @@ explainable.
 
 Every authenticated actor recognized by the platform is represented as one of six principal types:
 
-| Type | Purpose | Phase One |
-|------|---------|-----------|
-| `USER` | Human users with browser sessions | ✅ Implemented (JWT + refresh) |
-| `SERVICE_ACCOUNT` | Non-human actors with bearer credentials | ✅ Implemented |
-| `API_KEY` | Non-human actors with key-based authentication | ✅ Implemented |
-| `SYSTEM` | Internal system-to-system actors | 🔲 Deferred |
-| `INTEGRATION` | External platform integration actors | 🔲 Deferred |
-| `AGENT` | Autonomous or semi-autonomous software agents | 🔲 Deferred |
+| Type              | Purpose                                        | Phase One                     |
+|-------------------|------------------------------------------------|-------------------------------|
+| `USER`            | Human users with browser sessions              | ✅ Implemented (JWT + refresh) |
+| `SERVICE_ACCOUNT` | Non-human actors with bearer credentials       | ✅ Implemented                 |
+| `API_KEY`         | Non-human actors with key-based authentication | ✅ Implemented                 |
+| `SYSTEM`          | Internal system-to-system actors               | 🔲 Deferred                   |
+| `INTEGRATION`     | External platform integration actors           | 🔲 Deferred                   |
+| `AGENT`           | Autonomous or semi-autonomous software agents  | 🔲 Deferred                   |
 
 Principal identity is materialized through repo-local seams, never consumed as raw framework token
 structures. Authentication success alone does not imply authorization.
@@ -187,12 +187,12 @@ structures. Authentication success alone does not imply authorization.
 
 Authorization decisions are evaluated relative to an explicit resource context:
 
-| Context | Scope | Phase One |
-|---------|-------|-----------|
-| `GLOBAL` | Platform-wide, no workspace boundary | 🔲 Deferred |
-| `USER` | Scoped to the principal's user data | 🔲 Deferred |
-| `WORKSPACE` | Scoped to a specific workspace | ✅ Implemented |
-| `SYSTEM` | Internal system resources | 🔲 Deferred |
+| Context     | Scope                                | Phase One     |
+|-------------|--------------------------------------|---------------|
+| `GLOBAL`    | Platform-wide, no workspace boundary | 🔲 Deferred   |
+| `USER`      | Scoped to the principal's user data  | 🔲 Deferred   |
+| `WORKSPACE` | Scoped to a specific workspace       | ✅ Implemented |
+| `SYSTEM`    | Internal system resources            | 🔲 Deferred   |
 
 All four contexts are part of the stable taxonomy even when only `WORKSPACE` is implemented.
 Permissions, grants, scopes, and policies MUST NOT rely on implicit context inference.
@@ -249,17 +249,17 @@ full breadth. The proving slice proves end-to-end behavior across all six bounde
 
 ### Endpoints
 
-| Endpoint | Purpose | Status |
-|----------|---------|--------|
-| `GET /api/authorization/workspace-access/current` | Prove principal materialization, membership, RBAC, direct grants, feature entitlements, deny-by-default, governance proof | ✅ Implemented |
-| `GET /api/authorization/resources/{resourceId}/preview` | Prove target-aware scope reduction with explicit `targetResourceId` | ✅ Implemented |
-| `POST /api/auth/login` | USER login with JWT + refresh cookie issuance | ✅ Implemented |
-| `POST /api/auth/refresh` | Refresh credential validation and new JWT issuance | ✅ Implemented |
-| `POST /api/auth/logout` | Authoritative refresh session invalidation | ✅ Implemented |
-| `POST /api/auth/register` | User registration with email verification token | ✅ Implemented |
-| `GET /api/auth/verify-email` | Email verification token validation | ✅ Implemented |
-| `POST /api/auth/resend-verification` | Resend verification email | ✅ Implemented |
-| API-key replacement | Replace an active API key with cutover (no overlap) | ✅ Implemented |
+| Endpoint                                                | Purpose                                                                                                                   | Status        |
+|---------------------------------------------------------|---------------------------------------------------------------------------------------------------------------------------|---------------|
+| `GET /api/authorization/workspace-access/current`       | Prove principal materialization, membership, RBAC, direct grants, feature entitlements, deny-by-default, governance proof | ✅ Implemented |
+| `GET /api/authorization/resources/{resourceId}/preview` | Prove target-aware scope reduction with explicit `targetResourceId`                                                       | ✅ Implemented |
+| `POST /api/auth/login`                                  | USER login with JWT + refresh cookie issuance                                                                             | ✅ Implemented |
+| `POST /api/auth/refresh`                                | Refresh credential validation and new JWT issuance                                                                        | ✅ Implemented |
+| `POST /api/auth/logout`                                 | Authoritative refresh session invalidation                                                                                | ✅ Implemented |
+| `POST /api/auth/register`                               | User registration with email verification token                                                                           | ✅ Implemented |
+| `GET /api/auth/verify-email`                            | Email verification token validation                                                                                       | ✅ Implemented |
+| `POST /api/auth/resend-verification`                    | Resend verification email                                                                                                 | ✅ Implemented |
+| API-key replacement                                     | Replace an active API key with cutover (no overlap)                                                                       | ✅ Implemented |
 
 ### What it proves
 
@@ -279,16 +279,16 @@ full breadth. The proving slice proves end-to-end behavior across all six bounde
 
 ## Key Design Decisions
 
-| Decision | Choice | Alternatives | Rationale |
-|----------|--------|-------------|-----------|
-| Modular monolith | Single deployable unit with Spring Modulith | Microservices | Simpler operations; can extract later; keeps cross-context dispatch cheap |
-| CQRS via mediator | `SpringMediator` dispatches commands and queries | Direct service injection | Allows cross-cutting concerns (auth, context) to surround dispatch without changing feature code |
-| Permission format | `<domain>:<resource>:<action>` strings | Enum-based, integer bitfields | Explicit, extensible, debuggable — no enum recompilation for new permissions |
-| Scope semantics | Reduction-only, after base-permission allow | Scope-first, context-wide filters | Prevents scope escape: a scope can never manufacture access the base permission does not grant |
-| Resource context | Explicit `X-Workspace-Id` header | Derived from JWT claims, inferred from URL | Cannot be forged or confused; stays in tenancy context, not mixed into credentials |
-| JWT for USER, bearer+key for non-human | Multiple credential paths, single principal model | Unified token format for all principal types | Each credential path has appropriate security properties; entity model stays stable |
-| Refresh cookie | `HttpOnly` + `SameSite` + `Secure` | `localStorage`, `sessionStorage`, opaque tokens | XSS-resistant; refresh credential never exposed to JavaScript |
-| Email verification | Gating at feature level, not auth level | Block login until verified | Users can authenticate but are gated from sensitive features until verified |
+| Decision                               | Choice                                            | Alternatives                                    | Rationale                                                                                        |
+|----------------------------------------|---------------------------------------------------|-------------------------------------------------|--------------------------------------------------------------------------------------------------|
+| Modular monolith                       | Single deployable unit with Spring Modulith       | Microservices                                   | Simpler operations; can extract later; keeps cross-context dispatch cheap                        |
+| CQRS via mediator                      | `SpringMediator` dispatches commands and queries  | Direct service injection                        | Allows cross-cutting concerns (auth, context) to surround dispatch without changing feature code |
+| Permission format                      | `<domain>:<resource>:<action>` strings            | Enum-based, integer bitfields                   | Explicit, extensible, debuggable — no enum recompilation for new permissions                     |
+| Scope semantics                        | Reduction-only, after base-permission allow       | Scope-first, context-wide filters               | Prevents scope escape: a scope can never manufacture access the base permission does not grant   |
+| Resource context                       | Explicit `X-Workspace-Id` header                  | Derived from JWT claims, inferred from URL      | Cannot be forged or confused; stays in tenancy context, not mixed into credentials               |
+| JWT for USER, bearer+key for non-human | Multiple credential paths, single principal model | Unified token format for all principal types    | Each credential path has appropriate security properties; entity model stays stable              |
+| Refresh cookie                         | `HttpOnly` + `SameSite` + `Secure`                | `localStorage`, `sessionStorage`, opaque tokens | XSS-resistant; refresh credential never exposed to JavaScript                                    |
+| Email verification                     | Gating at feature level, not auth level           | Block login until verified                      | Users can authenticate but are gated from sensitive features until verified                      |
 
 ---
 
@@ -296,18 +296,18 @@ full breadth. The proving slice proves end-to-end behavior across all six bounde
 
 These capabilities are part of the durable platform model but explicitly deferred beyond phase one:
 
-| Capability | Reason |
-|------------|--------|
-| SYSTEM, INTEGRATION, AGENT principal execution | Phase one proves USER, SERVICE_ACCOUNT, and API_KEY paths |
-| GLOBAL, USER, SYSTEM resource contexts | Phase one proves WORKSPACE context |
-| Full governance persistence and compliance reporting | Phase one proves runtime audit-ready proof without durable storage |
-| Generic scope engine, wildcards, inheritance | Phase one proves scope reduction for one capability |
-| Feature entitlement CRUD, admin APIs, catalog/billing | Phase one proves one persisted workspace-scoped key |
-| Service-account rotation and credential-family management | Phase one proves API-key replacement only |
-| Dual-active rollover windows and grace periods | Phase one proves no-overlap cutover |
-| Generalized policy administration UI | Phase one proves API-level evaluation only |
-| ABAC condition attributes | Phase one uses deterministic RBAC; model permits future ABAC augmentation |
-| Remembered workspace defaults and multi-workspace evaluation | Phase one resolves one explicit workspace per request |
+| Capability                                                   | Reason                                                                    |
+|--------------------------------------------------------------|---------------------------------------------------------------------------|
+| SYSTEM, INTEGRATION, AGENT principal execution               | Phase one proves USER, SERVICE_ACCOUNT, and API_KEY paths                 |
+| GLOBAL, USER, SYSTEM resource contexts                       | Phase one proves WORKSPACE context                                        |
+| Full governance persistence and compliance reporting         | Phase one proves runtime audit-ready proof without durable storage        |
+| Generic scope engine, wildcards, inheritance                 | Phase one proves scope reduction for one capability                       |
+| Feature entitlement CRUD, admin APIs, catalog/billing        | Phase one proves one persisted workspace-scoped key                       |
+| Service-account rotation and credential-family management    | Phase one proves API-key replacement only                                 |
+| Dual-active rollover windows and grace periods               | Phase one proves no-overlap cutover                                       |
+| Generalized policy administration UI                         | Phase one proves API-level evaluation only                                |
+| ABAC condition attributes                                    | Phase one uses deterministic RBAC; model permits future ABAC augmentation |
+| Remembered workspace defaults and multi-workspace evaluation | Phase one resolves one explicit workspace per request                     |
 
 ---
 

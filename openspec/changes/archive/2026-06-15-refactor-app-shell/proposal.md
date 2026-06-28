@@ -90,31 +90,37 @@ drilling. This matches `DashboardLayout.vue` → `ExecutiveOverview.vue` and fri
 
 **Decomposition map (13 sections → ~8 SFCs + 2 composables + 1 shell):**
 
-| Section | Owner | Notes |
-|---|---|---|
-| 1. Auth-route gate | `App.vue` shell | `<RouterView v-if="isAuthRoute" />` stays inline |
-| 2. TooltipProvider + SidebarProvider | `App.vue` shell | Must stay at root for context |
-| 3. Workspace switcher popover | `components/sidebar/SidebarWorkspaceSwitcher.vue` | Uses `usePopoverDismissal` |
-| 4. Navigation groups | `components/sidebar/SidebarNavigation.vue` | Receives `navigationGroups` + `totalQueuedCount` as props |
-| 5. Connected channels + "All channels" | `components/sidebar/SidebarChannels.vue` | Owns `avatarLoadFailedMap`, `onAvatarError`, `shouldShowAvatar`; emits `select` |
-| 6. Connect subpanel | `components/sidebar/SidebarConnectChannels.vue` | Uses `useConnectMessage`; emits `connect` |
-| 7. Account menu popover | `components/sidebar/SidebarAccountMenu.vue` | Uses `usePopoverDismissal`; emits `logout`, `navigate-settings` |
-| 8. Click-outside + escape + route-watcher | `composables/usePopoverDismissal.ts` | Shared by sections 3 and 7 |
-| 9. Header trigger + section title | `components/layout/AppHeader.vue` (composes trigger + title) | Composes `AppHeaderSectionTitle` |
-| 10. Header status pill | `components/layout/AppHeaderStatusPill.vue` | Receives `headerSummary` as prop |
-| 11. Header language + theme toggles | `components/layout/AppHeaderToggles.vue` | Consolidates the three theme controls and two language controls |
-| 12. Main outlet | `App.vue` shell | Stays inline — it's a one-liner around `<RouterView />` |
-| 13. Auth bootstrap watcher | `App.vue` shell | Must stay here; calls `workspace.loadWorkspaces` and `publishing.fetchChannels` |
+| Section                                   | Owner                                                        | Notes                                                                           |
+|-------------------------------------------|--------------------------------------------------------------|---------------------------------------------------------------------------------|
+| 1. Auth-route gate                        | `App.vue` shell                                              | `<RouterView v-if="isAuthRoute" />` stays inline                                |
+| 2. TooltipProvider + SidebarProvider      | `App.vue` shell                                              | Must stay at root for context                                                   |
+| 3. Workspace switcher popover             | `components/sidebar/SidebarWorkspaceSwitcher.vue`            | Uses `usePopoverDismissal`                                                      |
+| 4. Navigation groups                      | `components/sidebar/SidebarNavigation.vue`                   | Receives `navigationGroups` + `totalQueuedCount` as props                       |
+| 5. Connected channels + "All channels"    | `components/sidebar/SidebarChannels.vue`                     | Owns `avatarLoadFailedMap`, `onAvatarError`, `shouldShowAvatar`; emits `select` |
+| 6. Connect subpanel                       | `components/sidebar/SidebarConnectChannels.vue`              | Uses `useConnectMessage`; emits `connect`                                       |
+| 7. Account menu popover                   | `components/sidebar/SidebarAccountMenu.vue`                  | Uses `usePopoverDismissal`; emits `logout`, `navigate-settings`                 |
+| 8. Click-outside + escape + route-watcher | `composables/usePopoverDismissal.ts`                         | Shared by sections 3 and 7                                                      |
+| 9. Header trigger + section title         | `components/layout/AppHeader.vue` (composes trigger + title) | Composes `AppHeaderSectionTitle`                                                |
+| 10. Header status pill                    | `components/layout/AppHeaderStatusPill.vue`                  | Receives `headerSummary` as prop                                                |
+| 11. Header language + theme toggles       | `components/layout/AppHeaderToggles.vue`                     | Consolidates the three theme controls and two language controls                 |
+| 12. Main outlet                           | `App.vue` shell                                              | Stays inline — it's a one-liner around `<RouterView />`                         |
+| 13. Auth bootstrap watcher                | `App.vue` shell                                              | Must stay here; calls `workspace.loadWorkspaces` and `publishing.fetchChannels` |
 
 **Component contracts (typed `defineProps` / `defineEmits`, no implicit shared state):**
 
 - `SidebarWorkspaceSwitcher`: props `{ activeWorkspace, options, isLoading }`; emits `select(ws)`.
 - `SidebarNavigation`: props `{ groups, totalQueuedCount }`; no events (links only).
-- `SidebarChannels`: props `{ channels, activeProvider, totalQueuedCount }`; emits `select(channel)`, `show-all`. Owns avatar fallback state internally.
-- `SidebarConnectChannels`: props `{ options }`; emits `connect(channel)`, `more`. Owns the connect message ref via `useConnectMessage`.
-- `SidebarAccountMenu`: props `{ displayName, email, initials, isRefreshing, currentTheme }`; emits `logout`, `navigate-settings`.
-- `AppHeader`: composes `AppHeaderSectionTitle`, `AppHeaderStatusPill`, `AppHeaderToggles`. Reads `route` and `settings` directly; this is acceptable for the header because it has no semantic state of its own — it reflects the route.
-- `AppHeaderToggles`: props `{ currentLocale, currentTheme }`; emits `set-locale(locale)`, `set-theme(theme)`. Calls go up to the shell, which delegates to `useSettingsStore`.
+- `SidebarChannels`: props `{ channels, activeProvider, totalQueuedCount }`; emits
+  `select(channel)`, `show-all`. Owns avatar fallback state internally.
+- `SidebarConnectChannels`: props `{ options }`; emits `connect(channel)`, `more`. Owns the connect
+  message ref via `useConnectMessage`.
+- `SidebarAccountMenu`: props `{ displayName, email, initials, isRefreshing, currentTheme }`; emits
+  `logout`, `navigate-settings`.
+- `AppHeader`: composes `AppHeaderSectionTitle`, `AppHeaderStatusPill`, `AppHeaderToggles`. Reads
+  `route` and `settings` directly; this is acceptable for the header because it has no semantic
+  state of its own — it reflects the route.
+- `AppHeaderToggles`: props `{ currentLocale, currentTheme }`; emits `set-locale(locale)`,
+  `set-theme(theme)`. Calls go up to the shell, which delegates to `useSettingsStore`.
 
 **Consolidation policy:**
 
@@ -138,16 +144,16 @@ new SFCs, the ARIA and focus attributes land in the new files. Concretely:
 
 ## Affected Areas
 
-| Area | Impact | Description |
-|------|--------|-------------|
-| `apps/web/app/src/App.vue` | Modified | Drops from 737 → ~80 lines, shell only |
-| `apps/web/app/src/components/layout/` | New | `AppHeader.vue`, `AppHeaderSectionTitle.vue`, `AppHeaderStatusPill.vue`, `AppHeaderToggles.vue` |
-| `apps/web/app/src/components/sidebar/` | New | `AppSidebar.vue`, `SidebarWorkspaceSwitcher.vue`, `SidebarNavigation.vue`, `SidebarChannels.vue`, `SidebarConnectChannels.vue`, `SidebarAccountMenu.vue` |
-| `apps/web/app/src/composables/` | New | `usePopoverDismissal.ts`, `useConnectMessage.ts` (and `useChannelSelection.ts` if a third natural caller appears during spec) |
-| `apps/web/app/src/App.test.ts` | Modified | Minimal: re-import path only if `App.vue` moves; keep avatar assertions |
-| `apps/web/app/src/components/ThemeToggle.vue` | Unchanged | Reused by `SidebarAccountMenu` (no edit) |
-| `apps/web/app/src/components/WorkspaceAvatar.vue` | Unchanged | Reused by `SidebarWorkspaceSwitcher` (no edit) |
-| `apps/web/app/src/lib/provider-styles.ts` | Unchanged | Reused by `SidebarChannels` |
+| Area                                              | Impact    | Description                                                                                                                                              |
+|---------------------------------------------------|-----------|----------------------------------------------------------------------------------------------------------------------------------------------------------|
+| `apps/web/app/src/App.vue`                        | Modified  | Drops from 737 → ~80 lines, shell only                                                                                                                   |
+| `apps/web/app/src/components/layout/`             | New       | `AppHeader.vue`, `AppHeaderSectionTitle.vue`, `AppHeaderStatusPill.vue`, `AppHeaderToggles.vue`                                                          |
+| `apps/web/app/src/components/sidebar/`            | New       | `AppSidebar.vue`, `SidebarWorkspaceSwitcher.vue`, `SidebarNavigation.vue`, `SidebarChannels.vue`, `SidebarConnectChannels.vue`, `SidebarAccountMenu.vue` |
+| `apps/web/app/src/composables/`                   | New       | `usePopoverDismissal.ts`, `useConnectMessage.ts` (and `useChannelSelection.ts` if a third natural caller appears during spec)                            |
+| `apps/web/app/src/App.test.ts`                    | Modified  | Minimal: re-import path only if `App.vue` moves; keep avatar assertions                                                                                  |
+| `apps/web/app/src/components/ThemeToggle.vue`     | Unchanged | Reused by `SidebarAccountMenu` (no edit)                                                                                                                 |
+| `apps/web/app/src/components/WorkspaceAvatar.vue` | Unchanged | Reused by `SidebarWorkspaceSwitcher` (no edit)                                                                                                           |
+| `apps/web/app/src/lib/provider-styles.ts`         | Unchanged | Reused by `SidebarChannels`                                                                                                                              |
 
 ## Open Questions (user must decide before spec phase)
 
@@ -167,7 +173,8 @@ new SFCs, the ARIA and focus attributes land in the new files. Concretely:
    keep it as the only control and do not add a duplicate in the account menu. **Recommendation:**
    keep header pill only; language is a workspace-wide setting, not a session-level control.
 4. **Composables directory.** Create `apps/web/app/src/composables/` (new convention) or
-   co-locate each composable as a private helper inside the consuming SFC folder? **Recommendation:**
+   co-locate each composable as a private helper inside the consuming SFC folder? **Recommendation:
+   **
    create `composables/`. We have at least two (`usePopoverDismissal`, `useConnectMessage`)
    that will be unit-tested, and a third is plausible. A flat directory is the Vue 3 idiom
    and matches the `stores/` precedent.
@@ -194,14 +201,14 @@ new SFCs, the ARIA and focus attributes land in the new files. Concretely:
 
 ## Risks
 
-| Risk | Likelihood | Mitigation |
-|------|------------|------------|
-| `SidebarContext` / `TooltipProvider` break when sidebar children are extracted into nested SFCs | Med | Mount `TooltipProvider` + `SidebarProvider` in `App.vue` shell only; do not import them in children. Verified against existing `DashboardLayout.vue` precedent. |
-| Avatar fallback behavior changes when `avatarLoadFailedMap` moves from `App.vue` to `SidebarChannels` | Low | Move the ref + watcher + `shouldShowAvatar` helper together; the new component is the only owner. Existing `App.test.ts` assertions are shape-compatible. |
-| `handleLogout` / `navigateToSettings` accidentally coupled to shell-level `router.replace('/login')` flow | Low | `SidebarAccountMenu` emits `logout` and `navigate-settings`; the shell owns the actual `auth.logout()` + `router.replace('/login')` chain. No logic changes — just the boundary. |
-| Click-outside listener leaks across navigation if the composable cleanup is wrong | Low | `usePopoverDismissal` returns a teardown that the composable registers via `onBeforeUnmount`; identical pattern to today's manual `removeEventListener`. |
-| `connectTimeout` setTimeout leaks across HMR / route changes | Low | `useConnectMessage` clears the timeout on unmount via `onBeforeUnmount`, mirroring today's `onBeforeUnmount` block. |
-| Two-developer collision on the new `components/layout/` and `components/sidebar/` directories | Low | Convention is documented in the spec; filenames follow the `Sidebar<Role>` / `AppHeader<Role>` pattern. |
+| Risk                                                                                                      | Likelihood | Mitigation                                                                                                                                                                       |
+|-----------------------------------------------------------------------------------------------------------|------------|----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| `SidebarContext` / `TooltipProvider` break when sidebar children are extracted into nested SFCs           | Med        | Mount `TooltipProvider` + `SidebarProvider` in `App.vue` shell only; do not import them in children. Verified against existing `DashboardLayout.vue` precedent.                  |
+| Avatar fallback behavior changes when `avatarLoadFailedMap` moves from `App.vue` to `SidebarChannels`     | Low        | Move the ref + watcher + `shouldShowAvatar` helper together; the new component is the only owner. Existing `App.test.ts` assertions are shape-compatible.                        |
+| `handleLogout` / `navigateToSettings` accidentally coupled to shell-level `router.replace('/login')` flow | Low        | `SidebarAccountMenu` emits `logout` and `navigate-settings`; the shell owns the actual `auth.logout()` + `router.replace('/login')` chain. No logic changes — just the boundary. |
+| Click-outside listener leaks across navigation if the composable cleanup is wrong                         | Low        | `usePopoverDismissal` returns a teardown that the composable registers via `onBeforeUnmount`; identical pattern to today's manual `removeEventListener`.                         |
+| `connectTimeout` setTimeout leaks across HMR / route changes                                              | Low        | `useConnectMessage` clears the timeout on unmount via `onBeforeUnmount`, mirroring today's `onBeforeUnmount` block.                                                              |
+| Two-developer collision on the new `components/layout/` and `components/sidebar/` directories             | Low        | Convention is documented in the spec; filenames follow the `Sidebar<Role>` / `AppHeader<Role>` pattern.                                                                          |
 
 ## Rollback Plan
 
@@ -225,19 +232,19 @@ new SFCs, the ARIA and focus attributes land in the new files. Concretely:
 ## Success Criteria
 
 - [ ] `App.vue` is under 100 lines and contains only the shell, the auth-route gate, the
-      providers, the auth bootstrap watcher, and `<RouterView />`.
+  providers, the auth bootstrap watcher, and `<RouterView />`.
 - [ ] Each new SFC is independently importable and renders in isolation (verifiable with
-      `vue-test-utils` `mount`).
+  `vue-test-utils` `mount`).
 - [ ] All existing `App.test.ts` avatar assertions pass without modification of the assertions
-      (only import path or mock updates permitted).
+  (only import path or mock updates permitted).
 - [ ] `usePopoverDismissal` and `useConnectMessage` have unit tests covering open, click-outside,
-      Escape, and unmount cleanup.
+  Escape, and unmount cleanup.
 - [ ] Both popovers carry `aria-haspopup`, `aria-expanded`, `role="menu"`, and restore focus
-      to the trigger on dismissal.
+  to the trigger on dismissal.
 - [ ] The connect-message paragraph is wrapped in an `aria-live="polite"` region.
 - [ ] The language and theme pill groups expose `role="radiogroup"` with `aria-checked` on
-      the active option.
+  the active option.
 - [ ] A visually-hidden skip link is present at the shell root targeting `<main>`.
 - [ ] `pnpm build` succeeds; `pnpm test` (or Vitest equivalent) passes; the dev server boots
-      with the sidebar, header, and outlet rendering identically to the pre-refactor build.
+  with the sidebar, header, and outlet rendering identically to the pre-refactor build.
 - [ ] No new i18n keys required; no store schema changes; no router changes.

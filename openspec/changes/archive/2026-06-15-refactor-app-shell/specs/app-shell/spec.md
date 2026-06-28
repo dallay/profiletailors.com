@@ -22,13 +22,13 @@ shared composables under `apps/web/app/src/composables/`. No observable behavior
 
 ### Requirement: Shell File Layout
 
-| File | Role | Owns |
-|------|------|------|
-| `App.vue` | thin wrapper | `isAuthRoute` gate only (≤ ~10 lines) |
-| `components/layout/AppShell.vue` | post-refactor shell | `TooltipProvider`, `SidebarProvider`, auth bootstrap watcher, composes sidebar + header + outlet |
-| `components/sidebar/*.vue` | sidebar sections | per-section state, popovers; emit upward; no store mutations |
-| `components/layout/AppHeader.vue` | sticky header | reads `route` + `settings`; renders trigger, title, status pill, language pill, outlet wrapper |
-| `composables/*.ts` | shared behaviors | open-state + dismissal, queued-count derivation, transient message + timeout |
+| File                              | Role                | Owns                                                                                             |
+|-----------------------------------|---------------------|--------------------------------------------------------------------------------------------------|
+| `App.vue`                         | thin wrapper        | `isAuthRoute` gate only (≤ ~10 lines)                                                            |
+| `components/layout/AppShell.vue`  | post-refactor shell | `TooltipProvider`, `SidebarProvider`, auth bootstrap watcher, composes sidebar + header + outlet |
+| `components/sidebar/*.vue`        | sidebar sections    | per-section state, popovers; emit upward; no store mutations                                     |
+| `components/layout/AppHeader.vue` | sticky header       | reads `route` + `settings`; renders trigger, title, status pill, language pill, outlet wrapper   |
+| `composables/*.ts`                | shared behaviors    | open-state + dismissal, queued-count derivation, transient message + timeout                     |
 
 `AppShell.vue` is the only file that imports `TooltipProvider` and `SidebarProvider`.
 Sidebar / header children do NOT import those providers.
@@ -39,7 +39,8 @@ Sidebar / header children do NOT import those providers.
 - WHEN the file is opened
 - THEN `App.vue` is ≤ 10 lines
 - AND it checks `isAuthRoute` and renders `<AuthView />` or `<AppShell />`
-- AND it does not import `Sidebar*`, `TooltipProvider`, `ThemeToggle`, the lucide icons used in the sidebar/header, or the publishing/workspace stores
+- AND it does not import `Sidebar*`, `TooltipProvider`, `ThemeToggle`, the lucide icons used in the
+  sidebar/header, or the publishing/workspace stores
 
 #### Scenario: `AppShell.vue` mounts providers at the root
 
@@ -50,10 +51,12 @@ Sidebar / header children do NOT import those providers.
 
 #### Scenario: `App.test.ts` mocks remain valid
 
-- GIVEN the existing mocks for `vue-i18n`, `vue-router`, `@/lib/auth-api`, `@/components/ui/tooltip`, `@/components/ui/sidebar`, `ThemeToggle.vue`, and lucide icons
+- GIVEN the existing mocks for `vue-i18n`, `vue-router`, `@/lib/auth-api`,
+  `@/components/ui/tooltip`, `@/components/ui/sidebar`, `ThemeToggle.vue`, and lucide icons
 - WHEN the refactor lands
 - THEN the 3 avatar assertions pass without modification
-- AND the only allowed mock addition is a stub for `AppShell.vue` (only if the new import path breaks the test). The existing mocks SHALL remain.
+- AND the only allowed mock addition is a stub for `AppShell.vue` (only if the new import path
+  breaks the test). The existing mocks SHALL remain.
 
 ---
 
@@ -70,7 +73,8 @@ mutate stores directly. State local to a section lives in that section.
 - GIVEN `AppShell.vue` is rendered
 - WHEN the DOM is inspected
 - THEN `SidebarHeaderSection` is the first child of the sidebar header slot
-- AND `SidebarNavSection`, `SidebarChannelsSection`, `SidebarConnectSection`, `SidebarAccountSection` appear in that order
+- AND `SidebarNavSection`, `SidebarChannelsSection`, `SidebarConnectSection`,
+  `SidebarAccountSection` appear in that order
 - AND `SidebarRail` is the last child of the sidebar
 - AND `AppHeader` and `<main>` containing `<RouterView />` are inside `SidebarInset`
 
@@ -98,12 +102,12 @@ with active `WorkspaceAvatar` + name) and, when open, a popover listing workspac
 `aria-haspopup="menu"`, `aria-expanded`, `aria-controls="sidebar-workspace-menu"`; panel has
 matching `id` and `role="menu"`; items have `role="menuitem"`.
 
-| Aspect | Value |
-|--------|-------|
-| Props | `activeWorkspace: { name; icon? } \| null`, `options: WorkspaceSummary[]`, `isLoading: boolean` |
-| Emits | `select: [workspace: WorkspaceSummary]` |
-| Local state | only the `usePopoverDismissal` return value |
-| Stores touched | `useWorkspaceStore` (read-only, via props from shell) |
+| Aspect         | Value                                                                                           |
+|----------------|-------------------------------------------------------------------------------------------------|
+| Props          | `activeWorkspace: { name; icon? } \| null`, `options: WorkspaceSummary[]`, `isLoading: boolean` |
+| Emits          | `select: [workspace: WorkspaceSummary]`                                                         |
+| Local state    | only the `usePopoverDismissal` return value                                                     |
+| Stores touched | `useWorkspaceStore` (read-only, via props from shell)                                           |
 
 #### Scenario: Closed state shows trigger only
 
@@ -148,12 +152,12 @@ export interface NavItem { labelKey: string; to: string; icon: Component; badge?
 export interface NavGroup { label: string; items: NavItem[] }
 ```
 
-| Aspect | Value |
-|--------|-------|
-| Props | `groups: NavGroup[]`, `totalQueuedCount: number` |
-| Emits | `navigate: [to: string]` |
-| Local state | none |
-| Stores touched | none (purely presentational) |
+| Aspect         | Value                                            |
+|----------------|--------------------------------------------------|
+| Props          | `groups: NavGroup[]`, `totalQueuedCount: number` |
+| Emits          | `navigate: [to: string]`                         |
+| Local state    | none                                             |
+| Stores touched | none (purely presentational)                     |
 
 #### Scenario: Groups render with items
 
@@ -185,12 +189,12 @@ rows (delegated to `SidebarChannelRow`). Avatar fallback state (`avatarLoadFaile
 OWNED by this component, not by `AppShell`. When `publishingStore.channels` changes
 (new reference), the map is reset to `{}`.
 
-| Aspect | Value |
-|--------|-------|
-| Props | `channels: SidebarChannel[]`, `activeProvider: string \| null`, `totalQueuedCount: number` |
-| Emits | `selectAll: []`, `selectChannel: [channel: SidebarChannel]` |
-| Local state | `avatarLoadFailedMap: Ref<Record<string, boolean>>` + private helpers |
-| Stores touched | `usePublishingStore` (read-only — derives `sidebarChannels`; does not mutate) |
+| Aspect         | Value                                                                                      |
+|----------------|--------------------------------------------------------------------------------------------|
+| Props          | `channels: SidebarChannel[]`, `activeProvider: string \| null`, `totalQueuedCount: number` |
+| Emits          | `selectAll: []`, `selectChannel: [channel: SidebarChannel]`                                |
+| Local state    | `avatarLoadFailedMap: Ref<Record<string, boolean>>` + private helpers                      |
+| Stores touched | `usePublishingStore` (read-only — derives `sidebarChannels`; does not mutate)              |
 
 `SidebarChannel extends Channel` adds `badge: string` and `queuedCount: number`.
 
@@ -238,11 +242,11 @@ File: `components/sidebar/SidebarChannelRow.vue`. Each row owns its OWN
 keep a parallel `avatarLoadFailedMap` for reset-on-reload; the row's own ref is source of
 truth for its rendered state.
 
-| Aspect | Value |
-|--------|-------|
-| Props | `channel: SidebarChannel`, `isActive: boolean`, `queuedCount: number` |
-| Emits | `select: []`, `avatarError: []` |
-| Local state | `avatarLoadFailed: Ref<boolean>` |
+| Aspect      | Value                                                                 |
+|-------------|-----------------------------------------------------------------------|
+| Props       | `channel: SidebarChannel`, `isActive: boolean`, `queuedCount: number` |
+| Emits       | `select: []`, `avatarError: []`                                       |
+| Local state | `avatarLoadFailed: Ref<boolean>`                                      |
 
 `<img>` continues to call `proxyImageUrl(channel.avatarUrl!)` from `@/lib/auth-api`.
 `<span>` fallback shows `channel.badge`. `@error` sets the local ref to `true` AND emits
@@ -252,7 +256,8 @@ truth for its rendered state.
 
 - GIVEN `channel.avatarUrl` is `"https://example.com/a.jpg"`
 - WHEN the row mounts
-- THEN `<img>` renders with `src` = `proxyImageUrl('https://example.com/a.jpg')` and `alt` = `"{channel.name} avatar"`
+- THEN `<img>` renders with `src` = `proxyImageUrl('https://example.com/a.jpg')` and `alt` =
+  `"{channel.name} avatar"`
 
 #### Scenario: Fallback badge renders when `avatarUrl` is missing
 
@@ -285,11 +290,11 @@ Threads, Bluesky, Facebook) + "More" button. Owns the transient `connectMessage`
 `useConnectMessage`. The message paragraph is wrapped in `aria-live="polite"`. The section
 does NOT start `setTimeout` itself — the composable owns the timer.
 
-| Aspect | Value |
-|--------|-------|
-| Props | `providers: ConnectChannel[]` |
-| Emits | `connect: [channel: ConnectChannel]`, `more: []` |
-| Local state | only the `useConnectMessage` return value |
+| Aspect      | Value                                            |
+|-------------|--------------------------------------------------|
+| Props       | `providers: ConnectChannel[]`                    |
+| Emits       | `connect: [channel: ConnectChannel]`, `more: []` |
+| Local state | only the `useConnectMessage` return value        |
 
 `ConnectChannel.id` is `'linkedin' | 'threads' | 'bluesky' | 'facebook'`.
 
@@ -305,7 +310,8 @@ does NOT start `setTimeout` itself — the composable owns the timer.
 - GIVEN the LinkedIn row is rendered
 - WHEN the user clicks it
 - THEN `connect(linkedinChannel)` is emitted
-- AND the shell sets `connectingLinkedIn` message and calls `publishingStore.connectLinkedInPersonalProfile()`
+- AND the shell sets `connectingLinkedIn` message and calls
+  `publishingStore.connectLinkedInPersonalProfile()`
 
 #### Scenario: Activating Threads/Bluesky/Facebook shows a transient "coming soon" message
 
@@ -343,11 +349,11 @@ ARIA: trigger has `aria-haspopup="menu"`, `aria-expanded`,
 `aria-controls="sidebar-account-menu"`; panel has `id="sidebar-account-menu"` and
 `role="menu"`; items have `role="menuitem"`.
 
-| Aspect | Value |
-|--------|-------|
-| Props | `user: { displayName; email; initials; isRefreshing }` |
-| Emits | `openSettings: []`, `logout: []` |
-| Local state | only the `usePopoverDismissal` return value |
+| Aspect         | Value                                                       |
+|----------------|-------------------------------------------------------------|
+| Props          | `user: { displayName; email; initials; isRefreshing }`      |
+| Emits          | `openSettings: []`, `logout: []`                            |
+| Local state    | only the `usePopoverDismissal` return value                 |
 | Stores touched | none directly (theme changes live inside `ThemeToggle.vue`) |
 
 #### Scenario: Closed trigger shows user identity
@@ -384,7 +390,8 @@ ARIA: trigger has `aria-haspopup="menu"`, `aria-expanded`,
 - GIVEN the popover is open
 - WHEN the user clicks "Logout"
 - THEN `logout()` is emitted
-- AND the shell calls `auth.logout()` then `router.replace('/login')`, both in try/catch with `console.error`
+- AND the shell calls `auth.logout()` then `router.replace('/login')`, both in try/catch with
+  `console.error`
 
 ---
 
@@ -396,10 +403,10 @@ File: `components/layout/AppHeader.vue`. Renders the sidebar trigger, section ti
 The header does NOT render a theme control. `currentSectionLabel` and `headerSummary` are
 computed locally from `route` and `settings` — the only state the header reads.
 
-| Aspect | Value |
-|--------|-------|
-| Props | `currentSectionLabel: string`, `headerSummary: string`, `currentLocale: 'en' \| 'es'` |
-| Emits | `setLocale: [locale: 'en' \| 'es']` |
+| Aspect | Value                                                                                 |
+|--------|---------------------------------------------------------------------------------------|
+| Props  | `currentSectionLabel: string`, `headerSummary: string`, `currentLocale: 'en' \| 'es'` |
+| Emits  | `setLocale: [locale: 'en' \| 'es']`                                                   |
 
 #### Scenario: Header renders section label
 
@@ -426,7 +433,8 @@ computed locally from `route` and `settings` — the only state the header reads
 
 - GIVEN the header is rendered
 - WHEN the DOM is inspected
-- THEN there is no element with an `aria-label` containing "theme" and no two-button group for `dark`/`light`
+- THEN there is no element with an `aria-label` containing "theme" and no two-button group for
+  `dark`/`light`
 - AND the only theme control in the app is inside the account menu popover
 
 ---
@@ -437,10 +445,10 @@ File: `components/layout/AppLanguagePill.vue`. Two buttons (EN, ES) inside a
 `role="radiogroup"` container with `aria-label="Language"`. The active option has
 `aria-checked="true"`. The pill only emits — it does NOT call `settings.setLocale`.
 
-| Aspect | Value |
-|--------|-------|
-| Props | `current: 'en' \| 'es'` |
-| Emits | `change: [locale: 'en' \| 'es']` |
+| Aspect | Value                            |
+|--------|----------------------------------|
+| Props  | `current: 'en' \| 'es'`          |
+| Emits  | `change: [locale: 'en' \| 'es']` |
 
 #### Scenario: Active option has `aria-checked`
 
@@ -462,9 +470,9 @@ File: `components/layout/AppLanguagePill.vue`. Two buttons (EN, ES) inside a
 
 File: `components/layout/AppStatusPill.vue`. Static presentation. No state, no emits.
 
-| Aspect | Value |
-|--------|-------|
-| Props | `summary: string` |
+| Aspect | Value             |
+|--------|-------------------|
+| Props  | `summary: string` |
 
 Root has `role="status"` and `aria-label="Session status"`.
 
@@ -489,7 +497,8 @@ focus.
 - GIVEN the authenticated shell is rendered
 - WHEN the user presses Tab from the document body
 - THEN focus lands on the skip link
-- AND the link is visually hidden but accessible (e.g. `sr-only` class that becomes visible on focus)
+- AND the link is visually hidden but accessible (e.g. `sr-only` class that becomes visible on
+  focus)
 
 #### Scenario: Activating the skip link moves focus to the main outlet
 
@@ -600,7 +609,8 @@ with `status === 'QUEUED'`, increments `total` by 1 and the count for each provi
 
 #### Scenario: Counts by provider
 
-- GIVEN 2 QUEUED entries with `channels: ['linkedin']` and 1 QUEUED entry with `channels: ['linkedin', 'threads']`
+- GIVEN 2 QUEUED entries with `channels: ['linkedin']` and 1 QUEUED entry with
+  `channels: ['linkedin', 'threads']`
 - WHEN `useQueuedCounts` is read
 - THEN `byProvider.value.get('linkedin')` is `3`
 - AND `byProvider.value.get('threads')` is `1`
@@ -684,8 +694,10 @@ The status pill has `role="status"`.
 
 - GIVEN the popovers are closed
 - WHEN the DOM is inspected
-- THEN the workspace trigger has `aria-haspopup="menu"`, `aria-expanded="false"`, `aria-controls="sidebar-workspace-menu"`
-- AND the account trigger has `aria-haspopup="menu"`, `aria-expanded="false"`, `aria-controls="sidebar-account-menu"`
+- THEN the workspace trigger has `aria-haspopup="menu"`, `aria-expanded="false"`,
+  `aria-controls="sidebar-workspace-menu"`
+- AND the account trigger has `aria-haspopup="menu"`, `aria-expanded="false"`,
+  `aria-controls="sidebar-account-menu"`
 
 #### Scenario: Popover panels expose `role="menu"` and stable ids
 
@@ -725,16 +737,16 @@ The status pill has `role="status"`.
 
 ### Requirement: Test Plan
 
-| Test file | Covers |
-|-----------|--------|
-| `App.test.ts` (unchanged assertions) | Full-tree: renders `<img>` for channel with `avatarUrl`, renders fallback `<span>` when missing, swaps to fallback on `<img>` `@error`. |
-| `composables/usePopoverDismissal.test.ts` (new) | ≥ 3 scenarios: toggle opens, Escape closes + restores focus, click-outside closes + restores focus. |
-| `composables/useQueuedCounts.test.ts` (new) | counts total, counts per-provider, ignores non-QUEUED. |
-| `composables/useConnectMessage.test.ts` (new) | `show` sets, auto-clear after duration, unmount cancels timer. |
-| `components/sidebar/SidebarChannelsSection.test.ts` (new) | renders "All channels" + per-channel rows; fires `selectAll` and `selectChannel`. |
-| `components/sidebar/SidebarChannelRow.test.ts` (new) | renders avatar when `avatarUrl` set, swaps to fallback on `avatarError`, badge logic. |
-| `components/layout/AppHeader.test.ts` (new) | renders section label, renders status pill text, language pill emits `change`. |
-| `components/layout/AppLanguagePill.test.ts` (new) | radiogroup roles, `aria-checked` on active, emits `change`. |
+| Test file                                                 | Covers                                                                                                                                  |
+|-----------------------------------------------------------|-----------------------------------------------------------------------------------------------------------------------------------------|
+| `App.test.ts` (unchanged assertions)                      | Full-tree: renders `<img>` for channel with `avatarUrl`, renders fallback `<span>` when missing, swaps to fallback on `<img>` `@error`. |
+| `composables/usePopoverDismissal.test.ts` (new)           | ≥ 3 scenarios: toggle opens, Escape closes + restores focus, click-outside closes + restores focus.                                     |
+| `composables/useQueuedCounts.test.ts` (new)               | counts total, counts per-provider, ignores non-QUEUED.                                                                                  |
+| `composables/useConnectMessage.test.ts` (new)             | `show` sets, auto-clear after duration, unmount cancels timer.                                                                          |
+| `components/sidebar/SidebarChannelsSection.test.ts` (new) | renders "All channels" + per-channel rows; fires `selectAll` and `selectChannel`.                                                       |
+| `components/sidebar/SidebarChannelRow.test.ts` (new)      | renders avatar when `avatarUrl` set, swaps to fallback on `avatarError`, badge logic.                                                   |
+| `components/layout/AppHeader.test.ts` (new)               | renders section label, renders status pill text, language pill emits `change`.                                                          |
+| `components/layout/AppLanguagePill.test.ts` (new)         | radiogroup roles, `aria-checked` on active, emits `change`.                                                                             |
 
 #### Scenario: `App.test.ts` passes without modifying assertions
 
@@ -742,7 +754,9 @@ The status pill has `role="status"`.
 - WHEN tests run
 - THEN the 3 avatar assertions pass
 - AND no assertion in `App.test.ts` is modified
-- AND the only permitted mock addition is a stub for `AppShell.vue` (only if the new import path breaks the test). Existing `Sidebar*`, `TooltipProvider`, `ThemeToggle`, and lucide mocks SHALL remain.
+- AND the only permitted mock addition is a stub for `AppShell.vue` (only if the new import path
+  breaks the test). Existing `Sidebar*`, `TooltipProvider`, `ThemeToggle`, and lucide mocks SHALL
+  remain.
 
 #### Scenario: Composables have unit tests
 
@@ -754,7 +768,8 @@ The status pill has `role="status"`.
 
 - GIVEN the new sidebar/header components exist
 - WHEN tests run
-- THEN `SidebarChannelsSection.test.ts`, `SidebarChannelRow.test.ts`, `AppHeader.test.ts`, and `AppLanguagePill.test.ts` each have ≥ 1 passing scenario for their core contract
+- THEN `SidebarChannelsSection.test.ts`, `SidebarChannelRow.test.ts`, `AppHeader.test.ts`, and
+  `AppLanguagePill.test.ts` each have ≥ 1 passing scenario for their core contract
 
 ---
 
@@ -766,18 +781,19 @@ The status pill has `role="status"`.
   existing `App.test.ts` assertions remain valid.
 - `App.test.ts` mocks (lines 14–74 today) are updated ONLY if the new `App.vue` directly
   imports a NEW component not in the current mock set. The exact allowed additions are:
-  1. A stub for `AppShell.vue` — because `App.vue` (the thin wrapper) renders `<AppShell />`.
-     This is OPTIONAL — add it only if the existing `App.test.ts` breaks on the new import
-     path.
-  2. The existing `Sidebar*`, `TooltipProvider`, `ThemeToggle`, and lucide mocks SHALL stay
-     because `AppShell.vue` still imports them.
+    1. A stub for `AppShell.vue` — because `App.vue` (the thin wrapper) renders `<AppShell />`.
+       This is OPTIONAL — add it only if the existing `App.test.ts` breaks on the new import
+       path.
+    2. The existing `Sidebar*`, `TooltipProvider`, `ThemeToggle`, and lucide mocks SHALL stay
+       because `AppShell.vue` still imports them.
 
 No other file in `App.test.ts` is touched. No assertion is modified.
 
 #### Scenario: Avatar markup is preserved
 
 - GIVEN the refactor is complete
-- WHEN `App.test.ts` mounts `AppComponent` with a channel that has `avatarUrl: 'https://example.com/avatar.jpg'`
+- WHEN `App.test.ts` mounts `AppComponent` with a channel that has
+  `avatarUrl: 'https://example.com/avatar.jpg'`
 - THEN the test finds `<img>` with that exact `src`
 - AND `alt` is `'{channel.name} avatar'`
 
@@ -794,7 +810,8 @@ No other file in `App.test.ts` is touched. No assertion is modified.
 - WHEN `App.test.ts` is opened
 - THEN no assertion is changed
 - AND at most one new mock may be added (for `AppShell.vue` if needed)
-- AND the existing `Sidebar*`, `TooltipProvider`, `ThemeToggle`, `auth-api`, and lucide mocks remain untouched
+- AND the existing `Sidebar*`, `TooltipProvider`, `ThemeToggle`, `auth-api`, and lucide mocks remain
+  untouched
 
 ---
 

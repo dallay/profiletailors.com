@@ -4,7 +4,9 @@
 
 ### Requirement: SPA Workspace Context Header Injection
 
-The frontend `apiFetch` helper MUST inject the `X-Workspace-Id` header from the active workspace context on all workspace-scoped API requests. If no active workspace is available, the frontend MUST NOT send the request and MUST surface a workspace-context error to the user.
+The frontend `apiFetch` helper MUST inject the `X-Workspace-Id` header from the active workspace
+context on all workspace-scoped API requests. If no active workspace is available, the frontend MUST
+NOT send the request and MUST surface a workspace-context error to the user.
 
 #### Scenario: Authenticated SPA request includes workspace header
 

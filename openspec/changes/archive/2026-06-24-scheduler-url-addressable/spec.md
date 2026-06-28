@@ -2,7 +2,9 @@
 
 ## Scope
 
-This change makes scheduler calendar state shareable and restorable via URL. Route is the single source of truth; Pinia store becomes derived/mirrored state only. Refetches calendar data when route-driven date/view/query changes affect the visible range.
+This change makes scheduler calendar state shareable and restorable via URL. Route is the single
+source of truth; Pinia store becomes derived/mirrored state only. Refetches calendar data when
+route-driven date/view/query changes affect the visible range.
 
 **Affected domain specs:** `visual-calendar`, `app-shell`
 **Artifact store mode:** `openspec`
@@ -11,23 +13,23 @@ This change makes scheduler calendar state shareable and restorable via URL. Rou
 
 ## Glossary: URL Param Model
 
-| Param | Type | Default | Description |
-|-------|------|---------|-------------|
-| `date` | `YYYY-MM-DD` | today (local) | Center date for week/month view |
-| `channels[]` | `accountId[]` | all (absent) | Filter by social account ID |
-| `timezone` | `IANA string` | browser TZ | User's preferred timezone |
-| `status` | `PUBLISHED\|SCHEDULED\|QUEUED\|DRAFT\|FAILED` | all | Filter by publication status |
-| `q` | string | empty | Free-text search filter |
-| `mode` | `calendar\|list` | `calendar` | Top-level surface mode |
+| Param        | Type                                          | Default       | Description                     |
+|--------------|-----------------------------------------------|---------------|---------------------------------|
+| `date`       | `YYYY-MM-DD`                                  | today (local) | Center date for week/month view |
+| `channels[]` | `accountId[]`                                 | all (absent)  | Filter by social account ID     |
+| `timezone`   | `IANA string`                                 | browser TZ    | User's preferred timezone       |
+| `status`     | `PUBLISHED\|SCHEDULED\|QUEUED\|DRAFT\|FAILED` | all           | Filter by publication status    |
+| `q`          | string                                        | empty         | Free-text search filter         |
+| `mode`       | `calendar\|list`                              | `calendar`    | Top-level surface mode          |
 
 ### Canonical Routes
 
-| Path | Behavior |
-|------|----------|
-| `/scheduler` | Redirect → `/scheduler/calendar/week` (preserves query params) |
-| `/scheduler/calendar/week` | Week calendar view |
-| `/scheduler/calendar/month` | Month calendar view |
-| `/scheduler/list` | List view |
+| Path                        | Behavior                                                       |
+|-----------------------------|----------------------------------------------------------------|
+| `/scheduler`                | Redirect → `/scheduler/calendar/week` (preserves query params) |
+| `/scheduler/calendar/week`  | Week calendar view                                             |
+| `/scheduler/calendar/month` | Month calendar view                                            |
+| `/scheduler/list`           | List view                                                      |
 
 ---
 
@@ -35,14 +37,17 @@ This change makes scheduler calendar state shareable and restorable via URL. Rou
 
 ### Requirement: Canonical Scheduler Route Family
 
-The router MUST define `/scheduler/calendar/week`, `/scheduler/calendar/month`, and `/scheduler/list` as named routes. Navigating to `/scheduler` MUST redirect to `/scheduler/calendar/week` preserving any existing query params.
+The router MUST define `/scheduler/calendar/week`, `/scheduler/calendar/month`, and
+`/scheduler/list` as named routes. Navigating to `/scheduler` MUST redirect to
+`/scheduler/calendar/week` preserving any existing query params.
 
 #### Scenario: `/scheduler` redirects to canonical week route
 
 - GIVEN a user is on `/scheduler`
 - WHEN the route resolves
 - THEN the browser URL becomes `/scheduler/calendar/week`
-- AND any query params present on `/scheduler` are preserved (e.g., `/scheduler?q=post` → `/scheduler/calendar/week?q=post`)
+- AND any query params present on `/scheduler` are preserved (e.g., `/scheduler?q=post` →
+  `/scheduler/calendar/week?q=post`)
 
 #### Scenario: Canonical routes are directly accessible
 
@@ -55,7 +60,9 @@ The router MUST define `/scheduler/calendar/week`, `/scheduler/calendar/month`, 
 
 ### Requirement: Route Query Param Contract
 
-The system MUST parse and serialize `date`, `channels[]`, `timezone`, `status`, `q`, and `mode` as URL query params. Absent params MUST default to: `date` = today (local), `mode` = `calendar`, all others = show-all/unfiltered.
+The system MUST parse and serialize `date`, `channels[]`, `timezone`, `status`, `q`, and `mode` as
+URL query params. Absent params MUST default to: `date` = today (local), `mode` = `calendar`, all
+others = show-all/unfiltered.
 
 #### Scenario: `channels[]` uses account IDs in URL
 
@@ -84,7 +91,9 @@ The system MUST parse and serialize `date`, `channels[]`, `timezone`, `status`, 
 
 ### Requirement: Route State Derivation
 
-`SchedulerView.vue` MUST derive `calendarView` (week/month), `currentBaseDate`, `timezone`, and filter values from `useRoute()`. The Pinia `publishingStore` MUST be updated with explicit fetch args, NOT read route state internally.
+`SchedulerView.vue` MUST derive `calendarView` (week/month), `currentBaseDate`, `timezone`, and
+filter values from `useRoute()`. The Pinia `publishingStore` MUST be updated with explicit fetch
+args, NOT read route state internally.
 
 #### Scenario: Refresh preserves view and filters
 
@@ -104,7 +113,9 @@ The system MUST parse and serialize `date`, `channels[]`, `timezone`, `status`, 
 
 ### Requirement: CalendarHeader Navigates with Route Updates
 
-`CalendarHeader.vue` MUST emit navigation intent (`change:view`, `change:date`, `change:filter`) instead of mutating Pinia refs directly. The shell MUST update the route using `router.push()` for deliberate view/date changes and `router.replace()` for transient filter keystrokes.
+`CalendarHeader.vue` MUST emit navigation intent (`change:view`, `change:date`, `change:filter`)
+instead of mutating Pinia refs directly. The shell MUST update the route using `router.push()` for
+deliberate view/date changes and `router.replace()` for transient filter keystrokes.
 
 #### Scenario: Changing view updates URL path
 
@@ -131,7 +142,8 @@ The system MUST parse and serialize `date`, `channels[]`, `timezone`, `status`, 
 
 ### Requirement: Browser History Integration
 
-Browser back/forward buttons MUST restore scheduler state from the URL without manual store resets or extra hydration logic.
+Browser back/forward buttons MUST restore scheduler state from the URL without manual store resets
+or extra hydration logic.
 
 #### Scenario: Back button restores previous state
 
@@ -154,7 +166,10 @@ Browser back/forward buttons MUST restore scheduler state from the URL without m
 
 ### Requirement: Multi-View Calendar (visual-calendar)
 
-The system MUST provide day, week, and month views. Week and month views are addressable via `/scheduler/calendar/week` and `/scheduler/calendar/month`. Day view is NOT a top-level route; clicking a day in month/week focuses `date=YYYY-MM-DD` within the current week/month context without a separate route.
+The system MUST provide day, week, and month views. Week and month views are addressable via
+`/scheduler/calendar/week` and `/scheduler/calendar/month`. Day view is NOT a top-level route;
+clicking a day in month/week focuses `date=YYYY-MM-DD` within the current week/month context without
+a separate route.
 
 (Previously: all three views were non-addressable with no URL contract)
 
@@ -176,9 +191,12 @@ The system MUST provide day, week, and month views. Week and month views are add
 
 ### Requirement: SidebarChannelsSection Navigation (app-shell)
 
-`SidebarChannelsSection.vue` MUST emit `selectAll` and `selectChannel` with the channel's `accountId`. The shell MUST navigate to the current scheduler route with `channels[]=<accountId>` as a query param, NOT mutate `filterChannel` directly.
+`SidebarChannelsSection.vue` MUST emit `selectAll` and `selectChannel` with the channel's
+`accountId`. The shell MUST navigate to the current scheduler route with `channels[]=<accountId>` as
+a query param, NOT mutate `filterChannel` directly.
 
-(Previously: sidebar emitted `selectChannel(channel)` and shell set `filterChannel` and pushed `/scheduler`)
+(Previously: sidebar emitted `selectChannel(channel)` and shell set `filterChannel` and pushed
+`/scheduler`)
 
 #### Scenario: Channel click writes `channels[]` to URL
 
@@ -209,32 +227,32 @@ None.
 
 ## Exact Files to Change
 
-| File | Change |
-|------|--------|
-| `apps/web/app/src/router/index.ts` | Add scheduler route family, `/scheduler` redirect, canonical route names |
-| `apps/web/app/src/views/SchedulerView.vue` | Derive state from route, add `useRoute()` watchers for refetch triggers |
-| `apps/web/app/src/stores/publishing.ts` | Accept explicit args in `fetchCalendar()`, stop reading route-relevant refs internally |
-| `apps/web/app/src/components/CalendarHeader.vue` | Emit navigation intent, remove direct Pinia mutations for route-relevant fields |
-| `apps/web/app/src/components/layout/AppShell.vue` | Handle sidebar channel events → route navigation with `channels[]` query param |
-| `apps/web/app/src/components/sidebar/SidebarChannelsSection.vue` | Pass `accountId` in emit, derive active state from route |
-| `apps/web/app/src/router/index.spec.ts` | Add route definitions, redirect, and param round-trip tests |
-| `apps/web/app/src/router/index.guard.test.ts` | Update auth redirect assertions for deep scheduler URLs |
-| `apps/web/app/src/views/SchedulerView.test.ts` | Add route-driven init, refetch, and back/forward scenarios |
-| `apps/web/app/src/components/CalendarHeader.test.ts` | Update from store mutation expectations to navigation event expectations |
-| `apps/web/app/src/stores/publishing.test.ts` | Update if `fetchCalendar` signature changes |
-| `apps/web/app/e2e/**` | Add deep-link, refresh, and navigation history coverage for scheduler routes |
+| File                                                             | Change                                                                                 |
+|------------------------------------------------------------------|----------------------------------------------------------------------------------------|
+| `apps/web/app/src/router/index.ts`                               | Add scheduler route family, `/scheduler` redirect, canonical route names               |
+| `apps/web/app/src/views/SchedulerView.vue`                       | Derive state from route, add `useRoute()` watchers for refetch triggers                |
+| `apps/web/app/src/stores/publishing.ts`                          | Accept explicit args in `fetchCalendar()`, stop reading route-relevant refs internally |
+| `apps/web/app/src/components/CalendarHeader.vue`                 | Emit navigation intent, remove direct Pinia mutations for route-relevant fields        |
+| `apps/web/app/src/components/layout/AppShell.vue`                | Handle sidebar channel events → route navigation with `channels[]` query param         |
+| `apps/web/app/src/components/sidebar/SidebarChannelsSection.vue` | Pass `accountId` in emit, derive active state from route                               |
+| `apps/web/app/src/router/index.spec.ts`                          | Add route definitions, redirect, and param round-trip tests                            |
+| `apps/web/app/src/router/index.guard.test.ts`                    | Update auth redirect assertions for deep scheduler URLs                                |
+| `apps/web/app/src/views/SchedulerView.test.ts`                   | Add route-driven init, refetch, and back/forward scenarios                             |
+| `apps/web/app/src/components/CalendarHeader.test.ts`             | Update from store mutation expectations to navigation event expectations               |
+| `apps/web/app/src/stores/publishing.test.ts`                     | Update if `fetchCalendar` signature changes                                            |
+| `apps/web/app/e2e/**`                                            | Add deep-link, refresh, and navigation history coverage for scheduler routes           |
 
 ---
 
 ## Acceptance Criteria Checklist
 
-| # | Criterion | Scenarios |
-|---|----------|-----------|
-| 1 | `/scheduler` redirects to `/scheduler/calendar/week` preserving query | `Redirect` scenario |
-| 2 | `/scheduler/calendar/week` and `/scheduler/calendar/month` restore state on refresh | `Refresh preserves view and filters` scenario |
-| 3 | `date`, `channels[]`, `timezone`, `status`, `q`, `mode` round-trip through URL | `Missing params default correctly`, `channels[] uses account IDs` |
-| 4 | Browser back/forward restores scheduler state | `Back button restores`, `Forward button restores` |
-| 5 | Sidebar channel clicks navigate with `channels[]=<accountId>` | `Channel click writes channels[]`, `Active channel derives from URL` |
-| 6 | `fetchCalendar` refetches on route-driven changes | `fetchCalendar refetches on route change` |
-| 7 | Unit tests cover route param reactivity and URL sync | `index.spec.ts`, `SchedulerView.test.ts`, `CalendarHeader.test.ts` |
-| 8 | E2E covers filter-URL-refresh cycle | `e2e/**` |
+| # | Criterion                                                                           | Scenarios                                                            |
+|---|-------------------------------------------------------------------------------------|----------------------------------------------------------------------|
+| 1 | `/scheduler` redirects to `/scheduler/calendar/week` preserving query               | `Redirect` scenario                                                  |
+| 2 | `/scheduler/calendar/week` and `/scheduler/calendar/month` restore state on refresh | `Refresh preserves view and filters` scenario                        |
+| 3 | `date`, `channels[]`, `timezone`, `status`, `q`, `mode` round-trip through URL      | `Missing params default correctly`, `channels[] uses account IDs`    |
+| 4 | Browser back/forward restores scheduler state                                       | `Back button restores`, `Forward button restores`                    |
+| 5 | Sidebar channel clicks navigate with `channels[]=<accountId>`                       | `Channel click writes channels[]`, `Active channel derives from URL` |
+| 6 | `fetchCalendar` refetches on route-driven changes                                   | `fetchCalendar refetches on route change`                            |
+| 7 | Unit tests cover route param reactivity and URL sync                                | `index.spec.ts`, `SchedulerView.test.ts`, `CalendarHeader.test.ts`   |
+| 8 | E2E covers filter-URL-refresh cycle                                                 | `e2e/**`                                                             |

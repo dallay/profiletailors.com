@@ -2,14 +2,14 @@
 
 ## Review Workload Forecast
 
-| Field | Value |
-|-------|-------|
-| Estimated changed lines | 350-550 |
-| 400-line budget risk | Medium |
-| Chained PRs recommended | No |
-| Suggested split | Single feature branch with backend prerequisite first, then frontend flow, then tests |
-| Delivery strategy | single-pr |
-| Chain strategy | not-needed |
+| Field                   | Value                                                                                 |
+|-------------------------|---------------------------------------------------------------------------------------|
+| Estimated changed lines | 350-550                                                                               |
+| 400-line budget risk    | Medium                                                                                |
+| Chained PRs recommended | No                                                                                    |
+| Suggested split         | Single feature branch with backend prerequisite first, then frontend flow, then tests |
+| Delivery strategy       | single-pr                                                                             |
+| Chain strategy          | not-needed                                                                            |
 
 Decision needed before apply: No
 Chained PRs recommended: No
@@ -19,7 +19,8 @@ Chain strategy: not-needed
 ## Phase 1: Close `assetIds` data contract
 
 - [x] 1.1 Add `assetIds: List<String>` to `CalendarPublicationResult` in `PublishingApi.kt`
-- [x] 1.2 Forward `assetIds = assetIds` in `PublicationDraft.toCalendarResult()` in `PublishingHandlers.kt`
+- [x] 1.2 Forward `assetIds = assetIds` in `PublicationDraft.toCalendarResult()` in
+  `PublishingHandlers.kt`
 - [x] 1.3 Update backend tests to cover `assetIds` in DTO construction and mapper forwarding
 - [x] 1.4 Add `assetIds?: string[]` to frontend `Publication` interface in `stores/publishing.ts`
 - [x] 1.5 Add `assetIds: result.assetIds` in `publicationMutationResultToPublication()`

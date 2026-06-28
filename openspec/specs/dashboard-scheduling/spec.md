@@ -2,7 +2,9 @@
 
 ## Purpose
 
-Combines two scheduling widgets: Best Posting Times (heatmap showing optimal publish windows) and Upcoming Schedule (list of next scheduled posts with calendar link). Helps the user decide when to publish and see what's coming.
+Combines two scheduling widgets: Best Posting Times (heatmap showing optimal publish windows) and
+Upcoming Schedule (list of next scheduled posts with calendar link). Helps the user decide when to
+publish and see what's coming.
 
 ## Data Model
 

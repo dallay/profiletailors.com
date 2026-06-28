@@ -14,17 +14,18 @@ Run `just -l` to see every available recipe.
 
 ## Prerequisites
 
-| Requirement | Version | Install |
-|-------------|---------|---------|
-| Java | `>= 21` | [sdkman.io](https://sdkman.io) or [adoptium.net](https://adoptium.net) |
-| Node.js | `>= 22.12.0` | [nodejs.org](https://nodejs.org) |
-| pnpm | `>= 10` | `npm install -g pnpm` |
-| just | `>= 1.30` | See below |
-| Docker | latest | [docs.docker.com](https://docs.docker.com) |
+| Requirement | Version      | Install                                                                |
+|-------------|--------------|------------------------------------------------------------------------|
+| Java        | `>= 21`      | [sdkman.io](https://sdkman.io) or [adoptium.net](https://adoptium.net) |
+| Node.js     | `>= 22.12.0` | [nodejs.org](https://nodejs.org)                                       |
+| pnpm        | `>= 10`      | `npm install -g pnpm`                                                  |
+| just        | `>= 1.30`    | See below                                                              |
+| Docker      | latest       | [docs.docker.com](https://docs.docker.com)                             |
 
 > **Windows users:** `just` runs natively on Windows. The Gradle wrapper is auto-detected
 > (`gradlew.bat` in CMD/PowerShell, `./gradlew` in Git Bash/WSL). Recipes that use `rm -rf`
-> still require a POSIX shell — use **Git Bash** (included with [Git for Windows](https://git-scm.com))
+> still require a POSIX shell — use **Git Bash** (included
+> with [Git for Windows](https://git-scm.com))
 > or **WSL**.
 
 ## Install `just`
@@ -88,7 +89,8 @@ just setup
    dependencies (frontend + backend).
 3. **Git hooks** — runs `just hooks-install` to install Lefthook (skipped if Git hooks are globally
    disabled, e.g. `core.hooksPath=/dev/null` in Jules or CI environments).
-4. **AI agents** — runs `pnpm dlx @dallay/agentsync apply` to synchronize AI agent configurations and instructions.
+4. **AI agents** — runs `pnpm dlx @dallay/agentsync apply` to synchronize AI agent configurations
+   and instructions.
 
 If hooks are not installed, CI will catch any issues — so there is no risk in skipping them locally.
 
@@ -144,18 +146,18 @@ just -l
 
 Key recipes:
 
-| Command | Description |
-|---------|-------------|
-| `just setup` | Full bootstrap: .env + deps + hooks + agentsync |
-| `just frontend-dev` | Start Astro dev server |
-| `just frontend-test` | Run Vitest unit tests |
-| `just frontend-test-e2e` | Run Playwright E2E tests |
-| `just backend-run` | Start Spring Boot (dev profile) |
-| `just backend-test-fast` | Fast unit tests (no Postgres) |
-| `just infra-up` | Start Docker services |
-| `just ci` | Full CI pipeline (lint + tests + E2E) |
-| `just ci-local` | Fast CI subset (no E2E, no Postgres) |
-| `just clean` | Clean build artifacts |
+| Command                  | Description                                     |
+|--------------------------|-------------------------------------------------|
+| `just setup`             | Full bootstrap: .env + deps + hooks + agentsync |
+| `just frontend-dev`      | Start Astro dev server                          |
+| `just frontend-test`     | Run Vitest unit tests                           |
+| `just frontend-test-e2e` | Run Playwright E2E tests                        |
+| `just backend-run`       | Start Spring Boot (dev profile)                 |
+| `just backend-test-fast` | Fast unit tests (no Postgres)                   |
+| `just infra-up`          | Start Docker services                           |
+| `just ci`                | Full CI pipeline (lint + tests + E2E)           |
+| `just ci-local`          | Fast CI subset (no E2E, no Postgres)            |
+| `just clean`             | Clean build artifacts                           |
 
 ## Troubleshooting
 

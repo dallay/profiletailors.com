@@ -47,6 +47,7 @@ to Flow for coroutine support.
 Upload flow (high-level):
 
 Client (Controller) -> Storage.upload(bucket,key, Flow<ByteArray>) -> selected Provider
+
 - LocalFilesystem: withContext(Dispatchers.IO) write chunks to temp file, then move
 - S3Provider: stream to S3 multipart (using async client)
 
@@ -75,9 +76,10 @@ Controller/Service requests storage via BucketRegistry.getStorage(name) -> retur
 Modificaciones menores:
 
 -
+
 server/smp/src/main/kotlin/com/profiletailors/smp/platform/infrastructure/PlatformBootstrapConfiguration.kt
-    - Posible registro del bean defaultStorage o referencia a shared storage auto-configuración (no
-      forzado aquí, auto-config será independiente).
+- Posible registro del bean defaultStorage o referencia a shared storage auto-configuración (no
+forzado aquí, auto-config será independiente).
 
 ## Interfaces / Contracts
 

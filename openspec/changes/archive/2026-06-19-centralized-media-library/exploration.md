@@ -160,21 +160,30 @@ and selecting uploaded assets for publications, without turning this change into
 - `server/smp/src/main/kotlin/com/profiletailors/smp/publishing/domain/PublishingRepositories.kt`
     - repository/query expansion
 -
+
 `server/smp/src/main/kotlin/com/profiletailors/smp/publishing/infrastructure/persistence/R2dbcPublishingRepositories.kt`
-    - asset persistence and new reads
+- asset persistence and new reads
+
 -
+
 `server/smp/src/main/kotlin/com/profiletailors/smp/publishing/infrastructure/http/PublishingControllers.kt`
-    - current publishing controllers; likely place or reference pattern for a new asset controller
+- current publishing controllers; likely place or reference pattern for a new asset controller
+
 -
+
 `server/smp/src/main/kotlin/com/profiletailors/smp/publishing/infrastructure/linkedin/LinkedInPublishingAdapters.kt`
-    - current downstream consumer of uploaded assets
+- current downstream consumer of uploaded assets
+
 -
+
 `server/smp/src/main/kotlin/com/profiletailors/smp/publishing/infrastructure/linkedin/LinkedInAssetUploaderAdapters.kt`
-    - current attachments bucket configuration
+- current attachments bucket configuration
+
 - `server/smp/src/main/resources/db/changelog/publishing/003-create-publication-assets.yaml`
 - `server/smp/src/main/resources/db/changelog/publishing/005-create-publication-asset-links.yaml`
 - `server/smp/src/main/resources/db/changelog/publishing/009-add-provider-asset-ref.yaml`
 -
+
 `server/smp/src/main/resources/db/changelog/publishing/010-add-file-size-to-publication-assets.yaml`
 
 ### Shared storage
@@ -182,9 +191,11 @@ and selecting uploaded assets for publications, without turning this change into
 - `shared/storage/src/main/kotlin/com/profiletailors/storage/domain/Storage.kt`
 - `shared/storage/src/main/kotlin/com/profiletailors/storage/domain/PresignableStorage.kt`
 -
+
 `shared/storage/src/main/kotlin/com/profiletailors/storage/application/StorageApplicationService.kt`
 -
 `shared/storage/src/main/kotlin/com/profiletailors/storage/infrastructure/StorageAutoConfiguration.kt`
+
 - any new upload/presign contract if browser ingest is added
 
 ### Frontend

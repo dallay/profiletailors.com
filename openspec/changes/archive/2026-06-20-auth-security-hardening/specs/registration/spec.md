@@ -4,14 +4,16 @@
 
 ### Requirement: Registration Creates Authenticated Session
 
-(Previously: Registration emitted domain event without issuing tokens; response was 201 with verification instructions)
+(Previously: Registration emitted domain event without issuing tokens; response was 201 with
+verification instructions)
 
 Registration SHALL create an authenticated session immediately upon successful completion.
 
 The registration handler SHALL issue JWT and refresh tokens.
 The response SHALL be HTTP 201 Created with AuthTokens payload.
 The response SHALL set an HttpOnly refresh token cookie.
-The registration payload SHALL no longer return only RegistrationResult (breaking change from prior behavior).
+The registration payload SHALL no longer return only RegistrationResult (breaking change from prior
+behavior).
 
 #### Scenario: Registration creates session and returns tokens (MODIFIED)
 

@@ -98,7 +98,8 @@ For pattern filtering, use vitest's filename match: e.g. `pnpm test:run usePopov
 
 ## 5. Critical implementation notes
 
-- **`usePopoverDismissal` focus restore.** The composable receives `container: Ref<HTMLElement | null>`
+- **`usePopoverDismissal` focus restore.** The composable receives
+  `container: Ref<HTMLElement | null>`
   and `trigger?: Ref<HTMLElement | null>`. On Escape: `open.value = false`, then
   `await nextTick(); trigger.value?.focus()`. On click-outside: only restore when the click
   target is outside BOTH `container.value` AND `trigger.value` (a click on the trigger is a
@@ -119,7 +120,8 @@ For pattern filtering, use vitest's filename match: e.g. `pnpm test:run usePopov
   `@/lib/auth-api`, `@/components/ui/tooltip`, `@/components/ui/sidebar`, `ThemeToggle.vue`,
   `@lucide/vue`. After the refactor, `App.vue` (thin) imports `AppShell` (new path). The new
   `AppShell.vue` imports the same `Sidebar*`, `TooltipProvider`, and lucide icons the test
-  already mocks. Because the sidebar mocks forward slots (`<div class="sidebar-..."><slot /></div>`),
+  already mocks. Because the sidebar mocks forward slots (
+  `<div class="sidebar-..."><slot /></div>`),
   the `SidebarChannelRow` chain inside the section still renders, so the `<img>` with
   `proxyImageUrl(channel.avatarUrl)` keeps appearing in the test DOM. **No new mock is
   required.** If a real-world run shows vitest trying to resolve the deep tree and choking,
@@ -165,17 +167,17 @@ For pattern filtering, use vitest's filename match: e.g. `pnpm test:run usePopov
   touch stores, `setActivePinia(createPinia())` in `beforeEach` then `useXxxStore().field = ...`.
 - **`usePopoverDismissal.test.ts`:** mount a tiny harness SFC that exposes
   `containerRef`, `triggerRef`, and a button bound to `toggle`. In each test:
-  1. Open via `toggle`, assert `open.value === true` via the harness's data attr.
-  2. Escape: `await trigger('keydown', { key: 'Escape' })` on the harness root; assert
-     `open === false` and `document.activeElement === triggerRef.el`.
-  3. Click outside: open, then dispatch a `MouseEvent` on `document.body`; assert `open === false`
-     and `document.activeElement === triggerRef.el`.
-  4. Click on trigger while open: assert it toggles closed (no focus restore because toggle
-     is the source).
-  5. Route change: open, push a new path via mocked `useRouter().push`, assert
-     `open === false` and `document.activeElement` is NOT the trigger.
-  6. Unmount: open, `wrapper.unmount()`, dispatch a click on document, assert no errors and
-     the listener was removed (no late state mutation; verify by spying `removeEventListener`).
+    1. Open via `toggle`, assert `open.value === true` via the harness's data attr.
+    2. Escape: `await trigger('keydown', { key: 'Escape' })` on the harness root; assert
+       `open === false` and `document.activeElement === triggerRef.el`.
+    3. Click outside: open, then dispatch a `MouseEvent` on `document.body`; assert `open === false`
+       and `document.activeElement === triggerRef.el`.
+    4. Click on trigger while open: assert it toggles closed (no focus restore because toggle
+       is the source).
+    5. Route change: open, push a new path via mocked `useRouter().push`, assert
+       `open === false` and `document.activeElement` is NOT the trigger.
+    6. Unmount: open, `wrapper.unmount()`, dispatch a click on document, assert no errors and
+       the listener was removed (no late state mutation; verify by spying `removeEventListener`).
 
 - **`SidebarChannelRow.test.ts`:** build a channel with `makeChannel(...)`, mount with
   `:channel :isActive :queuedCount`. Assert (a) `<img>` present with `src` = `proxyImageUrl`
@@ -183,7 +185,8 @@ For pattern filtering, use vitest's filename match: e.g. `pnpm test:run usePopov
   badge `<span>` text matches `getProviderBadge('linkedin')`; (c) trigger `error` on the img,
   await, assert img is gone and badge span is back. `proxyImageUrl` is the real function from
   `@/lib/auth-api` (no need to mock).
-- **`AppHeader.test.ts`:** mount with `currentSectionLabel="analytics"`, `headerSummary="dark / EN"`,
+- **`AppHeader.test.ts`:** mount with `currentSectionLabel="analytics"`,
+  `headerSummary="dark / EN"`,
   `currentLocale="en"`. Assert (a) the eyebrow is `"Workspace"`, the `<h1>` resolves
   `nav.analytics`; (b) the status pill text is exactly `"dark / EN"`; (c) the language pill
   renders with `EN aria-checked="true"`, `ES aria-checked="false"`; (d) no element with

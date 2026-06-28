@@ -8,12 +8,13 @@
 **Then** `PostDetailModal` closes
 **And** `CreatePostModal` opens in edit mode
 **And** all form fields are pre-filled with the publication data:
-  - Content text
-  - Schedule date and time
-  - Schedule mode (NOW, SCHEDULED_AT, NEXT_SLOT)
-  - Priority
-  - Media assets
-  - Channel (read-only)
+
+- Content text
+- Schedule date and time
+- Schedule mode (NOW, SCHEDULED_AT, NEXT_SLOT)
+- Priority
+- Media assets
+- Channel (read-only)
 
 ## Scenario 2: User edits a published post
 

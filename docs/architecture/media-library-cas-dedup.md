@@ -105,41 +105,42 @@ Initiates the upload flow and checks for existing blobs by `(workspaceId, fileHa
 
 **Validations (strict order):**
 
-| Order | Validation | Failure |
-|-------|-----------|---------|
-| 1 | `assetId` is valid UUID v4 | 400 Bad Request |
-| 2 | `fileHash` matches `^[a-f0-9]{64}$` | 400 Bad Request |
-| 3 | `fileSizeBytes` between 1 and 500 MB | 400 / 413 Payload Too Large |
-| 4 | `declaredMediaType` in `SUPPORTED_MEDIA_TYPES` | 400 Bad Request |
-| 5 | `originalFilename` sanitized (no `/`, `\`, `..`, null bytes; ≤ 255 chars) | 400 |
-| 6 | OOXML types require `originalFilename` | 400 Bad Request |
-| 7 | Rate limit ≤ 200 creations/hour per workspace | 429 Too Many Requests |
+| Order | Validation                                                                | Failure                     |
+|-------|---------------------------------------------------------------------------|-----------------------------|
+| 1     | `assetId` is valid UUID v4                                                | 400 Bad Request             |
+| 2     | `fileHash` matches `^[a-f0-9]{64}$`                                       | 400 Bad Request             |
+| 3     | `fileSizeBytes` between 1 and 500 MB                                      | 400 / 413 Payload Too Large |
+| 4     | `declaredMediaType` in `SUPPORTED_MEDIA_TYPES`                            | 400 Bad Request             |
+| 5     | `originalFilename` sanitized (no `/`, `\`, `..`, null bytes; ≤ 255 chars) | 400                         |
+| 6     | OOXML types require `originalFilename`                                    | 400 Bad Request             |
+| 7     | Rate limit ≤ 200 creations/hour per workspace                             | 429 Too Many Requests       |
 
 **Response matrix:**
 
-| Scenario | Status | Body |
-|----------|--------|------|
-| New file (no existing blob) | `201 Created` | `{ status: PENDING_UPLOAD, deduped: false, uploadUrl }` |
-| Dedup hit (blob READY) | `201 Created` | `{ status: READY, deduped: true }` |
-| Another upload in progress (blob UPLOADING) | `202 Accepted` + `Retry-After: 3` | `{ status: WAITING_FOR_BLOB }` |
-| Retry after failed blob | `201 Created` | `{ status: PENDING_UPLOAD }` |
-| Same assetId + same hash | `200 OK` | Current asset state |
-| Same assetId + different hash | `409 Conflict` | `{ error: ASSET_HASH_MISMATCH }` |
-| Rate limit exceeded | `429 Too Many Requests` + `Retry-After: 3600` | `{ error: RATE_LIMIT_EXCEEDED }` |
+| Scenario                                    | Status                                        | Body                                                    |
+|---------------------------------------------|-----------------------------------------------|---------------------------------------------------------|
+| New file (no existing blob)                 | `201 Created`                                 | `{ status: PENDING_UPLOAD, deduped: false, uploadUrl }` |
+| Dedup hit (blob READY)                      | `201 Created`                                 | `{ status: READY, deduped: true }`                      |
+| Another upload in progress (blob UPLOADING) | `202 Accepted` + `Retry-After: 3`             | `{ status: WAITING_FOR_BLOB }`                          |
+| Retry after failed blob                     | `201 Created`                                 | `{ status: PENDING_UPLOAD }`                            |
+| Same assetId + same hash                    | `200 OK`                                      | Current asset state                                     |
+| Same assetId + different hash               | `409 Conflict`                                | `{ error: ASSET_HASH_MISMATCH }`                        |
+| Rate limit exceeded                         | `429 Too Many Requests` + `Retry-After: 3600` | `{ error: RATE_LIMIT_EXCEEDED }`                        |
 
 ### POST `/api/workspaces/{workspaceId}/media/assets/{assetId}/upload`
 
 Uploads raw file bytes (`Content-Type: application/octet-stream`).
 
 **Flow:**
+
 1. **Claim upload slot:** `PENDING_UPLOAD/FAILED → UPLOADING`
 2. **Stream bytes** to `assets/{workspaceId}/temp/{assetId}.{ext}` while computing SHA-256, counting
    bytes, and validating magic bytes
 3. **Verify byte count** → mismatch returns `422 FILE_SIZE_MISMATCH`
 4. **Verify hash** → mismatch returns `422 HASH_MISMATCH`
 5. **Lock blob `FOR UPDATE`**, then finalize:
-   - Blob `READY` (race) → delete temp, mark asset `READY`, `deduped: true`
-   - Blob `UPLOADING` → copy temp to canonical key, mark blob+asset `READY`
+    - Blob `READY` (race) → delete temp, mark asset `READY`, `deduped: true`
+    - Blob `UPLOADING` → copy temp to canonical key, mark blob+asset `READY`
 
 ### DELETE `/api/workspaces/{workspaceId}/media/assets/{assetId}`
 
@@ -153,6 +154,7 @@ Soft-deletes the asset (`status → DELETED`). If no active references remain on
 ### `MediaAssetExpirationJob` (runs every 6 hours)
 
 Expires stale `PENDING_UPLOAD` and `UPLOADING` assets (TTL: 24 hours).
+
 - Marks asset `FAILED` with `failure_reason: 'expired:pending_upload_ttl'`
 - If blob has zero active references → marks blob `READY_FOR_GC`
 
@@ -170,9 +172,9 @@ Processes `READY_FOR_GC` blobs past 7-day retention:
 
 ## Storage Key Format
 
-| Key type | Pattern |
-|----------|---------|
-| Canonical | `assets/{workspaceId}/blobs/{sha256}.{ext}` |
+| Key type      | Pattern                                     |
+|---------------|---------------------------------------------|
+| Canonical     | `assets/{workspaceId}/blobs/{sha256}.{ext}` |
 | Temp (upload) | `assets/{workspaceId}/temp/{assetId}.{ext}` |
 
 The extension in the canonical key is derived from `detected_media_type` (server-detected via magic
@@ -180,14 +182,14 @@ bytes), NOT from the client-declared media type.
 
 **Magic byte detection during upload:**
 
-| Format | Magic bytes |
-|--------|-------------|
-| JPEG | `FF D8 FF` at offset 0 |
-| PNG | `89 50 4E 47` at offset 0 |
-| GIF | `47 49 46 38` at offset 0 |
-| WEBP | `52 49 46 46` (RIFF) at offset 0, `57 45 42 50` at offset 8 |
-| MP4 | `ftyp` box at offset 4 |
-| OOXML | ZIP magic (`50 4B 03 04`) + Content-Type cross-check |
+| Format | Magic bytes                                                 |
+|--------|-------------------------------------------------------------|
+| JPEG   | `FF D8 FF` at offset 0                                      |
+| PNG    | `89 50 4E 47` at offset 0                                   |
+| GIF    | `47 49 46 38` at offset 0                                   |
+| WEBP   | `52 49 46 46` (RIFF) at offset 0, `57 45 42 50` at offset 8 |
+| MP4    | `ftyp` box at offset 4                                      |
+| OOXML  | ZIP magic (`50 4B 03 04`) + Content-Type cross-check        |
 
 ---
 
@@ -237,15 +239,15 @@ CREATE INDEX idx_blobs_gc_candidates
 
 ## Architecture Decisions
 
-| Decision | Choice | Rationale |
-|----------|--------|-----------|
-| Dedup scope | `(workspace_id, file_hash)` | Tenant isolation, avoids cross-workspace coupling |
-| Canonical write timing | Upload to temp → verify → copy to canonical | Prevents poisoning canonical storage with bad uploads |
-| Asset storage key | Nullable until `READY`; CHECK enforces non-null on `READY` | Null models "not yet stored" cleanly |
-| GC model | Deferred: `READY_FOR_GC` + 7-day retention, UPDATE to `GARBAGE_COLLECTED` | Avoids delete/recreate race; preserves audit trail |
-| Hash authority | Server computes SHA-256 during upload stream | Prevents corrupted or spoofed dedup |
-| Canonical key extension | Derived from `detected_media_type` server-side | Server is authoritative; prevents extension mismatch |
-| Byte-count validation | Stream counts bytes; rejects if counted ≠ declared | Catches truncated/oversized uploads before storage write |
+| Decision                | Choice                                                                    | Rationale                                                |
+|-------------------------|---------------------------------------------------------------------------|----------------------------------------------------------|
+| Dedup scope             | `(workspace_id, file_hash)`                                               | Tenant isolation, avoids cross-workspace coupling        |
+| Canonical write timing  | Upload to temp → verify → copy to canonical                               | Prevents poisoning canonical storage with bad uploads    |
+| Asset storage key       | Nullable until `READY`; CHECK enforces non-null on `READY`                | Null models "not yet stored" cleanly                     |
+| GC model                | Deferred: `READY_FOR_GC` + 7-day retention, UPDATE to `GARBAGE_COLLECTED` | Avoids delete/recreate race; preserves audit trail       |
+| Hash authority          | Server computes SHA-256 during upload stream                              | Prevents corrupted or spoofed dedup                      |
+| Canonical key extension | Derived from `detected_media_type` server-side                            | Server is authoritative; prevents extension mismatch     |
+| Byte-count validation   | Stream counts bytes; rejects if counted ≠ declared                        | Catches truncated/oversized uploads before storage write |
 
 ---
 
@@ -264,8 +266,10 @@ CREATE INDEX idx_blobs_gc_candidates
 ## References
 
 - [Architecture Overview](./README.md)
-- [ADR: Media Library Storage Configuration](./adr-media-library-storage.md) — bucket-level decisions
-- [Spec: Media Asset Dedup](../../openspec/specs/media-asset-dedup/spec.md) — full specification with
+- [ADR: Media Library Storage Configuration](./adr-media-library-storage.md) — bucket-level
+  decisions
+- [Spec: Media Asset Dedup](../../openspec/specs/media-asset-dedup/spec.md) — full specification
+  with
   all scenarios
 - [Design: Media Asset Dedup](../../openspec/changes/archive/2026-06-25-media-asset-dedup/design.md) —
   technical design with data flow diagrams

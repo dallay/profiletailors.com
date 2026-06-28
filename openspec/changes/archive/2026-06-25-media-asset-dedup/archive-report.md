@@ -11,12 +11,13 @@
 
 ## Specs Synced
 
-| Domain | Action | Details |
-|--------|--------|---------|
+| Domain              | Action  | Details                                                                                                                                                                           |
+|---------------------|---------|-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
 | `media-asset-dedup` | Created | New canonical spec promoted from delta — 9 requirements, 29 scenarios, full data model + API schemas + Liquibase migration + TS frontend contract + idempotency matrix + glossary |
 
 The delta spec was self-contained (no per-domain split under `changes/media-asset-dedup/specs/`),
-so per OpenSpec convention it was promoted **verbatim** to `openspec/specs/media-asset-dedup/spec.md`
+so per OpenSpec convention it was promoted **verbatim** to
+`openspec/specs/media-asset-dedup/spec.md`
 as the authoritative source of truth. **No spec revision bump** was required — the verify-time
 fix was a pure implementation defect repair (deleted dead `NoOpEventPublisher` class and dead
 `testStorageApplicationService` factory), not a spec delta. Spec stays at **v3.2**.

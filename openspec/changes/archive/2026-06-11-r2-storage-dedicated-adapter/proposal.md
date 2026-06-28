@@ -2,13 +2,19 @@
 
 ## Intent
 
-The current `S2Storage` adapter is a thin wrapper that delegates 100% to `S3Storage`, lacking its own identity and R2-optimized configuration. This creates three problems: (1) R2-specific nuances cannot be addressed without modifying S3 behavior, (2) the naming is misleading (`s2` refers to DigitalOcean Spaces historically), and (3) future R2-specific features (transfer acceleration, R2 Workers integration) have no extension point.
+The current `S2Storage` adapter is a thin wrapper that delegates 100% to `S3Storage`, lacking its
+own identity and R2-optimized configuration. This creates three problems: (1) R2-specific nuances
+cannot be addressed without modifying S3 behavior, (2) the naming is misleading (`s2` refers to
+DigitalOcean Spaces historically), and (3) future R2-specific features (transfer acceleration, R2
+Workers integration) have no extension point.
 
-This change creates a first-class `R2StorageAdapter` with its own implementation, proper Cloudflare R2 branding, and a clear migration path from the legacy `s2` type.
+This change creates a first-class `R2StorageAdapter` with its own implementation, proper Cloudflare
+R2 branding, and a clear migration path from the legacy `s2` type.
 
 ## Scope
 
 ### In Scope
+
 - Replace `S2Storage` with a dedicated `R2StorageAdapter`
 - Maintain 100% feature parity with S3 operations (upload, download, delete, list, presign)
 - Support backward-compatible configuration (`type: s2` continues to work via alias)
@@ -19,6 +25,7 @@ This change creates a first-class `R2StorageAdapter` with its own implementation
 - Update Spring auto-configuration to register R2 provider
 
 ### Out of Scope
+
 - R2-specific features beyond S3-compatible API (Workers integration, Transfer Acceleration)
 - Migration tooling for existing buckets
 - Multi-region R2 configuration (R2 uses `auto` region by design)
@@ -34,23 +41,23 @@ This change creates a first-class `R2StorageAdapter` with its own implementation
 
 ## Affected Areas
 
-| Area | Impact | Description |
-|------|--------|-------------|
-| `server/smp/modules/storage/src/main/kotlin/.../infrastructure/R2StorageAdapter.kt` | New | Dedicated R2 adapter implementation |
-| `server/smp/modules/storage/src/main/kotlin/.../infrastructure/S2Storage.kt` | Deprecated | Legacy wrapper (alias behavior only) |
-| `server/smp/modules/storage/src/main/kotlin/.../infrastructure/StorageAutoConfiguration.kt` | Modified | Register R2 provider type |
-| `server/smp/modules/storage/src/test/kotlin/.../R2StorageUnitTests.kt` | New | Unit tests with mocks |
-| `server/smp/modules/storage/src/test/kotlin/.../R2StorageIntegrationTest.kt` | New | Integration tests |
-| `server/smp/modules/storage/src/test/kotlin/.../StorageContractTest.kt` | Modified | Add R2 contract scenarios |
+| Area                                                                                        | Impact     | Description                          |
+|---------------------------------------------------------------------------------------------|------------|--------------------------------------|
+| `server/smp/modules/storage/src/main/kotlin/.../infrastructure/R2StorageAdapter.kt`         | New        | Dedicated R2 adapter implementation  |
+| `server/smp/modules/storage/src/main/kotlin/.../infrastructure/S2Storage.kt`                | Deprecated | Legacy wrapper (alias behavior only) |
+| `server/smp/modules/storage/src/main/kotlin/.../infrastructure/StorageAutoConfiguration.kt` | Modified   | Register R2 provider type            |
+| `server/smp/modules/storage/src/test/kotlin/.../R2StorageUnitTests.kt`                      | New        | Unit tests with mocks                |
+| `server/smp/modules/storage/src/test/kotlin/.../R2StorageIntegrationTest.kt`                | New        | Integration tests                    |
+| `server/smp/modules/storage/src/test/kotlin/.../StorageContractTest.kt`                     | Modified   | Add R2 contract scenarios            |
 
 ## Risks
 
-| Risk | Likelihood | Mitigation |
-|------|------------|------------|
-| Breaking existing `type: s2` configurations | Low | Maintain `s2` as alias for `r2` in config parser |
-| R2 SDK behavior differs from AWS S3 | Low | Use existing S3 SDK v2; R2 is S3-compatible |
-| Test environment requires R2 credentials | Medium | Use Docker LocalStack with R2 emulation or testcontainers |
-| Performance regression vs S3Storage | Low | Benchmark and compare; adapter shares core logic |
+| Risk                                        | Likelihood | Mitigation                                                |
+|---------------------------------------------|------------|-----------------------------------------------------------|
+| Breaking existing `type: s2` configurations | Low        | Maintain `s2` as alias for `r2` in config parser          |
+| R2 SDK behavior differs from AWS S3         | Low        | Use existing S3 SDK v2; R2 is S3-compatible               |
+| Test environment requires R2 credentials    | Medium     | Use Docker LocalStack with R2 emulation or testcontainers |
+| Performance regression vs S3Storage         | Low        | Benchmark and compare; adapter shares core logic          |
 
 ## Rollback Plan
 

@@ -2,7 +2,8 @@
 
 ## Purpose
 
-Defines the translation key organization for all 11 dashboard sections. Every user-visible string MUST live in the i18n message object — no hardcoded text in components.
+Defines the translation key organization for all 11 dashboard sections. Every user-visible string
+MUST live in the i18n message object — no hardcoded text in components.
 
 ## Requirements
 
@@ -22,7 +23,8 @@ Each dashboard section SHALL have its own i18n namespace under `dashboard.{secti
 
 - GIVEN all 11 sections have i18n keys
 - WHEN the message object is inspected
-- THEN these namespaces exist: `overview`, `insights`, `growthScore`, `analytics`, `contentPipeline`, `scheduling`, `engagement`
+- THEN these namespaces exist: `overview`, `insights`, `growthScore`, `analytics`,
+  `contentPipeline`, `scheduling`, `engagement`
 - AND shared keys live under `dashboard.layout.*`
 
 ### Requirement: Complete EN/ES Coverage

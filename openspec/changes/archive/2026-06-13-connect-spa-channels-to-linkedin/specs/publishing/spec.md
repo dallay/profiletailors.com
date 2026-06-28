@@ -4,14 +4,18 @@
 
 ### Requirement: Idempotent Connection Upsert Semantics
 
-Repository methods for persisting `SocialConnection` and `SocialAccount` MUST use ON CONFLICT UPDATE (upsert) semantics. Reconnecting the same LinkedIn profile to the same workspace MUST update the existing record rather than violate uniqueness constraints.
+Repository methods for persisting `SocialConnection` and `SocialAccount` MUST use ON CONFLICT
+UPDATE (upsert) semantics. Reconnecting the same LinkedIn profile to the same workspace MUST update
+the existing record rather than violate uniqueness constraints.
 
 #### Scenario: Reconnecting the same LinkedIn profile updates existing connection
 
-- GIVEN a workspace already has an active LinkedIn personal profile connection with a specific provider account ID
+- GIVEN a workspace already has an active LinkedIn personal profile connection with a specific
+  provider account ID
 - WHEN the OAuth flow is completed again for the same LinkedIn profile and workspace
 - THEN the system MUST update the existing `SocialConnection` and `SocialAccount` records
-- AND connection status MUST be `ACTIVE` with refreshed credential reference and `connectedAt` timestamp
+- AND connection status MUST be `ACTIVE` with refreshed credential reference and `connectedAt`
+  timestamp
 - AND no duplicate records MUST be created
 
 #### Scenario: Reconnecting after revocation restores the connection
@@ -23,11 +27,14 @@ Repository methods for persisting `SocialConnection` and `SocialAccount` MUST us
 
 ### Requirement: OAuth State Validation on Connection Completion
 
-The existing `POST /api/publishing/linkedin/connections/complete` endpoint MUST validate the `state` parameter before processing the connection. If `state` is absent, tampered, or expired, the endpoint MUST reject the request.
+The existing `POST /api/publishing/linkedin/connections/complete` endpoint MUST validate the `state`
+parameter before processing the connection. If `state` is absent, tampered, or expired, the endpoint
+MUST reject the request.
 
 #### Scenario: Completion with valid state succeeds
 
-- GIVEN a valid `authorizationCode` and a `state` value that matches the signed original from initiation
+- GIVEN a valid `authorizationCode` and a `state` value that matches the signed original from
+  initiation
 - WHEN the completion endpoint is called
 - THEN the system MUST process the LinkedIn OAuth exchange and persist the connection
 
@@ -40,7 +47,10 @@ The existing `POST /api/publishing/linkedin/connections/complete` endpoint MUST 
 
 ### Requirement: Frontend Channel Data Source Migration
 
-The publishing Pinia store MUST replace mock channel seeding with backend-loaded channels. The store MUST initialize `channels` as an empty array for authenticated users and load real channels from `GET /api/publishing/channels`. Actions `fetchChannels()`, `connectLinkedInPersonalProfile()`, and `completeLinkedInConnectionFromCallback()` MUST be added.
+The publishing Pinia store MUST replace mock channel seeding with backend-loaded channels. The store
+MUST initialize `channels` as an empty array for authenticated users and load real channels from
+`GET /api/publishing/channels`. Actions `fetchChannels()`, `connectLinkedInPersonalProfile()`, and
+`completeLinkedInConnectionFromCallback()` MUST be added.
 
 #### Scenario: Authenticated user loads channels from backend
 
@@ -68,11 +78,19 @@ The publishing Pinia store MUST replace mock channel seeding with backend-loaded
 
 ### Requirement: Workspace-Scoped Social Connections
 
-The system MUST allow an authenticated workspace member to register and manage a social-provider connection in workspace scope.
+The system MUST allow an authenticated workspace member to register and manage a social-provider
+connection in workspace scope.
 
-A social connection MUST be associated with exactly one workspace and one provider account identity. The system MUST persist enough provider metadata to identify the connected account, provider type, connection status, and credential freshness. Provider credential secrets MUST remain an infrastructure concern and MUST NOT leak into public API responses. LinkedIn personal-profile connection support MUST be implemented in this change. LinkedIn page support MAY be added later without redefining the core connection model. Reconnecting the same provider account MUST use upsert semantics to avoid uniqueness violations.
+A social connection MUST be associated with exactly one workspace and one provider account identity.
+The system MUST persist enough provider metadata to identify the connected account, provider type,
+connection status, and credential freshness. Provider credential secrets MUST remain an
+infrastructure concern and MUST NOT leak into public API responses. LinkedIn personal-profile
+connection support MUST be implemented in this change. LinkedIn page support MAY be added later
+without redefining the core connection model. Reconnecting the same provider account MUST use upsert
+semantics to avoid uniqueness violations.
 
-(Previously: Reconnect/upsert semantics were not specified; plain INSERT risked unique-constraint violations.)
+(Previously: Reconnect/upsert semantics were not specified; plain INSERT risked unique-constraint
+violations.)
 
 #### Scenario: User connects a LinkedIn personal profile to a workspace
 

@@ -2,7 +2,9 @@
 
 ## Overview
 
-Remove the `username` field from the registration form and API request payload. The backend continues auto-deriving username from the email prefix. Username remains in API responses for future profile settings.
+Remove the `username` field from the registration form and API request payload. The backend
+continues auto-deriving username from the email prefix. Username remains in API responses for future
+profile settings.
 
 ## REMOVED Requirements
 
@@ -50,7 +52,8 @@ Only `email` and `password` SHALL be accepted as request body parameters.
 
 ### Requirement: Backend Auto-Derives Username from Email
 
-The system MUST continue to auto-derive the username from the email prefix when creating a user account.
+The system MUST continue to auto-derive the username from the email prefix when creating a user
+account.
 
 The `RegisterUserHandler` MUST derive the username by taking the email prefix (the part before `@`).
 The derived username MUST be stored in the `username` column in the database.
@@ -70,9 +73,13 @@ The derived username MUST be stored in the `username` column in the database.
 
 ### Requirement: Registration Persists Atomically
 
-The system MUST execute all persistent mutations for one registration attempt inside one atomic transaction.
+The system MUST execute all persistent mutations for one registration attempt inside one atomic
+transaction.
 
-The transaction MUST include identity creation, local password credential creation, default workspace provisioning, and email verification token creation. If any in-transaction mutation fails, the system MUST roll back all registration mutations from that attempt. Partial user, credential, workspace, membership, role, or verification-token records MUST NOT remain committed after rollback.
+The transaction MUST include identity creation, local password credential creation, default
+workspace provisioning, and email verification token creation. If any in-transaction mutation fails,
+the system MUST roll back all registration mutations from that attempt. Partial user, credential,
+workspace, membership, role, or verification-token records MUST NOT remain committed after rollback.
 
 #### Scenario: Registration commits all records together
 
@@ -91,11 +98,19 @@ The transaction MUST include identity creation, local password credential creati
 
 ### Requirement: Registration Creates Authenticated Session
 
-Registration SHALL create an authenticated session only after successful completion of the atomic registration transaction.
+Registration SHALL create an authenticated session only after successful completion of the atomic
+registration transaction.
 
-The registration handler SHALL issue JWT and refresh tokens only after the transaction commits successfully. The response SHALL be HTTP 201 Created with AuthTokens payload. The response SHALL set an HttpOnly refresh token cookie. The registration payload SHALL no longer return only RegistrationResult (breaking change from prior behavior). Post-registration side effects, including `UserRegistered` event publication, SHALL occur only after commit succeeds and SHALL NOT occur for rolled-back registrations.
+The registration handler SHALL issue JWT and refresh tokens only after the transaction commits
+successfully. The response SHALL be HTTP 201 Created with AuthTokens payload. The response SHALL set
+an HttpOnly refresh token cookie. The registration payload SHALL no longer return only
+RegistrationResult (breaking change from prior behavior). Post-registration side effects, including
+`UserRegistered` event publication, SHALL occur only after commit succeeds and SHALL NOT occur for
+rolled-back registrations.
 
-> **Historical note:** Prior to this change, registration issued tokens on successful handler completion without specifying transaction commit ordering or post-commit side-effect timing. The new contract commits first, then publishes and issues tokens.
+> **Historical note:** Prior to this change, registration issued tokens on successful handler
+> completion without specifying transaction commit ordering or post-commit side-effect timing. The new
+> contract commits first, then publishes and issues tokens.
 
 #### Scenario: Registration creates session after commit
 
@@ -112,13 +127,14 @@ The registration handler SHALL issue JWT and refresh tokens only after the trans
 - THEN the system SHALL publish `UserRegistered` event for `alice@example.com`
 - AND the system SHALL issue a refresh session for the new principal
 - AND the response SHALL include an access token
-- 
+-
 - GIVEN a registration attempt with email `bob@example.com`
 - AND a workspace provisioning failure occurs inside the transaction
 - WHEN the transaction rolls back
 - THEN the system SHALL NOT publish any `UserRegistered` event
 - AND the system SHALL NOT issue any refresh session
-- AND no user_identities, credentials, workspaces, or verification tokens SHALL persist for `bob@example.com`
+- AND no user_identities, credentials, workspaces, or verification tokens SHALL persist for
+  `bob@example.com`
 
 ### Requirement: Username in API Responses
 
@@ -141,14 +157,14 @@ Removing `username` from the response is out of scope for this change.
 
 ## Acceptance Criteria
 
-| ID | Criterion | Validation |
-|----|-----------|------------|
-| AC-1 | Registration form has no username field | Visual inspection + DOM query |
-| AC-2 | API register succeeds without `username` in body | Integration test |
-| AC-3 | Username auto-derived from email prefix | Unit test coverage |
-| AC-4 | Existing tests pass | `./gradlew test` green |
-| AC-5 | No dead i18n strings for registration username | Grep confirms removal |
-| AC-6 | API responses still include `username` | Integration test asserts response |
+| ID   | Criterion                                        | Validation                        |
+|------|--------------------------------------------------|-----------------------------------|
+| AC-1 | Registration form has no username field          | Visual inspection + DOM query     |
+| AC-2 | API register succeeds without `username` in body | Integration test                  |
+| AC-3 | Username auto-derived from email prefix          | Unit test coverage                |
+| AC-4 | Existing tests pass                              | `./gradlew test` green            |
+| AC-5 | No dead i18n strings for registration username   | Grep confirms removal             |
+| AC-6 | API responses still include `username`           | Integration test asserts response |
 
 ## Constraints
 

@@ -2,7 +2,8 @@
 
 ## Purpose
 
-Surfaces AI-generated recommendations with actionable CTAs — turning raw analytics data into the user's next move. Each insight card suggests a specific action and links to the relevant tool.
+Surfaces AI-generated recommendations with actionable CTAs — turning raw analytics data into the
+user's next move. Each insight card suggests a specific action and links to the relevant tool.
 
 ## Data Model
 
@@ -35,7 +36,8 @@ interface InsightsData {
 
 ### Requirement: Hero Insight Card
 
-The system SHALL display the highest-priority insight as a hero card spanning the full section width with prominent styling.
+The system SHALL display the highest-priority insight as a hero card spanning the full section width
+with prominent styling.
 
 #### Scenario: Hero card renders top insight
 
