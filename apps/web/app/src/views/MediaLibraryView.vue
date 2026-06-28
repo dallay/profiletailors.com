@@ -3,6 +3,7 @@ import { computed, onMounted, ref } from 'vue'
 import { Download, FileText, Image, Loader2, RefreshCw, Trash2, UploadCloud, Video } from '@lucide/vue'
 import { useMediaStore } from '@/stores/media'
 import { resolveApiUrl } from '@/lib/auth-api'
+import type { MediaStatus } from '@/lib/media-api'
 import { Button } from '@/components/ui/button'
 import {
   AlertDialog,
@@ -31,11 +32,19 @@ const assets = computed(() =>
     .filter((asset) => asset !== undefined),
 )
 
+function isProcessingStatus(status: MediaStatus): boolean {
+  return status === 'PENDING_UPLOAD' || status === 'UPLOADING'
+}
+
 const visibleAssets = computed(() => {
   const normalizedQuery = searchQuery.value.trim().toLowerCase()
 
   const filtered = assets.value.filter((asset) => {
-    const matchesStatus = statusFilter.value === 'ALL' || asset.status === statusFilter.value
+    const matchesStatus =
+      statusFilter.value === 'ALL' ||
+      (statusFilter.value === 'PROCESSING'
+        ? isProcessingStatus(asset.status)
+        : asset.status === statusFilter.value)
     const matchesType =
       typeFilter.value === 'ALL' ||
       (typeFilter.value === 'IMAGE' && isImage(asset.mediaType)) ||
@@ -75,15 +84,19 @@ const allVisibleSelected = computed(() =>
 )
 
 const readyAssets = computed(() => assets.value.filter((asset) => asset.status === 'READY'))
-const processingAssets = computed(() => assets.value.filter((asset) => asset.status === 'PROCESSING'))
+const processingAssets = computed(() =>
+  assets.value.filter((asset) => isProcessingStatus(asset.status)),
+)
 const failedAssets = computed(() => assets.value.filter((asset) => asset.status === 'FAILED'))
 
-function statusClass(status: string) {
+function statusClass(status: MediaStatus) {
+  if (isProcessingStatus(status)) {
+    return 'border-text-display/30 bg-text-display/10 text-text-display'
+  }
+
   switch (status) {
     case 'READY':
       return 'border-success/30 bg-success/10 text-success'
-    case 'PROCESSING':
-      return 'border-text-display/30 bg-text-display/10 text-text-display'
     case 'FAILED':
       return 'border-error/30 bg-error/10 text-error'
     default:
@@ -193,14 +206,14 @@ async function deleteSelectedAssets() {
 async function refreshLibrary() {
   isRefreshing.value = true
   try {
-    await mediaStore.loadAssets('READY,PROCESSING,FAILED')
+    await mediaStore.loadAssets('READY,PENDING_UPLOAD,UPLOADING,FAILED')
   } finally {
     isRefreshing.value = false
   }
 }
 
 async function loadMore() {
-  await mediaStore.loadNextPage('READY,PROCESSING,FAILED')
+  await mediaStore.loadNextPage('READY,PENDING_UPLOAD,UPLOADING,FAILED')
 }
 
 function openFilePicker() {
@@ -421,6 +434,7 @@ onMounted(async () => {
 
                 <!-- Status badge overlay -->
                 <span
+                  data-testid="status-badge"
                   class="absolute right-3 top-3 z-10 rounded-full px-2 py-0.5 font-mono text-[9px] uppercase tracking-[0.12em]"
                   :class="statusClass(asset.status)"
                 >

@@ -114,7 +114,7 @@ describe('MediaLibraryView', () => {
       workspaceId: 'ws-1',
       sourceType: 'UPLOADED',
       mediaType: 'video/mp4',
-      status: 'PROCESSING',
+      status: 'UPLOADING',
       originalFilename: 'clip.mp4',
       fileSizeBytes: 200,
       createdAt: '2026-06-18T12:00:00Z',
@@ -130,6 +130,44 @@ describe('MediaLibraryView', () => {
 
     expect(wrapper.text()).toContain('hero.jpg')
     expect(wrapper.text()).not.toContain('clip.mp4')
+  })
+
+  it('maps pending and uploading CAS statuses to the shared processing presentation', async () => {
+    const mediaStore = useMediaStore()
+    for (const [assetId, status] of [
+      ['pending-asset', 'PENDING_UPLOAD'],
+      ['uploading-asset', 'UPLOADING'],
+    ] as const) {
+      mediaStore.assetsById[assetId] = {
+        assetId,
+        workspaceId: 'ws-1',
+        sourceType: 'UPLOADED',
+        mediaType: 'image/png',
+        status,
+        originalFilename: `${assetId}.png`,
+        fileSizeBytes: 100,
+        createdAt: '2026-06-19T12:00:00Z',
+      }
+      mediaStore.assetIds.push(assetId)
+    }
+
+    const wrapper = mountView()
+    await flushPromises()
+
+    expect(wrapper.text()).toContain('media.processingTitle2')
+
+    await wrapper.find('[data-testid="filter-status"]').setValue('PROCESSING')
+
+    const cards = wrapper.findAll('article')
+    expect(cards).toHaveLength(2)
+    expect(
+      cards.every((card) =>
+        card.find('[data-testid="status-badge"]').classes().includes('text-text-display'),
+      ),
+    ).toBe(true)
+
+    await wrapper.find('#select-all-visible').setValue(true)
+    expect(wrapper.text()).not.toContain('media.selectedCountSuffix')
   })
 
   it('searches assets by filename', async () => {
@@ -236,7 +274,7 @@ describe('MediaLibraryView', () => {
       workspaceId: 'ws-1',
       sourceType: 'UPLOADED',
       mediaType: 'image/png',
-      status: 'PROCESSING',
+      status: 'UPLOADING',
       originalFilename: 'three.png',
       fileSizeBytes: 100,
       createdAt: '2026-06-20T12:00:00Z',

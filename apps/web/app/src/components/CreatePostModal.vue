@@ -550,7 +550,9 @@ function validateCustomSchedule(finalScheduledDate: Date): string | undefined {
 // Schedule helpers — extracted to reduce cognitive complexity
 // ---------------------------------------------------------------------------
 
-function resolveScheduleMode(mode: ComposerScheduleMode): string {
+function resolveScheduleMode(
+  mode: ComposerScheduleMode,
+): NonNullable<Publication['scheduleMode']> {
   if (mode === 'now') return 'NOW'
   if (mode === 'next') return 'NEXT_SLOT'
   return 'SCHEDULED_AT'
@@ -641,10 +643,12 @@ async function handleSchedule() {
 
 async function handleEditSubmit(
   normalizedPostText: string,
-  scheduledDate: Date | null,
-  backendScheduleMode: string,
+  scheduledDate: Date | undefined,
+  backendScheduleMode: NonNullable<Publication['scheduleMode']>,
 ) {
-  await publishingStore.updatePost(props.editingPublication?.id, {
+  if (!props.editingPublication) return
+
+  await publishingStore.updatePost(props.editingPublication.id, {
     content: normalizedPostText,
     scheduledAt: scheduledDate?.toISOString(),
     priority: priorityMode.value,
@@ -657,8 +661,8 @@ async function handleEditSubmit(
 
 async function handleCreateSubmit(
   normalizedPostText: string,
-  scheduledDate: Date | null,
-  backendScheduleMode: string,
+  scheduledDate: Date | undefined,
+  backendScheduleMode: NonNullable<Publication['scheduleMode']>,
 ) {
   await publishingStore.schedulePost({
     content: normalizedPostText,

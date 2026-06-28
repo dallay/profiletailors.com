@@ -29,6 +29,7 @@ const mockPutAsset = vi.fn()
 const mockListAssets = vi.fn()
 const mockGetAsset = vi.fn()
 const mockDeleteAsset = vi.fn()
+const mockWorkspace = { activeWorkspaceId: 'ws-test-1' as string | null }
 
 vi.mock('@/lib/media-api', () => ({
   putAsset: (...args: unknown[]) => mockPutAsset(...args),
@@ -52,9 +53,7 @@ vi.mock('@/stores/auth', () => ({
 // Mock workspace store
 // ---------------------------------------------------------------------------
 vi.mock('@/stores/workspace', () => ({
-  useWorkspaceStore: () => ({
-    activeWorkspaceId: 'ws-test-1',
-  }),
+  useWorkspaceStore: () => mockWorkspace,
 }))
 
 // ---------------------------------------------------------------------------
@@ -76,7 +75,7 @@ const processingAsset = (assetId: string) => ({
   workspaceId: 'ws-test-1',
   sourceType: 'UPLOADED' as const,
   mediaType: 'image/png',
-  status: 'PROCESSING' as const,
+  status: 'UPLOADING' as const,
   originalFilename: null,
   fileSizeBytes: null,
   createdAt: '2026-06-19T12:00:00Z',
@@ -91,6 +90,7 @@ describe('media store', () => {
   beforeEach(() => {
     setActivePinia(createPinia())
     vi.clearAllMocks()
+    mockWorkspace.activeWorkspaceId = 'ws-test-1'
   })
 
   describe('initial state', () => {
@@ -139,17 +139,17 @@ describe('media store', () => {
       expect(store.assetsById['asset-1']?.status).toBe('READY')
     })
 
-    it('loads PROCESSING assets when requested', async () => {
+    it('loads UPLOADING assets when requested', async () => {
       const store = useMediaStore()
       mockListAssets.mockResolvedValueOnce({
         assets: [processingAsset('asset-2')],
         nextCursor: null,
       })
 
-      await store.loadAssets('PROCESSING')
+      await store.loadAssets('UPLOADING')
 
       expect(mockListAssets).toHaveBeenCalledWith({
-        status: 'PROCESSING',
+        status: 'UPLOADING',
         pageSize: 50,
       })
       expect(store.assetIds).toContain('asset-2')
@@ -251,6 +251,18 @@ describe('media store', () => {
   })
 
   describe('createAndUpload', () => {
+    it('rejects deterministically without tracking or API work when workspace is absent', async () => {
+      const store = useMediaStore()
+      mockWorkspace.activeWorkspaceId = null
+
+      await expect(store.createAndUpload(mockFile(), 'missing-workspace')).rejects.toThrow(
+        'An active workspace is required to upload media.',
+      )
+
+      expect(mockPutAsset).not.toHaveBeenCalled()
+      expect(store.uploads['missing-workspace']).toBeUndefined()
+    })
+
     it('uploads the file and returns ready asset', async () => {
       const store = useMediaStore()
       mockPutAsset.mockResolvedValueOnce({
