@@ -23,8 +23,8 @@ Archived the completed `app-typecheck-remediation` change after confirming the v
 - [x] Change state updated to completed
 - [x] No temporary archive-phase files found under the change directory
 - [x] Verification report has no CRITICAL issues
-- [ ] Change folder moved to archive
-- [ ] Active changes directory no longer has this change
+- [x] Change folder moved to archive
+- [x] Active changes directory no longer has this change
 
 ## Source of Truth Updated
 

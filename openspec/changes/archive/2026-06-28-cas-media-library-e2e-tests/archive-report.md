@@ -99,7 +99,7 @@ The following specs now reflect the new test infrastructure behavior:
 
 1. **Real-CAS infrastructure dependency**: Real smoke tests require running PostgreSQL, Spring Boot backend, Vite dev server, Portless proxy, seeded test workspace, and configured object storage
 2. **Partial spec coverage**: 5 test plan scenarios not yet implemented (ML-AUTH-001, responsive scenarios, composer one-file documentation)
-3. **Known contract drift**: Backend returns `200` for duplicate PUT instead of documented `201` (annotated in tests)
+3. **Known contract drift**: Backend returns `200` for duplicate PUT instead of documented `201` (annotated in `ML-SMOKE-002` test annotation)
 
 ---
 

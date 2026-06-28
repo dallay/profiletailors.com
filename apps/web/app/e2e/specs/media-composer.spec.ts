@@ -120,12 +120,29 @@ test.describe(`Composer media attachment ${tags}`, () => {
     await composePage.fillText('Post with failed media')
     await composePage.attachMedia(mediaFiles.mutated.path)
 
+    // Track publish requests to verify submission is blocked
+    let publishRequests = 0
+    await page.route('**/api/publishing/publications', async (route) => {
+      if (route.request().method() === 'POST') {
+        publishRequests++
+      }
+      await route.fulfill({
+        status: 201,
+        contentType: 'application/json',
+        body: JSON.stringify({}),
+      })
+    })
+
     // Schedule now triggers the upload, which fails
     await composePage.clickScheduleNow()
 
     // Displays the error from submitError
     await expect(page.getByText('Media upload failed. Please try again.')).toBeVisible()
     await expect(composePage.scheduleNowButton).toBeEnabled() // Still enabled after error so we can retry
+
+    // Verify publish was blocked — no POST to publications endpoint
+    await expect(composePage.heading).toBeVisible()
+    expect(publishRequests).toBe(0)
   })
 
   test('ML-COMPOSE-004 successful upload: assetId included in publish payload', async ({

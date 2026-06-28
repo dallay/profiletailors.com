@@ -12,7 +12,7 @@ share the same physical blob via a `workspace_file_blobs` index.
 
 ### Core principle
 
-```
+```text
 hash(file) → SHA-256 → (workspace_id, file_hash) → canonical key: assets/{workspaceId}/blobs/{sha256}.{ext}
 ```
 
@@ -32,7 +32,7 @@ This prevents corrupted or spoofed dedup.
 
 ### Domain Model
 
-```
+```text
 media_assets                         workspace_file_blobs
 ┌──────────────────────┐             ┌──────────────────────────┐
 │ asset_id (PK)        │──┐         │ workspace_id (PK)        │
@@ -55,7 +55,7 @@ media_assets                         workspace_file_blobs
 
 **Media Asset statuses:**
 
-```
+```text
 PENDING_UPLOAD ──▶ UPLOADING ──▶ READY
         │               │
         ▼               ▼
@@ -67,7 +67,7 @@ PENDING_UPLOAD ──▶ UPLOADING ──▶ READY
 
 **Blob statuses:**
 
-```
+```text
 UPLOADING ──▶ READY ──▶ READY_FOR_GC ──▶ GARBAGE_COLLECTED
     │                          │
     ▼                          ▼
@@ -197,9 +197,9 @@ bytes), NOT from the client-declared media type.
 CREATE TABLE workspace_file_blobs (
     workspace_id          VARCHAR(64)    NOT NULL,
     file_hash             CHAR(64)       NOT NULL,
-    storage_key           VARCHAR(255)   NOT NULL,
-    file_size_bytes       BIGINT,                              -- nullable until READY
-    detected_media_type   VARCHAR(64),                         -- nullable until READY
+    storage_key           VARCHAR(255),                          -- nullable until READY
+    file_size_bytes       BIGINT,                                -- nullable until READY
+    detected_media_type   VARCHAR(64),                           -- nullable until READY
     status                VARCHAR(20)    NOT NULL DEFAULT 'UPLOADING',
     failure_reason        TEXT,
     orphaned_at           TIMESTAMPTZ,
@@ -213,6 +213,9 @@ CREATE TABLE workspace_file_blobs (
     CONSTRAINT chk_blob_status CHECK (
         status IN ('UPLOADING', 'READY', 'FAILED', 'READY_FOR_GC', 'GARBAGE_COLLECTED')
     ),
+    CONSTRAINT chk_blob_storage_when_ready CHECK (
+        status != 'READY' OR storage_key IS NOT NULL
+    ),
     CONSTRAINT chk_blob_detected_when_ready CHECK (
         status != 'READY' OR detected_media_type IS NOT NULL
     ),
@@ -225,8 +228,8 @@ CREATE TABLE workspace_file_blobs (
 );
 
 -- Partial index for GC queries
-CREATE INDEX idx_blobs_ready_for_gc
-    ON workspace_file_blobs (orphaned_at, gc_failure_count)
+CREATE INDEX idx_blobs_gc_candidates
+    ON workspace_file_blobs (orphaned_at)
     WHERE status = 'READY_FOR_GC';
 ```
 

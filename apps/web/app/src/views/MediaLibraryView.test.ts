@@ -170,6 +170,30 @@ describe('MediaLibraryView', () => {
     expect(wrapper.text()).not.toContain('media.selectedCountSuffix')
   })
 
+  it('applies fallback status class for unknown/edge statuses like DELETED', async () => {
+    const mediaStore = useMediaStore()
+    mediaStore.assetsById['deleted-asset'] = {
+      assetId: 'deleted-asset',
+      workspaceId: 'ws-1',
+      sourceType: 'UPLOADED',
+      mediaType: 'image/png',
+      status: 'DELETED',
+      originalFilename: 'removed.png',
+      fileSizeBytes: 100,
+      createdAt: '2026-06-19T12:00:00Z',
+    }
+    mediaStore.assetIds.push('deleted-asset')
+
+    const wrapper = mountView()
+    await flushPromises()
+
+    const badge = wrapper.find('[data-testid="status-badge"]')
+    expect(badge.text()).toBe('DELETED')
+    expect(badge.classes()).toContain('border-border-visible')
+    expect(badge.classes()).toContain('bg-bg-primary')
+    expect(badge.classes()).toContain('text-text-secondary')
+  })
+
   it('searches assets by filename', async () => {
     const mediaStore = useMediaStore()
     mediaStore.assetsById['asset-a'] = {

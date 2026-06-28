@@ -62,7 +62,9 @@ test.describe(`Media Library real CAS smoke ${tags}`, () => {
 
     // 2. Upload duplicate file (baseCopy)
     await mediaPage.uploadFile(runFiles.baseCopy.path)
-    await mediaPage.waitForUploadComplete(runFiles.base.name) // Dedups and shows under base name
+    // Wait for the duplicate PUT to be captured by the ledger instead of
+    // waitForUploadComplete, which can race by matching the already-visible card.
+    await expect.poll(() => requestLedger.forMethod('PUT').length).toBe(1)
 
     // 3. Verify count doesn't increase by more than 0 (duplicate resolves to existing card)
     const afterCount = await mediaPage.getVisibleCount()

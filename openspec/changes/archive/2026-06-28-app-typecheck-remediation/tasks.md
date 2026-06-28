@@ -46,5 +46,5 @@ Chain strategy: pending
 
 - [x] 4.1 RED: add 3-second dismissal and unmount-cleanup fake-timer tests in `SettingsView.spec.ts`; confirm failure.
 - [x] 4.2 GREEN: use `ReturnType<typeof setTimeout> | undefined` and `globalThis.clearTimeout` in `SettingsView.vue`; run `pnpm --filter app exec vitest run src/views/SettingsView.spec.ts src/views/SettingsView.validation.spec.ts`.
-- [x] 4.3 Run `pnpm --filter app type-check && pnpm --filter app type-check && pnpm --filter app test:run`; then run `pnpm --filter app test:e2e:media:mocked` and final `pnpm --filter app type-check`.
+- [x] 4.3 Run `pnpm --filter app type-check && pnpm --filter app test:run`; then run `pnpm --filter app test:e2e:media:mocked` and final `pnpm --filter app type-check`.
 - [x] 4.4 Prove isolation with `git diff -- Justfile apps/web/app/package.json apps/web/app/e2e` and `git status --short`; do not stage or alter CAS PR 1 files.

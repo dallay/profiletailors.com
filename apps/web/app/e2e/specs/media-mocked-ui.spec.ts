@@ -31,6 +31,8 @@ test.describe(`Media Library mocked UI ${tags}`, () => {
 
     await expect(mediaPage.getLoadError()).toContainText('Failed to load test media.')
     await expect(mediaPage.refreshButton).toBeVisible()
+    // Note: empty state is also visible because assets.length === 0 after failed load.
+    // The product renders both the error message and the empty-state fallback simultaneously.
   })
 
   test('ML-UP-001 upload new content: PUT 201 then POST and READY card appears', async ({
@@ -72,6 +74,7 @@ test.describe(`Media Library mocked UI ${tags}`, () => {
 
     expect(await mediaPage.getVisibleCount()).toBe(beforeCount)
     expect(uploadPosts).toBe(0)
+    await expect.poll(() => mockState.putCount).toBe(1)
   })
 
   test('ML-ERR-004 rate-limit: PUT 429 surfaces failure and skips POST', async ({
@@ -127,6 +130,7 @@ test.describe(`Media Library mocked UI ${tags}`, () => {
 
     await expect(mediaPage.getCardStatus(mediaFiles.mutated.name)).toHaveText('READY')
     expect(uploadPosts).toBe(0)
+    await expect.poll(() => mockState.putCount).toBe(2) // 202 + 200 polling sequence
   })
 
   test('ML-DEL-003 bulk dialog wording: cancel preserves assets, confirm deletes selected', async ({

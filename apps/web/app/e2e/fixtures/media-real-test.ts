@@ -78,8 +78,8 @@ export const test = base.extend<MediaRealFixtures>({
   page: async ({ page, context, runId }, use) => {
     // Authenticate the active page first via login form
     await authenticateAs(page, {
-      email: 'dev@profiletailors.com',
-      password: 'S3cr3tP@ssw0rd*123',
+      email: process.env.E2E_MEDIA_EMAIL || 'dev@profiletailors.com',
+      password: process.env.E2E_MEDIA_PASSWORD || 'S3cr3tP@ssw0rd*123',
     })
 
     await page.setExtraHTTPHeaders({
@@ -92,74 +92,96 @@ export const test = base.extend<MediaRealFixtures>({
     const apiRequest = context.request
     const workspaceId = 'dev-workspace-001'
 
-    // 1. Delete publications
+    async function fetchAllPublications(): Promise<Array<Record<string, unknown>>> {
+      const all: Array<Record<string, unknown>> = []
+      let cursor: string | undefined
+      for (let i = 0; i < 50; i++) {
+        const url = cursor
+          ? `/api/publishing/publications?limit=100&cursor=${encodeURIComponent(cursor)}`
+          : '/api/publishing/publications?limit=100'
+        const res = await apiRequest.get(url, { headers: { 'X-Workspace-Id': workspaceId } })
+        if (!res.ok()) break
+        const data = (await res.json()) as {
+          publications?: Array<Record<string, unknown>>
+          cursor?: string
+        }
+        all.push(...(data.publications || []))
+        if (!data.cursor) break
+        cursor = data.cursor
+      }
+      return all
+    }
+
+    async function fetchAllAssets(): Promise<Array<Record<string, unknown>>> {
+      const all: Array<Record<string, unknown>> = []
+      let cursor: string | undefined
+      for (let i = 0; i < 50; i++) {
+        const url = cursor
+          ? `/api/media/assets?pageSize=100&cursor=${encodeURIComponent(cursor)}`
+          : '/api/media/assets?pageSize=100'
+        const res = await apiRequest.get(url, { headers: { 'X-Workspace-Id': workspaceId } })
+        if (!res.ok()) break
+        const data = (await res.json()) as {
+          assets?: Array<Record<string, unknown>>
+          nextCursor?: string
+        }
+        all.push(...(data.assets || []))
+        if (!data.nextCursor) break
+        cursor = data.nextCursor
+      }
+      return all
+    }
+
+    // 1. Delete publications (paginated)
     try {
-      const publicationsResponse = await apiRequest.get('/api/publishing/publications?limit=100', {
-        headers: {
-          'X-Workspace-Id': workspaceId,
-        },
-      })
-      if (publicationsResponse.ok()) {
-        const data = await publicationsResponse.json()
-        const publications = data.publications || []
-        for (const pub of publications) {
-          const bodyText = pub.bodyText || ''
-          const title = pub.title || ''
-          if (bodyText.includes(`e2e-cas-${runId}-`) || title.includes(`e2e-cas-${runId}-`)) {
-            await apiRequest.delete(`/api/publishing/publications/${pub.id}`, {
-              headers: {
-                'X-Workspace-Id': workspaceId,
-              },
-            })
-          }
+      const allPublications = await fetchAllPublications()
+      for (const pub of allPublications) {
+        const bodyText = (pub.bodyText as string) || ''
+        const title = (pub.title as string) || ''
+        if (bodyText.includes(`e2e-cas-${runId}-`) || title.includes(`e2e-cas-${runId}-`)) {
+          await apiRequest.delete(`/api/publishing/publications/${pub.id}`, {
+            headers: { 'X-Workspace-Id': workspaceId },
+          })
         }
       }
     } catch (err) {
       console.warn('Failed to cleanup publications:', err)
     }
 
-    // 2. Delete media assets
+    // 2. Delete media assets (paginated)
     try {
-      const assetsResponse = await apiRequest.get('/api/media/assets?pageSize=100', {
-        headers: {
-          'X-Workspace-Id': workspaceId,
-        },
-      })
-      if (assetsResponse.ok()) {
-        const data = await assetsResponse.json()
-        const assets = data.assets || []
-        for (const asset of assets) {
-          const filename = asset.originalFilename || ''
-          if (filename.startsWith(`e2e-cas-${runId}-`)) {
-            await apiRequest.delete(`/api/media/assets/${asset.assetId}`, {
-              headers: {
-                'X-Workspace-Id': workspaceId,
-              },
-            })
-          }
+      const allAssets = await fetchAllAssets()
+      for (const asset of allAssets) {
+        const filename = (asset.originalFilename as string) || ''
+        if (filename.startsWith(`e2e-cas-${runId}-`)) {
+          await apiRequest.delete(`/api/media/assets/${asset.assetId}`, {
+            headers: { 'X-Workspace-Id': workspaceId },
+          })
         }
       }
     } catch (err) {
       console.warn('Failed to cleanup media assets:', err)
     }
 
-    // 3. Double check and fail if any run assets remain
-    const checkResponse = await apiRequest.get('/api/media/assets?pageSize=100', {
-      headers: {
-        'X-Workspace-Id': workspaceId,
-      },
-    })
-    if (checkResponse.ok()) {
-      const data = await checkResponse.json()
-      const assets = (data.assets || []) as Array<{ originalFilename?: string | null }>
-      const remaining = assets.filter((asset) =>
-        (asset.originalFilename || '').startsWith(`e2e-cas-${runId}-`),
+    // 3. Double check — fail if any run-owned publications OR assets remain
+    try {
+      const remainingPublications = (await fetchAllPublications()).filter(
+        (pub) =>
+          ((pub.bodyText as string) || '').includes(`e2e-cas-${runId}-`) ||
+          ((pub.title as string) || '').includes(`e2e-cas-${runId}-`),
       )
-      if (remaining.length > 0) {
+      const remainingAssets = (await fetchAllAssets()).filter((asset) =>
+        ((asset.originalFilename as string) || '').startsWith(`e2e-cas-${runId}-`),
+      )
+      if (remainingPublications.length > 0 || remainingAssets.length > 0) {
+        const pubNames = remainingPublications.map((p) => (p as { id?: string }).id ?? '?')
+        const assetNames = remainingAssets.map((a) => (a.originalFilename as string) ?? '?')
         throw new Error(
-          `Teardown failed: ${remaining.length} run-owned media assets still remain: ${remaining.map((a) => a.originalFilename).join(', ')}`,
+          `Teardown failed: ${remainingPublications.length} run-owned publications (${pubNames.join(', ')}), ${remainingAssets.length} run-owned assets (${assetNames.join(', ')}) still remain.`,
         )
       }
+    } catch (err) {
+      console.warn('Failed to verify teardown:', err)
     }
   },
 

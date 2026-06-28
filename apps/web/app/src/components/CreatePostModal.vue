@@ -646,9 +646,9 @@ async function handleEditSubmit(
   scheduledDate: Date | undefined,
   backendScheduleMode: NonNullable<Publication['scheduleMode']>,
 ) {
-  if (!props.editingPublication) return
-
-  await publishingStore.updatePost(props.editingPublication.id, {
+  // Non-null assertion is safe: handleSchedule guards the call behind
+  // `if (props.editingPublication)`, so editingPublication is always defined here.
+  await publishingStore.updatePost(props.editingPublication!.id, {
     content: normalizedPostText,
     scheduledAt: scheduledDate?.toISOString(),
     priority: priorityMode.value,

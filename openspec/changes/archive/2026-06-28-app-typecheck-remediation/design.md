@@ -41,7 +41,7 @@ Day route → normalizeSurface → calendar-week → canonical replace
 | 5 | `src/views/SettingsView.spec.ts` | Add fake-timer regressions for 3-second dismissal and unmount cleanup. |
 | 6 | `src/views/SettingsView.vue` | Type timer as `ReturnType<typeof setTimeout> | undefined`; use matching `globalThis.clearTimeout`. |
 
-No files are created or deleted by implementation; only the design artifact is created.
+Only existing files are modified; no new files are added by implementation.
 
 ## Interfaces / Contracts
 
