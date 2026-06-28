@@ -6,6 +6,7 @@ import com.profiletailors.common.domain.context.PrincipalType
 import com.profiletailors.common.domain.context.ResourceContext
 import com.profiletailors.common.domain.context.ResourceContextProvider
 import com.profiletailors.common.domain.context.ResourceContextType
+import com.profiletailors.common.domain.persistence.AtomicTransactionRunner
 import com.profiletailors.smp.identity.application.EmailVerificationPolicy
 import com.profiletailors.smp.identity.application.FeatureEmailVerificationRequired
 import com.profiletailors.smp.identity.application.PrincipalIdentityFacts
@@ -90,6 +91,48 @@ class PublishingHandlersTest {
     /** Always returns false — email verification gate is disabled in unit tests. */
     private val noOpEmailVerificationPolicy = permissiveEmailVerificationPolicy
 
+    /** Always returns true — email verification gate is enforced. */
+    private val strictEmailVerificationPolicy: EmailVerificationPolicy = emailVerificationPolicyOf()
+
+    private fun recordingTransactionRunner(): RecordingAtomicTransactionRunner = RecordingAtomicTransactionRunner()
+
+    private class RecordingAtomicTransactionRunner : AtomicTransactionRunner {
+        var invocations: Int = 0
+
+        override suspend fun <T : Any> runAtomically(block: suspend () -> T): T {
+            invocations += 1
+            return block()
+        }
+    }
+
+    private fun assertPersistedResultAndReplacementJob(
+        persisted: PublicationDraft,
+        result: PublicationResult,
+        jobRepository: InMemoryPublicationJobRepository,
+    ) {
+        val replacement = requireNotNull(jobRepository.lastReplaced)
+        assertEquals(persisted.id, result.publicationId)
+        assertEquals(persisted.workspaceId, result.workspaceId)
+        assertEquals(persisted.status, result.status)
+        assertEquals(persisted.scheduleMode, result.scheduleMode)
+        assertEquals(persisted.priority, result.priority)
+        assertEquals(persisted.scheduledFor, result.scheduledFor)
+        assertEquals(persisted.id, replacement.publicationId)
+        assertEquals(persisted.workspaceId, replacement.workspaceId)
+        assertEquals(PublicationSchedulingPolicy().resolveDueAt(persisted, fixedClock.instant()), replacement.dueAt)
+        assertEquals(PublicationSchedulingPolicy().priorityRank(persisted), replacement.priorityRank)
+    }
+
+    private fun assertNoDurableWrites(
+        transactionRunner: RecordingAtomicTransactionRunner,
+        publicationRepository: InMemoryPublicationRepository,
+        jobRepository: InMemoryPublicationJobRepository,
+    ) {
+        assertEquals(0, transactionRunner.invocations)
+        assertEquals(0, publicationRepository.writeCount)
+        assertEquals(0, jobRepository.writeCount)
+    }
+
     private class VerifiedPrincipalIdentityLookup : PrincipalIdentityLookup {
         override suspend fun findBySubject(
             principalType: PrincipalType,
@@ -128,9 +171,6 @@ class PublishingHandlersTest {
             emailStatus = EmailStatus.VERIFIED,
         )
     }
-
-    /** Always returns true — email verification gate is enforced. */
-    private val strictEmailVerificationPolicy: EmailVerificationPolicy = emailVerificationPolicyOf()
 
     /** Returns emailStatus = PENDING so strict gate blocks the call. */
     private class PendingEmailIdentityLookup : PrincipalIdentityLookup {
@@ -374,6 +414,7 @@ class PublishingHandlersTest {
             )
         }
         val assetRepository = InMemoryPublicationAssetRepository(emptyList())
+        val transactionRunner = recordingTransactionRunner()
         val handler = CreatePublicationHandler(
             principalContextProvider = FixedPrincipalContextProvider(principalContext),
             resourceContextProvider = FixedResourceContextProvider(workspaceContext),
@@ -381,6 +422,7 @@ class PublishingHandlersTest {
             publicationRepository = publicationRepository,
             publicationAssetRepository = assetRepository,
             publicationJobRepository = jobRepository,
+            transactionRunner = transactionRunner,
             providerCapabilityValidator = AcceptingCapabilityValidator(),
             schedulingPolicy = PublicationSchedulingPolicy(),
             mediaAssetResolver = FakeMediaAssetResolver(),
@@ -400,6 +442,7 @@ class PublishingHandlersTest {
         assertEquals(PublicationStatus.QUEUED, result.status)
         assertEquals(ScheduleMode.NOW, result.scheduleMode)
         assertEquals(true, result.priority)
+        assertEquals(1, transactionRunner.invocations)
         assertNotNull(jobRepository.lastEnqueued)
         assertEquals(100, jobRepository.lastEnqueued?.priorityRank)
     }
@@ -429,7 +472,7 @@ class PublishingHandlersTest {
             socialAccountRepository = socialAccountRepository,
             publicationRepository = publicationRepository,
             publicationAssetRepository = assetRepository,
-            publicationJobRepository = jobRepository,
+            publicationJobRepository = jobRepository, transactionRunner = recordingTransactionRunner(),
             providerCapabilityValidator = AcceptingCapabilityValidator(),
             schedulingPolicy = PublicationSchedulingPolicy(),
             mediaAssetResolver = FakeMediaAssetResolver(),
@@ -476,7 +519,7 @@ class PublishingHandlersTest {
             socialAccountRepository = socialAccountRepository,
             publicationRepository = publicationRepository,
             publicationAssetRepository = assetRepository,
-            publicationJobRepository = jobRepository,
+            publicationJobRepository = jobRepository, transactionRunner = recordingTransactionRunner(),
             providerCapabilityValidator = AcceptingCapabilityValidator(),
             schedulingPolicy = PublicationSchedulingPolicy(),
             mediaAssetResolver = FakeMediaAssetResolver(),
@@ -521,7 +564,7 @@ class PublishingHandlersTest {
             socialAccountRepository = socialAccountRepository,
             publicationRepository = publicationRepository,
             publicationAssetRepository = assetRepository,
-            publicationJobRepository = jobRepository,
+            publicationJobRepository = jobRepository, transactionRunner = recordingTransactionRunner(),
             providerCapabilityValidator = AcceptingCapabilityValidator(),
             schedulingPolicy = PublicationSchedulingPolicy(),
             mediaAssetResolver = FakeMediaAssetResolver(),
@@ -569,7 +612,7 @@ class PublishingHandlersTest {
             socialAccountRepository = socialAccountRepository,
             publicationRepository = publicationRepository,
             publicationAssetRepository = assetRepository,
-            publicationJobRepository = jobRepository,
+            publicationJobRepository = jobRepository, transactionRunner = recordingTransactionRunner(),
             providerCapabilityValidator = AcceptingCapabilityValidator(),
             schedulingPolicy = PublicationSchedulingPolicy(),
             mediaAssetResolver = FakeMediaAssetResolver(),
@@ -611,6 +654,7 @@ class PublishingHandlersTest {
             resourceContextProvider = FixedResourceContextProvider(workspaceContext),
             publicationRepository = publicationRepository,
             publicationJobRepository = jobRepository,
+            transactionRunner = recordingTransactionRunner(),
             schedulingPolicy = PublicationSchedulingPolicy(),
             clock = fixedClock,
         )
@@ -663,7 +707,7 @@ class PublishingHandlersTest {
             socialAccountRepository = socialAccountRepository,
             publicationRepository = publicationRepository,
             publicationAssetRepository = InMemoryPublicationAssetRepository(emptyList()),
-            publicationJobRepository = jobRepository,
+            publicationJobRepository = jobRepository, transactionRunner = recordingTransactionRunner(),
             providerCapabilityValidator = AcceptingCapabilityValidator(),
             schedulingPolicy = PublicationSchedulingPolicy(),
             mediaAssetResolver = FakeMediaAssetResolver(),
@@ -689,6 +733,7 @@ class PublishingHandlersTest {
     fun `rejects unsupported provider content before queueing`() = runTest {
         val publicationRepository = InMemoryPublicationRepository()
         val jobRepository = InMemoryPublicationJobRepository()
+        val transactionRunner = recordingTransactionRunner()
         val socialAccountRepository = InMemorySocialAccountRepository().apply {
             upsert(
                 SocialAccount(
@@ -723,6 +768,7 @@ class PublishingHandlersTest {
             publicationRepository = publicationRepository,
             publicationAssetRepository = assetRepository,
             publicationJobRepository = jobRepository,
+            transactionRunner = transactionRunner,
             providerCapabilityValidator = RejectingCapabilityValidator(),
             schedulingPolicy = PublicationSchedulingPolicy(),
             mediaAssetResolver = FakeMediaAssetResolver(),
@@ -742,6 +788,7 @@ class PublishingHandlersTest {
                 )
             }
         }
+        assertNoDurableWrites(transactionRunner, publicationRepository, jobRepository)
     }
 
     @Test
@@ -757,8 +804,13 @@ class PublishingHandlersTest {
             priority = false,
             bodyText = "Old text",
         )
-        val publicationRepository = InMemoryPublicationRepository(publication)
+        val persistedPublication = publication.copy(id = "pub-persisted", workspaceId = "workspace-persisted")
+        val publicationRepository = InMemoryPublicationRepository(
+            seed = publication,
+            updateResultOverride = persistedPublication,
+        )
         val jobRepository = InMemoryPublicationJobRepository()
+        val transactionRunner = recordingTransactionRunner()
         val socialAccountRepository = InMemorySocialAccountRepository().apply {
             upsert(
                 SocialAccount(
@@ -780,6 +832,7 @@ class PublishingHandlersTest {
             publicationRepository = publicationRepository,
             publicationAssetRepository = InMemoryPublicationAssetRepository(emptyList()),
             publicationJobRepository = jobRepository,
+            transactionRunner = transactionRunner,
             providerCapabilityValidator = AcceptingCapabilityValidator(),
             schedulingPolicy = PublicationSchedulingPolicy(),
             mediaAssetResolver = FakeMediaAssetResolver(),
@@ -796,9 +849,9 @@ class PublishingHandlersTest {
             ),
         )
 
-        assertEquals("New text", result.bodyText)
-        assertEquals(true, result.priority)
-        assertNotNull(jobRepository.lastReplaced)
+        assertEquals("Old text", result.bodyText)
+        assertEquals(1, transactionRunner.invocations)
+        assertPersistedResultAndReplacementJob(persistedPublication, result, jobRepository)
     }
 
     @Test
@@ -816,17 +869,20 @@ class PublishingHandlersTest {
         )
         val publicationRepository = InMemoryPublicationRepository(publication)
         val jobRepository = InMemoryPublicationJobRepository()
+        val transactionRunner = recordingTransactionRunner()
         val handler = CancelPublicationHandler(
             principalContextProvider = FixedPrincipalContextProvider(principalContext),
             resourceContextProvider = FixedResourceContextProvider(workspaceContext),
             publicationRepository = publicationRepository,
             publicationJobRepository = jobRepository,
+            transactionRunner = transactionRunner,
             clock = fixedClock,
         )
 
         val result = handler.handle(CancelPublicationCommand("pub-1"))
 
         assertEquals(PublicationStatus.CANCELLED, result.status)
+        assertEquals(1, transactionRunner.invocations)
         assertEquals("pub-1", jobRepository.lastCancelledPublicationId)
     }
 
@@ -851,6 +907,7 @@ class PublishingHandlersTest {
             resourceContextProvider = FixedResourceContextProvider(workspaceContext),
             publicationRepository = publicationRepository,
             publicationJobRepository = jobRepository,
+            transactionRunner = recordingTransactionRunner(),
             schedulingPolicy = PublicationSchedulingPolicy(),
             clock = fixedClock,
         )
@@ -892,6 +949,7 @@ class PublishingHandlersTest {
             resourceContextProvider = FixedResourceContextProvider(workspaceContext),
             publicationRepository = publicationRepository,
             publicationJobRepository = jobRepository,
+            transactionRunner = recordingTransactionRunner(),
             schedulingPolicy = PublicationSchedulingPolicy(),
             clock = fixedClock,
         )
@@ -911,7 +969,7 @@ class PublishingHandlersTest {
     }
 
     @Test
-    fun `retries failed publication and replaces job`() = runTest {
+    fun `retries failed publication using normalized persisted result and replacement job`() = runTest {
         val publication = PublicationDraft(
             id = "pub-1",
             workspaceId = "workspace-1",
@@ -924,26 +982,39 @@ class PublishingHandlersTest {
             bodyText = "Retry me",
             failedAt = Instant.parse("2026-05-26T11:00:00Z"),
         )
-        val publicationRepository = InMemoryPublicationRepository(publication)
+        val persistedPublication = publication.copy(
+            id = "pub-retry-persisted",
+            workspaceId = "workspace-retry-persisted",
+            status = PublicationStatus.SCHEDULED,
+            scheduleMode = ScheduleMode.SCHEDULED_AT,
+            priority = true,
+            scheduledFor = fixedClock.instant().plusSeconds(1_800),
+            failedAt = null,
+        )
+        val publicationRepository = InMemoryPublicationRepository(
+            seed = publication,
+            updateResultOverride = persistedPublication,
+        )
         val jobRepository = InMemoryPublicationJobRepository()
+        val transactionRunner = recordingTransactionRunner()
         val handler = RetryPublicationHandler(
             principalContextProvider = FixedPrincipalContextProvider(principalContext),
             resourceContextProvider = FixedResourceContextProvider(workspaceContext),
             publicationRepository = publicationRepository,
             publicationJobRepository = jobRepository,
+            transactionRunner = transactionRunner,
             schedulingPolicy = PublicationSchedulingPolicy(),
             clock = fixedClock,
         )
 
         val result = handler.handle(RetryPublicationCommand(publicationId = "pub-1", priority = true))
 
-        assertEquals(PublicationStatus.QUEUED, result.status)
-        assertEquals(true, result.priority)
-        assertNotNull(jobRepository.lastReplaced)
+        assertEquals(1, transactionRunner.invocations)
+        assertPersistedResultAndReplacementJob(persistedPublication, result, jobRepository)
     }
 
     @Test
-    fun `reschedules queued publication with new timing`() = runTest {
+    fun `reschedules queued publication using normalized persisted result and replacement job`() = runTest {
         val publication = PublicationDraft(
             id = "pub-1",
             workspaceId = "workspace-1",
@@ -955,13 +1026,26 @@ class PublishingHandlersTest {
             priority = false,
             bodyText = "Reschedule me",
         )
-        val publicationRepository = InMemoryPublicationRepository(publication)
+        val persistedPublication = publication.copy(
+            id = "pub-reschedule-persisted",
+            workspaceId = "workspace-reschedule-persisted",
+            status = PublicationStatus.QUEUED,
+            scheduleMode = ScheduleMode.NOW,
+            priority = true,
+            scheduledFor = null,
+        )
+        val publicationRepository = InMemoryPublicationRepository(
+            seed = publication,
+            updateResultOverride = persistedPublication,
+        )
         val jobRepository = InMemoryPublicationJobRepository()
+        val transactionRunner = recordingTransactionRunner()
         val handler = ReschedulePublicationHandler(
             principalContextProvider = FixedPrincipalContextProvider(principalContext),
             resourceContextProvider = FixedResourceContextProvider(workspaceContext),
             publicationRepository = publicationRepository,
             publicationJobRepository = jobRepository,
+            transactionRunner = transactionRunner,
             schedulingPolicy = PublicationSchedulingPolicy(),
             clock = fixedClock,
         )
@@ -974,9 +1058,8 @@ class PublishingHandlersTest {
             ),
         )
 
-        assertEquals(ScheduleMode.SCHEDULED_AT, result.scheduleMode)
-        assertEquals(Instant.parse("2026-06-15T10:00:00Z"), result.scheduledFor)
-        assertNotNull(jobRepository.lastReplaced)
+        assertEquals(1, transactionRunner.invocations)
+        assertPersistedResultAndReplacementJob(persistedPublication, result, jobRepository)
     }
 
     @Test
@@ -999,6 +1082,7 @@ class PublishingHandlersTest {
             resourceContextProvider = FixedResourceContextProvider(workspaceContext),
             publicationRepository = publicationRepository,
             publicationJobRepository = jobRepository,
+            transactionRunner = recordingTransactionRunner(),
             schedulingPolicy = PublicationSchedulingPolicy(),
             clock = fixedClock,
         )
@@ -1191,11 +1275,13 @@ class PublishingHandlersTest {
         )
         val publicationRepository = InMemoryPublicationRepository(publication)
         val jobRepository = InMemoryPublicationJobRepository()
+        val transactionRunner = recordingTransactionRunner()
         val handler = ReschedulePublicationHandler(
             principalContextProvider = FixedPrincipalContextProvider(principalContext),
             resourceContextProvider = FixedResourceContextProvider(workspaceContext),
             publicationRepository = publicationRepository,
             publicationJobRepository = jobRepository,
+            transactionRunner = transactionRunner,
             schedulingPolicy = PublicationSchedulingPolicy(),
             clock = fixedClock,
         )
@@ -1211,6 +1297,7 @@ class PublishingHandlersTest {
                 )
             }
         }
+        assertNoDurableWrites(transactionRunner, publicationRepository, jobRepository)
     }
 
     @Test
@@ -1273,7 +1360,7 @@ class PublishingHandlersTest {
             socialAccountRepository = socialAccountRepository,
             publicationRepository = publicationRepository,
             publicationAssetRepository = assetRepository,
-            publicationJobRepository = jobRepository,
+            publicationJobRepository = jobRepository, transactionRunner = recordingTransactionRunner(),
             providerCapabilityValidator = AcceptingCapabilityValidator(),
             schedulingPolicy = PublicationSchedulingPolicy(),
             mediaAssetResolver = FakeMediaAssetResolver(),
@@ -1307,7 +1394,7 @@ class PublishingHandlersTest {
             socialAccountRepository = socialAccountRepository,
             publicationRepository = publicationRepository,
             publicationAssetRepository = InMemoryPublicationAssetRepository(emptyList()),
-            publicationJobRepository = jobRepository,
+            publicationJobRepository = jobRepository, transactionRunner = recordingTransactionRunner(),
             providerCapabilityValidator = AcceptingCapabilityValidator(),
             schedulingPolicy = PublicationSchedulingPolicy(),
             mediaAssetResolver = FakeMediaAssetResolver(),
@@ -1339,6 +1426,7 @@ class PublishingHandlersTest {
             resourceContextProvider = FixedResourceContextProvider(workspaceContext),
             publicationRepository = publicationRepository,
             publicationJobRepository = jobRepository,
+            transactionRunner = recordingTransactionRunner(),
             clock = fixedClock,
         )
 
@@ -1360,6 +1448,7 @@ class PublishingHandlersTest {
             resourceContextProvider = FixedResourceContextProvider(workspaceContext),
             publicationRepository = publicationRepository,
             publicationJobRepository = jobRepository,
+            transactionRunner = recordingTransactionRunner(),
             schedulingPolicy = PublicationSchedulingPolicy(),
             clock = fixedClock,
         )
@@ -1382,6 +1471,7 @@ class PublishingHandlersTest {
             resourceContextProvider = FixedResourceContextProvider(workspaceContext),
             publicationRepository = publicationRepository,
             publicationJobRepository = jobRepository,
+            transactionRunner = recordingTransactionRunner(),
             schedulingPolicy = PublicationSchedulingPolicy(),
             clock = fixedClock,
         )
@@ -1704,6 +1794,7 @@ class PublishingHandlersTest {
         seedMany: List<PublicationDraft> = emptyList(),
         private val dateCounts: List<DateCount> = emptyList(),
         private val jobRepository: InMemoryPublicationJobRepository? = null,
+        private val updateResultOverride: PublicationDraft? = null,
     ) : PublicationRepository {
         var deletedPublication: Pair<String, String>? = null
         var lastFindStatuses: Set<PublicationStatus>? = null
@@ -1713,6 +1804,7 @@ class PublishingHandlersTest {
         var lastCountTo: Instant? = null
         var lastCountStatuses: Set<PublicationStatus>? = null
         var lastCountTimezone: String? = null
+        var writeCount: Int = 0
         private val items = linkedMapOf<String, PublicationDraft>()
 
         init {
@@ -1721,13 +1813,16 @@ class PublishingHandlersTest {
         }
 
         override suspend fun createDraft(draft: PublicationDraft): PublicationDraft {
+            writeCount += 1
             items[draft.id] = draft
             return draft
         }
 
         override suspend fun updateEditableDraft(draft: PublicationDraft): PublicationDraft {
-            items[draft.id] = draft
-            return draft
+            writeCount += 1
+            val result = updateResultOverride ?: draft
+            items[result.id] = result
+            return result
         }
 
         override suspend fun findByWorkspaceAndId(workspaceId: String, publicationId: String): PublicationDraft? =
@@ -1778,7 +1873,9 @@ class PublishingHandlersTest {
             reasonMessage: String?,
         ) = Unit
 
-        override suspend fun markCancelled(publicationId: String, cancelledAt: Instant) = Unit
+        override suspend fun markCancelled(publicationId: String, cancelledAt: Instant) {
+            writeCount += 1
+        }
 
         override suspend fun markBlocked(publicationId: String, blockedAt: Instant, reason: String?) = Unit
 
@@ -1845,14 +1942,17 @@ class PublishingHandlersTest {
         var lastEnqueued: PublicationJob? = null
         var lastReplaced: PublicationJob? = null
         var lastCancelledPublicationId: String? = null
+        var writeCount: Int = 0
         var jobsByPublicationId: MutableMap<String, MutableList<PublicationJob>> = linkedMapOf()
 
         override suspend fun enqueue(job: PublicationJob) {
+            writeCount += 1
             lastEnqueued = job
             jobsByPublicationId.getOrPut(job.publicationId) { mutableListOf() }.add(job)
         }
 
         override suspend fun replaceForPublication(job: PublicationJob) {
+            writeCount += 1
             lastReplaced = job
             jobsByPublicationId[job.publicationId] = mutableListOf(job)
         }
@@ -1866,6 +1966,7 @@ class PublishingHandlersTest {
         override suspend fun fail(jobId: String, failedAt: Instant) = Unit
 
         override suspend fun cancel(jobId: String, cancelledAt: Instant) {
+            writeCount += 1
             lastCancelledPublicationId = jobId
         }
 
@@ -1945,7 +2046,7 @@ class PublishingHandlersTest {
             socialAccountRepository = socialAccountRepository,
             publicationRepository = publicationRepository,
             publicationAssetRepository = assetRepository,
-            publicationJobRepository = jobRepository,
+            publicationJobRepository = jobRepository, transactionRunner = recordingTransactionRunner(),
             providerCapabilityValidator = AcceptingCapabilityValidator(),
             schedulingPolicy = PublicationSchedulingPolicy(),
             mediaAssetResolver = mediaResolver,
@@ -1996,7 +2097,7 @@ class PublishingHandlersTest {
             socialAccountRepository = socialAccountRepository,
             publicationRepository = publicationRepository,
             publicationAssetRepository = assetRepository,
-            publicationJobRepository = jobRepository,
+            publicationJobRepository = jobRepository, transactionRunner = recordingTransactionRunner(),
             providerCapabilityValidator = AcceptingCapabilityValidator(),
             schedulingPolicy = PublicationSchedulingPolicy(),
             mediaAssetResolver = mediaResolver,
@@ -2056,7 +2157,7 @@ class PublishingHandlersTest {
             socialAccountRepository = socialAccountRepository,
             publicationRepository = publicationRepository,
             publicationAssetRepository = assetRepository,
-            publicationJobRepository = jobRepository,
+            publicationJobRepository = jobRepository, transactionRunner = recordingTransactionRunner(),
             providerCapabilityValidator = AcceptingCapabilityValidator(),
             schedulingPolicy = PublicationSchedulingPolicy(),
             mediaAssetResolver = mediaResolver,
@@ -2097,6 +2198,7 @@ class PublishingHandlersTest {
         }
         val assetRepository = InMemoryPublicationAssetRepository(emptyList())
         val mediaResolver = FakeMediaAssetResolver().apply { shouldThrowUnavailable = true }
+        val transactionRunner = recordingTransactionRunner()
 
         val handler = CreatePublicationHandler(
             principalContextProvider = FixedPrincipalContextProvider(principalContext),
@@ -2105,6 +2207,7 @@ class PublishingHandlersTest {
             publicationRepository = publicationRepository,
             publicationAssetRepository = assetRepository,
             publicationJobRepository = jobRepository,
+            transactionRunner = transactionRunner,
             providerCapabilityValidator = AcceptingCapabilityValidator(),
             schedulingPolicy = PublicationSchedulingPolicy(),
             mediaAssetResolver = mediaResolver,
@@ -2126,6 +2229,7 @@ class PublishingHandlersTest {
         }
 
         assertTrue(error.message!!.contains("unavailable") || error.message!!.contains("timeout"))
+        assertNoDurableWrites(transactionRunner, publicationRepository, jobRepository)
     }
 
     @Test
@@ -2167,7 +2271,7 @@ class PublishingHandlersTest {
             socialAccountRepository = socialAccountRepository,
             publicationRepository = publicationRepository,
             publicationAssetRepository = assetRepository,
-            publicationJobRepository = jobRepository,
+            publicationJobRepository = jobRepository, transactionRunner = recordingTransactionRunner(),
             providerCapabilityValidator = AcceptingCapabilityValidator(),
             schedulingPolicy = PublicationSchedulingPolicy(),
             mediaAssetResolver = mediaResolver,
@@ -2217,7 +2321,7 @@ class PublishingHandlersTest {
             socialAccountRepository = socialAccountRepository,
             publicationRepository = publicationRepository,
             publicationAssetRepository = assetRepository,
-            publicationJobRepository = jobRepository,
+            publicationJobRepository = jobRepository, transactionRunner = recordingTransactionRunner(),
             providerCapabilityValidator = AcceptingCapabilityValidator(),
             schedulingPolicy = PublicationSchedulingPolicy(),
             mediaAssetResolver = mediaResolver,
@@ -2277,7 +2381,7 @@ class PublishingHandlersTest {
             socialAccountRepository = socialAccountRepository,
             publicationRepository = publicationRepository,
             publicationAssetRepository = assetRepository,
-            publicationJobRepository = jobRepository,
+            publicationJobRepository = jobRepository, transactionRunner = recordingTransactionRunner(),
             providerCapabilityValidator = AcceptingCapabilityValidator(),
             schedulingPolicy = PublicationSchedulingPolicy(),
             mediaAssetResolver = mediaResolver,
@@ -2339,7 +2443,7 @@ class PublishingHandlersTest {
             socialAccountRepository = socialAccountRepository,
             publicationRepository = publicationRepository,
             publicationAssetRepository = assetRepository,
-            publicationJobRepository = jobRepository,
+            publicationJobRepository = jobRepository, transactionRunner = recordingTransactionRunner(),
             providerCapabilityValidator = AcceptingCapabilityValidator(),
             schedulingPolicy = PublicationSchedulingPolicy(),
             mediaAssetResolver = mediaResolver,
@@ -2401,7 +2505,7 @@ class PublishingHandlersTest {
             socialAccountRepository = socialAccountRepository,
             publicationRepository = publicationRepository,
             publicationAssetRepository = assetRepository,
-            publicationJobRepository = jobRepository,
+            publicationJobRepository = jobRepository, transactionRunner = recordingTransactionRunner(),
             providerCapabilityValidator = AcceptingCapabilityValidator(),
             schedulingPolicy = PublicationSchedulingPolicy(),
             mediaAssetResolver = mediaResolver,
@@ -2473,6 +2577,7 @@ class PublishingHandlersTest {
                 ),
             )
         }
+        val transactionRunner = recordingTransactionRunner()
         val handler = CreatePublicationHandler(
             principalContextProvider = FixedPrincipalContextProvider(principalContext),
             resourceContextProvider = FixedResourceContextProvider(workspaceContext),
@@ -2480,6 +2585,7 @@ class PublishingHandlersTest {
             publicationRepository = publicationRepository,
             publicationAssetRepository = InMemoryPublicationAssetRepository(emptyList()),
             publicationJobRepository = jobRepository,
+            transactionRunner = transactionRunner,
             providerCapabilityValidator = AcceptingCapabilityValidator(),
             schedulingPolicy = PublicationSchedulingPolicy(),
             mediaAssetResolver = FakeMediaAssetResolver(),
@@ -2501,6 +2607,7 @@ class PublishingHandlersTest {
                 )
             }
         }
+        assertNoDurableWrites(transactionRunner, publicationRepository, jobRepository)
     }
 
     @Test
@@ -2538,6 +2645,7 @@ class PublishingHandlersTest {
             publicationRepository = publicationRepository,
             publicationAssetRepository = InMemoryPublicationAssetRepository(emptyList()),
             publicationJobRepository = InMemoryPublicationJobRepository(),
+            transactionRunner = recordingTransactionRunner(),
             providerCapabilityValidator = AcceptingCapabilityValidator(),
             schedulingPolicy = PublicationSchedulingPolicy(),
             mediaAssetResolver = FakeMediaAssetResolver(),
@@ -2715,6 +2823,7 @@ class PublishingHandlersTest {
             resourceContextProvider = FixedResourceContextProvider(workspaceContext),
             publicationRepository = InMemoryPublicationRepository(publication),
             publicationJobRepository = InMemoryPublicationJobRepository(),
+            transactionRunner = recordingTransactionRunner(),
             clock = fixedClock,
             principalIdentityLookup = PendingEmailIdentityLookup(),
             emailVerificationPolicy = strictEmailVerificationPolicy,
@@ -2746,6 +2855,7 @@ class PublishingHandlersTest {
             resourceContextProvider = FixedResourceContextProvider(workspaceContext),
             publicationRepository = InMemoryPublicationRepository(publication),
             publicationJobRepository = InMemoryPublicationJobRepository(),
+            transactionRunner = recordingTransactionRunner(),
             schedulingPolicy = PublicationSchedulingPolicy(),
             clock = fixedClock,
             principalIdentityLookup = PendingEmailIdentityLookup(),
@@ -2777,6 +2887,7 @@ class PublishingHandlersTest {
             resourceContextProvider = FixedResourceContextProvider(workspaceContext),
             publicationRepository = InMemoryPublicationRepository(publication),
             publicationJobRepository = InMemoryPublicationJobRepository(),
+            transactionRunner = recordingTransactionRunner(),
             schedulingPolicy = PublicationSchedulingPolicy(),
             clock = fixedClock,
             principalIdentityLookup = PendingEmailIdentityLookup(),
