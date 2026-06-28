@@ -648,7 +648,7 @@ async function handleEditSubmit(
 ) {
   // Non-null assertion is safe: handleSchedule guards the call behind
   // `if (props.editingPublication)`, so editingPublication is always defined here.
-  await publishingStore.updatePost(props.editingPublication!.id, {
+  await publishingStore.updatePost(props.editingPublication?.id, {
     content: normalizedPostText,
     scheduledAt: scheduledDate?.toISOString(),
     priority: priorityMode.value,

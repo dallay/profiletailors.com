@@ -195,7 +195,7 @@ backend-run:
 serve:
     @echo "Starting backend (Spring Boot) + frontend app (Vite)..."
     {{gradle-root}} :server:smp:bootRun --args='--spring.profiles.active=dev' &
-    cd {{app-dir}} && pnpm exec vite
+    cd {{app-dir}} && pnpm dev
 
 # Kill running dev servers (backend, frontend, Gradle daemons)
 kill-servers:
