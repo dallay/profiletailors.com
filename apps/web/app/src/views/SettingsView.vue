@@ -31,11 +31,11 @@ const workspaceNameInput = ref('')
 const renamingWorkspace = ref(false)
 const renameError = ref<string | null>(null)
 const renameSuccess = ref(false)
-let renameSuccessTimer: number | undefined
+let renameSuccessTimer: ReturnType<typeof setTimeout> | undefined
 
 onBeforeUnmount(() => {
   if (renameSuccessTimer !== undefined) {
-    clearTimeout(renameSuccessTimer)
+    globalThis.clearTimeout(renameSuccessTimer)
   }
 })
 

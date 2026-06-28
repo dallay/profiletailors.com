@@ -57,12 +57,12 @@ describe('MediaLibraryView', () => {
   beforeEach(() => {
     setActivePinia(createPinia())
     vi.clearAllMocks()
+    // Mock loadAssets so onMount's refreshLibrary() doesn't clear test data
+    const store = useMediaStore()
+    vi.spyOn(store, 'loadAssets').mockResolvedValue()
   })
 
   it('renders empty state when there are no assets', async () => {
-    const mediaStore = useMediaStore()
-    vi.spyOn(mediaStore, 'loadAssets').mockResolvedValue()
-
     const wrapper = mountView()
     await flushPromises()
 
@@ -114,7 +114,7 @@ describe('MediaLibraryView', () => {
       workspaceId: 'ws-1',
       sourceType: 'UPLOADED',
       mediaType: 'video/mp4',
-      status: 'PROCESSING',
+      status: 'UPLOADING',
       originalFilename: 'clip.mp4',
       fileSizeBytes: 200,
       createdAt: '2026-06-18T12:00:00Z',
@@ -130,6 +130,71 @@ describe('MediaLibraryView', () => {
 
     expect(wrapper.text()).toContain('hero.jpg')
     expect(wrapper.text()).not.toContain('clip.mp4')
+  })
+
+  it('maps pending and uploading CAS statuses to the shared processing presentation', async () => {
+    const mediaStore = useMediaStore()
+    for (const [assetId, status] of [
+      ['pending-asset', 'PENDING_UPLOAD'],
+      ['uploading-asset', 'UPLOADING'],
+    ] as const) {
+      mediaStore.assetsById[assetId] = {
+        assetId,
+        workspaceId: 'ws-1',
+        sourceType: 'UPLOADED',
+        mediaType: 'image/png',
+        status,
+        originalFilename: `${assetId}.png`,
+        fileSizeBytes: 100,
+        createdAt: '2026-06-19T12:00:00Z',
+      }
+      mediaStore.assetIds.push(assetId)
+    }
+
+    const wrapper = mountView()
+    await flushPromises()
+
+    expect(wrapper.text()).toContain('media.processingTitle2')
+
+    await wrapper.find('[data-testid="filter-status"]').setValue('PROCESSING')
+
+    const cards = wrapper.findAll('article')
+    expect(cards).toHaveLength(2)
+    expect(
+      cards.every((card) =>
+        card.find('[data-testid="status-badge"]').classes().includes('text-text-display'),
+      ),
+    ).toBe(true)
+
+    await wrapper.find('#select-all-visible').setValue(true)
+    expect(wrapper.text()).not.toContain('media.selectedCountSuffix')
+  })
+
+  it('applies fallback status class for unknown/edge statuses like DELETED', async () => {
+    const mediaStore = useMediaStore()
+    mediaStore.assetsById['deleted-asset'] = {
+      assetId: 'deleted-asset',
+      workspaceId: 'ws-1',
+      sourceType: 'UPLOADED',
+      mediaType: 'image/png',
+      status: 'DELETED',
+      originalFilename: 'removed.png',
+      fileSizeBytes: 100,
+      createdAt: '2026-06-19T12:00:00Z',
+    }
+    mediaStore.assetIds.push('deleted-asset')
+
+    const wrapper = mountView()
+    await flushPromises()
+
+    const cards = wrapper.findAll('article')
+    const deletedCard = cards.find((card) => card.text().includes('removed.png'))
+    expect(deletedCard?.exists()).toBe(true)
+    const badge = deletedCard!.find('[data-testid="status-badge"]')
+    expect(badge.text()).toBe('DELETED')
+    expect(badge.classes()).toContain('border-border-visible')
+    expect(badge.classes()).toContain('bg-bg-primary')
+    expect(badge.classes()).toContain('text-text-secondary')
   })
 
   it('searches assets by filename', async () => {
@@ -236,7 +301,7 @@ describe('MediaLibraryView', () => {
       workspaceId: 'ws-1',
       sourceType: 'UPLOADED',
       mediaType: 'image/png',
-      status: 'PROCESSING',
+      status: 'UPLOADING',
       originalFilename: 'three.png',
       fileSizeBytes: 100,
       createdAt: '2026-06-20T12:00:00Z',

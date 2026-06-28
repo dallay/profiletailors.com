@@ -1,5 +1,4 @@
 import { describe, expect, it, vi } from 'vitest'
-import { ReadableStream } from 'node:stream/web'
 import { computeFileHash, computeHashStreaming, sanitizeFilename } from './useFileHash'
 
 const SHA256_ABC = 'ba7816bf8f01cfea414140de5dae2223b00361a396177a9cb410ff61f20015ad'
@@ -8,20 +7,23 @@ const SHA256_64_A = 'ffe054fe7ae0cb6dc65c3af9b61d5209f439851db43d0ba5997337df154
 const SHA256_65_A = '635361c48bb9eab14198e76ea8ab7f1a41685d6ad62aa9146d301d4f17eb0ae0'
 
 class StreamingTestFile extends File {
-  private readonly chunks: Uint8Array[]
+  private readonly chunks: Uint8Array<ArrayBuffer>[]
 
   constructor(parts: string[], name: string, options?: FilePropertyBag) {
     super(parts, name, options)
-    this.chunks = parts.map((part) => new TextEncoder().encode(part))
+    this.chunks = parts.map((part) => {
+      const encoded = new TextEncoder().encode(part)
+      return new Uint8Array(encoded)
+    })
   }
 
   override get size(): number {
     return 100 * 1024 * 1024
   }
 
-  override stream(): ReadableStream<Uint8Array> {
+  override stream(): ReadableStream<Uint8Array<ArrayBuffer>> {
     const chunks = [...this.chunks]
-    return new ReadableStream<Uint8Array>({
+    return new ReadableStream<Uint8Array<ArrayBuffer>>({
       pull(controller) {
         const chunk = chunks.shift()
         if (chunk) controller.enqueue(chunk)
