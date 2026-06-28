@@ -100,7 +100,11 @@ vi.mock('@/components/CalendarHeader.vue', () => ({
 }))
 
 vi.mock('@/components/CalendarCell.vue', () => ({
-  default: { template: '<div data-testid="calendar-cell" />' },
+  default: {
+    template:
+      '<div data-testid="calendar-cell"><span v-if="activityEntry">{{ activityEntry.count }} {{ activityEntry.density }}</span></div>',
+    props: ['activityEntry'],
+  },
 }))
 
 vi.mock('@/components/ConflictBadge.vue', () => ({
@@ -731,16 +735,15 @@ describe('SchedulerView', () => {
       store.activity = [
         {
           date: todayStr,
-          scheduled: 5,
-          published: 3,
-          blocked: 1,
+          density: 'HIGH',
+          count: 5,
         },
       ]
 
-      const wrapper = mountView({ date: todayStr })
+      const wrapper = mountView({ surface: 'calendar-month', date: todayStr })
       await flushPromises()
 
-      expect(wrapper.exists()).toBe(true)
+      expect(wrapper.text()).toContain('5 HIGH')
     })
   })
 })

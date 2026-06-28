@@ -29,6 +29,7 @@ const mockPutAsset = vi.fn()
 const mockListAssets = vi.fn()
 const mockGetAsset = vi.fn()
 const mockDeleteAsset = vi.fn()
+const mockWorkspace = { activeWorkspaceId: 'ws-test-1' as string | null }
 
 vi.mock('@/lib/media-api', () => ({
   putAsset: (...args: unknown[]) => mockPutAsset(...args),
@@ -52,9 +53,7 @@ vi.mock('@/stores/auth', () => ({
 // Mock workspace store
 // ---------------------------------------------------------------------------
 vi.mock('@/stores/workspace', () => ({
-  useWorkspaceStore: () => ({
-    activeWorkspaceId: 'ws-test-1',
-  }),
+  useWorkspaceStore: () => mockWorkspace,
 }))
 
 // ---------------------------------------------------------------------------
@@ -76,7 +75,7 @@ const processingAsset = (assetId: string) => ({
   workspaceId: 'ws-test-1',
   sourceType: 'UPLOADED' as const,
   mediaType: 'image/png',
-  status: 'PROCESSING' as const,
+  status: 'UPLOADING' as const,
   originalFilename: null,
   fileSizeBytes: null,
   createdAt: '2026-06-19T12:00:00Z',
@@ -91,6 +90,7 @@ describe('media store', () => {
   beforeEach(() => {
     setActivePinia(createPinia())
     vi.clearAllMocks()
+    mockWorkspace.activeWorkspaceId = 'ws-test-1'
   })
 
   describe('initial state', () => {
@@ -139,17 +139,17 @@ describe('media store', () => {
       expect(store.assetsById['asset-1']?.status).toBe('READY')
     })
 
-    it('loads PROCESSING assets when requested', async () => {
+    it('loads UPLOADING assets when requested', async () => {
       const store = useMediaStore()
       mockListAssets.mockResolvedValueOnce({
         assets: [processingAsset('asset-2')],
         nextCursor: null,
       })
 
-      await store.loadAssets('PROCESSING')
+      await store.loadAssets('UPLOADING')
 
       expect(mockListAssets).toHaveBeenCalledWith({
-        status: 'PROCESSING',
+        status: 'UPLOADING',
         pageSize: 50,
       })
       expect(store.assetIds).toContain('asset-2')
@@ -251,6 +251,18 @@ describe('media store', () => {
   })
 
   describe('createAndUpload', () => {
+    it('rejects deterministically without tracking or API work when workspace is absent', async () => {
+      const store = useMediaStore()
+      mockWorkspace.activeWorkspaceId = null
+
+      await expect(store.createAndUpload(mockFile(), 'missing-workspace')).rejects.toThrow(
+        'An active workspace is required to upload media.',
+      )
+
+      expect(mockPutAsset).not.toHaveBeenCalled()
+      expect(store.uploads['missing-workspace']).toBeUndefined()
+    })
+
     it('uploads the file and returns ready asset', async () => {
       const store = useMediaStore()
       mockPutAsset.mockResolvedValueOnce({
@@ -689,6 +701,136 @@ describe('media store', () => {
 
       expect(store.assetIds.includes('multi-check-asset')).toBe(false)
       expect('multi-check-asset' in store.assetsById).toBe(false)
+    })
+  })
+
+  // -------------------------------------------------------------------------
+  // Content-aware dedup — simulates server-side CAS with real SHA-256 hashing
+  // -------------------------------------------------------------------------
+  describe('createAndUpload — content-aware dedup', () => {
+    /** Tracks hash → assetId across uploads within a single test */
+    let contentRegistry: Map<string, string>
+
+    beforeEach(() => {
+      // vi.clearAllMocks ran in the parent beforeEach — mockPutAsset and
+      // mockGetAsset are clean. We now install content-aware implementations
+      // so files with identical content automatically dedup.
+      contentRegistry = new Map()
+
+      mockPutAsset.mockImplementation(
+        async (file: File, _workspaceId: string, stableAssetId?: string) => {
+          const buffer = await file.arrayBuffer()
+          const hashBytes = new Uint8Array(await crypto.subtle.digest('SHA-256', buffer))
+          const hashHex = Array.from(hashBytes)
+            .map((b) => b.toString(16).padStart(2, '0'))
+            .join('')
+
+          const existingAssetId = contentRegistry.get(hashHex)
+          if (existingAssetId) {
+            return {
+              assetId: existingAssetId,
+              workspaceId: 'ws-test-1',
+              status: 'READY',
+              mediaType: file.type || 'application/octet-stream',
+              deduped: true,
+              createdAt: '2026-06-19T12:00:00Z',
+            }
+          }
+
+          const assetId = stableAssetId ?? crypto.randomUUID()
+          contentRegistry.set(hashHex, assetId)
+
+          return {
+            assetId,
+            workspaceId: 'ws-test-1',
+            status: 'PENDING_UPLOAD',
+            mediaType: file.type || 'application/octet-stream',
+            deduped: false,
+            createdAt: '2026-06-19T12:00:00Z',
+          }
+        },
+      )
+
+      mockGetAsset.mockImplementation(async (assetId: string) => ({
+        assetId,
+        workspaceId: 'ws-test-1',
+        sourceType: 'UPLOADED' as const,
+        mediaType: 'image/svg+xml',
+        status: 'READY' as const,
+        originalFilename: 'asset.svg',
+        fileSizeBytes: 100,
+        createdAt: '2026-06-19T12:00:00Z',
+      }))
+    })
+
+    it('returns the same assetId when uploading identical files (CAS dedup)', async () => {
+      const store = useMediaStore()
+      const content = '<svg><circle cx="10" cy="10" r="5"/></svg>'
+      const file1 = new File([content], 'img1.svg', { type: 'image/svg+xml' })
+      const file2 = new File([content], 'img2.svg', { type: 'image/svg+xml' })
+
+      const result1 = await store.createAndUpload(file1, 'upload-1')
+      const result2 = await store.createAndUpload(file2, 'upload-2')
+
+      expect(result1.assetId).toBe(result2.assetId)
+    })
+
+    it('returns different assetIds for files with different content', async () => {
+      const store = useMediaStore()
+      const file1 = new File(['content-a'], 'a.svg', { type: 'image/svg+xml' })
+      const file2 = new File(['content-b'], 'b.svg', { type: 'image/svg+xml' })
+
+      const result1 = await store.createAndUpload(file1, 'upload-1')
+      const result2 = await store.createAndUpload(file2, 'upload-2')
+
+      expect(result1.assetId).not.toBe(result2.assetId)
+    })
+
+    it('treats a 1-bit mutated file as a different asset', async () => {
+      const store = useMediaStore()
+      const content = '<svg><circle cx="10" cy="10" r="5"/></svg>'
+      const encoder = new TextEncoder()
+      const originalBytes = encoder.encode(content)
+      const mutatedBytes = new Uint8Array(originalBytes)
+      // Flip the lowest bit of the last byte
+      mutatedBytes[mutatedBytes.length - 1]! ^= 0x01
+
+      const file1 = new File([originalBytes], 'original.svg', {
+        type: 'image/svg+xml',
+      })
+      const file2 = new File([mutatedBytes], 'mutated.svg', {
+        type: 'image/svg+xml',
+      })
+
+      const result1 = await store.createAndUpload(file1, 'upload-1')
+      const result2 = await store.createAndUpload(file2, 'upload-2')
+
+      expect(result1.assetId).not.toBe(result2.assetId)
+    })
+
+    it('tracks upload items with done status for both dedup and new uploads', async () => {
+      const store = useMediaStore()
+      const file = new File(['test'], 'test.svg', { type: 'image/svg+xml' })
+
+      await store.createAndUpload(file, 'upload-key')
+
+      expect(store.uploads['upload-key']?.status).toBe('done')
+      expect(store.uploads['upload-key']?.progress).toBe(100)
+    })
+
+    it('keeps only one asset in the store when uploading the same file twice', async () => {
+      const store = useMediaStore()
+      const content = '<svg><circle cx="10" cy="10" r="5"/></svg>'
+      const file1 = new File([content], 'img1.svg', { type: 'image/svg+xml' })
+      const file2 = new File([content], 'img2.svg', { type: 'image/svg+xml' })
+
+      const result1 = await store.createAndUpload(file1, 'upload-1')
+      await store.createAndUpload(file2, 'upload-2')
+
+      // Only one unique asset in the store since both files have the same content
+      expect(Object.keys(store.assetsById)).toHaveLength(1)
+      expect(store.assetIds).toHaveLength(1)
+      expect(store.assetIds[0]).toBe(result1.assetId)
     })
   })
 })
