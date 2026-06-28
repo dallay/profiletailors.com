@@ -1,5 +1,6 @@
 package com.profiletailors.smp.publishing.infrastructure.scheduling
 
+import com.profiletailors.common.domain.persistence.AtomicTransactionRunner
 import com.profiletailors.smp.media.application.MediaAssetResolver
 import com.profiletailors.smp.media.application.ResolvedAssetSummary
 import com.profiletailors.smp.publishing.domain.DateCount
@@ -52,12 +53,14 @@ class PublishingWorkerTest {
             providerCapabilityValidator = AcceptingCapabilityValidator(),
             socialPublisher = SuccessfulPublisher(),
             retryPolicy = DeliveryRetryPolicy(3, Duration.ofMinutes(5)),
+            transactionRunner = NoOpTransactionRunner(),
             clock = fixedClock,
         )
         val worker = PublishingWorker(
             publicationJobRepository = jobRepository,
             publicationRepository = publicationRepository,
             executor = executor,
+            transactionRunner = NoOpTransactionRunner(),
             clock = fixedClock,
             workerId = "worker-1",
         )
@@ -86,12 +89,14 @@ class PublishingWorkerTest {
             providerCapabilityValidator = AcceptingCapabilityValidator(),
             socialPublisher = RetryableFailingPublisher(),
             retryPolicy = DeliveryRetryPolicy(3, Duration.ofMinutes(5)),
+            transactionRunner = NoOpTransactionRunner(),
             clock = fixedClock,
         )
         val worker = PublishingWorker(
             publicationJobRepository = jobRepository,
             publicationRepository = publicationRepository,
             executor = executor,
+            transactionRunner = NoOpTransactionRunner(),
             clock = fixedClock,
             workerId = "worker-1",
         )
@@ -119,12 +124,14 @@ class PublishingWorkerTest {
             providerCapabilityValidator = AcceptingCapabilityValidator(),
             socialPublisher = RetryableFailingPublisher(),
             retryPolicy = DeliveryRetryPolicy(3, Duration.ofMinutes(5)),
+            transactionRunner = NoOpTransactionRunner(),
             clock = fixedClock,
         )
         val worker = PublishingWorker(
             publicationJobRepository = jobRepository,
             publicationRepository = publicationRepository,
             executor = executor,
+            transactionRunner = NoOpTransactionRunner(),
             clock = fixedClock,
             workerId = "worker-1",
         )
@@ -153,12 +160,14 @@ class PublishingWorkerTest {
             providerCapabilityValidator = AcceptingCapabilityValidator(),
             socialPublisher = SuccessfulPublisher(),
             retryPolicy = DeliveryRetryPolicy(3, Duration.ofMinutes(5)),
+            transactionRunner = NoOpTransactionRunner(),
             clock = fixedClock,
         )
         val worker = PublishingWorker(
             publicationJobRepository = jobRepository,
             publicationRepository = publicationRepository,
             executor = executor,
+            transactionRunner = NoOpTransactionRunner(),
             clock = fixedClock,
             workerId = "worker-1",
         )
@@ -199,6 +208,10 @@ class PublishingWorkerTest {
         displayName = "Yuniel",
         status = SocialConnectionStatus.ACTIVE,
     )
+
+    private class NoOpTransactionRunner : AtomicTransactionRunner {
+        override suspend fun <T : Any> runAtomically(block: suspend () -> T): T = block()
+    }
 
     private class InMemoryJobRepository(private val claim: PublicationJobClaim?) : PublicationJobRepository {
         var completedJobId: String? = null
@@ -337,12 +350,14 @@ class PublishingWorkerTest {
             providerCapabilityValidator = AcceptingCapabilityValidator(),
             socialPublisher = publisher,
             retryPolicy = DeliveryRetryPolicy(3, Duration.ofMinutes(5)),
+            transactionRunner = NoOpTransactionRunner(),
             clock = fixedClock,
         )
         val worker = PublishingWorker(
             publicationJobRepository = jobRepository,
             publicationRepository = publicationRepository,
             executor = executor,
+            transactionRunner = NoOpTransactionRunner(),
             clock = fixedClock,
             workerId = "worker-1",
         )
@@ -375,12 +390,14 @@ class PublishingWorkerTest {
             providerCapabilityValidator = AcceptingCapabilityValidator(),
             socialPublisher = publisher,
             retryPolicy = DeliveryRetryPolicy(3, Duration.ofMinutes(5)),
+            transactionRunner = NoOpTransactionRunner(),
             clock = fixedClock,
         )
         val worker = PublishingWorker(
             publicationJobRepository = jobRepository,
             publicationRepository = publicationRepository,
             executor = executor,
+            transactionRunner = NoOpTransactionRunner(),
             clock = fixedClock,
             workerId = "worker-1",
         )
@@ -410,12 +427,14 @@ class PublishingWorkerTest {
             providerCapabilityValidator = AcceptingCapabilityValidator(),
             socialPublisher = publisher,
             retryPolicy = DeliveryRetryPolicy(3, Duration.ofMinutes(5)),
+            transactionRunner = NoOpTransactionRunner(),
             clock = fixedClock,
         )
         val worker = PublishingWorker(
             publicationJobRepository = jobRepository,
             publicationRepository = publicationRepository,
             executor = executor,
+            transactionRunner = NoOpTransactionRunner(),
             clock = fixedClock,
             workerId = "worker-1",
         )
