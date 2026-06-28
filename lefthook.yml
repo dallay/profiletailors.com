@@ -35,8 +35,9 @@ pre-commit:
 
     # ========== BACKEND (Kotlin + Spring Boot) ==========
     # Spotless: auto-formatea Kotlin con ktlint — arregla lo arreglable
+    # NOTA: spotlessApply arregla en disco pero no re-stage — encadenamos git add -u
     backend-spotless:
-      run: './gradlew spotlessApply --no-daemon'
+      run: './gradlew spotlessApply --no-daemon && git add -u'
 
     # Detekt: análisis estático (NO formateo — eso lo hace spotless)
     backend-detekt:
