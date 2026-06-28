@@ -1,0 +1,13 @@
+change: 2026-06-28-issue-191-publishing-transactions
+current_phase: archive
+completed:
+  - explore
+  - propose
+  - spec
+  - design
+  - tasks
+  - apply
+  - verify
+  - archive
+next: done
+updated: 2026-06-28

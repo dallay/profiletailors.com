@@ -84,6 +84,7 @@ dependencies {
     testImplementation(libs.cucumber.java)
     testImplementation(libs.cucumber.spring)
     testImplementation(libs.archunit.junit5)
+    testImplementation(libs.mockk)
 
     testImplementation(platform(libs.testcontainers.bom))
     testImplementation(libs.testcontainers.junit.jupiter)
