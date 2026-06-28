@@ -11,6 +11,8 @@ import com.profiletailors.smp.publishing.domain.ProviderCapabilityValidator
 import com.profiletailors.smp.publishing.domain.ProviderPublishCommand
 import com.profiletailors.smp.publishing.domain.ProviderPublishResult
 import com.profiletailors.smp.publishing.domain.PublicationDraft
+import com.profiletailors.smp.publishing.domain.NotificationEvent
+import com.profiletailors.smp.publishing.domain.NotificationEventRepository
 import com.profiletailors.smp.publishing.domain.PublicationJobClaim
 import com.profiletailors.smp.publishing.domain.PublicationJobRepository
 import com.profiletailors.smp.publishing.domain.PublicationRepository
@@ -23,6 +25,7 @@ import com.profiletailors.smp.publishing.domain.SocialConnectionStatus
 import com.profiletailors.smp.publishing.domain.SocialProvider
 import com.profiletailors.smp.publishing.domain.SocialPublisher
 import com.profiletailors.smp.publishing.infrastructure.persistence.R2dbcDeliveryAttemptRepository
+import com.profiletailors.smp.publishing.infrastructure.persistence.R2dbcNotificationEventRepository
 import com.profiletailors.smp.publishing.infrastructure.persistence.R2dbcPublicationJobRepository
 import com.profiletailors.smp.publishing.infrastructure.persistence.R2dbcPublicationRepository
 import com.profiletailors.smp.publishing.infrastructure.scheduling.PublishingJobExecutor
@@ -85,6 +88,7 @@ class PublishingWorkerTransactionPostgresIntegrationTest {
     private lateinit var publicationRepository: PublicationRepository
     private lateinit var jobRepository: PublicationJobRepository
     private lateinit var deliveryAttemptRepository: DeliveryAttemptRepository
+    private lateinit var notificationEventRepository: NotificationEventRepository
     private lateinit var transactionRunner: AtomicTransactionRunner
     private val fixedClock = Clock.fixed(Instant.parse("2026-06-28T12:00:00Z"), ZoneOffset.UTC)
     private val retryPolicy = DeliveryRetryPolicy(3, Duration.ofMinutes(5))
@@ -96,6 +100,7 @@ class PublishingWorkerTransactionPostgresIntegrationTest {
         publicationRepository = R2dbcPublicationRepository(databaseClient)
         jobRepository = R2dbcPublicationJobRepository(databaseClient)
         deliveryAttemptRepository = R2dbcDeliveryAttemptRepository(databaseClient)
+        notificationEventRepository = R2dbcNotificationEventRepository(databaseClient, fixedClock)
         transactionRunner = R2dbcAtomicTransactionRunner(TransactionalOperator.create(transactionManager))
     }
 
@@ -200,6 +205,32 @@ class PublishingWorkerTransactionPostgresIntegrationTest {
         assertPublication("pub-requeue-rollback", PublicationStatus.BLOCKED)
     }
 
+    // ===== notification event rollback tests =====
+
+    @Test
+    fun `failPublicationTerminal rolls back when notification event record fails`() = runTest {
+        val claim = seedPublicationAndJob("pub-notif-rollback")
+        val failingNotificationRepo = FailingNotificationEventRepository(
+            delegate = notificationEventRepository,
+            failRecord = true,
+        )
+        val executor = createExecutor(
+            socialAccount = testAccount().copy(status = SocialConnectionStatus.DELETED),
+            notificationEventRepository = failingNotificationRepo,
+        )
+
+        assertThrows(InjectedNotificationEventFailure::class.java) {
+            kotlinx.coroutines.runBlocking {
+                executor.executeClaim(claim)
+            }
+        }
+
+        // Rollback should prevent all writes: publication stays QUEUED, job stays PENDING, no notification_events row
+        assertPublication("pub-notif-rollback", PublicationStatus.QUEUED)
+        assertJobNotFailed("pub-notif-rollback")
+        assertNoNotificationEvent("pub-notif-rollback")
+    }
+
     // ===== Helper methods =====
 
     private fun executorWithFailingPublicationRepository(
@@ -276,13 +307,14 @@ class PublishingWorkerTransactionPostgresIntegrationTest {
         jobRepository: PublicationJobRepository = this.jobRepository,
         socialAccount: SocialAccount = testAccount(),
         socialPublisher: SocialPublisher = SuccessfulPublisher(),
+        notificationEventRepository: NotificationEventRepository? = null,
     ): PublishingJobExecutor = PublishingJobExecutor(
         publicationJobRepository = jobRepository,
         publicationRepository = publicationRepository,
         socialAccountRepository = InMemorySocialAccountRepository(socialAccount),
         mediaAssetResolver = InMemoryMediaAssetResolver(),
         deliveryAttemptRepository = deliveryAttemptRepository,
-        notificationEventRepository = null,
+        notificationEventRepository = notificationEventRepository,
         providerCapabilityValidator = AcceptingCapabilityValidator(),
         socialPublisher = socialPublisher,
         retryPolicy = retryPolicy,
@@ -377,6 +409,17 @@ class PublishingWorkerTransactionPostgresIntegrationTest {
         assertEquals(true, row != null, "Delivery attempt with outcome $outcome should exist")
     }
 
+    private suspend fun assertNoNotificationEvent(publicationId: String) {
+        val row = databaseClient.sql(
+            "SELECT id FROM notification_events WHERE publication_id = :pub_id",
+        )
+            .bind("pub_id", publicationId)
+            .fetch()
+            .one()
+            .awaitSingleOrNull()
+        assertNull(row, "Notification event should not exist after rollback")
+    }
+
     private suspend fun assertJobNotCompleted(publicationId: String) {
         val row = databaseClient.sql("SELECT status FROM publication_jobs WHERE publication_id = :pub_id")
             .bind("pub_id", publicationId)
@@ -396,6 +439,9 @@ class PublishingWorkerTransactionPostgresIntegrationTest {
     }
 
     private suspend fun cleanupTestData() {
+        databaseClient.sql(
+            "DELETE FROM notification_events WHERE publication_id LIKE 'pub-%'",
+        ).fetch().rowsUpdated().awaitSingle()
         databaseClient.sql(
             "DELETE FROM delivery_attempts WHERE publication_id LIKE 'pub-%'",
         ).fetch().rowsUpdated().awaitSingle()
@@ -504,7 +550,18 @@ class PublishingWorkerTransactionPostgresIntegrationTest {
 
     private class InjectedPublicationFailure(message: String) : RuntimeException(message)
     private class InjectedJobFailure(message: String) : RuntimeException(message)
+    private class InjectedNotificationEventFailure(message: String) : RuntimeException(message)
     private class ProviderUnavailableFailure : RuntimeException("Provider unavailable")
+
+    private class FailingNotificationEventRepository(
+        private val delegate: NotificationEventRepository,
+        private val failRecord: Boolean = false,
+    ) : NotificationEventRepository by delegate {
+        override suspend fun record(event: NotificationEvent): NotificationEvent {
+            if (failRecord) throw InjectedNotificationEventFailure("Injected failure in notification record")
+            return delegate.record(event)
+        }
+    }
 
     // ===== Test doubles =====
 
