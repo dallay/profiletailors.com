@@ -10,6 +10,7 @@ import tailwind from '@tailwindcss/vite'
 
 // https://vite.dev/config/
 const config = {
+  envDir: '../../..',
   server: {
     port: parseInt(process.env.PORT || '5173', 10),
     host: true,

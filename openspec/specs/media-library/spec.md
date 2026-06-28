@@ -1,7 +1,8 @@
 # Delta for Media Library
 
 > **Terminology note (SB1):** Throughout this specification, "creating" or "reserving" an asset
-> refers to the `POST /api/media/assets` operation that creates an asset record in `PROCESSING` state.
+> refers to the `POST /api/media/assets` operation that creates an asset record in `PROCESSING`
+> state.
 > The term `PROCESSING` is the authoritative lifecycle state name.
 
 > **Wire format note (R2-C1):** The `mediaType` field is serialized as a MIME string (e.g.,

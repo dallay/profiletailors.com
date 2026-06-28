@@ -2,13 +2,19 @@
 
 ## Intent
 
-Enable LinkedIn media upload support so users can attach binary assets (images, videos, documents) to LinkedIn posts. Currently `RealLinkedInPublisher` blocks all assets at publish time, preventing media-rich content. This change introduces a complete asset ingest → storage → registration → publish flow.
+Enable LinkedIn media upload support so users can attach binary assets (images, videos, documents)
+to LinkedIn posts. Currently `RealLinkedInPublisher` blocks all assets at publish time, preventing
+media-rich content. This change introduces a complete asset ingest → storage → registration →
+publish flow.
 
-**Problem**: Users cannot attach media to LinkedIn posts. The publisher has a hard block (`require(command.assets.isEmpty())`) and no write path exists to create `PublicationAsset` records or register assets with LinkedIn's API.
+**Problem**: Users cannot attach media to LinkedIn posts. The publisher has a hard block (
+`require(command.assets.isEmpty())`) and no write path exists to create `PublicationAsset` records
+or register assets with LinkedIn's API.
 
 ## Scope
 
 ### In Scope
+
 - `AssetUploader` port in `PublishingProviderPorts.kt` with `uploadAsset()` signature
 - `RealLinkedInAssetUploader` implementing LinkedIn register → upload flow (URN returned)
 - `FakeLinkedInAssetUploader` for testing without real credentials
@@ -20,6 +26,7 @@ Enable LinkedIn media upload support so users can attach binary assets (images, 
 - Binary upload to LinkedIn via their asset upload endpoint
 
 ### Out of Scope
+
 - LinkedIn Pages support (separate capability)
 - Other providers (LinkedIn-only MVP)
 - Asset editing or deletion
@@ -29,17 +36,24 @@ Enable LinkedIn media upload support so users can attach binary assets (images, 
 ## Capabilities
 
 ### New Capabilities
-- `linkedin-asset-upload`: Full flow from asset ingest to LinkedIn publication — register asset with LinkedIn API, upload binary data, return provider-specific URN, embed URN in post body
+
+- `linkedin-asset-upload`: Full flow from asset ingest to LinkedIn publication — register asset with
+  LinkedIn API, upload binary data, return provider-specific URN, embed URN in post body
 
 ### Modified Capabilities
+
 - `publication-asset`: Add `providerAssetRef` field and `create()` write path
-- `linkedin-publishing`: Remove asset block, integrate `LinkedInAssetUploader`, embed URNs in `contentEntities`
+- `linkedin-publishing`: Remove asset block, integrate `LinkedInAssetUploader`, embed URNs in
+  `contentEntities`
 
 ## Approach
 
-1. **Storage layer**: `@shared/storage` already provides `Storage.upload()` and `PresignableStorage.presignGet()`. No changes needed here — use presigned URLs as the asset source.
+1. **Storage layer**: `@shared/storage` already provides `Storage.upload()` and
+   `PresignableStorage.presignGet()`. No changes needed here — use presigned URLs as the asset
+   source.
 
-2. **Repository write path**: Add `create()` to `PublicationAssetRepository` following existing query patterns.
+2. **Repository write path**: Add `create()` to `PublicationAssetRepository` following existing
+   query patterns.
 
 3. **Port interface**: Add `AssetUploader` to `PublishingProviderPorts.kt`:
    ```kotlin
@@ -49,39 +63,40 @@ Enable LinkedIn media upload support so users can attach binary assets (images, 
    ```
 
 4. **LinkedIn adapter** (`RealLinkedInAssetUploader`):
-   - Step 1: `POST /assets` → register asset → get `digitalmediaAsset` URN
-   - Step 2: `PUT /assets/{assetUrn}` with binary data
-   - Step 3: Return `ProviderAssetRef(urn)` for embedding
+    - Step 1: `POST /assets` → register asset → get `digitalmediaAsset` URN
+    - Step 2: `PUT /assets/{assetUrn}` with binary data
+    - Step 3: Return `ProviderAssetRef(urn)` for embedding
 
 5. **Publisher integration**: Modify `RealLinkedInPublisher`:
-   - Remove `require(command.assets.isEmpty())`
-   - For each asset, call `LinkedInAssetUploader.uploadAsset()`
-   - Store returned URN in `providerAssetRef`
-   - Add URNs to `contentEntities` in post body
+    - Remove `require(command.assets.isEmpty())`
+    - For each asset, call `LinkedInAssetUploader.uploadAsset()`
+    - Store returned URN in `providerAssetRef`
+    - Add URNs to `contentEntities` in post body
 
-6. **API endpoint**: `POST /assets` accepting `CreateAssetCommand` with `workspaceId`, `storageKey`, `mimeType`, `externalUrl`.
+6. **API endpoint**: `POST /assets` accepting `CreateAssetCommand` with `workspaceId`, `storageKey`,
+   `mimeType`, `externalUrl`.
 
 ## Affected Areas
 
-| Area | Impact | Description |
-|------|--------|-------------|
-| `PublishingProviderPorts.kt` | Modified | Add `AssetUploader` port interface |
-| `PublicationAsset.kt` | Modified | Add `providerAssetRef` field |
-| `PublicationAssetRepository.kt` | Modified | Add `create()` method |
-| `PublishingApi.kt` | Modified | Add `CreateAssetCommand` endpoint |
-| `RealLinkedInPublisher.kt` | Modified | Remove asset block, integrate uploader |
-| `RealLinkedInAssetUploader.kt` | New | LinkedIn register → upload adapter |
-| `FakeLinkedInAssetUploader.kt` | New | Test double for LinkedIn asset upload |
-| `ProviderPublishCommand.kt` | Modified | Ensure `assets` list is passed through |
+| Area                            | Impact   | Description                            |
+|---------------------------------|----------|----------------------------------------|
+| `PublishingProviderPorts.kt`    | Modified | Add `AssetUploader` port interface     |
+| `PublicationAsset.kt`           | Modified | Add `providerAssetRef` field           |
+| `PublicationAssetRepository.kt` | Modified | Add `create()` method                  |
+| `PublishingApi.kt`              | Modified | Add `CreateAssetCommand` endpoint      |
+| `RealLinkedInPublisher.kt`      | Modified | Remove asset block, integrate uploader |
+| `RealLinkedInAssetUploader.kt`  | New      | LinkedIn register → upload adapter     |
+| `FakeLinkedInAssetUploader.kt`  | New      | Test double for LinkedIn asset upload  |
+| `ProviderPublishCommand.kt`     | Modified | Ensure `assets` list is passed through |
 
 ## Risks
 
-| Risk | Likelihood | Mitigation |
-|------|------------|------------|
-| LinkedIn API rate limits on asset endpoints | Medium | Add retry with backoff; consider batching |
-| Large binary uploads timeout | Medium | Stream binary directly; increase timeout for video |
-| Presigned URL expiry before upload completes | Low | Use short TTL; upload immediately after presign |
-| Invalid mime type rejected by LinkedIn | Low | Validate mime types against LinkedIn supported list |
+| Risk                                         | Likelihood | Mitigation                                          |
+|----------------------------------------------|------------|-----------------------------------------------------|
+| LinkedIn API rate limits on asset endpoints  | Medium     | Add retry with backoff; consider batching           |
+| Large binary uploads timeout                 | Medium     | Stream binary directly; increase timeout for video  |
+| Presigned URL expiry before upload completes | Low        | Use short TTL; upload immediately after presign     |
+| Invalid mime type rejected by LinkedIn       | Low        | Validate mime types against LinkedIn supported list |
 
 ## Rollback Plan
 

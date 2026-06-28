@@ -2,15 +2,18 @@
 
 ## Overview
 
-This specification defines the behavior of the dedicated `R2StorageAdapter` for Cloudflare R2 object storage, replacing the legacy `S2Storage` thin wrapper.
+This specification defines the behavior of the dedicated `R2StorageAdapter` for Cloudflare R2 object
+storage, replacing the legacy `S2Storage` thin wrapper.
 
 ## Requirements
 
 ### Requirement: R2 Adapter Lifecycle
 
-The system MUST provide a first-class `R2StorageAdapter` that implements `PresignableStorage` directly, independent of `S3Storage` delegation.
+The system MUST provide a first-class `R2StorageAdapter` that implements `PresignableStorage`
+directly, independent of `S3Storage` delegation.
 
 The adapter MUST support the following operations:
+
 - `upload(key, contentLength, content, metadata)` - Stream upload with optional metadata
 - `download(key)` - Stream download returning `ByteReadChannel`
 - `delete(key)` - Single object deletion
@@ -19,6 +22,7 @@ The adapter MUST support the following operations:
 - `exists(key)` - Check if object exists
 
 The adapter MUST accept `StorageProperties.R2Provider` configuration containing:
+
 - `bucket` (required) - R2 bucket name
 - `endpoint` (required) - R2 endpoint URL
 - `accessKeyId` (required) - R2 access key
@@ -63,9 +67,11 @@ The adapter MUST accept `StorageProperties.R2Provider` configuration containing:
 
 ### Requirement: R2-Specific Configuration
 
-The adapter MUST support both `type: r2` (canonical) and `type: s2` (backward-compatible alias) in YAML configuration.
+The adapter MUST support both `type: r2` (canonical) and `type: s2` (backward-compatible alias) in
+YAML configuration.
 
-The R2 configuration MUST automatically set `region = "auto"` if not explicitly provided, matching R2's global storage model.
+The R2 configuration MUST automatically set `region = "auto"` if not explicitly provided, matching
+R2's global storage model.
 
 #### Scenario: R2 configured with type r2
 
@@ -94,6 +100,7 @@ The R2 configuration MUST automatically set `region = "auto"` if not explicitly 
 The adapter MUST wrap R2/AWS SDK exceptions into domain-appropriate `StorageException` types.
 
 The following error mappings MUST be implemented:
+
 - `NoSuchKey` → `StorageObjectNotFoundException`
 - `AccessDenied` → `StorageAccessDeniedException`
 - Network errors → `StorageConnectionException`
@@ -128,7 +135,9 @@ The adapter MUST validate that object keys do not contain path traversal sequenc
 
 The `R2StorageAdapter` MUST pass all tests defined in `StorageContractTest.kt`.
 
-All scenarios defined in the platform specification's "Pluggable Storage Abstraction Layer" MUST be satisfied by the R2 adapter:
+All scenarios defined in the platform specification's "Pluggable Storage Abstraction Layer" MUST be
+satisfied by the R2 adapter:
+
 - Upload and download streaming
 - Presigned URL generation
 - Multi-provider resolution
@@ -143,13 +152,13 @@ All scenarios defined in the platform specification's "Pluggable Storage Abstrac
 
 ## Acceptance Criteria
 
-| ID | Criterion | Verification Method |
-|----|-----------|---------------------|
-| AC-1 | `R2StorageAdapter` implements `PresignableStorage` | Compilation + interface check |
-| AC-2 | Upload downloads with content integrity | Unit test with MD5/SHA256 verification |
-| AC-3 | Presigned URLs target R2 endpoint | Integration test URL inspection |
-| AC-4 | `type: r2` and `type: s2` both work | Configuration parsing test |
-| AC-5 | Path traversal blocked | Security test with malicious keys |
-| AC-6 | Error mapping correct | Unit test with mocked SDK errors |
-| AC-7 | All contract tests pass | `StorageContractTest` execution |
-| AC-8 | >80% code coverage | JaCoCo/Kover report |
+| ID   | Criterion                                          | Verification Method                    |
+|------|----------------------------------------------------|----------------------------------------|
+| AC-1 | `R2StorageAdapter` implements `PresignableStorage` | Compilation + interface check          |
+| AC-2 | Upload downloads with content integrity            | Unit test with MD5/SHA256 verification |
+| AC-3 | Presigned URLs target R2 endpoint                  | Integration test URL inspection        |
+| AC-4 | `type: r2` and `type: s2` both work                | Configuration parsing test             |
+| AC-5 | Path traversal blocked                             | Security test with malicious keys      |
+| AC-6 | Error mapping correct                              | Unit test with mocked SDK errors       |
+| AC-7 | All contract tests pass                            | `StorageContractTest` execution        |
+| AC-8 | >80% code coverage                                 | JaCoCo/Kover report                    |

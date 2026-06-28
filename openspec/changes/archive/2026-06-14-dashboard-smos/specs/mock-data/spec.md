@@ -2,13 +2,16 @@
 
 ## Purpose
 
-Defines the typed mock fixture system that powers all 11 dashboard sections during Phase 1. Ensures mock data matches future API contract interfaces so swapping to real data requires zero component changes.
+Defines the typed mock fixture system that powers all 11 dashboard sections during Phase 1. Ensures
+mock data matches future API contract interfaces so swapping to real data requires zero component
+changes.
 
 ## Requirements
 
 ### Requirement: Typed Fixtures Per Section
 
-Each section SHALL have a corresponding TypeScript fixture file that exports a typed mock dataset matching the section's data model interface.
+Each section SHALL have a corresponding TypeScript fixture file that exports a typed mock dataset
+matching the section's data model interface.
 
 #### Scenario: Fixture type matches interface
 
@@ -70,7 +73,8 @@ Mock data SHALL represent realistic social media metrics for a mid-size B2B acco
 
 ### Requirement: Fixture Randomization
 
-Fixtures SHALL use a seeded random helper for minor value variations so repeated loads feel realistic without being identical.
+Fixtures SHALL use a seeded random helper for minor value variations so repeated loads feel
+realistic without being identical.
 
 #### Scenario: Fixture varies on reload
 

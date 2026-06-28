@@ -129,6 +129,7 @@ application heap memory.
   upload possible without changing the media asset model.
 
 ### Decision 3:
+
 `shared/storage` remains canonical for binary storage; media owns metadata and lifecycle
 
 **Choice**: The media context orchestrates uploads and metadata transitions, but actual binary

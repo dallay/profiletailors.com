@@ -20,15 +20,16 @@ back/forward fully restores state.
 
 ## Spec Delta Merged
 
-| Field | Value |
-|-------|-------|
-| Delta spec | `openspec/changes/archive/2026-06-24-scheduler-url-addressable/spec.md` |
-| Main spec (1) | `openspec/specs/visual-calendar/spec.md` |
-| Main spec (2) | `openspec/specs/app-shell/spec.md` |
-| Merge action (visual-calendar) | MODIFIED `### Requirement: Multi-View Calendar` — updated description to reflect URL addressability; ADDED 2 new scenarios (day-focus in month view, shareable week URL) |
-| Merge action (app-shell) | MODIFIED `### Requirement: SidebarChannelsSection` — `activeProvider` → `activeChannelId`, `selectChannel(channel)` → `selectChannel(accountId)`, 3 updated + 1 new scenario; ADDED 5 new requirements (Canonical Route Family, Route Query Param Contract, Route State Derivation, CalendarHeader Navigates, Browser History Integration) |
+| Field                          | Value                                                                                                                                                                                                                                                                                                                                      |
+|--------------------------------|--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| Delta spec                     | `openspec/changes/archive/2026-06-24-scheduler-url-addressable/spec.md`                                                                                                                                                                                                                                                                    |
+| Main spec (1)                  | `openspec/specs/visual-calendar/spec.md`                                                                                                                                                                                                                                                                                                   |
+| Main spec (2)                  | `openspec/specs/app-shell/spec.md`                                                                                                                                                                                                                                                                                                         |
+| Merge action (visual-calendar) | MODIFIED `### Requirement: Multi-View Calendar` — updated description to reflect URL addressability; ADDED 2 new scenarios (day-focus in month view, shareable week URL)                                                                                                                                                                   |
+| Merge action (app-shell)       | MODIFIED `### Requirement: SidebarChannelsSection` — `activeProvider` → `activeChannelId`, `selectChannel(channel)` → `selectChannel(accountId)`, 3 updated + 1 new scenario; ADDED 5 new requirements (Canonical Route Family, Route Query Param Contract, Route State Derivation, CalendarHeader Navigates, Browser History Integration) |
 
 **Merged scenarios (total 17 added):**
+
 1. Clicking day in month view focuses date (no separate route)
 2. Week view accessible and shareable
 3. `/scheduler` redirects to week route preserving query
@@ -51,74 +52,93 @@ back/forward fully restores state.
 
 ## Verification Summary
 
-| Metric | Result |
-|--------|--------|
-| Tasks total | 13 |
-| Tasks complete | 13 |
-| Verification verdict | PASS |
-| CRITICAL issues | 0 |
-| TypeScript (vue-tsc) | ✅ 0 errors |
-| Vite build | ✅ 5.28s, SchedulerView chunk 40.43 kB |
-| Unit/integration tests (Vitest) | ✅ 598/598 passed |
-| E2E (Playwright, scheduler-url-addressable.spec.ts) | ✅ 12/12 passed |
-| Spec scenarios compliant | ✅ 17/17 |
+| Metric                                              | Result                                |
+|-----------------------------------------------------|---------------------------------------|
+| Tasks total                                         | 13                                    |
+| Tasks complete                                      | 13                                    |
+| Verification verdict                                | PASS                                  |
+| CRITICAL issues                                     | 0                                     |
+| TypeScript (vue-tsc)                                | ✅ 0 errors                            |
+| Vite build                                          | ✅ 5.28s, SchedulerView chunk 40.43 kB |
+| Unit/integration tests (Vitest)                     | ✅ 598/598 passed                      |
+| E2E (Playwright, scheduler-url-addressable.spec.ts) | ✅ 12/12 passed                        |
+| Spec scenarios compliant                            | ✅ 17/17                               |
 
 ---
 
 ## Archive Contents
 
-| Artifact | Path |
-|----------|------|
-| Proposal | `openspec/changes/archive/2026-06-24-scheduler-url-addressable/proposal.md` |
-| Spec (delta) | `openspec/changes/archive/2026-06-24-scheduler-url-addressable/spec.md` |
-| Design | `openspec/changes/archive/2026-06-24-scheduler-url-addressable/design.md` |
-| Tasks | `openspec/changes/archive/2026-06-24-scheduler-url-addressable/tasks.md` |
+| Artifact      | Path                                                                             |
+|---------------|----------------------------------------------------------------------------------|
+| Proposal      | `openspec/changes/archive/2026-06-24-scheduler-url-addressable/proposal.md`      |
+| Spec (delta)  | `openspec/changes/archive/2026-06-24-scheduler-url-addressable/spec.md`          |
+| Design        | `openspec/changes/archive/2026-06-24-scheduler-url-addressable/design.md`        |
+| Tasks         | `openspec/changes/archive/2026-06-24-scheduler-url-addressable/tasks.md`         |
 | Verify Report | `openspec/changes/archive/2026-06-24-scheduler-url-addressable/verify-report.md` |
-| Exploration | `openspec/changes/archive/2026-06-24-scheduler-url-addressable/exploration.md` |
-| State | `openspec/changes/archive/2026-06-24-scheduler-url-addressable/state.yaml` |
+| Exploration   | `openspec/changes/archive/2026-06-24-scheduler-url-addressable/exploration.md`   |
+| State         | `openspec/changes/archive/2026-06-24-scheduler-url-addressable/state.yaml`       |
 
 ---
 
 ## Source of Truth Updated
 
-- `openspec/specs/visual-calendar/spec.md` — `### Requirement: Multi-View Calendar` updated with URL addressability, 2 new scenarios
-- `openspec/specs/app-shell/spec.md` — `### Requirement: SidebarChannelsSection` updated props/emits/scenarios; 5 new requirements added
+- `openspec/specs/visual-calendar/spec.md` — `### Requirement: Multi-View Calendar` updated with URL
+  addressability, 2 new scenarios
+- `openspec/specs/app-shell/spec.md` — `### Requirement: SidebarChannelsSection` updated
+  props/emits/scenarios; 5 new requirements added
 
 ---
 
 ## Key Implementation Artifacts
 
 ### Router
-- `apps/web/app/src/router/index.ts` — Added canonical scheduler route family (`/scheduler/calendar/week`, `/scheduler/calendar/month`, `/scheduler/list`), `/scheduler` redirect with query preservation, named routes with `requiresAuth: true`
+
+- `apps/web/app/src/router/index.ts` — Added canonical scheduler route family (
+  `/scheduler/calendar/week`, `/scheduler/calendar/month`, `/scheduler/list`), `/scheduler` redirect
+  with query preservation, named routes with `requiresAuth: true`
 
 ### Composable
-- `apps/web/app/src/composables/useCalendarUrl.ts` — 219-line composable: `CalendarUrlState` + `CalendarUrlController`, full parse/serialize/canonicalize, push-vs-replace behavior
+
+- `apps/web/app/src/composables/useCalendarUrl.ts` — 219-line composable: `CalendarUrlState` +
+  `CalendarUrlController`, full parse/serialize/canonicalize, push-vs-replace behavior
 
 ### Views
-- `apps/web/app/src/views/SchedulerView.vue` — Reads state from `useCalendarUrl()`, watchers for refetch triggers on route change; no direct Pinia route-owned refs
+
+- `apps/web/app/src/views/SchedulerView.vue` — Reads state from `useCalendarUrl()`, watchers for
+  refetch triggers on route change; no direct Pinia route-owned refs
 
 ### Stores
-- `apps/web/app/src/stores/publishing.ts` — `fetchCalendar()` accepts explicit `CalendarFilters` args (`status`, `socialAccountId`, `timezone`), stopped reading route-relevant refs internally
+
+- `apps/web/app/src/stores/publishing.ts` — `fetchCalendar()` accepts explicit `CalendarFilters`
+  args (`status`, `socialAccountId`, `timezone`), stopped reading route-relevant refs internally
 
 ### Components
-- `apps/web/app/src/components/CalendarHeader.vue` — Emits `change:view`, `change:date`, `change:filter`; no direct Pinia mutations for route-relevant fields
-- `apps/web/app/src/components/layout/AppShell.vue` — Handles sidebar `selectChannel` with `channels[]` query param; derives `activeChannelId` from route
-- `apps/web/app/src/components/sidebar/SidebarChannelsSection.vue` — Emits `selectChannel(accountId)`; derives active state from `activeChannelId` prop
+
+- `apps/web/app/src/components/CalendarHeader.vue` — Emits `change:view`, `change:date`,
+  `change:filter`; no direct Pinia mutations for route-relevant fields
+- `apps/web/app/src/components/layout/AppShell.vue` — Handles sidebar `selectChannel` with
+  `channels[]` query param; derives `activeChannelId` from route
+- `apps/web/app/src/components/sidebar/SidebarChannelsSection.vue` — Emits
+  `selectChannel(accountId)`; derives active state from `activeChannelId` prop
 
 ### Tests
+
 - `apps/web/app/src/router/index.spec.ts` — 14 tests for scheduler route contract
 - `apps/web/app/src/router/index.guard.test.ts` — 2 tests for canonical route guards
-- `apps/web/app/src/composables/useCalendarUrl.test.ts` — 33 tests covering parse/serialize/push-vs-replace/canonicalization
+- `apps/web/app/src/composables/useCalendarUrl.test.ts` — 33 tests covering
+  parse/serialize/push-vs-replace/canonicalization
 - `apps/web/app/src/views/SchedulerView.test.ts` — 10 tests
 - `apps/web/app/src/components/CalendarHeader.test.ts` — 7 tests
-- `apps/web/app/e2e/specs/scheduler-url-addressable.spec.ts` — 12 E2E specs (deep links, navigation, sidebar channels, browser history)
+- `apps/web/app/e2e/specs/scheduler-url-addressable.spec.ts` — 12 E2E specs (deep links, navigation,
+  sidebar channels, browser history)
 
 ---
 
 ## Suggestions on Record (not blocking archive)
 
 1. Split the squashed PR commit history to enable future TDD audits
-2. Mock route objects in `useCalendarUrl.test.ts` could be typed more precisely using `RouteLocationNormalizedLoaded` from vue-router
+2. Mock route objects in `useCalendarUrl.test.ts` could be typed more precisely using
+   `RouteLocationNormalizedLoaded` from vue-router
 
 ---
 

@@ -49,15 +49,15 @@ across multiple platforms (Twitter, LinkedIn, Instagram, Facebook, TikTok).
 The API Application is composed of multiple Gradle modules. The **Shared Kernel** provides
 framework-agnostic domain primitives and shared infrastructure:
 
-| Module | Purpose | Spring Deps |
-|--------|---------|-------------|
-| `shared:common` | Domain primitives, base entities, value objects, `@Service` marker | ❌ None |
-| `shared:bus` | Event bus abstractions (CQRS mediator) | ❌ None |
-| `shared:security` | Security primitives (Hasher interface + implementations) | ❌ None |
-| `shared:presentation` | Presentation layer utilities (PageResponse, pagination) | ❌ None |
-| `shared:spring-boot-common` | Spring Boot integration, exception handlers, filters, presenters | ✅ Yes |
-| `shared:storage` | Storage abstractions (S3/R2) | ✅ Yes |
-| `shared:shield:ratelimit` | Rate limiting with Bucket4j + Caffeine | ✅ Yes |
+| Module                      | Purpose                                                            | Spring Deps |
+|-----------------------------|--------------------------------------------------------------------|-------------|
+| `shared:common`             | Domain primitives, base entities, value objects, `@Service` marker | ❌ None      |
+| `shared:bus`                | Event bus abstractions (CQRS mediator)                             | ❌ None      |
+| `shared:security`           | Security primitives (Hasher interface + implementations)           | ❌ None      |
+| `shared:presentation`       | Presentation layer utilities (PageResponse, pagination)            | ❌ None      |
+| `shared:spring-boot-common` | Spring Boot integration, exception handlers, filters, presenters   | ✅ Yes       |
+| `shared:storage`            | Storage abstractions (S3/R2)                                       | ✅ Yes       |
+| `shared:shield:ratelimit`   | Rate limiting with Bucket4j + Caffeine                             | ✅ Yes       |
 
 > **Full dependency graph:** See [Shared Module Dependencies](../shared/dependencies.md) for
 > the complete module dependency diagram with all `api` vs `implementation` edges.

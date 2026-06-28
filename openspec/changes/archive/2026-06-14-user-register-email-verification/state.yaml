@@ -1,6 +1,6 @@
 change: user-register-email-verification
 current_phase: archived
-completed: [init, explore, propose, spec, design, tasks, apply, verify, archive]
+completed: [ init, explore, propose, spec, design, tasks, apply, verify, archive ]
 next: none
 delivery_strategy: size-exception
 updated: 2026-06-14T19:53:00Z

@@ -11,11 +11,19 @@ publishing as the first implemented provider slice.
 
 ### Requirement: Workspace-Scoped Social Connections
 
-The system MUST allow an authenticated workspace member to register and manage a social-provider connection in workspace scope.
+The system MUST allow an authenticated workspace member to register and manage a social-provider
+connection in workspace scope.
 
-A social connection MUST be associated with exactly one workspace and one provider account identity. The system MUST persist enough provider metadata to identify the connected account, provider type, connection status, and credential freshness. Provider credential secrets MUST remain an infrastructure concern and MUST NOT leak into public API responses. LinkedIn personal-profile connection support MUST be implemented in this change. LinkedIn page support MAY be added later without redefining the core connection model. Reconnecting the same provider account MUST use upsert semantics to avoid uniqueness violations.
+A social connection MUST be associated with exactly one workspace and one provider account identity.
+The system MUST persist enough provider metadata to identify the connected account, provider type,
+connection status, and credential freshness. Provider credential secrets MUST remain an
+infrastructure concern and MUST NOT leak into public API responses. LinkedIn personal-profile
+connection support MUST be implemented in this change. LinkedIn page support MAY be added later
+without redefining the core connection model. Reconnecting the same provider account MUST use upsert
+semantics to avoid uniqueness violations.
 
-(Previously: Reconnect/upsert semantics were not specified; plain INSERT risked unique-constraint violations.)
+(Previously: Reconnect/upsert semantics were not specified; plain INSERT risked unique-constraint
+violations.)
 
 #### Scenario: User connects a LinkedIn personal profile to a workspace
 
@@ -91,11 +99,19 @@ eligible jobs ahead of non-priority jobs without bypassing authorization or vali
 
 ### Requirement: Editable and Cancellable Pre-Delivery Publications
 
-The system MUST allow editing, deletion, and cancellation before a publication is claimed for delivery.
+The system MUST allow editing, deletion, and cancellation before a publication is claimed for
+delivery.
 
-A publication in `DRAFT`, `QUEUED`, or `SCHEDULED` MAY be edited, including text, media references, schedule mode, and schedule timing, as long as the delivery job has not been claimed for processing. Such a publication MAY also be cancelled or deleted before claim. Scheduler edit flows MUST persist through the existing `PATCH /api/publishing/publications/{publicationId}` contract, and successful responses MUST reflect server truth rather than local-only optimistic state. Once processing has begun, the system MUST prevent unsafe edits or deletion that would invalidate the claimed delivery attempt.
+A publication in `DRAFT`, `QUEUED`, or `SCHEDULED` MAY be edited, including text, media references,
+schedule mode, and schedule timing, as long as the delivery job has not been claimed for processing.
+Such a publication MAY also be cancelled or deleted before claim. Scheduler edit flows MUST persist
+through the existing `PATCH /api/publishing/publications/{publicationId}` contract, and successful
+responses MUST reflect server truth rather than local-only optimistic state. Once processing has
+begun, the system MUST prevent unsafe edits or deletion that would invalidate the claimed delivery
+attempt.
 
-(Previously: Pre-delivery publications could be edited or cancelled, but delete behavior and backend-backed scheduler editing were not specified.)
+(Previously: Pre-delivery publications could be edited or cancelled, but delete behavior and
+backend-backed scheduler editing were not specified.)
 
 #### Scenario: Queued publication is edited before claim
 
@@ -120,7 +136,10 @@ A publication in `DRAFT`, `QUEUED`, or `SCHEDULED` MAY be edited, including text
 
 ### Requirement: Unpublished Publication Deletion API
 
-The system MUST expose `DELETE /api/publishing/publications/{publicationId}` for unpublished publications. The endpoint MUST permanently remove the publication and any unclaimed scheduling/job linkage when the publication status is `DRAFT`, `QUEUED`, or `SCHEDULED`. The endpoint MUST reject deletion for any other status and MUST NOT report local-only success.
+The system MUST expose `DELETE /api/publishing/publications/{publicationId}` for unpublished
+publications. The endpoint MUST permanently remove the publication and any unclaimed scheduling/job
+linkage when the publication status is `DRAFT`, `QUEUED`, or `SCHEDULED`. The endpoint MUST reject
+deletion for any other status and MUST NOT report local-only success.
 
 #### Scenario: Delete scheduled publication succeeds
 
@@ -140,18 +159,19 @@ The system MUST expose `DELETE /api/publishing/publications/{publicationId}` for
 
 The system MUST use one pre-delivery policy for scheduler actions across frontend and backend.
 
-| Status | Edit | Delete |
-|--------|------|--------|
-| `DRAFT` | MUST allow | MUST allow |
-| `QUEUED` | MUST allow | MUST allow |
-| `SCHEDULED` | MUST allow | MUST allow |
+| Status       | Edit        | Delete      |
+|--------------|-------------|-------------|
+| `DRAFT`      | MUST allow  | MUST allow  |
+| `QUEUED`     | MUST allow  | MUST allow  |
+| `SCHEDULED`  | MUST allow  | MUST allow  |
 | `PROCESSING` | MUST reject | MUST reject |
-| `PUBLISHED` | MUST reject | MUST reject |
-| `BLOCKED` | MUST reject | MUST reject |
-| `FAILED` | MUST reject | MUST reject |
-| `CANCELLED` | MUST reject | MUST reject |
+| `PUBLISHED`  | MUST reject | MUST reject |
+| `BLOCKED`    | MUST reject | MUST reject |
+| `FAILED`     | MUST reject | MUST reject |
+| `CANCELLED`  | MUST reject | MUST reject |
 
-The frontend MUST hide or disable edit/delete actions for disallowed statuses, and the backend MUST still enforce the same policy if a request is sent.
+The frontend MUST hide or disable edit/delete actions for disallowed statuses, and the backend MUST
+still enforce the same policy if a request is sent.
 
 #### Scenario: Allowed status exposes action
 
@@ -169,9 +189,17 @@ The frontend MUST hide or disable edit/delete actions for disallowed statuses, a
 
 ### Requirement: Composer-Based Publication Editing
 
-The scheduler MUST use the full composer edit flow for editable unpublished publications instead of inline detail-modal editing.
+The scheduler MUST use the full composer edit flow for editable unpublished publications instead of
+inline detail-modal editing.
 
-When a user opens an editable publication from the scheduler and chooses to edit it, the system MUST close the read-only detail modal and reopen the full composer in edit mode with publication data pre-filled from authoritative server-backed publication state. The composer edit flow MUST support editing content, scheduling, priority, and media asset references while keeping the selected channel read-only for the duration of the edit. The client MUST persist edits through the existing backend PATCH publication contract, update local state from the successful backend response, and refresh the scheduler view so the calendar reflects the saved server truth. In edit mode, the composer MUST hide create-only affordances that imply a new publication is being created.
+When a user opens an editable publication from the scheduler and chooses to edit it, the system MUST
+close the read-only detail modal and reopen the full composer in edit mode with publication data
+pre-filled from authoritative server-backed publication state. The composer edit flow MUST support
+editing content, scheduling, priority, and media asset references while keeping the selected channel
+read-only for the duration of the edit. The client MUST persist edits through the existing backend
+PATCH publication contract, update local state from the successful backend response, and refresh the
+scheduler view so the calendar reflects the saved server truth. In edit mode, the composer MUST hide
+create-only affordances that imply a new publication is being created.
 
 #### Scenario: User edits a scheduled publication from the scheduler
 
@@ -179,7 +207,8 @@ When a user opens an editable publication from the scheduler and chooses to edit
 - WHEN the user selects the edit action
 - THEN the detail modal MUST close
 - AND the full composer MUST open in edit mode
-- AND the composer MUST pre-fill content, schedule date/time, schedule mode, priority, attached media asset references, and the existing channel selection
+- AND the composer MUST pre-fill content, schedule date/time, schedule mode, priority, attached
+  media asset references, and the existing channel selection
 - AND the existing channel selection MUST be read-only
 
 #### Scenario: Published publications remain read-only in the scheduler
@@ -261,53 +290,71 @@ implement LinkedIn personal-profile capability validation for the MVP-supported 
 
 The system MUST provide an API endpoint for workspace members to create `PublicationAsset` records.
 
-A workspace member MUST be able to submit a `CreateAssetCommand` containing `workspaceId`, `storageKey` (for uploaded assets), `mediaType`, and optionally `externalUrl` (for external assets). The system MUST validate the media type against LinkedIn-supported types and enforce the 10MB per-asset size limit. Upon successful creation, the asset record MUST be persisted with status `READY` and a unique `assetId`.
+A workspace member MUST be able to submit a `CreateAssetCommand` containing `workspaceId`,
+`storageKey` (for uploaded assets), `mediaType`, and optionally `externalUrl` (for external assets).
+The system MUST validate the media type against LinkedIn-supported types and enforce the 10MB
+per-asset size limit. Upon successful creation, the asset record MUST be persisted with status
+`READY` and a unique `assetId`.
 
 #### Scenario: Workspace member uploads a media asset
 
 - GIVEN an authenticated workspace member with a connected LinkedIn account
-- WHEN the member submits a `CreateAssetCommand` with `storageKey` pointing to a valid uploaded file and `mediaType: IMAGE/JPEG`
-- THEN the system MUST persist a `PublicationAsset` record with `sourceType: UPLOADED`, `mediaType: IMAGE/JPEG`, `storageKey`, and `status: READY`
+- WHEN the member submits a `CreateAssetCommand` with `storageKey` pointing to a valid uploaded file
+  and `mediaType: IMAGE/JPEG`
+- THEN the system MUST persist a `PublicationAsset` record with `sourceType: UPLOADED`,
+  `mediaType: IMAGE/JPEG`, `storageKey`, and `status: READY`
 - AND the asset MUST be assigned a unique `assetId`
 
 #### Scenario: Workspace member registers an external URL asset
 
 - GIVEN an authenticated workspace member with a connected LinkedIn account
 - WHEN the member submits a `CreateAssetCommand` with `externalUrl` and `mediaType: IMAGE/PNG`
-- THEN the system MUST persist a `PublicationAsset` record with `sourceType: EXTERNAL_URL`, `mediaType: IMAGE/PNG`, `externalUrl`, and `status: READY`
+- THEN the system MUST persist a `PublicationAsset` record with `sourceType: EXTERNAL_URL`,
+  `mediaType: IMAGE/PNG`, `externalUrl`, and `status: READY`
 
 #### Scenario: Asset creation rejects unsupported media type
 
-- GIVEN an authenticated workspace member submits a `CreateAssetCommand` with `mediaType: APPLICATION/PDF`
+- GIVEN an authenticated workspace member submits a `CreateAssetCommand` with
+  `mediaType: APPLICATION/PDF`
 - WHEN the system validates the media type against LinkedIn-supported types
 - THEN the system MUST reject the request with a validation error
 - AND no `PublicationAsset` record MUST be created
 
 #### Scenario: Asset creation rejects file exceeding size limit
 
-- GIVEN an authenticated workspace member submits a `CreateAssetCommand` with a `storageKey` referencing a file larger than 10MB
+- GIVEN an authenticated workspace member submits a `CreateAssetCommand` with a `storageKey`
+  referencing a file larger than 10MB
 - WHEN the system validates the file size
 - THEN the system MUST reject the request with a validation error
 - AND no `PublicationAsset` record MUST be created
 
 ### Requirement: AssetUploader Port
 
-The system MUST provide an `AssetUploader` port interface that provider adapters implement to register and upload assets to their respective platforms.
+The system MUST provide an `AssetUploader` port interface that provider adapters implement to
+register and upload assets to their respective platforms.
 
-The `AssetUploader` interface MUST declare: `suspend fun uploadAsset(asset: PublicationAsset, content: Flow<ByteArray>): ProviderAssetRef`. The port MUST be implemented by `RealLinkedInAssetUploader` for production and `FakeLinkedInAssetUploader` for testing.
+The `AssetUploader` interface MUST declare:
+`suspend fun uploadAsset(asset: PublicationAsset, content: Flow<ByteArray>): ProviderAssetRef`. The
+port MUST be implemented by `RealLinkedInAssetUploader` for production and
+`FakeLinkedInAssetUploader` for testing.
 
 #### Scenario: AssetUploader implementation returns provider asset reference
 
 - GIVEN a `PublicationAsset` with `sourceType: UPLOADED` and a valid `storageKey`
 - WHEN `AssetUploader.uploadAsset()` is called with the asset and its binary content flow
-- THEN the uploader MUST return a `ProviderAssetRef` containing the provider-specific `providerAssetId` (LinkedIn URN), `mediaType`, and optionally `accessUrl`
+- THEN the uploader MUST return a `ProviderAssetRef` containing the provider-specific
+  `providerAssetId` (LinkedIn URN), `mediaType`, and optionally `accessUrl`
 - AND the LinkedIn URN format MUST be `urn:li:digitalmediaAsset:{asset-type}:{asset-id}`
 
 ### Requirement: RealLinkedInAssetUploader Two-Phase Upload
 
-The `RealLinkedInAssetUploader` MUST implement the LinkedIn asset upload flow in two distinct phases.
+The `RealLinkedInAssetUploader` MUST implement the LinkedIn asset upload flow in two distinct
+phases.
 
-**Phase 1 — Register**: The uploader MUST call `POST /assets` to register the asset and receive a `digitalmediaAsset` URN plus an upload URL. **Phase 2 — Stream**: The uploader MUST `PUT` the binary content directly to the upload URL obtained in Phase 1. The uploader MUST return a `ProviderAssetRef` with the URN as `providerAssetId`.
+**Phase 1 — Register**: The uploader MUST call `POST /assets` to register the asset and receive a
+`digitalmediaAsset` URN plus an upload URL. **Phase 2 — Stream**: The uploader MUST `PUT` the binary
+content directly to the upload URL obtained in Phase 1. The uploader MUST return a
+`ProviderAssetRef` with the URN as `providerAssetId`.
 
 #### Scenario: LinkedIn asset uploader completes two-phase upload
 
@@ -316,7 +363,8 @@ The `RealLinkedInAssetUploader` MUST implement the LinkedIn asset upload flow in
 - THEN the uploader MUST first call `POST /assets` to register the asset with LinkedIn
 - AND receive a `digitalmediaAsset` URN and upload URL in the response
 - AND then stream the binary content to the upload URL via `PUT /assets/{assetUrn}`
-- AND return `ProviderAssetRef(providerAssetId: "urn:li:digitalmediaAsset:image:...", mediaType: IMAGE/JPEG)`
+- AND return
+  `ProviderAssetRef(providerAssetId: "urn:li:digitalmediaAsset:image:...", mediaType: IMAGE/JPEG)`
 
 #### Scenario: LinkedIn asset uploader handles registration failure
 
@@ -328,15 +376,18 @@ The `RealLinkedInAssetUploader` MUST implement the LinkedIn asset upload flow in
 
 ### Requirement: FakeLinkedInAssetUploader for Testing
 
-The system MUST provide a `FakeLinkedInAssetUploader` test double that simulates the LinkedIn asset upload flow without requiring real credentials.
+The system MUST provide a `FakeLinkedInAssetUploader` test double that simulates the LinkedIn asset
+upload flow without requiring real credentials.
 
-The fake MUST generate a deterministic fake URN in the correct format and MUST support configurable success/failure behavior for test scenarios.
+The fake MUST generate a deterministic fake URN in the correct format and MUST support configurable
+success/failure behavior for test scenarios.
 
 #### Scenario: FakeLinkedInAssetUploader returns fake URN on success
 
 - GIVEN a `FakeLinkedInAssetUploader` configured with `failOnNextCall = false`
 - WHEN `uploadAsset()` is called with any valid asset
-- THEN the fake MUST return a `ProviderAssetRef` with `providerAssetId` matching `urn:li:digitalmediaAsset:image:fake-asset-{uuid}`
+- THEN the fake MUST return a `ProviderAssetRef` with `providerAssetId` matching
+  `urn:li:digitalmediaAsset:image:fake-asset-{uuid}`
 - AND the operation MUST complete without throwing
 
 #### Scenario: FakeLinkedInAssetUploader can be configured to fail
@@ -348,9 +399,12 @@ The fake MUST generate a deterministic fake URN in the correct format and MUST s
 
 ### Requirement: PublicationAsset Repository Write Path
 
-The system MUST extend `PublicationAssetRepository` with a `create()` method that persists new asset records.
+The system MUST extend `PublicationAssetRepository` with a `create()` method that persists new asset
+records.
 
-The `create()` method MUST accept the asset fields and persist a record with an assigned `assetId` and `status: READY`. The method MUST follow existing repository patterns and event publishing conventions.
+The `create()` method MUST accept the asset fields and persist a record with an assigned `assetId`
+and `status: READY`. The method MUST follow existing repository patterns and event publishing
+conventions.
 
 #### Scenario: Repository creates new asset record
 
@@ -362,9 +416,12 @@ The `create()` method MUST accept the asset fields and persist a record with an 
 
 ### Requirement: ProviderAssetRef Model
 
-The system MUST define a `ProviderAssetRef` data class to hold provider-specific asset references returned after successful upload.
+The system MUST define a `ProviderAssetRef` data class to hold provider-specific asset references
+returned after successful upload.
 
-The `ProviderAssetRef` data class MUST contain: `providerAssetId` (required — the provider's URN or ID), `mediaType` (required — the resolved media type), and `accessUrl` (optional — URL for accessing the uploaded asset).
+The `ProviderAssetRef` data class MUST contain: `providerAssetId` (required — the provider's URN or
+ID), `mediaType` (required — the resolved media type), and `accessUrl` (optional — URL for accessing
+the uploaded asset).
 
 #### Scenario: ProviderAssetRef captures LinkedIn URN
 
@@ -376,7 +433,11 @@ The `ProviderAssetRef` data class MUST contain: `providerAssetId` (required — 
 
 ### Requirement: RealLinkedInPublisher Integrates Asset Uploader
 
-The `RealLinkedInPublisher` MUST process non-empty asset lists by calling the `AssetUploader` for each `UPLOADED` asset and transforming each result into a LinkedIn `contentEntities` entry. For `EXTERNAL_URL` assets, the publisher MUST use the presigned URL or direct URL in the `source` field. The publisher MUST embed all asset URNs or URLs in the post body using LinkedIn's `contentEntities` format.
+The `RealLinkedInPublisher` MUST process non-empty asset lists by calling the `AssetUploader` for
+each `UPLOADED` asset and transforming each result into a LinkedIn `contentEntities` entry. For
+`EXTERNAL_URL` assets, the publisher MUST use the presigned URL or direct URL in the `source` field.
+The publisher MUST embed all asset URNs or URLs in the post body using LinkedIn's `contentEntities`
+format.
 
 #### Scenario: Publisher publishes post with uploaded image asset
 
@@ -389,9 +450,11 @@ The `RealLinkedInPublisher` MUST process non-empty asset lists by calling the `A
 
 #### Scenario: Publisher publishes post with external URL asset
 
-- GIVEN a publication command with one `PublicationAsset` where `sourceType: EXTERNAL_URL` and a valid `externalUrl`
+- GIVEN a publication command with one `PublicationAsset` where `sourceType: EXTERNAL_URL` and a
+  valid `externalUrl`
 - WHEN `RealLinkedInPublisher.publish()` is called
-- THEN the publisher MUST use the `externalUrl` directly in the LinkedIn `contentEntities` `source` field
+- THEN the publisher MUST use the `externalUrl` directly in the LinkedIn `contentEntities` `source`
+  field
 - AND no `AssetUploader` call is required for this asset type
 
 #### Scenario: Publisher publishes post with multiple assets
@@ -414,7 +477,9 @@ The `RealLinkedInPublisher` MUST process non-empty asset lists by calling the `A
 
 ### Requirement: LinkedInCapabilityValidator Media Type and Size Validation
 
-The validator MUST reject publications where any asset has a `mediaType` not in the LinkedIn-supported set: `IMAGE/JPEG`, `IMAGE/PNG`, `IMAGE/GIF`, `IMAGE/WEBP`, `VIDEO/MP4`. The validator MUST also reject publications where any asset's file size exceeds 10MB.
+The validator MUST reject publications where any asset has a `mediaType` not in the
+LinkedIn-supported set: `IMAGE/JPEG`, `IMAGE/PNG`, `IMAGE/GIF`, `IMAGE/WEBP`, `VIDEO/MP4`. The
+validator MUST also reject publications where any asset's file size exceeds 10MB.
 
 #### Scenario: Validator rejects unsupported media type
 
@@ -432,7 +497,9 @@ The validator MUST reject publications where any asset has a `mediaType` not in 
 
 ### Requirement: PublicationAsset Status Lifecycle
 
-An asset MUST transition from `READY` to `PROCESSING` when `AssetUploader` begins the upload. Upon successful upload completion, the asset MUST retain or return to `READY` status with the `providerAssetRef` populated. Upon upload failure, the asset MUST transition to `FAILED` status.
+An asset MUST transition from `READY` to `PROCESSING` when `AssetUploader` begins the upload. Upon
+successful upload completion, the asset MUST retain or return to `READY` status with the
+`providerAssetRef` populated. Upon upload failure, the asset MUST transition to `FAILED` status.
 
 #### Scenario: Asset transitions to PROCESSING during upload
 
@@ -486,15 +553,21 @@ happen without redefining publication semantics.
 
 ### Requirement: Calendar Query Endpoint
 
-The system MUST expose a `GET /api/publishing/publications/calendar` endpoint returning publications filtered by date range, status, channel, and timezone.
+The system MUST expose a `GET /api/publishing/publications/calendar` endpoint returning publications
+filtered by date range, status, channel, and timezone.
 
-The endpoint MUST accept `from` and `to` (ISO-8601 Instant, required), `status` (comma-separated, optional), `socialAccountId` (optional), and `timezone` (IANA, optional, defaults to UTC). The response MUST include `publications[]` with conflict flags, `activity[]` with per-day counts and density levels, and `conflicts[]` with overlapping publication pairs.
+The endpoint MUST accept `from` and `to` (ISO-8601 Instant, required), `status` (comma-separated,
+optional), `socialAccountId` (optional), and `timezone` (IANA, optional, defaults to UTC). The
+response MUST include `publications[]` with conflict flags, `activity[]` with per-day counts and
+density levels, and `conflicts[]` with overlapping publication pairs.
 
 #### Scenario: Calendar query returns filtered publications
 
 - GIVEN a workspace has publications across multiple dates and statuses
-- WHEN a GET request is made with `from=2026-06-01T00:00:00Z&to=2026-06-30T00:00:00Z&status=SCHEDULED,QUEUED&socialAccountId=acc_li_1`
-- THEN the response MUST include only SCHEDULED and QUEUED publications for the LinkedIn account within June 2026
+- WHEN a GET request is made with
+  `from=2026-06-01T00:00:00Z&to=2026-06-30T00:00:00Z&status=SCHEDULED,QUEUED&socialAccountId=acc_li_1`
+- THEN the response MUST include only SCHEDULED and QUEUED publications for the LinkedIn account
+  within June 2026
 - AND the response MUST include `activity` entries grouped by date
 
 #### Scenario: Empty range returns empty result set
@@ -505,9 +578,12 @@ The endpoint MUST accept `from` and `to` (ISO-8601 Instant, required), `status` 
 
 ### Requirement: Activity Density Aggregation
 
-The system MUST aggregate publication counts per day using the user's timezone for activity indicators.
+The system MUST aggregate publication counts per day using the user's timezone for activity
+indicators.
 
-The aggregation MUST group publications by calendar date in the requested IANA timezone and classify each day into density levels: 0 = `none`, 1–2 = `light`, 3–5 = `medium`, 6+ = `high`. Thresholds MUST be defined as constants in `ActivityThresholds`.
+The aggregation MUST group publications by calendar date in the requested IANA timezone and classify
+each day into density levels: 0 = `none`, 1–2 = `light`, 3–5 = `medium`, 6+ = `high`. Thresholds
+MUST be defined as constants in `ActivityThresholds`.
 
 #### Scenario: Activity aggregation respects timezone boundary
 
@@ -517,9 +593,12 @@ The aggregation MUST group publications by calendar date in the requested IANA t
 
 ### Requirement: Conflict Detection Policy
 
-The system MUST detect conflicting publications when two SCHEDULED or QUEUED publications for the same social account fall within a configurable conflict window (default 15 minutes).
+The system MUST detect conflicting publications when two SCHEDULED or QUEUED publications for the
+same social account fall within a configurable conflict window (default 15 minutes).
 
-The `ConflictDetectionPolicy` MUST group publications by `socialAccountId`, sort by `scheduledFor`, and flag adjacent pairs where the gap is less than the conflict window. DRAFT, FAILED, CANCELLED, and PUBLISHED statuses MUST be excluded from detection.
+The `ConflictDetectionPolicy` MUST group publications by `socialAccountId`, sort by `scheduledFor`,
+and flag adjacent pairs where the gap is less than the conflict window. DRAFT, FAILED, CANCELLED,
+and PUBLISHED statuses MUST be excluded from detection.
 
 #### Scenario: Adjacent same-account publications within window are flagged
 
@@ -536,9 +615,11 @@ The `ConflictDetectionPolicy` MUST group publications by `socialAccountId`, sort
 
 ### Requirement: Quick-Create Endpoint
 
-The system MUST expose `POST /api/publishing/publications/quick-create` that maps to `CreatePublicationCommand` with `scheduleMode = SCHEDULED_AT` and empty assets.
+The system MUST expose `POST /api/publishing/publications/quick-create` that maps to
+`CreatePublicationCommand` with `scheduleMode = SCHEDULED_AT` and empty assets.
 
-The endpoint MUST accept `socialAccountId`, `title`, `bodyText`, `scheduledFor`, and `priority`. The response MUST return the existing `PublicationResult`.
+The endpoint MUST accept `socialAccountId`, `title`, `bodyText`, `scheduledFor`, and `priority`. The
+response MUST return the existing `PublicationResult`.
 
 #### Scenario: Quick-create creates a scheduled publication
 
@@ -549,27 +630,34 @@ The endpoint MUST accept `socialAccountId`, `title`, `bodyText`, `scheduledFor`,
 
 ### Requirement: PATCH Reschedule Endpoint
 
-The system MUST expose `PATCH /api/publishing/publications/{id}/reschedule` alongside the existing `POST` reschedule route for drag-and-drop updates.
+The system MUST expose `PATCH /api/publishing/publications/{id}/reschedule` alongside the existing
+`POST` reschedule route for drag-and-drop updates.
 
-The endpoint MUST accept `scheduleMode`, `scheduledFor`, and `priority`. Only SCHEDULED and QUEUED publications MUST be reschedulable. The response MUST return the existing `PublicationResult`.
+The endpoint MUST accept `scheduleMode`, `scheduledFor`, and `priority`. Only SCHEDULED and QUEUED
+publications MUST be reschedulable. The response MUST return the existing `PublicationResult`.
 
 #### Scenario: Drag-drop reschedule updates publication time
 
 - GIVEN a SCHEDULED publication with `scheduledFor` at Monday 10:00
-- WHEN a PATCH request submits `{"scheduleMode": "SCHEDULED_AT", "scheduledFor": "2026-06-09T14:00:00Z"}`
+- WHEN a PATCH request submits
+  `{"scheduleMode": "SCHEDULED_AT", "scheduledFor": "2026-06-09T14:00:00Z"}`
 - THEN the publication's `scheduledFor` MUST be updated to 14:00
 - AND the response MUST reflect the new schedule
 
 ### Requirement: Idempotent Connection Upsert Semantics
 
-Repository methods for persisting `SocialConnection` and `SocialAccount` MUST use ON CONFLICT UPDATE (upsert) semantics. Reconnecting the same LinkedIn profile to the same workspace MUST update the existing record rather than violate uniqueness constraints.
+Repository methods for persisting `SocialConnection` and `SocialAccount` MUST use ON CONFLICT
+UPDATE (upsert) semantics. Reconnecting the same LinkedIn profile to the same workspace MUST update
+the existing record rather than violate uniqueness constraints.
 
 #### Scenario: Reconnecting the same LinkedIn profile updates existing connection
 
-- GIVEN a workspace already has an active LinkedIn personal profile connection with a specific provider account ID
+- GIVEN a workspace already has an active LinkedIn personal profile connection with a specific
+  provider account ID
 - WHEN the OAuth flow is completed again for the same LinkedIn profile and workspace
 - THEN the system MUST update the existing `SocialConnection` and `SocialAccount` records
-- AND connection status MUST be `ACTIVE` with refreshed credential reference and `connectedAt` timestamp
+- AND connection status MUST be `ACTIVE` with refreshed credential reference and `connectedAt`
+  timestamp
 - AND no duplicate records MUST be created
 
 #### Scenario: Reconnecting after revocation restores the connection
@@ -581,11 +669,14 @@ Repository methods for persisting `SocialConnection` and `SocialAccount` MUST us
 
 ### Requirement: OAuth State Validation on Connection Completion
 
-The existing `POST /api/publishing/linkedin/connections/complete` endpoint MUST validate the `state` parameter before processing the connection. If `state` is absent, tampered, or expired, the endpoint MUST reject the request.
+The existing `POST /api/publishing/linkedin/connections/complete` endpoint MUST validate the `state`
+parameter before processing the connection. If `state` is absent, tampered, or expired, the endpoint
+MUST reject the request.
 
 #### Scenario: Completion with valid state succeeds
 
-- GIVEN a valid `authorizationCode` and a `state` value that matches the signed original from initiation
+- GIVEN a valid `authorizationCode` and a `state` value that matches the signed original from
+  initiation
 - WHEN the completion endpoint is called
 - THEN the system MUST process the LinkedIn OAuth exchange and persist the connection
 
@@ -598,7 +689,10 @@ The existing `POST /api/publishing/linkedin/connections/complete` endpoint MUST 
 
 ### Requirement: Frontend Channel Data Source Migration
 
-The publishing Pinia store MUST replace mock channel seeding with backend-loaded channels. The store MUST initialize `channels` as an empty array for authenticated users and load real channels from `GET /api/publishing/channels`. Actions `fetchChannels()`, `connectLinkedInPersonalProfile()`, and `completeLinkedInConnectionFromCallback()` MUST be added.
+The publishing Pinia store MUST replace mock channel seeding with backend-loaded channels. The store
+MUST initialize `channels` as an empty array for authenticated users and load real channels from
+`GET /api/publishing/channels`. Actions `fetchChannels()`, `connectLinkedInPersonalProfile()`, and
+`completeLinkedInConnectionFromCallback()` MUST be added.
 
 #### Scenario: Authenticated user loads channels from backend
 
@@ -624,20 +718,28 @@ The publishing Pinia store MUST replace mock channel seeding with backend-loaded
 
 ### Requirement: LinkedIn Channel Avatar Support
 
-The system MUST propagate an optional `avatarUrl` from LinkedIn OIDC userinfo through persistence, APIs, store mapping, and UI rendering for connected LinkedIn channels.
+The system MUST propagate an optional `avatarUrl` from LinkedIn OIDC userinfo through persistence,
+APIs, store mapping, and UI rendering for connected LinkedIn channels.
 
-A connected LinkedIn channel with a non-null `avatar_url` MUST display the avatar image in the sidebar and channel selector. When the avatar URL is absent or fails to load, the system MUST render the existing provider badge/initials fallback without layout shift. The `avatarUrl` field MUST be additive and optional across all layers — domain, API, and frontend types. Provider secret values MUST NOT be stored in `avatar_url`. Only HTTPS URLs SHALL be accepted; non-HTTPS values (including data-URIs) MUST be rejected and the column left NULL.
+A connected LinkedIn channel with a non-null `avatar_url` MUST display the avatar image in the
+sidebar and channel selector. When the avatar URL is absent or fails to load, the system MUST render
+the existing provider badge/initials fallback without layout shift. The `avatarUrl` field MUST be
+additive and optional across all layers — domain, API, and frontend types. Provider secret values
+MUST NOT be stored in `avatar_url`. Only HTTPS URLs SHALL be accepted; non-HTTPS values (including
+data-URIs) MUST be rejected and the column left NULL.
 
 #### Scenario: Connected LinkedIn channel with avatar shows profile picture
 
-- GIVEN a workspace with an ACTIVE LinkedIn personal-profile social account that has a non-empty `avatar_url`
+- GIVEN a workspace with an ACTIVE LinkedIn personal-profile social account that has a non-empty
+  `avatar_url`
 - WHEN the SPA requests `GET /api/publishing/channels`
 - THEN the response MUST include `avatarUrl` for that channel
 - AND the sidebar MUST render an `<img src={avatarUrl}>` for that channel
 
 #### Scenario: Connected LinkedIn channel without avatar shows badge fallback
 
-- GIVEN a workspace with an ACTIVE LinkedIn personal-profile social account where `avatar_url` is NULL
+- GIVEN a workspace with an ACTIVE LinkedIn personal-profile social account where `avatar_url` is
+  NULL
 - WHEN channels are listed
 - THEN the frontend MUST render the provider badge/initials fallback in place of an `<img>`
 
@@ -652,7 +754,8 @@ A connected LinkedIn channel with a non-null `avatar_url` MUST display the avata
 
 - GIVEN a user completes LinkedIn OAuth and LinkedIn `userinfo` includes `picture`
 - WHEN the backend finalizes the connection and persists social account metadata
-- THEN `avatar_url` column on the `social_accounts` row MUST be populated with the safe `picture` value
+- THEN `avatar_url` column on the `social_accounts` row MUST be populated with the safe `picture`
+  value
 
 #### Scenario: Reconnect updates avatar_url via upsert
 
@@ -663,31 +766,48 @@ A connected LinkedIn channel with a non-null `avatar_url` MUST display the avata
 #### API Contract
 
 `GET /api/publishing/channels` (200) response array items include optional field:
-- `avatarUrl?: string | null` — absolute URL from LinkedIn userinfo.picture when present. MUST be present for channels whose persisted `avatar_url` is non-null. MUST NOT contain provider secrets.
 
-API compatibility: The field is additive and optional; older clients MUST ignore unknown fields. New clients MUST tolerate missing or null values.
+- `avatarUrl?: string | null` — absolute URL from LinkedIn userinfo.picture when present. MUST be
+  present for channels whose persisted `avatar_url` is non-null. MUST NOT contain provider secrets.
+
+API compatibility: The field is additive and optional; older clients MUST ignore unknown fields. New
+clients MUST tolerate missing or null values.
 
 #### Data Model
 
-- Database migration: Add nullable column `avatar_url VARCHAR(1024) NULL` to `social_accounts`. Changeset MUST be additive and backward-compatible.
+- Database migration: Add nullable column `avatar_url VARCHAR(1024) NULL` to `social_accounts`.
+  Changeset MUST be additive and backward-compatible.
 - Domain model `SocialAccount` MUST include `avatarUrl: String?`.
-- Repository upsert semantics MUST set `avatar_url` when provided and leave existing value unchanged when absent during partial updates (unless reconnect flow explicitly provides new value).
+- Repository upsert semantics MUST set `avatar_url` when provided and leave existing value unchanged
+  when absent during partial updates (unless reconnect flow explicitly provides new value).
 
-Security: Do NOT store provider secret values in `avatar_url`. Validate that the value is an HTTPS URL. If LinkedIn returns data-URI or non-HTTPS, sanitize or reject and leave column NULL.
+Security: Do NOT store provider secret values in `avatar_url`. Validate that the value is an HTTPS
+URL. If LinkedIn returns data-URI or non-HTTPS, sanitize or reject and leave column NULL.
 
 #### Frontend
 
-- Channel interface MUST include `avatarUrl?: string | null`. Mapper `apiChannelToChannel()` MUST read `avatarUrl` from API response.
-- Sidebar and CreatePostModal MUST render `<img :src="channel.avatarUrl" @error="onAvatarError(channel)" v-if="channel.avatarUrl"/>`. When `avatarUrl` is null/absent or `avatarLoadFailed` is true, render provider badge/initials fallback with identical dimensions.
-- Avatar image and badge MUST share same container size and border radius so swapping does not cause layout changes.
-- Avatar images MUST provide `alt` text: `alt="{channel.displayName} avatar"`. Fallback badge MUST expose accessible label for assistive technologies.
+- Channel interface MUST include `avatarUrl?: string | null`. Mapper `apiChannelToChannel()` MUST
+  read `avatarUrl` from API response.
+- Sidebar and CreatePostModal MUST render
+  `<img :src="channel.avatarUrl" @error="onAvatarError(channel)" v-if="channel.avatarUrl"/>`. When
+  `avatarUrl` is null/absent or `avatarLoadFailed` is true, render provider badge/initials fallback
+  with identical dimensions.
+- Avatar image and badge MUST share same container size and border radius so swapping does not cause
+  layout changes.
+- Avatar images MUST provide `alt` text: `alt="{channel.displayName} avatar"`. Fallback badge MUST
+  expose accessible label for assistive technologies.
 
 #### Backend
 
-- LinkedIn connector: When completing connection or during sync, read `picture` from LinkedIn OIDC userinfo `/v2/userinfo` if present. Validate that `picture` is an HTTPS URL and not a data URI. If invalid, log at debug and do not persist.
-- Service layer: When persisting social account metadata, set `avatar_url` when value is provided by connector. Upsert semantics MUST replace the column when connector supplies a new value.
+- LinkedIn connector: When completing connection or during sync, read `picture` from LinkedIn OIDC
+  userinfo `/v2/userinfo` if present. Validate that `picture` is an HTTPS URL and not a data URI. If
+  invalid, log at debug and do not persist.
+- Service layer: When persisting social account metadata, set `avatar_url` when value is provided by
+  connector. Upsert semantics MUST replace the column when connector supplies a new value.
 - Repository: Add `avatar_url` handling in read/write mappings between DB rows and domain objects.
-- Controller/API: Include `avatarUrl` in the channel summary DTO returned by `GET /api/publishing/channels` when `avatar_url` is non-null. Ensure DTO does not leak provider tokens or other secrets.
+- Controller/API: Include `avatarUrl` in the channel summary DTO returned by
+  `GET /api/publishing/channels` when `avatar_url` is non-null. Ensure DTO does not leak provider
+  tokens or other secrets.
 
 #### Observability
 
@@ -696,7 +816,8 @@ Security: Do NOT store provider secret values in `avatar_url`. Validate that the
 
 #### Rollout
 
-- Deploy DB migration before server code that writes `avatar_url` (deploy in same release window preferred). Because column is nullable and additive, older server versions are compatible.
+- Deploy DB migration before server code that writes `avatar_url` (deploy in same release window
+  preferred). Because column is nullable and additive, older server versions are compatible.
 - Feature rollout is safe by default; UI will show fallback if API does not provide `avatarUrl`.
 
 ---
@@ -1557,24 +1678,34 @@ reference contract or remain explicitly out of scope for this change.
 
 ### Requirement: Publication Edit Hardening Quality Gates
 
-The publication editing flow MUST remain protected by backend quality gates plus dedicated unit and end-to-end regression coverage.
+The publication editing flow MUST remain protected by backend quality gates plus dedicated unit and
+end-to-end regression coverage.
 
-Hardening changes to publication editing MUST preserve existing persistence contracts while keeping the backend publishing quality gate green. The composer edit-mode behavior MUST remain covered by focused unit tests for prefill, locked channel state, create-only control hiding, update submission branching, success emission, and surfaced error handling. The scheduler edit journey MUST remain covered by end-to-end browser tests that verify edit entry from the detail modal, composer prefill behavior, successful save, and scheduler refresh after the update.
+Hardening changes to publication editing MUST preserve existing persistence contracts while keeping
+the backend publishing quality gate green. The composer edit-mode behavior MUST remain covered by
+focused unit tests for prefill, locked channel state, create-only control hiding, update submission
+branching, success emission, and surfaced error handling. The scheduler edit journey MUST remain
+covered by end-to-end browser tests that verify edit entry from the detail modal, composer prefill
+behavior, successful save, and scheduler refresh after the update.
 
 #### Scenario: Backend publishing quality gate passes after persistence hardening
 
 - GIVEN the publishing persistence adapter is refactored to satisfy code-quality constraints
 - WHEN backend quality checks are run
 - THEN the publishing behavior MUST remain unchanged
-- AND the backend quality gate MUST pass without `LargeClass` or `LongMethod` failures in `R2dbcPublishingRepositories.kt`
+- AND the backend quality gate MUST pass without `LargeClass` or `LongMethod` failures in
+  `R2dbcPublishingRepositories.kt`
 
 #### Scenario: Composer edit mode has focused regression coverage
 
 - GIVEN `CreatePostModal` opens in edit mode for an existing publication
 - WHEN the unit test suite runs
-- THEN dedicated tests MUST verify prefill of content, scheduling, priority, media, and locked channel state
-- AND dedicated tests MUST verify that edit mode calls `updatePost()` rather than create-mode submission
-- AND dedicated tests MUST verify that create-only controls are hidden and update errors are surfaced
+- THEN dedicated tests MUST verify prefill of content, scheduling, priority, media, and locked
+  channel state
+- AND dedicated tests MUST verify that edit mode calls `updatePost()` rather than create-mode
+  submission
+- AND dedicated tests MUST verify that create-only controls are hidden and update errors are
+  surfaced
 
 #### Scenario: Scheduler publication edit flow is protected end-to-end
 
@@ -1603,7 +1734,9 @@ media-bounded-context ownership semantics introduced here. For the MVP transitio
 
 ### Requirement: Atomic Publication and Job Mutations
 
-Create, Edit, Cancel, Retry, and Reschedule MUST execute their publication mutation (including asset-link changes) and corresponding job mutation through one `AtomicTransactionRunner` boundary. Both sides MUST commit together or both MUST roll back.
+Create, Edit, Cancel, Retry, and Reschedule MUST execute their publication mutation (including
+asset-link changes) and corresponding job mutation through one `AtomicTransactionRunner` boundary.
+Both sides MUST commit together or both MUST roll back.
 
 #### Scenario: Paired mutation commits
 
@@ -1620,14 +1753,18 @@ Create, Edit, Cancel, Retry, and Reschedule MUST execute their publication mutat
 
 #### Scenario: Existing workflow job mutation fails
 
-- GIVEN Edit, Cancel, Retry, or Reschedule targets a persisted publication with its current asset links and job
+- GIVEN Edit, Cancel, Retry, or Reschedule targets a persisted publication with its current asset
+  links and job
 - WHEN the publication mutation succeeds but the job mutation fails
 - THEN the prior publication state and asset links MUST remain unchanged
 - AND any pre-existing job MUST remain unchanged
 
 ### Requirement: Framework-Neutral Transaction Orchestration
 
-The five handlers MUST depend on `AtomicTransactionRunner` and MUST NOT depend on Spring, Reactor, or coroutine-Reactor transaction APIs. Authorization, lifecycle and capability validation, external reads, and media resolution MUST complete before the transaction starts; only paired persistence mutations SHALL run inside it.
+The five handlers MUST depend on `AtomicTransactionRunner` and MUST NOT depend on Spring, Reactor,
+or coroutine-Reactor transaction APIs. Authorization, lifecycle and capability validation, external
+reads, and media resolution MUST complete before the transaction starts; only paired persistence
+mutations SHALL run inside it.
 
 #### Scenario: Validation fails before transaction
 
@@ -1645,18 +1782,21 @@ The five handlers MUST depend on `AtomicTransactionRunner` and MUST NOT depend o
 
 ### Requirement: Jobs Use Persisted Publication Result
 
-Edit, Retry, and Reschedule MUST derive replacement jobs from the publication returned by persistence, not from the pre-persistence draft.
+Edit, Retry, and Reschedule MUST derive replacement jobs from the publication returned by
+persistence, not from the pre-persistence draft.
 
 #### Scenario: Persistence normalizes publication data
 
-- GIVEN persistence returns publication identity, workspace, status, or schedule data different from the prepared draft
+- GIVEN persistence returns publication identity, workspace, status, or schedule data different from
+  the prepared draft
 - WHEN Edit, Retry, or Reschedule creates its replacement job
 - THEN the job MUST use the persisted publication result
 - AND no stale pre-persistence value MAY determine the job
 
 ### Requirement: Delete Behavior Is Unchanged
 
-Delete MUST retain its existing behavior and MUST NOT acquire `AtomicTransactionRunner` wiring as part of this change.
+Delete MUST retain its existing behavior and MUST NOT acquire `AtomicTransactionRunner` wiring as
+part of this change.
 
 #### Scenario: Delete executes existing path
 
