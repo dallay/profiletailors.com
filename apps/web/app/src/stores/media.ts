@@ -234,6 +234,9 @@ export const useMediaStore = defineStore('media', () => {
     _onProgress?: (pct: number) => void,
   ): Promise<MediaAssetSummary> {
     const workspaceId = useWorkspaceStore().activeWorkspaceId
+    if (!workspaceId) {
+      throw new Error('An active workspace is required to upload media.')
+    }
 
     // Generate assetId ONCE so retries are idempotent
     const stableAssetId = crypto.randomUUID()
