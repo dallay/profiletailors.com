@@ -197,6 +197,15 @@ serve:
     {{gradle-root}} :server:smp:bootRun --args='--spring.profiles.active=dev' &
     cd {{app-dir}} && pnpm exec vite --envDir ../../..
 
+# Kill running dev servers (backend, frontend, Gradle daemons)
+kill-servers:
+    #!/usr/bin/env bash
+    echo "Stopping dev servers..."
+    pkill -f "bootRun" || true
+    pkill -f "vite" || true
+    pkill -f "GradleDaemon" || true
+    echo "✓ Servers stopped"
+
 # Run tests with JaCoCo coverage report
 backend-coverage:
     {{gradle-root}} :server:smp:test :server:smp:jacocoTestReport --no-daemon -PexcludeTags=modularity,postgres
