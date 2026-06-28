@@ -6,6 +6,7 @@ import com.profiletailors.common.domain.context.PrincipalType
 import com.profiletailors.common.domain.context.ResourceContext
 import com.profiletailors.common.domain.context.ResourceContextProvider
 import com.profiletailors.common.domain.context.ResourceContextType
+import com.profiletailors.common.domain.persistence.AtomicTransactionRunner
 import com.profiletailors.common.domain.observability.RequestOutcome
 import com.profiletailors.common.domain.workspace.WorkspaceMembershipStatus
 import com.profiletailors.smp.audit.domain.AuditHook
@@ -73,6 +74,7 @@ class TenancyOwnershipHandlersInternalTest {
                 FixedPrincipalContextProvider(ownerPrincipal),
                 auditHook,
             ),
+            transactionRunner = NoOpAtomicTransactionRunner(),
         )
 
         val result = handler.handle(AddWorkspaceOwnerCommand(targetPrincipalId = "member-2"))
@@ -111,6 +113,7 @@ class TenancyOwnershipHandlersInternalTest {
                 FixedPrincipalContextProvider(ownerPrincipal),
                 auditHook,
             ),
+            transactionRunner = NoOpAtomicTransactionRunner(),
         )
 
         val exception = runCatching {
@@ -150,6 +153,7 @@ class TenancyOwnershipHandlersInternalTest {
                 FixedPrincipalContextProvider(ownerPrincipal),
                 auditHook,
             ),
+            transactionRunner = NoOpAtomicTransactionRunner(),
         )
 
         val exception = runCatching {
@@ -194,6 +198,7 @@ class TenancyOwnershipHandlersInternalTest {
                 FixedPrincipalContextProvider(ownerPrincipal),
                 auditHook,
             ),
+            transactionRunner = NoOpAtomicTransactionRunner(),
         )
 
         val result = handler.handle(AddWorkspaceOwnerCommand(targetPrincipalId = "member-2"))
@@ -238,6 +243,7 @@ class TenancyOwnershipHandlersInternalTest {
                 FixedPrincipalContextProvider(ownerPrincipal),
                 auditHook,
             ),
+            transactionRunner = NoOpAtomicTransactionRunner(),
         )
 
         val result = handler.handle(TransferWorkspaceOwnershipCommand(targetPrincipalId = "member-2"))
@@ -276,6 +282,7 @@ class TenancyOwnershipHandlersInternalTest {
                 FixedPrincipalContextProvider(ownerPrincipal),
                 auditHook,
             ),
+            transactionRunner = NoOpAtomicTransactionRunner(),
         )
 
         val exception = runCatching {
@@ -310,6 +317,7 @@ class TenancyOwnershipHandlersInternalTest {
                     FixedPrincipalContextProvider(ownerPrincipal),
                     auditHook,
                 ),
+                transactionRunner = NoOpAtomicTransactionRunner(),
             )
 
             val exception = runCatching {
@@ -350,6 +358,7 @@ class TenancyOwnershipHandlersInternalTest {
                     FixedPrincipalContextProvider(ownerPrincipal),
                     auditHook,
                 ),
+            transactionRunner = NoOpAtomicTransactionRunner(),
             )
 
             val exception = runCatching {
@@ -393,6 +402,7 @@ class TenancyOwnershipHandlersInternalTest {
                     FixedPrincipalContextProvider(ownerPrincipal),
                     auditHook,
                 ),
+                transactionRunner = NoOpAtomicTransactionRunner(),
             )
 
             val exception = runCatching {
@@ -430,6 +440,10 @@ class TenancyOwnershipHandlersInternalTest {
         override suspend fun onMutation(fact: MutationAuditFact) {
             mutations += fact
         }
+    }
+
+    private class NoOpAtomicTransactionRunner : AtomicTransactionRunner {
+        override suspend fun <T : Any> runAtomically(block: suspend () -> T): T = block()
     }
 
     private class InMemoryWorkspaceOwnershipRepository(
