@@ -6,13 +6,13 @@ import com.profiletailors.smp.media.application.ResolvedAssetSummary
 import com.profiletailors.smp.media.infrastructure.persistence.R2dbcAtomicTransactionRunner
 import com.profiletailors.smp.publishing.domain.DeliveryAttemptRepository
 import com.profiletailors.smp.publishing.domain.DeliveryRetryPolicy
+import com.profiletailors.smp.publishing.domain.NotificationEvent
+import com.profiletailors.smp.publishing.domain.NotificationEventRepository
 import com.profiletailors.smp.publishing.domain.ProviderCapabilityValidationInput
 import com.profiletailors.smp.publishing.domain.ProviderCapabilityValidator
 import com.profiletailors.smp.publishing.domain.ProviderPublishCommand
 import com.profiletailors.smp.publishing.domain.ProviderPublishResult
 import com.profiletailors.smp.publishing.domain.PublicationDraft
-import com.profiletailors.smp.publishing.domain.NotificationEvent
-import com.profiletailors.smp.publishing.domain.NotificationEventRepository
 import com.profiletailors.smp.publishing.domain.PublicationJobClaim
 import com.profiletailors.smp.publishing.domain.PublicationJobRepository
 import com.profiletailors.smp.publishing.domain.PublicationRepository
