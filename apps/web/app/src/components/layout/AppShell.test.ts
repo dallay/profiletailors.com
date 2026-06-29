@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
-import { reactive } from 'vue'
+import { reactive, nextTick } from 'vue'
 import { mount } from '@vue/test-utils'
 
 const routeState = reactive({
@@ -81,9 +81,32 @@ vi.mock('@/composables/useCalendarUrl', async (importOriginal) => {
 
 vi.mock('@/stores/auth', () => ({
   useAuthStore: () => ({
-    ...authState,
+    get isAuthenticated() {
+      return authState.isAuthenticated
+    },
+    get accessToken() {
+      return authState.accessToken
+    },
+    get displayName() {
+      return authState.displayName
+    },
+    get user() {
+      return authState.user
+    },
+    get userInitials() {
+      return authState.userInitials
+    },
+    get isRefreshingProfile() {
+      return authState.isRefreshingProfile
+    },
     get isEmailVerified() {
       return authState.user.emailStatus === 'VERIFIED'
+    },
+    get resendVerificationStatus() {
+      return authState.resendVerificationStatus
+    },
+    get resendVerificationError() {
+      return authState.resendVerificationError
     },
     logout,
     resendVerificationEmail,
@@ -208,6 +231,11 @@ describe('AppShell scheduler sidebar navigation', () => {
     routeState.name = 'scheduler-calendar-week'
     routeState.path = '/scheduler/calendar/week'
     routeState.query = {}
+    authState.isAuthenticated = true
+    authState.accessToken = 'test-token'
+    authState.user.emailStatus = 'VERIFIED'
+    authState.resendVerificationStatus = 'idle'
+    authState.resendVerificationError = null
   })
 
   it('clears channel filters without leaving scheduler when All channels is selected', async () => {
@@ -258,5 +286,75 @@ describe('AppShell scheduler sidebar navigation', () => {
       name: 'scheduler-calendar-week',
       query: { 'channels[]': ['acc-bluesky'] },
     })
+  })
+
+  it('does not show the verification banner for verified users', () => {
+    authState.user.emailStatus = 'VERIFIED'
+
+    const wrapper = mount(AppShell, {
+      global: { mocks: { $t: (key: string) => key } },
+    })
+
+    expect(wrapper.find('[role="alert"]').exists()).toBe(false)
+  })
+
+  it('shows a persistent unverified alert with guidance and resend action', () => {
+    authState.user.emailStatus = 'PENDING'
+
+    const wrapper = mount(AppShell, {
+      global: { mocks: { $t: (key: string) => key } },
+    })
+
+    const alert = wrapper.get('[role="alert"]')
+    expect(alert.text()).toContain('Verify your email')
+    expect(alert.text()).toContain('Publish, social connect, and media upload require email verification.')
+    expect(alert.text()).toContain('Check your inbox for the verification link.')
+    expect(wrapper.get('[data-testid="resend-verification"]').text()).toContain(
+      'Resend verification email',
+    )
+  })
+
+  it('uses the same banner for other non-verified statuses', () => {
+    authState.user.emailStatus = 'BOUNCED'
+
+    const wrapper = mount(AppShell, {
+      global: { mocks: { $t: (key: string) => key } },
+    })
+
+    expect(wrapper.get('[role="alert"]').text()).toContain('Verify your email')
+  })
+
+  it('triggers resend and shows success state', async () => {
+    authState.user.emailStatus = 'PENDING'
+    const wrapper = mount(AppShell, {
+      global: { mocks: { $t: (key: string) => key } },
+    })
+
+    await wrapper.get('[data-testid="resend-verification"]').trigger('click')
+    authState.resendVerificationStatus = 'success'
+    await nextTick()
+
+    expect(resendVerificationEmail).toHaveBeenCalledOnce()
+    expect(wrapper.text()).toContain('Verification email sent. Check your inbox.')
+  })
+
+  it('disables resend while loading and shows error state', () => {
+    authState.user.emailStatus = 'PENDING'
+    authState.resendVerificationStatus = 'error'
+    authState.resendVerificationError = 'Please wait before retrying.'
+
+    const wrapper = mount(AppShell, {
+      global: { mocks: { $t: (key: string) => key } },
+    })
+
+    expect(wrapper.text()).toContain('Please wait before retrying.')
+
+    authState.resendVerificationStatus = 'loading'
+    const loadingWrapper = mount(AppShell, {
+      global: { mocks: { $t: (key: string) => key } },
+    })
+
+    expect(loadingWrapper.get('[data-testid="resend-verification"]').attributes('disabled')).toBeDefined()
+    expect(loadingWrapper.get('[data-testid="resend-verification"]').text()).toContain('Sending...')
   })
 })

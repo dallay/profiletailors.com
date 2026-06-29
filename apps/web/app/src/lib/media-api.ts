@@ -252,7 +252,16 @@ export async function putAsset(
   // Handle non-OK responses
   if (!putResp.ok) {
     const body = await putResp.json().catch(() => ({}))
-    const err = body as MediaApiError
+    const err = body as MediaApiError & { code?: string; detail?: string }
+
+    if (putResp.status === 403 && err.code === 'EMAIL_VERIFICATION_REQUIRED') {
+      throw mediaApiError(
+        'Email verification required',
+        err.detail ?? 'Please verify your email before uploading media.',
+        403,
+        err.code,
+      )
+    }
 
     if (putResp.status === 409) {
       throw {
@@ -299,7 +308,16 @@ export async function putAsset(
 
     if (!uploadResp.ok) {
       const body = await uploadResp.json().catch(() => ({}))
-      const err = body as MediaApiError
+      const err = body as MediaApiError & { code?: string; detail?: string }
+
+      if (uploadResp.status === 403 && err.code === 'EMAIL_VERIFICATION_REQUIRED') {
+        throw mediaApiError(
+          'Email verification required',
+          err.detail ?? 'Please verify your email before uploading media.',
+          403,
+          err.code,
+        )
+      }
 
       if (uploadResp.status === 422) {
         throw {

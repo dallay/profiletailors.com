@@ -10,6 +10,7 @@ import {
   logoutSession,
   refreshSession,
   register,
+  resendVerification,
 } from '@/lib/auth-api'
 import { useWorkspaceStore } from './workspace'
 
@@ -39,12 +40,12 @@ function mapTokensToUser(tokens: AuthTokens): AuthUser {
   }
 }
 
-function mapProfileToUser(profile: CurrentUserProfile, currentUser: AuthUser | null): AuthUser {
+function mapProfileToUser(profile: CurrentUserProfile, _currentUser: AuthUser | null): AuthUser {
   return {
     principalId: profile.principalId,
     email: profile.email,
     username: profile.username,
-    emailStatus: currentUser?.emailStatus ?? null,
+    emailStatus: profile.emailStatus,
     displayIdentity: profile.displayIdentity,
   }
 }
@@ -63,6 +64,8 @@ export const useAuthStore = defineStore('auth', () => {
   const isRefreshingProfile = ref(false)
   const error = ref<string | null>(null)
   const sessionChecked = ref(false)
+  const resendVerificationStatus = ref<'idle' | 'loading' | 'success' | 'error'>('idle')
+  const resendVerificationError = ref<string | null>(null)
 
   // ---------------------------------------------------------------------------
   // Computed
@@ -70,6 +73,7 @@ export const useAuthStore = defineStore('auth', () => {
 
   const isAuthenticated = computed(() => Boolean(_accessToken.value))
   const accessToken = computed(() => _accessToken.value)
+  const isEmailVerified = computed(() => user.value?.emailStatus === 'VERIFIED')
 
   const defaultDisplayName = 'PT'
   const displayName = computed(
@@ -138,6 +142,8 @@ export const useAuthStore = defineStore('auth', () => {
     _accessToken.value = null
     user.value = null
     error.value = null
+    resendVerificationStatus.value = 'idle'
+    resendVerificationError.value = null
     sessionChecked.value = true
   }
 
@@ -250,6 +256,29 @@ export const useAuthStore = defineStore('auth', () => {
     _clearSession()
   }
 
+  async function resendVerificationEmail() {
+    const email = user.value?.email
+    if (!email) {
+      const missingEmailError = new Error('No email address is available for verification resend.')
+      resendVerificationStatus.value = 'error'
+      resendVerificationError.value = missingEmailError.message
+      throw missingEmailError
+    }
+
+    resendVerificationStatus.value = 'loading'
+    resendVerificationError.value = null
+
+    try {
+      await resendVerification(email)
+      resendVerificationStatus.value = 'success'
+    } catch (error_) {
+      const apiError = error_ as ApiError
+      resendVerificationStatus.value = 'error'
+      resendVerificationError.value = apiError.detail ?? 'Unable to resend verification email.'
+      throw error_
+    }
+  }
+
   function clearError() {
     error.value = null
   }
@@ -287,12 +316,16 @@ export const useAuthStore = defineStore('auth', () => {
     error,
     hydrateSession,
     isAuthenticated,
+    isEmailVerified,
     isLoading,
     isRefreshingProfile,
     loginWithPassword,
     logout,
     refreshProfile,
     registerWithPassword,
+    resendVerificationEmail,
+    resendVerificationError,
+    resendVerificationStatus,
     sessionChecked,
     user,
     userInitials,

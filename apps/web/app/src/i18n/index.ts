@@ -263,6 +263,17 @@ const messages = {
       emailPlaceholder: 'you{at}example.com',
       passwordPlaceholder: 'At least 8 characters',
     },
+    emailVerification: {
+      banner: {
+        title: 'Verify your email',
+        description: 'Publishing, social connections, and media uploads require email verification.',
+        instructions: 'Check your inbox for the verification link or resend the email.',
+        resend: 'Resend verification email',
+        resending: 'Sending...',
+        success: 'Verification email sent. Check your inbox.',
+        error: 'Unable to resend verification email.',
+      },
+    },
     scheduler: {
       subtitle: 'Manage your content pipeline in a structured calendar view.',
       mon: 'MON',
@@ -358,6 +369,8 @@ const messages = {
       subtitle: 'Upload, inspect, and manage workspace media assets in one place.',
       refresh: 'Refresh',
       uploadAction: 'Upload files',
+      verificationRequired: 'Verify your email to upload media',
+      verificationGuidance: 'Check your inbox for the verification link or resend the email from the verification banner.',
       readyTitle: 'Ready assets',
       processingTitle: 'Processing',
       failedTitle: 'Failed',
@@ -692,6 +705,18 @@ const messages = {
       emailPlaceholder: 'tu{at}ejemplo.com',
       passwordPlaceholder: 'Al menos 8 caracteres',
     },
+    emailVerification: {
+      banner: {
+        title: 'Verifica tu correo',
+        description:
+          'Publicar, conectar redes sociales y subir medios requiere verificar tu correo.',
+        instructions: 'Revisa tu bandeja de entrada o reenvía el email de verificación.',
+        resend: 'Reenviar email de verificación',
+        resending: 'Enviando...',
+        success: 'Email de verificación enviado. Revisa tu bandeja de entrada.',
+        error: 'No se pudo reenviar el email de verificación.',
+      },
+    },
     scheduler: {
       subtitle: 'Gestiona tu pipeline de contenido en una vista de calendario estructurada.',
       mon: 'LUN',
@@ -788,6 +813,8 @@ const messages = {
         'Sube, inspecciona y gestiona los assets multimedia del workspace desde un solo lugar.',
       refresh: 'Actualizar',
       uploadAction: 'Subir archivos',
+      verificationRequired: 'Verifica tu correo para subir archivos multimedia',
+      verificationGuidance: 'Revisa tu bandeja de entrada o reenvía el correo desde el aviso de verificación.',
       readyTitle: 'Assets listos',
       processingTitle: 'Procesando',
       failedTitle: 'Fallidos',

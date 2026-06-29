@@ -3,6 +3,7 @@ import { mount, flushPromises } from '@vue/test-utils'
 import { createPinia, setActivePinia } from 'pinia'
 import MediaLibraryView from './MediaLibraryView.vue'
 import { useMediaStore } from '@/stores/media'
+import { useAuthStore } from '@/stores/auth'
 
 vi.mock('vue-i18n', () => ({
   useI18n: () => ({ t: (key: string) => key, locale: { value: 'en' } }),
@@ -60,6 +61,60 @@ describe('MediaLibraryView', () => {
     // Mock loadAssets so onMount's refreshLibrary() doesn't clear test data
     const store = useMediaStore()
     vi.spyOn(store, 'loadAssets').mockResolvedValue()
+    useAuthStore().user = {
+      principalId: 'principal-1',
+      email: 'owner@example.com',
+      username: 'owner',
+      displayIdentity: 'Owner',
+      emailStatus: 'VERIFIED',
+    }
+  })
+
+  it('disables upload and shows verification guidance for non-verified users', async () => {
+    const auth = useAuthStore()
+    auth.user = { ...auth.user!, emailStatus: 'PENDING' }
+    const mediaStore = useMediaStore()
+    const uploadSpy = vi.spyOn(mediaStore, 'createAndUpload')
+
+    const wrapper = mountView()
+    await flushPromises()
+
+    const uploadButton = wrapper.get('[data-testid="media-upload-button"]')
+    expect(uploadButton.attributes('disabled')).toBeDefined()
+    expect(wrapper.get('[data-testid="media-verification-guidance"]').text())
+      .toContain('media.verificationRequired')
+
+    await uploadButton.trigger('click')
+    expect(uploadSpy).not.toHaveBeenCalled()
+  })
+
+  it('allows verified users to open the upload picker', async () => {
+    const wrapper = mountView()
+    await flushPromises()
+    const fileInput = wrapper.get('#media-library-file-input')
+    const clickSpy = vi.spyOn(fileInput.element as HTMLInputElement, 'click')
+
+    await wrapper.get('[data-testid="media-upload-button"]').trigger('click')
+
+    expect(clickSpy).toHaveBeenCalledOnce()
+  })
+
+  it('shows verification guidance when backend denies upload with email verification problem', async () => {
+    const mediaStore = useMediaStore()
+    vi.spyOn(mediaStore, 'createAndUpload').mockRejectedValue({
+      status: 403,
+      code: 'EMAIL_VERIFICATION_REQUIRED',
+      detail: 'Please verify your email before using this feature.',
+    })
+    const wrapper = mountView()
+    await flushPromises()
+
+    await (wrapper.vm as unknown as { uploadFiles: (files: File[]) => Promise<void> })
+      .uploadFiles([new File(['bytes'], 'photo.jpg', { type: 'image/jpeg' })])
+    await flushPromises()
+
+    expect(wrapper.get('[data-testid="media-verification-guidance"]').text())
+      .toContain('media.verificationRequired')
   })
 
   it('renders empty state when there are no assets', async () => {

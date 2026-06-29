@@ -2,6 +2,7 @@
 import { computed, onMounted, ref } from 'vue'
 import { Download, FileText, Image, Loader2, RefreshCw, Trash2, UploadCloud, Video } from '@lucide/vue'
 import { useMediaStore } from '@/stores/media'
+import { useAuthStore } from '@/stores/auth'
 import { resolveApiUrl } from '@/lib/auth-api'
 import type { MediaStatus } from '@/lib/media-api'
 import { Button } from '@/components/ui/button'
@@ -18,8 +19,10 @@ import {
 } from '@/components/ui/alert-dialog'
 
 const mediaStore = useMediaStore()
+const authStore = useAuthStore()
 const fileInput = ref<HTMLInputElement | null>(null)
 const isRefreshing = ref(false)
+const uploadRequiresVerification = ref(false)
 const selectedLibraryAssetIds = ref<string[]>([])
 const searchQuery = ref('')
 const statusFilter = ref<'ALL' | 'READY' | 'PROCESSING' | 'FAILED'>('ALL')
@@ -88,6 +91,8 @@ const processingAssets = computed(() =>
   assets.value.filter((asset) => isProcessingStatus(asset.status)),
 )
 const failedAssets = computed(() => assets.value.filter((asset) => asset.status === 'FAILED'))
+const canUploadMedia = computed(() => authStore.isEmailVerified)
+const showVerificationGuidance = computed(() => !canUploadMedia.value || uploadRequiresVerification.value)
 
 function statusClass(status: MediaStatus) {
   if (isProcessingStatus(status)) {
@@ -217,16 +222,27 @@ async function loadMore() {
 }
 
 function openFilePicker() {
+  if (!canUploadMedia.value) return
   fileInput.value?.click()
 }
 
 async function uploadFiles(files: File[]) {
+  if (!canUploadMedia.value) return
+  uploadRequiresVerification.value = false
+
   for (const file of files) {
     const tempKey = `media-library-${Date.now()}-${file.name}`
     try {
       await mediaStore.createAndUpload(file, tempKey)
-    } catch {
-      // Error state is already tracked in mediaStore.uploads
+    } catch (error) {
+      const apiError = error as { status?: number; errorCode?: string; code?: string }
+      if (
+        apiError.status === 403 &&
+        (apiError.errorCode === 'EMAIL_VERIFICATION_REQUIRED' || apiError.code === 'EMAIL_VERIFICATION_REQUIRED')
+      ) {
+        uploadRequiresVerification.value = true
+      }
+      // Other error state is already tracked in mediaStore.uploads
     }
   }
 }
@@ -264,20 +280,36 @@ onMounted(async () => {
           ref="fileInput"
           type="file"
           class="hidden"
-          aria-label="Upload media files"
+          :aria-label="$t('media.uploadAction')"
           accept="image/*,video/mp4,application/pdf"
           multiple
+          :disabled="!canUploadMedia"
           @change="handleFileChange"
         />
         <Button type="button" variant="outline" @click="refreshLibrary">
           <RefreshCw :class="['mr-2 size-4', isRefreshing ? 'animate-spin' : '']" />
           {{ $t('media.refresh') }}
         </Button>
-        <Button type="button" @click="openFilePicker">
+        <Button
+          type="button"
+          data-testid="media-upload-button"
+          :disabled="!canUploadMedia"
+          @click="openFilePicker"
+        >
           <UploadCloud class="mr-2 size-4" />
           {{ $t('media.uploadAction') }}
         </Button>
       </div>
+    </div>
+
+    <div
+      v-if="showVerificationGuidance"
+      data-testid="media-verification-guidance"
+      role="alert"
+      class="rounded-2xl border border-warning/40 bg-warning/10 px-5 py-4 text-sm text-text-body"
+    >
+      <p class="font-medium text-text-display">{{ $t('media.verificationRequired') }}</p>
+      <p class="mt-1 text-text-secondary">{{ $t('media.verificationGuidance') }}</p>
     </div>
 
     <div class="flex flex-wrap items-center gap-3">

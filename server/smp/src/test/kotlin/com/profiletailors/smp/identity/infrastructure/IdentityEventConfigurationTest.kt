@@ -1,5 +1,6 @@
 package com.profiletailors.smp.identity.infrastructure
 
+import com.profiletailors.common.domain.bus.event.DomainEvent
 import com.profiletailors.common.domain.bus.event.EventPublisher
 import com.profiletailors.smp.identity.application.EmailSendResult
 import com.profiletailors.smp.identity.application.EmailSender
@@ -28,7 +29,8 @@ class IdentityEventConfigurationTest {
             assertThat(context).hasSingleBean(EventEmitter::class.java)
             assertThat(context).hasSingleBean(EventConfiguration::class.java)
 
-            val publisher = context.getBean(EventEmitter::class.java)
+            @Suppress("UNCHECKED_CAST")
+            val publisher = context.getBean(EventEmitter::class.java) as EventEmitter<DomainEvent>
             val emailSender = context.getBean(RecordingEmailSender::class.java)
 
             runBlocking {
