@@ -4,9 +4,7 @@ inheritance: true
 language: en-US
 
 tone_instructions: >-
-  Be direct, constructive, and educational. Focus on architectural patterns, security, and maintainability.
-  Flag violations of Hexagonal Architecture and Clean Architecture principles assertively.
-  Use the Four-R Framework: Readability, Reliability, Resilience, and Reviewability.
+  Direct, constructive, educational. Focus on architecture, security, maintainability. Flag Hexagonal/Clean Arch violations assertively.
 
 reviews:
   profile: assertive
@@ -297,7 +295,7 @@ reviews:
       mode: warning
 
     custom_checks:
-      - name: 'Hexagonal Architecture Compliance (Domain Independence)'
+      - name: 'Hexagonal Architecture Compliance'
         mode: error
         instructions: |
           Verify that Hexagonal Architecture principles are followed:
