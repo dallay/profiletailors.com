@@ -266,7 +266,8 @@ const messages = {
     emailVerification: {
       banner: {
         title: 'Verify your email',
-        description: 'Publishing, social connections, and media uploads require email verification.',
+        description:
+          'Publishing, social connections, and media uploads require email verification.',
         instructions: 'Check your inbox for the verification link or resend the email.',
         resend: 'Resend verification email',
         resending: 'Sending...',
@@ -370,7 +371,8 @@ const messages = {
       refresh: 'Refresh',
       uploadAction: 'Upload files',
       verificationRequired: 'Verify your email to upload media',
-      verificationGuidance: 'Check your inbox for the verification link or resend the email from the verification banner.',
+      verificationGuidance:
+        'Check your inbox for the verification link or resend the email from the verification banner.',
       readyTitle: 'Ready assets',
       processingTitle: 'Processing',
       failedTitle: 'Failed',
@@ -814,7 +816,8 @@ const messages = {
       refresh: 'Actualizar',
       uploadAction: 'Subir archivos',
       verificationRequired: 'Verifica tu correo para subir archivos multimedia',
-      verificationGuidance: 'Revisa tu bandeja de entrada o reenvía el correo desde el aviso de verificación.',
+      verificationGuidance:
+        'Revisa tu bandeja de entrada o reenvía el correo desde el aviso de verificación.',
       readyTitle: 'Assets listos',
       processingTitle: 'Procesando',
       failedTitle: 'Fallidos',

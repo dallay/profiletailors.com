@@ -307,7 +307,9 @@ describe('AppShell scheduler sidebar navigation', () => {
 
     const alert = wrapper.get('[role="alert"]')
     expect(alert.text()).toContain('Verify your email')
-    expect(alert.text()).toContain('Publish, social connect, and media upload require email verification.')
+    expect(alert.text()).toContain(
+      'Publish, social connect, and media upload require email verification.',
+    )
     expect(alert.text()).toContain('Check your inbox for the verification link.')
     expect(wrapper.get('[data-testid="resend-verification"]').text()).toContain(
       'Resend verification email',
@@ -354,7 +356,9 @@ describe('AppShell scheduler sidebar navigation', () => {
       global: { mocks: { $t: (key: string) => key } },
     })
 
-    expect(loadingWrapper.get('[data-testid="resend-verification"]').attributes('disabled')).toBeDefined()
+    expect(
+      loadingWrapper.get('[data-testid="resend-verification"]').attributes('disabled'),
+    ).toBeDefined()
     expect(loadingWrapper.get('[data-testid="resend-verification"]').text()).toContain('Sending...')
   })
 })

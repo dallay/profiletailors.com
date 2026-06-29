@@ -81,8 +81,9 @@ describe('MediaLibraryView', () => {
 
     const uploadButton = wrapper.get('[data-testid="media-upload-button"]')
     expect(uploadButton.attributes('disabled')).toBeDefined()
-    expect(wrapper.get('[data-testid="media-verification-guidance"]').text())
-      .toContain('media.verificationRequired')
+    expect(wrapper.get('[data-testid="media-verification-guidance"]').text()).toContain(
+      'media.verificationRequired',
+    )
 
     await uploadButton.trigger('click')
     expect(uploadSpy).not.toHaveBeenCalled()
@@ -109,12 +110,14 @@ describe('MediaLibraryView', () => {
     const wrapper = mountView()
     await flushPromises()
 
-    await (wrapper.vm as unknown as { uploadFiles: (files: File[]) => Promise<void> })
-      .uploadFiles([new File(['bytes'], 'photo.jpg', { type: 'image/jpeg' })])
+    await (wrapper.vm as unknown as { uploadFiles: (files: File[]) => Promise<void> }).uploadFiles([
+      new File(['bytes'], 'photo.jpg', { type: 'image/jpeg' }),
+    ])
     await flushPromises()
 
-    expect(wrapper.get('[data-testid="media-verification-guidance"]').text())
-      .toContain('media.verificationRequired')
+    expect(wrapper.get('[data-testid="media-verification-guidance"]').text()).toContain(
+      'media.verificationRequired',
+    )
   })
 
   it('renders empty state when there are no assets', async () => {
