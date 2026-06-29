@@ -86,6 +86,9 @@ describe('MediaLibraryView', () => {
     )
 
     await uploadButton.trigger('click')
+    await (wrapper.vm as unknown as { uploadFiles: (files: File[]) => Promise<void> }).uploadFiles([
+      new File(['bytes'], 'photo.jpg', { type: 'image/jpeg' }),
+    ])
     expect(uploadSpy).not.toHaveBeenCalled()
   })
 

@@ -361,4 +361,25 @@ describe('AppShell scheduler sidebar navigation', () => {
     ).toBeDefined()
     expect(loadingWrapper.get('[data-testid="resend-verification"]').text()).toContain('Sending...')
   })
+
+  it('logs resend failures without crashing the banner', async () => {
+    authState.user.emailStatus = 'PENDING'
+    const consoleErrorSpy = vi.spyOn(console, 'error').mockImplementation(() => {})
+    resendVerificationEmail.mockRejectedValueOnce(new Error('boom'))
+
+    const wrapper = mount(AppShell, {
+      global: { mocks: { $t: (key: string) => key } },
+    })
+
+    await wrapper.get('[data-testid="resend-verification"]').trigger('click')
+    await nextTick()
+
+    expect(consoleErrorSpy).toHaveBeenCalledWith(
+      'Failed to resend verification email',
+      expect.any(Error),
+    )
+    expect(wrapper.get('[role="alert"]').exists()).toBe(true)
+
+    consoleErrorSpy.mockRestore()
+  })
 })
