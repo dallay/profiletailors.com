@@ -378,7 +378,7 @@ describe('AppShell scheduler sidebar navigation', () => {
       'Failed to resend verification email',
       expect.any(Error),
     )
-    expect(wrapper.get('[role="alert"]').exists()).toBe(true)
+    expect(wrapper.find('[role="alert"]').isVisible()).toBe(true)
 
     consoleErrorSpy.mockRestore()
   })

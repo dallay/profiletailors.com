@@ -91,7 +91,7 @@ const processingAssets = computed(() =>
   assets.value.filter((asset) => isProcessingStatus(asset.status)),
 )
 const failedAssets = computed(() => assets.value.filter((asset) => asset.status === 'FAILED'))
-const canUploadMedia = computed(() => authStore.isEmailVerified)
+const canUploadMedia = computed(() => authStore.isEmailVerified && !uploadRequiresVerification.value)
 const showVerificationGuidance = computed(() => !canUploadMedia.value || uploadRequiresVerification.value)
 
 function statusClass(status: MediaStatus) {
@@ -231,15 +231,14 @@ async function uploadFiles(files: File[]) {
   uploadRequiresVerification.value = false
 
   for (const file of files) {
+    if (uploadRequiresVerification.value) break
     const tempKey = `media-library-${Date.now()}-${file.name}`
     try {
       await mediaStore.createAndUpload(file, tempKey)
     } catch (error) {
       const apiError = error as { status?: number; errorCode?: string; code?: string }
-      if (
-        apiError.status === 403 &&
-        (apiError.errorCode === 'EMAIL_VERIFICATION_REQUIRED' || apiError.code === 'EMAIL_VERIFICATION_REQUIRED')
-      ) {
+      const errorCode = apiError.errorCode ?? apiError.code
+      if (apiError.status === 403 && errorCode === 'EMAIL_VERIFICATION_REQUIRED') {
         uploadRequiresVerification.value = true
       }
       // Other error state is already tracked in mediaStore.uploads

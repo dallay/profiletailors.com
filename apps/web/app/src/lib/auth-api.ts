@@ -186,6 +186,13 @@ export async function getCurrentUserProfile(token: string) {
   return request<CurrentUserProfile>('/api/auth/me', { method: 'GET' }, token)
 }
 
+export async function verifyEmail(token: string): Promise<AuthTokens> {
+  return request<AuthTokens>('/api/auth/verify-email', {
+    method: 'POST',
+    body: JSON.stringify({ token }),
+  })
+}
+
 export async function resendVerification(email: string): Promise<void> {
   await requestRaw('/api/auth/resend-verification', {
     method: 'POST',

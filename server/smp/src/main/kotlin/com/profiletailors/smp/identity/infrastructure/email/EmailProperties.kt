@@ -12,4 +12,5 @@ import org.springframework.boot.context.properties.ConfigurationProperties
 data class EmailProperties(
     val sender: String = "noreply@profiletailors.com",
     val verificationSubjectPrefix: String = "[Profile Tailors]",
+    val publicAppUrl: String = "https://app.profiletailors.com",
 )

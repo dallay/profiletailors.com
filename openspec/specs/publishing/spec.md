@@ -54,6 +54,8 @@ The system MUST require `emailStatus = VERIFIED` before a user can publish conte
 
 This verification gate MUST apply consistently across immediate publishing, scheduled publishing requests, and social connection initiation or completion flows.
 
+> **TODO:** Gate implementations for publishing and social-connection flows are deferred. Currently only `UPLOAD_MEDIA` (media library upload) enforces `emailStatus = VERIFIED`. The publishing handler, scheduling handler, and social connection initiation/completion handlers must be updated in a follow-up change to reject requests when `emailStatus != VERIFIED`. The `EmailVerificationPolicy` enum in the identity context should be extended with publishing and social-connection features, and the corresponding handlers should gate on those policies.
+
 #### Scenario: Unverified user cannot publish
 
 - GIVEN an authenticated user with `emailStatus = UNVERIFIED`

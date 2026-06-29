@@ -11,6 +11,7 @@ import {
   refreshSession,
   register,
   resendVerification,
+  verifyEmail as verifyEmailRequest,
 } from '@/lib/auth-api'
 import { useWorkspaceStore } from './workspace'
 
@@ -279,6 +280,25 @@ export const useAuthStore = defineStore('auth', () => {
     }
   }
 
+  async function verifyEmail(token: string) {
+    isLoading.value = true
+    error.value = null
+
+    try {
+      const tokens = await verifyEmailRequest(token)
+      _applyTokens(tokens)
+      await refreshProfile()
+      return tokens
+    } catch (error_) {
+      const apiError = error_ as ApiError
+      error.value = apiError.detail ?? 'Unable to verify your email.'
+      throw error_
+    } finally {
+      isLoading.value = false
+      sessionChecked.value = true
+    }
+  }
+
   function clearError() {
     error.value = null
   }
@@ -324,6 +344,7 @@ export const useAuthStore = defineStore('auth', () => {
     refreshProfile,
     registerWithPassword,
     resendVerificationEmail,
+    verifyEmail,
     resendVerificationError,
     resendVerificationStatus,
     sessionChecked,

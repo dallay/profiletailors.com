@@ -77,7 +77,10 @@ class CommonBddTestConfiguration {
                     .claim("sub", "subject-123")
                     .claim("iss", "https://issuer.example")
                     .claim("principal_id", "principal-1")
-                    .claim("emailStatus", "PENDING")
+                    .claim(
+                        "emailStatus",
+                        if (token.startsWith("verified-")) "VERIFIED" else "PENDING",
+                    )
                     .claim("preferred_username", "yuniel")
                     .issuedAt(Instant.now().minusSeconds(60))
                     .expiresAt(Instant.now().plusSeconds(3600))
