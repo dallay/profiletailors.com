@@ -10,6 +10,20 @@ const routeState = reactive({
 
 const push = vi.fn().mockResolvedValue(undefined)
 const replace = vi.fn().mockResolvedValue(undefined)
+const authState = reactive({
+  isAuthenticated: true,
+  accessToken: 'test-token',
+  displayName: 'Test User',
+  user: { email: 'test@example.com', emailStatus: 'VERIFIED' as string | null },
+  userInitials: 'TU',
+  isRefreshingProfile: false,
+  resendVerificationStatus: 'idle' as 'idle' | 'loading' | 'success' | 'error',
+  resendVerificationError: null as string | null,
+})
+const logout = vi.fn().mockResolvedValue(undefined)
+const resendVerificationEmail = vi.fn().mockImplementation(async () => {
+  authState.resendVerificationStatus = 'success'
+})
 
 vi.mock('vue-router', () => ({
   RouterView: { template: '<div class="router-view" />' },
@@ -18,7 +32,19 @@ vi.mock('vue-router', () => ({
 }))
 
 vi.mock('vue-i18n', () => ({
-  useI18n: () => ({ t: (key: string) => key }),
+  useI18n: () => ({
+    t: (key: string) =>
+      ({
+        'emailVerification.banner.title': 'Verify your email',
+        'emailVerification.banner.description':
+          'Publish, social connect, and media upload require email verification.',
+        'emailVerification.banner.instructions': 'Check your inbox for the verification link.',
+        'emailVerification.banner.resend': 'Resend verification email',
+        'emailVerification.banner.resending': 'Sending...',
+        'emailVerification.banner.success': 'Verification email sent. Check your inbox.',
+        'emailVerification.banner.error': 'Unable to resend verification email.',
+      })[key] ?? key,
+  }),
 }))
 
 vi.mock('@/composables/useCalendarUrl', async (importOriginal) => {
@@ -55,13 +81,12 @@ vi.mock('@/composables/useCalendarUrl', async (importOriginal) => {
 
 vi.mock('@/stores/auth', () => ({
   useAuthStore: () => ({
-    isAuthenticated: true,
-    accessToken: 'test-token',
-    displayName: 'Test User',
-    user: { email: 'test@example.com' },
-    userInitials: 'TU',
-    isRefreshingProfile: false,
-    logout: vi.fn().mockResolvedValue(undefined),
+    ...authState,
+    get isEmailVerified() {
+      return authState.user.emailStatus === 'VERIFIED'
+    },
+    logout,
+    resendVerificationEmail,
   }),
 }))
 
