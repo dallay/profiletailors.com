@@ -21,14 +21,7 @@ private val BDD_USER_TOKEN_PREFIXES = setOf(
     "verified-",
     "login-",
     "auth-redirect",
-    "pending-banner",
-    "verified-banner",
-    "pending-dashboard",
-    "pending-feature",
-    "pending-login",
-    "pending-media",
     "owner-",
-    "register-e2e",
 )
 
 private fun isBddUserToken(token: String): Boolean = token == "valid-token" ||

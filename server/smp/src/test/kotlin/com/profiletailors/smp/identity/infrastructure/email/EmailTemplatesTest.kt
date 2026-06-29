@@ -52,4 +52,24 @@ internal class EmailTemplatesTest {
         assertThat(email).doesNotContain("api/auth/verify-email")
         assertThat(email).doesNotContain("app.profiletailors.com/api")
     }
+
+    @Test
+    fun `should strip trailing slash from publicAppUrl before building the verification URL`() {
+        // Both "with-slash/" and "no-slash" must produce identical verification URLs
+        val withSlash = EmailTemplates.verificationEmail(
+            username = "User",
+            token = "tok",
+            publicAppUrl = "https://app.profiletailors.com/",
+        )
+        val withoutSlash = EmailTemplates.verificationEmail(
+            username = "User",
+            token = "tok",
+            publicAppUrl = "https://app.profiletailors.com",
+        )
+
+        assertThat(withSlash).contains("https://app.profiletailors.com/verify-email?token=tok")
+        assertThat(withoutSlash).contains("https://app.profiletailors.com/verify-email?token=tok")
+        // They must be byte-identical so there is no double-slash in the URL
+        assertThat(withSlash).isEqualTo(withoutSlash)
+    }
 }

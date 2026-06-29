@@ -315,9 +315,6 @@ internal class VerifyEmailHandler(
             ),
         )
     }
-
-    private fun EmailVerificationTokenData.isValid(now: java.time.Instant): Boolean =
-        usedAt == null && now.isBefore(expiresAt)
 }
 
 @Service

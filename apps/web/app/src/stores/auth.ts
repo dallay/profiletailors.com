@@ -287,7 +287,10 @@ export const useAuthStore = defineStore('auth', () => {
     try {
       const tokens = await verifyEmailRequest(token)
       _applyTokens(tokens)
-      await refreshProfile()
+      // Best-effort profile refresh — do not fail verification if /api/auth/me is unavailable
+      await refreshProfile().catch(() => {
+        /* non-fatal */
+      })
       return tokens
     } catch (error_) {
       const apiError = error_ as ApiError

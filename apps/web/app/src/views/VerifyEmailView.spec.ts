@@ -109,6 +109,36 @@ describe('VerifyEmailView', () => {
     expect(wrapper.text()).toContain('Verification token has expired.')
   })
 
+  it('falls back to i18n key when error detail is present but not a string', async () => {
+    routeQuery.value = { token: 'bad-token' }
+    verifyEmail.mockRejectedValue(
+      Object.assign(new Error('Boom'), {
+        // detail is present but not a string — should fall through to i18n key
+        detail: 123,
+        status: 400,
+      }),
+    )
+
+    const wrapper = mountVerifyEmailView()
+    await flushPromises()
+
+    // Should show invalid state with i18n fallback message, not the number 123
+    expect(wrapper.text()).toContain('verifyEmail.invalidTitle')
+    expect(wrapper.text()).not.toContain('123')
+  })
+
+  it('handles token as an array (Vue Router array query) by taking the first element', async () => {
+    // Vue Router can return arrays for repeated query params
+    routeQuery.value = { token: ['array-token'] } as unknown as Record<string, unknown>
+    verifyEmail.mockResolvedValue(undefined)
+
+    const wrapper = mountVerifyEmailView()
+    await flushPromises()
+
+    expect(verifyEmail).toHaveBeenCalledWith('array-token')
+    expect(wrapper.text()).toContain('verifyEmail.successTitle')
+  })
+
   it('shows a success confirmation with a guest-safe CTA instead of auto-redirecting', async () => {
     routeQuery.value = { token: 'good-token' }
     authState.isAuthenticated = false

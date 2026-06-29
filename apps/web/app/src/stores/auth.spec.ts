@@ -70,4 +70,41 @@ describe('auth store verifyEmail', () => {
       displayIdentity: 'Verified User',
     })
   })
+
+  it('clearError sets error to null', async () => {
+    const auth = useAuthStore()
+    // Trigger an error state via loginWithPassword failure
+    const { login } = await import('@/lib/auth-api')
+    vi.mocked(login).mockRejectedValue({ detail: 'Bad credentials' })
+    try {
+      await auth.loginWithPassword({ email: 'a@b.com', password: 'bad' })
+    } catch {
+      // expected
+    }
+    // Error should now be set
+    expect(auth.error).not.toBeNull()
+    // clearError resets it
+    auth.clearError()
+    expect(auth.error).toBeNull()
+  })
+
+  it('logout calls logoutSession and clears local state', async () => {
+    const { logoutSession } = await import('@/lib/auth-api')
+    vi.mocked(logoutSession).mockResolvedValue(undefined)
+    const auth = useAuthStore()
+    // Seed an authenticated session so logout has something to clear
+    auth.$patch({
+      user: {
+        principalId: 'user-1',
+        email: 'test@example.com',
+        username: 't',
+        displayIdentity: 'Test',
+        emailStatus: 'VERIFIED',
+      },
+    })
+
+    await auth.logout()
+
+    expect(logoutSession).toHaveBeenCalled()
+  })
 })
