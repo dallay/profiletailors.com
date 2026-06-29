@@ -25,6 +25,7 @@ open class GetCurrentUserProfileService(
                 ?: identityFacts?.username
                 ?: identityFacts?.email
                 ?: principalContext.subject,
+            emailStatus = identityFacts?.emailStatus,
         )
     }
 }
