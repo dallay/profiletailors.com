@@ -494,20 +494,7 @@ class BddDatabaseSupport(
         .awaitSingleOrNull()
 
     suspend fun seedWorkspaceMembershipForWorkspace(principalId: String, workspaceId: String) {
-        val membershipId = "membership-$principalId-$workspaceId"
-        databaseClient.sql(
-            """
-            INSERT INTO workspace_memberships (id, workspace_id, principal_id, principal_type, status)
-            VALUES (:id, :workspaceId, :principalId, 'USER', 'ACTIVE')
-            """.trimIndent(),
-        )
-            .bind("id", membershipId)
-            .bind("workspaceId", workspaceId)
-            .bind("principalId", principalId)
-            .fetch()
-            .rowsUpdated()
-            .onErrorResume { _ -> reactor.core.publisher.Mono.just(0) }
-            .awaitSingle()
+        seedWorkspaceMembershipIdempotent(principalId, workspaceId)
     }
 
     suspend fun seedWorkspaceMembershipIdempotent(principalId: String, workspaceId: String = WORKSPACE_ID) {

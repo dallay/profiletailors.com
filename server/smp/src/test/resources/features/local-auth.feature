@@ -45,7 +45,7 @@ Feature: Local authentication session lifecycle
     When the client refreshes the local user session
     Then the response status should be 200
     And the auth response should include an access token
-    And the auth response should include either email "owner@example.com" or "yuniel@example.com"
+    And the auth response should include email "owner@example.com"
     And the response should set a refresh cookie
 
   Scenario: Logout invalidates the refresh-backed session

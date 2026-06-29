@@ -656,19 +656,15 @@ class AuthorizationBddSteps {
         pendingRegistrationEmail = email
         captureLocalAuthSessionFrom(requireLatestResult(), "registration")
 
-        if (!verifyEmail) {
-            return
+        // Step 2: Login to get tokens (handled before verify so pending users can also log in)
+        if (login) {
+            runBlocking { performLogin(email) }
         }
 
-        // Step 2: Mark email as verified in DB (BDD shortcut for pre-existing scenarios)
-        runBlocking { bddDatabaseSupport.markEmailVerified(email) }
-
-        if (!login) {
-            return
+        // Step 3: Mark email as verified in DB (BDD shortcut for pre-existing scenarios)
+        if (verifyEmail) {
+            runBlocking { bddDatabaseSupport.markEmailVerified(email) }
         }
-
-        // Step 3: Login to get tokens and refresh cookie
-        runBlocking { performLogin(email) }
 
         // Restore register result so Then steps check the registration response, not the login response
         latestResult = pendingRegistrationResult
