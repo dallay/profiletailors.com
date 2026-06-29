@@ -34,6 +34,7 @@ import org.springframework.test.web.reactive.server.EntityExchangeResult
 import org.springframework.test.web.reactive.server.WebTestClient
 import java.nio.charset.StandardCharsets
 
+@Suppress("LargeClass")
 class AuthorizationBddSteps {
     @Autowired
     private lateinit var webTestClient: WebTestClient
@@ -44,6 +45,9 @@ class AuthorizationBddSteps {
     @Autowired
     private lateinit var bddDatabaseSupport: BddDatabaseSupport
 
+    @Autowired
+    private lateinit var recordingEmailSender: RecordingEmailSender
+
     private var latestResult: EntityExchangeResult<ByteArray>? = null
     private var latestStatusCode: Int? = null
     private var latestLocalAuthSession: BddDatabaseSupport.LocalAuthSession? = null
@@ -51,6 +55,8 @@ class AuthorizationBddSteps {
     private var latestAuditEventsResponse: WorkspaceAuditEventsResponse? = null
     private var latestOwnershipResponse: WorkspaceOwnershipResult? = null
     private var latestMembershipStatusResponse: WorkspaceMembershipStatusResult? = null
+    private var pendingRegistrationEmail: String? = null
+    private var pendingRegistrationResult: EntityExchangeResult<ByteArray>? = null
 
     @Before
     fun resetScenarioState() {
@@ -61,6 +67,9 @@ class AuthorizationBddSteps {
         latestAuditEventsResponse = null
         latestOwnershipResponse = null
         latestMembershipStatusResponse = null
+        pendingRegistrationEmail = null
+        pendingRegistrationResult = null
+        recordingEmailSender.reset()
         auditHook.reset()
         runBlocking { bddDatabaseSupport.resetDatabase() }
     }
@@ -212,13 +221,119 @@ class AuthorizationBddSteps {
     @Given("a previously registered local user session exists")
     fun givenPreviouslyRegisteredLocalUserSessionExists() {
         if (latestLocalAuthSession == null) {
-            registerLocalUser(email = "owner@example.com")
+            registerLocalUserLegacy(email = "owner@example.com")
         }
+    }
+
+    @Given("a previously registered local user session exists without verified email")
+    fun givenPreviouslyRegisteredLocalUserSessionExistsWithoutVerifiedEmail() {
+        registerLocalUser(email = "pending-media@example.com", verifyEmail = false, login = true)
+        runBlocking {
+            bddDatabaseSupport.markEmailPENDING("pending-media@example.com")
+            bddDatabaseSupport.seedAuthenticatedUserWithWorkspace(
+                email = "pending-media@example.com",
+                principalId = "pending-media-principal",
+            )
+        }
+    }
+
+    @Given("a previously registered local user session exists with workspace membership")
+    fun givenPreviouslyRegisteredLocalUserSessionExistsWithWorkspaceMembership() {
+        givenPreviouslyRegisteredLocalUserSessionExists()
     }
 
     @When("the client registers a local user")
     fun whenClientRegistersLocalUser() {
-        registerLocalUser(email = "yuniel@example.com")
+        registerLocalUser(email = "yuniel@example.com", login = false)
+    }
+
+    @When("the client registers a local user without verifying email")
+    fun whenClientRegistersLocalUserWithoutVerifyingEmail() {
+        registerLocalUser(email = "yuniel@example.com", verifyEmail = false, login = false)
+    }
+
+    @When("the client requests the current authenticated user profile")
+    fun whenClientRequestsCurrentUserProfile() {
+        latestStatusCode = null
+        latestResult = webTestClient.get()
+            .uri(bddDatabaseSupport.currentUserProfilePath())
+            .header(HttpHeaders.AUTHORIZATION, BddDatabaseSupport.USER_BEARER)
+            .header(HttpHeaders.ACCEPT, BddDatabaseSupport.API_VERSION_MEDIA_TYPE)
+            .exchange()
+            .expectBody()
+            .returnResult()
+    }
+
+    @Given("the pending user has an active workspace membership")
+    fun givenPendingUserHasActiveWorkspaceMembership() = runBlocking {
+        bddDatabaseSupport.seedJwtAuthenticatedUserWithWorkspace(emailStatus = "PENDING")
+    }
+
+    @Given("the verified user has an active workspace membership")
+    fun givenVerifiedUserHasActiveWorkspaceMembership() = runBlocking {
+        bddDatabaseSupport.seedJwtAuthenticatedUserWithWorkspace(emailStatus = "VERIFIED")
+    }
+
+    @And("the current user profile should include emailStatus {string}")
+    fun andCurrentUserProfileShouldIncludeEmailStatus(emailStatus: String) {
+        val body = requireResponseBodyText()
+        assertTrue(body.contains("\"emailStatus\":\"$emailStatus\""), body)
+    }
+
+    @And("the verification email sender should have received {int} message for {string}")
+    fun andVerificationEmailSenderShouldHaveReceivedMessages(count: Int, email: String) {
+        val matches = recordingEmailSender.messages.filter { it.to == email }
+        assertEquals(
+            count,
+            matches.size,
+            "Expected $count message(s) to $email, got ${matches.size}: ${recordingEmailSender.messages}",
+        )
+        assertTrue(matches.isNotEmpty(), "Expected at least one verification email")
+        val latest = matches.last()
+        assertTrue(
+            latest.subject.contains("Verify", ignoreCase = true),
+            "Expected verification subject, got '${latest.subject}'",
+        )
+    }
+
+    @When("the client attempts to register a media asset")
+    fun whenClientAttemptsToRegisterMediaAsset() {
+        val workspaceId = BddDatabaseSupport.WORKSPACE_ID
+        latestStatusCode = null
+        latestResult = webTestClient.post()
+            .uri(bddDatabaseSupport.mediaAssetsPath())
+            .header(HttpHeaders.AUTHORIZATION, BddDatabaseSupport.USER_BEARER)
+            .header(HttpHeaders.ACCEPT, BddDatabaseSupport.API_VERSION_MEDIA_TYPE)
+            .header(BddDatabaseSupport.WORKSPACE_HEADER, workspaceId)
+            .header(HttpHeaders.CONTENT_TYPE, "application/json")
+            .bodyValue(
+                mapOf(
+                    "sourceType" to "UPLOADED",
+                    "mediaType" to "image/png",
+                    "originalFilename" to "e2e-bdd-asset.png",
+                ),
+            )
+            .exchange()
+            .expectBody()
+            .returnResult()
+    }
+
+    @And("the problem response should include code {string}")
+    fun andProblemResponseShouldIncludeCode(code: String) {
+        val body = requireResponseBodyText()
+        assertTrue(body.contains(""""code":"$code""""), body)
+    }
+
+    @And("no media asset should be persisted")
+    fun andNoMediaAssetShouldBePersisted() = runBlocking {
+        val count: Long = bddDatabaseSupport.countMediaAssets()
+        assertEquals(0L, count, "Expected zero media_assets rows, found $count")
+    }
+
+    @And("one media asset should be persisted")
+    fun andOneMediaAssetShouldBePersisted() = runBlocking {
+        val count: Long = bddDatabaseSupport.countMediaAssets()
+        assertEquals(1L, count, "Expected one media_assets row, found $count")
     }
 
     @When("the client refreshes the local user session")
@@ -229,6 +344,19 @@ class AuthorizationBddSteps {
             .uri(bddDatabaseSupport.localAuthRefreshPath())
             .header(HttpHeaders.ACCEPT, BddDatabaseSupport.API_VERSION_MEDIA_TYPE)
             .header(HttpHeaders.COOKIE, session.refreshCookie)
+            .exchange()
+            .expectBody()
+            .returnResult()
+    }
+
+    @When("the client resends the verification email for {string}")
+    fun whenClientResendsVerificationEmail(email: String) {
+        latestStatusCode = null
+        latestResult = webTestClient.post()
+            .uri(bddDatabaseSupport.localAuthResendPath())
+            .header(HttpHeaders.ACCEPT, BddDatabaseSupport.API_VERSION_MEDIA_TYPE)
+            .header(HttpHeaders.CONTENT_TYPE, "application/json")
+            .bodyValue(mapOf("email" to email))
             .exchange()
             .expectBody()
             .returnResult()
@@ -257,6 +385,21 @@ class AuthorizationBddSteps {
     fun andAuthResponseShouldIncludeEmail(email: String) {
         val body = requireResponseBodyText()
         assertTrue(body.contains("\"email\":\"$email\""), body)
+    }
+
+    @And("the auth response should include either email {string} or {string}")
+    fun andAuthResponseShouldIncludeEitherEmail(email1: String, email2: String) {
+        val body = requireResponseBodyText()
+        assertTrue(
+            body.contains(""""email":"$email1"""") || body.contains(""""email":"$email2""""),
+            body,
+        )
+    }
+
+    @And("the latest response body should include accessToken")
+    fun andLatestResponseBodyShouldIncludeAccessToken() {
+        val body = requireResponseBodyText()
+        assertTrue(Regex("\"accessToken\":\"[^\"]+\"").containsMatchIn(body), body)
     }
 
     @And("the response should set a refresh cookie")
@@ -491,7 +634,7 @@ class AuthorizationBddSteps {
         assertEquals(status, requireNotNull(latestMembershipStatusResponse).status.name)
     }
 
-    private fun registerLocalUser(email: String) {
+    private fun registerLocalUser(email: String, verifyEmail: Boolean = true, login: Boolean = true) {
         // Step 1: Register — returns 201 with RegistrationResult, no tokens, PENDING
         latestStatusCode = null
         latestResult = webTestClient.post()
@@ -508,13 +651,54 @@ class AuthorizationBddSteps {
             .expectBody()
             .returnResult()
 
-        // Capture register response so Then steps can assert on it
-        val registerResult = latestResult
+        // Capture register response so Then steps can assert on it.
+        pendingRegistrationResult = latestResult
+        pendingRegistrationEmail = email
+        captureLocalAuthSessionFrom(requireLatestResult(), "registration")
+
+        if (!verifyEmail) {
+            return
+        }
 
         // Step 2: Mark email as verified in DB (BDD shortcut for pre-existing scenarios)
         runBlocking { bddDatabaseSupport.markEmailVerified(email) }
 
+        if (!login) {
+            return
+        }
+
         // Step 3: Login to get tokens and refresh cookie
+        runBlocking { performLogin(email) }
+
+        // Restore register result so Then steps check the registration response, not the login response
+        latestResult = pendingRegistrationResult
+    }
+
+    private fun registerLocalUserLegacy(email: String, verifyEmail: Boolean = true) {
+        // Used by the original 'Registration creates an unverified user with session tokens' flow.
+        // Preserved verbatim to keep that scenario aligned with the prior behavior.
+        latestLocalAuthSession = null
+        latestStatusCode = null
+        latestResult = webTestClient.post()
+            .uri(bddDatabaseSupport.localAuthRegisterPath())
+            .header(HttpHeaders.ACCEPT, BddDatabaseSupport.API_VERSION_MEDIA_TYPE)
+            .header(HttpHeaders.CONTENT_TYPE, "application/json")
+            .bodyValue(
+                mapOf(
+                    "email" to email,
+                    "password" to "password123",
+                ),
+            )
+            .exchange()
+            .expectBody()
+            .returnResult()
+        pendingRegistrationResult = latestResult
+        pendingRegistrationEmail = email
+        captureLocalAuthSessionFrom(requireLatestResult(), "registration")
+
+        if (!verifyEmail) return
+        runBlocking { bddDatabaseSupport.markEmailVerified(email) }
+
         latestStatusCode = null
         latestResult = webTestClient.post()
             .uri(bddDatabaseSupport.localAuthLoginPath())
@@ -537,9 +721,48 @@ class AuthorizationBddSteps {
             ?.substringBefore(';')
             ?: error("Missing refresh cookie in login response")
         latestLocalAuthSession = BddDatabaseSupport.LocalAuthSession(accessToken, refreshCookie)
+    }
 
-        // Restore register result so Then steps check the registration response, not the login response
-        latestResult = registerResult
+    private fun captureLocalAuthSessionFrom(result: EntityExchangeResult<ByteArray>, source: String) {
+        val body = String(result.responseBody ?: ByteArray(0), StandardCharsets.UTF_8)
+        val accessToken = Regex("\"accessToken\":\"([^\"]+)\"").find(body)?.groupValues?.get(1)
+            ?: error("Missing access token in $source response")
+        val refreshCookie = result.responseHeaders.getFirst(HttpHeaders.SET_COOKIE)
+            ?.substringBefore(';')
+            ?: error("Missing refresh cookie in $source response")
+        latestLocalAuthSession = BddDatabaseSupport.LocalAuthSession(accessToken, refreshCookie)
+    }
+
+    private suspend fun performLogin(email: String) {
+        val loginResult = webTestClient.post()
+            .uri(bddDatabaseSupport.localAuthLoginPath())
+            .header(HttpHeaders.ACCEPT, BddDatabaseSupport.API_VERSION_MEDIA_TYPE)
+            .header(HttpHeaders.CONTENT_TYPE, "application/json")
+            .bodyValue(
+                mapOf(
+                    "email" to email,
+                    "password" to "password123",
+                ),
+            )
+            .exchange()
+            .expectBody()
+            .returnResult()
+
+        val status = loginResult.status.value()
+        if (status != 200) {
+            val responseBody = String(
+                loginResult.responseBody ?: ByteArray(0),
+                StandardCharsets.UTF_8,
+            )
+            error("Login expected 200 but was $status: $responseBody")
+        }
+        val body = String(loginResult.responseBody ?: ByteArray(0), StandardCharsets.UTF_8)
+        val accessToken = Regex("\"accessToken\":\"([^\"]+)\"").find(body)?.groupValues?.get(1)
+            ?: error("Missing access token in login response")
+        val refreshCookie = loginResult.responseHeaders.getFirst(HttpHeaders.SET_COOKIE)
+            ?.substringBefore(';')
+            ?: error("Missing refresh cookie in login response")
+        latestLocalAuthSession = BddDatabaseSupport.LocalAuthSession(accessToken, refreshCookie)
     }
 
     private fun requireLatestResult(): EntityExchangeResult<ByteArray> =

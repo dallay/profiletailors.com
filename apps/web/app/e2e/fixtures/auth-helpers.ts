@@ -296,6 +296,7 @@ export async function mockUserProfile(
     email?: string
     username?: string
     displayIdentity?: string
+    emailStatus?: string
     workspaceId?: string
     workspaceName?: string
     workspaceRole?: string
@@ -306,6 +307,7 @@ export async function mockUserProfile(
     email = 'dev@profiletailors.com',
     username = 'dev',
     displayIdentity = 'dev',
+    emailStatus = 'VERIFIED',
     workspaceId = 'workspace-001',
     workspaceName = "dev's Workspace",
     workspaceRole = 'OWNER',
@@ -320,6 +322,7 @@ export async function mockUserProfile(
         email,
         username,
         displayIdentity,
+        emailStatus,
       }),
     })
   })
@@ -391,6 +394,7 @@ export async function mockAuthenticatedSession(
     email,
     username,
     displayIdentity: username,
+    emailStatus,
     workspaceId,
   })
   await mockCurrentWorkspace(page, { workspaceId })
@@ -473,6 +477,7 @@ export async function mockRegisterSuccess(
     email,
     username,
     displayIdentity: username,
+    emailStatus,
     workspaceId: workspaceId ?? undefined,
   })
 
