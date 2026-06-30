@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { authCredentialsSchema, workspaceNameSchema } from './schemas'
+import { authCredentialsSchema, registerSchema, workspaceNameSchema } from './schemas'
 
 describe('authCredentialsSchema', () => {
   it('trims and validates auth credentials', () => {
@@ -65,6 +65,51 @@ describe('workspaceNameSchema', () => {
       expect(result.error.issues[0]?.message).toBe(
         'Workspace name must be 255 characters or fewer.',
       )
+    }
+  })
+})
+
+describe('registerSchema', () => {
+  it('validates a correct registration payload', () => {
+    const result = registerSchema.safeParse({
+      email: 'user@example.com',
+      password: 'password123',
+      confirmPassword: 'password123',
+    })
+
+    expect(result.success).toBe(true)
+    if (result.success) {
+      expect(result.data).toEqual({
+        email: 'user@example.com',
+        password: 'password123',
+        confirmPassword: 'password123',
+      })
+    }
+  })
+
+  it('rejects registration if passwords do not match', () => {
+    const result = registerSchema.safeParse({
+      email: 'user@example.com',
+      password: 'password123',
+      confirmPassword: 'mismatchingPassword',
+    })
+
+    expect(result.success).toBe(false)
+    if (!result.success) {
+      expect(result.error.flatten().fieldErrors.confirmPassword).toContain('Passwords must match.')
+    }
+  })
+
+  it('rejects registration if confirmPassword is empty', () => {
+    const result = registerSchema.safeParse({
+      email: 'user@example.com',
+      password: 'password123',
+      confirmPassword: '',
+    })
+
+    expect(result.success).toBe(false)
+    if (!result.success) {
+      expect(result.error.flatten().fieldErrors.confirmPassword).toContain('Please confirm your password.')
     }
   })
 })

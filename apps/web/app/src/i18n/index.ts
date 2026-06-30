@@ -262,6 +262,9 @@ const messages = {
       password: 'Password',
       emailPlaceholder: 'you{at}example.com',
       passwordPlaceholder: 'At least 8 characters',
+      confirmPassword: 'Confirm Password',
+      confirmPasswordPlaceholder: 'Repeat your password',
+      passwordsMustMatch: 'Passwords must match.',
     },
     emailVerification: {
       banner: {
@@ -725,6 +728,9 @@ const messages = {
       password: 'Contraseña',
       emailPlaceholder: 'tu{at}ejemplo.com',
       passwordPlaceholder: 'Al menos 8 caracteres',
+      confirmPassword: 'Confirmar contraseña',
+      confirmPasswordPlaceholder: 'Repite tu contraseña',
+      passwordsMustMatch: 'Las contraseñas deben coincidir.',
     },
     emailVerification: {
       banner: {

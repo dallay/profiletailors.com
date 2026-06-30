@@ -15,6 +15,17 @@ export const authCredentialsSchema = z.object({
 
 export type AuthCredentials = z.infer<typeof authCredentialsSchema>
 
+export const registerSchema = authCredentialsSchema
+  .extend({
+    confirmPassword: z.string().trim().min(1, 'Please confirm your password.'),
+  })
+  .refine((data) => data.password === data.confirmPassword, {
+    message: 'Passwords must match.',
+    path: ['confirmPassword'],
+  })
+
+export type RegisterCredentials = z.infer<typeof registerSchema>
+
 // ---------------------------------------------------------------------------
 // Workspace rename
 // ---------------------------------------------------------------------------

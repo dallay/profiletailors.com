@@ -2,7 +2,7 @@
 import { computed, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { Button } from '@/components/ui/button'
-import { authCredentialsSchema } from '@/lib/validation/schemas'
+import { authCredentialsSchema, registerSchema } from '@/lib/validation/schemas'
 import { useAuthStore } from '@/stores/auth'
 
 const auth = useAuthStore()
@@ -14,8 +14,9 @@ const alternateRoute = computed(() => isRegisterMode.value ? '/login' : '/regist
 
 const email = ref('')
 const password = ref('')
+const confirmPassword = ref('')
 const formError = ref<string | null>(null)
-const fieldErrors = ref<{ email?: string; password?: string }>({})
+const fieldErrors = ref<{ email?: string; password?: string; confirmPassword?: string }>({})
 
 if (auth.error) {
   formError.value = auth.error
@@ -28,6 +29,7 @@ watch(() => route.name, () => {
   fieldErrors.value = {}
   email.value = ''
   password.value = ''
+  confirmPassword.value = ''
   auth.clearError()
 })
 
@@ -36,15 +38,19 @@ async function handleSubmit() {
   fieldErrors.value = {}
   auth.clearError()
 
-  const validationResult = authCredentialsSchema.safeParse({
-    email: email.value,
-    password: password.value,
-  })
+  const schema = isRegisterMode.value ? registerSchema : authCredentialsSchema
+  const data = isRegisterMode.value
+    ? { email: email.value, password: password.value, confirmPassword: confirmPassword.value }
+    : { email: email.value, password: password.value }
+
+  const validationResult = schema.safeParse(data)
 
   if (!validationResult.success) {
+    const errors = validationResult.error.flatten().fieldErrors
     fieldErrors.value = {
-      email: validationResult.error.flatten().fieldErrors.email?.[0],
-      password: validationResult.error.flatten().fieldErrors.password?.[0],
+      email: errors.email?.[0],
+      password: errors.password?.[0],
+      confirmPassword: errors.confirmPassword?.[0],
     }
     return
   }
@@ -165,6 +171,26 @@ async function handleSubmit() {
               >
               <p v-if="fieldErrors.password" role="alert" class="text-sm text-error">
                 {{ fieldErrors.password }}
+              </p>
+            </div>
+
+            <div v-if="isRegisterMode" class="space-y-2">
+              <!-- biome-ignore lint/a11y/noLabelWithoutControl: for/id link is correct; biome cannot evaluate Vue i18n interpolation as label text -->
+              <label class="font-mono text-[10px] font-bold uppercase tracking-[0.16em] text-text-secondary" for="confirmPassword">
+                {{ $t('auth.confirmPassword') }}
+              </label>
+              <input
+                id="confirmPassword"
+                v-model="confirmPassword"
+                type="password"
+                autocomplete="new-password"
+                :placeholder="$t('auth.confirmPasswordPlaceholder')"
+                :aria-invalid="fieldErrors.confirmPassword ? 'true' : 'false'"
+                class="w-full rounded-2xl border border-border-visible bg-bg-primary px-4 py-3 text-sm text-text-body placeholder:text-text-secondary focus:border-text-display focus:outline-none"
+                required
+              >
+              <p v-if="fieldErrors.confirmPassword" role="alert" class="text-sm text-error">
+                {{ fieldErrors.confirmPassword }}
               </p>
             </div>
 

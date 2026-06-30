@@ -68,19 +68,34 @@ describe('AuthView validation', () => {
     expect(wrapper.text()).toContain('Please enter your password.')
   })
 
-  it('trims credentials before submitting registration', async () => {
+  it('trims credentials and validates confirm password before submitting registration', async () => {
     routeState.name = 'register'
     registerWithPassword.mockResolvedValue(undefined)
     const wrapper = mountAuthView()
 
     await wrapper.find('input#email').setValue('  user@example.com  ')
     await wrapper.find('input#password').setValue('  password123  ')
+    await wrapper.find('input#confirmPassword').setValue('  password123  ')
     await wrapper.find('form').trigger('submit.prevent')
 
     expect(registerWithPassword).toHaveBeenCalledWith({
       email: 'user@example.com',
       password: 'password123',
+      confirmPassword: 'password123',
     })
     expect(replace).toHaveBeenCalledWith('/')
+  })
+
+  it('shows error if passwords do not match in registration', async () => {
+    routeState.name = 'register'
+    const wrapper = mountAuthView()
+
+    await wrapper.find('input#email').setValue('user@example.com')
+    await wrapper.find('input#password').setValue('password123')
+    await wrapper.find('input#confirmPassword').setValue('mismatch')
+    await wrapper.find('form').trigger('submit.prevent')
+
+    expect(registerWithPassword).not.toHaveBeenCalled()
+    expect(wrapper.text()).toContain('Passwords must match.')
   })
 })
