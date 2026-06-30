@@ -1,5 +1,6 @@
 package com.profiletailors.smp.identity.infrastructure.email
 
+import com.profiletailors.smp.identity.application.EmailMessage
 import com.profiletailors.smp.identity.application.EmailSendResult
 import com.profiletailors.smp.identity.application.EmailSender
 import org.slf4j.LoggerFactory
@@ -17,14 +18,16 @@ class MockEmailSender : EmailSender {
 
     private val log = LoggerFactory.getLogger(MockEmailSender::class.java)
 
-    override suspend fun send(to: String, subject: String, body: String): EmailSendResult {
+    override suspend fun send(to: String, subject: String, message: EmailMessage): EmailSendResult {
         log.info(
             """
             |=== MOCK EMAIL ===
             |To: $to
             |Subject: $subject
-            |Body:
-            |$body
+            |Text:
+            |${message.text}
+            |HTML:
+            |${message.html ?: "(none)"}
             |==================
             """.trimMargin(),
         )

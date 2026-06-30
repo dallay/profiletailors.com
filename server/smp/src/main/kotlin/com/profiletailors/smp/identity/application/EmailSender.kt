@@ -8,9 +8,11 @@ package com.profiletailors.smp.identity.application
  * 2. [SmtpEmailSender]  — raw SMTP via Spring Mail (active when `spring.mail.host` is set)
  * 3. [MockEmailSender]  — logs to console (dev/test fallback)
  */
+data class EmailMessage(val text: String, val html: String? = null)
+
 fun interface EmailSender {
     /** Send an email. Returns [EmailSendResult] indicating success or failure. */
-    suspend fun send(to: String, subject: String, body: String): EmailSendResult
+    suspend fun send(to: String, subject: String, message: EmailMessage): EmailSendResult
 }
 
 data class EmailSendResult(val success: Boolean, val error: String? = null)

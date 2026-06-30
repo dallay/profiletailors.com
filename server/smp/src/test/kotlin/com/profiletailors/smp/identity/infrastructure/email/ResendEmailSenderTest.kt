@@ -1,5 +1,6 @@
 package com.profiletailors.smp.identity.infrastructure.email
 
+import com.profiletailors.smp.identity.application.EmailMessage
 import com.resend.core.exception.ResendException
 import com.resend.services.emails.model.CreateEmailOptions
 import com.resend.services.emails.model.CreateEmailResponse
@@ -27,7 +28,10 @@ class ResendEmailSenderTest {
         val result = sender.send(
             to = "user@example.com",
             subject = "Verify your email",
-            body = "Click the link to verify.",
+            message = EmailMessage(
+                text = "Click the link to verify.",
+                html = "<p>Click the link to verify.</p>",
+            ),
         )
 
         assertTrue(result.success)
@@ -36,6 +40,7 @@ class ResendEmailSenderTest {
         assertEquals("user@example.com", capture.lastOptions?.to?.firstOrNull())
         assertEquals("[Profile Tailors] Verify your email", capture.lastOptions?.subject)
         assertEquals("Click the link to verify.", capture.lastOptions?.text)
+        assertEquals("<p>Click the link to verify.</p>", capture.lastOptions?.html)
     }
 
     @Test
@@ -48,7 +53,7 @@ class ResendEmailSenderTest {
         val result = sender.send(
             to = "user@example.com",
             subject = "Test",
-            body = "Body",
+            message = EmailMessage(text = "Body"),
         )
 
         assertFalse(result.success)
@@ -60,7 +65,7 @@ class ResendEmailSenderTest {
         val capture = SentCapture()
         val sender = ResendEmailSender(emailProperties, fakeGateway(capture = capture))
 
-        sender.send(to = "a@b.com", subject = "Password Reset", body = "Reset link here.")
+        sender.send(to = "a@b.com", subject = "Password Reset", message = EmailMessage(text = "Reset link here."))
 
         assertEquals("[Profile Tailors] Password Reset", capture.lastOptions?.subject)
     }
@@ -74,7 +79,7 @@ class ResendEmailSenderTest {
         val capture = SentCapture()
         val sender = ResendEmailSender(customProperties, fakeGateway(capture = capture))
 
-        sender.send(to = "user@example.com", subject = "Hello", body = "Body")
+        sender.send(to = "user@example.com", subject = "Hello", message = EmailMessage(text = "Body"))
 
         assertEquals("custom@profiletailors.com", capture.lastOptions?.from)
         assertEquals("[PT] Hello", capture.lastOptions?.subject)
