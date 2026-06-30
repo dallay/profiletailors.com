@@ -423,14 +423,7 @@ class BddDatabaseSupport(
             .map { row, _ -> row.get("principal_id", String::class.java) as String }
             .one()
             .awaitSingleOrNull()
-        val identityByEmailExists: String? = databaseClient.sql(
-            "SELECT principal_id FROM user_identities WHERE email = :email",
-        )
-            .bind("email", email)
-            .map { row, _ -> row.get("principal_id", String::class.java) as String }
-            .one()
-            .awaitSingleOrNull()
-        if (identityExists == null && identityByEmailExists == null) {
+        if (identityExists == null) {
             databaseClient.sql(
                 """
                 INSERT INTO user_identities (principal_id, email, username)
@@ -500,9 +493,10 @@ class BddDatabaseSupport(
     suspend fun seedWorkspaceMembershipIdempotent(principalId: String, workspaceId: String = WORKSPACE_ID) {
         val membershipId = "membership-$principalId-$workspaceId"
         val exists: String? = databaseClient.sql(
-            "SELECT id FROM workspace_memberships WHERE id = :id",
+            "SELECT id FROM workspace_memberships WHERE principal_id = :principalId AND workspace_id = :workspaceId",
         )
-            .bind("id", membershipId)
+            .bind("principalId", principalId)
+            .bind("workspaceId", workspaceId)
             .map { row, _ -> row.get("id", String::class.java) as String }
             .one()
             .awaitSingleOrNull()

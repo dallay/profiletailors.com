@@ -168,7 +168,7 @@ export async function mockRefreshResponse(
     accessToken = 'refreshed-test-token',
     email = 'dev@profiletailors.com',
     username = 'dev',
-    emailStatus = 'VERIFIED',
+    emailStatus = 'PENDING',
   } = overrides
   await page.route('**/api/auth/refresh', async (route) => {
     await route.fulfill({
@@ -307,7 +307,7 @@ export async function mockUserProfile(
     email = 'dev@profiletailors.com',
     username = 'dev',
     displayIdentity = 'dev',
-    emailStatus = 'VERIFIED',
+    emailStatus = 'PENDING',
     workspaceId = 'workspace-001',
     workspaceName = "dev's Workspace",
     workspaceRole = 'OWNER',
@@ -384,7 +384,7 @@ export async function mockAuthenticatedSession(
     principalId = 'test-user',
     email = 'dev@profiletailors.com',
     username = 'dev',
-    emailStatus = 'VERIFIED',
+    emailStatus = 'PENDING',
     workspaceId = 'workspace-001',
   } = overrides
 

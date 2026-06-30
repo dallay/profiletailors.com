@@ -254,10 +254,12 @@ class AuthorizationBddSteps {
 
     @When("the client requests the current authenticated user profile")
     fun whenClientRequestsCurrentUserProfile() {
+        val authHeader = latestLocalAuthSession?.let { "Bearer ${it.accessToken}" }
+            ?: BddDatabaseSupport.USER_BEARER
         latestStatusCode = null
         latestResult = webTestClient.get()
             .uri(bddDatabaseSupport.currentUserProfilePath())
-            .header(HttpHeaders.AUTHORIZATION, BddDatabaseSupport.USER_BEARER)
+            .header(HttpHeaders.AUTHORIZATION, authHeader)
             .header(HttpHeaders.ACCEPT, BddDatabaseSupport.API_VERSION_MEDIA_TYPE)
             .exchange()
             .expectBody()
