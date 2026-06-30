@@ -160,28 +160,28 @@ async function pollUntilReady(
     }
 
     if (pollResp.status === 409) {
-      throw {
-        title: 'Asset hash mismatch',
-        detail: 'Asset already exists with a different file hash.',
-        status: 409,
-      }
+      throw mediaApiError(
+        'Asset hash mismatch',
+        'Asset already exists with a different file hash.',
+        409,
+      )
     }
 
     if (!pollResp.ok) {
       const err = body as MediaApiError
-      throw {
-        title: err.errorCode ?? 'PUT failed',
-        detail: err.message ?? `Server returned ${pollResp.status}`,
-        status: pollResp.status,
-      }
+      throw mediaApiError(
+        err.errorCode ?? 'PUT failed',
+        err.message ?? `Server returned ${pollResp.status}`,
+        pollResp.status,
+      )
     }
   }
 
-  throw {
-    title: 'Upload timeout',
-    detail: 'The blob upload did not complete in time. Please try again.',
-    status: 408,
-  }
+  throw mediaApiError(
+    'Upload timeout',
+    'The blob upload did not complete in time. Please try again.',
+    408,
+  )
 }
 
 // ---------------------------------------------------------------------------
@@ -209,13 +209,8 @@ export async function putAsset(
   assetId?: string,
 ): Promise<PutAssetResponse | UploadAssetResponse> {
   const auth = useAuthStore()
-
   if (!auth.isAuthenticated) {
-    throw {
-      title: 'Not authenticated',
-      detail: 'You must be signed in to upload media.',
-      status: 401,
-    }
+    throw mediaApiError('Not authenticated', 'You must be signed in to upload media.', 401)
   }
 
   const stableId = assetId ?? crypto.randomUUID()
@@ -240,44 +235,19 @@ export async function putAsset(
   // Handle 429: rate limited
   if (putResp.status === 429) {
     const body = (await putResp.json()) as MediaApiError
-    throw {
-      title: 'Rate limit exceeded',
-      detail: body.message ?? 'Hourly creation limit exceeded.',
-      status: 429,
-      errorCode: 'RATE_LIMIT_EXCEEDED',
-      retryAfterSeconds: body.retryAfterSeconds,
-    }
+    const err = mediaApiError(
+      'Rate limit exceeded',
+      body.message ?? 'Hourly creation limit exceeded.',
+      429,
+      'RATE_LIMIT_EXCEEDED',
+    )
+    err.retryAfterSeconds = body.retryAfterSeconds
+    throw err
   }
 
   // Handle non-OK responses
   if (!putResp.ok) {
-    const body = await putResp.json().catch(() => ({}))
-    const err = body as MediaApiError
-
-    if (putResp.status === 409) {
-      throw {
-        title: 'Asset hash mismatch',
-        detail: err.message ?? 'Asset already exists with a different file hash.',
-        status: 409,
-        errorCode: 'ASSET_HASH_MISMATCH',
-        existingFileHash: err.existingFileHash,
-      }
-    }
-
-    if (putResp.status === 400) {
-      throw {
-        title: 'Validation error',
-        detail: err.message ?? `Server rejected the request (${putResp.status}).`,
-        status: 400,
-        errorCode: err.errorCode ?? 'VALIDATION_ERROR',
-      }
-    }
-
-    throw {
-      title: err.errorCode ?? 'PUT failed',
-      detail: err.message ?? `Server returned ${putResp.status}.`,
-      status: putResp.status,
-    }
+    throw await makePutAssetError(putResp)
   }
 
   const putBody = (await putResp.json()) as PutAssetResponse
@@ -289,38 +259,91 @@ export async function putAsset(
 
   // 201: need to upload bytes
   if (putBody.status === 'PENDING_UPLOAD' && putBody.uploadUrl) {
-    const uploadResp = await createMediaFetch().raw(putBody.uploadUrl, {
-      method: 'POST',
-      workspaceScoped: true,
-      body: file,
-      // Override Content-Type to raw bytes
-      headers: { 'Content-Type': 'application/octet-stream' },
-    })
-
-    if (!uploadResp.ok) {
-      const body = await uploadResp.json().catch(() => ({}))
-      const err = body as MediaApiError
-
-      if (uploadResp.status === 422) {
-        throw {
-          title: err.errorCode ?? 'Upload verification failed',
-          detail: err.message ?? 'Server-side hash or size check failed.',
-          status: 422,
-          errorCode: err.errorCode,
-        }
-      }
-
-      throw {
-        title: err.errorCode ?? 'Upload failed',
-        detail: err.message ?? `Server returned ${uploadResp.status}.`,
-        status: uploadResp.status,
-      }
-    }
-
-    return (await uploadResp.json()) as UploadAssetResponse
+    return await uploadAssetBytes(putBody.uploadUrl, file)
   }
 
   return putBody
+}
+
+async function makePutAssetError(putResp: Response): never {
+  const body = await putResp.json().catch(() => ({}))
+  const err = body as MediaApiError & { code?: string; detail?: string }
+  const errCode = err.code ?? err.errorCode
+
+  if (putResp.status === 403 && errCode === 'EMAIL_VERIFICATION_REQUIRED') {
+    throw mediaApiError(
+      'Email verification required',
+      err.detail ?? 'Please verify your email before uploading media.',
+      403,
+      errCode,
+    )
+  }
+  if (putResp.status === 409) {
+    const e409 = mediaApiError(
+      'Asset hash mismatch',
+      err.message ?? 'Asset already exists with a different file hash.',
+      409,
+      'ASSET_HASH_MISMATCH',
+    )
+    e409.existingFileHash = err.existingFileHash
+    throw e409
+  }
+  if (putResp.status === 400) {
+    throw mediaApiError(
+      'Validation error',
+      err.message ?? `Server rejected the request (${putResp.status}).`,
+      400,
+      err.errorCode ?? 'VALIDATION_ERROR',
+    )
+  }
+  throw mediaApiError(
+    err.errorCode ?? 'PUT failed',
+    err.message ?? `Server returned ${putResp.status}.`,
+    putResp.status,
+  )
+}
+
+async function uploadAssetBytes(uploadUrl: string, file: File): Promise<UploadAssetResponse> {
+  const uploadResp = await createMediaFetch().raw(uploadUrl, {
+    method: 'POST',
+    workspaceScoped: true,
+    body: file,
+    headers: { 'Content-Type': 'application/octet-stream' },
+  })
+
+  if (!uploadResp.ok) {
+    throw await makeUploadError(uploadResp)
+  }
+
+  return (await uploadResp.json()) as UploadAssetResponse
+}
+
+async function makeUploadError(uploadResp: Response): Promise<ReturnType<typeof mediaApiError>> {
+  const body = await uploadResp.json().catch(() => ({}))
+  const err = body as MediaApiError & { code?: string; detail?: string }
+  const uploadErrCode = err.code ?? err.errorCode
+
+  if (uploadResp.status === 403 && uploadErrCode === 'EMAIL_VERIFICATION_REQUIRED') {
+    return mediaApiError(
+      'Email verification required',
+      err.detail ?? 'Please verify your email before uploading media.',
+      403,
+      uploadErrCode,
+    )
+  }
+  if (uploadResp.status === 422) {
+    return mediaApiError(
+      err.errorCode ?? 'Upload verification failed',
+      err.message ?? 'Server-side hash or size check failed.',
+      422,
+      err.errorCode,
+    )
+  }
+  return mediaApiError(
+    err.errorCode ?? 'Upload failed',
+    err.message ?? `Server returned ${uploadResp.status}.`,
+    uploadResp.status,
+  )
 }
 
 // ---------------------------------------------------------------------------

@@ -290,8 +290,9 @@ internal class VerifyEmailHandler(
         val storedToken = identityRegistrationGateway.verifyEmailToken(tokenHash)
             ?: throw InvalidVerificationTokenException()
 
-        if (!storedToken.isValid(now)) {
-            throw InvalidVerificationTokenException()
+        when {
+            storedToken.usedAt != null -> throw UsedVerificationTokenException()
+            !now.isBefore(storedToken.expiresAt) -> throw ExpiredVerificationTokenException()
         }
 
         identityRegistrationGateway.markTokenUsed(tokenHash, now)
@@ -314,9 +315,6 @@ internal class VerifyEmailHandler(
             ),
         )
     }
-
-    private fun EmailVerificationTokenData.isValid(now: java.time.Instant): Boolean =
-        usedAt == null && now.isBefore(expiresAt)
 }
 
 @Service

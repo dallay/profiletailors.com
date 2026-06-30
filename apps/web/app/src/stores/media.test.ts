@@ -407,6 +407,26 @@ describe('media store', () => {
       expect(store.uploads['large-key']?.status).toBe('failed')
       expect(store.uploads['large-key']?.errorTitle).toBe('File too large')
     })
+
+    it('records email verification required using the backend code field', async () => {
+      const store = useMediaStore()
+      mockPutAsset.mockRejectedValue(
+        Object.assign(new Error('Email verification required'), {
+          status: 403,
+          code: 'EMAIL_VERIFICATION_REQUIRED',
+          detail: 'Please verify your email before uploading media.',
+        }),
+      )
+
+      const file = mockFile()
+
+      await expect(store.createAndUpload(file, 'verify-key')).rejects.toThrow()
+      expect(store.uploads['verify-key']?.status).toBe('failed')
+      expect(store.uploads['verify-key']?.errorTitle).toBe('Email verification required')
+      expect(store.uploads['verify-key']?.errorDetail).toBe(
+        'Please verify your email before uploading media.',
+      )
+    })
   })
 
   describe('retryUpload', () => {
