@@ -693,7 +693,6 @@ async function handleCreateSubmit(
       @click.self="emit('close')"
       @keydown.escape="emit('close')"
     >
-      <!-- Modal Wrapper: using <div role="dialog"> instead of <dialog> to avoid UA default margin/padding that breaks flex centering -->
       <div
         ref="modalContainer"
         role="dialog"
