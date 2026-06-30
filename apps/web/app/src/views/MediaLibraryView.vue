@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, onMounted, ref } from 'vue'
+import { computed, onMounted, ref, watch } from 'vue'
 import { Download, FileText, Image, Loader2, RefreshCw, Trash2, UploadCloud, Video } from '@lucide/vue'
 import { useMediaStore } from '@/stores/media'
 import { useAuthStore } from '@/stores/auth'
@@ -92,7 +92,7 @@ const processingAssets = computed(() =>
 )
 const failedAssets = computed(() => assets.value.filter((asset) => asset.status === 'FAILED'))
 const canUploadMedia = computed(() => authStore.isEmailVerified && !uploadRequiresVerification.value)
-const showVerificationGuidance = computed(() => !canUploadMedia.value || uploadRequiresVerification.value)
+const showVerificationGuidance = computed(() => !canUploadMedia.value)
 
 function statusClass(status: MediaStatus) {
   if (isProcessingStatus(status)) {
@@ -252,6 +252,15 @@ async function handleFileChange(event: Event) {
   await uploadFiles(Array.from(target.files))
   target.value = ''
 }
+
+watch(
+  () => authStore.isEmailVerified,
+  (isVerified) => {
+    if (isVerified) {
+      uploadRequiresVerification.value = false
+    }
+  },
+)
 
 onMounted(async () => {
   await refreshLibrary()

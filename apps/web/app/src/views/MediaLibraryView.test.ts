@@ -132,6 +132,47 @@ describe('MediaLibraryView', () => {
     expect(wrapper.text()).toContain('media.emptyBody')
   })
 
+  it('shows the loading spinner when store is loading and no assets are present (lines 430-432)', async () => {
+    const store = useMediaStore()
+    // Prevent loadAssets from setting isLoading=false — keep it true
+    vi.spyOn(store, 'loadAssets').mockImplementation(() => new Promise(() => {}))
+    store.isLoading = true
+    store.assetIds = []
+    store.assetsById = {}
+
+    const wrapper = mountView()
+    // Do NOT await flushPromises — loading state must be observed before promise resolves
+
+    expect(wrapper.text()).toContain('media.loading')
+  })
+
+  it('shows the no-filtered-results message when assets exist but all are filtered out (lines 441-444)', async () => {
+    const mediaStore = useMediaStore()
+    // Add one READY image asset
+    mediaStore.assetsById['image-ready'] = {
+      assetId: 'image-ready',
+      workspaceId: 'ws-1',
+      sourceType: 'UPLOADED',
+      mediaType: 'image/jpeg',
+      status: 'READY',
+      originalFilename: 'hero.jpg',
+      fileSizeBytes: 100,
+      createdAt: '2026-06-19T12:00:00Z',
+      previewUrl: '/api/media/assets/image-ready/preview',
+      downloadUrl: '/api/media/assets/image-ready/content',
+    }
+    mediaStore.assetIds.push('image-ready')
+
+    const wrapper = mountView()
+    await flushPromises()
+
+    // Apply a type filter that excludes the only asset (VIDEO filter when only IMAGE exists)
+    await wrapper.find('[data-testid="filter-type"]').setValue('VIDEO')
+
+    expect(wrapper.text()).toContain('media.noFilteredAssetsTitle')
+    expect(wrapper.text()).toContain('media.noFilteredAssetsBody')
+  })
+
   it('renders asset cards when assets exist', async () => {
     const mediaStore = useMediaStore()
     mediaStore.assetsById['asset-1'] = {

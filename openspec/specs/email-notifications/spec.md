@@ -122,19 +122,20 @@ Runtime bootstrapping MUST subscribe the verification email consumer before user
 
 The system MUST provide email templates for notification content.
 
-The system MUST support plain text templates (HTML deferred).
+The system MUST support plain text templates for all verification emails.
+The system MAY provide HTML or multipart verification emails, but only if the plain text part remains present and semantically complete.
 The system MUST provide verification email template.
 The system MUST support template customization via configuration.
 The system MUST handle template rendering failures gracefully.
+(Previously: templates only guaranteed plain text output and did not define frontend-owned verification links or multipart expectations.)
 
 #### Scenario: Verification email template rendered
 
 - GIVEN a verification email needs to be sent
-- When the template is rendered
-- THEN the system MUST include verification link with token
-- AND the system MUST include user-friendly instructions
-- AND the system MUST include expiration notice (24 hours)
-- AND the system MUST render as plain text
+- WHEN the template is rendered
+- THEN the system MUST include a frontend verification link with token
+- AND the message MUST include user instructions and a 24-hour expiration notice
+- AND the plain text content MUST be sufficient on its own
 
 #### Scenario: Template rendering failure handled
 
@@ -296,3 +297,23 @@ The system MUST support development mode with mock sender.
 - THEN the system MUST read `app.email.sender` property
 - AND the system MUST use configured address as sender
 - AND the system MUST fallback to default if not configured
+
+### Requirement: Environment-Aware Verification Link Generation
+
+The system MUST generate verification email links from a configurable public application URL.
+
+The system MUST separate the public app URL used in emails from backend API base URL concerns.
+
+#### Scenario: Verification link uses configured public app URL
+
+- GIVEN a verification email is generated in an environment
+- WHEN the verification link is rendered
+- THEN the link MUST start with that environment's configured public app URL
+- AND the path MUST target the frontend verification route
+
+#### Scenario: Verification link avoids hardcoded production API URL
+
+- GIVEN the system runs outside production
+- WHEN a verification email is generated
+- THEN the link MUST NOT use a hardcoded production API host
+- AND the link MUST remain valid for that environment

@@ -257,7 +257,7 @@ full breadth. The proving slice proves end-to-end behavior across all six bounde
 | `POST /api/auth/refresh`                                | Refresh credential validation and new JWT issuance                                                                        | ✅ Implemented |
 | `POST /api/auth/logout`                                 | Authoritative refresh session invalidation                                                                                | ✅ Implemented |
 | `POST /api/auth/register`                               | User registration with email verification token                                                                           | ✅ Implemented |
-| `GET /api/auth/verify-email`                            | Email verification token validation                                                                                       | ✅ Implemented |
+| `POST /api/auth/verify-email`                           | Email verification token validation after SPA link entry                                                                  | ✅ Implemented |
 | `POST /api/auth/resend-verification`                    | Resend verification email                                                                                                 | ✅ Implemented |
 | API-key replacement                                     | Replace an active API key with cutover (no overlap)                                                                       | ✅ Implemented |
 

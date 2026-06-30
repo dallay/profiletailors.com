@@ -275,6 +275,25 @@ const messages = {
         error: 'Unable to resend verification email.',
       },
     },
+    verifyEmail: {
+      loadingTitle: 'Verifying your email',
+      loadingMessage: 'We are confirming your email and syncing your account state.',
+      successTitle: 'Email verified',
+      successMessage:
+        'Your email has been verified. You can continue with sign in or return to your dashboard if your session is active.',
+      signInCta: 'Sign in',
+      dashboardCta: 'Go to dashboard',
+      backToSignIn: 'Back to sign in',
+      missingTokenTitle: 'Verification link incomplete',
+      missingTokenMessage:
+        'This verification link is missing its token. Request a new verification email and try again.',
+      invalidTitle: 'Verification link invalid',
+      invalidMessage:
+        'This verification link is invalid or has already been used. Request a new verification email and try again.',
+      expiredTitle: 'Verification link expired',
+      expiredMessage:
+        'This verification link has expired. Request a new verification email and try again.',
+    },
     scheduler: {
       subtitle: 'Manage your content pipeline in a structured calendar view.',
       mon: 'MON',
@@ -718,6 +737,25 @@ const messages = {
         success: 'Email de verificación enviado. Revisa tu bandeja de entrada.',
         error: 'No se pudo reenviar el email de verificación.',
       },
+    },
+    verifyEmail: {
+      loadingTitle: 'Verificando tu correo',
+      loadingMessage: 'Estamos confirmando tu correo y sincronizando el estado de tu cuenta.',
+      successTitle: 'Correo verificado',
+      successMessage:
+        'Tu correo ya quedó verificado. Puedes iniciar sesión o volver al panel si tu sesión sigue activa.',
+      signInCta: 'Iniciar sesión',
+      dashboardCta: 'Ir al panel',
+      backToSignIn: 'Volver a iniciar sesión',
+      missingTokenTitle: 'Enlace de verificación incompleto',
+      missingTokenMessage:
+        'A este enlace le falta el token de verificación. Solicita un nuevo email de verificación e inténtalo de nuevo.',
+      invalidTitle: 'Enlace de verificación inválido',
+      invalidMessage:
+        'Este enlace de verificación es inválido o ya fue usado. Solicita un nuevo email de verificación e inténtalo de nuevo.',
+      expiredTitle: 'Enlace de verificación expirado',
+      expiredMessage:
+        'Este enlace de verificación expiró. Solicita un nuevo email de verificación e inténtalo de nuevo.',
     },
     scheduler: {
       subtitle: 'Gestiona tu pipeline de contenido en una vista de calendario estructurada.',

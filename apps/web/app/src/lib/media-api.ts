@@ -260,7 +260,7 @@ export async function putAsset(
         'Email verification required',
         err.detail ?? 'Please verify your email before uploading media.',
         403,
-        err.code,
+        errCode,
       )
     }
 
@@ -317,7 +317,7 @@ export async function putAsset(
           'Email verification required',
           err.detail ?? 'Please verify your email before uploading media.',
           403,
-          err.code,
+          uploadErrCode,
         )
       }
 

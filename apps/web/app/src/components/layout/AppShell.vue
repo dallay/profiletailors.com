@@ -54,7 +54,7 @@ const pageTitle = computed(() => {
 })
 
 const shouldShowEmailVerificationBanner = computed(
-  () => auth.isAuthenticated && auth.user?.emailStatus !== 'VERIFIED',
+  () => auth.isAuthenticated && !auth.isEmailVerified,
 )
 const isResendingVerification = computed(() => auth.resendVerificationStatus === 'loading')
 const resendVerificationFeedback = computed(() => {
@@ -333,8 +333,7 @@ onBeforeUnmount(() => {
 
           <section
             v-if="shouldShowEmailVerificationBanner"
-            role="alert"
-            aria-live="assertive"
+            aria-label="Email verification required"
             class="mx-4 mt-4 rounded-xl border border-amber-400/40 bg-amber-400/10 px-4 py-3 text-sm text-amber-50 md:mx-6 lg:mx-8"
           >
             <div class="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
@@ -348,6 +347,7 @@ onBeforeUnmount(() => {
                 </p>
                 <p
                   v-if="resendVerificationFeedback"
+                  aria-live="polite"
                   class="font-medium text-amber-100"
                 >
                   {{ resendVerificationFeedback }}
