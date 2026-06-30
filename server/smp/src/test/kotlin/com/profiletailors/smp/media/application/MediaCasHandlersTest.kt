@@ -2,7 +2,15 @@ package com.profiletailors.smp.media.application
 
 import com.profiletailors.common.domain.bus.event.BaseDomainEvent
 import com.profiletailors.common.domain.bus.event.EventPublisher
+import com.profiletailors.common.domain.context.PrincipalContext
+import com.profiletailors.common.domain.context.PrincipalContextProvider
+import com.profiletailors.common.domain.context.PrincipalType
 import com.profiletailors.common.domain.persistence.AtomicTransactionRunner
+import com.profiletailors.smp.identity.application.FeatureEmailVerificationRequired
+import com.profiletailors.smp.identity.application.PrincipalIdentityFacts
+import com.profiletailors.smp.identity.application.PrincipalIdentityLookup
+import com.profiletailors.smp.identity.application.emailVerificationPolicyOf
+import com.profiletailors.smp.identity.domain.EmailStatus
 import com.profiletailors.smp.media.domain.BlobStatus
 import com.profiletailors.smp.media.domain.BlobUpsertResult
 import com.profiletailors.smp.media.domain.MediaAsset
@@ -29,6 +37,130 @@ import java.security.MessageDigest
 import java.time.Instant
 
 class MediaCasHandlersTest {
+    @Test
+    fun `unverified user cannot create legacy asset and no asset is persisted`() = runTest {
+        val media = InMemoryMediaAssetRepository()
+        val handler = CreateUploadedAssetHandler(
+            media,
+            InMemoryRateLimitRepository(),
+            MediaUploadSettings(1, 200, "bucket"),
+            FixedPrincipalContextProvider,
+            FixedPrincipalIdentityLookup(EmailStatus.PENDING),
+            emailVerificationPolicyOf(),
+        )
+
+        assertThrows<FeatureEmailVerificationRequired> {
+            handler.handle(CreateUploadedAssetCommand(WORKSPACE, MediaSourceType.UPLOADED, "image/jpeg", "photo.jpg"))
+        }
+
+        assertTrue(media.assets.isEmpty())
+    }
+
+    @Test
+    fun `verified user can create legacy asset`() = runTest {
+        val media = InMemoryMediaAssetRepository()
+        val handler = CreateUploadedAssetHandler(
+            media,
+            InMemoryRateLimitRepository(),
+            MediaUploadSettings(1, 200, "bucket"),
+            FixedPrincipalContextProvider,
+            FixedPrincipalIdentityLookup(EmailStatus.VERIFIED),
+            emailVerificationPolicyOf(),
+        )
+
+        val result = handler.handle(
+            CreateUploadedAssetCommand(WORKSPACE, MediaSourceType.UPLOADED, "image/jpeg", "photo.jpg"),
+        )
+
+        assertNotNull(media.asset(WORKSPACE, result.assetId))
+    }
+
+    @Test
+    fun `unverified user cannot upload legacy binary and existing asset remains unchanged`() = runTest {
+        val media = InMemoryMediaAssetRepository()
+        val storage = FakeStorage()
+        val asset = pendingAsset(ASSET_A, HASH_A, status = MediaAssetStatus.PROCESSING)
+        media.create(asset)
+        val handler = UploadAssetHandler(
+            media,
+            InMemoryRateLimitRepository(),
+            storage.service(),
+            MediaUploadSettings(1, 200, "bucket"),
+            FixedPrincipalContextProvider,
+            FixedPrincipalIdentityLookup(EmailStatus.PENDING),
+            emailVerificationPolicyOf(),
+        )
+
+        assertThrows<FeatureEmailVerificationRequired> {
+            handler.handle(LegacyUploadAssetCommand(ASSET_A, WORKSPACE, flowOf(jpegBytes()), jpegBytes().size.toLong()))
+        }
+
+        assertEquals(asset, media.asset(WORKSPACE, ASSET_A))
+        assertTrue(storage.uploaded.isEmpty())
+    }
+
+    @Test
+    fun `unverified user cannot register CAS asset and no asset or blob is persisted`() = runTest {
+        val media = InMemoryMediaAssetRepository()
+        val blobs = InMemoryWorkspaceFileBlobRepository()
+        val handler = putHandler(media, blobs, emailStatus = EmailStatus.PENDING)
+
+        assertThrows<FeatureEmailVerificationRequired> {
+            handler.handle(putCommand(assetId = ASSET_A, fileHash = HASH_A))
+        }
+
+        assertTrue(media.assets.isEmpty())
+        assertTrue(blobs.blobs.isEmpty())
+    }
+
+    @Test
+    fun `verified user can register CAS asset`() = runTest {
+        val media = InMemoryMediaAssetRepository()
+        val blobs = InMemoryWorkspaceFileBlobRepository()
+
+        val result = putHandler(media, blobs, emailStatus = EmailStatus.VERIFIED)
+            .handle(putCommand(assetId = ASSET_A, fileHash = HASH_A))
+
+        assertTrue(result is PutAssetResult.Created)
+        assertNotNull(media.asset(WORKSPACE, ASSET_A))
+    }
+
+    @Test
+    fun `unverified user cannot upload CAS binary and existing asset remains unchanged`() = runTest {
+        val media = InMemoryMediaAssetRepository()
+        val blobs = InMemoryWorkspaceFileBlobRepository()
+        val storage = FakeStorage()
+        val asset = pendingAsset(ASSET_A, HASH_A)
+        media.create(asset)
+        blobs.saveBlob(uploadingBlob(HASH_A))
+
+        assertThrows<FeatureEmailVerificationRequired> {
+            uploadHandler(media, blobs, storage, emailStatus = EmailStatus.PENDING)
+                .handle(uploadCommand(ASSET_A, HASH_A, jpegBytes()))
+        }
+
+        assertEquals(asset, media.asset(WORKSPACE, ASSET_A))
+        assertTrue(storage.uploaded.isEmpty())
+        assertTrue(storage.copies.isEmpty())
+        assertTrue(storage.deletedKeys.isEmpty())
+    }
+
+    @Test
+    fun `verified user can enter CAS binary upload path`() = runTest {
+        val media = InMemoryMediaAssetRepository()
+        val blobs = InMemoryWorkspaceFileBlobRepository()
+        val storage = FakeStorage()
+        val bytes = jpegBytes()
+        val hash = sha256(bytes)
+        media.create(pendingAsset(ASSET_A, hash, fileSizeBytes = bytes.size.toLong()))
+        blobs.saveBlob(uploadingBlob(hash))
+
+        val result = uploadHandler(media, blobs, storage, emailStatus = EmailStatus.VERIFIED)
+            .handle(uploadCommand(ASSET_A, hash, bytes))
+
+        assertTrue(result is CasUploadAssetResult.Ready)
+    }
+
     @Test
     fun `PUT new asset creates uploading blob and pending asset with declared file size`() = runTest {
         val media = InMemoryMediaAssetRepository()
@@ -619,17 +751,31 @@ private fun putHandler(
     media: InMemoryMediaAssetRepository,
     blobs: InMemoryWorkspaceFileBlobRepository,
     limiter: InMemoryRateLimitRepository = InMemoryRateLimitRepository(),
-) = PutAssetHandler(media, blobs, limiter, MediaUploadSettings(1, 200, "bucket"), NoopAtomicTransactionRunner)
+    emailStatus: EmailStatus = EmailStatus.VERIFIED,
+) = PutAssetHandler(
+    media,
+    blobs,
+    limiter,
+    MediaUploadSettings(1, 200, "bucket"),
+    NoopAtomicTransactionRunner,
+    FixedPrincipalContextProvider,
+    FixedPrincipalIdentityLookup(emailStatus),
+    emailVerificationPolicyOf(),
+)
 private fun uploadHandler(
     media: InMemoryMediaAssetRepository,
     blobs: InMemoryWorkspaceFileBlobRepository,
     storage: FakeStorage,
+    emailStatus: EmailStatus = EmailStatus.VERIFIED,
 ) = CasUploadAssetHandler(
     media,
     blobs,
     storage.service(),
     MediaUploadSettings(1, 200, "bucket"),
     NoopAtomicTransactionRunner,
+    FixedPrincipalContextProvider,
+    FixedPrincipalIdentityLookup(emailStatus),
+    emailVerificationPolicyOf(),
 )
 private fun deleteHandler(media: InMemoryMediaAssetRepository, blobs: InMemoryWorkspaceFileBlobRepository) =
     DeleteAssetHandler(media, blobs, NoopAtomicTransactionRunner)
@@ -643,6 +789,40 @@ private fun deleteHandler(media: InMemoryMediaAssetRepository, blobs: InMemoryWo
 private object NoopAtomicTransactionRunner : AtomicTransactionRunner {
     override suspend fun <T : Any> runAtomically(block: suspend () -> T): T = block()
 }
+
+private object FixedPrincipalContextProvider : PrincipalContextProvider {
+    override suspend fun current(): PrincipalContext = PrincipalContext(
+        principalId = "principal-1",
+        principalType = PrincipalType.USER,
+        subject = "local:owner@example.com",
+        displayIdentity = "Owner",
+        authenticationMethod = "TEST",
+    )
+}
+
+private class FixedPrincipalIdentityLookup(private val emailStatus: EmailStatus) : PrincipalIdentityLookup {
+    override suspend fun findBySubject(
+        principalType: PrincipalType,
+        subject: String,
+        provider: String?,
+    ): PrincipalIdentityFacts? = facts("principal-1")
+
+    override suspend fun findByEmail(email: String): PrincipalIdentityFacts? = facts("principal-1")
+
+    override suspend fun findByPrincipalId(principalId: String): PrincipalIdentityFacts? = facts(principalId)
+
+    private fun facts(principalId: String) = PrincipalIdentityFacts(
+        principalId = principalId,
+        principalType = PrincipalType.USER,
+        subject = "local:owner@example.com",
+        provider = null,
+        displayIdentity = "Owner",
+        email = "owner@example.com",
+        username = "owner",
+        emailStatus = emailStatus,
+    )
+}
+
 private fun reconcilerSettings() = MediaReconcilerSettings("bucket", 2, 30)
 private fun putCommand(
     assetId: String,

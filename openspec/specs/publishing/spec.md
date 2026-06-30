@@ -48,6 +48,34 @@ violations.)
 - AND MUST NOT create duplicate records
 - AND connection status MUST be `ACTIVE` with refreshed metadata
 
+### Requirement: Email Verification Required for Publishing and Social Connection
+
+The system MUST require `emailStatus = VERIFIED` before a user can publish content or connect a social account.
+
+This verification gate MUST apply consistently across immediate publishing, scheduled publishing requests, and social connection initiation or completion flows.
+
+> **TODO:** Gate implementations for publishing and social-connection flows are deferred. Currently only `UPLOAD_MEDIA` (media library upload) enforces `emailStatus = VERIFIED`. The publishing handler, scheduling handler, and social connection initiation/completion handlers must be updated in a follow-up change to reject requests when `emailStatus != VERIFIED`. The `EmailVerificationPolicy` enum in the identity context should be extended with publishing and social-connection features, and the corresponding handlers should gate on those policies.
+
+#### Scenario: Unverified user cannot publish
+
+- GIVEN an authenticated user with `emailStatus = UNVERIFIED`
+- WHEN the user attempts to create, queue, or publish content
+- THEN the system MUST deny the request
+- AND the denial MUST indicate email verification is required
+
+#### Scenario: Unverified user cannot connect a social account
+
+- GIVEN an authenticated user with `emailStatus = UNVERIFIED`
+- WHEN the user attempts to initiate or complete a social connection flow
+- THEN the system MUST deny the request
+- AND the denial MUST indicate email verification is required
+
+#### Scenario: Verified user can use gated publishing capabilities
+
+- GIVEN an authenticated user with `emailStatus = VERIFIED`
+- WHEN the user attempts to publish or connect a social account with otherwise valid input
+- THEN the system MUST evaluate the request under normal publishing rules
+
 ### Requirement: Provider-Neutral Publication Lifecycle
 
 The system MUST model publications independently from provider-specific transport details.

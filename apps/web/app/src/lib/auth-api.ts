@@ -20,6 +20,7 @@ export interface CurrentUserProfile {
   email: string | null
   username: string | null
   displayIdentity: string
+  emailStatus: string | null
 }
 
 interface LoginPayload {
@@ -33,6 +34,8 @@ export interface ApiError {
   title?: string
   detail?: string
   status?: number
+  code?: string
+  errorCode?: string
 }
 
 export type ApiFetchOptions = RequestInit & {
@@ -40,8 +43,13 @@ export type ApiFetchOptions = RequestInit & {
 }
 
 /** Creates an Error that also satisfies the ApiError shape for throw sites. */
-function apiError(title: string, detail: string, status: number): Error & ApiError {
-  return Object.assign(new Error(title), { title, detail, status })
+function apiError(
+  title: string,
+  detail: string,
+  status: number,
+  properties: Pick<ApiError, 'code' | 'errorCode'> = {},
+): Error & ApiError {
+  return Object.assign(new Error(title), { title, detail, status, ...properties })
 }
 
 // ---------------------------------------------------------------------------
@@ -105,6 +113,7 @@ async function requestRaw(
       payload?.title ?? 'Request failed',
       payload?.detail ?? 'An unexpected error occurred.',
       response.status,
+      { code: payload?.code, errorCode: payload?.errorCode },
     )
   }
 
@@ -175,6 +184,20 @@ export async function logoutSession(): Promise<void> {
 
 export async function getCurrentUserProfile(token: string) {
   return request<CurrentUserProfile>('/api/auth/me', { method: 'GET' }, token)
+}
+
+export async function verifyEmail(token: string): Promise<AuthTokens> {
+  return request<AuthTokens>('/api/auth/verify-email', {
+    method: 'POST',
+    body: JSON.stringify({ token }),
+  })
+}
+
+export async function resendVerification(email: string): Promise<void> {
+  await requestRaw('/api/auth/resend-verification', {
+    method: 'POST',
+    body: JSON.stringify({ email }),
+  })
 }
 
 export interface RenameWorkspaceResult {

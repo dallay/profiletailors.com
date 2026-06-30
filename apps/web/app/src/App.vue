@@ -6,7 +6,7 @@ import AppShell from '@/components/layout/AppShell.vue'
 const route = useRoute()
 
 const isAuthRoute = computed(
-  () => route.name === 'login' || route.name === 'register',
+  () => route.name === 'login' || route.name === 'register' || route.name === 'verify-email',
 )
 </script>
 

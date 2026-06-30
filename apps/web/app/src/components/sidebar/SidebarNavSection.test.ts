@@ -1,4 +1,5 @@
 import { describe, it, expect, vi } from 'vitest'
+import type { LucideIcon } from '@lucide/vue'
 import { defineComponent, h, markRaw } from 'vue'
 import { mount } from '@vue/test-utils'
 import SidebarNavSection, { type NavGroup } from './SidebarNavSection.vue'
@@ -7,7 +8,9 @@ vi.mock('vue-i18n', () => ({
   useI18n: () => ({ t: (key: string) => key }),
 }))
 
-const StubIcon = markRaw(defineComponent({ name: 'StubIcon', render: () => h('svg') }))
+const StubIcon = markRaw(
+  defineComponent({ name: 'StubIcon', render: () => h('svg') }),
+) as unknown as LucideIcon
 
 function makeGroups(): NavGroup[] {
   return [

@@ -12,6 +12,7 @@
 export const APP_URL = {
   login: '/login',
   register: '/register',
+  verifyEmail: '/verify-email',
   dashboard: '/',
   scheduler: '/scheduler',
   analytics: '/analytics',

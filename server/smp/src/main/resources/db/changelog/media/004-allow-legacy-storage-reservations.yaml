@@ -1,0 +1,21 @@
+databaseChangeLog:
+  - changeSet:
+      id: media-004-distinguish-legacy-storage-reservations
+      author: sdd-apply
+      dbms: postgresql
+      changes:
+        - sql:
+            sql: >
+              ALTER TABLE media_assets
+              DROP CONSTRAINT chk_media_assets_storage_invariant
+        - sql:
+            sql: >
+              ALTER TABLE media_assets
+              ADD CONSTRAINT chk_media_assets_storage_invariant
+              CHECK (
+                (status = 'READY' AND storage_key IS NOT NULL)
+                OR (
+                  status != 'READY'
+                  AND (file_hash IS NULL OR storage_key IS NULL)
+                )
+              )

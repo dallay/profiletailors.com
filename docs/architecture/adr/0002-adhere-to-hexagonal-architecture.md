@@ -38,6 +38,13 @@ of Spring's `@Service`.
 
 - Applies to all packages under `com.profiletailors.smp.{context}`.
 
+### Accepted exceptions
+
+- **`com.profiletailors.smp.config`**: Cross-cutting infrastructure configuration (e.g.,
+  `PersistenceConfig.kt` for R2DBC transaction management). This package lives outside any
+  bounded context because it provides shared Spring Boot infrastructure wiring that spans
+  multiple contexts. It does NOT contain business logic.
+
 ## Alternatives considered
 
 ### Layered Architecture (Traditional)
@@ -64,8 +71,14 @@ of Spring's `@Service`.
 
 ## Compliance and enforcement
 
-Enforced via `HexagonalArchTest.kt` using ArchUnit. This test fails the build if layer dependency
-rules are violated.
+Enforced via two ArchUnit test suites that fail the build if layer rules are violated:
+
+- **`HexagonalArchTest.kt`**: Layer isolation rules — domain must not depend on Spring, application
+  must not depend on infrastructure or Spring stereotypes, all bounded contexts must expose all
+  three layers.
+- **`ComponentScanArchTest.kt`**: Spring stereotype guards — application layer must use the custom
+  `@Service` marker (not Spring's `@Component`, `@Service`, or `@Repository`), and no nested
+  `@ComponentScan` in infrastructure configs.
 
 ## Verification
 
@@ -78,7 +91,8 @@ None required; the codebase currently adheres well to this ADR.
 
 ## Follow-up actions
 
-- [ ] Add custom ArchUnit rules to detect Spring stereotypes in the application layer.
+- [x] Add custom ArchUnit rules to detect Spring stereotypes in the application layer.
+      See `ComponentScanArchTest.kt` (implemented 2026-06-30).
 
 ## Revisit conditions
 

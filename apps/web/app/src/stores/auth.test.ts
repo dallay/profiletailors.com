@@ -187,4 +187,25 @@ describe('Auth store — hydrateSession', () => {
     expect(auth.resendVerificationStatus).toBe('error')
     expect(auth.resendVerificationError).toBe('Please wait before retrying.')
   })
+
+  it('fails resend verification when no user email is available', async () => {
+    const auth = useAuthStore()
+    auth.user = {
+      principalId: 'user-1',
+      email: '',
+      username: 'testuser',
+      displayIdentity: 'testuser',
+      emailStatus: 'PENDING',
+    }
+
+    await expect(auth.resendVerificationEmail()).rejects.toThrow(
+      'No email address is available for verification resend.',
+    )
+
+    expect(auth.resendVerificationStatus).toBe('error')
+    expect(auth.resendVerificationError).toBe(
+      'No email address is available for verification resend.',
+    )
+    expect(mockResendVerification).not.toHaveBeenCalled()
+  })
 })

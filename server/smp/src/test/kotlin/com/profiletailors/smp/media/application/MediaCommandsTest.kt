@@ -1,10 +1,17 @@
 package com.profiletailors.smp.media.application
 
+import com.profiletailors.smp.identity.application.AuthFeature
+import com.profiletailors.smp.identity.application.emailVerificationPolicyOf
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.assertThrows
 import kotlin.test.Test
 
 class MediaCommandsTest {
+    @Test
+    fun `default email verification policy gates media uploads`() {
+        assertEquals(true, emailVerificationPolicyOf()(AuthFeature.UPLOAD_MEDIA))
+    }
+
     @Test
     fun `upload asset command provides sensible defaults`() {
         val command = UploadAssetCommand(

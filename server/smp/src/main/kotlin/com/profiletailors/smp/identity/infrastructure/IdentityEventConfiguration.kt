@@ -23,8 +23,10 @@ class IdentityEventConfiguration {
     fun emailProperties(
         @Value("\${app.email.sender:noreply@profiletailors.com}") sender: String,
         @Value("\${app.email.verification-subject-prefix:[Profile Tailors]}") verificationSubjectPrefix: String,
+        @Value("\${app.email.public-app-url:https://app.profiletailors.com}") publicAppUrl: String,
     ): EmailProperties = EmailProperties(
         sender = sender,
         verificationSubjectPrefix = verificationSubjectPrefix,
+        publicAppUrl = publicAppUrl,
     )
 }

@@ -12,6 +12,7 @@ import org.springframework.r2dbc.core.DatabaseClient
 import java.sql.DriverManager
 import java.time.Instant
 
+@Suppress("LargeClass")
 class BddDatabaseSupport(
     private val databaseClient: DatabaseClient,
     private val liquibaseJdbcUrl: String,
@@ -38,6 +39,9 @@ class BddDatabaseSupport(
         const val LOCAL_AUTH_LOGIN_PATH = "/api/auth/login"
         const val LOCAL_AUTH_REFRESH_PATH = "/api/auth/refresh"
         const val LOCAL_AUTH_LOGOUT_PATH = "/api/auth/logout"
+        const val LOCAL_AUTH_RESEND_PATH = "/api/auth/resend-verification"
+        const val CURRENT_USER_PROFILE_PATH = "/api/auth/me"
+        const val MEDIA_ASSETS_PATH = "/api/media/assets"
         const val GOVERNANCE_AUDIT_EVENTS_PATH = "/api/governance/audit-events"
         const val TENANCY_OWNERSHIP_TRANSFER_PATH = "/api/tenancy/workspace-ownership/owners/transfer"
         const val TENANCY_MEMBERSHIP_STATUS_PATH_TEMPLATE = "/api/tenancy/workspace-memberships/%s/status"
@@ -278,6 +282,12 @@ class BddDatabaseSupport(
 
     fun localAuthLogoutPath(): String = LOCAL_AUTH_LOGOUT_PATH
 
+    fun currentUserProfilePath(): String = CURRENT_USER_PROFILE_PATH
+
+    fun localAuthResendPath(): String = LOCAL_AUTH_RESEND_PATH
+
+    fun mediaAssetsPath(): String = MEDIA_ASSETS_PATH
+
     fun governanceAuditEventsPath(): String = GOVERNANCE_AUDIT_EVENTS_PATH
 
     fun tenancyOwnershipTransferPath(): String = TENANCY_OWNERSHIP_TRANSFER_PATH
@@ -334,11 +344,172 @@ class BddDatabaseSupport(
         )
     }
 
+    suspend fun seedJwtAuthenticatedUserWithWorkspace(emailStatus: String) {
+        seedAuthenticatedUserWithWorkspace(email = "bdd-user@example.com")
+        databaseClient.sql(
+            "UPDATE user_identities SET email_status = :emailStatus WHERE principal_id = :principalId",
+        )
+            .bind("emailStatus", emailStatus)
+            .bind("principalId", PRINCIPAL_ID)
+            .fetch()
+            .rowsUpdated()
+            .awaitSingle()
+        seedWorkspace()
+        seedWorkspaceMembershipIdempotent(PRINCIPAL_ID)
+    }
+
     suspend fun markEmailVerified(email: String) {
         databaseClient.sql(
             "UPDATE user_identities SET email_status = 'VERIFIED' WHERE email = :email",
         )
             .bind("email", email)
+            .fetch()
+            .rowsUpdated()
+            .awaitSingle()
+    }
+
+    suspend fun markEmailPENDING(email: String) {
+        databaseClient.sql(
+            "UPDATE user_identities SET email_status = 'PENDING' WHERE email = :email",
+        )
+            .bind("email", email)
+            .fetch()
+            .rowsUpdated()
+            .awaitSingle()
+    }
+
+    suspend fun seedWorkspace(workspaceId: String = WORKSPACE_ID) {
+        val exists: String? = databaseClient.sql(
+            "SELECT id FROM workspaces WHERE id = :id",
+        )
+            .bind("id", workspaceId)
+            .map { row, _ -> row.get("id", String::class.java) as String }
+            .one()
+            .awaitSingleOrNull()
+        if (exists != null) return
+        databaseClient.sql(
+            "INSERT INTO workspaces (id, name, status, icon) VALUES (:id, 'Profile Tailors', 'ACTIVE', NULL)",
+        )
+            .bind("id", workspaceId)
+            .fetch()
+            .rowsUpdated()
+            .awaitSingle()
+    }
+
+    suspend fun seedAuthenticatedUserWithWorkspace(
+        email: String = "yuniel@example.com",
+        principalId: String = PRINCIPAL_ID,
+    ) {
+        val principalExists: String? = databaseClient.sql(
+            "SELECT id FROM principals WHERE id = :id",
+        )
+            .bind("id", principalId)
+            .map { row, _ -> row.get("id", String::class.java) as String }
+            .one()
+            .awaitSingleOrNull()
+        if (principalExists == null) {
+            seedPrincipal(
+                principalId = principalId,
+                principalType = "USER",
+                subject = "local:$email",
+                provider = null,
+                displayIdentity = email.substringBefore('@'),
+            )
+        }
+        val identityExists: String? = databaseClient.sql(
+            "SELECT principal_id FROM user_identities WHERE principal_id = :id",
+        )
+            .bind("id", principalId)
+            .map { row, _ -> row.get("principal_id", String::class.java) as String }
+            .one()
+            .awaitSingleOrNull()
+        if (identityExists == null) {
+            databaseClient.sql(
+                """
+                INSERT INTO user_identities (principal_id, email, username)
+                VALUES (:principalId, :email, :username)
+                """.trimIndent(),
+            )
+                .bind("principalId", principalId)
+                .bind("email", email)
+                .bind("username", email.substringBefore('@'))
+                .fetch()
+                .rowsUpdated()
+                .awaitSingle()
+        }
+        val workspaceExists: String? = databaseClient.sql(
+            "SELECT id FROM workspaces WHERE id = :id",
+        )
+            .bind("id", WORKSPACE_ID)
+            .map { row, _ -> row.get("id", String::class.java) as String }
+            .one()
+            .awaitSingleOrNull()
+        if (workspaceExists == null) {
+            seedWorkspace()
+        }
+        seedWorkspaceMembershipIdempotent(principalId)
+    }
+
+    suspend fun seedWorkspaceMembership(principalId: String, workspaceId: String = WORKSPACE_ID) {
+        val membershipId = "membership-$principalId-$workspaceId"
+        databaseClient.sql(
+            """
+            INSERT INTO workspace_memberships (id, workspace_id, principal_id, principal_type, status)
+            VALUES (:id, :workspaceId, :principalId, 'USER', 'ACTIVE')
+            """.trimIndent(),
+        )
+            .bind("id", membershipId)
+            .bind("workspaceId", workspaceId)
+            .bind("principalId", principalId)
+            .fetch()
+            .rowsUpdated()
+            .awaitSingle()
+    }
+
+    suspend fun countMediaAssets(workspaceId: String = WORKSPACE_ID): Long =
+        databaseClient.sql("SELECT COUNT(*) AS total FROM media_assets WHERE workspace_id = :workspaceId")
+            .bind("workspaceId", workspaceId)
+            .map { row, _ -> (row.get("total") as Number).toLong() }
+            .one()
+            .awaitSingle()
+
+    suspend fun firstWorkspaceIdForPrincipal(principalId: String): String? = databaseClient.sql(
+        """
+            SELECT workspace_id FROM workspace_memberships
+            WHERE principal_id = :principalId
+            ORDER BY created_at ASC
+            LIMIT 1
+        """.trimIndent(),
+    )
+        .bind("principalId", principalId)
+        .map { row, _ -> row.get("workspace_id", String::class.java) as String }
+        .one()
+        .awaitSingleOrNull()
+
+    suspend fun seedWorkspaceMembershipForWorkspace(principalId: String, workspaceId: String) {
+        seedWorkspaceMembershipIdempotent(principalId, workspaceId)
+    }
+
+    suspend fun seedWorkspaceMembershipIdempotent(principalId: String, workspaceId: String = WORKSPACE_ID) {
+        val membershipId = "membership-$principalId-$workspaceId"
+        val exists: String? = databaseClient.sql(
+            "SELECT id FROM workspace_memberships WHERE principal_id = :principalId AND workspace_id = :workspaceId",
+        )
+            .bind("principalId", principalId)
+            .bind("workspaceId", workspaceId)
+            .map { row, _ -> row.get("id", String::class.java) as String }
+            .one()
+            .awaitSingleOrNull()
+        if (exists != null) return
+        databaseClient.sql(
+            """
+            INSERT INTO workspace_memberships (id, workspace_id, principal_id, principal_type, status)
+            VALUES (:id, :workspaceId, :principalId, 'USER', 'ACTIVE')
+            """.trimIndent(),
+        )
+            .bind("id", membershipId)
+            .bind("workspaceId", workspaceId)
+            .bind("principalId", principalId)
             .fetch()
             .rowsUpdated()
             .awaitSingle()
@@ -430,6 +601,10 @@ class BddDatabaseSupport(
         "DELETE FROM local_password_credentials",
         "DELETE FROM api_key_credentials",
         "DELETE FROM service_account_credentials",
+        "DELETE FROM media_assets",
+        "DELETE FROM workspace_file_blobs",
+        "DELETE FROM workspace_upload_slots",
+        "DELETE FROM media_rate_limits",
         "DELETE FROM workspace_memberships",
         "DELETE FROM workspace_ownerships",
         "DELETE FROM workspaces",
@@ -454,17 +629,34 @@ class BddDatabaseSupport(
     }
 
     private suspend fun seedUserPrincipal() {
-        seedPrincipal(
-            principalId = PRINCIPAL_ID,
-            principalType = "USER",
-            subject = "subject-123",
-            provider = "https://issuer.example",
-            displayIdentity = "yuniel",
+        val principalExists: String? = databaseClient.sql(
+            "SELECT id FROM principals WHERE id = :id",
         )
+            .bind("id", PRINCIPAL_ID)
+            .map { row, _ -> row.get("id", String::class.java) as String }
+            .one()
+            .awaitSingleOrNull()
+        val exists: String? = databaseClient.sql(
+            "SELECT principal_id FROM user_identities WHERE principal_id = :id",
+        )
+            .bind("id", PRINCIPAL_ID)
+            .map { row, _ -> row.get("principal_id", String::class.java) as String }
+            .one()
+            .awaitSingleOrNull()
+        if (exists != null) return
+        if (principalExists == null) {
+            seedPrincipal(
+                principalId = PRINCIPAL_ID,
+                principalType = "USER",
+                subject = "subject-123",
+                provider = "https://issuer.example",
+                displayIdentity = "yuniel",
+            )
+        }
         databaseClient.sql(
             """
             INSERT INTO user_identities (principal_id, email, username)
-            VALUES ('$PRINCIPAL_ID', 'yuniel@example.com', 'yuniel')
+            VALUES ('$PRINCIPAL_ID', 'jwt-user@example.com', 'jwt-user')
             """.trimIndent(),
         ).fetch().rowsUpdated().awaitSingle()
     }

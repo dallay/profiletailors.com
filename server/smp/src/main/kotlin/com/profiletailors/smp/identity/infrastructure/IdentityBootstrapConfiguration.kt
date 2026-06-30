@@ -10,9 +10,11 @@ import com.profiletailors.smp.credentials.infrastructure.BCryptApiKeySecretVerif
 import com.profiletailors.smp.credentials.infrastructure.BCryptRefreshTokenHasher
 import com.profiletailors.smp.credentials.infrastructure.RefreshSessionConfigurationProperties
 import com.profiletailors.smp.credentials.infrastructure.RefreshSessionCookieFactory
+import com.profiletailors.smp.identity.application.EmailVerificationPolicy
 import com.profiletailors.smp.identity.application.LocalJwtIssuer
 import com.profiletailors.smp.identity.application.PasswordHasher
 import com.profiletailors.smp.identity.application.PrincipalIdentityLookup
+import com.profiletailors.smp.identity.application.emailVerificationPolicyOf
 import com.profiletailors.smp.identity.infrastructure.security.LocalJwtProperties
 import com.profiletailors.smp.identity.infrastructure.security.NimbusLocalJwtIssuer
 import org.springframework.context.annotation.Bean
@@ -22,6 +24,9 @@ import java.time.Clock
 
 @Configuration
 class IdentityBootstrapConfiguration {
+
+    @Bean
+    fun emailVerificationPolicy(): EmailVerificationPolicy = emailVerificationPolicyOf()
 
     @Bean
     fun jwtAuthenticatedPrincipalMaterializer(

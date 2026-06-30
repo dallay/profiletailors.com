@@ -580,6 +580,22 @@ describe('putAsset', () => {
     })
   })
 
+  it('throws email verification required when PUT returns 403 email verification problem', async () => {
+    mockMediaApiFetch.mockResolvedValueOnce(
+      jsonResponse(403, {
+        code: 'EMAIL_VERIFICATION_REQUIRED',
+        detail: 'Please verify your email before uploading media.',
+      }),
+    )
+
+    await expect(putAsset(new File(['x'], 'a.jpg'), 'ws-1')).rejects.toMatchObject({
+      title: 'Email verification required',
+      detail: 'Please verify your email before uploading media.',
+      status: 403,
+      errorCode: 'EMAIL_VERIFICATION_REQUIRED',
+    })
+  })
+
   it('throws VALIDATION_ERROR when PUT returns 400', async () => {
     mockMediaApiFetch.mockResolvedValueOnce(
       jsonResponse(400, {
@@ -658,6 +674,34 @@ describe('putAsset', () => {
     expect(result).toMatchObject({
       assetId: FIXED_UUID,
       status: 'READY',
+    })
+  })
+
+  it('throws email verification required when upload returns 403 email verification problem', async () => {
+    mockMediaApiFetch
+      .mockResolvedValueOnce(
+        jsonResponse(201, {
+          assetId: FIXED_UUID,
+          workspaceId: 'ws-1',
+          status: 'PENDING_UPLOAD',
+          mediaType: 'image/jpeg',
+          uploadUrl: '/api/media/assets/abc/upload',
+        }),
+      )
+      .mockResolvedValueOnce(
+        jsonResponse(403, {
+          code: 'EMAIL_VERIFICATION_REQUIRED',
+          detail: 'Please verify your email before uploading media.',
+        }),
+      )
+
+    await expect(
+      putAsset(new File(['hello'], 'photo.jpg', { type: 'image/jpeg' }), 'ws-1'),
+    ).rejects.toMatchObject({
+      title: 'Email verification required',
+      detail: 'Please verify your email before uploading media.',
+      status: 403,
+      errorCode: 'EMAIL_VERIFICATION_REQUIRED',
     })
   })
 
