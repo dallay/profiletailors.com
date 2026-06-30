@@ -228,13 +228,7 @@ class AuthorizationBddSteps {
     @Given("a previously registered local user session exists without verified email")
     fun givenPreviouslyRegisteredLocalUserSessionExistsWithoutVerifiedEmail() {
         registerLocalUser(email = "pending-media@example.com", verifyEmail = false, login = true)
-        runBlocking {
-            bddDatabaseSupport.markEmailPENDING("pending-media@example.com")
-            bddDatabaseSupport.seedAuthenticatedUserWithWorkspace(
-                email = "pending-media@example.com",
-                principalId = "pending-media-principal",
-            )
-        }
+        runBlocking { bddDatabaseSupport.markEmailPENDING("pending-media@example.com") }
     }
 
     @Given("a previously registered local user session exists with workspace membership")
@@ -254,12 +248,10 @@ class AuthorizationBddSteps {
 
     @When("the client requests the current authenticated user profile")
     fun whenClientRequestsCurrentUserProfile() {
-        val authHeader = latestLocalAuthSession?.let { "Bearer ${it.accessToken}" }
-            ?: BddDatabaseSupport.USER_BEARER
         latestStatusCode = null
         latestResult = webTestClient.get()
             .uri(bddDatabaseSupport.currentUserProfilePath())
-            .header(HttpHeaders.AUTHORIZATION, authHeader)
+            .header(HttpHeaders.AUTHORIZATION, BddDatabaseSupport.USER_BEARER)
             .header(HttpHeaders.ACCEPT, BddDatabaseSupport.API_VERSION_MEDIA_TYPE)
             .exchange()
             .expectBody()

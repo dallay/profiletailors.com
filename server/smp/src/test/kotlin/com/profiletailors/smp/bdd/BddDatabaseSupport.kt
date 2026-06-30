@@ -345,7 +345,7 @@ class BddDatabaseSupport(
     }
 
     suspend fun seedJwtAuthenticatedUserWithWorkspace(emailStatus: String) {
-        seedUserPrincipal()
+        seedAuthenticatedUserWithWorkspace(email = "bdd-user@example.com")
         databaseClient.sql(
             "UPDATE user_identities SET email_status = :emailStatus WHERE principal_id = :principalId",
         )
