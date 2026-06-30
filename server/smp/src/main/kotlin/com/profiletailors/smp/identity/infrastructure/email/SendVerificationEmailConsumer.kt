@@ -23,7 +23,7 @@ class SendVerificationEmailConsumer(
     private val log = LoggerFactory.getLogger(SendVerificationEmailConsumer::class.java)
 
     override suspend fun consume(event: UserRegistered) {
-        val body = EmailTemplates.verificationEmail(
+        val message = EmailTemplates.verificationEmail(
             username = event.username,
             token = event.rawVerificationToken,
             publicAppUrl = emailProperties.publicAppUrl,
@@ -32,7 +32,7 @@ class SendVerificationEmailConsumer(
         val result = emailSender.send(
             to = event.email,
             subject = subject,
-            body = body,
+            message = message,
         )
         if (!result.success) {
             log.error(
