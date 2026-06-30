@@ -33,18 +33,21 @@ import org.springframework.web.server.WebFilter
 import org.springframework.web.server.WebFilterChain
 import reactor.core.publisher.Mono
 
+private const val WORKSPACE_HEADER_NAME = "X-Workspace-Id"
+
 @ConfigurationProperties(prefix = "app.security.cors")
 data class CorsConfigurationProperties(
     val allowedOrigins: List<String> = emptyList(),
     val allowedMethods: List<String> = listOf("GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"),
-    val allowedHeaders: List<String> = listOf("Content-Type", "Authorization", "X-Requested-With", "X-Workspace-Id"),
+    val allowedHeaders: List<String> =
+        listOf("Content-Type", "Authorization", "X-Requested-With", WORKSPACE_HEADER_NAME),
     val exposedHeaders: List<String> = emptyList(),
     val allowCredentials: Boolean = false,
     val maxAge: Long = 1800,
 ) {
     companion object {
         val REQUIRED_CORS_HEADERS: List<String> =
-            listOf("Content-Type", "Authorization", "X-Requested-With", "X-Workspace-Id")
+            listOf("Content-Type", "Authorization", "X-Requested-With", WORKSPACE_HEADER_NAME)
     }
 }
 
@@ -310,6 +313,5 @@ class IdentitySecurityConfiguration {
         internal const val WORKSPACE_ACCESS_REQUEST_NAME =
             "com.profiletailors.smp.authorization.application.current.workspace.GetCurrentWorkspaceAccessSummaryQuery"
         internal const val WORKSPACE_ACCESS_PERMISSION = "workspace:access:read"
-        internal const val WORKSPACE_HEADER_NAME = "X-Workspace-Id"
     }
 }
