@@ -98,8 +98,22 @@ import { useAuthStore } from '@/stores/auth'
 import { useWorkspaceStore } from '@/stores/workspace'
 import { computeFileHash, sanitizeFilename } from '@/composables/useFileHash'
 
-function mediaApiError(title: string, detail: string, status: number, errorCode?: string) {
-  return Object.assign(new Error(title), { title, detail, status, errorCode })
+interface MediaApiErrorShape extends Error {
+  title: string
+  detail: string
+  status: number
+  errorCode?: string
+  retryAfterSeconds?: number
+  existingFileHash?: string
+}
+
+function mediaApiError(
+  title: string,
+  detail: string,
+  status: number,
+  errorCode?: string,
+): MediaApiErrorShape {
+  return Object.assign(new Error(title), { title, detail, status, errorCode }) as MediaApiErrorShape
 }
 
 /** Creates an authenticated fetch wrapper scoped to the media API. */
@@ -154,7 +168,9 @@ async function pollUntilReady(
     if (pollResp.status === 202) {
       // Still waiting — respect Retry-After or use default
       const retryAfter = pollResp.headers.get('Retry-After')
-      const delayMs = retryAfter ? Number.parseInt(retryAfter, 10) * 1000 : DEFAULT_POLL_DELAY_MS
+      const parsedDelay = retryAfter ? Number.parseInt(retryAfter, 10) : NaN
+      const delayMs =
+        Number.isFinite(parsedDelay) && parsedDelay > 0 ? parsedDelay * 1000 : DEFAULT_POLL_DELAY_MS
       await new Promise<void>((resolve) => setTimeout(resolve, delayMs))
       continue
     }
@@ -265,13 +281,13 @@ export async function putAsset(
   return putBody
 }
 
-async function makePutAssetError(putResp: Response): never {
+async function makePutAssetError(putResp: Response): Promise<ReturnType<typeof mediaApiError>> {
   const body = await putResp.json().catch(() => ({}))
   const err = body as MediaApiError & { code?: string; detail?: string }
   const errCode = err.code ?? err.errorCode
 
   if (putResp.status === 403 && errCode === 'EMAIL_VERIFICATION_REQUIRED') {
-    throw mediaApiError(
+    return mediaApiError(
       'Email verification required',
       err.detail ?? 'Please verify your email before uploading media.',
       403,
@@ -286,17 +302,17 @@ async function makePutAssetError(putResp: Response): never {
       'ASSET_HASH_MISMATCH',
     )
     e409.existingFileHash = err.existingFileHash
-    throw e409
+    return e409
   }
   if (putResp.status === 400) {
-    throw mediaApiError(
+    return mediaApiError(
       'Validation error',
       err.message ?? `Server rejected the request (${putResp.status}).`,
       400,
       err.errorCode ?? 'VALIDATION_ERROR',
     )
   }
-  throw mediaApiError(
+  return mediaApiError(
     err.errorCode ?? 'PUT failed',
     err.message ?? `Server returned ${putResp.status}.`,
     putResp.status,

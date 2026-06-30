@@ -1104,8 +1104,8 @@ class CasUploadAssetHandler(
                     tempKey = tempKey,
                     detectedMediaType = detectedMediaType,
                     actualBytes = actualBytes,
-                ).also { if (it == null) throw BlobOrAssetMissingException(assetId) }
-            }.also { if (it == null) throw BlobOrAssetMissingException(assetId) }
+                )
+            } ?: throw BlobOrAssetMissingException(assetId)
         } catch (e: BlobOrAssetMissingException) {
             // The transactional block returned null because the blob was missing,
             // the asset was missing, or a required metadata field on the blob was null.
