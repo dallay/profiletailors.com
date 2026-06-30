@@ -154,7 +154,7 @@ async function pollUntilReady(
     if (pollResp.status === 202) {
       // Still waiting — respect Retry-After or use default
       const retryAfter = pollResp.headers.get('Retry-After')
-      const delayMs = retryAfter ? parseInt(retryAfter, 10) * 1000 : DEFAULT_POLL_DELAY_MS
+      const delayMs = retryAfter ? Number.parseInt(retryAfter, 10) * 1000 : DEFAULT_POLL_DELAY_MS
       await new Promise<void>((resolve) => setTimeout(resolve, delayMs))
       continue
     }
