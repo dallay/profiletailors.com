@@ -32,4 +32,25 @@ class MockEmailSenderTest {
             .contains("Plain fallback body")
             .contains("<p>HTML body</p>")
     }
+
+    @Test
+    fun `send logs (none) when html is null`(output: CapturedOutput) = runTest {
+        val sender = MockEmailSender()
+
+        val result = sender.send(
+            to = "user@example.com",
+            subject = "Verify your email",
+            message = EmailMessage(
+                text = "Plain fallback body",
+                html = null,
+            ),
+        )
+
+        assertThat(result.success).isTrue()
+        assertThat(output.out + output.err)
+            .contains("=== MOCK EMAIL ===")
+            .contains("To: user@example.com")
+            .contains("Plain fallback body")
+            .contains("(none)")
+    }
 }

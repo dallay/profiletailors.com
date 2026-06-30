@@ -119,6 +119,18 @@ internal class EmailTemplatesTest {
     }
 
     @Test
+    fun `should reject blank publicAppUrl and log details`(output: CapturedOutput) {
+        assertThatThrownBy {
+            EmailTemplates.verificationEmail(username = "User", token = "tok", publicAppUrl = "  ")
+        }
+            .isInstanceOf(IllegalArgumentException::class.java)
+            .hasMessageContaining("Missing required verification email template variables: publicAppUrl")
+
+        assertThat(output.out + output.err)
+            .contains("Missing required verification email template variables: publicAppUrl")
+    }
+
+    @Test
     fun `should fallback to plain text when html rendering fails and log failure`(output: CapturedOutput) {
         val failingRenderer = object : VerificationEmailHtmlRenderer {
             override fun render(username: String, verificationUrl: String): String = error("template boom")
