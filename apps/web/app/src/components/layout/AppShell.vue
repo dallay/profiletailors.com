@@ -333,7 +333,6 @@ onBeforeUnmount(() => {
 
           <section
             v-if="shouldShowEmailVerificationBanner"
-            role="region"
             aria-label="Email verification required"
             class="mx-4 mt-4 rounded-xl border border-amber-400/40 bg-amber-400/10 px-4 py-3 text-sm text-amber-50 md:mx-6 lg:mx-8"
           >
