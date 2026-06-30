@@ -3,6 +3,7 @@ import { mount, flushPromises } from '@vue/test-utils'
 import { createPinia, setActivePinia } from 'pinia'
 import MediaLibraryView from './MediaLibraryView.vue'
 import { useMediaStore } from '@/stores/media'
+import { useAuthStore } from '@/stores/auth'
 
 vi.mock('vue-i18n', () => ({
   useI18n: () => ({ t: (key: string) => key, locale: { value: 'en' } }),
@@ -60,6 +61,66 @@ describe('MediaLibraryView', () => {
     // Mock loadAssets so onMount's refreshLibrary() doesn't clear test data
     const store = useMediaStore()
     vi.spyOn(store, 'loadAssets').mockResolvedValue()
+    useAuthStore().user = {
+      principalId: 'principal-1',
+      email: 'owner@example.com',
+      username: 'owner',
+      displayIdentity: 'Owner',
+      emailStatus: 'VERIFIED',
+    }
+  })
+
+  it('disables upload and shows verification guidance for non-verified users', async () => {
+    const auth = useAuthStore()
+    auth.user = { ...auth.user!, emailStatus: 'PENDING' }
+    const mediaStore = useMediaStore()
+    const uploadSpy = vi.spyOn(mediaStore, 'createAndUpload')
+
+    const wrapper = mountView()
+    await flushPromises()
+
+    const uploadButton = wrapper.get('[data-testid="media-upload-button"]')
+    expect(uploadButton.attributes('disabled')).toBeDefined()
+    expect(wrapper.get('[data-testid="media-verification-guidance"]').text()).toContain(
+      'media.verificationRequired',
+    )
+
+    await uploadButton.trigger('click')
+    await (wrapper.vm as unknown as { uploadFiles: (files: File[]) => Promise<void> }).uploadFiles([
+      new File(['bytes'], 'photo.jpg', { type: 'image/jpeg' }),
+    ])
+    expect(uploadSpy).not.toHaveBeenCalled()
+  })
+
+  it('allows verified users to open the upload picker', async () => {
+    const wrapper = mountView()
+    await flushPromises()
+    const fileInput = wrapper.get('#media-library-file-input')
+    const clickSpy = vi.spyOn(fileInput.element as HTMLInputElement, 'click')
+
+    await wrapper.get('[data-testid="media-upload-button"]').trigger('click')
+
+    expect(clickSpy).toHaveBeenCalledOnce()
+  })
+
+  it('shows verification guidance when backend denies upload with email verification problem', async () => {
+    const mediaStore = useMediaStore()
+    vi.spyOn(mediaStore, 'createAndUpload').mockRejectedValue({
+      status: 403,
+      code: 'EMAIL_VERIFICATION_REQUIRED',
+      detail: 'Please verify your email before using this feature.',
+    })
+    const wrapper = mountView()
+    await flushPromises()
+
+    await (wrapper.vm as unknown as { uploadFiles: (files: File[]) => Promise<void> }).uploadFiles([
+      new File(['bytes'], 'photo.jpg', { type: 'image/jpeg' }),
+    ])
+    await flushPromises()
+
+    expect(wrapper.get('[data-testid="media-verification-guidance"]').text()).toContain(
+      'media.verificationRequired',
+    )
   })
 
   it('renders empty state when there are no assets', async () => {
@@ -69,6 +130,47 @@ describe('MediaLibraryView', () => {
     expect(wrapper.text()).toContain('nav.media')
     expect(wrapper.text()).toContain('media.emptyTitle')
     expect(wrapper.text()).toContain('media.emptyBody')
+  })
+
+  it('shows the loading spinner when store is loading and no assets are present (lines 430-432)', async () => {
+    const store = useMediaStore()
+    // Prevent loadAssets from setting isLoading=false — keep it true
+    vi.spyOn(store, 'loadAssets').mockImplementation(() => new Promise(() => {}))
+    store.isLoading = true
+    store.assetIds = []
+    store.assetsById = {}
+
+    const wrapper = mountView()
+    // Do NOT await flushPromises — loading state must be observed before promise resolves
+
+    expect(wrapper.text()).toContain('media.loading')
+  })
+
+  it('shows the no-filtered-results message when assets exist but all are filtered out (lines 441-444)', async () => {
+    const mediaStore = useMediaStore()
+    // Add one READY image asset
+    mediaStore.assetsById['image-ready'] = {
+      assetId: 'image-ready',
+      workspaceId: 'ws-1',
+      sourceType: 'UPLOADED',
+      mediaType: 'image/jpeg',
+      status: 'READY',
+      originalFilename: 'hero.jpg',
+      fileSizeBytes: 100,
+      createdAt: '2026-06-19T12:00:00Z',
+      previewUrl: '/api/media/assets/image-ready/preview',
+      downloadUrl: '/api/media/assets/image-ready/content',
+    }
+    mediaStore.assetIds.push('image-ready')
+
+    const wrapper = mountView()
+    await flushPromises()
+
+    // Apply a type filter that excludes the only asset (VIDEO filter when only IMAGE exists)
+    await wrapper.find('[data-testid="filter-type"]').setValue('VIDEO')
+
+    expect(wrapper.text()).toContain('media.noFilteredAssetsTitle')
+    expect(wrapper.text()).toContain('media.noFilteredAssetsBody')
   })
 
   it('renders asset cards when assets exist', async () => {
