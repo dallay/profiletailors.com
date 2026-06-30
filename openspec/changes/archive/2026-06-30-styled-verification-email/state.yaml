@@ -1,0 +1,15 @@
+change: styled-verification-email
+current_phase: archive
+completed:
+  - explore
+  - propose
+  - spec
+  - design
+  - tasks
+  - apply
+  - verify
+  - archive
+next: none
+updated: 2026-06-30
+verification_result: PASS
+archive_path: openspec/changes/archive/2026-06-30-styled-verification-email

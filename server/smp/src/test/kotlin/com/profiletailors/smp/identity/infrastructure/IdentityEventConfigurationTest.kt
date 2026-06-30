@@ -2,6 +2,7 @@ package com.profiletailors.smp.identity.infrastructure
 
 import com.profiletailors.common.domain.bus.event.DomainEvent
 import com.profiletailors.common.domain.bus.event.EventPublisher
+import com.profiletailors.smp.identity.application.EmailMessage
 import com.profiletailors.smp.identity.application.EmailSendResult
 import com.profiletailors.smp.identity.application.EmailSender
 import com.profiletailors.smp.identity.domain.UserRegistered
@@ -47,9 +48,11 @@ class IdentityEventConfigurationTest {
                 }
 
                 assertThat(emailSender.lastRecipient).isEqualTo("yuniel@example.com")
-                assertThat(emailSender.lastBody)
+                assertThat(emailSender.lastMessage?.text)
                     .contains("https://pt-app.localhost/verify-email?token=newest-token")
                     .doesNotContain("api/auth/verify-email")
+                assertThat(emailSender.lastMessage?.html)
+                    .contains("https://pt-app.localhost/verify-email?token=newest-token")
             }
     }
 
@@ -68,11 +71,11 @@ class IdentityEventConfigurationTest {
 
     private class RecordingEmailSender : EmailSender {
         var lastRecipient: String? = null
-        var lastBody: String? = null
+        var lastMessage: EmailMessage? = null
 
-        override suspend fun send(to: String, subject: String, body: String): EmailSendResult {
+        override suspend fun send(to: String, subject: String, message: EmailMessage): EmailSendResult {
             lastRecipient = to
-            lastBody = body
+            lastMessage = message
             return EmailSendResult(success = true)
         }
     }

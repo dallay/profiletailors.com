@@ -1,5 +1,6 @@
 package com.profiletailors.smp.bdd.glue
 
+import com.profiletailors.smp.identity.application.EmailMessage
 import com.profiletailors.smp.identity.application.EmailSendResult
 import com.profiletailors.smp.identity.application.EmailSender
 import com.profiletailors.smp.integration.support.CapturingAuditHook
@@ -99,12 +100,12 @@ class CommonBddTestConfiguration {
 }
 
 class RecordingEmailSender : EmailSender {
-    data class Message(val to: String, val subject: String, val body: String)
+    data class Message(val to: String, val subject: String, val content: EmailMessage)
 
     val messages = mutableListOf<Message>()
 
-    override suspend fun send(to: String, subject: String, body: String): EmailSendResult {
-        messages += Message(to, subject, body)
+    override suspend fun send(to: String, subject: String, message: EmailMessage): EmailSendResult {
+        messages += Message(to, subject, message)
         return EmailSendResult(success = true)
     }
 
