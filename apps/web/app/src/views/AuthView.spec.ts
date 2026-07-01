@@ -27,6 +27,12 @@ vi.mock('@/stores/auth', () => ({
   }),
 }))
 
+vi.mock('vue-i18n', () => ({
+  useI18n: () => ({
+    t: (key: string) => key,
+  }),
+}))
+
 function mountAuthView() {
   return mount(AuthView, {
     global: {
@@ -64,8 +70,9 @@ describe('AuthView validation', () => {
     await wrapper.find('form').trigger('submit.prevent')
 
     expect(loginWithPassword).not.toHaveBeenCalled()
-    expect(wrapper.text()).toContain('Please enter a valid email address.')
-    expect(wrapper.text()).toContain('Please enter your password.')
+    // Looking for the translated key part from the mock
+    expect(wrapper.text()).toContain('auth.invalidEmail')
+    expect(wrapper.text()).toContain('auth.passwordRequired')
   })
 
   it('trims credentials and validates confirm password before submitting registration', async () => {
@@ -78,10 +85,10 @@ describe('AuthView validation', () => {
     await wrapper.find('input#confirmPassword').setValue('  password123  ')
     await wrapper.find('form').trigger('submit.prevent')
 
+    // Expecting payload WITHOUT confirmPassword as it is filtered in AuthView.vue
     expect(registerWithPassword).toHaveBeenCalledWith({
       email: 'user@example.com',
       password: 'password123',
-      confirmPassword: 'password123',
     })
     expect(replace).toHaveBeenCalledWith('/')
   })
@@ -96,6 +103,7 @@ describe('AuthView validation', () => {
     await wrapper.find('form').trigger('submit.prevent')
 
     expect(registerWithPassword).not.toHaveBeenCalled()
-    expect(wrapper.text()).toContain('Passwords must match.')
+    // Looking for the translated key part
+    expect(wrapper.text()).toContain('auth.passwordsMustMatch')
   })
 })

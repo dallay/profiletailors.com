@@ -1,10 +1,12 @@
 <script setup lang="ts">
 import { computed, ref, watch } from 'vue'
+import { useI18n } from 'vue-i18n'
 import { useRoute, useRouter } from 'vue-router'
 import { Button } from '@/components/ui/button'
-import { authCredentialsSchema, registerSchema } from '@/lib/validation/schemas'
+import { type AuthCredentials, authCredentialsSchema, registerSchema } from '@/lib/validation/schemas'
 import { useAuthStore } from '@/stores/auth'
 
+const { t } = useI18n()
 const auth = useAuthStore()
 const route = useRoute()
 const router = useRouter()
@@ -59,9 +61,11 @@ async function handleSubmit() {
 
   try {
     if (isRegisterMode.value) {
-      await auth.registerWithPassword(payload)
+      // confirmPassword is only for client-side validation; not sent to the server
+      const { email, password } = payload as AuthCredentials
+      await auth.registerWithPassword({ email, password })
     } else {
-      await auth.loginWithPassword(payload)
+      await auth.loginWithPassword(payload as AuthCredentials)
     }
 
     const redirectTo = typeof route.query.redirect === 'string' ? route.query.redirect : '/'
@@ -150,7 +154,7 @@ async function handleSubmit() {
                 required
               >
               <p v-if="fieldErrors.email" role="alert" class="text-sm text-error">
-                {{ fieldErrors.email }}
+                {{ t(`auth.${fieldErrors.email}`) }}
               </p>
             </div>
 
@@ -170,7 +174,7 @@ async function handleSubmit() {
                 required
               >
               <p v-if="fieldErrors.password" role="alert" class="text-sm text-error">
-                {{ fieldErrors.password }}
+                {{ t(`auth.${fieldErrors.password}`) }}
               </p>
             </div>
 
@@ -190,7 +194,7 @@ async function handleSubmit() {
                 required
               >
               <p v-if="fieldErrors.confirmPassword" role="alert" class="text-sm text-error">
-                {{ fieldErrors.confirmPassword }}
+                {{ t(`auth.${fieldErrors.confirmPassword}`) }}
               </p>
             </div>
 

@@ -9,18 +9,18 @@ export const authCredentialsSchema = z.object({
     .string()
     .trim()
     .transform((val) => val.toLowerCase())
-    .pipe(z.email('Please enter a valid email address.')),
-  password: z.string().trim().min(1, 'Please enter your password.'),
+    .pipe(z.email('invalidEmail')),
+  password: z.string().trim().min(1, 'passwordRequired'),
 })
 
 export type AuthCredentials = z.infer<typeof authCredentialsSchema>
 
 export const registerSchema = authCredentialsSchema
   .extend({
-    confirmPassword: z.string().trim().min(1, 'Please confirm your password.'),
+    confirmPassword: z.string().trim().min(1, 'confirmPasswordRequired'),
   })
   .refine((data) => data.password === data.confirmPassword, {
-    message: 'Passwords must match.',
+    message: 'passwordsMustMatch',
     path: ['confirmPassword'],
   })
 
@@ -33,7 +33,7 @@ export type RegisterCredentials = z.infer<typeof registerSchema>
 export const workspaceNameSchema = z
   .string()
   .trim()
-  .min(1, 'Please enter a workspace name.')
-  .max(255, 'Workspace name must be 255 characters or fewer.')
+  .min(1, 'workspaceNameRequired')
+  .max(255, 'workspaceNameTooLong')
 
 export type WorkspaceName = z.infer<typeof workspaceNameSchema>

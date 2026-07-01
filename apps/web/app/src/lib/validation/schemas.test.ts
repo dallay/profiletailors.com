@@ -22,9 +22,7 @@ describe('authCredentialsSchema', () => {
 
     expect(result.success).toBe(false)
     if (!result.success) {
-      expect(result.error.flatten().fieldErrors.email).toContain(
-        'Please enter a valid email address.',
-      )
+      expect(result.error.flatten().fieldErrors.email).toContain('invalidEmail')
     }
   })
 
@@ -36,7 +34,7 @@ describe('authCredentialsSchema', () => {
 
     expect(result.success).toBe(false)
     if (!result.success) {
-      expect(result.error.flatten().fieldErrors.password).toContain('Please enter your password.')
+      expect(result.error.flatten().fieldErrors.password).toContain('passwordRequired')
     }
   })
 })
@@ -53,7 +51,7 @@ describe('workspaceNameSchema', () => {
 
     expect(result.success).toBe(false)
     if (!result.success) {
-      expect(result.error.issues[0]?.message).toBe('Please enter a workspace name.')
+      expect(result.error.issues[0]?.message).toBe('workspaceNameRequired')
     }
   })
 
@@ -62,9 +60,7 @@ describe('workspaceNameSchema', () => {
 
     expect(result.success).toBe(false)
     if (!result.success) {
-      expect(result.error.issues[0]?.message).toBe(
-        'Workspace name must be 255 characters or fewer.',
-      )
+      expect(result.error.issues[0]?.message).toBe('workspaceNameTooLong')
     }
   })
 })
@@ -96,7 +92,7 @@ describe('registerSchema', () => {
 
     expect(result.success).toBe(false)
     if (!result.success) {
-      expect(result.error.flatten().fieldErrors.confirmPassword).toContain('Passwords must match.')
+      expect(result.error.flatten().fieldErrors.confirmPassword).toContain('passwordsMustMatch')
     }
   })
 
@@ -109,7 +105,9 @@ describe('registerSchema', () => {
 
     expect(result.success).toBe(false)
     if (!result.success) {
-      expect(result.error.flatten().fieldErrors.confirmPassword).toContain('Please confirm your password.')
+      expect(result.error.flatten().fieldErrors.confirmPassword).toContain(
+        'confirmPasswordRequired',
+      )
     }
   })
 })

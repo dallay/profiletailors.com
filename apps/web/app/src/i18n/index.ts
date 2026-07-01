@@ -264,6 +264,9 @@ const messages = {
       passwordPlaceholder: 'At least 8 characters',
       confirmPassword: 'Confirm Password',
       confirmPasswordPlaceholder: 'Repeat your password',
+      invalidEmail: 'Please enter a valid email address.',
+      passwordRequired: 'Please enter your password.',
+      confirmPasswordRequired: 'Please confirm your password.',
       passwordsMustMatch: 'Passwords must match.',
     },
     emailVerification: {
@@ -730,6 +733,9 @@ const messages = {
       passwordPlaceholder: 'Al menos 8 caracteres',
       confirmPassword: 'Confirmar contraseña',
       confirmPasswordPlaceholder: 'Repite tu contraseña',
+      invalidEmail: 'Por favor, introduce un correo electrónico válido.',
+      passwordRequired: 'Por favor, introduce tu contraseña.',
+      confirmPasswordRequired: 'Por favor, confirma tu contraseña.',
       passwordsMustMatch: 'Las contraseñas deben coincidir.',
     },
     emailVerification: {
@@ -846,6 +852,8 @@ const messages = {
       editIdentity: 'Editar identidad',
       iconModalTitle: 'Elegir icono del workspace',
       iconModalDesc: 'Selecciona un icono que represente este espacio de trabajo.',
+      workspaceNameRequired: 'Por favor, introduce un nombre para el espacio de trabajo.',
+      workspaceNameTooLong: 'El nombre del espacio de trabajo debe tener 255 caracteres o menos.',
     },
     analytics: {
       subtitle:

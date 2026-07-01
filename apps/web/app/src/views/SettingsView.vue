@@ -1,100 +1,76 @@
 <script setup lang="ts">
-import { computed, onBeforeUnmount, onMounted, ref } from 'vue'
-import { useRoute } from 'vue-router'
+import { Pencil } from '@lucide/vue'
+import { computed, ref, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
-import { useSettingsStore } from '@/stores/settings'
-import { usePublishingStore } from '@/stores/publishing'
-import { useAuthStore } from '@/stores/auth'
-import { useWorkspaceStore } from '@/stores/workspace'
-import { renameWorkspace, updateWorkspaceIcon, proxyImageUrl } from '@/lib/auth-api'
-import { workspaceNameSchema } from '@/lib/validation/schemas'
+import { useRoute } from 'vue-router'
 import WorkspaceAvatar from '@/components/WorkspaceAvatar.vue'
 import WorkspaceIconModal from '@/components/workspace/WorkspaceIconModal.vue'
-import { getProviderBadge } from '@/lib/provider-styles'
-import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
-import { Pencil } from '@lucide/vue'
-import { cn } from '@/lib/utils'
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { renameWorkspace, updateWorkspaceIcon } from '@/lib/auth-api'
+import { proxyImageUrl } from '@/lib/auth-api'
+import { workspaceNameSchema } from '@/lib/validation/schemas'
+import { useAuthStore } from '@/stores/auth'
+import { usePublishingStore } from '@/stores/publishing'
+import { useSettingsStore } from '@/stores/settings'
+import { useWorkspaceStore } from '@/stores/workspace'
 
-const settings = useSettingsStore()
-const publishing = usePublishingStore()
+const { t } = useI18n()
 const auth = useAuthStore()
 const workspace = useWorkspaceStore()
+const settings = useSettingsStore()
+const publishing = usePublishingStore()
 const route = useRoute()
-const { t } = useI18n()
-const connectError = ref<string | null>(null)
-const connectingLinkedIn = ref(false)
 
-// Workspace rename
-const editingWorkspaceName = ref(false)
 const workspaceNameInput = ref('')
+const editingWorkspaceName = ref(false)
 const renamingWorkspace = ref(false)
 const renameError = ref<string | null>(null)
 const renameSuccess = ref(false)
-let renameSuccessTimer: ReturnType<typeof setTimeout> | undefined
 
-onBeforeUnmount(() => {
-  if (renameSuccessTimer !== undefined) {
-    globalThis.clearTimeout(renameSuccessTimer)
-  }
-})
-
-const displayWorkspaceName = computed(
-  () => workspace.workspaceName || t('workspace.defaultName'),
-)
-
+const iconModalOpen = ref(false)
 const updatingIcon = ref(false)
 const iconError = ref<string | null>(null)
-const iconModalOpen = ref(false)
 
-const workspaceIdentifier = computed(() => workspace.activeWorkspaceId ?? '—')
+const displayWorkspaceName = computed(() => workspace.activeWorkspace?.name ?? t('workspace.defaultName'))
+const workspaceIdentifier = computed(() => workspace.activeWorkspace?.workspaceId ?? '...')
 
-// Segmented pill — solid fill with inverse text for active state (WCAG AA).
-function segmentedControlClass(isActive: boolean) {
-  return isActive
-    ? 'bg-text-display text-bg-primary'
-    : 'text-text-secondary hover:text-text-secondary/80'
-}
+const linkedinConnected = computed(() => Boolean(route.query.linkedin_connected))
 
 const linkedInChannels = computed(() =>
-  publishing.channels.filter((channel) => channel.provider === 'linkedin' && channel.status === 'ACTIVE'),
-)
-const linkedinConnected = computed(() => route.query.connected === 'linkedin')
-const channelsPanelFocused = computed(() =>
-  route.query.panel === 'channels' ||
-  route.query.provider === 'linkedin' ||
-  linkedinConnected.value,
+  publishing.channels.filter((c) => c.provider === 'LINKEDIN'),
 )
 
-// Channel status — provider name + dot indicator, no decorative zero-padded number.
-const channelStatus = computed(() => {
-  const first = linkedInChannels.value[0]
-  if (!first) {
-    return { label: t('channels.noChannels'), active: false }
-  }
-  const label = first.name || t('channels.linkedinProfile')
-  return { label, active: true }
-})
+const channelsPanelFocused = computed(() => route.query.focus === 'channels')
 
-async function selectIcon(iconName: string | null) {
-  if (!auth.accessToken || !workspace.activeWorkspaceId) return
+watch(
+  () => workspace.activeWorkspace?.name,
+  (newName) => {
+    if (newName) {
+      workspaceNameInput.value = newName
+    }
+  },
+  { immediate: true },
+)
 
-  updatingIcon.value = true
-  iconError.value = null
+function getProviderBadge(provider: string) {
+  if (provider === 'LINKEDIN') return 'LI'
+  return provider.slice(0, 2).toUpperCase()
+}
 
+async function connectLinkedInProfile() {
   try {
-    const result = await updateWorkspaceIcon(iconName, auth.accessToken, workspace.activeWorkspaceId)
-    workspace.updateWorkspaceIcon(result.workspaceId, result.icon)
-    iconModalOpen.value = false
+    const authUrl = `${import.meta.env.VITE_API_URL}/api/auth/social/linkedin/authorize`
+    window.location.href = authUrl
   } catch (err) {
-    iconError.value = err instanceof Error ? err.message : t('workspace.updateIconFailed')
-  } finally {
-    updatingIcon.value = false
+    console.error('Failed to initiate LinkedIn connection:', err)
   }
 }
 
+const connectingLinkedIn = ref(false)
+
 function startRenameWorkspace() {
-  workspaceNameInput.value = workspace.workspaceName || ''
+  workspaceNameInput.value = workspace.activeWorkspace?.name ?? ''
   editingWorkspaceName.value = true
   renameError.value = null
   renameSuccess.value = false
@@ -106,29 +82,28 @@ function cancelRenameWorkspace() {
 }
 
 async function saveWorkspaceName() {
-  const rawName = workspaceNameInput.value
-  if (!auth.accessToken || !workspace.activeWorkspaceId) return
+  if (!workspace.activeWorkspaceId) return
 
-  renamingWorkspace.value = true
-  renameError.value = null
-  renameSuccess.value = false
-
+  const rawName = workspaceNameInput.value.trim()
   const validation = workspaceNameSchema.safeParse(rawName)
 
   if (!validation.success) {
-    renameError.value = validation.error.issues[0]?.message ?? t('workspace.renameFailed')
-    renamingWorkspace.value = false
+    const errorKey = validation.error.issues[0]?.message
+    renameError.value = errorKey ? t(`workspace.${errorKey}`) : t('workspace.renameFailed')
     return
   }
 
-  const validatedName = validation.data
+  renamingWorkspace.value = true
+  renameError.value = null
 
   try {
-    const result = await renameWorkspace(validatedName, auth.accessToken, workspace.activeWorkspaceId)
-    workspace.setWorkspaceName(result.name)
+    const updated = await renameWorkspace(validation.data, auth.accessToken!, workspace.activeWorkspaceId)
+    workspace.setWorkspaceName(updated.name)
     editingWorkspaceName.value = false
     renameSuccess.value = true
-    renameSuccessTimer = globalThis.setTimeout(() => { renameSuccess.value = false }, 3000)
+    setTimeout(() => {
+      renameSuccess.value = false
+    }, 3000)
   } catch (err) {
     renameError.value = err instanceof Error ? err.message : t('workspace.renameFailed')
   } finally {
@@ -136,109 +111,55 @@ async function saveWorkspaceName() {
   }
 }
 
-async function connectLinkedInProfile() {
-  connectError.value = null
-  connectingLinkedIn.value = true
+async function selectIcon(icon: string | null) {
+  if (!workspace.activeWorkspaceId) return
+
+  updatingIcon.value = true
+  iconError.value = null
 
   try {
-    await publishing.connectLinkedInPersonalProfile()
-  } catch (err: unknown) {
-    const e = err as { detail?: string; message?: string }
-    connectError.value = e?.detail || e?.message || t('channels.connectLinkedInFailed')
+    const updated = await updateWorkspaceIcon(icon, auth.accessToken!, workspace.activeWorkspaceId)
+    workspace.setWorkspaceIcon(updated.icon)
+    iconModalOpen.value = false
+  } catch (err) {
+    iconError.value = err instanceof Error ? err.message : t('workspace.updateIconFailed')
   } finally {
-    connectingLinkedIn.value = false
+    updatingIcon.value = false
   }
 }
 
-onMounted(() => {
-  publishing.fetchChannels().catch((err) => {
-    connectError.value = err instanceof Error ? err.message : t('channels.loadFailed')
-  })
-  publishing.fetchConfiguredProviders().catch((err) => {
-    console.error('Failed to load configured providers:', err)
-  })
-})
+function segmentedControlClass(active: boolean) {
+  return active
+    ? 'bg-bg-primary text-text-display shadow-sm'
+    : 'text-text-secondary hover:text-text-body'
+}
 </script>
 
 <template>
-  <div data-testid="settings-shell" class="mx-auto w-full max-w-4xl space-y-8">
-    <section
-      data-testid="settings-overview"
-      class="rounded-[32px] border border-border-subtle bg-bg-surface/90 p-6 shadow-[0_0_0_1px_rgba(255,255,255,0.02)] sm:p-8"
-    >
-      <div class="grid gap-6 xl:grid-cols-[minmax(0,1.12fr)_minmax(300px,0.88fr)] xl:items-start">
-        <div class="space-y-6">
-          <div class="space-y-3 border-b border-border-subtle pb-6">
-            <p class="label-mono text-text-secondary">
-              {{ $t('settings.overviewBadge') }}
-            </p>
-            <h2 class="max-w-3xl text-3xl font-light tracking-tight text-text-display sm:text-4xl">
-              {{ $t('nav.settings') }}
-            </h2>
-            <p class="max-w-2xl text-sm leading-6 text-text-secondary">
-              {{ $t('settings.subtitle') }}
-            </p>
+  <div class="space-y-10">
+    <section class="space-y-6">
+      <div class="flex flex-col gap-6 lg:flex-row lg:items-start lg:justify-between">
+        <div class="space-y-1.5">
+          <div class="inline-flex items-center gap-2 rounded-full border border-border-visible bg-bg-surface px-3 py-1 font-mono text-[10px] font-bold uppercase tracking-[0.14em] text-text-secondary">
+            <span class="size-1.5 rounded-full bg-text-display" />
+            {{ $t('settings.overviewBadge') }}
           </div>
-
-          <div class="grid gap-4 md:grid-cols-2">
-            <article class="rounded-2xl border border-border-subtle bg-bg-primary/65 p-5">
-              <p class="label-mono text-text-secondary">{{ $t('settings.channelStatusTitle') }}</p>
-              <div class="mt-3 flex items-center gap-2.5">
-                <span
-                  aria-hidden="true"
-                  :class="cn(
-                    'size-2 shrink-0 rounded-full',
-                    channelStatus.active
-                      ? 'bg-success shadow-[0_0_8px_rgba(34,197,94,0.55)]'
-                      : 'bg-text-secondary/40',
-                  )"
-                />
-                <p
-                  class="text-lg font-medium text-text-display"
-                  data-testid="settings-channel-status-label"
-                >
-                  {{ channelStatus.label }}
-                </p>
-              </div>
-              <p class="mt-2 text-sm leading-6 text-text-secondary">
-                {{ linkedInChannels.length ? $t('channels.connectLinkedInProfileDesc') : $t('channels.noChannels') }}
-              </p>
-            </article>
-
-            <article class="rounded-2xl border border-border-subtle bg-bg-primary/65 p-5">
-              <p class="label-mono text-text-secondary">{{ $t('settings.workspaceIdentityTitle') }}</p>
-              <div class="mt-3 flex items-center gap-4">
-                <WorkspaceAvatar
-                  :name="workspace.activeWorkspace?.name ?? 'W'"
-                  :icon="workspace.activeWorkspace?.icon"
-                  size="md"
-                />
-                <div class="min-w-0">
-                  <p class="truncate text-base font-medium text-text-display">{{ displayWorkspaceName }}</p>
-                  <p class="truncate font-mono text-[10px] uppercase tracking-[0.12em] text-text-secondary">
-                    {{ workspaceIdentifier }}
-                  </p>
-                </div>
-              </div>
-            </article>
-          </div>
+          <h1 class="font-mono text-[11px] font-bold uppercase tracking-[0.16em] text-text-display">
+            {{ $t('nav.settings') }}
+          </h1>
+          <p class="max-w-2xl text-sm leading-7 text-text-secondary">
+            {{ $t('settings.subtitle') }}
+          </p>
         </div>
 
-        <aside
-          data-testid="settings-preferences-panel"
-          class="rounded-[28px] border border-border-subtle bg-bg-primary/75 p-5 sm:p-6"
-        >
-          <p class="label-mono text-text-secondary">{{ $t('settings.preferencesEyebrow') }}</p>
-          <h3 class="mt-2 text-xl font-light text-text-display">{{ $t('settings.interfacePreferences') }}</h3>
-
-          <div class="mt-6 space-y-5">
-            <div class="space-y-3">
-              <div>
-                <p class="text-sm font-medium text-text-display">{{ $t('settings.languageLabel') }}</p>
-                <p class="mt-1 text-xs leading-5 text-text-secondary">{{ $t('settings.languageDesc') }}</p>
-              </div>
+        <aside class="flex shrink-0 flex-wrap gap-4 lg:justify-end">
+          <div class="rounded-2xl border border-border-subtle bg-bg-surface p-4 shadow-[0_0_0_1px_rgba(255,255,255,0.02)]">
+            <p class="font-mono text-[10px] font-bold uppercase tracking-[0.14em] text-text-secondary">
+              {{ $t('settings.languageLabel') }}
+            </p>
+            <div class="mt-3">
               <div
-                class="inline-flex items-center rounded-full border border-border-visible bg-bg-surface p-0.5 font-mono text-[10px]"
+                class="inline-flex rounded-full border border-border-visible bg-bg-surface p-0.5 font-mono text-[10px]"
                 role="radiogroup"
                 :aria-label="$t('settings.languageLabel')"
               >
