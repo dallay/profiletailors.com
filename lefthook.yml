@@ -1,16 +1,16 @@
-# lefthook.yml - Git hooks para profiletailors.com (monorepo polyglot)
+# lefthook.yml — Git hooks for profiletailors.com (polyglot monorepo)
 # Setup: npx lefthook install
 #
-# Configuración optimizada para monorepo con:
+# Optimized configuration for a monorepo with:
 # - Frontend: Astro + TypeScript + Biome
 # - Backend: Spring Boot + Kotlin + Detekt
 #
-# Features: Paralelismo, fail-fast, y configuración distribuida
+# Features: parallelism, fail-fast, and distributed config via source
 
-# ---------- CONFIGURACIÓN GLOBAL ----------
-# jobs: 0 = auto-detectar CPU cores, o setear número fijo
-# fail_fast: true = parar al primer comando que falle
-# source: permite configuración distribuida por directorio
+# ---------- GLOBAL CONFIG ----------
+# jobs: 0 = auto-detect CPU cores, or set a fixed number
+# fail_fast: true = stop at the first failing command
+# source: enables per-directory distributed configuration
 jobs: 0
 fail_fast: true
 
@@ -21,29 +21,29 @@ pre-commit:
 
   commands:
     # ========== FRONTEND (Astro + Vue + TypeScript) ==========
-    # Biome: lint + format para TODOS los proyectos bajo apps/web
-    # Cubre marketing (Astro) y app (Vue 3) con un solo comando
+    # Biome: lint + format for ALL projects under apps/web
+    # Covers marketing (Astro) and app (Vue 3) with a single command
     frontend-biome:
       glob: 'apps/web/**/*.{ts,tsx,js,jsx,vue,astro}'
       run: 'cd apps/web && pnpm biome check --write --unsafe .'
 
-    # Astro type check (solo marketing)
+    # Astro type check (marketing only)
     frontend-typecheck:
       glob: 'apps/web/**/*.{ts,tsx}'
       run: 'cd apps/web/marketing && pnpm astro check'
       skip: true
 
     # ========== BACKEND (Kotlin + Spring Boot) ==========
-    # Spotless: auto-formatea Kotlin con ktlint — arregla lo arreglable
-    # NOTA: spotlessApply arregla en disco pero no re-stage — encadenamos git add -u
+    # Spotless: auto-format Kotlin with ktlint — fixes what it can
+    # NOTE: spotlessApply fixes on disk but does NOT re-stage — we chain git add -u
     backend-spotless:
       run: './gradlew spotlessApply --no-daemon && git add -u'
 
-    # Detekt: análisis estático (NO formateo — eso lo hace spotless)
+    # Detekt: static analysis (NOT formatting — spotless handles that)
     backend-detekt:
       run: './gradlew :server:smp:detekt --no-daemon'
 
-    # Detekt en shared modules
+    # Detekt on shared modules
     shared-detekt:
       run: './gradlew detekt --no-daemon'
 
@@ -61,7 +61,7 @@ pre-push:
     gitleaks-range:
       run: 'while read local_ref local_sha remote_ref remote_sha; do if [ -z "$local_sha" ] || [ "$local_sha" = "0000000000000000000000000000000000000000" ]; then continue; fi; if [ "$remote_sha" = "0000000000000000000000000000000000000000" ]; then log_opts="$local_sha --not --remotes=origin"; else log_opts="$remote_sha..$local_sha"; fi; gitleaks git --redact --exit-code 1 --config .gitleaks.toml --log-opts="$log_opts"; done'
 
-    # Tests del backend antes de push.
+    # Backend tests before push.
     # The "modularity" tag excludes ModularStructureTest and ModularityVerificationTest,
     # which are pre-existing failures on main (Spring Modulith named-interface issue).
     # The "postgres" tag excludes Postgres integration tests that require Docker/Testcontainers
@@ -70,11 +70,11 @@ pre-push:
       run: './gradlew :server:smp:test -x :server:smp:bddFastTest -x :server:smp:bddPostgresTest --no-daemon -PexcludeTags=modularity,postgres'
 
 
-# ---------- CONFIGURACIÓN DISTRIBUIDA ----------
-# Para agregar config específica por módulo, crea archivos .lefthookrc.yml
-# en cada directorio:
+# ---------- DISTRIBUTED CONFIG ----------
+# To add module-specific config, create .lefthookrc.yml files
+# in each directory:
 #
-# Ejemplo: apps/web/marketing/.lefthookrc.yml
+# Example: apps/web/marketing/.lefthookrc.yml
 # ```yaml
 # pre-commit:
 #   commands:
@@ -102,18 +102,3 @@ post-rewrite:
       run: pnpm dlx @dallay/agentsync apply || true
 
 
-# ---------- CONFIGURACIÓN DISTRIBUIDA ----------
-# Para agregar config específica por módulo, crea archivos .lefthookrc.yml
-# en cada directorio:
-#
-# Ejemplo: apps/web/marketing/.lefthookrc.yml
-# ```yaml
-# pre-commit:
-#   commands:
-#     lint:
-#       run: 'pnpm biome check --write --unsafe'
-# ```
-#
-# El archivo .gitignore debe incluir:
-# .lefthook/
-# .lefthookrc.yml  # si no quieres commits de configs personales

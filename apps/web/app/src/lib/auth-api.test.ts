@@ -5,6 +5,7 @@ import {
   refreshSession,
   logoutSession,
   getCurrentUserProfile,
+  resendVerification,
   createApiFetch,
   proxyImageUrl,
   resolveApiUrl,
@@ -263,12 +264,13 @@ describe('getCurrentUserProfile', () => {
     mockImportMetaEnv({})
   })
 
-  it('returns current user profile', async () => {
+  it('returns current user profile with authoritative email status', async () => {
     const profile: CurrentUserProfile = {
       principalId: 'user-1',
       email: 'user@example.com',
       username: 'testuser',
       displayIdentity: 'testuser (user@example.com)',
+      emailStatus: 'PENDING',
     }
     const fetchMock = mockFetch(
       new Response(JSON.stringify(profile), {
@@ -304,6 +306,30 @@ describe('getCurrentUserProfile', () => {
       detail: 'Invalid token',
       status: 401,
     })
+  })
+})
+
+// ---------------------------------------------------------------------------
+// resendVerification
+// ---------------------------------------------------------------------------
+
+describe('resendVerification', () => {
+  beforeEach(() => {
+    mockImportMetaEnv({})
+  })
+
+  it('posts the current email to the resend endpoint', async () => {
+    const fetchMock = mockFetch(new Response(null, { status: 202 }))
+
+    await expect(resendVerification('user@example.com')).resolves.toBeUndefined()
+
+    expect(fetchMock).toHaveBeenCalledWith(
+      'http://localhost:8080/api/auth/resend-verification',
+      expect.objectContaining({
+        method: 'POST',
+        body: JSON.stringify({ email: 'user@example.com' }),
+      }),
+    )
   })
 })
 

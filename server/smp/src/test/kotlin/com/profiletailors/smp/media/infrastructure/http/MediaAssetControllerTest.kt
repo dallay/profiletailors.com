@@ -9,6 +9,8 @@ import com.profiletailors.common.domain.bus.query.Query
 import com.profiletailors.common.domain.context.ResourceContext
 import com.profiletailors.common.domain.context.ResourceContextProvider
 import com.profiletailors.common.domain.context.ResourceContextType
+import com.profiletailors.smp.identity.application.AuthFeature
+import com.profiletailors.smp.identity.application.FeatureEmailVerificationRequired
 import com.profiletailors.smp.media.application.CreateUploadedAssetCommand
 import com.profiletailors.smp.media.application.CreateUploadedAssetResult
 import com.profiletailors.smp.media.application.GetWorkspaceAssetQuery
@@ -22,6 +24,7 @@ import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertNotNull
 import org.junit.jupiter.api.Assertions.assertNull
 import org.junit.jupiter.api.Test
+import org.junit.jupiter.api.assertThrows
 
 class MediaAssetControllerTest {
 
@@ -110,6 +113,25 @@ class MediaAssetControllerTest {
 
         val sent = mediator.lastCommand as CreateUploadedAssetCommand
         assertEquals(MediaSourceType.EXTERNAL_URL, sent.sourceType)
+    }
+
+    @Test
+    fun `createAsset preserves email verification required denial`() = runTest {
+        val controller = controller(
+            ThrowingMediator(FeatureEmailVerificationRequired(AuthFeature.UPLOAD_MEDIA)),
+        )
+
+        val exception = assertThrows<FeatureEmailVerificationRequired> {
+            controller.createAsset(
+                CreateMediaAssetRequest(
+                    sourceType = "UPLOADED",
+                    mediaType = "image/jpeg",
+                    originalFilename = null,
+                ),
+            )
+        }
+
+        assertEquals(AuthFeature.UPLOAD_MEDIA, exception.feature)
     }
 
     @Test
@@ -251,6 +273,23 @@ class MediaAssetControllerTest {
             lastCommand = command
             return commandResult as TResult
         }
+
+        override suspend fun <T : Notification> publish(notification: T) {
+            error("Not used in this test")
+        }
+
+        override suspend fun <T : Notification> publish(notification: T, publishStrategy: PublishStrategy) {
+            error("Not used in this test")
+        }
+    }
+
+    private class ThrowingMediator(private val exception: RuntimeException) : Mediator {
+        override suspend fun <TQuery : Query<TResponse>, TResponse> send(query: TQuery): TResponse = throw exception
+
+        override suspend fun <TCommand : Command> send(command: TCommand): Unit = throw exception
+
+        override suspend fun <TCommand : CommandWithResult<TResult>, TResult> send(command: TCommand): TResult =
+            throw exception
 
         override suspend fun <T : Notification> publish(notification: T) {
             error("Not used in this test")

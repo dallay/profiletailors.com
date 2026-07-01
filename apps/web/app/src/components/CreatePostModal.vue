@@ -646,9 +646,10 @@ async function handleEditSubmit(
   scheduledDate: Date | undefined,
   backendScheduleMode: NonNullable<Publication['scheduleMode']>,
 ) {
-  // Non-null assertion is safe: handleSchedule guards the call behind
-  // `if (props.editingPublication)`, so editingPublication is always defined here.
-  await publishingStore.updatePost(props.editingPublication?.id, {
+  const editingPublication = props.editingPublication
+  if (!editingPublication) return
+
+  await publishingStore.updatePost(editingPublication.id, {
     content: normalizedPostText,
     scheduledAt: scheduledDate?.toISOString(),
     priority: priorityMode.value,
@@ -693,7 +694,6 @@ async function handleCreateSubmit(
       @click.self="emit('close')"
       @keydown.escape="emit('close')"
     >
-      <!-- Modal Wrapper: using <div role="dialog"> instead of <dialog> to avoid UA default margin/padding that breaks flex centering -->
       <div
         ref="modalContainer"
         role="dialog"

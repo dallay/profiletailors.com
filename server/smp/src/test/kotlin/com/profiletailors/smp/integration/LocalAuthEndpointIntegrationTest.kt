@@ -1,5 +1,6 @@
 package com.profiletailors.smp.integration
 
+import com.profiletailors.smp.identity.application.EmailVerificationTokenHasher
 import com.profiletailors.smp.integration.support.IntegrationTestBase
 import com.profiletailors.smp.tenancy.application.WorkspaceProvisioningService
 import com.profiletailors.smp.tenancy.infrastructure.R2dbcWorkspaceProvisioningService
@@ -23,6 +24,7 @@ import org.springframework.security.oauth2.jose.jws.MacAlgorithm
 import org.springframework.security.oauth2.jwt.Jwt
 import org.springframework.security.oauth2.jwt.NimbusReactiveJwtDecoder
 import org.springframework.security.oauth2.jwt.ReactiveJwtDecoder
+import java.time.Instant
 import javax.crypto.spec.SecretKeySpec
 
 @AutoConfigureWebTestClient
@@ -186,61 +188,112 @@ class LocalAuthEndpointIntegrationTest : IntegrationTestBase() {
     )
 
     @Test
-    fun `registers user then verifies email and logs in`() {
-        // Step 1: Register — should return 201 with emailStatus PENDING and session tokens
-        val registerResult = webTestClient.post()
-            .uri("/api/auth/register")
-            .header(HttpHeaders.ACCEPT, API_V1_MEDIA_TYPE)
-            .bodyValue(
-                mapOf(
-                    "email" to "newuser@example.com",
-                    "password" to "password123",
-                ),
+    fun `verifies email without authentication and returns session tokens`() {
+        val email = "verify-success@example.com"
+        val rawToken = "verify-success-token"
+        kotlinx.coroutines.runBlocking {
+            seedVerificationCandidate(
+                email = email,
+                rawToken = rawToken,
+                expiresAt = Instant.parse("2099-01-01T00:00:00Z"),
             )
-            .exchange()
-            .expectStatus().isCreated
-            .expectHeader().contentType(API_V1_MEDIA_TYPE)
-            .expectHeader().exists(HttpHeaders.SET_COOKIE)
-            .expectBody()
-            .jsonPath("$.email").isEqualTo("newuser@example.com")
-            .jsonPath("$.emailStatus").isEqualTo("PENDING")
-            .jsonPath("$.accessToken").isNotEmpty
-            .returnResult()
+        }
 
-        // Step 2: Login with PENDING email now succeeds
-        webTestClient.post()
-            .uri("/api/auth/login")
-            .header(HttpHeaders.ACCEPT, API_V1_MEDIA_TYPE)
-            .bodyValue(
-                mapOf(
-                    "email" to "newuser@example.com",
-                    "password" to "password123",
-                ),
-            )
-            .exchange()
-            .expectStatus().isOk
-
-        // Step 3: Verify with invalid token should return 400
         webTestClient.post()
             .uri("/api/auth/verify-email")
             .header(HttpHeaders.ACCEPT, API_V1_MEDIA_TYPE)
-            .bodyValue(
-                mapOf(
-                    "token" to "invalid-token",
+            .bodyValue(mapOf("token" to rawToken))
+            .exchange()
+            .expectStatus().isOk
+            .expectHeader().contentType(API_V1_MEDIA_TYPE)
+            .expectHeader().exists(HttpHeaders.SET_COOKIE)
+            .expectBody()
+            .jsonPath("$.accessToken").isNotEmpty
+            .jsonPath("$.email").isEqualTo(email)
+            .jsonPath("$.emailStatus").isEqualTo("VERIFIED")
+
+        kotlinx.coroutines.runBlocking {
+            assertEquals(
+                "VERIFIED",
+                databaseClient.sql("SELECT email_status FROM user_identities WHERE email = :email")
+                    .bind("email", email)
+                    .map { row, _ -> row.get("email_status", String::class.java) ?: error("Missing email_status") }
+                    .one()
+                    .awaitSingle(),
+            )
+            assertEquals(
+                1,
+                countRows(
+                    "SELECT COUNT(*) FROM email_verification_tokens WHERE email = '$email' AND used_at IS NOT NULL",
                 ),
             )
+        }
+    }
+
+    @Test
+    fun `rejects invalid verification token with 400`() {
+        webTestClient.post()
+            .uri("/api/auth/verify-email")
+            .header(HttpHeaders.ACCEPT, API_V1_MEDIA_TYPE)
+            .bodyValue(mapOf("token" to "invalid-token"))
             .exchange()
             .expectStatus().isBadRequest
+            .expectBody()
+            .jsonPath("$.title").isEqualTo("Invalid verification token")
+            .jsonPath("$.detail").isEqualTo("Invalid verification token.")
+    }
 
-        // Step 4: Resend verification should return 202
+    @Test
+    fun `rejects expired verification token with 400`() {
+        val rawToken = "expired-token"
+        kotlinx.coroutines.runBlocking {
+            seedVerificationCandidate(
+                email = "expired-token@example.com",
+                rawToken = rawToken,
+                expiresAt = Instant.parse("2020-01-01T00:00:00Z"),
+            )
+        }
+
+        webTestClient.post()
+            .uri("/api/auth/verify-email")
+            .header(HttpHeaders.ACCEPT, API_V1_MEDIA_TYPE)
+            .bodyValue(mapOf("token" to rawToken))
+            .exchange()
+            .expectStatus().isBadRequest
+            .expectBody()
+            .jsonPath("$.title").isEqualTo("Invalid verification token")
+            .jsonPath("$.detail").isEqualTo("Verification token has expired.")
+    }
+
+    @Test
+    fun `rejects used verification token with 400`() {
+        val rawToken = "used-token"
+        kotlinx.coroutines.runBlocking {
+            seedVerificationCandidate(
+                email = "used-token@example.com",
+                rawToken = rawToken,
+                expiresAt = Instant.parse("2099-01-01T00:00:00Z"),
+                usedAt = Instant.parse("2024-01-01T00:00:00Z"),
+            )
+        }
+
+        webTestClient.post()
+            .uri("/api/auth/verify-email")
+            .header(HttpHeaders.ACCEPT, API_V1_MEDIA_TYPE)
+            .bodyValue(mapOf("token" to rawToken))
+            .exchange()
+            .expectStatus().isBadRequest
+            .expectBody()
+            .jsonPath("$.title").isEqualTo("Invalid verification token")
+            .jsonPath("$.detail").isEqualTo("Verification token has already been used.")
+    }
+
+    @Test
+    fun `resend verification remains permit all and returns 202`() {
         webTestClient.post()
             .uri("/api/auth/resend-verification")
             .header(HttpHeaders.ACCEPT, API_V1_MEDIA_TYPE)
-            .bodyValue(
-                mapOf(
-                    "email" to "newuser@example.com",
-                ),
-            )
+            .bodyValue(mapOf("email" to "newuser@example.com"))
             .exchange()
             .expectStatus().isAccepted
     }
@@ -521,6 +574,53 @@ class LocalAuthEndpointIntegrationTest : IntegrationTestBase() {
     }
 
     private data class RegisterResult(val accessToken: String, val refreshCookie: String)
+
+    private suspend fun seedVerificationCandidate(
+        email: String,
+        rawToken: String,
+        expiresAt: Instant,
+        usedAt: Instant? = null,
+    ) {
+        val principalId = "principal-${email.substringBefore('@')}"
+        databaseClient.sql(
+            """
+            INSERT INTO principals (id, principal_type, subject, provider, display_identity)
+            VALUES (:principalId, 'USER', :subject, NULL, :displayIdentity)
+            """.trimIndent(),
+        )
+            .bind("principalId", principalId)
+            .bind("subject", "local:$email")
+            .bind("displayIdentity", email.substringBefore('@'))
+            .fetch().rowsUpdated().awaitSingle()
+
+        databaseClient.sql(
+            """
+            INSERT INTO user_identities (principal_id, email, username, email_status)
+            VALUES (:principalId, :email, :username, 'PENDING')
+            """.trimIndent(),
+        )
+            .bind("principalId", principalId)
+            .bind("email", email)
+            .bind("username", email.substringBefore('@'))
+            .fetch().rowsUpdated().awaitSingle()
+
+        val tokenInsert = databaseClient.sql(
+            """
+            INSERT INTO email_verification_tokens (email, token_hash, expires_at, used_at)
+            VALUES (:email, :tokenHash, :expiresAt, :usedAt)
+            """.trimIndent(),
+        )
+            .bind("email", email)
+            .bind("tokenHash", EmailVerificationTokenHasher.hash(rawToken))
+            .bind("expiresAt", expiresAt)
+
+        if (usedAt == null) {
+            tokenInsert.bindNull("usedAt", Instant::class.java)
+        } else {
+            tokenInsert.bind("usedAt", usedAt)
+        }
+            .fetch().rowsUpdated().awaitSingle()
+    }
 
     private fun decodeJwt(tokenValue: String): Jwt = reactiveJwtDecoder.decode(tokenValue).block()
         ?: error("Failed to decode JWT")

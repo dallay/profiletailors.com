@@ -36,6 +36,8 @@ management:
     port: ${MANAGEMENT_PORT:8080}  # En dev, mismo puerto que la app
 
 app:
+  email:
+    publicAppUrl: "https://pt-app.localhost:1355"
   security:
     cors:
       allowed-origins:

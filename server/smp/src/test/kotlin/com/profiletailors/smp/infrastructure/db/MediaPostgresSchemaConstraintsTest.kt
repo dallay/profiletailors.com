@@ -116,6 +116,21 @@ class MediaPostgresSchemaConstraintsTest : PostgresDatabaseTestBase() {
     }
 
     @Test
+    fun `legacy processing media asset may reserve storage key without file hash`() = runTest {
+        seedWorkspace("workspace-legacy")
+
+        insertMediaAsset(
+            assetId = "asset-legacy-processing",
+            workspaceId = "workspace-legacy",
+            fileHash = null,
+            status = "PROCESSING",
+            storageKey = "workspace-legacy/assets/asset-legacy-processing",
+        )
+
+        assertEquals(1, countRows("media_assets"))
+    }
+
+    @Test
     fun `workspace file blobs require canonical metadata when ready`() = runTest {
         seedWorkspace("workspace-1")
 
@@ -274,7 +289,7 @@ class MediaPostgresSchemaConstraintsTest : PostgresDatabaseTestBase() {
     private suspend fun insertMediaAsset(
         assetId: String,
         workspaceId: String,
-        fileHash: String,
+        fileHash: String?,
         status: String = "READY",
         storageKey: String? = "storage/key.png",
     ) {
@@ -291,8 +306,12 @@ class MediaPostgresSchemaConstraintsTest : PostgresDatabaseTestBase() {
         )
             .bind("assetId", assetId)
             .bind("workspaceId", workspaceId)
-            .bind("fileHash", fileHash)
             .bind("status", status)
+        spec = if (fileHash == null) {
+            spec.bindNull("fileHash", String::class.java)
+        } else {
+            spec.bind("fileHash", fileHash)
+        }
         spec =
             if (storageKey ==
                 null

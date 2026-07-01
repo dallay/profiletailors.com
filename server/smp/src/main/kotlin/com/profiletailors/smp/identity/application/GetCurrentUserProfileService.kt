@@ -10,11 +10,12 @@ open class GetCurrentUserProfileService(
 ) {
     open suspend fun execute(): CurrentUserProfile {
         val principalContext = principalContextProvider.require()
-        val identityFacts = principalIdentityLookup.findBySubject(
-            principalType = principalContext.principalType,
-            subject = principalContext.subject,
-            provider = principalContext.provider,
-        )
+        val identityFacts = principalIdentityLookup.findByPrincipalId(principalContext.principalId)
+            ?: principalIdentityLookup.findBySubject(
+                principalType = principalContext.principalType,
+                subject = principalContext.subject,
+                provider = principalContext.provider,
+            )
 
         return CurrentUserProfile(
             principalId = principalContext.principalId,
@@ -25,6 +26,7 @@ open class GetCurrentUserProfileService(
                 ?: identityFacts?.username
                 ?: identityFacts?.email
                 ?: principalContext.subject,
+            emailStatus = identityFacts?.emailStatus,
         )
     }
 }

@@ -262,6 +262,43 @@ const messages = {
       password: 'Password',
       emailPlaceholder: 'you{at}example.com',
       passwordPlaceholder: 'At least 8 characters',
+      confirmPassword: 'Confirm Password',
+      confirmPasswordPlaceholder: 'Repeat your password',
+      invalidEmail: 'Please enter a valid email address.',
+      passwordRequired: 'Please enter your password.',
+      confirmPasswordRequired: 'Please confirm your password.',
+      passwordsMustMatch: 'Passwords must match.',
+    },
+    emailVerification: {
+      banner: {
+        title: 'Verify your email',
+        description:
+          'Publishing, social connections, and media uploads require email verification.',
+        instructions: 'Check your inbox for the verification link or resend the email.',
+        resend: 'Resend verification email',
+        resending: 'Sending...',
+        success: 'Verification email sent. Check your inbox.',
+        error: 'Unable to resend verification email.',
+      },
+    },
+    verifyEmail: {
+      loadingTitle: 'Verifying your email',
+      loadingMessage: 'We are confirming your email and syncing your account state.',
+      successTitle: 'Email verified',
+      successMessage:
+        'Your email has been verified. You can continue with sign in or return to your dashboard if your session is active.',
+      signInCta: 'Sign in',
+      dashboardCta: 'Go to dashboard',
+      backToSignIn: 'Back to sign in',
+      missingTokenTitle: 'Verification link incomplete',
+      missingTokenMessage:
+        'This verification link is missing its token. Request a new verification email and try again.',
+      invalidTitle: 'Verification link invalid',
+      invalidMessage:
+        'This verification link is invalid or has already been used. Request a new verification email and try again.',
+      expiredTitle: 'Verification link expired',
+      expiredMessage:
+        'This verification link has expired. Request a new verification email and try again.',
     },
     scheduler: {
       subtitle: 'Manage your content pipeline in a structured calendar view.',
@@ -299,6 +336,7 @@ const messages = {
       all: 'All channels',
       active: 'Active',
       inactive: 'Inactive',
+      needsReconnect: 'Needs reconnect',
       connect: 'Connect channels',
       connectAction: 'connect',
       linkedinProfile: 'LinkedIn profile',
@@ -307,6 +345,7 @@ const messages = {
         'Connect your LinkedIn personal profile to publish scheduled posts.',
       connectingLinkedIn: 'Opening LinkedIn...',
       connectLinkedInFailed: 'Unable to start LinkedIn connection.',
+      connectionFailed: 'Unable to connect the LinkedIn profile.',
       loadFailed: 'Unable to load connected channels.',
       noChannels: 'No connected channels yet.',
       notConfigured: 'LinkedIn not configured.',
@@ -339,6 +378,8 @@ const messages = {
       rename: 'Rename',
       renameSuccess: 'Workspace renamed successfully.',
       renameFailed: 'Unable to rename workspace.',
+      workspaceNameRequired: 'Please enter a name for the workspace.',
+      workspaceNameTooLong: 'Workspace name must be 255 characters or fewer.',
       updateIconFailed: 'Unable to update workspace icon.',
       removeIcon: 'Remove icon',
       namePlaceholder: 'Workspace name',
@@ -358,6 +399,9 @@ const messages = {
       subtitle: 'Upload, inspect, and manage workspace media assets in one place.',
       refresh: 'Refresh',
       uploadAction: 'Upload files',
+      verificationRequired: 'Verify your email to upload media',
+      verificationGuidance:
+        'Check your inbox for the verification link or resend the email from the verification banner.',
       readyTitle: 'Ready assets',
       processingTitle: 'Processing',
       failedTitle: 'Failed',
@@ -691,6 +735,43 @@ const messages = {
       password: 'Contraseña',
       emailPlaceholder: 'tu{at}ejemplo.com',
       passwordPlaceholder: 'Al menos 8 caracteres',
+      confirmPassword: 'Confirmar contraseña',
+      confirmPasswordPlaceholder: 'Repite tu contraseña',
+      invalidEmail: 'Por favor, introduce un correo electrónico válido.',
+      passwordRequired: 'Por favor, introduce tu contraseña.',
+      confirmPasswordRequired: 'Por favor, confirma tu contraseña.',
+      passwordsMustMatch: 'Las contraseñas deben coincidir.',
+    },
+    emailVerification: {
+      banner: {
+        title: 'Verifica tu correo',
+        description:
+          'Publicar, conectar redes sociales y subir medios requiere verificar tu correo.',
+        instructions: 'Revisa tu bandeja de entrada o reenvía el email de verificación.',
+        resend: 'Reenviar email de verificación',
+        resending: 'Enviando...',
+        success: 'Email de verificación enviado. Revisa tu bandeja de entrada.',
+        error: 'No se pudo reenviar el email de verificación.',
+      },
+    },
+    verifyEmail: {
+      loadingTitle: 'Verificando tu correo',
+      loadingMessage: 'Estamos confirmando tu correo y sincronizando el estado de tu cuenta.',
+      successTitle: 'Correo verificado',
+      successMessage:
+        'Tu correo ya quedó verificado. Puedes iniciar sesión o volver al panel si tu sesión sigue activa.',
+      signInCta: 'Iniciar sesión',
+      dashboardCta: 'Ir al panel',
+      backToSignIn: 'Volver a iniciar sesión',
+      missingTokenTitle: 'Enlace de verificación incompleto',
+      missingTokenMessage:
+        'A este enlace le falta el token de verificación. Solicita un nuevo email de verificación e inténtalo de nuevo.',
+      invalidTitle: 'Enlace de verificación inválido',
+      invalidMessage:
+        'Este enlace de verificación es inválido o ya fue usado. Solicita un nuevo email de verificación e inténtalo de nuevo.',
+      expiredTitle: 'Enlace de verificación expirado',
+      expiredMessage:
+        'Este enlace de verificación expiró. Solicita un nuevo email de verificación e inténtalo de nuevo.',
     },
     scheduler: {
       subtitle: 'Gestiona tu pipeline de contenido en una vista de calendario estructurada.',
@@ -728,6 +809,7 @@ const messages = {
       all: 'Todos los canales',
       active: 'Activo',
       inactive: 'Inactivo',
+      needsReconnect: 'Necesita reconectar',
       connect: 'Conectar canales',
       connectAction: 'conectar',
       linkedinProfile: 'Perfil de LinkedIn',
@@ -736,6 +818,7 @@ const messages = {
         'Conecta tu perfil personal de LinkedIn para publicar posts programados.',
       connectingLinkedIn: 'Abriendo LinkedIn...',
       connectLinkedInFailed: 'No se pudo iniciar la conexión de LinkedIn.',
+      connectionFailed: 'No se pudo conectar el perfil de LinkedIn.',
       loadFailed: 'No se pudieron cargar los canales conectados.',
       noChannels: 'Aún no hay canales conectados.',
       notConfigured: 'LinkedIn no está configurado.',
@@ -775,6 +858,8 @@ const messages = {
       editIdentity: 'Editar identidad',
       iconModalTitle: 'Elegir icono del workspace',
       iconModalDesc: 'Selecciona un icono que represente este espacio de trabajo.',
+      workspaceNameRequired: 'Por favor, introduce un nombre para el espacio de trabajo.',
+      workspaceNameTooLong: 'El nombre del espacio de trabajo debe tener 255 caracteres o menos.',
     },
     analytics: {
       subtitle:
@@ -788,6 +873,9 @@ const messages = {
         'Sube, inspecciona y gestiona los assets multimedia del workspace desde un solo lugar.',
       refresh: 'Actualizar',
       uploadAction: 'Subir archivos',
+      verificationRequired: 'Verifica tu correo para subir archivos multimedia',
+      verificationGuidance:
+        'Revisa tu bandeja de entrada o reenvía el correo desde el aviso de verificación.',
       readyTitle: 'Assets listos',
       processingTitle: 'Procesando',
       failedTitle: 'Fallidos',

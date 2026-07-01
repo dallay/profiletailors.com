@@ -369,6 +369,9 @@ class LocalAuthHandlersTest {
         assertTrue(identityRegistrationGateway.invalidatedTokens)
         assertNotNull(identityRegistrationGateway.createdToken)
         assertEquals(1, eventPublisher.published.size)
+        val event = eventPublisher.published.single() as UserRegistered
+        val newestToken = requireNotNull(identityRegistrationGateway.createdToken)
+        assertEquals(newestToken.tokenHash, EmailVerificationTokenHasher.hash(event.rawVerificationToken))
     }
 
     @Test
