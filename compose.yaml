@@ -12,7 +12,7 @@ services:
   linkedin-wiremock:
     image: wiremock/wiremock:3.10.0
     ports:
-      - "${LINKEDIN_WIREMOCK_PORT:-8089}:8080"
+      - "${WIREMOCK_HOST_PORT:-8089}:8080"
     volumes:
       - ./infra/wiremock/linkedin:/home/wiremock:ro
     command:
