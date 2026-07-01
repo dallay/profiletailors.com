@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { Pencil } from '@lucide/vue'
-import { computed, ref, watch } from 'vue'
+import { computed, onMounted, onUnmounted, ref, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useRoute } from 'vue-router'
 import WorkspaceAvatar from '@/components/WorkspaceAvatar.vue'
@@ -27,6 +27,7 @@ const editingWorkspaceName = ref(false)
 const renamingWorkspace = ref(false)
 const renameError = ref<string | null>(null)
 const renameSuccess = ref(false)
+let renameSuccessTimeout: ReturnType<typeof setTimeout> | null = null
 
 const iconModalOpen = ref(false)
 const updatingIcon = ref(false)
@@ -35,13 +36,15 @@ const iconError = ref<string | null>(null)
 const displayWorkspaceName = computed(() => workspace.activeWorkspace?.name ?? t('workspace.defaultName'))
 const workspaceIdentifier = computed(() => workspace.activeWorkspace?.workspaceId ?? '...')
 
-const linkedinConnected = computed(() => Boolean(route.query.linkedin_connected))
-
-const linkedInChannels = computed(() =>
-  publishing.channels.filter((c) => c.provider === 'LINKEDIN'),
+const linkedinConnected = computed(
+  () => route.query.connected === 'linkedin' && route.query.provider === 'linkedin',
 )
 
-const channelsPanelFocused = computed(() => route.query.focus === 'channels')
+const linkedInChannels = computed(() =>
+  publishing.channels.filter((channel) => channel.provider === 'linkedin'),
+)
+
+const channelsPanelFocused = computed(() => route.query.panel === 'channels')
 
 watch(
   () => workspace.activeWorkspace?.name,
@@ -54,20 +57,36 @@ watch(
 )
 
 function getProviderBadge(provider: string) {
-  if (provider === 'LINKEDIN') return 'LI'
+  if (provider === 'linkedin') return 'LI'
   return provider.slice(0, 2).toUpperCase()
 }
 
+const connectingLinkedIn = ref(false)
+const connectError = ref<string | null>(null)
+
 async function connectLinkedInProfile() {
+  connectingLinkedIn.value = true
+  connectError.value = null
+
   try {
-    const authUrl = `${import.meta.env.VITE_API_URL}/api/auth/social/linkedin/authorize`
-    window.location.href = authUrl
+    await publishing.connectLinkedInPersonalProfile()
   } catch (err) {
-    console.error('Failed to initiate LinkedIn connection:', err)
+    connectError.value = err instanceof Error ? err.message : t('channels.connectionFailed')
+  } finally {
+    connectingLinkedIn.value = false
   }
 }
 
-const connectingLinkedIn = ref(false)
+onMounted(() => {
+  void publishing.fetchChannels().catch(() => undefined)
+  void publishing.fetchConfiguredProviders()
+})
+
+onUnmounted(() => {
+  if (renameSuccessTimeout) {
+    clearTimeout(renameSuccessTimeout)
+  }
+})
 
 function startRenameWorkspace() {
   workspaceNameInput.value = workspace.activeWorkspace?.name ?? ''
@@ -82,7 +101,9 @@ function cancelRenameWorkspace() {
 }
 
 async function saveWorkspaceName() {
-  if (!workspace.activeWorkspaceId) return
+  const workspaceId = workspace.activeWorkspaceId
+  const accessToken = auth.accessToken
+  if (!workspaceId || !accessToken) return
 
   const rawName = workspaceNameInput.value.trim()
   const validation = workspaceNameSchema.safeParse(rawName)
@@ -97,12 +118,13 @@ async function saveWorkspaceName() {
   renameError.value = null
 
   try {
-    const updated = await renameWorkspace(validation.data, auth.accessToken!, workspace.activeWorkspaceId)
+    const updated = await renameWorkspace(validation.data, accessToken, workspaceId)
     workspace.setWorkspaceName(updated.name)
     editingWorkspaceName.value = false
     renameSuccess.value = true
-    setTimeout(() => {
+    renameSuccessTimeout = setTimeout(() => {
       renameSuccess.value = false
+      renameSuccessTimeout = null
     }, 3000)
   } catch (err) {
     renameError.value = err instanceof Error ? err.message : t('workspace.renameFailed')
@@ -112,14 +134,16 @@ async function saveWorkspaceName() {
 }
 
 async function selectIcon(icon: string | null) {
-  if (!workspace.activeWorkspaceId) return
+  const workspaceId = workspace.activeWorkspaceId
+  const accessToken = auth.accessToken
+  if (!workspaceId || !accessToken) return
 
   updatingIcon.value = true
   iconError.value = null
 
   try {
-    const updated = await updateWorkspaceIcon(icon, auth.accessToken!, workspace.activeWorkspaceId)
-    workspace.setWorkspaceIcon(updated.icon)
+    const updated = await updateWorkspaceIcon(icon, accessToken, workspaceId)
+    workspace.updateWorkspaceIcon(workspaceId, updated.icon)
     iconModalOpen.value = false
   } catch (err) {
     iconError.value = err instanceof Error ? err.message : t('workspace.updateIconFailed')
@@ -202,6 +226,7 @@ function segmentedControlClass(active: boolean) {
 
     <div class="grid gap-6 xl:grid-cols-[minmax(0,0.9fr)_minmax(0,1.1fr)] xl:items-start">
       <Card
+        data-testid="settings-channels-panel"
         class="border border-border-subtle bg-bg-surface p-6 shadow-[0_0_0_1px_rgba(255,255,255,0.02)] transition-colors"
         :class="channelsPanelFocused
           ? 'shadow-[0_0_0_1px_rgba(255,255,255,0.12)]'
