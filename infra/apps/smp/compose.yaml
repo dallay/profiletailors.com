@@ -20,6 +20,13 @@ services:
       POSTGRES_PASSWORD: ${SMP_POSTGRES_PASSWORD:-CHANGE_ME}
       POSTGRES_PORT: ${SMP_POSTGRES_PORT:-5432}
 
+  wiremock:
+    extends:
+      service: wiremock
+      file: ../../wiremock/compose.yaml
+    ports:
+      - '${WIREMOCK_HOST_PORT:-8089}:8080'
+
 volumes:
   postgres_data:
     driver: local
@@ -28,6 +35,7 @@ volumes:
 # - PostgreSQL       (from infra/postgres)     — with SMP_ prefixed env vars
 # - Prometheus + Grafana (from infra/monitoring)
 # - Mailpit          (from infra/mailpit)      — fake SMTP server with Web UI
+# - WireMock         (from infra/wiremock)     — simulates LinkedIn API for local dev
 #
 # To start everything:
 #   docker compose -f infra/apps/smp/compose.yaml up -d
