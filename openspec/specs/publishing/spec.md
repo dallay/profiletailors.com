@@ -134,12 +134,19 @@ A publication in `DRAFT`, `QUEUED`, or `SCHEDULED` MAY be edited, including text
 schedule mode, and schedule timing, as long as the delivery job has not been claimed for processing.
 Such a publication MAY also be cancelled or deleted before claim. Scheduler edit flows MUST persist
 through the existing `PATCH /api/publishing/publications/{publicationId}` contract, and successful
-responses MUST reflect server truth rather than local-only optimistic state. Once processing has
-begun, the system MUST prevent unsafe edits or deletion that would invalidate the claimed delivery
-attempt.
+responses MUST reflect server truth rather than local-only optimistic state. Publication writes MUST
+target exactly one row in the caller's current workspace. A write scoped by `publicationId` MUST
+update an existing publication only when both the publication identifier and workspace match the
+current workspace context. If no publication row in the current workspace matches the requested
+write target, the system MUST either create the draft in the current workspace when the operation is
+a create/save flow, or reject the operation as not found for the current workspace when the
+operation requires updating an existing publication. The system MUST NOT mutate a publication row
+that belongs to another workspace. Once processing has begun, the system MUST prevent unsafe edits
+or deletion that would invalidate the claimed delivery attempt.
 
-(Previously: Pre-delivery publications could be edited or cancelled, but delete behavior and
-backend-backed scheduler editing were not specified.)
+(Previously: Pre-delivery publications were editable before claim, but the spec did not require
+workspace-scoped write targeting or define behavior when an update target is missing in the current
+workspace.)
 
 #### Scenario: Queued publication is edited before claim
 
@@ -154,6 +161,36 @@ backend-backed scheduler editing were not specified.)
 - WHEN the user saves changes from the edit flow
 - THEN the client MUST update its state from the successful PATCH response
 - AND failed PATCH requests MUST surface an error without pretending the edit succeeded
+
+#### Scenario: Same-workspace write updates the intended publication row
+
+- GIVEN workspace A already owns publication `P1` in an editable pre-delivery state
+- WHEN workspace A saves edits for publication `P1`
+- THEN the system MUST update the existing row for workspace A
+- AND it MUST NOT create a duplicate row for workspace A
+
+#### Scenario: Save flow creates a draft when no current-workspace row exists
+
+- GIVEN workspace A has no publication row with identifier `P1`
+- WHEN workspace A performs a draft save that is allowed to create
+- THEN the system MUST persist a new draft in workspace A
+- AND the write MUST NOT depend on rows from other workspaces
+
+#### Scenario: Cross-workspace publication rows remain isolated during writes
+
+- GIVEN workspace A owns publication `P1`
+- AND workspace B also has a row that is the only existing match for publication `P1` outside workspace A's scope
+- WHEN workspace A performs a write for publication `P1`
+- THEN the system MUST NOT update workspace B's row
+- AND any persisted change MUST apply only within workspace A's scope
+
+#### Scenario: Update fails when the current workspace cannot target a row
+
+- GIVEN workspace A requests an update-only write for publication `P1`
+- AND workspace A has no matching publication row for `P1`
+- WHEN the system evaluates the write target
+- THEN the system MUST reject the operation as not found for the current workspace
+- AND it MUST leave rows in other workspaces unchanged
 
 #### Scenario: Processing publication cannot be cancelled retroactively
 
@@ -1832,4 +1869,33 @@ part of this change.
 - WHEN Delete is invoked
 - THEN its existing persistence behavior MUST remain unchanged
 - AND it MUST NOT invoke `AtomicTransactionRunner`
+
+### Requirement: Update-Only Publication Misses Return HTTP 404
+
+The system MUST translate current-workspace publication misses for update-only publishing operations into HTTP 404 at the HTTP boundary.
+
+Any endpoint that intentionally scopes publication lookup by the caller's current workspace and throws `PublicationNotFoundException` for a miss MUST expose that miss as not found rather than an internal server error. This contract applies only to update-only operations and MUST NOT redefine create/save flows that are allowed to create a draft when no current-workspace row exists.
+
+#### Scenario: Edit request misses the current-workspace publication
+
+- GIVEN `PATCH /api/publishing/publications/{publicationId}` is an update-only operation
+- AND the current workspace has no matching publication row for `publicationId`
+- WHEN the HTTP request reaches the publishing boundary
+- THEN the system MUST return HTTP 404
+- AND the response MUST NOT degrade to HTTP 500
+
+#### Scenario: Sibling update-only operations share the same not-found contract
+
+- GIVEN delete, cancel, retry, or reschedule uses the same current-workspace publication lookup semantics
+- AND the operation intentionally treats cross-workspace targets as not found
+- WHEN no matching publication exists in the current workspace
+- THEN the system MUST return HTTP 404 for that endpoint
+- AND it MUST leave rows in other workspaces unchanged
+
+#### Scenario: Create-capable save flows remain out of scope
+
+- GIVEN a publishing flow is explicitly allowed to create a draft when the current workspace has no matching row
+- WHEN that flow evaluates a missing current-workspace target
+- THEN this requirement MUST NOT force HTTP 404
+- AND the flow MUST continue to follow its create/save contract
 
