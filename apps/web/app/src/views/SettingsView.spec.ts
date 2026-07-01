@@ -118,6 +118,32 @@ describe('SettingsView channel connection CTA', () => {
 
     expect(wrapper.find('[data-testid="settings-connected-channel"]').exists()).toBe(true)
     expect(wrapper.text()).toContain('Profile Tailors')
+    expect(wrapper.text()).toContain('channels.active')
+  })
+
+  it('shows needsReconnect badge for a non-ACTIVE LinkedIn channel', async () => {
+    const publishing = usePublishingStore()
+    publishing.channels = [
+      {
+        id: 'linkedin-2',
+        accountId: 'linkedin-2',
+        name: 'Profile Tailors',
+        provider: 'linkedin',
+        avatar: '',
+        handle: 'Profile Tailors',
+        status: 'REQUIRES_RECONNECT',
+      },
+    ]
+    vi.spyOn(publishing, 'fetchChannels').mockResolvedValue(publishing.channels)
+    vi.spyOn(publishing, 'fetchConfiguredProviders').mockResolvedValue()
+
+    const wrapper = mountSettings()
+    await flushPromises()
+
+    const badge = wrapper.find('[data-testid="settings-connected-channel"] span')
+    expect(badge.text()).toContain('channels.needsReconnect')
+    // Badge does NOT show the success styling for a non-ACTIVE channel
+    expect(badge.classes()).not.toContain('text-success')
   })
 
   it('uses the LinkedIn callback query contract for success and panel focus', async () => {

@@ -103,7 +103,7 @@ function cancelRenameWorkspace() {
 async function saveWorkspaceName() {
   const workspaceId = workspace.activeWorkspaceId
   const accessToken = auth.accessToken
-  if (!workspaceId || !accessToken) return
+  if (!workspaceId || !accessToken) { renameError.value = t('workspace.renameFailed'); return }
 
   const rawName = workspaceNameInput.value.trim()
   const validation = workspaceNameSchema.safeParse(rawName)
@@ -281,9 +281,16 @@ function segmentedControlClass(active: boolean) {
                   {{ t('channels.accountLabel') }} · {{ channel.accountId }}
                 </p>
               </div>
-              <span class="inline-flex items-center gap-1.5 rounded-full border border-border-visible px-2.5 py-0.5 font-mono text-[9px] uppercase tracking-[0.12em] text-success">
-                <span aria-hidden="true" class="size-1.5 rounded-full bg-success" />
-                {{ $t('channels.active') }}
+              <span
+                class="inline-flex items-center gap-1.5 rounded-full border border-border-visible px-2.5 py-0.5 font-mono text-[9px] uppercase tracking-[0.12em]"
+                :class="channel.status === 'ACTIVE' ? 'text-success' : 'text-error'"
+              >
+                <span
+                  aria-hidden="true"
+                  class="size-1.5 rounded-full"
+                  :class="channel.status === 'ACTIVE' ? 'bg-success' : 'bg-error'"
+                />
+                {{ channel.status === 'ACTIVE' ? $t('channels.active') : $t('channels.needsReconnect') }}
               </span>
             </div>
           </div>
@@ -317,7 +324,7 @@ function segmentedControlClass(active: boolean) {
             </Button>
           </div>
 
-          <p v-if="connectError || publishing.channelsError" class="text-sm text-error">
+          <p v-if="connectError || publishing.channelsError" role="alert" class="text-sm text-error">
             {{ connectError || publishing.channelsError }}
           </p>
         </CardContent>
@@ -358,6 +365,7 @@ function segmentedControlClass(active: boolean) {
         <CardContent class="mt-6 space-y-6 p-0">
           <p
             v-if="renameSuccess"
+            role="status"
             class="rounded-2xl border border-success/30 bg-success/10 px-4 py-3 text-sm text-success"
           >
             {{ $t('workspace.renameSuccess') }}
@@ -388,7 +396,7 @@ function segmentedControlClass(active: boolean) {
               @keyup.enter="saveWorkspaceName"
               @keyup.escape="cancelRenameWorkspace"
             >
-            <p v-if="renameError" class="text-sm text-error">{{ renameError }}</p>
+            <p v-if="renameError" role="alert" class="text-sm text-error">{{ renameError }}</p>
             <div class="flex gap-2">
               <Button
                 type="button"
