@@ -6,8 +6,8 @@ import com.profiletailors.common.domain.context.PrincipalType
 import com.profiletailors.common.domain.context.ResourceContext
 import com.profiletailors.common.domain.context.ResourceContextProvider
 import com.profiletailors.common.domain.context.ResourceContextType
-import com.profiletailors.common.domain.persistence.AtomicTransactionRunner
 import com.profiletailors.common.domain.observability.RequestOutcome
+import com.profiletailors.common.domain.persistence.AtomicTransactionRunner
 import com.profiletailors.common.domain.workspace.WorkspaceMembershipStatus
 import com.profiletailors.smp.audit.domain.AuditHook
 import com.profiletailors.smp.audit.domain.AuthorizationDecisionAuditFact
@@ -358,7 +358,7 @@ class TenancyOwnershipHandlersInternalTest {
                     FixedPrincipalContextProvider(ownerPrincipal),
                     auditHook,
                 ),
-            transactionRunner = NoOpAtomicTransactionRunner(),
+                transactionRunner = NoOpAtomicTransactionRunner(),
             )
 
             val exception = runCatching {
