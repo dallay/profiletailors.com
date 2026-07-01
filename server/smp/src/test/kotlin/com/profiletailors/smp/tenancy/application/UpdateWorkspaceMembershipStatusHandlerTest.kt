@@ -7,6 +7,7 @@ import com.profiletailors.common.domain.context.ResourceContext
 import com.profiletailors.common.domain.context.ResourceContextProvider
 import com.profiletailors.common.domain.context.ResourceContextType
 import com.profiletailors.common.domain.observability.RequestOutcome
+import com.profiletailors.common.domain.persistence.AtomicTransactionRunner
 import com.profiletailors.common.domain.workspace.WorkspaceMembershipStatus
 import com.profiletailors.smp.audit.domain.AuditHook
 import com.profiletailors.smp.audit.domain.AuthorizationDecisionAuditFact
@@ -60,6 +61,7 @@ class UpdateWorkspaceMembershipStatusHandlerTest {
             workspaceMembershipLookup = StubWorkspaceMembershipLookup(mapOf("owner-1" to membership)),
             workspaceMembershipRepository = membershipRepository,
             tenancyMutationAuditor = TenancyMutationAuditor(FixedPrincipalContextProvider(principalContext), auditHook),
+            transactionRunner = NoOpAtomicTransactionRunner(),
         )
 
         assertThrows(OwnerMustRemainActiveMemberException::class.java) {
@@ -116,6 +118,7 @@ class UpdateWorkspaceMembershipStatusHandlerTest {
             ),
             workspaceMembershipRepository = membershipRepository,
             tenancyMutationAuditor = TenancyMutationAuditor(FixedPrincipalContextProvider(principalContext), auditHook),
+            transactionRunner = NoOpAtomicTransactionRunner(),
         )
 
         val result = handler.handle(
@@ -162,6 +165,10 @@ class UpdateWorkspaceMembershipStatusHandlerTest {
         override suspend fun onMutation(fact: MutationAuditFact) {
             mutations += fact
         }
+    }
+
+    private class NoOpAtomicTransactionRunner : AtomicTransactionRunner {
+        override suspend fun <T : Any> runAtomically(block: suspend () -> T): T = block()
     }
 
     private class InMemoryWorkspaceOwnershipRepository(private val ownerships: MutableSet<WorkspaceOwnership>) :

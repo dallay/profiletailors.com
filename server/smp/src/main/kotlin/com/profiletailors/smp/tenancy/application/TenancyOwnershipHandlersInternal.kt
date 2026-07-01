@@ -4,6 +4,7 @@ import com.profiletailors.common.domain.bus.command.CommandWithResultHandler
 import com.profiletailors.common.domain.context.PrincipalContextProvider
 import com.profiletailors.common.domain.context.ResourceContext
 import com.profiletailors.common.domain.context.ResourceContextProvider
+import com.profiletailors.common.domain.persistence.AtomicTransactionRunner
 import com.profiletailors.smp.tenancy.application.AddWorkspaceOwnerCommand
 import com.profiletailors.smp.tenancy.application.OwnerTargetMustBeActiveMemberException
 import com.profiletailors.smp.tenancy.application.TransferWorkspaceOwnershipCommand
@@ -20,6 +21,7 @@ internal class AddWorkspaceOwnerHandler(
     private val workspaceMembershipLookup: WorkspaceMembershipLookup,
     private val clock: Clock,
     private val tenancyMutationAuditor: TenancyMutationAuditor,
+    private val transactionRunner: AtomicTransactionRunner,
 ) : CommandWithResultHandler<AddWorkspaceOwnerCommand, WorkspaceOwnershipResult> {
     @Suppress("ThrowsCount")
     override suspend fun handle(command: AddWorkspaceOwnerCommand): WorkspaceOwnershipResult {
@@ -27,36 +29,38 @@ internal class AddWorkspaceOwnerHandler(
         val resourceContext = resourceContextProvider.requireWorkspaceContext()
         val workspaceId = requireNotNull(resourceContext.workspaceId)
         return try {
-            val currentOwners = workspaceOwnershipRepository.requireCurrentOwners(workspaceId)
-            val actorOwnership = currentOwners.firstOrNull { ownership -> ownership.belongsTo(actor.principalId) }
-                ?: throw WorkspaceOwnerAccessDeniedException()
+            transactionRunner.runAtomically {
+                val currentOwners = workspaceOwnershipRepository.requireCurrentOwners(workspaceId)
+                val actorOwnership = currentOwners.firstOrNull { ownership -> ownership.belongsTo(actor.principalId) }
+                    ?: throw WorkspaceOwnerAccessDeniedException()
 
-            val targetMembership = requireActiveMembership(command.targetPrincipalId, resourceContext)
-            if (!workspaceOwnershipRepository.exists(workspaceId, command.targetPrincipalId)) {
-                workspaceOwnershipRepository.add(
-                    WorkspaceOwnership(
-                        workspaceId = workspaceId,
-                        ownerPrincipalId = targetMembership.principalId,
-                        ownerPrincipalType = targetMembership.principalType,
-                        createdAt = clock.instant(),
-                        createdBy = actorOwnership.ownerPrincipalId,
-                    ),
-                )
-            }
+                val targetMembership = requireActiveMembership(command.targetPrincipalId, resourceContext)
+                if (!workspaceOwnershipRepository.exists(workspaceId, command.targetPrincipalId)) {
+                    workspaceOwnershipRepository.add(
+                        WorkspaceOwnership(
+                            workspaceId = workspaceId,
+                            ownerPrincipalId = targetMembership.principalId,
+                            ownerPrincipalType = targetMembership.principalType,
+                            createdAt = clock.instant(),
+                            createdBy = actorOwnership.ownerPrincipalId,
+                        ),
+                    )
+                }
 
-            return WorkspaceOwnershipResult(
-                workspaceId = workspaceId,
-                ownerPrincipalIds = workspaceOwnershipRepository.findByWorkspaceId(workspaceId)
-                    .map { ownership -> ownership.ownerPrincipalId }
-                    .sorted(),
-            ).also {
-                tenancyMutationAuditor.recordSuccess(
-                    action = "workspace.owner.add",
-                    targetType = "WORKSPACE_OWNER",
-                    targetId = command.targetPrincipalId,
+                WorkspaceOwnershipResult(
                     workspaceId = workspaceId,
-                    details = mapOf("ownerPrincipalId" to command.targetPrincipalId),
-                )
+                    ownerPrincipalIds = workspaceOwnershipRepository.findByWorkspaceId(workspaceId)
+                        .map { ownership -> ownership.ownerPrincipalId }
+                        .sorted(),
+                ).also {
+                    tenancyMutationAuditor.recordSuccess(
+                        action = "workspace.owner.add",
+                        targetType = "WORKSPACE_OWNER",
+                        targetId = command.targetPrincipalId,
+                        workspaceId = workspaceId,
+                        details = mapOf("ownerPrincipalId" to command.targetPrincipalId),
+                    )
+                }
             }
         } catch (@Suppress("TooGenericExceptionCaught") exception: Exception) {
             when (exception) {
@@ -93,6 +97,7 @@ internal class TransferWorkspaceOwnershipHandler(
     private val workspaceMembershipLookup: WorkspaceMembershipLookup,
     private val clock: Clock,
     private val tenancyMutationAuditor: TenancyMutationAuditor,
+    private val transactionRunner: AtomicTransactionRunner,
 ) : CommandWithResultHandler<TransferWorkspaceOwnershipCommand, WorkspaceOwnershipResult> {
     @Suppress("ThrowsCount", "LongMethod")
     override suspend fun handle(command: TransferWorkspaceOwnershipCommand): WorkspaceOwnershipResult {
@@ -101,55 +106,57 @@ internal class TransferWorkspaceOwnershipHandler(
         val workspaceId = requireNotNull(resourceContext.workspaceId)
 
         return try {
-            require(command.targetPrincipalId != actor.principalId) { "Cannot transfer ownership to yourself" }
+            transactionRunner.runAtomically {
+                require(command.targetPrincipalId != actor.principalId) { "Cannot transfer ownership to yourself" }
 
-            val currentOwners = workspaceOwnershipRepository.requireCurrentOwners(workspaceId)
-            val actorOwnership = currentOwners.firstOrNull { it.belongsTo(actor.principalId) }
-                ?: throw WorkspaceOwnerAccessDeniedException()
-            val targetMembership = workspaceMembershipLookup.resolve(command.targetPrincipalId, resourceContext)
-                ?.takeIf { membership -> membership.isActive() }
-                ?: throw OwnerTargetMustBeActiveMemberException(command.targetPrincipalId, workspaceId)
+                val currentOwners = workspaceOwnershipRepository.requireCurrentOwners(workspaceId)
+                val actorOwnership = currentOwners.firstOrNull { it.belongsTo(actor.principalId) }
+                    ?: throw WorkspaceOwnerAccessDeniedException()
+                val targetMembership = workspaceMembershipLookup.resolve(command.targetPrincipalId, resourceContext)
+                    ?.takeIf { membership -> membership.isActive() }
+                    ?: throw OwnerTargetMustBeActiveMemberException(command.targetPrincipalId, workspaceId)
 
-            if (!workspaceOwnershipRepository.exists(workspaceId, command.targetPrincipalId)) {
-                workspaceOwnershipRepository.add(
-                    WorkspaceOwnership(
-                        workspaceId = workspaceId,
-                        ownerPrincipalId = targetMembership.principalId,
-                        ownerPrincipalType = targetMembership.principalType,
-                        createdAt = clock.instant(),
-                        createdBy = actorOwnership.ownerPrincipalId,
-                    ),
+                if (!workspaceOwnershipRepository.exists(workspaceId, command.targetPrincipalId)) {
+                    workspaceOwnershipRepository.add(
+                        WorkspaceOwnership(
+                            workspaceId = workspaceId,
+                            ownerPrincipalId = targetMembership.principalId,
+                            ownerPrincipalType = targetMembership.principalType,
+                            createdAt = clock.instant(),
+                            createdBy = actorOwnership.ownerPrincipalId,
+                        ),
+                    )
+                }
+
+                // Atomically removes the actor's ownership only when a replacement owner already
+                // exists in the DB.  This closes the TOCTOU race: a concurrent transfer that removed
+                // the replacement between the "add" above and this delete cannot cause the workspace
+                // to become ownerless — the database operation simply returns false in that case.
+                val removed = workspaceOwnershipRepository.removeIfReplacementExists(
+                    workspaceId,
+                    actorOwnership.ownerPrincipalId,
                 )
-            }
+                if (!removed) {
+                    throw LastOwnerRemovalRequiresReplacementException(workspaceId)
+                }
 
-            // Atomically removes the actor's ownership only when a replacement owner already
-            // exists in the DB.  This closes the TOCTOU race: a concurrent transfer that removed
-            // the replacement between the "add" above and this delete cannot cause the workspace
-            // to become ownerless — the database operation simply returns false in that case.
-            val removed = workspaceOwnershipRepository.removeIfReplacementExists(
-                workspaceId,
-                actorOwnership.ownerPrincipalId,
-            )
-            if (!removed) {
-                throw LastOwnerRemovalRequiresReplacementException(workspaceId)
-            }
-
-            WorkspaceOwnershipResult(
-                workspaceId = workspaceId,
-                ownerPrincipalIds = workspaceOwnershipRepository.findByWorkspaceId(workspaceId)
-                    .map { ownership -> ownership.ownerPrincipalId }
-                    .sorted(),
-            ).also {
-                tenancyMutationAuditor.recordSuccess(
-                    action = "workspace.owner.transfer",
-                    targetType = "WORKSPACE_OWNER",
-                    targetId = command.targetPrincipalId,
+                WorkspaceOwnershipResult(
                     workspaceId = workspaceId,
-                    details = mapOf(
-                        "fromPrincipalId" to actor.principalId,
-                        "toPrincipalId" to command.targetPrincipalId,
-                    ),
-                )
+                    ownerPrincipalIds = workspaceOwnershipRepository.findByWorkspaceId(workspaceId)
+                        .map { ownership -> ownership.ownerPrincipalId }
+                        .sorted(),
+                ).also {
+                    tenancyMutationAuditor.recordSuccess(
+                        action = "workspace.owner.transfer",
+                        targetType = "WORKSPACE_OWNER",
+                        targetId = command.targetPrincipalId,
+                        workspaceId = workspaceId,
+                        details = mapOf(
+                            "fromPrincipalId" to actor.principalId,
+                            "toPrincipalId" to command.targetPrincipalId,
+                        ),
+                    )
+                }
             }
         } catch (@Suppress("TooGenericExceptionCaught") exception: Exception) {
             when (exception) {
