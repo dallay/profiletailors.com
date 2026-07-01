@@ -1,19 +1,39 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { mount, flushPromises } from '@vue/test-utils'
+import { nextTick } from 'vue'
 import { createPinia, setActivePinia } from 'pinia'
 import PostDetailModal from './PostDetailModal.vue'
-import { usePublishingStore } from '@/stores/publishing'
 import type { Publication } from '@/stores/publishing'
+
+// Mutable config — vi.mock captures these by closure, so each test can override before mounting
+const storeOverrides = {
+  rescheduleResult: undefined as Publication | undefined,
+  rescheduleError: undefined as Error | undefined,
+  deleteError: undefined as Error | undefined,
+  isPublicationEditable: true,
+  isPublicationDeletable: true,
+}
+
+const mockReschedule = vi.fn()
+const mockDelete = vi.fn()
+
+vi.mock('@/stores/publishing', () => ({
+  usePublishingStore: () => ({
+    reschedulePublication: mockReschedule,
+    deletePost: mockDelete,
+    isPublicationEditable: (status: string) =>
+      storeOverrides.isPublicationEditable?.(status) ?? true,
+    isPublicationDeletable: (status: string) =>
+      storeOverrides.isPublicationDeletable?.(status) ?? true,
+  }),
+}))
 
 vi.mock('vue-i18n', () => ({
   useI18n: () => ({ t: (key: string) => key, locale: { value: 'en' } }),
 }))
 
 vi.mock('@/lib/auth-api', () => ({
-  createApiFetch: () =>
-    async function apiFetch<T>() {
-      return {} as T
-    },
+  createApiFetch: vi.fn().mockResolvedValue(undefined),
   refreshSession: vi.fn().mockResolvedValue(null),
   getCurrentUserProfile: vi.fn().mockResolvedValue(null),
   login: vi.fn(),
@@ -66,10 +86,22 @@ function mountModal(publication: Publication | null, isOpen = true) {
 
 describe('PostDetailModal', () => {
   beforeEach(() => {
+    vi.clearAllMocks()
+    storeOverrides.rescheduleResult = makePublication()
+    storeOverrides.rescheduleError = undefined
+    storeOverrides.deleteError = undefined
+    storeOverrides.isPublicationEditable = () => true
+    storeOverrides.isPublicationDeletable = () => true
+
+    mockReschedule.mockImplementation(async () => {
+      if (storeOverrides.rescheduleError) throw storeOverrides.rescheduleError
+      return storeOverrides.rescheduleResult!
+    })
+    mockDelete.mockImplementation(async () => {
+      if (storeOverrides.deleteError) throw storeOverrides.deleteError
+    })
+
     setActivePinia(createPinia())
-    const publishingStore = usePublishingStore()
-    vi.spyOn(publishingStore, 'deletePost').mockResolvedValue(undefined)
-    vi.spyOn(publishingStore, 'reschedulePublication').mockResolvedValue(makePublication())
   })
 
   describe('renders publication details', () => {
@@ -155,7 +187,6 @@ describe('PostDetailModal', () => {
     it('emits deleted with publication id and closes modal on success', async () => {
       const pub = makePublication()
       const wrapper = mountModal(pub)
-      const publishingStore = usePublishingStore()
 
       const deleteButton = wrapper
         .findAll('button')
@@ -164,15 +195,14 @@ describe('PostDetailModal', () => {
       await deleteButton!.trigger('click')
       await flushPromises()
 
-      expect(publishingStore.deletePost).toHaveBeenCalledWith('pub-1')
+      expect(mockDelete).toHaveBeenCalledWith('pub-1')
       expect(wrapper.emitted('deleted')).toEqual([['pub-1']])
       expect(wrapper.emitted('close')).toHaveLength(1)
     })
 
     it('displays an error message when delete fails', async () => {
+      storeOverrides.deleteError = new Error('Network error')
       const wrapper = mountModal(makePublication())
-      const publishingStore = usePublishingStore()
-      vi.spyOn(publishingStore, 'deletePost').mockRejectedValue(new Error('Network error'))
 
       const deleteBtn = wrapper
         .findAll('button')
@@ -184,6 +214,8 @@ describe('PostDetailModal', () => {
     })
 
     it('hides destructive actions for non-deletable statuses', () => {
+      storeOverrides.isPublicationDeletable = () => false
+      storeOverrides.isPublicationEditable = () => false
       const wrapper = mountModal(makePublication({ status: 'PROCESSING' }))
 
       expect(wrapper.text()).not.toContain('postDetail.delete')
@@ -192,6 +224,8 @@ describe('PostDetailModal', () => {
     })
 
     it('isReadOnly hides delete button for published posts', () => {
+      storeOverrides.isPublicationDeletable = () => false
+      storeOverrides.isPublicationEditable = () => false
       const wrapper = mountModal(makePublication({ status: 'PUBLISHED' }))
 
       expect(wrapper.text()).not.toContain('postDetail.delete')
@@ -199,10 +233,9 @@ describe('PostDetailModal', () => {
     })
 
     it('prevents double-click by guarding with isDeleting', async () => {
-      const wrapper = mountModal(makePublication())
-      const publishingStore = usePublishingStore()
       // Make deletePost never resolve — isDeleting stays true
-      vi.spyOn(publishingStore, 'deletePost').mockReturnValue(new Promise(() => {}))
+      mockDelete.mockImplementation(() => new Promise(() => {}))
+      const wrapper = mountModal(makePublication())
 
       const deleteButton = wrapper
         .findAll('button')
@@ -213,13 +246,12 @@ describe('PostDetailModal', () => {
       await deleteButton!.trigger('click')
 
       // deletePost should only be called once
-      expect(publishingStore.deletePost).toHaveBeenCalledTimes(1)
+      expect(mockDelete).toHaveBeenCalledTimes(1)
     })
 
     it('shows delete error and does not close modal on failure', async () => {
+      storeOverrides.deleteError = new Error('Delete failed')
       const wrapper = mountModal(makePublication())
-      const publishingStore = usePublishingStore()
-      vi.spyOn(publishingStore, 'deletePost').mockRejectedValue(new Error('Delete failed'))
 
       const deleteButton = wrapper
         .findAll('button')
@@ -240,11 +272,13 @@ describe('PostDetailModal', () => {
     })
 
     it('does NOT render Edit button for PUBLISHED posts', () => {
+      storeOverrides.isPublicationEditable = () => false
       const wrapper = mountModal(makePublication({ status: 'PUBLISHED' }))
       expect(wrapper.text()).not.toContain('postDetail.edit')
     })
 
     it('does NOT render Edit button for non-editable statuses (PROCESSING)', () => {
+      storeOverrides.isPublicationEditable = () => false
       const wrapper = mountModal(makePublication({ status: 'PROCESSING' }))
       expect(wrapper.text()).not.toContain('postDetail.edit')
     })
@@ -263,28 +297,32 @@ describe('PostDetailModal', () => {
 
   describe('reschedule', () => {
     it('shows Reschedule button when publication has scheduledAt and is not editable or read-only', () => {
+      storeOverrides.isPublicationEditable = () => false
       const wrapper = mountModal(
-        makePublication({ status: 'PROCESSING', scheduledAt: '2026-07-01T10:00:00Z' }),
+        makePublication({ status: 'PROCESSING', scheduledAt: '2027-07-01T10:00:00Z' }),
       )
 
       expect(wrapper.text()).toContain('postDetail.reschedule')
     })
 
     it('hides Reschedule button for published posts', () => {
+      storeOverrides.isPublicationEditable = () => false
       const wrapper = mountModal(makePublication({ status: 'PUBLISHED' }))
 
       expect(wrapper.text()).not.toContain('postDetail.reschedule')
     })
 
     it('hides Reschedule button when publication has no scheduledAt', () => {
+      storeOverrides.isPublicationEditable = () => false
       const wrapper = mountModal(makePublication({ status: 'PROCESSING', scheduledAt: undefined }))
 
       expect(wrapper.text()).not.toContain('postDetail.reschedule')
     })
 
     it('opens the reschedule form on button click', async () => {
+      storeOverrides.isPublicationEditable = () => false
       const wrapper = mountModal(
-        makePublication({ status: 'PROCESSING', scheduledAt: '2026-07-01T10:00:00Z' }),
+        makePublication({ status: 'PROCESSING', scheduledAt: '2027-07-01T10:00:00Z' }),
       )
 
       const rescheduleBtn = wrapper
@@ -300,10 +338,11 @@ describe('PostDetailModal', () => {
     })
 
     it('calls reschedulePublication and emits reschedule on confirm', async () => {
+      storeOverrides.rescheduleResult = makePublication({ id: 'pub-2' })
+      storeOverrides.isPublicationEditable = () => false
       const wrapper = mountModal(
-        makePublication({ id: 'pub-2', status: 'PROCESSING', scheduledAt: '2026-07-01T10:00:00Z' }),
+        makePublication({ id: 'pub-2', status: 'PROCESSING', scheduledAt: '2027-07-01T10:00:00Z' }),
       )
-      const publishingStore = usePublishingStore()
 
       // Open reschedule
       const rescheduleBtn = wrapper
@@ -316,11 +355,10 @@ describe('PostDetailModal', () => {
         .findAll('button')
         .find((b) => b.text().includes('postDetail.rescheduleConfirm'))
       await confirmBtn!.trigger('click')
+      await flushPromises()
+      await nextTick()
 
-      expect(publishingStore.reschedulePublication).toHaveBeenCalledWith(
-        'pub-2',
-        expect.any(String),
-      )
+      expect(mockReschedule).toHaveBeenCalledWith('pub-2', expect.any(String))
       expect(wrapper.emitted('reschedule')).toBeDefined()
       expect(wrapper.emitted('reschedule')![0]).toEqual([
         { id: 'pub-2', scheduledAt: expect.any(String) },
@@ -329,12 +367,10 @@ describe('PostDetailModal', () => {
     })
 
     it('displays error when reschedule fails', async () => {
+      storeOverrides.rescheduleError = new Error('Reschedule failed')
+      storeOverrides.isPublicationEditable = () => false
       const wrapper = mountModal(
-        makePublication({ status: 'PROCESSING', scheduledAt: '2026-07-01T10:00:00Z' }),
-      )
-      const publishingStore = usePublishingStore()
-      vi.spyOn(publishingStore, 'reschedulePublication').mockRejectedValue(
-        new Error('Reschedule failed'),
+        makePublication({ status: 'PROCESSING', scheduledAt: '2027-07-01T10:00:00Z' }),
       )
 
       const rescheduleBtn = wrapper
@@ -348,12 +384,14 @@ describe('PostDetailModal', () => {
       await confirmBtn!.trigger('click')
 
       await flushPromises()
+      await nextTick()
       expect(wrapper.text()).toContain('Reschedule failed')
     })
 
     it('cancelReschedule hides the reschedule form', async () => {
+      storeOverrides.isPublicationEditable = () => false
       const wrapper = mountModal(
-        makePublication({ status: 'PROCESSING', scheduledAt: '2026-07-01T10:00:00Z' }),
+        makePublication({ status: 'PROCESSING', scheduledAt: '2027-07-01T10:00:00Z' }),
       )
 
       // Open reschedule
@@ -375,7 +413,7 @@ describe('PostDetailModal', () => {
 
     it('reschedule form is hidden by default', () => {
       const wrapper = mountModal(
-        makePublication({ status: 'PROCESSING', scheduledAt: '2026-07-01T10:00:00Z' }),
+        makePublication({ status: 'PROCESSING', scheduledAt: '2027-07-01T10:00:00Z' }),
       )
 
       // The reschedule form should not be visible initially
