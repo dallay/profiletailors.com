@@ -221,9 +221,12 @@ describe('SettingsView channel connection CTA', () => {
     const wrapper = mountSettings()
     await flushPromises()
 
+    expect(wrapper.find('[data-testid="settings-shell"]').exists()).toBe(true)
+    expect(wrapper.find('[data-testid="settings-overview"]').exists()).toBe(true)
+    expect(wrapper.find('[data-testid="settings-preferences-panel"]').exists()).toBe(true)
     expect(wrapper.text()).toContain('settings.overviewBadge')
-    expect(wrapper.text()).toContain('channels.title')
-    expect(wrapper.text()).toContain('workspace.title')
+    expect(wrapper.text()).toContain('settings.languageLabel')
+    expect(wrapper.text()).toContain('settings.subtitle')
     // Theme toggle is no longer in the settings panel — it lives in SidebarAccountSection.
     expect(wrapper.find('[data-testid="settings-language-en"]').exists()).toBe(true)
     expect(wrapper.find('[data-testid="settings-language-es"]').exists()).toBe(true)

@@ -29,6 +29,7 @@ const renameError = ref<string | null>(null)
 const renameSuccess = ref(false)
 let renameSuccessTimeout: ReturnType<typeof setTimeout> | null = null
 
+const connectError = ref<string | null>(null)
 const iconModalOpen = ref(false)
 const updatingIcon = ref(false)
 const iconError = ref<string | null>(null)
@@ -62,7 +63,6 @@ function getProviderBadge(provider: string) {
 }
 
 const connectingLinkedIn = ref(false)
-const connectError = ref<string | null>(null)
 
 async function connectLinkedInProfile() {
   connectingLinkedIn.value = true
@@ -160,8 +160,8 @@ function segmentedControlClass(active: boolean) {
 </script>
 
 <template>
-  <div class="space-y-10">
-    <section class="space-y-6">
+  <div data-testid="settings-shell" class="space-y-10">
+    <section data-testid="settings-overview" class="space-y-6">
       <div class="flex flex-col gap-6 lg:flex-row lg:items-start lg:justify-between">
         <div class="space-y-1.5">
           <div class="inline-flex items-center gap-2 rounded-full border border-border-visible bg-bg-surface px-3 py-1 font-mono text-[10px] font-bold uppercase tracking-[0.14em] text-text-secondary">
@@ -176,7 +176,7 @@ function segmentedControlClass(active: boolean) {
           </p>
         </div>
 
-        <aside class="flex shrink-0 flex-wrap gap-4 lg:justify-end">
+        <aside data-testid="settings-preferences-panel" class="flex shrink-0 flex-wrap gap-4 lg:justify-end">
           <div class="rounded-2xl border border-border-subtle bg-bg-surface p-4 shadow-[0_0_0_1px_rgba(255,255,255,0.02)]">
             <p class="font-mono text-[10px] font-bold uppercase tracking-[0.14em] text-text-secondary">
               {{ $t('settings.languageLabel') }}
