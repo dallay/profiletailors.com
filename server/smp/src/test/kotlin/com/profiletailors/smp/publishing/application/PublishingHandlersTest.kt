@@ -23,6 +23,7 @@ import com.profiletailors.smp.publishing.domain.ActivityDensity
 import com.profiletailors.smp.publishing.domain.AssetSourceType
 import com.profiletailors.smp.publishing.domain.ChannelEvent
 import com.profiletailors.smp.publishing.domain.ChannelEventPublisher
+import com.profiletailors.smp.publishing.domain.ChannelEventType
 import com.profiletailors.smp.publishing.domain.CompleteProviderConnectionCommand
 import com.profiletailors.smp.publishing.domain.ConnectedSocialChannel
 import com.profiletailors.smp.publishing.domain.ConnectedSocialChannelReadRepository
@@ -62,6 +63,7 @@ import com.profiletailors.smp.publishing.domain.SocialConnectionStatus
 import com.profiletailors.smp.publishing.domain.SocialProvider
 import kotlinx.coroutines.test.runTest
 import org.junit.jupiter.api.Assertions.assertEquals
+import org.junit.jupiter.api.Assertions.assertFalse
 import org.junit.jupiter.api.Assertions.assertNotNull
 import org.junit.jupiter.api.Assertions.assertNull
 import org.junit.jupiter.api.Assertions.assertThrows
@@ -94,14 +96,18 @@ class PublishingHandlersTest {
     /** Always returns true — email verification gate is enforced. */
     private val strictEmailVerificationPolicy: EmailVerificationPolicy = emailVerificationPolicyOf()
 
-    private fun recordingTransactionRunner(): RecordingAtomicTransactionRunner = RecordingAtomicTransactionRunner()
+    private fun recordingTransactionRunner(): RecordingAtomicTransactionRunner =
+        RecordingAtomicTransactionRunner(mutableListOf())
 
-    private class RecordingAtomicTransactionRunner : AtomicTransactionRunner {
+    private class RecordingAtomicTransactionRunner(private val order: MutableList<String>) : AtomicTransactionRunner {
         var invocations: Int = 0
 
         override suspend fun <T : Any> runAtomically(block: suspend () -> T): T {
             invocations += 1
-            return block()
+            order += "tx:start"
+            val result = block()
+            order += "tx:commit"
+            return result
         }
     }
 
@@ -218,6 +224,7 @@ class PublishingHandlersTest {
         val accountRepository = InMemorySocialAccountRepository()
         val stateSigner = CapturingOAuthStateSigner()
         val state = stateSigner.sign(validStatePayload())
+        val transactionRunner = recordingTransactionRunner()
         val handler = CompleteLinkedInConnectionHandler(
             principalContextProvider = FixedPrincipalContextProvider(principalContext),
             resourceContextProvider = FixedResourceContextProvider(workspaceContext),
@@ -227,6 +234,7 @@ class PublishingHandlersTest {
             socialAccountRepository = accountRepository,
             channelEventPublisher = CapturingChannelEventPublisher(),
             clock = fixedClock,
+            transactionRunner = transactionRunner,
         )
 
         val result = handler.handle(
@@ -349,6 +357,7 @@ class PublishingHandlersTest {
             socialAccountRepository = InMemorySocialAccountRepository(),
             channelEventPublisher = CapturingChannelEventPublisher(),
             clock = fixedClock,
+            transactionRunner = recordingTransactionRunner(),
         )
 
         assertThrows(InvalidOAuthStateException::class.java) {
@@ -379,6 +388,7 @@ class PublishingHandlersTest {
             socialAccountRepository = InMemorySocialAccountRepository(),
             channelEventPublisher = CapturingChannelEventPublisher(),
             clock = fixedClock,
+            transactionRunner = recordingTransactionRunner(),
         )
 
         assertThrows(ExpiredOAuthStateException::class.java) {
@@ -1781,6 +1791,13 @@ class PublishingHandlersTest {
             items[accountId]?.takeIf { it.workspaceId == workspaceId }
     }
 
+    private class ThrowingSocialAccountRepository : SocialAccountRepository {
+        override suspend fun upsert(account: SocialAccount): SocialAccount =
+            throw IllegalStateException("account upsert failed")
+
+        override suspend fun findByWorkspaceAndId(workspaceId: String, accountId: String): SocialAccount? = null
+    }
+
     private class CapturingChannelEventPublisher : ChannelEventPublisher {
         val events = mutableListOf<ChannelEvent>()
 
@@ -2542,6 +2559,7 @@ class PublishingHandlersTest {
             socialAccountRepository = accountRepository,
             channelEventPublisher = CapturingChannelEventPublisher(),
             clock = fixedClock,
+            transactionRunner = recordingTransactionRunner(),
             principalIdentityLookup = PendingEmailIdentityLookup(),
             emailVerificationPolicy = strictEmailVerificationPolicy,
         )
@@ -2557,6 +2575,83 @@ class PublishingHandlersTest {
                 )
             }
         }
+    }
+
+    @Test
+    fun `connects linkedin profile commits transaction and publishes event`() = runTest {
+        val connectionRepository = InMemorySocialConnectionRepository()
+        val accountRepository = InMemorySocialAccountRepository()
+        val eventPublisher = CapturingChannelEventPublisher()
+        val stateSigner = CapturingOAuthStateSigner()
+        val state = stateSigner.sign(validStatePayload())
+        val order = mutableListOf<String>()
+        val transactionRunner = RecordingAtomicTransactionRunner(order)
+        val handler = CompleteLinkedInConnectionHandler(
+            principalContextProvider = FixedPrincipalContextProvider(principalContext),
+            resourceContextProvider = FixedResourceContextProvider(workspaceContext),
+            socialConnectionProvider = FakeSocialConnectionProvider(),
+            oauthStateSigner = stateSigner,
+            socialConnectionRepository = connectionRepository,
+            socialAccountRepository = accountRepository,
+            channelEventPublisher = eventPublisher,
+            clock = fixedClock,
+            transactionRunner = transactionRunner,
+        )
+
+        val result = handler.handle(
+            CompleteLinkedInConnectionCommand(
+                authorizationCode = "oauth-code-123",
+                redirectUri = "https://app.example.com/callback",
+                state = state,
+            ),
+        )
+
+        assertEquals("workspace-1", result.workspaceId)
+        assertEquals(SocialProvider.LINKEDIN, result.provider)
+        assertNotNull(connectionRepository.lastSaved)
+        assertNotNull(accountRepository.lastSaved)
+        assertEquals(1, transactionRunner.invocations)
+        assertTrue(order.contains("tx:start"), "Expected tx:start in order: $order")
+        assertTrue(order.contains("tx:commit"), "Expected tx:commit in order: $order")
+        assertEquals(1, eventPublisher.events.size)
+        assertEquals(ChannelEventType.CONNECTED_CHANNEL_UPDATED, eventPublisher.events[0].type)
+    }
+
+    @Test
+    fun `linkedin connection rollback when account upsert fails`() = runTest {
+        val connectionRepository = InMemorySocialConnectionRepository()
+        val accountRepository = ThrowingSocialAccountRepository()
+        val eventPublisher = CapturingChannelEventPublisher()
+        val stateSigner = CapturingOAuthStateSigner()
+        val state = stateSigner.sign(validStatePayload())
+        val order = mutableListOf<String>()
+        val transactionRunner = RecordingAtomicTransactionRunner(order)
+        val handler = CompleteLinkedInConnectionHandler(
+            principalContextProvider = FixedPrincipalContextProvider(principalContext),
+            resourceContextProvider = FixedResourceContextProvider(workspaceContext),
+            socialConnectionProvider = FakeSocialConnectionProvider(),
+            oauthStateSigner = stateSigner,
+            socialConnectionRepository = connectionRepository,
+            socialAccountRepository = accountRepository,
+            channelEventPublisher = eventPublisher,
+            clock = fixedClock,
+            transactionRunner = transactionRunner,
+        )
+
+        assertThrows(IllegalStateException::class.java) {
+            kotlinx.coroutines.runBlocking {
+                handler.handle(
+                    CompleteLinkedInConnectionCommand(
+                        authorizationCode = "oauth-code-123",
+                        redirectUri = "https://app.example.com/callback",
+                        state = state,
+                    ),
+                )
+            }
+        }
+        // Transaction was rolled back (no tx:commit recorded)
+        assertFalse(order.contains("tx:commit"), "Expected NO tx:commit in order (rollback): $order")
+        assertEquals(0, eventPublisher.events.size)
     }
 
     @Test
