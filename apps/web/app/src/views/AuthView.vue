@@ -40,19 +40,24 @@ async function handleSubmit() {
   fieldErrors.value = {}
   auth.clearError()
 
-  const schema = isRegisterMode.value ? registerSchema : authCredentialsSchema
-  const data = isRegisterMode.value
-    ? { email: email.value, password: password.value, confirmPassword: confirmPassword.value }
-    : { email: email.value, password: password.value }
-
-  const validationResult = schema.safeParse(data)
+  const validationResult = isRegisterMode.value
+    ? registerSchema.safeParse({
+        email: email.value,
+        password: password.value,
+        confirmPassword: confirmPassword.value,
+      })
+    : authCredentialsSchema.safeParse({ email: email.value, password: password.value })
 
   if (!validationResult.success) {
     const errors = validationResult.error.flatten().fieldErrors
+    const confirmPasswordErrors =
+      'confirmPassword' in errors && Array.isArray(errors.confirmPassword)
+        ? errors.confirmPassword
+        : undefined
     fieldErrors.value = {
       email: errors.email?.[0],
       password: errors.password?.[0],
-      confirmPassword: errors.confirmPassword?.[0],
+      confirmPassword: confirmPasswordErrors?.[0],
     }
     return
   }

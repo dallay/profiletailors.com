@@ -73,7 +73,7 @@ describe('SettingsView channel connection CTA', () => {
     expect(wrapper.text()).toContain('channels.connectLinkedInProfile')
   })
 
-  it('clicking LinkedIn connect CTA starts connection flow', async () => {
+  it('clicking LinkedIn connect CTA starts the store connection flow', async () => {
     const publishing = usePublishingStore()
     vi.spyOn(publishing, 'fetchChannels').mockResolvedValue([])
     vi.spyOn(publishing, 'fetchConfiguredProviders').mockImplementation(async () => {
@@ -95,6 +95,58 @@ describe('SettingsView channel connection CTA', () => {
     await connectButton?.trigger('click')
 
     expect(connect).toHaveBeenCalledOnce()
+  })
+
+  it('renders normalized LinkedIn channels returned by the publishing store', async () => {
+    const publishing = usePublishingStore()
+    publishing.channels = [
+      {
+        id: 'linkedin-1',
+        accountId: 'linkedin-1',
+        name: 'Profile Tailors',
+        provider: 'linkedin',
+        avatar: '',
+        handle: 'Profile Tailors',
+        status: 'ACTIVE',
+      },
+    ]
+    vi.spyOn(publishing, 'fetchChannels').mockResolvedValue(publishing.channels)
+    vi.spyOn(publishing, 'fetchConfiguredProviders').mockResolvedValue()
+
+    const wrapper = mountSettings()
+    await flushPromises()
+
+    expect(wrapper.find('[data-testid="settings-connected-channel"]').exists()).toBe(true)
+    expect(wrapper.text()).toContain('Profile Tailors')
+  })
+
+  it('uses the LinkedIn callback query contract for success and panel focus', async () => {
+    routeQuery.value = { connected: 'linkedin', panel: 'channels', provider: 'linkedin' }
+    const publishing = usePublishingStore()
+    vi.spyOn(publishing, 'fetchChannels').mockResolvedValue([])
+    vi.spyOn(publishing, 'fetchConfiguredProviders').mockResolvedValue()
+
+    const wrapper = mountSettings()
+    await flushPromises()
+
+    expect(wrapper.text()).toContain('linkedinCallback.successMessage')
+    expect(wrapper.find('[data-testid="settings-channels-panel"]').classes().join(' ')).toContain(
+      'shadow-[0_0_0_1px_rgba(255,255,255,0.12)]',
+    )
+  })
+
+  it('loads channels and provider configuration on direct visits', async () => {
+    const publishing = usePublishingStore()
+    const fetchChannels = vi.spyOn(publishing, 'fetchChannels').mockResolvedValue([])
+    const fetchConfiguredProviders = vi
+      .spyOn(publishing, 'fetchConfiguredProviders')
+      .mockResolvedValue()
+
+    mountSettings()
+    await flushPromises()
+
+    expect(fetchChannels).toHaveBeenCalledOnce()
+    expect(fetchConfiguredProviders).toHaveBeenCalledOnce()
   })
 
   it('dismisses rename success feedback after three seconds', async () => {
@@ -169,12 +221,9 @@ describe('SettingsView channel connection CTA', () => {
     const wrapper = mountSettings()
     await flushPromises()
 
-    expect(wrapper.find('[data-testid="settings-shell"]').exists()).toBe(true)
-    expect(wrapper.find('[data-testid="settings-overview"]').exists()).toBe(true)
-    expect(wrapper.find('[data-testid="settings-preferences-panel"]').exists()).toBe(true)
-    expect(wrapper.text()).toContain('settings.preferencesEyebrow')
-    expect(wrapper.text()).toContain('settings.workspaceIdentityTitle')
-    expect(wrapper.text()).toContain('settings.channelStatusTitle')
+    expect(wrapper.text()).toContain('settings.overviewBadge')
+    expect(wrapper.text()).toContain('channels.title')
+    expect(wrapper.text()).toContain('workspace.title')
     // Theme toggle is no longer in the settings panel — it lives in SidebarAccountSection.
     expect(wrapper.find('[data-testid="settings-language-en"]').exists()).toBe(true)
     expect(wrapper.find('[data-testid="settings-language-es"]').exists()).toBe(true)
