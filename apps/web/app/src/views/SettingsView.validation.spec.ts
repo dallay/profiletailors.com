@@ -83,7 +83,7 @@ describe('SettingsView workspace rename validation', () => {
     await input.trigger('keyup.enter')
 
     expect(renameWorkspaceMock).not.toHaveBeenCalled()
-    expect(wrapper.text()).toContain('Please enter a workspace name.')
+    expect(wrapper.text()).toContain('workspace.workspaceNameRequired')
   })
 
   it('trims the workspace name before submitting rename', async () => {
