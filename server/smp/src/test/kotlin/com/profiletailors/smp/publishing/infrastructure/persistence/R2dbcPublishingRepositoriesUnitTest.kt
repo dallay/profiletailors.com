@@ -25,6 +25,7 @@ import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Nested
 import org.junit.jupiter.api.Test
 import java.time.Instant
+import kotlin.test.assertFailsWith
 
 class R2dbcPublishingRepositoriesUnitTest : DatabaseUnitTestBase() {
 
@@ -195,6 +196,116 @@ class R2dbcPublishingRepositoriesUnitTest : DatabaseUnitTestBase() {
             assertNotNull(loaded)
             assertEquals("Updated body", loaded!!.bodyText)
             assertEquals(listOf("asset-x"), loaded.assetIds)
+        }
+
+        @Test
+        fun `updateEditableDraft updates same-workspace row without duplicate insert`() = runTest {
+            val originalId = insertPublication(status = PublicationStatus.DRAFT.name, id = "pub-same-workspace-update")
+
+            publicationRepository.updateEditableDraft(
+                PublicationDraft(
+                    id = originalId,
+                    workspaceId = "workspace-1",
+                    authorPrincipalId = "principal-1",
+                    provider = SocialProvider.LINKEDIN,
+                    socialAccountId = "soacc-1",
+                    status = PublicationStatus.DRAFT,
+                    scheduleMode = ScheduleMode.NOW,
+                    priority = false,
+                    title = "Updated title",
+                    bodyText = "Updated same-workspace body",
+                ),
+            )
+
+            val publicationCount = countPublicationsById(originalId)
+            val loaded = publicationRepository.findByWorkspaceAndId("workspace-1", originalId)
+
+            assertEquals(1L, publicationCount)
+            assertNotNull(loaded)
+            assertEquals("Updated title", loaded!!.title)
+            assertEquals("Updated same-workspace body", loaded.bodyText)
+            assertEquals("workspace-1", loaded.workspaceId)
+        }
+
+        @Test
+        fun `createDraft inserts when current workspace has no matching row`() = runTest {
+            val draftId = "pub-create-no-match"
+
+            publicationRepository.createDraft(
+                PublicationDraft(
+                    id = draftId,
+                    workspaceId = "workspace-1",
+                    authorPrincipalId = "principal-1",
+                    provider = SocialProvider.LINKEDIN,
+                    socialAccountId = "soacc-1",
+                    status = PublicationStatus.DRAFT,
+                    scheduleMode = ScheduleMode.NOW,
+                    priority = false,
+                    bodyText = "Created in current workspace",
+                ),
+            )
+
+            val loaded = publicationRepository.findByWorkspaceAndId("workspace-1", draftId)
+            assertNotNull(loaded)
+            assertEquals("Created in current workspace", loaded!!.bodyText)
+            assertEquals(1L, countPublicationsById(draftId))
+        }
+
+        @Test
+        fun `updateEditableDraft fails fast when existing id belongs to another workspace`() = runTest {
+            insertWorkspaceGraph(
+                workspaceId = "workspace-2",
+                principalId = "principal-2",
+                connectionId = "soconn-2",
+                accountId = "soacc-2",
+                subject = "local:user2@example.com",
+                displayIdentity = "User 2",
+                workspaceName = "Workspace 2",
+                displayName = "Yuniel Two",
+                providerConnectionRef = "linkedin-conn-2",
+                providerAccountId = "linkedin-account-2",
+            )
+            insertPublicationForWorkspace(
+                workspaceId = "workspace-2",
+                principalId = "principal-2",
+                socialAccountId = "soacc-2",
+                status = PublicationStatus.DRAFT.name,
+                id = "pub-cross-workspace-existing-id",
+                title = "Workspace 2 title",
+                bodyText = "Workspace 2 body",
+            )
+
+            val exception = assertFailsWith<IllegalStateException> {
+                publicationRepository.updateEditableDraft(
+                    PublicationDraft(
+                        id = "pub-cross-workspace-existing-id",
+                        workspaceId = "workspace-1",
+                        authorPrincipalId = "principal-1",
+                        provider = SocialProvider.LINKEDIN,
+                        socialAccountId = "soacc-1",
+                        status = PublicationStatus.DRAFT,
+                        scheduleMode = ScheduleMode.NOW,
+                        priority = false,
+                        title = "Workspace 1 hijack attempt",
+                        bodyText = "This must fail",
+                    ),
+                )
+            }
+
+            assertTrue(exception.message!!.contains("current workspace"))
+            val workspaceTwoLoaded = publicationRepository.findByWorkspaceAndId(
+                "workspace-2",
+                "pub-cross-workspace-existing-id",
+            )
+            val workspaceOneLoaded = publicationRepository.findByWorkspaceAndId(
+                "workspace-1",
+                "pub-cross-workspace-existing-id",
+            )
+            assertNotNull(workspaceTwoLoaded)
+            assertEquals("Workspace 2 title", workspaceTwoLoaded!!.title)
+            assertEquals("Workspace 2 body", workspaceTwoLoaded.bodyText)
+            assertNull(workspaceOneLoaded)
+            assertEquals(1L, countPublicationsById("pub-cross-workspace-existing-id"))
         }
 
         @Test
@@ -748,26 +859,127 @@ class R2dbcPublishingRepositoriesUnitTest : DatabaseUnitTestBase() {
         ).fetch().rowsUpdated().awaitSingle()
     }
 
-    private suspend fun insertPublication(status: String, id: String = "pub-mark-${System.nanoTime()}"): String {
+    private suspend fun insertPublication(status: String, id: String = "pub-mark-${System.nanoTime()}"): String =
+        insertPublicationForWorkspace(
+            workspaceId = "workspace-1",
+            principalId = "principal-1",
+            socialAccountId = "soacc-1",
+            status = status,
+            id = id,
+        )
+
+    private suspend fun insertPublicationForWorkspace(
+        workspaceId: String,
+        principalId: String,
+        socialAccountId: String,
+        status: String,
+        id: String = "pub-mark-${System.nanoTime()}",
+        title: String = "Test",
+        bodyText: String = "Body",
+    ): String {
         databaseClient.sql(
             """
             INSERT INTO publications (
                 id, workspace_id, author_principal_id, provider, social_account_id,
                 status, schedule_mode, priority, title, body_text, created_at, updated_at
             ) VALUES (
-                :id, 'workspace-1', 'principal-1', 'LINKEDIN', 'soacc-1',
-                :status, 'NOW', false, 'Test', 'Body', :createdAt, :updatedAt
+                :id, :workspaceId, :principalId, 'LINKEDIN', :socialAccountId,
+                :status, 'NOW', false, :title, :bodyText, :createdAt, :updatedAt
             )
             """.trimIndent(),
         )
             .bind("id", id)
+            .bind("workspaceId", workspaceId)
+            .bind("principalId", principalId)
+            .bind("socialAccountId", socialAccountId)
             .bind("status", status)
+            .bind("title", title)
+            .bind("bodyText", bodyText)
             .bind("createdAt", java.time.Instant.now())
             .bind("updatedAt", java.time.Instant.now())
             .fetch()
             .rowsUpdated()
             .awaitSingle()
         return id
+    }
+
+    private suspend fun countPublicationsById(publicationId: String): Long =
+        databaseClient.sql("SELECT COUNT(*) AS total FROM publications WHERE id = :id")
+            .bind("id", publicationId)
+            .map { row, _ -> requireNotNull(row.get("total", Long::class.javaObjectType)) }
+            .one()
+            .awaitSingle()
+
+    private suspend fun insertWorkspaceGraph(
+        workspaceId: String,
+        principalId: String,
+        connectionId: String,
+        accountId: String,
+        subject: String,
+        displayIdentity: String,
+        workspaceName: String,
+        displayName: String,
+        providerConnectionRef: String,
+        providerAccountId: String,
+    ) {
+        databaseClient.sql(
+            """
+            INSERT INTO principals (id, principal_type, subject, provider, display_identity)
+            VALUES (:principalId, 'USER', :subject, NULL, :displayIdentity)
+            """.trimIndent(),
+        )
+            .bind("principalId", principalId)
+            .bind("subject", subject)
+            .bind("displayIdentity", displayIdentity)
+            .fetch()
+            .rowsUpdated()
+            .awaitSingle()
+        databaseClient.sql(
+            """
+            INSERT INTO workspaces (id, name, status, icon)
+            VALUES (:workspaceId, :workspaceName, 'ACTIVE', NULL)
+            """.trimIndent(),
+        )
+            .bind("workspaceId", workspaceId)
+            .bind("workspaceName", workspaceName)
+            .fetch()
+            .rowsUpdated()
+            .awaitSingle()
+        databaseClient.sql(
+            """
+            INSERT INTO social_connections (
+                id, workspace_id, provider, provider_connection_ref, status, credential_reference
+            ) VALUES (
+                :connectionId, :workspaceId, 'LINKEDIN', :providerConnectionRef,
+                'ACTIVE', '00000000-0000-0000-0000-000000000000'
+            )
+            """.trimIndent(),
+        )
+            .bind("connectionId", connectionId)
+            .bind("workspaceId", workspaceId)
+            .bind("providerConnectionRef", providerConnectionRef)
+            .fetch()
+            .rowsUpdated()
+            .awaitSingle()
+        databaseClient.sql(
+            """
+            INSERT INTO social_accounts (
+                id, social_connection_id, workspace_id, provider, provider_account_id,
+                account_type, display_name, status
+            ) VALUES (
+                :accountId, :connectionId, :workspaceId, 'LINKEDIN', :providerAccountId,
+                'PERSONAL_PROFILE', :displayName, 'ACTIVE'
+            )
+            """.trimIndent(),
+        )
+            .bind("accountId", accountId)
+            .bind("connectionId", connectionId)
+            .bind("workspaceId", workspaceId)
+            .bind("providerAccountId", providerAccountId)
+            .bind("displayName", displayName)
+            .fetch()
+            .rowsUpdated()
+            .awaitSingle()
     }
 
     private suspend fun insertPublicationAsset(id: String, status: PublicationAssetStatus) {

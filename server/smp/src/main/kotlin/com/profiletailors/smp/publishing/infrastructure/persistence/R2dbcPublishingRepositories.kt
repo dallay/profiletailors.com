@@ -477,7 +477,7 @@ class R2dbcPublicationRepository(private val databaseClient: DatabaseClient) : P
             """
             UPDATE publications
             SET $PUBLICATION_UPDATE_COLUMNS
-            WHERE id = :id
+            WHERE id = :id AND workspace_id = :workspaceId
             """.trimIndent(),
         )
             .bindPublicationUpdateParams(draft, now)
@@ -486,6 +486,26 @@ class R2dbcPublicationRepository(private val databaseClient: DatabaseClient) : P
             .awaitSingle()
 
         if (updatedRows > 0) return
+
+        val existingWorkspaceId = databaseClient.sql(
+            """
+            SELECT workspace_id
+            FROM publications
+            WHERE id = :id
+            """.trimIndent(),
+        )
+            .bind("id", draft.id)
+            .map { row, _ -> requireNotNull(row.get("workspace_id", String::class.java)) }
+            .one()
+            .awaitSingleOrNull()
+
+        if (existingWorkspaceId != null && existingWorkspaceId != draft.workspaceId) {
+            throw IllegalStateException(
+                "Publication ${draft.id} cannot be written from workspace " +
+                    "${draft.workspaceId}; it belongs to a different current " +
+                    "workspace scope",
+            )
+        }
 
         databaseClient.sql(
             """

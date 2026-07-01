@@ -2,6 +2,7 @@ package com.profiletailors.smp.publishing.infrastructure.http
 
 import com.profiletailors.smp.media.application.AssetNotReadyException
 import com.profiletailors.smp.media.application.MediaServiceUnavailableException
+import com.profiletailors.smp.publishing.application.PublicationNotFoundException
 import com.profiletailors.smp.publishing.domain.ExpiredOAuthStateException
 import com.profiletailors.smp.publishing.domain.InvalidOAuthStateException
 import com.profiletailors.smp.publishing.domain.ProviderNotConfiguredException
@@ -39,6 +40,14 @@ class PublishingProblemDetailsHandler {
         exception.message ?: "Publication state transition conflict",
     ).apply {
         title = "Publication state conflict"
+    }
+
+    @ExceptionHandler(PublicationNotFoundException::class)
+    fun handle(exception: PublicationNotFoundException): ProblemDetail = ProblemDetail.forStatusAndDetail(
+        HttpStatus.NOT_FOUND,
+        exception.message ?: "Publication not found",
+    ).apply {
+        title = "Publication not found"
     }
 
     @ExceptionHandler(ExpiredOAuthStateException::class)

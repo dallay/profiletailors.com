@@ -19,6 +19,7 @@ import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertNull
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
+import kotlin.test.assertFailsWith
 
 /**
  * Integration test that explicitly validates workspace isolation for publishing connections and publications.
@@ -255,6 +256,49 @@ class PublishingWorkspaceIsolationIntegrationTest : DatabaseUnitTestBase() {
         // Verify workspace B can access its own publication
         val pubB = publicationRepository.findByWorkspaceAndId("workspace-b", "pub-b")
         assertEquals("Publication B", pubB?.bodyText)
+    }
+
+    @Test
+    fun `workspace A cannot update workspace B publication with same id`() = runTest {
+        setupConnectionsAndAccounts()
+
+        publicationRepository.createDraft(
+            PublicationDraft(
+                id = "pub-cross-workspace-update",
+                workspaceId = "workspace-b",
+                authorPrincipalId = "principal-b",
+                provider = SocialProvider.LINKEDIN,
+                socialAccountId = "account-b",
+                status = PublicationStatus.DRAFT,
+                scheduleMode = ScheduleMode.NOW,
+                priority = false,
+                bodyText = "Workspace B original body",
+            ),
+        )
+
+        val exception = assertFailsWith<IllegalStateException> {
+            publicationRepository.updateEditableDraft(
+                PublicationDraft(
+                    id = "pub-cross-workspace-update",
+                    workspaceId = "workspace-a",
+                    authorPrincipalId = "principal-a",
+                    provider = SocialProvider.LINKEDIN,
+                    socialAccountId = "account-a",
+                    status = PublicationStatus.DRAFT,
+                    scheduleMode = ScheduleMode.NOW,
+                    priority = false,
+                    bodyText = "Workspace A overwrite attempt",
+                ),
+            )
+        }
+
+        kotlin.test.assertTrue(exception.message!!.contains("current workspace"))
+        assertNull(publicationRepository.findByWorkspaceAndId("workspace-a", "pub-cross-workspace-update"))
+        val workspaceBPublication = publicationRepository.findByWorkspaceAndId(
+            "workspace-b",
+            "pub-cross-workspace-update",
+        )
+        assertEquals("Workspace B original body", workspaceBPublication?.bodyText)
     }
 
     private suspend fun seedTwoWorkspacesWithPrincipals() {

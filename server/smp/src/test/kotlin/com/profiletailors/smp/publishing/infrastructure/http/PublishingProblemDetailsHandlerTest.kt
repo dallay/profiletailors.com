@@ -1,5 +1,6 @@
 package com.profiletailors.smp.publishing.infrastructure.http
 
+import com.profiletailors.smp.publishing.application.PublicationNotFoundException
 import com.profiletailors.smp.publishing.domain.ExpiredOAuthStateException
 import com.profiletailors.smp.publishing.domain.InvalidOAuthStateException
 import com.profiletailors.smp.publishing.domain.ProviderNotConfiguredException
@@ -47,6 +48,16 @@ class PublishingProblemDetailsHandlerTest {
         assertEquals(HttpStatus.BAD_REQUEST.value(), problem.status)
         assertEquals("OAuth state invalid", problem.title)
         assertEquals("Custom message", problem.detail)
+    }
+
+    @Test
+    fun `maps PublicationNotFoundException to 404 NOT_FOUND`() {
+        val exception = PublicationNotFoundException("pub-missing")
+        val problem = handler.handle(exception)
+
+        assertEquals(HttpStatus.NOT_FOUND.value(), problem.status)
+        assertEquals("Publication not found", problem.title)
+        assertEquals("Publication 'pub-missing' was not found in the active workspace.", problem.detail)
     }
 
     // -------------------------------------------------------------------------
