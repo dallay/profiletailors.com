@@ -28,6 +28,18 @@ vi.mock('@/lib/auth-api', () => ({
 // Helpers
 // ---------------------------------------------------------------------------
 
+function makeChannelForStore(accountId: string) {
+  return {
+    id: accountId,
+    accountId,
+    name: 'Test Profile',
+    provider: 'linkedin' as const,
+    avatar: '',
+    handle: 'Test Profile',
+    status: 'ACTIVE' as const,
+  }
+}
+
 const mockConflictCalendarResponse: CalendarResponse = {
   publications: [
     {
@@ -603,6 +615,107 @@ describe('publishing store', () => {
   })
 
   describe('schedulePost', () => {
+    it.each([
+      ['NOW', '2026-06-20T14:30:00Z', null],
+      ['NEXT_SLOT', null, '2026-06-20T15:00:00Z'],
+      ['SCHEDULED_AT', '2026-06-20T16:00:00Z', null],
+    ] as const)('adopts authenticated %s create identity and normalized server fields', async (scheduleMode, scheduledFor, nextSlotAfter) => {
+      const store = usePublishingStore()
+      const auth = useAuthStore()
+      Object.defineProperty(auth, 'isAuthenticated', { value: true, configurable: true })
+      store.channels = [makeChannelForStore('soc-create')]
+      vi.spyOn(auth, 'apiFetch').mockResolvedValue({
+        publicationId: `backend-${scheduleMode}`,
+        workspaceId: 'workspace-1',
+        socialAccountId: 'soc-create',
+        status: scheduleMode === 'SCHEDULED_AT' ? 'SCHEDULED' : 'QUEUED',
+        scheduleMode,
+        priority: true,
+        title: 'Server title',
+        bodyText: 'Server body',
+        assetIds: ['asset-server'],
+        scheduledFor,
+        nextSlotAfter,
+      })
+
+      const result = await store.schedulePost({
+        content: 'Client body',
+        channels: ['linkedin'],
+        scheduledAt: '2026-06-20T16:00:00Z',
+        nextSlotAfter: '2026-06-20T14:00:00Z',
+        scheduleMode,
+        priority: false,
+        socialAccountId: 'soc-create',
+      })
+
+      expect(result).toMatchObject({
+        id: `backend-${scheduleMode}`,
+        content: 'Server body',
+        accountId: 'soc-create',
+        status: scheduleMode === 'SCHEDULED_AT' ? 'SCHEDULED' : 'QUEUED',
+        scheduleMode,
+        scheduledAt: scheduledFor ?? nextSlotAfter ?? '',
+        assetIds: ['asset-server'],
+        priority: true,
+      })
+      expect(store.publications[0]?.id).toBe(`backend-${scheduleMode}`)
+    })
+
+    it('uses the authoritative NOW scheduledFor as a valid display timestamp', async () => {
+      const store = usePublishingStore()
+      const auth = useAuthStore()
+      Object.defineProperty(auth, 'isAuthenticated', { value: true, configurable: true })
+      store.channels = [makeChannelForStore('9f06a3c8-account')]
+      vi.spyOn(auth, 'apiFetch').mockResolvedValue({
+        publicationId: '8a25f709-40f6-4ab0-b5ae-f79bdcf4d395',
+        workspaceId: 'workspace-1',
+        socialAccountId: '9f06a3c8-account',
+        status: 'QUEUED',
+        scheduleMode: 'NOW',
+        priority: false,
+        title: 'Post from App',
+        bodyText: 'Real NOW response',
+        assetIds: ['real-media-asset-id'],
+        scheduledFor: '2026-07-02T15:25:38.050321Z',
+        nextSlotAfter: null,
+      })
+
+      const result = await store.schedulePost({
+        content: 'Real NOW response',
+        channels: ['linkedin'],
+        scheduleMode: 'NOW',
+        priority: false,
+        socialAccountId: '9f06a3c8-account',
+      })
+
+      expect(result).toMatchObject({
+        id: '8a25f709-40f6-4ab0-b5ae-f79bdcf4d395',
+        scheduleMode: 'NOW',
+        scheduledAt: '2026-07-02T15:25:38.050321Z',
+        assetIds: ['real-media-asset-id'],
+      })
+      expect(Number.isNaN(new Date(result.scheduledAt).getTime())).toBe(false)
+    })
+
+    it('does not insert a placeholder when authenticated create fails', async () => {
+      const store = usePublishingStore()
+      const auth = useAuthStore()
+      Object.defineProperty(auth, 'isAuthenticated', { value: true, configurable: true })
+      store.channels = [makeChannelForStore('soc-create')]
+      const before = store.publications.map((publication) => publication.id)
+      vi.spyOn(auth, 'apiFetch').mockRejectedValue(new Error('create failed'))
+
+      await expect(
+        store.schedulePost({
+          content: 'Never inserted',
+          channels: ['linkedin'],
+          scheduleMode: 'NOW',
+          priority: false,
+        }),
+      ).rejects.toThrow('create failed')
+
+      expect(store.publications.map((publication) => publication.id)).toEqual(before)
+    })
     it('uses the selected connected LinkedIn account id for authenticated scheduling', async () => {
       const store = usePublishingStore()
       const auth = useAuthStore()
@@ -668,7 +781,19 @@ describe('publishing store', () => {
           status: 'ACTIVE',
         },
       ]
-      const apiFetch = vi.spyOn(auth, 'apiFetch').mockResolvedValue({})
+      const apiFetch = vi.spyOn(auth, 'apiFetch').mockResolvedValue({
+        publicationId: 'backend-fallback',
+        workspaceId: 'workspace-1',
+        socialAccountId: 'soc-fallback-1',
+        status: 'SCHEDULED',
+        scheduleMode: 'SCHEDULED_AT',
+        priority: false,
+        title: 'Title',
+        bodyText: 'Post content',
+        assetIds: [],
+        scheduledFor: '2026-06-20T14:00:00Z',
+        nextSlotAfter: null,
+      })
 
       const result = await store.schedulePost({
         content: 'Post content',
@@ -873,11 +998,23 @@ describe('publishing store', () => {
       expect(store.publications[0]?.id).toBe(result.id)
     })
 
-    it('sends quick-create request when authenticated and preserves local insert', async () => {
+    it('adopts authenticated quick-create server identity and normalized fields', async () => {
       const store = usePublishingStore()
       const auth = useAuthStore()
       Object.defineProperty(auth, 'isAuthenticated', { value: true, configurable: true })
-      const apiFetch = vi.spyOn(auth, 'apiFetch').mockResolvedValue({})
+      const apiFetch = vi.spyOn(auth, 'apiFetch').mockResolvedValue({
+        publicationId: 'backend-quick-1',
+        workspaceId: 'workspace-1',
+        socialAccountId: 'acc-li-99',
+        status: 'SCHEDULED',
+        scheduleMode: 'SCHEDULED_AT',
+        priority: true,
+        title: 'Quick Auth normalized',
+        bodyText: 'Authenticated quick create normalized',
+        assetIds: ['quick-asset'],
+        scheduledFor: '2026-06-20T14:05:00Z',
+        nextSlotAfter: null,
+      })
 
       const result = await store.quickCreatePost({
         socialAccountId: 'acc-li-99',
@@ -898,7 +1035,33 @@ describe('publishing store', () => {
         }),
         workspaceScoped: true,
       })
-      expect(store.publications[0]?.id).toBe(result.id)
+      expect(result).toMatchObject({
+        id: 'backend-quick-1',
+        content: 'Authenticated quick create normalized',
+        accountId: 'acc-li-99',
+        status: 'SCHEDULED',
+        scheduleMode: 'SCHEDULED_AT',
+        scheduledAt: '2026-06-20T14:05:00Z',
+        assetIds: ['quick-asset'],
+      })
+      expect(store.publications[0]?.id).toBe('backend-quick-1')
+    })
+
+    it('propagates authenticated quick-create failure without local insertion', async () => {
+      const store = usePublishingStore()
+      const auth = useAuthStore()
+      Object.defineProperty(auth, 'isAuthenticated', { value: true, configurable: true })
+      const before = store.publications.map((publication) => publication.id)
+      vi.spyOn(auth, 'apiFetch').mockRejectedValue(new Error('quick create failed'))
+
+      await expect(
+        store.quickCreatePost({
+          socialAccountId: 'acc-li-99',
+          bodyText: 'Never inserted',
+          scheduledFor: '2026-06-20T14:00:00Z',
+        }),
+      ).rejects.toThrow('quick create failed')
+      expect(store.publications.map((publication) => publication.id)).toEqual(before)
     })
   })
 
