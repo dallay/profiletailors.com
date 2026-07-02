@@ -69,12 +69,13 @@ test.describe('Scheduler — Create Post', () => {
 
     await page.route(/\/api\/media\/assets\/[^/]+$/, async (route) => {
       const method = route.request().method()
+      const requestedAssetId = route.request().url().split('/api/media/assets/')[1] ?? assetId
       if (method === 'PUT') {
         await route.fulfill({
           status: 200,
           contentType: 'application/json',
           body: JSON.stringify({
-            assetId,
+            assetId: requestedAssetId,
             workspaceId: 'workspace-001',
             sourceType: 'UPLOADED',
             mediaType: 'image/png',
@@ -83,7 +84,7 @@ test.describe('Scheduler — Create Post', () => {
             originalFilename: 'base.png',
             fileSizeBytes: 68,
             createdAt: new Date().toISOString(),
-            previewUrl: `/api/media/assets/${assetId}/preview`,
+            previewUrl: `/api/media/assets/${requestedAssetId}/preview`,
           }),
         })
         return
@@ -93,7 +94,7 @@ test.describe('Scheduler — Create Post', () => {
           status: 200,
           contentType: 'application/json',
           body: JSON.stringify({
-            assetId,
+            assetId: requestedAssetId,
             workspaceId: 'workspace-001',
             sourceType: 'UPLOADED',
             mediaType: 'image/png',
@@ -101,8 +102,8 @@ test.describe('Scheduler — Create Post', () => {
             originalFilename: 'base.png',
             fileSizeBytes: 68,
             createdAt: new Date().toISOString(),
-            previewUrl: `/api/media/assets/${assetId}/preview`,
-            downloadUrl: `/api/media/assets/${assetId}/content`,
+            previewUrl: `/api/media/assets/${requestedAssetId}/preview`,
+            downloadUrl: `/api/media/assets/${requestedAssetId}/content`,
           }),
         })
         return

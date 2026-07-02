@@ -294,7 +294,7 @@ jobs:
         run: |
           ./gradlew :server:smp:bootRun --no-daemon &
           for i in $(seq 1 60); do
-            if curl -sf http://localhost:7638/actuator/health > /dev/null 2>&1; then
+            if curl -sf http://localhost:9091/actuator/health > /dev/null 2>&1; then
               echo "✅ Backend is healthy"
               break
             fi
