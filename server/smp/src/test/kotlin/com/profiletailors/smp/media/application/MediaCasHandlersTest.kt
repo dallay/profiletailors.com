@@ -650,7 +650,7 @@ class MediaCasHandlersTest {
     }
 
     @Test
-    fun `UploadAssetHandler transaction rollback keeps asset in UPLOADING`() = runTest {
+    fun `UploadAssetHandler transaction failure transitions asset to FAILED`() = runTest {
         val media = InMemoryMediaAssetRepository()
         val blobs = InMemoryWorkspaceFileBlobRepository()
         val storage = FakeStorage()

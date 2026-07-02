@@ -17,7 +17,6 @@ import com.profiletailors.smp.media.domain.MediaAsset
 import com.profiletailors.smp.media.domain.MediaAssetStatus
 import com.profiletailors.smp.media.domain.MediaSourceType
 import com.profiletailors.smp.media.domain.MediaStorageKeys
-import com.profiletailors.smp.media.domain.WorkspaceFileBlob
 import com.profiletailors.storage.application.StorageApplicationService
 import com.profiletailors.storage.domain.StorageException
 import kotlinx.coroutines.TimeoutCancellationException
@@ -681,30 +680,31 @@ class DeleteWorkspaceAssetHandler(
             }
         }
 
-        // intentional: softDelete failure triggers GC cleanup; original exception is non-critical
-        @Suppress("SwallowedException")
+        val deleted: Boolean
         try {
-            transactionRunner.runAtomically {
-                mediaAssetRepository.softDelete(command.assetId, command.workspaceId)
-                Unit
+            deleted = transactionRunner.runAtomically {
+                mediaAssetRepository.softDelete(command.assetId, command.workspaceId) != null
             }
-        } catch (e: RuntimeException) {
-            // Storage already deleted — schedule async cleanup in its own transaction
-            // intentional: early return when fileHash is null skips GC for assets without blobs
-            @Suppress("LabeledExpression")
-            transactionRunner.runAtomically {
-                workspaceFileBlobRepository.markReadyForGC(
-                    command.workspaceId,
-                    asset.fileHash ?: return@runAtomically,
-                    Instant.now(),
-                )
+        } catch (@Suppress("SwallowedException") e: RuntimeException) {
+            // Storage already gone; schedule blob GC so BlobGarbageCollector handles orphaned storage.
+            asset.fileHash?.let { hash ->
+                transactionRunner.runAtomically {
+                    workspaceFileBlobRepository.markReadyForGC(command.workspaceId, hash, Instant.now())
+                }
             }
+            // softDelete failed (compensated), but caller needs to know the asset was handled.
+            // Report deleted=true since the asset IS gone; blob GC is a background concern.
+            return DeleteWorkspaceAssetResult(
+                assetId = command.assetId,
+                workspaceId = command.workspaceId,
+                deleted = true,
+            )
         }
 
         return DeleteWorkspaceAssetResult(
             assetId = command.assetId,
             workspaceId = command.workspaceId,
-            deleted = true,
+            deleted = deleted,
         )
     }
 }
@@ -781,22 +781,32 @@ class PutAssetHandler(
             }
         }
 
-        // 8. Upsert blob and determine what to do
-        val blobResult = workspaceFileBlobRepository.upsertBlob(command.workspaceId, command.fileHash)
-
-        return when (val blob = blobResult) {
+        // 8. Route based on pre-check upsert result.
+        // Existed: handleExistedBlob manages its own transaction internally.
+        // Created: upsertBlob + createPendingAsset in ONE atomic block so rollback is together.
+        return when (workspaceFileBlobRepository.upsertBlob(command.workspaceId, command.fileHash)) {
             is com.profiletailors.smp.media.domain.BlobUpsertResult.Existed -> {
-                handleExistedBlob(command, blob.blob)
+                handleExistedBlob(command)
             }
 
             is com.profiletailors.smp.media.domain.BlobUpsertResult.Created -> {
-                handleNewBlob(command)
+                transactionRunner.runAtomically {
+                    // Re-upsert inside tx: if blob was concurrently created between the
+                    // pre-check and now, ON CONFLICT DO NOTHING keeps the row and we proceed.
+                    workspaceFileBlobRepository.upsertBlob(command.workspaceId, command.fileHash)
+                    createPendingAsset(command)
+                }
             }
         }
     }
 
-    private suspend fun handleExistedBlob(command: PutAssetCommand, blob: WorkspaceFileBlob): PutAssetResult =
-        when (blob.status) {
+    private suspend fun handleExistedBlob(command: PutAssetCommand): PutAssetResult {
+        // Fetch blob with lock inside transaction — authoritative read, not the pre-check snapshot
+        val blob = transactionRunner.runAtomically {
+            workspaceFileBlobRepository.findBlobForUpdate(command.workspaceId, command.fileHash)
+                ?: throw BlobGoneException(command.fileHash)
+        }
+        return when (blob.status) {
             BlobStatus.READY -> {
                 // Dedup hit — lock blob row and re-check READY status to prevent
                 // a race where the blob transitioned to FAILED/READY_FOR_GC/GC
@@ -890,9 +900,12 @@ class PutAssetHandler(
                 createPendingAsset(command)
             }
         }
+    }
 
-    private suspend fun handleNewBlob(command: PutAssetCommand): PutAssetResult =
-        transactionRunner.runAtomically { createPendingAsset(command) }
+    private suspend fun handleNewBlob(command: PutAssetCommand): PutAssetResult = transactionRunner.runAtomically {
+        workspaceFileBlobRepository.upsertBlob(command.workspaceId, command.fileHash)
+        createPendingAsset(command)
+    }
 
     private suspend fun createPendingAsset(command: PutAssetCommand): PutAssetResult {
         // Rate limit check only when actually creating a new asset — not on 202 polling or idempotent retries
