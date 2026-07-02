@@ -36,6 +36,7 @@ import org.junit.jupiter.api.assertThrows
 import java.security.MessageDigest
 import java.time.Instant
 
+@Suppress("LargeClass")
 class MediaCasHandlersTest {
     @Test
     fun `unverified user cannot create legacy asset and no asset is persisted`() = runTest {
@@ -1300,9 +1301,8 @@ private class TestTransactionFailure : IllegalStateException("injected transacti
  * repository, so state mutations from other methods (claimUploadSlot, markAsFailed, etc.)
  * remain observable in assertions.
  */
-private class MarkAsReadyFailingMediaAssetRepository(
-    private val delegate: MediaAssetRepository,
-) : MediaAssetRepository by delegate {
+private class MarkAsReadyFailingMediaAssetRepository(private val delegate: MediaAssetRepository) :
+    MediaAssetRepository by delegate {
     override suspend fun markAsReady(assetId: String, workspaceId: String, fileSizeBytes: Long): MediaAsset? = null
 }
 
