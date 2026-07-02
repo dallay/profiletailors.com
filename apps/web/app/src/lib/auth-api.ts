@@ -56,7 +56,7 @@ function apiError(
 // Base request helper
 // ---------------------------------------------------------------------------
 
-const DEFAULT_API_BASE_URL = 'http://localhost:8080'
+const DEFAULT_API_BASE_URL = 'http://localhost:7638'
 
 function resolveApiBaseUrl(): string {
   const envValue = import.meta.env.VITE_API_BASE_URL

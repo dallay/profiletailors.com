@@ -227,8 +227,10 @@ jobs:
       SMP_LOCAL_JWT_SECRET: ${{ secrets.SMP_LOCAL_JWT_SECRET }}
       PUBLISHING_CREDENTIALS_KEY: ${{ secrets.PUBLISHING_CREDENTIALS_KEY }}
       E2E_TEST_USER_PASSWORD: ${{ secrets.E2E_TEST_USER_PASSWORD }}
-      # Force management port to 8080 so the health check curl matches
-      MANAGEMENT_PORT: '8080'
+      # Pin backend HTTP port; CI healthcheck below targets the same value.
+      SMP_BACKEND_PORT: '7638'
+      # Management port stays on 9091 to keep the health endpoint on a dedicated port.
+      MANAGEMENT_PORT: '9091'
 
     services:
       postgres:
@@ -292,7 +294,7 @@ jobs:
         run: |
           ./gradlew :server:smp:bootRun --no-daemon &
           for i in $(seq 1 60); do
-            if curl -sf http://localhost:8080/actuator/health > /dev/null 2>&1; then
+            if curl -sf http://localhost:7638/actuator/health > /dev/null 2>&1; then
               echo "✅ Backend is healthy"
               break
             fi

@@ -32,7 +32,7 @@ describe('auth-api verifyEmail', () => {
     const result = await verifyEmail('token-123')
 
     expect(result).toEqual(tokens)
-    expect(fetchMock).toHaveBeenCalledWith('http://localhost:8080/api/auth/verify-email', {
+    expect(fetchMock).toHaveBeenCalledWith('http://localhost:7638/api/auth/verify-email', {
       method: 'POST',
       body: JSON.stringify({ token: 'token-123' }),
       credentials: 'include',

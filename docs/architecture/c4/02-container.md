@@ -320,7 +320,7 @@ graph TB
 │ Local Development                                       │
 ├─────────────────────────────────────────────────────────┤
 │ • Marketing Site: localhost:4321 (Astro dev server)    │
-│ • API Application: localhost:8080 (Spring Boot)        │
+│ • API Application: localhost:7638 (Spring Boot)        │
 │ • PostgreSQL: localhost:5432 (Docker Compose)          │
 │ • Redis: localhost:6379 (Docker Compose)               │
 │ • RabbitMQ: localhost:5672 (Docker Compose)            │
