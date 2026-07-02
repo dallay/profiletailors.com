@@ -80,6 +80,10 @@ export interface Publication {
   blockedReason?: string
 }
 
+export type PublicationUpdate = Partial<Publication> & {
+  assetIds?: string[]
+}
+
 // ---------------------------------------------------------------------------
 // Types — Backend DTOs (calendar API response)
 // ---------------------------------------------------------------------------
@@ -867,7 +871,7 @@ export const usePublishingStore = defineStore('publishing', () => {
     }
   }
 
-  async function updatePost(id: string, updates: Partial<Publication>) {
+  async function updatePost(id: string, updates: PublicationUpdate) {
     const current = publications.value.find((p) => p.id === id)
     if (!current) {
       throw new Error(`Publication ${id} not found`)
@@ -882,14 +886,8 @@ export const usePublishingStore = defineStore('publishing', () => {
             socialAccountId: current.accountId,
             title: updates.title ?? current.title ?? null,
             bodyText: updates.content ?? current.content,
-            assetIds:
-              (updates as { assetIds?: string[] }).assetIds ??
-              (current as { assetIds?: string[] }).assetIds ??
-              [],
-            scheduleMode:
-              (updates as { scheduleMode?: string }).scheduleMode ??
-              current.scheduleMode ??
-              'SCHEDULED_AT',
+            ...(Object.hasOwn(updates, 'assetIds') ? { assetIds: updates.assetIds ?? [] } : {}),
+            scheduleMode: updates.scheduleMode ?? current.scheduleMode ?? 'SCHEDULED_AT',
             scheduledFor: updates.scheduledAt ?? current.scheduledAt,
             priority: updates.priority ?? current.priority,
           }),

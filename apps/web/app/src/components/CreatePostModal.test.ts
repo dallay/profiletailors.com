@@ -729,12 +729,25 @@ describe('CreatePostModal.vue — edit mode', () => {
 
   it('pre-fills content, schedule mode, date, time, priority, and media in edit mode', async () => {
     const mediaStore = useMediaStore()
+    vi.spyOn(mediaStore, 'loadAsset').mockImplementation(async (assetId: string) => ({
+      assetId,
+      workspaceId: 'ws-1',
+      sourceType: 'UPLOADED',
+      mediaType: 'image/png',
+      status: 'READY',
+      originalFilename: `${assetId}.png`,
+      fileSizeBytes: 1024,
+      createdAt: '2026-06-19T12:00:00Z',
+      previewUrl: `/api/media/assets/${assetId}/preview`,
+    }))
     const wrapper = mountModal([makeChannel('ch-edit-1')], {
       editingPublication: makeEditingPublication(),
     })
 
     await wrapper.vm.$nextTick()
     await Promise.resolve()
+    await new Promise((resolve) => setTimeout(resolve, 0))
+    await wrapper.vm.$nextTick()
 
     const textarea = document.body.querySelector('textarea') as HTMLTextAreaElement | null
     const timeInput = document.body.querySelector('input[type="time"]') as HTMLInputElement | null
@@ -804,7 +817,6 @@ describe('CreatePostModal.vue — edit mode', () => {
       content: 'Updated NOW content',
       scheduledAt: undefined,
       priority: true,
-      assetIds: ['asset-1', 'asset-2'],
       scheduleMode: 'NOW',
     })
     expect(wrapper.emitted('updated')).toHaveLength(1)
@@ -839,10 +851,169 @@ describe('CreatePostModal.vue — edit mode', () => {
       content: 'Updated NEXT_SLOT content',
       scheduledAt: undefined,
       priority: true,
-      assetIds: ['asset-1', 'asset-2'],
       scheduleMode: 'NEXT_SLOT',
     })
     expect(wrapper.emitted('updated')).toHaveLength(1)
+  })
+
+  it('hydrates edit assets into visible previews and skips missing assets gracefully', async () => {
+    const mediaStore = useMediaStore()
+    const loadAsset = vi.spyOn(mediaStore, 'loadAsset')
+    loadAsset.mockImplementation(async (assetId: string) => {
+      if (assetId === 'missing-asset') {
+        throw Object.assign(new Error('Not found'), { status: 404 })
+      }
+      const asset = {
+        assetId,
+        workspaceId: 'ws-1',
+        sourceType: 'UPLOADED' as const,
+        mediaType: 'image/png',
+        status: 'READY' as const,
+        originalFilename: `${assetId}.png`,
+        fileSizeBytes: 1024,
+        createdAt: '2026-06-19T12:00:00Z',
+        previewUrl: `/api/media/assets/${assetId}/preview`,
+      }
+      mediaStore.assetsById[assetId] = asset
+      return asset
+    })
+
+    const wrapper = mountModal([makeChannel('ch-edit-1')], {
+      editingPublication: makeEditingPublication({ assetIds: ['asset-a', 'missing-asset'] }),
+    })
+    await wrapper.vm.$nextTick()
+    await Promise.resolve()
+    await wrapper.vm.$nextTick()
+
+    expect(loadAsset).toHaveBeenCalledWith('asset-a')
+    expect(loadAsset).toHaveBeenCalledWith('missing-asset')
+    expect(mediaStore.selectedAssetIds).toEqual(['asset-a'])
+    expect(mediaStore.selectedAssets[0]?.previewUrl).toBe('/api/media/assets/asset-a/preview')
+  })
+
+  it('omits assetIds when saving edit without touching assets', async () => {
+    const store = usePublishingStore()
+    const updatePost = vi.spyOn(store, 'updatePost').mockResolvedValue({
+      ...makeEditingPublication(),
+      content: 'Updated untouched content',
+    })
+    const mediaStore = useMediaStore()
+    vi.spyOn(mediaStore, 'loadAsset').mockImplementation(async (assetId: string) => ({
+      assetId,
+      workspaceId: 'ws-1',
+      sourceType: 'UPLOADED',
+      mediaType: 'image/png',
+      status: 'READY',
+      originalFilename: `${assetId}.png`,
+      fileSizeBytes: 1024,
+      createdAt: '2026-06-19T12:00:00Z',
+      previewUrl: `/api/media/assets/${assetId}/preview`,
+    }))
+
+    const wrapper = mountModal([makeChannel('ch-edit-1')], {
+      editingPublication: makeEditingPublication(),
+    })
+    await wrapper.vm.$nextTick()
+    await Promise.resolve()
+
+    const textarea = document.body.querySelector('textarea') as HTMLTextAreaElement | null
+    textarea!.value = 'Updated untouched content'
+    textarea?.dispatchEvent(new Event('input', { bubbles: true }))
+    await wrapper.vm.$nextTick()
+
+    const submitButton = Array.from(document.body.querySelectorAll('button')).find((button) =>
+      button.textContent?.includes('composer.saveChanges'),
+    ) as HTMLButtonElement | undefined
+    submitButton?.click()
+
+    await wrapper.vm.$nextTick()
+    await Promise.resolve()
+
+    expect(updatePost).toHaveBeenCalledWith('pub-edit-1', {
+      content: 'Updated untouched content',
+      scheduledAt: '2030-06-25T14:30:00.000Z',
+      priority: true,
+      scheduleMode: 'SCHEDULED_AT',
+    })
+  })
+
+  it('sends empty assetIds after explicit edit clear', async () => {
+    const store = usePublishingStore()
+    const updatePost = vi
+      .spyOn(store, 'updatePost')
+      .mockResolvedValue(makeEditingPublication({ assetIds: [] }))
+    const mediaStore = useMediaStore()
+    mediaStore.assetsById['asset-1'] = {
+      assetId: 'asset-1',
+      workspaceId: 'ws-1',
+      sourceType: 'UPLOADED',
+      mediaType: 'image/png',
+      status: 'READY',
+      originalFilename: 'asset-1.png',
+      fileSizeBytes: 1024,
+      createdAt: '2026-06-19T12:00:00Z',
+      previewUrl: '/api/media/assets/asset-1/preview',
+    }
+
+    const wrapper = mountModal([makeChannel('ch-edit-1')], {
+      editingPublication: makeEditingPublication({ assetIds: ['asset-1'] }),
+    })
+    await wrapper.vm.$nextTick()
+
+    const removeButton = document.body
+      .querySelector('img[alt="Selected media preview"]')
+      ?.parentElement?.querySelector('button') as HTMLButtonElement | null
+    expect(removeButton).not.toBeNull()
+    removeButton?.click()
+    await wrapper.vm.$nextTick()
+
+    const submitButton = Array.from(document.body.querySelectorAll('button')).find((button) =>
+      button.textContent?.includes('composer.saveChanges'),
+    ) as HTMLButtonElement | undefined
+    submitButton?.click()
+    await wrapper.vm.$nextTick()
+    await Promise.resolve()
+
+    expect(updatePost).toHaveBeenCalledWith('pub-edit-1', expect.objectContaining({ assetIds: [] }))
+  })
+
+  it('sends replacement assetIds after selecting a new edit asset', async () => {
+    const store = usePublishingStore()
+    const updatePost = vi
+      .spyOn(store, 'updatePost')
+      .mockResolvedValue(makeEditingPublication({ assetIds: ['asset-c'] }))
+    const mediaStore = useMediaStore()
+    mediaStore.assetsById['asset-c'] = {
+      assetId: 'asset-c',
+      workspaceId: 'ws-1',
+      sourceType: 'UPLOADED',
+      mediaType: 'image/png',
+      status: 'READY',
+      originalFilename: 'asset-c.png',
+      fileSizeBytes: 1024,
+      createdAt: '2026-06-19T12:00:00Z',
+      previewUrl: '/api/media/assets/asset-c/preview',
+    }
+
+    const wrapper = mountModal([makeChannel('ch-edit-1')], {
+      editingPublication: makeEditingPublication({ assetIds: [] }),
+    })
+    await wrapper.vm.$nextTick()
+
+    mediaStore.addToSelection('asset-c')
+    await wrapper.vm.$nextTick()
+
+    const submitButton = Array.from(document.body.querySelectorAll('button')).find((button) =>
+      button.textContent?.includes('composer.saveChanges'),
+    ) as HTMLButtonElement | undefined
+    submitButton?.click()
+    await wrapper.vm.$nextTick()
+    await Promise.resolve()
+
+    expect(updatePost).toHaveBeenCalledWith(
+      'pub-edit-1',
+      expect.objectContaining({ assetIds: ['asset-c'] }),
+    )
   })
 
   it('locks channel selection and hides create-another in edit mode', async () => {
@@ -862,6 +1033,18 @@ describe('CreatePostModal.vue — edit mode', () => {
   })
 
   it('submits through updatePost, emits updated, and does not call schedulePost in edit mode', async () => {
+    const mediaStore = useMediaStore()
+    vi.spyOn(mediaStore, 'loadAsset').mockImplementation(async (assetId: string) => ({
+      assetId,
+      workspaceId: 'ws-1',
+      sourceType: 'UPLOADED',
+      mediaType: 'image/png',
+      status: 'READY',
+      originalFilename: `${assetId}.png`,
+      fileSizeBytes: 1024,
+      createdAt: '2026-06-19T12:00:00Z',
+      previewUrl: `/api/media/assets/${assetId}/preview`,
+    }))
     const store = usePublishingStore()
     const updatePost = vi.spyOn(store, 'updatePost').mockResolvedValue({
       ...makeEditingPublication(),
@@ -891,7 +1074,6 @@ describe('CreatePostModal.vue — edit mode', () => {
       content: 'Updated content',
       scheduledAt: '2030-06-25T14:30:00.000Z',
       priority: true,
-      assetIds: ['asset-1', 'asset-2'],
       scheduleMode: 'SCHEDULED_AT',
     })
     expect(schedulePost).not.toHaveBeenCalled()
