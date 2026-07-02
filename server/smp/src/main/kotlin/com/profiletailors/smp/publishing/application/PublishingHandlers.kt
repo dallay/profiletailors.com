@@ -466,14 +466,15 @@ internal class EditPublicationHandler(
         val account = socialAccountRepository.findByWorkspaceAndId(workspaceId, current.socialAccountId)
             ?: throw SocialAccountNotFoundException(current.socialAccountId)
 
+        val updatedAssetIds = command.assetIds ?: current.assetIds
         // Resolve assets through media context (same contract as publication creation)
-        val assets = resolveAssets(workspaceId, command.assetIds)
+        val assets = resolveAssets(workspaceId, updatedAssetIds)
 
         val now = clock.instant()
         val updatedDraft = current.copy(
             title = command.title,
             bodyText = command.bodyText,
-            assetIds = command.assetIds,
+            assetIds = updatedAssetIds,
             scheduleMode = command.scheduleMode,
             scheduledFor = command.scheduledFor,
             nextSlotAfter = command.nextSlotAfter,

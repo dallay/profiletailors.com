@@ -985,6 +985,97 @@ describe('publishing store', () => {
   })
 
   describe('local mutations', () => {
+    it('omits assetIds from PATCH when update does not include assetIds', async () => {
+      const store = usePublishingStore()
+      const auth = useAuthStore()
+      Object.defineProperty(auth, 'isAuthenticated', { value: true, configurable: true })
+      store.publications = [
+        {
+          id: 'patch-preserve-assets',
+          content: 'Original body',
+          title: 'Original title',
+          channels: ['linkedin'],
+          scheduledAt: '2026-06-15T20:00:00Z',
+          scheduleMode: 'SCHEDULED_AT',
+          status: 'QUEUED',
+          priority: false,
+          accountId: 'soc-1',
+          assetIds: ['asset-a', 'asset-b'],
+        },
+      ]
+      const apiFetch = vi.spyOn(auth, 'apiFetch').mockResolvedValue({
+        publicationId: 'patch-preserve-assets',
+        workspaceId: 'workspace-1',
+        socialAccountId: 'soc-1',
+        status: 'SCHEDULED',
+        scheduleMode: 'SCHEDULED_AT',
+        priority: false,
+        title: 'Original title',
+        bodyText: 'Changed body',
+        assetIds: ['asset-a', 'asset-b'],
+        scheduledFor: '2026-06-15T20:00:00Z',
+        nextSlotAfter: null,
+      })
+
+      await store.updatePost('patch-preserve-assets', { content: 'Changed body' })
+
+      const body = JSON.parse(apiFetch.mock.calls[0]?.[1]?.body as string)
+      expect(body).not.toHaveProperty('assetIds')
+    })
+
+    it('serializes empty and replacement assetIds in PATCH when provided', async () => {
+      const store = usePublishingStore()
+      const auth = useAuthStore()
+      Object.defineProperty(auth, 'isAuthenticated', { value: true, configurable: true })
+      store.publications = [
+        {
+          id: 'patch-replace-assets',
+          content: 'Original body',
+          channels: ['linkedin'],
+          scheduledAt: '2026-06-15T20:00:00Z',
+          status: 'QUEUED',
+          priority: false,
+          accountId: 'soc-1',
+          assetIds: ['asset-a', 'asset-b'],
+        },
+      ]
+      const apiFetch = vi.spyOn(auth, 'apiFetch').mockResolvedValue({
+        publicationId: 'patch-replace-assets',
+        workspaceId: 'workspace-1',
+        socialAccountId: 'soc-1',
+        status: 'SCHEDULED',
+        scheduleMode: 'SCHEDULED_AT',
+        priority: false,
+        title: null,
+        bodyText: 'Original body',
+        assetIds: [],
+        scheduledFor: '2026-06-15T20:00:00Z',
+        nextSlotAfter: null,
+      })
+
+      await store.updatePost('patch-replace-assets', { assetIds: [] })
+      let body = JSON.parse(apiFetch.mock.calls[0]?.[1]?.body as string)
+      expect(body.assetIds).toEqual([])
+
+      apiFetch.mockResolvedValueOnce({
+        publicationId: 'patch-replace-assets',
+        workspaceId: 'workspace-1',
+        socialAccountId: 'soc-1',
+        status: 'SCHEDULED',
+        scheduleMode: 'SCHEDULED_AT',
+        priority: false,
+        title: null,
+        bodyText: 'Original body',
+        assetIds: ['asset-c', 'asset-d'],
+        scheduledFor: '2026-06-15T20:00:00Z',
+        nextSlotAfter: null,
+      })
+
+      await store.updatePost('patch-replace-assets', { assetIds: ['asset-c', 'asset-d'] })
+      body = JSON.parse(apiFetch.mock.calls[1]?.[1]?.body as string)
+      expect(body.assetIds).toEqual(['asset-c', 'asset-d'])
+    })
+
     it('cancels a post in place', () => {
       const store = usePublishingStore()
       store.publications = [

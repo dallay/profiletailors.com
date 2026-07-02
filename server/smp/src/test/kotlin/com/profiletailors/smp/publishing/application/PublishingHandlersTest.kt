@@ -139,6 +139,54 @@ class PublishingHandlersTest {
         assertEquals(0, jobRepository.writeCount)
     }
 
+    private suspend fun activeLinkedInAccounts(): InMemorySocialAccountRepository =
+        InMemorySocialAccountRepository().apply {
+            upsert(
+                SocialAccount(
+                    id = "account-1",
+                    socialConnectionId = "connection-1",
+                    workspaceId = "workspace-1",
+                    provider = SocialProvider.LINKEDIN,
+                    providerAccountId = "linkedin-account-1",
+                    kind = SocialAccountKind.PERSONAL_PROFILE,
+                    displayName = "Yuniel",
+                    status = SocialConnectionStatus.ACTIVE,
+                ),
+            )
+        }
+
+    private suspend fun editPublicationHandler(
+        publicationRepository: InMemoryPublicationRepository,
+        jobRepository: InMemoryPublicationJobRepository = InMemoryPublicationJobRepository(),
+        mediaResolver: FakeMediaAssetResolver = FakeMediaAssetResolver(),
+    ): EditPublicationHandler = EditPublicationHandler(
+        principalContextProvider = FixedPrincipalContextProvider(principalContext),
+        resourceContextProvider = FixedResourceContextProvider(workspaceContext),
+        socialAccountRepository = activeLinkedInAccounts(),
+        publicationRepository = publicationRepository,
+        publicationAssetRepository = InMemoryPublicationAssetRepository(emptyList()),
+        publicationJobRepository = jobRepository,
+        transactionRunner = recordingTransactionRunner(),
+        providerCapabilityValidator = AcceptingCapabilityValidator(),
+        schedulingPolicy = PublicationSchedulingPolicy(),
+        mediaAssetResolver = mediaResolver,
+        mediaIntegrationSettings = PublishingMediaIntegrationSettings(enabled = true),
+        clock = fixedClock,
+    )
+
+    private fun editablePublication(assetIds: List<String> = emptyList()): PublicationDraft = PublicationDraft(
+        id = "pub-1",
+        workspaceId = "workspace-1",
+        authorPrincipalId = "principal-1",
+        provider = SocialProvider.LINKEDIN,
+        socialAccountId = "account-1",
+        status = PublicationStatus.QUEUED,
+        scheduleMode = ScheduleMode.NOW,
+        priority = false,
+        bodyText = "Old text",
+        assetIds = assetIds,
+    )
+
     private class VerifiedPrincipalIdentityLookup : PrincipalIdentityLookup {
         override suspend fun findBySubject(
             principalType: PrincipalType,
@@ -737,6 +785,74 @@ class PublishingHandlersTest {
                 )
             }
         }
+    }
+
+    @Test
+    fun `edit publication preserves existing assets when assetIds is absent`() = runTest {
+        val mediaResolver = FakeMediaAssetResolver()
+        val publicationRepository =
+            InMemoryPublicationRepository(editablePublication(assetIds = listOf("asset-a", "asset-b")))
+        val handler = editPublicationHandler(publicationRepository, mediaResolver = mediaResolver)
+
+        val result = handler.handle(
+            EditPublicationCommand(
+                publicationId = "pub-1",
+                bodyText = "Updated text",
+                assetIds = null,
+                scheduleMode = ScheduleMode.NOW,
+            ),
+        )
+
+        assertEquals(listOf("asset-a", "asset-b"), result.assetIds)
+        assertEquals(listOf("asset-a", "asset-b"), publicationRepository.lastUpdatedDraft?.assetIds)
+        assertEquals(listOf("workspace-1" to listOf("asset-a", "asset-b")), mediaResolver.requestedCalls)
+    }
+
+    @Test
+    fun `edit publication clears existing assets when assetIds is empty`() = runTest {
+        val mediaResolver = FakeMediaAssetResolver()
+        val publicationRepository =
+            InMemoryPublicationRepository(editablePublication(assetIds = listOf("asset-a", "asset-b")))
+        val handler = editPublicationHandler(publicationRepository, mediaResolver = mediaResolver)
+
+        val result = handler.handle(
+            EditPublicationCommand(
+                publicationId = "pub-1",
+                bodyText = "Updated text",
+                assetIds = emptyList(),
+                scheduleMode = ScheduleMode.NOW,
+            ),
+        )
+
+        assertEquals(emptyList<String>(), result.assetIds)
+        assertEquals(emptyList<String>(), publicationRepository.lastUpdatedDraft?.assetIds)
+        assertTrue(mediaResolver.requestedCalls.isEmpty())
+    }
+
+    @Test
+    fun `edit publication replaces assets exactly in request order`() = runTest {
+        val mediaResolver = FakeMediaAssetResolver().apply {
+            resolvedAssets = listOf(
+                ResolvedAssetSummary("asset-c", "workspace-1", "assets/workspace-1/asset-c", "image/png"),
+                ResolvedAssetSummary("asset-a", "workspace-1", "assets/workspace-1/asset-a", "image/png"),
+            )
+        }
+        val publicationRepository =
+            InMemoryPublicationRepository(editablePublication(assetIds = listOf("asset-a", "asset-b")))
+        val handler = editPublicationHandler(publicationRepository, mediaResolver = mediaResolver)
+
+        val result = handler.handle(
+            EditPublicationCommand(
+                publicationId = "pub-1",
+                bodyText = "Updated text",
+                assetIds = listOf("asset-c", "asset-a"),
+                scheduleMode = ScheduleMode.NOW,
+            ),
+        )
+
+        assertEquals(listOf("asset-c", "asset-a"), result.assetIds)
+        assertEquals(listOf("asset-c", "asset-a"), publicationRepository.lastUpdatedDraft?.assetIds)
+        assertEquals(listOf("workspace-1" to listOf("asset-c", "asset-a")), mediaResolver.requestedCalls)
     }
 
     @Test
@@ -1814,6 +1930,7 @@ class PublishingHandlersTest {
         private val updateResultOverride: PublicationDraft? = null,
     ) : PublicationRepository {
         var deletedPublication: Pair<String, String>? = null
+        var lastUpdatedDraft: PublicationDraft? = null
         var lastFindStatuses: Set<PublicationStatus>? = null
         var lastFindSocialAccountIds: Set<String>? = null
         var lastCountWorkspaceId: String? = null
@@ -1837,6 +1954,7 @@ class PublishingHandlersTest {
 
         override suspend fun updateEditableDraft(draft: PublicationDraft): PublicationDraft {
             writeCount += 1
+            lastUpdatedDraft = draft
             val result = updateResultOverride ?: draft
             items[result.id] = result
             return result
