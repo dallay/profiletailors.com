@@ -701,10 +701,10 @@ class MediaCasHandlersTest {
         assertEquals(1, txRunner.calls.size)
     }
 
-    // ─── PutAssetHandler handleNewBlob transaction tests ──────────────────────────
+    // ─── PutAssetHandler Created-path transaction tests ──────────────────────────
 
     @Test
-    fun `handleNewBlob calls runAtomically once with createPendingAsset`() = runTest {
+    fun `Created path calls runAtomically once with upsertBlob and createPendingAsset`() = runTest {
         val media = InMemoryMediaAssetRepository()
         val blobs = InMemoryWorkspaceFileBlobRepository()
         val txRunner = RecordingAtomicTransactionRunner()
@@ -728,7 +728,7 @@ class MediaCasHandlersTest {
     }
 
     @Test
-    fun `handleNewBlob createPendingAsset failure leaves blob in repository`() = runTest {
+    fun `Created path createPendingAsset failure rolls back blob upsert atomically`() = runTest {
         val media = InMemoryMediaAssetRepository()
         val blobs = InMemoryWorkspaceFileBlobRepository()
         var callCount = 0
@@ -752,14 +752,14 @@ class MediaCasHandlersTest {
         assertThrows<IllegalStateException> {
             handler.handle(PutAssetCommand(ASSET_A, WORKSPACE, HASH_A, 1024, "image/jpeg", "photo.jpg"))
         }
-        // Blob persists: upsertBlob is called OUTSIDE the handleNewBlob transaction (PutAssetHandler line 781),
-        // so it is not rolled back when createPendingAsset fails inside runAtomically.
-        // The blob remains in UPLOADING state from the pre-transaction upsert.
-        assertNotNull(blobs.blob(WORKSPACE, HASH_A))
+        // Blob upsert and createPendingAsset are inside the same runAtomically block,
+        // so when createPendingAsset fails, the blob upsert is rolled back together.
+        // The blob should NOT persist after transaction rollback.
+        assertNull(blobs.blob(WORKSPACE, HASH_A))
     }
 
     @Test
-    fun `handleNewBlob rate limit exceeded propagates from within runAtomically and blob stays uploading`() = runTest {
+    fun `Created path rate limit exceeded propagates from within runAtomically and blob stays uploading`() = runTest {
         val media = InMemoryMediaAssetRepository()
         val blobs = InMemoryWorkspaceFileBlobRepository()
         val txRunner = RecordingAtomicTransactionRunner()

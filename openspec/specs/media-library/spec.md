@@ -399,30 +399,22 @@ The async cleanup job MUST be idempotent and MUST NOT block the delete response 
 
 ### Requirement: UploadAssetHandler — Atomic State Transition and Slot Release
 
-The system MUST wrap `mediaAssetRepository.markAsReady()` and `mediaRateLimitRepository.releaseConcurrentUploadSlot()` inside `transactionRunner.runAtomically {}` so that both DB updates commit or roll back together.
+The system MUST wrap `mediaAssetRepository.markAsReady()` inside `transactionRunner.runAtomically {}` so the state transition commits or rolls back as an atomic unit.
+
+The slot release (`releaseConcurrentUploadSlot()`) MUST be executed in a `finally` block after the transaction completes, so the slot is always released regardless of whether the upload succeeded or failed. Slot release is idempotent and MUST NOT be part of the atomic transaction — if the transaction rolls back, the slot remains held by the asset, allowing the client to retry.
 
 The slot claim (`claimConcurrentUploadSlot()`) MUST remain outside the transaction because it is a pre-condition check and is idempotent. The S3 upload (`uploadWithStreamingValidation()`) MUST remain outside the transaction because it is an external operation with no DB involvement.
 
 If the transaction rolls back, the upload MUST be considered failed and the cleanup semantics defined in the media-library spec apply.
 
-#### Scenario: Upload completes and both markAsReady and slot release commit atomically
+#### Scenario: Upload completes and markAsReady commits atomically; slot released in finally
 
 - GIVEN an asset is in `UPLOADING` status with a valid upload slot claimed
 - AND the S3 upload via `uploadWithStreamingValidation()` completes successfully
-- WHEN the atomic block executes `{ markAsReady(); releaseConcurrentUploadSlot() }`
-- THEN both DB updates MUST commit together
+- WHEN the atomic block executes `markAsReady()`
+- THEN `markAsReady()` MUST commit
 - AND the asset MUST transition to `READY`
-- AND the concurrent upload slot MUST be released
-
-#### Scenario: markAsReady succeeds but releaseConcurrentUploadSlot fails — transaction rolls back
-
-- GIVEN an asset is in `UPLOADING` status with a valid upload slot claimed
-- AND `markAsReady()` succeeds inside the atomic block
-- WHEN `releaseConcurrentUploadSlot()` throws
-- THEN the transaction MUST roll back
-- AND `markAsReady()` MUST be reverted
-- AND the asset MUST remain in `UPLOADING` status
-- AND the slot MUST NOT be released (it remains held by the asset)
+- AND the `finally` block MUST release the concurrent upload slot
 
 #### Scenario: Slot claim stays outside transaction (pre-condition)
 
@@ -431,13 +423,13 @@ If the transaction rolls back, the upload MUST be considered failed and the clea
 - THEN `claimConcurrentUploadSlot()` MUST be evaluated outside any transaction
 - AND the request MUST be rejected with HTTP 429 before any atomic block is entered
 
-### Requirement: PutAssetHandler — Atomic Blob and Asset Creation for handleNewBlob Path
+### Requirement: PutAssetHandler — Atomic Blob and Asset Creation for Created Path
 
 The system MUST wrap `workspaceFileBlobRepository.upsertBlob()` and `createPendingAsset()` (which includes `mediaAssetRepository.create()`) inside `transactionRunner.runAtomically {}` for the `handleNewBlob` code path only.
 
 If the blob upsert succeeds but the asset creation fails, the transaction MUST roll back and revert the blob upsert, preventing orphaned blob records.
 
-The `handleExistedBlob` path (line 781) already uses `transactionRunner.runAtomically {}` correctly and MUST NOT be modified.
+The `handleExistedBlob` path already uses `transactionRunner.runAtomically {}` correctly and MUST NOT be modified.
 
 #### Scenario: New blob and new asset both commit atomically
 
@@ -466,14 +458,15 @@ The `handleExistedBlob` path (line 781) already uses `transactionRunner.runAtomi
 
 ### Requirement: Upload Retry After Failed Atomic Block
 
-When an atomic block (`markAsReady()` + `releaseConcurrentUploadSlot()`) rolls back due to a partial failure, the asset remains in its pre-upload status. The system MUST allow the client to retry the upload, subject to the same concurrency and rate-limit checks as a fresh upload.
+When the `markAsReady()` atomic block rolls back due to a failure, the `finally` block releases the concurrent upload slot. The client MUST re-claim a slot to retry, subject to the same concurrency and rate-limit checks as a fresh upload.
 
 #### Scenario: Atomic block rolls back — client retries upload
 
-- GIVEN an asset is in `UPLOADING` status after a partial failure rolled back `markAsReady()`
+- GIVEN an asset is in `UPLOADING` status after `markAsReady()` rolled back
+- AND the `finally` block released the concurrent upload slot
 - WHEN the client retries the upload
-- THEN the system MUST allow the retry if the asset status is `UPLOADING` and the slot is still held
-- AND the concurrent upload slot claimed at the start of the original upload attempt remains valid
+- THEN the system MUST allow the retry if the asset status is `UPLOADING`
+- AND the client MUST re-claim a concurrent upload slot to proceed
 
 ---
 

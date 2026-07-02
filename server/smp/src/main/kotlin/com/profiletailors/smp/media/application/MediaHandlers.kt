@@ -781,22 +781,19 @@ class PutAssetHandler(
             }
         }
 
-        // 8. Route based on pre-check upsert result.
+        // 8. Route based on whether blob already exists (read-only check, no insert).
         // Existed: handleExistedBlob manages its own transaction internally.
         // Created: upsertBlob + createPendingAsset in ONE atomic block so rollback is together.
-        return when (workspaceFileBlobRepository.upsertBlob(command.workspaceId, command.fileHash)) {
-            is com.profiletailors.smp.media.domain.BlobUpsertResult.Existed -> {
-                handleExistedBlob(command)
-            }
+        val existingBlob = workspaceFileBlobRepository.findByWorkspaceAndHash(command.workspaceId, command.fileHash)
+        if (existingBlob != null) {
+            return handleExistedBlob(command)
+        }
 
-            is com.profiletailors.smp.media.domain.BlobUpsertResult.Created -> {
-                transactionRunner.runAtomically {
-                    // Re-upsert inside tx: if blob was concurrently created between the
-                    // pre-check and now, ON CONFLICT DO NOTHING keeps the row and we proceed.
-                    workspaceFileBlobRepository.upsertBlob(command.workspaceId, command.fileHash)
-                    createPendingAsset(command)
-                }
-            }
+        // Blob does not exist — create it and the pending asset atomically.
+        // If createPendingAsset fails, the blob upsert is rolled back together.
+        return transactionRunner.runAtomically {
+            workspaceFileBlobRepository.upsertBlob(command.workspaceId, command.fileHash)
+            createPendingAsset(command)
         }
     }
 
@@ -900,11 +897,6 @@ class PutAssetHandler(
                 createPendingAsset(command)
             }
         }
-    }
-
-    private suspend fun handleNewBlob(command: PutAssetCommand): PutAssetResult = transactionRunner.runAtomically {
-        workspaceFileBlobRepository.upsertBlob(command.workspaceId, command.fileHash)
-        createPendingAsset(command)
     }
 
     private suspend fun createPendingAsset(command: PutAssetCommand): PutAssetResult {
