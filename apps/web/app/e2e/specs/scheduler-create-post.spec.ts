@@ -67,22 +67,47 @@ test.describe('Scheduler — Create Post', () => {
     let patchUrl = ''
     let patchBody: Record<string, unknown> | null = null
 
-    await page.route('**/api/media/assets/reserve', async (route) => {
-      await route.fulfill({
-        status: 201,
-        contentType: 'application/json',
-        body: JSON.stringify({
-          assetId,
-          workspaceId: 'workspace-001',
-          sourceType: 'UPLOADED',
-          mediaType: 'image/png',
-          status: 'READY',
-          originalFilename: 'base.png',
-          fileSizeBytes: 68,
-          createdAt: new Date().toISOString(),
-          previewUrl: `/api/media/assets/${assetId}/preview`,
-        }),
-      })
+    await page.route(/\/api\/media\/assets\/[^/]+$/, async (route) => {
+      const method = route.request().method()
+      if (method === 'PUT') {
+        await route.fulfill({
+          status: 200,
+          contentType: 'application/json',
+          body: JSON.stringify({
+            assetId,
+            workspaceId: 'workspace-001',
+            sourceType: 'UPLOADED',
+            mediaType: 'image/png',
+            status: 'READY',
+            deduped: true,
+            originalFilename: 'base.png',
+            fileSizeBytes: 68,
+            createdAt: new Date().toISOString(),
+            previewUrl: `/api/media/assets/${assetId}/preview`,
+          }),
+        })
+        return
+      }
+      if (method === 'GET') {
+        await route.fulfill({
+          status: 200,
+          contentType: 'application/json',
+          body: JSON.stringify({
+            assetId,
+            workspaceId: 'workspace-001',
+            sourceType: 'UPLOADED',
+            mediaType: 'image/png',
+            status: 'READY',
+            originalFilename: 'base.png',
+            fileSizeBytes: 68,
+            createdAt: new Date().toISOString(),
+            previewUrl: `/api/media/assets/${assetId}/preview`,
+            downloadUrl: `/api/media/assets/${assetId}/content`,
+          }),
+        })
+        return
+      }
+      route.fallback()
     })
     await page.route('**/api/publishing/publications', async (route) => {
       const body = route.request().postDataJSON() as Record<string, unknown>
