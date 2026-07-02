@@ -29,7 +29,7 @@ vi.mock('@/lib/auth-api', () => ({
   login: vi.fn(),
   register: vi.fn(),
   logoutSession: vi.fn(),
-  resolveApiUrl: (path: string) => `http://localhost:8080${path}`,
+  resolveApiUrl: (path: string) => `http://localhost:7638${path}`,
 }))
 
 vi.mock('@/components/ui/alert-dialog', () => ({
