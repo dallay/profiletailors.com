@@ -17,9 +17,9 @@ safety.
 ### 1. Port Separation
 
 In production environments, Actuator is configured to run on a dedicated management port (`9091`),
-while the public API remains on port `8080`.
+while the public API remains on port `7638`.
 
-- **Port 8080**: Public traffic. Only the basic health status is exposed.
+- **Port 7638**: Public traffic. Only the basic health status is exposed.
 - **Port 9091**: Internal traffic. Accessible only by Prometheus and operators within the internal
   network (VPC/VPN).
 
@@ -41,9 +41,9 @@ The `IdentitySecurityConfiguration.kt` file defines granular access rules:
 
 ### Development (profile: `dev`)
 
-- **Management Port**: Same as API (`8080`).
+- **Management Port**: Dedicated (`9091`) to match production posture.
 - **Security**: All endpoints are accessible locally for easier debugging.
-- **Configuration**: `management.server.port: 8080`
+- **Configuration**: `management.server.port: 9091`
 
 ### Production (default)
 
@@ -66,7 +66,7 @@ The `IdentitySecurityConfiguration.kt` file defines granular access rules:
 
 ### AWS Security Groups
 
-- **Inbound 8080**: `0.0.0.0/0` (Public)
+- **Inbound 7638**: `0.0.0.0/0` (Public)
 - **Inbound 9091**: `10.0.0.0/8` (Internal VPC Only)
 
 ### Docker Networks

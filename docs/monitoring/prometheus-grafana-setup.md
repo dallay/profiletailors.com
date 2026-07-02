@@ -34,11 +34,11 @@ The monitoring stack is defined in `infra/monitoring/compose.yaml`:
 
 ## Exposed Endpoints
 
-### Public (Port 8080)
+### Public (Port 7638)
 
 - `GET /actuator/health`: Basic UP/DOWN status for load balancers.
 
-### Internal (Port 9091 in Prod / 8080 in Dev)
+### Internal (Port 9091 in Prod / 9091 in Dev)
 
 - `GET /actuator/prometheus`: Metrics in Prometheus format.
 - `GET /actuator/health/liveness`: Kubernetes liveness probe.
@@ -83,7 +83,7 @@ includes panels for all key metrics mentioned above.
 
 ### Prometheus cannot scrape the server
 
-1. Verify the server is running: `curl http://localhost:8080/actuator/health`
+1. Verify the server is running: `curl http://localhost:7638/actuator/health`
 2. Check Prometheus targets: [http://localhost:9090/targets](http://localhost:9090/targets)
 3. If running inside Docker, ensure the target is set to `host.docker.internal` or the service name.
 

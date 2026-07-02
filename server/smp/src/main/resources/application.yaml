@@ -1,3 +1,6 @@
+server:
+  port: ${SMP_BACKEND_PORT:7638}
+
 spring:
   application:
     name: smp
