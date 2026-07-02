@@ -68,6 +68,8 @@ const { activate: activateFocusTrap, deactivate: deactivateFocusTrap } = useFocu
 // ---------------------------------------------------------------------------
 const isEditMode = computed(() => !!props.editingPublication)
 const isCreating = computed(() => !isEditMode.value)
+const assetsTouched = ref(false)
+let suppressAssetTouchTracking = false
 
 // ---------------------------------------------------------------------------
 // Media picker state (replaces local-only File attachment truth)
@@ -122,7 +124,7 @@ const minTimeForDate = computed(() => {
   return '00:00'
 })
 
-function initEditMode(pub: NonNullable<typeof props.editingPublication>) {
+async function initEditMode(pub: NonNullable<typeof props.editingPublication>) {
   postText.value = pub.content ?? ''
   firstComment.value = ''
   priorityMode.value = pub.priority ?? false
@@ -133,9 +135,18 @@ function initEditMode(pub: NonNullable<typeof props.editingPublication>) {
   }
   scheduleMode.value = modeMap[pub.scheduleMode ?? 'SCHEDULED_AT'] ?? 'custom'
 
+  assetsTouched.value = false
   mediaStore.clearSelection()
   if (pub.assetIds?.length) {
     for (const assetId of pub.assetIds) {
+      if (!mediaStore.assetsById[assetId]) {
+        try {
+          await mediaStore.loadAsset(assetId)
+        } catch (err) {
+          const status = err instanceof Error && 'status' in err ? err.status : undefined
+          if (status === 404) continue
+        }
+      }
       mediaStore.addToSelection(assetId)
     }
   }
@@ -159,6 +170,7 @@ function initCreateMode() {
   firstComment.value = ''
   priorityMode.value = false
   scheduleMode.value = props.initialDate ? 'custom' : 'now'
+  assetsTouched.value = false
   mediaStore.clearSelection()
   selectedChannelId.value = publishingStore.channels[0]?.id ?? null
 
@@ -180,11 +192,13 @@ async function initializeComposerForOpen() {
   uploadTempKey.value = null
   uploadProgress.value = 0
 
+  suppressAssetTouchTracking = true
   if (isEditMode.value && props.editingPublication) {
-    initEditMode(props.editingPublication)
+    await initEditMode(props.editingPublication)
   } else {
     initCreateMode()
   }
+  suppressAssetTouchTracking = false
 
   if (auth.isAuthenticated) {
     try {
@@ -217,6 +231,16 @@ onMounted(async () => {
     await initializeComposerForOpen()
   }
 })
+
+watch(
+  () => mediaStore.selectedAssetIds,
+  () => {
+    if (isEditMode.value && !suppressAssetTouchTracking) {
+      assetsTouched.value = true
+    }
+  },
+  { deep: true },
+)
 
 watch(
   () => publishingStore.channels,
@@ -323,6 +347,7 @@ function handleFileSelect(e: Event) {
 }
 
 function addFiles(filesList: File[]) {
+  if (isEditMode.value) assetsTouched.value = true
   const file = filesList.find((file) => {
     const isSupported =
       file.type.startsWith('image/') ||
@@ -363,6 +388,7 @@ async function _uploadAndTrack(file: File) {
       uploadProgress.value = pct
     })
 
+    if (isEditMode.value) assetsTouched.value = true
     // Upload succeeded — add to selection for the publication
     mediaStore.addToSelection(asset.assetId)
 
@@ -382,6 +408,7 @@ async function _uploadAndTrack(file: File) {
  * Removes the current upload selection (READY asset from store + any in-progress state).
  */
 function removeFile() {
+  if (isEditMode.value) assetsTouched.value = true
   // Remove all selected assets from the media store
   mediaStore.clearSelection()
 
@@ -583,6 +610,7 @@ async function uploadDeferredFile(): Promise<boolean> {
         uploadProgress.value = pct
       },
     )
+    if (isEditMode.value) assetsTouched.value = true
     mediaStore.addToSelection(asset.assetId)
     return true
   } catch {
@@ -653,8 +681,8 @@ async function handleEditSubmit(
     content: normalizedPostText,
     scheduledAt: scheduledDate?.toISOString(),
     priority: priorityMode.value,
-    assetIds: [...mediaStore.selectedAssetIds],
     scheduleMode: backendScheduleMode,
+    ...(assetsTouched.value ? { assetIds: [...mediaStore.selectedAssetIds] } : {}),
   })
   emit('updated')
   emit('close')

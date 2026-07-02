@@ -164,7 +164,7 @@ class PublishingPublicationController(private val mediator: Mediator) {
                 socialAccountId = request.socialAccountId,
                 title = request.title,
                 bodyText = request.bodyText,
-                assetIds = request.assetIds,
+                assetIds = request.assetIds ?: emptyList(),
                 scheduleMode = request.toScheduleMode(),
                 scheduledFor = request.scheduledFor,
                 nextSlotAfter = request.nextSlotAfter,
@@ -329,7 +329,7 @@ data class PublicationUpsertRequest(
     val socialAccountId: String,
     val title: String? = null,
     val bodyText: String? = null,
-    val assetIds: List<String> = emptyList(),
+    val assetIds: List<String>? = null,
     val scheduleMode: String,
     @field:DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME)
     val scheduledFor: Instant? = null,

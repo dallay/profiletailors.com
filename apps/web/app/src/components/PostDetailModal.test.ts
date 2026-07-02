@@ -1,4 +1,4 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest'
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 import { mount, flushPromises } from '@vue/test-utils'
 import { createPinia, setActivePinia } from 'pinia'
 import PostDetailModal from './PostDetailModal.vue'
@@ -262,10 +262,19 @@ describe('PostDetailModal', () => {
   })
 
   describe('reschedule', () => {
+    const scheduledAt = '2026-07-01T10:00:00Z'
+
+    beforeEach(() => {
+      vi.useFakeTimers()
+      vi.setSystemTime(new Date('2026-07-01T09:00:00Z'))
+    })
+
+    afterEach(() => {
+      vi.useRealTimers()
+    })
+
     it('shows Reschedule button when publication has scheduledAt and is not editable or read-only', () => {
-      const wrapper = mountModal(
-        makePublication({ status: 'PROCESSING', scheduledAt: '2026-07-01T10:00:00Z' }),
-      )
+      const wrapper = mountModal(makePublication({ status: 'PROCESSING', scheduledAt }))
 
       expect(wrapper.text()).toContain('postDetail.reschedule')
     })
@@ -283,9 +292,7 @@ describe('PostDetailModal', () => {
     })
 
     it('opens the reschedule form on button click', async () => {
-      const wrapper = mountModal(
-        makePublication({ status: 'PROCESSING', scheduledAt: '2026-07-01T10:00:00Z' }),
-      )
+      const wrapper = mountModal(makePublication({ status: 'PROCESSING', scheduledAt }))
 
       const rescheduleBtn = wrapper
         .findAll('button')
@@ -301,7 +308,7 @@ describe('PostDetailModal', () => {
 
     it('calls reschedulePublication and emits reschedule on confirm', async () => {
       const wrapper = mountModal(
-        makePublication({ id: 'pub-2', status: 'PROCESSING', scheduledAt: '2026-07-01T10:00:00Z' }),
+        makePublication({ id: 'pub-2', status: 'PROCESSING', scheduledAt }),
       )
       const publishingStore = usePublishingStore()
 
@@ -329,9 +336,7 @@ describe('PostDetailModal', () => {
     })
 
     it('displays error when reschedule fails', async () => {
-      const wrapper = mountModal(
-        makePublication({ status: 'PROCESSING', scheduledAt: '2026-07-01T10:00:00Z' }),
-      )
+      const wrapper = mountModal(makePublication({ status: 'PROCESSING', scheduledAt }))
       const publishingStore = usePublishingStore()
       vi.spyOn(publishingStore, 'reschedulePublication').mockRejectedValue(
         new Error('Reschedule failed'),
@@ -352,9 +357,7 @@ describe('PostDetailModal', () => {
     })
 
     it('cancelReschedule hides the reschedule form', async () => {
-      const wrapper = mountModal(
-        makePublication({ status: 'PROCESSING', scheduledAt: '2026-07-01T10:00:00Z' }),
-      )
+      const wrapper = mountModal(makePublication({ status: 'PROCESSING', scheduledAt }))
 
       // Open reschedule
       const rescheduleBtn = wrapper
@@ -374,9 +377,7 @@ describe('PostDetailModal', () => {
     })
 
     it('reschedule form is hidden by default', () => {
-      const wrapper = mountModal(
-        makePublication({ status: 'PROCESSING', scheduledAt: '2026-07-01T10:00:00Z' }),
-      )
+      const wrapper = mountModal(makePublication({ status: 'PROCESSING', scheduledAt }))
 
       // The reschedule form should not be visible initially
       expect(wrapper.text()).not.toContain('postDetail.rescheduleConfirm')

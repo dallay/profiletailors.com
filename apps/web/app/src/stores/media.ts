@@ -188,6 +188,12 @@ export const useMediaStore = defineStore('media', () => {
 
   // ─── Actions ───────────────────────────────────────────────────────────
 
+  async function loadAsset(assetId: string): Promise<MediaAssetSummary> {
+    const asset = await getAsset(assetId)
+    upsertAsset(asset)
+    return asset
+  }
+
   async function loadAssets(status = 'READY') {
     isLoading.value = true
     loadError.value = null
@@ -359,6 +365,7 @@ export const useMediaStore = defineStore('media', () => {
     completedUploads,
     failedUploads,
     // Actions
+    loadAsset,
     loadAssets,
     loadNextPage,
     createAndUpload,

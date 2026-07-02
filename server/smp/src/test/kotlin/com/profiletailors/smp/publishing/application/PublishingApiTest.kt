@@ -73,8 +73,19 @@ class PublishingApiTest {
         assertEquals("pub-1", command.publicationId)
         assertEquals("Updated", command.title)
         assertEquals("New body", command.bodyText)
+        assertEquals(listOf("a-1"), command.assetIds)
         assertEquals(ScheduleMode.SCHEDULED_AT, command.scheduleMode)
         assertTrue(command.priority)
+    }
+
+    @Test
+    fun `EditPublicationCommand defaults to preserving assets`() {
+        val command = EditPublicationCommand(
+            publicationId = "pub-1",
+            scheduleMode = ScheduleMode.NOW,
+        )
+
+        assertNull(command.assetIds)
     }
 
     @Test

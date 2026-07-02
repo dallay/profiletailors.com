@@ -198,6 +198,95 @@ class PublishingControllersTest {
     }
 
     @Test
+    fun `create publication maps omitted assets to empty list`() = runTest {
+        val mediator = CapturingMediator()
+        val controller = PublishingPublicationController(mediator)
+
+        controller.createPublication(
+            PublicationUpsertRequest(
+                socialAccountId = "account-1",
+                bodyText = "Ship it",
+                assetIds = null,
+                scheduleMode = "NOW",
+            ),
+        )
+
+        assertEquals(
+            CreatePublicationCommand(
+                socialAccountId = "account-1",
+                title = null,
+                bodyText = "Ship it",
+                assetIds = emptyList(),
+                scheduleMode = ScheduleMode.NOW,
+                scheduledFor = null,
+                nextSlotAfter = null,
+                priority = false,
+            ),
+            mediator.lastRequest,
+        )
+    }
+
+    @Test
+    fun `edit publication preserves nullable assetIds in command`() = runTest {
+        val mediator = CapturingMediator()
+        val controller = PublishingPublicationController(mediator)
+
+        controller.editPublication(
+            "pub-1",
+            PublicationUpsertRequest(
+                socialAccountId = "account-1",
+                bodyText = "edited",
+                assetIds = null,
+                scheduleMode = "NOW",
+            ),
+        )
+
+        assertEquals(
+            EditPublicationCommand(
+                publicationId = "pub-1",
+                title = null,
+                bodyText = "edited",
+                assetIds = null,
+                scheduleMode = ScheduleMode.NOW,
+                scheduledFor = null,
+                nextSlotAfter = null,
+                priority = false,
+            ),
+            mediator.lastRequest,
+        )
+    }
+
+    @Test
+    fun `edit publication dispatches explicit empty assetIds`() = runTest {
+        val mediator = CapturingMediator()
+        val controller = PublishingPublicationController(mediator)
+
+        controller.editPublication(
+            "pub-1",
+            PublicationUpsertRequest(
+                socialAccountId = "account-1",
+                bodyText = "edited",
+                assetIds = emptyList(),
+                scheduleMode = "NOW",
+            ),
+        )
+
+        assertEquals(
+            EditPublicationCommand(
+                publicationId = "pub-1",
+                title = null,
+                bodyText = "edited",
+                assetIds = emptyList(),
+                scheduleMode = ScheduleMode.NOW,
+                scheduledFor = null,
+                nextSlotAfter = null,
+                priority = false,
+            ),
+            mediator.lastRequest,
+        )
+    }
+
+    @Test
     fun `dispatches calendar query with defaults`() = runTest {
         val mediator = CapturingMediator()
         val controller = PublishingPublicationController(mediator)
@@ -400,7 +489,7 @@ class PublishingControllersTest {
                 publicationId = "pub-1",
                 title = null,
                 bodyText = "edited",
-                assetIds = emptyList(),
+                assetIds = null,
                 scheduleMode = ScheduleMode.NOW,
                 scheduledFor = null,
                 nextSlotAfter = null,
@@ -554,7 +643,7 @@ class PublishingControllersTest {
                     },
                     assetIds = when (command) {
                         is CreatePublicationCommand -> command.assetIds
-                        is EditPublicationCommand -> command.assetIds
+                        is EditPublicationCommand -> command.assetIds ?: emptyList()
                         else -> emptyList()
                     },
                     scheduledFor = when (command) {
