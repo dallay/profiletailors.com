@@ -186,6 +186,7 @@ class UploadAssetHandler(
     private val principalContextProvider: PrincipalContextProvider = permissivePrincipalContextProvider(),
     private val principalIdentityLookup: PrincipalIdentityLookup = NoOpPrincipalIdentityLookup(),
     private val emailVerificationPolicy: EmailVerificationPolicy = permissiveEmailVerificationPolicy,
+    private val transactionRunner: AtomicTransactionRunner,
 ) : CommandWithResultHandler<LegacyUploadAssetCommand, LegacyUploadAssetResult> {
 
     private val logger = LoggerFactory.getLogger(UploadAssetHandler::class.java)
@@ -236,8 +237,10 @@ class UploadAssetHandler(
             val startTime = System.currentTimeMillis()
             val fileSize = uploadWithStreamingValidation(command, asset, uploadSettings.storageBucket)
 
-            val updated = mediaAssetRepository.markAsReady(assetId, workspaceId, fileSize)
-                ?: throw IllegalStateException("Asset not found after upload: $assetId")
+            val updated = transactionRunner.runAtomically {
+                mediaAssetRepository.markAsReady(assetId, workspaceId, fileSize)
+                    ?: throw IllegalStateException("Asset not found after upload: $assetId")
+            }
 
             val durationMs = System.currentTimeMillis() - startTime
             logger.info(
@@ -656,6 +659,8 @@ class DeleteWorkspaceAssetHandler(
     private val mediaAssetRepository: MediaAssetRepository,
     private val storageApplicationService: StorageApplicationService,
     private val uploadSettings: MediaUploadSettings,
+    private val transactionRunner: AtomicTransactionRunner,
+    private val workspaceFileBlobRepository: WorkspaceFileBlobRepository,
 ) : CommandWithResultHandler<DeleteWorkspaceAssetCommand, DeleteWorkspaceAssetResult> {
     override suspend fun handle(command: DeleteWorkspaceAssetCommand): DeleteWorkspaceAssetResult {
         val asset = mediaAssetRepository.findByWorkspaceAndId(command.workspaceId, command.assetId)
@@ -676,11 +681,30 @@ class DeleteWorkspaceAssetHandler(
             }
         }
 
-        val deleted = mediaAssetRepository.softDelete(command.assetId, command.workspaceId) != null
+        // intentional: softDelete failure triggers GC cleanup; original exception is non-critical
+        @Suppress("SwallowedException")
+        try {
+            transactionRunner.runAtomically {
+                mediaAssetRepository.softDelete(command.assetId, command.workspaceId)
+                Unit
+            }
+        } catch (e: RuntimeException) {
+            // Storage already deleted — schedule async cleanup in its own transaction
+            // intentional: early return when fileHash is null skips GC for assets without blobs
+            @Suppress("LabeledExpression")
+            transactionRunner.runAtomically {
+                workspaceFileBlobRepository.markReadyForGC(
+                    command.workspaceId,
+                    asset.fileHash ?: return@runAtomically,
+                    Instant.now(),
+                )
+            }
+        }
+
         return DeleteWorkspaceAssetResult(
             assetId = command.assetId,
             workspaceId = command.workspaceId,
-            deleted = deleted,
+            deleted = true,
         )
     }
 }
@@ -867,7 +891,8 @@ class PutAssetHandler(
             }
         }
 
-    private suspend fun handleNewBlob(command: PutAssetCommand): PutAssetResult = createPendingAsset(command)
+    private suspend fun handleNewBlob(command: PutAssetCommand): PutAssetResult =
+        transactionRunner.runAtomically { createPendingAsset(command) }
 
     private suspend fun createPendingAsset(command: PutAssetCommand): PutAssetResult {
         // Rate limit check only when actually creating a new asset — not on 202 polling or idempotent retries

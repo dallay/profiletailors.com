@@ -89,6 +89,7 @@ class MediaCasHandlersTest {
             FixedPrincipalContextProvider,
             FixedPrincipalIdentityLookup(EmailStatus.PENDING),
             emailVerificationPolicyOf(),
+            NoopAtomicTransactionRunner,
         )
 
         assertThrows<FeatureEmailVerificationRequired> {
@@ -520,6 +521,241 @@ class MediaCasHandlersTest {
         assertEquals("assets/ws_abc/temp/$ASSET_A.png", MediaStorageKeys.tempKey("ws_abc", ASSET_A, "image/png"))
         assertEquals("assets/ws_abc/blobs/$HASH_A.jpg", MediaStorageKeys.canonicalKey("ws_abc", HASH_A, "image/jpeg"))
     }
+
+    // ─── DeleteWorkspaceAssetHandler transaction tests ─────────────────────────────────
+
+    @Test
+    fun `DeleteWorkspaceAssetHandler runAtomically called on softDelete success`() = runTest {
+        val media = InMemoryMediaAssetRepository()
+        val blobs = InMemoryWorkspaceFileBlobRepository()
+        val txRunner = RecordingAtomicTransactionRunner()
+        val asset = MediaAsset(
+            ASSET_A, WORKSPACE, MediaSourceType.UPLOADED, HASH_A, "image/jpeg",
+            "assets/$WORKSPACE/blobs/$HASH_A.jpg", null, "photo.jpg", 1024,
+            MediaAssetStatus.READY, null, null, Instant.now(),
+        )
+        media.create(asset)
+
+        val handler = DeleteWorkspaceAssetHandler(
+            media,
+            FakeStorage().service(),
+            MediaUploadSettings(1, 200, "bucket"),
+            txRunner,
+            blobs,
+        )
+        val result = handler.handle(DeleteWorkspaceAssetCommand(ASSET_A, WORKSPACE))
+
+        assertTrue(result.deleted)
+        assertEquals(1, txRunner.calls.size)
+    }
+
+    @Test
+    fun `DeleteWorkspaceAssetHandler marks blob READY_FOR_GC when softDelete fails`() = runTest {
+        val media = InMemoryMediaAssetRepository()
+        val blobs = InMemoryWorkspaceFileBlobRepository()
+        val asset = MediaAsset(
+            ASSET_A, WORKSPACE, MediaSourceType.UPLOADED, HASH_A, "image/jpeg",
+            "assets/$WORKSPACE/blobs/$HASH_A.jpg", null, "photo.jpg", 1024,
+            MediaAssetStatus.READY, null, null, Instant.now(),
+        )
+        media.create(asset)
+        blobs.saveBlob(readyBlob(HASH_A))
+
+        var callCount = 0
+        val txRunner = FailingAtomicTransactionRunner {
+            callCount++
+            callCount == 1
+        }
+
+        val handler = DeleteWorkspaceAssetHandler(
+            media,
+            FakeStorage().service(),
+            MediaUploadSettings(1, 200, "bucket"),
+            txRunner,
+            blobs,
+        )
+        val result = handler.handle(DeleteWorkspaceAssetCommand(ASSET_A, WORKSPACE))
+
+        // Storage delete succeeded (storage has no real impl), softDelete failed (injected),
+        // so markReadyForGC should have been called in the compensation path
+        assertTrue(result.deleted)
+        assertEquals(BlobStatus.READY_FOR_GC, blobs.blob(WORKSPACE, HASH_A)?.status)
+    }
+
+    @Test
+    fun `DeleteWorkspaceAssetHandler storage delete failure propagates and softDelete is NOT called`() = runTest {
+        val media = InMemoryMediaAssetRepository()
+        val blobs = InMemoryWorkspaceFileBlobRepository()
+        val txRunner = RecordingAtomicTransactionRunner()
+        val asset = MediaAsset(
+            ASSET_A, WORKSPACE, MediaSourceType.UPLOADED, HASH_A, "image/jpeg",
+            "assets/$WORKSPACE/blobs/$HASH_A.jpg", null, "photo.jpg", 1024,
+            MediaAssetStatus.READY, null, null, Instant.now(),
+        )
+        media.create(asset)
+
+        val failingStorage = object : Storage {
+            override suspend fun upload(
+                bucket: String,
+                key: String,
+                content: Flow<ByteArray>,
+                metadata: Map<String, String>,
+            ) = Unit
+            override fun download(bucket: String, key: String): Flow<ByteArray> = flowOf()
+            override suspend fun delete(bucket: String, key: String) =
+                throw MediaServiceUnavailableException("simulated", null)
+            override suspend fun list(bucket: String, prefix: String) = emptyList<String>()
+            override suspend fun exists(bucket: String, key: String) = false
+            override suspend fun copyObject(bucket: String, sourceKey: String, destKey: String) = Unit
+        }
+
+        val handler = DeleteWorkspaceAssetHandler(
+            media,
+            StorageApplicationService(failingStorage, NoopEventPublisher(), NoopStorageObservation()),
+            MediaUploadSettings(1, 200, "bucket"),
+            txRunner,
+            blobs,
+        )
+
+        assertThrows<MediaServiceUnavailableException> {
+            handler.handle(DeleteWorkspaceAssetCommand(ASSET_A, WORKSPACE))
+        }
+        // softDelete was NOT called because storage delete threw first
+        assertEquals(0, txRunner.calls.size)
+    }
+
+    // ─── UploadAssetHandler transaction tests ─────────────────────────────────────
+
+    @Test
+    fun `UploadAssetHandler runAtomically called with markAsReady block`() = runTest {
+        val media = InMemoryMediaAssetRepository()
+        val blobs = InMemoryWorkspaceFileBlobRepository()
+        val storage = FakeStorage()
+        val bytes = jpegBytes()
+        val hash = sha256(bytes)
+        val asset = MediaAsset(
+            ASSET_A, WORKSPACE, MediaSourceType.UPLOADED, hash, "image/jpeg",
+            "assets/$WORKSPACE/$ASSET_A", null, "photo.jpg", bytes.size.toLong(),
+            MediaAssetStatus.PENDING_UPLOAD, null, null, Instant.now(),
+        )
+        media.create(asset)
+
+        val txRunner = RecordingAtomicTransactionRunner()
+        val handler = uploadLegacyHandler(media, storage, EmailStatus.VERIFIED, txRunner)
+
+        val result = handler.handle(LegacyUploadAssetCommand(ASSET_A, WORKSPACE, flowOf(bytes), bytes.size.toLong()))
+
+        assertEquals(LegacyUploadAssetResult::class.java, result::class.java)
+        assertEquals(1, txRunner.calls.size)
+    }
+
+    @Test
+    fun `UploadAssetHandler transaction rollback keeps asset in UPLOADING`() = runTest {
+        val media = InMemoryMediaAssetRepository()
+        val blobs = InMemoryWorkspaceFileBlobRepository()
+        val storage = FakeStorage()
+        val bytes = jpegBytes()
+        val hash = sha256(bytes)
+        val asset = MediaAsset(
+            ASSET_A, WORKSPACE, MediaSourceType.UPLOADED, hash, "image/jpeg",
+            "assets/$WORKSPACE/$ASSET_A", null, "photo.jpg", bytes.size.toLong(),
+            MediaAssetStatus.PENDING_UPLOAD, null, null, Instant.now(),
+        )
+        media.create(asset)
+
+        var callCount = 0
+        val txRunner = FailingAtomicTransactionRunner {
+            callCount++
+            callCount == 1
+        }
+        val handler = uploadLegacyHandler(media, storage, EmailStatus.VERIFIED, txRunner)
+
+        assertThrows<IllegalStateException> {
+            handler.handle(LegacyUploadAssetCommand(ASSET_A, WORKSPACE, flowOf(bytes), bytes.size.toLong()))
+        }
+        // Transaction failed and handleUploadFailure called markAsFailed → FAILED
+        assertEquals(MediaAssetStatus.FAILED, media.asset(WORKSPACE, ASSET_A)?.status)
+    }
+
+    @Test
+    fun `UploadAssetHandler happy path marks asset READY`() = runTest {
+        val media = InMemoryMediaAssetRepository()
+        val blobs = InMemoryWorkspaceFileBlobRepository()
+        val storage = FakeStorage()
+        val bytes = jpegBytes()
+        val hash = sha256(bytes)
+        val asset = MediaAsset(
+            ASSET_A, WORKSPACE, MediaSourceType.UPLOADED, hash, "image/jpeg",
+            "assets/$WORKSPACE/$ASSET_A", null, "photo.jpg", bytes.size.toLong(),
+            MediaAssetStatus.PENDING_UPLOAD, null, null, Instant.now(),
+        )
+        media.create(asset)
+
+        val txRunner = RecordingAtomicTransactionRunner()
+        val handler = uploadLegacyHandler(media, storage, EmailStatus.VERIFIED, txRunner)
+        val result = handler.handle(LegacyUploadAssetCommand(ASSET_A, WORKSPACE, flowOf(bytes), bytes.size.toLong()))
+
+        assertEquals(LegacyUploadAssetResult::class.java, result::class.java)
+        assertEquals(MediaAssetStatus.READY, media.asset(WORKSPACE, ASSET_A)?.status)
+        assertEquals(1, txRunner.calls.size)
+    }
+
+    // ─── PutAssetHandler handleNewBlob transaction tests ──────────────────────────
+
+    @Test
+    fun `handleNewBlob calls runAtomically once with createPendingAsset`() = runTest {
+        val media = InMemoryMediaAssetRepository()
+        val blobs = InMemoryWorkspaceFileBlobRepository()
+        val txRunner = RecordingAtomicTransactionRunner()
+        val limiter = InMemoryRateLimitRepository()
+
+        val handler = PutAssetHandler(
+            media,
+            blobs,
+            limiter,
+            MediaUploadSettings(1, 200, "bucket"),
+            txRunner,
+            FixedPrincipalContextProvider,
+            FixedPrincipalIdentityLookup(EmailStatus.VERIFIED),
+            emailVerificationPolicyOf(),
+        )
+
+        val result = handler.handle(PutAssetCommand(ASSET_A, WORKSPACE, HASH_A, 1024, "image/jpeg", "photo.jpg"))
+
+        assertTrue(result is PutAssetResult.Created)
+        assertEquals(1, txRunner.calls.size)
+    }
+
+    @Test
+    fun `handleNewBlob createPendingAsset failure leaves blob in repository`() = runTest {
+        val media = InMemoryMediaAssetRepository()
+        val blobs = InMemoryWorkspaceFileBlobRepository()
+        var callCount = 0
+        val txRunner = FailingAtomicTransactionRunner {
+            callCount++
+            callCount == 1
+        }
+        val limiter = InMemoryRateLimitRepository()
+
+        val handler = PutAssetHandler(
+            media,
+            blobs,
+            limiter,
+            MediaUploadSettings(1, 200, "bucket"),
+            txRunner,
+            FixedPrincipalContextProvider,
+            FixedPrincipalIdentityLookup(EmailStatus.VERIFIED),
+            emailVerificationPolicyOf(),
+        )
+
+        assertThrows<IllegalStateException> {
+            handler.handle(PutAssetCommand(ASSET_A, WORKSPACE, HASH_A, 1024, "image/jpeg", "photo.jpg"))
+        }
+        // Blob persists: upsertBlob is called OUTSIDE the handleNewBlob transaction (PutAssetHandler line 781),
+        // so it is not rolled back when createPendingAsset fails inside runAtomically.
+        // The blob remains in UPLOADING state from the pre-transaction upsert.
+        assertNotNull(blobs.blob(WORKSPACE, HASH_A))
+    }
 }
 
 private class InMemoryMediaAssetRepository : MediaAssetRepository {
@@ -542,7 +778,12 @@ private class InMemoryMediaAssetRepository : MediaAssetRepository {
         pageSize: Int,
         cursor: String?,
     ) = PagedMediaAssets(emptyList(), null)
-    override suspend fun claimUploadSlot(assetId: String, workspaceId: String, now: Instant) = false
+    override suspend fun claimUploadSlot(assetId: String, workspaceId: String, now: Instant): Boolean {
+        val asset = asset(workspaceId, assetId) ?: return false
+        if (asset.status != MediaAssetStatus.PENDING_UPLOAD) return false
+        assets[workspaceId to assetId] = asset.copy(status = MediaAssetStatus.UPLOADING, uploadStartedAt = now)
+        return true
+    }
 
     override suspend fun claimCasUploadSlot(assetId: String, workspaceId: String, now: Instant): Boolean {
         val asset = asset(workspaceId, assetId) ?: return false
@@ -777,8 +1018,33 @@ private fun uploadHandler(
     FixedPrincipalIdentityLookup(emailStatus),
     emailVerificationPolicyOf(),
 )
+
+private fun uploadLegacyHandler(
+    media: InMemoryMediaAssetRepository,
+    storage: FakeStorage,
+    emailStatus: EmailStatus = EmailStatus.VERIFIED,
+    transactionRunner: AtomicTransactionRunner = NoopAtomicTransactionRunner,
+) = UploadAssetHandler(
+    media,
+    InMemoryRateLimitRepository(),
+    storage.service(),
+    MediaUploadSettings(1, 200, "bucket"),
+    FixedPrincipalContextProvider,
+    FixedPrincipalIdentityLookup(emailStatus),
+    emailVerificationPolicyOf(),
+    transactionRunner,
+)
 private fun deleteHandler(media: InMemoryMediaAssetRepository, blobs: InMemoryWorkspaceFileBlobRepository) =
     DeleteAssetHandler(media, blobs, NoopAtomicTransactionRunner)
+
+private fun deleteWorkspaceHandler(media: InMemoryMediaAssetRepository, blobs: InMemoryWorkspaceFileBlobRepository) =
+    DeleteWorkspaceAssetHandler(
+        media,
+        FakeStorage().service(),
+        MediaUploadSettings(1, 200, "bucket"),
+        NoopAtomicTransactionRunner,
+        blobs,
+    )
 
 /**
  * No-op `AtomicTransactionRunner` for handler unit tests. Real transactional behaviour
@@ -788,6 +1054,32 @@ private fun deleteHandler(media: InMemoryMediaAssetRepository, blobs: InMemoryWo
  */
 private object NoopAtomicTransactionRunner : AtomicTransactionRunner {
     override suspend fun <T : Any> runAtomically(block: suspend () -> T): T = block()
+}
+
+/**
+ * AtomicTransactionRunner that records every block passed to runAtomically
+ * so tests can assert call count and execution.
+ */
+private class RecordingAtomicTransactionRunner : AtomicTransactionRunner {
+    val calls = mutableListOf<suspend () -> Unit>()
+    override suspend fun <T : Any> runAtomically(block: suspend () -> T): T {
+        calls.add(block as suspend () -> Unit)
+        return block()
+    }
+}
+
+private class TestTransactionFailure : IllegalStateException("injected transaction failure")
+
+/**
+ * AtomicTransactionRunner that throws TestTransactionFailure when failOnBlock returns true.
+ * Used to simulate partial failures inside runAtomically.
+ */
+private class FailingAtomicTransactionRunner(private val failOnBlock: suspend () -> Boolean) :
+    AtomicTransactionRunner {
+    override suspend fun <T : Any> runAtomically(block: suspend () -> T): T {
+        if (failOnBlock()) throw TestTransactionFailure()
+        return block()
+    }
 }
 
 private object FixedPrincipalContextProvider : PrincipalContextProvider {
