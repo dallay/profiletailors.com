@@ -1,8 +1,23 @@
 package com.profiletailors.smp.publishing.integration
 
+import com.profiletailors.common.domain.context.PrincipalContext
+import com.profiletailors.common.domain.context.PrincipalContextProvider
+import com.profiletailors.common.domain.context.PrincipalType
+import com.profiletailors.common.domain.context.ResourceContext
+import com.profiletailors.common.domain.context.ResourceContextProvider
+import com.profiletailors.common.domain.context.ResourceContextType
 import com.profiletailors.common.domain.persistence.AtomicTransactionRunner
 import com.profiletailors.smp.media.infrastructure.persistence.R2dbcAtomicTransactionRunner
+import com.profiletailors.smp.publishing.application.CompleteLinkedInConnectionCommand
+import com.profiletailors.smp.publishing.application.CompleteLinkedInConnectionHandler
+import com.profiletailors.smp.publishing.domain.ChannelEvent
+import com.profiletailors.smp.publishing.domain.ChannelEventPublisher
+import com.profiletailors.smp.publishing.domain.CompleteProviderConnectionCommand
 import com.profiletailors.smp.publishing.domain.JobStatus
+import com.profiletailors.smp.publishing.domain.LinkedInOAuthStatePayload
+import com.profiletailors.smp.publishing.domain.OAuthStateSigner
+import com.profiletailors.smp.publishing.domain.ProviderAccountProfile
+import com.profiletailors.smp.publishing.domain.ProviderConnectionResult
 import com.profiletailors.smp.publishing.domain.PublicationDraft
 import com.profiletailors.smp.publishing.domain.PublicationJob
 import com.profiletailors.smp.publishing.domain.PublicationJobClaim
@@ -10,10 +25,17 @@ import com.profiletailors.smp.publishing.domain.PublicationJobRepository
 import com.profiletailors.smp.publishing.domain.PublicationSchedulingPolicy
 import com.profiletailors.smp.publishing.domain.PublicationStatus
 import com.profiletailors.smp.publishing.domain.ScheduleMode
+import com.profiletailors.smp.publishing.domain.SocialAccount
+import com.profiletailors.smp.publishing.domain.SocialAccountKind
+import com.profiletailors.smp.publishing.domain.SocialAccountRepository
+import com.profiletailors.smp.publishing.domain.SocialConnectionProvider
 import com.profiletailors.smp.publishing.domain.SocialProvider
 import com.profiletailors.smp.publishing.infrastructure.persistence.R2dbcPublicationJobRepository
 import com.profiletailors.smp.publishing.infrastructure.persistence.R2dbcPublicationRepository
+import com.profiletailors.smp.publishing.infrastructure.persistence.R2dbcSocialAccountRepository
+import com.profiletailors.smp.publishing.infrastructure.persistence.R2dbcSocialConnectionRepository
 import com.profiletailors.smp.test.TestStorageConfiguration
+import io.micrometer.core.instrument.simple.SimpleMeterRegistry
 import kotlinx.coroutines.reactor.awaitSingle
 import kotlinx.coroutines.reactor.awaitSingleOrNull
 import kotlinx.coroutines.test.runTest
@@ -58,6 +80,8 @@ class PublishingHandlersTransactionPostgresIntegrationTest {
 
     private lateinit var publicationRepository: R2dbcPublicationRepository
     private lateinit var jobRepository: R2dbcPublicationJobRepository
+    private lateinit var socialConnectionRepository: R2dbcSocialConnectionRepository
+    private lateinit var socialAccountRepository: R2dbcSocialAccountRepository
     private lateinit var transactionRunner: AtomicTransactionRunner
     private val schedulingPolicy = PublicationSchedulingPolicy()
     private val now: Instant = Instant.parse("2026-05-26T12:00:00Z")
@@ -69,7 +93,41 @@ class PublishingHandlersTransactionPostgresIntegrationTest {
         seedAssets()
         publicationRepository = R2dbcPublicationRepository(databaseClient)
         jobRepository = R2dbcPublicationJobRepository(databaseClient)
+        socialConnectionRepository = R2dbcSocialConnectionRepository(databaseClient)
+        socialAccountRepository = R2dbcSocialAccountRepository(databaseClient, SimpleMeterRegistry())
         transactionRunner = R2dbcAtomicTransactionRunner(TransactionalOperator.create(transactionManager))
+    }
+
+    @Test
+    fun `linkedin completion rolls back social connection when account upsert fails`() = runTest {
+        val eventPublisher = CapturingChannelEventPublisher()
+        val handler = CompleteLinkedInConnectionHandler(
+            principalContextProvider = FixedPrincipalContextProvider(),
+            resourceContextProvider = FixedResourceContextProvider(),
+            socialConnectionProvider = FakeSocialConnectionProvider(),
+            oauthStateSigner = FixedOAuthStateSigner(),
+            socialConnectionRepository = socialConnectionRepository,
+            socialAccountRepository = FailingSocialAccountRepository(socialAccountRepository),
+            channelEventPublisher = eventPublisher,
+            clock = java.time.Clock.fixed(now, java.time.ZoneOffset.UTC),
+            transactionRunner = transactionRunner,
+        )
+
+        assertThrows(InjectedSocialAccountFailure::class.java) {
+            kotlinx.coroutines.runBlocking {
+                handler.handle(
+                    CompleteLinkedInConnectionCommand(
+                        authorizationCode = "oauth-code-193",
+                        redirectUri = "https://app.example.com/callback",
+                        state = "state-193",
+                    ),
+                )
+            }
+        }
+
+        assertNull(socialConnectionByProviderRef("linkedin-connection-193"))
+        assertNull(socialAccountByProviderAccountId("linkedin-account-193"))
+        assertEquals(emptyList<ChannelEvent>(), eventPublisher.events)
     }
 
     @Test
@@ -351,6 +409,24 @@ class PublishingHandlersTransactionPostgresIntegrationTest {
         .one()
         .awaitSingleOrNull()
 
+    private suspend fun socialConnectionByProviderRef(providerConnectionRef: String): Map<String, Any>? =
+        databaseClient.sql(
+            "SELECT id FROM social_connections WHERE provider_connection_ref = :providerConnectionRef",
+        )
+            .bind("providerConnectionRef", providerConnectionRef)
+            .fetch()
+            .one()
+            .awaitSingleOrNull()
+
+    private suspend fun socialAccountByProviderAccountId(providerAccountId: String): Map<String, Any>? =
+        databaseClient.sql(
+            "SELECT id FROM social_accounts WHERE provider_account_id = :providerAccountId",
+        )
+            .bind("providerAccountId", providerAccountId)
+            .fetch()
+            .one()
+            .awaitSingleOrNull()
+
     private suspend fun assetLinks(publicationId: String): List<String> = databaseClient.sql(
         """
         SELECT asset_id
@@ -430,7 +506,66 @@ class PublishingHandlersTransactionPostgresIntegrationTest {
         }
     }
 
+    private class InjectedSocialAccountFailure : RuntimeException("Injected social account repository failure")
+
     private class InjectedJobFailure : RuntimeException("Injected job repository failure")
+
+    private class FixedPrincipalContextProvider : PrincipalContextProvider {
+        override suspend fun current(): PrincipalContext = PrincipalContext(
+            principalId = "principal-1",
+            principalType = PrincipalType.USER,
+            subject = "local:owner@example.com",
+        )
+    }
+
+    private class FixedResourceContextProvider : ResourceContextProvider {
+        override fun current(): ResourceContext = ResourceContext(
+            type = ResourceContextType.WORKSPACE,
+            workspaceId = "workspace-1",
+        )
+    }
+
+    private class FixedOAuthStateSigner : OAuthStateSigner {
+        override fun sign(payload: LinkedInOAuthStatePayload): String = "state-193"
+
+        override fun verify(state: String): LinkedInOAuthStatePayload = LinkedInOAuthStatePayload(
+            provider = SocialProvider.LINKEDIN,
+            workspaceId = "workspace-1",
+            principalId = "principal-1",
+            redirectUri = "https://app.example.com/callback",
+            nonce = "nonce-193",
+            issuedAt = Instant.parse("2026-05-26T12:00:00Z"),
+            expiresAt = Instant.parse("2026-05-26T12:10:00Z"),
+        )
+    }
+
+    private class FakeSocialConnectionProvider : SocialConnectionProvider {
+        override suspend fun completeConnection(command: CompleteProviderConnectionCommand): ProviderConnectionResult =
+            ProviderConnectionResult(
+                provider = SocialProvider.LINKEDIN,
+                providerConnectionRef = "linkedin-connection-193",
+                credentialReference = "secret-ref-193",
+                account = ProviderAccountProfile(
+                    providerAccountId = "linkedin-account-193",
+                    displayName = "Issue 193",
+                    kind = SocialAccountKind.PERSONAL_PROFILE,
+                    profileUrn = "urn:li:person:193",
+                ),
+            )
+    }
+
+    private class FailingSocialAccountRepository(private val delegate: SocialAccountRepository) :
+        SocialAccountRepository by delegate {
+        override suspend fun upsert(account: SocialAccount): SocialAccount = throw InjectedSocialAccountFailure()
+    }
+
+    private class CapturingChannelEventPublisher : ChannelEventPublisher {
+        val events = mutableListOf<ChannelEvent>()
+
+        override fun publish(event: ChannelEvent) {
+            events += event
+        }
+    }
 
     private class FailingJobRepository(
         private val delegate: PublicationJobRepository,
