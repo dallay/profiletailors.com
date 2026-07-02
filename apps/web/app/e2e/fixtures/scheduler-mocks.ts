@@ -69,6 +69,8 @@ interface MockPublication {
   title: string | null
   bodyText: string | null
   scheduledFor: string | null
+  nextSlotAfter: string | null
+  assetIds: string[]
   hasConflict: boolean
   conflictingPublicationIds: string[]
   externalPublicationId?: string | null
@@ -158,7 +160,7 @@ export async function registerSchedulerMocks(context: BrowserContext): Promise<v
     if (method === 'POST') {
       const body = route.request().postDataJSON()
       const pub: MockPublication = {
-        id: `pub-${Date.now()}`,
+        id: `backend-publication-${Date.now()}`,
         workspaceId: MOCK_WORKSPACE_ID,
         socialAccountId: body?.socialAccountId ?? MOCK_SOCIAL_ACCOUNT_ID,
         provider: 'linkedin',
@@ -167,12 +169,14 @@ export async function registerSchedulerMocks(context: BrowserContext): Promise<v
         priority: body?.priority ?? false,
         title: body?.title ?? null,
         bodyText: body?.bodyText ?? null,
-        scheduledFor: body?.scheduledFor ?? new Date().toISOString(),
+        scheduledFor: body?.scheduledFor ?? null,
+        nextSlotAfter: body?.nextSlotAfter ?? null,
+        assetIds: body?.assetIds ?? [],
         hasConflict: false,
         conflictingPublicationIds: [],
       }
       publications.unshift(pub)
-      route.fulfill(json(pub, 201))
+      route.fulfill(json({ ...pub, publicationId: pub.id }, 201))
       return
     }
 
@@ -198,7 +202,9 @@ export async function registerSchedulerMocks(context: BrowserContext): Promise<v
       priority: body?.priority ?? false,
       title: body?.title ?? 'Quick post',
       bodyText: body?.bodyText ?? null,
-      scheduledFor: body?.scheduledFor ?? new Date().toISOString(),
+      scheduledFor: body?.scheduledFor ?? null,
+      nextSlotAfter: null,
+      assetIds: [],
       hasConflict: false,
       conflictingPublicationIds: [],
     }
@@ -391,7 +397,9 @@ export async function createPublicationInStore(
     priority,
     title,
     bodyText: text,
-    scheduledFor: new Date().toISOString(),
+    scheduledFor: null,
+    nextSlotAfter: null,
+    assetIds: [],
     hasConflict: false,
     conflictingPublicationIds: [],
   }
@@ -401,7 +409,8 @@ export async function createPublicationInStore(
     content: text,
     title: calendarPublication.title ?? undefined,
     channels: ['linkedin'],
-    scheduledAt: calendarPublication.scheduledFor ?? new Date().toISOString(),
+    scheduledAt: calendarPublication.scheduledFor ?? '',
+    scheduleMode: calendarPublication.scheduleMode,
     status: 'QUEUED',
     priority,
     accountId: MOCK_SOCIAL_ACCOUNT_ID,

@@ -156,13 +156,18 @@ async function initEditMode(pub: NonNullable<typeof props.editingPublication>) {
     ?? null
   selectedChannelId.value = pubChannelId
 
-  const dateSrc = pub.scheduledAt ? new Date(pub.scheduledAt) : new Date()
-  selectedCalendarDate.value = new CalendarDate(
-    dateSrc.getFullYear(),
-    dateSrc.getMonth() + 1,
-    dateSrc.getDate(),
-  )
-  scheduleTime.value = `${String(dateSrc.getHours()).padStart(2, '0')}:${String(dateSrc.getMinutes()).padStart(2, '0')}`
+  if (scheduleMode.value === 'custom' && pub.scheduledAt) {
+    const dateSrc = new Date(pub.scheduledAt)
+    selectedCalendarDate.value = new CalendarDate(
+      dateSrc.getFullYear(),
+      dateSrc.getMonth() + 1,
+      dateSrc.getDate(),
+    )
+    scheduleTime.value = `${String(dateSrc.getHours()).padStart(2, '0')}:${String(dateSrc.getMinutes()).padStart(2, '0')}`
+  } else {
+    selectedCalendarDate.value = undefined
+    scheduleTime.value = ''
+  }
 }
 
 function initCreateMode() {

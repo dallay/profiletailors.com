@@ -5,6 +5,14 @@ import { createPinia, setActivePinia } from 'pinia'
 import PostDetailModal from './PostDetailModal.vue'
 import type { Publication } from '@/stores/publishing'
 
+interface StoreOverrides {
+  rescheduleResult: Publication | undefined
+  rescheduleError: Error | undefined
+  deleteError: Error | undefined
+  isPublicationEditable: (status: Publication['status']) => boolean
+  isPublicationDeletable: (status: Publication['status']) => boolean
+}
+
 const { storeOverrides, mockReschedule, mockDelete } = vi.hoisted(() => ({
   storeOverrides: {
     rescheduleResult: undefined as Publication | undefined,
@@ -12,7 +20,7 @@ const { storeOverrides, mockReschedule, mockDelete } = vi.hoisted(() => ({
     deleteError: undefined as Error | undefined,
     isPublicationEditable: (_status: Publication['status']) => true,
     isPublicationDeletable: (_status: Publication['status']) => true,
-  },
+  } as StoreOverrides,
   mockReschedule: vi.fn(),
   mockDelete: vi.fn(),
 }))

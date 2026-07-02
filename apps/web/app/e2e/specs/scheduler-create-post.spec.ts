@@ -3,6 +3,8 @@ import { SchedulerPage } from '../pages/scheduler-page'
 import { ComposeModalPage } from '../pages/compose-modal-page'
 import { authenticateAs } from '../fixtures/auth-helpers'
 import { ensureChannelsLoaded } from '../fixtures/scheduler-mocks'
+import { PostDetailModalPage } from '../pages/post-detail-modal-page'
+import { mediaFiles } from '../fixtures/media-files'
 
 test.describe('Scheduler — Create Post', () => {
   test.beforeEach(async ({ page }) => {
@@ -50,6 +52,107 @@ test.describe('Scheduler — Create Post', () => {
     // Verify the post card is in the list
     const postCard = page.locator('div').filter({ hasText: testText }).first()
     await expect(postCard).toBeVisible()
+  })
+
+  test('TC-05A: authenticated create reopens and PATCHes backend ID while preserving media @creation @edit @media', async ({
+    page,
+  }) => {
+    const scheduler = new SchedulerPage(page)
+    const composeModal = new ComposeModalPage(page)
+    const detailModal = new PostDetailModalPage(page)
+    const text = `Real ID create ${Date.now()}`
+    const updatedText = `${text} updated`
+    const backendId = 'backend-publication-real-id'
+    const assetId = 'asset-preserved-1'
+    let patchUrl = ''
+    let patchBody: Record<string, unknown> | null = null
+
+    await page.route('**/api/media/assets/reserve', async (route) => {
+      await route.fulfill({
+        status: 201,
+        contentType: 'application/json',
+        body: JSON.stringify({
+          assetId,
+          workspaceId: 'workspace-001',
+          sourceType: 'UPLOADED',
+          mediaType: 'image/png',
+          status: 'READY',
+          originalFilename: 'base.png',
+          fileSizeBytes: 68,
+          createdAt: new Date().toISOString(),
+          previewUrl: `/api/media/assets/${assetId}/preview`,
+        }),
+      })
+    })
+    await page.route('**/api/publishing/publications', async (route) => {
+      const body = route.request().postDataJSON() as Record<string, unknown>
+      await route.fulfill({
+        status: 201,
+        contentType: 'application/json',
+        body: JSON.stringify({
+          publicationId: backendId,
+          workspaceId: 'workspace-001',
+          socialAccountId: 'sa-linkedin-001',
+          status: 'QUEUED',
+          scheduleMode: 'NOW',
+          priority: false,
+          title: 'Post from App',
+          bodyText: body.bodyText,
+          assetIds: [assetId],
+          scheduledFor: null,
+          nextSlotAfter: null,
+        }),
+      })
+    })
+    await page.route(`**/api/publishing/publications/${backendId}`, async (route) => {
+      if (route.request().method() !== 'PATCH') return route.fallback()
+      patchUrl = route.request().url()
+      patchBody = route.request().postDataJSON() as Record<string, unknown>
+      await route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify({
+          publicationId: backendId,
+          workspaceId: 'workspace-001',
+          socialAccountId: 'sa-linkedin-001',
+          status: 'QUEUED',
+          scheduleMode: 'NOW',
+          priority: false,
+          title: 'Post from App',
+          bodyText: updatedText,
+          assetIds: [assetId],
+          scheduledFor: null,
+          nextSlotAfter: null,
+        }),
+      })
+    })
+
+    await scheduler.clickNewPost()
+    await composeModal.expectVisible()
+    await composeModal.fillText(text)
+    await composeModal.attachMedia(mediaFiles.base.path)
+    await composeModal.clickScheduleNow()
+    await composeModal.expectHidden()
+
+    await scheduler.switchToList()
+    await page
+      .getByRole('button', { name: new RegExp(text) })
+      .first()
+      .click()
+    await detailModal.expectVisible()
+    await page
+      .getByRole('dialog')
+      .getByRole('button', { name: /edit|editar/i })
+      .click()
+    await composeModal.expectVisible()
+    await expect(composeModal.attachmentPreview).toBeVisible()
+    await composeModal.fillText(updatedText)
+    await page.getByRole('button', { name: /save|guardar/i }).click()
+    await composeModal.expectHidden()
+
+    expect(patchUrl).toContain(`/api/publishing/publications/${backendId}`)
+    expect(patchBody).not.toHaveProperty('assetIds')
+    await expect(page.getByRole('button', { name: new RegExp(updatedText) })).toBeVisible()
   })
 
   /**
