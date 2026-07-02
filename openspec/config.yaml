@@ -24,7 +24,7 @@ rules:
   apply:
     - Follow existing code patterns and conventions
     - Load relevant coding skills for the project stack
-    tdd: false
+    tdd: true
     test_command: "./gradlew test"
   verify:
     - Run tests if test infrastructure exists
