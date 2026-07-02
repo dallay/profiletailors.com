@@ -766,26 +766,53 @@ describe('CreatePostModal.vue — edit mode', () => {
     expect(document.body.innerHTML).toContain('Jun 25, 2030')
   })
 
-  it('maps NOW and NEXT_SLOT schedule modes into edit-mode toggle state', async () => {
+  it('initializes a real reconciled NOW response as NOW without stale custom controls', async () => {
+    const wrapper = mountModal([makeChannel('9f06a3c8-account')], {
+      editingPublication: makeEditingPublication({
+        id: '8a25f709-40f6-4ab0-b5ae-f79bdcf4d395',
+        accountId: '9f06a3c8-account',
+        scheduleMode: 'NOW',
+        scheduledAt: '2026-07-02T15:25:38.050321Z',
+        assetIds: ['real-media-asset-id'],
+      }),
+    })
+    await wrapper.vm.$nextTick()
+
+    expect(
+      document.body.querySelector<HTMLInputElement>('input[type="radio"]:checked')?.closest('label')
+        ?.textContent,
+    ).toContain('Now')
+    expect(document.body.querySelector<HTMLInputElement>('input[type="time"]')).toBeNull()
+    expect(document.body.innerHTML).not.toContain('Jul 2, 2026')
+  })
+
+  it('maps NOW and NEXT_SLOT without stale custom date or time values', async () => {
     const nowWrapper = mountModal([makeChannel('ch-edit-1')], {
-      editingPublication: makeEditingPublication({ scheduleMode: 'NOW' }),
+      editingPublication: makeEditingPublication({ scheduleMode: 'NOW', scheduledAt: '' }),
     })
     await nowWrapper.vm.$nextTick()
     expect(
       document.body.querySelector<HTMLInputElement>('input[type="radio"]:checked')?.closest('label')
         ?.textContent,
     ).toContain('Now')
+    expect(document.body.querySelector<HTMLInputElement>('input[type="time"]')).toBeNull()
+    expect(document.body.innerHTML).not.toContain('Jun 25, 2030')
     nowWrapper.unmount()
     document.body.innerHTML = ''
 
     const nextWrapper = mountModal([makeChannel('ch-edit-1')], {
-      editingPublication: makeEditingPublication({ scheduleMode: 'NEXT_SLOT' }),
+      editingPublication: makeEditingPublication({
+        scheduleMode: 'NEXT_SLOT',
+        scheduledAt: '2026-06-20T15:00:00Z',
+      }),
     })
     await nextWrapper.vm.$nextTick()
     expect(
       document.body.querySelector<HTMLInputElement>('input[type="radio"]:checked')?.closest('label')
         ?.textContent,
     ).toContain('Next Schedule')
+    expect(document.body.querySelector<HTMLInputElement>('input[type="time"]')).toBeNull()
+    expect(document.body.innerHTML).not.toContain('Jun 20, 2026')
   })
 
   it('submits NOW mode edit through updatePost with NOW scheduleMode preserved', async () => {
