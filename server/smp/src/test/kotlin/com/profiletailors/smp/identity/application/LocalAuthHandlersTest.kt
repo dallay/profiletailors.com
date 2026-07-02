@@ -18,7 +18,6 @@ import com.profiletailors.smp.identity.infrastructure.BCryptPasswordHasher
 import com.profiletailors.smp.tenancy.application.WorkspaceProvisioningService
 import kotlinx.coroutines.test.runTest
 import org.junit.jupiter.api.Assertions.assertEquals
-import org.junit.jupiter.api.Assertions.assertFalse
 import org.junit.jupiter.api.Assertions.assertNotNull
 import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.Test
@@ -409,7 +408,7 @@ class LocalAuthHandlersTest {
     // ── VerifyEmailHandler transaction tests ───────────────────────────────────
 
     @Test
-    fun `verifyEmail wraps markTokenUsed and updateEmailStatus in transaction`() = runTest {
+    fun `should wrap email verification writes in a transaction when verification succeeds`() = runTest {
         val order = mutableListOf<String>()
         val identityGateway = object : FakeIdentityRegistrationGateway(order) {
             override suspend fun verifyEmailToken(tokenHash: String): EmailVerificationTokenData? {
@@ -461,7 +460,7 @@ class LocalAuthHandlersTest {
     }
 
     @Test
-    fun `verifyEmail rolls back when updateEmailStatus fails`() = runTest {
+    fun `should roll back email verification writes when updating email status fails`() = runTest {
         val order = mutableListOf<String>()
         val identityGateway = object : FakeIdentityRegistrationGateway(order) {
             override suspend fun verifyEmailToken(tokenHash: String): EmailVerificationTokenData? =
@@ -472,7 +471,7 @@ class LocalAuthHandlersTest {
                     usedAt = null,
                 )
 
-            override suspend fun updateEmailStatus(email: String, status: EmailStatus) {
+            override suspend fun updateEmailStatus(email: String, emailStatus: EmailStatus) {
                 order.add("updateEmailStatus")
                 throw IllegalStateException("DB error")
             }
@@ -506,16 +505,21 @@ class LocalAuthHandlersTest {
             assertEquals("DB error", e.message)
         }
 
-        // Verify tx:commit was NOT called because transaction rolled back
-        // Note: markTokenUsed was called (before updateEmailStatus threw) but since
-        // the transaction didn't commit, a real DB would rollback those changes.
-        assertFalse(order.contains("tx:commit"))
+        assertEquals(
+            listOf(
+                "tx:start",
+                "markTokenUsed",
+                "updateEmailStatus",
+                "tx:rollback",
+            ),
+            order,
+        )
     }
 
     // ── ResendVerificationHandler transaction tests ─────────────────────────────
 
     @Test
-    fun `resendVerification wraps invalidateEmailTokens and createEmailVerificationToken in transaction`() = runTest {
+    fun `should wrap resend verification writes in a transaction when resending succeeds`() = runTest {
         val order = mutableListOf<String>()
         val identityGateway = FakeIdentityRegistrationGateway(order)
         val principalLookup = FakePrincipalIdentityLookup(
@@ -554,7 +558,7 @@ class LocalAuthHandlersTest {
     }
 
     @Test
-    fun `resendVerification rolls back when createEmailVerificationToken fails`() = runTest {
+    fun `should roll back resend verification writes when creating the new token fails`() = runTest {
         val order = mutableListOf<String>()
         val identityGateway = object : FakeIdentityRegistrationGateway(order) {
             override suspend fun createEmailVerificationToken(email: String, tokenHash: String, expiresAt: Instant) {
@@ -590,10 +594,15 @@ class LocalAuthHandlersTest {
             assertEquals("DB error", e.message)
         }
 
-        // Verify invalidateEmailTokens was called but NOT committed because transaction rolled back
-        assertTrue(order.contains("invalidateEmailTokens"))
-        assertFalse(order.contains("tx:commit"))
-        assertFalse(order.contains("event:publish"))
+        assertEquals(
+            listOf(
+                "tx:start",
+                "invalidateEmailTokens",
+                "token:create",
+                "tx:rollback",
+            ),
+            order,
+        )
     }
 
     // ── issueAuthSession tests (covers AuthSessionContext data class) ─────────
@@ -688,9 +697,12 @@ class LocalAuthHandlersTest {
         override suspend fun <T : Any> runAtomically(block: suspend () -> T): T {
             invocations += 1
             order += "tx:start"
-            val result = block()
-            order += "tx:commit"
-            return result
+            return try {
+                block().also { order += "tx:commit" }
+            } catch (error: Throwable) {
+                order += "tx:rollback"
+                throw error
+            }
         }
     }
 

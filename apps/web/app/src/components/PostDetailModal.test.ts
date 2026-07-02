@@ -5,26 +5,24 @@ import { createPinia, setActivePinia } from 'pinia'
 import PostDetailModal from './PostDetailModal.vue'
 import type { Publication } from '@/stores/publishing'
 
-// Mutable config — vi.mock captures these by closure, so each test can override before mounting
-const storeOverrides = {
-  rescheduleResult: undefined as Publication | undefined,
-  rescheduleError: undefined as Error | undefined,
-  deleteError: undefined as Error | undefined,
-  isPublicationEditable: true,
-  isPublicationDeletable: true,
-}
-
-const mockReschedule = vi.fn()
-const mockDelete = vi.fn()
+const { storeOverrides, mockReschedule, mockDelete } = vi.hoisted(() => ({
+  storeOverrides: {
+    rescheduleResult: undefined as Publication | undefined,
+    rescheduleError: undefined as Error | undefined,
+    deleteError: undefined as Error | undefined,
+    isPublicationEditable: (_status: Publication['status']) => true,
+    isPublicationDeletable: (_status: Publication['status']) => true,
+  },
+  mockReschedule: vi.fn(),
+  mockDelete: vi.fn(),
+}))
 
 vi.mock('@/stores/publishing', () => ({
   usePublishingStore: () => ({
     reschedulePublication: mockReschedule,
     deletePost: mockDelete,
-    isPublicationEditable: (status: string) =>
-      storeOverrides.isPublicationEditable?.(status) ?? true,
-    isPublicationDeletable: (status: string) =>
-      storeOverrides.isPublicationDeletable?.(status) ?? true,
+    isPublicationEditable: storeOverrides.isPublicationEditable,
+    isPublicationDeletable: storeOverrides.isPublicationDeletable,
   }),
 }))
 

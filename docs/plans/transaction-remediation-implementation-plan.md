@@ -6,11 +6,13 @@
 
 **Architecture:** Inject `AtomicTransactionRunner` into each handler, wrap multi-write operations in `runAtomically {}`, keep `eventPublisher.publish()` outside the transaction.
 
-**Tech Stack:** Kotlin, Spring WebFlux, R2DBC, `TransactionalOperator`, `AtomicTransactionRunner`, Kotest/JUnit, Testcontainers.
+**Tech Stack:** Kotlin, Spring WebFlux, R2DBC, `TransactionalOperator`, `AtomicTransactionRunner`, JUnit, Testcontainers.
 
----
+## Overview
 
-## File Overview
+This plan remediates partial-write risks in the email verification, verification resend, and LinkedIn connection flows. It preserves external provider calls and post-commit event publication outside the database transaction while grouping related database mutations under `AtomicTransactionRunner`.
+
+### File Overview
 
 | File | Change |
 |------|--------|
@@ -21,9 +23,9 @@
 | `server/smp/src/test/kotlin/.../identity/integration/LocalAuthTransactionPostgresIntegrationTest.kt` | New file: 2 integration tests for rollback |
 | `server/smp/src/test/kotlin/.../publishing/integration/PublishingHandlersTransactionPostgresIntegrationTest.kt` | Extend with 2 rollback tests (file already exists) |
 
----
+## Changes
 
-## Task 1: Add VerifyEmailHandler unit tests
+### Task 1: Add VerifyEmailHandler unit tests
 
 **Files:**
 - Modify: `server/smp/src/test/kotlin/com/profiletailors/smp/identity/application/LocalAuthHandlersTest.kt`
@@ -150,7 +152,7 @@ git commit -m "test: add VerifyEmailHandler transaction unit tests"
 
 ---
 
-## Task 2: Add ResendVerificationHandler unit tests
+### Task 2: Add ResendVerificationHandler unit tests
 
 **Files:**
 - Modify: `server/smp/src/test/kotlin/com/profiletailors/smp/identity/application/LocalAuthHandlersTest.kt`
@@ -263,7 +265,7 @@ git commit -m "test: add ResendVerificationHandler transaction unit tests"
 
 ---
 
-## Task 3: Fix VerifyEmailHandler and ResendVerificationHandler
+### Task 3: Fix VerifyEmailHandler and ResendVerificationHandler
 
 **Files:**
 - Modify: `server/smp/src/main/kotlin/com/profiletailors/smp/identity/application/LocalAuthHandlers.kt`
@@ -377,7 +379,7 @@ git commit -m "feat: wrap VerifyEmailHandler and ResendVerificationHandler multi
 
 ---
 
-## Task 4: Fix CompleteLinkedInConnectionHandler
+### Task 4: Fix CompleteLinkedInConnectionHandler
 
 **Files:**
 - Modify: `server/smp/src/main/kotlin/com/profiletailors/smp/publishing/application/PublishingHandlers.kt`
@@ -489,7 +491,7 @@ git commit -m "feat: wrap CompleteLinkedInConnectionHandler multi-write in trans
 
 ---
 
-## Task 5: Add CompleteLinkedInConnectionHandler unit tests
+### Task 5: Add CompleteLinkedInConnectionHandler unit tests
 
 **Files:**
 - Modify: `server/smp/src/test/kotlin/com/profiletailors/smp/publishing/application/PublishingHandlersTest.kt`
@@ -621,7 +623,7 @@ git commit -m "test: add CompleteLinkedInConnectionHandler transaction unit test
 
 ---
 
-## Task 6: Add Postgres integration tests
+### Task 6: Add Postgres integration tests
 
 **Files:**
 - Create: `server/smp/src/test/kotlin/com/profiletailors/smp/identity/integration/LocalAuthTransactionPostgresIntegrationTest.kt`
@@ -716,7 +718,9 @@ git commit -m "test: add Postgres integration tests for transaction rollback"
 
 ---
 
-## Task 7: Final verification
+## Usage
+
+### Task 7: Final verification
 
 - [ ] **Step 1: Run full test suite**
 
@@ -744,14 +748,14 @@ Closes #193"
 
 ---
 
-## Dependencies
+### Dependencies
 
-- Task 3 requires Task 1 (tests fail until handler is fixed)
-- Task 4 requires Task 5 (tests exist for it)
-- Task 6 requires Tasks 3 and 4 (handlers modified)
-- Tasks 1, 2, 5 can be done in parallel (separate test files)
+- Tasks 1 and 2 can run independently and establish the identity-handler unit tests.
+- Tasks 3 and 4 can run independently after their relevant unit-test coverage is in place.
+- Task 5 follows Task 4 and adds focused unit coverage for `CompleteLinkedInConnectionHandler`.
+- Task 6 follows Tasks 3, 4, and 5 and validates the completed handler changes against Postgres.
 
-## Running Tests
+### Running Tests
 
 ```bash
 # Fast unit tests (no Postgres)
@@ -765,3 +769,18 @@ just infra-down
 # Full CI
 just ci-local
 ```
+
+## Troubleshooting
+
+- If a unit test records `tx:commit` after a write throws, verify the recording runner emits `tx:rollback` and rethrows the original error.
+- If a Postgres rollback test leaves the first mutation persisted, verify every repository in the atomic block uses the same R2DBC connection and `TransactionalOperator`.
+- If event publication fails after commit, do not widen the database transaction around the external publisher; address reliable delivery separately with an approved outbox design.
+- If Testcontainers cannot start, run `just infra-up`, confirm Docker availability, and retry the Postgres-focused command.
+
+## References
+
+- [Issue #193](https://github.com/dallay/profiletailors.com/issues/193)
+- `AtomicTransactionRunner` in `shared/common`
+- `R2dbcAtomicTransactionRunner` and `PersistenceConfig`
+- `RegisterUserHandler` as the existing transaction-boundary pattern
+- `PublishingWorkerTransactionPostgresIntegrationTest` as the Postgres test pattern

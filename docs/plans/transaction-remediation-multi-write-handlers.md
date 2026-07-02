@@ -4,13 +4,11 @@
 
 **Date**: 2026-07-01
 
-## Status
+## Overview
 
-Draft — pending user approval.
+**Status**: Draft — pending user approval.
 
----
-
-## Problem
+### Problem
 
 Three handlers execute multiple database writes without transaction boundaries. If any write after the first succeeds but a subsequent write fails, the first write commits and the system enters an inconsistent state.
 
@@ -22,9 +20,9 @@ Three handlers execute multiple database writes without transaction boundaries. 
 | `ResendVerificationHandler` | `invalidateEmailTokens()` → `createEmailVerificationToken()` | Old tokens invalidated, no new token created. User cannot verify. |
 | `CompleteLinkedInConnectionHandler` | `upsert(connection)` → `upsert(account)` | Connection orphaned (no account). OAuth handshake partially succeeded. |
 
----
+## Changes
 
-## Solution
+### Solution
 
 Inject `AtomicTransactionRunner` into each handler and wrap multi-write operations in `runAtomically {}`.
 
@@ -58,7 +56,7 @@ This pattern already exists in `RegisterUserHandler` (lines 113-154).
 
 ---
 
-## Architecture
+### Architecture
 
 ### Dependencies
 
@@ -72,7 +70,9 @@ This pattern already exists in `RegisterUserHandler` (lines 113-154).
 
 ---
 
-## Testing Strategy
+## Usage
+
+### Testing Strategy
 
 ### Unit Tests (fast, TDD)
 
@@ -117,7 +117,7 @@ Following pattern of `PublishingWorkerTransactionPostgresIntegrationTest`.
 
 ---
 
-## Files to Change
+### Files to Change
 
 | File | Change |
 |------|--------|
@@ -130,7 +130,15 @@ Following pattern of `PublishingWorkerTransactionPostgresIntegrationTest`.
 
 ---
 
-## Acceptance Criteria
+## Troubleshooting
+
+- If a rollback test observes the first write after the second write fails, verify both repositories use the same `TransactionalOperator` through `AtomicTransactionRunner`.
+- If event delivery fails after commit, treat it as a separate reliability concern; the current design keeps event publication outside the database transaction and does not provide an outbox.
+- If Postgres integration tests are unavailable, run the focused unit tests and record the missing infrastructure validation.
+
+## References
+
+### Acceptance Criteria
 
 - [ ] `VerifyEmailHandler` wraps `markTokenUsed` + `updateEmailStatus` in transaction
 - [ ] `ResendVerificationHandler` wraps `invalidateEmailTokens` + `createEmailVerificationToken` in transaction
