@@ -208,16 +208,7 @@ class LocalAuthHandlersTest {
             ),
             passwordHasher = FakePasswordHasher(),
             principalIdentityLookup = FakePrincipalIdentityLookup(
-                principalFacts = PrincipalIdentityFacts(
-                    principalId = "user-1",
-                    principalType = com.profiletailors.common.domain.context.PrincipalType.USER,
-                    subject = "local:yuniel@example.com",
-                    provider = null,
-                    displayIdentity = "yuniel",
-                    email = "yuniel@example.com",
-                    username = "yuniel",
-                    emailStatus = EmailStatus.VERIFIED,
-                ),
+                principalFacts = identityFacts(EmailStatus.VERIFIED),
             ),
             localJwtIssuer = FakeLocalJwtIssuer(),
             refreshSessionLifecycleService = fakeRefreshLifecycleService(),
@@ -244,16 +235,7 @@ class LocalAuthHandlersTest {
             ),
             passwordHasher = FakePasswordHasher(),
             principalIdentityLookup = FakePrincipalIdentityLookup(
-                principalFacts = PrincipalIdentityFacts(
-                    principalId = "user-1",
-                    principalType = com.profiletailors.common.domain.context.PrincipalType.USER,
-                    subject = "local:yuniel@example.com",
-                    provider = null,
-                    displayIdentity = "yuniel",
-                    email = "yuniel@example.com",
-                    username = "yuniel",
-                    emailStatus = EmailStatus.PENDING,
-                ),
+                principalFacts = identityFacts(),
             ),
             localJwtIssuer = FakeLocalJwtIssuer(),
             refreshSessionLifecycleService = fakeRefreshLifecycleService(),
@@ -272,16 +254,7 @@ class LocalAuthHandlersTest {
     fun `refreshes user session with verified email`() = runTest {
         val handler = RefreshUserSessionHandler(
             principalIdentityLookup = FakePrincipalIdentityLookup(
-                principalFacts = PrincipalIdentityFacts(
-                    principalId = "user-1",
-                    principalType = com.profiletailors.common.domain.context.PrincipalType.USER,
-                    subject = "local:yuniel@example.com",
-                    provider = null,
-                    displayIdentity = "yuniel",
-                    email = "yuniel@example.com",
-                    username = "yuniel",
-                    emailStatus = EmailStatus.VERIFIED,
-                ),
+                principalFacts = identityFacts(EmailStatus.VERIFIED),
             ),
             localJwtIssuer = FakeLocalJwtIssuer(),
             refreshSessionLifecycleService = fakeRefreshLifecycleService(),
@@ -299,16 +272,7 @@ class LocalAuthHandlersTest {
     fun `allows refresh with unverified email`() = runTest {
         val handler = RefreshUserSessionHandler(
             principalIdentityLookup = FakePrincipalIdentityLookup(
-                principalFacts = PrincipalIdentityFacts(
-                    principalId = "user-1",
-                    principalType = com.profiletailors.common.domain.context.PrincipalType.USER,
-                    subject = "local:yuniel@example.com",
-                    provider = null,
-                    displayIdentity = "yuniel",
-                    email = "yuniel@example.com",
-                    username = "yuniel",
-                    emailStatus = EmailStatus.PENDING,
-                ),
+                principalFacts = identityFacts(),
             ),
             localJwtIssuer = FakeLocalJwtIssuer(),
             refreshSessionLifecycleService = fakeRefreshLifecycleService(),
@@ -346,16 +310,7 @@ class LocalAuthHandlersTest {
     fun `resend verification invalidates old tokens and publishes event`() = runTest {
         val identityRegistrationGateway = FakeIdentityRegistrationGateway()
         val principalLookup = FakePrincipalIdentityLookup(
-            principalFacts = PrincipalIdentityFacts(
-                principalId = "user-1",
-                principalType = com.profiletailors.common.domain.context.PrincipalType.USER,
-                subject = "local:yuniel@example.com",
-                provider = null,
-                displayIdentity = "yuniel",
-                email = "yuniel@example.com",
-                username = "yuniel",
-                emailStatus = EmailStatus.PENDING,
-            ),
+            principalFacts = identityFacts(),
         )
         val eventPublisher = RecordingEventPublisher()
         val transactionRunner = NoopAtomicTransactionRunner
@@ -422,16 +377,7 @@ class LocalAuthHandlersTest {
             }
         }
         val principalLookup = FakePrincipalIdentityLookup(
-            principalFacts = PrincipalIdentityFacts(
-                principalId = "user-1",
-                principalType = com.profiletailors.common.domain.context.PrincipalType.USER,
-                subject = "local:yuniel@example.com",
-                provider = null,
-                displayIdentity = "yuniel",
-                email = "yuniel@example.com",
-                username = "yuniel",
-                emailStatus = EmailStatus.PENDING,
-            ),
+            principalFacts = identityFacts(),
         )
         val transactionRunner = RecordingAtomicTransactionRunner(order)
         val handler = VerifyEmailHandler(
@@ -477,16 +423,7 @@ class LocalAuthHandlersTest {
             }
         }
         val principalLookup = FakePrincipalIdentityLookup(
-            principalFacts = PrincipalIdentityFacts(
-                principalId = "user-1",
-                principalType = com.profiletailors.common.domain.context.PrincipalType.USER,
-                subject = "local:yuniel@example.com",
-                provider = null,
-                displayIdentity = "yuniel",
-                email = "yuniel@example.com",
-                username = "yuniel",
-                emailStatus = EmailStatus.PENDING,
-            ),
+            principalFacts = identityFacts(),
         )
         val transactionRunner = RecordingAtomicTransactionRunner(order)
         val handler = VerifyEmailHandler(
@@ -523,16 +460,7 @@ class LocalAuthHandlersTest {
         val order = mutableListOf<String>()
         val identityGateway = FakeIdentityRegistrationGateway(order)
         val principalLookup = FakePrincipalIdentityLookup(
-            principalFacts = PrincipalIdentityFacts(
-                principalId = "user-1",
-                principalType = com.profiletailors.common.domain.context.PrincipalType.USER,
-                subject = "local:yuniel@example.com",
-                provider = null,
-                displayIdentity = "yuniel",
-                email = "yuniel@example.com",
-                username = "yuniel",
-                emailStatus = EmailStatus.PENDING,
-            ),
+            principalFacts = identityFacts(),
         )
         val eventPublisher = RecordingEventPublisher(order)
         val transactionRunner = RecordingAtomicTransactionRunner(order)
@@ -567,16 +495,7 @@ class LocalAuthHandlersTest {
             }
         }
         val principalLookup = FakePrincipalIdentityLookup(
-            principalFacts = PrincipalIdentityFacts(
-                principalId = "user-1",
-                principalType = com.profiletailors.common.domain.context.PrincipalType.USER,
-                subject = "local:yuniel@example.com",
-                provider = null,
-                displayIdentity = "yuniel",
-                email = "yuniel@example.com",
-                username = "yuniel",
-                emailStatus = EmailStatus.PENDING,
-            ),
+            principalFacts = identityFacts(),
         )
         val eventPublisher = RecordingEventPublisher(order)
         val transactionRunner = RecordingAtomicTransactionRunner(order)
@@ -685,6 +604,18 @@ class LocalAuthHandlersTest {
             },
             properties = refreshProperties,
             clock = fixedClock,
+        )
+
+    private fun identityFacts(emailStatus: EmailStatus = EmailStatus.PENDING): PrincipalIdentityFacts =
+        PrincipalIdentityFacts(
+            principalId = "user-1",
+            principalType = com.profiletailors.common.domain.context.PrincipalType.USER,
+            subject = "local:yuniel@example.com",
+            provider = null,
+            displayIdentity = "yuniel",
+            email = "yuniel@example.com",
+            username = "yuniel",
+            emailStatus = emailStatus,
         )
 
     private object NoopAtomicTransactionRunner : AtomicTransactionRunner {
