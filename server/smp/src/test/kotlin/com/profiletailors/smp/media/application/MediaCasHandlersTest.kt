@@ -756,6 +756,225 @@ class MediaCasHandlersTest {
         // The blob remains in UPLOADING state from the pre-transaction upsert.
         assertNotNull(blobs.blob(WORKSPACE, HASH_A))
     }
+
+    @Test
+    fun `handleNewBlob rate limit exceeded propagates from within runAtomically and blob stays uploading`() = runTest {
+        val media = InMemoryMediaAssetRepository()
+        val blobs = InMemoryWorkspaceFileBlobRepository()
+        val txRunner = RecordingAtomicTransactionRunner()
+        val limiter = InMemoryRateLimitRepository(allowCreates = false)
+
+        val handler = PutAssetHandler(
+            media,
+            blobs,
+            limiter,
+            MediaUploadSettings(1, 200, "bucket"),
+            txRunner,
+            FixedPrincipalContextProvider,
+            FixedPrincipalIdentityLookup(EmailStatus.VERIFIED),
+            emailVerificationPolicyOf(),
+        )
+
+        assertThrows<RateLimitExceededException> {
+            handler.handle(PutAssetCommand(ASSET_A, WORKSPACE, HASH_A, 1024, "image/jpeg", "photo.jpg"))
+        }
+
+        // runAtomically was entered even though the block threw before creating the asset
+        assertEquals(1, txRunner.calls.size)
+        assertTrue(media.assets.isEmpty())
+        assertEquals(BlobStatus.UPLOADING, blobs.blob(WORKSPACE, HASH_A)?.status)
+    }
+
+    // ─── DeleteWorkspaceAssetHandler additional edge cases ─────────────────
+
+    @Test
+    fun `DeleteWorkspaceAssetHandler skips storage delete when asset has no storageKey`() = runTest {
+        val media = InMemoryMediaAssetRepository()
+        val blobs = InMemoryWorkspaceFileBlobRepository()
+        val storage = FakeStorage()
+        val txRunner = RecordingAtomicTransactionRunner()
+        val asset = MediaAsset(
+            ASSET_A, WORKSPACE, MediaSourceType.UPLOADED, HASH_A, "image/jpeg",
+            null, null, "photo.jpg", 1024,
+            MediaAssetStatus.PENDING_UPLOAD, null, null, Instant.now(),
+        )
+        media.create(asset)
+
+        val handler = DeleteWorkspaceAssetHandler(
+            media,
+            storage.service(),
+            MediaUploadSettings(1, 200, "bucket"),
+            txRunner,
+            blobs,
+        )
+        val result = handler.handle(DeleteWorkspaceAssetCommand(ASSET_A, WORKSPACE))
+
+        assertTrue(result.deleted)
+        assertTrue(storage.deletedKeys.isEmpty())
+        assertEquals(1, txRunner.calls.size)
+        assertEquals(MediaAssetStatus.DELETED, media.asset(WORKSPACE, ASSET_A)?.status)
+    }
+
+    @Test
+    fun `DeleteWorkspaceAssetHandler softDelete failure with null fileHash skips GC without throwing`() = runTest {
+        val media = InMemoryMediaAssetRepository()
+        val blobs = InMemoryWorkspaceFileBlobRepository()
+        val asset = MediaAsset(
+            ASSET_A, WORKSPACE, MediaSourceType.UPLOADED, null, "image/jpeg",
+            "assets/$WORKSPACE/$ASSET_A", null, "photo.jpg", 1024,
+            MediaAssetStatus.READY, null, null, Instant.now(),
+        )
+        media.create(asset)
+
+        var callCount = 0
+        val txRunner = FailingAtomicTransactionRunner {
+            callCount++
+            callCount == 1
+        }
+
+        val handler = DeleteWorkspaceAssetHandler(
+            media,
+            FakeStorage().service(),
+            MediaUploadSettings(1, 200, "bucket"),
+            txRunner,
+            blobs,
+        )
+        val result = handler.handle(DeleteWorkspaceAssetCommand(ASSET_A, WORKSPACE))
+
+        assertTrue(result.deleted)
+        assertTrue(
+            blobs.blobs.isEmpty(),
+            "No blob exists for an asset with a null fileHash — GC compensation must be a no-op",
+        )
+    }
+
+    @Test
+    fun `DeleteWorkspaceAssetHandler asset not found throws and never touches transaction runner`() = runTest {
+        val media = InMemoryMediaAssetRepository()
+        val blobs = InMemoryWorkspaceFileBlobRepository()
+        val txRunner = RecordingAtomicTransactionRunner()
+
+        val handler = DeleteWorkspaceAssetHandler(
+            media,
+            FakeStorage().service(),
+            MediaUploadSettings(1, 200, "bucket"),
+            txRunner,
+            blobs,
+        )
+
+        assertThrows<AssetNotFoundException> {
+            handler.handle(DeleteWorkspaceAssetCommand(ASSET_A, WORKSPACE))
+        }
+        assertTrue(txRunner.calls.isEmpty())
+    }
+
+    @Test
+    fun `DeleteWorkspaceAssetHandler propagates exception when GC compensation transaction also fails`() = runTest {
+        val media = InMemoryMediaAssetRepository()
+        val blobs = InMemoryWorkspaceFileBlobRepository()
+        val asset = MediaAsset(
+            ASSET_A, WORKSPACE, MediaSourceType.UPLOADED, HASH_A, "image/jpeg",
+            "assets/$WORKSPACE/blobs/$HASH_A.jpg", null, "photo.jpg", 1024,
+            MediaAssetStatus.READY, null, null, Instant.now(),
+        )
+        media.create(asset)
+        blobs.saveBlob(readyBlob(HASH_A))
+
+        // Fails both the softDelete transaction and the GC-compensation transaction that follows it
+        val txRunner = FailingAtomicTransactionRunner { true }
+
+        val handler = DeleteWorkspaceAssetHandler(
+            media,
+            FakeStorage().service(),
+            MediaUploadSettings(1, 200, "bucket"),
+            txRunner,
+            blobs,
+        )
+
+        assertThrows<TestTransactionFailure> {
+            handler.handle(DeleteWorkspaceAssetCommand(ASSET_A, WORKSPACE))
+        }
+        // Neither the asset soft-delete nor the blob GC compensation took effect
+        assertEquals(MediaAssetStatus.READY, media.asset(WORKSPACE, ASSET_A)?.status)
+        assertEquals(BlobStatus.READY, blobs.blob(WORKSPACE, HASH_A)?.status)
+    }
+
+    // ─── UploadAssetHandler additional edge cases ──────────────────────────
+
+    @Test
+    fun `UploadAssetHandler releases concurrent upload slot exactly once on success`() = runTest {
+        val media = InMemoryMediaAssetRepository()
+        val storage = FakeStorage()
+        val bytes = jpegBytes()
+        val hash = sha256(bytes)
+        val asset = MediaAsset(
+            ASSET_A, WORKSPACE, MediaSourceType.UPLOADED, hash, "image/jpeg",
+            "assets/$WORKSPACE/$ASSET_A", null, "photo.jpg", bytes.size.toLong(),
+            MediaAssetStatus.PENDING_UPLOAD, null, null, Instant.now(),
+        )
+        media.create(asset)
+        val rateLimiter = InMemoryRateLimitRepository()
+
+        val handler =
+            uploadLegacyHandler(media, storage, EmailStatus.VERIFIED, NoopAtomicTransactionRunner, rateLimiter)
+        handler.handle(LegacyUploadAssetCommand(ASSET_A, WORKSPACE, flowOf(bytes), bytes.size.toLong()))
+
+        assertEquals(1, rateLimiter.releaseCount)
+    }
+
+    @Test
+    fun `UploadAssetHandler releases concurrent upload slot exactly once when transaction fails`() = runTest {
+        val media = InMemoryMediaAssetRepository()
+        val storage = FakeStorage()
+        val bytes = jpegBytes()
+        val hash = sha256(bytes)
+        val asset = MediaAsset(
+            ASSET_A, WORKSPACE, MediaSourceType.UPLOADED, hash, "image/jpeg",
+            "assets/$WORKSPACE/$ASSET_A", null, "photo.jpg", bytes.size.toLong(),
+            MediaAssetStatus.PENDING_UPLOAD, null, null, Instant.now(),
+        )
+        media.create(asset)
+        val rateLimiter = InMemoryRateLimitRepository()
+        val txRunner = FailingAtomicTransactionRunner { true }
+
+        val handler = uploadLegacyHandler(media, storage, EmailStatus.VERIFIED, txRunner, rateLimiter)
+
+        assertThrows<IllegalStateException> {
+            handler.handle(LegacyUploadAssetCommand(ASSET_A, WORKSPACE, flowOf(bytes), bytes.size.toLong()))
+        }
+        assertEquals(1, rateLimiter.releaseCount)
+    }
+
+    @Test
+    fun `UploadAssetHandler throws and marks asset failed when markAsReady returns null`() = runTest {
+        val media = InMemoryMediaAssetRepository()
+        val storage = FakeStorage()
+        val bytes = jpegBytes()
+        val hash = sha256(bytes)
+        val asset = MediaAsset(
+            ASSET_A, WORKSPACE, MediaSourceType.UPLOADED, hash, "image/jpeg",
+            "assets/$WORKSPACE/$ASSET_A", null, "photo.jpg", bytes.size.toLong(),
+            MediaAssetStatus.PENDING_UPLOAD, null, null, Instant.now(),
+        )
+        media.create(asset)
+        val failingRepo = MarkAsReadyFailingMediaAssetRepository(media)
+
+        val handler = UploadAssetHandler(
+            failingRepo,
+            InMemoryRateLimitRepository(),
+            storage.service(),
+            MediaUploadSettings(1, 200, "bucket"),
+            FixedPrincipalContextProvider,
+            FixedPrincipalIdentityLookup(EmailStatus.VERIFIED),
+            emailVerificationPolicyOf(),
+            NoopAtomicTransactionRunner,
+        )
+
+        assertThrows<IllegalStateException> {
+            handler.handle(LegacyUploadAssetCommand(ASSET_A, WORKSPACE, flowOf(bytes), bytes.size.toLong()))
+        }
+        assertEquals(MediaAssetStatus.FAILED, media.asset(WORKSPACE, ASSET_A)?.status)
+    }
 }
 
 private class InMemoryMediaAssetRepository : MediaAssetRepository {
@@ -944,8 +1163,12 @@ private class InMemoryWorkspaceFileBlobRepository : WorkspaceFileBlobRepository 
 }
 
 private class InMemoryRateLimitRepository(private val allowCreates: Boolean = true) : MediaRateLimitRepository {
+    var releaseCount = 0
+        private set
     override suspend fun tryClaimConcurrentUploadSlot(workspaceId: String, maxConcurrent: Int) = true
-    override suspend fun releaseConcurrentUploadSlot(workspaceId: String) = Unit
+    override suspend fun releaseConcurrentUploadSlot(workspaceId: String) {
+        releaseCount++
+    }
     override suspend fun tryIncrementHourlyCreationCount(workspaceId: String, maxPerHour: Int) = allowCreates
 }
 
@@ -1024,9 +1247,10 @@ private fun uploadLegacyHandler(
     storage: FakeStorage,
     emailStatus: EmailStatus = EmailStatus.VERIFIED,
     transactionRunner: AtomicTransactionRunner = NoopAtomicTransactionRunner,
+    rateLimitRepository: InMemoryRateLimitRepository = InMemoryRateLimitRepository(),
 ) = UploadAssetHandler(
     media,
-    InMemoryRateLimitRepository(),
+    rateLimitRepository,
     storage.service(),
     MediaUploadSettings(1, 200, "bucket"),
     FixedPrincipalContextProvider,
@@ -1069,6 +1293,18 @@ private class RecordingAtomicTransactionRunner : AtomicTransactionRunner {
 }
 
 private class TestTransactionFailure : IllegalStateException("injected transaction failure")
+
+/**
+ * MediaAssetRepository wrapper that forces `markAsReady` to return null (simulating the
+ * "asset not found after upload" race) while delegating every other call to a real backing
+ * repository, so state mutations from other methods (claimUploadSlot, markAsFailed, etc.)
+ * remain observable in assertions.
+ */
+private class MarkAsReadyFailingMediaAssetRepository(
+    private val delegate: MediaAssetRepository,
+) : MediaAssetRepository by delegate {
+    override suspend fun markAsReady(assetId: String, workspaceId: String, fileSizeBytes: Long): MediaAsset? = null
+}
 
 /**
  * AtomicTransactionRunner that throws TestTransactionFailure when failOnBlock returns true.
