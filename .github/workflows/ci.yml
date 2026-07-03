@@ -227,9 +227,10 @@ jobs:
       SMP_LOCAL_JWT_SECRET: ${{ secrets.SMP_LOCAL_JWT_SECRET }}
       PUBLISHING_CREDENTIALS_KEY: ${{ secrets.PUBLISHING_CREDENTIALS_KEY }}
       E2E_TEST_USER_PASSWORD: ${{ secrets.E2E_TEST_USER_PASSWORD }}
-      # Pin backend HTTP port; CI healthcheck below targets the same value.
+      # Pin backend HTTP port to avoid collisions with local dev tools.
       SMP_BACKEND_PORT: '7638'
-      # Management port stays on 9091 to keep the health endpoint on a dedicated port.
+      # Management port stays on 9091; the curl healthcheck below probes
+      # /actuator/health on MANAGEMENT_PORT (not on the main port).
       MANAGEMENT_PORT: '9091'
 
     services:
