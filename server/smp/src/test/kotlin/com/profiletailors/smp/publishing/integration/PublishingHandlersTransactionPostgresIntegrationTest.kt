@@ -78,6 +78,9 @@ class PublishingHandlersTransactionPostgresIntegrationTest {
     @Autowired
     private lateinit var transactionManager: R2dbcTransactionManager
 
+    @Autowired
+    private lateinit var transactionalOperator: TransactionalOperator
+
     private lateinit var publicationRepository: R2dbcPublicationRepository
     private lateinit var jobRepository: R2dbcPublicationJobRepository
     private lateinit var socialConnectionRepository: R2dbcSocialConnectionRepository
@@ -91,7 +94,7 @@ class PublishingHandlersTransactionPostgresIntegrationTest {
         cleanupTestData()
         seedPrincipalWorkspaceAndAccount()
         seedAssets()
-        publicationRepository = R2dbcPublicationRepository(databaseClient)
+        publicationRepository = R2dbcPublicationRepository(databaseClient, transactionalOperator)
         jobRepository = R2dbcPublicationJobRepository(databaseClient)
         socialConnectionRepository = R2dbcSocialConnectionRepository(databaseClient)
         socialAccountRepository = R2dbcSocialAccountRepository(databaseClient, SimpleMeterRegistry())

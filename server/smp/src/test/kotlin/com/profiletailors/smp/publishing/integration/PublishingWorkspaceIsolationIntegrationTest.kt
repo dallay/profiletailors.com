@@ -44,7 +44,7 @@ class PublishingWorkspaceIsolationIntegrationTest : DatabaseUnitTestBase() {
         seedTwoWorkspacesWithPrincipals()
         socialConnectionRepository = R2dbcSocialConnectionRepository(databaseClient)
         socialAccountRepository = R2dbcSocialAccountRepository(databaseClient, SimpleMeterRegistry())
-        publicationRepository = R2dbcPublicationRepository(databaseClient)
+        publicationRepository = R2dbcPublicationRepository(databaseClient, transactionalOperator)
     }
 
     @Test
