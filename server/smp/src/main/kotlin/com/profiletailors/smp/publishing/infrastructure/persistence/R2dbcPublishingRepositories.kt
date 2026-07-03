@@ -23,9 +23,10 @@ import com.profiletailors.smp.publishing.domain.SocialProvider
 import io.r2dbc.spi.Readable
 import kotlinx.coroutines.reactor.awaitSingle
 import kotlinx.coroutines.reactor.awaitSingleOrNull
+import kotlinx.coroutines.reactor.mono
 import org.springframework.r2dbc.core.DatabaseClient
 import org.springframework.stereotype.Repository
-import org.springframework.transaction.annotation.Transactional
+import org.springframework.transaction.reactive.TransactionalOperator
 import java.time.Instant
 import java.time.OffsetDateTime
 
@@ -69,7 +70,10 @@ private const val PUBLICATION_INSERT_VALUES = """
 
 @Repository
 @Suppress("TooManyFunctions")
-class R2dbcPublicationRepository(private val databaseClient: DatabaseClient) : PublicationRepository {
+class R2dbcPublicationRepository(
+    private val databaseClient: DatabaseClient,
+    private val transactionalOperator: TransactionalOperator,
+) : PublicationRepository {
     override suspend fun createDraft(draft: PublicationDraft): PublicationDraft {
         insertOrUpdate(draft)
         replaceAssetLinks(draft)
@@ -349,9 +353,7 @@ class R2dbcPublicationRepository(private val databaseClient: DatabaseClient) : P
             .awaitSingle()
     }
 
-    @Transactional
     override suspend fun deleteUnpublished(workspaceId: String, publicationId: String): Boolean {
-        // Check if publication is in a deletable status first (guards FK constraints)
         val deletable = databaseClient.sql(
             """
             SELECT COUNT(*) AS cnt FROM publications
@@ -368,50 +370,54 @@ class R2dbcPublicationRepository(private val databaseClient: DatabaseClient) : P
 
         if (!deletable) return false
 
-        // Delete child records first (FK constraints) — only unclaimed jobs
-        databaseClient.sql(
-            """
-            DELETE FROM publication_jobs
-            WHERE publication_id = :publicationId
-              AND workspace_id = :workspaceId
-              AND status IN (:pendingStatus, :retryWaitingStatus)
-            """.trimIndent(),
-        )
-            .bind("publicationId", publicationId)
-            .bind("workspaceId", workspaceId)
-            .bind("pendingStatus", JobStatus.PENDING.name)
-            .bind("retryWaitingStatus", JobStatus.RETRY_WAITING.name)
-            .fetch()
-            .rowsUpdated()
-            .awaitSingle()
+        return transactionalOperator.transactional(
+            mono {
+                // Delete child records first (FK constraints) — only unclaimed jobs
+                databaseClient.sql(
+                    """
+                    DELETE FROM publication_jobs
+                    WHERE publication_id = :publicationId
+                      AND workspace_id = :workspaceId
+                      AND status IN (:pendingStatus, :retryWaitingStatus)
+                    """.trimIndent(),
+                )
+                    .bind("publicationId", publicationId)
+                    .bind("workspaceId", workspaceId)
+                    .bind("pendingStatus", JobStatus.PENDING.name)
+                    .bind("retryWaitingStatus", JobStatus.RETRY_WAITING.name)
+                    .fetch()
+                    .rowsUpdated()
+                    .awaitSingle()
 
-        databaseClient.sql(
-            """
-            DELETE FROM publication_asset_links
-            WHERE publication_id = :publicationId
-            """.trimIndent(),
-        )
-            .bind("publicationId", publicationId)
-            .fetch()
-            .rowsUpdated()
-            .awaitSingle()
+                databaseClient.sql(
+                    """
+                    DELETE FROM publication_asset_links
+                    WHERE publication_id = :publicationId
+                    """.trimIndent(),
+                )
+                    .bind("publicationId", publicationId)
+                    .fetch()
+                    .rowsUpdated()
+                    .awaitSingle()
 
-        // Delete parent publication
-        databaseClient.sql(
-            """
-            DELETE FROM publications
-            WHERE workspace_id = :workspaceId
-              AND id = :publicationId
-              AND status IN ('DRAFT', 'QUEUED', 'SCHEDULED')
-            """.trimIndent(),
-        )
-            .bind("workspaceId", workspaceId)
-            .bind("publicationId", publicationId)
-            .fetch()
-            .rowsUpdated()
-            .awaitSingle()
+                // Delete parent publication
+                databaseClient.sql(
+                    """
+                    DELETE FROM publications
+                    WHERE workspace_id = :workspaceId
+                      AND id = :publicationId
+                      AND status IN ('DRAFT', 'QUEUED', 'SCHEDULED')
+                    """.trimIndent(),
+                )
+                    .bind("workspaceId", workspaceId)
+                    .bind("publicationId", publicationId)
+                    .fetch()
+                    .rowsUpdated()
+                    .awaitSingle()
 
-        return true
+                true
+            },
+        ).awaitSingle()
     }
 
     override suspend fun findBlockedForRecovery(maxRetries: Int): List<PublicationDraft> {

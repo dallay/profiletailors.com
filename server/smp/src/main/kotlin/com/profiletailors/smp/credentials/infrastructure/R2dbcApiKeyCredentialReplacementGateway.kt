@@ -7,17 +7,20 @@ import com.profiletailors.smp.credentials.application.ApiKeyCredentialValueFacto
 import com.profiletailors.smp.credentials.application.ApiKeySecretVerifier
 import com.profiletailors.smp.credentials.application.ReplaceApiKeyCredentialCommand
 import com.profiletailors.smp.credentials.application.ReplaceApiKeyCredentialResult
-import io.r2dbc.spi.Connection
-import io.r2dbc.spi.ConnectionFactory
-import kotlinx.coroutines.reactive.awaitFirstOrNull
-import kotlinx.coroutines.reactive.awaitSingle
+import kotlinx.coroutines.reactor.awaitSingle
+import kotlinx.coroutines.reactor.awaitSingleOrNull
+import kotlinx.coroutines.reactor.mono
+import org.springframework.r2dbc.core.DatabaseClient
+import org.springframework.r2dbc.core.bind
 import org.springframework.stereotype.Repository
+import org.springframework.transaction.reactive.TransactionalOperator
 import java.time.Clock
 import java.time.Instant
 
 @Repository
 class R2dbcApiKeyCredentialReplacementGateway(
-    private val connectionFactory: ConnectionFactory,
+    private val databaseClient: DatabaseClient,
+    private val transactionalOperator: TransactionalOperator,
     private val secretVerifier: ApiKeySecretVerifier,
     private val valueFactory: ApiKeyCredentialValueFactory,
     private val clock: Clock = Clock.systemUTC(),
@@ -32,32 +35,23 @@ class R2dbcApiKeyCredentialReplacementGateway(
         val successorSecretVerifier = secretVerifier.hash(plaintextApiKey.secret)
         val replacedAt = clock.instant()
 
-        val connection = connectionFactory.create().awaitSingle()
-        try {
-            connection.beginTransaction().awaitFirstOrNull()
-            try {
-                val predecessor = loadActivePredecessor(connection, predecessorReference)
+        transactionalOperator.transactional(
+            mono {
+                val predecessor = loadActivePredecessor(predecessorReference)
                 insertSuccessor(
-                    connection = connection,
                     successorCredentialReference = successorCredentialReference,
                     predecessor = predecessor,
                     plaintextApiKey = plaintextApiKey,
                     successorSecretVerifier = successorSecretVerifier,
                 )
                 markPredecessorReplaced(
-                    connection = connection,
                     predecessor = predecessor,
                     successorCredentialReference = successorCredentialReference,
                     replacedAt = replacedAt,
                 )
-                connection.commitTransaction().awaitFirstOrNull()
-            } catch (exception: ApiKeyCredentialNotActiveException) {
-                connection.rollbackTransaction().awaitFirstOrNull()
-                throw exception
-            }
-        } finally {
-            connection.close().awaitFirstOrNull()
-        }
+                Unit
+            },
+        ).awaitSingle()
 
         return ReplaceApiKeyCredentialResult(
             predecessorCredentialReference = predecessorReference,
@@ -66,30 +60,26 @@ class R2dbcApiKeyCredentialReplacementGateway(
         )
     }
 
-    private suspend fun loadActivePredecessor(
-        connection: Connection,
-        credentialReference: String,
-    ): PredecessorCredentialRecord {
-        val predecessor = connection.createStatement(LOAD_PREDECESSOR_SQL)
-            .bind("${'$'}1", credentialReference)
-            .execute()
-            .awaitSingle()
-            .map { row, _ ->
+    private suspend fun loadActivePredecessor(credentialReference: String): PredecessorCredentialRecord {
+        val row = databaseClient.sql(LOAD_PREDECESSOR_SQL)
+            .bind("credentialReference", credentialReference)
+            .map { r, _ ->
                 PredecessorCredentialRecord(
-                    credentialReference = requireNotNull(row.get("id", String::class.java)),
-                    principalId = requireNotNull(row.get("principal_id", String::class.java)),
-                    status = requireNotNull(row.get("status", String::class.java)),
-                    replacedAt = row.get("replaced_at", java.time.OffsetDateTime::class.java)?.toInstant(),
+                    credentialReference = requireNotNull(r.get("id", String::class.java)),
+                    principalId = requireNotNull(r.get("principal_id", String::class.java)),
+                    status = requireNotNull(r.get("status", String::class.java)),
+                    replacedAt = r.get("replaced_at", java.time.OffsetDateTime::class.java)?.toInstant(),
                 )
             }
-            .awaitFirstOrNull()
+            .one()
+            .awaitSingleOrNull()
             ?: throw ApiKeyCredentialNotActiveException(
                 credentialReference = credentialReference,
                 reason = ApiKeyCredentialFailureReason.MISSING,
             )
 
-        ensureReplaceable(predecessor)
-        return predecessor
+        ensureReplaceable(row)
+        return row
     }
 
     private fun ensureReplaceable(predecessor: PredecessorCredentialRecord) {
@@ -110,39 +100,35 @@ class R2dbcApiKeyCredentialReplacementGateway(
     }
 
     private suspend fun insertSuccessor(
-        connection: Connection,
         successorCredentialReference: String,
         predecessor: PredecessorCredentialRecord,
         plaintextApiKey: ApiKeyCredentialValueFactory.PlaintextApiKey,
         successorSecretVerifier: String,
     ) {
-        connection.createStatement(INSERT_SUCCESSOR_SQL)
-            .bind("${'$'}1", successorCredentialReference)
-            .bind("${'$'}2", predecessor.principalId)
-            .bind("${'$'}3", plaintextApiKey.lookupKey)
-            .bind("${'$'}4", plaintextApiKey.keyPrefix)
-            .bind("${'$'}5", successorSecretVerifier)
-            .bind("${'$'}6", predecessor.credentialReference)
-            .execute()
-            .awaitSingle()
-            .rowsUpdated
+        databaseClient.sql(INSERT_SUCCESSOR_SQL)
+            .bind("successorCredentialReference", successorCredentialReference)
+            .bind("principalId", predecessor.principalId)
+            .bind("lookupKey", plaintextApiKey.lookupKey)
+            .bind("keyPrefix", plaintextApiKey.keyPrefix)
+            .bind("secretVerifier", successorSecretVerifier)
+            .bind("predecessorCredentialReference", predecessor.credentialReference)
+            .fetch()
+            .rowsUpdated()
             .awaitSingle()
     }
 
     private suspend fun markPredecessorReplaced(
-        connection: Connection,
         predecessor: PredecessorCredentialRecord,
         successorCredentialReference: String,
         replacedAt: Instant,
     ) {
-        val updatedRows = connection.createStatement(MARK_PREDECESSOR_SQL)
-            .bind("${'$'}1", successorCredentialReference)
-            .bind("${'$'}2", replacedAt)
-            .bind("${'$'}3", predecessor.credentialReference)
-            .bind("${'$'}4", predecessor.principalId)
-            .execute()
-            .awaitSingle()
-            .rowsUpdated
+        val updatedRows = databaseClient.sql(MARK_PREDECESSOR_SQL)
+            .bind("successorCredentialReference", successorCredentialReference)
+            .bind("replacedAt", replacedAt)
+            .bind("predecessorCredentialReference", predecessor.credentialReference)
+            .bind("principalId", predecessor.principalId)
+            .fetch()
+            .rowsUpdated()
             .awaitSingle()
 
         if (updatedRows != 1L) {
@@ -171,7 +157,7 @@ class R2dbcApiKeyCredentialReplacementGateway(
                    status,
                    replaced_at
             FROM api_key_credentials
-            WHERE id = $1
+            WHERE id = :credentialReference
         """.trimIndent()
 
         private val INSERT_SUCCESSOR_SQL = """
@@ -187,14 +173,14 @@ class R2dbcApiKeyCredentialReplacementGateway(
                 replaced_by_credential_id,
                 replaced_at
             ) VALUES (
-                $1,
-                $2,
-                $3,
-                $4,
-                $5,
+                :successorCredentialReference,
+                :principalId,
+                :lookupKey,
+                :keyPrefix,
+                :secretVerifier,
                 'ACTIVE',
                 NULL,
-                $6,
+                :predecessorCredentialReference,
                 NULL,
                 NULL
             )
@@ -203,11 +189,11 @@ class R2dbcApiKeyCredentialReplacementGateway(
         private val MARK_PREDECESSOR_SQL = """
             UPDATE api_key_credentials
             SET status = 'INACTIVE',
-                replaced_by_credential_id = $1,
-                replaced_at = $2,
+                replaced_by_credential_id = :successorCredentialReference,
+                replaced_at = :replacedAt,
                 revoked_at = NULL
-            WHERE id = $3
-              AND principal_id = $4
+            WHERE id = :predecessorCredentialReference
+              AND principal_id = :principalId
               AND status = 'ACTIVE'
               AND replaced_at IS NULL
         """.trimIndent()

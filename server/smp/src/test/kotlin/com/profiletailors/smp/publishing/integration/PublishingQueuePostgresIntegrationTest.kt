@@ -57,6 +57,9 @@ class PublishingQueuePostgresIntegrationTest {
     @Autowired
     private lateinit var databaseClient: DatabaseClient
 
+    @Autowired
+    private lateinit var transactionalOperator: org.springframework.transaction.reactive.TransactionalOperator
+
     private lateinit var publicationRepository: R2dbcPublicationRepository
     private lateinit var jobRepository: R2dbcPublicationJobRepository
 
@@ -64,7 +67,7 @@ class PublishingQueuePostgresIntegrationTest {
     fun setUpRepositories() = runTest {
         cleanupTestData()
         seedPrincipalWorkspaceAndAccount()
-        publicationRepository = R2dbcPublicationRepository(databaseClient)
+        publicationRepository = R2dbcPublicationRepository(databaseClient, transactionalOperator)
         jobRepository = R2dbcPublicationJobRepository(databaseClient)
     }
 

@@ -45,7 +45,7 @@ class R2dbcPublishingRepositoriesTest : DatabaseUnitTestBase() {
         socialConnectionRepository = R2dbcSocialConnectionRepository(databaseClient)
         socialAccountRepository = R2dbcSocialAccountRepository(databaseClient, meterRegistry)
         connectedSocialChannelReadRepository = R2dbcConnectedSocialChannelReadRepository(databaseClient)
-        publicationRepository = R2dbcPublicationRepository(databaseClient)
+        publicationRepository = R2dbcPublicationRepository(databaseClient, transactionalOperator)
         publicationAssetRepository = R2dbcPublicationAssetRepository(databaseClient, ObjectMapper())
         mediaAssetRepository = R2dbcMediaAssetRepository(databaseClient)
     }

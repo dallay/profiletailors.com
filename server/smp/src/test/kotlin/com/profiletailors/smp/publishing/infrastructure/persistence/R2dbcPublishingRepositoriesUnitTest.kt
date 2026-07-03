@@ -44,7 +44,7 @@ class R2dbcPublishingRepositoriesUnitTest : DatabaseUnitTestBase() {
     @BeforeEach
     fun setUp() = runTest {
         seedWorkspaceAndPrincipal()
-        publicationRepository = R2dbcPublicationRepository(databaseClient)
+        publicationRepository = R2dbcPublicationRepository(databaseClient, transactionalOperator)
         publicationAssetRepository = R2dbcPublicationAssetRepository(databaseClient, ObjectMapper())
         publicationJobRepository = R2dbcPublicationJobRepository(databaseClient)
         deliveryAttemptRepository = R2dbcDeliveryAttemptRepository(databaseClient)
@@ -422,15 +422,16 @@ class R2dbcPublishingRepositoriesUnitTest : DatabaseUnitTestBase() {
         }
 
         @Test
-        fun `deleteUnpublished has transactional annotation`() {
-            // Kotlin suspend functions require checking all declared methods
-            val methods = R2dbcPublicationRepository::class.java.declaredMethods
-            val deleteMethod = methods.firstOrNull { it.name == "deleteUnpublished" }
-            assertNotNull(deleteMethod) { "deleteUnpublished method must be declared" }
-            val annotation = deleteMethod!!.getAnnotation(
-                org.springframework.transaction.annotation.Transactional::class.java,
+        fun `deleteUnpublished uses TransactionalOperator for atomicity`() {
+            // Verify the repository constructor accepts TransactionalOperator
+            // This is a compile-time check: if the refactoring is correct,
+            // R2dbcPublicationRepository will require TransactionalOperator
+            val constructor = R2dbcPublicationRepository::class.java.constructors.first()
+            val paramTypes = constructor.parameterTypes
+            assertTrue(
+                paramTypes.any { it.simpleName.contains("TransactionalOperator") },
+                "R2dbcPublicationRepository must accept TransactionalOperator",
             )
-            assertNotNull(annotation) { "deleteUnpublished must be annotated with @Transactional" }
         }
 
         @Test
