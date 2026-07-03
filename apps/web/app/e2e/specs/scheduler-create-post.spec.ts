@@ -111,6 +111,7 @@ test.describe('Scheduler — Create Post', () => {
       route.fallback()
     })
     await page.route('**/api/publishing/publications', async (route) => {
+      if (route.request().method() !== 'POST') return route.fallback()
       const body = route.request().postDataJSON() as Record<string, unknown>
       await route.fulfill({
         status: 201,
@@ -127,6 +128,34 @@ test.describe('Scheduler — Create Post', () => {
           assetIds: [assetId],
           scheduledFor: null,
           nextSlotAfter: null,
+        }),
+      })
+    })
+    await page.route('**/api/publishing/publications/calendar**', async (route) => {
+      await route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify({
+          publications: [
+            {
+              id: backendId,
+              workspaceId: 'workspace-001',
+              socialAccountId: 'sa-linkedin-001',
+              provider: 'linkedin',
+              status: 'QUEUED',
+              scheduleMode: 'NOW',
+              priority: false,
+              title: 'Post from App',
+              bodyText: text,
+              scheduledFor: null,
+              nextSlotAfter: null,
+              assetIds: [assetId],
+              hasConflict: false,
+              conflictingPublicationIds: [],
+            },
+          ],
+          conflicts: [],
+          activity: [],
         }),
       })
     })
