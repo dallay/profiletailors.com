@@ -66,6 +66,7 @@ test.describe('Scheduler — Create Post', () => {
     const assetId = 'asset-preserved-1'
     let patchUrl = ''
     let patchBody: Record<string, unknown> | null = null
+    let wasPatched = false
 
     await page.route(/\/api\/media\/assets\/[^/]+$/, async (route) => {
       const method = route.request().method()
@@ -132,6 +133,7 @@ test.describe('Scheduler — Create Post', () => {
       })
     })
     await page.route('**/api/publishing/publications/calendar**', async (route) => {
+      const currentBodyText = wasPatched ? updatedText : text
       await route.fulfill({
         status: 200,
         contentType: 'application/json',
@@ -146,7 +148,7 @@ test.describe('Scheduler — Create Post', () => {
               scheduleMode: 'NOW',
               priority: false,
               title: 'Post from App',
-              bodyText: text,
+              bodyText: currentBodyText,
               scheduledFor: null,
               nextSlotAfter: null,
               assetIds: [assetId],
@@ -163,6 +165,7 @@ test.describe('Scheduler — Create Post', () => {
       if (route.request().method() !== 'PATCH') return route.fallback()
       patchUrl = route.request().url()
       patchBody = route.request().postDataJSON() as Record<string, unknown>
+      wasPatched = true
       await route.fulfill({
         status: 200,
         contentType: 'application/json',
