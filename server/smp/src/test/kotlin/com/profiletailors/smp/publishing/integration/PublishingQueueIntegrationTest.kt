@@ -26,7 +26,7 @@ class PublishingQueueIntegrationTest : DatabaseUnitTestBase() {
     @BeforeEach
     fun setUpRepositories() = runTest {
         seedPrincipalWorkspaceAndAccount()
-        publicationRepository = R2dbcPublicationRepository(databaseClient)
+        publicationRepository = R2dbcPublicationRepository(databaseClient, transactionalOperator)
         jobRepository = R2dbcPublicationJobRepository(databaseClient)
     }
 

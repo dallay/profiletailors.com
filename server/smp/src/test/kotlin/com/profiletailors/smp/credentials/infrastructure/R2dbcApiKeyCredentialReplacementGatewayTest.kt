@@ -21,7 +21,9 @@ import org.junit.jupiter.api.Assertions.assertNull
 import org.junit.jupiter.api.Assertions.assertThrows
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
+import org.springframework.r2dbc.connection.R2dbcTransactionManager
 import org.springframework.r2dbc.core.DatabaseClient
+import org.springframework.transaction.reactive.TransactionalOperator
 import java.sql.DriverManager
 import java.time.Clock
 import java.time.Instant
@@ -41,8 +43,11 @@ class R2dbcApiKeyCredentialReplacementGatewayTest {
     )
     private val databaseClient = DatabaseClient.create(connectionFactory)
     private val fixedClock = Clock.fixed(Instant.parse("2026-05-17T09:30:00Z"), ZoneOffset.UTC)
+    private val transactionManager = R2dbcTransactionManager(connectionFactory)
+    private val transactionalOperator = TransactionalOperator.create(transactionManager)
     private val gateway = R2dbcApiKeyCredentialReplacementGateway(
-        connectionFactory = connectionFactory,
+        databaseClient = databaseClient,
+        transactionalOperator = transactionalOperator,
         secretVerifier = BCryptApiKeySecretVerifier(),
         valueFactory = StubApiKeyCredentialValueFactory(),
         clock = fixedClock,

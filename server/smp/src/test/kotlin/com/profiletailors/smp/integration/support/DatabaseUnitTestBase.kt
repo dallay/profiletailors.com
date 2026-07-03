@@ -10,7 +10,9 @@ import liquibase.Liquibase
 import liquibase.database.DatabaseFactory
 import liquibase.resource.ClassLoaderResourceAccessor
 import org.junit.jupiter.api.BeforeEach
+import org.springframework.r2dbc.connection.R2dbcTransactionManager
 import org.springframework.r2dbc.core.DatabaseClient
+import org.springframework.transaction.reactive.TransactionalOperator
 import java.sql.DriverManager
 
 /**
@@ -37,6 +39,10 @@ abstract class DatabaseUnitTestBase {
 
     protected val databaseClient by lazy {
         DatabaseClient.create(connectionFactory)
+    }
+
+    protected val transactionalOperator by lazy {
+        TransactionalOperator.create(R2dbcTransactionManager(connectionFactory))
     }
 
     @BeforeEach

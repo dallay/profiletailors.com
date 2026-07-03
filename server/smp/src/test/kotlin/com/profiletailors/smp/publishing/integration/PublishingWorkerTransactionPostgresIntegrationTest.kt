@@ -85,6 +85,9 @@ class PublishingWorkerTransactionPostgresIntegrationTest {
     @Autowired
     private lateinit var transactionManager: R2dbcTransactionManager
 
+    @Autowired
+    private lateinit var transactionalOperator: TransactionalOperator
+
     private lateinit var publicationRepository: PublicationRepository
     private lateinit var jobRepository: PublicationJobRepository
     private lateinit var deliveryAttemptRepository: DeliveryAttemptRepository
@@ -97,7 +100,7 @@ class PublishingWorkerTransactionPostgresIntegrationTest {
     fun setUpRepositories() = runTest {
         cleanupTestData()
         seedPrincipalWorkspaceAndAccount()
-        publicationRepository = R2dbcPublicationRepository(databaseClient)
+        publicationRepository = R2dbcPublicationRepository(databaseClient, transactionalOperator)
         jobRepository = R2dbcPublicationJobRepository(databaseClient)
         deliveryAttemptRepository = R2dbcDeliveryAttemptRepository(databaseClient)
         notificationEventRepository = R2dbcNotificationEventRepository(databaseClient, fixedClock)
