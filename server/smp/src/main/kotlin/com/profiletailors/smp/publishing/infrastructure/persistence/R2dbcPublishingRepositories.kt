@@ -371,7 +371,7 @@ class R2dbcPublicationRepository(
     )
         .bind("workspaceId", workspaceId)
         .bind("publicationId", publicationId)
-        .map { row, _ -> row.get("status", String::class.java)!! }
+        .map { row, _ -> requireNotNull(row.get("status", String::class.java)) }
         .one()
         .awaitSingleOrNull()
 

@@ -46,7 +46,7 @@ The following locations were migrated as part of issue #195:
 
 | File | Before | After |
 |------|--------|-------|
-| `R2dbcPublicationRepository.kt` | `@Transactional deleteUnpublished()` | `TransactionalOperator` wrapper |
+| `R2dbcPublishingRepositories.kt` | `@Transactional deleteUnpublished()` | `TransactionalOperator` wrapper |
 | `R2dbcApiKeyCredentialReplacementGateway.kt` | Raw `Connection` API | `DatabaseClient` + `TransactionalOperator` |
 
 ## Usage
