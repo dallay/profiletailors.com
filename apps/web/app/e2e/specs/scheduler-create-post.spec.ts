@@ -66,25 +66,53 @@ test.describe('Scheduler — Create Post', () => {
     const assetId = 'asset-preserved-1'
     let patchUrl = ''
     let patchBody: Record<string, unknown> | null = null
+    let wasPatched = false
 
-    await page.route('**/api/media/assets/reserve', async (route) => {
-      await route.fulfill({
-        status: 201,
-        contentType: 'application/json',
-        body: JSON.stringify({
-          assetId,
-          workspaceId: 'workspace-001',
-          sourceType: 'UPLOADED',
-          mediaType: 'image/png',
-          status: 'READY',
-          originalFilename: 'base.png',
-          fileSizeBytes: 68,
-          createdAt: new Date().toISOString(),
-          previewUrl: `/api/media/assets/${assetId}/preview`,
-        }),
-      })
+    await page.route(/\/api\/media\/assets\/[^/]+$/, async (route) => {
+      const method = route.request().method()
+      const requestedAssetId = route.request().url().split('/api/media/assets/')[1] ?? assetId
+      if (method === 'PUT') {
+        await route.fulfill({
+          status: 200,
+          contentType: 'application/json',
+          body: JSON.stringify({
+            assetId: requestedAssetId,
+            workspaceId: 'workspace-001',
+            sourceType: 'UPLOADED',
+            mediaType: 'image/png',
+            status: 'READY',
+            deduped: true,
+            originalFilename: 'base.png',
+            fileSizeBytes: 68,
+            createdAt: new Date().toISOString(),
+            previewUrl: `/api/media/assets/${requestedAssetId}/preview`,
+          }),
+        })
+        return
+      }
+      if (method === 'GET') {
+        await route.fulfill({
+          status: 200,
+          contentType: 'application/json',
+          body: JSON.stringify({
+            assetId: requestedAssetId,
+            workspaceId: 'workspace-001',
+            sourceType: 'UPLOADED',
+            mediaType: 'image/png',
+            status: 'READY',
+            originalFilename: 'base.png',
+            fileSizeBytes: 68,
+            createdAt: new Date().toISOString(),
+            previewUrl: `/api/media/assets/${requestedAssetId}/preview`,
+            downloadUrl: `/api/media/assets/${requestedAssetId}/content`,
+          }),
+        })
+        return
+      }
+      route.fallback()
     })
     await page.route('**/api/publishing/publications', async (route) => {
+      if (route.request().method() !== 'POST') return route.fallback()
       const body = route.request().postDataJSON() as Record<string, unknown>
       await route.fulfill({
         status: 201,
@@ -104,10 +132,40 @@ test.describe('Scheduler — Create Post', () => {
         }),
       })
     })
+    await page.route('**/api/publishing/publications/calendar**', async (route) => {
+      const currentBodyText = wasPatched ? updatedText : text
+      await route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify({
+          publications: [
+            {
+              id: backendId,
+              workspaceId: 'workspace-001',
+              socialAccountId: 'sa-linkedin-001',
+              provider: 'linkedin',
+              status: 'QUEUED',
+              scheduleMode: 'NOW',
+              priority: false,
+              title: 'Post from App',
+              bodyText: currentBodyText,
+              scheduledFor: null,
+              nextSlotAfter: null,
+              assetIds: [assetId],
+              hasConflict: false,
+              conflictingPublicationIds: [],
+            },
+          ],
+          conflicts: [],
+          activity: [],
+        }),
+      })
+    })
     await page.route(`**/api/publishing/publications/${backendId}`, async (route) => {
       if (route.request().method() !== 'PATCH') return route.fallback()
       patchUrl = route.request().url()
       patchBody = route.request().postDataJSON() as Record<string, unknown>
+      wasPatched = true
       await route.fulfill({
         status: 200,
         contentType: 'application/json',

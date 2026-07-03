@@ -172,9 +172,9 @@ backend-test exclude-tags="":
 backend-test-fast:
     {{gradle-root}} :server:smp:test --no-daemon -PexcludeTags=modularity,postgres
 
-# Run full check: tests + Detekt
+# Run full check: tests + Detekt (aligns with CI — excludes postgres/modularity tags and BDD suites)
 backend-check:
-    {{gradle-root}} :server:smp:check --no-daemon
+    {{gradle-root}} :server:smp:check --no-daemon -PexcludeTags=modularity,postgres -x :server:smp:bddFastTest -x :server:smp:bddPostgresTest
 
 # Run Detekt static analysis
 backend-lint:
