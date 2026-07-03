@@ -16,6 +16,7 @@ import org.springframework.stereotype.Repository
 import org.springframework.transaction.reactive.TransactionalOperator
 import java.time.Clock
 import java.time.Instant
+import java.time.OffsetDateTime
 
 @Repository
 class R2dbcApiKeyCredentialReplacementGateway(
@@ -68,7 +69,7 @@ class R2dbcApiKeyCredentialReplacementGateway(
                     credentialReference = requireNotNull(r.get("id", String::class.java)),
                     principalId = requireNotNull(r.get("principal_id", String::class.java)),
                     status = requireNotNull(r.get("status", String::class.java)),
-                    replacedAt = r.get("replaced_at", java.time.OffsetDateTime::class.java)?.toInstant(),
+                    replacedAt = r.get("replaced_at", OffsetDateTime::class.java)?.toInstant(),
                 )
             }
             .one()

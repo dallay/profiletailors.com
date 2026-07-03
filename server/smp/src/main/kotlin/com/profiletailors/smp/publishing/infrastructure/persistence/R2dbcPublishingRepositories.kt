@@ -354,31 +354,36 @@ class R2dbcPublicationRepository(
     }
 
     override suspend fun deleteUnpublished(workspaceId: String, publicationId: String): Boolean {
-        val deletable = databaseClient.sql(
-            """
-            SELECT COUNT(*) AS cnt FROM publications
+        val status = lockAndGetStatus(workspaceId, publicationId)
+        if (status == null || status !in setOf("DRAFT", "QUEUED", "SCHEDULED")) {
+            return false
+        }
+        return performCascadingDelete(workspaceId, publicationId)
+    }
+
+    private suspend fun lockAndGetStatus(workspaceId: String, publicationId: String): String? = databaseClient.sql(
+        """
+            SELECT status FROM publications
             WHERE workspace_id = :workspaceId
               AND id = :publicationId
-              AND status IN ('DRAFT', 'QUEUED', 'SCHEDULED')
-            """.trimIndent(),
-        )
-            .bind("workspaceId", workspaceId)
-            .bind("publicationId", publicationId)
-            .map { row, _ -> requireNotNull(row.get("cnt", Long::class.javaObjectType)) }
-            .one()
-            .awaitSingle() > 0L
+            FOR UPDATE
+        """.trimIndent(),
+    )
+        .bind("workspaceId", workspaceId)
+        .bind("publicationId", publicationId)
+        .map { row, _ -> row.get("status", String::class.java)!! }
+        .one()
+        .awaitSingleOrNull()
 
-        if (!deletable) return false
-
-        return transactionalOperator.transactional(
+    private suspend fun performCascadingDelete(workspaceId: String, publicationId: String): Boolean =
+        transactionalOperator.transactional(
             mono {
-                // Delete child records first (FK constraints) — only unclaimed jobs
-                databaseClient.sql(
+                val deletedRows = databaseClient.sql(
                     """
-                    DELETE FROM publication_jobs
-                    WHERE publication_id = :publicationId
-                      AND workspace_id = :workspaceId
-                      AND status IN (:pendingStatus, :retryWaitingStatus)
+                DELETE FROM publication_jobs
+                WHERE publication_id = :publicationId
+                  AND workspace_id = :workspaceId
+                  AND status IN (:pendingStatus, :retryWaitingStatus)
                     """.trimIndent(),
                 )
                     .bind("publicationId", publicationId)
@@ -391,8 +396,8 @@ class R2dbcPublicationRepository(
 
                 databaseClient.sql(
                     """
-                    DELETE FROM publication_asset_links
-                    WHERE publication_id = :publicationId
+                DELETE FROM publication_asset_links
+                WHERE publication_id = :publicationId
                     """.trimIndent(),
                 )
                     .bind("publicationId", publicationId)
@@ -400,13 +405,12 @@ class R2dbcPublicationRepository(
                     .rowsUpdated()
                     .awaitSingle()
 
-                // Delete parent publication
-                databaseClient.sql(
+                val rows = databaseClient.sql(
                     """
-                    DELETE FROM publications
-                    WHERE workspace_id = :workspaceId
-                      AND id = :publicationId
-                      AND status IN ('DRAFT', 'QUEUED', 'SCHEDULED')
+                DELETE FROM publications
+                WHERE workspace_id = :workspaceId
+                  AND id = :publicationId
+                  AND status IN ('DRAFT', 'QUEUED', 'SCHEDULED')
                     """.trimIndent(),
                 )
                     .bind("workspaceId", workspaceId)
@@ -415,10 +419,9 @@ class R2dbcPublicationRepository(
                     .rowsUpdated()
                     .awaitSingle()
 
-                true
+                rows > 0
             },
         ).awaitSingle()
-    }
 
     override suspend fun findBlockedForRecovery(maxRetries: Int): List<PublicationDraft> {
         val drafts = databaseClient.sql(

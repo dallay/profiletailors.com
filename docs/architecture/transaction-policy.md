@@ -4,7 +4,7 @@
 **Date:** 2026-07-03
 **Deciders:** Platform Team
 
-## Context
+## Overview
 
 The SMP backend uses R2DBC with a reactive stack (WebFlux, Coroutines). After a full codebase audit during the reactive transaction remediation epic (#197), three different transaction approaches were found in use:
 
@@ -14,9 +14,9 @@ The SMP backend uses R2DBC with a reactive stack (WebFlux, Coroutines). After a 
 
 This inconsistency created maintenance burden and subtle bugs.
 
-## Decision
+## Changes
 
-All multi-statement database operations **MUST** use `TransactionalOperator.transactional { mono { ... } }`.
+All multi-statement database operations **MUST** use `TransactionalOperator.transactional(mono { ... }).awaitSingle()`.
 
 ### Why `TransactionalOperator`?
 
@@ -40,37 +40,7 @@ All multi-statement database operations **MUST** use `TransactionalOperator.tran
 - No automatic rollback-on-exception behavior
 - Harder to test and mock
 
-## Implementation Pattern
-
-```kotlin
-class MyRepository(
-    private val databaseClient: DatabaseClient,
-    private val transactionalOperator: TransactionalOperator,
-) : MyRepositoryInterface {
-
-    suspend fun multiWriteOperation(...): Result {
-        return transactionalOperator.transactional(mono {
-            // All DB operations inside mono { }
-            val first = databaseClient.sql(INSERT_FIRST)....
-            val second = databaseClient.sql(UPDATE_SECOND)....
-            mono { Result.success(Unit) }
-        }).awaitSingle()
-    }
-}
-```
-
-## Consequences
-
-### Positive
-- Single, consistent transaction strategy across the codebase
-- No silent failures from proxy edge cases
-- Explicit transaction boundaries aid debugging
-
-### Negative
-- Slightly more verbose than `@Transactional`
-- Requires injecting `TransactionalOperator` into repositories that do multi-statement writes
-
-## Migration
+### Migration
 
 The following locations were migrated as part of issue #195:
 
@@ -78,6 +48,50 @@ The following locations were migrated as part of issue #195:
 |------|--------|-------|
 | `R2dbcPublicationRepository.kt` | `@Transactional deleteUnpublished()` | `TransactionalOperator` wrapper |
 | `R2dbcApiKeyCredentialReplacementGateway.kt` | Raw `Connection` API | `DatabaseClient` + `TransactionalOperator` |
+
+## Usage
+
+```kotlin
+class MyRepository(
+    private val databaseClient: DatabaseClient,
+    private val transactionalOperator: TransactionalOperator,
+) : MyRepositoryInterface {
+
+    suspend fun multiWriteOperation(...): Boolean {
+        return transactionalOperator.transactional(mono {
+            // All DB operations inside mono { }
+            val first = databaseClient.sql(INSERT_FIRST)....
+            val second = databaseClient.sql(UPDATE_SECOND)....
+            true
+        }).awaitSingle()
+    }
+}
+```
+
+Key points:
+- Wrap all operations that must be atomic inside `transactionalOperator.transactional(mono { ... })`
+- The `mono { }` lambda contains the suspend functions that perform the actual DB work
+- Call `.awaitSingle()` to convert the reactive `Mono` back to a coroutine result
+- The entire block commits on success or rolls back on any exception
+
+## Troubleshooting
+
+### Positive consequences
+
+- Single, consistent transaction strategy across the codebase
+- No silent failures from proxy edge cases
+- Explicit transaction boundaries aid debugging
+
+### Negative consequences
+
+- Slightly more verbose than `@Transactional`
+- Requires injecting `TransactionalOperator` into repositories that do multi-statement writes
+
+### Common mistakes
+
+- **Forgetting the transaction wrapper:** Operations that must be atomic will run without a transaction boundary
+- **Using `@Transactional` on final Kotlin classes:** The annotation silently does nothing
+- **Using raw `Connection` API:** Connection leaks possible if finally block fails
 
 ## References
 

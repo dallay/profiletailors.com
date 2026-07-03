@@ -24,6 +24,7 @@ import org.springframework.context.annotation.Import
 import org.springframework.r2dbc.core.DatabaseClient
 import org.springframework.test.context.DynamicPropertyRegistry
 import org.springframework.test.context.DynamicPropertySource
+import org.springframework.transaction.reactive.TransactionalOperator
 import org.testcontainers.containers.PostgreSQLContainer
 import org.testcontainers.junit.jupiter.Container
 import org.testcontainers.junit.jupiter.Testcontainers
@@ -58,7 +59,7 @@ class PublishingQueuePostgresIntegrationTest {
     private lateinit var databaseClient: DatabaseClient
 
     @Autowired
-    private lateinit var transactionalOperator: org.springframework.transaction.reactive.TransactionalOperator
+    private lateinit var transactionalOperator: TransactionalOperator
 
     private lateinit var publicationRepository: R2dbcPublicationRepository
     private lateinit var jobRepository: R2dbcPublicationJobRepository
