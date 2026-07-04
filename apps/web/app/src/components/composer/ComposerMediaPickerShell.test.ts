@@ -175,7 +175,7 @@ describe('ComposerMediaPickerShell', () => {
       expect(inputId).toBeTruthy()
       const linkedLabel = wrapper.find(`label[for="${inputId}"]`)
       expect(linkedLabel.exists()).toBe(true)
-      expect(linkedLabel.text()).toBe('composer.mediaPicker.searchLabel')
+      expect(linkedLabel.text()).toContain('composer.mediaPicker.searchLabel')
     })
 
     it('renders filter select with localized aria-label', () => {
@@ -191,7 +191,7 @@ describe('ComposerMediaPickerShell', () => {
       expect(triggerId).toBeTruthy()
       const linkedLabel = wrapper.find(`label[for="${triggerId}"]`)
       expect(linkedLabel.exists()).toBe(true)
-      expect(linkedLabel.text()).toBe('composer.mediaPicker.filterLabel')
+      expect(linkedLabel.text()).toContain('composer.mediaPicker.filterLabel')
     })
 
     it('renders asset grid region with localized label', () => {

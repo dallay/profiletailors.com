@@ -34,8 +34,8 @@ const emit = defineEmits<{
 }>()
 
 const { t } = useI18n()
-const searchLabelId = useId('composer-media-picker-search')
-const filterLabelId = useId('composer-media-picker-filter')
+const searchLabelId = useId()
+const filterLabelId = useId()
 
 function handleClose() {
   emit('close')
@@ -82,51 +82,50 @@ function handleFilterChange(value: unknown) {
 
       <!-- Controls: search + filter -->
       <div class="flex items-center gap-3">
-        <!-- biome-ignore lint/a11y/noLabelWithoutControl: dynamic :for resolves to the input id at runtime -->
+        <!-- biome-ignore lint/a11y/noLabelWithoutControl: dynamic :for resolved at runtime to the nested Input id -->
         <label
           :for="searchLabelId"
-          class="sr-only"
-        >
-          {{ t('composer.mediaPicker.searchLabel') }}
-        </label>
-        <Input
-          :id="searchLabelId"
-          data-testid="media-picker-search"
-          type="search"
-          :model-value="searchQuery"
-          :placeholder="t('composer.mediaPicker.searchPlaceholder')"
-          :aria-label="t('composer.mediaPicker.searchLabel')"
-          :disabled="disabled"
           class="flex-1"
-          @update:model-value="handleSearchInput"
-        />
-        <!-- biome-ignore lint/a11y/noLabelWithoutControl: dynamic :for resolves to the SelectTrigger id at runtime -->
+        >
+          <span class="sr-only">{{ t('composer.mediaPicker.searchLabel') }}</span>
+          <Input
+            :id="searchLabelId"
+            data-testid="media-picker-search"
+            type="search"
+            :model-value="searchQuery"
+            :placeholder="t('composer.mediaPicker.searchPlaceholder')"
+            :aria-label="t('composer.mediaPicker.searchLabel')"
+            :disabled="disabled"
+            @update:model-value="handleSearchInput"
+          />
+        </label>
+        <!-- biome-ignore lint/a11y/noLabelWithoutControl: dynamic :for resolved at runtime to the nested SelectTrigger id -->
         <label
           :for="filterLabelId"
-          class="sr-only"
+          class="block"
         >
-          {{ t('composer.mediaPicker.filterLabel') }}
-        </label>
-        <Select
-          :model-value="selectedFilter"
-          :disabled="disabled"
-          @update:model-value="handleFilterChange"
-        >
-          <SelectTrigger
-            :id="filterLabelId"
-            data-testid="media-picker-filter"
-            :aria-label="t('composer.mediaPicker.filterLabel')"
+          <span class="sr-only">{{ t('composer.mediaPicker.filterLabel') }}</span>
+          <Select
+            :model-value="selectedFilter"
             :disabled="disabled"
-            class="w-40"
+            @update:model-value="handleFilterChange"
           >
-            <SelectValue />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem v-for="opt in filterOptions" :key="opt.value" :value="opt.value">
-              {{ t(opt.labelKey) }}
-            </SelectItem>
-          </SelectContent>
-        </Select>
+            <SelectTrigger
+              :id="filterLabelId"
+              data-testid="media-picker-filter"
+              :aria-label="t('composer.mediaPicker.filterLabel')"
+              :disabled="disabled"
+              class="w-40"
+            >
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem v-for="opt in filterOptions" :key="opt.value" :value="opt.value">
+                {{ t(opt.labelKey) }}
+              </SelectItem>
+            </SelectContent>
+          </Select>
+        </label>
       </div>
 
       <div aria-live="polite" aria-atomic="true">
