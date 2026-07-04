@@ -168,10 +168,30 @@ describe('ComposerMediaPickerShell', () => {
       expect(searchInput.attributes('aria-label')).toBe('composer.mediaPicker.searchLabel')
     })
 
+    it('associates the search input with an associated label via a shared id', () => {
+      const wrapper = mountShell()
+      const searchInput = wrapper.get('[data-testid="media-picker-search"]')
+      const inputId = searchInput.attributes('id')
+      expect(inputId).toBeTruthy()
+      const linkedLabel = wrapper.find(`label[for="${inputId}"]`)
+      expect(linkedLabel.exists()).toBe(true)
+      expect(linkedLabel.text()).toBe('composer.mediaPicker.searchLabel')
+    })
+
     it('renders filter select with localized aria-label', () => {
       const wrapper = mountShell()
       const filter = wrapper.get('[data-testid="media-picker-filter"]')
       expect(filter.attributes('aria-label')).toBe('composer.mediaPicker.filterLabel')
+    })
+
+    it('associates the filter trigger with an associated label via a shared id', () => {
+      const wrapper = mountShell()
+      const filter = wrapper.get('[data-testid="media-picker-filter"]')
+      const triggerId = filter.attributes('id')
+      expect(triggerId).toBeTruthy()
+      const linkedLabel = wrapper.find(`label[for="${triggerId}"]`)
+      expect(linkedLabel.exists()).toBe(true)
+      expect(linkedLabel.text()).toBe('composer.mediaPicker.filterLabel')
     })
 
     it('renders asset grid region with localized label', () => {

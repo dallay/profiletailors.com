@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { useI18n } from 'vue-i18n'
+import { useId } from 'vue'
 import { XIcon } from '@lucide/vue'
 import {
   Dialog,
@@ -33,6 +34,8 @@ const emit = defineEmits<{
 }>()
 
 const { t } = useI18n()
+const searchLabelId = useId('composer-media-picker-search')
+const filterLabelId = useId('composer-media-picker-filter')
 
 function handleClose() {
   emit('close')
@@ -79,7 +82,15 @@ function handleFilterChange(value: unknown) {
 
       <!-- Controls: search + filter -->
       <div class="flex items-center gap-3">
+        <!-- biome-ignore lint/a11y/noLabelWithoutControl: dynamic :for resolves to the input id at runtime -->
+        <label
+          :for="searchLabelId"
+          class="sr-only"
+        >
+          {{ t('composer.mediaPicker.searchLabel') }}
+        </label>
         <Input
+          :id="searchLabelId"
           data-testid="media-picker-search"
           type="search"
           :model-value="searchQuery"
@@ -89,12 +100,20 @@ function handleFilterChange(value: unknown) {
           class="flex-1"
           @update:model-value="handleSearchInput"
         />
+        <!-- biome-ignore lint/a11y/noLabelWithoutControl: dynamic :for resolves to the SelectTrigger id at runtime -->
+        <label
+          :for="filterLabelId"
+          class="sr-only"
+        >
+          {{ t('composer.mediaPicker.filterLabel') }}
+        </label>
         <Select
           :model-value="selectedFilter"
           :disabled="disabled"
           @update:model-value="handleFilterChange"
         >
           <SelectTrigger
+            :id="filterLabelId"
             data-testid="media-picker-filter"
             :aria-label="t('composer.mediaPicker.filterLabel')"
             :disabled="disabled"
