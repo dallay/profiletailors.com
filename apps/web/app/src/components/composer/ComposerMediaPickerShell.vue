@@ -9,6 +9,7 @@ import {
   DialogDescription,
 } from '@/components/ui/dialog'
 import { Input } from '@/components/ui/input'
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import type {
   ComposerMediaPickerProps,
   ComposerMediaPickerFilter,
@@ -43,10 +44,9 @@ function handleSearchInput(value: string | number) {
   emit('search-change', { query: String(value) })
 }
 
-function handleFilterChange(event: Event) {
-  if (props.disabled) return
-  const target = event.target as HTMLSelectElement
-  emit('filter-change', { filter: target.value as ComposerMediaPickerFilter })
+function handleFilterChange(value: unknown) {
+  if (props.disabled || typeof value !== 'string') return
+  emit('filter-change', { filter: value as ComposerMediaPickerFilter })
 }
 </script>
 
@@ -89,24 +89,28 @@ function handleFilterChange(event: Event) {
           class="flex-1"
           @update:model-value="handleSearchInput"
         />
-        <select
-          data-testid="media-picker-filter"
-          :value="selectedFilter"
-          :aria-label="t('composer.mediaPicker.filterLabel')"
+        <Select
+          :model-value="selectedFilter"
           :disabled="disabled"
-          class="rounded-xl border border-border-visible bg-bg-surface px-3 py-2 text-sm text-text-display"
-          @change="handleFilterChange"
+          @update:model-value="handleFilterChange"
         >
-          <option
-            v-for="opt in filterOptions"
-            :key="opt.value"
-            :value="opt.value"
+          <SelectTrigger
+            data-testid="media-picker-filter"
+            :aria-label="t('composer.mediaPicker.filterLabel')"
+            :disabled="disabled"
+            class="w-40"
           >
-            {{ t(opt.labelKey) }}
-          </option>
-        </select>
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem v-for="opt in filterOptions" :key="opt.value" :value="opt.value">
+              {{ t(opt.labelKey) }}
+            </SelectItem>
+          </SelectContent>
+        </Select>
       </div>
 
+      <div aria-live="polite" aria-atomic="true">
       <!-- Disabled state -->
       <div v-if="disabled" class="py-8 text-center">
         <p class="text-sm font-medium text-text-display">
@@ -143,10 +147,11 @@ function handleFilterChange(event: Event) {
           {{ errorMessage ?? t('composer.mediaPicker.errorBody') }}
         </p>
       </div>
+      </div>
 
       <!-- Ready state with asset grid -->
       <section
-        v-else
+        v-if="!disabled && state === 'ready'"
         data-testid="media-picker-asset-grid"
         :aria-label="t('composer.mediaPicker.assetGridLabel')"
         class="grid grid-cols-3 gap-3 sm:grid-cols-4"

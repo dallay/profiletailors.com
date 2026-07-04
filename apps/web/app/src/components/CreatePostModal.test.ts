@@ -35,7 +35,10 @@ vi.mock('@/lib/auth-api', () => ({
 }))
 
 vi.mock('@/components/ui/button', () => ({
-  Button: { template: '<button class="ui-button"><slot /></button>' },
+  Button: {
+    props: ['asChild'],
+    template: '<slot v-if="asChild" /><button v-else class="ui-button"><slot /></button>',
+  },
 }))
 
 vi.mock('@lucide/vue', () => {
@@ -553,10 +556,11 @@ describe('CreatePostModal.vue — submit normalization', () => {
 
     await wrapper.vm.$nextTick()
 
-    // Click the schedule button (the ui-button rendered in the teleported content)
-    const button = document.body.querySelector('.ui-button')
-    expect(button).not.toBeNull()
-    ;(button as HTMLButtonElement).click()
+    const button = Array.from(document.body.querySelectorAll('button')).find((candidate) =>
+      candidate.textContent?.includes('Schedule Now'),
+    ) as HTMLButtonElement | undefined
+    expect(button).toBeDefined()
+    button?.click()
 
     await wrapper.vm.$nextTick()
 
@@ -634,9 +638,11 @@ describe('CreatePostModal.vue — deferred media upload on submit', () => {
     await wrapper.vm.$nextTick()
     expect(createAndUpload).not.toHaveBeenCalled()
 
-    const button = document.body.querySelector('.ui-button')
-    expect(button).not.toBeNull()
-    ;(button as HTMLButtonElement).click()
+    const button = Array.from(document.body.querySelectorAll('button')).find((candidate) =>
+      candidate.textContent?.includes('Schedule Now'),
+    ) as HTMLButtonElement | undefined
+    expect(button).toBeDefined()
+    button?.click()
 
     await wrapper.vm.$nextTick()
     await Promise.resolve()
@@ -693,8 +699,10 @@ describe('CreatePostModal.vue — deferred media upload on submit', () => {
     textarea.dispatchEvent(new Event('input', { bubbles: true }))
     await wrapper.vm.$nextTick()
 
-    const button = document.body.querySelector('.ui-button') as HTMLButtonElement | null
-    expect(button).not.toBeNull()
+    const button = Array.from(document.body.querySelectorAll('button')).find((candidate) =>
+      candidate.textContent?.includes('Schedule Now'),
+    ) as HTMLButtonElement | undefined
+    expect(button).toBeDefined()
     button?.click()
     await wrapper.vm.$nextTick()
     await Promise.resolve()
@@ -749,8 +757,10 @@ describe('CreatePostModal.vue — deferred media upload on submit', () => {
     textarea.dispatchEvent(new Event('input', { bubbles: true }))
     await wrapper.vm.$nextTick()
 
-    const button = document.body.querySelector('.ui-button') as HTMLButtonElement | null
-    expect(button).not.toBeNull()
+    const button = Array.from(document.body.querySelectorAll('button')).find((candidate) =>
+      candidate.textContent?.includes('Schedule Now'),
+    ) as HTMLButtonElement | undefined
+    expect(button).toBeDefined()
     button?.click()
     await wrapper.vm.$nextTick()
     await Promise.resolve()

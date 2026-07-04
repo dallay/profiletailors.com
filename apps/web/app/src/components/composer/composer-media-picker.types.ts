@@ -1,23 +1,45 @@
 import type { MediaAssetSummary } from '@/lib/media-api'
 
-export type ComposerMediaPickerViewState = 'loading' | 'empty' | 'error' | 'ready'
-export type ComposerMediaPickerFilter = 'all' | 'image' | 'video' | 'document'
+export const COMPOSER_MEDIA_PICKER_VIEW_STATE = {
+  LOADING: 'loading',
+  EMPTY: 'empty',
+  ERROR: 'error',
+  READY: 'ready',
+} as const
 
-export interface ComposerMediaPickerProps {
+export type ComposerMediaPickerViewState =
+  (typeof COMPOSER_MEDIA_PICKER_VIEW_STATE)[keyof typeof COMPOSER_MEDIA_PICKER_VIEW_STATE]
+
+export const COMPOSER_MEDIA_PICKER_FILTER = {
+  ALL: 'all',
+  IMAGE: 'image',
+  VIDEO: 'video',
+  DOCUMENT: 'document',
+} as const
+
+export type ComposerMediaPickerFilter =
+  (typeof COMPOSER_MEDIA_PICKER_FILTER)[keyof typeof COMPOSER_MEDIA_PICKER_FILTER]
+
+export type ComposerMediaPickerFilterOption = {
+  value: ComposerMediaPickerFilter
+  labelKey: string
+}
+
+export type ComposerMediaPickerProps = {
   open: boolean
   disabled?: boolean
   state: ComposerMediaPickerViewState
   searchQuery: string
   selectedFilter: ComposerMediaPickerFilter
-  filterOptions: ReadonlyArray<{ value: ComposerMediaPickerFilter; labelKey: string }>
+  filterOptions: ReadonlyArray<ComposerMediaPickerFilterOption>
   assets: ReadonlyArray<MediaAssetSummary>
   errorMessage?: string | null
 }
 
-export interface ComposerMediaPickerSearchChange {
+export type ComposerMediaPickerSearchChange = {
   query: string
 }
 
-export interface ComposerMediaPickerFilterChange {
+export type ComposerMediaPickerFilterChange = {
   filter: ComposerMediaPickerFilter
 }

@@ -1,9 +1,12 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 import { mount, flushPromises } from '@vue/test-utils'
 import type { MediaAssetSummary } from '@/lib/media-api'
-import type {
-  ComposerMediaPickerFilter,
-  ComposerMediaPickerViewState,
+import {
+  COMPOSER_MEDIA_PICKER_FILTER,
+  COMPOSER_MEDIA_PICKER_VIEW_STATE,
+  type ComposerMediaPickerFilter,
+  type ComposerMediaPickerFilterOption,
+  type ComposerMediaPickerViewState,
 } from './composer-media-picker.types'
 
 vi.mock('vue-i18n', () => ({
@@ -26,6 +29,22 @@ vi.mock('@/components/ui/button', () => ({
     template: '<button data-slot="button"><slot /></button>',
     props: ['variant', 'size', 'disabled', 'ariaLabel', 'type'],
   },
+}))
+
+vi.mock('@/components/ui/select', () => ({
+  Select: {
+    name: 'Select',
+    template: '<div><slot /></div>',
+    props: ['modelValue', 'disabled'],
+    emits: ['update:modelValue'],
+  },
+  SelectTrigger: {
+    template: '<button type="button" :disabled="disabled"><slot /></button>',
+    props: ['disabled'],
+  },
+  SelectValue: { template: '<span />' },
+  SelectContent: { template: '<div><slot /></div>' },
+  SelectItem: { template: '<button type="button"><slot /></button>', props: ['value'] },
 }))
 
 vi.mock('@/components/ui/input', () => ({
@@ -74,14 +93,11 @@ function makeAsset(overrides: Partial<MediaAssetSummary> = {}): MediaAssetSummar
   }
 }
 
-const DEFAULT_FILTER_OPTIONS: ReadonlyArray<{
-  value: ComposerMediaPickerFilter
-  labelKey: string
-}> = [
-  { value: 'all', labelKey: 'composer.mediaPicker.filterAll' },
-  { value: 'image', labelKey: 'composer.mediaPicker.filterImage' },
-  { value: 'video', labelKey: 'composer.mediaPicker.filterVideo' },
-  { value: 'document', labelKey: 'composer.mediaPicker.filterDocument' },
+const DEFAULT_FILTER_OPTIONS: ReadonlyArray<ComposerMediaPickerFilterOption> = [
+  { value: COMPOSER_MEDIA_PICKER_FILTER.ALL, labelKey: 'composer.mediaPicker.filterAll' },
+  { value: COMPOSER_MEDIA_PICKER_FILTER.IMAGE, labelKey: 'composer.mediaPicker.filterImage' },
+  { value: COMPOSER_MEDIA_PICKER_FILTER.VIDEO, labelKey: 'composer.mediaPicker.filterVideo' },
+  { value: COMPOSER_MEDIA_PICKER_FILTER.DOCUMENT, labelKey: 'composer.mediaPicker.filterDocument' },
 ]
 
 function mountShell(overrides: Record<string, unknown> = {}) {
@@ -89,9 +105,9 @@ function mountShell(overrides: Record<string, unknown> = {}) {
     attachTo: document.body,
     props: {
       open: true,
-      state: 'ready' as ComposerMediaPickerViewState,
+      state: COMPOSER_MEDIA_PICKER_VIEW_STATE.READY as ComposerMediaPickerViewState,
       searchQuery: '',
-      selectedFilter: 'all' as ComposerMediaPickerFilter,
+      selectedFilter: COMPOSER_MEDIA_PICKER_FILTER.ALL as ComposerMediaPickerFilter,
       filterOptions: DEFAULT_FILTER_OPTIONS,
       assets: [makeAsset()],
       ...overrides,
@@ -175,6 +191,13 @@ describe('ComposerMediaPickerShell', () => {
       expect(wrapper.find('[data-testid="media-picker-asset-grid"]').exists()).toBe(false)
     })
 
+    it('announces non-ready state panel changes politely', () => {
+      const wrapper = mountShell({ state: 'loading' })
+      const liveRegion = wrapper.get('[aria-live="polite"]')
+      expect(liveRegion.attributes('aria-atomic')).toBe('true')
+      expect(liveRegion.text()).toContain('composer.mediaPicker.loading')
+    })
+
     it('renders empty state with localized title and body', () => {
       const wrapper = mountShell({ state: 'empty', assets: [] })
       expect(wrapper.text()).toContain('composer.mediaPicker.emptyTitle')
@@ -229,8 +252,7 @@ describe('ComposerMediaPickerShell', () => {
 
     it('does not emit filter-change when disabled', async () => {
       const wrapper = mountShell({ disabled: true })
-      const filter = wrapper.find('[data-testid="media-picker-filter"]')
-      await filter.setValue('image')
+      wrapper.findComponent({ name: 'Select' }).vm.$emit('update:modelValue', 'image')
       expect(wrapper.emitted('filter-change')).toBeUndefined()
     })
   })
@@ -287,8 +309,7 @@ describe('ComposerMediaPickerShell', () => {
 
     it('emits filter-change with typed payload when filter changes', async () => {
       const wrapper = mountShell()
-      const filter = wrapper.get('[data-testid="media-picker-filter"]')
-      await filter.setValue('video')
+      wrapper.findComponent({ name: 'Select' }).vm.$emit('update:modelValue', 'video')
       const events = wrapper.emitted('filter-change')
       expect(events).toBeTruthy()
       expect(events![events!.length - 1]).toEqual([{ filter: 'video' }])

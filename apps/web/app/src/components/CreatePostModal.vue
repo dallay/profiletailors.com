@@ -21,11 +21,14 @@ import { useMediaStore } from '@/stores/media'
 import { proxyImageUrl, resolveApiUrl } from '@/lib/auth-api'
 import PostPreviewPanel from '@/components/composer/PostPreviewPanel.vue'
 import ComposerMediaPickerShell from '@/components/composer/ComposerMediaPickerShell.vue'
-import type {
-  ComposerMediaPickerViewState,
-  ComposerMediaPickerFilter,
-  ComposerMediaPickerSearchChange,
-  ComposerMediaPickerFilterChange,
+import {
+  COMPOSER_MEDIA_PICKER_FILTER,
+  COMPOSER_MEDIA_PICKER_VIEW_STATE,
+  type ComposerMediaPickerViewState,
+  type ComposerMediaPickerFilter,
+  type ComposerMediaPickerFilterOption,
+  type ComposerMediaPickerSearchChange,
+  type ComposerMediaPickerFilterChange,
 } from '@/components/composer/composer-media-picker.types'
 import type { LinkedInPreviewModel, PostPreviewMedia } from '@/components/composer/post-preview.types'
 import { Button } from '@/components/ui/button'
@@ -69,7 +72,7 @@ const isDatePickerOpen = ref(false)
 const isMediaPickerOpen = ref(false)
 const mediaPickerTrigger = ref<HTMLButtonElement | null>(null)
 const mediaPickerSearchQuery = ref('')
-const mediaPickerSelectedFilter = ref<ComposerMediaPickerFilter>('all')
+const mediaPickerSelectedFilter = ref<ComposerMediaPickerFilter>(COMPOSER_MEDIA_PICKER_FILTER.ALL)
 
 const modalContainer = ref<HTMLElement | null>(null)
 const { activate: activateFocusTrap, deactivate: deactivateFocusTrap } = useFocusTrap(modalContainer, () => emit('close'))
@@ -303,16 +306,16 @@ const selectedChannelInitials = computed(() => {
     .toUpperCase()
 })
 
-const mediaPickerFilterOptions = computed<
-  ReadonlyArray<{ value: ComposerMediaPickerFilter; labelKey: string }>
->(() => [
-  { value: 'all', labelKey: 'composer.mediaPicker.filterAll' },
-  { value: 'image', labelKey: 'composer.mediaPicker.filterImage' },
-  { value: 'video', labelKey: 'composer.mediaPicker.filterVideo' },
-  { value: 'document', labelKey: 'composer.mediaPicker.filterDocument' },
+const mediaPickerFilterOptions = computed<ReadonlyArray<ComposerMediaPickerFilterOption>>(() => [
+  { value: COMPOSER_MEDIA_PICKER_FILTER.ALL, labelKey: 'composer.mediaPicker.filterAll' },
+  { value: COMPOSER_MEDIA_PICKER_FILTER.IMAGE, labelKey: 'composer.mediaPicker.filterImage' },
+  { value: COMPOSER_MEDIA_PICKER_FILTER.VIDEO, labelKey: 'composer.mediaPicker.filterVideo' },
+  { value: COMPOSER_MEDIA_PICKER_FILTER.DOCUMENT, labelKey: 'composer.mediaPicker.filterDocument' },
 ])
 
-const mediaPickerState = computed<ComposerMediaPickerViewState>(() => 'loading')
+const mediaPickerState = computed<ComposerMediaPickerViewState>(
+  () => COMPOSER_MEDIA_PICKER_VIEW_STATE.LOADING,
+)
 
 const selectedDateLabel = computed(() => {
   if (!selectedCalendarDate.value) return 'Select date'
@@ -898,19 +901,21 @@ async function handleCreateSubmit(
               <span class="font-mono text-[9px] tracking-widest text-text-secondary uppercase block">
                 Media Attachment
               </span>
-              <button
-                ref="mediaPickerTrigger"
-                type="button"
-                data-testid="media-picker-trigger"
-                class="flex items-center gap-1.5 font-mono text-[9px] font-bold uppercase tracking-wider text-text-secondary hover:text-text-display transition-colors cursor-pointer"
-                :aria-label="$t('composer.mediaPicker.open')"
-                :aria-haspopup="'dialog'"
-                :aria-expanded="isMediaPickerOpen"
-                @click="openMediaPicker"
-              >
-                <ImageIcon class="size-3.5" />
-                {{ $t('composer.mediaPicker.open') }}
-              </button>
+              <Button as-child variant="ghost" size="sm">
+                <button
+                  ref="mediaPickerTrigger"
+                  type="button"
+                  data-testid="media-picker-trigger"
+                  class="h-auto gap-1.5 px-0 py-0 font-mono text-[9px] font-bold uppercase tracking-wider text-text-secondary hover:bg-transparent hover:text-text-display"
+                  :aria-label="$t('composer.mediaPicker.open')"
+                  :aria-haspopup="'dialog'"
+                  :aria-expanded="isMediaPickerOpen"
+                  @click="openMediaPicker"
+                >
+                  <ImageIcon class="size-3.5" />
+                  {{ $t('composer.mediaPicker.open') }}
+                </button>
+              </Button>
             </div>
 
             <!-- Upload progress or failed upload state -->
