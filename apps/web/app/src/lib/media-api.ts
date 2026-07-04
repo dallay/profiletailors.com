@@ -6,7 +6,7 @@
  * CAS media asset status values.
  */
 export type MediaStatus = 'PENDING_UPLOAD' | 'UPLOADING' | 'READY' | 'FAILED' | 'DELETED'
-export type MediaSourceType = 'UPLOADED'
+export type MediaSourceType = 'UPLOADED' | 'EXTERNAL'
 export type MediaType =
   | 'image/jpeg'
   | 'image/png'
@@ -31,6 +31,12 @@ export interface MediaAssetSummary {
   createdAt: string
   previewUrl?: string | null
   downloadUrl?: string | null
+  sourceProvider?: string | null
+  externalId?: string | null
+  sourceUrl?: string | null
+  authorName?: string | null
+  authorUrl?: string | null
+  metadata?: Record<string, unknown> | null
 }
 
 /** Paginated list response from GET /api/media/assets */

@@ -173,6 +173,40 @@ describe('MediaLibraryView', () => {
     expect(wrapper.text()).toContain('media.noFilteredAssetsBody')
   })
 
+  it('does not render external attribution metadata', async () => {
+    const mediaStore = useMediaStore()
+    mediaStore.assetsById['external-asset'] = {
+      assetId: 'external-asset',
+      workspaceId: 'ws-1',
+      sourceType: 'EXTERNAL',
+      sourceProvider: 'unsplash',
+      externalId: 'photo-123',
+      sourceUrl: 'https://example.test/source-photo-123',
+      authorName: 'Attribution Author Sentinel',
+      authorUrl: 'https://example.test/attribution-author-sentinel',
+      metadata: { attributionSentinel: 'hidden-provider-metadata' },
+      mediaType: 'image/jpeg',
+      status: 'READY',
+      originalFilename: 'external.jpg',
+      fileSizeBytes: 1024,
+      createdAt: '2026-06-19T12:00:00Z',
+      previewUrl: '/api/media/assets/external-asset/preview',
+      downloadUrl: '/api/media/assets/external-asset/content',
+    }
+    mediaStore.assetIds.push('external-asset')
+
+    const wrapper = mountView()
+    await flushPromises()
+
+    expect(wrapper.text()).toContain('external.jpg')
+    expect(wrapper.text()).not.toContain('Attribution Author Sentinel')
+    expect(wrapper.html()).not.toContain('attribution-author-sentinel')
+    expect(wrapper.html()).not.toContain('hidden-provider-metadata')
+    expect(wrapper.html()).not.toContain('unsplash')
+    expect(wrapper.html()).not.toContain('source-photo-123')
+    expect(wrapper.html()).not.toContain('https://example.test/source-photo-123')
+  })
+
   it('renders asset cards when assets exist', async () => {
     const mediaStore = useMediaStore()
     mediaStore.assetsById['asset-1'] = {

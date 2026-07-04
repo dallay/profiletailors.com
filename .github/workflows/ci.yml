@@ -144,6 +144,8 @@ jobs:
     needs: changes
     if: needs.changes.outputs.backend == 'true'
     runs-on: ubuntu-latest
+    env:
+      SMP_POSTGRES_TEST_PASSWORD: ${{ secrets.SMP_POSTGRES_PASSWORD }}
     steps:
       - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5
         with:

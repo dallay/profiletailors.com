@@ -1,6 +1,7 @@
 package com.profiletailors.smp.publishing.integration
 
-import com.profiletailors.smp.integration.support.DatabaseUnitTestBase
+import com.profiletailors.smp.integration.support.PostgresDatabaseTestBase
+import com.profiletailors.smp.integration.support.PostgresTestContainerSupport
 import com.profiletailors.smp.publishing.domain.JobStatus
 import com.profiletailors.smp.publishing.domain.PublicationDraft
 import com.profiletailors.smp.publishing.domain.PublicationStatus
@@ -13,12 +14,19 @@ import kotlinx.coroutines.test.runTest
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertNotNull
 import org.junit.jupiter.api.BeforeEach
+import org.junit.jupiter.api.Tag
 import org.junit.jupiter.api.Test
+import org.junit.jupiter.api.TestInstance
+import org.testcontainers.junit.jupiter.Container
+import org.testcontainers.junit.jupiter.Testcontainers
 import java.time.Instant
 
-class PublishingQueueIntegrationTest : DatabaseUnitTestBase() {
+@Tag("postgres")
+@Testcontainers(disabledWithoutDocker = true)
+@TestInstance(TestInstance.Lifecycle.PER_CLASS)
+class PublishingQueueIntegrationTest : PostgresDatabaseTestBase() {
 
-    override fun databaseName(): String = "publishing_queue"
+    override val postgres = postgresContainer
 
     private lateinit var publicationRepository: R2dbcPublicationRepository
     private lateinit var jobRepository: R2dbcPublicationJobRepository
@@ -212,5 +220,10 @@ class PublishingQueueIntegrationTest : DatabaseUnitTestBase() {
                 maxAttempts = 3,
             ),
         )
+    }
+
+    companion object {
+        @Container
+        val postgresContainer = PostgresTestContainerSupport.newContainer("publishing_queue")
     }
 }

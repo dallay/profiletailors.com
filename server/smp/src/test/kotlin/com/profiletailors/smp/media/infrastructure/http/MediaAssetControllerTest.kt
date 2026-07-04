@@ -97,7 +97,7 @@ class MediaAssetControllerTest {
             commandResult = CreateUploadedAssetResult(
                 assetId = "asset-external",
                 workspaceId = workspaceId,
-                sourceType = MediaSourceType.EXTERNAL_URL,
+                sourceType = MediaSourceType.EXTERNAL,
                 mediaType = "image/jpeg",
                 status = "PROCESSING",
             ),
@@ -106,13 +106,13 @@ class MediaAssetControllerTest {
 
         controller.createAsset(
             CreateMediaAssetRequest(
-                sourceType = "EXTERNAL_URL",
+                sourceType = "EXTERNAL",
                 mediaType = "image/jpeg",
             ),
         )
 
         val sent = mediator.lastCommand as CreateUploadedAssetCommand
-        assertEquals(MediaSourceType.EXTERNAL_URL, sent.sourceType)
+        assertEquals(MediaSourceType.EXTERNAL, sent.sourceType)
     }
 
     @Test

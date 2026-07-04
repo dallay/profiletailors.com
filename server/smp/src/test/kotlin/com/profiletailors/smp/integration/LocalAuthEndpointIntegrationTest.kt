@@ -2,14 +2,15 @@ package com.profiletailors.smp.integration
 
 import com.profiletailors.smp.identity.application.EmailVerificationTokenHasher
 import com.profiletailors.smp.integration.support.IntegrationTestBase
+import com.profiletailors.smp.integration.support.PostgresIntegrationTestBase
+import com.profiletailors.smp.integration.support.PostgresTestContainerSupport
 import com.profiletailors.smp.tenancy.application.WorkspaceProvisioningService
 import com.profiletailors.smp.tenancy.infrastructure.R2dbcWorkspaceProvisioningService
-import io.r2dbc.h2.H2ConnectionConfiguration
-import io.r2dbc.h2.H2ConnectionFactory
-import io.r2dbc.spi.ConnectionFactory
 import kotlinx.coroutines.reactor.awaitSingle
 import org.junit.jupiter.api.Assertions.assertEquals
+import org.junit.jupiter.api.Tag
 import org.junit.jupiter.api.Test
+import org.junit.jupiter.api.TestInstance
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.beans.factory.annotation.Value
 import org.springframework.boot.test.context.SpringBootTest
@@ -24,6 +25,11 @@ import org.springframework.security.oauth2.jose.jws.MacAlgorithm
 import org.springframework.security.oauth2.jwt.Jwt
 import org.springframework.security.oauth2.jwt.NimbusReactiveJwtDecoder
 import org.springframework.security.oauth2.jwt.ReactiveJwtDecoder
+import org.springframework.test.context.DynamicPropertyRegistry
+import org.springframework.test.context.DynamicPropertySource
+import org.testcontainers.containers.PostgreSQLContainer
+import org.testcontainers.junit.jupiter.Container
+import org.testcontainers.junit.jupiter.Testcontainers
 import java.time.Instant
 import javax.crypto.spec.SecretKeySpec
 
@@ -31,14 +37,7 @@ import javax.crypto.spec.SecretKeySpec
 @SpringBootTest(
     webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT,
     properties = [
-        "spring.r2dbc.url=r2dbc:h2:mem:///local_auth_e2e" +
-            "?options=MODE=PostgreSQL;DB_CLOSE_DELAY=-1;DB_CLOSE_ON_EXIT=FALSE",
-        "spring.r2dbc.username=sa",
-        "spring.r2dbc.password=",
         "spring.liquibase.enabled=true",
-        "spring.liquibase.url=jdbc:h2:mem:local_auth_e2e;MODE=PostgreSQL;DB_CLOSE_DELAY=-1;DB_CLOSE_ON_EXIT=FALSE",
-        "spring.liquibase.user=sa",
-        "spring.liquibase.password=",
         "spring.main.allow-bean-definition-overriding=true",
         "app.security.local-jwt.secret=integration-test-local-jwt-secret-1234567890",
         "app.security.local-jwt.issuer=http://localhost/profiletailors-local",
@@ -50,14 +49,17 @@ import javax.crypto.spec.SecretKeySpec
 )
 @Import(
     IntegrationTestBase.SharedTestConfiguration::class,
-    LocalAuthEndpointIntegrationTest.H2ConnectionFactoryConfiguration::class,
+    LocalAuthEndpointIntegrationTest.LocalAuthTestConfiguration::class,
 )
-class LocalAuthEndpointIntegrationTest : IntegrationTestBase() {
+@Tag("postgres")
+@Testcontainers(disabledWithoutDocker = true)
+@TestInstance(TestInstance.Lifecycle.PER_CLASS)
+class LocalAuthEndpointIntegrationTest : PostgresIntegrationTestBase() {
 
     @Autowired
     lateinit var reactiveJwtDecoder: ReactiveJwtDecoder
 
-    override fun databaseName(): String = "local_auth_e2e"
+    override val postgresContainer: PostgreSQLContainer<*> = postgres
 
     override suspend fun seedScenario() {
         failWorkspaceProvisioning = false
@@ -626,18 +628,7 @@ class LocalAuthEndpointIntegrationTest : IntegrationTestBase() {
         ?: error("Failed to decode JWT")
 
     @TestConfiguration
-    class H2ConnectionFactoryConfiguration {
-        @Bean
-        fun connectionFactory(): ConnectionFactory = H2ConnectionFactory(
-            H2ConnectionConfiguration.builder()
-                .inMemory("local_auth_e2e")
-                .property("MODE", "PostgreSQL")
-                .property("DB_CLOSE_DELAY", "-1")
-                .property("DB_CLOSE_ON_EXIT", "FALSE")
-                .username("sa")
-                .build(),
-        )
-
+    class LocalAuthTestConfiguration {
         @Bean
         @Primary
         fun workspaceProvisioningService(realService: R2dbcWorkspaceProvisioningService): WorkspaceProvisioningService =
@@ -659,7 +650,17 @@ class LocalAuthEndpointIntegrationTest : IntegrationTestBase() {
     }
 
     companion object {
+        @Container
+        @JvmStatic
+        val postgres = PostgresTestContainerSupport.newContainer("local_auth_e2e")
+
         @Volatile
         var failWorkspaceProvisioning: Boolean = false
+
+        @JvmStatic
+        @DynamicPropertySource
+        fun registerProperties(registry: DynamicPropertyRegistry) {
+            PostgresTestContainerSupport.registerProperties(registry, postgres)
+        }
     }
 }

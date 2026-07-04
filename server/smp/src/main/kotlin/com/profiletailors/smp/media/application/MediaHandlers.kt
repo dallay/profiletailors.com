@@ -31,6 +31,45 @@ import java.time.format.DateTimeFormatter
 
 private fun ByteArray.toHexString(): String = joinToString("") { "%02x".format(it) }
 
+private val MEDIA_ASSET_SUMMARY_FORMATTER = DateTimeFormatter.ISO_INSTANT
+
+private suspend fun MediaAsset.toSummary(
+    assetPreviewUrlResolver: AssetPreviewUrlResolver,
+    mediaPreviewTokenService: MediaPreviewTokenService,
+): MediaAssetSummary = MediaAssetSummary(
+    assetId = assetId,
+    workspaceId = workspaceId,
+    mediaType = mediaType,
+    sourceType = sourceType.name,
+    status = status.name,
+    originalFilename = originalFilename,
+    fileSizeBytes = fileSizeBytes,
+    fileHash = fileHash,
+    createdAt = MEDIA_ASSET_SUMMARY_FORMATTER.format(createdAt.atOffset(ZoneOffset.UTC)),
+    previewUrl = if (status == MediaAssetStatus.READY) {
+        assetPreviewUrlResolver.resolvePreviewUrl(
+            assetId = assetId,
+            workspaceId = workspaceId,
+            mediaType = mediaType,
+            storageKey = storageKey,
+            externalUrl = null,
+        )
+    } else {
+        null
+    },
+    downloadUrl = if (status == MediaAssetStatus.READY) {
+        mediaPreviewTokenService.buildSignedContentPath(assetId, workspaceId)
+    } else {
+        null
+    },
+    sourceProvider = sourceProvider,
+    externalId = externalId,
+    sourceUrl = sourceUrl,
+    authorName = authorName,
+    authorUrl = authorUrl,
+    metadata = metadata,
+)
+
 @Service
 class CreateUploadedAssetHandler(
     private val mediaAssetRepository: MediaAssetRepository,
@@ -559,10 +598,6 @@ class ListWorkspaceAssetsHandler(
 
     private val logger = LoggerFactory.getLogger(ListWorkspaceAssetsHandler::class.java)
 
-    companion object {
-        private val ISO_FORMATTER = DateTimeFormatter.ISO_INSTANT
-    }
-
     override suspend fun handle(query: ListWorkspaceAssetsQuery): ListWorkspaceAssetsResult {
         val result = mediaAssetRepository.listByWorkspace(
             workspaceId = query.workspaceId,
@@ -573,33 +608,7 @@ class ListWorkspaceAssetsHandler(
 
         return ListWorkspaceAssetsResult(
             assets = result.assets.map { asset ->
-                MediaAssetSummary(
-                    assetId = asset.assetId,
-                    workspaceId = asset.workspaceId,
-                    mediaType = asset.mediaType,
-                    sourceType = asset.sourceType.name,
-                    status = asset.status.name,
-                    originalFilename = asset.originalFilename,
-                    fileSizeBytes = asset.fileSizeBytes,
-                    fileHash = asset.fileHash,
-                    createdAt = ISO_FORMATTER.format(asset.createdAt.atOffset(ZoneOffset.UTC)),
-                    previewUrl = if (asset.status == MediaAssetStatus.READY) {
-                        assetPreviewUrlResolver.resolvePreviewUrl(
-                            assetId = asset.assetId,
-                            workspaceId = asset.workspaceId,
-                            mediaType = asset.mediaType,
-                            storageKey = asset.storageKey,
-                            externalUrl = null,
-                        )
-                    } else {
-                        null
-                    },
-                    downloadUrl = if (asset.status == MediaAssetStatus.READY) {
-                        mediaPreviewTokenService.buildSignedContentPath(asset.assetId, asset.workspaceId)
-                    } else {
-                        null
-                    },
-                )
+                asset.toSummary(assetPreviewUrlResolver, mediaPreviewTokenService)
             },
             nextCursor = result.nextCursor,
         )
@@ -615,41 +624,11 @@ class GetWorkspaceAssetHandler(
 
     private val logger = LoggerFactory.getLogger(GetWorkspaceAssetHandler::class.java)
 
-    companion object {
-        private val ISO_FORMATTER = DateTimeFormatter.ISO_INSTANT
-    }
-
     override suspend fun handle(query: GetWorkspaceAssetQuery): MediaAssetSummary {
         val asset = mediaAssetRepository.findByWorkspaceAndId(query.workspaceId, query.assetId)
             ?: throw AssetNotFoundException(query.assetId)
 
-        return MediaAssetSummary(
-            assetId = asset.assetId,
-            workspaceId = asset.workspaceId,
-            mediaType = asset.mediaType,
-            sourceType = asset.sourceType.name,
-            status = asset.status.name,
-            originalFilename = asset.originalFilename,
-            fileSizeBytes = asset.fileSizeBytes,
-            fileHash = asset.fileHash,
-            createdAt = ISO_FORMATTER.format(asset.createdAt.atOffset(ZoneOffset.UTC)),
-            previewUrl = if (asset.status == MediaAssetStatus.READY) {
-                assetPreviewUrlResolver.resolvePreviewUrl(
-                    assetId = asset.assetId,
-                    workspaceId = asset.workspaceId,
-                    mediaType = asset.mediaType,
-                    storageKey = asset.storageKey,
-                    externalUrl = null,
-                )
-            } else {
-                null
-            },
-            downloadUrl = if (asset.status == MediaAssetStatus.READY) {
-                mediaPreviewTokenService.buildSignedContentPath(asset.assetId, asset.workspaceId)
-            } else {
-                null
-            },
-        )
+        return asset.toSummary(assetPreviewUrlResolver, mediaPreviewTokenService)
     }
 }
 
