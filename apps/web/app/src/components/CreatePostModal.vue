@@ -20,6 +20,13 @@ import { usePublishingStore, type Publication } from '@/stores/publishing'
 import { useMediaStore } from '@/stores/media'
 import { proxyImageUrl, resolveApiUrl } from '@/lib/auth-api'
 import PostPreviewPanel from '@/components/composer/PostPreviewPanel.vue'
+import ComposerMediaPickerShell from '@/components/composer/ComposerMediaPickerShell.vue'
+import type {
+  ComposerMediaPickerViewState,
+  ComposerMediaPickerFilter,
+  ComposerMediaPickerSearchChange,
+  ComposerMediaPickerFilterChange,
+} from '@/components/composer/composer-media-picker.types'
 import type { LinkedInPreviewModel, PostPreviewMedia } from '@/components/composer/post-preview.types'
 import { Button } from '@/components/ui/button'
 import { Calendar } from '@/components/ui/calendar'
@@ -59,6 +66,10 @@ const createAnother = ref(false)
 const priorityMode = ref(false)
 const scheduleMode = ref<ComposerScheduleMode>('now')
 const isDatePickerOpen = ref(false)
+const isMediaPickerOpen = ref(false)
+const mediaPickerTrigger = ref<HTMLButtonElement | null>(null)
+const mediaPickerSearchQuery = ref('')
+const mediaPickerSelectedFilter = ref<ComposerMediaPickerFilter>('all')
 
 const modalContainer = ref<HTMLElement | null>(null)
 const { activate: activateFocusTrap, deactivate: deactivateFocusTrap } = useFocusTrap(modalContainer, () => emit('close'))
@@ -292,6 +303,17 @@ const selectedChannelInitials = computed(() => {
     .toUpperCase()
 })
 
+const mediaPickerFilterOptions = computed<
+  ReadonlyArray<{ value: ComposerMediaPickerFilter; labelKey: string }>
+>(() => [
+  { value: 'all', labelKey: 'composer.mediaPicker.filterAll' },
+  { value: 'image', labelKey: 'composer.mediaPicker.filterImage' },
+  { value: 'video', labelKey: 'composer.mediaPicker.filterVideo' },
+  { value: 'document', labelKey: 'composer.mediaPicker.filterDocument' },
+])
+
+const mediaPickerState = computed<ComposerMediaPickerViewState>(() => 'loading')
+
 const selectedDateLabel = computed(() => {
   if (!selectedCalendarDate.value) return 'Select date'
   const date = selectedCalendarDate.value.toDate(getLocalTimeZone())
@@ -516,6 +538,31 @@ const currentUpload = computed(() => {
 
 function selectChannel(channelId: string) {
   selectedChannelId.value = channelId
+}
+
+function openMediaPicker() {
+  isMediaPickerOpen.value = true
+}
+
+function handleMediaPickerOpenChange(open: boolean) {
+  isMediaPickerOpen.value = open
+  if (!open) {
+    void nextTick(() => {
+      mediaPickerTrigger.value?.focus()
+    })
+  }
+}
+
+function handleMediaPickerClose() {
+  handleMediaPickerOpenChange(false)
+}
+
+function handleMediaPickerSearchChange(payload: ComposerMediaPickerSearchChange) {
+  mediaPickerSearchQuery.value = payload.query
+}
+
+function handleMediaPickerFilterChange(payload: ComposerMediaPickerFilterChange) {
+  mediaPickerSelectedFilter.value = payload.filter
 }
 
 function onChannelAvatarError(channelId: string) {
@@ -851,6 +898,19 @@ async function handleCreateSubmit(
               <span class="font-mono text-[9px] tracking-widest text-text-secondary uppercase block">
                 Media Attachment
               </span>
+              <button
+                ref="mediaPickerTrigger"
+                type="button"
+                data-testid="media-picker-trigger"
+                class="flex items-center gap-1.5 font-mono text-[9px] font-bold uppercase tracking-wider text-text-secondary hover:text-text-display transition-colors cursor-pointer"
+                :aria-label="$t('composer.mediaPicker.open')"
+                :aria-haspopup="'dialog'"
+                :aria-expanded="isMediaPickerOpen"
+                @click="openMediaPicker"
+              >
+                <ImageIcon class="size-3.5" />
+                {{ $t('composer.mediaPicker.open') }}
+              </button>
             </div>
 
             <!-- Upload progress or failed upload state -->
@@ -1089,6 +1149,20 @@ async function handleCreateSubmit(
           </template>
         </PostPreviewPanel>
       </div>
+
+      <!-- Composer media picker shell (parent-owned open state; no store/API coupling) -->
+      <ComposerMediaPickerShell
+        :open="isMediaPickerOpen"
+        :state="mediaPickerState"
+        :search-query="mediaPickerSearchQuery"
+        :selected-filter="mediaPickerSelectedFilter"
+        :filter-options="mediaPickerFilterOptions"
+        :assets="[]"
+        @update:open="handleMediaPickerOpenChange"
+        @close="handleMediaPickerClose"
+        @search-change="handleMediaPickerSearchChange"
+        @filter-change="handleMediaPickerFilterChange"
+      />
     </div>
   </Teleport>
 </template>
