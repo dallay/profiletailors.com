@@ -69,7 +69,7 @@ architecture at different levels of abstraction.
 
 ### 2. Domain-Driven Design (DDD)
 
-- **Bounded Contexts**: Identity, Authorization, Tenancy, Credentials, Governance, Platform
+- **Bounded Contexts**: Identity, Authorization, Tenancy, Credentials, Governance, Platform, Audit, Media, Observability
 - **Shared Kernel**: Multiple module layers — see [full dependency graph](shared/dependencies.md)
   for all `api` and `implementation` relationships
 - **Foundation**: [`shared:common`](../../shared/common/) — framework-agnostic domain primitives,
@@ -131,13 +131,13 @@ architecture at different levels of abstraction.
 
 - Marketing site (Astro 6)
 - Backend foundation (Spring Boot 4, Kotlin, WebFlux)
-- Core bounded contexts (Identity, Authorization, Tenancy, Credentials, Governance, Platform)
+- Core bounded contexts (Identity, Authorization, Tenancy, Credentials, Governance, Platform, Audit, Media, Observability)
 - JWT and API Key authentication
 - PostgreSQL with R2DBC
 
 **In Progress** (🔄):
 
-- Web application (React)
+- Web application (Vue 3, early development)
 - Content Context
 - Scheduler Service
 
