@@ -35,7 +35,10 @@ vi.mock('@/lib/auth-api', () => ({
 }))
 
 vi.mock('@/components/ui/button', () => ({
-  Button: { template: '<button class="ui-button"><slot /></button>' },
+  Button: {
+    props: ['asChild'],
+    template: '<slot v-if="asChild" /><button v-else class="ui-button"><slot /></button>',
+  },
 }))
 
 vi.mock('@lucide/vue', () => {
@@ -51,12 +54,61 @@ vi.mock('@lucide/vue', () => {
     Smile: stub,
     Sparkles: stub,
     X: stub,
+    XIcon: stub,
+    Search: stub,
     Loader2: stub,
     Upload: stub,
     AlertCircle: stub,
     RotateCcw: stub,
   }
 })
+
+// Lightweight stub for the composer media picker shell. The shell's own
+// behavior is covered in ComposerMediaPickerShell.test.ts; here we only verify
+// that CreatePostModal wires open state, focus return, and emit observation.
+vi.mock('@/components/composer/ComposerMediaPickerShell.vue', () => ({
+  default: {
+    name: 'ComposerMediaPickerShell',
+    props: [
+      'open',
+      'state',
+      'searchQuery',
+      'selectedFilter',
+      'filterOptions',
+      'assets',
+      'disabled',
+      'errorMessage',
+    ],
+    emits: ['update:open', 'close', 'search-change', 'filter-change'],
+    template: `
+      <div
+        v-if="open"
+        data-testid="dialog-content"
+        @keydown.escape.stop="$emit('close'); $emit('update:open', false)"
+      >
+        <h2 data-testid="dialog-title">composer.mediaPicker.title</h2>
+        <button
+          data-testid="media-picker-close"
+          type="button"
+          @click="$emit('close'); $emit('update:open', false)"
+        >close</button>
+        <input
+          data-testid="media-picker-search"
+          @input="$emit('search-change', { query: $event.target.value })"
+        />
+        <select
+          data-testid="media-picker-filter"
+          @change="$emit('filter-change', { filter: $event.target.value })"
+        >
+          <option value="all">all</option>
+          <option value="image">image</option>
+          <option value="video">video</option>
+          <option value="document">document</option>
+        </select>
+      </div>
+    `,
+  },
+}))
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -504,10 +556,11 @@ describe('CreatePostModal.vue — submit normalization', () => {
 
     await wrapper.vm.$nextTick()
 
-    // Click the schedule button (the ui-button rendered in the teleported content)
-    const button = document.body.querySelector('.ui-button')
-    expect(button).not.toBeNull()
-    ;(button as HTMLButtonElement).click()
+    const button = Array.from(document.body.querySelectorAll('button')).find((candidate) =>
+      candidate.textContent?.includes('Schedule Now'),
+    ) as HTMLButtonElement | undefined
+    expect(button).toBeDefined()
+    button?.click()
 
     await wrapper.vm.$nextTick()
 
@@ -585,9 +638,11 @@ describe('CreatePostModal.vue — deferred media upload on submit', () => {
     await wrapper.vm.$nextTick()
     expect(createAndUpload).not.toHaveBeenCalled()
 
-    const button = document.body.querySelector('.ui-button')
-    expect(button).not.toBeNull()
-    ;(button as HTMLButtonElement).click()
+    const button = Array.from(document.body.querySelectorAll('button')).find((candidate) =>
+      candidate.textContent?.includes('Schedule Now'),
+    ) as HTMLButtonElement | undefined
+    expect(button).toBeDefined()
+    button?.click()
 
     await wrapper.vm.$nextTick()
     await Promise.resolve()
@@ -644,8 +699,10 @@ describe('CreatePostModal.vue — deferred media upload on submit', () => {
     textarea.dispatchEvent(new Event('input', { bubbles: true }))
     await wrapper.vm.$nextTick()
 
-    const button = document.body.querySelector('.ui-button') as HTMLButtonElement | null
-    expect(button).not.toBeNull()
+    const button = Array.from(document.body.querySelectorAll('button')).find((candidate) =>
+      candidate.textContent?.includes('Schedule Now'),
+    ) as HTMLButtonElement | undefined
+    expect(button).toBeDefined()
     button?.click()
     await wrapper.vm.$nextTick()
     await Promise.resolve()
@@ -700,8 +757,10 @@ describe('CreatePostModal.vue — deferred media upload on submit', () => {
     textarea.dispatchEvent(new Event('input', { bubbles: true }))
     await wrapper.vm.$nextTick()
 
-    const button = document.body.querySelector('.ui-button') as HTMLButtonElement | null
-    expect(button).not.toBeNull()
+    const button = Array.from(document.body.querySelectorAll('button')).find((candidate) =>
+      candidate.textContent?.includes('Schedule Now'),
+    ) as HTMLButtonElement | undefined
+    expect(button).toBeDefined()
     button?.click()
     await wrapper.vm.$nextTick()
     await Promise.resolve()
@@ -1208,5 +1267,155 @@ describe('CreatePostModal.vue — dangling upload recovery', () => {
 
     expect(mediaStore.pendingUploads).toHaveLength(1)
     expect(mediaStore.pendingUploads[0]?.tempKey).toBe('pending-key')
+  })
+})
+
+describe('CreatePostModal.vue — media picker shell integration', () => {
+  beforeEach(() => {
+    setActivePinia(createPinia())
+    document.body.innerHTML = ''
+    vi.clearAllMocks()
+  })
+
+  afterEach(() => {
+    document.body.innerHTML = ''
+  })
+
+  it('renders a media picker trigger when the modal is open', async () => {
+    const wrapper = mountModal([makeChannel('ch-picker-trigger')])
+    await wrapper.vm.$nextTick()
+
+    const trigger = document.body.querySelector(
+      '[data-testid="media-picker-trigger"]',
+    ) as HTMLButtonElement | null
+    expect(trigger).not.toBeNull()
+    expect(trigger?.textContent).toContain('composer.mediaPicker.open')
+  })
+
+  it('opens the media picker shell when the trigger is activated', async () => {
+    const wrapper = mountModal([makeChannel('ch-picker-open')])
+    await wrapper.vm.$nextTick()
+
+    const trigger = document.body.querySelector(
+      '[data-testid="media-picker-trigger"]',
+    ) as HTMLButtonElement | null
+    expect(trigger).not.toBeNull()
+    trigger?.click()
+    await wrapper.vm.$nextTick()
+
+    // Shell should be rendered (dialog from ComposerMediaPickerShell)
+    const pickerDialog = document.body.querySelector('[data-testid="dialog-content"]')
+    expect(pickerDialog).not.toBeNull()
+  })
+
+  it('preserves composer text content when the picker opens and closes', async () => {
+    const wrapper = mountModal([makeChannel('ch-picker-preserve')])
+    await wrapper.vm.$nextTick()
+
+    const textarea = document.body.querySelector('textarea') as HTMLTextAreaElement | null
+    expect(textarea).not.toBeNull()
+    textarea!.value = 'My draft post content'
+    textarea?.dispatchEvent(new Event('input', { bubbles: true }))
+    await wrapper.vm.$nextTick()
+
+    const trigger = document.body.querySelector(
+      '[data-testid="media-picker-trigger"]',
+    ) as HTMLButtonElement | null
+    expect(trigger).not.toBeNull()
+    trigger?.click()
+    await wrapper.vm.$nextTick()
+
+    expect(document.body.querySelector('[data-testid="dialog-content"]')).not.toBeNull()
+    expect(textarea?.value).toBe('My draft post content')
+
+    const closeBtn = document.body.querySelector(
+      '[data-testid="media-picker-close"]',
+    ) as HTMLButtonElement | null
+    expect(closeBtn).not.toBeNull()
+    closeBtn?.click()
+    await wrapper.vm.$nextTick()
+
+    expect(textarea?.value).toBe('My draft post content')
+  })
+
+  it('does not close the parent composer when Escape is pressed inside the media picker shell', async () => {
+    const wrapper = mountModal([makeChannel('ch-picker-escape')])
+    await wrapper.vm.$nextTick()
+
+    const trigger = document.body.querySelector(
+      '[data-testid="media-picker-trigger"]',
+    ) as HTMLButtonElement | null
+    expect(trigger).not.toBeNull()
+    trigger?.click()
+    await wrapper.vm.$nextTick()
+
+    const pickerDialog = document.body.querySelector('[data-testid="dialog-content"]')
+    expect(pickerDialog).not.toBeNull()
+    pickerDialog?.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true }))
+    await wrapper.vm.$nextTick()
+
+    expect(wrapper.emitted('close')).toBeUndefined()
+    expect(document.body.querySelector('[data-testid="dialog-content"]')).toBeNull()
+  })
+
+  it('closes the media picker shell when the shell close button is clicked and returns focus to the trigger', async () => {
+    const wrapper = mountModal([makeChannel('ch-picker-close')])
+    await wrapper.vm.$nextTick()
+
+    const trigger = document.body.querySelector(
+      '[data-testid="media-picker-trigger"]',
+    ) as HTMLButtonElement | null
+    expect(trigger).not.toBeNull()
+
+    trigger?.focus()
+    trigger?.click()
+    await wrapper.vm.$nextTick()
+
+    expect(document.body.querySelector('[data-testid="dialog-content"]')).not.toBeNull()
+
+    const closeBtn = document.body.querySelector(
+      '[data-testid="media-picker-close"]',
+    ) as HTMLButtonElement | null
+    expect(closeBtn).not.toBeNull()
+    closeBtn?.click()
+    await wrapper.vm.$nextTick()
+    await Promise.resolve()
+
+    expect(document.body.querySelector('[data-testid="media-picker-close"]')).toBeNull()
+    expect(document.activeElement).toBe(trigger)
+  })
+
+  it('observes shell search and filter emits in the parent-owned state', async () => {
+    const wrapper = mountModal([makeChannel('ch-picker-observe')])
+    await wrapper.vm.$nextTick()
+
+    const trigger = document.body.querySelector(
+      '[data-testid="media-picker-trigger"]',
+    ) as HTMLButtonElement | null
+    expect(trigger).not.toBeNull()
+    trigger?.click()
+    await wrapper.vm.$nextTick()
+
+    const search = document.body.querySelector(
+      '[data-testid="media-picker-search"]',
+    ) as HTMLInputElement | null
+    const filter = document.body.querySelector(
+      '[data-testid="media-picker-filter"]',
+    ) as HTMLSelectElement | null
+    expect(search).not.toBeNull()
+    expect(filter).not.toBeNull()
+
+    search!.value = 'landscape'
+    search?.dispatchEvent(new Event('input', { bubbles: true }))
+    filter!.value = 'video'
+    filter?.dispatchEvent(new Event('change', { bubbles: true }))
+    await wrapper.vm.$nextTick()
+
+    expect(
+      (wrapper.vm as unknown as { mediaPickerSearchQuery?: string }).mediaPickerSearchQuery,
+    ).toBe('landscape')
+    expect(
+      (wrapper.vm as unknown as { mediaPickerSelectedFilter?: string }).mediaPickerSelectedFilter,
+    ).toBe('video')
   })
 })
