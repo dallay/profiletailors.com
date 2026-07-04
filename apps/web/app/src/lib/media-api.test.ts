@@ -1,6 +1,15 @@
 import { describe, it, expect, vi, beforeAll, beforeEach, afterAll, afterEach } from 'vitest'
 import { setActivePinia, createPinia } from 'pinia'
-import { deleteAsset, getAsset, listAssets, putAsset, reserveAsset, uploadAsset } from './media-api'
+import {
+  deleteAsset,
+  getAsset,
+  listAssets,
+  putAsset,
+  reserveAsset,
+  uploadAsset,
+  type MediaAssetSummary,
+  type MediaSourceType,
+} from './media-api'
 
 // ---------------------------------------------------------------------------
 // Mock auth-api (createApiFetch + refreshSession)
@@ -96,6 +105,36 @@ function emptyResponse(status: number): Response {
 // ---------------------------------------------------------------------------
 // Tests
 // ---------------------------------------------------------------------------
+
+describe('media asset external metadata contract', () => {
+  it('accepts EXTERNAL as a media source type', () => {
+    const sourceType: MediaSourceType = 'EXTERNAL'
+
+    expect(sourceType).toBe('EXTERNAL')
+  })
+
+  it('accepts optional external metadata fields on media summaries', () => {
+    const summary: MediaAssetSummary = {
+      assetId: 'asset-external',
+      workspaceId: 'workspace-1',
+      sourceType: 'EXTERNAL',
+      mediaType: 'image/jpeg',
+      status: 'READY',
+      originalFilename: null,
+      fileSizeBytes: 2048,
+      createdAt: '2026-01-01T00:00:00.000Z',
+      sourceProvider: 'unsplash',
+      externalId: 'photo-123',
+      sourceUrl: 'https://unsplash.com/photos/photo-123',
+      authorName: 'Jane Creator',
+      authorUrl: 'https://unsplash.com/@jane',
+      metadata: { palette: ['#000000', '#ffffff'] },
+    }
+
+    expect(summary.sourceProvider).toBe('unsplash')
+    expect(summary.metadata).toEqual({ palette: ['#000000', '#ffffff'] })
+  })
+})
 
 describe('deleteAsset', () => {
   beforeEach(() => {
