@@ -2,17 +2,25 @@ package com.profiletailors.smp.identity.infrastructure
 
 import com.profiletailors.common.domain.context.PrincipalType
 import com.profiletailors.smp.identity.application.PrincipalIdentityLookup
-import com.profiletailors.smp.integration.support.DatabaseUnitTestBase
+import com.profiletailors.smp.integration.support.PostgresDatabaseTestBase
+import com.profiletailors.smp.integration.support.PostgresTestContainerSupport
 import kotlinx.coroutines.reactor.awaitSingle
 import kotlinx.coroutines.test.runTest
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertNull
 import org.junit.jupiter.api.BeforeEach
+import org.junit.jupiter.api.Tag
 import org.junit.jupiter.api.Test
+import org.junit.jupiter.api.TestInstance
+import org.testcontainers.junit.jupiter.Container
+import org.testcontainers.junit.jupiter.Testcontainers
 
-class R2dbcPrincipalIdentityLookupTest : DatabaseUnitTestBase() {
+@Tag("postgres")
+@Testcontainers(disabledWithoutDocker = true)
+@TestInstance(TestInstance.Lifecycle.PER_CLASS)
+class R2dbcPrincipalIdentityLookupTest : PostgresDatabaseTestBase() {
 
-    override fun databaseName() = "identity_lookup"
+    override val postgres = postgresContainer
 
     private lateinit var lookup: PrincipalIdentityLookup
 
@@ -131,5 +139,10 @@ class R2dbcPrincipalIdentityLookupTest : DatabaseUnitTestBase() {
         )
 
         assertNull(facts)
+    }
+
+    companion object {
+        @Container
+        val postgresContainer = PostgresTestContainerSupport.newContainer("principal_identity_lookup")
     }
 }

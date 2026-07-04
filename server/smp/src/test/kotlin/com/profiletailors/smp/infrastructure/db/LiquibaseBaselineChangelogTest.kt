@@ -17,6 +17,20 @@ class LiquibaseBaselineChangelogTest {
     }
 
     @Test
+    fun `external metadata forward rollback changelog drops constraints and columns`() {
+        val rollback = "db/changelog/media/006-drop-external-metadata.yaml"
+
+        assertNotNull(javaClass.classLoader.getResource(rollback), "Resource $rollback must exist")
+        val changeset = resourceText(rollback)
+        assertTrue(changeset.contains("DROP CONSTRAINT chk_asset_uploaded_implies_no_provider"))
+        assertTrue(changeset.contains("chk_asset_uploaded_implies_no_provider"))
+        assertTrue(changeset.contains("chk_asset_external_implies_provider_and_id"))
+        assertTrue(changeset.contains("dropColumn"))
+        listOf("source_provider", "external_id", "source_url", "author_name", "author_url", "metadata")
+            .forEach { column -> assertTrue(changeset.contains("columnName: $column")) }
+    }
+
+    @Test
     fun `baseline changelogs define required phase one tables`() {
         val tables = listOf(
             "db/changelog/identity/001-create-principals.yaml" to "principals",

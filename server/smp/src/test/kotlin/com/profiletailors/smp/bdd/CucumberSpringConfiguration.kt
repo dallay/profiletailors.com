@@ -1,32 +1,29 @@
 package com.profiletailors.smp.bdd.fast
 
 import com.profiletailors.smp.bdd.glue.CommonBddTestConfiguration
+import com.profiletailors.smp.integration.support.PostgresTestContainerSupport
 import io.cucumber.spring.CucumberContextConfiguration
-import io.r2dbc.h2.H2ConnectionConfiguration
-import io.r2dbc.h2.H2ConnectionFactory
+import io.r2dbc.postgresql.PostgresqlConnectionConfiguration
+import io.r2dbc.postgresql.PostgresqlConnectionFactory
 import io.r2dbc.spi.ConnectionFactory
 import org.springframework.boot.test.context.SpringBootTest
 import org.springframework.boot.test.context.TestConfiguration
 import org.springframework.boot.webtestclient.autoconfigure.AutoConfigureWebTestClient
 import org.springframework.context.annotation.Bean
 import org.springframework.context.annotation.Import
+import org.springframework.context.annotation.Primary
+import org.springframework.test.context.DynamicPropertyRegistry
+import org.springframework.test.context.DynamicPropertySource
+import org.testcontainers.containers.PostgreSQLContainer
+import org.testcontainers.junit.jupiter.Container
+import org.testcontainers.junit.jupiter.Testcontainers
 
 @CucumberContextConfiguration
 @AutoConfigureWebTestClient
 @SpringBootTest(
     webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT,
     properties = [
-        "spring.r2dbc.url=r2dbc:h2:mem:///bdd_fast_slice" +
-            "?options=MODE=PostgreSQL;DB_CLOSE_DELAY=-1;DB_CLOSE_ON_EXIT=FALSE",
-        "spring.r2dbc.username=sa",
-        "spring.r2dbc.password=",
         "spring.liquibase.enabled=true",
-        "spring.liquibase.url=jdbc:h2:mem:bdd_fast_slice;MODE=PostgreSQL;DB_CLOSE_DELAY=-1;DB_CLOSE_ON_EXIT=FALSE",
-        "spring.liquibase.user=sa",
-        "spring.liquibase.password=",
-        "bdd.liquibase.jdbc-url=jdbc:h2:mem:bdd_fast_slice;MODE=PostgreSQL;DB_CLOSE_DELAY=-1;DB_CLOSE_ON_EXIT=FALSE",
-        "bdd.liquibase.username=sa",
-        "bdd.liquibase.password=",
         "bdd.variant=fast",
         "management.health.defaults.enabled=false",
         "management.endpoint.health.probes.enabled=false",
@@ -37,18 +34,40 @@ import org.springframework.context.annotation.Import
     ],
 )
 @Import(CommonBddTestConfiguration::class, FastBddTestConfiguration::class)
-class CucumberSpringConfiguration
+@Testcontainers(disabledWithoutDocker = true)
+@Suppress("UtilityClassWithPublicConstructor")
+class CucumberSpringConfiguration {
+    companion object {
+        @Container
+        @JvmStatic
+        val postgres: PostgreSQLContainer<*> = PostgresTestContainerSupport.newContainer("bdd_fast_slice")
+
+        @JvmStatic
+        @DynamicPropertySource
+        fun registerProperties(registry: DynamicPropertyRegistry) {
+            PostgresTestContainerSupport.registerProperties(registry, postgres)
+            registry.add("bdd.liquibase.jdbc-url", postgres::getJdbcUrl)
+            registry.add("bdd.liquibase.username", postgres::getUsername)
+            registry.add("bdd.liquibase.password", postgres::getPassword)
+        }
+    }
+}
 
 @TestConfiguration
 class FastBddTestConfiguration {
     @Bean
-    fun connectionFactory(): ConnectionFactory = H2ConnectionFactory(
-        H2ConnectionConfiguration.builder()
-            .inMemory("bdd_fast_slice")
-            .property("MODE", "PostgreSQL")
-            .property("DB_CLOSE_DELAY", "-1")
-            .property("DB_CLOSE_ON_EXIT", "FALSE")
-            .username("sa")
+    @Primary
+    fun connectionFactory(): ConnectionFactory = PostgresqlConnectionFactory(
+        PostgresqlConnectionConfiguration.builder()
+            .host(CucumberSpringConfiguration.postgres.host)
+            .port(
+                CucumberSpringConfiguration.postgres.getMappedPort(
+                    PostgreSQLContainer.POSTGRESQL_PORT,
+                ),
+            )
+            .database(CucumberSpringConfiguration.postgres.databaseName)
+            .username(CucumberSpringConfiguration.postgres.username)
+            .password(CucumberSpringConfiguration.postgres.password)
             .build(),
     )
 }

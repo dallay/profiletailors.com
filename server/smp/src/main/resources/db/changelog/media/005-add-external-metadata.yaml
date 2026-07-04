@@ -1,0 +1,60 @@
+databaseChangeLog:
+  - changeSet:
+      id: media-005-add-external-metadata
+      author: sdd-apply
+      changes:
+        - addColumn:
+            tableName: media_assets
+            columns:
+              - column:
+                  name: source_provider
+                  type: varchar(32)
+              - column:
+                  name: external_id
+                  type: varchar(255)
+              - column:
+                  name: source_url
+                  type: varchar(2048)
+              - column:
+                  name: author_name
+                  type: varchar(255)
+              - column:
+                  name: author_url
+                  type: varchar(2048)
+              - column:
+                  name: metadata
+                  type: jsonb
+                  remarks: Provider-specific metadata as JSONB
+        - sql:
+            dbms: postgresql
+            sql: >
+              ALTER TABLE media_assets
+              ADD CONSTRAINT chk_asset_uploaded_implies_no_provider
+              CHECK (source_type <> 'UPLOADED' OR source_provider IS NULL)
+        - sql:
+            dbms: postgresql
+            sql: >
+              ALTER TABLE media_assets
+              ADD CONSTRAINT chk_asset_external_implies_provider_and_id
+              CHECK (
+                source_type <> 'EXTERNAL'
+                OR (
+                  source_provider IS NOT NULL
+                  AND external_id IS NOT NULL
+                  AND source_url IS NOT NULL
+                )
+              )
+        - sql:
+            dbms: postgresql
+            sql: >
+              ALTER TABLE media_assets
+              ADD CONSTRAINT chk_asset_uploaded_implies_no_external_attribution
+              CHECK (
+                source_type <> 'UPLOADED'
+                OR (
+                  author_name IS NULL
+                  AND author_url IS NULL
+                  AND source_provider IS NULL
+                  AND external_id IS NULL
+                )
+              )

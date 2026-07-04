@@ -4,18 +4,26 @@ import com.profiletailors.smp.credentials.application.RefreshSessionFailureReaso
 import com.profiletailors.smp.credentials.application.RefreshSessionGateway
 import com.profiletailors.smp.credentials.application.RefreshSessionNotActiveException
 import com.profiletailors.smp.credentials.application.RefreshSessionToken
-import com.profiletailors.smp.integration.support.DatabaseUnitTestBase
+import com.profiletailors.smp.integration.support.PostgresDatabaseTestBase
+import com.profiletailors.smp.integration.support.PostgresTestContainerSupport
 import kotlinx.coroutines.reactor.awaitSingle
 import kotlinx.coroutines.test.runTest
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertThrows
 import org.junit.jupiter.api.BeforeEach
+import org.junit.jupiter.api.Tag
 import org.junit.jupiter.api.Test
+import org.junit.jupiter.api.TestInstance
+import org.testcontainers.junit.jupiter.Container
+import org.testcontainers.junit.jupiter.Testcontainers
 import java.time.Instant
 
-class R2dbcRefreshSessionGatewayTest : DatabaseUnitTestBase() {
+@Tag("postgres")
+@Testcontainers(disabledWithoutDocker = true)
+@TestInstance(TestInstance.Lifecycle.PER_CLASS)
+class R2dbcRefreshSessionGatewayTest : PostgresDatabaseTestBase() {
 
-    override fun databaseName() = "refresh_session_lookup"
+    override val postgres = postgresContainer
 
     private lateinit var gateway: RefreshSessionGateway
 
@@ -101,5 +109,10 @@ class R2dbcRefreshSessionGatewayTest : DatabaseUnitTestBase() {
             VALUES ('user-1', 'USER', 'local:user@example.com', NULL, 'user')
             """.trimIndent(),
         ).fetch().rowsUpdated().awaitSingle()
+    }
+
+    companion object {
+        @Container
+        val postgresContainer = PostgresTestContainerSupport.newContainer("refresh_session_gateway")
     }
 }

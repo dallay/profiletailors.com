@@ -137,6 +137,24 @@ data class MediaAssetResponse(
 
     @field:Schema(description = "Temporary signed URL for downloading/streaming the asset content", required = false)
     val downloadUrl: String? = null,
+
+    @field:Schema(description = "External provider identifier", required = false)
+    val sourceProvider: String? = null,
+
+    @field:Schema(description = "Provider-side stable asset identifier", required = false)
+    val externalId: String? = null,
+
+    @field:Schema(description = "Canonical source URL in the external provider", required = false)
+    val sourceUrl: String? = null,
+
+    @field:Schema(description = "Display name of the credited creator", required = false)
+    val authorName: String? = null,
+
+    @field:Schema(description = "URL for the credited creator", required = false)
+    val authorUrl: String? = null,
+
+    @field:Schema(description = "Provider-specific metadata", required = false)
+    val metadata: Map<String, Any>? = null,
 )
 
 @Schema(description = "Paginated list of media assets")

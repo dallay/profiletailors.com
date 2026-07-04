@@ -1,7 +1,8 @@
 package com.profiletailors.smp.publishing.infrastructure
 
 import com.fasterxml.jackson.databind.ObjectMapper
-import com.profiletailors.smp.integration.support.DatabaseUnitTestBase
+import com.profiletailors.smp.integration.support.PostgresDatabaseTestBase
+import com.profiletailors.smp.integration.support.PostgresTestContainerSupport
 import com.profiletailors.smp.media.infrastructure.persistence.R2dbcMediaAssetRepository
 import com.profiletailors.smp.publishing.domain.PublicationDraft
 import com.profiletailors.smp.publishing.domain.PublicationStatus
@@ -23,12 +24,19 @@ import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertNotNull
 import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.BeforeEach
+import org.junit.jupiter.api.Tag
 import org.junit.jupiter.api.Test
+import org.junit.jupiter.api.TestInstance
+import org.testcontainers.junit.jupiter.Container
+import org.testcontainers.junit.jupiter.Testcontainers
 import java.time.Instant
 
-class R2dbcPublishingRepositoriesTest : DatabaseUnitTestBase() {
+@Tag("postgres")
+@Testcontainers(disabledWithoutDocker = true)
+@TestInstance(TestInstance.Lifecycle.PER_CLASS)
+class R2dbcPublishingRepositoriesTest : PostgresDatabaseTestBase() {
 
-    override fun databaseName(): String = "publishing_repositories"
+    override val postgres = postgresContainer
 
     private lateinit var socialConnectionRepository: R2dbcSocialConnectionRepository
     private lateinit var socialAccountRepository: R2dbcSocialAccountRepository
@@ -196,6 +204,7 @@ class R2dbcPublishingRepositoriesTest : DatabaseUnitTestBase() {
     }
 
     @Test
+    @Suppress("LongMethod")
     fun `persists publication with asset links and reads it back`() = runTest {
         databaseClient.sql(
             """
@@ -220,13 +229,22 @@ class R2dbcPublishingRepositoriesTest : DatabaseUnitTestBase() {
         ).fetch().rowsUpdated().awaitSingle()
         databaseClient.sql(
             """
+            INSERT INTO workspace_file_blobs (workspace_id, file_hash, storage_key, detected_media_type, file_size_bytes, status)
+            VALUES (
+                'workspace-1', 'aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa',
+                'storage/key.png', 'image/png', 1024, 'READY'
+            )
+            """.trimIndent(),
+        ).fetch().rowsUpdated().awaitSingle()
+        databaseClient.sql(
+            """
             INSERT INTO media_assets (
                 asset_id, workspace_id, source_type, media_type, storage_key,
                 original_filename, file_size_bytes, status, upload_started_at, created_at,
                 file_hash, detected_media_type
             ) VALUES (
                 'asset-1', 'workspace-1', 'UPLOADED', 'image/png', 'storage/key.png',
-                'asset-1.png', 1024, 'READY', NULL, CURRENT_TIMESTAMP(),
+                'asset-1.png', 1024, 'READY', NULL, CURRENT_TIMESTAMP,
                 'aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa', 'image/png'
             )
             """.trimIndent(),
@@ -257,13 +275,21 @@ class R2dbcPublishingRepositoriesTest : DatabaseUnitTestBase() {
     fun `media asset repository finds assets by workspace and ids`() = runTest {
         databaseClient.sql(
             """
+            INSERT INTO workspace_file_blobs (workspace_id, file_hash, storage_key, detected_media_type, file_size_bytes, status)
+            VALUES
+                ('workspace-1', 'bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb', 'storage/key.png', 'image/png', 1024, 'READY'),
+                ('workspace-1', 'cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc', 'storage/key-2.jpg', 'image/jpeg', 2048, 'READY')
+            """.trimIndent(),
+        ).fetch().rowsUpdated().awaitSingle()
+        databaseClient.sql(
+            """
             INSERT INTO media_assets (
                 asset_id, workspace_id, source_type, media_type, storage_key,
                 original_filename, file_size_bytes, status, upload_started_at, created_at,
                 file_hash, detected_media_type
             ) VALUES (
                 'media-asset-1', 'workspace-1', 'UPLOADED', 'image/png', 'storage/key.png',
-                'hero.png', 1024, 'READY', NULL, CURRENT_TIMESTAMP(),
+                'hero.png', 1024, 'READY', NULL, CURRENT_TIMESTAMP,
                 'bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb', 'image/png'
             )
             """.trimIndent(),
@@ -276,7 +302,7 @@ class R2dbcPublishingRepositoriesTest : DatabaseUnitTestBase() {
                 file_hash, detected_media_type
             ) VALUES (
                 'media-asset-2', 'workspace-1', 'UPLOADED', 'image/jpeg', 'storage/key-2.jpg',
-                'second.jpg', 2048, 'READY', NULL, CURRENT_TIMESTAMP(),
+                'second.jpg', 2048, 'READY', NULL, CURRENT_TIMESTAMP,
                 'cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc', 'image/jpeg'
             )
             """.trimIndent(),
@@ -572,5 +598,10 @@ class R2dbcPublishingRepositoriesTest : DatabaseUnitTestBase() {
             VALUES ('workspace-1', 'Workspace 1', 'ACTIVE', NULL)
             """.trimIndent(),
         ).fetch().rowsUpdated().awaitSingle()
+    }
+
+    companion object {
+        @Container
+        val postgresContainer = PostgresTestContainerSupport.newContainer("publishing_repositories")
     }
 }

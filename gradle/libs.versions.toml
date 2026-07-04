@@ -107,8 +107,6 @@ testcontainers-localstack = { module = "org.testcontainers:localstack" }
 # Database / Drivers
 postgresql = { module = "org.postgresql:postgresql" }
 r2dbc-postgresql = { module = "org.postgresql:r2dbc-postgresql" }
-h2 = { module = "com.h2database:h2" }
-r2dbc-h2 = { module = "io.r2dbc:r2dbc-h2" }
 
 # Gradle Plugins for build-logic
 gradle-kover = { module = "org.jetbrains.kotlinx:kover-gradle-plugin", version.ref = "kover" }

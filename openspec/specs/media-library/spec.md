@@ -456,6 +456,121 @@ The `handleExistedBlob` path already uses `transactionRunner.runAtomically {}` c
 - THEN `transactionRunner.runAtomically {}` MUST already be in use at that code path
 - AND this change MUST NOT modify that existing transactional behavior
 
+### Requirement: External Source Type and Attribution Fields
+
+The system MUST extend the `MediaAsset` model and the `media_assets` schema to support attribution
+metadata for externally-imported media assets. This enables downstream changes (e.g., the Unsplash
+provider) to populate provenance fields without further schema negotiation.
+
+The `MediaSourceType` enum MUST contain exactly `UPLOADED` and `EXTERNAL`. The vestigial
+`EXTERNAL_URL` value MUST be removed from the media-context enum. The publishing-context
+`AssetSourceType.EXTERNAL_URL` is NOT modified.
+
+The `media_assets` table MUST gain six nullable columns: `source_provider VARCHAR(32)`,
+`external_id VARCHAR(255)`, `source_url VARCHAR(2048)`, `author_name VARCHAR(255)`,
+`author_url VARCHAR(2048)`, and `metadata JSONB`. Two CHECK constraints MUST be added:
+`chk_asset_uploaded_implies_no_provider` (UPLOADED rows MUST have NULL `source_provider`) and
+`chk_asset_external_implies_provider_and_id` (EXTERNAL rows MUST have non-null `source_provider`
+and `external_id`).
+
+The migration MUST be additive only — no backfill, no UPDATE statements, no changes to existing
+rows.
+
+No DB-side enum, FK, or UNIQUE constraint SHALL be added on `source_provider` or `external_id`.
+
+The frontend `MediaSourceType` union and `MediaAssetSummary` MUST be extended to match the backend
+contract. The frontend MUST NOT render attribution from `authorName` / `authorUrl` in this change.
+
+`MediaAssetResponse` and `MediaAssetSummary` MUST surface all six new fields as nullable,
+defaulting to `null` for legacy rows.
+
+The `MediaAsset.init` block MUST enforce per-`sourceType` rules:
+- `UPLOADED` ⇒ `sourceProvider` MUST be `null`.
+- `EXTERNAL` ⇒ `sourceProvider` and `externalId` MUST be non-blank.
+- When `sourceProvider` is non-null, it MUST match `^[a-z][a-z0-9_]{0,31}$`.
+
+The CAS binary path MUST be shared between browser uploads and provider imports. The difference
+between `UPLOADED` and `EXTERNAL` assets is the metadata attached to the row, NOT the binary flow.
+Provider imports MUST construct the `media_assets` row with `source_type='EXTERNAL'` from the
+very first INSERT.
+
+The project-owner architectural approval of the bounded-context enum split (`MediaSourceType`
+vs `AssetSourceType.EXTERNAL_URL`) MUST be recorded in the verify report before the change
+advances to `sdd-archive`.
+
+#### Scenario: External source type is available on MediaSourceType
+
+- GIVEN the media-context `MediaSourceType` enum
+- WHEN the enum is enumerated
+- THEN it MUST contain exactly `UPLOADED` and `EXTERNAL`
+- AND `EXTERNAL_URL` MUST NOT exist
+
+#### Scenario: Schema adds six nullable attribution columns with CHECK constraints
+
+- GIVEN a PostgreSQL `media_assets` table at the post-`004` Liquibase head
+- WHEN the changeset `media-005-add-external-metadata` runs
+- THEN the table MUST contain the six new nullable columns with the documented types
+- AND two CHECK constraints MUST be created
+- AND the migration must be additive with no backfill
+
+#### Scenario: UPLOADED rows reject a non-null source_provider
+
+- GIVEN a row in `media_assets` with `source_type='UPLOADED'` and `source_provider='unsplash'`
+- WHEN the row is INSERTed
+- THEN the database MUST raise a CHECK violation
+
+#### Scenario: EXTERNAL rows reject NULL source_provider or external_id
+
+- GIVEN a row with `source_type='EXTERNAL'` and `source_provider=NULL` or `external_id=NULL`
+- WHEN the row is INSERTed
+- THEN the database MUST raise a CHECK violation
+
+#### Scenario: MediaAsset.init rejects EXTERNAL with blank/null fields
+
+- GIVEN `sourceType=EXTERNAL` and `sourceProvider=null` or `externalId=null`
+- WHEN `MediaAsset.init` evaluates
+- THEN it MUST throw `IllegalArgumentException`
+
+#### Scenario: MediaAsset.init validates sourceProvider format
+
+- GIVEN `sourceType=EXTERNAL` with `sourceProvider` set to an invalid format
+- WHEN `MediaAsset.init` evaluates
+- THEN it MUST throw `IllegalArgumentException` with a message referencing the regex
+- AND `sourceProvider='unsplash'` MUST NOT throw
+
+#### Scenario: Response and summary DTOs surface all six new nullable fields
+
+- GIVEN a `MediaAsset` with all six external-metadata fields populated
+- WHEN the DTO serializes
+- THEN the JSON body MUST include all six fields
+- AND for a legacy row with all six fields null, the DTO MUST serialize them as `null`
+
+#### Scenario: Frontend types mirror the backend contract
+
+- GIVEN the SPA source after the change
+- WHEN `vue-tsc --build` runs
+- THEN the `MediaSourceType` union MUST include `'EXTERNAL'`
+- AND `MediaAssetSummary` MUST declare the six new optional fields
+
+#### Scenario: Frontend does not render attribution in this change
+
+- GIVEN the SPA source after the change applies
+- WHEN the `.vue` files are searched for `authorName` or `authorUrl`
+- THEN zero `.vue` references SHALL consume those fields for display
+
+#### Scenario: CAS binary path is shared between browser uploads and provider imports
+
+- GIVEN a browser upload and an Unsplash provider import
+- WHEN both persist their bytes through the CAS pipeline
+- THEN both go through the same CAS path
+- AND the provider-import row MUST INSERT with `source_type='EXTERNAL'` from the first call
+
+#### Scenario: Project-owner architectural approval recorded
+
+- GIVEN the change's Definition of Done
+- WHEN `sdd-verify` runs
+- THEN the verify report MUST contain a verbatim record of the project owner's approval
+
 ### Requirement: Upload Retry After Failed Atomic Block
 
 When the `markAsReady()` atomic block rolls back due to a failure, the `finally` block releases the concurrent upload slot. The client MUST re-claim a slot to retry, subject to the same concurrency and rate-limit checks as a fresh upload.

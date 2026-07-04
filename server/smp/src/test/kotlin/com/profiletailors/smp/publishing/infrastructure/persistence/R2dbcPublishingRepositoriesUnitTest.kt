@@ -1,7 +1,8 @@
 package com.profiletailors.smp.publishing.infrastructure.persistence
 
 import com.fasterxml.jackson.databind.ObjectMapper
-import com.profiletailors.smp.integration.support.DatabaseUnitTestBase
+import com.profiletailors.smp.integration.support.PostgresDatabaseTestBase
+import com.profiletailors.smp.integration.support.PostgresTestContainerSupport
 import com.profiletailors.smp.publishing.domain.AssetSourceType
 import com.profiletailors.smp.publishing.domain.DeliveryAttempt
 import com.profiletailors.smp.publishing.domain.DeliveryAttemptOutcome
@@ -23,13 +24,20 @@ import org.junit.jupiter.api.Assertions.assertNull
 import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Nested
+import org.junit.jupiter.api.Tag
 import org.junit.jupiter.api.Test
+import org.junit.jupiter.api.TestInstance
+import org.testcontainers.junit.jupiter.Container
+import org.testcontainers.junit.jupiter.Testcontainers
 import java.time.Instant
 import kotlin.test.assertFailsWith
 
-class R2dbcPublishingRepositoriesUnitTest : DatabaseUnitTestBase() {
+@Tag("postgres")
+@Testcontainers(disabledWithoutDocker = true)
+@TestInstance(TestInstance.Lifecycle.PER_CLASS)
+class R2dbcPublishingRepositoriesUnitTest : PostgresDatabaseTestBase() {
 
-    override fun databaseName(): String = "publishing_repos_unit"
+    override val postgres = postgresContainer
 
     private lateinit var publicationRepository: R2dbcPublicationRepository
     private lateinit var publicationAssetRepository: R2dbcPublicationAssetRepository
@@ -1040,4 +1048,9 @@ class R2dbcPublishingRepositoriesUnitTest : DatabaseUnitTestBase() {
         attemptCount = 0,
         maxAttempts = 3,
     )
+
+    companion object {
+        @Container
+        val postgresContainer = PostgresTestContainerSupport.newContainer("publishing_repositories_unit")
+    }
 }

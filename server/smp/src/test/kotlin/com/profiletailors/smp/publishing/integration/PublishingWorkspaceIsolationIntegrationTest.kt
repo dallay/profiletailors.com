@@ -1,6 +1,7 @@
 package com.profiletailors.smp.publishing.integration
 
-import com.profiletailors.smp.integration.support.DatabaseUnitTestBase
+import com.profiletailors.smp.integration.support.PostgresDatabaseTestBase
+import com.profiletailors.smp.integration.support.PostgresTestContainerSupport
 import com.profiletailors.smp.publishing.domain.PublicationDraft
 import com.profiletailors.smp.publishing.domain.PublicationStatus
 import com.profiletailors.smp.publishing.domain.ScheduleMode
@@ -18,7 +19,11 @@ import kotlinx.coroutines.test.runTest
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertNull
 import org.junit.jupiter.api.BeforeEach
+import org.junit.jupiter.api.Tag
 import org.junit.jupiter.api.Test
+import org.junit.jupiter.api.TestInstance
+import org.testcontainers.junit.jupiter.Container
+import org.testcontainers.junit.jupiter.Testcontainers
 import kotlin.test.assertFailsWith
 
 /**
@@ -31,9 +36,12 @@ import kotlin.test.assertFailsWith
  *
  * Workspace isolation is a critical security boundary in the publishing domain.
  */
-class PublishingWorkspaceIsolationIntegrationTest : DatabaseUnitTestBase() {
+@Tag("postgres")
+@Testcontainers(disabledWithoutDocker = true)
+@TestInstance(TestInstance.Lifecycle.PER_CLASS)
+class PublishingWorkspaceIsolationIntegrationTest : PostgresDatabaseTestBase() {
 
-    override fun databaseName(): String = "publishing_workspace_isolation"
+    override val postgres = postgresContainer
 
     private lateinit var socialConnectionRepository: R2dbcSocialConnectionRepository
     private lateinit var socialAccountRepository: R2dbcSocialAccountRepository
@@ -379,5 +387,10 @@ class PublishingWorkspaceIsolationIntegrationTest : DatabaseUnitTestBase() {
                 status = SocialConnectionStatus.ACTIVE,
             ),
         )
+    }
+
+    companion object {
+        @Container
+        val postgresContainer = PostgresTestContainerSupport.newContainer("publishing_workspace_isolation")
     }
 }

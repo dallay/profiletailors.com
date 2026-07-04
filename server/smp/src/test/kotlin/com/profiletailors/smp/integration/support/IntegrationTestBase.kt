@@ -7,9 +7,6 @@ import com.profiletailors.storage.domain.Storage
 import com.profiletailors.storage.domain.StorageObjectNotFoundException
 import com.profiletailors.storage.infrastructure.metrics.StorageMetrics
 import io.micrometer.core.instrument.simple.SimpleMeterRegistry
-import io.r2dbc.h2.H2ConnectionConfiguration
-import io.r2dbc.h2.H2ConnectionFactory
-import io.r2dbc.spi.ConnectionFactory
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.reactor.awaitSingle
@@ -33,14 +30,14 @@ import java.sql.DriverManager
 import java.time.Instant
 
 /**
- * Base class for Spring Boot integration tests with H2 in-memory database.
+ * Base class for Spring Boot integration tests backed by a caller-provided database.
  * Provides shared infrastructure for Liquibase migrations, database cleanup,
  * JWT authentication, and common seed data patterns.
  *
  * Subclasses must:
- * - Define their own `@SpringBootTest` annotation with unique database name
+ * - Define their own `@SpringBootTest` annotation
  * - Import `IntegrationTestBase.SharedTestConfiguration`
- * - Override `databaseName()` to return the H2 database name
+ * - Provide Liquibase connection properties through a database-specific subclass
  * - Override `seedScenario()` to populate test-specific data
  */
 abstract class IntegrationTestBase {
@@ -58,18 +55,11 @@ abstract class IntegrationTestBase {
     @Autowired
     lateinit var auditHook: CapturingAuditHook
 
-    /**
-     * Returns the database name for this test class.
-     * For H2 tests this should match the in-memory database name in @SpringBootTest properties.
-     */
-    protected abstract fun databaseName(): String
+    protected abstract fun liquibaseJdbcUrl(): String
 
-    protected open fun liquibaseJdbcUrl(): String =
-        "jdbc:h2:mem:${databaseName()};MODE=PostgreSQL;DB_CLOSE_DELAY=-1;DB_CLOSE_ON_EXIT=FALSE"
+    protected abstract fun liquibaseUsername(): String
 
-    protected open fun liquibaseUsername(): String = "sa"
-
-    protected open fun liquibasePassword(): String = ""
+    protected abstract fun liquibasePassword(): String
 
     /**
      * Seeds test-specific scenario data after cleanup.
@@ -257,22 +247,7 @@ abstract class IntegrationTestBase {
         }
 
         /**
-         * Creates H2 ConnectionFactory with the given database name.
-         * Subclasses should override this bean with @Primary if they need a different database name.
-         */
-        @Bean
-        fun connectionFactory(): ConnectionFactory = H2ConnectionFactory(
-            H2ConnectionConfiguration.builder()
-                .inMemory("default_test_db")
-                .property("MODE", "PostgreSQL")
-                .property("DB_CLOSE_DELAY", "-1")
-                .property("DB_CLOSE_ON_EXIT", "FALSE")
-                .username("sa")
-                .build(),
-        )
-
-        /**
-         * In-memory [Storage] stub for H2 integration tests.
+         * In-memory [Storage] stub for integration tests.
          * Satisfies [StorageApplicationService] dependencies (e.g. [StaleAssetReconciler],
          * [UploadAssetHandler]) without requiring real cloud storage credentials.
          */
@@ -325,7 +300,7 @@ abstract class IntegrationTestBase {
 
         /**
          * Provides a [StorageApplicationService] backed by the in-memory stub.
-         * Satisfies [StaleAssetReconciler] and [UploadAssetHandler] in full-context H2 tests.
+         * Satisfies [StaleAssetReconciler] and [UploadAssetHandler] in full-context tests.
          */
         @Bean
         @Primary

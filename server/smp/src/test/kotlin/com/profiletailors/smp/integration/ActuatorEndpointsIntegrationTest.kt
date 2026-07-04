@@ -1,10 +1,10 @@
 package com.profiletailors.smp.integration
 
+import com.profiletailors.smp.integration.support.PostgresTestContainerSupport
 import com.profiletailors.smp.test.TestStorageConfiguration
-import io.r2dbc.h2.H2ConnectionConfiguration
-import io.r2dbc.h2.H2ConnectionFactory
-import io.r2dbc.spi.ConnectionFactory
+import org.junit.jupiter.api.Tag
 import org.junit.jupiter.api.Test
+import org.junit.jupiter.api.TestInstance
 import org.springframework.beans.factory.annotation.Value
 import org.springframework.boot.test.context.SpringBootTest
 import org.springframework.boot.test.context.TestConfiguration
@@ -13,7 +13,12 @@ import org.springframework.context.annotation.Primary
 import org.springframework.security.config.web.server.ServerHttpSecurity
 import org.springframework.security.web.server.SecurityWebFilterChain
 import org.springframework.test.context.ContextConfiguration
+import org.springframework.test.context.DynamicPropertyRegistry
+import org.springframework.test.context.DynamicPropertySource
 import org.springframework.test.web.reactive.server.WebTestClient
+import org.testcontainers.containers.PostgreSQLContainer
+import org.testcontainers.junit.jupiter.Container
+import org.testcontainers.junit.jupiter.Testcontainers
 
 /**
  * Integration tests for Spring Boot Actuator endpoints.
@@ -31,10 +36,6 @@ import org.springframework.test.web.reactive.server.WebTestClient
 @SpringBootTest(
     webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT,
     properties = [
-        "spring.r2dbc.url=r2dbc:h2:mem:///actuator_test" +
-            "?options=MODE=PostgreSQL;DB_CLOSE_DELAY=-1;DB_CLOSE_ON_EXIT=FALSE",
-        "spring.r2dbc.username=sa",
-        "spring.r2dbc.password=",
         "spring.liquibase.enabled=false",
         "spring.main.allow-bean-definition-overriding=true",
         "management.server.port=0",
@@ -50,6 +51,9 @@ import org.springframework.test.web.reactive.server.WebTestClient
         "media.storage.bucket=attachments",
     ],
 )
+@Tag("postgres")
+@Testcontainers(disabledWithoutDocker = true)
+@TestInstance(TestInstance.Lifecycle.PER_CLASS)
 class ActuatorEndpointsIntegrationTest {
 
     @Value("\${local.management.port}")
@@ -60,17 +64,6 @@ class ActuatorEndpointsIntegrationTest {
 
     @TestConfiguration
     class TestSecurityConfig {
-        @Bean
-        fun connectionFactory(): ConnectionFactory = H2ConnectionFactory(
-            H2ConnectionConfiguration.builder()
-                .inMemory("actuator_test")
-                .property("MODE", "PostgreSQL")
-                .property("DB_CLOSE_DELAY", "-1")
-                .property("DB_CLOSE_ON_EXIT", "FALSE")
-                .username("sa")
-                .build(),
-        )
-
         @Bean
         @Primary
         fun testSecurityWebFilterChain(http: ServerHttpSecurity): SecurityWebFilterChain = http
@@ -179,5 +172,17 @@ class ActuatorEndpointsIntegrationTest {
                 assert(body!!.contains("# HELP")) { "Should contain metric help text" }
                 assert(body.contains("# TYPE")) { "Should contain metric type definitions" }
             }
+    }
+
+    companion object {
+        @Container
+        @JvmStatic
+        val postgres: PostgreSQLContainer<*> = PostgresTestContainerSupport.newContainer("actuator_test")
+
+        @JvmStatic
+        @DynamicPropertySource
+        fun registerProperties(registry: DynamicPropertyRegistry) {
+            PostgresTestContainerSupport.registerProperties(registry, postgres)
+        }
     }
 }

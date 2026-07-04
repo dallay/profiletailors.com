@@ -7,50 +7,37 @@ import com.profiletailors.smp.authorization.domain.AuthorizationReasonCode
 import com.profiletailors.smp.governance.domain.AuditEventCursor
 import com.profiletailors.smp.governance.domain.AuditEventFilter
 import com.profiletailors.smp.governance.domain.AuditEventPageRequest
-import io.r2dbc.h2.H2ConnectionConfiguration
-import io.r2dbc.h2.H2ConnectionFactory
+import com.profiletailors.smp.integration.support.PostgresDatabaseTestBase
+import com.profiletailors.smp.integration.support.PostgresTestContainerSupport
 import kotlinx.coroutines.reactor.awaitSingle
 import kotlinx.coroutines.test.runTest
-import liquibase.Contexts
-import liquibase.LabelExpression
-import liquibase.Liquibase
-import liquibase.database.DatabaseFactory
-import liquibase.resource.ClassLoaderResourceAccessor
+import org.junit.jupiter.api.AfterEach
 import org.junit.jupiter.api.Assertions.assertEquals
-import org.junit.jupiter.api.BeforeEach
+import org.junit.jupiter.api.Tag
 import org.junit.jupiter.api.Test
-import org.springframework.r2dbc.core.DatabaseClient
-import java.sql.DriverManager
+import org.junit.jupiter.api.TestInstance
+import org.testcontainers.junit.jupiter.Container
+import org.testcontainers.junit.jupiter.Testcontainers
 import java.time.Clock
 import java.time.Instant
 import java.time.ZoneOffset
 
-class R2dbcAuditEventReaderTest {
+@Tag("postgres")
+@Testcontainers(disabledWithoutDocker = true)
+@TestInstance(TestInstance.Lifecycle.PER_CLASS)
+class R2dbcAuditEventReaderTest : PostgresDatabaseTestBase() {
 
-    private val jdbcUrl = "jdbc:h2:mem:audit_reader;MODE=PostgreSQL;DB_CLOSE_DELAY=-1;DB_CLOSE_ON_EXIT=FALSE"
-    private val connectionFactory = H2ConnectionFactory(
-        H2ConnectionConfiguration.builder()
-            .inMemory("audit_reader")
-            .property("MODE", "PostgreSQL")
-            .property("DB_CLOSE_DELAY", "-1")
-            .property("DB_CLOSE_ON_EXIT", "FALSE")
-            .username("sa")
-            .build(),
-    )
-    private val databaseClient = DatabaseClient.create(connectionFactory)
+    override val postgres = postgresContainer
+
     private val objectMapper = ObjectMapper()
-    private val auditHook = com.profiletailors.smp.audit.infrastructure.R2dbcAuditHook(
-        databaseClient = databaseClient,
-        objectMapper = objectMapper,
-        clock = Clock.fixed(Instant.parse("2026-05-20T12:00:00Z"), ZoneOffset.UTC),
-    )
-    private val reader = R2dbcAuditEventReader(databaseClient, objectMapper)
-
-    @BeforeEach
-    fun setUp() {
-        applyLiquibaseBaseline()
-        deleteAllRows()
+    private val auditHook by lazy {
+        com.profiletailors.smp.audit.infrastructure.R2dbcAuditHook(
+            databaseClient = databaseClient,
+            objectMapper = objectMapper,
+            clock = Clock.fixed(Instant.parse("2026-05-20T12:00:00Z"), ZoneOffset.UTC),
+        )
     }
+    private val reader by lazy { R2dbcAuditEventReader(databaseClient, objectMapper) }
 
     @Test
     fun `reads persisted workspace audit events with cursor pagination and filters`() = runTest {
@@ -184,19 +171,17 @@ class R2dbcAuditEventReaderTest {
         kotlin.test.assertTrue(items.all { it.action == "workspace.update" })
     }
 
-    private fun applyLiquibaseBaseline() {
-        DriverManager.getConnection(jdbcUrl, "sa", "").use { connection ->
-            val database = DatabaseFactory.getInstance()
-                .findCorrectDatabaseImplementation(liquibase.database.jvm.JdbcConnection(connection))
-            Liquibase(
-                "db/changelog/db.changelog-master.yaml",
-                ClassLoaderResourceAccessor(),
-                database,
-            ).update(Contexts(), LabelExpression())
-        }
+    @AfterEach
+    fun cleanAuditEvents() {
+        deleteAllRows()
     }
 
     private fun deleteAllRows() = runTest {
         databaseClient.sql("DELETE FROM audit_events").fetch().rowsUpdated().awaitSingle()
+    }
+
+    companion object {
+        @Container
+        val postgresContainer = PostgresTestContainerSupport.newContainer("audit_reader")
     }
 }

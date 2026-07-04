@@ -307,7 +307,7 @@ class MediaAssetController(
         } catch (_: IllegalArgumentException) {
             throw ResponseStatusException(
                 HttpStatus.BAD_REQUEST,
-                "Unsupported source type: ${request.sourceType}. Only UPLOADED is supported.",
+                "Unsupported source type: ${request.sourceType}. Supported source types: UPLOADED, EXTERNAL.",
             )
         }
 
@@ -460,4 +460,10 @@ private fun MediaAssetSummary.toResponse() = MediaAssetResponse(
     createdAt = createdAt,
     previewUrl = previewUrl,
     downloadUrl = downloadUrl,
+    sourceProvider = sourceProvider,
+    externalId = externalId,
+    sourceUrl = sourceUrl,
+    authorName = authorName,
+    authorUrl = authorUrl,
+    metadata = metadata,
 )

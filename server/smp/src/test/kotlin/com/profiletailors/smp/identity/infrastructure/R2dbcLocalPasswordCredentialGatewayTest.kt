@@ -1,18 +1,26 @@
 package com.profiletailors.smp.identity.infrastructure
 
 import com.profiletailors.common.domain.context.PrincipalType
-import com.profiletailors.smp.integration.support.DatabaseUnitTestBase
+import com.profiletailors.smp.integration.support.PostgresDatabaseTestBase
+import com.profiletailors.smp.integration.support.PostgresTestContainerSupport
 import kotlinx.coroutines.reactor.awaitSingle
 import kotlinx.coroutines.test.runTest
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertNotNull
 import org.junit.jupiter.api.Assertions.assertNull
 import org.junit.jupiter.api.BeforeEach
+import org.junit.jupiter.api.Tag
 import org.junit.jupiter.api.Test
+import org.junit.jupiter.api.TestInstance
+import org.testcontainers.junit.jupiter.Container
+import org.testcontainers.junit.jupiter.Testcontainers
 
-class R2dbcLocalPasswordCredentialGatewayTest : DatabaseUnitTestBase() {
+@Tag("postgres")
+@Testcontainers(disabledWithoutDocker = true)
+@TestInstance(TestInstance.Lifecycle.PER_CLASS)
+class R2dbcLocalPasswordCredentialGatewayTest : PostgresDatabaseTestBase() {
 
-    override fun databaseName() = "local_password_gateway"
+    override val postgres = postgresContainer
 
     private lateinit var gateway: R2dbcLocalPasswordCredentialGateway
 
@@ -73,5 +81,10 @@ class R2dbcLocalPasswordCredentialGatewayTest : DatabaseUnitTestBase() {
         assertNotNull(facts)
         assertEquals("user-1", facts?.principalId)
         assertEquals(PrincipalType.USER, facts?.principalType)
+    }
+
+    companion object {
+        @Container
+        val postgresContainer = PostgresTestContainerSupport.newContainer("local_password_credential_gateway")
     }
 }

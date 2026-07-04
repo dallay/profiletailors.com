@@ -50,6 +50,12 @@ data class MediaAssetSummary(
     val createdAt: String,
     val previewUrl: String? = null,
     val downloadUrl: String? = null,
+    val sourceProvider: String? = null,
+    val externalId: String? = null,
+    val sourceUrl: String? = null,
+    val authorName: String? = null,
+    val authorUrl: String? = null,
+    val metadata: Map<String, Any>? = null,
 )
 
 /**

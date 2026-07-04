@@ -1,33 +1,49 @@
 package com.profiletailors.smp
 
 import com.profiletailors.common.domain.bus.Mediator
+import com.profiletailors.smp.integration.support.PostgresTestContainerSupport
 import com.profiletailors.smp.test.TestStorageConfiguration
 import org.junit.jupiter.api.Assertions.assertNotNull
+import org.junit.jupiter.api.Tag
 import org.junit.jupiter.api.Test
+import org.junit.jupiter.api.TestInstance
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.test.context.SpringBootTest
 import org.springframework.context.annotation.Import
+import org.springframework.test.context.DynamicPropertyRegistry
+import org.springframework.test.context.DynamicPropertySource
+import org.testcontainers.containers.PostgreSQLContainer
+import org.testcontainers.junit.jupiter.Container
+import org.testcontainers.junit.jupiter.Testcontainers
 
 @SpringBootTest(
     properties = [
-        "spring.r2dbc.url=r2dbc:h2:mem:///platform_test" +
-            "?options=MODE=PostgreSQL;DB_CLOSE_DELAY=-1;DB_CLOSE_ON_EXIT=FALSE",
-        "spring.r2dbc.username=sa",
-        "spring.r2dbc.password=",
         "spring.liquibase.enabled=true",
-        "spring.liquibase.url=jdbc:h2:mem:platform_test;MODE=PostgreSQL;DB_CLOSE_DELAY=-1;DB_CLOSE_ON_EXIT=FALSE",
-        "spring.liquibase.user=sa",
-        "spring.liquibase.password=",
         "spring.main.allow-bean-definition-overriding=true",
         "management.endpoint.health.group.readiness.include=readinessState",
         "management.endpoint.health.group.liveness.include=livenessState",
     ],
 )
 @Import(TestStorageConfiguration::class)
+@Tag("postgres")
+@Testcontainers(disabledWithoutDocker = true)
+@TestInstance(TestInstance.Lifecycle.PER_CLASS)
 class PlatformBootstrapContextTest(@Autowired private val mediator: Mediator) {
 
     @Test
     fun `registers mediator platform bean`() {
         assertNotNull(mediator)
+    }
+
+    companion object {
+        @Container
+        @JvmStatic
+        val postgres: PostgreSQLContainer<*> = PostgresTestContainerSupport.newContainer("platform_test")
+
+        @JvmStatic
+        @DynamicPropertySource
+        fun registerProperties(registry: DynamicPropertyRegistry) {
+            PostgresTestContainerSupport.registerProperties(registry, postgres)
+        }
     }
 }
