@@ -46,14 +46,9 @@
     "backend:run": "./gradlew :server:smp:bootRun --args='--spring.profiles.active=dev'",
     "backend:test": "./gradlew :server:smp:test --no-daemon -PexcludeTags=modularity,postgres",
     "backend:lint": "./gradlew :server:smp:detekt --no-daemon",
-    "prepare": "if [ -d .git ] && [ -z \"$CI\" ]; then pnpm exec lefthook install && pnpm dlx @dallay/agentsync apply || true; fi"
+    "prepare": "if [ -d .git ] && [ -z \"$CI\" ]; then pnpm dlx @dallay/agentsync apply || true; fi"
   },
-  "pnpm": {
-    "onlyBuiltDependencies": [
-      "vue-demi",
-      "esbuild",
-      "sharp",
-      "maplibre-gl"
-    ]
+  "devDependencies": {
+    "lefthook": "^2.1.9"
   }
 }

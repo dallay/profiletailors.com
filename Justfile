@@ -69,6 +69,14 @@ gradle-root    := `if [ -n "${COMSPEC:-}" ] && [ -z "${MSYSTEM:-}" ]; then echo 
 docker-compose := "docker compose"
 
 # ═══════════════════════════════════════════════════════════════
+# DOCTOR
+# ═══════════════════════════════════════════════════════════════
+
+# Run environment diagnostics
+doctor:
+    node scripts/doctor.mjs
+
+# ═══════════════════════════════════════════════════════════════
 # SETUP
 # ═══════════════════════════════════════════════════════════════
 
@@ -78,20 +86,11 @@ install:
 
 # Full initial setup: .env → install → git hooks → agentsync → codegraph
 setup:
-    cp -n .env.example .env 2>/dev/null || true
-    just install
-    just hooks-install
-    pnpm dlx @dallay/agentsync apply
-    command -v codegraph >/dev/null 2>&1 && codegraph init || echo "⚠️  codegraph not found — skipping index init"
+    node scripts/setup.mjs
 
 # Install Lefthook git hooks unless globally disabled
 hooks-install:
-    @HOOKS_PATH="$$(git config --global core.hooksPath 2>/dev/null || true)"; \
-    if [ "$$HOOKS_PATH" = "/dev/null" ]; then \
-        echo "Skipping Lefthook install: core.hooksPath=/dev/null"; \
-    else \
-        pnpm exec lefthook install; \
-    fi
+    node scripts/install-hooks.mjs
 
 # ═══════════════════════════════════════════════════════════════
 # FRONTEND  (pnpm / Astro / Biome / Vitest / Playwright)
