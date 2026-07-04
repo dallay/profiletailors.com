@@ -860,6 +860,7 @@ framework features, it belongs in `shared/spring-boot-common` instead.
 - ✅ Governance Context (audit logging, mutation tracking)
 - ✅ Platform Context (request context, mediator)
 - ✅ Audit Context (request outcomes, authorization decisions, mutations)
+- ✅ Media Context (media library, assets, CAS dedup)
 - ✅ Observability Context (metrics hooks, rate limiting)
 
 **Planned Contexts**:
