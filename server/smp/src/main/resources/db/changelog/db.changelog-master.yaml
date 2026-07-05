@@ -77,6 +77,3 @@ databaseChangeLog:
       file: db/changelog/media/004-allow-legacy-storage-reservations.yaml
   - include:
       file: db/changelog/media/005-add-external-metadata.yaml
-  # ── Dev seed data (context: dev only) ──────────────────────────
-  - include:
-      file: db/changelog/dev/001-seed-test-data.yaml

@@ -31,20 +31,6 @@ databaseChangeLog:
                   type: STRING
 
         - loadData:
-            file: db/changelog/data/dev/local_password_credentials_dev.csv
-            relativeToChangelogFile: false
-            separator: ";"
-            quotchar: '"'
-            tableName: local_password_credentials
-            columns:
-              - column:
-                  name: created_at
-                  type: STRING
-              - column:
-                  name: updated_at
-                  type: STRING
-
-        - loadData:
             file: db/changelog/data/dev/workspaces_dev.csv
             relativeToChangelogFile: false
             separator: ";"

@@ -1,5 +1,6 @@
 package com.profiletailors.smp.infrastructure.db
 
+import org.junit.jupiter.api.Assertions.assertFalse
 import org.junit.jupiter.api.Assertions.assertNotNull
 import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.Test
@@ -14,6 +15,40 @@ class LiquibaseBaselineChangelogTest {
             assertTrue(master.contains(resource), "Master changelog should include $resource")
             assertNotNull(javaClass.classLoader.getResource(resource), "Resource $resource must exist")
         }
+    }
+
+    @Test
+    fun `master changelog does not include dev seed data`() {
+        val master = resourceText("db/changelog/db.changelog-master.yaml")
+
+        assertFalse(master.contains("db/changelog/dev/"), "Production changelog must not include dev seed changelogs")
+        assertFalse(master.contains("db/changelog/data/dev/"), "Production changelog must not include dev seed data")
+    }
+
+    @Test
+    fun `dev changelog includes production baseline and dev seed data`() {
+        val dev = resourceText("db/changelog/db.changelog-dev.yaml")
+
+        assertTrue(
+            dev.contains("db/changelog/db.changelog-master.yaml"),
+            "Dev changelog must include production baseline",
+        )
+        assertTrue(
+            dev.contains("db/changelog/dev/001-seed-test-data.yaml"),
+            "Dev changelog must include dev seed changelog",
+        )
+    }
+
+    @Test
+    fun `committed changelog resources do not contain password credential seeds`() {
+        val seed = resourceText("db/changelog/dev/001-seed-test-data.yaml")
+
+        assertFalse(seed.contains("password_hash"), "Committed dev changelog must not seed password hashes")
+        assertFalse(seed.contains(Regex("\\$2[aby]\\$")), "Committed dev changelog must not contain BCrypt hashes")
+        assertTrue(
+            javaClass.classLoader.getResource("db/changelog/data/dev/local_password_credentials_dev.csv") == null,
+            "Password credential seed files must not be committed",
+        )
     }
 
     @Test

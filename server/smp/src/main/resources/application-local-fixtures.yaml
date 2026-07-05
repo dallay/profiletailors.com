@@ -1,0 +1,19 @@
+spring:
+  config:
+    activate:
+      on-profile: local-fixtures
+  liquibase:
+    change-log: classpath:db/changelog/db.changelog-dev.yaml
+
+# The local-fixtures profile seeds a known credential for dev@profiletailors.com
+# to enable immediate login during local development.
+#
+# Activation:
+#   SPRING_PROFILES_ACTIVE=dev,local-fixtures
+#
+# The password is hardcoded in LocalFixturesRunner and hashed at runtime.
+# No hash is stored in version control.
+#
+# Security:
+#   - MUST NOT be active in production or staging.
+#   - Creates dev-user-001 credential only if it does not already exist.

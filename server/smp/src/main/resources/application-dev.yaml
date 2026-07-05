@@ -1,7 +1,11 @@
 spring:
+  liquibase:
+    change-log: classpath:db/changelog/db.changelog-dev.yaml
   config:
     activate:
       on-profile: dev
+  profiles:
+    include: local-fixtures
   docker:
     compose:
       enabled: true
