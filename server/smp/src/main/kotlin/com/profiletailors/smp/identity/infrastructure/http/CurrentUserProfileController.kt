@@ -1,8 +1,7 @@
 package com.profiletailors.smp.identity.infrastructure.http
 
-import com.profiletailors.common.domain.bus.Mediator
 import com.profiletailors.smp.identity.application.CurrentUserProfile
-import com.profiletailors.smp.identity.application.GetCurrentUserProfileQuery
+import com.profiletailors.smp.identity.application.GetCurrentUserProfileService
 import io.swagger.v3.oas.annotations.Operation
 import io.swagger.v3.oas.annotations.media.Content
 import io.swagger.v3.oas.annotations.media.Schema
@@ -39,7 +38,7 @@ import org.springframework.web.bind.annotation.RestController
     name = "User Profile",
     description = "Current user profile endpoints",
 )
-class CurrentUserProfileController(private val mediator: Mediator) {
+class CurrentUserProfileController(private val service: GetCurrentUserProfileService) {
 
     /**
      * Get current authenticated user's profile.
@@ -75,6 +74,5 @@ class CurrentUserProfileController(private val mediator: Mediator) {
         ],
     )
     @GetMapping("/me", version = "1")
-    suspend fun currentUser(): ResponseEntity<CurrentUserProfile> =
-        ResponseEntity.ok(mediator.send(GetCurrentUserProfileQuery()))
+    suspend fun currentUser(): ResponseEntity<CurrentUserProfile> = ResponseEntity.ok(service.execute())
 }
