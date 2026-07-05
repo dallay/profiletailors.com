@@ -2,7 +2,6 @@ package com.profiletailors.smp.media.infrastructure.http
 
 import com.profiletailors.common.domain.bus.Mediator
 import com.profiletailors.smp.media.application.AssetNotFoundException
-import com.profiletailors.smp.media.application.MediaAssetStreamResponse
 import com.profiletailors.smp.media.application.MediaUploadSettings
 import com.profiletailors.smp.media.application.StreamMediaAssetQuery
 import com.profiletailors.smp.media.domain.MediaAssetStatus

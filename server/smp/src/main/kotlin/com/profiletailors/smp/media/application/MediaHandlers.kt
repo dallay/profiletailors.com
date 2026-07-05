@@ -1561,8 +1561,8 @@ internal class StreamMediaAssetHandler(
 ) : QueryHandler<StreamMediaAssetQuery, MediaAssetStreamResponse> {
     override suspend fun handle(query: StreamMediaAssetQuery): MediaAssetStreamResponse {
         if (!mediaPreviewTokenService.isValid(query.assetId, query.workspaceId, query.expiresAt, query.signature)) {
-             // In a real CQRS setup, we might throw a domain exception that the controller maps to 403.
-             throw IllegalAccessException("Invalid preview token")
+            // In a real CQRS setup, we might throw a domain exception that the controller maps to 403.
+            throw IllegalAccessException("Invalid preview token")
         }
 
         val asset = mediaAssetRepository.findByWorkspaceAndId(query.workspaceId, query.assetId)
