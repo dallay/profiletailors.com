@@ -241,7 +241,7 @@ cd server/smp
 Test with curl:
 
 ```bash
-curl -X POST http://localhost:8080/api/auth/register \
+curl -X POST http://localhost:7638/api/auth/register \
   -H "Content-Type: application/json" \
   -H "Accept: application/vnd.api.v1+json" \
   -d '{"email":"test@example.com","password":"password123"}'

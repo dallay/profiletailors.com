@@ -129,11 +129,52 @@ framework-agnostic domain primitives and shared infrastructure:
 - Mediator pattern for command/query dispatch
 - Common contracts and abstractions
 
+### 7. Audit Context
+
+**Purpose**: Detailed tracking of security-sensitive operations.
+
+**Key Features**:
+
+- Request outcome tracking
+- Authorization decision auditing
+- Principal materialization audit
+
+### 8. Observability Context
+
+**Purpose**: Infrastructure monitoring and protective hooks.
+
+**Key Features**:
+
+- Metrics collection hooks
+- Rate limiting integration
+- System performance tracking
+
+### 9. Media Context
+
+**Purpose**: Media asset management and Content-Addressed Storage (CAS).
+
+**Key Features**:
+
+- Deduplicated asset storage
+- Workspace-scoped media library
+- Asset lifecycle management
+
+### 10. Publishing Context
+
+**Purpose**: Social media publishing and scheduling engine.
+
+**Key Features**:
+
+- Scheduled post management
+- Platform-specific publishing adapters (LinkedIn implemented)
+- Credential encryption at rest
+- Publishing worker with retry logic
+
 ---
 
 ## Bounded Contexts (Planned)
 
-### 7. Content Context
+### 11. Content Context
 
 **Purpose**: Post creation, scheduling, and draft management
 
@@ -144,7 +185,7 @@ framework-agnostic domain primitives and shared infrastructure:
 - Draft and revision management
 - Media asset handling
 
-### 8. Analytics Context
+### 12. Analytics Context
 
 **Purpose**: Metrics aggregation and reporting
 
@@ -155,14 +196,13 @@ framework-agnostic domain primitives and shared infrastructure:
 - KPI tracking
 - Data export
 
-### 9. Integrations Context
+### 13. Integrations Context
 
 **Purpose**: Social media platform adapters
 
 **Planned Features**:
 
 - Twitter/X integration
-- LinkedIn integration
 - Instagram integration
 - Facebook integration
 - TikTok integration
@@ -276,7 +316,7 @@ framework-agnostic domain primitives and shared infrastructure:
 
 ```
 Local Development
-├── Marketing Site: localhost:4321 (Astro)
+├── Marketing Site: profile-tailors.localhost (Astro)
 ├── API Application: localhost:7638 (Spring Boot)
 ├── PostgreSQL: localhost:5432 (Docker Compose)
 ├── Redis: localhost:6379 (Docker Compose)
@@ -311,21 +351,21 @@ Managed Services
 - [x] Marketing site (Astro 6)
 - [x] Backend foundation (Spring Boot 4, Kotlin, WebFlux)
 - [x] Core bounded contexts (Identity, Authorization, Tenancy, Credentials, Governance, Platform, Audit, Media, Observability)
+- [x] Publishing Context (LinkedIn integration, worker, encryption)
 - [x] JWT and API Key authentication
 - [x] PostgreSQL with R2DBC
 
 ### Phase 2: Core Features (🔄 In Progress)
 
-- [🔄] Web application (Vue 3, early development)
-- [ ] Content Context (post creation, scheduling)
-- [ ] Scheduler Service (background jobs)
+- [🔄] Web application (Vue 3, dashboard implementation)
+- [ ] Content Context (post creation, advanced scheduling)
+- [ ] Scheduler Service (external service extraction, currently internal worker)
 - [ ] Redis cache integration
 - [ ] Message queue integration
 
 ### Phase 3: Integrations (🔲 Planned)
 
 - [ ] Twitter/X integration
-- [ ] LinkedIn integration
 - [ ] Instagram integration
 - [ ] Facebook integration
 - [ ] TikTok integration
