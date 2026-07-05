@@ -153,6 +153,10 @@ jobs:
 
       - uses: ./.github/actions/setup-backend
 
+      - name: Generate publishing credentials key
+        shell: bash
+        run: echo "PUBLISHING_CREDENTIALS_KEY=$(openssl rand -base64 32)" >> "$GITHUB_ENV"
+
       - name: Run BDD fast suite
         shell: bash
         run: ./gradlew :server:smp:bddFastTest --no-daemon -x :shared:common:test -x :shared:spring-boot-common:test
@@ -198,7 +202,6 @@ jobs:
   #   SMP_LINKEDIN_CLIENT_ID         - dummy LinkedIn client ID
   #   SMP_LINKEDIN_CLIENT_SECRET     - dummy LinkedIn client secret
   #   SMP_LOCAL_JWT_SECRET           - test JWT signing secret
-  #   PUBLISHING_CREDENTIALS_KEY     - base64-encoded test encryption key
   #   E2E_TEST_USER_PASSWORD         - dev user password
   # ──────────────────────────────────────────────────────────────
   scheduler-e2e:
@@ -227,7 +230,6 @@ jobs:
       SMP_LINKEDIN_TOKEN_BASE_URL: https://www.linkedin.com/oauth/v2/accessToken
       SMP_LINKEDIN_API_VERSION: '202606'
       SMP_LOCAL_JWT_SECRET: ${{ secrets.SMP_LOCAL_JWT_SECRET }}
-      PUBLISHING_CREDENTIALS_KEY: ${{ secrets.PUBLISHING_CREDENTIALS_KEY }}
       E2E_TEST_USER_PASSWORD: ${{ secrets.E2E_TEST_USER_PASSWORD }}
       # Pin backend HTTP port to avoid collisions with local dev tools.
       SMP_BACKEND_PORT: '7638'
@@ -279,6 +281,10 @@ jobs:
 
       # ── Java + Gradle ──
       - uses: ./.github/actions/setup-backend
+
+      - name: Generate publishing credentials key
+        shell: bash
+        run: echo "PUBLISHING_CREDENTIALS_KEY=$(openssl rand -base64 32)" >> "$GITHUB_ENV"
 
       # ── Node + pnpm ──
       - uses: ./.github/actions/setup-frontend

@@ -5,14 +5,32 @@ import org.junit.jupiter.api.Assertions.assertNotNull
 import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.assertThrows
+import org.springframework.boot.context.properties.bind.Binder
+import org.springframework.boot.context.properties.source.MapConfigurationPropertySource
 import java.util.Base64
 
 class CredentialEncryptionServiceTests {
 
     @Test
+    fun `configuration binds publishing credentials encryption key`() {
+        val expectedKey = Base64.getEncoder().encodeToString(ByteArray(32))
+        val source =
+            MapConfigurationPropertySource(
+                mapOf("publishing.credentials.encryption.key" to expectedKey),
+            )
+
+        val properties =
+            Binder(source)
+                .bind("publishing.credentials.encryption", PublishingCredentialsProperties::class.java)
+                .get()
+
+        assertEquals(expectedKey, properties.key)
+    }
+
+    @Test
     fun `decrypt throws on short payload`() {
         val properties = PublishingCredentialsProperties()
-        properties.encryptionKey = Base64.getEncoder().encodeToString(ByteArray(16))
+        properties.key = Base64.getEncoder().encodeToString(ByteArray(16))
         val service = CredentialEncryptionService(properties)
 
         val ex = assertThrows<IllegalArgumentException> {
@@ -24,7 +42,7 @@ class CredentialEncryptionServiceTests {
     @Test
     fun `init throws IllegalStateException when encryption key is blank`() {
         val properties = PublishingCredentialsProperties()
-        properties.encryptionKey = "   "
+        properties.key = "   "
 
         val exception = assertThrows<IllegalStateException> {
             CredentialEncryptionService(properties)
@@ -43,7 +61,7 @@ class CredentialEncryptionServiceTests {
         val base64Key = Base64.getEncoder().encodeToString(keyBytes)
         // cannot set property easily here; instead instantiate service directly
         val properties = PublishingCredentialsProperties()
-        properties.encryptionKey = base64Key
+        properties.key = base64Key
         val service = CredentialEncryptionService(properties)
         val payload = "{\"accessToken\":\"abc123\"}"
         val encrypted = service.encrypt(payload)
