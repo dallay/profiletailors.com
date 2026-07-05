@@ -5,17 +5,8 @@ import org.junit.jupiter.api.Assertions.assertNotNull
 import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.assertThrows
-import org.springframework.boot.test.context.SpringBootTest
-import org.springframework.test.context.ActiveProfiles
 import java.util.Base64
 
-@SpringBootTest(
-    properties = [
-        "publishing.credentials.encryption.key=",
-        "spring.main.lazy-initialization=true",
-    ],
-) // ensure property injection
-@ActiveProfiles("test")
 class CredentialEncryptionServiceTests {
 
     @Test
@@ -28,6 +19,20 @@ class CredentialEncryptionServiceTests {
             service.decrypt(ByteArray(2))
         }
         assertTrue(ex.message!!.contains("too short", ignoreCase = true))
+    }
+
+    @Test
+    fun `init throws IllegalStateException when encryption key is blank`() {
+        val properties = PublishingCredentialsProperties()
+        properties.encryptionKey = "   "
+
+        val exception = assertThrows<IllegalStateException> {
+            CredentialEncryptionService(properties)
+        }
+        val expectedMessage =
+            "PUBLISHING_CREDENTIALS_KEY is required to encrypt publishing credentials. " +
+                "Set a Base64-encoded 16, 24, or 32 byte AES key."
+        assertEquals(expectedMessage, exception.message)
     }
 
     @Test
