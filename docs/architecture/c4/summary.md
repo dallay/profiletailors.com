@@ -316,7 +316,7 @@ framework-agnostic domain primitives and shared infrastructure:
 
 ```
 Local Development
-├── Marketing Site: localhost:4321 (Astro)
+├── Marketing Site: profile-tailors.localhost (Astro)
 ├── API Application: localhost:7638 (Spring Boot)
 ├── PostgreSQL: localhost:5432 (Docker Compose)
 ├── Redis: localhost:6379 (Docker Compose)
@@ -363,9 +363,8 @@ Managed Services
 - [ ] Redis cache integration
 - [ ] Message queue integration
 
-### Phase 3: Integrations (🔄 In Progress)
+### Phase 3: Integrations (🔲 Planned)
 
-- [x] LinkedIn integration
 - [ ] Twitter/X integration
 - [ ] Instagram integration
 - [ ] Facebook integration

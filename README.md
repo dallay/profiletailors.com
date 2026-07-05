@@ -133,8 +133,8 @@ For full onboarding and troubleshooting, see [docs/getting-started.md](docs/gett
 just frontend-dev  # starts both Astro (marketing) and Vue (app) dev servers
 ```
 
-- **Marketing site:** [https://profile-tailors.localhost](https://profile-tailors.localhost) (or [http://localhost:4321](http://localhost:4321))
-- **Web app dashboard:** [https://pt-app.localhost](https://pt-app.localhost) (or [http://localhost:5173](http://localhost:5173))
+- **Marketing site:** [https://profile-tailors.localhost](https://profile-tailors.localhost)
+- **Web app dashboard:** [https://pt-app.localhost](https://pt-app.localhost)
 
 ### Command Hub
 
@@ -142,12 +142,12 @@ This repo uses [`just`](https://github.com/casey/just) as a centralized command 
 All common operations are available via `just <recipe>` — no need to remember pnpm, Gradle, or
 Docker commands separately. Run `just -l` to list everything.
 
-#### Frontend (Astro / pnpm)
+#### Frontend (pnpm)
 
-| Command                     | What it does                        |
-|-----------------------------|-------------------------------------|
-| `just frontend-dev`         | Start the Astro dev server          |
-| `just frontend-build`       | Build the production site           |
+| Command                     | What it does                                  |
+|-----------------------------|-----------------------------------------------|
+| `just frontend-dev`         | Start marketing (Astro) + app (Vue) dev servers |
+| `just frontend-build`       | Build the production site                     |
 | `just frontend-preview`     | Preview the production build        |
 | `just frontend-lint`        | Lint with Biome                     |
 | `just frontend-format`      | Format code with Biome              |
@@ -222,7 +222,7 @@ programming.
 - **[Container](docs/architecture/c4/02-container.md)** — Deployable units, technology stack
 - **[Component](docs/architecture/c4/03-component.md)** — Internal structure, bounded contexts
 - **[Code](docs/architecture/c4/04-code.md)** — Implementation patterns, class design
-- **[Summary](docs/architecture/c4/SUMMARY.md)** — Executive summary and roadmap
+- **[Summary](docs/architecture/c4/summary.md)** — Executive summary and roadmap
 
 **Key Architectural Patterns**:
 

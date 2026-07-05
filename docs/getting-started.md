@@ -104,8 +104,8 @@ just frontend-dev
 
 This starts both the Astro marketing site and the Vue 3 dashboard application in parallel.
 
-- **Marketing site:** [https://profile-tailors.localhost](https://profile-tailors.localhost) (or [http://localhost:4321](http://localhost:4321))
-- **Web app dashboard:** [https://pt-app.localhost](https://pt-app.localhost) (or [http://localhost:5173](http://localhost:5173))
+- **Marketing site:** [https://profile-tailors.localhost](https://profile-tailors.localhost)
+- **Web app dashboard:** [https://pt-app.localhost](https://pt-app.localhost)
 
 Run the full frontend CI subset:
 
@@ -121,7 +121,7 @@ This runs Biome lint, Vitest unit tests, and a production build.
 just backend-run
 ```
 
-The server starts in dev profile. API endpoints will be available at `http://localhost:8080`.
+The server starts in dev profile. API endpoints will be available at `http://localhost:7638` (configured via `SMP_BACKEND_PORT`).
 
 Run fast tests:
 

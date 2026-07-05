@@ -14,7 +14,7 @@ architecture at different levels of abstraction.
 
 | Level       | Document                                  | Description                           | Audience               |
 |-------------|-------------------------------------------|---------------------------------------|------------------------|
-| **Summary** | [SUMMARY.md](c4/SUMMARY.md)               | Executive summary and roadmap         | Everyone               |
+| **Summary** | [summary.md](c4/summary.md)               | Executive summary and roadmap         | Everyone               |
 | **Level 1** | [System Context](c4/01-system-context.md) | Big picture, external dependencies    | Everyone               |
 | **Level 2** | [Container](c4/02-container.md)           | Deployable units, technology stack    | Technical leadership   |
 | **Level 3** | [Component](c4/03-component.md)           | Internal structure, bounded contexts  | Developers, architects |
