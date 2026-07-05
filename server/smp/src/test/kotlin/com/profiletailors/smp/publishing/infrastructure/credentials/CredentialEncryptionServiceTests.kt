@@ -40,17 +40,16 @@ class CredentialEncryptionServiceTests {
     }
 
     @Test
+    fun `init throws IllegalStateException when encryption key is missing`() {
+        assertMissingKeyRejected(PublishingCredentialsProperties())
+    }
+
+    @Test
     fun `init throws IllegalStateException when encryption key is blank`() {
         val properties = PublishingCredentialsProperties()
         properties.key = "   "
 
-        val exception = assertThrows<IllegalStateException> {
-            CredentialEncryptionService(properties)
-        }
-        val expectedMessage =
-            "PUBLISHING_CREDENTIALS_KEY is required to encrypt publishing credentials. " +
-                "Set a Base64-encoded 16, 24, or 32 byte AES key."
-        assertEquals(expectedMessage, exception.message)
+        assertMissingKeyRejected(properties)
     }
 
     @Test
@@ -68,5 +67,15 @@ class CredentialEncryptionServiceTests {
         assertNotNull(encrypted)
         val decrypted = service.decrypt(encrypted)
         assertEquals(payload, decrypted)
+    }
+
+    private fun assertMissingKeyRejected(properties: PublishingCredentialsProperties) {
+        val exception = assertThrows<IllegalStateException> {
+            CredentialEncryptionService(properties)
+        }
+        val expectedMessage =
+            "PUBLISHING_CREDENTIALS_KEY is required to encrypt publishing credentials. " +
+                "Set a Base64-encoded 16, 24, or 32 byte AES key."
+        assertEquals(expectedMessage, exception.message)
     }
 }
