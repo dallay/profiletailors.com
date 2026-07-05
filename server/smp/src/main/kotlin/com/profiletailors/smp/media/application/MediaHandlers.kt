@@ -1553,28 +1553,3 @@ class UploadFileSizeMismatchException(val expected: Long, val actual: Long) :
 
 class BlobGoneException(val fileHash: String) :
     RuntimeException("Blob disappeared (likely GC'd) for fileHash=$fileHash")
-
-@Service
-internal class StreamMediaAssetHandler(
-    private val mediaAssetRepository: MediaAssetRepository,
-    private val mediaPreviewTokenService: MediaPreviewTokenService,
-) : QueryHandler<StreamMediaAssetQuery, MediaAssetStreamResponse> {
-    override suspend fun handle(query: StreamMediaAssetQuery): MediaAssetStreamResponse {
-        if (!mediaPreviewTokenService.isValid(query.assetId, query.workspaceId, query.expiresAt, query.signature)) {
-            // In a real CQRS setup, we might throw a domain exception that the controller maps to 403.
-            throw IllegalAccessException("Invalid preview token")
-        }
-
-        val asset = mediaAssetRepository.findByWorkspaceAndId(query.workspaceId, query.assetId)
-            ?: throw AssetNotFoundException(query.assetId)
-
-        val storageKey = asset.storageKey ?: throw AssetNotFoundException("Asset storage key not found")
-
-        return MediaAssetStreamResponse(
-            mediaType = asset.mediaType,
-            originalFilename = asset.originalFilename,
-            storageKey = storageKey,
-            status = asset.status,
-        )
-    }
-}
