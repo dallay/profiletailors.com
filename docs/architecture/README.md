@@ -14,7 +14,7 @@ architecture at different levels of abstraction.
 
 | Level       | Document                                  | Description                           | Audience               |
 |-------------|-------------------------------------------|---------------------------------------|------------------------|
-| **Summary** | [summary.md](c4/summary.md)               | Executive summary and roadmap         | Everyone               |
+| **Summary** | [SUMMARY.md](c4/SUMMARY.md)               | Executive summary and roadmap         | Everyone               |
 | **Level 1** | [System Context](c4/01-system-context.md) | Big picture, external dependencies    | Everyone               |
 | **Level 2** | [Container](c4/02-container.md)           | Deployable units, technology stack    | Technical leadership   |
 | **Level 3** | [Component](c4/03-component.md)           | Internal structure, bounded contexts  | Developers, architects |
@@ -131,19 +131,19 @@ architecture at different levels of abstraction.
 
 - Marketing site (Astro 6)
 - Backend foundation (Spring Boot 4, Kotlin, WebFlux)
-- Core bounded contexts (Identity, Authorization, Tenancy, Credentials, Governance, Platform, Audit, Media, Observability, Publishing)
-- LinkedIn publishing integration
+- Core bounded contexts (Identity, Authorization, Tenancy, Credentials, Governance, Platform, Audit, Media, Observability)
 - JWT and API Key authentication
 - PostgreSQL with R2DBC
 
 **In Progress** (🔄):
 
-- Web application (Vue 3, dashboard implementation)
-- Content Context (post creation, scheduling)
+- Web application (Vue 3, early development)
+- Content Context
+- Scheduler Service
 
 **Planned** (🔲):
 
-- Additional social media integrations (Twitter, Instagram, etc.)
+- Social media integrations
 - Analytics Context
 - Team collaboration features
 

@@ -9,7 +9,7 @@
 development servers — eliminating port conflicts and making URLs predictable for CORS, OAuth
 redirects, API clients, and tooling.
 
-Instead of using raw ports, you get
+Instead of remembering `http://localhost:4321` (Astro) and `http://localhost:5173` (Vite), you get
 consistent HTTPS URLs:
 
 | Project           | URL                                 |

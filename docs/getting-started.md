@@ -96,16 +96,13 @@ If hooks are not installed, CI will catch any issues — so there is no risk in 
 
 ## Verify the setup
 
-### Frontend (Marketing + App)
+### Frontend (Astro)
 
 ```bash
 just frontend-dev
 ```
 
-This starts both the Astro marketing site and the Vue 3 dashboard application in parallel.
-
-- **Marketing site:** [https://profile-tailors.localhost](https://profile-tailors.localhost)
-- **Web app dashboard:** [https://pt-app.localhost](https://pt-app.localhost)
+Open [http://localhost:4321](http://localhost:4321) — you should see the marketing site.
 
 Run the full frontend CI subset:
 
@@ -121,7 +118,7 @@ This runs Biome lint, Vitest unit tests, and a production build.
 just backend-run
 ```
 
-The server starts in dev profile. API endpoints will be available at `http://localhost:7638` (configured via `SMP_BACKEND_PORT`).
+The server starts in dev profile. API endpoints will be available at `http://localhost:8080`.
 
 Run fast tests:
 
@@ -152,7 +149,7 @@ Key recipes:
 | Command                  | Description                                     |
 |--------------------------|-------------------------------------------------|
 | `just setup`             | Full bootstrap: .env + deps + hooks + agentsync |
-| `just frontend-dev`      | Start marketing (Astro) + app (Vue) dev servers |
+| `just frontend-dev`      | Start Astro dev server                          |
 | `just frontend-test`     | Run Vitest unit tests                           |
 | `just frontend-test-e2e` | Run Playwright E2E tests                        |
 | `just backend-run`       | Start Spring Boot (dev profile)                 |

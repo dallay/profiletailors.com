@@ -1,9 +1,9 @@
 package com.profiletailors.smp.media.infrastructure.http
 
-import com.profiletailors.common.domain.bus.Mediator
 import com.profiletailors.smp.media.application.AssetNotFoundException
+import com.profiletailors.smp.media.application.MediaAssetRepository
+import com.profiletailors.smp.media.application.MediaPreviewTokenService
 import com.profiletailors.smp.media.application.MediaUploadSettings
-import com.profiletailors.smp.media.application.StreamMediaAssetQuery
 import com.profiletailors.smp.media.domain.MediaAssetStatus
 import com.profiletailors.storage.application.StorageApplicationService
 import com.profiletailors.storage.infrastructure.asFlux
@@ -27,7 +27,8 @@ import java.time.Duration
 @RequestMapping(value = ["/api/media/assets"])
 @Tag(name = "Media Preview", description = "Signed public preview URLs for media assets")
 class MediaAssetPreviewController(
-    private val mediator: Mediator,
+    private val mediaAssetRepository: MediaAssetRepository,
+    private val mediaPreviewTokenService: MediaPreviewTokenService,
     private val storageApplicationService: StorageApplicationService,
     private val mediaUploadSettings: MediaUploadSettings,
 ) {
@@ -38,88 +39,79 @@ class MediaAssetPreviewController(
 
     @Operation(summary = "Stream a signed public preview for an image asset")
     @GetMapping("/{assetId}/preview")
-    @Suppress("SwallowedException")
     suspend fun previewAsset(
         @PathVariable assetId: String,
         @RequestParam workspaceId: String,
         @RequestParam expiresAt: Long,
         @RequestParam signature: String,
     ): ResponseEntity<Flux<DataBuffer>> {
-        val response = try {
-            mediator.send(
-                StreamMediaAssetQuery(
-                    assetId = assetId,
-                    workspaceId = workspaceId,
-                    expiresAt = expiresAt,
-                    signature = signature,
-                    purpose = "media-preview",
-                ),
-            )
-        } catch (e: IllegalAccessException) {
-            return forbiddenResponse()
-        } catch (e: AssetNotFoundException) {
-            return ResponseEntity.notFound().build()
-        }
+        val asset = validateAndLoadAsset(assetId, workspaceId, expiresAt, signature)
 
+        val storageKey = asset?.storageKey
         return when {
-            !isReadyImage(response.mediaType, response.status) -> ResponseEntity.notFound().build()
+            asset == null -> forbiddenResponse()
+
+            storageKey == null -> ResponseEntity.notFound().build()
+
+            !isReadyImage(asset.mediaType, asset.status) -> ResponseEntity.notFound().build()
 
             else -> ResponseEntity.ok()
-                .contentType(MediaType.parseMediaType(response.mediaType))
+                .contentType(MediaType.parseMediaType(asset.mediaType))
                 .cacheControl(CacheControl.maxAge(Duration.ofMinutes(PREVIEW_CACHE_MINUTES)))
-                .body(downloadBody(assetId, response.storageKey, "media-preview"))
+                .body(downloadBody(assetId, storageKey, "media-preview"))
         }
     }
 
     @Operation(summary = "Stream signed asset content for image/video/pdf preview or download")
     @GetMapping("/{assetId}/content")
-    @Suppress("SwallowedException")
     suspend fun contentAsset(
         @PathVariable assetId: String,
         @RequestParam workspaceId: String,
         @RequestParam expiresAt: Long,
         @RequestParam signature: String,
     ): ResponseEntity<Flux<DataBuffer>> {
-        val response = try {
-            mediator.send(
-                StreamMediaAssetQuery(
-                    assetId = assetId,
-                    workspaceId = workspaceId,
-                    expiresAt = expiresAt,
-                    signature = signature,
-                    purpose = "media-content",
-                ),
-            )
-        } catch (e: IllegalAccessException) {
-            return forbiddenResponse()
-        } catch (e: AssetNotFoundException) {
-            return ResponseEntity.notFound().build()
-        }
+        val asset = validateAndLoadAsset(assetId, workspaceId, expiresAt, signature)
 
         return when {
-            response.status != MediaAssetStatus.READY -> ResponseEntity.notFound().build()
+            asset == null -> forbiddenResponse()
+
+            asset.status != MediaAssetStatus.READY -> ResponseEntity.notFound().build()
 
             else -> {
                 val headers = HttpHeaders().apply {
-                    contentType = MediaType.parseMediaType(response.mediaType)
+                    contentType = MediaType.parseMediaType(asset.mediaType)
                     cacheControl = CacheControl.maxAge(Duration.ofMinutes(PREVIEW_CACHE_MINUTES)).headerValue
                     contentDisposition = when {
-                        response.mediaType.equals("application/pdf", ignoreCase = true) ->
-                            ContentDisposition.inline().filename(response.originalFilename ?: "$assetId.pdf").build()
+                        asset.mediaType.equals("application/pdf", ignoreCase = true) ->
+                            ContentDisposition.inline().filename(asset.originalFilename ?: "$assetId.pdf").build()
 
-                        response.mediaType.startsWith("video/", ignoreCase = true) ->
-                            ContentDisposition.inline().filename(response.originalFilename ?: "$assetId.mp4").build()
+                        asset.mediaType.startsWith("video/", ignoreCase = true) ->
+                            ContentDisposition.inline().filename(asset.originalFilename ?: "$assetId.mp4").build()
 
                         else ->
-                            ContentDisposition.attachment().filename(response.originalFilename ?: assetId).build()
+                            ContentDisposition.attachment().filename(asset.originalFilename ?: assetId).build()
                     }
                 }
 
+                val storageKey = asset.storageKey
+                    ?: return ResponseEntity.notFound().build()
                 ResponseEntity.ok()
                     .headers(headers)
-                    .body(downloadBody(assetId, response.storageKey, "media-content"))
+                    .body(downloadBody(assetId, storageKey, "media-content"))
             }
         }
+    }
+
+    private suspend fun validateAndLoadAsset(
+        assetId: String,
+        workspaceId: String,
+        expiresAt: Long,
+        signature: String,
+    ) = if (mediaPreviewTokenService.isValid(assetId, workspaceId, expiresAt, signature)) {
+        mediaAssetRepository.findByWorkspaceAndId(workspaceId, assetId)
+            ?: throw AssetNotFoundException(assetId)
+    } else {
+        null
     }
 
     private fun forbiddenResponse(): ResponseEntity<Flux<DataBuffer>> = ResponseEntity.status(HTTP_FORBIDDEN).build()
