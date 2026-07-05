@@ -1,11 +1,18 @@
 package com.profiletailors.smp.media.infrastructure.http
 
+import com.profiletailors.common.domain.bus.Mediator
+import com.profiletailors.common.domain.bus.PublishStrategy
+import com.profiletailors.common.domain.bus.command.Command
+import com.profiletailors.common.domain.bus.command.CommandWithResult
 import com.profiletailors.common.domain.bus.event.BaseDomainEvent
 import com.profiletailors.common.domain.bus.event.EventPublisher
-import com.profiletailors.smp.media.application.MediaAssetRepository
+import com.profiletailors.common.domain.bus.notification.Notification
+import com.profiletailors.common.domain.bus.query.Query
+import com.profiletailors.smp.media.application.AssetNotFoundException
+import com.profiletailors.smp.media.application.MediaAssetStreamResponse
 import com.profiletailors.smp.media.application.MediaPreviewTokenService
 import com.profiletailors.smp.media.application.MediaUploadSettings
-import com.profiletailors.smp.media.application.PagedMediaAssets
+import com.profiletailors.smp.media.application.StreamMediaAssetQuery
 import com.profiletailors.smp.media.domain.MediaAsset
 import com.profiletailors.smp.media.domain.MediaAssetStatus
 import com.profiletailors.smp.media.domain.MediaSourceType
@@ -178,39 +185,30 @@ class MediaAssetPreviewControllerTest {
     }
 
     private fun controller(asset: MediaAsset?): MediaAssetPreviewController {
-        val repository = object : MediaAssetRepository {
-            override suspend fun create(asset: MediaAsset): MediaAsset = asset
-            override suspend fun findByWorkspaceAndId(workspaceId: String, assetId: String): MediaAsset? = asset
-            override suspend fun findByWorkspaceAndIds(workspaceId: String, assetIds: List<String>): List<MediaAsset> =
-                emptyList()
-            override suspend fun listByWorkspace(
-                workspaceId: String,
-                statuses: Set<MediaAssetStatus>,
-                pageSize: Int,
-                cursor: String?,
-            ): PagedMediaAssets = PagedMediaAssets(emptyList(), null)
-            override suspend fun claimUploadSlot(assetId: String, workspaceId: String, now: Instant): Boolean = false
-            override suspend fun claimCasUploadSlot(assetId: String, workspaceId: String, now: Instant): Boolean = false
-            override suspend fun markAsReady(assetId: String, workspaceId: String, fileSizeBytes: Long): MediaAsset? =
-                null
-            override suspend fun markAsReadyFromDedup(
-                assetId: String,
-                workspaceId: String,
-                storageKey: String,
-                detectedMediaType: String,
-                fileSizeBytes: Long?,
-            ): MediaAsset? = null
-            override suspend fun markAsFailed(assetId: String, workspaceId: String, reason: String?): MediaAsset? = null
-            override suspend fun softDelete(assetId: String, workspaceId: String): MediaAsset? = null
-            override suspend fun findStaleProcessingAssets(
-                thresholdHours: Long,
-                gracePeriodMinutes: Long,
-            ): List<MediaAsset> = emptyList()
-            override suspend fun findRecentlyFailedAssets(): List<MediaAsset> = emptyList()
-            override suspend fun findExpiredPendingUploadAssets(limit: Int): List<MediaAsset> = emptyList()
-            override suspend fun findExpiredUploadingAssets(limit: Int): List<MediaAsset> = emptyList()
-            override suspend fun countActiveReferences(workspaceId: String, fileHash: String): Int = 0
-            override suspend fun findActiveByWorkspaceAndHash(workspaceId: String, fileHash: String): MediaAsset? = null
+        val mediator = object : Mediator {
+            override suspend fun <TQuery : Query<TResponse>, TResponse> send(query: TQuery): TResponse {
+                if (query is StreamMediaAssetQuery) {
+                    if (!tokenService.isValid(query.assetId, query.workspaceId, query.expiresAt, query.signature)) {
+                        throw IllegalAccessException("Invalid token")
+                    }
+                    val a = asset ?: throw AssetNotFoundException(query.assetId)
+                    @Suppress("UNCHECKED_CAST")
+                    return MediaAssetStreamResponse(
+                        mediaType = a.mediaType,
+                        originalFilename = a.originalFilename,
+                        storageKey = a.storageKey ?: "fake-key",
+                        status = a.status,
+                    ) as TResponse
+                }
+                error("Unexpected query: $query")
+            }
+
+            override suspend fun <TCommand : Command> send(command: TCommand) = Unit
+            override suspend fun <TCommand : CommandWithResult<TResult>, TResult> send(command: TCommand): TResult =
+                error("Not implemented")
+
+            override suspend fun <T : Notification> publish(notification: T) = Unit
+            override suspend fun <T : Notification> publish(notification: T, publishStrategy: PublishStrategy) = Unit
         }
 
         val storageService = StorageApplicationService(
@@ -247,8 +245,7 @@ class MediaAssetPreviewControllerTest {
         )
 
         return MediaAssetPreviewController(
-            mediaAssetRepository = repository,
-            mediaPreviewTokenService = tokenService,
+            mediator = mediator,
             storageApplicationService = storageService,
             mediaUploadSettings = uploadSettings,
         )

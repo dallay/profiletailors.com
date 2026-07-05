@@ -130,10 +130,11 @@ For full onboarding and troubleshooting, see [docs/getting-started.md](docs/gett
 #### 3) Start local development
 
 ```bash
-just frontend-dev  # starts the Astro dev server
+just frontend-dev  # starts both Astro (marketing) and Vue (app) dev servers
 ```
 
-The site will be available at [http://localhost:4321](http://localhost:4321).
+- **Marketing site:** [https://profile-tailors.localhost](https://profile-tailors.localhost)
+- **Web app dashboard:** [https://pt-app.localhost](https://pt-app.localhost)
 
 ### Command Hub
 
@@ -141,12 +142,12 @@ This repo uses [`just`](https://github.com/casey/just) as a centralized command 
 All common operations are available via `just <recipe>` — no need to remember pnpm, Gradle, or
 Docker commands separately. Run `just -l` to list everything.
 
-#### Frontend (Astro / pnpm)
+#### Frontend (pnpm)
 
-| Command                     | What it does                        |
-|-----------------------------|-------------------------------------|
-| `just frontend-dev`         | Start the Astro dev server          |
-| `just frontend-build`       | Build the production site           |
+| Command                     | What it does                                  |
+|-----------------------------|-----------------------------------------------|
+| `just frontend-dev`         | Start marketing (Astro) + app (Vue) dev servers |
+| `just frontend-build`       | Build the production site                     |
 | `just frontend-preview`     | Preview the production build        |
 | `just frontend-lint`        | Lint with Biome                     |
 | `just frontend-format`      | Format code with Biome              |
@@ -203,8 +204,7 @@ Docker commands separately. Run `just -l` to list everything.
   development and build.
 - The current waitlist flow is **client-side only** (backend implementation is planned).
 - Code quality: **Biome** for linting and formatting in the frontend.
-- The backend lives in `server/smp/` — Spring Boot 4 with Kotlin and WebFlux (experimental, not
-  deployed).
+- The backend lives in `server/smp/` — Spring Boot 4 with Kotlin and WebFlux.
 - SDD artifacts live in `openspec/` for tracking specs, designs, and tasks.
 
 ---
@@ -222,7 +222,7 @@ programming.
 - **[Container](docs/architecture/c4/02-container.md)** — Deployable units, technology stack
 - **[Component](docs/architecture/c4/03-component.md)** — Internal structure, bounded contexts
 - **[Code](docs/architecture/c4/04-code.md)** — Implementation patterns, class design
-- **[Summary](docs/architecture/c4/SUMMARY.md)** — Executive summary and roadmap
+- **[Summary](docs/architecture/c4/summary.md)** — Executive summary and roadmap
 
 **Key Architectural Patterns**:
 

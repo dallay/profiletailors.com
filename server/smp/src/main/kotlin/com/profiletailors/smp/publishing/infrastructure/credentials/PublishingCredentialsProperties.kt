@@ -4,5 +4,5 @@ import org.springframework.boot.context.properties.ConfigurationProperties
 
 @ConfigurationProperties(prefix = "publishing.credentials.encryption")
 class PublishingCredentialsProperties {
-    var key: String? = null
+    var encryptionKey: String? = null
 }

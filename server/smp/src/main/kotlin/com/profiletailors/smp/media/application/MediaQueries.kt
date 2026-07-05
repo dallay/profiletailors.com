@@ -67,3 +67,24 @@ data class ResolvedAssetSummary(
     val storageKey: String,
     val mediaType: String,
 )
+
+/**
+ * Query to stream a media asset content.
+ */
+data class StreamMediaAssetQuery(
+    val assetId: String,
+    val workspaceId: String,
+    val expiresAt: Long,
+    val signature: String,
+    val purpose: String,
+) : Query<MediaAssetStreamResponse>
+
+/**
+ * Result of a media asset stream query.
+ */
+data class MediaAssetStreamResponse(
+    val mediaType: String,
+    val originalFilename: String?,
+    val storageKey: String,
+    val status: MediaAssetStatus,
+)

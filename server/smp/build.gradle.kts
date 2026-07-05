@@ -9,13 +9,6 @@ version = "0.0.1-SNAPSHOT"
 // Reads the root .env (linked via bin/setup-env.sh) and exports each variable
 // to the forked bootRun JVM so Spring Boot picks them up as environment vars.
 // This works for both CLI (./gradlew bootRun) and IntelliJ Gradle runner.
-val testPublishingCredentialsKey =
-    "dGVzdC1lbmNyeXB0aW9uLWtleS0xMjM0NTY3ODkwMTI="
-
-tasks.withType<Test>().configureEach {
-    environment("PUBLISHING_CREDENTIALS_KEY", testPublishingCredentialsKey)
-}
-
 tasks.bootRun {
     val envFile = layout.projectDirectory.file(".env")
     if (envFile.asFile.exists()) {

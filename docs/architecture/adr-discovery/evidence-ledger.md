@@ -338,7 +338,7 @@ Tenancy is isolated by `workspace_id` columns in most tables. Repositories inclu
 
 ### Documented intention
 
-"Multi-tenant workspaces... data isolation is application-enforced..." (Inferred from `SUMMARY.md`).
+"Multi-tenant workspaces... data isolation is application-enforced..." (Inferred from `summary.md`).
 
 ### Possible rationale
 
@@ -381,7 +381,7 @@ cookie. Access token lives only in memory on the frontend.
 
 ### Documented intention
 
-"JWT tokens: Short-lived (15 min)..." (`SUMMARY.md`). "Dedicated refresh and logout endpoints..." (
+"JWT tokens: Short-lived (15 min)..." (`summary.md`). "Dedicated refresh and logout endpoints..." (
 `platform/spec.md`).
 
 ### Possible rationale

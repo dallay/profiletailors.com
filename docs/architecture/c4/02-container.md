@@ -319,7 +319,8 @@ graph TB
 ┌─────────────────────────────────────────────────────────┐
 │ Local Development                                       │
 ├─────────────────────────────────────────────────────────┤
-│ • Marketing Site: localhost:4321 (Astro dev server)    │
+│ • Marketing Site: profile-tailors.localhost (Astro)    │
+│ • Web Application: pt-app.localhost (Vue)              │
 │ • API Application: localhost:7638 (Spring Boot)        │
 │ • PostgreSQL: localhost:5432 (Docker Compose)          │
 │ • Redis: localhost:6379 (Docker Compose)               │
