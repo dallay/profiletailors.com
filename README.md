@@ -130,10 +130,11 @@ For full onboarding and troubleshooting, see [docs/getting-started.md](docs/gett
 #### 3) Start local development
 
 ```bash
-just frontend-dev  # starts the Astro dev server
+just frontend-dev  # starts both Astro (marketing) and Vue (app) dev servers
 ```
 
-The site will be available at [http://localhost:4321](http://localhost:4321).
+- **Marketing site:** [https://profile-tailors.localhost](https://profile-tailors.localhost) (or [http://localhost:4321](http://localhost:4321))
+- **Web app dashboard:** [https://pt-app.localhost](https://pt-app.localhost) (or [http://localhost:5173](http://localhost:5173))
 
 ### Command Hub
 
@@ -203,8 +204,7 @@ Docker commands separately. Run `just -l` to list everything.
   development and build.
 - The current waitlist flow is **client-side only** (backend implementation is planned).
 - Code quality: **Biome** for linting and formatting in the frontend.
-- The backend lives in `server/smp/` — Spring Boot 4 with Kotlin and WebFlux (experimental, not
-  deployed).
+- The backend lives in `server/smp/` — Spring Boot 4 with Kotlin and WebFlux.
 - SDD artifacts live in `openspec/` for tracking specs, designs, and tasks.
 
 ---

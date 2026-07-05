@@ -131,19 +131,19 @@ architecture at different levels of abstraction.
 
 - Marketing site (Astro 6)
 - Backend foundation (Spring Boot 4, Kotlin, WebFlux)
-- Core bounded contexts (Identity, Authorization, Tenancy, Credentials, Governance, Platform, Audit, Media, Observability)
+- Core bounded contexts (Identity, Authorization, Tenancy, Credentials, Governance, Platform, Audit, Media, Observability, Publishing)
+- LinkedIn publishing integration
 - JWT and API Key authentication
 - PostgreSQL with R2DBC
 
 **In Progress** (🔄):
 
-- Web application (Vue 3, early development)
-- Content Context
-- Scheduler Service
+- Web application (Vue 3, dashboard implementation)
+- Content Context (post creation, scheduling)
 
 **Planned** (🔲):
 
-- Social media integrations
+- Additional social media integrations (Twitter, Instagram, etc.)
 - Analytics Context
 - Team collaboration features
 
