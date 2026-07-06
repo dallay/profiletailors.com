@@ -25,12 +25,14 @@ const view = ref<ViewState>('idle')
 const items = ref<MediaProviderSearchItem[]>([])
 const query = ref('')
 const errorCode = ref<string | null>(null)
+const importErrorCode = ref<string | null>(null)
 const importingId = ref<string | null>(null)
 
 async function runSearch() {
   if (!query.value.trim()) return
   view.value = 'loading'
   errorCode.value = null
+  importErrorCode.value = null
   try {
     const response = await searchProviderPhotos(
       'unsplash',
@@ -49,6 +51,7 @@ async function runSearch() {
 
 async function handleImport(item: MediaProviderSearchItem) {
   importingId.value = item.externalId
+  importErrorCode.value = null
   try {
     const result = await importProviderPhoto(
       'unsplash',
@@ -58,8 +61,10 @@ async function handleImport(item: MediaProviderSearchItem) {
     )
     emit('import-success', { assetId: result.assetId, deduped: result.deduped })
   } catch (err) {
-    errorCode.value = (err as ProviderApiError).code ?? null
-    view.value = 'error'
+    importErrorCode.value = (err as ProviderApiError).code ?? null
+    if (items.value.length === 0) {
+      view.value = 'error'
+    }
   } finally {
     importingId.value = null
   }
@@ -105,6 +110,10 @@ async function handleImport(item: MediaProviderSearchItem) {
 
       <p v-else-if="view === 'idle'" class="py-4 text-center text-sm text-text-secondary">
         {{ t('composer.mediaPicker.provider.emptyTitle') }}
+      </p>
+
+      <p v-else-if="importErrorCode && view === 'ready'" class="py-4 text-center text-sm text-error">
+        {{ t('composer.mediaPicker.provider.errorTitle') }}
       </p>
     </div>
 

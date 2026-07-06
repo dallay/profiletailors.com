@@ -4,7 +4,7 @@ import org.springframework.boot.context.properties.ConfigurationProperties
 import java.time.Duration
 
 @ConfigurationProperties(prefix = "mediaprovider.unsplash")
-data class UnsplashProperties(
+class UnsplashProperties(
     val enabled: Boolean = false,
     val accessKey: String = "",
     val baseUrl: String = "https://api.unsplash.com",
@@ -21,6 +21,9 @@ data class UnsplashProperties(
             }
         }
     }
+
+    override fun toString(): String =
+        "UnsplashProperties(enabled=$enabled, accessKey=***, baseUrl=$baseUrl, timeout=$timeout, pageSize=$pageSize)"
 
     companion object {
         private val DEFAULT_TIMEOUT: Duration = Duration.ofSeconds(5)

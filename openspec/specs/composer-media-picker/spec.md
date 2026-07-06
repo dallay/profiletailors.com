@@ -76,7 +76,8 @@ The picker MUST accept typed presentation inputs and MUST emit typed search, fil
 - GIVEN reusable assets are displayed by parent-provided data
 - WHEN the author interacts with the shell
 - THEN the picker MUST NOT persist asset selection or alter a draft
-- AND it MUST NOT offer multi-selection, upload, deletion, or provider import
+- AND it MUST NOT offer multi-selection, upload, deletion, or direct provider API calls
+- BUT it MAY emit parent-owned `provider-import` interactions
 
 ### Requirement: Provider tab is shell-only and parent-owned
 

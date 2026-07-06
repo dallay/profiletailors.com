@@ -15,7 +15,6 @@ import com.profiletailors.smp.media.application.ImportExternalAssetHandler
 import com.profiletailors.smp.media.application.ImportTestBlobRepository
 import com.profiletailors.smp.media.application.ImportTestMediaAssetRepository
 import com.profiletailors.smp.media.application.MediaUploadSettings
-import com.profiletailors.smp.media.application.NoopMediaProvider
 import com.profiletailors.smp.media.application.port.ProviderExternalId
 import com.profiletailors.storage.application.StorageApplicationService
 import com.profiletailors.storage.domain.Storage
@@ -50,7 +49,7 @@ class UnsplashWireMockIntegrationTest {
         val config = MediaProviderConfig()
         val webClient = config.unsplashWebClient(properties)
         val client = config.unsplashClient(webClient, properties)
-        val provider = UnsplashAdapter(client)
+        val provider = UnsplashAdapter(client, properties.pageSize)
 
         val assetRepo = ImportTestMediaAssetRepository()
         val blobRepo = ImportTestBlobRepository()
@@ -63,7 +62,6 @@ class UnsplashWireMockIntegrationTest {
                 eventPublisher = NoopEventPublisher(),
                 metrics = NoopStorageObservation(),
             ),
-            mediaProvider = NoopMediaProvider(),
             uploadSettings = MediaUploadSettings(5, 200, "bucket"),
             transactionRunner = NoopAtomicTransactionRunner,
         )

@@ -1,29 +1,23 @@
-import { describe, it, expect, afterEach } from 'vitest'
-import { resolveMediaProviderConfig } from './useMediaProviderConfig'
+import { describe, it, expect, afterEach, vi } from 'vitest'
+import { useMediaProviderConfig } from './useMediaProviderConfig'
 
-describe('resolveMediaProviderConfig', () => {
-  const original = process.env.VITE_MEDIA_PROVIDER_UNSPLASH_ENABLED
-
+describe('useMediaProviderConfig', () => {
   afterEach(() => {
-    if (original === undefined) {
-      delete process.env.VITE_MEDIA_PROVIDER_UNSPLASH_ENABLED
-    } else {
-      process.env.VITE_MEDIA_PROVIDER_UNSPLASH_ENABLED = original
-    }
+    vi.unstubAllEnvs()
   })
 
   it('defaults to disabled when the env is absent', () => {
-    delete process.env.VITE_MEDIA_PROVIDER_UNSPLASH_ENABLED
-    expect(resolveMediaProviderConfig().unsplashEnabled).toBe(false)
+    vi.stubEnv('VITE_MEDIA_PROVIDER_UNSPLASH_ENABLED', undefined)
+    expect(useMediaProviderConfig().unsplashEnabled.value).toBe(false)
   })
 
   it('returns false for explicit "false"', () => {
-    process.env.VITE_MEDIA_PROVIDER_UNSPLASH_ENABLED = 'false'
-    expect(resolveMediaProviderConfig().unsplashEnabled).toBe(false)
+    vi.stubEnv('VITE_MEDIA_PROVIDER_UNSPLASH_ENABLED', 'false')
+    expect(useMediaProviderConfig().unsplashEnabled.value).toBe(false)
   })
 
   it('returns true for explicit "true"', () => {
-    process.env.VITE_MEDIA_PROVIDER_UNSPLASH_ENABLED = 'true'
-    expect(resolveMediaProviderConfig().unsplashEnabled).toBe(true)
+    vi.stubEnv('VITE_MEDIA_PROVIDER_UNSPLASH_ENABLED', 'true')
+    expect(useMediaProviderConfig().unsplashEnabled.value).toBe(true)
   })
 })

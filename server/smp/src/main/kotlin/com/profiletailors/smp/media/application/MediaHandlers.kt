@@ -25,6 +25,7 @@ import com.profiletailors.smp.media.domain.MediaSourceType
 import com.profiletailors.smp.media.domain.MediaStorageKeys
 import com.profiletailors.storage.application.StorageApplicationService
 import com.profiletailors.storage.domain.StorageException
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.TimeoutCancellationException
 import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.toList
@@ -1587,7 +1588,6 @@ class ImportExternalAssetHandler(
     private val mediaAssetRepository: MediaAssetRepository,
     private val workspaceFileBlobRepository: WorkspaceFileBlobRepository,
     private val storageApplicationService: StorageApplicationService,
-    private val mediaProvider: com.profiletailors.smp.media.application.port.MediaProvider,
     private val uploadSettings: MediaUploadSettings,
     private val transactionRunner: AtomicTransactionRunner,
     private val mediaRateLimitRepository: MediaRateLimitRepository? = null,
@@ -1607,53 +1607,55 @@ class ImportExternalAssetHandler(
         )
         enforceConcurrentSlot(command.workspaceId)
 
-        val external = command.externalAsset
-        validateSupportedMediaType(external.mediaType)
-        validateSize(external.contentLength)
-
-        // Stream + hash
-        val assetId = MediaAsset.generateAssetId()
-        val tempKey = MediaStorageKeys.tempKey(command.workspaceId, assetId, external.mediaType)
-        val outcome = streamToTempAndHash(external, tempKey)
-
-        val fileHash = outcome.computedHash
-        val actualBytes = outcome.actualBytes
-
-        // Dedup check via the existing CAS blob repository
         return try {
-            val result = transactionRunner.runAtomically {
-                finalizeProviderBlob(
-                    workspaceId = command.workspaceId,
-                    assetId = assetId,
-                    externalAsset = external,
-                    fileHash = fileHash,
-                    tempKey = tempKey,
-                    detectedMediaType = outcome.detectedMediaType,
-                    actualBytes = actualBytes,
-                )
-            } ?: throw BlobMissingException(fileHash)
+            val external = command.externalAsset
+            validateSupportedMediaType(external.mediaType)
+            validateSize(external.contentLength)
 
-            logger.info(
-                "media.provider.import.completed assetId={} workspaceId={} externalId={} fileHash={} deduped={}",
-                result.assetId,
-                command.workspaceId,
-                external.externalId.value,
-                fileHash,
-                result.deduped,
-            )
-            result
-        } catch (@Suppress("SwallowedException") e: BlobMissingException) {
-            // Either no active asset but no blob row, or the blob lifecycle is in an
-            // unexpected state. Clean up storage and surface as a transient IMPORT_REJECTED.
-            safeCleanupTemp(tempKey)
-            throw UnsupportedMediaTypeException(
-                "Provider import could not be finalized: missing blob for hash ${e.fileHash}",
-                declaredType = external.mediaType,
-                detectedType = outcome.detectedMediaType,
-            )
-        } catch (e: com.profiletailors.storage.domain.StorageException) {
-            safeCleanupTemp(tempKey)
-            throw e
+            // Stream + hash
+            val assetId = MediaAsset.generateAssetId()
+            val tempKey = MediaStorageKeys.tempKey(command.workspaceId, assetId, external.mediaType)
+            val outcome = streamToTempAndHash(external, tempKey)
+
+            val fileHash = outcome.computedHash
+            val actualBytes = outcome.actualBytes
+
+            // Dedup check via the existing CAS blob repository
+            try {
+                val result = transactionRunner.runAtomically {
+                    finalizeProviderBlob(
+                        workspaceId = command.workspaceId,
+                        assetId = assetId,
+                        externalAsset = external,
+                        fileHash = fileHash,
+                        tempKey = tempKey,
+                        detectedMediaType = outcome.detectedMediaType,
+                        actualBytes = actualBytes,
+                    )
+                } ?: throw BlobMissingException(fileHash)
+
+                logger.info(
+                    "media.provider.import.completed assetId={} workspaceId={} externalId={} fileHash={} deduped={}",
+                    result.assetId,
+                    command.workspaceId,
+                    external.externalId.value,
+                    fileHash,
+                    result.deduped,
+                )
+                result
+            } catch (@Suppress("SwallowedException") e: BlobMissingException) {
+                // Either no active asset but no blob row, or the blob lifecycle is in an
+                // unexpected state. Clean up storage and surface as a transient IMPORT_REJECTED.
+                safeCleanupTemp(tempKey)
+                throw UnsupportedMediaTypeException(
+                    "Provider import could not be finalized: missing blob for hash ${e.fileHash}",
+                    declaredType = external.mediaType,
+                    detectedType = outcome.detectedMediaType,
+                )
+            } catch (e: com.profiletailors.storage.domain.StorageException) {
+                safeCleanupTemp(tempKey)
+                throw e
+            }
         } finally {
             releaseConcurrentSlot(command.workspaceId)
         }
@@ -1678,13 +1680,11 @@ class ImportExternalAssetHandler(
         }
     }
 
-    private fun releaseConcurrentSlot(workspaceId: String) {
-        // Best-effort: we use a separate coroutine-free path so a release failure
-        // never breaks the import.
+    private suspend fun releaseConcurrentSlot(workspaceId: String) {
         try {
-            kotlinx.coroutines.runBlocking {
-                mediaRateLimitRepository?.releaseConcurrentUploadSlot(workspaceId)
-            }
+            mediaRateLimitRepository?.releaseConcurrentUploadSlot(workspaceId)
+        } catch (e: CancellationException) {
+            throw e
         } catch (_: Throwable) {
             // ignore — slot accounting is informational; the cleaner worker will eventually reconcile.
         }
@@ -1838,7 +1838,7 @@ class ImportExternalAssetHandler(
                     )
                 } else {
                     // Orphan READY blob — still treat as dedup hit using the new assetId
-                    val canonicalKey = MediaStorageKeys.canonicalKey(workspaceId, fileHash, detectedMediaType)
+                    val canonicalKey = blob.storageKey ?: throw BlobMissingException(fileHash)
                     val newAsset = MediaAsset(
                         assetId = assetId,
                         workspaceId = workspaceId,
@@ -1928,7 +1928,7 @@ class ImportExternalAssetHandler(
 
     private fun validateSize(contentLength: Long) {
         if (contentLength < 0) {
-            throw IllegalArgumentException("contentLength must be non-negative")
+            throw UnsupportedMediaTypeException("Provider asset reported invalid content length: $contentLength")
         }
         if (contentLength > MediaAsset.MAX_FILE_SIZE_BYTES) {
             throw FileTooLargeException(contentLength, MediaAsset.MAX_FILE_SIZE_BYTES)
@@ -1942,6 +1942,8 @@ class ImportExternalAssetHandler(
                 key = tempKey,
                 deleterId = "provider-cleanup",
             )
+        } catch (e: CancellationException) {
+            throw e
         } catch (_: Throwable) {
             // ignore
         }

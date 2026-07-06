@@ -1,11 +1,6 @@
 package com.profiletailors.smp.media.application
 
 import com.profiletailors.common.domain.bus.event.EventPublisher
-import com.profiletailors.smp.media.application.port.MediaProvider
-import com.profiletailors.smp.media.application.port.ProviderExternalAsset
-import com.profiletailors.smp.media.application.port.ProviderExternalId
-import com.profiletailors.smp.media.application.port.ProviderPageMeta
-import com.profiletailors.smp.media.application.port.ProviderSearchPage
 import com.profiletailors.smp.media.domain.BlobStatus
 import com.profiletailors.smp.media.domain.BlobUpsertResult
 import com.profiletailors.smp.media.domain.MediaAsset
@@ -206,20 +201,6 @@ internal class ImportTestRateLimitRepository(
         released++
     }
     override suspend fun tryIncrementHourlyCreationCount(workspaceId: String, maxPerHour: Int): Boolean = allowCreations
-}
-
-/**
- * Test-only no-op [MediaProvider]; the import handler carries the asset directly,
- * so `import(...)` is never called.
- */
-internal class NoopMediaProvider : MediaProvider {
-    override val providerId: String = "noop"
-
-    override suspend fun search(query: String, page: Int): ProviderSearchPage =
-        ProviderSearchPage(emptyList(), ProviderPageMeta(page, 20, 0))
-
-    override suspend fun import(workspaceId: String, externalId: ProviderExternalId): ProviderExternalAsset =
-        throw UnsupportedOperationException("NoopMediaProvider.import should not be called")
 }
 
 /**

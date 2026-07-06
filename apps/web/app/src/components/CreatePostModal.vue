@@ -30,10 +30,11 @@ import {
   type ComposerMediaPickerFilterOption,
   type ComposerMediaPickerSearchChange,
   type ComposerMediaPickerFilterChange,
+  type ComposerMediaPickerProviderImport,
 } from '@/components/composer/composer-media-picker.types'
 import type { LinkedInPreviewModel, PostPreviewMedia } from '@/components/composer/post-preview.types'
 import MediaProviderPanel from '@/features/media-composer/providers/MediaProviderPanel.vue'
-import { resolveMediaProviderConfig } from '@/composables/useMediaProviderConfig'
+import { useMediaProviderConfig } from '@/composables/useMediaProviderConfig'
 import { Button } from '@/components/ui/button'
 import { Calendar } from '@/components/ui/calendar'
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
@@ -321,7 +322,7 @@ const mediaPickerState = computed<ComposerMediaPickerViewState>(
   () => COMPOSER_MEDIA_PICKER_VIEW_STATE.LOADING,
 )
 
-const mediaProviderConfig = computed(() => resolveMediaProviderConfig())
+const mediaProviderConfig = useMediaProviderConfig()
 
 const authAccessToken = computed(() => auth.accessToken ?? '')
 const activeWorkspaceId = computed(() => workspace.activeWorkspaceId ?? '')
@@ -577,9 +578,13 @@ function handleMediaPickerFilterChange(payload: ComposerMediaPickerFilterChange)
   mediaPickerSelectedFilter.value = payload.filter
 }
 
-function handleMediaPickerProviderImport() {
-  // Close picker on successful import; the imported asset id is forwarded through the slot
-  // contract and a dedicated "asset attached" UI follow-up will surface the asset in the preview panel.
+async function handleMediaPickerProviderImport(payload: ComposerMediaPickerProviderImport | { assetId: string; deduped?: boolean }) {
+  const assetId = 'assetId' in payload ? payload.assetId : payload.externalId
+  if (!mediaStore.assetsById[assetId]) {
+    await mediaStore.loadAsset(assetId)
+  }
+  mediaStore.addToSelection(assetId)
+  assetsTouched.value = true
   mediaPickerSearchQuery.value = ''
   handleMediaPickerOpenChange(false)
 }

@@ -27,6 +27,9 @@ class MediaProviderConfig {
     @ConditionalOnProperty(prefix = "mediaprovider.unsplash", name = ["enabled"], havingValue = "true")
     fun unsplashWebClient(properties: UnsplashProperties): WebClient {
         val timeoutMillis = properties.timeout.toMillis()
+        require(timeoutMillis <= Int.MAX_VALUE.toLong()) {
+            "mediaprovider.unsplash.timeout must be <= ${Int.MAX_VALUE}ms"
+        }
         val httpClient = HttpClient.create()
             .option(ChannelOption.CONNECT_TIMEOUT_MILLIS, timeoutMillis.toInt())
             .responseTimeout(properties.timeout)
@@ -53,14 +56,16 @@ class MediaProviderConfig {
         UnsplashWebClient(unsplashWebClient, properties)
 
     /**
-     * Wires the [UnsplashAdapter] implementation of [MediaProvider] only when
-     * the feature flag is on AND a valid access key is configured.
+     * Wires the [UnsplashAdapter] implementation of [MediaProvider] when the
+     * feature flag is enabled.
      *
-     * When the flag is off, no [MediaProvider] bean is registered: the
-     * downstream controllers must detect that and respond with 404, fulfilling
-     * the "no provider returns 404" requirement of the spec.
+     * When the flag is off, no [MediaProvider] bean is registered and the
+     * downstream controller layer returns 404. Invalid access-key configuration
+     * does not skip bean registration; it fails fast during
+     * [UnsplashProperties] validation at application startup.
      */
     @Bean
     @ConditionalOnProperty(prefix = "mediaprovider.unsplash", name = ["enabled"], havingValue = "true")
-    fun mediaProvider(unsplashClient: UnsplashClient): MediaProvider = UnsplashAdapter(unsplashClient)
+    fun mediaProvider(unsplashClient: UnsplashClient, properties: UnsplashProperties): MediaProvider =
+        UnsplashAdapter(unsplashClient, properties.pageSize)
 }

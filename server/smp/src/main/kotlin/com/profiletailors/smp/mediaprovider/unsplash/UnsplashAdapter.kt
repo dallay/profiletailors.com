@@ -8,7 +8,7 @@ import com.profiletailors.smp.media.application.port.ProviderSearchItem
 import com.profiletailors.smp.media.application.port.ProviderSearchPage
 import com.profiletailors.smp.media.domain.MediaAsset
 
-class UnsplashAdapter(private val client: UnsplashClient) : MediaProvider {
+class UnsplashAdapter(private val client: UnsplashClient, private val pageSize: Int) : MediaProvider {
 
     override val providerId: String = "unsplash"
 
@@ -27,7 +27,7 @@ class UnsplashAdapter(private val client: UnsplashClient) : MediaProvider {
                     sourceUrl = photo.links.html,
                 )
             },
-            page = ProviderPageMeta(number = page, size = 20, total = response.total),
+            page = ProviderPageMeta(number = page, size = pageSize, total = response.total),
         )
     }
 

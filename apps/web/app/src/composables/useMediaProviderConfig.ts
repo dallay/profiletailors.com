@@ -1,8 +1,10 @@
+import { computed } from 'vue'
+
 /**
- * Resolves which media providers are enabled in the SPA build.
+ * Build-time media provider flags for the SPA.
  *
- * The flag is controlled at build time via `VITE_MEDIA_PROVIDER_UNSPLASH_ENABLED`.
- * Default is `false` outside production, mirroring the backend default.
+ * `VITE_MEDIA_PROVIDER_UNSPLASH_ENABLED` is parsed once per access.
+ * Missing or invalid values always fall back to `false`.
  */
 
 function parseFlag(value: string | undefined): boolean {
@@ -10,14 +12,14 @@ function parseFlag(value: string | undefined): boolean {
   return lower === 'true' || lower === '1' || lower === 'yes'
 }
 
-export interface MediaProviderConfig {
+export type MediaProviderConfig = {
   unsplashEnabled: boolean
 }
 
-export function resolveMediaProviderConfig(): MediaProviderConfig {
+export function useMediaProviderConfig() {
   return {
-    unsplashEnabled: parseFlag(
+    unsplashEnabled: computed(() => parseFlag(
       import.meta.env.VITE_MEDIA_PROVIDER_UNSPLASH_ENABLED as string | undefined,
-    ),
+    )),
   }
 }

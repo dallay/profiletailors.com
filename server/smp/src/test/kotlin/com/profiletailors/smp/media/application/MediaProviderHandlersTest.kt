@@ -14,7 +14,7 @@ import kotlinx.coroutines.test.runTest
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertSame
 import org.junit.jupiter.api.Test
-import org.junit.jupiter.api.assertThrows
+import kotlin.test.assertFailsWith
 
 class MediaProviderHandlersTest {
 
@@ -80,19 +80,19 @@ class MediaProviderHandlersTest {
     }
 
     @Test
-    fun `handlers reject unsupported provider ids without depending on concrete adapters`() = runTest {
-        val handler = SearchProviderPhotosHandler(
-            listOf(
-                FakeMediaProvider(
-                    providerId = "unsplash",
-                    searchPage = providerSearchPage("unsplash:photo-1"),
-                    importedAsset = providerExternalAsset("unsplash:photo-1"),
+    fun `SearchProviderPhotosHandler rejects unsupported provider ids without depending on concrete adapters`() =
+        runTest {
+            val handler = SearchProviderPhotosHandler(
+                listOf(
+                    FakeMediaProvider(
+                        providerId = "unsplash",
+                        searchPage = providerSearchPage("unsplash:photo-1"),
+                        importedAsset = providerExternalAsset("unsplash:photo-1"),
+                    ),
                 ),
-            ),
-        )
+            )
 
-        val exception = assertThrows<UnsupportedProviderException> {
-            kotlinx.coroutines.runBlocking {
+            val exception = assertFailsWith<UnsupportedProviderException> {
                 handler.handle(
                     SearchProviderPhotosQuery(
                         providerId = "pexels",
@@ -102,10 +102,35 @@ class MediaProviderHandlersTest {
                     ),
                 )
             }
+
+            assertEquals("No media provider registered for 'pexels'", exception.message)
         }
 
-        assertEquals("No media provider registered for 'pexels'", exception.message)
-    }
+    @Test
+    fun `ImportProviderAssetHandler rejects unsupported provider ids without depending on concrete adapters`() =
+        runTest {
+            val handler = ImportProviderAssetHandler(
+                listOf(
+                    FakeMediaProvider(
+                        providerId = "unsplash",
+                        searchPage = providerSearchPage("unsplash:photo-1"),
+                        importedAsset = providerExternalAsset("unsplash:photo-1"),
+                    ),
+                ),
+            )
+
+            val exception = assertFailsWith<UnsupportedProviderException> {
+                handler.handle(
+                    ImportProviderAssetQuery(
+                        providerId = "pexels",
+                        workspaceId = "workspace-1",
+                        externalId = "pexels:photo-1",
+                    ),
+                )
+            }
+
+            assertEquals("No media provider registered for 'pexels'", exception.message)
+        }
 
     private class FakeMediaProvider(
         override val providerId: String,

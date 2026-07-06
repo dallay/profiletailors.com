@@ -98,15 +98,7 @@ class MediaProviderController(
         @Max(MAX_PAGE_NUMBER.toLong())
         page: Int = DEFAULT_PAGE_NUMBER,
     ): ProviderSearchResponse {
-        // Verify workspace context matches the path variable (defense in depth)
-        val context = resourceContextProvider.requireWorkspaceContext()
-        val resolvedWorkspaceId = context.workspaceId!!
-        if (resolvedWorkspaceId != workspaceId) {
-            throw ResponseStatusException(
-                HttpStatus.FORBIDDEN,
-                "Workspace context does not match the requested path",
-            )
-        }
+        val resolvedWorkspaceId = resolveWorkspaceId(workspaceId)
         requireEmailVerification(
             principalContextProvider.require(),
             principalIdentityLookup,
@@ -165,14 +157,7 @@ class MediaProviderController(
         @PathVariable workspaceId: String,
         @Valid @RequestBody request: ProviderImportRequest,
     ): ProviderImportResponse {
-        val context = resourceContextProvider.requireWorkspaceContext()
-        val resolvedWorkspaceId = context.workspaceId!!
-        if (resolvedWorkspaceId != workspaceId) {
-            throw ResponseStatusException(
-                HttpStatus.FORBIDDEN,
-                "Workspace context does not match the requested path",
-            )
-        }
+        val resolvedWorkspaceId = resolveWorkspaceId(workspaceId)
         validateUnsplashExternalId(request.externalId)
 
         requireEmailVerification(
@@ -228,6 +213,20 @@ class MediaProviderController(
             mediaType = result.mediaType,
             fileSizeBytes = result.fileSizeBytes,
         )
+    }
+
+    private fun resolveWorkspaceId(requestedWorkspaceId: String): String {
+        val context = resourceContextProvider.requireWorkspaceContext()
+        val resolvedWorkspaceId = requireNotNull(context.workspaceId) {
+            "Workspace context does not include a workspaceId"
+        }
+        if (resolvedWorkspaceId != requestedWorkspaceId) {
+            throw ResponseStatusException(
+                HttpStatus.FORBIDDEN,
+                "Workspace context does not match the requested path",
+            )
+        }
+        return resolvedWorkspaceId
     }
 
     private fun validateUnsplashExternalId(externalId: String) {

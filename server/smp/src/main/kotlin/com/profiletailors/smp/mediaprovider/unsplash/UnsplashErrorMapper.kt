@@ -50,13 +50,6 @@ class UnsplashErrorMapper {
         )
 
         is UnsplashRateLimitedException -> rateLimited(exception.retryAfterSeconds)
-
-        else -> Outcome(
-            status = HttpStatus.BAD_GATEWAY,
-            publicMessage = "Unsplash adapter failed.",
-            errorCode = "PROVIDER_ERROR",
-            retryAfterSeconds = null,
-        )
     }
 
     /**
@@ -84,6 +77,7 @@ class UnsplashErrorMapper {
         val scrubbed = safe
             .replace(BEARER_TOKEN_REGEX, "Bearer ***")
             .replace(AUTHORIZATION_HEADER_REGEX, "Authorization: ***")
+            .replace(CLIENT_ID_REGEX, "Client-ID ***")
         return "Unsplash import rejected: $scrubbed".take(MAX_PUBLIC_MESSAGE_LENGTH)
     }
 
@@ -91,6 +85,7 @@ class UnsplashErrorMapper {
         private const val MAX_PUBLIC_MESSAGE_LENGTH = 512
         private val BEARER_TOKEN_REGEX = Regex("""(?i)Bearer\s+[A-Za-z0-9._\-]+""")
         private val AUTHORIZATION_HEADER_REGEX = Regex("""(?i)Authorization\s*:\s*[^\s,;]+""")
+        private val CLIENT_ID_REGEX = Regex("""(?i)Client-ID\s+[A-Za-z0-9._\-]+""")
     }
 
     /**

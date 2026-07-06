@@ -28,7 +28,7 @@ data class UnsplashTag(val title: String)
 
 data class UnsplashBinary(val mediaType: String, val contentLength: Long, val bytes: Flow<ByteArray>)
 
-open class UnsplashProviderException(val errorCode: String, message: String, cause: Throwable? = null) :
+sealed class UnsplashProviderException(val errorCode: String, message: String, cause: Throwable? = null) :
     RuntimeException(message, cause)
 
 class ProviderImportRejectedException(message: String) : UnsplashProviderException("IMPORT_REJECTED", message)

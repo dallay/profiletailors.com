@@ -41,7 +41,7 @@ class UnsplashAdapterTest {
                 ),
             ),
         )
-        val adapter = UnsplashAdapter(client)
+        val adapter = UnsplashAdapter(client, 20)
 
         val result = adapter.search(query = "mountains", page = 1)
 
@@ -88,7 +88,7 @@ class UnsplashAdapterTest {
                 bytes = flowOf(bytes),
             ),
         )
-        val adapter = UnsplashAdapter(client)
+        val adapter = UnsplashAdapter(client, 20)
 
         val asset = adapter.import("workspace-1", ProviderExternalId("unsplash:photo-789"))
 
@@ -114,7 +114,7 @@ class UnsplashAdapterTest {
                 bytes = flowOf(byteArrayOf(0x01)),
             ),
         )
-        val adapter = UnsplashAdapter(client)
+        val adapter = UnsplashAdapter(client, 20)
 
         val error = kotlin.runCatching {
             adapter.import("workspace-1", ProviderExternalId("unsplash:photo-unsupported"))
@@ -134,7 +134,7 @@ class UnsplashAdapterTest {
                 bytes = flowOf(byteArrayOf(0x01)),
             ),
         )
-        val adapter = UnsplashAdapter(client)
+        val adapter = UnsplashAdapter(client, 20)
 
         val error = kotlin.runCatching {
             adapter.import("workspace-1", ProviderExternalId("unsplash:photo-large"))
@@ -169,7 +169,8 @@ class UnsplashAdapterTest {
                 timeout = Duration.ofSeconds(5),
                 pageSize = 20,
             )
-        assertFalse(props.enabled && props.accessKey.isBlank())
+        assertFalse(props.enabled)
+        assertTrue(props.accessKey.isBlank())
     }
 
     private fun minimalPhoto(id: String) = UnsplashPhoto(
