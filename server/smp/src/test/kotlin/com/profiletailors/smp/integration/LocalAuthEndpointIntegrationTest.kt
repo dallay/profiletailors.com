@@ -864,7 +864,8 @@ class LocalAuthEndpointIntegrationTest : PostgresIntegrationTestBase() {
                 .build()
     }
 
-    private suspend fun seedLegacyBcryptUser(email: String, rawPassword: String) {
+    private fun seedLegacyBcryptUser(email: String, rawPassword: String) {
+        val bcryptHash = BCrypt.hashpw(rawPassword, BCrypt.gensalt())
         databaseClient.sql(
             """
             INSERT INTO principals (id, principal_type, subject, provider, display_identity)
@@ -886,7 +887,6 @@ class LocalAuthEndpointIntegrationTest : PostgresIntegrationTestBase() {
             .bind("username", email.substringBefore("@"))
             .fetch().rowsUpdated().block()!!
 
-        val bcryptHash = BCrypt.hashpw(rawPassword, BCrypt.gensalt())
         databaseClient.sql(
             """
             INSERT INTO local_password_credentials (principal_id, password_hash, password_algorithm)
