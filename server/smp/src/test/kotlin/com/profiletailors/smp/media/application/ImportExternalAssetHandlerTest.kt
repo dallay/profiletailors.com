@@ -187,6 +187,67 @@ class ImportExternalAssetHandlerTest {
         }
     }
 
+    @Test
+    fun `negative content length is mapped to UnsupportedMediaTypeException and releases slot`() = runTest {
+        val rateLimitRepo = ImportTestRateLimitRepository()
+        val handler = ImportExternalAssetHandler(
+            mediaAssetRepository = ImportTestMediaAssetRepository(),
+            workspaceFileBlobRepository = ImportTestBlobRepository(),
+            storageApplicationService = ImportRecordingStorage().service(),
+            uploadSettings = MediaUploadSettings(5, 200, "bucket"),
+            transactionRunner = ImportNoopAtomicTransactionRunner,
+            mediaRateLimitRepository = rateLimitRepo,
+            principalContextProvider = ImportPrincipalContextProvider,
+            principalIdentityLookup = ImportPrincipalIdentityLookup(EmailStatus.VERIFIED),
+            emailVerificationPolicy = emailVerificationPolicyOf(),
+        )
+
+        val error = assertThrows<UnsupportedMediaTypeException> {
+            handler.handle(
+                ImportExternalAssetCommand(
+                    workspaceId = workspaceId,
+                    externalAsset = sampleExternalAsset().copy(contentLength = -1),
+                ),
+            )
+        }
+
+        assertTrue(error.message!!.contains("invalid content length"))
+        assertEquals(1, rateLimitRepo.released)
+    }
+
+    @Test
+    fun `orphan READY blob reuses stored blob storage key`() = runTest {
+        val assetRepo = ImportTestMediaAssetRepository()
+        val blobRepo = ImportTestBlobRepository()
+        val readyKey = "assets/$workspaceId/blobs/$expectedHash-existing.jpg"
+        blobRepo.put(
+            WorkspaceFileBlob(
+                workspaceId = workspaceId,
+                fileHash = expectedHash,
+                storageKey = readyKey,
+                detectedMediaType = "image/jpeg",
+                fileSizeBytes = sampleBytes.size.toLong(),
+                status = BlobStatus.READY,
+                createdAt = java.time.Instant.now(),
+            ),
+        )
+        val storage = ImportRecordingStorage()
+        val handler = handler(assetRepo, blobRepo, storage)
+
+        val result = handler.handle(
+            ImportExternalAssetCommand(
+                workspaceId = workspaceId,
+                externalAsset = sampleExternalAsset(),
+            ),
+        )
+
+        val created = assetRepo.asset(workspaceId, result.assetId)
+        assertNotNull(created)
+        assertEquals(readyKey, created!!.storageKey)
+        assertTrue(result.deduped)
+        assertTrue(storage.copies.isEmpty())
+    }
+
     private fun sampleExternalAsset(): ProviderExternalAsset = ProviderExternalAsset(
         externalId = externalId,
         mediaType = "image/jpeg",

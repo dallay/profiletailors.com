@@ -1,10 +1,6 @@
 /// <reference types="vitest" />
 
 import { beforeEach, afterEach, vi } from 'vitest'
-import { useId } from 'vue'
-
-// Make Vue 3.5+ composition-API helpers available as globals in all tests
-Object.assign(globalThis, { useId })
 
 // Reset process.env between tests to avoid pollution
 beforeEach(() => {
