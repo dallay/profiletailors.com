@@ -27,7 +27,7 @@ across multiple platforms (Twitter, LinkedIn, Instagram, Facebook, TikTok).
 
 | Layer        | Technology                                       |
 |--------------|--------------------------------------------------|
-| **Frontend** | Astro 6 (marketing), Vue 3 (web app) |
+| **Frontend** | Astro 6 (marketing), React 18+ (web app planned) |
 | **Backend**  | Spring Boot 4, Kotlin, WebFlux (reactive)        |
 | **Database** | PostgreSQL 16 with R2DBC (reactive driver)       |
 | **Cache**    | Redis                                            |
@@ -310,13 +310,13 @@ Managed Services
 
 - [x] Marketing site (Astro 6)
 - [x] Backend foundation (Spring Boot 4, Kotlin, WebFlux)
-- [x] Core bounded contexts (Identity, Authorization, Tenancy, Credentials, Governance, Platform, Audit, Media, Observability)
+- [x] Core bounded contexts (Identity, Authorization, Tenancy, Credentials, Governance, Platform)
 - [x] JWT and API Key authentication
 - [x] PostgreSQL with R2DBC
 
 ### Phase 2: Core Features (🔄 In Progress)
 
-- [🔄] Web application (Vue 3, early development)
+- [ ] Web application (React)
 - [ ] Content Context (post creation, scheduling)
 - [ ] Scheduler Service (background jobs)
 - [ ] Redis cache integration

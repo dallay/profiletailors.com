@@ -1,7 +1,7 @@
 databaseChangeLog:
   - changeSet:
       id: tenancy-002-create-workspace-ownerships
-      author: acosta
+      author: opencode
       changes:
         - createTable:
             tableName: workspace_ownerships

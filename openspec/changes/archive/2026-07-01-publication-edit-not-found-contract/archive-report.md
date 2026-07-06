@@ -28,9 +28,9 @@ implementation is intentionally narrow, and the production fix is correct. The n
 
 ## Specs Synced
 
-| Domain       | Action  | Added | Modified | Removed |
-|--------------|---------|-------|----------|---------|
-| `publishing` | Updated | 1     | 0        | 0       |
+| Domain | Action | Added | Modified | Removed |
+|--------|--------|-------|----------|---------|
+| `publishing` | Updated | 1 | 0 | 0 |
 
 Added requirements:
 
@@ -81,11 +81,11 @@ Operational consequence:
 
 ## Follow-ups Carried Out of This Archive
 
-| Item                                                                                                                                             | Why                                                                                                                          | Where to track                                                                                                                                                              |
-|--------------------------------------------------------------------------------------------------------------------------------------------------|------------------------------------------------------------------------------------------------------------------------------|-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| Item | Why | Where to track |
+|------|-----|----------------|
 | Full-stack `WebTestClient` regression proving `PATCH /api/publishing/publications/{id}` (and one sibling) returns 404 `ProblemDetail` end-to-end | Closes the spec/design "controller/WebFlux" verification gap; protects future refactors of `PublishingProblemDetailsHandler` | Extend `server/smp/src/test/kotlin/com/profiletailors/smp/integration/support/IntegrationTestBase.kt` with publishing-scoped wiring; then rerun the targeted backend suite. |
-| Reconsider publishing-specific `errorCode` (e.g. `PUBLICATION_NOT_FOUND`)                                                                        | Aligns with media's `errorCode`-bearing problem details and removes title-string parsing for the frontend                    | Open question from `design.md`. Add `setProperty("errorCode", "PUBLICATION_NOT_FOUND")` in the advice handler and update the spec.                                          |
-| Assert `Content-Type: application/problem+json` once the WebTestClient test exists                                                               | Future serialization regression guard                                                                                        | Same follow-up as the WebTestClient regression.                                                                                                                             |
+| Reconsider publishing-specific `errorCode` (e.g. `PUBLICATION_NOT_FOUND`) | Aligns with media's `errorCode`-bearing problem details and removes title-string parsing for the frontend | Open question from `design.md`. Add `setProperty("errorCode", "PUBLICATION_NOT_FOUND")` in the advice handler and update the spec. |
+| Assert `Content-Type: application/problem+json` once the WebTestClient test exists | Future serialization regression guard | Same follow-up as the WebTestClient regression. |
 
 ## Archive Contents
 

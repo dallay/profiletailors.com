@@ -19,18 +19,15 @@ import com.profiletailors.smp.tenancy.application.WorkspaceProvisioningService
 import kotlinx.coroutines.test.runTest
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertNotNull
-import org.junit.jupiter.api.Assertions.assertNull
 import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.Test
 import java.time.Clock
 import java.time.Instant
 import java.time.ZoneOffset
 
-@Suppress("LargeClass") // Pre-existing — extensive handler test coverage
 class LocalAuthHandlersTest {
 
     private val validPassword = CredentialGenerator.generateValidPassword()
-
     private val fixedClock = Clock.fixed(Instant.parse("2026-05-20T10:15:30Z"), ZoneOffset.UTC)
     private val refreshProperties = RefreshSessionProperties(
         cookieName = "pt_refresh",
@@ -39,9 +36,6 @@ class LocalAuthHandlersTest {
         secure = false,
         ttlSeconds = 604800,
     )
-
-    /** BCrypt-based PasswordHasher for seeding legacy credentials in tests. */
-    private fun bcryptHasher(): PasswordHasher = BCryptPasswordHasher()
 
     @Test
     fun `register wraps writes in transaction and defers side effects until after commit`() = runTest {
@@ -213,7 +207,6 @@ class LocalAuthHandlersTest {
                 ),
             ),
             passwordHasher = FakePasswordHasher(),
-            bcryptPasswordHasher = bcryptHasher(),
             principalIdentityLookup = FakePrincipalIdentityLookup(
                 principalFacts = identityFacts(EmailStatus.VERIFIED),
             ),
@@ -241,7 +234,6 @@ class LocalAuthHandlersTest {
                 ),
             ),
             passwordHasher = FakePasswordHasher(),
-            bcryptPasswordHasher = bcryptHasher(),
             principalIdentityLookup = FakePrincipalIdentityLookup(
                 principalFacts = identityFacts(),
             ),
@@ -300,7 +292,6 @@ class LocalAuthHandlersTest {
         val handler = LoginUserHandler(
             localPasswordCredentialGateway = FakeLocalPasswordCredentialGateway(),
             passwordHasher = FakePasswordHasher(),
-            bcryptPasswordHasher = bcryptHasher(),
             principalIdentityLookup = FakePrincipalIdentityLookup(),
             localJwtIssuer = FakeLocalJwtIssuer(),
             refreshSessionLifecycleService = fakeRefreshLifecycleService(),
@@ -309,142 +300,6 @@ class LocalAuthHandlersTest {
 
         try {
             handler.handle(LoginUserCommand("missing@example.com", validPassword))
-            throw AssertionError("Expected InvalidEmailPasswordException")
-        } catch (e: InvalidEmailPasswordException) {
-            assertNotNull(e)
-        }
-    }
-
-    // ── Algorithm-aware login + rehash + fail-closed tests (RED → GREEN) ─────
-
-    @Test
-    fun `login with bcrypt algorithm record passes and triggers argon2id rehash`() = runTest {
-        val bcryptHasher = bcryptHasher()
-        val rawPassword = CredentialGenerator.generateValidPassword()
-        val bcryptHash = bcryptHasher.hash(rawPassword)
-        val gateway = FakeLocalPasswordCredentialGateway(
-            record = LocalPasswordCredentialRecord(
-                principalId = "user-bcrypt",
-                email = "bcrypt@example.com",
-                username = "bcrypt-user",
-                passwordHash = bcryptHash,
-                passwordAlgorithm = "bcrypt",
-            ),
-        )
-        val handler = LoginUserHandler(
-            localPasswordCredentialGateway = gateway,
-            passwordHasher = FakePasswordHasher(algorithm = "argon2id"),
-            bcryptPasswordHasher = bcryptHasher,
-            principalIdentityLookup = FakePrincipalIdentityLookup(
-                principalFacts = identityFacts(EmailStatus.VERIFIED),
-            ),
-            localJwtIssuer = FakeLocalJwtIssuer(),
-            refreshSessionLifecycleService = fakeRefreshLifecycleService(),
-            clock = fixedClock,
-        )
-
-        val result = handler.handle(LoginUserCommand("bcrypt@example.com", rawPassword))
-
-        assertEquals("token-for-bcrypt@example.com", result.tokens.accessToken)
-        // Verify rehash occurred
-        assertEquals("user-bcrypt", gateway.updatedPrincipalId)
-        assertNotNull(gateway.updatedHash)
-        assertEquals("argon2id", gateway.updatedAlgorithm)
-    }
-
-    @Test
-    fun `login with null passwordAlgorithm and bcrypt hash infers bcrypt and rehashes`() = runTest {
-        val bcryptHasher = bcryptHasher()
-        val rawPassword = CredentialGenerator.generateValidPassword()
-        val bcryptHash = bcryptHasher.hash(rawPassword)
-        val gateway = FakeLocalPasswordCredentialGateway(
-            record = LocalPasswordCredentialRecord(
-                principalId = "user-null-algo",
-                email = "null-algo@example.com",
-                username = "null-algo-user",
-                passwordHash = bcryptHash,
-                passwordAlgorithm = null,
-            ),
-        )
-        val handler = LoginUserHandler(
-            localPasswordCredentialGateway = gateway,
-            passwordHasher = FakePasswordHasher(algorithm = "argon2id"),
-            bcryptPasswordHasher = bcryptHasher,
-            principalIdentityLookup = FakePrincipalIdentityLookup(
-                principalFacts = identityFacts(EmailStatus.VERIFIED),
-            ),
-            localJwtIssuer = FakeLocalJwtIssuer(),
-            refreshSessionLifecycleService = fakeRefreshLifecycleService(),
-            clock = fixedClock,
-        )
-
-        val result = handler.handle(LoginUserCommand("null-algo@example.com", rawPassword))
-
-        assertEquals("token-for-null-algo@example.com", result.tokens.accessToken)
-        assertEquals("user-null-algo", gateway.updatedPrincipalId)
-        assertEquals("argon2id", gateway.updatedAlgorithm)
-    }
-
-    @Test
-    fun `login with argon2id algorithm record does not trigger rehash`() = runTest {
-        val rawPassword = CredentialGenerator.generateValidPassword()
-        val gateway = FakeLocalPasswordCredentialGateway(
-            record = LocalPasswordCredentialRecord(
-                principalId = "user-argon2",
-                email = "argon2@example.com",
-                username = "argon2-user",
-                passwordHash = "hashed-$rawPassword",
-                passwordAlgorithm = "argon2id",
-            ),
-        )
-        val handler = LoginUserHandler(
-            localPasswordCredentialGateway = gateway,
-            passwordHasher = FakePasswordHasher(),
-            bcryptPasswordHasher = bcryptHasher(),
-            principalIdentityLookup = FakePrincipalIdentityLookup(
-                principalFacts = identityFacts(EmailStatus.VERIFIED),
-            ),
-            localJwtIssuer = FakeLocalJwtIssuer(),
-            refreshSessionLifecycleService = fakeRefreshLifecycleService(),
-            clock = fixedClock,
-        )
-
-        val result = handler.handle(
-            LoginUserCommand("argon2@example.com", rawPassword),
-        )
-
-        assertEquals("token-for-argon2@example.com", result.tokens.accessToken)
-        // No rehash should have occurred
-        assertNull(gateway.updatedPrincipalId)
-        assertNull(gateway.updatedHash)
-        assertNull(gateway.updatedAlgorithm)
-    }
-
-    @Test
-    fun `login with malformed hash fails closed as InvalidEmailPasswordException`() = runTest {
-        val gateway = FakeLocalPasswordCredentialGateway(
-            record = LocalPasswordCredentialRecord(
-                principalId = "user-malformed",
-                email = "malformed@example.com",
-                username = "malformed-user",
-                passwordHash = "broken-hash-format",
-                passwordAlgorithm = "bcrypt",
-            ),
-        )
-        val handler = LoginUserHandler(
-            localPasswordCredentialGateway = gateway,
-            passwordHasher = FakePasswordHasher(),
-            bcryptPasswordHasher = bcryptHasher(),
-            principalIdentityLookup = FakePrincipalIdentityLookup(
-                principalFacts = identityFacts(),
-            ),
-            localJwtIssuer = FakeLocalJwtIssuer(),
-            refreshSessionLifecycleService = fakeRefreshLifecycleService(),
-            clock = fixedClock,
-        )
-
-        try {
-            handler.handle(LoginUserCommand("malformed@example.com", "anyPassword"))
             throw AssertionError("Expected InvalidEmailPasswordException")
         } catch (e: InvalidEmailPasswordException) {
             assertNotNull(e)
@@ -492,34 +347,6 @@ class LocalAuthHandlersTest {
     }
 
     @Test
-    fun `register stores credential with passwordAlgorithm from hasher`() = runTest {
-        val passwordGateway = FakeLocalPasswordCredentialGateway(order = mutableListOf())
-        val handler = RegisterUserHandler(
-            identityRegistrationGateway = FakeIdentityRegistrationGateway(),
-            principalIdentityLookup = FakePrincipalIdentityLookup(),
-            localPasswordCredentialGateway = passwordGateway,
-            passwordHasher = FakePasswordHasher(),
-            workspaceProvisioningService = FakeWorkspaceProvisioningService(),
-            eventPublisher = RecordingEventPublisher(),
-            clock = fixedClock,
-            localJwtIssuer = FakeLocalJwtIssuer(),
-            refreshSessionLifecycleService = fakeRefreshLifecycleService(),
-            transactionRunner = NoopAtomicTransactionRunner,
-        )
-
-        handler.handle(
-            RegisterUserCommand(
-                email = " algo@example.com ",
-                password = validPassword,
-                username = " algo ",
-            ),
-        )
-
-        assertNotNull(passwordGateway.createdPrincipalId)
-        assertEquals("fake", passwordGateway.createdAlgorithm)
-    }
-
-    @Test
     fun `default email verification policy requires verification for all features`() {
         val policy = emailVerificationPolicyOf()
 
@@ -530,7 +357,7 @@ class LocalAuthHandlersTest {
 
     @Test
     fun `bcrypt password hasher exposes bcrypt algorithm`() {
-        assertEquals("bcrypt", bcryptHasher().algorithm)
+        assertEquals("bcrypt", BCryptPasswordHasher().algorithm)
     }
 
     // ── VerifyEmailHandler transaction tests ───────────────────────────────────
@@ -915,33 +742,23 @@ class LocalAuthHandlersTest {
     ) : LocalPasswordCredentialGateway {
         var createdPrincipalId: String? = null
         var createdHash: String? = null
-        var createdAlgorithm: String? = null
-        var updatedPrincipalId: String? = null
-        var updatedHash: String? = null
-        var updatedAlgorithm: String? = null
 
-        override suspend fun create(principalId: String, passwordHash: String, passwordAlgorithm: String) {
+        override suspend fun create(principalId: String, passwordHash: String) {
             order?.add("credential:create")
             createdPrincipalId = principalId
             createdHash = passwordHash
-            createdAlgorithm = passwordAlgorithm
         }
 
         override suspend fun findByEmail(email: String): LocalPasswordCredentialRecord? =
             record?.takeIf { it.email == email }
-
-        override suspend fun updatePassword(principalId: String, passwordHash: String, passwordAlgorithm: String) {
-            order?.add("credential:update")
-            updatedPrincipalId = principalId
-            updatedHash = passwordHash
-            updatedAlgorithm = passwordAlgorithm
-        }
     }
 
-    private class FakePasswordHasher(override val algorithm: String = "fake") : PasswordHasher {
+    private class FakePasswordHasher : PasswordHasher {
         override fun hash(rawPassword: String): String = "hashed-$rawPassword"
 
         override fun matches(rawPassword: String, passwordHash: String): Boolean = passwordHash == "hashed-$rawPassword"
+
+        override val algorithm: String = "fake"
     }
 
     private open class FakeLocalJwtIssuer(private val order: MutableList<String>? = null) : LocalJwtIssuer {

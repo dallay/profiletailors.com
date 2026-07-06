@@ -1,7 +1,7 @@
 databaseChangeLog:
   - changeSet:
       id: publishing-006-create-publication-jobs
-      author: acosta
+      author: opencode
       changes:
         - createTable:
             tableName: publication_jobs

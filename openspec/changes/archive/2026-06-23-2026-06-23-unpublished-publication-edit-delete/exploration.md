@@ -31,16 +31,12 @@ through delete+insert semantics and does not enforce the allowed-status rule at 
 - `server/smp/src/main/kotlin/com/profiletailors/smp/publishing/domain/PublishingRepositories.kt` —
   no delete method exists today on `PublicationRepository`.
 -
-
 `server/smp/src/main/kotlin/com/profiletailors/smp/publishing/infrastructure/http/PublishingControllers.kt` —
 has edit/cancel endpoints, but no delete endpoint.
-
 -
-
 `server/smp/src/main/kotlin/com/profiletailors/smp/publishing/infrastructure/persistence/R2dbcPublishingRepositories.kt` —
 repository currently uses delete+insert for updates; delete flow and optional SQL status guard would
 land here.
-
 - `server/smp/src/main/resources/db/changelog/publishing/004-create-publications.yaml` — current
   schema has no DB-level state guard; optional hardening may require a migration or more selective
   SQL updates.

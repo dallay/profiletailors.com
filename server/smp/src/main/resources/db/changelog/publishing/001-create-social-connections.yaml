@@ -1,7 +1,7 @@
 databaseChangeLog:
   - changeSet:
       id: publishing-001-create-social-connections
-      author: acosta
+      author: opencode
       changes:
         - createTable:
             tableName: social_connections

@@ -1,7 +1,7 @@
 databaseChangeLog:
   - changeSet:
       id: publishing-009-add-provider-asset-ref
-      author: acosta
+      author: opencode
       changes:
         - addColumn:
             tableName: publication_assets

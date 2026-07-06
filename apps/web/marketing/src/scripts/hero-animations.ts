@@ -64,7 +64,7 @@ function animateLabel(el: HTMLElement, delayMs: number): Promise<void> {
       { opacity: 0, transform: 'scale(0.96)' },
       { opacity: 1, transform: 'scale(1)' },
     ],
-    { delay: delayMs, duration: 240, easing: EASING_SPRING, fill: 'forwards' },
+    { delay: delayMs, duration: 240, easing: EASING_SPRING, fill: 'forwards' }
   )
   return anim.finished.then(() => commitAndCancel(anim, el))
 }
@@ -91,7 +91,7 @@ function animateHeadline(el: HTMLElement, delayMs: number): Promise<void> {
         duration: 648,
         easing: EASING_SPRING,
         fill: 'forwards',
-      },
+      }
     )
     return { anim, span }
   })
@@ -103,7 +103,7 @@ function animateHeadline(el: HTMLElement, delayMs: number): Promise<void> {
       // Safety net: if Safari never resolves anim.finished, force final state and bail.
       pairs.forEach(({ anim, span }) => commitAndCancel(anim, span))
       resolve()
-    }, maxDelay),
+    }, maxDelay)
   )
 
   return Promise.race([
@@ -133,7 +133,7 @@ function animateSub(el: HTMLElement, delayMs: number): Promise<void> {
           span.style.opacity = '1'
           if (rank === chars.length - 1) resolve()
         },
-        delayMs + rank * 33,
+        delayMs + rank * 33
       )
     })
     // Fallback resolve if chars is empty
@@ -149,7 +149,7 @@ function animateFade(el: HTMLElement, delayMs: number): Promise<void> {
       { opacity: 0, transform: 'translateY(8px)' },
       { opacity: 1, transform: 'translateY(0)' },
     ],
-    { delay: delayMs, duration: 400, easing: EASING_EASE, fill: 'forwards' },
+    { delay: delayMs, duration: 400, easing: EASING_EASE, fill: 'forwards' }
   )
   return anim.finished.then(() => commitAndCancel(anim, el))
 }

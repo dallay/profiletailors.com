@@ -768,7 +768,7 @@ Extend `R2dbcPublishingRepositoriesTest` or `R2dbcPublishingRepositoriesUnitTest
 ### Backend Integration Tests
 
 - Controller/security path for `GET /api/publishing/channels` with auth + workspace header returns
-    200.
+  200.
 - Missing workspace header returns 400.
 - Missing Bearer token returns 401.
 - SSE endpoint rejects missing Bearer token.

@@ -47,7 +47,6 @@ dependencies {
     implementation(libs.spring.boot.starter.security)
     implementation(libs.spring.boot.starter.webflux)
     implementation("org.springframework.security:spring-security-crypto")
-    implementation(libs.bouncycastle.prov)
     implementation("io.projectreactor.kotlin:reactor-kotlin-extensions")
     implementation(libs.kotlin.reflect)
     implementation(libs.kotlinx.coroutines.reactor)
@@ -84,7 +83,7 @@ dependencies {
     testImplementation(libs.cucumber.spring)
     testImplementation(libs.archunit.junit5)
     testImplementation(libs.mockk)
-    testImplementation(libs.wiremock)
+    testImplementation(libs.kotest.assertions.core)
 
     testImplementation(platform(libs.testcontainers.bom))
     testImplementation(libs.testcontainers.junit.jupiter)

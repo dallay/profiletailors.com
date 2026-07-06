@@ -16,25 +16,11 @@ import {
   X,
 } from '@lucide/vue'
 import { useAuthStore } from '@/stores/auth'
-import { useWorkspaceStore } from '@/stores/workspace'
 import { usePublishingStore, type Publication } from '@/stores/publishing'
 import { useMediaStore } from '@/stores/media'
 import { proxyImageUrl, resolveApiUrl } from '@/lib/auth-api'
 import PostPreviewPanel from '@/components/composer/PostPreviewPanel.vue'
-import ComposerMediaPickerShell from '@/components/composer/ComposerMediaPickerShell.vue'
-import {
-  COMPOSER_MEDIA_PICKER_FILTER,
-  COMPOSER_MEDIA_PICKER_VIEW_STATE,
-  type ComposerMediaPickerViewState,
-  type ComposerMediaPickerFilter,
-  type ComposerMediaPickerFilterOption,
-  type ComposerMediaPickerSearchChange,
-  type ComposerMediaPickerFilterChange,
-  type ComposerMediaPickerProviderImport,
-} from '@/components/composer/composer-media-picker.types'
 import type { LinkedInPreviewModel, PostPreviewMedia } from '@/components/composer/post-preview.types'
-import MediaProviderPanel from '@/features/media-composer/providers/MediaProviderPanel.vue'
-import { useMediaProviderConfig } from '@/composables/useMediaProviderConfig'
 import { Button } from '@/components/ui/button'
 import { Calendar } from '@/components/ui/calendar'
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
@@ -60,7 +46,6 @@ const emit = defineEmits<{
 
 const { t } = useI18n()
 const auth = useAuthStore()
-const workspace = useWorkspaceStore()
 const publishingStore = usePublishingStore()
 const mediaStore = useMediaStore()
 
@@ -74,10 +59,6 @@ const createAnother = ref(false)
 const priorityMode = ref(false)
 const scheduleMode = ref<ComposerScheduleMode>('now')
 const isDatePickerOpen = ref(false)
-const isMediaPickerOpen = ref(false)
-const mediaPickerTrigger = ref<HTMLButtonElement | null>(null)
-const mediaPickerSearchQuery = ref('')
-const mediaPickerSelectedFilter = ref<ComposerMediaPickerFilter>(COMPOSER_MEDIA_PICKER_FILTER.ALL)
 
 const modalContainer = ref<HTMLElement | null>(null)
 const { activate: activateFocusTrap, deactivate: deactivateFocusTrap } = useFocusTrap(modalContainer, () => emit('close'))
@@ -86,7 +67,7 @@ const { activate: activateFocusTrap, deactivate: deactivateFocusTrap } = useFocu
 // Edit mode
 // ---------------------------------------------------------------------------
 const isEditMode = computed(() => !!props.editingPublication)
-const _isCreating = computed(() => !isEditMode.value)
+const isCreating = computed(() => !isEditMode.value)
 const assetsTouched = ref(false)
 let suppressAssetTouchTracking = false
 
@@ -310,22 +291,6 @@ const selectedChannelInitials = computed(() => {
     .join('')
     .toUpperCase()
 })
-
-const mediaPickerFilterOptions = computed<ReadonlyArray<ComposerMediaPickerFilterOption>>(() => [
-  { value: COMPOSER_MEDIA_PICKER_FILTER.ALL, labelKey: 'composer.mediaPicker.filterAll' },
-  { value: COMPOSER_MEDIA_PICKER_FILTER.IMAGE, labelKey: 'composer.mediaPicker.filterImage' },
-  { value: COMPOSER_MEDIA_PICKER_FILTER.VIDEO, labelKey: 'composer.mediaPicker.filterVideo' },
-  { value: COMPOSER_MEDIA_PICKER_FILTER.DOCUMENT, labelKey: 'composer.mediaPicker.filterDocument' },
-])
-
-const mediaPickerState = computed<ComposerMediaPickerViewState>(
-  () => COMPOSER_MEDIA_PICKER_VIEW_STATE.LOADING,
-)
-
-const mediaProviderConfig = useMediaProviderConfig()
-
-const authAccessToken = computed(() => auth.accessToken ?? '')
-const activeWorkspaceId = computed(() => workspace.activeWorkspaceId ?? '')
 
 const selectedDateLabel = computed(() => {
   if (!selectedCalendarDate.value) return 'Select date'
@@ -551,42 +516,6 @@ const currentUpload = computed(() => {
 
 function selectChannel(channelId: string) {
   selectedChannelId.value = channelId
-}
-
-function openMediaPicker() {
-  isMediaPickerOpen.value = true
-}
-
-function handleMediaPickerOpenChange(open: boolean) {
-  isMediaPickerOpen.value = open
-  if (!open) {
-    void nextTick(() => {
-      mediaPickerTrigger.value?.focus()
-    })
-  }
-}
-
-function handleMediaPickerClose() {
-  handleMediaPickerOpenChange(false)
-}
-
-function handleMediaPickerSearchChange(payload: ComposerMediaPickerSearchChange) {
-  mediaPickerSearchQuery.value = payload.query
-}
-
-function handleMediaPickerFilterChange(payload: ComposerMediaPickerFilterChange) {
-  mediaPickerSelectedFilter.value = payload.filter
-}
-
-async function handleMediaPickerProviderImport(payload: ComposerMediaPickerProviderImport | { assetId: string; deduped?: boolean }) {
-  const assetId = 'assetId' in payload ? payload.assetId : payload.externalId
-  if (!mediaStore.assetsById[assetId]) {
-    await mediaStore.loadAsset(assetId)
-  }
-  mediaStore.addToSelection(assetId)
-  assetsTouched.value = true
-  mediaPickerSearchQuery.value = ''
-  handleMediaPickerOpenChange(false)
 }
 
 function onChannelAvatarError(channelId: string) {
@@ -922,21 +851,6 @@ async function handleCreateSubmit(
               <span class="font-mono text-[9px] tracking-widest text-text-secondary uppercase block">
                 Media Attachment
               </span>
-              <Button as-child variant="ghost" size="sm">
-                <button
-                  ref="mediaPickerTrigger"
-                  type="button"
-                  data-testid="media-picker-trigger"
-                  class="h-auto gap-1.5 px-0 py-0 font-mono text-[9px] font-bold uppercase tracking-wider text-text-secondary hover:bg-transparent hover:text-text-display"
-                  :aria-label="$t('composer.mediaPicker.open')"
-                  :aria-haspopup="'dialog'"
-                  :aria-expanded="isMediaPickerOpen"
-                  @click="openMediaPicker"
-                >
-                  <ImageIcon class="size-3.5" />
-                  {{ $t('composer.mediaPicker.open') }}
-                </button>
-              </Button>
             </div>
 
             <!-- Upload progress or failed upload state -->
@@ -1175,30 +1089,6 @@ async function handleCreateSubmit(
           </template>
         </PostPreviewPanel>
       </div>
-
-      <!-- Composer media picker shell (parent-owned open state; no store/API coupling) -->
-      <ComposerMediaPickerShell
-        :open="isMediaPickerOpen"
-        :state="mediaPickerState"
-        :search-query="mediaPickerSearchQuery"
-        :selected-filter="mediaPickerSelectedFilter"
-        :filter-options="mediaPickerFilterOptions"
-        :assets="[]"
-        :provider="mediaProviderConfig.unsplashEnabled ? 'unsplash' : null"
-        @update:open="handleMediaPickerOpenChange"
-        @close="handleMediaPickerClose"
-        @search-change="handleMediaPickerSearchChange"
-        @filter-change="handleMediaPickerFilterChange"
-        @provider-import="handleMediaPickerProviderImport"
-      >
-        <template #providerTab>
-          <MediaProviderPanel
-            :workspace-id="activeWorkspaceId"
-            :token="authAccessToken"
-            @import-success="handleMediaPickerProviderImport"
-          />
-        </template>
-      </ComposerMediaPickerShell>
     </div>
   </Teleport>
 </template>

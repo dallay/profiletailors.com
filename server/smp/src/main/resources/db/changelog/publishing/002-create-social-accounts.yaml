@@ -1,7 +1,7 @@
 databaseChangeLog:
   - changeSet:
       id: publishing-002-create-social-accounts
-      author: acosta
+      author: opencode
       changes:
         - createTable:
             tableName: social_accounts

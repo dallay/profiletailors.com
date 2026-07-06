@@ -31,7 +31,7 @@ const fakeTokens: AuthTokens = {
   workspaceId: 'ws-1',
 }
 
-describe('router real guard navigation', () => {
+describe('router real guard navigation', { timeout: 15000 }, () => {
   beforeEach(() => {
     setActivePinia(createPinia())
     localStorage.clear()

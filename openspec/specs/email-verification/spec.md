@@ -18,8 +18,7 @@ The system MUST enforce single-use consumption (token invalidated after successf
 The system MUST enforce 24-hour expiration for tokens.
 The system MUST associate tokens with specific user emails.
 The system MUST provide cleanup for expired tokens (background job or migration).
-(Previously: users consumed verification tokens through a backend GET link and successful
-verification issued session tokens directly.)
+(Previously: users consumed verification tokens through a backend GET link and successful verification issued session tokens directly.)
 
 #### Scenario: Token generated on user registration
 
@@ -79,8 +78,7 @@ emails.
 The verify endpoint MUST accept token in the JSON request body as `{ token }`.
 The resend endpoint MUST accept email in request body.
 Both endpoints MUST follow RESTful response conventions.
-(Previously: published docs described verification as `GET /api/auth/verify-email` with a token
-query parameter; the implemented contract is SPA link entry plus backend POST.)
+(Previously: published docs described verification as `GET /api/auth/verify-email` with a token query parameter; the implemented contract is SPA link entry plus backend POST.)
 
 #### Scenario: Verify endpoint returns success on valid token
 
@@ -122,10 +120,7 @@ query parameter; the implemented contract is SPA link entry plus backend POST.)
 
 ### Requirement: Email Verification Consumes Token and Updates Status Atomically
 
-The system MUST consume a verification token and update the associated email status within one
-atomic persistence boundary. If either persistence mutation fails, both mutations SHALL roll back.
-Successful verification MAY issue auth/session material only after the atomic persistence boundary
-succeeds.
+The system MUST consume a verification token and update the associated email status within one atomic persistence boundary. If either persistence mutation fails, both mutations SHALL roll back. Successful verification MAY issue auth/session material only after the atomic persistence boundary succeeds.
 
 #### Scenario: Verification commits token use and verified status
 
@@ -146,9 +141,7 @@ succeeds.
 
 ### Requirement: Resend Verification Replaces Tokens Atomically
 
-The system MUST invalidate prior verification tokens and create the replacement token within one
-atomic persistence boundary. Verification email events SHALL be published only after successful
-transaction commit.
+The system MUST invalidate prior verification tokens and create the replacement token within one atomic persistence boundary. Verification email events SHALL be published only after successful transaction commit.
 
 #### Scenario: Resend commits invalidation and new token
 
@@ -171,9 +164,7 @@ transaction commit.
 
 The system MUST reliably dispatch verification emails for both registration and resend flows.
 
-Registration and resend flows MUST trigger the same verification-email delivery path, and a
-successful API response MUST leave the account in a state where a verification email can be
-delivered without additional manual operator action.
+Registration and resend flows MUST trigger the same verification-email delivery path, and a successful API response MUST leave the account in a state where a verification email can be delivered without additional manual operator action.
 
 #### Scenario: Registration triggers deliverable verification email
 
@@ -191,11 +182,9 @@ delivered without additional manual operator action.
 
 ### Requirement: Current User Profile Exposes Authoritative Email Status
 
-The system MUST expose the current user's authoritative email verification status through
-`GET /api/auth/me`.
+The system MUST expose the current user's authoritative email verification status through `GET /api/auth/me`.
 
-The profile response MUST include `emailStatus`, and clients MUST treat that field as the source of
-truth for verification-dependent UX and capability gating.
+The profile response MUST include `emailStatus`, and clients MUST treat that field as the source of truth for verification-dependent UX and capability gating.
 
 #### Scenario: Unverified profile returns authoritative status
 
@@ -307,8 +296,7 @@ The system MUST include proper indexes for performance.
 
 ### Requirement: Verification Flow Contract Alignment
 
-The system MUST keep user-visible verification behavior and published contracts aligned across specs
-and product documentation.
+The system MUST keep user-visible verification behavior and published contracts aligned across specs and product documentation.
 
 #### Scenario: Verification flow is described consistently
 

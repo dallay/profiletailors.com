@@ -1,7 +1,7 @@
 databaseChangeLog:
   - changeSet:
       id: identity-002-create-user-identities
-      author: acosta
+      author: opencode
       changes:
         - createTable:
             tableName: user_identities

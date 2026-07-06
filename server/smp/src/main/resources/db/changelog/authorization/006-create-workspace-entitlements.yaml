@@ -1,7 +1,7 @@
 databaseChangeLog:
   - changeSet:
       id: authorization-006-create-workspace-entitlements
-      author: acosta
+      author: opencode
       changes:
         - createTable:
             tableName: workspace_entitlements

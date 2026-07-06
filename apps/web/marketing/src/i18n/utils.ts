@@ -23,6 +23,8 @@ export function getLocaleFromUrl(url: URL): Locale {
 }
 
 export function useTranslations(urlOrLang: URL | Locale): Translations {
-  const lang = typeof urlOrLang === 'string' ? urlOrLang : getLocaleFromUrl(urlOrLang)
+  const lang = typeof urlOrLang === 'string'
+    ? urlOrLang
+    : getLocaleFromUrl(urlOrLang)
   return translations[lang] as Translations
 }

@@ -135,7 +135,6 @@ internal class RegisterUserHandler(
                 localPasswordCredentialGateway.create(
                     principalId = principalId,
                     passwordHash = passwordHash,
-                    passwordAlgorithm = passwordHasher.algorithm,
                 )
 
                 // Provision a default workspace for the new user
@@ -189,7 +188,6 @@ internal class RegisterUserHandler(
 internal class LoginUserHandler(
     private val localPasswordCredentialGateway: LocalPasswordCredentialGateway,
     private val passwordHasher: PasswordHasher,
-    private val bcryptPasswordHasher: PasswordHasher,
     private val principalIdentityLookup: PrincipalIdentityLookup,
     private val localJwtIssuer: LocalJwtIssuer,
     private val refreshSessionLifecycleService: RefreshSessionLifecycleService,
@@ -199,18 +197,9 @@ internal class LoginUserHandler(
     override suspend fun handle(command: LoginUserCommand): LocalAuthSessionResult {
         val normalizedEmail = normalizeEmail(command.email)
         val credential = localPasswordCredentialGateway.findByEmail(normalizedEmail)
-            ?: throw InvalidEmailPasswordException()
 
-        val resolvedAlgorithm = resolveAlgorithm(credential)
-        val hasher = selectHasher(resolvedAlgorithm)
-
-        if (!hasher.matches(command.password, credential.passwordHash)) {
+        if (credential == null || !passwordHasher.matches(command.password, credential.passwordHash)) {
             throw InvalidEmailPasswordException()
-        }
-
-        if (shouldUpgradeToArgon2id(resolvedAlgorithm)) {
-            val rehash = passwordHasher.hash(command.password)
-            localPasswordCredentialGateway.updatePassword(credential.principalId, rehash, passwordHasher.algorithm)
         }
 
         val identityFacts = principalIdentityLookup.findByEmail(normalizedEmail)
@@ -229,20 +218,6 @@ internal class LoginUserHandler(
             ),
         )
     }
-
-    private fun resolveAlgorithm(record: LocalPasswordCredentialRecord): String {
-        // Use explicit metadata when available; fall back to format inference
-        record.passwordAlgorithm?.let { return it }
-        return if (record.passwordHash.startsWith("\$2")) "bcrypt" else "argon2id"
-    }
-
-    private fun selectHasher(algorithm: String): PasswordHasher = when (algorithm) {
-        "bcrypt" -> bcryptPasswordHasher
-        "argon2id" -> passwordHasher
-        else -> throw InvalidEmailPasswordException()
-    }
-
-    private fun shouldUpgradeToArgon2id(resolvedAlgorithm: String): Boolean = resolvedAlgorithm == "bcrypt"
 }
 
 @Service

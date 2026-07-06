@@ -132,6 +132,12 @@
           }
         }
       }
+    },
+    {
+      "includes": ["marketing/**"],
+      "formatter": {
+        "enabled": false
+      }
     }
   ]
 }

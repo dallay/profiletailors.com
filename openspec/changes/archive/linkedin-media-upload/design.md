@@ -318,7 +318,7 @@ No data migration needed — existing records have `null` for this field.
 ```yaml
 - changeSet:
     id: publishing-006-add-provider-asset-ref
-    author: acosta
+    author: opencode
     changes:
       - addColumn:
           tableName: publication_assets

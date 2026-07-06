@@ -11,10 +11,7 @@ publishing as the first implemented provider slice.
 
 ### Requirement: Authenticated Create Reconciliation
 
-After an authenticated create succeeds, the client MUST replace any optimistic publication identity
-and fields with the returned backend publication. The store MUST use the returned `publicationId`,
-`status`, `scheduleMode`, `scheduledFor`, `nextSlotAfter`, and `socialAccountId` as authoritative
-values and MUST NOT retain a synthetic local ID.
+After an authenticated create succeeds, the client MUST replace any optimistic publication identity and fields with the returned backend publication. The store MUST use the returned `publicationId`, `status`, `scheduleMode`, `scheduledFor`, `nextSlotAfter`, and `socialAccountId` as authoritative values and MUST NOT retain a synthetic local ID.
 
 #### Scenario: Standard create adopts server truth
 
@@ -39,10 +36,7 @@ values and MUST NOT retain a synthetic local ID.
 
 ### Requirement: Reconciled Composer Edit State
 
-The edit composer MUST initialize schedule controls from authoritative reconciled fields. For `NOW`
-and `NEXT_SLOT`, it MUST NOT prefill stale or invalid custom date/time values. Existing assets MUST
-remain hydrated, previewed, and preserved when media is untouched. The explicit PATCH asset
-semantics established by #223 MUST remain unchanged.
+The edit composer MUST initialize schedule controls from authoritative reconciled fields. For `NOW` and `NEXT_SLOT`, it MUST NOT prefill stale or invalid custom date/time values. Existing assets MUST remain hydrated, previewed, and preserved when media is untouched. The explicit PATCH asset semantics established by #223 MUST remain unchanged.
 
 #### Scenario: NOW creation reopens without stale custom schedule
 
@@ -112,10 +106,7 @@ violations.)
 
 ### Requirement: LinkedIn Completion Persists Connection and Account Atomically
 
-The system MUST persist LinkedIn OAuth completion state atomically when finalizing a workspace
-social connection. The social connection write and social account write SHALL commit together or
-roll back together. The system MUST publish channel events only after the transaction commits
-successfully.
+The system MUST persist LinkedIn OAuth completion state atomically when finalizing a workspace social connection. The social connection write and social account write SHALL commit together or roll back together. The system MUST publish channel events only after the transaction commits successfully.
 
 #### Scenario: LinkedIn completion commits both records
 
@@ -143,18 +134,11 @@ successfully.
 
 ### Requirement: Email Verification Required for Publishing and Social Connection
 
-The system MUST require `emailStatus = VERIFIED` before a user can publish content or connect a
-social account.
+The system MUST require `emailStatus = VERIFIED` before a user can publish content or connect a social account.
 
-This verification gate MUST apply consistently across immediate publishing, scheduled publishing
-requests, and social connection initiation or completion flows.
+This verification gate MUST apply consistently across immediate publishing, scheduled publishing requests, and social connection initiation or completion flows.
 
-> **TODO:** Gate implementations for publishing and social-connection flows are deferred. Currently
-> only `UPLOAD_MEDIA` (media library upload) enforces `emailStatus = VERIFIED`. The publishing
-> handler, scheduling handler, and social connection initiation/completion handlers must be updated in
-> a follow-up change to reject requests when `emailStatus != VERIFIED`. The `EmailVerificationPolicy`
-> enum in the identity context should be extended with publishing and social-connection features, and
-> the corresponding handlers should gate on those policies.
+> **TODO:** Gate implementations for publishing and social-connection flows are deferred. Currently only `UPLOAD_MEDIA` (media library upload) enforces `emailStatus = VERIFIED`. The publishing handler, scheduling handler, and social connection initiation/completion handlers must be updated in a follow-up change to reject requests when `emailStatus != VERIFIED`. The `EmailVerificationPolicy` enum in the identity context should be extended with publishing and social-connection features, and the corresponding handlers should gate on those policies.
 
 #### Scenario: Unverified user cannot publish
 
@@ -279,8 +263,7 @@ workspace.)
 #### Scenario: Cross-workspace publication rows remain isolated during writes
 
 - GIVEN workspace A owns publication `P1`
-- AND workspace B also has a row that is the only existing match for publication `P1` outside
-  workspace A's scope
+- AND workspace B also has a row that is the only existing match for publication `P1` outside workspace A's scope
 - WHEN workspace A performs a write for publication `P1`
 - THEN the system MUST NOT update workspace B's row
 - AND any persisted change MUST apply only within workspace A's scope
@@ -403,12 +386,7 @@ create-only affordances that imply a new publication is being created.
 
 ### Requirement: Publication Asset PATCH Tri-State Semantics
 
-The publishing API MUST preserve CREATE asset behavior while giving PATCH publication edits explicit
-tri-state `assetIds` semantics. For edit requests, absent or `null` `assetIds` MUST preserve the
-publication's current asset IDs, an empty array MUST clear all current assets, and a non-empty array
-MUST replace current assets exactly in request order. CREATE semantics MUST remain unchanged:
-absent/default `assetIds` creates no assets, and provided IDs are used. Workspace-scoped targeting,
-update-not-found behavior, and the existing #224/#225 edit hardening behavior MUST remain unchanged.
+The publishing API MUST preserve CREATE asset behavior while giving PATCH publication edits explicit tri-state `assetIds` semantics. For edit requests, absent or `null` `assetIds` MUST preserve the publication's current asset IDs, an empty array MUST clear all current assets, and a non-empty array MUST replace current assets exactly in request order. CREATE semantics MUST remain unchanged: absent/default `assetIds` creates no assets, and provided IDs are used. Workspace-scoped targeting, update-not-found behavior, and the existing #224/#225 edit hardening behavior MUST remain unchanged.
 
 #### Scenario: PATCH assetIds absent preserves current assets
 
@@ -450,11 +428,7 @@ update-not-found behavior, and the existing #224/#225 edit hardening behavior MU
 
 ### Requirement: Composer Edit Asset Hydration and Submission
 
-The scheduler composer MUST hydrate resolvable existing asset summaries when opened in edit mode and
-display previews for those assets. Missing or deleted assets MUST be handled gracefully without
-crashing the editor and MUST NOT silently clear unrelated valid asset IDs. Saving an edit without
-asset interaction MUST omit `assetIds` from PATCH. Explicit remove-all MUST send `assetIds: []`.
-Selecting or replacing assets MUST send the selected asset IDs exactly.
+The scheduler composer MUST hydrate resolvable existing asset summaries when opened in edit mode and display previews for those assets. Missing or deleted assets MUST be handled gracefully without crashing the editor and MUST NOT silently clear unrelated valid asset IDs. Saving an edit without asset interaction MUST omit `assetIds` from PATCH. Explicit remove-all MUST send `assetIds: []`. Selecting or replacing assets MUST send the selected asset IDs exactly.
 
 #### Scenario: Edit modal hydrates and previews existing assets
 
@@ -492,8 +466,7 @@ Selecting or replacing assets MUST send the selected asset IDs exactly.
 
 - GIVEN backend and frontend regression tests are written first
 - WHEN the focused suites run
-- THEN they MUST cover all PATCH tri-state cases, CREATE compatibility, hydration, missing assets,
-  untouched save omission, clear-all, replacement, and unchanged workspace/#224/#225 behavior
+- THEN they MUST cover all PATCH tri-state cases, CREATE compatibility, hydration, missing assets, untouched save omission, clear-all, replacement, and unchanged workspace/#224/#225 behavior
 
 ### Requirement: Delivery Attempts, Retries, and Failure Recovery
 
@@ -2067,13 +2040,9 @@ part of this change.
 
 ### Requirement: Update-Only Publication Misses Return HTTP 404
 
-The system MUST translate current-workspace publication misses for update-only publishing operations
-into HTTP 404 at the HTTP boundary.
+The system MUST translate current-workspace publication misses for update-only publishing operations into HTTP 404 at the HTTP boundary.
 
-Any endpoint that intentionally scopes publication lookup by the caller's current workspace and
-throws `PublicationNotFoundException` for a miss MUST expose that miss as not found rather than an
-internal server error. This contract applies only to update-only operations and MUST NOT redefine
-create/save flows that are allowed to create a draft when no current-workspace row exists.
+Any endpoint that intentionally scopes publication lookup by the caller's current workspace and throws `PublicationNotFoundException` for a miss MUST expose that miss as not found rather than an internal server error. This contract applies only to update-only operations and MUST NOT redefine create/save flows that are allowed to create a draft when no current-workspace row exists.
 
 #### Scenario: Edit request misses the current-workspace publication
 
@@ -2085,8 +2054,7 @@ create/save flows that are allowed to create a draft when no current-workspace r
 
 #### Scenario: Sibling update-only operations share the same not-found contract
 
-- GIVEN delete, cancel, retry, or reschedule uses the same current-workspace publication lookup
-  semantics
+- GIVEN delete, cancel, retry, or reschedule uses the same current-workspace publication lookup semantics
 - AND the operation intentionally treats cross-workspace targets as not found
 - WHEN no matching publication exists in the current workspace
 - THEN the system MUST return HTTP 404 for that endpoint
@@ -2094,8 +2062,7 @@ create/save flows that are allowed to create a draft when no current-workspace r
 
 #### Scenario: Create-capable save flows remain out of scope
 
-- GIVEN a publishing flow is explicitly allowed to create a draft when the current workspace has no
-  matching row
+- GIVEN a publishing flow is explicitly allowed to create a draft when the current workspace has no matching row
 - WHEN that flow evaluates a missing current-workspace target
 - THEN this requirement MUST NOT force HTTP 404
 - AND the flow MUST continue to follow its create/save contract

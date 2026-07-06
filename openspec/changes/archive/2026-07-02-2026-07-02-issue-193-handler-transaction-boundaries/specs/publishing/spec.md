@@ -4,10 +4,7 @@
 
 ### Requirement: LinkedIn Completion Persists Connection and Account Atomically
 
-The system MUST persist LinkedIn OAuth completion state atomically when finalizing a workspace
-social connection. The social connection write and social account write SHALL commit together or
-roll back together. The system MUST publish channel events only after the transaction commits
-successfully.
+The system MUST persist LinkedIn OAuth completion state atomically when finalizing a workspace social connection. The social connection write and social account write SHALL commit together or roll back together. The system MUST publish channel events only after the transaction commits successfully.
 
 #### Scenario: LinkedIn completion commits both records
 

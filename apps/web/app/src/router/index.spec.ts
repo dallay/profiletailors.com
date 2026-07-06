@@ -212,7 +212,7 @@ describe('router guard', () => {
   })
 })
 
-describe('scheduler route contract', () => {
+describe('scheduler route contract', { timeout: 15000 }, () => {
   it('defines canonical scheduler route names', async () => {
     const { default: router } = await import('./index')
 

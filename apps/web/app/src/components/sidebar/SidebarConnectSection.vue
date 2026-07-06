@@ -8,7 +8,7 @@ export interface ConnectChannel {
   badge: string
 }
 
-const _props = defineProps<{
+const props = defineProps<{
   providers: ConnectChannel[]
 }>()
 

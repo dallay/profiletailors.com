@@ -4,10 +4,7 @@
 
 ### Requirement: Email Verification Consumes Token and Updates Status Atomically
 
-The system MUST consume a verification token and update the associated email status within one
-atomic persistence boundary. If either persistence mutation fails, both mutations SHALL roll back.
-Successful verification MAY issue auth/session material only after the atomic persistence boundary
-succeeds.
+The system MUST consume a verification token and update the associated email status within one atomic persistence boundary. If either persistence mutation fails, both mutations SHALL roll back. Successful verification MAY issue auth/session material only after the atomic persistence boundary succeeds.
 
 #### Scenario: Verification commits token use and verified status
 
@@ -28,9 +25,7 @@ succeeds.
 
 ### Requirement: Resend Verification Replaces Tokens Atomically
 
-The system MUST invalidate prior verification tokens and create the replacement token within one
-atomic persistence boundary. Verification email events SHALL be published only after successful
-transaction commit.
+The system MUST invalidate prior verification tokens and create the replacement token within one atomic persistence boundary. Verification email events SHALL be published only after successful transaction commit.
 
 #### Scenario: Resend commits invalidation and new token
 
