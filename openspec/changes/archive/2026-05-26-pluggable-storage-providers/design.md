@@ -78,8 +78,9 @@ Modificaciones menores:
 -
 
 server/smp/src/main/kotlin/com/profiletailors/smp/platform/infrastructure/PlatformBootstrapConfiguration.kt
+
 - Posible registro del bean defaultStorage o referencia a shared storage auto-configuración (no
-forzado aquí, auto-config será independiente).
+  forzado aquí, auto-config será independiente).
 
 ## Interfaces / Contracts
 

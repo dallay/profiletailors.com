@@ -128,7 +128,8 @@ RegistrationResult (breaking change from prior behavior). Post-registration side
 rolled-back registrations.
 
 > **Historical note:** Prior to this change, registration issued tokens on successful handler
-> completion without specifying transaction commit ordering or post-commit side-effect timing. The new
+> completion without specifying transaction commit ordering or post-commit side-effect timing. The
+> new
 > contract commits first, then publishes and issues tokens.
 
 #### Scenario: Registration creates session after commit

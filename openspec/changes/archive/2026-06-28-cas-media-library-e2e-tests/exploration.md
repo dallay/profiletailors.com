@@ -68,11 +68,15 @@ no app media E2E command or CI job exists.
 - `server/smp/src/test/kotlin/com/profiletailors/smp/media/application/MediaCasHandlersTest.kt` —
   already owns many CAS invariants that should not be duplicated in Playwright.
 -
+
 `server/smp/src/test/kotlin/com/profiletailors/smp/media/infrastructure/persistence/R2dbcMediaRepositoriesPostgresTest.kt` —
 owns Postgres concurrency/locking/repository invariants.
+
 -
+
 `server/smp/src/test/kotlin/com/profiletailors/smp/infrastructure/db/MediaPostgresSchemaConstraintsTest.kt` —
 owns database constraints/partial indexes.
+
 - `server/smp/src/test/resources/media-fixtures/*` — existing small backend media fixtures; browser
   fixture strategy should generate/manifest deterministic files separately and avoid committing
   large binaries.

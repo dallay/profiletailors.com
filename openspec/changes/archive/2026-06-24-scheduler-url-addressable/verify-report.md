@@ -158,7 +158,8 @@ evidence.
 | Config says TDD was disabled (`tdd: false`) | ✅ Yes — `openspec/config.yaml` line 27                                  |
 
 > NOTE: TDD was explicitly disabled in config (`tdd: false`). Whether implementation followed a
-> write-then-test or test-then-write approach cannot be determined from squashed commit history. Tests
+> write-then-test or test-then-write approach cannot be determined from squashed commit history.
+> Tests
 > are structurally sound and correctly mock the implementation interface.
 
 ---

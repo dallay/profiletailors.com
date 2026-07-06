@@ -17,41 +17,47 @@ Chain strategy: chained PRs (`backend-foundation-import` → `frontend-provider-
 
 ### Suggested Work Units
 
-| Unit | Goal                                      | Likely PR | Notes                                                                 |
-|------|-------------------------------------------|-----------|-----------------------------------------------------------------------|
-| 1    | Backend provider port + Unsplash adapter  | PR 1      | New bounded context, WebClient, feature flag, error mapping           |
-| 2    | Import flow + HTTP endpoints + tests      | PR 1      | Reuse CAS path, guards, canonical dedup behavior, WireMock/WebFlux    |
-| 3    | Frontend provider tab + client + tests    | PR 2      | Shell-only picker changes, parent-owned panel, i18n, feature flag     |
+| Unit | Goal                                     | Likely PR | Notes                                                              |
+|------|------------------------------------------|-----------|--------------------------------------------------------------------|
+| 1    | Backend provider port + Unsplash adapter | PR 1      | New bounded context, WebClient, feature flag, error mapping        |
+| 2    | Import flow + HTTP endpoints + tests     | PR 1      | Reuse CAS path, guards, canonical dedup behavior, WireMock/WebFlux |
+| 3    | Frontend provider tab + client + tests   | PR 2      | Shell-only picker changes, parent-owned panel, i18n, feature flag  |
 
 ## Resolved Decisions (locked before apply)
 
-| Topic | Decision |
-|-------|----------|
-| Dedup policy | Re-import returns the canonical existing active `media_assets` row for the workspace+hash; reuse the existing blob; never create a duplicate blob or asset row. |
-| Feature flag default | `mediaprovider.unsplash.enabled=false` in ALL environments; enabled only via explicit ENV/config. |
+| Topic                      | Decision                                                                                                                                                           |
+|----------------------------|--------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| Dedup policy               | Re-import returns the canonical existing active `media_assets` row for the workspace+hash; reuse the existing blob; never create a duplicate blob or asset row.    |
+| Feature flag default       | `mediaprovider.unsplash.enabled=false` in ALL environments; enabled only via explicit ENV/config.                                                                  |
 | `externalId` wire contract | Frontend always sends `unsplash:<photoId>`; backend validates the `unsplash:` prefix and rejects unqualified/wrong-provider values with 400 `INVALID_EXTERNAL_ID`. |
-| Verified email on search | Consciously restrictive: both search and import require a verified email. |
-| PR strategy | Chained PRs — backend foundation + import first, frontend provider tab second. |
+| Verified email on search   | Consciously restrictive: both search and import require a verified email.                                                                                          |
+| PR strategy                | Chained PRs — backend foundation + import first, frontend provider tab second.                                                                                     |
 
 ## Phase 1: Backend Foundation — Port + Unsplash Adapter + Configuration
 
-- [x] 1.1 Create `server/smp/src/main/kotlin/com/profiletailors/smp/media/application/port/MediaProvider.kt`
+- [x] 1.1 Create
+  `server/smp/src/main/kotlin/com/profiletailors/smp/media/application/port/MediaProvider.kt`
   with the neutral port contract and contract types: `search(query, page)`,
   `import(workspaceId, externalId)`, `ProviderExternalId`, `ProviderSearchItem`,
   `ProviderSearchPage`, and `ImportResult`.
-- [x] 1.2 Create `server/smp/src/main/kotlin/com/profiletailors/smp/mediaprovider/unsplash/UnsplashModels.kt`
+- [x] 1.2 Create
+  `server/smp/src/main/kotlin/com/profiletailors/smp/mediaprovider/unsplash/UnsplashModels.kt`
   for Unsplash-specific internal types (`UnsplashPhoto`, search response DTOs, adapter-local
   errors). Keep these types internal to the adapter and never expose them across the port boundary.
-- [x] 1.3 Create `server/smp/src/main/kotlin/com/profiletailors/smp/mediaprovider/unsplash/UnsplashClient.kt`
+- [x] 1.3 Create
+  `server/smp/src/main/kotlin/com/profiletailors/smp/mediaprovider/unsplash/UnsplashClient.kt`
   using Spring `WebClient` (Reactor Netty) with explicit timeout configuration and no automatic
   retry on import; allow at most one bounded retry for idempotent search if implemented.
-- [x] 1.4 Create `server/smp/src/main/kotlin/com/profiletailors/smp/mediaprovider/unsplash/UnsplashAdapter.kt`
+- [x] 1.4 Create
+  `server/smp/src/main/kotlin/com/profiletailors/smp/mediaprovider/unsplash/UnsplashAdapter.kt`
   implementing the `MediaProvider` port. Map Unsplash search results into provider-neutral items and
   normalize `externalId` as `unsplash:<photoId>`.
-- [x] 1.5 Create `server/smp/src/main/kotlin/com/profiletailors/smp/mediaprovider/unsplash/UnsplashProperties.kt`
+- [x] 1.5 Create
+  `server/smp/src/main/kotlin/com/profiletailors/smp/mediaprovider/unsplash/UnsplashProperties.kt`
   plus `MediaProviderConfig.kt` to bind `mediaprovider.unsplash.*` properties and register the
   adapter behind `mediaprovider.unsplash.enabled`.
-- [x] 1.6 Create `server/smp/src/main/kotlin/com/profiletailors/smp/mediaprovider/unsplash/UnsplashErrorMapper.kt`
+- [x] 1.6 Create
+  `server/smp/src/main/kotlin/com/profiletailors/smp/mediaprovider/unsplash/UnsplashErrorMapper.kt`
   so Unsplash 4xx map to 502 `PROVIDER_ERROR`, 429 forwards `Retry-After`, timeout/network map to
   504 `PROVIDER_UNREACHABLE`, and unsupported MIME or >500 MB maps to 422 `IMPORT_REJECTED`.
 - [x] 1.7 Update `server/smp/src/main/resources/application.yml` with a new
@@ -60,30 +66,37 @@ Chain strategy: chained PRs (`backend-foundation-import` → `frontend-provider-
 
 ## Phase 2: Media Import Flow — CAS Reuse + Guards + Endpoints
 
-- [x] 2.1 Update `server/smp/src/main/kotlin/com/profiletailors/smp/media/application/MediaCommands.kt`
+- [x] 2.1 Update
+  `server/smp/src/main/kotlin/com/profiletailors/smp/media/application/MediaCommands.kt`
   to add `ImportExternalAssetCommand` and `ImportExternalAssetResult` (asset id + `deduped`).
-- [x] 2.2 Update `server/smp/src/main/kotlin/com/profiletailors/smp/media/application/MediaHandlers.kt`
+- [x] 2.2 Update
+  `server/smp/src/main/kotlin/com/profiletailors/smp/media/application/MediaHandlers.kt`
   to add `ImportExternalAssetHandler` that:
-  - enforces the same email verification, per-workspace rate limit, and concurrent upload slot used
-    by uploads,
-  - downloads provider bytes through the adapter,
-  - reuses the existing CAS path,
-  - persists `source_type='EXTERNAL'`, `source_provider='unsplash'`,
-    `external_id='unsplash:<photo_id>'`, `source_url`, `author_name`, `author_url`, and metadata,
-  - returns the canonical existing active asset row on dedup rather than creating a duplicate blob or
-    asset row.
+    - enforces the same email verification, per-workspace rate limit, and concurrent upload slot
+      used
+      by uploads,
+    - downloads provider bytes through the adapter,
+    - reuses the existing CAS path,
+    - persists `source_type='EXTERNAL'`, `source_provider='unsplash'`,
+      `external_id='unsplash:<photo_id>'`, `source_url`, `author_name`, `author_url`, and metadata,
+    - returns the canonical existing active asset row on dedup rather than creating a duplicate blob
+      or
+      asset row.
 - [x] 2.3 Verify and reuse the existing media domain invariants in
   `server/smp/src/main/kotlin/com/profiletailors/smp/media/domain/MediaModels.kt` for `EXTERNAL`
   assets (`sourceProvider` required, attribution fields allowed) without widening contracts
   unnecessarily.
-- [x] 2.4 Create `server/smp/src/main/kotlin/com/profiletailors/smp/media/infrastructure/http/MediaProviderController.kt`
+- [x] 2.4 Create
+  `server/smp/src/main/kotlin/com/profiletailors/smp/media/infrastructure/http/MediaProviderController.kt`
   with:
-  - `GET /api/workspaces/{ws}/media/providers/unsplash/search?query=<q>&page=<p>`
-  - `POST /api/workspaces/{ws}/media/providers/unsplash/import`
-  returning `{ externalId }` input and `{ assetId, deduped }` output. The import endpoint MUST
-  validate the `unsplash:` prefix on `externalId` and reject unqualified/wrong-provider values with
-  400 `INVALID_EXTERNAL_ID`.
-- [x] 2.5 Update HTTP DTOs as needed in `server/smp/src/main/kotlin/com/profiletailors/smp/media/infrastructure/http/MediaDtos.kt`
+    - `GET /api/workspaces/{ws}/media/providers/unsplash/search?query=<q>&page=<p>`
+    - `POST /api/workspaces/{ws}/media/providers/unsplash/import`
+      returning `{ externalId }` input and `{ assetId, deduped }` output. The import endpoint MUST
+      validate the `unsplash:` prefix on `externalId` and reject unqualified/wrong-provider values
+      with
+      400 `INVALID_EXTERNAL_ID`.
+- [x] 2.5 Update HTTP DTOs as needed in
+  `server/smp/src/main/kotlin/com/profiletailors/smp/media/infrastructure/http/MediaDtos.kt`
   so provider search/import responses have explicit schemas and preserve attribution fields on media
   responses.
 - [x] 2.6 Ensure feature-flag-off behavior is consistent: adapter absent or disabled must yield 404
@@ -94,7 +107,8 @@ Chain strategy: chained PRs (`backend-foundation-import` → `frontend-provider-
 
 ## Phase 3: Backend Testing — Unit + WebFlux + WireMock
 
-- [x] 3.1 Add unit tests under `server/smp/src/test/kotlin/com/profiletailors/smp/mediaprovider/unsplash/`
+- [x] 3.1 Add unit tests under
+  `server/smp/src/test/kotlin/com/profiletailors/smp/mediaprovider/unsplash/`
   for search mapping, attribution mapping, `externalId` normalization to `unsplash:<photoId>`,
   unsupported MIME rejection, and oversized binary rejection.
 - [x] 3.2 Add WebFlux/controller tests for provider search and import covering happy path, disabled
