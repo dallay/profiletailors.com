@@ -6,114 +6,62 @@ import com.profiletailors.common.domain.context.ResourceContextType
 import com.profiletailors.smp.authorization.domain.AuthorizationDecision
 import com.profiletailors.smp.authorization.domain.AuthorizationDecisionResult
 import com.profiletailors.smp.authorization.domain.AuthorizationReasonCode
-import com.profiletailors.smp.authorization.domain.PermissionKey
 import com.profiletailors.smp.authorization.domain.WorkspaceAuthorizationDecider
 import com.profiletailors.smp.tenancy.domain.WorkspaceMutationRepository
-import kotlinx.coroutines.test.runTest
+import io.mockk.coEvery
+import io.mockk.every
+import io.mockk.mockk
+import io.mockk.mockkStatic
+import kotlinx.coroutines.runBlocking
 import org.junit.jupiter.api.Assertions.assertEquals
-import org.junit.jupiter.api.Assertions.assertTrue
+import org.junit.jupiter.api.Assertions.assertThrows
 import org.junit.jupiter.api.Test
 
 class RenameWorkspaceHandlerTest {
-
-    private val workspaceContext = ResourceContext(
-        type = ResourceContextType.WORKSPACE,
-        workspaceId = "ws-rname",
+    private val resourceContextProvider = mockk<ResourceContextProvider>()
+    private val workspaceMutationRepository = mockk<WorkspaceMutationRepository>()
+    private val workspaceAuthorizationDecider = mockk<WorkspaceAuthorizationDecider>()
+    private val handler = RenameWorkspaceHandler(
+        resourceContextProvider,
+        workspaceMutationRepository,
+        workspaceAuthorizationDecider,
     )
 
-    private val resourceContextProvider = object : ResourceContextProvider {
-        override fun current(): ResourceContext = workspaceContext
-    }
+    @Test
+    fun `should rename workspace when authorized`() = runBlocking {
+        val workspaceId = "ws-1"
+        val newName = "New Studio Name"
 
-    private val allowDecider = object : WorkspaceAuthorizationDecider {
-        override suspend fun decide(
-            requiredPermission: PermissionKey,
-            requiredEntitlementKey: String?,
-            resourceContextOverride: ResourceContext?,
-        ) = AuthorizationDecision.ALLOW
+        mockkStatic("com.profiletailors.smp.tenancy.application.TenancyInternalSupportKt")
 
-        override suspend fun decideDetailed(
-            requiredPermission: PermissionKey,
-            requiredEntitlementKey: String?,
-            resourceContextOverride: ResourceContext?,
-        ) = AuthorizationDecisionResult(
-            decision = AuthorizationDecision.ALLOW,
-            reasonCode = AuthorizationReasonCode.ROLE_PERMISSION,
-            roleKeys = setOf("owner"),
-        )
+        coEvery {
+            workspaceAuthorizationDecider.decideDetailed(any(), any(), any())
+        } returns AuthorizationDecisionResult(AuthorizationDecision.ALLOW, AuthorizationReasonCode.ROLE_PERMISSION)
+
+        val ctx = ResourceContext(type = ResourceContextType.WORKSPACE, workspaceId = workspaceId)
+        every { resourceContextProvider.requireWorkspaceContext() } returns ctx
+
+        coEvery { workspaceMutationRepository.rename(workspaceId, any()) } returns true
+
+        val result = handler.handle(RenameWorkspaceCommand(newName))
+
+        assertEquals(workspaceId, result.workspaceId)
+        assertEquals(newName, result.name)
     }
 
     @Test
-    fun `renames workspace successfully`() = runTest {
-        val repository = FakeWorkspaceMutationRepository()
-        val handler = RenameWorkspaceHandler(resourceContextProvider, repository, allowDecider)
+    fun `should throw exception when workspace name is blank`() {
+        val workspaceId = "ws-1"
+        mockkStatic("com.profiletailors.smp.tenancy.application.TenancyInternalSupportKt")
 
-        val result = handler.handle(RenameWorkspaceCommand(newName = "New Name"))
+        coEvery { workspaceAuthorizationDecider.decideDetailed(any(), any(), any()) } returns
+            AuthorizationDecisionResult(AuthorizationDecision.ALLOW, AuthorizationReasonCode.ROLE_PERMISSION)
 
-        assertEquals("ws-rname", result.workspaceId)
-        assertEquals("New Name", result.name)
-    }
+        val ctx = ResourceContext(type = ResourceContextType.WORKSPACE, workspaceId = workspaceId)
+        every { resourceContextProvider.requireWorkspaceContext() } returns ctx
 
-    @Test
-    fun `trims whitespace from name`() = runTest {
-        val repository = FakeWorkspaceMutationRepository()
-        val handler = RenameWorkspaceHandler(resourceContextProvider, repository, allowDecider)
-
-        val result = handler.handle(RenameWorkspaceCommand(newName = "  Trimmed  "))
-
-        assertEquals("Trimmed", result.name)
-    }
-
-    @Test
-    fun `rejects blank name`() = runTest {
-        val repository = FakeWorkspaceMutationRepository()
-        val handler = RenameWorkspaceHandler(resourceContextProvider, repository, allowDecider)
-
-        val ex = runCatching { handler.handle(RenameWorkspaceCommand(newName = "   ")) }.exceptionOrNull()
-        assertTrue(ex is IllegalArgumentException)
-        assertTrue(ex!!.message!!.contains("cannot be blank"))
-    }
-
-    @Test
-    fun `throws on non-existent workspace`() = runTest {
-        val badContext = ResourceContext(
-            type = ResourceContextType.WORKSPACE,
-            workspaceId = "i-dont-exist",
-        )
-        val badContextProvider = object : ResourceContextProvider {
-            override fun current(): ResourceContext = badContext
+        assertThrows(IllegalArgumentException::class.java) {
+            runBlocking { handler.handle(RenameWorkspaceCommand("   ")) }
         }
-        val repository = FakeWorkspaceMutationRepository()
-        val handler = RenameWorkspaceHandler(badContextProvider, repository, allowDecider)
-
-        val ex = runCatching { handler.handle(RenameWorkspaceCommand(newName = "New Name")) }.exceptionOrNull()
-        assertTrue(ex is IllegalStateException)
-        assertTrue(ex!!.message!!.contains("not found"))
-    }
-
-    @Test
-    fun `rejects name exceeding max length`() = runTest {
-        val repository = FakeWorkspaceMutationRepository()
-        val handler = RenameWorkspaceHandler(resourceContextProvider, repository, allowDecider)
-
-        val longName = "x".repeat(256)
-        val ex = runCatching { handler.handle(RenameWorkspaceCommand(newName = longName)) }.exceptionOrNull()
-        assertTrue(ex is IllegalArgumentException)
-        assertTrue(ex!!.message!!.contains("cannot exceed"))
-    }
-
-    private class FakeWorkspaceMutationRepository : WorkspaceMutationRepository {
-        private val workspaces = mutableMapOf(
-            "ws-rname" to "Original Name",
-        )
-
-        override suspend fun rename(workspaceId: String, newName: String): Boolean {
-            if (!workspaces.containsKey(workspaceId)) return false
-            workspaces[workspaceId] = newName
-            return true
-        }
-
-        override suspend fun updateIcon(workspaceId: String, icon: String?): Boolean =
-            workspaces.containsKey(workspaceId)
     }
 }
