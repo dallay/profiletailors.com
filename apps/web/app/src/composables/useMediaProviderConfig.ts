@@ -18,8 +18,8 @@ export type MediaProviderConfig = {
 
 export function useMediaProviderConfig() {
   return {
-    unsplashEnabled: computed(() => parseFlag(
-      import.meta.env.VITE_MEDIA_PROVIDER_UNSPLASH_ENABLED as string | undefined,
-    )),
+    unsplashEnabled: computed(() =>
+      parseFlag(import.meta.env.VITE_MEDIA_PROVIDER_UNSPLASH_ENABLED as string | undefined),
+    ),
   }
 }
