@@ -1,6 +1,5 @@
 package com.profiletailors.smp.media.application
 
-import com.profiletailors.common.domain.Service
 import com.profiletailors.common.domain.bus.command.CommandWithResultHandler
 import com.profiletailors.common.domain.bus.query.QueryHandler
 import com.profiletailors.common.domain.context.PrincipalContextProvider
@@ -30,11 +29,11 @@ import kotlinx.coroutines.TimeoutCancellationException
 import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.toList
 import kotlinx.coroutines.withTimeout
-import org.slf4j.LoggerFactory
 import java.security.MessageDigest
 import java.time.Instant
 import java.time.ZoneOffset
 import java.time.format.DateTimeFormatter
+import com.profiletailors.common.domain.Service as HexService
 
 private fun ByteArray.toHexString(): String = joinToString("") { "%02x".format(it) }
 
@@ -77,7 +76,7 @@ private suspend fun MediaAsset.toSummary(
     metadata = metadata,
 )
 
-@Service
+@HexService
 class CreateUploadedAssetHandler(
     private val mediaAssetRepository: MediaAssetRepository,
     private val mediaRateLimitRepository: MediaRateLimitRepository,
@@ -86,8 +85,6 @@ class CreateUploadedAssetHandler(
     private val principalIdentityLookup: PrincipalIdentityLookup = NoOpPrincipalIdentityLookup(),
     private val emailVerificationPolicy: EmailVerificationPolicy = permissiveEmailVerificationPolicy,
 ) : CommandWithResultHandler<CreateUploadedAssetCommand, CreateUploadedAssetResult> {
-
-    private val logger = LoggerFactory.getLogger(CreateUploadedAssetHandler::class.java)
 
     companion object {
         private val ISO_FORMATTER = DateTimeFormatter.ISO_INSTANT
@@ -118,10 +115,6 @@ class CreateUploadedAssetHandler(
         )
 
         mediaAssetRepository.create(asset)
-        logger.info(
-            "media.asset.reserved assetId=$assetId workspaceId=${command.workspaceId} " +
-                "mediaType=${command.mediaType} sourceType=${command.sourceType}",
-        )
 
         return CreateUploadedAssetResult(
             assetId = assetId,
@@ -222,7 +215,7 @@ class CreateUploadedAssetHandler(
 }
 
 @Suppress("TooManyFunctions")
-@Service
+@HexService
 class UploadAssetHandler(
     private val mediaAssetRepository: MediaAssetRepository,
     private val mediaRateLimitRepository: MediaRateLimitRepository,
@@ -233,8 +226,6 @@ class UploadAssetHandler(
     private val emailVerificationPolicy: EmailVerificationPolicy = permissiveEmailVerificationPolicy,
     private val transactionRunner: AtomicTransactionRunner,
 ) : CommandWithResultHandler<LegacyUploadAssetCommand, LegacyUploadAssetResult> {
-
-    private val logger = LoggerFactory.getLogger(UploadAssetHandler::class.java)
 
     companion object {
         private val ISO_FORMATTER = DateTimeFormatter.ISO_INSTANT
@@ -274,11 +265,6 @@ class UploadAssetHandler(
         try {
             val asset = requireUploadableAsset(workspaceId, assetId, now)
 
-            logger.info(
-                "media.asset.upload.started assetId=$assetId workspaceId=$workspaceId " +
-                    "contentLength=${command.contentLength}",
-            )
-
             val startTime = System.currentTimeMillis()
             val fileSize = uploadWithStreamingValidation(command, asset, uploadSettings.storageBucket)
 
@@ -288,10 +274,6 @@ class UploadAssetHandler(
             }
 
             val durationMs = System.currentTimeMillis() - startTime
-            logger.info(
-                "media.asset.upload.completed assetId=$assetId workspaceId=$workspaceId " +
-                    "fileSizeBytes=$fileSize durationMs=$durationMs",
-            )
 
             return LegacyUploadAssetResult(
                 assetId = assetId,
@@ -362,11 +344,6 @@ class UploadAssetHandler(
         val cleanupSucceeded = cleanupPartialStorageIfNeeded(storageWriteAttempted, assetId, workspaceId)
         markAssetFailed(assetId, workspaceId)
         val reason = uploadFailureReason(e)
-
-        logger.info(
-            "media.asset.upload.failed assetId=$assetId workspaceId=$workspaceId reason=$reason " +
-                "storageWriteAttempted=$storageWriteAttempted storageCleanupSucceeded=$cleanupSucceeded",
-        )
     }
 
     private fun didStorageWriteStart(error: Exception): Boolean = error !is UnsupportedMediaTypeException &&
@@ -385,7 +362,7 @@ class UploadAssetHandler(
         if (!storageWriteAttempted || asset == null || asset.storageKey.isNullOrBlank()) {
             return null
         }
-        return deletePartialStorageObject(assetId, asset.storageKey)
+        return deletePartialStorageObject(asset.storageKey)
     }
 
     private suspend fun tryLoadAssetForCleanup(assetId: String, workspaceId: String): MediaAsset? = try {
@@ -394,7 +371,7 @@ class UploadAssetHandler(
         null
     }
 
-    private suspend fun deletePartialStorageObject(assetId: String, storageKey: String): Boolean = try {
+    private suspend fun deletePartialStorageObject(storageKey: String): Boolean = try {
         withTimeout(CLEANUP_TIMEOUT_MILLIS) {
             storageApplicationService.delete(
                 uploadSettings.storageBucket,
@@ -402,31 +379,17 @@ class UploadAssetHandler(
                 "media-reconciler",
             )
         }
-        logger.info(
-            "media.asset.cleanup.attempted assetId=$assetId storageKey=$storageKey success=true",
-        )
         true
-    } catch (cleanupError: StorageException) {
-        logCleanupFailure(assetId, storageKey, cleanupError)
+    } catch (_: StorageException) {
         false
-    } catch (cleanupError: TimeoutCancellationException) {
-        logCleanupFailure(assetId, storageKey, cleanupError)
+    } catch (_: TimeoutCancellationException) {
         false
-    }
-
-    private fun logCleanupFailure(assetId: String, storageKey: String, cleanupError: Throwable) {
-        logger.warn(
-            "media.asset.cleanup.attempted assetId=$assetId storageKey=$storageKey " +
-                "success=false error=${cleanupError.message}",
-            cleanupError,
-        )
     }
 
     private suspend fun markAssetFailed(assetId: String, workspaceId: String) {
         try {
             mediaAssetRepository.markAsFailed(assetId, workspaceId)
-        } catch (transitionError: IllegalStateException) {
-            logger.error("Failed to transition asset to FAILED: assetId=$assetId", transitionError)
+        } catch (_: IllegalStateException) {
         }
     }
 
@@ -596,14 +559,12 @@ class UploadAssetHandler(
     }
 }
 
-@Service
+@HexService
 class ListWorkspaceAssetsHandler(
     private val mediaAssetRepository: MediaAssetRepository,
     private val assetPreviewUrlResolver: AssetPreviewUrlResolver,
     private val mediaPreviewTokenService: MediaPreviewTokenService,
 ) : QueryHandler<ListWorkspaceAssetsQuery, ListWorkspaceAssetsResult> {
-
-    private val logger = LoggerFactory.getLogger(ListWorkspaceAssetsHandler::class.java)
 
     override suspend fun handle(query: ListWorkspaceAssetsQuery): ListWorkspaceAssetsResult {
         val result = mediaAssetRepository.listByWorkspace(
@@ -622,14 +583,12 @@ class ListWorkspaceAssetsHandler(
     }
 }
 
-@Service
+@HexService
 class GetWorkspaceAssetHandler(
     private val mediaAssetRepository: MediaAssetRepository,
     private val assetPreviewUrlResolver: AssetPreviewUrlResolver,
     private val mediaPreviewTokenService: MediaPreviewTokenService,
 ) : QueryHandler<GetWorkspaceAssetQuery, MediaAssetSummary> {
-
-    private val logger = LoggerFactory.getLogger(GetWorkspaceAssetHandler::class.java)
 
     override suspend fun handle(query: GetWorkspaceAssetQuery): MediaAssetSummary {
         val asset = mediaAssetRepository.findByWorkspaceAndId(query.workspaceId, query.assetId)
@@ -639,7 +598,7 @@ class GetWorkspaceAssetHandler(
     }
 }
 
-@Service
+@HexService
 class DeleteWorkspaceAssetHandler(
     private val mediaAssetRepository: MediaAssetRepository,
     private val storageApplicationService: StorageApplicationService,
@@ -697,7 +656,7 @@ class DeleteWorkspaceAssetHandler(
 
 // ─── PUT Asset Handler (CAS dedup) ───────────────────────────────────────────
 
-@Service
+@HexService
 class PutAssetHandler(
     private val mediaAssetRepository: MediaAssetRepository,
     private val workspaceFileBlobRepository: WorkspaceFileBlobRepository,
@@ -708,8 +667,6 @@ class PutAssetHandler(
     private val principalIdentityLookup: PrincipalIdentityLookup = NoOpPrincipalIdentityLookup(),
     private val emailVerificationPolicy: EmailVerificationPolicy = permissiveEmailVerificationPolicy,
 ) : CommandWithResultHandler<PutAssetCommand, PutAssetResult> {
-
-    private val logger = LoggerFactory.getLogger(PutAssetHandler::class.java)
 
     companion object {
         private val ISO_FORMATTER = DateTimeFormatter.ISO_INSTANT
@@ -810,12 +767,6 @@ class PutAssetHandler(
                             val existingAsset = mediaAssetRepository
                                 .findActiveByWorkspaceAndHash(command.workspaceId, command.fileHash)
                             if (existingAsset != null && existingAsset.assetId != command.assetId) {
-                                logger.info(
-                                    "media.asset.put.dedup.existing assetId={} workspaceId={} fileHash={}",
-                                    existingAsset.assetId,
-                                    command.workspaceId,
-                                    command.fileHash,
-                                )
                                 buildAlreadyExistsFromExisting(existingAsset)
                             } else {
                                 val asset = MediaAsset(
@@ -832,12 +783,6 @@ class PutAssetHandler(
                                     createdAt = now,
                                 )
                                 mediaAssetRepository.create(asset)
-                                logger.info(
-                                    "media.asset.put.dedup assetId={} workspaceId={} fileHash={}",
-                                    command.assetId,
-                                    command.workspaceId,
-                                    command.fileHash,
-                                )
                                 PutAssetResult.AlreadyExists(
                                     assetId = command.assetId,
                                     workspaceId = command.workspaceId,
@@ -903,13 +848,6 @@ class PutAssetHandler(
             createdAt = now,
         )
         mediaAssetRepository.create(asset)
-        logger.info(
-            "media.asset.put.created assetId={} workspaceId={} fileHash={} mediaType={}",
-            command.assetId,
-            command.workspaceId,
-            command.fileHash,
-            command.declaredMediaType,
-        )
         return PutAssetResult.Created(
             assetId = command.assetId,
             workspaceId = command.workspaceId,
@@ -1015,7 +953,7 @@ class PutAssetHandler(
 
 // ─── CAS Upload Asset Handler ────────────────────────────────────────────────
 
-@Service
+@HexService
 class CasUploadAssetHandler(
     private val mediaAssetRepository: MediaAssetRepository,
     private val workspaceFileBlobRepository: WorkspaceFileBlobRepository,
@@ -1026,8 +964,6 @@ class CasUploadAssetHandler(
     private val principalIdentityLookup: PrincipalIdentityLookup = NoOpPrincipalIdentityLookup(),
     private val emailVerificationPolicy: EmailVerificationPolicy = permissiveEmailVerificationPolicy,
 ) : CommandWithResultHandler<CasUploadAssetCommand, CasUploadAssetResult> {
-
-    private val logger = LoggerFactory.getLogger(CasUploadAssetHandler::class.java)
 
     companion object {
         private val ISO_FORMATTER = DateTimeFormatter.ISO_INSTANT
@@ -1129,11 +1065,6 @@ class CasUploadAssetHandler(
             // safe to perform cleanup outside the transaction.
             cleanupTemp(tempKey)
             markBothFailed(assetId, workspaceId, "BLOB_OR_ASSET_MISSING")
-            logger.warn(
-                "media.asset.upload.transactionalEmpty assetId={} workspaceId={}",
-                assetId,
-                workspaceId,
-            )
             CasUploadAssetResult.NotFound(assetId)
         } catch (e: StorageException) {
             // The transactional block terminated with an error (typically a `StorageException`
@@ -1187,12 +1118,6 @@ class CasUploadAssetHandler(
                     fileSizeBytes = blob.fileSizeBytes,
                 ) ?: throw BlobOrAssetMissingException(assetId)
 
-                logger.info(
-                    "media.asset.upload.dedupHit assetId={} workspaceId={} fileHash={}",
-                    assetId,
-                    workspaceId,
-                    fileHash,
-                )
                 CasUploadAssetResult.Ready(
                     assetId = assetId,
                     workspaceId = workspaceId,
@@ -1245,17 +1170,6 @@ class CasUploadAssetHandler(
                     detectedMediaType = detectedMediaType,
                     fileSizeBytes = actualBytes,
                 ) ?: throw BlobOrAssetMissingException(assetId)
-
-                logger.info(
-                    "media.asset.upload.completed assetId={} workspaceId={} fileHash={} " +
-                        "canonicalKey={} detectedMediaType={} fileSizeBytes={}",
-                    assetId,
-                    workspaceId,
-                    fileHash,
-                    canonicalKey,
-                    detectedMediaType,
-                    actualBytes,
-                )
 
                 CasUploadAssetResult.Ready(
                     assetId = assetId,
@@ -1459,9 +1373,8 @@ class CasUploadAssetHandler(
                 key = tempKey,
                 deleterId = "upload-handler",
             )
-        } catch (e: StorageException) {
-            // Best-effort cleanup — log and move on
-            logger.warn("Failed to cleanup temp key {}: {}", tempKey, e.message)
+        } catch (_: StorageException) {
+            // Best-effort cleanup — ignore and move on
         }
     }
 
@@ -1471,25 +1384,17 @@ class CasUploadAssetHandler(
         if (fileHash != null) {
             workspaceFileBlobRepository.markBlobFailed(workspaceId, fileHash, reason)
         }
-        logger.info(
-            "media.asset.upload.failed assetId={} workspaceId={} reason={}",
-            assetId,
-            workspaceId,
-            reason,
-        )
     }
 }
 
 // ─── Delete Asset Handler (CAS soft-delete) ────────────────────────────────
 
-@Service
+@HexService
 class DeleteAssetHandler(
     private val mediaAssetRepository: MediaAssetRepository,
     private val workspaceFileBlobRepository: WorkspaceFileBlobRepository,
     private val transactionRunner: AtomicTransactionRunner,
 ) : CommandWithResultHandler<DeleteAssetCommand, DeleteAssetResult> {
-
-    private val logger = LoggerFactory.getLogger(DeleteAssetHandler::class.java)
 
     override suspend fun handle(command: DeleteAssetCommand): DeleteAssetResult {
         val assetId = command.assetId
@@ -1501,13 +1406,11 @@ class DeleteAssetHandler(
 
         // Step 2: Idempotent if already deleted
         if (asset.status == MediaAssetStatus.DELETED) {
-            logger.info("media.asset.delete.idempotent assetId={} workspaceId={}", assetId, workspaceId)
             return DeleteAssetResult(deleted = true, blobScheduledForGC = false)
         }
 
         // Step 3: Soft-delete asset
         mediaAssetRepository.softDelete(assetId, workspaceId)
-        logger.info("media.asset.delete.softDeleted assetId={} workspaceId={}", assetId, workspaceId)
 
         // Step 4: Get fileHash (nullable for pre-CAS assets)
         val fileHash = asset.fileHash ?: return DeleteAssetResult(deleted = true, blobScheduledForGC = false)
@@ -1538,11 +1441,6 @@ class DeleteAssetHandler(
         if (activeCount == 0) {
             val orphanedAt = Instant.now()
             workspaceFileBlobRepository.markReadyForGC(workspaceId, fileHash, orphanedAt)
-            logger.info(
-                "media.blob.markedReadyForGC workspaceId={} fileHash={}",
-                workspaceId,
-                fileHash,
-            )
             return DeleteAssetResult(deleted = true, blobScheduledForGC = true)
         }
 
@@ -1583,7 +1481,7 @@ class BlobGoneException(val fileHash: String) :
  * - `authorName` / `authorUrl`  ← `externalAsset.authorName` / `authorUrl`
  * - `metadata`                  ← `externalAsset.metadata` + detected MIME / SHA-256
  */
-@Service
+@HexService
 class ImportExternalAssetHandler(
     private val mediaAssetRepository: MediaAssetRepository,
     private val workspaceFileBlobRepository: WorkspaceFileBlobRepository,
@@ -1595,8 +1493,6 @@ class ImportExternalAssetHandler(
     private val principalIdentityLookup: PrincipalIdentityLookup = NoOpPrincipalIdentityLookup(),
     private val emailVerificationPolicy: EmailVerificationPolicy = permissiveEmailVerificationPolicy,
 ) : CommandWithResultHandler<ImportExternalAssetCommand, ImportExternalAssetResult> {
-
-    private val logger = LoggerFactory.getLogger(ImportExternalAssetHandler::class.java)
 
     override suspend fun handle(command: ImportExternalAssetCommand): ImportExternalAssetResult {
         requireEmailVerification(
@@ -1634,14 +1530,6 @@ class ImportExternalAssetHandler(
                     )
                 } ?: throw BlobMissingException(fileHash)
 
-                logger.info(
-                    "media.provider.import.completed assetId={} workspaceId={} externalId={} fileHash={} deduped={}",
-                    result.assetId,
-                    command.workspaceId,
-                    external.externalId.value,
-                    fileHash,
-                    result.deduped,
-                )
                 result
             } catch (@Suppress("SwallowedException") e: BlobMissingException) {
                 // Either no active asset but no blob row, or the blob lifecycle is in an
@@ -2015,23 +1903,14 @@ class ImportExternalAssetHandler(
  * strict rate-limit / concurrent-slot guards as the write-path import). When
  * the email-verification requirement changes this becomes a non-issue.
  */
-@Service
+@HexService
 class SearchProviderPhotosHandler(private val providers: List<MediaProvider>) :
     QueryHandler<SearchProviderPhotosQuery, ProviderSearchPage> {
-
-    private val logger = LoggerFactory.getLogger(SearchProviderPhotosHandler::class.java)
 
     override suspend fun handle(query: SearchProviderPhotosQuery): ProviderSearchPage {
         val provider = providers.firstOrNull { it.providerId == query.providerId }
             ?: throw UnsupportedProviderException(query.providerId)
 
-        logger.info(
-            "media.provider.search providerId={} workspaceId={} query={} page={}",
-            query.providerId,
-            query.workspaceId,
-            query.query,
-            query.page,
-        )
         return provider.search(query = query.query, page = query.page)
     }
 }
@@ -2045,11 +1924,9 @@ class SearchProviderPhotosHandler(private val providers: List<MediaProvider>) :
  * Throws [UnsupportedProviderException] when the requested provider has no
  * registered adapter — the controller maps this to HTTP 404.
  */
-@Service
+@HexService
 class ImportProviderAssetHandler(private val providers: List<MediaProvider>) :
     QueryHandler<ImportProviderAssetQuery, com.profiletailors.smp.media.application.port.ProviderExternalAsset> {
-
-    private val logger = LoggerFactory.getLogger(ImportProviderAssetHandler::class.java)
 
     override suspend fun handle(
         query: ImportProviderAssetQuery,
@@ -2059,12 +1936,6 @@ class ImportProviderAssetHandler(private val providers: List<MediaProvider>) :
 
         val externalId = ProviderExternalId(query.externalId)
 
-        logger.info(
-            "media.provider.fetch providerId={} workspaceId={} externalId={}",
-            query.providerId,
-            query.workspaceId,
-            query.externalId,
-        )
         return provider.import(workspaceId = query.workspaceId, externalId = externalId)
     }
 }
