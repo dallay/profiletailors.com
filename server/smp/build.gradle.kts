@@ -47,6 +47,7 @@ dependencies {
     implementation(libs.spring.boot.starter.security)
     implementation(libs.spring.boot.starter.webflux)
     implementation("org.springframework.security:spring-security-crypto")
+    implementation(libs.bouncycastle.prov)
     implementation("io.projectreactor.kotlin:reactor-kotlin-extensions")
     implementation(libs.kotlin.reflect)
     implementation(libs.kotlinx.coroutines.reactor)
