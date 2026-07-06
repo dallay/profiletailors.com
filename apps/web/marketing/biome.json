@@ -11,9 +11,7 @@
 		"includes": ["src/**/*.{js,ts,astro,mjs}"],
 		"ignoreUnknown": true
 	},
-	"formatter": {
-		"enabled": false
-	},
+
 	"linter": {
 		"enabled": true,
 		"rules": {
