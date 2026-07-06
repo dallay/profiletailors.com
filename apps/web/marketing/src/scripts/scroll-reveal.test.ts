@@ -54,36 +54,45 @@ describe('initScrollReveal', () => {
     $globals.unobserveSpy = vi.fn()
 
     // Stub matchMedia — default: motion OK
-    vi.stubGlobal('matchMedia', vi.fn().mockReturnValue({
-      matches: false,
-      addEventListener: vi.fn(),
-      removeEventListener: vi.fn(),
-    }))
+    vi.stubGlobal(
+      'matchMedia',
+      vi.fn().mockReturnValue({
+        matches: false,
+        addEventListener: vi.fn(),
+        removeEventListener: vi.fn(),
+      }),
+    )
 
     // Stub IntersectionObserver so we control when the callback fires
-    vi.stubGlobal('IntersectionObserver', vi.fn().mockImplementation((cb: IntersectionObserverCallback) => {
-      $globals.observeCb = cb
-      $globals.unobserveSpy = vi.fn()
-      return {
-        observe: (el: Element) => {
-          $globals.observedEls.add(el)
-          $globals.entries.push(makeEntry(el, false))
-        },
-        unobserve: $globals.unobserveSpy,
-        disconnect: vi.fn(),
-      }
-    }))
+    vi.stubGlobal(
+      'IntersectionObserver',
+      vi.fn().mockImplementation((cb: IntersectionObserverCallback) => {
+        $globals.observeCb = cb
+        $globals.unobserveSpy = vi.fn()
+        return {
+          observe: (el: Element) => {
+            $globals.observedEls.add(el)
+            $globals.entries.push(makeEntry(el, false))
+          },
+          unobserve: $globals.unobserveSpy,
+          disconnect: vi.fn(),
+        }
+      }),
+    )
   })
 
   // -------------------------------------------------------------------------
   // Scenario 1: reduced motion — returns early, no observer created
   // -------------------------------------------------------------------------
   it('returns early when prefers-reduced-motion is active', () => {
-    vi.stubGlobal('matchMedia', vi.fn().mockReturnValue({
-      matches: true,
-      addEventListener: vi.fn(),
-      removeEventListener: vi.fn(),
-    }))
+    vi.stubGlobal(
+      'matchMedia',
+      vi.fn().mockReturnValue({
+        matches: true,
+        addEventListener: vi.fn(),
+        removeEventListener: vi.fn(),
+      }),
+    )
 
     document.body.innerHTML = '<div data-animate-scroll></div>'
     initScrollReveal()
@@ -123,10 +132,9 @@ describe('initScrollReveal', () => {
     const el = queryRequired('[data-animate-scroll]')
 
     // Trigger intersection
-    $globals.observeCb?.(
-      [makeEntry(el, true)],
-      { observe: vi.fn() } as unknown as IntersectionObserver
-    )
+    $globals.observeCb?.([makeEntry(el, true)], {
+      observe: vi.fn(),
+    } as unknown as IntersectionObserver)
 
     expect(el.classList.contains('is-visible')).toBe(true)
   })
@@ -144,10 +152,9 @@ describe('initScrollReveal', () => {
     const elB = queryRequired('#b')
 
     // Only elA intersects
-    $globals.observeCb?.(
-      [makeEntry(elA, true)],
-      { observe: vi.fn() } as unknown as IntersectionObserver
-    )
+    $globals.observeCb?.([makeEntry(elA, true)], {
+      observe: vi.fn(),
+    } as unknown as IntersectionObserver)
 
     expect(elA.classList.contains('is-visible')).toBe(true)
     expect(elB.classList.contains('is-visible')).toBe(false)
@@ -162,10 +169,10 @@ describe('initScrollReveal', () => {
     const el = queryRequired('[data-animate-scroll]')
 
     // Trigger intersection
-    $globals.observeCb?.(
-      [makeEntry(el, true)],
-      { observe: vi.fn(), unobserve: vi.fn() } as unknown as IntersectionObserver
-    )
+    $globals.observeCb?.([makeEntry(el, true)], {
+      observe: vi.fn(),
+      unobserve: vi.fn(),
+    } as unknown as IntersectionObserver)
 
     expect(el.classList.contains('is-visible')).toBe(true)
     // The implementation calls observer.unobserve(entry.target) after adding is-visible

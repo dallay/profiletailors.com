@@ -83,6 +83,7 @@ dependencies {
     testImplementation(libs.cucumber.spring)
     testImplementation(libs.archunit.junit5)
     testImplementation(libs.mockk)
+    testImplementation(libs.wiremock)
 
     testImplementation(platform(libs.testcontainers.bom))
     testImplementation(libs.testcontainers.junit.jupiter)

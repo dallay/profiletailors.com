@@ -83,6 +83,19 @@ publishing:
     claim-lease: ${SMP_PUBLISHING_WORKER_CLAIM_LEASE:PT2M}
     max-retries: ${SMP_PUBLISHING_MAX_RETRIES:3}
     retry-backoff: ${SMP_PUBLISHING_RETRY_BACKOFF:PT5M}
+
+# Media provider adapters (Hexagonal: ports under media-library.application.port;
+# adapters live under mediaprovider.* and are wired behind a feature flag).
+mediaprovider:
+  unsplash:
+    # Feature flag — defaults to OFF in ALL environments. The Unsplash adapter
+    # is only registered when this is true AND UNSPLASH_ACCESS_KEY is configured.
+    enabled: ${SMP_MEDIAPROVIDER_UNSPLASH_ENABLED:false}
+    # API key — MUST be set via env var when enabled (Unsplash demo key acceptable for local/staging).
+    access-key: ${UNSPLASH_ACCESS_KEY:}
+    base-url: ${SMP_MEDIAPROVIDER_UNSPLASH_BASE_URL:https://api.unsplash.com}
+    timeout: ${SMP_MEDIAPROVIDER_UNSPLASH_TIMEOUT:PT5S}
+    page-size: ${SMP_MEDIAPROVIDER_UNSPLASH_PAGE_SIZE:20}
   linkedin:
     client-id: ${SMP_LINKEDIN_CLIENT_ID:}
     client-secret: ${SMP_LINKEDIN_CLIENT_SECRET:}

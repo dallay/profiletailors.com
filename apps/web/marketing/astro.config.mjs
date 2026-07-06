@@ -45,7 +45,11 @@ export default defineConfig({
 
   env: {
     schema: {
-      AHREFS_ANALYTICS_KEY: envField.string({ context: 'client', access: 'public', optional: true }),
+      AHREFS_ANALYTICS_KEY: envField.string({
+        context: 'client',
+        access: 'public',
+        optional: true,
+      }),
     },
   },
 

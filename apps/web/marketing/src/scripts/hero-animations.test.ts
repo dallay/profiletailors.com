@@ -68,11 +68,14 @@ describe('initHeroAnimations', () => {
       configurable: true,
     })
 
-    vi.stubGlobal('matchMedia', vi.fn().mockReturnValue({
-      matches: false,
-      addEventListener: vi.fn(),
-      removeEventListener: vi.fn(),
-    }))
+    vi.stubGlobal(
+      'matchMedia',
+      vi.fn().mockReturnValue({
+        matches: false,
+        addEventListener: vi.fn(),
+        removeEventListener: vi.fn(),
+      }),
+    )
   })
 
   afterEach(() => {
@@ -88,11 +91,14 @@ describe('initHeroAnimations', () => {
   // Scenario 1: reduced motion — snapVisible called on all elements
   // -------------------------------------------------------------------------
   it('calls snapVisible on all hero elements when prefers-reduced-motion is active', () => {
-    vi.stubGlobal('matchMedia', vi.fn().mockReturnValue({
-      matches: true,
-      addEventListener: vi.fn(),
-      removeEventListener: vi.fn(),
-    }))
+    vi.stubGlobal(
+      'matchMedia',
+      vi.fn().mockReturnValue({
+        matches: true,
+        addEventListener: vi.fn(),
+        removeEventListener: vi.fn(),
+      }),
+    )
 
     const label = document.createElement('div')
     const headline = document.createElement('div')
@@ -102,12 +108,18 @@ describe('initHeroAnimations', () => {
 
     document.querySelector = vi.fn().mockImplementation((selector: string) => {
       switch (selector) {
-        case '[data-hero-label]': return label
-        case '[data-hero-headline]': return headline
-        case '[data-hero-sub]': return sub
-        case '[data-hero-icons]': return icons
-        case '[data-hero-form]': return form
-        default: return null
+        case '[data-hero-label]':
+          return label
+        case '[data-hero-headline]':
+          return headline
+        case '[data-hero-sub]':
+          return sub
+        case '[data-hero-icons]':
+          return icons
+        case '[data-hero-form]':
+          return form
+        default:
+          return null
       }
     })
 
@@ -143,12 +155,18 @@ describe('initHeroAnimations', () => {
 
     document.querySelector = vi.fn().mockImplementation((selector: string) => {
       switch (selector) {
-        case '[data-hero-label]': return label
-        case '[data-hero-headline]': return headline
-        case '[data-hero-sub]': return sub
-        case '[data-hero-icons]': return null
-        case '[data-hero-form]': return null
-        default: return null
+        case '[data-hero-label]':
+          return label
+        case '[data-hero-headline]':
+          return headline
+        case '[data-hero-sub]':
+          return sub
+        case '[data-hero-icons]':
+          return null
+        case '[data-hero-form]':
+          return null
+        default:
+          return null
       }
     })
 
@@ -159,7 +177,7 @@ describe('initHeroAnimations', () => {
     // animate is called on label (animateLabel) and headline (animateHeadline)
     // The global waapiMock spy tracks all calls
     expect(waapiMock).toHaveBeenCalled()
- })
+  })
 
   // -------------------------------------------------------------------------
   // Scenario 4: icons/form are null — graceful handling
@@ -174,12 +192,18 @@ describe('initHeroAnimations', () => {
 
     document.querySelector = vi.fn().mockImplementation((selector: string) => {
       switch (selector) {
-        case '[data-hero-label]': return label
-        case '[data-hero-headline]': return headline
-        case '[data-hero-sub]': return sub
-        case '[data-hero-icons]': return null
-        case '[data-hero-form]': return null
-        default: return null
+        case '[data-hero-label]':
+          return label
+        case '[data-hero-headline]':
+          return headline
+        case '[data-hero-sub]':
+          return sub
+        case '[data-hero-icons]':
+          return null
+        case '[data-hero-form]':
+          return null
+        default:
+          return null
       }
     })
 
