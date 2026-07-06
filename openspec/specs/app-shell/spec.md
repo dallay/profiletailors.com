@@ -973,12 +973,9 @@ No other file in `App.test.ts` is touched. No assertion is modified.
 
 ### Requirement: Global Unverified Email Guidance
 
-The authenticated app shell MUST surface a persistent verification warning for users whose
-authoritative profile status is not `VERIFIED`.
+The authenticated app shell MUST surface a persistent verification warning for users whose authoritative profile status is not `VERIFIED`.
 
-The warning MUST be visible across authenticated routes until verification completes, MUST explain
-that verification is required for restricted actions, and MUST provide visible resend and
-verify-account entry points.
+The warning MUST be visible across authenticated routes until verification completes, MUST explain that verification is required for restricted actions, and MUST provide visible resend and verify-account entry points.
 
 #### Scenario: Unverified user sees global banner
 

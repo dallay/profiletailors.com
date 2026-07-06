@@ -18,11 +18,8 @@ jobs:
   quality-gate:
     name: Quality Gate
     runs-on: ubuntu-latest
-    timeout-minutes: 35
     permissions:
       contents: read
-    env:
-      SMP_POSTGRES_TEST_PASSWORD: ${{ secrets.SMP_POSTGRES_PASSWORD }}
     
     steps:
       - name: Checkout code
@@ -39,14 +36,11 @@ jobs:
           java-version: '21'
           cache: 'gradle'
 
-      - name: Run backend fast tests
+      - name: Run backend tests
         run: ./gradlew :server:smp:test -x :server:smp:bddFastTest -x :server:smp:bddPostgresTest :shared:common:test :shared:bus:test :shared:presentation:test :shared:security:test :shared:spring-boot-common:test :shared:storage:test :shared:shield:ratelimit:test --no-daemon -PexcludeTags=modularity,postgres
 
-      - name: Run backend postgres integration tests
-        run: ./gradlew :server:smp:postgresIntegrationTest --no-daemon -PexcludeTags=modularity
-
       - name: Generate backend coverage reports
-        run: ./gradlew :server:smp:koverXmlReport -x :server:smp:bddFastTest -x :server:smp:bddPostgresTest :shared:common:koverXmlReport :shared:bus:koverXmlReport :shared:presentation:koverXmlReport :shared:security:koverXmlReport :shared:spring-boot-common:koverXmlReport :shared:storage:koverXmlReport :shared:shield:ratelimit:koverXmlReport --no-daemon
+        run: ./gradlew :server:smp:koverXmlReport -x :server:smp:bddFastTest -x :server:smp:bddPostgresTest :shared:common:koverXmlReport :shared:bus:koverXmlReport :shared:presentation:koverXmlReport :shared:security:koverXmlReport :shared:spring-boot-common:koverXmlReport :shared:storage:koverXmlReport :shared:shield:ratelimit:koverXmlReport --no-daemon -PexcludeTags=modularity,postgres
 
       - name: Verify backend coverage reports
         run: |

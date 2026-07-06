@@ -1,7 +1,7 @@
 databaseChangeLog:
   - changeSet:
       id: governance-001-create-audit-events
-      author: acosta
+      author: opencode
       changes:
         - createTable:
             tableName: audit_events

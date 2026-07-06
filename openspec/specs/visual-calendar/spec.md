@@ -58,15 +58,9 @@ low (yellow/small), 3–5 = medium (orange/medium), 6+ = high (green/large with 
 
 ### Requirement: Quick-Create from Cell
 
-Clicking an empty calendar cell MUST open CreatePostModal with the clicked date-time prefilled.
-Submitting while authenticated MUST call the quick-create endpoint. On success, the calendar store
-MUST replace any optimistic record with the returned backend publication, including its real
-`publicationId`, normalized `status`, `scheduleMode`, `scheduledFor`, `nextSlotAfter`, and
-`socialAccountId`. The calendar MUST refresh without a full reload and the created publication MUST
-be immediately editable by its backend ID.
+Clicking an empty calendar cell MUST open CreatePostModal with the clicked date-time prefilled. Submitting while authenticated MUST call the quick-create endpoint. On success, the calendar store MUST replace any optimistic record with the returned backend publication, including its real `publicationId`, normalized `status`, `scheduleMode`, `scheduledFor`, `nextSlotAfter`, and `socialAccountId`. The calendar MUST refresh without a full reload and the created publication MUST be immediately editable by its backend ID.
 
-(Previously: Quick-create refreshed the calendar but did not require reconciliation of identity and
-normalized server fields.)
+(Previously: Quick-create refreshed the calendar but did not require reconciliation of identity and normalized server fields.)
 
 #### Scenario: Click empty slot creates scheduled post
 

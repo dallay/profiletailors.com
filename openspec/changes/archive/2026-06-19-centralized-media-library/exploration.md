@@ -162,25 +162,21 @@ and selecting uploaded assets for publications, without turning this change into
 -
 
 `server/smp/src/main/kotlin/com/profiletailors/smp/publishing/infrastructure/persistence/R2dbcPublishingRepositories.kt`
-
 - asset persistence and new reads
 
 -
 
 `server/smp/src/main/kotlin/com/profiletailors/smp/publishing/infrastructure/http/PublishingControllers.kt`
-
 - current publishing controllers; likely place or reference pattern for a new asset controller
 
 -
 
 `server/smp/src/main/kotlin/com/profiletailors/smp/publishing/infrastructure/linkedin/LinkedInPublishingAdapters.kt`
-
 - current downstream consumer of uploaded assets
 
 -
 
 `server/smp/src/main/kotlin/com/profiletailors/smp/publishing/infrastructure/linkedin/LinkedInAssetUploaderAdapters.kt`
-
 - current attachments bucket configuration
 
 - `server/smp/src/main/resources/db/changelog/publishing/003-create-publication-assets.yaml`

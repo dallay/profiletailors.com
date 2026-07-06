@@ -1,8 +1,5 @@
 package com.profiletailors.smp.media.infrastructure.http
 
-import ch.qos.logback.classic.Logger
-import ch.qos.logback.classic.spi.ILoggingEvent
-import ch.qos.logback.core.read.ListAppender
 import com.profiletailors.smp.media.application.AssetNotFoundException
 import com.profiletailors.smp.media.application.AssetNotReadyException
 import com.profiletailors.smp.media.application.FileTooLargeException
@@ -12,23 +9,16 @@ import com.profiletailors.smp.media.application.RateLimitExceededException
 import com.profiletailors.smp.media.application.UnsupportedMediaTypeException
 import com.profiletailors.smp.media.application.UploadConflictException
 import com.profiletailors.smp.media.application.UploadInProgressException
-import com.profiletailors.smp.mediaprovider.unsplash.ProviderErrorException
-import com.profiletailors.smp.mediaprovider.unsplash.ProviderImportRejectedException
-import com.profiletailors.smp.mediaprovider.unsplash.ProviderUnavailableException
-import com.profiletailors.smp.mediaprovider.unsplash.UnsplashErrorMapper
-import com.profiletailors.smp.mediaprovider.unsplash.UnsplashRateLimitedException
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertNull
-import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.Test
-import org.slf4j.LoggerFactory
 import org.springframework.http.HttpHeaders
 import org.springframework.http.HttpStatus
 import org.springframework.web.server.ResponseStatusException
 
 class MediaProblemDetailsHandlerTest {
 
-    private val handler = MediaProblemDetailsHandler(UnsplashErrorMapper())
+    private val handler = MediaProblemDetailsHandler()
 
     // ─── AssetNotFoundException ─────────────────────────────────────────────
 
@@ -235,72 +225,5 @@ class MediaProblemDetailsHandlerTest {
 
         assertEquals(HttpStatus.BAD_GATEWAY.value(), result.status)
         assertEquals("502", result.detail)
-    }
-
-    // ─── UnsplashProviderException ──────────────────────────────────────────
-
-    @Test
-    fun `ProviderErrorException → 502 with PROVIDER_ERROR code`() {
-        val exception = ProviderErrorException("upstream raw error")
-        val response = handler.handle(exception)
-
-        assertEquals(HttpStatus.BAD_GATEWAY, response.statusCode)
-        val body = response.body!!
-        assertEquals("Unsplash rejected the request. Please retry shortly.", body.detail)
-        assertEquals("PROVIDER_ERROR", body.properties?.get("errorCode"))
-    }
-
-    @Test
-    fun `ProviderUnavailableException → 504 with PROVIDER_UNREACHABLE code`() {
-        val exception = ProviderUnavailableException("Unsplash timeout")
-        val response = handler.handle(exception)
-
-        assertEquals(HttpStatus.GATEWAY_TIMEOUT, response.statusCode)
-        val body = response.body!!
-        assertEquals("Unsplash is currently unreachable. Please retry shortly.", body.detail)
-        assertEquals("PROVIDER_UNREACHABLE", body.properties?.get("errorCode"))
-    }
-
-    @Test
-    fun `ProviderImportRejectedException → 422 with IMPORT_REJECTED code`() {
-        val exception = ProviderImportRejectedException("mime type video/mp4")
-        val response = handler.handle(exception)
-
-        assertEquals(HttpStatus.UNPROCESSABLE_ENTITY, response.statusCode)
-        val body = response.body!!
-        assertEquals("Unsplash import rejected: mime type video/mp4", body.detail)
-        assertEquals("IMPORT_REJECTED", body.properties?.get("errorCode"))
-    }
-
-    @Test
-    fun `UnsplashRateLimitedException → 429 with PROVIDER_RATE_LIMITED and Retry-After`() {
-        val exception = UnsplashRateLimitedException(45)
-        val response = handler.handle(exception)
-
-        assertEquals(HttpStatus.TOO_MANY_REQUESTS, response.statusCode)
-        assertEquals("45", response.headers[HttpHeaders.RETRY_AFTER]?.first())
-        val body = response.body!!
-        assertEquals("Unsplash rate limit reached. Retry after 45 seconds.", body.detail)
-        assertEquals("PROVIDER_RATE_LIMITED", body.properties?.get("errorCode"))
-        assertEquals(45, body.properties?.get("retryAfterSeconds"))
-    }
-
-    @Test
-    fun `Unsplash provider errors never leak access key in logs`() {
-        val logger = LoggerFactory.getLogger(MediaProblemDetailsHandler::class.java) as Logger
-        val appender = ListAppender<ILoggingEvent>()
-        appender.start()
-        logger.addAppender(appender)
-
-        try {
-            handler.handle(ProviderErrorException("Bearer top-secret-unsplash-key-123"))
-
-            assertTrue(
-                appender.list.none { it.formattedMessage.contains("top-secret-unsplash-key-123") },
-            )
-        } finally {
-            logger.detachAppender(appender)
-            appender.stop()
-        }
     }
 }

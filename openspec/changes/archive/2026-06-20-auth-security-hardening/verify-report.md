@@ -108,26 +108,19 @@ Key implementation evidence:
 - `server/smp/src/main/kotlin/com/profiletailors/smp/identity/application/LocalJwtIssuer.kt` —
   interface now accepts `emailStatus: EmailStatus`
 -
-
 `server/smp/src/main/kotlin/com/profiletailors/smp/identity/infrastructure/security/NimbusLocalJwtIssuer.kt` —
 adds `.claim("emailStatus", emailStatus.name)`
-
 - `server/smp/src/main/kotlin/com/profiletailors/smp/identity/application/LocalAuthHandlers.kt` —
   `RegisterUserHandler`, `LoginUserHandler`, `RefreshUserSessionHandler` all pass `emailStatus`
   through `AuthSessionContext` to `issueAuthSession()`
 -
-
 `server/smp/src/main/kotlin/com/profiletailors/smp/identity/infrastructure/http/IdentityProblemDetailsHandler.kt` —
 dual handlers for `UnverifiedEmailException` and `FeatureEmailVerificationRequired` with complete
 RFC 9457 structure
-
 -
-
 `server/smp/src/main/kotlin/com/profiletailors/smp/identity/infrastructure/http/LocalAuthController.kt` —
 `register()` returns `201 AuthTokens` with refresh cookie
-
 -
-
 `server/smp/src/test/kotlin/com/profiletailors/smp/integration/LocalAuthEndpointIntegrationTest.kt` —
 `decodeJwt()` using `@Autowired ReactiveJwtDecoder` proves end-to-end JWT encoding/decoding with
 `emailStatus` claim

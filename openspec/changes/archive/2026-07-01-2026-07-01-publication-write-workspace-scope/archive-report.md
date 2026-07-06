@@ -2,9 +2,7 @@
 
 ## Summary
 
-The `2026-07-01-publication-write-workspace-scope` change passed verification with no critical
-issues. Its modified `publishing` requirement was merged into the main specification, preserving all
-unrelated publishing requirements.
+The `2026-07-01-publication-write-workspace-scope` change passed verification with no critical issues. Its modified `publishing` requirement was merged into the main specification, preserving all unrelated publishing requirements.
 
 ## Verification Gate
 
@@ -15,9 +13,9 @@ unrelated publishing requirements.
 
 ## Specs Synced
 
-| Domain       | Action  | Added | Modified | Removed |
-|--------------|---------|-------|----------|---------|
-| `publishing` | Updated | 0     | 1        | 0       |
+| Domain | Action | Added | Modified | Removed |
+|--------|--------|-------|----------|---------|
+| `publishing` | Updated | 0 | 1 | 0 |
 
 Updated requirements:
 

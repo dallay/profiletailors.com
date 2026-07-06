@@ -23,7 +23,6 @@ import org.springframework.security.oauth2.jwt.JwtEncoder
 import java.time.Clock
 
 @Configuration
-@Suppress("TooManyFunctions") // Spring config — many bean definitions is expected
 class IdentityBootstrapConfiguration {
 
     @Bean
@@ -47,10 +46,7 @@ class IdentityBootstrapConfiguration {
     fun apiKeySecretVerifier(): ApiKeySecretVerifier = BCryptApiKeySecretVerifier()
 
     @Bean
-    fun passwordHasher(): PasswordHasher = Argon2idPasswordHasher()
-
-    @Bean
-    fun bcryptPasswordHasher(): BCryptPasswordHasher = BCryptPasswordHasher()
+    fun passwordHasher(): PasswordHasher = BCryptPasswordHasher()
 
     @Bean
     fun refreshTokenHasher(): RefreshTokenHasher = BCryptRefreshTokenHasher()
