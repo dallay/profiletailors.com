@@ -9,7 +9,6 @@ import com.profiletailors.smp.credentials.application.RefreshSessionLifecycleSer
 import com.profiletailors.smp.credentials.application.RefreshSessionNotActiveException
 import com.profiletailors.smp.identity.domain.EmailStatus
 import com.profiletailors.smp.identity.domain.UserRegistered
-import com.profiletailors.smp.identity.infrastructure.BCryptPasswordHasher
 import java.time.Clock
 import java.util.UUID
 
@@ -190,7 +189,7 @@ internal class RegisterUserHandler(
 internal class LoginUserHandler(
     private val localPasswordCredentialGateway: LocalPasswordCredentialGateway,
     private val passwordHasher: PasswordHasher,
-    private val bcryptPasswordHasher: BCryptPasswordHasher,
+    private val bcryptPasswordHasher: PasswordHasher,
     private val principalIdentityLookup: PrincipalIdentityLookup,
     private val localJwtIssuer: LocalJwtIssuer,
     private val refreshSessionLifecycleService: RefreshSessionLifecycleService,
