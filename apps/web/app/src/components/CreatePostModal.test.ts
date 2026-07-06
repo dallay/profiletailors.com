@@ -1422,17 +1422,19 @@ describe('CreatePostModal.vue — media picker shell integration', () => {
   it('selects the imported asset when provider-import is emitted by the shell', async () => {
     const wrapper = mountModal([makeChannel('ch-picker-import')])
     const mediaStore = useMediaStore()
-    const loadAsset = vi.spyOn(mediaStore, 'loadAsset').mockImplementation(async (assetId: string) => ({
-      assetId,
-      workspaceId: 'ws-1',
-      sourceType: 'EXTERNAL',
-      mediaType: 'image/jpeg',
-      status: 'READY',
-      originalFilename: 'imported.jpg',
-      fileSizeBytes: 1234,
-      createdAt: '2026-07-06T10:00:00Z',
-      previewUrl: `/api/media/assets/${assetId}/preview`,
-    }))
+    const loadAsset = vi
+      .spyOn(mediaStore, 'loadAsset')
+      .mockImplementation(async (assetId: string) => ({
+        assetId,
+        workspaceId: 'ws-1',
+        sourceType: 'EXTERNAL',
+        mediaType: 'image/jpeg',
+        status: 'READY',
+        originalFilename: 'imported.jpg',
+        fileSizeBytes: 1234,
+        createdAt: '2026-07-06T10:00:00Z',
+        previewUrl: `/api/media/assets/${assetId}/preview`,
+      }))
 
     await wrapper.vm.$nextTick()
 
