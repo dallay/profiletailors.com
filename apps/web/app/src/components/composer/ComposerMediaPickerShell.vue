@@ -11,6 +11,7 @@ import {
 } from '@/components/ui/dialog'
 import { Input } from '@/components/ui/input'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import type {
   ComposerMediaPickerProps,
   ComposerMediaPickerFilter,
@@ -23,6 +24,7 @@ const props = withDefaults(
   {
     disabled: false,
     errorMessage: null,
+    provider: null,
   },
 )
 
@@ -31,6 +33,7 @@ const emit = defineEmits<{
   (e: 'close'): void
   (e: 'search-change', payload: ComposerMediaPickerSearchChange): void
   (e: 'filter-change', payload: ComposerMediaPickerFilterChange): void
+  (e: 'provider-import', payload: { externalId: string }): void
 }>()
 
 const { t } = useI18n()
@@ -51,6 +54,10 @@ function handleFilterChange(value: unknown) {
   if (props.disabled || typeof value !== 'string') return
   emit('filter-change', { filter: value as ComposerMediaPickerFilter })
 }
+
+defineSlots<{
+  providerTab(): unknown
+}>()
 </script>
 
 <template>
@@ -80,114 +87,189 @@ function handleFilterChange(value: unknown) {
         </div>
       </DialogHeader>
 
-      <!-- Controls: search + filter -->
-      <div class="flex items-center gap-3">
-        <!-- biome-ignore lint/a11y/noLabelWithoutControl: dynamic :for resolved at runtime to the nested Input id -->
-        <label
-          :for="searchLabelId"
-          class="flex-1"
-        >
-          <span class="sr-only">{{ t('composer.mediaPicker.searchLabel') }}</span>
-          <Input
-            :id="searchLabelId"
-            data-testid="media-picker-search"
-            type="search"
-            :model-value="searchQuery"
-            :placeholder="t('composer.mediaPicker.searchPlaceholder')"
-            :aria-label="t('composer.mediaPicker.searchLabel')"
-            :disabled="disabled"
-            @update:model-value="handleSearchInput"
-          />
-        </label>
-        <!-- biome-ignore lint/a11y/noLabelWithoutControl: dynamic :for resolved at runtime to the nested SelectTrigger id -->
-        <label
-          :for="filterLabelId"
-          class="block"
-        >
-          <span class="sr-only">{{ t('composer.mediaPicker.filterLabel') }}</span>
-          <Select
-            :model-value="selectedFilter"
-            :disabled="disabled"
-            @update:model-value="handleFilterChange"
-          >
-            <SelectTrigger
-              :id="filterLabelId"
-              data-testid="media-picker-filter"
-              :aria-label="t('composer.mediaPicker.filterLabel')"
-              :disabled="disabled"
-              class="w-40"
+<!-- Body: either a single asset tab or asset + provider tabs -->
+      <template v-if="provider">
+        <Tabs default-value="library" class="w-full">
+          <TabsList class="grid w-full grid-cols-2">
+            <TabsTrigger value="library" data-testid="media-picker-library-tab-trigger">
+              {{ t('composer.mediaPicker.tabs.library') }}
+            </TabsTrigger>
+            <TabsTrigger value="provider" data-testid="media-picker-provider-tab-trigger">
+              {{ t('composer.mediaPicker.tabs.provider') }}
+            </TabsTrigger>
+          </TabsList>
+          <TabsContent value="library" class="flex flex-col gap-3">
+            <div class="flex items-center gap-3">
+              <!-- biome-ignore lint/a11y/noLabelWithoutControl: dynamic :for resolved at runtime to the nested Input id -->
+              <label :for="searchLabelId" class="flex-1">
+                <span class="sr-only">{{ t('composer.mediaPicker.searchLabel') }}</span>
+                <Input
+                  :id="searchLabelId"
+                  data-testid="media-picker-search"
+                  type="search"
+                  :model-value="searchQuery"
+                  :placeholder="t('composer.mediaPicker.searchPlaceholder')"
+                  :aria-label="t('composer.mediaPicker.searchLabel')"
+                  :disabled="disabled"
+                  @update:model-value="handleSearchInput"
+                />
+              </label>
+              <!-- biome-ignore lint/a11y/noLabelWithoutControl: dynamic :for resolved at runtime to the nested SelectTrigger id -->
+              <label :for="filterLabelId" class="block">
+                <span class="sr-only">{{ t('composer.mediaPicker.filterLabel') }}</span>
+                <Select
+                  :model-value="selectedFilter"
+                  :disabled="disabled"
+                  @update:model-value="handleFilterChange"
+                >
+                  <SelectTrigger
+                    :id="filterLabelId"
+                    data-testid="media-picker-filter"
+                    :aria-label="t('composer.mediaPicker.filterLabel')"
+                    :disabled="disabled"
+                    class="w-40"
+                  >
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem v-for="opt in filterOptions" :key="opt.value" :value="opt.value">
+                      {{ t(opt.labelKey) }}
+                    </SelectItem>
+                  </SelectContent>
+                </Select>
+              </label>
+            </div>
+
+            <div aria-live="polite" aria-atomic="true">
+              <div v-if="disabled" class="py-8 text-center">
+                <p class="text-sm font-medium text-text-display">{{ t('composer.mediaPicker.disabledTitle') }}</p>
+                <p class="mt-1 text-xs text-text-secondary">{{ t('composer.mediaPicker.disabledBody') }}</p>
+              </div>
+              <div v-else-if="state === 'loading'" class="py-8 text-center">
+                <p class="text-sm text-text-secondary">{{ t('composer.mediaPicker.loading') }}</p>
+              </div>
+              <div v-else-if="state === 'empty'" class="py-8 text-center">
+                <p class="text-sm font-medium text-text-display">{{ t('composer.mediaPicker.emptyTitle') }}</p>
+                <p class="mt-1 text-xs text-text-secondary">{{ t('composer.mediaPicker.emptyBody') }}</p>
+              </div>
+              <div v-else-if="state === 'error'" class="py-8 text-center">
+                <p class="text-sm font-medium text-error">{{ t('composer.mediaPicker.errorTitle') }}</p>
+                <p class="mt-1 text-xs text-text-secondary">{{ errorMessage ?? t('composer.mediaPicker.errorBody') }}</p>
+              </div>
+            </div>
+
+            <section
+              v-if="!disabled && state === 'ready'"
+              data-testid="media-picker-asset-grid"
+              :aria-label="t('composer.mediaPicker.assetGridLabel')"
+              class="grid grid-cols-3 gap-3 sm:grid-cols-4"
             >
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem v-for="opt in filterOptions" :key="opt.value" :value="opt.value">
-                {{ t(opt.labelKey) }}
-              </SelectItem>
-            </SelectContent>
-          </Select>
-        </label>
-      </div>
-
-      <div aria-live="polite" aria-atomic="true">
-      <!-- Disabled state -->
-      <div v-if="disabled" class="py-8 text-center">
-        <p class="text-sm font-medium text-text-display">
-          {{ t('composer.mediaPicker.disabledTitle') }}
-        </p>
-        <p class="mt-1 text-xs text-text-secondary">
-          {{ t('composer.mediaPicker.disabledBody') }}
-        </p>
-      </div>
-
-      <!-- Loading state -->
-      <div v-else-if="state === 'loading'" class="py-8 text-center">
-        <p class="text-sm text-text-secondary">
-          {{ t('composer.mediaPicker.loading') }}
-        </p>
-      </div>
-
-      <!-- Empty state -->
-      <div v-else-if="state === 'empty'" class="py-8 text-center">
-        <p class="text-sm font-medium text-text-display">
-          {{ t('composer.mediaPicker.emptyTitle') }}
-        </p>
-        <p class="mt-1 text-xs text-text-secondary">
-          {{ t('composer.mediaPicker.emptyBody') }}
-        </p>
-      </div>
-
-      <!-- Error state -->
-      <div v-else-if="state === 'error'" class="py-8 text-center">
-        <p class="text-sm font-medium text-error">
-          {{ t('composer.mediaPicker.errorTitle') }}
-        </p>
-        <p class="mt-1 text-xs text-text-secondary">
-          {{ errorMessage ?? t('composer.mediaPicker.errorBody') }}
-        </p>
-      </div>
-      </div>
-
-      <!-- Ready state with asset grid -->
-      <section
-        v-if="!disabled && state === 'ready'"
-        data-testid="media-picker-asset-grid"
-        :aria-label="t('composer.mediaPicker.assetGridLabel')"
-        class="grid grid-cols-3 gap-3 sm:grid-cols-4"
-      >
-        <div
-          v-for="asset in assets"
-          :key="asset.assetId"
-          :data-testid="`media-picker-asset-${asset.assetId}`"
-          class="flex flex-col items-center gap-1 rounded-xl border border-border-visible p-2"
-        >
-          <div class="flex size-16 items-center justify-center rounded-lg bg-bg-primary text-xs text-text-secondary">
-            {{ asset.mediaType.split('/')[1]?.toUpperCase() ?? 'FILE' }}
-          </div>
-          <span class="line-clamp-1 max-w-full text-xs text-text-display">
-            {{ asset.originalFilename ?? asset.assetId }}
-          </span>
+              <div
+                v-for="asset in assets"
+                :key="asset.assetId"
+                :data-testid="`media-picker-asset-${asset.assetId}`"
+                class="flex flex-col items-center gap-1 rounded-xl border border-border-visible p-2"
+              >
+                <div class="flex size-16 items-center justify-center rounded-lg bg-bg-primary text-xs text-text-secondary">
+                  {{ asset.mediaType.split('/')[1]?.toUpperCase() ?? 'FILE' }}
+                </div>
+                <span class="line-clamp-1 max-w-full text-xs text-text-display">
+                  {{ asset.originalFilename ?? asset.assetId }}
+                </span>
+              </div>
+            </section>
+          </TabsContent>
+          <TabsContent
+            value="provider"
+            class="flex flex-col gap-3"
+            data-testid="media-picker-provider-tab-content"
+          >
+            <slot name="providerTab" />
+          </TabsContent>
+        </Tabs>
+      </template>
+      <template v-else>
+        <!-- Controls: search + filter -->
+        <div class="flex items-center gap-3">
+          <!-- biome-ignore lint/a11y/noLabelWithoutControl: dynamic :for resolved at runtime to the nested Input id -->
+          <label :for="searchLabelId" class="flex-1">
+            <span class="sr-only">{{ t('composer.mediaPicker.searchLabel') }}</span>
+            <Input
+              :id="searchLabelId"
+              data-testid="media-picker-search"
+              type="search"
+              :model-value="searchQuery"
+              :placeholder="t('composer.mediaPicker.searchPlaceholder')"
+              :aria-label="t('composer.mediaPicker.searchLabel')"
+              :disabled="disabled"
+              @update:model-value="handleSearchInput"
+            />
+          </label>
+          <!-- biome-ignore lint/a11y/noLabelWithoutControl: dynamic :for resolved at runtime to the nested SelectTrigger id -->
+          <label :for="filterLabelId" class="block">
+            <span class="sr-only">{{ t('composer.mediaPicker.filterLabel') }}</span>
+            <Select
+              :model-value="selectedFilter"
+              :disabled="disabled"
+              @update:model-value="handleFilterChange"
+            >
+              <SelectTrigger
+                :id="filterLabelId"
+                data-testid="media-picker-filter"
+                :aria-label="t('composer.mediaPicker.filterLabel')"
+                :disabled="disabled"
+                class="w-40"
+              >
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem v-for="opt in filterOptions" :key="opt.value" :value="opt.value">
+                  {{ t(opt.labelKey) }}
+                </SelectItem>
+              </SelectContent>
+            </Select>
+          </label>
         </div>
-      </section>
+
+        <div aria-live="polite" aria-atomic="true">
+          <div v-if="disabled" class="py-8 text-center">
+            <p class="text-sm font-medium text-text-display">{{ t('composer.mediaPicker.disabledTitle') }}</p>
+            <p class="mt-1 text-xs text-text-secondary">{{ t('composer.mediaPicker.disabledBody') }}</p>
+          </div>
+          <div v-else-if="state === 'loading'" class="py-8 text-center">
+            <p class="text-sm text-text-secondary">{{ t('composer.mediaPicker.loading') }}</p>
+          </div>
+          <div v-else-if="state === 'empty'" class="py-8 text-center">
+            <p class="text-sm font-medium text-text-display">{{ t('composer.mediaPicker.emptyTitle') }}</p>
+            <p class="mt-1 text-xs text-text-secondary">{{ t('composer.mediaPicker.emptyBody') }}</p>
+          </div>
+          <div v-else-if="state === 'error'" class="py-8 text-center">
+            <p class="text-sm font-medium text-error">{{ t('composer.mediaPicker.errorTitle') }}</p>
+            <p class="mt-1 text-xs text-text-secondary">{{ errorMessage ?? t('composer.mediaPicker.errorBody') }}</p>
+          </div>
+        </div>
+
+        <section
+          v-if="!disabled && state === 'ready'"
+          data-testid="media-picker-asset-grid"
+          :aria-label="t('composer.mediaPicker.assetGridLabel')"
+          class="grid grid-cols-3 gap-3 sm:grid-cols-4"
+        >
+          <div
+            v-for="asset in assets"
+            :key="asset.assetId"
+            :data-testid="`media-picker-asset-${asset.assetId}`"
+            class="flex flex-col items-center gap-1 rounded-xl border border-border-visible p-2"
+          >
+            <div class="flex size-16 items-center justify-center rounded-lg bg-bg-primary text-xs text-text-secondary">
+              {{ asset.mediaType.split('/')[1]?.toUpperCase() ?? 'FILE' }}
+            </div>
+            <span class="line-clamp-1 max-w-full text-xs text-text-display">
+              {{ asset.originalFilename ?? asset.assetId }}
+            </span>
+          </div>
+        </section>
+      </template>
       </div>
     </DialogContent>
   </Dialog>

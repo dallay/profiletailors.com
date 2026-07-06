@@ -16,6 +16,7 @@ import {
   X,
 } from '@lucide/vue'
 import { useAuthStore } from '@/stores/auth'
+import { useWorkspaceStore } from '@/stores/workspace'
 import { usePublishingStore, type Publication } from '@/stores/publishing'
 import { useMediaStore } from '@/stores/media'
 import { proxyImageUrl, resolveApiUrl } from '@/lib/auth-api'
@@ -31,6 +32,8 @@ import {
   type ComposerMediaPickerFilterChange,
 } from '@/components/composer/composer-media-picker.types'
 import type { LinkedInPreviewModel, PostPreviewMedia } from '@/components/composer/post-preview.types'
+import MediaProviderPanel from '@/features/media-composer/providers/MediaProviderPanel.vue'
+import { resolveMediaProviderConfig } from '@/composables/useMediaProviderConfig'
 import { Button } from '@/components/ui/button'
 import { Calendar } from '@/components/ui/calendar'
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
@@ -56,6 +59,7 @@ const emit = defineEmits<{
 
 const { t } = useI18n()
 const auth = useAuthStore()
+const workspace = useWorkspaceStore()
 const publishingStore = usePublishingStore()
 const mediaStore = useMediaStore()
 
@@ -317,6 +321,11 @@ const mediaPickerState = computed<ComposerMediaPickerViewState>(
   () => COMPOSER_MEDIA_PICKER_VIEW_STATE.LOADING,
 )
 
+const mediaProviderConfig = computed(() => resolveMediaProviderConfig())
+
+const authAccessToken = computed(() => auth.accessToken ?? '')
+const activeWorkspaceId = computed(() => workspace.activeWorkspaceId ?? '')
+
 const selectedDateLabel = computed(() => {
   if (!selectedCalendarDate.value) return 'Select date'
   const date = selectedCalendarDate.value.toDate(getLocalTimeZone())
@@ -566,6 +575,13 @@ function handleMediaPickerSearchChange(payload: ComposerMediaPickerSearchChange)
 
 function handleMediaPickerFilterChange(payload: ComposerMediaPickerFilterChange) {
   mediaPickerSelectedFilter.value = payload.filter
+}
+
+function handleMediaPickerProviderImport() {
+  // Close picker on successful import; the imported asset id is forwarded through the slot
+  // contract and a dedicated "asset attached" UI follow-up will surface the asset in the preview panel.
+  mediaPickerSearchQuery.value = ''
+  handleMediaPickerOpenChange(false)
 }
 
 function onChannelAvatarError(channelId: string) {
@@ -1163,11 +1179,21 @@ async function handleCreateSubmit(
         :selected-filter="mediaPickerSelectedFilter"
         :filter-options="mediaPickerFilterOptions"
         :assets="[]"
+        :provider="mediaProviderConfig.unsplashEnabled ? 'unsplash' : null"
         @update:open="handleMediaPickerOpenChange"
         @close="handleMediaPickerClose"
         @search-change="handleMediaPickerSearchChange"
         @filter-change="handleMediaPickerFilterChange"
-      />
+        @provider-import="handleMediaPickerProviderImport"
+      >
+        <template #providerTab>
+          <MediaProviderPanel
+            :workspace-id="activeWorkspaceId"
+            :token="authAccessToken"
+            @import-success="handleMediaPickerProviderImport"
+          />
+        </template>
+      </ComposerMediaPickerShell>
     </div>
   </Teleport>
 </template>

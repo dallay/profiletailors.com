@@ -322,3 +322,46 @@ class AssetNotFoundException(val assetId: String) : RuntimeException("Asset $ass
  */
 class FileTooLargeException(val actualSize: Long, val maxAllowed: Long) :
     RuntimeException("File size $actualSize exceeds max $maxAllowed")
+
+/**
+ * Command to import an external (provider-sourced) media asset into the library.
+ *
+ * The provider has already returned a fully-resolved [ProviderExternalAsset]
+ * describing the binary payload and attribution; the handler is responsible
+ * for streaming the bytes through the same CAS pipeline used by uploads,
+ * computing the SHA-256 hash, dedup-hitting against existing same-hash blobs
+ * in the workspace, and persisting the [MediaAsset] with [MediaSourceType.EXTERNAL].
+ *
+ * @property workspaceId workspace that will own the new asset.
+ * @property externalAsset provider-neutral payload returned by `MediaProvider.import`.
+ */
+data class ImportExternalAssetCommand(val workspaceId: String, val externalAsset: ProviderExternalAssetContract) :
+    CommandWithResult<ImportExternalAssetResult>
+
+/**
+ * Result of importing an external asset.
+ *
+ * @property assetId id of the asset row (new or canonical existing one).
+ * @property workspaceId workspace that owns the asset.
+ * @property deduped true if this import reused an existing READY asset for the same
+ *   `(workspaceId, fileHash)` pair rather than creating a new row.
+ * @property mediaType server-detected (or provider-declared) MIME type.
+ * @property fileSizeBytes final byte count.
+ */
+data class ImportExternalAssetResult(
+    val assetId: String,
+    val workspaceId: String,
+    val deduped: Boolean,
+    val mediaType: String,
+    val fileSizeBytes: Long,
+)
+
+/**
+ * Contract alias re-exported here so the application's commands remain the single home
+ * of the public command surface, while preserving the adapter-neutral types from
+ * `application/port/MediaProvider.kt`.
+ *
+ * We intentionally do not import the type directly into the package-level namespace to
+ * avoid circular imports between application handlers and the provider port.
+ */
+typealias ProviderExternalAssetContract = com.profiletailors.smp.media.application.port.ProviderExternalAsset
