@@ -8,6 +8,8 @@
 
 Public-facing marketing site for the Profile Tailors social media management platform.
 
+</div>
+
 [![License](https://img.shields.io/github/license/dallay/profiletailors.com?style=for-the-badge&color=2d3748)](LICENSE)
 [![CI](https://img.shields.io/github/actions/workflow/status/dallay/profiletailors.com/release-please.yml?style=for-the-badge&color=2d3748&label=CI)](https://github.com/dallay/profiletailors.com/actions)
 [![Astro](https://img.shields.io/badge/Astro-6.4.8-2d3748?style=for-the-badge&logo=astro&logoColor=ffffff)](https://astro.build)
