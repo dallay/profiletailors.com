@@ -11,15 +11,16 @@ import org.springframework.stereotype.Repository
 class R2dbcLocalPasswordCredentialGateway(private val databaseClient: DatabaseClient) :
     LocalPasswordCredentialGateway {
 
-    override suspend fun create(principalId: String, passwordHash: String) {
+    override suspend fun create(principalId: String, passwordHash: String, passwordAlgorithm: String) {
         databaseClient.sql(
             """
-            INSERT INTO local_password_credentials (principal_id, password_hash)
-            VALUES (:principalId, :passwordHash)
+            INSERT INTO local_password_credentials (principal_id, password_hash, password_algorithm)
+            VALUES (:principalId, :passwordHash, :passwordAlgorithm)
             """.trimIndent(),
         )
             .bind("principalId", principalId)
             .bind("passwordHash", passwordHash)
+            .bind("passwordAlgorithm", passwordAlgorithm)
             .fetch()
             .rowsUpdated()
             .awaitSingle()
@@ -30,7 +31,8 @@ class R2dbcLocalPasswordCredentialGateway(private val databaseClient: DatabaseCl
             SELECT ui.principal_id,
                    ui.email,
                    ui.username,
-                   lpc.password_hash
+                   lpc.password_hash,
+                   lpc.password_algorithm
             FROM user_identities ui
             INNER JOIN local_password_credentials lpc ON lpc.principal_id = ui.principal_id
             WHERE ui.email = :email
@@ -43,8 +45,27 @@ class R2dbcLocalPasswordCredentialGateway(private val databaseClient: DatabaseCl
                 email = requireNotNull(row.get("email", String::class.java)),
                 username = row.get("username", String::class.java),
                 passwordHash = requireNotNull(row.get("password_hash", String::class.java)),
+                passwordAlgorithm = row.get("password_algorithm", String::class.java),
             )
         }
         .one()
         .awaitSingleOrNull()
+
+    override suspend fun updatePassword(principalId: String, passwordHash: String, passwordAlgorithm: String) {
+        databaseClient.sql(
+            """
+            UPDATE local_password_credentials
+            SET password_hash = :passwordHash,
+                password_algorithm = :passwordAlgorithm,
+                updated_at = CURRENT_TIMESTAMP
+            WHERE principal_id = :principalId
+            """.trimIndent(),
+        )
+            .bind("principalId", principalId)
+            .bind("passwordHash", passwordHash)
+            .bind("passwordAlgorithm", passwordAlgorithm)
+            .fetch()
+            .rowsUpdated()
+            .awaitSingle()
+    }
 }

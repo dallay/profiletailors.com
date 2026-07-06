@@ -44,7 +44,7 @@ class R2dbcLocalPasswordCredentialGatewayTest : PostgresDatabaseTestBase() {
             """.trimIndent(),
         ).fetch().rowsUpdated().awaitSingle()
 
-        gateway.create("user-1", "hashed-password123")
+        gateway.create("user-1", "hashed-password123", "bcrypt")
 
         val record = gateway.findByEmail("yuniel@example.com")
 

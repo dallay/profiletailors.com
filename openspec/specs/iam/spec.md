@@ -133,6 +133,10 @@ The system MUST support the following authentication mechanisms in phase one:
    replacement capability with predecessor/successor semantics and no-overlap cutover.
 5. **Email verification gating**: Refresh credential issuance and protected features gated
    behind `email_status = VERIFIED`.
+6. **Multi-algorithm password verification**: Local email/password credentials support
+   Argon2id for new registrations with opportunistic BCrypt-to-Argon2id rehash on successful
+   login. The system persists explicit algorithm metadata for authoritative verification and
+   infers algorithm from hash format defensively when metadata is absent.
 
 #### Scenario: JWT materializes an authenticated USER principal
 
@@ -162,6 +166,42 @@ The system MUST support the following authentication mechanisms in phase one:
 - WHEN the backend evaluates
 - THEN the system MUST deny with 403
 - AND the error MUST indicate email verification required
+
+#### Scenario: New registration stores Argon2id credential
+
+- GIVEN a new user submits a valid local registration request
+- WHEN the backend persists the local password credential
+- THEN the stored password hash MUST be Argon2id
+- AND the stored credential metadata MUST indicate `argon2id`
+
+#### Scenario: Existing BCrypt credential remains login-compatible
+
+- GIVEN a user exists with a valid BCrypt password hash
+- WHEN the user submits the correct password to the login endpoint
+- THEN the system MUST authenticate the user successfully
+- AND the system MUST preserve normal token issuance behavior for that login
+
+#### Scenario: Successful BCrypt login triggers rehash
+
+- GIVEN a user exists with a valid BCrypt password hash and compatible principal identity
+- WHEN the user authenticates successfully with the correct password
+- THEN the system MUST replace the stored password hash with a new Argon2id hash
+- AND the stored credential metadata MUST be updated to `argon2id`
+
+#### Scenario: Missing algorithm metadata falls back safely
+
+- GIVEN a local password credential row has no explicit algorithm metadata
+- AND the stored hash format is recognizable as BCrypt
+- WHEN the user authenticates successfully
+- THEN the system SHALL accept the legacy credential
+- AND the system SHALL upgrade the stored credential to Argon2id metadata and hash
+
+#### Scenario: Malformed hash fails closed
+
+- GIVEN a local password credential row contains malformed or unsupported hash data
+- WHEN the user submits a login request
+- THEN the system MUST reject the login as invalid credentials
+- AND the system MUST NOT return an internal server error
 
 ### Requirement: Governance and Explainability
 
