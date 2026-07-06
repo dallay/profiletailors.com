@@ -890,7 +890,7 @@ class LocalAuthEndpointIntegrationTest : PostgresIntegrationTestBase() {
             .bind("username", email.substringBefore("@"))
             .fetch().rowsUpdated().block()!!
 
-        databaseClient.sql(
+        val specWithPasswordHash = databaseClient.sql(
             """
             INSERT INTO local_password_credentials (principal_id, password_hash, password_algorithm)
             VALUES ((SELECT id FROM principals WHERE subject = :subject), :passwordHash, :passwordAlgorithm)
@@ -898,14 +898,12 @@ class LocalAuthEndpointIntegrationTest : PostgresIntegrationTestBase() {
         )
             .bind("subject", "local:$email")
             .bind("passwordHash", bcryptHash)
-            .also { stmt ->
-                if (passwordAlgorithm != null) {
-                    stmt.bind("passwordAlgorithm", passwordAlgorithm)
-                } else {
-                    stmt.bindNull("passwordAlgorithm", String::class.java)
-                }
-            }
-            .fetch().rowsUpdated().block()!!
+        val finalSpec = if (passwordAlgorithm != null) {
+            specWithPasswordHash.bind("passwordAlgorithm", passwordAlgorithm)
+        } else {
+            specWithPasswordHash.bindNull("passwordAlgorithm", String::class.java)
+        }
+        finalSpec.fetch().rowsUpdated().block()!!
     }
 
     companion object {
