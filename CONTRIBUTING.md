@@ -48,8 +48,8 @@ second PR onward, the check passes automatically.
 git clone https://github.com/dallay/profiletailors.com.git
 cd profiletailors.com
 
-# Landing page
-cd apps/web/landing
+# Marketing site
+cd apps/web/marketing
 pnpm install
 pnpm dev
 ```
@@ -92,7 +92,7 @@ chore(scope): short description
 Examples:
 
 ```
-feat(landing): add waitlist form validation
+feat(marketing): add waitlist form validation
 fix(nav): correct mobile menu z-index
 docs(contributing): clarify CLA process
 ```
