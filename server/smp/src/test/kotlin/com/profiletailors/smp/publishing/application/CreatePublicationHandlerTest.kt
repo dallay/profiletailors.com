@@ -9,25 +9,27 @@ import com.profiletailors.common.domain.context.ResourceContextType
 import com.profiletailors.common.domain.persistence.AtomicTransactionRunner
 import com.profiletailors.smp.media.application.MediaAssetResolver
 import com.profiletailors.smp.publishing.domain.ProviderCapabilityValidator
-import com.profiletailors.smp.publishing.domain.PublicationAssetRepository
 import com.profiletailors.smp.publishing.domain.PublicationDraft
-import com.profiletailors.smp.publishing.domain.PublicationJobRepository
 import com.profiletailors.smp.publishing.domain.PublicationRepository
-import com.profiletailors.smp.publishing.domain.PublicationSchedulingPolicy
+import com.profiletailors.smp.publishing.domain.PublicationAssetRepository
+import com.profiletailors.smp.publishing.domain.PublicationJobRepository
 import com.profiletailors.smp.publishing.domain.PublicationStatus
+import com.profiletailors.smp.publishing.domain.PublicationSchedulingPolicy
 import com.profiletailors.smp.publishing.domain.ScheduleMode
 import com.profiletailors.smp.publishing.domain.SocialAccount
 import com.profiletailors.smp.publishing.domain.SocialAccountKind
 import com.profiletailors.smp.publishing.domain.SocialAccountRepository
 import com.profiletailors.smp.publishing.domain.SocialConnectionStatus
 import com.profiletailors.smp.publishing.domain.SocialProvider
+import io.kotest.matchers.shouldBe
 import io.mockk.coEvery
 import io.mockk.every
 import io.mockk.mockk
-import kotlinx.coroutines.runBlocking
-import org.junit.jupiter.api.Assertions.assertEquals
+import kotlinx.coroutines.test.runTest
 import org.junit.jupiter.api.Test
 import java.time.Clock
+import java.time.Instant
+import java.time.ZoneId
 
 class CreatePublicationHandlerTest {
     private val principalContextProvider = mockk<PrincipalContextProvider>(relaxed = true)
@@ -43,7 +45,9 @@ class CreatePublicationHandlerTest {
     private val schedulingPolicy = PublicationSchedulingPolicy()
     private val mediaAssetResolver = mockk<MediaAssetResolver>(relaxed = true)
     private val mediaIntegrationSettings = PublishingMediaIntegrationSettings(enabled = false)
-    private val clock = Clock.systemUTC()
+
+    private val fixedInstant = Instant.parse("2026-01-01T12:00:00Z")
+    private val clock = Clock.fixed(fixedInstant, ZoneId.of("UTC"))
 
     private val handler = CreatePublicationHandler(
         principalContextProvider,
@@ -61,7 +65,7 @@ class CreatePublicationHandlerTest {
     )
 
     @Test
-    fun `should create new publication`() = runBlocking {
+    fun `should create new publication`() = runTest {
         val workspaceId = "ws-1"
         val principalId = "u-1"
         val accountId = "acc-1"
@@ -99,8 +103,8 @@ class CreatePublicationHandlerTest {
 
         val result = handler.handle(command)
 
-        assertEquals("Title", result.title)
-        assertEquals(workspaceId, result.workspaceId)
-        assertEquals(PublicationStatus.QUEUED, result.status)
+        result.title shouldBe "Title"
+        result.workspaceId shouldBe workspaceId
+        result.status shouldBe PublicationStatus.QUEUED
     }
 }

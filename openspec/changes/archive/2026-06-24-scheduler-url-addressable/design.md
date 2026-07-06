@@ -23,9 +23,7 @@ Route tree:
 
 - `/scheduler` → redirect to named route `scheduler-calendar-week`, preserving query
 -
-
 `/scheduler/calendar/week?date=YYYY-MM-DD&channels[]=acc-1&timezone=Europe/Madrid&status=QUEUED&q=text`
-
 - `/scheduler/calendar/month?...same query schema...`
 - `/scheduler/list?...same query schema...&mode=list` (mode accepted temporarily, path is canonical)
 

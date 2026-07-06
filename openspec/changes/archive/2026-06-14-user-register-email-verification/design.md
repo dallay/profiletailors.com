@@ -120,7 +120,7 @@ User ──POST /refresh──→ RefreshUserSessionHandler
 databaseChangeLog:
   - changeSet:
       id: identity-004-add-email-verification
-      author: acosta
+      author: opencode
       changes:
         - addColumn:
             tableName: user_identities

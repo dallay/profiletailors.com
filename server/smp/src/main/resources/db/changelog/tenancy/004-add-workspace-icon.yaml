@@ -1,7 +1,7 @@
 databaseChangeLog:
   - changeSet:
       id: tenancy-004-add-workspace-icon
-      author: acosta
+      author: opencode
       changes:
         - addColumn:
             tableName: workspaces

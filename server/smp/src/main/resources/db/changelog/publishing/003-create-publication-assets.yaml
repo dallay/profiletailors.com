@@ -1,7 +1,7 @@
 databaseChangeLog:
   - changeSet:
       id: publishing-003-create-publication-assets
-      author: acosta
+      author: opencode
       changes:
         - createTable:
             tableName: publication_assets

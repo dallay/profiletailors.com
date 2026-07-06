@@ -8,10 +8,10 @@ import com.profiletailors.common.domain.bus.notification.Notification
 import com.profiletailors.common.domain.bus.notification.NotificationHandler
 import com.profiletailors.common.domain.bus.query.Query
 import com.profiletailors.common.domain.bus.query.QueryHandler
-import kotlinx.coroutines.runBlocking
+import io.kotest.assertions.throwables.shouldThrow
+import io.kotest.matchers.shouldBe
+import kotlinx.coroutines.test.runTest
 import org.junit.jupiter.api.Test
-import kotlin.test.assertEquals
-import kotlin.test.assertTrue
 
 class MediatorImplTest {
 
@@ -50,57 +50,60 @@ class MediatorImplTest {
     }
 
     @Test
-    fun `should send query and return response`() = runBlocking {
+    fun `should send query and return response`() = runTest {
         val handler = PingQueryHandler()
-        val mediator = createMediator(PingQuery::class.java to handler)
+        val mediator = createMediator(handler)
 
         val result = mediator.send(PingQuery())
 
-        assertEquals("pong", result)
+        result shouldBe "pong"
     }
 
     @Test
-    fun `should send command`() = runBlocking {
+    fun `should send command`() = runTest {
         val handler = HelloCommandHandler()
-        val mediator = createMediator(HelloCommand::class.java to handler)
+        val mediator = createMediator(handler)
 
         mediator.send(HelloCommand())
 
-        assertTrue(handler.handled)
+        handler.handled shouldBe true
     }
 
     @Test
-    fun `should send command with result`() = runBlocking {
+    fun `should send command with result`() = runTest {
         val handler = AddCommandHandler()
-        val mediator = createMediator(AddCommand::class.java to handler)
+        val mediator = createMediator(handler)
 
         val result = mediator.send(AddCommand(2, 3))
 
-        assertEquals(5, result)
+        result shouldBe 5
     }
 
     @Test
-    fun `should publish notification to all handlers`() = runBlocking {
+    fun `should publish notification to all handlers`() = runTest {
         val handler1 = UserCreatedHandler1()
         val handler2 = UserCreatedHandler2()
 
-        val map = HashMap<Class<*>, Any>()
-        map[UserCreatedHandler1::class.java] = handler1
-        map[UserCreatedHandler2::class.java] = handler2
-
-        val dependencyProvider = ManualDependencyProvider(map)
-        val registry = RegistryImpl(dependencyProvider)
-        val mediator = MediatorImpl(registry)
+        val mediator = createMediator(handler1, handler2)
 
         mediator.publish(UserCreatedNotification())
 
-        assertEquals(1, handler1.callCount)
-        assertEquals(1, handler2.callCount)
+        handler1.callCount shouldBe 1
+        handler2.callCount shouldBe 1
     }
 
-    private fun createMediator(vararg handlers: Pair<Class<*>, Any>): Mediator {
+    @Test
+    fun `should throw when no handler registered`() = runTest {
+        val mediator = createMediator()
+
+        shouldThrow<HandlerNotFoundException> {
+            mediator.send(PingQuery())
+        }
+    }
+
+    private fun createMediator(vararg handlers: Any): Mediator {
         val map = HashMap<Class<*>, Any>()
-        handlers.forEach { (clazz, handler) ->
+        handlers.forEach { handler ->
             map[handler.javaClass] = handler
         }
         val dependencyProvider = ManualDependencyProvider(map)

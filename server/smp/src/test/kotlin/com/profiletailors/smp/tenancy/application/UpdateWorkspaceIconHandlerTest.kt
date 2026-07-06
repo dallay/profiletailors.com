@@ -5,16 +5,18 @@ import com.profiletailors.common.domain.context.ResourceContextProvider
 import com.profiletailors.common.domain.context.ResourceContextType
 import com.profiletailors.smp.authorization.domain.AuthorizationDecision
 import com.profiletailors.smp.authorization.domain.AuthorizationDecisionResult
+import com.profiletailors.smp.authorization.domain.AuthorizationDeniedException
 import com.profiletailors.smp.authorization.domain.AuthorizationReasonCode
 import com.profiletailors.smp.authorization.domain.WorkspaceAuthorizationDecider
 import com.profiletailors.smp.tenancy.domain.WorkspaceMutationRepository
+import io.kotest.assertions.throwables.shouldThrow
+import io.kotest.matchers.shouldBe
 import io.mockk.coEvery
 import io.mockk.every
 import io.mockk.mockk
-import io.mockk.mockkStatic
-import kotlinx.coroutines.runBlocking
-import org.junit.jupiter.api.Assertions.assertEquals
-import org.junit.jupiter.api.Assertions.assertThrows
+import io.mockk.unmockkAll
+import kotlinx.coroutines.test.runTest
+import org.junit.jupiter.api.AfterEach
 import org.junit.jupiter.api.Test
 
 class UpdateWorkspaceIconHandlerTest {
@@ -27,41 +29,73 @@ class UpdateWorkspaceIconHandlerTest {
         workspaceAuthorizationDecider,
     )
 
+    @AfterEach
+    fun tearDown() {
+        unmockkAll()
+    }
+
     @Test
-    fun `should update icon when authorized`() = runBlocking {
+    fun `should update icon when authorized`() = runTest {
         val workspaceId = "ws-1"
         val icon = "rocket-ship"
-
-        mockkStatic("com.profiletailors.smp.tenancy.application.TenancyInternalSupportKt")
 
         coEvery {
             workspaceAuthorizationDecider.decideDetailed(any(), any(), any())
         } returns AuthorizationDecisionResult(AuthorizationDecision.ALLOW, AuthorizationReasonCode.ROLE_PERMISSION)
 
         val ctx = ResourceContext(type = ResourceContextType.WORKSPACE, workspaceId = workspaceId)
-        every { resourceContextProvider.requireWorkspaceContext() } returns ctx
+        every { resourceContextProvider.require() } returns ctx
+        every { resourceContextProvider.current() } returns ctx
 
         coEvery { workspaceMutationRepository.updateIcon(workspaceId, any()) } returns true
 
         val result = handler.handle(UpdateWorkspaceIconCommand(icon))
 
-        assertEquals(workspaceId, result.workspaceId)
-        assertEquals(icon, result.icon)
+        result.workspaceId shouldBe workspaceId
+        result.icon shouldBe icon
     }
 
     @Test
-    fun `should throw exception when icon name is invalid`() {
-        val workspaceId = "ws-1"
-        mockkStatic("com.profiletailors.smp.tenancy.application.TenancyInternalSupportKt")
+    fun `should throw exception when authorization is denied`() = runTest {
+        coEvery {
+            workspaceAuthorizationDecider.decideDetailed(any(), any(), any())
+        } returns AuthorizationDecisionResult(AuthorizationDecision.DENY, AuthorizationReasonCode.MISSING_PERMISSION)
 
+        shouldThrow<AuthorizationDeniedException> {
+            handler.handle(UpdateWorkspaceIconCommand("rocket"))
+        }
+    }
+
+    @Test
+    fun `should throw exception when repository update fails`() = runTest {
+        val workspaceId = "ws-1"
+        coEvery {
+            workspaceAuthorizationDecider.decideDetailed(any(), any(), any())
+        } returns AuthorizationDecisionResult(AuthorizationDecision.ALLOW, AuthorizationReasonCode.ROLE_PERMISSION)
+
+        val ctx = ResourceContext(type = ResourceContextType.WORKSPACE, workspaceId = workspaceId)
+        every { resourceContextProvider.require() } returns ctx
+        every { resourceContextProvider.current() } returns ctx
+
+        coEvery { workspaceMutationRepository.updateIcon(workspaceId, any()) } returns false
+
+        shouldThrow<IllegalStateException> {
+            handler.handle(UpdateWorkspaceIconCommand("rocket"))
+        }
+    }
+
+    @Test
+    fun `should throw exception when icon name is invalid`() = runTest {
+        val workspaceId = "ws-1"
         coEvery { workspaceAuthorizationDecider.decideDetailed(any(), any(), any()) } returns
             AuthorizationDecisionResult(AuthorizationDecision.ALLOW, AuthorizationReasonCode.ROLE_PERMISSION)
 
         val ctx = ResourceContext(type = ResourceContextType.WORKSPACE, workspaceId = workspaceId)
-        every { resourceContextProvider.requireWorkspaceContext() } returns ctx
+        every { resourceContextProvider.require() } returns ctx
+        every { resourceContextProvider.current() } returns ctx
 
-        assertThrows(IllegalArgumentException::class.java) {
-            runBlocking { handler.handle(UpdateWorkspaceIconCommand("Invalid_Icon!")) }
+        shouldThrow<IllegalArgumentException> {
+            handler.handle(UpdateWorkspaceIconCommand("Invalid_Icon!"))
         }
     }
 }

@@ -1,7 +1,7 @@
 databaseChangeLog:
   - changeSet:
       id: authorization-003-create-role-permissions
-      author: acosta
+      author: opencode
       changes:
         - createTable:
             tableName: role_permissions

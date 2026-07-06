@@ -69,14 +69,6 @@ gradle-root    := `if [ -n "${COMSPEC:-}" ] && [ -z "${MSYSTEM:-}" ]; then echo 
 docker-compose := "docker compose"
 
 # ═══════════════════════════════════════════════════════════════
-# DOCTOR
-# ═══════════════════════════════════════════════════════════════
-
-# Run environment diagnostics
-doctor:
-    node scripts/doctor.mjs
-
-# ═══════════════════════════════════════════════════════════════
 # SETUP
 # ═══════════════════════════════════════════════════════════════
 
@@ -86,11 +78,20 @@ install:
 
 # Full initial setup: .env → install → git hooks → agentsync → codegraph
 setup:
-    node scripts/setup.mjs
+    cp -n .env.example .env 2>/dev/null || true
+    just install
+    just hooks-install
+    pnpm dlx @dallay/agentsync apply
+    command -v codegraph >/dev/null 2>&1 && codegraph init || echo "⚠️  codegraph not found — skipping index init"
 
 # Install Lefthook git hooks unless globally disabled
 hooks-install:
-    node scripts/install-hooks.mjs
+    @HOOKS_PATH="$$(git config --global core.hooksPath 2>/dev/null || true)"; \
+    if [ "$$HOOKS_PATH" = "/dev/null" ]; then \
+        echo "Skipping Lefthook install: core.hooksPath=/dev/null"; \
+    else \
+        pnpm exec lefthook install; \
+    fi
 
 # ═══════════════════════════════════════════════════════════════
 # FRONTEND  (pnpm / Astro / Biome / Vitest / Playwright)
@@ -192,22 +193,7 @@ backend-run:
 # ═══════════════════════════════════════════════════════════════
 
 # Start backend + frontend app in parallel (both read root .env)
-serve +FORCE='':
-    #!/usr/bin/env bash
-    if [[ "{{FORCE}}" == "force" || "{{FORCE}}" == "--force" ]]; then
-        echo "Force flag detected — killing existing servers..."
-        pkill -f "bootRun" 2>/dev/null || true
-        pkill -f "vite" 2>/dev/null || true
-        pkill -f "GradleDaemon" 2>/dev/null || true
-        sleep 1
-    fi
-
-    # Check if portless has stale registration
-    if portless status 2>/dev/null | grep -q "already registered"; then
-        echo "Portless conflict detected — forcing restart..."
-        portless --force 2>/dev/null || true
-    fi
-
+serve:
     @echo "Starting backend (Spring Boot) + frontend app (Vite)..."
     {{gradle-root}} :server:smp:bootRun --args='--spring.profiles.active=dev' &
     cd {{app-dir}} && pnpm dev
