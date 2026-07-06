@@ -52,7 +52,6 @@ identical to uploads — the only difference is metadata attached to the row.
   active `media_assets` row for that workspace and hash
 - AND it MUST NOT create a new blob or a duplicate asset row
 
-
 #### Scenario: Unsplash photo exceeding 500 MB is rejected
 
 - GIVEN an Unsplash result whose binary content exceeds 500 MB after download

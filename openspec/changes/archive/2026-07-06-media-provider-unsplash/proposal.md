@@ -68,29 +68,29 @@ composer lacks a stock-imagery shortcut.
 
 ## Affected Areas
 
-| Area                                                        | Impact   | Description                                          |
-|-------------------------------------------------------------|----------|------------------------------------------------------|
-| `server/smp/src/main/kotlin/.../mediaprovider/`             | New      | New bounded context                                  |
-| `server/smp/src/main/kotlin/.../media/application/port/`    | Modified | `MediaProvider` port interface                       |
-| `server/smp/src/main/kotlin/.../media/application/handler/` | Modified | Reuse CAS import for `EXTERNAL` rows                 |
-| `server/smp/src/main/kotlin/.../media/api/`                 | Modified | Search + import endpoints                            |
-| `server/smp/src/main/resources/application.yml`             | Modified | `mediaprovider.unsplash.*` config block              |
-| `server/smp/src/test/kotlin/.../mediaprovider/`             | New      | Unit + WebFlux + WireMock tests                      |
-| `apps/web/app/src/features/media/composer/`                 | Modified | Provider tab + search/import UI                      |
-| `apps/web/app/src/api/media-providers.ts`                   | New      | Client types + fetchers                              |
-| `apps/web/app/src/locales/{en,es}/media.json`               | Modified | Provider search, attribution, error strings          |
-| `.env.example`                                              | Modified | `UNSPLASH_ACCESS_KEY` placeholder                    |
+| Area                                                        | Impact   | Description                                 |
+|-------------------------------------------------------------|----------|---------------------------------------------|
+| `server/smp/src/main/kotlin/.../mediaprovider/`             | New      | New bounded context                         |
+| `server/smp/src/main/kotlin/.../media/application/port/`    | Modified | `MediaProvider` port interface              |
+| `server/smp/src/main/kotlin/.../media/application/handler/` | Modified | Reuse CAS import for `EXTERNAL` rows        |
+| `server/smp/src/main/kotlin/.../media/api/`                 | Modified | Search + import endpoints                   |
+| `server/smp/src/main/resources/application.yml`             | Modified | `mediaprovider.unsplash.*` config block     |
+| `server/smp/src/test/kotlin/.../mediaprovider/`             | New      | Unit + WebFlux + WireMock tests             |
+| `apps/web/app/src/features/media/composer/`                 | Modified | Provider tab + search/import UI             |
+| `apps/web/app/src/api/media-providers.ts`                   | New      | Client types + fetchers                     |
+| `apps/web/app/src/locales/{en,es}/media.json`               | Modified | Provider search, attribution, error strings |
+| `.env.example`                                              | Modified | `UNSPLASH_ACCESS_KEY` placeholder           |
 
 ## Risks
 
-| Risk                                                       | Likelihood | Mitigation                                                      |
-|------------------------------------------------------------|------------|----------------------------------------------------------------|
-| Unsplash API rate limit blocks import at scale             | Medium     | Surface 429 + `Retry-After`; cache popular searches             |
-| Hotlink policy violation if we ever bypass download        | Low        | Always download; no CDN URL persisted; review at sdd-verify    |
-| Attribution stored but not yet displayed in the UI         | Medium     | Acceptable — already in media-library spec; deferred UI change |
-| Imports saturate the 5-slot concurrent upload limit        | Medium     | Imports count toward the same limit; failures map to 429       |
-| Unsplash access key leaks in logs / error responses        | Low        | Mask in error mapper; never echo the raw key                   |
-| Provider adapter is the only consumer of the new context   | Low        | Port is the public surface — adding Pexels is adapter-only     |
+| Risk                                                     | Likelihood | Mitigation                                                     |
+|----------------------------------------------------------|------------|----------------------------------------------------------------|
+| Unsplash API rate limit blocks import at scale           | Medium     | Surface 429 + `Retry-After`; cache popular searches            |
+| Hotlink policy violation if we ever bypass download      | Low        | Always download; no CDN URL persisted; review at sdd-verify    |
+| Attribution stored but not yet displayed in the UI       | Medium     | Acceptable — already in media-library spec; deferred UI change |
+| Imports saturate the 5-slot concurrent upload limit      | Medium     | Imports count toward the same limit; failures map to 429       |
+| Unsplash access key leaks in logs / error responses      | Low        | Mask in error mapper; never echo the raw key                   |
+| Provider adapter is the only consumer of the new context | Low        | Port is the public surface — adding Pexels is adapter-only     |
 
 ## Rollback Plan
 
@@ -116,14 +116,14 @@ composer lacks a stock-imagery shortcut.
 
 - [ ] Search returns 200 with paginated results mapped to the shared provider search shape.
 - [ ] Import persists a `media_assets` row with `source_type='EXTERNAL'`,
-      `source_provider='unsplash'`, all six attribution fields, and bytes stored through CAS.
+  `source_provider='unsplash'`, all six attribution fields, and bytes stored through CAS.
 - [ ] Re-importing the same Unsplash photo into the same workspace yields a dedup hit
-      (`deduped: true`) and returns the canonical existing asset row for that workspace instead of
-      creating a duplicate asset row or blob.
+  (`deduped: true`) and returns the canonical existing asset row for that workspace instead of
+  creating a duplicate asset row or blob.
 - [ ] Email verification, rate limit, and concurrent slot are enforced identically to upload.
 - [ ] SPA composer picker shows a provider tab; selecting a result creates an asset and
-      triggers the standard "asset attached" flow.
+  triggers the standard "asset attached" flow.
 - [ ] Attribution fields are present in API responses but NOT rendered anywhere in the UI.
 - [ ] Feature flag off → provider tab hidden and backend search/import return 404.
 - [ ] Unit + WebFlux + WireMock tests cover happy path, dedup hit, and Unsplash 4xx/5xx
-      mappings.
+  mappings.

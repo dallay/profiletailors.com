@@ -192,7 +192,22 @@ backend-run:
 # ═══════════════════════════════════════════════════════════════
 
 # Start backend + frontend app in parallel (both read root .env)
-serve:
+serve +FORCE='':
+    #!/usr/bin/env bash
+    if [[ "{{FORCE}}" == "force" || "{{FORCE}}" == "--force" ]]; then
+        echo "Force flag detected — killing existing servers..."
+        pkill -f "bootRun" 2>/dev/null || true
+        pkill -f "vite" 2>/dev/null || true
+        pkill -f "GradleDaemon" 2>/dev/null || true
+        sleep 1
+    fi
+
+    # Check if portless has stale registration
+    if portless status 2>/dev/null | grep -q "already registered"; then
+        echo "Portless conflict detected — forcing restart..."
+        portless --force 2>/dev/null || true
+    fi
+
     @echo "Starting backend (Spring Boot) + frontend app (Vite)..."
     {{gradle-root}} :server:smp:bootRun --args='--spring.profiles.active=dev' &
     cd {{app-dir}} && pnpm dev

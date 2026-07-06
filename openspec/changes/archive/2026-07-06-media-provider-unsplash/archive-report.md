@@ -7,11 +7,11 @@
 
 ## Spec Sync
 
-| Domain | Action | Details |
-|---|---|---|
-| `media-library` | Updated | Added 3 requirements from delta (`MediaProvider port`, CAS-sharing import flow, provider import guards) |
-| `composer-media-picker` | Updated | Added 1 requirement from delta for provider-tab shell behavior |
-| `media-provider-unsplash` | Created | Promoted full spec from change delta into source-of-truth specs |
+| Domain                    | Action  | Details                                                                                                 |
+|---------------------------|---------|---------------------------------------------------------------------------------------------------------|
+| `media-library`           | Updated | Added 3 requirements from delta (`MediaProvider port`, CAS-sharing import flow, provider import guards) |
+| `composer-media-picker`   | Updated | Added 1 requirement from delta for provider-tab shell behavior                                          |
+| `media-provider-unsplash` | Created | Promoted full spec from change delta into source-of-truth specs                                         |
 
 ## Verification Gate
 
