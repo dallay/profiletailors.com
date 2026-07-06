@@ -31,6 +31,7 @@ import org.testcontainers.containers.PostgreSQLContainer
 import org.testcontainers.junit.jupiter.Container
 import org.testcontainers.junit.jupiter.Testcontainers
 import java.time.Instant
+import java.util.UUID
 import javax.crypto.spec.SecretKeySpec
 
 @AutoConfigureWebTestClient
@@ -54,6 +55,7 @@ import javax.crypto.spec.SecretKeySpec
 @Tag("postgres")
 @Testcontainers(disabledWithoutDocker = true)
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
+@Suppress("LargeClass") // Pre-existing — comprehensive integration test suite
 class LocalAuthEndpointIntegrationTest : PostgresIntegrationTestBase() {
 
     @Autowired
@@ -519,6 +521,222 @@ class LocalAuthEndpointIntegrationTest : PostgresIntegrationTestBase() {
             .expectStatus().isUnauthorized
     }
 
+    // ── Argon2id migration integration tests ─────────────────────────────────
+
+    @Test
+    fun `registration persists argon2id hash and algorithm metadata`() {
+        val email = "argon2-registration-${UUID.randomUUID()}@example.com"
+        val password = "SecurePass123!"
+
+        val result = webTestClient.post()
+            .uri("/api/auth/register")
+            .header(HttpHeaders.ACCEPT, API_V1_MEDIA_TYPE)
+            .bodyValue(
+                mapOf(
+                    "email" to email,
+                    "password" to password,
+                ),
+            )
+            .exchange()
+            .expectStatus().isCreated
+            .expectBody()
+            .jsonPath("$.accessToken").isNotEmpty
+            .returnResult()
+
+        val payload = String(result.responseBody ?: error("Missing response body"))
+        val accessToken = Regex("\"accessToken\":\"([^\"]+)\"").find(payload)?.groupValues?.get(1)
+            ?: error("Could not extract access token")
+
+        // Query the DB directly to verify the stored credential
+        kotlinx.coroutines.runBlocking {
+            val (storedHash, storedAlgo) = databaseClient.sql(
+                """
+                SELECT c.password_hash, c.password_algorithm
+                FROM local_password_credentials c
+                JOIN user_identities ui ON ui.principal_id = c.principal_id
+                WHERE ui.email = :email
+                """.trimIndent(),
+            )
+                .bind("email", email)
+                .map { r, _ ->
+                    Pair(
+                        r.get("password_hash", String::class.java),
+                        r.get("password_algorithm", String::class.java),
+                    )
+                }
+                .one()
+                .awaitSingle()
+
+            kotlin.test.assertEquals(
+                true,
+                requireNotNull(storedHash) { "password_hash should not be null" }.startsWith("\$argon2id\$"),
+                "Password hash should start with \$argon2id\$, got: $storedHash",
+            )
+            kotlin.test.assertEquals(
+                "argon2id",
+                requireNotNull(storedAlgo) { "password_algorithm should not be null" },
+                "password_algorithm should be argon2id, got: $storedAlgo",
+            )
+        }
+
+        // Login with the new credentials should succeed
+        webTestClient.post()
+            .uri("/api/auth/login")
+            .header(HttpHeaders.ACCEPT, API_V1_MEDIA_TYPE)
+            .bodyValue(mapOf("email" to email, "password" to password))
+            .exchange()
+            .expectStatus().isOk
+    }
+
+    @Test
+    fun `bcrypt legacy login triggers argon2id rehash`() {
+        val email = "bcrypt-legacy-${UUID.randomUUID()}@example.com"
+        val rawPassword = "LegacyPassword42!"
+
+        seedLegacyBcryptUser(email, rawPassword)
+
+        // Login should succeed (BCrypt verification) and trigger rehash
+        webTestClient.post()
+            .uri("/api/auth/login")
+            .header(HttpHeaders.ACCEPT, API_V1_MEDIA_TYPE)
+            .bodyValue(mapOf("email" to email, "password" to rawPassword))
+            .exchange()
+            .expectStatus().isOk
+
+        // Verify the row was upgraded to Argon2id
+        kotlinx.coroutines.runBlocking {
+            val (hashAfter, algoAfter) = databaseClient.sql(
+                """
+                SELECT c.password_hash, c.password_algorithm
+                FROM local_password_credentials c
+                JOIN user_identities ui ON ui.principal_id = c.principal_id
+                WHERE ui.email = :email
+                """.trimIndent(),
+            )
+                .bind("email", email)
+                .map { r, _ ->
+                    Pair(
+                        r.get("password_hash", String::class.java),
+                        r.get("password_algorithm", String::class.java),
+                    )
+                }
+                .one()
+                .awaitSingle()
+
+            kotlin.test.assertEquals(
+                true,
+                requireNotNull(hashAfter) {
+                    "password_hash should not be null after rehash"
+                }.startsWith("\$argon2id\$"),
+                "Hash should have been upgraded to argon2id, got: $hashAfter",
+            )
+            kotlin.test.assertEquals(
+                "argon2id",
+                requireNotNull(algoAfter) { "password_algorithm should not be null after rehash" },
+                "Algorithm should be argon2id after rehash, got: $algoAfter",
+            )
+        }
+    }
+
+    @Test
+    fun `bcrypt legacy login with null algorithm infers bcrypt and rehashes`() {
+        val email = "bcrypt-null-algo-${UUID.randomUUID()}@example.com"
+        val rawPassword = "AnotherLegacyPass99!"
+
+        seedLegacyBcryptUser(email, rawPassword, passwordAlgorithm = null)
+
+        // Login should succeed using format inference and trigger rehash
+        webTestClient.post()
+            .uri("/api/auth/login")
+            .header(HttpHeaders.ACCEPT, API_V1_MEDIA_TYPE)
+            .bodyValue(mapOf("email" to email, "password" to rawPassword))
+            .exchange()
+            .expectStatus().isOk
+
+        // Verify the row was upgraded to Argon2id
+        kotlinx.coroutines.runBlocking {
+            val (hashAfterUpgrade, algoAfterUpgrade) = databaseClient.sql(
+                """
+                SELECT c.password_hash, c.password_algorithm
+                FROM local_password_credentials c
+                JOIN user_identities ui ON ui.principal_id = c.principal_id
+                WHERE ui.email = :email
+                """.trimIndent(),
+            )
+                .bind("email", email)
+                .map { r, _ ->
+                    Pair(
+                        r.get("password_hash", String::class.java),
+                        r.get("password_algorithm", String::class.java),
+                    )
+                }
+                .one()
+                .awaitSingle()
+
+            kotlin.test.assertEquals(
+                true,
+                requireNotNull(hashAfterUpgrade) {
+                    "password_hash should not be null after null-algo rehash"
+                }.startsWith("\$argon2id\$"),
+                "Hash should have been upgraded to argon2id, got: $hashAfterUpgrade",
+            )
+            kotlin.test.assertEquals(
+                "argon2id",
+                requireNotNull(algoAfterUpgrade) { "password_algorithm should not be null after null-algo rehash" },
+                "Algorithm should be argon2id after null-algo rehash, got: $algoAfterUpgrade",
+            )
+        }
+    }
+
+    @Test
+    fun `malformed hash fails closed returning 401 not 500`() {
+        val email = "malformed-${UUID.randomUUID()}@example.com"
+
+        // Seed a user with a malformed password hash
+        kotlinx.coroutines.runBlocking {
+            databaseClient.sql(
+                """
+                INSERT INTO principals (id, principal_type, subject, provider, display_identity)
+                VALUES ('malformed-${UUID.randomUUID()}', 'USER', :subject, NULL, :displayIdentity)
+                """.trimIndent(),
+            )
+                .bind("subject", "local:$email")
+                .bind("displayIdentity", email.substringBefore("@"))
+                .fetch().rowsUpdated().block()!!
+
+            databaseClient.sql(
+                """
+                INSERT INTO user_identities (principal_id, email, username, email_status)
+                VALUES ((SELECT id FROM principals WHERE subject = :subject), :email, :username, 'VERIFIED')
+                """.trimIndent(),
+            )
+                .bind("subject", "local:$email")
+                .bind("email", email)
+                .bind("username", email.substringBefore("@"))
+                .fetch().rowsUpdated().block()!!
+
+            databaseClient.sql(
+                """
+                INSERT INTO local_password_credentials (principal_id, password_hash, password_algorithm)
+                VALUES ((SELECT id FROM principals WHERE subject = :subject), 'not-a-valid-hash-format', 'bcrypt')
+                """.trimIndent(),
+            )
+                .bind("subject", "local:$email")
+                .fetch().rowsUpdated().block()!!
+        }
+
+        // Login with any password must return 401, NOT 500
+        webTestClient.post()
+            .uri("/api/auth/login")
+            .header(HttpHeaders.ACCEPT, API_V1_MEDIA_TYPE)
+            .bodyValue(mapOf("email" to email, "password" to "anyPassword123"))
+            .exchange()
+            .expectStatus().isUnauthorized
+            .expectBody()
+            .jsonPath("$.title").isNotEmpty
+            .jsonPath("$.detail").isNotEmpty
+    }
+
     /**
      * Seeds a pre-verified user directly via DB to test the existing flow.
      * This simulates the migration behavior (existing users are VERIFIED).
@@ -647,6 +865,45 @@ class LocalAuthEndpointIntegrationTest : PostgresIntegrationTestBase() {
                 .withSecretKey(SecretKeySpec(secret.toByteArray(Charsets.UTF_8), "HmacSHA256"))
                 .macAlgorithm(MacAlgorithm.HS256)
                 .build()
+    }
+
+    private fun seedLegacyBcryptUser(email: String, rawPassword: String, passwordAlgorithm: String? = "bcrypt") {
+        val bcryptHash = BCrypt.hashpw(rawPassword, BCrypt.gensalt())
+        databaseClient.sql(
+            """
+            INSERT INTO principals (id, principal_type, subject, provider, display_identity)
+            VALUES ('legacy-${UUID.randomUUID()}', 'USER', :subject, NULL, :displayIdentity)
+            """.trimIndent(),
+        )
+            .bind("subject", "local:$email")
+            .bind("displayIdentity", email.substringBefore("@"))
+            .fetch().rowsUpdated().block()!!
+
+        databaseClient.sql(
+            """
+            INSERT INTO user_identities (principal_id, email, username, email_status)
+            VALUES ((SELECT id FROM principals WHERE subject = :subject), :email, :username, 'VERIFIED')
+            """.trimIndent(),
+        )
+            .bind("subject", "local:$email")
+            .bind("email", email)
+            .bind("username", email.substringBefore("@"))
+            .fetch().rowsUpdated().block()!!
+
+        val specWithPasswordHash = databaseClient.sql(
+            """
+            INSERT INTO local_password_credentials (principal_id, password_hash, password_algorithm)
+            VALUES ((SELECT id FROM principals WHERE subject = :subject), :passwordHash, :passwordAlgorithm)
+            """.trimIndent(),
+        )
+            .bind("subject", "local:$email")
+            .bind("passwordHash", bcryptHash)
+        val finalSpec = if (passwordAlgorithm != null) {
+            specWithPasswordHash.bind("passwordAlgorithm", passwordAlgorithm)
+        } else {
+            specWithPasswordHash.bindNull("passwordAlgorithm", String::class.java)
+        }
+        finalSpec.fetch().rowsUpdated().block()!!
     }
 
     companion object {
