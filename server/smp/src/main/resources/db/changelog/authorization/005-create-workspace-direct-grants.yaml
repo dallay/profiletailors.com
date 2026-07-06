@@ -1,7 +1,7 @@
 databaseChangeLog:
   - changeSet:
       id: authorization-005-create-workspace-direct-grants
-      author: opencode
+      author: acosta
       changes:
         - createTable:
             tableName: workspace_direct_grants

@@ -1,7 +1,7 @@
 databaseChangeLog:
   - changeSet:
       id: publishing-012-add-avatar-url-to-social-accounts
-      author: opencode
+      author: acosta
       changes:
         - addColumn:
             tableName: social_accounts

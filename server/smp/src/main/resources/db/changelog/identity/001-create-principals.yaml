@@ -1,7 +1,7 @@
 databaseChangeLog:
   - changeSet:
       id: identity-001-create-principals
-      author: opencode
+      author: acosta
       changes:
         - createTable:
             tableName: principals

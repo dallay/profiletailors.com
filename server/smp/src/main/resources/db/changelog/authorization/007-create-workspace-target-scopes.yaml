@@ -1,7 +1,7 @@
 databaseChangeLog:
   - changeSet:
       id: authorization-007-create-workspace-target-scopes
-      author: opencode
+      author: acosta
       changes:
         - createTable:
             tableName: workspace_target_scopes

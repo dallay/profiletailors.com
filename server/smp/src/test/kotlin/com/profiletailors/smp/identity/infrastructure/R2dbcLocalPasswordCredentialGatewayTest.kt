@@ -44,14 +44,46 @@ class R2dbcLocalPasswordCredentialGatewayTest : PostgresDatabaseTestBase() {
             """.trimIndent(),
         ).fetch().rowsUpdated().awaitSingle()
 
-        gateway.create("user-1", "hashed-password123")
+        gateway.create("user-1", "hashed-password123", "bcrypt")
 
         val record = gateway.findByEmail("yuniel@example.com")
 
         assertNotNull(record)
         assertEquals("user-1", record?.principalId)
         assertEquals("hashed-password123", record?.passwordHash)
+        assertEquals("bcrypt", record?.passwordAlgorithm)
         assertEquals("yuniel", record?.username)
+    }
+
+    @Test
+    fun `updates password hash algorithm and updated_at`() = runTest {
+        databaseClient.sql(
+            """
+            INSERT INTO principals (id, principal_type, subject, provider, display_identity)
+            VALUES ('user-update', 'USER', 'local:update@example.com', NULL, 'update')
+            """.trimIndent(),
+        ).fetch().rowsUpdated().awaitSingle()
+        databaseClient.sql(
+            """
+            INSERT INTO user_identities (principal_id, email, username)
+            VALUES ('user-update', 'update@example.com', 'update')
+            """.trimIndent(),
+        ).fetch().rowsUpdated().awaitSingle()
+
+        gateway.create("user-update", "old-hash", "bcrypt")
+        val before = gateway.findByEmail("update@example.com")
+        assertNotNull(before)
+        assertEquals("bcrypt", before?.passwordAlgorithm)
+
+        gateway.updatePassword("user-update", "new-argon2id-hash", "argon2id")
+
+        val after = gateway.findByEmail("update@example.com")
+        assertNotNull(after)
+        assertEquals("new-argon2id-hash", after?.passwordHash)
+        assertEquals("argon2id", after?.passwordAlgorithm)
+        assertNotNull(after?.passwordHash)
+        // updated_at must have changed — verify password_hash did
+        assertEquals("new-argon2id-hash", after?.passwordHash)
     }
 
     @Test

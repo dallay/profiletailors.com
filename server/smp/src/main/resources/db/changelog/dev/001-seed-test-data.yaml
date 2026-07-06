@@ -1,7 +1,7 @@
 databaseChangeLog:
   - changeSet:
       id: dev-001-seed-test-data
-      author: opencode
+      author: acosta
       context: dev
       preConditions:
         - onFail: MARK_RAN
