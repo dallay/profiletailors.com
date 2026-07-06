@@ -14,9 +14,9 @@ describe('ThemeToggle.vue', () => {
     const wrapper = mount(ThemeToggle, {
       global: {
         mocks: {
-          $t: (msg: string) => msg
-        }
-      }
+          $t: (msg: string) => msg,
+        },
+      },
     })
     expect(wrapper.exists()).toBe(true)
   })
@@ -28,9 +28,9 @@ describe('ThemeToggle.vue', () => {
     const wrapper = mount(ThemeToggle, {
       global: {
         mocks: {
-          $t: (msg: string) => msg
-        }
-      }
+          $t: (msg: string) => msg,
+        },
+      },
     })
 
     const button = wrapper.find('button')

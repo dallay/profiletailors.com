@@ -16,7 +16,7 @@ describe('Accordion components', () => {
             <AccordionContent>Yes. It adheres to the WAI-ARIA design pattern.</AccordionContent>
           </AccordionItem>
         </Accordion>
-      `
+      `,
     })
 
     expect(wrapper.text()).toContain('Is it accessible?')

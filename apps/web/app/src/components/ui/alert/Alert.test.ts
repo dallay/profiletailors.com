@@ -13,7 +13,7 @@ describe('Alert components', () => {
           <AlertTitle>Error</AlertTitle>
           <AlertDescription>Something went wrong.</AlertDescription>
         </Alert>
-      `
+      `,
     })
 
     expect(wrapper.classes()).toContain('text-destructive')

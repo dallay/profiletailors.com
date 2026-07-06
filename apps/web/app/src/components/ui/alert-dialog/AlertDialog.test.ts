@@ -14,9 +14,15 @@ describe('AlertDialog components', () => {
   it('renders alert dialog and opens content', async () => {
     const wrapper = mount({
       components: {
-        AlertDialog, AlertDialogTrigger, AlertDialogContent,
-        AlertDialogHeader, AlertDialogTitle, AlertDialogDescription,
-        AlertDialogFooter, AlertDialogAction, AlertDialogCancel
+        AlertDialog,
+        AlertDialogTrigger,
+        AlertDialogContent,
+        AlertDialogHeader,
+        AlertDialogTitle,
+        AlertDialogDescription,
+        AlertDialogFooter,
+        AlertDialogAction,
+        AlertDialogCancel,
       },
       template: `
         <AlertDialog>
@@ -32,7 +38,7 @@ describe('AlertDialog components', () => {
             </AlertDialogFooter>
           </AlertDialogContent>
         </AlertDialog>
-      `
+      `,
     })
 
     const trigger = wrapper.find('button')
