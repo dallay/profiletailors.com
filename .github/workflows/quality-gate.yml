@@ -46,7 +46,7 @@ jobs:
         run: ./gradlew :server:smp:postgresIntegrationTest --no-daemon -PexcludeTags=modularity
 
       - name: Generate backend coverage reports
-        run: ./gradlew :server:smp:koverXmlReport -x :server:smp:bddFastTest -x :server:smp:bddPostgresTest :shared:common:koverXmlReport :shared:bus:koverXmlReport :shared:presentation:koverXmlReport :shared:security:koverXmlReport :shared:spring-boot-common:koverXmlReport :shared:storage:koverXmlReport :shared:shield:ratelimit:koverXmlReport --no-daemon
+        run: ./gradlew :server:smp:koverXmlReport -x :server:smp:bddFastTest -x :server:smp:bddPostgresTest :shared:common:koverXmlReport :shared:bus:koverXmlReport :shared:presentation:koverXmlReport :shared:security:koverXmlReport :shared:spring-boot-common:koverXmlReport :shared:storage:koverXmlReport :shared:shield:ratelimit:koverXmlReport --no-daemon -PexcludeTags=modularity,postgres
 
       - name: Verify backend coverage reports
         run: |

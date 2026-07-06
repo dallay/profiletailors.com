@@ -421,6 +421,72 @@ class LocalAuthHandlersTest {
     }
 
     @Test
+    fun `login with unknown password algorithm fails closed as InvalidEmailPasswordException`() = runTest {
+        val rawPassword = CredentialGenerator.generateValidPassword()
+        val gateway = FakeLocalPasswordCredentialGateway(
+            record = LocalPasswordCredentialRecord(
+                principalId = "user-unknown-algo",
+                email = "unknown-algo@example.com",
+                username = "unknown-algo-user",
+                passwordHash = "hashed-$rawPassword",
+                passwordAlgorithm = "scrypt",
+            ),
+        )
+        val handler = LoginUserHandler(
+            localPasswordCredentialGateway = gateway,
+            passwordHasher = FakePasswordHasher(),
+            bcryptPasswordHasher = bcryptHasher(),
+            principalIdentityLookup = FakePrincipalIdentityLookup(
+                principalFacts = identityFacts(),
+            ),
+            localJwtIssuer = FakeLocalJwtIssuer(),
+            refreshSessionLifecycleService = fakeRefreshLifecycleService(),
+            clock = fixedClock,
+        )
+
+        try {
+            handler.handle(LoginUserCommand("unknown-algo@example.com", rawPassword))
+            throw AssertionError("Expected InvalidEmailPasswordException")
+        } catch (e: InvalidEmailPasswordException) {
+            assertNotNull(e)
+        }
+    }
+
+    @Test
+    fun `login continues when opportunistic password upgrade fails`() = runTest {
+        val bcryptHasher = bcryptHasher()
+        val rawPassword = CredentialGenerator.generateValidPassword()
+        val bcryptHash = bcryptHasher.hash(rawPassword)
+        val gateway = FakeLocalPasswordCredentialGateway(
+            record = LocalPasswordCredentialRecord(
+                principalId = "user-upgrade-failure",
+                email = "upgrade-failure@example.com",
+                username = "upgrade-failure-user",
+                passwordHash = bcryptHash,
+                passwordAlgorithm = "bcrypt",
+            ),
+            updateFailure = IllegalStateException("simulated update failure"),
+        )
+        val handler = LoginUserHandler(
+            localPasswordCredentialGateway = gateway,
+            passwordHasher = FakePasswordHasher(algorithm = "argon2id"),
+            bcryptPasswordHasher = bcryptHasher,
+            principalIdentityLookup = FakePrincipalIdentityLookup(
+                principalFacts = identityFacts(EmailStatus.VERIFIED),
+            ),
+            localJwtIssuer = FakeLocalJwtIssuer(),
+            refreshSessionLifecycleService = fakeRefreshLifecycleService(),
+            clock = fixedClock,
+        )
+
+        val result = handler.handle(LoginUserCommand("upgrade-failure@example.com", rawPassword))
+
+        assertEquals("token-for-upgrade-failure@example.com", result.tokens.accessToken)
+        assertEquals("user-upgrade-failure", gateway.updatedPrincipalId)
+        assertEquals("argon2id", gateway.updatedAlgorithm)
+    }
+
+    @Test
     fun `login with malformed hash fails closed as InvalidEmailPasswordException`() = runTest {
         val gateway = FakeLocalPasswordCredentialGateway(
             record = LocalPasswordCredentialRecord(
@@ -912,6 +978,7 @@ class LocalAuthHandlersTest {
     private class FakeLocalPasswordCredentialGateway(
         private val record: LocalPasswordCredentialRecord? = null,
         private val order: MutableList<String>? = null,
+        private val updateFailure: RuntimeException? = null,
     ) : LocalPasswordCredentialGateway {
         var createdPrincipalId: String? = null
         var createdHash: String? = null
@@ -935,6 +1002,7 @@ class LocalAuthHandlersTest {
             updatedPrincipalId = principalId
             updatedHash = passwordHash
             updatedAlgorithm = passwordAlgorithm
+            updateFailure?.let { throw it }
         }
     }
 

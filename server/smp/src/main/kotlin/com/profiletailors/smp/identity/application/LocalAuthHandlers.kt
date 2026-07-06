@@ -9,6 +9,7 @@ import com.profiletailors.smp.credentials.application.RefreshSessionLifecycleSer
 import com.profiletailors.smp.credentials.application.RefreshSessionNotActiveException
 import com.profiletailors.smp.identity.domain.EmailStatus
 import com.profiletailors.smp.identity.domain.UserRegistered
+import org.slf4j.LoggerFactory
 import java.time.Clock
 import java.util.UUID
 
@@ -196,6 +197,8 @@ internal class LoginUserHandler(
     private val clock: Clock,
 ) : CommandWithResultHandler<LoginUserCommand, LocalAuthSessionResult> {
 
+    private val log = LoggerFactory.getLogger(LoginUserHandler::class.java)
+
     override suspend fun handle(command: LoginUserCommand): LocalAuthSessionResult {
         val normalizedEmail = normalizeEmail(command.email)
         val credential = localPasswordCredentialGateway.findByEmail(normalizedEmail)
@@ -210,7 +213,15 @@ internal class LoginUserHandler(
 
         if (shouldUpgradeToArgon2id(resolvedAlgorithm)) {
             val rehash = passwordHasher.hash(command.password)
-            localPasswordCredentialGateway.updatePassword(credential.principalId, rehash, passwordHasher.algorithm)
+            try {
+                localPasswordCredentialGateway.updatePassword(credential.principalId, rehash, passwordHasher.algorithm)
+            } catch (exception: RuntimeException) {
+                log.warn(
+                    "Best-effort password upgrade failed for principalId={}; login will continue",
+                    credential.principalId,
+                    exception,
+                )
+            }
         }
 
         val identityFacts = principalIdentityLookup.findByEmail(normalizedEmail)
