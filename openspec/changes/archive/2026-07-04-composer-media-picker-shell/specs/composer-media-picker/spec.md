@@ -2,13 +2,16 @@
 
 ## Purpose
 
-Define an accessible, localized composer modal shell for browsing reusable workspace media without owning asset retrieval or draft attachment.
+Define an accessible, localized composer modal shell for browsing reusable workspace media without
+owning asset retrieval or draft attachment.
 
 ## Requirements
 
 ### Requirement: Picker opening and dismissal
 
-The composer MUST expose a control that opens the media picker while preserving current composer state. The picker MUST support dismissal through its close control, standard dialog keyboard behavior, and a close interaction emitted to the parent.
+The composer MUST expose a control that opens the media picker while preserving current composer
+state. The picker MUST support dismissal through its close control, standard dialog keyboard
+behavior, and a close interaction emitted to the parent.
 
 #### Scenario: Open picker without losing composer state
 
@@ -26,7 +29,8 @@ The composer MUST expose a control that opens the media picker while preserving 
 
 ### Requirement: Accessible localized shell
 
-The picker MUST present localized header text, search and filter controls, an asset-grid region, and accessible names for interactive controls in supported locales.
+The picker MUST present localized header text, search and filter controls, an asset-grid region, and
+accessible names for interactive controls in supported locales.
 
 #### Scenario: Render localized controls
 
@@ -44,7 +48,8 @@ The picker MUST present localized header text, search and filter controls, an as
 
 ### Requirement: Deterministic presentation states
 
-The picker MUST render distinct loading, empty, error, ready, and disabled states from parent-provided inputs. Disabled controls MUST NOT emit search or filter interactions.
+The picker MUST render distinct loading, empty, error, ready, and disabled states from
+parent-provided inputs. Disabled controls MUST NOT emit search or filter interactions.
 
 #### Scenario: Render loading and empty states
 
@@ -62,7 +67,8 @@ The picker MUST render distinct loading, empty, error, ready, and disabled state
 
 ### Requirement: Parent-owned interaction contract
 
-The picker MUST accept typed presentation inputs and MUST emit typed search, filter, and close interactions. It MUST NOT fetch, mutate, upload, delete, persist, or attach media assets.
+The picker MUST accept typed presentation inputs and MUST emit typed search, filter, and close
+interactions. It MUST NOT fetch, mutate, upload, delete, persist, or attach media assets.
 
 #### Scenario: Emit search and filter interactions
 
@@ -80,7 +86,9 @@ The picker MUST accept typed presentation inputs and MUST emit typed search, fil
 
 ### Requirement: Asset region presentation
 
-The picker MUST provide a dedicated asset-grid region for parent-provided media items and MAY render a non-interactive ready state when assets are available but selection behavior is not yet implemented.
+The picker MUST provide a dedicated asset-grid region for parent-provided media items and MAY render
+a non-interactive ready state when assets are available but selection behavior is not yet
+implemented.
 
 #### Scenario: Render ready asset region
 
@@ -98,7 +106,8 @@ The picker MUST provide a dedicated asset-grid region for parent-provided media 
 
 ### Requirement: Testable shell behavior
 
-The system MUST define the shell behavior so focused component tests can verify open and close interactions, accessibility labels, state rendering, and emitted interactions.
+The system MUST define the shell behavior so focused component tests can verify open and close
+interactions, accessibility labels, state rendering, and emitted interactions.
 
 #### Scenario: Verify accessible open and close behavior
 

@@ -6,7 +6,9 @@
 
 The system MUST reliably dispatch verification emails for both registration and resend flows.
 
-Registration and resend flows MUST trigger the same verification-email delivery path, and a successful API response MUST leave the account in a state where a verification email can be delivered without additional manual operator action.
+Registration and resend flows MUST trigger the same verification-email delivery path, and a
+successful API response MUST leave the account in a state where a verification email can be
+delivered without additional manual operator action.
 
 #### Scenario: Registration triggers deliverable verification email
 
@@ -24,9 +26,11 @@ Registration and resend flows MUST trigger the same verification-email delivery 
 
 ### Requirement: Current User Profile Exposes Authoritative Email Status
 
-The system MUST expose the current user's authoritative email verification status through `GET /api/auth/me`.
+The system MUST expose the current user's authoritative email verification status through
+`GET /api/auth/me`.
 
-The profile response MUST include `emailStatus`, and clients MUST treat that field as the source of truth for verification-dependent UX and capability gating.
+The profile response MUST include `emailStatus`, and clients MUST treat that field as the source of
+truth for verification-dependent UX and capability gating.
 
 #### Scenario: Unverified profile returns authoritative status
 

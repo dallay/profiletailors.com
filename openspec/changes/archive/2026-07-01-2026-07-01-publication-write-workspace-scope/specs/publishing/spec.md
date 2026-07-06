@@ -4,11 +4,26 @@
 
 ### Requirement: Editable and Cancellable Pre-Delivery Publications
 
-The system MUST allow editing, deletion, and cancellation before a publication is claimed for delivery.
+The system MUST allow editing, deletion, and cancellation before a publication is claimed for
+delivery.
 
-A publication in `DRAFT`, `QUEUED`, or `SCHEDULED` MAY be edited, including text, media references, schedule mode, and schedule timing, as long as the delivery job has not been claimed for processing. Such a publication MAY also be cancelled or deleted before claim. Scheduler edit flows MUST persist through the existing `PATCH /api/publishing/publications/{publicationId}` contract, and successful responses MUST reflect server truth rather than local-only optimistic state. Publication writes MUST target exactly one row in the caller's current workspace. A write scoped by `publicationId` MUST update an existing publication only when both the publication identifier and workspace match the current workspace context. If no publication row in the current workspace matches the requested write target, the system MUST either create the draft in the current workspace when the operation is a create/save flow, or reject the operation as not found for the current workspace when the operation requires updating an existing publication. The system MUST NOT mutate a publication row that belongs to another workspace. Once processing has begun, the system MUST prevent unsafe edits or deletion that would invalidate the claimed delivery attempt.
+A publication in `DRAFT`, `QUEUED`, or `SCHEDULED` MAY be edited, including text, media references,
+schedule mode, and schedule timing, as long as the delivery job has not been claimed for processing.
+Such a publication MAY also be cancelled or deleted before claim. Scheduler edit flows MUST persist
+through the existing `PATCH /api/publishing/publications/{publicationId}` contract, and successful
+responses MUST reflect server truth rather than local-only optimistic state. Publication writes MUST
+target exactly one row in the caller's current workspace. A write scoped by `publicationId` MUST
+update an existing publication only when both the publication identifier and workspace match the
+current workspace context. If no publication row in the current workspace matches the requested
+write target, the system MUST either create the draft in the current workspace when the operation is
+a create/save flow, or reject the operation as not found for the current workspace when the
+operation requires updating an existing publication. The system MUST NOT mutate a publication row
+that belongs to another workspace. Once processing has begun, the system MUST prevent unsafe edits
+or deletion that would invalidate the claimed delivery attempt.
 
-(Previously: Pre-delivery publications were editable before claim, but the spec did not require workspace-scoped write targeting or define behavior when an update target is missing in the current workspace.)
+(Previously: Pre-delivery publications were editable before claim, but the spec did not require
+workspace-scoped write targeting or define behavior when an update target is missing in the current
+workspace.)
 
 #### Scenario: Queued publication is edited before claim
 
@@ -41,7 +56,8 @@ A publication in `DRAFT`, `QUEUED`, or `SCHEDULED` MAY be edited, including text
 #### Scenario: Cross-workspace publication rows remain isolated during writes
 
 - GIVEN workspace A owns publication `P1`
-- AND workspace B also has a row that is the only existing match for publication `P1` outside workspace A's scope
+- AND workspace B also has a row that is the only existing match for publication `P1` outside
+  workspace A's scope
 - WHEN workspace A performs a write for publication `P1`
 - THEN the system MUST NOT update workspace B's row
 - AND any persisted change MUST apply only within workspace A's scope

@@ -33,24 +33,34 @@ For each critical scenario, a failing test was added first (or the existing test
 the fix). Examples:
 
 -
+
 `MediaCasHandlersTest > PUT new asset creates uploading blob and pending asset with declared file size` —
 confirmed it failed against the old `upsertBlob()` that always returned `Existed`; passed after
 switching to `rowsUpdated()`.
+
 -
+
 `MediaCasHandlersTest > successful upload verifies size and hash then copies temp to canonical detected key` —
 reproduced the 400 BAD_REQUEST in the controller because `asset.fileSizeBytes` was null; fixed by
 persisting `fileSizeBytes` in `createPendingAsset()`.
+
 -
+
 `MediaCasHandlersTest > upload dedup when concurrent upload completed first updates asset to ready` —
 reproduced the 409 returned by `claimUploadSlot()` for an `UPLOADING` asset whose blob already
 finished; fix lets the dedup branch proceed when the blob is READY.
+
 -
+
 `MediaPostgresSchemaConstraintsTest > media assets storage key is nullable before ready and required only for ready` —
 confirmed the schema previously rejected `storage_key IS NULL` after the storage_key NOT NULL was
 removed; passed after adding the invariant CHECK and dropping NOT NULL.
+
 -
+
 `MediaPostgresSchemaConstraintsTest > workspace file blobs require canonical metadata when ready` —
 inserted a `READY` row without `storage_key` and confirmed PostgreSQL rejected it.
+
 - `useFileHash.test.ts > uses streaming SHA-256 for files at or above 100MB without arrayBuffer` —
   confirmed the previous implementation called `crypto.subtle.digest()` for any size; passed after
   introducing the streaming hasher that never materialises the full file as ArrayBuffer.
@@ -107,17 +117,18 @@ inserted a `READY` row without `storage_key` and confirmed PostgreSQL rejected i
           has finished, so the canonical extension is always derived from detected MIME (even when
           detected MIME differs from declared MIME).
         - `claimUploadSlot()` now treats `UPLOADING` + blob `READY` as a dedup fast-path instead of
-          409.
+            409.
         - `markAsReadyFromDedup` calls now pass `fileSizeBytes` from blob (dedup branch) or the
           streamed
           `actualBytes` (first-uploader branch).
 -
+
 `server/smp/src/main/kotlin/com/profiletailors/smp/media/infrastructure/persistence/R2dbcMediaRepositories.kt`
-    - `upsertBlob()` rewritten to use `rowsUpdated()` on `INSERT ... ON CONFLICT DO NOTHING`. First
-      insert → `Created`; conflict → `Existed`.
-    - `markAsReadyFromDedup()` SQL now writes
-      `file_size_bytes = COALESCE(:fileSizeBytes, file_size_bytes)`.
-    - Added `markBlobFailed()` SQL UPDATE.
+- `upsertBlob()` rewritten to use `rowsUpdated()` on `INSERT ... ON CONFLICT DO NOTHING`. First
+insert → `Created`; conflict → `Existed`.
+- `markAsReadyFromDedup()` SQL now writes
+`file_size_bytes = COALESCE(:fileSizeBytes, file_size_bytes)`.
+- Added `markBlobFailed()` SQL UPDATE.
 
 ### Database migrations
 
@@ -137,16 +148,22 @@ inserted a `READY` row without `storage_key` and confirmed PostgreSQL rejected i
   and a `FakeStorage`. Uses `MediaAssetSummary` style assertions so each test maps 1:1 to a v3.2
   scenario.
 -
+
 `server/smp/src/test/kotlin/com/profiletailors/smp/infrastructure/db/MediaPostgresSchemaConstraintsTest.kt` —
 Added tests that fail when the new constraints are absent and pass once the constraints are
 committed (including a check that PostgreSQL rejects a READY asset with null `storage_key` and a
 READY blob with null canonical metadata).
+
 -
+
 `server/smp/src/test/kotlin/com/profiletailors/smp/media/infrastructure/persistence/R2dbcMediaRepositoriesPostgresTest.kt` —
 Adjusted to insert `READY` rows only with storage keys and avoid the new invariant.
+
 -
+
 `server/smp/src/test/kotlin/com/profiletailors/smp/media/infrastructure/http/MediaAssetPreviewControllerTest.kt` —
 Updated fake `markAsReadyFromDedup` override for the new optional parameter.
+
 - `apps/web/app/src/composables/useFileHash.test.ts` — 4 new tests that prove small files use
   `crypto.subtle.digest`, large files use the streaming hasher, and `sanitizeFilename` strips
   traversal characters.
@@ -172,17 +189,24 @@ Updated fake `markAsReadyFromDedup` override for the new optional parameter.
 ## Commands Run
 
 -
+
 `./gradlew :server:smp:test --no-daemon -PexcludeTags=modularity,postgres --tests 'com.profiletailors.smp.media.application.MediaCasHandlersTest'`
 → BUILD SUCCESSFUL (20/20 new tests).
+
 - `./gradlew :server:smp:test --no-daemon -PexcludeTags=modularity,postgres`
   → BUILD SUCCESSFUL (full fast backend).
 -
+
 `./gradlew :server:smp:postgresIntegrationTest --no-daemon -x :shared:common:test -x :shared:spring-boot-common:test --tests '*MediaPostgresSchemaConstraintsTest' --tests '*R2dbcMediaRepositoriesPostgresTest'`
 → BUILD SUCCESSFUL (constraint + repo Postgres tests).
+
 -
+
 `./gradlew :server:smp:postgresIntegrationTest --no-daemon -x :shared:common:test -x :shared:spring-boot-common:test`
 → BUILD SUCCESSFUL (broader Postgres integration).
+
 -
+
 `pnpm --dir apps/web/app test:run -- src/composables/useFileHash.test.ts src/lib/media-api.test.ts src/stores/media.test.ts`
 → 639/639 passed (workspace-wide `pnpm test:run` filtered to media + hashing tests; the broader
 `pnpm test:run` reported 65/65 files passing in the previous apply run — including `media.test.ts`,
