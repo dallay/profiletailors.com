@@ -14,6 +14,7 @@ import com.profiletailors.smp.credentials.application.RefreshSessionTokenService
 import com.profiletailors.smp.identity.application.EmailVerificationTokenData
 import com.profiletailors.smp.identity.domain.EmailStatus
 import com.profiletailors.smp.identity.domain.UserRegistered
+import com.profiletailors.smp.identity.infrastructure.BCryptPasswordHasher
 import com.profiletailors.smp.tenancy.application.WorkspaceProvisioningService
 import kotlinx.coroutines.test.runTest
 import org.junit.jupiter.api.Assertions.assertEquals
@@ -21,7 +22,6 @@ import org.junit.jupiter.api.Assertions.assertNotNull
 import org.junit.jupiter.api.Assertions.assertNull
 import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.Test
-import org.springframework.security.crypto.bcrypt.BCrypt
 import java.time.Clock
 import java.time.Instant
 import java.time.ZoneOffset
@@ -41,15 +41,7 @@ class LocalAuthHandlersTest {
     )
 
     /** BCrypt-based PasswordHasher for seeding legacy credentials in tests. */
-    private fun bcryptHasher(): PasswordHasher = object : PasswordHasher {
-        override val algorithm: String get() = "bcrypt"
-        override fun hash(rawPassword: String): String = BCrypt.hashpw(rawPassword, BCrypt.gensalt())
-        override fun matches(rawPassword: String, passwordHash: String): Boolean = try {
-            BCrypt.checkpw(rawPassword, passwordHash)
-        } catch (_: IllegalArgumentException) {
-            false
-        }
-    }
+    private fun bcryptHasher(): PasswordHasher = BCryptPasswordHasher()
 
     @Test
     fun `register wraps writes in transaction and defers side effects until after commit`() = runTest {
@@ -341,7 +333,7 @@ class LocalAuthHandlersTest {
         )
         val handler = LoginUserHandler(
             localPasswordCredentialGateway = gateway,
-            passwordHasher = FakePasswordHasher(),
+            passwordHasher = FakePasswordHasher(algorithm = "argon2id"),
             bcryptPasswordHasher = bcryptHasher,
             principalIdentityLookup = FakePrincipalIdentityLookup(
                 principalFacts = identityFacts(EmailStatus.VERIFIED),
@@ -376,7 +368,7 @@ class LocalAuthHandlersTest {
         )
         val handler = LoginUserHandler(
             localPasswordCredentialGateway = gateway,
-            passwordHasher = FakePasswordHasher(),
+            passwordHasher = FakePasswordHasher(algorithm = "argon2id"),
             bcryptPasswordHasher = bcryptHasher,
             principalIdentityLookup = FakePrincipalIdentityLookup(
                 principalFacts = identityFacts(EmailStatus.VERIFIED),
@@ -946,12 +938,10 @@ class LocalAuthHandlersTest {
         }
     }
 
-    private class FakePasswordHasher : PasswordHasher {
+    private class FakePasswordHasher(override val algorithm: String = "fake") : PasswordHasher {
         override fun hash(rawPassword: String): String = "hashed-$rawPassword"
 
         override fun matches(rawPassword: String, passwordHash: String): Boolean = passwordHash == "hashed-$rawPassword"
-
-        override val algorithm: String = "fake"
     }
 
     private open class FakeLocalJwtIssuer(private val order: MutableList<String>? = null) : LocalJwtIssuer {

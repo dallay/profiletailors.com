@@ -10,11 +10,11 @@
 
 | Metric | Value |
 |--------|-------|
-| Tasks total | 11 |
-| Tasks complete | 11 |
+| Tasks total | 15 |
+| Tasks complete | 15 |
 | Tasks incomplete | 0 |
 
-All 11 tasks across 4 phases are complete:
+All 15 tasks across 4 phases are complete:
 
 ### Phase 1: Foundation ✅
 - [x] 1.1 Schema: `password_algorithm` column added to `003-create-local-password-credentials.yaml`
@@ -23,18 +23,21 @@ All 11 tasks across 4 phases are complete:
 - [x] 1.4 Repository: `R2dbcLocalPasswordCredentialGateway.kt` implements persist/read/update
 
 ### Phase 2: Core Implementation ✅
-- [x] 2.1 Argon2id hasher: `Argon2idPasswordHasher.kt` created with fail-closed behavior
-- [x] 2.2 Configuration: `IdentityBootstrapConfiguration.kt` wires Argon2id as default bean
-- [x] 2.3 Auth handlers: `LocalAuthHandlers.kt` updated for algorithm-aware login/registration
-- [x] 2.4 Unit tests: `LocalAuthHandlersTest.kt` extended with 5 new algorithm-aware tests
+- [x] 2.1 RED: `Argon2idPasswordHasherTest.kt` added for hash format, match, mismatch, malformed hash, and `algorithm`
+- [x] 2.2 GREEN: `Argon2idPasswordHasher.kt` created with fail-closed behavior
+- [x] 2.3 Configuration: `IdentityBootstrapConfiguration.kt` wires Argon2id as default bean
+- [x] 2.4 RED: `LocalAuthHandlersTest.kt` extended for registration algorithm persistence, BCrypt login compatibility, null-metadata fallback, rehash, and malformed-hash rejection
+- [x] 2.5 GREEN: `LocalAuthHandlers.kt` updated for algorithm-aware login/registration
 
 ### Phase 3: Integration / Verification ✅
-- [x] 3.1 Gateway tests: `R2dbcLocalPasswordCredentialGatewayTest.kt` extended
-- [x] 3.2 Integration: `LocalAuthEndpointIntegrationTest.kt` extended with 4 new PostgreSQL tests
+- [x] 3.1 Update `LocalAuthHandlersTest.kt` fakes to capture `passwordAlgorithm` and `updatePassword()` side effects
+- [x] 3.2 Add integration coverage in `LocalAuthEndpointIntegrationTest.kt` for Argon2id registration persistence and successful login
+- [x] 3.3 Add integration coverage in `LocalAuthEndpointIntegrationTest.kt` for BCrypt login upgrade, null-metadata inference fallback, and malformed-hash 401 behavior
+- [x] 3.4 Run focused backend verification for the auth area covering the spec scenarios and atomic registration rollback expectations
 
 ### Phase 4: Cleanup / Documentation ✅
-- [x] 4.1 Design docs: `design.md` and specs aligned with implementation
-- [x] 4.2 Tasks artifact: `tasks.md` is authoritative (no stale YAML)
+- [x] 4.1 Confirm archived `design.md` and specs stay aligned with final task ordering and no stale YAML references remain
+- [x] 4.2 Remove `tasks.yaml` after `tasks.md` becomes the authoritative artifact (if still present)
 
 ---
 
@@ -166,7 +169,7 @@ BUILD SUCCESSFUL
 
 | Finding | Judge A | Judge B | Severity | Status |
 |---------|---------|---------|----------|--------|
-| All 11 SDD tasks completed | ✅ | ✅ | CRITICAL | Confirmed |
+| All 15 SDD tasks completed | ✅ | ✅ | CRITICAL | Confirmed |
 | 6/6 IAM spec scenarios compliant | ✅ | ✅ | CRITICAL | Confirmed |
 | 2/2 Registration spec scenarios compliant | ✅ | ✅ | CRITICAL | Confirmed |
 | Argon2idPasswordHasher fail-closed | ✅ | ✅ | CRITICAL | Confirmed |

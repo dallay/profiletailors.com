@@ -52,7 +52,7 @@ class R2dbcLocalPasswordCredentialGateway(private val databaseClient: DatabaseCl
         .awaitSingleOrNull()
 
     override suspend fun updatePassword(principalId: String, passwordHash: String, passwordAlgorithm: String) {
-        databaseClient.sql(
+        val updated = databaseClient.sql(
             """
             UPDATE local_password_credentials
             SET password_hash = :passwordHash,
@@ -67,5 +67,6 @@ class R2dbcLocalPasswordCredentialGateway(private val databaseClient: DatabaseCl
             .fetch()
             .rowsUpdated()
             .awaitSingle()
+        require(updated == 1L) { "Expected 1 row to be updated, but got $updated for principalId=$principalId" }
     }
 }

@@ -210,7 +210,7 @@ internal class LoginUserHandler(
 
         if (shouldUpgradeToArgon2id(resolvedAlgorithm)) {
             val rehash = passwordHasher.hash(command.password)
-            localPasswordCredentialGateway.updatePassword(credential.principalId, rehash, "argon2id")
+            localPasswordCredentialGateway.updatePassword(credential.principalId, rehash, passwordHasher.algorithm)
         }
 
         val identityFacts = principalIdentityLookup.findByEmail(normalizedEmail)
@@ -238,7 +238,8 @@ internal class LoginUserHandler(
 
     private fun selectHasher(algorithm: String): PasswordHasher = when (algorithm) {
         "bcrypt" -> bcryptPasswordHasher
-        else -> passwordHasher
+        "argon2id" -> passwordHasher
+        else -> throw InvalidEmailPasswordException()
     }
 
     private fun shouldUpgradeToArgon2id(resolvedAlgorithm: String): Boolean = resolvedAlgorithm == "bcrypt"

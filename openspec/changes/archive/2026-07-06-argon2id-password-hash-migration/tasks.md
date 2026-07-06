@@ -46,5 +46,5 @@ Chain strategy: pending
 
 ## Phase 4: Cleanup / Documentation
 
-- [ ] 4.1 Confirm `openspec/changes/argon2id-password-hash-migration/design.md` and specs stay aligned with final task ordering and no stale YAML references remain.
-- [ ] 4.2 Remove `openspec/changes/argon2id-password-hash-migration/tasks.yaml` after `tasks.md` becomes the authoritative artifact.
+- [ ] 4.1 Confirm archived `design.md` and specs stay aligned with final task ordering and no stale YAML references remain.
+- [ ] 4.2 Remove `tasks.yaml` after `tasks.md` becomes the authoritative artifact (if still present).

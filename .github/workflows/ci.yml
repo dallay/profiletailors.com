@@ -137,7 +137,29 @@ jobs:
   # ═══════════════════════════════════════════════════════════════
 
   # ──────────────────────────────────────────────────────────────
-  # 5. Backend BDD fast suite
+  # 5. Backend Postgres integration tests
+  # ──────────────────────────────────────────────────────────────
+  backend-postgres-integration:
+    name: 🐘 Backend Postgres Integration
+    needs: changes
+    if: needs.changes.outputs.backend == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    env:
+      SMP_POSTGRES_TEST_PASSWORD: ${{ secrets.SMP_POSTGRES_PASSWORD }}
+    steps:
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5
+        with:
+          persist-credentials: false
+
+      - uses: ./.github/actions/setup-backend
+
+      - name: Run postgres integration tests
+        shell: bash
+        run: ./gradlew :server:smp:postgresIntegrationTest --no-daemon -PexcludeTags=modularity
+
+  # ──────────────────────────────────────────────────────────────
+  # 6. Backend BDD fast suite
   # ──────────────────────────────────────────────────────────────
   backend-bdd:
     name: 🔨 Backend BDD
@@ -158,7 +180,7 @@ jobs:
         run: ./gradlew :server:smp:bddFastTest --no-daemon -x :shared:common:test -x :shared:spring-boot-common:test
 
   # ──────────────────────────────────────────────────────────────
-  # 6. Marketing E2E (Playwright — all browsers)
+  # 7. Marketing E2E (Playwright — all browsers)
   # ──────────────────────────────────────────────────────────────
   marketing-e2e:
     name: 🌐 Marketing E2E
@@ -188,7 +210,7 @@ jobs:
           retention-days: 7
 
   # ──────────────────────────────────────────────────────────────
-  # 7. Scheduler E2E (Playwright — full stack required)
+  # 8. Scheduler E2E (Playwright — full stack required)
   #
   # Spins up: PostgreSQL, WireMock (LinkedIn mock), Spring Boot, Vite.
   # Runs serially within the job since tests share browser state.

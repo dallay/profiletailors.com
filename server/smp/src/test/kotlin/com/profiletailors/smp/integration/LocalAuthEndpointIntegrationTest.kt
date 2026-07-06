@@ -567,14 +567,14 @@ class LocalAuthEndpointIntegrationTest : PostgresIntegrationTestBase() {
                 .one()
                 .awaitSingle()
 
-            assertEquals(
+            kotlin.test.assertEquals(
                 true,
-                storedHash!!.startsWith("\$argon2id\$"),
+                requireNotNull(storedHash) { "password_hash should not be null" }.startsWith("\$argon2id\$"),
                 "Password hash should start with \$argon2id\$, got: $storedHash",
             )
-            assertEquals(
+            kotlin.test.assertEquals(
                 "argon2id",
-                storedAlgo!!,
+                requireNotNull(storedAlgo) { "password_algorithm should not be null" },
                 "password_algorithm should be argon2id, got: $storedAlgo",
             )
         }
@@ -623,14 +623,16 @@ class LocalAuthEndpointIntegrationTest : PostgresIntegrationTestBase() {
                 .one()
                 .awaitSingle()
 
-            assertEquals(
+            kotlin.test.assertEquals(
                 true,
-                hashAfter!!.startsWith("\$argon2id\$"),
+                requireNotNull(hashAfter) {
+                    "password_hash should not be null after rehash"
+                }.startsWith("\$argon2id\$"),
                 "Hash should have been upgraded to argon2id, got: $hashAfter",
             )
-            assertEquals(
+            kotlin.test.assertEquals(
                 "argon2id",
-                algoAfter!!,
+                requireNotNull(algoAfter) { "password_algorithm should not be null after rehash" },
                 "Algorithm should be argon2id after rehash, got: $algoAfter",
             )
         }
@@ -641,40 +643,7 @@ class LocalAuthEndpointIntegrationTest : PostgresIntegrationTestBase() {
         val email = "bcrypt-null-algo-${UUID.randomUUID()}@example.com"
         val rawPassword = "AnotherLegacyPass99!"
 
-        // Seed a user with BCrypt hash but null password_algorithm
-        kotlinx.coroutines.runBlocking {
-            databaseClient.sql(
-                """
-                INSERT INTO principals (id, principal_type, subject, provider, display_identity)
-                VALUES ('null-algo-${UUID.randomUUID()}', 'USER', :subject, NULL, :displayIdentity)
-                """.trimIndent(),
-            )
-                .bind("subject", "local:$email")
-                .bind("displayIdentity", email.substringBefore("@"))
-                .fetch().rowsUpdated().block()!!
-
-            databaseClient.sql(
-                """
-                INSERT INTO user_identities (principal_id, email, username, email_status)
-                VALUES ((SELECT id FROM principals WHERE subject = :subject), :email, :username, 'VERIFIED')
-                """.trimIndent(),
-            )
-                .bind("subject", "local:$email")
-                .bind("email", email)
-                .bind("username", email.substringBefore("@"))
-                .fetch().rowsUpdated().block()!!
-
-            val bcryptHash = BCrypt.hashpw(rawPassword, BCrypt.gensalt())
-            databaseClient.sql(
-                """
-                INSERT INTO local_password_credentials (principal_id, password_hash, password_algorithm)
-                VALUES ((SELECT id FROM principals WHERE subject = :subject), :passwordHash, NULL)
-                """.trimIndent(),
-            )
-                .bind("subject", "local:$email")
-                .bind("passwordHash", bcryptHash)
-                .fetch().rowsUpdated().block()!!
-        }
+        seedLegacyBcryptUser(email, rawPassword, passwordAlgorithm = null)
 
         // Login should succeed using format inference and trigger rehash
         webTestClient.post()
@@ -683,6 +652,40 @@ class LocalAuthEndpointIntegrationTest : PostgresIntegrationTestBase() {
             .bodyValue(mapOf("email" to email, "password" to rawPassword))
             .exchange()
             .expectStatus().isOk
+
+        // Verify the row was upgraded to Argon2id
+        kotlinx.coroutines.runBlocking {
+            val (hashAfterUpgrade, algoAfterUpgrade) = databaseClient.sql(
+                """
+                SELECT c.password_hash, c.password_algorithm
+                FROM local_password_credentials c
+                JOIN user_identities ui ON ui.principal_id = c.principal_id
+                WHERE ui.email = :email
+                """.trimIndent(),
+            )
+                .bind("email", email)
+                .map { r, _ ->
+                    Pair(
+                        r.get("password_hash", String::class.java),
+                        r.get("password_algorithm", String::class.java),
+                    )
+                }
+                .one()
+                .awaitSingle()
+
+            kotlin.test.assertEquals(
+                true,
+                requireNotNull(hashAfterUpgrade) {
+                    "password_hash should not be null after null-algo rehash"
+                }.startsWith("\$argon2id\$"),
+                "Hash should have been upgraded to argon2id, got: $hashAfterUpgrade",
+            )
+            kotlin.test.assertEquals(
+                "argon2id",
+                requireNotNull(algoAfterUpgrade) { "password_algorithm should not be null after null-algo rehash" },
+                "Algorithm should be argon2id after null-algo rehash, got: $algoAfterUpgrade",
+            )
+        }
     }
 
     @Test
@@ -864,7 +867,7 @@ class LocalAuthEndpointIntegrationTest : PostgresIntegrationTestBase() {
                 .build()
     }
 
-    private fun seedLegacyBcryptUser(email: String, rawPassword: String) {
+    private fun seedLegacyBcryptUser(email: String, rawPassword: String, passwordAlgorithm: String? = "bcrypt") {
         val bcryptHash = BCrypt.hashpw(rawPassword, BCrypt.gensalt())
         databaseClient.sql(
             """
@@ -890,11 +893,18 @@ class LocalAuthEndpointIntegrationTest : PostgresIntegrationTestBase() {
         databaseClient.sql(
             """
             INSERT INTO local_password_credentials (principal_id, password_hash, password_algorithm)
-            VALUES ((SELECT id FROM principals WHERE subject = :subject), :passwordHash, 'bcrypt')
+            VALUES ((SELECT id FROM principals WHERE subject = :subject), :passwordHash, :passwordAlgorithm)
             """.trimIndent(),
         )
             .bind("subject", "local:$email")
             .bind("passwordHash", bcryptHash)
+            .also { stmt ->
+                if (passwordAlgorithm != null) {
+                    stmt.bind("passwordAlgorithm", passwordAlgorithm)
+                } else {
+                    stmt.bindNull("passwordAlgorithm", String::class.java)
+                }
+            }
             .fetch().rowsUpdated().block()!!
     }
 
