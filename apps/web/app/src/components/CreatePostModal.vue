@@ -67,7 +67,7 @@ const { activate: activateFocusTrap, deactivate: deactivateFocusTrap } = useFocu
 // Edit mode
 // ---------------------------------------------------------------------------
 const isEditMode = computed(() => !!props.editingPublication)
-const isCreating = computed(() => !isEditMode.value)
+const _isCreating = computed(() => !isEditMode.value)
 const assetsTouched = ref(false)
 let suppressAssetTouchTracking = false
 
