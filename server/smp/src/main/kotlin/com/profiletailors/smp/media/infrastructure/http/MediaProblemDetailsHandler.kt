@@ -9,6 +9,8 @@ import com.profiletailors.smp.media.application.RateLimitExceededException
 import com.profiletailors.smp.media.application.UnsupportedMediaTypeException
 import com.profiletailors.smp.media.application.UploadConflictException
 import com.profiletailors.smp.media.application.UploadInProgressException
+import com.profiletailors.smp.mediaprovider.unsplash.UnsplashErrorMapper
+import com.profiletailors.smp.mediaprovider.unsplash.UnsplashProviderException
 import org.slf4j.LoggerFactory
 import org.springframework.http.HttpStatus
 import org.springframework.http.ProblemDetail
@@ -20,7 +22,28 @@ import org.springframework.web.server.ResponseStatusException
 private val logger = LoggerFactory.getLogger(MediaProblemDetailsHandler::class.java)
 
 @RestControllerAdvice
-class MediaProblemDetailsHandler {
+class MediaProblemDetailsHandler(private val unsplashErrorMapper: UnsplashErrorMapper) {
+
+    @ExceptionHandler(UnsplashProviderException::class)
+    fun handle(exception: UnsplashProviderException): ResponseEntity<ProblemDetail> {
+        val outcome = unsplashErrorMapper.map(exception)
+        logger.debug("Unsplash provider error: errorCode={} status={}", outcome.errorCode, outcome.status)
+        val problemDetail = ProblemDetail.forStatusAndDetail(
+            outcome.status,
+            outcome.publicMessage,
+        ).apply {
+            title = "Media provider error"
+            setProperty("errorCode", outcome.errorCode)
+            outcome.retryAfterSeconds?.let {
+                setProperty("retryAfterSeconds", it)
+            }
+        }
+        val builder = ResponseEntity.status(outcome.status)
+        outcome.retryAfterSeconds?.let {
+            builder.header("Retry-After", it.toString())
+        }
+        return builder.body(problemDetail)
+    }
 
     @ExceptionHandler(AssetNotFoundException::class)
     fun handle(exception: AssetNotFoundException): ProblemDetail {

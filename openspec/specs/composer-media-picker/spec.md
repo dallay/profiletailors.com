@@ -76,7 +76,35 @@ The picker MUST accept typed presentation inputs and MUST emit typed search, fil
 - GIVEN reusable assets are displayed by parent-provided data
 - WHEN the author interacts with the shell
 - THEN the picker MUST NOT persist asset selection or alter a draft
-- AND it MUST NOT offer multi-selection, upload, deletion, or provider import
+- AND it MUST NOT offer multi-selection, upload, deletion, or direct provider API calls
+- BUT it MAY emit parent-owned `provider-import` interactions
+
+### Requirement: Provider tab is shell-only and parent-owned
+
+The composer media picker MUST accept an optional `provider: "unsplash" | null` prop and
+MUST emit a `provider-import` interaction. The shell MUST NOT call any HTTP endpoint
+directly; data fetching MUST happen in a parent-owned panel.
+
+#### Scenario: Provider tab is conditional
+
+- GIVEN a parent passes `provider="unsplash"`
+- WHEN the picker renders
+- THEN a provider tab MUST be visible
+- AND when `provider` is `null` or omitted the tab MUST NOT render
+
+#### Scenario: Parent owns search and import interactions
+
+- GIVEN a provider tab is rendered
+- WHEN the author types a query and presses Enter
+- THEN the picker MUST emit `provider-search` with the typed payload
+- AND the picker MUST NOT call any HTTP endpoint directly
+
+#### Scenario: Importing a result emits provider-import
+
+- GIVEN a provider result is displayed
+- WHEN the author clicks "Import"
+- THEN the picker MUST emit `provider-import` with `{ externalId }`
+- AND the picker MUST NOT directly call the import API
 
 ### Requirement: Asset region presentation
 

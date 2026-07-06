@@ -25,6 +25,13 @@ export type ComposerMediaPickerFilterOption = {
   labelKey: string
 }
 
+export const COMPOSER_MEDIA_PICKER_PROVIDER = {
+  UNSPLASH: 'unsplash',
+} as const
+
+export type ComposerMediaPickerProvider =
+  (typeof COMPOSER_MEDIA_PICKER_PROVIDER)[keyof typeof COMPOSER_MEDIA_PICKER_PROVIDER]
+
 export type ComposerMediaPickerProps = {
   open: boolean
   disabled?: boolean
@@ -34,6 +41,7 @@ export type ComposerMediaPickerProps = {
   filterOptions: ReadonlyArray<ComposerMediaPickerFilterOption>
   assets: ReadonlyArray<MediaAssetSummary>
   errorMessage?: string | null
+  provider?: ComposerMediaPickerProvider | null
 }
 
 export type ComposerMediaPickerSearchChange = {
@@ -42,4 +50,8 @@ export type ComposerMediaPickerSearchChange = {
 
 export type ComposerMediaPickerFilterChange = {
   filter: ComposerMediaPickerFilter
+}
+
+export type ComposerMediaPickerProviderImport = {
+  externalId: string
 }

@@ -223,6 +223,20 @@ const messages = {
         disabledTitle: 'Media library unavailable',
         disabledBody: 'Media browsing is temporarily disabled for this composer state.',
         readyTitle: 'Reusable media',
+        tabs: {
+          library: 'Library',
+          provider: 'Provider',
+        },
+        provider: {
+          searchLabel: 'Search provider',
+          searchPlaceholder: 'Search stock photos',
+          searchAction: 'Search',
+          emptyTitle: 'Search for stock imagery to import.',
+          errorTitle: 'Provider search is temporarily unavailable.',
+          loading: 'Searching the provider...',
+          importAction: 'Import',
+          importing: 'Importing...',
+        },
       },
     },
     postDetail: {
@@ -719,6 +733,20 @@ const messages = {
         disabledBody:
           'La exploración de medios está deshabilitada temporalmente para este estado del composer.',
         readyTitle: 'Medios reutilizables',
+        tabs: {
+          library: 'Librería',
+          provider: 'Proveedor',
+        },
+        provider: {
+          searchLabel: 'Buscar en el proveedor',
+          searchPlaceholder: 'Buscar fotos de stock',
+          searchAction: 'Buscar',
+          emptyTitle: 'Busca imágenes de stock para importar.',
+          errorTitle: 'La búsqueda en el proveedor no está disponible.',
+          loading: 'Buscando en el proveedor...',
+          importAction: 'Importar',
+          importing: 'Importando...',
+        },
       },
     },
     postDetail: {

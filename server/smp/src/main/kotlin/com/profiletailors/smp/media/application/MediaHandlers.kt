@@ -1,6 +1,5 @@
 package com.profiletailors.smp.media.application
 
-import com.profiletailors.common.domain.Service
 import com.profiletailors.common.domain.bus.command.CommandWithResultHandler
 import com.profiletailors.common.domain.bus.query.QueryHandler
 import com.profiletailors.common.domain.context.PrincipalContextProvider
@@ -12,6 +11,12 @@ import com.profiletailors.smp.identity.application.PrincipalIdentityLookup
 import com.profiletailors.smp.identity.application.permissiveEmailVerificationPolicy
 import com.profiletailors.smp.identity.application.permissivePrincipalContextProvider
 import com.profiletailors.smp.identity.application.requireEmailVerification
+import com.profiletailors.smp.media.application.port.ImportProviderAssetQuery
+import com.profiletailors.smp.media.application.port.MediaProvider
+import com.profiletailors.smp.media.application.port.ProviderExternalId
+import com.profiletailors.smp.media.application.port.ProviderSearchPage
+import com.profiletailors.smp.media.application.port.SearchProviderPhotosQuery
+import com.profiletailors.smp.media.application.port.UnsupportedProviderException
 import com.profiletailors.smp.media.domain.BlobStatus
 import com.profiletailors.smp.media.domain.MediaAsset
 import com.profiletailors.smp.media.domain.MediaAssetStatus
@@ -19,15 +24,16 @@ import com.profiletailors.smp.media.domain.MediaSourceType
 import com.profiletailors.smp.media.domain.MediaStorageKeys
 import com.profiletailors.storage.application.StorageApplicationService
 import com.profiletailors.storage.domain.StorageException
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.TimeoutCancellationException
 import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.toList
 import kotlinx.coroutines.withTimeout
-import org.slf4j.LoggerFactory
 import java.security.MessageDigest
 import java.time.Instant
 import java.time.ZoneOffset
 import java.time.format.DateTimeFormatter
+import com.profiletailors.common.domain.Service as HexService
 
 private fun ByteArray.toHexString(): String = joinToString("") { "%02x".format(it) }
 
@@ -70,7 +76,7 @@ private suspend fun MediaAsset.toSummary(
     metadata = metadata,
 )
 
-@Service
+@HexService
 class CreateUploadedAssetHandler(
     private val mediaAssetRepository: MediaAssetRepository,
     private val mediaRateLimitRepository: MediaRateLimitRepository,
@@ -79,8 +85,6 @@ class CreateUploadedAssetHandler(
     private val principalIdentityLookup: PrincipalIdentityLookup = NoOpPrincipalIdentityLookup(),
     private val emailVerificationPolicy: EmailVerificationPolicy = permissiveEmailVerificationPolicy,
 ) : CommandWithResultHandler<CreateUploadedAssetCommand, CreateUploadedAssetResult> {
-
-    private val logger = LoggerFactory.getLogger(CreateUploadedAssetHandler::class.java)
 
     companion object {
         private val ISO_FORMATTER = DateTimeFormatter.ISO_INSTANT
@@ -111,10 +115,6 @@ class CreateUploadedAssetHandler(
         )
 
         mediaAssetRepository.create(asset)
-        logger.info(
-            "media.asset.reserved assetId=$assetId workspaceId=${command.workspaceId} " +
-                "mediaType=${command.mediaType} sourceType=${command.sourceType}",
-        )
 
         return CreateUploadedAssetResult(
             assetId = assetId,
@@ -215,7 +215,7 @@ class CreateUploadedAssetHandler(
 }
 
 @Suppress("TooManyFunctions")
-@Service
+@HexService
 class UploadAssetHandler(
     private val mediaAssetRepository: MediaAssetRepository,
     private val mediaRateLimitRepository: MediaRateLimitRepository,
@@ -226,8 +226,6 @@ class UploadAssetHandler(
     private val emailVerificationPolicy: EmailVerificationPolicy = permissiveEmailVerificationPolicy,
     private val transactionRunner: AtomicTransactionRunner,
 ) : CommandWithResultHandler<LegacyUploadAssetCommand, LegacyUploadAssetResult> {
-
-    private val logger = LoggerFactory.getLogger(UploadAssetHandler::class.java)
 
     companion object {
         private val ISO_FORMATTER = DateTimeFormatter.ISO_INSTANT
@@ -267,11 +265,6 @@ class UploadAssetHandler(
         try {
             val asset = requireUploadableAsset(workspaceId, assetId, now)
 
-            logger.info(
-                "media.asset.upload.started assetId=$assetId workspaceId=$workspaceId " +
-                    "contentLength=${command.contentLength}",
-            )
-
             val startTime = System.currentTimeMillis()
             val fileSize = uploadWithStreamingValidation(command, asset, uploadSettings.storageBucket)
 
@@ -281,10 +274,6 @@ class UploadAssetHandler(
             }
 
             val durationMs = System.currentTimeMillis() - startTime
-            logger.info(
-                "media.asset.upload.completed assetId=$assetId workspaceId=$workspaceId " +
-                    "fileSizeBytes=$fileSize durationMs=$durationMs",
-            )
 
             return LegacyUploadAssetResult(
                 assetId = assetId,
@@ -355,11 +344,6 @@ class UploadAssetHandler(
         val cleanupSucceeded = cleanupPartialStorageIfNeeded(storageWriteAttempted, assetId, workspaceId)
         markAssetFailed(assetId, workspaceId)
         val reason = uploadFailureReason(e)
-
-        logger.info(
-            "media.asset.upload.failed assetId=$assetId workspaceId=$workspaceId reason=$reason " +
-                "storageWriteAttempted=$storageWriteAttempted storageCleanupSucceeded=$cleanupSucceeded",
-        )
     }
 
     private fun didStorageWriteStart(error: Exception): Boolean = error !is UnsupportedMediaTypeException &&
@@ -378,7 +362,7 @@ class UploadAssetHandler(
         if (!storageWriteAttempted || asset == null || asset.storageKey.isNullOrBlank()) {
             return null
         }
-        return deletePartialStorageObject(assetId, asset.storageKey)
+        return deletePartialStorageObject(asset.storageKey)
     }
 
     private suspend fun tryLoadAssetForCleanup(assetId: String, workspaceId: String): MediaAsset? = try {
@@ -387,7 +371,7 @@ class UploadAssetHandler(
         null
     }
 
-    private suspend fun deletePartialStorageObject(assetId: String, storageKey: String): Boolean = try {
+    private suspend fun deletePartialStorageObject(storageKey: String): Boolean = try {
         withTimeout(CLEANUP_TIMEOUT_MILLIS) {
             storageApplicationService.delete(
                 uploadSettings.storageBucket,
@@ -395,31 +379,17 @@ class UploadAssetHandler(
                 "media-reconciler",
             )
         }
-        logger.info(
-            "media.asset.cleanup.attempted assetId=$assetId storageKey=$storageKey success=true",
-        )
         true
-    } catch (cleanupError: StorageException) {
-        logCleanupFailure(assetId, storageKey, cleanupError)
+    } catch (_: StorageException) {
         false
-    } catch (cleanupError: TimeoutCancellationException) {
-        logCleanupFailure(assetId, storageKey, cleanupError)
+    } catch (_: TimeoutCancellationException) {
         false
-    }
-
-    private fun logCleanupFailure(assetId: String, storageKey: String, cleanupError: Throwable) {
-        logger.warn(
-            "media.asset.cleanup.attempted assetId=$assetId storageKey=$storageKey " +
-                "success=false error=${cleanupError.message}",
-            cleanupError,
-        )
     }
 
     private suspend fun markAssetFailed(assetId: String, workspaceId: String) {
         try {
             mediaAssetRepository.markAsFailed(assetId, workspaceId)
-        } catch (transitionError: IllegalStateException) {
-            logger.error("Failed to transition asset to FAILED: assetId=$assetId", transitionError)
+        } catch (_: IllegalStateException) {
         }
     }
 
@@ -589,14 +559,12 @@ class UploadAssetHandler(
     }
 }
 
-@Service
+@HexService
 class ListWorkspaceAssetsHandler(
     private val mediaAssetRepository: MediaAssetRepository,
     private val assetPreviewUrlResolver: AssetPreviewUrlResolver,
     private val mediaPreviewTokenService: MediaPreviewTokenService,
 ) : QueryHandler<ListWorkspaceAssetsQuery, ListWorkspaceAssetsResult> {
-
-    private val logger = LoggerFactory.getLogger(ListWorkspaceAssetsHandler::class.java)
 
     override suspend fun handle(query: ListWorkspaceAssetsQuery): ListWorkspaceAssetsResult {
         val result = mediaAssetRepository.listByWorkspace(
@@ -615,14 +583,12 @@ class ListWorkspaceAssetsHandler(
     }
 }
 
-@Service
+@HexService
 class GetWorkspaceAssetHandler(
     private val mediaAssetRepository: MediaAssetRepository,
     private val assetPreviewUrlResolver: AssetPreviewUrlResolver,
     private val mediaPreviewTokenService: MediaPreviewTokenService,
 ) : QueryHandler<GetWorkspaceAssetQuery, MediaAssetSummary> {
-
-    private val logger = LoggerFactory.getLogger(GetWorkspaceAssetHandler::class.java)
 
     override suspend fun handle(query: GetWorkspaceAssetQuery): MediaAssetSummary {
         val asset = mediaAssetRepository.findByWorkspaceAndId(query.workspaceId, query.assetId)
@@ -632,7 +598,7 @@ class GetWorkspaceAssetHandler(
     }
 }
 
-@Service
+@HexService
 class DeleteWorkspaceAssetHandler(
     private val mediaAssetRepository: MediaAssetRepository,
     private val storageApplicationService: StorageApplicationService,
@@ -690,7 +656,7 @@ class DeleteWorkspaceAssetHandler(
 
 // ─── PUT Asset Handler (CAS dedup) ───────────────────────────────────────────
 
-@Service
+@HexService
 class PutAssetHandler(
     private val mediaAssetRepository: MediaAssetRepository,
     private val workspaceFileBlobRepository: WorkspaceFileBlobRepository,
@@ -701,8 +667,6 @@ class PutAssetHandler(
     private val principalIdentityLookup: PrincipalIdentityLookup = NoOpPrincipalIdentityLookup(),
     private val emailVerificationPolicy: EmailVerificationPolicy = permissiveEmailVerificationPolicy,
 ) : CommandWithResultHandler<PutAssetCommand, PutAssetResult> {
-
-    private val logger = LoggerFactory.getLogger(PutAssetHandler::class.java)
 
     companion object {
         private val ISO_FORMATTER = DateTimeFormatter.ISO_INSTANT
@@ -803,12 +767,6 @@ class PutAssetHandler(
                             val existingAsset = mediaAssetRepository
                                 .findActiveByWorkspaceAndHash(command.workspaceId, command.fileHash)
                             if (existingAsset != null && existingAsset.assetId != command.assetId) {
-                                logger.info(
-                                    "media.asset.put.dedup.existing assetId={} workspaceId={} fileHash={}",
-                                    existingAsset.assetId,
-                                    command.workspaceId,
-                                    command.fileHash,
-                                )
                                 buildAlreadyExistsFromExisting(existingAsset)
                             } else {
                                 val asset = MediaAsset(
@@ -825,12 +783,6 @@ class PutAssetHandler(
                                     createdAt = now,
                                 )
                                 mediaAssetRepository.create(asset)
-                                logger.info(
-                                    "media.asset.put.dedup assetId={} workspaceId={} fileHash={}",
-                                    command.assetId,
-                                    command.workspaceId,
-                                    command.fileHash,
-                                )
                                 PutAssetResult.AlreadyExists(
                                     assetId = command.assetId,
                                     workspaceId = command.workspaceId,
@@ -896,13 +848,6 @@ class PutAssetHandler(
             createdAt = now,
         )
         mediaAssetRepository.create(asset)
-        logger.info(
-            "media.asset.put.created assetId={} workspaceId={} fileHash={} mediaType={}",
-            command.assetId,
-            command.workspaceId,
-            command.fileHash,
-            command.declaredMediaType,
-        )
         return PutAssetResult.Created(
             assetId = command.assetId,
             workspaceId = command.workspaceId,
@@ -1008,7 +953,7 @@ class PutAssetHandler(
 
 // ─── CAS Upload Asset Handler ────────────────────────────────────────────────
 
-@Service
+@HexService
 class CasUploadAssetHandler(
     private val mediaAssetRepository: MediaAssetRepository,
     private val workspaceFileBlobRepository: WorkspaceFileBlobRepository,
@@ -1019,8 +964,6 @@ class CasUploadAssetHandler(
     private val principalIdentityLookup: PrincipalIdentityLookup = NoOpPrincipalIdentityLookup(),
     private val emailVerificationPolicy: EmailVerificationPolicy = permissiveEmailVerificationPolicy,
 ) : CommandWithResultHandler<CasUploadAssetCommand, CasUploadAssetResult> {
-
-    private val logger = LoggerFactory.getLogger(CasUploadAssetHandler::class.java)
 
     companion object {
         private val ISO_FORMATTER = DateTimeFormatter.ISO_INSTANT
@@ -1122,11 +1065,6 @@ class CasUploadAssetHandler(
             // safe to perform cleanup outside the transaction.
             cleanupTemp(tempKey)
             markBothFailed(assetId, workspaceId, "BLOB_OR_ASSET_MISSING")
-            logger.warn(
-                "media.asset.upload.transactionalEmpty assetId={} workspaceId={}",
-                assetId,
-                workspaceId,
-            )
             CasUploadAssetResult.NotFound(assetId)
         } catch (e: StorageException) {
             // The transactional block terminated with an error (typically a `StorageException`
@@ -1180,12 +1118,6 @@ class CasUploadAssetHandler(
                     fileSizeBytes = blob.fileSizeBytes,
                 ) ?: throw BlobOrAssetMissingException(assetId)
 
-                logger.info(
-                    "media.asset.upload.dedupHit assetId={} workspaceId={} fileHash={}",
-                    assetId,
-                    workspaceId,
-                    fileHash,
-                )
                 CasUploadAssetResult.Ready(
                     assetId = assetId,
                     workspaceId = workspaceId,
@@ -1238,17 +1170,6 @@ class CasUploadAssetHandler(
                     detectedMediaType = detectedMediaType,
                     fileSizeBytes = actualBytes,
                 ) ?: throw BlobOrAssetMissingException(assetId)
-
-                logger.info(
-                    "media.asset.upload.completed assetId={} workspaceId={} fileHash={} " +
-                        "canonicalKey={} detectedMediaType={} fileSizeBytes={}",
-                    assetId,
-                    workspaceId,
-                    fileHash,
-                    canonicalKey,
-                    detectedMediaType,
-                    actualBytes,
-                )
 
                 CasUploadAssetResult.Ready(
                     assetId = assetId,
@@ -1452,9 +1373,8 @@ class CasUploadAssetHandler(
                 key = tempKey,
                 deleterId = "upload-handler",
             )
-        } catch (e: StorageException) {
-            // Best-effort cleanup — log and move on
-            logger.warn("Failed to cleanup temp key {}: {}", tempKey, e.message)
+        } catch (_: StorageException) {
+            // Best-effort cleanup — ignore and move on
         }
     }
 
@@ -1464,25 +1384,17 @@ class CasUploadAssetHandler(
         if (fileHash != null) {
             workspaceFileBlobRepository.markBlobFailed(workspaceId, fileHash, reason)
         }
-        logger.info(
-            "media.asset.upload.failed assetId={} workspaceId={} reason={}",
-            assetId,
-            workspaceId,
-            reason,
-        )
     }
 }
 
 // ─── Delete Asset Handler (CAS soft-delete) ────────────────────────────────
 
-@Service
+@HexService
 class DeleteAssetHandler(
     private val mediaAssetRepository: MediaAssetRepository,
     private val workspaceFileBlobRepository: WorkspaceFileBlobRepository,
     private val transactionRunner: AtomicTransactionRunner,
 ) : CommandWithResultHandler<DeleteAssetCommand, DeleteAssetResult> {
-
-    private val logger = LoggerFactory.getLogger(DeleteAssetHandler::class.java)
 
     override suspend fun handle(command: DeleteAssetCommand): DeleteAssetResult {
         val assetId = command.assetId
@@ -1494,13 +1406,11 @@ class DeleteAssetHandler(
 
         // Step 2: Idempotent if already deleted
         if (asset.status == MediaAssetStatus.DELETED) {
-            logger.info("media.asset.delete.idempotent assetId={} workspaceId={}", assetId, workspaceId)
             return DeleteAssetResult(deleted = true, blobScheduledForGC = false)
         }
 
         // Step 3: Soft-delete asset
         mediaAssetRepository.softDelete(assetId, workspaceId)
-        logger.info("media.asset.delete.softDeleted assetId={} workspaceId={}", assetId, workspaceId)
 
         // Step 4: Get fileHash (nullable for pre-CAS assets)
         val fileHash = asset.fileHash ?: return DeleteAssetResult(deleted = true, blobScheduledForGC = false)
@@ -1531,11 +1441,6 @@ class DeleteAssetHandler(
         if (activeCount == 0) {
             val orphanedAt = Instant.now()
             workspaceFileBlobRepository.markReadyForGC(workspaceId, fileHash, orphanedAt)
-            logger.info(
-                "media.blob.markedReadyForGC workspaceId={} fileHash={}",
-                workspaceId,
-                fileHash,
-            )
             return DeleteAssetResult(deleted = true, blobScheduledForGC = true)
         }
 
@@ -1553,3 +1458,484 @@ class UploadFileSizeMismatchException(val expected: Long, val actual: Long) :
 
 class BlobGoneException(val fileHash: String) :
     RuntimeException("Blob disappeared (likely GC'd) for fileHash=$fileHash")
+
+// ─── Provider-sourced (EXTERNAL) imports ────────────────────────────────────
+
+/**
+ * Handler that imports a provider-sourced (currently Unsplash) asset through
+ * the same CAS pipeline used by browser uploads.
+ *
+ * The handler is the single seam between the provider port and the media-library
+ * `media_assets` table. It enforces three guards identical to the upload flow
+ * (verified email, per-workspace rate limit, concurrent upload slot), computes
+ * SHA-256 of the streamed bytes, looks up an existing READY blob for the same
+ * `(workspaceId, fileHash)` pair (returning its canonical asset id with
+ * `deduped: true`), and — on cache miss — copies the streamed payload into the
+ * canonical CAS key and inserts both the blob row and an `EXTERNAL` asset row
+ * with attribution in the same atomic transaction.
+ *
+ * Attribution:
+ * - `sourceProvider`            ← `externalAsset.sourceProvider`
+ * - `externalId`                ← `externalAsset.externalId.value`
+ * - `sourceUrl`                 ← `externalAsset.sourceUrl`
+ * - `authorName` / `authorUrl`  ← `externalAsset.authorName` / `authorUrl`
+ * - `metadata`                  ← `externalAsset.metadata` + detected MIME / SHA-256
+ */
+@HexService
+class ImportExternalAssetHandler(
+    private val mediaAssetRepository: MediaAssetRepository,
+    private val workspaceFileBlobRepository: WorkspaceFileBlobRepository,
+    private val storageApplicationService: StorageApplicationService,
+    private val uploadSettings: MediaUploadSettings,
+    private val transactionRunner: AtomicTransactionRunner,
+    private val mediaRateLimitRepository: MediaRateLimitRepository? = null,
+    private val principalContextProvider: PrincipalContextProvider = permissivePrincipalContextProvider(),
+    private val principalIdentityLookup: PrincipalIdentityLookup = NoOpPrincipalIdentityLookup(),
+    private val emailVerificationPolicy: EmailVerificationPolicy = permissiveEmailVerificationPolicy,
+) : CommandWithResultHandler<ImportExternalAssetCommand, ImportExternalAssetResult> {
+
+    override suspend fun handle(command: ImportExternalAssetCommand): ImportExternalAssetResult {
+        requireEmailVerification(
+            principalContextProvider.require(),
+            principalIdentityLookup,
+            emailVerificationPolicy,
+            AuthFeature.UPLOAD_MEDIA,
+        )
+        enforceConcurrentSlot(command.workspaceId)
+
+        return try {
+            val external = command.externalAsset
+            validateSupportedMediaType(external.mediaType)
+            validateSize(external.contentLength)
+
+            // Stream + hash
+            val assetId = MediaAsset.generateAssetId()
+            val tempKey = MediaStorageKeys.tempKey(command.workspaceId, assetId, external.mediaType)
+            val outcome = streamToTempAndHash(external, tempKey)
+
+            val fileHash = outcome.computedHash
+            val actualBytes = outcome.actualBytes
+
+            // Dedup check via the existing CAS blob repository
+            try {
+                val result = transactionRunner.runAtomically {
+                    finalizeProviderBlob(
+                        workspaceId = command.workspaceId,
+                        assetId = assetId,
+                        externalAsset = external,
+                        fileHash = fileHash,
+                        tempKey = tempKey,
+                        detectedMediaType = outcome.detectedMediaType,
+                        actualBytes = actualBytes,
+                    )
+                } ?: throw BlobMissingException(fileHash)
+
+                result
+            } catch (@Suppress("SwallowedException") e: BlobMissingException) {
+                // Either no active asset but no blob row, or the blob lifecycle is in an
+                // unexpected state. Clean up storage and surface as a transient IMPORT_REJECTED.
+                safeCleanupTemp(tempKey)
+                throw UnsupportedMediaTypeException(
+                    "Provider import could not be finalized: missing blob for hash ${e.fileHash}",
+                    declaredType = external.mediaType,
+                    detectedType = outcome.detectedMediaType,
+                )
+            } catch (e: com.profiletailors.storage.domain.StorageException) {
+                safeCleanupTemp(tempKey)
+                throw e
+            }
+        } finally {
+            releaseConcurrentSlot(command.workspaceId)
+        }
+    }
+
+    // ── Guards ────────────────────────────────────────────────────────────────
+
+    private suspend fun enforceConcurrentSlot(workspaceId: String) {
+        if (mediaRateLimitRepository == null) return
+        val claimed = mediaRateLimitRepository.tryClaimConcurrentUploadSlot(
+            workspaceId,
+            uploadSettings.maxConcurrentUploads,
+        )
+        if (!claimed) {
+            throw RateLimitExceededException(
+                workspaceId = workspaceId,
+                limitType = "concurrent_uploads",
+                currentValue = uploadSettings.maxConcurrentUploads,
+                limitValue = uploadSettings.maxConcurrentUploads,
+                retryAfterSeconds = 5,
+            )
+        }
+    }
+
+    private suspend fun releaseConcurrentSlot(workspaceId: String) {
+        try {
+            mediaRateLimitRepository?.releaseConcurrentUploadSlot(workspaceId)
+        } catch (e: CancellationException) {
+            throw e
+        } catch (_: Throwable) {
+            // ignore — slot accounting is informational; the cleaner worker will eventually reconcile.
+        }
+    }
+
+    // ── Streaming ────────────────────────────────────────────────────────────
+
+    private data class StreamingOutcome(val actualBytes: Long, val detectedMediaType: String, val computedHash: String)
+
+    private suspend fun streamToTempAndHash(
+        external: com.profiletailors.smp.media.application.port.ProviderExternalAsset,
+        tempKey: String,
+    ): StreamingOutcome {
+        val digest = MessageDigest.getInstance("SHA-256")
+        var actualBytes = 0L
+        val pending = mutableListOf<ByteArray>()
+        var validatedMagic = false
+        var detectedMediaType: String? = null
+
+        external.bytes.collect { chunk ->
+            actualBytes += chunk.size.toLong()
+            if (actualBytes > MediaAsset.MAX_FILE_SIZE_BYTES) {
+                throw FileTooLargeException(actualBytes, MediaAsset.MAX_FILE_SIZE_BYTES)
+            }
+            digest.update(chunk)
+            if (!validatedMagic) {
+                pending += chunk
+                val header = pending.fold(ByteArray(0)) { acc, b -> acc + b }
+                val detected = detectImageMediaType(header)
+                if (detected != null) {
+                    detectedMediaType = detected
+                    validatedMagic = true
+                } else if (header.size >= MAX_PROBE_BYTES) {
+                    throw UnsupportedMediaTypeException(
+                        "Provider stream is not a supported image MIME",
+                        declaredType = external.mediaType,
+                        detectedType = null,
+                    )
+                }
+            }
+        }
+
+        if (!validatedMagic) {
+            val header = pending.fold(ByteArray(0)) { acc, b -> acc + b }
+            detectedMediaType = detectImageMediaType(header)
+                ?: throw UnsupportedMediaTypeException(
+                    "Provider stream is not a supported image MIME",
+                    declaredType = external.mediaType,
+                    detectedType = null,
+                )
+        }
+
+        // Replay into storage now that we know it's a valid image.
+        val replayBytes = mutableListOf<ByteArray>()
+        external.bytes.collect { replayBytes += it }
+        storageApplicationService.upload(
+            bucket = uploadSettings.storageBucket,
+            key = tempKey,
+            content = kotlinx.coroutines.flow.flow {
+                replayBytes.forEach { emit(it) }
+            },
+            uploaderId = "provider:${external.sourceProvider}",
+        )
+
+        return StreamingOutcome(
+            actualBytes = actualBytes,
+            detectedMediaType = detectedMediaType!!,
+            computedHash = digest.digest().joinToString("") { "%02x".format(it) },
+        )
+    }
+
+    @Suppress("ReturnCount") // Early returns keep each independent file signature readable.
+    private fun detectImageMediaType(header: ByteArray): String? {
+        if (matchesJpegMagic(header)) return JPEG_MEDIA_TYPE
+        if (matchesPngMagic(header)) return PNG_MEDIA_TYPE
+        if (matchesGifMagic(header)) return GIF_MEDIA_TYPE
+        if (matchesWebpMagic(header)) return WEBP_MEDIA_TYPE
+        return null
+    }
+
+    private fun matchesJpegMagic(header: ByteArray): Boolean = header.size >= JPEG_MAGIC.size &&
+        header[JPEG_SOI_0] == JPEG_MAGIC[JPEG_SOI_0] &&
+        header[JPEG_SOI_1] == JPEG_MAGIC[JPEG_SOI_1] &&
+        header[JPEG_SOI_2] == JPEG_MAGIC[JPEG_SOI_2]
+
+    private fun matchesPngMagic(header: ByteArray): Boolean = header.size >= PNG_MAGIC.size &&
+        header[PNG_OFFSET_0] == PNG_MAGIC[PNG_OFFSET_0] &&
+        header[PNG_OFFSET_1] == PNG_MAGIC[PNG_OFFSET_1] &&
+        header[PNG_OFFSET_2] == PNG_MAGIC[PNG_OFFSET_2] &&
+        header[PNG_OFFSET_3] == PNG_MAGIC[PNG_OFFSET_3]
+
+    private fun matchesGifMagic(header: ByteArray): Boolean = header.size >= GIF_MAGIC.size &&
+        header[GIF_OFFSET_0] == GIF_MAGIC[GIF_OFFSET_0] &&
+        header[GIF_OFFSET_1] == GIF_MAGIC[GIF_OFFSET_1] &&
+        header[GIF_OFFSET_2] == GIF_MAGIC[GIF_OFFSET_2]
+
+    private fun matchesWebpMagic(header: ByteArray): Boolean = header.size >= WEBP_MAGIC.size &&
+        header[WEBP_RIFF_0] == WEBP_MAGIC[WEBP_RIFF_0] &&
+        header[WEBP_RIFF_1] == WEBP_MAGIC[WEBP_RIFF_1] &&
+        header[WEBP_RIFF_2] == WEBP_MAGIC[WEBP_RIFF_2] &&
+        header[WEBP_RIFF_3] == WEBP_MAGIC[WEBP_RIFF_3] &&
+        header[WEBP_WEBP_0] == WEBP_MAGIC[WEBP_WEBP_0] &&
+        header[WEBP_WEBP_1] == WEBP_MAGIC[WEBP_WEBP_1] &&
+        header[WEBP_WEBP_2] == WEBP_MAGIC[WEBP_WEBP_2] &&
+        header[WEBP_WEBP_3] == WEBP_MAGIC[WEBP_WEBP_3]
+
+    // ── Finalization (transactional) ──────────────────────────────────────────
+
+    @Suppress("LongMethod") // Keeps the CAS state transition and asset creation in one auditable transaction.
+    private suspend fun finalizeProviderBlob(
+        workspaceId: String,
+        assetId: String,
+        externalAsset: com.profiletailors.smp.media.application.port.ProviderExternalAsset,
+        fileHash: String,
+        tempKey: String,
+        detectedMediaType: String,
+        actualBytes: Long,
+    ): ImportExternalAssetResult {
+        // If an active asset already exists for this (workspace, fileHash), reuse it — dedup hit.
+        val existing = mediaAssetRepository.findActiveByWorkspaceAndHash(workspaceId, fileHash)
+        if (existing != null) {
+            safeCleanupTemp(tempKey)
+            return ImportExternalAssetResult(
+                assetId = existing.assetId,
+                workspaceId = workspaceId,
+                deduped = true,
+                mediaType = existing.detectedMediaType ?: detectedMediaType,
+                fileSizeBytes = existing.fileSizeBytes ?: actualBytes,
+            )
+        }
+
+        val blob = workspaceFileBlobRepository.findBlobForUpdate(workspaceId, fileHash)
+            ?: run {
+                workspaceFileBlobRepository.upsertBlob(workspaceId, fileHash)
+                workspaceFileBlobRepository.findBlobForUpdate(workspaceId, fileHash)
+                    ?: throw BlobMissingException(fileHash)
+            }
+
+        return when (blob.status) {
+            BlobStatus.READY -> {
+                // Existing READY blob — dedup hit, find the canonical asset for it
+                safeCleanupTemp(tempKey)
+                val canonical = mediaAssetRepository.findActiveByWorkspaceAndHash(workspaceId, fileHash)
+                if (canonical != null) {
+                    ImportExternalAssetResult(
+                        assetId = canonical.assetId,
+                        workspaceId = workspaceId,
+                        deduped = true,
+                        mediaType = canonical.detectedMediaType ?: detectedMediaType,
+                        fileSizeBytes = canonical.fileSizeBytes ?: actualBytes,
+                    )
+                } else {
+                    // Orphan READY blob — still treat as dedup hit using the new assetId
+                    val canonicalKey = blob.storageKey ?: throw BlobMissingException(fileHash)
+                    val newAsset = MediaAsset(
+                        assetId = assetId,
+                        workspaceId = workspaceId,
+                        sourceType = MediaSourceType.EXTERNAL,
+                        fileHash = fileHash,
+                        mediaType = detectedMediaType,
+                        storageKey = canonicalKey,
+                        detectedMediaType = detectedMediaType,
+                        fileSizeBytes = actualBytes,
+                        status = MediaAssetStatus.READY,
+                        sourceProvider = externalAsset.sourceProvider,
+                        externalId = externalAsset.externalId.value,
+                        sourceUrl = externalAsset.sourceUrl,
+                        authorName = externalAsset.authorName,
+                        authorUrl = externalAsset.authorUrl,
+                        metadata = buildMetadata(externalAsset, detectedMediaType),
+                        createdAt = Instant.now(),
+                    )
+                    mediaAssetRepository.create(newAsset)
+                    ImportExternalAssetResult(
+                        assetId = assetId,
+                        workspaceId = workspaceId,
+                        deduped = true,
+                        mediaType = detectedMediaType,
+                        fileSizeBytes = actualBytes,
+                    )
+                }
+            }
+
+            BlobStatus.UPLOADING, BlobStatus.FAILED, BlobStatus.READY_FOR_GC, BlobStatus.GARBAGE_COLLECTED -> {
+                // We won the race — finalize the blob
+                val canonicalKey = MediaStorageKeys.canonicalKey(workspaceId, fileHash, detectedMediaType)
+                storageApplicationService.copyObject(
+                    uploadSettings.storageBucket,
+                    sourceKey = tempKey,
+                    destKey = canonicalKey,
+                )
+                safeCleanupTemp(tempKey)
+                workspaceFileBlobRepository.markBlobReady(
+                    workspaceId = workspaceId,
+                    fileHash = fileHash,
+                    storageKey = canonicalKey,
+                    detectedMediaType = detectedMediaType,
+                    fileSizeBytes = actualBytes,
+                )
+                val newAsset = MediaAsset(
+                    assetId = assetId,
+                    workspaceId = workspaceId,
+                    sourceType = MediaSourceType.EXTERNAL,
+                    fileHash = fileHash,
+                    mediaType = detectedMediaType,
+                    storageKey = canonicalKey,
+                    detectedMediaType = detectedMediaType,
+                    fileSizeBytes = actualBytes,
+                    status = MediaAssetStatus.READY,
+                    sourceProvider = externalAsset.sourceProvider,
+                    externalId = externalAsset.externalId.value,
+                    sourceUrl = externalAsset.sourceUrl,
+                    authorName = externalAsset.authorName,
+                    authorUrl = externalAsset.authorUrl,
+                    metadata = buildMetadata(externalAsset, detectedMediaType),
+                    createdAt = Instant.now(),
+                )
+                mediaAssetRepository.create(newAsset)
+                ImportExternalAssetResult(
+                    assetId = assetId,
+                    workspaceId = workspaceId,
+                    deduped = false,
+                    mediaType = detectedMediaType,
+                    fileSizeBytes = actualBytes,
+                )
+            }
+        }
+    }
+
+    // ── Validation helpers ──────────────────────────────────────────────────
+
+    private fun validateSupportedMediaType(mediaType: String) {
+        if (mediaType !in MediaAsset.SUPPORTED_MEDIA_TYPES) {
+            val supported = MediaAsset.SUPPORTED_MEDIA_TYPES.joinToString()
+            throw UnsupportedMediaTypeException(
+                "Unsupported provider MIME type: $mediaType. Supported: $supported",
+                declaredType = mediaType,
+            )
+        }
+    }
+
+    private fun validateSize(contentLength: Long) {
+        if (contentLength < 0) {
+            throw UnsupportedMediaTypeException("Provider asset reported invalid content length: $contentLength")
+        }
+        if (contentLength > MediaAsset.MAX_FILE_SIZE_BYTES) {
+            throw FileTooLargeException(contentLength, MediaAsset.MAX_FILE_SIZE_BYTES)
+        }
+    }
+
+    private suspend fun safeCleanupTemp(tempKey: String) {
+        try {
+            storageApplicationService.delete(
+                bucket = uploadSettings.storageBucket,
+                key = tempKey,
+                deleterId = "provider-cleanup",
+            )
+        } catch (e: CancellationException) {
+            throw e
+        } catch (_: Throwable) {
+            // ignore
+        }
+    }
+
+    private class BlobMissingException(val fileHash: String) :
+        RuntimeException("Provider import could not finalize — blob missing for $fileHash")
+
+    companion object {
+        private const val MAX_PROBE_BYTES = 16
+
+        // Magic-byte signatures for image formats detected by probe bytes.
+        private val JPEG_MAGIC = byteArrayOf(0xFF.toByte(), 0xD8.toByte(), 0xFF.toByte())
+        private val PNG_MAGIC = byteArrayOf(0x89.toByte(), 0x50.toByte(), 0x4E.toByte(), 0x47.toByte())
+        private val GIF_MAGIC = byteArrayOf(0x47.toByte(), 0x49.toByte(), 0x46.toByte())
+        private val WEBP_MAGIC = byteArrayOf(
+            0x52.toByte(), 0x49.toByte(), 0x46.toByte(), 0x46.toByte(),
+            0x00.toByte(), 0x00.toByte(), 0x00.toByte(), 0x00.toByte(),
+            0x57.toByte(), 0x45.toByte(), 0x42.toByte(), 0x50.toByte(),
+        )
+
+        private const val JPEG_SOI_0 = 0
+        private const val JPEG_SOI_1 = 1
+        private const val JPEG_SOI_2 = 2
+        private const val PNG_OFFSET_0 = 0
+        private const val PNG_OFFSET_1 = 1
+        private const val PNG_OFFSET_2 = 2
+        private const val PNG_OFFSET_3 = 3
+        private const val GIF_OFFSET_0 = 0
+        private const val GIF_OFFSET_1 = 1
+        private const val GIF_OFFSET_2 = 2
+        private const val WEBP_RIFF_0 = 0
+        private const val WEBP_RIFF_1 = 1
+        private const val WEBP_RIFF_2 = 2
+        private const val WEBP_RIFF_3 = 3
+        private const val WEBP_WEBP_0 = 8
+        private const val WEBP_WEBP_1 = 9
+        private const val WEBP_WEBP_2 = 10
+        private const val WEBP_WEBP_3 = 11
+
+        private const val JPEG_MEDIA_TYPE = "image/jpeg"
+        private const val PNG_MEDIA_TYPE = "image/png"
+        private const val GIF_MEDIA_TYPE = "image/gif"
+        private const val WEBP_MEDIA_TYPE = "image/webp"
+
+        private fun buildMetadata(
+            external: com.profiletailors.smp.media.application.port.ProviderExternalAsset,
+            detectedMediaType: String,
+        ): Map<String, Any> {
+            val base: MutableMap<String, Any> = LinkedHashMap()
+            external.metadata?.forEach { (k, v) -> if (v != null) base[k] = v }
+            base["provider"] = external.sourceProvider
+            base["detectedMediaType"] = detectedMediaType
+            base["importedAt"] = Instant.now().toString()
+            return base
+        }
+    }
+}
+
+// ─── Provider search query ───────────────────────────────────────────────────
+
+/**
+ * Locates the [MediaProvider] for the requested provider id and delegates the
+ * search. Throws [UnsupportedProviderException] when no adapter is registered
+ * for the id, so the controller layer can map it to 404.
+ *
+ * Verified-email guard is enforced at the controller boundary (per design: the
+ * `SearchProviderPhotosQuery` is for the read-path and does not need the same
+ * strict rate-limit / concurrent-slot guards as the write-path import). When
+ * the email-verification requirement changes this becomes a non-issue.
+ */
+@HexService
+class SearchProviderPhotosHandler(private val providers: List<MediaProvider>) :
+    QueryHandler<SearchProviderPhotosQuery, ProviderSearchPage> {
+
+    override suspend fun handle(query: SearchProviderPhotosQuery): ProviderSearchPage {
+        val provider = providers.firstOrNull { it.providerId == query.providerId }
+            ?: throw UnsupportedProviderException(query.providerId)
+
+        return provider.search(query = query.query, page = query.page)
+    }
+}
+
+/**
+ * Resolves a fully-qualified external id (e.g. `unsplash:abc123`) into a
+ * [ProviderExternalAsset] by delegating to the registered `MediaProvider`
+ * adapter. Used by the controller to fetch provider bytes before dispatching
+ * [ImportExternalAssetCommand].
+ *
+ * Throws [UnsupportedProviderException] when the requested provider has no
+ * registered adapter — the controller maps this to HTTP 404.
+ */
+@HexService
+class ImportProviderAssetHandler(private val providers: List<MediaProvider>) :
+    QueryHandler<ImportProviderAssetQuery, com.profiletailors.smp.media.application.port.ProviderExternalAsset> {
+
+    override suspend fun handle(
+        query: ImportProviderAssetQuery,
+    ): com.profiletailors.smp.media.application.port.ProviderExternalAsset {
+        val provider = providers.firstOrNull { it.providerId == query.providerId }
+            ?: throw UnsupportedProviderException(query.providerId)
+
+        val externalId = ProviderExternalId(query.externalId)
+
+        return provider.import(workspaceId = query.workspaceId, externalId = externalId)
+    }
+}

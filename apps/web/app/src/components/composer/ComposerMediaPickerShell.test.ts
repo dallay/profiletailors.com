@@ -391,3 +391,41 @@ describe('ComposerMediaPickerShell — real dialog keyboard behavior', () => {
     expect(wrapper.emitted('update:open')?.[0]).toEqual([false])
   })
 })
+
+// ---------------------------------------------------------------------------
+// Provider tab behavior
+// ---------------------------------------------------------------------------
+
+describe('ComposerMediaPickerShell — provider tab', () => {
+  beforeEach(() => {
+    vi.clearAllMocks()
+    document.body.innerHTML = ''
+  })
+
+  afterEach(() => {
+    document.body.innerHTML = ''
+  })
+
+  it('does not render the provider tab when provider is null', () => {
+    const wrapper = mountShell({ provider: null })
+    expect(wrapper.find('[data-testid="media-picker-provider-tab-trigger"]').exists()).toBe(false)
+    expect(wrapper.find('[data-testid="media-picker-provider-tab-content"]').exists()).toBe(false)
+  })
+
+  it('does not render the provider tab when provider is omitted', () => {
+    const wrapper = mountShell()
+    expect(wrapper.find('[data-testid="media-picker-provider-tab-trigger"]').exists()).toBe(false)
+  })
+
+  it('renders the provider tab when provider is "unsplash"', () => {
+    const wrapper = mountShell({ provider: 'unsplash' })
+    expect(wrapper.find('[data-testid="media-picker-provider-tab-trigger"]').exists()).toBe(true)
+    expect(wrapper.find('[data-testid="media-picker-provider-tab-content"]').exists()).toBe(true)
+  })
+
+  it('does not perform any network call when the picker shell renders', () => {
+    const fetchSpy = vi.spyOn(globalThis, 'fetch')
+    mountShell({ provider: 'unsplash' })
+    expect(fetchSpy).not.toHaveBeenCalled()
+  })
+})

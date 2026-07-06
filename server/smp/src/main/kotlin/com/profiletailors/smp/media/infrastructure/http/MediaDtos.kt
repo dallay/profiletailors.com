@@ -165,3 +165,88 @@ data class MediaAssetListResponse(
     @field:Schema(description = "Opaque cursor for the next page, null if no more pages")
     val nextCursor: String?,
 )
+
+// ─── Media Provider (Unsplash) Search & Import ──────────────────────────────
+
+@Schema(description = "Request body for POST /api/workspaces/{workspaceId}/media/providers/unsplash/import")
+data class ProviderImportRequest(
+    @field:NotBlank
+    @field:Schema(
+        description = "Fully-qualified provider identifier (e.g. 'unsplash:<photoId>'). The backend MUST " +
+            "validate the prefix and reject unqualified or wrong-provider values with 400 INVALID_EXTERNAL_ID.",
+        example = "unsplash:abc123",
+    )
+    val externalId: String,
+)
+
+@Schema(description = "Response body for POST /api/workspaces/{workspaceId}/media/providers/unsplash/import")
+data class ProviderImportResponse(
+    @field:Schema(
+        description = "Asset identifier (UUID v4) of the created or canonical existing asset",
+        example = "550e8400-e29b-41d4-a716-446655440000",
+    )
+    val assetId: String,
+
+    @field:Schema(description = "Workspace that owns the asset")
+    val workspaceId: String,
+
+    @field:Schema(
+        description = "True if this import reused an existing READY asset for the same bytes",
+        example = "false",
+    )
+    val deduped: Boolean,
+
+    @field:Schema(description = "Server-detected MIME type", example = "image/jpeg")
+    val mediaType: String,
+
+    @field:Schema(description = "Final byte count", example = "1234567")
+    val fileSizeBytes: Long,
+)
+
+@Schema(description = "Single result from GET /api/workspaces/{workspaceId}/media/providers/unsplash/search")
+data class ProviderSearchItemResponse(
+    @field:Schema(description = "Provider-qualified identifier", example = "unsplash:abc123")
+    val externalId: String,
+
+    @field:Schema(description = "URL of a small preview", example = "https://images.unsplash.com/photo-123?w=200")
+    val previewUrl: String,
+
+    @field:Schema(description = "URL of the full-size image", example = "https://images.unsplash.com/photo-123?w=2048")
+    val fullUrl: String,
+
+    @field:Schema(description = "Image width in pixels", example = "1080")
+    val width: Int,
+
+    @field:Schema(description = "Image height in pixels", example = "720")
+    val height: Int,
+
+    @field:Schema(description = "Display name of the credited creator", example = "Jane Creator")
+    val authorName: String,
+
+    @field:Schema(description = "URL for the credited creator", example = "https://unsplash.com/@jane")
+    val authorUrl: String,
+
+    @field:Schema(description = "Canonical source URL of the photo", example = "https://unsplash.com/photos/abc123")
+    val sourceUrl: String,
+)
+
+@Schema(description = "Pagination envelope for provider search results")
+data class ProviderSearchPageResponse(
+    @field:Schema(description = "Page number", example = "1")
+    val number: Int,
+
+    @field:Schema(description = "Number of items per page", example = "20")
+    val size: Int,
+
+    @field:Schema(description = "Total number of search results", example = "342")
+    val total: Int,
+)
+
+@Schema(description = "Response body for GET /api/workspaces/{workspaceId}/media/providers/unsplash/search")
+data class ProviderSearchResponse(
+    @field:Schema(description = "Search results in this page")
+    val items: List<ProviderSearchItemResponse>,
+
+    @field:Schema(description = "Pagination envelope")
+    val page: ProviderSearchPageResponse,
+)

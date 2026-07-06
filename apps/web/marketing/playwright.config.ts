@@ -1,10 +1,10 @@
-import { defineConfig, devices } from '@playwright/test';
-import path from 'node:path';
-import { fileURLToPath } from 'node:url';
-import {defineCoverageReporterConfig} from '@bgotink/playwright-coverage';
+import { defineConfig, devices } from '@playwright/test'
+import path from 'node:path'
+import { fileURLToPath } from 'node:url'
+import { defineCoverageReporterConfig } from '@bgotink/playwright-coverage'
 
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
+const __filename = fileURLToPath(import.meta.url)
+const __dirname = path.dirname(__filename)
 
 /**
  * Playwright configuration for Profile Tailors marketing site
@@ -32,7 +32,7 @@ export default defineConfig({
       }),
     ],
   ],
-  
+
   use: {
     baseURL: 'http://localhost:4321',
     trace: 'on-first-retry',
@@ -68,4 +68,4 @@ export default defineConfig({
     reuseExistingServer: !process.env.CI,
     timeout: 120 * 1000,
   },
-});
+})
