@@ -176,8 +176,6 @@ const uploadPreviewBlob = ref<string | null>(null)
 const selectedUploadFile = ref<File | null>(null)
 const uploadTempKey = ref<string | null>(null)
 const uploadProgress = ref(0)
-const fileInput = ref<HTMLInputElement | null>(null)
-const isDragging = ref(false)
 
 function clearUploadPreviewBlob() {
   if (uploadPreviewBlob.value) {
@@ -449,36 +447,7 @@ const canSubmit = computed(() => {
   )
 })
 
-// Drag and drop state
-// isDragging is declared above in the state block
-
 // Methods
-function handleDragOver(e: DragEvent) {
-  e.preventDefault()
-  isDragging.value = true
-}
-
-function handleDragLeave() {
-  isDragging.value = false
-}
-
-function handleDrop(e: DragEvent) {
-  e.preventDefault()
-  isDragging.value = false
-  if (e.dataTransfer?.files) {
-    addFiles(Array.from(e.dataTransfer.files))
-  }
-}
-
-function openFilePicker() {
-  if (isMediaPickerOpen.value) {
-    pickerSessionUploadInput.value?.click()
-    return
-  }
-
-  fileInput.value?.click()
-}
-
 function handleFileSelect(e: Event) {
   const target = e.target as HTMLInputElement
   if (target.files?.length) {
@@ -564,19 +533,6 @@ function removeFile() {
   uploadTempKey.value = null
   uploadProgress.value = 0
   mediaStore.clearUploads()
-}
-
-/**
- * Retries a failed upload tracked in the media store.
- */
-async function retryUploadItem(tempKey: string) {
-  try {
-    await mediaStore.retryUpload(tempKey, () => {
-      // progress is tracked in the store
-    })
-  } catch {
-    // Error already reflected in the store
-  }
 }
 
 /**
@@ -866,12 +822,6 @@ const draftAttachmentAssets = computed(() =>
     .map((assetId) => mediaStore.assetsById[assetId])
     .filter((asset) => asset !== undefined),
 )
-
-function getPickerAssetStatus(assetId: string): ComposerMediaPickerAsset['status'] {
-  const asset = mediaStore.assetsById[assetId]
-  if (!asset) return 'PROCESSING'
-  return toPickerAssetStatus(asset.status)
-}
 
 function addPendingPickerAsset(assetId: string) {
   if (!pendingPickerAssets.value.includes(assetId)) {
@@ -1343,6 +1293,7 @@ async function handleCreateSubmit(
             </p>
 
             <input
+              id="create-post-file-input"
               ref="pickerSessionUploadInput"
               data-testid="picker-upload-input"
               type="file"

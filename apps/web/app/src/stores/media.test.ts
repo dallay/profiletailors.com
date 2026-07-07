@@ -453,7 +453,9 @@ describe('media store', () => {
       expect(mockGetAsset).toHaveBeenCalledWith('asset-refresh')
       expect(result.assetId).toBe('asset-refresh')
       expect(store.assetIds[0]).toBe('asset-refresh')
-      expect(store.assetsById['asset-refresh']?.previewUrl).toBe('/api/media/assets/asset-refresh/preview')
+      expect(store.assetsById['asset-refresh']?.previewUrl).toBe(
+        '/api/media/assets/asset-refresh/preview',
+      )
     })
   })
 
