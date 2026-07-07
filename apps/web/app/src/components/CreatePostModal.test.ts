@@ -1,6 +1,7 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 import { mount } from '@vue/test-utils'
 import { createPinia, setActivePinia } from 'pinia'
+import { nextTick } from 'vue'
 import { usePublishingStore } from '@/stores/publishing'
 import { useMediaStore } from '@/stores/media'
 import { useWorkspaceStore } from '@/stores/workspace'
@@ -96,7 +97,7 @@ interface TestChannel {
   id: string
   accountId: string
   name: string
-  provider: 'linkedin'
+  provider: 'linkedin' | 'twitter'
   avatar: string
   avatarUrl?: string
   handle: string
@@ -133,9 +134,20 @@ function mountModal(channels: TestChannel[], props: Record<string, unknown> = {}
   })
 }
 
-async function flushModal(wrapper: ReturnType<typeof mountModal>) {
+async function flushModal(_wrapper: ReturnType<typeof mountModal>) {
   await Promise.resolve()
-  await wrapper.vm.$nextTick()
+  await nextTick()
+  await nextTick()
+}
+
+function mockLoadAssetsWithIds(mediaStore: ReturnType<typeof useMediaStore>, ids: string[]) {
+  return vi.spyOn(mediaStore, 'loadAssets').mockImplementation(async () => {
+    mediaStore.isLoading = true
+    mediaStore.loadError = null
+    mediaStore.assetIds = []
+    mediaStore.assetIds = [...ids]
+    mediaStore.isLoading = false
+  })
 }
 
 function getByTestId(testId: string): HTMLElement {
@@ -210,9 +222,7 @@ describe('CreatePostModal.vue — media picker foundation', () => {
       previewUrl: '/api/media/assets/asset-a/preview',
     }
 
-    const loadAssets = vi.spyOn(mediaStore, 'loadAssets').mockImplementation(async () => {
-      mediaStore.assetIds = ['asset-a']
-    })
+    const loadAssets = mockLoadAssetsWithIds(mediaStore, ['asset-a'])
 
     const wrapper = mountModal([makeChannel('ch-picker')], {
       editingPublication: makeEditingPublication({ assetIds: ['asset-a'] }),
@@ -285,9 +295,7 @@ describe('CreatePostModal.vue — media picker foundation', () => {
       previewUrl: '/api/media/assets/asset-b/preview',
     }
 
-    const loadAssets = vi.spyOn(mediaStore, 'loadAssets').mockImplementation(async () => {
-      mediaStore.assetIds = ['asset-a', 'asset-b']
-    })
+    const loadAssets = mockLoadAssetsWithIds(mediaStore, ['asset-a', 'asset-b'])
 
     const wrapper = mountModal([makeChannel('ch-picker')], {
       editingPublication: makeEditingPublication({ assetIds: ['asset-a'] }),
@@ -325,9 +333,7 @@ describe('CreatePostModal.vue — media picker foundation', () => {
     vi.useFakeTimers()
     try {
       const mediaStore = useMediaStore()
-      const loadAssets = vi.spyOn(mediaStore, 'loadAssets').mockImplementation(async () => {
-        mediaStore.assetIds = []
-      })
+      const loadAssets = mockLoadAssetsWithIds(mediaStore, [])
       const createAndUpload = vi
         .spyOn(mediaStore, 'createAndUpload')
         .mockImplementation(async (fileArg, tempKeyArg) => {
@@ -883,9 +889,7 @@ describe('CreatePostModal.vue — Unsplash integration (WU3)', () => {
         previewUrl: `/api/media/assets/${id}/preview`,
       }
     }
-    vi.spyOn(mediaStore, 'loadAssets').mockImplementation(async () => {
-      mediaStore.assetIds = ['asset-1', 'asset-2', 'asset-3', 'asset-4', 'asset-5']
-    })
+    mockLoadAssetsWithIds(mediaStore, ['asset-1', 'asset-2', 'asset-3', 'asset-4', 'asset-5'])
 
     // Strictest = twitter (4 attachments)
     const channels = [

@@ -28,53 +28,6 @@ The picker MUST accept typed presentation inputs and MUST emit typed search, fil
 - THEN the shell's typed emits, prop names, testids, and lifecycle behavior MUST remain byte-identical to the pre-refactor modal
 - AND external consumers and existing tests MUST NOT observe any change in the picker surface
 
-### Requirement: Provider tab is shell-only and parent-owned
-
-The composer media picker MUST accept an optional `provider: "unsplash" | null` prop and MUST emit `provider-search` and `provider-import` interactions. The shell MUST NOT call any HTTP endpoint directly, and provider import MUST keep the picker open so the parent can continue staged multi-selection after import.
-(Previously: The shell emitted provider interactions, but import completion did not explicitly preserve the open picker session for continued multi-selection.)
-
-#### Scenario: Provider tab is conditional
-
-- GIVEN a parent passes `provider="unsplash"`
-- WHEN the picker renders
-- THEN a provider tab MUST be visible
-- AND when `provider` is `null` or omitted the tab MUST NOT render
-
-#### Scenario: Importing a result preserves the picker session
-
-- GIVEN a provider result is displayed
-- WHEN the author clicks Import
-- THEN the picker MUST emit `provider-import` with `{ externalId }`
-- AND the picker MUST remain open for continued staged selection
-
-### Requirement: Asset region presentation
-
-The picker MUST provide a dedicated asset-grid region for parent-provided media items and MUST support staged multi-selection for draft attachment flows. `READY` assets MUST be selectable. When a `READY` asset has a usable preview it MUST render a thumbnail; when it has no usable preview, or when its preview fails to load, it MUST render fallback visuals without losing selectability. `PROCESSING` assets MUST remain visible with a placeholder or status and MUST NOT be selectable. `FAILED` assets MUST remain visible with fallback or failure presentation and MUST NOT be selectable.
-(Previously: The asset region was presentation-only and could show a non-interactive ready state without attachment behavior.)
-
-#### Scenario: Render and stage ready assets
-
-- GIVEN the parent provides one or more `READY` assets
-- WHEN the picker renders in a ready state
-- THEN the asset-grid region MUST show selectable thumbnails
-- AND the author MUST be able to stage multi-selection without mutating the draft yet
-
-#### Scenario: Non-ready or failed assets stay visible but constrained
-
-- GIVEN the parent provides `PROCESSING` or `FAILED` assets
-- WHEN the picker renders them
-- THEN each asset MUST remain visible with status or fallback visuals
-- AND non-ready assets MUST NOT be selectable
-
-#### Scenario: READY asset without preview remains selectable with fallback
-
-- GIVEN the parent provides a `READY` asset without a usable preview, or whose preview fails to load
-- WHEN the picker renders that asset
-- THEN the asset MUST remain selectable
-- AND it MUST render fallback visuals without breaking the grid
-
-## ADDED Requirements
-
 ### Requirement: Staged selection lifecycle
 
 Opening the picker MUST copy current `draftAttachmentIds` into transient `pickerSelectionIds`. Any dismissal that occurs without a successful apply MUST discard staged changes. Confirm or apply MUST replace the draft attachment set with the staged selection exactly, and only then may the picker close. The composable that owns this lifecycle MUST preserve the cancel-discards and apply-replaces semantics verbatim, and MUST centralize all reconciliation timer teardown on close and unmount.
@@ -108,6 +61,8 @@ Opening the picker MUST copy current `draftAttachmentIds` into transient `picker
 - THEN cancel MUST discard staged changes exactly as the inline modal did
 - AND apply MUST replace `draftAttachmentIds` with the staged set exactly as the inline modal did
 - AND any in-flight reconciliation polling started during the session MUST be stopped on close or unmount
+
+## ADDED Requirements
 
 ### Requirement: Composability of picker orchestration
 

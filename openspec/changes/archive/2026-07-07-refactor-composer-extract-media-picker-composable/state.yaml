@@ -1,0 +1,12 @@
+change: refactor-composer-extract-media-picker-composable
+current_phase: archive
+completed:
+  - propose
+  - spec
+  - design
+  - tasks
+  - apply
+  - verify
+  - archive
+next: none
+updated: 2026-07-07
