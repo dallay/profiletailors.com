@@ -28,7 +28,13 @@ vi.mock('@/lib/auth-api', () => ({
 // Helpers
 // ---------------------------------------------------------------------------
 
-function makeChannelForStore(accountId: string) {
+function makeChannelForStore(
+  accountId: string,
+  overrides: Partial<{
+    provider: 'linkedin' | 'twitter' | 'instagram' | 'facebook'
+    maxAttachments: number
+  }> = {},
+) {
   return {
     id: accountId,
     accountId,
@@ -37,6 +43,8 @@ function makeChannelForStore(accountId: string) {
     avatar: '',
     handle: 'Test Profile',
     status: 'ACTIVE' as const,
+    maxAttachments: 9,
+    ...overrides,
   }
 }
 
@@ -178,6 +186,7 @@ describe('publishing store', () => {
           avatarUrl: 'https://media.licdn.com/photo.jpg',
           handle: 'Ada Lovelace',
           status: 'ACTIVE',
+          maxAttachments: 9,
         },
       ])
     })
@@ -332,6 +341,19 @@ describe('publishing store', () => {
       expect(store.configuredProviders).toEqual(['linkedin', 'instagram'])
       expect(store.isLinkedInConfigured).toBe(true)
       expect(store.providersLoading).toBe(false)
+    })
+
+    it('maps per-provider attachment limits onto channels', () => {
+      const store = usePublishingStore()
+
+      store.channels = [
+        makeChannelForStore('li-account', { provider: 'linkedin', maxAttachments: 9 }),
+        makeChannelForStore('tw-account', { provider: 'twitter', maxAttachments: 4 }),
+        makeChannelForStore('ig-account', { provider: 'instagram', maxAttachments: 10 }),
+        makeChannelForStore('fb-account', { provider: 'facebook', maxAttachments: 10 }),
+      ]
+
+      expect(store.channels.map((channel) => channel.maxAttachments)).toEqual([9, 4, 10, 10])
     })
 
     it('preserves existing providers when request fails', async () => {

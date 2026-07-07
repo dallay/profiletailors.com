@@ -194,6 +194,8 @@ export const useMediaStore = defineStore('media', () => {
     return asset
   }
 
+  const refreshAsset = loadAsset
+
   async function loadAssets(status = 'READY') {
     isLoading.value = true
     loadError.value = null
@@ -365,7 +367,9 @@ export const useMediaStore = defineStore('media', () => {
     completedUploads,
     failedUploads,
     // Actions
+    upsertAsset,
     loadAsset,
+    refreshAsset,
     loadAssets,
     loadNextPage,
     createAndUpload,

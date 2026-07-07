@@ -44,6 +44,7 @@ export interface Channel {
     | 'REVOKED'
     | 'EXPIRED'
   accountId: string // Maps to backend socialAccountId if available
+  maxAttachments?: number
 }
 
 export interface Publication {
@@ -206,16 +207,30 @@ function toChannelProvider(backendProvider: string): Publication['channels'][num
   return known.has(lower) ? (lower as Publication['channels'][number]) : 'linkedin'
 }
 
+const CHANNEL_ATTACHMENT_LIMITS: Record<SocialProvider, number> = {
+  linkedin: 9,
+  twitter: 4,
+  instagram: 10,
+  facebook: 10,
+}
+
+function resolveChannelMaxAttachments(provider: SocialProvider): number {
+  return CHANNEL_ATTACHMENT_LIMITS[provider]
+}
+
 function apiChannelToChannel(api: ConnectedSocialChannelSummary): Channel {
+  const provider = toChannelProvider(api.provider)
+
   return {
     id: api.socialAccountId,
     accountId: api.socialAccountId,
     name: api.displayName,
-    provider: toChannelProvider(api.provider),
+    provider,
     avatar: '',
     avatarUrl: api.avatarUrl ?? undefined,
     handle: api.displayName,
     status: api.status as Channel['status'],
+    maxAttachments: resolveChannelMaxAttachments(provider),
   }
 }
 
