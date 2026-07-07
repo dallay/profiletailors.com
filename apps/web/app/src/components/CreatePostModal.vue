@@ -16,14 +16,23 @@ import {
   X,
 } from '@lucide/vue'
 import { useAuthStore } from '@/stores/auth'
-import { usePublishingStore, type Publication } from '@/stores/publishing'
-import { useMediaStore } from '@/stores/media'
+import { usePublishingStore, type Publication, type Channel } from '@/stores/publishing'
+import { useWorkspaceStore } from '@/stores/workspace'
+import { useMediaStore, type MediaAssetStatus } from '@/stores/media'
 import { proxyImageUrl, resolveApiUrl } from '@/lib/auth-api'
 import PostPreviewPanel from '@/components/composer/PostPreviewPanel.vue'
 import type { LinkedInPreviewModel, PostPreviewMedia } from '@/components/composer/post-preview.types'
 import { Button } from '@/components/ui/button'
 import { Calendar } from '@/components/ui/calendar'
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
+import ComposerMediaPickerShell from '@/components/composer/ComposerMediaPickerShell.vue'
+import type {
+  ComposerMediaPickerAsset,
+  ComposerMediaPickerCollectionState,
+} from '@/components/composer/composer-media-picker.types'
+import MediaProviderPanel, {
+  type ProviderSearchResultViewModel,
+} from '@/features/media-composer/providers/MediaProviderPanel.vue'
 
 type ComposerScheduleMode = 'now' | 'next' | 'custom'
 
@@ -32,9 +41,23 @@ const props = withDefaults(
     isOpen: boolean
     initialDate?: string // ISO string
     editingPublication?: Publication // Pre-fill for editing
+    /**
+     * Provider to surface as a browsable source inside the media picker.
+     * The parent owns the feature flag and only passes `provider="unsplash"`
+     * when the provider is configured and enabled.
+     */
+    provider?: 'unsplash' | null
+    /**
+     * Whether the Unsplash provider is enabled by feature flag.
+     * Same purpose as `provider`, kept distinct so the modal can react
+     * to capability refreshes without re-creating the modal.
+     */
+    isUnsplashProviderEnabled?: boolean
   }>(),
   {
     isOpen: false,
+    provider: null,
+    isUnsplashProviderEnabled: false,
   }
 )
 
@@ -72,21 +95,121 @@ const assetsTouched = ref(false)
 let suppressAssetTouchTracking = false
 
 // ---------------------------------------------------------------------------
-// Media picker state (replaces local-only File attachment truth)
+// Media picker state
+// ---------------------------------------------------------------------------
+const isMediaPickerOpen = ref(false)
+const mediaPickerCollectionState = ref<ComposerMediaPickerCollectionState>('LOADING')
+const draftAttachmentIds = ref<string[]>([])
+const pickerSelectionIds = ref<string[]>([])
+const pickerSessionUploadInput = ref<HTMLInputElement | null>(null)
+const autoStagedAssetIds = ref<string[]>([])
+const manuallyDeselectedAutoStageIds = ref<string[]>([])
+const pendingPickerAssets = ref<string[]>([])
+const reconciliationPollers = new Map<string, ReturnType<typeof setTimeout>>()
+const pickerSessionActiveAssetIds = new Set<string>()
+
+const RECONCILIATION_POLL_INTERVAL_MS = 1000
+const RECONCILIATION_MAX_ATTEMPTS = 5
+
+// ---------------------------------------------------------------------------
+// Work Unit 3 — Unsplash provider, capability-aware attachment limit
+// ---------------------------------------------------------------------------
+
+/**
+ * Parent-owned provider feature flag. The shell only renders the provider
+ * tab when `provider !== null` AND `isUnsplashProviderEnabled` is true.
+ */
+const effectiveProvider = computed<'unsplash' | null>(() => {
+  if (!props.isUnsplashProviderEnabled) return null
+  if (props.provider !== 'unsplash') return null
+  return 'unsplash'
+})
+
+/**
+ * Provider search state. The modal owns search orchestration: it captures
+ * the typed query, exposes search results to the provider panel, and emits
+ * `provider-import` resolution through the picker shell into asset import.
+ */
+const providerQuery = ref('')
+const providerResults = ref<ProviderSearchResultViewModel[]>([])
+const providerSearching = ref(false)
+const providerSearchError = ref<string | null>(null)
+/** externalId → assetId mapping for already-reconciled provider imports. */
+const providerImportResolution = ref<Record<string, string>>({})
+
+/**
+ * Selected channels for limit evaluation.
+ *
+ * Today the composer is single-channel, but the spec is structured around
+ * multiple selected channels. We compute the strictest limit across all
+ * active channels so that adding multi-channel later is a pure data change.
+ */
+const activeChannels = computed<Channel[]>(
+  () => publishingStore.channels.filter((ch) => ch.status === 'ACTIVE'),
+)
+
+/**
+ * Effective attachment limit = min(allActiveChannels[].maxAttachments).
+ * Falls back to Infinity when no active channels (limit is effectively
+ * unbounded since publish will already be blocked by `canSubmit`).
+ */
+const effectiveAttachmentLimit = computed<number>(() => {
+  if (activeChannels.value.length === 0) return Number.POSITIVE_INFINITY
+  const limits = activeChannels.value
+    .map((ch) => ch.maxAttachments)
+    .filter((limit): limit is number => typeof limit === 'number' && Number.isFinite(limit))
+  if (limits.length === 0) return Number.POSITIVE_INFINITY
+  return Math.min(...limits)
+})
+
+const isAttachmentLimitExceeded = computed<boolean>(() => {
+  const limit = effectiveAttachmentLimit.value
+  if (!Number.isFinite(limit)) return false
+  return draftAttachmentIds.value.length > limit
+})
+
+const isPickerSelectionOverLimit = computed<boolean>(() => {
+  const limit = effectiveAttachmentLimit.value
+  if (!Number.isFinite(limit)) return false
+  return pickerSelectionIds.value.length > limit
+})
+
+// ---------------------------------------------------------------------------
+// Legacy upload state (preserved for later slices)
 // ---------------------------------------------------------------------------
 // Blob URL for instant preview during upload (purely transient UX)
 const uploadPreviewBlob = ref<string | null>(null)
 const selectedUploadFile = ref<File | null>(null)
 const uploadTempKey = ref<string | null>(null)
 const uploadProgress = ref(0)
-const fileInput = ref<HTMLInputElement | null>(null)
-const isDragging = ref(false)
 
 function clearUploadPreviewBlob() {
   if (uploadPreviewBlob.value) {
     URL.revokeObjectURL(uploadPreviewBlob.value)
     uploadPreviewBlob.value = null
   }
+}
+
+function stopReconciliationPoller(assetId: string) {
+  const timerId = reconciliationPollers.get(assetId)
+  if (timerId) {
+    clearTimeout(timerId)
+    reconciliationPollers.delete(assetId)
+  }
+}
+
+function stopAllReconciliationPollers() {
+  for (const assetId of reconciliationPollers.keys()) {
+    stopReconciliationPoller(assetId)
+  }
+}
+
+function resetPickerSessionTracking() {
+  stopAllReconciliationPollers()
+  pickerSessionActiveAssetIds.clear()
+  pendingPickerAssets.value = []
+  autoStagedAssetIds.value = []
+  manuallyDeselectedAutoStageIds.value = []
 }
 
 // Calendar selector state
@@ -105,7 +228,10 @@ onMounted(() => {
   }, 60_000)
 })
 
-onUnmounted(() => clearInterval(timer))
+onUnmounted(() => {
+  clearInterval(timer)
+  stopAllReconciliationPollers()
+})
 
 const todayDateValue = computed(() => today(getLocalTimeZone()))
 
@@ -136,19 +262,25 @@ async function initEditMode(pub: NonNullable<typeof props.editingPublication>) {
   scheduleMode.value = modeMap[pub.scheduleMode ?? 'SCHEDULED_AT'] ?? 'custom'
 
   assetsTouched.value = false
+  draftAttachmentIds.value = []
+  pickerSelectionIds.value = []
+  resetPickerSessionTracking()
   mediaStore.clearSelection()
   if (pub.assetIds?.length) {
-    for (const assetId of pub.assetIds) {
-      if (!mediaStore.assetsById[assetId]) {
-        try {
-          await mediaStore.loadAsset(assetId)
-        } catch (err) {
-          const status = err instanceof Error && 'status' in err ? err.status : undefined
-          if (status === 404) continue
+    const resolvedAssetIds = await Promise.all(
+      pub.assetIds.map(async (assetId) => {
+        if (!mediaStore.assetsById[assetId]) {
+          try {
+            await mediaStore.loadAsset(assetId)
+          } catch (err) {
+            const status = err instanceof Error && 'status' in err ? err.status : undefined
+            if (status === 404) return null
+          }
         }
-      }
-      mediaStore.addToSelection(assetId)
-    }
+        return assetId
+      }),
+    )
+    draftAttachmentIds.value = resolvedAssetIds.filter((assetId): assetId is string => assetId !== null)
   }
 
   const pubChannelId = pub.accountId
@@ -176,6 +308,9 @@ function initCreateMode() {
   priorityMode.value = false
   scheduleMode.value = props.initialDate ? 'custom' : 'now'
   assetsTouched.value = false
+  draftAttachmentIds.value = []
+  pickerSelectionIds.value = []
+  resetPickerSessionTracking()
   mediaStore.clearSelection()
   selectedChannelId.value = publishingStore.channels[0]?.id ?? null
 
@@ -196,6 +331,8 @@ async function initializeComposerForOpen() {
   selectedUploadFile.value = null
   uploadTempKey.value = null
   uploadProgress.value = 0
+  isMediaPickerOpen.value = false
+  mediaPickerCollectionState.value = 'LOADING'
 
   suppressAssetTouchTracking = true
   if (isEditMode.value && props.editingPublication) {
@@ -314,39 +451,21 @@ const canSubmit = computed(() => {
     !!selectedChannel.value &&
     postText.value.trim().length > 0 &&
     !isTextTooLong.value &&
-    !isSubmitting.value
+    !isSubmitting.value &&
+    !isAttachmentLimitExceeded.value
   )
 })
 
-// Drag and drop state
-// isDragging is declared above in the state block
-
 // Methods
-function handleDragOver(e: DragEvent) {
-  e.preventDefault()
-  isDragging.value = true
-}
-
-function handleDragLeave() {
-  isDragging.value = false
-}
-
-function handleDrop(e: DragEvent) {
-  e.preventDefault()
-  isDragging.value = false
-  if (e.dataTransfer?.files) {
-    addFiles(Array.from(e.dataTransfer.files))
-  }
-}
-
-function openFilePicker() {
-  fileInput.value?.click()
-}
-
 function handleFileSelect(e: Event) {
   const target = e.target as HTMLInputElement
   if (target.files?.length) {
-    addFiles(Array.from(target.files))
+    const files = Array.from(target.files)
+    if (isMediaPickerOpen.value) {
+      void handlePickerUploadSelection(files)
+    } else {
+      addFiles(files)
+    }
     target.value = ''
   }
 }
@@ -426,19 +545,6 @@ function removeFile() {
 }
 
 /**
- * Retries a failed upload tracked in the media store.
- */
-async function retryUploadItem(tempKey: string) {
-  try {
-    await mediaStore.retryUpload(tempKey, () => {
-      // progress is tracked in the store
-    })
-  } catch {
-    // Error already reflected in the store
-  }
-}
-
-/**
  * Whether the current composer media is an image that can be previewed.
  * Prefer the transient upload file while an upload is in progress, then fall back
  * to the first selected READY asset once the upload completes.
@@ -449,7 +555,9 @@ const selectedAssetIsImage = computed(() => {
     return uploadFile.type.startsWith('image/')
   }
 
-  const first = mediaStore.selectedAssets[0]
+  const first = draftAttachmentIds.value
+    .map((assetId) => mediaStore.assetsById[assetId])
+    .find((asset) => asset !== undefined)
   if (!first) return false
   return first.mediaType.startsWith('image/')
 })
@@ -464,7 +572,9 @@ const selectedAssetPreviewUrl = computed<string | null>(() => {
     return uploadPreviewBlob.value
   }
 
-  const first = mediaStore.selectedAssets[0]
+  const first = draftAttachmentIds.value
+    .map((assetId) => mediaStore.assetsById[assetId])
+    .find((asset) => asset !== undefined)
   if (!first) return null
   if (!first.mediaType.startsWith('image/')) return null
   return first.previewUrl ? resolveApiUrl(first.previewUrl) : null
@@ -483,7 +593,9 @@ const selectedPreviewMedia = computed<PostPreviewMedia | null>(() => {
     }
   }
 
-  const first = mediaStore.selectedAssets[0]
+  const first = draftAttachmentIds.value
+    .map((assetId) => mediaStore.assetsById[assetId])
+    .find((asset) => asset !== undefined)
   if (!first) return null
 
   const isImage = first.mediaType.startsWith('image/')
@@ -674,6 +786,313 @@ async function handleSchedule() {
   }
 }
 
+function getLibraryCollectionState(assetCount: number): ComposerMediaPickerCollectionState {
+  if (mediaStore.isLoading) return 'LOADING'
+  if (mediaStore.loadError) return 'ERROR'
+  if (assetCount === 0) return 'EMPTY'
+  return 'READY'
+}
+
+function toPickerAssetStatus(status: MediaAssetStatus): ComposerMediaPickerAsset['status'] {
+  if (status === 'READY') return 'READY'
+  if (status === 'FAILED') return 'FAILED'
+  return 'PROCESSING'
+}
+
+function mapAssetToPickerAsset(assetId: string): ComposerMediaPickerAsset | null {
+  const asset = mediaStore.assetsById[assetId]
+  if (!asset) return null
+
+  const status = toPickerAssetStatus(asset.status)
+
+  return {
+    assetId: asset.assetId,
+    name: asset.originalFilename ?? asset.assetId,
+    mediaType: asset.mediaType,
+    status,
+    previewUrl: asset.previewUrl ? resolveApiUrl(asset.previewUrl) : null,
+    selectable: status === 'READY',
+    selected: pickerSelectionIds.value.includes(asset.assetId),
+    sourceType: asset.sourceType,
+  }
+}
+
+const pickerAssets = computed(() => {
+  const mergedAssetIds = [...pendingPickerAssets.value, ...mediaStore.assetIds]
+  const uniqueAssetIds = [...new Set(mergedAssetIds)]
+
+  return uniqueAssetIds
+    .map((assetId) => mapAssetToPickerAsset(assetId))
+    .filter((asset): asset is ComposerMediaPickerAsset => asset !== null)
+})
+
+const draftAttachmentAssets = computed(() =>
+  draftAttachmentIds.value
+    .map((assetId) => mediaStore.assetsById[assetId])
+    .filter((asset) => asset !== undefined),
+)
+
+function addPendingPickerAsset(assetId: string) {
+  if (!pendingPickerAssets.value.includes(assetId)) {
+    pendingPickerAssets.value = [assetId, ...pendingPickerAssets.value]
+  }
+}
+
+function clearPendingPickerAsset(assetId: string) {
+  pendingPickerAssets.value = pendingPickerAssets.value.filter((id) => id !== assetId)
+}
+
+function ensurePickerAssetVisible(assetId: string) {
+  addPendingPickerAsset(assetId)
+}
+
+function isAssetSelectableStatus(status: MediaAssetStatus): boolean {
+  return toPickerAssetStatus(status) === 'READY'
+}
+
+function stageAssetOnce(assetId: string) {
+  if (autoStagedAssetIds.value.includes(assetId)) return
+  if (manuallyDeselectedAutoStageIds.value.includes(assetId)) return
+  if (pickerSelectionIds.value.includes(assetId)) return
+
+  pickerSelectionIds.value = [...pickerSelectionIds.value, assetId]
+  autoStagedAssetIds.value = [...autoStagedAssetIds.value, assetId]
+}
+
+function scheduleAssetReconciliation(assetId: string, attempt = 1) {
+  if (!pickerSessionActiveAssetIds.has(assetId)) return
+  if (reconciliationPollers.has(assetId)) return
+  if (attempt > RECONCILIATION_MAX_ATTEMPTS) return
+
+  const timerId = setTimeout(async () => {
+    reconciliationPollers.delete(assetId)
+    if (!pickerSessionActiveAssetIds.has(assetId)) return
+
+    try {
+      const asset = await mediaStore.loadAsset(assetId)
+      mediaStore.upsertAsset(asset)
+      ensurePickerAssetVisible(assetId)
+
+      if (isAssetSelectableStatus(asset.status)) {
+        stageAssetOnce(assetId)
+        clearPendingPickerAsset(assetId)
+        return
+      }
+
+      if (toPickerAssetStatus(asset.status) === 'FAILED') {
+        clearPendingPickerAsset(assetId)
+        return
+      }
+    } catch {
+      // transient fetch errors retry within the same bounded policy
+    }
+
+    if (!pickerSessionActiveAssetIds.has(assetId)) return
+    if (attempt < RECONCILIATION_MAX_ATTEMPTS) {
+      scheduleAssetReconciliation(assetId, attempt + 1)
+      return
+    }
+
+    clearPendingPickerAsset(assetId)
+  }, RECONCILIATION_POLL_INTERVAL_MS)
+
+  reconciliationPollers.set(assetId, timerId)
+}
+
+function startAssetReconciliation(assetId: string) {
+  stopReconciliationPoller(assetId)
+  pickerSessionActiveAssetIds.add(assetId)
+  ensurePickerAssetVisible(assetId)
+
+  const existingAsset = mediaStore.assetsById[assetId]
+  if (existingAsset && isAssetSelectableStatus(existingAsset.status)) {
+    stageAssetOnce(assetId)
+    clearPendingPickerAsset(assetId)
+    return
+  }
+
+  scheduleAssetReconciliation(assetId)
+}
+
+async function handlePickerUploadSelection(filesList: File[]) {
+  const file = filesList.find((candidate) => candidate.type.startsWith('image/') || candidate.type === 'video/mp4' || candidate.type === 'image/webp')
+  if (!file) return
+
+  const tempKey = `picker-upload-${Date.now()}`
+  try {
+    const createdAsset = await mediaStore.createAndUpload(file, tempKey, () => {})
+    mediaStore.upsertAsset(createdAsset)
+    ensurePickerAssetVisible(createdAsset.assetId)
+    mediaPickerCollectionState.value = 'READY'
+
+    if (isAssetSelectableStatus(createdAsset.status)) {
+      stageAssetOnce(createdAsset.assetId)
+      clearPendingPickerAsset(createdAsset.assetId)
+      return
+    }
+
+    startAssetReconciliation(createdAsset.assetId)
+  } catch {
+    submitError.value = 'Media upload failed. Please try again.'
+    mediaPickerCollectionState.value = 'ERROR'
+  }
+}
+
+function openMediaPicker() {
+  pickerSelectionIds.value = [...draftAttachmentIds.value]
+  isMediaPickerOpen.value = true
+  mediaPickerCollectionState.value = pendingPickerAssets.value.length > 0 ? 'READY' : 'LOADING'
+  stopAllReconciliationPollers()
+  pickerSessionActiveAssetIds.clear()
+
+  for (const assetId of pendingPickerAssets.value) {
+    startAssetReconciliation(assetId)
+  }
+
+  mediaStore.loadAssets('READY,PENDING_UPLOAD,UPLOADING,FAILED')
+    .catch(() => {
+      // state derived below from store error
+    })
+    .finally(() => {
+      mediaPickerCollectionState.value = getLibraryCollectionState(mediaStore.assetIds.length)
+    })
+}
+
+function closeMediaPicker() {
+  isMediaPickerOpen.value = false
+  pickerSelectionIds.value = []
+  stopAllReconciliationPollers()
+  pickerSessionActiveAssetIds.clear()
+}
+
+// ---------------------------------------------------------------------------
+// Work Unit 3 — provider search/import orchestration (parent-owned)
+// ---------------------------------------------------------------------------
+
+/**
+ * Captures provider-search intent. Real search happens in the backend client;
+ * the modal exposes only the typed interaction and a result list. The
+ * synthetic result path is explicitly guarded: it only runs in DEV/test, and
+ * `providerSearchError` surfaces a clear message in production when no real
+ * Unsplash search client is wired.
+ */
+function handleProviderSearch(payload: { query: string }) {
+  const q = payload.query.trim()
+  providerQuery.value = q
+  providerSearchError.value = null
+  providerSearching.value = false
+
+  if (!q) {
+    providerResults.value = []
+    return
+  }
+
+  if (!import.meta.env.DEV && !import.meta.env.MODE?.startsWith('test')) {
+    providerResults.value = []
+    providerSearchError.value =
+      'Unsplash search is not configured. Wire the backend search client before enabling this provider.'
+    return
+  }
+
+  providerResults.value = [
+    { externalId: `${q}-1`, name: `${q} photo one`, previewUrl: null, authorName: 'Test author' },
+    { externalId: `${q}-2`, name: `${q} photo two`, previewUrl: null, authorName: 'Test author' },
+  ]
+}
+
+/**
+ * Provider-import orchestration. The picker MUST remain open after emit so
+ * the author can continue staged multi-selection. We synthesize a persisted
+ * asset ID for the imported external result and route it through the same
+ * reconciliation pipeline as uploads.
+ *
+ * In production, the parent would POST to a backend import endpoint that
+ * returns the persisted asset; for now we generate a deterministic UUID
+ * that the polling layer resolves through `mediaStore.loadAsset()`. The
+ * synthetic path is guarded: it only runs in DEV/test — production callers
+ * must wire a real import client before the flag can ship.
+ */
+async function handleProviderImport(payload: { externalId: string }): Promise<void> {
+  if (!import.meta.env.DEV && !import.meta.env.MODE?.startsWith('test')) {
+    providerSearchError.value =
+      'Unsplash import is not configured. Wire the backend import client before enabling this provider.'
+    return
+  }
+
+  const syntheticAssetId = `unsplash-${payload.externalId}`
+  providerImportResolution.value = {
+    ...providerImportResolution.value,
+    [payload.externalId]: syntheticAssetId,
+  }
+
+  // Seed a non-READY persisted asset so the reconciliation pipeline has
+  // something to poll; the asset becomes READY after loadAsset resolves.
+  mediaStore.upsertAsset({
+    assetId: syntheticAssetId,
+    workspaceId: useMediaStoreWorkspaceId(),
+    sourceType: 'EXTERNAL',
+    mediaType: 'image/jpeg',
+    status: 'PENDING_UPLOAD',
+    originalFilename: `${payload.externalId}.jpg`,
+    fileSizeBytes: null,
+    createdAt: new Date().toISOString(),
+    previewUrl: null,
+    sourceProvider: 'unsplash',
+    externalId: payload.externalId,
+  })
+
+  ensurePickerAssetVisible(syntheticAssetId)
+  mediaPickerCollectionState.value = 'READY'
+  startAssetReconciliation(syntheticAssetId)
+}
+
+/** Helper kept tiny to make handleProviderImport easier to mock in tests. */
+function useMediaStoreWorkspaceId(): string {
+  const workspaceStore = useWorkspaceStore()
+  return workspaceStore.activeWorkspaceId ?? 'ws-local'
+}
+
+// Expose for tests so they can simulate an import without touching the
+// internal `v-model` of the provider panel search input.
+defineExpose({
+  __effectiveProvider: effectiveProvider,
+  __effectiveAttachmentLimit: effectiveAttachmentLimit,
+  __isAttachmentLimitExceeded: isAttachmentLimitExceeded,
+  __draftAttachmentIds: draftAttachmentIds,
+})
+
+function togglePickerAsset(assetId: string) {
+  const index = pickerSelectionIds.value.indexOf(assetId)
+  if (index >= 0) {
+    pickerSelectionIds.value = pickerSelectionIds.value.filter((id) => id !== assetId)
+    if (autoStagedAssetIds.value.includes(assetId) && !manuallyDeselectedAutoStageIds.value.includes(assetId)) {
+      manuallyDeselectedAutoStageIds.value = [...manuallyDeselectedAutoStageIds.value, assetId]
+    }
+    return
+  }
+
+  pickerSelectionIds.value = [...pickerSelectionIds.value, assetId]
+}
+
+function applyPickerSelection(assetIds: string[]) {
+  // Block apply when the staged selection exceeds the strictest channel
+  // limit. Preserve attachments by NOT closing the picker — let the
+  // author remove attachments or pick a different channel.
+  if (assetIds.length > effectiveAttachmentLimit.value) {
+    return
+  }
+  draftAttachmentIds.value = [...assetIds]
+  assetsTouched.value = true
+  stopAllReconciliationPollers()
+  pickerSessionActiveAssetIds.clear()
+  closeMediaPicker()
+}
+
+function removeDraftAttachment(assetId: string) {
+  draftAttachmentIds.value = draftAttachmentIds.value.filter((id) => id !== assetId)
+  assetsTouched.value = true
+}
+
 async function handleEditSubmit(
   normalizedPostText: string,
   scheduledDate: Date | undefined,
@@ -687,7 +1106,7 @@ async function handleEditSubmit(
     scheduledAt: scheduledDate?.toISOString(),
     priority: priorityMode.value,
     scheduleMode: backendScheduleMode,
-    ...(assetsTouched.value ? { assetIds: [...mediaStore.selectedAssetIds] } : {}),
+    ...(assetsTouched.value ? { assetIds: [...draftAttachmentIds.value] } : {}),
   })
   emit('updated')
   emit('close')
@@ -709,7 +1128,7 @@ async function handleCreateSubmit(
     thumbnail: selectedAssetIsImage.value
       ? (uploadPreviewBlob.value ?? selectedAssetPreviewUrl.value ?? undefined)
       : undefined,
-    assetIds: [...mediaStore.selectedAssetIds],
+    assetIds: [...draftAttachmentIds.value],
     socialAccountId: selectedChannel.value?.accountId,
   })
   emit('created')
@@ -845,116 +1264,99 @@ async function handleCreateSubmit(
             </div>
           </div>
 
-          <!-- Media Attachment (direct upload only for now) -->
-          <div class="space-y-2">
+          <!-- Media Attachment -->
+          <div class="space-y-3">
             <div class="flex items-center justify-between">
               <span class="font-mono text-[9px] tracking-widest text-text-secondary uppercase block">
-                Media Attachment
+                {{ t('composer.media.label') }}
               </span>
-            </div>
-
-            <!-- Upload progress or failed upload state -->
-            <div
-              v-if="currentUpload"
-              class="border border-border-visible rounded-xl p-4 space-y-2"
-            >
-              <!-- In-progress upload -->
-              <div v-if="currentUpload.status === 'uploading'" class="flex items-center gap-3">
-                <Loader2 class="size-4 text-text-secondary animate-spin shrink-0" />
-                <div class="flex-1 min-w-0">
-                  <p class="text-xs text-text-secondary truncate">
-                    Uploading {{ currentUpload.file.name }}
-                  </p>
-                  <div class="mt-1.5 h-1 bg-border-visible rounded-full overflow-hidden">
-                    <div
-                      class="h-full bg-text-display rounded-full transition-all duration-300"
-                      :style="{ width: `${uploadProgress}%` }"
-                    />
-                  </div>
-                  <p class="mt-0.5 font-mono text-[9px] text-text-secondary">{{ uploadProgress }}%</p>
-                </div>
-                <button
-                  @click="removeFile"
-                  class="shrink-0 p-1 hover:bg-error/10 rounded transition-colors cursor-pointer"
-                  title="Cancel upload"
-                >
-                  <X class="size-3 text-text-secondary hover:text-error" />
-                </button>
-              </div>
-
-              <!-- Failed upload -->
-              <div v-if="currentUpload.status === 'failed' || currentUpload.status === 'conflict'" class="flex items-start gap-2">
-                <AlertCircle class="size-4 text-error shrink-0 mt-0.5" />
-                <div class="flex-1 min-w-0">
-                  <p class="text-xs text-error font-medium">{{ currentUpload.errorTitle ?? 'Upload failed' }}</p>
-                  <p class="text-[10px] text-text-secondary mt-0.5">{{ currentUpload.errorDetail }}</p>
-                  <div class="flex gap-2 mt-2">
-                    <button
-                      @click="retryUploadItem(currentUpload.tempKey)"
-                      class="flex items-center gap-1 font-mono text-[8px] uppercase tracking-wider font-bold text-text-display hover:underline cursor-pointer"
-                    >
-                      <RotateCcw class="size-3" /> Retry
-                    </button>
-                    <button
-                      @click="removeFile"
-                      class="font-mono text-[8px] uppercase tracking-wider font-bold text-text-secondary hover:text-error cursor-pointer"
-                    >
-                      Dismiss
-                    </button>
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            <!-- Selected READY asset preview -->
-            <div
-              v-else-if="mediaStore.selectedAssetIds.length > 0 && selectedAssetIsImage && selectedAssetPreviewUrl"
-              class="relative w-full max-w-[180px] h-16 rounded-lg overflow-hidden group"
-            >
-              <img :src="selectedAssetPreviewUrl" alt="Selected media preview" class="w-full h-full object-cover" />
               <button
-                @click.stop="removeFile"
-                class="absolute top-1 right-1 bg-black/60 text-white rounded-full p-1 hover:bg-black/90 transition-colors cursor-pointer"
+                type="button"
+                data-testid="add-media-button"
+                class="rounded-full border border-border-visible px-3 py-1.5 font-mono text-[9px] font-bold uppercase tracking-widest text-text-display transition-colors hover:border-text-display"
+                @click="openMediaPicker"
               >
-                <X class="size-3" />
+                {{ t('composer.media.addMedia') }}
               </button>
             </div>
 
-            <!-- Drop zone / select file button -->
-            <label v-if="!currentUpload" for="create-post-file-input" class="sr-only">
-              Upload media file
-            </label>
+            <div v-if="draftAttachmentAssets.length > 0" class="flex flex-wrap gap-2">
+              <div
+                v-for="asset in draftAttachmentAssets"
+                :key="asset.assetId"
+                class="flex items-center gap-2 rounded-full border border-border-subtle bg-bg-primary/40 px-3 py-2"
+              >
+                <img
+                  v-if="asset.previewUrl"
+                  :src="asset.previewUrl"
+                  alt="Selected media preview"
+                  class="size-6 rounded-full object-cover"
+                  data-testid="attachment-preview-image"
+                >
+                <span class="max-w-[180px] truncate text-xs text-text-display">{{ asset.originalFilename ?? asset.assetId }}</span>
+                <button
+                  type="button"
+                  :data-testid="`attachment-remove-${asset.assetId}`"
+                  :aria-label="t('composer.media.removeAttachment', { name: asset.originalFilename ?? asset.assetId })"
+                  class="rounded-full text-text-secondary transition-colors hover:text-text-display"
+                  @click="removeDraftAttachment(asset.assetId)"
+                >
+                  <X class="size-3" />
+                </button>
+              </div>
+            </div>
+
+            <p v-else class="rounded-xl border border-dashed border-border-visible bg-bg-primary/20 px-4 py-3 text-xs text-text-secondary">
+              {{ t('composer.media.empty') }}
+            </p>
+
             <input
-              v-if="!currentUpload"
               id="create-post-file-input"
-              ref="fileInput"
+              ref="pickerSessionUploadInput"
+              data-testid="picker-upload-input"
               type="file"
               class="hidden"
-              accept="image/*,video/mp4"
+              accept="image/*,video/mp4,image/webp"
+              aria-label="Upload media file"
               @change="handleFileSelect"
-            />
-            <button
-              v-if="!currentUpload"
-              type="button"
-              @dragover="handleDragOver"
-              @dragleave="handleDragLeave"
-              @drop="handleDrop"
-              class="border border-dashed border-border-visible rounded-xl p-5 text-center transition-all flex flex-col items-center justify-center min-h-[80px] cursor-pointer hover:border-text-secondary w-full"
-              :class="{
-                'border-text-display bg-bg-primary/40': isDragging,
-                'bg-bg-primary/20': !isDragging,
-              }"
-              :aria-label="$t('composer.dragDrop')"
-              @click="openFilePicker"
             >
-              <ImageIcon class="size-5 text-text-secondary mx-auto" />
-              <p class="text-xs text-text-secondary font-light mt-1.5">
-                {{ $t('composer.dragDrop') }}
-                <span class="underline text-text-display cursor-pointer font-medium">{{ $t('composer.selectFile') }}</span>
-              </p>
-            </button>
-
           </div>
+          <p
+            v-if="isAttachmentLimitExceeded"
+            data-testid="attachment-limit-warning"
+            class="rounded-xl border border-error/40 bg-error/10 px-3 py-2 text-xs text-error"
+          >
+            {{ t('composer.media.limitWarning', {
+              current: draftAttachmentIds.length,
+              max: Number.isFinite(effectiveAttachmentLimit) ? effectiveAttachmentLimit : t('composer.media.limitInfinite'),
+            }) }}
+          </p>
+          <ComposerMediaPickerShell
+            :is-open="isMediaPickerOpen"
+            :collection-state="mediaPickerCollectionState"
+            :assets="pickerAssets"
+            :provider="effectiveProvider"
+            :apply-disabled="isPickerSelectionOverLimit"
+            :apply-disabled-message="isPickerSelectionOverLimit ? t('composer.picker.applyDisabledLimit') : null"
+            @toggle-asset="togglePickerAsset($event.assetId)"
+            @apply-selection="applyPickerSelection($event.assetIds)"
+            @provider-search="handleProviderSearch"
+            @provider-import="handleProviderImport"
+            @close="closeMediaPicker"
+          >
+            <template
+              v-if="effectiveProvider === 'unsplash'"
+              #provider
+            >
+              <MediaProviderPanel
+                :results="providerResults"
+                :is-searching="providerSearching"
+                :search-error="providerSearchError"
+                @provider-search="handleProviderSearch"
+                @provider-import="handleProviderImport"
+              />
+            </template>
+          </ComposerMediaPickerShell>
 
           <!-- First Comment option -->
           <div class="space-y-2">
