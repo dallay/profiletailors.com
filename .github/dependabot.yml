@@ -175,9 +175,6 @@ updates:
     rebase-strategy: "auto"
     cooldown:
       default-days: 7
-      semver-major-days: 14
-      semver-minor-days: 7
-      semver-patch-days: 7
     commit-message:
       prefix: "ci"
       include: "scope"
