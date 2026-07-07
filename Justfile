@@ -76,12 +76,13 @@ docker-compose := "docker compose"
 install:
     pnpm install --frozen-lockfile
 
-# Full initial setup: .env → install → git hooks → agentsync
+# Full initial setup: .env → install → git hooks → agentsync → codegraph
 setup:
     cp -n .env.example .env 2>/dev/null || true
     just install
     just hooks-install
     pnpm dlx @dallay/agentsync apply
+    command -v codegraph >/dev/null 2>&1 && codegraph init || echo "⚠️  codegraph not found — skipping index init"
 
 # Install Lefthook git hooks unless globally disabled
 hooks-install:
@@ -171,9 +172,9 @@ backend-test exclude-tags="":
 backend-test-fast:
     {{gradle-root}} :server:smp:test --no-daemon -PexcludeTags=modularity,postgres
 
-# Run full check: tests + Detekt
+# Run full check: tests + Detekt (aligns with CI — excludes postgres/modularity tags and BDD suites)
 backend-check:
-    {{gradle-root}} :server:smp:check --no-daemon
+    {{gradle-root}} :server:smp:check --no-daemon -PexcludeTags=modularity,postgres -x :server:smp:bddFastTest -x :server:smp:bddPostgresTest
 
 # Run Detekt static analysis
 backend-lint:
@@ -212,7 +213,7 @@ backend-coverage:
 
 # Run fast BDD suite
 backend-bdd-fast:
-    {{gradle-root}} :server:smp:bddFastTest --no-daemon -x :shared:common:test -x :shared:spring-boot-common:test
+    export SMP_POSTGRES_TEST_PASSWORD=$(grep ^SMP_POSTGRES_PASSWORD= .env | cut -d= -f2) && {{gradle-root}} :server:smp:bddFastTest --no-daemon -x :shared:common:test -x :shared:spring-boot-common:test
 
 # Run PostgreSQL integration tests with Testcontainers
 backend-test-postgres:
@@ -323,7 +324,7 @@ ci:
     {{gradle-root}} :server:smp:test --no-daemon -PexcludeTags=modularity,postgres
     @echo ""
     @echo "▸ [7/8] Backend: BDD fast suite..."
-    {{gradle-root}} :server:smp:bddFastTest --no-daemon -x :shared:common:test -x :shared:spring-boot-common:test
+    export SMP_POSTGRES_TEST_PASSWORD=$(grep ^SMP_POSTGRES_PASSWORD= .env | cut -d= -f2) && {{gradle-root}} :server:smp:bddFastTest --no-daemon -x :shared:common:test -x :shared:spring-boot-common:test
     @echo ""
     @echo "▸ [8/8] Frontend: E2E tests (Playwright, all browsers)..."
     cd {{frontend-dir}} && pnpm test:e2e

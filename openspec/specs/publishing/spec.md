@@ -9,6 +9,62 @@ publishing as the first implemented provider slice.
 
 ## Requirements
 
+### Requirement: Authenticated Create Reconciliation
+
+After an authenticated create succeeds, the client MUST replace any optimistic publication identity and fields with the returned backend publication. The store MUST use the returned `publicationId`, `status`, `scheduleMode`, `scheduledFor`, `nextSlotAfter`, and `socialAccountId` as authoritative values and MUST NOT retain a synthetic local ID.
+
+#### Scenario: Standard create adopts server truth
+
+- GIVEN authenticated creation has an optimistic local publication
+- WHEN the backend returns a successful `PublicationResult`
+- THEN the store MUST identify the publication by the returned `publicationId`
+- AND MUST store the returned status, schedule, and social-account fields
+
+#### Scenario: Freshly created publication is edited
+
+- GIVEN an authenticated create succeeded and the publication was reconciled
+- WHEN the user reopens it and saves an edit
+- THEN PATCH MUST target the returned backend `publicationId`
+- AND a successful response MUST replace local state with server truth
+
+#### Scenario: PATCH target is absent in the workspace
+
+- GIVEN the current workspace has no publication matching the PATCH identifier
+- WHEN an authenticated edit is submitted
+- THEN the backend MUST return 404
+- AND publications in every other workspace MUST remain unchanged
+
+### Requirement: Reconciled Composer Edit State
+
+The edit composer MUST initialize schedule controls from authoritative reconciled fields. For `NOW` and `NEXT_SLOT`, it MUST NOT prefill stale or invalid custom date/time values. Existing assets MUST remain hydrated, previewed, and preserved when media is untouched. The explicit PATCH asset semantics established by #223 MUST remain unchanged.
+
+#### Scenario: NOW creation reopens without stale custom schedule
+
+- GIVEN a created publication is reconciled with `scheduleMode = NOW`
+- WHEN the edit composer opens
+- THEN it MUST select NOW
+- AND MUST NOT prefill a custom scheduled date/time from optimistic state
+
+#### Scenario: NEXT_SLOT creation reopens without stale custom schedule
+
+- GIVEN a created publication is reconciled with `scheduleMode = NEXT_SLOT`
+- WHEN the edit composer opens
+- THEN it MUST select NEXT_SLOT and use backend scheduling fields
+- AND MUST NOT prefill invalid custom schedule data
+
+#### Scenario: Untouched existing media is preserved
+
+- GIVEN a reconciled publication has resolvable existing assets
+- WHEN the user edits non-media fields and saves
+- THEN the assets MUST remain hydrated and previewed
+- AND PATCH MUST omit `assetIds`, preserving persisted assets
+
+#### Scenario: Explicit media clear or replacement remains supported
+
+- GIVEN the edit composer contains existing assets
+- WHEN the user explicitly clears all assets or selects replacements
+- THEN PATCH MUST send `assetIds: []` for clear or the exact selected IDs for replacement
+
 ### Requirement: Workspace-Scoped Social Connections
 
 The system MUST allow an authenticated workspace member to register and manage a social-provider
@@ -47,6 +103,62 @@ violations.)
 - THEN the system MUST update the existing connection and account records
 - AND MUST NOT create duplicate records
 - AND connection status MUST be `ACTIVE` with refreshed metadata
+
+### Requirement: LinkedIn Completion Persists Connection and Account Atomically
+
+The system MUST persist LinkedIn OAuth completion state atomically when finalizing a workspace social connection. The social connection write and social account write SHALL commit together or roll back together. The system MUST publish channel events only after the transaction commits successfully.
+
+#### Scenario: LinkedIn completion commits both records
+
+- GIVEN a valid authenticated workspace and successful LinkedIn OAuth completion data
+- WHEN the backend finalizes the LinkedIn connection
+- THEN the social connection MUST be persisted
+- AND the social account MUST be persisted for the same workspace and provider account
+- AND a channel event MAY be published after successful persistence
+
+#### Scenario: Social account failure rolls back social connection
+
+- GIVEN LinkedIn completion starts persisting a social connection and social account
+- AND the social account persistence fails before transaction commit
+- WHEN the completion handler returns an error
+- THEN the social connection MUST NOT remain persisted
+- AND the social account MUST NOT remain persisted
+- AND no channel event MUST be published
+
+#### Scenario: Event publishing is after transaction success
+
+- GIVEN LinkedIn completion persistence succeeds inside a transaction
+- WHEN the transaction commits successfully
+- THEN the system MAY publish the channel-connected event
+- AND event publication MUST NOT be required for the transaction to commit
+
+### Requirement: Email Verification Required for Publishing and Social Connection
+
+The system MUST require `emailStatus = VERIFIED` before a user can publish content or connect a social account.
+
+This verification gate MUST apply consistently across immediate publishing, scheduled publishing requests, and social connection initiation or completion flows.
+
+> **TODO:** Gate implementations for publishing and social-connection flows are deferred. Currently only `UPLOAD_MEDIA` (media library upload) enforces `emailStatus = VERIFIED`. The publishing handler, scheduling handler, and social connection initiation/completion handlers must be updated in a follow-up change to reject requests when `emailStatus != VERIFIED`. The `EmailVerificationPolicy` enum in the identity context should be extended with publishing and social-connection features, and the corresponding handlers should gate on those policies.
+
+#### Scenario: Unverified user cannot publish
+
+- GIVEN an authenticated user with `emailStatus = UNVERIFIED`
+- WHEN the user attempts to create, queue, or publish content
+- THEN the system MUST deny the request
+- AND the denial MUST indicate email verification is required
+
+#### Scenario: Unverified user cannot connect a social account
+
+- GIVEN an authenticated user with `emailStatus = UNVERIFIED`
+- WHEN the user attempts to initiate or complete a social connection flow
+- THEN the system MUST deny the request
+- AND the denial MUST indicate email verification is required
+
+#### Scenario: Verified user can use gated publishing capabilities
+
+- GIVEN an authenticated user with `emailStatus = VERIFIED`
+- WHEN the user attempts to publish or connect a social account with otherwise valid input
+- THEN the system MUST evaluate the request under normal publishing rules
 
 ### Requirement: Provider-Neutral Publication Lifecycle
 
@@ -106,12 +218,19 @@ A publication in `DRAFT`, `QUEUED`, or `SCHEDULED` MAY be edited, including text
 schedule mode, and schedule timing, as long as the delivery job has not been claimed for processing.
 Such a publication MAY also be cancelled or deleted before claim. Scheduler edit flows MUST persist
 through the existing `PATCH /api/publishing/publications/{publicationId}` contract, and successful
-responses MUST reflect server truth rather than local-only optimistic state. Once processing has
-begun, the system MUST prevent unsafe edits or deletion that would invalidate the claimed delivery
-attempt.
+responses MUST reflect server truth rather than local-only optimistic state. Publication writes MUST
+target exactly one row in the caller's current workspace. A write scoped by `publicationId` MUST
+update an existing publication only when both the publication identifier and workspace match the
+current workspace context. If no publication row in the current workspace matches the requested
+write target, the system MUST either create the draft in the current workspace when the operation is
+a create/save flow, or reject the operation as not found for the current workspace when the
+operation requires updating an existing publication. The system MUST NOT mutate a publication row
+that belongs to another workspace. Once processing has begun, the system MUST prevent unsafe edits
+or deletion that would invalidate the claimed delivery attempt.
 
-(Previously: Pre-delivery publications could be edited or cancelled, but delete behavior and
-backend-backed scheduler editing were not specified.)
+(Previously: Pre-delivery publications were editable before claim, but the spec did not require
+workspace-scoped write targeting or define behavior when an update target is missing in the current
+workspace.)
 
 #### Scenario: Queued publication is edited before claim
 
@@ -126,6 +245,36 @@ backend-backed scheduler editing were not specified.)
 - WHEN the user saves changes from the edit flow
 - THEN the client MUST update its state from the successful PATCH response
 - AND failed PATCH requests MUST surface an error without pretending the edit succeeded
+
+#### Scenario: Same-workspace write updates the intended publication row
+
+- GIVEN workspace A already owns publication `P1` in an editable pre-delivery state
+- WHEN workspace A saves edits for publication `P1`
+- THEN the system MUST update the existing row for workspace A
+- AND it MUST NOT create a duplicate row for workspace A
+
+#### Scenario: Save flow creates a draft when no current-workspace row exists
+
+- GIVEN workspace A has no publication row with identifier `P1`
+- WHEN workspace A performs a draft save that is allowed to create
+- THEN the system MUST persist a new draft in workspace A
+- AND the write MUST NOT depend on rows from other workspaces
+
+#### Scenario: Cross-workspace publication rows remain isolated during writes
+
+- GIVEN workspace A owns publication `P1`
+- AND workspace B also has a row that is the only existing match for publication `P1` outside workspace A's scope
+- WHEN workspace A performs a write for publication `P1`
+- THEN the system MUST NOT update workspace B's row
+- AND any persisted change MUST apply only within workspace A's scope
+
+#### Scenario: Update fails when the current workspace cannot target a row
+
+- GIVEN workspace A requests an update-only write for publication `P1`
+- AND workspace A has no matching publication row for `P1`
+- WHEN the system evaluates the write target
+- THEN the system MUST reject the operation as not found for the current workspace
+- AND it MUST leave rows in other workspaces unchanged
 
 #### Scenario: Processing publication cannot be cancelled retroactively
 
@@ -234,6 +383,90 @@ create-only affordances that imply a new publication is being created.
 - THEN the current channel MUST be shown as pre-selected and disabled
 - AND the user MUST NOT be able to switch channels
 - AND the create-another control MUST NOT be rendered
+
+### Requirement: Publication Asset PATCH Tri-State Semantics
+
+The publishing API MUST preserve CREATE asset behavior while giving PATCH publication edits explicit tri-state `assetIds` semantics. For edit requests, absent or `null` `assetIds` MUST preserve the publication's current asset IDs, an empty array MUST clear all current assets, and a non-empty array MUST replace current assets exactly in request order. CREATE semantics MUST remain unchanged: absent/default `assetIds` creates no assets, and provided IDs are used. Workspace-scoped targeting, update-not-found behavior, and the existing #224/#225 edit hardening behavior MUST remain unchanged.
+
+#### Scenario: PATCH assetIds absent preserves current assets
+
+- GIVEN a same-workspace editable publication has asset IDs `[A, B]`
+- WHEN PATCH edits text and omits `assetIds`
+- THEN the persisted publication MUST keep asset IDs `[A, B]`
+
+#### Scenario: PATCH assetIds null preserves current assets
+
+- GIVEN a same-workspace editable publication has asset IDs `[A, B]`
+- WHEN PATCH includes `"assetIds": null`
+- THEN the persisted publication MUST keep asset IDs `[A, B]`
+
+#### Scenario: PATCH assetIds empty clears assets
+
+- GIVEN a same-workspace editable publication has asset IDs `[A, B]`
+- WHEN PATCH includes `"assetIds": []`
+- THEN the persisted publication MUST have no asset IDs
+
+#### Scenario: PATCH assetIds list replaces exactly
+
+- GIVEN a same-workspace editable publication has asset IDs `[A, B]`
+- WHEN PATCH includes `"assetIds": ["C", "A"]`
+- THEN the persisted publication MUST have asset IDs `[C, A]`
+
+#### Scenario: CREATE asset behavior is unchanged
+
+- GIVEN a valid create request omits `assetIds` or uses the default value
+- WHEN the publication is created
+- THEN the persisted publication MUST have no asset IDs
+- AND a create request with IDs MUST persist those IDs
+
+#### Scenario: Workspace isolation remains enforced
+
+- GIVEN workspace A edits publication `P1` and workspace B owns another `P1`
+- WHEN A sends any PATCH `assetIds` shape
+- THEN only A's target row MAY change
+- AND #224/#225 status and workspace rules MUST remain unchanged
+
+### Requirement: Composer Edit Asset Hydration and Submission
+
+The scheduler composer MUST hydrate resolvable existing asset summaries when opened in edit mode and display previews for those assets. Missing or deleted assets MUST be handled gracefully without crashing the editor and MUST NOT silently clear unrelated valid asset IDs. Saving an edit without asset interaction MUST omit `assetIds` from PATCH. Explicit remove-all MUST send `assetIds: []`. Selecting or replacing assets MUST send the selected asset IDs exactly.
+
+#### Scenario: Edit modal hydrates and previews existing assets
+
+- GIVEN an editable publication has resolvable asset IDs `[A, B]`
+- WHEN the edit modal opens
+- THEN the composer MUST load summaries for A and B
+- AND previews for A and B MUST be displayed
+
+#### Scenario: Missing asset hydration is graceful
+
+- GIVEN an editable publication references valid asset `A` and missing asset `Z`
+- WHEN the edit modal hydrates assets
+- THEN the editor MUST remain usable and show resolvable asset `A`
+- AND it MUST NOT remove `A` or crash because `Z` is missing
+
+#### Scenario: Untouched save omits assetIds
+
+- GIVEN the edit modal opened with existing assets
+- WHEN the user saves without touching assets
+- THEN the PATCH body MUST omit `assetIds`
+
+#### Scenario: Explicit remove-all sends empty array
+
+- GIVEN the edit modal opened with existing assets
+- WHEN the user removes all assets
+- THEN the PATCH body MUST include `"assetIds": []`
+
+#### Scenario: Selecting replacement sends selected IDs
+
+- GIVEN the edit modal is open
+- WHEN the user selects assets `[C, D]`
+- THEN the PATCH body MUST include `"assetIds": ["C", "D"]`
+
+#### Scenario: TDD acceptance coverage exists
+
+- GIVEN backend and frontend regression tests are written first
+- WHEN the focused suites run
+- THEN they MUST cover all PATCH tri-state cases, CREATE compatibility, hydration, missing assets, untouched save omission, clear-all, replacement, and unchanged workspace/#224/#225 behavior
 
 ### Requirement: Delivery Attempts, Retries, and Failure Recovery
 
@@ -1625,26 +1858,45 @@ reused behind the boundary.
 ### Requirement: Composer Media Selection Uses Reusable Workspace Assets
 
 The SPA composer MUST support selecting media from persisted workspace assets, including newly
-uploaded assets and previously uploaded assets from the same workspace.
+uploaded assets, previously uploaded assets from the same workspace, and feature-flagged provider imports that resolve to persisted assets.
 
-The MVP composer flow MUST support this persisted sequence: create asset, complete upload, retain
-asset identifier, optionally browse existing workspace assets, and submit the publication with the
-chosen `assetIds`. The composer MAY continue offering immediate previews for usability, but preview
-state MUST NOT replace persisted asset selection as the canonical publishing input.
+The composer flow MUST distinguish transient `pickerSelectionIds`, draft-level `draftAttachmentIds`, and persisted publication `assetIds`. Opening the picker MUST stage the current draft attachments for replace-set editing. Upload or provider import that creates or resolves persisted assets MUST refresh them into the active picker session and MUST auto-stage the resulting asset IDs once they resolve to selectable persisted assets. The draft MUST change only when the user explicitly applies the picker result. Publication submission MUST continue using persisted `assetIds` derived from the confirmed draft attachment set.
+(Previously: The composer supported persisted asset reuse, but did not define staged picker selection, draft replacement semantics, or same-session upload/import auto-staging.)
 
-#### Scenario: User uploads media once and publishes with persisted asset id
+#### Scenario: Upload or import stages persisted assets before draft commit
 
-- GIVEN a workspace member selects a supported media file in the composer
-- WHEN the client completes the MVP persisted media flow
-- THEN the composer MUST retain the created asset identifier
-- AND the publication submission MUST reference that persisted asset identifier
+- GIVEN the picker is open in the composer
+- WHEN upload or provider import yields persisted asset IDs
+- THEN those asset IDs MUST become available in the active picker session
+- AND newly created assets MUST become staged selections automatically once they resolve to selectable persisted assets
+- AND the draft attachment set MUST remain unchanged until apply
 
-#### Scenario: User reuses existing workspace asset in a new post
+#### Scenario: Applying the picker updates draft attachments but not publication persistence
 
-- GIVEN a workspace contains a previously uploaded media asset that is `READY` for use
-- WHEN the user browses the media library from the composer and selects that asset
-- THEN the composer MUST attach the existing persisted asset
-- AND the subsequent publication submission MUST reuse that asset without requiring a new upload
+- GIVEN staged `pickerSelectionIds` differ from `draftAttachmentIds`
+- WHEN the user confirms the picker
+- THEN `draftAttachmentIds` MUST be replaced by the staged selection
+- AND persisted publication `assetIds` MUST change only when the draft is later saved or published
+
+## ADDED Requirements
+
+### Requirement: Multi-channel attachment limit enforcement
+
+The composer and publishing flow MUST enforce an effective attachment limit equal to the minimum `maxAttachments` across all currently selected target channels. If a later channel change makes the current draft attachments invalid, the system MUST preserve the attachments in the draft, surface the invalid state, and block publish or schedule actions until the author resolves the mismatch.
+
+#### Scenario: Effective limit uses the strictest selected channel
+
+- GIVEN the author selects multiple target channels with different attachment limits
+- WHEN the composer evaluates attachment capacity
+- THEN the effective limit MUST equal the minimum channel `maxAttachments`
+- AND the picker or draft flow MUST prevent confirming more attachments than that limit
+
+#### Scenario: Channel change invalidates existing attachments without auto-removal
+
+- GIVEN the draft currently has attachments within the prior limit
+- WHEN the selected channels change and the effective limit becomes lower than the current attachment count
+- THEN the system MUST keep the existing draft attachments
+- AND it MUST surface an invalid state and block publish or schedule until resolved
 
 ### Requirement: Existing Publishing Consumers Continue Using Storage-Backed Assets
 
@@ -1804,4 +2056,33 @@ part of this change.
 - WHEN Delete is invoked
 - THEN its existing persistence behavior MUST remain unchanged
 - AND it MUST NOT invoke `AtomicTransactionRunner`
+
+### Requirement: Update-Only Publication Misses Return HTTP 404
+
+The system MUST translate current-workspace publication misses for update-only publishing operations into HTTP 404 at the HTTP boundary.
+
+Any endpoint that intentionally scopes publication lookup by the caller's current workspace and throws `PublicationNotFoundException` for a miss MUST expose that miss as not found rather than an internal server error. This contract applies only to update-only operations and MUST NOT redefine create/save flows that are allowed to create a draft when no current-workspace row exists.
+
+#### Scenario: Edit request misses the current-workspace publication
+
+- GIVEN `PATCH /api/publishing/publications/{publicationId}` is an update-only operation
+- AND the current workspace has no matching publication row for `publicationId`
+- WHEN the HTTP request reaches the publishing boundary
+- THEN the system MUST return HTTP 404
+- AND the response MUST NOT degrade to HTTP 500
+
+#### Scenario: Sibling update-only operations share the same not-found contract
+
+- GIVEN delete, cancel, retry, or reschedule uses the same current-workspace publication lookup semantics
+- AND the operation intentionally treats cross-workspace targets as not found
+- WHEN no matching publication exists in the current workspace
+- THEN the system MUST return HTTP 404 for that endpoint
+- AND it MUST leave rows in other workspaces unchanged
+
+#### Scenario: Create-capable save flows remain out of scope
+
+- GIVEN a publishing flow is explicitly allowed to create a draft when the current workspace has no matching row
+- WHEN that flow evaluates a missing current-workspace target
+- THEN this requirement MUST NOT force HTTP 404
+- AND the flow MUST continue to follow its create/save contract
 

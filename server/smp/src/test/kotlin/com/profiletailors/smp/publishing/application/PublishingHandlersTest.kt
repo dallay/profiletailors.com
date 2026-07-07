@@ -23,6 +23,7 @@ import com.profiletailors.smp.publishing.domain.ActivityDensity
 import com.profiletailors.smp.publishing.domain.AssetSourceType
 import com.profiletailors.smp.publishing.domain.ChannelEvent
 import com.profiletailors.smp.publishing.domain.ChannelEventPublisher
+import com.profiletailors.smp.publishing.domain.ChannelEventType
 import com.profiletailors.smp.publishing.domain.CompleteProviderConnectionCommand
 import com.profiletailors.smp.publishing.domain.ConnectedSocialChannel
 import com.profiletailors.smp.publishing.domain.ConnectedSocialChannelReadRepository
@@ -62,6 +63,7 @@ import com.profiletailors.smp.publishing.domain.SocialConnectionStatus
 import com.profiletailors.smp.publishing.domain.SocialProvider
 import kotlinx.coroutines.test.runTest
 import org.junit.jupiter.api.Assertions.assertEquals
+import org.junit.jupiter.api.Assertions.assertFalse
 import org.junit.jupiter.api.Assertions.assertNotNull
 import org.junit.jupiter.api.Assertions.assertNull
 import org.junit.jupiter.api.Assertions.assertThrows
@@ -94,14 +96,18 @@ class PublishingHandlersTest {
     /** Always returns true — email verification gate is enforced. */
     private val strictEmailVerificationPolicy: EmailVerificationPolicy = emailVerificationPolicyOf()
 
-    private fun recordingTransactionRunner(): RecordingAtomicTransactionRunner = RecordingAtomicTransactionRunner()
+    private fun recordingTransactionRunner(): RecordingAtomicTransactionRunner =
+        RecordingAtomicTransactionRunner(mutableListOf())
 
-    private class RecordingAtomicTransactionRunner : AtomicTransactionRunner {
+    private class RecordingAtomicTransactionRunner(private val order: MutableList<String>) : AtomicTransactionRunner {
         var invocations: Int = 0
 
         override suspend fun <T : Any> runAtomically(block: suspend () -> T): T {
             invocations += 1
-            return block()
+            order += "tx:start"
+            val result = block()
+            order += "tx:commit"
+            return result
         }
     }
 
@@ -132,6 +138,54 @@ class PublishingHandlersTest {
         assertEquals(0, publicationRepository.writeCount)
         assertEquals(0, jobRepository.writeCount)
     }
+
+    private suspend fun activeLinkedInAccounts(): InMemorySocialAccountRepository =
+        InMemorySocialAccountRepository().apply {
+            upsert(
+                SocialAccount(
+                    id = "account-1",
+                    socialConnectionId = "connection-1",
+                    workspaceId = "workspace-1",
+                    provider = SocialProvider.LINKEDIN,
+                    providerAccountId = "linkedin-account-1",
+                    kind = SocialAccountKind.PERSONAL_PROFILE,
+                    displayName = "Yuniel",
+                    status = SocialConnectionStatus.ACTIVE,
+                ),
+            )
+        }
+
+    private suspend fun editPublicationHandler(
+        publicationRepository: InMemoryPublicationRepository,
+        jobRepository: InMemoryPublicationJobRepository = InMemoryPublicationJobRepository(),
+        mediaResolver: FakeMediaAssetResolver = FakeMediaAssetResolver(),
+    ): EditPublicationHandler = EditPublicationHandler(
+        principalContextProvider = FixedPrincipalContextProvider(principalContext),
+        resourceContextProvider = FixedResourceContextProvider(workspaceContext),
+        socialAccountRepository = activeLinkedInAccounts(),
+        publicationRepository = publicationRepository,
+        publicationAssetRepository = InMemoryPublicationAssetRepository(emptyList()),
+        publicationJobRepository = jobRepository,
+        transactionRunner = recordingTransactionRunner(),
+        providerCapabilityValidator = AcceptingCapabilityValidator(),
+        schedulingPolicy = PublicationSchedulingPolicy(),
+        mediaAssetResolver = mediaResolver,
+        mediaIntegrationSettings = PublishingMediaIntegrationSettings(enabled = true),
+        clock = fixedClock,
+    )
+
+    private fun editablePublication(assetIds: List<String> = emptyList()): PublicationDraft = PublicationDraft(
+        id = "pub-1",
+        workspaceId = "workspace-1",
+        authorPrincipalId = "principal-1",
+        provider = SocialProvider.LINKEDIN,
+        socialAccountId = "account-1",
+        status = PublicationStatus.QUEUED,
+        scheduleMode = ScheduleMode.NOW,
+        priority = false,
+        bodyText = "Old text",
+        assetIds = assetIds,
+    )
 
     private class VerifiedPrincipalIdentityLookup : PrincipalIdentityLookup {
         override suspend fun findBySubject(
@@ -218,6 +272,7 @@ class PublishingHandlersTest {
         val accountRepository = InMemorySocialAccountRepository()
         val stateSigner = CapturingOAuthStateSigner()
         val state = stateSigner.sign(validStatePayload())
+        val transactionRunner = recordingTransactionRunner()
         val handler = CompleteLinkedInConnectionHandler(
             principalContextProvider = FixedPrincipalContextProvider(principalContext),
             resourceContextProvider = FixedResourceContextProvider(workspaceContext),
@@ -227,6 +282,7 @@ class PublishingHandlersTest {
             socialAccountRepository = accountRepository,
             channelEventPublisher = CapturingChannelEventPublisher(),
             clock = fixedClock,
+            transactionRunner = transactionRunner,
         )
 
         val result = handler.handle(
@@ -349,6 +405,7 @@ class PublishingHandlersTest {
             socialAccountRepository = InMemorySocialAccountRepository(),
             channelEventPublisher = CapturingChannelEventPublisher(),
             clock = fixedClock,
+            transactionRunner = recordingTransactionRunner(),
         )
 
         assertThrows(InvalidOAuthStateException::class.java) {
@@ -379,6 +436,7 @@ class PublishingHandlersTest {
             socialAccountRepository = InMemorySocialAccountRepository(),
             channelEventPublisher = CapturingChannelEventPublisher(),
             clock = fixedClock,
+            transactionRunner = recordingTransactionRunner(),
         )
 
         assertThrows(ExpiredOAuthStateException::class.java) {
@@ -727,6 +785,74 @@ class PublishingHandlersTest {
                 )
             }
         }
+    }
+
+    @Test
+    fun `edit publication preserves existing assets when assetIds is absent`() = runTest {
+        val mediaResolver = FakeMediaAssetResolver()
+        val publicationRepository =
+            InMemoryPublicationRepository(editablePublication(assetIds = listOf("asset-a", "asset-b")))
+        val handler = editPublicationHandler(publicationRepository, mediaResolver = mediaResolver)
+
+        val result = handler.handle(
+            EditPublicationCommand(
+                publicationId = "pub-1",
+                bodyText = "Updated text",
+                assetIds = null,
+                scheduleMode = ScheduleMode.NOW,
+            ),
+        )
+
+        assertEquals(listOf("asset-a", "asset-b"), result.assetIds)
+        assertEquals(listOf("asset-a", "asset-b"), publicationRepository.lastUpdatedDraft?.assetIds)
+        assertEquals(listOf("workspace-1" to listOf("asset-a", "asset-b")), mediaResolver.requestedCalls)
+    }
+
+    @Test
+    fun `edit publication clears existing assets when assetIds is empty`() = runTest {
+        val mediaResolver = FakeMediaAssetResolver()
+        val publicationRepository =
+            InMemoryPublicationRepository(editablePublication(assetIds = listOf("asset-a", "asset-b")))
+        val handler = editPublicationHandler(publicationRepository, mediaResolver = mediaResolver)
+
+        val result = handler.handle(
+            EditPublicationCommand(
+                publicationId = "pub-1",
+                bodyText = "Updated text",
+                assetIds = emptyList(),
+                scheduleMode = ScheduleMode.NOW,
+            ),
+        )
+
+        assertEquals(emptyList<String>(), result.assetIds)
+        assertEquals(emptyList<String>(), publicationRepository.lastUpdatedDraft?.assetIds)
+        assertTrue(mediaResolver.requestedCalls.isEmpty())
+    }
+
+    @Test
+    fun `edit publication replaces assets exactly in request order`() = runTest {
+        val mediaResolver = FakeMediaAssetResolver().apply {
+            resolvedAssets = listOf(
+                ResolvedAssetSummary("asset-c", "workspace-1", "assets/workspace-1/asset-c", "image/png"),
+                ResolvedAssetSummary("asset-a", "workspace-1", "assets/workspace-1/asset-a", "image/png"),
+            )
+        }
+        val publicationRepository =
+            InMemoryPublicationRepository(editablePublication(assetIds = listOf("asset-a", "asset-b")))
+        val handler = editPublicationHandler(publicationRepository, mediaResolver = mediaResolver)
+
+        val result = handler.handle(
+            EditPublicationCommand(
+                publicationId = "pub-1",
+                bodyText = "Updated text",
+                assetIds = listOf("asset-c", "asset-a"),
+                scheduleMode = ScheduleMode.NOW,
+            ),
+        )
+
+        assertEquals(listOf("asset-c", "asset-a"), result.assetIds)
+        assertEquals(listOf("asset-c", "asset-a"), publicationRepository.lastUpdatedDraft?.assetIds)
+        assertEquals(listOf("workspace-1" to listOf("asset-c", "asset-a")), mediaResolver.requestedCalls)
     }
 
     @Test
@@ -1781,6 +1907,13 @@ class PublishingHandlersTest {
             items[accountId]?.takeIf { it.workspaceId == workspaceId }
     }
 
+    private class ThrowingSocialAccountRepository : SocialAccountRepository {
+        override suspend fun upsert(account: SocialAccount): SocialAccount =
+            throw IllegalStateException("account upsert failed")
+
+        override suspend fun findByWorkspaceAndId(workspaceId: String, accountId: String): SocialAccount? = null
+    }
+
     private class CapturingChannelEventPublisher : ChannelEventPublisher {
         val events = mutableListOf<ChannelEvent>()
 
@@ -1797,6 +1930,7 @@ class PublishingHandlersTest {
         private val updateResultOverride: PublicationDraft? = null,
     ) : PublicationRepository {
         var deletedPublication: Pair<String, String>? = null
+        var lastUpdatedDraft: PublicationDraft? = null
         var lastFindStatuses: Set<PublicationStatus>? = null
         var lastFindSocialAccountIds: Set<String>? = null
         var lastCountWorkspaceId: String? = null
@@ -1820,6 +1954,7 @@ class PublishingHandlersTest {
 
         override suspend fun updateEditableDraft(draft: PublicationDraft): PublicationDraft {
             writeCount += 1
+            lastUpdatedDraft = draft
             val result = updateResultOverride ?: draft
             items[result.id] = result
             return result
@@ -2542,6 +2677,7 @@ class PublishingHandlersTest {
             socialAccountRepository = accountRepository,
             channelEventPublisher = CapturingChannelEventPublisher(),
             clock = fixedClock,
+            transactionRunner = recordingTransactionRunner(),
             principalIdentityLookup = PendingEmailIdentityLookup(),
             emailVerificationPolicy = strictEmailVerificationPolicy,
         )
@@ -2557,6 +2693,83 @@ class PublishingHandlersTest {
                 )
             }
         }
+    }
+
+    @Test
+    fun `connects linkedin profile commits transaction and publishes event`() = runTest {
+        val connectionRepository = InMemorySocialConnectionRepository()
+        val accountRepository = InMemorySocialAccountRepository()
+        val eventPublisher = CapturingChannelEventPublisher()
+        val stateSigner = CapturingOAuthStateSigner()
+        val state = stateSigner.sign(validStatePayload())
+        val order = mutableListOf<String>()
+        val transactionRunner = RecordingAtomicTransactionRunner(order)
+        val handler = CompleteLinkedInConnectionHandler(
+            principalContextProvider = FixedPrincipalContextProvider(principalContext),
+            resourceContextProvider = FixedResourceContextProvider(workspaceContext),
+            socialConnectionProvider = FakeSocialConnectionProvider(),
+            oauthStateSigner = stateSigner,
+            socialConnectionRepository = connectionRepository,
+            socialAccountRepository = accountRepository,
+            channelEventPublisher = eventPublisher,
+            clock = fixedClock,
+            transactionRunner = transactionRunner,
+        )
+
+        val result = handler.handle(
+            CompleteLinkedInConnectionCommand(
+                authorizationCode = "oauth-code-123",
+                redirectUri = "https://app.example.com/callback",
+                state = state,
+            ),
+        )
+
+        assertEquals("workspace-1", result.workspaceId)
+        assertEquals(SocialProvider.LINKEDIN, result.provider)
+        assertNotNull(connectionRepository.lastSaved)
+        assertNotNull(accountRepository.lastSaved)
+        assertEquals(1, transactionRunner.invocations)
+        assertTrue(order.contains("tx:start"), "Expected tx:start in order: $order")
+        assertTrue(order.contains("tx:commit"), "Expected tx:commit in order: $order")
+        assertEquals(1, eventPublisher.events.size)
+        assertEquals(ChannelEventType.CONNECTED_CHANNEL_UPDATED, eventPublisher.events[0].type)
+    }
+
+    @Test
+    fun `linkedin connection rollback when account upsert fails`() = runTest {
+        val connectionRepository = InMemorySocialConnectionRepository()
+        val accountRepository = ThrowingSocialAccountRepository()
+        val eventPublisher = CapturingChannelEventPublisher()
+        val stateSigner = CapturingOAuthStateSigner()
+        val state = stateSigner.sign(validStatePayload())
+        val order = mutableListOf<String>()
+        val transactionRunner = RecordingAtomicTransactionRunner(order)
+        val handler = CompleteLinkedInConnectionHandler(
+            principalContextProvider = FixedPrincipalContextProvider(principalContext),
+            resourceContextProvider = FixedResourceContextProvider(workspaceContext),
+            socialConnectionProvider = FakeSocialConnectionProvider(),
+            oauthStateSigner = stateSigner,
+            socialConnectionRepository = connectionRepository,
+            socialAccountRepository = accountRepository,
+            channelEventPublisher = eventPublisher,
+            clock = fixedClock,
+            transactionRunner = transactionRunner,
+        )
+
+        assertThrows(IllegalStateException::class.java) {
+            kotlinx.coroutines.runBlocking {
+                handler.handle(
+                    CompleteLinkedInConnectionCommand(
+                        authorizationCode = "oauth-code-123",
+                        redirectUri = "https://app.example.com/callback",
+                        state = state,
+                    ),
+                )
+            }
+        }
+        // Transaction was rolled back (no tx:commit recorded)
+        assertFalse(order.contains("tx:commit"), "Expected NO tx:commit in order (rollback): $order")
+        assertEquals(0, eventPublisher.events.size)
     }
 
     @Test

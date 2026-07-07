@@ -152,6 +152,7 @@ internal class CompleteLinkedInConnectionHandler(
     private val socialAccountRepository: SocialAccountRepository,
     private val channelEventPublisher: ChannelEventPublisher,
     private val clock: Clock,
+    private val transactionRunner: AtomicTransactionRunner,
     private val principalIdentityLookup: PrincipalIdentityLookup = NoOpPrincipalIdentityLookup(),
     private val emailVerificationPolicy: EmailVerificationPolicy =
         permissiveEmailVerificationPolicy,
@@ -176,31 +177,35 @@ internal class CompleteLinkedInConnectionHandler(
             ),
         )
 
-        val connection = socialConnectionRepository.upsert(
-            SocialConnection(
-                id = "soconn-${UUID.randomUUID()}",
-                workspaceId = workspaceId,
-                provider = SocialProvider.LINKEDIN,
-                providerConnectionRef = providerResult.providerConnectionRef,
-                status = SocialConnectionStatus.ACTIVE,
-                credentialReference = providerResult.credentialReference,
-                connectedAt = clock.instant(),
-            ),
-        )
-        val account = socialAccountRepository.upsert(
-            SocialAccount(
-                id = "soacc-${UUID.randomUUID()}",
-                socialConnectionId = connection.id,
-                workspaceId = workspaceId,
-                provider = SocialProvider.LINKEDIN,
-                providerAccountId = providerResult.account.providerAccountId,
-                kind = providerResult.account.kind,
-                displayName = providerResult.account.displayName,
-                profileUrn = providerResult.account.profileUrn,
-                avatarUrl = providerResult.account.avatarUrl,
-                status = SocialConnectionStatus.ACTIVE,
-            ),
-        )
+        val (connection, account) = transactionRunner.runAtomically {
+            val conn = socialConnectionRepository.upsert(
+                SocialConnection(
+                    id = "soconn-${UUID.randomUUID()}",
+                    workspaceId = workspaceId,
+                    provider = SocialProvider.LINKEDIN,
+                    providerConnectionRef = providerResult.providerConnectionRef,
+                    status = SocialConnectionStatus.ACTIVE,
+                    credentialReference = providerResult.credentialReference,
+                    connectedAt = clock.instant(),
+                ),
+            )
+            val acc = socialAccountRepository.upsert(
+                SocialAccount(
+                    id = "soacc-${UUID.randomUUID()}",
+                    socialConnectionId = conn.id,
+                    workspaceId = workspaceId,
+                    provider = SocialProvider.LINKEDIN,
+                    providerAccountId = providerResult.account.providerAccountId,
+                    kind = providerResult.account.kind,
+                    displayName = providerResult.account.displayName,
+                    profileUrn = providerResult.account.profileUrn,
+                    avatarUrl = providerResult.account.avatarUrl,
+                    status = SocialConnectionStatus.ACTIVE,
+                ),
+            )
+            conn to acc
+        }
+
         channelEventPublisher.publish(
             ChannelEvent(
                 type = ChannelEventType.CONNECTED_CHANNEL_UPDATED,
@@ -461,14 +466,15 @@ internal class EditPublicationHandler(
         val account = socialAccountRepository.findByWorkspaceAndId(workspaceId, current.socialAccountId)
             ?: throw SocialAccountNotFoundException(current.socialAccountId)
 
+        val updatedAssetIds = command.assetIds ?: current.assetIds
         // Resolve assets through media context (same contract as publication creation)
-        val assets = resolveAssets(workspaceId, command.assetIds)
+        val assets = resolveAssets(workspaceId, updatedAssetIds)
 
         val now = clock.instant()
         val updatedDraft = current.copy(
             title = command.title,
             bodyText = command.bodyText,
-            assetIds = command.assetIds,
+            assetIds = updatedAssetIds,
             scheduleMode = command.scheduleMode,
             scheduledFor = command.scheduledFor,
             nextSlotAfter = command.nextSlotAfter,

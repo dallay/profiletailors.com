@@ -1,5 +1,6 @@
 package com.profiletailors.smp.identity.infrastructure.email
 
+import com.profiletailors.smp.identity.application.EmailMessage
 import com.profiletailors.smp.identity.application.EmailSendResult
 import com.profiletailors.smp.identity.application.EmailSender
 import com.resend.core.exception.ResendException
@@ -14,8 +15,7 @@ import org.springframework.stereotype.Component
  *
  * Takes priority over [SmtpEmailSender] and [MockEmailSender] via [@Primary].
  * Only activated when `app.email.resend.api-key` is set to a non-blank value.
- *
- * Plain text is used for now; React Email / HTML support is future work tracked separately.
+ * Sends required plain text and optional HTML when the message provides it.
  */
 @Component
 @Primary
@@ -25,13 +25,14 @@ class ResendEmailSender(private val emailProperties: EmailProperties, private va
 
     private val log = LoggerFactory.getLogger(ResendEmailSender::class.java)
 
-    override suspend fun send(to: String, subject: String, body: String): EmailSendResult {
-        val params = CreateEmailOptions.builder()
+    override suspend fun send(to: String, subject: String, message: EmailMessage): EmailSendResult {
+        val builder = CreateEmailOptions.builder()
             .from(emailProperties.sender)
             .to(to)
             .subject("${emailProperties.verificationSubjectPrefix} $subject")
-            .text(body)
-            .build()
+            .text(message.text)
+        message.html?.let(builder::html)
+        val params = builder.build()
 
         return try {
             val response = emailGateway.send(params)

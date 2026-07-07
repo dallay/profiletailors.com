@@ -282,6 +282,7 @@ internal class VerifyEmailHandler(
     private val localJwtIssuer: LocalJwtIssuer,
     private val refreshSessionLifecycleService: RefreshSessionLifecycleService,
     private val clock: Clock,
+    private val transactionRunner: AtomicTransactionRunner,
 ) : CommandWithResultHandler<VerifyEmailCommand, LocalAuthSessionResult> {
 
     override suspend fun handle(command: VerifyEmailCommand): LocalAuthSessionResult {
@@ -290,12 +291,15 @@ internal class VerifyEmailHandler(
         val storedToken = identityRegistrationGateway.verifyEmailToken(tokenHash)
             ?: throw InvalidVerificationTokenException()
 
-        if (!storedToken.isValid(now)) {
-            throw InvalidVerificationTokenException()
+        when {
+            storedToken.usedAt != null -> throw UsedVerificationTokenException()
+            !now.isBefore(storedToken.expiresAt) -> throw ExpiredVerificationTokenException()
         }
 
-        identityRegistrationGateway.markTokenUsed(tokenHash, now)
-        identityRegistrationGateway.updateEmailStatus(storedToken.email, EmailStatus.VERIFIED)
+        transactionRunner.runAtomically {
+            identityRegistrationGateway.markTokenUsed(tokenHash, now)
+            identityRegistrationGateway.updateEmailStatus(storedToken.email, EmailStatus.VERIFIED)
+        }
 
         val identityFacts = principalIdentityLookup.findByEmail(storedToken.email)
             ?: error("Identity not found for email '${storedToken.email}' after verification.")
@@ -314,9 +318,6 @@ internal class VerifyEmailHandler(
             ),
         )
     }
-
-    private fun EmailVerificationTokenData.isValid(now: java.time.Instant): Boolean =
-        usedAt == null && now.isBefore(expiresAt)
 }
 
 @Service
@@ -324,6 +325,7 @@ internal class ResendVerificationHandler(
     private val identityRegistrationGateway: IdentityRegistrationGateway,
     private val eventPublisher: EventPublisher<DomainEvent>,
     private val principalIdentityLookup: PrincipalIdentityLookup,
+    private val transactionRunner: AtomicTransactionRunner,
 ) : CommandWithResultHandler<ResendVerificationCommand, ResendVerificationResult> {
 
     override suspend fun handle(command: ResendVerificationCommand): ResendVerificationResult {
@@ -335,18 +337,19 @@ internal class ResendVerificationHandler(
             return ResendVerificationResult()
         }
 
-        // Invalidate old tokens
-        identityRegistrationGateway.invalidateEmailTokens(normalizedEmail)
+        // Invalidate old tokens and create new token atomically
+        val generated = transactionRunner.runAtomically {
+            identityRegistrationGateway.invalidateEmailTokens(normalizedEmail)
+            val gen = EmailVerificationTokenHasher.generate()
+            identityRegistrationGateway.createEmailVerificationToken(
+                email = normalizedEmail,
+                tokenHash = gen.tokenHash,
+                expiresAt = gen.expiresAt,
+            )
+            gen
+        }
 
-        // Generate new token
-        val generated = EmailVerificationTokenHasher.generate()
-        identityRegistrationGateway.createEmailVerificationToken(
-            email = normalizedEmail,
-            tokenHash = generated.tokenHash,
-            expiresAt = generated.expiresAt,
-        )
-
-        // Publish event for email dispatch (same handler as registration)
+        // Publish event for email dispatch (outside transaction)
         eventPublisher.publish(
             UserRegistered(
                 principalId = identityFacts.principalId,

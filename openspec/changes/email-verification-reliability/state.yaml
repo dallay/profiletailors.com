@@ -1,9 +1,0 @@
-change: email-verification-reliability
-current_phase: apply
-completed:
-  - propose
-  - spec
-  - design
-  - tasks
-next: sdd-apply
-updated: 2026-06-29

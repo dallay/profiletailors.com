@@ -143,14 +143,17 @@ export const useMediaStore = defineStore('media', () => {
     errorDetail: string
     policy: RetryPolicy
   } {
-    const apiErr = err as { status?: number; errorCode?: string; detail?: string }
-    const policy = classifyError(apiErr.status, apiErr.errorCode)
+    const apiErr = err as { status?: number; errorCode?: string; code?: string; detail?: string }
+    const errorCode = apiErr.errorCode ?? apiErr.code
+    const policy = classifyError(apiErr.status, errorCode)
     const errorTitle =
-      apiErr.status === 409
-        ? 'Upload conflict'
-        : apiErr.status === 413
-          ? 'File too large'
-          : (apiErr.errorCode ?? 'Upload failed')
+      apiErr.status === 403 && errorCode === 'EMAIL_VERIFICATION_REQUIRED'
+        ? 'Email verification required'
+        : apiErr.status === 409
+          ? 'Upload conflict'
+          : apiErr.status === 413
+            ? 'File too large'
+            : (errorCode ?? 'Upload failed')
     const errorDetail = apiErr.detail ?? `Server returned ${apiErr.status ?? 'a network error'}.`
     return {
       status: apiErr.status === 409 ? 'conflict' : 'failed',
@@ -184,6 +187,14 @@ export const useMediaStore = defineStore('media', () => {
   }
 
   // ─── Actions ───────────────────────────────────────────────────────────
+
+  async function loadAsset(assetId: string): Promise<MediaAssetSummary> {
+    const asset = await getAsset(assetId)
+    upsertAsset(asset)
+    return asset
+  }
+
+  const refreshAsset = loadAsset
 
   async function loadAssets(status = 'READY') {
     isLoading.value = true
@@ -356,6 +367,9 @@ export const useMediaStore = defineStore('media', () => {
     completedUploads,
     failedUploads,
     // Actions
+    upsertAsset,
+    loadAsset,
+    refreshAsset,
     loadAssets,
     loadNextPage,
     createAndUpload,

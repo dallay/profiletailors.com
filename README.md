@@ -8,6 +8,8 @@
 
 Public-facing marketing site for the Profile Tailors social media management platform.
 
+</div>
+
 [![License](https://img.shields.io/github/license/dallay/profiletailors.com?style=for-the-badge&color=2d3748)](LICENSE)
 [![CI](https://img.shields.io/github/actions/workflow/status/dallay/profiletailors.com/release-please.yml?style=for-the-badge&color=2d3748&label=CI)](https://github.com/dallay/profiletailors.com/actions)
 [![Astro](https://img.shields.io/badge/Astro-6.3.3-2d3748?style=for-the-badge&logo=astro&logoColor=ffffff)](https://astro.build)
@@ -23,50 +25,6 @@ Public-facing marketing site for the Profile Tailors social media management pla
 [![Security Rating](https://sonarcloud.io/api/project_badges/measure?project=dallay_profiletailors.com&metric=security_rating)](https://sonarcloud.io/summary/new_code?id=dallay_profiletailors.com)
 [![Maintainability Rating](https://sonarcloud.io/api/project_badges/measure?project=dallay_profiletailors.com&metric=sqale_rating)](https://sonarcloud.io/summary/new_code?id=dallay_profiletailors.com)
 [![codecov](https://codecov.io/gh/dallay/profiletailors.com/graph/badge.svg?token=B70EGR3KBD)](https://codecov.io/gh/dallay/profiletailors.com)
-
-</div>
-
----
-
-## Overview
-
-**Profile Tailors** is a social media management platform for scheduling, publishing, analyzing,
-engaging, and collaborating across multiple platforms.
-
-This repository contains the **marketing site** and the **backend service** (in early development).
-The frontend is a lightweight, static-first Astro site at `apps/web/marketing/`.
-
-### What ships in this repo today
-
-- **English landing page** at `/`
-- **Spanish landing page** at `/es/`
-- **Client-side waitlist flow** for early access
-- **Nothing-inspired, monochrome, typographically driven design system** — dark-first with
-  equal-rigor light mode
-- **Shared brand assets** served from `shared/assets/`
-- **Backend service** in `server/smp/` (Spring Boot, Kotlin, work in progress)
-
-> The product name is **Profile Tailors**. `profiletailors.com` is the repository/domain name.
-
----
-
-## Tech Stack
-
-| Category          | Technology                                    |
-|-------------------|-----------------------------------------------|
-| Frontend          | Astro 6, Tailwind CSS v4 + @theme, TypeScript |
-| Backend           | Spring Boot 4, Kotlin, WebFlux (experimental) |
-| Rendering model   | Static-first, no SSR                          |
-| i18n              | Astro i18n routing (`en`, `es`)               |
-| Icons             | `@dallay/astro-icon`, `@iconify-json/lucide`  |
-| Linting           | Biome                                         |
-| Package manager   | pnpm                                          |
-| Workspace tooling | Bazel, Lefthook                               |
-| CI/CD             | GitHub Actions, Release Please                |
-
----
-
-## Repository Layout
 
 ```text
 profiletailors.com/
@@ -148,7 +106,7 @@ For full onboarding and troubleshooting, see [docs/getting-started.md](docs/gett
 - copy `.env.example` to `.env` when needed,
 - install workspace dependencies with `pnpm install --frozen-lockfile`,
 - install Lefthook unless Git hooks are globally disabled (`core.hooksPath=/dev/null`, e.g. Jules).
-- apply AI agent configurations with `pnpm dlx @dallay/agentsync apply`,
+- apply AI agent configurations with `pnpm dlx @dallay/agentsync apply`.
 
 #### 3) Start local development
 

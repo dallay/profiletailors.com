@@ -40,6 +40,7 @@ import org.springframework.web.bind.annotation.RequestBody
 import org.springframework.web.bind.annotation.RequestMapping
 import org.springframework.web.bind.annotation.RequestParam
 import org.springframework.web.bind.annotation.RequestPart
+import org.springframework.web.bind.annotation.ResponseStatus
 import org.springframework.web.bind.annotation.RestController
 import org.springframework.web.server.ResponseStatusException
 import reactor.core.publisher.Flux
@@ -296,6 +297,7 @@ class MediaAssetController(
         ],
     )
     @PostMapping(consumes = [MediaType.APPLICATION_JSON_VALUE], version = "1")
+    @ResponseStatus(HttpStatus.CREATED)
     suspend fun createAsset(@Valid @RequestBody request: CreateMediaAssetRequest): MediaAssetResponse {
         val workspaceContext = resourceContextProvider.requireWorkspaceContext()
         val workspaceId = workspaceContext.workspaceId!!
@@ -305,7 +307,7 @@ class MediaAssetController(
         } catch (_: IllegalArgumentException) {
             throw ResponseStatusException(
                 HttpStatus.BAD_REQUEST,
-                "Unsupported source type: ${request.sourceType}. Only UPLOADED is supported.",
+                "Unsupported source type: ${request.sourceType}. Supported source types: UPLOADED, EXTERNAL.",
             )
         }
 
@@ -458,4 +460,10 @@ private fun MediaAssetSummary.toResponse() = MediaAssetResponse(
     createdAt = createdAt,
     previewUrl = previewUrl,
     downloadUrl = downloadUrl,
+    sourceProvider = sourceProvider,
+    externalId = externalId,
+    sourceUrl = sourceUrl,
+    authorName = authorName,
+    authorUrl = authorUrl,
+    metadata = metadata,
 )

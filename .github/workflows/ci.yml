@@ -144,6 +144,8 @@ jobs:
     needs: changes
     if: needs.changes.outputs.backend == 'true'
     runs-on: ubuntu-latest
+    env:
+      SMP_POSTGRES_TEST_PASSWORD: ${{ secrets.SMP_POSTGRES_PASSWORD }}
     steps:
       - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5
         with:
@@ -227,8 +229,11 @@ jobs:
       SMP_LOCAL_JWT_SECRET: ${{ secrets.SMP_LOCAL_JWT_SECRET }}
       PUBLISHING_CREDENTIALS_KEY: ${{ secrets.PUBLISHING_CREDENTIALS_KEY }}
       E2E_TEST_USER_PASSWORD: ${{ secrets.E2E_TEST_USER_PASSWORD }}
-      # Force management port to 8080 so the health check curl matches
-      MANAGEMENT_PORT: '8080'
+      # Pin backend HTTP port to avoid collisions with local dev tools.
+      SMP_BACKEND_PORT: '7638'
+      # Management port stays on 9091; the curl healthcheck below probes
+      # /actuator/health on MANAGEMENT_PORT (not on the main port).
+      MANAGEMENT_PORT: '9091'
 
     services:
       postgres:
@@ -292,7 +297,7 @@ jobs:
         run: |
           ./gradlew :server:smp:bootRun --no-daemon &
           for i in $(seq 1 60); do
-            if curl -sf http://localhost:8080/actuator/health > /dev/null 2>&1; then
+            if curl -sf http://localhost:9091/actuator/health > /dev/null 2>&1; then
               echo "✅ Backend is healthy"
               break
             fi

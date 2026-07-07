@@ -407,6 +407,56 @@ describe('media store', () => {
       expect(store.uploads['large-key']?.status).toBe('failed')
       expect(store.uploads['large-key']?.errorTitle).toBe('File too large')
     })
+
+    it('records email verification required using the backend code field', async () => {
+      const store = useMediaStore()
+      mockPutAsset.mockRejectedValue(
+        Object.assign(new Error('Email verification required'), {
+          status: 403,
+          code: 'EMAIL_VERIFICATION_REQUIRED',
+          detail: 'Please verify your email before uploading media.',
+        }),
+      )
+
+      const file = mockFile()
+
+      await expect(store.createAndUpload(file, 'verify-key')).rejects.toThrow()
+      expect(store.uploads['verify-key']?.status).toBe('failed')
+      expect(store.uploads['verify-key']?.errorTitle).toBe('Email verification required')
+      expect(store.uploads['verify-key']?.errorDetail).toBe(
+        'Please verify your email before uploading media.',
+      )
+    })
+  })
+
+  describe('targeted reconciliation helpers', () => {
+    it('upserts a single asset into the newest-first cache without duplicating ids', () => {
+      const store = useMediaStore()
+      const asset = readyAsset('asset-upserted')
+
+      store.upsertAsset(asset)
+      store.upsertAsset({ ...asset, originalFilename: 'updated-name.png' })
+
+      expect(store.assetIds).toEqual(['asset-upserted'])
+      expect(store.assetsById['asset-upserted']?.originalFilename).toBe('updated-name.png')
+    })
+
+    it('refreshes a single asset from the API and keeps it available in the library cache', async () => {
+      const store = useMediaStore()
+      mockGetAsset.mockResolvedValueOnce({
+        ...readyAsset('asset-refresh'),
+        previewUrl: '/api/media/assets/asset-refresh/preview',
+      })
+
+      const result = await store.refreshAsset('asset-refresh')
+
+      expect(mockGetAsset).toHaveBeenCalledWith('asset-refresh')
+      expect(result.assetId).toBe('asset-refresh')
+      expect(store.assetIds[0]).toBe('asset-refresh')
+      expect(store.assetsById['asset-refresh']?.previewUrl).toBe(
+        '/api/media/assets/asset-refresh/preview',
+      )
+    })
   })
 
   describe('retryUpload', () => {

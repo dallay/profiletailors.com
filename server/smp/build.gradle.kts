@@ -71,8 +71,6 @@ dependencies {
     testImplementation(testFixtures(project(":shared:common")))
     annotationProcessor("org.springframework.boot:spring-boot-configuration-processor")
 
-    testImplementation(libs.h2)
-    testImplementation(libs.r2dbc.h2)
     testImplementation("org.springframework.boot:spring-boot-starter-data-r2dbc-test")
     testImplementation("org.springframework.boot:spring-boot-starter-security-test")
     testImplementation("org.springframework.boot:spring-boot-starter-webflux-test")
@@ -85,6 +83,7 @@ dependencies {
     testImplementation(libs.cucumber.spring)
     testImplementation(libs.archunit.junit5)
     testImplementation(libs.mockk)
+    testImplementation(libs.kotest.assertions.core)
 
     testImplementation(platform(libs.testcontainers.bom))
     testImplementation(libs.testcontainers.junit.jupiter)

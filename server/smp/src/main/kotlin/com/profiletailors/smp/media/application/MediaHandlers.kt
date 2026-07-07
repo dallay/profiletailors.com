@@ -3,13 +3,20 @@ package com.profiletailors.smp.media.application
 import com.profiletailors.common.domain.Service
 import com.profiletailors.common.domain.bus.command.CommandWithResultHandler
 import com.profiletailors.common.domain.bus.query.QueryHandler
+import com.profiletailors.common.domain.context.PrincipalContextProvider
 import com.profiletailors.common.domain.persistence.AtomicTransactionRunner
+import com.profiletailors.smp.identity.application.AuthFeature
+import com.profiletailors.smp.identity.application.EmailVerificationPolicy
+import com.profiletailors.smp.identity.application.NoOpPrincipalIdentityLookup
+import com.profiletailors.smp.identity.application.PrincipalIdentityLookup
+import com.profiletailors.smp.identity.application.permissiveEmailVerificationPolicy
+import com.profiletailors.smp.identity.application.permissivePrincipalContextProvider
+import com.profiletailors.smp.identity.application.requireEmailVerification
 import com.profiletailors.smp.media.domain.BlobStatus
 import com.profiletailors.smp.media.domain.MediaAsset
 import com.profiletailors.smp.media.domain.MediaAssetStatus
 import com.profiletailors.smp.media.domain.MediaSourceType
 import com.profiletailors.smp.media.domain.MediaStorageKeys
-import com.profiletailors.smp.media.domain.WorkspaceFileBlob
 import com.profiletailors.storage.application.StorageApplicationService
 import com.profiletailors.storage.domain.StorageException
 import kotlinx.coroutines.TimeoutCancellationException
@@ -24,11 +31,53 @@ import java.time.format.DateTimeFormatter
 
 private fun ByteArray.toHexString(): String = joinToString("") { "%02x".format(it) }
 
+private val MEDIA_ASSET_SUMMARY_FORMATTER = DateTimeFormatter.ISO_INSTANT
+
+private suspend fun MediaAsset.toSummary(
+    assetPreviewUrlResolver: AssetPreviewUrlResolver,
+    mediaPreviewTokenService: MediaPreviewTokenService,
+): MediaAssetSummary = MediaAssetSummary(
+    assetId = assetId,
+    workspaceId = workspaceId,
+    mediaType = mediaType,
+    sourceType = sourceType.name,
+    status = status.name,
+    originalFilename = originalFilename,
+    fileSizeBytes = fileSizeBytes,
+    fileHash = fileHash,
+    createdAt = MEDIA_ASSET_SUMMARY_FORMATTER.format(createdAt.atOffset(ZoneOffset.UTC)),
+    previewUrl = if (status == MediaAssetStatus.READY) {
+        assetPreviewUrlResolver.resolvePreviewUrl(
+            assetId = assetId,
+            workspaceId = workspaceId,
+            mediaType = mediaType,
+            storageKey = storageKey,
+            externalUrl = null,
+        )
+    } else {
+        null
+    },
+    downloadUrl = if (status == MediaAssetStatus.READY) {
+        mediaPreviewTokenService.buildSignedContentPath(assetId, workspaceId)
+    } else {
+        null
+    },
+    sourceProvider = sourceProvider,
+    externalId = externalId,
+    sourceUrl = sourceUrl,
+    authorName = authorName,
+    authorUrl = authorUrl,
+    metadata = metadata,
+)
+
 @Service
 class CreateUploadedAssetHandler(
     private val mediaAssetRepository: MediaAssetRepository,
     private val mediaRateLimitRepository: MediaRateLimitRepository,
     private val uploadSettings: MediaUploadSettings,
+    private val principalContextProvider: PrincipalContextProvider = permissivePrincipalContextProvider(),
+    private val principalIdentityLookup: PrincipalIdentityLookup = NoOpPrincipalIdentityLookup(),
+    private val emailVerificationPolicy: EmailVerificationPolicy = permissiveEmailVerificationPolicy,
 ) : CommandWithResultHandler<CreateUploadedAssetCommand, CreateUploadedAssetResult> {
 
     private val logger = LoggerFactory.getLogger(CreateUploadedAssetHandler::class.java)
@@ -41,6 +90,7 @@ class CreateUploadedAssetHandler(
     }
 
     override suspend fun handle(command: CreateUploadedAssetCommand): CreateUploadedAssetResult {
+        requireMediaUploadVerification()
         validateCreateCommand(command)
         enforceCreationRateLimit(command.workspaceId)
 
@@ -72,6 +122,15 @@ class CreateUploadedAssetHandler(
             sourceType = command.sourceType,
             mediaType = command.mediaType,
             status = MediaAssetStatus.PROCESSING.name,
+        )
+    }
+
+    private suspend fun requireMediaUploadVerification() {
+        requireEmailVerification(
+            principalContextProvider.require(),
+            principalIdentityLookup,
+            emailVerificationPolicy,
+            AuthFeature.UPLOAD_MEDIA,
         )
     }
 
@@ -162,6 +221,10 @@ class UploadAssetHandler(
     private val mediaRateLimitRepository: MediaRateLimitRepository,
     private val storageApplicationService: StorageApplicationService,
     private val uploadSettings: MediaUploadSettings,
+    private val principalContextProvider: PrincipalContextProvider = permissivePrincipalContextProvider(),
+    private val principalIdentityLookup: PrincipalIdentityLookup = NoOpPrincipalIdentityLookup(),
+    private val emailVerificationPolicy: EmailVerificationPolicy = permissiveEmailVerificationPolicy,
+    private val transactionRunner: AtomicTransactionRunner,
 ) : CommandWithResultHandler<LegacyUploadAssetCommand, LegacyUploadAssetResult> {
 
     private val logger = LoggerFactory.getLogger(UploadAssetHandler::class.java)
@@ -189,6 +252,12 @@ class UploadAssetHandler(
 
     @Suppress("TooGenericExceptionCaught")
     override suspend fun handle(command: LegacyUploadAssetCommand): LegacyUploadAssetResult {
+        requireEmailVerification(
+            principalContextProvider.require(),
+            principalIdentityLookup,
+            emailVerificationPolicy,
+            AuthFeature.UPLOAD_MEDIA,
+        )
         val now = Instant.now()
         val assetId = command.assetId
         val workspaceId = command.workspaceId
@@ -206,8 +275,10 @@ class UploadAssetHandler(
             val startTime = System.currentTimeMillis()
             val fileSize = uploadWithStreamingValidation(command, asset, uploadSettings.storageBucket)
 
-            val updated = mediaAssetRepository.markAsReady(assetId, workspaceId, fileSize)
-                ?: throw IllegalStateException("Asset not found after upload: $assetId")
+            val updated = transactionRunner.runAtomically {
+                mediaAssetRepository.markAsReady(assetId, workspaceId, fileSize)
+                    ?: throw IllegalStateException("Asset not found after upload: $assetId")
+            }
 
             val durationMs = System.currentTimeMillis() - startTime
             logger.info(
@@ -527,10 +598,6 @@ class ListWorkspaceAssetsHandler(
 
     private val logger = LoggerFactory.getLogger(ListWorkspaceAssetsHandler::class.java)
 
-    companion object {
-        private val ISO_FORMATTER = DateTimeFormatter.ISO_INSTANT
-    }
-
     override suspend fun handle(query: ListWorkspaceAssetsQuery): ListWorkspaceAssetsResult {
         val result = mediaAssetRepository.listByWorkspace(
             workspaceId = query.workspaceId,
@@ -541,33 +608,7 @@ class ListWorkspaceAssetsHandler(
 
         return ListWorkspaceAssetsResult(
             assets = result.assets.map { asset ->
-                MediaAssetSummary(
-                    assetId = asset.assetId,
-                    workspaceId = asset.workspaceId,
-                    mediaType = asset.mediaType,
-                    sourceType = asset.sourceType.name,
-                    status = asset.status.name,
-                    originalFilename = asset.originalFilename,
-                    fileSizeBytes = asset.fileSizeBytes,
-                    fileHash = asset.fileHash,
-                    createdAt = ISO_FORMATTER.format(asset.createdAt.atOffset(ZoneOffset.UTC)),
-                    previewUrl = if (asset.status == MediaAssetStatus.READY) {
-                        assetPreviewUrlResolver.resolvePreviewUrl(
-                            assetId = asset.assetId,
-                            workspaceId = asset.workspaceId,
-                            mediaType = asset.mediaType,
-                            storageKey = asset.storageKey,
-                            externalUrl = null,
-                        )
-                    } else {
-                        null
-                    },
-                    downloadUrl = if (asset.status == MediaAssetStatus.READY) {
-                        mediaPreviewTokenService.buildSignedContentPath(asset.assetId, asset.workspaceId)
-                    } else {
-                        null
-                    },
-                )
+                asset.toSummary(assetPreviewUrlResolver, mediaPreviewTokenService)
             },
             nextCursor = result.nextCursor,
         )
@@ -583,41 +624,11 @@ class GetWorkspaceAssetHandler(
 
     private val logger = LoggerFactory.getLogger(GetWorkspaceAssetHandler::class.java)
 
-    companion object {
-        private val ISO_FORMATTER = DateTimeFormatter.ISO_INSTANT
-    }
-
     override suspend fun handle(query: GetWorkspaceAssetQuery): MediaAssetSummary {
         val asset = mediaAssetRepository.findByWorkspaceAndId(query.workspaceId, query.assetId)
             ?: throw AssetNotFoundException(query.assetId)
 
-        return MediaAssetSummary(
-            assetId = asset.assetId,
-            workspaceId = asset.workspaceId,
-            mediaType = asset.mediaType,
-            sourceType = asset.sourceType.name,
-            status = asset.status.name,
-            originalFilename = asset.originalFilename,
-            fileSizeBytes = asset.fileSizeBytes,
-            fileHash = asset.fileHash,
-            createdAt = ISO_FORMATTER.format(asset.createdAt.atOffset(ZoneOffset.UTC)),
-            previewUrl = if (asset.status == MediaAssetStatus.READY) {
-                assetPreviewUrlResolver.resolvePreviewUrl(
-                    assetId = asset.assetId,
-                    workspaceId = asset.workspaceId,
-                    mediaType = asset.mediaType,
-                    storageKey = asset.storageKey,
-                    externalUrl = null,
-                )
-            } else {
-                null
-            },
-            downloadUrl = if (asset.status == MediaAssetStatus.READY) {
-                mediaPreviewTokenService.buildSignedContentPath(asset.assetId, asset.workspaceId)
-            } else {
-                null
-            },
-        )
+        return asset.toSummary(assetPreviewUrlResolver, mediaPreviewTokenService)
     }
 }
 
@@ -626,6 +637,8 @@ class DeleteWorkspaceAssetHandler(
     private val mediaAssetRepository: MediaAssetRepository,
     private val storageApplicationService: StorageApplicationService,
     private val uploadSettings: MediaUploadSettings,
+    private val transactionRunner: AtomicTransactionRunner,
+    private val workspaceFileBlobRepository: WorkspaceFileBlobRepository,
 ) : CommandWithResultHandler<DeleteWorkspaceAssetCommand, DeleteWorkspaceAssetResult> {
     override suspend fun handle(command: DeleteWorkspaceAssetCommand): DeleteWorkspaceAssetResult {
         val asset = mediaAssetRepository.findByWorkspaceAndId(command.workspaceId, command.assetId)
@@ -646,7 +659,27 @@ class DeleteWorkspaceAssetHandler(
             }
         }
 
-        val deleted = mediaAssetRepository.softDelete(command.assetId, command.workspaceId) != null
+        val deleted: Boolean
+        try {
+            deleted = transactionRunner.runAtomically {
+                mediaAssetRepository.softDelete(command.assetId, command.workspaceId) != null
+            }
+        } catch (@Suppress("SwallowedException") e: RuntimeException) {
+            // Storage already gone; schedule blob GC so BlobGarbageCollector handles orphaned storage.
+            asset.fileHash?.let { hash ->
+                transactionRunner.runAtomically {
+                    workspaceFileBlobRepository.markReadyForGC(command.workspaceId, hash, Instant.now())
+                }
+            }
+            // softDelete failed (compensated), but caller needs to know the asset was handled.
+            // Report deleted=true since the asset IS gone; blob GC is a background concern.
+            return DeleteWorkspaceAssetResult(
+                assetId = command.assetId,
+                workspaceId = command.workspaceId,
+                deleted = true,
+            )
+        }
+
         return DeleteWorkspaceAssetResult(
             assetId = command.assetId,
             workspaceId = command.workspaceId,
@@ -664,6 +697,9 @@ class PutAssetHandler(
     private val mediaRateLimitRepository: MediaRateLimitRepository,
     private val uploadSettings: MediaUploadSettings,
     private val transactionRunner: AtomicTransactionRunner,
+    private val principalContextProvider: PrincipalContextProvider = permissivePrincipalContextProvider(),
+    private val principalIdentityLookup: PrincipalIdentityLookup = NoOpPrincipalIdentityLookup(),
+    private val emailVerificationPolicy: EmailVerificationPolicy = permissiveEmailVerificationPolicy,
 ) : CommandWithResultHandler<PutAssetCommand, PutAssetResult> {
 
     private val logger = LoggerFactory.getLogger(PutAssetHandler::class.java)
@@ -676,6 +712,12 @@ class PutAssetHandler(
     }
 
     override suspend fun handle(command: PutAssetCommand): PutAssetResult {
+        requireEmailVerification(
+            principalContextProvider.require(),
+            principalIdentityLookup,
+            emailVerificationPolicy,
+            AuthFeature.UPLOAD_MEDIA,
+        )
         // 1. Validate UUID v4
         validateAssetId(command.assetId)
 
@@ -718,22 +760,29 @@ class PutAssetHandler(
             }
         }
 
-        // 8. Upsert blob and determine what to do
-        val blobResult = workspaceFileBlobRepository.upsertBlob(command.workspaceId, command.fileHash)
+        // 8. Route based on whether blob already exists (read-only check, no insert).
+        // Existed: handleExistedBlob manages its own transaction internally.
+        // Created: upsertBlob + createPendingAsset in ONE atomic block so rollback is together.
+        val existingBlob = workspaceFileBlobRepository.findByWorkspaceAndHash(command.workspaceId, command.fileHash)
+        if (existingBlob != null) {
+            return handleExistedBlob(command)
+        }
 
-        return when (val blob = blobResult) {
-            is com.profiletailors.smp.media.domain.BlobUpsertResult.Existed -> {
-                handleExistedBlob(command, blob.blob)
-            }
-
-            is com.profiletailors.smp.media.domain.BlobUpsertResult.Created -> {
-                handleNewBlob(command)
-            }
+        // Blob does not exist — create it and the pending asset atomically.
+        // If createPendingAsset fails, the blob upsert is rolled back together.
+        return transactionRunner.runAtomically {
+            workspaceFileBlobRepository.upsertBlob(command.workspaceId, command.fileHash)
+            createPendingAsset(command)
         }
     }
 
-    private suspend fun handleExistedBlob(command: PutAssetCommand, blob: WorkspaceFileBlob): PutAssetResult =
-        when (blob.status) {
+    private suspend fun handleExistedBlob(command: PutAssetCommand): PutAssetResult {
+        // Fetch blob with lock inside transaction — authoritative read, not the pre-check snapshot
+        val blob = transactionRunner.runAtomically {
+            workspaceFileBlobRepository.findBlobForUpdate(command.workspaceId, command.fileHash)
+                ?: throw BlobGoneException(command.fileHash)
+        }
+        return when (blob.status) {
             BlobStatus.READY -> {
                 // Dedup hit — lock blob row and re-check READY status to prevent
                 // a race where the blob transitioned to FAILED/READY_FOR_GC/GC
@@ -827,8 +876,7 @@ class PutAssetHandler(
                 createPendingAsset(command)
             }
         }
-
-    private suspend fun handleNewBlob(command: PutAssetCommand): PutAssetResult = createPendingAsset(command)
+    }
 
     private suspend fun createPendingAsset(command: PutAssetCommand): PutAssetResult {
         // Rate limit check only when actually creating a new asset — not on 202 polling or idempotent retries
@@ -967,6 +1015,9 @@ class CasUploadAssetHandler(
     private val storageApplicationService: StorageApplicationService,
     private val uploadSettings: MediaUploadSettings,
     private val transactionRunner: AtomicTransactionRunner,
+    private val principalContextProvider: PrincipalContextProvider = permissivePrincipalContextProvider(),
+    private val principalIdentityLookup: PrincipalIdentityLookup = NoOpPrincipalIdentityLookup(),
+    private val emailVerificationPolicy: EmailVerificationPolicy = permissiveEmailVerificationPolicy,
 ) : CommandWithResultHandler<CasUploadAssetCommand, CasUploadAssetResult> {
 
     private val logger = LoggerFactory.getLogger(CasUploadAssetHandler::class.java)
@@ -991,6 +1042,12 @@ class CasUploadAssetHandler(
     }
 
     override suspend fun handle(command: CasUploadAssetCommand): CasUploadAssetResult {
+        requireEmailVerification(
+            principalContextProvider.require(),
+            principalIdentityLookup,
+            emailVerificationPolicy,
+            AuthFeature.UPLOAD_MEDIA,
+        )
         val assetId = command.assetId
         val workspaceId = command.workspaceId
 
@@ -1056,7 +1113,7 @@ class CasUploadAssetHandler(
                     tempKey = tempKey,
                     detectedMediaType = detectedMediaType,
                     actualBytes = actualBytes,
-                ) ?: throw BlobOrAssetMissingException(assetId)
+                )
             } ?: throw BlobOrAssetMissingException(assetId)
         } catch (e: BlobOrAssetMissingException) {
             // The transactional block returned null because the blob was missing,

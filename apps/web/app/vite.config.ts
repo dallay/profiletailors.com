@@ -17,7 +17,7 @@ const config = {
     allowedHosts: ['.localhost', 'pt-app.localhost'],
     proxy: {
       '/api': {
-        target: 'http://localhost:8080',
+        target: `http://localhost:${process.env.SMP_BACKEND_PORT || '7638'}`,
         changeOrigin: true,
       },
     },

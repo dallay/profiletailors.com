@@ -134,7 +134,7 @@ class LocalAuthControllerTest {
     }
 
     @Test
-    fun `dispatches verify email command and returns session`() = runTest {
+    fun `dispatches verify email command from request body token and returns verified session`() = runTest {
         val expected = sessionResult("token-5", "user-5", "verify@example.com", "verify", "VERIFIED")
         val mediator = CapturingMediator(sessionResult = expected)
         val controller = LocalAuthController(mediator, cookieFactory, cookieProperties)
@@ -143,6 +143,7 @@ class LocalAuthControllerTest {
 
         assertEquals(200, response.statusCode.value())
         assertEquals("token-5", response.body?.accessToken)
+        assertEquals("VERIFIED", response.body?.emailStatus)
         assertTrue(
             response.headers["Set-Cookie"]?.first()?.contains("pt_refresh=refresh-lookup.refresh-secret") == true,
         )

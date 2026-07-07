@@ -1,4 +1,5 @@
 import { test, expect } from '../fixtures/media-mocked-test'
+import { mockAuthenticatedSession } from '../fixtures/auth-helpers'
 import { mediaFiles } from '../fixtures/media-files'
 
 const tags = '@media @mocked'
@@ -33,6 +34,41 @@ test.describe(`Media Library mocked UI ${tags}`, () => {
     await expect(mediaPage.refreshButton).toBeVisible()
     // Note: empty state is also visible because assets.length === 0 after failed load.
     // The product renders both the error message and the empty-state fallback simultaneously.
+  })
+
+  test('ML-VERIFY-001 PENDING user sees guidance and cannot start an upload', async ({
+    mediaPage,
+    mockState,
+    page,
+  }) => {
+    await mockAuthenticatedSession(page, {
+      email: 'pending-media@example.com',
+      emailStatus: 'PENDING',
+    })
+
+    let mediaUploadRequests = 0
+    page.on('request', (request) => {
+      if (
+        ['PUT', 'POST'].includes(request.method()) &&
+        request.url().includes('/api/media/assets')
+      ) {
+        mediaUploadRequests += 1
+      }
+    })
+
+    await mediaPage.navigateTo()
+
+    await expect(page.getByTestId('media-verification-guidance')).toBeVisible()
+    await expect(page.getByTestId('media-verification-guidance')).toContainText(
+      /verify your email/i,
+    )
+    await expect(mediaPage.uploadButton).toBeDisabled()
+    await expect(mediaPage.fileInput).toBeDisabled()
+    await mediaPage.fileInput.setInputFiles(mediaFiles.base.path)
+
+    expect(mediaUploadRequests).toBe(0)
+    expect(mockState.putCount).toBe(0)
+    expect(mockState.uploadPostCount).toBe(0)
   })
 
   test('ML-UP-001 upload new content: PUT 201 then POST and READY card appears', async ({
