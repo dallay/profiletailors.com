@@ -70,7 +70,6 @@ function submitProviderSearch() {
       @submit.prevent="submitProviderSearch"
     >
       <!-- biome-ignore lint/a11y/noLabelWithoutControl: t() provides accessible text, Biome can't resolve i18n keys statically -->
-      <!-- biome-ignore lint/a11y/noLabelWithoutControl: label is associated via `for` to the search input below -->
       <label class="sr-only" for="picker-provider-query">
         {{ t('composer.picker.searchPlaceholder') }}
       </label>

@@ -101,7 +101,6 @@ const isMediaPickerOpen = ref(false)
 const mediaPickerCollectionState = ref<ComposerMediaPickerCollectionState>('LOADING')
 const draftAttachmentIds = ref<string[]>([])
 const pickerSelectionIds = ref<string[]>([])
-// biome-ignore lint/correctness/noUnusedVariables: bound via template ref on the picker upload input
 const pickerSessionUploadInput = ref<HTMLInputElement | null>(null)
 const autoStagedAssetIds = ref<string[]>([])
 const manuallyDeselectedAutoStageIds = ref<string[]>([])
