@@ -1,6 +1,8 @@
 <script lang="ts">
 import { cn } from "@/lib/utils"
+import { computed, toRefs, useId, type HTMLAttributes } from "vue"
 import ChartStyle from "./ChartStyle.vue"
+import { provideChartContext, type ChartConfig } from "."
 </script>
 
 <script setup lang="ts">
