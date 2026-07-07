@@ -140,10 +140,7 @@ async function flushModal(_wrapper: ReturnType<typeof mountModal>): Promise<void
   await nextTick()
 }
 
-function mockLoadAssetsWithIds(
-  mediaStore: ReturnType<typeof useMediaStore>,
-  ids: string[],
-): ReturnType<typeof vi.fn> {
+function mockLoadAssetsWithIds(mediaStore: ReturnType<typeof useMediaStore>, ids: string[]) {
   return vi.spyOn(mediaStore, 'loadAssets').mockImplementation(async () => {
     mediaStore.isLoading = true
     mediaStore.loadError = null
