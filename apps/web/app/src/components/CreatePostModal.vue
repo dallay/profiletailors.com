@@ -1276,6 +1276,13 @@ async function handleCreateSubmit(
                 :key="asset.assetId"
                 class="flex items-center gap-2 rounded-full border border-border-subtle bg-bg-primary/40 px-3 py-2"
               >
+                <img
+                  v-if="asset.previewUrl"
+                  :src="asset.previewUrl"
+                  alt="Selected media preview"
+                  class="size-6 rounded-full object-cover"
+                  data-testid="attachment-preview-image"
+                >
                 <span class="max-w-[180px] truncate text-xs text-text-display">{{ asset.originalFilename ?? asset.assetId }}</span>
                 <button
                   type="button"
