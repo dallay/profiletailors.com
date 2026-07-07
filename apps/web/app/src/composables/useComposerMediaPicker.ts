@@ -74,7 +74,7 @@ type ComposerMediaPickerPublishingStore = {
   channels: StoreValue<Channel[]>
 }
 
-export interface ComposerMediaPickerStoreParams {
+export type ComposerMediaPickerStoreParams = {
   mediaStore: ComposerMediaPickerMediaStore
   publishingStore: ComposerMediaPickerPublishingStore
   editingPublication: MaybeRefOrGetter<Publication | null | undefined>
