@@ -10,16 +10,25 @@ import type { Channel, Publication } from '@/stores/publishing'
 
 function createFakeMediaStore(
   overrides: Partial<{
-    assetsById: Record<string, MediaAssetSummary>
-    assetIds: string[]
-    isLoading: boolean
-    loadError: string | null
+    assetsById: Ref<Record<string, MediaAssetSummary>>
+    assetIds: Ref<string[]>
+    isLoading: Ref<boolean>
+    loadError: Ref<string | null>
     upsertAsset: ReturnType<typeof vi.fn>
     loadAssets: ReturnType<typeof vi.fn>
     loadAsset: ReturnType<typeof vi.fn>
     createAndUpload: ReturnType<typeof vi.fn>
   }> = {},
-) {
+): {
+  assetsById: Ref<Record<string, MediaAssetSummary>>
+  assetIds: Ref<string[]>
+  isLoading: Ref<boolean>
+  loadError: Ref<string | null>
+  upsertAsset: ReturnType<typeof vi.fn>
+  loadAssets: ReturnType<typeof vi.fn>
+  loadAsset: ReturnType<typeof vi.fn>
+  createAndUpload: ReturnType<typeof vi.fn>
+} {
   return {
     assetsById: ref<Record<string, MediaAssetSummary>>({}),
     assetIds: ref<string[]>([]),
@@ -35,9 +44,11 @@ function createFakeMediaStore(
 
 function createFakePublishingStore(
   overrides: Partial<{
-    channels: Channel[] | Ref<Channel[]>
+    channels: Ref<Channel[]>
   }> = {},
-) {
+): {
+  channels: Ref<Channel[]>
+} {
   const defaultChannels: Channel[] = [
     {
       id: 'ch-1',
