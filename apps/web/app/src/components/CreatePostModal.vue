@@ -84,7 +84,7 @@ const picker = useComposerMediaPicker({
   provider: () => props.provider ?? null,
   isUnsplashProviderEnabled: () => props.isUnsplashProviderEnabled ?? false,
   initialChannelId: () => null,
-  workspaceId: workspaceStore.activeWorkspaceId ?? 'ws-local',
+  workspaceId: () => workspaceStore.activeWorkspaceId ?? 'ws-local',
   onAttachmentsChanged: () => {
     assetsTouched.value = true
   },

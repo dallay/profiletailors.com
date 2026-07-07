@@ -134,17 +134,19 @@ function mountModal(channels: TestChannel[], props: Record<string, unknown> = {}
   })
 }
 
-async function flushModal(_wrapper: ReturnType<typeof mountModal>) {
+async function flushModal(_wrapper: ReturnType<typeof mountModal>): Promise<void> {
   await Promise.resolve()
   await nextTick()
   await nextTick()
 }
 
-function mockLoadAssetsWithIds(mediaStore: ReturnType<typeof useMediaStore>, ids: string[]) {
+function mockLoadAssetsWithIds(
+  mediaStore: ReturnType<typeof useMediaStore>,
+  ids: string[],
+): ReturnType<typeof vi.fn> {
   return vi.spyOn(mediaStore, 'loadAssets').mockImplementation(async () => {
     mediaStore.isLoading = true
     mediaStore.loadError = null
-    mediaStore.assetIds = []
     mediaStore.assetIds = [...ids]
     mediaStore.isLoading = false
   })
