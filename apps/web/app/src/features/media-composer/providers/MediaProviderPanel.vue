@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { ref, computed } from 'vue'
+import { useI18n } from 'vue-i18n'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 
@@ -40,6 +41,7 @@ const emit = defineEmits<{
   (e: 'provider-import', payload: { externalId: string }): void
 }>()
 
+const { t } = useI18n()
 const query = ref(props.initialQuery)
 
 const sortedResults = computed(() =>
@@ -71,12 +73,15 @@ function importResult(result: ProviderSearchResultViewModel) {
       data-testid="picker-provider-search"
       @submit.prevent="submitSearch"
     >
-      <label class="sr-only" for="provider-panel-query">Search Unsplash</label>
+      <!-- biome-ignore lint/a11y/noLabelWithoutControl: label is associated via `for` to the search input below -->
+      <label class="sr-only" :aria-label="t('composer.picker.providerSearchLabel')" for="provider-panel-query">
+        {{ t('composer.picker.providerSearchLabel') }}
+      </label>
       <Input
         id="provider-panel-query"
         v-model="query"
         type="search"
-        placeholder="Search Unsplash"
+        :placeholder="t('composer.picker.searchPlaceholder')"
         class="flex-1"
       />
       <Button
@@ -86,7 +91,7 @@ function importResult(result: ProviderSearchResultViewModel) {
         data-testid="provider-panel-search-submit"
         :disabled="isSearching"
       >
-        {{ isSearching ? 'Searching…' : 'Search' }}
+        {{ isSearching ? t('composer.picker.searchingAction') : t('composer.picker.searchAction') }}
       </Button>
     </form>
 
@@ -103,7 +108,7 @@ function importResult(result: ProviderSearchResultViewModel) {
       class="rounded-2xl border border-dashed border-border-subtle px-4 py-6 text-sm text-text-secondary"
       data-testid="provider-panel-empty"
     >
-      Search to browse Unsplash photos. Imports keep this picker open for continued selection.
+      {{ t('composer.picker.providerEmpty') }}
     </div>
 
     <div
@@ -121,14 +126,14 @@ function importResult(result: ProviderSearchResultViewModel) {
           <img :src="result.previewUrl" :alt="result.name" class="h-24 w-full object-cover">
         </div>
         <div v-else class="flex h-24 items-center justify-center rounded-xl border border-dashed border-border-visible bg-bg-primary/40 text-xs text-text-secondary">
-          No preview
+          {{ t('composer.picker.noPreview') }}
         </div>
         <p class="text-sm font-medium text-text-display">{{ result.name }}</p>
         <p
           v-if="result.authorName"
           class="text-[11px] text-text-secondary"
         >
-          by {{ result.authorName }}
+          {{ t('composer.picker.authorPrefix', { name: result.authorName }) }}
         </p>
         <Button
           type="button"
@@ -138,7 +143,7 @@ function importResult(result: ProviderSearchResultViewModel) {
           :disabled="result.selectedForImport"
           @click="importResult(result)"
         >
-          {{ result.selectedForImport ? 'Importing…' : 'Import' }}
+          {{ result.selectedForImport ? t('composer.picker.importingAction') : t('composer.picker.importAction') }}
         </Button>
       </article>
     </div>

@@ -49,11 +49,12 @@ All 16 tasks across all 3 phases are marked `[x]` complete in `tasks.md`:
 **Unit tests**: ✅ `./gradlew :server:smp:test` — `BUILD SUCCESSFUL`
 
   Backend Java/Kotlin unit suite runs cleanly:
-  ```text
+
+```text
   > Task :server:smp:test UP-TO-DATE
   BUILD SUCCESSFUL in 408ms
   24 actionable tasks: 24 up-to-date
-  ```
+```
 
 **BDD/Postgres tests**: ⚠️ `bddPostgresTest` fails when run without infra-up
 (`./gradlew :server:smp:check`), but this is environmental (Postgres Testcontainers not

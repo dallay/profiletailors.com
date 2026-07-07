@@ -209,6 +209,7 @@ const messages = {
         limitWarning:
           'Too many attachments for the strictest channel ({current}/{max}). Remove attachments to publish or schedule.',
         limitInfinite: '∞',
+        removeAttachment: 'Remove attachment {name}',
       },
       picker: {
         header: 'Media Library',
@@ -216,8 +217,17 @@ const messages = {
         unsplashChip: 'Unsplash',
         searchPlaceholder: 'Search Unsplash',
         searchAction: 'Search',
+        searchingAction: 'Searching…',
+        providerSearchLabel: 'Search Unsplash',
+        providerEmpty:
+          'Search to browse Unsplash photos. Imports keep this picker open for continued selection.',
+        authorPrefix: 'by {name}',
+        importAction: 'Import',
+        importingAction: 'Importing…',
         errorLoad: 'Unable to load media library.',
         noPreview: 'No preview',
+        applyDisabledLimit:
+          'Remove attachments to stay within the strictest channel limit before applying.',
         cancel: 'Cancel',
         apply: 'Apply',
       },

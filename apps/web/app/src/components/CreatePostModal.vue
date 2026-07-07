@@ -101,6 +101,7 @@ const isMediaPickerOpen = ref(false)
 const mediaPickerCollectionState = ref<ComposerMediaPickerCollectionState>('LOADING')
 const draftAttachmentIds = ref<string[]>([])
 const pickerSelectionIds = ref<string[]>([])
+// biome-ignore lint/correctness/noUnusedVariables: bound via template ref on the picker upload input
 const pickerSessionUploadInput = ref<HTMLInputElement | null>(null)
 const autoStagedAssetIds = ref<string[]>([])
 const manuallyDeselectedAutoStageIds = ref<string[]>([])
@@ -166,6 +167,12 @@ const isAttachmentLimitExceeded = computed<boolean>(() => {
   const limit = effectiveAttachmentLimit.value
   if (!Number.isFinite(limit)) return false
   return draftAttachmentIds.value.length > limit
+})
+
+const isPickerSelectionOverLimit = computed<boolean>(() => {
+  const limit = effectiveAttachmentLimit.value
+  if (!Number.isFinite(limit)) return false
+  return pickerSelectionIds.value.length > limit
 })
 
 // ---------------------------------------------------------------------------
@@ -261,17 +268,20 @@ async function initEditMode(pub: NonNullable<typeof props.editingPublication>) {
   resetPickerSessionTracking()
   mediaStore.clearSelection()
   if (pub.assetIds?.length) {
-    for (const assetId of pub.assetIds) {
-      if (!mediaStore.assetsById[assetId]) {
-        try {
-          await mediaStore.loadAsset(assetId)
-        } catch (err) {
-          const status = err instanceof Error && 'status' in err ? err.status : undefined
-          if (status === 404) continue
+    const resolvedAssetIds = await Promise.all(
+      pub.assetIds.map(async (assetId) => {
+        if (!mediaStore.assetsById[assetId]) {
+          try {
+            await mediaStore.loadAsset(assetId)
+          } catch (err) {
+            const status = err instanceof Error && 'status' in err ? err.status : undefined
+            if (status === 404) return null
+          }
         }
-      }
-      draftAttachmentIds.value.push(assetId)
-    }
+        return assetId
+      }),
+    )
+    draftAttachmentIds.value = resolvedAssetIds.filter((assetId): assetId is string => assetId !== null)
   }
 
   const pubChannelId = pub.accountId
@@ -934,9 +944,10 @@ function openMediaPicker() {
   isMediaPickerOpen.value = true
   mediaPickerCollectionState.value = pendingPickerAssets.value.length > 0 ? 'READY' : 'LOADING'
   stopAllReconciliationPollers()
+  pickerSessionActiveAssetIds.clear()
 
   for (const assetId of pendingPickerAssets.value) {
-    pickerSessionActiveAssetIds.add(assetId)
+    startAssetReconciliation(assetId)
   }
 
   mediaStore.loadAssets('READY,PENDING_UPLOAD,UPLOADING,FAILED')
@@ -1287,6 +1298,7 @@ async function handleCreateSubmit(
                 <button
                   type="button"
                   :data-testid="`attachment-remove-${asset.assetId}`"
+                  :aria-label="t('composer.media.removeAttachment', { name: asset.originalFilename ?? asset.assetId })"
                   class="rounded-full text-text-secondary transition-colors hover:text-text-display"
                   @click="removeDraftAttachment(asset.assetId)"
                 >
@@ -1306,6 +1318,7 @@ async function handleCreateSubmit(
               type="file"
               class="hidden"
               accept="image/*,video/mp4,image/webp"
+              aria-label="Upload media file"
               @change="handleFileSelect"
             >
           </div>
@@ -1324,6 +1337,8 @@ async function handleCreateSubmit(
             :collection-state="mediaPickerCollectionState"
             :assets="pickerAssets"
             :provider="effectiveProvider"
+            :apply-disabled="isPickerSelectionOverLimit"
+            :apply-disabled-message="isPickerSelectionOverLimit ? t('composer.picker.applyDisabledLimit') : null"
             @toggle-asset="togglePickerAsset($event.assetId)"
             @apply-selection="applyPickerSelection($event.assetIds)"
             @provider-search="handleProviderSearch"

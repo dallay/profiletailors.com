@@ -31,7 +31,7 @@ const translations: Record<string, string> = {
   'composer.media.limitInfinite': '∞',
 }
 
-const mockT = (key: string, params?: Record<string, string | number>) => {
+const mockT = (key: string, params?: Record<string, string | number>): string => {
   let value = translations[key] ?? key
   if (params) {
     for (const [k, v] of Object.entries(params)) {

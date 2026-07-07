@@ -15,9 +15,13 @@ const props = withDefaults(
     collectionState: ComposerMediaPickerCollectionState
     assets: ComposerMediaPickerAsset[]
     provider?: 'unsplash' | null
+    applyDisabled?: boolean
+    applyDisabledMessage?: string | null
   }>(),
   {
     provider: null,
+    applyDisabled: false,
+    applyDisabledMessage: null,
   },
 )
 
@@ -65,7 +69,13 @@ function submitProviderSearch() {
       class="flex items-center gap-2"
       @submit.prevent="submitProviderSearch"
     >
+      <!-- biome-ignore lint/a11y/noLabelWithoutControl: t() provides accessible text, Biome can't resolve i18n keys statically -->
+      <!-- biome-ignore lint/a11y/noLabelWithoutControl: label is associated via `for` to the search input below -->
+      <label class="sr-only" for="picker-provider-query">
+        {{ t('composer.picker.searchPlaceholder') }}
+      </label>
       <input
+        id="picker-provider-query"
         v-model="providerQuery"
         type="search"
         class="flex-1 rounded-xl border border-border-visible bg-bg-primary px-3 py-2 text-sm text-text-display"
@@ -116,11 +126,19 @@ function submitProviderSearch() {
       </button>
     </div>
 
+    <p
+      v-if="applyDisabled && applyDisabledMessage"
+      data-testid="picker-apply-warning"
+      class="rounded-xl border border-error/40 bg-error/10 px-3 py-2 text-xs text-error"
+    >
+      {{ applyDisabledMessage }}
+    </p>
+
     <div class="flex items-center justify-end gap-2">
       <button data-testid="picker-cancel" type="button" class="rounded-full border border-border-visible px-4 py-2 text-xs" @click="emit('close')">
         {{ t('composer.picker.cancel') }}
       </button>
-      <button data-testid="picker-apply" type="button" class="rounded-full bg-text-display px-4 py-2 text-xs text-bg-primary" @click="applySelection">
+      <button data-testid="picker-apply" type="button" class="rounded-full bg-text-display px-4 py-2 text-xs text-bg-primary disabled:cursor-not-allowed disabled:opacity-50" :disabled="applyDisabled" @click="applySelection">
         {{ t('composer.picker.apply') }}
       </button>
     </div>
