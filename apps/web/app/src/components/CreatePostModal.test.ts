@@ -728,8 +728,7 @@ describe('CreatePostModal.vue — Unsplash integration (WU3)', () => {
       vi.spyOn(mediaStore, 'loadAssets').mockImplementation(async () => {
         mediaStore.assetIds = []
       })
-      const loadAsset = vi
-        .spyOn(mediaStore, 'loadAsset')
+      vi.spyOn(mediaStore, 'loadAsset')
         .mockResolvedValueOnce({
           assetId: 'unsplash-mountain-1',
           workspaceId: 'ws-1',
