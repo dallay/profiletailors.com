@@ -1,25 +1,27 @@
-# Dependabot configuration
-# https://docs.github.com/en/code-security/dependabot
-
 version: 2
+
 updates:
-  # Frontend dependencies (npm/pnpm)
   - package-ecosystem: "npm"
-    directory: "/apps/web/marketing"
+    directory: "/"
     schedule:
       interval: "weekly"
       day: "monday"
       time: "09:00"
-      timezone: "UTC"
+      timezone: "Europe/Madrid"
+    open-pull-requests-limit: 5
+    rebase-strategy: "auto"
+    cooldown:
+      default-days: 3
+      semver-major-days: 7
+      semver-minor-days: 3
+      semver-patch-days: 2
     commit-message:
       prefix: "chore"
       include: "scope"
-    open-pull-requests-limit: 10
     labels:
       - "dependencies"
       - "frontend"
     groups:
-      # Group minor/patch updates for popular frameworks
       astro-ecosystem:
         patterns:
           - "astro"
@@ -27,54 +29,104 @@ updates:
         update-types:
           - "minor"
           - "patch"
+
+      vue-ecosystem:
+        patterns:
+          - "vue"
+          - "@vue/*"
+          - "vue-*"
+          - "pinia"
+          - "vue-router"
+        update-types:
+          - "minor"
+          - "patch"
+
+      vite-vitest-tooling:
+        patterns:
+          - "vite"
+          - "@vitejs/*"
+          - "vitest"
+          - "@vitest/*"
+        update-types:
+          - "minor"
+          - "patch"
+
       tailwind-ecosystem:
         patterns:
           - "tailwindcss"
           - "@tailwindcss/*"
+          - "tailwind-merge"
         update-types:
           - "minor"
           - "patch"
-      # Group all dev dependencies
-      dev-dependencies:
+
+      npm-dev-dependencies:
+        dependency-type: "development"
         patterns:
           - "*"
         update-types:
           - "minor"
           - "patch"
-        exclude-patterns:
-          - "typescript"
-    # Review major updates manually
+
+      npm-production-dependencies:
+        dependency-type: "production"
+        patterns:
+          - "*"
+        update-types:
+          - "minor"
+          - "patch"
+
     ignore:
       - dependency-name: "typescript"
-        update-types: ["version-update:semver-major"]
+        update-types:
+          - "version-update:semver-major"
       - dependency-name: "astro"
-        update-types: ["version-update:semver-major"]
+        update-types:
+          - "version-update:semver-major"
+      - dependency-name: "vite"
+        update-types:
+          - "version-update:semver-major"
+      - dependency-name: "vue"
+        update-types:
+          - "version-update:semver-major"
 
-  # Backend dependencies (Gradle)
   - package-ecosystem: "gradle"
-    directory: "/server/smp"
+    directory: "/"
     schedule:
       interval: "weekly"
       day: "wednesday"
       time: "10:00"
-      timezone: "UTC"
+      timezone: "Europe/Madrid"
+    open-pull-requests-limit: 5
+    rebase-strategy: "auto"
+    cooldown:
+      default-days: 3
+      semver-major-days: 7
+      semver-minor-days: 3
+      semver-patch-days: 2
     commit-message:
       prefix: "chore"
       include: "scope"
-    open-pull-requests-limit: 8
     labels:
       - "dependencies"
       - "backend"
     groups:
-      # Spring Boot ecosystem - group related Spring libraries
       spring-boot:
         patterns:
           - "org.springframework.boot:*"
-          - "org.springframework.*:*"
+          - "org.springframework.security:*"
+          - "org.springframework:*"
         update-types:
           - "minor"
           - "patch"
-      # Kotlin ecosystem
+
+      spring-modulith:
+        patterns:
+          - "org.springframework.modulith:*"
+        update-types:
+          - "minor"
+          - "patch"
+
       kotlin:
         patterns:
           - "org.jetbrains.kotlin:*"
@@ -82,44 +134,56 @@ updates:
         update-types:
           - "minor"
           - "patch"
-      # Testing - group test containers and frameworks
+
       testing:
         patterns:
+          - "org.junit*:*"
+          - "io.mockk:*"
+          - "io.kotest:*"
           - "org.testcontainers:*"
-          - "org.springframework.modulith:*"
+          - "io.cucumber:*"
+          - "com.tngtech.archunit:*"
         update-types:
           - "minor"
           - "patch"
-      # Default group for other dependencies
-      dependencies:
+
+      gradle-plugins:
+        patterns:
+          - "dev.detekt:*"
+          - "com.diffplug.spotless:*"
+          - "org.owasp:*"
+          - "org.jetbrains.kotlinx:kover-*"
+        update-types:
+          - "minor"
+          - "patch"
+
+      backend-dependencies:
         patterns:
           - "*"
         update-types:
           - "minor"
           - "patch"
-    # Manual review for major version bumps
-    ignore:
-      - dependency-name: "org.jetbrains.kotlin:kotlin"
-        update-types: ["version-update:semver-major"]
-      - dependency-name: "org.springframework.boot:spring-boot-starter"
-        update-types: ["version-update:semver-major"]
 
-  # GitHub Actions
   - package-ecosystem: "github-actions"
     directory: "/"
     schedule:
       interval: "weekly"
       day: "saturday"
       time: "11:00"
-      timezone: "UTC"
+      timezone: "Europe/Madrid"
+    open-pull-requests-limit: 3
+    rebase-strategy: "auto"
+    cooldown:
+      default-days: 7
+      semver-major-days: 14
+      semver-minor-days: 7
+      semver-patch-days: 7
     commit-message:
       prefix: "ci"
       include: "scope"
-    open-pull-requests-limit: 5
     labels:
       - "dependencies"
       - "ci"
-    # Group all actions into one PR
     groups:
       github-actions:
         patterns:
@@ -127,4 +191,3 @@ updates:
         update-types:
           - "minor"
           - "patch"
-
