@@ -80,6 +80,7 @@ export type ComposerMediaPickerStoreParams = {
   editingPublication: MaybeRefOrGetter<Publication | null | undefined>
   provider: MaybeRefOrGetter<'unsplash' | null>
   isUnsplashProviderEnabled: MaybeRefOrGetter<boolean>
+  /** ID of the currently selected channel (reactive). */
   initialChannelId: MaybeRefOrGetter<string | null>
   /**
    * Optional workspaceId override for testing. When provided, the composable
@@ -209,17 +210,18 @@ export function useComposerMediaPicker(params: ComposerMediaPickerStoreParams) {
   // -------------------------------------------------------------------------
 
   /**
-   * Effective attachment limit = min(allActiveChannels[].maxAttachments).
-   * Falls back to Infinity when no active channels.
+   * Effective attachment limit based on the selected channel.
+   * Falls back to Infinity when no channel is selected or when the
+   * selected channel has no explicit limit.
    */
   const effectiveAttachmentLimit = computed<number>(() => {
-    const channels = activeChannels.value
-    if (channels.length === 0) return Number.POSITIVE_INFINITY
-    const limits = channels
-      .map((ch) => ch.maxAttachments)
-      .filter((limit): limit is number => typeof limit === 'number' && Number.isFinite(limit))
-    if (limits.length === 0) return Number.POSITIVE_INFINITY
-    return Math.min(...limits)
+    if (toValue(params.initialChannelId) === null) return Number.POSITIVE_INFINITY
+    const channel = activeChannels.value.find((ch) => ch.id === toValue(params.initialChannelId))
+    if (!channel) return Number.POSITIVE_INFINITY
+    if (typeof channel.maxAttachments !== 'number' || !Number.isFinite(channel.maxAttachments)) {
+      return Number.POSITIVE_INFINITY
+    }
+    return channel.maxAttachments
   })
 
   const isAttachmentLimitExceeded = computed<boolean>(() => {
