@@ -812,10 +812,6 @@ describe('CreatePostModal.vue — Unsplash integration (WU3)', () => {
     getByTestId('add-media-button').click()
     await flushModal(wrapper)
 
-    ;(await getByTestId('picker-provider-search').querySelector('input')) &&
-      // ensure shell propagated search field
-      (await getByTestId('picker-provider-search').querySelector('input'))
-
     const searchInput = document.querySelector(
       '[data-testid="picker-provider-search"] input',
     ) as HTMLInputElement | null
