@@ -890,43 +890,39 @@ describe('CreatePostModal.vue — Unsplash integration (WU3)', () => {
     }
     mockLoadAssetsWithIds(mediaStore, ['asset-1', 'asset-2', 'asset-3', 'asset-4', 'asset-5'])
 
-    // Twitter has 4 attachments limit, LinkedIn has 9
     const channels = [
-      makeChannel('ch-tw', { provider: 'twitter', name: 'Twitter' } as Partial<TestChannel>),
       makeChannel('ch-li', { provider: 'linkedin', name: 'LinkedIn' } as Partial<TestChannel>),
+      makeChannel('ch-tw', { provider: 'twitter', name: 'Twitter' } as Partial<TestChannel>),
     ]
-    ;(channels[0] as { maxAttachments?: number }).maxAttachments = 4
-    ;(channels[1] as { maxAttachments?: number }).maxAttachments = 9
+    ;(channels[0] as { maxAttachments?: number }).maxAttachments = 9
+    ;(channels[1] as { maxAttachments?: number }).maxAttachments = 4
 
     const wrapper = mountModal(channels)
-    // Wait for initializeComposerForOpen to complete and channel to be selected
     await flushModal(wrapper)
     await flushModal(wrapper)
+
+    const twitterButton = Array.from(document.querySelectorAll('button')).find((btn) =>
+      btn.textContent?.includes('Twitter'),
+    )
+    expect(twitterButton).toBeDefined()
+    twitterButton!.click()
     await flushModal(wrapper)
-    // Wait until the first channel chip is rendered (confirms selectedChannelId is set)
-    await vi.waitFor(() => {
-      const channelChip = document.querySelector('[data-edit-disabled="false"]')
-      expect(channelChip).not.toBeNull()
-    })
 
     getByTestId('add-media-button').click()
     await flushModal(wrapper)
 
-    // Stage 5 assets: above selected channel limit (Twitter = 4)
     for (const id of ['asset-1', 'asset-2', 'asset-3', 'asset-4', 'asset-5']) {
       getByTestId(`picker-asset-card-${id}`).click()
       await flushModal(wrapper)
     }
 
-    // Apply button MUST be disabled when selection exceeds limit
     const applyButton = getByTestId('picker-apply') as HTMLButtonElement
     expect(applyButton.disabled).toBe(true)
+    expect(document.body.innerHTML).toContain('picker-apply-warning')
 
-    // Clicking disabled apply should not close the picker
     applyButton.click()
     await flushModal(wrapper)
 
-    // Picker should still be open — attachments preserved.
     expect(document.body.innerHTML).toContain('picker-asset-card')
   })
 
@@ -1013,7 +1009,7 @@ describe('CreatePostModal.vue — Unsplash integration (WU3)', () => {
     ;(channels[0] as { maxAttachments?: number }).maxAttachments = 2
 
     const wrapper = mountModal(channels, {
-      editingPublication: makeEditingPublication({ 
+      editingPublication: makeEditingPublication({
         assetIds: ['asset-1', 'asset-2', 'asset-3'],
         accountId: 'ch-li',
       }),
