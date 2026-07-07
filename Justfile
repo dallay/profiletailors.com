@@ -213,7 +213,7 @@ backend-coverage:
 
 # Run fast BDD suite
 backend-bdd-fast:
-    {{gradle-root}} :server:smp:bddFastTest --no-daemon -x :shared:common:test -x :shared:spring-boot-common:test
+    export SMP_POSTGRES_TEST_PASSWORD=$(grep ^SMP_POSTGRES_PASSWORD= .env | cut -d= -f2) && {{gradle-root}} :server:smp:bddFastTest --no-daemon -x :shared:common:test -x :shared:spring-boot-common:test
 
 # Run PostgreSQL integration tests with Testcontainers
 backend-test-postgres:
@@ -324,7 +324,7 @@ ci:
     {{gradle-root}} :server:smp:test --no-daemon -PexcludeTags=modularity,postgres
     @echo ""
     @echo "▸ [7/8] Backend: BDD fast suite..."
-    {{gradle-root}} :server:smp:bddFastTest --no-daemon -x :shared:common:test -x :shared:spring-boot-common:test
+    export SMP_POSTGRES_TEST_PASSWORD=$(grep ^SMP_POSTGRES_PASSWORD= .env | cut -d= -f2) && {{gradle-root}} :server:smp:bddFastTest --no-daemon -x :shared:common:test -x :shared:spring-boot-common:test
     @echo ""
     @echo "▸ [8/8] Frontend: E2E tests (Playwright, all browsers)..."
     cd {{frontend-dir}} && pnpm test:e2e

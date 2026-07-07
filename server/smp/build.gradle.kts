@@ -83,6 +83,7 @@ dependencies {
     testImplementation(libs.cucumber.spring)
     testImplementation(libs.archunit.junit5)
     testImplementation(libs.mockk)
+    testImplementation(libs.kotest.assertions.core)
 
     testImplementation(platform(libs.testcontainers.bom))
     testImplementation(libs.testcontainers.junit.jupiter)
