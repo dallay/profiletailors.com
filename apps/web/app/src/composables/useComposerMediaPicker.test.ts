@@ -169,7 +169,7 @@ describe('useComposerMediaPicker', () => {
       expect(picker.effectiveProvider.value).toBe('unsplash')
     })
 
-    it('effectiveAttachmentLimit returns the selected channel\'s limit', () => {
+    it("effectiveAttachmentLimit returns the selected channel's limit", () => {
       const mediaStore = createFakeMediaStore()
       const publishingStore = createFakePublishingStore({
         channels: ref([
