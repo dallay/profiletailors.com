@@ -194,11 +194,7 @@ export const useMediaStore = defineStore('media', () => {
     return asset
   }
 
-  async function refreshAsset(assetId: string): Promise<MediaAssetSummary> {
-    const asset = await getAsset(assetId)
-    upsertAsset(asset)
-    return asset
-  }
+  const refreshAsset = loadAsset
 
   async function loadAssets(status = 'READY') {
     isLoading.value = true

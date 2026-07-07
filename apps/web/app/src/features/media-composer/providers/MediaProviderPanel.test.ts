@@ -52,6 +52,22 @@ describe('MediaProviderPanel.vue', () => {
     expect(emissions[0]).toEqual([{ externalId: 'ext-22' }])
   })
 
+  it('does not emit a second provider-import when the result is already selectedForImport', async () => {
+    const result = makeResult({ externalId: 'ext-22', name: 'A photo' })
+    const wrapper = mountPanel({ results: [result] })
+
+    // First click: emits.
+    await wrapper.get('[data-testid="provider-panel-import"]').trigger('click')
+    expect(wrapper.emitted('provider-import')?.length).toBe(1)
+
+    // Parent marks result as selectedForImport (simulates in-flight state).
+    await wrapper.setProps({ results: [{ ...result, selectedForImport: true }] })
+
+    // Second click: guarded by selectedForImport guard — no second emit.
+    await wrapper.get('[data-testid="provider-panel-import"]').trigger('click')
+    expect(wrapper.emitted('provider-import')?.length).toBe(1)
+  })
+
   it('renders empty state when no results have been fetched yet', () => {
     const wrapper = mountPanel()
     expect(wrapper.find('[data-testid="provider-panel-empty"]').exists()).toBe(true)

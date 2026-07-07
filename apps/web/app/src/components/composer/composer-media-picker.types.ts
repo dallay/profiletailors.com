@@ -2,7 +2,7 @@ export type ComposerMediaPickerCollectionState = 'LOADING' | 'READY' | 'EMPTY' |
 
 export type ComposerMediaPickerAssetStatus = 'READY' | 'PROCESSING' | 'FAILED'
 
-export interface ComposerMediaPickerAsset {
+export type ComposerMediaPickerAsset = {
   assetId: string
   name: string
   mediaType: string
@@ -13,18 +13,18 @@ export interface ComposerMediaPickerAsset {
   sourceType: 'UPLOADED' | 'EXTERNAL'
 }
 
-export interface ComposerMediaPickerApplyPayload {
+export type ComposerMediaPickerApplyPayload = {
   assetIds: string[]
 }
 
-export interface ComposerMediaPickerTogglePayload {
+export type ComposerMediaPickerTogglePayload = {
   assetId: string
 }
 
-export interface ComposerMediaPickerProviderSearchPayload {
+export type ComposerMediaPickerProviderSearchPayload = {
   query: string
 }
 
-export interface ComposerMediaPickerProviderImportPayload {
+export type ComposerMediaPickerProviderImportPayload = {
   externalId: string
 }

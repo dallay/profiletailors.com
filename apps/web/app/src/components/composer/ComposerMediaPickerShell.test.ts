@@ -11,6 +11,15 @@ const mockT = (key: string) => {
     'media.loading': 'Loading media library...',
     'media.emptyTitle': 'No media assets yet',
     'media.emptyBody': 'Upload your first image, video, or PDF to populate the library.',
+    'composer.picker.header': 'Media Library',
+    'composer.picker.libraryChip': 'Library',
+    'composer.picker.unsplashChip': 'Unsplash',
+    'composer.picker.searchPlaceholder': 'Search Unsplash',
+    'composer.picker.searchAction': 'Search',
+    'composer.picker.errorLoad': 'Unable to load media library.',
+    'composer.picker.noPreview': 'No preview',
+    'composer.picker.cancel': 'Cancel',
+    'composer.picker.apply': 'Apply',
   }
 
   return translations[key] ?? key
@@ -54,7 +63,7 @@ function mountShell(
 }
 
 describe('ComposerMediaPickerShell.vue', () => {
-  it('emits typed selection, apply, close, and provider events while keeping provider tab conditional', async () => {
+  it('emits typed selection, apply, close, and provider-search events while keeping provider tab conditional', async () => {
     const wrapper = mountShell({
       provider: 'unsplash',
       assets: [makeAsset()],
@@ -70,11 +79,11 @@ describe('ComposerMediaPickerShell.vue', () => {
     await wrapper.get('[data-testid="picker-provider-search"]').trigger('submit.prevent')
     expect(wrapper.emitted('provider-search')).toEqual([[{ query: 'coffee' }]])
 
-    await wrapper.get('[data-testid="picker-provider-import"] button').trigger('click')
-    expect(wrapper.emitted('provider-import')).toEqual([[{ externalId: 'unsplash-1' }]])
+    // Provider-import is emitted by the parent MediaProviderPanel via the slot,
+    // not by the shell. Confirm the shell did NOT emit it directly.
+    expect(wrapper.emitted('provider-import')).toBeUndefined()
 
-    // After provider-import emit, the picker MUST NOT have emitted close —
-    // it must stay open so the author can continue staged multi-selection.
+    // Picker MUST stay open (no close emitted yet).
     expect(wrapper.emitted('close')).toBeUndefined()
 
     await wrapper.get('[data-testid="picker-apply"]').trigger('click')

@@ -17,6 +17,7 @@ import {
 } from '@lucide/vue'
 import { useAuthStore } from '@/stores/auth'
 import { usePublishingStore, type Publication, type Channel } from '@/stores/publishing'
+import { useWorkspaceStore } from '@/stores/workspace'
 import { useMediaStore, type MediaAssetStatus } from '@/stores/media'
 import { proxyImageUrl, resolveApiUrl } from '@/lib/auth-api'
 import PostPreviewPanel from '@/components/composer/PostPreviewPanel.vue'
@@ -827,15 +828,17 @@ function getLibraryCollectionState(assetCount: number): ComposerMediaPickerColle
   return 'READY'
 }
 
+function toPickerAssetStatus(status: MediaAssetStatus): ComposerMediaPickerAsset['status'] {
+  if (status === 'READY') return 'READY'
+  if (status === 'FAILED') return 'FAILED'
+  return 'PROCESSING'
+}
+
 function mapAssetToPickerAsset(assetId: string): ComposerMediaPickerAsset | null {
   const asset = mediaStore.assetsById[assetId]
   if (!asset) return null
 
-  const status = asset.status === 'READY'
-    ? 'READY'
-    : asset.status === 'FAILED'
-      ? 'FAILED'
-      : 'PROCESSING'
+  const status = toPickerAssetStatus(asset.status)
 
   return {
     assetId: asset.assetId,
@@ -867,9 +870,7 @@ const draftAttachmentAssets = computed(() =>
 function getPickerAssetStatus(assetId: string): ComposerMediaPickerAsset['status'] {
   const asset = mediaStore.assetsById[assetId]
   if (!asset) return 'PROCESSING'
-  if (asset.status === 'READY') return 'READY'
-  if (asset.status === 'FAILED') return 'FAILED'
-  return 'PROCESSING'
+  return toPickerAssetStatus(asset.status)
 }
 
 function addPendingPickerAsset(assetId: string) {
@@ -886,14 +887,8 @@ function ensurePickerAssetVisible(assetId: string) {
   addPendingPickerAsset(assetId)
 }
 
-function resolveAssetReconciliationStatus(status: MediaAssetStatus): ComposerMediaPickerAsset['status'] {
-  if (status === 'READY') return 'READY'
-  if (status === 'FAILED') return 'FAILED'
-  return 'PROCESSING'
-}
-
 function isAssetSelectableStatus(status: MediaAssetStatus): boolean {
-  return resolveAssetReconciliationStatus(status) === 'READY'
+  return toPickerAssetStatus(status) === 'READY'
 }
 
 function stageAssetOnce(assetId: string) {
@@ -925,7 +920,7 @@ function scheduleAssetReconciliation(assetId: string, attempt = 1) {
         return
       }
 
-      if (resolveAssetReconciliationStatus(asset.status) === 'FAILED') {
+      if (toPickerAssetStatus(asset.status) === 'FAILED') {
         clearPendingPickerAsset(assetId)
         return
       }
@@ -965,18 +960,23 @@ async function handlePickerUploadSelection(filesList: File[]) {
   if (!file) return
 
   const tempKey = `picker-upload-${Date.now()}`
-  const createdAsset = await mediaStore.createAndUpload(file, tempKey, () => {})
-  mediaStore.upsertAsset(createdAsset)
-  ensurePickerAssetVisible(createdAsset.assetId)
-  mediaPickerCollectionState.value = 'READY'
+  try {
+    const createdAsset = await mediaStore.createAndUpload(file, tempKey, () => {})
+    mediaStore.upsertAsset(createdAsset)
+    ensurePickerAssetVisible(createdAsset.assetId)
+    mediaPickerCollectionState.value = 'READY'
 
-  if (isAssetSelectableStatus(createdAsset.status)) {
-    stageAssetOnce(createdAsset.assetId)
-    clearPendingPickerAsset(createdAsset.assetId)
-    return
+    if (isAssetSelectableStatus(createdAsset.status)) {
+      stageAssetOnce(createdAsset.assetId)
+      clearPendingPickerAsset(createdAsset.assetId)
+      return
+    }
+
+    startAssetReconciliation(createdAsset.assetId)
+  } catch {
+    submitError.value = 'Media upload failed. Please try again.'
+    mediaPickerCollectionState.value = 'ERROR'
   }
-
-  startAssetReconciliation(createdAsset.assetId)
 }
 
 function openMediaPicker() {
@@ -1011,36 +1011,33 @@ function closeMediaPicker() {
 
 /**
  * Captures provider-search intent. Real search happens in the backend client;
- * the modal exposes only the typed interaction and a result list. For test
- * purposes the search synthesizes deterministic results off the typed query.
+ * the modal exposes only the typed interaction and a result list. The
+ * synthetic result path is explicitly guarded: it only runs in DEV/test, and
+ * `providerSearchError` surfaces a clear message in production when no real
+ * Unsplash search client is wired.
  */
 function handleProviderSearch(payload: { query: string }) {
   const q = payload.query.trim()
   providerQuery.value = q
   providerSearchError.value = null
+  providerSearching.value = false
 
   if (!q) {
     providerResults.value = []
     return
   }
 
-  providerSearching.value = true
-  // Synthesize a deterministic result list for the picker. In production this
-  // would proxy to a backend Unsplash search endpoint — but per the picker
-  // spec the shell does not fetch directly, so the modal owns that decision.
-  Promise.resolve()
-    .then(() => {
-      providerResults.value = [
-        { externalId: `${q}-1`, name: `${q} photo one`, previewUrl: null, authorName: 'Test author' },
-        { externalId: `${q}-2`, name: `${q} photo two`, previewUrl: null, authorName: 'Test author' },
-      ]
-    })
-    .catch((err: unknown) => {
-      providerSearchError.value = err instanceof Error ? err.message : 'Search failed.'
-    })
-    .finally(() => {
-      providerSearching.value = false
-    })
+  if (!import.meta.env.DEV && !import.meta.env.MODE?.startsWith('test')) {
+    providerResults.value = []
+    providerSearchError.value =
+      'Unsplash search is not configured. Wire the backend search client before enabling this provider.'
+    return
+  }
+
+  providerResults.value = [
+    { externalId: `${q}-1`, name: `${q} photo one`, previewUrl: null, authorName: 'Test author' },
+    { externalId: `${q}-2`, name: `${q} photo two`, previewUrl: null, authorName: 'Test author' },
+  ]
 }
 
 /**
@@ -1051,9 +1048,17 @@ function handleProviderSearch(payload: { query: string }) {
  *
  * In production, the parent would POST to a backend import endpoint that
  * returns the persisted asset; for now we generate a deterministic UUID
- * that the polling layer resolves through `mediaStore.loadAsset()`.
+ * that the polling layer resolves through `mediaStore.loadAsset()`. The
+ * synthetic path is guarded: it only runs in DEV/test — production callers
+ * must wire a real import client before the flag can ship.
  */
 async function handleProviderImport(payload: { externalId: string }): Promise<void> {
+  if (!import.meta.env.DEV && !import.meta.env.MODE?.startsWith('test')) {
+    providerSearchError.value =
+      'Unsplash import is not configured. Wire the backend import client before enabling this provider.'
+    return
+  }
+
   const syntheticAssetId = `unsplash-${payload.externalId}`
   providerImportResolution.value = {
     ...providerImportResolution.value,
@@ -1083,9 +1088,8 @@ async function handleProviderImport(payload: { externalId: string }): Promise<vo
 
 /** Helper kept tiny to make handleProviderImport easier to mock in tests. */
 function useMediaStoreWorkspaceId(): string {
-  const workspaceStore = (window as unknown as { __workspaceStore?: { activeWorkspaceId: string } })
-    .__workspaceStore
-  return workspaceStore?.activeWorkspaceId ?? 'ws-local'
+  const workspaceStore = useWorkspaceStore()
+  return workspaceStore.activeWorkspaceId ?? 'ws-local'
 }
 
 // Expose for tests so they can simulate an import without touching the
@@ -1103,7 +1107,6 @@ function togglePickerAsset(assetId: string) {
     pickerSelectionIds.value = pickerSelectionIds.value.filter((id) => id !== assetId)
     if (autoStagedAssetIds.value.includes(assetId) && !manuallyDeselectedAutoStageIds.value.includes(assetId)) {
       manuallyDeselectedAutoStageIds.value = [...manuallyDeselectedAutoStageIds.value, assetId]
-      startAssetReconciliation(assetId)
     }
     return
   }
@@ -1305,7 +1308,7 @@ async function handleCreateSubmit(
           <div class="space-y-3">
             <div class="flex items-center justify-between">
               <span class="font-mono text-[9px] tracking-widest text-text-secondary uppercase block">
-                Media Attachment
+                {{ t('composer.media.label') }}
               </span>
               <button
                 type="button"
@@ -1313,7 +1316,7 @@ async function handleCreateSubmit(
                 class="rounded-full border border-border-visible px-3 py-1.5 font-mono text-[9px] font-bold uppercase tracking-widest text-text-display transition-colors hover:border-text-display"
                 @click="openMediaPicker"
               >
-                Add Media
+                {{ t('composer.media.addMedia') }}
               </button>
             </div>
 
@@ -1336,7 +1339,7 @@ async function handleCreateSubmit(
             </div>
 
             <p v-else class="rounded-xl border border-dashed border-border-visible bg-bg-primary/20 px-4 py-3 text-xs text-text-secondary">
-              No media attached yet.
+              {{ t('composer.media.empty') }}
             </p>
 
             <input
@@ -1353,9 +1356,10 @@ async function handleCreateSubmit(
             data-testid="attachment-limit-warning"
             class="rounded-xl border border-error/40 bg-error/10 px-3 py-2 text-xs text-error"
           >
-            Too many attachments for the strictest channel
-            ({{ draftAttachmentIds.length }}/{{ Number.isFinite(effectiveAttachmentLimit) ? effectiveAttachmentLimit : '∞' }}).
-            Remove attachments to publish or schedule.
+            {{ t('composer.media.limitWarning', {
+              current: draftAttachmentIds.length,
+              max: Number.isFinite(effectiveAttachmentLimit) ? effectiveAttachmentLimit : t('composer.media.limitInfinite'),
+            }) }}
           </p>
           <ComposerMediaPickerShell
             :is-open="isMediaPickerOpen"

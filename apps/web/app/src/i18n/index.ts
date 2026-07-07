@@ -202,6 +202,25 @@ const messages = {
       nextAvailable: 'Next Available',
       characterLimit: '{count} characters left',
       saveChanges: 'Save Changes',
+      media: {
+        label: 'Media Attachment',
+        addMedia: 'Add Media',
+        empty: 'No media attached yet.',
+        limitWarning:
+          'Too many attachments for the strictest channel ({current}/{max}). Remove attachments to publish or schedule.',
+        limitInfinite: '∞',
+      },
+      picker: {
+        header: 'Media Library',
+        libraryChip: 'Library',
+        unsplashChip: 'Unsplash',
+        searchPlaceholder: 'Search Unsplash',
+        searchAction: 'Search',
+        errorLoad: 'Unable to load media library.',
+        noPreview: 'No preview',
+        cancel: 'Cancel',
+        apply: 'Apply',
+      },
     },
     postDetail: {
       title: 'Post Details',
@@ -675,6 +694,25 @@ const messages = {
       saveDraft: 'Guardar Borrador',
       nextAvailable: 'Siguiente disponible',
       characterLimit: 'quedan {count} caracteres',
+      media: {
+        label: 'Adjuntar medios',
+        addMedia: 'Agregar medios',
+        empty: 'Aún no se han adjuntado medios.',
+        limitWarning:
+          'Demasiados adjuntos para el canal más restrictivo ({current}/{max}). Elimina adjuntos para publicar o programar.',
+        limitInfinite: '∞',
+      },
+      picker: {
+        header: 'Librería de medios',
+        libraryChip: 'Librería',
+        unsplashChip: 'Unsplash',
+        searchPlaceholder: 'Buscar en Unsplash',
+        searchAction: 'Buscar',
+        errorLoad: 'No se pudo cargar la librería de medios.',
+        noPreview: 'Sin vista previa',
+        cancel: 'Cancelar',
+        apply: 'Aplicar',
+      },
     },
     postDetail: {
       title: 'Detalles de la Publicación',

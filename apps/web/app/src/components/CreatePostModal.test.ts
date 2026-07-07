@@ -10,7 +10,36 @@ import CreatePostModalComponent from './CreatePostModal.vue'
 // Mocks
 // ---------------------------------------------------------------------------
 
-const mockT = (key: string) => key
+const translations: Record<string, string> = {
+  'media.loading': 'Loading media library...',
+  'media.emptyTitle': 'No media assets yet',
+  'media.emptyBody': 'Upload your first image, video, or PDF to populate the library.',
+  'composer.picker.header': 'Media Library',
+  'composer.picker.libraryChip': 'Library',
+  'composer.picker.unsplashChip': 'Unsplash',
+  'composer.picker.searchPlaceholder': 'Search Unsplash',
+  'composer.picker.searchAction': 'Search',
+  'composer.picker.errorLoad': 'Unable to load media library.',
+  'composer.picker.noPreview': 'No preview',
+  'composer.picker.cancel': 'Cancel',
+  'composer.picker.apply': 'Apply',
+  'composer.media.label': 'Media Attachment',
+  'composer.media.addMedia': 'Add Media',
+  'composer.media.empty': 'No media attached yet.',
+  'composer.media.limitWarning':
+    'Too many attachments for the strictest channel ({current}/{max}). Remove attachments to publish or schedule.',
+  'composer.media.limitInfinite': '∞',
+}
+
+const mockT = (key: string, params?: Record<string, string | number>) => {
+  let value = translations[key] ?? key
+  if (params) {
+    for (const [k, v] of Object.entries(params)) {
+      value = value.replace(`{${k}}`, String(v))
+    }
+  }
+  return value
+}
 
 vi.mock('vue-i18n', () => ({
   useI18n: () => ({ t: mockT, locale: { value: 'en' } }),
@@ -217,7 +246,7 @@ describe('CreatePostModal.vue — media picker foundation', () => {
     await flushModal(wrapper)
 
     expect(loadAssets).toHaveBeenCalledWith('READY,PENDING_UPLOAD,UPLOADING,FAILED')
-    expect(document.body.innerHTML).toContain('media.emptyTitle')
+    expect(document.body.innerHTML).toContain('No media assets yet')
 
     loadAssets.mockImplementationOnce(async () => {
       mediaStore.loadError = 'library failed'
@@ -476,7 +505,7 @@ describe('CreatePostModal.vue — media picker foundation', () => {
 
       getByTestId('add-media-button').click()
       await flushModal(wrapper)
-      expect(document.body.innerHTML).toContain('media.emptyTitle')
+      expect(document.body.innerHTML).toContain('No media assets yet')
       expect(document.body.innerHTML).not.toContain('picker-asset-card-asset-pending')
     } finally {
       vi.useRealTimers()
@@ -811,6 +840,7 @@ describe('CreatePostModal.vue — Unsplash integration (WU3)', () => {
     getByTestId('add-media-button').click()
     await flushModal(wrapper)
 
+    // Drive the shell search: set the input value then submit the form.
     const searchInput = document.querySelector(
       '[data-testid="picker-provider-search"] input',
     ) as HTMLInputElement | null
@@ -823,6 +853,19 @@ describe('CreatePostModal.vue — Unsplash integration (WU3)', () => {
       document.querySelector('[data-testid="picker-provider-search"]') as HTMLFormElement
     ).dispatchEvent(new Event('submit'))
     await flushModal(wrapper)
+
+    // handleProviderSearch produced deterministic results — the picker panel
+    // is wired through to the modal's provider pipeline.
+    expect(document.body.innerHTML).toContain('provider-result-mountain-1')
+    expect(document.body.innerHTML).toContain('provider-panel-import')
+
+    // Clicking the import button emits the typed provider-import interaction.
+    ;(document.querySelector('[data-testid="provider-panel-import"]') as HTMLButtonElement).click()
+    await flushModal(wrapper)
+
+    // The picker MUST remain open after import so the author can continue
+    // multi-selection — modal does NOT emit close.
+    expect(wrapper.emitted('close')).toBeUndefined()
   })
 
   it('enforces the strictest effectiveAttachmentLimit (min of channel maxAttachments) and blocks apply above it', async () => {

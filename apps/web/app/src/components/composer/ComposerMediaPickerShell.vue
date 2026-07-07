@@ -5,7 +5,6 @@ import type {
   ComposerMediaPickerAsset,
   ComposerMediaPickerApplyPayload,
   ComposerMediaPickerCollectionState,
-  ComposerMediaPickerProviderImportPayload,
   ComposerMediaPickerProviderSearchPayload,
   ComposerMediaPickerTogglePayload,
 } from './composer-media-picker.types'
@@ -27,7 +26,6 @@ const emit = defineEmits<{
   (e: 'apply-selection', payload: ComposerMediaPickerApplyPayload): void
   (e: 'close'): void
   (e: 'provider-search', payload: ComposerMediaPickerProviderSearchPayload): void
-  (e: 'provider-import', payload: ComposerMediaPickerProviderImportPayload): void
 }>()
 
 const { t } = useI18n()
@@ -47,21 +45,17 @@ function applySelection() {
 function submitProviderSearch() {
   emit('provider-search', { query: providerQuery.value.trim() })
 }
-
-function emitProviderImport() {
-  emit('provider-import', { externalId: 'unsplash-1' })
-}
 </script>
 
 <template>
   <div v-if="isOpen" class="flex flex-col gap-4" data-testid="composer-media-picker-shell">
     <div class="flex items-center justify-between">
       <h3 class="font-mono text-xs font-bold uppercase tracking-widest text-text-display">
-        Media Library
+        {{ t('composer.picker.header') }}
       </h3>
       <div class="flex items-center gap-2 text-xs text-text-secondary">
-        <span class="rounded-full border border-border-subtle px-3 py-1">Library</span>
-        <span v-if="provider === 'unsplash'" class="rounded-full border border-border-subtle px-3 py-1">Unsplash</span>
+        <span class="rounded-full border border-border-subtle px-3 py-1">{{ t('composer.picker.libraryChip') }}</span>
+        <span v-if="provider === 'unsplash'" class="rounded-full border border-border-subtle px-3 py-1">{{ t('composer.picker.unsplashChip') }}</span>
       </div>
     </div>
 
@@ -75,9 +69,9 @@ function emitProviderImport() {
         v-model="providerQuery"
         type="search"
         class="flex-1 rounded-xl border border-border-visible bg-bg-primary px-3 py-2 text-sm text-text-display"
-        placeholder="Search Unsplash"
+        :placeholder="t('composer.picker.searchPlaceholder')"
       >
-      <button type="submit" class="rounded-xl border border-border-visible px-3 py-2 text-xs">Search</button>
+      <button type="submit" class="rounded-xl border border-border-visible px-3 py-2 text-xs">{{ t('composer.picker.searchAction') }}</button>
     </form>
 
     <slot
@@ -95,7 +89,7 @@ function emitProviderImport() {
     </div>
 
     <div v-else-if="collectionState === 'ERROR'" class="rounded-2xl border border-error/40 bg-error/10 px-4 py-6 text-sm text-text-body">
-      Unable to load media library.
+      {{ t('composer.picker.errorLoad') }}
     </div>
 
     <div v-else class="grid gap-3 sm:grid-cols-2">
@@ -113,7 +107,7 @@ function emitProviderImport() {
           <img :src="asset.previewUrl" :alt="asset.name" class="h-24 w-full object-cover">
         </div>
         <div v-else class="mb-3 flex h-24 items-center justify-center rounded-xl border border-dashed border-border-visible bg-bg-primary/40 text-xs text-text-secondary">
-          No preview
+          {{ t('composer.picker.noPreview') }}
         </div>
         <div class="space-y-1">
           <p class="text-sm font-medium text-text-display">{{ asset.name }}</p>
@@ -122,18 +116,12 @@ function emitProviderImport() {
       </button>
     </div>
 
-    <div v-if="provider === 'unsplash'" data-testid="picker-provider-import" class="flex justify-start">
-      <button type="button" class="rounded-xl border border-border-visible px-3 py-2 text-xs" @click="emitProviderImport">
-        Import sample result
-      </button>
-    </div>
-
     <div class="flex items-center justify-end gap-2">
       <button data-testid="picker-cancel" type="button" class="rounded-full border border-border-visible px-4 py-2 text-xs" @click="emit('close')">
-        Cancel
+        {{ t('composer.picker.cancel') }}
       </button>
       <button data-testid="picker-apply" type="button" class="rounded-full bg-text-display px-4 py-2 text-xs text-bg-primary" @click="applySelection">
-        Apply
+        {{ t('composer.picker.apply') }}
       </button>
     </div>
   </div>

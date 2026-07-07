@@ -1,22 +1,11 @@
 <script setup lang="ts">
 import { ref, computed } from 'vue'
-import type { ComposerMediaPickerAsset } from '@/components/composer/composer-media-picker.types'
+import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
 
 /**
  * Provider-specific presentation layer for the composer media picker.
- *
- * This component does NOT fetch, persist, or reconcile media itself.
- * It renders results owned by the parent (CreatePostModal.vue) and emits
- * typed provider-search + provider-import interactions.
- *
- * The parent is responsible for:
- *   - invoking the provider API
- *   - reconciling returned persisted assets into the active picker session
- *   - keeping the picker open across imports for continued multi-selection
- *
- * Per the picker spec, this panel MUST NOT make HTTP calls. The search
- * input intentionally fires a typed event so the parent can decide
- * when to call the provider.
+ * The parent owns fetch/import orchestration and supplies the results.
  */
 
 export interface ProviderSearchResultViewModel {
@@ -52,7 +41,6 @@ const emit = defineEmits<{
 }>()
 
 const query = ref(props.initialQuery)
-const debouncedImportStack = new Set<string>()
 
 const sortedResults = computed(() =>
   [...props.results].sort((a, b) => a.name.localeCompare(b.name)),
@@ -63,19 +51,13 @@ function submitSearch() {
 }
 
 function importResult(result: ProviderSearchResultViewModel) {
-  // Guard against double-emit while the parent reconciles the import.
-  if (debouncedImportStack.has(result.externalId)) return
-  debouncedImportStack.add(result.externalId)
+  // Guard: disabled when selectedForImport is true (parent owns the in-flight state).
+  if (result.selectedForImport) return
   emit('provider-import', { externalId: result.externalId })
-  setTimeout(() => {
-    debouncedImportStack.delete(result.externalId)
-  }, 250)
 }
 
-defineExpose({
-  /** Helper exposed for tests to confirm the panel stays open during reconciliation. */
-  isOpen: () => true,
-})
+// No internal open/close state — panel is rendered when in the shell's DOM and
+// dismissed by the parent (ComposerMediaPickerShell) closing the whole picker.
 </script>
 
 <template>
@@ -90,21 +72,22 @@ defineExpose({
       @submit.prevent="submitSearch"
     >
       <label class="sr-only" for="provider-panel-query">Search Unsplash</label>
-      <input
+      <Input
         id="provider-panel-query"
         v-model="query"
         type="search"
         placeholder="Search Unsplash"
-        class="flex-1 rounded-xl border border-border-visible bg-bg-primary px-3 py-2 text-sm text-text-display"
-      >
-      <button
+        class="flex-1"
+      />
+      <Button
         type="submit"
-        class="rounded-xl border border-border-visible px-3 py-2 text-xs"
+        variant="outline"
+        size="sm"
         data-testid="provider-panel-search-submit"
         :disabled="isSearching"
       >
         {{ isSearching ? 'Searching…' : 'Search' }}
-      </button>
+      </Button>
     </form>
 
     <p
@@ -147,14 +130,16 @@ defineExpose({
         >
           by {{ result.authorName }}
         </p>
-        <button
+        <Button
           type="button"
-          class="rounded-xl border border-border-visible px-3 py-1.5 text-xs"
+          variant="outline"
+          size="sm"
           data-testid="provider-panel-import"
+          :disabled="result.selectedForImport"
           @click="importResult(result)"
         >
           {{ result.selectedForImport ? 'Importing…' : 'Import' }}
-        </button>
+        </Button>
       </article>
     </div>
   </section>
