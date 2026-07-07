@@ -169,7 +169,7 @@ describe('useComposerMediaPicker', () => {
       expect(picker.effectiveProvider.value).toBe('unsplash')
     })
 
-    it('effectiveAttachmentLimit returns min of active channel limits', () => {
+    it('effectiveAttachmentLimit returns the selected channel\'s limit', () => {
       const mediaStore = createFakeMediaStore()
       const publishingStore = createFakePublishingStore({
         channels: ref([
@@ -201,9 +201,9 @@ describe('useComposerMediaPicker', () => {
         editingPublication: ref(null),
         provider: ref(null),
         isUnsplashProviderEnabled: ref(false),
-        initialChannelId: ref(null),
+        // Twitter is the selected channel
+        initialChannelId: ref('ch-tw'),
       })
-      // Strictest = twitter (4)
       expect(picker.effectiveAttachmentLimit.value).toBe(4)
     })
 
@@ -587,7 +587,7 @@ describe('useComposerMediaPicker', () => {
         editingPublication: ref(null),
         provider: ref(null),
         isUnsplashProviderEnabled: ref(false),
-        initialChannelId: ref(null),
+        initialChannelId: ref('ch-tw'),
       })
 
       picker.openMediaPicker()

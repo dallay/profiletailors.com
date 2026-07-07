@@ -75,6 +75,12 @@ const mediaStore = useMediaStore()
 const workspaceStore = useWorkspaceStore()
 
 // ---------------------------------------------------------------------------
+// State
+// ---------------------------------------------------------------------------
+const postText = ref('')
+const selectedChannelId = ref<string | null>(null)
+
+// ---------------------------------------------------------------------------
 // Media picker composable
 // ---------------------------------------------------------------------------
 const picker = useComposerMediaPicker({
@@ -83,18 +89,12 @@ const picker = useComposerMediaPicker({
   editingPublication: () => props.editingPublication ?? null,
   provider: () => props.provider ?? null,
   isUnsplashProviderEnabled: () => props.isUnsplashProviderEnabled ?? false,
-  initialChannelId: () => null,
+  initialChannelId: () => selectedChannelId.value,
   workspaceId: () => workspaceStore.activeWorkspaceId ?? 'ws-local',
   onAttachmentsChanged: () => {
     assetsTouched.value = true
   },
 })
-
-// ---------------------------------------------------------------------------
-// State
-// ---------------------------------------------------------------------------
-const postText = ref('')
-const selectedChannelId = ref<string | null>(null)
 const avatarLoadFailed = ref<Record<string, boolean>>({})
 const submitError = ref('')
 const firstComment = ref('')
@@ -653,6 +653,7 @@ async function uploadDeferredFile(): Promise<boolean> {
     )
     if (isEditMode.value) assetsTouched.value = true
     mediaStore.addToSelection(asset.assetId)
+    picker.draftAttachmentIds.value = [...picker.draftAttachmentIds.value, asset.assetId]
     return true
   } catch {
     submitError.value = 'Media upload failed. Please try again.'
@@ -664,6 +665,9 @@ function resetPostForm() {
   postText.value = ''
   removeFile()
   firstComment.value = ''
+  picker.draftAttachmentIds.value = []
+  picker.pickerSelectionIds.value = []
+  picker.resetPickerSessionTracking()
 }
 
 function finalizeAfterCreate(shouldCreateAnother: boolean) {
