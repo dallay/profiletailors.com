@@ -4,6 +4,9 @@ import ChartStyle from "./ChartStyle.vue"
 </script>
 
 <script setup lang="ts">
+import { computed, toRefs, useId, type HTMLAttributes } from "vue"
+import { provideChartContext, type ChartConfig } from "."
+
 const props = defineProps<{
   id?: HTMLAttributes["id"]
   class?: HTMLAttributes["class"]
