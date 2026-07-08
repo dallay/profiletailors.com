@@ -1,6 +1,7 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 import { mount } from '@vue/test-utils'
 import { createPinia, setActivePinia } from 'pinia'
+import { nextTick } from 'vue'
 import { usePublishingStore } from '@/stores/publishing'
 import { useMediaStore } from '@/stores/media'
 import { useWorkspaceStore } from '@/stores/workspace'
@@ -96,7 +97,7 @@ interface TestChannel {
   id: string
   accountId: string
   name: string
-  provider: 'linkedin'
+  provider: 'linkedin' | 'twitter'
   avatar: string
   avatarUrl?: string
   handle: string
@@ -133,9 +134,19 @@ function mountModal(channels: TestChannel[], props: Record<string, unknown> = {}
   })
 }
 
-async function flushModal(wrapper: ReturnType<typeof mountModal>) {
+async function flushModal(_wrapper: ReturnType<typeof mountModal>): Promise<void> {
   await Promise.resolve()
-  await wrapper.vm.$nextTick()
+  await nextTick()
+  await nextTick()
+}
+
+function mockLoadAssetsWithIds(mediaStore: ReturnType<typeof useMediaStore>, ids: string[]) {
+  return vi.spyOn(mediaStore, 'loadAssets').mockImplementation(async () => {
+    mediaStore.isLoading = true
+    mediaStore.loadError = null
+    mediaStore.assetIds = [...ids]
+    mediaStore.isLoading = false
+  })
 }
 
 function getByTestId(testId: string): HTMLElement {
@@ -210,9 +221,7 @@ describe('CreatePostModal.vue — media picker foundation', () => {
       previewUrl: '/api/media/assets/asset-a/preview',
     }
 
-    const loadAssets = vi.spyOn(mediaStore, 'loadAssets').mockImplementation(async () => {
-      mediaStore.assetIds = ['asset-a']
-    })
+    const loadAssets = mockLoadAssetsWithIds(mediaStore, ['asset-a'])
 
     const wrapper = mountModal([makeChannel('ch-picker')], {
       editingPublication: makeEditingPublication({ assetIds: ['asset-a'] }),
@@ -285,9 +294,7 @@ describe('CreatePostModal.vue — media picker foundation', () => {
       previewUrl: '/api/media/assets/asset-b/preview',
     }
 
-    const loadAssets = vi.spyOn(mediaStore, 'loadAssets').mockImplementation(async () => {
-      mediaStore.assetIds = ['asset-a', 'asset-b']
-    })
+    const loadAssets = mockLoadAssetsWithIds(mediaStore, ['asset-a', 'asset-b'])
 
     const wrapper = mountModal([makeChannel('ch-picker')], {
       editingPublication: makeEditingPublication({ assetIds: ['asset-a'] }),
@@ -325,9 +332,7 @@ describe('CreatePostModal.vue — media picker foundation', () => {
     vi.useFakeTimers()
     try {
       const mediaStore = useMediaStore()
-      const loadAssets = vi.spyOn(mediaStore, 'loadAssets').mockImplementation(async () => {
-        mediaStore.assetIds = []
-      })
+      const loadAssets = mockLoadAssetsWithIds(mediaStore, [])
       const createAndUpload = vi
         .spyOn(mediaStore, 'createAndUpload')
         .mockImplementation(async (fileArg, tempKeyArg) => {
@@ -868,7 +873,7 @@ describe('CreatePostModal.vue — Unsplash integration (WU3)', () => {
     expect(wrapper.emitted('close')).toBeUndefined()
   })
 
-  it('enforces the strictest effectiveAttachmentLimit (min of channel maxAttachments) and blocks apply above it', async () => {
+  it('enforces effectiveAttachmentLimit of the selected channel and blocks apply above it', async () => {
     const mediaStore = useMediaStore()
     for (const id of ['asset-1', 'asset-2', 'asset-3', 'asset-4', 'asset-5']) {
       mediaStore.assetsById[id] = {
@@ -883,11 +888,8 @@ describe('CreatePostModal.vue — Unsplash integration (WU3)', () => {
         previewUrl: `/api/media/assets/${id}/preview`,
       }
     }
-    vi.spyOn(mediaStore, 'loadAssets').mockImplementation(async () => {
-      mediaStore.assetIds = ['asset-1', 'asset-2', 'asset-3', 'asset-4', 'asset-5']
-    })
+    mockLoadAssetsWithIds(mediaStore, ['asset-1', 'asset-2', 'asset-3', 'asset-4', 'asset-5'])
 
-    // Strictest = twitter (4 attachments)
     const channels = [
       makeChannel('ch-li', { provider: 'linkedin', name: 'LinkedIn' } as Partial<TestChannel>),
       makeChannel('ch-tw', { provider: 'twitter', name: 'Twitter' } as Partial<TestChannel>),
@@ -897,25 +899,31 @@ describe('CreatePostModal.vue — Unsplash integration (WU3)', () => {
 
     const wrapper = mountModal(channels)
     await flushModal(wrapper)
+    await flushModal(wrapper)
+
+    const twitterButton = Array.from(document.querySelectorAll('button')).find((btn) =>
+      btn.textContent?.includes('Twitter'),
+    )
+    expect(twitterButton).toBeDefined()
+    twitterButton!.click()
+    await flushModal(wrapper)
 
     getByTestId('add-media-button').click()
     await flushModal(wrapper)
 
-    // Stage 5 assets: above strictest limit (4)
     for (const id of ['asset-1', 'asset-2', 'asset-3', 'asset-4', 'asset-5']) {
       getByTestId(`picker-asset-card-${id}`).click()
       await flushModal(wrapper)
     }
 
-    // Apply MUST NOT close the picker when over the strictest limit.
-    // The modal must surface an invalid-state warning.
-    getByTestId('picker-apply').click()
+    const applyButton = getByTestId('picker-apply') as HTMLButtonElement
+    expect(applyButton.disabled).toBe(true)
+    expect(document.body.innerHTML).toContain('picker-apply-warning')
+
+    applyButton.click()
     await flushModal(wrapper)
 
-    // Picker should still be open — attachments preserved.
     expect(document.body.innerHTML).toContain('picker-asset-card')
-    // Reset the modal's draft to be exactly 5 (apply was blocked) by
-    // programmatically simulating draft update via remove-cycle, then re-check.
   })
 
   it('preserves attachments on channel change and surfaces invalid state without auto-removal', async () => {
@@ -977,7 +985,7 @@ describe('CreatePostModal.vue — Unsplash integration (WU3)', () => {
     await editWrapper.unmount()
   })
 
-  it('surfaces the strictest limit when an invalid state is reached, blocking publish/schedule above the limit', async () => {
+  it('surfaces the limit warning when draft attachments exceed the selected channel limit, blocking publish/schedule', async () => {
     const mediaStore = useMediaStore()
     for (const id of ['asset-1', 'asset-2', 'asset-3']) {
       mediaStore.assetsById[id] = {
@@ -1001,8 +1009,13 @@ describe('CreatePostModal.vue — Unsplash integration (WU3)', () => {
     ;(channels[0] as { maxAttachments?: number }).maxAttachments = 2
 
     const wrapper = mountModal(channels, {
-      editingPublication: makeEditingPublication({ assetIds: ['asset-1', 'asset-2', 'asset-3'] }),
+      editingPublication: makeEditingPublication({
+        assetIds: ['asset-1', 'asset-2', 'asset-3'],
+        accountId: 'ch-li',
+      }),
     })
+    // Wait for initEditMode to complete (async asset loading + channel selection)
+    await flushModal(wrapper)
     await flushModal(wrapper)
     await flushModal(wrapper)
 
