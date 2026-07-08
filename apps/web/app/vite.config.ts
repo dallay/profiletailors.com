@@ -31,7 +31,7 @@ const config = {
   test: {
     environment: 'jsdom',
     globals: true,
-    include: ['src/**/*.test.ts', 'src/**/*.spec.ts'],
+    include: ['src/**/*.test.ts', 'src/**/*.spec.ts', 'e2e/fixtures/**/*.test.ts'],
     setupFiles: ['./src/vitest-setup.ts'],
     coverage: {
       provider: 'v8',
