@@ -1,6 +1,6 @@
 import org.gradle.kotlin.dsl.support.listFilesOrdered
 
-rootProject.name = "profiletailors-backend"
+rootProject.name = "profile-tailors"
 
 enableFeaturePreview("TYPESAFE_PROJECT_ACCESSORS")
 enableFeaturePreview("STABLE_CONFIGURATION_CACHE")
