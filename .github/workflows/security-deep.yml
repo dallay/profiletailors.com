@@ -58,7 +58,7 @@ jobs:
             --exit-code 0
       - name: Upload Gitleaks SARIF
         if: ${{ always() }}
-        uses: github/codeql-action/upload-sarif@v4
+        uses: github/codeql-action/upload-sarif@v4.36.2
         with:
           sarif_file: reports/gitleaks/gitleaks-history.sarif
           category: gitleaks-history
@@ -107,7 +107,7 @@ jobs:
             --output reports/semgrep/semgrep-full.sarif
       - name: Upload Semgrep SARIF
         if: ${{ always() }}
-        uses: github/codeql-action/upload-sarif@v4
+        uses: github/codeql-action/upload-sarif@v4.36.2
         with:
           sarif_file: reports/semgrep/semgrep-full.sarif
           category: semgrep-full
@@ -145,7 +145,7 @@ jobs:
           java-version: '24'
           cache: gradle
       - name: Initialize CodeQL
-        uses: github/codeql-action/init@v4
+        uses: github/codeql-action/init@v4.36.2
         with:
           languages: java-kotlin
           config-file: ./.github/codeql/codeql-config.yml
@@ -153,7 +153,7 @@ jobs:
       - name: Build backend for CodeQL extraction
         run: ./gradlew -p server/smp build -x test --no-daemon
       - name: Analyze with CodeQL
-        uses: github/codeql-action/analyze@v4
+        uses: github/codeql-action/analyze@v4.36.2
         with:
           category: codeql-full-backend
       - name: Summarize CodeQL reporting channel
@@ -218,7 +218,7 @@ jobs:
           fi
       - name: Upload Trivy SARIF
         if: ${{ always() }}
-        uses: github/codeql-action/upload-sarif@v4
+        uses: github/codeql-action/upload-sarif@v4.36.2
         with:
           sarif_file: reports/trivy/trivy-full.sarif
           category: trivy-full
