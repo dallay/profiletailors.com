@@ -21,7 +21,7 @@ dependencies {
     implementation(libs.gradle.kover)
     implementation(libs.gradle.spotless)
 
-    testImplementation(platform("org.junit:junit-bom:6.1.0"))
+    testImplementation(platform("org.junit:junit-bom:6.1.1"))
     testImplementation("org.junit.jupiter:junit-jupiter")
     testRuntimeOnly("org.junit.platform:junit-platform-launcher")
 }
