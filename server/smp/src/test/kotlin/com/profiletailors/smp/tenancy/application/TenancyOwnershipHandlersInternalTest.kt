@@ -414,6 +414,118 @@ class TenancyOwnershipHandlersInternalTest {
         }
 
     // -------------------------------------------------------------------------
+    // RemoveWorkspaceOwnerHandler tests
+    // -------------------------------------------------------------------------
+
+    @Test
+    fun `RemoveWorkspaceOwnerHandler removes owner and returns remaining owner`() = runTest {
+        val ownershipRepository = InMemoryWorkspaceOwnershipRepository(
+            mutableSetOf(
+                WorkspaceOwnership(
+                    workspaceId = "workspace-1",
+                    ownerPrincipalId = "owner-1",
+                    ownerPrincipalType = PrincipalType.USER,
+                ),
+                WorkspaceOwnership(
+                    workspaceId = "workspace-1",
+                    ownerPrincipalId = "member-2",
+                    ownerPrincipalType = PrincipalType.USER,
+                ),
+            ),
+        )
+        val auditHook = CapturingAuditHook()
+
+        val handler = RemoveWorkspaceOwnerHandler(
+            principalContextProvider = FixedPrincipalContextProvider(ownerPrincipal),
+            resourceContextProvider = FixedResourceContextProvider(workspaceContext),
+            workspaceOwnershipRepository = ownershipRepository,
+            tenancyMutationAuditor = TenancyMutationAuditor(
+                FixedPrincipalContextProvider(ownerPrincipal),
+                auditHook,
+            ),
+            transactionRunner = NoOpAtomicTransactionRunner(),
+        )
+
+        val result = handler.handle(RemoveWorkspaceOwnerCommand(targetPrincipalId = "member-2"))
+
+        assertEquals("workspace-1", result.workspaceId)
+        assertEquals(1, result.ownerPrincipalIds.size)
+        assertTrue(result.ownerPrincipalIds.contains("owner-1"))
+        assertFalse(result.ownerPrincipalIds.contains("member-2"))
+        assertTrue(
+            auditHook.mutations.any {
+                it.action == "workspace.owner.remove" && it.targetId == "member-2" && it.outcome.name == "SUCCESS"
+            },
+        )
+    }
+
+    @Test
+    fun `RemoveWorkspaceOwnerHandler throws LastOwnerRemovalRequiresReplacementException when target is last owner`() =
+        runTest {
+            val ownershipRepository = InMemoryWorkspaceOwnershipRepository(
+                mutableSetOf(
+                    WorkspaceOwnership(
+                        workspaceId = "workspace-1",
+                        ownerPrincipalId = "owner-1",
+                        ownerPrincipalType = PrincipalType.USER,
+                    ),
+                ),
+            )
+            val auditHook = CapturingAuditHook()
+
+            val handler = RemoveWorkspaceOwnerHandler(
+                principalContextProvider = FixedPrincipalContextProvider(ownerPrincipal),
+                resourceContextProvider = FixedResourceContextProvider(workspaceContext),
+                workspaceOwnershipRepository = ownershipRepository,
+                tenancyMutationAuditor = TenancyMutationAuditor(
+                    FixedPrincipalContextProvider(ownerPrincipal),
+                    auditHook,
+                ),
+                transactionRunner = NoOpAtomicTransactionRunner(),
+            )
+
+            val exception = runCatching {
+                handler.handle(RemoveWorkspaceOwnerCommand(targetPrincipalId = "owner-1"))
+            }.exceptionOrNull()
+            assertInstanceOf(LastOwnerRemovalRequiresReplacementException::class.java, exception)
+        }
+
+    @Test
+    fun `RemoveWorkspaceOwnerHandler throws AccessDenied when actor is not owner`() = runTest {
+        val ownershipRepository = InMemoryWorkspaceOwnershipRepository(
+            mutableSetOf(
+                WorkspaceOwnership(
+                    workspaceId = "workspace-1",
+                    ownerPrincipalId = "other-owner",
+                    ownerPrincipalType = PrincipalType.USER,
+                ),
+                WorkspaceOwnership(
+                    workspaceId = "workspace-1",
+                    ownerPrincipalId = "member-2",
+                    ownerPrincipalType = PrincipalType.USER,
+                ),
+            ),
+        )
+        val auditHook = CapturingAuditHook()
+
+        val handler = RemoveWorkspaceOwnerHandler(
+            principalContextProvider = FixedPrincipalContextProvider(ownerPrincipal),
+            resourceContextProvider = FixedResourceContextProvider(workspaceContext),
+            workspaceOwnershipRepository = ownershipRepository,
+            tenancyMutationAuditor = TenancyMutationAuditor(
+                FixedPrincipalContextProvider(ownerPrincipal),
+                auditHook,
+            ),
+            transactionRunner = NoOpAtomicTransactionRunner(),
+        )
+
+        val exception = runCatching {
+            handler.handle(RemoveWorkspaceOwnerCommand(targetPrincipalId = "member-2"))
+        }.exceptionOrNull()
+        assertInstanceOf(WorkspaceOwnerAccessDeniedException::class.java, exception)
+    }
+
+    // -------------------------------------------------------------------------
     // Helper classes — same pattern as UpdateWorkspaceMembershipStatusHandlerTest
     // -------------------------------------------------------------------------
 
@@ -458,14 +570,20 @@ class TenancyOwnershipHandlersInternalTest {
         }
 
         override suspend fun remove(workspaceId: String, principalId: String) {
-            ownerships.removeIf { it.workspaceId == workspaceId && it.ownerPrincipalId == principalId }
+            ownerships.removeIf {
+                it.workspaceId == workspaceId && it.ownerPrincipalId == principalId
+            }
         }
 
         override suspend fun removeIfReplacementExists(workspaceId: String, principalId: String): Boolean {
             if (removeIfReplacementAlwaysFails) return false
-            val hasOtherOwner = ownerships.any { it.workspaceId == workspaceId && it.ownerPrincipalId != principalId }
+            val hasOtherOwner = ownerships.any {
+                it.workspaceId == workspaceId && it.ownerPrincipalId != principalId
+            }
             if (!hasOtherOwner) return false
-            return ownerships.removeIf { it.workspaceId == workspaceId && it.ownerPrincipalId == principalId }
+            return ownerships.removeIf {
+                it.workspaceId == workspaceId && it.ownerPrincipalId == principalId
+            }
         }
 
         override suspend fun exists(workspaceId: String, principalId: String): Boolean =
