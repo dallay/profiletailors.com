@@ -161,19 +161,28 @@ class ProductionCredentialsValidatorTest {
     }
 
     @Test
-    fun `should skip validation in Spring Boot test context via test cache property`() {
+    fun `should validate in plain JUnit test with MockEnvironment even if test-like properties are set`() {
+        // Plain JUnit unit tests use MockEnvironment and call validateCredentials()
+        // directly. The classpath-based test context detection (which relies on
+        // JUnit being available on the classpath) is ONLY activated for real
+        // Spring Boot environments, NOT for MockEnvironment. This ensures unit
+        // tests thoroughly exercise the validation logic even when JUnit happens
+        // to be on the classpath.
         val environment = MockEnvironment().apply {
             // Intentionally use unsafe values
             setProperty("SMP_DB_PASSWORD", "CHANGE_ME_gK2fcFZg5cgVu9U")
             setProperty("PUBLISHING_CREDENTIALS_KEY", "")
             setProperty("SMP_LOCAL_JWT_SECRET", "")
-            // Simulate Spring Boot test context (set by @SpringBootTest)
+            // Previous detection attempted to use this property, but it's never
+            // exposed through the Environment by Spring Boot TestContext framework
             setProperty("spring.test.context.cache.maxSize", "32")
         }
         val validator = ProductionCredentialsValidator(environment)
 
-        // Should not throw (test context detected)
-        validator.validateCredentials()
+        // Should throw — MockEnvironment is not a real Spring Boot environment
+        shouldThrow<IllegalStateException> {
+            validator.validateCredentials()
+        }
     }
 
     @Test

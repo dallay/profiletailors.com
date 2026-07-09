@@ -59,9 +59,11 @@ Secrets are grouped by risk level and rotation frequency:
 - **Description:** PostgreSQL password for `SMP_DB_USERNAME`.
 - **Risk:** CRITICAL
 - **Generation:**
+
   ```bash
   openssl rand -base64 32
   ```
+
 - **Rotation:** Update password in Postgres, update secret, restart app, verify connectivity.
 - **Access:** Infrastructure admins, deployment automation.
 
@@ -82,9 +84,11 @@ Secrets are grouped by risk level and rotation frequency:
 - **Description:** HS256 signing key for local JWT tokens (dev/staging, no external IdP).
 - **Risk:** HIGH
 - **Generation:**
+
   ```bash
   openssl rand -base64 32
   ```
+
 - **Rotation:** Generate new key, update secret, restart app. Old tokens become invalid immediately.
   Coordinate with users if long-lived sessions exist.
 - **Access:** Infrastructure admins, deployment automation.
@@ -97,9 +101,11 @@ Secrets are grouped by risk level and rotation frequency:
 - **Description:** Fallback JWT signing key when `SMP_LOCAL_JWT_SECRET` is blank (dev-only).
 - **Risk:** HIGH (if used in production)
 - **Generation:**
+
   ```bash
   openssl rand -base64 32
   ```
+
 - **Rotation:** Same as `SMP_LOCAL_JWT_SECRET`.
 - **Access:** Infrastructure admins, deployment automation.
 - **Production note:** **MUST be empty in production** to force explicit `SMP_LOCAL_JWT_SECRET`
@@ -136,9 +142,11 @@ Secrets are grouped by risk level and rotation frequency:
   Used by `EncryptedCredentialsService` to encrypt/decrypt LinkedIn OAuth tokens at rest.
 - **Risk:** **CRITICAL** — compromise exposes all user OAuth tokens.
 - **Generation:**
+
   ```bash
   openssl rand -base64 32
   ```
+
 - **Rotation:**
   1. **High-impact operation** — requires re-encryption of all stored credentials.
   2. Generate new key.
@@ -170,9 +178,11 @@ Secrets are grouped by risk level and rotation frequency:
 - **Description:** Password for Testcontainers-backed integration tests (CI only).
 - **Risk:** LOW (ephemeral container, not production data)
 - **Generation:**
+
   ```bash
   openssl rand -base64 16
   ```
+
 - **Rotation:** No rotation required (ephemeral). Change if CI environment is compromised.
 - **Access:** CI/CD pipeline only.
 
@@ -182,9 +192,11 @@ Secrets are grouped by risk level and rotation frequency:
 - **Description:** Grafana admin password (local monitoring only, not production).
 - **Risk:** MEDIUM (local dev/staging only)
 - **Generation:**
+
   ```bash
   openssl rand -base64 16
   ```
+
 - **Rotation:** Change if local Grafana is exposed or compromised.
 - **Access:** Infrastructure admins, local developers (dev/staging only).
 

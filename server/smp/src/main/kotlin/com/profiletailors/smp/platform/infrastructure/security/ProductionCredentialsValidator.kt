@@ -5,6 +5,7 @@ import org.springframework.boot.context.event.ApplicationStartedEvent
 import org.springframework.context.event.EventListener
 import org.springframework.core.env.Environment
 import org.springframework.stereotype.Component
+import kotlin.runCatching
 
 /**
  * Validates that no default or placeholder credentials are active when the application starts.
@@ -26,8 +27,9 @@ import org.springframework.stereotype.Component
  *   (enforced separately by `LocalJwtSecretResolver`, but double-checked here).
  *
  * **When it runs:**
- * - After application context is fully initialized but before the web server starts accepting
- *   connections (via [ApplicationStartedEvent]).
+ * - After `ApplicationContext.refresh()` / `finishRefresh()` when the embedded server is already
+ *   started (via [ApplicationStartedEvent]).
+ * - Before application runners execute, not before server startup.
  * - Skipped in test profile (where test credentials are acceptable).
  * - Skipped in Spring Boot test contexts (BDD, integration tests) detected via test-specific
  *   properties.
@@ -53,11 +55,7 @@ class ProductionCredentialsValidator(private val environment: Environment) {
             return
         }
 
-        // Skip validation in Spring Boot test contexts (BDD, integration tests, etc.)
-        // These tests may use Testcontainers or mock credentials that would fail validation
-        val isTestContext = environment.getProperty("spring.test.context.cache.maxSize") != null ||
-            environment.getProperty("bdd.variant") != null
-        if (isTestContext) {
+        if (isTestContext()) {
             logger.debug("Skipping production credentials validation (test context detected)")
             return
         }
@@ -113,6 +111,35 @@ class ProductionCredentialsValidator(private val environment: Environment) {
         } else {
             logger.info("✅ Production credentials validation passed (no default values detected)")
         }
+    }
+
+    /**
+     * Detects whether the application is running in a Spring Boot test context.
+     *
+     * Detection strategy:
+     * - `bdd.variant` is set by Cucumber-specific test configurations.
+     * - JUnit 5 on the classpath indicates a test context, BUT only when the
+     *   Environment is a real Spring Boot environment (not MockEnvironment).
+     *   Plain JUnit unit tests (validator's own tests) use MockEnvironment and
+     *   call validateCredentials() directly — those should NOT skip validation.
+     *   [@SpringBootTest] integration tests (Postgres, etc.) use a real Environment
+     *   and have JUnit on the classpath — those SHOULD skip validation.
+     * - `environment.getProperty("spring.test.context.cache.maxSize")` is NOT used
+     *   here because Spring does not expose that TestContext attribute through the
+     *   Environment — the check would never match.
+     */
+    private fun isTestContext(): Boolean {
+        if (environment.getProperty("bdd.variant") != null) return true
+
+        val isMockEnvironment = runCatching {
+            environment::class.qualifiedName?.contains("MockEnvironment") == true
+        }.getOrDefault(false)
+        if (isMockEnvironment) return false
+
+        return runCatching {
+            Class.forName("org.junit.jupiter.api.Test")
+            true
+        }.getOrDefault(false)
     }
 
     private companion object {
