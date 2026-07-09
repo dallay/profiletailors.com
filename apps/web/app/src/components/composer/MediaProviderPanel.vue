@@ -1,8 +1,7 @@
 <script setup lang="ts">
-import { ref, computed } from 'vue'
+import { computed } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { Button } from '@/components/ui/button'
-import { Input } from '@/components/ui/input'
 
 /**
  * Provider-specific presentation layer for the composer media picker.
@@ -19,8 +18,6 @@ export interface ProviderSearchResultViewModel {
 
 const props = withDefaults(
   defineProps<{
-    /** Optional query the parent pre-filled (e.g., re-opening an earlier search). */
-    initialQuery?: string
     /** Read-only results owned by the parent. */
     results?: ProviderSearchResultViewModel[]
     /** Whether the parent is currently fetching provider results. */
@@ -29,28 +26,19 @@ const props = withDefaults(
     searchError?: string | null
   }>(),
   {
-    initialQuery: '',
     results: () => [] as ProviderSearchResultViewModel[],
     isSearching: false,
     searchError: null,
   },
 )
 
-const emit = defineEmits<{
-  (e: 'provider-search', payload: { query: string }): void
-  (e: 'provider-import', payload: { externalId: string }): void
-}>()
+const emit = defineEmits<(e: 'provider-import', payload: { externalId: string }) => void>()
 
 const { t } = useI18n()
-const query = ref(props.initialQuery)
 
 const sortedResults = computed(() =>
   [...props.results].sort((a, b) => a.name.localeCompare(b.name)),
 )
-
-function submitSearch() {
-  emit('provider-search', { query: query.value.trim() })
-}
 
 function importResult(result: ProviderSearchResultViewModel) {
   // Guard: disabled when selectedForImport is true (parent owns the in-flight state).
@@ -68,33 +56,6 @@ function importResult(result: ProviderSearchResultViewModel) {
     data-testid="provider-panel"
     aria-label="Provider search"
   >
-    <form
-      class="flex items-center gap-2"
-      data-testid="picker-provider-search"
-      @submit.prevent="submitSearch"
-    >
-      <!-- biome-ignore lint/a11y/noLabelWithoutControl: label is associated via `for` to the search input below -->
-      <label class="sr-only" :aria-label="t('composer.picker.providerSearchLabel')" for="provider-panel-query">
-        {{ t('composer.picker.providerSearchLabel') }}
-      </label>
-      <Input
-        id="provider-panel-query"
-        v-model="query"
-        type="search"
-        :placeholder="t('composer.picker.searchPlaceholder')"
-        class="flex-1"
-      />
-      <Button
-        type="submit"
-        variant="outline"
-        size="sm"
-        data-testid="provider-panel-search-submit"
-        :disabled="isSearching"
-      >
-        {{ isSearching ? t('composer.picker.searchingAction') : t('composer.picker.searchAction') }}
-      </Button>
-    </form>
-
     <p
       v-if="searchError"
       class="rounded-xl border border-error/40 bg-error/10 px-3 py-2 text-xs text-error"
@@ -104,7 +65,15 @@ function importResult(result: ProviderSearchResultViewModel) {
     </p>
 
     <div
-      v-else-if="sortedResults.length === 0 && !isSearching"
+      v-else-if="isSearching"
+      class="rounded-2xl border border-dashed border-border-subtle px-4 py-6 text-sm text-text-secondary"
+      data-testid="provider-panel-loading"
+    >
+      {{ t('composer.picker.searchingAction') }}
+    </div>
+
+    <div
+      v-else-if="sortedResults.length === 0"
       class="rounded-2xl border border-dashed border-border-subtle px-4 py-6 text-sm text-text-secondary"
       data-testid="provider-panel-empty"
     >
@@ -140,6 +109,7 @@ function importResult(result: ProviderSearchResultViewModel) {
           variant="outline"
           size="sm"
           data-testid="provider-panel-import"
+          :data-provider-id="result.externalId"
           :disabled="result.selectedForImport"
           @click="importResult(result)"
         >

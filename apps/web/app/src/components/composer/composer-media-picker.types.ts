@@ -1,4 +1,5 @@
 export type ComposerMediaPickerCollectionState = 'LOADING' | 'READY' | 'EMPTY' | 'ERROR'
+export type ComposerMediaPickerSource = 'library' | 'unsplash'
 
 export type ComposerMediaPickerAssetStatus = 'READY' | 'PROCESSING' | 'FAILED'
 
