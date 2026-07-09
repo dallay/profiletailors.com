@@ -35,6 +35,7 @@ const pdfBytes = Buffer.from(
   '%PDF-1.4\n1 0 obj<</Type/Catalog>>endobj\ntrailer<</Root 1 0 R>>\n%%EOF\n',
 )
 const mp4PlaceholderBytes = Buffer.from('mocked-playwright-video-placeholder\n')
+const invalidTxtBytes = Buffer.from('not a supported media type\n', 'utf-8')
 
 function sha256(bytes: Buffer): string {
   return crypto.createHash('sha256').update(bytes).digest('hex')
@@ -69,6 +70,7 @@ export const mediaFiles = {
   mutated: manifestEntry('base-mutated.png', 'image/png', 'one-bit-mutated', mutatedPngBytes),
   document: manifestEntry('document.pdf', 'application/pdf', 'document', pdfBytes),
   clip: manifestEntry('clip.mp4', 'video/mp4', 'video-placeholder', mp4PlaceholderBytes),
+  invalidTxt: manifestEntry('invalid.txt', 'text/plain', 'document', invalidTxtBytes),
 } as const
 
 export const mediaFixtureManifest: readonly MediaFixtureManifestEntry[] = Object.values(mediaFiles)

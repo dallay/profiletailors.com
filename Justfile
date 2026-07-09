@@ -82,6 +82,7 @@ setup:
     just install
     just hooks-install
     pnpm dlx @dallay/agentsync apply
+    command -v portless >/dev/null 2>&1 || pnpm add -g portless
     command -v codegraph >/dev/null 2>&1 && codegraph init || echo "⚠️  codegraph not found — skipping index init"
 
 # Install Lefthook git hooks unless globally disabled
@@ -192,11 +193,24 @@ backend-run:
 # SERVE  (Backend + Frontend App)
 # ═══════════════════════════════════════════════════════════════
 
-# Start backend + frontend app in parallel (both read root .env)
-serve:
-    @echo "Starting backend (Spring Boot) + frontend app (Vite)..."
+# Start backend + frontend app in parallel
+serve $force="":
+    #!/usr/bin/env bash
+    set -euo pipefail
+    if [ "{{force}}" = "--force" ]; then
+        just kill-servers
+    elif [ -n "{{force}}" ]; then
+        echo "Unknown option: {{force}}"
+        echo "Usage: just serve [--force]"
+        exit 2
+    fi
+    echo "Starting backend (Spring Boot) + frontend app (Vite)..."
     {{gradle-root}} :server:smp:bootRun --args='--spring.profiles.active=dev' &
     cd {{app-dir}} && pnpm dev
+
+# Restart backend + frontend app, killing previous dev servers first
+serve-force:
+    just serve --force
 
 # Kill running dev servers (backend, frontend, Gradle daemons)
 kill-servers:

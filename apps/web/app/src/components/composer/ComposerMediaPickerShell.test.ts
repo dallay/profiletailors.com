@@ -4,6 +4,7 @@ import ComposerMediaPickerShell from './ComposerMediaPickerShell.vue'
 import type {
   ComposerMediaPickerAsset,
   ComposerMediaPickerCollectionState,
+  ComposerMediaPickerSource,
 } from './composer-media-picker.types'
 
 const mockT = (key: string) => {
@@ -16,6 +17,12 @@ const mockT = (key: string) => {
     'composer.picker.unsplashChip': 'Unsplash',
     'composer.picker.searchPlaceholder': 'Search Unsplash',
     'composer.picker.searchAction': 'Search',
+    'composer.picker.searchingAction': 'Searching…',
+    'composer.picker.providerSearchLabel': 'Search Unsplash',
+    'composer.picker.libraryDescription':
+      'Browse images and videos already saved in this workspace.',
+    'composer.picker.providerDescription':
+      'Search Unsplash and import media into this post without leaving the composer.',
     'composer.picker.errorLoad': 'Unable to load media library.',
     'composer.picker.noPreview': 'No preview',
     'composer.picker.cancel': 'Cancel',
@@ -28,6 +35,15 @@ const mockT = (key: string) => {
 vi.mock('vue-i18n', () => ({
   useI18n: () => ({ t: mockT }),
 }))
+
+vi.mock('@lucide/vue', () => {
+  const stub = { template: '<svg />' }
+  return {
+    Check: stub,
+    Search: stub,
+    X: stub,
+  }
+})
 
 function makeAsset(overrides: Partial<ComposerMediaPickerAsset> = {}): ComposerMediaPickerAsset {
   return {
@@ -46,6 +62,7 @@ function makeAsset(overrides: Partial<ComposerMediaPickerAsset> = {}): ComposerM
 function mountShell(
   options: Partial<{
     isOpen: boolean
+    activeSource: ComposerMediaPickerSource
     collectionState: ComposerMediaPickerCollectionState
     assets: ComposerMediaPickerAsset[]
     provider: 'unsplash' | null
@@ -54,6 +71,7 @@ function mountShell(
   return mount(ComposerMediaPickerShell, {
     props: {
       isOpen: true,
+      activeSource: 'library',
       collectionState: 'READY',
       assets: [],
       provider: null,
@@ -63,10 +81,10 @@ function mountShell(
 }
 
 describe('ComposerMediaPickerShell.vue', () => {
-  it('emits typed selection, apply, close, and provider-search events while keeping provider tab conditional', async () => {
+  it('renders the source switcher and emits library selection/apply/close events', async () => {
     const wrapper = mountShell({
       provider: 'unsplash',
-      assets: [makeAsset()],
+      assets: [makeAsset({ selected: true })],
     })
 
     expect(wrapper.text()).toContain('Library')
@@ -75,25 +93,34 @@ describe('ComposerMediaPickerShell.vue', () => {
     await wrapper.get('[data-testid="picker-asset-card-asset-1"]').trigger('click')
     expect(wrapper.emitted('toggle-asset')).toEqual([[{ assetId: 'asset-1' }]])
 
-    await wrapper.get('[data-testid="picker-provider-search"] input').setValue('coffee')
-    await wrapper.get('[data-testid="picker-provider-search"]').trigger('submit.prevent')
-    expect(wrapper.emitted('provider-search')).toEqual([[{ query: 'coffee' }]])
-
-    // Provider-import is emitted by the parent MediaProviderPanel via the slot,
-    // not by the shell. Confirm the shell did NOT emit it directly.
-    expect(wrapper.emitted('provider-import')).toBeUndefined()
-
-    // Picker MUST stay open (no close emitted yet).
-    expect(wrapper.emitted('close')).toBeUndefined()
+    expect(wrapper.find('[data-testid="picker-asset-selected-indicator-asset-1"]').exists()).toBe(
+      true,
+    )
 
     await wrapper.get('[data-testid="picker-apply"]').trigger('click')
-    expect(wrapper.emitted('apply-selection')).toEqual([[{ assetIds: [] }]])
+    expect(wrapper.emitted('apply-selection')).toEqual([[{ assetIds: ['asset-1'] }]])
 
     await wrapper.get('[data-testid="picker-cancel"]').trigger('click')
     expect(wrapper.emitted('close')).toEqual([[]])
   })
 
-  it('renders library collection states and ready asset fallback previews', async () => {
+  it('switches to the provider source and emits typed provider search events', async () => {
+    const wrapper = mountShell({
+      provider: 'unsplash',
+      activeSource: 'unsplash',
+    })
+
+    expect(wrapper.text()).toContain('Search Unsplash')
+
+    await wrapper.get('[data-testid="picker-provider-search"] input').setValue('coffee')
+    await wrapper.get('[data-testid="picker-provider-search"]').trigger('submit.prevent')
+    expect(wrapper.emitted('provider-search')).toEqual([[{ query: 'coffee' }]])
+
+    await wrapper.get('[data-testid="picker-source-library"]').trigger('click')
+    expect(wrapper.emitted('set-active-source')).toEqual([[{ source: 'library' }]])
+  })
+
+  it('renders library collection states and fallback previews', async () => {
     const loading = mountShell({ collectionState: 'LOADING' })
     expect(loading.text()).toContain('Loading media library...')
 

@@ -7,6 +7,10 @@ import {
   MediaRouteState,
   registerMediaMocks,
   resetMediaMocks,
+  DeferredUploadController,
+  MockChannelsProvider,
+  MockProviderFlag,
+  TransitionQueue,
 } from './media-mocks'
 
 interface MediaMockFixtures {
@@ -14,6 +18,11 @@ interface MediaMockFixtures {
   mockState: MediaRouteState
   mockListResponse: (response: MockListResponse) => void
   mockNextPut: (response: MockPutResponse) => void
+  // PR 1 — composer-scoped controllers
+  deferredUpload: DeferredUploadController
+  channelsProvider: MockChannelsProvider
+  providerFlag: MockProviderFlag
+  transitionQueue: TransitionQueue<{ progress: number }>
 }
 
 export const test = base.extend<MediaMockFixtures>({
@@ -49,6 +58,31 @@ export const test = base.extend<MediaMockFixtures>({
     await use((response: MockPutResponse) => {
       mockState.enqueuePut(response)
     })
+  },
+
+  deferredUpload: async ({ mockState }, use) => {
+    const controller = new DeferredUploadController(mockState)
+    await use(controller)
+    controller.clear()
+  },
+
+  channelsProvider: async ({ mockState }, use) => {
+    const provider = new MockChannelsProvider(mockState)
+    await use(provider)
+    provider.reset()
+  },
+
+  providerFlag: async ({ mockState }, use) => {
+    const flag = new MockProviderFlag(mockState)
+    await use(flag)
+    flag.reset()
+  },
+
+  // biome-ignore lint/correctness/noEmptyPattern: Playwright fixtures require object destructuring.
+  transitionQueue: async ({}, use) => {
+    const queue = new TransitionQueue<{ progress: number }>()
+    await use(queue)
+    queue.reset()
   },
 })
 

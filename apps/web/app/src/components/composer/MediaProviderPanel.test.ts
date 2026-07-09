@@ -30,16 +30,6 @@ function mountPanel(propsOverride: Record<string, unknown> = {}) {
 }
 
 describe('MediaProviderPanel.vue', () => {
-  it('emits provider-search on form submit with the typed query', async () => {
-    const wrapper = mountPanel()
-
-    const input = wrapper.get('[data-testid="picker-provider-search"] input')
-    await input.setValue('mountain')
-    await wrapper.get('[data-testid="picker-provider-search"]').trigger('submit.prevent')
-
-    expect(wrapper.emitted('provider-search')).toEqual([[{ query: 'mountain' }]])
-  })
-
   it('emits provider-import with the clicked result externalId and does not refetch', async () => {
     const wrapper = mountPanel({
       results: [makeResult({ externalId: 'ext-22', name: 'A photo' })],
@@ -73,10 +63,28 @@ describe('MediaProviderPanel.vue', () => {
     expect(wrapper.find('[data-testid="provider-panel-empty"]').exists()).toBe(true)
   })
 
+  it('renders loading state while the parent is searching', () => {
+    const wrapper = mountPanel({ isSearching: true })
+    expect(wrapper.find('[data-testid="provider-panel-loading"]').exists()).toBe(true)
+  })
+
   it('renders error state when the parent surfaces a search error', () => {
     const wrapper = mountPanel({ searchError: 'Search failed: rate limited' })
     const errorEl = wrapper.find('[data-testid="provider-panel-search-error"]')
     expect(errorEl.exists()).toBe(true)
     expect(errorEl.text()).toContain('Search failed: rate limited')
+  })
+
+  it('renders provider results sorted by name', () => {
+    const wrapper = mountPanel({
+      results: [
+        makeResult({ externalId: 'ext-b', name: 'Zulu photo' }),
+        makeResult({ externalId: 'ext-a', name: 'Alpha photo' }),
+      ],
+    })
+
+    const cards = wrapper.findAll('[data-testid^="provider-result-"]')
+    expect(cards[0]?.text()).toContain('Alpha photo')
+    expect(cards[1]?.text()).toContain('Zulu photo')
   })
 })

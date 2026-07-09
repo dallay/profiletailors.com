@@ -515,7 +515,7 @@ watch(
 </script>
 
 <template>
-  <div class="space-y-6">
+  <div class="flex min-h-0 h-full flex-col gap-6">
     <!-- Calendar Header: navigation, view toggle, filters -->
     <CalendarHeader
       :calendar-view="calendarView"
@@ -533,7 +533,7 @@ watch(
     <!-- Reconnect prompt for LinkedIn accounts requiring re-authentication -->
     <div
       v-if="publishingStore.hasReconnectRequiredChannels"
-      class="flex items-center gap-3 px-4 py-3 rounded-xl border border-warning/30 bg-warning/5"
+      class="flex shrink-0 items-center gap-3 rounded-xl border border-warning/30 bg-warning/5 px-4 py-3"
     >
       <span class="font-mono text-[10px] font-bold tracking-wider uppercase text-warning">
         Reconnect Required
@@ -550,9 +550,9 @@ watch(
     </div>
 
     <!-- Main Workspace Layout -->
-    <div class="min-w-0">
+    <div class="min-w-0 min-h-0 flex-1 overflow-hidden">
         <!-- Calendar Mode -->
-        <div v-if="url.state.value.surface !== 'list'" class="space-y-4">
+        <div v-if="url.state.value.surface !== 'list'" class="flex h-full min-h-0 flex-col gap-4">
           <!-- ================================================================ -->
           <!-- MONTH VIEW -->
           <!-- ================================================================ -->
@@ -602,10 +602,10 @@ watch(
           <!-- ================================================================ -->
           <!-- WEEK VIEW -->
           <!-- ================================================================ -->
-          <div v-if="calendarView === 'week'">
-            <Card class="bg-bg-surface border border-border-subtle p-0 overflow-hidden">
+          <div v-if="calendarView === 'week'" class="flex min-h-0 flex-1 flex-col">
+            <Card class="flex min-h-0 flex-1 flex-col overflow-hidden border border-border-subtle bg-bg-surface p-0">
               <!-- Grid Header: Time-axis label + Days of the week -->
-              <div class="grid grid-cols-[48px_repeat(7,1fr)] border-b border-border-subtle bg-bg-primary">
+              <div class="shrink-0 grid grid-cols-[48px_repeat(7,1fr)] border-b border-border-subtle bg-bg-primary">
                 <!-- Time-axis header spacer -->
                 <div class="py-3.5 border-r border-border-subtle" />
                 <div
@@ -631,7 +631,7 @@ watch(
               </div>
 
               <!-- Grid Body: Single left time-axis + 7 day columns -->
-              <div class="relative">
+              <div class="relative min-h-0 flex-1 overflow-y-auto">
                 <div v-for="slot in hourSlots" :key="slot.hour" class="grid h-[96px] grid-cols-[48px_repeat(7,1fr)] border-b border-border-subtle last:border-b-0">
                   <!-- Single left time-axis label -->
                   <div class="py-2 border-r border-border-subtle flex items-start justify-center">
@@ -743,12 +743,12 @@ watch(
         </div>
 
         <!-- List Mode -->
-        <div v-else class="space-y-4">
+        <div v-else class="flex h-full min-h-0 flex-col gap-4">
           <div v-if="filteredPublications.length === 0" class="border border-dashed border-border-visible rounded-2xl p-12 text-center text-text-secondary font-mono text-xs uppercase tracking-wider">
             {{ $t('dashboard.noPosts') || 'No posts match your current filters.' }}
           </div>
 
-          <div v-else class="space-y-3">
+          <div v-else class="min-h-0 flex-1 overflow-y-auto space-y-3 pr-1">
               <button
                 v-for="pub in filteredPublications"
                 :key="pub.id"
