@@ -52,6 +52,235 @@ interface PutRequestBody {
   originalFilename?: string
 }
 
+// ---------------------------------------------------------------------------
+// PR 1 — deferred upload, transition queue, channel/provider state
+// ---------------------------------------------------------------------------
+
+/** Record of a single in-flight deferred upload held by the mock layer. */
+export interface DeferredUploadRecord {
+  assetId: string
+  mediaType: string
+  status: 'PENDING' | 'UPLOADING' | 'FAILED'
+  progress: number
+  transitions: Array<{ progress: number; status?: 'PENDING' | 'UPLOADING' | 'FAILED' }>
+  /** Resolver callback fired by complete() — fulfils the held route. */
+  resolve: (response: { status: number; body: unknown }) => void
+  /** Rejector callback fired by failNext() — rejects the held route. */
+  reject: (failure: { status: number; code: string }) => void
+}
+
+export interface DeferredUploadOptions {
+  mediaType?: string
+}
+
+export interface DeferredProgress {
+  progress: number
+  status?: 'PENDING' | 'UPLOADING' | 'FAILED'
+}
+
+export interface DeferredCompletion {
+  progress: number
+  status: 'READY'
+}
+
+export interface DeferredFailure {
+  status: 500 | 502 | 503 | 504
+  code: string
+}
+
+export interface IDeferredUploadController {
+  enqueueDeferred(input?: DeferredUploadOptions): string
+  startUpload(assetId: string): void
+  advance(assetId: string, transition: DeferredProgress): void
+  complete(assetId: string, completion: DeferredCompletion): Promise<void>
+  failNext(assetId: string, failure: DeferredFailure): Promise<DeferredFailure>
+  clear(): void
+  heldCount(): number
+}
+
+/**
+ * Holds a binary POST /upload route fulfillment until a test calls
+ * `complete()` or `failNext()`. Deterministic: no setTimeout / sleep.
+ */
+export class DeferredUploadController implements IDeferredUploadController {
+  private static counter = 0
+  private readonly state: MediaRouteState
+
+  constructor(state: MediaRouteState) {
+    this.state = state
+  }
+
+  enqueueDeferred(input: DeferredUploadOptions = {}): string {
+    const assetId = `deferred-${++DeferredUploadController.counter}-${Date.now()}`
+    const record: DeferredUploadRecord = {
+      assetId,
+      mediaType: input.mediaType ?? 'image/png',
+      status: 'PENDING',
+      progress: 0,
+      transitions: [],
+      resolve: () => {
+        // Default resolver: tests that don't await complete() still release
+        // the route so the test doesn't hang. Replaced by `startUpload`.
+      },
+      reject: () => {
+        // Default rejector. Replaced by `startUpload`.
+      },
+    }
+    this.state.deferredUploads.set(assetId, record)
+    return assetId
+  }
+
+  startUpload(assetId: string): void {
+    const record = this.requireRecord(assetId)
+    record.status = 'UPLOADING'
+  }
+
+  advance(assetId: string, transition: DeferredProgress): void {
+    const record = this.requireRecord(assetId)
+    record.progress = transition.progress
+    if (transition.status) record.status = transition.status
+    record.transitions.push({ progress: transition.progress, status: transition.status })
+  }
+
+  async complete(assetId: string, completion: DeferredCompletion): Promise<void> {
+    const record = this.requireRecord(assetId)
+    record.progress = completion.progress
+    record.status = 'UPLOADING'
+    record.resolve({
+      status: 200,
+      body: {
+        assetId: record.assetId,
+        workspaceId: MOCK_WORKSPACE_ID,
+        status: 'READY',
+        mediaType: record.mediaType,
+        detectedMediaType: record.mediaType,
+        deduped: false,
+        fileSizeBytes: 0,
+        createdAt: new Date().toISOString(),
+      },
+    })
+    this.state.deferredUploads.delete(assetId)
+  }
+
+  async failNext(assetId: string, failure: DeferredFailure): Promise<DeferredFailure> {
+    const record = this.requireRecord(assetId)
+    record.status = 'FAILED'
+    record.reject(failure)
+    this.state.deferredUploads.delete(assetId)
+    return failure
+  }
+
+  clear(): void {
+    for (const record of this.state.deferredUploads.values()) {
+      // Resolve with a 200 + cancelled so any awaiting routes release.
+      record.resolve({ status: 200, body: { cancelled: true } })
+    }
+    this.state.deferredUploads.clear()
+  }
+
+  heldCount(): number {
+    return this.state.deferredUploads.size
+  }
+
+  private requireRecord(assetId: string): DeferredUploadRecord {
+    const record = this.state.deferredUploads.get(assetId)
+    if (!record) {
+      throw new Error(`DeferredUploadController: assetId ${assetId} is not enqueued`)
+    }
+    return record
+  }
+}
+
+/** FIFO queue of arbitrary transitions keyed by assetId. */
+export class TransitionQueue<T> {
+  private readonly queues = new Map<string, T[]>()
+
+  enqueue(assetId: string, value: T): void {
+    let queue = this.queues.get(assetId)
+    if (!queue) {
+      queue = []
+      this.queues.set(assetId, queue)
+    }
+    queue.push(value)
+  }
+
+  take(assetId: string): T | null {
+    const queue = this.queues.get(assetId)
+    if (!queue || queue.length === 0) return null
+    return queue.shift() ?? null
+  }
+
+  size(assetId: string): number {
+    return this.queues.get(assetId)?.length ?? 0
+  }
+
+  reset(): void {
+    this.queues.clear()
+  }
+}
+
+/**
+ * Per-test override for the channel-limit returned by the mocked channels
+ * endpoint. When set, the mocked route responds with channels whose
+ * `maxAttachments` field equals this value.
+ */
+export interface IMockChannelsProvider {
+  setMaxAttachments(limit: number | null): void
+  getMaxAttachments(): number | null
+  reset(): void
+}
+
+export class MockChannelsProvider implements IMockChannelsProvider {
+  private readonly state: MediaRouteState
+
+  constructor(state: MediaRouteState) {
+    this.state = state
+  }
+
+  setMaxAttachments(limit: number | null): void {
+    this.state.channelsMaxAttachments = limit
+  }
+
+  getMaxAttachments(): number | null {
+    return this.state.channelsMaxAttachments
+  }
+
+  reset(): void {
+    this.state.channelsMaxAttachments = null
+  }
+}
+
+/**
+ * Per-test override for the Unsplash provider feature flag. Surfaced to the
+ * composer modal via a mocked /api/flags endpoint, so the picker shell can
+ * assert tab visibility without mutating Pinia internals.
+ */
+export interface IMockProviderFlag {
+  setEnabled(enabled: boolean): void
+  isEnabled(): boolean
+  reset(): void
+}
+
+export class MockProviderFlag implements IMockProviderFlag {
+  private readonly state: MediaRouteState
+
+  constructor(state: MediaRouteState) {
+    this.state = state
+  }
+
+  setEnabled(enabled: boolean): void {
+    this.state.unsplashProviderEnabled = enabled
+  }
+
+  isEnabled(): boolean {
+    return this.state.unsplashProviderEnabled
+  }
+
+  reset(): void {
+    this.state.unsplashProviderEnabled = false
+  }
+}
+
 const MOCK_WORKSPACE_ID = 'workspace-001'
 
 function contentType(headers: Record<string, string> = {}): Record<string, string> {
@@ -97,6 +326,10 @@ export class MediaRouteState {
   uploadPostCount = 0
   deleteCount = 0
   getCount = 0
+  // PR 1 — deferred upload, channel-limit, and provider-flag state
+  deferredUploads: Map<string, DeferredUploadRecord> = new Map()
+  channelsMaxAttachments: number | null = null
+  unsplashProviderEnabled = false
 
   reset(): void {
     this.assets = []
@@ -107,6 +340,9 @@ export class MediaRouteState {
     this.uploadPostCount = 0
     this.deleteCount = 0
     this.getCount = 0
+    this.deferredUploads = new Map()
+    this.channelsMaxAttachments = null
+    this.unsplashProviderEnabled = false
   }
 
   enqueuePut(response: MockPutResponse): void {
@@ -295,6 +531,35 @@ async function uploadAsset(route: Route, state: MediaRouteState, assetId: string
     return
   }
 
+  // PR 1 — defer response if the test held this asset id via DeferredUploadController.
+  const deferred = state.deferredUploads.get(assetId)
+  if (deferred) {
+    deferred.status = 'UPLOADING'
+    deferred.progress = 0
+    const { promise, resolve, reject } = deferredPromise<{ status: number; body: unknown }>()
+    deferred.resolve = resolve
+    deferred.reject = (failure) => reject({ status: failure.status, code: failure.code })
+    const result = await promise
+    if ('code' in (result as { code?: string })) {
+      const failure = result as { status: number; code: string }
+      await route.fulfill(
+        json(failure.status, {
+          errorCode: failure.code,
+          message: 'Media service unavailable.',
+        }),
+      )
+      return
+    }
+    const response = result as { status: number; body: unknown }
+    const asset = state.getAsset(assetId)
+    if (asset) {
+      asset.status = 'READY'
+      asset.fileSizeBytes = postData.byteLength
+    }
+    await route.fulfill(json(response.status, response.body))
+    return
+  }
+
   const pending = state.pendingUploads[assetId]
   const asset = state.getAsset(assetId)
   const readyAsset =
@@ -355,6 +620,39 @@ function previewAsset(route: Route): void {
   })
 }
 
+function deferredPromise<T>(): {
+  promise: Promise<T>
+  resolve: (value: T) => void
+  reject: (reason?: unknown) => void
+} {
+  let resolveFn: (value: T) => void = () => {}
+  let rejectFn: (reason?: unknown) => void = () => {}
+  const promise = new Promise<T>((resolve, reject) => {
+    resolveFn = resolve
+    rejectFn = reject
+  })
+  return { promise, resolve: resolveFn, reject: rejectFn }
+}
+
+/** Default channel used by the mocked channels endpoint when the test has
+ *  not registered a per-test override. */
+function defaultChannelsPayload(maxAttachments: number | null) {
+  return {
+    channels: [
+      {
+        id: 'sa-linkedin-001',
+        accountId: 'sa-linkedin-001',
+        workspaceId: MOCK_WORKSPACE_ID,
+        name: 'Dev User',
+        provider: 'linkedin',
+        handle: 'Dev User',
+        status: 'ACTIVE',
+        maxAttachments: maxAttachments ?? 10,
+      },
+    ],
+  }
+}
+
 export async function registerMediaMocks(
   context: BrowserContext,
   state: MediaRouteState,
@@ -404,4 +702,49 @@ export async function registerMediaMocks(
       json(405, { title: 'Method not allowed', detail: `Unsupported method ${method}.` }),
     )
   })
+}
+
+/**
+ * PR 1 — register conditional routes for the channels provider and the
+ * Unsplash provider flag. Callers should `use()` the returned cleanup
+ * function in their fixture teardown if they want a finer-grained reset
+ * than the default per-context `unrouteAll` in `media-mocked-test.ts`.
+ */
+export interface RegisteredComposerControls {
+  unregister: () => Promise<void>
+}
+
+export async function registerComposerControls(
+  context: BrowserContext,
+  state: MediaRouteState,
+): Promise<RegisteredComposerControls> {
+  const channelsHandler = (route: Route): void => {
+    if (state.channelsMaxAttachments === null) {
+      // No override registered: let the request fall through to the next
+      // route handler (typically the scheduler mock's /api/publishing/channels).
+      route.fallback().catch(() => {
+        route.fulfill(json(200, defaultChannelsPayload(null)))
+      })
+      return
+    }
+    route.fulfill(json(200, defaultChannelsPayload(state.channelsMaxAttachments)))
+  }
+
+  const flagsHandler = (route: Route): void => {
+    route.fulfill(
+      json(200, {
+        flags: { unsplashProviderEnabled: state.unsplashProviderEnabled },
+      }),
+    )
+  }
+
+  await context.route('**/api/publishing/channels**', channelsHandler)
+  await context.route('**/api/flags**', flagsHandler)
+
+  return {
+    unregister: async () => {
+      await context.unroute('**/api/publishing/channels**', channelsHandler)
+      await context.unroute('**/api/flags**', flagsHandler)
+    },
+  }
 }
