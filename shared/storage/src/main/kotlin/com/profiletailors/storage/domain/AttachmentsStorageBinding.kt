@@ -9,8 +9,4 @@ package com.profiletailors.storage.domain
  * across contexts so that uploads, preview resolution and publishing reads
  * always target the same physical bucket.
  */
-data class AttachmentsStorageBinding(
-    val providerName: String,
-    val bucketName: String,
-    val storage: Storage,
-)
+data class AttachmentsStorageBinding(val providerName: String, val bucketName: String, val storage: Storage)
