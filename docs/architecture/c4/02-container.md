@@ -82,7 +82,7 @@ graph TB
 
     subgraph "Profile Tailors Platform"
         WEB[Marketing Site<br/>Astro 6, TypeScript<br/>Static, Bilingual]
-        SPA[Web Application<br/>React, TypeScript<br/>SPA]
+        SPA[Web Application<br/>Vue 3, TypeScript<br/>SPA]
         API[API Application<br/>Spring Boot 4, Kotlin, WebFlux<br/>Reactive REST API]
         SCHED[Scheduler Service<br/>Spring Boot 4, Kotlin<br/>Background Jobs]
         ANALYTICS[Analytics Service<br/>Spring Boot 4, Kotlin<br/>Metrics Collection]
