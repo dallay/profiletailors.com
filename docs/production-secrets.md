@@ -195,7 +195,7 @@ Secrets are grouped by risk level and rotation frequency:
 
 Before deploying to production, verify:
 
-- [ ] All `CHANGE_ME` placeholders replaced with real values.
+- [ ] All `CHANGE_ME_gK2fcFZg5cgVu9U` placeholders replaced with real values.
 - [ ] No default/example credentials in use.
 - [ ] `SMP_LOCAL_JWT_DEV_FALLBACK` is **empty** (production must use explicit `SMP_LOCAL_JWT_SECRET`).
 - [ ] `PUBLISHING_CREDENTIALS_KEY` is exactly 32 bytes (Base64-encoded, 44 chars).
