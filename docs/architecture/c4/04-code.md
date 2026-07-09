@@ -157,10 +157,10 @@ com.profiletailors.smp
 
 For detailed code examples, see:
 
-- [Identity Context Examples](04-code-identity.md)
-- [Authorization Context Examples](04-code-authorization.md)
-- [Tenancy Context Examples](04-code-tenancy.md)
-- [Platform Context Examples](04-code-platform.md)
+- [Identity Context Code](../../../server/smp/src/main/kotlin/com/profiletailors/smp/identity/)
+- [Authorization Context Code](../../../server/smp/src/main/kotlin/com/profiletailors/smp/authorization/)
+- [Tenancy Context Code](../../../server/smp/src/main/kotlin/com/profiletailors/smp/tenancy/)
+- [Platform Context Code](../../../server/smp/src/main/kotlin/com/profiletailors/smp/platform/)
 
 ---
 
