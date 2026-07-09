@@ -45,7 +45,7 @@ Out of scope:
 
 - Critical patches are released as soon as possible
 - Regular security updates are included in our release cycle
-- All releases are documented on the GitHub [Releases](https://github.com/dallay/profiletailors.com/releases) page.
+- All releases are documented in the [Changelog](CHANGELOG.md)
 
 ### Disclosure Policy
 
