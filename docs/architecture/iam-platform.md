@@ -316,7 +316,7 @@ These capabilities are part of the durable platform model but explicitly deferre
 - [Component Diagram](c4/03-component.md) — C4 Level 3 view of bounded contexts
 - [ADR-0009: JWT & HttpOnly Cookie Authentication](adr/0009-jwt-and-httponly-cookie-authentication.md)
 - [Architecture Overview](README.md)
-- [openspec/specs/](../../openspec/specs/) — Detailed Gherkin specifications per context
+- [openspec/specs/](../openspec/specs/) — Detailed Gherkin specifications per context
 
 ---
 

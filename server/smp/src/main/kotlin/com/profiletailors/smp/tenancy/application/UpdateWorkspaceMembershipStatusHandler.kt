@@ -1,5 +1,6 @@
 package com.profiletailors.smp.tenancy.application
 
+import com.profiletailors.common.domain.Service
 import com.profiletailors.common.domain.bus.command.CommandWithResultHandler
 import com.profiletailors.common.domain.context.PrincipalContextProvider
 import com.profiletailors.common.domain.context.ResourceContextProvider
@@ -10,6 +11,7 @@ import com.profiletailors.smp.tenancy.application.WorkspaceMembershipStatusResul
 import com.profiletailors.smp.tenancy.application.WorkspaceOwnerAccessDeniedException
 import com.profiletailors.smp.tenancy.domain.WorkspaceOwnershipPolicy
 
+@Service
 internal class UpdateWorkspaceMembershipStatusHandler(
     private val principalContextProvider: PrincipalContextProvider,
     private val resourceContextProvider: ResourceContextProvider,
@@ -71,7 +73,9 @@ internal class UpdateWorkspaceMembershipStatusHandler(
                     throw exception
                 }
 
-                else -> throw exception
+                else -> {
+                    throw exception
+                }
             }
         }
     }

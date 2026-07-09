@@ -1,10 +1,12 @@
 package com.profiletailors.smp.tenancy.application
 
+import com.profiletailors.common.domain.Service
 import com.profiletailors.common.domain.context.PrincipalContextProvider
 import com.profiletailors.smp.audit.domain.AuditHook
 import com.profiletailors.smp.audit.domain.MutationAuditFact
 import com.profiletailors.smp.audit.domain.MutationAuditOutcome
 
+@Service
 internal class TenancyMutationAuditor(
     private val principalContextProvider: PrincipalContextProvider,
     private val auditHook: AuditHook,

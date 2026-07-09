@@ -12,9 +12,9 @@ Public-facing marketing site for the Profile Tailors social media management pla
 
 [![License](https://img.shields.io/github/license/dallay/profiletailors.com?style=for-the-badge&color=2d3748)](LICENSE)
 [![CI](https://img.shields.io/github/actions/workflow/status/dallay/profiletailors.com/release-please.yml?style=for-the-badge&color=2d3748&label=CI)](https://github.com/dallay/profiletailors.com/actions)
-[![Astro](https://img.shields.io/badge/Astro-6.4.8-2d3748?style=for-the-badge&logo=astro&logoColor=ffffff)](https://astro.build)
+[![Astro](https://img.shields.io/badge/Astro-6.3.3-2d3748?style=for-the-badge&logo=astro&logoColor=ffffff)](https://astro.build)
 [![Node.js](https://img.shields.io/badge/Node.js-22.12%2B-2d3748?style=for-the-badge&logo=node.js&logoColor=5fa04e)](https://nodejs.org)
-[![pnpm](https://img.shields.io/badge/pnpm-11.x-2d3748?style=for-the-badge&logo=pnpm&logoColor=f69220)](https://pnpm.io)
+[![pnpm](https://img.shields.io/badge/pnpm-10.x-2d3748?style=for-the-badge&logo=pnpm&logoColor=f69220)](https://pnpm.io)
 
 [![Quality Gate Status](https://sonarcloud.io/api/project_badges/measure?project=dallay_profiletailors.com&metric=alert_status)](https://sonarcloud.io/summary/new_code?id=dallay_profiletailors.com)
 [![Bugs](https://sonarcloud.io/api/project_badges/measure?project=dallay_profiletailors.com&metric=bugs)](https://sonarcloud.io/summary/new_code?id=dallay_profiletailors.com)
@@ -68,7 +68,7 @@ profiletailors.com/
 | Requirement    | Version               | Install                                    |
 |----------------|-----------------------|--------------------------------------------|
 | Node.js        | `>= 22.12.0`          | [nodejs.org](https://nodejs.org)           |
-| pnpm           | `>= 11.8.0`           | `npm install -g pnpm`                      |
+| pnpm           | `>= 10`               | `npm install -g pnpm`                      |
 | just           | `>= 1.30`             | `brew install just` / `winget install Casey.Just` / `cargo install just` |
 
 > **Windows users:** `just` runs natively on Windows. The Gradle wrapper is auto-detected
