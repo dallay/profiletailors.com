@@ -515,7 +515,7 @@ watch(
 </script>
 
 <template>
-  <div class="flex min-h-0 h-full flex-col gap-6">
+  <div data-testid="scheduler-root" class="flex min-h-0 flex-1 flex-col gap-6">
     <!-- Calendar Header: navigation, view toggle, filters -->
     <CalendarHeader
       :calendar-view="calendarView"
@@ -550,9 +550,9 @@ watch(
     </div>
 
     <!-- Main Workspace Layout -->
-    <div class="min-w-0 min-h-0 flex-1 overflow-hidden">
+    <div data-testid="scheduler-workspace" class="flex min-w-0 min-h-0 flex-1 flex-col overflow-hidden">
         <!-- Calendar Mode -->
-        <div v-if="url.state.value.surface !== 'list'" class="flex h-full min-h-0 flex-col gap-4">
+        <div v-if="url.state.value.surface !== 'list'" data-testid="calendar-mode" class="flex min-h-0 flex-1 flex-col gap-4">
           <!-- ================================================================ -->
           <!-- MONTH VIEW -->
           <!-- ================================================================ -->
@@ -572,7 +572,7 @@ watch(
               </div>
 
               <!-- Grid body: 6 weeks × 7 days -->
-              <div class="min-h-0 flex-1 overflow-y-auto divide-y divide-border-subtle">
+              <div class="thin-scrollbar min-h-0 flex-1 overflow-y-auto divide-y divide-border-subtle">
                 <div
                   v-for="(week, wkIdx) in monthGrid"
                   :key="wkIdx"
@@ -631,7 +631,7 @@ watch(
               </div>
 
               <!-- Grid Body: Single left time-axis + 7 day columns -->
-              <div class="relative min-h-0 flex-1 overflow-y-auto">
+              <div data-testid="week-timeline-viewport" class="thin-scrollbar relative min-h-0 flex-1 overflow-y-auto">
                 <div v-for="slot in hourSlots" :key="slot.hour" class="grid h-[96px] grid-cols-[48px_repeat(7,1fr)] border-b border-border-subtle last:border-b-0">
                   <!-- Single left time-axis label -->
                   <div class="py-2 border-r border-border-subtle flex items-start justify-center">
@@ -748,7 +748,7 @@ watch(
             {{ $t('dashboard.noPosts') || 'No posts match your current filters.' }}
           </div>
 
-          <div v-else class="min-h-0 flex-1 overflow-y-auto space-y-3 pr-1">
+          <div v-else class="thin-scrollbar min-h-0 flex-1 overflow-y-auto space-y-3 pr-1">
               <button
                 v-for="pub in filteredPublications"
                 :key="pub.id"
