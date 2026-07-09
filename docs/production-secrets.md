@@ -13,6 +13,12 @@ guidelines.
 Vercel, Cloudflare Workers, Dokploy, Kubernetes Secrets, HashiCorp Vault, etc.). Deployment
 guides for specific platforms should reference this document as the canonical list.
 
+## Changes
+
+This document and the associated production credentials validation feature were added as part of
+MVP Launch Readiness (Issue #233) to ensure no default or placeholder credentials can reach
+production environments.
+
 ## Security principles
 
 1. **Never commit secrets to git** — `.env` is gitignored.
@@ -218,17 +224,7 @@ Before deploying to production, verify:
 tools (e.g., `vercel env pull`, `wrangler secret list`) scoped to their environment (dev/staging).
 Production secrets should only be accessible to infrastructure admins and deployment automation.
 
-## Incident response
-
-If a secret is compromised or suspected to be compromised:
-
-1. **Immediately rotate the compromised secret** (see rotation procedures above).
-2. **Audit access logs** (platform-specific: GitHub audit log, Cloudflare audit log, etc.).
-3. **Notify affected users** if user data or OAuth tokens are at risk.
-4. **Document the incident** in a postmortem (template: `docs/postmortems/YYYY-MM-DD-secret-leak.md`).
-5. **Review access control policies** to prevent future exposure.
-
-## Deployment integration
+## Usage
 
 Each deployment platform should document how to provision these secrets:
 
@@ -239,6 +235,16 @@ Each deployment platform should document how to provision these secrets:
 - **GitHub Actions:** Repository secrets (`Settings > Secrets > Actions`)
 
 Platform-specific guides should link back to this document for the canonical secret list.
+
+## Troubleshooting
+
+If a secret is compromised or suspected to be compromised:
+
+1. **Immediately rotate the compromised secret** (see rotation procedures above).
+2. **Audit access logs** (platform-specific: GitHub audit log, Cloudflare audit log, etc.).
+3. **Notify affected users** if user data or OAuth tokens are at risk.
+4. **Document the incident** in a postmortem (template: `docs/postmortems/YYYY-MM-DD-secret-leak.md`).
+5. **Review access control policies** to prevent future exposure.
 
 ## References
 

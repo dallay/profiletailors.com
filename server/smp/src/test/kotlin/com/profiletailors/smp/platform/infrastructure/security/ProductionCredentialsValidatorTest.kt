@@ -1,7 +1,8 @@
 package com.profiletailors.smp.platform.infrastructure.security
 
+import io.kotest.assertions.throwables.shouldThrow
+import io.kotest.matchers.string.shouldContain
 import org.junit.jupiter.api.Test
-import org.junit.jupiter.api.assertThrows
 import org.springframework.mock.env.MockEnvironment
 
 /**
@@ -23,12 +24,12 @@ class ProductionCredentialsValidatorTest {
         }
         val validator = ProductionCredentialsValidator(environment)
 
-        val exception = assertThrows<IllegalStateException> {
+        val exception = shouldThrow<IllegalStateException> {
             validator.validateCredentials()
         }
 
-        assert(exception.message!!.contains("SMP_DB_PASSWORD"))
-        assert(exception.message!!.contains("CHANGE_ME_gK2fcFZg5cgVu9U"))
+        exception.message shouldContain "SMP_DB_PASSWORD"
+        exception.message shouldContain "CHANGE_ME_gK2fcFZg5cgVu9U"
     }
 
     @Test
@@ -40,11 +41,11 @@ class ProductionCredentialsValidatorTest {
         }
         val validator = ProductionCredentialsValidator(environment)
 
-        val exception = assertThrows<IllegalStateException> {
+        val exception = shouldThrow<IllegalStateException> {
             validator.validateCredentials()
         }
 
-        assert(exception.message!!.contains("SMP_DB_PASSWORD"))
+        exception.message shouldContain "SMP_DB_PASSWORD"
     }
 
     @Test
@@ -56,12 +57,12 @@ class ProductionCredentialsValidatorTest {
         }
         val validator = ProductionCredentialsValidator(environment)
 
-        val exception = assertThrows<IllegalStateException> {
+        val exception = shouldThrow<IllegalStateException> {
             validator.validateCredentials()
         }
 
-        assert(exception.message!!.contains("PUBLISHING_CREDENTIALS_KEY"))
-        assert(exception.message!!.contains("OAuth"))
+        exception.message shouldContain "PUBLISHING_CREDENTIALS_KEY"
+        exception.message shouldContain "OAuth"
     }
 
     @Test
@@ -74,12 +75,12 @@ class ProductionCredentialsValidatorTest {
         }
         val validator = ProductionCredentialsValidator(environment)
 
-        val exception = assertThrows<IllegalStateException> {
+        val exception = shouldThrow<IllegalStateException> {
             validator.validateCredentials()
         }
 
-        assert(exception.message!!.contains("SMP_LOCAL_JWT_SECRET"))
-        assert(exception.message!!.contains("SMP_LOCAL_JWT_DEV_FALLBACK"))
+        exception.message shouldContain "SMP_LOCAL_JWT_SECRET"
+        exception.message shouldContain "SMP_LOCAL_JWT_DEV_FALLBACK"
     }
 
     @Test
@@ -92,13 +93,13 @@ class ProductionCredentialsValidatorTest {
         }
         val validator = ProductionCredentialsValidator(environment)
 
-        val exception = assertThrows<IllegalStateException> {
+        val exception = shouldThrow<IllegalStateException> {
             validator.validateCredentials()
         }
 
-        assert(exception.message!!.contains("SMP_DB_PASSWORD"))
-        assert(exception.message!!.contains("PUBLISHING_CREDENTIALS_KEY"))
-        assert(exception.message!!.contains("SMP_LOCAL_JWT_SECRET"))
+        exception.message shouldContain "SMP_DB_PASSWORD"
+        exception.message shouldContain "PUBLISHING_CREDENTIALS_KEY"
+        exception.message shouldContain "SMP_LOCAL_JWT_SECRET"
     }
 
     @Test
@@ -154,7 +155,7 @@ class ProductionCredentialsValidatorTest {
         val validator = ProductionCredentialsValidator(environment)
 
         // Should throw even in dev profile (only test profile is exempt)
-        assertThrows<IllegalStateException> {
+        shouldThrow<IllegalStateException> {
             validator.validateCredentials()
         }
     }
@@ -192,18 +193,20 @@ class ProductionCredentialsValidatorTest {
     }
 
     @Test
-    fun `should skip validation when web application type is NONE`() {
+    fun `should fail when web application type is NONE and credentials are invalid`() {
         val environment = MockEnvironment().apply {
             // Intentionally use unsafe values
             setProperty("SMP_DB_PASSWORD", "CHANGE_ME_gK2fcFZg5cgVu9U")
             setProperty("PUBLISHING_CREDENTIALS_KEY", "")
             setProperty("SMP_LOCAL_JWT_SECRET", "")
-            // Simulate non-web test context
+            // Simulate non-web production context (batch/worker app)
             setProperty("spring.main.web-application-type", "NONE")
         }
         val validator = ProductionCredentialsValidator(environment)
 
-        // Should not throw (non-web test context detected)
-        validator.validateCredentials()
+        // Should throw (NONE is a valid production config, not a test indicator)
+        shouldThrow<IllegalStateException> {
+            validator.validateCredentials()
+        }
     }
 }

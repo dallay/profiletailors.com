@@ -1,7 +1,7 @@
 package com.profiletailors.smp.platform.infrastructure.security
 
 import org.slf4j.LoggerFactory
-import org.springframework.boot.context.event.ApplicationReadyEvent
+import org.springframework.boot.context.event.ApplicationStartedEvent
 import org.springframework.context.event.EventListener
 import org.springframework.core.env.Environment
 import org.springframework.stereotype.Component
@@ -9,7 +9,7 @@ import org.springframework.stereotype.Component
 /**
  * Validates that no default or placeholder credentials are active when the application starts.
  *
- * This component runs after Spring Boot context initialization (on [ApplicationReadyEvent])
+ * This component runs during Spring Boot startup (on [ApplicationStartedEvent])
  * and checks critical secrets against a deny-list of known unsafe values. If any unsafe
  * credential is detected, the application **crashes immediately** with a clear error message
  * rather than silently running with insecure defaults.
@@ -26,8 +26,7 @@ import org.springframework.stereotype.Component
  *   (enforced separately by `LocalJwtSecretResolver`, but double-checked here).
  *
  * **When it runs:**
- * - After application context is fully initialized (via [ApplicationReadyEvent]).
- * - Before any HTTP requests are processed.
+ * - After application context is fully initialized but before the web server starts accepting connections (via [ApplicationStartedEvent]).
  * - Skipped in test profile (where test credentials are acceptable).
  * - Skipped in Spring Boot test contexts (BDD, integration tests) detected via test-specific properties.
  *
@@ -42,7 +41,7 @@ import org.springframework.stereotype.Component
 @Component
 class ProductionCredentialsValidator(private val environment: Environment) {
 
-    @EventListener(ApplicationReadyEvent::class)
+    @EventListener(ApplicationStartedEvent::class)
     fun validateCredentials() {
         val activeProfiles = environment.activeProfiles.toSet()
 
@@ -55,7 +54,6 @@ class ProductionCredentialsValidator(private val environment: Environment) {
         // Skip validation in Spring Boot test contexts (BDD, integration tests, etc.)
         // These tests may use Testcontainers or mock credentials that would fail validation
         val isTestContext = environment.getProperty("spring.test.context.cache.maxSize") != null ||
-            environment.getProperty("spring.main.web-application-type") == "NONE" ||
             environment.getProperty("bdd.variant") != null
         if (isTestContext) {
             logger.debug("Skipping production credentials validation (test context detected)")
@@ -66,9 +64,9 @@ class ProductionCredentialsValidator(private val environment: Environment) {
 
         // 1. Database password
         val dbPassword = environment.getProperty("SMP_DB_PASSWORD").orEmpty()
-        if (dbPassword.isBlank() || dbPassword == "CHANGE_ME_gK2fcFZg5cgVu9U") {
+        if (dbPassword.isBlank() || dbPassword == DEFAULT_UNSAFE_PASSWORD) {
             violations.add(
-                "SMP_DB_PASSWORD is not configured or is set to the unsafe default 'CHANGE_ME_gK2fcFZg5cgVu9U'. " +
+                "SMP_DB_PASSWORD is not configured or is set to the unsafe default '$DEFAULT_UNSAFE_PASSWORD'. " +
                     "Set a strong password (minimum 32 characters). " +
                     "Generate with: openssl rand -base64 32",
             )
@@ -117,5 +115,6 @@ class ProductionCredentialsValidator(private val environment: Environment) {
 
     private companion object {
         private val logger = LoggerFactory.getLogger(ProductionCredentialsValidator::class.java)
+        private const val DEFAULT_UNSAFE_PASSWORD = "CHANGE_ME_gK2fcFZg5cgVu9U"
     }
 }
