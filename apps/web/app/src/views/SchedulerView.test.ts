@@ -179,6 +179,54 @@ describe('SchedulerView', () => {
     expect(wrapper.find('[data-testid="calendar-header"]').exists()).toBe(true)
   })
 
+  it('uses flex sizing on the scheduler root so the shell keeps scroll ownership', async () => {
+    const wrapper = mountView()
+    await flushPromises()
+
+    const root = wrapper.get('[data-testid="scheduler-root"]')
+
+    expect(root.classes()).toContain('flex')
+    expect(root.classes()).toContain('flex-1')
+    expect(root.classes()).toContain('min-h-0')
+    expect(root.classes()).not.toContain('h-full')
+  })
+
+  it('keeps vertical scrolling inside the week timeline viewport', async () => {
+    const wrapper = mountView({ surface: 'calendar-week' })
+    await flushPromises()
+
+    const timelineViewport = wrapper.get('[data-testid="week-timeline-viewport"]')
+
+    expect(timelineViewport.classes()).toContain('relative')
+    expect(timelineViewport.classes()).toContain('min-h-0')
+    expect(timelineViewport.classes()).toContain('flex-1')
+    expect(timelineViewport.classes()).toContain('overflow-y-auto')
+  })
+
+  it('does not keep h-full on the calendar mode wrapper', async () => {
+    const wrapper = mountView({ surface: 'calendar-week' })
+    await flushPromises()
+
+    const calendarMode = wrapper.get('[data-testid="calendar-mode"]')
+
+    expect(calendarMode.classes()).toContain('flex')
+    expect(calendarMode.classes()).toContain('min-h-0')
+    expect(calendarMode.classes()).not.toContain('h-full')
+  })
+
+  it('uses a flex column workspace container so the calendar can shrink', async () => {
+    const wrapper = mountView({ surface: 'calendar-week' })
+    await flushPromises()
+
+    const workspace = wrapper.get('[data-testid="scheduler-workspace"]')
+
+    expect(workspace.classes()).toContain('flex')
+    expect(workspace.classes()).toContain('flex-col')
+    expect(workspace.classes()).toContain('flex-1')
+    expect(workspace.classes()).toContain('min-h-0')
+    expect(workspace.classes()).toContain('overflow-hidden')
+  })
+
   it('opens the create post modal from calendar header new-post event', async () => {
     const wrapper = mountView()
     await flushPromises()
