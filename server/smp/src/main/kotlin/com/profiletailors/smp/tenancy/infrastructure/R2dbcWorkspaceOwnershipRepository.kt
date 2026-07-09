@@ -4,6 +4,7 @@ import com.profiletailors.common.domain.context.PrincipalType
 import com.profiletailors.smp.tenancy.application.WorkspaceOwnershipRepository
 import com.profiletailors.smp.tenancy.domain.WorkspaceOwnership
 import kotlinx.coroutines.reactor.awaitSingle
+import kotlinx.coroutines.reactor.awaitSingleOrNull
 import org.springframework.r2dbc.core.DatabaseClient
 import org.springframework.stereotype.Repository
 import java.time.Instant
@@ -84,6 +85,20 @@ internal class R2dbcWorkspaceOwnershipRepository(private val databaseClient: Dat
     }
 
     override suspend fun removeIfReplacementExists(workspaceId: String, principalId: String): Boolean {
+        // Step 1: Acquire exclusive FOR UPDATE locks on all current ownership rows for this workspace.
+        // This serializes concurrent deletions and ensures up-to-date visibility within transactions.
+        databaseClient.sql(
+            """
+            SELECT owner_principal_id FROM workspace_ownerships
+            WHERE workspace_id = :workspaceId
+            FOR UPDATE
+            """.trimIndent(),
+        )
+            .bind(BIND_WORKSPACE_ID, workspaceId)
+            .then()
+            .awaitSingleOrNull()
+
+        // Step 2: Atomic check-and-delete under serialized lock.
         val rowsUpdated = databaseClient.sql(
             """
             DELETE FROM workspace_ownerships
