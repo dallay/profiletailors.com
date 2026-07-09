@@ -137,7 +137,7 @@ architecture at different levels of abstraction.
 
 **In Progress** (🔄):
 
-- Web application (React)
+- Web application (Vue 3, partially implemented)
 - Content Context
 - Scheduler Service
 
@@ -154,14 +154,14 @@ architecture at different levels of abstraction.
 ### Project Documentation
 
 - **[README.md](../../README.md)** — Project overview and setup
-- **[DESIGN.md](../../DESIGN.md)** — Design system and UI guidelines
+- **[DESIGN.md](../../.agents/DESIGN.md)** — Design system and UI guidelines
 - **[CONTRIBUTING.md](../../CONTRIBUTING.md)** — Contribution guidelines
-- **[AGENTS.md](../../AGENTS.md)** — AI agent instructions
+- **[AGENTS.md](../../.agents/AGENTS.md)** — AI agent instructions
 
 ### Specifications
 
 - **[openspec/](../../openspec/)** — SDD artifacts (specs, designs, tasks)
-- **[docs/plans/](../plans/)** — Design specs and implementation plans
+- **[openspec/changes/](../../openspec/changes/)** — Design specs and implementation plans
 - **[Media Library CAS Dedup](./media-library-cas-dedup.md)** — Content-Addressed Storage
   deduplication for workspace-scoped media assets
 
