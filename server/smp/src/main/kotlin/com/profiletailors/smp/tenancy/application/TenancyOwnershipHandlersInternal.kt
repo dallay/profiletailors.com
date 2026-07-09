@@ -1,5 +1,6 @@
 package com.profiletailors.smp.tenancy.application
 
+import com.profiletailors.common.domain.Service
 import com.profiletailors.common.domain.bus.command.CommandWithResultHandler
 import com.profiletailors.common.domain.context.PrincipalContextProvider
 import com.profiletailors.common.domain.context.ResourceContext
@@ -14,6 +15,7 @@ import com.profiletailors.smp.tenancy.domain.LastOwnerRemovalRequiresReplacement
 import com.profiletailors.smp.tenancy.domain.WorkspaceOwnership
 import java.time.Clock
 
+@Service
 internal class AddWorkspaceOwnerHandler(
     private val principalContextProvider: PrincipalContextProvider,
     private val resourceContextProvider: ResourceContextProvider,
@@ -76,7 +78,9 @@ internal class AddWorkspaceOwnerHandler(
                     throw exception
                 }
 
-                else -> throw exception
+                else -> {
+                    throw exception
+                }
             }
         }
     }
@@ -90,6 +94,7 @@ internal class AddWorkspaceOwnerHandler(
             )
 }
 
+@Service
 internal class TransferWorkspaceOwnershipHandler(
     private val principalContextProvider: PrincipalContextProvider,
     private val resourceContextProvider: ResourceContextProvider,
@@ -175,7 +180,80 @@ internal class TransferWorkspaceOwnershipHandler(
                     throw exception
                 }
 
-                else -> throw exception
+                else -> {
+                    throw exception
+                }
+            }
+        }
+    }
+}
+
+@Service
+internal class RemoveWorkspaceOwnerHandler(
+    private val principalContextProvider: PrincipalContextProvider,
+    private val resourceContextProvider: ResourceContextProvider,
+    private val workspaceOwnershipRepository: WorkspaceOwnershipRepository,
+    private val tenancyMutationAuditor: TenancyMutationAuditor,
+    private val transactionRunner: AtomicTransactionRunner,
+) : CommandWithResultHandler<RemoveWorkspaceOwnerCommand, WorkspaceOwnershipResult> {
+    @Suppress("ThrowsCount")
+    override suspend fun handle(command: RemoveWorkspaceOwnerCommand): WorkspaceOwnershipResult {
+        val actor = principalContextProvider.require()
+        val resourceContext = resourceContextProvider.requireWorkspaceContext()
+        val workspaceId = requireNotNull(resourceContext.workspaceId)
+
+        return try {
+            transactionRunner.runAtomically {
+                val currentOwners = workspaceOwnershipRepository.requireCurrentOwners(workspaceId)
+                currentOwners.firstOrNull { it.belongsTo(actor.principalId) }
+                    ?: throw WorkspaceOwnerAccessDeniedException()
+
+                val removed = workspaceOwnershipRepository.removeIfReplacementExists(
+                    workspaceId,
+                    command.targetPrincipalId,
+                )
+                if (!removed) {
+                    throw LastOwnerRemovalRequiresReplacementException(workspaceId)
+                }
+
+                WorkspaceOwnershipResult(
+                    workspaceId = workspaceId,
+                    ownerPrincipalIds = workspaceOwnershipRepository.findByWorkspaceId(workspaceId)
+                        .map { ownership -> ownership.ownerPrincipalId }
+                        .sorted(),
+                ).also {
+                    tenancyMutationAuditor.recordSuccess(
+                        action = "workspace.owner.remove",
+                        targetType = "WORKSPACE_OWNER",
+                        targetId = command.targetPrincipalId,
+                        workspaceId = workspaceId,
+                        details = mapOf(
+                            "removedBy" to actor.principalId,
+                            "removedPrincipalId" to command.targetPrincipalId,
+                        ),
+                    )
+                }
+            }
+        } catch (@Suppress("TooGenericExceptionCaught") exception: Exception) {
+            when (exception) {
+                is IllegalArgumentException, is IllegalStateException -> {
+                    tenancyMutationAuditor.recordRejected(
+                        action = "workspace.owner.remove",
+                        targetType = "WORKSPACE_OWNER",
+                        targetId = command.targetPrincipalId,
+                        workspaceId = workspaceId,
+                        reason = exception::class.simpleName ?: "Exception",
+                        details = mapOf(
+                            "removedBy" to actor.principalId,
+                            "removedPrincipalId" to command.targetPrincipalId,
+                        ),
+                    )
+                    throw exception
+                }
+
+                else -> {
+                    throw exception
+                }
             }
         }
     }
