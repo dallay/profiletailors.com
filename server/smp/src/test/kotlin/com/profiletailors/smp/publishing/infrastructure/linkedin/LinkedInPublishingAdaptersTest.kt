@@ -22,13 +22,19 @@ import com.profiletailors.smp.publishing.domain.SocialProvider
 import com.profiletailors.smp.publishing.infrastructure.credentials.LinkedInCredentialGateway
 import com.profiletailors.smp.publishing.infrastructure.credentials.LinkedInCredentials
 import com.profiletailors.smp.publishing.infrastructure.scheduling.RetryablePublishingException
+import com.profiletailors.storage.domain.AttachmentsStorageBinding
+import com.profiletailors.storage.domain.BucketRegistry
 import com.profiletailors.storage.domain.Storage
+import com.profiletailors.storage.infrastructure.AttachmentsStorageBindingFactory
+import com.profiletailors.storage.infrastructure.ProviderConfig
+import com.profiletailors.storage.infrastructure.StorageProperties
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.test.runTest
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertNotNull
 import org.junit.jupiter.api.Assertions.assertNull
+import org.junit.jupiter.api.Assertions.assertSame
 import org.junit.jupiter.api.Assertions.assertThrows
 import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.Test
@@ -651,10 +657,148 @@ class LinkedInPublishingAdaptersTest {
     }
 
     @Test
-    fun `linkedin asset upload properties binds bucket from environment`() {
-        val props = LinkedInAssetUploadProperties(attachmentsBucket = "my-bucket")
+    fun `attachments storage binding preserves logical provider and physical bucket`() {
+        val binding = AttachmentsStorageBinding(
+            providerName = "attachments",
+            bucketName = "my-bucket",
+            storage = FakeStorage(),
+        )
 
-        assertEquals("my-bucket", props.attachmentsBucket)
+        assertEquals("attachments", binding.providerName)
+        assertEquals("my-bucket", binding.bucketName)
+    }
+
+    @Test
+    fun `attachments storage binding factory resolves provider from BucketRegistry`() {
+        val storage = FakeStorage()
+        val registry = BucketRegistry { storage }
+        val properties = StorageProperties(
+            default = "attachments",
+            providers = mapOf("attachments" to ProviderConfig(type = "local", basePath = "/tmp/x")),
+        )
+
+        val binding = AttachmentsStorageBindingFactory.from(registry, properties)
+
+        assertEquals("attachments", binding.providerName)
+        assertEquals("attachments", binding.bucketName)
+        assertSame(storage, binding.storage)
+    }
+
+    @Test
+    fun `attachments storage binding factory uses configured physical bucket when present`() {
+        val storage = FakeStorage()
+        val registry = BucketRegistry { storage }
+        val properties = StorageProperties(
+            default = "attachments",
+            providers = mapOf(
+                "attachments" to ProviderConfig(type = "s3", bucket = "profiletailors-attachments"),
+            ),
+        )
+
+        val binding = AttachmentsStorageBindingFactory.from(registry, properties)
+
+        assertEquals("attachments", binding.providerName)
+        assertEquals("profiletailors-attachments", binding.bucketName)
+    }
+
+    @Test
+    fun `publisher reads attachments from binding bucket and never bypasses it`() = runTest {
+        val storage = BucketAssertingStorage()
+        val binding = AttachmentsStorageBinding(
+            providerName = "attachments",
+            bucketName = "attachments",
+            storage = storage,
+        )
+        val transport = StubTransport(
+            listOf(
+                LinkedInHttpResponse(
+                    statusCode = 201,
+                    headers = headersOf("x-restli-id" to "post-123"),
+                    body = """{"id":"post-123"}""",
+                ),
+            ),
+        )
+        val credentialGateway = FakeCredentialGateway()
+        val derivedUuid = UUID.nameUUIDFromBytes("linkedin:abcd1234".toByteArray())
+        credentialGateway.store(derivedUuid, LinkedInCredentials("access-token", null, null, scope = null))
+        val assetUploader = FakeLinkedInAssetUploader()
+        val publisher = testPublisher(
+            transport = transport,
+            credentialGateway = credentialGateway,
+            credentialReference = derivedUuid,
+            assetUploader = assetUploader,
+            storage = storage,
+            attachmentsBucket = "attachments",
+        )
+        val account = SocialAccount(
+            id = "account-1",
+            socialConnectionId = "connection-1",
+            workspaceId = "workspace-1",
+            provider = SocialProvider.LINKEDIN,
+            providerAccountId = "abcd1234",
+            kind = SocialAccountKind.PERSONAL_PROFILE,
+            displayName = "Yuniel",
+            profileUrn = "urn:li:person:abcd1234",
+            status = SocialConnectionStatus.ACTIVE,
+        )
+        val publication = PublicationDraft(
+            id = "pub-1",
+            workspaceId = "workspace-1",
+            authorPrincipalId = "principal-1",
+            provider = SocialProvider.LINKEDIN,
+            socialAccountId = "account-1",
+            status = PublicationStatus.QUEUED,
+            scheduleMode = ScheduleMode.NOW,
+            priority = false,
+            title = null,
+            bodyText = "hi",
+            assetIds = emptyList(),
+            scheduledFor = null,
+            nextSlotAfter = null,
+            publishedAt = null,
+            failedAt = null,
+            externalPublicationId = null,
+            publicUrl = null,
+            blockedAt = null,
+            blockedReason = null,
+            retryCount = 0,
+            lastErrorCode = null,
+            lastErrorMessage = null,
+            createdAt = null,
+            updatedAt = null,
+        )
+
+        publisher.publish(
+            ProviderPublishCommand(
+                publicationId = "pub-1",
+                workspaceId = "workspace-1",
+                publication = publication,
+                socialAccount = account,
+                assets = listOf(
+                    PublicationAsset(
+                        id = "asset-1",
+                        workspaceId = "workspace-1",
+                        sourceType = com.profiletailors.smp.publishing.domain.AssetSourceType.UPLOADED,
+                        mediaType = "image/png",
+                        storageKey = "assets/dev-workspace-001/blobs/hash.png",
+                        externalUrl = null,
+                        originalFilename = null,
+                        fileSizeBytes = null,
+                        status = PublicationAssetStatus.READY,
+                        providerAssetRef = null,
+                        createdByPrincipalId = "principal-1",
+                        createdAt = null,
+                    ),
+                ),
+            ),
+        )
+
+        // Binding forces the publisher to read from the configured logical bucket only.
+        // Anything probed under "profiletailors-attachments" would mean we bypassed the binding.
+        val download = storage.lastDownload
+        assertNotNull(download)
+        assertEquals(binding.bucketName, download!!.first)
+        assertEquals(false, storage.wrongBucketProbed)
     }
 
     @Test
@@ -1196,8 +1340,11 @@ class LinkedInPublishingAdaptersTest {
             transport,
             resolver,
             assetUploader,
-            storage,
-            attachmentsBucket,
+            attachmentsBinding = AttachmentsStorageBinding(
+                providerName = attachmentsBucket,
+                bucketName = attachmentsBucket,
+                storage = storage ?: FakeStorage(),
+            ),
         )
     }
 
@@ -1263,6 +1410,40 @@ class LinkedInPublishingAdaptersTest {
             throw IllegalStateException("copyObject: source not found: $sourceKey")
     }
 
+    /**
+     * Storage test double that records the last attempted (bucket, key) probe so the test can
+     * assert publishing reads from the configured logical bucket rather than a hardcoded
+     * physical bucket name.
+     */
+    private class BucketAssertingStorage : Storage {
+        var lastDownload: Pair<String, String>? = null
+        var wrongBucketProbed: Boolean = false
+
+        override suspend fun upload(
+            bucket: String,
+            key: String,
+            content: Flow<ByteArray>,
+            metadata: Map<String, String>,
+        ) {
+            content.collect { /* no-op */ }
+        }
+
+        override fun download(bucket: String, key: String): Flow<ByteArray> {
+            if (bucket == "profiletailors-attachments") wrongBucketProbed = true
+            lastDownload = bucket to key
+            return flowOf("ok".toByteArray())
+        }
+
+        override suspend fun delete(bucket: String, key: String) {}
+
+        override suspend fun list(bucket: String, prefix: String): List<String> = emptyList()
+
+        override suspend fun exists(bucket: String, key: String): Boolean = false
+
+        override suspend fun copyObject(bucket: String, sourceKey: String, destKey: String): Unit =
+            throw IllegalStateException("copyObject: source not found: $sourceKey")
+    }
+
     private class FakePublicationAssetRepository : com.profiletailors.smp.publishing.domain.PublicationAssetRepository {
         private val items = linkedMapOf<String, com.profiletailors.smp.publishing.domain.PublicationAsset>()
 
@@ -1291,11 +1472,10 @@ class LinkedInPublishingAdaptersTest {
             providerAssetRef: com.profiletailors.smp.publishing.domain.ProviderAssetRef,
         ) {
             items[assetId]?.let {
-                items[assetId] =
-                    it.copy(
-                        status = com.profiletailors.smp.publishing.domain.PublicationAssetStatus.READY,
-                        providerAssetRef = providerAssetRef,
-                    )
+                items[assetId] = it.copy(
+                    status = com.profiletailors.smp.publishing.domain.PublicationAssetStatus.READY,
+                    providerAssetRef = providerAssetRef,
+                )
             }
         }
     }

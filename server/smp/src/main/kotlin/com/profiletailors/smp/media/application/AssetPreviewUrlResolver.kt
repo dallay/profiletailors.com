@@ -64,6 +64,23 @@ class StorageAssetPreviewUrlResolver(
     private val storageBucket: String,
     private val previewUrlExpirySeconds: Long,
 ) : AssetPreviewUrlResolver {
+    /**
+     * Convenience constructor that resolves its dependencies from the
+     * shared [AttachmentsStorageBinding]. This is the constructor wired by
+     * Spring Boot — the underlying `[storageBucket]` route stays in a single
+     * place.
+     */
+    constructor(
+        binding: com.profiletailors.storage.domain.AttachmentsStorageBinding,
+        mediaPreviewTokenService: MediaPreviewTokenService,
+        previewUrlExpirySeconds: Long,
+    ) : this(
+        bucketRegistry = BucketRegistry { binding.storage },
+        mediaPreviewTokenService = mediaPreviewTokenService,
+        storageBucket = binding.bucketName,
+        previewUrlExpirySeconds = previewUrlExpirySeconds,
+    )
+
     private val logger = LoggerFactory.getLogger(StorageAssetPreviewUrlResolver::class.java)
 
     override suspend fun resolvePreviewUrl(
