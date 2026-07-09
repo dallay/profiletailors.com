@@ -31,6 +31,7 @@ import type { MediaAssetSummary } from '@/lib/media-api'
 import type {
   ComposerMediaPickerAsset,
   ComposerMediaPickerCollectionState,
+  ComposerMediaPickerSource,
 } from '@/components/composer/composer-media-picker.types'
 import { resolveApiUrl } from '@/lib/auth-api'
 
@@ -118,6 +119,7 @@ export function useComposerMediaPicker(params: ComposerMediaPickerStoreParams) {
 
   /** Whether the media picker overlay is open. */
   const isMediaPickerOpen = ref(false)
+  const activeMediaPickerSource = ref<ComposerMediaPickerSource>('library')
 
   /**
    * Library collection loading state driving the shell's conditional rendering:
@@ -417,9 +419,18 @@ export function useComposerMediaPicker(params: ComposerMediaPickerStoreParams) {
   // Lifecycle methods
   // -------------------------------------------------------------------------
 
-  async function openMediaPicker() {
+  function setActiveMediaPickerSource(source: ComposerMediaPickerSource) {
+    if (source === 'unsplash' && effectiveProvider.value !== 'unsplash') {
+      activeMediaPickerSource.value = 'library'
+      return
+    }
+    activeMediaPickerSource.value = source
+  }
+
+  async function openMediaPicker(source: ComposerMediaPickerSource = 'library') {
     pickerSelectionIds.value = [...draftAttachmentIds.value]
     isMediaPickerOpen.value = true
+    setActiveMediaPickerSource(source)
     mediaPickerCollectionState.value = 'LOADING'
     stopAllReconciliationPollers()
     pickerSessionActiveAssetIds.clear()
@@ -439,6 +450,7 @@ export function useComposerMediaPicker(params: ComposerMediaPickerStoreParams) {
   function closeMediaPicker() {
     isMediaPickerOpen.value = false
     pickerSelectionIds.value = []
+    activeMediaPickerSource.value = 'library'
     stopAllReconciliationPollers()
     pickerSessionActiveAssetIds.clear()
   }
@@ -597,6 +609,7 @@ export function useComposerMediaPicker(params: ComposerMediaPickerStoreParams) {
   return {
     // Refs
     isMediaPickerOpen,
+    activeMediaPickerSource,
     mediaPickerCollectionState,
     draftAttachmentIds,
     pickerSelectionIds,
@@ -623,6 +636,7 @@ export function useComposerMediaPicker(params: ComposerMediaPickerStoreParams) {
 
     // Lifecycle methods
     openMediaPicker,
+    setActiveMediaPickerSource,
     closeMediaPicker,
     applyPickerSelection,
     togglePickerAsset,

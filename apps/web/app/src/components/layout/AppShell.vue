@@ -328,7 +328,7 @@ onBeforeUnmount(() => {
       </Sidebar>
 
       <SidebarInset>
-        <div class="flex min-w-0 flex-1 flex-col">
+        <div class="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden">
           <AppHeader />
 
           <section
@@ -374,7 +374,10 @@ onBeforeUnmount(() => {
           <main
             id="main-content"
             tabindex="-1"
-            class="dot-grid flex-1 overflow-y-auto px-4 py-6 md:px-6 lg:px-8 lg:py-8"
+            :class="[
+              'dot-grid flex-1 px-4 py-6 md:px-6 lg:px-8 lg:py-8',
+              isSchedulerRoute() ? 'flex min-h-0 flex-col overflow-hidden' : 'overflow-y-auto',
+            ]"
           >
             <RouterView />
           </main>
