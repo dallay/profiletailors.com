@@ -18,7 +18,7 @@ Run `just -l` to see every available recipe.
 |-------------|--------------|------------------------------------------------------------------------|
 | Java        | `>= 21`      | [sdkman.io](https://sdkman.io) or [adoptium.net](https://adoptium.net) |
 | Node.js     | `>= 22.12.0` | [nodejs.org](https://nodejs.org)                                       |
-| pnpm        | `>= 10`      | `npm install -g pnpm`                                                  |
+| pnpm        | `>= 11.8.0`  | `npm install -g pnpm`                                                  |
 | just        | `>= 1.30`    | See below                                                              |
 | Docker      | latest       | [docs.docker.com](https://docs.docker.com)                             |
 
@@ -118,7 +118,7 @@ This runs Biome lint, Vitest unit tests, and a production build.
 just backend-run
 ```
 
-The server starts in dev profile. API endpoints will be available at `http://localhost:8080`.
+The server starts in dev profile. API endpoints will be available at `http://localhost:7638`.
 
 Run fast tests:
 

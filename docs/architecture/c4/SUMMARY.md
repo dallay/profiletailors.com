@@ -27,7 +27,7 @@ across multiple platforms (Twitter, LinkedIn, Instagram, Facebook, TikTok).
 
 | Layer        | Technology                                       |
 |--------------|--------------------------------------------------|
-| **Frontend** | Astro 6 (marketing), React 18+ (web app planned) |
+| **Frontend** | Astro 6 (marketing), Vue 3 (web app, partially implemented) |
 | **Backend**  | Spring Boot 4, Kotlin, WebFlux (reactive)        |
 | **Database** | PostgreSQL 16 with R2DBC (reactive driver)       |
 | **Cache**    | Redis                                            |
@@ -316,7 +316,7 @@ Managed Services
 
 ### Phase 2: Core Features (🔄 In Progress)
 
-- [ ] Web application (React)
+- [ ] Web application (Vue 3, partially implemented)
 - [ ] Content Context (post creation, scheduling)
 - [ ] Scheduler Service (background jobs)
 - [ ] Redis cache integration
@@ -377,7 +377,7 @@ Managed Services
 
 ### Additional Resources
 
-- **[DESIGN.md](../../../DESIGN.md)** — Design system and UI guidelines
+- **[DESIGN.md](../../../.agents/DESIGN.md)** — Design system and UI guidelines
 - **[README.md](../../../README.md)** — Project overview and setup
 - **[CONTRIBUTING.md](../../../CONTRIBUTING.md)** — Contribution guidelines
 - **[openspec/](../../../openspec/)** — SDD artifacts (specs, designs, tasks)

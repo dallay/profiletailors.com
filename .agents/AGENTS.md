@@ -85,7 +85,7 @@ openspec/             # SDD artifacts (spec-driven development)
 - All user-facing strings in locale files (`src/i18n/`), never hardcoded
 - Fonts: Space Grotesk (body), Space Mono (labels), Doto (hero only)
 - Style: Nothing-inspired, monochrome, dark-first
-- Package manager: pnpm, Node >= 22.12.0
+- Package manager: pnpm >= 11.8.0, Node >= 22.12.0
 - Linter: Biome
 
 ### `apps/web/app` (Vue 3 + shadcn-vue)
