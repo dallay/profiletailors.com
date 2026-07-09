@@ -321,7 +321,7 @@ body {
 /* Native thin scrollbar utility for overflow containers that do not use reka ScrollArea */
 .thin-scrollbar {
   scrollbar-width: thin;
-  scrollbar-color: var(--border-visible-color) transparent;
+  scrollbar-color: color-mix(in srgb, var(--border-visible-color) 72%, transparent) transparent;
 }
 
 .thin-scrollbar::-webkit-scrollbar {
