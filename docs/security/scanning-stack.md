@@ -51,7 +51,7 @@ automation workflows.
 | Semgrep                | Fast cross-language SAST and security-sensitive config scanning      | Backend, frontend, workflow/config surfaces                           | GitHub code scanning via SARIF                                            | Yes when relevant in PR lane                         |
 | Gitleaks               | Secret detection                                                     | Entire repository                                                     | GitHub code scanning in deep lane, native artifact/log channel in PR lane | Yes in PR lane for non-doc-only changes              |
 | Trivy                  | Dependency, filesystem, and IaC/config scanning                      | Repository filesystem, dependency manifests, security-relevant config | GitHub code scanning via SARIF + retained artifacts                       | Yes in PR lane with narrowed severity                |
-| Biome security checks  | Frontend JS/TS/Astro style & security validation                     | `apps/web/marketing` and `apps/web/app`                               | Workflow logs and annotations                                             | Yes when frontend or repo-security scope is relevant |
+| ESLint security rules  | Frontend JS/TS/Astro security linting                                | `apps/web/marketing`                                                  | Workflow logs and annotations                                             | Yes when frontend or repo-security scope is relevant |
 | Detekt                 | Kotlin static analysis and code quality                              | Existing backend/shared Gradle modules                                | Existing workflow artifact/log output                                     | Existing repo policy                                 |
 | SonarQube / SonarCloud | Centralized reporting, historical trends, and optional PR decoration | Repository areas supported by configured binding                      | Sonar dashboard and PR decoration                                         | Reporting-only initially                             |
 
@@ -112,7 +112,7 @@ security-relevant bucket wins.
 | `semgrep-frontend`         | `frontend` or `repo_security`           | Frontend and broad-impact SAST              |
 | `codeql-backend`           | `backend` or `repo_security`            | Backend/shared code-graph analysis          |
 | `trivy-backend`            | `backend` or `repo_security`            | High-signal vulnerability/misconfig scan    |
-| `frontend-biome-security`  | `frontend` or `repo_security`           | Web apps Biome verification contract        |
+| `frontend-eslint-security` | `frontend` or `repo_security`           | Marketing app lint contract                 |
 | `sonar-pr`                 | Scope changed and Sonar config is valid | Optional, explicit, reporting-oriented      |
 | `summary`                  | Always                                  | Explains what ran and where findings appear |
 
@@ -169,7 +169,7 @@ These are the initial merge-relevant checks:
 - **Semgrep**: blocking when the path classifier says the change is in scope.
 - **CodeQL**: blocking for backend or repo-security relevant PRs.
 - **Trivy**: blocking in the PR lane with a narrowed severity threshold of `HIGH,CRITICAL`.
-- **Frontend Biome security**: blocking for frontend or repo-security relevant PRs.
+- **Frontend ESLint security**: blocking for frontend or repo-security relevant PRs.
 - **Detekt**: continues under its existing workflow and repo policy.
 
 ### Reporting-only checks
@@ -200,7 +200,7 @@ Understanding where to look matters as much as running the scanner.
 | Trivy              | GitHub code scanning via uploaded SARIF; deep lane also retains artifact evidence |
 | Gitleaks PR lane   | Workflow logs, annotations, and native uploaded artifact                          |
 | Gitleaks deep lane | GitHub code scanning via SARIF plus retained artifact                             |
-| Biome              | Workflow logs and annotations                                                     |
+| ESLint             | Workflow logs and annotations                                                     |
 | Detekt             | Existing workflow artifact/log output                                             |
 | Sonar              | Sonar dashboard and optional PR decoration when configured                        |
 | Workflow summaries | `$GITHUB_STEP_SUMMARY` content in each workflow run                               |
@@ -279,7 +279,7 @@ These scanners are designed to run from repository content plus normal GitHub co
 - Semgrep
 - Gitleaks
 - Trivy
-- Biome
+- ESLint
 - Detekt
 
 ### Optional external integration secrets
@@ -395,7 +395,7 @@ Suppressions must stay:
 - `.github/codeql/codeql-config.yml`
 - `.gitleaks.toml`
 - `.trivyignore`
-- `/biome.json` and `apps/web/marketing/biome.json`
+- `apps/web/marketing/eslint.config.mjs`
 - `sonar-project.properties`
 
 ### Expectations
@@ -409,7 +409,7 @@ Suppressions must stay:
 
 | Scenario                                              | Expected PR behavior                                                                                                    |
 |-------------------------------------------------------|-------------------------------------------------------------------------------------------------------------------------|
-| Frontend-only change in `apps/web/marketing/**`       | `gitleaks-pr`, `semgrep-frontend`, `frontend-biome-security`, `summary`; backend CodeQL/Trivy jobs stay non-applicable  |
+| Frontend-only change in `apps/web/marketing/**`       | `gitleaks-pr`, `semgrep-frontend`, `frontend-eslint-security`, `summary`; backend CodeQL/Trivy jobs stay non-applicable |
 | Backend-only change in `server/smp/**` or `shared/**` | `gitleaks-pr`, `semgrep-backend`, `codeql-backend`, `trivy-backend`, `summary`; frontend lint stays non-applicable      |
 | Workflow or scanner-config change                     | Broad checks run because `repo_security` is true                                                                        |
 | Docs-only change under `docs/**` or `openspec/**`     | Heavy path-specific security jobs skip cleanly; summaries should make that obvious                                      |
@@ -478,7 +478,7 @@ When changing this stack, verify all of the following:
 - Semgrep in relevant scope
 - CodeQL in backend/repo-security scope
 - Trivy in backend/repo-security scope with `HIGH,CRITICAL`
-- Frontend Biome security in frontend/repo-security scope
+- Frontend ESLint security in frontend/repo-security scope
 
 ### Reporting-only now
 
