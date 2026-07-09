@@ -26,9 +26,11 @@ import org.springframework.stereotype.Component
  *   (enforced separately by `LocalJwtSecretResolver`, but double-checked here).
  *
  * **When it runs:**
- * - After application context is fully initialized but before the web server starts accepting connections (via [ApplicationStartedEvent]).
+ * - After application context is fully initialized but before the web server starts accepting
+ *   connections (via [ApplicationStartedEvent]).
  * - Skipped in test profile (where test credentials are acceptable).
- * - Skipped in Spring Boot test contexts (BDD, integration tests) detected via test-specific properties.
+ * - Skipped in Spring Boot test contexts (BDD, integration tests) detected via test-specific
+ *   properties.
  *
  * **Related:**
  * - Issue #233 (MVP Launch Readiness): "No default credentials can reach production"
