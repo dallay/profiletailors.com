@@ -2,8 +2,9 @@
 import { computed } from 'vue'
 import { Plus } from '@lucide/vue'
 import ConflictBadge from '@/components/ConflictBadge.vue'
+import SocialProviderIcon from '@/components/SocialProviderIcon.vue'
 import type { Publication, ActivityEntry } from '@/stores/publishing'
-import { getProviderColor, getProviderBadge } from '@/lib/provider-styles'
+import { getProviderColor } from '@/lib/provider-styles'
 
 const props = withDefaults(
   defineProps<{
@@ -95,7 +96,6 @@ function onKeyDown(e: KeyboardEvent) {
     @dragover.prevent="!isPast"
     @drop.prevent="!isPast ? onDrop($event) : undefined"
   >
-    <!-- Day number + activity dot -->
     <div class="flex items-center justify-between mb-1">
       <span
         class="font-mono text-[10px] font-bold leading-none size-5 flex items-center justify-center rounded-full"
@@ -108,7 +108,6 @@ function onKeyDown(e: KeyboardEvent) {
         {{ date.getDate() }}
       </span>
 
-      <!-- Activity dot -->
       <div
         v-if="activityEntry && isCurrentMonth && activityDotColor"
         class="size-2 rounded-full shrink-0"
@@ -116,7 +115,6 @@ function onKeyDown(e: KeyboardEvent) {
       />
     </div>
 
-    <!-- Publication snippets -->
     <div class="space-y-0.5">
       <div
         v-for="pub in visiblePublications"
@@ -134,7 +132,9 @@ function onKeyDown(e: KeyboardEvent) {
           @dragstart="onDragStart($event, pub)"
           @dragend="onDragEnd"
         >
-          <span class="shrink-0">{{ getProviderBadge(pub.channels[0] || 'linkedin') }}</span>
+          <span class="size-2.5 shrink-0">
+            <SocialProviderIcon :provider="pub.channels[0] || 'linkedin'" />
+          </span>
           <span class="min-w-0 flex-1 truncate">{{ pub.title || pub.content.substring(0, 20) }}</span>
           <img
             v-if="pub.thumbnail"
@@ -157,7 +157,6 @@ function onKeyDown(e: KeyboardEvent) {
       </div>
     </div>
 
-    <!-- Add post button (only in enabled current-month cells) -->
     <button
       v-if="isCurrentMonth && !isPast"
       @click.stop="emit('click-day', date)"

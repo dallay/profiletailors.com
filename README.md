@@ -8,11 +8,13 @@
 
 Public-facing marketing site for the Profile Tailors social media management platform.
 
+</div>
+
 [![License](https://img.shields.io/github/license/dallay/profiletailors.com?style=for-the-badge&color=2d3748)](LICENSE)
 [![CI](https://img.shields.io/github/actions/workflow/status/dallay/profiletailors.com/release-please.yml?style=for-the-badge&color=2d3748&label=CI)](https://github.com/dallay/profiletailors.com/actions)
-[![Astro](https://img.shields.io/badge/Astro-6.4.8-2d3748?style=for-the-badge&logo=astro&logoColor=ffffff)](https://astro.build)
+[![Astro](https://img.shields.io/badge/Astro-6.3.3-2d3748?style=for-the-badge&logo=astro&logoColor=ffffff)](https://astro.build)
 [![Node.js](https://img.shields.io/badge/Node.js-22.12%2B-2d3748?style=for-the-badge&logo=node.js&logoColor=5fa04e)](https://nodejs.org)
-[![pnpm](https://img.shields.io/badge/pnpm-11.x-2d3748?style=for-the-badge&logo=pnpm&logoColor=f69220)](https://pnpm.io)
+[![pnpm](https://img.shields.io/badge/pnpm-10.x-2d3748?style=for-the-badge&logo=pnpm&logoColor=f69220)](https://pnpm.io)
 
 [![Quality Gate Status](https://sonarcloud.io/api/project_badges/measure?project=dallay_profiletailors.com&metric=alert_status)](https://sonarcloud.io/summary/new_code?id=dallay_profiletailors.com)
 [![Bugs](https://sonarcloud.io/api/project_badges/measure?project=dallay_profiletailors.com&metric=bugs)](https://sonarcloud.io/summary/new_code?id=dallay_profiletailors.com)
@@ -24,53 +26,32 @@ Public-facing marketing site for the Profile Tailors social media management pla
 [![Maintainability Rating](https://sonarcloud.io/api/project_badges/measure?project=dallay_profiletailors.com&metric=sqale_rating)](https://sonarcloud.io/summary/new_code?id=dallay_profiletailors.com)
 [![codecov](https://codecov.io/gh/dallay/profiletailors.com/graph/badge.svg?token=B70EGR3KBD)](https://codecov.io/gh/dallay/profiletailors.com)
 
-[![CI](https://img.shields.io/github/actions/workflow/status/dallay/profiletailors.com/release-please.yml?style=for-the-badge&color=2d3748&label=CI)](https://github.com/dallay/profiletailors.com/actions)
-[![Astro](https://img.shields.io/badge/Astro-6.4.8-2d3748?style=for-the-badge&logo=astro&logoColor=ffffff)](https://astro.build)
-[![Node.js](https://img.shields.io/badge/Node.js-22.12%2B-2d3748?style=for-the-badge&logo=node.js&logoColor=5fa04e)](https://nodejs.org)
-[![pnpm](https://img.shields.io/badge/pnpm-11.x-2d3748?style=for-the-badge&logo=pnpm&logoColor=f69220)](https://pnpm.io)
-
-[![Quality Gate Status](https://sonarcloud.io/api/project_badges/measure?project=dallay_profiletailors.com&metric=alert_status)](https://sonarcloud.io/summary/new_code?id=dallay_profiletailors.com)
-[![Bugs](https://sonarcloud.io/api/project_badges/measure?project=dallay_profiletailors.com&metric=bugs)](https://sonarcloud.io/summary/new_code?id=dallay_profiletailors.com)
-[![Code Smells](https://sonarcloud.io/api/project_badges/measure?project=dallay_profiletailors.com&metric=code_smells)](https://sonarcloud.io/summary/new_code?id=dallay_profiletailors.com)
-[![Coverage](https://sonarcloud.io/api/project_badges/measure?project=dallay_profiletailors.com&metric=coverage)](https://sonarcloud.io/summary/new_code?id=dallay_profiletailors.com)
-[![Duplicated Lines (%)](https://sonarcloud.io/api/project_badges/measure?project=dallay_profiletailors.com&metric=duplicated_lines_density)](https://sonarcloud.io/summary/new_code?id=dallay_profiletailors.com)
-[![Reliability Rating](https://sonarcloud.io/api/project_badges/measure?project=dallay_profiletailors.com&metric=reliability_rating)](https://sonarcloud.io/summary/new_code?id=dallay_profiletailors.com)
-[![Security Rating](https://sonarcloud.io/api/project_badges/measure?project=dallay_profiletailors.com&metric=security_rating)](https://sonarcloud.io/summary/new_code?id=dallay_profiletailors.com)
-[![Maintainability Rating](https://sonarcloud.io/api/project_badges/measure?project=dallay_profiletailors.com&metric=sqale_rating)](https://sonarcloud.io/summary/new_code?id=dallay_profiletailors.com)
-[![codecov](https://codecov.io/gh/dallay/profiletailors.com/graph/badge.svg?token=B70EGR3KBD)](https://codecov.io/gh/dallay/profiletailors.com)
+```text
 profiletailors.com/
 ├── apps/
 │   └── web/
-│       ├── marketing/            # Active Astro marketing site
-│       │   ├── public/           # Static files served as-is
-│       │   ├── src/
-│       │   │   ├── components/   # UI building blocks
-│       │   │   ├── i18n/         # EN/ES locale content
-│       │   │   ├── layouts/      # Shared page shells
-│       │   │   ├── pages/        # Routes (`/` and `/es/`)
-│       │   │   ├── scripts/      # Client-side behavior
-│       │   │   └── styles/       # Global styles and tokens
-│       │   ├── astro.config.mjs
-│       │   └── package.json
-│       └── app/                  # Dashboard SPA (Vue 3, TypeScript)
-│           ├── public/
-│           ├── src/              # Vue source
-│           ├── index.html
-│           ├── package.json
-│           └── vite.config.ts
+│       └── marketing/            # Active Astro marketing site
+│           ├── public/           # Static files served as-is
+│           ├── src/
+│           │   ├── components/   # UI building blocks
+│           │   ├── i18n/         # EN/ES locale content
+│           │   ├── layouts/      # Shared page shells
+│           │   ├── pages/        # Routes (`/` and `/es/`)
+│           │   ├── scripts/      # Client-side behavior
+│           │   └── styles/       # Global styles and tokens
+│           ├── astro.config.mjs
+│           └── package.json
 ├── server/
 │   └── smp/                     # Backend service (Spring Boot, Kotlin, work in progress)
 │       ├── src/                 # Kotlin source
 │       ├── build.gradle.kts
 │       └── compose.yaml
 ├── shared/
-│   ├── common/                  # Pure Kotlin domain primitives
-│   ├── security/                # Security domain and context
 │   └── assets/                  # Shared logos, icons, and web assets
 ├── .agents/                      # Agent tooling config and skills
 ├── .github/workflows/            # CI and automation
-├── docs/architecture/           # Architecture documentation (C4, ADRs)
 ├── docs/security/               # Security documentation
+├── tmp/                          # Research notes and temporary planning docs
 ├── openspec/                    # SDD (Spec-Driven Development) artifacts
 ├── CONTRIBUTING.md
 ├── CLA.md
@@ -87,7 +68,7 @@ profiletailors.com/
 | Requirement    | Version               | Install                                    |
 |----------------|-----------------------|--------------------------------------------|
 | Node.js        | `>= 22.12.0`          | [nodejs.org](https://nodejs.org)           |
-| pnpm           | `>= 11`               | `npm install -g pnpm`                      |
+| pnpm           | `>= 10`               | `npm install -g pnpm`                      |
 | just           | `>= 1.30`             | `brew install just` / `winget install Casey.Just` / `cargo install just` |
 
 > **Windows users:** `just` runs natively on Windows. The Gradle wrapper is auto-detected
@@ -125,7 +106,7 @@ For full onboarding and troubleshooting, see [docs/getting-started.md](docs/gett
 - copy `.env.example` to `.env` when needed,
 - install workspace dependencies with `pnpm install --frozen-lockfile`,
 - install Lefthook unless Git hooks are globally disabled (`core.hooksPath=/dev/null`, e.g. Jules).
-- apply AI agent configurations with `pnpm dlx @dallay/agentsync apply`,
+- apply AI agent configurations with `pnpm dlx @dallay/agentsync apply`.
 
 #### 3) Start local development
 
@@ -201,7 +182,7 @@ Docker commands separately. Run `just -l` to list everything.
 - User-facing copy is maintained in locale files under `apps/web/marketing/src/i18n/`.
 - Shared web assets are sourced from `shared/assets/` and exposed by the app config during
   development and build.
-- The current waitlist flow is **client-side only** (backend implementation is planned).
+- The current waitlist flow is **client-side only**.
 - Code quality: **Biome** for linting and formatting in the frontend.
 - The backend lives in `server/smp/` — Spring Boot 4 with Kotlin and WebFlux (experimental, not
   deployed).

@@ -3,52 +3,86 @@ import { ref, computed, watch, onMounted, onUnmounted, nextTick } from 'vue'
 import { useI18n } from 'vue-i18n'
 import type { DateValue } from 'reka-ui'
 import { useFocusTrap } from '@/composables/useFocusTrap'
+import { useComposerMediaPicker } from '@/composables/useComposerMediaPicker'
 import { CalendarDate, getLocalTimeZone, today } from '@internationalized/date'
 import {
-  AlertCircle,
   Calendar as CalendarIcon,
   Check,
+  ChevronDown,
   Hash,
   Image as ImageIcon,
-  Loader2,
-  RotateCcw,
+  Smile,
   Sparkles,
   X,
 } from '@lucide/vue'
 import { useAuthStore } from '@/stores/auth'
-import { useWorkspaceStore } from '@/stores/workspace'
 import { usePublishingStore, type Publication } from '@/stores/publishing'
+import { useWorkspaceStore } from '@/stores/workspace'
 import { useMediaStore } from '@/stores/media'
 import { proxyImageUrl, resolveApiUrl } from '@/lib/auth-api'
 import PostPreviewPanel from '@/components/composer/PostPreviewPanel.vue'
-import ComposerMediaPickerShell from '@/components/composer/ComposerMediaPickerShell.vue'
-import {
-  COMPOSER_MEDIA_PICKER_FILTER,
-  COMPOSER_MEDIA_PICKER_VIEW_STATE,
-  type ComposerMediaPickerViewState,
-  type ComposerMediaPickerFilter,
-  type ComposerMediaPickerFilterOption,
-  type ComposerMediaPickerSearchChange,
-  type ComposerMediaPickerFilterChange,
-  type ComposerMediaPickerProviderImport,
-} from '@/components/composer/composer-media-picker.types'
 import type { LinkedInPreviewModel, PostPreviewMedia } from '@/components/composer/post-preview.types'
-import MediaProviderPanel from '@/features/media-composer/providers/MediaProviderPanel.vue'
-import { useMediaProviderConfig } from '@/composables/useMediaProviderConfig'
 import { Button } from '@/components/ui/button'
 import { Calendar } from '@/components/ui/calendar'
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
+import { Progress } from '@/components/ui/progress'
+import Spinner from '@/components/ui/spinner/Spinner.vue'
+import ComposerMediaPickerShell from '@/components/composer/ComposerMediaPickerShell.vue'
+import MediaProviderPanel from '@/components/composer/MediaProviderPanel.vue'
 
 type ComposerScheduleMode = 'now' | 'next' | 'custom'
+const COMPOSER_SUPPORTED_MEDIA_TYPES = new Set([
+  'image/jpeg',
+  'image/png',
+  'image/gif',
+  'image/webp',
+  'video/mp4',
+])
+
+type ComposerInlineAttachment =
+  | {
+    key: string
+    kind: 'draft'
+    assetId: string
+    name: string
+    previewUrl: string | null
+    isUploading: false
+    uploadProgress: 100
+    uploadStateLabel: null
+  }
+  | {
+    key: string
+    kind: 'local-upload'
+    assetId: null
+    name: string
+    previewUrl: string | null
+    isUploading: boolean
+    uploadProgress: number | null
+    uploadStateLabel: string | null
+  }
 
 const props = withDefaults(
   defineProps<{
     isOpen: boolean
     initialDate?: string // ISO string
     editingPublication?: Publication // Pre-fill for editing
+    /**
+     * Provider to surface as a browsable source inside the media picker.
+     * The parent owns the feature flag and only passes `provider="unsplash"`
+     * when the provider is configured and enabled.
+     */
+    provider?: 'unsplash' | null
+    /**
+     * Whether the Unsplash provider is enabled by feature flag.
+     * Same purpose as `provider`, kept distinct so the modal can react
+     * to capability refreshes without re-creating the modal.
+     */
+    isUnsplashProviderEnabled?: boolean
   }>(),
   {
     isOpen: false,
+    provider: null,
+    isUnsplashProviderEnabled: false,
   }
 )
 
@@ -60,13 +94,27 @@ const emit = defineEmits<{
 
 const { t } = useI18n()
 const auth = useAuthStore()
-const workspace = useWorkspaceStore()
 const publishingStore = usePublishingStore()
 const mediaStore = useMediaStore()
+const workspaceStore = useWorkspaceStore()
 
-// State
+
 const postText = ref('')
 const selectedChannelId = ref<string | null>(null)
+
+
+const picker = useComposerMediaPicker({
+  mediaStore,
+  publishingStore,
+  editingPublication: () => props.editingPublication ?? null,
+  provider: () => props.provider ?? null,
+  isUnsplashProviderEnabled: () => props.isUnsplashProviderEnabled ?? false,
+  initialChannelId: () => selectedChannelId.value,
+  workspaceId: () => workspaceStore.activeWorkspaceId ?? 'ws-local',
+  onAttachmentsChanged: () => {
+    assetsTouched.value = true
+  },
+})
 const avatarLoadFailed = ref<Record<string, boolean>>({})
 const submitError = ref('')
 const firstComment = ref('')
@@ -74,32 +122,24 @@ const createAnother = ref(false)
 const priorityMode = ref(false)
 const scheduleMode = ref<ComposerScheduleMode>('now')
 const isDatePickerOpen = ref(false)
-const isMediaPickerOpen = ref(false)
-const mediaPickerTrigger = ref<HTMLButtonElement | null>(null)
-const mediaPickerSearchQuery = ref('')
-const mediaPickerSelectedFilter = ref<ComposerMediaPickerFilter>(COMPOSER_MEDIA_PICKER_FILTER.ALL)
 
 const modalContainer = ref<HTMLElement | null>(null)
 const { activate: activateFocusTrap, deactivate: deactivateFocusTrap } = useFocusTrap(modalContainer, () => emit('close'))
 
-// ---------------------------------------------------------------------------
-// Edit mode
-// ---------------------------------------------------------------------------
+
 const isEditMode = computed(() => !!props.editingPublication)
 const _isCreating = computed(() => !isEditMode.value)
 const assetsTouched = ref(false)
 let suppressAssetTouchTracking = false
 
-// ---------------------------------------------------------------------------
-// Media picker state (replaces local-only File attachment truth)
-// ---------------------------------------------------------------------------
-// Blob URL for instant preview during upload (purely transient UX)
+
 const uploadPreviewBlob = ref<string | null>(null)
 const selectedUploadFile = ref<File | null>(null)
 const uploadTempKey = ref<string | null>(null)
 const uploadProgress = ref(0)
-const fileInput = ref<HTMLInputElement | null>(null)
-const isDragging = ref(false)
+const pickerSessionUploadInput = ref<HTMLInputElement | null>(null)
+const isMediaSourcesOpen = ref(false)
+const isDropzoneActive = ref(false)
 
 function clearUploadPreviewBlob() {
   if (uploadPreviewBlob.value) {
@@ -108,13 +148,11 @@ function clearUploadPreviewBlob() {
   }
 }
 
-// Calendar selector state
+
 const selectedCalendarDate = ref<DateValue>()
 const scheduleTime = ref('10:00')
 
-// ---------------------------------------------------------------------------
-// Live clock for date/time minimum validation
-// ---------------------------------------------------------------------------
+
 const now = ref(new Date())
 let timer: ReturnType<typeof setInterval>
 
@@ -124,7 +162,10 @@ onMounted(() => {
   }, 60_000)
 })
 
-onUnmounted(() => clearInterval(timer))
+onUnmounted(() => {
+  clearInterval(timer)
+  picker.stopAllReconciliationPollers()
+})
 
 const todayDateValue = computed(() => today(getLocalTimeZone()))
 
@@ -155,19 +196,25 @@ async function initEditMode(pub: NonNullable<typeof props.editingPublication>) {
   scheduleMode.value = modeMap[pub.scheduleMode ?? 'SCHEDULED_AT'] ?? 'custom'
 
   assetsTouched.value = false
+  picker.draftAttachmentIds.value = []
+  picker.pickerSelectionIds.value = []
+  picker.resetPickerSessionTracking()
   mediaStore.clearSelection()
   if (pub.assetIds?.length) {
-    for (const assetId of pub.assetIds) {
-      if (!mediaStore.assetsById[assetId]) {
-        try {
-          await mediaStore.loadAsset(assetId)
-        } catch (err) {
-          const status = err instanceof Error && 'status' in err ? err.status : undefined
-          if (status === 404) continue
+    const resolvedAssetIds = await Promise.all(
+      pub.assetIds.map(async (assetId) => {
+        if (!mediaStore.assetsById[assetId]) {
+          try {
+            await mediaStore.loadAsset(assetId)
+          } catch (err) {
+            const status = err instanceof Error && 'status' in err ? err.status : undefined
+            if (status === 404) return null
+          }
         }
-      }
-      mediaStore.addToSelection(assetId)
-    }
+        return assetId
+      }),
+    )
+    picker.draftAttachmentIds.value = resolvedAssetIds.filter((assetId): assetId is string => assetId !== null)
   }
 
   const pubChannelId = pub.accountId
@@ -195,6 +242,9 @@ function initCreateMode() {
   priorityMode.value = false
   scheduleMode.value = props.initialDate ? 'custom' : 'now'
   assetsTouched.value = false
+  picker.draftAttachmentIds.value = []
+  picker.pickerSelectionIds.value = []
+  picker.resetPickerSessionTracking()
   mediaStore.clearSelection()
   selectedChannelId.value = publishingStore.channels[0]?.id ?? null
 
@@ -215,6 +265,10 @@ async function initializeComposerForOpen() {
   selectedUploadFile.value = null
   uploadTempKey.value = null
   uploadProgress.value = 0
+  isMediaSourcesOpen.value = false
+  isDropzoneActive.value = false
+  picker.isMediaPickerOpen.value = false
+  picker.mediaPickerCollectionState.value = 'LOADING'
 
   suppressAssetTouchTracking = true
   if (isEditMode.value && props.editingPublication) {
@@ -280,7 +334,7 @@ watch(
   },
 )
 
-// Computed
+
 const isSubmitting = ref(false)
 const isAiProcessing = ref(false)
 const charLimit = 3000
@@ -311,22 +365,6 @@ const selectedChannelInitials = computed(() => {
     .toUpperCase()
 })
 
-const mediaPickerFilterOptions = computed<ReadonlyArray<ComposerMediaPickerFilterOption>>(() => [
-  { value: COMPOSER_MEDIA_PICKER_FILTER.ALL, labelKey: 'composer.mediaPicker.filterAll' },
-  { value: COMPOSER_MEDIA_PICKER_FILTER.IMAGE, labelKey: 'composer.mediaPicker.filterImage' },
-  { value: COMPOSER_MEDIA_PICKER_FILTER.VIDEO, labelKey: 'composer.mediaPicker.filterVideo' },
-  { value: COMPOSER_MEDIA_PICKER_FILTER.DOCUMENT, labelKey: 'composer.mediaPicker.filterDocument' },
-])
-
-const mediaPickerState = computed<ComposerMediaPickerViewState>(
-  () => COMPOSER_MEDIA_PICKER_VIEW_STATE.LOADING,
-)
-
-const mediaProviderConfig = useMediaProviderConfig()
-
-const authAccessToken = computed(() => auth.accessToken ?? '')
-const activeWorkspaceId = computed(() => workspace.activeWorkspaceId ?? '')
-
 const selectedDateLabel = computed(() => {
   if (!selectedCalendarDate.value) return 'Select date'
   const date = selectedCalendarDate.value.toDate(getLocalTimeZone())
@@ -349,50 +387,101 @@ const canSubmit = computed(() => {
     !!selectedChannel.value &&
     postText.value.trim().length > 0 &&
     !isTextTooLong.value &&
-    !isSubmitting.value
+    !isSubmitting.value &&
+    !picker.isAttachmentLimitExceeded.value
   )
 })
 
-// Drag and drop state
-// isDragging is declared above in the state block
-
-// Methods
-function handleDragOver(e: DragEvent) {
-  e.preventDefault()
-  isDragging.value = true
-}
-
-function handleDragLeave() {
-  isDragging.value = false
-}
-
-function handleDrop(e: DragEvent) {
-  e.preventDefault()
-  isDragging.value = false
-  if (e.dataTransfer?.files) {
-    addFiles(Array.from(e.dataTransfer.files))
-  }
-}
-
-function openFilePicker() {
-  fileInput.value?.click()
-}
 
 function handleFileSelect(e: Event) {
   const target = e.target as HTMLInputElement
   if (target.files?.length) {
-    addFiles(Array.from(target.files))
+    const files = Array.from(target.files)
+    if (picker.isMediaPickerOpen.value) {
+      void picker.handlePickerUploadSelection(files)
+    } else {
+      addFiles(files)
+    }
     target.value = ''
   }
+}
+
+function openUploadPicker() {
+  pickerSessionUploadInput.value?.click()
+}
+
+function openMediaLibrary() {
+  isMediaSourcesOpen.value = false
+  void picker.openMediaPicker('library')
+}
+
+function openUnsplashLibrary() {
+  isMediaSourcesOpen.value = false
+  void picker.openMediaPicker('unsplash')
+}
+
+function handleDropzoneDragOver(event: DragEvent) {
+  event.preventDefault()
+  isDropzoneActive.value = true
+}
+
+function handleDropzoneDragLeave(event: DragEvent) {
+  event.preventDefault()
+  isDropzoneActive.value = false
+}
+
+function extractFilesFromDataTransfer(dataTransfer: DataTransfer | null): File[] {
+  if (!dataTransfer) return []
+  return Array.from(dataTransfer.files ?? [])
+}
+
+function extractFilesFromClipboard(clipboardData: DataTransfer | null): File[] {
+  if (!clipboardData) return []
+
+  const clipboardFiles = Array.from(clipboardData.files ?? [])
+  if (clipboardFiles.length > 0) return clipboardFiles
+
+  return Array.from(clipboardData.items ?? [])
+    .filter((item) => item.kind === 'file')
+    .map((item) => item.getAsFile())
+    .filter((file): file is File => file !== null)
+}
+
+function handleComposerSurfaceDragOver(event: DragEvent) {
+  const files = extractFilesFromDataTransfer(event.dataTransfer)
+  if (files.length === 0) return
+  event.preventDefault()
+  isDropzoneActive.value = true
+}
+
+function handleComposerSurfaceDragLeave(event: DragEvent) {
+  event.preventDefault()
+  isDropzoneActive.value = false
+}
+
+function handleComposerSurfaceDrop(event: DragEvent) {
+  const files = extractFilesFromDataTransfer(event.dataTransfer)
+  if (files.length === 0) return
+  event.preventDefault()
+  isDropzoneActive.value = false
+  addFiles(files)
+}
+
+function handleComposerSurfacePaste(event: ClipboardEvent) {
+  const files = extractFilesFromClipboard(event.clipboardData)
+  if (files.length === 0) return
+  event.preventDefault()
+  addFiles(files)
+}
+
+function handleDropzoneDrop(event: DragEvent) {
+  handleComposerSurfaceDrop(event)
 }
 
 function addFiles(filesList: File[]) {
   if (isEditMode.value) assetsTouched.value = true
   const file = filesList.find((file) => {
-    const isSupported =
-      file.type.startsWith('image/') ||
-      file.type === 'video/mp4' ||
-      file.type === 'image/webp'
+    const isSupported = COMPOSER_SUPPORTED_MEDIA_TYPES.has(file.type)
     const isUnderLimit = file.size <= 10 * 1024 * 1024 // 10MB
     if (!isSupported) alert('Unsupported media format. Supported formats: JPEG, PNG, WEBP, GIF, MP4.')
     if (!isUnderLimit) alert('File size exceeds 10MB limit.')
@@ -401,8 +490,6 @@ function addFiles(filesList: File[]) {
 
   if (!file) return
 
-  // Limit to max 1 image for LinkedIn MVP simple preview.
-  // File is stored locally for deferred upload — no server call until Schedule Post.
   clearUploadPreviewBlob()
   selectedUploadFile.value = file
   uploadPreviewBlob.value = URL.createObjectURL(file)
@@ -449,28 +536,13 @@ async function _uploadAndTrack(file: File) {
  */
 function removeFile() {
   if (isEditMode.value) assetsTouched.value = true
-  // Remove all selected assets from the media store
-  mediaStore.clearSelection()
-
-  // Clean up any in-progress upload tracking
   clearUploadPreviewBlob()
   selectedUploadFile.value = null
+  if (uploadTempKey.value) {
+    mediaStore.dismissUpload(uploadTempKey.value)
+  }
   uploadTempKey.value = null
   uploadProgress.value = 0
-  mediaStore.clearUploads()
-}
-
-/**
- * Retries a failed upload tracked in the media store.
- */
-async function retryUploadItem(tempKey: string) {
-  try {
-    await mediaStore.retryUpload(tempKey, () => {
-      // progress is tracked in the store
-    })
-  } catch {
-    // Error already reflected in the store
-  }
 }
 
 /**
@@ -484,7 +556,9 @@ const selectedAssetIsImage = computed(() => {
     return uploadFile.type.startsWith('image/')
   }
 
-  const first = mediaStore.selectedAssets[0]
+  const first = picker.draftAttachmentIds.value
+    .map((assetId) => mediaStore.assetsById[assetId])
+    .find((asset) => asset !== undefined)
   if (!first) return false
   return first.mediaType.startsWith('image/')
 })
@@ -499,7 +573,9 @@ const selectedAssetPreviewUrl = computed<string | null>(() => {
     return uploadPreviewBlob.value
   }
 
-  const first = mediaStore.selectedAssets[0]
+  const first = picker.draftAttachmentIds.value
+    .map((assetId) => mediaStore.assetsById[assetId])
+    .find((asset) => asset !== undefined)
   if (!first) return null
   if (!first.mediaType.startsWith('image/')) return null
   return first.previewUrl ? resolveApiUrl(first.previewUrl) : null
@@ -518,7 +594,9 @@ const selectedPreviewMedia = computed<PostPreviewMedia | null>(() => {
     }
   }
 
-  const first = mediaStore.selectedAssets[0]
+  const first = picker.draftAttachmentIds.value
+    .map((assetId) => mediaStore.assetsById[assetId])
+    .find((asset) => asset !== undefined)
   if (!first) return null
 
   const isImage = first.mediaType.startsWith('image/')
@@ -546,47 +624,70 @@ const linkedinPreview = computed<LinkedInPreviewModel>(() => ({
  * Completed uploads should fall through to the selected asset preview state.
  */
 const currentUpload = computed(() => {
-  return mediaStore.uploadList.find((upload) => upload.status !== 'done') ?? null
+  const trackedUpload = uploadTempKey.value ? mediaStore.uploads[uploadTempKey.value] : undefined
+  if (trackedUpload) {
+    return trackedUpload.status === 'done' ? null : trackedUpload
+  }
+
+  return (
+    mediaStore.uploadList.find(
+      (upload) => upload.tempKey.startsWith('modal-upload-') && upload.status !== 'done',
+    ) ?? null
+  )
 })
+
+const normalizedUploadProgress = computed<number | null>(() => {
+  if (!currentUpload.value) return null
+  return Math.max(0, Math.min(100, currentUpload.value.progress ?? uploadProgress.value ?? 0))
+})
+
+const currentUploadStateLabel = computed<string | null>(() => {
+  if (currentUpload.value?.status !== 'uploading') return null
+  if ((normalizedUploadProgress.value ?? 0) >= 100) {
+    return t('composer.media.finishingUpload')
+  }
+  return t('composer.media.uploadingProgress', {
+    progress: Math.round(normalizedUploadProgress.value ?? 0),
+  })
+})
+
+const composerInlineAttachments = computed<ComposerInlineAttachment[]>(() => {
+  const localUploadAttachment: ComposerInlineAttachment[] = selectedUploadFile.value
+    ? [
+      {
+        key: uploadTempKey.value ?? `local-upload-${selectedUploadFile.value.name}`,
+        kind: 'local-upload',
+        assetId: null,
+        name: selectedUploadFile.value.name,
+        previewUrl: selectedUploadFile.value.type.startsWith('image/') ? uploadPreviewBlob.value : null,
+        isUploading: currentUpload.value?.status === 'uploading',
+        uploadProgress: normalizedUploadProgress.value,
+        uploadStateLabel: currentUploadStateLabel.value,
+      },
+    ]
+    : []
+
+  const persistedAttachments: ComposerInlineAttachment[] = picker.draftAttachmentAssets.value.map((asset) => ({
+    key: asset.assetId,
+    kind: 'draft',
+    assetId: asset.assetId,
+    name: asset.originalFilename ?? asset.assetId,
+    previewUrl: asset.previewUrl ? resolveApiUrl(asset.previewUrl) : null,
+    isUploading: false,
+    uploadProgress: 100,
+    uploadStateLabel: null,
+  }))
+
+  return [...localUploadAttachment, ...persistedAttachments]
+})
+
+const visibleInlineAttachments = computed(() => composerInlineAttachments.value.slice(0, 3))
+const hiddenInlineAttachmentCount = computed(() =>
+  Math.max(0, composerInlineAttachments.value.length - visibleInlineAttachments.value.length),
+)
 
 function selectChannel(channelId: string) {
   selectedChannelId.value = channelId
-}
-
-function openMediaPicker() {
-  isMediaPickerOpen.value = true
-}
-
-function handleMediaPickerOpenChange(open: boolean) {
-  isMediaPickerOpen.value = open
-  if (!open) {
-    void nextTick(() => {
-      mediaPickerTrigger.value?.focus()
-    })
-  }
-}
-
-function handleMediaPickerClose() {
-  handleMediaPickerOpenChange(false)
-}
-
-function handleMediaPickerSearchChange(payload: ComposerMediaPickerSearchChange) {
-  mediaPickerSearchQuery.value = payload.query
-}
-
-function handleMediaPickerFilterChange(payload: ComposerMediaPickerFilterChange) {
-  mediaPickerSelectedFilter.value = payload.filter
-}
-
-async function handleMediaPickerProviderImport(payload: ComposerMediaPickerProviderImport | { assetId: string; deduped?: boolean }) {
-  const assetId = 'assetId' in payload ? payload.assetId : payload.externalId
-  if (!mediaStore.assetsById[assetId]) {
-    await mediaStore.loadAsset(assetId)
-  }
-  mediaStore.addToSelection(assetId)
-  assetsTouched.value = true
-  mediaPickerSearchQuery.value = ''
-  handleMediaPickerOpenChange(false)
 }
 
 function onChannelAvatarError(channelId: string) {
@@ -604,6 +705,10 @@ function appendHashtag() {
     const formatted = tag.startsWith('#') ? tag : `#${tag}`
     postText.value = postText.value ? `${postText.value} ${formatted}` : formatted
   }
+}
+
+function handleEmojiPicker() {
+  postText.value = `${postText.value}${postText.value ? ' ' : ''}🙂`
 }
 
 // AI Assist helper
@@ -649,9 +754,6 @@ function validateCustomSchedule(finalScheduledDate: Date): string | undefined {
   return undefined
 }
 
-// ---------------------------------------------------------------------------
-// Schedule helpers — extracted to reduce cognitive complexity
-// ---------------------------------------------------------------------------
 
 function resolveScheduleMode(
   mode: ComposerScheduleMode,
@@ -688,6 +790,7 @@ async function uploadDeferredFile(): Promise<boolean> {
     )
     if (isEditMode.value) assetsTouched.value = true
     mediaStore.addToSelection(asset.assetId)
+    picker.draftAttachmentIds.value = [...picker.draftAttachmentIds.value, asset.assetId]
     return true
   } catch {
     submitError.value = 'Media upload failed. Please try again.'
@@ -699,6 +802,9 @@ function resetPostForm() {
   postText.value = ''
   removeFile()
   firstComment.value = ''
+  picker.draftAttachmentIds.value = []
+  picker.pickerSelectionIds.value = []
+  picker.resetPickerSessionTracking()
 }
 
 function finalizeAfterCreate(shouldCreateAnother: boolean) {
@@ -758,7 +864,7 @@ async function handleEditSubmit(
     scheduledAt: scheduledDate?.toISOString(),
     priority: priorityMode.value,
     scheduleMode: backendScheduleMode,
-    ...(assetsTouched.value ? { assetIds: [...mediaStore.selectedAssetIds] } : {}),
+    ...(assetsTouched.value ? { assetIds: [...picker.draftAttachmentIds.value] } : {}),
   })
   emit('updated')
   emit('close')
@@ -780,7 +886,7 @@ async function handleCreateSubmit(
     thumbnail: selectedAssetIsImage.value
       ? (uploadPreviewBlob.value ?? selectedAssetPreviewUrl.value ?? undefined)
       : undefined,
-    assetIds: [...mediaStore.selectedAssetIds],
+    assetIds: [...picker.draftAttachmentIds.value],
     socialAccountId: selectedChannel.value?.accountId,
   })
   emit('created')
@@ -790,7 +896,6 @@ async function handleCreateSubmit(
 
 <template>
   <Teleport to="body">
-    <!-- Modal Backdrop — click.self closes modal -->
     <!-- biome-ignore lint/a11y/noStaticElementInteractions: overlay backdrop, closes on outside click -->
     <div
       v-if="isOpen"
@@ -803,9 +908,8 @@ async function handleCreateSubmit(
         role="dialog"
         aria-modal="true"
         aria-labelledby="create-post-title"
-        class="flex flex-col lg:flex-row w-full max-w-5xl max-h-[90vh] lg:h-[750px] bg-bg-surface border border-border-subtle rounded-2xl overflow-y-auto lg:overflow-hidden shadow-2xl animate-zoom-in m-0 relative"
+        class="relative m-0 flex h-[min(92vh,750px)] w-full max-w-5xl flex-col overflow-hidden rounded-2xl border border-border-subtle bg-bg-surface shadow-2xl animate-zoom-in lg:flex-row"
       >
-        <!-- Close Button (Absolute Mobile) -->
         <button
           @click="emit('close')"
           class="absolute top-4 right-4 z-50 flex size-8 items-center justify-center rounded-full border border-border-subtle bg-bg-primary text-text-secondary hover:text-text-display lg:hidden"
@@ -813,8 +917,7 @@ async function handleCreateSubmit(
           <X class="size-4" />
         </button>
 
-        <!-- Left Column: Composer Editor -->
-        <div class="flex-1 flex flex-col border-b lg:border-b-0 lg:border-r border-border-subtle p-6 overflow-y-auto space-y-6">
+        <div class="flex min-h-0 flex-1 flex-col space-y-6 border-b border-border-subtle p-6 lg:border-b-0 lg:border-r overflow-hidden">
           <div class="flex items-center justify-between">
               <h3 id="create-post-title" class="font-mono text-xs font-bold tracking-widest text-text-display uppercase">
                 {{ isEditMode ? $t('composer.editTitle') : $t('composer.title') }}
@@ -827,7 +930,6 @@ async function handleCreateSubmit(
             </button>
           </div>
 
-          <!-- Channel Selection -->
           <div class="space-y-2">
             <span class="font-mono text-[9px] tracking-widest text-text-secondary uppercase block">
               {{ $t('dashboard.selectChannels') }}
@@ -878,171 +980,232 @@ async function handleCreateSubmit(
             </div>
           </div>
 
-          <!-- Textarea + Editor controls -->
-          <div class="space-y-2 flex-1 flex flex-col min-h-[160px]">
+          <div class="flex flex-1 flex-col rounded-[24px] border border-border-visible bg-bg-primary/70 min-h-[420px]">
             <label for="create-post-text" class="sr-only">Post content</label>
             <textarea
               id="create-post-text"
               v-model="postText"
               :placeholder="$t('composer.placeholder')"
-              class="w-full flex-1 bg-bg-primary border border-border-visible rounded-xl p-4 text-sm text-text-body placeholder:text-text-secondary focus:outline-none focus:border-text-display resize-none font-sans"
+              class="min-h-[260px] w-full flex-1 resize-none bg-transparent p-5 text-sm text-text-body placeholder:text-text-secondary focus:outline-none font-sans"
+              data-testid="composer-textarea"
+              @dragover="handleComposerSurfaceDragOver"
+              @dragleave="handleComposerSurfaceDragLeave"
+              @drop="handleComposerSurfaceDrop"
+              @paste="handleComposerSurfacePaste"
             ></textarea>
 
-            <div class="flex items-center justify-between py-1 px-1">
-              <div class="flex items-center gap-3 text-text-secondary">
-                <button
-                  @click="appendHashtag"
-                  class="p-1.5 hover:text-text-display hover:bg-bg-primary/50 rounded-lg transition-all cursor-pointer"
-                  title="Insert Tag"
+            <div class="border-t border-border-subtle/70 px-4 py-4">
+              <div class="flex flex-wrap items-center gap-3">
+                <div
+                  v-for="asset in visibleInlineAttachments"
+                  :key="asset.key"
+                  :title="asset.name"
+                  class="group relative h-[118px] w-[118px] overflow-hidden rounded-[18px] border border-white/10 bg-white/5"
+                  :data-testid="asset.kind === 'draft' ? `inline-attachment-${asset.assetId}` : 'inline-local-upload'"
                 >
-                  <Hash class="size-4" />
-                </button>
-                <button
-                  @click="handleAiAssist"
-                  class="p-1.5 hover:text-text-display hover:bg-bg-primary/50 rounded-lg text-text-secondary flex items-center gap-1 transition-all cursor-pointer"
-                  title="AI Assist"
-                >
-                  <Sparkles class="size-4 text-text-secondary" />
-                  <span class="font-mono text-[8px] uppercase tracking-wider font-bold">AI</span>
-                </button>
-              </div>
+                  <img
+                    v-if="asset.previewUrl"
+                    :src="asset.previewUrl"
+                    alt="Selected media preview"
+                    class="h-full w-full object-cover"
+                    data-testid="attachment-preview-image"
+                  >
+                  <div
+                    v-else
+                    class="flex h-full w-full items-center justify-center bg-black/10 text-white/45"
+                  >
+                    <ImageIcon class="size-6" />
+                  </div>
 
-              <span
-                class="font-mono text-[10px]"
-                :class="isTextTooLong ? 'text-error font-bold' : 'text-text-secondary'"
-              >
-                {{ charsRemaining }} / {{ charLimit }}
-              </span>
-            </div>
-          </div>
-
-          <!-- Media Attachment (direct upload only for now) -->
-          <div class="space-y-2">
-            <div class="flex items-center justify-between">
-              <span class="font-mono text-[9px] tracking-widest text-text-secondary uppercase block">
-                Media Attachment
-              </span>
-              <Button as-child variant="ghost" size="sm">
-                <button
-                  ref="mediaPickerTrigger"
-                  type="button"
-                  data-testid="media-picker-trigger"
-                  class="h-auto gap-1.5 px-0 py-0 font-mono text-[9px] font-bold uppercase tracking-wider text-text-secondary hover:bg-transparent hover:text-text-display"
-                  :aria-label="$t('composer.mediaPicker.open')"
-                  :aria-haspopup="'dialog'"
-                  :aria-expanded="isMediaPickerOpen"
-                  @click="openMediaPicker"
-                >
-                  <ImageIcon class="size-3.5" />
-                  {{ $t('composer.mediaPicker.open') }}
-                </button>
-              </Button>
-            </div>
-
-            <!-- Upload progress or failed upload state -->
-            <div
-              v-if="currentUpload"
-              class="border border-border-visible rounded-xl p-4 space-y-2"
-            >
-              <!-- In-progress upload -->
-              <div v-if="currentUpload.status === 'uploading'" class="flex items-center gap-3">
-                <Loader2 class="size-4 text-text-secondary animate-spin shrink-0" />
-                <div class="flex-1 min-w-0">
-                  <p class="text-xs text-text-secondary truncate">
-                    Uploading {{ currentUpload.file.name }}
-                  </p>
-                  <div class="mt-1.5 h-1 bg-border-visible rounded-full overflow-hidden">
-                    <div
-                      class="h-full bg-text-display rounded-full transition-all duration-300"
-                      :style="{ width: `${uploadProgress}%` }"
+                  <div
+                    v-if="asset.isUploading"
+                    class="absolute inset-0 flex flex-col items-center justify-center gap-3 bg-black/55 px-3 text-center backdrop-blur-sm"
+                    data-testid="inline-upload-overlay"
+                  >
+                    <Spinner class="size-5 text-[#8ccf70]" />
+                    <p class="text-xs font-medium leading-tight text-white">
+                      {{ asset.uploadStateLabel }}
+                    </p>
+                    <Progress
+                      :model-value="asset.uploadProgress ?? 0"
+                      class="h-1 w-full bg-white/15 [&_[data-slot=progress-indicator]]:bg-[#8ccf70]"
                     />
+                    <p class="text-[10px] leading-tight text-white/70">
+                      {{ t('composer.media.keepEditingWhileUploading') }}
+                    </p>
                   </div>
-                  <p class="mt-0.5 font-mono text-[9px] text-text-secondary">{{ uploadProgress }}%</p>
+
+                  <button
+                    type="button"
+                    class="absolute right-2 top-2 flex size-7 items-center justify-center rounded-full bg-black/70 text-white transition hover:bg-black/85"
+                    :data-testid="asset.kind === 'draft' ? `attachment-remove-${asset.assetId}` : 'attachment-remove-local-upload'"
+                    :aria-label="t('composer.media.removeAttachment', { name: asset.name })"
+                    @click="asset.kind === 'draft' ? picker.removeDraftAttachment(asset.assetId) : removeFile()"
+                  >
+                    <X class="size-3.5" />
+                  </button>
                 </div>
-                <button
-                  @click="removeFile"
-                  class="shrink-0 p-1 hover:bg-error/10 rounded transition-colors cursor-pointer"
-                  title="Cancel upload"
+
+                <div
+                  v-if="hiddenInlineAttachmentCount > 0"
+                  class="flex h-[118px] w-[118px] items-center justify-center rounded-[18px] border border-dashed border-white/12 bg-white/5 font-mono text-xs tracking-[0.2em] text-white/70"
+                  data-testid="inline-attachment-overflow"
                 >
-                  <X class="size-3 text-text-secondary hover:text-error" />
+                  +{{ hiddenInlineAttachmentCount }}
+                </div>
+
+                <button
+                  type="button"
+                  class="flex h-[118px] w-[118px] cursor-pointer flex-col items-center justify-center rounded-[18px] border border-dashed px-4 text-center transition"
+                  :class="isDropzoneActive ? 'border-[#8ccf70] bg-[#8ccf70]/10' : 'border-white/18 bg-transparent hover:border-white/30'"
+                  data-testid="composer-inline-dropzone"
+                  @click="openUploadPicker"
+                  @dragover="handleDropzoneDragOver"
+                  @dragleave="handleDropzoneDragLeave"
+                  @drop="handleDropzoneDrop"
+                >
+                  <ImageIcon class="mb-3 size-6 text-white/65" />
+                  <p class="text-[12px] leading-5 text-white/75">
+                    {{ t('composer.media.dropzoneTitle') }}
+                    <span class="block font-medium text-[#8ccf70]">{{ t('composer.media.dropzoneBody') }}</span>
+                  </p>
                 </button>
               </div>
 
-              <!-- Failed upload -->
-              <div v-if="currentUpload.status === 'failed' || currentUpload.status === 'conflict'" class="flex items-start gap-2">
-                <AlertCircle class="size-4 text-error shrink-0 mt-0.5" />
-                <div class="flex-1 min-w-0">
-                  <p class="text-xs text-error font-medium">{{ currentUpload.errorTitle ?? 'Upload failed' }}</p>
-                  <p class="text-[10px] text-text-secondary mt-0.5">{{ currentUpload.errorDetail }}</p>
-                  <div class="flex gap-2 mt-2">
-                    <button
-                      @click="retryUploadItem(currentUpload.tempKey)"
-                      class="flex items-center gap-1 font-mono text-[8px] uppercase tracking-wider font-bold text-text-display hover:underline cursor-pointer"
-                    >
-                      <RotateCcw class="size-3" /> Retry
-                    </button>
-                    <button
-                      @click="removeFile"
-                      class="font-mono text-[8px] uppercase tracking-wider font-bold text-text-secondary hover:text-error cursor-pointer"
-                    >
-                      Dismiss
-                    </button>
-                  </div>
+              <div class="mt-4 flex items-center justify-between gap-4">
+                <div class="flex items-center gap-1 text-text-secondary">
+                  <button
+                    type="button"
+                    class="sr-only"
+                    data-testid="add-media-button"
+                    @click="openMediaLibrary"
+                  >
+                    {{ t('composer.media.addMedia') }}
+                  </button>
+                  <button
+                    type="button"
+                    class="flex h-10 w-10 items-center justify-center rounded-xl border border-border-visible bg-bg-surface transition hover:border-text-display hover:text-text-display"
+                    data-testid="composer-upload-trigger"
+                    @click="openUploadPicker"
+                  >
+                    <ImageIcon class="size-4" />
+                  </button>
+
+                  <Popover v-model:open="isMediaSourcesOpen">
+                    <PopoverTrigger as-child>
+                      <button
+                        type="button"
+                        class="flex h-10 w-10 items-center justify-center rounded-xl border border-border-visible bg-bg-surface transition hover:border-text-display hover:text-text-display"
+                        data-testid="composer-sources-trigger"
+                      >
+                        <ChevronDown class="size-4" />
+                      </button>
+                    </PopoverTrigger>
+                    <PopoverContent align="start" class="w-60 rounded-2xl border-border-subtle bg-bg-surface p-2">
+                      <div class="space-y-1">
+                        <button
+                          type="button"
+                          class="flex w-full items-center justify-between rounded-xl px-3 py-2 text-sm text-text-body transition hover:bg-bg-primary"
+                          data-testid="composer-source-library"
+                          @click="openMediaLibrary"
+                        >
+                          <span>{{ t('composer.media.sourceLibrary') }}</span>
+                        </button>
+                        <button
+                          v-if="picker.effectiveProvider.value === 'unsplash'"
+                          type="button"
+                          class="flex w-full items-center justify-between rounded-xl px-3 py-2 text-sm text-text-body transition hover:bg-bg-primary"
+                          data-testid="composer-source-unsplash"
+                          @click="openUnsplashLibrary"
+                        >
+                          <span>{{ t('composer.media.sourceExternal') }}</span>
+                        </button>
+                      </div>
+                    </PopoverContent>
+                  </Popover>
+
+                  <button
+                    @click="handleEmojiPicker"
+                    class="flex h-10 w-10 items-center justify-center rounded-xl text-text-secondary transition hover:bg-bg-surface hover:text-text-display"
+                    title="Open emoji picker"
+                  >
+                    <Smile class="size-4" />
+                  </button>
+                  <button
+                    @click="appendHashtag"
+                    class="flex h-10 w-10 items-center justify-center rounded-xl text-text-secondary transition hover:bg-bg-surface hover:text-text-display"
+                    title="Insert tag"
+                  >
+                    <Hash class="size-4" />
+                  </button>
+                  <button
+                    @click="handleAiAssist"
+                    class="flex h-10 items-center gap-1 rounded-xl px-2 text-text-secondary transition hover:bg-bg-surface hover:text-text-display"
+                    title="AI Assist"
+                  >
+                    <Sparkles class="size-4" />
+                    <span class="font-mono text-[8px] uppercase tracking-wider font-bold">AI</span>
+                  </button>
                 </div>
+
+                <span
+                  class="font-mono text-[10px]"
+                  :class="isTextTooLong ? 'text-error font-bold' : 'text-text-secondary'"
+                >
+                  {{ charsRemaining }} / {{ charLimit }}
+                </span>
               </div>
-            </div>
 
-            <!-- Selected READY asset preview -->
-            <div
-              v-else-if="mediaStore.selectedAssetIds.length > 0 && selectedAssetIsImage && selectedAssetPreviewUrl"
-              class="relative w-full max-w-[180px] h-16 rounded-lg overflow-hidden group"
-            >
-              <img :src="selectedAssetPreviewUrl" alt="Selected media preview" class="w-full h-full object-cover" />
-              <button
-                @click.stop="removeFile"
-                class="absolute top-1 right-1 bg-black/60 text-white rounded-full p-1 hover:bg-black/90 transition-colors cursor-pointer"
+              <input
+                id="create-post-file-input"
+                ref="pickerSessionUploadInput"
+                data-testid="picker-upload-input"
+                type="file"
+                class="hidden"
+                accept="image/jpeg,image/png,image/gif,image/webp,video/mp4"
+                aria-label="Upload media file"
+                @change="handleFileSelect"
               >
-                <X class="size-3" />
-              </button>
             </div>
-
-            <!-- Drop zone / select file button -->
-            <label v-if="!currentUpload" for="create-post-file-input" class="sr-only">
-              Upload media file
-            </label>
-            <input
-              v-if="!currentUpload"
-              id="create-post-file-input"
-              ref="fileInput"
-              type="file"
-              class="hidden"
-              accept="image/*,video/mp4"
-              @change="handleFileSelect"
-            />
-            <button
-              v-if="!currentUpload"
-              type="button"
-              @dragover="handleDragOver"
-              @dragleave="handleDragLeave"
-              @drop="handleDrop"
-              class="border border-dashed border-border-visible rounded-xl p-5 text-center transition-all flex flex-col items-center justify-center min-h-[80px] cursor-pointer hover:border-text-secondary w-full"
-              :class="{
-                'border-text-display bg-bg-primary/40': isDragging,
-                'bg-bg-primary/20': !isDragging,
-              }"
-              :aria-label="$t('composer.dragDrop')"
-              @click="openFilePicker"
-            >
-              <ImageIcon class="size-5 text-text-secondary mx-auto" />
-              <p class="text-xs text-text-secondary font-light mt-1.5">
-                {{ $t('composer.dragDrop') }}
-                <span class="underline text-text-display cursor-pointer font-medium">{{ $t('composer.selectFile') }}</span>
-              </p>
-            </button>
-
           </div>
+          <p
+            v-if="picker.isAttachmentLimitExceeded.value"
+            data-testid="attachment-limit-warning"
+            class="rounded-xl border border-error/40 bg-error/10 px-3 py-2 text-xs text-error"
+          >
+            {{ t('composer.media.limitWarning', {
+              current: picker.draftAttachmentIds.value.length,
+              max: Number.isFinite(picker.effectiveAttachmentLimit.value) ? picker.effectiveAttachmentLimit.value : t('composer.media.limitInfinite'),
+            }) }}
+          </p>
+          <ComposerMediaPickerShell
+            :is-open="picker.isMediaPickerOpen.value"
+            :active-source="picker.activeMediaPickerSource.value"
+            :collection-state="picker.mediaPickerCollectionState.value"
+            :assets="picker.pickerAssets.value"
+            :provider="picker.effectiveProvider.value"
+            :apply-disabled="picker.isPickerSelectionOverLimit.value"
+            :apply-disabled-message="picker.isPickerSelectionOverLimit.value ? t('composer.picker.applyDisabledLimit') : null"
+            @toggle-asset="picker.togglePickerAsset($event.assetId)"
+            @apply-selection="picker.applyPickerSelection()"
+            @provider-search="picker.handleProviderSearch"
+            @set-active-source="picker.setActiveMediaPickerSource($event.source)"
+            @provider-import="picker.handleProviderImport"
+            @close="picker.closeMediaPicker()"
+          >
+            <template
+              v-if="picker.effectiveProvider.value === 'unsplash'"
+              #provider
+            >
+              <MediaProviderPanel
+                :results="picker.providerResults.value"
+                :is-searching="picker.providerSearching.value"
+                :search-error="picker.providerSearchError.value"
+                @provider-import="picker.handleProviderImport"
+              />
+            </template>
+          </ComposerMediaPickerShell>
 
-          <!-- First Comment option -->
           <div class="space-y-2">
             <!-- biome-ignore lint/a11y/noLabelWithoutControl: $t() provides accessible text, Biome can't resolve i18n keys statically -->
             <label for="create-post-first-comment" class="font-mono text-[9px] tracking-widest text-text-secondary uppercase block">
@@ -1058,7 +1221,6 @@ async function handleCreateSubmit(
           </div>
         </div>
 
-        <!-- Right Column: Social Preview -->
         <PostPreviewPanel
           :provider="selectedPreviewProvider"
           :title="$t('composer.linkedinPreview')"
@@ -1066,7 +1228,6 @@ async function handleCreateSubmit(
         >
           <template #footer>
             <div class="border-t border-border-subtle pt-6 space-y-4">
-              <!-- Schedule controls -->
               <div class="space-y-3">
                 <div class="flex items-center gap-4 bg-bg-surface border border-border-subtle p-3 rounded-xl">
                 <CalendarIcon class="size-4 text-text-secondary shrink-0" />
@@ -1105,7 +1266,6 @@ async function handleCreateSubmit(
                 </div>
               </div>
 
-              <!-- Date Picker Row -->
               <div v-if="scheduleMode === 'custom'" class="grid grid-cols-[1fr_112px] gap-3 animate-slide-down">
                 <Popover v-model:open="isDatePickerOpen">
                   <PopoverTrigger as-child>
@@ -1137,7 +1297,6 @@ async function handleCreateSubmit(
                 />
               </div>
 
-              <!-- Priority / Draft Toggles -->
               <div class="flex items-center justify-between text-[10px] font-mono text-text-secondary px-1">
                 <label class="flex items-center gap-1.5 cursor-pointer hover:text-text-display select-none">
                   <input type="checkbox" v-model="priorityMode" class="accent-text-display" />
@@ -1154,7 +1313,6 @@ async function handleCreateSubmit(
                 {{ submitError }}
               </p>
 
-              <!-- Primary Action Buttons -->
               <div class="grid grid-cols-3 gap-3">
                 <button
                   @click="emit('close')"
@@ -1175,30 +1333,6 @@ async function handleCreateSubmit(
           </template>
         </PostPreviewPanel>
       </div>
-
-      <!-- Composer media picker shell (parent-owned open state; no store/API coupling) -->
-      <ComposerMediaPickerShell
-        :open="isMediaPickerOpen"
-        :state="mediaPickerState"
-        :search-query="mediaPickerSearchQuery"
-        :selected-filter="mediaPickerSelectedFilter"
-        :filter-options="mediaPickerFilterOptions"
-        :assets="[]"
-        :provider="mediaProviderConfig.unsplashEnabled ? 'unsplash' : null"
-        @update:open="handleMediaPickerOpenChange"
-        @close="handleMediaPickerClose"
-        @search-change="handleMediaPickerSearchChange"
-        @filter-change="handleMediaPickerFilterChange"
-        @provider-import="handleMediaPickerProviderImport"
-      >
-        <template #providerTab>
-          <MediaProviderPanel
-            :workspace-id="activeWorkspaceId"
-            :token="authAccessToken"
-            @import-success="handleMediaPickerProviderImport"
-          />
-        </template>
-      </ComposerMediaPickerShell>
     </div>
   </Teleport>
 </template>

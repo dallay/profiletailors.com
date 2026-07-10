@@ -1,431 +1,163 @@
-import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
-import { mount, flushPromises } from '@vue/test-utils'
-import type { MediaAssetSummary } from '@/lib/media-api'
-import {
-  COMPOSER_MEDIA_PICKER_FILTER,
-  COMPOSER_MEDIA_PICKER_VIEW_STATE,
-  type ComposerMediaPickerFilter,
-  type ComposerMediaPickerFilterOption,
-  type ComposerMediaPickerViewState,
+import { describe, it, expect, vi } from 'vitest'
+import { mount } from '@vue/test-utils'
+import ComposerMediaPickerShell from './ComposerMediaPickerShell.vue'
+import type {
+  ComposerMediaPickerAsset,
+  ComposerMediaPickerCollectionState,
+  ComposerMediaPickerSource,
 } from './composer-media-picker.types'
 
+const mockT = (key: string) => {
+  const translations: Record<string, string> = {
+    'media.loading': 'Loading media library...',
+    'media.emptyTitle': 'No media assets yet',
+    'media.emptyBody': 'Upload your first image, video, or PDF to populate the library.',
+    'composer.picker.header': 'Media Library',
+    'composer.picker.libraryChip': 'Library',
+    'composer.picker.unsplashChip': 'Unsplash',
+    'composer.picker.searchPlaceholder': 'Search Unsplash',
+    'composer.picker.searchAction': 'Search',
+    'composer.picker.searchingAction': 'Searching…',
+    'composer.picker.providerSearchLabel': 'Search Unsplash',
+    'composer.picker.libraryDescription':
+      'Browse images and videos already saved in this workspace.',
+    'composer.picker.providerDescription':
+      'Search Unsplash and import media into this post without leaving the composer.',
+    'composer.picker.errorLoad': 'Unable to load media library.',
+    'composer.picker.noPreview': 'No preview',
+    'composer.picker.cancel': 'Cancel',
+    'composer.picker.apply': 'Apply',
+  }
+
+  return translations[key] ?? key
+}
+
 vi.mock('vue-i18n', () => ({
-  useI18n: () => ({ t: (key: string) => key, locale: { value: 'en' } }),
-}))
-
-vi.mock('@/components/ui/dialog', () => ({
-  Dialog: { template: '<div data-testid="dialog"><slot /></div>', props: ['open'] },
-  DialogContent: {
-    template: '<div data-testid="dialog-content"><slot /></div>',
-    props: ['class', 'showCloseButton'],
-  },
-  DialogHeader: { template: '<div data-testid="dialog-header"><slot /></div>' },
-  DialogTitle: { template: '<h2 data-testid="dialog-title"><slot /></h2>' },
-  DialogDescription: { template: '<p data-testid="dialog-description"><slot /></p>' },
-}))
-
-vi.mock('@/components/ui/button', () => ({
-  Button: {
-    template: '<button data-slot="button"><slot /></button>',
-    props: ['variant', 'size', 'disabled', 'ariaLabel', 'type'],
-  },
-}))
-
-vi.mock('@/components/ui/select', () => ({
-  Select: {
-    name: 'Select',
-    template: '<div><slot /></div>',
-    props: ['modelValue', 'disabled'],
-    emits: ['update:modelValue'],
-  },
-  SelectTrigger: {
-    template: '<button type="button" :disabled="disabled"><slot /></button>',
-    props: ['disabled'],
-  },
-  SelectValue: { template: '<span />' },
-  SelectContent: { template: '<div><slot /></div>' },
-  SelectItem: { template: '<button type="button"><slot /></button>', props: ['value'] },
-}))
-
-vi.mock('@/components/ui/input', () => ({
-  Input: {
-    template:
-      '<input data-slot="input" :value="modelValue" :disabled="disabled" :placeholder="placeholder" :aria-label="ariaLabel" @input="onInput" />',
-    props: ['modelValue', 'disabled', 'placeholder', 'ariaLabel', 'type', 'class'],
-    emits: ['update:modelValue'],
-    setup(
-      _props: unknown,
-      { emit }: { emit: (event: 'update:modelValue', value: string) => void },
-    ) {
-      return {
-        onInput(event: Event) {
-          const target = event.target as HTMLInputElement | null
-          emit('update:modelValue', target?.value ?? '')
-        },
-      }
-    },
-  },
+  useI18n: () => ({ t: mockT }),
 }))
 
 vi.mock('@lucide/vue', () => {
   const stub = { template: '<svg />' }
-  return { XIcon: stub, Search: stub, X: stub }
+  return {
+    Check: stub,
+    Search: stub,
+    X: stub,
+  }
 })
 
-// Lazy import so mocks are active
-const { default: ComposerMediaPickerShell } = await import('./ComposerMediaPickerShell.vue')
-
-// ---------------------------------------------------------------------------
-// Test data factories
-// ---------------------------------------------------------------------------
-
-function makeAsset(overrides: Partial<MediaAssetSummary> = {}): MediaAssetSummary {
+function makeAsset(overrides: Partial<ComposerMediaPickerAsset> = {}): ComposerMediaPickerAsset {
   return {
     assetId: 'asset-1',
-    workspaceId: 'ws-1',
-    sourceType: 'UPLOADED',
+    name: 'Hero image',
     mediaType: 'image/png',
     status: 'READY',
-    originalFilename: 'photo.png',
-    fileSizeBytes: 1024,
-    createdAt: '2026-06-01T12:00:00Z',
+    previewUrl: '/preview/asset-1.png',
+    selectable: true,
+    selected: false,
+    sourceType: 'UPLOADED',
     ...overrides,
   }
 }
 
-const DEFAULT_FILTER_OPTIONS: ReadonlyArray<ComposerMediaPickerFilterOption> = [
-  { value: COMPOSER_MEDIA_PICKER_FILTER.ALL, labelKey: 'composer.mediaPicker.filterAll' },
-  { value: COMPOSER_MEDIA_PICKER_FILTER.IMAGE, labelKey: 'composer.mediaPicker.filterImage' },
-  { value: COMPOSER_MEDIA_PICKER_FILTER.VIDEO, labelKey: 'composer.mediaPicker.filterVideo' },
-  { value: COMPOSER_MEDIA_PICKER_FILTER.DOCUMENT, labelKey: 'composer.mediaPicker.filterDocument' },
-]
-
-function mountShell(overrides: Record<string, unknown> = {}) {
+function mountShell(
+  options: Partial<{
+    isOpen: boolean
+    activeSource: ComposerMediaPickerSource
+    collectionState: ComposerMediaPickerCollectionState
+    assets: ComposerMediaPickerAsset[]
+    provider: 'unsplash' | null
+  }> = {},
+) {
   return mount(ComposerMediaPickerShell, {
-    attachTo: document.body,
     props: {
-      open: true,
-      state: COMPOSER_MEDIA_PICKER_VIEW_STATE.READY as ComposerMediaPickerViewState,
-      searchQuery: '',
-      selectedFilter: COMPOSER_MEDIA_PICKER_FILTER.ALL as ComposerMediaPickerFilter,
-      filterOptions: DEFAULT_FILTER_OPTIONS,
-      assets: [makeAsset()],
-      ...overrides,
-    },
-    global: {
-      mocks: { $t: (key: string) => key },
+      isOpen: true,
+      activeSource: 'library',
+      collectionState: 'READY',
+      assets: [],
+      provider: null,
+      ...options,
     },
   })
 }
 
-// ---------------------------------------------------------------------------
-// Tests
-// ---------------------------------------------------------------------------
-
-describe('ComposerMediaPickerShell', () => {
-  beforeEach(() => {
-    vi.clearAllMocks()
-    document.body.innerHTML = ''
-  })
-
-  afterEach(() => {
-    document.body.innerHTML = ''
-  })
-
-  it('stops Escape from bubbling to the parent composer modal', async () => {
-    const wrapper = mountShell()
-    const parentKeydown = vi.fn()
-    document.addEventListener('keydown', parentKeydown)
-
-    try {
-      await wrapper.get('[data-testid="media-picker-close"]').trigger('keydown', { key: 'Escape' })
-      expect(wrapper.emitted('close')).toHaveLength(1)
-      expect(wrapper.emitted('update:open')?.[0]).toEqual([false])
-      expect(parentKeydown).not.toHaveBeenCalled()
-    } finally {
-      document.removeEventListener('keydown', parentKeydown)
-    }
-  })
-
-  // ── Localized accessible names ──────────────────────────────────────────
-
-  describe('localized accessible names', () => {
-    it('renders the dialog with the localized title key', () => {
-      const wrapper = mountShell()
-      expect(wrapper.get('[data-testid="dialog-title"]').text()).toBe('composer.mediaPicker.title')
+describe('ComposerMediaPickerShell.vue', () => {
+  it('renders the source switcher and emits library selection/apply/close events', async () => {
+    const wrapper = mountShell({
+      provider: 'unsplash',
+      assets: [makeAsset({ selected: true })],
     })
 
-    it('renders the localized description', () => {
-      const wrapper = mountShell()
-      expect(wrapper.get('[data-testid="dialog-description"]').text()).toBe(
-        'composer.mediaPicker.description',
-      )
-    })
+    expect(wrapper.text()).toContain('Library')
+    expect(wrapper.text()).toContain('Unsplash')
 
-    it('renders search input with localized aria-label', () => {
-      const wrapper = mountShell()
-      const searchInput = wrapper.get('[data-testid="media-picker-search"]')
-      expect(searchInput.attributes('aria-label')).toBe('composer.mediaPicker.searchLabel')
-    })
+    await wrapper.get('[data-testid="picker-asset-card-asset-1"]').trigger('click')
+    expect(wrapper.emitted('toggle-asset')).toEqual([[{ assetId: 'asset-1' }]])
 
-    it('associates the search input with an associated label via a shared id', () => {
-      const wrapper = mountShell()
-      const searchInput = wrapper.get('[data-testid="media-picker-search"]')
-      const inputId = searchInput.attributes('id')
-      expect(inputId).toBeTruthy()
-      const linkedLabel = wrapper.find(`label[for="${inputId}"]`)
-      expect(linkedLabel.exists()).toBe(true)
-      expect(linkedLabel.text()).toContain('composer.mediaPicker.searchLabel')
-    })
-
-    it('renders filter select with localized aria-label', () => {
-      const wrapper = mountShell()
-      const filter = wrapper.get('[data-testid="media-picker-filter"]')
-      expect(filter.attributes('aria-label')).toBe('composer.mediaPicker.filterLabel')
-    })
-
-    it('associates the filter trigger with an associated label via a shared id', () => {
-      const wrapper = mountShell()
-      const filter = wrapper.get('[data-testid="media-picker-filter"]')
-      const triggerId = filter.attributes('id')
-      expect(triggerId).toBeTruthy()
-      const linkedLabel = wrapper.find(`label[for="${triggerId}"]`)
-      expect(linkedLabel.exists()).toBe(true)
-      expect(linkedLabel.text()).toContain('composer.mediaPicker.filterLabel')
-    })
-
-    it('renders asset grid region with localized label', () => {
-      const wrapper = mountShell()
-      const region = wrapper.get('[data-testid="media-picker-asset-grid"]')
-      expect(region.element.tagName.toLowerCase()).toBe('section')
-      expect(region.attributes('aria-label')).toBe('composer.mediaPicker.assetGridLabel')
-    })
-  })
-
-  // ── Deterministic view states ───────────────────────────────────────────
-
-  describe('deterministic view states', () => {
-    it('renders loading state with localized message', () => {
-      const wrapper = mountShell({ state: 'loading' })
-      expect(wrapper.text()).toContain('composer.mediaPicker.loading')
-      expect(wrapper.find('[data-testid="media-picker-asset-grid"]').exists()).toBe(false)
-    })
-
-    it('announces non-ready state panel changes politely', () => {
-      const wrapper = mountShell({ state: 'loading' })
-      const liveRegion = wrapper.get('[aria-live="polite"]')
-      expect(liveRegion.attributes('aria-atomic')).toBe('true')
-      expect(liveRegion.text()).toContain('composer.mediaPicker.loading')
-    })
-
-    it('renders empty state with localized title and body', () => {
-      const wrapper = mountShell({ state: 'empty', assets: [] })
-      expect(wrapper.text()).toContain('composer.mediaPicker.emptyTitle')
-      expect(wrapper.text()).toContain('composer.mediaPicker.emptyBody')
-    })
-
-    it('renders error state with localized title and custom error message', () => {
-      const wrapper = mountShell({ state: 'error', errorMessage: 'Network failure' })
-      expect(wrapper.text()).toContain('composer.mediaPicker.errorTitle')
-      expect(wrapper.text()).toContain('Network failure')
-    })
-
-    it('renders error state with fallback body when no errorMessage', () => {
-      const wrapper = mountShell({ state: 'error' })
-      expect(wrapper.text()).toContain('composer.mediaPicker.errorBody')
-    })
-
-    it('renders ready state with asset grid', () => {
-      const wrapper = mountShell({ state: 'ready', assets: [makeAsset()] })
-      const grid = wrapper.find('[data-testid="media-picker-asset-grid"]')
-      expect(grid.exists()).toBe(true)
-    })
-  })
-
-  // ── Disabled state suppression ──────────────────────────────────────────
-
-  describe('disabled state', () => {
-    it('renders disabled state localized message', () => {
-      const wrapper = mountShell({ disabled: true })
-      expect(wrapper.text()).toContain('composer.mediaPicker.disabledTitle')
-      expect(wrapper.text()).toContain('composer.mediaPicker.disabledBody')
-    })
-
-    it('disables search input when disabled', () => {
-      const wrapper = mountShell({ disabled: true })
-      const search = wrapper.find('[data-testid="media-picker-search"]')
-      expect(search.attributes('disabled')).toBeDefined()
-    })
-
-    it('disables filter select when disabled', () => {
-      const wrapper = mountShell({ disabled: true })
-      const filter = wrapper.find('[data-testid="media-picker-filter"]')
-      expect(filter.attributes('disabled')).toBeDefined()
-    })
-
-    it('does not emit search-change when disabled', async () => {
-      const wrapper = mountShell({ disabled: true })
-      const search = wrapper.find('[data-testid="media-picker-search"]')
-      await search.setValue('test')
-      expect(wrapper.emitted('search-change')).toBeUndefined()
-    })
-
-    it('does not emit filter-change when disabled', async () => {
-      const wrapper = mountShell({ disabled: true })
-      wrapper.findComponent({ name: 'Select' }).vm.$emit('update:modelValue', 'image')
-      expect(wrapper.emitted('filter-change')).toBeUndefined()
-    })
-  })
-
-  // ── Ready-state asset rendering ─────────────────────────────────────────
-
-  describe('ready-state asset rendering', () => {
-    it('renders an asset card for each provided asset', () => {
-      const assets = [
-        makeAsset({ assetId: 'a1', originalFilename: 'photo.png' }),
-        makeAsset({ assetId: 'a2', originalFilename: 'clip.mp4', mediaType: 'video/mp4' }),
-      ]
-      const wrapper = mountShell({ state: 'ready', assets })
-      const cards = wrapper.findAll('[data-testid^="media-picker-asset-a"]')
-      expect(cards).toHaveLength(2)
-    })
-
-    it('displays asset filename in card', () => {
-      const wrapper = mountShell({
-        state: 'ready',
-        assets: [makeAsset({ assetId: 'a1', originalFilename: 'holiday.jpg' })],
-      })
-      expect(wrapper.text()).toContain('holiday.jpg')
-    })
-  })
-
-  // ── Typed event emissions ───────────────────────────────────────────────
-
-  describe('typed event emissions', () => {
-    it('emits close when close button is clicked', async () => {
-      const wrapper = mountShell()
-      const closeBtn = wrapper.get('[data-testid="media-picker-close"]')
-      await closeBtn.trigger('click')
-      expect(wrapper.emitted('close')).toHaveLength(1)
-    })
-
-    it('emits update:open(false) when close button is clicked', async () => {
-      const wrapper = mountShell()
-      const closeBtn = wrapper.get('[data-testid="media-picker-close"]')
-      await closeBtn.trigger('click')
-      expect(wrapper.emitted('update:open')).toBeTruthy()
-      expect(wrapper.emitted('update:open')![0]).toEqual([false])
-    })
-
-    it('emits search-change with typed payload when search changes', async () => {
-      const wrapper = mountShell()
-      const search = wrapper.get('[data-testid="media-picker-search"]')
-      await search.setValue('landscape')
-      await flushPromises()
-      const events = wrapper.emitted('search-change')
-      expect(events).toBeTruthy()
-      expect(events![events!.length - 1]).toEqual([{ query: 'landscape' }])
-    })
-
-    it('emits filter-change with typed payload when filter changes', async () => {
-      const wrapper = mountShell()
-      wrapper.findComponent({ name: 'Select' }).vm.$emit('update:modelValue', 'video')
-      const events = wrapper.emitted('filter-change')
-      expect(events).toBeTruthy()
-      expect(events![events!.length - 1]).toEqual([{ filter: 'video' }])
-    })
-  })
-})
-
-describe('ComposerMediaPickerShell — real dialog keyboard behavior', () => {
-  beforeEach(() => {
-    vi.resetModules()
-    vi.doUnmock('@/components/ui/dialog')
-    vi.doUnmock('@/components/ui/button')
-    vi.doUnmock('@/components/ui/input')
-    vi.doUnmock('@lucide/vue')
-    document.body.innerHTML = ''
-  })
-
-  afterEach(() => {
-    document.body.innerHTML = ''
-  })
-
-  it('keeps keyboard focus within the real dialog controls until Escape dismisses it', async () => {
-    const { default: RealDialogShell } = await import('./ComposerMediaPickerShell.vue')
-    const wrapper = mount(RealDialogShell, {
-      attachTo: document.body,
-      props: {
-        open: true,
-        state: 'ready' as ComposerMediaPickerViewState,
-        searchQuery: '',
-        selectedFilter: 'all' as ComposerMediaPickerFilter,
-        filterOptions: DEFAULT_FILTER_OPTIONS,
-        assets: [makeAsset()],
-      },
-    })
-    await flushPromises()
-
-    const closeButton = document.body.querySelector<HTMLButtonElement>(
-      '[data-testid="media-picker-close"]',
+    expect(wrapper.find('[data-testid="picker-asset-selected-indicator-asset-1"]').exists()).toBe(
+      true,
     )
-    const searchInput = document.body.querySelector<HTMLInputElement>(
-      '[data-testid="media-picker-search"]',
-    )
-    const filterSelect = document.body.querySelector<HTMLSelectElement>(
-      '[data-testid="media-picker-filter"]',
-    )
-    expect(closeButton).not.toBeNull()
-    expect(searchInput).not.toBeNull()
-    expect(filterSelect).not.toBeNull()
 
-    closeButton!.focus()
-    expect(document.activeElement).toBe(closeButton)
-    closeButton!.dispatchEvent(new KeyboardEvent('keydown', { key: 'Tab', bubbles: true }))
-    await flushPromises()
-    expect([closeButton, searchInput, filterSelect]).toContain(document.activeElement)
+    await wrapper.get('[data-testid="picker-apply"]').trigger('click')
+    expect(wrapper.emitted('apply-selection')).toEqual([[{ assetIds: ['asset-1'] }]])
 
-    closeButton!.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true }))
-    await flushPromises()
-    expect(wrapper.emitted('close')).toHaveLength(1)
-    expect(wrapper.emitted('update:open')?.[0]).toEqual([false])
-  })
-})
-
-// ---------------------------------------------------------------------------
-// Provider tab behavior
-// ---------------------------------------------------------------------------
-
-describe('ComposerMediaPickerShell — provider tab', () => {
-  beforeEach(() => {
-    vi.clearAllMocks()
-    document.body.innerHTML = ''
+    await wrapper.get('[data-testid="picker-cancel"]').trigger('click')
+    expect(wrapper.emitted('close')).toEqual([[]])
   })
 
-  afterEach(() => {
-    document.body.innerHTML = ''
+  it('switches to the provider source and emits typed provider search events', async () => {
+    const wrapper = mountShell({
+      provider: 'unsplash',
+      activeSource: 'unsplash',
+    })
+
+    expect(wrapper.text()).toContain('Search Unsplash')
+
+    await wrapper.get('[data-testid="picker-provider-search"] input').setValue('coffee')
+    await wrapper.get('[data-testid="picker-provider-search"]').trigger('submit.prevent')
+    expect(wrapper.emitted('provider-search')).toEqual([[{ query: 'coffee' }]])
+
+    await wrapper.get('[data-testid="picker-source-library"]').trigger('click')
+    expect(wrapper.emitted('set-active-source')).toEqual([[{ source: 'library' }]])
   })
 
-  it('does not render the provider tab when provider is null', () => {
-    const wrapper = mountShell({ provider: null })
-    expect(wrapper.find('[data-testid="media-picker-provider-tab-trigger"]').exists()).toBe(false)
-    expect(wrapper.find('[data-testid="media-picker-provider-tab-content"]').exists()).toBe(false)
+  it('renders library collection states and fallback previews', async () => {
+    const loading = mountShell({ collectionState: 'LOADING' })
+    expect(loading.text()).toContain('Loading media library...')
+
+    const empty = mountShell({ collectionState: 'EMPTY' })
+    expect(empty.text()).toContain('No media assets yet')
+
+    const error = mountShell({ collectionState: 'ERROR' })
+    expect(error.text()).toContain('Unable to load media library.')
+
+    const ready = mountShell({
+      assets: [makeAsset({ assetId: 'fallback', previewUrl: null })],
+    })
+
+    const fallbackCard = ready.get('[data-testid="picker-asset-card-fallback"]')
+    expect(fallbackCard.text()).toContain('No preview')
+    await fallbackCard.trigger('click')
+    expect(ready.emitted('toggle-asset')).toEqual([[{ assetId: 'fallback' }]])
   })
 
-  it('does not render the provider tab when provider is omitted', () => {
-    const wrapper = mountShell()
-    expect(wrapper.find('[data-testid="media-picker-provider-tab-trigger"]').exists()).toBe(false)
-  })
+  it('keeps processing and failed assets visible but not selectable', async () => {
+    const wrapper = mountShell({
+      assets: [
+        makeAsset({ assetId: 'processing', status: 'PROCESSING', selectable: false }),
+        makeAsset({ assetId: 'failed', status: 'FAILED', selectable: false }),
+      ],
+    })
 
-  it('renders the provider tab when provider is "unsplash"', () => {
-    const wrapper = mountShell({ provider: 'unsplash' })
-    expect(wrapper.find('[data-testid="media-picker-provider-tab-trigger"]').exists()).toBe(true)
-    expect(wrapper.find('[data-testid="media-picker-provider-tab-content"]').exists()).toBe(true)
-  })
+    expect(
+      wrapper.get('[data-testid="picker-asset-card-processing"]').attributes('aria-disabled'),
+    ).toBe('true')
+    expect(
+      wrapper.get('[data-testid="picker-asset-card-failed"]').attributes('aria-disabled'),
+    ).toBe('true')
 
-  it('does not perform any network call when the picker shell renders', () => {
-    const fetchSpy = vi.spyOn(globalThis, 'fetch')
-    mountShell({ provider: 'unsplash' })
-    expect(fetchSpy).not.toHaveBeenCalled()
+    await wrapper.get('[data-testid="picker-asset-card-processing"]').trigger('click')
+    await wrapper.get('[data-testid="picker-asset-card-failed"]').trigger('click')
+
+    expect(wrapper.emitted('toggle-asset')).toBeUndefined()
   })
 })

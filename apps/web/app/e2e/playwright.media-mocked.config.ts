@@ -16,7 +16,11 @@ const __dirname = path.dirname(__filename)
  */
 export default defineConfig({
   testDir: path.resolve(__dirname, 'specs'),
-  testMatch: ['media-mocked*.spec.ts', 'media-composer.spec.ts'],
+  testMatch: [
+    'media-mocked*.spec.ts',
+    'media-composer.spec.ts',
+    'composer-media-attachments-mocked.spec.ts',
+  ],
 
   fullyParallel: true,
   forbidOnly: !!process.env.CI,

@@ -12,16 +12,16 @@ import PostDetailModal from '@/components/PostDetailModal.vue'
 import CalendarHeader from '@/components/CalendarHeader.vue'
 import CalendarCell from '@/components/CalendarCell.vue'
 import ConflictBadge from '@/components/ConflictBadge.vue'
+import SocialProviderIcon from '@/components/SocialProviderIcon.vue'
 import { Card } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
-import { getProviderColor, getProviderBadge } from '@/lib/provider-styles'
+import { getProviderColor } from '@/lib/provider-styles'
+import { toast } from 'vue-sonner'
 
 const publishingStore = usePublishingStore()
-const { locale: i18nLocale } = useI18n()
+const { locale: i18nLocale, t } = useI18n()
 
-// ---------------------------------------------------------------------------
-// URL-driven scheduler state
-// ---------------------------------------------------------------------------
+
 const url = useCalendarUrl()
 
 /** Calendar sub-view derived from URL surface */
@@ -36,18 +36,14 @@ const currentBaseDate = computed(() => {
   return Number.isNaN(parsed.getTime()) ? new Date() : parsed
 })
 
-// ---------------------------------------------------------------------------
-// State
-// ---------------------------------------------------------------------------
+
 const isModalOpen = ref(false)
 const selectedCellDate = ref<string | undefined>(undefined)
 const isDetailModalOpen = ref(false)
 const detailPublication = ref<Publication | null>(null)
 const editingPublication = ref<Publication | null>(null)
 
-// ---------------------------------------------------------------------------
-// Drag-and-drop state
-// ---------------------------------------------------------------------------
+
 const dragData = ref<{ id: string; previousScheduledAt: string } | null>(null)
 
 function onDragStart(e: DragEvent, pub: Publication) {
@@ -55,7 +51,7 @@ function onDragStart(e: DragEvent, pub: Publication) {
   e.dataTransfer.effectAllowed = 'move'
   e.dataTransfer.setData('text/plain', pub.id)
   dragData.value = { id: pub.id, previousScheduledAt: pub.scheduledAt }
-  // Slight opacity feedback
+
   const el = e.target as HTMLElement
   if (el) el.style.opacity = '0.4'
 }
@@ -108,9 +104,6 @@ async function onDropCell(e: DragEvent, targetDate: Date, targetHour?: number) {
   dragData.value = null
 }
 
-// ---------------------------------------------------------------------------
-// Month helpers
-// ---------------------------------------------------------------------------
 
 /** Build a 6×7 grid (weeks × days) for the current month. */
 const monthGrid = computed(() => {
@@ -172,9 +165,6 @@ const activityByDate = computed<Map<string, ActivityEntry>>(() => {
   return map
 })
 
-// ---------------------------------------------------------------------------
-// Week helpers
-// ---------------------------------------------------------------------------
 
 const weekDays = computed(() => {
   const days: Date[] = []
@@ -190,9 +180,6 @@ const weekDays = computed(() => {
   return days
 })
 
-// ---------------------------------------------------------------------------
-// Labels & navigation
-// ---------------------------------------------------------------------------
 
 const periodLabel = computed(() => {
   const options: Intl.DateTimeFormatOptions = { month: 'long', year: 'numeric' }
@@ -265,9 +252,6 @@ function handleHeaderFilterChange(filter: {
   }
 }
 
-// ---------------------------------------------------------------------------
-// Publication queries
-// ---------------------------------------------------------------------------
 
 function publicationMatchesFilters(
   pub: Publication,
@@ -322,21 +306,26 @@ function getPublicationsForDate(date: Date): Publication[] {
   })
 }
 
-function getPublicationsForSlot(date: Date, hour: number) {
-  return filteredPublications.value.filter((pub) => {
-    const pubDate = new Date(pub.scheduledAt)
-    return (
-      pubDate.getDate() === date.getDate() &&
-      pubDate.getMonth() === date.getMonth() &&
-      pubDate.getFullYear() === date.getFullYear() &&
-      pubDate.getHours() === hour
-    )
-  })
+function slotKey(date: Date, hour: number): string {
+  return `${dateKey(date)}#${hour}`
 }
 
-// ---------------------------------------------------------------------------
-// UI helpers
-// ---------------------------------------------------------------------------
+const publicationsBySlot = computed(() => {
+  const map = new Map<string, Publication[]>()
+  for (const pub of filteredPublications.value) {
+    const pubDate = new Date(pub.scheduledAt)
+    const key = slotKey(pubDate, pubDate.getHours())
+    const bucket = map.get(key)
+    if (bucket) bucket.push(pub)
+    else map.set(key, [pub])
+  }
+  return map
+})
+
+function publicationsForSlot(date: Date, hour: number): Publication[] {
+  return publicationsBySlot.value.get(slotKey(date, hour)) ?? []
+}
+
 
 function formatDayName(date: Date) {
   const days = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday']
@@ -354,9 +343,7 @@ function isToday(date: Date) {
   )
 }
 
-// ---------------------------------------------------------------------------
-// Past-date / past-slot helpers
-// ---------------------------------------------------------------------------
+
 function isPastDate(date: Date): boolean {
   const now = new Date()
   const today = new Date(now.getFullYear(), now.getMonth(), now.getDate())
@@ -379,9 +366,6 @@ function activityForDate(date: Date): ActivityEntry | undefined {
   return activityByDate.value.get(dateKey(date))
 }
 
-// ---------------------------------------------------------------------------
-// Modal helpers
-// ---------------------------------------------------------------------------
 
 function openNewPostForSlot(date: Date, hour?: number) {
   if (publishingStore.hasNoChannels) return
@@ -460,6 +444,11 @@ async function handleUpdated() {
   })
 }
 
+function onPostCreated() {
+  isModalOpen.value = false
+  toast.success(t('composer.scheduleSuccessToast'))
+}
+
 function onReschedule() {
   // Store already updated by PostDetailModal; just close
   closePostDetail()
@@ -475,9 +464,6 @@ const hourSlots = Array.from({ length: 24 }, (_, i) => {
   }
 })
 
-// ---------------------------------------------------------------------------
-// URL synchronization + fetching
-// ---------------------------------------------------------------------------
 
 watch(
   () => url.needsCanonicalization.value,
@@ -515,8 +501,7 @@ watch(
 </script>
 
 <template>
-  <div class="space-y-6">
-    <!-- Calendar Header: navigation, view toggle, filters -->
+  <div data-testid="scheduler-root" class="flex min-h-0 flex-1 flex-col gap-6">
     <CalendarHeader
       :calendar-view="calendarView"
       :period-label="periodLabel"
@@ -533,7 +518,7 @@ watch(
     <!-- Reconnect prompt for LinkedIn accounts requiring re-authentication -->
     <div
       v-if="publishingStore.hasReconnectRequiredChannels"
-      class="flex items-center gap-3 px-4 py-3 rounded-xl border border-warning/30 bg-warning/5"
+      class="flex shrink-0 items-center gap-3 rounded-xl border border-warning/30 bg-warning/5 px-4 py-3"
     >
       <span class="font-mono text-[10px] font-bold tracking-wider uppercase text-warning">
         Reconnect Required
@@ -549,16 +534,10 @@ watch(
       </Button>
     </div>
 
-    <!-- Main Workspace Layout -->
-    <div class="min-w-0">
-        <!-- Calendar Mode -->
-        <div v-if="url.state.value.surface !== 'list'" class="space-y-4">
-          <!-- ================================================================ -->
-          <!-- MONTH VIEW -->
-          <!-- ================================================================ -->
+    <div data-testid="scheduler-workspace" class="flex min-w-0 min-h-0 flex-1 flex-col overflow-hidden">
+        <div v-if="url.state.value.surface !== 'list'" data-testid="calendar-mode" class="flex min-h-0 flex-1 flex-col gap-4">
           <div v-if="calendarView === 'month'" class="flex h-full min-h-0 flex-col">
             <Card class="bg-bg-surface border border-border-subtle p-0 overflow-hidden flex min-h-0 flex-1 flex-col">
-              <!-- Day-of-week header -->
               <div class="grid grid-cols-7 border-b border-border-subtle bg-bg-primary shrink-0">
                 <div
                   v-for="(_, idx) in 7"
@@ -571,8 +550,7 @@ watch(
                 </div>
               </div>
 
-              <!-- Grid body: 6 weeks × 7 days -->
-              <div class="min-h-0 flex-1 overflow-y-auto divide-y divide-border-subtle">
+              <div class="thin-scrollbar min-h-0 flex-1 overflow-y-auto divide-y divide-border-subtle">
                 <div
                   v-for="(week, wkIdx) in monthGrid"
                   :key="wkIdx"
@@ -599,14 +577,9 @@ watch(
             </Card>
           </div>
 
-          <!-- ================================================================ -->
-          <!-- WEEK VIEW -->
-          <!-- ================================================================ -->
-          <div v-if="calendarView === 'week'">
-            <Card class="bg-bg-surface border border-border-subtle p-0 overflow-hidden">
-              <!-- Grid Header: Time-axis label + Days of the week -->
-              <div class="grid grid-cols-[48px_repeat(7,1fr)] border-b border-border-subtle bg-bg-primary">
-                <!-- Time-axis header spacer -->
+          <div v-if="calendarView === 'week'" class="flex min-h-0 flex-1 flex-col">
+            <Card class="flex min-h-0 flex-1 flex-col overflow-hidden border border-border-subtle bg-bg-surface p-0">
+              <div class="shrink-0 grid grid-cols-[48px_repeat(7,1fr)] border-b border-border-subtle bg-bg-primary">
                 <div class="py-3.5 border-r border-border-subtle" />
                 <div
                   v-for="day in weekDays"
@@ -630,16 +603,13 @@ watch(
                 </div>
               </div>
 
-              <!-- Grid Body: Single left time-axis + 7 day columns -->
-              <div class="relative">
+              <div data-testid="week-timeline-viewport" class="thin-scrollbar relative min-h-0 flex-1 overflow-y-auto">
                 <div v-for="slot in hourSlots" :key="slot.hour" class="grid h-[96px] grid-cols-[48px_repeat(7,1fr)] border-b border-border-subtle last:border-b-0">
-                  <!-- Single left time-axis label -->
                   <div class="py-2 border-r border-border-subtle flex items-start justify-center">
                     <span class="font-mono text-[9px] tracking-wider text-text-secondary">
                       {{ slot.label }}
                     </span>
                   </div>
-                  <!-- Day columns -->
                   <button
                     v-for="day in weekDays"
                     :key="day.toISOString()"
@@ -650,17 +620,17 @@ watch(
                     @keydown.space.prevent="isPastSlot(day, slot.hour) ? undefined : openNewPostForSlot(day, slot.hour)"
                     @dragover.prevent="!isPastSlot(day, slot.hour)"
                     @drop.prevent="!isPastSlot(day, slot.hour) ? onDropCell($event, day, slot.hour) : undefined"
-                    class="relative p-2 border-r border-border-subtle last:border-r-0 transition-all group/cell flex flex-col justify-start gap-2 select-none"
+                    class="relative p-2 border-r border-border-subtle last:border-r-0 transition-all group/cell flex flex-col justify-start gap-1 select-none overflow-hidden"
                     :class="isPastSlot(day, slot.hour)
                       ? 'bg-text-secondary/5 text-text-secondary cursor-not-allowed after:absolute after:inset-0 after:bg-[repeating-linear-gradient(-45deg,transparent,transparent_10px,var(--border-color)_10px,var(--border-color)_11px)] after:opacity-10 after:z-0'
                       : 'hover:bg-bg-primary/20 cursor-pointer'"
                     :aria-disabled="isPastSlot(day, slot.hour)"
                     :title="isPastSlot(day, slot.hour) ? 'Past time slots are disabled (read-only)' : undefined"
                   >
-                    <!-- Scheduled Posts -->
+                    <template v-for="slotPubs in [publicationsForSlot(day, slot.hour)]" :key="slotPubs.length">
                     <!-- biome-ignore lint/a11y/noStaticElementInteractions: non-button container required to avoid nested buttons (delete btn inside card) -->
                     <div
-                      v-for="pub in getPublicationsForSlot(day, slot.hour)"
+                      v-for="pub in slotPubs.slice(0, 2)"
                       :key="pub.id"
                       :draggable="true"
                       @click.stop="openPostDetail(pub)"
@@ -668,49 +638,60 @@ watch(
                       @keydown.space.self.stop.prevent="openPostDetail(pub)"
                       @dragstart="onDragStart($event, pub)"
                       @dragend="onDragEnd($event)"
-                      class="relative z-10 flex h-[72px] w-full min-w-0 flex-col overflow-hidden rounded-xl border bg-bg-surface p-3 text-left shadow-sm transition-all group/card cursor-pointer"
-                      :class="getProviderColor(pub.channels[0] || 'linkedin')"
+                      class="relative z-10 grid w-full min-w-0 overflow-hidden rounded-md border bg-bg-surface text-left shadow-sm transition-[box-shadow,transform] group/card cursor-pointer hover:-translate-y-px hover:shadow-md"
+                      :class="[
+                        getProviderColor(pub.channels[0] || 'linkedin'),
+                        slotPubs.length > 1
+                          ? 'h-[36px] grid-cols-[auto_minmax(0,1fr)_auto] items-center gap-1.5 px-2 py-1'
+                          : 'h-[72px] grid-cols-[minmax(0,1fr)_auto] grid-rows-[auto_1fr] gap-x-2 px-2 py-1.5',
+                      ]"
                     >
-                      <!-- Header -->
-                      <div class="flex shrink-0 items-center justify-between gap-2">
-                        <span class="font-mono text-[8px] font-bold tracking-wider opacity-80 uppercase">
+                      <div
+                        class="flex min-w-0 items-center gap-1.5"
+                        :class="slotPubs.length > 1 ? '' : 'col-start-1 row-start-1'"
+                      >
+                        <span class="shrink-0 font-mono text-[8px] font-bold tracking-wider opacity-80 uppercase">
                           {{ new Date(pub.scheduledAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) }}
                         </span>
-                        <div class="flex min-w-0 shrink-0 gap-1">
-                          <span
-                            v-for="channel in pub.channels"
-                            :key="channel"
-                            class="size-4.5 rounded-full border border-current/20 flex items-center justify-center font-mono text-[8px] uppercase tracking-wider font-bold"
-                          >
-                            {{ getProviderBadge(channel) }}
-                          </span>
-                          <!-- BLOCKED indicator -->
-                          <span
-                            v-if="pub.status === 'BLOCKED'"
-                            class="px-1.5 py-0.5 rounded text-[7px] font-bold tracking-wider uppercase bg-warning/20 text-warning border border-warning/30"
-                          >
-                            BLOCKED
-                          </span>
-                          <!-- Conflict badge -->
-                          <ConflictBadge
-                            v-if="pub.hasConflict"
-                            variant="badge"
-                          />
-                        </div>
-                      </div>
-
-                      <div class="flex flex-row items-stretch gap-2 min-h-0 flex-1">
-                        <!-- Text content -->
-                        <p class="min-w-0 flex-1 overflow-hidden text-[11px] font-light leading-relaxed text-text-body break-words [display:-webkit-box] [-webkit-box-orient:vertical] [-webkit-line-clamp:3] [overflow-wrap:anywhere]">
+                        <p
+                          v-if="slotPubs.length > 1"
+                          class="min-w-0 truncate text-[10px] font-medium leading-tight text-text-body"
+                        >
                           {{ pub.content }}
                         </p>
+                      </div>
 
-                        <div v-if="pub.thumbnail" class="h-full w-14 shrink-0 overflow-hidden rounded-md border border-border-subtle/80">
-                          <img
-                            :src="pub.thumbnail"
-                            class="h-full w-full object-cover"
-                            alt=""
-                          />
+                      <p
+                        v-if="slotPubs.length === 1"
+                        class="col-start-1 row-start-2 min-w-0 overflow-hidden text-[11px] font-light leading-snug text-text-body break-words [display:-webkit-box] [-webkit-box-orient:vertical] [-webkit-line-clamp:2] [overflow-wrap:anywhere]"
+                      >
+                          {{ pub.content }}
+                      </p>
+
+                      <div
+                        class="flex shrink-0 items-center justify-end gap-1"
+                        :class="slotPubs.length > 1 ? 'col-start-3' : 'col-start-2 row-span-2 row-start-1 self-stretch'"
+                      >
+                        <span
+                          v-for="channel in pub.channels"
+                          :key="channel"
+                          class="flex size-4 shrink-0 items-center justify-center"
+                        >
+                          <SocialProviderIcon :provider="channel" />
+                        </span>
+                        <span
+                          v-if="pub.status === 'BLOCKED'"
+                          class="rounded-sm border border-warning/30 bg-warning/20 px-1 py-0.5 text-[7px] font-bold tracking-wider text-warning uppercase"
+                        >
+                          BLOCKED
+                        </span>
+                        <ConflictBadge v-if="pub.hasConflict" variant="badge" />
+                        <div
+                          v-if="pub.thumbnail"
+                          class="overflow-hidden rounded-sm border border-border-subtle/80"
+                          :class="slotPubs.length > 1 ? 'size-6' : 'h-full w-14'"
+                        >
+                          <img :src="pub.thumbnail" class="h-full w-full object-cover" alt="" />
                         </div>
                       </div>
 
@@ -725,6 +706,14 @@ watch(
                       </button>
                     </div>
 
+                    <!-- "+N more" indicator when posts exceed visible limit -->
+                    <div
+                      v-if="slotPubs.length > 2"
+                      class="text-[7px] font-mono text-text-secondary pl-1"
+                    >
+                      {{ t('scheduler.morePosts', { count: slotPubs.length - 2 }) }}
+                    </div>
+
                     <!-- Add post button (only in enabled slots) -->
                     <button
                       v-if="!isPastSlot(day, slot.hour)"
@@ -734,6 +723,7 @@ watch(
                     >
                       <Plus class="size-3" />
                     </button>
+                    </template>
                   </button>
                 </div>
               </div>
@@ -742,13 +732,12 @@ watch(
 
         </div>
 
-        <!-- List Mode -->
-        <div v-else class="space-y-4">
+        <div v-else class="flex h-full min-h-0 flex-col gap-4">
           <div v-if="filteredPublications.length === 0" class="border border-dashed border-border-visible rounded-2xl p-12 text-center text-text-secondary font-mono text-xs uppercase tracking-wider">
             {{ $t('dashboard.noPosts') || 'No posts match your current filters.' }}
           </div>
 
-          <div v-else class="space-y-3">
+          <div v-else class="thin-scrollbar min-h-0 flex-1 overflow-y-auto space-y-3 pr-1">
               <button
                 v-for="pub in filteredPublications"
                 :key="pub.id"
@@ -774,10 +763,9 @@ watch(
                   >
                     {{ pub.status }}
                   </span>
-                  <!-- BLOCKED reconnect prompt in list view -->
-                  <!-- NOSONAR(Web:S6819): parent is a native <button>, cannot nest HTML buttons -->
-                  <!-- biome-ignore lint/a11y/useSemanticElements: parent is <button>, cannot nest HTML buttons -->
-                  <span
+                   <!-- NOSONAR(Web:S6819): parent is a native <button>, cannot nest HTML buttons -->
+                   <!-- biome-ignore lint/a11y/useSemanticElements: parent is <button>, cannot nest HTML buttons -->
+                   <span
                     v-if="pub.status === 'BLOCKED'"
                     role="button"
                     tabindex="0"
@@ -788,8 +776,7 @@ watch(
                   >
                     Reconnect
                   </span>
-                  <!-- Conflict badge in list view -->
-                  <ConflictBadge
+                   <ConflictBadge
                     v-if="pub.hasConflict"
                     variant="inline"
                   />
@@ -837,17 +824,15 @@ watch(
         </div>
     </div>
 
-    <!-- Create Post Modal component overlay -->
     <CreatePostModal
       :is-open="isModalOpen"
       :initial-date="selectedCellDate"
       :editing-publication="editingPublication ?? undefined"
       @close="isModalOpen = false; editingPublication = null"
-      @created="isModalOpen = false"
+      @created="onPostCreated"
       @updated="handleUpdated"
     />
 
-    <!-- Read-only post detail modal -->
     <PostDetailModal
       :is-open="isDetailModalOpen"
       :publication="detailPublication"

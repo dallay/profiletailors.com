@@ -83,6 +83,18 @@ publishing:
     claim-lease: ${SMP_PUBLISHING_WORKER_CLAIM_LEASE:PT2M}
     max-retries: ${SMP_PUBLISHING_MAX_RETRIES:3}
     retry-backoff: ${SMP_PUBLISHING_RETRY_BACKOFF:PT5M}
+  linkedin:
+    client-id: ${SMP_LINKEDIN_CLIENT_ID:}
+    client-secret: ${SMP_LINKEDIN_CLIENT_SECRET:}
+    redirect-uri: ${SMP_LINKEDIN_REDIRECT_URI:}
+    scopes: ${SMP_LINKEDIN_SCOPES:w_member_social,openid,profile,email}
+    # Keep api-base-url pointed at real LinkedIn for OAuth userinfo; override publishing-api-base-url
+    # locally to a WireMock/MockServer instance to exercise publishing without posting publicly.
+    api-base-url: ${SMP_LINKEDIN_API_BASE_URL:https://api.linkedin.com}
+    publishing-api-base-url: ${SMP_LINKEDIN_PUBLISHING_API_BASE_URL:${publishing.linkedin.api-base-url}}
+    authorization-base-url: ${SMP_LINKEDIN_AUTHORIZATION_BASE_URL:https://www.linkedin.com/oauth/v2/authorization}
+    token-base-url: ${SMP_LINKEDIN_TOKEN_BASE_URL:https://www.linkedin.com/oauth/v2/accessToken}
+    api-version: ${SMP_LINKEDIN_API_VERSION:202606}
 
 # Media provider adapters (Hexagonal: ports under media-library.application.port;
 # adapters live under mediaprovider.* and are wired behind a feature flag).
@@ -96,18 +108,6 @@ mediaprovider:
     base-url: ${SMP_MEDIAPROVIDER_UNSPLASH_BASE_URL:https://api.unsplash.com}
     timeout: ${SMP_MEDIAPROVIDER_UNSPLASH_TIMEOUT:PT5S}
     page-size: ${SMP_MEDIAPROVIDER_UNSPLASH_PAGE_SIZE:20}
-  linkedin:
-    client-id: ${SMP_LINKEDIN_CLIENT_ID:}
-    client-secret: ${SMP_LINKEDIN_CLIENT_SECRET:}
-    redirect-uri: ${SMP_LINKEDIN_REDIRECT_URI:}
-    scopes: ${SMP_LINKEDIN_SCOPES:w_member_social,openid,profile,email}
-    # Keep api-base-url pointed at real LinkedIn for OAuth userinfo; override publishing-api-base-url
-    # locally to a WireMock/MockServer instance to exercise publishing without posting publicly.
-    api-base-url: ${SMP_LINKEDIN_API_BASE_URL:https://api.linkedin.com}
-    publishing-api-base-url: ${SMP_LINKEDIN_PUBLISHING_API_BASE_URL:${publishing.linkedin.api-base-url}}
-    authorization-base-url: ${SMP_LINKEDIN_AUTHORIZATION_BASE_URL:https://www.linkedin.com/oauth/v2/authorization}
-    token-base-url: ${SMP_LINKEDIN_TOKEN_BASE_URL:https://www.linkedin.com/oauth/v2/accessToken}
-    api-version: ${SMP_LINKEDIN_API_VERSION:202606}
   credentials:
     encryption:
       key: ${PUBLISHING_CREDENTIALS_KEY:}  # Sin default — debe configurarse via env var

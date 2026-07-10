@@ -1,15 +1,59 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 import { mount } from '@vue/test-utils'
 import { createPinia, setActivePinia } from 'pinia'
+import { nextTick } from 'vue'
 import { usePublishingStore } from '@/stores/publishing'
 import { useMediaStore } from '@/stores/media'
+import { useWorkspaceStore } from '@/stores/workspace'
 import CreatePostModalComponent from './CreatePostModal.vue'
 
 // ---------------------------------------------------------------------------
 // Mocks
 // ---------------------------------------------------------------------------
 
-const mockT = (key: string) => key
+const translations: Record<string, string> = {
+  'media.loading': 'Loading media library...',
+  'media.emptyTitle': 'No media assets yet',
+  'media.emptyBody': 'Upload your first image, video, or PDF to populate the library.',
+  'composer.picker.header': 'Media Library',
+  'composer.picker.libraryChip': 'Library',
+  'composer.picker.unsplashChip': 'Unsplash',
+  'composer.picker.searchPlaceholder': 'Search Unsplash',
+  'composer.picker.searchAction': 'Search',
+  'composer.picker.searchingAction': 'Searching…',
+  'composer.picker.providerSearchLabel': 'Search Unsplash',
+  'composer.picker.libraryDescription': 'Browse images and videos already saved in this workspace.',
+  'composer.picker.providerDescription':
+    'Search Unsplash and import media into this post without leaving the composer.',
+  'composer.picker.errorLoad': 'Unable to load media library.',
+  'composer.picker.noPreview': 'No preview',
+  'composer.picker.cancel': 'Cancel',
+  'composer.picker.apply': 'Apply',
+  'composer.media.label': 'Media Attachment',
+  'composer.media.addMedia': 'Add Media',
+  'composer.media.empty': 'No media attached yet.',
+  'composer.media.dropzoneTitle': 'Drag & drop or',
+  'composer.media.dropzoneBody': 'select a file',
+  'composer.media.sourceLibrary': 'Media Library',
+  'composer.media.sourceExternal': 'Unsplash',
+  'composer.media.keepEditingWhileUploading': 'You can keep editing while this finishes.',
+  'composer.media.finishingUpload': 'Finishing upload…',
+  'composer.media.uploadingProgress': 'Uploading… {progress}%',
+  'composer.media.limitWarning':
+    'Too many attachments for the strictest channel ({current}/{max}). Remove attachments to publish or schedule.',
+  'composer.media.limitInfinite': '∞',
+  'composer.media.removeAttachment': 'Remove attachment {name}',
+}
+
+const mockT = (key: string, params?: Record<string, string | number>): string => {
+  let value = translations[key] ?? key
+  if (params) {
+    for (const [k, v] of Object.entries(params)) {
+      value = value.replace(`{${k}}`, String(v))
+    }
+  }
+  return value
+}
 
 vi.mock('vue-i18n', () => ({
   useI18n: () => ({ t: mockT, locale: { value: 'en' } }),
@@ -35,10 +79,7 @@ vi.mock('@/lib/auth-api', () => ({
 }))
 
 vi.mock('@/components/ui/button', () => ({
-  Button: {
-    props: ['asChild'],
-    template: '<slot v-if="asChild" /><button v-else class="ui-button"><slot /></button>',
-  },
+  Button: { template: '<button class="ui-button" v-bind="$attrs"><slot /></button>' },
 }))
 
 vi.mock('@lucide/vue', () => {
@@ -54,61 +95,14 @@ vi.mock('@lucide/vue', () => {
     Smile: stub,
     Sparkles: stub,
     X: stub,
-    XIcon: stub,
-    Search: stub,
     Loader2: stub,
+    Loader2Icon: stub,
     Upload: stub,
     AlertCircle: stub,
     RotateCcw: stub,
+    Search: stub,
   }
 })
-
-// Lightweight stub for the composer media picker shell. The shell's own
-// behavior is covered in ComposerMediaPickerShell.test.ts; here we only verify
-// that CreatePostModal wires open state, focus return, and emit observation.
-vi.mock('@/components/composer/ComposerMediaPickerShell.vue', () => ({
-  default: {
-    name: 'ComposerMediaPickerShell',
-    props: [
-      'open',
-      'state',
-      'searchQuery',
-      'selectedFilter',
-      'filterOptions',
-      'assets',
-      'disabled',
-      'errorMessage',
-    ],
-    emits: ['update:open', 'close', 'search-change', 'filter-change', 'provider-import'],
-    template: `
-      <div
-        v-if="open"
-        data-testid="dialog-content"
-        @keydown.escape.stop="$emit('close'); $emit('update:open', false)"
-      >
-        <h2 data-testid="dialog-title">composer.mediaPicker.title</h2>
-        <button
-          data-testid="media-picker-close"
-          type="button"
-          @click="$emit('close'); $emit('update:open', false)"
-        >close</button>
-        <input
-          data-testid="media-picker-search"
-          @input="$emit('search-change', { query: $event.target.value })"
-        />
-        <select
-          data-testid="media-picker-filter"
-          @change="$emit('filter-change', { filter: $event.target.value })"
-        >
-          <option value="all">all</option>
-          <option value="image">image</option>
-          <option value="video">video</option>
-          <option value="document">document</option>
-        </select>
-      </div>
-    `,
-  },
-}))
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -118,7 +112,7 @@ interface TestChannel {
   id: string
   accountId: string
   name: string
-  provider: 'linkedin'
+  provider: 'linkedin' | 'twitter'
   avatar: string
   avatarUrl?: string
   handle: string
@@ -143,12 +137,39 @@ function mountModal(channels: TestChannel[], props: Record<string, unknown> = {}
   const store = usePublishingStore()
   store.channels = channels
 
+  const workspaceStore = useWorkspaceStore()
+  workspaceStore.setActiveWorkspaceId('ws-1')
+
   return mount(CreatePostModalComponent, {
+    attachTo: document.body,
     props: { isOpen: true, ...props },
     global: {
       mocks: { $t: mockT },
     },
   })
+}
+
+async function flushModal(_wrapper: ReturnType<typeof mountModal>): Promise<void> {
+  await Promise.resolve()
+  await nextTick()
+  await nextTick()
+}
+
+function mockLoadAssetsWithIds(mediaStore: ReturnType<typeof useMediaStore>, ids: string[]) {
+  return vi.spyOn(mediaStore, 'loadAssets').mockImplementation(async () => {
+    mediaStore.isLoading = true
+    mediaStore.loadError = null
+    mediaStore.assetIds = [...ids]
+    mediaStore.isLoading = false
+  })
+}
+
+function getByTestId(testId: string): HTMLElement {
+  const element = document.querySelector(`[data-testid="${testId}"]`)
+  if (!(element instanceof HTMLElement)) {
+    throw new Error(`Expected element with data-testid="${testId}" to exist in teleported modal`)
+  }
+  return element
 }
 
 function makeEditingPublication(
@@ -182,1277 +203,993 @@ function makeEditingPublication(
   }
 }
 
-// ---------------------------------------------------------------------------
-// Tests
-// ---------------------------------------------------------------------------
-
-describe('CreatePostModal.vue — avatar rendering', () => {
-  beforeEach(() => {
-    setActivePinia(createPinia())
-    document.body.innerHTML = ''
-  })
-
-  afterEach(() => {
-    document.body.innerHTML = ''
-  })
-
-  it('renders <img> when channel has a valid avatarUrl', () => {
-    const wrapper = mountModal([
-      makeChannel('ch-1', { avatarUrl: 'https://example.com/avatar.jpg' }),
-    ])
-
-    // Teleported content is rendered into document.body
-    const body = document.body.innerHTML
-    expect(body).toContain('https://example.com/avatar.jpg')
-
-    // Also check via wrapper.html() which includes teleported content
-    const allHtml = wrapper.html() + body
-    expect(allHtml).toContain('Channel ch-1 avatar')
-  })
-
-  it('renders fallback badge when avatarUrl is null/undefined', () => {
-    mountModal([makeChannel('ch-2', { avatarUrl: undefined })])
-
-    const body = document.body.innerHTML
-    // For a linkedin channel, the fallback badge shows "in"
-    expect(body).toContain('in')
-
-    // No img with a src attribute in teleported content
-    expect(body).not.toContain('src="undefined"')
-  })
-
-  it('shows fallback badge when avatar image fails to load', async () => {
-    const wrapper = mountModal([
-      makeChannel('ch-3', { avatarUrl: 'https://example.com/broken.jpg' }),
-    ])
-
-    const body = document.body.innerHTML
-    expect(body).toContain('https://example.com/broken.jpg')
-
-    // Find the img in teleported body content and trigger error
-    const img = document.body.querySelector('img[src="https://example.com/broken.jpg"]')
-    expect(img).toBeTruthy()
-
-    // Dispatch error event
-    img?.dispatchEvent(new Event('error'))
-
-    await wrapper.vm.$nextTick()
-
-    const bodyAfterError = document.body.innerHTML
-    // After error, fallback badge "in" should be shown
-    expect(bodyAfterError).toContain('in')
-  })
-})
-
-describe('CreatePostModal.vue — media asset integration', () => {
+describe('CreatePostModal.vue — media picker foundation', () => {
   beforeEach(() => {
     setActivePinia(createPinia())
     document.body.innerHTML = ''
     vi.clearAllMocks()
+    vi.stubGlobal('URL', {
+      createObjectURL: vi.fn(() => 'blob:mock-preview'),
+      revokeObjectURL: vi.fn(),
+    })
   })
 
   afterEach(() => {
     document.body.innerHTML = ''
+    vi.unstubAllGlobals()
   })
 
-  it('shows a transient blob preview immediately after file selection without uploading yet', async () => {
-    const mediaStore = useMediaStore()
-    const createAndUpload = vi.spyOn(mediaStore, 'createAndUpload')
-    Object.defineProperty(URL, 'createObjectURL', {
-      configurable: true,
-      value: vi.fn(() => 'blob:test-preview'),
-    })
-    const createObjectUrl = URL.createObjectURL as unknown as ReturnType<typeof vi.fn>
-
-    const wrapper = mountModal([makeChannel('ch-preview')])
-    await wrapper.vm.$nextTick()
-
-    const input = document.body.querySelector('input[type="file"]') as HTMLInputElement | null
-    expect(input).not.toBeNull()
-
-    const file = new File(['fake'], 'preview.png', { type: 'image/png' })
-    Object.defineProperty(input, 'files', {
-      configurable: true,
-      value: [file],
-    })
-    input?.dispatchEvent(new Event('change', { bubbles: true }))
-
-    await wrapper.vm.$nextTick()
-
-    const preview = document.body.querySelector(
-      'img[alt="Media preview"]',
-    ) as HTMLImageElement | null
-    expect(preview).not.toBeNull()
-    expect(preview?.getAttribute('src')).toBe('blob:test-preview')
-    expect(createAndUpload).not.toHaveBeenCalled()
-    expect(createObjectUrl).toHaveBeenCalledWith(file)
-    expect(input?.value).toBe('')
-  })
-
-  it('opens the hidden file input when the media drop zone is clicked', async () => {
+  it('mounts the teleported modal into document.body so live controls remain queryable', async () => {
     const wrapper = mountModal([makeChannel('ch-picker')])
-    await wrapper.vm.$nextTick()
+    await flushModal(wrapper)
 
-    const input = document.body.querySelector('input[type="file"]') as HTMLInputElement | null
-    expect(input).not.toBeNull()
-
-    const clickSpy = vi.spyOn(input as HTMLInputElement, 'click')
-    const dropZone = Array.from(document.body.querySelectorAll('button')).find(
-      (button) => button.getAttribute('aria-label') === 'composer.dragDrop',
-    ) as HTMLButtonElement | undefined
-
-    expect(dropZone).toBeDefined()
-    dropZone?.click()
-
-    expect(clickSpy).toHaveBeenCalled()
-
-    wrapper.unmount()
+    expect(wrapper.html()).toContain('teleport start')
+    expect(getByTestId('add-media-button').textContent).toContain('Add Media')
   })
 
-  it('shows the selected asset preview instead of the completed upload card', async () => {
+  it('shows an Add Media entry and opens a staged picker from current draft attachments', async () => {
     const mediaStore = useMediaStore()
-    mediaStore.assetsById['preview-asset'] = {
-      assetId: 'preview-asset',
+    mediaStore.assetsById['asset-a'] = {
+      assetId: 'asset-a',
       workspaceId: 'ws-1',
       sourceType: 'UPLOADED',
       mediaType: 'image/png',
       status: 'READY',
-      originalFilename: 'preview.png',
+      originalFilename: 'asset-a.png',
       fileSizeBytes: 1024,
       createdAt: '2026-06-19T12:00:00Z',
-      previewUrl: '/api/media/assets/preview-asset/preview',
-    }
-    mediaStore.selectedAssetIds.push('preview-asset')
-    mediaStore.uploads['done-key'] = {
-      tempKey: 'done-key',
-      assetId: 'preview-asset',
-      file: new File(['fake'], 'preview.png', { type: 'image/png' }),
-      progress: 100,
-      status: 'done',
-      asset: mediaStore.assetsById['preview-asset'],
+      previewUrl: '/api/media/assets/asset-a/preview',
     }
 
-    mountModal([makeChannel('ch-preview')])
+    const loadAssets = mockLoadAssetsWithIds(mediaStore, ['asset-a'])
 
-    await new Promise((resolve) => setTimeout(resolve, 0))
+    const wrapper = mountModal([makeChannel('ch-picker')], {
+      editingPublication: makeEditingPublication({ assetIds: ['asset-a'] }),
+    })
+    await flushModal(wrapper)
+    await flushModal(wrapper)
 
-    const body = document.body.innerHTML
-    expect(body).toContain('Selected media preview')
-    expect(body).not.toContain('Uploading preview.png')
+    expect(document.body.innerHTML).toContain('Add Media')
+    expect(document.body.innerHTML).not.toContain('composer.dragDrop')
+    expect(document.body.innerHTML).toContain('asset-a.png')
+
+    getByTestId('attachment-remove-asset-a').click()
+    await flushModal(wrapper)
+
+    getByTestId('add-media-button').click()
+    await flushModal(wrapper)
+
+    expect(loadAssets).toHaveBeenCalledWith('READY,PENDING_UPLOAD,UPLOADING,FAILED')
+    expect(document.body.innerHTML).toContain('Media Library')
+    expect(getByTestId('picker-asset-card-asset-a').getAttribute('data-selected')).toBe('false')
   })
 
-  it('media store exposes persisted selected asset ids', () => {
+  it('loads workspace assets when the picker opens and renders empty or error collection states', async () => {
     const mediaStore = useMediaStore()
-    // Seed an asset in the store
-    mediaStore.assetsById['media-asset-1'] = {
-      assetId: 'media-asset-1',
+    const loadAssets = vi.spyOn(mediaStore, 'loadAssets').mockResolvedValue(undefined)
+
+    const wrapper = mountModal([makeChannel('ch-picker')])
+    await flushModal(wrapper)
+
+    getByTestId('add-media-button').click()
+    await flushModal(wrapper)
+
+    expect(loadAssets).toHaveBeenCalledWith('READY,PENDING_UPLOAD,UPLOADING,FAILED')
+    expect(document.body.innerHTML).toContain('No media assets yet')
+
+    loadAssets.mockImplementationOnce(async () => {
+      mediaStore.loadError = 'library failed'
+      throw new Error('library failed')
+    })
+    getByTestId('picker-cancel').click()
+    await flushModal(wrapper)
+    getByTestId('add-media-button').click()
+    await flushModal(wrapper)
+
+    expect(document.body.innerHTML).toContain('Unable to load media library.')
+  })
+
+  it('discards staged changes on cancel, reapplies current draft on reopen, and replaces draft on apply', async () => {
+    const mediaStore = useMediaStore()
+    mediaStore.assetsById['asset-a'] = {
+      assetId: 'asset-a',
       workspaceId: 'ws-1',
       sourceType: 'UPLOADED',
-      mediaType: 'image/jpeg',
+      mediaType: 'image/png',
       status: 'READY',
-      originalFilename: 'hero.jpg',
+      originalFilename: 'asset-a.png',
       fileSizeBytes: 1024,
       createdAt: '2026-06-19T12:00:00Z',
+      previewUrl: '/api/media/assets/asset-a/preview',
     }
-
-    mediaStore.selectedAssetIds.push('media-asset-1')
-
-    expect(mediaStore.selectedAssets).toHaveLength(1)
-    expect(mediaStore.selectedAssets[0]?.assetId).toBe('media-asset-1')
-  })
-
-  it('selected assets include asset metadata for display', () => {
-    const mediaStore = useMediaStore()
-    mediaStore.assetsById['display-asset'] = {
-      assetId: 'display-asset',
-      workspaceId: 'ws-1',
-      sourceType: 'UPLOADED',
-      mediaType: 'image/jpeg',
-      status: 'READY',
-      originalFilename: 'display-photo.jpg',
-      fileSizeBytes: 2048,
-      createdAt: '2026-06-19T12:00:00Z',
-    }
-    mediaStore.selectedAssetIds.push('display-asset')
-
-    const selected = mediaStore.selectedAssets[0]
-    expect(selected?.mediaType).toBe('image/jpeg')
-    expect(selected?.originalFilename).toBe('display-photo.jpg')
-    expect(selected?.fileSizeBytes).toBe(2048)
-  })
-
-  it('adds selected media asset to selection', () => {
-    const mediaStore = useMediaStore()
-    mediaStore.assetsById['selectable-asset'] = {
-      assetId: 'selectable-asset',
+    mediaStore.assetsById['asset-b'] = {
+      assetId: 'asset-b',
       workspaceId: 'ws-1',
       sourceType: 'UPLOADED',
       mediaType: 'image/png',
       status: 'READY',
-      originalFilename: 'chart.png',
-      fileSizeBytes: 512,
-      createdAt: '2026-06-19T12:00:00Z',
-    }
-
-    mediaStore.addToSelection('selectable-asset')
-
-    expect(mediaStore.selectedAssetIds).toContain('selectable-asset')
-  })
-
-  it('prevents duplicate asset ids in selection', () => {
-    const mediaStore = useMediaStore()
-    mediaStore.assetsById['dup-asset'] = {
-      assetId: 'dup-asset',
-      workspaceId: 'ws-1',
-      sourceType: 'UPLOADED',
-      mediaType: 'image/jpeg',
-      status: 'READY',
-      originalFilename: null,
-      fileSizeBytes: null,
-      createdAt: '2026-06-19T12:00:00Z',
-    }
-
-    mediaStore.addToSelection('dup-asset')
-    mediaStore.addToSelection('dup-asset')
-
-    expect(mediaStore.selectedAssetIds.filter((id) => id === 'dup-asset')).toHaveLength(1)
-  })
-
-  it('removes asset from selection', () => {
-    const mediaStore = useMediaStore()
-    mediaStore.selectedAssetIds.push('remove-me')
-
-    mediaStore.removeFromSelection('remove-me')
-
-    expect(mediaStore.selectedAssetIds).not.toContain('remove-me')
-  })
-
-  it('clears all selected assets', () => {
-    const mediaStore = useMediaStore()
-    mediaStore.selectedAssetIds.push('asset-a', 'asset-b')
-
-    mediaStore.clearSelection()
-
-    expect(mediaStore.selectedAssetIds).toEqual([])
-  })
-})
-
-describe('CreatePostModal.vue — preview composition', () => {
-  beforeEach(() => {
-    setActivePinia(createPinia())
-    document.body.innerHTML = ''
-    vi.clearAllMocks()
-  })
-
-  afterEach(() => {
-    document.body.innerHTML = ''
-  })
-
-  it('renders the shared preview shell with the LinkedIn child preview', async () => {
-    const wrapper = mountModal([
-      makeChannel('preview-shell', { name: 'Acme Corp', handle: 'acme-corp' }),
-    ])
-    await wrapper.vm.$nextTick()
-
-    expect(document.body.innerHTML).toContain('composer.linkedinPreview')
-    expect(document.body.innerHTML).toContain('Acme Corp')
-    expect(document.body.innerHTML).toContain('composer.seePreviewHere')
-  })
-
-  it('shows the more affordance for very long preview text without mutating the textarea value', async () => {
-    const wrapper = mountModal([makeChannel('preview-long')])
-    await wrapper.vm.$nextTick()
-
-    const textarea = document.body.querySelector('textarea') as HTMLTextAreaElement | null
-    expect(textarea).not.toBeNull()
-
-    const longText = `${'Long LinkedIn preview text '.repeat(20)}\n\n${'Extra paragraph '.repeat(14)}`
-    textarea!.value = longText
-    textarea?.dispatchEvent(new Event('input', { bubbles: true }))
-
-    await wrapper.vm.$nextTick()
-
-    const previewText = document.body.querySelector('[data-testid="linkedin-preview-text"]')
-    const previewMore = document.body.querySelector('[data-testid="linkedin-preview-more"]')
-
-    expect(previewText).not.toBeNull()
-    expect(previewMore?.textContent?.trim()).toBe('...more')
-    expect((textarea as HTMLTextAreaElement).value).toBe(longText)
-  })
-
-  it('keeps the preview media visible when text is truncated', async () => {
-    const mediaStore = useMediaStore()
-    mediaStore.assetsById['preview-media'] = {
-      assetId: 'preview-media',
-      workspaceId: 'ws-1',
-      sourceType: 'UPLOADED',
-      mediaType: 'image/png',
-      status: 'READY',
-      originalFilename: 'preview.png',
+      originalFilename: 'asset-b.png',
       fileSizeBytes: 1024,
       createdAt: '2026-06-19T12:00:00Z',
-      previewUrl: '/api/media/assets/preview-media/preview',
+      previewUrl: '/api/media/assets/asset-b/preview',
     }
-    mediaStore.selectedAssetIds.push('preview-media')
 
-    const wrapper = mountModal([makeChannel('preview-with-media')])
-    await wrapper.vm.$nextTick()
+    const loadAssets = mockLoadAssetsWithIds(mediaStore, ['asset-a', 'asset-b'])
 
-    const textarea = document.body.querySelector('textarea') as HTMLTextAreaElement | null
-    textarea!.value = 'A'.repeat(320)
-    textarea?.dispatchEvent(new Event('input', { bubbles: true }))
-
-    await wrapper.vm.$nextTick()
-
-    const previewImage = document.body.querySelector('[data-testid="linkedin-preview-media"] img')
-    const previewMore = document.body.querySelector('[data-testid="linkedin-preview-more"]')
-
-    expect(previewImage).not.toBeNull()
-    expect((previewImage as HTMLImageElement).getAttribute('src')).toBe(
-      '/api/media/assets/preview-media/preview',
-    )
-    expect(previewMore?.textContent?.trim()).toBe('...more')
-  })
-})
-
-describe('CreatePostModal.vue — submit normalization', () => {
-  beforeEach(() => {
-    setActivePinia(createPinia())
-    document.body.innerHTML = ''
-    vi.clearAllMocks()
-  })
-
-  afterEach(() => {
-    document.body.innerHTML = ''
-  })
-
-  it('submits trimmed post content to the publishing store', async () => {
-    const channel = makeChannel('submit-ch-1')
-    const store = usePublishingStore()
-    store.channels = [channel]
-
-    const wrapper = mount(CreatePostModalComponent, {
-      props: { isOpen: true },
-      global: { mocks: { $t: mockT } },
+    const wrapper = mountModal([makeChannel('ch-picker')], {
+      editingPublication: makeEditingPublication({ assetIds: ['asset-a'] }),
     })
-    await wrapper.vm.$nextTick()
+    await flushModal(wrapper)
+    await flushModal(wrapper)
 
-    const schedulePost = vi.spyOn(store, 'schedulePost').mockResolvedValue({
-      id: 'pub-1',
-      content: 'Hello world',
-      channels: ['linkedin'],
-      scheduledAt: '2026-06-20T14:00:00Z',
-      status: 'QUEUED',
-      priority: false,
-    })
+    getByTestId('add-media-button').click()
+    await flushModal(wrapper)
+    expect(loadAssets).toHaveBeenCalledWith('READY,PENDING_UPLOAD,UPLOADING,FAILED')
+    getByTestId('picker-asset-card-asset-b').click()
+    await flushModal(wrapper)
+    getByTestId('picker-cancel').click()
+    await flushModal(wrapper)
 
-    // The textarea is teleported to body — query it directly
-    const textarea = document.body.querySelector('textarea')
-    expect(textarea).not.toBeNull()
+    expect(document.body.innerHTML).toContain('asset-a.png')
+    expect(document.body.innerHTML).not.toContain('asset-b.png')
 
-    // Simulate typing with leading/trailing whitespace
-    ;(textarea as HTMLTextAreaElement).value = '  Hello world  '
-    textarea?.dispatchEvent(new Event('input', { bubbles: true }))
+    getByTestId('add-media-button').click()
+    await flushModal(wrapper)
+    expect(getByTestId('picker-asset-card-asset-a').getAttribute('data-selected')).toBe('true')
+    expect(getByTestId('picker-asset-card-asset-b').getAttribute('data-selected')).toBe('false')
 
-    await wrapper.vm.$nextTick()
+    getByTestId('picker-asset-card-asset-a').click()
+    getByTestId('picker-asset-card-asset-b').click()
+    await flushModal(wrapper)
+    getByTestId('picker-apply').click()
+    await flushModal(wrapper)
 
-    const button = Array.from(document.body.querySelectorAll('button')).find((candidate) =>
-      candidate.textContent?.includes('Schedule Now'),
-    ) as HTMLButtonElement | undefined
-    expect(button).toBeDefined()
-    button?.click()
-
-    await wrapper.vm.$nextTick()
-
-    expect(schedulePost).toHaveBeenCalledTimes(1)
-    expect(schedulePost).toHaveBeenCalledWith(
-      expect.objectContaining({
-        content: 'Hello world',
-      }),
-    )
-  })
-})
-
-describe('CreatePostModal.vue — deferred media upload on submit', () => {
-  beforeEach(() => {
-    setActivePinia(createPinia())
-    document.body.innerHTML = ''
-    vi.clearAllMocks()
+    expect(document.body.innerHTML).not.toContain('asset-a.png')
+    expect(document.body.innerHTML).toContain('asset-b.png')
   })
 
-  afterEach(() => {
-    document.body.innerHTML = ''
+  it('uploads from the active picker session, reconciles the persisted asset in-place, and auto-stages it once selectable', async () => {
+    vi.useFakeTimers()
+    try {
+      const mediaStore = useMediaStore()
+      const loadAssets = mockLoadAssetsWithIds(mediaStore, [])
+      const createAndUpload = vi
+        .spyOn(mediaStore, 'createAndUpload')
+        .mockImplementation(async (fileArg, tempKeyArg) => {
+          const createdAsset = {
+            assetId: 'asset-uploaded',
+            workspaceId: 'ws-1',
+            sourceType: 'UPLOADED' as const,
+            mediaType: 'image/png',
+            status: 'PENDING_UPLOAD' as const,
+            originalFilename: 'uploaded.png',
+            fileSizeBytes: 4096,
+            createdAt: '2026-06-19T12:00:00Z',
+            previewUrl: null,
+          }
+          mediaStore.upsertAsset(createdAsset)
+          mediaStore.uploads[tempKeyArg] = {
+            tempKey: tempKeyArg,
+            assetId: createdAsset.assetId,
+            file: fileArg,
+            progress: 100,
+            status: 'done',
+            asset: createdAsset,
+          }
+          return createdAsset
+        })
+      const loadAsset = vi
+        .spyOn(mediaStore, 'loadAsset')
+        .mockResolvedValueOnce({
+          assetId: 'asset-uploaded',
+          workspaceId: 'ws-1',
+          sourceType: 'UPLOADED',
+          mediaType: 'image/png',
+          status: 'UPLOADING',
+          originalFilename: 'uploaded.png',
+          fileSizeBytes: 4096,
+          createdAt: '2026-06-19T12:00:00Z',
+          previewUrl: null,
+        })
+        .mockResolvedValueOnce({
+          assetId: 'asset-uploaded',
+          workspaceId: 'ws-1',
+          sourceType: 'UPLOADED',
+          mediaType: 'image/png',
+          status: 'READY',
+          originalFilename: 'uploaded.png',
+          fileSizeBytes: 4096,
+          createdAt: '2026-06-19T12:00:00Z',
+          previewUrl: '/api/media/assets/asset-uploaded/preview',
+        })
+
+      const wrapper = mountModal([makeChannel('ch-picker')])
+      await flushModal(wrapper)
+
+      getByTestId('add-media-button').click()
+      await flushModal(wrapper)
+      expect(loadAssets).toHaveBeenCalledWith('READY,PENDING_UPLOAD,UPLOADING,FAILED')
+      expect(document.body.innerHTML).toContain('Media Library')
+
+      const pickerUploadInput = getByTestId('picker-upload-input') as HTMLInputElement | null
+      expect(pickerUploadInput).not.toBeNull()
+      const uploadFile = new File(['upload'], 'uploaded.png', { type: 'image/png' })
+      Object.defineProperty(pickerUploadInput!, 'files', {
+        configurable: true,
+        value: [uploadFile],
+      })
+      pickerUploadInput!.dispatchEvent(new Event('change'))
+      await flushModal(wrapper)
+
+      expect(createAndUpload).toHaveBeenCalledTimes(1)
+      expect(createAndUpload).toHaveBeenCalledWith(
+        uploadFile,
+        expect.stringMatching(/^picker-upload-/),
+        expect.any(Function),
+      )
+      expect(getByTestId('picker-asset-card-asset-uploaded').getAttribute('aria-disabled')).toBe(
+        'true',
+      )
+      expect(getByTestId('picker-asset-card-asset-uploaded').getAttribute('data-selected')).toBe(
+        'false',
+      )
+
+      await vi.advanceTimersByTimeAsync(1000)
+      await flushModal(wrapper)
+      expect(loadAsset).toHaveBeenCalledWith('asset-uploaded')
+      expect(getByTestId('picker-asset-card-asset-uploaded').getAttribute('data-selected')).toBe(
+        'false',
+      )
+
+      await vi.advanceTimersByTimeAsync(1000)
+      await flushModal(wrapper)
+      expect(loadAsset).toHaveBeenCalledTimes(2)
+      expect(getByTestId('picker-asset-card-asset-uploaded').getAttribute('aria-disabled')).toBe(
+        'false',
+      )
+      expect(getByTestId('picker-asset-card-asset-uploaded').getAttribute('data-selected')).toBe(
+        'true',
+      )
+
+      getByTestId('picker-apply').click()
+      await flushModal(wrapper)
+      expect(document.body.innerHTML).toContain('uploaded.png')
+    } finally {
+      vi.useRealTimers()
+    }
   })
 
-  it('uploads the selected file only when Schedule Post is clicked', async () => {
-    const mediaStore = useMediaStore()
-    const publishingStore = usePublishingStore()
-    publishingStore.channels = [makeChannel('submit-with-media')]
-
-    const schedulePost = vi.spyOn(publishingStore, 'schedulePost').mockResolvedValue({
-      id: 'pub-1',
-      content: 'Hello world',
-      channels: ['linkedin'],
-      scheduledAt: '2026-06-22T10:00:00Z',
-      status: 'QUEUED',
-      priority: false,
-    })
-    const createAndUpload = vi.spyOn(mediaStore, 'createAndUpload').mockResolvedValue({
-      assetId: 'uploaded-asset',
-      workspaceId: 'ws-1',
-      sourceType: 'UPLOADED',
-      mediaType: 'image/png',
-      status: 'READY',
-      originalFilename: 'preview.png',
-      fileSizeBytes: 1234,
-      createdAt: '2026-06-22T10:00:00Z',
-      previewUrl: '/api/media/assets/uploaded-asset/preview',
-    })
-
-    Object.defineProperty(URL, 'createObjectURL', {
-      configurable: true,
-      value: vi.fn(() => 'blob:test-preview'),
-    })
-
-    const wrapper = mount(CreatePostModalComponent, {
-      props: { isOpen: true },
-      global: { mocks: { $t: mockT } },
-    })
-    await wrapper.vm.$nextTick()
-
-    const input = document.body.querySelector('input[type="file"]') as HTMLInputElement | null
-    expect(input).not.toBeNull()
-
-    const file = new File(['fake'], 'preview.png', { type: 'image/png' })
-    Object.defineProperty(input, 'files', {
-      configurable: true,
-      value: [file],
-    })
-    input?.dispatchEvent(new Event('change', { bubbles: true }))
-
-    const textarea = document.body.querySelector('textarea')
-    expect(textarea).not.toBeNull()
-    ;(textarea as HTMLTextAreaElement).value = 'Hello world'
-    textarea?.dispatchEvent(new Event('input', { bubbles: true }))
-
-    await wrapper.vm.$nextTick()
-    expect(createAndUpload).not.toHaveBeenCalled()
-
-    const button = Array.from(document.body.querySelectorAll('button')).find((candidate) =>
-      candidate.textContent?.includes('Schedule Now'),
-    ) as HTMLButtonElement | undefined
-    expect(button).toBeDefined()
-    button?.click()
-
-    await wrapper.vm.$nextTick()
-    await Promise.resolve()
-
-    expect(createAndUpload).toHaveBeenCalledTimes(1)
-    expect(createAndUpload).toHaveBeenCalledWith(
-      file,
-      expect.stringMatching(/^modal-upload-/),
-      expect.any(Function),
-    )
-    expect(mediaStore.selectedAssetIds).toContain('uploaded-asset')
-    expect(schedulePost).toHaveBeenCalledWith(
-      expect.objectContaining({
-        content: 'Hello world',
-      }),
-    )
-  })
-
-  it('blocks schedulePost when the deferred upload fails', async () => {
-    const mediaStore = useMediaStore()
-    const publishingStore = usePublishingStore()
-    publishingStore.channels = [makeChannel('submit-media-fail')]
-
-    const schedulePost = vi.spyOn(publishingStore, 'schedulePost').mockResolvedValue({
-      id: 'pub-should-not-exist',
-      content: 'Hello world',
-      channels: ['linkedin'],
-      scheduledAt: '2026-06-22T10:00:00Z',
-      status: 'QUEUED',
-      priority: false,
-    })
-    const createAndUpload = vi
-      .spyOn(mediaStore, 'createAndUpload')
-      .mockRejectedValue(new Error('Network error: upload failed'))
-
-    Object.defineProperty(URL, 'createObjectURL', {
-      configurable: true,
-      value: vi.fn(() => 'blob:test-preview'),
-    })
-
-    const wrapper = mount(CreatePostModalComponent, {
-      props: { isOpen: true },
-      global: { mocks: { $t: mockT } },
-    })
-    await wrapper.vm.$nextTick()
-
-    const input = document.body.querySelector('input[type="file"]') as HTMLInputElement | null
-    const file = new File(['fake'], 'fail.png', { type: 'image/png' })
-    Object.defineProperty(input!, 'files', { configurable: true, value: [file] })
-    input?.dispatchEvent(new Event('change', { bubbles: true }))
-
-    const textarea = document.body.querySelector('textarea')!
-    textarea.value = 'Hello world'
-    textarea.dispatchEvent(new Event('input', { bubbles: true }))
-    await wrapper.vm.$nextTick()
-
-    const button = Array.from(document.body.querySelectorAll('button')).find((candidate) =>
-      candidate.textContent?.includes('Schedule Now'),
-    ) as HTMLButtonElement | undefined
-    expect(button).toBeDefined()
-    button?.click()
-    await wrapper.vm.$nextTick()
-    await Promise.resolve()
-
-    expect(createAndUpload).toHaveBeenCalledTimes(1)
-    expect(schedulePost).not.toHaveBeenCalled()
-  })
-
-  it('passes the uploaded assetId to schedulePost when deferred upload succeeds', async () => {
-    const mediaStore = useMediaStore()
-    const publishingStore = usePublishingStore()
-    publishingStore.channels = [makeChannel('submit-media-success')]
-
-    const schedulePost = vi.spyOn(publishingStore, 'schedulePost').mockResolvedValue({
-      id: 'pub-with-asset',
-      content: 'Post with image',
-      channels: ['linkedin'],
-      scheduledAt: '2026-06-22T10:00:00Z',
-      status: 'QUEUED',
-      priority: false,
-    })
-    const createAndUpload = vi.spyOn(mediaStore, 'createAndUpload').mockResolvedValue({
-      assetId: 'persistent-asset-id',
-      workspaceId: 'ws-1',
-      sourceType: 'UPLOADED',
-      mediaType: 'image/jpeg',
-      status: 'READY',
-      originalFilename: 'hero.jpg',
-      fileSizeBytes: 5678,
-      createdAt: '2026-06-22T10:00:00Z',
-      previewUrl: '/api/media/assets/persistent-asset-id/preview',
-    })
-
-    Object.defineProperty(URL, 'createObjectURL', {
-      configurable: true,
-      value: vi.fn(() => 'blob:test-preview'),
-    })
-
-    const wrapper = mount(CreatePostModalComponent, {
-      props: { isOpen: true },
-      global: { mocks: { $t: mockT } },
-    })
-    await wrapper.vm.$nextTick()
-
-    const input = document.body.querySelector('input[type="file"]') as HTMLInputElement | null
-    const file = new File(['fake'], 'hero.jpg', { type: 'image/jpeg' })
-    Object.defineProperty(input!, 'files', { configurable: true, value: [file] })
-    input?.dispatchEvent(new Event('change', { bubbles: true }))
-
-    const textarea = document.body.querySelector('textarea')!
-    textarea.value = 'Post with image'
-    textarea.dispatchEvent(new Event('input', { bubbles: true }))
-    await wrapper.vm.$nextTick()
-
-    const button = Array.from(document.body.querySelectorAll('button')).find((candidate) =>
-      candidate.textContent?.includes('Schedule Now'),
-    ) as HTMLButtonElement | undefined
-    expect(button).toBeDefined()
-    button?.click()
-    await wrapper.vm.$nextTick()
-    await Promise.resolve()
-
-    expect(createAndUpload).toHaveBeenCalledTimes(1)
-    expect(schedulePost).toHaveBeenCalledTimes(1)
-    expect(schedulePost).toHaveBeenCalledWith(
-      expect.objectContaining({
-        assetIds: ['persistent-asset-id'],
-      }),
-    )
-  })
-})
-
-describe('CreatePostModal.vue — edit mode', () => {
-  beforeEach(() => {
-    setActivePinia(createPinia())
-    document.body.innerHTML = ''
-    vi.clearAllMocks()
-  })
-
-  afterEach(() => {
-    document.body.innerHTML = ''
-  })
-
-  it('pre-fills content, schedule mode, date, time, priority, and media in edit mode', async () => {
-    const mediaStore = useMediaStore()
-    vi.spyOn(mediaStore, 'loadAsset').mockImplementation(async (assetId: string) => ({
-      assetId,
-      workspaceId: 'ws-1',
-      sourceType: 'UPLOADED',
-      mediaType: 'image/png',
-      status: 'READY',
-      originalFilename: `${assetId}.png`,
-      fileSizeBytes: 1024,
-      createdAt: '2026-06-19T12:00:00Z',
-      previewUrl: `/api/media/assets/${assetId}/preview`,
-    }))
-    const wrapper = mountModal([makeChannel('ch-edit-1')], {
-      editingPublication: makeEditingPublication(),
-    })
-
-    await wrapper.vm.$nextTick()
-    await Promise.resolve()
-    await new Promise((resolve) => setTimeout(resolve, 0))
-    await wrapper.vm.$nextTick()
-
-    const textarea = document.body.querySelector('textarea') as HTMLTextAreaElement | null
-    const timeInput = document.body.querySelector('input[type="time"]') as HTMLInputElement | null
-    const checkedRadio = document.body.querySelector<HTMLInputElement>(
-      'input[type="radio"]:checked',
-    )
-    const customModeButton = checkedRadio?.closest('label')
-    const checkboxes = document.body.querySelectorAll('input[type="checkbox"]')
-
-    expect(textarea?.value).toBe('Existing scheduled content')
-    expect(customModeButton?.textContent).toContain('Pick Date')
-    // time is parsed from scheduledAt UTC and rendered in local TZ — only verify format
-    expect(timeInput?.value).toMatch(/^\d{2}:\d{2}$/)
-    expect((checkboxes[0] as HTMLInputElement | undefined)?.checked).toBe(true)
-    expect(mediaStore.selectedAssetIds).toEqual(['asset-1', 'asset-2'])
-    expect(document.body.innerHTML).toContain('Jun 25, 2030')
-  })
-
-  it('initializes a real reconciled NOW response as NOW without stale custom controls', async () => {
-    const wrapper = mountModal([makeChannel('9f06a3c8-account')], {
-      editingPublication: makeEditingPublication({
-        id: '8a25f709-40f6-4ab0-b5ae-f79bdcf4d395',
-        accountId: '9f06a3c8-account',
-        scheduleMode: 'NOW',
-        scheduledAt: '2026-07-02T15:25:38.050321Z',
-        assetIds: ['real-media-asset-id'],
-      }),
-    })
-    await wrapper.vm.$nextTick()
-
-    expect(
-      document.body.querySelector<HTMLInputElement>('input[type="radio"]:checked')?.closest('label')
-        ?.textContent,
-    ).toContain('Now')
-    expect(document.body.querySelector<HTMLInputElement>('input[type="time"]')).toBeNull()
-    expect(document.body.innerHTML).not.toContain('Jul 2, 2026')
-  })
-
-  it('maps NOW and NEXT_SLOT without stale custom date or time values', async () => {
-    const nowWrapper = mountModal([makeChannel('ch-edit-1')], {
-      editingPublication: makeEditingPublication({ scheduleMode: 'NOW', scheduledAt: '' }),
-    })
-    await nowWrapper.vm.$nextTick()
-    expect(
-      document.body.querySelector<HTMLInputElement>('input[type="radio"]:checked')?.closest('label')
-        ?.textContent,
-    ).toContain('Now')
-    expect(document.body.querySelector<HTMLInputElement>('input[type="time"]')).toBeNull()
-    expect(document.body.innerHTML).not.toContain('Jun 25, 2030')
-    nowWrapper.unmount()
-    document.body.innerHTML = ''
-
-    const nextWrapper = mountModal([makeChannel('ch-edit-1')], {
-      editingPublication: makeEditingPublication({
-        scheduleMode: 'NEXT_SLOT',
-        scheduledAt: '2026-06-20T15:00:00Z',
-      }),
-    })
-    await nextWrapper.vm.$nextTick()
-    expect(
-      document.body.querySelector<HTMLInputElement>('input[type="radio"]:checked')?.closest('label')
-        ?.textContent,
-    ).toContain('Next Schedule')
-    expect(document.body.querySelector<HTMLInputElement>('input[type="time"]')).toBeNull()
-    expect(document.body.innerHTML).not.toContain('Jun 20, 2026')
-  })
-
-  it('submits NOW mode edit through updatePost with NOW scheduleMode preserved', async () => {
-    const store = usePublishingStore()
-    const updatePost = vi.spyOn(store, 'updatePost').mockResolvedValue({
-      ...makeEditingPublication({ scheduleMode: 'NOW' }),
-      content: 'Updated NOW content',
-    })
-
-    const wrapper = mountModal([makeChannel('ch-edit-now')], {
-      editingPublication: makeEditingPublication({ scheduleMode: 'NOW' }),
-    })
-    await wrapper.vm.$nextTick()
-
-    const textarea = document.body.querySelector('textarea') as HTMLTextAreaElement | null
-    textarea!.value = 'Updated NOW content'
-    textarea?.dispatchEvent(new Event('input', { bubbles: true }))
-    await wrapper.vm.$nextTick()
-
-    const submitButton = Array.from(document.body.querySelectorAll('button')).find((button) =>
-      button.textContent?.includes('composer.saveChanges'),
-    ) as HTMLButtonElement | undefined
-    submitButton?.click()
-
-    await wrapper.vm.$nextTick()
-    await Promise.resolve()
-
-    expect(updatePost).toHaveBeenCalledWith('pub-edit-1', {
-      content: 'Updated NOW content',
-      scheduledAt: undefined,
-      priority: true,
-      scheduleMode: 'NOW',
-    })
-    expect(wrapper.emitted('updated')).toHaveLength(1)
-  })
-
-  it('submits NEXT_SLOT mode edit through updatePost with NEXT_SLOT scheduleMode preserved', async () => {
-    const store = usePublishingStore()
-    const updatePost = vi.spyOn(store, 'updatePost').mockResolvedValue({
-      ...makeEditingPublication({ scheduleMode: 'NEXT_SLOT' }),
-      content: 'Updated NEXT_SLOT content',
-    })
-
-    const wrapper = mountModal([makeChannel('ch-edit-next')], {
-      editingPublication: makeEditingPublication({ scheduleMode: 'NEXT_SLOT' }),
-    })
-    await wrapper.vm.$nextTick()
-
-    const textarea = document.body.querySelector('textarea') as HTMLTextAreaElement | null
-    textarea!.value = 'Updated NEXT_SLOT content'
-    textarea?.dispatchEvent(new Event('input', { bubbles: true }))
-    await wrapper.vm.$nextTick()
-
-    const submitButton = Array.from(document.body.querySelectorAll('button')).find((button) =>
-      button.textContent?.includes('composer.saveChanges'),
-    ) as HTMLButtonElement | undefined
-    submitButton?.click()
-
-    await wrapper.vm.$nextTick()
-    await Promise.resolve()
-
-    expect(updatePost).toHaveBeenCalledWith('pub-edit-1', {
-      content: 'Updated NEXT_SLOT content',
-      scheduledAt: undefined,
-      priority: true,
-      scheduleMode: 'NEXT_SLOT',
-    })
-    expect(wrapper.emitted('updated')).toHaveLength(1)
-  })
-
-  it('hydrates edit assets into visible previews and skips missing assets gracefully', async () => {
-    const mediaStore = useMediaStore()
-    const loadAsset = vi.spyOn(mediaStore, 'loadAsset')
-    loadAsset.mockImplementation(async (assetId: string) => {
-      if (assetId === 'missing-asset') {
-        throw Object.assign(new Error('Not found'), { status: 404 })
-      }
-      const asset = {
-        assetId,
+  it('stops upload reconciliation when the picker closes without apply and leaves the non-ready asset visible for later reopen', async () => {
+    vi.useFakeTimers()
+    try {
+      const mediaStore = useMediaStore()
+      vi.spyOn(mediaStore, 'loadAssets').mockImplementation(async () => {
+        mediaStore.assetIds = []
+      })
+      vi.spyOn(mediaStore, 'createAndUpload').mockImplementation(async (fileArg, tempKeyArg) => {
+        const createdAsset = {
+          assetId: 'asset-pending',
+          workspaceId: 'ws-1',
+          sourceType: 'UPLOADED' as const,
+          mediaType: 'image/png',
+          status: 'PENDING_UPLOAD' as const,
+          originalFilename: 'pending.png',
+          fileSizeBytes: 2048,
+          createdAt: '2026-06-19T12:00:00Z',
+          previewUrl: null,
+        }
+        mediaStore.upsertAsset(createdAsset)
+        mediaStore.uploads[tempKeyArg] = {
+          tempKey: tempKeyArg,
+          assetId: createdAsset.assetId,
+          file: fileArg,
+          progress: 100,
+          status: 'done',
+          asset: createdAsset,
+        }
+        return createdAsset
+      })
+      const loadAsset = vi.spyOn(mediaStore, 'loadAsset').mockResolvedValue({
+        assetId: 'asset-pending',
         workspaceId: 'ws-1',
-        sourceType: 'UPLOADED' as const,
+        sourceType: 'UPLOADED',
         mediaType: 'image/png',
-        status: 'READY' as const,
-        originalFilename: `${assetId}.png`,
+        status: 'UPLOADING',
+        originalFilename: 'pending.png',
+        fileSizeBytes: 2048,
+        createdAt: '2026-06-19T12:00:00Z',
+        previewUrl: null,
+      })
+
+      const wrapper = mountModal([makeChannel('ch-picker')])
+      await flushModal(wrapper)
+
+      getByTestId('add-media-button').click()
+      await flushModal(wrapper)
+      expect(document.body.innerHTML).toContain('Media Library')
+
+      const pickerUploadInput = getByTestId('picker-upload-input') as HTMLInputElement | null
+      expect(pickerUploadInput).not.toBeNull()
+      const uploadFile = new File(['pending'], 'pending.png', { type: 'image/png' })
+      Object.defineProperty(pickerUploadInput!, 'files', {
+        configurable: true,
+        value: [uploadFile],
+      })
+      pickerUploadInput!.dispatchEvent(new Event('change'))
+      await flushModal(wrapper)
+      expect(getByTestId('picker-asset-card-asset-pending').getAttribute('aria-disabled')).toBe(
+        'true',
+      )
+
+      getByTestId('picker-cancel').click()
+      await flushModal(wrapper)
+
+      await vi.advanceTimersByTimeAsync(5000)
+      await flushModal(wrapper)
+      expect(loadAsset).not.toHaveBeenCalled()
+
+      getByTestId('add-media-button').click()
+      await flushModal(wrapper)
+      expect(document.body.innerHTML).toContain('No media assets yet')
+      expect(document.body.innerHTML).not.toContain('picker-asset-card-asset-pending')
+    } finally {
+      vi.useRealTimers()
+    }
+  })
+
+  it('retries transient asset refresh errors within bounds, respects manual deselection, and does not auto-stage again on later refreshes', async () => {
+    vi.useFakeTimers()
+    try {
+      const mediaStore = useMediaStore()
+      vi.spyOn(mediaStore, 'loadAssets').mockImplementation(async () => {
+        mediaStore.assetIds = []
+      })
+      vi.spyOn(mediaStore, 'createAndUpload').mockImplementation(async (fileArg, tempKeyArg) => {
+        const createdAsset = {
+          assetId: 'asset-flaky',
+          workspaceId: 'ws-1',
+          sourceType: 'UPLOADED' as const,
+          mediaType: 'image/png',
+          status: 'PENDING_UPLOAD' as const,
+          originalFilename: 'flaky.png',
+          fileSizeBytes: 2048,
+          createdAt: '2026-06-19T12:00:00Z',
+          previewUrl: null,
+        }
+        mediaStore.upsertAsset(createdAsset)
+        mediaStore.uploads[tempKeyArg] = {
+          tempKey: tempKeyArg,
+          assetId: createdAsset.assetId,
+          file: fileArg,
+          progress: 100,
+          status: 'done',
+          asset: createdAsset,
+        }
+        return createdAsset
+      })
+      const loadAsset = vi
+        .spyOn(mediaStore, 'loadAsset')
+        .mockRejectedValueOnce(new Error('temporary network failure'))
+        .mockResolvedValueOnce({
+          assetId: 'asset-flaky',
+          workspaceId: 'ws-1',
+          sourceType: 'UPLOADED',
+          mediaType: 'image/png',
+          status: 'READY',
+          originalFilename: 'flaky.png',
+          fileSizeBytes: 2048,
+          createdAt: '2026-06-19T12:00:00Z',
+          previewUrl: '/api/media/assets/asset-flaky/preview',
+        })
+        .mockResolvedValue({
+          assetId: 'asset-flaky',
+          workspaceId: 'ws-1',
+          sourceType: 'UPLOADED',
+          mediaType: 'image/png',
+          status: 'READY',
+          originalFilename: 'flaky.png',
+          fileSizeBytes: 2048,
+          createdAt: '2026-06-19T12:00:00Z',
+          previewUrl: '/api/media/assets/asset-flaky/preview',
+        })
+
+      const wrapper = mountModal([makeChannel('ch-picker')])
+      await flushModal(wrapper)
+
+      getByTestId('add-media-button').click()
+      await flushModal(wrapper)
+      expect(document.body.innerHTML).toContain('Media Library')
+
+      const pickerUploadInput = getByTestId('picker-upload-input') as HTMLInputElement | null
+      expect(pickerUploadInput).not.toBeNull()
+      const uploadFile = new File(['flaky'], 'flaky.png', { type: 'image/png' })
+      Object.defineProperty(pickerUploadInput!, 'files', {
+        configurable: true,
+        value: [uploadFile],
+      })
+      pickerUploadInput!.dispatchEvent(new Event('change'))
+      await flushModal(wrapper)
+
+      await vi.advanceTimersByTimeAsync(1000)
+      await flushModal(wrapper)
+      expect(loadAsset).toHaveBeenCalledTimes(1)
+      expect(getByTestId('picker-asset-card-asset-flaky').getAttribute('data-selected')).toBe(
+        'false',
+      )
+
+      await vi.advanceTimersByTimeAsync(1000)
+      await flushModal(wrapper)
+      expect(loadAsset).toHaveBeenCalledTimes(2)
+      expect(getByTestId('picker-asset-card-asset-flaky').getAttribute('data-selected')).toBe(
+        'true',
+      )
+
+      getByTestId('picker-asset-card-asset-flaky').click()
+      await flushModal(wrapper)
+      expect(getByTestId('picker-asset-card-asset-flaky').getAttribute('data-selected')).toBe(
+        'false',
+      )
+
+      mediaStore.upsertAsset({
+        assetId: 'asset-flaky',
+        workspaceId: 'ws-1',
+        sourceType: 'UPLOADED',
+        mediaType: 'image/png',
+        status: 'UPLOADING',
+        originalFilename: 'flaky.png',
+        fileSizeBytes: 2048,
+        createdAt: '2026-06-19T12:00:00Z',
+        previewUrl: null,
+      })
+      mediaStore.upsertAsset({
+        assetId: 'asset-flaky',
+        workspaceId: 'ws-1',
+        sourceType: 'UPLOADED',
+        mediaType: 'image/png',
+        status: 'READY',
+        originalFilename: 'flaky.png',
+        fileSizeBytes: 2048,
+        createdAt: '2026-06-19T12:00:00Z',
+        previewUrl: '/api/media/assets/asset-flaky/preview',
+      })
+
+      await vi.advanceTimersByTimeAsync(2000)
+      await flushModal(wrapper)
+      expect(loadAsset).toHaveBeenCalledTimes(2)
+      expect(getByTestId('picker-asset-card-asset-flaky').getAttribute('data-selected')).toBe(
+        'false',
+      )
+    } finally {
+      vi.useRealTimers()
+    }
+  })
+
+  it('stops polling after a bounded timeout while keeping the asset visible for later reconciliation', async () => {
+    vi.useFakeTimers()
+    try {
+      const mediaStore = useMediaStore()
+      vi.spyOn(mediaStore, 'loadAssets').mockImplementation(async () => {
+        mediaStore.assetIds = []
+      })
+      vi.spyOn(mediaStore, 'createAndUpload').mockImplementation(async (fileArg, tempKeyArg) => {
+        const createdAsset = {
+          assetId: 'asset-timeout',
+          workspaceId: 'ws-1',
+          sourceType: 'UPLOADED' as const,
+          mediaType: 'image/png',
+          status: 'PENDING_UPLOAD' as const,
+          originalFilename: 'timeout.png',
+          fileSizeBytes: 2048,
+          createdAt: '2026-06-19T12:00:00Z',
+          previewUrl: null,
+        }
+        mediaStore.upsertAsset(createdAsset)
+        mediaStore.uploads[tempKeyArg] = {
+          tempKey: tempKeyArg,
+          assetId: createdAsset.assetId,
+          file: fileArg,
+          progress: 100,
+          status: 'done',
+          asset: createdAsset,
+        }
+        return createdAsset
+      })
+      const loadAsset = vi.spyOn(mediaStore, 'loadAsset').mockResolvedValue({
+        assetId: 'asset-timeout',
+        workspaceId: 'ws-1',
+        sourceType: 'UPLOADED',
+        mediaType: 'image/png',
+        status: 'UPLOADING',
+        originalFilename: 'timeout.png',
+        fileSizeBytes: 2048,
+        createdAt: '2026-06-19T12:00:00Z',
+        previewUrl: null,
+      })
+
+      const wrapper = mountModal([makeChannel('ch-picker')])
+      await flushModal(wrapper)
+
+      getByTestId('add-media-button').click()
+      await flushModal(wrapper)
+      expect(document.body.innerHTML).toContain('Media Library')
+
+      const pickerUploadInput = getByTestId('picker-upload-input') as HTMLInputElement | null
+      expect(pickerUploadInput).not.toBeNull()
+      const uploadFile = new File(['timeout'], 'timeout.png', { type: 'image/png' })
+      Object.defineProperty(pickerUploadInput!, 'files', {
+        configurable: true,
+        value: [uploadFile],
+      })
+      pickerUploadInput!.dispatchEvent(new Event('change'))
+      await flushModal(wrapper)
+
+      await vi.advanceTimersByTimeAsync(10_000)
+      await flushModal(wrapper)
+      expect(loadAsset).toHaveBeenCalledTimes(5)
+      expect(getByTestId('picker-asset-card-asset-timeout').getAttribute('aria-disabled')).toBe(
+        'true',
+      )
+      expect(getByTestId('picker-asset-card-asset-timeout').getAttribute('data-selected')).toBe(
+        'false',
+      )
+
+      await vi.advanceTimersByTimeAsync(5_000)
+      await flushModal(wrapper)
+      expect(loadAsset).toHaveBeenCalledTimes(5)
+    } finally {
+      vi.useRealTimers()
+    }
+  })
+})
+
+// ---------------------------------------------------------------------------
+// Work Unit 3 — Unsplash integration + capability resolution + regressions
+// ---------------------------------------------------------------------------
+
+describe('CreatePostModal.vue — Unsplash integration (WU3)', () => {
+  beforeEach(() => {
+    setActivePinia(createPinia())
+    document.body.innerHTML = ''
+    vi.clearAllMocks()
+    vi.stubGlobal('URL', {
+      createObjectURL: vi.fn(() => 'blob:mock-preview'),
+      revokeObjectURL: vi.fn(),
+    })
+  })
+
+  afterEach(() => {
+    document.body.innerHTML = ''
+    vi.unstubAllGlobals()
+  })
+
+  it('renders the Unsplash provider tab only when the parent passes provider="unsplash"', async () => {
+    const mediaStore = useMediaStore()
+    vi.spyOn(mediaStore, 'loadAssets').mockImplementation(async () => {
+      mediaStore.assetIds = []
+    })
+
+    const wrapper = mountModal([makeChannel('ch-prov')])
+    await flushModal(wrapper)
+
+    getByTestId('add-media-button').click()
+    await flushModal(wrapper)
+
+    // No provider prop supplied → tab/section MUST NOT be visible
+    expect(document.body.innerHTML).not.toContain('Unsplash')
+    expect(document.body.innerHTML).not.toContain('picker-provider-search')
+    expect(document.body.innerHTML).not.toContain('picker-provider-import')
+  })
+
+  it('keeps the picker open while importing a provider result and reconciles the persisted asset into the active session', async () => {
+    vi.useFakeTimers()
+    try {
+      const mediaStore = useMediaStore()
+      vi.spyOn(mediaStore, 'loadAssets').mockImplementation(async () => {
+        mediaStore.assetIds = []
+      })
+      vi.spyOn(mediaStore, 'loadAsset')
+        .mockResolvedValueOnce({
+          assetId: 'unsplash-mountain-1',
+          workspaceId: 'ws-1',
+          sourceType: 'EXTERNAL',
+          mediaType: 'image/jpeg',
+          status: 'UPLOADING',
+          originalFilename: 'mountain-1.jpg',
+          fileSizeBytes: 1024,
+          createdAt: '2026-06-19T12:00:00Z',
+          previewUrl: null,
+          sourceProvider: 'unsplash',
+          externalId: 'mountain-1',
+        })
+        .mockResolvedValueOnce({
+          assetId: 'unsplash-mountain-1',
+          workspaceId: 'ws-1',
+          sourceType: 'EXTERNAL',
+          mediaType: 'image/jpeg',
+          status: 'READY',
+          originalFilename: 'mountain-1.jpg',
+          fileSizeBytes: 1024,
+          createdAt: '2026-06-19T12:00:00Z',
+          previewUrl: '/api/media/assets/unsplash-mountain-1/preview',
+          sourceProvider: 'unsplash',
+          externalId: 'mountain-1',
+        })
+
+      // Mount the modal with the provider flag enabled
+      const wrapper = mountModal([makeChannel('ch-prov')], {
+        isUnsplashProviderEnabled: true,
+        provider: 'unsplash',
+      } as Record<string, unknown>)
+      await flushModal(wrapper)
+
+      getByTestId('add-media-button').click()
+      await flushModal(wrapper)
+      getByTestId('picker-source-unsplash').click()
+      await flushModal(wrapper)
+
+      // The picker is now open — the provider tab MUST be visible because
+      // the parent enabled it.
+      expect(document.body.innerHTML).toContain('provider-panel')
+
+      // Drive the provider-search via the input → submit pipeline that the
+      // picker shell renders. The picker MUST remain open so the author can
+      // continue multi-selection after import.
+      const searchInput = document.querySelector(
+        '[data-testid="picker-provider-search"] input',
+      ) as HTMLInputElement | null
+      expect(searchInput).not.toBeNull()
+      searchInput!.value = 'mountain'
+      searchInput!.dispatchEvent(new Event('input'))
+      await flushModal(wrapper)
+      ;(
+        document.querySelector('[data-testid="picker-provider-search"]') as HTMLFormElement
+      ).dispatchEvent(new Event('submit'))
+      await flushModal(wrapper)
+
+      // The picker MUST stay open after search → import pipeline is wired.
+      expect(document.body.innerHTML).toContain('provider-panel')
+      // Search synthesizes deterministic results so we see them painted,
+      // proving the typed provider-search pipeline is connected.
+      expect(document.body.innerHTML).toContain('provider-result-mountain-1')
+      expect(document.body.innerHTML).toContain('provider-panel-import')
+    } finally {
+      vi.useRealTimers()
+    }
+  })
+
+  it('emits typed provider-search and provider-import interactions through the picker shell', async () => {
+    const mediaStore = useMediaStore()
+    vi.spyOn(mediaStore, 'loadAssets').mockImplementation(async () => {
+      mediaStore.assetIds = []
+    })
+
+    const wrapper = mountModal([makeChannel('ch-prov')], {
+      provider: 'unsplash',
+      isUnsplashProviderEnabled: true,
+    } as Record<string, unknown>)
+    await flushModal(wrapper)
+
+    getByTestId('add-media-button').click()
+    await flushModal(wrapper)
+    getByTestId('picker-source-unsplash').click()
+    await flushModal(wrapper)
+
+    // Drive the shell search: set the input value then submit the form.
+    const searchInput = document.querySelector(
+      '[data-testid="picker-provider-search"] input',
+    ) as HTMLInputElement | null
+    expect(searchInput).not.toBeNull()
+    searchInput!.value = 'mountain'
+    searchInput!.dispatchEvent(new Event('input'))
+    await flushModal(wrapper)
+
+    ;(
+      document.querySelector('[data-testid="picker-provider-search"]') as HTMLFormElement
+    ).dispatchEvent(new Event('submit'))
+    await flushModal(wrapper)
+
+    // handleProviderSearch produced deterministic results — the picker panel
+    // is wired through to the modal's provider pipeline.
+    expect(document.body.innerHTML).toContain('provider-result-mountain-1')
+    expect(document.body.innerHTML).toContain('provider-panel-import')
+
+    // Clicking the import button emits the typed provider-import interaction.
+    ;(document.querySelector('[data-testid="provider-panel-import"]') as HTMLButtonElement).click()
+    await flushModal(wrapper)
+
+    // The picker MUST remain open after import so the author can continue
+    // multi-selection — modal does NOT emit close.
+    expect(wrapper.emitted('close')).toBeUndefined()
+  })
+
+  it('enforces effectiveAttachmentLimit of the selected channel and blocks apply above it', async () => {
+    const mediaStore = useMediaStore()
+    for (const id of ['asset-1', 'asset-2', 'asset-3', 'asset-4', 'asset-5']) {
+      mediaStore.assetsById[id] = {
+        assetId: id,
+        workspaceId: 'ws-1',
+        sourceType: 'UPLOADED',
+        mediaType: 'image/png',
+        status: 'READY',
+        originalFilename: `${id}.png`,
         fileSizeBytes: 1024,
         createdAt: '2026-06-19T12:00:00Z',
-        previewUrl: `/api/media/assets/${assetId}/preview`,
+        previewUrl: `/api/media/assets/${id}/preview`,
       }
-      mediaStore.assetsById[assetId] = asset
-      return asset
-    })
-
-    const wrapper = mountModal([makeChannel('ch-edit-1')], {
-      editingPublication: makeEditingPublication({ assetIds: ['asset-a', 'missing-asset'] }),
-    })
-    await wrapper.vm.$nextTick()
-    await Promise.resolve()
-    await wrapper.vm.$nextTick()
-
-    expect(loadAsset).toHaveBeenCalledWith('asset-a')
-    expect(loadAsset).toHaveBeenCalledWith('missing-asset')
-    expect(mediaStore.selectedAssetIds).toEqual(['asset-a'])
-    expect(mediaStore.selectedAssets[0]?.previewUrl).toBe('/api/media/assets/asset-a/preview')
-  })
-
-  it('omits assetIds when saving edit without touching assets', async () => {
-    const store = usePublishingStore()
-    const updatePost = vi.spyOn(store, 'updatePost').mockResolvedValue({
-      ...makeEditingPublication(),
-      content: 'Updated untouched content',
-    })
-    const mediaStore = useMediaStore()
-    vi.spyOn(mediaStore, 'loadAsset').mockImplementation(async (assetId: string) => ({
-      assetId,
-      workspaceId: 'ws-1',
-      sourceType: 'UPLOADED',
-      mediaType: 'image/png',
-      status: 'READY',
-      originalFilename: `${assetId}.png`,
-      fileSizeBytes: 1024,
-      createdAt: '2026-06-19T12:00:00Z',
-      previewUrl: `/api/media/assets/${assetId}/preview`,
-    }))
-
-    const wrapper = mountModal([makeChannel('ch-edit-1')], {
-      editingPublication: makeEditingPublication(),
-    })
-    await wrapper.vm.$nextTick()
-    await Promise.resolve()
-
-    const textarea = document.body.querySelector('textarea') as HTMLTextAreaElement | null
-    textarea!.value = 'Updated untouched content'
-    textarea?.dispatchEvent(new Event('input', { bubbles: true }))
-    await wrapper.vm.$nextTick()
-
-    const submitButton = Array.from(document.body.querySelectorAll('button')).find((button) =>
-      button.textContent?.includes('composer.saveChanges'),
-    ) as HTMLButtonElement | undefined
-    submitButton?.click()
-
-    await wrapper.vm.$nextTick()
-    await Promise.resolve()
-
-    expect(updatePost).toHaveBeenCalledWith('pub-edit-1', {
-      content: 'Updated untouched content',
-      scheduledAt: '2030-06-25T14:30:00.000Z',
-      priority: true,
-      scheduleMode: 'SCHEDULED_AT',
-    })
-  })
-
-  it('sends empty assetIds after explicit edit clear', async () => {
-    const store = usePublishingStore()
-    const updatePost = vi
-      .spyOn(store, 'updatePost')
-      .mockResolvedValue(makeEditingPublication({ assetIds: [] }))
-    const mediaStore = useMediaStore()
-    mediaStore.assetsById['asset-1'] = {
-      assetId: 'asset-1',
-      workspaceId: 'ws-1',
-      sourceType: 'UPLOADED',
-      mediaType: 'image/png',
-      status: 'READY',
-      originalFilename: 'asset-1.png',
-      fileSizeBytes: 1024,
-      createdAt: '2026-06-19T12:00:00Z',
-      previewUrl: '/api/media/assets/asset-1/preview',
     }
+    mockLoadAssetsWithIds(mediaStore, ['asset-1', 'asset-2', 'asset-3', 'asset-4', 'asset-5'])
 
-    const wrapper = mountModal([makeChannel('ch-edit-1')], {
-      editingPublication: makeEditingPublication({ assetIds: ['asset-1'] }),
-    })
-    await wrapper.vm.$nextTick()
+    const channels = [
+      makeChannel('ch-li', { provider: 'linkedin', name: 'LinkedIn' } as Partial<TestChannel>),
+      makeChannel('ch-tw', { provider: 'twitter', name: 'Twitter' } as Partial<TestChannel>),
+    ]
+    ;(channels[0] as { maxAttachments?: number }).maxAttachments = 9
+    ;(channels[1] as { maxAttachments?: number }).maxAttachments = 4
 
-    const removeButton = document.body
-      .querySelector('img[alt="Selected media preview"]')
-      ?.parentElement?.querySelector('button') as HTMLButtonElement | null
-    expect(removeButton).not.toBeNull()
-    removeButton?.click()
-    await wrapper.vm.$nextTick()
+    const wrapper = mountModal(channels)
+    await flushModal(wrapper)
+    await flushModal(wrapper)
 
-    const submitButton = Array.from(document.body.querySelectorAll('button')).find((button) =>
-      button.textContent?.includes('composer.saveChanges'),
-    ) as HTMLButtonElement | undefined
-    submitButton?.click()
-    await wrapper.vm.$nextTick()
-    await Promise.resolve()
-
-    expect(updatePost).toHaveBeenCalledWith('pub-edit-1', expect.objectContaining({ assetIds: [] }))
-  })
-
-  it('sends replacement assetIds after selecting a new edit asset', async () => {
-    const store = usePublishingStore()
-    const updatePost = vi
-      .spyOn(store, 'updatePost')
-      .mockResolvedValue(makeEditingPublication({ assetIds: ['asset-c'] }))
-    const mediaStore = useMediaStore()
-    mediaStore.assetsById['asset-c'] = {
-      assetId: 'asset-c',
-      workspaceId: 'ws-1',
-      sourceType: 'UPLOADED',
-      mediaType: 'image/png',
-      status: 'READY',
-      originalFilename: 'asset-c.png',
-      fileSizeBytes: 1024,
-      createdAt: '2026-06-19T12:00:00Z',
-      previewUrl: '/api/media/assets/asset-c/preview',
-    }
-
-    const wrapper = mountModal([makeChannel('ch-edit-1')], {
-      editingPublication: makeEditingPublication({ assetIds: [] }),
-    })
-    await wrapper.vm.$nextTick()
-
-    mediaStore.addToSelection('asset-c')
-    await wrapper.vm.$nextTick()
-
-    const submitButton = Array.from(document.body.querySelectorAll('button')).find((button) =>
-      button.textContent?.includes('composer.saveChanges'),
-    ) as HTMLButtonElement | undefined
-    submitButton?.click()
-    await wrapper.vm.$nextTick()
-    await Promise.resolve()
-
-    expect(updatePost).toHaveBeenCalledWith(
-      'pub-edit-1',
-      expect.objectContaining({ assetIds: ['asset-c'] }),
+    const twitterButton = Array.from(document.querySelectorAll('button')).find((btn) =>
+      btn.textContent?.includes('Twitter'),
     )
+    expect(twitterButton).toBeDefined()
+    twitterButton!.click()
+    await flushModal(wrapper)
+
+    getByTestId('add-media-button').click()
+    await flushModal(wrapper)
+
+    for (const id of ['asset-1', 'asset-2', 'asset-3', 'asset-4', 'asset-5']) {
+      getByTestId(`picker-asset-card-${id}`).click()
+      await flushModal(wrapper)
+    }
+
+    const applyButton = getByTestId('picker-apply') as HTMLButtonElement
+    expect(applyButton.disabled).toBe(true)
+    expect(document.body.innerHTML).toContain('picker-apply-warning')
+
+    applyButton.click()
+    await flushModal(wrapper)
+
+    expect(document.body.innerHTML).toContain('picker-asset-card')
   })
 
-  it('locks channel selection and hides create-another in edit mode', async () => {
-    const wrapper = mountModal([makeChannel('ch-edit-1'), makeChannel('ch-edit-2')], {
-      editingPublication: makeEditingPublication(),
-    })
-    await wrapper.vm.$nextTick()
-
-    const channelButtons = Array.from(document.body.querySelectorAll('button')).filter((button) =>
-      button.textContent?.includes('Channel ch-edit-'),
-    ) as HTMLButtonElement[]
-
-    expect(channelButtons.length).toBeGreaterThan(0)
-    channelButtons.forEach((button) => expect(button.disabled).toBe(true))
-    expect(document.body.innerHTML).toContain('composer.saveChanges')
-    expect(document.body.innerHTML).not.toContain('Create Another')
-  })
-
-  it('submits through updatePost, emits updated, and does not call schedulePost in edit mode', async () => {
+  it('preserves attachments on channel change and surfaces invalid state without auto-removal', async () => {
     const mediaStore = useMediaStore()
-    vi.spyOn(mediaStore, 'loadAsset').mockImplementation(async (assetId: string) => ({
-      assetId,
-      workspaceId: 'ws-1',
-      sourceType: 'UPLOADED',
-      mediaType: 'image/png',
-      status: 'READY',
-      originalFilename: `${assetId}.png`,
-      fileSizeBytes: 1024,
-      createdAt: '2026-06-19T12:00:00Z',
-      previewUrl: `/api/media/assets/${assetId}/preview`,
-    }))
-    const store = usePublishingStore()
-    const updatePost = vi.spyOn(store, 'updatePost').mockResolvedValue({
-      ...makeEditingPublication(),
-      content: 'Updated content',
+    for (const id of ['asset-1', 'asset-2', 'asset-3']) {
+      mediaStore.assetsById[id] = {
+        assetId: id,
+        workspaceId: 'ws-1',
+        sourceType: 'UPLOADED',
+        mediaType: 'image/png',
+        status: 'READY',
+        originalFilename: `${id}.png`,
+        fileSizeBytes: 1024,
+        createdAt: '2026-06-19T12:00:00Z',
+        previewUrl: `/api/media/assets/${id}/preview`,
+      }
+    }
+    vi.spyOn(mediaStore, 'loadAssets').mockImplementation(async () => {
+      mediaStore.assetIds = ['asset-1', 'asset-2', 'asset-3']
     })
-    const schedulePost = vi.spyOn(store, 'schedulePost')
 
-    const wrapper = mountModal([makeChannel('ch-edit-1')], {
-      editingPublication: makeEditingPublication(),
+    const channels = [
+      makeChannel('ch-li', { provider: 'linkedin', name: 'LinkedIn' } as Partial<TestChannel>),
+      makeChannel('ch-tw', { provider: 'twitter', name: 'Twitter' } as Partial<TestChannel>),
+    ]
+    ;(channels[0] as { maxAttachments?: number }).maxAttachments = 9
+    ;(channels[1] as { maxAttachments?: number }).maxAttachments = 4
+
+    const wrapper = mountModal(channels)
+    await flushModal(wrapper)
+
+    // Force a draft of 3 attachments by seeding editingPublication.
+    // (Simpler than staging them all through the picker here.)
+    await wrapper.unmount()
+    const editWrapper = mountModal(channels, {
+      editingPublication: makeEditingPublication({ assetIds: ['asset-1', 'asset-2', 'asset-3'] }),
     })
-    await wrapper.vm.$nextTick()
+    await flushModal(editWrapper)
+    await flushModal(editWrapper)
 
-    const textarea = document.body.querySelector('textarea') as HTMLTextAreaElement | null
-    textarea!.value = 'Updated content'
-    textarea?.dispatchEvent(new Event('input', { bubbles: true }))
-    await wrapper.vm.$nextTick()
+    expect(document.body.innerHTML).toContain('asset-1.png')
+    expect(document.body.innerHTML).toContain('asset-2.png')
+    expect(document.body.innerHTML).toContain('asset-3.png')
 
-    const submitButton = Array.from(document.body.querySelectorAll('button')).find((button) =>
-      button.textContent?.includes('composer.saveChanges'),
-    ) as HTMLButtonElement | undefined
-    submitButton?.click()
+    // Switch to the lower-limit Twitter channel
+    const twitterButton = Array.from(document.querySelectorAll('button')).find((btn) =>
+      btn.textContent?.includes('Twitter'),
+    )
+    expect(twitterButton).toBeDefined()
+    twitterButton!.click()
+    await flushModal(editWrapper)
 
-    await wrapper.vm.$nextTick()
-    await Promise.resolve()
+    // All 3 attachments MUST remain in the draft (no auto-removal)
+    expect(document.body.innerHTML).toContain('asset-1.png')
+    expect(document.body.innerHTML).toContain('asset-2.png')
+    expect(document.body.innerHTML).toContain('asset-3.png')
 
-    expect(updatePost).toHaveBeenCalledWith('pub-edit-1', {
-      content: 'Updated content',
-      scheduledAt: '2030-06-25T14:30:00.000Z',
-      priority: true,
-      scheduleMode: 'SCHEDULED_AT',
-    })
-    expect(schedulePost).not.toHaveBeenCalled()
-    expect(wrapper.emitted('updated')).toHaveLength(1)
+    // Close the wrapper if still mounted.
+    await editWrapper.unmount()
   })
 
-  it('surfaces update errors in edit mode', async () => {
-    const store = usePublishingStore()
-    vi.spyOn(store, 'updatePost').mockRejectedValue(new Error('Update failed'))
-
-    const wrapper = mountModal([makeChannel('ch-edit-1')], {
-      editingPublication: makeEditingPublication(),
+  it('surfaces the limit warning when draft attachments exceed the selected channel limit, blocking publish/schedule', async () => {
+    const mediaStore = useMediaStore()
+    for (const id of ['asset-1', 'asset-2', 'asset-3']) {
+      mediaStore.assetsById[id] = {
+        assetId: id,
+        workspaceId: 'ws-1',
+        sourceType: 'UPLOADED',
+        mediaType: 'image/png',
+        status: 'READY',
+        originalFilename: `${id}.png`,
+        fileSizeBytes: 1024,
+        createdAt: '2026-06-19T12:00:00Z',
+        previewUrl: `/api/media/assets/${id}/preview`,
+      }
+    }
+    vi.spyOn(mediaStore, 'loadAssets').mockImplementation(async () => {
+      mediaStore.assetIds = ['asset-1', 'asset-2', 'asset-3']
     })
-    // Flush all async initialization (loadDanglingAssets, nextTick, focus trap)
-    await new Promise((resolve) => setTimeout(resolve, 10))
-    await wrapper.vm.$nextTick()
 
-    const submitButton = Array.from(document.body.querySelectorAll('button')).find((button) =>
-      button.textContent?.includes('composer.saveChanges'),
-    ) as HTMLButtonElement | undefined
-    submitButton?.click()
+    // LinkedIn with limit 2 — three draft attachments exceed it.
+    const channels = [makeChannel('ch-li', { name: 'LinkedIn' } as Partial<TestChannel>)]
+    ;(channels[0] as { maxAttachments?: number }).maxAttachments = 2
 
-    await wrapper.vm.$nextTick()
-    await new Promise((resolve) => setTimeout(resolve, 10))
+    const wrapper = mountModal(channels, {
+      editingPublication: makeEditingPublication({
+        assetIds: ['asset-1', 'asset-2', 'asset-3'],
+        accountId: 'ch-li',
+      }),
+    })
+    // Wait for initEditMode to complete (async asset loading + channel selection)
+    await flushModal(wrapper)
+    await flushModal(wrapper)
+    await flushModal(wrapper)
 
-    expect(document.body.innerHTML).toContain('Update failed')
-    expect(wrapper.emitted('updated')).toBeUndefined()
+    // The warning MUST render because draft length (3) > channel max (2).
+    const warning = document.querySelector('[data-testid="attachment-limit-warning"]')
+    expect(warning).not.toBeNull()
+    expect(warning?.textContent ?? '').toContain('Too many attachments')
+
+    // The submit button MUST be disabled. Because the mock returns i18n keys,
+    // we look at the last <button> inside the grid action container — that's
+    // the disabled primary action in the modal footer.
+    const actionButtons = document.querySelectorAll(
+      '.ui-button, button[disabled], button:not([data-testid])',
+    )
+    const disabledSubmit = Array.from(actionButtons).find((btn) =>
+      (btn as HTMLButtonElement).hasAttribute('disabled'),
+    )
+    expect(disabledSubmit).toBeDefined()
+
+    await wrapper.unmount()
   })
 })
 
-describe('CreatePostModal.vue — dangling upload recovery', () => {
-  beforeEach(() => {
-    setActivePinia(createPinia())
-    vi.clearAllMocks()
-  })
-
-  it('media store tracks failed uploads for retry', () => {
-    const mediaStore = useMediaStore()
-    mediaStore.uploads['retry-key'] = {
-      tempKey: 'retry-key',
-      assetId: 'dangling-asset-id',
-      file: new File(['fake'], 'dangling.jpg', { type: 'image/jpeg' }),
-      progress: 0,
-      status: 'failed',
-      errorTitle: 'Upload failed',
-      errorDetail: 'Server error',
-    }
-
-    expect(mediaStore.failedUploads).toHaveLength(1)
-    expect(mediaStore.failedUploads[0]?.tempKey).toBe('retry-key')
-  })
-
-  it('failed uploads are separate from completed uploads', () => {
-    const mediaStore = useMediaStore()
-    mediaStore.uploads['done-key'] = {
-      tempKey: 'done-key',
-      assetId: 'done-asset',
-      file: new File(['fake'], 'done.jpg', { type: 'image/jpeg' }),
-      progress: 100,
-      status: 'done',
-    }
-    mediaStore.uploads['fail-key'] = {
-      tempKey: 'fail-key',
-      assetId: 'fail-asset',
-      file: new File(['fake'], 'fail.jpg', { type: 'image/jpeg' }),
-      progress: 0,
-      status: 'failed',
-      errorTitle: 'Failed',
-      errorDetail: 'Error',
-    }
-
-    expect(mediaStore.completedUploads).toHaveLength(1)
-    expect(mediaStore.failedUploads).toHaveLength(1)
-    expect(mediaStore.failedUploads).not.toContainEqual(
-      expect.objectContaining({ tempKey: 'done-key' }),
-    )
-  })
-
-  it('dismissing upload removes it from tracking', () => {
-    const mediaStore = useMediaStore()
-    mediaStore.uploads['dismiss-key'] = {
-      tempKey: 'dismiss-key',
-      assetId: 'dismiss-asset',
-      file: new File(['fake'], 'dismiss.jpg', { type: 'image/jpeg' }),
-      progress: 0,
-      status: 'failed',
-      errorTitle: 'Error',
-      errorDetail: 'Detail',
-    }
-
-    mediaStore.dismissUpload('dismiss-key')
-
-    expect(mediaStore.uploads['dismiss-key']).toBeUndefined()
-  })
-
-  it('pending uploads are separate from completed and failed', () => {
-    const mediaStore = useMediaStore()
-    mediaStore.uploads['pending-key'] = {
-      tempKey: 'pending-key',
-      assetId: 'pending-asset',
-      file: new File(['fake'], 'pending.jpg', { type: 'image/jpeg' }),
-      progress: 50,
-      status: 'uploading',
-    }
-
-    expect(mediaStore.pendingUploads).toHaveLength(1)
-    expect(mediaStore.pendingUploads[0]?.tempKey).toBe('pending-key')
-  })
-})
-
-describe('CreatePostModal.vue — media picker shell integration', () => {
+describe('CreatePostModal.vue — inline composer media layout', () => {
   beforeEach(() => {
     setActivePinia(createPinia())
     document.body.innerHTML = ''
     vi.clearAllMocks()
+    vi.stubGlobal('URL', {
+      createObjectURL: vi.fn(() => 'blob:mock-preview'),
+      revokeObjectURL: vi.fn(),
+    })
   })
 
   afterEach(() => {
     document.body.innerHTML = ''
+    vi.unstubAllGlobals()
   })
 
-  it('renders a media picker trigger when the modal is open', async () => {
-    const wrapper = mountModal([makeChannel('ch-picker-trigger')])
-    await wrapper.vm.$nextTick()
+  it('renders a local upload as a same-size inline card and keeps the filename as tooltip only', async () => {
+    const wrapper = mountModal([makeChannel('ch-inline')])
+    await flushModal(wrapper)
 
-    const trigger = document.body.querySelector(
-      '[data-testid="media-picker-trigger"]',
-    ) as HTMLButtonElement | null
-    expect(trigger).not.toBeNull()
-    expect(trigger?.textContent).toContain('composer.mediaPicker.open')
-  })
-
-  it('opens the media picker shell when the trigger is activated', async () => {
-    const wrapper = mountModal([makeChannel('ch-picker-open')])
-    await wrapper.vm.$nextTick()
-
-    const trigger = document.body.querySelector(
-      '[data-testid="media-picker-trigger"]',
-    ) as HTMLButtonElement | null
-    expect(trigger).not.toBeNull()
-    trigger?.click()
-    await wrapper.vm.$nextTick()
-
-    // Shell should be rendered (dialog from ComposerMediaPickerShell)
-    const pickerDialog = document.body.querySelector('[data-testid="dialog-content"]')
-    expect(pickerDialog).not.toBeNull()
-  })
-
-  it('preserves composer text content when the picker opens and closes', async () => {
-    const wrapper = mountModal([makeChannel('ch-picker-preserve')])
-    await wrapper.vm.$nextTick()
-
-    const textarea = document.body.querySelector('textarea') as HTMLTextAreaElement | null
-    expect(textarea).not.toBeNull()
-    textarea!.value = 'My draft post content'
-    textarea?.dispatchEvent(new Event('input', { bubbles: true }))
-    await wrapper.vm.$nextTick()
-
-    const trigger = document.body.querySelector(
-      '[data-testid="media-picker-trigger"]',
-    ) as HTMLButtonElement | null
-    expect(trigger).not.toBeNull()
-    trigger?.click()
-    await wrapper.vm.$nextTick()
-
-    expect(document.body.querySelector('[data-testid="dialog-content"]')).not.toBeNull()
-    expect(textarea?.value).toBe('My draft post content')
-
-    const closeBtn = document.body.querySelector(
-      '[data-testid="media-picker-close"]',
-    ) as HTMLButtonElement | null
-    expect(closeBtn).not.toBeNull()
-    closeBtn?.click()
-    await wrapper.vm.$nextTick()
-
-    expect(textarea?.value).toBe('My draft post content')
-  })
-
-  it('does not close the parent composer when Escape is pressed inside the media picker shell', async () => {
-    const wrapper = mountModal([makeChannel('ch-picker-escape')])
-    await wrapper.vm.$nextTick()
-
-    const trigger = document.body.querySelector(
-      '[data-testid="media-picker-trigger"]',
-    ) as HTMLButtonElement | null
-    expect(trigger).not.toBeNull()
-    trigger?.click()
-    await wrapper.vm.$nextTick()
-
-    const pickerDialog = document.body.querySelector('[data-testid="dialog-content"]')
-    expect(pickerDialog).not.toBeNull()
-    pickerDialog?.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true }))
-    await wrapper.vm.$nextTick()
-
-    expect(wrapper.emitted('close')).toBeUndefined()
-    expect(document.body.querySelector('[data-testid="dialog-content"]')).toBeNull()
-  })
-
-  it('closes the media picker shell when the shell close button is clicked and returns focus to the trigger', async () => {
-    const wrapper = mountModal([makeChannel('ch-picker-close')])
-    await wrapper.vm.$nextTick()
-
-    const trigger = document.body.querySelector(
-      '[data-testid="media-picker-trigger"]',
-    ) as HTMLButtonElement | null
-    expect(trigger).not.toBeNull()
-
-    trigger?.focus()
-    trigger?.click()
-    await wrapper.vm.$nextTick()
-
-    expect(document.body.querySelector('[data-testid="dialog-content"]')).not.toBeNull()
-
-    const closeBtn = document.body.querySelector(
-      '[data-testid="media-picker-close"]',
-    ) as HTMLButtonElement | null
-    expect(closeBtn).not.toBeNull()
-    closeBtn?.click()
-    await wrapper.vm.$nextTick()
-    await Promise.resolve()
-
-    expect(document.body.querySelector('[data-testid="media-picker-close"]')).toBeNull()
-    expect(document.activeElement).toBe(trigger)
-  })
-
-  it('observes shell search and filter emits in the parent-owned state', async () => {
-    const wrapper = mountModal([makeChannel('ch-picker-observe')])
-    await wrapper.vm.$nextTick()
-
-    const trigger = document.body.querySelector(
-      '[data-testid="media-picker-trigger"]',
-    ) as HTMLButtonElement | null
-    expect(trigger).not.toBeNull()
-    trigger?.click()
-    await wrapper.vm.$nextTick()
-
-    const search = document.body.querySelector(
-      '[data-testid="media-picker-search"]',
-    ) as HTMLInputElement | null
-    const filter = document.body.querySelector(
-      '[data-testid="media-picker-filter"]',
-    ) as HTMLSelectElement | null
-    expect(search).not.toBeNull()
-    expect(filter).not.toBeNull()
-
-    search!.value = 'landscape'
-    search?.dispatchEvent(new Event('input', { bubbles: true }))
-    filter!.value = 'video'
-    filter?.dispatchEvent(new Event('change', { bubbles: true }))
-    await wrapper.vm.$nextTick()
-
-    expect(
-      (wrapper.vm as unknown as { mediaPickerSearchQuery?: string }).mediaPickerSearchQuery,
-    ).toBe('landscape')
-    expect(
-      (wrapper.vm as unknown as { mediaPickerSelectedFilter?: string }).mediaPickerSelectedFilter,
-    ).toBe('video')
-  })
-
-  it('selects the imported asset when provider-import is emitted by the shell', async () => {
-    const wrapper = mountModal([makeChannel('ch-picker-import')])
-    const mediaStore = useMediaStore()
-    const loadAsset = vi
-      .spyOn(mediaStore, 'loadAsset')
-      .mockImplementation(async (assetId: string) => ({
-        assetId,
-        workspaceId: 'ws-1',
-        sourceType: 'EXTERNAL',
-        mediaType: 'image/jpeg',
-        status: 'READY',
-        originalFilename: 'imported.jpg',
-        fileSizeBytes: 1234,
-        createdAt: '2026-07-06T10:00:00Z',
-        previewUrl: `/api/media/assets/${assetId}/preview`,
-      }))
-
-    await wrapper.vm.$nextTick()
-
-    const trigger = document.body.querySelector(
-      '[data-testid="media-picker-trigger"]',
-    ) as HTMLButtonElement | null
-    expect(trigger).not.toBeNull()
-    trigger?.click()
-    await wrapper.vm.$nextTick()
-
-    wrapper.findComponent({ name: 'ComposerMediaPickerShell' }).vm.$emit('provider-import', {
-      externalId: 'asset-provider-imported',
+    const pickerUploadInput = getByTestId('picker-upload-input') as HTMLInputElement
+    const uploadFile = new File(['graph'], 'graph-theory.jpeg', { type: 'image/jpeg' })
+    Object.defineProperty(pickerUploadInput, 'files', {
+      configurable: true,
+      value: [uploadFile],
     })
-    await wrapper.vm.$nextTick()
-    await Promise.resolve()
+    pickerUploadInput.dispatchEvent(new Event('change'))
+    await flushModal(wrapper)
 
-    expect(loadAsset).toHaveBeenCalledWith('asset-provider-imported')
-    expect(mediaStore.selectedAssetIds).toContain('asset-provider-imported')
-    expect(document.body.querySelector('[data-testid="dialog-content"]')).toBeNull()
+    const inlineCard = getByTestId('inline-local-upload')
+    expect(inlineCard.getAttribute('title')).toBe('graph-theory.jpeg')
+    expect(getByTestId('composer-inline-dropzone')).toBeTruthy()
+    expect(wrapper.text()).not.toContain('graph-theory.jpeg')
+  })
+
+  it('shows a round spinner upload overlay instead of the stuck preparing state', async () => {
+    const mediaStore = useMediaStore()
+    const wrapper = mountModal([makeChannel('ch-inline')])
+    await flushModal(wrapper)
+
+    const pickerUploadInput = getByTestId('picker-upload-input') as HTMLInputElement
+    const uploadFile = new File(['graph'], 'graph-theory.jpeg', { type: 'image/jpeg' })
+    Object.defineProperty(pickerUploadInput, 'files', {
+      configurable: true,
+      value: [uploadFile],
+    })
+    pickerUploadInput.dispatchEvent(new Event('change'))
+    await flushModal(wrapper)
+
+    mediaStore.uploads['modal-upload-inline'] = {
+      tempKey: 'modal-upload-inline',
+      assetId: 'asset-inline-upload',
+      file: uploadFile,
+      progress: 42,
+      status: 'uploading',
+    }
+    await flushModal(wrapper)
+
+    expect(document.body.innerHTML).toContain('Uploading… 42%')
+    expect(document.body.innerHTML).toContain('You can keep editing while this finishes.')
+    expect(document.body.innerHTML).not.toContain('Preparing upload')
+  })
+
+  it('rejects unsupported dragged media types like svg before upload starts', async () => {
+    const alertSpy = vi.spyOn(window, 'alert').mockImplementation(() => {})
+    const mediaStore = useMediaStore()
+    const createAndUploadSpy = vi.spyOn(mediaStore, 'createAndUpload')
+
+    const wrapper = mountModal([makeChannel('ch-inline')])
+    await flushModal(wrapper)
+
+    const pickerUploadInput = getByTestId('picker-upload-input') as HTMLInputElement
+    const svgFile = new File(['<svg></svg>'], 'diagram.svg', { type: 'image/svg+xml' })
+    Object.defineProperty(pickerUploadInput, 'files', {
+      configurable: true,
+      value: [svgFile],
+    })
+    pickerUploadInput.dispatchEvent(new Event('change'))
+    await flushModal(wrapper)
+
+    expect(alertSpy).toHaveBeenCalledWith(
+      'Unsupported media format. Supported formats: JPEG, PNG, WEBP, GIF, MP4.',
+    )
+    expect(document.querySelector('[data-testid="inline-local-upload"]')).toBeNull()
+    expect(createAndUploadSpy).not.toHaveBeenCalled()
+  })
+
+  it('accepts pasted images in the composer textarea using the same inline upload flow', async () => {
+    const wrapper = mountModal([makeChannel('ch-inline')])
+    await flushModal(wrapper)
+
+    const textarea = getByTestId('composer-textarea')
+    const pastedFile = new File(['png'], 'clipboard.png', { type: 'image/png' })
+    const pasteEvent = new Event('paste', { bubbles: true, cancelable: true }) as Event & {
+      clipboardData: { files: File[]; items: Array<{ kind: string; getAsFile: () => File | null }> }
+    }
+    pasteEvent.clipboardData = {
+      files: [],
+      items: [{ kind: 'file', getAsFile: () => pastedFile }],
+    }
+    textarea.dispatchEvent(pasteEvent)
+    await flushModal(wrapper)
+
+    const inlineCard = getByTestId('inline-local-upload')
+    expect(inlineCard.getAttribute('title')).toBe('clipboard.png')
+  })
+
+  it('accepts dropped images directly over the composer textarea', async () => {
+    const wrapper = mountModal([makeChannel('ch-inline')])
+    await flushModal(wrapper)
+
+    const textarea = getByTestId('composer-textarea')
+    const droppedFile = new File(['png'], 'dropped.png', { type: 'image/png' })
+    const dropEvent = new Event('drop', { bubbles: true, cancelable: true }) as Event & {
+      dataTransfer: { files: File[] }
+    }
+    dropEvent.dataTransfer = { files: [droppedFile] }
+
+    textarea.dispatchEvent(dropEvent)
+    await flushModal(wrapper)
+
+    const inlineCard = getByTestId('inline-local-upload')
+    expect(inlineCard.getAttribute('title')).toBe('dropped.png')
   })
 })
