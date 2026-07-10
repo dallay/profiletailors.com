@@ -99,8 +99,24 @@ hooks-install:
 # ═══════════════════════════════════════════════════════════════
 
 # Start both frontend dev servers in parallel (portless)
-frontend-dev:
+dev-frontend $force="":
+    #!/usr/bin/env bash
+    set -euo pipefail
+    if [ "{{force}}" = "--force" ]; then
+        echo "Killing frontend dev servers..."
+        pkill -f "vite" || true
+        sleep 0.5
+    elif [ -n "{{force}}" ]; then
+        echo "Unknown option: {{force}}"
+        echo "Usage: just dev-frontend [--force]"
+        exit 2
+    fi
+    echo "Starting frontend dev servers (marketing + app)..."
     pnpm --parallel --filter marketing --filter app dev
+
+# Start only the Vue 3 app (dashboard SPA)
+app:
+    cd {{app-dir}} && pnpm dev
 
 # Build frontend for production
 frontend-build:

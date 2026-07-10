@@ -627,9 +627,10 @@ watch(
                     :aria-disabled="isPastSlot(day, slot.hour)"
                     :title="isPastSlot(day, slot.hour) ? 'Past time slots are disabled (read-only)' : undefined"
                   >
+                    <template v-for="slotPubs in [publicationsForSlot(day, slot.hour)]" :key="slotPubs.length">
                     <!-- biome-ignore lint/a11y/noStaticElementInteractions: non-button container required to avoid nested buttons (delete btn inside card) -->
                     <div
-                      v-for="pub in publicationsForSlot(day, slot.hour).slice(0, 2)"
+                      v-for="pub in slotPubs.slice(0, 2)"
                       :key="pub.id"
                       :draggable="true"
                       @click.stop="openPostDetail(pub)"
@@ -640,20 +641,20 @@ watch(
                       class="relative z-10 grid w-full min-w-0 overflow-hidden rounded-md border bg-bg-surface text-left shadow-sm transition-[box-shadow,transform] group/card cursor-pointer hover:-translate-y-px hover:shadow-md"
                       :class="[
                         getProviderColor(pub.channels[0] || 'linkedin'),
-                        publicationsForSlot(day, slot.hour).length > 1
+                        slotPubs.length > 1
                           ? 'h-[36px] grid-cols-[auto_minmax(0,1fr)_auto] items-center gap-1.5 px-2 py-1'
                           : 'h-[72px] grid-cols-[minmax(0,1fr)_auto] grid-rows-[auto_1fr] gap-x-2 px-2 py-1.5',
                       ]"
                     >
                       <div
                         class="flex min-w-0 items-center gap-1.5"
-                        :class="publicationsForSlot(day, slot.hour).length > 1 ? '' : 'col-start-1 row-start-1'"
+                        :class="slotPubs.length > 1 ? '' : 'col-start-1 row-start-1'"
                       >
                         <span class="shrink-0 font-mono text-[8px] font-bold tracking-wider opacity-80 uppercase">
                           {{ new Date(pub.scheduledAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) }}
                         </span>
                         <p
-                          v-if="publicationsForSlot(day, slot.hour).length > 1"
+                          v-if="slotPubs.length > 1"
                           class="min-w-0 truncate text-[10px] font-medium leading-tight text-text-body"
                         >
                           {{ pub.content }}
@@ -661,7 +662,7 @@ watch(
                       </div>
 
                       <p
-                        v-if="publicationsForSlot(day, slot.hour).length === 1"
+                        v-if="slotPubs.length === 1"
                         class="col-start-1 row-start-2 min-w-0 overflow-hidden text-[11px] font-light leading-snug text-text-body break-words [display:-webkit-box] [-webkit-box-orient:vertical] [-webkit-line-clamp:2] [overflow-wrap:anywhere]"
                       >
                           {{ pub.content }}
@@ -669,7 +670,7 @@ watch(
 
                       <div
                         class="flex shrink-0 items-center justify-end gap-1"
-                        :class="publicationsForSlot(day, slot.hour).length > 1 ? 'col-start-3' : 'col-start-2 row-span-2 row-start-1 self-stretch'"
+                        :class="slotPubs.length > 1 ? 'col-start-3' : 'col-start-2 row-span-2 row-start-1 self-stretch'"
                       >
                         <span
                           v-for="channel in pub.channels"
@@ -688,7 +689,7 @@ watch(
                         <div
                           v-if="pub.thumbnail"
                           class="overflow-hidden rounded-sm border border-border-subtle/80"
-                          :class="publicationsForSlot(day, slot.hour).length > 1 ? 'size-6' : 'h-full w-14'"
+                          :class="slotPubs.length > 1 ? 'size-6' : 'h-full w-14'"
                         >
                           <img :src="pub.thumbnail" class="h-full w-full object-cover" alt="" />
                         </div>
@@ -707,10 +708,10 @@ watch(
 
                     <!-- "+N more" indicator when posts exceed visible limit -->
                     <div
-                      v-if="publicationsForSlot(day, slot.hour).length > 2"
+                      v-if="slotPubs.length > 2"
                       class="text-[7px] font-mono text-text-secondary pl-1"
                     >
-                      {{ t('scheduler.morePosts', { count: publicationsForSlot(day, slot.hour).length - 2 }) }}
+                      {{ t('scheduler.morePosts', { count: slotPubs.length - 2 }) }}
                     </div>
 
                     <!-- Add post button (only in enabled slots) -->
@@ -722,6 +723,7 @@ watch(
                     >
                       <Plus class="size-3" />
                     </button>
+                    </template>
                   </button>
                 </div>
               </div>
