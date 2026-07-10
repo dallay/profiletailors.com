@@ -1,6 +1,7 @@
 package com.profiletailors.smp.publishing.integration
 
-import com.profiletailors.smp.integration.support.DatabaseUnitTestBase
+import com.profiletailors.smp.integration.support.PostgresDatabaseTestBase
+import com.profiletailors.smp.integration.support.PostgresTestContainerSupport
 import com.profiletailors.smp.publishing.domain.PublicationDraft
 import com.profiletailors.smp.publishing.domain.PublicationStatus
 import com.profiletailors.smp.publishing.domain.ScheduleMode
@@ -18,7 +19,12 @@ import kotlinx.coroutines.test.runTest
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertNull
 import org.junit.jupiter.api.BeforeEach
+import org.junit.jupiter.api.Tag
 import org.junit.jupiter.api.Test
+import org.junit.jupiter.api.TestInstance
+import org.testcontainers.junit.jupiter.Container
+import org.testcontainers.junit.jupiter.Testcontainers
+import kotlin.test.assertFailsWith
 
 /**
  * Integration test that explicitly validates workspace isolation for publishing connections and publications.
@@ -30,9 +36,12 @@ import org.junit.jupiter.api.Test
  *
  * Workspace isolation is a critical security boundary in the publishing domain.
  */
-class PublishingWorkspaceIsolationIntegrationTest : DatabaseUnitTestBase() {
+@Tag("postgres")
+@Testcontainers(disabledWithoutDocker = true)
+@TestInstance(TestInstance.Lifecycle.PER_CLASS)
+class PublishingWorkspaceIsolationIntegrationTest : PostgresDatabaseTestBase() {
 
-    override fun databaseName(): String = "publishing_workspace_isolation"
+    override val postgres = postgresContainer
 
     private lateinit var socialConnectionRepository: R2dbcSocialConnectionRepository
     private lateinit var socialAccountRepository: R2dbcSocialAccountRepository
@@ -43,7 +52,7 @@ class PublishingWorkspaceIsolationIntegrationTest : DatabaseUnitTestBase() {
         seedTwoWorkspacesWithPrincipals()
         socialConnectionRepository = R2dbcSocialConnectionRepository(databaseClient)
         socialAccountRepository = R2dbcSocialAccountRepository(databaseClient, SimpleMeterRegistry())
-        publicationRepository = R2dbcPublicationRepository(databaseClient)
+        publicationRepository = R2dbcPublicationRepository(databaseClient, transactionalOperator)
     }
 
     @Test
@@ -257,6 +266,49 @@ class PublishingWorkspaceIsolationIntegrationTest : DatabaseUnitTestBase() {
         assertEquals("Publication B", pubB?.bodyText)
     }
 
+    @Test
+    fun `workspace A cannot update workspace B publication with same id`() = runTest {
+        setupConnectionsAndAccounts()
+
+        publicationRepository.createDraft(
+            PublicationDraft(
+                id = "pub-cross-workspace-update",
+                workspaceId = "workspace-b",
+                authorPrincipalId = "principal-b",
+                provider = SocialProvider.LINKEDIN,
+                socialAccountId = "account-b",
+                status = PublicationStatus.DRAFT,
+                scheduleMode = ScheduleMode.NOW,
+                priority = false,
+                bodyText = "Workspace B original body",
+            ),
+        )
+
+        val exception = assertFailsWith<IllegalStateException> {
+            publicationRepository.updateEditableDraft(
+                PublicationDraft(
+                    id = "pub-cross-workspace-update",
+                    workspaceId = "workspace-a",
+                    authorPrincipalId = "principal-a",
+                    provider = SocialProvider.LINKEDIN,
+                    socialAccountId = "account-a",
+                    status = PublicationStatus.DRAFT,
+                    scheduleMode = ScheduleMode.NOW,
+                    priority = false,
+                    bodyText = "Workspace A overwrite attempt",
+                ),
+            )
+        }
+
+        kotlin.test.assertTrue(exception.message!!.contains("current workspace"))
+        assertNull(publicationRepository.findByWorkspaceAndId("workspace-a", "pub-cross-workspace-update"))
+        val workspaceBPublication = publicationRepository.findByWorkspaceAndId(
+            "workspace-b",
+            "pub-cross-workspace-update",
+        )
+        assertEquals("Workspace B original body", workspaceBPublication?.bodyText)
+    }
+
     private suspend fun seedTwoWorkspacesWithPrincipals() {
         // Workspace A
         databaseClient.sql(
@@ -335,5 +387,10 @@ class PublishingWorkspaceIsolationIntegrationTest : DatabaseUnitTestBase() {
                 status = SocialConnectionStatus.ACTIVE,
             ),
         )
+    }
+
+    companion object {
+        @Container
+        val postgresContainer = PostgresTestContainerSupport.newContainer("publishing_workspace_isolation")
     }
 }

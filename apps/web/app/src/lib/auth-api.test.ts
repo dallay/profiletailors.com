@@ -5,6 +5,7 @@ import {
   refreshSession,
   logoutSession,
   getCurrentUserProfile,
+  resendVerification,
   createApiFetch,
   proxyImageUrl,
   resolveApiUrl,
@@ -67,7 +68,7 @@ describe('login', () => {
 
     expect(result).toEqual(tokens)
     expect(fetchMock).toHaveBeenCalledWith(
-      'http://localhost:8080/api/auth/login',
+      'http://localhost:7638/api/auth/login',
       expect.objectContaining({
         method: 'POST',
         credentials: 'include',
@@ -163,7 +164,7 @@ describe('register', () => {
 
     expect(result).toEqual(tokens)
     expect(fetchMock).toHaveBeenCalledWith(
-      'http://localhost:8080/api/auth/register',
+      'http://localhost:7638/api/auth/register',
       expect.objectContaining({
         method: 'POST',
         body: JSON.stringify({
@@ -263,12 +264,13 @@ describe('getCurrentUserProfile', () => {
     mockImportMetaEnv({})
   })
 
-  it('returns current user profile', async () => {
+  it('returns current user profile with authoritative email status', async () => {
     const profile: CurrentUserProfile = {
       principalId: 'user-1',
       email: 'user@example.com',
       username: 'testuser',
       displayIdentity: 'testuser (user@example.com)',
+      emailStatus: 'PENDING',
     }
     const fetchMock = mockFetch(
       new Response(JSON.stringify(profile), {
@@ -281,7 +283,7 @@ describe('getCurrentUserProfile', () => {
 
     expect(result).toEqual(profile)
     expect(fetchMock).toHaveBeenCalledWith(
-      'http://localhost:8080/api/auth/me',
+      'http://localhost:7638/api/auth/me',
       expect.objectContaining({
         method: 'GET',
         headers: expect.objectContaining({
@@ -304,6 +306,30 @@ describe('getCurrentUserProfile', () => {
       detail: 'Invalid token',
       status: 401,
     })
+  })
+})
+
+// ---------------------------------------------------------------------------
+// resendVerification
+// ---------------------------------------------------------------------------
+
+describe('resendVerification', () => {
+  beforeEach(() => {
+    mockImportMetaEnv({})
+  })
+
+  it('posts the current email to the resend endpoint', async () => {
+    const fetchMock = mockFetch(new Response(null, { status: 202 }))
+
+    await expect(resendVerification('user@example.com')).resolves.toBeUndefined()
+
+    expect(fetchMock).toHaveBeenCalledWith(
+      'http://localhost:7638/api/auth/resend-verification',
+      expect.objectContaining({
+        method: 'POST',
+        body: JSON.stringify({ email: 'user@example.com' }),
+      }),
+    )
   })
 })
 
@@ -365,7 +391,7 @@ describe('createApiFetch', () => {
     // First call should have used the old token
     expect(fetchMock).toHaveBeenNthCalledWith(
       1,
-      'http://localhost:8080/api/posts/1',
+      'http://localhost:7638/api/posts/1',
       expect.objectContaining({
         headers: expect.objectContaining({ Authorization: 'Bearer expired-token' }),
       }),
@@ -373,7 +399,7 @@ describe('createApiFetch', () => {
     // Second call should have used the new token
     expect(fetchMock).toHaveBeenNthCalledWith(
       2,
-      'http://localhost:8080/api/posts/1',
+      'http://localhost:7638/api/posts/1',
       expect.objectContaining({
         headers: expect.objectContaining({ Authorization: 'Bearer new-access-token' }),
       }),
@@ -528,7 +554,7 @@ describe('createApiFetch', () => {
 
     expect(response).toBeInstanceOf(Response)
     expect(fetchMock).toHaveBeenCalledWith(
-      'http://localhost:8080/api/publishing/channels/events',
+      'http://localhost:7638/api/publishing/channels/events',
       expect.objectContaining({
         method: 'GET',
         headers: expect.objectContaining({
@@ -608,7 +634,7 @@ describe('resolveApiUrl', () => {
   it('prepends the default API base URL to an absolute path', () => {
     delete process.env.VITE_API_BASE_URL
     expect(resolveApiUrl('/api/media/assets/abc')).toBe(
-      'http://localhost:8080/api/media/assets/abc',
+      'http://localhost:7638/api/media/assets/abc',
     )
   })
 

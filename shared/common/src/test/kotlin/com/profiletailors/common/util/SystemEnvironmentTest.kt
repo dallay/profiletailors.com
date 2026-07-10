@@ -1,30 +1,29 @@
 package com.profiletailors.common.util
 
-import org.junit.jupiter.api.Assertions.assertEquals
+import io.kotest.matchers.shouldBe
+import org.junit.jupiter.api.AfterEach
 import org.junit.jupiter.api.Test
 
-internal class SystemEnvironmentTest {
-    @Test
-    fun `should return environment variable value`() {
-        val pathValue = SystemEnvironment.getEnvOrDefault("PATH", "default")
-        assertEquals(System.getenv("PATH"), pathValue)
+class SystemEnvironmentTest {
+    @AfterEach
+    fun tearDown() {
+        SystemEnvironment.resetLookup()
     }
 
     @Test
-    fun `should return default when variable does not exist`() {
-        val result = SystemEnvironment.getEnvOrDefault(
-            "THIS_ENV_VAR_DOES_NOT_EXIST_XYZ_123",
-            "fallback",
-        )
-        assertEquals("fallback", result)
+    fun `getEnvOrDefault should return default for unknown key`() {
+        SystemEnvironment.getEnvOrDefault("UNKNOWN_KEY_ABC_123", "default") shouldBe "default"
     }
 
     @Test
-    fun `should return default for null`() {
-        val result = SystemEnvironment.getEnvOrDefault(
-            "THIS_ENV_VAR_DOES_NOT_EXIST_XYZ_123",
-            "default",
-        )
-        assertEquals("default", result)
+    fun `getEnvOrDefault should return default for blank values`() {
+        SystemEnvironment.setLookup { if (it == "BLANK") "  " else null }
+        SystemEnvironment.getEnvOrDefault("BLANK", "default") shouldBe "default"
+    }
+
+    @Test
+    fun `getEnvOrDefault should return value when present`() {
+        SystemEnvironment.setLookup { if (it == "KEY") "value" else null }
+        SystemEnvironment.getEnvOrDefault("KEY", "default") shouldBe "value"
     }
 }

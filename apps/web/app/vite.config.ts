@@ -1,21 +1,23 @@
-/// <reference types="vitest" />
+/// <reference types="vitest/config" />
 
 import { fileURLToPath, URL } from 'node:url'
 
-import { defineConfig } from 'vite'
+import { defineConfig, type UserConfig } from 'vite'
+import type { UserConfig as VitestUserConfig } from 'vitest/config'
 import vue from '@vitejs/plugin-vue'
 import vueDevTools from 'vite-plugin-vue-devtools'
 import tailwind from '@tailwindcss/vite'
 
 // https://vite.dev/config/
-export default defineConfig({
+const config = {
+  envDir: '../../..',
   server: {
     port: parseInt(process.env.PORT || '5173', 10),
     host: true,
     allowedHosts: ['.localhost', 'pt-app.localhost'],
     proxy: {
       '/api': {
-        target: 'http://localhost:8080',
+        target: `http://localhost:${process.env.SMP_BACKEND_PORT || '7638'}`,
         changeOrigin: true,
       },
     },
@@ -39,4 +41,6 @@ export default defineConfig({
       exclude: ['src/**/*.test.ts', 'src/**/*.spec.ts', 'src/**/*.d.ts'],
     },
   },
-})
+} satisfies UserConfig & Pick<VitestUserConfig, 'test'>
+
+export default defineConfig(config)

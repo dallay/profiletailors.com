@@ -1,0 +1,427 @@
+# yaml-language-server: $schema=https://coderabbit.ai/integrations/schema.v2.json
+early_access: true
+inheritance: true
+language: en-US
+
+tone_instructions: >-
+  Direct, constructive, educational. Focus on architecture, security, maintainability. Flag Hexagonal/Clean Arch violations assertively.
+
+reviews:
+  profile: assertive
+  request_changes_workflow: true
+  high_level_summary_in_walkthrough: true
+  fail_commit_status: true
+  collapse_walkthrough: true
+  auto_apply_labels: true
+  auto_assign_reviewers: true
+  auto_title_instructions: >-
+    Add a prefix to indicate what kind of release this pull request corresponds to. For reference,
+    see https://www.conventionalcommits.org/  Available types:  - feat: A new feature  - fix: A bug
+    fix  - docs: Documentation only changes  - style: Changes that do not affect the meaning of the
+    code (white-space, formatting, missing semi-colons, etc)  - refactor: A code change that neither
+    fixes a bug nor adds a feature  - perf: A code change that improves performance  - test: Adding
+    missing tests or correcting existing tests  - build: Changes that affect the build system or
+    external dependencies (example scopes: gulp, broccoli, npm)  - ci: Changes to our CI
+    configuration files and scripts (example scopes: Travis, Circle, BrowserStack, SauceLabs)  -
+    chore: Other changes that don't modify src or test files  - revert: Reverts a previous commit
+  path_filters:
+    - '!pnpm-lock.yaml'
+  # Path-specific instructions
+  path_instructions:
+    # Backend - DOMAIN LAYER (CRITICAL - NO FRAMEWORK DEPENDENCIES)
+    - path: 'server/smp/src/main/kotlin/**/domain/**'
+      instructions: |
+        🚨 CRITICAL: This is the DOMAIN LAYER - the heart of Hexagonal Architecture.
+
+        STRICT REQUIREMENTS:
+        - MUST be pure Kotlin with ZERO framework dependencies
+        - NO imports from: Spring, R2DBC, Jakarta, Hibernate, or ANY framework
+        - Contains ONLY: Entities, Value Objects, Repository Interfaces, Domain Events, Exceptions
+        - Should depend ONLY on Kotlin stdlib and other domain classes
+        - Use `com.profiletailors.common.domain.Service` (NOT Spring `@Service`)
+
+        FLAG AS CRITICAL VIOLATION:
+        - Any import from `org.springframework.*`
+        - Any import from `io.r2dbc.*`
+        - Any import from `jakarta.*`
+        - Any annotation from frameworks (`@Component`, `@Entity`, `@Table`, etc.)
+
+        SEE: `.agents/skills/hexagonal-architecture/SKILL.md` and `AGENTS.md` for details
+
+    # Backend - APPLICATION LAYER (CQRS USE CASES)
+    - path: 'server/smp/src/main/kotlin/**/application/**'
+      instructions: |
+        This is the APPLICATION LAYER - orchestrates business logic using CQRS.
+
+        REQUIREMENTS:
+        - Framework-agnostic business logic
+        - CQRS pattern enforced:
+          * Commands (writes): {Verb}XCommand → XHandler
+          * Queries (reads): GetXQuery → XHandler
+        - Handlers receive command/query, delegate to domain services
+        - Can import domain classes, NO infrastructure imports
+        - Must use domain repository interfaces, never implementations
+
+        FLAG VIOLATIONS:
+        - Handlers with business logic (should delegate to services)
+        - Direct calls to infrastructure layer
+        - Missing Command/Query pattern
+
+        SEE: `.agents/skills/hexagonal-architecture/SKILL.md` and `AGENTS.md`
+
+    # Backend - INFRASTRUCTURE LAYER
+    - path: 'server/smp/src/main/kotlin/**/infrastructure/**'
+      instructions: |
+        This is the INFRASTRUCTURE LAYER - implements technical concerns.
+
+        REQUIREMENTS:
+        - Implements domain repository interfaces (never expose implementations)
+        - Controllers call handlers, NEVER services directly
+        - Controllers are THIN: validate input, call handler, return response
+        - NEVER expose database entities through API - always use DTOs
+        - HTTP endpoints follow REST conventions
+        - R2DBC repositories implement domain interfaces
+        - Package convention: `com.profiletailors.smp.{context}.infrastructure.`
+
+        FLAG VIOLATIONS:
+        - Controllers with business logic
+        - Direct service calls from controllers (should go through handlers)
+        - Database entities exposed in API responses
+        - Missing DTO mapping
+        - Non-RESTful endpoint design
+
+        SEE: `.agents/skills/spring-boot/SKILL.md` and `.agents/skills/hexagonal-architecture/SKILL.md`
+
+    # Backend - Kotlin General
+    - path: 'server/**/*.kt'
+      instructions: |
+        Kotlin Code Review - Enforce conventions from `.agents/skills/kotlin/SKILL.md`
+
+        CRITICAL VIOLATIONS:
+        - Using `!!` operator (use `?.`, `?:`, `requireNotNull()`, or sealed classes)
+        - Using `var` when `val` would work
+        - Blocking in reactive flows (avoid `.block()` in application code)
+        - Not using `suspend` for I/O operations
+        - Logging sensitive data (passwords, tokens, PII)
+
+        VERIFY:
+        - Proper use of coroutines and structured concurrency
+        - Null safety patterns
+        - Immutability preferred
+        - Proper error handling with sealed classes or Result<T>
+        - Repository methods are suspend functions
+        - Dependency rule: domain ← application ← infrastructure
+
+    # Backend - Tests
+    - path: 'server/**/src/test/**'
+      instructions: |
+        Backend Test Review - Enforce `AGENTS.md` testing conventions
+
+        REQUIREMENTS:
+        - Test names use backticks: `should do X when Y`
+        - Unit tests: Kotest for assertions, MockK for mocks
+        - Integration tests: Testcontainers for PostgreSQL
+        - Arrange-Act-Assert structure clearly visible
+        - Test behavior, not implementation
+        - Proper use of `runTest` for coroutine testing
+
+        FLAG VIOLATIONS:
+        - Missing test coverage for new features
+        - Poor test naming
+        - Testing implementation details instead of behavior
+        - Missing assertions
+
+    # Frontend - Vue Components (SPA dashboard)
+    - path: 'apps/web/app/**/*.vue'
+      instructions: |
+        Vue Component Review - Enforce `.agents/skills/vue/SKILL.md` conventions
+
+        REQUIREMENTS:
+        - Use Composition API with `<script setup lang="ts">`
+        - Props: `defineProps<Props>()` with TypeScript, `withDefaults()` for defaults
+        - Events: `defineEmits<{ (e: 'event', value: Type): void }>()`
+        - Use shadcn-vue components from `@/components/ui` when possible
+        - Co-locate styles in `<style scoped>` using Tailwind design tokens
+
+        VERIFY:
+        - Accessibility: semantic HTML, ARIA attributes, keyboard navigation
+        - Form validation with proper error handling
+        - No hardcoded colors (use design tokens)
+        - Proper use of Pinia stores for state management
+        - Composables for reusable logic
+
+        FLAG VIOLATIONS:
+        - Options API usage (use Composition API)
+        - Hardcoded colors (use Tailwind tokens)
+        - Missing accessibility attributes
+        - Complex logic in components (should be in composables or stores)
+
+    # Frontend - Astro Components (marketing site)
+    - path: 'apps/web/marketing/**/*.astro'
+      instructions: |
+        Astro Component Review - Enforce `.agents/skills/astro/SKILL.md` conventions
+
+        REQUIREMENTS:
+        - Server-first approach: minimize client-side JavaScript
+        - Static-first, no SSR
+        - Client-side JS ONLY for interactive islands with `client:*` directives
+        - Use Astro's `<Image />` for optimized images
+        - All user-facing strings in locale files (`src/i18n/`), never hardcoded
+        - English (default) + Spanish (`/es/`) i18n support
+
+        FLAG VIOLATIONS:
+        - Unnecessary client-side JavaScript
+        - Missing `client:*` directive on interactive components
+        - Non-optimized images
+        - Hardcoded strings (use locale files)
+        - Poor SEO practices (meta tags, structured data, semantic HTML)
+
+    # Frontend - TypeScript (all apps)
+    - path: 'apps/**/*.ts'
+      instructions: |
+        TypeScript Review - Enforce `.agents/skills/typescript/SKILL.md` conventions
+
+        CRITICAL VIOLATIONS:
+        - Using `any` type (use `unknown` and narrow, or proper types)
+        - Missing explicit types on function parameters or return values
+        - Using `default export` (prefer named exports)
+
+        REQUIREMENTS:
+        - Explicit types for all function parameters and return values
+        - Use `type` over `interface` unless declaration merging needed
+        - Use TypeScript utility types (Partial, Pick, Omit, Record)
+        - Pinia stores: `useXxxStore` naming, strongly typed state/getters/actions
+        - Composables: `useXxx.ts` pattern, return reactive values
+
+    # Frontend - Unit Tests
+    - path: 'apps/**/__tests__/**'
+      instructions: |
+        Frontend Test Review - Enforce `AGENTS.md` testing conventions
+
+        REQUIREMENTS:
+        - Vitest for unit tests
+        - Test behavior, not implementation
+        - Clear test naming: 'should X when Y' or descriptive names
+        - Arrange-Act-Assert structure
+
+        FLAG VIOLATIONS:
+        - Testing implementation details (internal state, methods)
+        - Poor test isolation (shared mutable state)
+        - Missing assertions or unclear expectations
+
+    # Frontend - E2E Tests
+    - path: 'apps/**/e2e/**'
+      instructions: |
+        Playwright E2E Test Review - Enforce `AGENTS.md` conventions
+
+        REQUIREMENTS:
+        - Use user-facing locators: `getByRole`, `getByLabel`, `getByText`
+        - NO XPath, CSS class selectors, or `data-testid` (unless absolutely necessary)
+        - Use web-first assertions: `await expect(locator).toBeVisible()`
+        - NO manual waits or sleeps (use auto-retry assertions)
+        - Use `test.step()` for multi-step flows
+        - Test user journeys, not implementation details
+
+        FLAG VIOLATIONS:
+        - Brittle selectors (CSS classes, IDs)
+        - Manual waits (page.waitForTimeout)
+        - Testing implementation details
+        - Missing accessibility in locators
+
+    # Root config files
+    - path: '*.{yml,yaml,toml,json}'
+      instructions: |
+        Configuration Review - Enforce project conventions
+
+        REQUIREMENTS:
+        - Follow existing conventions in similar config files
+        - No hardcoded secrets or environment-specific values
+        - Proper YAML/JSON structure and formatting
+
+    # Markdown documentation
+    - path: '**/*.md'
+      instructions: |
+        Documentation Review - Enforce `AGENTS.md` documentation rules
+
+        REQUIREMENTS:
+        - Documentation MUST be in English
+        - Files: lowercase `kebab-case.md` (except `README.md`)
+        - Structure: Overview → Changes → Usage → Troubleshooting → References
+        - No hardcoded user-facing strings (use locale files)
+
+  # Labeling instructions
+  labeling_instructions:
+    - label: 'backend'
+      instructions: 'Apply when PR contains changes to Kotlin code, Spring Boot, database, or backend infrastructure'
+
+    - label: 'frontend'
+      instructions: 'Apply when PR contains changes to TypeScript, Vue, Astro, or frontend assets'
+
+    - label: 'architecture'
+      instructions: 'Apply when PR introduces changes to domain models, application layer structure, or architectural patterns'
+
+    - label: 'security'
+      instructions: 'Apply when PR touches authentication, authorization, RLS, input validation, or security-related code'
+
+    - label: 'database'
+      instructions: 'Apply when PR includes database migrations, schema changes, or repository implementations'
+
+    - label: 'documentation'
+      instructions: 'Apply when PR updates .agents/skills/ docs, README files, AGENTS.md, or API documentation'
+
+    - label: 'testing'
+      instructions: 'Apply when PR adds or modifies tests (unit, integration, or E2E)'
+
+    - label: 'breaking-change'
+      instructions: 'Apply when PR introduces breaking changes to APIs, database schema, or public interfaces'
+
+  auto_review:
+    enabled: true
+    drafts: true
+    auto_incremental_review: true
+
+  # Pre-merge checks - Four-R Framework
+  pre_merge_checks:
+    title:
+      mode: error
+      requirements: >-
+        Title must follow Conventional Commits format with optional emoji.
+        Examples: 'feat(auth): add password reset', 'fix(api): correct pagination'
+
+    description:
+      mode: warning
+
+    issue_assessment:
+      mode: warning
+
+    custom_checks:
+      - name: 'Hexagonal Architecture Compliance'
+        mode: error
+        instructions: |
+          Verify that Hexagonal Architecture principles are followed:
+          1. Domain layer has ZERO framework dependencies (pure Kotlin)
+          2. Application layer only depends on domain interfaces
+          3. Infrastructure implements domain interfaces (never the reverse)
+          4. CQRS pattern: Commands for writes, Queries for reads
+          5. Controllers call handlers, not services directly
+          6. Dependency rule: domain ← application ← infrastructure
+          7. NO circular dependencies between layers
+
+      - name: 'Security Review'
+        mode: error
+        instructions: |
+          Check for security issues:
+          1. No SQL injection (use parameterized queries with R2DBC)
+          2. No XSS vulnerabilities (use textContent, not innerHTML with user data)
+          3. Input validation present on all user-facing endpoints
+          4. Authentication/authorization properly enforced
+          5. No secrets committed to repository
+          6. Proper CSRF protection for state-changing operations
+
+      - name: 'Test Coverage (Reliability)'
+        mode: warning
+        instructions: |
+          Ensure adequate test coverage:
+          1. Unit tests for all new business logic
+          2. Integration tests for new endpoints
+          3. E2E tests for critical user flows (if applicable)
+          4. Tests follow naming conventions
+          5. TDD was followed: failing test FIRST, then implementation
+
+      - name: 'Resilience Review'
+        mode: warning
+        instructions: |
+          Check for resilience patterns:
+          1. Proper error handling with sealed classes or Result<T>
+          2. Timeout configuration for external calls
+          3. Retry logic for transient failures
+          4. Circuit breaker for downstream dependencies (if applicable)
+          5. Reactive error propagation (no swallowed exceptions)
+          6. Graceful degradation where appropriate
+
+      - name: 'Readability Review'
+        mode: warning
+        instructions: |
+          Check for code readability:
+          1. Meaningful naming (functions, classes, variables)
+          2. Single Responsibility Principle respected
+          3. Functions are small and focused
+          4. Complex logic has comments explaining WHY (not what)
+          5. No dead code or commented-out code
+          6. Consistent formatting and style
+
+  # Enable relevant linters
+  tools:
+    biome:
+      enabled: true
+    detekt:
+      enabled: true
+    gitleaks:
+      enabled: true
+    yamllint:
+      enabled: true
+    hadolint:
+      enabled: true
+    markdownlint:
+      enabled: true
+    github-checks:
+      enabled: true
+      timeout_ms: 90000
+
+knowledge_base:
+  code_guidelines:
+    enabled: true
+    filePatterns:
+      - '.agents/skills/**/*.md'
+      - 'AGENTS.md'
+
+  learnings:
+    scope: auto
+
+  issues:
+    scope: auto
+
+  pull_requests:
+    scope: auto
+
+chat:
+  auto_reply: true
+
+code_generation:
+  docstrings:
+    language: en-US
+    path_instructions:
+      - path: 'server/**/*.kt'
+        instructions: |
+          Generate KDoc for public APIs:
+          - Brief description of purpose
+          - @param for all parameters with clear descriptions
+          - @return for return value
+          - @throws for exceptions
+          - Follow conventions from `.agents/skills/kotlin/SKILL.md`
+
+      - path: 'apps/**/*.ts'
+        instructions: |
+          Generate TSDoc/JSDoc for public APIs:
+          - Brief description
+          - @param for parameters with types
+          - @returns with type
+          - @example for complex functions
+          - Follow conventions from `.agents/skills/typescript/SKILL.md`
+
+  unit_tests:
+    path_instructions:
+      - path: 'server/**/*.kt'
+        instructions: |
+          Generate Kotlin tests following `AGENTS.md`:
+          - Use backtick naming: `should do X when Y`
+          - Kotest assertions + MockK for mocks
+          - Arrange-Act-Assert structure
+          - Use `runTest` for coroutine testing
+
+      - path: 'apps/**/*.ts'
+        instructions: |
+          Generate TypeScript tests following `AGENTS.md`:
+          - Vitest for unit tests
+          - Test behavior, not implementation
+          - Use user-facing queries when possible

@@ -28,7 +28,7 @@ describe('i18n utils', () => {
     it('should return English translations by default', () => {
       const url = new URL('https://example.com/');
       const t = useTranslations(url);
-      
+
       expect(t.nav.langSwitch).toBe('ES');
       expect(t.hero.label).toBe('NOW IN EARLY ACCESS');
     });
@@ -36,7 +36,7 @@ describe('i18n utils', () => {
     it('should return Spanish translations for /es/', () => {
       const url = new URL('https://example.com/es/');
       const t = useTranslations(url);
-      
+
       expect(t.nav.langSwitch).toBe('EN');
       expect(t.hero.label).toBe('ACCESO ANTICIPADO');
     });

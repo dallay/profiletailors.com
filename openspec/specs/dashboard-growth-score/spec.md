@@ -2,7 +2,8 @@
 
 ## Purpose
 
-Delivers a single composite metric (0–100) that summarizes overall social media growth health, with a breakdown of contributing factors and the top opportunity to improve the score.
+Delivers a single composite metric (0–100) that summarizes overall social media growth health, with
+a breakdown of contributing factors and the top opportunity to improve the score.
 
 ## Data Model
 
@@ -39,7 +40,8 @@ interface Opportunity {
 
 ### Requirement: Score Display
 
-The system SHALL render the growth score as a large circular gauge with the numeric score centered inside.
+The system SHALL render the growth score as a large circular gauge with the numeric score centered
+inside.
 
 #### Scenario: Score renders correctly
 
@@ -62,7 +64,8 @@ The system SHALL display contributing factors as horizontal progress bars below 
 
 #### Scenario: Factors render as bars
 
-- GIVEN the score has 4 factors: Engagement Rate, Content Quality, Posting Consistency, Audience Growth
+- GIVEN the score has 4 factors: Engagement Rate, Content Quality, Posting Consistency, Audience
+  Growth
 - WHEN the section renders
 - THEN each factor renders with name, percentage bar, and weight label
 - AND bars are ordered by weight descending

@@ -4,19 +4,25 @@
 
 ## Scope
 
-This plan covers the **registration flow** across the Profile Tailors SPA (`apps/web/app/`) and the SMP backend (`server/smp/`). It targets the complete user journey: register page rendering → form interaction → API integration → account creation → immediate session creation → email verification lifecycle → feature gating for unverified users → session management.
+This plan covers the **registration flow** across the Profile Tailors SPA (`apps/web/app/`) and the
+SMP backend (`server/smp/`). It targets the complete user journey: register page rendering → form
+interaction → API integration → account creation → immediate session creation → email verification
+lifecycle → feature gating for unverified users → session management.
 
 ---
 
 ## Test Infrastructure
 
-- **Framework**: Playwright (already configured at `apps/web/marketing/playwright.config.ts`). A separate Playwright config should be created at `apps/web/app/playwright.config.ts` for the SPA app.
+- **Framework**: Playwright (already configured at `apps/web/marketing/playwright.config.ts`). A
+  separate Playwright config should be created at `apps/web/app/playwright.config.ts` for the SPA
+  app.
 - **App URL**: `http://localhost:5173` (Vite dev server, proxying `/api` to `http://localhost:8080`)
 - **Backend URL**: `http://localhost:8080`
 - **Browsers**: Chromium (primary), Firefox, WebKit
 - **State persistence**: Playwright `storageState` for authenticated sessions
 - **API mocking**: Use Playwright route interception for backend-dependent tests
-- **Test data**: Each test should use unique emails (e.g., `e2e-register-{timestamp}@profiletailors.com`)
+- **Test data**: Each test should use unique emails (e.g.,
+  `e2e-register-{timestamp}@profiletailors.com`)
 
 ---
 
@@ -71,14 +77,14 @@ PENDING user logs in/registers successfully
 
 ### Key Contracts
 
-| Endpoint             | Method | Request                    | Success             | Failure                    |
-|---------------------|--------|----------------------------|---------------------|----------------------------|
-| `/api/auth/register` | POST   | `{ email, password }`      | 201 + AuthTokens    | 409 UserAlreadyExists / 400 InvalidInput |
-| `/api/auth/login`    | POST   | `{ email, password }`      | 200 + AuthTokens    | 401 InvalidCredentials |
-| `/api/auth/refresh`  | POST   | (HttpOnly cookie)          | 200 + AuthTokens    | 401 RefreshSessionNotActive |
-| `/api/auth/logout`   | POST   | (HttpOnly cookie)          | 204                 | —                          |
-| `/api/auth/me`       | GET    | Bearer token               | 200 profile         | 401                        |
-| feature-gated APIs   | any    | authenticated PENDING user | —                   | 403 EMAIL_VERIFICATION_REQUIRED |
+| Endpoint             | Method | Request                    | Success          | Failure                                  |
+|----------------------|--------|----------------------------|------------------|------------------------------------------|
+| `/api/auth/register` | POST   | `{ email, password }`      | 201 + AuthTokens | 409 UserAlreadyExists / 400 InvalidInput |
+| `/api/auth/login`    | POST   | `{ email, password }`      | 200 + AuthTokens | 401 InvalidCredentials                   |
+| `/api/auth/refresh`  | POST   | (HttpOnly cookie)          | 200 + AuthTokens | 401 RefreshSessionNotActive              |
+| `/api/auth/logout`   | POST   | (HttpOnly cookie)          | 204              | —                                        |
+| `/api/auth/me`       | GET    | Bearer token               | 200 profile      | 401                                      |
+| feature-gated APIs   | any    | authenticated PENDING user | —                | 403 EMAIL_VERIFICATION_REQUIRED          |
 
 ---
 
@@ -811,44 +817,47 @@ And the button text indicates loading ("...")
 
 ## 13. Test Scenarios Matrix
 
-| ID    | Area                      | Scenario                                    | Priority | Auth Required | API Required |
-|-------|---------------------------|---------------------------------------------|----------|---------------|--------------|
-| 1.1   | Rendering                 | Register page renders fully                 | P0       | No            | No           |
-| 1.2   | Rendering                 | Email input attributes                      | P1       | No            | No           |
-| 1.3   | Rendering                 | Password input attributes                   | P1       | No            | No           |
-| 1.4   | Navigation                | Navigate between login and register         | P0       | No            | No           |
-| 2.1   | Validation                | Empty fields blocked                       | P0       | No            | No           |
-| 2.2   | Validation                | Invalid email format blocked               | P0       | No            | No           |
-| 3.1   | Registration API          | Successful registration + redirect         | P0       | No            | Yes          |
-| 3.2   | Registration API          | Email normalization (lowercase)            | P1       | No            | Yes          |
-| 3.3   | Registration API          | Whitespace trimmed                         | P1       | No            | Yes          |
-| 3.5   | Registration API          | Workspace provisioned                     | P1       | No            | Yes          |
-| 3.6   | Registration API          | Loading state on button                    | P1       | No            | Yes          |
-| 3.7   | Registration API          | Registration with redirect                 | P0       | No            | Yes          |
-| 4.1   | Registration API          | Duplicate email returns 409               | P0       | No            | Yes          |
-| 4.2   | Registration API          | Case-insensitive duplicate check           | P1       | No            | Yes          |
-| 4.3   | Registration API          | Password too short returns 400            | P0       | No            | Yes          |
-| 4.4   | Registration API          | Password too long returns 400              | P1       | No            | Yes          |
-| 4.5   | Registration API          | Invalid email format (server)              | P0       | No            | Yes          |
-| 4.8   | Registration API          | Server error shows generic message         | P1       | No            | Yes          |
-| 5.1   | Session                   | Session immediately active                 | P0       | No            | Yes          |
-| 5.2   | Session                   | Session survives page refresh              | P0       | Yes           | Yes          |
-| 5.3   | Route Guards              | Authenticated user redirected from /register| P0       | Yes           | No           |
-| 6.1   | Email Verification        | Verification token generated               | P1       | No            | Yes          |
-| 6.3   | Email Verification        | Resend verification email                  | P2       | No            | Yes          |
-| 6.5   | Email Verification        | Verify email with valid token              | P1       | No            | Yes          |
-| 7.1   | i18n                      | English locale                             | P1       | No            | No           |
-| 7.2   | i18n                      | Spanish locale                             | P1       | No            | No           |
-| 8.1   | Security                  | No token in localStorage                   | P0       | Yes           | Yes          |
-| 8.2   | Security                  | HttpOnly cookie flags                      | P1       | Yes           | Yes          |
-| 9.2   | Error Banner              | Error display styling                     | P2       | No            | Yes          |
-| 10.1  | Responsive                | Mobile viewport                            | P1       | No            | No           |
-| 11.1  | Accessibility             | Form labels                               | P2       | No            | No           |
-| 11.2  | Accessibility             | Keyboard navigation                        | P2       | No            | No           |
+| ID   | Area               | Scenario                                     | Priority | Auth Required | API Required |
+|------|--------------------|----------------------------------------------|----------|---------------|--------------|
+| 1.1  | Rendering          | Register page renders fully                  | P0       | No            | No           |
+| 1.2  | Rendering          | Email input attributes                       | P1       | No            | No           |
+| 1.3  | Rendering          | Password input attributes                    | P1       | No            | No           |
+| 1.4  | Navigation         | Navigate between login and register          | P0       | No            | No           |
+| 2.1  | Validation         | Empty fields blocked                         | P0       | No            | No           |
+| 2.2  | Validation         | Invalid email format blocked                 | P0       | No            | No           |
+| 3.1  | Registration API   | Successful registration + redirect           | P0       | No            | Yes          |
+| 3.2  | Registration API   | Email normalization (lowercase)              | P1       | No            | Yes          |
+| 3.3  | Registration API   | Whitespace trimmed                           | P1       | No            | Yes          |
+| 3.5  | Registration API   | Workspace provisioned                        | P1       | No            | Yes          |
+| 3.6  | Registration API   | Loading state on button                      | P1       | No            | Yes          |
+| 3.7  | Registration API   | Registration with redirect                   | P0       | No            | Yes          |
+| 4.1  | Registration API   | Duplicate email returns 409                  | P0       | No            | Yes          |
+| 4.2  | Registration API   | Case-insensitive duplicate check             | P1       | No            | Yes          |
+| 4.3  | Registration API   | Password too short returns 400               | P0       | No            | Yes          |
+| 4.4  | Registration API   | Password too long returns 400                | P1       | No            | Yes          |
+| 4.5  | Registration API   | Invalid email format (server)                | P0       | No            | Yes          |
+| 4.8  | Registration API   | Server error shows generic message           | P1       | No            | Yes          |
+| 5.1  | Session            | Session immediately active                   | P0       | No            | Yes          |
+| 5.2  | Session            | Session survives page refresh                | P0       | Yes           | Yes          |
+| 5.3  | Route Guards       | Authenticated user redirected from /register | P0       | Yes           | No           |
+| 6.1  | Email Verification | Verification token generated                 | P1       | No            | Yes          |
+| 6.3  | Email Verification | Resend verification email                    | P2       | No            | Yes          |
+| 6.5  | Email Verification | Verify email with valid token                | P1       | No            | Yes          |
+| 7.1  | i18n               | English locale                               | P1       | No            | No           |
+| 7.2  | i18n               | Spanish locale                               | P1       | No            | No           |
+| 8.1  | Security           | No token in localStorage                     | P0       | Yes           | Yes          |
+| 8.2  | Security           | HttpOnly cookie flags                        | P1       | Yes           | Yes          |
+| 9.2  | Error Banner       | Error display styling                        | P2       | No            | Yes          |
+| 10.1 | Responsive         | Mobile viewport                              | P1       | No            | No           |
+| 11.1 | Accessibility      | Form labels                                  | P2       | No            | No           |
+| 11.2 | Accessibility      | Keyboard navigation                          | P2       | No            | No           |
 
 **Priority definitions:**
-- **P0**: Critical path — must pass for release. Covers happy path registration, validation, duplicate handling, session persistence.
-- **P1**: Important — should pass for release. Covers i18n, email verification, security headers, mobile rendering.
+
+- **P0**: Critical path — must pass for release. Covers happy path registration, validation,
+  duplicate handling, session persistence.
+- **P1**: Important — should pass for release. Covers i18n, email verification, security headers,
+  mobile rendering.
 - **P2**: Nice to have — quality polish. Covers visual styling, accessibility, edge cases.
 
 ---
@@ -871,6 +880,7 @@ async function registerNewUser(page: Page, email: string, password: string) {
 ### Test Data
 
 For each test, use a unique email to avoid conflicts:
+
 ```typescript
 const testEmail = `e2e-register-${Date.now()}@profiletailors.com`
 const testPassword = 'SecurePass123!'
@@ -920,14 +930,14 @@ DELETE FROM workspaces WHERE name LIKE 'e2e-register-%';
 
 ## Appendix A: Routes Map
 
-| Path        | Component      | Auth Required | Guest Only |
-|-------------|----------------|---------------|------------|
-| `/login`    | AuthView       | No            | Yes        |
-| `/register` | AuthView       | No            | Yes        |
-| `/`         | HomeView       | Yes           | No         |
-| `/scheduler`| SchedulerView  | Yes           | No         |
-| `/analytics`| AnalyticsView  | Yes           | No         |
-| `/settings` | SettingsView   | Yes           | No         |
+| Path         | Component     | Auth Required | Guest Only |
+|--------------|---------------|---------------|------------|
+| `/login`     | AuthView      | No            | Yes        |
+| `/register`  | AuthView      | No            | Yes        |
+| `/`          | HomeView      | Yes           | No         |
+| `/scheduler` | SchedulerView | Yes           | No         |
+| `/analytics` | AnalyticsView | Yes           | No         |
+| `/settings`  | SettingsView  | Yes           | No         |
 
 ---
 

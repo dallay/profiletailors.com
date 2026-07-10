@@ -59,6 +59,7 @@ node_modules/
 # Playwright reports (all frontend projects)
 **/playwright-report/
 **/playwright-scheduler-report/
+**/playwright-media-mocked-report/
 **/test-results/
 
 # SonarScanner working directory

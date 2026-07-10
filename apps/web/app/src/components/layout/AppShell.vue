@@ -29,6 +29,7 @@ import SidebarChannelsSection, { type SidebarChannel } from '@/components/sideba
 import SidebarConnectSection, { type ConnectChannel } from '@/components/sidebar/SidebarConnectSection.vue'
 import SidebarAccountSection from '@/components/sidebar/SidebarAccountSection.vue'
 import UploadProgressToast from '@/components/UploadProgressToast.vue'
+import { Toaster } from '@/components/ui/sonner'
 import { useQueuedCounts } from '@/composables/useQueuedCounts'
 
 // ---------------------------------------------------------------------------
@@ -51,6 +52,20 @@ const pageTitle = computed(() => {
   }
   if (name === 'linkedin-callback') return 'LinkedIn'
   return String(name ?? '')
+})
+
+const shouldShowEmailVerificationBanner = computed(
+  () => auth.isAuthenticated && !auth.isEmailVerified,
+)
+const isResendingVerification = computed(() => auth.resendVerificationStatus === 'loading')
+const resendVerificationFeedback = computed(() => {
+  if (auth.resendVerificationStatus === 'success') {
+    return t('emailVerification.banner.success')
+  }
+  if (auth.resendVerificationStatus === 'error') {
+    return auth.resendVerificationError ?? t('emailVerification.banner.error')
+  }
+  return null
 })
 
 // ---------------------------------------------------------------------------
@@ -199,6 +214,14 @@ function onOpenSettings() {
   })
 }
 
+async function handleResendVerification() {
+  try {
+    await auth.resendVerificationEmail()
+  } catch (err) {
+    console.error('Failed to resend verification email', err)
+  }
+}
+
 async function handleLogout() {
   try {
     await auth.logout()
@@ -240,7 +263,7 @@ onBeforeUnmount(() => {
   </output>
 
   <TooltipProvider>
-    <SidebarProvider :default-open="true" class="bg-bg-primary font-sans text-text-body transition-colors duration-250">
+    <SidebarProvider class="bg-bg-primary font-sans text-text-body transition-colors duration-250">
       <Sidebar collapsible="icon">
         <SidebarHeader class="gap-3">
           <SidebarHeaderSection
@@ -306,18 +329,62 @@ onBeforeUnmount(() => {
       </Sidebar>
 
       <SidebarInset>
-        <div class="flex min-w-0 flex-1 flex-col">
+        <div class="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden">
           <AppHeader />
+
+          <section
+            v-if="shouldShowEmailVerificationBanner"
+            role="alert"
+            aria-label="Email verification required"
+            class="mx-4 mt-4 rounded-xl border border-amber-400/40 bg-amber-400/10 px-4 py-3 text-sm text-amber-50 md:mx-6 lg:mx-8"
+          >
+            <div class="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
+              <div class="space-y-1">
+                <p class="font-semibold text-amber-100">
+                  {{ t('emailVerification.banner.title') }}
+                </p>
+                <p>{{ t('emailVerification.banner.description') }}</p>
+                <p class="text-amber-100/80">
+                  {{ t('emailVerification.banner.instructions') }}
+                </p>
+                <p
+                  v-if="resendVerificationFeedback"
+                  aria-live="polite"
+                  class="font-medium text-amber-100"
+                >
+                  {{ resendVerificationFeedback }}
+                </p>
+              </div>
+
+              <button
+                type="button"
+                data-testid="resend-verification"
+                class="inline-flex items-center justify-center rounded-lg border border-amber-300/60 px-3 py-2 font-medium text-amber-50 transition hover:bg-amber-300/10 disabled:cursor-not-allowed disabled:opacity-60"
+                :disabled="isResendingVerification"
+                @click="handleResendVerification"
+              >
+                {{
+                  isResendingVerification
+                    ? t('emailVerification.banner.resending')
+                    : t('emailVerification.banner.resend')
+                }}
+              </button>
+            </div>
+          </section>
 
           <main
             id="main-content"
             tabindex="-1"
-            class="dot-grid flex-1 overflow-y-auto px-4 py-6 md:px-6 lg:px-8 lg:py-8"
+            :class="[
+              'dot-grid flex-1 px-4 py-6 md:px-6 lg:px-8 lg:py-8',
+              isSchedulerRoute() ? 'flex min-h-0 flex-col overflow-hidden' : 'overflow-y-auto',
+            ]"
           >
             <RouterView />
           </main>
 
           <UploadProgressToast />
+          <Toaster position="bottom-right" />
         </div>
       </SidebarInset>
     </SidebarProvider>

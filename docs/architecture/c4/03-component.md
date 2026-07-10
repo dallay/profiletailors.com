@@ -748,39 +748,41 @@ class R2dbcWorkspaceMembershipRepository : WorkspaceMembershipRepository {
 
 ## Shared Kernel (`shared:common`)
 
-The **Shared Kernel** is the foundational Gradle module that provides framework-agnostic domain primitives
-used by EVERY bounded context in the API Application. In DDD terms, it is the subset of the domain model
+The **Shared Kernel** is the foundational Gradle module that provides framework-agnostic domain
+primitives
+used by EVERY bounded context in the API Application. In DDD terms, it is the subset of the domain
+model
 that all bounded contexts share.
 
 ### Key Properties
 
-| Property | Value |
-|----------|-------|
-| **Gradle module** | `:shared:common` |
-| **Plugin** | `com.profiletailors.kotlin.library` (pure Kotlin, no Spring) |
-| **Dependencies** | None (zero framework dependencies) |
-| **Consumed by** | All 8 implemented + 3 planned bounded contexts |
+| Property          | Value                                                        |
+|-------------------|--------------------------------------------------------------|
+| **Gradle module** | `:shared:common`                                             |
+| **Plugin**        | `com.profiletailors.kotlin.library` (pure Kotlin, no Spring) |
+| **Dependencies**  | None (zero framework dependencies)                           |
+| **Consumed by**   | All 8 implemented + 3 planned bounded contexts               |
 
 ### What It Provides
 
-| Package | Types |
-|---------|-------|
-| `domain` | `@Service` annotation (hexagonal marker), `Memoizers`, `Generated`, `SYSTEM_USER` constants |
-| `domain.bus.event` | `DomainEvent` interface, `BaseDomainEvent` |
-| `domain.bus.query` | `Response` marker, `QueryResponse` |
-| `domain.model` | `BaseEntity`, `AggregateRoot`, `AuditableEntity`, `AuditableEntityFields`, `WorkspaceId`, `Language` |
-| `domain.model.pagination` | `OffsetPage`, `CursorPage` |
-| `domain.error` | `BusinessRuleValidationException`, `EntityNotFoundException`, `AggregateException`, `DomainMappingException` |
-| `domain.vo` | `Username` |
-| `domain.vo.credential` | `Credential`, `CredentialId`, `CredentialValue`, `CredentialException` |
-| `domain.vo.email` | `Email` |
-| `domain.vo.ip` | `IpHash` |
-| `domain.vo.name` | `FirstName`, `LastName`, `Name` |
-| `domain.authentication` | `AccessToken` |
-| `domain.context` | `PrincipalType` |
-| `domain.observability` | `RequestOutcome` |
-| `domain.workspace` | `WorkspaceMembershipSnapshot`, `WorkspaceMembershipStatus` |
-| `util` | `SystemEnvironment` |
+| Package                   | Types                                                                                                        |
+|---------------------------|--------------------------------------------------------------------------------------------------------------|
+| `domain`                  | `@Service` annotation (hexagonal marker), `Memoizers`, `Generated`, `SYSTEM_USER` constants                  |
+| `domain.bus.event`        | `DomainEvent` interface, `BaseDomainEvent`                                                                   |
+| `domain.bus.query`        | `Response` marker, `QueryResponse`                                                                           |
+| `domain.model`            | `BaseEntity`, `AggregateRoot`, `AuditableEntity`, `AuditableEntityFields`, `WorkspaceId`, `Language`         |
+| `domain.model.pagination` | `OffsetPage`, `CursorPage`                                                                                   |
+| `domain.error`            | `BusinessRuleValidationException`, `EntityNotFoundException`, `AggregateException`, `DomainMappingException` |
+| `domain.vo`               | `Username`                                                                                                   |
+| `domain.vo.credential`    | `Credential`, `CredentialId`, `CredentialValue`, `CredentialException`                                       |
+| `domain.vo.email`         | `Email`                                                                                                      |
+| `domain.vo.ip`            | `IpHash`                                                                                                     |
+| `domain.vo.name`          | `FirstName`, `LastName`, `Name`                                                                              |
+| `domain.authentication`   | `AccessToken`                                                                                                |
+| `domain.context`          | `PrincipalType`                                                                                              |
+| `domain.observability`    | `RequestOutcome`                                                                                             |
+| `domain.workspace`        | `WorkspaceMembershipSnapshot`, `WorkspaceMembershipStatus`                                                   |
+| `util`                    | `SystemEnvironment`                                                                                          |
 
 ### Dependency Chain
 

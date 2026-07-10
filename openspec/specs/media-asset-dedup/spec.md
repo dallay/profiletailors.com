@@ -9,7 +9,8 @@
 
 ### Requirement: Media Asset Lifecycle with CAS Deduplication
 
-The system SHALL replace the `PROCESSING` state and reserve flow with a content-addressed storage (CAS)
+The system SHALL replace the `PROCESSING` state and reserve flow with a content-addressed storage (
+CAS)
 deduplication model. Assets SHALL transition through states that reflect their CAS lifecycle:
 `PENDING_UPLOAD` → `UPLOADING` → `READY` or `FAILED`, and `PENDING_UPLOAD` or `UPLOADING` assets
 that exceed the 24-hour upload TTL SHALL transition to `FAILED`. The system SHALL deduplicate
@@ -36,7 +37,8 @@ Assets in `FAILED` status SHALL NOT be counted as active references for blob ref
 - WHEN a client PUTs a new asset with the same `fileHash` to the same workspace
 - THEN the system SHALL return `202 Accepted` with `Retry-After: 3`
 - AND the response body SHALL contain `status: WAITING_FOR_BLOB`
-- AND the client SHALL poll the PUT endpoint after the retry interval until the upload completes or expires
+- AND the client SHALL poll the PUT endpoint after the retry interval until the upload completes or
+  expires
 
 #### Scenario: PUT with blob FAILED (retry upload)
 
@@ -48,10 +50,12 @@ Assets in `FAILED` status SHALL NOT be counted as active references for blob ref
 
 #### Scenario: UPLOADING asset expires after TTL
 
-- GIVEN a `media_asset` record exists with `status='UPLOADING'` and `upload_started_at < now() - 24 hours`
+- GIVEN a `media_asset` record exists with `status='UPLOADING'` and
+  `upload_started_at < now() - 24 hours`
 - WHEN `MediaAssetExpirationJob` runs
 - THEN the system SHALL mark the asset `FAILED`
-- AND the blob SHALL be reevaluated for `READY_FOR_GC` under the same active-reference rule used by DELETE
+- AND the blob SHALL be reevaluated for `READY_FOR_GC` under the same active-reference rule used by
+  DELETE
 
 #### Scenario: storage_key invariant
 
@@ -95,7 +99,8 @@ Blob metadata discovered only after streaming validation (`storage_key`, `file_s
 
 #### Scenario: Blob orphaned when last asset deleted
 
-- GIVEN a blob with hash `sha256_abc123` in workspace `ws_abc` is referenced by exactly 1 active asset
+- GIVEN a blob with hash `sha256_abc123` in workspace `ws_abc` is referenced by exactly 1 active
+  asset
 - WHEN that asset is deleted (status → `DELETED`)
 - THEN the system SHALL mark the blob as `READY_FOR_GC`
 - AND SHALL set `orphaned_at` to the current timestamp
@@ -118,8 +123,10 @@ The system SHALL enforce an hourly creation rate limit of 200 requests per works
 before any asset or blob creation takes place.
 
 When the limit is exceeded, the system SHALL return `429 Too Many Requests` with:
+
 - HTTP header `Retry-After: 3600`
-- Body `{ "error": "RATE_LIMIT_EXCEEDED", "message": "Hourly creation limit exceeded", "retryAfterSeconds": 3600 }`
+- Body
+  `{ "error": "RATE_LIMIT_EXCEEDED", "message": "Hourly creation limit exceeded", "retryAfterSeconds": 3600 }`
 
 The rate limit SHALL apply to the PUT creation flow for the authenticated caller in the target
 workspace and SHALL be checked before any blob row or media asset row is inserted or updated.
@@ -152,21 +159,22 @@ The endpoint SHALL accept the following JSON request body:
 
 Server-side validations SHALL be performed in strict order:
 
-| Order | Validation | Failure Response |
-|-------|-----------|------------------|
-| 1 | `assetId` is valid UUID v4 | 400 Bad Request |
-| 2 | `fileHash` matches `^[a-f0-9]{64}$` (lowercase) | 400 Bad Request |
-| 3 | `fileSizeBytes` between 1 and MAX_FILE_SIZE (500 MB) | 400 / 413 Payload Too Large |
-| 4 | `declaredMediaType` in `SUPPORTED_MEDIA_TYPES` | 400 Bad Request |
-| 5 | `originalFilename` sanitized (no `/`, `\`, `..`, null bytes; ≤ 255 chars) | 400 Bad Request |
-| 6 | `originalFilename` present for OOXML media types `application/vnd.openxmlformats-officedocument.wordprocessingml.document` and `application/vnd.openxmlformats-officedocument.presentationml.presentation` | 400 Bad Request |
-| 7 | Rate limit (creations/hour ≤ 200) checked before asset/blob creation | 429 Too Many Requests |
+| Order | Validation                                                                                                                                                                                                 | Failure Response            |
+|-------|------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|-----------------------------|
+| 1     | `assetId` is valid UUID v4                                                                                                                                                                                 | 400 Bad Request             |
+| 2     | `fileHash` matches `^[a-f0-9]{64}$` (lowercase)                                                                                                                                                            | 400 Bad Request             |
+| 3     | `fileSizeBytes` between 1 and MAX_FILE_SIZE (500 MB)                                                                                                                                                       | 400 / 413 Payload Too Large |
+| 4     | `declaredMediaType` in `SUPPORTED_MEDIA_TYPES`                                                                                                                                                             | 400 Bad Request             |
+| 5     | `originalFilename` sanitized (no `/`, `\`, `..`, null bytes; ≤ 255 chars)                                                                                                                                  | 400 Bad Request             |
+| 6     | `originalFilename` present for OOXML media types `application/vnd.openxmlformats-officedocument.wordprocessingml.document` and `application/vnd.openxmlformats-officedocument.presentationml.presentation` | 400 Bad Request             |
+| 7     | Rate limit (creations/hour ≤ 200) checked before asset/blob creation                                                                                                                                       | 429 Too Many Requests       |
 
 `originalFilename` SHALL be required for the two OOXML media types listed above because
 extension derivation and downstream handling depend on preserving the original OOXML filename
 context even though canonical storage uses the CAS key.
 
-The handler SHALL set `source_type` to `'UPLOADED'` internally — this field is NOT sent by the client.
+The handler SHALL set `source_type` to `'UPLOADED'` internally — this field is NOT sent by the
+client.
 
 When no blob exists for `(workspaceId, fileHash)`, the handler SHALL INSERT a blob row in
 `UPLOADING` with nullable `storage_key`, nullable `file_size_bytes`, and nullable
@@ -226,47 +234,50 @@ The system SHALL perform the following steps in order:
    WHERE `asset_id=:id` AND `status IN ('PENDING_UPLOAD','FAILED')`
 
 2. **If claim fails:** SELECT the current asset state:
-   - If `status=READY`: Return `200 OK` with `{ status: READY, deduped: true }`
-   - If `status=UPLOADING`: Return `409 Conflict` with `UPLOAD_IN_PROGRESS`
-   - If `status=DELETED`: Return `404 Not Found`
+    - If `status=READY`: Return `200 OK` with `{ status: READY, deduped: true }`
+    - If `status=UPLOADING`: Return `409 Conflict` with `UPLOAD_IN_PROGRESS`
+    - If `status=DELETED`: Return `404 Not Found`
 
 3. **Stream to temp key:** Upload bytes to `assets/{workspaceId}/temp/{assetId}.{ext}` using the
    extension derived from `declaredMediaType`, while computing the SHA-256 digest, counting
    `actualBytes`, and validating magic bytes concurrently
 
 4. **Detect media type:** Validate magic bytes during streaming:
-   - JPEG: `FF D8 FF` at offset 0
-   - PNG: `89 50 4E 47` at offset 0
-   - GIF: `47 49 46 38` at offset 0
-   - WEBP: `52 49 46 46` (RIFF) at offset 0, `57 45 42 50` (WEBP) at offset 8
-   - MP4: `ftyp` box at offset 4
-   - OOXML: ZIP magic bytes `50 4B 03 04` — cross-check with Content-Type header
+    - JPEG: `FF D8 FF` at offset 0
+    - PNG: `89 50 4E 47` at offset 0
+    - GIF: `47 49 46 38` at offset 0
+    - WEBP: `52 49 46 46` (RIFF) at offset 0, `57 45 42 50` (WEBP) at offset 8
+    - MP4: `ftyp` box at offset 4
+    - OOXML: ZIP magic bytes `50 4B 03 04` — cross-check with Content-Type header
 
 5. **Verify actual byte count:** Compare `actualBytes` with the `fileSizeBytes` from the PUT call
-   - If mismatch: DELETE temp key, UPDATE blob and asset to `FAILED` with reason `FILE_SIZE_MISMATCH`,
-     return `422 Unprocessable Entity`
-   - If match: Continue to step 6
+    - If mismatch: DELETE temp key, UPDATE blob and asset to `FAILED` with reason
+      `FILE_SIZE_MISMATCH`,
+      return `422 Unprocessable Entity`
+    - If match: Continue to step 6
 
 6. **Verify hash:** Compare computed SHA-256 with the `fileHash` from the PUT call
-   - If mismatch: DELETE temp key, UPDATE blob and asset to `FAILED` with reason `HASH_MISMATCH`,
-     return `422 Unprocessable Entity`
-   - If match: Continue to step 7
+    - If mismatch: DELETE temp key, UPDATE blob and asset to `FAILED` with reason `HASH_MISMATCH`,
+      return `422 Unprocessable Entity`
+    - If match: Continue to step 7
 
 7. **Acquire lock on blob:** SELECT blob FOR UPDATE to prevent race with another upload
 
 8. **If blob already READY** (another concurrent upload won):
-   - DELETE temp key
-   - UPDATE asset to `READY` with `storage_key=blob.storage_key`, `detected_media_type=blob.detected_media_type`
-   - Return `200 OK` with `{ status: READY, deduped: true }`
+    - DELETE temp key
+    - UPDATE asset to `READY` with `storage_key=blob.storage_key`,
+      `detected_media_type=blob.detected_media_type`
+    - Return `200 OK` with `{ status: READY, deduped: true }`
 
 9. **If blob still UPLOADING** (we are first):
-   - COPY temp key to canonical key: `assets/{workspaceId}/blobs/{sha256}.{ext}` using the extension
-     derived from `detected_media_type`, not `declaredMediaType`
-   - DELETE temp key
-   - UPDATE blob to `READY` with `storage_key=canonicalKey`, `file_size_bytes=actualBytes`,
-     `detected_media_type`, `orphaned_at=NULL`
-   - UPDATE asset to `READY` with `storage_key=canonicalKey`, `detected_media_type`
-   - Return `200 OK` with `{ status: READY, deduped: false }`
+    - COPY temp key to canonical key: `assets/{workspaceId}/blobs/{sha256}.{ext}` using the
+      extension
+      derived from `detected_media_type`, not `declaredMediaType`
+    - DELETE temp key
+    - UPDATE blob to `READY` with `storage_key=canonicalKey`, `file_size_bytes=actualBytes`,
+      `detected_media_type`, `orphaned_at=NULL`
+    - UPDATE asset to `READY` with `storage_key=canonicalKey`, `detected_media_type`
+    - Return `200 OK` with `{ status: READY, deduped: false }`
 
 #### Scenario: Successful upload (no dedup)
 
@@ -303,7 +314,8 @@ The system SHALL perform the following steps in order:
 #### Scenario: File size mismatch rejection
 
 - GIVEN an asset with `status=PENDING_UPLOAD` exists for workspace `ws_abc`
-- WHEN the client POSTs file bytes whose actual byte count does NOT match the declared `fileSizeBytes`
+- WHEN the client POSTs file bytes whose actual byte count does NOT match the declared
+  `fileSizeBytes`
 - THEN the system SHALL DELETE the temp file
 - AND SHALL UPDATE blob and asset to `FAILED` with `failure_reason='FILE_SIZE_MISMATCH'`
 - AND SHALL return `422 Unprocessable Entity` with:
@@ -323,7 +335,8 @@ The system SHALL perform the following steps in order:
 
 ### Requirement: DELETE Asset with Deferred Blob GC
 
-The system SHALL expose `DELETE /api/workspaces/{workspaceId}/media/assets/{assetId}` for soft-deleting
+The system SHALL expose `DELETE /api/workspaces/{workspaceId}/media/assets/{assetId}` for
+soft-deleting
 assets. This endpoint SHALL mark the asset as `DELETED` and, if no other active assets reference the
 same blob, mark the blob as `READY_FOR_GC` with an `orphaned_at` timestamp.
 
@@ -340,10 +353,10 @@ The system SHALL perform the following steps in order:
 6. SELECT COUNT(*) FROM `media_assets` WHERE `workspace_id=?` AND `file_hash=?`
    AND `status NOT IN ('DELETED','FAILED')`
 7. If COUNT == 0:
-   - UPDATE blob to `status='READY_FOR_GC', orphaned_at=now()`
-   - Return `200 OK` with `{ deleted: true, blobScheduledForGC: true }`
+    - UPDATE blob to `status='READY_FOR_GC', orphaned_at=now()`
+    - Return `200 OK` with `{ deleted: true, blobScheduledForGC: true }`
 8. If COUNT > 0:
-   - Return `200 OK` with `{ deleted: true, blobScheduledForGC: false }`
+    - Return `200 OK` with `{ deleted: true, blobScheduledForGC: false }`
 
 The blob row SHALL remain in `workspace_file_blobs` even after the later GC job deletes the physical
 storage object.
@@ -385,10 +398,10 @@ The job SHALL:
 2. For each blob:
    a. DELETE the storage object at `blob.storage_key`
    b. If storage delete succeeds: UPDATE the blob row to `status='GARBAGE_COLLECTED'`,
-      `last_gc_attempt_at=now()`, `failure_reason=NULL`
+   `last_gc_attempt_at=now()`, `failure_reason=NULL`
    c. If storage delete fails:
-      - UPDATE blob with `failure_reason`, `gc_failure_count + 1`, `last_gc_attempt_at`
-      - Log the failure and continue to next blob
+    - UPDATE blob with `failure_reason`, `gc_failure_count + 1`, `last_gc_attempt_at`
+    - Log the failure and continue to next blob
 
 The job SHALL use `FOR UPDATE SKIP LOCKED` to allow concurrent workers without blocking.
 
@@ -426,19 +439,21 @@ stale `PENDING_UPLOAD` and `UPLOADING` assets to `FAILED` status.
 The job SHALL:
 
 1. SELECT assets with either:
-   - `status='PENDING_UPLOAD'` AND `created_at < now() - 24 hours`, or
-   - `status='UPLOADING'` AND `upload_started_at < now() - 24 hours`
-   ORDER BY `created_at ASC` LIMIT 100
+    - `status='PENDING_UPLOAD'` AND `created_at < now() - 24 hours`, or
+    - `status='UPLOADING'` AND `upload_started_at < now() - 24 hours`
+      ORDER BY `created_at ASC` LIMIT 100
 
 2. For each asset:
    a. UPDATE asset to `status='FAILED'` with reason:
-      - `expired:pending_upload_ttl` for stale `PENDING_UPLOAD`, or
-      - `expired:uploading_ttl` for stale `UPLOADING`
-   b. SELECT blob `FOR UPDATE` by `(workspace_id, file_hash)`
-   c. Recompute active references using the same rule as DELETE: count `media_assets` for the same
+    - `expired:pending_upload_ttl` for stale `PENDING_UPLOAD`, or
+    - `expired:uploading_ttl` for stale `UPLOADING`
+      b. SELECT blob `FOR UPDATE` by `(workspace_id, file_hash)`
+      c. Recompute active references using the same rule as DELETE: count `media_assets` for the
+      same
       `(workspace_id, file_hash)` where `status NOT IN ('DELETED','FAILED')`
-   d. If that active-reference count is zero, UPDATE the blob to `status='READY_FOR_GC', orphaned_at=now()`
-   e. Log the transition
+      d. If that active-reference count is zero, UPDATE the blob to
+      `status='READY_FOR_GC', orphaned_at=now()`
+      e. Log the transition
 
 The lock-and-count sequence SHALL be atomic with respect to concurrent DELETE and PUT retry flows.
 
@@ -453,25 +468,26 @@ The lock-and-count sequence SHALL be atomic with respect to concurrent DELETE an
 - GIVEN an asset with `status=UPLOADING` and `upload_started_at=25 hours ago`
 - WHEN `MediaAssetExpirationJob` runs
 - THEN the asset SHALL be marked `FAILED` with `failure_reason='expired:uploading_ttl'`
-- AND the blob SHALL be checked under lock and marked `READY_FOR_GC` only if it has no active references
+- AND the blob SHALL be checked under lock and marked `READY_FOR_GC` only if it has no active
+  references
 
 ### Requirement: MIME to Extension Mapping
 
 The system SHALL derive temporary-key extensions from declared media types and canonical-key
 extensions from detected media types.
 
-| Media Type | Extension | Magic Bytes |
-|-----------|-----------|-------------|
-| `image/jpeg` | `.jpg` | `FF D8 FF` |
-| `image/png` | `.png` | `89 50 4E 47` |
-| `image/gif` | `.gif` | `47 49 46 38` |
-| `image/webp` | `.webp` | `52 49 46 46` + `57 45 42 50` |
-| `video/mp4` | `.mp4` | `ftyp` at offset 4 |
-| `application/pdf` | `.pdf` | `25 50 44 46` |
-| `application/msword` | `.doc` | DDE (text), OLE2 (binary) |
-| `application/vnd.openxmlformats-officedocument.wordprocessingml.document` | `.docx` | ZIP magic `50 4B 03 04` |
-| `application/vnd.ms-powerpoint` | `.ppt` | OLE2 magic |
-| `application/vnd.openxmlformats-officedocument.presentationml.presentation` | `.pptx` | ZIP magic `50 4B 03 04` |
+| Media Type                                                                  | Extension | Magic Bytes                   |
+|-----------------------------------------------------------------------------|-----------|-------------------------------|
+| `image/jpeg`                                                                | `.jpg`    | `FF D8 FF`                    |
+| `image/png`                                                                 | `.png`    | `89 50 4E 47`                 |
+| `image/gif`                                                                 | `.gif`    | `47 49 46 38`                 |
+| `image/webp`                                                                | `.webp`   | `52 49 46 46` + `57 45 42 50` |
+| `video/mp4`                                                                 | `.mp4`    | `ftyp` at offset 4            |
+| `application/pdf`                                                           | `.pdf`    | `25 50 44 46`                 |
+| `application/msword`                                                        | `.doc`    | DDE (text), OLE2 (binary)     |
+| `application/vnd.openxmlformats-officedocument.wordprocessingml.document`   | `.docx`   | ZIP magic `50 4B 03 04`       |
+| `application/vnd.ms-powerpoint`                                             | `.ppt`    | OLE2 magic                    |
+| `application/vnd.openxmlformats-officedocument.presentationml.presentation` | `.pptx`   | ZIP magic `50 4B 03 04`       |
 
 #### Scenario: Canonical storage key generation
 
@@ -480,7 +496,8 @@ extensions from detected media types.
 
 #### Scenario: Temp storage key generation
 
-- GIVEN workspace `ws_abc`, asset ID `550e8400-e29b-41d4-a716-446655440000`, and declared media type `image/png`
+- GIVEN workspace `ws_abc`, asset ID `550e8400-e29b-41d4-a716-446655440000`, and declared media type
+  `image/png`
 - THEN the temp storage key SHALL be `assets/ws_abc/temp/550e8400-e29b-41d4-a716-446655440000.png`
 
 #### Scenario: Canonical key uses detected MIME, not declared MIME
@@ -575,6 +592,7 @@ ALTER TABLE media_assets
 ### PUT /api/workspaces/{workspaceId}/media/assets/{assetId}
 
 **Response: 201 Created (new asset)**
+
 ```json
 {
   "assetId": "550e8400-e29b-41d4-a716-446655440000",
@@ -588,6 +606,7 @@ ALTER TABLE media_assets
 ```
 
 **Response: 200 OK (idempotent PUT)**
+
 ```json
 {
   "assetId": "550e8400-e29b-41d4-a716-446655440000",
@@ -600,10 +619,12 @@ ALTER TABLE media_assets
 ```
 
 **Response: 202 Accepted (blob UPLOADING)**
+
 ```
 HTTP/1.1 202 Accepted
 Retry-After: 3
 ```
+
 ```json
 {
   "status": "WAITING_FOR_BLOB",
@@ -613,6 +634,7 @@ Retry-After: 3
 ```
 
 **Response: 409 Conflict (hash mismatch)**
+
 ```json
 {
   "error": "ASSET_HASH_MISMATCH",
@@ -622,6 +644,7 @@ Retry-After: 3
 ```
 
 **Response: 400 Bad Request (validation failure)**
+
 ```json
 {
   "error": "VALIDATION_ERROR",
@@ -631,6 +654,7 @@ Retry-After: 3
 ```
 
 **Response: 429 Too Many Requests**
+
 ```json
 {
   "error": "RATE_LIMIT_EXCEEDED",
@@ -644,6 +668,7 @@ Retry-After: 3
 **Request:** Raw bytes, `Content-Type: application/octet-stream`
 
 **Response: 200 OK (upload success)**
+
 ```json
 {
   "assetId": "550e8400-e29b-41d4-a716-446655440000",
@@ -658,6 +683,7 @@ Retry-After: 3
 ```
 
 **Response: 200 OK (dedup hit during upload)**
+
 ```json
 {
   "assetId": "550e8400-e29b-41d4-a716-446655440000",
@@ -672,6 +698,7 @@ Retry-After: 3
 ```
 
 **Response: 409 Conflict (upload in progress)**
+
 ```json
 {
   "error": "UPLOAD_IN_PROGRESS",
@@ -680,6 +707,7 @@ Retry-After: 3
 ```
 
 **Response: 422 Unprocessable Entity (hash mismatch)**
+
 ```json
 {
   "error": "HASH_MISMATCH",
@@ -688,6 +716,7 @@ Retry-After: 3
 ```
 
 **Response: 422 Unprocessable Entity (file size mismatch)**
+
 ```json
 {
   "error": "FILE_SIZE_MISMATCH",
@@ -696,6 +725,7 @@ Retry-After: 3
 ```
 
 **Response: 404 Not Found (asset deleted)**
+
 ```json
 {
   "error": "ASSET_NOT_FOUND",
@@ -706,6 +736,7 @@ Retry-After: 3
 ### DELETE /api/workspaces/{workspaceId}/media/assets/{assetId}
 
 **Response: 200 OK (deleted, blob scheduled for GC)**
+
 ```json
 {
   "deleted": true,
@@ -714,6 +745,7 @@ Retry-After: 3
 ```
 
 **Response: 200 OK (deleted, blob still referenced)**
+
 ```json
 {
   "deleted": true,
@@ -722,6 +754,7 @@ Retry-After: 3
 ```
 
 **Response: 404 Not Found**
+
 ```json
 {
   "error": "ASSET_NOT_FOUND",
@@ -1138,6 +1171,7 @@ databaseChangeLog:
 ```
 
 **Order of Operations:**
+
 1. Create `workspace_file_blobs` table with PK and FK to `workspaces`
 2. Add CHECK constraints to `workspace_file_blobs`
 3. Add CHECK constraints to `media_assets` (file_hash NOT NULL first)
@@ -1149,38 +1183,38 @@ databaseChangeLog:
 
 ## Idempotency Matrix Reference
 
-| Scenario | Behavior | Status Code |
-|----------|----------|-------------|
-| PUT same assetId + same hash | Return current state | 200 |
-| PUT same assetId + different hash | `ASSET_HASH_MISMATCH` error | 409 |
-| PUT new asset + blob READY | Dedup, asset → READY | 201 |
-| PUT new asset + blob UPLOADING | Wait for other with polling | 202 + Retry-After |
-| PUT new asset + blob FAILED | Retry, blob → UPLOADING | 201 |
-| PUT new asset + blob READY_FOR_GC | Retry, blob → UPLOADING, clear orphaned_at | 201 |
-| PUT new asset + blob GARBAGE_COLLECTED | Retry: blob → UPLOADING, storage_key → null, orphaned_at → null, gc_failure_count → 0; client re-uploads bytes | 201 |
-| PUT new asset + blob doesn't exist | Create both, asset → PENDING | 201 |
-| POST /upload on PENDING_UPLOAD asset | claimUploadSlot → UPLOADING | 200 |
-| POST /upload on UPLOADING asset | Idempotent if same uploader | 200 or 409 |
-| POST /upload on READY asset | Idempotent (no-op) | 200 |
-| POST /upload on FAILED asset | Allow retry | 200 |
-| POST /upload hash mismatch | Temp deleted, blob + asset → FAILED | 422 |
-| POST /upload file size mismatch | Temp deleted, blob + asset → FAILED | 422 |
-| POST /upload on DELETED asset | 404 | 404 |
-| DELETE on READY asset | Soft delete + maybe mark blob READY_FOR_GC | 200 |
-| DELETE already DELETED asset | Idempotent | 200 |
-| DELETE non-existent asset | 404 | 404 |
-| GC on READY_FOR_GC blob after retention | Delete storage object, blob row → GARBAGE_COLLECTED | internal |
+| Scenario                                | Behavior                                                                                                       | Status Code       |
+|-----------------------------------------|----------------------------------------------------------------------------------------------------------------|-------------------|
+| PUT same assetId + same hash            | Return current state                                                                                           | 200               |
+| PUT same assetId + different hash       | `ASSET_HASH_MISMATCH` error                                                                                    | 409               |
+| PUT new asset + blob READY              | Dedup, asset → READY                                                                                           | 201               |
+| PUT new asset + blob UPLOADING          | Wait for other with polling                                                                                    | 202 + Retry-After |
+| PUT new asset + blob FAILED             | Retry, blob → UPLOADING                                                                                        | 201               |
+| PUT new asset + blob READY_FOR_GC       | Retry, blob → UPLOADING, clear orphaned_at                                                                     | 201               |
+| PUT new asset + blob GARBAGE_COLLECTED  | Retry: blob → UPLOADING, storage_key → null, orphaned_at → null, gc_failure_count → 0; client re-uploads bytes | 201               |
+| PUT new asset + blob doesn't exist      | Create both, asset → PENDING                                                                                   | 201               |
+| POST /upload on PENDING_UPLOAD asset    | claimUploadSlot → UPLOADING                                                                                    | 200               |
+| POST /upload on UPLOADING asset         | Idempotent if same uploader                                                                                    | 200 or 409        |
+| POST /upload on READY asset             | Idempotent (no-op)                                                                                             | 200               |
+| POST /upload on FAILED asset            | Allow retry                                                                                                    | 200               |
+| POST /upload hash mismatch              | Temp deleted, blob + asset → FAILED                                                                            | 422               |
+| POST /upload file size mismatch         | Temp deleted, blob + asset → FAILED                                                                            | 422               |
+| POST /upload on DELETED asset           | 404                                                                                                            | 404               |
+| DELETE on READY asset                   | Soft delete + maybe mark blob READY_FOR_GC                                                                     | 200               |
+| DELETE already DELETED asset            | Idempotent                                                                                                     | 200               |
+| DELETE non-existent asset               | 404                                                                                                            | 404               |
+| GC on READY_FOR_GC blob after retention | Delete storage object, blob row → GARBAGE_COLLECTED                                                            | internal          |
 
 ---
 
 ## Glossary
 
-| Term | Definition |
-|------|------------|
-| CAS | Content-Addressed Storage — storage model where data is addressed by its cryptographic hash |
-| SHA-256 | Secure Hash Algorithm 256-bit — cryptographic hash function used for deduplication |
-| Dedup | Deduplication — eliminating duplicate copies of identical data |
-| Blob | Binary Large Object — the physical stored file |
-| GC | Garbage Collection — the process of reclaiming orphaned blob storage |
-| Retention period | 7-day period after which orphaned blobs are physically deleted from storage |
-| Magic bytes | First few bytes of a file that identify its format |
+| Term             | Definition                                                                                  |
+|------------------|---------------------------------------------------------------------------------------------|
+| CAS              | Content-Addressed Storage — storage model where data is addressed by its cryptographic hash |
+| SHA-256          | Secure Hash Algorithm 256-bit — cryptographic hash function used for deduplication          |
+| Dedup            | Deduplication — eliminating duplicate copies of identical data                              |
+| Blob             | Binary Large Object — the physical stored file                                              |
+| GC               | Garbage Collection — the process of reclaiming orphaned blob storage                        |
+| Retention period | 7-day period after which orphaned blobs are physically deleted from storage                 |
+| Magic bytes      | First few bytes of a file that identify its format                                          |

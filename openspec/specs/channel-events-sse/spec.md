@@ -2,15 +2,20 @@
 
 ## Purpose
 
-Define a one-way server-sent event stream that notifies the SPA of connected-channel state changes, using fetch-streaming with Bearer auth. REST remains the canonical source of truth; SSE is progressive enhancement only.
+Define a one-way server-sent event stream that notifies the SPA of connected-channel state changes,
+using fetch-streaming with Bearer auth. REST remains the canonical source of truth; SSE is
+progressive enhancement only.
 
 ## Requirements
 
 ### Requirement: SSE Channel Change Notification Stream
 
-The system MUST expose `GET /api/publishing/channels/events` returning a `Flux<ServerSentEvent<ChannelEvent>>` scoped to the requesting principal's active workspace.
+The system MUST expose `GET /api/publishing/channels/events` returning a
+`Flux<ServerSentEvent<ChannelEvent>>` scoped to the requesting principal's active workspace.
 
-Each event MUST carry a typed payload: `connected-channel.updated` or `connected-channel.removed`. The event payload MUST contain only a safe summary or a signal instructing the SPA to refetch the canonical channel list. Channel correctness MUST NOT depend on SSE delivery.
+Each event MUST carry a typed payload: `connected-channel.updated` or `connected-channel.removed`.
+The event payload MUST contain only a safe summary or a signal instructing the SPA to refetch the
+canonical channel list. Channel correctness MUST NOT depend on SSE delivery.
 
 #### Scenario: Authenticated client receives channel change event
 
@@ -28,7 +33,8 @@ Each event MUST carry a typed payload: `connected-channel.updated` or `connected
 
 ### Requirement: SSE Uses Fetch Streaming with Bearer Auth
 
-The SSE endpoint MUST be consumed via fetch-streaming with explicit `Authorization: Bearer` header. Native `EventSource` MUST NOT be required because it cannot send custom Authorization headers.
+The SSE endpoint MUST be consumed via fetch-streaming with explicit `Authorization: Bearer` header.
+Native `EventSource` MUST NOT be required because it cannot send custom Authorization headers.
 
 #### Scenario: Fetch streaming with Bearer token succeeds
 
@@ -45,7 +51,8 @@ The SSE endpoint MUST be consumed via fetch-streaming with explicit `Authorizati
 
 ### Requirement: SSE Is Non-Critical for Channel Correctness
 
-Channel list correctness MUST depend solely on the REST endpoint `GET /api/publishing/channels`. SSE event loss, latency, or endpoint failure MUST NOT cause channel state inconsistency.
+Channel list correctness MUST depend solely on the REST endpoint `GET /api/publishing/channels`. SSE
+event loss, latency, or endpoint failure MUST NOT cause channel state inconsistency.
 
 #### Scenario: SSE endpoint failure does not break channel listing
 

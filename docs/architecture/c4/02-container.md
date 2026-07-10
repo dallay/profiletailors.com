@@ -166,7 +166,8 @@ graph TB
 - **Purpose**: Core business logic and REST API
 - **Architecture**: Hexagonal architecture with bounded contexts
 - **Composition**: Multi-module Gradle project composed of:
-    - `shared:common` — **Shared Kernel**: domain primitives, base entities, value objects (pure Kotlin, zero Spring dependencies)
+    - `shared:common` — **Shared Kernel**: domain primitives, base entities, value objects (pure
+      Kotlin, zero Spring dependencies)
     - `shared:bus` — Event bus abstractions
     - `shared:spring-boot-common` — Spring Boot integration library
     - `shared:security` — Security primitives
@@ -319,7 +320,7 @@ graph TB
 │ Local Development                                       │
 ├─────────────────────────────────────────────────────────┤
 │ • Marketing Site: localhost:4321 (Astro dev server)    │
-│ • API Application: localhost:8080 (Spring Boot)        │
+│ • API Application: localhost:7638 (Spring Boot)        │
 │ • PostgreSQL: localhost:5432 (Docker Compose)          │
 │ • Redis: localhost:6379 (Docker Compose)               │
 │ • RabbitMQ: localhost:5672 (Docker Compose)            │

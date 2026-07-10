@@ -7,24 +7,27 @@ Chained PRs recommended: Yes
 Chain strategy: feature-branch-chain
 400-line budget risk: High
 
-| Unit | Goal | PR | Notes |
-|------|------|----|-------|
-| 1 | Foundation: types, stores, mock data, formatters, i18n, layout, shared primitives | PR 1 → main | No sections yet |
-| 2 | MVP: 5 dashboard sections + component tests | PR 2 → PR 1 | Depends on Unit 1 |
-| 3 | Schedule & Pipeline: 4 sections + uPlot | PR 3 → PR 2 | Depends on Unit 2 |
-| 4 | Engagement + HomeView wiring + verification | PR 4 → PR 3 | Final integration |
+| Unit | Goal                                                                              | PR          | Notes             |
+|------|-----------------------------------------------------------------------------------|-------------|-------------------|
+| 1    | Foundation: types, stores, mock data, formatters, i18n, layout, shared primitives | PR 1 → main | No sections yet   |
+| 2    | MVP: 5 dashboard sections + component tests                                       | PR 2 → PR 1 | Depends on Unit 1 |
+| 3    | Schedule & Pipeline: 4 sections + uPlot                                           | PR 3 → PR 2 | Depends on Unit 2 |
+| 4    | Engagement + HomeView wiring + verification                                       | PR 4 → PR 3 | Final integration |
 
 ## Phase 1: Foundation
 
 - [x] 1.1 `src/lib/types/dashboard.ts` — all data model interfaces
 - [x] 1.2 `src/lib/formatters.ts` — formatNumber, formatPercent, formatDelta, formatRelativeTime
-- [x] 1.3–1.8 `src/lib/mockData/*.ts` — typed fixtures (analytics, insights, contentPipeline, scheduling, engagement, growthScore)
+- [x] 1.3–1.8 `src/lib/mockData/*.ts` — typed fixtures (analytics, insights, contentPipeline,
+  scheduling, engagement, growthScore)
 - [x] 1.9 `src/lib/mockData/index.ts` — barrel export
-- [x] 1.10–1.13 `src/stores/{analytics,insights,contentPipeline,dashboard}.ts` — stores per domain + orchestrator
+- [x] 1.10–1.13 `src/stores/{analytics,insights,contentPipeline,dashboard}.ts` — stores per domain +
+  orchestrator
 - [x] 1.14 `src/assets/main.css` — chart tokens, sparkline/heatmap utilities
 - [x] 1.15 `src/i18n/index.ts` — ~120 EN/ES keys under dashboard.*
 - [x] 1.16 `src/components/dashboard/DashboardLayout.vue` — responsive grid, welcome, skeleton gate
-- [x] 1.17–1.21 `src/components/dashboard/shared/{KpiCard,SparklineChart,PlatformBar,ScoreGauge,HeatmapGrid}.vue`
+- [x] 1.17–1.21
+  `src/components/dashboard/shared/{KpiCard,SparklineChart,PlatformBar,ScoreGauge,HeatmapGrid}.vue`
 - [x] 1.22 `src/lib/formatters.test.ts`
 - [x] 1.23 Store unit tests (analytics, insights, contentPipeline)
 
@@ -70,4 +73,5 @@ Chain strategy: feature-branch-chain
 
 ## Parallelizable
 
-- Mock data (1.3–1.8), CSS (1.14) + i18n (1.15), shared components (1.17–1.21), sections within each phase
+- Mock data (1.3–1.8), CSS (1.14) + i18n (1.15), shared components (1.17–1.21), sections within each
+  phase

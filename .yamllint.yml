@@ -1,0 +1,22 @@
+# yamllint configuration file
+---
+extends: default
+ignore: |
+  .yamllint.yml
+  node_modules/
+  .pnpm-store/
+  pnpm-lock.yaml
+  apps/web/marketing/dist/
+  apps/web/app/dist/
+  shared/assets/web/
+  build/
+  .gradle/
+rules:
+  line-length:
+    max: 250
+    allow-non-breakable-words: true
+    allow-non-breakable-inline-mappings: true
+  document-start: disable
+  truthy: disable
+  comments: disable
+  comments-indentation: disable

@@ -317,3 +317,27 @@ body {
 .animate-collapsible-up {
   animation: collapsible-up 0.2s ease-out;
 }
+
+/* Native thin scrollbar utility for overflow containers that do not use reka ScrollArea */
+.thin-scrollbar {
+  scrollbar-width: thin;
+  scrollbar-color: color-mix(in srgb, var(--border-visible-color) 72%, transparent) transparent;
+}
+
+.thin-scrollbar::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+.thin-scrollbar::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.thin-scrollbar::-webkit-scrollbar-thumb {
+  background-color: color-mix(in srgb, var(--border-visible-color) 72%, transparent);
+  border-radius: 9999px;
+}
+
+.thin-scrollbar::-webkit-scrollbar-thumb:hover {
+  background-color: color-mix(in srgb, var(--text-secondary) 85%, transparent);
+}

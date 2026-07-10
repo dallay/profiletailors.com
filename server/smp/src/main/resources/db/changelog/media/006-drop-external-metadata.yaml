@@ -1,0 +1,38 @@
+databaseChangeLog:
+  - changeSet:
+      id: media-006-drop-external-metadata
+      author: sdd-apply
+      changes:
+        - sql:
+            dbms: postgresql
+            sql: >
+              ALTER TABLE media_assets
+              DROP CONSTRAINT chk_asset_uploaded_implies_no_provider
+        - sql:
+            dbms: postgresql
+            sql: >
+              ALTER TABLE media_assets
+              DROP CONSTRAINT chk_asset_external_implies_provider_and_id
+        - sql:
+            dbms: postgresql
+            sql: >
+              ALTER TABLE media_assets
+              DROP CONSTRAINT chk_asset_uploaded_implies_no_external_attribution
+        - dropColumn:
+            tableName: media_assets
+            columnName: metadata
+        - dropColumn:
+            tableName: media_assets
+            columnName: author_url
+        - dropColumn:
+            tableName: media_assets
+            columnName: author_name
+        - dropColumn:
+            tableName: media_assets
+            columnName: source_url
+        - dropColumn:
+            tableName: media_assets
+            columnName: external_id
+        - dropColumn:
+            tableName: media_assets
+            columnName: source_provider

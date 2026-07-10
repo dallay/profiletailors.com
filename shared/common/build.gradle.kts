@@ -14,6 +14,7 @@ dependencies {
 
     testImplementation(libs.kotlin.test.junit5)
     testImplementation(libs.assertj.core)
+    testImplementation(libs.kotest.assertions.core)
     testImplementation(libs.mockk)
     testImplementation(libs.kotlinx.coroutines.test)
     testImplementation(libs.junit.jupiter.params)

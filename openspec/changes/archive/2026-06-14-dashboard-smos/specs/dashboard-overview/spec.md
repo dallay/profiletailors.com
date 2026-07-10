@@ -2,7 +2,8 @@
 
 ## Purpose
 
-Delivers at-a-glance KPI cards with sparkline trends, period-over-period deltas, and comparison labels — the user's first signal of account health when opening the dashboard.
+Delivers at-a-glance KPI cards with sparkline trends, period-over-period deltas, and comparison
+labels — the user's first signal of account health when opening the dashboard.
 
 ## Data Model
 
@@ -30,7 +31,8 @@ interface OverviewData {
 
 ### Requirement: KPI Card Display
 
-The system SHALL render a row of KPI cards, each showing label, formatted value, delta with direction indicator, and a sparkline.
+The system SHALL render a row of KPI cards, each showing label, formatted value, delta with
+direction indicator, and a sparkline.
 
 #### Scenario: KPI card renders with positive trend
 
@@ -56,7 +58,8 @@ The system SHALL render a row of KPI cards, each showing label, formatted value,
 
 ### Requirement: Period Selector
 
-The overview section SHALL include a period selector allowing the user to switch between 7-day, 30-day, and 90-day views.
+The overview section SHALL include a period selector allowing the user to switch between 7-day,
+30-day, and 90-day views.
 
 #### Scenario: User changes period
 
