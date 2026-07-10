@@ -304,16 +304,24 @@ function getPublicationsForDate(date: Date): Publication[] {
   })
 }
 
-function getPublicationsForSlot(date: Date, hour: number) {
-  return filteredPublications.value.filter((pub) => {
+function slotKey(date: Date, hour: number): string {
+  return `${dateKey(date)}#${hour}`
+}
+
+const publicationsBySlot = computed(() => {
+  const map = new Map<string, Publication[]>()
+  for (const pub of filteredPublications.value) {
     const pubDate = new Date(pub.scheduledAt)
-    return (
-      pubDate.getDate() === date.getDate() &&
-      pubDate.getMonth() === date.getMonth() &&
-      pubDate.getFullYear() === date.getFullYear() &&
-      pubDate.getHours() === hour
-    )
-  })
+    const key = slotKey(pubDate, pubDate.getHours())
+    const bucket = map.get(key)
+    if (bucket) bucket.push(pub)
+    else map.set(key, [pub])
+  }
+  return map
+})
+
+function publicationsForSlot(date: Date, hour: number): Publication[] {
+  return publicationsBySlot.value.get(slotKey(date, hour)) ?? []
 }
 
 
@@ -619,7 +627,7 @@ watch(
                   >
                     <!-- biome-ignore lint/a11y/noStaticElementInteractions: non-button container required to avoid nested buttons (delete btn inside card) -->
                     <div
-                      v-for="pub in getPublicationsForSlot(day, slot.hour).slice(0, 2)"
+                      v-for="pub in publicationsForSlot(day, slot.hour).slice(0, 2)"
                       :key="pub.id"
                       :draggable="true"
                       @click.stop="openPostDetail(pub)"
@@ -682,10 +690,10 @@ watch(
 
                     <!-- "+N more" indicator when posts exceed visible limit -->
                     <div
-                      v-if="getPublicationsForSlot(day, slot.hour).length > 2"
+                      v-if="publicationsForSlot(day, slot.hour).length > 2"
                       class="text-[7px] font-mono text-text-secondary pl-1"
                     >
-                      {{ t('scheduler.morePosts', { count: getPublicationsForSlot(day, slot.hour).length - 2 }) }}
+                      {{ t('scheduler.morePosts', { count: publicationsForSlot(day, slot.hour).length - 2 }) }}
                     </div>
 
                     <!-- Add post button (only in enabled slots) -->
