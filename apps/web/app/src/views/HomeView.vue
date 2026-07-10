@@ -4,6 +4,7 @@ import { useAuthStore } from '@/stores/auth'
 import { Button } from '@/components/ui/button'
 import CreatePostModal from '@/components/CreatePostModal.vue'
 import DashboardLayout from '@/components/dashboard/DashboardLayout.vue'
+import { toast } from 'vue-sonner'
 
 const auth = useAuthStore()
 
@@ -42,6 +43,7 @@ function handleOpenModal() {
 
 function handleCreated() {
   isModalOpen.value = false
+  toast.success('Post scheduled successfully')
 }
 </script>
 

@@ -15,6 +15,7 @@ import ConflictBadge from '@/components/ConflictBadge.vue'
 import { Card } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { getProviderColor, getProviderBadge } from '@/lib/provider-styles'
+import { toast } from 'vue-sonner'
 
 const publishingStore = usePublishingStore()
 const { locale: i18nLocale } = useI18n()
@@ -460,6 +461,11 @@ async function handleUpdated() {
   })
 }
 
+function onPostCreated() {
+  isModalOpen.value = false
+  toast.success('Post scheduled successfully')
+}
+
 function onReschedule() {
   // Store already updated by PostDetailModal; just close
   closePostDetail()
@@ -650,7 +656,7 @@ watch(
                     @keydown.space.prevent="isPastSlot(day, slot.hour) ? undefined : openNewPostForSlot(day, slot.hour)"
                     @dragover.prevent="!isPastSlot(day, slot.hour)"
                     @drop.prevent="!isPastSlot(day, slot.hour) ? onDropCell($event, day, slot.hour) : undefined"
-                    class="relative p-2 border-r border-border-subtle last:border-r-0 transition-all group/cell flex flex-col justify-start gap-2 select-none"
+                    class="relative p-2 border-r border-border-subtle last:border-r-0 transition-all group/cell flex flex-col justify-start gap-2 select-none overflow-hidden"
                     :class="isPastSlot(day, slot.hour)
                       ? 'bg-text-secondary/5 text-text-secondary cursor-not-allowed after:absolute after:inset-0 after:bg-[repeating-linear-gradient(-45deg,transparent,transparent_10px,var(--border-color)_10px,var(--border-color)_11px)] after:opacity-10 after:z-0'
                       : 'hover:bg-bg-primary/20 cursor-pointer'"
@@ -660,7 +666,7 @@ watch(
                     <!-- Scheduled Posts -->
                     <!-- biome-ignore lint/a11y/noStaticElementInteractions: non-button container required to avoid nested buttons (delete btn inside card) -->
                     <div
-                      v-for="pub in getPublicationsForSlot(day, slot.hour)"
+                      v-for="pub in getPublicationsForSlot(day, slot.hour).slice(0, 2)"
                       :key="pub.id"
                       :draggable="true"
                       @click.stop="openPostDetail(pub)"
@@ -723,6 +729,14 @@ watch(
                       >
                         <Trash2 class="size-2.5" />
                       </button>
+                    </div>
+
+                    <!-- "+N more" indicator when posts exceed visible limit -->
+                    <div
+                      v-if="getPublicationsForSlot(day, slot.hour).length > 2"
+                      class="text-[7px] font-mono text-text-secondary pl-1"
+                    >
+                      +{{ getPublicationsForSlot(day, slot.hour).length - 2 }} more
                     </div>
 
                     <!-- Add post button (only in enabled slots) -->
@@ -843,7 +857,7 @@ watch(
       :initial-date="selectedCellDate"
       :editing-publication="editingPublication ?? undefined"
       @close="isModalOpen = false; editingPublication = null"
-      @created="isModalOpen = false"
+      @created="onPostCreated"
       @updated="handleUpdated"
     />
 
