@@ -160,6 +160,31 @@ jobs:
         run: ./gradlew :server:smp:bddFastTest --no-daemon -x :shared:common:test -x :shared:spring-boot-common:test
 
   # ──────────────────────────────────────────────────────────────
+  # 5a. Backend Postgres integration suite
+  # ──────────────────────────────────────────────────────────────
+  backend-postgres:
+    name: 🐘 Backend Postgres
+    needs: changes
+    if: needs.changes.outputs.backend == 'true'
+    runs-on: ubuntu-latest
+    env:
+      SMP_POSTGRES_TEST_PASSWORD: ${{ secrets.SMP_POSTGRES_PASSWORD }}
+    steps:
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5
+        with:
+          persist-credentials: false
+
+      - uses: ./.github/actions/setup-backend
+
+      - name: Run Postgres integration tests
+        shell: bash
+        run: ./gradlew :server:smp:postgresIntegrationTest --no-daemon -x :shared:common:test -x :shared:spring-boot-common:test
+
+      - name: Run Postgres BDD suite
+        shell: bash
+        run: ./gradlew :server:smp:bddPostgresTest --no-daemon -x :shared:common:test -x :shared:spring-boot-common:test
+
+  # ──────────────────────────────────────────────────────────────
   # 6. Marketing E2E (Playwright — all browsers)
   # ──────────────────────────────────────────────────────────────
   marketing-e2e:

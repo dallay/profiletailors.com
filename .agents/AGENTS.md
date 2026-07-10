@@ -52,7 +52,7 @@ openspec/             # SDD artifacts (spec-driven development)
 | `just backend-test-fast`    | Fast tests (excludes BDD)          |
 | `just backend-check`        | Detekt + tests                     |
 | `just backend-bdd-fast`     | Fast BDD suite                     |
-| `just backend-bdd-postgres` | Postgres BDD (requires `infra-up`) |
+| `just backend-bdd-postgres` | Postgres BDD                      |
 
 ### Full Stack
 
@@ -75,7 +75,7 @@ openspec/             # SDD artifacts (spec-driven development)
 |-----------------|-----------------------------------------------------|
 | `just ci`       | Full CI: gitleaks, lint, tests, build, E2E          |
 | `just ci-local` | Fast subset (no E2E, no Postgres BDD)               |
-| `just ci-full`  | ci-local + Postgres BDD (requires `infra-up` first) |
+| `just ci-full`  | ci-local + Postgres integration + BDD tests         |
 
 ## Backend Architecture (Hexagonal)
 
@@ -130,14 +130,21 @@ Or simply: `just setup` (does steps 1, 3, 4 + agentsync + codegraph in one shot)
 The `bootRun` task reads the root `.env` file and exports vars to the JVM — works for both CLI and
 IntelliJ.
 
-## Test Tags (Pre-existing Exclusions)
+## Test Tags
 
+### CI Exclusions
 These tags are excluded in CI due to known pre-existing failures:
 
 | Tag          | Reason                                                     |
 |--------------|------------------------------------------------------------|
 | `modularity` | Spring Modulith named-interface issue (on main)            |
-| `postgres`   | Postgres/Testcontainers integration tests (not configured) |
+
+### CI Dedicated Jobs
+These tags are executed in dedicated CI jobs rather than the fast path:
+
+| Tag          | Logic                                                      |
+|--------------|------------------------------------------------------------|
+| `postgres`   | Full Postgres integration & BDD suite (runs in CI)         |
 
 ## Design Spec
 
