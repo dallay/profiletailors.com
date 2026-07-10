@@ -1,5 +1,6 @@
 package com.profiletailors.smp.publishing.infrastructure.scheduling
 
+import com.profiletailors.common.domain.persistence.AtomicTransactionRunner
 import com.profiletailors.smp.media.application.MediaAssetResolver
 import com.profiletailors.smp.media.application.ResolvedAssetSummary
 import com.profiletailors.smp.publishing.domain.DateCount
@@ -53,6 +54,7 @@ class PublishingSchedulingConfigurationTest {
     private val socialPublisher = SocialPublisher {
         ProviderPublishResult(externalPublicationId = "external-1")
     }
+    private val transactionRunner = NoOpTransactionRunner()
 
     private val configuration = PublishingSchedulingConfiguration(
         publicationJobRepository = publicationJobRepository,
@@ -97,11 +99,13 @@ class PublishingSchedulingConfigurationTest {
         val executor = configuration.publishingJobExecutor(
             notificationEventRepository = notificationEventRepository,
             publishingRetryPolicy = retryPolicy,
+            transactionRunner = transactionRunner,
         )
         val worker = configuration.publishingWorker(
             publicationJobRepository = publicationJobRepository,
             publicationRepository = publicationRepository,
             publishingJobExecutor = executor,
+            transactionRunner = transactionRunner,
         )
 
         assertNotNull(executor)
@@ -114,11 +118,13 @@ class PublishingSchedulingConfigurationTest {
         val executor = configuration.publishingJobExecutor(
             notificationEventRepository = NoOpNotificationEventRepository(),
             publishingRetryPolicy = retryPolicy,
+            transactionRunner = transactionRunner,
         )
         val worker = configuration.publishingWorker(
             publicationJobRepository = publicationJobRepository,
             publicationRepository = publicationRepository,
             publishingJobExecutor = executor,
+            transactionRunner = transactionRunner,
         )
         val scheduler = RecordingTaskScheduler()
 
@@ -143,11 +149,13 @@ class PublishingSchedulingConfigurationTest {
         val executor = configuration.publishingJobExecutor(
             notificationEventRepository = NoOpNotificationEventRepository(),
             publishingRetryPolicy = retryPolicy,
+            transactionRunner = transactionRunner,
         )
         val worker = configuration.publishingWorker(
             publicationJobRepository = publicationJobRepository,
             publicationRepository = publicationRepository,
             publishingJobExecutor = executor,
+            transactionRunner = transactionRunner,
         )
         val scheduler = RecordingTaskScheduler()
 
@@ -162,6 +170,10 @@ class PublishingSchedulingConfigurationTest {
         )
 
         assertEquals(0, scheduler.fixedRateSchedules.size)
+    }
+
+    private class NoOpTransactionRunner : AtomicTransactionRunner {
+        override suspend fun <T : Any> runAtomically(block: suspend () -> T): T = block()
     }
 
     private class RecordingTaskScheduler : TaskScheduler {

@@ -7,13 +7,15 @@ import liquibase.Liquibase
 import liquibase.database.DatabaseFactory
 import liquibase.resource.ClassLoaderResourceAccessor
 import org.junit.jupiter.api.BeforeEach
+import org.springframework.r2dbc.connection.R2dbcTransactionManager
 import org.springframework.r2dbc.core.DatabaseClient
 import org.springframework.test.context.DynamicPropertyRegistry
+import org.springframework.transaction.reactive.TransactionalOperator
 import org.testcontainers.containers.PostgreSQLContainer
 import java.sql.DriverManager
 
 object PostgresTestContainerSupport {
-    const val IMAGE = "postgres:16-alpine"
+    const val IMAGE = "postgres:16.4-alpine"
     const val DATABASE = "profiletailors_test"
     const val USERNAME = "profiletailors"
 
@@ -109,18 +111,24 @@ object PostgresDatabaseCleanup {
 abstract class PostgresDatabaseTestBase {
     protected abstract val postgres: PostgreSQLContainer<*>
 
-    protected val databaseClient: DatabaseClient by lazy {
-        DatabaseClient.create(
-            io.r2dbc.postgresql.PostgresqlConnectionFactory(
-                io.r2dbc.postgresql.PostgresqlConnectionConfiguration.builder()
-                    .host(postgres.host)
-                    .port(postgres.getMappedPort(PostgreSQLContainer.POSTGRESQL_PORT))
-                    .database(postgres.databaseName)
-                    .username(postgres.username)
-                    .password(postgres.password)
-                    .build(),
-            ),
+    protected val connectionFactory by lazy {
+        io.r2dbc.postgresql.PostgresqlConnectionFactory(
+            io.r2dbc.postgresql.PostgresqlConnectionConfiguration.builder()
+                .host(postgres.host)
+                .port(postgres.getMappedPort(PostgreSQLContainer.POSTGRESQL_PORT))
+                .database(postgres.databaseName)
+                .username(postgres.username)
+                .password(postgres.password)
+                .build(),
         )
+    }
+
+    protected val databaseClient: DatabaseClient by lazy {
+        DatabaseClient.create(connectionFactory)
+    }
+
+    protected val transactionalOperator by lazy {
+        TransactionalOperator.create(R2dbcTransactionManager(connectionFactory))
     }
 
     @BeforeEach

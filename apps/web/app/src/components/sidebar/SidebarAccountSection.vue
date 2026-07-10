@@ -55,7 +55,7 @@ function segmentedControlClass(isActive: boolean) {
     <div
       v-if="open"
       id="sidebar-account-menu"
-      class="absolute right-0 bottom-full mb-2 w-full rounded-2xl border border-border-subtle bg-bg-surface p-2 shadow-2xl"
+      class="absolute right-0 bottom-full mb-2 w-full rounded-2xl border border-border-subtle bg-bg-surface p-2 shadow-2xl group-data-[collapsible=icon]:left-0 group-data-[collapsible=icon]:min-w-56"
       role="menu"
     >
       <div class="px-2 py-2">
@@ -192,18 +192,19 @@ function segmentedControlClass(isActive: boolean) {
 
     <button
       ref="triggerRef"
-      class="flex w-full items-center gap-3 rounded-2xl border border-border-subtle bg-bg-surface/80 p-3 text-left transition-all hover:border-border-visible hover:bg-bg-surface"
+      class="flex w-full items-center gap-3 rounded-2xl border border-border-subtle bg-bg-surface/80 p-3 text-left transition-all hover:border-border-visible hover:bg-bg-surface group-data-[collapsible=icon]:p-0 group-data-[collapsible=icon]:size-10 group-data-[collapsible=icon]:justify-center"
       type="button"
       aria-haspopup="menu"
       :aria-expanded="open ? 'true' : 'false'"
       aria-controls="sidebar-account-menu"
       @click.stop="toggle"
     >
-      <div class="flex size-10 shrink-0 items-center justify-center rounded-xl border border-border-visible bg-bg-primary font-mono text-xs font-bold text-text-display">
+      <div class="flex size-10 shrink-0 items-center justify-center rounded-xl border border-border-visible bg-bg-primary font-mono text-xs font-bold text-text-display group-data-[collapsible=icon]:size-full">
         {{ user.initials }}
       </div>
+      <span class="sr-only">{{ user.displayName }}</span>
 
-      <div class="min-w-0 flex-1">
+      <div class="min-w-0 flex-1 group-data-[collapsible=icon]:hidden">
         <p class="truncate text-sm font-medium text-text-display">
           {{ user.displayName }}
         </p>

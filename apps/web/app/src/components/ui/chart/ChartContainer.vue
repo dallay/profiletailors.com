@@ -1,14 +1,12 @@
 <script lang="ts">
-import type { HTMLAttributes } from "vue"
-import type { ChartConfig } from "."
-import { useId } from "reka-ui"
-import { computed, toRefs } from "vue"
 import { cn } from "@/lib/utils"
-import { provideChartContext } from "."
 import ChartStyle from "./ChartStyle.vue"
 </script>
 
 <script setup lang="ts">
+import { computed, toRefs, useId, type HTMLAttributes } from "vue"
+import { provideChartContext, type ChartConfig } from "."
+
 const props = defineProps<{
   id?: HTMLAttributes["id"]
   class?: HTMLAttributes["class"]

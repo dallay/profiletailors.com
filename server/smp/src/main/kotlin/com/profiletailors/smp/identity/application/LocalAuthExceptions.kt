@@ -13,7 +13,12 @@ class InvalidRegistrationInputException(message: String) : RuntimeException(mess
 
 class UnverifiedEmailException(val email: String) : RuntimeException("Email verification required for '$email'.")
 
-class InvalidVerificationTokenException : RuntimeException("Invalid or expired verification token.")
+open class InvalidVerificationTokenException(message: String = "Invalid verification token.") :
+    RuntimeException(message)
+
+class ExpiredVerificationTokenException : InvalidVerificationTokenException("Verification token has expired.")
+
+class UsedVerificationTokenException : InvalidVerificationTokenException("Verification token has already been used.")
 
 class FeatureEmailVerificationRequired(val feature: AuthFeature) :
     RuntimeException("Email verification required for feature: ${feature.name}.")

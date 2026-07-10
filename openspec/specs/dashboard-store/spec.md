@@ -2,13 +2,16 @@
 
 ## Purpose
 
-Defines the Pinia store architecture for dashboard state — holding KPI data, insights, pipeline state, and the global period selector. Stores use mock data in Phase 1 and are typed for real API swap later.
+Defines the Pinia store architecture for dashboard state — holding KPI data, insights, pipeline
+state, and the global period selector. Stores use mock data in Phase 1 and are typed for real API
+swap later.
 
 ## Requirements
 
 ### Requirement: Analytics Store
 
-A Pinia store `useAnalyticsStore` SHALL hold KPI cards, platform metrics, audience growth, and the global period selection.
+A Pinia store `useAnalyticsStore` SHALL hold KPI cards, platform metrics, audience growth, and the
+global period selection.
 
 #### Scenario: Store initializes with mock data
 
@@ -36,7 +39,8 @@ A Pinia store `useAnalyticsStore` SHALL hold KPI cards, platform metrics, audien
 
 ### Requirement: Insights Store
 
-A Pinia store `useInsightsStore` SHALL hold AI recommendation data and track which insights have been seen.
+A Pinia store `useInsightsStore` SHALL hold AI recommendation data and track which insights have
+been seen.
 
 #### Scenario: Store provides insights
 

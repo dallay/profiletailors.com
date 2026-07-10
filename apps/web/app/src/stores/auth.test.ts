@@ -8,6 +8,7 @@ import type { AuthTokens } from '@/lib/auth-api'
 // ---------------------------------------------------------------------------
 const mockRefreshSession = vi.fn()
 const mockGetCurrentUserProfile = vi.fn()
+const mockResendVerification = vi.fn()
 
 vi.mock('@/lib/auth-api', () => ({
   createApiFetch: () =>
@@ -19,6 +20,7 @@ vi.mock('@/lib/auth-api', () => ({
     ),
   refreshSession: (...args: unknown[]) => mockRefreshSession(...args),
   getCurrentUserProfile: (...args: unknown[]) => mockGetCurrentUserProfile(...args),
+  resendVerification: (...args: unknown[]) => mockResendVerification(...args),
   login: vi.fn(),
   register: vi.fn(),
   logoutSession: vi.fn(),
@@ -47,15 +49,17 @@ describe('Auth store — hydrateSession', () => {
     localStorage.clear()
     mockRefreshSession.mockReset()
     mockGetCurrentUserProfile.mockReset()
+    mockResendVerification.mockReset()
   })
 
-  it('restores session from refresh token cookie', async () => {
-    mockRefreshSession.mockResolvedValue(fakeTokens)
+  it('restores session from refresh token cookie and trusts profile email status', async () => {
+    mockRefreshSession.mockResolvedValue({ ...fakeTokens, emailStatus: 'VERIFIED' })
     mockGetCurrentUserProfile.mockResolvedValue({
       principalId: 'user-1',
       email: 'user@example.com',
       username: 'testuser',
       displayIdentity: 'testuser',
+      emailStatus: 'PENDING',
     })
 
     const auth = useAuthStore()
@@ -69,6 +73,8 @@ describe('Auth store — hydrateSession', () => {
     expect(auth.sessionChecked).toBe(true)
     expect(auth.accessToken).toBe('access-hydrated')
     expect(auth.user?.principalId).toBe('user-1')
+    expect(auth.user?.emailStatus).toBe('PENDING')
+    expect(auth.isEmailVerified).toBe(false)
     expect(mockRefreshSession).toHaveBeenCalledOnce()
   })
 
@@ -102,6 +108,7 @@ describe('Auth store — hydrateSession', () => {
       email: 'user@example.com',
       username: 'testuser',
       displayIdentity: 'testuser',
+      emailStatus: 'VERIFIED',
     })
 
     const auth = useAuthStore()
@@ -122,6 +129,7 @@ describe('Auth store — hydrateSession', () => {
       email: 'user@example.com',
       username: 'testuser',
       displayIdentity: 'testuser',
+      emailStatus: 'VERIFIED',
     })
 
     const auth = useAuthStore()
@@ -135,5 +143,69 @@ describe('Auth store — hydrateSession', () => {
 
     // Token's workspaceId should overwrite — it is the authoritative context
     expect(workspace.activeWorkspaceId).toBe(fakeTokens.workspaceId)
+  })
+
+  it('resends verification for the authenticated user and exposes status states', async () => {
+    mockRefreshSession.mockResolvedValue({ ...fakeTokens, emailStatus: 'PENDING' })
+    mockGetCurrentUserProfile.mockResolvedValue({
+      principalId: 'user-1',
+      email: 'user@example.com',
+      username: 'testuser',
+      displayIdentity: 'testuser',
+      emailStatus: 'PENDING',
+    })
+    mockResendVerification.mockResolvedValue(undefined)
+
+    const auth = useAuthStore()
+    await auth.hydrateSession()
+
+    await auth.resendVerificationEmail()
+
+    expect(mockResendVerification).toHaveBeenCalledWith('user@example.com')
+    expect(auth.resendVerificationStatus).toBe('success')
+    expect(auth.resendVerificationError).toBeNull()
+  })
+
+  it('records resend verification errors', async () => {
+    mockRefreshSession.mockResolvedValue({ ...fakeTokens, emailStatus: 'PENDING' })
+    mockGetCurrentUserProfile.mockResolvedValue({
+      principalId: 'user-1',
+      email: 'user@example.com',
+      username: 'testuser',
+      displayIdentity: 'testuser',
+      emailStatus: 'PENDING',
+    })
+    mockResendVerification.mockRejectedValue({ detail: 'Please wait before retrying.' })
+
+    const auth = useAuthStore()
+    await auth.hydrateSession()
+
+    await expect(auth.resendVerificationEmail()).rejects.toMatchObject({
+      detail: 'Please wait before retrying.',
+    })
+
+    expect(auth.resendVerificationStatus).toBe('error')
+    expect(auth.resendVerificationError).toBe('Please wait before retrying.')
+  })
+
+  it('fails resend verification when no user email is available', async () => {
+    const auth = useAuthStore()
+    auth.user = {
+      principalId: 'user-1',
+      email: '',
+      username: 'testuser',
+      displayIdentity: 'testuser',
+      emailStatus: 'PENDING',
+    }
+
+    await expect(auth.resendVerificationEmail()).rejects.toThrow(
+      'No email address is available for verification resend.',
+    )
+
+    expect(auth.resendVerificationStatus).toBe('error')
+    expect(auth.resendVerificationError).toBe(
+      'No email address is available for verification resend.',
+    )
+    expect(mockResendVerification).not.toHaveBeenCalled()
   })
 })

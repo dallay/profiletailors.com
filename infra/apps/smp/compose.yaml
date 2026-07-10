@@ -1,13 +1,47 @@
+name: profile-tailors
+
 include:
-  - ../../postgres/compose.yaml
+  - ../../common.yml
   - ../../monitoring/compose.yaml
 
-# This compose includes:
-# - PostgreSQL (from infra/postgres)
+services:
+  mailpit:
+    extends:
+      service: mailpit
+      file: ../../mailpit/compose.yaml
+
+  postgresql:
+    extends:
+      service: postgres
+      file: ../../postgres/compose.yaml
+    environment:
+      POSTGRES_DB: ${SMP_POSTGRES_DB:-profiletailors_smp}
+      POSTGRES_USER: ${SMP_POSTGRES_USER:-profiletailors}
+      POSTGRES_PASSWORD: ${SMP_POSTGRES_PASSWORD:-CHANGE_ME_gK2fcFZg5cgVu9U}
+      POSTGRES_PORT: ${SMP_POSTGRES_PORT:-5432}
+
+  wiremock:
+    extends:
+      service: wiremock
+      file: ../../wiremock/compose.yaml
+    ports:
+      - '${WIREMOCK_HOST_PORT:-8089}:8080'
+
+volumes:
+  postgres_data:
+    driver: local
+
+# This compose includes the full SMP development stack:
+# - PostgreSQL       (from infra/postgres)     — with SMP_ prefixed env vars
 # - Prometheus + Grafana (from infra/monitoring)
+# - Mailpit          (from infra/mailpit)      — fake SMTP server with Web UI
+# - WireMock         (from infra/wiremock)     — simulates LinkedIn API for local dev
 #
-# To start the full SMP stack:
+# To start everything:
 #   docker compose -f infra/apps/smp/compose.yaml up -d
 #
 # To stop:
 #   docker compose -f infra/apps/smp/compose.yaml down
+#
+# To start from server/smp/ (shorthand):
+#   cd server/smp && docker compose up -d

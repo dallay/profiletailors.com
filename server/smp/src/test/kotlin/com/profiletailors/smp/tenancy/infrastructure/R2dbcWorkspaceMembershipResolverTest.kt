@@ -3,42 +3,26 @@ package com.profiletailors.smp.tenancy.infrastructure
 import com.profiletailors.common.domain.context.PrincipalType
 import com.profiletailors.common.domain.context.ResourceContext
 import com.profiletailors.common.domain.context.ResourceContextType
-import io.r2dbc.h2.H2ConnectionConfiguration
-import io.r2dbc.h2.H2ConnectionFactory
+import com.profiletailors.smp.integration.support.PostgresDatabaseTestBase
+import com.profiletailors.smp.integration.support.PostgresTestContainerSupport
 import kotlinx.coroutines.reactor.awaitSingle
 import kotlinx.coroutines.test.runTest
-import liquibase.Contexts
-import liquibase.LabelExpression
-import liquibase.Liquibase
-import liquibase.database.DatabaseFactory
-import liquibase.resource.ClassLoaderResourceAccessor
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertNull
-import org.junit.jupiter.api.BeforeEach
+import org.junit.jupiter.api.Tag
 import org.junit.jupiter.api.Test
-import org.springframework.r2dbc.core.DatabaseClient
-import java.sql.DriverManager
+import org.junit.jupiter.api.TestInstance
+import org.testcontainers.junit.jupiter.Container
+import org.testcontainers.junit.jupiter.Testcontainers
 
-class R2dbcWorkspaceMembershipResolverTest {
+@Tag("postgres")
+@Testcontainers(disabledWithoutDocker = true)
+@TestInstance(TestInstance.Lifecycle.PER_CLASS)
+class R2dbcWorkspaceMembershipResolverTest : PostgresDatabaseTestBase() {
 
-    private val jdbcUrl = "jdbc:h2:mem:membership_lookup;MODE=PostgreSQL;DB_CLOSE_DELAY=-1;DB_CLOSE_ON_EXIT=FALSE"
-    private val connectionFactory = H2ConnectionFactory(
-        H2ConnectionConfiguration.builder()
-            .inMemory("membership_lookup")
-            .property("MODE", "PostgreSQL")
-            .property("DB_CLOSE_DELAY", "-1")
-            .property("DB_CLOSE_ON_EXIT", "FALSE")
-            .username("sa")
-            .build(),
-    )
-    private val databaseClient = DatabaseClient.create(connectionFactory)
-    private val resolver = R2dbcWorkspaceMembershipResolver(databaseClient)
+    override val postgres = postgresContainer
 
-    @BeforeEach
-    fun setUp() {
-        applyLiquibaseBaseline()
-        deleteAllRows()
-    }
+    private val resolver by lazy { R2dbcWorkspaceMembershipResolver(databaseClient) }
 
     @Test
     fun `loads active workspace membership for principal and workspace`() = runTest {
@@ -82,18 +66,6 @@ class R2dbcWorkspaceMembershipResolverTest {
         assertNull(membership)
     }
 
-    private fun applyLiquibaseBaseline() {
-        DriverManager.getConnection(jdbcUrl, "sa", "").use { connection ->
-            val database = DatabaseFactory.getInstance()
-                .findCorrectDatabaseImplementation(liquibase.database.jvm.JdbcConnection(connection))
-            Liquibase(
-                "db/changelog/db.changelog-master.yaml",
-                ClassLoaderResourceAccessor(),
-                database,
-            ).update(Contexts(), LabelExpression())
-        }
-    }
-
     private fun deleteAllRows() = runTest {
         databaseClient.sql("SET REFERENTIAL_INTEGRITY FALSE").fetch().rowsUpdated().awaitSingle()
         listOf(
@@ -107,5 +79,10 @@ class R2dbcWorkspaceMembershipResolverTest {
             databaseClient.sql(statement).fetch().rowsUpdated().awaitSingle()
         }
         databaseClient.sql("SET REFERENTIAL_INTEGRITY TRUE").fetch().rowsUpdated().awaitSingle()
+    }
+
+    companion object {
+        @Container
+        val postgresContainer = PostgresTestContainerSupport.newContainer("membership_lookup")
     }
 }

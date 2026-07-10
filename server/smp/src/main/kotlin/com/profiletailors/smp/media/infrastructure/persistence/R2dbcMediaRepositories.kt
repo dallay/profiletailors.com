@@ -1,5 +1,7 @@
 package com.profiletailors.smp.media.infrastructure.persistence
 
+import com.fasterxml.jackson.core.type.TypeReference
+import com.fasterxml.jackson.databind.ObjectMapper
 import com.profiletailors.smp.media.application.MediaAssetRepository
 import com.profiletailors.smp.media.application.MediaRateLimitRepository
 import com.profiletailors.smp.media.application.PagedMediaAssets
@@ -25,7 +27,10 @@ import java.time.ZoneOffset
 import java.util.Base64
 
 @Repository
-class R2dbcMediaAssetRepository(private val databaseClient: DatabaseClient) : MediaAssetRepository {
+class R2dbcMediaAssetRepository(
+    private val databaseClient: DatabaseClient,
+    private val objectMapper: ObjectMapper = ObjectMapper(),
+) : MediaAssetRepository {
 
     override suspend fun create(asset: MediaAsset): MediaAsset {
         databaseClient.sql(
@@ -33,11 +38,13 @@ class R2dbcMediaAssetRepository(private val databaseClient: DatabaseClient) : Me
             INSERT INTO media_assets (
                 asset_id, workspace_id, source_type, file_hash, media_type, storage_key,
                 detected_media_type, original_filename, file_size_bytes, status,
-                failure_reason, upload_started_at, created_at, updated_at
+                failure_reason, upload_started_at, created_at, updated_at,
+                source_provider, external_id, source_url, author_name, author_url, metadata
             ) VALUES (
                 :assetId, :workspaceId, :sourceType, :fileHash, :mediaType, :storageKey,
                 :detectedMediaType, :originalFilename, :fileSizeBytes, :status,
-                :failureReason, :uploadStartedAt, :createdAt, :updatedAt
+                :failureReason, :uploadStartedAt, :createdAt, :updatedAt,
+                :sourceProvider, :externalId, :sourceUrl, :authorName, :authorUrl, CAST(:metadata AS JSONB)
             )
             """.trimIndent(),
         )
@@ -59,6 +66,12 @@ class R2dbcMediaAssetRepository(private val databaseClient: DatabaseClient) : Me
                 asset.updatedAt?.let { OffsetDateTime.ofInstant(it, ZoneOffset.UTC) }
                     ?: OffsetDateTime.ofInstant(asset.createdAt, ZoneOffset.UTC),
             )
+            .bindNullable("sourceProvider", asset.sourceProvider, String::class.java)
+            .bindNullable("externalId", asset.externalId, String::class.java)
+            .bindNullable("sourceUrl", asset.sourceUrl, String::class.java)
+            .bindNullable("authorName", asset.authorName, String::class.java)
+            .bindNullable("authorUrl", asset.authorUrl, String::class.java)
+            .bindNullable("metadata", asset.metadata?.let { objectMapper.writeValueAsString(it) }, String::class.java)
             .then()
             .awaitSingleOrNull()
 
@@ -69,7 +82,8 @@ class R2dbcMediaAssetRepository(private val databaseClient: DatabaseClient) : Me
         """
             SELECT asset_id, workspace_id, source_type, file_hash, media_type, storage_key,
                    detected_media_type, original_filename, file_size_bytes, status,
-                   failure_reason, upload_started_at, created_at, updated_at
+                   failure_reason, upload_started_at, created_at, updated_at,
+                   source_provider, external_id, source_url, author_name, author_url, metadata
             FROM media_assets
             WHERE workspace_id = :workspaceId AND asset_id = :assetId
         """.trimIndent(),
@@ -87,7 +101,8 @@ class R2dbcMediaAssetRepository(private val databaseClient: DatabaseClient) : Me
             """
             SELECT asset_id, workspace_id, source_type, file_hash, media_type, storage_key,
                    detected_media_type, original_filename, file_size_bytes, status,
-                   failure_reason, upload_started_at, created_at, updated_at
+                   failure_reason, upload_started_at, created_at, updated_at,
+                   source_provider, external_id, source_url, author_name, author_url, metadata
             FROM media_assets
             WHERE workspace_id = :workspaceId AND asset_id IN (:assetIds)
             """.trimIndent(),
@@ -123,7 +138,8 @@ class R2dbcMediaAssetRepository(private val databaseClient: DatabaseClient) : Me
         val sql = """
             SELECT asset_id, workspace_id, source_type, file_hash, media_type, storage_key,
                    detected_media_type, original_filename, file_size_bytes, status,
-                   failure_reason, upload_started_at, created_at, updated_at
+                   failure_reason, upload_started_at, created_at, updated_at,
+                   source_provider, external_id, source_url, author_name, author_url, metadata
             FROM media_assets
             WHERE ${conditions.joinToString(" AND ")}
             ORDER BY created_at DESC, asset_id DESC
@@ -252,7 +268,7 @@ class R2dbcMediaAssetRepository(private val databaseClient: DatabaseClient) : Me
             .bind("workspaceId", workspaceId)
 
         spec = if (fileSizeBytes == null) {
-            spec.bindNull("fileSizeBytes", java.lang.Long::class.java)
+            spec.bindNull("fileSizeBytes", Long::class.java)
         } else {
             spec.bind("fileSizeBytes", fileSizeBytes)
         }
@@ -307,7 +323,8 @@ class R2dbcMediaAssetRepository(private val databaseClient: DatabaseClient) : Me
             """
             SELECT asset_id, workspace_id, source_type, file_hash, media_type, storage_key,
                    detected_media_type, original_filename, file_size_bytes, status,
-                   failure_reason, upload_started_at, created_at, updated_at
+                   failure_reason, upload_started_at, created_at, updated_at,
+                   source_provider, external_id, source_url, author_name, author_url, metadata
             FROM media_assets
             WHERE status = 'PROCESSING'
               AND created_at < :threshold
@@ -330,7 +347,8 @@ class R2dbcMediaAssetRepository(private val databaseClient: DatabaseClient) : Me
             """
             SELECT asset_id, workspace_id, source_type, file_hash, media_type, storage_key,
                    detected_media_type, original_filename, file_size_bytes, status,
-                   failure_reason, upload_started_at, created_at, updated_at
+                   failure_reason, upload_started_at, created_at, updated_at,
+                   source_provider, external_id, source_url, author_name, author_url, metadata
             FROM media_assets
             WHERE status = 'FAILED'
               AND created_at > :cutoff
@@ -353,7 +371,8 @@ class R2dbcMediaAssetRepository(private val databaseClient: DatabaseClient) : Me
             """
             SELECT asset_id, workspace_id, source_type, file_hash, media_type, storage_key,
                    detected_media_type, original_filename, file_size_bytes, status,
-                   failure_reason, upload_started_at, created_at, updated_at
+                   failure_reason, upload_started_at, created_at, updated_at,
+                   source_provider, external_id, source_url, author_name, author_url, metadata
             FROM media_assets
             WHERE status = 'PENDING_UPLOAD'
               AND created_at < :cutoff
@@ -376,7 +395,8 @@ class R2dbcMediaAssetRepository(private val databaseClient: DatabaseClient) : Me
             """
             SELECT asset_id, workspace_id, source_type, file_hash, media_type, storage_key,
                    detected_media_type, original_filename, file_size_bytes, status,
-                   failure_reason, upload_started_at, created_at, updated_at
+                   failure_reason, upload_started_at, created_at, updated_at,
+                   source_provider, external_id, source_url, author_name, author_url, metadata
             FROM media_assets
             WHERE status = 'UPLOADING'
               AND upload_started_at < :cutoff
@@ -403,7 +423,7 @@ class R2dbcMediaAssetRepository(private val databaseClient: DatabaseClient) : Me
     )
         .bind("workspaceId", workspaceId)
         .bind("fileHash", fileHash)
-        .map { row, _ -> row.get("cnt", java.lang.Long::class.java)?.toInt() ?: 0 }
+        .map { row, _ -> row.get("cnt", Long::class.java)?.toInt() ?: 0 }
         .one()
         .awaitSingle()
 
@@ -412,7 +432,8 @@ class R2dbcMediaAssetRepository(private val databaseClient: DatabaseClient) : Me
             """
                 SELECT asset_id, workspace_id, source_type, file_hash, media_type, storage_key,
                        detected_media_type, original_filename, file_size_bytes, status,
-                       failure_reason, upload_started_at, created_at, updated_at
+                       failure_reason, upload_started_at, created_at, updated_at,
+                   source_provider, external_id, source_url, author_name, author_url, metadata
                 FROM media_assets
                 WHERE workspace_id = :workspaceId
                   AND file_hash = :fileHash
@@ -436,13 +457,33 @@ class R2dbcMediaAssetRepository(private val databaseClient: DatabaseClient) : Me
         storageKey = row.get("storage_key", String::class.java),
         detectedMediaType = row.get("detected_media_type", String::class.java),
         originalFilename = row.get("original_filename", String::class.java),
-        fileSizeBytes = row.get("file_size_bytes", java.lang.Long::class.javaObjectType)?.toLong(),
+        fileSizeBytes = row.get("file_size_bytes", Long::class.javaObjectType),
         status = MediaAssetStatus.valueOf(requireNotNull(row.get("status", String::class.java))),
         failureReason = row.get("failure_reason", String::class.java),
         uploadStartedAt = row.get("upload_started_at", OffsetDateTime::class.java)?.toInstant(),
         createdAt = requireNotNull(row.get("created_at", OffsetDateTime::class.java)).toInstant(),
         updatedAt = row.get("updated_at", OffsetDateTime::class.java)?.toInstant(),
+        sourceProvider = row.get("source_provider", String::class.java),
+        externalId = row.get("external_id", String::class.java),
+        sourceUrl = row.get("source_url", String::class.java),
+        authorName = row.get("author_name", String::class.java),
+        authorUrl = row.get("author_url", String::class.java),
+        metadata = readMetadata(row.get("metadata", String::class.java)),
     )
+
+    private fun readMetadata(json: String?): Map<String, Any>? = json?.let {
+        objectMapper.readValue(it, object : TypeReference<Map<String, Any>>() {})
+    }
+}
+
+private fun <T : Any> DatabaseClient.GenericExecuteSpec.bindNullable(
+    name: String,
+    value: T?,
+    type: Class<T>,
+): DatabaseClient.GenericExecuteSpec = if (value == null) {
+    bindNull(name, type)
+} else {
+    bind(name, value)
 }
 
 @Repository
@@ -519,7 +560,7 @@ class R2dbcWorkspaceFileBlobRepository(private val databaseClient: DatabaseClien
     )
         .bind("workspaceId", workspaceId)
         .bind("fileHash", fileHash)
-        .map { row, _ -> row.get("cnt", java.lang.Long::class.java)?.toInt() ?: 0 }
+        .map { row, _ -> row.get("cnt", Long::class.java)?.toInt() ?: 0 }
         .one()
         .awaitSingle()
 
@@ -666,7 +707,7 @@ class R2dbcWorkspaceFileBlobRepository(private val databaseClient: DatabaseClien
         workspaceId = requireNotNull(row.get("workspace_id", String::class.java)),
         fileHash = requireNotNull(row.get("file_hash", String::class.java)),
         storageKey = row.get("storage_key", String::class.java),
-        fileSizeBytes = row.get("file_size_bytes", java.lang.Long::class.javaObjectType)?.toLong(),
+        fileSizeBytes = row.get("file_size_bytes", Long::class.javaObjectType),
         detectedMediaType = row.get("detected_media_type", String::class.java),
         status = BlobStatus.valueOf(requireNotNull(row.get("status", String::class.java))),
         failureReason = row.get("failure_reason", String::class.java),

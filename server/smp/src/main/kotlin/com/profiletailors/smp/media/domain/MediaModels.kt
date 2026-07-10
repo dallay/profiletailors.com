@@ -13,9 +13,9 @@ enum class MediaSourceType {
     UPLOADED,
 
     /**
-     * Asset referenced from an external URL (deferred for post-MVP).
+     * Asset imported through an external provider.
      */
-    EXTERNAL_URL,
+    EXTERNAL,
 }
 
 /**
@@ -158,15 +158,41 @@ data class MediaAsset(
     val uploadStartedAt: Instant? = null,
     val createdAt: Instant,
     val updatedAt: Instant? = null,
+    val sourceProvider: String? = null,
+    val externalId: String? = null,
+    val sourceUrl: String? = null,
+    val authorName: String? = null,
+    val authorUrl: String? = null,
+    val metadata: Map<String, Any>? = null,
 ) {
     init {
         require(assetId.isNotBlank()) { "Asset ID must not be blank" }
         require(workspaceId.isNotBlank()) { "Workspace ID must not be blank" }
         require(mediaType.isNotBlank()) { "Media type must not be blank" }
 
-        // For MVP, only UPLOADED is supported
-        require(sourceType == MediaSourceType.UPLOADED) {
-            "Only UPLOADED source type is supported in the MVP"
+        when (sourceType) {
+            MediaSourceType.UPLOADED -> {
+                require(sourceProvider == null) {
+                    "UPLOADED assets must have null sourceProvider"
+                }
+            }
+            MediaSourceType.EXTERNAL -> {
+                require(!sourceProvider.isNullOrBlank()) {
+                    "EXTERNAL assets must have non-blank sourceProvider"
+                }
+                require(!externalId.isNullOrBlank()) {
+                    "EXTERNAL assets must have non-blank externalId"
+                }
+                require(!sourceUrl.isNullOrBlank()) {
+                    "EXTERNAL assets must have non-blank sourceUrl"
+                }
+            }
+        }
+
+        if (!sourceProvider.isNullOrBlank()) {
+            require(sourceProvider.matches(Regex("^[a-z][a-z0-9_]{0,31}$"))) {
+                "sourceProvider must be lowercase snake_case, 1-32 chars, starting with a letter"
+            }
         }
 
         // fileHash is nullable to support existing rows from before the CAS migration.

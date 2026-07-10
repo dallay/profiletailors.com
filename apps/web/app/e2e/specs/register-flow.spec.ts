@@ -612,7 +612,54 @@ test.describe('Email Verification Flow', { tag: '@integration' }, () => {
     expect(body).toHaveProperty('emailStatus', 'PENDING')
   })
 
-  test('6.2 Unverified user can log in and receives PENDING session', async ({ page }) => {
+  test('6.2 PENDING authenticated user sees global verification banner and can resend', async ({
+    page,
+  }) => {
+    const email = 'pending-banner@example.com'
+    await mockAuthenticatedSession(page, {
+      accessToken: 'pending-banner-token',
+      principalId: 'pending-banner-user',
+      email,
+      username: 'pending-banner',
+      emailStatus: 'PENDING',
+      workspaceId: 'workspace-001',
+    })
+
+    let resendPayload: unknown = null
+    await page.route('**/api/auth/resend-verification', async (route) => {
+      resendPayload = route.request().postDataJSON()
+      await route.fulfill({ status: 202, body: '' })
+    })
+
+    await safeGoto(page, APP_URL.dashboard)
+
+    const banner = page.getByRole('alert').filter({ hasText: /verify your email/i })
+    await expect(banner).toBeVisible()
+    await expect(banner).toContainText(/publish|social|media upload/i)
+    await banner.getByRole('button', { name: /resend verification/i }).click()
+
+    await expect(banner).toContainText(/verification email sent/i)
+    expect(resendPayload).toEqual({ email })
+  })
+
+  test('6.3 VERIFIED authenticated user does not see global verification banner', async ({
+    page,
+  }) => {
+    await mockAuthenticatedSession(page, {
+      accessToken: 'verified-banner-token',
+      principalId: 'verified-banner-user',
+      email: 'verified-banner@example.com',
+      username: 'verified-banner',
+      emailStatus: 'VERIFIED',
+      workspaceId: 'workspace-001',
+    })
+
+    await safeGoto(page, APP_URL.dashboard)
+
+    await expect(page.getByRole('alert').filter({ hasText: /verify your email/i })).toHaveCount(0)
+  })
+
+  test('6.4 Unverified user can log in and receives PENDING session', async ({ page }) => {
     const auth = new LoginPage(page)
 
     await mockLoginResponse(page, {
@@ -650,7 +697,7 @@ test.describe('Email Verification Flow', { tag: '@integration' }, () => {
     await expect(page).toHaveURL(APP_URL.dashboard)
   })
 
-  test('6.3 Resend verification email returns 202', async ({ page }) => {
+  test('6.5 Resend verification email returns 202', async ({ page }) => {
     await mockResendVerificationResponse(page)
     await page.goto(APP_URL.login)
 
@@ -666,7 +713,7 @@ test.describe('Email Verification Flow', { tag: '@integration' }, () => {
     expect(status).toBe(202)
   })
 
-  test('6.4 Resend with non-existent email returns 202', async ({ page }) => {
+  test('6.6 Resend with non-existent email returns 202', async ({ page }) => {
     await mockResendVerificationResponse(page)
     await page.goto(APP_URL.login)
 
@@ -682,7 +729,7 @@ test.describe('Email Verification Flow', { tag: '@integration' }, () => {
     expect(status).toBe(202)
   })
 
-  test('6.5 Verify email with valid token returns VERIFIED session', async ({ page }) => {
+  test('6.7 Verify email with valid token returns VERIFIED session', async ({ page }) => {
     await mockVerifyEmailResponse(page)
     await page.goto(APP_URL.login)
 
@@ -699,7 +746,7 @@ test.describe('Email Verification Flow', { tag: '@integration' }, () => {
     expect(response).toHaveProperty('emailStatus', 'VERIFIED')
   })
 
-  test('6.6 Verify email with invalid token returns 400', async ({ page }) => {
+  test('6.8 Verify email with invalid token returns 400', async ({ page }) => {
     await mockVerifyEmailResponse(page, {
       status: 400,
       body: {

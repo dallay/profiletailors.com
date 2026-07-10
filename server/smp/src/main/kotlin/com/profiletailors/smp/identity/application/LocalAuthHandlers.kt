@@ -4,6 +4,7 @@ import com.profiletailors.common.domain.Service
 import com.profiletailors.common.domain.bus.command.CommandWithResultHandler
 import com.profiletailors.common.domain.bus.event.DomainEvent
 import com.profiletailors.common.domain.bus.event.EventPublisher
+import com.profiletailors.common.domain.persistence.AtomicTransactionRunner
 import com.profiletailors.smp.credentials.application.RefreshSessionLifecycleService
 import com.profiletailors.smp.credentials.application.RefreshSessionNotActiveException
 import com.profiletailors.smp.identity.domain.EmailStatus
@@ -55,6 +56,7 @@ internal class RegisterUserHandler(
     private val passwordHasher: PasswordHasher,
     private val workspaceProvisioningService: com.profiletailors.smp.tenancy.application.WorkspaceProvisioningService,
     private val eventPublisher: EventPublisher<DomainEvent>,
+    private val transactionRunner: AtomicTransactionRunner,
     private val clock: Clock,
     private val localJwtIssuer: LocalJwtIssuer,
     private val refreshSessionLifecycleService: RefreshSessionLifecycleService,
@@ -76,32 +78,12 @@ internal class RegisterUserHandler(
         val principalId = "user-${UUID.randomUUID()}"
         val subject = "local:$normalizedEmail"
 
-        identityRegistrationGateway.createUserIdentity(
+        val rawVerificationToken = runRegistrationTransaction(
+            command = command,
             principalId = principalId,
             subject = subject,
-            email = normalizedEmail,
-            username = normalizedUsername,
-            provider = null,
-            displayIdentity = normalizedUsername,
-            emailStatus = EmailStatus.PENDING,
-        )
-        localPasswordCredentialGateway.create(
-            principalId = principalId,
-            passwordHash = passwordHasher.hash(command.password),
-        )
-
-        // Provision a default workspace for the new user
-        workspaceProvisioningService.provisionDefaultWorkspace(
-            principalId = principalId,
-            displayName = normalizedUsername,
-        )
-
-        // Generate verification token and store hashed
-        val generated = EmailVerificationTokenHasher.generate(clock.instant())
-        identityRegistrationGateway.createEmailVerificationToken(
-            email = normalizedEmail,
-            tokenHash = generated.tokenHash,
-            expiresAt = generated.expiresAt,
+            normalizedEmail = normalizedEmail,
+            normalizedUsername = normalizedUsername,
         )
 
         // Publish domain event for async email dispatch
@@ -110,7 +92,7 @@ internal class RegisterUserHandler(
                 principalId = principalId,
                 email = normalizedEmail,
                 username = normalizedUsername,
-                rawVerificationToken = generated.rawToken,
+                rawVerificationToken = rawVerificationToken,
             ),
         )
 
@@ -126,6 +108,64 @@ internal class RegisterUserHandler(
                 refreshSessionLifecycleService = refreshSessionLifecycleService,
             ),
         )
+    }
+
+    private suspend fun runRegistrationTransaction(
+        command: RegisterUserCommand,
+        principalId: String,
+        subject: String,
+        normalizedEmail: String,
+        normalizedUsername: String,
+    ): String {
+        // Compute password hash BEFORE the transaction to avoid blocking
+        // the reactive connection pool with CPU-bound bcrypt hashing.
+        val passwordHash = passwordHasher.hash(command.password)
+
+        return try {
+            transactionRunner.runAtomically {
+                identityRegistrationGateway.createUserIdentity(
+                    principalId = principalId,
+                    subject = subject,
+                    email = normalizedEmail,
+                    username = normalizedUsername,
+                    provider = null,
+                    displayIdentity = normalizedUsername,
+                    emailStatus = EmailStatus.PENDING,
+                )
+                localPasswordCredentialGateway.create(
+                    principalId = principalId,
+                    passwordHash = passwordHash,
+                )
+
+                // Provision a default workspace for the new user
+                workspaceProvisioningService.provisionDefaultWorkspace(
+                    principalId = principalId,
+                    displayName = normalizedUsername,
+                )
+
+                // Generate verification token and store hashed
+                val generated = EmailVerificationTokenHasher.generate(clock.instant())
+                identityRegistrationGateway.createEmailVerificationToken(
+                    email = normalizedEmail,
+                    tokenHash = generated.tokenHash,
+                    expiresAt = generated.expiresAt,
+                )
+                generated.rawToken
+            }
+        } catch (e: RuntimeException) {
+            // Map duplicate-key constraint violations (from concurrent registration
+            // with the same email) to UserAlreadyExistsException so the HTTP layer
+            // returns 409 Conflict instead of an unhandled 500 error.
+            val msg = e.message ?: ""
+            if (
+                msg.contains("unique constraint", ignoreCase = true) ||
+                msg.contains("duplicate key", ignoreCase = true) ||
+                msg.contains("Unique index", ignoreCase = true)
+            ) {
+                throw UserAlreadyExistsException(normalizedEmail)
+            }
+            throw e
+        }
     }
 
     private fun validateRegistration(email: String, password: String, username: String) {
@@ -242,6 +282,7 @@ internal class VerifyEmailHandler(
     private val localJwtIssuer: LocalJwtIssuer,
     private val refreshSessionLifecycleService: RefreshSessionLifecycleService,
     private val clock: Clock,
+    private val transactionRunner: AtomicTransactionRunner,
 ) : CommandWithResultHandler<VerifyEmailCommand, LocalAuthSessionResult> {
 
     override suspend fun handle(command: VerifyEmailCommand): LocalAuthSessionResult {
@@ -250,12 +291,15 @@ internal class VerifyEmailHandler(
         val storedToken = identityRegistrationGateway.verifyEmailToken(tokenHash)
             ?: throw InvalidVerificationTokenException()
 
-        if (!storedToken.isValid(now)) {
-            throw InvalidVerificationTokenException()
+        when {
+            storedToken.usedAt != null -> throw UsedVerificationTokenException()
+            !now.isBefore(storedToken.expiresAt) -> throw ExpiredVerificationTokenException()
         }
 
-        identityRegistrationGateway.markTokenUsed(tokenHash, now)
-        identityRegistrationGateway.updateEmailStatus(storedToken.email, EmailStatus.VERIFIED)
+        transactionRunner.runAtomically {
+            identityRegistrationGateway.markTokenUsed(tokenHash, now)
+            identityRegistrationGateway.updateEmailStatus(storedToken.email, EmailStatus.VERIFIED)
+        }
 
         val identityFacts = principalIdentityLookup.findByEmail(storedToken.email)
             ?: error("Identity not found for email '${storedToken.email}' after verification.")
@@ -274,9 +318,6 @@ internal class VerifyEmailHandler(
             ),
         )
     }
-
-    private fun EmailVerificationTokenData.isValid(now: java.time.Instant): Boolean =
-        usedAt == null && now.isBefore(expiresAt)
 }
 
 @Service
@@ -284,6 +325,7 @@ internal class ResendVerificationHandler(
     private val identityRegistrationGateway: IdentityRegistrationGateway,
     private val eventPublisher: EventPublisher<DomainEvent>,
     private val principalIdentityLookup: PrincipalIdentityLookup,
+    private val transactionRunner: AtomicTransactionRunner,
 ) : CommandWithResultHandler<ResendVerificationCommand, ResendVerificationResult> {
 
     override suspend fun handle(command: ResendVerificationCommand): ResendVerificationResult {
@@ -295,18 +337,19 @@ internal class ResendVerificationHandler(
             return ResendVerificationResult()
         }
 
-        // Invalidate old tokens
-        identityRegistrationGateway.invalidateEmailTokens(normalizedEmail)
+        // Invalidate old tokens and create new token atomically
+        val generated = transactionRunner.runAtomically {
+            identityRegistrationGateway.invalidateEmailTokens(normalizedEmail)
+            val gen = EmailVerificationTokenHasher.generate()
+            identityRegistrationGateway.createEmailVerificationToken(
+                email = normalizedEmail,
+                tokenHash = gen.tokenHash,
+                expiresAt = gen.expiresAt,
+            )
+            gen
+        }
 
-        // Generate new token
-        val generated = EmailVerificationTokenHasher.generate()
-        identityRegistrationGateway.createEmailVerificationToken(
-            email = normalizedEmail,
-            tokenHash = generated.tokenHash,
-            expiresAt = generated.expiresAt,
-        )
-
-        // Publish event for email dispatch (same handler as registration)
+        // Publish event for email dispatch (outside transaction)
         eventPublisher.publish(
             UserRegistered(
                 principalId = identityFacts.principalId,

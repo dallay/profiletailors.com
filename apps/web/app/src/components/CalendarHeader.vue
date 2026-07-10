@@ -46,9 +46,7 @@ const calendarSurface = computed<SchedulerSurface>(() =>
 </script>
 
 <template>
-  <!-- Top Filter Controls Bar -->
   <div class="flex flex-col lg:flex-row gap-4 items-start lg:items-center justify-between border-b border-border-subtle pb-4">
-    <!-- Title/Breadcrumb -->
     <div class="flex items-center gap-2">
       <CalendarDays class="size-4.5 text-text-secondary" />
       <h2 class="text-xl font-light tracking-tight text-text-display">
@@ -56,9 +54,7 @@ const calendarSurface = computed<SchedulerSurface>(() =>
       </h2>
     </div>
 
-    <!-- Filters & Action buttons -->
     <div class="flex flex-wrap items-center gap-3 w-full lg:w-auto">
-      <!-- Calendar View toggle (month/week) — only in calendar mode -->
       <div
         v-if="surface !== 'list'"
         class="flex items-center rounded-full border border-border-visible bg-bg-surface p-0.5 font-mono text-[9px] tracking-wider uppercase font-bold"
@@ -79,7 +75,6 @@ const calendarSurface = computed<SchedulerSurface>(() =>
         </button>
       </div>
 
-      <!-- View mode toggle (calendar / list) -->
       <div class="flex items-center rounded-full border border-border-visible bg-bg-surface p-0.5 font-mono text-[9px] tracking-wider uppercase font-bold">
         <button
           class="cursor-pointer rounded-full px-3 py-1 transition-all"
@@ -97,7 +92,6 @@ const calendarSurface = computed<SchedulerSurface>(() =>
         </button>
       </div>
 
-      <!-- Timezone Location Dropdown -->
       <div class="relative shrink-0">
         <label for="calendar-timezone-select" class="sr-only">Timezone</label>
         <select
@@ -113,7 +107,6 @@ const calendarSurface = computed<SchedulerSurface>(() =>
         <ChevronDown class="absolute right-3 top-1/2 -translate-y-1/2 size-3 text-text-secondary pointer-events-none" />
       </div>
 
-      <!-- Platform/Account filter -->
       <div class="relative shrink-0">
         <label for="calendar-platform-select" class="sr-only">Platform</label>
         <select
@@ -137,7 +130,6 @@ const calendarSurface = computed<SchedulerSurface>(() =>
         <ChevronDown class="absolute right-3 top-1/2 -translate-y-1/2 size-3 text-text-secondary pointer-events-none" />
       </div>
 
-      <!-- Post Status Filter -->
       <div class="relative shrink-0">
         <label for="calendar-post-status-select" class="sr-only">Post status</label>
         <select
@@ -154,7 +146,6 @@ const calendarSurface = computed<SchedulerSurface>(() =>
         <ChevronDown class="absolute right-3 top-1/2 -translate-y-1/2 size-3 text-text-secondary pointer-events-none" />
       </div>
 
-      <!-- Create Button -->
       <Button
         @click="emit('newPost')"
         :disabled="publishingStore.hasNoChannels"
@@ -167,9 +158,7 @@ const calendarSurface = computed<SchedulerSurface>(() =>
     </div>
   </div>
 
-  <!-- Calendar Subheader: Navigation -->
   <div class="flex items-center justify-between bg-bg-surface border border-border-subtle p-3 rounded-xl">
-    <!-- Navigation arrows -->
     <div class="flex items-center gap-1">
       <button
         @click="emit('change:date', 'backward')"
@@ -185,12 +174,10 @@ const calendarSurface = computed<SchedulerSurface>(() =>
       </button>
     </div>
 
-    <!-- Date Range Label -->
     <span class="font-mono text-[10px] font-bold uppercase tracking-widest text-text-display">
       {{ periodLabel }}
     </span>
 
-    <!-- Actions -->
     <div class="flex items-center gap-2">
       <button
         @click="emit('change:date', 'today')"
