@@ -256,7 +256,8 @@ class MediaAssetResolverImplTest {
         }
 
         assertEquals(MISSING_ASSET, exception.assetId)
-        assertTrue(exception.message!!.contains("not found"))
+        val message = requireNotNull(exception.message)
+        assertTrue(message.contains("not found"))
         // Both repos were queried
         assertEquals(1, mediaRepo.findCallCount)
         assertEquals(1, legacyRepo.findCallCount)
@@ -299,7 +300,8 @@ class MediaAssetResolverImplTest {
         }
 
         assertEquals(MEDIA_ASSET_1, exception.assetId)
-        assertTrue(exception.message!!.contains("PROCESSING"))
+        val message = requireNotNull(exception.message)
+        assertTrue(message.contains("PROCESSING"))
     }
 
     @Test
@@ -319,7 +321,8 @@ class MediaAssetResolverImplTest {
         }
 
         assertEquals(MEDIA_ASSET_1, exception.assetId)
-        assertTrue(exception.message!!.contains("FAILED"))
+        val message = requireNotNull(exception.message)
+        assertTrue(message.contains("FAILED"))
     }
 
     @Test
@@ -339,7 +342,8 @@ class MediaAssetResolverImplTest {
         }
 
         assertEquals(MEDIA_ASSET_1, exception.assetId)
-        assertTrue(exception.message!!.contains("PENDING_UPLOAD"))
+        val message = requireNotNull(exception.message)
+        assertTrue(message.contains("PENDING_UPLOAD"))
     }
 
     @Test
@@ -484,9 +488,10 @@ class MediaAssetResolverImplTest {
             resolver.resolveReadyAssets(WORKSPACE, listOf(MISSING_ASSET))
         }
 
-        assertTrue(exception.message!!.contains(MISSING_ASSET))
-        assertTrue(exception.message!!.contains("not ready"))
-        assertTrue(exception.message!!.contains("not found"))
+        val message = requireNotNull(exception.message)
+        assertTrue(message.contains(MISSING_ASSET))
+        assertTrue(message.contains("not ready"))
+        assertTrue(message.contains("not found"))
     }
 
     @Test
@@ -504,8 +509,9 @@ class MediaAssetResolverImplTest {
             resolver.resolveReadyAssets(WORKSPACE, listOf(MEDIA_ASSET_1))
         }
 
-        assertTrue(exception.message!!.contains(MEDIA_ASSET_1))
-        assertTrue(exception.message!!.contains("PROCESSING"))
+        val message = requireNotNull(exception.message)
+        assertTrue(message.contains(MEDIA_ASSET_1))
+        assertTrue(message.contains("PROCESSING"))
     }
 
     // ── Edge: Cross-Workspace (implicitly handled by repository filtering) ─────

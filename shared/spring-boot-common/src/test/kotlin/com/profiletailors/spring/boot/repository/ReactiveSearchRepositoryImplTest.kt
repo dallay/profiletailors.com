@@ -428,7 +428,7 @@ class ReactiveSearchRepositoryImplTest {
     // region findAllByCursor — criteria and sort
 
     @Test
-    fun `should request size plus one entities from database`() = runTest {
+    fun `should truncate results to page size and indicate more pages when extra row exists`() = runTest {
         val now = LocalDateTime.now()
         val entities = (1..6).map {
             TimestampEntity("$it", "Entity $it", now.plusHours(it.toLong()))

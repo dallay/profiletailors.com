@@ -299,7 +299,7 @@ internal class RuntimeCriteriaParserTest {
     }
 
     @Test
-    fun `parse NotBetween with null property value should return true because null is not in any range`() {
+    fun `parse NotBetween with null property value should return true`() {
         // The implementation uses `!= false` for the inner let block, so
         // when v is null the safe-call returns null and `null != false` is true.
         val nullItem = item.copy(score = null)
@@ -684,7 +684,7 @@ internal class RuntimeCriteriaParserTest {
     }
 
     @Test
-    fun `parse In with null property value should return false because safe-call short-circuits`() {
+    fun `parse In with null property value should return false`() {
         // The implementation uses `?.let` chaining, so when p.get(it) returns null
         // the let block is never entered and `null == true` evaluates to false.
         val nullItem = item.copy(score = null)
@@ -918,11 +918,18 @@ internal class RuntimeCriteriaParserTest {
             parser.parse(Criteria.Equals("unknown", "x")),
             parser.parse(Criteria.NotEquals("unknown", "x")),
             parser.parse(Criteria.Between("unknown", 1..10)),
+            parser.parse(Criteria.NotBetween("unknown", 1..10)),
             parser.parse(Criteria.LessThan("unknown", 1)),
+            parser.parse(Criteria.LessThanEquals("unknown", 1)),
             parser.parse(Criteria.GreaterThan("unknown", 1)),
+            parser.parse(Criteria.GreaterThanEquals("unknown", 1)),
             parser.parse(Criteria.IsNull("unknown")),
             parser.parse(Criteria.IsNotNull("unknown")),
             parser.parse(Criteria.Like("unknown", "%test%")),
+            parser.parse(Criteria.NotLike("unknown", "%test%")),
+            parser.parse(Criteria.Ilike("unknown", "%test%")),
+            parser.parse(Criteria.Regexp("unknown", Pattern.compile(".*"))),
+            parser.parse(Criteria.NotRegexp("unknown", Pattern.compile(".*"))),
             parser.parse(Criteria.In("unknown", listOf("x"))),
             parser.parse(Criteria.NotIn("unknown", listOf("x"))),
             parser.parse(Criteria.IsTrue("unknown")),
@@ -943,20 +950,23 @@ internal class RuntimeCriteriaParserTest {
 
     @Test
     fun `parse And should collapse to null when all children return null`() {
-        // And(Empty) → And propagates nothing since parse(Empty) returns null,
-        // mapNotNull { parse(it) } filters it out, and reduce throws on empty list.
-        // But And(And(emptyList())) → the inner And returns null from parse(),
-        // then mapNotNull filters it out, and with no items the code would throw.
-        // Actually the current code uses reduce which throws on empty list.
-        // We test with And(Empty) which returns null, filtered by mapNotNull,
-        // resulting in an empty list, which makes reduce throw.
-        // So this is an edge case worth documenting but can't test cleanly without
-        // expecting an exception. The parser is not designed for this degenerate case.
+        // And(Empty) → parse(Empty) returns null, mapNotNull filters it out,
+        // reduce throws on empty list. This is a degenerate case.
+        val thrown = runCatching {
+            parser.parse(Criteria.And(listOf(Criteria.Empty)))
+        }
+        assertThat(thrown.exceptionOrNull())
+            .isInstanceOf(UnsupportedOperationException::class.java)
     }
 
     @Test
     fun `parse Or should collapse to null when all children return null`() {
-        // Same degenerate case as And above. Or(Empty) would have the same issue.
+        // Or(Empty) → same degenerate case as And above.
+        val thrown = runCatching {
+            parser.parse(Criteria.Or(listOf(Criteria.Empty)))
+        }
+        assertThat(thrown.exceptionOrNull())
+            .isInstanceOf(UnsupportedOperationException::class.java)
     }
 
     @Test

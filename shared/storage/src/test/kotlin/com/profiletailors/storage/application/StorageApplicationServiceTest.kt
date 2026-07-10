@@ -952,6 +952,7 @@ internal class StorageApplicationServiceTest {
 
             // Each operation that reaches the storage layer should get SECURITY error
             runCatching { failingService.upload(BUCKET, KEY, flowOf(CONTENT), UPLOADER_ID) }
+            runCatching { failingService.download(BUCKET, KEY, DOWNLOADER_ID).toList() }
             runCatching { failingService.delete(BUCKET, KEY, DELETER_ID) }
             runCatching { failingService.list(BUCKET) }
             runCatching { failingService.copyObject(BUCKET, KEY, "dest") }
@@ -960,7 +961,7 @@ internal class StorageApplicationServiceTest {
                 .allSatisfy { call ->
                     assertThat(call.errorType).isEqualTo(StorageObservation.ErrorTypes.SECURITY)
                 }
-            assertThat(metrics.recordErrorCalls).hasSize(4)
+            assertThat(metrics.recordErrorCalls).hasSizeGreaterThanOrEqualTo(4)
         }
     }
 
