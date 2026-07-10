@@ -21,8 +21,10 @@ import com.profiletailors.smp.publishing.domain.SocialConnectionProvider
 import com.profiletailors.smp.publishing.domain.SocialProvider
 import com.profiletailors.smp.publishing.domain.SocialPublisher
 import com.profiletailors.smp.publishing.infrastructure.scheduling.RetryablePublishingException
+import com.profiletailors.storage.domain.AttachmentsStorageBinding
 import com.profiletailors.storage.domain.Storage
 import com.profiletailors.storage.domain.StorageException
+import com.profiletailors.storage.infrastructure.AttachmentsStorageBindingFactory
 import org.slf4j.LoggerFactory
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.beans.factory.annotation.Value
@@ -232,8 +234,7 @@ class RealLinkedInPublisher(
     private val httpTransport: LinkedInHttpTransport,
     private val credentialResolver: com.profiletailors.smp.publishing.domain.RefreshAwareCredentialResolver,
     private val assetUploader: AssetUploader,
-    private val storage: Storage?,
-    private val attachmentsBucket: String,
+    private val attachmentsBinding: AttachmentsStorageBinding,
 ) : SocialPublisher {
     private val log = LoggerFactory.getLogger(javaClass)
 
@@ -435,15 +436,13 @@ class RealLinkedInPublisher(
         asset: com.profiletailors.smp.publishing.domain.PublicationAsset,
         storageKey: String,
     ) = try {
-        storage?.download(attachmentsBucket, storageKey)
-            ?: throw RetryablePublishingException(
-                "Storage is not configured; asset ${asset.id} (key=$storageKey) cannot be resolved",
-            )
+        attachmentsBinding.storage.download(attachmentsBinding.bucketName, storageKey)
     } catch (e: StorageException) {
         log.warn(
-            "Storage download failed for asset {} (key={})",
+            "Storage download failed for asset {} (key={}, bucket={})",
             asset.id,
             storageKey,
+            attachmentsBinding.bucketName,
             e,
         )
         throw RetryablePublishingException(
@@ -525,11 +524,16 @@ class LinkedInPublishingConfiguration(
     fun linkedInHttpTransport(): LinkedInHttpTransport = JdkLinkedInHttpTransport(HttpClient.newHttpClient())
 
     @Bean
+    fun attachmentsStorageBinding(
+        bucketRegistry: com.profiletailors.storage.domain.BucketRegistry,
+        storageProperties: com.profiletailors.storage.infrastructure.StorageProperties,
+    ): AttachmentsStorageBinding = AttachmentsStorageBindingFactory.from(bucketRegistry, storageProperties)
+
+    @Bean
     fun linkedInAssetUploadProperties(
-        @Value("\${platform.storage.providers.attachments.bucket:profiletailors-attachments}")
-        attachmentsBucket: String,
+        attachmentsStorageBinding: AttachmentsStorageBinding,
     ): LinkedInAssetUploadProperties = LinkedInAssetUploadProperties(
-        attachmentsBucket = attachmentsBucket,
+        attachmentsBucket = attachmentsStorageBinding.bucketName,
     )
 
     @Bean
@@ -538,14 +542,14 @@ class LinkedInPublishingConfiguration(
         assetUploadProperties: LinkedInAssetUploadProperties,
         objectMapper: ObjectMapper,
         linkedInHttpTransport: LinkedInHttpTransport,
-        @Autowired(required = false) storage: Storage?,
+        attachmentsStorageBinding: AttachmentsStorageBinding,
         publicationAssetRepository: com.profiletailors.smp.publishing.domain.PublicationAssetRepository,
     ): AssetUploader = RealLinkedInAssetUploader(
         properties,
         assetUploadProperties,
         objectMapper,
         linkedInHttpTransport,
-        storage,
+        attachmentsStorageBinding.storage,
         publicationAssetRepository,
     )
 
@@ -569,15 +573,14 @@ class LinkedInPublishingConfiguration(
         linkedInHttpTransport: LinkedInHttpTransport,
         credentialResolver: com.profiletailors.smp.publishing.domain.RefreshAwareCredentialResolver,
         assetUploader: AssetUploader,
-        assetUploadProperties: LinkedInAssetUploadProperties,
+        attachmentsStorageBinding: AttachmentsStorageBinding,
     ): SocialPublisher = RealLinkedInPublisher(
         properties,
         objectMapper,
         linkedInHttpTransport,
         credentialResolver,
         assetUploader,
-        storage,
-        assetUploadProperties.attachmentsBucket,
+        attachmentsStorageBinding,
     )
 
     @Bean
