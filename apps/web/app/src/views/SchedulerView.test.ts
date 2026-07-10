@@ -150,7 +150,6 @@ vi.mock('@lucide/vue', () => {
 
 vi.mock('@/lib/provider-styles', () => ({
   getProviderColor: () => 'provider-color',
-  getProviderBadge: () => 'LI',
 }))
 
 // ---------------------------------------------------------------------------
@@ -329,19 +328,13 @@ describe('SchedulerView', () => {
     expect(card).toBeDefined()
     const resolvedCard = card!
     expect(resolvedCard.exists()).toBe(true)
-    // The body container that holds both text and thumbnail must be flex-row (not flex-col)
-    const bodyDiv = resolvedCard.findAll('div').find((d) => {
-      const cls = d.classes()
-      return cls.some((c) => c.includes('flex-row'))
-    })
-    expect(bodyDiv?.exists()).toBe(true)
-    // Both the text paragraph and the img should be inside that flex-row container
+    // The card uses a two-column grid so media stays beside the text without stealing a row.
+    expect(resolvedCard.classes()).toContain('grid')
     const img = resolvedCard.find('img')
     const textEl = resolvedCard.find('p')
     expect(img.exists()).toBe(true)
     expect(textEl.exists()).toBe(true)
-    expect(bodyDiv?.find('img').exists()).toBe(true)
-    expect(bodyDiv?.find('p').exists()).toBe(true)
+    expect(resolvedCard.find('.col-start-2 img').exists()).toBe(true)
   })
 
   it('handles delete error gracefully in handleDeletePublication', async () => {

@@ -2,8 +2,9 @@
 import { computed } from 'vue'
 import { Plus } from '@lucide/vue'
 import ConflictBadge from '@/components/ConflictBadge.vue'
+import SocialProviderIcon from '@/components/SocialProviderIcon.vue'
 import type { Publication, ActivityEntry } from '@/stores/publishing'
-import { getProviderColor, getProviderBadge } from '@/lib/provider-styles'
+import { getProviderColor } from '@/lib/provider-styles'
 
 const props = withDefaults(
   defineProps<{
@@ -131,7 +132,9 @@ function onKeyDown(e: KeyboardEvent) {
           @dragstart="onDragStart($event, pub)"
           @dragend="onDragEnd"
         >
-          <span class="shrink-0">{{ getProviderBadge(pub.channels[0] || 'linkedin') }}</span>
+          <span class="size-2.5 shrink-0">
+            <SocialProviderIcon :provider="pub.channels[0] || 'linkedin'" />
+          </span>
           <span class="min-w-0 flex-1 truncate">{{ pub.title || pub.content.substring(0, 20) }}</span>
           <img
             v-if="pub.thumbnail"

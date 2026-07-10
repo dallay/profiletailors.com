@@ -13,7 +13,6 @@ vi.mock('@/components/ConflictBadge.vue', () => ({
 
 vi.mock('@/lib/provider-styles', () => ({
   getProviderColor: () => 'provider-color',
-  getProviderBadge: () => 'LI',
 }))
 
 function makePublication(overrides: Partial<Publication> = {}): Publication {
