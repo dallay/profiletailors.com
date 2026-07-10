@@ -15,20 +15,24 @@ import org.springframework.stereotype.Component
  */
 @Component
 @Subscribe(filterBy = UserRegistered::class)
-class SendVerificationEmailConsumer(private val emailSender: EmailSender) : EventConsumer<UserRegistered> {
+class SendVerificationEmailConsumer(
+    private val emailSender: EmailSender,
+    private val emailProperties: EmailProperties,
+) : EventConsumer<UserRegistered> {
 
     private val log = LoggerFactory.getLogger(SendVerificationEmailConsumer::class.java)
 
     override suspend fun consume(event: UserRegistered) {
-        val body = EmailTemplates.verificationEmail(
+        val message = EmailTemplates.verificationEmail(
             username = event.username,
             token = event.rawVerificationToken,
+            publicAppUrl = emailProperties.publicAppUrl,
         )
         val subject = "Verify your email address"
         val result = emailSender.send(
             to = event.email,
             subject = subject,
-            body = body,
+            message = message,
         )
         if (!result.success) {
             log.error(

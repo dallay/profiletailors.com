@@ -12,14 +12,14 @@ architecture at different levels of abstraction.
 
 ### Quick Navigation
 
-| Level           | Document                                        | Description                           | Audience               |
-|-----------------|-------------------------------------------------|---------------------------------------|------------------------|
-| **Summary**     | [SUMMARY.md](c4/SUMMARY.md)                     | Executive summary and roadmap         | Everyone               |
-| **Level 1**     | [System Context](c4/01-system-context.md)       | Big picture, external dependencies    | Everyone               |
-| **Level 2**     | [Container](c4/02-container.md)                 | Deployable units, technology stack    | Technical leadership   |
-| **Level 3**     | [Component](c4/03-component.md)                 | Internal structure, bounded contexts  | Developers, architects |
-| **Level 4**     | [Code](c4/04-code.md)                           | Implementation patterns, class design | Developers             |
-| **Shared**      | [Dependencies](shared/dependencies.md)          | Shared module dependency graph        | Developers, architects |
+| Level       | Document                                  | Description                           | Audience               |
+|-------------|-------------------------------------------|---------------------------------------|------------------------|
+| **Summary** | [SUMMARY.md](c4/SUMMARY.md)               | Executive summary and roadmap         | Everyone               |
+| **Level 1** | [System Context](c4/01-system-context.md) | Big picture, external dependencies    | Everyone               |
+| **Level 2** | [Container](c4/02-container.md)           | Deployable units, technology stack    | Technical leadership   |
+| **Level 3** | [Component](c4/03-component.md)           | Internal structure, bounded contexts  | Developers, architects |
+| **Level 4** | [Code](c4/04-code.md)                     | Implementation patterns, class design | Developers             |
+| **Shared**  | [Dependencies](shared/dependencies.md)    | Shared module dependency graph        | Developers, architects |
 
 ### Visual Overview
 
@@ -70,8 +70,10 @@ architecture at different levels of abstraction.
 ### 2. Domain-Driven Design (DDD)
 
 - **Bounded Contexts**: Identity, Authorization, Tenancy, Credentials, Governance, Platform
-- **Shared Kernel**: Multiple module layers — see [full dependency graph](shared/dependencies.md) for all `api` and `implementation` relationships
-- **Foundation**: [`shared:common`](../../shared/common/) — framework-agnostic domain primitives, zero Spring dependencies
+- **Shared Kernel**: Multiple module layers — see [full dependency graph](shared/dependencies.md)
+  for all `api` and `implementation` relationships
+- **Foundation**: [`shared:common`](../../shared/common/) — framework-agnostic domain primitives,
+  zero Spring dependencies
 - **Aggregates**: Clear boundaries and consistency rules
 - **Domain Events**: For cross-context communication
 
@@ -160,6 +162,8 @@ architecture at different levels of abstraction.
 
 - **[openspec/](../../openspec/)** — SDD artifacts (specs, designs, tasks)
 - **[docs/plans/](../plans/)** — Design specs and implementation plans
+- **[Media Library CAS Dedup](./media-library-cas-dedup.md)** — Content-Addressed Storage
+  deduplication for workspace-scoped media assets
 
 ### Security
 

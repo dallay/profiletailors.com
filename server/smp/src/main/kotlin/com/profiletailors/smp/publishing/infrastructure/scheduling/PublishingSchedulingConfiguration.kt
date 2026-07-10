@@ -1,5 +1,6 @@
 package com.profiletailors.smp.publishing.infrastructure.scheduling
 
+import com.profiletailors.common.domain.persistence.AtomicTransactionRunner
 import com.profiletailors.smp.media.application.MediaAssetResolver
 import com.profiletailors.smp.publishing.domain.DeliveryAttemptRepository
 import com.profiletailors.smp.publishing.domain.DeliveryRetryPolicy
@@ -48,6 +49,7 @@ class PublishingSchedulingConfiguration(
     fun publishingJobExecutor(
         notificationEventRepository: NotificationEventRepository?,
         publishingRetryPolicy: DeliveryRetryPolicy,
+        transactionRunner: AtomicTransactionRunner,
     ): PublishingJobExecutor = PublishingJobExecutor(
         publicationJobRepository = publicationJobRepository,
         publicationRepository = publicationRepository,
@@ -58,6 +60,7 @@ class PublishingSchedulingConfiguration(
         providerCapabilityValidator = providerCapabilityValidator,
         socialPublisher = socialPublisher,
         retryPolicy = publishingRetryPolicy,
+        transactionRunner = transactionRunner,
         clock = clock,
     )
 
@@ -66,10 +69,12 @@ class PublishingSchedulingConfiguration(
         publicationJobRepository: PublicationJobRepository,
         publicationRepository: PublicationRepository,
         publishingJobExecutor: PublishingJobExecutor,
+        transactionRunner: AtomicTransactionRunner,
     ): PublishingWorker = PublishingWorker(
         publicationJobRepository = publicationJobRepository,
         publicationRepository = publicationRepository,
         executor = publishingJobExecutor,
+        transactionRunner = transactionRunner,
         clock = clock,
         workerId = "worker-${UUID.randomUUID()}",
     )

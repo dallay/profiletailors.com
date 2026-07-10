@@ -1,6 +1,7 @@
 package com.profiletailors.smp.publishing.infrastructure.credentials
 
-import com.profiletailors.smp.integration.support.DatabaseUnitTestBase
+import com.profiletailors.smp.integration.support.PostgresDatabaseTestBase
+import com.profiletailors.smp.integration.support.PostgresTestContainerSupport
 import kotlinx.coroutines.reactor.awaitSingle
 import kotlinx.coroutines.test.runTest
 import org.junit.jupiter.api.Assertions.assertEquals
@@ -10,12 +11,19 @@ import org.junit.jupiter.api.Assertions.assertThrows
 import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Nested
+import org.junit.jupiter.api.Tag
 import org.junit.jupiter.api.Test
+import org.junit.jupiter.api.TestInstance
+import org.testcontainers.junit.jupiter.Container
+import org.testcontainers.junit.jupiter.Testcontainers
 import java.util.UUID
 
-class LinkedInCredentialGatewayTest : DatabaseUnitTestBase() {
+@Tag("postgres")
+@Testcontainers(disabledWithoutDocker = true)
+@TestInstance(TestInstance.Lifecycle.PER_CLASS)
+class LinkedInCredentialGatewayTest : PostgresDatabaseTestBase() {
 
-    override fun databaseName(): String = "linkedin_credentials"
+    override val postgres = postgresContainer
 
     private lateinit var gateway: R2dbcLinkedInCredentialGateway
     private lateinit var encryptionService: CredentialEncryptionService
@@ -186,6 +194,11 @@ class LinkedInCredentialGatewayTest : DatabaseUnitTestBase() {
                 }
             }
         }
+    }
+
+    companion object {
+        @Container
+        val postgresContainer = PostgresTestContainerSupport.newContainer("linkedin_credential_gateway")
     }
 }
 

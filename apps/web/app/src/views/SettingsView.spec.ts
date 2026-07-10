@@ -3,8 +3,11 @@ import { flushPromises, mount } from '@vue/test-utils'
 import { createPinia, setActivePinia } from 'pinia'
 import SettingsView from './SettingsView.vue'
 import { usePublishingStore } from '@/stores/publishing'
+import { useWorkspaceStore } from '@/stores/workspace'
 
 const routeQuery = vi.hoisted(() => ({ value: {} as Record<string, unknown> }))
+const renameWorkspaceMock = vi.hoisted(() => vi.fn())
+const authStoreState = vi.hoisted(() => ({ accessToken: 'access-token-1' }))
 
 vi.mock('vue-router', () => ({
   useRoute: () => ({ query: routeQuery.value }),
@@ -32,6 +35,12 @@ vi.mock('@/lib/auth-api', () => ({
   register: vi.fn(),
   logoutSession: vi.fn(),
   proxyImageUrl: (url: string) => url,
+  renameWorkspace: (...args: unknown[]) => renameWorkspaceMock(...args),
+  updateWorkspaceIcon: vi.fn(),
+}))
+
+vi.mock('@/stores/auth', () => ({
+  useAuthStore: () => authStoreState,
 }))
 
 function mountSettings() {
@@ -64,7 +73,7 @@ describe('SettingsView channel connection CTA', () => {
     expect(wrapper.text()).toContain('channels.connectLinkedInProfile')
   })
 
-  it('clicking LinkedIn connect CTA starts connection flow', async () => {
+  it('clicking LinkedIn connect CTA starts the store connection flow', async () => {
     const publishing = usePublishingStore()
     vi.spyOn(publishing, 'fetchChannels').mockResolvedValue([])
     vi.spyOn(publishing, 'fetchConfiguredProviders').mockImplementation(async () => {
@@ -88,6 +97,146 @@ describe('SettingsView channel connection CTA', () => {
     expect(connect).toHaveBeenCalledOnce()
   })
 
+  it('renders normalized LinkedIn channels returned by the publishing store', async () => {
+    const publishing = usePublishingStore()
+    publishing.channels = [
+      {
+        id: 'linkedin-1',
+        accountId: 'linkedin-1',
+        name: 'Profile Tailors',
+        provider: 'linkedin',
+        avatar: '',
+        handle: 'Profile Tailors',
+        status: 'ACTIVE',
+      },
+    ]
+    vi.spyOn(publishing, 'fetchChannels').mockResolvedValue(publishing.channels)
+    vi.spyOn(publishing, 'fetchConfiguredProviders').mockResolvedValue()
+
+    const wrapper = mountSettings()
+    await flushPromises()
+
+    expect(wrapper.find('[data-testid="settings-connected-channel"]').exists()).toBe(true)
+    expect(wrapper.text()).toContain('Profile Tailors')
+    expect(wrapper.text()).toContain('channels.active')
+  })
+
+  it('shows needsReconnect badge for a non-ACTIVE LinkedIn channel', async () => {
+    const publishing = usePublishingStore()
+    publishing.channels = [
+      {
+        id: 'linkedin-2',
+        accountId: 'linkedin-2',
+        name: 'Profile Tailors',
+        provider: 'linkedin',
+        avatar: '',
+        handle: 'Profile Tailors',
+        status: 'REQUIRES_RECONNECT',
+      },
+    ]
+    vi.spyOn(publishing, 'fetchChannels').mockResolvedValue(publishing.channels)
+    vi.spyOn(publishing, 'fetchConfiguredProviders').mockResolvedValue()
+
+    const wrapper = mountSettings()
+    await flushPromises()
+
+    const badge = wrapper.find('[data-testid="settings-connected-channel"] span')
+    expect(badge.text()).toContain('channels.needsReconnect')
+    // Badge does NOT show the success styling for a non-ACTIVE channel
+    expect(badge.classes()).not.toContain('text-success')
+  })
+
+  it('uses the LinkedIn callback query contract for success and panel focus', async () => {
+    routeQuery.value = { connected: 'linkedin', panel: 'channels', provider: 'linkedin' }
+    const publishing = usePublishingStore()
+    vi.spyOn(publishing, 'fetchChannels').mockResolvedValue([])
+    vi.spyOn(publishing, 'fetchConfiguredProviders').mockResolvedValue()
+
+    const wrapper = mountSettings()
+    await flushPromises()
+
+    expect(wrapper.text()).toContain('linkedinCallback.successMessage')
+    expect(wrapper.find('[data-testid="settings-channels-panel"]').classes().join(' ')).toContain(
+      'shadow-[0_0_0_1px_rgba(255,255,255,0.12)]',
+    )
+  })
+
+  it('loads channels and provider configuration on direct visits', async () => {
+    const publishing = usePublishingStore()
+    const fetchChannels = vi.spyOn(publishing, 'fetchChannels').mockResolvedValue([])
+    const fetchConfiguredProviders = vi
+      .spyOn(publishing, 'fetchConfiguredProviders')
+      .mockResolvedValue()
+
+    mountSettings()
+    await flushPromises()
+
+    expect(fetchChannels).toHaveBeenCalledOnce()
+    expect(fetchConfiguredProviders).toHaveBeenCalledOnce()
+  })
+
+  it('dismisses rename success feedback after three seconds', async () => {
+    vi.useFakeTimers()
+    try {
+      const workspace = useWorkspaceStore()
+      workspace.setActiveWorkspaceId('ws-1')
+      workspace.setWorkspaceName('Current name')
+      renameWorkspaceMock.mockResolvedValue({ workspaceId: 'ws-1', name: 'Studio PT' })
+
+      const wrapper = mountSettings()
+      await flushPromises()
+      await wrapper
+        .findAll('button')
+        .find((button) => button.text().includes('workspace.rename'))
+        ?.trigger('click')
+      await wrapper.find('input[type="text"]').setValue('Studio PT')
+      await wrapper
+        .findAll('button')
+        .find((button) => button.text().includes('workspace.save'))
+        ?.trigger('click')
+      await flushPromises()
+
+      expect(wrapper.text()).toContain('workspace.renameSuccess')
+
+      await vi.advanceTimersByTimeAsync(3_000)
+
+      expect(wrapper.text()).not.toContain('workspace.renameSuccess')
+    } finally {
+      vi.useRealTimers()
+    }
+  })
+
+  it('clears pending rename feedback timer when unmounted', async () => {
+    vi.useFakeTimers()
+    const clearTimeoutSpy = vi.spyOn(globalThis, 'clearTimeout')
+    try {
+      const workspace = useWorkspaceStore()
+      workspace.setActiveWorkspaceId('ws-1')
+      workspace.setWorkspaceName('Current name')
+      renameWorkspaceMock.mockResolvedValue({ workspaceId: 'ws-1', name: 'Studio PT' })
+
+      const wrapper = mountSettings()
+      await flushPromises()
+      await wrapper
+        .findAll('button')
+        .find((button) => button.text().includes('workspace.rename'))
+        ?.trigger('click')
+      await wrapper.find('input[type="text"]').setValue('Studio PT')
+      await wrapper
+        .findAll('button')
+        .find((button) => button.text().includes('workspace.save'))
+        ?.trigger('click')
+      await flushPromises()
+
+      wrapper.unmount()
+
+      expect(clearTimeoutSpy).toHaveBeenCalledOnce()
+    } finally {
+      clearTimeoutSpy.mockRestore()
+      vi.useRealTimers()
+    }
+  })
+
   it('renders the integrated settings overview layout', async () => {
     const publishing = usePublishingStore()
     vi.spyOn(publishing, 'fetchChannels').mockResolvedValue([])
@@ -101,9 +250,9 @@ describe('SettingsView channel connection CTA', () => {
     expect(wrapper.find('[data-testid="settings-shell"]').exists()).toBe(true)
     expect(wrapper.find('[data-testid="settings-overview"]').exists()).toBe(true)
     expect(wrapper.find('[data-testid="settings-preferences-panel"]').exists()).toBe(true)
-    expect(wrapper.text()).toContain('settings.preferencesEyebrow')
-    expect(wrapper.text()).toContain('settings.workspaceIdentityTitle')
-    expect(wrapper.text()).toContain('settings.channelStatusTitle')
+    expect(wrapper.text()).toContain('settings.overviewBadge')
+    expect(wrapper.text()).toContain('settings.languageLabel')
+    expect(wrapper.text()).toContain('settings.subtitle')
     // Theme toggle is no longer in the settings panel — it lives in SidebarAccountSection.
     expect(wrapper.find('[data-testid="settings-language-en"]').exists()).toBe(true)
     expect(wrapper.find('[data-testid="settings-language-es"]').exists()).toBe(true)

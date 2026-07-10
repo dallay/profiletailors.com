@@ -37,10 +37,14 @@ jobs:
           cache: 'gradle'
 
       - name: Run backend tests
-        run: ./gradlew :server:smp:test -x :server:smp:bddFastTest -x :server:smp:bddPostgresTest :shared:common:test :shared:bus:test :shared:presentation:test :shared:security:test :shared:spring-boot-common:test :shared:storage:test :shared:shield:ratelimit:test --no-daemon -PexcludeTags=modularity,postgres
+        env:
+          SMP_POSTGRES_TEST_PASSWORD: ${{ secrets.SMP_POSTGRES_PASSWORD }}
+        run: ./gradlew :server:smp:test -x :server:smp:bddFastTest -x :server:smp:bddPostgresTest :shared:common:test :shared:bus:test :shared:presentation:test :shared:security:test :shared:spring-boot-common:test :shared:storage:test :shared:shield:ratelimit:test --no-daemon -PexcludeTags=modularity
 
       - name: Generate backend coverage reports
-        run: ./gradlew :server:smp:koverXmlReport -x :server:smp:bddFastTest -x :server:smp:bddPostgresTest :shared:common:koverXmlReport :shared:bus:koverXmlReport :shared:presentation:koverXmlReport :shared:security:koverXmlReport :shared:spring-boot-common:koverXmlReport :shared:storage:koverXmlReport :shared:shield:ratelimit:koverXmlReport --no-daemon -PexcludeTags=modularity,postgres
+        env:
+          SMP_POSTGRES_TEST_PASSWORD: ${{ secrets.SMP_POSTGRES_PASSWORD }}
+        run: ./gradlew :server:smp:koverXmlReport -x :server:smp:bddFastTest -x :server:smp:bddPostgresTest :shared:common:koverXmlReport :shared:bus:koverXmlReport :shared:presentation:koverXmlReport :shared:security:koverXmlReport :shared:spring-boot-common:koverXmlReport :shared:storage:koverXmlReport :shared:shield:ratelimit:koverXmlReport --no-daemon -PexcludeTags=modularity
 
       - name: Verify backend coverage reports
         run: |
@@ -150,7 +154,7 @@ jobs:
           verbose: true
 
       - name: SonarQube Quality Gate check
-        uses: sonarsource/sonarqube-quality-gate-action@d304d050d930b02a896b0f85935344f023928496 # v1.1.0
+        uses: sonarsource/sonarqube-quality-gate-action@cf038b0e0cdecfa9e56c198bbb7d21d751d62c3b # v1.2.0
         timeout-minutes: 5
         env:
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}

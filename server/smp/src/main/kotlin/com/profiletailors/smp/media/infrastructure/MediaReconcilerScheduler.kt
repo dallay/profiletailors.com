@@ -19,14 +19,10 @@ class MediaReconcilerScheduler(
     private val blobGarbageCollector: BlobGarbageCollector,
     private val mediaAssetExpirationJob: MediaAssetExpirationJob,
 ) {
-    // ─── Blob Garbage Collector — every hour ────────────────────────────────────
-
     @Scheduled(fixedRate = GC_FIXED_RATE_MILLIS, initialDelay = GC_INITIAL_DELAY_MILLIS)
     suspend fun runGarbageCollector() {
         blobGarbageCollector.run()
     }
-
-    // ─── Asset Expiration Job — every 6 hours ────────────────────────────────
 
     @Scheduled(fixedRate = EXPIRATION_FIXED_RATE_MILLIS, initialDelay = EXPIRATION_INITIAL_DELAY_MILLIS)
     suspend fun runExpirationJob() {

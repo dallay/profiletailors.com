@@ -1,3 +1,6 @@
+server:
+  port: ${SMP_BACKEND_PORT:7638}
+
 spring:
   application:
     name: smp
@@ -23,6 +26,7 @@ app:
   security:
     cors:
       allowed-origins: ${SMP_CORS_ALLOWED_ORIGINS:}  # comma-separated, empty = no CORS access
+      allow-credentials: ${SMP_CORS_ALLOW_CREDENTIALS:true}
     local-jwt:
       secret: ${SMP_LOCAL_JWT_SECRET:}
       issuer: ${SMP_LOCAL_JWT_ISSUER:http://localhost/profiletailors-local}
@@ -91,6 +95,19 @@ publishing:
     authorization-base-url: ${SMP_LINKEDIN_AUTHORIZATION_BASE_URL:https://www.linkedin.com/oauth/v2/authorization}
     token-base-url: ${SMP_LINKEDIN_TOKEN_BASE_URL:https://www.linkedin.com/oauth/v2/accessToken}
     api-version: ${SMP_LINKEDIN_API_VERSION:202606}
+
+# Media provider adapters (Hexagonal: ports under media-library.application.port;
+# adapters live under mediaprovider.* and are wired behind a feature flag).
+mediaprovider:
+  unsplash:
+    # Feature flag — defaults to OFF in ALL environments. The Unsplash adapter
+    # is only registered when this is true AND UNSPLASH_ACCESS_KEY is configured.
+    enabled: ${SMP_MEDIAPROVIDER_UNSPLASH_ENABLED:false}
+    # API key — MUST be set via env var when enabled (Unsplash demo key acceptable for local/staging).
+    access-key: ${UNSPLASH_ACCESS_KEY:}
+    base-url: ${SMP_MEDIAPROVIDER_UNSPLASH_BASE_URL:https://api.unsplash.com}
+    timeout: ${SMP_MEDIAPROVIDER_UNSPLASH_TIMEOUT:PT5S}
+    page-size: ${SMP_MEDIAPROVIDER_UNSPLASH_PAGE_SIZE:20}
   credentials:
     encryption:
       key: ${PUBLISHING_CREDENTIALS_KEY:}  # Sin default — debe configurarse via env var

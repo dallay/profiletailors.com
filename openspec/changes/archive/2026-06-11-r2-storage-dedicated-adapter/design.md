@@ -2,7 +2,8 @@
 
 ## Architecture
 
-The `R2StorageAdapter` follows hexagonal architecture principles, implementing the `PresignableStorage` port directly rather than delegating to `S3Storage`. This provides:
+The `R2StorageAdapter` follows hexagonal architecture principles, implementing the
+`PresignableStorage` port directly rather than delegating to `S3Storage`. This provides:
 
 1. **Clear ownership**: R2-specific client configuration lives in one place
 2. **Testability**: Mock-friendly without depending on S3Storage internals
@@ -52,12 +53,12 @@ object R2ClientFactory {
 
 ### Key Design Decisions
 
-| Decision | Choice | Rationale |
-|----------|--------|-----------|
-| R2 client type | `S3AsyncClient` | R2 is S3-compatible; AWS SDK v2 supports coroutines |
-| Path style access | `true` | R2 requires path-style addressing |
-| Region default | `"auto"` | R2 uses global storage; `auto` enables automatic routing |
-| Error handling | Domain exceptions | Matches existing `StorageException` hierarchy |
+| Decision          | Choice            | Rationale                                                |
+|-------------------|-------------------|----------------------------------------------------------|
+| R2 client type    | `S3AsyncClient`   | R2 is S3-compatible; AWS SDK v2 supports coroutines      |
+| Path style access | `true`            | R2 requires path-style addressing                        |
+| Region default    | `"auto"`          | R2 uses global storage; `auto` enables automatic routing |
+| Error handling    | Domain exceptions | Matches existing `StorageException` hierarchy            |
 
 ## File Structure
 
@@ -115,14 +116,14 @@ Client                    R2StorageAdapter              R2ClientFactory
 
 ## Error Mapping Strategy
 
-| R2/AWS SDK Exception | Domain Exception |
-|---------------------|------------------|
-| `NoSuchKey` | `StorageObjectNotFoundException` |
-| `NoSuchBucket` | `StorageBucketNotFoundException` |
-| `AccessDenied` | `StorageAccessDeniedException` |
-| `TooManyRequests` | `StorageRateLimitException` |
-| `ServiceUnavailable` | `StorageConnectionException` |
-| Other | `StorageException` |
+| R2/AWS SDK Exception | Domain Exception                 |
+|----------------------|----------------------------------|
+| `NoSuchKey`          | `StorageObjectNotFoundException` |
+| `NoSuchBucket`       | `StorageBucketNotFoundException` |
+| `AccessDenied`       | `StorageAccessDeniedException`   |
+| `TooManyRequests`    | `StorageRateLimitException`      |
+| `ServiceUnavailable` | `StorageConnectionException`     |
+| Other                | `StorageException`               |
 
 ## Backward Compatibility Strategy
 
@@ -134,6 +135,7 @@ type: s2                    ──────────────►  R2Sto
 ```
 
 The `StorageAutoConfiguration` will:
+
 1. Check provider `type` field
 2. If `s2`, log deprecation warning and treat as `r2`
 3. If `r2`, instantiate `R2StorageAdapter` directly

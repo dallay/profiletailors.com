@@ -5,48 +5,32 @@ import com.profiletailors.smp.audit.domain.AuthorizationDecisionAuditFact
 import com.profiletailors.smp.audit.domain.MutationAuditFact
 import com.profiletailors.smp.audit.domain.MutationAuditOutcome
 import com.profiletailors.smp.authorization.domain.AuthorizationReasonCode
-import io.r2dbc.h2.H2ConnectionConfiguration
-import io.r2dbc.h2.H2ConnectionFactory
+import com.profiletailors.smp.integration.support.PostgresDatabaseTestBase
+import com.profiletailors.smp.integration.support.PostgresTestContainerSupport
 import kotlinx.coroutines.reactor.awaitSingle
 import kotlinx.coroutines.test.runTest
-import liquibase.Contexts
-import liquibase.LabelExpression
-import liquibase.Liquibase
-import liquibase.database.DatabaseFactory
-import liquibase.resource.ClassLoaderResourceAccessor
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertTrue
-import org.junit.jupiter.api.BeforeEach
+import org.junit.jupiter.api.Tag
 import org.junit.jupiter.api.Test
-import org.springframework.r2dbc.core.DatabaseClient
-import java.sql.DriverManager
+import org.junit.jupiter.api.TestInstance
+import org.testcontainers.junit.jupiter.Container
+import org.testcontainers.junit.jupiter.Testcontainers
 import java.time.Clock
 import java.time.Instant
 import java.time.OffsetDateTime
 import java.time.ZoneOffset
 
-class R2dbcAuditHookTest {
+@Tag("postgres")
+@Testcontainers(disabledWithoutDocker = true)
+@TestInstance(TestInstance.Lifecycle.PER_CLASS)
+class R2dbcAuditHookTest : PostgresDatabaseTestBase() {
 
-    private val jdbcUrl = "jdbc:h2:mem:audit_hook;MODE=PostgreSQL;DB_CLOSE_DELAY=-1;DB_CLOSE_ON_EXIT=FALSE"
-    private val connectionFactory = H2ConnectionFactory(
-        H2ConnectionConfiguration.builder()
-            .inMemory("audit_hook")
-            .property("MODE", "PostgreSQL")
-            .property("DB_CLOSE_DELAY", "-1")
-            .property("DB_CLOSE_ON_EXIT", "FALSE")
-            .username("sa")
-            .build(),
-    )
-    private val databaseClient = DatabaseClient.create(connectionFactory)
+    override val postgres = postgresContainer
+
     private val objectMapper = ObjectMapper()
     private val fixedClock = Clock.fixed(Instant.parse("2026-06-20T12:00:00Z"), ZoneOffset.UTC)
-    private val hook = R2dbcAuditHook(databaseClient, objectMapper, fixedClock)
-
-    @BeforeEach
-    fun setUp() {
-        applyLiquibaseBaseline()
-        deleteAllRows()
-    }
+    private val hook by lazy { R2dbcAuditHook(databaseClient, objectMapper, fixedClock) }
 
     @Test
     fun `persists authorization decision audit events`() = runTest {
@@ -217,19 +201,12 @@ class R2dbcAuditHookTest {
         assertTrue((row["id"] as String).startsWith("audit-"))
     }
 
-    private fun applyLiquibaseBaseline() {
-        DriverManager.getConnection(jdbcUrl, "sa", "").use { connection ->
-            val database = DatabaseFactory.getInstance()
-                .findCorrectDatabaseImplementation(liquibase.database.jvm.JdbcConnection(connection))
-            Liquibase(
-                "db/changelog/db.changelog-master.yaml",
-                ClassLoaderResourceAccessor(),
-                database,
-            ).update(Contexts(), LabelExpression())
-        }
-    }
-
     private fun deleteAllRows() = runTest {
         databaseClient.sql("DELETE FROM audit_events").fetch().rowsUpdated().awaitSingle()
+    }
+
+    companion object {
+        @Container
+        val postgresContainer = PostgresTestContainerSupport.newContainer("audit_hook")
     }
 }

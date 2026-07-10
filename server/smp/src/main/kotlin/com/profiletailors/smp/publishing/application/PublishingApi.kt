@@ -56,7 +56,7 @@ data class EditPublicationCommand(
     val publicationId: String,
     val title: String? = null,
     val bodyText: String? = null,
-    val assetIds: List<String> = emptyList(),
+    val assetIds: List<String>? = null,
     val scheduleMode: ScheduleMode,
     val scheduledFor: Instant? = null,
     val nextSlotAfter: Instant? = null,

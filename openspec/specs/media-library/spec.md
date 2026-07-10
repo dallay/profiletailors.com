@@ -1,7 +1,8 @@
 # Delta for Media Library
 
 > **Terminology note (SB1):** Throughout this specification, "creating" or "reserving" an asset
-> refers to the `POST /api/media/assets` operation that creates an asset record in `PROCESSING` state.
+> refers to the `POST /api/media/assets` operation that creates an asset record in `PROCESSING`
+> state.
 > The term `PROCESSING` is the authoritative lifecycle state name.
 
 > **Wire format note (R2-C1):** The `mediaType` field is serialized as a MIME string (e.g.,
@@ -195,6 +196,25 @@ Upload retry is allowed only if the asset status is `PROCESSING` or `FAILED`.
 - THEN the system MUST allow the upload (the asset is awaiting its first upload or is a stale
   PROCESSING state)
 
+### Requirement: Email Verification Required for Media Upload
+
+The system MUST require `emailStatus = VERIFIED` before an authenticated user can create or upload media assets to the workspace media library.
+
+This policy MUST align with other verification-gated product capabilities so unverified users receive the same denial reason and no media asset is created or uploaded on their behalf.
+
+#### Scenario: Unverified user cannot create uploadable asset
+
+- GIVEN an authenticated user with `emailStatus = UNVERIFIED`
+- WHEN the user requests media asset creation or upload
+- THEN the system MUST deny the request
+- AND the denial MUST indicate email verification is required
+
+#### Scenario: Verified user can proceed with media upload flow
+
+- GIVEN an authenticated user with `emailStatus = VERIFIED`
+- WHEN the user requests media asset creation or upload with otherwise valid data
+- THEN the system MUST evaluate the request under normal media-library rules
+
 ### Requirement: Rate Limiting for Upload Operations
 
 The system MUST enforce rate limits on the upload flow at workspace scope to prevent abuse and
@@ -342,3 +362,316 @@ Asset lifecycle state transitions:
 - WHEN two concurrent upload requests target the same asset simultaneously
 - THEN only one MUST succeed in transitioning to the upload-in-progress state
 - AND the other MUST receive HTTP 409 `ASSET_UPLOAD_IN_PROGRESS`
+
+### Requirement: DeleteWorkspaceAssetHandler — Storage Delete + DB Soft-Delete in Atomic Transaction
+
+The system MUST wrap the `mediaAssetRepository.softDelete()` call inside `transactionRunner.runAtomically {}` after the storage delete succeeds, so that DB soft-delete commits or rolls back as an atomic unit.
+
+The storage delete operation MUST be executed first and outside the transaction because it is the irreversible operation. If the storage delete succeeds but the DB soft-delete fails, the system MUST schedule an asynchronous blob cleanup job rather than propagating the failure to the caller.
+
+The async cleanup job MUST be idempotent and MUST NOT block the delete response from returning successfully to the caller once the storage object has been deleted.
+
+#### Scenario: Storage delete and DB soft-delete both succeed
+
+- GIVEN an authenticated workspace member deletes an existing `READY` media asset
+- WHEN `DeleteWorkspaceAssetHandler` executes
+- THEN `storageApplicationService.delete()` MUST be called first
+- AND if storage delete succeeds, `transactionRunner.runAtomically { mediaAssetRepository.softDelete() }` MUST be executed
+- AND the asset MUST be soft-deleted in the database
+- AND the response MUST indicate deletion success
+
+#### Scenario: Storage delete succeeds but DB soft-delete fails — async cleanup scheduled
+
+- GIVEN an authenticated workspace member deletes an existing `READY` media asset
+- AND the storage delete completes successfully
+- WHEN `mediaAssetRepository.softDelete()` throws inside `runAtomically {}`
+- THEN the transaction MUST be rolled back
+- AND an async blob cleanup job MUST be scheduled with sufficient context (assetId, storageKey, workspaceId)
+- AND the response MUST indicate deletion success (storage is already deleted)
+
+#### Scenario: Storage delete fails — operation fails without DB change
+
+- GIVEN an authenticated workspace member deletes an existing `READY` media asset
+- WHEN `storageApplicationService.delete()` throws
+- THEN the handler MUST NOT call `softDelete()`
+- AND the asset MUST remain in its current database state
+- AND the error MUST be propagated to the caller
+
+### Requirement: UploadAssetHandler — Atomic State Transition and Slot Release
+
+The system MUST wrap `mediaAssetRepository.markAsReady()` inside `transactionRunner.runAtomically {}` so the state transition commits or rolls back as an atomic unit.
+
+The slot release (`releaseConcurrentUploadSlot()`) MUST be executed in a `finally` block after the transaction completes, so the slot is always released regardless of whether the upload succeeded or failed. Slot release is idempotent and MUST NOT be part of the atomic transaction — if the transaction rolls back, the slot remains held by the asset, allowing the client to retry.
+
+The slot claim (`claimConcurrentUploadSlot()`) MUST remain outside the transaction because it is a pre-condition check and is idempotent. The S3 upload (`uploadWithStreamingValidation()`) MUST remain outside the transaction because it is an external operation with no DB involvement.
+
+If the transaction rolls back, the upload MUST be considered failed and the cleanup semantics defined in the media-library spec apply.
+
+#### Scenario: Upload completes and markAsReady commits atomically; slot released in finally
+
+- GIVEN an asset is in `UPLOADING` status with a valid upload slot claimed
+- AND the S3 upload via `uploadWithStreamingValidation()` completes successfully
+- WHEN the atomic block executes `markAsReady()`
+- THEN `markAsReady()` MUST commit
+- AND the asset MUST transition to `READY`
+- AND the `finally` block MUST release the concurrent upload slot
+
+#### Scenario: Slot claim stays outside transaction (pre-condition)
+
+- GIVEN a workspace has 5 uploads in progress
+- WHEN a sixth upload request is made
+- THEN `claimConcurrentUploadSlot()` MUST be evaluated outside any transaction
+- AND the request MUST be rejected with HTTP 429 before any atomic block is entered
+
+### Requirement: PutAssetHandler — Atomic Blob and Asset Creation for Created Path
+
+The system MUST wrap `workspaceFileBlobRepository.upsertBlob()` and `createPendingAsset()` (which includes `mediaAssetRepository.create()`) inside `transactionRunner.runAtomically {}` for the `handleNewBlob` code path only.
+
+If the blob upsert succeeds but the asset creation fails, the transaction MUST roll back and revert the blob upsert, preventing orphaned blob records.
+
+The `handleExistedBlob` path already uses `transactionRunner.runAtomically {}` correctly and MUST NOT be modified.
+
+#### Scenario: New blob and new asset both commit atomically
+
+- GIVEN no blob exists for `(workspaceId, fileHash)`
+- WHEN a client calls `PUT /api/workspaces/{workspaceId}/media/assets/{assetId}` with new file content
+- THEN `transactionRunner.runAtomically { upsertBlob(); createPendingAsset() }` MUST be executed
+- AND the blob row MUST be inserted with status `UPLOADING`
+- AND the asset row MUST be inserted with status `PENDING_UPLOAD`
+- AND both inserts MUST commit together
+
+#### Scenario: Blob upsert succeeds but asset creation fails — blob upsert rolled back
+
+- GIVEN no blob exists for `(workspaceId, fileHash)`
+- AND `workspaceFileBlobRepository.upsertBlob()` succeeds inside the atomic block
+- WHEN `createPendingAsset()` throws
+- THEN the transaction MUST roll back
+- AND the blob upsert MUST be reverted
+- AND no orphaned blob record MUST exist
+
+#### Scenario: handleExistedBlob path unchanged
+
+- GIVEN `PutAssetHandler` detects an existing blob for `(workspaceId, fileHash)` with status `READY`
+- WHEN the `handleExistedBlob` path is executed
+- THEN `transactionRunner.runAtomically {}` MUST already be in use at that code path
+- AND this change MUST NOT modify that existing transactional behavior
+
+### Requirement: External Source Type and Attribution Fields
+
+The system MUST extend the `MediaAsset` model and the `media_assets` schema to support attribution
+metadata for externally-imported media assets. This enables downstream changes (e.g., the Unsplash
+provider) to populate provenance fields without further schema negotiation.
+
+The `MediaSourceType` enum MUST contain exactly `UPLOADED` and `EXTERNAL`. The vestigial
+`EXTERNAL_URL` value MUST be removed from the media-context enum. The publishing-context
+`AssetSourceType.EXTERNAL_URL` is NOT modified.
+
+The `media_assets` table MUST gain six nullable columns: `source_provider VARCHAR(32)`,
+`external_id VARCHAR(255)`, `source_url VARCHAR(2048)`, `author_name VARCHAR(255)`,
+`author_url VARCHAR(2048)`, and `metadata JSONB`. Two CHECK constraints MUST be added:
+`chk_asset_uploaded_implies_no_provider` (UPLOADED rows MUST have NULL `source_provider`) and
+`chk_asset_external_implies_provider_and_id` (EXTERNAL rows MUST have non-null `source_provider`
+and `external_id`).
+
+The migration MUST be additive only — no backfill, no UPDATE statements, no changes to existing
+rows.
+
+No DB-side enum, FK, or UNIQUE constraint SHALL be added on `source_provider` or `external_id`.
+
+The frontend `MediaSourceType` union and `MediaAssetSummary` MUST be extended to match the backend
+contract. The frontend MUST NOT render attribution from `authorName` / `authorUrl` in this change.
+
+`MediaAssetResponse` and `MediaAssetSummary` MUST surface all six new fields as nullable,
+defaulting to `null` for legacy rows.
+
+The `MediaAsset.init` block MUST enforce per-`sourceType` rules:
+- `UPLOADED` ⇒ `sourceProvider` MUST be `null`.
+- `EXTERNAL` ⇒ `sourceProvider` and `externalId` MUST be non-blank.
+- When `sourceProvider` is non-null, it MUST match `^[a-z][a-z0-9_]{0,31}$`.
+
+The CAS binary path MUST be shared between browser uploads and provider imports. The difference
+between `UPLOADED` and `EXTERNAL` assets is the metadata attached to the row, NOT the binary flow.
+Provider imports MUST construct the `media_assets` row with `source_type='EXTERNAL'` from the
+very first INSERT.
+
+The project-owner architectural approval of the bounded-context enum split (`MediaSourceType`
+vs `AssetSourceType.EXTERNAL_URL`) MUST be recorded in the verify report before the change
+advances to `sdd-archive`.
+
+#### Scenario: External source type is available on MediaSourceType
+
+- GIVEN the media-context `MediaSourceType` enum
+- WHEN the enum is enumerated
+- THEN it MUST contain exactly `UPLOADED` and `EXTERNAL`
+- AND `EXTERNAL_URL` MUST NOT exist
+
+#### Scenario: Schema adds six nullable attribution columns with CHECK constraints
+
+- GIVEN a PostgreSQL `media_assets` table at the post-`004` Liquibase head
+- WHEN the changeset `media-005-add-external-metadata` runs
+- THEN the table MUST contain the six new nullable columns with the documented types
+- AND two CHECK constraints MUST be created
+- AND the migration must be additive with no backfill
+
+#### Scenario: UPLOADED rows reject a non-null source_provider
+
+- GIVEN a row in `media_assets` with `source_type='UPLOADED'` and `source_provider='unsplash'`
+- WHEN the row is INSERTed
+- THEN the database MUST raise a CHECK violation
+
+#### Scenario: EXTERNAL rows reject NULL source_provider or external_id
+
+- GIVEN a row with `source_type='EXTERNAL'` and `source_provider=NULL` or `external_id=NULL`
+- WHEN the row is INSERTed
+- THEN the database MUST raise a CHECK violation
+
+#### Scenario: MediaAsset.init rejects EXTERNAL with blank/null fields
+
+- GIVEN `sourceType=EXTERNAL` and `sourceProvider=null` or `externalId=null`
+- WHEN `MediaAsset.init` evaluates
+- THEN it MUST throw `IllegalArgumentException`
+
+#### Scenario: MediaAsset.init validates sourceProvider format
+
+- GIVEN `sourceType=EXTERNAL` with `sourceProvider` set to an invalid format
+- WHEN `MediaAsset.init` evaluates
+- THEN it MUST throw `IllegalArgumentException` with a message referencing the regex
+- AND `sourceProvider='unsplash'` MUST NOT throw
+
+#### Scenario: Response and summary DTOs surface all six new nullable fields
+
+- GIVEN a `MediaAsset` with all six external-metadata fields populated
+- WHEN the DTO serializes
+- THEN the JSON body MUST include all six fields
+- AND for a legacy row with all six fields null, the DTO MUST serialize them as `null`
+
+#### Scenario: Frontend types mirror the backend contract
+
+- GIVEN the SPA source after the change
+- WHEN `vue-tsc --build` runs
+- THEN the `MediaSourceType` union MUST include `'EXTERNAL'`
+- AND `MediaAssetSummary` MUST declare the six new optional fields
+
+#### Scenario: Frontend does not render attribution in this change
+
+- GIVEN the SPA source after the change applies
+- WHEN the `.vue` files are searched for `authorName` or `authorUrl`
+- THEN zero `.vue` references SHALL consume those fields for display
+
+#### Scenario: CAS binary path is shared between browser uploads and provider imports
+
+- GIVEN a browser upload and an Unsplash provider import
+- WHEN both persist their bytes through the CAS pipeline
+- THEN both go through the same CAS path
+- AND the provider-import row MUST INSERT with `source_type='EXTERNAL'` from the first call
+
+#### Scenario: Project-owner architectural approval recorded
+
+- GIVEN the change's Definition of Done
+- WHEN `sdd-verify` runs
+- THEN the verify report MUST contain a verbatim record of the project owner's approval
+
+### Requirement: Upload Retry After Failed Atomic Block
+
+When the `markAsReady()` atomic block rolls back due to a failure, the `finally` block releases the concurrent upload slot. The client MUST re-claim a slot to retry, subject to the same concurrency and rate-limit checks as a fresh upload.
+
+#### Scenario: Atomic block rolls back — client retries upload
+
+- GIVEN an asset is in `UPLOADING` status after `markAsReady()` rolled back
+- AND the `finally` block released the concurrent upload slot
+- WHEN the client retries the upload
+- THEN the system MUST allow the retry if the asset status is `UPLOADING`
+- AND the client MUST re-claim a concurrent upload slot to proceed
+
+### Requirement: Active picker session refresh after upload or import
+
+When an upload or provider import creates or returns persisted assets during an open composer picker session, the media library MUST refresh or upsert those persisted assets into the active picker session. Assets successfully uploaded or imported through the active picker session MUST become staged automatically once they resolve to selectable persisted assets, and they MUST become visible without requiring the author to reopen the picker.
+
+#### Scenario: Upload adds persisted assets into the active picker session
+
+- GIVEN the composer picker is open
+- WHEN an upload completes and yields persisted asset IDs
+- THEN those assets MUST appear in the active picker session
+- AND the author MUST NOT need to close and reopen the picker to browse them
+
+#### Scenario: Import upserts an existing persisted asset into the active picker session
+
+- GIVEN the composer picker is open
+- WHEN a provider import resolves to an existing persisted asset
+- THEN the active picker session MUST surface that persisted asset
+- AND it MUST remain available for staging in the same session
+
+### Requirement: Picker-facing asset readiness presentation
+
+The media library MUST expose asset state so picker surfaces can distinguish selection readiness. `READY` assets MUST be selectable. When a `READY` asset has a preview it MUST provide a thumbnail; when it has no preview, or when preview loading fails, it MUST provide fallback visuals while remaining selectable. `PROCESSING` assets MUST remain visible with status or placeholder presentation and MUST NOT be selectable. `FAILED` assets MUST remain visible with failure or fallback presentation and MUST NOT be selectable.
+
+#### Scenario: READY asset is selectable in picker surfaces
+
+- GIVEN a persisted asset is `READY`
+- WHEN a picker surface renders that asset
+- THEN the asset MUST be selectable
+- AND it MUST provide a thumbnail when one is available
+
+#### Scenario: PROCESSING or FAILED asset remains visible without becoming selectable
+
+- GIVEN a persisted asset is `PROCESSING` or is `FAILED`
+- WHEN a picker surface renders that asset
+- THEN the asset MUST remain visible with status or fallback presentation
+- AND the picker MUST NOT treat it as selectable until it is `READY`
+
+#### Scenario: READY asset without preview remains selectable with fallback
+
+- GIVEN a persisted asset is `READY` but has no preview, or its preview fails to load
+- WHEN a picker surface renders that asset
+- THEN the asset MUST remain selectable
+- AND it MUST render fallback visuals that preserve grid continuity
+
+---
+
+## Non-Functional Requirements — Transactional Boundaries
+
+### Rollback Behavior
+
+| Operation | What Rolls Back | What Does NOT Roll Back |
+|-----------|-----------------|------------------------|
+| `DeleteWorkspaceAssetHandler` | DB soft-delete (if scheduled cleanup succeeds) | Storage delete (irreversible) |
+| `UploadAssetHandler` | `markAsReady()` | Slot claim (idempotent pre-condition) |
+| `PutAssetHandler` `handleNewBlob` | Blob upsert + asset creation | Nothing (all DB) |
+
+### Async Cleanup Semantics
+
+When `DeleteWorkspaceAssetHandler` schedules async cleanup after a partial failure:
+- The job MUST be enqueued with `(assetId, workspaceId, storageKey)` context
+- The job MUST be idempotent — safe to execute multiple times
+- The job MUST be retriable with backoff on transient failures
+- Cleanup failure MUST be logged with sufficient context for the stale reconciler to pick up
+
+### Constraints — What MUST NOT Change
+
+1. The `handleExistedBlob` path at line 781 in `PutAssetHandler` MUST NOT be modified — it already correctly uses `transactionRunner.runAtomically {}`
+2. Storage application service behavior MUST NOT change — only the DB call ordering changes
+3. `claimConcurrentUploadSlot()` MUST remain outside the transaction as a pre-condition guard
+4. `uploadWithStreamingValidation()` MUST remain outside the transaction — S3 operations cannot participate in R2DBC transactions
+5. No schema changes — all changes are at the application layer only
+6. The `StaleAssetReconciler` behavior is out of scope and already uses `runAtomically` correctly
+
+---
+
+## Integration Test Scenarios — Transactional Boundaries
+
+The integration test suite MUST verify the following with a real Postgres database:
+
+### DeleteWorkspaceAssetHandler
+- [ ] Storage delete succeeds + DB soft-delete succeeds → asset is `DELETED`
+- [ ] Storage delete succeeds + DB soft-delete fails → cleanup job is scheduled, response is success
+- [ ] Storage delete fails → `DELETED` status is NOT set, error is propagated
+
+### UploadAssetHandler
+- [ ] Happy path: `markAsReady()` + `releaseConcurrentUploadSlot()` both succeed and commit
+- [ ] `markAsReady()` succeeds, `releaseConcurrentUploadSlot()` fails → transaction rolls back, asset stays `UPLOADING`
+- [ ] Slot claim outside transaction: 6th concurrent upload is rejected before entering atomic block
+
+### PutAssetHandler (handleNewBlob only)
+- [ ] New blob + new asset both commit atomically
+- [ ] Blob upsert succeeds + asset creation fails → blob upsert is rolled back, no orphaned blob
+- [ ] `handleExistedBlob` path (line 781) is NOT affected by the change

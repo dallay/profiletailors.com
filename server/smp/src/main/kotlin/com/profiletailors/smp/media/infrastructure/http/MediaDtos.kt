@@ -5,8 +5,6 @@ import jakarta.validation.constraints.NotBlank
 import jakarta.validation.constraints.Pattern
 import jakarta.validation.constraints.Positive
 
-// ─── CAS PUT Request/Response ────────────────────────────────────────────────
-
 @Schema(description = "Request to register a media asset with CAS dedup (PUT)")
 data class PutAssetRequest(
     @field:NotBlank
@@ -61,8 +59,6 @@ data class DeleteAssetResponse(
     @field:Schema(description = "True if the blob was scheduled for GC", example = "false")
     val blobScheduledForGC: Boolean,
 )
-
-// ─── Error response ─────────────────────────────────────────────────────────
 
 @Schema(description = "Standard media error response")
 data class MediaErrorResponse(
@@ -137,6 +133,24 @@ data class MediaAssetResponse(
 
     @field:Schema(description = "Temporary signed URL for downloading/streaming the asset content", required = false)
     val downloadUrl: String? = null,
+
+    @field:Schema(description = "External provider identifier", required = false)
+    val sourceProvider: String? = null,
+
+    @field:Schema(description = "Provider-side stable asset identifier", required = false)
+    val externalId: String? = null,
+
+    @field:Schema(description = "Canonical source URL in the external provider", required = false)
+    val sourceUrl: String? = null,
+
+    @field:Schema(description = "Display name of the credited creator", required = false)
+    val authorName: String? = null,
+
+    @field:Schema(description = "URL for the credited creator", required = false)
+    val authorUrl: String? = null,
+
+    @field:Schema(description = "Provider-specific metadata", required = false)
+    val metadata: Map<String, Any>? = null,
 )
 
 @Schema(description = "Paginated list of media assets")

@@ -5,53 +5,40 @@ import com.profiletailors.smp.credentials.application.ApiKeyCredentialNotActiveE
 import com.profiletailors.smp.credentials.application.ApiKeyCredentialValueFactory
 import com.profiletailors.smp.credentials.application.ReplaceApiKeyCredentialCommand
 import com.profiletailors.smp.credentials.infrastructure.BCryptApiKeySecretVerifier
-import io.r2dbc.h2.H2ConnectionConfiguration
-import io.r2dbc.h2.H2ConnectionFactory
+import com.profiletailors.smp.integration.support.PostgresDatabaseTestBase
+import com.profiletailors.smp.integration.support.PostgresTestContainerSupport
 import kotlinx.coroutines.reactor.awaitSingle
 import kotlinx.coroutines.test.runTest
-import liquibase.Contexts
-import liquibase.LabelExpression
-import liquibase.Liquibase
-import liquibase.database.DatabaseFactory
-import liquibase.resource.ClassLoaderResourceAccessor
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertNotEquals
 import org.junit.jupiter.api.Assertions.assertNotNull
 import org.junit.jupiter.api.Assertions.assertNull
 import org.junit.jupiter.api.Assertions.assertThrows
-import org.junit.jupiter.api.BeforeEach
+import org.junit.jupiter.api.Tag
 import org.junit.jupiter.api.Test
-import org.springframework.r2dbc.core.DatabaseClient
-import java.sql.DriverManager
+import org.junit.jupiter.api.TestInstance
+import org.testcontainers.junit.jupiter.Container
+import org.testcontainers.junit.jupiter.Testcontainers
 import java.time.Clock
 import java.time.Instant
 import java.time.ZoneOffset
 
-class R2dbcApiKeyCredentialReplacementGatewayTest {
+@Tag("postgres")
+@Testcontainers(disabledWithoutDocker = true)
+@TestInstance(TestInstance.Lifecycle.PER_CLASS)
+class R2dbcApiKeyCredentialReplacementGatewayTest : PostgresDatabaseTestBase() {
 
-    private val jdbcUrl = "jdbc:h2:mem:api_key_replacement;MODE=PostgreSQL;DB_CLOSE_DELAY=-1;DB_CLOSE_ON_EXIT=FALSE"
-    private val connectionFactory = H2ConnectionFactory(
-        H2ConnectionConfiguration.builder()
-            .inMemory("api_key_replacement")
-            .property("MODE", "PostgreSQL")
-            .property("DB_CLOSE_DELAY", "-1")
-            .property("DB_CLOSE_ON_EXIT", "FALSE")
-            .username("sa")
-            .build(),
-    )
-    private val databaseClient = DatabaseClient.create(connectionFactory)
+    override val postgres = postgresContainer
+
     private val fixedClock = Clock.fixed(Instant.parse("2026-05-17T09:30:00Z"), ZoneOffset.UTC)
-    private val gateway = R2dbcApiKeyCredentialReplacementGateway(
-        connectionFactory = connectionFactory,
-        secretVerifier = BCryptApiKeySecretVerifier(),
-        valueFactory = StubApiKeyCredentialValueFactory(),
-        clock = fixedClock,
-    )
-
-    @BeforeEach
-    fun setUp() {
-        applyLiquibaseBaseline()
-        deleteAllRows()
+    private val gateway by lazy {
+        R2dbcApiKeyCredentialReplacementGateway(
+            databaseClient = databaseClient,
+            transactionalOperator = transactionalOperator,
+            secretVerifier = BCryptApiKeySecretVerifier(),
+            valueFactory = StubApiKeyCredentialValueFactory(),
+            clock = fixedClock,
+        )
     }
 
     @Test
@@ -218,18 +205,6 @@ class R2dbcApiKeyCredentialReplacementGatewayTest {
             .awaitSingle()
     }
 
-    private fun applyLiquibaseBaseline() {
-        DriverManager.getConnection(jdbcUrl, "sa", "").use { connection ->
-            val database = DatabaseFactory.getInstance()
-                .findCorrectDatabaseImplementation(liquibase.database.jvm.JdbcConnection(connection))
-            Liquibase(
-                "db/changelog/db.changelog-master.yaml",
-                ClassLoaderResourceAccessor(),
-                database,
-            ).update(Contexts(), LabelExpression())
-        }
-    }
-
     private fun deleteAllRows() = runTest {
         databaseClient.sql("SET REFERENTIAL_INTEGRITY FALSE").fetch().rowsUpdated().awaitSingle()
         listOf(
@@ -252,5 +227,10 @@ class R2dbcApiKeyCredentialReplacementGatewayTest {
                 keyPrefix = "ptk_successor",
                 secret = "successor-secret",
             )
+    }
+
+    companion object {
+        @Container
+        val postgresContainer = PostgresTestContainerSupport.newContainer("api_key_replacement")
     }
 }
