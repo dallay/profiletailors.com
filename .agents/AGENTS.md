@@ -24,6 +24,14 @@ openspec/             # SDD artifacts (spec-driven development)
 
 **All commands go through `just`** — run `just -l` to list everything.
 
+### Setup
+
+| Command              | Action                                                      |
+|----------------------|-------------------------------------------------------------|
+| `just setup`         | Full initial setup: .env → install → hooks → agentsync → codegraph |
+| `just install`       | Install dependencies (`pnpm install --frozen-lockfile`)      |
+| `just hooks-install` | Set up Lefthook git hooks                                  |
+
 ### Frontend Dev (run from repo root)
 
 | Command                  | Action                          |
@@ -45,6 +53,14 @@ openspec/             # SDD artifacts (spec-driven development)
 | `just backend-check`        | Detekt + tests                     |
 | `just backend-bdd-fast`     | Fast BDD suite                     |
 | `just backend-bdd-postgres` | Postgres BDD (requires `infra-up`) |
+
+### Full Stack
+
+| Command                | Action                                            |
+|------------------------|---------------------------------------------------|
+| `just serve`           | Start backend + frontend app in parallel          |
+| `just serve --force`   | Kill existing servers, then start fresh            |
+| `just kill-servers`    | Stop all dev servers (bootRun, Vite, GradleDaemon)|
 
 ### Infrastructure
 
@@ -106,6 +122,8 @@ openspec/             # SDD artifacts (spec-driven development)
 2. Run `bin/setup-env.sh` (creates symlinks for subprojects)
 3. `just install` to install all dependencies
 4. `just hooks-install` to set up git hooks (Lefthook)
+
+Or simply: `just setup` (does steps 1, 3, 4 + agentsync + codegraph in one shot).
 
 ## Backend .env Loading
 
