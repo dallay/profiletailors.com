@@ -3,6 +3,20 @@ import { describe, it, expect, vi } from 'vitest'
 import { createCalendarUrlController, extractFirstChannelId } from './useCalendarUrl'
 
 // ---------------------------------------------------------------------------
+// Compose a non-default timezone for assertions.
+//
+// `useCalendarUrl` resolves `DEFAULT_TIMEZONE` once at module load via
+// `Intl.DateTimeFormat`, then strips that timezone from the built URL to keep
+// canonical state short. In CI (GitHub Actions runs on UTC) the resolved
+// default is `'UTC'`, which makes any test that hardcodes `"UTC"` hit the
+// strip branch and fail. Choose a value guaranteed to differ from the host
+// default so canonicalization behavior is consistent across environments.
+// ---------------------------------------------------------------------------
+
+const hostTimezone = Intl.DateTimeFormat().resolvedOptions().timeZone || 'UTC'
+const NON_DEFAULT_TIMEZONE = hostTimezone === 'UTC' ? 'America/Havana' : 'UTC'
+
+// ---------------------------------------------------------------------------
 // Mock router and route factories
 // ---------------------------------------------------------------------------
 
@@ -230,7 +244,7 @@ describe('useCalendarUrl — navigation intent', () => {
       name: 'scheduler-calendar-month',
       query: {
         date: '2026-06-20',
-        timezone: 'UTC',
+        timezone: NON_DEFAULT_TIMEZONE,
         status: 'queued',
         q: 'launch',
         'channels[]': ['acc-1', 'acc-2'],
@@ -245,7 +259,7 @@ describe('useCalendarUrl — navigation intent', () => {
       name: 'scheduler-calendar-month',
       query: {
         date: '2026-06-20',
-        timezone: 'UTC',
+        timezone: NON_DEFAULT_TIMEZONE,
         status: 'queued',
         q: 'launch',
         'channels[]': ['acc-1', 'acc-2'],

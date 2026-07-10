@@ -164,6 +164,33 @@ Repo-local skills in `.agents/skills/` cover: backend-platform, frontend-platfor
 kotlin, typescript, vue, pinia, shadcn-vue, astro, pnpm, gradle, spring-boot,
 testing (vitest, playwright), hexagonal-architecture, docker.
 
+## Code Comments Policy
+
+Comments in code are **strictly for exceptional cases only**. The code must be
+self-documenting through clear naming, small functions, and expressive structure.
+
+**Allowed:**
+
+- **KDoc / TSDoc** — document public APIs, classes, functions, and their parameters.
+  These are machine-readable and generate documentation. Required on all public
+  interfaces, optional on internal ones.
+
+**Prohibited:**
+
+- `//` or `/* */` inline comments explaining what the code does — the code itself
+  must be clear enough.
+- TODO/FIXME/HACK comments — use the issue tracker instead.
+- Commented-out code — delete it; version control already tracks history.
+
+**Exceptional cases where a comment is acceptable:**
+
+- Explaining **WHY** something is done a non-obvious way (not **WHAT** it does).
+- Linking to an external reference (spec, RFC, issue) that explains a constraint.
+- A brief note on a performance-sensitive or security-critical section.
+
+When in doubt: if the comment can be removed and the code remains understandable,
+remove it.
+
 ## Key Gotchas
 
 - **Gradle wrapper detection:** Windows (CMD/PowerShell) uses `gradlew.bat`, POSIX uses `./gradlew`
