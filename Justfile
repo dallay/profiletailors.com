@@ -255,7 +255,7 @@ backend-bdd-fast:
 backend-test-postgres:
     {{gradle-root}} :server:smp:postgresIntegrationTest --no-daemon -x :shared:common:test -x :shared:spring-boot-common:test
 
-# Run Postgres BDD suite (requires infra-up first)
+# Run Postgres BDD suite
 backend-bdd-postgres:
     {{gradle-root}} :server:smp:bddPostgresTest --no-daemon -x :shared:common:test -x :shared:spring-boot-common:test
 
@@ -322,8 +322,8 @@ ci-local:
     @echo "  ✅ CI Pipeline Simulation Complete"
     @echo "══════════════════════════════════════════════"
 
-# Run CI checks including Postgres integration + BDD tests (requires 'just infra-up')
-ci-full: infra-up
+# Run CI checks including Postgres integration + BDD tests
+ci-full:
     just ci-local
     @echo ""
     @echo "▸ Backend: Postgres integration suite..."

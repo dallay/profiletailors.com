@@ -52,7 +52,7 @@ openspec/             # SDD artifacts (spec-driven development)
 | `just backend-test-fast`    | Fast tests (excludes BDD)          |
 | `just backend-check`        | Detekt + tests                     |
 | `just backend-bdd-fast`     | Fast BDD suite                     |
-| `just backend-bdd-postgres` | Postgres BDD (requires `infra-up`) |
+| `just backend-bdd-postgres` | Postgres BDD                      |
 
 ### Full Stack
 
@@ -75,7 +75,7 @@ openspec/             # SDD artifacts (spec-driven development)
 |-----------------|-----------------------------------------------------|
 | `just ci`       | Full CI: gitleaks, lint, tests, build, E2E          |
 | `just ci-local` | Fast subset (no E2E, no Postgres BDD)               |
-| `just ci-full`  | ci-local + Postgres BDD (requires `infra-up` first) |
+| `just ci-full`  | ci-local + Postgres BDD                             |
 
 ## Backend Architecture (Hexagonal)
 
@@ -137,7 +137,7 @@ These tags are excluded in CI due to known pre-existing failures:
 | Tag          | Reason                                                     |
 |--------------|------------------------------------------------------------|
 | `modularity` | Spring Modulith named-interface issue (on main)            |
-| `postgres`   | Postgres/Testcontainers integration tests (not configured) |
+| `postgres`   | Postgres/Testcontainers integration tests (running in CI)   |
 
 ## Design Spec
 
