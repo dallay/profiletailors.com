@@ -709,6 +709,25 @@ class LinkedInPublishingAdaptersTest {
             bucketName = "attachments",
             storage = storage,
         )
+        val publisher = publisherWiredTo(binding, storage)
+        val asset = testAsset("image/png").copy(storageKey = "assets/dev-workspace-001/blobs/hash.png")
+
+        publisher.publish(
+            publishCommandForAsset(asset),
+        )
+
+        // Binding forces the publisher to read from the configured logical bucket only.
+        // Anything probed under "profiletailors-attachments" would mean we bypassed the binding.
+        val download = storage.lastDownload
+        assertNotNull(download)
+        assertEquals(binding.bucketName, download!!.first)
+        assertEquals(false, storage.wrongBucketProbed)
+    }
+
+    private fun publisherWiredTo(
+        binding: AttachmentsStorageBinding,
+        storage: BucketAssertingStorage,
+    ): RealLinkedInPublisher {
         val transport = StubTransport(
             listOf(
                 LinkedInHttpResponse(
@@ -721,32 +740,24 @@ class LinkedInPublishingAdaptersTest {
         val credentialGateway = FakeCredentialGateway()
         val derivedUuid = UUID.nameUUIDFromBytes("linkedin:abcd1234".toByteArray())
         credentialGateway.store(derivedUuid, LinkedInCredentials("access-token", null, null, scope = null))
-        val assetUploader = FakeLinkedInAssetUploader()
-        val publisher = testPublisher(
+        return testPublisher(
             transport = transport,
             credentialGateway = credentialGateway,
             credentialReference = derivedUuid,
-            assetUploader = assetUploader,
+            assetUploader = FakeLinkedInAssetUploader(),
             storage = storage,
-            attachmentsBucket = "attachments",
+            attachmentsBucket = binding.bucketName,
         )
-        val account = SocialAccount(
-            id = "account-1",
-            socialConnectionId = "connection-1",
-            workspaceId = "workspace-1",
-            provider = SocialProvider.LINKEDIN,
-            providerAccountId = "abcd1234",
-            kind = SocialAccountKind.PERSONAL_PROFILE,
-            displayName = "Yuniel",
-            profileUrn = "urn:li:person:abcd1234",
-            status = SocialConnectionStatus.ACTIVE,
-        )
+    }
+
+    private fun publishCommandForAsset(asset: PublicationAsset): ProviderPublishCommand {
+        val account = testSocialAccount().copy(providerAccountId = "abcd1234")
         val publication = PublicationDraft(
             id = "pub-1",
             workspaceId = "workspace-1",
             authorPrincipalId = "principal-1",
             provider = SocialProvider.LINKEDIN,
-            socialAccountId = "account-1",
+            socialAccountId = account.id,
             status = PublicationStatus.QUEUED,
             scheduleMode = ScheduleMode.NOW,
             priority = false,
@@ -767,38 +778,13 @@ class LinkedInPublishingAdaptersTest {
             createdAt = null,
             updatedAt = null,
         )
-
-        publisher.publish(
-            ProviderPublishCommand(
-                publicationId = "pub-1",
-                workspaceId = "workspace-1",
-                publication = publication,
-                socialAccount = account,
-                assets = listOf(
-                    PublicationAsset(
-                        id = "asset-1",
-                        workspaceId = "workspace-1",
-                        sourceType = com.profiletailors.smp.publishing.domain.AssetSourceType.UPLOADED,
-                        mediaType = "image/png",
-                        storageKey = "assets/dev-workspace-001/blobs/hash.png",
-                        externalUrl = null,
-                        originalFilename = null,
-                        fileSizeBytes = null,
-                        status = PublicationAssetStatus.READY,
-                        providerAssetRef = null,
-                        createdByPrincipalId = "principal-1",
-                        createdAt = null,
-                    ),
-                ),
-            ),
+        return ProviderPublishCommand(
+            publicationId = publication.id,
+            workspaceId = publication.workspaceId,
+            publication = publication,
+            socialAccount = account,
+            assets = listOf(asset),
         )
-
-        // Binding forces the publisher to read from the configured logical bucket only.
-        // Anything probed under "profiletailors-attachments" would mean we bypassed the binding.
-        val download = storage.lastDownload
-        assertNotNull(download)
-        assertEquals(binding.bucketName, download!!.first)
-        assertEquals(false, storage.wrongBucketProbed)
     }
 
     @Test
@@ -1434,7 +1420,7 @@ class LinkedInPublishingAdaptersTest {
             return flowOf("ok".toByteArray())
         }
 
-        override suspend fun delete(bucket: String, key: String) {}
+        override suspend fun delete(bucket: String, key: String) = Unit
 
         override suspend fun list(bucket: String, prefix: String): List<String> = emptyList()
 

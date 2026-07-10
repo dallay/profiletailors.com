@@ -64,6 +64,8 @@ class StorageAssetPreviewUrlResolver(
     private val storageBucket: String,
     private val previewUrlExpirySeconds: Long,
 ) : AssetPreviewUrlResolver {
+    private val logger = LoggerFactory.getLogger(StorageAssetPreviewUrlResolver::class.java)
+
     /**
      * Convenience constructor that resolves its dependencies from the
      * shared [AttachmentsStorageBinding]. This is the constructor wired by
@@ -80,8 +82,6 @@ class StorageAssetPreviewUrlResolver(
         storageBucket = binding.bucketName,
         previewUrlExpirySeconds = previewUrlExpirySeconds,
     )
-
-    private val logger = LoggerFactory.getLogger(StorageAssetPreviewUrlResolver::class.java)
 
     override suspend fun resolvePreviewUrl(
         assetId: String,
