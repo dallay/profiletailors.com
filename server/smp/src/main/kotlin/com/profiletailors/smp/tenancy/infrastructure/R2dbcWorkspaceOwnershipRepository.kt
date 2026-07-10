@@ -4,9 +4,9 @@ import com.profiletailors.common.domain.context.PrincipalType
 import com.profiletailors.smp.tenancy.application.WorkspaceOwnershipRepository
 import com.profiletailors.smp.tenancy.domain.WorkspaceOwnership
 import kotlinx.coroutines.reactor.awaitSingle
-import kotlinx.coroutines.reactor.awaitSingleOrNull
 import org.springframework.r2dbc.core.DatabaseClient
 import org.springframework.stereotype.Repository
+import org.springframework.transaction.reactive.TransactionalOperator
 import java.time.Instant
 
 private const val COL_WORKSPACE_ID = "workspace_id"
@@ -19,8 +19,10 @@ private const val BIND_WORKSPACE_ID = "workspaceId"
 private const val BIND_PRINCIPAL_ID = "principalId"
 
 @Repository
-internal class R2dbcWorkspaceOwnershipRepository(private val databaseClient: DatabaseClient) :
-    WorkspaceOwnershipRepository {
+internal class R2dbcWorkspaceOwnershipRepository(
+    private val databaseClient: DatabaseClient,
+    private val transactionalOperator: TransactionalOperator,
+) : WorkspaceOwnershipRepository {
 
     override suspend fun findByWorkspaceId(workspaceId: String): Set<WorkspaceOwnership> = databaseClient.sql(
         """
@@ -85,9 +87,7 @@ internal class R2dbcWorkspaceOwnershipRepository(private val databaseClient: Dat
     }
 
     override suspend fun removeIfReplacementExists(workspaceId: String, principalId: String): Boolean {
-        // Step 1: Acquire exclusive FOR UPDATE locks on all current ownership rows for this workspace.
-        // This serializes concurrent deletions and ensures up-to-date visibility within transactions.
-        databaseClient.sql(
+        val rowsUpdated = databaseClient.sql(
             """
             SELECT owner_principal_id FROM workspace_ownerships
             WHERE workspace_id = :workspaceId
@@ -96,25 +96,25 @@ internal class R2dbcWorkspaceOwnershipRepository(private val databaseClient: Dat
         )
             .bind(BIND_WORKSPACE_ID, workspaceId)
             .then()
-            .awaitSingleOrNull()
-
-        // Step 2: Atomic check-and-delete under serialized lock.
-        val rowsUpdated = databaseClient.sql(
-            """
-            DELETE FROM workspace_ownerships
-            WHERE workspace_id = :workspaceId
-              AND owner_principal_id = :principalId
-              AND EXISTS (
-                  SELECT 1 FROM workspace_ownerships
-                  WHERE workspace_id = :workspaceId
-                    AND owner_principal_id <> :principalId
-              )
-            """.trimIndent(),
-        )
-            .bind(BIND_WORKSPACE_ID, workspaceId)
-            .bind(BIND_PRINCIPAL_ID, principalId)
-            .fetch()
-            .rowsUpdated()
+            .then(
+                databaseClient.sql(
+                    """
+                    DELETE FROM workspace_ownerships
+                    WHERE workspace_id = :workspaceId
+                      AND owner_principal_id = :principalId
+                      AND EXISTS (
+                          SELECT 1 FROM workspace_ownerships
+                          WHERE workspace_id = :workspaceId
+                            AND owner_principal_id <> :principalId
+                      )
+                    """.trimIndent(),
+                )
+                    .bind(BIND_WORKSPACE_ID, workspaceId)
+                    .bind(BIND_PRINCIPAL_ID, principalId)
+                    .fetch()
+                    .rowsUpdated(),
+            )
+            .`as`(transactionalOperator::transactional)
             .awaitSingle()
 
         return rowsUpdated > 0L

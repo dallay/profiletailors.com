@@ -27,7 +27,7 @@ class R2dbcWorkspaceOwnershipRepositoryTest : PostgresDatabaseTestBase() {
 
     @BeforeEach
     fun setUp() {
-        repository = R2dbcWorkspaceOwnershipRepository(databaseClient)
+        repository = R2dbcWorkspaceOwnershipRepository(databaseClient, transactionalOperator)
 
         // Seed some basic data
         databaseClient.sql(
