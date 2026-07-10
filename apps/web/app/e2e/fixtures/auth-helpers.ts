@@ -9,6 +9,11 @@
 import type { Page, Route } from '@playwright/test'
 import { VALID_CREDENTIALS, APP_URL } from './test-data'
 
+const DEFAULT_MOCK_CREDENTIALS = {
+  email: VALID_CREDENTIALS.email,
+  password: 'mock-password',
+} as const
+
 interface SessionOverrides {
   accessToken?: string
   principalId?: string
@@ -40,7 +45,7 @@ const HAR_REPLAY = process.env.UPDATE_HAR !== 'true'
  */
 export async function authenticateAs(
   page: Page,
-  credentials: { email: string; password: string } = VALID_CREDENTIALS,
+  credentials: { email: string; password: string } = DEFAULT_MOCK_CREDENTIALS,
 ): Promise<void> {
   await page.goto(APP_URL.login, { waitUntil: 'domcontentloaded' })
   await page.getByLabel(/email/i).fill(credentials.email)
