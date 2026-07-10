@@ -1,11 +1,14 @@
 <script setup lang="ts">
 import { ref } from 'vue'
+import { useI18n } from 'vue-i18n'
 import { useAuthStore } from '@/stores/auth'
 import { Button } from '@/components/ui/button'
 import CreatePostModal from '@/components/CreatePostModal.vue'
 import DashboardLayout from '@/components/dashboard/DashboardLayout.vue'
+import { toast } from 'vue-sonner'
 
 const auth = useAuthStore()
+const { t } = useI18n()
 
 const isModalOpen = ref(false)
 
@@ -42,12 +45,12 @@ function handleOpenModal() {
 
 function handleCreated() {
   isModalOpen.value = false
+  toast.success(t('composer.scheduleSuccessToast'))
 }
 </script>
 
 <template>
   <div class="mx-auto w-full max-w-7xl space-y-8">
-    <!-- Welcome Header + Create Post -->
     <div class="flex items-center justify-between">
       <div class="space-y-1">
         <h2 class="text-3xl font-light tracking-tight text-text-display">
@@ -77,10 +80,8 @@ function handleCreated() {
       </div>
     </div>
 
-    <!-- Feature flag: new dashboard vs legacy -->
     <DashboardLayout v-if="showNewDashboard" />
 
-    <!-- Legacy fallback (placeholder — restore old 4-card grid here if needed) -->
     <div
       v-else
       class="rounded-xl border border-[var(--border-color)] bg-[var(--background-surface)] p-8 text-center"
@@ -90,7 +91,6 @@ function handleCreated() {
       </p>
     </div>
 
-    <!-- Create Post Modal Dialog -->
     <CreatePostModal
       :is-open="isModalOpen"
       @close="isModalOpen = false"

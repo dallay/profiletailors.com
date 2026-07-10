@@ -688,8 +688,6 @@ class DeleteWorkspaceAssetHandler(
     }
 }
 
-// ─── PUT Asset Handler (CAS dedup) ───────────────────────────────────────────
-
 @Service
 class PutAssetHandler(
     private val mediaAssetRepository: MediaAssetRepository,
@@ -1005,8 +1003,6 @@ class PutAssetHandler(
         }
     }
 }
-
-// ─── CAS Upload Asset Handler ────────────────────────────────────────────────
 
 @Service
 class CasUploadAssetHandler(
@@ -1473,8 +1469,6 @@ class CasUploadAssetHandler(
     }
 }
 
-// ─── Delete Asset Handler (CAS soft-delete) ────────────────────────────────
-
 @Service
 class DeleteAssetHandler(
     private val mediaAssetRepository: MediaAssetRepository,
@@ -1542,8 +1536,6 @@ class DeleteAssetHandler(
         return DeleteAssetResult(deleted = true, blobScheduledForGC = false)
     }
 }
-
-// ─── Exception helpers for upload ────────────────────────────────────────────
 
 class UploadHashMismatchException(val expected: String, val actual: String) :
     RuntimeException("Hash mismatch: expected $expected, got $actual")

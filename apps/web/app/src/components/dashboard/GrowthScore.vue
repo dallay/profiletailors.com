@@ -65,12 +65,9 @@ const barColor = (value: number) => {
     </CardHeader>
 
     <CardContent>
-      <!-- Main gauge + breakdown -->
       <div class="flex flex-col items-center gap-6">
-        <!-- Score gauge -->
         <ScoreGauge :score="score.overall" :size="140" :stroke-width="10" />
 
-        <!-- Breakdown bars -->
         <div class="w-full space-y-3">
           <div
             v-for="([key, value]) in breakdownEntries"
@@ -94,7 +91,6 @@ const barColor = (value: number) => {
           </div>
         </div>
 
-        <!-- Top opportunity -->
         <div
           v-if="score.topOpportunity"
           class="w-full rounded-lg bg-[var(--background-primary)] border border-[var(--border-color)] p-3"

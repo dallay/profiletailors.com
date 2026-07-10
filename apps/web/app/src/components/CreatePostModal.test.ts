@@ -20,6 +20,11 @@ const translations: Record<string, string> = {
   'composer.picker.unsplashChip': 'Unsplash',
   'composer.picker.searchPlaceholder': 'Search Unsplash',
   'composer.picker.searchAction': 'Search',
+  'composer.picker.searchingAction': 'Searching…',
+  'composer.picker.providerSearchLabel': 'Search Unsplash',
+  'composer.picker.libraryDescription': 'Browse images and videos already saved in this workspace.',
+  'composer.picker.providerDescription':
+    'Search Unsplash and import media into this post without leaving the composer.',
   'composer.picker.errorLoad': 'Unable to load media library.',
   'composer.picker.noPreview': 'No preview',
   'composer.picker.cancel': 'Cancel',
@@ -27,9 +32,17 @@ const translations: Record<string, string> = {
   'composer.media.label': 'Media Attachment',
   'composer.media.addMedia': 'Add Media',
   'composer.media.empty': 'No media attached yet.',
+  'composer.media.dropzoneTitle': 'Drag & drop or',
+  'composer.media.dropzoneBody': 'select a file',
+  'composer.media.sourceLibrary': 'Media Library',
+  'composer.media.sourceExternal': 'Unsplash',
+  'composer.media.keepEditingWhileUploading': 'You can keep editing while this finishes.',
+  'composer.media.finishingUpload': 'Finishing upload…',
+  'composer.media.uploadingProgress': 'Uploading… {progress}%',
   'composer.media.limitWarning':
     'Too many attachments for the strictest channel ({current}/{max}). Remove attachments to publish or schedule.',
   'composer.media.limitInfinite': '∞',
+  'composer.media.removeAttachment': 'Remove attachment {name}',
 }
 
 const mockT = (key: string, params?: Record<string, string | number>): string => {
@@ -66,7 +79,7 @@ vi.mock('@/lib/auth-api', () => ({
 }))
 
 vi.mock('@/components/ui/button', () => ({
-  Button: { template: '<button class="ui-button"><slot /></button>' },
+  Button: { template: '<button class="ui-button" v-bind="$attrs"><slot /></button>' },
 }))
 
 vi.mock('@lucide/vue', () => {
@@ -83,9 +96,11 @@ vi.mock('@lucide/vue', () => {
     Sparkles: stub,
     X: stub,
     Loader2: stub,
+    Loader2Icon: stub,
     Upload: stub,
     AlertCircle: stub,
     RotateCcw: stub,
+    Search: stub,
   }
 })
 
@@ -193,10 +208,15 @@ describe('CreatePostModal.vue — media picker foundation', () => {
     setActivePinia(createPinia())
     document.body.innerHTML = ''
     vi.clearAllMocks()
+    vi.stubGlobal('URL', {
+      createObjectURL: vi.fn(() => 'blob:mock-preview'),
+      revokeObjectURL: vi.fn(),
+    })
   })
 
   afterEach(() => {
     document.body.innerHTML = ''
+    vi.unstubAllGlobals()
   })
 
   it('mounts the teleported modal into document.body so live controls remain queryable', async () => {
@@ -731,10 +751,15 @@ describe('CreatePostModal.vue — Unsplash integration (WU3)', () => {
     setActivePinia(createPinia())
     document.body.innerHTML = ''
     vi.clearAllMocks()
+    vi.stubGlobal('URL', {
+      createObjectURL: vi.fn(() => 'blob:mock-preview'),
+      revokeObjectURL: vi.fn(),
+    })
   })
 
   afterEach(() => {
     document.body.innerHTML = ''
+    vi.unstubAllGlobals()
   })
 
   it('renders the Unsplash provider tab only when the parent passes provider="unsplash"', async () => {
@@ -799,6 +824,8 @@ describe('CreatePostModal.vue — Unsplash integration (WU3)', () => {
 
       getByTestId('add-media-button').click()
       await flushModal(wrapper)
+      getByTestId('picker-source-unsplash').click()
+      await flushModal(wrapper)
 
       // The picker is now open — the provider tab MUST be visible because
       // the parent enabled it.
@@ -843,6 +870,8 @@ describe('CreatePostModal.vue — Unsplash integration (WU3)', () => {
     await flushModal(wrapper)
 
     getByTestId('add-media-button').click()
+    await flushModal(wrapper)
+    getByTestId('picker-source-unsplash').click()
     await flushModal(wrapper)
 
     // Drive the shell search: set the input value then submit the form.
@@ -1036,5 +1065,131 @@ describe('CreatePostModal.vue — Unsplash integration (WU3)', () => {
     expect(disabledSubmit).toBeDefined()
 
     await wrapper.unmount()
+  })
+})
+
+describe('CreatePostModal.vue — inline composer media layout', () => {
+  beforeEach(() => {
+    setActivePinia(createPinia())
+    document.body.innerHTML = ''
+    vi.clearAllMocks()
+    vi.stubGlobal('URL', {
+      createObjectURL: vi.fn(() => 'blob:mock-preview'),
+      revokeObjectURL: vi.fn(),
+    })
+  })
+
+  afterEach(() => {
+    document.body.innerHTML = ''
+    vi.unstubAllGlobals()
+  })
+
+  it('renders a local upload as a same-size inline card and keeps the filename as tooltip only', async () => {
+    const wrapper = mountModal([makeChannel('ch-inline')])
+    await flushModal(wrapper)
+
+    const pickerUploadInput = getByTestId('picker-upload-input') as HTMLInputElement
+    const uploadFile = new File(['graph'], 'graph-theory.jpeg', { type: 'image/jpeg' })
+    Object.defineProperty(pickerUploadInput, 'files', {
+      configurable: true,
+      value: [uploadFile],
+    })
+    pickerUploadInput.dispatchEvent(new Event('change'))
+    await flushModal(wrapper)
+
+    const inlineCard = getByTestId('inline-local-upload')
+    expect(inlineCard.getAttribute('title')).toBe('graph-theory.jpeg')
+    expect(getByTestId('composer-inline-dropzone')).toBeTruthy()
+    expect(wrapper.text()).not.toContain('graph-theory.jpeg')
+  })
+
+  it('shows a round spinner upload overlay instead of the stuck preparing state', async () => {
+    const mediaStore = useMediaStore()
+    const wrapper = mountModal([makeChannel('ch-inline')])
+    await flushModal(wrapper)
+
+    const pickerUploadInput = getByTestId('picker-upload-input') as HTMLInputElement
+    const uploadFile = new File(['graph'], 'graph-theory.jpeg', { type: 'image/jpeg' })
+    Object.defineProperty(pickerUploadInput, 'files', {
+      configurable: true,
+      value: [uploadFile],
+    })
+    pickerUploadInput.dispatchEvent(new Event('change'))
+    await flushModal(wrapper)
+
+    mediaStore.uploads['modal-upload-inline'] = {
+      tempKey: 'modal-upload-inline',
+      assetId: 'asset-inline-upload',
+      file: uploadFile,
+      progress: 42,
+      status: 'uploading',
+    }
+    await flushModal(wrapper)
+
+    expect(document.body.innerHTML).toContain('Uploading… 42%')
+    expect(document.body.innerHTML).toContain('You can keep editing while this finishes.')
+    expect(document.body.innerHTML).not.toContain('Preparing upload')
+  })
+
+  it('rejects unsupported dragged media types like svg before upload starts', async () => {
+    const alertSpy = vi.spyOn(window, 'alert').mockImplementation(() => {})
+    const mediaStore = useMediaStore()
+    const createAndUploadSpy = vi.spyOn(mediaStore, 'createAndUpload')
+
+    const wrapper = mountModal([makeChannel('ch-inline')])
+    await flushModal(wrapper)
+
+    const pickerUploadInput = getByTestId('picker-upload-input') as HTMLInputElement
+    const svgFile = new File(['<svg></svg>'], 'diagram.svg', { type: 'image/svg+xml' })
+    Object.defineProperty(pickerUploadInput, 'files', {
+      configurable: true,
+      value: [svgFile],
+    })
+    pickerUploadInput.dispatchEvent(new Event('change'))
+    await flushModal(wrapper)
+
+    expect(alertSpy).toHaveBeenCalledWith(
+      'Unsupported media format. Supported formats: JPEG, PNG, WEBP, GIF, MP4.',
+    )
+    expect(document.querySelector('[data-testid="inline-local-upload"]')).toBeNull()
+    expect(createAndUploadSpy).not.toHaveBeenCalled()
+  })
+
+  it('accepts pasted images in the composer textarea using the same inline upload flow', async () => {
+    const wrapper = mountModal([makeChannel('ch-inline')])
+    await flushModal(wrapper)
+
+    const textarea = getByTestId('composer-textarea')
+    const pastedFile = new File(['png'], 'clipboard.png', { type: 'image/png' })
+    const pasteEvent = new Event('paste', { bubbles: true, cancelable: true }) as Event & {
+      clipboardData: { files: File[]; items: Array<{ kind: string; getAsFile: () => File | null }> }
+    }
+    pasteEvent.clipboardData = {
+      files: [],
+      items: [{ kind: 'file', getAsFile: () => pastedFile }],
+    }
+    textarea.dispatchEvent(pasteEvent)
+    await flushModal(wrapper)
+
+    const inlineCard = getByTestId('inline-local-upload')
+    expect(inlineCard.getAttribute('title')).toBe('clipboard.png')
+  })
+
+  it('accepts dropped images directly over the composer textarea', async () => {
+    const wrapper = mountModal([makeChannel('ch-inline')])
+    await flushModal(wrapper)
+
+    const textarea = getByTestId('composer-textarea')
+    const droppedFile = new File(['png'], 'dropped.png', { type: 'image/png' })
+    const dropEvent = new Event('drop', { bubbles: true, cancelable: true }) as Event & {
+      dataTransfer: { files: File[] }
+    }
+    dropEvent.dataTransfer = { files: [droppedFile] }
+
+    textarea.dispatchEvent(dropEvent)
+    await flushModal(wrapper)
+
+    const inlineCard = getByTestId('inline-local-upload')
+    expect(inlineCard.getAttribute('title')).toBe('dropped.png')
   })
 })

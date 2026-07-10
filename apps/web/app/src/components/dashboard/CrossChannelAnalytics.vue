@@ -52,7 +52,6 @@ const platformNames: Record<string, string> = {
           :key="channel.platform"
           class="space-y-1"
         >
-          <!-- Bar row -->
           <div class="flex items-center gap-3 py-2">
             <span class="text-xs text-[var(--text-secondary)] w-16 shrink-0 font-[var(--font-space-mono)] uppercase tracking-wider">
               {{ platformLabels[channel.platform] ?? channel.platform }}
@@ -73,7 +72,6 @@ const platformNames: Record<string, string> = {
               {{ formatPercent(channel.engagementRate) }}
             </span>
           </div>
-          <!-- Follower context -->
           <p class="text-[10px] text-[var(--text-secondary)] pl-0 pb-1 font-[var(--font-space-mono)]">
             {{ t('dashboard.crossChannel.followerContext', {
               count: formatNumber(channel.followers),

@@ -121,6 +121,8 @@ jobs:
   backend-unit:
     name: 🧪 Backend Unit Tests
     runs-on: ubuntu-latest
+    env:
+      SMP_POSTGRES_TEST_PASSWORD: ${{ secrets.SMP_POSTGRES_PASSWORD }}
     steps:
       - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5
         with:
@@ -130,7 +132,7 @@ jobs:
 
       - name: Run unit tests (exclude BDD suites)
         shell: bash
-        run: ./gradlew :server:smp:test -x :server:smp:bddFastTest -x :server:smp:bddPostgresTest --no-daemon -PexcludeTags=modularity,postgres
+        run: ./gradlew :server:smp:test -x :server:smp:bddFastTest -x :server:smp:bddPostgresTest --no-daemon -PexcludeTags=modularity
 
   # ═══════════════════════════════════════════════════════════════
   # Conditional jobs — only run when relevant paths change

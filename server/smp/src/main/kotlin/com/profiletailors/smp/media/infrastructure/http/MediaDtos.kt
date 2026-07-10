@@ -5,8 +5,6 @@ import jakarta.validation.constraints.NotBlank
 import jakarta.validation.constraints.Pattern
 import jakarta.validation.constraints.Positive
 
-// ─── CAS PUT Request/Response ────────────────────────────────────────────────
-
 @Schema(description = "Request to register a media asset with CAS dedup (PUT)")
 data class PutAssetRequest(
     @field:NotBlank
@@ -61,8 +59,6 @@ data class DeleteAssetResponse(
     @field:Schema(description = "True if the blob was scheduled for GC", example = "false")
     val blobScheduledForGC: Boolean,
 )
-
-// ─── Error response ─────────────────────────────────────────────────────────
 
 @Schema(description = "Standard media error response")
 data class MediaErrorResponse(

@@ -82,6 +82,7 @@ setup:
     just install
     just hooks-install
     pnpm dlx @dallay/agentsync apply
+    command -v portless >/dev/null 2>&1 || pnpm add -g portless
     command -v codegraph >/dev/null 2>&1 && codegraph init || echo "⚠️  codegraph not found — skipping index init"
 
 # Install Lefthook git hooks unless globally disabled
@@ -164,17 +165,22 @@ app-test-e2e-media: app-test-e2e-media-mocked app-test-e2e-media-real
 backend-build:
     {{gradle-root}} :server:smp:build --no-daemon
 
-# Run backend unit tests (optionally exclude tags: just backend-test 'modularity,postgres')
+# Run backend unit tests (optionally exclude tags: just backend-test 'modularity')
+# Postgres integration tests use Testcontainers and require SMP_POSTGRES_TEST_PASSWORD,
+# which is sourced from .env (or the shell) — same shape as the CI workflow.
 backend-test exclude-tags="":
+    export SMP_POSTGRES_TEST_PASSWORD=$(grep ^SMP_POSTGRES_TEST_PASSWORD= .env | cut -d= -f2-); \
     {{gradle-root}} :server:smp:test --no-daemon {{ if exclude-tags != "" { "-PexcludeTags=" + exclude-tags } else { "" } }}
 
-# Run backend tests (fast: excludes modularity + postgres)
+# Run backend tests (fast: excludes modularity only)
 backend-test-fast:
-    {{gradle-root}} :server:smp:test --no-daemon -PexcludeTags=modularity,postgres
+    export SMP_POSTGRES_TEST_PASSWORD=$(grep ^SMP_POSTGRES_TEST_PASSWORD= .env | cut -d= -f2-); \
+    {{gradle-root}} :server:smp:test --no-daemon -PexcludeTags=modularity
 
-# Run full check: tests + Detekt (aligns with CI — excludes postgres/modularity tags and BDD suites)
+# Run full check: tests + Detekt (aligns with CI — excludes modularity tag and BDD suites)
 backend-check:
-    {{gradle-root}} :server:smp:check --no-daemon -PexcludeTags=modularity,postgres -x :server:smp:bddFastTest -x :server:smp:bddPostgresTest
+    export SMP_POSTGRES_TEST_PASSWORD=$(grep ^SMP_POSTGRES_TEST_PASSWORD= .env | cut -d= -f2-); \
+    {{gradle-root}} :server:smp:check --no-daemon -PexcludeTags=modularity -x :server:smp:bddFastTest -x :server:smp:bddPostgresTest
 
 # Run Detekt static analysis
 backend-lint:
@@ -192,11 +198,24 @@ backend-run:
 # SERVE  (Backend + Frontend App)
 # ═══════════════════════════════════════════════════════════════
 
-# Start backend + frontend app in parallel (both read root .env)
-serve:
-    @echo "Starting backend (Spring Boot) + frontend app (Vite)..."
+# Start backend + frontend app in parallel
+serve $force="":
+    #!/usr/bin/env bash
+    set -euo pipefail
+    if [ "{{force}}" = "--force" ]; then
+        just kill-servers
+    elif [ -n "{{force}}" ]; then
+        echo "Unknown option: {{force}}"
+        echo "Usage: just serve [--force]"
+        exit 2
+    fi
+    echo "Starting backend (Spring Boot) + frontend app (Vite)..."
     {{gradle-root}} :server:smp:bootRun --args='--spring.profiles.active=dev' &
     cd {{app-dir}} && pnpm dev
+
+# Restart backend + frontend app, killing previous dev servers first
+serve-force:
+    just serve --force
 
 # Kill running dev servers (backend, frontend, Gradle daemons)
 kill-servers:
@@ -209,7 +228,8 @@ kill-servers:
 
 # Run tests with JaCoCo coverage report
 backend-coverage:
-    {{gradle-root}} :server:smp:test :server:smp:jacocoTestReport --no-daemon -PexcludeTags=modularity,postgres
+    export SMP_POSTGRES_TEST_PASSWORD=$(grep ^SMP_POSTGRES_TEST_PASSWORD= .env | cut -d= -f2-); \
+    {{gradle-root}} :server:smp:test :server:smp:jacocoTestReport --no-daemon -PexcludeTags=modularity
 
 # Run fast BDD suite
 backend-bdd-fast:
@@ -275,10 +295,12 @@ ci-local:
     {{gradle-root}} :server:smp:detekt --no-daemon
     @echo ""
     @echo "▸ Backend: unit tests (fast)..."
-    {{gradle-root}} :server:smp:test --no-daemon -PexcludeTags=modularity,postgres
+    export SMP_POSTGRES_TEST_PASSWORD=$(grep ^SMP_POSTGRES_TEST_PASSWORD= .env | cut -d= -f2-); \
+    {{gradle-root}} :server:smp:test --no-daemon -PexcludeTags=modularity
     @echo ""
     @echo "▸ Backend: build..."
-    {{gradle-root}} :server:smp:build --no-daemon -PexcludeTags=modularity,postgres -x :server:smp:bddFastTest -x :server:smp:bddPostgresTest
+    export SMP_POSTGRES_TEST_PASSWORD=$(grep ^SMP_POSTGRES_TEST_PASSWORD= .env | cut -d= -f2-); \
+    {{gradle-root}} :server:smp:build --no-daemon -PexcludeTags=modularity -x :server:smp:bddFastTest -x :server:smp:bddPostgresTest
     @echo ""
     @echo "══════════════════════════════════════════════"
     @echo "  ✅ CI Pipeline Simulation Complete"
@@ -321,7 +343,8 @@ ci:
     {{gradle-root}} :server:smp:detekt --no-daemon
     @echo ""
     @echo "▸ [6/8] Backend: unit tests (fast)..."
-    {{gradle-root}} :server:smp:test --no-daemon -PexcludeTags=modularity,postgres
+    export SMP_POSTGRES_TEST_PASSWORD=$(grep ^SMP_POSTGRES_TEST_PASSWORD= .env | cut -d= -f2-); \
+    {{gradle-root}} :server:smp:test --no-daemon -PexcludeTags=modularity
     @echo ""
     @echo "▸ [7/8] Backend: BDD fast suite..."
     export SMP_POSTGRES_TEST_PASSWORD=$(grep ^SMP_POSTGRES_PASSWORD= .env | cut -d= -f2) && {{gradle-root}} :server:smp:bddFastTest --no-daemon -x :shared:common:test -x :shared:spring-boot-common:test
