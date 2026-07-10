@@ -54,31 +54,31 @@ const truncatedText = computed(() => {
 </script>
 
 <template>
-  <div class="w-full max-w-[360px] bg-[#1d2226] text-white border border-[#2d3135] rounded-xl overflow-hidden shadow-md font-sans text-xs">
+  <div class="w-full max-w-[360px] bg-white text-[#1a1a1a] border border-[#e9e5df] rounded-xl overflow-hidden shadow-md font-sans text-xs">
     <div class="p-3.5 flex gap-3">
       <img
         v-if="preview.authorAvatarUrl"
         :src="proxyImageUrl(preview.authorAvatarUrl)"
         :alt="`${preview.authorName} avatar`"
-        class="size-10 rounded-full object-cover border border-[#404448]"
+        class="size-10 rounded-full object-cover border border-[#e9e5df]"
       />
       <div
         v-else
-        class="flex size-10 shrink-0 items-center justify-center rounded-full border border-[#404448] bg-[#111417] font-mono text-[11px] font-bold uppercase text-white"
+        class="flex size-10 shrink-0 items-center justify-center rounded-full border border-[#e9e5df] bg-[#f4f2ee] font-mono text-[11px] font-bold uppercase text-[#1a1a1a]"
       >
         {{ preview.authorInitials }}
       </div>
       <div class="min-w-0 flex-1">
         <div class="flex items-center gap-1.5">
-          <p class="font-semibold text-white text-[13px] hover:text-[#70b5f9] hover:underline cursor-pointer truncate">
+          <p class="font-semibold text-[#1a1a1a] text-[13px] hover:text-[#0a66c2] hover:underline cursor-pointer truncate">
             {{ preview.authorName }}
           </p>
-          <span class="text-[10px] text-gray-400 font-normal shrink-0"> • 1st</span>
+          <span class="text-[10px] text-[#666] font-normal shrink-0"> • 1st</span>
         </div>
-        <p class="text-[11px] text-gray-400 truncate">
+        <p class="text-[11px] text-[#666] truncate">
           {{ preview.authorHandle }}
         </p>
-        <p class="text-[10px] text-gray-400 flex items-center gap-1 mt-0.5">
+        <p class="text-[10px] text-[#666] flex items-center gap-1 mt-0.5">
           <span>Just now</span>
           <span>•</span>
           <Globe class="size-2.5" />
@@ -86,8 +86,8 @@ const truncatedText = computed(() => {
       </div>
     </div>
 
-    <div class="px-3.5 pb-3.5 text-white text-[13px] leading-relaxed whitespace-pre-wrap break-words [overflow-wrap:anywhere]">
-      <span v-if="preview.text.trim().length === 0" class="text-gray-500 italic">
+    <div class="px-3.5 pb-3.5 text-[#1a1a1a] text-[13px] leading-relaxed whitespace-pre-wrap break-words [overflow-wrap:anywhere]">
+      <span v-if="preview.text.trim().length === 0" class="text-[#666] italic">
         {{ preview.placeholderText }}
       </span>
       <template v-else>
@@ -96,7 +96,7 @@ const truncatedText = computed(() => {
         </p>
         <span
           v-if="isTruncated"
-          class="mt-1 inline-flex text-[12px] font-semibold text-gray-300"
+          class="mt-1 inline-flex text-[12px] font-semibold text-[#666]"
           data-testid="linkedin-preview-more"
         >
           ...more
@@ -106,7 +106,7 @@ const truncatedText = computed(() => {
 
     <div
       v-if="preview.media"
-      class="border-t border-[#2d3135] max-h-[220px] overflow-hidden bg-black/30 flex items-center justify-center"
+      class="border-t border-[#e9e5df] max-h-[220px] overflow-hidden bg-[#f4f2ee] flex items-center justify-center"
       data-testid="linkedin-preview-media"
     >
       <img
@@ -120,35 +120,35 @@ const truncatedText = computed(() => {
         class="flex w-full items-center justify-between gap-3 px-4 py-4 text-left"
       >
         <div class="min-w-0 flex-1">
-          <p class="font-mono text-[10px] uppercase tracking-[0.2em] text-gray-400">
+          <p class="font-mono text-[10px] uppercase tracking-[0.2em] text-[#666]">
             Media attachment
           </p>
-          <p class="mt-1 text-[12px] font-medium text-white">
+          <p class="mt-1 text-[12px] font-medium text-[#1a1a1a]">
             {{ preview.media.name ?? 'Video attachment' }}
           </p>
         </div>
-        <span class="rounded-full border border-[#404448] px-2 py-1 text-[10px] font-semibold text-gray-300">
+        <span class="rounded-full border border-[#e9e5df] px-2 py-1 text-[10px] font-semibold text-[#666]">
           Video
         </span>
       </div>
     </div>
 
-    <div class="border-t border-[#2d3135] py-2 px-1 flex justify-around text-gray-400 font-semibold text-[11px]">
-      <span class="flex items-center gap-1.5 px-2 py-1 rounded hover:bg-white/5 cursor-pointer">
-        <ThumbsUp class="size-3.5" />
-        Like
+    <div class="border-t border-[#e9e5df] py-1 px-1 flex justify-around text-[#666] font-semibold text-[11px]">
+      <span class="inline-flex items-center gap-1 px-2 py-2 rounded hover:bg-[#f4f2ee] cursor-pointer">
+        <ThumbsUp class="size-3" />
+        <span>Like</span>
       </span>
-      <span class="flex items-center gap-1.5 px-2 py-1 rounded hover:bg-white/5 cursor-pointer">
-        <MessageCircle class="size-3.5" />
-        Comment
+      <span class="inline-flex items-center gap-1 px-2 py-2 rounded hover:bg-[#f4f2ee] cursor-pointer">
+        <MessageCircle class="size-3" />
+        <span>Comment</span>
       </span>
-      <span class="flex items-center gap-1.5 px-2 py-1 rounded hover:bg-white/5 cursor-pointer">
-        <Repeat2 class="size-3.5" />
-        Repost
+      <span class="inline-flex items-center gap-1 px-2 py-2 rounded hover:bg-[#f4f2ee] cursor-pointer">
+        <Repeat2 class="size-3" />
+        <span>Repost</span>
       </span>
-      <span class="flex items-center gap-1.5 px-2 py-1 rounded hover:bg-white/5 cursor-pointer">
-        <Send class="size-3.5" />
-        Send
+      <span class="inline-flex items-center gap-1 px-2 py-2 rounded hover:bg-[#f4f2ee] cursor-pointer">
+        <Send class="size-3" />
+        <span>Send</span>
       </span>
     </div>
   </div>
