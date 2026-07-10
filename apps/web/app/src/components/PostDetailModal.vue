@@ -18,6 +18,7 @@ const emit = defineEmits<{
   (e: 'close'): void
   (e: 'deleted', id: string): void
   (e: 'reschedule', payload: { id: string; scheduledAt: string }): void
+  (e: 'retried', payload: { id: string; scheduledAt: string }): void
   (e: 'edit', publication: Publication): void
 }>()
 
@@ -27,6 +28,9 @@ const publishingStore = usePublishingStore()
 const isReadOnly = computed(() => props.publication?.status === 'PUBLISHED')
 const canEditPublication = computed(() =>
   props.publication ? publishingStore.isPublicationEditable(props.publication.status) : false,
+)
+const canRetry = computed(
+  () => props.publication?.status === 'FAILED' && Boolean(props.publication.scheduledAt),
 )
 const canDelete = computed(() =>
   props.publication ? publishingStore.isPublicationDeletable(props.publication.status) : false,
@@ -121,6 +125,7 @@ const deleteError = ref('')
 const showReschedule = ref(false)
 const newScheduledAt = ref('')
 const rescheduleError = ref('')
+const actionMode = ref<'reschedule' | 'retry'>('reschedule')
 
 const modalContainer = ref<HTMLElement | null>(null)
 const { activate: activateFocusTrap, deactivate: deactivateFocusTrap } = useFocusTrap(modalContainer, closeModal)
@@ -162,8 +167,9 @@ async function deletePublication() {
   }
 }
 
-function openReschedule() {
+function openScheduledAtAction(mode: 'reschedule' | 'retry') {
   if (!props.publication?.scheduledAt) return
+  actionMode.value = mode
   // Pre-fill with current scheduled date, local datetime-local format
   const d = new Date(props.publication.scheduledAt)
   const offset = d.getTimezoneOffset()
@@ -171,6 +177,14 @@ function openReschedule() {
   newScheduledAt.value = local.toISOString().slice(0, 16)
   showReschedule.value = true
   rescheduleError.value = ''
+}
+
+function openReschedule() {
+  openScheduledAtAction('reschedule')
+}
+
+function openRetry() {
+  openScheduledAtAction('retry')
 }
 
 async function confirmReschedule() {
@@ -183,12 +197,22 @@ async function confirmReschedule() {
   }
   try {
     const newIso = newDate.toISOString()
-    await publishingStore.reschedulePublication(props.publication.id, newIso)
-    emit('reschedule', { id: props.publication.id, scheduledAt: newIso })
+    if (actionMode.value === 'retry') {
+      await publishingStore.retryPublication(props.publication.id, newIso)
+      emit('retried', { id: props.publication.id, scheduledAt: newIso })
+    } else {
+      await publishingStore.reschedulePublication(props.publication.id, newIso)
+      emit('reschedule', { id: props.publication.id, scheduledAt: newIso })
+    }
     showReschedule.value = false
     closeModal()
   } catch (err) {
-    rescheduleError.value = err instanceof Error ? err.message : 'Failed to reschedule'
+    rescheduleError.value =
+      err instanceof Error
+        ? err.message
+        : actionMode.value === 'retry'
+          ? 'Failed to retry'
+          : 'Failed to reschedule'
   }
 }
 
@@ -338,7 +362,7 @@ function cancelReschedule() {
                 @click="confirmReschedule"
                 class="px-3 py-2 rounded-xl bg-text-display text-bg-primary hover:opacity-90 transition-opacity text-xs font-mono uppercase tracking-wider font-bold cursor-pointer"
               >
-                {{ t('postDetail.rescheduleConfirm') }}
+                {{ actionMode === 'retry' ? t('postDetail.retryConfirm') : t('postDetail.rescheduleConfirm') }}
               </button>
               <button
                 @click="cancelReschedule"
@@ -366,6 +390,14 @@ function cancelReschedule() {
           >
             <Pencil class="size-3.5" />
             {{ t('postDetail.edit') }}
+          </button>
+          <button
+            v-else-if="canRetry"
+            @click="openRetry"
+            class="flex items-center gap-1.5 px-3 py-2 rounded-xl border border-border-visible text-text-secondary hover:border-text-display hover:text-text-display transition-colors bg-bg-surface text-xs font-mono uppercase tracking-wider font-bold cursor-pointer"
+          >
+            <CalendarClock class="size-3.5" />
+            {{ t('postDetail.retry') }}
           </button>
           <button
             v-else-if="!isReadOnly && publication?.scheduledAt"

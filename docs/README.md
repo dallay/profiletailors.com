@@ -10,6 +10,8 @@
 - [Architecture Overview](./architecture/) - System architecture and design patterns
 - [Media Library CAS Dedup](./architecture/media-library-cas-dedup.md) - Content-Addressed Storage
   for workspace-scoped asset deduplication
+- [Scheduler URL-state Standard](./architecture/scheduler-url-state-standard.md) - Canonical
+  scheduler route family, query contract, and history semantics for durable SPA navigation
 
 ### Infrastructure
 

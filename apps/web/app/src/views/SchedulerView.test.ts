@@ -19,6 +19,7 @@ function makeUrlController(
     timezone: string
     q: string
     channelIds: string[]
+    postId: string | null
     needsCanonicalization: boolean
   }> = {},
 ): CalendarUrlController {
@@ -29,6 +30,7 @@ function makeUrlController(
     timezone: overrides.timezone ?? 'UTC',
     q: overrides.q ?? '',
     channelIds: overrides.channelIds ?? [],
+    postId: overrides.postId ?? null,
   })
 
   return {
@@ -42,6 +44,8 @@ function makeUrlController(
     setStatus: vi.fn().mockResolvedValue(undefined),
     setSearch: vi.fn().mockResolvedValue(undefined),
     setChannelIds: vi.fn().mockResolvedValue(undefined),
+    openPostDetail: vi.fn().mockResolvedValue(undefined),
+    closePostDetail: vi.fn().mockResolvedValue(undefined),
   }
 }
 
@@ -414,19 +418,15 @@ describe('SchedulerView', () => {
     }
     store.publications = [pub]
 
-    const wrapper = mountView({ date: '2026-06-25' })
+    const wrapper = mountView({ date: '2026-06-25', postId: 'pub-edit-flow' })
     await flushPromises()
-
-    // Open detail modal by clicking publication card if available
-    const vm = wrapper.vm as unknown as { openPostDetail: (pub: Publication) => void }
-    vm.openPostDetail(pub)
-    await wrapper.vm.$nextTick()
 
     const editBtn = wrapper.find('[data-testid="detail-edit"]')
     await editBtn.trigger('click')
     await wrapper.vm.$nextTick()
 
     expect(wrapper.find('[data-testid="create-post-modal"]').exists()).toBe(true)
+    expect(mockController.closePostDetail).toHaveBeenCalled()
   })
 
   it('handles header date backward navigation via handleHeaderDateChange', async () => {
@@ -533,6 +533,81 @@ describe('SchedulerView', () => {
     expect((store.fetchCalendar as ReturnType<typeof vi.fn>).mock.calls.length).toBeGreaterThan(
       initialCalls,
     )
+  })
+
+  describe('route-driven post detail modal', () => {
+    it('opens the detail modal when route-owned postId resolves after fetch', async () => {
+      const store = usePublishingStore()
+      const pub: Publication = {
+        id: 'post-42',
+        content: 'Route-owned modal publication',
+        channels: ['linkedin'],
+        scheduledAt: '2026-06-15T10:00:00.000Z',
+        status: 'QUEUED',
+        priority: false,
+      }
+      store.publications = [pub]
+
+      const wrapper = mountView({ date: '2026-06-15', postId: 'post-42' })
+      await flushPromises()
+
+      expect(wrapper.find('[data-testid="post-detail-modal"]').exists()).toBe(true)
+      expect(wrapper.text()).toContain('Route-owned modal publication')
+    })
+
+    it('removes stale postId with replace semantics only after the active fetch settles without that post', async () => {
+      const store = usePublishingStore()
+      let resolveFetch!: () => void
+      vi.spyOn(store, 'fetchCalendar').mockImplementation(
+        () =>
+          new Promise<void>((resolve) => {
+            resolveFetch = resolve
+          }),
+      )
+
+      const wrapper = mountView({ date: '2026-06-15', postId: 'missing-post' })
+      await wrapper.vm.$nextTick()
+
+      expect(mockController.closePostDetail).not.toHaveBeenCalled()
+      expect(wrapper.find('[data-testid="post-detail-modal"]').exists()).toBe(false)
+
+      expect(resolveFetch).toBeTypeOf('function')
+      resolveFetch()
+      await flushPromises()
+
+      expect(mockController.closePostDetail).toHaveBeenCalledWith({ replace: true })
+    })
+
+    it('keeps modal behavior safe for browser back/forward by deriving from route state changes', async () => {
+      const store = usePublishingStore()
+      const pub: Publication = {
+        id: 'post-history',
+        content: 'History-safe publication',
+        channels: ['linkedin'],
+        scheduledAt: '2026-06-15T09:00:00.000Z',
+        status: 'QUEUED',
+        priority: false,
+      }
+      store.publications = [pub]
+
+      const wrapper = mountView({ date: '2026-06-15', postId: 'post-history' })
+      await flushPromises()
+      expect(wrapper.find('[data-testid="post-detail-modal"]').exists()).toBe(true)
+
+      mockController.state.value = {
+        ...mockController.state.value,
+        postId: null,
+      }
+      await flushPromises()
+      expect(wrapper.find('[data-testid="post-detail-modal"]').exists()).toBe(false)
+
+      mockController.state.value = {
+        ...mockController.state.value,
+        postId: 'post-history',
+      }
+      await flushPromises()
+      expect(wrapper.find('[data-testid="post-detail-modal"]').exists()).toBe(true)
+    })
   })
 
   describe('month view', () => {
