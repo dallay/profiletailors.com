@@ -467,9 +467,7 @@ describe('PostDetailModal', () => {
         makePublication({ status: 'FAILED', scheduledAt: '2027-07-01T10:00:00Z' }),
       )
 
-      const retryBtn = wrapper
-        .findAll('button')
-        .find((b) => b.text().includes('postDetail.retry'))
+      const retryBtn = wrapper.findAll('button').find((b) => b.text().includes('postDetail.retry'))
       expect(retryBtn).toBeDefined()
       await retryBtn!.trigger('click')
 
@@ -482,12 +480,14 @@ describe('PostDetailModal', () => {
       storeOverrides.retryResult = makePublication({ id: 'pub-failed', status: 'FAILED' })
       storeOverrides.isPublicationEditable = () => false
       const wrapper = mountModal(
-        makePublication({ id: 'pub-failed', status: 'FAILED', scheduledAt: '2027-07-01T10:00:00Z' }),
+        makePublication({
+          id: 'pub-failed',
+          status: 'FAILED',
+          scheduledAt: '2027-07-01T10:00:00Z',
+        }),
       )
 
-      const retryBtn = wrapper
-        .findAll('button')
-        .find((b) => b.text().includes('postDetail.retry'))
+      const retryBtn = wrapper.findAll('button').find((b) => b.text().includes('postDetail.retry'))
       await retryBtn!.trigger('click')
 
       const confirmBtn = wrapper
@@ -514,9 +514,7 @@ describe('PostDetailModal', () => {
         makePublication({ status: 'FAILED', scheduledAt: '2027-07-01T10:00:00Z' }),
       )
 
-      const retryBtn = wrapper
-        .findAll('button')
-        .find((b) => b.text().includes('postDetail.retry'))
+      const retryBtn = wrapper.findAll('button').find((b) => b.text().includes('postDetail.retry'))
       await retryBtn!.trigger('click')
 
       const confirmBtn = wrapper

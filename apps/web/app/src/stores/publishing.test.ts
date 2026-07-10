@@ -1223,9 +1223,9 @@ describe('publishing store', () => {
 
       const originalDate = store.publications[0]?.scheduledAt
 
-      await expect(
-        store.retryPublication('pub-failed', '2026-07-01T10:00:00Z'),
-      ).rejects.toThrow('Publication state conflict')
+      await expect(store.retryPublication('pub-failed', '2026-07-01T10:00:00Z')).rejects.toThrow(
+        'Publication state conflict',
+      )
 
       expect(store.publications[0]?.scheduledAt).toBe(originalDate)
     })
@@ -1255,9 +1255,9 @@ describe('publishing store', () => {
 
     it('throws when publication is not found', async () => {
       const store = usePublishingStore()
-      await expect(
-        store.retryPublication('nonexistent', '2026-07-01T00:00:00Z'),
-      ).rejects.toThrow('Publication nonexistent not found')
+      await expect(store.retryPublication('nonexistent', '2026-07-01T00:00:00Z')).rejects.toThrow(
+        'Publication nonexistent not found',
+      )
     })
   })
 
