@@ -429,6 +429,36 @@ describe('media store', () => {
     })
   })
 
+  describe('targeted reconciliation helpers', () => {
+    it('upserts a single asset into the newest-first cache without duplicating ids', () => {
+      const store = useMediaStore()
+      const asset = readyAsset('asset-upserted')
+
+      store.upsertAsset(asset)
+      store.upsertAsset({ ...asset, originalFilename: 'updated-name.png' })
+
+      expect(store.assetIds).toEqual(['asset-upserted'])
+      expect(store.assetsById['asset-upserted']?.originalFilename).toBe('updated-name.png')
+    })
+
+    it('refreshes a single asset from the API and keeps it available in the library cache', async () => {
+      const store = useMediaStore()
+      mockGetAsset.mockResolvedValueOnce({
+        ...readyAsset('asset-refresh'),
+        previewUrl: '/api/media/assets/asset-refresh/preview',
+      })
+
+      const result = await store.refreshAsset('asset-refresh')
+
+      expect(mockGetAsset).toHaveBeenCalledWith('asset-refresh')
+      expect(result.assetId).toBe('asset-refresh')
+      expect(store.assetIds[0]).toBe('asset-refresh')
+      expect(store.assetsById['asset-refresh']?.previewUrl).toBe(
+        '/api/media/assets/asset-refresh/preview',
+      )
+    })
+  })
+
   describe('retryUpload', () => {
     it('re-uploads a failed upload item', async () => {
       const store = useMediaStore()

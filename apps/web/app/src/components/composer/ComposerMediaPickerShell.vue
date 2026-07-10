@@ -1,193 +1,221 @@
 <script setup lang="ts">
+import { computed, ref, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
-import { useId } from 'vue'
-import { XIcon } from '@lucide/vue'
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogDescription,
-} from '@/components/ui/dialog'
-import { Input } from '@/components/ui/input'
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
+import { Check, Search, X } from '@lucide/vue'
 import type {
-  ComposerMediaPickerProps,
-  ComposerMediaPickerFilter,
-  ComposerMediaPickerSearchChange,
-  ComposerMediaPickerFilterChange,
-  ComposerMediaPickerProviderImport,
+  ComposerMediaPickerAsset,
+  ComposerMediaPickerApplyPayload,
+  ComposerMediaPickerCollectionState,
+  ComposerMediaPickerProviderSearchPayload,
+  ComposerMediaPickerSource,
+  ComposerMediaPickerTogglePayload,
 } from './composer-media-picker.types'
 
 const props = withDefaults(
-  defineProps<ComposerMediaPickerProps>(),
+  defineProps<{
+    isOpen: boolean
+    activeSource: ComposerMediaPickerSource
+    collectionState: ComposerMediaPickerCollectionState
+    assets: ComposerMediaPickerAsset[]
+    provider?: 'unsplash' | null
+    applyDisabled?: boolean
+    applyDisabledMessage?: string | null
+  }>(),
   {
-    disabled: false,
-    errorMessage: null,
     provider: null,
+    applyDisabled: false,
+    applyDisabledMessage: null,
   },
 )
 
 const emit = defineEmits<{
-  (e: 'update:open', value: boolean): void
+  (e: 'toggle-asset', payload: ComposerMediaPickerTogglePayload): void
+  (e: 'apply-selection', payload: ComposerMediaPickerApplyPayload): void
   (e: 'close'): void
-  (e: 'search-change', payload: ComposerMediaPickerSearchChange): void
-  (e: 'filter-change', payload: ComposerMediaPickerFilterChange): void
-  (e: 'provider-import', payload: ComposerMediaPickerProviderImport): void
+  (e: 'provider-search', payload: ComposerMediaPickerProviderSearchPayload): void
+  (e: 'set-active-source', payload: { source: ComposerMediaPickerSource }): void
 }>()
 
 const { t } = useI18n()
-const searchLabelId = useId()
-const filterLabelId = useId()
+const providerQuery = ref('')
 
-function handleClose() {
-  emit('close')
-  emit('update:open', false)
+watch(
+  () => props.isOpen,
+  (isOpen) => {
+    if (!isOpen) providerQuery.value = ''
+  },
+)
+
+const selectedIds = computed(() => props.assets.filter((asset) => asset.selected).map((asset) => asset.assetId))
+const isLibrarySource = computed(() => props.activeSource === 'library')
+const providerEnabled = computed(() => props.provider === 'unsplash')
+const modalTitle = computed(() =>
+  isLibrarySource.value ? t('composer.picker.header') : t('composer.picker.unsplashChip'),
+)
+const modalDescription = computed(() =>
+  isLibrarySource.value
+    ? t('composer.picker.libraryDescription')
+    : t('composer.picker.providerDescription'),
+)
+
+function toggleAsset(asset: ComposerMediaPickerAsset) {
+  if (!asset.selectable || !isLibrarySource.value) return
+  emit('toggle-asset', { assetId: asset.assetId })
 }
 
-function handleSearchInput(value: string | number) {
-  if (props.disabled) return
-  emit('search-change', { query: String(value) })
+function applySelection() {
+  emit('apply-selection', { assetIds: selectedIds.value })
 }
 
-function handleFilterChange(value: unknown) {
-  if (props.disabled || typeof value !== 'string') return
-  emit('filter-change', { filter: value as ComposerMediaPickerFilter })
+function submitProviderSearch() {
+  emit('provider-search', { query: providerQuery.value.trim() })
 }
 
-defineSlots<{
-  providerTab(): unknown
-}>()
+function setSource(source: ComposerMediaPickerSource) {
+  emit('set-active-source', { source })
+}
 </script>
 
 <template>
-  <Dialog :open="open" @update:open="(v) => emit('update:open', v)">
-    <DialogContent class="sm:max-w-2xl" :show-close-button="false">
-      <!-- biome-ignore lint/a11y/noStaticElementInteractions: captures Escape inside the nested dialog so it closes the picker without bubbling to the parent composer modal -->
-      <div @keydown.escape.stop="handleClose">
-        <DialogHeader>
-        <div class="flex items-start justify-between gap-4">
-          <div>
-            <DialogTitle class="text-base font-medium text-text-display">
-              {{ t('composer.mediaPicker.title') }}
-            </DialogTitle>
-            <DialogDescription class="mt-1 text-xs leading-5 text-text-secondary">
-              {{ t('composer.mediaPicker.description') }}
-            </DialogDescription>
-          </div>
-          <button
-            type="button"
-            data-testid="media-picker-close"
-            class="rounded-full p-1.5 text-text-secondary transition-colors hover:bg-bg-primary hover:text-text-display focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-text-display"
-            :aria-label="t('composer.mediaPicker.close')"
-            @click="handleClose"
-          >
-            <XIcon class="size-4" />
-          </button>
+  <div
+    v-if="isOpen"
+    class="fixed inset-0 z-[70] flex items-center justify-center bg-black/70 px-4 py-8 backdrop-blur-sm"
+    data-testid="composer-media-picker-shell"
+  >
+    <div class="flex max-h-[80vh] w-full max-w-5xl flex-col overflow-hidden rounded-[28px] border border-white/8 bg-[#2b2b2b] text-white shadow-2xl">
+      <div class="flex items-start justify-between gap-6 border-b border-white/8 px-6 py-5">
+        <div class="space-y-2">
+          <h3 class="text-[24px] font-semibold leading-none text-white">
+            {{ modalTitle }}
+          </h3>
+          <p class="text-sm text-white/65">
+            {{ modalDescription }}
+          </p>
         </div>
-      </DialogHeader>
+        <button
+          type="button"
+          class="flex size-9 items-center justify-center rounded-full border border-white/10 bg-white/5 text-white/70 transition hover:bg-white/10 hover:text-white"
+          data-testid="picker-close"
+          @click="emit('close')"
+        >
+          <X class="size-4" />
+        </button>
+      </div>
 
-      <Tabs default-value="library" class="w-full">
-        <TabsList v-if="provider" class="grid w-full grid-cols-2">
-          <TabsTrigger value="library" data-testid="media-picker-library-tab-trigger">
-            {{ t('composer.mediaPicker.tabs.library') }}
-          </TabsTrigger>
-          <TabsTrigger value="provider" data-testid="media-picker-provider-tab-trigger">
-            {{ t('composer.mediaPicker.tabs.provider') }}
-          </TabsTrigger>
-        </TabsList>
-        <component :is="provider ? TabsContent : 'div'" value="library" class="flex flex-col gap-3">
-          <div class="flex items-center gap-3">
-            <!-- biome-ignore lint/a11y/noLabelWithoutControl: dynamic :for resolved at runtime to the nested Input id -->
-            <label :for="searchLabelId" class="flex-1">
-              <span class="sr-only">{{ t('composer.mediaPicker.searchLabel') }}</span>
-              <Input
-                :id="searchLabelId"
-                data-testid="media-picker-search"
-                type="search"
-                :model-value="searchQuery"
-                :placeholder="t('composer.mediaPicker.searchPlaceholder')"
-                :aria-label="t('composer.mediaPicker.searchLabel')"
-                :disabled="disabled"
-                @update:model-value="handleSearchInput"
-              />
-            </label>
-            <!-- biome-ignore lint/a11y/noLabelWithoutControl: dynamic :for resolved at runtime to the nested SelectTrigger id -->
-            <label :for="filterLabelId" class="block">
-              <span class="sr-only">{{ t('composer.mediaPicker.filterLabel') }}</span>
-              <Select
-                :model-value="selectedFilter"
-                :disabled="disabled"
-                @update:model-value="handleFilterChange"
-              >
-                <SelectTrigger
-                  :id="filterLabelId"
-                  data-testid="media-picker-filter"
-                  :aria-label="t('composer.mediaPicker.filterLabel')"
-                  :disabled="disabled"
-                  class="w-40"
-                >
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem v-for="opt in filterOptions" :key="opt.value" :value="opt.value">
-                    {{ t(opt.labelKey) }}
-                  </SelectItem>
-                </SelectContent>
-              </Select>
-            </label>
+      <div class="flex flex-wrap items-center gap-3 px-6 py-4">
+        <button
+          type="button"
+          class="rounded-full border px-4 py-2 text-sm transition"
+          :class="isLibrarySource ? 'border-[#8ccf70] bg-[#8ccf70]/15 text-white' : 'border-white/10 bg-white/5 text-white/70 hover:text-white'"
+          data-testid="picker-source-library"
+          @click="setSource('library')"
+        >
+          {{ t('composer.picker.libraryChip') }}
+        </button>
+        <button
+          v-if="providerEnabled"
+          type="button"
+          class="rounded-full border px-4 py-2 text-sm transition"
+          :class="!isLibrarySource ? 'border-[#8ccf70] bg-[#8ccf70]/15 text-white' : 'border-white/10 bg-white/5 text-white/70 hover:text-white'"
+          data-testid="picker-source-unsplash"
+          @click="setSource('unsplash')"
+        >
+          {{ t('composer.picker.unsplashChip') }}
+        </button>
+      </div>
+
+      <div class="min-h-0 flex-1 overflow-y-auto px-6 pb-6">
+        <form
+          v-if="!isLibrarySource"
+          data-testid="picker-provider-search"
+          class="mb-5 flex items-center gap-3"
+          @submit.prevent="submitProviderSearch"
+        >
+          <!-- biome-ignore lint/a11y/noLabelWithoutControl: for attribute correctly targets input#picker-provider-query below, but Biome cannot resolve it through the nested div wrapper -->
+          <label class="sr-only" for="picker-provider-query">
+            {{ t('composer.picker.providerSearchLabel') }}
+          </label>
+          <div class="flex flex-1 items-center gap-2 rounded-2xl border border-white/10 bg-[#202020] px-4 py-3">
+            <Search class="size-4 text-white/45" />
+            <input
+              id="picker-provider-query"
+              v-model="providerQuery"
+              type="search"
+              class="w-full bg-transparent text-sm text-white outline-none placeholder:text-white/35"
+              :placeholder="t('composer.picker.searchPlaceholder')"
+            >
           </div>
+          <button type="submit" class="rounded-2xl border border-white/10 bg-white/5 px-4 py-3 text-sm text-white transition hover:bg-white/10">
+            {{ t('composer.picker.searchAction') }}
+          </button>
+        </form>
 
-          <div aria-live="polite" aria-atomic="true">
-            <div v-if="disabled" class="py-8 text-center">
-              <p class="text-sm font-medium text-text-display">{{ t('composer.mediaPicker.disabledTitle') }}</p>
-              <p class="mt-1 text-xs text-text-secondary">{{ t('composer.mediaPicker.disabledBody') }}</p>
-            </div>
-            <div v-else-if="state === 'loading'" class="py-8 text-center">
-              <p class="text-sm text-text-secondary">{{ t('composer.mediaPicker.loading') }}</p>
-            </div>
-            <div v-else-if="state === 'empty'" class="py-8 text-center">
-              <p class="text-sm font-medium text-text-display">{{ t('composer.mediaPicker.emptyTitle') }}</p>
-              <p class="mt-1 text-xs text-text-secondary">{{ t('composer.mediaPicker.emptyBody') }}</p>
-            </div>
-            <div v-else-if="state === 'error'" class="py-8 text-center">
-              <p class="text-sm font-medium text-error">{{ t('composer.mediaPicker.errorTitle') }}</p>
-              <p class="mt-1 text-xs text-text-secondary">{{ errorMessage ?? t('composer.mediaPicker.errorBody') }}</p>
-            </div>
-          </div>
+        <slot v-if="!isLibrarySource" name="provider" />
 
-          <section
-            v-if="!disabled && state === 'ready'"
-            data-testid="media-picker-asset-grid"
-            :aria-label="t('composer.mediaPicker.assetGridLabel')"
-            class="grid grid-cols-3 gap-3 sm:grid-cols-4"
+        <div v-if="isLibrarySource && collectionState === 'LOADING'" class="rounded-3xl border border-white/8 bg-black/10 px-5 py-8 text-sm text-white/65">
+          {{ t('media.loading') }}
+        </div>
+
+        <div v-else-if="isLibrarySource && collectionState === 'EMPTY'" class="rounded-3xl border border-white/8 bg-black/10 px-5 py-8 text-sm text-white/65">
+          <p class="font-medium text-white">{{ t('media.emptyTitle') }}</p>
+          <p class="mt-2">{{ t('media.emptyBody') }}</p>
+        </div>
+
+        <div v-else-if="isLibrarySource && collectionState === 'ERROR'" class="rounded-3xl border border-error/40 bg-error/10 px-5 py-8 text-sm text-white">
+          {{ t('composer.picker.errorLoad') }}
+        </div>
+
+        <div v-else-if="isLibrarySource" class="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+          <button
+            v-for="asset in assets"
+            :key="asset.assetId"
+            type="button"
+            class="group relative rounded-[24px] border p-3 text-left transition"
+            :class="asset.selected ? 'border-[#8ccf70] bg-[#8ccf70]/10 shadow-[0_0_0_1px_rgba(140,207,112,0.18)]' : 'border-white/8 bg-[#242424] hover:border-white/15'"
+            :data-testid="`picker-asset-card-${asset.assetId}`"
+            :data-selected="String(asset.selected)"
+            :aria-disabled="asset.selectable ? 'false' : 'true'"
+            @click="toggleAsset(asset)"
           >
             <div
-              v-for="asset in assets"
-              :key="asset.assetId"
-              :data-testid="`media-picker-asset-${asset.assetId}`"
-              class="flex flex-col items-center gap-1 rounded-xl border border-border-visible p-2"
+              v-if="asset.selected"
+              class="absolute right-4 top-4 flex size-7 items-center justify-center rounded-full bg-[#8ccf70] text-[#1d1d1d]"
+              :data-testid="`picker-asset-selected-indicator-${asset.assetId}`"
             >
-              <div class="flex size-16 items-center justify-center rounded-lg bg-bg-primary text-xs text-text-secondary">
-                {{ asset.mediaType.split('/')[1]?.toUpperCase() ?? 'FILE' }}
-              </div>
-              <span class="line-clamp-1 max-w-full text-xs text-text-display">
-                {{ asset.originalFilename ?? asset.assetId }}
-              </span>
+              <Check class="size-4" />
             </div>
-          </section>
-        </component>
-        <TabsContent
-          v-if="provider"
-          value="provider"
-          class="flex flex-col gap-3"
-          data-testid="media-picker-provider-tab-content"
-        >
-          <slot name="providerTab" />
-        </TabsContent>
-      </Tabs>
+            <div v-if="asset.previewUrl" class="mb-4 overflow-hidden rounded-[18px] border border-white/8 bg-black/20">
+              <img :src="asset.previewUrl" :alt="asset.name" class="h-40 w-full object-cover">
+            </div>
+            <div v-else class="mb-4 flex h-40 items-center justify-center rounded-[18px] border border-dashed border-white/12 bg-black/10 text-xs text-white/45">
+              {{ t('composer.picker.noPreview') }}
+            </div>
+            <div class="space-y-1">
+              <p class="text-base font-medium text-white">{{ asset.name }}</p>
+              <p class="text-[11px] uppercase tracking-[0.28em] text-white/45">{{ asset.status }}</p>
+            </div>
+          </button>
+        </div>
       </div>
-    </DialogContent>
-  </Dialog>
+
+      <div class="border-t border-white/8 px-6 py-5">
+        <p
+          v-if="applyDisabled && applyDisabledMessage"
+          data-testid="picker-apply-warning"
+          class="mb-4 rounded-2xl border border-error/40 bg-error/10 px-3 py-2 text-xs text-error"
+        >
+          {{ applyDisabledMessage }}
+        </p>
+
+        <div class="flex items-center justify-end gap-3">
+          <button data-testid="picker-cancel" type="button" class="rounded-full border border-white/10 px-5 py-3 text-sm text-white/85 transition hover:bg-white/5" @click="emit('close')">
+            {{ t('composer.picker.cancel') }}
+          </button>
+          <button data-testid="picker-apply" type="button" class="rounded-full bg-[#8ccf70] px-5 py-3 text-sm font-medium text-[#1b1b1b] transition disabled:cursor-not-allowed disabled:opacity-50" :disabled="applyDisabled || !isLibrarySource" @click="applySelection">
+            {{ t('composer.picker.apply') }}
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
 </template>

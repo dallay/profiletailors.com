@@ -571,52 +571,6 @@ advances to `sdd-archive`.
 - WHEN `sdd-verify` runs
 - THEN the verify report MUST contain a verbatim record of the project owner's approval
 
-### Requirement: MediaProvider port
-
-The `media-library` bounded context MUST expose a `MediaProvider` port with `search` and
-`import` operations, both returning provider-neutral types. Implementations live in their
-own bounded context (the first shipped adapter is `mediaprovider.unsplash`).
-
-#### Scenario: Port is the public surface for providers
-
-- GIVEN a future provider adapter (Pexels, Giphy, etc.)
-- WHEN adding it to the system
-- THEN `media-library` MUST NOT require source edits beyond application configuration
-
-### Requirement: Provider imports share the CAS binary path
-
-The import flow MUST reuse `workspaceFileBlobRepository.upsertBlob()` and
-`createPendingAsset()` to persist provider-imported binaries. Provider imports MUST
-populate `source_type='EXTERNAL'`, `source_provider`, `external_id`, and the six
-attribution columns atomically with the row insert. The binary pipeline itself MUST be
-unchanged from the upload path.
-
-#### Scenario: Re-import deduplicates to the canonical asset
-
-- GIVEN a workspace already stores the bytes of a provider photo
-- WHEN the same photo is re-imported
-- THEN the response MUST return `deduped: true`
-- AND it MUST reference the canonical existing active `media_assets` row for that workspace
-- AND it MUST reuse the existing blob rather than creating a duplicate blob or asset row
-
-### Requirement: Provider import requires verified email and rate limits
-
-`ImportExternalAsset` MUST be guarded by `EmailVerifiedGuard`, the per-workspace rate
-limiter, and the same concurrent-slot guard used by uploads. Provider imports MUST count
-against the concurrent-slot limit.
-
-#### Scenario: Unverified email is rejected
-
-- GIVEN a workspace member without verified email
-- WHEN they request an import
-- THEN the response MUST be the same status that an unverified upload receives
-
-#### Scenario: Concurrent upload slot shared
-
-- GIVEN the workspace has five in-flight uploads
-- WHEN a member requests an import
-- THEN the import MUST be rejected with 429 until a slot frees up
-
 ### Requirement: Upload Retry After Failed Atomic Block
 
 When the `markAsReady()` atomic block rolls back due to a failure, the `finally` block releases the concurrent upload slot. The client MUST re-claim a slot to retry, subject to the same concurrency and rate-limit checks as a fresh upload.
@@ -628,6 +582,49 @@ When the `markAsReady()` atomic block rolls back due to a failure, the `finally`
 - WHEN the client retries the upload
 - THEN the system MUST allow the retry if the asset status is `UPLOADING`
 - AND the client MUST re-claim a concurrent upload slot to proceed
+
+### Requirement: Active picker session refresh after upload or import
+
+When an upload or provider import creates or returns persisted assets during an open composer picker session, the media library MUST refresh or upsert those persisted assets into the active picker session. Assets successfully uploaded or imported through the active picker session MUST become staged automatically once they resolve to selectable persisted assets, and they MUST become visible without requiring the author to reopen the picker.
+
+#### Scenario: Upload adds persisted assets into the active picker session
+
+- GIVEN the composer picker is open
+- WHEN an upload completes and yields persisted asset IDs
+- THEN those assets MUST appear in the active picker session
+- AND the author MUST NOT need to close and reopen the picker to browse them
+
+#### Scenario: Import upserts an existing persisted asset into the active picker session
+
+- GIVEN the composer picker is open
+- WHEN a provider import resolves to an existing persisted asset
+- THEN the active picker session MUST surface that persisted asset
+- AND it MUST remain available for staging in the same session
+
+### Requirement: Picker-facing asset readiness presentation
+
+The media library MUST expose asset state so picker surfaces can distinguish selection readiness. `READY` assets MUST be selectable. When a `READY` asset has a preview it MUST provide a thumbnail; when it has no preview, or when preview loading fails, it MUST provide fallback visuals while remaining selectable. `PROCESSING` assets MUST remain visible with status or placeholder presentation and MUST NOT be selectable. `FAILED` assets MUST remain visible with failure or fallback presentation and MUST NOT be selectable.
+
+#### Scenario: READY asset is selectable in picker surfaces
+
+- GIVEN a persisted asset is `READY`
+- WHEN a picker surface renders that asset
+- THEN the asset MUST be selectable
+- AND it MUST provide a thumbnail when one is available
+
+#### Scenario: PROCESSING or FAILED asset remains visible without becoming selectable
+
+- GIVEN a persisted asset is `PROCESSING` or is `FAILED`
+- WHEN a picker surface renders that asset
+- THEN the asset MUST remain visible with status or fallback presentation
+- AND the picker MUST NOT treat it as selectable until it is `READY`
+
+#### Scenario: READY asset without preview remains selectable with fallback
+
+- GIVEN a persisted asset is `READY` but has no preview, or its preview fails to load
+- WHEN a picker surface renders that asset
+- THEN the asset MUST remain selectable
+- AND it MUST render fallback visuals that preserve grid continuity
 
 ---
 

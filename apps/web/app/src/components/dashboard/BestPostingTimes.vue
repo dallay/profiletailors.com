@@ -27,10 +27,8 @@ const { t } = useI18n()
 
     <CardContent>
       <div class="space-y-4">
-        <!-- Heatmap -->
         <HeatmapGrid :slots="slots" />
 
-        <!-- AI Recommendation -->
         <div class="rounded-lg bg-[var(--background-primary)] border border-[var(--border-color)] p-3">
           <p class="text-[10px] text-[var(--text-secondary)] font-[var(--font-space-mono)] uppercase tracking-wider mb-1">
             AI Recommendation

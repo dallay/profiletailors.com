@@ -60,7 +60,6 @@ const { isMobile, state, openMobile, setOpenMobile } = useSidebar()
     :data-variant="variant"
     :data-side="side"
   >
-    <!-- This is what handles the sidebar gap on desktop  -->
     <div
       data-slot="sidebar-gap"
       :class="cn(

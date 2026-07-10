@@ -310,7 +310,6 @@ onBeforeUnmount(() => {
     </CardHeader>
 
     <CardContent>
-      <!-- Kanban columns: horizontal scroll on mobile, grid on larger -->
       <div class="overflow-x-auto -mx-1 px-1">
         <div class="flex lg:grid lg:grid-cols-4 gap-3 min-w-[640px] lg:min-w-0">
           <div
@@ -318,7 +317,6 @@ onBeforeUnmount(() => {
             :key="column.id"
             class="flex-1 lg:flex-none min-w-[150px] lg:min-w-0"
           >
-            <!-- Column header -->
             <div class="flex items-center justify-between mb-3">
               <h3
                 class="text-[11px] font-[var(--font-space-mono)] uppercase tracking-[0.08em] text-[var(--text-secondary)]"
@@ -332,7 +330,6 @@ onBeforeUnmount(() => {
               </span>
             </div>
 
-            <!-- Cards (draggable container) -->
             <div
               :ref="(el) => setColumnRef(column.id, el as Element | null)"
               :data-dnd-column="column.id"
@@ -349,12 +346,10 @@ onBeforeUnmount(() => {
                   draggedCardId === card.id ? 'opacity-50' : '',
                 ]"
               >
-                <!-- Card title -->
                 <p class="text-sm font-medium text-[var(--text-display)] line-clamp-2 leading-snug">
                   {{ card.title }}
                 </p>
 
-                <!-- Platform badge -->
                 <span
                   :class="[
                     'text-[10px] font-[var(--font-space-mono)] uppercase tracking-wider font-medium block',
@@ -364,7 +359,6 @@ onBeforeUnmount(() => {
                   {{ platformLabels[card.platform] ?? card.platform }}
                 </span>
 
-                <!-- Author & Tags -->
                 <div class="flex items-center gap-2 flex-wrap">
                   <span class="text-[10px] text-[var(--text-secondary)] font-[var(--font-space-mono)]">
                     {{ card.author }}
@@ -378,7 +372,6 @@ onBeforeUnmount(() => {
                   </span>
                 </div>
 
-                <!-- Move buttons (keyboard/accessibility fallback) -->
                 <div class="flex items-center gap-1 pt-1">
                   <Button
                     variant="ghost"
@@ -431,7 +424,6 @@ onBeforeUnmount(() => {
                 </div>
               </div>
 
-              <!-- Empty column -->
               <p
                 v-if="column.cards.length === 0"
                 class="text-xs text-[var(--text-secondary)] text-center py-6 border border-dashed border-[var(--border-color)] rounded-lg"

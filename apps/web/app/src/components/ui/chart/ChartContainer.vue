@@ -4,8 +4,8 @@ import ChartStyle from "./ChartStyle.vue"
 </script>
 
 <script setup lang="ts">
-import { computed, useId } from 'vue'
-import { provideChartContext } from './index'
+import { computed, toRefs, useId, type HTMLAttributes } from "vue"
+import { provideChartContext, type ChartConfig } from "."
 
 const props = defineProps<{
   id?: HTMLAttributes["id"]
@@ -21,12 +21,13 @@ defineSlots<{
   }
 }>()
 
+const { config } = toRefs(props)
 const uniqueId = useId()
 const chartId = computed(() => `chart-${props.id || uniqueId.replace(/:/g, "")}`)
 
 provideChartContext({
   id: uniqueId,
-  config: computed(() => props.config),
+  config,
 })
 </script>
 
@@ -50,7 +51,7 @@ provideChartContext({
       '--vis-font-family': 'var(--font-sans)',
     }"
   >
-    <slot :id="uniqueId" :config="props.config" />
+    <slot :id="uniqueId" :config="config" />
     <ChartStyle :id="chartId" />
   </div>
 </template>

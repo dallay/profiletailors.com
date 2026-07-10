@@ -1,57 +1,31 @@
-import type { MediaAssetSummary } from '@/lib/media-api'
+export type ComposerMediaPickerCollectionState = 'LOADING' | 'READY' | 'EMPTY' | 'ERROR'
+export type ComposerMediaPickerSource = 'library' | 'unsplash'
 
-export const COMPOSER_MEDIA_PICKER_VIEW_STATE = {
-  LOADING: 'loading',
-  EMPTY: 'empty',
-  ERROR: 'error',
-  READY: 'ready',
-} as const
+export type ComposerMediaPickerAssetStatus = 'READY' | 'PROCESSING' | 'FAILED'
 
-export type ComposerMediaPickerViewState =
-  (typeof COMPOSER_MEDIA_PICKER_VIEW_STATE)[keyof typeof COMPOSER_MEDIA_PICKER_VIEW_STATE]
-
-export const COMPOSER_MEDIA_PICKER_FILTER = {
-  ALL: 'all',
-  IMAGE: 'image',
-  VIDEO: 'video',
-  DOCUMENT: 'document',
-} as const
-
-export type ComposerMediaPickerFilter =
-  (typeof COMPOSER_MEDIA_PICKER_FILTER)[keyof typeof COMPOSER_MEDIA_PICKER_FILTER]
-
-export type ComposerMediaPickerFilterOption = {
-  value: ComposerMediaPickerFilter
-  labelKey: string
+export type ComposerMediaPickerAsset = {
+  assetId: string
+  name: string
+  mediaType: string
+  status: ComposerMediaPickerAssetStatus
+  previewUrl: string | null
+  selectable: boolean
+  selected: boolean
+  sourceType: 'UPLOADED' | 'EXTERNAL'
 }
 
-export const COMPOSER_MEDIA_PICKER_PROVIDER = {
-  UNSPLASH: 'unsplash',
-} as const
-
-export type ComposerMediaPickerProvider =
-  (typeof COMPOSER_MEDIA_PICKER_PROVIDER)[keyof typeof COMPOSER_MEDIA_PICKER_PROVIDER]
-
-export type ComposerMediaPickerProps = {
-  open: boolean
-  disabled?: boolean
-  state: ComposerMediaPickerViewState
-  searchQuery: string
-  selectedFilter: ComposerMediaPickerFilter
-  filterOptions: ReadonlyArray<ComposerMediaPickerFilterOption>
-  assets: ReadonlyArray<MediaAssetSummary>
-  errorMessage?: string | null
-  provider?: ComposerMediaPickerProvider | null
+export type ComposerMediaPickerApplyPayload = {
+  assetIds: string[]
 }
 
-export type ComposerMediaPickerSearchChange = {
+export type ComposerMediaPickerTogglePayload = {
+  assetId: string
+}
+
+export type ComposerMediaPickerProviderSearchPayload = {
   query: string
 }
 
-export type ComposerMediaPickerFilterChange = {
-  filter: ComposerMediaPickerFilter
-}
-
-export type ComposerMediaPickerProviderImport = {
+export type ComposerMediaPickerProviderImportPayload = {
   externalId: string
 }
