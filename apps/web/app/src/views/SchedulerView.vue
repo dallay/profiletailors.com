@@ -12,9 +12,10 @@ import PostDetailModal from '@/components/PostDetailModal.vue'
 import CalendarHeader from '@/components/CalendarHeader.vue'
 import CalendarCell from '@/components/CalendarCell.vue'
 import ConflictBadge from '@/components/ConflictBadge.vue'
+import SocialProviderIcon from '@/components/SocialProviderIcon.vue'
 import { Card } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
-import { getProviderColor, getProviderBadge } from '@/lib/provider-styles'
+import { getProviderColor } from '@/lib/provider-styles'
 import { toast } from 'vue-sonner'
 
 const publishingStore = usePublishingStore()
@@ -51,6 +52,7 @@ function onDragStart(e: DragEvent, pub: Publication) {
   e.dataTransfer.setData('text/plain', pub.id)
   dragData.value = { id: pub.id, previousScheduledAt: pub.scheduledAt }
 
+  const el = e.target as HTMLElement
   if (el) el.style.opacity = '0.4'
 }
 
@@ -618,7 +620,7 @@ watch(
                     @keydown.space.prevent="isPastSlot(day, slot.hour) ? undefined : openNewPostForSlot(day, slot.hour)"
                     @dragover.prevent="!isPastSlot(day, slot.hour)"
                     @drop.prevent="!isPastSlot(day, slot.hour) ? onDropCell($event, day, slot.hour) : undefined"
-                    class="relative p-2 border-r border-border-subtle last:border-r-0 transition-all group/cell flex flex-col justify-start gap-2 select-none overflow-hidden"
+                    class="relative p-2 border-r border-border-subtle last:border-r-0 transition-all group/cell flex flex-col justify-start gap-1 select-none overflow-hidden"
                     :class="isPastSlot(day, slot.hour)
                       ? 'bg-text-secondary/5 text-text-secondary cursor-not-allowed after:absolute after:inset-0 after:bg-[repeating-linear-gradient(-45deg,transparent,transparent_10px,var(--border-color)_10px,var(--border-color)_11px)] after:opacity-10 after:z-0'
                       : 'hover:bg-bg-primary/20 cursor-pointer'"
@@ -635,45 +637,60 @@ watch(
                       @keydown.space.self.stop.prevent="openPostDetail(pub)"
                       @dragstart="onDragStart($event, pub)"
                       @dragend="onDragEnd($event)"
-                      class="relative z-10 flex h-[72px] w-full min-w-0 flex-col overflow-hidden rounded-xl border bg-bg-surface p-3 text-left shadow-sm transition-all group/card cursor-pointer"
-                      :class="getProviderColor(pub.channels[0] || 'linkedin')"
+                      class="relative z-10 grid w-full min-w-0 overflow-hidden rounded-md border bg-bg-surface text-left shadow-sm transition-[box-shadow,transform] group/card cursor-pointer hover:-translate-y-px hover:shadow-md"
+                      :class="[
+                        getProviderColor(pub.channels[0] || 'linkedin'),
+                        publicationsForSlot(day, slot.hour).length > 1
+                          ? 'h-[36px] grid-cols-[auto_minmax(0,1fr)_auto] items-center gap-1.5 px-2 py-1'
+                          : 'h-[72px] grid-cols-[minmax(0,1fr)_auto] grid-rows-[auto_1fr] gap-x-2 px-2 py-1.5',
+                      ]"
                     >
-                      <div class="flex shrink-0 items-center justify-between gap-2">
-                        <span class="font-mono text-[8px] font-bold tracking-wider opacity-80 uppercase">
+                      <div
+                        class="flex min-w-0 items-center gap-1.5"
+                        :class="publicationsForSlot(day, slot.hour).length > 1 ? '' : 'col-start-1 row-start-1'"
+                      >
+                        <span class="shrink-0 font-mono text-[8px] font-bold tracking-wider opacity-80 uppercase">
                           {{ new Date(pub.scheduledAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) }}
                         </span>
-                        <div class="flex min-w-0 shrink-0 gap-1">
-                          <span
-                            v-for="channel in pub.channels"
-                            :key="channel"
-                            class="size-4.5 rounded-full border border-current/20 flex items-center justify-center font-mono text-[8px] uppercase tracking-wider font-bold"
-                          >
-                            {{ getProviderBadge(channel) }}
-                          </span>
-                          <span
-                            v-if="pub.status === 'BLOCKED'"
-                            class="px-1.5 py-0.5 rounded text-[7px] font-bold tracking-wider uppercase bg-warning/20 text-warning border border-warning/30"
-                          >
-                            BLOCKED
-                          </span>
-                          <ConflictBadge
-                            v-if="pub.hasConflict"
-                            variant="badge"
-                          />
-                        </div>
-                      </div>
-
-                      <div class="flex flex-row items-stretch gap-2 min-h-0 flex-1">
-                        <p class="min-w-0 flex-1 overflow-hidden text-[11px] font-light leading-relaxed text-text-body break-words [display:-webkit-box] [-webkit-box-orient:vertical] [-webkit-line-clamp:3] [overflow-wrap:anywhere]">
+                        <p
+                          v-if="publicationsForSlot(day, slot.hour).length > 1"
+                          class="min-w-0 truncate text-[10px] font-medium leading-tight text-text-body"
+                        >
                           {{ pub.content }}
                         </p>
+                      </div>
 
-                        <div v-if="pub.thumbnail" class="h-full w-14 shrink-0 overflow-hidden rounded-md border border-border-subtle/80">
-                          <img
-                            :src="pub.thumbnail"
-                            class="h-full w-full object-cover"
-                            alt=""
-                          />
+                      <p
+                        v-if="publicationsForSlot(day, slot.hour).length === 1"
+                        class="col-start-1 row-start-2 min-w-0 overflow-hidden text-[11px] font-light leading-snug text-text-body break-words [display:-webkit-box] [-webkit-box-orient:vertical] [-webkit-line-clamp:2] [overflow-wrap:anywhere]"
+                      >
+                          {{ pub.content }}
+                      </p>
+
+                      <div
+                        class="flex shrink-0 items-center justify-end gap-1"
+                        :class="publicationsForSlot(day, slot.hour).length > 1 ? 'col-start-3' : 'col-start-2 row-span-2 row-start-1 self-stretch'"
+                      >
+                        <span
+                          v-for="channel in pub.channels"
+                          :key="channel"
+                          class="flex size-4 shrink-0 items-center justify-center"
+                        >
+                          <SocialProviderIcon :provider="channel" />
+                        </span>
+                        <span
+                          v-if="pub.status === 'BLOCKED'"
+                          class="rounded-sm border border-warning/30 bg-warning/20 px-1 py-0.5 text-[7px] font-bold tracking-wider text-warning uppercase"
+                        >
+                          BLOCKED
+                        </span>
+                        <ConflictBadge v-if="pub.hasConflict" variant="badge" />
+                        <div
+                          v-if="pub.thumbnail"
+                          class="overflow-hidden rounded-sm border border-border-subtle/80"
+                          :class="publicationsForSlot(day, slot.hour).length > 1 ? 'size-6' : 'h-full w-14'"
+                        >
+                          <img :src="pub.thumbnail" class="h-full w-full object-cover" alt="" />
                         </div>
                       </div>
 
