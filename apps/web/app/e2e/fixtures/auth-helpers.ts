@@ -47,9 +47,15 @@ export async function authenticateAs(
   page: Page,
   credentials: { email: string; password: string } = DEFAULT_MOCK_CREDENTIALS,
 ): Promise<void> {
+  // Drop any leftover session so the auth guard reliably lands us on /login.
+  // Tests that intentionally want a persistent session across calls should
+  // call setup() instead, which calls keepSessionAlive() after login.
+  await page.context().clearCookies()
   await page.goto(APP_URL.login, { waitUntil: 'domcontentloaded' })
-  await page.getByLabel(/email/i).fill(credentials.email)
-  await page.getByLabel(/password/i).fill(credentials.password)
+  // Use the explicit input id to avoid matching decorative labels such as
+  // the "Email verification required" banner in the authenticated shell.
+  await page.locator('input#email').fill(credentials.email)
+  await page.locator('input#password').fill(credentials.password)
   await page.getByRole('button', { name: /sign in|iniciar sesión/i }).click()
 
   // Wait for navigation to dashboard

@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { computed } from 'vue'
+import { Globe, MessageCircle, Repeat2, Send, ThumbsUp } from '@lucide/vue'
 import { proxyImageUrl } from '@/lib/auth-api'
 import type { LinkedInPreviewModel } from './post-preview.types'
 
@@ -80,7 +81,7 @@ const truncatedText = computed(() => {
         <p class="text-[10px] text-gray-400 flex items-center gap-1 mt-0.5">
           <span>Just now</span>
           <span>•</span>
-          <span>🌐</span>
+          <Globe class="size-2.5" />
         </p>
       </div>
     </div>
@@ -133,10 +134,22 @@ const truncatedText = computed(() => {
     </div>
 
     <div class="border-t border-[#2d3135] py-2 px-1 flex justify-around text-gray-400 font-semibold text-[11px]">
-      <span class="flex items-center gap-1 px-2 py-1 rounded hover:bg-white/5 cursor-pointer">👍 Like</span>
-      <span class="flex items-center gap-1 px-2 py-1 rounded hover:bg-white/5 cursor-pointer">💬 Comment</span>
-      <span class="flex items-center gap-1 px-2 py-1 rounded hover:bg-white/5 cursor-pointer">🔄 Repost</span>
-      <span class="flex items-center gap-1 px-2 py-1 rounded hover:bg-white/5 cursor-pointer">📤 Send</span>
+      <span class="flex items-center gap-1.5 px-2 py-1 rounded hover:bg-white/5 cursor-pointer">
+        <ThumbsUp class="size-3.5" />
+        Like
+      </span>
+      <span class="flex items-center gap-1.5 px-2 py-1 rounded hover:bg-white/5 cursor-pointer">
+        <MessageCircle class="size-3.5" />
+        Comment
+      </span>
+      <span class="flex items-center gap-1.5 px-2 py-1 rounded hover:bg-white/5 cursor-pointer">
+        <Repeat2 class="size-3.5" />
+        Repost
+      </span>
+      <span class="flex items-center gap-1.5 px-2 py-1 rounded hover:bg-white/5 cursor-pointer">
+        <Send class="size-3.5" />
+        Send
+      </span>
     </div>
   </div>
 </template>

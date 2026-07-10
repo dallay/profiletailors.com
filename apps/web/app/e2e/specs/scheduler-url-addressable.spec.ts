@@ -16,6 +16,26 @@ import { authenticateAs, keepSessionAlive, mockLoginResponse } from '../fixtures
 // ---------------------------------------------------------------------------
 
 async function setup(page: import('@playwright/test').Page): Promise<SchedulerPage> {
+  // Drop any leftover session/state from a previous test in this worker.
+  await page.context().clearCookies()
+  await page.goto('about:blank').catch(() => {})
+  await page.evaluate(() => {
+    try {
+      localStorage.clear()
+      sessionStorage.clear()
+    } catch {}
+  }).catch(() => {})
+
+  // While the SPA boots for the upcoming `/login` navigation, force
+  // refresh to fail so we always land on the login form, never the dashboard.
+  await page.route('**/api/auth/refresh', async (route) => {
+    await route.fulfill({
+      status: 401,
+      contentType: 'application/problem+json',
+      body: JSON.stringify({ title: 'Refresh session invalid', status: 401 }),
+    })
+  })
+
   await mockLoginResponse(page, {
     status: 200,
     body: {
@@ -29,7 +49,13 @@ async function setup(page: import('@playwright/test').Page): Promise<SchedulerPa
       workspaceId: 'workspace-001',
     },
   })
+
   await authenticateAs(page)
+
+  // After login, swap the refresh mock to a successful one so later
+  // `page.goto('/scheduler/...')` navigations can rehydrate the session.
+  await keepSessionAlive(page)
+
   const scheduler = new SchedulerPage(page)
   return scheduler
 }

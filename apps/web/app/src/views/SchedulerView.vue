@@ -664,6 +664,13 @@ watch(
                         class="flex min-w-0 items-center gap-1.5"
                         :class="slotPubs.length > 1 ? '' : 'col-start-1 row-start-1'"
                       >
+                        <span
+                          v-for="channel in pub.channels"
+                          :key="channel"
+                          class="flex size-3 shrink-0 items-center justify-center rounded-[3px]"
+                        >
+                          <SocialProviderIcon :provider="channel" />
+                        </span>
                         <span class="shrink-0 font-mono text-[8px] font-bold tracking-wider opacity-80 uppercase">
                           {{ new Date(pub.scheduledAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) }}
                         </span>
@@ -686,13 +693,6 @@ watch(
                         class="flex shrink-0 items-center justify-end gap-1"
                         :class="slotPubs.length > 1 ? 'col-start-3' : 'col-start-2 row-span-2 row-start-1 self-stretch'"
                       >
-                        <span
-                          v-for="channel in pub.channels"
-                          :key="channel"
-                          class="flex size-4 shrink-0 items-center justify-center"
-                        >
-                          <SocialProviderIcon :provider="channel" />
-                        </span>
                         <span
                           v-if="pub.status === 'BLOCKED'"
                           class="rounded-sm border border-warning/30 bg-warning/20 px-1 py-0.5 text-[7px] font-bold tracking-wider text-warning uppercase"
