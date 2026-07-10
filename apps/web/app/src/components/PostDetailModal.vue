@@ -215,7 +215,6 @@ function cancelReschedule() {
         aria-labelledby="post-detail-title"
         @keydown.escape="closeModal"
       >
-        <!-- Header -->
         <header class="flex items-center justify-between p-6 border-b border-border-subtle">
           <div class="flex items-center gap-3">
             <span
@@ -257,9 +256,7 @@ function cancelReschedule() {
           </button>
         </header>
 
-        <!-- Body -->
         <div class="flex-1 overflow-y-auto p-6 space-y-5">
-          <!-- Title -->
           <div class="space-y-1">
             <span class="font-mono text-[9px] font-bold tracking-widest text-text-secondary uppercase">
               {{ t('postDetail.titleLabel') }}
@@ -267,7 +264,6 @@ function cancelReschedule() {
             <p v-if="publication.title" class="text-sm font-semibold text-text-display">{{ publication.title }}</p>
           </div>
 
-          <!-- Body text -->
           <div class="space-y-1">
             <span class="font-mono text-[9px] font-bold tracking-widest text-text-secondary uppercase">
               {{ t('postDetail.bodyLabel') }}
@@ -290,7 +286,6 @@ function cancelReschedule() {
             </div>
           </div>
 
-          <!-- Schedule / publish metadata -->
           <div class="grid grid-cols-2 gap-3 pt-2 border-t border-border-subtle">
             <div class="space-y-1">
               <span class="font-mono text-[9px] font-bold tracking-widest text-text-secondary uppercase">
@@ -321,7 +316,6 @@ function cancelReschedule() {
           </div>
         </div>
 
-        <!-- Footer -->
         <footer class="border-t border-border-subtle bg-bg-primary/40">
           <div v-if="deleteError" class="px-6 pt-3 space-y-1">
             <p class="text-[10px] font-mono text-error">{{ deleteError }}</p>
