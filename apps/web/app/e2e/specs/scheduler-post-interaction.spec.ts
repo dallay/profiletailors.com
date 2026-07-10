@@ -232,7 +232,6 @@ test.describe('Scheduler — Post Interaction', () => {
     await createPublicationInStore(page, testText)
 
     await scheduler.switchToList()
-    await page.waitForTimeout(300)
     const postCard = page.getByRole('button', { name: new RegExp(testText) }).first()
     await expect(postCard).toBeVisible({ timeout: 10_000 })
 
@@ -254,7 +253,6 @@ test.describe('Scheduler — Post Interaction', () => {
     await createPublicationInStore(page, testText)
 
     await scheduler.switchToList()
-    await page.waitForTimeout(300)
     const postCard = page.getByRole('button', { name: new RegExp(testText) }).first()
     await expect(postCard).toBeVisible({ timeout: 10_000 })
     await postCard.click()
@@ -309,17 +307,15 @@ test.describe('Scheduler — Post Interaction', () => {
     await createPublicationInStore(page, testText)
 
     await scheduler.switchToList()
-    await page.waitForTimeout(300)
     const postCard = page.getByRole('button', { name: new RegExp(testText) }).first()
     await expect(postCard).toBeVisible({ timeout: 10_000 })
     await postCard.click()
     await detailModal.expectVisible()
 
-    await page.locator('#calendar-post-status-select').selectOption('published')
-    await page.waitForTimeout(500)
+    await page.getByLabel(/post status/i).selectOption('published')
 
     await detailModal.expectHidden()
-    await expect(page.url()).not.toContain('postId=')
+    await expect(page).not.toHaveURL(/postId=/)
     await expect(page).toHaveURL(/status=published/)
   })
 })

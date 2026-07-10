@@ -27,7 +27,7 @@ Chain strategy: feature-branch-chain
 ## Phase 1: Foundation / TDD
 
 - [x] 1.1 Add failing route tests in `apps/web/app/src/composables/useCalendarUrl.test.ts` for canonical `week|month|list`, legacy `/scheduler/calendar/day` redirect, `channels[]`, `postId`, and push-vs-replace rules.
-- [x] 1.2 Add failing route compatibility tests in `apps/web/app/src/router/index.ts` coverage for `/scheduler` and `/scheduler/calendar/day` preserving query state.
+- [x] 1.2 Add failing route compatibility tests in `apps/web/app/src/router/index.spec.ts` coverage for `/scheduler` and `/scheduler/calendar/day` preserving query state.
 - [x] 1.3 Implement the expanded scheduler codec in `apps/web/app/src/composables/useCalendarUrl.ts`: parse/serialize `date`,`timezone`,`status`,`q`,`channels[]`,`postId`, canonical cleanup, and controller helpers.
 - [x] 1.4 Update `apps/web/app/src/router/index.ts` to redirect `/scheduler` and `/scheduler/calendar/day` to canonical week routes without dropping scheduler query params.
 

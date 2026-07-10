@@ -7,11 +7,13 @@ Standardize scheduler URL state so scheduler views are shareable, restorable, an
 ## Scope
 
 ### In Scope
+
 - Extend scheduler URL state for iteration 1 only: `surface`, `date`, `timezone`, `status`, `q`, `channels[]`, and detail modal `postId`
 - Make scheduler post detail modal route-driven; auto-close and canonicalize the URL when the selected post leaves the active context
 - Reconcile scheduler route/query behavior with current canonical scheduler surfaces and document the standard durably for future app work
 
 ### Out of Scope
+
 - Adopting `vue-qs` or replacing `vue-router` + domain composables
 - Expanding the standard beyond scheduler in this iteration
 - New backend filtering capabilities or non-scheduler deep-link models
@@ -19,9 +21,11 @@ Standardize scheduler URL state so scheduler views are shareable, restorable, an
 ## Capabilities
 
 ### New Capabilities
+
 - `scheduler-url-state-standard`: Scheduler URL contract for route-owned filters, context restoration, and `postId` deep linking
 
 ### Modified Capabilities
+
 - `visual-calendar`: Calendar/list behavior must honor the expanded query contract and canonical modal auto-close behavior
 
 ## Approach

@@ -611,9 +611,8 @@ class R2dbcPublishingRepositoriesUnitTest : PostgresDatabaseTestBase() {
             publicationJobRepository.replaceForPublication(job2)
 
             val claim1 = publicationJobRepository.claimNextDue(Instant.parse("2026-06-01T13:00:00Z"), "worker-A")
-            assertNotNull(claim1)
             // UPDATE in place preserves the original job id (FK-safe for delivery_attempts)
-            assertEquals("job-replace-1", claim1!!.jobId)
+            assertEquals("job-replace-1", requireNotNull(claim1) { "expected a claim" }.jobId)
 
             val claim2 = publicationJobRepository.claimNextDue(Instant.parse("2026-06-01T13:00:00Z"), "worker-B")
             assertNull(claim2)

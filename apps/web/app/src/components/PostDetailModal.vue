@@ -29,7 +29,9 @@ const isReadOnly = computed(() => props.publication?.status === 'PUBLISHED')
 const canEditPublication = computed(() =>
   props.publication ? publishingStore.isPublicationEditable(props.publication.status) : false,
 )
-const canRetry = computed(() => props.publication?.status === 'FAILED')
+const canRetry = computed(
+  () => props.publication?.status === 'FAILED' && Boolean(props.publication.scheduledAt),
+)
 const canDelete = computed(() =>
   props.publication ? publishingStore.isPublicationDeletable(props.publication.status) : false,
 )
@@ -165,9 +167,9 @@ async function deletePublication() {
   }
 }
 
-function openReschedule() {
+function openScheduledAtAction(mode: 'reschedule' | 'retry') {
   if (!props.publication?.scheduledAt) return
-  actionMode.value = 'reschedule'
+  actionMode.value = mode
   // Pre-fill with current scheduled date, local datetime-local format
   const d = new Date(props.publication.scheduledAt)
   const offset = d.getTimezoneOffset()
@@ -177,16 +179,12 @@ function openReschedule() {
   rescheduleError.value = ''
 }
 
+function openReschedule() {
+  openScheduledAtAction('reschedule')
+}
+
 function openRetry() {
-  if (!props.publication?.scheduledAt) return
-  actionMode.value = 'retry'
-  // Pre-fill with current scheduled date, local datetime-local format
-  const d = new Date(props.publication.scheduledAt)
-  const offset = d.getTimezoneOffset()
-  const local = new Date(d.getTime() - offset * 60_000)
-  newScheduledAt.value = local.toISOString().slice(0, 16)
-  showReschedule.value = true
-  rescheduleError.value = ''
+  openScheduledAtAction('retry')
 }
 
 async function confirmReschedule() {

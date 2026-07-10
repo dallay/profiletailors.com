@@ -451,6 +451,13 @@ describe('PostDetailModal', () => {
       expect(wrapper.text()).not.toContain('postDetail.reschedule')
     })
 
+    it('hides RETRY button for FAILED posts without scheduledAt', () => {
+      storeOverrides.isPublicationEditable = () => false
+      const wrapper = mountModal(makePublication({ status: 'FAILED', scheduledAt: undefined }))
+
+      expect(wrapper.text()).not.toContain('postDetail.retry')
+    })
+
     it('still shows RESCHEDULE (not RETRY) for PROCESSING posts — regression guard', () => {
       storeOverrides.isPublicationEditable = () => false
       const wrapper = mountModal(

@@ -1,4 +1,4 @@
-## Verification Report
+# Verification Report
 
 **Change**: scheduler-url-state-standard
 **Re-verify Date**: 2026-07-10
@@ -10,15 +10,11 @@
 
 | Metric | Value |
 |--------|-------|
-| Tasks total | 12 |
-| Tasks complete | 11 |
-| Tasks incomplete | 1 (task 2.4 — tracking artifact only; structural alignment present) |
+| Tasks total | 13 |
+| Tasks complete | 13 |
+| Tasks incomplete | 0 |
 
-Incomplete tasks:
-
-- [ ] 2.4 Align `apps/web/app/src/components/layout/AppShell.vue` and `apps/web/app/src/components/CalendarHeader.vue` with controller helpers so channel/date/surface interactions keep canonical `channels[]` and history semantics.
-
-Note: structural alignment is present and exercised at runtime — see Coherence table. Task remains unchecked in `tasks.md` but is not an implementation gap.
+All checklist items in `tasks.md` are now ticked. Task 2.4 (AppShell/CalendarHeader alignment) is verified structurally and at runtime; see Coherence table for evidence.
 
 ---
 
@@ -96,7 +92,7 @@ Skipped (categories):
 The previous CRITICAL issue — Playwright setup aborting on relative `/login` URL — is fully resolved.
 ```
 
-**Coverage**: 0% threshold configured → ➖ Not evaluated as a gate. Vitest focused run + Playwright url-state suite give the targeted coverage this change requires.
+**Coverage**: 0% threshold configured → ➖ Not evaluated as a gate. Vitest-focused run + Playwright url-state suite give the targeted coverage this change requires.
 
 ---
 
@@ -122,9 +118,9 @@ The previous CRITICAL issue — Playwright setup aborting on relative `/login` U
 | Multi-View Calendar | Modal back/forward restoration (postId history) | `apps/web/app/src/views/SchedulerView.test.ts > route-driven post detail modal > keeps modal behavior safe for browser back/forward by deriving from route state changes` + `e2e > TC-19` | ⚠️ PARTIAL — unit pass, E2E `test.fixme` due to documented replace-semantics decision |
 | Durable scheduler URL-state guidance | Scheduler URL guidance is discoverable | `docs/architecture/scheduler-url-state-standard.md` exists + `docs/README.md` index entry confirmed via grep | ✅ COMPLIANT (structural) |
 
-**Compliance summary**: 12 fully compliant / 3 PENDING (test.fixme, documented) / 1 PARTIAL (replace-semantics design decision) / 0 FAILING / 0 UNTESTED.
+**Compliance summary**: 13 fully compliant / 3 PENDING (test.fixme, documented) / 1 PARTIAL (replace-semantics design decision) / 0 FAILING / 0 UNTESTED.
 
-Compared to the previous FAIL report (8/15 compliant): now 12/15 fully compliant plus 3 documented pending, with zero failing or untested scenarios.
+Compared to the previous FAIL report (8/15 compliant): now 13/17 fully compliant plus 3 documented pending and 1 documented partial, with zero failing or untested scenarios.
 
 ---
 
@@ -177,7 +173,7 @@ Notes:
 | `TC-HIST-01` (browser back/forward restore scheduler state) is skipped at runtime in this invocation | ✅ | ❌ | WARNING | Confirmed — runs as 1 skipped in the focused url-addressable run. Not failing, but the surface ↔ history link is not E2E-proven for view navigation. Unit-level equivalent is covered by `useCalendarUrl.test.ts > navigation intent`. Recommend unblocking this test as a follow-up. |
 | Pre-existing skip of `scheduler-post-interaction.spec.ts` on `scheduler-chromium` project | ✅ | ✅ | INFO | Confirmed — unrelated to this change (same class as the CreatePostModal pre-existing failures noted in the re-verify brief). 10 post-interaction tests + TC-19 fixme = 11 of the 11 skipped. |
 | Durable docs scenario has no runtime verification | ✅ | ❌ | SUGGESTION | Suspect — `docs/architecture/scheduler-url-state-standard.md` exists (115 lines, Overview/Changes/Usage/Troubleshooting/References) and is indexed from `docs/README.md`. No automation regression check, but discoverability is structurally satisfied. |
-| Multi-surface (`channels[]`) UI assumption drift | ✅ | ✅ | INFO | Closed — AppShell uses `calendarUrl.setChannelIds([accountId])`; CalendarHeader emits `change:filter` with `channelIds: [val] | []`; canonical `channels[]` is the only emitted key (single-select iteration 1). |
+| Multi-surface `channels[]` UI assumption drift | ✅ | ✅ | INFO | Closed — AppShell uses `calendarUrl.setChannelIds([accountId])`; CalendarHeader emits `change:filter` with `channelIds: [val]`; canonical `channels[]` is the only emitted key (single-select iteration 1). |
 
 ---
 

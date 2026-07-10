@@ -252,7 +252,7 @@ export function createCalendarUrlController(
       await navigate(router, { ...state.value, q: q.trim() }, 'replace')
     },
     setChannelIds: async (channelIds) => {
-      await navigate(router, { ...state.value, channelIds: [...new Set(channelIds)] }, 'replace')
+      await navigate(router, { ...state.value, channelIds: [...new Set(channelIds)] }, 'push')
     },
     openPostDetail: async (postId) => {
       await navigate(router, { ...state.value, postId: normalizePostId(postId.trim()) }, 'push')

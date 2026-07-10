@@ -399,9 +399,10 @@ function openDayView(date: Date) {
 }
 
 async function handleDeletePublication(id: string) {
+  const wasDetailPublication = detailPublication.value?.id === id
   try {
     await publishingStore.deletePost(id)
-    if (detailPublication.value?.id === id) {
+    if (wasDetailPublication) {
       void closePostDetail()
     }
   } catch (err) {

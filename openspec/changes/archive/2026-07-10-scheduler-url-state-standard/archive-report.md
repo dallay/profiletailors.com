@@ -6,7 +6,7 @@ Change archived: PASS-WITH-WARNINGS → SDD cycle complete.
 
 ## Archive Location
 
-`openspec/changes/archive/2026-07-10-scheduler-url-state-standard/scheduler-url-state-standard/`
+`openspec/changes/archive/2026-07-10-scheduler-url-state-standard/`
 
 ## Verdict Snapshot
 

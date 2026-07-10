@@ -213,14 +213,14 @@ describe('useCalendarUrl — navigation intent', () => {
     expect(router.replace).toHaveBeenCalledTimes(1)
   })
 
-  it('channel filter change uses replace and canonical channels[] keys', async () => {
+  it('channel filter change uses push to record history and canonical channels[] keys', async () => {
     const route = createMockRoute({ name: 'scheduler-calendar-week', query: {} })
     const router = createMockRouter()
     const controller = createCalendarUrlController(route, router)
 
     await controller.setChannelIds(['acc-123', 'acc-123'])
 
-    expect(router.replace).toHaveBeenCalledWith({
+    expect(router.push).toHaveBeenCalledWith({
       name: 'scheduler-calendar-week',
       query: expect.objectContaining({ 'channels[]': ['acc-123'] }),
     })

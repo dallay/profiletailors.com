@@ -63,6 +63,10 @@ Canonical query rules: omit defaults, trim `q`, dedupe `channels[]`, preserve `p
 ## Migration / Rollout
 No data migration required. Roll out behind normal app deployment. Compatibility window: accept legacy `channels` and `/scheduler/calendar/day` on read, but immediately redirect to canonical route/query on first render.
 
-## Open Questions
-- [ ] Should iteration 1 document `channels[]` as future-multi-select while UI remains single-select, or explicitly scope behavior to first entry only?
-- [ ] Do we want a small fetch-status token in `SchedulerView` or store-level request identity to guard against late responses clearing `postId` incorrectly?
+## Iteration 1 Channel Semantics
+
+Iteration 1 keeps the canonical `channels[]` query shape multi-select (so the contract is stable across future UI changes), but the visible UI remains single-select. `extractFirstChannelId` reads only the first entry from `channels[]`, and `AppShell.setChannelIds` always emits a single-element array. The result: the route-owned contract and the spec already accommodate future multi-select without a follow-up migration.
+
+## Fetch-Settle Reconciliation
+
+To prevent late fetch responses from clearing `postId` after the user has navigated away, `SchedulerView.vue` tracks a `latestFetchToken` per scheduler query. Each fetch captures the current token before it issues; when the response settles, the token is compared against the latest one, and the modal is auto-closed only if they still match. This keeps stale responses from canonicalizing a `postId` that no longer belongs to the current context.
