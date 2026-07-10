@@ -8,15 +8,14 @@ import {
   XIcon,
 } from '@lucide/vue';
 
-
-import type { ToasterProps } from "vue-sonner"
-import { cn } from "@/lib/utils"
+import { Toaster, type ToasterProps } from 'vue-sonner'
+import { cn } from '@/lib/utils'
 
 const props = defineProps<ToasterProps>()
 </script>
 
 <template>
-  <Sonner
+  <Toaster
     :class="cn('toaster group', props.class)"
     :style="{
       '--normal-bg': 'var(--popover)',
@@ -51,5 +50,5 @@ const props = defineProps<ToasterProps>()
     <template #close-icon>
       <XIcon class="size-4" />
     </template>
-  </Sonner>
+  </Toaster>
 </template>

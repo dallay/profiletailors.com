@@ -144,6 +144,6 @@ class ProductionCredentialsValidator(private val environment: Environment) {
 
     private companion object {
         private val logger = LoggerFactory.getLogger(ProductionCredentialsValidator::class.java)
-        private const val DEFAULT_UNSAFE_PASSWORD = "CHANGE_ME_gK2fcFZg5cgVu9U"
+        private const val DEFAULT_UNSAFE_PASSWORD = "CHANGE_ME"
     }
 }
