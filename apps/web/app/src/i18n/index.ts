@@ -188,6 +188,7 @@ const messages = {
       nextScheduleBtn: 'Next Schedule',
       cancelBtn: 'Cancel',
       successMsg: 'Post scheduled successfully!',
+      scheduleSuccessToast: 'Post scheduled successfully',
       preview: 'Preview',
       linkedinPreview: 'LinkedIn Preview',
       seePreviewHere: "See your post's preview here",
@@ -377,6 +378,7 @@ const messages = {
       noPublicationsForDay: 'No publications for this day',
       addPublication: 'Add Publication',
       timezoneMadrid: 'Madrid',
+      morePosts: '+{count} more',
     },
     channels: {
       title: 'Channels',
@@ -709,6 +711,7 @@ const messages = {
       nextScheduleBtn: 'Siguiente turno',
       cancelBtn: 'Cancelar',
       successMsg: '¡Publicación programada con éxito!',
+      scheduleSuccessToast: 'Publicación programada con éxito',
       preview: 'Vista Previa',
       linkedinPreview: 'Vista previa de LinkedIn',
       seePreviewHere: 'Ver vista previa aquí',
@@ -898,6 +901,7 @@ const messages = {
       noPublicationsForDay: 'No hay publicaciones para este día',
       addPublication: 'Agregar publicación',
       timezoneMadrid: 'Madrid',
+      morePosts: '+{count} más',
     },
     channels: {
       title: 'Canales',

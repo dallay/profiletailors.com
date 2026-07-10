@@ -1,11 +1,14 @@
 <script setup lang="ts">
 import { ref } from 'vue'
+import { useI18n } from 'vue-i18n'
 import { useAuthStore } from '@/stores/auth'
 import { Button } from '@/components/ui/button'
 import CreatePostModal from '@/components/CreatePostModal.vue'
 import DashboardLayout from '@/components/dashboard/DashboardLayout.vue'
+import { toast } from 'vue-sonner'
 
 const auth = useAuthStore()
+const { t } = useI18n()
 
 const isModalOpen = ref(false)
 
@@ -42,6 +45,7 @@ function handleOpenModal() {
 
 function handleCreated() {
   isModalOpen.value = false
+  toast.success(t('composer.scheduleSuccessToast'))
 }
 </script>
 

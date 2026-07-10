@@ -16,9 +16,9 @@ import org.springframework.mock.env.MockEnvironment
 class ProductionCredentialsValidatorTest {
 
     @Test
-    fun `should fail when SMP_DB_PASSWORD is CHANGE_ME_gK2fcFZg5cgVu9U`() {
+    fun `should fail when SMP_DB_PASSWORD is CHANGE_ME`() {
         val environment = MockEnvironment().apply {
-            setProperty("SMP_DB_PASSWORD", "CHANGE_ME_gK2fcFZg5cgVu9U")
+            setProperty("SMP_DB_PASSWORD", "CHANGE_ME")
             setProperty("PUBLISHING_CREDENTIALS_KEY", "valid-key-here")
             setProperty("SMP_LOCAL_JWT_SECRET", "valid-secret-32-bytes-minimum!")
         }
@@ -29,7 +29,7 @@ class ProductionCredentialsValidatorTest {
         }
 
         exception.message shouldContain "SMP_DB_PASSWORD"
-        exception.message shouldContain "CHANGE_ME_gK2fcFZg5cgVu9U"
+        exception.message shouldContain "CHANGE_ME"
     }
 
     @Test
@@ -86,7 +86,7 @@ class ProductionCredentialsValidatorTest {
     @Test
     fun `should fail with multiple violations when multiple secrets are invalid`() {
         val environment = MockEnvironment().apply {
-            setProperty("SMP_DB_PASSWORD", "CHANGE_ME_gK2fcFZg5cgVu9U")
+            setProperty("SMP_DB_PASSWORD", "CHANGE_ME")
             setProperty("PUBLISHING_CREDENTIALS_KEY", "")
             setProperty("SMP_LOCAL_JWT_SECRET", "")
             setProperty("SMP_LOCAL_JWT_DEV_FALLBACK", "")
@@ -133,7 +133,7 @@ class ProductionCredentialsValidatorTest {
     fun `should skip validation in test profile`() {
         val environment = MockEnvironment().apply {
             // Intentionally use unsafe values
-            setProperty("SMP_DB_PASSWORD", "CHANGE_ME_gK2fcFZg5cgVu9U")
+            setProperty("SMP_DB_PASSWORD", "CHANGE_ME")
             setProperty("PUBLISHING_CREDENTIALS_KEY", "")
             setProperty("SMP_LOCAL_JWT_SECRET", "")
             setActiveProfiles("test")
@@ -147,7 +147,7 @@ class ProductionCredentialsValidatorTest {
     @Test
     fun `should fail in dev profile when credentials are invalid`() {
         val environment = MockEnvironment().apply {
-            setProperty("SMP_DB_PASSWORD", "CHANGE_ME_gK2fcFZg5cgVu9U")
+            setProperty("SMP_DB_PASSWORD", "CHANGE_ME")
             setProperty("PUBLISHING_CREDENTIALS_KEY", "")
             setProperty("SMP_LOCAL_JWT_SECRET", "")
             setActiveProfiles("dev")
@@ -170,7 +170,7 @@ class ProductionCredentialsValidatorTest {
         // to be on the classpath.
         val environment = MockEnvironment().apply {
             // Intentionally use unsafe values
-            setProperty("SMP_DB_PASSWORD", "CHANGE_ME_gK2fcFZg5cgVu9U")
+            setProperty("SMP_DB_PASSWORD", "CHANGE_ME")
             setProperty("PUBLISHING_CREDENTIALS_KEY", "")
             setProperty("SMP_LOCAL_JWT_SECRET", "")
             // Previous detection attempted to use this property, but it's never
@@ -189,7 +189,7 @@ class ProductionCredentialsValidatorTest {
     fun `should skip validation in BDD test context via bdd variant property`() {
         val environment = MockEnvironment().apply {
             // Intentionally use unsafe values
-            setProperty("SMP_DB_PASSWORD", "CHANGE_ME_gK2fcFZg5cgVu9U")
+            setProperty("SMP_DB_PASSWORD", "CHANGE_ME")
             setProperty("PUBLISHING_CREDENTIALS_KEY", "")
             setProperty("SMP_LOCAL_JWT_SECRET", "")
             // Simulate BDD test context (set in CucumberSpringConfiguration)
@@ -205,7 +205,7 @@ class ProductionCredentialsValidatorTest {
     fun `should fail when web application type is NONE and credentials are invalid`() {
         val environment = MockEnvironment().apply {
             // Intentionally use unsafe values
-            setProperty("SMP_DB_PASSWORD", "CHANGE_ME_gK2fcFZg5cgVu9U")
+            setProperty("SMP_DB_PASSWORD", "CHANGE_ME")
             setProperty("PUBLISHING_CREDENTIALS_KEY", "")
             setProperty("SMP_LOCAL_JWT_SECRET", "")
             // Simulate non-web production context (batch/worker app)
