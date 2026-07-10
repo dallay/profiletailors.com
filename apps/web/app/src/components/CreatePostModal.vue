@@ -72,17 +72,10 @@ const props = withDefaults(
      * when the provider is configured and enabled.
      */
     provider?: 'unsplash' | null
-    /**
-     * Whether the Unsplash provider is enabled by feature flag.
-     * Same purpose as `provider`, kept distinct so the modal can react
-     * to capability refreshes without re-creating the modal.
-     */
-    isUnsplashProviderEnabled?: boolean
   }>(),
   {
     isOpen: false,
     provider: null,
-    isUnsplashProviderEnabled: false,
   }
 )
 
@@ -108,7 +101,6 @@ const picker = useComposerMediaPicker({
   publishingStore,
   editingPublication: () => props.editingPublication ?? null,
   provider: () => props.provider ?? null,
-  isUnsplashProviderEnabled: () => props.isUnsplashProviderEnabled ?? false,
   initialChannelId: () => selectedChannelId.value,
   workspaceId: () => workspaceStore.activeWorkspaceId ?? 'ws-local',
   onAttachmentsChanged: () => {

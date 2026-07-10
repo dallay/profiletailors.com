@@ -6,7 +6,7 @@
  * are passed as explicit parameters so the composable can be unit-tested with
  * mocks without mounting the full modal.
  *
- * Reactive inputs (editingPublication, provider, isUnsplashProviderEnabled) are
+ * Reactive inputs (editingPublication, provider) are
  * accepted as MaybeRefOrGetter (Vue 3.3+) and unwrapped with toValue() at the
  * read site to avoid stale-closure bugs.
  *
@@ -17,7 +17,6 @@
  *   publishingStore,
  *   editingPublication: () => props.editingPublication,
  *   provider: () => props.provider,
- *   isUnsplashProviderEnabled: () => props.isUnsplashProviderEnabled,
  *   initialChannelId: () => props.initialChannelId,
  * })
  * onUnmounted(() => picker.stopAllReconciliationPollers())
@@ -80,7 +79,6 @@ export type ComposerMediaPickerStoreParams = {
   publishingStore: ComposerMediaPickerPublishingStore
   editingPublication: MaybeRefOrGetter<Publication | null | undefined>
   provider: MaybeRefOrGetter<'unsplash' | null>
-  isUnsplashProviderEnabled: MaybeRefOrGetter<boolean>
   /** ID of the currently selected channel (reactive). */
   initialChannelId: MaybeRefOrGetter<string | null>
   /**
@@ -202,7 +200,6 @@ export function useComposerMediaPicker(params: ComposerMediaPickerStoreParams) {
   // -------------------------------------------------------------------------
 
   const effectiveProvider = computed<'unsplash' | null>(() => {
-    if (!toValue(params.isUnsplashProviderEnabled)) return null
     if (toValue(params.provider) !== 'unsplash') return null
     return 'unsplash'
   })
