@@ -47,7 +47,6 @@ const hourLabels = [0, 3, 6, 9, 12, 15, 18, 21]
 <template>
   <div class="overflow-x-auto">
     <div class="min-w-[480px]">
-      <!-- Hour labels -->
       <div class="flex ml-10 mb-1">
         <div
           v-for="h in hourLabels"
@@ -58,7 +57,6 @@ const hourLabels = [0, 3, 6, 9, 12, 15, 18, 21]
           {{ `${h}:00` }}
         </div>
       </div>
-      <!-- Grid -->
       <div v-for="day in days" :key="day" class="flex items-center gap-1 mb-1">
         <span class="text-[10px] text-[var(--text-secondary)] font-[var(--font-space-mono)] w-8 text-right shrink-0 uppercase tracking-wider">
           {{ t(dayKeys[day] ?? '') }}
@@ -73,7 +71,6 @@ const hourLabels = [0, 3, 6, 9, 12, 15, 18, 21]
           />
         </div>
       </div>
-      <!-- Legend -->
       <div class="flex items-center gap-2 mt-3 ml-10">
         <span class="text-[10px] text-[var(--text-secondary)] font-[var(--font-space-mono)] uppercase">
           {{ t('dashboard.postingTimes.low') }}

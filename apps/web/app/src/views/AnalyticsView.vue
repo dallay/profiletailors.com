@@ -4,7 +4,6 @@ import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card'
 
 <template>
   <div class="mx-auto w-full max-w-7xl space-y-12">
-    <!-- Header -->
     <div class="space-y-2">
       <h2 class="text-3xl font-light tracking-tight text-text-display">
         {{ $t('nav.analytics') }}
@@ -14,7 +13,6 @@ import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card'
       </p>
     </div>
 
-    <!-- Chart mockups -->
     <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
       <Card class="md:col-span-2">
         <CardHeader class="p-0 border-b border-border-subtle pb-4 flex flex-row items-center justify-between">
@@ -24,7 +22,6 @@ import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card'
           <span class="font-mono text-[9px] text-text-secondary uppercase">[ {{ $t('analytics.live') }} ]</span>
         </CardHeader>
         <CardContent class="p-0 mt-6 h-48 flex items-end justify-between gap-2 px-2">
-          <!-- Monochrome Chart Bars -->
           <div class="w-full bg-border-visible h-12 hover:bg-text-display transition-colors rounded-sm"></div>
           <div class="w-full bg-border-visible h-16 hover:bg-text-display transition-colors rounded-sm"></div>
           <div class="w-full bg-border-visible h-24 hover:bg-text-display transition-colors rounded-sm"></div>

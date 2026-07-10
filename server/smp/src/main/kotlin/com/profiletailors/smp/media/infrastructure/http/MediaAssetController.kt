@@ -63,8 +63,6 @@ class MediaAssetController(
         const val MAX_FILE_SIZE_BYTES = 500L * 1024 * 1024 // 500 MB
     }
 
-    // ─── CAS PUT /api/workspaces/{workspaceId}/media/assets/{assetId} ──────────
-
     @Operation(
         summary = "Register a media asset with CAS dedup check",
         description = "Checks for existing blobs by (workspaceId, fileHash) and determines whether to " +
@@ -160,8 +158,6 @@ class MediaAssetController(
         }
     }
 
-    // ─── CAS POST /api/workspaces/{workspaceId}/media/assets/{assetId}/upload ──
-
     @Operation(
         summary = "Upload binary content to a CAS asset",
         description = "Streams raw bytes to temp storage, computes SHA-256, validates magic bytes, " +
@@ -253,8 +249,6 @@ class MediaAssetController(
         }
     }
 
-    // ─── CAS DELETE /api/workspaces/{workspaceId}/media/assets/{assetId} ────────
-
     @Operation(
         summary = "Delete a media asset (soft-delete)",
         description = "Soft-deletes the asset and schedules the underlying blob for GC if no other " +
@@ -286,8 +280,6 @@ class MediaAssetController(
             blobScheduledForGC = result.blobScheduledForGC,
         )
     }
-
-    // ─── Legacy endpoints (backward compatibility) ─────────────────────────────
 
     @Operation(
         summary = "[Legacy] Create a new uploaded media asset",

@@ -338,7 +338,6 @@ onMounted(async () => {
       </div>
     </div>
 
-    <!-- ── Unified Filter Toolbar ── -->
     <div class="flex flex-wrap items-center gap-3 rounded-2xl border border-border-subtle bg-bg-primary/30 px-5 py-4">
       <div class="flex items-center gap-2">
         <input
@@ -390,7 +389,6 @@ onMounted(async () => {
       <span class="text-xs text-text-secondary">{{ visibleAssets.length }} / {{ assets.length }}</span>
     </div>
 
-    <!-- ── Selection Toolbar ── -->
     <div
       v-if="selectedLibraryAssetIds.length > 0"
       class="flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-primary/30 bg-primary/10 px-5 py-3"
@@ -429,7 +427,6 @@ onMounted(async () => {
       </div>
     </div>
 
-    <!-- ── Library content ── -->
     <div class="space-y-5">
       <p v-if="mediaStore.loadError" class="mb-4 rounded-xl border border-error/30 bg-error/10 p-3 text-sm text-error">
           {{ mediaStore.loadError }}
@@ -459,9 +456,7 @@ onMounted(async () => {
               :key="asset.assetId"
               class="group relative overflow-hidden rounded-2xl border border-border-subtle bg-bg-primary/40 transition-colors hover:border-text-display/30"
             >
-              <!-- Thumbnail -->
               <div class="relative aspect-square overflow-hidden bg-bg-primary/70">
-                <!-- Checkbox overlay on hover -->
                 <div class="absolute left-3 top-3 z-20 opacity-0 transition-opacity group-hover:opacity-100">
                   <input
                     :checked="selectedLibraryAssetIds.includes(asset.assetId)"
@@ -472,7 +467,6 @@ onMounted(async () => {
                   />
                 </div>
 
-                <!-- Status badge overlay -->
                 <span
                   data-testid="status-badge"
                   class="absolute right-3 top-3 z-10 rounded-full px-2 py-0.5 font-mono text-[9px] uppercase tracking-[0.12em]"
@@ -481,7 +475,6 @@ onMounted(async () => {
                   {{ asset.status }}
                 </span>
 
-                <!-- Hover actions overlay (bottom) -->
                 <div class="absolute bottom-3 right-3 z-20 flex items-center gap-2 opacity-0 transition-opacity group-hover:opacity-100">
                   <Button
                     v-if="assetDownloadUrl(asset)"
@@ -522,7 +515,6 @@ onMounted(async () => {
                   </AlertDialog>
                 </div>
 
-                <!-- Thumbnail content -->
                 <img
                   v-if="isImage(asset.mediaType) && assetPreviewUrl(asset)"
                   :src="assetPreviewUrl(asset) ?? ''"
@@ -556,7 +548,6 @@ onMounted(async () => {
                 </div>
               </div>
 
-              <!-- Info below thumbnail -->
               <div class="space-y-1 p-3">
                 <p class="truncate text-sm font-medium text-text-display">
                   {{ asset.originalFilename ?? $t('media.untitledAsset') }}

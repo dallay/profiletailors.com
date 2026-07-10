@@ -20,8 +20,6 @@ class MediaProblemDetailsHandlerTest {
 
     private val handler = MediaProblemDetailsHandler()
 
-    // ─── AssetNotFoundException ─────────────────────────────────────────────
-
     @Test
     fun `AssetNotFoundException → 404 with errorCode ASSET_NOT_FOUND`() {
         val exception = AssetNotFoundException("asset-42")
@@ -33,8 +31,6 @@ class MediaProblemDetailsHandlerTest {
         assertEquals("ASSET_NOT_FOUND", result.properties?.get("errorCode"))
         assertEquals("asset-42", result.properties?.get("assetId"))
     }
-
-    // ─── UploadConflictException ─────────────────────────────────────────────
 
     @Test
     fun `UploadConflictException → 409 with currentStatus`() {
@@ -48,8 +44,6 @@ class MediaProblemDetailsHandlerTest {
         assertEquals("READY", result.properties?.get("currentStatus"))
     }
 
-    // ─── UploadInProgressException ─────────────────────────────────────────
-
     @Test
     fun `UploadInProgressException → 409 with currentStatus`() {
         val exception = UploadInProgressException("asset-2", "PROCESSING")
@@ -62,8 +56,6 @@ class MediaProblemDetailsHandlerTest {
         assertEquals("PROCESSING", result.properties?.get("currentStatus"))
     }
 
-    // ─── AssetNotReadyException ─────────────────────────────────────────
-
     @Test
     fun `AssetNotReadyException → 422 with reason`() {
         val exception = AssetNotReadyException("asset-3", "storage unavailable")
@@ -75,8 +67,6 @@ class MediaProblemDetailsHandlerTest {
         assertEquals("ASSET_NOT_READY", result.properties?.get("errorCode"))
         assertEquals("storage unavailable", result.properties?.get("reason"))
     }
-
-    // ─── UnsupportedMediaTypeException ──────────────────────────────────
 
     @Test
     fun `UnsupportedMediaTypeException → 400 with declared and detected types`() {
@@ -108,8 +98,6 @@ class MediaProblemDetailsHandlerTest {
         assertNull(result.properties?.get("detectedType"))
     }
 
-    // ─── FileTooLargeException ───────────────────────────────────────────
-
     @Test
     fun `FileTooLargeException → 413 with size details`() {
         val exception = FileTooLargeException(600_000_000L, 500_000_000L)
@@ -122,8 +110,6 @@ class MediaProblemDetailsHandlerTest {
         assertEquals(600_000_000L, result.properties?.get("actualSize"))
         assertEquals(500_000_000L, result.properties?.get("maxAllowed"))
     }
-
-    // ─── RateLimitExceededException ────────────────────────────────────────
 
     @Test
     fun `RateLimitExceededException → 429 ResponseEntity with Retry-After header`() {
@@ -151,8 +137,6 @@ class MediaProblemDetailsHandlerTest {
         assertEquals(3600, body.properties?.get("retryAfterSeconds"))
     }
 
-    // ─── InvalidCursorException ───────────────────────────────────────────
-
     @Test
     fun `InvalidCursorException → 400 with exception message`() {
         val exception = InvalidCursorException("Cursor is malformed: invalid base64")
@@ -173,8 +157,6 @@ class MediaProblemDetailsHandlerTest {
         assertEquals("", result.detail)
     }
 
-    // ─── MediaServiceUnavailableException ──────────────────────────────────
-
     @Test
     fun `MediaServiceUnavailableException → 503 with message`() {
         val exception = MediaServiceUnavailableException("Storage gateway unreachable")
@@ -194,8 +176,6 @@ class MediaProblemDetailsHandlerTest {
         assertEquals(HttpStatus.SERVICE_UNAVAILABLE.value(), result.status)
         assertEquals("", result.detail)
     }
-
-    // ─── ResponseStatusException ──────────────────────────────────────────
 
     @Test
     fun `ResponseStatusException PAYLOAD_TOO_LARGE → FILE_TOO_LARGE code`() {

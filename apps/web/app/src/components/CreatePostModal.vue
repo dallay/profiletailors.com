@@ -98,15 +98,11 @@ const publishingStore = usePublishingStore()
 const mediaStore = useMediaStore()
 const workspaceStore = useWorkspaceStore()
 
-// ---------------------------------------------------------------------------
-// State
-// ---------------------------------------------------------------------------
+
 const postText = ref('')
 const selectedChannelId = ref<string | null>(null)
 
-// ---------------------------------------------------------------------------
-// Media picker composable
-// ---------------------------------------------------------------------------
+
 const picker = useComposerMediaPicker({
   mediaStore,
   publishingStore,
@@ -130,18 +126,13 @@ const isDatePickerOpen = ref(false)
 const modalContainer = ref<HTMLElement | null>(null)
 const { activate: activateFocusTrap, deactivate: deactivateFocusTrap } = useFocusTrap(modalContainer, () => emit('close'))
 
-// ---------------------------------------------------------------------------
-// Edit mode
-// ---------------------------------------------------------------------------
+
 const isEditMode = computed(() => !!props.editingPublication)
 const _isCreating = computed(() => !isEditMode.value)
 const assetsTouched = ref(false)
 let suppressAssetTouchTracking = false
 
-// ---------------------------------------------------------------------------
-// Legacy upload state (preserved — modal's own upload, not the picker)
-// ---------------------------------------------------------------------------
-// Blob URL for instant preview during upload (purely transient UX)
+
 const uploadPreviewBlob = ref<string | null>(null)
 const selectedUploadFile = ref<File | null>(null)
 const uploadTempKey = ref<string | null>(null)
@@ -157,15 +148,11 @@ function clearUploadPreviewBlob() {
   }
 }
 
-// ---------------------------------------------------------------------------
-// Calendar selector state
-// ---------------------------------------------------------------------------
+
 const selectedCalendarDate = ref<DateValue>()
 const scheduleTime = ref('10:00')
 
-// ---------------------------------------------------------------------------
-// Live clock for date/time minimum validation
-// ---------------------------------------------------------------------------
+
 const now = ref(new Date())
 let timer: ReturnType<typeof setInterval>
 
@@ -347,9 +334,7 @@ watch(
   },
 )
 
-// ---------------------------------------------------------------------------
-// Computed
-// ---------------------------------------------------------------------------
+
 const isSubmitting = ref(false)
 const isAiProcessing = ref(false)
 const charLimit = 3000
@@ -407,9 +392,7 @@ const canSubmit = computed(() => {
   )
 })
 
-// ---------------------------------------------------------------------------
-// Methods
-// ---------------------------------------------------------------------------
+
 function handleFileSelect(e: Event) {
   const target = e.target as HTMLInputElement
   if (target.files?.length) {
@@ -771,9 +754,6 @@ function validateCustomSchedule(finalScheduledDate: Date): string | undefined {
   return undefined
 }
 
-// ---------------------------------------------------------------------------
-// Schedule helpers — extracted to reduce cognitive complexity
-// ---------------------------------------------------------------------------
 
 function resolveScheduleMode(
   mode: ComposerScheduleMode,
@@ -916,7 +896,6 @@ async function handleCreateSubmit(
 
 <template>
   <Teleport to="body">
-    <!-- Modal Backdrop — click.self closes modal -->
     <!-- biome-ignore lint/a11y/noStaticElementInteractions: overlay backdrop, closes on outside click -->
     <div
       v-if="isOpen"
@@ -931,7 +910,6 @@ async function handleCreateSubmit(
         aria-labelledby="create-post-title"
         class="relative m-0 flex h-[min(92vh,750px)] w-full max-w-5xl flex-col overflow-hidden rounded-2xl border border-border-subtle bg-bg-surface shadow-2xl animate-zoom-in lg:flex-row"
       >
-        <!-- Close Button (Absolute Mobile) -->
         <button
           @click="emit('close')"
           class="absolute top-4 right-4 z-50 flex size-8 items-center justify-center rounded-full border border-border-subtle bg-bg-primary text-text-secondary hover:text-text-display lg:hidden"
@@ -939,7 +917,6 @@ async function handleCreateSubmit(
           <X class="size-4" />
         </button>
 
-        <!-- Left Column: Composer Editor -->
         <div class="flex min-h-0 flex-1 flex-col space-y-6 border-b border-border-subtle p-6 lg:border-b-0 lg:border-r overflow-hidden">
           <div class="flex items-center justify-between">
               <h3 id="create-post-title" class="font-mono text-xs font-bold tracking-widest text-text-display uppercase">
@@ -953,7 +930,6 @@ async function handleCreateSubmit(
             </button>
           </div>
 
-          <!-- Channel Selection -->
           <div class="space-y-2">
             <span class="font-mono text-[9px] tracking-widest text-text-secondary uppercase block">
               {{ $t('dashboard.selectChannels') }}
@@ -1230,7 +1206,6 @@ async function handleCreateSubmit(
             </template>
           </ComposerMediaPickerShell>
 
-          <!-- First Comment option -->
           <div class="space-y-2">
             <!-- biome-ignore lint/a11y/noLabelWithoutControl: $t() provides accessible text, Biome can't resolve i18n keys statically -->
             <label for="create-post-first-comment" class="font-mono text-[9px] tracking-widest text-text-secondary uppercase block">
@@ -1246,7 +1221,6 @@ async function handleCreateSubmit(
           </div>
         </div>
 
-        <!-- Right Column: Social Preview -->
         <PostPreviewPanel
           :provider="selectedPreviewProvider"
           :title="$t('composer.linkedinPreview')"
@@ -1254,7 +1228,6 @@ async function handleCreateSubmit(
         >
           <template #footer>
             <div class="border-t border-border-subtle pt-6 space-y-4">
-              <!-- Schedule controls -->
               <div class="space-y-3">
                 <div class="flex items-center gap-4 bg-bg-surface border border-border-subtle p-3 rounded-xl">
                 <CalendarIcon class="size-4 text-text-secondary shrink-0" />
@@ -1293,7 +1266,6 @@ async function handleCreateSubmit(
                 </div>
               </div>
 
-              <!-- Date Picker Row -->
               <div v-if="scheduleMode === 'custom'" class="grid grid-cols-[1fr_112px] gap-3 animate-slide-down">
                 <Popover v-model:open="isDatePickerOpen">
                   <PopoverTrigger as-child>
@@ -1325,7 +1297,6 @@ async function handleCreateSubmit(
                 />
               </div>
 
-              <!-- Priority / Draft Toggles -->
               <div class="flex items-center justify-between text-[10px] font-mono text-text-secondary px-1">
                 <label class="flex items-center gap-1.5 cursor-pointer hover:text-text-display select-none">
                   <input type="checkbox" v-model="priorityMode" class="accent-text-display" />
@@ -1342,7 +1313,6 @@ async function handleCreateSubmit(
                 {{ submitError }}
               </p>
 
-              <!-- Primary Action Buttons -->
               <div class="grid grid-cols-3 gap-3">
                 <button
                   @click="emit('close')"

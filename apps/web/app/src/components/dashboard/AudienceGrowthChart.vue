@@ -79,7 +79,6 @@ const milestones = computed(() => {
     .filter((m) => m.point.milestone)
 })
 
-// Y-axis ticks: 4 evenly spaced labels
 const yTicks = computed(() => {
   const ticks: { value: number; y: number }[] = []
   const h = chartDims.height - MARGIN.top - MARGIN.bottom
@@ -91,7 +90,6 @@ const yTicks = computed(() => {
   return ticks
 })
 
-// X-axis labels: first, middle, last
 const xLabels = computed(() => {
   const n = props.data.length
   if (n < 2) return [] as { label: string; x: number }[]
@@ -125,7 +123,6 @@ function formatTooltipValue(value: number): string {
     <ChartContainer :config="chartConfig" class="aspect-auto h-[280px] w-full">
       <template #default="{ id }">
         <div class="relative w-full h-full" :data-chart="id">
-          <!-- SVG chart -->
           <svg
             :viewBox="`0 0 ${chartDims.width} ${chartDims.height}`"
             class="w-full h-full overflow-visible"
@@ -134,7 +131,6 @@ function formatTooltipValue(value: number): string {
             aria-label="Audience growth line chart"
             @mouseleave="hoveredIndex = null"
           >
-            <!-- Y-axis grid lines and labels -->
             <g v-for="tick in yTicks" :key="tick.y">
               <line
                 :x1="MARGIN.left"
@@ -155,7 +151,6 @@ function formatTooltipValue(value: number): string {
               </text>
             </g>
 
-            <!-- X-axis labels -->
             <g v-for="(label, i) in xLabels" :key="i">
               <text
                 :x="label.x"
@@ -167,14 +162,12 @@ function formatTooltipValue(value: number): string {
               </text>
             </g>
 
-            <!-- Area fill -->
             <path
               v-if="areaPath"
               :d="areaPath"
               fill="var(--chart-area)"
               opacity="0.15"
             />
-            <!-- Line -->
             <path
               v-if="linePath"
               :d="linePath"
@@ -185,7 +178,6 @@ function formatTooltipValue(value: number): string {
               stroke-linejoin="round"
             />
 
-            <!-- Data points -->
             <!-- biome-ignore lint/a11y/noStaticElementInteractions: SVG <g> hover for chart tooltip, no semantic alternative -->
             <g
               v-for="(point, i) in xScale"
@@ -203,7 +195,6 @@ function formatTooltipValue(value: number): string {
               />
             </g>
 
-            <!-- Milestone annotations -->
             <g v-for="(m, i) in milestones" :key="i">
               <line
                 :x1="m.x"
@@ -233,7 +224,6 @@ function formatTooltipValue(value: number): string {
             </g>
           </svg>
 
-            <!-- Tooltip -->
           <div
             v-if="hasData && hoveredIndex !== null && hoveredIndex < data.length"
             class="absolute bg-[var(--background-surface)] border border-[var(--border-color)] rounded-lg px-3 py-2 text-xs shadow-xl pointer-events-none"

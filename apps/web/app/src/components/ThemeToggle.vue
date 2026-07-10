@@ -62,7 +62,6 @@ function handleClick() {
     :aria-label="$t('dashboard.toggleTheme')"
     :title="$t('dashboard.toggleTheme')"
   >
-    <!-- Sun icon when dark, Moon icon when light -->
     <svg
       v-if="settings.currentTheme === 'dark'"
       role="img"

@@ -63,7 +63,6 @@ function formatTime(isoDate: string): string {
     </CardHeader>
 
     <CardContent>
-      <!-- Empty state -->
       <p
         v-if="items.length === 0"
         class="text-sm text-[var(--text-secondary)] text-center py-8"
@@ -71,24 +70,20 @@ function formatTime(isoDate: string): string {
         {{ t('dashboard.upcomingSchedule.noItems') }}
       </p>
 
-      <!-- Schedule list -->
       <div v-else class="space-y-2">
         <div
           v-for="item in items.slice(0, 5)"
           :key="item.id"
           class="flex items-center gap-3 p-3 rounded-lg bg-[var(--background-primary)] border border-[var(--border-color)]"
         >
-          <!-- Time -->
           <div class="shrink-0 text-center w-12">
             <p class="text-xs font-semibold text-[var(--text-display)] tabular-nums leading-tight">
               {{ formatTime(item.scheduledFor) }}
             </p>
           </div>
 
-          <!-- Divider -->
           <div class="w-px h-8 bg-[var(--border-color)] shrink-0" />
 
-          <!-- Content -->
           <div class="flex-1 min-w-0">
             <p class="text-sm text-[var(--text-display)] line-clamp-1 leading-snug">
               {{ item.title }}
@@ -105,7 +100,6 @@ function formatTime(isoDate: string): string {
             </div>
           </div>
 
-          <!-- Status -->
           <span
             :class="[
               'text-[10px] font-[var(--font-space-mono)] uppercase tracking-wider shrink-0',
@@ -117,7 +111,6 @@ function formatTime(isoDate: string): string {
         </div>
       </div>
 
-      <!-- CTA -->
       <div class="mt-4 pt-4 border-t border-[var(--border-color)]">
         <Button
           variant="outline"

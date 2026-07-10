@@ -34,13 +34,10 @@ const sizeClasses = computed(() => {
     :title="reason"
     aria-label="Conflict"
   >
-    <!-- Dot: no inner content -->
     <template v-if="variant === 'dot'" />
-    <!-- Badge: exclamation mark -->
     <template v-else-if="variant === 'badge'">
       !
     </template>
-    <!-- Inline: dot icon + "Conflict" label -->
     <template v-else-if="variant === 'inline'">
       <span class="size-2 rounded-full bg-error inline-block" />
       Conflict

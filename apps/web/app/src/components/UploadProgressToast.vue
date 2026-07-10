@@ -76,27 +76,21 @@ function retryUpload(tempKey: string) {
           :aria-expanded="expanded"
           @click="expanded = !expanded"
         >
-          <!-- Icon + title -->
           <div class="flex min-w-0 items-center gap-3">
-            <!-- Uploading spinner -->
             <Upload
               v-if="batchState === 'uploading'"
               class="size-4 shrink-0 animate-pulse text-text-secondary"
             />
-            <!-- All good -->
             <CheckCircle
               v-else-if="batchState === 'done'"
               class="size-4 shrink-0 text-success"
             />
-            <!-- Partial -->
             <AlertCircle
               v-else-if="batchState === 'partial'"
               class="size-4 shrink-0 text-warning"
             />
-            <!-- All failed -->
             <XCircle v-else class="size-4 shrink-0 text-error" />
 
-            <!-- Title -->
             <span class="min-w-0 truncate text-sm font-medium text-text-display">
               <template v-if="batchState === 'uploading'">
                 {{ t('media.uploadProgress.uploading', { count: mediaStore.uploadList.length }) }}
@@ -116,9 +110,7 @@ function retryUpload(tempKey: string) {
             </span>
           </div>
 
-          <!-- Controls — each button handles its own click propagation -->
           <div class="flex shrink-0 items-center gap-1">
-            <!-- Expand/collapse -->
             <button
               type="button"
               class="rounded p-1 text-text-secondary hover:bg-bg-primary hover:text-text-display"
@@ -129,7 +121,6 @@ function retryUpload(tempKey: string) {
               <ChevronUp v-else class="size-4" />
             </button>
 
-            <!-- Dismiss -->
             <button
               type="button"
               class="rounded p-1 text-text-secondary hover:bg-bg-primary hover:text-text-display"
@@ -141,7 +132,6 @@ function retryUpload(tempKey: string) {
           </div>
         </button>
 
-        <!-- ── Overall progress bar ── -->
         <div
           v-if="batchState === 'uploading'"
           class="h-1 bg-bg-primary"
@@ -152,7 +142,6 @@ function retryUpload(tempKey: string) {
           />
         </div>
 
-        <!-- ── Expanded detail ── -->
         <Transition name="detail-expand">
           <div
             v-if="expanded"
@@ -163,11 +152,9 @@ function retryUpload(tempKey: string) {
               :key="upload.tempKey"
               class="flex items-center gap-3 border-b border-border-visible/50 px-4 py-2.5 last:border-b-0"
             >
-              <!-- File name -->
               <div class="min-w-0 flex-1">
                 <p class="truncate text-xs text-text-display">{{ upload.file.name }}</p>
 
-                <!-- Status text -->
                 <p
                   v-if="upload.status === 'uploading'"
                   class="font-mono text-[10px] uppercase tracking-wide text-text-secondary"
@@ -189,7 +176,6 @@ function retryUpload(tempKey: string) {
                 </p>
               </div>
 
-              <!-- Progress bar (uploading) -->
               <div
                 v-if="upload.status === 'uploading'"
                 class="h-1 w-16 shrink-0 overflow-hidden rounded-full bg-bg-primary"
@@ -200,7 +186,6 @@ function retryUpload(tempKey: string) {
                 />
               </div>
 
-              <!-- Retry button (failed) -->
               <button
                 v-if="upload.status === 'failed' || upload.status === 'conflict'"
                 type="button"

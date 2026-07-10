@@ -59,7 +59,6 @@ const platformBadgeColor = (platform: Platform) => {
     </CardHeader>
 
     <CardContent>
-      <!-- Platform filter -->
       <div class="flex items-center gap-1 mb-4 overflow-x-auto">
         <Button
           v-for="platform in platforms"
@@ -78,7 +77,6 @@ const platformBadgeColor = (platform: Platform) => {
         </Button>
       </div>
 
-      <!-- Empty state -->
       <p
         v-if="filteredPosts.length === 0"
         class="text-sm text-[var(--text-secondary)] text-center py-8"
@@ -86,19 +84,16 @@ const platformBadgeColor = (platform: Platform) => {
         {{ t('dashboard.contentPerformance.noPostsMatch') }}
       </p>
 
-      <!-- Posts list -->
       <div v-else class="space-y-3">
         <div
           v-for="(post, index) in filteredPosts"
           :key="post.id"
           class="flex items-start gap-3 p-3 rounded-lg bg-[var(--background-primary)] border border-[var(--border-color)]"
         >
-          <!-- Rank number -->
           <span class="text-lg font-semibold text-[var(--text-secondary)] tabular-nums w-6 text-center shrink-0 leading-tight pt-0.5">
             {{ index + 1 }}
           </span>
 
-          <!-- Content -->
           <div class="flex-1 min-w-0">
             <p class="text-sm text-[var(--text-display)] line-clamp-2 leading-snug">
               {{ post.content }}
@@ -116,7 +111,6 @@ const platformBadgeColor = (platform: Platform) => {
                 {{ t('dashboard.contentPerformance.publishedOn') }} {{ formatRelativeTime(post.publishedAt) }}
               </span>
             </div>
-            <!-- Metrics -->
             <div class="flex items-center gap-4 mt-2">
               <div class="flex items-center gap-1">
                 <span class="text-[10px] text-[var(--text-secondary)] font-[var(--font-space-mono)]">

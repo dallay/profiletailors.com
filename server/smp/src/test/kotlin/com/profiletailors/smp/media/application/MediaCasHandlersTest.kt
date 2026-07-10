@@ -523,8 +523,6 @@ class MediaCasHandlersTest {
         assertEquals("assets/ws_abc/blobs/$HASH_A.jpg", MediaStorageKeys.canonicalKey("ws_abc", HASH_A, "image/jpeg"))
     }
 
-    // ─── DeleteWorkspaceAssetHandler transaction tests ─────────────────────────────────
-
     @Test
     fun `DeleteWorkspaceAssetHandler runAtomically called on softDelete success`() = runTest {
         val media = InMemoryMediaAssetRepository()
@@ -625,8 +623,6 @@ class MediaCasHandlersTest {
         assertEquals(0, txRunner.calls.size)
     }
 
-    // ─── UploadAssetHandler transaction tests ─────────────────────────────────────
-
     @Test
     fun `UploadAssetHandler runAtomically called with markAsReady block`() = runTest {
         val media = InMemoryMediaAssetRepository()
@@ -700,8 +696,6 @@ class MediaCasHandlersTest {
         assertEquals(MediaAssetStatus.READY, media.asset(WORKSPACE, ASSET_A)?.status)
         assertEquals(1, txRunner.calls.size)
     }
-
-    // ─── PutAssetHandler Created-path transaction tests ──────────────────────────
 
     @Test
     fun `Created path calls runAtomically once with upsertBlob and createPendingAsset`() = runTest {
@@ -785,8 +779,6 @@ class MediaCasHandlersTest {
         assertTrue(media.assets.isEmpty())
         assertEquals(BlobStatus.UPLOADING, blobs.blob(WORKSPACE, HASH_A)?.status)
     }
-
-    // ─── DeleteWorkspaceAssetHandler additional edge cases ─────────────────
 
     @Test
     fun `DeleteWorkspaceAssetHandler skips storage delete when asset has no storageKey`() = runTest {
@@ -899,8 +891,6 @@ class MediaCasHandlersTest {
         assertEquals(MediaAssetStatus.READY, media.asset(WORKSPACE, ASSET_A)?.status)
         assertEquals(BlobStatus.READY, blobs.blob(WORKSPACE, HASH_A)?.status)
     }
-
-    // ─── UploadAssetHandler additional edge cases ──────────────────────────
 
     @Test
     fun `UploadAssetHandler releases concurrent upload slot exactly once on success`() = runTest {

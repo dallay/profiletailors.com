@@ -6,11 +6,11 @@ import { useAnalyticsStore } from '@/stores/analytics'
 import { useInsightsStore } from '@/stores/insights'
 import { useContentPipelineStore } from '@/stores/contentPipeline'
 
-// Mock data for sections without dedicated stores
+
 import { upcomingSchedule } from '@/lib/mockData/scheduling'
 import { inboxItems, teamMembers, teamActivity } from '@/lib/mockData/engagement'
 
-// Section components
+
 import ExecutiveOverview from './ExecutiveOverview.vue'
 import AiInsightsHero from './AiInsightsHero.vue'
 import GrowthScore from './GrowthScore.vue'
@@ -43,7 +43,6 @@ function handleMoveCard(cardId: string, fromColumn: string, toColumn: string, to
 </script>
 
 <template>
-  <!-- Loading skeleton gate -->
   <div v-if="dashboard.isLoading" class="space-y-6">
     <div class="h-8 w-48 rounded bg-[var(--background-surface)] animate-pulse" />
     <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
@@ -63,22 +62,18 @@ function handleMoveCard(cardId: string, fromColumn: string, toColumn: string, to
     <div class="h-80 rounded-xl bg-[var(--background-surface)] animate-pulse" />
   </div>
 
-  <!-- Dashboard content -->
   <div v-else class="space-y-8">
-    <!-- Section: Executive Overview (KPI row) -->
     <ExecutiveOverview
       v-if="dashboard.sectionVisibility.executiveOverview"
       :kpis="analytics.kpiMetrics"
     />
 
-    <!-- Section: AI Insights Hero -->
     <AiInsightsHero
       v-if="dashboard.sectionVisibility.aiInsights"
       :insights="insights.activeInsights"
       @dismiss="handleDismissInsight"
     />
 
-    <!-- Row: Growth Score + Top Performing Posts -->
     <div
       v-if="dashboard.sectionVisibility.growthScore || dashboard.sectionVisibility.contentPerformance"
       class="grid grid-cols-1 lg:grid-cols-3 gap-4"
@@ -95,7 +90,6 @@ function handleMoveCard(cardId: string, fromColumn: string, toColumn: string, to
       />
     </div>
 
-    <!-- Row: Cross-Channel Analytics + Audience Growth -->
     <div
       v-if="dashboard.sectionVisibility.crossChannel || dashboard.sectionVisibility.audienceGrowth"
       class="grid grid-cols-1 lg:grid-cols-2 gap-4"
@@ -110,7 +104,6 @@ function handleMoveCard(cardId: string, fromColumn: string, toColumn: string, to
       />
     </div>
 
-    <!-- Row: Upcoming Schedule + Best Posting Times -->
     <div
       v-if="dashboard.sectionVisibility.upcomingSchedule || dashboard.sectionVisibility.postingTimes"
       class="grid grid-cols-1 lg:grid-cols-2 gap-4"
@@ -125,14 +118,12 @@ function handleMoveCard(cardId: string, fromColumn: string, toColumn: string, to
       />
     </div>
 
-    <!-- Section: Content Pipeline (full width, horizontal scroll on mobile) -->
     <ContentPipeline
       v-if="dashboard.sectionVisibility.contentPipeline"
       :columns="pipeline.columns"
       @move-card="handleMoveCard"
     />
 
-    <!-- Row: Inbox Summary + Team Activity -->
     <div
       v-if="dashboard.sectionVisibility.inbox || dashboard.sectionVisibility.teamActivity"
       class="grid grid-cols-1 lg:grid-cols-2 gap-4"

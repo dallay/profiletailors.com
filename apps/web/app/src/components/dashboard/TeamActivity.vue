@@ -53,7 +53,6 @@ const isEmpty = computed(() => props.events.length === 0)
       </router-link>
     </div>
 
-    <!-- Empty state for solo users -->
     <p
       v-if="isEmpty"
       class="text-sm text-[var(--text-secondary)] text-center py-8"
@@ -61,14 +60,12 @@ const isEmpty = computed(() => props.events.length === 0)
       {{ t('dashboard.teamActivity.noActivity') }}
     </p>
 
-    <!-- Activity feed -->
     <div v-else class="space-y-2">
       <div
         v-for="event in recentEvents"
         :key="event.id"
         class="flex items-start gap-3 p-3 rounded-lg bg-[var(--background-surface)] border border-[var(--border-color)]"
       >
-        <!-- Online indicator + member initial -->
         <div class="relative shrink-0">
           <span
             class="w-7 h-7 rounded-full bg-[var(--background-primary)] border border-[var(--border-color)] flex items-center justify-center text-[10px] text-[var(--text-secondary)] font-[var(--font-space-mono)] uppercase"
@@ -83,7 +80,6 @@ const isEmpty = computed(() => props.events.length === 0)
           />
         </div>
 
-        <!-- Event details -->
         <div class="flex-1 min-w-0">
           <p class="text-sm text-[var(--text-body)] leading-snug">
             <span class="font-medium text-[var(--text-display)]">

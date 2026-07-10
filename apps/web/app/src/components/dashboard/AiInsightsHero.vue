@@ -59,7 +59,6 @@ const priorityDot = (priority: AiInsight['priority']) => {
       </div>
     </div>
 
-    <!-- Empty state -->
     <p
       v-if="insights.length === 0"
       class="text-sm text-[var(--text-secondary)] text-center py-8"
@@ -68,7 +67,6 @@ const priorityDot = (priority: AiInsight['priority']) => {
     </p>
 
     <template v-else>
-      <!-- Hero insight (first card, larger) -->
       <Card
         v-if="heroInsight"
         :class="['border-l-2', priorityBorder(heroInsight.priority)]"
@@ -116,7 +114,6 @@ const priorityDot = (priority: AiInsight['priority']) => {
         </CardContent>
       </Card>
 
-      <!-- Grid of remaining insights -->
       <div
         v-if="gridInsights.length > 0"
         class="grid grid-cols-1 sm:grid-cols-2 gap-3"
