@@ -740,6 +740,52 @@ export const usePublishingStore = defineStore('publishing', () => {
     return publications.value[idx]
   }
 
+  /**
+   * Retry a FAILED publication with a new future schedule.
+   * Uses the dedicated /retry endpoint (not /reschedule) — the backend
+   * rejects reschedule attempts on FAILED publications with a 409
+   * "Publication state conflict" because only DRAFT/QUEUED/SCHEDULED
+   * publications are editable. FAILED publications must go through /retry.
+   */
+  async function retryPublication(id: string, newScheduledFor: string) {
+    const idx = publications.value.findIndex((p) => p.id === id)
+    if (idx === -1) throw new Error(`Publication ${id} not found`)
+
+    const current = publications.value[idx]
+    if (!current) throw new Error(`Publication ${id} not found`)
+
+    const previous: Publication = { ...current }
+    const rollbackValue = previous.scheduledAt
+
+    // Optimistic update
+    publications.value[idx] = { ...previous, scheduledAt: newScheduledFor }
+
+    if (auth.isAuthenticated) {
+      try {
+        await auth.apiFetch<unknown>(`/api/publishing/publications/${id}/retry`, {
+          method: 'POST',
+          body: JSON.stringify({
+            scheduleMode: 'SCHEDULED_AT',
+            scheduledFor: newScheduledFor,
+            priority: previous.priority,
+          }),
+          workspaceScoped: true,
+        })
+        saveToStorage()
+        return publications.value[idx]
+      } catch (err) {
+        // Rollback
+        publications.value[idx] = { ...previous, scheduledAt: rollbackValue }
+        saveToStorage()
+        throw err
+      }
+    }
+
+    // Unauthenticated: just save locally
+    saveToStorage()
+    return publications.value[idx]
+  }
+
   // -----------------------------------------------------------------------
   // Actions — Existing  (modified with fallback awareness)
   /**
@@ -979,6 +1025,7 @@ export const usePublishingStore = defineStore('publishing', () => {
     fetchCalendar,
     quickCreatePost,
     reschedulePublication,
+    retryPublication,
     schedulePost,
     deletePost,
     cancelPost,

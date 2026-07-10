@@ -36,7 +36,7 @@ Chain strategy: feature-branch-chain
 - [x] 2.1 Add failing view tests in `apps/web/app/src/views/SchedulerView.test.ts` for route-owned `postId` open, replace-based stale close after fetch settle, and back/forward-safe modal behavior.
 - [x] 2.2 Refactor `apps/web/app/src/views/SchedulerView.vue` so selected post/detail modal state is derived from `useCalendarUrl()` and fetched publications instead of local-only modal flags.
 - [x] 2.3 Implement fetch reconciliation in `apps/web/app/src/views/SchedulerView.vue` so date/filter/timezone/surface changes remove stale `postId` only after the active fetch proves the post unavailable.
-- [ ] 2.4 Align `apps/web/app/src/components/layout/AppShell.vue` and `apps/web/app/src/components/CalendarHeader.vue` with controller helpers so channel/date/surface interactions keep canonical `channels[]` and history semantics.
+- [x] 2.4 Align `apps/web/app/src/components/layout/AppShell.vue` and `apps/web/app/src/components/CalendarHeader.vue` with controller helpers so channel/date/surface interactions keep canonical `channels[]` and history semantics.
 
 ## Phase 3: Verification / regression coverage
 

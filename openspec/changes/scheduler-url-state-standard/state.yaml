@@ -1,10 +1,13 @@
 change: scheduler-url-state-standard
-current_phase: tasks
+current_phase: verify
 completed:
   - explore
   - propose
   - spec
   - design
   - tasks
-next: apply
+  - apply
+  - verify
+next: archive
 updated: 2026-07-10
+

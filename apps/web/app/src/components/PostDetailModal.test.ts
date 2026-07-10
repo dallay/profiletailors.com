@@ -8,26 +8,32 @@ import type { Publication } from '@/stores/publishing'
 interface StoreOverrides {
   rescheduleResult: Publication | undefined
   rescheduleError: Error | undefined
+  retryResult: Publication | undefined
+  retryError: Error | undefined
   deleteError: Error | undefined
   isPublicationEditable: (status: Publication['status']) => boolean
   isPublicationDeletable: (status: Publication['status']) => boolean
 }
 
-const { storeOverrides, mockReschedule, mockDelete } = vi.hoisted(() => ({
+const { storeOverrides, mockReschedule, mockRetry, mockDelete } = vi.hoisted(() => ({
   storeOverrides: {
     rescheduleResult: undefined as Publication | undefined,
     rescheduleError: undefined as Error | undefined,
+    retryResult: undefined as Publication | undefined,
+    retryError: undefined as Error | undefined,
     deleteError: undefined as Error | undefined,
     isPublicationEditable: (_status: Publication['status']) => true,
     isPublicationDeletable: (_status: Publication['status']) => true,
   } as StoreOverrides,
   mockReschedule: vi.fn(),
+  mockRetry: vi.fn(),
   mockDelete: vi.fn(),
 }))
 
 vi.mock('@/stores/publishing', () => ({
   usePublishingStore: () => ({
     reschedulePublication: mockReschedule,
+    retryPublication: mockRetry,
     deletePost: mockDelete,
     isPublicationEditable: storeOverrides.isPublicationEditable,
     isPublicationDeletable: storeOverrides.isPublicationDeletable,
@@ -95,6 +101,8 @@ describe('PostDetailModal', () => {
     vi.clearAllMocks()
     storeOverrides.rescheduleResult = makePublication()
     storeOverrides.rescheduleError = undefined
+    storeOverrides.retryResult = makePublication()
+    storeOverrides.retryError = undefined
     storeOverrides.deleteError = undefined
     storeOverrides.isPublicationEditable = () => true
     storeOverrides.isPublicationDeletable = () => true
@@ -102,6 +110,10 @@ describe('PostDetailModal', () => {
     mockReschedule.mockImplementation(async () => {
       if (storeOverrides.rescheduleError) throw storeOverrides.rescheduleError
       return storeOverrides.rescheduleResult!
+    })
+    mockRetry.mockImplementation(async () => {
+      if (storeOverrides.retryError) throw storeOverrides.retryError
+      return storeOverrides.retryResult!
     })
     mockDelete.mockImplementation(async () => {
       if (storeOverrides.deleteError) throw storeOverrides.deleteError
@@ -425,6 +437,97 @@ describe('PostDetailModal', () => {
       // The reschedule form should not be visible initially
       expect(wrapper.text()).not.toContain('postDetail.rescheduleConfirm')
       expect(wrapper.text()).not.toContain('postDetail.rescheduleCancel')
+    })
+  })
+
+  describe('retry (FAILED publications)', () => {
+    it('shows RETRY button instead of RESCHEDULE for FAILED posts', () => {
+      storeOverrides.isPublicationEditable = () => false
+      const wrapper = mountModal(
+        makePublication({ status: 'FAILED', scheduledAt: '2027-07-01T10:00:00Z' }),
+      )
+
+      expect(wrapper.text()).toContain('postDetail.retry')
+      expect(wrapper.text()).not.toContain('postDetail.reschedule')
+    })
+
+    it('still shows RESCHEDULE (not RETRY) for PROCESSING posts — regression guard', () => {
+      storeOverrides.isPublicationEditable = () => false
+      const wrapper = mountModal(
+        makePublication({ status: 'PROCESSING', scheduledAt: '2027-07-01T10:00:00Z' }),
+      )
+
+      expect(wrapper.text()).toContain('postDetail.reschedule')
+      expect(wrapper.text()).not.toContain('postDetail.retry')
+    })
+
+    it('clicking RETRY opens the date form', async () => {
+      storeOverrides.isPublicationEditable = () => false
+      const wrapper = mountModal(
+        makePublication({ status: 'FAILED', scheduledAt: '2027-07-01T10:00:00Z' }),
+      )
+
+      const retryBtn = wrapper
+        .findAll('button')
+        .find((b) => b.text().includes('postDetail.retry'))
+      expect(retryBtn).toBeDefined()
+      await retryBtn!.trigger('click')
+
+      expect(wrapper.text()).toContain('postDetail.scheduledFor')
+      expect(wrapper.text()).toContain('postDetail.retryConfirm')
+      expect(wrapper.text()).toContain('postDetail.rescheduleCancel')
+    })
+
+    it('calls retryPublication (not reschedulePublication) and emits retried on confirm', async () => {
+      storeOverrides.retryResult = makePublication({ id: 'pub-failed', status: 'FAILED' })
+      storeOverrides.isPublicationEditable = () => false
+      const wrapper = mountModal(
+        makePublication({ id: 'pub-failed', status: 'FAILED', scheduledAt: '2027-07-01T10:00:00Z' }),
+      )
+
+      const retryBtn = wrapper
+        .findAll('button')
+        .find((b) => b.text().includes('postDetail.retry'))
+      await retryBtn!.trigger('click')
+
+      const confirmBtn = wrapper
+        .findAll('button')
+        .find((b) => b.text().includes('postDetail.retryConfirm'))
+      await confirmBtn!.trigger('click')
+      await flushPromises()
+      await nextTick()
+
+      expect(mockRetry).toHaveBeenCalledWith('pub-failed', expect.any(String))
+      expect(mockReschedule).not.toHaveBeenCalled()
+      expect(wrapper.emitted('retried')).toBeDefined()
+      expect(wrapper.emitted('retried')![0]).toEqual([
+        { id: 'pub-failed', scheduledAt: expect.any(String) },
+      ])
+      expect(wrapper.emitted('reschedule')).toBeUndefined()
+      expect(wrapper.emitted('close')).toHaveLength(1)
+    })
+
+    it('displays error when retry fails and does not close the modal', async () => {
+      storeOverrides.retryError = new Error('Publication state conflict')
+      storeOverrides.isPublicationEditable = () => false
+      const wrapper = mountModal(
+        makePublication({ status: 'FAILED', scheduledAt: '2027-07-01T10:00:00Z' }),
+      )
+
+      const retryBtn = wrapper
+        .findAll('button')
+        .find((b) => b.text().includes('postDetail.retry'))
+      await retryBtn!.trigger('click')
+
+      const confirmBtn = wrapper
+        .findAll('button')
+        .find((b) => b.text().includes('postDetail.retryConfirm'))
+      await confirmBtn!.trigger('click')
+      await flushPromises()
+      await nextTick()
+
+      expect(wrapper.text()).toContain('Publication state conflict')
+      expect(wrapper.emitted('close')).toBeUndefined()
     })
   })
 })
