@@ -242,7 +242,9 @@ test.describe('Scheduler — Post Interaction', () => {
     await detailModal.expectVisible()
   })
 
-  test('TC-18: refresh restores modal opened from route-owned postId @scheduler', async ({ page }) => {
+  test('TC-18: refresh restores modal opened from route-owned postId @scheduler', async ({
+    page,
+  }) => {
     const scheduler = new SchedulerPage(page)
     const detailModal = new PostDetailModalPage(page)
 

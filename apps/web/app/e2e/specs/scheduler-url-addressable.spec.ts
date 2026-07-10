@@ -258,7 +258,9 @@ test.describe('URL-addressable scheduler — browser history', () => {
     async ({ page }) => {
       await setup(page)
       await keepSessionAlive(page)
-      await page.goto('/scheduler/calendar/week?date=2026-06-20&status=queued&channels[]=sa-linkedin-001')
+      await page.goto(
+        '/scheduler/calendar/week?date=2026-06-20&status=queued&channels[]=sa-linkedin-001',
+      )
       await page.waitForLoadState('networkidle')
 
       await page.reload()

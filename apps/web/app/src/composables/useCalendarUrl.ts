@@ -258,7 +258,11 @@ export function createCalendarUrlController(
       await navigate(router, { ...state.value, postId: normalizePostId(postId.trim()) }, 'push')
     },
     closePostDetail: async (options = {}) => {
-      await navigate(router, { ...state.value, postId: null }, options.replace === false ? 'push' : 'replace')
+      await navigate(
+        router,
+        { ...state.value, postId: null },
+        options.replace === false ? 'push' : 'replace',
+      )
     },
   }
 }
