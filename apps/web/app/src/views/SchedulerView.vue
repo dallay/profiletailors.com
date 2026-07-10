@@ -18,7 +18,7 @@ import { getProviderColor, getProviderBadge } from '@/lib/provider-styles'
 import { toast } from 'vue-sonner'
 
 const publishingStore = usePublishingStore()
-const { locale: i18nLocale } = useI18n()
+const { locale: i18nLocale, t } = useI18n()
 
 // ---------------------------------------------------------------------------
 // URL-driven scheduler state
@@ -463,7 +463,7 @@ async function handleUpdated() {
 
 function onPostCreated() {
   isModalOpen.value = false
-  toast.success('Post scheduled successfully')
+  toast.success(t('composer.scheduleSuccessToast'))
 }
 
 function onReschedule() {
@@ -736,7 +736,7 @@ watch(
                       v-if="getPublicationsForSlot(day, slot.hour).length > 2"
                       class="text-[7px] font-mono text-text-secondary pl-1"
                     >
-                      +{{ getPublicationsForSlot(day, slot.hour).length - 2 }} more
+                      {{ t('scheduler.morePosts', { count: getPublicationsForSlot(day, slot.hour).length - 2 }) }}
                     </div>
 
                     <!-- Add post button (only in enabled slots) -->
