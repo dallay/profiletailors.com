@@ -29,6 +29,7 @@ import SidebarChannelsSection, { type SidebarChannel } from '@/components/sideba
 import SidebarConnectSection, { type ConnectChannel } from '@/components/sidebar/SidebarConnectSection.vue'
 import SidebarAccountSection from '@/components/sidebar/SidebarAccountSection.vue'
 import UploadProgressToast from '@/components/UploadProgressToast.vue'
+import { Toaster } from '@/components/ui/sonner'
 import { useQueuedCounts } from '@/composables/useQueuedCounts'
 
 // ---------------------------------------------------------------------------
@@ -383,6 +384,7 @@ onBeforeUnmount(() => {
           </main>
 
           <UploadProgressToast />
+          <Toaster position="bottom-right" />
         </div>
       </SidebarInset>
     </SidebarProvider>

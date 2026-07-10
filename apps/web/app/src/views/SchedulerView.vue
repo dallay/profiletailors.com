@@ -15,9 +15,10 @@ import ConflictBadge from '@/components/ConflictBadge.vue'
 import { Card } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { getProviderColor, getProviderBadge } from '@/lib/provider-styles'
+import { toast } from 'vue-sonner'
 
 const publishingStore = usePublishingStore()
-const { locale: i18nLocale } = useI18n()
+const { locale: i18nLocale, t } = useI18n()
 
 
 const url = useCalendarUrl()
@@ -303,16 +304,24 @@ function getPublicationsForDate(date: Date): Publication[] {
   })
 }
 
-function getPublicationsForSlot(date: Date, hour: number) {
-  return filteredPublications.value.filter((pub) => {
+function slotKey(date: Date, hour: number): string {
+  return `${dateKey(date)}#${hour}`
+}
+
+const publicationsBySlot = computed(() => {
+  const map = new Map<string, Publication[]>()
+  for (const pub of filteredPublications.value) {
     const pubDate = new Date(pub.scheduledAt)
-    return (
-      pubDate.getDate() === date.getDate() &&
-      pubDate.getMonth() === date.getMonth() &&
-      pubDate.getFullYear() === date.getFullYear() &&
-      pubDate.getHours() === hour
-    )
-  })
+    const key = slotKey(pubDate, pubDate.getHours())
+    const bucket = map.get(key)
+    if (bucket) bucket.push(pub)
+    else map.set(key, [pub])
+  }
+  return map
+})
+
+function publicationsForSlot(date: Date, hour: number): Publication[] {
+  return publicationsBySlot.value.get(slotKey(date, hour)) ?? []
 }
 
 
@@ -431,6 +440,11 @@ async function handleUpdated() {
     socialAccountId: state.channelIds[0],
     timezone: state.timezone,
   })
+}
+
+function onPostCreated() {
+  isModalOpen.value = false
+  toast.success(t('composer.scheduleSuccessToast'))
 }
 
 function onReschedule() {
@@ -604,7 +618,7 @@ watch(
                     @keydown.space.prevent="isPastSlot(day, slot.hour) ? undefined : openNewPostForSlot(day, slot.hour)"
                     @dragover.prevent="!isPastSlot(day, slot.hour)"
                     @drop.prevent="!isPastSlot(day, slot.hour) ? onDropCell($event, day, slot.hour) : undefined"
-                    class="relative p-2 border-r border-border-subtle last:border-r-0 transition-all group/cell flex flex-col justify-start gap-2 select-none"
+                    class="relative p-2 border-r border-border-subtle last:border-r-0 transition-all group/cell flex flex-col justify-start gap-2 select-none overflow-hidden"
                     :class="isPastSlot(day, slot.hour)
                       ? 'bg-text-secondary/5 text-text-secondary cursor-not-allowed after:absolute after:inset-0 after:bg-[repeating-linear-gradient(-45deg,transparent,transparent_10px,var(--border-color)_10px,var(--border-color)_11px)] after:opacity-10 after:z-0'
                       : 'hover:bg-bg-primary/20 cursor-pointer'"
@@ -613,7 +627,7 @@ watch(
                   >
                     <!-- biome-ignore lint/a11y/noStaticElementInteractions: non-button container required to avoid nested buttons (delete btn inside card) -->
                     <div
-                      v-for="pub in getPublicationsForSlot(day, slot.hour)"
+                      v-for="pub in publicationsForSlot(day, slot.hour).slice(0, 2)"
                       :key="pub.id"
                       :draggable="true"
                       @click.stop="openPostDetail(pub)"
@@ -674,6 +688,15 @@ watch(
                       </button>
                     </div>
 
+                    <!-- "+N more" indicator when posts exceed visible limit -->
+                    <div
+                      v-if="publicationsForSlot(day, slot.hour).length > 2"
+                      class="text-[7px] font-mono text-text-secondary pl-1"
+                    >
+                      {{ t('scheduler.morePosts', { count: publicationsForSlot(day, slot.hour).length - 2 }) }}
+                    </div>
+
+                    <!-- Add post button (only in enabled slots) -->
                     <button
                       v-if="!isPastSlot(day, slot.hour)"
                       @click.stop="openNewPostForSlot(day, slot.hour)"
@@ -787,7 +810,7 @@ watch(
       :initial-date="selectedCellDate"
       :editing-publication="editingPublication ?? undefined"
       @close="isModalOpen = false; editingPublication = null"
-      @created="isModalOpen = false"
+      @created="onPostCreated"
       @updated="handleUpdated"
     />
 
