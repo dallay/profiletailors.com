@@ -39,7 +39,6 @@ const scoreColor = computed(() => {
       class="rotate-[-90deg]"
       aria-hidden="true"
     >
-      <!-- Track -->
       <circle
         :cx="center"
         :cy="center"
@@ -48,7 +47,6 @@ const scoreColor = computed(() => {
         :stroke-width="strokeWidth"
         stroke="var(--score-gauge-track)"
       />
-      <!-- Fill -->
       <circle
         :cx="center"
         :cy="center"

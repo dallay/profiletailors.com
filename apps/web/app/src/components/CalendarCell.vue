@@ -95,7 +95,6 @@ function onKeyDown(e: KeyboardEvent) {
     @dragover.prevent="!isPast"
     @drop.prevent="!isPast ? onDrop($event) : undefined"
   >
-    <!-- Day number + activity dot -->
     <div class="flex items-center justify-between mb-1">
       <span
         class="font-mono text-[10px] font-bold leading-none size-5 flex items-center justify-center rounded-full"
@@ -108,7 +107,6 @@ function onKeyDown(e: KeyboardEvent) {
         {{ date.getDate() }}
       </span>
 
-      <!-- Activity dot -->
       <div
         v-if="activityEntry && isCurrentMonth && activityDotColor"
         class="size-2 rounded-full shrink-0"
@@ -116,7 +114,6 @@ function onKeyDown(e: KeyboardEvent) {
       />
     </div>
 
-    <!-- Publication snippets -->
     <div class="space-y-0.5">
       <div
         v-for="pub in visiblePublications"
@@ -157,7 +154,6 @@ function onKeyDown(e: KeyboardEvent) {
       </div>
     </div>
 
-    <!-- Add post button (only in enabled current-month cells) -->
     <button
       v-if="isCurrentMonth && !isPast"
       @click.stop="emit('click-day', date)"

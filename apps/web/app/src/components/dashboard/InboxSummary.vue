@@ -94,7 +94,6 @@ const cardAccent = (type: InboxType): string => {
       </div>
     </div>
 
-    <!-- Empty state -->
     <p
       v-if="items.length === 0"
       class="text-sm text-[var(--text-secondary)] text-center py-8"
@@ -102,7 +101,6 @@ const cardAccent = (type: InboxType): string => {
       {{ t('dashboard.inbox.noItems') }}
     </p>
 
-    <!-- Inbox type grid -->
     <template v-else>
       <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
         <div
@@ -113,7 +111,6 @@ const cardAccent = (type: InboxType): string => {
             cardAccent(type),
           ]"
         >
-          <!-- Type header -->
           <div class="flex items-center justify-between mb-2">
             <span class="text-[10px] text-[var(--text-secondary)] font-[var(--font-space-mono)] uppercase tracking-wider">
               {{ t(typeLabels[type]) }}
@@ -126,7 +123,6 @@ const cardAccent = (type: InboxType): string => {
             </span>
           </div>
 
-          <!-- Icon placeholder + platform badges -->
           <div class="flex items-center gap-2 mt-1">
             <span
               class="w-7 h-7 rounded-md bg-[var(--background-primary)] border border-[var(--border-color)] flex items-center justify-center text-xs text-[var(--text-secondary)] font-[var(--font-space-mono)] shrink-0"
@@ -148,7 +144,6 @@ const cardAccent = (type: InboxType): string => {
         </div>
       </div>
 
-      <!-- View Inbox CTA -->
       <div class="flex justify-end pt-1">
         <Button variant="outline" size="sm" class="text-[10px] font-[var(--font-space-mono)] uppercase tracking-wider">
           {{ t('dashboard.inbox.viewAll') }}
