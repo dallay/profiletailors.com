@@ -1,8 +1,10 @@
 <script setup lang="ts">
-import { computed, onMounted, ref } from 'vue'
+import { computed, onMounted, ref, watch } from 'vue'
 import { Download, FileText, Image, Loader2, RefreshCw, Trash2, UploadCloud, Video } from '@lucide/vue'
 import { useMediaStore } from '@/stores/media'
+import { useAuthStore } from '@/stores/auth'
 import { resolveApiUrl } from '@/lib/auth-api'
+import type { MediaStatus } from '@/lib/media-api'
 import { Button } from '@/components/ui/button'
 import {
   AlertDialog,
@@ -17,8 +19,10 @@ import {
 } from '@/components/ui/alert-dialog'
 
 const mediaStore = useMediaStore()
+const authStore = useAuthStore()
 const fileInput = ref<HTMLInputElement | null>(null)
 const isRefreshing = ref(false)
+const uploadRequiresVerification = ref(false)
 const selectedLibraryAssetIds = ref<string[]>([])
 const searchQuery = ref('')
 const statusFilter = ref<'ALL' | 'READY' | 'PROCESSING' | 'FAILED'>('ALL')
@@ -31,11 +35,19 @@ const assets = computed(() =>
     .filter((asset) => asset !== undefined),
 )
 
+function isProcessingStatus(status: MediaStatus): boolean {
+  return status === 'PENDING_UPLOAD' || status === 'UPLOADING'
+}
+
 const visibleAssets = computed(() => {
   const normalizedQuery = searchQuery.value.trim().toLowerCase()
 
   const filtered = assets.value.filter((asset) => {
-    const matchesStatus = statusFilter.value === 'ALL' || asset.status === statusFilter.value
+    const matchesStatus =
+      statusFilter.value === 'ALL' ||
+      (statusFilter.value === 'PROCESSING'
+        ? isProcessingStatus(asset.status)
+        : asset.status === statusFilter.value)
     const matchesType =
       typeFilter.value === 'ALL' ||
       (typeFilter.value === 'IMAGE' && isImage(asset.mediaType)) ||
@@ -75,15 +87,21 @@ const allVisibleSelected = computed(() =>
 )
 
 const readyAssets = computed(() => assets.value.filter((asset) => asset.status === 'READY'))
-const processingAssets = computed(() => assets.value.filter((asset) => asset.status === 'PROCESSING'))
+const processingAssets = computed(() =>
+  assets.value.filter((asset) => isProcessingStatus(asset.status)),
+)
 const failedAssets = computed(() => assets.value.filter((asset) => asset.status === 'FAILED'))
+const canUploadMedia = computed(() => authStore.isEmailVerified && !uploadRequiresVerification.value)
+const showVerificationGuidance = computed(() => !canUploadMedia.value)
 
-function statusClass(status: string) {
+function statusClass(status: MediaStatus) {
+  if (isProcessingStatus(status)) {
+    return 'border-text-display/30 bg-text-display/10 text-text-display'
+  }
+
   switch (status) {
     case 'READY':
       return 'border-success/30 bg-success/10 text-success'
-    case 'PROCESSING':
-      return 'border-text-display/30 bg-text-display/10 text-text-display'
     case 'FAILED':
       return 'border-error/30 bg-error/10 text-error'
     default:
@@ -193,27 +211,37 @@ async function deleteSelectedAssets() {
 async function refreshLibrary() {
   isRefreshing.value = true
   try {
-    await mediaStore.loadAssets('READY,PROCESSING,FAILED')
+    await mediaStore.loadAssets('READY,PENDING_UPLOAD,UPLOADING,FAILED')
   } finally {
     isRefreshing.value = false
   }
 }
 
 async function loadMore() {
-  await mediaStore.loadNextPage('READY,PROCESSING,FAILED')
+  await mediaStore.loadNextPage('READY,PENDING_UPLOAD,UPLOADING,FAILED')
 }
 
 function openFilePicker() {
+  if (!canUploadMedia.value) return
   fileInput.value?.click()
 }
 
 async function uploadFiles(files: File[]) {
+  if (!canUploadMedia.value) return
+  uploadRequiresVerification.value = false
+
   for (const file of files) {
+    if (uploadRequiresVerification.value) break
     const tempKey = `media-library-${Date.now()}-${file.name}`
     try {
       await mediaStore.createAndUpload(file, tempKey)
-    } catch {
-      // Error state is already tracked in mediaStore.uploads
+    } catch (error) {
+      const apiError = error as { status?: number; errorCode?: string; code?: string }
+      const errorCode = apiError.errorCode ?? apiError.code
+      if (apiError.status === 403 && errorCode === 'EMAIL_VERIFICATION_REQUIRED') {
+        uploadRequiresVerification.value = true
+      }
+      // Other error state is already tracked in mediaStore.uploads
     }
   }
 }
@@ -225,10 +253,17 @@ async function handleFileChange(event: Event) {
   target.value = ''
 }
 
+watch(
+  () => authStore.isEmailVerified,
+  (isVerified) => {
+    if (isVerified) {
+      uploadRequiresVerification.value = false
+    }
+  },
+)
+
 onMounted(async () => {
-  if (assets.value.length === 0) {
-    await refreshLibrary()
-  }
+  await refreshLibrary()
 })
 </script>
 
@@ -253,20 +288,36 @@ onMounted(async () => {
           ref="fileInput"
           type="file"
           class="hidden"
-          aria-label="Upload media files"
+          :aria-label="$t('media.uploadAction')"
           accept="image/*,video/mp4,application/pdf"
           multiple
+          :disabled="!canUploadMedia"
           @change="handleFileChange"
         />
         <Button type="button" variant="outline" @click="refreshLibrary">
           <RefreshCw :class="['mr-2 size-4', isRefreshing ? 'animate-spin' : '']" />
           {{ $t('media.refresh') }}
         </Button>
-        <Button type="button" @click="openFilePicker">
+        <Button
+          type="button"
+          data-testid="media-upload-button"
+          :disabled="!canUploadMedia"
+          @click="openFilePicker"
+        >
           <UploadCloud class="mr-2 size-4" />
           {{ $t('media.uploadAction') }}
         </Button>
       </div>
+    </div>
+
+    <div
+      v-if="showVerificationGuidance"
+      data-testid="media-verification-guidance"
+      role="alert"
+      class="rounded-2xl border border-warning/40 bg-warning/10 px-5 py-4 text-sm text-text-body"
+    >
+      <p class="font-medium text-text-display">{{ $t('media.verificationRequired') }}</p>
+      <p class="mt-1 text-text-secondary">{{ $t('media.verificationGuidance') }}</p>
     </div>
 
     <div class="flex flex-wrap items-center gap-3">
@@ -287,7 +338,6 @@ onMounted(async () => {
       </div>
     </div>
 
-    <!-- ── Unified Filter Toolbar ── -->
     <div class="flex flex-wrap items-center gap-3 rounded-2xl border border-border-subtle bg-bg-primary/30 px-5 py-4">
       <div class="flex items-center gap-2">
         <input
@@ -339,7 +389,6 @@ onMounted(async () => {
       <span class="text-xs text-text-secondary">{{ visibleAssets.length }} / {{ assets.length }}</span>
     </div>
 
-    <!-- ── Selection Toolbar ── -->
     <div
       v-if="selectedLibraryAssetIds.length > 0"
       class="flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-primary/30 bg-primary/10 px-5 py-3"
@@ -378,7 +427,6 @@ onMounted(async () => {
       </div>
     </div>
 
-    <!-- ── Library content ── -->
     <div class="space-y-5">
       <p v-if="mediaStore.loadError" class="mb-4 rounded-xl border border-error/30 bg-error/10 p-3 text-sm text-error">
           {{ mediaStore.loadError }}
@@ -408,9 +456,7 @@ onMounted(async () => {
               :key="asset.assetId"
               class="group relative overflow-hidden rounded-2xl border border-border-subtle bg-bg-primary/40 transition-colors hover:border-text-display/30"
             >
-              <!-- Thumbnail -->
               <div class="relative aspect-square overflow-hidden bg-bg-primary/70">
-                <!-- Checkbox overlay on hover -->
                 <div class="absolute left-3 top-3 z-20 opacity-0 transition-opacity group-hover:opacity-100">
                   <input
                     :checked="selectedLibraryAssetIds.includes(asset.assetId)"
@@ -421,15 +467,14 @@ onMounted(async () => {
                   />
                 </div>
 
-                <!-- Status badge overlay -->
                 <span
+                  data-testid="status-badge"
                   class="absolute right-3 top-3 z-10 rounded-full px-2 py-0.5 font-mono text-[9px] uppercase tracking-[0.12em]"
                   :class="statusClass(asset.status)"
                 >
                   {{ asset.status }}
                 </span>
 
-                <!-- Hover actions overlay (bottom) -->
                 <div class="absolute bottom-3 right-3 z-20 flex items-center gap-2 opacity-0 transition-opacity group-hover:opacity-100">
                   <Button
                     v-if="assetDownloadUrl(asset)"
@@ -470,7 +515,6 @@ onMounted(async () => {
                   </AlertDialog>
                 </div>
 
-                <!-- Thumbnail content -->
                 <img
                   v-if="isImage(asset.mediaType) && assetPreviewUrl(asset)"
                   :src="assetPreviewUrl(asset) ?? ''"
@@ -504,7 +548,6 @@ onMounted(async () => {
                 </div>
               </div>
 
-              <!-- Info below thumbnail -->
               <div class="space-y-1 p-3">
                 <p class="truncate text-sm font-medium text-text-display">
                   {{ asset.originalFilename ?? $t('media.untitledAsset') }}

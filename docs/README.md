@@ -8,6 +8,8 @@
 
 - [API Versioning](./api-versioning.md) - Spring Boot 4 media-type versioning implementation
 - [Architecture Overview](./architecture/) - System architecture and design patterns
+- [Media Library CAS Dedup](./architecture/media-library-cas-dedup.md) - Content-Addressed Storage
+  for workspace-scoped asset deduplication
 
 ### Infrastructure
 
@@ -23,7 +25,8 @@
 
 ### Development & Testing
 
-- [Getting Started](./getting-started.md) - Local developer onboarding, `just` installation, and `just setup`
+- [Getting Started](./getting-started.md) - Local developer onboarding, `just` installation, and
+  `just setup`
 - [Portless — Local Development URLs](./portless-setup.md) - Named `.localhost` HTTPS URLs
 - [Gradle Build System & Conventions](./gradle-build-system.md) - Centralized composite
   build-logic & convention plugins

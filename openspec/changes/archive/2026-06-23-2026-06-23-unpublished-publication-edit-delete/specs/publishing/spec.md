@@ -4,7 +4,10 @@
 
 ### Requirement: Unpublished Publication Deletion API
 
-The system MUST expose `DELETE /api/publishing/publications/{publicationId}` for unpublished publications. The endpoint MUST permanently remove the publication and any unclaimed scheduling/job linkage when the publication status is `DRAFT`, `QUEUED`, or `SCHEDULED`. The endpoint MUST reject deletion for any other status and MUST NOT report local-only success.
+The system MUST expose `DELETE /api/publishing/publications/{publicationId}` for unpublished
+publications. The endpoint MUST permanently remove the publication and any unclaimed scheduling/job
+linkage when the publication status is `DRAFT`, `QUEUED`, or `SCHEDULED`. The endpoint MUST reject
+deletion for any other status and MUST NOT report local-only success.
 
 #### Scenario: Delete scheduled publication succeeds
 
@@ -24,18 +27,19 @@ The system MUST expose `DELETE /api/publishing/publications/{publicationId}` for
 
 The system MUST use one pre-delivery policy for scheduler actions across frontend and backend.
 
-| Status | Edit | Delete |
-|--------|------|--------|
-| `DRAFT` | MUST allow | MUST allow |
-| `QUEUED` | MUST allow | MUST allow |
-| `SCHEDULED` | MUST allow | MUST allow |
+| Status       | Edit        | Delete      |
+|--------------|-------------|-------------|
+| `DRAFT`      | MUST allow  | MUST allow  |
+| `QUEUED`     | MUST allow  | MUST allow  |
+| `SCHEDULED`  | MUST allow  | MUST allow  |
 | `PROCESSING` | MUST reject | MUST reject |
-| `PUBLISHED` | MUST reject | MUST reject |
-| `BLOCKED` | MUST reject | MUST reject |
-| `FAILED` | MUST reject | MUST reject |
-| `CANCELLED` | MUST reject | MUST reject |
+| `PUBLISHED`  | MUST reject | MUST reject |
+| `BLOCKED`    | MUST reject | MUST reject |
+| `FAILED`     | MUST reject | MUST reject |
+| `CANCELLED`  | MUST reject | MUST reject |
 
-The frontend MUST hide or disable edit/delete actions for disallowed statuses, and the backend MUST still enforce the same policy if a request is sent.
+The frontend MUST hide or disable edit/delete actions for disallowed statuses, and the backend MUST
+still enforce the same policy if a request is sent.
 
 #### Scenario: Allowed status exposes action
 
@@ -55,11 +59,19 @@ The frontend MUST hide or disable edit/delete actions for disallowed statuses, a
 
 ### Requirement: Editable and Cancellable Pre-Delivery Publications
 
-The system MUST allow editing, deletion, and cancellation before a publication is claimed for delivery.
+The system MUST allow editing, deletion, and cancellation before a publication is claimed for
+delivery.
 
-A publication in `DRAFT`, `QUEUED`, or `SCHEDULED` MAY be edited, including text, media references, schedule mode, and schedule timing, as long as the delivery job has not been claimed for processing. Such a publication MAY also be cancelled or deleted before claim. Scheduler edit flows MUST persist through the existing `PATCH /api/publishing/publications/{publicationId}` contract, and successful responses MUST reflect server truth rather than local-only optimistic state. Once processing has begun, the system MUST prevent unsafe edits or deletion that would invalidate the claimed delivery attempt.
+A publication in `DRAFT`, `QUEUED`, or `SCHEDULED` MAY be edited, including text, media references,
+schedule mode, and schedule timing, as long as the delivery job has not been claimed for processing.
+Such a publication MAY also be cancelled or deleted before claim. Scheduler edit flows MUST persist
+through the existing `PATCH /api/publishing/publications/{publicationId}` contract, and successful
+responses MUST reflect server truth rather than local-only optimistic state. Once processing has
+begun, the system MUST prevent unsafe edits or deletion that would invalidate the claimed delivery
+attempt.
 
-(Previously: Pre-delivery publications could be edited or cancelled, but delete behavior and backend-backed scheduler editing were not specified.)
+(Previously: Pre-delivery publications could be edited or cancelled, but delete behavior and
+backend-backed scheduler editing were not specified.)
 
 #### Scenario: Queued publication is edited before claim
 

@@ -25,14 +25,14 @@ bouncycastle = "1.84"
 
 # Testing
 reactor = "3.7.5"
-junit = "6.0.3"
+junit = "6.1.1"
 assertj = "3.27.7"
 mockk = "1.14.11"
 testcontainers = "1.20.6"
-cucumber = "7.18.1"
+cucumber = "7.34.4"
 archunit = "1.4.2"
 kover = "0.9.1"
-kotest = "6.1.11"
+kotest = "6.2.1"
 
 [libraries]
 # Kotlin
@@ -107,8 +107,6 @@ testcontainers-localstack = { module = "org.testcontainers:localstack" }
 # Database / Drivers
 postgresql = { module = "org.postgresql:postgresql" }
 r2dbc-postgresql = { module = "org.postgresql:r2dbc-postgresql" }
-h2 = { module = "com.h2database:h2" }
-r2dbc-h2 = { module = "io.r2dbc:r2dbc-h2" }
 
 # Gradle Plugins for build-logic
 gradle-kover = { module = "org.jetbrains.kotlinx:kover-gradle-plugin", version.ref = "kover" }

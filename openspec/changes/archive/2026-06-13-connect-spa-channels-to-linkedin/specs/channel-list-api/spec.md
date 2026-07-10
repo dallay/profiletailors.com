@@ -2,22 +2,28 @@
 
 ## Purpose
 
-Define the backend query endpoint that returns safe connected social account summaries for the active workspace, serving as the SPA's canonical source of channel truth.
+Define the backend query endpoint that returns safe connected social account summaries for the
+active workspace, serving as the SPA's canonical source of channel truth.
 
 ## Requirements
 
 ### Requirement: Workspace-Scoped Connected Channel Listing
 
-The system MUST expose `GET /api/publishing/channels` returning active connected social account summaries for the requesting principal's active workspace.
+The system MUST expose `GET /api/publishing/channels` returning active connected social account
+summaries for the requesting principal's active workspace.
 
-Each channel summary MUST include: `socialAccountId`, `connectionId`, `provider`, `accountKind`, `displayName`, `status`, and `connectedAt`. The endpoint MUST NOT expose provider credentials under any circumstances. Only accounts with status `ACTIVE` MUST be included by default; the query MAY support a `status` filter parameter.
+Each channel summary MUST include: `socialAccountId`, `connectionId`, `provider`, `accountKind`,
+`displayName`, `status`, and `connectedAt`. The endpoint MUST NOT expose provider credentials under
+any circumstances. Only accounts with status `ACTIVE` MUST be included by default; the query MAY
+support a `status` filter parameter.
 
 #### Scenario: Authenticated user lists channels for active workspace
 
 - GIVEN an authenticated principal and a valid `X-Workspace-Id` header
 - WHEN `GET /api/publishing/channels` is called
 - THEN the system MUST return 200 with an array of active connected social account summaries
-- AND each summary MUST contain `socialAccountId`, `connectionId`, `provider`, `accountKind`, `displayName`, `status`, `connectedAt`
+- AND each summary MUST contain `socialAccountId`, `connectionId`, `provider`, `accountKind`,
+  `displayName`, `status`, `connectedAt`
 - AND provider credential secrets MUST NOT appear in any field
 
 #### Scenario: Workspace with no connected channels returns empty array
@@ -42,7 +48,9 @@ Each channel summary MUST include: `socialAccountId`, `connectionId`, `provider`
 
 ### Requirement: Channel Summary Model Preserves Future Provider Extensibility
 
-The channel summary model MUST be provider-neutral. LinkedIn personal profiles MUST be the first implemented provider kind. The contract MUST NOT block future addition of Twitter, Instagram, LinkedIn organization pages, or other provider types.
+The channel summary model MUST be provider-neutral. LinkedIn personal profiles MUST be the first
+implemented provider kind. The contract MUST NOT block future addition of Twitter, Instagram,
+LinkedIn organization pages, or other provider types.
 
 #### Scenario: LinkedIn personal profile channel appears in listing
 

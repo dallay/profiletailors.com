@@ -248,6 +248,21 @@ describe('useCalendarUrl — navigation intent', () => {
 })
 
 describe('useCalendarUrl — route name surface derivation', () => {
+  it('canonicalizes scheduler-calendar-day to the existing week surface', async () => {
+    const route = createMockRoute({ name: 'scheduler-calendar-day', query: {} })
+    const router = createMockRouter()
+    const controller = createCalendarUrlController(route, router)
+
+    expect(controller.state.value.surface).toBe('calendar-week')
+
+    await controller.canonicalize()
+
+    expect(router.replace).toHaveBeenCalledWith({
+      name: 'scheduler-calendar-week',
+      query: {},
+    })
+  })
+
   it('derives calendar-week from scheduler-calendar-week', () => {
     const _routeNames = [
       'scheduler-calendar-week',
@@ -503,7 +518,7 @@ describe('useCalendarUrl — needsCanonicalization / areQueriesEquivalent', () =
     })
     const controller = createCalendarUrlController(
       route as unknown as RouteLocationNormalizedLoaded,
-      router,
+      router as unknown as Router,
     )
 
     await controller.canonicalize()
@@ -556,19 +571,25 @@ describe('useCalendarUrl controller — stepPeriod navigation', () => {
   })
 
   it('steps forward one month in calendar-month surface', async () => {
-    // 2026-06-15 → clamp to 1st → +1 month = 2026-07-01
-    const route = createMockRoute({
-      name: 'scheduler-calendar-month',
-      query: { date: '2026-06-15' },
-    })
-    const router = createMockRouter()
-    const ctrl = createCalendarUrlController(route, router)
+    vi.useFakeTimers()
+    vi.setSystemTime(new Date('2026-06-20T12:00:00Z'))
+    try {
+      // 2026-06-15 → clamp to 1st → +1 month = 2026-07-01
+      const route = createMockRoute({
+        name: 'scheduler-calendar-month',
+        query: { date: '2026-06-15' },
+      })
+      const router = createMockRouter()
+      const ctrl = createCalendarUrlController(route, router)
 
-    await ctrl.stepPeriod('forward')
+      await ctrl.stepPeriod('forward')
 
-    const call = (router.push as ReturnType<typeof vi.fn>).mock.calls[0]![0]
-    expect(call.name).toBe('scheduler-calendar-month')
-    expect(call.query.date).toBe('2026-07-01')
+      const call = (router.push as ReturnType<typeof vi.fn>).mock.calls[0]![0]
+      expect(call.name).toBe('scheduler-calendar-month')
+      expect(call.query.date).toBe('2026-07-01')
+    } finally {
+      vi.useRealTimers()
+    }
   })
 
   it('steps backward one month in calendar-month surface', async () => {
@@ -711,21 +732,27 @@ describe('useCalendarUrl — stepPeriod', () => {
   })
 
   it('uses setMonth when stepping in month view', async () => {
-    const route = makeRoute({
-      name: 'scheduler-calendar-month',
-      query: { date: '2026-06-15' },
-    })
-    const router = createMockRouter()
-    const ctrl = createCalendarUrlController(
-      route as unknown as RouteLocationNormalizedLoaded,
-      router as unknown as Router,
-    )
+    vi.useFakeTimers()
+    vi.setSystemTime(new Date('2026-06-20T12:00:00Z'))
+    try {
+      const route = makeRoute({
+        name: 'scheduler-calendar-month',
+        query: { date: '2026-06-15' },
+      })
+      const router = createMockRouter()
+      const ctrl = createCalendarUrlController(
+        route as unknown as RouteLocationNormalizedLoaded,
+        router as unknown as Router,
+      )
 
-    await ctrl.stepPeriod('forward')
+      await ctrl.stepPeriod('forward')
 
-    expect(router.push).toHaveBeenCalled()
-    const call = (router.push as ReturnType<typeof vi.fn>).mock.calls[0]![0]
-    expect(call.query).toHaveProperty('date')
+      expect(router.push).toHaveBeenCalled()
+      const call = (router.push as ReturnType<typeof vi.fn>).mock.calls[0]![0]
+      expect(call.query).toHaveProperty('date')
+    } finally {
+      vi.useRealTimers()
+    }
   })
 
   it('uses setDate for week view navigation', async () => {

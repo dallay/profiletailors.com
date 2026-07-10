@@ -2,15 +2,20 @@
 
 ## Context
 
-Currently, `PostDetailModal` mixes the "view" and "edit" experience in one modal with inline editing (title input, textarea, datetime input). This is a limited UX: it doesn't support media attachment editing, doesn't show a social preview, and forces the user to work in a layout designed for reading.
+Currently, `PostDetailModal` mixes the "view" and "edit" experience in one modal with inline
+editing (title input, textarea, datetime input). This is a limited UX: it doesn't support media
+attachment editing, doesn't show a social preview, and forces the user to work in a layout designed
+for reading.
 
 ## Goal
 
-Open the full `CreatePostModal` (the rich composer) when the user clicks "Edit" from `PostDetailModal`, with the publication data pre-filled.
+Open the full `CreatePostModal` (the rich composer) when the user clicks "Edit" from
+`PostDetailModal`, with the publication data pre-filled.
 
 ## Scope
 
 ### In Scope
+
 - Edit content, scheduling, priority, and media via the full composer
 - Pre-fill all fields correctly (including media, after DTO gap is closed)
 - Update store and refresh calendar after save
@@ -20,6 +25,7 @@ Open the full `CreatePostModal` (the rich composer) when the user clicks "Edit" 
 - All unit and E2E tests
 
 ### Out of Scope
+
 - Changing the channel (backend doesn't support it)
 - Editing the title field (no UI for it currently in composer)
 - Unlinking/removing individual assets (add/change supported, remove via clear)
@@ -34,12 +40,14 @@ Open the full `CreatePostModal` (the rich composer) when the user clicks "Edit" 
 ## Files to Change
 
 ### Prerequisite (data contract)
+
 - `server/smp/src/main/kotlin/.../PublishingApi.kt`
 - `server/smp/src/main/kotlin/.../PublishingHandlers.kt`
 - `server/smp/src/test/kotlin/.../PublishingApiTest.kt`
 - `apps/web/app/src/stores/publishing.ts`
 
 ### Feature implementation
+
 - `apps/web/app/src/components/CreatePostModal.vue`
 - `apps/web/app/src/components/PostDetailModal.vue`
 - `apps/web/app/src/views/SchedulerView.vue`

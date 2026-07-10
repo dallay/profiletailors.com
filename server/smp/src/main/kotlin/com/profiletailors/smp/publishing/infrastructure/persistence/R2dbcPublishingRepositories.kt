@@ -23,9 +23,10 @@ import com.profiletailors.smp.publishing.domain.SocialProvider
 import io.r2dbc.spi.Readable
 import kotlinx.coroutines.reactor.awaitSingle
 import kotlinx.coroutines.reactor.awaitSingleOrNull
+import kotlinx.coroutines.reactor.mono
 import org.springframework.r2dbc.core.DatabaseClient
 import org.springframework.stereotype.Repository
-import org.springframework.transaction.annotation.Transactional
+import org.springframework.transaction.reactive.TransactionalOperator
 import java.time.Instant
 import java.time.OffsetDateTime
 
@@ -69,7 +70,10 @@ private const val PUBLICATION_INSERT_VALUES = """
 
 @Repository
 @Suppress("TooManyFunctions")
-class R2dbcPublicationRepository(private val databaseClient: DatabaseClient) : PublicationRepository {
+class R2dbcPublicationRepository(
+    private val databaseClient: DatabaseClient,
+    private val transactionalOperator: TransactionalOperator,
+) : PublicationRepository {
     override suspend fun createDraft(draft: PublicationDraft): PublicationDraft {
         insertOrUpdate(draft)
         replaceAssetLinks(draft)
@@ -349,70 +353,75 @@ class R2dbcPublicationRepository(private val databaseClient: DatabaseClient) : P
             .awaitSingle()
     }
 
-    @Transactional
     override suspend fun deleteUnpublished(workspaceId: String, publicationId: String): Boolean {
-        // Check if publication is in a deletable status first (guards FK constraints)
-        val deletable = databaseClient.sql(
-            """
-            SELECT COUNT(*) AS cnt FROM publications
-            WHERE workspace_id = :workspaceId
-              AND id = :publicationId
-              AND status IN ('DRAFT', 'QUEUED', 'SCHEDULED')
-            """.trimIndent(),
-        )
-            .bind("workspaceId", workspaceId)
-            .bind("publicationId", publicationId)
-            .map { row, _ -> requireNotNull(row.get("cnt", Long::class.javaObjectType)) }
-            .one()
-            .awaitSingle() > 0L
-
-        if (!deletable) return false
-
-        // Delete child records first (FK constraints) — only unclaimed jobs
-        databaseClient.sql(
-            """
-            DELETE FROM publication_jobs
-            WHERE publication_id = :publicationId
-              AND workspace_id = :workspaceId
-              AND status IN (:pendingStatus, :retryWaitingStatus)
-            """.trimIndent(),
-        )
-            .bind("publicationId", publicationId)
-            .bind("workspaceId", workspaceId)
-            .bind("pendingStatus", JobStatus.PENDING.name)
-            .bind("retryWaitingStatus", JobStatus.RETRY_WAITING.name)
-            .fetch()
-            .rowsUpdated()
-            .awaitSingle()
-
-        databaseClient.sql(
-            """
-            DELETE FROM publication_asset_links
-            WHERE publication_id = :publicationId
-            """.trimIndent(),
-        )
-            .bind("publicationId", publicationId)
-            .fetch()
-            .rowsUpdated()
-            .awaitSingle()
-
-        // Delete parent publication
-        databaseClient.sql(
-            """
-            DELETE FROM publications
-            WHERE workspace_id = :workspaceId
-              AND id = :publicationId
-              AND status IN ('DRAFT', 'QUEUED', 'SCHEDULED')
-            """.trimIndent(),
-        )
-            .bind("workspaceId", workspaceId)
-            .bind("publicationId", publicationId)
-            .fetch()
-            .rowsUpdated()
-            .awaitSingle()
-
-        return true
+        val status = lockAndGetStatus(workspaceId, publicationId)
+        if (status == null || status !in setOf("DRAFT", "QUEUED", "SCHEDULED")) {
+            return false
+        }
+        return performCascadingDelete(workspaceId, publicationId)
     }
+
+    private suspend fun lockAndGetStatus(workspaceId: String, publicationId: String): String? = databaseClient.sql(
+        """
+            SELECT status FROM publications
+            WHERE workspace_id = :workspaceId
+              AND id = :publicationId
+            FOR UPDATE
+        """.trimIndent(),
+    )
+        .bind("workspaceId", workspaceId)
+        .bind("publicationId", publicationId)
+        .map { row, _ -> requireNotNull(row.get("status", String::class.java)) }
+        .one()
+        .awaitSingleOrNull()
+
+    private suspend fun performCascadingDelete(workspaceId: String, publicationId: String): Boolean =
+        transactionalOperator.transactional(
+            mono {
+                val deletedRows = databaseClient.sql(
+                    """
+                DELETE FROM publication_jobs
+                WHERE publication_id = :publicationId
+                  AND workspace_id = :workspaceId
+                  AND status IN (:pendingStatus, :retryWaitingStatus)
+                    """.trimIndent(),
+                )
+                    .bind("publicationId", publicationId)
+                    .bind("workspaceId", workspaceId)
+                    .bind("pendingStatus", JobStatus.PENDING.name)
+                    .bind("retryWaitingStatus", JobStatus.RETRY_WAITING.name)
+                    .fetch()
+                    .rowsUpdated()
+                    .awaitSingle()
+
+                databaseClient.sql(
+                    """
+                DELETE FROM publication_asset_links
+                WHERE publication_id = :publicationId
+                    """.trimIndent(),
+                )
+                    .bind("publicationId", publicationId)
+                    .fetch()
+                    .rowsUpdated()
+                    .awaitSingle()
+
+                val rows = databaseClient.sql(
+                    """
+                DELETE FROM publications
+                WHERE workspace_id = :workspaceId
+                  AND id = :publicationId
+                  AND status IN ('DRAFT', 'QUEUED', 'SCHEDULED')
+                    """.trimIndent(),
+                )
+                    .bind("workspaceId", workspaceId)
+                    .bind("publicationId", publicationId)
+                    .fetch()
+                    .rowsUpdated()
+                    .awaitSingle()
+
+                rows > 0
+            },
+        ).awaitSingle()
 
     override suspend fun findBlockedForRecovery(maxRetries: Int): List<PublicationDraft> {
         val drafts = databaseClient.sql(
@@ -477,7 +486,7 @@ class R2dbcPublicationRepository(private val databaseClient: DatabaseClient) : P
             """
             UPDATE publications
             SET $PUBLICATION_UPDATE_COLUMNS
-            WHERE id = :id
+            WHERE id = :id AND workspace_id = :workspaceId
             """.trimIndent(),
         )
             .bindPublicationUpdateParams(draft, now)
@@ -486,6 +495,26 @@ class R2dbcPublicationRepository(private val databaseClient: DatabaseClient) : P
             .awaitSingle()
 
         if (updatedRows > 0) return
+
+        val existingWorkspaceId = databaseClient.sql(
+            """
+            SELECT workspace_id
+            FROM publications
+            WHERE id = :id
+            """.trimIndent(),
+        )
+            .bind("id", draft.id)
+            .map { row, _ -> requireNotNull(row.get("workspace_id", String::class.java)) }
+            .one()
+            .awaitSingleOrNull()
+
+        if (existingWorkspaceId != null && existingWorkspaceId != draft.workspaceId) {
+            throw IllegalStateException(
+                "Publication ${draft.id} cannot be written from workspace " +
+                    "${draft.workspaceId}; it belongs to a different current " +
+                    "workspace scope",
+            )
+        }
 
         databaseClient.sql(
             """

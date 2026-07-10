@@ -3,9 +3,12 @@
 This directory contains the Architecture Decision Records for the Profile Tailors project.
 
 ## Purpose
-ADRs capture significant architectural decisions, their context, and their consequences. They serve as a historical record and a guide for current and future development.
+
+ADRs capture significant architectural decisions, their context, and their consequences. They serve
+as a historical record and a guide for current and future development.
 
 ## Lifecycle
+
 - **Proposed**: The decision is under review.
 - **Accepted**: The decision has been approved and implemented (or is being implemented).
 - **Experimental**: The decision is being evaluated in a limited scope.
@@ -13,25 +16,28 @@ ADRs capture significant architectural decisions, their context, and their conse
 - **Superseded**: The decision has been replaced by a newer ADR.
 
 ## Status Definitions
+
 - **MUST**: Mandatory requirement.
 - **SHOULD**: Recommended, exceptions must be justified.
 - **MAY**: Optional implementation.
 
 ## Index
-| ID | Title | Status | Date |
-|----|-------|--------|------|
-| 0001 | [Use a Modular Monolith Backend](./0001-use-a-modular-monolith-backend.md) | Accepted | 2026-06-21 |
-| 0002 | [Adhere to Hexagonal Architecture](./0002-adhere-to-hexagonal-architecture.md) | Accepted | 2026-06-21 |
-| 0003 | [Mandatory Reactive Stack](./0003-mandatory-reactive-stack.md) | Accepted | 2026-06-21 |
-| 0004 | [Implement CQRS via Mediator](./0004-implement-cqrs-via-mediator.md) | Accepted | 2026-06-21 |
-| 0005 | [Use Prefixed String Identifiers](./0005-use-prefixed-string-identifiers.md) | Accepted | 2026-06-21 |
-| 0006 | [Resource Creation via POST](./0006-resource-creation-via-post.md) | Accepted | 2026-06-21 |
-| 0007 | [Astro & Vue Frontend Split](./0007-astro-and-vue-frontend-split.md) | Accepted | 2026-06-21 |
-| 0008 | [Application-Level Multi-tenancy](./0008-application-level-multi-tenancy.md) | Accepted | 2026-06-21 |
+
+| ID   | Title                                                                                    | Status   | Date       |
+|------|------------------------------------------------------------------------------------------|----------|------------|
+| 0001 | [Use a Modular Monolith Backend](./0001-use-a-modular-monolith-backend.md)               | Accepted | 2026-06-21 |
+| 0002 | [Adhere to Hexagonal Architecture](./0002-adhere-to-hexagonal-architecture.md)           | Accepted | 2026-06-21 |
+| 0003 | [Mandatory Reactive Stack](./0003-mandatory-reactive-stack.md)                           | Accepted | 2026-06-21 |
+| 0004 | [Implement CQRS via Mediator](./0004-implement-cqrs-via-mediator.md)                     | Accepted | 2026-06-21 |
+| 0005 | [Use Prefixed String Identifiers](./0005-use-prefixed-string-identifiers.md)             | Accepted | 2026-06-21 |
+| 0006 | [Resource Creation via POST](./0006-resource-creation-via-post.md)                       | Accepted | 2026-06-21 |
+| 0007 | [Astro & Vue Frontend Split](./0007-astro-and-vue-frontend-split.md)                     | Accepted | 2026-06-21 |
+| 0008 | [Application-Level Multi-tenancy](./0008-application-level-multi-tenancy.md)             | Accepted | 2026-06-21 |
 | 0009 | [JWT & HttpOnly Cookie Authentication](./0009-jwt-and-httponly-cookie-authentication.md) | Accepted | 2026-06-21 |
-| 0010 | [Shared Kernel Governance](./0010-shared-kernel-governance.md) | Accepted | 2026-06-21 |
+| 0010 | [Shared Kernel Governance](./0010-shared-kernel-governance.md)                           | Accepted | 2026-06-21 |
 
 ## Relationship with other docs
+
 - **OpenSpec**: Describes specific changes or features.
 - **C4**: Documents the current architecture visually.
 - **AGENTS.md**: Defines implementation constraints for AI agents.

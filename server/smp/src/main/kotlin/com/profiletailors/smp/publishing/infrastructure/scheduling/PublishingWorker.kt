@@ -1,5 +1,6 @@
 package com.profiletailors.smp.publishing.infrastructure.scheduling
 
+import com.profiletailors.common.domain.persistence.AtomicTransactionRunner
 import com.profiletailors.smp.media.application.MediaAssetResolver
 import com.profiletailors.smp.publishing.domain.DeliveryAttempt
 import com.profiletailors.smp.publishing.domain.DeliveryAttemptOutcome
@@ -38,6 +39,7 @@ class PublishingJobExecutor(
     private val providerCapabilityValidator: ProviderCapabilityValidator,
     private val socialPublisher: SocialPublisher,
     private val retryPolicy: DeliveryRetryPolicy,
+    private val transactionRunner: AtomicTransactionRunner,
     private val clock: Clock,
 ) {
     private val log = LoggerFactory.getLogger(javaClass)
@@ -201,21 +203,23 @@ class PublishingJobExecutor(
         provider: com.profiletailors.smp.publishing.domain.SocialProvider? = null,
     ) {
         PublicationLifecyclePolicy.markBlocked(publication, now, reason)
-        publicationRepository.markBlocked(publication.id, now, reason)
-        publicationJobRepository.complete(claim.jobId, now)
+        transactionRunner.runAtomically {
+            publicationRepository.markBlocked(publication.id, now, reason)
+            publicationJobRepository.complete(claim.jobId, now)
 
-        recordNotificationEvent(
-            NotificationEventPayload(
-                workspaceId = workspaceId,
-                socialAccountId = publication.socialAccountId,
-                publicationId = publication.id,
-                category = NotificationCategory.PUBLICATION_BLOCKED,
-                message = "Publication blocked: $reason",
-                suggestedAction = "Reconnect the LinkedIn account to retry blocked publications.",
-                occurredAt = now,
-                provider = provider,
-            ),
-        )
+            recordNotificationEvent(
+                NotificationEventPayload(
+                    workspaceId = workspaceId,
+                    socialAccountId = publication.socialAccountId,
+                    publicationId = publication.id,
+                    category = NotificationCategory.PUBLICATION_BLOCKED,
+                    message = "Publication blocked: $reason",
+                    suggestedAction = "Reconnect the LinkedIn account to retry blocked publications.",
+                    occurredAt = now,
+                    provider = provider,
+                ),
+            )
+        }
     }
 
     private suspend fun failPublicationTerminal(
@@ -226,20 +230,22 @@ class PublishingJobExecutor(
         reason: String,
         provider: com.profiletailors.smp.publishing.domain.SocialProvider? = null,
     ) {
-        publicationRepository.markFailed(publication.id, now, "TERMINAL_ACCOUNT_STATUS", reason)
-        publicationJobRepository.fail(claim.jobId, now)
+        transactionRunner.runAtomically {
+            publicationRepository.markFailed(publication.id, now, "TERMINAL_ACCOUNT_STATUS", reason)
+            publicationJobRepository.fail(claim.jobId, now)
 
-        recordNotificationEvent(
-            NotificationEventPayload(
-                workspaceId = workspaceId,
-                socialAccountId = publication.socialAccountId,
-                publicationId = publication.id,
-                category = NotificationCategory.PUBLICATION_FAILED,
-                message = "Publication failed terminally: $reason",
-                occurredAt = now,
-                provider = provider,
-            ),
-        )
+            recordNotificationEvent(
+                NotificationEventPayload(
+                    workspaceId = workspaceId,
+                    socialAccountId = publication.socialAccountId,
+                    publicationId = publication.id,
+                    category = NotificationCategory.PUBLICATION_FAILED,
+                    message = "Publication failed terminally: $reason",
+                    occurredAt = now,
+                    provider = provider,
+                ),
+            )
+        }
     }
 
     private suspend fun handleReconnectRequired(
@@ -255,21 +261,23 @@ class PublishingJobExecutor(
             socialAccount.id,
             exception.message,
         )
-        publicationRepository.markBlocked(publication.id, now, exception.message)
-        publicationJobRepository.complete(claim.jobId, now)
+        transactionRunner.runAtomically {
+            publicationRepository.markBlocked(publication.id, now, exception.message)
+            publicationJobRepository.complete(claim.jobId, now)
 
-        recordNotificationEvent(
-            NotificationEventPayload(
-                workspaceId = publication.workspaceId,
-                socialAccountId = socialAccount.id,
-                publicationId = publication.id,
-                category = NotificationCategory.RECONNECT_REQUIRED,
-                message = exception.message ?: "Reconnect required",
-                suggestedAction = "Re-authenticate the LinkedIn account.",
-                occurredAt = now,
-                provider = socialAccount.provider,
-            ),
-        )
+            recordNotificationEvent(
+                NotificationEventPayload(
+                    workspaceId = publication.workspaceId,
+                    socialAccountId = socialAccount.id,
+                    publicationId = publication.id,
+                    category = NotificationCategory.RECONNECT_REQUIRED,
+                    message = exception.message ?: "Reconnect required",
+                    suggestedAction = "Re-authenticate the LinkedIn account.",
+                    occurredAt = now,
+                    provider = socialAccount.provider,
+                ),
+            )
+        }
     }
 
     private data class NotificationEventPayload(
@@ -323,21 +331,23 @@ class PublishingJobExecutor(
                 assets = assets,
             ),
         )
-        deliveryAttemptRepository.record(
-            DeliveryAttempt(
-                id = "attempt-${UUID.randomUUID()}",
-                publicationId = publication.id,
-                publicationJobId = claim.jobId,
-                attemptNumber = claim.attemptNumber,
-                outcome = DeliveryAttemptOutcome.SUCCEEDED,
-                retryable = false,
-                providerMessage = result.providerMessage,
-                externalPublicationId = result.externalPublicationId,
-                attemptedAt = now,
-            ),
-        )
-        publicationRepository.markPublished(publication.id, result.externalPublicationId, now)
-        publicationJobRepository.complete(claim.jobId, now)
+        transactionRunner.runAtomically {
+            deliveryAttemptRepository.record(
+                DeliveryAttempt(
+                    id = "attempt-${UUID.randomUUID()}",
+                    publicationId = publication.id,
+                    publicationJobId = claim.jobId,
+                    attemptNumber = claim.attemptNumber,
+                    outcome = DeliveryAttemptOutcome.SUCCEEDED,
+                    retryable = false,
+                    providerMessage = result.providerMessage,
+                    externalPublicationId = result.externalPublicationId,
+                    attemptedAt = now,
+                ),
+            )
+            publicationRepository.markPublished(publication.id, result.externalPublicationId, now)
+            publicationJobRepository.complete(claim.jobId, now)
+        }
     }
 
     private suspend fun handlePublishFailure(
@@ -347,44 +357,46 @@ class PublishingJobExecutor(
         now: Instant,
     ) {
         val retryable = exception is RetryablePublishingException
-        deliveryAttemptRepository.record(
-            DeliveryAttempt(
-                id = "attempt-${UUID.randomUUID()}",
-                publicationId = publication.id,
-                publicationJobId = claim.jobId,
-                attemptNumber = claim.attemptNumber,
-                outcome = DeliveryAttemptOutcome.FAILED,
-                retryable = retryable,
-                providerMessage = exception.message,
-                providerErrorCode = exception::class.simpleName,
-                attemptedAt = now,
-            ),
-        )
-        if (retryPolicy.shouldRetry(claim.attemptNumber, retryable)) {
-            publicationJobRepository.rescheduleRetry(
-                claim.jobId,
-                retryPolicy.nextRetryAt(now),
-                claim.attemptNumber,
-            )
-        } else {
-            publicationRepository.markFailed(
-                publication.id,
-                now,
-                exception::class.simpleName,
-                exception.message,
-            )
-            publicationJobRepository.fail(claim.jobId, now)
-            recordNotificationEvent(
-                NotificationEventPayload(
-                    workspaceId = publication.workspaceId,
-                    socialAccountId = publication.socialAccountId,
+        transactionRunner.runAtomically {
+            deliveryAttemptRepository.record(
+                DeliveryAttempt(
+                    id = "attempt-${UUID.randomUUID()}",
                     publicationId = publication.id,
-                    category = NotificationCategory.PUBLICATION_FAILED,
-                    message = "Publication failed: ${exception.message}",
-                    occurredAt = now,
-                    provider = publication.provider,
+                    publicationJobId = claim.jobId,
+                    attemptNumber = claim.attemptNumber,
+                    outcome = DeliveryAttemptOutcome.FAILED,
+                    retryable = retryable,
+                    providerMessage = exception.message,
+                    providerErrorCode = exception::class.simpleName,
+                    attemptedAt = now,
                 ),
             )
+            if (retryPolicy.shouldRetry(claim.attemptNumber, retryable)) {
+                publicationJobRepository.rescheduleRetry(
+                    claim.jobId,
+                    retryPolicy.nextRetryAt(now),
+                    claim.attemptNumber,
+                )
+            } else {
+                publicationRepository.markFailed(
+                    publication.id,
+                    now,
+                    exception::class.simpleName,
+                    exception.message,
+                )
+                publicationJobRepository.fail(claim.jobId, now)
+                recordNotificationEvent(
+                    NotificationEventPayload(
+                        workspaceId = publication.workspaceId,
+                        socialAccountId = publication.socialAccountId,
+                        publicationId = publication.id,
+                        category = NotificationCategory.PUBLICATION_FAILED,
+                        message = "Publication failed: ${exception.message}",
+                        occurredAt = now,
+                        provider = publication.provider,
+                    ),
+                )
+            }
         }
     }
 }
@@ -395,6 +407,7 @@ class PublishingWorker(
     private val publicationJobRepository: PublicationJobRepository,
     private val publicationRepository: PublicationRepository,
     private val executor: PublishingJobExecutor,
+    private val transactionRunner: AtomicTransactionRunner,
     private val clock: Clock,
     private val workerId: String,
 ) {
@@ -433,10 +446,8 @@ class PublishingWorker(
             now = now,
             maxRetries = BLOCKED_RECOVERY_MAX_RETRIES,
         )
-        // Update publication first; if job replacement fails, revert to BLOCKED to avoid orphaning
-        // a QUEUED publication with no matching job (recovery scans filter by BLOCKED).
-        publicationRepository.updateEditableDraft(prepared)
-        try {
+        transactionRunner.runAtomically {
+            publicationRepository.updateEditableDraft(prepared)
             publicationJobRepository.replaceForPublication(
                 com.profiletailors.smp.publishing.domain.PublicationJob(
                     id = "pjob-${UUID.randomUUID()}",
@@ -449,11 +460,6 @@ class PublishingWorker(
                     maxAttempts = 1,
                 ),
             )
-        } catch (@Suppress("TooGenericExceptionCaught") e: Exception) {
-            // Revert publication to BLOCKED so next recovery scan can retry
-            log.warn("Failed to replace job for blocked publication ${publication.id}, reverting to BLOCKED", e)
-            publicationRepository.markBlocked(publication.id, now, "Retry failed: ${e.message}")
-            return
         }
         log.info(
             "Requeued BLOCKED publication {} for retry (attempt {})",

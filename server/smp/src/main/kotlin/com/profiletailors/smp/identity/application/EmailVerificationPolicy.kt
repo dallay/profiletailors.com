@@ -5,6 +5,7 @@ enum class AuthFeature {
     SCHEDULE_POST,
     INVITE_TEAM,
     CONNECT_SOCIAL,
+    UPLOAD_MEDIA,
     ACCESS_BILLING,
     ENABLE_AUTOMATIONS,
 }

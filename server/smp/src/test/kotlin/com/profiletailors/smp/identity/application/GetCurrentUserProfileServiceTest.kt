@@ -3,6 +3,7 @@ package com.profiletailors.smp.identity.application
 import com.profiletailors.common.domain.context.PrincipalContext
 import com.profiletailors.common.domain.context.PrincipalContextProvider
 import com.profiletailors.common.domain.context.PrincipalType
+import com.profiletailors.smp.identity.domain.EmailStatus
 import kotlinx.coroutines.test.runTest
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Test
@@ -34,6 +35,7 @@ class GetCurrentUserProfileServiceTest {
                     displayIdentity = "yuniel",
                     email = "yuniel@example.com",
                     username = "yuniel",
+                    emailStatus = EmailStatus.PENDING,
                 ),
             ),
         )
@@ -44,6 +46,34 @@ class GetCurrentUserProfileServiceTest {
         assertEquals("yuniel@example.com", profile.email)
         assertEquals("yuniel", profile.username)
         assertEquals("yuniel", profile.displayIdentity)
+        assertEquals(EmailStatus.PENDING, profile.emailStatus)
+    }
+
+    @Test
+    fun `returns verified status from persisted identity`() = runTest {
+        val service = GetCurrentUserProfileService(
+            principalContextProvider = PrincipalContextProviderStub(
+                PrincipalContext(
+                    principalId = "user-1",
+                    principalType = PrincipalType.USER,
+                    subject = "local:yuniel@example.com",
+                ),
+            ),
+            principalIdentityLookup = PrincipalIdentityLookupStub(
+                PrincipalIdentityFacts(
+                    principalId = "user-1",
+                    principalType = PrincipalType.USER,
+                    subject = "local:yuniel@example.com",
+                    provider = null,
+                    displayIdentity = "yuniel",
+                    email = "yuniel@example.com",
+                    username = "yuniel",
+                    emailStatus = EmailStatus.VERIFIED,
+                ),
+            ),
+        )
+
+        assertEquals(EmailStatus.VERIFIED, service.execute().emailStatus)
     }
 
     private class PrincipalContextProviderStub(private val principalContext: PrincipalContext) :

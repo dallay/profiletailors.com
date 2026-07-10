@@ -57,7 +57,19 @@ vi.mock('@/composables/useCalendarUrl', () => ({
 // ---------------------------------------------------------------------------
 
 vi.mock('vue-i18n', () => ({
-  useI18n: () => ({ t: (key: string) => key, locale: { value: 'en' } }),
+  useI18n: () => ({
+    t: (key: string, params?: Record<string, unknown>) => {
+      if (!params) return key
+      // Mirror the real translation pattern for keys tested with placeholders.
+      if (key === 'scheduler.morePosts') {
+        return `+${String(params.count ?? '')} more`
+      }
+      return key.replace(/\{(\w+)\}/g, (_, name) =>
+        params[name] !== undefined ? String(params[name]) : `{${name}}`,
+      )
+    },
+    locale: { value: 'en' },
+  }),
 }))
 
 vi.mock('@/lib/auth-api', () => ({
@@ -72,10 +84,19 @@ vi.mock('@/lib/auth-api', () => ({
   logoutSession: vi.fn(),
 }))
 
+const toastSuccessMock = vi.fn()
+vi.mock('vue-sonner', () => ({
+  toast: {
+    success: (...args: unknown[]) => toastSuccessMock(...args),
+    error: vi.fn(),
+    info: vi.fn(),
+  },
+}))
+
 vi.mock('@/components/CreatePostModal.vue', () => ({
   default: {
     template:
-      '<div v-if="isOpen" data-testid="create-post-modal"><button data-testid="create-post-updated" @click="$emit(\'updated\')">updated</button></div><div v-if="isOpen" data-testid="create-post-modal-open">open</div>',
+      '<div v-if="isOpen" data-testid="create-post-modal"><button data-testid="create-post-updated" @click="$emit(\'updated\')">updated</button><button data-testid="create-post-created" @click="$emit(\'created\')">created</button></div><div v-if="isOpen" data-testid="create-post-modal-open">open</div>',
     props: ['isOpen', 'initialDate', 'editingPublication'],
     emits: ['close', 'created', 'updated'],
   },
@@ -100,7 +121,11 @@ vi.mock('@/components/CalendarHeader.vue', () => ({
 }))
 
 vi.mock('@/components/CalendarCell.vue', () => ({
-  default: { template: '<div data-testid="calendar-cell" />' },
+  default: {
+    template:
+      '<div data-testid="calendar-cell"><span v-if="activityEntry">{{ activityEntry.count }} {{ activityEntry.density }}</span></div>',
+    props: ['activityEntry'],
+  },
 }))
 
 vi.mock('@/components/ConflictBadge.vue', () => ({
@@ -173,6 +198,54 @@ describe('SchedulerView', () => {
 
     expect(store.fetchCalendar).toHaveBeenCalledTimes(1)
     expect(wrapper.find('[data-testid="calendar-header"]').exists()).toBe(true)
+  })
+
+  it('uses flex sizing on the scheduler root so the shell keeps scroll ownership', async () => {
+    const wrapper = mountView()
+    await flushPromises()
+
+    const root = wrapper.get('[data-testid="scheduler-root"]')
+
+    expect(root.classes()).toContain('flex')
+    expect(root.classes()).toContain('flex-1')
+    expect(root.classes()).toContain('min-h-0')
+    expect(root.classes()).not.toContain('h-full')
+  })
+
+  it('keeps vertical scrolling inside the week timeline viewport', async () => {
+    const wrapper = mountView({ surface: 'calendar-week' })
+    await flushPromises()
+
+    const timelineViewport = wrapper.get('[data-testid="week-timeline-viewport"]')
+
+    expect(timelineViewport.classes()).toContain('relative')
+    expect(timelineViewport.classes()).toContain('min-h-0')
+    expect(timelineViewport.classes()).toContain('flex-1')
+    expect(timelineViewport.classes()).toContain('overflow-y-auto')
+  })
+
+  it('does not keep h-full on the calendar mode wrapper', async () => {
+    const wrapper = mountView({ surface: 'calendar-week' })
+    await flushPromises()
+
+    const calendarMode = wrapper.get('[data-testid="calendar-mode"]')
+
+    expect(calendarMode.classes()).toContain('flex')
+    expect(calendarMode.classes()).toContain('min-h-0')
+    expect(calendarMode.classes()).not.toContain('h-full')
+  })
+
+  it('uses a flex column workspace container so the calendar can shrink', async () => {
+    const wrapper = mountView({ surface: 'calendar-week' })
+    await flushPromises()
+
+    const workspace = wrapper.get('[data-testid="scheduler-workspace"]')
+
+    expect(workspace.classes()).toContain('flex')
+    expect(workspace.classes()).toContain('flex-col')
+    expect(workspace.classes()).toContain('flex-1')
+    expect(workspace.classes()).toContain('min-h-0')
+    expect(workspace.classes()).toContain('overflow-hidden')
   })
 
   it('opens the create post modal from calendar header new-post event', async () => {
@@ -731,16 +804,125 @@ describe('SchedulerView', () => {
       store.activity = [
         {
           date: todayStr,
-          scheduled: 5,
-          published: 3,
-          blocked: 1,
+          density: 'HIGH',
+          count: 5,
         },
       ]
 
+      const wrapper = mountView({ surface: 'calendar-month', date: todayStr })
+      await flushPromises()
+
+      expect(wrapper.text()).toContain('5 HIGH')
+    })
+  })
+
+  describe('post creation toast feedback', () => {
+    it('closes the composer and shows a success toast when a post is created', async () => {
+      toastSuccessMock.mockClear()
+
+      const wrapper = mountView()
+      await flushPromises()
+
+      // Open the create-post modal first so the @created handler has a
+      // meaningful state to act on.
+      const newPostButton = wrapper.find('[data-testid="header-new-post"]')
+      await newPostButton.trigger('click')
+      await flushPromises()
+
+      expect(wrapper.find('[data-testid="create-post-modal"]').exists()).toBe(true)
+
+      // Trigger the `created` event from the mocked modal — SchedulerView
+      // listens with @created="onPostCreated", which must:
+      //   1. Close the modal
+      //   2. Show a localized success toast
+      const createdButton = wrapper.find('[data-testid="create-post-created"]')
+      expect(createdButton.exists()).toBe(true)
+      await createdButton.trigger('click')
+      await flushPromises()
+
+      expect(wrapper.find('[data-testid="create-post-modal"]').exists()).toBe(false)
+      expect(toastSuccessMock).toHaveBeenCalledTimes(1)
+      expect(toastSuccessMock).toHaveBeenCalledWith('composer.scheduleSuccessToast')
+    })
+  })
+
+  describe('week grid overflow handling', () => {
+    it('renders a "+N more" indicator when more than 2 publications share a slot', async () => {
+      const store = usePublishingStore()
+      const today = new Date()
+      // Three publications in the same hour slot on the same day
+      const sameHour = new Date(today.getFullYear(), today.getMonth(), today.getDate(), 14, 0, 0)
+      const sameHour2 = new Date(today.getFullYear(), today.getMonth(), today.getDate(), 14, 30, 0)
+      const sameHour3 = new Date(today.getFullYear(), today.getMonth(), today.getDate(), 14, 45, 0)
+
+      store.publications = [
+        {
+          id: 'pub-overflow-1',
+          content: 'First post in slot',
+          channels: ['linkedin'],
+          scheduledAt: sameHour.toISOString(),
+          status: 'QUEUED',
+          priority: false,
+        },
+        {
+          id: 'pub-overflow-2',
+          content: 'Second post in slot',
+          channels: ['linkedin'],
+          scheduledAt: sameHour2.toISOString(),
+          status: 'QUEUED',
+          priority: false,
+        },
+        {
+          id: 'pub-overflow-3',
+          content: 'Third post in slot',
+          channels: ['linkedin'],
+          scheduledAt: sameHour3.toISOString(),
+          status: 'QUEUED',
+          priority: false,
+        },
+      ]
+
+      const todayStr = today.toISOString().slice(0, 10)
       const wrapper = mountView({ date: todayStr })
       await flushPromises()
 
-      expect(wrapper.exists()).toBe(true)
+      // With 3 posts in the slot, the indicator must show "+1 more"
+      // (3 visible cap - 2 = 1 hidden).
+      expect(wrapper.text()).toContain('+1')
+      expect(wrapper.text()).toContain('more')
+    })
+
+    it('does not render a "+N more" indicator when 2 or fewer publications share a slot', async () => {
+      const store = usePublishingStore()
+      const today = new Date()
+      const sameHour = new Date(today.getFullYear(), today.getMonth(), today.getDate(), 14, 0, 0)
+      const sameHour2 = new Date(today.getFullYear(), today.getMonth(), today.getDate(), 14, 30, 0)
+
+      store.publications = [
+        {
+          id: 'pub-no-overflow-1',
+          content: 'First post in slot',
+          channels: ['linkedin'],
+          scheduledAt: sameHour.toISOString(),
+          status: 'QUEUED',
+          priority: false,
+        },
+        {
+          id: 'pub-no-overflow-2',
+          content: 'Second post in slot',
+          channels: ['linkedin'],
+          scheduledAt: sameHour2.toISOString(),
+          status: 'QUEUED',
+          priority: false,
+        },
+      ]
+
+      const todayStr = today.toISOString().slice(0, 10)
+      const wrapper = mountView({ date: todayStr })
+      await flushPromises()
+
+      // With only 2 posts in the slot, no overflow indicator should render.
+      expect(wrapper.text()).not.toContain('more')
     })
   })
 })

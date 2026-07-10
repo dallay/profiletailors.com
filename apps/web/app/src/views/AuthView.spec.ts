@@ -27,6 +27,12 @@ vi.mock('@/stores/auth', () => ({
   }),
 }))
 
+vi.mock('vue-i18n', () => ({
+  useI18n: () => ({
+    t: (key: string) => key,
+  }),
+}))
+
 function mountAuthView() {
   return mount(AuthView, {
     global: {
@@ -64,23 +70,40 @@ describe('AuthView validation', () => {
     await wrapper.find('form').trigger('submit.prevent')
 
     expect(loginWithPassword).not.toHaveBeenCalled()
-    expect(wrapper.text()).toContain('Please enter a valid email address.')
-    expect(wrapper.text()).toContain('Please enter your password.')
+    // Looking for the translated key part from the mock
+    expect(wrapper.text()).toContain('auth.invalidEmail')
+    expect(wrapper.text()).toContain('auth.passwordRequired')
   })
 
-  it('trims credentials before submitting registration', async () => {
+  it('trims credentials and validates confirm password before submitting registration', async () => {
     routeState.name = 'register'
     registerWithPassword.mockResolvedValue(undefined)
     const wrapper = mountAuthView()
 
     await wrapper.find('input#email').setValue('  user@example.com  ')
     await wrapper.find('input#password').setValue('  password123  ')
+    await wrapper.find('input#confirmPassword').setValue('  password123  ')
     await wrapper.find('form').trigger('submit.prevent')
 
+    // Expecting payload WITHOUT confirmPassword as it is filtered in AuthView.vue
     expect(registerWithPassword).toHaveBeenCalledWith({
       email: 'user@example.com',
       password: 'password123',
     })
     expect(replace).toHaveBeenCalledWith('/')
+  })
+
+  it('shows error if passwords do not match in registration', async () => {
+    routeState.name = 'register'
+    const wrapper = mountAuthView()
+
+    await wrapper.find('input#email').setValue('user@example.com')
+    await wrapper.find('input#password').setValue('password123')
+    await wrapper.find('input#confirmPassword').setValue('mismatch')
+    await wrapper.find('form').trigger('submit.prevent')
+
+    expect(registerWithPassword).not.toHaveBeenCalled()
+    // Looking for the translated key part
+    expect(wrapper.text()).toContain('auth.passwordsMustMatch')
   })
 })

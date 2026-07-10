@@ -44,6 +44,7 @@ export interface Channel {
     | 'REVOKED'
     | 'EXPIRED'
   accountId: string // Maps to backend socialAccountId if available
+  maxAttachments?: number
 }
 
 export interface Publication {
@@ -78,6 +79,10 @@ export interface Publication {
   publishedAt?: string
   /** Reason the publication was blocked (e.g., account DISABLED or REQUIRES_RECONNECT). */
   blockedReason?: string
+}
+
+export type PublicationUpdate = Partial<Publication> & {
+  assetIds?: string[]
 }
 
 // ---------------------------------------------------------------------------
@@ -202,16 +207,30 @@ function toChannelProvider(backendProvider: string): Publication['channels'][num
   return known.has(lower) ? (lower as Publication['channels'][number]) : 'linkedin'
 }
 
+const CHANNEL_ATTACHMENT_LIMITS: Record<SocialProvider, number> = {
+  linkedin: 9,
+  twitter: 4,
+  instagram: 10,
+  facebook: 10,
+}
+
+function resolveChannelMaxAttachments(provider: SocialProvider): number {
+  return CHANNEL_ATTACHMENT_LIMITS[provider]
+}
+
 function apiChannelToChannel(api: ConnectedSocialChannelSummary): Channel {
+  const provider = toChannelProvider(api.provider)
+
   return {
     id: api.socialAccountId,
     accountId: api.socialAccountId,
     name: api.displayName,
-    provider: toChannelProvider(api.provider),
+    provider,
     avatar: '',
     avatarUrl: api.avatarUrl ?? undefined,
     handle: api.displayName,
     status: api.status as Channel['status'],
+    maxAttachments: resolveChannelMaxAttachments(provider),
   }
 }
 
@@ -285,12 +304,16 @@ function publicationMutationResultToPublication(
   result: PublicationMutationResult,
   current: Publication,
 ): Publication {
+  const scheduleMode = result.scheduleMode as Publication['scheduleMode']
+  const scheduledAt = scheduleMode === 'NEXT_SLOT' ? result.nextSlotAfter : result.scheduledFor
+
   return {
     ...current,
+    id: result.publicationId,
     title: result.title ?? undefined,
     content: result.bodyText ?? result.title ?? '',
-    scheduledAt: result.scheduledFor ?? current.scheduledAt,
-    scheduleMode: result.scheduleMode as Publication['scheduleMode'],
+    scheduledAt: scheduledAt ?? '',
+    scheduleMode,
     status: mapApiStatus(result.status),
     priority: result.priority,
     assetIds: result.assetIds,
@@ -637,35 +660,37 @@ export const usePublishingStore = defineStore('publishing', () => {
     scheduledFor: string
     priority?: boolean
   }) {
-    const publicationId = `pub-${Date.now()}`
-
-    const newPub: Publication = {
-      id: publicationId,
+    const localPub: Publication = {
+      id: `pub-${Date.now()}`,
       content: opts.bodyText,
       title: opts.title,
       channels: [toChannelProvider('linkedin')],
+      accountId: opts.socialAccountId,
       scheduledAt: opts.scheduledFor,
+      scheduleMode: 'SCHEDULED_AT',
       status: 'QUEUED',
       priority: opts.priority ?? false,
     }
 
-    if (auth.isAuthenticated) {
-      try {
-        await auth.apiFetch<unknown>('/api/publishing/publications/quick-create', {
-          method: 'POST',
-          body: JSON.stringify({
-            socialAccountId: opts.socialAccountId,
-            title: opts.title ?? 'Quick post',
-            bodyText: opts.bodyText,
-            scheduledFor: opts.scheduledFor,
-            priority: opts.priority ?? false,
-          }),
-          workspaceScoped: true,
-        })
-      } catch (err) {
-        console.warn('Quick-create API unavailable, saving locally', err)
-      }
-    }
+    const newPub = auth.isAuthenticated
+      ? publicationMutationResultToPublication(
+          await auth.apiFetch<PublicationMutationResult>(
+            '/api/publishing/publications/quick-create',
+            {
+              method: 'POST',
+              body: JSON.stringify({
+                socialAccountId: opts.socialAccountId,
+                title: opts.title ?? 'Quick post',
+                bodyText: opts.bodyText,
+                scheduledFor: opts.scheduledFor,
+                priority: opts.priority ?? false,
+              }),
+              workspaceScoped: true,
+            },
+          ),
+          localPub,
+        )
+      : localPub
 
     publications.value.unshift(newPub)
     saveToStorage()
@@ -759,61 +784,52 @@ export const usePublishingStore = defineStore('publishing', () => {
       thumbnail: post.thumbnail,
     }
 
-    if (auth.isAuthenticated) {
-      await syncPublicationWithApi(post, newPub, effectiveMode)
-    }
+    const persistedPub = auth.isAuthenticated
+      ? publicationMutationResultToPublication(
+          await syncPublicationWithApi(post, effectiveMode),
+          newPub,
+        )
+      : newPub
 
-    publications.value.unshift(newPub)
-    if (typeof newPub.thumbnail === 'string' && newPub.thumbnail.startsWith('blob:')) {
-      objectUrls.set(newPub.id, newPub.thumbnail)
+    publications.value.unshift(persistedPub)
+    if (typeof persistedPub.thumbnail === 'string' && persistedPub.thumbnail.startsWith('blob:')) {
+      objectUrls.set(persistedPub.id, persistedPub.thumbnail)
     }
     saveToStorage()
-    return newPub
+    return persistedPub
   }
 
-  /**
-   * Syncs a new publication with the backend API if a LinkedIn channel is selected.
-   * Falls back silently to local-only mode if the API is unavailable for non-LinkedIn posts.
-   */
+  /** Syncs an authenticated LinkedIn publication and returns backend server truth. */
   async function syncPublicationWithApi(
     post: Parameters<typeof schedulePost>[0],
-    newPub: Publication,
     effectiveMode: string,
-  ): Promise<void> {
+  ): Promise<PublicationMutationResult> {
     const hasLinkedIn = post.channels.includes('linkedin')
-
-    try {
-      if (!hasLinkedIn) return
-
-      const linkedInChannel = findActiveLinkedInChannel(channels.value, post.socialAccountId)
-      if (!linkedInChannel?.accountId) {
-        throw new Error('Connect a LinkedIn profile before scheduling authenticated posts.')
-      }
-
-      newPub.accountId = linkedInChannel.accountId
-      const resolvedAssetIds = post.assetIds ?? []
-
-      await auth.apiFetch<unknown>('/api/publishing/publications', {
-        method: 'POST',
-        body: JSON.stringify({
-          socialAccountId: linkedInChannel.accountId,
-          title: post.title || 'Post via Web App',
-          bodyText: normalizeText(post.content),
-          assetIds: resolvedAssetIds,
-          scheduleMode: effectiveMode,
-          ...(effectiveMode === 'SCHEDULED_AT' ? { scheduledFor: post.scheduledAt } : {}),
-          ...(effectiveMode === 'NEXT_SLOT' ? { nextSlotAfter: post.nextSlotAfter } : {}),
-          priority: post.priority,
-        }),
-        workspaceScoped: true,
-      })
-      console.log('Successfully synced publication with backend API!')
-    } catch (err) {
-      if (hasLinkedIn) {
-        throw err
-      }
-      console.warn('Backend API unavailable. Saving to local storage mock queue instead.', err)
+    if (!hasLinkedIn) {
+      throw new Error('Authenticated publication sync currently requires a LinkedIn channel.')
     }
+
+    const linkedInChannel = findActiveLinkedInChannel(channels.value, post.socialAccountId)
+    if (!linkedInChannel?.accountId) {
+      throw new Error('Connect a LinkedIn profile before scheduling authenticated posts.')
+    }
+
+    const resolvedAssetIds = post.assetIds ?? []
+
+    return auth.apiFetch<PublicationMutationResult>('/api/publishing/publications', {
+      method: 'POST',
+      body: JSON.stringify({
+        socialAccountId: linkedInChannel.accountId,
+        title: post.title || 'Post via Web App',
+        bodyText: normalizeText(post.content),
+        assetIds: resolvedAssetIds,
+        scheduleMode: effectiveMode,
+        ...(effectiveMode === 'SCHEDULED_AT' ? { scheduledFor: post.scheduledAt } : {}),
+        ...(effectiveMode === 'NEXT_SLOT' ? { nextSlotAfter: post.nextSlotAfter } : {}),
+        priority: post.priority,
+      }),
+      workspaceScoped: true,
+    })
   }
 
   async function deletePost(id: string) {
@@ -867,7 +883,7 @@ export const usePublishingStore = defineStore('publishing', () => {
     }
   }
 
-  async function updatePost(id: string, updates: Partial<Publication>) {
+  async function updatePost(id: string, updates: PublicationUpdate) {
     const current = publications.value.find((p) => p.id === id)
     if (!current) {
       throw new Error(`Publication ${id} not found`)
@@ -882,14 +898,8 @@ export const usePublishingStore = defineStore('publishing', () => {
             socialAccountId: current.accountId,
             title: updates.title ?? current.title ?? null,
             bodyText: updates.content ?? current.content,
-            assetIds:
-              (updates as { assetIds?: string[] }).assetIds ??
-              (current as { assetIds?: string[] }).assetIds ??
-              [],
-            scheduleMode:
-              (updates as { scheduleMode?: string }).scheduleMode ??
-              current.scheduleMode ??
-              'SCHEDULED_AT',
+            ...(Object.hasOwn(updates, 'assetIds') ? { assetIds: updates.assetIds ?? [] } : {}),
+            scheduleMode: updates.scheduleMode ?? current.scheduleMode ?? 'SCHEDULED_AT',
             scheduledFor: updates.scheduledAt ?? current.scheduledAt,
             priority: updates.priority ?? current.priority,
           }),

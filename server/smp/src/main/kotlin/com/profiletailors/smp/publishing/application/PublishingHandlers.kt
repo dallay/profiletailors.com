@@ -5,6 +5,7 @@ import com.profiletailors.common.domain.bus.command.CommandWithResultHandler
 import com.profiletailors.common.domain.bus.query.QueryHandler
 import com.profiletailors.common.domain.context.PrincipalContextProvider
 import com.profiletailors.common.domain.context.ResourceContextProvider
+import com.profiletailors.common.domain.persistence.AtomicTransactionRunner
 import com.profiletailors.smp.identity.application.AuthFeature
 import com.profiletailors.smp.identity.application.EmailVerificationPolicy
 import com.profiletailors.smp.identity.application.NoOpPrincipalIdentityLookup
@@ -151,6 +152,7 @@ internal class CompleteLinkedInConnectionHandler(
     private val socialAccountRepository: SocialAccountRepository,
     private val channelEventPublisher: ChannelEventPublisher,
     private val clock: Clock,
+    private val transactionRunner: AtomicTransactionRunner,
     private val principalIdentityLookup: PrincipalIdentityLookup = NoOpPrincipalIdentityLookup(),
     private val emailVerificationPolicy: EmailVerificationPolicy =
         permissiveEmailVerificationPolicy,
@@ -175,31 +177,35 @@ internal class CompleteLinkedInConnectionHandler(
             ),
         )
 
-        val connection = socialConnectionRepository.upsert(
-            SocialConnection(
-                id = "soconn-${UUID.randomUUID()}",
-                workspaceId = workspaceId,
-                provider = SocialProvider.LINKEDIN,
-                providerConnectionRef = providerResult.providerConnectionRef,
-                status = SocialConnectionStatus.ACTIVE,
-                credentialReference = providerResult.credentialReference,
-                connectedAt = clock.instant(),
-            ),
-        )
-        val account = socialAccountRepository.upsert(
-            SocialAccount(
-                id = "soacc-${UUID.randomUUID()}",
-                socialConnectionId = connection.id,
-                workspaceId = workspaceId,
-                provider = SocialProvider.LINKEDIN,
-                providerAccountId = providerResult.account.providerAccountId,
-                kind = providerResult.account.kind,
-                displayName = providerResult.account.displayName,
-                profileUrn = providerResult.account.profileUrn,
-                avatarUrl = providerResult.account.avatarUrl,
-                status = SocialConnectionStatus.ACTIVE,
-            ),
-        )
+        val (connection, account) = transactionRunner.runAtomically {
+            val conn = socialConnectionRepository.upsert(
+                SocialConnection(
+                    id = "soconn-${UUID.randomUUID()}",
+                    workspaceId = workspaceId,
+                    provider = SocialProvider.LINKEDIN,
+                    providerConnectionRef = providerResult.providerConnectionRef,
+                    status = SocialConnectionStatus.ACTIVE,
+                    credentialReference = providerResult.credentialReference,
+                    connectedAt = clock.instant(),
+                ),
+            )
+            val acc = socialAccountRepository.upsert(
+                SocialAccount(
+                    id = "soacc-${UUID.randomUUID()}",
+                    socialConnectionId = conn.id,
+                    workspaceId = workspaceId,
+                    provider = SocialProvider.LINKEDIN,
+                    providerAccountId = providerResult.account.providerAccountId,
+                    kind = providerResult.account.kind,
+                    displayName = providerResult.account.displayName,
+                    profileUrn = providerResult.account.profileUrn,
+                    avatarUrl = providerResult.account.avatarUrl,
+                    status = SocialConnectionStatus.ACTIVE,
+                ),
+            )
+            conn to acc
+        }
+
         channelEventPublisher.publish(
             ChannelEvent(
                 type = ChannelEventType.CONNECTED_CHANNEL_UPDATED,
@@ -289,6 +295,7 @@ internal class CreatePublicationHandler(
     private val publicationRepository: PublicationRepository,
     private val publicationAssetRepository: PublicationAssetRepository,
     private val publicationJobRepository: PublicationJobRepository,
+    private val transactionRunner: AtomicTransactionRunner,
     private val providerCapabilityValidator: ProviderCapabilityValidator,
     private val schedulingPolicy: PublicationSchedulingPolicy,
     private val mediaAssetResolver: MediaAssetResolver,
@@ -348,8 +355,11 @@ internal class CreatePublicationHandler(
             ),
         )
         val queued = PublicationLifecyclePolicy.queue(draft, schedulingPolicy.resolveDueAt(draft, now))
-        val persisted = publicationRepository.createDraft(queued)
-        publicationJobRepository.enqueue(newJobFor(persisted, now))
+        val persisted = transactionRunner.runAtomically {
+            val created = publicationRepository.createDraft(queued)
+            publicationJobRepository.enqueue(newJobFor(created, now))
+            created
+        }
         return persisted.toResult()
     }
 
@@ -411,15 +421,10 @@ internal class CreatePublicationHandler(
         socialAccountRepository.findByWorkspaceAndId(workspaceId, socialAccountId)
             ?: throw SocialAccountNotFoundException(socialAccountId)
 
-    private fun newJobFor(publication: PublicationDraft, now: Instant): PublicationJob = PublicationJob(
-        id = "pjob-${UUID.randomUUID()}",
-        publicationId = publication.id,
-        workspaceId = publication.workspaceId,
-        status = com.profiletailors.smp.publishing.domain.JobStatus.PENDING,
-        dueAt = schedulingPolicy.resolveDueAt(publication, now),
-        priorityRank = schedulingPolicy.priorityRank(publication),
-        attemptCount = 0,
-        maxAttempts = 1,
+    private fun newJobFor(publication: PublicationDraft, now: Instant): PublicationJob = replacementJobFor(
+        publication,
+        schedulingPolicy,
+        now,
     )
 
     private companion object {
@@ -437,6 +442,7 @@ internal class EditPublicationHandler(
     private val publicationRepository: PublicationRepository,
     private val publicationAssetRepository: PublicationAssetRepository,
     private val publicationJobRepository: PublicationJobRepository,
+    private val transactionRunner: AtomicTransactionRunner,
     private val providerCapabilityValidator: ProviderCapabilityValidator,
     private val schedulingPolicy: PublicationSchedulingPolicy,
     private val mediaAssetResolver: MediaAssetResolver,
@@ -460,14 +466,15 @@ internal class EditPublicationHandler(
         val account = socialAccountRepository.findByWorkspaceAndId(workspaceId, current.socialAccountId)
             ?: throw SocialAccountNotFoundException(current.socialAccountId)
 
+        val updatedAssetIds = command.assetIds ?: current.assetIds
         // Resolve assets through media context (same contract as publication creation)
-        val assets = resolveAssets(workspaceId, command.assetIds)
+        val assets = resolveAssets(workspaceId, updatedAssetIds)
 
         val now = clock.instant()
         val updatedDraft = current.copy(
             title = command.title,
             bodyText = command.bodyText,
-            assetIds = command.assetIds,
+            assetIds = updatedAssetIds,
             scheduleMode = command.scheduleMode,
             scheduledFor = command.scheduledFor,
             nextSlotAfter = command.nextSlotAfter,
@@ -486,19 +493,11 @@ internal class EditPublicationHandler(
             updatedDraft,
             schedulingPolicy.resolveDueAt(updatedDraft, now),
         )
-        val persisted = publicationRepository.updateEditableDraft(queued)
-        publicationJobRepository.replaceForPublication(
-            PublicationJob(
-                id = "pjob-${UUID.randomUUID()}",
-                publicationId = persisted.id,
-                workspaceId = persisted.workspaceId,
-                status = com.profiletailors.smp.publishing.domain.JobStatus.PENDING,
-                dueAt = schedulingPolicy.resolveDueAt(persisted, now),
-                priorityRank = schedulingPolicy.priorityRank(persisted),
-                attemptCount = 0,
-                maxAttempts = 1,
-            ),
-        )
+        val persisted = transactionRunner.runAtomically {
+            publicationRepository.updateEditableDraft(queued).also { persisted ->
+                publicationJobRepository.replaceForPublication(newJobFor(persisted, now))
+            }
+        }
         return persisted.toResult()
     }
 
@@ -548,6 +547,12 @@ internal class EditPublicationHandler(
             publicationAssetRepository.findByWorkspaceAndIds(workspaceId, assetIds)
         }
 
+    private fun newJobFor(publication: PublicationDraft, now: Instant): PublicationJob = replacementJobFor(
+        publication,
+        schedulingPolicy,
+        now,
+    )
+
     private companion object {
         const val TIMEOUT_MILLIS = 5_000L
         const val MILLIS_PER_SECOND = 1_000L
@@ -587,6 +592,7 @@ internal class CancelPublicationHandler(
     private val resourceContextProvider: ResourceContextProvider,
     private val publicationRepository: PublicationRepository,
     private val publicationJobRepository: PublicationJobRepository,
+    private val transactionRunner: AtomicTransactionRunner,
     private val clock: Clock,
     private val principalIdentityLookup: PrincipalIdentityLookup = NoOpPrincipalIdentityLookup(),
     private val emailVerificationPolicy: EmailVerificationPolicy = permissiveEmailVerificationPolicy,
@@ -604,8 +610,10 @@ internal class CancelPublicationHandler(
             ?: throw PublicationNotFoundException(command.publicationId)
         val cancelledAt = clock.instant()
         val cancelled = PublicationLifecyclePolicy.cancel(current, cancelledAt)
-        publicationRepository.markCancelled(cancelled.id, cancelledAt)
-        publicationJobRepository.cancel(cancelled.id, cancelledAt)
+        transactionRunner.runAtomically {
+            publicationRepository.markCancelled(cancelled.id, cancelledAt)
+            publicationJobRepository.cancel(cancelled.id, cancelledAt)
+        }
         return cancelled.toResult()
     }
 }
@@ -616,6 +624,7 @@ internal class RetryPublicationHandler(
     private val resourceContextProvider: ResourceContextProvider,
     private val publicationRepository: PublicationRepository,
     private val publicationJobRepository: PublicationJobRepository,
+    private val transactionRunner: AtomicTransactionRunner,
     private val schedulingPolicy: PublicationSchedulingPolicy,
     private val clock: Clock,
     private val principalIdentityLookup: PrincipalIdentityLookup = NoOpPrincipalIdentityLookup(),
@@ -644,19 +653,11 @@ internal class RetryPublicationHandler(
                 priority = command.priority ?: current.priority,
             ),
         )
-        val persisted = publicationRepository.updateEditableDraft(prepared)
-        publicationJobRepository.replaceForPublication(
-            PublicationJob(
-                id = "pjob-${UUID.randomUUID()}",
-                publicationId = persisted.id,
-                workspaceId = persisted.workspaceId,
-                status = com.profiletailors.smp.publishing.domain.JobStatus.PENDING,
-                dueAt = schedulingPolicy.resolveDueAt(persisted, now),
-                priorityRank = schedulingPolicy.priorityRank(persisted),
-                attemptCount = 0,
-                maxAttempts = 1,
-            ),
-        )
+        val persisted = transactionRunner.runAtomically {
+            publicationRepository.updateEditableDraft(prepared).also { persisted ->
+                publicationJobRepository.replaceForPublication(replacementJobFor(persisted, schedulingPolicy, now))
+            }
+        }
         return persisted.toResult()
     }
 }
@@ -667,6 +668,7 @@ internal class ReschedulePublicationHandler(
     private val resourceContextProvider: ResourceContextProvider,
     private val publicationRepository: PublicationRepository,
     private val publicationJobRepository: PublicationJobRepository,
+    private val transactionRunner: AtomicTransactionRunner,
     private val schedulingPolicy: PublicationSchedulingPolicy,
     private val clock: Clock,
     private val principalIdentityLookup: PrincipalIdentityLookup = NoOpPrincipalIdentityLookup(),
@@ -703,19 +705,11 @@ internal class ReschedulePublicationHandler(
                 now,
             ),
         )
-        val persisted = publicationRepository.updateEditableDraft(rescheduled)
-        publicationJobRepository.replaceForPublication(
-            PublicationJob(
-                id = "pjob-${UUID.randomUUID()}",
-                publicationId = persisted.id,
-                workspaceId = persisted.workspaceId,
-                status = com.profiletailors.smp.publishing.domain.JobStatus.PENDING,
-                dueAt = schedulingPolicy.resolveDueAt(persisted, now),
-                priorityRank = schedulingPolicy.priorityRank(persisted),
-                attemptCount = 0,
-                maxAttempts = 1,
-            ),
-        )
+        val persisted = transactionRunner.runAtomically {
+            publicationRepository.updateEditableDraft(rescheduled).also { persisted ->
+                publicationJobRepository.replaceForPublication(replacementJobFor(persisted, schedulingPolicy, now))
+            }
+        }
         return persisted.toResult()
     }
 }
@@ -880,11 +874,21 @@ private fun PublicationDraft.toCalendarResult(
     previewUrl = previewUrl,
 )
 
-/**
- * Converts a publication draft to its result DTO.
- *
- * @return A PublicationResult containing the publication draft's fields.
- */
+private fun replacementJobFor(
+    publication: PublicationDraft,
+    schedulingPolicy: PublicationSchedulingPolicy,
+    now: Instant,
+): PublicationJob = PublicationJob(
+    id = "pjob-${UUID.randomUUID()}",
+    publicationId = publication.id,
+    workspaceId = publication.workspaceId,
+    status = com.profiletailors.smp.publishing.domain.JobStatus.PENDING,
+    dueAt = schedulingPolicy.resolveDueAt(publication, now),
+    priorityRank = schedulingPolicy.priorityRank(publication),
+    attemptCount = 0,
+    maxAttempts = 1,
+)
+
 private fun PublicationDraft.toResult(): PublicationResult = PublicationResult(
     publicationId = id,
     workspaceId = workspaceId,

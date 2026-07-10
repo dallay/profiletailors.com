@@ -116,6 +116,21 @@ class MediaPostgresSchemaConstraintsTest : PostgresDatabaseTestBase() {
     }
 
     @Test
+    fun `legacy processing media asset may reserve storage key without file hash`() = runTest {
+        seedWorkspace("workspace-legacy")
+
+        insertMediaAsset(
+            assetId = "asset-legacy-processing",
+            workspaceId = "workspace-legacy",
+            fileHash = null,
+            status = "PROCESSING",
+            storageKey = "workspace-legacy/assets/asset-legacy-processing",
+        )
+
+        assertEquals(1, countRows("media_assets"))
+    }
+
+    @Test
     fun `workspace file blobs require canonical metadata when ready`() = runTest {
         seedWorkspace("workspace-1")
 
@@ -211,6 +226,174 @@ class MediaPostgresSchemaConstraintsTest : PostgresDatabaseTestBase() {
         assertEquals(4, countRows("media_assets"))
     }
 
+    @Test
+    fun `media assets expose external metadata columns`() = runTest {
+        val columns = databaseClient.sql(
+            """
+            SELECT column_name
+            FROM information_schema.columns
+            WHERE table_name = 'media_assets'
+              AND column_name IN (
+                'source_provider', 'external_id', 'source_url',
+                'author_name', 'author_url', 'metadata'
+              )
+            """.trimIndent(),
+        )
+            .map { row, _ -> requireNotNull(row.get("column_name", String::class.java)) }
+            .all()
+            .collectList()
+            .awaitSingle()
+            .toSet()
+
+        assertEquals(
+            setOf("source_provider", "external_id", "source_url", "author_name", "author_url", "metadata"),
+            columns,
+        )
+    }
+
+    @Test
+    fun `media assets reject uploaded rows with a source provider`() = runTest {
+        seedWorkspace("workspace-external-check")
+        insertWorkspaceBlob(workspaceId = "workspace-external-check", fileHash = HASH_A, status = "READY")
+
+        val exception = kotlin.runCatching {
+            insertMediaAsset(
+                assetId = "asset-uploaded-provider",
+                workspaceId = "workspace-external-check",
+                fileHash = HASH_A,
+                sourceProvider = "unsplash",
+            )
+        }.exceptionOrNull()
+
+        assertNotNull(exception)
+        val stack = exception!!.stackTraceToString()
+        assertTrue(
+            stack.contains("chk_asset_uploaded_implies_no_provider") ||
+                stack.contains("chk_asset_uploaded_implies_no_external_attribution"),
+            stack,
+        )
+    }
+
+    @Test
+    fun `media assets reject external rows without provider or id`() = runTest {
+        seedWorkspace("workspace-external-checks")
+        insertWorkspaceBlob(workspaceId = "workspace-external-checks", fileHash = HASH_A, status = "READY")
+
+        val missingProvider = kotlin.runCatching {
+            insertMediaAsset(
+                assetId = "asset-external-missing-provider",
+                workspaceId = "workspace-external-checks",
+                fileHash = HASH_A,
+                sourceType = "EXTERNAL",
+                sourceProvider = null,
+                externalId = "photo-123",
+            )
+        }.exceptionOrNull()
+        val missingId = kotlin.runCatching {
+            insertMediaAsset(
+                assetId = "asset-external-missing-id",
+                workspaceId = "workspace-external-checks",
+                fileHash = HASH_A,
+                sourceType = "EXTERNAL",
+                sourceProvider = "unsplash",
+                externalId = null,
+            )
+        }.exceptionOrNull()
+
+        assertNotNull(missingProvider)
+        assertNotNull(missingId)
+        assertTrue(
+            missingProvider!!.stackTraceToString().contains("chk_asset_external_implies_provider_and_id"),
+            missingProvider.stackTraceToString(),
+        )
+        assertTrue(
+            missingId!!.stackTraceToString().contains("chk_asset_external_implies_provider_and_id"),
+            missingId.stackTraceToString(),
+        )
+    }
+
+    @Test
+    fun `media assets reject external rows without source url`() = runTest {
+        seedWorkspace("workspace-external-url-check")
+        insertWorkspaceBlob(workspaceId = "workspace-external-url-check", fileHash = HASH_A, status = "READY")
+
+        val exception = kotlin.runCatching {
+            insertMediaAsset(
+                assetId = "asset-external-missing-url",
+                workspaceId = "workspace-external-url-check",
+                fileHash = HASH_A,
+                sourceType = "EXTERNAL",
+                sourceProvider = "unsplash",
+                externalId = "photo-123",
+                sourceUrl = null,
+            )
+        }.exceptionOrNull()
+
+        assertNotNull(exception)
+        assertTrue(
+            exception!!.stackTraceToString().contains("chk_asset_external_implies_provider_and_id"),
+            exception.stackTraceToString(),
+        )
+    }
+
+    @Test
+    fun `media assets reject uploaded rows that carry external attribution`() = runTest {
+        seedWorkspace("workspace-uploaded-no-attribution")
+        insertWorkspaceBlob(workspaceId = "workspace-uploaded-no-attribution", fileHash = HASH_A, status = "READY")
+
+        val authorName = kotlin.runCatching {
+            insertMediaAsset(
+                assetId = "asset-uploaded-with-author-name",
+                workspaceId = "workspace-uploaded-no-attribution",
+                fileHash = HASH_A,
+                sourceType = "UPLOADED",
+                authorName = "Jane Creator",
+            )
+        }.exceptionOrNull()
+        val authorUrl = kotlin.runCatching {
+            insertMediaAsset(
+                assetId = "asset-uploaded-with-author-url",
+                workspaceId = "workspace-uploaded-no-attribution",
+                fileHash = HASH_A,
+                sourceType = "UPLOADED",
+                authorUrl = "https://example.com/@jane",
+            )
+        }.exceptionOrNull()
+
+        assertNotNull(authorName)
+        assertNotNull(authorUrl)
+        assertTrue(
+            authorName!!.stackTraceToString()
+                .contains("chk_asset_uploaded_implies_no_external_attribution"),
+            authorName.stackTraceToString(),
+        )
+        assertTrue(
+            authorUrl!!.stackTraceToString()
+                .contains("chk_asset_uploaded_implies_no_external_attribution"),
+            authorUrl.stackTraceToString(),
+        )
+    }
+
+    @Test
+    fun `media assets accept external rows with full attribution including url`() = runTest {
+        seedWorkspace("workspace-external-accept")
+        insertWorkspaceBlob(workspaceId = "workspace-external-accept", fileHash = HASH_A, status = "READY")
+
+        insertMediaAsset(
+            assetId = "asset-external-full",
+            workspaceId = "workspace-external-accept",
+            fileHash = HASH_A,
+            sourceType = "EXTERNAL",
+            sourceProvider = "unsplash",
+            externalId = "photo-123",
+            sourceUrl = "https://unsplash.com/photos/photo-123",
+            authorName = "Jane Creator",
+            authorUrl = "https://unsplash.com/@jane",
+        )
+
+        assertEquals(1, countRows("media_assets"))
+    }
+
     private suspend fun seedWorkspace(workspaceId: String) {
         databaseClient.sql(
             """
@@ -264,7 +447,7 @@ class MediaPostgresSchemaConstraintsTest : PostgresDatabaseTestBase() {
             if (fileSizeBytes ==
                 null
             ) {
-                spec.bindNull("fileSizeBytes", java.lang.Long::class.java)
+                spec.bindNull("fileSizeBytes", Long::class.java)
             } else {
                 spec.bind("fileSizeBytes", fileSizeBytes)
             }
@@ -274,25 +457,38 @@ class MediaPostgresSchemaConstraintsTest : PostgresDatabaseTestBase() {
     private suspend fun insertMediaAsset(
         assetId: String,
         workspaceId: String,
-        fileHash: String,
+        fileHash: String?,
         status: String = "READY",
         storageKey: String? = "storage/key.png",
+        sourceType: String = "UPLOADED",
+        sourceProvider: String? = null,
+        externalId: String? = null,
+        sourceUrl: String? = null,
+        authorName: String? = null,
+        authorUrl: String? = null,
     ) {
         var spec = databaseClient.sql(
             """
             INSERT INTO media_assets (
                 asset_id, workspace_id, source_type, file_hash, media_type, storage_key,
-                original_filename, file_size_bytes, status, created_at
+                original_filename, file_size_bytes, status, created_at,
+                source_provider, external_id, source_url, author_name, author_url
             ) VALUES (
-                :assetId, :workspaceId, 'UPLOADED', :fileHash, 'image/png', :storageKey,
-                'asset.png', 1024, :status, CURRENT_TIMESTAMP
+                :assetId, :workspaceId, :sourceType, :fileHash, 'image/png', :storageKey,
+                'asset.png', 1024, :status, CURRENT_TIMESTAMP,
+                :sourceProvider, :externalId, :sourceUrl, :authorName, :authorUrl
             )
             """.trimIndent(),
         )
             .bind("assetId", assetId)
             .bind("workspaceId", workspaceId)
-            .bind("fileHash", fileHash)
+            .bind("sourceType", sourceType)
             .bind("status", status)
+        spec = if (fileHash == null) {
+            spec.bindNull("fileHash", String::class.java)
+        } else {
+            spec.bind("fileHash", fileHash)
+        }
         spec =
             if (storageKey ==
                 null
@@ -301,6 +497,31 @@ class MediaPostgresSchemaConstraintsTest : PostgresDatabaseTestBase() {
             } else {
                 spec.bind("storageKey", storageKey)
             }
+        spec = if (sourceProvider == null) {
+            spec.bindNull("sourceProvider", String::class.java)
+        } else {
+            spec.bind("sourceProvider", sourceProvider)
+        }
+        spec = if (externalId == null) {
+            spec.bindNull("externalId", String::class.java)
+        } else {
+            spec.bind("externalId", externalId)
+        }
+        spec = if (sourceUrl == null) {
+            spec.bindNull("sourceUrl", String::class.java)
+        } else {
+            spec.bind("sourceUrl", sourceUrl)
+        }
+        spec = if (authorName == null) {
+            spec.bindNull("authorName", String::class.java)
+        } else {
+            spec.bind("authorName", authorName)
+        }
+        spec = if (authorUrl == null) {
+            spec.bindNull("authorUrl", String::class.java)
+        } else {
+            spec.bind("authorUrl", authorUrl)
+        }
         spec.fetch().rowsUpdated().awaitSingle()
     }
 
@@ -314,7 +535,7 @@ class MediaPostgresSchemaConstraintsTest : PostgresDatabaseTestBase() {
             "countRows: invalid table name — must be alphanumeric with optional underscores: $tableName"
         }
         return databaseClient.sql("SELECT COUNT(*) AS cnt FROM $tableName")
-            .map { row, _ -> (row.get("cnt") as Number).toInt() }
+            .map { row, _ -> row.get("cnt", Long::class.java)?.toInt() ?: 0 }
             .one()
             .awaitSingle()
     }

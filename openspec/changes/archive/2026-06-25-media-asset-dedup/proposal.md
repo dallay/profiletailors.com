@@ -16,18 +16,20 @@
 The approved implementation follows `spec.md` v3.2, which introduced critical corrections
 not reflected here:
 
-| Topic | This proposal says | spec.md v3.2 says |
-|-------|-------------------|-------------------|
-| GC on blob rows | DELETEs the row | UPDATEs to GARBAGE_COLLECTED |
-| detected_media_type | NOT NULL | nullable until READY |
-| file_size_bytes | NOT NULL | nullable until READY |
-| GarbageCollector status | DELETE row | UPDATE to GARBAGE_COLLECTED |
-| Expiration | PENDING_UPLOAD only | PENDING_UPLOAD + UPLOADING |
-| Canonical extension | from declared MIME | from detected MIME |
-| Byte count validation | not specified | required in upload |
+| Topic                   | This proposal says  | spec.md v3.2 says            |
+|-------------------------|---------------------|------------------------------|
+| GC on blob rows         | DELETEs the row     | UPDATEs to GARBAGE_COLLECTED |
+| detected_media_type     | NOT NULL            | nullable until READY         |
+| file_size_bytes         | NOT NULL            | nullable until READY         |
+| GarbageCollector status | DELETE row          | UPDATE to GARBAGE_COLLECTED  |
+| Expiration              | PENDING_UPLOAD only | PENDING_UPLOAD + UPLOADING   |
+| Canonical extension     | from declared MIME  | from detected MIME           |
+| Byte count validation   | not specified       | required in upload           |
 
 Key new states and behaviors in v3.2:
-- `GARBAGE_COLLECTED` blob status (GC never deletes rows — preserves FK safety with soft-deleted assets)
+
+- `GARBAGE_COLLECTED` blob status (GC never deletes rows — preserves FK safety with soft-deleted
+  assets)
 - `detected_media_type` and `file_size_bytes` nullable on blob rows until READY
 - UPLOADING assets also expire (>24h → FAILED, orphan blob → READY_FOR_GC)
 - Canonical storage key uses detected MIME, not declared
@@ -121,15 +123,15 @@ CREATE TABLE workspace_file_blobs (
 
 ### Original v3.1 → v3.1-clean Changes (OUTDATED)
 
-| # | Change | Status in v3.2 |
-|---|---|---|
-| 1 | Kept READY_FOR_GC, orphaned_at, gc_failure_count, last_gc_attempt_at | ✅ kept |
-| 2 | Kept BlobGarbageCollector | ✅ kept, but GC → GARBAGE_COLLECTED not DELETE |
-| 3 | Removed MediaAssetBackfillJob | ✅ kept |
-| 4 | Removed feature flag phases | ✅ kept |
-| 5 | Simplified migration to single schema deploy | ✅ kept |
-| 6 | Kept deferred GC instead of immortal blobs | ✅ kept |
-| 7 | Retention policy fixed at 7 days | ✅ kept |
+| # | Change                                                               | Status in v3.2                                |
+|---|----------------------------------------------------------------------|-----------------------------------------------|
+| 1 | Kept READY_FOR_GC, orphaned_at, gc_failure_count, last_gc_attempt_at | ✅ kept                                        |
+| 2 | Kept BlobGarbageCollector                                            | ✅ kept, but GC → GARBAGE_COLLECTED not DELETE |
+| 3 | Removed MediaAssetBackfillJob                                        | ✅ kept                                        |
+| 4 | Removed feature flag phases                                          | ✅ kept                                        |
+| 5 | Simplified migration to single schema deploy                         | ✅ kept                                        |
+| 6 | Kept deferred GC instead of immortal blobs                           | ✅ kept                                        |
+| 7 | Retention policy fixed at 7 days                                     | ✅ kept                                        |
 
 ---
 

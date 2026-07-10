@@ -3,6 +3,7 @@ import { mount, flushPromises } from '@vue/test-utils'
 import { createPinia, setActivePinia } from 'pinia'
 import MediaLibraryView from './MediaLibraryView.vue'
 import { useMediaStore } from '@/stores/media'
+import { useAuthStore } from '@/stores/auth'
 
 vi.mock('vue-i18n', () => ({
   useI18n: () => ({ t: (key: string) => key, locale: { value: 'en' } }),
@@ -28,7 +29,7 @@ vi.mock('@/lib/auth-api', () => ({
   login: vi.fn(),
   register: vi.fn(),
   logoutSession: vi.fn(),
-  resolveApiUrl: (path: string) => `http://localhost:8080${path}`,
+  resolveApiUrl: (path: string) => `http://localhost:7638${path}`,
 }))
 
 vi.mock('@/components/ui/alert-dialog', () => ({
@@ -57,18 +58,153 @@ describe('MediaLibraryView', () => {
   beforeEach(() => {
     setActivePinia(createPinia())
     vi.clearAllMocks()
+    // Mock loadAssets so onMount's refreshLibrary() doesn't clear test data
+    const store = useMediaStore()
+    vi.spyOn(store, 'loadAssets').mockResolvedValue()
+    useAuthStore().user = {
+      principalId: 'principal-1',
+      email: 'owner@example.com',
+      username: 'owner',
+      displayIdentity: 'Owner',
+      emailStatus: 'VERIFIED',
+    }
+  })
+
+  it('disables upload and shows verification guidance for non-verified users', async () => {
+    const auth = useAuthStore()
+    auth.user = { ...auth.user!, emailStatus: 'PENDING' }
+    const mediaStore = useMediaStore()
+    const uploadSpy = vi.spyOn(mediaStore, 'createAndUpload')
+
+    const wrapper = mountView()
+    await flushPromises()
+
+    const uploadButton = wrapper.get('[data-testid="media-upload-button"]')
+    expect(uploadButton.attributes('disabled')).toBeDefined()
+    expect(wrapper.get('[data-testid="media-verification-guidance"]').text()).toContain(
+      'media.verificationRequired',
+    )
+
+    await uploadButton.trigger('click')
+    await (wrapper.vm as unknown as { uploadFiles: (files: File[]) => Promise<void> }).uploadFiles([
+      new File(['bytes'], 'photo.jpg', { type: 'image/jpeg' }),
+    ])
+    expect(uploadSpy).not.toHaveBeenCalled()
+  })
+
+  it('allows verified users to open the upload picker', async () => {
+    const wrapper = mountView()
+    await flushPromises()
+    const fileInput = wrapper.get('#media-library-file-input')
+    const clickSpy = vi.spyOn(fileInput.element as HTMLInputElement, 'click')
+
+    await wrapper.get('[data-testid="media-upload-button"]').trigger('click')
+
+    expect(clickSpy).toHaveBeenCalledOnce()
+  })
+
+  it('shows verification guidance when backend denies upload with email verification problem', async () => {
+    const mediaStore = useMediaStore()
+    vi.spyOn(mediaStore, 'createAndUpload').mockRejectedValue({
+      status: 403,
+      code: 'EMAIL_VERIFICATION_REQUIRED',
+      detail: 'Please verify your email before using this feature.',
+    })
+    const wrapper = mountView()
+    await flushPromises()
+
+    await (wrapper.vm as unknown as { uploadFiles: (files: File[]) => Promise<void> }).uploadFiles([
+      new File(['bytes'], 'photo.jpg', { type: 'image/jpeg' }),
+    ])
+    await flushPromises()
+
+    expect(wrapper.get('[data-testid="media-verification-guidance"]').text()).toContain(
+      'media.verificationRequired',
+    )
   })
 
   it('renders empty state when there are no assets', async () => {
-    const mediaStore = useMediaStore()
-    vi.spyOn(mediaStore, 'loadAssets').mockResolvedValue()
-
     const wrapper = mountView()
     await flushPromises()
 
     expect(wrapper.text()).toContain('nav.media')
     expect(wrapper.text()).toContain('media.emptyTitle')
     expect(wrapper.text()).toContain('media.emptyBody')
+  })
+
+  it('shows the loading spinner when store is loading and no assets are present (lines 430-432)', async () => {
+    const store = useMediaStore()
+    // Prevent loadAssets from setting isLoading=false — keep it true
+    vi.spyOn(store, 'loadAssets').mockImplementation(() => new Promise(() => {}))
+    store.isLoading = true
+    store.assetIds = []
+    store.assetsById = {}
+
+    const wrapper = mountView()
+    // Do NOT await flushPromises — loading state must be observed before promise resolves
+
+    expect(wrapper.text()).toContain('media.loading')
+  })
+
+  it('shows the no-filtered-results message when assets exist but all are filtered out (lines 441-444)', async () => {
+    const mediaStore = useMediaStore()
+    // Add one READY image asset
+    mediaStore.assetsById['image-ready'] = {
+      assetId: 'image-ready',
+      workspaceId: 'ws-1',
+      sourceType: 'UPLOADED',
+      mediaType: 'image/jpeg',
+      status: 'READY',
+      originalFilename: 'hero.jpg',
+      fileSizeBytes: 100,
+      createdAt: '2026-06-19T12:00:00Z',
+      previewUrl: '/api/media/assets/image-ready/preview',
+      downloadUrl: '/api/media/assets/image-ready/content',
+    }
+    mediaStore.assetIds.push('image-ready')
+
+    const wrapper = mountView()
+    await flushPromises()
+
+    // Apply a type filter that excludes the only asset (VIDEO filter when only IMAGE exists)
+    await wrapper.find('[data-testid="filter-type"]').setValue('VIDEO')
+
+    expect(wrapper.text()).toContain('media.noFilteredAssetsTitle')
+    expect(wrapper.text()).toContain('media.noFilteredAssetsBody')
+  })
+
+  it('does not render external attribution metadata', async () => {
+    const mediaStore = useMediaStore()
+    mediaStore.assetsById['external-asset'] = {
+      assetId: 'external-asset',
+      workspaceId: 'ws-1',
+      sourceType: 'EXTERNAL',
+      sourceProvider: 'unsplash',
+      externalId: 'photo-123',
+      sourceUrl: 'https://example.test/source-photo-123',
+      authorName: 'Attribution Author Sentinel',
+      authorUrl: 'https://example.test/attribution-author-sentinel',
+      metadata: { attributionSentinel: 'hidden-provider-metadata' },
+      mediaType: 'image/jpeg',
+      status: 'READY',
+      originalFilename: 'external.jpg',
+      fileSizeBytes: 1024,
+      createdAt: '2026-06-19T12:00:00Z',
+      previewUrl: '/api/media/assets/external-asset/preview',
+      downloadUrl: '/api/media/assets/external-asset/content',
+    }
+    mediaStore.assetIds.push('external-asset')
+
+    const wrapper = mountView()
+    await flushPromises()
+
+    expect(wrapper.text()).toContain('external.jpg')
+    expect(wrapper.text()).not.toContain('Attribution Author Sentinel')
+    expect(wrapper.html()).not.toContain('attribution-author-sentinel')
+    expect(wrapper.html()).not.toContain('hidden-provider-metadata')
+    expect(wrapper.html()).not.toContain('unsplash')
+    expect(wrapper.html()).not.toContain('source-photo-123')
+    expect(wrapper.html()).not.toContain('https://example.test/source-photo-123')
   })
 
   it('renders asset cards when assets exist', async () => {
@@ -114,7 +250,7 @@ describe('MediaLibraryView', () => {
       workspaceId: 'ws-1',
       sourceType: 'UPLOADED',
       mediaType: 'video/mp4',
-      status: 'PROCESSING',
+      status: 'UPLOADING',
       originalFilename: 'clip.mp4',
       fileSizeBytes: 200,
       createdAt: '2026-06-18T12:00:00Z',
@@ -130,6 +266,71 @@ describe('MediaLibraryView', () => {
 
     expect(wrapper.text()).toContain('hero.jpg')
     expect(wrapper.text()).not.toContain('clip.mp4')
+  })
+
+  it('maps pending and uploading CAS statuses to the shared processing presentation', async () => {
+    const mediaStore = useMediaStore()
+    for (const [assetId, status] of [
+      ['pending-asset', 'PENDING_UPLOAD'],
+      ['uploading-asset', 'UPLOADING'],
+    ] as const) {
+      mediaStore.assetsById[assetId] = {
+        assetId,
+        workspaceId: 'ws-1',
+        sourceType: 'UPLOADED',
+        mediaType: 'image/png',
+        status,
+        originalFilename: `${assetId}.png`,
+        fileSizeBytes: 100,
+        createdAt: '2026-06-19T12:00:00Z',
+      }
+      mediaStore.assetIds.push(assetId)
+    }
+
+    const wrapper = mountView()
+    await flushPromises()
+
+    expect(wrapper.text()).toContain('media.processingTitle2')
+
+    await wrapper.find('[data-testid="filter-status"]').setValue('PROCESSING')
+
+    const cards = wrapper.findAll('article')
+    expect(cards).toHaveLength(2)
+    expect(
+      cards.every((card) =>
+        card.find('[data-testid="status-badge"]').classes().includes('text-text-display'),
+      ),
+    ).toBe(true)
+
+    await wrapper.find('#select-all-visible').setValue(true)
+    expect(wrapper.text()).not.toContain('media.selectedCountSuffix')
+  })
+
+  it('applies fallback status class for unknown/edge statuses like DELETED', async () => {
+    const mediaStore = useMediaStore()
+    mediaStore.assetsById['deleted-asset'] = {
+      assetId: 'deleted-asset',
+      workspaceId: 'ws-1',
+      sourceType: 'UPLOADED',
+      mediaType: 'image/png',
+      status: 'DELETED',
+      originalFilename: 'removed.png',
+      fileSizeBytes: 100,
+      createdAt: '2026-06-19T12:00:00Z',
+    }
+    mediaStore.assetIds.push('deleted-asset')
+
+    const wrapper = mountView()
+    await flushPromises()
+
+    const cards = wrapper.findAll('article')
+    const deletedCard = cards.find((card) => card.text().includes('removed.png'))
+    expect(deletedCard?.exists()).toBe(true)
+    const badge = deletedCard!.find('[data-testid="status-badge"]')
+    expect(badge.text()).toBe('DELETED')
+    expect(badge.classes()).toContain('border-border-visible')
+    expect(badge.classes()).toContain('bg-bg-primary')
+    expect(badge.classes()).toContain('text-text-secondary')
   })
 
   it('searches assets by filename', async () => {
@@ -236,7 +437,7 @@ describe('MediaLibraryView', () => {
       workspaceId: 'ws-1',
       sourceType: 'UPLOADED',
       mediaType: 'image/png',
-      status: 'PROCESSING',
+      status: 'UPLOADING',
       originalFilename: 'three.png',
       fileSizeBytes: 100,
       createdAt: '2026-06-20T12:00:00Z',

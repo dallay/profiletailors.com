@@ -98,37 +98,61 @@ The system MUST support retry logic for transient failures.
 - AND the consumer MUST use idempotency key (event ID or email+timestamp)
 - AND the consumer MUST log duplicate event detection
 
+### Requirement: Verification Consumers Are Active at Runtime
+
+The system MUST activate verification-email consumers in every SMP runtime that serves registration and resend flows.
+
+Runtime bootstrapping MUST subscribe the verification email consumer before user-facing auth traffic is handled so registration and resend requests do not succeed while verification dispatch is inactive.
+
+#### Scenario: Registration runtime has verification consumer active
+
+- GIVEN SMP starts successfully
+- WHEN the runtime begins serving authentication traffic
+- THEN the verification email consumer MUST already be subscribed
+- AND `UserRegistered` events MUST be consumable without extra runtime setup
+
+#### Scenario: Resend uses active consumer path
+
+- GIVEN an unverified user requests resend after SMP startup
+- WHEN the resend flow publishes its delivery trigger
+- THEN the active runtime MUST consume that trigger
+- AND the verification email MUST enter the normal dispatch path
+
 ### Requirement: Email Template System
 
 The system MUST provide email templates for notification content.
 
-The system MUST support plain text templates (HTML deferred).
-The system MUST provide verification email template.
-The system MUST support template customization via configuration.
-The system MUST handle template rendering failures gracefully.
+The system MUST provide verification email content with a semantically complete plain-text body and a styled HTML body aligned with Profile Tailors design language. The system MUST include the same verification URL in both bodies. The system MUST preserve verification instructions, 24-hour expiry copy, and graceful fallback behavior when template rendering fails.
+(Previously: verification email templates allowed optional HTML or multipart output but only guaranteed plain text completeness.)
 
 #### Scenario: Verification email template rendered
 
 - GIVEN a verification email needs to be sent
-- When the template is rendered
-- THEN the system MUST include verification link with token
-- AND the system MUST include user-friendly instructions
-- AND the system MUST include expiration notice (24 hours)
-- AND the system MUST render as plain text
+- WHEN the template is rendered
+- THEN the system MUST include a frontend verification URL with token in both text and HTML bodies
+- AND both bodies MUST include user instructions and a 24-hour expiration notice
+- AND the plain text content MUST be sufficient on its own
+
+#### Scenario: Styled HTML verification template rendered
+
+- GIVEN a verification email needs to be sent
+- WHEN the HTML body is rendered
+- THEN the system MUST produce conservative inline-styled HTML aligned with Profile Tailors branding
+- AND the HTML MUST NOT require external CSS, scripts, or a frontend change
 
 #### Scenario: Template rendering failure handled
 
-- GIVEN a template fails to render (missing variables, etc.)
-- When the template engine processes the template
+- GIVEN a template fails to render
+- WHEN the template engine processes the template
 - THEN the system MUST catch the rendering exception
 - AND the system MUST log the failure
-- AND the system MUST use fallback plain text message
+- AND the system MUST use a fallback plain text message
 - AND the system MUST still attempt to send the email
 
 #### Scenario: Template variables validated
 
-- GIVEN a template requires variables (email, token, etc.)
-- When the template is rendered
+- GIVEN a template requires variables
+- WHEN the template is rendered
 - THEN the system MUST verify all required variables are provided
 - AND the system MUST reject rendering if variables are missing
 - AND the system MUST log missing variable details
@@ -137,42 +161,38 @@ The system MUST handle template rendering failures gracefully.
 
 The system MUST use adapter pattern for email sending infrastructure.
 
-The system MUST define email sender port in application layer.
-The system MUST implement SMTP adapter in infrastructure layer.
-The system MUST support multiple email sender implementations (SMTP, mock, etc.).
-The system MUST allow swapping email providers without changing application code.
+The system MUST define an email sender port in the application layer that accepts subject, recipient, and email content containing required text plus optional HTML. Sending adapters that support HTML MUST deliver both HTML and text when HTML is present. Mock and development adapters MUST expose enough text and HTML content to debug delivery and support assertions. Adapters MUST remain swappable without changing application code.
+(Previously: the sender port accepted a single body and did not require adapters to deliver or expose HTML plus text.)
 
 #### Scenario: Email sender port defined
 
 - GIVEN the application needs to send emails
-- When the port interface is defined
-- THEN the system MUST define `EmailSender` interface in application layer
-- AND the interface MUST have `sendEmail(to, subject, body)` method
+- WHEN the port interface is defined
+- THEN the system MUST define `EmailSender` in the application layer
+- AND the interface MUST accept email content with required text and optional HTML
 - AND the interface MUST return success/failure status
 
 #### Scenario: SMTP adapter implements port
 
-- GIVEN the SMTP adapter is implemented
-- When the adapter is registered
-- THEN the system MUST implement `EmailSender` interface
-- AND the adapter MUST be in infrastructure layer
-- AND the adapter MUST be configurable via properties
+- GIVEN SMTP is configured and HTML content exists
+- WHEN the SMTP adapter sends the email
+- THEN the system MUST send both text and HTML parts
+- AND the adapter MUST remain configurable via properties
 
 #### Scenario: Mock adapter for testing
 
-- GIVEN tests need to verify email sending without SMTP
-- When the mock adapter is used
-- THEN the system MUST implement `EmailSender` interface
-- AND the mock MUST capture sent emails for assertions
+- GIVEN tests or development need email visibility without SMTP
+- WHEN the mock adapter is used
+- THEN the system MUST capture or log recipient, subject, text body, and HTML body when present
 - AND the mock MUST NOT actually send emails
 
 #### Scenario: Adapter swapping via configuration
 
 - GIVEN different environments need different email providers
-- When the configuration changes
+- WHEN the configuration changes
 - THEN the system MUST swap email sender implementation
-- AND the application code MUST NOT change
-- AND the system MUST use the configured adapter
+- AND application code MUST NOT change
+- AND the configured adapter MUST preserve text fallback semantics
 
 ### Requirement: Email Dispatch Asynchronicity
 
@@ -276,3 +296,31 @@ The system MUST support development mode with mock sender.
 - THEN the system MUST read `app.email.sender` property
 - AND the system MUST use configured address as sender
 - AND the system MUST fallback to default if not configured
+
+### Requirement: Environment-Aware Verification Link Generation
+
+The system MUST generate verification email links from the configured public application URL.
+
+The system MUST separate the public app URL used in emails from backend API base URL concerns. Verification email links MUST use `app.email.public-app-url` plus `/verify-email?token=...` in both plain-text and HTML bodies. This change MUST NOT require new frontend behavior.
+(Previously: links used the configured public app URL and frontend route, but the exact route/query contract was not repeated for both text and HTML bodies.)
+
+#### Scenario: Verification link uses configured public app URL
+
+- GIVEN a verification email is generated in an environment
+- WHEN the verification link is rendered
+- THEN the link MUST start with that environment's configured `app.email.public-app-url`
+- AND the path and query MUST be `/verify-email?token=...`
+
+#### Scenario: Verification link avoids hardcoded production API URL
+
+- GIVEN the system runs outside production
+- WHEN a verification email is generated
+- THEN the link MUST NOT use a hardcoded production API host
+- AND the link MUST remain valid for that environment
+
+#### Scenario: Same URL in HTML and text
+
+- GIVEN a verification token and configured public app URL
+- WHEN verification email content is rendered
+- THEN the text body and HTML body MUST contain the same verification URL
+- AND the URL MUST target the existing frontend verification route
