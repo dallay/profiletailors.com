@@ -593,7 +593,7 @@ watch(
 
           <div v-if="calendarView === 'week'" class="flex min-h-0 flex-1 flex-col">
             <Card class="flex min-h-0 flex-1 flex-col overflow-hidden border border-border-subtle bg-bg-surface p-0">
-              <div class="shrink-0 grid grid-cols-[48px_repeat(7,1fr)] border-b border-border-subtle bg-bg-primary">
+              <div class="shrink-0 grid grid-cols-[48px_repeat(7,minmax(0,1fr))] border-b border-border-subtle bg-bg-primary">
                 <div class="py-3.5 border-r border-border-subtle" />
                 <div
                   v-for="day in weekDays"
@@ -618,7 +618,7 @@ watch(
               </div>
 
               <div data-testid="week-timeline-viewport" class="thin-scrollbar relative min-h-0 flex-1 overflow-y-auto">
-                <div v-for="slot in hourSlots" :key="slot.hour" class="grid h-[96px] grid-cols-[48px_repeat(7,1fr)] border-b border-border-subtle last:border-b-0">
+                <div v-for="slot in hourSlots" :key="slot.hour" class="grid h-[96px] grid-cols-[48px_repeat(7,minmax(0,1fr))] border-b border-border-subtle last:border-b-0">
                   <div class="py-2 border-r border-border-subtle flex items-start justify-center">
                     <span class="font-mono text-[9px] tracking-wider text-text-secondary">
                       {{ slot.label }}
