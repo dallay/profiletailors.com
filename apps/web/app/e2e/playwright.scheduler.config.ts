@@ -44,10 +44,10 @@ export default defineConfig({
   testDir: path.resolve(__dirname, 'specs'),
   testMatch: 'scheduler*.spec.ts',
 
-  fullyParallel: false, // Scheduler tests are order-dependent
+  fullyParallel: true,
   forbidOnly: !!process.env.CI,
   retries: process.env.CI ? 2 : 0,
-  workers: 1, // Serial execution for shared state
+  workers: process.env.CI ? 2 : undefined,
 
   timeout: 60_000, // Longer timeout for worker polling
   expect: { timeout: 15_000 },
