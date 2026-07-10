@@ -19,12 +19,14 @@ async function setup(page: import('@playwright/test').Page): Promise<SchedulerPa
   // Drop any leftover session/state from a previous test in this worker.
   await page.context().clearCookies()
   await page.goto('about:blank').catch(() => {})
-  await page.evaluate(() => {
-    try {
-      localStorage.clear()
-      sessionStorage.clear()
-    } catch {}
-  }).catch(() => {})
+  await page
+    .evaluate(() => {
+      try {
+        localStorage.clear()
+        sessionStorage.clear()
+      } catch {}
+    })
+    .catch(() => {})
 
   // While the SPA boots for the upcoming `/login` navigation, force
   // refresh to fail so we always land on the login form, never the dashboard.
