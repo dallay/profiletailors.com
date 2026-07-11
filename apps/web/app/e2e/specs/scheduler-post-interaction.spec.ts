@@ -92,7 +92,8 @@ test.describe('Scheduler — Post Interaction', () => {
 
     await detailModal.expectVisible()
     const dialog = page.getByRole('dialog')
-    await expect(dialog).toContainText('LINKEDIN_VALIDATION_ERROR')
+    // failureDetail maps LINKEDIN_VALIDATION_ERROR -> localized message
+    await expect(dialog).toContainText('LinkedIn validation failed')
     await dialog.getByRole('button', { name: /^retry$/i }).click()
     await detailModal.expectHidden()
 

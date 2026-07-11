@@ -308,8 +308,11 @@ test.describe('Scheduler — Create Post', () => {
     await composeModal.fillText(longText)
     await composeModal.attachMedia(mediaFiles.base.path)
 
-    await expect(page.getByTestId('linkedin-preview-more')).toBeVisible()
-    await expect(page.getByTestId('linkedin-preview-media')).toBeVisible()
+    const linkedInPreviewPanel = page
+      .getByRole('heading', { name: /linkedin preview/i })
+      .locator('../..')
+    await expect(linkedInPreviewPanel.getByText('...more')).toBeVisible()
+    await expect(linkedInPreviewPanel.getByRole('img', { name: /^media preview$/i })).toBeVisible()
 
     await composeModal.clickScheduleNow()
     await composeModal.expectHidden()

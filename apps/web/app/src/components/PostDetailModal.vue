@@ -25,6 +25,15 @@ const emit = defineEmits<{
 const { t, locale: i18nLocale } = useI18n()
 const publishingStore = usePublishingStore()
 
+/** Maps backend error codes to user-facing message keys. Expand as new codes are introduced. */
+const PUBLICATION_ERROR_MESSAGES: Record<string, string> = {
+  LINKEDIN_VALIDATION_ERROR: 'postDetail.errorMessages.linkedinValidation',
+  MEDIA_ASSET_TOO_LARGE: 'postDetail.errorMessages.mediaAssetTooLarge',
+  EMAIL_VERIFICATION_REQUIRED: 'postDetail.errorMessages.emailVerificationRequired',
+  RATE_LIMIT_EXCEEDED: 'postDetail.errorMessages.rateLimitExceeded',
+  UNAUTHORIZED: 'postDetail.errorMessages.unauthorized',
+}
+
 const isReadOnly = computed(() => props.publication?.status === 'PUBLISHED')
 const canEditPublication = computed(() =>
   props.publication ? publishingStore.isPublicationEditable(props.publication.status) : false,
@@ -131,7 +140,10 @@ const failureDetail = computed(() => {
     return props.publication.blockedReason ?? ''
   }
   if (props.publication.status === 'FAILED') {
-    return props.publication.errorCode ?? ''
+    const code = props.publication.errorCode
+    if (!code) return ''
+    const msgKey = PUBLICATION_ERROR_MESSAGES[code]
+    return msgKey ? t(msgKey) : code
   }
   return ''
 })
@@ -196,7 +208,7 @@ async function retryPublication() {
     emit('retried', props.publication.id)
     closeModal()
   } catch (err) {
-    retryError.value = err instanceof Error ? err.message : 'Failed to retry publication'
+    retryError.value = err instanceof Error ? err.message : t('postDetail.retryFailed')
   } finally {
     isRetrying.value = false
   }

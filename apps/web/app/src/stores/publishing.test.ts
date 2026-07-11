@@ -1028,6 +1028,31 @@ describe('publishing store', () => {
       expect(store.publications[0]?.status).toBe('QUEUED')
     })
 
+    it('retryPublication falls back to QUEUED locally when unauthenticated', async () => {
+      const store = usePublishingStore()
+      const auth = useAuthStore()
+      Object.defineProperty(auth, 'isAuthenticated', { value: false, configurable: true })
+
+      store.publications = [
+        {
+          id: 'unauth-failed-pub',
+          content: 'Offline retry test',
+          channels: ['linkedin'],
+          scheduledAt: '2026-06-15T20:00:00Z',
+          status: 'FAILED',
+          priority: false,
+          errorCode: 'LINKEDIN_VALIDATION_ERROR',
+        },
+      ]
+
+      const result = await store.retryPublication('unauth-failed-pub')
+
+      // No API call should be made when unauthenticated
+      expect(result.status).toBe('QUEUED')
+      expect(result.errorCode).toBeUndefined()
+      expect(store.publications[0]?.status).toBe('QUEUED')
+    })
+
     it('falls back to local data on API error', async () => {
       const store = usePublishingStore()
       const auth = useAuthStore()

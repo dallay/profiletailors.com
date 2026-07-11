@@ -767,7 +767,7 @@ export const usePublishingStore = defineStore('publishing', () => {
     return publications.value[idx]
   }
 
-  async function retryPublication(id: string) {
+  async function retryPublication(id: string): Promise<Publication> {
     const idx = publications.value.findIndex((p) => p.id === id)
     if (idx === -1) throw new Error(`Publication ${id} not found`)
 
@@ -800,7 +800,12 @@ export const usePublishingStore = defineStore('publishing', () => {
       }
     }
 
-    const updated: Publication = { ...previous, status: 'QUEUED', blockedReason: undefined, errorCode: undefined }
+    const updated: Publication = {
+      ...previous,
+      status: 'QUEUED',
+      blockedReason: undefined,
+      errorCode: undefined,
+    }
     publications.value[idx] = updated
     saveToStorage()
     return updated

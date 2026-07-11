@@ -265,6 +265,7 @@ const messages = {
       blockedReason: 'Blocked Reason',
       errorCode: 'Error Code',
       retry: 'Retry',
+      retryFailed: 'Unable to retry publication. Please try again.',
       reschedule: 'Reschedule',
       rescheduleConfirm: 'Confirm',
       rescheduleCancel: 'Cancel',
@@ -274,6 +275,14 @@ const messages = {
       close: 'Close',
       viewPost: 'View Post',
       viewPostUnavailable: 'View Post URL is not available yet.',
+      errorMessages: {
+        linkedinValidation: 'LinkedIn validation failed. Check your post content and try again.',
+        mediaAssetTooLarge: 'The attached media exceeds the maximum allowed size.',
+        emailVerificationRequired:
+          'Email verification is required to publish. Please verify your email address.',
+        rateLimitExceeded: 'Rate limit reached. Please wait before trying again.',
+        unauthorized: 'Unauthorized. Please log in and try again.',
+      },
       status: {
         draft: 'Draft',
         queued: 'Queued',
@@ -791,6 +800,7 @@ const messages = {
       blockedReason: 'Motivo del bloqueo',
       errorCode: 'Código de error',
       retry: 'Reintentar',
+      retryFailed: 'No se pudo reintentar la publicación. Por favor, inténtalo de nuevo.',
       reschedule: 'Reagendar',
       rescheduleConfirm: 'Confirmar',
       rescheduleCancel: 'Cancelar',
@@ -800,6 +810,16 @@ const messages = {
       close: 'Cerrar',
       viewPost: 'Ver Publicación',
       viewPostUnavailable: 'La URL de la publicación aún no está disponible.',
+      errorMessages: {
+        linkedinValidation:
+          'La validación de LinkedIn falló. Revisa el contenido de tu publicación e inténtalo de nuevo.',
+        mediaAssetTooLarge: 'El archivo multimedia adjunto excede el tamaño máximo permitido.',
+        emailVerificationRequired:
+          'Se requiere verificación de correo para publicar. Por favor, verifica tu dirección de correo.',
+        rateLimitExceeded:
+          'Límite de solicitudes alcanzado. Por favor, espera antes de intentarlo de nuevo.',
+        unauthorized: 'No autorizado. Por favor, inicia sesión e inténtalo de nuevo.',
+      },
       status: {
         draft: 'Borrador',
         queued: 'En Cola',

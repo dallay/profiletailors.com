@@ -13,8 +13,7 @@ interface StoreOverrides {
   isPublicationDeletable: (status: Publication['status']) => boolean
 }
 
-  const { storeOverrides, mockReschedule, mockRetry, mockDelete } = vi.hoisted(() => ({
-
+const { storeOverrides, mockReschedule, mockRetry, mockDelete } = vi.hoisted(() => ({
   storeOverrides: {
     rescheduleResult: undefined as Publication | undefined,
     rescheduleError: undefined as Error | undefined,
@@ -214,11 +213,38 @@ describe('PostDetailModal', () => {
       const wrapper = mountModal(pub)
       await flushPromises()
 
-      expect(wrapper.text()).toContain('LINKEDIN_VALIDATION_ERROR')
+      // failureDetail maps LINKEDIN_VALIDATION_ERROR -> 'postDetail.errorMessages.linkedinValidation'
+      expect(wrapper.text()).toContain('postDetail.errorMessages.linkedinValidation')
       expect(wrapper.text()).toContain('postDetail.retry')
     })
 
-    it('calls retryPublication and emits reschedule when failed retry succeeds', async () => {
+    it('renders raw errorCode when code is not in the localized lookup map', async () => {
+      storeOverrides.isPublicationEditable = () => false
+      const pub = makePublication({
+        status: 'FAILED',
+        errorCode: 'UNKNOWN_ERROR_CODE',
+      })
+      const wrapper = mountModal(pub)
+      await flushPromises()
+
+      // failureDetail falls back to raw code when no mapping exists
+      expect(wrapper.text()).toContain('UNKNOWN_ERROR_CODE')
+    })
+
+    it('returns empty string for FAILED status when errorCode is absent', async () => {
+      storeOverrides.isPublicationEditable = () => false
+      const pub = makePublication({
+        status: 'FAILED',
+        errorCode: undefined,
+      })
+      const wrapper = mountModal(pub)
+      await flushPromises()
+
+      // failureDetail returns '' when no errorCode is present; the diagnostic block is hidden
+      expect(wrapper.text()).not.toContain('postDetail.errorCode')
+    })
+
+    it('calls retryPublication and emits retried when failed retry succeeds', async () => {
       storeOverrides.isPublicationEditable = () => false
       mockRetry.mockResolvedValue(makePublication({ id: 'pub-1', status: 'QUEUED' }))
       const wrapper = mountModal(makePublication({ status: 'FAILED' }))
