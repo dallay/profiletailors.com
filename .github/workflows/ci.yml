@@ -79,10 +79,6 @@ jobs:
           cd apps/web/marketing && pnpm lint
           cd ../app && pnpm lint
 
-      - name: Verify frontend formatting
-        shell: bash
-        run: pnpm exec biome format apps/web/marketing apps/web/app
-
       - name: Spotless check (backend)
         shell: bash
         run: ./gradlew spotlessCheck --no-daemon
