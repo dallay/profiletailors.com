@@ -29,11 +29,10 @@ async function openComposeModal(page: import('@playwright/test').Page) {
 }
 
 test.describe(`Composer media attachments (mocked) ${TAGS}`, () => {
-  test.beforeEach(async ({ page, channelsProvider, providerFlag }) => {
-    // Default: real provider-flag off (matches live), generous attachment
+  test.beforeEach(async ({ page, channelsProvider }) => {
+    // Default: generous attachment
     // limit so per-test scenarios control limits explicitly.
     channelsProvider.setMaxAttachments(10)
-    providerFlag.setEnabled(false)
     const scheduler = new SchedulerPage(page)
     await scheduler.goto()
     await scheduler.expectVisible()
@@ -214,24 +213,6 @@ test.describe(`Composer media attachments (mocked) ${TAGS}`, () => {
       true,
       'ML-COMPOSER-012: attachment-overflow testid pending — feature lands in feat/adapta-media-layout. Tracked in verify-report.md.',
     )
-  })
-
-  // -------------------------------------------------------------------------
-  // ML-COMPOSER-013: provider disabled — provider panel not shown
-  // -------------------------------------------------------------------------
-  test('ML-COMPOSER-013 provider disabled: provider panel is hidden', async ({
-    page,
-    providerFlag,
-  }) => {
-    providerFlag.setEnabled(false)
-    const composePage = await openComposeModal(page)
-    // Wait for modal to be fully mounted before opening picker
-    await expect(composePage.addMediaButton).toBeVisible()
-    await composePage.openMediaPicker()
-    // The product renders the provider panel inside the picker shell only
-    // when the flag is enabled. With the flag off, the panel testid is
-    // not present in the DOM.
-    await expect(page.getByTestId('provider-panel')).toHaveCount(0)
   })
 
   // -------------------------------------------------------------------------

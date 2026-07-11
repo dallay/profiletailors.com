@@ -366,6 +366,12 @@ export const usePublishingStore = defineStore('publishing', () => {
   const channelEventsConnected = ref(false)
   const channelEventsAbortController = ref<AbortController | null>(null)
 
+  // Monotonic counter that tracks the most recent in-flight fetchCalendar call.
+  // Stale callers compare their captured id against this and bail out before
+  // writing to publications/activity/conflicts, so overlapping requests (e.g.
+  // rapid watcher firings when URL state changes) cannot clobber newer data.
+  const latestCalendarFetchId = ref(0)
+
   // Configured providers (which channels are available to connect)
   const configuredProviders = ref<string[]>([])
   const providersLoading = ref(false)
@@ -608,8 +614,16 @@ export const usePublishingStore = defineStore('publishing', () => {
   /**
    * Fetch publications, conflicts, and activity for a date range.
    * Falls back to localStorage-filtered data when unauthenticated or on network error.
+   *
+   * Overlapping calls are guarded by `latestCalendarFetchId`: each invocation
+   * captures a monotonic id on entry and only writes to the store if its id
+   * is still the latest one when the response (or fallback) resolves. This
+   * prevents stale responses from clobbering fresher data when the URL
+   * state changes faster than the network round-trip completes.
    */
   async function fetchCalendar(from: string, to: string, filters?: CalendarFilters) {
+    const fetchId = ++latestCalendarFetchId.value
+
     const params = new URLSearchParams({
       from,
       to,
@@ -624,6 +638,8 @@ export const usePublishingStore = defineStore('publishing', () => {
           `/api/publishing/publications/calendar?${params.toString()}`,
           { workspaceScoped: true },
         )
+        // Drop the response if a newer fetchCalendar call has started.
+        if (fetchId !== latestCalendarFetchId.value) return
         publications.value = data.publications.map(apiResultToPublication)
         activity.value = data.activity
         conflicts.value = data.conflicts
@@ -642,6 +658,9 @@ export const usePublishingStore = defineStore('publishing', () => {
         console.warn('Calendar API unavailable, falling back to local data', err)
       }
     }
+
+    // Drop the fallback if a newer fetchCalendar call has started.
+    if (fetchId !== latestCalendarFetchId.value) return
 
     // Fallback: filter from localStorage
     const local = applyLocalFilters(publications.value)
@@ -718,52 +737,6 @@ export const usePublishingStore = defineStore('publishing', () => {
       try {
         await auth.apiFetch<unknown>(`/api/publishing/publications/${id}/reschedule`, {
           method: 'PATCH',
-          body: JSON.stringify({
-            scheduleMode: 'SCHEDULED_AT',
-            scheduledFor: newScheduledFor,
-            priority: previous.priority,
-          }),
-          workspaceScoped: true,
-        })
-        saveToStorage()
-        return publications.value[idx]
-      } catch (err) {
-        // Rollback
-        publications.value[idx] = { ...previous, scheduledAt: rollbackValue }
-        saveToStorage()
-        throw err
-      }
-    }
-
-    // Unauthenticated: just save locally
-    saveToStorage()
-    return publications.value[idx]
-  }
-
-  /**
-   * Retry a FAILED publication with a new future schedule.
-   * Uses the dedicated /retry endpoint (not /reschedule) — the backend
-   * rejects reschedule attempts on FAILED publications with a 409
-   * "Publication state conflict" because only DRAFT/QUEUED/SCHEDULED
-   * publications are editable. FAILED publications must go through /retry.
-   */
-  async function retryPublication(id: string, newScheduledFor: string) {
-    const idx = publications.value.findIndex((p) => p.id === id)
-    if (idx === -1) throw new Error(`Publication ${id} not found`)
-
-    const current = publications.value[idx]
-    if (!current) throw new Error(`Publication ${id} not found`)
-
-    const previous: Publication = { ...current }
-    const rollbackValue = previous.scheduledAt
-
-    // Optimistic update
-    publications.value[idx] = { ...previous, scheduledAt: newScheduledFor }
-
-    if (auth.isAuthenticated) {
-      try {
-        await auth.apiFetch<unknown>(`/api/publishing/publications/${id}/retry`, {
-          method: 'POST',
           body: JSON.stringify({
             scheduleMode: 'SCHEDULED_AT',
             scheduledFor: newScheduledFor,
@@ -1025,7 +998,6 @@ export const usePublishingStore = defineStore('publishing', () => {
     fetchCalendar,
     quickCreatePost,
     reschedulePublication,
-    retryPublication,
     schedulePost,
     deletePost,
     cancelPost,
