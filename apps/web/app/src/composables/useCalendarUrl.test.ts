@@ -144,106 +144,152 @@ describe('useCalendarUrl — route normalization', () => {
   })
 })
 
+// Surface → vue-router route name mapping (shared across intent tests below).
+// Kept in sync with `useCalendarUrl.ts#CALENDAR_ROUTE_NAMES`.
+const ROUTE_NAMES: Record<'calendar-week' | 'calendar-month' | 'list', string> = {
+  'calendar-week': 'scheduler-calendar-week',
+  'calendar-month': 'scheduler-calendar-month',
+  list: 'scheduler-list',
+}
+
 describe('useCalendarUrl — navigation intent', () => {
-  it('surface change triggers push with new route name', async () => {
+  it('setSurface triggers push with the new route name (not a replace)', async () => {
+    const route = createMockRoute({ name: 'scheduler-calendar-week', query: {} })
     const router = createMockRouter()
-    const currentSurface: string = 'calendar-week'
-    const newSurface: string = 'calendar-month'
-    const routeNames: Record<string, string> = {
-      'calendar-week': 'scheduler-calendar-week',
-      'calendar-month': 'scheduler-calendar-month',
-      list: 'scheduler-list',
+    const ctrl = createCalendarUrlController(route, router)
+
+    await ctrl.setSurface('calendar-month')
+
+    expect(router.push).toHaveBeenCalledTimes(1)
+    expect(router.replace).not.toHaveBeenCalled()
+    const call = (router.push as ReturnType<typeof vi.fn>).mock.calls[0]![0]
+    expect(call.name).toBe(ROUTE_NAMES['calendar-month'])
+  })
+
+  it('setDate triggers push with a normalized date (not a replace)', async () => {
+    const route = createMockRoute({ name: 'scheduler-calendar-week', query: {} })
+    const router = createMockRouter()
+    const ctrl = createCalendarUrlController(route, router)
+
+    await ctrl.setDate('2026-06-22')
+
+    expect(router.push).toHaveBeenCalledTimes(1)
+    expect(router.replace).not.toHaveBeenCalled()
+    const call = (router.push as ReturnType<typeof vi.fn>).mock.calls[0]![0]
+    expect(call.query).toMatchObject({ date: '2026-06-22' })
+  })
+
+  it('setStatus uses replace to avoid polluting history', async () => {
+    const route = createMockRoute({ name: 'scheduler-calendar-week', query: {} })
+    const router = createMockRouter()
+    const ctrl = createCalendarUrlController(route, router)
+
+    await ctrl.setStatus('queued')
+
+    expect(router.replace).toHaveBeenCalledTimes(1)
+    expect(router.push).not.toHaveBeenCalled()
+    const call = (router.replace as ReturnType<typeof vi.fn>).mock.calls[0]![0]
+    expect(call.query).toMatchObject({ status: 'queued' })
+  })
+
+  it('setTimezone uses replace to avoid polluting history', async () => {
+    const route = createMockRoute({ name: 'scheduler-calendar-week', query: {} })
+    const router = createMockRouter()
+    const ctrl = createCalendarUrlController(route, router)
+
+    await ctrl.setTimezone('Europe/Madrid')
+
+    expect(router.replace).toHaveBeenCalledTimes(1)
+    expect(router.push).not.toHaveBeenCalled()
+    const call = (router.replace as ReturnType<typeof vi.fn>).mock.calls[0]![0]
+    // buildQuery only emits `timezone` when it differs from the browser tz;
+    // in CI the browser tz may be Europe/Madrid itself, in which case the
+    // key is intentionally omitted. We only assert push-vs-replace intent here.
+    if (call.query.timezone !== undefined) {
+      expect(call.query.timezone).toBe('Europe/Madrid')
     }
+  })
 
-    // Simulate surface change
-    if (currentSurface !== newSurface) {
-      await router.push({
-        name: routeNames[newSurface],
-        query: {},
-      })
+  it('setChannelIds uses replace and writes channel ids into channels[]', async () => {
+    const route = createMockRoute({ name: 'scheduler-calendar-week', query: {} })
+    const router = createMockRouter()
+    const ctrl = createCalendarUrlController(route, router)
+
+    await ctrl.setChannelIds(['acc-123'])
+
+    expect(router.replace).toHaveBeenCalledTimes(1)
+    expect(router.push).not.toHaveBeenCalled()
+    const call = (router.replace as ReturnType<typeof vi.fn>).mock.calls[0]![0]
+    expect(call.query).toMatchObject({ 'channels[]': ['acc-123'] })
+  })
+
+  it('setSearch uses replace and trims whitespace', async () => {
+    const route = createMockRoute({ name: 'scheduler-calendar-week', query: {} })
+    const router = createMockRouter()
+    const ctrl = createCalendarUrlController(route, router)
+
+    await ctrl.setSearch('  architecture  ')
+
+    expect(router.replace).toHaveBeenCalledTimes(1)
+    expect(router.push).not.toHaveBeenCalled()
+    const call = (router.replace as ReturnType<typeof vi.fn>).mock.calls[0]![0]
+    expect(call.query).toMatchObject({ q: 'architecture' })
+  })
+})
+
+describe('useCalendarUrl — controller fallbacks & dedup', () => {
+  it('setDate falls back to today when given an invalid date string', async () => {
+    const route = createMockRoute({ name: 'scheduler-calendar-week', query: {} })
+    const router = createMockRouter()
+    const ctrl = createCalendarUrlController(route, router)
+
+    // The controller must accept the invalid input without throwing and
+    // resolve it to today's date internally. Since buildQuery omits `date`
+    // when it equals today, we only assert that push was called exactly once.
+    await expect(ctrl.setDate('definitely-not-a-date')).resolves.not.toThrow()
+    expect(router.push).toHaveBeenCalledTimes(1)
+  })
+
+  it('setTimezone falls back to browser timezone when given an empty value', async () => {
+    const expected = Intl.DateTimeFormat().resolvedOptions().timeZone || 'UTC'
+    const route = createMockRoute({ name: 'scheduler-calendar-week', query: {} })
+    const router = createMockRouter()
+    const ctrl = createCalendarUrlController(route, router)
+
+    await ctrl.setTimezone('')
+
+    const call = (router.replace as ReturnType<typeof vi.fn>).mock.calls[0]![0]
+    // The fallback is reflected in the state; the query either omits `timezone`
+    // (when it equals the browser tz) or carries the resolved value.
+    if (call.query.timezone !== undefined) {
+      expect(call.query.timezone).toBe(expected)
     }
-
-    expect(router.push).toHaveBeenCalledWith({
-      name: 'scheduler-calendar-month',
-      query: {},
-    })
   })
 
-  it('date navigation triggers push with new date', async () => {
+  it('setChannelIds deduplicates repeated channel ids via Set semantics', async () => {
+    const route = createMockRoute({ name: 'scheduler-calendar-week', query: {} })
     const router = createMockRouter()
-    const routeNames: Record<string, string> = {
-      'calendar-week': 'scheduler-calendar-week',
-      'calendar-month': 'scheduler-calendar-month',
-      list: 'scheduler-list',
-    }
-    const surface = 'calendar-week'
+    const ctrl = createCalendarUrlController(route, router)
 
-    await router.push({
-      name: routeNames[surface],
-      query: { date: '2026-06-22' },
-    })
+    await ctrl.setChannelIds(['acc-1', 'acc-1', 'acc-2', 'acc-2', 'acc-1'])
 
-    expect(router.push).toHaveBeenCalledWith(
-      expect.objectContaining({
-        query: expect.objectContaining({ date: '2026-06-22' }),
-      }),
-    )
+    const call = (router.replace as ReturnType<typeof vi.fn>).mock.calls[0]![0]
+    expect(call.query['channels[]']).toEqual(['acc-1', 'acc-2'])
   })
 
-  it('status filter change uses replace to avoid polluting history', async () => {
+  it('stepPeriod arithmetic adds 7 days for week surface (forward)', async () => {
+    // 2026-06-15 (Monday) + 7 days = 2026-06-22 (also Monday).
+    const route = createMockRoute({
+      name: 'scheduler-calendar-week',
+      query: { date: '2026-06-15' },
+    })
     const router = createMockRouter()
+    const ctrl = createCalendarUrlController(route, router)
 
-    await router.replace({
-      name: 'scheduler-calendar-week',
-      query: { status: 'queued' },
-    })
+    await ctrl.stepPeriod('forward')
 
-    expect(router.replace).toHaveBeenCalledWith({
-      name: 'scheduler-calendar-week',
-      query: { status: 'queued' },
-    })
-  })
-
-  it('timezone change uses replace to avoid polluting history', async () => {
-    const router = createMockRouter()
-
-    await router.replace({
-      name: 'scheduler-calendar-week',
-      query: { timezone: 'Europe/Madrid' },
-    })
-
-    expect(router.replace).toHaveBeenCalledWith({
-      name: 'scheduler-calendar-week',
-      query: expect.objectContaining({ timezone: 'Europe/Madrid' }),
-    })
-  })
-
-  it('channel filter change uses replace', async () => {
-    const router = createMockRouter()
-
-    await router.replace({
-      name: 'scheduler-calendar-week',
-      query: { channels: ['acc-123'] },
-    })
-
-    expect(router.replace).toHaveBeenCalledWith({
-      name: 'scheduler-calendar-week',
-      query: expect.objectContaining({ channels: ['acc-123'] }),
-    })
-  })
-
-  it('search query uses replace', async () => {
-    const router = createMockRouter()
-
-    await router.replace({
-      name: 'scheduler-calendar-week',
-      query: { q: 'architecture' },
-    })
-
-    expect(router.replace).toHaveBeenCalledWith({
-      name: 'scheduler-calendar-week',
-      query: expect.objectContaining({ q: 'architecture' }),
-    })
+    const call = (router.push as ReturnType<typeof vi.fn>).mock.calls[0]![0]
+    expect(call.query.date).toBe('2026-06-22')
   })
 })
 

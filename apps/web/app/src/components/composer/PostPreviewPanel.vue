@@ -1,10 +1,9 @@
 <script setup lang="ts">
 import { computed } from 'vue'
 import LinkedInPostPreview from './LinkedInPostPreview.vue'
-import type { LinkedInPreviewModel, PreviewProvider } from './post-preview.types'
+import type { LinkedInPreviewModel } from './post-preview.types'
 
 const props = defineProps<{
-  provider: PreviewProvider
   title: string
   linkedinPreview: LinkedInPreviewModel
 }>()

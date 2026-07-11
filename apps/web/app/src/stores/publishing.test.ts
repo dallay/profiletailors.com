@@ -1001,6 +1001,85 @@ describe('publishing store', () => {
       expect(store.activity).toEqual([])
       expect(store.conflicts).toEqual([])
     })
+
+    it('drops stale responses when a newer fetchCalendar has started', async () => {
+      const store = usePublishingStore()
+      const auth = useAuthStore()
+      Object.defineProperty(auth, 'isAuthenticated', { value: true, configurable: true })
+
+      const freshResponse = {
+        publications: [
+          {
+            id: 'api-fresh',
+            workspaceId: 'ws_1',
+            socialAccountId: 'acc-1',
+            provider: 'LINKEDIN',
+            status: 'QUEUED',
+            scheduleMode: 'SCHEDULED_AT',
+            priority: false,
+            title: null,
+            bodyText: 'fresh',
+            scheduledFor: '2026-06-10T12:00:00Z',
+            hasConflict: false,
+            conflictingPublicationIds: [],
+          },
+        ],
+        conflicts: [],
+        activity: [{ date: '2026-06-10', density: 'LOW' }],
+      }
+      const staleResponse = {
+        publications: [
+          {
+            id: 'api-stale',
+            workspaceId: 'ws_1',
+            socialAccountId: 'acc-1',
+            provider: 'LINKEDIN',
+            status: 'QUEUED',
+            scheduleMode: 'SCHEDULED_AT',
+            priority: false,
+            title: null,
+            bodyText: 'stale',
+            scheduledFor: '2026-06-01T12:00:00Z',
+            hasConflict: false,
+            conflictingPublicationIds: [],
+          },
+        ],
+        conflicts: [{ id: 'stale-conflict' }],
+        activity: [{ date: '2026-06-01', density: 'HIGH' }],
+      }
+
+      // The older (chronologically first) fetchCalendar call will resolve LAST,
+      // so without the overlapping-request guard it would clobber the fresh data.
+      let resolveOlder: (() => void) | undefined
+      let callIndex = 0
+      const spy = vi.spyOn(auth, 'apiFetch').mockImplementation(async () => {
+        callIndex += 1
+        if (callIndex === 1) {
+          await new Promise<void>((resolve) => {
+            resolveOlder = resolve
+          })
+          return staleResponse
+        }
+        return freshResponse
+      })
+
+      // Kick off the OLDER call first; it parks on resolveOlder.
+      const older = store.fetchCalendar('2026-06-01T00:00:00Z', '2026-06-07T00:00:00Z')
+      // Now kick off the NEWER call; it resolves immediately with fresh data.
+      const newer = store.fetchCalendar('2026-06-08T00:00:00Z', '2026-06-14T00:00:00Z')
+      await newer
+      // Release the older call — its response must be dropped by the guard.
+      resolveOlder?.()
+      await older
+
+      // The store should reflect the NEWER call's payload; the older response
+      // must NOT have overwritten it.
+      expect(store.publications.map((p) => p.id)).toEqual(['api-fresh'])
+      expect(store.conflicts).toEqual([])
+      expect(store.activity).toEqual([{ date: '2026-06-10', density: 'LOW' }])
+      // Sanity: apiFetch was invoked twice.
+      expect(spy).toHaveBeenCalledTimes(2)
+    })
   })
 
   describe('quickCreatePost', () => {

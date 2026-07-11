@@ -340,7 +340,6 @@ const selectedChannel = computed(() =>
 const selectedProviders = computed(() =>
   selectedChannel.value ? [selectedChannel.value.provider] : [],
 )
-const selectedPreviewProvider = 'linkedin'
 const selectedChannelInitials = computed(() => {
   const name = selectedChannel.value?.name?.trim()
   if (!name) return 'PT'
@@ -1214,7 +1213,6 @@ async function handleCreateSubmit(
         </div>
 
         <PostPreviewPanel
-          :provider="selectedPreviewProvider"
           :title="$t('composer.linkedinPreview')"
           :linkedin-preview="linkedinPreview"
         >
