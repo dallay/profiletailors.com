@@ -125,9 +125,15 @@ const statusIcon = computed(() => {
         <select
           id="calendar-timezone-select"
           class="bg-bg-surface border border-border-subtle rounded-full pl-8 pr-8 py-1.5 text-[10px] font-mono font-bold text-text-secondary appearance-none cursor-pointer focus:outline-none focus:border-text-display"
+          :value="timezone"
           @change="(e) => emit('change:filter', { timezone: (e.target as HTMLSelectElement).value })"
         >
-          <option :value="timezone">{{ timezone || 'UTC' }}</option>
+          <option
+            v-if="timezone && !['Europe/Madrid', 'UTC', 'America/New_York'].includes(timezone)"
+            :value="timezone"
+          >
+            {{ timezone }}
+          </option>
           <option value="Europe/Madrid">Europe/Madrid</option>
           <option value="UTC">UTC</option>
           <option value="America/New_York">America/New_York</option>
