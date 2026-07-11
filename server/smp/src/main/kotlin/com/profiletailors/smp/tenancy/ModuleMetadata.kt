@@ -8,6 +8,7 @@ import org.springframework.modulith.ApplicationModule
         "audit :: domain",
         "authorization :: domain",
         "platform :: infrastructure",
+        "platform :: domain",
     ],
 )
 internal class ModuleMetadata
