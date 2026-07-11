@@ -84,12 +84,7 @@ vi.mock('@/components/ui/button', () => ({
 
 vi.mock('@lucide/vue', () => {
   const stub = { template: '<svg />' }
-  // Spreadsheet of every icon imported (directly or transitively) when
-  // CreatePostModal and its descendants render. Maintain this in sync with
-  // new icon imports; the test surface is the modal as a whole so any
-  // missing entry fails mounting with a `No "<icon>" export is defined`.
   return {
-    // App-level icons
     Image: stub,
     Calendar: stub,
     Check: stub,
@@ -106,50 +101,6 @@ vi.mock('@lucide/vue', () => {
     AlertCircle: stub,
     RotateCcw: stub,
     Search: stub,
-    Info: stub,
-    Globe: stub,
-    MessageCircle: stub,
-    Repeat2: stub,
-    Send: stub,
-    ThumbsUp: stub,
-    CalendarClock: stub,
-    ExternalLink: stub,
-    Pencil: stub,
-    Trash2: stub,
-    AlertTriangle: stub,
-    CheckCircle2: stub,
-    Clock: stub,
-    CheckCircle: stub,
-    XCircle: stub,
-    ChevronUp: stub,
-    Download: stub,
-    FileText: stub,
-    RefreshCw: stub,
-    UploadCloud: stub,
-    Video: stub,
-    TriangleAlert: stub,
-    Plus: stub,
-    LogOut: stub,
-    Settings: stub,
-    Users: stub,
-    ChevronsUpDown: stub,
-    Images: stub,
-    LayoutGrid: stub,
-    // shadcn-vue icon imports
-    ChevronRightIcon: stub,
-    ChevronLeftIcon: stub,
-    ChevronUpIcon: stub,
-    ChevronDownIcon: stub,
-    MoreHorizontalIcon: stub,
-    CheckIcon: stub,
-    XIcon: stub,
-    SearchIcon: stub,
-    ChevronsLeftIcon: stub,
-    ChevronsRightIcon: stub,
-    MinusIcon: stub,
-    PlusIcon: stub,
-    CircleIcon: stub,
-    PanelLeftIcon: stub,
   }
 })
 
@@ -864,9 +815,8 @@ describe('CreatePostModal.vue — Unsplash integration (WU3)', () => {
           externalId: 'mountain-1',
         })
 
-      // Mount the modal with the provider flag enabled
+      // Mount the modal with the provider enabled
       const wrapper = mountModal([makeChannel('ch-prov')], {
-        isUnsplashProviderEnabled: true,
         provider: 'unsplash',
       } as Record<string, unknown>)
       await flushModal(wrapper)
@@ -914,7 +864,6 @@ describe('CreatePostModal.vue — Unsplash integration (WU3)', () => {
 
     const wrapper = mountModal([makeChannel('ch-prov')], {
       provider: 'unsplash',
-      isUnsplashProviderEnabled: true,
     } as Record<string, unknown>)
     await flushModal(wrapper)
 

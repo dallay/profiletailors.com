@@ -325,8 +325,9 @@ internal class CreatePublicationHandler(
         val workspaceId = requireNotNull(resourceContext.workspaceId)
         val socialAccount = requireSocialAccount(workspaceId, command.socialAccountId)
 
-        // Resolve assets through media context if feature flag is enabled
-        // Short-circuit for empty assetIds so zero-asset publications succeed even when media is unavailable
+        // Resolve assets through the media context when the integration is enabled,
+        // otherwise fall back to the legacy repository lookup.
+        // Short-circuit empty assetIds so zero-asset publications still succeed even when media is unavailable.
         val assets = resolveAssets(workspaceId, command.assetIds)
 
         val now = clock.instant()
@@ -366,12 +367,12 @@ internal class CreatePublicationHandler(
     /**
      * Resolves assets through the media context or falls back to legacy lookup.
      *
-     * When `mediaContextIntegrationEnabled` is true and `assetIds` is non-empty:
+     * When `mediaIntegrationSettings.enabled` is true and `assetIds` is non-empty:
      *   - Calls `mediaAssetResolver.resolveReadyAssets(workspaceId, assetIds)` with a 5-second timeout
      *   - Throws `MediaServiceUnavailableException` on timeout or infrastructure failure
      *   - Throws `AssetNotReadyException` for missing, cross-workspace, or non-READY assets
      *
-     * When `mediaContextIntegrationEnabled` is false or `assetIds` is empty:
+     * When `mediaIntegrationSettings.enabled` is false or `assetIds` is empty:
      *   - Falls back to the legacy `publicationAssetRepository` lookup (no media context call)
      *
      * The 5-second timeout ensures that media context unavailability fails fast and returns

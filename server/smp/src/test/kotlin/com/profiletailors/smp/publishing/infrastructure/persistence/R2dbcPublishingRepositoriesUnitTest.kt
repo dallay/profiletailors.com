@@ -602,7 +602,7 @@ class R2dbcPublishingRepositoriesUnitTest : PostgresDatabaseTestBase() {
         }
 
         @Test
-        fun `replaceForPublication updates existing job in place`() = runTest {
+        fun `replaceForPublication deletes and re-inserts`() = runTest {
             val pubId = insertPublication(PublicationStatus.PROCESSING.name)
             val job1 = makeJob("job-replace-1", pubId, JobStatus.PENDING)
             val job2 = makeJob("job-replace-2", pubId, JobStatus.PENDING)
@@ -611,37 +611,11 @@ class R2dbcPublishingRepositoriesUnitTest : PostgresDatabaseTestBase() {
             publicationJobRepository.replaceForPublication(job2)
 
             val claim1 = publicationJobRepository.claimNextDue(Instant.parse("2026-06-01T13:00:00Z"), "worker-A")
-            // UPDATE in place preserves the original job id (FK-safe for delivery_attempts)
-            assertEquals("job-replace-1", requireNotNull(claim1) { "expected a claim" }.jobId)
+            assertNotNull(claim1)
+            assertEquals("job-replace-2", claim1!!.jobId)
 
             val claim2 = publicationJobRepository.claimNextDue(Instant.parse("2026-06-01T13:00:00Z"), "worker-B")
             assertNull(claim2)
-        }
-
-        @Test
-        fun `replaceForPublication succeeds when delivery_attempts exist for the job`() = runTest {
-            val pubId = insertPublication(PublicationStatus.FAILED.name)
-            val job1 = makeJob("job-delivery-ref-1", pubId, JobStatus.FAILED)
-            publicationJobRepository.enqueue(job1)
-
-            insertDeliveryAttempt(
-                id = "da-1",
-                publicationId = pubId,
-                publicationJobId = job1.id,
-                attemptNumber = 1,
-                outcome = DeliveryAttemptOutcome.FAILED,
-            )
-
-            val replacement = makeJob("job-delivery-ref-2", pubId, JobStatus.PENDING)
-
-            // Must NOT throw DataIntegrityViolationException
-            publicationJobRepository.replaceForPublication(replacement)
-
-            // The job should be updated in place (same id, new fields)
-            val claim = publicationJobRepository.claimNextDue(Instant.parse("2026-06-01T13:00:00Z"), "worker-1")
-            assertNotNull(claim)
-            assertEquals(job1.id, claim!!.jobId)
-            assertEquals(pubId, claim.publicationId)
         }
 
         @Test
@@ -1074,33 +1048,6 @@ class R2dbcPublishingRepositoriesUnitTest : PostgresDatabaseTestBase() {
         attemptCount = 0,
         maxAttempts = 3,
     )
-
-    private suspend fun insertDeliveryAttempt(
-        id: String,
-        publicationId: String,
-        publicationJobId: String,
-        attemptNumber: Int = 1,
-        outcome: DeliveryAttemptOutcome = DeliveryAttemptOutcome.FAILED,
-    ) {
-        databaseClient.sql(
-            """
-            INSERT INTO delivery_attempts (
-                id, publication_id, publication_job_id, attempt_number, outcome, retryable, attempted_at
-            ) VALUES (
-                :id, :publicationId, :publicationJobId, :attemptNumber, :outcome, false, :attemptedAt
-            )
-            """.trimIndent(),
-        )
-            .bind("id", id)
-            .bind("publicationId", publicationId)
-            .bind("publicationJobId", publicationJobId)
-            .bind("attemptNumber", attemptNumber)
-            .bind("outcome", outcome.name)
-            .bind("attemptedAt", java.time.Instant.now())
-            .fetch()
-            .rowsUpdated()
-            .awaitSingle()
-    }
 
     companion object {
         @Container

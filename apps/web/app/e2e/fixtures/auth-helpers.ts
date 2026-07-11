@@ -9,15 +9,6 @@
 import type { Page, Route } from '@playwright/test'
 import { VALID_CREDENTIALS, APP_URL } from './test-data'
 
-const DEFAULT_MOCK_CREDENTIALS = {
-  email: VALID_CREDENTIALS.email,
-  // Must match the password recorded in the /api/auth/login entries of
-  // e2e/hars/auth-flow.har — routeFromHAR matches on request body, so any
-  // other value here causes replay to miss and the login form to show
-  // "Unable to sign in." (see TC-17/18/20 timeout regression).
-  password: 'S3cr3tP@ssw0rd*123',
-} as const
-
 interface SessionOverrides {
   accessToken?: string
   principalId?: string
@@ -49,19 +40,11 @@ const HAR_REPLAY = process.env.UPDATE_HAR !== 'true'
  */
 export async function authenticateAs(
   page: Page,
-  credentials: { email: string; password: string } = DEFAULT_MOCK_CREDENTIALS,
+  credentials: { email: string; password: string } = VALID_CREDENTIALS,
 ): Promise<void> {
-  // Drop any leftover session so the auth guard reliably lands us on /login.
-  // Tests that intentionally want a persistent session across calls should
-  // call setup() instead, which calls keepSessionAlive() after login.
-  await page.context().clearCookies()
   await page.goto(APP_URL.login, { waitUntil: 'domcontentloaded' })
-  // Use the accessible name of the email/password textbox (linked via the
-  // <label for="email"> / <label for="password"> in AuthView). The banner's
-  // "Email verification required" label is a section-level aria-label, not a
-  // form label, so getByLabel scopes cleanly to the form inputs.
-  await page.getByLabel(/^email$/i).fill(credentials.email)
-  await page.getByLabel(/^password$/i).fill(credentials.password)
+  await page.getByLabel(/email/i).fill(credentials.email)
+  await page.getByLabel(/password/i).fill(credentials.password)
   await page.getByRole('button', { name: /sign in|iniciar sesión/i }).click()
 
   // Wait for navigation to dashboard

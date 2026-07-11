@@ -97,13 +97,13 @@ publishing:
     api-version: ${SMP_LINKEDIN_API_VERSION:202606}
 
 # Media provider adapters (Hexagonal: ports under media-library.application.port;
-# adapters live under mediaprovider.* and are wired behind a feature flag).
+# adapters live under mediaprovider.*).
 mediaprovider:
   unsplash:
-    # Feature flag — defaults to OFF in ALL environments. The Unsplash adapter
-    # is only registered when this is true AND UNSPLASH_ACCESS_KEY is configured.
+    # Optional Unsplash integration. Register the adapter only when this is true
+    # AND UNSPLASH_ACCESS_KEY is configured.
     enabled: ${SMP_MEDIAPROVIDER_UNSPLASH_ENABLED:false}
-    # API key — MUST be set via env var when enabled (Unsplash demo key acceptable for local/staging).
+    # API key — MUST be set via env var when the Unsplash integration is enabled.
     access-key: ${UNSPLASH_ACCESS_KEY:}
     base-url: ${SMP_MEDIAPROVIDER_UNSPLASH_BASE_URL:https://api.unsplash.com}
     timeout: ${SMP_MEDIAPROVIDER_UNSPLASH_TIMEOUT:PT5S}

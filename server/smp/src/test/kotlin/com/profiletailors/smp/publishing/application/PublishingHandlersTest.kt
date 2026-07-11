@@ -2414,7 +2414,7 @@ class PublishingHandlersTest {
             clock = fixedClock,
         )
 
-        // With feature flag disabled, the handler should use legacy lookup and succeed
+        // When integration is disabled, the handler should use legacy lookup and succeed
         val result = handler.handle(
             CreatePublicationCommand(
                 socialAccountId = "account-1",
@@ -2425,7 +2425,7 @@ class PublishingHandlersTest {
         )
 
         assertEquals(PublicationStatus.QUEUED, result.status)
-        // Media resolver should NOT have been called (feature flag disabled)
+        // Media resolver should NOT have been called (integration disabled)
         assertTrue(mediaResolver.requestedCalls.isEmpty())
     }
 

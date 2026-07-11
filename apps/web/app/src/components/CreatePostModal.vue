@@ -72,17 +72,10 @@ const props = withDefaults(
      * when the provider is configured and enabled.
      */
     provider?: 'unsplash' | null
-    /**
-     * Whether the Unsplash provider is enabled by feature flag.
-     * Same purpose as `provider`, kept distinct so the modal can react
-     * to capability refreshes without re-creating the modal.
-     */
-    isUnsplashProviderEnabled?: boolean
   }>(),
   {
     isOpen: false,
     provider: null,
-    isUnsplashProviderEnabled: false,
   }
 )
 
@@ -108,7 +101,6 @@ const picker = useComposerMediaPicker({
   publishingStore,
   editingPublication: () => props.editingPublication ?? null,
   provider: () => props.provider ?? null,
-  isUnsplashProviderEnabled: () => props.isUnsplashProviderEnabled ?? false,
   initialChannelId: () => selectedChannelId.value,
   workspaceId: () => workspaceStore.activeWorkspaceId ?? 'ws-local',
   onAttachmentsChanged: () => {
@@ -348,7 +340,6 @@ const selectedChannel = computed(() =>
 const selectedProviders = computed(() =>
   selectedChannel.value ? [selectedChannel.value.provider] : [],
 )
-const selectedPreviewProvider = 'linkedin'
 const selectedChannelInitials = computed(() => {
   const name = selectedChannel.value?.name?.trim()
   if (!name) return 'PT'
@@ -1000,7 +991,7 @@ async function handleCreateSubmit(
                   v-for="asset in visibleInlineAttachments"
                   :key="asset.key"
                   :title="asset.name"
-                  class="group relative h-[118px] w-[118px] overflow-hidden rounded-[18px] border border-border-visible bg-bg-primary/50"
+                  class="group relative h-[118px] w-[118px] overflow-hidden rounded-[18px] border border-white/10 bg-white/5"
                   :data-testid="asset.kind === 'draft' ? `inline-attachment-${asset.assetId}` : 'inline-local-upload'"
                 >
                   <img
@@ -1012,7 +1003,7 @@ async function handleCreateSubmit(
                   >
                   <div
                     v-else
-                    class="flex h-full w-full items-center justify-center bg-bg-primary/40 text-text-secondary"
+                    class="flex h-full w-full items-center justify-center bg-black/10 text-white/45"
                   >
                     <ImageIcon class="size-6" />
                   </div>
@@ -1048,7 +1039,7 @@ async function handleCreateSubmit(
 
                 <div
                   v-if="hiddenInlineAttachmentCount > 0"
-                  class="flex h-[118px] w-[118px] items-center justify-center rounded-[18px] border border-dashed border-border-visible bg-bg-primary/30 font-mono text-xs tracking-[0.2em] text-text-secondary"
+                  class="flex h-[118px] w-[118px] items-center justify-center rounded-[18px] border border-dashed border-white/12 bg-white/5 font-mono text-xs tracking-[0.2em] text-white/70"
                   data-testid="inline-attachment-overflow"
                 >
                   +{{ hiddenInlineAttachmentCount }}
@@ -1057,15 +1048,15 @@ async function handleCreateSubmit(
                 <button
                   type="button"
                   class="flex h-[118px] w-[118px] cursor-pointer flex-col items-center justify-center rounded-[18px] border border-dashed px-4 text-center transition"
-                  :class="isDropzoneActive ? 'border-[#8ccf70] bg-[#8ccf70]/10' : 'border-border-visible bg-bg-primary/30 hover:border-text-display/40'"
+                  :class="isDropzoneActive ? 'border-[#8ccf70] bg-[#8ccf70]/10' : 'border-white/18 bg-transparent hover:border-white/30'"
                   data-testid="composer-inline-dropzone"
                   @click="openUploadPicker"
                   @dragover="handleDropzoneDragOver"
                   @dragleave="handleDropzoneDragLeave"
                   @drop="handleDropzoneDrop"
                 >
-                  <ImageIcon class="mb-3 size-6 text-text-secondary" />
-                  <p class="text-[12px] leading-5 text-text-secondary">
+                  <ImageIcon class="mb-3 size-6 text-white/65" />
+                  <p class="text-[12px] leading-5 text-white/75">
                     {{ t('composer.media.dropzoneTitle') }}
                     <span class="block font-medium text-[#8ccf70]">{{ t('composer.media.dropzoneBody') }}</span>
                   </p>
@@ -1222,7 +1213,6 @@ async function handleCreateSubmit(
         </div>
 
         <PostPreviewPanel
-          :provider="selectedPreviewProvider"
           :title="$t('composer.linkedinPreview')"
           :linkedin-preview="linkedinPreview"
         >

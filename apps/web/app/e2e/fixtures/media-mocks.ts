@@ -250,37 +250,6 @@ export class MockChannelsProvider implements IMockChannelsProvider {
   }
 }
 
-/**
- * Per-test override for the Unsplash provider feature flag. Surfaced to the
- * composer modal via a mocked /api/flags endpoint, so the picker shell can
- * assert tab visibility without mutating Pinia internals.
- */
-export interface IMockProviderFlag {
-  setEnabled(enabled: boolean): void
-  isEnabled(): boolean
-  reset(): void
-}
-
-export class MockProviderFlag implements IMockProviderFlag {
-  private readonly state: MediaRouteState
-
-  constructor(state: MediaRouteState) {
-    this.state = state
-  }
-
-  setEnabled(enabled: boolean): void {
-    this.state.unsplashProviderEnabled = enabled
-  }
-
-  isEnabled(): boolean {
-    return this.state.unsplashProviderEnabled
-  }
-
-  reset(): void {
-    this.state.unsplashProviderEnabled = false
-  }
-}
-
 const MOCK_WORKSPACE_ID = 'workspace-001'
 
 function contentType(headers: Record<string, string> = {}): Record<string, string> {
@@ -326,10 +295,9 @@ export class MediaRouteState {
   uploadPostCount = 0
   deleteCount = 0
   getCount = 0
-  // PR 1 — deferred upload, channel-limit, and provider-flag state
+  // PR 1 — deferred upload and channel-limit state
   deferredUploads: Map<string, DeferredUploadRecord> = new Map()
   channelsMaxAttachments: number | null = null
-  unsplashProviderEnabled = false
 
   reset(): void {
     this.assets = []
@@ -342,7 +310,6 @@ export class MediaRouteState {
     this.getCount = 0
     this.deferredUploads = new Map()
     this.channelsMaxAttachments = null
-    this.unsplashProviderEnabled = false
   }
 
   enqueuePut(response: MockPutResponse): void {
@@ -730,21 +697,11 @@ export async function registerComposerControls(
     route.fulfill(json(200, defaultChannelsPayload(state.channelsMaxAttachments)))
   }
 
-  const flagsHandler = (route: Route): void => {
-    route.fulfill(
-      json(200, {
-        flags: { unsplashProviderEnabled: state.unsplashProviderEnabled },
-      }),
-    )
-  }
-
   await context.route('**/api/publishing/channels**', channelsHandler)
-  await context.route('**/api/flags**', flagsHandler)
 
   return {
     unregister: async () => {
       await context.unroute('**/api/publishing/channels**', channelsHandler)
-      await context.unroute('**/api/flags**', flagsHandler)
     },
   }
 }

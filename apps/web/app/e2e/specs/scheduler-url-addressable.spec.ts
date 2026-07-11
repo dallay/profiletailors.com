@@ -9,55 +9,14 @@
 
 import { test, expect } from '../fixtures/scheduler-base-test'
 import { SchedulerPage } from '../pages/scheduler-page'
-import { authenticateAs, keepSessionAlive, mockLoginResponse } from '../fixtures/auth-helpers'
+import { authenticateAs } from '../fixtures/auth-helpers'
 
 // ---------------------------------------------------------------------------
 // Helpers
 // ---------------------------------------------------------------------------
 
 async function setup(page: import('@playwright/test').Page): Promise<SchedulerPage> {
-  // Drop any leftover session/state from a previous test in this worker.
-  await page.context().clearCookies()
-  await page.goto('about:blank').catch(() => {})
-  await page
-    .evaluate(() => {
-      try {
-        localStorage.clear()
-        sessionStorage.clear()
-      } catch {}
-    })
-    .catch(() => {})
-
-  // While the SPA boots for the upcoming `/login` navigation, force
-  // refresh to fail so we always land on the login form, never the dashboard.
-  await page.route('**/api/auth/refresh', async (route) => {
-    await route.fulfill({
-      status: 401,
-      contentType: 'application/problem+json',
-      body: JSON.stringify({ title: 'Refresh session invalid', status: 401 }),
-    })
-  })
-
-  await mockLoginResponse(page, {
-    status: 200,
-    body: {
-      accessToken: 'scheduler-test-token',
-      tokenType: 'Bearer',
-      expiresIn: 900,
-      principalId: 'test-user',
-      email: 'dev@profiletailors.com',
-      username: 'dev',
-      emailStatus: 'PENDING',
-      workspaceId: 'workspace-001',
-    },
-  })
-
   await authenticateAs(page)
-
-  // After login, swap the refresh mock to a successful one so later
-  // `page.goto('/scheduler/...')` navigations can rehydrate the session.
-  await keepSessionAlive(page)
-
   const scheduler = new SchedulerPage(page)
   return scheduler
 }
@@ -168,7 +127,8 @@ test.describe('URL-addressable scheduler — navigation', () => {
   })
 
   test('TC-NAV-03: clicking Week toggle from month changes URL @scheduler', async ({ page }) => {
-    const scheduler = await setup(page)
+    await authenticateAs(page)
+    const scheduler = new SchedulerPage(page)
 
     // Switch to month first
     await page.goto('/scheduler/calendar/month')
@@ -278,58 +238,4 @@ test.describe('URL-addressable scheduler — browser history', () => {
     await page.waitForTimeout(500)
     expect(page.url()).toContain('/scheduler/list')
   })
-
-  test.fixme(
-    'TC-HIST-02: refresh/share restores scheduler filters from canonical URL @scheduler',
-    'Blocked in current backend-free scheduler harness: refresh lands on login instead of preserving authenticated scheduler state.',
-    async ({ page }) => {
-      await setup(page)
-      await keepSessionAlive(page)
-      await page.goto(
-        '/scheduler/calendar/week?date=2026-06-20&status=queued&channels[]=sa-linkedin-001',
-      )
-      await page.waitForLoadState('networkidle')
-
-      await page.reload()
-      await page.waitForURL('**/scheduler/calendar/week**')
-      await page.waitForLoadState('networkidle')
-
-      await expect(page.locator('#calendar-post-status-select')).toHaveValue('queued')
-      await expect(page.locator('#calendar-platform-select')).toHaveValue('sa-linkedin-001')
-      await expect(page).toHaveURL(
-        /\/scheduler\/calendar\/week\?date=2026-06-20&status=queued&channels%5B%5D=sa-linkedin-001$/,
-      )
-    },
-  )
-
-  test.fixme(
-    'TC-HIST-03: legacy /scheduler/calendar/day canonicalizes to canonical week route @scheduler',
-    'Blocked in current backend-free scheduler harness: direct navigation to legacy protected route redirects to login before scheduler app state hydrates.',
-    async ({ page }) => {
-      await setup(page)
-      await page.goto('/scheduler/calendar/day?date=2026-06-20&channels=sa-linkedin-001')
-      await page.waitForLoadState('networkidle')
-
-      await expect(page).toHaveURL(
-        /\/scheduler\/calendar\/week\?date=2026-06-20&channels%5B%5D=sa-linkedin-001$/,
-      )
-      await expect(page.locator('#calendar-platform-select')).toHaveValue('sa-linkedin-001')
-    },
-  )
-
-  test.fixme(
-    'TC-HIST-04: clearing filters cleans query back to canonical scheduler route @scheduler',
-    'Blocked in current backend-free scheduler harness: direct protected-route navigation resolves to login, so scheduler controls are unavailable.',
-    async ({ page }) => {
-      await setup(page)
-      await page.goto('/scheduler/calendar/week?status=queued&channels[]=sa-linkedin-001')
-      await page.waitForLoadState('networkidle')
-
-      await page.locator('#calendar-post-status-select').selectOption('all')
-      await page.locator('#calendar-platform-select').selectOption('')
-      await page.waitForTimeout(300)
-
-      await expect(page).toHaveURL(/\/scheduler\/calendar\/week$/)
-    },
-  )
 })

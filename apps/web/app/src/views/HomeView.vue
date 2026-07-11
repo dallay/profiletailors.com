@@ -93,6 +93,7 @@ function handleCreated() {
 
     <CreatePostModal
       :is-open="isModalOpen"
+      provider="unsplash"
       @close="isModalOpen = false"
       @created="handleCreated"
     />

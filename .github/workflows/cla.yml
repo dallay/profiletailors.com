@@ -44,6 +44,7 @@ jobs:
             *[bot]
             dallay/*
             dependabot[bot]
-            @coderabbitai[bot]
+            coderabbitai[bot]
+            google-labs-jules[bot]
           remote-organization-name: dallay
           remote-repository-name: profiletailors.com

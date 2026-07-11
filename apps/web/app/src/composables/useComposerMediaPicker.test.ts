@@ -93,7 +93,6 @@ describe('useComposerMediaPicker', () => {
         publishingStore,
         editingPublication: ref(null),
         provider: ref(null),
-        isUnsplashProviderEnabled: ref(false),
         initialChannelId: ref(null),
       })
       expect(picker.isMediaPickerOpen.value).toBe(false)
@@ -107,7 +106,6 @@ describe('useComposerMediaPicker', () => {
         publishingStore,
         editingPublication: ref(null),
         provider: ref(null),
-        isUnsplashProviderEnabled: ref(false),
         initialChannelId: ref(null),
       })
       expect(picker.draftAttachmentIds.value).toEqual([])
@@ -121,27 +119,12 @@ describe('useComposerMediaPicker', () => {
         publishingStore,
         editingPublication: ref(null),
         provider: ref(null),
-        isUnsplashProviderEnabled: ref(false),
         initialChannelId: ref(null),
       })
       expect(picker.pickerAssets.value).toEqual([])
     })
 
-    it('effectiveProvider is null when isUnsplashProviderEnabled is false', () => {
-      const mediaStore = createFakeMediaStore()
-      const publishingStore = createFakePublishingStore()
-      const picker = useComposerMediaPicker({
-        mediaStore,
-        publishingStore,
-        editingPublication: ref(null),
-        provider: ref('unsplash'),
-        isUnsplashProviderEnabled: ref(false),
-        initialChannelId: ref(null),
-      })
-      expect(picker.effectiveProvider.value).toBe(null)
-    })
-
-    it('effectiveProvider is null when provider is not unsplash even if flag is true', () => {
+    it('effectiveProvider is null when provider is not unsplash', () => {
       const mediaStore = createFakeMediaStore()
       const publishingStore = createFakePublishingStore()
       const picker = useComposerMediaPicker({
@@ -149,13 +132,12 @@ describe('useComposerMediaPicker', () => {
         publishingStore,
         editingPublication: ref(null),
         provider: ref(null),
-        isUnsplashProviderEnabled: ref(true),
         initialChannelId: ref(null),
       })
       expect(picker.effectiveProvider.value).toBe(null)
     })
 
-    it('effectiveProvider is unsplash when both flag is true and provider is unsplash', () => {
+    it('effectiveProvider is unsplash when provider is unsplash', () => {
       const mediaStore = createFakeMediaStore()
       const publishingStore = createFakePublishingStore()
       const picker = useComposerMediaPicker({
@@ -163,7 +145,6 @@ describe('useComposerMediaPicker', () => {
         publishingStore,
         editingPublication: ref(null),
         provider: ref('unsplash'),
-        isUnsplashProviderEnabled: ref(true),
         initialChannelId: ref(null),
       })
       expect(picker.effectiveProvider.value).toBe('unsplash')
@@ -200,7 +181,6 @@ describe('useComposerMediaPicker', () => {
         publishingStore,
         editingPublication: ref(null),
         provider: ref(null),
-        isUnsplashProviderEnabled: ref(false),
         // Twitter is the selected channel
         initialChannelId: ref('ch-tw'),
       })
@@ -228,7 +208,6 @@ describe('useComposerMediaPicker', () => {
         publishingStore,
         editingPublication: ref(null),
         provider: ref(null),
-        isUnsplashProviderEnabled: ref(false),
         initialChannelId: ref(null),
       })
       expect(picker.effectiveAttachmentLimit.value).toBe(Number.POSITIVE_INFINITY)
@@ -242,7 +221,6 @@ describe('useComposerMediaPicker', () => {
         publishingStore,
         editingPublication: ref(null),
         provider: ref(null),
-        isUnsplashProviderEnabled: ref(false),
         initialChannelId: ref(null),
       })
       expect(picker.isAttachmentLimitExceeded.value).toBe(false)
@@ -256,7 +234,6 @@ describe('useComposerMediaPicker', () => {
         publishingStore,
         editingPublication: ref(null),
         provider: ref(null),
-        isUnsplashProviderEnabled: ref(false),
         initialChannelId: ref(null),
       })
       expect(picker.isPickerSelectionOverLimit.value).toBe(false)
@@ -291,7 +268,6 @@ describe('useComposerMediaPicker', () => {
         publishingStore,
         editingPublication: ref(null),
         provider: ref(null),
-        isUnsplashProviderEnabled: ref(false),
         initialChannelId: ref(null),
       })
       expect(picker.activeChannels.value).toHaveLength(1)
@@ -306,7 +282,6 @@ describe('useComposerMediaPicker', () => {
         publishingStore,
         editingPublication: ref(null),
         provider: ref(null),
-        isUnsplashProviderEnabled: ref(false),
         initialChannelId: ref(null),
       })
       expect(picker.providerQuery.value).toBe('')
@@ -320,7 +295,6 @@ describe('useComposerMediaPicker', () => {
         publishingStore,
         editingPublication: ref(null),
         provider: ref(null),
-        isUnsplashProviderEnabled: ref(false),
         initialChannelId: ref(null),
       })
       expect(picker.providerResults.value).toEqual([])
@@ -334,7 +308,6 @@ describe('useComposerMediaPicker', () => {
         publishingStore,
         editingPublication: ref(null),
         provider: ref(null),
-        isUnsplashProviderEnabled: ref(false),
         initialChannelId: ref(null),
       })
       expect(picker.providerSearching.value).toBe(false)
@@ -348,7 +321,6 @@ describe('useComposerMediaPicker', () => {
         publishingStore,
         editingPublication: ref(null),
         provider: ref(null),
-        isUnsplashProviderEnabled: ref(false),
         initialChannelId: ref(null),
       })
       expect(picker.providerSearchError.value).toBeNull()
@@ -370,7 +342,6 @@ describe('useComposerMediaPicker', () => {
         publishingStore,
         editingPublication: ref(null),
         provider: ref(null),
-        isUnsplashProviderEnabled: ref(false),
         initialChannelId: ref(null),
       })
 
@@ -388,7 +359,6 @@ describe('useComposerMediaPicker', () => {
         publishingStore,
         editingPublication: ref(null),
         provider: ref(null),
-        isUnsplashProviderEnabled: ref(false),
         initialChannelId: ref(null),
       })
 
@@ -406,7 +376,6 @@ describe('useComposerMediaPicker', () => {
         publishingStore,
         editingPublication: ref<Publication | null>(null),
         provider: ref(null),
-        isUnsplashProviderEnabled: ref(false),
         initialChannelId: ref(null),
       })
 
@@ -426,7 +395,6 @@ describe('useComposerMediaPicker', () => {
         publishingStore,
         editingPublication: ref(null),
         provider: ref(null),
-        isUnsplashProviderEnabled: ref(false),
         initialChannelId: ref(null),
       })
 
@@ -445,7 +413,6 @@ describe('useComposerMediaPicker', () => {
         publishingStore,
         editingPublication: ref(null),
         provider: ref(null),
-        isUnsplashProviderEnabled: ref(false),
         initialChannelId: ref(null),
       })
 
@@ -465,7 +432,6 @@ describe('useComposerMediaPicker', () => {
         publishingStore,
         editingPublication: ref(null),
         provider: ref(null),
-        isUnsplashProviderEnabled: ref(false),
         initialChannelId: ref(null),
       })
 
@@ -489,7 +455,6 @@ describe('useComposerMediaPicker', () => {
         publishingStore,
         editingPublication: ref(null),
         provider: ref(null),
-        isUnsplashProviderEnabled: ref(false),
         initialChannelId: ref(null),
       })
 
@@ -507,7 +472,6 @@ describe('useComposerMediaPicker', () => {
         publishingStore,
         editingPublication: ref(null),
         provider: ref(null),
-        isUnsplashProviderEnabled: ref(false),
         initialChannelId: ref(null),
       })
 
@@ -527,7 +491,6 @@ describe('useComposerMediaPicker', () => {
         publishingStore,
         editingPublication: ref(null),
         provider: ref(null),
-        isUnsplashProviderEnabled: ref(false),
         initialChannelId: ref(null),
       })
 
@@ -552,7 +515,6 @@ describe('useComposerMediaPicker', () => {
         publishingStore,
         editingPublication: ref(null),
         provider: ref(null),
-        isUnsplashProviderEnabled: ref(false),
         initialChannelId: ref(null),
       })
 
@@ -586,7 +548,6 @@ describe('useComposerMediaPicker', () => {
         publishingStore,
         editingPublication: ref(null),
         provider: ref(null),
-        isUnsplashProviderEnabled: ref(false),
         initialChannelId: ref('ch-tw'),
       })
 
@@ -609,7 +570,6 @@ describe('useComposerMediaPicker', () => {
         publishingStore,
         editingPublication: ref(null),
         provider: ref(null),
-        isUnsplashProviderEnabled: ref(false),
         initialChannelId: ref(null),
       })
 
@@ -631,7 +591,6 @@ describe('useComposerMediaPicker', () => {
         publishingStore,
         editingPublication: ref(null),
         provider: ref(null),
-        isUnsplashProviderEnabled: ref(false),
         initialChannelId: ref(null),
       })
 
@@ -667,7 +626,6 @@ describe('useComposerMediaPicker', () => {
         publishingStore,
         editingPublication: ref(null),
         provider: ref(null),
-        isUnsplashProviderEnabled: ref(false),
         initialChannelId: ref(null),
       })
 
@@ -688,7 +646,6 @@ describe('useComposerMediaPicker', () => {
         publishingStore,
         editingPublication: ref(null),
         provider: ref(null),
-        isUnsplashProviderEnabled: ref(false),
         initialChannelId: ref(null),
       })
 
@@ -706,7 +663,6 @@ describe('useComposerMediaPicker', () => {
         publishingStore,
         editingPublication: ref(null),
         provider: ref(null),
-        isUnsplashProviderEnabled: ref(false),
         initialChannelId: ref(null),
       })
 
@@ -725,7 +681,6 @@ describe('useComposerMediaPicker', () => {
         publishingStore,
         editingPublication: ref(null),
         provider: ref(null),
-        isUnsplashProviderEnabled: ref(false),
         initialChannelId: ref(null),
       })
 
@@ -756,7 +711,6 @@ describe('useComposerMediaPicker', () => {
         publishingStore,
         editingPublication: ref(null),
         provider: ref(null),
-        isUnsplashProviderEnabled: ref(false),
         initialChannelId: ref(null),
       })
 
@@ -783,7 +737,6 @@ describe('useComposerMediaPicker', () => {
         publishingStore,
         editingPublication: ref(null),
         provider: ref('unsplash'),
-        isUnsplashProviderEnabled: ref(true),
         initialChannelId: ref(null),
       })
 
@@ -801,7 +754,6 @@ describe('useComposerMediaPicker', () => {
         publishingStore,
         editingPublication: ref(null),
         provider: ref('unsplash'),
-        isUnsplashProviderEnabled: ref(true),
         initialChannelId: ref(null),
       })
 
@@ -837,7 +789,6 @@ describe('useComposerMediaPicker', () => {
         publishingStore,
         editingPublication: ref(null),
         provider: ref('unsplash'),
-        isUnsplashProviderEnabled: ref(true),
         initialChannelId: ref(null),
         workspaceId: 'ws-1',
       })
@@ -863,7 +814,6 @@ describe('useComposerMediaPicker', () => {
         publishingStore,
         editingPublication: ref(null),
         provider: ref(null),
-        isUnsplashProviderEnabled: ref(false),
         initialChannelId: ref(null),
       })
 
@@ -892,7 +842,6 @@ describe('useComposerMediaPicker', () => {
         publishingStore,
         editingPublication: ref(null),
         provider: ref(null),
-        isUnsplashProviderEnabled: ref(false),
         initialChannelId: ref(null),
       })
 
@@ -911,7 +860,6 @@ describe('useComposerMediaPicker', () => {
         publishingStore,
         editingPublication: ref(null),
         provider: ref(null),
-        isUnsplashProviderEnabled: ref(false),
         initialChannelId: ref(null),
       })
 
@@ -929,7 +877,6 @@ describe('useComposerMediaPicker', () => {
         publishingStore,
         editingPublication: ref(null),
         provider: ref(null),
-        isUnsplashProviderEnabled: ref(false),
         initialChannelId: ref(null),
       })
 
@@ -949,7 +896,6 @@ describe('useComposerMediaPicker', () => {
         publishingStore,
         editingPublication: ref(null),
         provider: ref(null),
-        isUnsplashProviderEnabled: ref(false),
         initialChannelId: ref(null),
       })
 
@@ -968,7 +914,6 @@ describe('useComposerMediaPicker', () => {
         publishingStore,
         editingPublication: ref(null),
         provider: ref(null),
-        isUnsplashProviderEnabled: ref(false),
         initialChannelId: ref(null),
       })
 
@@ -988,7 +933,6 @@ describe('useComposerMediaPicker', () => {
         publishingStore,
         editingPublication: ref(null),
         provider: ref(null),
-        isUnsplashProviderEnabled: ref(false),
         initialChannelId: ref(null),
       })
 

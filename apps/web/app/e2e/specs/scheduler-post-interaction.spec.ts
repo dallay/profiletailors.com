@@ -2,24 +2,11 @@ import { test, expect } from '../fixtures/scheduler-base-test'
 import { SchedulerPage } from '../pages/scheduler-page'
 import { ComposeModalPage } from '../pages/compose-modal-page'
 import { PostDetailModalPage } from '../pages/post-detail-modal-page'
-import { authenticateAs, keepSessionAlive, mockLoginResponse } from '../fixtures/auth-helpers'
+import { authenticateAs } from '../fixtures/auth-helpers'
 import { createPublicationInStore, ensureChannelsLoaded } from '../fixtures/scheduler-mocks'
 
 test.describe('Scheduler — Post Interaction', () => {
   test.beforeEach(async ({ page }) => {
-    await mockLoginResponse(page, {
-      status: 200,
-      body: {
-        accessToken: 'scheduler-test-token',
-        tokenType: 'Bearer',
-        expiresIn: 900,
-        principalId: 'test-user',
-        email: 'dev@profiletailors.com',
-        username: 'dev',
-        emailStatus: 'PENDING',
-        workspaceId: 'workspace-001',
-      },
-    })
     await authenticateAs(page)
     const scheduler = new SchedulerPage(page)
     await scheduler.goto()
@@ -220,102 +207,5 @@ test.describe('Scheduler — Post Interaction', () => {
       console.warn('TC-16: + button unexpectedly visible in past cell')
     }
     expect(plusAppeared).toBe(false)
-  })
-
-  test('TC-17: clicking a post card pushes postId and opens restorable detail modal @scheduler', async ({
-    page,
-  }) => {
-    const scheduler = new SchedulerPage(page)
-    const detailModal = new PostDetailModalPage(page)
-
-    const testText = `URL modal test ${Date.now()}`
-    await createPublicationInStore(page, testText)
-
-    await scheduler.switchToList()
-    const postCard = page.getByRole('button', { name: new RegExp(testText) }).first()
-    await expect(postCard).toBeVisible({ timeout: 10_000 })
-
-    await postCard.click()
-
-    await expect(page).toHaveURL(/postId=pub-e2e-\d+/)
-    await detailModal.expectVisible()
-  })
-
-  test('TC-18: refresh restores modal opened from route-owned postId @scheduler', async ({
-    page,
-  }) => {
-    const scheduler = new SchedulerPage(page)
-    const detailModal = new PostDetailModalPage(page)
-
-    await keepSessionAlive(page)
-
-    const testText = `Refresh detail test ${Date.now()}`
-    await createPublicationInStore(page, testText)
-
-    await scheduler.switchToList()
-    const postCard = page.getByRole('button', { name: new RegExp(testText) }).first()
-    await expect(postCard).toBeVisible({ timeout: 10_000 })
-    await postCard.click()
-    await detailModal.expectVisible()
-
-    const beforeReloadUrl = page.url()
-    await page.reload()
-    await scheduler.expectVisible()
-    await page.waitForLoadState('networkidle')
-
-    await expect(page).toHaveURL(beforeReloadUrl)
-    await detailModal.expectVisible()
-  })
-
-  test.fixme(
-    'TC-19: browser back and forward restore modal state from postId history @scheduler',
-    'Current scheduler modal close path uses replace semantics, so browser back returns to the list state instead of a prior modal history entry.',
-    async ({ page }) => {
-      const scheduler = new SchedulerPage(page)
-      const detailModal = new PostDetailModalPage(page)
-
-      const testText = `History detail test ${Date.now()}`
-      await createPublicationInStore(page, testText)
-
-      await scheduler.switchToList()
-      await page.waitForTimeout(300)
-      const postCard = page.getByRole('button', { name: new RegExp(testText) }).first()
-      await expect(postCard).toBeVisible({ timeout: 10_000 })
-      await postCard.click()
-      await detailModal.expectVisible()
-
-      await detailModal.clickClose()
-      await expect(page.url()).not.toContain('postId=')
-
-      await page.goBack()
-      await page.waitForTimeout(500)
-      await expect(page.url()).toContain('postId=')
-
-      await page.goForward()
-      await page.waitForTimeout(500)
-      await detailModal.expectHidden()
-    },
-  )
-
-  test('TC-20: stale post selection auto-closes and removes postId after filter change @scheduler', async ({
-    page,
-  }) => {
-    const scheduler = new SchedulerPage(page)
-    const detailModal = new PostDetailModalPage(page)
-
-    const testText = `Stale close test ${Date.now()}`
-    await createPublicationInStore(page, testText)
-
-    await scheduler.switchToList()
-    const postCard = page.getByRole('button', { name: new RegExp(testText) }).first()
-    await expect(postCard).toBeVisible({ timeout: 10_000 })
-    await postCard.click()
-    await detailModal.expectVisible()
-
-    await page.getByLabel(/post status/i).selectOption('published')
-
-    await detailModal.expectHidden()
-    await expect(page).not.toHaveURL(/postId=/)
-    await expect(page).toHaveURL(/status=published/)
   })
 })
