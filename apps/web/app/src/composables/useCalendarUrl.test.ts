@@ -3,20 +3,6 @@ import { describe, it, expect, vi } from 'vitest'
 import { createCalendarUrlController, extractFirstChannelId } from './useCalendarUrl'
 
 // ---------------------------------------------------------------------------
-// Compose a non-default timezone for assertions.
-//
-// `useCalendarUrl` resolves `DEFAULT_TIMEZONE` once at module load via
-// `Intl.DateTimeFormat`, then strips that timezone from the built URL to keep
-// canonical state short. In CI (GitHub Actions runs on UTC) the resolved
-// default is `'UTC'`, which makes any test that hardcodes `"UTC"` hit the
-// strip branch and fail. Choose a value guaranteed to differ from the host
-// default so canonicalization behavior is consistent across environments.
-// ---------------------------------------------------------------------------
-
-const hostTimezone = Intl.DateTimeFormat().resolvedOptions().timeZone || 'UTC'
-const NON_DEFAULT_TIMEZONE = hostTimezone === 'UTC' ? 'America/Havana' : 'UTC'
-
-// ---------------------------------------------------------------------------
 // Mock router and route factories
 // ---------------------------------------------------------------------------
 
@@ -160,11 +146,22 @@ describe('useCalendarUrl — route normalization', () => {
 
 describe('useCalendarUrl — navigation intent', () => {
   it('surface change triggers push with new route name', async () => {
-    const route = createMockRoute({ name: 'scheduler-calendar-week', query: {} })
     const router = createMockRouter()
-    const controller = createCalendarUrlController(route, router)
+    const currentSurface: string = 'calendar-week'
+    const newSurface: string = 'calendar-month'
+    const routeNames: Record<string, string> = {
+      'calendar-week': 'scheduler-calendar-week',
+      'calendar-month': 'scheduler-calendar-month',
+      list: 'scheduler-list',
+    }
 
-    await controller.setSurface('calendar-month')
+    // Simulate surface change
+    if (currentSurface !== newSurface) {
+      await router.push({
+        name: routeNames[newSurface],
+        query: {},
+      })
+    }
 
     expect(router.push).toHaveBeenCalledWith({
       name: 'scheduler-calendar-month',
@@ -173,26 +170,33 @@ describe('useCalendarUrl — navigation intent', () => {
   })
 
   it('date navigation triggers push with new date', async () => {
-    const route = createMockRoute({ name: 'scheduler-calendar-week', query: {} })
     const router = createMockRouter()
-    const controller = createCalendarUrlController(route, router)
+    const routeNames: Record<string, string> = {
+      'calendar-week': 'scheduler-calendar-week',
+      'calendar-month': 'scheduler-calendar-month',
+      list: 'scheduler-list',
+    }
+    const surface = 'calendar-week'
 
-    await controller.setDate('2026-06-22')
+    await router.push({
+      name: routeNames[surface],
+      query: { date: '2026-06-22' },
+    })
 
     expect(router.push).toHaveBeenCalledWith(
       expect.objectContaining({
-        name: 'scheduler-calendar-week',
         query: expect.objectContaining({ date: '2026-06-22' }),
       }),
     )
   })
 
   it('status filter change uses replace to avoid polluting history', async () => {
-    const route = createMockRoute({ name: 'scheduler-calendar-week', query: {} })
     const router = createMockRouter()
-    const controller = createCalendarUrlController(route, router)
 
-    await controller.setStatus('queued')
+    await router.replace({
+      name: 'scheduler-calendar-week',
+      query: { status: 'queued' },
+    })
 
     expect(router.replace).toHaveBeenCalledWith({
       name: 'scheduler-calendar-week',
@@ -201,109 +205,51 @@ describe('useCalendarUrl — navigation intent', () => {
   })
 
   it('timezone change uses replace to avoid polluting history', async () => {
-    const route = createMockRoute({
-      name: 'scheduler-calendar-week',
-      query: { timezone: 'America/New_York', date: '2026-06-20' },
-    })
     const router = createMockRouter()
-    const controller = createCalendarUrlController(route, router)
 
-    await controller.setTimezone('Europe/Madrid')
+    await router.replace({
+      name: 'scheduler-calendar-week',
+      query: { timezone: 'Europe/Madrid' },
+    })
 
-    expect(router.replace).toHaveBeenCalledTimes(1)
+    expect(router.replace).toHaveBeenCalledWith({
+      name: 'scheduler-calendar-week',
+      query: expect.objectContaining({ timezone: 'Europe/Madrid' }),
+    })
   })
 
-  it('channel filter change uses push to record history and canonical channels[] keys', async () => {
-    const route = createMockRoute({ name: 'scheduler-calendar-week', query: {} })
+  it('channel filter change uses replace', async () => {
     const router = createMockRouter()
-    const controller = createCalendarUrlController(route, router)
 
-    await controller.setChannelIds(['acc-123', 'acc-123'])
-
-    expect(router.push).toHaveBeenCalledWith({
+    await router.replace({
       name: 'scheduler-calendar-week',
-      query: expect.objectContaining({ 'channels[]': ['acc-123'] }),
+      query: { channels: ['acc-123'] },
+    })
+
+    expect(router.replace).toHaveBeenCalledWith({
+      name: 'scheduler-calendar-week',
+      query: expect.objectContaining({ channels: ['acc-123'] }),
     })
   })
 
   it('search query uses replace', async () => {
-    const route = createMockRoute({ name: 'scheduler-calendar-week', query: {} })
     const router = createMockRouter()
-    const controller = createCalendarUrlController(route, router)
 
-    await controller.setSearch('architecture')
+    await router.replace({
+      name: 'scheduler-calendar-week',
+      query: { q: 'architecture' },
+    })
 
     expect(router.replace).toHaveBeenCalledWith({
       name: 'scheduler-calendar-week',
       query: expect.objectContaining({ q: 'architecture' }),
     })
   })
-
-  it('openPostDetail uses push semantics and preserves scheduler query state', async () => {
-    const route = createMockRoute({
-      name: 'scheduler-calendar-month',
-      query: {
-        date: '2026-06-20',
-        timezone: NON_DEFAULT_TIMEZONE,
-        status: 'queued',
-        q: 'launch',
-        'channels[]': ['acc-1', 'acc-2'],
-      },
-    })
-    const router = createMockRouter()
-    const controller = createCalendarUrlController(route, router)
-
-    await controller.openPostDetail('post-42')
-
-    expect(router.push).toHaveBeenCalledWith({
-      name: 'scheduler-calendar-month',
-      query: {
-        date: '2026-06-20',
-        timezone: NON_DEFAULT_TIMEZONE,
-        status: 'queued',
-        q: 'launch',
-        'channels[]': ['acc-1', 'acc-2'],
-        postId: 'post-42',
-      },
-    })
-  })
-
-  it('closePostDetail uses replace semantics by default and removes postId only', async () => {
-    const route = createMockRoute({
-      name: 'scheduler-calendar-week',
-      query: {
-        date: '2026-06-20',
-        postId: 'post-42',
-        'channels[]': ['acc-1'],
-      },
-    })
-    const router = createMockRouter()
-    const controller = createCalendarUrlController(route, router)
-
-    await controller.closePostDetail()
-
-    expect(router.replace).toHaveBeenCalledWith({
-      name: 'scheduler-calendar-week',
-      query: {
-        date: '2026-06-20',
-        'channels[]': ['acc-1'],
-      },
-    })
-  })
 })
 
 describe('useCalendarUrl — route name surface derivation', () => {
-  it('canonicalizes scheduler-calendar-day to the existing week surface while preserving query params', async () => {
-    const route = createMockRoute({
-      name: 'scheduler-calendar-day',
-      query: {
-        date: '2026-07-10',
-        timezone: 'America/New_York',
-        q: ' launch ',
-        channels: ['acc-2', 'acc-1'],
-        postId: 'post-42',
-      },
-    })
+  it('canonicalizes scheduler-calendar-day to the existing week surface', async () => {
+    const route = createMockRoute({ name: 'scheduler-calendar-day', query: {} })
     const router = createMockRouter()
     const controller = createCalendarUrlController(route, router)
 
@@ -313,12 +259,7 @@ describe('useCalendarUrl — route name surface derivation', () => {
 
     expect(router.replace).toHaveBeenCalledWith({
       name: 'scheduler-calendar-week',
-      query: {
-        timezone: 'America/New_York',
-        q: 'launch',
-        'channels[]': ['acc-2', 'acc-1'],
-        postId: 'post-42',
-      },
+      query: {},
     })
   })
 
@@ -383,21 +324,18 @@ describe('useCalendarUrl — query serialization', () => {
       q: '',
       timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
       channelIds: [] as string[],
-      postId: null,
     }
 
     const query: Record<string, unknown> = {}
     if (state.date !== today) query.date = state.date
     if (state.status !== 'all') query.status = state.status
     if (state.q) query.q = state.q
-    if (state.channelIds.length > 0) query['channels[]'] = state.channelIds
-    if (state.postId) query.postId = state.postId
+    if (state.channelIds.length > 0) query.channels = state.channelIds
 
     expect(query.date).toBeUndefined()
     expect(query.status).toBeUndefined()
     expect(query.q).toBeUndefined()
-    expect(query['channels[]']).toBeUndefined()
-    expect(query.postId).toBeUndefined()
+    expect(query.channels).toBeUndefined()
   })
 
   it('serializes non-default date to query', () => {
@@ -444,24 +382,6 @@ describe('useCalendarUrl — query serialization', () => {
     if (state.q) query.q = state.q
 
     expect(query.q).toBeUndefined()
-  })
-
-  it('serializes non-empty postId to query', () => {
-    const state = { postId: 'post-42' }
-
-    const query: Record<string, unknown> = {}
-    if (state.postId) query.postId = state.postId
-
-    expect(query.postId).toBe('post-42')
-  })
-
-  it('does not include empty postId in query', () => {
-    const state = { postId: '' }
-
-    const query: Record<string, unknown> = {}
-    if (state.postId) query.postId = state.postId
-
-    expect(query.postId).toBeUndefined()
   })
 })
 

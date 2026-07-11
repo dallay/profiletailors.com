@@ -21,7 +21,6 @@ interface MediaMockFixtures {
   // PR 1 — composer-scoped controllers
   deferredUpload: DeferredUploadController
   channelsProvider: MockChannelsProvider
-  providerFlag: MockProviderFlag
   transitionQueue: TransitionQueue<{ progress: number }>
 }
 
@@ -70,12 +69,6 @@ export const test = base.extend<MediaMockFixtures>({
     const provider = new MockChannelsProvider(mockState)
     await use(provider)
     provider.reset()
-  },
-
-  providerFlag: async ({ mockState }, use) => {
-    const flag = new MockProviderFlag(mockState)
-    await use(flag)
-    flag.reset()
   },
 
   // biome-ignore lint/correctness/noEmptyPattern: Playwright fixtures require object destructuring.

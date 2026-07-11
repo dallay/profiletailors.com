@@ -39,6 +39,8 @@ const currentBaseDate = computed(() => {
 
 const isModalOpen = ref(false)
 const selectedCellDate = ref<string | undefined>(undefined)
+const isDetailModalOpen = ref(false)
+const detailPublication = ref<Publication | null>(null)
 const editingPublication = ref<Publication | null>(null)
 
 
@@ -293,14 +295,6 @@ const filteredPublications = computed(() => {
   )
 })
 
-const detailPublication = computed<Publication | null>(() => {
-  const postId = url.state.value.postId
-  if (!postId) return null
-  return filteredPublications.value.find((pub) => pub.id === postId) ?? null
-})
-
-const isDetailModalOpen = computed(() => detailPublication.value !== null)
-
 function getPublicationsForDate(date: Date): Publication[] {
   return filteredPublications.value.filter((pub) => {
     const pubDate = new Date(pub.scheduledAt)
@@ -399,11 +393,10 @@ function openDayView(date: Date) {
 }
 
 async function handleDeletePublication(id: string) {
-  const wasDetailPublication = detailPublication.value?.id === id
   try {
     await publishingStore.deletePost(id)
-    if (wasDetailPublication) {
-      void closePostDetail()
+    if (detailPublication.value?.id === id) {
+      closePostDetail()
     }
   } catch (err) {
     console.warn('Delete failed', err)
@@ -411,17 +404,20 @@ async function handleDeletePublication(id: string) {
 }
 
 function openPostDetail(pub: Publication) {
-  void url.openPostDetail(pub.id)
+  detailPublication.value = pub
+  isDetailModalOpen.value = true
 }
 
-function closePostDetail(options?: { replace?: boolean }) {
-  return url.closePostDetail(options)
+function closePostDetail() {
+  isDetailModalOpen.value = false
+  detailPublication.value = null
 }
 
 function handleEditPublication(publication: Publication) {
+  isDetailModalOpen.value = false
+  detailPublication.value = null
   editingPublication.value = publication
   isModalOpen.value = true
-  void closePostDetail()
 }
 
 async function handleUpdated() {
@@ -455,7 +451,7 @@ function onPostCreated() {
 
 function onReschedule() {
   // Store already updated by PostDetailModal; just close
-  void closePostDetail()
+  closePostDetail()
 }
 
 // Time slots mapping (24 hours starting at 12 AM)
@@ -479,12 +475,9 @@ watch(
   { immediate: true },
 )
 
-let latestFetchToken = 0
-
 watch(
   () => url.state.value,
   async (state) => {
-    const fetchToken = ++latestFetchToken
     const baseDate = new Date(`${state.date}T00:00:00`)
     const from =
       state.surface === 'calendar-month'
@@ -502,14 +495,6 @@ watch(
       socialAccountId: state.channelIds[0],
       timezone: state.timezone,
     })
-
-    if (fetchToken !== latestFetchToken) {
-      return
-    }
-
-    if (state.postId && !filteredPublications.value.some((pub) => pub.id === state.postId)) {
-      await closePostDetail({ replace: true })
-    }
   },
   { immediate: true, deep: true },
 )
@@ -594,7 +579,7 @@ watch(
 
           <div v-if="calendarView === 'week'" class="flex min-h-0 flex-1 flex-col">
             <Card class="flex min-h-0 flex-1 flex-col overflow-hidden border border-border-subtle bg-bg-surface p-0">
-              <div class="shrink-0 grid grid-cols-[48px_repeat(7,minmax(0,1fr))] border-b border-border-subtle bg-bg-primary">
+              <div class="shrink-0 grid grid-cols-[48px_repeat(7,1fr)] border-b border-border-subtle bg-bg-primary">
                 <div class="py-3.5 border-r border-border-subtle" />
                 <div
                   v-for="day in weekDays"
@@ -619,7 +604,7 @@ watch(
               </div>
 
               <div data-testid="week-timeline-viewport" class="thin-scrollbar relative min-h-0 flex-1 overflow-y-auto">
-                <div v-for="slot in hourSlots" :key="slot.hour" class="grid h-[96px] grid-cols-[48px_repeat(7,minmax(0,1fr))] border-b border-border-subtle last:border-b-0">
+                <div v-for="slot in hourSlots" :key="slot.hour" class="grid h-[96px] grid-cols-[48px_repeat(7,1fr)] border-b border-border-subtle last:border-b-0">
                   <div class="py-2 border-r border-border-subtle flex items-start justify-center">
                     <span class="font-mono text-[9px] tracking-wider text-text-secondary">
                       {{ slot.label }}
@@ -665,13 +650,6 @@ watch(
                         class="flex min-w-0 items-center gap-1.5"
                         :class="slotPubs.length > 1 ? '' : 'col-start-1 row-start-1'"
                       >
-                        <span
-                          v-for="channel in pub.channels"
-                          :key="channel"
-                          class="flex size-3 shrink-0 items-center justify-center rounded-[3px]"
-                        >
-                          <SocialProviderIcon :provider="channel" />
-                        </span>
                         <span class="shrink-0 font-mono text-[8px] font-bold tracking-wider opacity-80 uppercase">
                           {{ new Date(pub.scheduledAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) }}
                         </span>
@@ -694,6 +672,13 @@ watch(
                         class="flex shrink-0 items-center justify-end gap-1"
                         :class="slotPubs.length > 1 ? 'col-start-3' : 'col-start-2 row-span-2 row-start-1 self-stretch'"
                       >
+                        <span
+                          v-for="channel in pub.channels"
+                          :key="channel"
+                          class="flex size-4 shrink-0 items-center justify-center"
+                        >
+                          <SocialProviderIcon :provider="channel" />
+                        </span>
                         <span
                           v-if="pub.status === 'BLOCKED'"
                           class="rounded-sm border border-warning/30 bg-warning/20 px-1 py-0.5 text-[7px] font-bold tracking-wider text-warning uppercase"
@@ -852,8 +837,8 @@ watch(
     <PostDetailModal
       :is-open="isDetailModalOpen"
       :publication="detailPublication"
-      @close="() => closePostDetail()"
-      @deleted="() => closePostDetail()"
+      @close="closePostDetail"
+      @deleted="closePostDetail"
       @reschedule="onReschedule"
       @edit="handleEditPublication"
     />
