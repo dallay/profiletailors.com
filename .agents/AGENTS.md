@@ -52,7 +52,7 @@ openspec/             # SDD artifacts (spec-driven development)
 | `just backend-test-fast`    | Fast tests (excludes BDD)          |
 | `just backend-check`        | Detekt + tests                     |
 | `just backend-bdd-fast`     | Fast BDD suite                     |
-| `just backend-bdd-postgres` | Postgres BDD                      |
+| `just backend-bdd-postgres` | Postgres BDD (requires `infra-up`) |
 
 ### Full Stack
 
@@ -75,7 +75,7 @@ openspec/             # SDD artifacts (spec-driven development)
 |-----------------|-----------------------------------------------------|
 | `just ci`       | Full CI: gitleaks, lint, tests, build, E2E          |
 | `just ci-local` | Fast subset (no E2E, no Postgres BDD)               |
-| `just ci-full`  | ci-local + Postgres integration + BDD tests         |
+| `just ci-full`  | ci-local + Postgres BDD (requires `infra-up` first) |
 
 ## Backend Architecture (Hexagonal)
 
@@ -86,6 +86,8 @@ openspec/             # SDD artifacts (spec-driven development)
 | **Domain**         | Nothing (pure Kotlin) | Application, Infrastructure, Spring |
 | **Application**    | Domain                | Infrastructure, Spring stereotypes  |
 | **Infrastructure** | Domain + Application  | —                                   |
+
+> **Exception:** `ModuleMetadata` classes (or `package-info.java`) are allowed in any package (including `domain`) solely for Spring Modulith boundary and named interface definitions. These are intentionally exempted from architecture tests but must NOT contain business logic or other framework dependencies.
 
 - Package convention: `com.profiletailors.smp.{context}.{layer}`
 - CQRS naming: `GetXQuery`, `{Verb}XCommand`, `XHandler`, `R2dbcXRepository`
@@ -130,21 +132,14 @@ Or simply: `just setup` (does steps 1, 3, 4 + agentsync + codegraph in one shot)
 The `bootRun` task reads the root `.env` file and exports vars to the JVM — works for both CLI and
 IntelliJ.
 
-## Test Tags
+## Test Tags (Pre-existing Exclusions)
 
-### CI Exclusions
 These tags are excluded in CI due to known pre-existing failures:
 
 | Tag          | Reason                                                     |
 |--------------|------------------------------------------------------------|
 | `modularity` | Spring Modulith named-interface issue (on main)            |
-
-### CI Dedicated Jobs
-These tags are executed in dedicated CI jobs rather than the fast path:
-
-| Tag          | Logic                                                      |
-|--------------|------------------------------------------------------------|
-| `postgres`   | Full Postgres integration & BDD suite (runs in CI)         |
+| `postgres`   | Postgres/Testcontainers integration tests (not configured) |
 
 ## Design Spec
 

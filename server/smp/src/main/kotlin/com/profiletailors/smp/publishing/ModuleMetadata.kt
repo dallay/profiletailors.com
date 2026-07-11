@@ -10,6 +10,8 @@ import org.springframework.modulith.ApplicationModule
         "identity :: application",
         "platform :: infrastructure",
         "tenancy :: application",
+        "media :: application",
+        "media :: domain",
     ],
 )
 internal class ModuleMetadata
