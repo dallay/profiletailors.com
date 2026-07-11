@@ -1286,6 +1286,34 @@ class PublishingHandlersTest {
     }
 
     @Test
+    fun `calendar exposes publication failure diagnostics`() = runTest {
+        val publicationRepository = InMemoryPublicationRepository(
+            seedMany = listOf(
+                calendarPublication("pub-blocked", "account-1", "2026-06-15T10:00:00Z", PublicationStatus.BLOCKED)
+                    .copy(blockedReason = "LinkedIn account requires reconnect"),
+                calendarPublication("pub-failed", "account-1", "2026-06-15T11:00:00Z", PublicationStatus.FAILED)
+                    .copy(lastErrorCode = "LINKEDIN_VALIDATION_ERROR"),
+            ),
+        )
+        val handler = GetCalendarPublicationsHandler(
+            resourceContextProvider = FixedResourceContextProvider(workspaceContext),
+            publicationRepository = publicationRepository,
+            mediaAssetResolver = FakeMediaAssetResolver(),
+            assetPreviewUrlResolver = FakeAssetPreviewUrlResolver(),
+        )
+
+        val result = handler.handle(
+            GetCalendarPublicationsQuery(
+                from = Instant.parse("2026-06-01T00:00:00Z"),
+                to = Instant.parse("2026-07-01T00:00:00Z"),
+            ),
+        )
+
+        assertEquals("LinkedIn account requires reconnect", result.publications[0].blockedReason)
+        assertEquals("LINKEDIN_VALIDATION_ERROR", result.publications[1].errorCode)
+    }
+
+    @Test
     fun `gets calendar publications with status and account filters`() = runTest {
         val publicationRepository = InMemoryPublicationRepository(
             seedMany = listOf(
