@@ -12,7 +12,6 @@ export interface CalendarUrlState {
   status: SchedulerStatus
   q: string
   channelIds: string[]
-  postId: string | null
 }
 
 export interface CalendarUrlController {
@@ -26,8 +25,6 @@ export interface CalendarUrlController {
   setStatus: (status: SchedulerStatus) => Promise<void>
   setSearch: (q: string) => Promise<void>
   setChannelIds: (channelIds: string[]) => Promise<void>
-  openPostDetail: (postId: string) => Promise<void>
-  closePostDetail: (options?: { replace?: boolean }) => Promise<void>
 }
 
 const VALID_SURFACES = new Set<SchedulerSurface>(['calendar-week', 'calendar-month', 'list'])
@@ -50,9 +47,6 @@ function resolveBrowserTimezone(): string {
     return 'UTC'
   }
 }
-
-const DEFAULT_TIMEZONE = resolveBrowserTimezone()
-const DEFAULT_DATE = resolveToday()
 
 function isIsoLocalDate(value: string): boolean {
   return /^\d{4}-\d{2}-\d{2}$/.test(value)
@@ -104,15 +98,11 @@ function isInvalidStatus(rawStatus: string): boolean {
 }
 
 function normalizeDate(rawDate: string): string {
-  return isIsoLocalDate(rawDate) ? rawDate : DEFAULT_DATE
+  return isIsoLocalDate(rawDate) ? rawDate : resolveToday()
 }
 
 function normalizeTimezone(rawTimezone: string): string {
-  return rawTimezone || DEFAULT_TIMEZONE
-}
-
-function normalizePostId(rawPostId: string): string | null {
-  return rawPostId.length > 0 ? rawPostId : null
+  return rawTimezone || resolveBrowserTimezone()
 }
 
 function normalizeQuery(route: {
@@ -128,18 +118,17 @@ function normalizeQuery(route: {
     status: normalizeStatus(trimOrEmpty(route.query.status)),
     q: trimOrEmpty(route.query.q),
     channelIds: [...new Set(toArray(rawChannels))],
-    postId: normalizePostId(trimOrEmpty(route.query.postId)),
   }
 }
 
 function buildQuery(state: CalendarUrlState): LocationQueryRaw {
   const query: LocationQueryRaw = {}
 
-  if (state.date !== DEFAULT_DATE) {
+  if (state.date !== resolveToday()) {
     query.date = state.date
   }
 
-  if (state.timezone !== DEFAULT_TIMEZONE) {
+  if (state.timezone !== resolveBrowserTimezone()) {
     query.timezone = state.timezone
   }
 
@@ -153,10 +142,6 @@ function buildQuery(state: CalendarUrlState): LocationQueryRaw {
 
   if (state.channelIds.length > 0) {
     query['channels[]'] = state.channelIds
-  }
-
-  if (state.postId) {
-    query.postId = state.postId
   }
 
   return query
@@ -243,7 +228,7 @@ export function createCalendarUrlController(
       await navigate(router, { ...state.value, date: `${y}-${m}-${d}` }, 'push')
     },
     setTimezone: async (timezone) => {
-      await navigate(router, { ...state.value, timezone }, 'replace')
+      await navigate(router, { ...state.value, timezone: normalizeTimezone(timezone) }, 'replace')
     },
     setStatus: async (status) => {
       await navigate(router, { ...state.value, status: normalizeStatus(status) }, 'replace')
@@ -252,17 +237,7 @@ export function createCalendarUrlController(
       await navigate(router, { ...state.value, q: q.trim() }, 'replace')
     },
     setChannelIds: async (channelIds) => {
-      await navigate(router, { ...state.value, channelIds: [...new Set(channelIds)] }, 'push')
-    },
-    openPostDetail: async (postId) => {
-      await navigate(router, { ...state.value, postId: normalizePostId(postId.trim()) }, 'push')
-    },
-    closePostDetail: async (options = {}) => {
-      await navigate(
-        router,
-        { ...state.value, postId: null },
-        options.replace === false ? 'push' : 'replace',
-      )
+      await navigate(router, { ...state.value, channelIds: [...new Set(channelIds)] }, 'replace')
     },
   }
 }

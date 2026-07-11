@@ -1,14 +1,14 @@
 import { test, expect } from '../fixtures/scheduler-base-test'
 import { SchedulerPage } from '../pages/scheduler-page'
 import { ComposeModalPage } from '../pages/compose-modal-page'
-import { authenticateAs } from '../fixtures/auth-helpers'
+import { mockAuthenticatedSession } from '../fixtures/auth-helpers'
 import { ensureChannelsLoaded } from '../fixtures/scheduler-mocks'
 import { PostDetailModalPage } from '../pages/post-detail-modal-page'
 import { mediaFiles } from '../fixtures/media-files'
 
 test.describe('Scheduler — Create Post', () => {
   test.beforeEach(async ({ page }) => {
-    await authenticateAs(page)
+    await mockAuthenticatedSession(page, { emailStatus: 'VERIFIED' })
     const scheduler = new SchedulerPage(page)
     await scheduler.goto()
     await scheduler.expectVisible()
@@ -211,6 +211,114 @@ test.describe('Scheduler — Create Post', () => {
     expect(patchUrl).toContain(`/api/publishing/publications/${backendId}`)
     expect(patchBody).not.toHaveProperty('assetIds')
     await expect(page.getByRole('button', { name: new RegExp(updatedText) })).toBeVisible()
+  })
+
+  test('TC-05B: MVP core publishing happy path with media and LinkedIn preview @creation @media @mvp', async ({
+    page,
+  }) => {
+    const scheduler = new SchedulerPage(page)
+    const composeModal = new ComposeModalPage(page)
+    const backendId = 'backend-publication-mvp-core'
+    const assetId = 'asset-mvp-core-1'
+    const longText = [
+      `MVP core publishing journey ${Date.now()}`,
+      'This LinkedIn post intentionally contains long copy so the preview must clamp text without hiding the selected media attachment.',
+      'The scheduler card must also remain stable after the publication is queued.',
+      'Launch readiness depends on this primary loop working from composer to scheduler status.',
+    ].join('\n\n')
+
+    await page.route(/\/api\/media\/assets\/[^/]+$/, async (route) => {
+      const method = route.request().method()
+      const requestedAssetId = route.request().url().split('/api/media/assets/')[1] ?? assetId
+      if (method === 'PUT' || method === 'GET') {
+        await route.fulfill({
+          status: 200,
+          contentType: 'application/json',
+          body: JSON.stringify({
+            assetId: requestedAssetId,
+            workspaceId: 'workspace-001',
+            sourceType: 'UPLOADED',
+            mediaType: 'image/png',
+            status: 'READY',
+            deduped: method === 'PUT',
+            originalFilename: 'base.png',
+            fileSizeBytes: 68,
+            createdAt: new Date().toISOString(),
+            previewUrl: `/api/media/assets/${requestedAssetId}/preview`,
+            downloadUrl: `/api/media/assets/${requestedAssetId}/content`,
+          }),
+        })
+        return
+      }
+      route.fallback()
+    })
+    await page.route('**/api/publishing/publications', async (route) => {
+      if (route.request().method() !== 'POST') return route.fallback()
+      const body = route.request().postDataJSON() as Record<string, unknown>
+      await route.fulfill({
+        status: 201,
+        contentType: 'application/json',
+        body: JSON.stringify({
+          publicationId: backendId,
+          workspaceId: 'workspace-001',
+          socialAccountId: 'sa-linkedin-001',
+          status: 'QUEUED',
+          scheduleMode: body.scheduleMode ?? 'NOW',
+          priority: false,
+          title: 'Post from App',
+          bodyText: body.bodyText,
+          assetIds: [assetId],
+          scheduledFor: null,
+          nextSlotAfter: null,
+        }),
+      })
+    })
+    await page.route('**/api/publishing/publications/calendar**', async (route) => {
+      await route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify({
+          publications: [
+            {
+              id: backendId,
+              workspaceId: 'workspace-001',
+              socialAccountId: 'sa-linkedin-001',
+              provider: 'linkedin',
+              status: 'QUEUED',
+              scheduleMode: 'NOW',
+              priority: false,
+              title: 'Post from App',
+              bodyText: longText,
+              scheduledFor: null,
+              nextSlotAfter: null,
+              assetIds: [assetId],
+              hasConflict: false,
+              conflictingPublicationIds: [],
+              previewUrl: `/api/media/assets/${assetId}/preview`,
+            },
+          ],
+          conflicts: [],
+          activity: [],
+        }),
+      })
+    })
+
+    await scheduler.clickNewPost()
+    await composeModal.expectVisible()
+    await composeModal.fillText(longText)
+    await composeModal.attachMedia(mediaFiles.base.path)
+
+    const linkedInPreviewPanel = page.getByRole('region', { name: /linkedin preview/i })
+    await expect(linkedInPreviewPanel.getByText('...more')).toBeVisible()
+    await expect(linkedInPreviewPanel.getByRole('img', { name: /^media preview$/i })).toBeVisible()
+
+    await composeModal.clickScheduleNow()
+    await composeModal.expectHidden()
+
+    await scheduler.switchToList()
+    const postCard = page.getByRole('button', { name: /mvp core publishing journey/i }).first()
+    await expect(postCard).toBeVisible({ timeout: 10_000 })
+    await expect(postCard).toContainText(/queued/i)
   })
 
   /**

@@ -18,19 +18,25 @@ const emit = defineEmits<{
   (e: 'close'): void
   (e: 'deleted', id: string): void
   (e: 'reschedule', payload: { id: string; scheduledAt: string }): void
-  (e: 'retried', payload: { id: string; scheduledAt: string }): void
+  (e: 'retried', id: string): void
   (e: 'edit', publication: Publication): void
 }>()
 
 const { t, locale: i18nLocale } = useI18n()
 const publishingStore = usePublishingStore()
 
+/** Maps backend error codes to user-facing message keys. Expand as new codes are introduced. */
+const PUBLICATION_ERROR_MESSAGES: Record<string, string> = {
+  LINKEDIN_VALIDATION_ERROR: 'postDetail.errorMessages.linkedinValidation',
+  MEDIA_ASSET_TOO_LARGE: 'postDetail.errorMessages.mediaAssetTooLarge',
+  EMAIL_VERIFICATION_REQUIRED: 'postDetail.errorMessages.emailVerificationRequired',
+  RATE_LIMIT_EXCEEDED: 'postDetail.errorMessages.rateLimitExceeded',
+  UNAUTHORIZED: 'postDetail.errorMessages.unauthorized',
+}
+
 const isReadOnly = computed(() => props.publication?.status === 'PUBLISHED')
 const canEditPublication = computed(() =>
   props.publication ? publishingStore.isPublicationEditable(props.publication.status) : false,
-)
-const canRetry = computed(
-  () => props.publication?.status === 'FAILED' && Boolean(props.publication.scheduledAt),
 )
 const canDelete = computed(() =>
   props.publication ? publishingStore.isPublicationDeletable(props.publication.status) : false,
@@ -125,7 +131,22 @@ const deleteError = ref('')
 const showReschedule = ref(false)
 const newScheduledAt = ref('')
 const rescheduleError = ref('')
-const actionMode = ref<'reschedule' | 'retry'>('reschedule')
+const isRetrying = ref(false)
+const retryError = ref('')
+
+const failureDetail = computed(() => {
+  if (!props.publication) return ''
+  if (props.publication.status === 'BLOCKED') {
+    return props.publication.blockedReason ?? ''
+  }
+  if (props.publication.status === 'FAILED') {
+    const code = props.publication.errorCode
+    if (!code) return ''
+    const msgKey = PUBLICATION_ERROR_MESSAGES[code]
+    return msgKey ? t(msgKey) : code
+  }
+  return ''
+})
 
 const modalContainer = ref<HTMLElement | null>(null)
 const { activate: activateFocusTrap, deactivate: deactivateFocusTrap } = useFocusTrap(modalContainer, closeModal)
@@ -135,6 +156,7 @@ watch(
   async ([open]) => {
     if (open) {
       deleteError.value = ''
+      retryError.value = ''
       await nextTick()
       // Guard against the modal being closed during the await window
       if (props.isOpen) {
@@ -167,9 +189,8 @@ async function deletePublication() {
   }
 }
 
-function openScheduledAtAction(mode: 'reschedule' | 'retry') {
+function openReschedule() {
   if (!props.publication?.scheduledAt) return
-  actionMode.value = mode
   // Pre-fill with current scheduled date, local datetime-local format
   const d = new Date(props.publication.scheduledAt)
   const offset = d.getTimezoneOffset()
@@ -179,12 +200,19 @@ function openScheduledAtAction(mode: 'reschedule' | 'retry') {
   rescheduleError.value = ''
 }
 
-function openReschedule() {
-  openScheduledAtAction('reschedule')
-}
-
-function openRetry() {
-  openScheduledAtAction('retry')
+async function retryPublication() {
+  if (!props.publication || isRetrying.value || props.publication.status !== 'FAILED') return
+  isRetrying.value = true
+  retryError.value = ''
+  try {
+    await publishingStore.retryPublication(props.publication.id)
+    emit('retried', props.publication.id)
+    closeModal()
+  } catch (err) {
+    retryError.value = err instanceof Error ? err.message : t('postDetail.retryFailed')
+  } finally {
+    isRetrying.value = false
+  }
 }
 
 async function confirmReschedule() {
@@ -197,22 +225,12 @@ async function confirmReschedule() {
   }
   try {
     const newIso = newDate.toISOString()
-    if (actionMode.value === 'retry') {
-      await publishingStore.retryPublication(props.publication.id, newIso)
-      emit('retried', { id: props.publication.id, scheduledAt: newIso })
-    } else {
-      await publishingStore.reschedulePublication(props.publication.id, newIso)
-      emit('reschedule', { id: props.publication.id, scheduledAt: newIso })
-    }
+    await publishingStore.reschedulePublication(props.publication.id, newIso)
+    emit('reschedule', { id: props.publication.id, scheduledAt: newIso })
     showReschedule.value = false
     closeModal()
   } catch (err) {
-    rescheduleError.value =
-      err instanceof Error
-        ? err.message
-        : actionMode.value === 'retry'
-          ? 'Failed to retry'
-          : 'Failed to reschedule'
+    rescheduleError.value = err instanceof Error ? err.message : 'Failed to reschedule'
   }
 }
 
@@ -310,6 +328,15 @@ function cancelReschedule() {
             </div>
           </div>
 
+          <div v-if="failureDetail" class="space-y-1 rounded-2xl border border-border-visible bg-bg-primary/40 px-4 py-3">
+            <span class="font-mono text-[9px] font-bold tracking-widest text-text-secondary uppercase">
+              {{ publication.status === 'BLOCKED' ? t('postDetail.blockedReason') : t('postDetail.errorCode') }}
+            </span>
+            <p class="text-xs text-text-body break-words">
+              {{ failureDetail }}
+            </p>
+          </div>
+
           <div class="grid grid-cols-2 gap-3 pt-2 border-t border-border-subtle">
             <div class="space-y-1">
               <span class="font-mono text-[9px] font-bold tracking-widest text-text-secondary uppercase">
@@ -341,8 +368,9 @@ function cancelReschedule() {
         </div>
 
         <footer class="border-t border-border-subtle bg-bg-primary/40">
-          <div v-if="deleteError" class="px-6 pt-3 space-y-1">
-            <p class="text-[10px] font-mono text-error">{{ deleteError }}</p>
+          <div v-if="deleteError || retryError" class="px-6 pt-3 space-y-1">
+            <p v-if="deleteError" class="text-[10px] font-mono text-error">{{ deleteError }}</p>
+            <p v-if="retryError" role="alert" class="text-[10px] font-mono text-error">{{ retryError }}</p>
           </div>
           <div v-if="showReschedule" class="px-6 pt-3 pb-2 space-y-2">
             <!-- biome-ignore lint/a11y/noLabelWithoutControl: t() provides accessible text, Biome can't resolve i18n keys statically -->
@@ -362,7 +390,7 @@ function cancelReschedule() {
                 @click="confirmReschedule"
                 class="px-3 py-2 rounded-xl bg-text-display text-bg-primary hover:opacity-90 transition-opacity text-xs font-mono uppercase tracking-wider font-bold cursor-pointer"
               >
-                {{ actionMode === 'retry' ? t('postDetail.retryConfirm') : t('postDetail.rescheduleConfirm') }}
+                {{ t('postDetail.rescheduleConfirm') }}
               </button>
               <button
                 @click="cancelReschedule"
@@ -392,8 +420,9 @@ function cancelReschedule() {
             {{ t('postDetail.edit') }}
           </button>
           <button
-            v-else-if="canRetry"
-            @click="openRetry"
+            v-else-if="!isReadOnly && publication?.status === 'FAILED'"
+            @click="retryPublication"
+            :disabled="isRetrying"
             class="flex items-center gap-1.5 px-3 py-2 rounded-xl border border-border-visible text-text-secondary hover:border-text-display hover:text-text-display transition-colors bg-bg-surface text-xs font-mono uppercase tracking-wider font-bold cursor-pointer"
           >
             <CalendarClock class="size-3.5" />

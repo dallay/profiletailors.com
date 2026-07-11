@@ -1,0 +1,12 @@
+$ vite
+Port 5173 is in use, trying another one...
+
+  VITE v7.3.6  ready in 2314 ms
+
+  ➜  Local:   http://localhost:5174/
+  ➜  Network: http://192.168.0.2:5174/
+  ➜  Vue DevTools: Open http://localhost:5174/__devtools__/ as a separate window
+  ➜  Vue DevTools: Press Alt(⌥)+Shift(⇧)+D in App to toggle the Vue DevTools
+6:19:38 AM [vite] (client) page reload e2e/playwright-scheduler-report/index.html
+6:19:38 AM [vite] (client) page reload e2e/playwright-scheduler-report/index.html
+6:19:38 AM [vite] (client) page reload coverage/scheduler-e2e/index.html

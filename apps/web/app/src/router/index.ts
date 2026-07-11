@@ -59,10 +59,8 @@ const router = createRouter({
     },
     {
       path: '/scheduler/calendar/day',
-      redirect: (to) => ({
-        name: 'scheduler-calendar-week',
-        query: to.query,
-      }),
+      name: 'scheduler-calendar-day',
+      component: () => import('../views/SchedulerView.vue'),
       meta: { requiresAuth: true },
     },
     {

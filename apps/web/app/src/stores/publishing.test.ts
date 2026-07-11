@@ -925,6 +925,140 @@ describe('publishing store', () => {
       })
     })
 
+    it('maps blocked and failed publication diagnostics from the calendar API', async () => {
+      const store = usePublishingStore()
+      const auth = useAuthStore()
+      Object.defineProperty(auth, 'isAuthenticated', { value: true, configurable: true })
+      vi.spyOn(auth, 'apiFetch').mockResolvedValue({
+        publications: [
+          {
+            id: 'api-pub-blocked',
+            workspaceId: 'ws_1',
+            socialAccountId: 'acc-li-1',
+            provider: 'linkedin',
+            status: 'BLOCKED',
+            scheduleMode: 'SCHEDULED_AT',
+            priority: false,
+            title: 'Reconnect required',
+            bodyText: 'Publishing paused until LinkedIn reconnects.',
+            scheduledFor: '2026-06-10T12:00:00Z',
+            hasConflict: false,
+            conflictingPublicationIds: [],
+            blockedReason: 'LinkedIn account requires reconnect',
+          },
+          {
+            id: 'api-pub-failed',
+            workspaceId: 'ws_1',
+            socialAccountId: 'acc-li-1',
+            provider: 'linkedin',
+            status: 'FAILED',
+            scheduleMode: 'SCHEDULED_AT',
+            priority: false,
+            title: 'Publish failed',
+            bodyText: 'LinkedIn rejected the payload.',
+            scheduledFor: '2026-06-10T13:00:00Z',
+            hasConflict: false,
+            conflictingPublicationIds: [],
+            errorCode: 'LINKEDIN_VALIDATION_ERROR',
+          },
+        ],
+        conflicts: [],
+        activity: [],
+      })
+
+      await store.fetchCalendar('2026-06-01T00:00:00Z', '2026-07-01T00:00:00Z')
+
+      expect(store.publications[0]).toMatchObject({
+        id: 'api-pub-blocked',
+        status: 'BLOCKED',
+        blockedReason: 'LinkedIn account requires reconnect',
+      })
+      expect(store.publications[1]).toMatchObject({
+        id: 'api-pub-failed',
+        status: 'FAILED',
+        errorCode: 'LINKEDIN_VALIDATION_ERROR',
+      })
+    })
+
+    it('retries a failed publication through the retry endpoint and updates local state', async () => {
+      const store = usePublishingStore()
+      const auth = useAuthStore()
+      Object.defineProperty(auth, 'isAuthenticated', { value: true, configurable: true })
+      store.publications = [
+        {
+          id: 'failed-pub',
+          content: 'Retry this post',
+          channels: ['linkedin'],
+          scheduledAt: '2026-06-15T20:00:00Z',
+          scheduleMode: 'SCHEDULED_AT',
+          status: 'FAILED',
+          priority: false,
+          errorCode: 'LINKEDIN_VALIDATION_ERROR',
+        },
+      ]
+      const apiFetch = vi.spyOn(auth, 'apiFetch').mockResolvedValue({
+        publicationId: 'failed-pub',
+        workspaceId: 'workspace-1',
+        socialAccountId: 'soc-1',
+        status: 'QUEUED',
+        scheduleMode: 'NOW',
+        priority: false,
+        title: null,
+        bodyText: 'Retry this post',
+        assetIds: [],
+        scheduledFor: null,
+        nextSlotAfter: null,
+        externalPublicationId: null,
+        publicUrl: null,
+        publishedAt: null,
+      })
+
+      const result = await store.retryPublication('failed-pub')
+
+      expect(apiFetch).toHaveBeenCalledWith('/api/publishing/publications/failed-pub/retry', {
+        method: 'POST',
+        body: JSON.stringify({
+          scheduleMode: 'NOW',
+          priority: false,
+        }),
+        workspaceScoped: true,
+      })
+      expect(result.status).toBe('QUEUED')
+      expect(result.errorCode).toBeUndefined()
+      expect(store.publications[0]?.status).toBe('QUEUED')
+    })
+
+    it('retryPublication falls back to QUEUED locally when unauthenticated', async () => {
+      const store = usePublishingStore()
+      const auth = useAuthStore()
+      Object.defineProperty(auth, 'isAuthenticated', { value: false, configurable: true })
+      const apiFetch = vi.spyOn(auth, 'apiFetch')
+
+      store.publications = [
+        {
+          id: 'unauth-failed-pub',
+          content: 'Offline retry test',
+          channels: ['linkedin'],
+          scheduledAt: '2026-06-15T20:00:00Z',
+          status: 'FAILED',
+          priority: false,
+          errorCode: 'LINKEDIN_VALIDATION_ERROR',
+        },
+      ]
+
+      try {
+        const result = await store.retryPublication('unauth-failed-pub')
+
+        // No API call should be made when unauthenticated
+        expect(apiFetch).not.toHaveBeenCalled()
+        expect(result.status).toBe('QUEUED')
+        expect(result.errorCode).toBeUndefined()
+        expect(store.publications[0]?.status).toBe('QUEUED')
+      } finally {
+        apiFetch.mockRestore()
+      }
+    })
+
     it('falls back to local data on API error', async () => {
       const store = usePublishingStore()
       const auth = useAuthStore()
@@ -1000,6 +1134,85 @@ describe('publishing store', () => {
       expect(store.publications.map((pub) => pub.id)).toEqual(['queued-linkedin'])
       expect(store.activity).toEqual([])
       expect(store.conflicts).toEqual([])
+    })
+
+    it('drops stale responses when a newer fetchCalendar has started', async () => {
+      const store = usePublishingStore()
+      const auth = useAuthStore()
+      Object.defineProperty(auth, 'isAuthenticated', { value: true, configurable: true })
+
+      const freshResponse = {
+        publications: [
+          {
+            id: 'api-fresh',
+            workspaceId: 'ws_1',
+            socialAccountId: 'acc-1',
+            provider: 'LINKEDIN',
+            status: 'QUEUED',
+            scheduleMode: 'SCHEDULED_AT',
+            priority: false,
+            title: null,
+            bodyText: 'fresh',
+            scheduledFor: '2026-06-10T12:00:00Z',
+            hasConflict: false,
+            conflictingPublicationIds: [],
+          },
+        ],
+        conflicts: [],
+        activity: [{ date: '2026-06-10', density: 'LOW' }],
+      }
+      const staleResponse = {
+        publications: [
+          {
+            id: 'api-stale',
+            workspaceId: 'ws_1',
+            socialAccountId: 'acc-1',
+            provider: 'LINKEDIN',
+            status: 'QUEUED',
+            scheduleMode: 'SCHEDULED_AT',
+            priority: false,
+            title: null,
+            bodyText: 'stale',
+            scheduledFor: '2026-06-01T12:00:00Z',
+            hasConflict: false,
+            conflictingPublicationIds: [],
+          },
+        ],
+        conflicts: [{ id: 'stale-conflict' }],
+        activity: [{ date: '2026-06-01', density: 'HIGH' }],
+      }
+
+      // The older (chronologically first) fetchCalendar call will resolve LAST,
+      // so without the overlapping-request guard it would clobber the fresh data.
+      let resolveOlder: (() => void) | undefined
+      let callIndex = 0
+      const spy = vi.spyOn(auth, 'apiFetch').mockImplementation(async () => {
+        callIndex += 1
+        if (callIndex === 1) {
+          await new Promise<void>((resolve) => {
+            resolveOlder = resolve
+          })
+          return staleResponse
+        }
+        return freshResponse
+      })
+
+      // Kick off the OLDER call first; it parks on resolveOlder.
+      const older = store.fetchCalendar('2026-06-01T00:00:00Z', '2026-06-07T00:00:00Z')
+      // Now kick off the NEWER call; it resolves immediately with fresh data.
+      const newer = store.fetchCalendar('2026-06-08T00:00:00Z', '2026-06-14T00:00:00Z')
+      await newer
+      // Release the older call — its response must be dropped by the guard.
+      resolveOlder?.()
+      await older
+
+      // The store should reflect the NEWER call's payload; the older response
+      // must NOT have overwritten it.
+      expect(store.publications.map((p) => p.id)).toEqual(['api-fresh'])
+      expect(store.conflicts).toEqual([])
+      expect(store.activity).toEqual([{ date: '2026-06-10', density: 'LOW' }])
+      // Sanity: apiFetch was invoked twice.
+      expect(spy).toHaveBeenCalledTimes(2)
     })
   })
 
@@ -1166,98 +1379,6 @@ describe('publishing store', () => {
       await expect(
         store.reschedulePublication('nonexistent', '2026-07-01T00:00:00Z'),
       ).rejects.toThrow('Publication nonexistent not found')
-    })
-  })
-
-  describe('retryPublication', () => {
-    it('posts to the /retry endpoint (not /reschedule) for FAILED publications', async () => {
-      const store = usePublishingStore()
-      const auth = useAuthStore()
-
-      store.publications = [
-        {
-          id: 'pub-failed',
-          content: 'Test',
-          channels: ['linkedin'],
-          scheduledAt: '2026-06-15T20:00:00Z',
-          status: 'FAILED',
-          priority: false,
-        },
-      ]
-
-      Object.defineProperty(auth, 'isAuthenticated', { value: true, configurable: true })
-      const apiFetchSpy = vi.spyOn(auth, 'apiFetch').mockResolvedValue({})
-
-      await store.retryPublication('pub-failed', '2026-07-01T10:00:00Z')
-
-      expect(apiFetchSpy).toHaveBeenCalledWith(
-        '/api/publishing/publications/pub-failed/retry',
-        expect.objectContaining({
-          method: 'POST',
-          body: JSON.stringify({
-            scheduleMode: 'SCHEDULED_AT',
-            scheduledFor: '2026-07-01T10:00:00Z',
-            priority: false,
-          }),
-        }),
-      )
-    })
-
-    it('optimistically updates scheduledAt then reverts on API failure (409 state conflict)', async () => {
-      const store = usePublishingStore()
-      const auth = useAuthStore()
-
-      store.publications = [
-        {
-          id: 'pub-failed',
-          content: 'Test',
-          channels: ['linkedin'],
-          scheduledAt: '2026-06-15T20:00:00Z',
-          status: 'FAILED',
-          priority: false,
-        },
-      ]
-
-      Object.defineProperty(auth, 'isAuthenticated', { value: true, configurable: true })
-      vi.spyOn(auth, 'apiFetch').mockRejectedValue(new Error('Publication state conflict'))
-
-      const originalDate = store.publications[0]?.scheduledAt
-
-      await expect(store.retryPublication('pub-failed', '2026-07-01T10:00:00Z')).rejects.toThrow(
-        'Publication state conflict',
-      )
-
-      expect(store.publications[0]?.scheduledAt).toBe(originalDate)
-    })
-
-    it('keeps optimistic update on success', async () => {
-      const store = usePublishingStore()
-      const auth = useAuthStore()
-
-      store.publications = [
-        {
-          id: 'pub-failed',
-          content: 'Test',
-          channels: ['linkedin'],
-          scheduledAt: '2026-06-15T20:00:00Z',
-          status: 'FAILED',
-          priority: false,
-        },
-      ]
-
-      Object.defineProperty(auth, 'isAuthenticated', { value: true, configurable: true })
-      vi.spyOn(auth, 'apiFetch').mockResolvedValue({})
-
-      await store.retryPublication('pub-failed', '2026-07-01T10:00:00Z')
-
-      expect(store.publications[0]?.scheduledAt).toBe('2026-07-01T10:00:00Z')
-    })
-
-    it('throws when publication is not found', async () => {
-      const store = usePublishingStore()
-      await expect(store.retryPublication('nonexistent', '2026-07-01T00:00:00Z')).rejects.toThrow(
-        'Publication nonexistent not found',
-      )
     })
   })
 
