@@ -23,7 +23,7 @@ runs:
         node-version: ${{ inputs.node-version }}
 
     - name: Setup pnpm
-      uses: pnpm/action-setup@b0f76dfb45f55f8421693e4803ac7bb65143bd34 # v6.0.0+
+      uses: pnpm/action-setup@008330803749db0355799c700092d9a85fd074e9 # v6.0.9
 
     - name: Install project dependencies
       shell: bash
