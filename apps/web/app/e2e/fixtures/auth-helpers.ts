@@ -11,7 +11,11 @@ import { VALID_CREDENTIALS, APP_URL } from './test-data'
 
 const DEFAULT_MOCK_CREDENTIALS = {
   email: VALID_CREDENTIALS.email,
-  password: 'mock-password',
+  // Must match the password recorded in the /api/auth/login entries of
+  // e2e/hars/auth-flow.har — routeFromHAR matches on request body, so any
+  // other value here causes replay to miss and the login form to show
+  // "Unable to sign in." (see TC-17/18/20 timeout regression).
+  password: 'S3cr3tP@ssw0rd*123',
 } as const
 
 interface SessionOverrides {

@@ -294,10 +294,11 @@ describe('useCalendarUrl — navigation intent', () => {
 
 describe('useCalendarUrl — route name surface derivation', () => {
   it('canonicalizes scheduler-calendar-day to the existing week surface while preserving query params', async () => {
+    const today = new Date().toISOString().slice(0, 10)
     const route = createMockRoute({
       name: 'scheduler-calendar-day',
       query: {
-        date: '2026-07-10',
+        date: today,
         timezone: 'America/New_York',
         q: ' launch ',
         channels: ['acc-2', 'acc-1'],

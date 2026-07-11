@@ -53,6 +53,8 @@ jobs:
               - 'sonar-project.properties'
             frontend:
               - 'apps/web/marketing/**'
+              - 'apps/web/app/**'
+              - 'pnpm-lock.yaml'
               - '.semgrep/**'
               - '.gitleaks.toml'
               - '.trivyignore'
@@ -387,3 +389,16 @@ jobs:
             echo ''
             echo 'Skipped jobs are non-applicable when the path classifier keeps them out of scope.'
           } >> "$GITHUB_STEP_SUMMARY"
+
+          for result in \
+            "$GITLEAKS_RESULT" \
+            "$SEMGREP_BACKEND_RESULT" \
+            "$SEMGREP_FRONTEND_RESULT" \
+            "$CODEQL_RESULT" \
+            "$TRIVY_RESULT" \
+            "$BIOME_RESULT"; do
+            if [[ "$result" != 'success' && "$result" != 'skipped' ]]; then
+              echo "::error::At least one applicable security check did not pass."
+              exit 1
+            fi
+          done

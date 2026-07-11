@@ -38,7 +38,10 @@ export const test = base.extend<MediaMockFixtures>({
   ],
 
   page: async ({ page, context, mockState }, use) => {
-    await mockAuthenticatedSession(page)
+    // Media Library gates uploads behind email verification; the default
+    // mockAuthenticatedSession emailStatus is PENDING, which disables the
+    // "Upload files" button and blocks every upload-flow test in this spec.
+    await mockAuthenticatedSession(page, { emailStatus: 'VERIFIED' })
     await registerMediaMocks(context, mockState)
     await use(page)
     await context.unrouteAll({ behavior: 'wait' })
