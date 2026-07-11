@@ -1,15 +1,22 @@
 <script setup lang="ts">
 import { computed } from 'vue'
 import {
+  Ban,
   CalendarDays,
+  Check,
   ChevronDown,
   ChevronLeft,
   ChevronRight,
+  Clock,
+  Folder,
+  Globe,
   Plus,
+  Radio,
 } from '@lucide/vue'
 import { usePublishingStore } from '@/stores/publishing'
 import type { SchedulerStatus, SchedulerSurface } from '@/composables/useCalendarUrl'
 import { Button } from '@/components/ui/button'
+import SocialProviderIcon from '@/components/SocialProviderIcon.vue'
 
 const publishingStore = usePublishingStore()
 
@@ -43,6 +50,27 @@ const emit = defineEmits<{
 const calendarSurface = computed<SchedulerSurface>(() =>
   props.calendarView === 'month' ? 'calendar-month' : 'calendar-week',
 )
+
+/** Computes the currently selected channel to render its custom network icon if filtered. */
+const selectedChannel = computed(() => {
+  const id = props.channelIds?.[0]
+  if (!id) return null
+  return publishingStore.channels.find((ch) => ch.accountId === id)
+})
+
+/** Computes the status icon to dynamically show based on selected status. */
+const statusIcon = computed(() => {
+  switch (props.status) {
+    case 'queued':
+      return Clock
+    case 'published':
+      return Check
+    case 'cancelled':
+      return Ban
+    default:
+      return Folder
+  }
+})
 </script>
 
 <template>
@@ -96,14 +124,15 @@ const calendarSurface = computed<SchedulerSurface>(() =>
         <label for="calendar-timezone-select" class="sr-only">Timezone</label>
         <select
           id="calendar-timezone-select"
-          class="bg-bg-surface border border-border-subtle rounded-full px-3 py-1.5 text-[10px] font-mono font-bold text-text-secondary appearance-none pr-8 cursor-pointer focus:outline-none focus:border-text-display"
+          class="bg-bg-surface border border-border-subtle rounded-full pl-8 pr-8 py-1.5 text-[10px] font-mono font-bold text-text-secondary appearance-none cursor-pointer focus:outline-none focus:border-text-display"
           @change="(e) => emit('change:filter', { timezone: (e.target as HTMLSelectElement).value })"
         >
-          <option :value="timezone">🌐 {{ timezone || 'UTC' }}</option>
-          <option value="Europe/Madrid">📍 Europe/Madrid</option>
-          <option value="UTC">🌐 UTC</option>
-          <option value="America/New_York">🇺🇸 America/New_York</option>
+          <option :value="timezone">{{ timezone || 'UTC' }}</option>
+          <option value="Europe/Madrid">Europe/Madrid</option>
+          <option value="UTC">UTC</option>
+          <option value="America/New_York">America/New_York</option>
         </select>
+        <Globe class="absolute left-3 top-1/2 -translate-y-1/2 size-3 text-text-secondary pointer-events-none" />
         <ChevronDown class="absolute right-3 top-1/2 -translate-y-1/2 size-3 text-text-secondary pointer-events-none" />
       </div>
 
@@ -111,14 +140,14 @@ const calendarSurface = computed<SchedulerSurface>(() =>
         <label for="calendar-platform-select" class="sr-only">Platform</label>
         <select
           id="calendar-platform-select"
-          class="bg-bg-surface border border-border-subtle rounded-full px-3 py-1.5 text-[10px] font-mono font-bold text-text-secondary appearance-none pr-8 cursor-pointer focus:outline-none focus:border-text-display"
+          class="bg-bg-surface border border-border-subtle rounded-full pl-8 pr-8 py-1.5 text-[10px] font-mono font-bold text-text-secondary appearance-none cursor-pointer focus:outline-none focus:border-text-display"
           :value="props.channelIds?.[0] ?? ''"
           @change="(e) => {
             const val = (e.target as HTMLSelectElement).value
             emit('change:filter', { channelIds: val ? [val] : [] })
           }"
         >
-          <option value="">👤 {{ $t('scheduler.channelsLabel') || 'Platform' }}</option>
+          <option value="">{{ $t('scheduler.channelsLabel') || 'Platform' }}</option>
           <option
             v-for="ch in publishingStore.channels"
             :key="ch.accountId"
@@ -127,6 +156,10 @@ const calendarSurface = computed<SchedulerSurface>(() =>
             {{ ch.provider }} ({{ ch.handle }})
           </option>
         </select>
+        <div class="absolute left-3 top-1/2 -translate-y-1/2 size-3 text-text-secondary pointer-events-none flex items-center justify-center">
+          <SocialProviderIcon v-if="selectedChannel" :provider="selectedChannel.provider" />
+          <Radio v-else class="size-3" />
+        </div>
         <ChevronDown class="absolute right-3 top-1/2 -translate-y-1/2 size-3 text-text-secondary pointer-events-none" />
       </div>
 
@@ -134,15 +167,16 @@ const calendarSurface = computed<SchedulerSurface>(() =>
         <label for="calendar-post-status-select" class="sr-only">Post status</label>
         <select
           id="calendar-post-status-select"
-          class="bg-bg-surface border border-border-subtle rounded-full px-3 py-1.5 text-[10px] font-mono font-bold text-text-secondary appearance-none pr-8 cursor-pointer focus:outline-none focus:border-text-display"
+          class="bg-bg-surface border border-border-subtle rounded-full pl-8 pr-8 py-1.5 text-[10px] font-mono font-bold text-text-secondary appearance-none cursor-pointer focus:outline-none focus:border-text-display"
           :value="props.status"
           @change="(e) => emit('change:filter', { status: (e.target as HTMLSelectElement).value as SchedulerStatus })"
         >
-          <option value="all">📁 {{ $t('scheduler.allPosts') || 'All Posts' }}</option>
-          <option value="queued">⏳ Queued</option>
-          <option value="published">✅ Published</option>
-          <option value="cancelled">🚫 Cancelled</option>
+          <option value="all">{{ $t('scheduler.allPosts') || 'All Posts' }}</option>
+          <option value="queued">Queued</option>
+          <option value="published">Published</option>
+          <option value="cancelled">Cancelled</option>
         </select>
+        <component :is="statusIcon" class="absolute left-3 top-1/2 -translate-y-1/2 size-3 text-text-secondary pointer-events-none" />
         <ChevronDown class="absolute right-3 top-1/2 -translate-y-1/2 size-3 text-text-secondary pointer-events-none" />
       </div>
 

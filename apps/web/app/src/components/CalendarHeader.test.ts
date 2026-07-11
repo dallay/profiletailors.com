@@ -27,15 +27,19 @@ vi.mock('@/components/ui/button', () => ({
 vi.mock('@lucide/vue', () => {
   const stub = { template: '<svg />' }
   return {
+    Ban: stub,
     Bookmark: stub,
     CalendarDays: stub,
+    Check: stub,
     ChevronDown: stub,
     ChevronLeft: stub,
     ChevronRight: stub,
     Clock: stub,
     Filter: stub,
+    Folder: stub,
     Globe: stub,
     Plus: stub,
+    Radio: stub,
   }
 })
 
