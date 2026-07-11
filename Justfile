@@ -249,14 +249,17 @@ backend-coverage:
 
 # Run fast BDD suite
 backend-bdd-fast:
-    export SMP_POSTGRES_TEST_PASSWORD=$(grep ^SMP_POSTGRES_PASSWORD= .env | cut -d= -f2) && {{gradle-root}} :server:smp:bddFastTest --no-daemon -x :shared:common:test -x :shared:spring-boot-common:test
+    export SMP_POSTGRES_TEST_PASSWORD=$(grep ^SMP_POSTGRES_TEST_PASSWORD= .env | cut -d= -f2-); \
+    {{gradle-root}} :server:smp:bddFastTest --no-daemon -x :shared:common:test -x :shared:spring-boot-common:test
 
 # Run PostgreSQL integration tests with Testcontainers
 backend-test-postgres:
+    export SMP_POSTGRES_TEST_PASSWORD=$(grep ^SMP_POSTGRES_TEST_PASSWORD= .env | cut -d= -f2-); \
     {{gradle-root}} :server:smp:postgresIntegrationTest --no-daemon -x :shared:common:test -x :shared:spring-boot-common:test
 
 # Run Postgres BDD suite (requires infra-up first)
 backend-bdd-postgres:
+    export SMP_POSTGRES_TEST_PASSWORD=$(grep ^SMP_POSTGRES_TEST_PASSWORD= .env | cut -d= -f2-); \
     {{gradle-root}} :server:smp:bddPostgresTest --no-daemon -x :shared:common:test -x :shared:spring-boot-common:test
 
 # ═══════════════════════════════════════════════════════════════
@@ -327,9 +330,11 @@ ci-full: infra-up
     just ci-local
     @echo ""
     @echo "▸ Backend: Postgres integration suite..."
+    export SMP_POSTGRES_TEST_PASSWORD=$(grep ^SMP_POSTGRES_TEST_PASSWORD= .env | cut -d= -f2-); \
     {{gradle-root}} :server:smp:postgresIntegrationTest --no-daemon -x :shared:common:test -x :shared:spring-boot-common:test
     @echo ""
     @echo "▸ Backend: Postgres BDD suite..."
+    export SMP_POSTGRES_TEST_PASSWORD=$(grep ^SMP_POSTGRES_TEST_PASSWORD= .env | cut -d= -f2-); \
     {{gradle-root}} :server:smp:bddPostgresTest --no-daemon -x :shared:common:test -x :shared:spring-boot-common:test
     @echo ""
     @echo "══════════════════════════════════════════════"
