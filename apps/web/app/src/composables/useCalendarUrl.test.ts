@@ -248,8 +248,18 @@ describe('useCalendarUrl — navigation intent', () => {
 })
 
 describe('useCalendarUrl — route name surface derivation', () => {
-  it('canonicalizes scheduler-calendar-day to the existing week surface', async () => {
-    const route = createMockRoute({ name: 'scheduler-calendar-day', query: {} })
+  it('canonicalizes scheduler-calendar-day to the existing week surface while preserving canonical query params', async () => {
+    const today = new Date().toISOString().slice(0, 10)
+    const route = createMockRoute({
+      name: 'scheduler-calendar-day',
+      query: {
+        date: today,
+        timezone: 'America/New_York',
+        q: ' launch ',
+        channels: ['acc-2', 'acc-1'],
+        postId: 'post-42',
+      },
+    })
     const router = createMockRouter()
     const controller = createCalendarUrlController(route, router)
 
@@ -259,7 +269,11 @@ describe('useCalendarUrl — route name surface derivation', () => {
 
     expect(router.replace).toHaveBeenCalledWith({
       name: 'scheduler-calendar-week',
-      query: {},
+      query: {
+        timezone: 'America/New_York',
+        q: 'launch',
+        'channels[]': ['acc-2', 'acc-1'],
+      },
     })
   })
 
