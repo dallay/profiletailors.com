@@ -2,12 +2,12 @@ import { test, expect } from '../fixtures/scheduler-base-test'
 import { SchedulerPage } from '../pages/scheduler-page'
 import { ComposeModalPage } from '../pages/compose-modal-page'
 import { PostDetailModalPage } from '../pages/post-detail-modal-page'
-import { authenticateAs } from '../fixtures/auth-helpers'
+import { mockAuthenticatedSession } from '../fixtures/auth-helpers'
 import { createPublicationInStore, ensureChannelsLoaded } from '../fixtures/scheduler-mocks'
 
 test.describe('Scheduler — Post Interaction', () => {
   test.beforeEach(async ({ page }) => {
-    await authenticateAs(page)
+    await mockAuthenticatedSession(page, { emailStatus: 'VERIFIED' })
     const scheduler = new SchedulerPage(page)
     await scheduler.goto()
     await scheduler.expectVisible()
@@ -70,6 +70,35 @@ test.describe('Scheduler — Post Interaction', () => {
     }
 
     await detailModal.clickClose()
+  })
+
+  test('TC-12A: publishing failure is visible and can be retried @post-detail @failure @mvp', async ({
+    page,
+  }) => {
+    const scheduler = new SchedulerPage(page)
+    const detailModal = new PostDetailModalPage(page)
+
+    const testText = `Failed publish retry test ${Date.now()}`
+    await createPublicationInStore(page, testText, {
+      title: 'Failed LinkedIn post',
+      status: 'FAILED',
+      errorCode: 'LINKEDIN_VALIDATION_ERROR',
+    })
+
+    await scheduler.switchToList()
+    const postCard = page.getByRole('button', { name: new RegExp(testText) }).first()
+    await expect(postCard).toBeVisible({ timeout: 10_000 })
+    await postCard.click()
+
+    await detailModal.expectVisible()
+    const dialog = page.getByRole('dialog')
+    await expect(dialog).toContainText('LINKEDIN_VALIDATION_ERROR')
+    await dialog.getByRole('button', { name: /^retry$/i }).click()
+    await detailModal.expectHidden()
+
+    await expect(page.getByRole('button', { name: new RegExp(testText) }).first()).toContainText(
+      /queued/i,
+    )
   })
 
   /**

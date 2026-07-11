@@ -76,6 +76,8 @@ interface MockPublication {
   externalPublicationId?: string | null
   publicUrl?: string | null
   publishedAt?: string | null
+  blockedReason?: string | null
+  errorCode?: string | null
 }
 
 let publications: MockPublication[] = []
@@ -223,6 +225,26 @@ export async function registerSchedulerMocks(context: BrowserContext): Promise<v
       pub.scheduleMode = body?.scheduleMode ?? pub.scheduleMode
     }
     route.fulfill(json({ success: true }))
+  })
+
+  // --- Retry failed publication — overrides the broad publications pattern ---
+  await context.route('**/api/publishing/publications/*/retry**', (route) => {
+    const body = route.request().postDataJSON()
+    const url = route.request().url()
+    const id = url.split('/publications/')[1]?.split('/')[0]
+    const pub = publications.find((p) => p.id === id)
+    if (!pub) {
+      route.fulfill(json({ error: 'Publication not found' }, 404))
+      return
+    }
+    pub.status = 'QUEUED'
+    pub.scheduleMode = body?.scheduleMode ?? 'NOW'
+    pub.scheduledFor = body?.scheduledFor ?? null
+    pub.nextSlotAfter = body?.nextSlotAfter ?? null
+    pub.priority = body?.priority ?? pub.priority
+    pub.blockedReason = null
+    pub.errorCode = null
+    route.fulfill(json({ ...pub, publicationId: pub.id }))
   })
 
   // --- Publication PATCH (updatePost) — overrides the broad publications pattern ---
@@ -381,18 +403,22 @@ export async function createPublicationInStore(
   options?: {
     title?: string | null
     priority?: boolean
+    status?: string
+    blockedReason?: string | null
+    errorCode?: string | null
   },
 ): Promise<void> {
   const timestamp = Date.now()
   const title = options?.title === undefined ? 'E2E Test Post' : options.title
   const priority = options?.priority ?? false
+  const status = options?.status ?? 'QUEUED'
 
   const calendarPublication: MockPublication = {
     id: `pub-e2e-${timestamp}`,
     workspaceId: MOCK_WORKSPACE_ID,
     socialAccountId: MOCK_SOCIAL_ACCOUNT_ID,
     provider: 'linkedin',
-    status: 'QUEUED',
+    status,
     scheduleMode: 'NOW',
     priority,
     title,
@@ -402,6 +428,8 @@ export async function createPublicationInStore(
     assetIds: [],
     hasConflict: false,
     conflictingPublicationIds: [],
+    blockedReason: options?.blockedReason ?? null,
+    errorCode: options?.errorCode ?? null,
   }
 
   const frontendPublication = {
@@ -411,9 +439,11 @@ export async function createPublicationInStore(
     channels: ['linkedin'],
     scheduledAt: calendarPublication.scheduledFor ?? '',
     scheduleMode: calendarPublication.scheduleMode,
-    status: 'QUEUED',
+    status,
     priority,
     accountId: MOCK_SOCIAL_ACCOUNT_ID,
+    blockedReason: options?.blockedReason ?? undefined,
+    errorCode: options?.errorCode ?? undefined,
   }
 
   // Keep the route-backed mock source of truth in sync so an in-flight

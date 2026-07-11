@@ -18,6 +18,7 @@ const emit = defineEmits<{
   (e: 'close'): void
   (e: 'deleted', id: string): void
   (e: 'reschedule', payload: { id: string; scheduledAt: string }): void
+  (e: 'retried', id: string): void
   (e: 'edit', publication: Publication): void
 }>()
 
@@ -121,6 +122,19 @@ const deleteError = ref('')
 const showReschedule = ref(false)
 const newScheduledAt = ref('')
 const rescheduleError = ref('')
+const isRetrying = ref(false)
+const retryError = ref('')
+
+const failureDetail = computed(() => {
+  if (!props.publication) return ''
+  if (props.publication.status === 'BLOCKED') {
+    return props.publication.blockedReason ?? ''
+  }
+  if (props.publication.status === 'FAILED') {
+    return props.publication.errorCode ?? ''
+  }
+  return ''
+})
 
 const modalContainer = ref<HTMLElement | null>(null)
 const { activate: activateFocusTrap, deactivate: deactivateFocusTrap } = useFocusTrap(modalContainer, closeModal)
@@ -171,6 +185,21 @@ function openReschedule() {
   newScheduledAt.value = local.toISOString().slice(0, 16)
   showReschedule.value = true
   rescheduleError.value = ''
+}
+
+async function retryPublication() {
+  if (!props.publication || isRetrying.value || props.publication.status !== 'FAILED') return
+  isRetrying.value = true
+  retryError.value = ''
+  try {
+    await publishingStore.retryPublication(props.publication.id)
+    emit('retried', props.publication.id)
+    closeModal()
+  } catch (err) {
+    retryError.value = err instanceof Error ? err.message : 'Failed to retry publication'
+  } finally {
+    isRetrying.value = false
+  }
 }
 
 async function confirmReschedule() {
@@ -286,6 +315,15 @@ function cancelReschedule() {
             </div>
           </div>
 
+          <div v-if="failureDetail" class="space-y-1 rounded-2xl border border-border-visible bg-bg-primary/40 px-4 py-3">
+            <span class="font-mono text-[9px] font-bold tracking-widest text-text-secondary uppercase">
+              {{ publication.status === 'BLOCKED' ? t('postDetail.blockedReason') : t('postDetail.errorCode') }}
+            </span>
+            <p class="text-xs text-text-body break-words">
+              {{ failureDetail }}
+            </p>
+          </div>
+
           <div class="grid grid-cols-2 gap-3 pt-2 border-t border-border-subtle">
             <div class="space-y-1">
               <span class="font-mono text-[9px] font-bold tracking-widest text-text-secondary uppercase">
@@ -317,8 +355,9 @@ function cancelReschedule() {
         </div>
 
         <footer class="border-t border-border-subtle bg-bg-primary/40">
-          <div v-if="deleteError" class="px-6 pt-3 space-y-1">
-            <p class="text-[10px] font-mono text-error">{{ deleteError }}</p>
+          <div v-if="deleteError || retryError" class="px-6 pt-3 space-y-1">
+            <p v-if="deleteError" class="text-[10px] font-mono text-error">{{ deleteError }}</p>
+            <p v-if="retryError" role="alert" class="text-[10px] font-mono text-error">{{ retryError }}</p>
           </div>
           <div v-if="showReschedule" class="px-6 pt-3 pb-2 space-y-2">
             <!-- biome-ignore lint/a11y/noLabelWithoutControl: t() provides accessible text, Biome can't resolve i18n keys statically -->
@@ -366,6 +405,15 @@ function cancelReschedule() {
           >
             <Pencil class="size-3.5" />
             {{ t('postDetail.edit') }}
+          </button>
+          <button
+            v-else-if="!isReadOnly && publication?.status === 'FAILED'"
+            @click="retryPublication"
+            :disabled="isRetrying"
+            class="flex items-center gap-1.5 px-3 py-2 rounded-xl border border-border-visible text-text-secondary hover:border-text-display hover:text-text-display transition-colors bg-bg-surface text-xs font-mono uppercase tracking-wider font-bold cursor-pointer"
+          >
+            <CalendarClock class="size-3.5" />
+            {{ t('postDetail.retry') }}
           </button>
           <button
             v-else-if="!isReadOnly && publication?.scheduledAt"

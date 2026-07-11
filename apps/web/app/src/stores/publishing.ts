@@ -79,6 +79,8 @@ export interface Publication {
   publishedAt?: string
   /** Reason the publication was blocked (e.g., account DISABLED or REQUIRES_RECONNECT). */
   blockedReason?: string
+  /** Provider or domain error code explaining a FAILED publication. */
+  errorCode?: string
 }
 
 export type PublicationUpdate = Partial<Publication> & {
@@ -109,6 +111,8 @@ export interface CalendarPublicationResult {
   publicUrl?: string | null
   publishedAt?: string | null
   previewUrl?: string | null
+  blockedReason?: string | null
+  errorCode?: string | null
 }
 
 export interface ConflictEntry {
@@ -296,6 +300,8 @@ function apiResultToPublication(api: CalendarPublicationResult): Publication {
     externalPublicationId: api.externalPublicationId ?? undefined,
     publicUrl: api.publicUrl ?? undefined,
     publishedAt: api.publishedAt ?? undefined,
+    blockedReason: api.blockedReason ?? undefined,
+    errorCode: api.errorCode ?? undefined,
     thumbnail: api.previewUrl ? resolveApiUrl(api.previewUrl) : undefined,
   }
 }
@@ -321,6 +327,8 @@ function publicationMutationResultToPublication(
     externalPublicationId: result.externalPublicationId ?? undefined,
     publicUrl: result.publicUrl ?? undefined,
     publishedAt: result.publishedAt ?? undefined,
+    blockedReason: undefined,
+    errorCode: undefined,
   }
 }
 
@@ -759,6 +767,45 @@ export const usePublishingStore = defineStore('publishing', () => {
     return publications.value[idx]
   }
 
+  async function retryPublication(id: string) {
+    const idx = publications.value.findIndex((p) => p.id === id)
+    if (idx === -1) throw new Error(`Publication ${id} not found`)
+
+    const current = publications.value[idx]
+    if (!current) throw new Error(`Publication ${id} not found`)
+
+    const previous: Publication = { ...current }
+
+    if (auth.isAuthenticated) {
+      try {
+        const result = await auth.apiFetch<PublicationMutationResult>(
+          `/api/publishing/publications/${id}/retry`,
+          {
+            method: 'POST',
+            body: JSON.stringify({
+              scheduleMode: 'NOW',
+              priority: previous.priority,
+            }),
+            workspaceScoped: true,
+          },
+        )
+        const updated = publicationMutationResultToPublication(result, previous)
+        publications.value[idx] = updated
+        saveToStorage()
+        return updated
+      } catch (err) {
+        publications.value[idx] = previous
+        saveToStorage()
+        throw err
+      }
+    }
+
+    const updated: Publication = { ...previous, status: 'QUEUED', blockedReason: undefined, errorCode: undefined }
+    publications.value[idx] = updated
+    saveToStorage()
+    return updated
+  }
+
   // -----------------------------------------------------------------------
   // Actions — Existing  (modified with fallback awareness)
   /**
@@ -998,6 +1045,7 @@ export const usePublishingStore = defineStore('publishing', () => {
     fetchCalendar,
     quickCreatePost,
     reschedulePublication,
+    retryPublication,
     schedulePost,
     deletePost,
     cancelPost,

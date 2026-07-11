@@ -13,7 +13,8 @@ interface StoreOverrides {
   isPublicationDeletable: (status: Publication['status']) => boolean
 }
 
-const { storeOverrides, mockReschedule, mockDelete } = vi.hoisted(() => ({
+  const { storeOverrides, mockReschedule, mockRetry, mockDelete } = vi.hoisted(() => ({
+
   storeOverrides: {
     rescheduleResult: undefined as Publication | undefined,
     rescheduleError: undefined as Error | undefined,
@@ -22,12 +23,14 @@ const { storeOverrides, mockReschedule, mockDelete } = vi.hoisted(() => ({
     isPublicationDeletable: (_status: Publication['status']) => true,
   } as StoreOverrides,
   mockReschedule: vi.fn(),
+  mockRetry: vi.fn(),
   mockDelete: vi.fn(),
 }))
 
 vi.mock('@/stores/publishing', () => ({
   usePublishingStore: () => ({
     reschedulePublication: mockReschedule,
+    retryPublication: mockRetry,
     deletePost: mockDelete,
     isPublicationEditable: storeOverrides.isPublicationEditable,
     isPublicationDeletable: storeOverrides.isPublicationDeletable,
@@ -186,6 +189,50 @@ describe('PostDetailModal', () => {
 
       const disabledButton = wrapper.find('button[disabled]')
       expect(disabledButton.exists()).toBe(true)
+    })
+  })
+
+  describe('failure diagnostics', () => {
+    it('renders blocked reason for blocked publications', async () => {
+      const wrapper = mountModal(
+        makePublication({
+          status: 'BLOCKED',
+          blockedReason: 'Reconnect LinkedIn to retry publishing.',
+        }),
+      )
+      await flushPromises()
+
+      expect(wrapper.text()).toContain('Reconnect LinkedIn to retry publishing.')
+    })
+
+    it('renders failed error code and exposes retry action for failed publications', async () => {
+      storeOverrides.isPublicationEditable = () => false
+      const pub = makePublication({
+        status: 'FAILED',
+        errorCode: 'LINKEDIN_VALIDATION_ERROR',
+      })
+      const wrapper = mountModal(pub)
+      await flushPromises()
+
+      expect(wrapper.text()).toContain('LINKEDIN_VALIDATION_ERROR')
+      expect(wrapper.text()).toContain('postDetail.retry')
+    })
+
+    it('calls retryPublication and emits reschedule when failed retry succeeds', async () => {
+      storeOverrides.isPublicationEditable = () => false
+      mockRetry.mockResolvedValue(makePublication({ id: 'pub-1', status: 'QUEUED' }))
+      const wrapper = mountModal(makePublication({ status: 'FAILED' }))
+
+      const retryButton = wrapper
+        .findAll('button')
+        .find((button) => button.text().includes('postDetail.retry'))
+      expect(retryButton).toBeDefined()
+      await retryButton!.trigger('click')
+      await flushPromises()
+
+      expect(mockRetry).toHaveBeenCalledWith('pub-1')
+      expect(wrapper.emitted('retried')).toEqual([['pub-1']])
+      expect(wrapper.emitted('close')).toHaveLength(1)
     })
   })
 
