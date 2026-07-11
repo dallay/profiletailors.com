@@ -228,7 +228,7 @@ class AuthorizationBddSteps {
     @Given("a previously registered local user session exists without verified email")
     fun givenPreviouslyRegisteredLocalUserSessionExistsWithoutVerifiedEmail() {
         registerLocalUser(email = "pending-media@example.com", verifyEmail = false, login = true)
-        runBlocking { bddDatabaseSupport.markEmailPENDING("pending-media@example.com") }
+        runBlocking { bddDatabaseSupport.markEmailPending("pending-media@example.com") }
     }
 
     @Given("a previously registered local user session exists with workspace membership")

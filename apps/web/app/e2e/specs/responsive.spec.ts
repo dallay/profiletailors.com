@@ -14,7 +14,7 @@ test.describe('Responsive Design', { tag: '@frontend' }, () => {
     await resetSession()
   })
 
-  test('14.1 Login page renders on mobile viewport', async ({ page }) => {
+  test('14.1 Auth pages render on mobile viewport', async ({ page }) => {
     // iPhone 12 viewport
     await page.setViewportSize({ width: 390, height: 844 })
 
@@ -32,7 +32,7 @@ test.describe('Responsive Design', { tag: '@frontend' }, () => {
     expect(pageWidth).toBeLessThanOrEqual(400)
   })
 
-  test('14.2 Login page renders on tablet viewport', async ({ page }) => {
+  test('14.2 Auth pages render on tablet viewport', async ({ page }) => {
     // iPad viewport
     await page.setViewportSize({ width: 768, height: 1024 })
 
@@ -50,5 +50,14 @@ test.describe('Responsive Design', { tag: '@frontend' }, () => {
     // No horizontal scroll
     const pageWidth = await page.evaluate(() => document.documentElement.scrollWidth)
     expect(pageWidth).toBeLessThanOrEqual(780)
+  })
+
+  test('14.3 Register page renders on mobile viewport', async ({ page }) => {
+    await page.setViewportSize({ width: 390, height: 844 })
+    const loginPage = new LoginPage(page)
+    await loginPage.goto(APP_URL.register)
+    await expect(loginPage.emailInput).toBeVisible()
+    const pageWidth = await page.evaluate(() => document.documentElement.scrollWidth)
+    expect(pageWidth).toBeLessThanOrEqual(400)
   })
 })
