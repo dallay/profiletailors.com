@@ -739,12 +739,35 @@ class R2dbcPublicationJobRepository(private val databaseClient: DatabaseClient) 
     }
 
     override suspend fun replaceForPublication(job: PublicationJob) {
-        databaseClient.sql("DELETE FROM publication_jobs WHERE publication_id = :publicationId")
+        val updated = databaseClient.sql(
+            """
+            UPDATE publication_jobs
+            SET status = :status,
+                due_at = :dueAt,
+                priority_rank = :priorityRank,
+                attempt_count = :attemptCount,
+                max_attempts = :maxAttempts,
+                claimed_by_worker = NULL,
+                claimed_at = NULL,
+                lease_expires_at = NULL,
+                completed_at = NULL,
+                failed_at = NULL,
+                cancelled_at = NULL
+            WHERE publication_id = :publicationId
+            """.trimIndent(),
+        )
+            .bind("status", job.status.name)
+            .bind("dueAt", job.dueAt)
+            .bind("priorityRank", job.priorityRank)
+            .bind(ATTEMPT_COUNT, job.attemptCount)
+            .bind("maxAttempts", job.maxAttempts)
             .bind("publicationId", job.publicationId)
             .fetch()
             .rowsUpdated()
             .awaitSingle()
-        insertJob(job)
+        if (updated == 0L) {
+            insertJob(job)
+        }
     }
 
     override suspend fun claimNextDue(now: Instant, workerId: String): PublicationJobClaim? {
@@ -785,7 +808,7 @@ class R2dbcPublicationJobRepository(private val databaseClient: DatabaseClient) 
             .bind("status", JobStatus.CLAIMED.name)
             .bind("workerId", workerId)
             .bind("claimedAt", now)
-            .bind("attemptCount", row.second + 1)
+            .bind(ATTEMPT_COUNT, row.second + 1)
             .bind("id", row.first.first)
             .fetch()
             .rowsUpdated()
@@ -814,7 +837,7 @@ class R2dbcPublicationJobRepository(private val databaseClient: DatabaseClient) 
         )
             .bind("status", JobStatus.RETRY_WAITING.name)
             .bind("nextAttemptAt", nextAttemptAt)
-            .bind("attemptCount", attemptNumber)
+            .bind(ATTEMPT_COUNT, attemptNumber)
             .bind("id", jobId)
             .fetch()
             .rowsUpdated()
@@ -887,7 +910,7 @@ class R2dbcPublicationJobRepository(private val databaseClient: DatabaseClient) 
             .bind("status", job.status.name)
             .bind("dueAt", job.dueAt)
             .bind("priorityRank", job.priorityRank)
-            .bind("attemptCount", job.attemptCount)
+            .bind(ATTEMPT_COUNT, job.attemptCount)
             .bind("maxAttempts", job.maxAttempts)
             .bindNullable("claimedByWorker", job.claimedByWorker, String::class.java)
             .bindNullable("claimedAt", job.claimedAt, Instant::class.java)
@@ -899,6 +922,10 @@ class R2dbcPublicationJobRepository(private val databaseClient: DatabaseClient) 
             .fetch()
             .rowsUpdated()
             .awaitSingle()
+    }
+
+    companion object {
+        private const val ATTEMPT_COUNT = "attemptCount"
     }
 }
 

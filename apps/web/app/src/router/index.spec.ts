@@ -233,4 +233,22 @@ describe('scheduler route contract', { timeout: 15000 }, () => {
       timezone: 'Europe/Madrid',
     })
   })
+
+  it('redirects /scheduler/calendar/day to canonical week route preserving scheduler query state', async () => {
+    const { default: router } = await import('./index')
+
+    await router.push(
+      '/scheduler/calendar/day?date=2026-07-10&timezone=Europe%2FMadrid&channels[]=acc-1&postId=post-42',
+    )
+    await router.isReady()
+
+    expect(router.currentRoute.value.path).toBe('/scheduler/calendar/week')
+    expect(router.currentRoute.value.name).toBe('scheduler-calendar-week')
+    expect(router.currentRoute.value.query).toMatchObject({
+      date: '2026-07-10',
+      timezone: 'Europe/Madrid',
+      postId: 'post-42',
+    })
+    expect(router.currentRoute.value.query['channels[]']).toBe('acc-1')
+  })
 })
