@@ -308,9 +308,7 @@ test.describe('Scheduler — Create Post', () => {
     await composeModal.fillText(longText)
     await composeModal.attachMedia(mediaFiles.base.path)
 
-    const linkedInPreviewPanel = page
-      .getByRole('heading', { name: /linkedin preview/i })
-      .locator('../..')
+    const linkedInPreviewPanel = page.getByRole('region', { name: /linkedin preview/i })
     await expect(linkedInPreviewPanel.getByText('...more')).toBeVisible()
     await expect(linkedInPreviewPanel.getByRole('img', { name: /^media preview$/i })).toBeVisible()
 

@@ -260,6 +260,27 @@ describe('PostDetailModal', () => {
       expect(wrapper.emitted('retried')).toEqual([['pub-1']])
       expect(wrapper.emitted('close')).toHaveLength(1)
     })
+
+    it('clears retry error when the modal reopens', async () => {
+      storeOverrides.isPublicationEditable = () => false
+      mockRetry.mockRejectedValueOnce(new Error('Retry failed'))
+      const wrapper = mountModal(makePublication({ status: 'FAILED' }))
+
+      const retryButton = wrapper
+        .findAll('button')
+        .find((button) => button.text().includes('postDetail.retry'))
+      expect(retryButton).toBeDefined()
+      await retryButton!.trigger('click')
+      await flushPromises()
+      expect(wrapper.text()).toContain('Retry failed')
+
+      await wrapper.setProps({ isOpen: false })
+      await nextTick()
+      await wrapper.setProps({ isOpen: true })
+      await flushPromises()
+
+      expect(wrapper.text()).not.toContain('Retry failed')
+    })
   })
 
   describe('deletePublication', () => {

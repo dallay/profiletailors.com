@@ -156,6 +156,7 @@ watch(
   async ([open]) => {
     if (open) {
       deleteError.value = ''
+      retryError.value = ''
       await nextTick()
       // Guard against the modal being closed during the await window
       if (props.isOpen) {

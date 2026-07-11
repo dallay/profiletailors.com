@@ -1032,6 +1032,7 @@ describe('publishing store', () => {
       const store = usePublishingStore()
       const auth = useAuthStore()
       Object.defineProperty(auth, 'isAuthenticated', { value: false, configurable: true })
+      const apiFetch = vi.spyOn(auth, 'apiFetch')
 
       store.publications = [
         {
@@ -1045,12 +1046,17 @@ describe('publishing store', () => {
         },
       ]
 
-      const result = await store.retryPublication('unauth-failed-pub')
+      try {
+        const result = await store.retryPublication('unauth-failed-pub')
 
-      // No API call should be made when unauthenticated
-      expect(result.status).toBe('QUEUED')
-      expect(result.errorCode).toBeUndefined()
-      expect(store.publications[0]?.status).toBe('QUEUED')
+        // No API call should be made when unauthenticated
+        expect(apiFetch).not.toHaveBeenCalled()
+        expect(result.status).toBe('QUEUED')
+        expect(result.errorCode).toBeUndefined()
+        expect(store.publications[0]?.status).toBe('QUEUED')
+      } finally {
+        apiFetch.mockRestore()
+      }
     })
 
     it('falls back to local data on API error', async () => {
