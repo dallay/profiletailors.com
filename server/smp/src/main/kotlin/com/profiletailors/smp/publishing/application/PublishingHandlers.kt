@@ -873,6 +873,8 @@ private fun PublicationDraft.toCalendarResult(
     publicUrl = publicUrl,
     publishedAt = publishedAt,
     previewUrl = previewUrl,
+    blockedReason = blockedReason,
+    errorCode = lastErrorCode,
 )
 
 private fun replacementJobFor(
