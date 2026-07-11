@@ -62,35 +62,35 @@ test.describe('Gherkin Alignment Extras', () => {
 
     await expect(page.getByRole('button', { name: /try again/i })).toBeVisible()
   })
-})
 
-test('Dashboard is visible during slow hydration (success)', async ({ page }) => {
-  // Authenticate first
-  await authenticateAs(page)
+  test('Dashboard is visible during slow hydration (success)', async ({ page }) => {
+    // Authenticate first
+    await authenticateAs(page)
 
-  // Delay the refresh API to simulate slow hydration
-  await page.route('**/api/auth/refresh', async (route) => {
-    await new Promise((resolve) => setTimeout(resolve, 2000))
-    await route.fulfill({
-      status: 200,
-      contentType: 'application/json',
-      body: JSON.stringify({
-        accessToken: 'slow-token',
-        tokenType: 'Bearer',
-        expiresIn: 3600,
-        principalId: 'user-slow',
-        email: VALID_CREDENTIALS.email,
-        username: 'slow-user',
-        emailStatus: 'VERIFIED',
-      }),
+    // Delay the refresh API to simulate slow hydration
+    await page.route('**/api/auth/refresh', async (route) => {
+      await new Promise((resolve) => setTimeout(resolve, 2000))
+      await route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify({
+          accessToken: 'slow-token',
+          tokenType: 'Bearer',
+          expiresIn: 3600,
+          principalId: 'user-slow',
+          email: VALID_CREDENTIALS.email,
+          username: 'slow-user',
+          emailStatus: 'VERIFIED',
+        }),
+      })
     })
+
+    // Navigate to dashboard
+    await page.goto(APP_URL.dashboard)
+
+    // Dashboard should eventually render without showing login page
+    const dashboard = new DashboardPage(page)
+    await expect(page).not.toHaveURL(new RegExp(APP_URL.login))
+    await dashboard.expectAuthenticated()
   })
-
-  // Navigate to dashboard
-  await page.goto(APP_URL.dashboard)
-
-  // Dashboard should eventually render without showing login page
-  const dashboard = new DashboardPage(page)
-  await expect(page).not.toHaveURL(new RegExp(APP_URL.login))
-  await dashboard.expectAuthenticated()
 })

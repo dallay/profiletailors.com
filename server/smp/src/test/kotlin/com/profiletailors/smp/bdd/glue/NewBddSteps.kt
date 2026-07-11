@@ -78,8 +78,14 @@ class NewBddSteps {
     }
 
     @Then("the API request should have {string}")
-    fun thenApiRequestShouldHaveHeader(@Suppress("UnusedParameter") header: String) {
-        // Doc-only
+    fun thenApiRequestShouldHaveHeader(header: String) {
+        val result = requireNotNull(latestResult) { "No request has been made yet" }
+        val headerParts = header.split(":", limit = 2)
+        require(headerParts.size == 2) { "Header must be in format 'Name: Value'" }
+        val headerName = headerParts[0].trim()
+        val expectedValue = headerParts[1].trim()
+        val actualValue = result.requestHeaders.getFirst(headerName)
+        assertEquals(expectedValue, actualValue, "Expected header '$headerName' to be '$expectedValue' but was '$actualValue'")
     }
 
     @Then("the API response should not contain a {string} field")
@@ -95,7 +101,7 @@ class NewBddSteps {
     }
 
     @Given("the email {string} already exists")
-    fun givenEmailExists(@Suppress("UnusedParameter") email: String) = runBlocking<Unit> {
-        // Doc-only
+    fun givenEmailExists(email: String) = runBlocking<Unit> {
+        bddDatabaseSupport.seedAuthenticatedUserWithWorkspace(email = email)
     }
 }

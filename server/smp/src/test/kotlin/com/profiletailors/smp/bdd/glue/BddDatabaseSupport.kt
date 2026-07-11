@@ -211,15 +211,14 @@ class BddDatabaseSupport(
     }
 
     suspend fun seedDirectGrant(effect: String, permission: String) {
-        @Suppress("UNUSED_VARIABLE")
-        val unusedEffect = effect
         databaseClient.sql(
-            "INSERT INTO workspace_direct_grants (id, workspace_id, principal_id, permission) " +
-                "VALUES ('dg-1', :workspaceId, :principalId, :permission)",
+            "INSERT INTO workspace_direct_grants (id, workspace_id, principal_id, permission, effect) " +
+                "VALUES ('dg-1', :workspaceId, :principalId, :permission, :effect)",
         )
             .bind("workspaceId", WORKSPACE_ID)
             .bind("principalId", PRINCIPAL_ID)
             .bind("permission", permission)
+            .bind("effect", effect)
             .fetch().rowsUpdated().awaitSingle()
     }
 
@@ -252,7 +251,7 @@ class BddDatabaseSupport(
     }
 
     suspend fun countMediaAssets(): Long = databaseClient.sql("SELECT COUNT(*) FROM media_assets")
-        .map { row, _ -> row.get(0, java.lang.Long::class.java)!!.toLong() }
+        .map { row, _ -> requireNotNull(row.get(0, java.lang.Long::class.java)).toLong() }
         .one()
         .awaitSingle()
 

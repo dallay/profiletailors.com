@@ -15,28 +15,28 @@ test.describe('Scheduler Gherkin Alignment', () => {
 
   test('Initial view shows All Channels and no channels param in URL', async ({ page }) => {
     await expect(page.getByRole('heading', { name: 'All Channels' })).toBeVisible()
-    expect(page.url()).not.toContain('channels')
+    await expect(page).toHaveURL(/^(?!.*channels)/)
   })
 
   test('Filtering by LinkedIn channel adds channels param to URL', async ({ page }) => {
     const scheduler = new SchedulerPage(page)
     await scheduler.linkedInFilterButton.click()
-    await page.waitForTimeout(300)
-    expect(page.url()).toContain('channels')
+    await expect(page).toHaveURL(/channels/)
   })
 
   test('Clicking All Channels removes channel filter', async ({ page }) => {
     const scheduler = new SchedulerPage(page)
-    // Activate filter
-    await scheduler.linkedInFilterButton.click()
-    await page.waitForTimeout(300)
-    expect(page.url()).toContain('channels')
 
-    // Click All Channels
-    await scheduler.allChannelsButton.click()
-    await page.waitForTimeout(300)
-    expect(page.url()).not.toContain('channels')
-    await expect(page.getByRole('heading', { name: 'All Channels' })).toBeVisible()
+    await test.step('Activate LinkedIn filter', async () => {
+      await scheduler.linkedInFilterButton.click()
+      await expect(page).toHaveURL(/channels/)
+    })
+
+    await test.step('Click All Channels', async () => {
+      await scheduler.allChannelsButton.click()
+      await expect(page).toHaveURL(/^(?!.*channels)/)
+      await expect(page.getByRole('heading', { name: 'All Channels' })).toBeVisible()
+    })
   })
 
   test('Published posts are read-only in detail modal', async ({ page }) => {
@@ -48,7 +48,7 @@ test.describe('Scheduler Gherkin Alignment', () => {
 
     await scheduler.switchToList()
     await page
-      .getByRole('button', { name: new RegExp(text) })
+      .getByRole('button', { name: text })
       .first()
       .click()
     await detailModal.expectVisible()

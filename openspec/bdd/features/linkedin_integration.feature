@@ -20,7 +20,6 @@ Feature: LinkedIn OAuth Integration
     Given the user is on the LinkedIn OAuth callback page
     And there is no OAuth code in the URL
     Then an error message should be displayed
-    Or the user should be redirected to retry the connection
 
   @integration @linkedin @sse
   Scenario: SSE endpoint streams channel events

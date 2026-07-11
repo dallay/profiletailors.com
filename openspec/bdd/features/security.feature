@@ -13,6 +13,8 @@ Feature: Security - Token and Credential Handling
     Given the user has successfully logged in
     Then a cookie named "pt_refresh" should exist
     And the cookie "pt_refresh" should have httpOnly set to true
+    And the cookie "pt_refresh" should have secure enabled
+    And the cookie "pt_refresh" should have sameSite set to an appropriate value
     And the cookie "pt_refresh" should have path "/api/auth"
 
   @security

@@ -39,8 +39,13 @@ test.describe('Accessibility & i18n Alignment', () => {
     await loginPage.goto(APP_URL.register)
 
     await loginPage.emailInput.focus()
-    // shadcn/tailwind focus rings typically use ring classes
-    await expect(loginPage.emailInput).toHaveClass(/focus-visible:ring/)
+    // Verify user-visible focus indicator via computed styles
+    const outline = await loginPage.emailInput.evaluate((el) => {
+      const styles = window.getComputedStyle(el)
+      return styles.outline || styles.boxShadow
+    })
+    expect(outline).not.toBe('none')
+    expect(outline).not.toBe('')
   })
 
   test('Login page displays in Spanish', async ({ page }) => {
@@ -53,7 +58,7 @@ test.describe('Accessibility & i18n Alignment', () => {
     const loginPage = new LoginPage(page)
     // Mock the settings store to 'es'
     await page.addInitScript(() => {
-      window.localStorage.setItem('settings-storage', JSON.stringify({ language: 'es' }))
+      window.localStorage.setItem('pt_settings_v1', JSON.stringify({ locale: 'es', theme: 'dark' }))
     })
 
     await loginPage.goto(APP_URL.login)
@@ -65,18 +70,39 @@ test.describe('Accessibility & i18n Alignment', () => {
 })
 
 test.describe('Scheduler Accessibility', () => {
+  test.beforeEach(async ({ resetSession }) => {
+    await resetSession()
+  })
+
   test('Past calendar cells have correct aria-disabled attribute', async ({ page }) => {
     await authenticateAs(page)
     const scheduler = new SchedulerPage(page)
+
+    // Mock the current date to a non-first day to ensure past cells exist
+    await page.addInitScript(() => {
+      const mockDate = new Date('2026-07-15T12:00:00Z')
+      const OriginalDate = Date
+      // @ts-ignore
+      globalThis.Date = class extends OriginalDate {
+        constructor(...args: any[]) {
+          if (args.length === 0) {
+            super(mockDate.getTime())
+          } else {
+            super(...args)
+          }
+        }
+        static now() {
+          return mockDate.getTime()
+        }
+      }
+    })
+
     await scheduler.goto()
     await scheduler.switchToMonth()
 
     // Check if there are any past cells
-    const pastCells = page.locator('.group\\/cell[aria-disabled="true"]')
+    const pastCells = page.getByRole('gridcell', { disabled: true })
     const count = await pastCells.count()
-    // We expect some past cells if it's not the first day of the month
-    if (new Date().getDate() > 1) {
-      expect(count).toBeGreaterThan(0)
-    }
+    expect(count).toBeGreaterThan(0)
   })
 })

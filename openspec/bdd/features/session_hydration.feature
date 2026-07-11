@@ -10,7 +10,7 @@ Feature: Session Hydration
 
   @integration @hydration
   Scenario: Dashboard is visible during slow hydration
-    Given the refresh API is slow (>2 seconds)
+    Given the refresh API has a 2 second delay
     When the user navigates to "/"
     Then the dashboard should render without showing login page
 

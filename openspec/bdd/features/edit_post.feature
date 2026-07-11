@@ -11,7 +11,6 @@ Feature: Post Editing
 
   @e2e @edit-post
   Scenario: Edit opens composer with precached data
-    Given there is a queued post
     When the user clicks on the post card
     And the user clicks the edit button
     Then the compose modal should open
@@ -20,8 +19,7 @@ Feature: Post Editing
 
   @e2e @edit-post
   Scenario: Edited post saves changes
-    Given there is a queued post
-    And the user clicks on the post card
+    Given the user clicks on the post card
     And the user clicks the edit button
     When the user modifies the content
     And the user clicks the submit button
@@ -30,8 +28,7 @@ Feature: Post Editing
 
   @e2e @edit-post
   Scenario: Changing date moves post in calendar
-    Given there is a queued post
-    And the user clicks on the post card
+    Given the user clicks on the post card
     And the user clicks the edit button
     When the user changes the date to a different day
     And the user clicks the submit button
@@ -39,8 +36,7 @@ Feature: Post Editing
 
   @e2e @edit-post
   Scenario: Changing channel updates post channel
-    Given there is a queued post
-    And the user clicks on the post card
+    Given the user clicks on the post card
     And the user clicks the edit button
     When the user changes the channel
     And the user clicks the submit button

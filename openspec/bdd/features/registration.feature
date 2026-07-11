@@ -19,7 +19,7 @@ Feature: User Registration
     And the email input should have placeholder "you@example.com"
     And the email input should be required
     And the password input should have type "password"
-    And the password input should have autocomplete "current-password"
+    And the password input should have autocomplete "new-password"
     And the password input should have placeholder "at least 8 characters"
     And the password input should be required
 
@@ -129,10 +129,10 @@ Feature: User Registration
 
   @integration @registration @error
   Scenario: Case-insensitive duplicate email detection
+    Given the email "test@example.com" already exists
     When the user fills the email input with "TEST@EXAMPLE.COM"
     And the user fills the password input with "SecurePass123!"
     And the user clicks the submit button
-    And the email "test@example.com" already exists
     Then the API response should have status 409
     And an error banner should be visible with "already exists"
 

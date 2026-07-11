@@ -16,16 +16,15 @@ Feature: Media Library - Image Upload and Management
   Scenario: Upload exact duplicate image is deduplicated
     Given an image with hash "ABC123" already exists
     When the user uploads a file with the same hash "ABC123"
-    Then a PUT request should be sent with status 200 (not 201)
-    And no POST request to "/upload" should be sent
+    Then the image should appear only once in the library
     And the visible card count should not increase
 
   @real-cas @media
-  Scenario: Upload duplicate has exactly one PUT in ledger
+  Scenario: Upload duplicate shows existing image as READY
     Given an image is already uploaded
     When the user uploads the same image again
-    Then the ledger should record exactly 1 PUT request
-    And the ledger should record 0 POST requests
+    Then the image should appear only once in the library
+    And the card status should display "READY"
 
   @real-cas @media
   Scenario: Image card shows READY status

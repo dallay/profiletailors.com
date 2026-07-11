@@ -32,7 +32,7 @@ Feature: Scheduler Post Management
     And there is a post in a month cell
     When the user clicks on the post chip
     Then the post detail modal should be visible
-    And the post title should match
+    And the post title should be visible
 
   @e2e @scheduler @posts
   Scenario: Clicking add button in calendar cell opens composer

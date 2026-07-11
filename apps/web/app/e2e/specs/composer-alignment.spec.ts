@@ -24,9 +24,9 @@ test.describe('Composer Gherkin Alignment', () => {
     const longText = 'A'.repeat(300)
     await composeModal.fillText(longText)
 
-    // Check preview
-    const previewText = page.getByTestId('linkedin-preview-text')
-    const moreLink = page.getByTestId('linkedin-preview-more')
+    // Check preview by visible text
+    const previewText = page.locator('text=/A{140,}/')
+    const moreLink = page.getByText('...more')
 
     await expect(previewText).toBeVisible()
     await expect(moreLink).toBeVisible()

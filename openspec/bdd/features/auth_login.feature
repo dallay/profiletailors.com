@@ -51,7 +51,7 @@ Feature: User Authentication - Login
 
   @integration @login
   Scenario: Login is case-insensitive for email
-    When the user fills the email input with "TEST@EXAMPLE.COM"
+    When the user fills the email input with "DEV@PROFILETAILORS.COM"
     And the user fills the password input with the correct password
     And the user clicks the submit button
     Then the user should be redirected to "/"
