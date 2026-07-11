@@ -215,7 +215,6 @@ test.describe(`Composer media attachments (mocked) ${TAGS}`, () => {
     )
   })
 
-
   // -------------------------------------------------------------------------
   // ML-COMPOSER-014: provider enabled — provider panel visible
   // SKIPPED — Product does not yet have UI to switch between Library and

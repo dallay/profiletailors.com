@@ -9,7 +9,6 @@ import {
   resetMediaMocks,
   DeferredUploadController,
   MockChannelsProvider,
-  MockProviderFlag,
   TransitionQueue,
 } from './media-mocks'
 
