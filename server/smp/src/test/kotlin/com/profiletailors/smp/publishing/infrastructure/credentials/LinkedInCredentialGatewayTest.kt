@@ -2,13 +2,12 @@ package com.profiletailors.smp.publishing.infrastructure.credentials
 
 import com.profiletailors.smp.integration.support.PostgresDatabaseTestBase
 import com.profiletailors.smp.integration.support.PostgresTestContainerSupport
+import io.kotest.assertions.throwables.shouldThrow
+import io.kotest.matchers.shouldBe
+import io.kotest.matchers.shouldNotBe
+import io.kotest.matchers.string.shouldContain
 import kotlinx.coroutines.reactor.awaitSingle
 import kotlinx.coroutines.test.runTest
-import org.junit.jupiter.api.Assertions.assertEquals
-import org.junit.jupiter.api.Assertions.assertNotNull
-import org.junit.jupiter.api.Assertions.assertNull
-import org.junit.jupiter.api.Assertions.assertThrows
-import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Nested
 import org.junit.jupiter.api.Tag
@@ -52,7 +51,7 @@ class LinkedInCredentialGatewayTest : PostgresDatabaseTestBase() {
 
             val returnedId = gateway.storeForOwner("WORKSPACE", ownerId, credentials)
 
-            assertNotNull(returnedId)
+            returnedId shouldNotBe null
             // Verify row exists in DB with encrypted payload
             val row = databaseClient.sql(
                 "SELECT encrypted_payload, owner_type, owner_id FROM secure_credentials WHERE id = :id",
@@ -68,9 +67,9 @@ class LinkedInCredentialGatewayTest : PostgresDatabaseTestBase() {
                 .one()
                 .awaitSingle()
 
-            assertNotNull(row.first)
-            assertEquals("WORKSPACE", row.second)
-            assertEquals(ownerId, row.third)
+            row.first shouldNotBe null
+            row.second shouldBe "WORKSPACE"
+            row.third shouldBe ownerId
         }
 
         @Test
@@ -90,8 +89,8 @@ class LinkedInCredentialGatewayTest : PostgresDatabaseTestBase() {
             val workspaceType: String = databaseClient.sql("SELECT owner_type FROM secure_credentials WHERE id = :id")
                 .bind("id", idWorkspace).map { r, _ -> r.get("owner_type", String::class.java)!! }.one().awaitSingle()
 
-            assertEquals("USER", userType)
-            assertEquals("WORKSPACE", workspaceType)
+            userType shouldBe "USER"
+            workspaceType shouldBe "WORKSPACE"
         }
 
         @Test
@@ -135,11 +134,11 @@ class LinkedInCredentialGatewayTest : PostgresDatabaseTestBase() {
 
             val resolved = gateway.resolveCredential(secondId)
 
-            assertEquals(firstId, secondId)
-            assertEquals(1L, count)
-            assertEquals("token-2", resolved.accessToken)
-            assertEquals("refresh-2", resolved.refreshToken)
-            assertEquals(200L, resolved.expiresAtEpochSeconds)
+            secondId shouldBe firstId
+            count shouldBe 1L
+            resolved.accessToken shouldBe "token-2"
+            resolved.refreshToken shouldBe "refresh-2"
+            resolved.expiresAtEpochSeconds shouldBe 200L
         }
     }
 
@@ -159,10 +158,10 @@ class LinkedInCredentialGatewayTest : PostgresDatabaseTestBase() {
             val id = gateway.storeForOwner("WORKSPACE", ownerId, credentials)
             val resolved = gateway.resolveCredential(id)
 
-            assertEquals("access-token-abc123", resolved.accessToken)
-            assertEquals("refresh-token-def456", resolved.refreshToken)
-            assertEquals(1735689600L, resolved.expiresAtEpochSeconds)
-            assertEquals("openid profile email w_member_social", resolved.scope)
+            resolved.accessToken shouldBe "access-token-abc123"
+            resolved.refreshToken shouldBe "refresh-token-def456"
+            resolved.expiresAtEpochSeconds shouldBe 1735689600L
+            resolved.scope shouldBe "openid profile email w_member_social"
         }
 
         @Test
@@ -178,20 +177,18 @@ class LinkedInCredentialGatewayTest : PostgresDatabaseTestBase() {
             val id = gateway.storeForOwner("WORKSPACE", ownerId, credentials)
             val resolved = gateway.resolveCredential(id)
 
-            assertEquals("minimal-token", resolved.accessToken)
-            assertNull(resolved.refreshToken)
-            assertNull(resolved.expiresAtEpochSeconds)
-            assertNull(resolved.scope)
+            resolved.accessToken shouldBe "minimal-token"
+            resolved.refreshToken shouldBe null
+            resolved.expiresAtEpochSeconds shouldBe null
+            resolved.scope shouldBe null
         }
 
         @Test
         fun `resolveCredential throws when not found`() = runTest {
             val nonExistentId = UUID.randomUUID()
 
-            assertThrows(Exception::class.java) {
-                runTest {
-                    gateway.resolveCredential(nonExistentId)
-                }
+            shouldThrow<Exception> {
+                gateway.resolveCredential(nonExistentId)
             }
         }
     }
@@ -208,11 +205,11 @@ class CredentialEncryptionServiceKeyValidationTest {
     fun `init throws IllegalArgumentException for key of invalid size`() {
         val properties = PublishingCredentialsProperties()
         // 8 bytes = 64 bits — not a valid AES key size (must be 128/192/256)
-        properties.key = "dGVzdGtleQ==" // 8 bytes base64
+        properties.key = "dGVzdGtleTg=" // 8 bytes base64
 
-        val exception = assertThrows(IllegalArgumentException::class.java) {
+        val exception = shouldThrow<IllegalArgumentException> {
             CredentialEncryptionService(properties)
         }
-        assertTrue(exception.message!!.contains("Encryption key must be"))
+        exception.message!! shouldContain "Encryption key must be"
     }
 }
