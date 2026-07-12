@@ -39,8 +39,6 @@ const currentBaseDate = computed(() => {
 
 const isModalOpen = ref(false)
 const selectedCellDate = ref<string | undefined>(undefined)
-const isDetailModalOpen = ref(false)
-const detailPublication = ref<Publication | null>(null)
 const editingPublication = ref<Publication | null>(null)
 
 
@@ -295,6 +293,14 @@ const filteredPublications = computed(() => {
   )
 })
 
+const detailPublication = computed<Publication | null>(() => {
+  const postId = url.state.value.postId
+  if (!postId) return null
+  return filteredPublications.value.find((pub) => pub.id === postId) ?? null
+})
+
+const isDetailModalOpen = computed(() => detailPublication.value !== null)
+
 function getPublicationsForDate(date: Date): Publication[] {
   return filteredPublications.value.filter((pub) => {
     const pubDate = new Date(pub.scheduledAt)
@@ -393,10 +399,11 @@ function openDayView(date: Date) {
 }
 
 async function handleDeletePublication(id: string) {
+  const wasDetailPublication = detailPublication.value?.id === id
   try {
     await publishingStore.deletePost(id)
-    if (detailPublication.value?.id === id) {
-      closePostDetail()
+    if (wasDetailPublication) {
+      void closePostDetail()
     }
   } catch (err) {
     console.warn('Delete failed', err)
@@ -404,20 +411,17 @@ async function handleDeletePublication(id: string) {
 }
 
 function openPostDetail(pub: Publication) {
-  detailPublication.value = pub
-  isDetailModalOpen.value = true
+  void url.openPostDetail(pub.id)
 }
 
-function closePostDetail() {
-  isDetailModalOpen.value = false
-  detailPublication.value = null
+function closePostDetail(options?: { replace?: boolean }) {
+  return url.closePostDetail(options)
 }
 
 function handleEditPublication(publication: Publication) {
-  isDetailModalOpen.value = false
-  detailPublication.value = null
   editingPublication.value = publication
   isModalOpen.value = true
+  void closePostDetail()
 }
 
 async function handleUpdated() {
@@ -451,7 +455,7 @@ function onPostCreated() {
 
 function onReschedule() {
   // Store already updated by PostDetailModal; just close
-  closePostDetail()
+  void closePostDetail()
 }
 
 // Time slots mapping (24 hours starting at 12 AM)
@@ -475,9 +479,12 @@ watch(
   { immediate: true },
 )
 
+let latestFetchToken = 0
+
 watch(
   () => url.state.value,
   async (state) => {
+    const fetchToken = ++latestFetchToken
     const baseDate = new Date(`${state.date}T00:00:00`)
     const from =
       state.surface === 'calendar-month'
@@ -495,6 +502,14 @@ watch(
       socialAccountId: state.channelIds[0],
       timezone: state.timezone,
     })
+
+    if (fetchToken !== latestFetchToken) {
+      return
+    }
+
+    if (state.postId && !filteredPublications.value.some((pub) => pub.id === state.postId)) {
+      await closePostDetail({ replace: true })
+    }
   },
   { immediate: true, deep: true },
 )
@@ -838,7 +853,7 @@ watch(
       :is-open="isDetailModalOpen"
       :publication="detailPublication"
       @close="closePostDetail"
-      @deleted="closePostDetail"
+      @deleted="() => closePostDetail()"
       @reschedule="onReschedule"
       @retried="onReschedule"
       @edit="handleEditPublication"

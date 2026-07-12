@@ -36,7 +36,7 @@ openspec/             # SDD artifacts (spec-driven development)
 
 | Command                  | Action                          |
 |--------------------------|---------------------------------|
-| `just frontend-dev`      | Start both frontend dev servers |
+| `just dev-frontend`      | Start both frontend dev servers |
 | `just frontend-build`    | Build marketing site            |
 | `just frontend-lint`     | Biome lint                      |
 | `just frontend-format`   | Biome format                    |
@@ -132,14 +132,21 @@ Or simply: `just setup` (does steps 1, 3, 4 + agentsync + codegraph in one shot)
 The `bootRun` task reads the root `.env` file and exports vars to the JVM — works for both CLI and
 IntelliJ.
 
-## Test Tags (Pre-existing Exclusions)
+## Test Tags
 
-These tags are excluded in CI due to known pre-existing failures:
+**No exclusions active.** All backend tests run by default in CI and local workflows.
 
-| Tag          | Reason                                                     |
-|--------------|------------------------------------------------------------|
-| `modularity` | Spring Modulith named-interface issue (on main)            |
-| `postgres`   | Postgres/Testcontainers integration tests (not configured) |
+Test tags exist as infrastructure markers (e.g., `@Tag("postgres")` for Testcontainers-backed tests, `@Tag("bdd")` for Cucumber scenarios), but they do **not** hide failures.
+
+**Required setup for local testing:**
+- Set `SMP_POSTGRES_TEST_PASSWORD` in `.env` (see `.env.example`)
+- Run `./bin/setup-env.sh` to create subproject symlinks
+
+**Full documentation:** See [`docs/testing/test-tags-and-env.md`](docs/testing/test-tags-and-env.md) for:
+- How to run the full test suite locally
+- Which tags exist and what they mean
+- When to add a tag and how to keep it from becoming a hidden failure
+- Historical context on resolved exclusions (e.g., `modularity` from [#275](https://github.com/dallay/profiletailors.com/issues/275))
 
 ## Design Spec
 
