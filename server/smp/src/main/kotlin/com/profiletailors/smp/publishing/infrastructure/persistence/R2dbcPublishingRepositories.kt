@@ -438,6 +438,7 @@ class R2dbcPublicationRepository(
               AND p.retry_count < :maxRetries
               AND a.status = :activeStatus
             ORDER BY p.blocked_at ASC
+            LIMIT 100
             FOR UPDATE OF p SKIP LOCKED
             """.trimIndent(),
         )
