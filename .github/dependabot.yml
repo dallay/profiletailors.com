@@ -19,8 +19,8 @@ updates:
       prefix: "chore"
       include: "scope"
     labels:
-      - "dependencies"
-      - "frontend"
+      - "type:dependency"
+      - "area:frontend"
     groups:
       astro-ecosystem:
         patterns:
@@ -108,8 +108,8 @@ updates:
       prefix: "chore"
       include: "scope"
     labels:
-      - "dependencies"
-      - "backend"
+      - "type:dependency"
+      - "area:backend"
     groups:
       spring-boot:
         patterns:
@@ -179,8 +179,8 @@ updates:
       prefix: "ci"
       include: "scope"
     labels:
-      - "dependencies"
-      - "ci"
+      - "type:dependency"
+      - "area:ci"
     groups:
       github-actions:
         patterns:
