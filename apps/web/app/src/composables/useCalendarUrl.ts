@@ -100,6 +100,12 @@ function isInvalidStatus(rawStatus: string): boolean {
   return rawStatus.length > 0 && !VALID_STATUSES.has(normalized)
 }
 
+/**
+ * Normalizes a date to the ISO local date format.
+ *
+ * @param rawDate - The date value to validate.
+ * @returns The input date when valid, or the current local date otherwise.
+ */
 function normalizeDate(rawDate: string): string {
   return isIsoLocalDate(rawDate) ? rawDate : resolveToday()
 }
@@ -209,6 +215,13 @@ function areQueriesEquivalent(left: Record<string, unknown>, right: LocationQuer
   return JSON.stringify(normalizeEntries(left)) === JSON.stringify(normalizeEntries(right))
 }
 
+/**
+ * Navigates to the calendar route represented by the provided state.
+ *
+ * @param router - The Vue Router instance used for navigation
+ * @param state - The calendar URL state to serialize
+ * @param method - The navigation method to use
+ */
 async function navigate(
   router: Router,
   state: CalendarUrlState,
@@ -223,6 +236,8 @@ async function navigate(
 /**
  * Creates a controller for reading and updating normalized calendar URL state.
  *
+ * @param route - The current Vue Router route
+ * @param router - The Vue Router instance used for navigation
  * @returns A calendar URL controller with reactive state and navigation methods.
  */
 export function createCalendarUrlController(
