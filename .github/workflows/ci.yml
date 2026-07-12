@@ -26,12 +26,13 @@ jobs:
     outputs:
       backend: ${{ steps.filter.outputs.backend }}
       frontend: ${{ steps.filter.outputs.frontend }}
+      ci: ${{ steps.filter.outputs.ci }}
     steps:
-      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
         with:
           persist-credentials: false
 
-      - uses: dorny/paths-filter@d1c1ffe0248fe513906c8e24db8ea791d46f8590
+      - uses: dorny/paths-filter@7b450fff21473bca461d4b92ce414b9d0420d706 # v4.0.2
         id: filter
         with:
           filters: |
@@ -43,6 +44,15 @@ jobs:
               - 'apps/web/marketing/**'
               - 'apps/web/app/**'
               - 'pnpm-lock.yaml'
+            ci:
+              - '.github/workflows/**'
+              - '.github/actions/**'
+              - 'justfile'
+              - 'package.json'
+              - 'pnpm-workspace.yaml'
+              - 'pnpm-lock.yaml'
+              - 'settings.gradle.kts'
+              - 'build.gradle.kts'
 
   # ═══════════════════════════════════════════════════════════════
   # Always-on jobs — fast, run on every push
@@ -55,7 +65,7 @@ jobs:
     name: 🧹 Lint
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
         with:
           persist-credentials: false
 
@@ -84,7 +94,7 @@ jobs:
     name: 🧪 Frontend Unit Tests
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
         with:
           persist-credentials: false
 
@@ -99,21 +109,31 @@ jobs:
         run: cd apps/web/app && pnpm test:coverage
 
   # ──────────────────────────────────────────────────────────────
-  # 3. App unit tests (SMP app — Vue + Pinia)
+  # 3. Production builds and frontend type checks
   # ──────────────────────────────────────────────────────────────
-  app-unit:
-    name: 🧪 App Unit Tests
+  build:
+    name: 🔨 Production Builds
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
         with:
           persist-credentials: false
 
       - uses: ./.github/actions/setup-frontend
 
-      - name: Run unit tests
+      - uses: ./.github/actions/setup-backend
+
+      - name: Build marketing site
         shell: bash
-        run: pnpm --filter app test:run
+        run: pnpm --filter marketing build
+
+      - name: Type-check and build dashboard
+        shell: bash
+        run: pnpm --filter app build
+
+      - name: Build backend artifact
+        shell: bash
+        run: ./gradlew :server:smp:bootJar --no-daemon
 
   # ──────────────────────────────────────────────────────────────
   # 4. Backend unit tests (Kotlin — no Postgres)
@@ -124,7 +144,7 @@ jobs:
     env:
       SMP_POSTGRES_TEST_PASSWORD: ${{ secrets.SMP_POSTGRES_PASSWORD }}
     steps:
-      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
         with:
           persist-credentials: false
 
@@ -132,7 +152,7 @@ jobs:
 
       - name: Run unit tests (exclude BDD suites)
         shell: bash
-        run: ./gradlew :server:smp:test -x :server:smp:bddFastTest -x :server:smp:bddPostgresTest --no-daemon -PexcludeTags=modularity
+        run: ./gradlew :server:smp:test -x :server:smp:bddFastTest -x :server:smp:bddPostgresTest --no-daemon
 
   # ═══════════════════════════════════════════════════════════════
   # Conditional jobs — only run when relevant paths change
@@ -149,7 +169,7 @@ jobs:
     env:
       SMP_POSTGRES_TEST_PASSWORD: ${{ secrets.SMP_POSTGRES_PASSWORD }}
     steps:
-      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
         with:
           persist-credentials: false
 
@@ -170,7 +190,7 @@ jobs:
     env:
       SMP_POSTGRES_TEST_PASSWORD: ${{ secrets.SMP_POSTGRES_PASSWORD }}
     steps:
-      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
         with:
           persist-credentials: false
 
@@ -193,7 +213,7 @@ jobs:
     if: needs.changes.outputs.frontend == 'true'
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
         with:
           persist-credentials: false
 
@@ -208,151 +228,105 @@ jobs:
 
       - name: Upload Playwright report
         if: failure()
-        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
           name: marketing-e2e-report
           path: apps/web/marketing/playwright-report/
           retention-days: 7
 
   # ──────────────────────────────────────────────────────────────
-  # 7. Scheduler E2E (Playwright — full stack required)
+  # 7. Dashboard E2E (Playwright — isolated browser/API mocks)
   #
-  # Spins up: PostgreSQL, WireMock (LinkedIn mock), Spring Boot, Vite.
-  # Runs serially within the job since tests share browser state.
-  #
-  # Required GitHub Secrets:
-  #   SMP_POSTGRES_PASSWORD          - test DB password for CI Postgres
-  #   SMP_LINKEDIN_CLIENT_ID         - dummy LinkedIn client ID
-  #   SMP_LINKEDIN_CLIENT_SECRET     - dummy LinkedIn client secret
-  #   SMP_LOCAL_JWT_SECRET           - test JWT signing secret
-  #   PUBLISHING_CREDENTIALS_KEY     - base64-encoded test encryption key
-  #   E2E_TEST_USER_PASSWORD         - dev user password
+  # Each test owns its browser context and resets the route-backed mock state.
+  # Shards run independently and require no backend services or secrets.
   # ──────────────────────────────────────────────────────────────
-  scheduler-e2e:
-    name: 📅 Scheduler E2E
+  dashboard-e2e-mocked:
+    name: 🎭 Dashboard E2E Mocked (${{ matrix.shard }}/4)
     needs: changes
-    if: needs.changes.outputs.frontend == 'true' || needs.changes.outputs.backend == 'true'
+    if: needs.changes.outputs.frontend == 'true' || needs.changes.outputs.backend == 'true' || needs.changes.outputs.ci == 'true'
     runs-on: ubuntu-latest
-    timeout-minutes: 30
+    timeout-minutes: 15
     env:
-      SMP_POSTGRES_DB: profiletailors_smp
-      SMP_POSTGRES_USER: profiletailors
-      SMP_POSTGRES_PASSWORD: ${{ secrets.SMP_POSTGRES_PASSWORD }}
-      SMP_DB_PASSWORD: ${{ secrets.SMP_POSTGRES_PASSWORD }}
-      SMP_DB_USERNAME: profiletailors
-      # Disable Spring Boot Docker Compose to avoid port conflict with services.postgres
-      SPRING_DOCKER_COMPOSE_ENABLED: 'false'
-      SMP_PUBLISHING_WORKER_ENABLED: 'true'
-      SMP_PUBLISHING_WORKER_POLL_INTERVAL: PT5S
-      SMP_LINKEDIN_PUBLISHING_API_BASE_URL: http://localhost:8089
-      SMP_LINKEDIN_CLIENT_ID: ${{ secrets.SMP_LINKEDIN_CLIENT_ID }}
-      SMP_LINKEDIN_CLIENT_SECRET: ${{ secrets.SMP_LINKEDIN_CLIENT_SECRET }}
-      SMP_LINKEDIN_REDIRECT_URI: http://localhost:5173/integrations/linkedin/callback
-      SMP_LINKEDIN_SCOPES: w_member_social,openid,profile,email
-      SMP_LINKEDIN_API_BASE_URL: https://api.linkedin.com
-      SMP_LINKEDIN_AUTHORIZATION_BASE_URL: https://www.linkedin.com/oauth/v2/authorization
-      SMP_LINKEDIN_TOKEN_BASE_URL: https://www.linkedin.com/oauth/v2/accessToken
-      SMP_LINKEDIN_API_VERSION: '202606'
-      SMP_LOCAL_JWT_SECRET: ${{ secrets.SMP_LOCAL_JWT_SECRET }}
-      PUBLISHING_CREDENTIALS_KEY: ${{ secrets.PUBLISHING_CREDENTIALS_KEY }}
       E2E_TEST_USER_PASSWORD: ${{ secrets.E2E_TEST_USER_PASSWORD }}
-      # Pin backend HTTP port to avoid collisions with local dev tools.
-      SMP_BACKEND_PORT: '7638'
-      # Management port stays on 9091; the curl healthcheck below probes
-      # /actuator/health on MANAGEMENT_PORT (not on the main port).
-      MANAGEMENT_PORT: '9091'
-
-    services:
-      postgres:
-        image: postgres:16-alpine
-        env:
-          POSTGRES_DB: ${{ env.SMP_POSTGRES_DB }}
-          POSTGRES_USER: ${{ env.SMP_POSTGRES_USER }}
-          POSTGRES_PASSWORD: ${{ env.SMP_POSTGRES_PASSWORD }}
-        ports:
-          - 5432:5432
-        options: >-
-          --health-cmd pg_isready
-          --health-interval 10s
-          --health-timeout 5s
-          --health-retries 5
+    strategy:
+      fail-fast: false
+      matrix:
+        shard: [1, 2, 3, 4]
 
     steps:
-      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
         with:
           persist-credentials: false
 
-      # ── WireMock (must start after checkout for volume mount) ──
-      - name: Start WireMock
-        shell: bash
-        run: |
-          docker run -d --name wiremock \
-            -p 8089:8080 \
-            -v ${{ github.workspace }}/infra/wiremock/linkedin:/home/wiremock:ro \
-            wiremock/wiremock:3.10.0 \
-            --global-response-templating --verbose
-          for i in $(seq 1 30); do
-            if wget -qO /dev/null http://localhost:8089/__admin/health 2>/dev/null; then
-              echo "✅ WireMock is healthy"
-              break
-            fi
-            if [ "$i" -eq 30 ]; then
-              echo "❌ WireMock failed to start"
-              docker logs wiremock 2>&1 | tail -20
-              exit 1
-            fi
-            sleep 2
-          done
-
-      # ── Java + Gradle ──
-      - uses: ./.github/actions/setup-backend
-
-      # ── Node + pnpm ──
       - uses: ./.github/actions/setup-frontend
         with:
           install-playwright: 'true'
           playwright-browsers: 'chromium'
 
-      # ── Build backend ──
-      - name: Build backend
-        shell: bash
-        run: ./gradlew :server:smp:classes :server:smp:bootJar --no-daemon
-
-      # ── Start backend ──
-      - name: Start Spring Boot
-        shell: bash
-        run: |
-          ./gradlew :server:smp:bootRun --no-daemon &
-          for i in $(seq 1 60); do
-            if curl -sf http://localhost:9091/actuator/health > /dev/null 2>&1; then
-              echo "✅ Backend is healthy"
-              break
-            fi
-            if [ "$i" -eq 60 ]; then
-              echo "❌ Backend failed to start"
-              exit 1
-            fi
-            sleep 2
-          done
-
-      # ── Run Scheduler E2E tests (serial, chromium only) ──
-      # Playwright manages the Vite dev server via webServer in the config.
-      - name: Run Scheduler E2E
+      - name: Run scheduler E2E shard
         shell: bash
         run: |
           pnpm --filter app exec playwright test \
             -c e2e/playwright.scheduler.config.ts \
-            --reporter=list
+            --shard=${{ matrix.shard }}/4
 
       - name: Upload Scheduler E2E report
         if: failure()
-        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
-          name: scheduler-e2e-report
+          name: scheduler-e2e-report-${{ matrix.shard }}
           path: apps/web/app/e2e/playwright-scheduler-report/
           retention-days: 7
 
-      - name: Stop WireMock
-        if: always()
-        shell: bash
-        run: docker stop wiremock || true
+  media-e2e-mocked:
+    name: 🖼️ Media E2E Mocked
+    needs: changes
+    if: needs.changes.outputs.frontend == 'true' || needs.changes.outputs.ci == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        with:
+          persist-credentials: false
+      - uses: ./.github/actions/setup-frontend
+        with:
+          install-playwright: 'true'
+          playwright-browsers: chromium
+      - name: Run mocked media E2E
+        run: pnpm --filter app test:e2e:media:mocked
+      - name: Upload Playwright report
+        if: failure()
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: media-e2e-mocked-report
+          path: apps/web/app/e2e/playwright-media-mocked-report/
+          retention-days: 7
+
+  ci-gate:
+    name: ✅ CI Gate
+    if: always()
+    needs:
+      - changes
+      - lint
+      - frontend-unit
+      - build
+      - backend-unit
+      - backend-bdd
+      - backend-postgres
+      - marketing-e2e
+      - dashboard-e2e-mocked
+      - media-e2e-mocked
+    runs-on: ubuntu-latest
+    steps:
+      - name: Require every applicable check to pass
+        env:
+          RESULTS: >-
+            ${{ join(needs.*.result, ' ') }}
+        run: |
+          for result in $RESULTS; do
+            if [[ "$result" != 'success' && "$result" != 'skipped' ]]; then
+              echo "::error::At least one applicable CI check did not pass: $RESULTS"
+              exit 1
+            fi
+          done
+          echo "All applicable CI checks passed: $RESULTS"

@@ -97,7 +97,7 @@ vi.mock('@/components/CreatePostModal.vue', () => ({
   default: {
     template:
       '<div v-if="isOpen" data-testid="create-post-modal"><button data-testid="create-post-updated" @click="$emit(\'updated\')">updated</button><button data-testid="create-post-created" @click="$emit(\'created\')">created</button></div><div v-if="isOpen" data-testid="create-post-modal-open">open</div>',
-    props: ['isOpen', 'initialDate', 'editingPublication'],
+    props: ['isOpen', 'initialDate', 'editingPublication', 'provider'],
     emits: ['close', 'created', 'updated'],
   },
 }))

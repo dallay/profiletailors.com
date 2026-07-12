@@ -815,9 +815,8 @@ describe('CreatePostModal.vue — Unsplash integration (WU3)', () => {
           externalId: 'mountain-1',
         })
 
-      // Mount the modal with the provider flag enabled
+      // Mount the modal with the provider enabled
       const wrapper = mountModal([makeChannel('ch-prov')], {
-        isUnsplashProviderEnabled: true,
         provider: 'unsplash',
       } as Record<string, unknown>)
       await flushModal(wrapper)
@@ -865,7 +864,6 @@ describe('CreatePostModal.vue — Unsplash integration (WU3)', () => {
 
     const wrapper = mountModal([makeChannel('ch-prov')], {
       provider: 'unsplash',
-      isUnsplashProviderEnabled: true,
     } as Record<string, unknown>)
     await flushModal(wrapper)
 

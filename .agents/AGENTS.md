@@ -52,7 +52,7 @@ openspec/             # SDD artifacts (spec-driven development)
 | `just backend-test-fast`    | Fast tests (excludes BDD)          |
 | `just backend-check`        | Detekt + tests                     |
 | `just backend-bdd-fast`     | Fast BDD suite                     |
-| `just backend-bdd-postgres` | Postgres BDD                      |
+| `just backend-bdd-postgres` | Postgres BDD (requires `infra-up`) |
 
 ### Full Stack
 
@@ -75,7 +75,7 @@ openspec/             # SDD artifacts (spec-driven development)
 |-----------------|-----------------------------------------------------|
 | `just ci`       | Full CI: gitleaks, lint, tests, build, E2E          |
 | `just ci-local` | Fast subset (no E2E, no Postgres BDD)               |
-| `just ci-full`  | ci-local + Postgres integration + BDD tests         |
+| `just ci-full`  | ci-local + Postgres BDD (requires `infra-up` first) |
 
 ## Backend Architecture (Hexagonal)
 
@@ -86,6 +86,8 @@ openspec/             # SDD artifacts (spec-driven development)
 | **Domain**         | Nothing (pure Kotlin) | Application, Infrastructure, Spring |
 | **Application**    | Domain                | Infrastructure, Spring stereotypes  |
 | **Infrastructure** | Domain + Application  | —                                   |
+
+> **Exception:** `ModuleMetadata` classes (or `package-info.java`) are allowed in any package (including `domain`) solely for Spring Modulith boundary and named interface definitions. These are intentionally exempted from architecture tests but must NOT contain business logic or other framework dependencies.
 
 - Package convention: `com.profiletailors.smp.{context}.{layer}`
 - CQRS naming: `GetXQuery`, `{Verb}XCommand`, `XHandler`, `R2dbcXRepository`
@@ -132,19 +134,19 @@ IntelliJ.
 
 ## Test Tags
 
-### CI Exclusions
-These tags are excluded in CI due to known pre-existing failures:
+**No exclusions active.** All backend tests run by default in CI and local workflows.
 
-| Tag          | Reason                                                     |
-|--------------|------------------------------------------------------------|
-| `modularity` | Spring Modulith named-interface issue (on main)            |
+Test tags exist as infrastructure markers (e.g., `@Tag("postgres")` for Testcontainers-backed tests, `@Tag("bdd")` for Cucumber scenarios), but they do **not** hide failures.
 
-### CI Dedicated Jobs
-These tags are executed in dedicated CI jobs rather than the fast path:
+**Required setup for local testing:**
+- Set `SMP_POSTGRES_TEST_PASSWORD` in `.env` (see `.env.example`)
+- Run `./bin/setup-env.sh` to create subproject symlinks
 
-| Tag          | Logic                                                      |
-|--------------|------------------------------------------------------------|
-| `postgres`   | Full Postgres integration & BDD suite (runs in CI)         |
+**Full documentation:** See [`docs/testing/test-tags-and-env.md`](docs/testing/test-tags-and-env.md) for:
+- How to run the full test suite locally
+- Which tags exist and what they mean
+- When to add a tag and how to keep it from becoming a hidden failure
+- Historical context on resolved exclusions (e.g., `modularity` from [#275](https://github.com/dallay/profiletailors.com/issues/275))
 
 ## Design Spec
 

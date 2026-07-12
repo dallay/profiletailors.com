@@ -127,8 +127,8 @@ test.describe('URL-addressable scheduler — navigation', () => {
   })
 
   test('TC-NAV-03: clicking Week toggle from month changes URL @scheduler', async ({ page }) => {
-    const scheduler = new SchedulerPage(page)
     await authenticateAs(page)
+    const scheduler = new SchedulerPage(page)
 
     // Switch to month first
     await page.goto('/scheduler/calendar/month')

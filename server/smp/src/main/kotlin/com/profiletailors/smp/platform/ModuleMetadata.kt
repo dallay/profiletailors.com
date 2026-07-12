@@ -7,7 +7,6 @@ import org.springframework.modulith.ApplicationModule
         "audit :: application",
         "audit :: domain",
         "credentials :: application",
-        "observability :: application",
     ],
 )
 internal class ModuleMetadata

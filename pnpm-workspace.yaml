@@ -8,6 +8,10 @@ allowBuilds:
   sharp: true
   maplibre-gl: true
 
+# Exact versions below bypass the minimum-release-age check for the Vue
+# toolchain packages. Whenever any of these dependencies is bumped upstream
+# (in pnpm catalogs or per-workspace manifests), update the pinned version
+# here in lockstep and rerun `pnpm install`.
 minimumReleaseAgeExclude:
   - '@vue/language-core@3.3.5'
   - vue-tsc@3.3.5

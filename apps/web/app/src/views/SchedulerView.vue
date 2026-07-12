@@ -828,6 +828,7 @@ watch(
       :is-open="isModalOpen"
       :initial-date="selectedCellDate"
       :editing-publication="editingPublication ?? undefined"
+      provider="unsplash"
       @close="isModalOpen = false; editingPublication = null"
       @created="onPostCreated"
       @updated="handleUpdated"
@@ -839,6 +840,7 @@ watch(
       @close="closePostDetail"
       @deleted="closePostDetail"
       @reschedule="onReschedule"
+      @retried="onReschedule"
       @edit="handleEditPublication"
     />
   </div>

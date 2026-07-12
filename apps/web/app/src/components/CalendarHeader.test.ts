@@ -2,6 +2,7 @@ import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { mount } from '@vue/test-utils'
 import { createPinia, setActivePinia } from 'pinia'
 import { usePublishingStore } from '@/stores/publishing'
+import { Clock, Check, Ban, Folder } from '@lucide/vue'
 import CalendarHeader from './CalendarHeader.vue'
 
 vi.mock('vue-i18n', () => ({
@@ -27,15 +28,19 @@ vi.mock('@/components/ui/button', () => ({
 vi.mock('@lucide/vue', () => {
   const stub = { template: '<svg />' }
   return {
+    Ban: stub,
     Bookmark: stub,
     CalendarDays: stub,
+    Check: stub,
     ChevronDown: stub,
     ChevronLeft: stub,
     ChevronRight: stub,
     Clock: stub,
     Filter: stub,
+    Folder: stub,
     Globe: stub,
     Plus: stub,
+    Radio: stub,
   }
 })
 
@@ -156,5 +161,22 @@ describe('CalendarHeader', () => {
     const newPostButton = buttons[4]
 
     expect(newPostButton?.attributes('disabled')).toBeDefined()
+  })
+
+  it('renders SocialProviderIcon when channelIds contains a matching accountId', () => {
+    const wrapper = mountHeader({ channelIds: ['acc-1'] })
+    const providerIcon = wrapper.findComponent({ name: 'SocialProviderIcon' })
+    expect(providerIcon.exists()).toBe(true)
+    expect(providerIcon.props('provider')).toBe('linkedin')
+  })
+
+  it.each([
+    ['queued', Clock],
+    ['published', Check],
+    ['cancelled', Ban],
+    ['all', Folder],
+  ])('renders correct statusIcon for status %s', (status, iconComponent) => {
+    const wrapper = mountHeader({ status })
+    expect(wrapper.findComponent(iconComponent).exists()).toBe(true)
   })
 })
