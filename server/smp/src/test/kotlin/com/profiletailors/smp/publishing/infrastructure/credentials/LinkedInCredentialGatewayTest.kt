@@ -215,4 +215,37 @@ class CredentialEncryptionServiceKeyValidationTest {
         }
         assertTrue(exception.message!!.contains("Encryption key must be"))
     }
+
+    @Test
+    fun `init throws IllegalStateException when key is null`() {
+        val properties = PublishingCredentialsProperties()
+        properties.key = null
+
+        val exception = assertThrows(IllegalStateException::class.java) {
+            CredentialEncryptionService(properties)
+        }
+        assertTrue(exception.message!!.contains("missing or blank", ignoreCase = true))
+    }
+
+    @Test
+    fun `init throws IllegalStateException when key is empty string`() {
+        val properties = PublishingCredentialsProperties()
+        properties.key = ""
+
+        val exception = assertThrows(IllegalStateException::class.java) {
+            CredentialEncryptionService(properties)
+        }
+        assertTrue(exception.message!!.contains("missing or blank", ignoreCase = true))
+    }
+
+    @Test
+    fun `init throws IllegalStateException when key is blank whitespace`() {
+        val properties = PublishingCredentialsProperties()
+        properties.key = "   "
+
+        val exception = assertThrows(IllegalStateException::class.java) {
+            CredentialEncryptionService(properties)
+        }
+        assertTrue(exception.message!!.contains("missing or blank", ignoreCase = true))
+    }
 }
