@@ -1,5 +1,5 @@
 [versions]
-kotlin = "2.3.21"
+kotlin = "2.4.0"
 springBoot = "4.0.7"
 springManagement = "1.1.7"
 springModulith = "2.0.6"
@@ -10,7 +10,7 @@ owasp = "12.1.9"
 jdk = "21"
 
 # Libraries
-coroutines = "1.10.2"
+coroutines = "1.11.0"
 jackson = "3.0.+"
 slf4j = "2.0.17"
 commonsText = "1.12.0"
