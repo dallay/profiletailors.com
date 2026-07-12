@@ -3,6 +3,7 @@ import { mount, flushPromises } from '@vue/test-utils'
 import { createPinia, setActivePinia } from 'pinia'
 import { ref } from 'vue'
 import SchedulerView from './SchedulerView.vue'
+import PostDetailModal from '@/components/PostDetailModal.vue'
 import { usePublishingStore } from '@/stores/publishing'
 import type { Publication } from '@/stores/publishing'
 import type { CalendarUrlController } from '@/composables/useCalendarUrl'
@@ -465,166 +466,198 @@ describe('SchedulerView', () => {
     expect(wrapper.find('[data-testid="create-post-modal"]').exists()).toBe(true)
   })
 
-  it('handleEditPublication closes the route-owned post detail before opening the editor', async () => {
-    const store = usePublishingStore()
-    const pub: Publication = {
-      id: 'pub-edit-close',
-      content: 'Editable post',
-      channels: ['linkedin'],
-      scheduledAt: '2026-06-25T10:00:00Z',
-      status: 'SCHEDULED',
-      priority: false,
-    }
-    store.publications = [pub]
+  describe('route-driven post detail modal', () => {
+    it('does not open the detail modal when postId matches no publication in the store', async () => {
+      const store = usePublishingStore()
+      store.publications = []
 
-    const wrapper = mountView({ date: '2026-06-25', postId: 'pub-edit-close' })
-    await flushPromises()
+      const wrapper = mountView({ date: '2026-06-25', postId: 'missing-post' })
+      await flushPromises()
 
-    const editBtn = wrapper.find('[data-testid="detail-edit"]')
-    await editBtn.trigger('click')
-    await flushPromises()
+      expect(wrapper.find('[data-testid="post-detail-modal"]').exists()).toBe(false)
+    })
 
-    expect(mockController.closePostDetail).toHaveBeenCalled()
-  })
+    it('closes a stale postId with replace semantics once the fetch settles without a match', async () => {
+      const store = usePublishingStore()
+      store.publications = []
 
-  it('does not open the detail modal when the route-owned postId has no matching publication', async () => {
-    const store = usePublishingStore()
-    store.publications = [
-      {
+      mountView({ date: '2026-06-25', postId: 'missing-post' })
+      await flushPromises()
+
+      expect(mockController.closePostDetail).toHaveBeenCalledWith({ replace: true })
+    })
+
+    it('does not close postId when the matching publication is present after fetch settles', async () => {
+      const store = usePublishingStore()
+      const pub: Publication = {
+        id: 'pub-still-valid',
+        content: 'Still valid post',
+        channels: ['linkedin'],
+        scheduledAt: '2026-06-25T10:00:00Z',
+        status: 'SCHEDULED',
+        priority: false,
+      }
+      store.publications = [pub]
+
+      mountView({ date: '2026-06-25', postId: 'pub-still-valid' })
+      await flushPromises()
+
+      expect(mockController.closePostDetail).not.toHaveBeenCalled()
+    })
+
+    it('closes with replace semantics when the matching publication is excluded by active channel filters', async () => {
+      const store = usePublishingStore()
+      const pub: Publication = {
+        id: 'pub-filtered-out',
+        content: 'Filtered out post',
+        channels: ['linkedin'],
+        scheduledAt: '2026-06-25T10:00:00Z',
+        status: 'SCHEDULED',
+        priority: false,
+        accountId: 'acc-2',
+      }
+      store.publications = [pub]
+
+      const wrapper = mountView({
+        date: '2026-06-25',
+        postId: 'pub-filtered-out',
+        channelIds: ['acc-1'],
+      })
+      await flushPromises()
+
+      expect(wrapper.find('[data-testid="post-detail-modal"]').exists()).toBe(false)
+      expect(mockController.closePostDetail).toHaveBeenCalledWith({ replace: true })
+    })
+
+    it('closes the detail modal via url.closePostDetail (default replace) when the open post is deleted', async () => {
+      const store = usePublishingStore()
+      const pub: Publication = {
+        id: 'pub-to-delete',
+        content: 'Post being deleted',
+        channels: ['linkedin'],
+        scheduledAt: '2026-06-25T10:00:00Z',
+        status: 'SCHEDULED',
+        priority: false,
+      }
+      store.publications = [pub]
+
+      const wrapper = mountView({ date: '2026-06-25', postId: 'pub-to-delete' })
+      await flushPromises()
+      expect(wrapper.find('[data-testid="post-detail-modal"]').exists()).toBe(true)
+
+      const vm = wrapper.vm as unknown as { handleDeletePublication: (id: string) => Promise<void> }
+      await vm.handleDeletePublication('pub-to-delete')
+      await flushPromises()
+
+      expect(mockController.closePostDetail).toHaveBeenCalledWith(undefined)
+    })
+
+    it('does not call closePostDetail when deleting a publication that is not the open detail post', async () => {
+      const store = usePublishingStore()
+      const pub: Publication = {
         id: 'pub-other',
         content: 'Some other post',
         channels: ['linkedin'],
         scheduledAt: '2026-06-25T10:00:00Z',
         status: 'SCHEDULED',
         priority: false,
-      },
-    ]
+      }
+      store.publications = [pub]
 
-    const wrapper = mountView({ date: '2026-06-25', postId: 'pub-does-not-exist' })
-    await flushPromises()
+      const wrapper = mountView({ date: '2026-06-25' })
+      await flushPromises()
 
-    expect(wrapper.find('[data-testid="post-detail-modal"]').exists()).toBe(false)
-  })
+      const vm = wrapper.vm as unknown as { handleDeletePublication: (id: string) => Promise<void> }
+      await vm.handleDeletePublication('pub-other')
+      await flushPromises()
 
-  it('auto-closes a stale postId with replace semantics once the fetch settles without a match', async () => {
-    const store = usePublishingStore()
-    store.publications = []
+      expect(mockController.closePostDetail).not.toHaveBeenCalled()
+    })
 
-    mountView({ date: '2026-06-25', postId: 'pub-stale' })
-    await flushPromises()
-
-    expect(mockController.closePostDetail).toHaveBeenCalledWith({ replace: true })
-  })
-
-  it('does not auto-close when the route-owned postId resolves to a visible publication', async () => {
-    const store = usePublishingStore()
-    store.publications = [
-      {
-        id: 'pub-valid',
-        content: 'Valid post',
+    it('closes the detail modal before opening the edit composer when PostDetailModal emits edit', async () => {
+      const store = usePublishingStore()
+      const pub: Publication = {
+        id: 'pub-edit-close',
+        content: 'Editable post',
         channels: ['linkedin'],
         scheduledAt: '2026-06-25T10:00:00Z',
         status: 'SCHEDULED',
         priority: false,
-      },
-    ]
+      }
+      store.publications = [pub]
 
-    mountView({ date: '2026-06-25', postId: 'pub-valid' })
-    await flushPromises()
+      const wrapper = mountView({ date: '2026-06-25', postId: 'pub-edit-close' })
+      await flushPromises()
 
-    expect(mockController.closePostDetail).not.toHaveBeenCalled()
-  })
+      const editBtn = wrapper.find('[data-testid="detail-edit"]')
+      await editBtn.trigger('click')
+      await flushPromises()
 
-  it('handleDeletePublication closes the detail modal when deleting the currently open publication', async () => {
-    const store = usePublishingStore()
-    store.publications = [
-      {
-        id: 'pub-delete-open',
-        content: 'Currently open post',
+      expect(mockController.closePostDetail).toHaveBeenCalledWith(undefined)
+    })
+
+    it('closes the detail modal when PostDetailModal emits close', async () => {
+      const store = usePublishingStore()
+      const pub: Publication = {
+        id: 'pub-close-event',
+        content: 'Closable post',
         channels: ['linkedin'],
         scheduledAt: '2026-06-25T10:00:00Z',
-        status: 'QUEUED',
+        status: 'SCHEDULED',
         priority: false,
-      },
-    ]
+      }
+      store.publications = [pub]
 
-    const wrapper = mountView({ date: '2026-06-25', postId: 'pub-delete-open' })
-    await flushPromises()
-    ;(mockController.closePostDetail as ReturnType<typeof vi.fn>).mockClear()
+      const wrapper = mountView({ date: '2026-06-25', postId: 'pub-close-event' })
+      await flushPromises()
 
-    const vm = wrapper.vm as unknown as { handleDeletePublication: (id: string) => Promise<void> }
-    await vm.handleDeletePublication('pub-delete-open')
-    await flushPromises()
+      await wrapper.findComponent(PostDetailModal).vm.$emit('close')
+      await flushPromises()
 
-    expect(mockController.closePostDetail).toHaveBeenCalled()
-  })
+      expect(mockController.closePostDetail).toHaveBeenCalledWith(undefined)
+    })
 
-  it('handleDeletePublication does not close the detail modal when deleting an unrelated publication', async () => {
-    const store = usePublishingStore()
-    store.publications = [
-      {
-        id: 'pub-delete-open',
-        content: 'Currently open post',
+    it('closes the detail modal when PostDetailModal emits deleted', async () => {
+      const store = usePublishingStore()
+      const pub: Publication = {
+        id: 'pub-deleted-event',
+        content: 'Deleted via modal',
         channels: ['linkedin'],
         scheduledAt: '2026-06-25T10:00:00Z',
-        status: 'QUEUED',
+        status: 'SCHEDULED',
         priority: false,
-      },
-      {
-        id: 'pub-delete-unrelated',
-        content: 'Unrelated post',
-        channels: ['linkedin'],
-        scheduledAt: '2026-06-25T11:00:00Z',
-        status: 'QUEUED',
-        priority: false,
-      },
-    ]
+      }
+      store.publications = [pub]
 
-    const wrapper = mountView({ date: '2026-06-25', postId: 'pub-delete-open' })
-    await flushPromises()
-    ;(mockController.closePostDetail as ReturnType<typeof vi.fn>).mockClear()
+      const wrapper = mountView({ date: '2026-06-25', postId: 'pub-deleted-event' })
+      await flushPromises()
 
-    const vm = wrapper.vm as unknown as { handleDeletePublication: (id: string) => Promise<void> }
-    await vm.handleDeletePublication('pub-delete-unrelated')
-    await flushPromises()
+      await wrapper.findComponent(PostDetailModal).vm.$emit('deleted')
+      await flushPromises()
 
-    expect(mockController.closePostDetail).not.toHaveBeenCalled()
-  })
+      expect(mockController.closePostDetail).toHaveBeenCalledWith(undefined)
+    })
 
-  it('onReschedule closes the post detail after PostDetailModal emits reschedule', async () => {
-    const store = usePublishingStore()
-    store.publications = [
-      {
-        id: 'pub-reschedule',
-        content: 'Reschedule me',
+    it('closes the detail modal when PostDetailModal emits reschedule', async () => {
+      const store = usePublishingStore()
+      const pub: Publication = {
+        id: 'pub-reschedule-event',
+        content: 'Rescheduled via modal',
         channels: ['linkedin'],
         scheduledAt: '2026-06-25T10:00:00Z',
-        status: 'QUEUED',
+        status: 'SCHEDULED',
         priority: false,
-      },
-    ]
+      }
+      store.publications = [pub]
 
-    const wrapper = mountView({ date: '2026-06-25', postId: 'pub-reschedule' })
-    await flushPromises()
-    ;(mockController.closePostDetail as ReturnType<typeof vi.fn>).mockClear()
+      const wrapper = mountView({ date: '2026-06-25', postId: 'pub-reschedule-event' })
+      await flushPromises()
 
-    const vm = wrapper.vm as unknown as { onReschedule: () => void }
-    vm.onReschedule()
-    await flushPromises()
+      await wrapper.findComponent(PostDetailModal).vm.$emit('reschedule')
+      await flushPromises()
 
-    expect(mockController.closePostDetail).toHaveBeenCalledWith(undefined)
-  })
-
-  it('closePostDetail forwards the given options to the URL controller', async () => {
-    const wrapper = mountView({ date: '2026-06-25' })
-    await flushPromises()
-
-    const vm = wrapper.vm as unknown as {
-      closePostDetail: (options?: { replace?: boolean }) => Promise<void>
-    }
-    await vm.closePostDetail({ replace: false })
-
-    expect(mockController.closePostDetail).toHaveBeenCalledWith({ replace: false })
+      expect(mockController.closePostDetail).toHaveBeenCalledWith(undefined)
+    })
   })
 
   it('handles header date backward navigation via handleHeaderDateChange', async () => {
