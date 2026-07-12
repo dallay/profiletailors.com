@@ -12,9 +12,9 @@ Public-facing marketing site for the Profile Tailors social media management pla
 
 [![License](https://img.shields.io/github/license/dallay/profiletailors.com?style=for-the-badge&color=2d3748)](LICENSE)
 [![CI](https://img.shields.io/github/actions/workflow/status/dallay/profiletailors.com/release-please.yml?style=for-the-badge&color=2d3748&label=CI)](https://github.com/dallay/profiletailors.com/actions)
-[![Astro](https://img.shields.io/badge/Astro-6.3.3-2d3748?style=for-the-badge&logo=astro&logoColor=ffffff)](https://astro.build)
+[![Astro](https://img.shields.io/badge/Astro-6.4.8-2d3748?style=for-the-badge&logo=astro&logoColor=ffffff)](https://astro.build)
 [![Node.js](https://img.shields.io/badge/Node.js-22.12%2B-2d3748?style=for-the-badge&logo=node.js&logoColor=5fa04e)](https://nodejs.org)
-[![pnpm](https://img.shields.io/badge/pnpm-10.x-2d3748?style=for-the-badge&logo=pnpm&logoColor=f69220)](https://pnpm.io)
+[![pnpm](https://img.shields.io/badge/pnpm-11.x-2d3748?style=for-the-badge&logo=pnpm&logoColor=f69220)](https://pnpm.io)
 
 [![Quality Gate Status](https://sonarcloud.io/api/project_badges/measure?project=dallay_profiletailors.com&metric=alert_status)](https://sonarcloud.io/summary/new_code?id=dallay_profiletailors.com)
 [![Bugs](https://sonarcloud.io/api/project_badges/measure?project=dallay_profiletailors.com&metric=bugs)](https://sonarcloud.io/summary/new_code?id=dallay_profiletailors.com)
@@ -30,6 +30,13 @@ Public-facing marketing site for the Profile Tailors social media management pla
 profiletailors.com/
 ├── apps/
 │   └── web/
+│       └── app/                  # Vue 3 dashboard application
+│           ├── e2e/              # Playwright E2E tests
+│           ├── public/           # Static files
+│           ├── src/              # Vue source (Pinia, Vue Router, Shadcn)
+│           ├── index.html
+│           ├── package.json
+│           └── vite.config.ts
 │       └── marketing/            # Active Astro marketing site
 │           ├── public/           # Static files served as-is
 │           ├── src/
@@ -68,7 +75,7 @@ profiletailors.com/
 | Requirement    | Version               | Install                                    |
 |----------------|-----------------------|--------------------------------------------|
 | Node.js        | `>= 22.12.0`          | [nodejs.org](https://nodejs.org)           |
-| pnpm           | `>= 10`               | `npm install -g pnpm`                      |
+| pnpm           | `>= 11.8.0`           | `npm install -g pnpm`                      |
 | just           | `>= 1.30`             | `brew install just` / `winget install Casey.Just` / `cargo install just` |
 
 > **Windows users:** `just` runs natively on Windows. The Gradle wrapper is auto-detected
@@ -111,10 +118,11 @@ For full onboarding and troubleshooting, see [docs/getting-started.md](docs/gett
 #### 3) Start local development
 
 ```bash
-just frontend-dev  # starts the Astro dev server
+just dev-frontend  # starts both Astro and Vue dev servers
 ```
 
-The site will be available at [http://localhost:4321](http://localhost:4321).
+- Marketing site: [http://localhost:4321](http://localhost:4321)
+- Dashboard app: [https://pt-app.localhost](https://pt-app.localhost) (requires [Portless](docs/portless-setup.md))
 
 ### Command Hub
 
@@ -122,19 +130,21 @@ This repo uses [`just`](https://github.com/casey/just) as a centralized command 
 All common operations are available via `just <recipe>` — no need to remember pnpm, Gradle, or
 Docker commands separately. Run `just -l` to list everything.
 
-#### Frontend (Astro / pnpm)
+#### Frontend (Astro + Vue / pnpm)
 
-| Command                     | What it does                        |
-|-----------------------------|-------------------------------------|
-| `just frontend-dev`         | Start the Astro dev server          |
-| `just frontend-build`       | Build the production site           |
-| `just frontend-preview`     | Preview the production build        |
-| `just frontend-lint`        | Lint with Biome                     |
-| `just frontend-format`      | Format code with Biome              |
-| `just frontend-check`       | Run Astro type/content checks       |
-| `just frontend-test`        | Run unit tests (Vitest)             |
-| `just frontend-test-cov`    | Run unit tests with coverage        |
-| `just frontend-test-e2e`    | Run E2E tests (Playwright headless) |
+| Command                     | What it does                               |
+|-----------------------------|--------------------------------------------|
+| `just dev-frontend`         | Start both dev servers in parallel         |
+| `just app`                  | Start only the Vue 3 dashboard app         |
+| `just frontend-build`       | Build the marketing site for production    |
+| `just frontend-preview`     | Preview marketing production build         |
+| `just frontend-lint`        | Lint marketing with Biome                  |
+| `just frontend-format`      | Format marketing code with Biome           |
+| `just frontend-check`       | Run Astro type/content checks              |
+| `just frontend-test`        | Run marketing unit tests (Vitest)          |
+| `just frontend-test-cov`    | Run marketing unit tests with coverage     |
+| `just frontend-test-e2e`    | Run marketing E2E tests (Playwright)       |
+| `just app-test-e2e-media`   | Run app Media Library E2E tests            |
 
 #### Backend (Gradle / Kotlin / Spring Boot)
 
@@ -176,16 +186,15 @@ Docker commands separately. Run `just -l` to list everything.
 
 ## Development Notes
 
-- The active frontend app is `apps/web/marketing/`.
-- The site uses Astro's built-in locale routing with **English as the default locale** and **Spanish
-  under `/es/`**.
-- User-facing copy is maintained in locale files under `apps/web/marketing/src/i18n/`.
-- Shared web assets are sourced from `shared/assets/` and exposed by the app config during
-  development and build.
-- The current waitlist flow is **client-side only**.
-- Code quality: **Biome** for linting and formatting in the frontend.
-- The backend lives in `server/smp/` — Spring Boot 4 with Kotlin and WebFlux (experimental, not
-  deployed).
+- **Frontend Apps**:
+    - `apps/web/marketing/`: Astro-based marketing site.
+    - `apps/web/app/`: Vue 3-based dashboard application.
+- The marketing site uses Astro's built-in locale routing with **English as the default locale** and **Spanish under `/es/`**.
+- User-facing copy is maintained in locale files under `apps/web/marketing/src/i18n/` and `apps/web/app/src/i18n/`.
+- Shared web assets are sourced from `shared/assets/` and exposed by the app configs.
+- The current waitlist flow is **client-side only** (Astro component); backend persistence is documented as planned (ADR-0011).
+- Code quality: **Biome** for linting and formatting in the frontend, **Detekt** for the backend.
+- The backend lives in `server/smp/` — Spring Boot 4 with Kotlin and WebFlux (reactive).
 - SDD artifacts live in `openspec/` for tracking specs, designs, and tasks.
 
 ---
