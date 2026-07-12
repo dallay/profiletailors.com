@@ -12,6 +12,7 @@ export interface CalendarUrlState {
   status: SchedulerStatus
   q: string
   channelIds: string[]
+  postId: string | null
 }
 
 export interface CalendarUrlController {
@@ -25,6 +26,8 @@ export interface CalendarUrlController {
   setStatus: (status: SchedulerStatus) => Promise<void>
   setSearch: (q: string) => Promise<void>
   setChannelIds: (channelIds: string[]) => Promise<void>
+  openPostDetail: (postId: string) => Promise<void>
+  closePostDetail: (options?: { replace?: boolean }) => Promise<void>
 }
 
 const VALID_SURFACES = new Set<SchedulerSurface>(['calendar-week', 'calendar-month', 'list'])
@@ -97,14 +100,42 @@ function isInvalidStatus(rawStatus: string): boolean {
   return rawStatus.length > 0 && !VALID_STATUSES.has(normalized)
 }
 
+/**
+ * Normalizes a date to the ISO local date format.
+ *
+ * @param rawDate - The date value to validate.
+ * @returns The input date when valid, or the current local date otherwise.
+ */
 function normalizeDate(rawDate: string): string {
   return isIsoLocalDate(rawDate) ? rawDate : resolveToday()
 }
 
+/**
+ * Resolves a timezone value, falling back to the browser timezone when empty.
+ *
+ * @param rawTimezone - The timezone value to use.
+ * @returns The provided timezone or the browser's resolved timezone.
+ */
 function normalizeTimezone(rawTimezone: string): string {
   return rawTimezone || resolveBrowserTimezone()
 }
 
+/**
+ * Normalizes a post identifier for URL state.
+ *
+ * @param rawPostId - The post identifier to normalize
+ * @returns The post identifier, or `null` when it is empty
+ */
+function normalizePostId(rawPostId: string): string | null {
+  return rawPostId.length > 0 ? rawPostId : null
+}
+
+/**
+ * Normalizes route name and query values into calendar URL state.
+ *
+ * @param route - The route name and query values to normalize
+ * @returns The normalized calendar URL state
+ */
 function normalizeQuery(route: {
   name: unknown
   query: Record<string, unknown>
@@ -118,9 +149,16 @@ function normalizeQuery(route: {
     status: normalizeStatus(trimOrEmpty(route.query.status)),
     q: trimOrEmpty(route.query.q),
     channelIds: [...new Set(toArray(rawChannels))],
+    postId: normalizePostId(trimOrEmpty(route.query.postId)),
   }
 }
 
+/**
+ * Builds the route query from calendar URL state, omitting default values.
+ *
+ * @param state - The normalized calendar URL state
+ * @returns A route query containing only non-default state values
+ */
 function buildQuery(state: CalendarUrlState): LocationQueryRaw {
   const query: LocationQueryRaw = {}
 
@@ -142,6 +180,10 @@ function buildQuery(state: CalendarUrlState): LocationQueryRaw {
 
   if (state.channelIds.length > 0) {
     query['channels[]'] = state.channelIds
+  }
+
+  if (state.postId) {
+    query.postId = state.postId
   }
 
   return query
@@ -173,6 +215,13 @@ function areQueriesEquivalent(left: Record<string, unknown>, right: LocationQuer
   return JSON.stringify(normalizeEntries(left)) === JSON.stringify(normalizeEntries(right))
 }
 
+/**
+ * Navigates to the calendar route represented by the provided state.
+ *
+ * @param router - The Vue Router instance used for navigation
+ * @param state - The calendar URL state to serialize
+ * @param method - The navigation method to use
+ */
 async function navigate(
   router: Router,
   state: CalendarUrlState,
@@ -184,6 +233,13 @@ async function navigate(
   })
 }
 
+/**
+ * Creates a controller for reading and updating normalized calendar URL state.
+ *
+ * @param route - The current Vue Router route
+ * @param router - The Vue Router instance used for navigation
+ * @returns A calendar URL controller with reactive state and navigation methods.
+ */
 export function createCalendarUrlController(
   route: RouteLocationNormalizedLoaded,
   router: Router,
@@ -238,6 +294,16 @@ export function createCalendarUrlController(
     },
     setChannelIds: async (channelIds) => {
       await navigate(router, { ...state.value, channelIds: [...new Set(channelIds)] }, 'replace')
+    },
+    openPostDetail: async (postId) => {
+      await navigate(router, { ...state.value, postId: normalizePostId(postId.trim()) }, 'push')
+    },
+    closePostDetail: async (options = {}) => {
+      await navigate(
+        router,
+        { ...state.value, postId: null },
+        options.replace === false ? 'push' : 'replace',
+      )
     },
   }
 }
