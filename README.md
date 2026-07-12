@@ -191,7 +191,7 @@ Docker commands separately. Run `just -l` to list everything.
     - `apps/web/app/`: Vue 3-based dashboard application.
 - The marketing site uses Astro's built-in locale routing with **English as the default locale** and **Spanish under `/es/`**.
 - User-facing copy is maintained in locale files under `apps/web/marketing/src/i18n/` and `apps/web/app/src/i18n/`.
-- Shared web assets are sourced from `shared/assets/` and exposed by the app configs.
+- Shared web assets are sourced from `shared/assets/` using the `@shared/assets/` import alias. Files in `shared/assets/web/*` are copied into `dist/` at build time by the Astro build configuration.
 - The current waitlist flow is **client-side only** (Astro component); backend persistence is documented as planned (ADR-0011).
 - Code quality: **Biome** for linting and formatting in the frontend, **Detekt** for the backend.
 - The backend lives in `server/smp/` — Spring Boot 4 with Kotlin and WebFlux (reactive).

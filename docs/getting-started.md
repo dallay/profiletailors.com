@@ -102,7 +102,12 @@ If hooks are not installed, CI will catch any issues — so there is no risk in 
 just dev-frontend
 ```
 
-Open [http://localhost:4321](http://localhost:4321) — you should see the marketing site.
+This starts both the marketing site and the dashboard application in parallel.
+
+- Marketing site: [http://localhost:4321](http://localhost:4321)
+- Dashboard app: [https://pt-app.localhost](https://pt-app.localhost) (requires [Portless](portless-setup.md))
+
+**Prerequisite for dashboard access**: The dashboard app requires Portless to be installed and running. See [Portless Setup](portless-setup.md) for installation instructions. Run `portless proxy start` before accessing the dashboard URL.
 
 Run the full frontend CI subset:
 
