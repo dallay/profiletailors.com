@@ -69,8 +69,9 @@ The migration MUST be validated as a behavior-preserving file and import reorgan
 #### Scenario: Frontend verification passes
 
 - GIVEN the modularization changes are complete
-- WHEN `just frontend-test` and `just frontend-lint` run
+- WHEN `pnpm --filter app exec vitest run` and `pnpm --filter app exec biome check` run against the Vue SPA
 - THEN both commands SHALL pass without module-resolution failures
+- AND `just frontend-test` / `just frontend-lint` SHALL NOT be used as the sole verification target (those recipes target the marketing app)
 
 #### Scenario: Known coupling is not redesigned
 

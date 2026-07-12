@@ -10,6 +10,7 @@ import {
   proxyImageUrl,
   resolveApiUrl,
   renameWorkspace,
+  verifyEmail,
   type AuthTokens,
   type CurrentUserProfile,
 } from './auth-api'
@@ -850,6 +851,46 @@ describe('renameWorkspace', () => {
     await renameWorkspace('Studio', 'access-token', 'ws-1')
 
     expect(fetchHeaders(fetchMock)['X-Workspace-Id']).toBe('ws-1')
+  })
+})
+
+// ---------------------------------------------------------------------------
+// verifyEmail
+// ---------------------------------------------------------------------------
+
+describe('verifyEmail', () => {
+  beforeEach(() => {
+    mockImportMetaEnv({})
+  })
+
+  it('posts the token to the verify-email endpoint and returns issued auth tokens', async () => {
+    const tokens: AuthTokens = {
+      accessToken: 'access-verified',
+      tokenType: 'Bearer',
+      expiresIn: 3600,
+      principalId: 'user-1',
+      email: 'verified@example.com',
+      username: 'verified-user',
+      emailStatus: 'VERIFIED',
+      workspaceId: 'ws-1',
+    }
+    const fetchMock = mockFetch(
+      new Response(JSON.stringify(tokens), {
+        status: 200,
+        headers: { 'Content-Type': 'application/json' },
+      }),
+    )
+
+    const result = await verifyEmail('token-123')
+
+    expect(result).toEqual(tokens)
+    expect(fetchMock).toHaveBeenCalledWith(
+      'http://localhost:7638/api/auth/verify-email',
+      expect.objectContaining({
+        method: 'POST',
+        body: JSON.stringify({ token: 'token-123' }),
+      }),
+    )
   })
 })
 

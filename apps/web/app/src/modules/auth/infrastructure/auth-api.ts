@@ -4,7 +4,7 @@ import { authCredentialsSchema, workspaceNameSchema } from '@/lib/validation/sch
 // Types
 // ---------------------------------------------------------------------------
 
-export interface AuthTokens {
+export type AuthTokens = {
   accessToken: string
   tokenType: string
   expiresIn: number
@@ -15,7 +15,7 @@ export interface AuthTokens {
   workspaceId: string | null
 }
 
-export interface CurrentUserProfile {
+export type CurrentUserProfile = {
   principalId: string
   email: string | null
   username: string | null
@@ -23,14 +23,15 @@ export interface CurrentUserProfile {
   emailStatus: string | null
 }
 
-interface LoginPayload {
+export type LoginPayload = {
   email: string
   password: string
 }
 
-interface RegisterPayload extends LoginPayload {}
+// RegisterPayload is structurally identical to LoginPayload.
+export type RegisterPayload = LoginPayload
 
-export interface ApiError {
+export type ApiError = {
   title?: string
   detail?: string
   status?: number
@@ -56,16 +57,14 @@ function apiError(
 // Base request helper
 // ---------------------------------------------------------------------------
 
-const DEFAULT_API_BASE_URL = 'http://localhost:7638'
-
 function resolveApiBaseUrl(): string {
   const envValue = import.meta.env.VITE_API_BASE_URL
-  // Allow explicit '' to mean same-origin (for Vite proxy in development).
-  // When unset, falls back to DEFAULT_API_BASE_URL for backwards compat.
+  // When VITE_API_BASE_URL is absent, falls back to localhost for backwards compat.
+  // When explicitly set to '', returns same-origin (Vite proxy in development).
   if (typeof envValue === 'string') {
     return envValue
   }
-  return DEFAULT_API_BASE_URL
+  return 'http://localhost:7638'
 }
 
 export function resolveApiUrl(path: string): string {
@@ -135,7 +134,7 @@ async function request<T>(path: string, init: RequestInit = {}, token?: string |
 // Auth endpoints
 // ---------------------------------------------------------------------------
 
-export async function register(payload: RegisterPayload) {
+export async function register(payload: RegisterPayload): Promise<AuthTokens> {
   const validatedPayload = authCredentialsSchema.parse(payload)
 
   return request<AuthTokens>('/api/auth/register', {
@@ -144,7 +143,7 @@ export async function register(payload: RegisterPayload) {
   })
 }
 
-export async function login(payload: LoginPayload) {
+export async function login(payload: LoginPayload): Promise<AuthTokens> {
   const validatedPayload = authCredentialsSchema.parse(payload)
 
   return request<AuthTokens>('/api/auth/login', {
@@ -182,7 +181,7 @@ export async function logoutSession(): Promise<void> {
   }
 }
 
-export async function getCurrentUserProfile(token: string) {
+export async function getCurrentUserProfile(token: string): Promise<CurrentUserProfile> {
   return request<CurrentUserProfile>('/api/auth/me', { method: 'GET' }, token)
 }
 
@@ -200,7 +199,7 @@ export async function resendVerification(email: string): Promise<void> {
   })
 }
 
-export interface RenameWorkspaceResult {
+export type RenameWorkspaceResult = {
   workspaceId: string
   name: string
 }
@@ -227,7 +226,7 @@ export async function renameWorkspace(
 // Workspace endpoints
 // ---------------------------------------------------------------------------
 
-export interface WorkspaceSummary {
+export type WorkspaceSummary = {
   workspaceId: string
   name: string
   role: string
@@ -246,12 +245,12 @@ export async function fetchWorkspaces(token: string): Promise<WorkspaceSummary[]
 // Configured providers
 // ---------------------------------------------------------------------------
 
-export interface ConfiguredProvider {
+export type ConfiguredProvider = {
   name: string
   configured: boolean
 }
 
-export interface ConfiguredProvidersResponse {
+export type ConfiguredProvidersResponse = {
   providers: ConfiguredProvider[]
 }
 
@@ -269,7 +268,7 @@ export async function fetchConfiguredProviders(
   )
 }
 
-export interface UpdateWorkspaceIconResult {
+export type UpdateWorkspaceIconResult = {
   workspaceId: string
   icon: string | null
 }
@@ -298,6 +297,32 @@ type TokenProvider = () => string | null
 type TokenRefresher = () => Promise<string | null>
 
 /**
+ * Higher-order helper: executes a request, retries once on 401 after refreshing
+ * the token, and calls onUnauthenticated if the refresh fails.
+ */
+function withRetry<T>(
+  requester: (init: RequestInit, token: string | null) => Promise<T>,
+  init: RequestInit,
+  token: string | null,
+  onRefresh: TokenRefresher,
+  onUnauthenticated: () => void,
+): Promise<T> {
+  return requester(init, token).catch((err) => {
+    const apiError = err as ApiError
+    if (apiError.status !== 401) throw err
+
+    const newToken = onRefresh()
+    return Promise.resolve(newToken).then((resolved) => {
+      if (!resolved) {
+        onUnauthenticated()
+        throw err
+      }
+      return requester(init, resolved)
+    })
+  })
+}
+
+/**
  * Creates an authenticated fetch wrapper.
  *
  * On the first 401 it attempts a token refresh via `onRefresh`.
@@ -309,7 +334,9 @@ export function createApiFetch(opts: {
   getWorkspaceId?: () => string | null
   onRefresh: TokenRefresher
   onUnauthenticated: () => void
-}) {
+}): (<T>(path: string, init?: ApiFetchOptions) => Promise<T>) & {
+  raw: (path: string, init?: ApiFetchOptions) => Promise<Response>
+} {
   function withWorkspace(init: ApiFetchOptions): RequestInit {
     const { workspaceScoped, ...requestInit } = init
 
@@ -339,56 +366,31 @@ export function createApiFetch(opts: {
     const token = opts.getToken()
     const requestInit = withWorkspace(init)
 
-    try {
-      return await requestRaw(path, requestInit, token)
-    } catch (err) {
-      const apiError = err as ApiError
-
-      if (apiError.status !== 401) {
-        throw err
-      }
-
-      const newToken = await opts.onRefresh()
-
-      if (!newToken) {
-        opts.onUnauthenticated()
-        throw err
-      }
-
-      return requestRaw(path, requestInit, newToken)
-    }
+    return withRetry(
+      (innerInit, innerToken) => requestRaw(path, innerInit, innerToken),
+      requestInit,
+      token,
+      opts.onRefresh,
+      opts.onUnauthenticated,
+    )
   }
 
-  const apiFetch = async function apiFetch<T>(
-    path: string,
-    init: ApiFetchOptions = {},
-  ): Promise<T> {
+  async function apiFetch<T>(path: string, init: ApiFetchOptions = {}): Promise<T> {
     const token = opts.getToken()
     const requestInit = withWorkspace(init)
 
-    try {
-      return await request<T>(path, requestInit, token)
-    } catch (err) {
-      const apiError = err as ApiError
-
-      if (apiError.status !== 401) {
-        throw err
-      }
-
-      // Silent refresh attempt
-      const newToken = await opts.onRefresh()
-
-      if (!newToken) {
-        opts.onUnauthenticated()
-        throw err
-      }
-
-      // Single retry with fresh token
-      return request<T>(path, requestInit, newToken)
-    }
+    return withRetry(
+      (innerInit, innerToken) => request<T>(path, innerInit, innerToken),
+      requestInit,
+      token,
+      opts.onRefresh,
+      opts.onUnauthenticated,
+    ) as Promise<T>
   }
 
-  return Object.assign(apiFetch, { raw: apiFetchRaw })
+  return Object.assign(apiFetch, {
+    raw: apiFetchRaw,
+  })
 }
 
 /**

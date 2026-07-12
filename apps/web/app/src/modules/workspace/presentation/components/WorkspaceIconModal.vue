@@ -38,12 +38,17 @@ import {
 import { Button } from '@/components/ui/button'
 import { cn } from '@/lib/utils'
 
-const props = defineProps<{
+interface Props {
   open: boolean
   currentIcon: string | null
   isUpdating?: boolean
   errorMessage?: string | null
-}>()
+}
+
+const props = withDefaults(defineProps<Props>(), {
+  isUpdating: false,
+  errorMessage: null,
+})
 
 const emit = defineEmits<{
   (e: 'update:open', value: boolean): void
@@ -170,7 +175,7 @@ const iconComponents = computed<Record<string, Component | null>>(() => {
         </button>
       </div>
 
-      <p v-if="errorMessage" class="text-sm text-error">
+      <p v-if="errorMessage" role="alert" class="text-sm text-error">
         {{ errorMessage }}
       </p>
 

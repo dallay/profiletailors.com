@@ -71,14 +71,17 @@ Key path contracts:
 No data migration required. Apply as one focused relocation PR. Verification commands from repo root:
 
 ```bash
-just frontend-test
-just frontend-lint
+pnpm --filter app exec vitest run
+pnpm --filter app exec biome check src/modules src/main.ts src/router/index.ts src/views src/components src/stores src/lib src/composables
 ```
+
+> Note: `just frontend-test` and `just frontend-lint` target the marketing app, not the Vue SPA.
+> App-specific verification uses `pnpm --filter app ...` commands.
 
 Optional confidence check after rewrite:
 
 ```bash
-rg "@/(stores/(auth|workspace|settings)|lib/auth-api|views/(AuthView|SettingsView|LinkedInCallbackView)|components/workspace/WorkspaceIconModal)" apps/web/app/src
+rg '@/\(stores/\(auth\|workspace\|settings\)\|lib/auth-api\|views/\(AuthView\|SettingsView\|LinkedInCallbackView\)\|components/workspace/WorkspaceIconModal\)' apps/web/app/src
 ```
 
 ## Boundary Exceptions

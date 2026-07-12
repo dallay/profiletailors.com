@@ -43,7 +43,7 @@ Both apps SHOULD share common assets (logos, colors) via the `shared/assets` dir
 ### React for Dashboard
 
 - Reason rejected: Vue 3 was selected for its performance, ease of use with Tailwind, and
-  established patterns in the current team. (Note: Documentation mentioning React is stale).
+  established patterns in the current team.
 
 ## Consequences
 
@@ -69,7 +69,7 @@ Enforced by monorepo structure and package configuration.
 
 ## Migration or remediation
 
-Update all stale documentation that still references React as the dashboard framework.
+Done: Updated stale documentation that referenced React as the dashboard framework.
 
 ## Revisit conditions
 
