@@ -416,5 +416,3 @@ export function proxyImageUrl(originalUrl: string): string {
     return originalUrl
   }
 }
-
-
