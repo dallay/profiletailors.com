@@ -2,8 +2,8 @@
 import { computed, onMounted, ref, watch } from 'vue'
 import { Download, FileText, Image, Loader2, RefreshCw, Trash2, UploadCloud, Video } from '@lucide/vue'
 import { useMediaStore } from '@/stores/media'
-import { useAuthStore } from '@/stores/auth'
-import { resolveApiUrl } from '@/lib/auth-api'
+import { useAuthStore } from '@modules/auth/infrastructure/auth.store'
+import { resolveApiUrl } from '@modules/auth/infrastructure/auth-api'
 import type { MediaStatus } from '@/lib/media-api'
 import { Button } from '@/components/ui/button'
 import {
