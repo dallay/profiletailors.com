@@ -1,14 +1,15 @@
 package com.profiletailors.smp.authorization.application.resource.getpreview
 
 import com.profiletailors.common.domain.Service
+import com.profiletailors.common.domain.bus.event.DomainEvent
+import com.profiletailors.common.domain.bus.event.EventPublisher
 import com.profiletailors.common.domain.context.PrincipalContextProvider
 import com.profiletailors.common.domain.context.RequestPathProvider
 import com.profiletailors.common.domain.context.ResourceContext
 import com.profiletailors.common.domain.context.ResourceContextProvider
 import com.profiletailors.common.domain.context.ResourceContextType
-import com.profiletailors.smp.audit.domain.AuditHook
-import com.profiletailors.smp.audit.domain.AuthorizationDecisionAuditFact
 import com.profiletailors.smp.authorization.domain.AuthorizationDecision
+import com.profiletailors.smp.authorization.domain.AuthorizationDecisionHandledEvent
 import com.profiletailors.smp.authorization.domain.AuthorizationDeniedException
 import com.profiletailors.smp.authorization.domain.PermissionKey
 import com.profiletailors.smp.authorization.domain.WorkspaceAuthorizationDecider
@@ -21,7 +22,7 @@ internal class GetResourcePreviewService(
     private val principalContextProvider: PrincipalContextProvider,
     private val resourceContextProvider: ResourceContextProvider,
     private val workspaceAuthorizationDecider: WorkspaceAuthorizationDecider,
-    private val auditHook: AuditHook,
+    private val eventPublisher: EventPublisher<DomainEvent>,
     private val requestPathProvider: RequestPathProvider,
 ) {
     suspend fun execute(query: GetResourcePreviewQuery): ResourcePreview {
@@ -41,16 +42,14 @@ internal class GetResourcePreviewService(
             resourceContextOverride = targetAwareContext,
         )
 
-        auditHook.onAuthorizationDecision(
-            AuthorizationDecisionAuditFact(
-                requestName = query::class.java.name,
+        eventPublisher.publish(
+            AuthorizationDecisionHandledEvent.create(
+                query = query,
                 requestPath = requestPathProvider.require(),
                 permission = REQUIRED_PERMISSION.value,
                 principalId = principalContext.principalId,
                 workspaceId = targetAwareContext.workspaceId,
-                decision = decision.decision.name,
-                reasonCode = decision.reasonCode.name,
-                roleKeys = decision.roleKeys.toList(),
+                decision = decision,
             ),
         )
 
