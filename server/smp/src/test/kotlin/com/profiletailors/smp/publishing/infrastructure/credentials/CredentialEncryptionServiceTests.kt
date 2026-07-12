@@ -11,7 +11,7 @@ import java.util.Base64
 
 @SpringBootTest(
     properties = [
-        "publishing.credentials.encryption.key=",
+        "publishing.credentials.encryption.key=dGVzdC1lbmNyeXB0aW9uLWtleS0xMjM0NTY3ODkwMTI=",
         "spring.main.lazy-initialization=true",
     ],
 ) // ensure property injection
@@ -21,7 +21,7 @@ class CredentialEncryptionServiceTests {
     @Test
     fun `decrypt throws on short payload`() {
         val properties = PublishingCredentialsProperties()
-        properties.encryptionKey = Base64.getEncoder().encodeToString(ByteArray(16))
+        properties.key = Base64.getEncoder().encodeToString(ByteArray(16))
         val service = CredentialEncryptionService(properties)
 
         val ex = assertThrows<IllegalArgumentException> {
@@ -38,7 +38,7 @@ class CredentialEncryptionServiceTests {
         val base64Key = Base64.getEncoder().encodeToString(keyBytes)
         // cannot set property easily here; instead instantiate service directly
         val properties = PublishingCredentialsProperties()
-        properties.encryptionKey = base64Key
+        properties.key = base64Key
         val service = CredentialEncryptionService(properties)
         val payload = "{\"accessToken\":\"abc123\"}"
         val encrypted = service.encrypt(payload)
