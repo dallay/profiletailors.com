@@ -130,6 +130,7 @@ architecture at different levels of abstraction.
 **Implemented** (✅):
 
 - Marketing site (Astro 6)
+- Web application (Vue 3)
 - Backend foundation (Spring Boot 4, Kotlin, WebFlux)
 - Core bounded contexts (Identity, Authorization, Tenancy, Credentials, Governance, Platform)
 - JWT and API Key authentication
@@ -137,7 +138,6 @@ architecture at different levels of abstraction.
 
 **In Progress** (🔄):
 
-- Web application (Vue 3)
 - Content Context
 - Scheduler Service
 
