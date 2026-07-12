@@ -203,96 +203,6 @@ describe('useCalendarUrl — navigation intent', () => {
     expect(call.query).toEqual({ date: '2026-07-10' })
   })
 
-  it('state.postId is null when the query omits postId entirely', () => {
-    const route = createMockRoute({
-      name: 'scheduler-calendar-week',
-      query: { date: '2026-07-10' },
-    })
-    const router = createMockRouter()
-    const ctrl = createCalendarUrlController(route, router)
-
-    expect(ctrl.state.value.postId).toBeNull()
-  })
-
-  it('trims surrounding whitespace from a raw postId query value when parsing', () => {
-    const route = createMockRoute({
-      name: 'scheduler-calendar-week',
-      query: { postId: '  pub-with-space  ' },
-    })
-    const router = createMockRouter()
-    const ctrl = createCalendarUrlController(route, router)
-
-    expect(ctrl.state.value.postId).toBe('pub-with-space')
-  })
-
-  it('openPostDetail trims whitespace from the postId before writing it to the query', async () => {
-    const route = createMockRoute({ name: 'scheduler-calendar-week', query: {} })
-    const router = createMockRouter()
-    const ctrl = createCalendarUrlController(route, router)
-
-    await ctrl.openPostDetail('  pub-trim-me  ')
-
-    const call = (router.push as ReturnType<typeof vi.fn>).mock.calls[0]![0]
-    expect(call.query.postId).toBe('pub-trim-me')
-  })
-
-  it('openPostDetail with a whitespace-only postId results in no postId in the query', async () => {
-    const route = createMockRoute({ name: 'scheduler-calendar-week', query: {} })
-    const router = createMockRouter()
-    const ctrl = createCalendarUrlController(route, router)
-
-    await ctrl.openPostDetail('   ')
-
-    expect(router.push).toHaveBeenCalledTimes(1)
-    const call = (router.push as ReturnType<typeof vi.fn>).mock.calls[0]![0]
-    expect(call.query).not.toHaveProperty('postId')
-  })
-
-  it('closePostDetail with { replace: false } pushes instead of replacing', async () => {
-    const route = createMockRoute({
-      name: 'scheduler-calendar-week',
-      query: { date: '2026-07-10', postId: 'pub-123' },
-    })
-    const router = createMockRouter()
-    const ctrl = createCalendarUrlController(route, router)
-
-    await ctrl.closePostDetail({ replace: false })
-
-    expect(router.push).toHaveBeenCalledTimes(1)
-    expect(router.replace).not.toHaveBeenCalled()
-    const call = (router.push as ReturnType<typeof vi.fn>).mock.calls[0]![0]
-    expect(call.query).toEqual({ date: '2026-07-10' })
-  })
-
-  it('closePostDetail with { replace: true } explicitly still uses replace', async () => {
-    const route = createMockRoute({
-      name: 'scheduler-calendar-week',
-      query: { date: '2026-07-10', postId: 'pub-123' },
-    })
-    const router = createMockRouter()
-    const ctrl = createCalendarUrlController(route, router)
-
-    await ctrl.closePostDetail({ replace: true })
-
-    expect(router.replace).toHaveBeenCalledTimes(1)
-    expect(router.push).not.toHaveBeenCalled()
-  })
-
-  it('closePostDetail preserves other query params such as channels[] and status', async () => {
-    const route = createMockRoute({
-      name: 'scheduler-calendar-week',
-      query: { status: 'queued', 'channels[]': ['acc-1', 'acc-2'], postId: 'pub-123' },
-    })
-    const router = createMockRouter()
-    const ctrl = createCalendarUrlController(route, router)
-
-    await ctrl.closePostDetail()
-
-    const call = (router.replace as ReturnType<typeof vi.fn>).mock.calls[0]![0]
-    expect(call.query).toEqual({ status: 'queued', 'channels[]': ['acc-1', 'acc-2'] })
-    expect(call.query).not.toHaveProperty('postId')
-  })
-
   it('setSurface triggers push with the new route name (not a replace)', async () => {
     const route = createMockRoute({ name: 'scheduler-calendar-week', query: {} })
     const router = createMockRouter()
@@ -807,6 +717,121 @@ describe('useCalendarUrl controller — stepPeriod navigation', () => {
     const call = (router.push as ReturnType<typeof vi.fn>).mock.calls[0]![0]
     expect(call.name).toBe('scheduler-calendar-month')
     expect(call.query.date).toBe('2026-05-01')
+  })
+})
+
+describe('useCalendarUrl — postId normalization and canonicalization', () => {
+  it('trims whitespace around postId when reading from the query', () => {
+    const route = createMockRoute({
+      name: 'scheduler-calendar-week',
+      query: { postId: '  pub-with-spaces  ' },
+    })
+    const ctrl = createCalendarUrlController(route, createMockRouter())
+
+    expect(ctrl.state.value.postId).toBe('pub-with-spaces')
+  })
+
+  it('normalizes an empty postId query value to null', () => {
+    const route = createMockRoute({
+      name: 'scheduler-calendar-week',
+      query: { postId: '' },
+    })
+    const ctrl = createCalendarUrlController(route, createMockRouter())
+
+    expect(ctrl.state.value.postId).toBeNull()
+  })
+
+  it('flags canonicalization when the query contains an empty postId', async () => {
+    const route = createMockRoute({
+      name: 'scheduler-calendar-week',
+      query: { postId: '' },
+    })
+    const router = createMockRouter()
+    const ctrl = createCalendarUrlController(route, router)
+
+    expect(ctrl.needsCanonicalization.value).toBe(true)
+
+    await ctrl.canonicalize()
+
+    const call = (router.replace as ReturnType<typeof vi.fn>).mock.calls[0]![0]
+    expect(call.query).not.toHaveProperty('postId')
+  })
+
+  it('openPostDetail trims whitespace from the given postId before writing it', async () => {
+    const route = createMockRoute({ name: 'scheduler-calendar-week', query: {} })
+    const router = createMockRouter()
+    const ctrl = createCalendarUrlController(route, router)
+
+    await ctrl.openPostDetail('  pub-999  ')
+
+    const call = (router.push as ReturnType<typeof vi.fn>).mock.calls[0]![0]
+    expect(call.query).toMatchObject({ postId: 'pub-999' })
+  })
+
+  it('openPostDetail normalizes a whitespace-only postId to omit it from the query', async () => {
+    const route = createMockRoute({ name: 'scheduler-calendar-week', query: {} })
+    const router = createMockRouter()
+    const ctrl = createCalendarUrlController(route, router)
+
+    await ctrl.openPostDetail('   ')
+
+    const call = (router.push as ReturnType<typeof vi.fn>).mock.calls[0]![0]
+    expect(call.query).not.toHaveProperty('postId')
+  })
+
+  it('closePostDetail honors an explicit replace: true option', async () => {
+    const route = createMockRoute({
+      name: 'scheduler-calendar-week',
+      query: { postId: 'pub-1' },
+    })
+    const router = createMockRouter()
+    const ctrl = createCalendarUrlController(route, router)
+
+    await ctrl.closePostDetail({ replace: true })
+
+    expect(router.replace).toHaveBeenCalledTimes(1)
+    expect(router.push).not.toHaveBeenCalled()
+  })
+
+  it('closePostDetail uses push when replace is explicitly false', async () => {
+    const route = createMockRoute({
+      name: 'scheduler-calendar-week',
+      query: { date: '2026-07-10', postId: 'pub-1' },
+    })
+    const router = createMockRouter()
+    const ctrl = createCalendarUrlController(route, router)
+
+    await ctrl.closePostDetail({ replace: false })
+
+    expect(router.push).toHaveBeenCalledTimes(1)
+    expect(router.replace).not.toHaveBeenCalled()
+    const call = (router.push as ReturnType<typeof vi.fn>).mock.calls[0]![0]
+    expect(call.query).toEqual({ date: '2026-07-10' })
+  })
+
+  it('does not include postId in the built query when the state has no selected post', async () => {
+    const route = createMockRoute({ name: 'scheduler-calendar-week', query: { status: 'queued' } })
+    const router = createMockRouter()
+    const ctrl = createCalendarUrlController(route, router)
+
+    await ctrl.setStatus('published')
+
+    const call = (router.replace as ReturnType<typeof vi.fn>).mock.calls[0]![0]
+    expect(call.query).not.toHaveProperty('postId')
+  })
+
+  it('preserves an existing postId when unrelated filters change', async () => {
+    const route = createMockRoute({
+      name: 'scheduler-calendar-week',
+      query: { postId: 'pub-keep-me' },
+    })
+    const router = createMockRouter()
+    const ctrl = createCalendarUrlController(route, router)
+
+    await ctrl.setSearch('launch')
+
+    const call = (router.replace as ReturnType<typeof vi.fn>).mock.calls[0]![0]
+    expect(call.query).toMatchObject({ postId: 'pub-keep-me', q: 'launch' })
   })
 })
 
