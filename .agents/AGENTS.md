@@ -136,10 +136,9 @@ IntelliJ.
 
 These tags are excluded in CI due to known pre-existing failures:
 
-| Tag          | Reason                                                     |
-|--------------|------------------------------------------------------------|
-| `modularity` | Spring Modulith named-interface issue (on main)            |
-| `postgres`   | Postgres/Testcontainers integration tests (not configured) |
+| Tag        | Reason                                                     |
+|------------|------------------------------------------------------------|
+| `postgres` | Postgres/Testcontainers integration tests (not configured) |
 
 ## Design Spec
 
