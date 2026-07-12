@@ -36,7 +36,7 @@ openspec/             # SDD artifacts (spec-driven development)
 
 | Command                  | Action                          |
 |--------------------------|---------------------------------|
-| `just frontend-dev`      | Start both frontend dev servers |
+| `just dev-frontend`      | Start both frontend dev servers |
 | `just frontend-build`    | Build marketing site            |
 | `just frontend-lint`     | Biome lint                      |
 | `just frontend-format`   | Biome format                    |

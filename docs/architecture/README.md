@@ -130,6 +130,7 @@ architecture at different levels of abstraction.
 **Implemented** (✅):
 
 - Marketing site (Astro 6)
+- Web application (Vue 3)
 - Backend foundation (Spring Boot 4, Kotlin, WebFlux)
 - Core bounded contexts (Identity, Authorization, Tenancy, Credentials, Governance, Platform)
 - JWT and API Key authentication
@@ -137,7 +138,6 @@ architecture at different levels of abstraction.
 
 **In Progress** (🔄):
 
-- Web application (React)
 - Content Context
 - Scheduler Service
 
@@ -161,7 +161,6 @@ architecture at different levels of abstraction.
 ### Specifications
 
 - **[openspec/](../../openspec/)** — SDD artifacts (specs, designs, tasks)
-- **[docs/plans/](../plans/)** — Design specs and implementation plans
 - **[Media Library CAS Dedup](./media-library-cas-dedup.md)** — Content-Addressed Storage
   deduplication for workspace-scoped media assets
 

@@ -27,7 +27,7 @@ across multiple platforms (Twitter, LinkedIn, Instagram, Facebook, TikTok).
 
 | Layer        | Technology                                       |
 |--------------|--------------------------------------------------|
-| **Frontend** | Astro 6 (marketing), React 18+ (web app planned) |
+| **Frontend** | Astro 6 (marketing), Vue 3 (dashboard app)     |
 | **Backend**  | Spring Boot 4, Kotlin, WebFlux (reactive)        |
 | **Database** | PostgreSQL 16 with R2DBC (reactive driver)       |
 | **Cache**    | Redis                                            |
@@ -316,7 +316,7 @@ Managed Services
 
 ### Phase 2: Core Features (🔄 In Progress)
 
-- [ ] Web application (React)
+- [x] Web application (Vue 3)
 - [ ] Content Context (post creation, scheduling)
 - [ ] Scheduler Service (background jobs)
 - [ ] Redis cache integration
