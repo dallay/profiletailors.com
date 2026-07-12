@@ -104,14 +104,32 @@ function normalizeDate(rawDate: string): string {
   return isIsoLocalDate(rawDate) ? rawDate : resolveToday()
 }
 
+/**
+ * Resolves a timezone value, falling back to the browser timezone when empty.
+ *
+ * @param rawTimezone - The timezone value to use.
+ * @returns The provided timezone or the browser's resolved timezone.
+ */
 function normalizeTimezone(rawTimezone: string): string {
   return rawTimezone || resolveBrowserTimezone()
 }
 
+/**
+ * Normalizes a post identifier for URL state.
+ *
+ * @param rawPostId - The post identifier to normalize
+ * @returns The post identifier, or `null` when it is empty
+ */
 function normalizePostId(rawPostId: string): string | null {
   return rawPostId.length > 0 ? rawPostId : null
 }
 
+/**
+ * Normalizes route name and query values into calendar URL state.
+ *
+ * @param route - The route name and query values to normalize
+ * @returns The normalized calendar URL state
+ */
 function normalizeQuery(route: {
   name: unknown
   query: Record<string, unknown>
@@ -129,6 +147,12 @@ function normalizeQuery(route: {
   }
 }
 
+/**
+ * Builds the route query from calendar URL state, omitting default values.
+ *
+ * @param state - The normalized calendar URL state
+ * @returns A route query containing only non-default state values
+ */
 function buildQuery(state: CalendarUrlState): LocationQueryRaw {
   const query: LocationQueryRaw = {}
 
@@ -196,6 +220,11 @@ async function navigate(
   })
 }
 
+/**
+ * Creates a controller for reading and updating normalized calendar URL state.
+ *
+ * @returns A calendar URL controller with reactive state and navigation methods.
+ */
 export function createCalendarUrlController(
   route: RouteLocationNormalizedLoaded,
   router: Router,
