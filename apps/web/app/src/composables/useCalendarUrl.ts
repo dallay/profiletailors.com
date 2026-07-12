@@ -12,6 +12,7 @@ export interface CalendarUrlState {
   status: SchedulerStatus
   q: string
   channelIds: string[]
+  postId: string | null
 }
 
 export interface CalendarUrlController {
@@ -25,6 +26,8 @@ export interface CalendarUrlController {
   setStatus: (status: SchedulerStatus) => Promise<void>
   setSearch: (q: string) => Promise<void>
   setChannelIds: (channelIds: string[]) => Promise<void>
+  openPostDetail: (postId: string) => Promise<void>
+  closePostDetail: (options?: { replace?: boolean }) => Promise<void>
 }
 
 const VALID_SURFACES = new Set<SchedulerSurface>(['calendar-week', 'calendar-month', 'list'])
@@ -105,6 +108,10 @@ function normalizeTimezone(rawTimezone: string): string {
   return rawTimezone || resolveBrowserTimezone()
 }
 
+function normalizePostId(rawPostId: string): string | null {
+  return rawPostId.length > 0 ? rawPostId : null
+}
+
 function normalizeQuery(route: {
   name: unknown
   query: Record<string, unknown>
@@ -118,6 +125,7 @@ function normalizeQuery(route: {
     status: normalizeStatus(trimOrEmpty(route.query.status)),
     q: trimOrEmpty(route.query.q),
     channelIds: [...new Set(toArray(rawChannels))],
+    postId: normalizePostId(trimOrEmpty(route.query.postId)),
   }
 }
 
@@ -142,6 +150,10 @@ function buildQuery(state: CalendarUrlState): LocationQueryRaw {
 
   if (state.channelIds.length > 0) {
     query['channels[]'] = state.channelIds
+  }
+
+  if (state.postId) {
+    query.postId = state.postId
   }
 
   return query
@@ -238,6 +250,16 @@ export function createCalendarUrlController(
     },
     setChannelIds: async (channelIds) => {
       await navigate(router, { ...state.value, channelIds: [...new Set(channelIds)] }, 'replace')
+    },
+    openPostDetail: async (postId) => {
+      await navigate(router, { ...state.value, postId: normalizePostId(postId.trim()) }, 'push')
+    },
+    closePostDetail: async (options = {}) => {
+      await navigate(
+        router,
+        { ...state.value, postId: null },
+        options.replace === false ? 'push' : 'replace',
+      )
     },
   }
 }

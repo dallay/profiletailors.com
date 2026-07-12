@@ -153,6 +153,56 @@ const ROUTE_NAMES: Record<'calendar-week' | 'calendar-month' | 'list', string> =
 }
 
 describe('useCalendarUrl — navigation intent', () => {
+  it('parses postId from the query so detail modal state can be restored from a URL', () => {
+    const route = createMockRoute({
+      name: 'scheduler-calendar-week',
+      query: { postId: 'pub-123' },
+    })
+    const router = createMockRouter()
+    const ctrl = createCalendarUrlController(route, router)
+
+    expect(ctrl.state.value.postId).toBe('pub-123')
+  })
+
+  it('openPostDetail pushes postId into the scheduler URL query', async () => {
+    const route = createMockRoute({
+      name: 'scheduler-calendar-week',
+      query: { date: '2026-07-10', status: 'queued' },
+    })
+    const router = createMockRouter()
+    const ctrl = createCalendarUrlController(route, router)
+
+    await ctrl.openPostDetail('pub-123')
+
+    expect(router.push).toHaveBeenCalledTimes(1)
+    expect(router.replace).not.toHaveBeenCalled()
+    const call = (router.push as ReturnType<typeof vi.fn>).mock.calls[0]![0]
+    expect(call).toMatchObject({
+      name: 'scheduler-calendar-week',
+      query: {
+        date: '2026-07-10',
+        status: 'queued',
+        postId: 'pub-123',
+      },
+    })
+  })
+
+  it('closePostDetail removes postId with replace by default', async () => {
+    const route = createMockRoute({
+      name: 'scheduler-calendar-week',
+      query: { date: '2026-07-10', postId: 'pub-123' },
+    })
+    const router = createMockRouter()
+    const ctrl = createCalendarUrlController(route, router)
+
+    await ctrl.closePostDetail()
+
+    expect(router.replace).toHaveBeenCalledTimes(1)
+    expect(router.push).not.toHaveBeenCalled()
+    const call = (router.replace as ReturnType<typeof vi.fn>).mock.calls[0]![0]
+    expect(call.query).toEqual({ date: '2026-07-10' })
+  })
+
   it('setSurface triggers push with the new route name (not a replace)', async () => {
     const route = createMockRoute({ name: 'scheduler-calendar-week', query: {} })
     const router = createMockRouter()
@@ -319,6 +369,7 @@ describe('useCalendarUrl — route name surface derivation', () => {
         timezone: 'America/New_York',
         q: 'launch',
         'channels[]': ['acc-2', 'acc-1'],
+        postId: 'post-42',
       },
     })
   })
