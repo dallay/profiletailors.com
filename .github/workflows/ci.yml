@@ -152,7 +152,7 @@ jobs:
 
       - name: Run unit tests (exclude BDD suites)
         shell: bash
-        run: ./gradlew :server:smp:test -x :server:smp:bddFastTest -x :server:smp:bddPostgresTest --no-daemon -PexcludeTags=modularity
+        run: ./gradlew :server:smp:test -x :server:smp:bddFastTest -x :server:smp:bddPostgresTest --no-daemon
 
   # ═══════════════════════════════════════════════════════════════
   # Conditional jobs — only run when relevant paths change
