@@ -167,6 +167,8 @@ data class CalendarPublicationResult(
     val publicUrl: String? = null,
     val publishedAt: Instant? = null,
     val previewUrl: String? = null,
+    val blockedReason: String? = null,
+    val errorCode: String? = null,
 )
 
 data class ConflictEntry(

@@ -39,6 +39,7 @@ ignore:
   - "**/generated/**"
   - "apps/web/app/src/components/ui/**"
   - "**/.astro/**"
+  - "**/ModuleMetadata.kt"
 
 # Align Codecov's scope with SonarQube:
 # - project status reflects overall repo coverage across uploaded backend + frontend reports

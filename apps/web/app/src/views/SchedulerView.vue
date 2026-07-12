@@ -840,6 +840,7 @@ watch(
       @close="closePostDetail"
       @deleted="closePostDetail"
       @reschedule="onReschedule"
+      @retried="onReschedule"
       @edit="handleEditPublication"
     />
   </div>

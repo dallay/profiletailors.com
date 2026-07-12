@@ -22,10 +22,6 @@ class ModularStructureTest {
     private val modules = ApplicationModules.of(SmpApplication::class.java)
 
     @Test
-    @Disabled(
-        "Pre-existing modulith boundary violation: authorization -> audit :: application." +
-            " Not related to publishing change.",
-    )
     fun `verifies modular structure`() {
         // This will fail if there are any violations of module boundaries
         modules.verify()

@@ -18,7 +18,10 @@ const activePreviewProps = computed(() => {
 </script>
 
 <template>
-  <div class="w-full lg:w-[420px] bg-bg-primary p-6 flex flex-col justify-between overflow-y-auto min-h-0 space-y-6">
+  <section
+    :aria-label="title"
+    class="w-full lg:w-[420px] bg-bg-primary p-6 flex flex-col justify-between overflow-y-auto min-h-0 space-y-6"
+  >
     <div class="border-b border-border-subtle pb-4">
       <h3 class="font-mono text-xs font-bold tracking-widest text-text-display uppercase">
         {{ title }}
@@ -30,5 +33,5 @@ const activePreviewProps = computed(() => {
     </div>
 
     <slot name="footer" />
-  </div>
+  </section>
 </template>
