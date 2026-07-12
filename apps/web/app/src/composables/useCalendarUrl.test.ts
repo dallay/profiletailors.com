@@ -203,6 +203,96 @@ describe('useCalendarUrl — navigation intent', () => {
     expect(call.query).toEqual({ date: '2026-07-10' })
   })
 
+  it('state.postId is null when the query omits postId entirely', () => {
+    const route = createMockRoute({
+      name: 'scheduler-calendar-week',
+      query: { date: '2026-07-10' },
+    })
+    const router = createMockRouter()
+    const ctrl = createCalendarUrlController(route, router)
+
+    expect(ctrl.state.value.postId).toBeNull()
+  })
+
+  it('trims surrounding whitespace from a raw postId query value when parsing', () => {
+    const route = createMockRoute({
+      name: 'scheduler-calendar-week',
+      query: { postId: '  pub-with-space  ' },
+    })
+    const router = createMockRouter()
+    const ctrl = createCalendarUrlController(route, router)
+
+    expect(ctrl.state.value.postId).toBe('pub-with-space')
+  })
+
+  it('openPostDetail trims whitespace from the postId before writing it to the query', async () => {
+    const route = createMockRoute({ name: 'scheduler-calendar-week', query: {} })
+    const router = createMockRouter()
+    const ctrl = createCalendarUrlController(route, router)
+
+    await ctrl.openPostDetail('  pub-trim-me  ')
+
+    const call = (router.push as ReturnType<typeof vi.fn>).mock.calls[0]![0]
+    expect(call.query.postId).toBe('pub-trim-me')
+  })
+
+  it('openPostDetail with a whitespace-only postId results in no postId in the query', async () => {
+    const route = createMockRoute({ name: 'scheduler-calendar-week', query: {} })
+    const router = createMockRouter()
+    const ctrl = createCalendarUrlController(route, router)
+
+    await ctrl.openPostDetail('   ')
+
+    expect(router.push).toHaveBeenCalledTimes(1)
+    const call = (router.push as ReturnType<typeof vi.fn>).mock.calls[0]![0]
+    expect(call.query).not.toHaveProperty('postId')
+  })
+
+  it('closePostDetail with { replace: false } pushes instead of replacing', async () => {
+    const route = createMockRoute({
+      name: 'scheduler-calendar-week',
+      query: { date: '2026-07-10', postId: 'pub-123' },
+    })
+    const router = createMockRouter()
+    const ctrl = createCalendarUrlController(route, router)
+
+    await ctrl.closePostDetail({ replace: false })
+
+    expect(router.push).toHaveBeenCalledTimes(1)
+    expect(router.replace).not.toHaveBeenCalled()
+    const call = (router.push as ReturnType<typeof vi.fn>).mock.calls[0]![0]
+    expect(call.query).toEqual({ date: '2026-07-10' })
+  })
+
+  it('closePostDetail with { replace: true } explicitly still uses replace', async () => {
+    const route = createMockRoute({
+      name: 'scheduler-calendar-week',
+      query: { date: '2026-07-10', postId: 'pub-123' },
+    })
+    const router = createMockRouter()
+    const ctrl = createCalendarUrlController(route, router)
+
+    await ctrl.closePostDetail({ replace: true })
+
+    expect(router.replace).toHaveBeenCalledTimes(1)
+    expect(router.push).not.toHaveBeenCalled()
+  })
+
+  it('closePostDetail preserves other query params such as channels[] and status', async () => {
+    const route = createMockRoute({
+      name: 'scheduler-calendar-week',
+      query: { status: 'queued', 'channels[]': ['acc-1', 'acc-2'], postId: 'pub-123' },
+    })
+    const router = createMockRouter()
+    const ctrl = createCalendarUrlController(route, router)
+
+    await ctrl.closePostDetail()
+
+    const call = (router.replace as ReturnType<typeof vi.fn>).mock.calls[0]![0]
+    expect(call.query).toEqual({ status: 'queued', 'channels[]': ['acc-1', 'acc-2'] })
+    expect(call.query).not.toHaveProperty('postId')
+  })
+
   it('setSurface triggers push with the new route name (not a replace)', async () => {
     const route = createMockRoute({ name: 'scheduler-calendar-week', query: {} })
     const router = createMockRouter()
