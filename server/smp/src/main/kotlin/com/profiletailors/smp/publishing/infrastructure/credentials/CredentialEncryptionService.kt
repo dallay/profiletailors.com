@@ -14,9 +14,8 @@ class CredentialEncryptionService(private val properties: PublishingCredentialsP
     private val key: SecretKey
 
     init {
-        val keyBase64 = requireNotNull(properties.key?.takeIf { it.isNotBlank() }) {
-            "Credential encryption key is missing or blank."
-        }
+        val keyBase64 = properties.key?.takeIf { it.isNotBlank() }
+            ?: throw IllegalStateException("Credential encryption key is missing or blank.")
         val bytes = Base64.getDecoder().decode(keyBase64)
         if (bytes.size !in VALID_KEY_SIZES) {
             val message = "Encryption key must be 128/192/256 bits (base64). " +
