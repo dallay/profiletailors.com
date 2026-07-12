@@ -96,10 +96,10 @@ If hooks are not installed, CI will catch any issues — so there is no risk in 
 
 ## Verify the setup
 
-### Frontend (Astro)
+### Frontend (Astro + Vue 3)
 
 ```bash
-just frontend-dev
+just dev-frontend
 ```
 
 Open [http://localhost:4321](http://localhost:4321) — you should see the marketing site.
@@ -149,7 +149,7 @@ Key recipes:
 | Command                  | Description                                     |
 |--------------------------|-------------------------------------------------|
 | `just setup`             | Full bootstrap: .env + deps + hooks + agentsync |
-| `just frontend-dev`      | Start Astro dev server                          |
+| `just dev-frontend`      | Start both Astro and Vue dev servers            |
 | `just frontend-test`     | Run Vitest unit tests                           |
 | `just frontend-test-e2e` | Run Playwright E2E tests                        |
 | `just backend-run`       | Start Spring Boot (dev profile)                 |
