@@ -19,6 +19,7 @@ function makeUrlController(
     timezone: string
     q: string
     channelIds: string[]
+    postId: string | null
     needsCanonicalization: boolean
   }> = {},
 ): CalendarUrlController {
@@ -29,6 +30,7 @@ function makeUrlController(
     timezone: overrides.timezone ?? 'UTC',
     q: overrides.q ?? '',
     channelIds: overrides.channelIds ?? [],
+    postId: overrides.postId ?? null,
   })
 
   return {
@@ -42,6 +44,8 @@ function makeUrlController(
     setStatus: vi.fn().mockResolvedValue(undefined),
     setSearch: vi.fn().mockResolvedValue(undefined),
     setChannelIds: vi.fn().mockResolvedValue(undefined),
+    openPostDetail: vi.fn().mockResolvedValue(undefined),
+    closePostDetail: vi.fn().mockResolvedValue(undefined),
   }
 }
 
@@ -402,6 +406,43 @@ describe('SchedulerView', () => {
     expect(wrapper.exists()).toBe(true)
   })
 
+  it('opens detail modal from postId in the scheduler URL state', async () => {
+    const store = usePublishingStore()
+    const pub: Publication = {
+      id: 'pub-deep-link',
+      content: 'Deep linked post',
+      channels: ['linkedin'],
+      scheduledAt: '2026-06-25T10:00:00Z',
+      status: 'SCHEDULED',
+      priority: false,
+    }
+    store.publications = [pub]
+
+    const wrapper = mountView({ date: '2026-06-25', postId: 'pub-deep-link' })
+    await flushPromises()
+
+    expect(wrapper.find('[data-testid="post-detail-modal"]').exists()).toBe(true)
+  })
+
+  it('openPostDetail writes the selected publication id into the URL state', async () => {
+    const wrapper = mountView({ date: '2026-06-25' })
+    await flushPromises()
+    const pub: Publication = {
+      id: 'pub-url-open',
+      content: 'Open via URL state',
+      channels: ['linkedin'],
+      scheduledAt: '2026-06-25T10:00:00Z',
+      status: 'SCHEDULED',
+      priority: false,
+    }
+
+    const vm = wrapper.vm as unknown as { openPostDetail: (pub: Publication) => void }
+    vm.openPostDetail(pub)
+    await flushPromises()
+
+    expect(mockController.openPostDetail).toHaveBeenCalledWith('pub-url-open')
+  })
+
   it('opens CreatePostModal in edit mode when PostDetailModal emits edit', async () => {
     const store = usePublishingStore()
     const pub: Publication = {
@@ -414,13 +455,8 @@ describe('SchedulerView', () => {
     }
     store.publications = [pub]
 
-    const wrapper = mountView({ date: '2026-06-25' })
+    const wrapper = mountView({ date: '2026-06-25', postId: 'pub-edit-flow' })
     await flushPromises()
-
-    // Open detail modal by clicking publication card if available
-    const vm = wrapper.vm as unknown as { openPostDetail: (pub: Publication) => void }
-    vm.openPostDetail(pub)
-    await wrapper.vm.$nextTick()
 
     const editBtn = wrapper.find('[data-testid="detail-edit"]')
     await editBtn.trigger('click')
