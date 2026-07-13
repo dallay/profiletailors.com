@@ -1,12 +1,12 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { setActivePinia, createPinia } from 'pinia'
 import { usePublishingStore, type CalendarResponse } from './publishing'
-import { useAuthStore } from './auth'
+import { useAuthStore } from '@modules/auth/infrastructure/auth.store'
 
 // ---------------------------------------------------------------------------
 // Mock auth-api
 // ---------------------------------------------------------------------------
-vi.mock('@/lib/auth-api', () => ({
+vi.mock('@modules/auth/infrastructure/auth-api', () => ({
   createApiFetch: () =>
     Object.assign(
       async function apiFetch<T>() {

@@ -12,8 +12,8 @@ import {
   register,
   resendVerification,
   verifyEmail as verifyEmailRequest,
-} from '@/lib/auth-api'
-import { useWorkspaceStore } from './workspace'
+} from '@modules/auth/infrastructure/auth-api'
+import { useWorkspaceStore } from '@modules/workspace/infrastructure/workspace.store'
 
 // ---------------------------------------------------------------------------
 // Types

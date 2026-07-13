@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { ref } from 'vue'
-import { proxyImageUrl } from '@/lib/auth-api'
+import { proxyImageUrl } from '@modules/auth/infrastructure/auth-api'
 import { getProviderBadge } from '@/lib/provider-styles'
 import type { Channel } from '@/stores/publishing'
 

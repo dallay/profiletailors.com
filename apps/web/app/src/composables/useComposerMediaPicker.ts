@@ -32,7 +32,7 @@ import type {
   ComposerMediaPickerCollectionState,
   ComposerMediaPickerSource,
 } from '@/components/composer/composer-media-picker.types'
-import { resolveApiUrl } from '@/lib/auth-api'
+import { resolveApiUrl } from '@modules/auth/infrastructure/auth-api'
 
 // ---------------------------------------------------------------------------
 // Constants

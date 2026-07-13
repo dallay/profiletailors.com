@@ -27,7 +27,7 @@ vi.mock('vue-router', () => ({
   useRouter: () => ({ push: vi.fn(), replace: vi.fn() }),
 }))
 
-vi.mock('@/lib/auth-api', () => ({
+vi.mock('@modules/auth/infrastructure/auth-api', () => ({
   createApiFetch: () =>
     async function apiFetch<T>() {
       return {} as T

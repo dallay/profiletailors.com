@@ -15,11 +15,11 @@ import {
   Sparkles,
   X,
 } from '@lucide/vue'
-import { useAuthStore } from '@/stores/auth'
+import { useAuthStore } from '@modules/auth/infrastructure/auth.store'
 import { usePublishingStore, type Publication } from '@/stores/publishing'
-import { useWorkspaceStore } from '@/stores/workspace'
+import { useWorkspaceStore } from '@modules/workspace/infrastructure/workspace.store'
 import { useMediaStore } from '@/stores/media'
-import { proxyImageUrl, resolveApiUrl } from '@/lib/auth-api'
+import { proxyImageUrl, resolveApiUrl } from '@modules/auth/infrastructure/auth-api'
 import PostPreviewPanel from '@/components/composer/PostPreviewPanel.vue'
 import type { LinkedInPreviewModel, PostPreviewMedia } from '@/components/composer/post-preview.types'
 import { Button } from '@/components/ui/button'

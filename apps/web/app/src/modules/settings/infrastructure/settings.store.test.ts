@@ -84,7 +84,7 @@ describe('settings store', () => {
 
   it('defaults to dark + en when no persisted state exists', async () => {
     const stubs = setupBrowserStubs(null)
-    const { useSettingsStore } = await import('@/stores/settings')
+    const { useSettingsStore } = await import('@modules/settings/infrastructure/settings.store')
     const store = useSettingsStore()
 
     expect(store.currentTheme).toBe('dark')
@@ -96,7 +96,7 @@ describe('settings store', () => {
 
   it('hydrates from localStorage on init', async () => {
     const stubs = setupBrowserStubs(JSON.stringify({ locale: 'es', theme: 'light' }))
-    const { useSettingsStore } = await import('@/stores/settings')
+    const { useSettingsStore } = await import('@modules/settings/infrastructure/settings.store')
     const store = useSettingsStore()
 
     expect(store.currentTheme).toBe('light')
@@ -107,7 +107,7 @@ describe('settings store', () => {
 
   it('falls back to defaults when stored value is malformed', async () => {
     setupBrowserStubs('not-json')
-    const { useSettingsStore } = await import('@/stores/settings')
+    const { useSettingsStore } = await import('@modules/settings/infrastructure/settings.store')
     const store = useSettingsStore()
 
     expect(store.currentTheme).toBe('dark')
@@ -116,7 +116,7 @@ describe('settings store', () => {
 
   it('falls back to defaults when stored values are out of range', async () => {
     setupBrowserStubs(JSON.stringify({ locale: 'fr', theme: 'neon' }))
-    const { useSettingsStore } = await import('@/stores/settings')
+    const { useSettingsStore } = await import('@modules/settings/infrastructure/settings.store')
     const store = useSettingsStore()
 
     expect(store.currentTheme).toBe('dark')
@@ -125,7 +125,7 @@ describe('settings store', () => {
 
   it('setTheme updates state, DOM, and storage', async () => {
     const stubs = setupBrowserStubs(null)
-    const { useSettingsStore } = await import('@/stores/settings')
+    const { useSettingsStore } = await import('@modules/settings/infrastructure/settings.store')
     const store = useSettingsStore()
 
     // Capture the call count before mutating, then verify that
@@ -147,7 +147,7 @@ describe('settings store', () => {
 
   it('toggleTheme switches between dark and light', async () => {
     setupBrowserStubs(null)
-    const { useSettingsStore } = await import('@/stores/settings')
+    const { useSettingsStore } = await import('@modules/settings/infrastructure/settings.store')
     const store = useSettingsStore()
 
     expect(store.currentTheme).toBe('dark')
@@ -159,7 +159,7 @@ describe('settings store', () => {
 
   it('setLocale updates state and the lang attribute', async () => {
     const stubs = setupBrowserStubs(null)
-    const { useSettingsStore } = await import('@/stores/settings')
+    const { useSettingsStore } = await import('@modules/settings/infrastructure/settings.store')
     const store = useSettingsStore()
 
     stubs.setAttribute.mockClear()
@@ -171,7 +171,7 @@ describe('settings store', () => {
 
   it('toggleLocale switches between en and es', async () => {
     setupBrowserStubs(null)
-    const { useSettingsStore } = await import('@/stores/settings')
+    const { useSettingsStore } = await import('@modules/settings/infrastructure/settings.store')
     const store = useSettingsStore()
 
     expect(store.currentLocale).toBe('en')

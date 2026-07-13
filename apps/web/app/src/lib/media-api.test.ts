@@ -22,7 +22,7 @@ const { mockAuthenticatedBox } = vi.hoisted(() => ({
   mockAuthenticatedBox: { current: true },
 }))
 
-vi.mock('@/lib/auth-api', () => ({
+vi.mock('@modules/auth/infrastructure/auth-api', () => ({
   createApiFetch: () => {
     // Return a function that delegates ALL calls to mockMediaApiFetch.
     // The raw property is required by the media-api code for token refresh.
@@ -41,7 +41,7 @@ vi.mock('@/lib/auth-api', () => ({
 const mockApiFetch = vi.fn()
 const mockApiFetchRaw = vi.fn()
 
-vi.mock('@/stores/auth', () => ({
+vi.mock('@modules/auth/infrastructure/auth.store', () => ({
   useAuthStore: () => ({
     get isAuthenticated() {
       return mockAuthenticatedBox.current
@@ -54,7 +54,7 @@ vi.mock('@/stores/auth', () => ({
   }),
 }))
 
-vi.mock('@/stores/workspace', () => ({
+vi.mock('@modules/workspace/infrastructure/workspace.store', () => ({
   useWorkspaceStore: () => ({
     activeWorkspaceId: 'ws-media-test',
   }),

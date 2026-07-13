@@ -1,10 +1,10 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { createPinia, setActivePinia } from 'pinia'
-import { useAuthStore } from './auth'
-import type { AuthTokens, CurrentUserProfile } from '@/lib/auth-api'
+import { useAuthStore } from '@modules/auth/infrastructure/auth.store'
+import type { AuthTokens, CurrentUserProfile } from '@modules/auth/infrastructure/auth-api'
 
-vi.mock('@/lib/auth-api', async (importOriginal) => {
-  const actual = await importOriginal<typeof import('@/lib/auth-api')>()
+vi.mock('@modules/auth/infrastructure/auth-api', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('@modules/auth/infrastructure/auth-api')>()
 
   return {
     ...actual,
@@ -32,7 +32,9 @@ describe('auth store verifyEmail', () => {
   })
 
   it('applies returned tokens and refreshes the authoritative /api/auth/me profile after verification', async () => {
-    const { verifyEmail, getCurrentUserProfile } = await import('@/lib/auth-api')
+    const { verifyEmail, getCurrentUserProfile } = await import(
+      '@modules/auth/infrastructure/auth-api'
+    )
 
     const tokens: AuthTokens = {
       accessToken: 'verified-token',
@@ -74,7 +76,7 @@ describe('auth store verifyEmail', () => {
   it('clearError sets error to null', async () => {
     const auth = useAuthStore()
     // Trigger an error state via loginWithPassword failure
-    const { login } = await import('@/lib/auth-api')
+    const { login } = await import('@modules/auth/infrastructure/auth-api')
     vi.mocked(login).mockRejectedValue({ detail: 'Bad credentials' })
     try {
       await auth.loginWithPassword({ email: 'a@b.com', password: 'bad' })
@@ -89,7 +91,7 @@ describe('auth store verifyEmail', () => {
   })
 
   it('logout calls logoutSession and clears local state', async () => {
-    const { logoutSession } = await import('@/lib/auth-api')
+    const { logoutSession } = await import('@modules/auth/infrastructure/auth-api')
     vi.mocked(logoutSession).mockResolvedValue(undefined)
     const auth = useAuthStore()
     // Seed an authenticated session so logout has something to clear

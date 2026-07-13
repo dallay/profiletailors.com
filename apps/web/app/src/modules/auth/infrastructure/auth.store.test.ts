@@ -1,7 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { createPinia, setActivePinia } from 'pinia'
-import { useAuthStore } from './auth'
-import type { AuthTokens } from '@/lib/auth-api'
+import { useAuthStore } from '@modules/auth/infrastructure/auth.store'
+import type { AuthTokens } from '@modules/auth/infrastructure/auth-api'
 
 // ---------------------------------------------------------------------------
 // Mock auth-api
@@ -10,7 +10,7 @@ const mockRefreshSession = vi.fn()
 const mockGetCurrentUserProfile = vi.fn()
 const mockResendVerification = vi.fn()
 
-vi.mock('@/lib/auth-api', () => ({
+vi.mock('@modules/auth/infrastructure/auth-api', () => ({
   createApiFetch: () =>
     Object.assign(
       async function apiFetch<T>() {
@@ -112,7 +112,7 @@ describe('Auth store — hydrateSession', () => {
     })
 
     const auth = useAuthStore()
-    const { useWorkspaceStore } = await import('./workspace')
+    const { useWorkspaceStore } = await import('@modules/workspace/infrastructure/workspace.store')
     const workspace = useWorkspaceStore()
 
     expect(workspace.activeWorkspaceId).toBeNull()
@@ -133,7 +133,7 @@ describe('Auth store — hydrateSession', () => {
     })
 
     const auth = useAuthStore()
-    const { useWorkspaceStore } = await import('./workspace')
+    const { useWorkspaceStore } = await import('@modules/workspace/infrastructure/workspace.store')
     const workspace = useWorkspaceStore()
 
     // User already selected a different workspace (e.g. from previous account)

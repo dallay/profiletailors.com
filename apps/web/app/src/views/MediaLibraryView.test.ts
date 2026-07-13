@@ -3,7 +3,7 @@ import { mount, flushPromises } from '@vue/test-utils'
 import { createPinia, setActivePinia } from 'pinia'
 import MediaLibraryView from './MediaLibraryView.vue'
 import { useMediaStore } from '@/stores/media'
-import { useAuthStore } from '@/stores/auth'
+import { useAuthStore } from '@modules/auth/infrastructure/auth.store'
 
 vi.mock('vue-i18n', () => ({
   useI18n: () => ({ t: (key: string) => key, locale: { value: 'en' } }),
@@ -14,7 +14,7 @@ vi.mock('@/i18n', () => ({
   default: { global: { locale: { value: 'en' } } },
 }))
 
-vi.mock('@/lib/auth-api', () => ({
+vi.mock('@modules/auth/infrastructure/auth-api', () => ({
   createApiFetch: () =>
     Object.assign(
       async function apiFetch<T>() {

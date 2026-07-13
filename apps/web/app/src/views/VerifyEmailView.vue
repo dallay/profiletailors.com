@@ -5,8 +5,8 @@ import { useI18n } from 'vue-i18n'
 import { CheckCircle2, Loader2, TriangleAlert } from '@lucide/vue'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
-import type { ApiError } from '@/lib/auth-api'
-import { useAuthStore } from '@/stores/auth'
+import type { ApiError } from '@modules/auth/infrastructure/auth-api'
+import { useAuthStore } from '@modules/auth/infrastructure/auth.store'
 
 const route = useRoute()
 const auth = useAuthStore()

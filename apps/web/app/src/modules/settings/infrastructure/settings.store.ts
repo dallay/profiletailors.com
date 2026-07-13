@@ -11,7 +11,7 @@ const SUPPORTED_THEMES = ['dark', 'light'] as const
 type Locale = (typeof SUPPORTED_LOCALES)[number]
 type Theme = (typeof SUPPORTED_THEMES)[number]
 
-interface PersistedSettings {
+type PersistedSettings = {
   locale: Locale
   theme: Theme
 }
@@ -69,7 +69,7 @@ export const useSettingsStore = defineStore('settings', () => {
    *
    * @param locale - The locale to apply
    */
-  function setLocale(locale: Locale) {
+  function setLocale(locale: Locale): void {
     currentLocale.value = locale
     applyLocale(locale)
   }
@@ -77,7 +77,7 @@ export const useSettingsStore = defineStore('settings', () => {
   /**
    * Toggles the current locale between 'en' and 'es'.
    */
-  function toggleLocale() {
+  function toggleLocale(): void {
     setLocale(currentLocale.value === 'en' ? 'es' : 'en')
   }
 
@@ -86,7 +86,7 @@ export const useSettingsStore = defineStore('settings', () => {
    *
    * @param theme - The theme to apply
    */
-  function setTheme(theme: Theme) {
+  function setTheme(theme: Theme): void {
     currentTheme.value = theme
     applyTheme(theme)
   }
@@ -94,7 +94,7 @@ export const useSettingsStore = defineStore('settings', () => {
   /**
    * Switches the current theme between dark and light.
    */
-  function toggleTheme() {
+  function toggleTheme(): void {
     setTheme(currentTheme.value === 'dark' ? 'light' : 'dark')
   }
 

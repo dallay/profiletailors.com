@@ -17,7 +17,7 @@ vi.mock('vue-router', () => ({
   useRouter: () => ({ replace }),
 }))
 
-vi.mock('@/stores/auth', () => ({
+vi.mock('@modules/auth/infrastructure/auth.store', () => ({
   useAuthStore: () => ({
     error: null,
     isLoading: false,
