@@ -3,6 +3,7 @@ package com.profiletailors.smp.publishing.integration
 import com.profiletailors.smp.integration.support.IntegrationTestBase
 import com.profiletailors.smp.integration.support.PostgresIntegrationTestBase
 import com.profiletailors.smp.integration.support.PostgresTestContainerSupport
+import com.profiletailors.smp.integration.support.countPublicationJobs
 import com.profiletailors.smp.publishing.domain.DeliveryAttempt
 import com.profiletailors.smp.publishing.domain.DeliveryAttemptOutcome
 import com.profiletailors.smp.publishing.domain.JobStatus
@@ -165,7 +166,7 @@ class PublishingRetryEndpointPostgresIntegrationTest : PostgresIntegrationTestBa
             .jsonPath("$.priority").isEqualTo(true)
 
         assertEquals(0L, countDeliveryAttempts())
-        assertEquals(1L, countPublicationJobs())
+        assertEquals(1L, databaseClient.countPublicationJobs(PUBLICATION_ID))
         assertEquals(
             JobStatus.PENDING.name,
             databaseClient.sql("SELECT status FROM publication_jobs WHERE publication_id = :publicationId")
@@ -178,14 +179,6 @@ class PublishingRetryEndpointPostgresIntegrationTest : PostgresIntegrationTestBa
 
     private suspend fun countDeliveryAttempts(): Long = databaseClient.sql(
         "SELECT COUNT(*) AS count FROM delivery_attempts WHERE publication_id = :publicationId",
-    )
-        .bind("publicationId", PUBLICATION_ID)
-        .map { row, _ -> requireNotNull(row.get("count", Long::class.javaObjectType)) }
-        .one()
-        .awaitSingle()
-
-    private suspend fun countPublicationJobs(): Long = databaseClient.sql(
-        "SELECT COUNT(*) AS count FROM publication_jobs WHERE publication_id = :publicationId",
     )
         .bind("publicationId", PUBLICATION_ID)
         .map { row, _ -> requireNotNull(row.get("count", Long::class.javaObjectType)) }

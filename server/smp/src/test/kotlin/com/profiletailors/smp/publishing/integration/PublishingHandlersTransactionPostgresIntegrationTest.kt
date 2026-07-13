@@ -7,6 +7,7 @@ import com.profiletailors.common.domain.context.ResourceContext
 import com.profiletailors.common.domain.context.ResourceContextProvider
 import com.profiletailors.common.domain.context.ResourceContextType
 import com.profiletailors.common.domain.persistence.AtomicTransactionRunner
+import com.profiletailors.smp.integration.support.countPublicationJobs
 import com.profiletailors.smp.media.infrastructure.persistence.R2dbcAtomicTransactionRunner
 import com.profiletailors.smp.publishing.application.CompleteLinkedInConnectionCommand
 import com.profiletailors.smp.publishing.application.CompleteLinkedInConnectionHandler
@@ -383,7 +384,7 @@ class PublishingHandlersTransactionPostgresIntegrationTest {
         }
 
         assertTrue(results.all { it.isSuccess })
-        assertEquals(1L, countJobs(publicationId))
+        assertEquals(1L, databaseClient.countPublicationJobs(publicationId))
         assertNull(deliveryAttemptRow(publicationId))
     }
 
@@ -547,14 +548,6 @@ class PublishingHandlersTransactionPostgresIntegrationTest {
         .fetch()
         .one()
         .awaitSingleOrNull()
-
-    private suspend fun countJobs(publicationId: String): Long = databaseClient.sql(
-        "SELECT COUNT(*) AS count FROM publication_jobs WHERE publication_id = :publicationId",
-    )
-        .bind("publicationId", publicationId)
-        .map { row, _ -> requireNotNull(row.get("count", Long::class.javaObjectType)) }
-        .one()
-        .awaitSingle()
 
     private suspend fun deliveryAttemptRow(publicationId: String): Map<String, Any>? = databaseClient.sql(
         "SELECT id FROM delivery_attempts WHERE publication_id = :publicationId",

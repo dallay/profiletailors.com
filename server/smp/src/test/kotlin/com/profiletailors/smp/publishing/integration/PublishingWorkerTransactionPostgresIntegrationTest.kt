@@ -1,6 +1,7 @@
 package com.profiletailors.smp.publishing.integration
 
 import com.profiletailors.common.domain.persistence.AtomicTransactionRunner
+import com.profiletailors.smp.integration.support.countPublicationJobs
 import com.profiletailors.smp.media.application.MediaAssetResolver
 import com.profiletailors.smp.media.application.ResolvedAssetSummary
 import com.profiletailors.smp.media.infrastructure.persistence.R2dbcAtomicTransactionRunner
@@ -218,7 +219,7 @@ class PublishingWorkerTransactionPostgresIntegrationTest {
 
         assertPublication("pub-requeue-attempts", PublicationStatus.QUEUED)
         assertNoDeliveryAttempt("pub-requeue-attempts")
-        assertEquals(1L, countJobs("pub-requeue-attempts"))
+        assertEquals(1L, databaseClient.countPublicationJobs("pub-requeue-attempts"))
     }
 
     @Test
@@ -419,14 +420,6 @@ class PublishingWorkerTransactionPostgresIntegrationTest {
             .awaitSingleOrNull()
         assertNull(row, "Delivery attempt should not exist after rollback")
     }
-
-    private suspend fun countJobs(publicationId: String): Long = databaseClient.sql(
-        "SELECT COUNT(*) AS count FROM publication_jobs WHERE publication_id = :pub_id",
-    )
-        .bind("pub_id", publicationId)
-        .map { row, _ -> requireNotNull(row.get("count", Long::class.javaObjectType)) }
-        .one()
-        .awaitSingle()
 
     private suspend fun assertNoDeliveryAttemptWithOutcome(publicationId: String, outcome: String) {
         val row = databaseClient.sql(
