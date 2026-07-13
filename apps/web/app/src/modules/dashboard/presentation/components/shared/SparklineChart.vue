@@ -16,38 +16,32 @@ const props = withDefaults(defineProps<Props>(), {
   fillColor: 'var(--sparkline-fill)',
 })
 
-const pathData = computed(() => {
+const points = computed(() => {
   const { data, width, height } = props
-  if (data.length < 2) return ''
+  if (data.length < 2) return []
 
   const min = Math.min(...data)
   const max = Math.max(...data)
   const range = max - min || 1
 
-  const points = data.map((value, i) => {
+  return data.map((value, i) => {
     const x = (i / (data.length - 1)) * width
     const y = height - ((value - min) / range) * (height - 4) - 2
     return `${x},${y}`
   })
+})
 
-  return `M${points.join('L')}`
+const pathData = computed(() => {
+  const pts = points.value
+  if (pts.length === 0) return ''
+  return `M${pts.join('L')}`
 })
 
 const areaPath = computed(() => {
-  const { data, width, height } = props
-  if (data.length < 2) return ''
-
-  const min = Math.min(...data)
-  const max = Math.max(...data)
-  const range = max - min || 1
-
-  const points = data.map((value, i) => {
-    const x = (i / (data.length - 1)) * width
-    const y = height - ((value - min) / range) * (height - 4) - 2
-    return `${x},${y}`
-  })
-
-  return `M0,${height}L${points.join('L')}L${width},${height}Z`
+  const pts = points.value
+  if (pts.length === 0) return ''
+  const { width, height } = props
+  return `M0,${height}L${pts.join('L')}L${width},${height}Z`
 })
 
 const trendColor = computed(() => {

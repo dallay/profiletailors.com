@@ -102,7 +102,7 @@ Source files, tests, router entries, and Vitest mocks MUST reference moved dashb
 
 - GIVEN dashboard files have moved into the dashboard module
 - WHEN source files, router entries, tests, or mocks import moved dashboard code
-- THEN they MUST NOT use legacy `@/views/*`, `@/components/dashboard/*`, `@/stores/*`, or dashboard-owned `@/lib/*` paths
+- THEN they MUST NOT use legacy `@/views/*`, `@/components/dashboard/*`, dashboard-owned `@/stores/*`, or dashboard-owned `@/lib/*` paths
 - AND they SHALL resolve through the dashboard module or colocated relative paths
 
 #### Scenario: Existing dashboard behavior is preserved

@@ -7,7 +7,7 @@ export type Trend = 'up' | 'down' | 'flat'
 export type InsightType = 'recommendation' | 'alert' | 'opportunity'
 export type InsightPriority = 'high' | 'medium' | 'low'
 
-export interface KpiMetric {
+export type KpiMetric = {
   id: string
   label: string // i18n key
   value: string // formatted display value
@@ -17,7 +17,7 @@ export interface KpiMetric {
   trend: Trend
 }
 
-export interface AiInsight {
+export type AiInsight = {
   id: string
   type: InsightType
   title: string
@@ -29,7 +29,7 @@ export interface AiInsight {
   dismissed: boolean
 }
 
-export interface GrowthScore {
+export type GrowthScore = {
   overall: number
   breakdown: {
     consistency: number
@@ -41,7 +41,7 @@ export interface GrowthScore {
   trend: 'improving' | 'declining' | 'stable'
 }
 
-export interface TopPost {
+export type TopPost = {
   id: string
   content: string
   platform: Platform
@@ -53,7 +53,7 @@ export interface TopPost {
   shares: number
 }
 
-export interface ChannelPerformance {
+export type ChannelPerformance = {
   platform: Platform
   followers: number
   growth: number
@@ -62,13 +62,13 @@ export interface ChannelPerformance {
   color: string
 }
 
-export interface AudienceGrowthPoint {
+export type AudienceGrowthPoint = {
   date: string
   followers: number
   milestone?: string
 }
 
-export interface ScheduleItem {
+export type ScheduleItem = {
   id: string
   title: string
   platform: Platform
@@ -76,7 +76,7 @@ export interface ScheduleItem {
   status: 'queued' | 'scheduled' | 'published'
 }
 
-export interface PipelineCard {
+export type PipelineCard = {
   id: string
   title: string
   content: string
@@ -87,19 +87,19 @@ export interface PipelineCard {
   tags: string[]
 }
 
-export interface PipelineColumn {
+export type PipelineColumn = {
   id: string
   title: string
   cards: PipelineCard[]
 }
 
-export interface PostingTimeSlot {
+export type PostingTimeSlot = {
   day: string
   hour: number
   score: number
 }
 
-export interface InboxItem {
+export type InboxItem = {
   id: string
   type: 'comment' | 'mention' | 'message' | 'lead'
   platform: Platform
@@ -109,14 +109,14 @@ export interface InboxItem {
   priority: 'high' | 'normal'
 }
 
-export interface TeamMember {
+export type TeamMember = {
   id: string
   name: string
   avatar?: string
   online: boolean
 }
 
-export interface TeamActivityEvent {
+export type TeamActivityEvent = {
   id: string
   memberId: string
   memberName: string
