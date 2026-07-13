@@ -300,26 +300,34 @@ type TokenRefresher = () => Promise<string | null>
  * Higher-order helper: executes a request, retries once on 401 after refreshing
  * the token, and calls onUnauthenticated if the refresh fails.
  */
-function withRetry<T>(
+async function withRetry<T>(
   requester: (init: RequestInit, token: string | null) => Promise<T>,
   init: RequestInit,
   token: string | null,
   onRefresh: TokenRefresher,
   onUnauthenticated: () => void,
 ): Promise<T> {
-  return requester(init, token).catch((err) => {
+  try {
+    return await requester(init, token)
+  } catch (err) {
     const apiError = err as ApiError
     if (apiError.status !== 401) throw err
 
-    const newToken = onRefresh()
-    return Promise.resolve(newToken).then((resolved) => {
-      if (!resolved) {
-        onUnauthenticated()
-        throw err
-      }
-      return requester(init, resolved)
-    })
-  })
+    let newToken: string | null
+    try {
+      newToken = await onRefresh()
+    } catch (refreshError) {
+      onUnauthenticated()
+      throw refreshError
+    }
+
+    if (!newToken) {
+      onUnauthenticated()
+      throw err
+    }
+
+    return requester(init, newToken)
+  }
 }
 
 /**

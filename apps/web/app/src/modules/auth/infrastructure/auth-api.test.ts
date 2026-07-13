@@ -426,6 +426,23 @@ describe('createApiFetch', () => {
     expect(onUnauthenticated).toHaveBeenCalledOnce()
   })
 
+  it('calls onUnauthenticated and propagates refresh errors when token refresh rejects', async () => {
+    mockFetch(new Response(null, { status: 401 }))
+
+    const refreshError = new Error('refresh failed')
+    const onUnauthenticated = vi.fn()
+    const apiFetch = createApiFetch({
+      getToken: () => 'expired-token',
+      onRefresh: async () => {
+        throw refreshError
+      },
+      onUnauthenticated,
+    })
+
+    await expect(apiFetch('/api/posts/1')).rejects.toBe(refreshError)
+    expect(onUnauthenticated).toHaveBeenCalledOnce()
+  })
+
   it('re-throws non-401 errors without refresh attempt', async () => {
     mockFetch(
       new Response(JSON.stringify({ title: 'Forbidden', detail: 'Access denied' }), {

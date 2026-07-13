@@ -1,6 +1,12 @@
-# Delta for Frontend Modularization
+# Frontend Modularization Specification
 
-## ADDED Requirements
+## Overview
+
+### ADDED Requirements
+
+This specification records Phase 1 frontend modularization requirements for relocating auth, workspace, and settings code into the Phase 0 module structure without changing runtime behavior.
+
+## Changes
 
 ### Requirement: Phase 1 module placement
 
@@ -62,6 +68,8 @@ The migration MUST preserve the shadcn-vue managed `src/components/ui` location 
 - THEN it SHALL live in that feature module's `presentation/` layer
 - AND unrelated shared or shadcn-vue UI MUST NOT be moved
 
+## Usage
+
 ### Requirement: Verification preserves behavior
 
 The migration MUST be validated as a behavior-preserving file and import reorganization.
@@ -71,7 +79,13 @@ The migration MUST be validated as a behavior-preserving file and import reorgan
 - GIVEN the modularization changes are complete
 - WHEN `pnpm --filter app exec vitest run` and `pnpm --filter app exec biome check` run against the Vue SPA
 - THEN both commands SHALL pass without module-resolution failures
+- AND `just ci` SHALL pass as a repo-level safeguard
+- AND `just frontend-format` SHALL NOT be treated as a Vue SPA verification gate while it targets `apps/web/marketing` and fails because that package's Biome format command processes no files
 - AND `just frontend-test` / `just frontend-lint` SHALL NOT be used as the sole verification target (those recipes target the marketing app)
+
+## Troubleshooting
+
+### Requirement: Known coupling is not redesigned
 
 #### Scenario: Known coupling is not redesigned
 
@@ -79,3 +93,9 @@ The migration MUST be validated as a behavior-preserving file and import reorgan
 - WHEN it is moved for Phase 1
 - THEN it SHALL be moved as-is into auth infrastructure
 - AND API splitting or public barrel introduction MUST remain out of scope
+
+## References
+
+- Change archive: `openspec/changes/archive/2026-07-12-dallay-468-modularization-phase-1-auth-workspace-settings/`
+- Phase 0 module alias: `@modules/*`
+- shadcn-vue managed UI path: `apps/web/app/src/components/ui`

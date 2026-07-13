@@ -1,10 +1,12 @@
 # Design: DALLAY-468 Modularization Phase 1 — Auth, Workspace, Settings
 
-## Technical Approach
+## Overview
+
+### Technical Approach
 
 Behavior-preserving relocation only. Move auth, workspace, and settings files from legacy `src/views`, `src/stores`, `src/lib`, and `src/components/workspace` into `src/modules/*` using Phase 0 aliases. Update every runtime import, test import, and `vi.mock()` path to the new `@modules/*` locations. Do not split APIs, change routes, alter Pinia IDs/state, or move shadcn-vue primitives.
 
-## Architecture Decisions
+### Architecture Decisions
 
 | Decision | Choice | Alternatives considered | Rationale |
 |---|---|---|---|
@@ -14,7 +16,9 @@ Behavior-preserving relocation only. Move auth, workspace, and settings files fr
 | Settings view | Move intact to settings presentation | Decompose workspace/auth/publishing UI now | Current behavior spans modules; decomposition is not required for physical modularization. |
 | shadcn-vue | Keep `@/components/ui/*` unchanged | Move UI primitives to shared/modules | `components.json` owns that path; moving it would break tooling scope. |
 
-## Data Flow
+## Changes
+
+### Data Flow
 
 No runtime behavior changes.
 
@@ -26,7 +30,7 @@ SettingsView ───────→ auth store + workspace store + publishing 
 legacy consumers ───→ moved auth-api/store paths via direct imports
 ```
 
-## File Changes
+### File Changes
 
 | File | Action | Description |
 |---|---|---|
@@ -41,7 +45,58 @@ legacy consumers ───→ moved auth-api/store paths via direct imports
 | `*.spec.ts`, `*.test.ts` for moved files | Move/Modify | Place beside target layer and rewrite imports/mocks. |
 | `src/router/index.ts`, `src/main.ts`, app components/views/stores/lib tests | Modify | Rewrite legacy imports and `vi.mock()` strings. |
 
-## Interfaces / Contracts
+## Usage
+
+### Testing Strategy
+
+| Layer | What to Test | Approach |
+|---|---|---|
+| Unit | Moved stores/API helpers | Preserve existing specs; update imports/mocks only. |
+| Component | Auth, callback, settings, modal consumers | Preserve assertions; update mounted component imports and mocks. |
+| Integration-ish | Router guard, AppShell, media/publishing/composer/sidebar consumers | Rewrite `@/stores/*` and `@/lib/auth-api` mocks to `@modules/*`. |
+| E2E | Auth/settings route behavior | No path changes expected; rely on existing route-based specs if needed. |
+
+### Migration / Rollout
+
+No data migration required. Apply as one focused relocation PR. App-specific verification commands from repo root:
+
+```bash
+pnpm --filter app exec vitest run
+pnpm --filter app exec biome check src/modules src/main.ts src/router/index.ts src/views src/components src/stores src/lib src/composables
+```
+
+Repo-level verification command before merge:
+
+```bash
+just ci
+```
+
+`just frontend-format` was checked and is not applicable as a Vue SPA verification gate in the current Justfile:
+
+```bash
+just frontend-format
+```
+
+It targets `apps/web/marketing` and currently fails because that package's Biome format command processes no files.
+
+> Note: `just frontend-test` and `just frontend-lint` target the marketing app, not the Vue SPA.
+> App-specific verification uses `pnpm --filter app ...` commands. `just ci` remains applicable as the repo-level safeguard before merge.
+
+## Troubleshooting
+
+### Boundary Exceptions
+
+- `auth-api.ts` remains cross-feature until a later shared/API decomposition phase.
+- `SettingsView.vue` may import auth, workspace, and publishing during Phase 1.
+- Unmigrated legacy features may import module internals directly until public module barrels are introduced.
+
+### Open Questions
+
+None.
+
+## References
+
+### Interfaces / Contracts
 
 Moved symbols keep their current exported names and runtime contracts:
 
@@ -57,39 +112,10 @@ Key path contracts:
 - `@modules/workspace/infrastructure/workspace.store`
 - `@modules/settings/infrastructure/settings.store`
 
-## Testing Strategy
-
-| Layer | What to Test | Approach |
-|---|---|---|
-| Unit | Moved stores/API helpers | Preserve existing specs; update imports/mocks only. |
-| Component | Auth, callback, settings, modal consumers | Preserve assertions; update mounted component imports and mocks. |
-| Integration-ish | Router guard, AppShell, media/publishing/composer/sidebar consumers | Rewrite `@/stores/*` and `@/lib/auth-api` mocks to `@modules/*`. |
-| E2E | Auth/settings route behavior | No path changes expected; rely on existing route-based specs if needed. |
-
-## Migration / Rollout
-
-No data migration required. Apply as one focused relocation PR. Verification commands from repo root:
-
-```bash
-pnpm --filter app exec vitest run
-pnpm --filter app exec biome check src/modules src/main.ts src/router/index.ts src/views src/components src/stores src/lib src/composables
-```
-
-> Note: `just frontend-test` and `just frontend-lint` target the marketing app, not the Vue SPA.
-> App-specific verification uses `pnpm --filter app ...` commands.
+### Confidence Check
 
 Optional confidence check after rewrite:
 
 ```bash
 rg '@/\(stores/\(auth\|workspace\|settings\)\|lib/auth-api\|views/\(AuthView\|SettingsView\|LinkedInCallbackView\)\|components/workspace/WorkspaceIconModal\)' apps/web/app/src
 ```
-
-## Boundary Exceptions
-
-- `auth-api.ts` remains cross-feature until a later shared/API decomposition phase.
-- `SettingsView.vue` may import auth, workspace, and publishing during Phase 1.
-- Unmigrated legacy features may import module internals directly until public module barrels are introduced.
-
-## Open Questions
-
-None.

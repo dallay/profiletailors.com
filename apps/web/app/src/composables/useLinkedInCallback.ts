@@ -1,11 +1,18 @@
-import { ref } from 'vue'
+import { ref, type Ref } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useI18n } from 'vue-i18n'
 import { usePublishingStore } from '@/stores/publishing'
 
 export type LinkedInCallbackStatus = 'loading' | 'success' | 'error'
 
-export function useLinkedInCallback() {
+export type LinkedInCallbackState = {
+  status: Ref<LinkedInCallbackStatus>
+  message: Ref<string>
+  retryConnection: () => Promise<void>
+  processCallback: () => Promise<void>
+}
+
+export function useLinkedInCallback(): LinkedInCallbackState {
   const route = useRoute()
   const router = useRouter()
   const publishing = usePublishingStore()
@@ -24,7 +31,7 @@ export function useLinkedInCallback() {
     return typeof value === 'string' ? value : null
   }
 
-  async function retryConnection() {
+  async function retryConnection(): Promise<void> {
     status.value = 'loading'
     message.value = t('linkedinCallback.retryingMessage')
 
@@ -36,7 +43,7 @@ export function useLinkedInCallback() {
     }
   }
 
-  async function processCallback() {
+  async function processCallback(): Promise<void> {
     const oauthError = firstQueryValue(route.query.error)
     const oauthErrorDescription = firstQueryValue(route.query.error_description)
 
