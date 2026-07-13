@@ -1,6 +1,6 @@
 import { createRouter, createWebHistory } from 'vue-router'
 import type { RouteLocationNormalized } from 'vue-router'
-import HomeView from '../views/HomeView.vue'
+import HomeView from '@modules/dashboard/presentation/views/HomeView.vue'
 import { useAuthStore } from '@modules/auth/infrastructure/auth.store'
 
 function requiresAuth(route: RouteLocationNormalized) {
@@ -72,7 +72,7 @@ const router = createRouter({
     {
       path: '/analytics',
       name: 'analytics',
-      component: () => import('../views/AnalyticsView.vue'),
+      component: () => import('@modules/dashboard/presentation/views/AnalyticsView.vue'),
       meta: { requiresAuth: true },
     },
     {
