@@ -444,7 +444,6 @@ describe('createApiFetch', () => {
   })
 
   it('calls onUnauthenticated and propagates retry failure when retried request fails with 401', async () => {
-    let callCount = 0
     mockFetch(
       new Response(null, {
         status: 401,
