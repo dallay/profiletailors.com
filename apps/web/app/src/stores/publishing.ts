@@ -1,8 +1,8 @@
 import { ref, computed } from 'vue'
 import { defineStore } from 'pinia'
 import { consumeSseStream } from '@/lib/sse'
-import { resolveApiUrl } from '@/lib/auth-api'
-import { useAuthStore } from './auth'
+import { resolveApiUrl } from '@modules/auth/infrastructure/auth-api'
+import { useAuthStore } from '@modules/auth/infrastructure/auth.store'
 
 // ---------------------------------------------------------------------------
 // Types — Channel & Publication (frontend model)

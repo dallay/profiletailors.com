@@ -3,7 +3,7 @@ import { computed, ref } from 'vue'
 import { ChevronsUpDown, Plus } from '@lucide/vue'
 import WorkspaceAvatar from '@/components/WorkspaceAvatar.vue'
 import { usePopoverDismissal } from '@/composables/usePopoverDismissal'
-import type { WorkspaceSummary } from '@/lib/auth-api'
+import type { WorkspaceSummary } from '@modules/auth/infrastructure/auth-api'
 
 const props = defineProps<{
   activeWorkspace: WorkspaceSummary | null

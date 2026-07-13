@@ -1,7 +1,7 @@
 import { createRouter, createWebHistory } from 'vue-router'
 import type { RouteLocationNormalized } from 'vue-router'
 import HomeView from '../views/HomeView.vue'
-import { useAuthStore } from '@/stores/auth'
+import { useAuthStore } from '@modules/auth/infrastructure/auth.store'
 
 function requiresAuth(route: RouteLocationNormalized) {
   return route.meta.requiresAuth === true
@@ -17,13 +17,13 @@ const router = createRouter({
     {
       path: '/login',
       name: 'login',
-      component: () => import('../views/AuthView.vue'),
+      component: () => import('@modules/auth/presentation/AuthView.vue'),
       meta: { guestOnly: true },
     },
     {
       path: '/register',
       name: 'register',
-      component: () => import('../views/AuthView.vue'),
+      component: () => import('@modules/auth/presentation/AuthView.vue'),
       meta: { guestOnly: true },
     },
     {
@@ -84,13 +84,13 @@ const router = createRouter({
     {
       path: '/settings',
       name: 'settings',
-      component: () => import('../views/SettingsView.vue'),
+      component: () => import('@modules/settings/presentation/SettingsView.vue'),
       meta: { requiresAuth: true },
     },
     {
       path: '/integrations/linkedin/callback',
       name: 'linkedin-callback',
-      component: () => import('../views/LinkedInCallbackView.vue'),
+      component: () => import('@modules/auth/presentation/LinkedInCallbackView.vue'),
       meta: { requiresAuth: true },
     },
   ],

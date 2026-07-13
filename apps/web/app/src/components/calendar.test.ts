@@ -17,7 +17,7 @@ vi.mock('vue-i18n', () => ({
 }))
 
 // Mock auth-api required by publishing store
-vi.mock('@/lib/auth-api', () => ({
+vi.mock('@modules/auth/infrastructure/auth-api', () => ({
   createApiFetch: () =>
     async function apiFetch<T>() {
       return {} as T

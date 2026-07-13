@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { ref } from 'vue'
 import { useI18n } from 'vue-i18n'
-import { useAuthStore } from '@/stores/auth'
+import { useAuthStore } from '@modules/auth/infrastructure/auth.store'
 import { Button } from '@/components/ui/button'
 import CreatePostModal from '@/components/CreatePostModal.vue'
 import DashboardLayout from '@/components/dashboard/DashboardLayout.vue'

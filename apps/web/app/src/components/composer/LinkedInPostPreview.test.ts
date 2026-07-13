@@ -2,7 +2,7 @@ import { describe, expect, it, vi } from 'vitest'
 import { mount } from '@vue/test-utils'
 import LinkedInPostPreview from './LinkedInPostPreview.vue'
 
-vi.mock('@/lib/auth-api', () => ({
+vi.mock('@modules/auth/infrastructure/auth-api', () => ({
   proxyImageUrl: (url: string) => url,
 }))
 

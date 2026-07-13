@@ -1,6 +1,6 @@
 import { computed, ref } from 'vue'
 import { defineStore } from 'pinia'
-import { type WorkspaceSummary, fetchWorkspaces } from '@/lib/auth-api'
+import { type WorkspaceSummary, fetchWorkspaces } from '@modules/auth/infrastructure/auth-api'
 
 const STORAGE_KEY = 'pt_active_workspace_id'
 const NAME_STORAGE_KEY = 'pt_active_workspace_name'

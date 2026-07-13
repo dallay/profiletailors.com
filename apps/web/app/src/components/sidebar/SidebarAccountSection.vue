@@ -3,7 +3,7 @@ import { ref } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { LogOut, Settings } from '@lucide/vue'
 import { usePopoverDismissal } from '@/composables/usePopoverDismissal'
-import { useSettingsStore } from '@/stores/settings'
+import { useSettingsStore } from '@modules/settings/infrastructure/settings.store'
 
 defineProps<{
   user: {
