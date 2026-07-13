@@ -99,9 +99,9 @@ function isMediaApiError(body: unknown): body is MediaApiError {
 // API functions
 // ---------------------------------------------------------------------------
 
-import { createApiFetch, refreshSession } from '@/lib/auth-api'
-import { useAuthStore } from '@/stores/auth'
-import { useWorkspaceStore } from '@/stores/workspace'
+import { createApiFetch, refreshSession } from '@modules/auth/infrastructure/auth-api'
+import { useAuthStore } from '@modules/auth/infrastructure/auth.store'
+import { useWorkspaceStore } from '@modules/workspace/infrastructure/workspace.store'
 import { computeFileHash, sanitizeFilename } from '@/composables/useFileHash'
 
 interface MediaApiErrorShape extends Error {

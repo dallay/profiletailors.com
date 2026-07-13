@@ -2,7 +2,7 @@ import { mount } from '@vue/test-utils'
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import ThemeToggle from './ThemeToggle.vue'
 import { createPinia, setActivePinia } from 'pinia'
-import { useSettingsStore } from '@/stores/settings'
+import { useSettingsStore } from '@modules/settings/infrastructure/settings.store'
 
 describe('ThemeToggle.vue', () => {
   beforeEach(() => {

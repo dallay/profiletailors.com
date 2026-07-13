@@ -5,7 +5,7 @@ import { useMediaStore } from './media'
 // ---------------------------------------------------------------------------
 // Mock auth-api
 // ---------------------------------------------------------------------------
-vi.mock('@/lib/auth-api', () => ({
+vi.mock('@modules/auth/infrastructure/auth-api', () => ({
   createApiFetch: () =>
     Object.assign(
       async function apiFetch<T>() {
@@ -41,7 +41,7 @@ vi.mock('@/lib/media-api', () => ({
 // ---------------------------------------------------------------------------
 // Mock auth store
 // ---------------------------------------------------------------------------
-vi.mock('@/stores/auth', () => ({
+vi.mock('@modules/auth/infrastructure/auth.store', () => ({
   useAuthStore: () => ({
     isAuthenticated: true,
     accessToken: { value: 'fake-token' },
@@ -52,7 +52,7 @@ vi.mock('@/stores/auth', () => ({
 // ---------------------------------------------------------------------------
 // Mock workspace store
 // ---------------------------------------------------------------------------
-vi.mock('@/stores/workspace', () => ({
+vi.mock('@modules/workspace/infrastructure/workspace.store', () => ({
   useWorkspaceStore: () => mockWorkspace,
 }))
 
