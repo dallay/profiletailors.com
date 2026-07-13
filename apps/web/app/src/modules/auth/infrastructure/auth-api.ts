@@ -326,7 +326,15 @@ async function withRetry<T>(
       throw err
     }
 
-    return requester(init, newToken)
+    try {
+      return await requester(init, newToken)
+    } catch (retryErr) {
+      const apiError = retryErr as ApiError
+      if (apiError.status === 401) {
+        onUnauthenticated()
+      }
+      throw retryErr
+    }
   }
 }
 

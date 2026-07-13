@@ -443,6 +443,28 @@ describe('createApiFetch', () => {
     expect(onUnauthenticated).toHaveBeenCalledOnce()
   })
 
+  it('calls onUnauthenticated and propagates retry failure when retried request fails with 401', async () => {
+    let callCount = 0
+    mockFetch(
+      new Response(null, {
+        status: 401,
+        statusText: 'Unauthorized',
+      }),
+    )
+
+    const onUnauthenticated = vi.fn()
+    const apiFetch = createApiFetch({
+      getToken: () => 'expired-token',
+      onRefresh: async () => 'new-access-token',
+      onUnauthenticated,
+    })
+
+    await expect(apiFetch('/api/posts/1')).rejects.toMatchObject({
+      status: 401,
+    })
+    expect(onUnauthenticated).toHaveBeenCalledOnce()
+  })
+
   it('re-throws non-401 errors without refresh attempt', async () => {
     mockFetch(
       new Response(JSON.stringify({ title: 'Forbidden', detail: 'Access denied' }), {
