@@ -101,6 +101,12 @@ vi.mock('@lucide/vue', () => {
     AlertCircle: stub,
     RotateCcw: stub,
     Search: stub,
+    Info: stub,
+    Globe: stub,
+    ThumbsUp: stub,
+    MessageCircle: stub,
+    Repeat2: stub,
+    Send: stub,
   }
 })
 
