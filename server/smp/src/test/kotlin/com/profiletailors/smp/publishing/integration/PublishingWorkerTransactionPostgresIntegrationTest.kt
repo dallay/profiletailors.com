@@ -4,6 +4,8 @@ import com.profiletailors.common.domain.persistence.AtomicTransactionRunner
 import com.profiletailors.smp.media.application.MediaAssetResolver
 import com.profiletailors.smp.media.application.ResolvedAssetSummary
 import com.profiletailors.smp.media.infrastructure.persistence.R2dbcAtomicTransactionRunner
+import com.profiletailors.smp.publishing.domain.DeliveryAttempt
+import com.profiletailors.smp.publishing.domain.DeliveryAttemptOutcome
 import com.profiletailors.smp.publishing.domain.DeliveryAttemptRepository
 import com.profiletailors.smp.publishing.domain.DeliveryRetryPolicy
 import com.profiletailors.smp.publishing.domain.NotificationEvent
@@ -188,6 +190,36 @@ class PublishingWorkerTransactionPostgresIntegrationTest {
     }
 
     // ===== requeueBlockedPublication tests =====
+
+    @Test
+    fun `requeueBlockedPublication removes previous delivery attempts before replacing job`() = runTest {
+        val claim = seedPublicationAndJob("pub-requeue-attempts", status = PublicationStatus.BLOCKED)
+        deliveryAttemptRepository.record(
+            DeliveryAttempt(
+                id = "attempt-requeue-blocked",
+                publicationId = claim.publicationId,
+                publicationJobId = claim.jobId,
+                attemptNumber = 1,
+                outcome = DeliveryAttemptOutcome.FAILED,
+                retryable = false,
+                attemptedAt = fixedClock.instant(),
+            ),
+        )
+        val worker = PublishingWorker(
+            publicationJobRepository = jobRepository,
+            publicationRepository = publicationRepository,
+            executor = createExecutor(),
+            transactionRunner = transactionRunner,
+            clock = fixedClock,
+            workerId = "worker-1",
+        )
+
+        worker.scanBlockedForRecovery()
+
+        assertPublication("pub-requeue-attempts", PublicationStatus.QUEUED)
+        assertNoDeliveryAttempt("pub-requeue-attempts")
+        assertEquals(1L, countJobs("pub-requeue-attempts"))
+    }
 
     @Test
     fun `requeueBlockedPublication rolls back when replaceJob fails after updateEditableDraft`() = runTest {
@@ -387,6 +419,14 @@ class PublishingWorkerTransactionPostgresIntegrationTest {
             .awaitSingleOrNull()
         assertNull(row, "Delivery attempt should not exist after rollback")
     }
+
+    private suspend fun countJobs(publicationId: String): Long = databaseClient.sql(
+        "SELECT COUNT(*) AS count FROM publication_jobs WHERE publication_id = :pub_id",
+    )
+        .bind("pub_id", publicationId)
+        .map { row, _ -> requireNotNull(row.get("count", Long::class.javaObjectType)) }
+        .one()
+        .awaitSingle()
 
     private suspend fun assertNoDeliveryAttemptWithOutcome(publicationId: String, outcome: String) {
         val row = databaseClient.sql(

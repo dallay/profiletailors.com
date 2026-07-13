@@ -13,6 +13,8 @@ import com.profiletailors.smp.publishing.application.CompleteLinkedInConnectionH
 import com.profiletailors.smp.publishing.domain.ChannelEvent
 import com.profiletailors.smp.publishing.domain.ChannelEventPublisher
 import com.profiletailors.smp.publishing.domain.CompleteProviderConnectionCommand
+import com.profiletailors.smp.publishing.domain.DeliveryAttempt
+import com.profiletailors.smp.publishing.domain.DeliveryAttemptOutcome
 import com.profiletailors.smp.publishing.domain.JobStatus
 import com.profiletailors.smp.publishing.domain.LinkedInOAuthStatePayload
 import com.profiletailors.smp.publishing.domain.OAuthStateSigner
@@ -30,18 +32,23 @@ import com.profiletailors.smp.publishing.domain.SocialAccountKind
 import com.profiletailors.smp.publishing.domain.SocialAccountRepository
 import com.profiletailors.smp.publishing.domain.SocialConnectionProvider
 import com.profiletailors.smp.publishing.domain.SocialProvider
+import com.profiletailors.smp.publishing.infrastructure.persistence.R2dbcDeliveryAttemptRepository
 import com.profiletailors.smp.publishing.infrastructure.persistence.R2dbcPublicationJobRepository
 import com.profiletailors.smp.publishing.infrastructure.persistence.R2dbcPublicationRepository
 import com.profiletailors.smp.publishing.infrastructure.persistence.R2dbcSocialAccountRepository
 import com.profiletailors.smp.publishing.infrastructure.persistence.R2dbcSocialConnectionRepository
 import com.profiletailors.smp.test.TestStorageConfiguration
 import io.micrometer.core.instrument.simple.SimpleMeterRegistry
+import kotlinx.coroutines.async
+import kotlinx.coroutines.awaitAll
+import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.reactor.awaitSingle
 import kotlinx.coroutines.reactor.awaitSingleOrNull
 import kotlinx.coroutines.test.runTest
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertNull
 import org.junit.jupiter.api.Assertions.assertThrows
+import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Tag
 import org.junit.jupiter.api.Test
@@ -49,6 +56,7 @@ import org.junit.jupiter.api.TestInstance
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.test.context.SpringBootTest
 import org.springframework.context.annotation.Import
+import org.springframework.dao.DataIntegrityViolationException
 import org.springframework.r2dbc.connection.R2dbcTransactionManager
 import org.springframework.r2dbc.core.DatabaseClient
 import org.springframework.test.context.DynamicPropertyRegistry
@@ -83,6 +91,7 @@ class PublishingHandlersTransactionPostgresIntegrationTest {
 
     private lateinit var publicationRepository: R2dbcPublicationRepository
     private lateinit var jobRepository: R2dbcPublicationJobRepository
+    private lateinit var deliveryAttemptRepository: R2dbcDeliveryAttemptRepository
     private lateinit var socialConnectionRepository: R2dbcSocialConnectionRepository
     private lateinit var socialAccountRepository: R2dbcSocialAccountRepository
     private lateinit var transactionRunner: AtomicTransactionRunner
@@ -96,6 +105,7 @@ class PublishingHandlersTransactionPostgresIntegrationTest {
         seedAssets()
         publicationRepository = R2dbcPublicationRepository(databaseClient, transactionalOperator)
         jobRepository = R2dbcPublicationJobRepository(databaseClient)
+        deliveryAttemptRepository = R2dbcDeliveryAttemptRepository(databaseClient)
         socialConnectionRepository = R2dbcSocialConnectionRepository(databaseClient)
         socialAccountRepository = R2dbcSocialAccountRepository(databaseClient, SimpleMeterRegistry())
         transactionRunner = R2dbcAtomicTransactionRunner(TransactionalOperator.create(transactionManager))
@@ -220,7 +230,19 @@ class PublishingHandlersTransactionPostgresIntegrationTest {
 
     @Test
     fun `retry commits publication asset links and replacement job`() = runTest {
-        seedPublicationAndJob("pub-retry-commit", "failed", listOf("asset-1"), status = PublicationStatus.FAILED)
+        val originalJobId =
+            seedPublicationAndJob("pub-retry-commit", "failed", listOf("asset-1"), status = PublicationStatus.FAILED)
+        deliveryAttemptRepository.record(
+            DeliveryAttempt(
+                id = "attempt-retry-commit",
+                publicationId = "pub-retry-commit",
+                publicationJobId = originalJobId,
+                attemptNumber = 1,
+                outcome = DeliveryAttemptOutcome.FAILED,
+                retryable = false,
+                attemptedAt = now,
+            ),
+        )
 
         updatePublicationAndReplaceJob(
             publicationId = "pub-retry-commit",
@@ -236,12 +258,24 @@ class PublishingHandlersTransactionPostgresIntegrationTest {
 
         assertPublication("pub-retry-commit", PublicationStatus.QUEUED, "retry", listOf("asset-2"))
         assertJob("pub-retry-commit", status = JobStatus.PENDING, priorityRank = 100)
+        assertNull(deliveryAttemptRow("pub-retry-commit"))
     }
 
     @Test
     fun `retry rolls back publication asset links and preserves job when replacement fails`() = runTest {
         val originalJobId =
             seedPublicationAndJob("pub-retry-rollback", "failed", listOf("asset-1"), status = PublicationStatus.FAILED)
+        deliveryAttemptRepository.record(
+            DeliveryAttempt(
+                id = "attempt-retry-rollback",
+                publicationId = "pub-retry-rollback",
+                publicationJobId = originalJobId,
+                attemptNumber = 1,
+                outcome = DeliveryAttemptOutcome.FAILED,
+                retryable = false,
+                attemptedAt = now,
+            ),
+        )
 
         assertThrows(InjectedJobFailure::class.java) {
             kotlinx.coroutines.runBlocking {
@@ -261,11 +295,112 @@ class PublishingHandlersTransactionPostgresIntegrationTest {
 
         assertPublication("pub-retry-rollback", PublicationStatus.FAILED, "failed", listOf("asset-1"))
         assertEquals(originalJobId, requireNotNull(jobRow("pub-retry-rollback"))["id"])
+        assertEquals("attempt-retry-rollback", requireNotNull(deliveryAttemptRow("pub-retry-rollback"))["id"])
+    }
+
+    @Test
+    fun `retry rolls back deleted attempts and job when replacement insert fails`() = runTest {
+        val publicationId = "pub-retry-sql-rollback"
+        val originalJobId =
+            seedPublicationAndJob(publicationId, "failed", listOf("asset-1"), status = PublicationStatus.FAILED)
+        deliveryAttemptRepository.record(
+            DeliveryAttempt(
+                id = "attempt-retry-sql-rollback",
+                publicationId = publicationId,
+                publicationJobId = originalJobId,
+                attemptNumber = 1,
+                outcome = DeliveryAttemptOutcome.FAILED,
+                retryable = false,
+                attemptedAt = now,
+            ),
+        )
+        val collisionHolder = publicationRepository.createDraft(
+            draft("pub-retry-collision-holder", "collision", emptyList()),
+        )
+        jobRepository.enqueue(
+            jobFor(collisionHolder).copy(id = "pjob-$publicationId"),
+        )
+
+        assertThrows(DataIntegrityViolationException::class.java) {
+            kotlinx.coroutines.runBlocking {
+                updatePublicationAndReplaceJob(
+                    publicationId = publicationId,
+                    draft = draft(
+                        publicationId,
+                        "retry",
+                        listOf("asset-2"),
+                        priority = true,
+                        status = PublicationStatus.QUEUED,
+                    ),
+                    repository = jobRepository,
+                )
+            }
+        }
+
+        assertPublication(publicationId, PublicationStatus.FAILED, "failed", listOf("asset-1"))
+        assertEquals(originalJobId, requireNotNull(jobRow(publicationId))["id"])
+        assertEquals(
+            "attempt-retry-sql-rollback",
+            requireNotNull(deliveryAttemptRow(publicationId))["id"],
+        )
+    }
+
+    @Test
+    fun `concurrent retries leave one replacement job without delivery attempts`() = runTest {
+        val publicationId = "pub-retry-concurrent"
+        val originalJobId =
+            seedPublicationAndJob(publicationId, "failed", listOf("asset-1"), status = PublicationStatus.FAILED)
+        deliveryAttemptRepository.record(
+            DeliveryAttempt(
+                id = "attempt-retry-concurrent",
+                publicationId = publicationId,
+                publicationJobId = originalJobId,
+                attemptNumber = 1,
+                outcome = DeliveryAttemptOutcome.FAILED,
+                retryable = false,
+                attemptedAt = now,
+            ),
+        )
+
+        val results = coroutineScope {
+            listOf(false, true).map { priority ->
+                async {
+                    runCatching {
+                        updatePublicationAndReplaceJob(
+                            publicationId = publicationId,
+                            draft = draft(
+                                publicationId,
+                                "retry",
+                                listOf("asset-2"),
+                                priority = priority,
+                                status = PublicationStatus.QUEUED,
+                            ),
+                            repository = jobRepository,
+                        )
+                    }
+                }
+            }.awaitAll()
+        }
+
+        assertTrue(results.all { it.isSuccess })
+        assertEquals(1L, countJobs(publicationId))
+        assertNull(deliveryAttemptRow(publicationId))
     }
 
     @Test
     fun `reschedule commits publication asset links and replacement job`() = runTest {
-        seedPublicationAndJob("pub-reschedule-commit", "old time", listOf("asset-1"))
+        val originalJobId = seedPublicationAndJob("pub-reschedule-commit", "old time", listOf("asset-1"))
+        deliveryAttemptRepository.record(
+            DeliveryAttempt(
+                id = "attempt-reschedule-commit",
+                publicationId = "pub-reschedule-commit",
+                publicationJobId = originalJobId,
+                attemptNumber = 1,
+                outcome = DeliveryAttemptOutcome.FAILED,
+                retryable = false,
+                attemptedAt = now,
+            ),
+        )
 
         updatePublicationAndReplaceJob(
             publicationId = "pub-reschedule-commit",
@@ -282,6 +417,7 @@ class PublishingHandlersTransactionPostgresIntegrationTest {
 
         assertPublication("pub-reschedule-commit", PublicationStatus.SCHEDULED, "new time", listOf("asset-2"))
         assertJob("pub-reschedule-commit", status = JobStatus.PENDING)
+        assertNull(deliveryAttemptRow("pub-reschedule-commit"))
     }
 
     @Test
@@ -406,6 +542,22 @@ class PublishingHandlersTransactionPostgresIntegrationTest {
 
     private suspend fun jobRow(publicationId: String): Map<String, Any>? = databaseClient.sql(
         "SELECT id, status, priority_rank FROM publication_jobs WHERE publication_id = :publicationId",
+    )
+        .bind("publicationId", publicationId)
+        .fetch()
+        .one()
+        .awaitSingleOrNull()
+
+    private suspend fun countJobs(publicationId: String): Long = databaseClient.sql(
+        "SELECT COUNT(*) AS count FROM publication_jobs WHERE publication_id = :publicationId",
+    )
+        .bind("publicationId", publicationId)
+        .map { row, _ -> requireNotNull(row.get("count", Long::class.javaObjectType)) }
+        .one()
+        .awaitSingle()
+
+    private suspend fun deliveryAttemptRow(publicationId: String): Map<String, Any>? = databaseClient.sql(
+        "SELECT id FROM delivery_attempts WHERE publication_id = :publicationId",
     )
         .bind("publicationId", publicationId)
         .fetch()
