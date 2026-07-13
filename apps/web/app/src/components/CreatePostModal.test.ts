@@ -4,7 +4,7 @@ import { createPinia, setActivePinia } from 'pinia'
 import { nextTick } from 'vue'
 import { usePublishingStore } from '@/stores/publishing'
 import { useMediaStore } from '@/stores/media'
-import { useWorkspaceStore } from '@/stores/workspace'
+import { useWorkspaceStore } from '@modules/workspace/infrastructure/workspace.store'
 import CreatePostModalComponent from './CreatePostModal.vue'
 
 // ---------------------------------------------------------------------------
@@ -64,7 +64,7 @@ vi.mock('@/i18n', () => ({
   default: { global: { locale: { value: 'en' } } },
 }))
 
-vi.mock('@/lib/auth-api', () => ({
+vi.mock('@modules/auth/infrastructure/auth-api', () => ({
   createApiFetch: () =>
     async function apiFetch<T>() {
       return {} as T

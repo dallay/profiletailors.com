@@ -19,7 +19,7 @@ vi.mock('vue-i18n', () => ({
   }),
 }))
 
-vi.mock('@/stores/auth', () => ({
+vi.mock('@modules/auth/infrastructure/auth.store', () => ({
   useAuthStore: () => ({
     verifyEmail,
     get isAuthenticated() {

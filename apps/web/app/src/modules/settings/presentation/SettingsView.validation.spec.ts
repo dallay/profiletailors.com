@@ -1,7 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { flushPromises, mount } from '@vue/test-utils'
 import { createPinia, setActivePinia } from 'pinia'
-import { useWorkspaceStore } from '@/stores/workspace'
+import { useWorkspaceStore } from '@modules/workspace/infrastructure/workspace.store'
 import SettingsView from './SettingsView.vue'
 
 const routeQuery = vi.hoisted(() => ({ value: {} as Record<string, unknown> }))
@@ -25,7 +25,7 @@ vi.mock('vue-i18n', () => ({
   }),
 }))
 
-vi.mock('@/lib/auth-api', () => ({
+vi.mock('@modules/auth/infrastructure/auth-api', () => ({
   createApiFetch: () =>
     async function apiFetch<T>() {
       return {} as T
@@ -40,7 +40,7 @@ vi.mock('@/lib/auth-api', () => ({
   updateWorkspaceIcon: vi.fn(),
 }))
 
-vi.mock('@/stores/auth', () => ({
+vi.mock('@modules/auth/infrastructure/auth.store', () => ({
   useAuthStore: () => authStoreState,
 }))
 

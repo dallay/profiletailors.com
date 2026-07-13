@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { computed } from 'vue'
-import { proxyImageUrl } from '@/lib/auth-api'
+import { proxyImageUrl } from '@modules/auth/infrastructure/auth-api'
 import type { LinkedInPreviewModel } from './post-preview.types'
 
 const props = defineProps<{

@@ -79,7 +79,7 @@ vi.mock('@/composables/useCalendarUrl', async (importOriginal) => {
   }
 })
 
-vi.mock('@/stores/auth', () => ({
+vi.mock('@modules/auth/infrastructure/auth.store', () => ({
   useAuthStore: () => ({
     get isAuthenticated() {
       return authState.isAuthenticated
@@ -113,7 +113,7 @@ vi.mock('@/stores/auth', () => ({
   }),
 }))
 
-vi.mock('@/stores/workspace', () => ({
+vi.mock('@modules/workspace/infrastructure/workspace.store', () => ({
   useWorkspaceStore: () => ({
     activeWorkspaceId: 'ws-1',
     activeWorkspace: null,
