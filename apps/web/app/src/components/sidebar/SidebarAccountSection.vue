@@ -50,12 +50,12 @@ function segmentedControlClass(isActive: boolean) {
 <template>
   <div
     ref="containerRef"
-    class="relative"
+    class="relative min-w-0"
   >
     <div
       v-if="open"
       id="sidebar-account-menu"
-      class="absolute right-0 bottom-full mb-2 w-full rounded-2xl border border-border-subtle bg-bg-surface p-2 shadow-2xl group-data-[collapsible=icon]:left-0 group-data-[collapsible=icon]:min-w-56"
+      class="absolute right-0 bottom-full mb-2 w-full min-w-56 rounded-lg border border-border-subtle bg-bg-surface p-1.5 shadow-lg group-data-[collapsible=icon]:left-0"
       role="menu"
     >
       <div class="px-2 py-2">
@@ -192,14 +192,14 @@ function segmentedControlClass(isActive: boolean) {
 
     <button
       ref="triggerRef"
-      class="flex w-full items-center gap-3 rounded-2xl border border-border-subtle bg-bg-surface/80 p-3 text-left transition-all hover:border-border-visible hover:bg-bg-surface group-data-[collapsible=icon]:p-0 group-data-[collapsible=icon]:size-10 group-data-[collapsible=icon]:justify-center"
+      class="flex h-12 w-full min-w-0 items-center gap-2 rounded-md p-2 text-left transition-colors hover:bg-bg-primary/70 group-data-[collapsible=icon]:size-8! group-data-[collapsible=icon]:justify-center group-data-[collapsible=icon]:p-0!"
       type="button"
       aria-haspopup="menu"
       :aria-expanded="open ? 'true' : 'false'"
       aria-controls="sidebar-account-menu"
       @click.stop="toggle"
     >
-      <div class="flex size-10 shrink-0 items-center justify-center rounded-xl border border-border-visible bg-bg-primary font-mono text-xs font-bold text-text-display group-data-[collapsible=icon]:size-full">
+      <div class="flex size-8 shrink-0 items-center justify-center rounded-lg bg-bg-primary font-mono text-xs font-bold text-text-display">
         {{ user.initials }}
       </div>
       <span class="sr-only">{{ user.displayName }}</span>
@@ -208,7 +208,7 @@ function segmentedControlClass(isActive: boolean) {
         <p class="truncate text-sm font-medium text-text-display">
           {{ user.displayName }}
         </p>
-        <p class="truncate font-mono text-[10px] uppercase tracking-[0.14em] text-text-secondary">
+        <p class="truncate text-xs text-text-secondary">
           {{ user.email || 'Session active' }}
         </p>
       </div>
