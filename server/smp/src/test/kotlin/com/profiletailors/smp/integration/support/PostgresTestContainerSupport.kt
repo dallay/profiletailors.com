@@ -198,3 +198,15 @@ abstract class PostgresIntegrationTestBase : IntegrationTestBase() {
 
     override fun cleanupStatements(): List<String> = PostgresDatabaseCleanup.statements
 }
+
+/**
+ * Counts the number of publication job rows for a given publication.
+ * Extracted from duplicated private copies across publishing integration tests.
+ */
+suspend fun org.springframework.r2dbc.core.DatabaseClient.countPublicationJobs(publicationId: String): Long = sql(
+    "SELECT COUNT(*) AS count FROM publication_jobs WHERE publication_id = :publicationId",
+)
+    .bind("publicationId", publicationId)
+    .map { row, _ -> requireNotNull(row.get("count", Long::class.javaObjectType)) }
+    .one()
+    .awaitSingle()

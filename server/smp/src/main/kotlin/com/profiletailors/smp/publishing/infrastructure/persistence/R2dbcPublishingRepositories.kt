@@ -739,6 +739,11 @@ class R2dbcPublicationJobRepository(private val databaseClient: DatabaseClient) 
     }
 
     override suspend fun replaceForPublication(job: PublicationJob) {
+        databaseClient.sql("DELETE FROM delivery_attempts WHERE publication_id = :publicationId")
+            .bind("publicationId", job.publicationId)
+            .fetch()
+            .rowsUpdated()
+            .awaitSingle()
         databaseClient.sql("DELETE FROM publication_jobs WHERE publication_id = :publicationId")
             .bind("publicationId", job.publicationId)
             .fetch()
