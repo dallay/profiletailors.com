@@ -4,6 +4,7 @@ import { createPinia, setActivePinia } from 'pinia'
 import MediaLibraryView from './MediaLibraryView.vue'
 import { useMediaStore } from '@/stores/media'
 import { useAuthStore } from '@modules/auth/infrastructure/auth.store'
+import type { MediaAssetSummary } from '../../services/media-api'
 
 vi.mock('vue-i18n', () => ({
   useI18n: () => ({ t: (key: string) => key, locale: { value: 'en' } }),
@@ -44,7 +45,7 @@ vi.mock('@/components/ui/alert-dialog', () => ({
   AlertDialogAction: { template: '<button><slot /></button>' },
 }))
 
-function mountView() {
+function mountView(): ReturnType<typeof mount<typeof MediaLibraryView>> {
   return mount(MediaLibraryView, {
     global: {
       mocks: {
@@ -52,6 +53,22 @@ function mountView() {
       },
     },
   })
+}
+
+function makeAsset(overrides: Partial<MediaAssetSummary> = {}): MediaAssetSummary {
+  const assetId = overrides.assetId ?? 'asset-1'
+
+  return {
+    assetId,
+    workspaceId: 'ws-1',
+    sourceType: 'UPLOADED',
+    mediaType: 'image/jpeg',
+    status: 'READY',
+    originalFilename: 'asset.jpg',
+    fileSizeBytes: 100,
+    createdAt: '2026-06-19T12:00:00Z',
+    ...overrides,
+  }
 }
 
 describe('MediaLibraryView', () => {
@@ -149,18 +166,12 @@ describe('MediaLibraryView', () => {
   it('shows the no-filtered-results message when assets exist but all are filtered out (lines 441-444)', async () => {
     const mediaStore = useMediaStore()
     // Add one READY image asset
-    mediaStore.assetsById['image-ready'] = {
+    mediaStore.assetsById['image-ready'] = makeAsset({
       assetId: 'image-ready',
-      workspaceId: 'ws-1',
-      sourceType: 'UPLOADED',
-      mediaType: 'image/jpeg',
-      status: 'READY',
       originalFilename: 'hero.jpg',
-      fileSizeBytes: 100,
-      createdAt: '2026-06-19T12:00:00Z',
       previewUrl: '/api/media/assets/image-ready/preview',
       downloadUrl: '/api/media/assets/image-ready/content',
-    }
+    })
     mediaStore.assetIds.push('image-ready')
 
     const wrapper = mountView()
@@ -175,9 +186,8 @@ describe('MediaLibraryView', () => {
 
   it('does not render external attribution metadata', async () => {
     const mediaStore = useMediaStore()
-    mediaStore.assetsById['external-asset'] = {
+    mediaStore.assetsById['external-asset'] = makeAsset({
       assetId: 'external-asset',
-      workspaceId: 'ws-1',
       sourceType: 'EXTERNAL',
       sourceProvider: 'unsplash',
       externalId: 'photo-123',
@@ -185,14 +195,11 @@ describe('MediaLibraryView', () => {
       authorName: 'Attribution Author Sentinel',
       authorUrl: 'https://example.test/attribution-author-sentinel',
       metadata: { attributionSentinel: 'hidden-provider-metadata' },
-      mediaType: 'image/jpeg',
-      status: 'READY',
       originalFilename: 'external.jpg',
       fileSizeBytes: 1024,
-      createdAt: '2026-06-19T12:00:00Z',
       previewUrl: '/api/media/assets/external-asset/preview',
       downloadUrl: '/api/media/assets/external-asset/content',
-    }
+    })
     mediaStore.assetIds.push('external-asset')
 
     const wrapper = mountView()
@@ -209,18 +216,13 @@ describe('MediaLibraryView', () => {
 
   it('renders asset cards when assets exist', async () => {
     const mediaStore = useMediaStore()
-    mediaStore.assetsById['asset-1'] = {
+    mediaStore.assetsById['asset-1'] = makeAsset({
       assetId: 'asset-1',
-      workspaceId: 'ws-1',
-      sourceType: 'UPLOADED',
-      mediaType: 'image/jpeg',
-      status: 'READY',
       originalFilename: 'hero.jpg',
       fileSizeBytes: 1024,
-      createdAt: '2026-06-19T12:00:00Z',
       previewUrl: '/api/media/assets/asset-1/preview',
       downloadUrl: '/api/media/assets/asset-1/content',
-    }
+    })
     mediaStore.assetIds.push('asset-1')
 
     const wrapper = mountView()
@@ -233,29 +235,21 @@ describe('MediaLibraryView', () => {
 
   it('filters assets by status and type', async () => {
     const mediaStore = useMediaStore()
-    mediaStore.assetsById['image-ready'] = {
+    mediaStore.assetsById['image-ready'] = makeAsset({
       assetId: 'image-ready',
-      workspaceId: 'ws-1',
-      sourceType: 'UPLOADED',
-      mediaType: 'image/jpeg',
-      status: 'READY',
       originalFilename: 'hero.jpg',
-      fileSizeBytes: 100,
-      createdAt: '2026-06-19T12:00:00Z',
       previewUrl: '/api/media/assets/image-ready/preview',
       downloadUrl: '/api/media/assets/image-ready/content',
-    }
-    mediaStore.assetsById['video-processing'] = {
+    })
+    mediaStore.assetsById['video-processing'] = makeAsset({
       assetId: 'video-processing',
-      workspaceId: 'ws-1',
-      sourceType: 'UPLOADED',
       mediaType: 'video/mp4',
       status: 'UPLOADING',
       originalFilename: 'clip.mp4',
       fileSizeBytes: 200,
       createdAt: '2026-06-18T12:00:00Z',
       downloadUrl: '/api/media/assets/video-processing/content',
-    }
+    })
     mediaStore.assetIds.push('image-ready', 'video-processing')
 
     const wrapper = mountView()
@@ -274,16 +268,12 @@ describe('MediaLibraryView', () => {
       ['pending-asset', 'PENDING_UPLOAD'],
       ['uploading-asset', 'UPLOADING'],
     ] as const) {
-      mediaStore.assetsById[assetId] = {
+      mediaStore.assetsById[assetId] = makeAsset({
         assetId,
-        workspaceId: 'ws-1',
-        sourceType: 'UPLOADED',
         mediaType: 'image/png',
         status,
         originalFilename: `${assetId}.png`,
-        fileSizeBytes: 100,
-        createdAt: '2026-06-19T12:00:00Z',
-      }
+      })
       mediaStore.assetIds.push(assetId)
     }
 
@@ -308,16 +298,12 @@ describe('MediaLibraryView', () => {
 
   it('applies fallback status class for unknown/edge statuses like DELETED', async () => {
     const mediaStore = useMediaStore()
-    mediaStore.assetsById['deleted-asset'] = {
+    mediaStore.assetsById['deleted-asset'] = makeAsset({
       assetId: 'deleted-asset',
-      workspaceId: 'ws-1',
-      sourceType: 'UPLOADED',
       mediaType: 'image/png',
       status: 'DELETED',
       originalFilename: 'removed.png',
-      fileSizeBytes: 100,
-      createdAt: '2026-06-19T12:00:00Z',
-    }
+    })
     mediaStore.assetIds.push('deleted-asset')
 
     const wrapper = mountView()
@@ -335,29 +321,19 @@ describe('MediaLibraryView', () => {
 
   it('searches assets by filename', async () => {
     const mediaStore = useMediaStore()
-    mediaStore.assetsById['asset-a'] = {
+    mediaStore.assetsById['asset-a'] = makeAsset({
       assetId: 'asset-a',
-      workspaceId: 'ws-1',
-      sourceType: 'UPLOADED',
-      mediaType: 'image/jpeg',
-      status: 'READY',
       originalFilename: 'hero.jpg',
-      fileSizeBytes: 100,
-      createdAt: '2026-06-19T12:00:00Z',
       previewUrl: '/api/media/assets/asset-a/preview',
       downloadUrl: '/api/media/assets/asset-a/content',
-    }
-    mediaStore.assetsById['asset-b'] = {
+    })
+    mediaStore.assetsById['asset-b'] = makeAsset({
       assetId: 'asset-b',
-      workspaceId: 'ws-1',
-      sourceType: 'UPLOADED',
       mediaType: 'application/pdf',
-      status: 'READY',
       originalFilename: 'invoice.pdf',
-      fileSizeBytes: 100,
       createdAt: '2026-06-18T12:00:00Z',
       downloadUrl: '/api/media/assets/asset-b/content',
-    }
+    })
     mediaStore.assetIds.push('asset-a', 'asset-b')
 
     const wrapper = mountView()
@@ -371,30 +347,19 @@ describe('MediaLibraryView', () => {
 
   it('sorts assets by filename ascending', async () => {
     const mediaStore = useMediaStore()
-    mediaStore.assetsById['asset-z'] = {
+    mediaStore.assetsById['asset-z'] = makeAsset({
       assetId: 'asset-z',
-      workspaceId: 'ws-1',
-      sourceType: 'UPLOADED',
-      mediaType: 'image/jpeg',
-      status: 'READY',
       originalFilename: 'zebra.jpg',
-      fileSizeBytes: 100,
-      createdAt: '2026-06-19T12:00:00Z',
       previewUrl: '/api/media/assets/asset-z/preview',
       downloadUrl: '/api/media/assets/asset-z/content',
-    }
-    mediaStore.assetsById['asset-a'] = {
+    })
+    mediaStore.assetsById['asset-a'] = makeAsset({
       assetId: 'asset-a',
-      workspaceId: 'ws-1',
-      sourceType: 'UPLOADED',
-      mediaType: 'image/jpeg',
-      status: 'READY',
       originalFilename: 'apple.jpg',
-      fileSizeBytes: 100,
       createdAt: '2026-06-18T12:00:00Z',
       previewUrl: '/api/media/assets/asset-a/preview',
       downloadUrl: '/api/media/assets/asset-a/content',
-    }
+    })
     mediaStore.assetIds.push('asset-z', 'asset-a')
 
     const wrapper = mountView()
@@ -409,39 +374,27 @@ describe('MediaLibraryView', () => {
 
   it('selects deletable assets only and handles per-item failures gracefully', async () => {
     const mediaStore = useMediaStore()
-    mediaStore.assetsById['asset-1'] = {
+    mediaStore.assetsById['asset-1'] = makeAsset({
       assetId: 'asset-1',
-      workspaceId: 'ws-1',
-      sourceType: 'UPLOADED',
-      mediaType: 'image/jpeg',
-      status: 'READY',
       originalFilename: 'one.jpg',
-      fileSizeBytes: 100,
-      createdAt: '2026-06-19T12:00:00Z',
       previewUrl: '/api/media/assets/asset-1/preview',
       downloadUrl: '/api/media/assets/asset-1/content',
-    }
-    mediaStore.assetsById['asset-2'] = {
+    })
+    mediaStore.assetsById['asset-2'] = makeAsset({
       assetId: 'asset-2',
-      workspaceId: 'ws-1',
-      sourceType: 'UPLOADED',
       mediaType: 'application/pdf',
       status: 'FAILED',
       originalFilename: 'two.pdf',
-      fileSizeBytes: 100,
       createdAt: '2026-06-18T12:00:00Z',
       downloadUrl: '/api/media/assets/asset-2/content',
-    }
-    mediaStore.assetsById['asset-3'] = {
+    })
+    mediaStore.assetsById['asset-3'] = makeAsset({
       assetId: 'asset-3',
-      workspaceId: 'ws-1',
-      sourceType: 'UPLOADED',
       mediaType: 'image/png',
       status: 'UPLOADING',
       originalFilename: 'three.png',
-      fileSizeBytes: 100,
       createdAt: '2026-06-20T12:00:00Z',
-    }
+    })
     mediaStore.assetIds.push('asset-1', 'asset-2', 'asset-3')
 
     // asset-2 delete will fail; test that loop continues and PROCESSING assets are excluded

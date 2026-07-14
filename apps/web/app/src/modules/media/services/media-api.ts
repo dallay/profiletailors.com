@@ -20,7 +20,7 @@ export type MediaType =
   | 'application/vnd.openxmlformats-officedocument.presentationml.presentation'
 
 /** Summary shape returned by list and upload-success responses. */
-export interface MediaAssetSummary {
+export type MediaAssetSummary = {
   assetId: string
   workspaceId: string
   sourceType: MediaSourceType
@@ -40,7 +40,7 @@ export interface MediaAssetSummary {
 }
 
 /** Paginated list response from GET /api/media/assets */
-export interface MediaAssetListResponse {
+export type MediaAssetListResponse = {
   assets: MediaAssetSummary[]
   nextCursor: string | null
 }
@@ -48,7 +48,7 @@ export interface MediaAssetListResponse {
 // ─── CAS PUT response ─────────────────────────────────────────────────────────
 
 /** Response from PUT /api/workspaces/{workspaceId}/media/assets/{assetId} */
-export interface PutAssetResponse {
+export type PutAssetResponse = {
   assetId: string
   workspaceId: string
   status: 'PENDING_UPLOAD' | 'READY'
@@ -59,7 +59,7 @@ export interface PutAssetResponse {
 }
 
 /** Response from POST /api/workspaces/{workspaceId}/media/assets/{assetId}/upload */
-export interface UploadAssetResponse {
+export type UploadAssetResponse = {
   assetId: string
   workspaceId: string
   status: 'READY'
@@ -71,14 +71,14 @@ export interface UploadAssetResponse {
 }
 
 /** Response from DELETE /api/workspaces/{workspaceId}/media/assets/{assetId} */
-export interface DeleteAssetResponse {
+export type DeleteAssetResponse = {
   deleted: boolean
   blobScheduledForGC: boolean
 }
 
 // ─── CAS Error shapes ────────────────────────────────────────────────────────
 
-export interface MediaApiError {
+export type MediaApiError = {
   errorCode: string
   message: string
   details?: Record<string, unknown>
@@ -99,12 +99,12 @@ function isMediaApiError(body: unknown): body is MediaApiError {
 // API functions
 // ---------------------------------------------------------------------------
 
-import { createApiFetch, refreshSession } from '@modules/auth/infrastructure/auth-api'
+import { createApiFetch } from '@modules/auth/infrastructure/auth-api'
 import { useAuthStore } from '@modules/auth/infrastructure/auth.store'
 import { useWorkspaceStore } from '@modules/workspace/infrastructure/workspace.store'
 import { computeFileHash, sanitizeFilename } from '@/composables/useFileHash'
 
-interface MediaApiErrorShape extends Error {
+type MediaApiErrorShape = Error & {
   title: string
   detail: string
   status: number
@@ -123,19 +123,20 @@ function mediaApiError(
 }
 
 /** Creates an authenticated fetch wrapper scoped to the media API. */
-function createMediaFetch() {
-  return createApiFetch({
-    getToken: () => useAuthStore().accessToken,
-    getWorkspaceId: () => useWorkspaceStore().activeWorkspaceId,
+function createMediaFetch(workspaceId: string): ReturnType<typeof createApiFetch> {
+  const auth = useAuthStore()
+  const fetch = createApiFetch({
+    getToken: () => auth.accessToken,
+    getWorkspaceId: () => workspaceId,
     onRefresh: async () => {
+      const { refreshSession } = await import('@modules/auth/infrastructure/auth-api')
       const tokens = await refreshSession()
       if (tokens) return tokens.accessToken
       return null
     },
-    onUnauthenticated: () => {
-      useAuthStore().$reset()
-    },
+    onUnauthenticated: () => auth.$reset(),
   })
+  return Object.assign(fetch, { raw: fetch.raw })
 }
 
 /** Default polling delay in milliseconds for 202 WAITING_FOR_BLOB responses. */
@@ -372,7 +373,7 @@ async function makeUploadError(uploadResp: Response): Promise<ReturnType<typeof 
 // Legacy API (kept for backward compatibility)
 // ---------------------------------------------------------------------------
 
-export interface ReserveAssetPayload {
+export type ReserveAssetPayload = {
   mediaType: string
   originalFilename?: string
 }
@@ -448,7 +449,7 @@ export async function uploadAsset(
 // List / Get / Delete
 // ---------------------------------------------------------------------------
 
-export interface ListAssetsOptions {
+export type ListAssetsOptions = {
   /**
    * Filter by status(es). Defaults to READY only.
    * Multiple statuses may be comma-separated.
