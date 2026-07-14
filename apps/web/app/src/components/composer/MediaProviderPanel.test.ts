@@ -58,6 +58,36 @@ describe('MediaProviderPanel.vue', () => {
     expect(wrapper.emitted('provider-import')?.length).toBe(1)
   })
 
+  it('keeps an imported result disabled and renders the added state', async () => {
+    const wrapper = mountPanel({
+      results: [makeResult({ imported: true })],
+    })
+
+    const button = wrapper.get<HTMLButtonElement>('[data-testid="provider-panel-import"]')
+    expect(button.element.disabled).toBe(true)
+    expect(button.text()).toContain('composer.picker.importedAction')
+    await button.trigger('click')
+    expect(wrapper.emitted('provider-import')).toBeUndefined()
+  })
+
+  it('renders compliant photographer and Unsplash attribution links', () => {
+    const wrapper = mountPanel({
+      results: [
+        makeResult({
+          authorUrl: 'https://unsplash.com/@photographer',
+          sourceUrl: 'https://unsplash.com/photos/ext-1',
+        }),
+      ],
+    })
+
+    const links = wrapper.findAll('a')
+    expect(links.map((link) => link.attributes('href'))).toEqual([
+      'https://unsplash.com/@photographer',
+      'https://unsplash.com/photos/ext-1',
+    ])
+    expect(links.every((link) => link.attributes('rel') === 'noopener noreferrer')).toBe(true)
+  })
+
   it('renders empty state when no results have been fetched yet', () => {
     const wrapper = mountPanel()
     expect(wrapper.find('[data-testid="provider-panel-empty"]').exists()).toBe(true)
@@ -73,6 +103,16 @@ describe('MediaProviderPanel.vue', () => {
     const errorEl = wrapper.find('[data-testid="provider-panel-search-error"]')
     expect(errorEl.exists()).toBe(true)
     expect(errorEl.text()).toContain('Search failed: rate limited')
+  })
+
+  it('keeps results actionable when an import error is shown', () => {
+    const wrapper = mountPanel({
+      results: [makeResult()],
+      searchError: 'Import failed: try again',
+    })
+
+    expect(wrapper.find('[data-testid="provider-panel-search-error"]').exists()).toBe(true)
+    expect(wrapper.find('[data-testid="provider-result-ext-1"]').exists()).toBe(true)
   })
 
   it('renders provider results sorted by name', () => {

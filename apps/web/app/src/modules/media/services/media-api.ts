@@ -45,6 +45,19 @@ export type MediaAssetListResponse = {
   nextCursor: string | null
 }
 
+export interface UnsplashPhotoSummary {
+  externalId: string
+  name: string
+  previewUrl: string
+  sourceUrl: string
+  authorName: string
+  authorUrl: string
+}
+
+export interface UnsplashSearchResponse {
+  photos: UnsplashPhotoSummary[]
+}
+
 // ─── CAS PUT response ─────────────────────────────────────────────────────────
 
 /** Response from PUT /api/workspaces/{workspaceId}/media/assets/{assetId} */
@@ -526,6 +539,37 @@ export async function getAsset(assetId: string): Promise<MediaAssetSummary> {
     method: 'GET',
     workspaceScoped: true,
   })
+}
+
+/** Browses editorial photos when query is blank, otherwise searches Unsplash. */
+export async function searchUnsplashPhotos(query?: string): Promise<UnsplashPhotoSummary[]> {
+  const auth = useAuthStore()
+
+  const params = new URLSearchParams()
+  const normalizedQuery = query?.trim()
+  if (normalizedQuery) params.set('query', normalizedQuery)
+  const suffix = params.size > 0 ? `?${params.toString()}` : ''
+  const response = await auth.apiFetch<UnsplashSearchResponse>(
+    `/api/media/providers/unsplash/photos${suffix}`,
+    {
+      method: 'GET',
+      workspaceScoped: true,
+    },
+  )
+  return response.photos
+}
+
+/** Imports one provider photo as a persisted READY media asset. */
+export async function importUnsplashPhoto(externalId: string): Promise<MediaAssetSummary> {
+  const auth = useAuthStore()
+
+  return auth.apiFetch<MediaAssetSummary>(
+    `/api/media/providers/unsplash/photos/${encodeURIComponent(externalId)}/import`,
+    {
+      method: 'POST',
+      workspaceScoped: true,
+    },
+  )
 }
 
 /**

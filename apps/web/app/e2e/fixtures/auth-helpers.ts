@@ -41,14 +41,28 @@ const HAR_REPLAY = process.env.UPDATE_HAR !== 'true'
 export async function authenticateAs(
   page: Page,
   credentials: { email: string; password: string } = VALID_CREDENTIALS,
-): Promise<void> {
+): Promise<{ accessToken: string }> {
   await page.goto(APP_URL.login, { waitUntil: 'domcontentloaded' })
   await page.getByLabel(/email/i).fill(credentials.email)
   await page.getByLabel(/password/i).fill(credentials.password)
+  const loginResponsePromise = page.waitForResponse(
+    (response) =>
+      response.request().method() === 'POST' &&
+      new URL(response.url()).pathname === '/api/auth/login',
+  )
   await page.getByRole('button', { name: /sign in|iniciar sesión/i }).click()
+
+  const loginResponse = await loginResponsePromise
+  if (!loginResponse.ok()) {
+    const problem = await loginResponse.text()
+    throw new Error(`Login failed with ${loginResponse.status()}: ${problem}`)
+  }
+
+  const tokens = (await loginResponse.json()) as { accessToken: string }
 
   // Wait for navigation to dashboard
   await page.waitForURL('**/')
+  return tokens
 }
 
 /**

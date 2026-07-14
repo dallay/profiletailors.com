@@ -17,7 +17,6 @@ import {
 } from '@lucide/vue'
 import { useAuthStore } from '@modules/auth/infrastructure/auth.store'
 import { usePublishingStore, type Publication } from '@/stores/publishing'
-import { useWorkspaceStore } from '@modules/workspace/infrastructure/workspace.store'
 import { useMediaStore } from '@/stores/media'
 import { proxyImageUrl, resolveApiUrl } from '@modules/auth/infrastructure/auth-api'
 import PostPreviewPanel from '@/components/composer/PostPreviewPanel.vue'
@@ -89,7 +88,6 @@ const { t } = useI18n()
 const auth = useAuthStore()
 const publishingStore = usePublishingStore()
 const mediaStore = useMediaStore()
-const workspaceStore = useWorkspaceStore()
 
 
 const postText = ref('')
@@ -102,7 +100,6 @@ const picker = useComposerMediaPicker({
   editingPublication: () => props.editingPublication ?? null,
   provider: () => props.provider ?? null,
   initialChannelId: () => selectedChannelId.value,
-  workspaceId: () => workspaceStore.activeWorkspaceId ?? 'ws-local',
   onAttachmentsChanged: () => {
     assetsTouched.value = true
   },

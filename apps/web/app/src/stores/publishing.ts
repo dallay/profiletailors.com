@@ -853,6 +853,7 @@ export const usePublishingStore = defineStore('publishing', () => {
       status: 'QUEUED',
       priority: post.priority,
       thumbnail: post.thumbnail,
+      assetIds: post.assetIds ?? [],
     }
 
     const persistedPub = auth.isAuthenticated

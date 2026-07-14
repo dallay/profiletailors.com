@@ -238,11 +238,12 @@ const messages = {
         libraryDescription: 'Browse images and videos already saved in this workspace.',
         providerDescription:
           'Search Unsplash and import media into this post without leaving the composer.',
-        providerEmpty:
-          'Search to browse Unsplash photos. Imports keep this picker open for continued selection.',
-        authorPrefix: 'by {name}',
+        providerEmpty: 'No Unsplash photos matched this search. Try another term.',
+        photoBy: 'Photo by',
+        onProvider: 'on',
         importAction: 'Import',
         importingAction: 'Importing…',
+        importedAction: 'Added',
         errorLoad: 'Unable to load media library.',
         noPreview: 'No preview',
         applyDisabledLimit:
@@ -773,11 +774,12 @@ const messages = {
         libraryDescription: 'Explora imágenes y videos ya guardados en este workspace.',
         providerDescription:
           'Busca en Unsplash e importa medios a esta publicación sin salir del composer.',
-        providerEmpty:
-          'Busca para explorar fotos de Unsplash. Las importaciones mantienen este picker abierto para seguir seleccionando.',
-        authorPrefix: 'por {name}',
+        providerEmpty: 'No hay fotos de Unsplash para esta búsqueda. Prueba con otro término.',
+        photoBy: 'Foto de',
+        onProvider: 'en',
         importAction: 'Importar',
         importingAction: 'Importando…',
+        importedAction: 'Añadida',
         errorLoad: 'No se pudo cargar la librería de medios.',
         noPreview: 'Sin vista previa',
         applyDisabledLimit:

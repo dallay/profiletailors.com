@@ -78,6 +78,37 @@ vi.mock('@modules/auth/infrastructure/auth-api', () => ({
   resolveApiUrl: (url: string) => url,
 }))
 
+vi.mock('@modules/media/services/media-api', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('@modules/media/services/media-api')>()
+  return {
+    ...actual,
+    searchUnsplashPhotos: vi.fn(async (query?: string) => [
+      {
+        externalId: `${query ?? 'editorial'}-1`,
+        name: `${query ?? 'Editorial'} photo`,
+        previewUrl: 'https://images.unsplash.com/test-photo',
+        sourceUrl: 'https://unsplash.com/photos/test-photo',
+        authorName: 'Test author',
+        authorUrl: 'https://unsplash.com/@test-author',
+      },
+    ]),
+    importUnsplashPhoto: vi.fn(async (externalId: string) => ({
+      assetId: `unsplash-${externalId}`,
+      workspaceId: 'ws-1',
+      sourceType: 'EXTERNAL' as const,
+      mediaType: 'image/jpeg',
+      status: 'READY' as const,
+      originalFilename: `${externalId}.jpg`,
+      fileSizeBytes: 1024,
+      fileHash: null,
+      createdAt: '2026-06-19T12:00:00Z',
+      previewUrl: `/api/media/assets/unsplash-${externalId}/preview`,
+      sourceProvider: 'unsplash',
+      externalId,
+    })),
+  }
+})
+
 vi.mock('@/components/ui/button', () => ({
   Button: { template: '<button class="ui-button" v-bind="$attrs"><slot /></button>' },
 }))

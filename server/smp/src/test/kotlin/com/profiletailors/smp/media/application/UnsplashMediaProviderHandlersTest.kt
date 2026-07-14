@@ -1,0 +1,127 @@
+package com.profiletailors.smp.media.application
+
+import com.profiletailors.smp.media.domain.MediaAsset
+import com.profiletailors.storage.application.StorageApplicationService
+import io.mockk.coEvery
+import io.mockk.coVerify
+import io.mockk.coVerifyOrder
+import io.mockk.every
+import io.mockk.mockk
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.flowOf
+import kotlinx.coroutines.flow.toList
+import kotlinx.coroutines.test.runTest
+import org.junit.jupiter.api.Assertions.assertEquals
+import org.junit.jupiter.api.Assertions.assertTrue
+import org.junit.jupiter.api.Test
+import org.junit.jupiter.api.assertThrows
+
+class UnsplashMediaProviderHandlersTest {
+    private val photo = UnsplashPhoto(
+        externalId = "photo-1",
+        name = "Remote team",
+        previewUrl = "https://images.unsplash.com/photo-1-small",
+        importUrl = "https://images.unsplash.com/photo-1-regular",
+        sourceUrl = "https://unsplash.com/photos/photo-1",
+        authorName = "Test Author",
+        authorUrl = "https://unsplash.com/@test-author",
+        downloadLocation = "https://api.unsplash.com/photos/photo-1/download",
+    )
+
+    @Test
+    fun `import persists a ready attributed asset after storage and download tracking`() = runTest {
+        val fixture = fixture(flowOf(byteArrayOf(1, 2), byteArrayOf(3, 4)))
+
+        val result = fixture.handler.handle(ImportUnsplashPhotoCommand("workspace-1", "photo-1"))
+
+        assertEquals("READY", result.status)
+        assertEquals("EXTERNAL", result.sourceType)
+        assertEquals("unsplash", result.sourceProvider)
+        assertEquals("photo-1", result.externalId)
+        assertEquals(4L, result.fileSizeBytes)
+        assertEquals("https://unsplash.com/@test-author", result.authorUrl)
+        assertTrue(result.previewUrl?.startsWith("/preview/") == true)
+        coVerifyOrder {
+            fixture.storage.upload(any(), any(), any(), any(), any())
+            fixture.provider.trackDownload(photo)
+            fixture.repository.create(any())
+        }
+    }
+
+    @Test
+    fun `oversized provider image is rejected and partial storage is cleaned`() = runTest {
+        val fixture = fixture(flowOf(byteArrayOf(1, 2, 3)), maxFileSizeBytes = 2)
+
+        assertThrows<UnsplashPhotoTooLargeException> {
+            fixture.handler.handle(ImportUnsplashPhotoCommand("workspace-1", "photo-1"))
+        }
+
+        coVerify(exactly = 1) { fixture.storage.delete(any(), any(), "unsplash-import") }
+        coVerify(exactly = 0) { fixture.provider.trackDownload(any()) }
+        coVerify(exactly = 0) { fixture.repository.create(any()) }
+    }
+
+    @Test
+    fun `tracking failure cleans storage and does not persist an asset`() = runTest {
+        val fixture = fixture(flowOf(byteArrayOf(1, 2, 3)))
+        coEvery { fixture.provider.trackDownload(photo) } throws UnsplashProviderException("tracking failed")
+
+        assertThrows<UnsplashProviderException> {
+            fixture.handler.handle(ImportUnsplashPhotoCommand("workspace-1", "photo-1"))
+        }
+
+        coVerify(exactly = 1) { fixture.storage.delete(any(), any(), "unsplash-import") }
+        coVerify(exactly = 0) { fixture.repository.create(any()) }
+    }
+
+    @Test
+    fun `workspace creation rate limit rejects import before calling Unsplash`() = runTest {
+        val fixture = fixture(flowOf(byteArrayOf(1, 2, 3)), rateLimitAllowed = false)
+
+        assertThrows<RateLimitExceededException> {
+            fixture.handler.handle(ImportUnsplashPhotoCommand("workspace-1", "photo-1"))
+        }
+
+        coVerify(exactly = 0) { fixture.provider.get(any()) }
+        coVerify(exactly = 0) { fixture.storage.upload(any(), any(), any(), any(), any()) }
+    }
+
+    private fun fixture(
+        content: Flow<ByteArray>,
+        maxFileSizeBytes: Long = 1024,
+        rateLimitAllowed: Boolean = true,
+    ): Fixture {
+        val provider = mockk<UnsplashPhotoProvider>()
+        val repository = mockk<MediaAssetRepository>()
+        val rateLimitRepository = mockk<MediaRateLimitRepository>()
+        val storage = mockk<StorageApplicationService>()
+        coEvery { provider.get("photo-1") } returns photo
+        every { provider.download(photo) } returns content
+        coEvery { provider.trackDownload(photo) } returns Unit
+        coEvery { repository.create(any()) } answers { firstArg<MediaAsset>() }
+        coEvery { storage.upload(any(), any(), any(), any(), any()) } coAnswers {
+            thirdArg<Flow<ByteArray>>().toList()
+            Unit
+        }
+        coEvery { storage.delete(any(), any(), any()) } returns Unit
+        coEvery { rateLimitRepository.tryIncrementHourlyCreationCount("workspace-1", 200) } returns rateLimitAllowed
+
+        val handler = ImportUnsplashPhotoHandler(
+            provider = provider,
+            mediaAssetRepository = repository,
+            mediaRateLimitRepository = rateLimitRepository,
+            storageApplicationService = storage,
+            settings = UnsplashImportSettings("attachments", maxFileSizeBytes, 200),
+            assetPreviewUrlResolver = AssetPreviewUrlResolver { assetId, _, _, _, _ -> "/preview/$assetId" },
+            mediaPreviewTokenService = MediaPreviewTokenService("test-signing-secret", 3600),
+        )
+        return Fixture(handler, provider, repository, storage)
+    }
+
+    private data class Fixture(
+        val handler: ImportUnsplashPhotoHandler,
+        val provider: UnsplashPhotoProvider,
+        val repository: MediaAssetRepository,
+        val storage: StorageApplicationService,
+    )
+}

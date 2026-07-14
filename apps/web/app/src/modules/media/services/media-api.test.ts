@@ -4,8 +4,10 @@ import {
   deleteAsset,
   getAsset,
   listAssets,
+  importUnsplashPhoto,
   putAsset,
   reserveAsset,
+  searchUnsplashPhotos,
   uploadAsset,
   type MediaAssetSummary,
   type MediaSourceType,
@@ -127,6 +129,68 @@ describe('media asset external metadata contract', () => {
 
     expect(summary.sourceProvider).toBe('unsplash')
     expect(summary.metadata).toEqual({ palette: ['#000000', '#ffffff'] })
+  })
+})
+
+describe('Unsplash provider API', () => {
+  beforeEach(() => {
+    setActivePinia(createPinia())
+    mockApiFetch.mockReset()
+    mockAuthenticatedBox.current = true
+  })
+
+  it('loads editorial examples without a query string', async () => {
+    mockApiFetch.mockResolvedValueOnce({
+      photos: [
+        {
+          externalId: 'photo-1',
+          name: 'Editorial photo',
+          previewUrl: 'https://images.unsplash.com/photo-1',
+          sourceUrl: 'https://unsplash.com/photos/photo-1',
+          authorName: 'Author',
+          authorUrl: 'https://unsplash.com/@author',
+        },
+      ],
+    })
+
+    const photos = await searchUnsplashPhotos()
+
+    expect(photos).toHaveLength(1)
+    expect(mockApiFetch).toHaveBeenCalledWith('/api/media/providers/unsplash/photos', {
+      method: 'GET',
+      workspaceScoped: true,
+    })
+  })
+
+  it('encodes a normalized search query', async () => {
+    mockApiFetch.mockResolvedValueOnce({ photos: [] })
+
+    await searchUnsplashPhotos('  remote work & teams  ')
+
+    expect(mockApiFetch.mock.calls[0]?.[0]).toBe(
+      '/api/media/providers/unsplash/photos?query=remote+work+%26+teams',
+    )
+  })
+
+  it('imports the selected photo with a workspace-scoped POST', async () => {
+    mockApiFetch.mockResolvedValueOnce({ assetId: 'asset-1' })
+
+    await importUnsplashPhoto('photo/with spaces')
+
+    expect(mockApiFetch).toHaveBeenCalledWith(
+      '/api/media/providers/unsplash/photos/photo%2Fwith%20spaces/import',
+      { method: 'POST', workspaceScoped: true },
+    )
+  })
+
+  it('delegates unauthenticated provider responses to the shared authenticated client', async () => {
+    mockAuthenticatedBox.current = false
+    const unauthorized = Object.assign(new Error('Not authenticated'), { status: 401 })
+    mockApiFetch.mockRejectedValue(unauthorized)
+
+    await expect(searchUnsplashPhotos('work')).rejects.toMatchObject({ status: 401 })
+    await expect(importUnsplashPhoto('photo-1')).rejects.toMatchObject({ status: 401 })
+    expect(mockApiFetch).toHaveBeenCalledTimes(2)
   })
 })
 

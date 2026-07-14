@@ -11,7 +11,7 @@ export type MockMediaStatus =
 export interface MockMediaAsset {
   assetId: string
   workspaceId: string
-  sourceType: 'UPLOADED'
+  sourceType: 'UPLOADED' | 'EXTERNAL'
   mediaType: string
   status: MockMediaStatus
   originalFilename: string | null
@@ -20,6 +20,21 @@ export interface MockMediaAsset {
   previewUrl?: string | null
   downloadUrl?: string | null
   fileHash?: string
+  sourceProvider?: string | null
+  externalId?: string | null
+  sourceUrl?: string | null
+  authorName?: string | null
+  authorUrl?: string | null
+  metadata?: Record<string, unknown> | null
+}
+
+export interface MockUnsplashPhoto {
+  externalId: string
+  name: string
+  previewUrl: string
+  sourceUrl: string
+  authorName: string
+  authorUrl: string
 }
 
 export interface MockListResponse {
@@ -298,6 +313,9 @@ export class MediaRouteState {
   // PR 1 — deferred upload and channel-limit state
   deferredUploads: Map<string, DeferredUploadRecord> = new Map()
   channelsMaxAttachments: number | null = null
+  unsplashSearches: string[] = []
+  unsplashImportCount = 0
+  unsplashImportFailures = new Set<string>()
 
   reset(): void {
     this.assets = []
@@ -310,6 +328,9 @@ export class MediaRouteState {
     this.getCount = 0
     this.deferredUploads = new Map()
     this.channelsMaxAttachments = null
+    this.unsplashSearches = []
+    this.unsplashImportCount = 0
+    this.unsplashImportFailures = new Set()
   }
 
   enqueuePut(response: MockPutResponse): void {
@@ -334,6 +355,12 @@ export class MediaRouteState {
       previewUrl: input.previewUrl ?? `/api/media/assets/${assetId}/preview`,
       downloadUrl: input.downloadUrl ?? `/api/media/assets/${assetId}/preview`,
       fileHash: input.fileHash,
+      sourceProvider: input.sourceProvider,
+      externalId: input.externalId,
+      sourceUrl: input.sourceUrl,
+      authorName: input.authorName,
+      authorUrl: input.authorUrl,
+      metadata: input.metadata,
     }
     this.upsertAsset(asset)
     return asset
@@ -624,6 +651,103 @@ export async function registerMediaMocks(
   context: BrowserContext,
   state: MediaRouteState,
 ): Promise<void> {
+  const editorialPhotos: MockUnsplashPhoto[] = [
+    {
+      externalId: 'editorial-workspace',
+      name: 'Creative workspace',
+      previewUrl: 'https://images.unsplash.com/editorial-workspace',
+      sourceUrl:
+        'https://unsplash.com/photos/editorial-workspace?utm_source=profile_tailors&utm_medium=referral',
+      authorName: 'Editorial Author',
+      authorUrl:
+        'https://unsplash.com/@editorial-author?utm_source=profile_tailors&utm_medium=referral',
+    },
+  ]
+  const searchPhotos: MockUnsplashPhoto[] = [
+    {
+      externalId: 'remote-work',
+      name: 'Remote work',
+      previewUrl: 'https://images.unsplash.com/remote-work',
+      sourceUrl:
+        'https://unsplash.com/photos/remote-work?utm_source=profile_tailors&utm_medium=referral',
+      authorName: 'Search Author',
+      authorUrl:
+        'https://unsplash.com/@search-author?utm_source=profile_tailors&utm_medium=referral',
+    },
+    {
+      externalId: 'import-fails',
+      name: 'Import failure example',
+      previewUrl: 'https://images.unsplash.com/import-fails',
+      sourceUrl:
+        'https://unsplash.com/photos/import-fails?utm_source=profile_tailors&utm_medium=referral',
+      authorName: 'Retry Author',
+      authorUrl:
+        'https://unsplash.com/@retry-author?utm_source=profile_tailors&utm_medium=referral',
+    },
+  ]
+
+  await context.route('https://images.unsplash.com/**', (route) => {
+    previewAsset(route)
+  })
+
+  await context.route('**/api/media/providers/unsplash/photos**', (route) => {
+    const request = route.request()
+    const url = new URL(request.url())
+
+    if (request.method() === 'GET') {
+      const query = url.searchParams.get('query')?.trim() ?? ''
+      state.unsplashSearches.push(query)
+
+      if (query === 'provider-error') {
+        route.fulfill(json(502, { title: 'Unsplash unavailable', detail: 'Try again later.' }))
+        return
+      }
+
+      route.fulfill(
+        json(200, {
+          photos: query === '' ? editorialPhotos : query === 'no-results' ? [] : searchPhotos,
+        }),
+      )
+      return
+    }
+
+    if (request.method() === 'POST' && url.pathname.endsWith('/import')) {
+      const externalId = url.pathname.split('/').at(-2) ?? ''
+      state.unsplashImportCount += 1
+      if (state.unsplashImportFailures.has(externalId)) {
+        route.fulfill(json(502, { title: 'Unsplash import failed', detail: 'Try again later.' }))
+        return
+      }
+
+      const photo = [...editorialPhotos, ...searchPhotos].find(
+        (candidate) => candidate.externalId === externalId,
+      )
+      if (!photo) {
+        route.fulfill(
+          json(404, { title: 'Photo not found', detail: 'The photo is no longer available.' }),
+        )
+        return
+      }
+
+      const asset = state.seedAsset({
+        assetId: `unsplash-${externalId}`,
+        sourceType: 'EXTERNAL',
+        mediaType: 'image/jpeg',
+        originalFilename: `${externalId}.jpg`,
+        sourceProvider: 'unsplash',
+        externalId,
+        sourceUrl: photo.sourceUrl,
+        authorName: photo.authorName,
+        authorUrl: photo.authorUrl,
+        metadata: { attribution: `Photo by ${photo.authorName} on Unsplash` },
+      })
+      route.fulfill(json(201, asset))
+      return
+    }
+
+    route.fulfill(json(405, { title: 'Method not allowed' }))
+  })
+
   await context.route('**/api/media/assets**', async (route) => {
     const request = route.request()
     const method = request.method()

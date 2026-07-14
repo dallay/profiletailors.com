@@ -26,7 +26,12 @@ import { toValue, ref, computed, isRef } from 'vue'
 import type { MaybeRefOrGetter } from 'vue'
 import type { MediaAssetStatus } from '@/stores/media'
 import type { Channel, Publication } from '@/stores/publishing'
-import type { MediaAssetSummary } from '@modules/media/services/media-api'
+import {
+  importUnsplashPhoto,
+  searchUnsplashPhotos,
+  type MediaAssetSummary,
+  type UnsplashPhotoSummary,
+} from '@modules/media/services/media-api'
 import type {
   ComposerMediaPickerAsset,
   ComposerMediaPickerCollectionState,
@@ -74,6 +79,11 @@ type ComposerMediaPickerPublishingStore = {
   channels: StoreValue<Channel[]>
 }
 
+interface ProviderSearchResult extends UnsplashPhotoSummary {
+  selectedForImport?: boolean
+  imported?: boolean
+}
+
 export type ComposerMediaPickerStoreParams = {
   mediaStore: ComposerMediaPickerMediaStore
   publishingStore: ComposerMediaPickerPublishingStore
@@ -82,16 +92,13 @@ export type ComposerMediaPickerStoreParams = {
   /** ID of the currently selected channel (reactive). */
   initialChannelId: MaybeRefOrGetter<string | null>
   /**
-   * Optional workspaceId override for testing. When provided, the composable
-   * uses this value instead of calling useWorkspaceStore() internally.
-   */
-  workspaceId?: MaybeRefOrGetter<string>
-  /**
    * Optional callback invoked whenever the draft attachments change
    * (applyPickerSelection or removeDraftAttachment). The modal uses this
    * to flip its assetsTouched ref in edit mode.
    */
   onAttachmentsChanged?: () => void
+  searchUnsplash?: (query?: string) => Promise<UnsplashPhotoSummary[]>
+  importUnsplash?: (externalId: string) => Promise<MediaAssetSummary>
 }
 
 // ---------------------------------------------------------------------------
@@ -173,15 +180,7 @@ export function useComposerMediaPicker(params: ComposerMediaPickerStoreParams) {
   // -------------------------------------------------------------------------
 
   const providerQuery = ref('')
-  const providerResults = ref<
-    Array<{
-      externalId: string
-      name: string
-      previewUrl: string | null
-      authorName?: string | null
-      selectedForImport?: boolean
-    }>
-  >([])
+  const providerResults = ref<ProviderSearchResult[]>([])
   const providerSearching = ref(false)
   const providerSearchError = ref<string | null>(null)
   /** externalId → assetId mapping for already-reconciled provider imports. */
@@ -422,6 +421,14 @@ export function useComposerMediaPicker(params: ComposerMediaPickerStoreParams) {
       return
     }
     activeMediaPickerSource.value = source
+    if (
+      source === 'unsplash' &&
+      providerQuery.value === '' &&
+      providerResults.value.length === 0 &&
+      !providerSearching.value
+    ) {
+      void handleProviderSearch({ query: '' })
+    }
   }
 
   async function openMediaPicker(source: ComposerMediaPickerSource = 'library') {
@@ -513,90 +520,65 @@ export function useComposerMediaPicker(params: ComposerMediaPickerStoreParams) {
     }
   }
 
-  // -------------------------------------------------------------------------
-  // Provider search/import (parent-owned, DEV/test stub)
-  // -------------------------------------------------------------------------
-
-  /**
-   * Captures provider-search intent. Real search happens in the backend client;
-   * the modal exposes only the typed interaction and a result list. The
-   * synthetic result path is explicitly guarded: it only runs in DEV/test, and
-   * providerSearchError surfaces a clear message in production when no real
-   * Unsplash search client is wired.
-   */
-  function handleProviderSearch(payload: { query: string }) {
+  async function handleProviderSearch(payload: { query: string }): Promise<void> {
     const q = payload.query.trim()
     providerQuery.value = q
     providerSearchError.value = null
-    providerSearching.value = false
+    providerSearching.value = true
 
-    if (!q) {
-      providerResults.value = []
-      return
-    }
-
-    if (!import.meta.env.DEV && !import.meta.env.MODE?.startsWith('test')) {
+    try {
+      const search = params.searchUnsplash ?? searchUnsplashPhotos
+      providerResults.value = (await search(q || undefined)).map((photo) => ({
+        ...photo,
+        imported: providerImportResolution.value[photo.externalId] !== undefined,
+      }))
+    } catch (error: unknown) {
       providerResults.value = []
       providerSearchError.value =
-        'Unsplash search is not configured. Wire the backend search client before enabling this provider.'
-      return
+        error instanceof Error ? error.message : 'Unable to load Unsplash photos.'
+    } finally {
+      providerSearching.value = false
     }
-
-    providerResults.value = [
-      { externalId: `${q}-1`, name: `${q} photo one`, previewUrl: null, authorName: 'Test author' },
-      { externalId: `${q}-2`, name: `${q} photo two`, previewUrl: null, authorName: 'Test author' },
-    ]
   }
 
-  /** Helper to read the explicitly injected workspaceId. */
-  function useMediaStoreWorkspaceId(): string {
-    return params.workspaceId !== undefined ? toValue(params.workspaceId) : 'ws-local'
-  }
-
-  /**
-   * Provider-import orchestration. The picker MUST remain open after emit so
-   * the author can continue staged multi-selection. We synthesize a persisted
-   * asset ID for the imported external result and route it through the same
-   * reconciliation pipeline as uploads.
-   *
-   * In production, the parent would POST to a backend import endpoint that
-   * returns the persisted asset; for now we generate a deterministic UUID
-   * that the polling layer resolves through mediaStore.loadAsset(). The
-   * synthetic path is guarded: it only runs in DEV/test — production callers
-   * must wire a real import client before the flag can ship.
-   */
   async function handleProviderImport(payload: { externalId: string }): Promise<void> {
-    if (!import.meta.env.DEV && !import.meta.env.MODE?.startsWith('test')) {
-      providerSearchError.value =
-        'Unsplash import is not configured. Wire the backend import client before enabling this provider.'
+    const existingAssetId = providerImportResolution.value[payload.externalId]
+    if (existingAssetId) {
+      stageAssetOnce(existingAssetId)
       return
     }
 
-    const syntheticAssetId = `unsplash-${payload.externalId}`
-    providerImportResolution.value = {
-      ...providerImportResolution.value,
-      [payload.externalId]: syntheticAssetId,
+    const target = providerResults.value.find((result) => result.externalId === payload.externalId)
+    if (target?.selectedForImport || target?.imported) return
+
+    providerSearchError.value = null
+    providerResults.value = providerResults.value.map((result) =>
+      result.externalId === payload.externalId ? { ...result, selectedForImport: true } : result,
+    )
+
+    try {
+      const importPhoto = params.importUnsplash ?? importUnsplashPhoto
+      const asset = await importPhoto(payload.externalId)
+      mediaStore.upsertAsset(asset)
+      ensurePickerAssetVisible(asset.assetId)
+      mediaPickerCollectionState.value = 'READY'
+      stageAssetOnce(asset.assetId)
+      providerImportResolution.value = {
+        ...providerImportResolution.value,
+        [payload.externalId]: asset.assetId,
+      }
+      providerResults.value = providerResults.value.map((result) =>
+        result.externalId === payload.externalId
+          ? { ...result, selectedForImport: false, imported: true }
+          : result,
+      )
+    } catch (error: unknown) {
+      providerResults.value = providerResults.value.map((result) =>
+        result.externalId === payload.externalId ? { ...result, selectedForImport: false } : result,
+      )
+      providerSearchError.value =
+        error instanceof Error ? error.message : 'Unable to import the selected Unsplash photo.'
     }
-
-    // Seed a non-READY persisted asset so the reconciliation pipeline has
-    // something to poll; the asset becomes READY after loadAsset resolves.
-    mediaStore.upsertAsset({
-      assetId: syntheticAssetId,
-      workspaceId: useMediaStoreWorkspaceId(),
-      sourceType: 'EXTERNAL',
-      mediaType: 'image/jpeg',
-      status: 'PENDING_UPLOAD',
-      originalFilename: `${payload.externalId}.jpg`,
-      fileSizeBytes: null,
-      createdAt: new Date().toISOString(),
-      previewUrl: null,
-      sourceProvider: 'unsplash',
-      externalId: payload.externalId,
-    })
-
-    ensurePickerAssetVisible(syntheticAssetId)
-    mediaPickerCollectionState.value = 'READY'
-    startAssetReconciliation(syntheticAssetId)
   }
 
   // -------------------------------------------------------------------------

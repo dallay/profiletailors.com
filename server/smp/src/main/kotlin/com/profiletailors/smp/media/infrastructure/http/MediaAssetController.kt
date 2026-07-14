@@ -441,7 +441,7 @@ class MediaAssetController(
     }
 }
 
-private fun MediaAssetSummary.toResponse() = MediaAssetResponse(
+internal fun MediaAssetSummary.toMediaAssetResponse() = MediaAssetResponse(
     assetId = assetId,
     workspaceId = workspaceId,
     sourceType = sourceType,
@@ -459,3 +459,5 @@ private fun MediaAssetSummary.toResponse() = MediaAssetResponse(
     authorUrl = authorUrl,
     metadata = metadata,
 )
+
+private fun MediaAssetSummary.toResponse() = toMediaAssetResponse()

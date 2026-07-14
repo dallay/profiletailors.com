@@ -150,6 +150,26 @@ export class ComposeModalPage {
     return this.page.getByTestId('picker-source-unsplash')
   }
 
+  get unsplashSearchInput(): Locator {
+    return this.pickerShell.getByRole('searchbox')
+  }
+
+  get unsplashSearchButton(): Locator {
+    return this.pickerShell.getByRole('button', { name: /^search$/i })
+  }
+
+  get unsplashResults(): Locator {
+    return this.page.getByTestId('provider-panel-results')
+  }
+
+  unsplashResult(externalId: string): Locator {
+    return this.page.getByTestId(`provider-result-${externalId}`)
+  }
+
+  unsplashImportButton(externalId: string): Locator {
+    return this.unsplashResult(externalId).getByTestId('provider-panel-import')
+  }
+
   /** Button to open the media picker from the compose modal. */
   get addMediaButton(): Locator {
     return this.page.getByTestId('add-media-button')
@@ -436,6 +456,11 @@ export class ComposeModalPage {
     // path a mouse user has to open the picker.
     await this.page.getByTestId('composer-sources-trigger').click()
     await this.page.getByTestId('composer-source-library').click()
+  }
+
+  async searchUnsplash(query: string): Promise<void> {
+    await this.unsplashSearchInput.fill(query)
+    await this.unsplashSearchButton.click()
   }
 
   // ---- Assertions ----

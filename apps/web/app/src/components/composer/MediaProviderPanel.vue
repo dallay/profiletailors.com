@@ -13,7 +13,10 @@ export interface ProviderSearchResultViewModel {
   previewUrl: string | null
   name: string
   authorName?: string | null
+  authorUrl?: string | null
+  sourceUrl?: string | null
   selectedForImport?: boolean
+  imported?: boolean
 }
 
 const props = withDefaults(
@@ -41,8 +44,7 @@ const sortedResults = computed(() =>
 )
 
 function importResult(result: ProviderSearchResultViewModel) {
-  // Guard: disabled when selectedForImport is true (parent owns the in-flight state).
-  if (result.selectedForImport) return
+  if (result.selectedForImport || result.imported) return
   emit('provider-import', { externalId: result.externalId })
 }
 
@@ -65,7 +67,7 @@ function importResult(result: ProviderSearchResultViewModel) {
     </p>
 
     <div
-      v-else-if="isSearching"
+      v-if="isSearching"
       class="rounded-2xl border border-dashed border-border-subtle px-4 py-6 text-sm text-text-secondary"
       data-testid="provider-panel-loading"
     >
@@ -92,17 +94,39 @@ function importResult(result: ProviderSearchResultViewModel) {
         :data-testid="`provider-result-${result.externalId}`"
       >
         <div v-if="result.previewUrl" class="overflow-hidden rounded-xl border border-border-subtle bg-bg-primary/40">
-          <img :src="result.previewUrl" :alt="result.name" class="h-24 w-full object-cover">
+          <img
+            :src="result.previewUrl"
+            :alt="result.name"
+            class="h-40 w-full object-cover"
+            loading="lazy"
+            decoding="async"
+          >
         </div>
         <div v-else class="flex h-24 items-center justify-center rounded-xl border border-dashed border-border-visible bg-bg-primary/40 text-xs text-text-secondary">
           {{ t('composer.picker.noPreview') }}
         </div>
         <p class="text-sm font-medium text-text-display">{{ result.name }}</p>
-        <p
-          v-if="result.authorName"
-          class="text-[11px] text-text-secondary"
-        >
-          {{ t('composer.picker.authorPrefix', { name: result.authorName }) }}
+        <p v-if="result.authorName" class="text-[11px] text-text-secondary">
+          {{ t('composer.picker.photoBy') }}
+          <!-- biome-ignore lint/a11y/useValidAnchor: authorUrl is guaranteed by the surrounding conditional -->
+          <a
+            v-if="result.authorUrl"
+            :href="result.authorUrl"
+            target="_blank"
+            rel="noopener noreferrer"
+            class="underline underline-offset-2 hover:text-text-display"
+          >{{ result.authorName }}</a>
+          <span v-else>{{ result.authorName }}</span>
+          {{ t('composer.picker.onProvider') }}
+          <!-- biome-ignore lint/a11y/useValidAnchor: sourceUrl is guaranteed by the surrounding conditional -->
+          <a
+            v-if="result.sourceUrl"
+            :href="result.sourceUrl"
+            target="_blank"
+            rel="noopener noreferrer"
+            class="underline underline-offset-2 hover:text-text-display"
+          >Unsplash</a>
+          <span v-else>Unsplash</span>
         </p>
         <Button
           type="button"
@@ -110,10 +134,10 @@ function importResult(result: ProviderSearchResultViewModel) {
           size="sm"
           data-testid="provider-panel-import"
           :data-provider-id="result.externalId"
-          :disabled="result.selectedForImport"
+          :disabled="result.selectedForImport || result.imported"
           @click="importResult(result)"
         >
-          {{ result.selectedForImport ? t('composer.picker.importingAction') : t('composer.picker.importAction') }}
+          {{ result.imported ? t('composer.picker.importedAction') : result.selectedForImport ? t('composer.picker.importingAction') : t('composer.picker.importAction') }}
         </Button>
       </article>
     </div>
