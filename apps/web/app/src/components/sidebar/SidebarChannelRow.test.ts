@@ -3,7 +3,7 @@ import { mount } from '@vue/test-utils'
 import { proxyImageUrl } from '@modules/auth/infrastructure/auth-api'
 import { getProviderBadge } from '@/lib/provider-styles'
 import SidebarChannelRow from './SidebarChannelRow.vue'
-import type { Channel } from '@/stores/publishing'
+import type { Channel } from '@modules/publishing/infrastructure/publishing.store'
 
 interface SidebarChannel extends Channel {
   badge: string

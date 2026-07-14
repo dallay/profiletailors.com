@@ -10,7 +10,7 @@
  */
 import { computed, ref, watch } from 'vue'
 import { Upload, CheckCircle, AlertCircle, XCircle, ChevronDown, ChevronUp, X } from '@lucide/vue'
-import { useMediaStore } from '@/stores/media'
+import { useMediaStore } from '@modules/media/infrastructure/media.store'
 import { useI18n } from 'vue-i18n'
 
 const { t } = useI18n()

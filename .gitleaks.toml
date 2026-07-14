@@ -24,6 +24,8 @@ paths = [
   "apps/web/app/e2e/hars/", # Recorded HAR fixtures containing test-only local JWT tokens
 ]
 regexes = [
+  # False positive: TypeScript type name matched by linkedin-client-secret rule.
+  "PostPreviewMedia",
   "invalid\\.token\\.here",
   "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9\\.eyJzdWIiOiIxMjM0NTY3ODkwIiwiZXhwIjoxNjE2MjM5MDIyfQ\\.SflKxwRJSMeKKF2QT4fwpMeJf36POk6yJV_adQssw5c",
   "test-secret-key-that-is-at-least-256-bits-long",

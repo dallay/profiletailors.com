@@ -1,5 +1,8 @@
 import { computed, type ComputedRef, type Ref } from 'vue'
-import { usePublishingStore, type Publication } from '@/stores/publishing'
+import {
+  usePublishingStore,
+  type Publication,
+} from '@modules/publishing/infrastructure/publishing.store'
 
 /**
  * Derive queue statistics from a publications list.

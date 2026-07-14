@@ -2,7 +2,7 @@ import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 import { mount, flushPromises } from '@vue/test-utils'
 import { createPinia, setActivePinia } from 'pinia'
 import UploadProgressToast from './UploadProgressToast.vue'
-import { useMediaStore, type UploadItem } from '@/stores/media'
+import { useMediaStore, type UploadItem } from '@modules/media/infrastructure/media.store'
 
 vi.mock('vue-i18n', () => ({
   useI18n: () => ({ t: (key: string) => key, locale: { value: 'en' } }),

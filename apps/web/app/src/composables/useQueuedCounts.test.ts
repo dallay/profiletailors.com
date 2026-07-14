@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest'
 import { ref } from 'vue'
-import type { Publication } from '@/stores/publishing'
+import type { Publication } from '@modules/publishing/infrastructure/publishing.store'
 import { useQueuedCounts } from './useQueuedCounts'
 
 function makePub(overrides: Partial<Publication> = {}): Publication {

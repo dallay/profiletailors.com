@@ -2,7 +2,7 @@ import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { flushPromises, mount } from '@vue/test-utils'
 import { createPinia, setActivePinia } from 'pinia'
 import SettingsView from './SettingsView.vue'
-import { usePublishingStore } from '@/stores/publishing'
+import { usePublishingStore } from '@modules/publishing/infrastructure/publishing.store'
 import { useWorkspaceStore } from '@modules/workspace/infrastructure/workspace.store'
 
 const routeQuery = vi.hoisted(() => ({ value: {} as Record<string, unknown> }))

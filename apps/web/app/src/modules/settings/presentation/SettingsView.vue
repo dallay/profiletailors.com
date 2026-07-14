@@ -11,7 +11,7 @@ import { renameWorkspace, updateWorkspaceIcon } from '@modules/auth/infrastructu
 import { proxyImageUrl } from '@modules/auth/infrastructure/auth-api'
 import { workspaceNameSchema } from '@/lib/validation/schemas'
 import { useAuthStore } from '@modules/auth/infrastructure/auth.store'
-import { usePublishingStore } from '@/stores/publishing'
+import { usePublishingStore } from '@modules/publishing/infrastructure/publishing.store'
 import { useSettingsStore } from '@modules/settings/infrastructure/settings.store'
 import { useWorkspaceStore } from '@modules/workspace/infrastructure/workspace.store'
 
