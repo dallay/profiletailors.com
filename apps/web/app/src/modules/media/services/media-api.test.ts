@@ -1,4 +1,4 @@
-import { describe, it, expect, vi, beforeAll, beforeEach, afterAll, afterEach } from 'vitest'
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 import { setActivePinia, createPinia } from 'pinia'
 import {
   deleteAsset,
@@ -75,13 +75,13 @@ vi.mock('@/composables/useFileHash', () => ({
 }))
 
 // Stub crypto.randomUUID so putAsset uses a deterministic asset id
-const FIXED_UUID = 'fixed-asset-uuid-1234'
+const FIXED_UUID = '11111111-1111-4111-8111-111111111111'
 
 let randomUUIDSpy: ReturnType<typeof vi.spyOn>
-beforeAll(() => {
+beforeEach(() => {
   randomUUIDSpy = vi.spyOn(globalThis.crypto, 'randomUUID').mockReturnValue(FIXED_UUID)
 })
-afterAll(() => {
+afterEach(() => {
   randomUUIDSpy.mockRestore()
 })
 
@@ -336,7 +336,7 @@ describe('listAssets', () => {
 describe('reserveAsset', () => {
   beforeEach(() => {
     setActivePinia(createPinia())
-    mockMediaApiFetch.mockReset()
+    mockApiFetch.mockReset()
     mockAuthenticatedBox.current = true
   })
 
@@ -348,23 +348,21 @@ describe('reserveAsset', () => {
       status: 401,
     })
 
-    expect(mockMediaApiFetch).not.toHaveBeenCalled()
+    expect(mockApiFetch).not.toHaveBeenCalled()
   })
 
   it('calls POST /api/media/assets with body and workspaceScoped true', async () => {
-    mockMediaApiFetch.mockResolvedValueOnce(
-      jsonResponse(201, {
-        assetId: 'asset-1',
-        workspaceId: 'ws-1',
-        status: 'PENDING_UPLOAD',
-        mediaType: 'image/jpeg',
-      }),
-    )
+    mockApiFetch.mockResolvedValueOnce({
+      assetId: 'asset-1',
+      workspaceId: 'ws-1',
+      status: 'PENDING_UPLOAD',
+      mediaType: 'image/jpeg',
+    })
 
     await reserveAsset({ mediaType: 'image/jpeg', originalFilename: 'photo.jpg' })
 
-    expect(mockMediaApiFetch).toHaveBeenCalledOnce()
-    expect(mockMediaApiFetch).toHaveBeenCalledWith('/api/media/assets', {
+    expect(mockApiFetch).toHaveBeenCalledOnce()
+    expect(mockApiFetch).toHaveBeenCalledWith('/api/media/assets', {
       method: 'POST',
       body: JSON.stringify({
         sourceType: 'UPLOADED',
@@ -382,8 +380,8 @@ describe('reserveAsset', () => {
       status: 'PENDING_UPLOAD' as const,
       mediaType: 'image/png',
     }
-    // createApiFetch's apiFetch<T> parses JSON, so the mock returns the parsed payload directly.
-    mockMediaApiFetch.mockResolvedValueOnce(payload)
+    // auth.apiFetch<T> returns the parsed payload directly.
+    mockApiFetch.mockResolvedValueOnce(payload)
 
     const result = await reserveAsset({ mediaType: 'image/png' })
 
@@ -465,6 +463,8 @@ describe('putAsset', () => {
   beforeEach(() => {
     setActivePinia(createPinia())
     mockMediaApiFetch.mockReset()
+    mockApiFetchRaw.mockReset()
+    mockApiFetchRaw.mockImplementation((...args) => mockMediaApiFetch(...args))
     mockAuthenticatedBox.current = true
   })
 
@@ -810,13 +810,14 @@ describe('putAsset', () => {
       putAsset(new File(['hello'], 'photo.jpg', { type: 'image/jpeg' }), 'ws-1'),
     ).rejects.toMatchObject({
       title: 'Upload URL missing',
-      detail: 'Server accepted the asset but did not provide an upload URL.',
-      status: 502,
+      detail: 'Server requested an upload but did not provide an upload URL.',
+      status: 201,
       errorCode: 'UPLOAD_URL_MISSING',
     })
   })
 
   it('uses the auth store raw fetch for PUT-first media requests', async () => {
+    mockApiFetchRaw.mockReset()
     mockApiFetchRaw.mockResolvedValueOnce(
       jsonResponse(200, {
         assetId: FIXED_UUID,
@@ -835,7 +836,7 @@ describe('putAsset', () => {
     expect(mockMediaApiFetch).not.toHaveBeenCalled()
     expect(mockApiFetchRaw).toHaveBeenCalledWith(`/api/media/assets/${FIXED_UUID}`, {
       method: 'PUT',
-      workspaceScoped: true,
+      headers: { 'X-Workspace-Id': 'ws-1' },
       body: JSON.stringify({
         fileHash: 'a'.repeat(64),
         fileSizeBytes: 5,

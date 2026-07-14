@@ -99,7 +99,7 @@ function isMediaApiError(body: unknown): body is MediaApiError {
 // API functions
 // ---------------------------------------------------------------------------
 
-import { createApiFetch, type ApiFetchOptions } from '@modules/auth/infrastructure/auth-api'
+import type { createApiFetch, ApiFetchOptions } from '@modules/auth/infrastructure/auth-api'
 import { useAuthStore } from '@modules/auth/infrastructure/auth.store'
 import { computeFileHash, sanitizeFilename } from '@/composables/useFileHash'
 
@@ -191,7 +191,10 @@ async function pollUntilReady(
 
     const body = (await pollResp.json()) as unknown
 
-    if ((pollResp.status === 200 || pollResp.status === 201) && (body as Record<string, unknown>).status === 'READY') {
+    if (
+      (pollResp.status === 200 || pollResp.status === 201) &&
+      (body as Record<string, unknown>).status === 'READY'
+    ) {
       return body as PutAssetResponse
     }
 
@@ -254,7 +257,7 @@ export async function putAsset(
     throw mediaApiError('Not authenticated', 'You must be signed in to upload media.', 401)
   }
 
-  const stableId = assetId ?? crypto.randomUUID()
+  const stableId = assetId ?? globalThis.crypto.randomUUID()
   const fileHash = await computeFileHash(file)
 
   const fetch = createMediaFetch(workspaceId)
@@ -282,7 +285,7 @@ export async function putAsset(
     throw err
   }
 
-  const putBodyRaw = (await putResp.json()) as unknown
+  const putBodyRaw = (await putResp.json().catch(() => ({}))) as unknown
 
   // Handle non-OK responses
   if (!putResp.ok) {
@@ -312,10 +315,7 @@ export async function putAsset(
   return putBody
 }
 
-function makePutAssetError(
-  putResp: Response,
-  body: unknown,
-): ReturnType<typeof mediaApiError> {
+function makePutAssetError(putResp: Response, body: unknown): ReturnType<typeof mediaApiError> {
   const err = body as MediaApiError & { code?: string; detail?: string }
   const errCode = err.code ?? err.errorCode
 
