@@ -602,13 +602,35 @@ class R2dbcPublishingRepositoriesUnitTest : PostgresDatabaseTestBase() {
         }
 
         @Test
-        fun `replaceForPublication deletes and re-inserts`() = runTest {
+        fun `replaceForPublication deletes attempts before replacing job`() = runTest {
             val pubId = insertPublication(PublicationStatus.PROCESSING.name)
             val job1 = makeJob("job-replace-1", pubId, JobStatus.PENDING)
             val job2 = makeJob("job-replace-2", pubId, JobStatus.PENDING)
 
             publicationJobRepository.enqueue(job1)
+            (1..3).forEach { attemptNumber ->
+                deliveryAttemptRepository.record(
+                    DeliveryAttempt(
+                        id = "attempt-replace-$attemptNumber",
+                        publicationId = pubId,
+                        publicationJobId = job1.id,
+                        attemptNumber = attemptNumber,
+                        outcome = DeliveryAttemptOutcome.FAILED,
+                        retryable = false,
+                        attemptedAt = Instant.parse("2026-06-01T12:00:00Z").plusSeconds(attemptNumber.toLong()),
+                    ),
+                )
+            }
             publicationJobRepository.replaceForPublication(job2)
+
+            val remainingAttempts = databaseClient.sql(
+                "SELECT COUNT(*) AS count FROM delivery_attempts WHERE publication_id = :publicationId",
+            )
+                .bind("publicationId", pubId)
+                .map { row, _ -> requireNotNull(row.get("count", Long::class.javaObjectType)) }
+                .one()
+                .awaitSingle()
+            assertEquals(0L, remainingAttempts)
 
             val claim1 = publicationJobRepository.claimNextDue(Instant.parse("2026-06-01T13:00:00Z"), "worker-A")
             assertNotNull(claim1)
@@ -616,6 +638,18 @@ class R2dbcPublishingRepositoriesUnitTest : PostgresDatabaseTestBase() {
 
             val claim2 = publicationJobRepository.claimNextDue(Instant.parse("2026-06-01T13:00:00Z"), "worker-B")
             assertNull(claim2)
+        }
+
+        @Test
+        fun `replaceForPublication inserts job when previous job is missing`() = runTest {
+            val pubId = insertPublication(PublicationStatus.FAILED.name)
+            val replacement = makeJob("job-replacement-without-previous", pubId, JobStatus.PENDING)
+
+            publicationJobRepository.replaceForPublication(replacement)
+
+            val claim = publicationJobRepository.claimNextDue(Instant.parse("2026-06-01T13:00:00Z"), "worker-1")
+            assertNotNull(claim)
+            assertEquals(replacement.id, claim?.jobId)
         }
 
         @Test
