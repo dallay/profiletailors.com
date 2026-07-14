@@ -122,7 +122,7 @@ function mediaApiError(
 }
 
 function withPinnedWorkspace(init: ApiFetchOptions, workspaceId: string): ApiFetchOptions {
-  const { workspaceScoped, headers, ...requestInit } = init
+  const { workspaceScoped, ...requestInit } = init
 
   if (!workspaceScoped) {
     return requestInit
@@ -131,7 +131,7 @@ function withPinnedWorkspace(init: ApiFetchOptions, workspaceId: string): ApiFet
   return {
     ...requestInit,
     headers: {
-      ...headers,
+      ...requestInit.headers,
       'X-Workspace-Id': workspaceId,
     },
   }
@@ -189,7 +189,7 @@ async function pollUntilReady(
       body: JSON.stringify(buildPutAssetBody(file, fileHash)),
     })
 
-    const body = (await pollResp.json()) as unknown
+    const body = (await pollResp.json().catch(() => ({}))) as unknown
 
     if (
       (pollResp.status === 200 || pollResp.status === 201) &&

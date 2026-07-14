@@ -931,6 +931,27 @@ describe('putAsset', () => {
       })
     })
 
+    it('throws status-only error when poll returns non-OK with an empty body', async () => {
+      mockMediaApiFetch
+        .mockResolvedValueOnce(jsonResponse(202, { status: 'WAITING_FOR_BLOB' }))
+        .mockResolvedValueOnce(emptyResponse(502))
+
+      let error: unknown
+      const promise = putAsset(new File(['hello'], 'photo.jpg', { type: 'image/jpeg' }), 'ws-1')
+      promise.catch((e) => {
+        error = e
+      })
+
+      await vi.advanceTimersByTimeAsync(3_100)
+      await vi.advanceTimersByTimeAsync(0)
+
+      expect(error).toMatchObject({
+        title: 'PUT failed',
+        detail: 'Server returned 502.',
+        status: 502,
+      })
+    })
+
     it('throws upload timeout when all poll attempts return 202', async () => {
       // 1 call from putAsset + 10 calls from pollUntilReady (default maxAttempts = 10)
       for (let i = 0; i < 11; i++) {
