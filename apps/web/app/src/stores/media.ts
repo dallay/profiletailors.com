@@ -7,7 +7,7 @@ import {
   listAssets,
   getAsset,
   deleteAsset,
-} from '@/lib/media-api'
+} from '@modules/media/services/media-api'
 
 // ---------------------------------------------------------------------------
 // Types
