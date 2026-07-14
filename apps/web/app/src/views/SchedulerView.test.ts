@@ -1,4 +1,4 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest'
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 import { mount, flushPromises } from '@vue/test-utils'
 import { createPinia, setActivePinia } from 'pinia'
 import { ref } from 'vue'
@@ -309,6 +309,106 @@ describe('SchedulerView', () => {
     const img = wrapper.find('img')
     expect(img.exists()).toBe(true)
     expect(img.attributes('src')).toBe('https://example.com/week-thumb.jpg')
+  })
+
+  describe('week grid day grouping is timezone-safe', () => {
+    // Regression coverage for a bug where a post scheduled at
+    // 2026-07-14T09:00:00Z (11:00 local in Europe/Madrid, UTC+2 in summer)
+    // rendered under Jul 15 instead of Jul 14. Root cause: dateKey() used
+    // toISOString() (UTC) while the week-day columns are built from local
+    // midnight, so a positive UTC offset shifted the column's key back a day
+    // while the post's key (built from an 11:00 local time) stayed on the
+    // same day, misaligning the two.
+    //
+    // These cases sweep positive, negative, fractional (UTC+5:30), and
+    // extreme (+14 / -11) offsets, plus a winter date (Madrid is UTC+1 then,
+    // not UTC+2) to prove the fix isn't accidentally tied to one offset.
+    const originalTz = process.env.TZ
+
+    afterEach(() => {
+      process.env.TZ = originalTz
+    })
+
+    /** Local Y-M-D for `iso` once `process.env.TZ` is set, used as ground truth. */
+    function localDateParts(iso: string) {
+      const d = new Date(iso)
+      return {
+        dateStr: `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`,
+        day: String(d.getDate()),
+      }
+    }
+
+    it.each([
+      {
+        tz: 'Europe/Madrid',
+        scheduledAt: '2026-07-14T09:00:00.000Z',
+        label: 'UTC+2 (summer DST)',
+      },
+      {
+        tz: 'Europe/Madrid',
+        scheduledAt: '2026-01-14T09:00:00.000Z',
+        label: 'UTC+1 (winter, no DST)',
+      },
+      {
+        tz: 'America/New_York',
+        scheduledAt: '2026-07-14T02:30:00.000Z',
+        label: 'UTC-4 (summer DST)',
+      },
+      {
+        tz: 'Asia/Kolkata',
+        scheduledAt: '2026-07-14T20:00:00.000Z',
+        label: 'UTC+5:30 (fractional offset)',
+      },
+      {
+        tz: 'Pacific/Kiritimati',
+        scheduledAt: '2026-07-14T09:00:00.000Z',
+        label: 'UTC+14 (extreme positive)',
+      },
+      {
+        tz: 'Pacific/Niue',
+        scheduledAt: '2026-07-14T09:00:00.000Z',
+        label: 'UTC-11 (extreme negative)',
+      },
+      {
+        tz: 'UTC',
+        scheduledAt: '2026-07-14T00:00:00.000Z',
+        label: 'UTC (no offset)',
+      },
+    ])('keeps the post under its local day for $tz ($label)', async ({ tz, scheduledAt }) => {
+      process.env.TZ = tz
+      const { dateStr, day } = localDateParts(scheduledAt)
+
+      const store = usePublishingStore()
+      store.publications = [
+        {
+          id: `pub-tz-${tz}`,
+          content: `Post scheduled for ${tz}`,
+          channels: ['linkedin'],
+          scheduledAt,
+          status: 'SCHEDULED',
+          priority: false,
+        },
+      ]
+
+      const wrapper = mountView({ date: dateStr })
+      await flushPromises()
+
+      const card = wrapper
+        .findAll('[draggable="true"]')
+        .find((b) => b.text().includes(`Post scheduled for ${tz}`))
+      expect(card).toBeDefined()
+
+      const dayCell = card!.element.closest('button[type="button"]')
+      expect(dayCell).not.toBeNull()
+
+      const allDayCells = wrapper.findAll('button[type="button"]').map((w) => w.element)
+      const cellIndex = allDayCells.indexOf(dayCell as HTMLButtonElement)
+      const dayHeaders = wrapper.findAll('span.leading-none').map((w) => w.text())
+
+      // 7 day-cells per hour row; the column index maps 1:1 to the header index.
+      const columnIndex = cellIndex % 7
+      expect(dayHeaders[columnIndex]).toBe(day)
+    })
   })
 
   it('places thumbnail to the right of text content in week view card', async () => {
