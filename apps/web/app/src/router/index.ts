@@ -78,7 +78,7 @@ const router = createRouter({
     {
       path: '/media',
       name: 'media',
-      component: () => import('../views/MediaLibraryView.vue'),
+      component: () => import('@modules/media/presentation/views/MediaLibraryView.vue'),
       meta: { requiresAuth: true },
     },
     {

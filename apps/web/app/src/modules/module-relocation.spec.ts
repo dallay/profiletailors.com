@@ -48,4 +48,11 @@ describe('module relocation guard', () => {
     ).resolves.toHaveProperty('useContentPipelineStore')
     await expect(import('@modules/dashboard/domain/dashboard.types')).resolves.toBeDefined()
   })
+
+  it('resolves media files from @modules/media paths', async () => {
+    await expect(
+      import('@modules/media/presentation/views/MediaLibraryView.vue'),
+    ).resolves.toBeDefined()
+    await expect(import('@modules/media/services/media-api')).resolves.toHaveProperty('listAssets')
+  })
 })
