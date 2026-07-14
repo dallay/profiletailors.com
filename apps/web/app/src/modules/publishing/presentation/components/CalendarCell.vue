@@ -87,6 +87,7 @@ function onKeyDown(e: KeyboardEvent): void {
       'bg-text-secondary/5 text-text-secondary cursor-not-allowed after:absolute after:inset-0 after:bg-[repeating-linear-gradient(-45deg,transparent,transparent_10px,var(--border-color)_10px,var(--border-color)_11px)] after:opacity-10 after:z-0': isPast,
       'hover:bg-bg-primary/20': isCurrentMonth && !isPast,
     }"
+    :aria-disabled="isCurrentMonth && isPast ? true : undefined"
   >
     <!-- biome-ignore lint/a11y/noStaticElementInteractions: drop target remains separate from nested publication buttons -->
     <div
