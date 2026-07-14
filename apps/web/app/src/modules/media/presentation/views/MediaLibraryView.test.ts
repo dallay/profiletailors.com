@@ -1,10 +1,9 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
-import { mount, flushPromises, type VueWrapper } from '@vue/test-utils'
+import { mount, flushPromises } from '@vue/test-utils'
 import { createPinia, setActivePinia } from 'pinia'
 import MediaLibraryView from './MediaLibraryView.vue'
 import { useMediaStore } from '@/stores/media'
 import { useAuthStore } from '@modules/auth/infrastructure/auth.store'
-import type { MediaAssetSummary } from '@modules/media/services/media-api'
 import type { MediaAssetSummary } from '../../services/media-api'
 
 vi.mock('vue-i18n', () => ({
