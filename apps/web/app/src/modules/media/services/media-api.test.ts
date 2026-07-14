@@ -400,7 +400,6 @@ describe('uploadAsset', () => {
     mockAuthenticatedBox.current = true
   })
 
-
   it('throws 401 when not authenticated', async () => {
     mockAuthenticatedBox.current = false
 
