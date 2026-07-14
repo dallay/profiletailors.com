@@ -365,7 +365,15 @@ function isPastSlot(date: Date, hour: number): boolean {
 }
 
 function dateKey(date: Date): string {
-  return date.toISOString().split('T')[0] ?? ''
+  // Use local date components instead of toISOString() (UTC), otherwise a
+  // positive UTC offset (e.g. Europe/Madrid in summer) shifts the key of a
+  // local-midnight column date back a day while a post scheduled later in
+  // the day keeps its key, misaligning the two and placing posts under the
+  // wrong day column.
+  const y = date.getFullYear()
+  const m = String(date.getMonth() + 1).padStart(2, '0')
+  const d = String(date.getDate()).padStart(2, '0')
+  return `${y}-${m}-${d}`
 }
 
 function activityForDate(date: Date): ActivityEntry | undefined {
