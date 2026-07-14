@@ -10,6 +10,9 @@ import {
   type MediaAssetSummary,
   type MediaSourceType,
 } from './media-api'
+import type { createApiFetch } from '@modules/auth/infrastructure/auth-api'
+
+type ApiFetchMock = ReturnType<typeof createApiFetch>
 
 // ---------------------------------------------------------------------------
 // Mock auth-api (createApiFetch + refreshSession)
@@ -26,10 +29,10 @@ vi.mock('@modules/auth/infrastructure/auth-api', () => ({
   createApiFetch: () => {
     // Return a function that delegates ALL calls to mockMediaApiFetch.
     // The raw property is required by the media-api code for token refresh.
-    const fn: any = async (..._args: unknown[]) => {
-      return mockMediaApiFetch(..._args)
-    }
-    fn.raw = mockMediaApiFetch
+    const fn = (async <T>(...args: Parameters<ApiFetchMock>) => {
+      return mockMediaApiFetch(...args) as Promise<T>
+    }) as ApiFetchMock
+    fn.raw = mockMediaApiFetch as ApiFetchMock['raw']
     return fn
   },
   refreshSession: vi.fn().mockResolvedValue(null),
@@ -74,21 +77,12 @@ vi.mock('@/composables/useFileHash', () => ({
 // Stub crypto.randomUUID so putAsset uses a deterministic asset id
 const FIXED_UUID = 'fixed-asset-uuid-1234'
 
-const originalCrypto = globalThis.crypto
+let randomUUIDSpy: ReturnType<typeof vi.spyOn>
 beforeAll(() => {
-  Object.defineProperty(globalThis, 'crypto', {
-    value: {
-      ...originalCrypto,
-      randomUUID: () => FIXED_UUID,
-    },
-    configurable: true,
-  })
+  randomUUIDSpy = vi.spyOn(globalThis.crypto, 'randomUUID').mockReturnValue(FIXED_UUID)
 })
 afterAll(() => {
-  Object.defineProperty(globalThis, 'crypto', {
-    value: originalCrypto,
-    configurable: true,
-  })
+  randomUUIDSpy.mockRestore()
 })
 
 function jsonResponse(status: number, body: unknown): Response {
@@ -400,9 +394,12 @@ describe('reserveAsset', () => {
 describe('uploadAsset', () => {
   beforeEach(() => {
     setActivePinia(createPinia())
+    mockMediaApiFetch.mockReset()
+    mockApiFetch.mockReset()
     mockApiFetchRaw.mockReset()
     mockAuthenticatedBox.current = true
   })
+
 
   it('throws 401 when not authenticated', async () => {
     mockAuthenticatedBox.current = false
@@ -559,7 +556,8 @@ describe('putAsset', () => {
     const file = new File([], 'unknown.bin')
     await putAsset(file, 'ws-1')
 
-    const body = JSON.parse((mockMediaApiFetch.mock.calls[0] as any)[1].body)
+    const [, options] = mockMediaApiFetch.mock.calls[0] as [string, { body: string }]
+    const body = JSON.parse(options.body)
     expect(body.declaredMediaType).toBe('application/octet-stream')
   })
 
@@ -796,6 +794,55 @@ describe('putAsset', () => {
       title: 'STORAGE_UNAVAILABLE',
       detail: 'Object store is unreachable.',
       status: 500,
+    })
+  })
+
+  it('throws a structured error when PENDING_UPLOAD does not include an upload URL', async () => {
+    mockMediaApiFetch.mockResolvedValueOnce(
+      jsonResponse(201, {
+        assetId: FIXED_UUID,
+        workspaceId: 'ws-1',
+        status: 'PENDING_UPLOAD',
+        mediaType: 'image/jpeg',
+      }),
+    )
+
+    await expect(
+      putAsset(new File(['hello'], 'photo.jpg', { type: 'image/jpeg' }), 'ws-1'),
+    ).rejects.toMatchObject({
+      title: 'Upload URL missing',
+      detail: 'Server accepted the asset but did not provide an upload URL.',
+      status: 502,
+      errorCode: 'UPLOAD_URL_MISSING',
+    })
+  })
+
+  it('uses the auth store raw fetch for PUT-first media requests', async () => {
+    mockApiFetchRaw.mockResolvedValueOnce(
+      jsonResponse(200, {
+        assetId: FIXED_UUID,
+        workspaceId: 'ws-1',
+        status: 'READY',
+        mediaType: 'image/jpeg',
+        detectedMediaType: 'image/jpeg',
+        originalFilename: 'photo.jpg',
+        fileSizeBytes: 5,
+        createdAt: '2026-01-01T00:00:00.000Z',
+      }),
+    )
+
+    await putAsset(new File(['hello'], 'photo.jpg', { type: 'image/jpeg' }), 'ws-1')
+
+    expect(mockMediaApiFetch).not.toHaveBeenCalled()
+    expect(mockApiFetchRaw).toHaveBeenCalledWith(`/api/media/assets/${FIXED_UUID}`, {
+      method: 'PUT',
+      workspaceScoped: true,
+      body: JSON.stringify({
+        fileHash: 'a'.repeat(64),
+        fileSizeBytes: 5,
+        declaredMediaType: 'image/jpeg',
+        originalFilename: 'photo.jpg',
+      }),
     })
   })
 
