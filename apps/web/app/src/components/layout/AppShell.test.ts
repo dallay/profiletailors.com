@@ -124,7 +124,7 @@ vi.mock('@modules/workspace/infrastructure/workspace.store', () => ({
   }),
 }))
 
-vi.mock('@/stores/publishing', () => ({
+vi.mock('@modules/publishing/infrastructure/publishing.store', () => ({
   usePublishingStore: () => ({
     channels: [
       {

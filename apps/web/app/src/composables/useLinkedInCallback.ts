@@ -1,7 +1,7 @@
 import { ref, type Ref } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useI18n } from 'vue-i18n'
-import { usePublishingStore } from '@/stores/publishing'
+import { usePublishingStore } from '@modules/publishing/infrastructure/publishing.store'
 
 export type LinkedInCallbackStatus = 'loading' | 'success' | 'error'
 
