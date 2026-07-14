@@ -2,7 +2,7 @@
 import { computed, ref, watch } from 'vue'
 import { Users } from '@lucide/vue'
 import SidebarChannelRow from './SidebarChannelRow.vue'
-import type { Channel } from '@/stores/publishing'
+import type { Channel } from '@modules/publishing/infrastructure/publishing.store'
 
 export interface SidebarChannel extends Channel {
   badge: string

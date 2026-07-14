@@ -1,13 +1,13 @@
 import { describe, expect, it, vi } from 'vitest'
 import { mount } from '@vue/test-utils'
 import CalendarCell from './CalendarCell.vue'
-import type { Publication } from '@/stores/publishing'
+import type { Publication } from '@modules/publishing/infrastructure/publishing.store'
 
 vi.mock('@lucide/vue', () => ({
   Plus: { template: '<svg />' },
 }))
 
-vi.mock('@/components/ConflictBadge.vue', () => ({
+vi.mock('@modules/publishing/presentation/components/ConflictBadge.vue', () => ({
   default: { template: '<div data-testid="conflict-badge" />' },
 }))
 

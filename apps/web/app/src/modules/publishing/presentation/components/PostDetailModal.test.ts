@@ -3,7 +3,7 @@ import { mount, flushPromises } from '@vue/test-utils'
 import { nextTick } from 'vue'
 import { createPinia, setActivePinia } from 'pinia'
 import PostDetailModal from './PostDetailModal.vue'
-import type { Publication } from '@/stores/publishing'
+import type { Publication } from '@modules/publishing/infrastructure/publishing.store'
 
 interface StoreOverrides {
   rescheduleResult: Publication | undefined
@@ -26,7 +26,7 @@ const { storeOverrides, mockReschedule, mockRetry, mockDelete } = vi.hoisted(() 
   mockDelete: vi.fn(),
 }))
 
-vi.mock('@/stores/publishing', () => ({
+vi.mock('@modules/publishing/infrastructure/publishing.store', () => ({
   usePublishingStore: () => ({
     reschedulePublication: mockReschedule,
     retryPublication: mockRetry,

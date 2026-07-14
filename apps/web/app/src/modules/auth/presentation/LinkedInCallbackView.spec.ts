@@ -2,7 +2,10 @@ import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { flushPromises, mount } from '@vue/test-utils'
 import { createPinia, setActivePinia } from 'pinia'
 import LinkedInCallbackView from './LinkedInCallbackView.vue'
-import { usePublishingStore, type SocialConnectionResult } from '@/stores/publishing'
+import {
+  usePublishingStore,
+  type SocialConnectionResult,
+} from '@modules/publishing/infrastructure/publishing.store'
 
 const mockConnectionResult: SocialConnectionResult = {
   connectionId: 'conn-1',

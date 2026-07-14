@@ -1,9 +1,9 @@
 <script setup lang="ts">
 import { computed } from 'vue'
 import { Plus } from '@lucide/vue'
-import ConflictBadge from '@/components/ConflictBadge.vue'
+import ConflictBadge from '@modules/publishing/presentation/components/ConflictBadge.vue'
 import SocialProviderIcon from '@/components/SocialProviderIcon.vue'
-import type { Publication, ActivityEntry } from '@/stores/publishing'
+import type { Publication, ActivityEntry } from '@modules/publishing/infrastructure/publishing.store'
 import { getProviderColor } from '@/lib/provider-styles'
 
 const props = withDefaults(
@@ -79,8 +79,9 @@ function onKeyDown(e: KeyboardEvent) {
 </script>
 
 <template>
-  <div
-    class="relative min-h-[90px] border-r border-border-subtle last:border-r-0 p-1.5 transition-all group/cell"
+  <button
+    type="button"
+    class="relative min-h-[90px] border-r border-border-subtle last:border-r-0 p-1.5 transition-all group/cell text-left"
     :class="{
       'bg-bg-surface/30': !isCurrentMonth,
       'bg-bg-primary/10': isCurrentMonth && !isPast,
@@ -88,7 +89,6 @@ function onKeyDown(e: KeyboardEvent) {
       'cursor-pointer hover:bg-bg-primary/20': isCurrentMonth && !isPast,
     }"
     :tabindex="isCurrentMonth && !isPast ? 0 : -1"
-    :role="isCurrentMonth && !isPast ? 'button' : undefined"
     :aria-disabled="isCurrentMonth && isPast ? true : undefined"
     :aria-label="isCurrentMonth ? `Calendar cell for ${date.toLocaleDateString()}${isPast ? ' (past)' : ''}` : undefined"
     @click="isCurrentMonth && !isPast ? emit('click-day', date) : undefined"
@@ -165,5 +165,5 @@ function onKeyDown(e: KeyboardEvent) {
     >
       <Plus class="size-2.5" />
     </button>
-  </div>
+  </button>
 </template>

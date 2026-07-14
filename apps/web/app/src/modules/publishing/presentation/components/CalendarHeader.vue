@@ -13,7 +13,7 @@ import {
   Plus,
   Radio,
 } from '@lucide/vue'
-import { usePublishingStore } from '@/stores/publishing'
+import { usePublishingStore } from '@modules/publishing/infrastructure/publishing.store'
 import type { SchedulerStatus, SchedulerSurface } from '@/composables/useCalendarUrl'
 import { Button } from '@/components/ui/button'
 import SocialProviderIcon from '@/components/SocialProviderIcon.vue'

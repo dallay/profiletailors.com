@@ -3,8 +3,8 @@ import { mount, flushPromises } from '@vue/test-utils'
 import { createPinia, setActivePinia } from 'pinia'
 import { ref } from 'vue'
 import SchedulerView from './SchedulerView.vue'
-import { usePublishingStore } from '@/stores/publishing'
-import type { Publication } from '@/stores/publishing'
+import { usePublishingStore } from '@modules/publishing/infrastructure/publishing.store'
+import type { Publication } from '@modules/publishing/infrastructure/publishing.store'
 import type { CalendarUrlController } from '@/composables/useCalendarUrl'
 
 // ---------------------------------------------------------------------------
@@ -97,7 +97,7 @@ vi.mock('vue-sonner', () => ({
   },
 }))
 
-vi.mock('@/components/CreatePostModal.vue', () => ({
+vi.mock('@modules/publishing/presentation/components/CreatePostModal.vue', () => ({
   default: {
     template:
       '<div v-if="isOpen" data-testid="create-post-modal"><button data-testid="create-post-updated" @click="$emit(\'updated\')">updated</button><button data-testid="create-post-created" @click="$emit(\'created\')">created</button></div><div v-if="isOpen" data-testid="create-post-modal-open">open</div>',
@@ -106,7 +106,7 @@ vi.mock('@/components/CreatePostModal.vue', () => ({
   },
 }))
 
-vi.mock('@/components/PostDetailModal.vue', () => ({
+vi.mock('@modules/publishing/presentation/components/PostDetailModal.vue', () => ({
   default: {
     template:
       '<div v-if="isOpen" data-testid="post-detail-modal">' +
@@ -121,7 +121,7 @@ vi.mock('@/components/PostDetailModal.vue', () => ({
   },
 }))
 
-vi.mock('@/components/CalendarHeader.vue', () => ({
+vi.mock('@modules/publishing/presentation/components/CalendarHeader.vue', () => ({
   default: {
     template:
       '<div data-testid="calendar-header"><button data-testid="header-new-post" @click="$emit(\'new-post\')">New Post</button></div>',
@@ -130,7 +130,7 @@ vi.mock('@/components/CalendarHeader.vue', () => ({
   },
 }))
 
-vi.mock('@/components/CalendarCell.vue', () => ({
+vi.mock('@modules/publishing/presentation/components/CalendarCell.vue', () => ({
   default: {
     template:
       '<div data-testid="calendar-cell"><span v-if="activityEntry">{{ activityEntry.count }} {{ activityEntry.density }}</span></div>',
@@ -138,7 +138,7 @@ vi.mock('@/components/CalendarCell.vue', () => ({
   },
 }))
 
-vi.mock('@/components/ConflictBadge.vue', () => ({
+vi.mock('@modules/publishing/presentation/components/ConflictBadge.vue', () => ({
   default: { template: '<div data-testid="conflict-badge" />' },
 }))
 

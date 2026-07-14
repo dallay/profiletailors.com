@@ -1,9 +1,12 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { mount } from '@vue/test-utils'
 import { createPinia, setActivePinia } from 'pinia'
-import ConflictBadge from './ConflictBadge.vue'
-import CalendarCell from './CalendarCell.vue'
-import type { Publication, ActivityEntry } from '@/stores/publishing'
+import ConflictBadge from '@modules/publishing/presentation/components/ConflictBadge.vue'
+import CalendarCell from '@modules/publishing/presentation/components/CalendarCell.vue'
+import type {
+  Publication,
+  ActivityEntry,
+} from '@modules/publishing/infrastructure/publishing.store'
 
 // ---------------------------------------------------------------------------
 // Mock dependencies shared across component tests

@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { setActivePinia, createPinia } from 'pinia'
-import { useMediaStore } from './media'
+import { useMediaStore } from './media.store'
 
 // ---------------------------------------------------------------------------
 // Mock auth-api

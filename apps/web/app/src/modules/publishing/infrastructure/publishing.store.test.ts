@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { setActivePinia, createPinia } from 'pinia'
-import { usePublishingStore, type CalendarResponse } from './publishing'
+import { usePublishingStore, type CalendarResponse } from './publishing.store'
 import { useAuthStore } from '@modules/auth/infrastructure/auth.store'
 
 // ---------------------------------------------------------------------------
