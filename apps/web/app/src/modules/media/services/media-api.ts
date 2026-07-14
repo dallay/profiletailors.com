@@ -503,6 +503,12 @@ export type ListAssetsOptions = {
   cursor?: string | null
 }
 
+/**
+ * Lists media assets for the current workspace.
+ *
+ * @param opts - Optional status, page size, and pagination cursor filters.
+ * @returns A paginated list of media assets, or an empty result when unauthenticated.
+ */
 export async function listAssets(opts: ListAssetsOptions = {}): Promise<MediaAssetListResponse> {
   const auth = useAuthStore()
 

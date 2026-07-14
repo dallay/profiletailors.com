@@ -628,8 +628,12 @@ function deferredPromise<T>(): {
   return { promise, resolve: resolveFn, reject: rejectFn }
 }
 
-/** Default channel used by the mocked channels endpoint when the test has
- *  not registered a per-test override. */
+/**
+ * Creates the mocked channels response payload for the configured attachment limit.
+ *
+ * @param maxAttachments - The maximum number of attachments, or `null` to use 10.
+ * @returns An object containing the mocked LinkedIn channel.
+ */
 export function defaultChannelsPayload(maxAttachments: number | null) {
   return {
     channels: [

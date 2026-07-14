@@ -143,7 +143,7 @@ class ImportUnsplashPhotoHandler(
     )
 
     /**
-     * Removes the imported object from storage.
+     * Attempts to remove an imported object from storage.
      *
      * @param storageKey The key of the object to remove.
      */

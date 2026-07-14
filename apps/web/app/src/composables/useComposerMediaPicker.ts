@@ -419,9 +419,9 @@ export function useComposerMediaPicker(params: ComposerMediaPickerStoreParams) {
   // -------------------------------------------------------------------------
   // Lifecycle methods
   /**
-   * Sets the active media picker source and initiates the initial provider search when needed.
+   * Sets the active media picker source and starts an initial provider search when required.
    *
-   * @param source - The media picker source to activate
+   * @param source - The media picker source to activate. Unsupported provider sources fall back to the library source.
    */
 
   function setActiveMediaPickerSource(source: ComposerMediaPickerSource) {
@@ -444,7 +444,6 @@ export function useComposerMediaPicker(params: ComposerMediaPickerStoreParams) {
    * Opens the media picker and loads the available library assets.
    *
    * @param source - The picker source to activate.
-   * @returns A promise that settles after the library state is updated.
    */
   async function openMediaPicker(source: ComposerMediaPickerSource = 'library') {
     pickerSelectionIds.value = [...draftAttachmentIds.value]
@@ -502,6 +501,11 @@ export function useComposerMediaPicker(params: ComposerMediaPickerStoreParams) {
     closeMediaPicker()
   }
 
+  /**
+   * Removes an attachment from the draft.
+   *
+   * @param assetId - The ID of the attachment to remove
+   */
   function removeDraftAttachment(assetId: string) {
     draftAttachmentIds.value = draftAttachmentIds.value.filter((id) => id !== assetId)
     params.onAttachmentsChanged?.()

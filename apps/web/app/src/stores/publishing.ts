@@ -814,13 +814,23 @@ export const usePublishingStore = defineStore('publishing', () => {
   // -----------------------------------------------------------------------
   // Actions — Existing  (modified with fallback awareness)
   /**
-   * Creates and queues a publication for the selected channels.
+   * Creates and queues a publication using the selected channels and scheduling options.
    *
    * @param post - Publication content, channels, scheduling options, priority, and optional media.
    * @param post.scheduleMode - Scheduling mode: `NOW`, `SCHEDULED_AT`, or `NEXT_SLOT`; defaults to `SCHEDULED_AT`.
-   * @param post.scheduledAt - Requested publication time when using `SCHEDULED_AT`.
-   * @param post.nextSlotAfter - Earliest acceptable time when using `NEXT_SLOT`.
+   * @param post.scheduledAt - Requested publication time for `SCHEDULED_AT`.
+   * @param post.nextSlotAfter - Earliest acceptable time for `NEXT_SLOT`.
    * @returns The created publication.
+   *
+   * @example
+   * ```ts
+   * await schedulePost({
+   *   content: 'Scheduled update',
+   *   channels: ['linkedin'],
+   *   scheduledAt: '2025-03-15T09:00:00Z',
+   *   priority: false,
+   * })
+   * ```
    */
 
   async function schedulePost(post: {

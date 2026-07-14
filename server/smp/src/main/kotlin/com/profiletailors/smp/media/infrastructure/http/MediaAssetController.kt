@@ -416,6 +416,12 @@ class MediaAssetController(
         return mediator.send(GetWorkspaceAssetQuery(assetId = assetId, workspaceId = workspaceId)).toResponse()
     }
 
+    /**
+     * Deletes a workspace media asset using the legacy endpoint.
+     *
+     * @param assetId The identifier of the asset to delete.
+     * @return An empty response with HTTP status 204 (No Content).
+     */
     @DeleteMapping(value = ["/{assetId}"], version = "1")
     suspend fun deleteAssetLegacy(@PathVariable assetId: String): ResponseEntity<Void> {
         val workspaceContext = resourceContextProvider.requireWorkspaceContext()

@@ -30,11 +30,11 @@ const API_HEADERS: Record<string, string> = {
 const HAR_REPLAY = process.env.UPDATE_HAR !== 'true'
 
 /**
- * Authenticates through the login form and waits for the application to finish navigating.
+ * Authenticates through the login form and waits for navigation to complete.
  *
  * @param page - The Playwright page used for authentication.
- * @param credentials - The email and password to submit.
- * @returns The access token returned by the login endpoint.
+ * @param credentials - The email and password submitted to the login form.
+ * @returns An object containing the access token returned by the login endpoint.
  * @throws Error if the login endpoint responds with a failure status.
  */
 export async function authenticateAs(

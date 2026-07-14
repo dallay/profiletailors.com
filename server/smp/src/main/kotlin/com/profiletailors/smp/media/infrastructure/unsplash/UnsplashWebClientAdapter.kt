@@ -71,7 +71,9 @@ class UnsplashWebClientAdapter(private val webClient: WebClient, private val pro
      * Downloads the photo's image content as a stream of byte arrays.
      *
      * @param photo The photo whose import URL identifies the image to download.
-     * @return A flow of image content chunks.
+     * @return A flow containing chunks of the image content.
+     * @throws UnsplashProviderNotConfiguredException If Unsplash integration is not configured.
+     * @throws UnsplashProviderException If the import URL is invalid or does not use the approved image host.
      */
     override fun download(photo: UnsplashPhoto): Flow<ByteArray> {
         requireConfigured()
