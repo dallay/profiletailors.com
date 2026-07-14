@@ -21,6 +21,14 @@ import java.net.URI
 /** Reactive HTTP adapter for the public Unsplash JSON API and image CDN. */
 class UnsplashWebClientAdapter(private val webClient: WebClient, private val properties: UnsplashProperties) :
     UnsplashPhotoProvider {
+    /**
+     * Searches Unsplash for photos matching the optional query.
+     *
+     * @param query The search text, or `null` or blank to retrieve recent photos.
+     * @return The matching photos.
+     * @throws UnsplashProviderNotConfiguredException If Unsplash is not configured.
+     * @throws UnsplashProviderException If Unsplash cannot fulfill the request.
+     */
     override suspend fun search(query: String?): List<UnsplashPhoto> {
         requireConfigured()
         return try {
@@ -42,6 +50,14 @@ class UnsplashWebClientAdapter(private val webClient: WebClient, private val pro
         }
     }
 
+    /**
+     * Retrieves a photo by its external Unsplash identifier.
+     *
+     * @param externalId The photo identifier assigned by Unsplash.
+     * @return The retrieved photo.
+     * @throws UnsplashPhotoNotFoundException If no photo exists with the specified identifier.
+     * @throws UnsplashProviderException If Unsplash cannot fulfill the request.
+     */
     override suspend fun get(externalId: String): UnsplashPhoto {
         requireConfigured()
         return try {
@@ -51,6 +67,12 @@ class UnsplashWebClientAdapter(private val webClient: WebClient, private val pro
         }
     }
 
+    /**
+     * Downloads the photo's image content as a stream of byte arrays.
+     *
+     * @param photo The photo whose import URL identifies the image to download.
+     * @return A flow of image content chunks.
+     */
     override fun download(photo: UnsplashPhoto): Flow<ByteArray> {
         requireConfigured()
         validateProviderUri(photo.importUrl, ALLOWED_IMAGE_HOST)
@@ -67,6 +89,14 @@ class UnsplashWebClientAdapter(private val webClient: WebClient, private val pro
             .asFlow()
     }
 
+    /**
+     * Records a download for the specified photo with the provider.
+     *
+     * @param photo The photo whose download should be tracked.
+     * @throws UnsplashProviderNotConfiguredException if the provider is not configured.
+     * @throws UnsplashProviderException if the download URL is invalid or the provider request fails.
+     * @throws UnsplashPhotoNotFoundException if the provider cannot find the photo.
+     */
     override suspend fun trackDownload(photo: UnsplashPhoto) {
         requireConfigured()
         validateApiUri(photo.downloadLocation)
@@ -82,7 +112,14 @@ class UnsplashWebClientAdapter(private val webClient: WebClient, private val pro
         }
     }
 
-    private suspend inline fun <reified T : Any> get(
+    /**
+         * Performs an authenticated GET request and deserializes the response body.
+         *
+         * @param path The request path.
+         * @param configure Additional URI configuration.
+         * @return The deserialized response body.
+         */
+        private suspend inline fun <reified T : Any> get(
         path: String,
         crossinline configure: org.springframework.web.util.UriBuilder.() -> Unit = {},
     ): T = webClient.get()
@@ -94,15 +131,31 @@ class UnsplashWebClientAdapter(private val webClient: WebClient, private val pro
         .bodyToMono(object : ParameterizedTypeReference<T>() {})
         .awaitSingle()
 
+    /**
+     * Adds the authentication and API version headers required by Unsplash requests.
+     *
+     * @param headers The HTTP headers to update.
+     */
     private fun addApiHeaders(headers: HttpHeaders) {
         headers.set(HttpHeaders.AUTHORIZATION, "Client-ID ${properties.accessKey}")
         headers.set("Accept-Version", "v1")
     }
 
+    /**
+     * Ensures that Unsplash integration is configured.
+     *
+     * @throws UnsplashProviderNotConfiguredException if Unsplash is not configured.
+     */
     private fun requireConfigured() {
         if (!properties.isConfigured) throw UnsplashProviderNotConfiguredException()
     }
 
+    /**
+     * Validates that a URL uses HTTP or HTTPS and matches the configured API host.
+     *
+     * @param value The API URL to validate.
+     * @throws UnsplashProviderException If the URL uses an unsupported scheme or unexpected host.
+     */
     private fun validateApiUri(value: String) {
         val uri = URI.create(value)
         val baseUri = URI.create(properties.baseUrl)
@@ -114,6 +167,13 @@ class UnsplashWebClientAdapter(private val webClient: WebClient, private val pro
         }
     }
 
+    /**
+     * Validates that a provider URL uses HTTPS and the expected host.
+     *
+     * @param value The URL to validate.
+     * @param expectedHost The permitted URL host.
+     * @throws UnsplashProviderException If the URL does not use HTTPS or its host does not match the expected host.
+     */
     private fun validateProviderUri(value: String, expectedHost: String) {
         val uri = URI.create(value)
         if (uri.scheme != "https" || !uri.host.equals(expectedHost, ignoreCase = true)) {
@@ -121,6 +181,13 @@ class UnsplashWebClientAdapter(private val webClient: WebClient, private val pro
         }
     }
 
+    /**
+     * Maps an Unsplash HTTP error to a provider-specific exception.
+     *
+     * @param exception The HTTP error returned by Unsplash.
+     * @param externalId The photo identifier associated with the request, if available.
+     * @return A not-found exception for missing photos, a rate-limit exception for HTTP 429, or a general provider exception otherwise.
+     */
     private fun mapProviderError(
         exception: WebClientResponseException,
         externalId: String?,
@@ -132,7 +199,13 @@ class UnsplashWebClientAdapter(private val webClient: WebClient, private val pro
         else -> UnsplashProviderException("Unsplash is temporarily unavailable.", exception)
     }
 
-    private fun encodePathSegment(value: String): String =
+    /**
+         * Encodes a value for use as a URL path segment.
+         *
+         * @param value The path segment value to encode.
+         * @return The UTF-8 encoded path segment.
+         */
+        private fun encodePathSegment(value: String): String =
         java.net.URLEncoder.encode(value, Charsets.UTF_8).replace("+", "%20")
 
     private companion object {
@@ -150,6 +223,11 @@ private data class UnsplashPhotoResponse(
     val links: UnsplashLinksResponse,
     val user: UnsplashUserResponse,
 ) {
+    /**
+     * Converts the response data into an [UnsplashPhoto].
+     *
+     * @return The mapped photo, including attribution URLs and a fallback name when descriptions are unavailable.
+     */
     fun toPhoto(): UnsplashPhoto = UnsplashPhoto(
         externalId = id,
         name = description?.takeIf(String::isNotBlank)
@@ -164,7 +242,12 @@ private data class UnsplashPhotoResponse(
     )
 }
 
-private fun String.withAttributionParameters(): String = UriComponentsBuilder.fromUriString(this)
+/**
+     * Adds attribution query parameters to the URL.
+     *
+     * @return The URL with source and medium attribution parameters.
+     */
+    private fun String.withAttributionParameters(): String = UriComponentsBuilder.fromUriString(this)
     .queryParam("utm_source", "profile_tailors")
     .queryParam("utm_medium", "referral")
     .build()

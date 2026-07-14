@@ -27,6 +27,12 @@ class UnsplashMediaProviderController(
     private val mediator: Mediator,
     private val resourceContextProvider: ResourceContextProvider,
 ) {
+    /**
+     * Browses editorial Unsplash photos or searches for photos matching a term.
+     *
+     * @param query Optional search term used to filter the photos.
+     * @return The matching Unsplash photo results.
+     */
     @GetMapping
     @Operation(summary = "Browse editorial Unsplash photos or search by term")
     suspend fun search(
@@ -37,6 +43,12 @@ class UnsplashMediaProviderController(
         photos = mediator.send(SearchUnsplashPhotosQuery(query)).map(UnsplashPhoto::toResponse),
     )
 
+    /**
+     * Imports an Unsplash photo into the active workspace media library.
+     *
+     * @param externalId The external identifier of the Unsplash photo to import.
+     * @return The imported media asset.
+     */
     @PostMapping("/{externalId}/import")
     @ResponseStatus(HttpStatus.CREATED)
     @Operation(summary = "Import an Unsplash photo into the active workspace media library")
@@ -66,6 +78,11 @@ data class UnsplashPhotoResponse(
     val authorUrl: String,
 )
 
+/**
+ * Converts an Unsplash photo to its HTTP response representation.
+ *
+ * @return The photo response representation.
+ */
 private fun UnsplashPhoto.toResponse() = UnsplashPhotoResponse(
     externalId = externalId,
     name = name,

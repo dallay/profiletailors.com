@@ -647,6 +647,12 @@ export function defaultChannelsPayload(maxAttachments: number | null) {
   }
 }
 
+/**
+ * Registers mock routes for Unsplash photo operations and media asset endpoints.
+ *
+ * @param context - The browser context in which to register the routes
+ * @param state - Shared mutable state used by the mocked routes
+ */
 export async function registerMediaMocks(
   context: BrowserContext,
   state: MediaRouteState,

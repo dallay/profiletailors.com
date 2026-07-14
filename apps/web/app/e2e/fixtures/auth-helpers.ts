@@ -30,13 +30,12 @@ const API_HEADERS: Record<string, string> = {
 const HAR_REPLAY = process.env.UPDATE_HAR !== 'true'
 
 /**
- * Authenticate by logging in via the Vue form and waiting for dashboard.
- * This ensures the Pinia auth store is properly updated.
+ * Authenticates through the login form and waits for the application to finish navigating.
  *
- * NOTE: After page reload, the HAR's refresh entry returns 401,
- * so session is NOT persisted across reloads. Tests that need
- * reload support must add their own page.route override for
- * the refresh endpoint (POST /api/auth/refresh).
+ * @param page - The Playwright page used for authentication.
+ * @param credentials - The email and password to submit.
+ * @returns The access token returned by the login endpoint.
+ * @throws Error if the login endpoint responds with a failure status.
  */
 export async function authenticateAs(
   page: Page,

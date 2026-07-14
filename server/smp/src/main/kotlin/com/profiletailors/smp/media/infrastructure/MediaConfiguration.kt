@@ -18,6 +18,12 @@ import reactor.netty.http.client.HttpClient
 @Configuration
 @EnableConfigurationProperties(MediaProperties::class, UnsplashProperties::class)
 class MediaConfiguration {
+    /**
+     * Creates the Unsplash photo provider.
+     *
+     * @param properties Unsplash API configuration.
+     * @return The configured Unsplash photo provider.
+     */
     @Bean
     fun unsplashPhotoProvider(properties: UnsplashProperties): UnsplashPhotoProvider {
         val httpClient = HttpClient.create().responseTimeout(properties.timeout)
@@ -28,6 +34,14 @@ class MediaConfiguration {
         return UnsplashWebClientAdapter(webClient, properties)
     }
 
+    /**
+     * Creates the settings used to import Unsplash media.
+     *
+     * @param properties Unsplash import configuration.
+     * @param mediaProperties Media creation limits.
+     * @param attachmentsStorageBinding Attachment storage configuration.
+     * @return The configured Unsplash import settings.
+     */
     @Bean
     fun unsplashImportSettings(
         properties: UnsplashProperties,

@@ -528,6 +528,13 @@ export async function listAssets(opts: ListAssetsOptions = {}): Promise<MediaAss
   })
 }
 
+/**
+ * Retrieves metadata for a media asset.
+ *
+ * @param assetId - The ID of the asset to retrieve
+ * @returns The media asset metadata
+ * @throws If the user is not authenticated
+ */
 export async function getAsset(assetId: string): Promise<MediaAssetSummary> {
   const auth = useAuthStore()
 
@@ -541,7 +548,12 @@ export async function getAsset(assetId: string): Promise<MediaAssetSummary> {
   })
 }
 
-/** Browses editorial photos when query is blank, otherwise searches Unsplash. */
+/**
+ * Browses Unsplash editorial photos or searches by an optional query.
+ *
+ * @param query - Optional search term; blank values browse editorial photos.
+ * @returns The matching Unsplash photo summaries.
+ */
 export async function searchUnsplashPhotos(query?: string): Promise<UnsplashPhotoSummary[]> {
   const auth = useAuthStore()
 
@@ -559,7 +571,12 @@ export async function searchUnsplashPhotos(query?: string): Promise<UnsplashPhot
   return response.photos
 }
 
-/** Imports one provider photo as a persisted READY media asset. */
+/**
+ * Imports an Unsplash photo as a persisted media asset.
+ *
+ * @param externalId - The provider identifier of the photo to import
+ * @returns The persisted media asset summary
+ */
 export async function importUnsplashPhoto(externalId: string): Promise<MediaAssetSummary> {
   const auth = useAuthStore()
 

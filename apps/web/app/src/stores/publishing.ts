@@ -814,13 +814,13 @@ export const usePublishingStore = defineStore('publishing', () => {
   // -----------------------------------------------------------------------
   // Actions — Existing  (modified with fallback awareness)
   /**
-   * Creates and queues a publication for the specified channels.
+   * Creates and queues a publication for the selected channels.
    *
-   * @param post - The publication details
-   * @param post.scheduleMode - The scheduling mode: 'NOW' executes immediately, 'SCHEDULED_AT' uses the `scheduledAt` field, 'NEXT_SLOT' uses the `nextSlotAfter` field. Defaults to 'SCHEDULED_AT'.
-   * @param post.nextSlotAfter - When `scheduleMode` is 'NEXT_SLOT', the earliest time to schedule the publication.
-   * @returns The created Publication object.
-   * @throws Error if LinkedIn channels are requested but no active LinkedIn account is available.
+   * @param post - Publication content, channels, scheduling options, priority, and optional media.
+   * @param post.scheduleMode - Scheduling mode: `NOW`, `SCHEDULED_AT`, or `NEXT_SLOT`; defaults to `SCHEDULED_AT`.
+   * @param post.scheduledAt - Requested publication time when using `SCHEDULED_AT`.
+   * @param post.nextSlotAfter - Earliest acceptable time when using `NEXT_SLOT`.
+   * @returns The created publication.
    */
 
   async function schedulePost(post: {

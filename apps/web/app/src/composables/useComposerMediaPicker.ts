@@ -103,7 +103,12 @@ export type ComposerMediaPickerStoreParams = {
 
 // ---------------------------------------------------------------------------
 // Composable
-// ---------------------------------------------------------------------------
+/**
+ * Manages media selection, uploads, reconciliation, and Unsplash provider interactions for a publication composer.
+ *
+ * @param params - Store dependencies, reactive inputs, and optional attachment and Unsplash handlers.
+ * @returns Reactive picker state, computed values, helper functions, and event handlers.
+ */
 
 export function useComposerMediaPicker(params: ComposerMediaPickerStoreParams) {
   // -------------------------------------------------------------------------
@@ -413,7 +418,11 @@ export function useComposerMediaPicker(params: ComposerMediaPickerStoreParams) {
 
   // -------------------------------------------------------------------------
   // Lifecycle methods
-  // -------------------------------------------------------------------------
+  /**
+   * Sets the active media picker source and initiates the initial provider search when needed.
+   *
+   * @param source - The media picker source to activate
+   */
 
   function setActiveMediaPickerSource(source: ComposerMediaPickerSource) {
     if (source === 'unsplash' && effectiveProvider.value !== 'unsplash') {
@@ -431,6 +440,12 @@ export function useComposerMediaPicker(params: ComposerMediaPickerStoreParams) {
     }
   }
 
+  /**
+   * Opens the media picker and loads the available library assets.
+   *
+   * @param source - The picker source to activate.
+   * @returns A promise that settles after the library state is updated.
+   */
   async function openMediaPicker(source: ComposerMediaPickerSource = 'library') {
     pickerSelectionIds.value = [...draftAttachmentIds.value]
     isMediaPickerOpen.value = true
@@ -492,6 +507,11 @@ export function useComposerMediaPicker(params: ComposerMediaPickerStoreParams) {
     params.onAttachmentsChanged?.()
   }
 
+  /**
+   * Uploads the first supported image or MP4 file and stages the resulting asset.
+   *
+   * @param filesList - Files to search for a supported image or MP4 video
+   */
   async function handlePickerUploadSelection(filesList: File[]) {
     const file = filesList.find(
       (candidate) =>
@@ -520,6 +540,11 @@ export function useComposerMediaPicker(params: ComposerMediaPickerStoreParams) {
     }
   }
 
+  /**
+   * Searches Unsplash photos using the provided query and updates the provider results.
+   *
+   * @param payload - Search payload containing the query text.
+   */
   async function handleProviderSearch(payload: { query: string }): Promise<void> {
     const q = payload.query.trim()
     providerQuery.value = q
@@ -541,6 +566,11 @@ export function useComposerMediaPicker(params: ComposerMediaPickerStoreParams) {
     }
   }
 
+  /**
+   * Imports the selected Unsplash photo and stages the resulting media asset.
+   *
+   * @param payload - Identifies the Unsplash photo to import.
+   */
   async function handleProviderImport(payload: { externalId: string }): Promise<void> {
     const existingAssetId = providerImportResolution.value[payload.externalId]
     if (existingAssetId) {

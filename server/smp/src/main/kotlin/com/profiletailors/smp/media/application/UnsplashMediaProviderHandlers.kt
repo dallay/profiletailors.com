@@ -24,7 +24,13 @@ import java.time.format.DateTimeFormatter
 @Service
 class SearchUnsplashPhotosHandler(private val provider: UnsplashPhotoProvider) :
     QueryHandler<SearchUnsplashPhotosQuery, List<UnsplashPhoto>> {
-    override suspend fun handle(query: SearchUnsplashPhotosQuery): List<UnsplashPhoto> =
+    /**
+         * Searches Unsplash photos using the normalized query text.
+         *
+         * @param query The search query whose text is trimmed before searching.
+         * @return The matching Unsplash photos.
+         */
+        override suspend fun handle(query: SearchUnsplashPhotosQuery): List<UnsplashPhoto> =
         provider.search(query.query?.trim()?.takeIf(String::isNotEmpty))
 }
 
@@ -41,6 +47,13 @@ class ImportUnsplashPhotoHandler(
     private val principalIdentityLookup: PrincipalIdentityLookup = NoOpPrincipalIdentityLookup(),
     private val emailVerificationPolicy: EmailVerificationPolicy = permissiveEmailVerificationPolicy,
 ) : CommandWithResultHandler<ImportUnsplashPhotoCommand, MediaAssetSummary> {
+    /**
+     * Imports an Unsplash photo as a media asset for the specified workspace.
+     *
+     * @param command The command containing the workspace and Unsplash photo identifier.
+     * @return A summary of the imported media asset.
+     * @throws UnsplashPhotoTooLargeException If the downloaded photo exceeds the configured maximum file size.
+     */
     override suspend fun handle(command: ImportUnsplashPhotoCommand): MediaAssetSummary {
         requireEmailVerification(
             principalContextProvider.require(),
@@ -91,6 +104,16 @@ class ImportUnsplashPhotoHandler(
         }
     }
 
+    /**
+     * Persists an imported Unsplash photo as a ready media asset.
+     *
+     * @param command The import command containing the target workspace.
+     * @param photo The Unsplash photo to persist.
+     * @param assetId The generated media asset identifier.
+     * @param storageKey The storage location of the imported photo.
+     * @param fileSizeBytes The size of the stored photo in bytes.
+     * @return The persisted media asset.
+     */
     private suspend fun persistPhoto(
         command: ImportUnsplashPhotoCommand,
         photo: UnsplashPhoto,
@@ -119,6 +142,11 @@ class ImportUnsplashPhotoHandler(
         ),
     )
 
+    /**
+     * Removes the imported object from storage.
+     *
+     * @param storageKey The key of the object to remove.
+     */
     private suspend fun cleanupStorage(storageKey: String) {
         runCatching {
             storageApplicationService.delete(
@@ -129,6 +157,12 @@ class ImportUnsplashPhotoHandler(
         }
     }
 
+    /**
+     * Enforces the hourly media creation limit for a workspace.
+     *
+     * @param workspaceId The workspace whose creation limit is checked.
+     * @throws RateLimitExceededException If the workspace has reached its hourly creation limit.
+     */
     private suspend fun enforceCreationRateLimit(workspaceId: String) {
         val rateLimitOk = mediaRateLimitRepository.tryIncrementHourlyCreationCount(
             workspaceId,
@@ -145,6 +179,13 @@ class ImportUnsplashPhotoHandler(
         }
     }
 
+    /**
+     * Converts this media asset into an Unsplash media asset summary.
+     *
+     * @param previewUrlResolver Resolves the asset preview URL.
+     * @param previewTokenService Builds the signed download path.
+     * @return A summary containing the asset details and resolved access URLs.
+     */
     private suspend fun MediaAsset.toUnsplashSummary(
         previewUrlResolver: AssetPreviewUrlResolver,
         previewTokenService: MediaPreviewTokenService,
