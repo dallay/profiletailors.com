@@ -9,7 +9,7 @@ Relocate publishing-owned Vue SPA files into `apps/web/app/src/modules/publishin
 | Decision | Choice | Alternatives considered | Rationale |
 |---|---|---|---|
 | Publishing layout | `views`, `presentation/components`, `presentation/components/composer`, `application`, `infrastructure` | Flat module folder; leave legacy roots | Matches existing module convention while separating UI, composable logic, and Pinia infrastructure. |
-| Media boundary | Move `media.ts` to `modules/media/infrastructure/media.store.ts` | Put media store under publishing | Preserves DALLAY-469 ownership; media library must not depend on publishing. |
+| Media boundary | Move `media.ts` to `modules/media/infrastructure/media.store.ts` while requiring future cross-module media interaction to go through media application/domain ports | Put media store under publishing; direct cross-module infrastructure imports | Preserves DALLAY-469 ownership and prevents publishing from depending on media internals long-term. |
 | Import strategy | Rewrite directly to `@modules/publishing/...` and `@modules/media/...`; no shims/barrels | Compatibility re-exports at legacy paths | Relocation guards should prove old roots are gone; shims hide boundary violations. |
 | Mock strategy | Update `vi.mock()` strings to exact new module paths with tests moved beside targets | Keep mocks on old aliases | Vitest mocks match import specifiers; stale mocks silently stop intercepting. |
 
@@ -19,9 +19,9 @@ Relocate publishing-owned Vue SPA files into `apps/web/app/src/modules/publishin
 router ──→ @modules/publishing/views/SchedulerView
               ├──→ publishing presentation components/composer
               ├──→ publishing infrastructure store
-              └──→ media infrastructure store when composer needs assets
+              └──→ media application/domain port for composer media needs
 
-media route ──→ @modules/media/presentation ──→ @modules/media/infrastructure/media.store
+media route ──→ @modules/media/presentation ──→ media application/domain port ──→ media infrastructure adapter
 ```
 
 ## Target Directory Layout

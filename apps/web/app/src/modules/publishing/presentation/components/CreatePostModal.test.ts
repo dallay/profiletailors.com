@@ -3,7 +3,7 @@ import { mount } from '@vue/test-utils'
 import { createPinia, setActivePinia } from 'pinia'
 import { nextTick } from 'vue'
 import { usePublishingStore } from '@modules/publishing/infrastructure/publishing.store'
-import { useMediaStore } from '@modules/media/infrastructure/media.store'
+import { useMediaStore } from '@modules/media'
 import { useWorkspaceStore } from '@modules/workspace/infrastructure/workspace.store'
 import CreatePostModalComponent from './CreatePostModal.vue'
 

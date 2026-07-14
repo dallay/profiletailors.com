@@ -54,7 +54,7 @@ function importResult(result: ProviderSearchResultViewModel) {
   <section
     class="flex flex-col gap-3"
     data-testid="provider-panel"
-    aria-label="Provider search"
+:aria-label="t('composer.picker.providerSearchLabel')"
   >
     <p
       v-if="searchError"

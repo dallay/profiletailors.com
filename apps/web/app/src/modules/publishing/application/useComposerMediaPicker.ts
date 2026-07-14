@@ -24,7 +24,7 @@
  */
 import { toValue, ref, computed, isRef } from 'vue'
 import type { MaybeRefOrGetter } from 'vue'
-import type { MediaAssetStatus } from '@modules/media/infrastructure/media.store'
+import type { MediaAssetStatus } from '@modules/media'
 import type { Channel, Publication } from '@modules/publishing/infrastructure/publishing.store'
 import type { MediaAssetSummary } from '@modules/media/services/media-api'
 import type {

@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { computed } from 'vue'
+import { useI18n } from 'vue-i18n'
 import { Info } from '@lucide/vue'
 import SocialProviderIcon from '@/components/SocialProviderIcon.vue'
 import LinkedInPostPreview from './LinkedInPostPreview.vue'
@@ -10,6 +11,8 @@ const props = defineProps<{
   title: string
   linkedinPreview: LinkedInPreviewModel
 }>()
+
+const { t } = useI18n()
 
 const activePreviewComponent = computed(() => {
   return LinkedInPostPreview
@@ -34,7 +37,7 @@ const activePreviewProps = computed(() => {
           {{ title }}
         </h3>
       </div>
-      <Info class="size-4 shrink-0 text-text-secondary" :aria-label="`About the ${title}`" />
+      <Info class="size-4 shrink-0 text-text-secondary" :aria-label="t('composer.previewMeta.aboutProvider', { title })" />
     </div>
 
     <div class="flex-1 min-h-0 flex items-center justify-center p-2">

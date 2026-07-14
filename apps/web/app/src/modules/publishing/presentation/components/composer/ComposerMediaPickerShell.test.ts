@@ -45,6 +45,23 @@ vi.mock('@lucide/vue', () => {
   }
 })
 
+vi.mock('@/components/ui/dialog', () => ({
+  Dialog: {
+    props: ['open'],
+    emits: ['update:open'],
+    template: '<div v-if="open"><slot /></div>',
+  },
+  DialogContent: {
+    template: '<div data-testid="composer-media-picker-shell"><slot /></div>',
+  },
+  DialogDescription: {
+    template: '<p><slot /></p>',
+  },
+  DialogTitle: {
+    template: '<h3><slot /></h3>',
+  },
+}))
+
 function makeAsset(overrides: Partial<ComposerMediaPickerAsset> = {}): ComposerMediaPickerAsset {
   return {
     assetId: 'asset-1',

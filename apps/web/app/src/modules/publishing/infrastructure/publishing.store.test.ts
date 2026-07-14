@@ -637,6 +637,23 @@ describe('publishing store', () => {
   })
 
   describe('schedulePost', () => {
+    it('preserves assetIds in the unauthenticated fallback', async () => {
+      const store = usePublishingStore()
+      const auth = useAuthStore()
+      Object.defineProperty(auth, 'isAuthenticated', { value: false, configurable: true })
+
+      const result = await store.schedulePost({
+        content: 'Local post with media',
+        channels: ['linkedin'],
+        scheduleMode: 'NOW',
+        priority: false,
+        assetIds: ['asset-local-1'],
+      })
+
+      expect(result.assetIds).toEqual(['asset-local-1'])
+      expect(store.publications[0]?.assetIds).toEqual(['asset-local-1'])
+    })
+
     it.each([
       ['NOW', '2026-06-20T14:30:00Z', null],
       ['NEXT_SLOT', null, '2026-06-20T15:00:00Z'],
@@ -1534,6 +1551,9 @@ describe('publishing store', () => {
       await store.updatePost('update-me', { thumbnail: 'blob:new-thumb', title: 'Updated again' })
 
       expect(store.publications[0]).toMatchObject({ title: 'Updated again', status: 'SCHEDULED' })
+      stubUrl.revokeObjectURL.mockClear()
+      await store.updatePost('update-me', { title: 'Title only' })
+      expect(stubUrl.revokeObjectURL).not.toHaveBeenCalled()
     })
 
     it('rolls back local publication when update fails', async () => {

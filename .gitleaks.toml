@@ -22,11 +22,10 @@ paths = [
   "docs/plans/2026-06-10-publishing-infrastructure-credentials-tests-design.md",
   ".agents/skills/testing/playwright-best-practices/advanced/authentication-flows.md",
   "apps/web/app/e2e/hars/", # Recorded HAR fixtures containing test-only local JWT tokens
-  # False positive: type import named LinkedInPreviewModel triggers linkedin-client-secret rule
-  # (entropy 3.45, clearly a type name, not a secret)
-  "apps/web/app/src/modules/publishing/presentation/components/CreatePostModal.vue",
 ]
 regexes = [
+  # False positive: TypeScript type name matched by linkedin-client-secret rule.
+  "PostPreviewMedia",
   "invalid\\.token\\.here",
   "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9\\.eyJzdWIiOiIxMjM0NTY3ODkwIiwiZXhwIjoxNjE2MjM5MDIyfQ\\.SflKxwRJSMeKKF2QT4fwpMeJf36POk6yJV_adQssw5c",
   "test-secret-key-that-is-at-least-256-bits-long",

@@ -220,6 +220,21 @@ describe('media store', () => {
   })
 
   describe('loadNextPage', () => {
+    it('appends new page IDs in API order after existing entries', async () => {
+      const store = useMediaStore()
+      store.assetIds.push('existing-asset')
+      store.assetsById['existing-asset'] = readyAsset('existing-asset')
+      store.nextCursor = 'next-page'
+      mockListAssets.mockResolvedValueOnce({
+        assets: [readyAsset('page-asset-1'), readyAsset('page-asset-2')],
+        nextCursor: null,
+      })
+
+      await store.loadNextPage()
+
+      expect(store.assetIds).toEqual(['existing-asset', 'page-asset-1', 'page-asset-2'])
+    })
+
     it('does nothing when no cursor available', async () => {
       const store = useMediaStore()
       store.nextCursor = null
@@ -739,6 +754,7 @@ describe('media store', () => {
       // Local state should be unchanged after the API failure
       expect(store.assetIds).toContain('del-err-asset')
       expect(store.assetsById['del-err-asset']).toBeDefined()
+      expect(store.deleteError).toBe('Asset does not exist')
     })
 
     it('removes the deleted asset from both assetIds array and assetsById map', async () => {

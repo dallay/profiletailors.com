@@ -28,7 +28,7 @@ None
 
 ## Approach
 
-Use direct file relocation with import rewrites, no compatibility shims. Create `modules/publishing/views`, `presentation/components`, `presentation/components/composer`, `application`, and `infrastructure`. Route scheduler lazy imports to `@modules/publishing/views/SchedulerView.vue`. Keep media API/service and media store under `modules/media`; publishing consumes media through explicit imports/dependencies.
+Use direct file relocation with import rewrites, no compatibility shims. Create `modules/publishing/views`, `presentation/components`, `presentation/components/composer`, `application`, and `infrastructure`. Route scheduler lazy imports to `@modules/publishing/views/SchedulerView.vue`. Keep media API/service and media store under `modules/media`; publishing media interaction must go through media domain/application-boundary communication and MUST NOT directly depend on another module's infrastructure internals beyond this behavior-preserving relocation step.
 
 ## Affected Areas
 

@@ -58,19 +58,19 @@ const activityDotColor = computed(() => {
   }
 })
 
-function onDragStart(e: DragEvent, pub: Publication) {
+function onDragStart(e: DragEvent, pub: Publication): void {
   emit('dragstart', { event: e, pub })
 }
 
-function onDragEnd(e: DragEvent) {
+function onDragEnd(e: DragEvent): void {
   emit('dragend', e)
 }
 
-function onDrop(e: DragEvent) {
+function onDrop(e: DragEvent): void {
   emit('drop-cell', { event: e, date: props.date })
 }
 
-function onKeyDown(e: KeyboardEvent) {
+function onKeyDown(e: KeyboardEvent): void {
   if (props.isCurrentMonth && !props.isPast && (e.key === 'Enter' || e.key === ' ')) {
     e.preventDefault()
     emit('click-day', props.date)
@@ -79,23 +79,29 @@ function onKeyDown(e: KeyboardEvent) {
 </script>
 
 <template>
-  <button
-    type="button"
+  <div
     class="relative min-h-[90px] border-r border-border-subtle last:border-r-0 p-1.5 transition-all group/cell text-left"
     :class="{
       'bg-bg-surface/30': !isCurrentMonth,
       'bg-bg-primary/10': isCurrentMonth && !isPast,
       'bg-text-secondary/5 text-text-secondary cursor-not-allowed after:absolute after:inset-0 after:bg-[repeating-linear-gradient(-45deg,transparent,transparent_10px,var(--border-color)_10px,var(--border-color)_11px)] after:opacity-10 after:z-0': isPast,
-      'cursor-pointer hover:bg-bg-primary/20': isCurrentMonth && !isPast,
+      'hover:bg-bg-primary/20': isCurrentMonth && !isPast,
     }"
-    :tabindex="isCurrentMonth && !isPast ? 0 : -1"
-    :aria-disabled="isCurrentMonth && isPast ? true : undefined"
-    :aria-label="isCurrentMonth ? `Calendar cell for ${date.toLocaleDateString()}${isPast ? ' (past)' : ''}` : undefined"
-    @click="isCurrentMonth && !isPast ? emit('click-day', date) : undefined"
-    @keydown="onKeyDown"
-    @dragover.prevent="!isPast"
-    @drop.prevent="!isPast ? onDrop($event) : undefined"
   >
+    <!-- biome-ignore lint/a11y/noStaticElementInteractions: drop target remains separate from nested publication buttons -->
+    <div
+      class="absolute inset-0 z-0"
+      @dragover.prevent="!isPast"
+      @drop.prevent="!isPast ? onDrop($event) : undefined"
+    />
+    <button
+      v-if="isCurrentMonth && !isPast"
+      type="button"
+      class="absolute inset-0 z-0 cursor-pointer"
+      :aria-label="`Calendar cell for ${date.toLocaleDateString()}`"
+      @click="emit('click-day', date)"
+      @keydown="onKeyDown"
+    />
     <div class="flex items-center justify-between mb-1">
       <span
         class="font-mono text-[10px] font-bold leading-none size-5 flex items-center justify-center rounded-full"
@@ -165,5 +171,5 @@ function onKeyDown(e: KeyboardEvent) {
     >
       <Plus class="size-2.5" />
     </button>
-  </button>
+  </div>
 </template>

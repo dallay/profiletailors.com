@@ -18,7 +18,7 @@ import {
 import { useAuthStore } from '@modules/auth/infrastructure/auth.store'
 import { usePublishingStore, type Publication } from '@modules/publishing/infrastructure/publishing.store'
 import { useWorkspaceStore } from '@modules/workspace/infrastructure/workspace.store'
-import { useMediaStore } from '@modules/media/infrastructure/media.store'
+import { useMediaStore } from '@modules/media'
 import { proxyImageUrl, resolveApiUrl } from '@modules/auth/infrastructure/auth-api'
 import PostPreviewPanel from '@modules/publishing/presentation/components/composer/PostPreviewPanel.vue'
 import type { LinkedInPreviewModel, PostPreviewMedia } from '@modules/publishing/presentation/components/composer/post-preview.types'

@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { computed } from 'vue'
+import { useI18n } from 'vue-i18n'
 
 const props = withDefaults(
   defineProps<{
@@ -10,9 +11,11 @@ const props = withDefaults(
   }>(),
   {
     variant: 'badge',
-    reason: 'Conflicts with another publication',
   },
 )
+
+const { t } = useI18n()
+const resolvedReason = computed(() => props.reason ?? t('composer.conflictBadge.reason'))
 
 const sizeClasses = computed(() => {
   switch (props.variant) {
@@ -31,8 +34,8 @@ const sizeClasses = computed(() => {
 <template>
   <output
     :class="sizeClasses"
-    :title="reason"
-    aria-label="Conflict"
+    :title="resolvedReason"
+    :aria-label="t('composer.conflictBadge.conflict')"
   >
     <template v-if="variant === 'dot'" />
     <template v-else-if="variant === 'badge'">
@@ -40,7 +43,7 @@ const sizeClasses = computed(() => {
     </template>
     <template v-else-if="variant === 'inline'">
       <span class="size-2 rounded-full bg-error inline-block" />
-      Conflict
+      {{ t('composer.conflictBadge.conflict') }}
     </template>
   </output>
 </template>

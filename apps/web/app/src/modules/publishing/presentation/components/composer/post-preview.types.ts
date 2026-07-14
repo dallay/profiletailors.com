@@ -4,14 +4,14 @@ export const PREVIEW_PROVIDERS = {
 
 export type PreviewProvider = (typeof PREVIEW_PROVIDERS)[keyof typeof PREVIEW_PROVIDERS]
 
-export interface PostPreviewMedia {
+export type PostPreviewMedia = {
   kind: 'image' | 'video'
   url?: string | null
   alt: string
   name?: string | null
 }
 
-export interface LinkedInPreviewModel {
+export type LinkedInPreviewModel = {
   authorName: string
   authorHandle: string
   authorAvatarUrl?: string | null

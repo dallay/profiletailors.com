@@ -1,8 +1,7 @@
 import { ref, computed } from 'vue'
 import { defineStore } from 'pinia'
 import { consumeSseStream } from '@/lib/sse'
-import { resolveApiUrl } from '@modules/auth/infrastructure/auth-api'
-import { useAuthStore } from '@modules/auth/infrastructure/auth.store'
+import { resolveApiUrl, useAuthStore } from '@modules/auth'
 
 // ---------------------------------------------------------------------------
 // Types — Channel & Publication (frontend model)
@@ -10,7 +9,7 @@ import { useAuthStore } from '@modules/auth/infrastructure/auth.store'
 
 export type SocialProvider = 'twitter' | 'linkedin' | 'instagram' | 'facebook'
 
-export interface SocialConnectionResult {
+export type SocialConnectionResult = {
   connectionId: string
   workspaceId: string
   provider: string
@@ -18,7 +17,7 @@ export interface SocialConnectionResult {
   account: SocialAccountSummary
 }
 
-export interface SocialAccountSummary {
+export type SocialAccountSummary = {
   accountId: string
   providerAccountId: string
   displayName: string
@@ -26,7 +25,7 @@ export interface SocialAccountSummary {
   profileUrn: string | null
 }
 
-export interface Channel {
+export type Channel = {
   id: string
   name: string
   provider: SocialProvider
@@ -47,7 +46,7 @@ export interface Channel {
   maxAttachments?: number
 }
 
-export interface Publication {
+export type Publication = {
   id: string
   content: string
   title?: string
@@ -93,7 +92,7 @@ export type PublicationUpdate = Partial<Publication> & {
 
 export type ActivityDensity = 'NONE' | 'LIGHT' | 'MEDIUM' | 'HIGH'
 
-export interface CalendarPublicationResult {
+export type CalendarPublicationResult = {
   id: string
   workspaceId: string
   socialAccountId: string
@@ -115,25 +114,25 @@ export interface CalendarPublicationResult {
   errorCode?: string | null
 }
 
-export interface ConflictEntry {
+export type ConflictEntry = {
   publicationId: string
   conflictingPublicationIds: string[]
   reason: string
 }
 
-export interface ActivityEntry {
+export type ActivityEntry = {
   date: string // ISO LocalDate
   density: ActivityDensity
   count: number
 }
 
-export interface CalendarResponse {
+export type CalendarResponse = {
   publications: CalendarPublicationResult[]
   conflicts: ConflictEntry[]
   activity: ActivityEntry[]
 }
 
-interface PublicationMutationResult {
+type PublicationMutationResult = {
   publicationId: string
   workspaceId: string
   socialAccountId: string
@@ -150,7 +149,7 @@ interface PublicationMutationResult {
   publishedAt?: string | null
 }
 
-export interface ConnectedSocialChannelSummary {
+export type ConnectedSocialChannelSummary = {
   socialAccountId: string
   connectionId: string
   provider: string
@@ -162,18 +161,18 @@ export interface ConnectedSocialChannelSummary {
   lastSyncedAt: string | null
 }
 
-export interface ConnectedChannelsResponse {
+export type ConnectedChannelsResponse = {
   channels: ConnectedSocialChannelSummary[]
 }
 
-interface LinkedInConnectionInitiationResult {
+type LinkedInConnectionInitiationResult = {
   authorizationUrl: string
   state: string
   expiresAt: string
 }
 
 /** Filter params accepted by fetchCalendar */
-export interface CalendarFilters {
+export type CalendarFilters = {
   status?: string
   socialAccountId?: string
   timezone?: string
@@ -442,11 +441,11 @@ export const usePublishingStore = defineStore('publishing', () => {
   const viewMode = ref<'calendar' | 'list'>('calendar')
 
   // Reconnect state
+  const isReconnectRequiredStatus = (status: Channel['status']) =>
+    status === 'REQUIRES_RECONNECT' || status === 'REVOKED' || status === 'EXPIRED'
+
   const hasReconnectRequiredChannels = computed(() =>
-    channels.value.some(
-      (ch) =>
-        ch.status === 'REQUIRES_RECONNECT' || ch.status === 'REVOKED' || ch.status === 'EXPIRED',
-    ),
+    channels.value.some((ch) => isReconnectRequiredStatus(ch.status)),
   )
 
   /**
@@ -457,10 +456,7 @@ export const usePublishingStore = defineStore('publishing', () => {
     () => channels.value.filter((ch) => ch.status === 'ACTIVE').length === 0,
   )
   const reconnectRequiredChannels = computed(() =>
-    channels.value.filter(
-      (ch) =>
-        ch.status === 'REQUIRES_RECONNECT' || ch.status === 'REVOKED' || ch.status === 'EXPIRED',
-    ),
+    channels.value.filter((ch) => isReconnectRequiredStatus(ch.status)),
   )
 
   /** Filters for the calendar API — derived from reactive filter state. */
@@ -470,7 +466,7 @@ export const usePublishingStore = defineStore('publishing', () => {
   }))
 
   // Save changes helper
-  function saveToStorage() {
+  function saveToStorage(): void {
     if (typeof localStorage === 'undefined') return
     localStorage.setItem('pt_publications', JSON.stringify(publications.value))
   }
@@ -479,7 +475,7 @@ export const usePublishingStore = defineStore('publishing', () => {
   // Actions — Channel API
   // -----------------------------------------------------------------------
 
-  async function fetchChannels() {
+  async function fetchChannels(): Promise<Channel[]> {
     if (!auth.isAuthenticated) {
       channels.value = []
       channelsError.value = null
@@ -505,7 +501,7 @@ export const usePublishingStore = defineStore('publishing', () => {
     }
   }
 
-  async function fetchConfiguredProviders() {
+  async function fetchConfiguredProviders(): Promise<void> {
     if (!auth.isAuthenticated) {
       configuredProviders.value = []
       return
@@ -572,7 +568,7 @@ export const usePublishingStore = defineStore('publishing', () => {
     return result
   }
 
-  async function subscribeChannelEvents() {
+  async function subscribeChannelEvents(): Promise<null> {
     if (!auth.isAuthenticated) {
       channelEventsConnected.value = false
       return null
@@ -609,7 +605,7 @@ export const usePublishingStore = defineStore('publishing', () => {
     return null
   }
 
-  function unsubscribeChannelEvents() {
+  function unsubscribeChannelEvents(): void {
     channelEventsAbortController.value?.abort()
     channelEventsAbortController.value = null
     channelEventsConnected.value = false
@@ -629,7 +625,7 @@ export const usePublishingStore = defineStore('publishing', () => {
    * prevents stale responses from clobbering fresher data when the URL
    * state changes faster than the network round-trip completes.
    */
-  async function fetchCalendar(from: string, to: string, filters?: CalendarFilters) {
+  async function fetchCalendar(from: string, to: string, filters?: CalendarFilters): Promise<void> {
     const fetchId = ++latestCalendarFetchId.value
 
     const params = new URLSearchParams({
@@ -686,7 +682,7 @@ export const usePublishingStore = defineStore('publishing', () => {
     bodyText: string
     scheduledFor: string
     priority?: boolean
-  }) {
+  }): Promise<Publication> {
     const localPub: Publication = {
       id: `pub-${Date.now()}`,
       content: opts.bodyText,
@@ -728,7 +724,7 @@ export const usePublishingStore = defineStore('publishing', () => {
    * Reschedule a publication with optimistic update + rollback on failure.
    * Returns the updated publication on success, or rolls back and throws.
    */
-  async function reschedulePublication(id: string, newScheduledFor: string) {
+  async function reschedulePublication(id: string, newScheduledFor: string): Promise<Publication> {
     const idx = publications.value.findIndex((p) => p.id === id)
     if (idx === -1) throw new Error(`Publication ${id} not found`)
 
@@ -753,10 +749,16 @@ export const usePublishingStore = defineStore('publishing', () => {
           workspaceScoped: true,
         })
         saveToStorage()
-        return publications.value[idx]
+        const updatedIdx = publications.value.findIndex((p) => p.id === id)
+        const updated = publications.value[updatedIdx]
+        if (!updated) throw new Error(`Publication ${id} not found after reschedule`)
+        return updated
       } catch (err) {
         // Rollback
-        publications.value[idx] = { ...previous, scheduledAt: rollbackValue }
+        const rollbackIdx = publications.value.findIndex((p) => p.id === id)
+        if (rollbackIdx !== -1) {
+          publications.value[rollbackIdx] = { ...previous, scheduledAt: rollbackValue }
+        }
         saveToStorage()
         throw err
       }
@@ -764,7 +766,10 @@ export const usePublishingStore = defineStore('publishing', () => {
 
     // Unauthenticated: just save locally
     saveToStorage()
-    return publications.value[idx]
+    const updatedIdx = publications.value.findIndex((p) => p.id === id)
+    const updated = publications.value[updatedIdx]
+    if (!updated) throw new Error(`Publication ${id} not found after save`)
+    return updated
   }
 
   async function retryPublication(id: string): Promise<Publication> {
@@ -790,11 +795,17 @@ export const usePublishingStore = defineStore('publishing', () => {
           },
         )
         const updated = publicationMutationResultToPublication(result, previous)
-        publications.value[idx] = updated
+        const updatedIdx = publications.value.findIndex((p) => p.id === id)
+        if (updatedIdx !== -1) {
+          publications.value[updatedIdx] = updated
+        }
         saveToStorage()
         return updated
       } catch (err) {
-        publications.value[idx] = previous
+        const rollbackIdx = publications.value.findIndex((p) => p.id === id)
+        if (rollbackIdx !== -1) {
+          publications.value[rollbackIdx] = previous
+        }
         saveToStorage()
         throw err
       }
@@ -806,7 +817,10 @@ export const usePublishingStore = defineStore('publishing', () => {
       blockedReason: undefined,
       errorCode: undefined,
     }
-    publications.value[idx] = updated
+    const updatedIdx = publications.value.findIndex((p) => p.id === id)
+    if (updatedIdx !== -1) {
+      publications.value[updatedIdx] = updated
+    }
     saveToStorage()
     return updated
   }
@@ -834,7 +848,7 @@ export const usePublishingStore = defineStore('publishing', () => {
     thumbnail?: string
     assetIds?: string[]
     socialAccountId?: string
-  }) {
+  }): Promise<Publication> {
     const publicationId = `pub-${Date.now()}`
 
     const effectiveMode = post.scheduleMode ?? 'SCHEDULED_AT'
@@ -853,6 +867,7 @@ export const usePublishingStore = defineStore('publishing', () => {
       status: 'QUEUED',
       priority: post.priority,
       thumbnail: post.thumbnail,
+      assetIds: post.assetIds,
     }
 
     const persistedPub = auth.isAuthenticated
@@ -903,7 +918,7 @@ export const usePublishingStore = defineStore('publishing', () => {
     })
   }
 
-  async function deletePost(id: string) {
+  async function deletePost(id: string): Promise<void> {
     if (!publications.value.some((p) => p.id === id)) {
       throw new Error(`Publication ${id} not found`)
     }
@@ -924,7 +939,7 @@ export const usePublishingStore = defineStore('publishing', () => {
     saveToStorage()
   }
 
-  function cancelPost(id: string) {
+  function cancelPost(id: string): void {
     const post = publications.value.find((p) => p.id === id)
     if (post) {
       post.status = 'CANCELLED'
@@ -940,21 +955,22 @@ export const usePublishingStore = defineStore('publishing', () => {
   function updateTrackedObjectUrls(
     id: string,
     updates: { thumbnail?: string },
-    current: { thumbnail?: string },
+    _current: { thumbnail?: string },
   ): void {
-    if (updates.thumbnail && current.thumbnail && objectUrls.has(id)) {
-      const trackedUrl = objectUrls.get(id)
-      if (trackedUrl) URL.revokeObjectURL(trackedUrl)
+    if (!Object.hasOwn(updates, 'thumbnail')) return
+
+    const trackedUrl = objectUrls.get(id)
+    if (trackedUrl) {
+      URL.revokeObjectURL(trackedUrl)
       objectUrls.delete(id)
     }
+
     if (typeof updates.thumbnail === 'string' && updates.thumbnail.startsWith('blob:')) {
       objectUrls.set(id, updates.thumbnail)
-    } else if (updates.thumbnail == null && objectUrls.has(id)) {
-      objectUrls.delete(id)
     }
   }
 
-  async function updatePost(id: string, updates: PublicationUpdate) {
+  async function updatePost(id: string, updates: PublicationUpdate): Promise<Publication> {
     const current = publications.value.find((p) => p.id === id)
     if (!current) {
       throw new Error(`Publication ${id} not found`)

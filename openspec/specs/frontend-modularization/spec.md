@@ -199,7 +199,8 @@ DALLAY-471 MUST preserve DALLAY-469 media bounded-context ownership; media state
 
 - GIVEN publishing composer needs media state or media types
 - WHEN publishing code consumes media functionality
-- THEN it SHALL import from `@modules/media/...` or use an explicit adapter relationship
+- THEN it SHALL use media application/domain ports or an explicit adapter relationship
+- AND it SHALL NOT import another module's infrastructure internals directly
 - AND the media module's service/store ownership SHALL remain independent of publishing
 
 ## Usage

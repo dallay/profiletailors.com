@@ -63,7 +63,7 @@ describe('module relocation guard', () => {
     )
   })
 
-  it('resolves publishing files from @modules/publishing paths', async () => {
+  it('resolves publishing files from @modules/publishing paths', async (): Promise<void> => {
     await expect(import('@modules/publishing/views/SchedulerView.vue')).resolves.toBeDefined()
     await expect(
       import('@modules/publishing/presentation/components/CalendarCell.vue'),
@@ -91,7 +91,7 @@ describe('module relocation guard', () => {
     ).resolves.toHaveProperty('usePublishingStore')
   })
 
-  it('keeps relocated publishing and media ownership files out of legacy root paths', () => {
+  it('keeps relocated publishing and media ownership files out of legacy root paths', (): void => {
     const legacyPaths = [
       'views/SchedulerView.vue',
       'components/CalendarCell.vue',
@@ -105,7 +105,9 @@ describe('module relocation guard', () => {
       'stores/media.ts',
     ]
 
-    expect(legacyPaths.filter((path) => existsSync(`${sourceRoot}/${path}`))).toEqual([])
+    expect(
+      legacyPaths.filter((path: string): boolean => existsSync(`${sourceRoot}/${path}`)),
+    ).toEqual([])
   })
 
   it('exposes the full media-api surface as callable functions from its new @modules/media location', async () => {

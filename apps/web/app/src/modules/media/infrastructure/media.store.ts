@@ -53,7 +53,7 @@ function nextDelay(attempt: number): number {
 // Upload item (in-memory state for an in-flight upload)
 // ---------------------------------------------------------------------------
 
-export interface UploadItem {
+export type UploadItem = {
   tempKey: string
   assetId: string
   file: File
@@ -88,6 +88,7 @@ export const useMediaStore = defineStore('media', () => {
 
   const isLoading = ref(false)
   const loadError = ref<string | null>(null)
+  const deleteError = ref<string | null>(null)
 
   // ─── Computed ─────────────────────────────────────────────────────────
 
@@ -110,30 +111,37 @@ export const useMediaStore = defineStore('media', () => {
 
   // ─── Helpers ───────────────────────────────────────────────────────────
 
-  function upsertAsset(asset: MediaAssetSummary) {
+  function upsertAsset(asset: MediaAssetSummary): void {
     assetsById.value[asset.assetId] = asset
     if (!assetIds.value.includes(asset.assetId)) {
       assetIds.value.unshift(asset.assetId)
     }
   }
 
-  function upsertAssets(assets: MediaAssetSummary[]) {
-    for (const asset of assets) upsertAsset(asset)
+  function upsertAssets(assets: MediaAssetSummary[]): void {
+    const newIds: string[] = []
+    for (const asset of assets) {
+      assetsById.value[asset.assetId] = asset
+      if (!assetIds.value.includes(asset.assetId)) {
+        newIds.push(asset.assetId)
+      }
+    }
+    assetIds.value = [...assetIds.value, ...newIds]
   }
 
-  function removeAssetLocally(assetId: string) {
+  function removeAssetLocally(assetId: string): void {
     delete assetsById.value[assetId]
     assetIds.value = assetIds.value.filter((id) => id !== assetId)
     selectedAssetIds.value = selectedAssetIds.value.filter((id) => id !== assetId)
   }
 
-  function updateUpload(tempKey: string, updates: Partial<UploadItem>) {
+  function updateUpload(tempKey: string, updates: Partial<UploadItem>): void {
     const current = uploads.value[tempKey]
     if (!current) return
     uploads.value[tempKey] = { ...current, ...updates }
   }
 
-  function markUploadDone(tempKey: string, asset: MediaAssetSummary) {
+  function markUploadDone(tempKey: string, asset: MediaAssetSummary): void {
     updateUpload(tempKey, { status: 'done', asset, progress: 100 })
   }
 
@@ -196,7 +204,7 @@ export const useMediaStore = defineStore('media', () => {
 
   const refreshAsset = loadAsset
 
-  async function loadAssets(status = 'READY') {
+  async function loadAssets(status = 'READY'): Promise<void> {
     isLoading.value = true
     loadError.value = null
     assetIds.value = []
@@ -215,7 +223,7 @@ export const useMediaStore = defineStore('media', () => {
     }
   }
 
-  async function loadNextPage(status = 'READY') {
+  async function loadNextPage(status = 'READY'): Promise<void> {
     if (!nextCursor.value) return
     try {
       const result = await executeWithRetry(() =>
@@ -317,35 +325,42 @@ export const useMediaStore = defineStore('media', () => {
   }
 
   /** Load dangling assets from prior sessions. */
-  async function loadDanglingAssets() {
+  async function loadDanglingAssets(): Promise<void> {
     await loadAssets('PENDING_UPLOAD,UPLOADING,FAILED')
   }
 
-  function addToSelection(assetId: string) {
+  function addToSelection(assetId: string): void {
     if (!selectedAssetIds.value.includes(assetId)) {
       selectedAssetIds.value.push(assetId)
     }
   }
 
-  function removeFromSelection(assetId: string) {
+  function removeFromSelection(assetId: string): void {
     selectedAssetIds.value = selectedAssetIds.value.filter((id) => id !== assetId)
   }
 
-  function clearSelection() {
+  function clearSelection(): void {
     selectedAssetIds.value = []
   }
 
   /** Delete and remove from store. Uses CAS DELETE endpoint. */
-  async function deletePersistedAsset(assetId: string) {
-    await deleteAsset(assetId)
-    removeAssetLocally(assetId)
+  async function deletePersistedAsset(assetId: string): Promise<void> {
+    deleteError.value = null
+    try {
+      await deleteAsset(assetId)
+      removeAssetLocally(assetId)
+    } catch (err) {
+      const apiErr = err as { title?: string; detail?: string }
+      deleteError.value = apiErr.detail ?? apiErr.title ?? 'Failed to delete asset.'
+      throw err
+    }
   }
 
-  function dismissUpload(tempKey: string) {
+  function dismissUpload(tempKey: string): void {
     delete uploads.value[tempKey]
   }
 
-  function clearUploads() {
+  function clearUploads(): void {
     uploads.value = {}
   }
 
@@ -360,6 +375,7 @@ export const useMediaStore = defineStore('media', () => {
     nextCursor,
     isLoading,
     loadError,
+    deleteError,
     // Computed
     selectedAssets,
     uploadList,
