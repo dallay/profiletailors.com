@@ -26,13 +26,13 @@ import { toValue, ref, computed, isRef } from 'vue'
 import type { MaybeRefOrGetter } from 'vue'
 import type { MediaAssetStatus } from '@/stores/media'
 import type { Channel, Publication } from '@/stores/publishing'
-import type { MediaAssetSummary } from '@/lib/media-api'
+import type { MediaAssetSummary } from '@modules/media/services/media-api'
 import type {
   ComposerMediaPickerAsset,
   ComposerMediaPickerCollectionState,
   ComposerMediaPickerSource,
 } from '@/components/composer/composer-media-picker.types'
-import { resolveApiUrl } from '@/lib/auth-api'
+import { resolveApiUrl } from '@modules/auth/infrastructure/auth-api'
 
 // ---------------------------------------------------------------------------
 // Constants

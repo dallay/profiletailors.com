@@ -1,7 +1,7 @@
 import { createRouter, createWebHistory } from 'vue-router'
 import type { RouteLocationNormalized } from 'vue-router'
-import HomeView from '../views/HomeView.vue'
-import { useAuthStore } from '@/stores/auth'
+import HomeView from '@modules/dashboard/presentation/views/HomeView.vue'
+import { useAuthStore } from '@modules/auth/infrastructure/auth.store'
 
 function requiresAuth(route: RouteLocationNormalized) {
   return route.meta.requiresAuth === true
@@ -17,13 +17,13 @@ const router = createRouter({
     {
       path: '/login',
       name: 'login',
-      component: () => import('../views/AuthView.vue'),
+      component: () => import('@modules/auth/presentation/AuthView.vue'),
       meta: { guestOnly: true },
     },
     {
       path: '/register',
       name: 'register',
-      component: () => import('../views/AuthView.vue'),
+      component: () => import('@modules/auth/presentation/AuthView.vue'),
       meta: { guestOnly: true },
     },
     {
@@ -72,25 +72,25 @@ const router = createRouter({
     {
       path: '/analytics',
       name: 'analytics',
-      component: () => import('../views/AnalyticsView.vue'),
+      component: () => import('@modules/dashboard/presentation/views/AnalyticsView.vue'),
       meta: { requiresAuth: true },
     },
     {
       path: '/media',
       name: 'media',
-      component: () => import('../views/MediaLibraryView.vue'),
+      component: () => import('@modules/media/presentation/views/MediaLibraryView.vue'),
       meta: { requiresAuth: true },
     },
     {
       path: '/settings',
       name: 'settings',
-      component: () => import('../views/SettingsView.vue'),
+      component: () => import('@modules/settings/presentation/SettingsView.vue'),
       meta: { requiresAuth: true },
     },
     {
       path: '/integrations/linkedin/callback',
       name: 'linkedin-callback',
-      component: () => import('../views/LinkedInCallbackView.vue'),
+      component: () => import('@modules/auth/presentation/LinkedInCallbackView.vue'),
       meta: { requiresAuth: true },
     },
   ],

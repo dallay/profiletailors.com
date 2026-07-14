@@ -1,13 +1,13 @@
 import { ref, computed } from 'vue'
 import { defineStore } from 'pinia'
-import { useWorkspaceStore } from './workspace'
+import { useWorkspaceStore } from '@modules/workspace/infrastructure/workspace.store'
 import {
   type MediaAssetSummary,
   putAsset,
   listAssets,
   getAsset,
   deleteAsset,
-} from '@/lib/media-api'
+} from '@modules/media/services/media-api'
 
 // ---------------------------------------------------------------------------
 // Types

@@ -5,7 +5,7 @@ import { useMediaStore } from './media'
 // ---------------------------------------------------------------------------
 // Mock auth-api
 // ---------------------------------------------------------------------------
-vi.mock('@/lib/auth-api', () => ({
+vi.mock('@modules/auth/infrastructure/auth-api', () => ({
   createApiFetch: () =>
     Object.assign(
       async function apiFetch<T>() {
@@ -31,7 +31,7 @@ const mockGetAsset = vi.fn()
 const mockDeleteAsset = vi.fn()
 const mockWorkspace = { activeWorkspaceId: 'ws-test-1' as string | null }
 
-vi.mock('@/lib/media-api', () => ({
+vi.mock('@modules/media/services/media-api', () => ({
   putAsset: (...args: unknown[]) => mockPutAsset(...args),
   listAssets: (...args: unknown[]) => mockListAssets(...args),
   getAsset: (...args: unknown[]) => mockGetAsset(...args),
@@ -41,7 +41,7 @@ vi.mock('@/lib/media-api', () => ({
 // ---------------------------------------------------------------------------
 // Mock auth store
 // ---------------------------------------------------------------------------
-vi.mock('@/stores/auth', () => ({
+vi.mock('@modules/auth/infrastructure/auth.store', () => ({
   useAuthStore: () => ({
     isAuthenticated: true,
     accessToken: { value: 'fake-token' },
@@ -52,7 +52,7 @@ vi.mock('@/stores/auth', () => ({
 // ---------------------------------------------------------------------------
 // Mock workspace store
 // ---------------------------------------------------------------------------
-vi.mock('@/stores/workspace', () => ({
+vi.mock('@modules/workspace/infrastructure/workspace.store', () => ({
   useWorkspaceStore: () => mockWorkspace,
 }))
 

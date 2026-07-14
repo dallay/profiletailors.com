@@ -1,7 +1,7 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 import { ref, type Ref } from 'vue'
 import { useComposerMediaPicker } from './useComposerMediaPicker'
-import type { MediaAssetSummary } from '@/lib/media-api'
+import type { MediaAssetSummary } from '@modules/media/services/media-api'
 import type { Channel, Publication } from '@/stores/publishing'
 
 // ---------------------------------------------------------------------------

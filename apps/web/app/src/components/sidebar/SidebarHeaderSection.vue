@@ -3,7 +3,7 @@ import { computed, ref } from 'vue'
 import { ChevronsUpDown, Plus } from '@lucide/vue'
 import WorkspaceAvatar from '@/components/WorkspaceAvatar.vue'
 import { usePopoverDismissal } from '@/composables/usePopoverDismissal'
-import type { WorkspaceSummary } from '@/lib/auth-api'
+import type { WorkspaceSummary } from '@modules/auth/infrastructure/auth-api'
 
 const props = defineProps<{
   activeWorkspace: WorkspaceSummary | null
@@ -32,12 +32,12 @@ const isEmpty = computed(() => props.options.length === 0 && !props.isLoading)
 <template>
   <div
     ref="containerRef"
-    class="relative"
+    class="relative min-w-0"
   >
     <div
       v-if="open"
       id="sidebar-workspace-menu"
-      class="absolute top-0 left-0 z-50 w-full rounded-2xl border border-border-subtle bg-bg-surface p-2 shadow-2xl group-data-[collapsible=icon]:min-w-56"
+      class="absolute top-0 left-0 z-50 w-full min-w-56 rounded-lg border border-border-subtle bg-bg-surface p-1.5 shadow-lg"
       role="menu"
     >
       <div class="px-2 py-2">
@@ -96,7 +96,7 @@ const isEmpty = computed(() => props.options.length === 0 && !props.isLoading)
 
     <button
       ref="triggerRef"
-      class="flex w-full items-center gap-3 rounded-2xl border border-border-subtle bg-bg-surface/70 px-3 py-2 transition-all hover:border-border-visible hover:bg-bg-surface group-data-[collapsible=icon]:p-0 group-data-[collapsible=icon]:size-10 group-data-[collapsible=icon]:justify-center"
+      class="flex h-12 w-full min-w-0 items-center gap-2 rounded-md p-2 transition-colors hover:bg-bg-primary/70 group-data-[collapsible=icon]:size-8! group-data-[collapsible=icon]:justify-center group-data-[collapsible=icon]:p-0!"
       type="button"
       aria-haspopup="menu"
       :aria-expanded="open ? 'true' : 'false'"
@@ -106,12 +106,12 @@ const isEmpty = computed(() => props.options.length === 0 && !props.isLoading)
       <WorkspaceAvatar
         :name="activeWorkspace?.name ?? 'W'"
         :icon="activeWorkspace?.icon"
-        size="md"
+        size="sm"
       />
       <span class="sr-only">{{ activeWorkspace?.name ?? 'Select workspace' }}</span>
 
       <div class="min-w-0 flex-1 text-left group-data-[collapsible=icon]:hidden">
-        <p class="truncate font-mono text-[11px] font-bold uppercase tracking-[0.18em] text-text-display">
+        <p class="truncate text-sm font-medium text-text-display">
           {{ activeWorkspace?.name ?? 'Select workspace' }}
         </p>
         <p class="truncate text-xs text-text-secondary">
