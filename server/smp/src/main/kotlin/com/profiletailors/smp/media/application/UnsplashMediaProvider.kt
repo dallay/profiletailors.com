@@ -83,4 +83,4 @@ class UnsplashPhotoNotFoundException(val externalId: String) :
 
 /** Raised when an imported provider image exceeds the configured safety limit. */
 class UnsplashPhotoTooLargeException(val actualSize: Long, val maxAllowed: Long) :
-    UnsplashProviderException("The selected Unsplash photo exceeds the import size limit.")
+    UnsplashProviderException("The selected Unsplash photo ($actualSize bytes) exceeds the import size limit ($maxAllowed bytes).")

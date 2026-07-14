@@ -135,15 +135,15 @@ class CreateUploadedAssetHandler(
     }
 
     private suspend fun enforceCreationRateLimit(workspaceId: String) {
-        val rateLimitOk = mediaRateLimitRepository.tryIncrementHourlyCreationCount(
+        val result = mediaRateLimitRepository.tryIncrementHourlyCreationCount(
             workspaceId,
             uploadSettings.maxCreationsPerHour,
         )
-        if (!rateLimitOk) {
+        if (!result.isAllowed) {
             throw RateLimitExceededException(
                 workspaceId = workspaceId,
                 limitType = "hourly_creations",
-                currentValue = uploadSettings.maxCreationsPerHour,
+                currentValue = result.value,
                 limitValue = uploadSettings.maxCreationsPerHour,
                 retryAfterSeconds = HOURLY_CREATIONS_RETRY_AFTER_SECONDS,
             )
@@ -988,15 +988,15 @@ class PutAssetHandler(
     }
 
     private suspend fun enforceCreationRateLimit(workspaceId: String) {
-        val rateLimitOk = mediaRateLimitRepository.tryIncrementHourlyCreationCount(
+        val result = mediaRateLimitRepository.tryIncrementHourlyCreationCount(
             workspaceId,
             uploadSettings.maxCreationsPerHour,
         )
-        if (!rateLimitOk) {
+        if (!result.isAllowed) {
             throw RateLimitExceededException(
                 workspaceId = workspaceId,
                 limitType = "hourly_creations",
-                currentValue = uploadSettings.maxCreationsPerHour,
+                currentValue = result.value,
                 limitValue = uploadSettings.maxCreationsPerHour,
                 retryAfterSeconds = HOURLY_CREATIONS_RETRY_AFTER_SECONDS,
             )

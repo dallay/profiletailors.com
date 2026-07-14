@@ -79,7 +79,7 @@ type ComposerMediaPickerPublishingStore = {
   channels: StoreValue<Channel[]>
 }
 
-interface ProviderSearchResult extends UnsplashPhotoSummary {
+type ProviderSearchResult = UnsplashPhotoSummary & {
   selectedForImport?: boolean
   imported?: boolean
 }
@@ -188,6 +188,8 @@ export function useComposerMediaPicker(params: ComposerMediaPickerStoreParams) {
   const providerResults = ref<ProviderSearchResult[]>([])
   const providerSearching = ref(false)
   const providerSearchError = ref<string | null>(null)
+  /** Monotonic request id; compared against the latest to ignore stale search responses. */
+  const providerSearch = ref(0)
   /** externalId → assetId mapping for already-reconciled provider imports. */
   const providerImportResolution = ref<Record<string, string>>({})
 
@@ -555,18 +557,27 @@ export function useComposerMediaPicker(params: ComposerMediaPickerStoreParams) {
     providerSearchError.value = null
     providerSearching.value = true
 
+    // Monotonic request id to ignore stale overlapping search promises.
+    const requestId = ++providerSearch.value
+
     try {
       const search = params.searchUnsplash ?? searchUnsplashPhotos
-      providerResults.value = (await search(q || undefined)).map((photo) => ({
+      const results = await search(q || undefined)
+      // Ignore results from a stale search that was overtaken by a newer query.
+      if (requestId !== providerSearch.value) return
+      providerResults.value = results.map((photo) => ({
         ...photo,
         imported: providerImportResolution.value[photo.externalId] !== undefined,
       }))
     } catch (error: unknown) {
+      if (requestId !== providerSearch.value) return
       providerResults.value = []
       providerSearchError.value =
         error instanceof Error ? error.message : 'Unable to load Unsplash photos.'
     } finally {
-      providerSearching.value = false
+      if (requestId === providerSearch.value) {
+        providerSearching.value = false
+      }
     }
   }
 
@@ -596,7 +607,14 @@ export function useComposerMediaPicker(params: ComposerMediaPickerStoreParams) {
       mediaStore.upsertAsset(asset)
       ensurePickerAssetVisible(asset.assetId)
       mediaPickerCollectionState.value = 'READY'
-      stageAssetOnce(asset.assetId)
+
+      if (isAssetSelectableStatus(asset.status)) {
+        stageAssetOnce(asset.assetId)
+        clearPendingPickerAsset(asset.assetId)
+      } else {
+        startAssetReconciliation(asset.assetId)
+      }
+
       providerImportResolution.value = {
         ...providerImportResolution.value,
         [payload.externalId]: asset.assetId,
@@ -645,6 +663,7 @@ export function useComposerMediaPicker(params: ComposerMediaPickerStoreParams) {
     providerResults,
     providerSearching,
     providerSearchError,
+    providerSearch,
     providerImportResolution,
 
     // Lifecycle methods

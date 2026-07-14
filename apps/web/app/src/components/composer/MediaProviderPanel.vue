@@ -62,6 +62,8 @@ function importResult(result: ProviderSearchResultViewModel) {
       v-if="searchError"
       class="rounded-xl border border-error/40 bg-error/10 px-3 py-2 text-xs text-error"
       data-testid="provider-panel-search-error"
+      role="alert"
+      aria-live="polite"
     >
       {{ searchError }}
     </p>
@@ -70,6 +72,8 @@ function importResult(result: ProviderSearchResultViewModel) {
       v-if="isSearching"
       class="rounded-2xl border border-dashed border-border-subtle px-4 py-6 text-sm text-text-secondary"
       data-testid="provider-panel-loading"
+      role="status"
+      aria-live="polite"
     >
       {{ t('composer.picker.searchingAction') }}
     </div>
@@ -144,8 +148,3 @@ function importResult(result: ProviderSearchResultViewModel) {
   </section>
 </template>
 
-<style scoped>
-.provider-panel-shadow {
-  box-shadow: 0 1px 2px rgb(0 0 0 / 0.05);
-}
-</style>

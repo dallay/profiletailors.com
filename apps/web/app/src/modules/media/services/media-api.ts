@@ -45,18 +45,11 @@ export type MediaAssetListResponse = {
   nextCursor: string | null
 }
 
-export interface UnsplashPhotoSummary {
-  externalId: string
+export type UnsplashPhotoSummary = Pick<MediaAssetSummary, 'externalId' | 'previewUrl' | 'sourceUrl' | 'authorName' | 'authorUrl'> & {
   name: string
-  previewUrl: string
-  sourceUrl: string
-  authorName: string
-  authorUrl: string
 }
 
-export interface UnsplashSearchResponse {
-  photos: UnsplashPhotoSummary[]
-}
+export type UnsplashSearchResponse = { photos: UnsplashPhotoSummary[] }
 
 // ─── CAS PUT response ─────────────────────────────────────────────────────────
 

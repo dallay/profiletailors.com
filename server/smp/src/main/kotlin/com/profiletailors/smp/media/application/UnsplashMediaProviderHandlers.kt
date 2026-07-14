@@ -14,7 +14,6 @@ import com.profiletailors.smp.identity.application.requireEmailVerification
 import com.profiletailors.smp.media.domain.MediaAsset
 import com.profiletailors.smp.media.domain.MediaAssetStatus
 import com.profiletailors.smp.media.domain.MediaSourceType
-import com.profiletailors.storage.application.StorageApplicationService
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.flow.flow
 import java.time.Instant
@@ -39,7 +38,7 @@ class ImportUnsplashPhotoHandler(
     private val provider: UnsplashPhotoProvider,
     private val mediaAssetRepository: MediaAssetRepository,
     private val mediaRateLimitRepository: MediaRateLimitRepository,
-    private val storageApplicationService: StorageApplicationService,
+    private val storagePort: MediaStoragePort,
     private val settings: UnsplashImportSettings,
     private val assetPreviewUrlResolver: AssetPreviewUrlResolver,
     private val mediaPreviewTokenService: MediaPreviewTokenService,
@@ -61,7 +60,7 @@ class ImportUnsplashPhotoHandler(
             emailVerificationPolicy,
             AuthFeature.UPLOAD_MEDIA,
         )
-        enforceCreationRateLimit(command.workspaceId)
+        val currentCount = enforceCreationRateLimit(command.workspaceId)
 
         val photo = provider.get(command.externalId)
         val assetId = MediaAsset.generateAssetId()
@@ -79,7 +78,7 @@ class ImportUnsplashPhotoHandler(
         }
 
         try {
-            storageApplicationService.upload(
+            storagePort.upload(
                 bucket = settings.storageBucket,
                 key = storageKey,
                 content = guardedContent,
@@ -149,7 +148,7 @@ class ImportUnsplashPhotoHandler(
      */
     private suspend fun cleanupStorage(storageKey: String) {
         runCatching {
-            storageApplicationService.delete(
+            storagePort.delete(
                 bucket = settings.storageBucket,
                 key = storageKey,
                 deleterId = "unsplash-import",
@@ -162,21 +161,23 @@ class ImportUnsplashPhotoHandler(
      *
      * @param workspaceId The workspace whose creation limit is checked.
      * @throws RateLimitExceededException If the workspace has reached its hourly creation limit.
+     * @return The current creation count after the increment.
      */
-    private suspend fun enforceCreationRateLimit(workspaceId: String) {
-        val rateLimitOk = mediaRateLimitRepository.tryIncrementHourlyCreationCount(
+    private suspend fun enforceCreationRateLimit(workspaceId: String): Int {
+        val currentCount = mediaRateLimitRepository.tryIncrementHourlyCreationCount(
             workspaceId,
             settings.maxCreationsPerHour,
         )
-        if (!rateLimitOk) {
+        if (!currentCount.isAllowed) {
             throw RateLimitExceededException(
                 workspaceId = workspaceId,
                 limitType = "hourly_creations",
-                currentValue = settings.maxCreationsPerHour,
+                currentValue = currentCount.value,
                 limitValue = settings.maxCreationsPerHour,
                 retryAfterSeconds = HOURLY_CREATIONS_RETRY_AFTER_SECONDS,
             )
         }
+        return currentCount.value
     }
 
     /**

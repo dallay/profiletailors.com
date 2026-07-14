@@ -2,6 +2,10 @@ package com.profiletailors.smp.media.infrastructure.http
 
 import com.profiletailors.common.domain.bus.Mediator
 import com.profiletailors.common.domain.context.ResourceContextProvider
+import com.profiletailors.smp.authorization.domain.AuthorizationDecision
+import com.profiletailors.smp.authorization.domain.AuthorizationDeniedException
+import com.profiletailors.smp.authorization.domain.PermissionKey
+import com.profiletailors.smp.authorization.domain.WorkspaceAuthorizationDecider
 import com.profiletailors.smp.media.application.ImportUnsplashPhotoCommand
 import com.profiletailors.smp.media.application.SearchUnsplashPhotosQuery
 import com.profiletailors.smp.media.application.UnsplashPhoto
@@ -26,6 +30,7 @@ import org.springframework.web.bind.annotation.RestController
 class UnsplashMediaProviderController(
     private val mediator: Mediator,
     private val resourceContextProvider: ResourceContextProvider,
+    private val workspaceAuthorizationDecider: WorkspaceAuthorizationDecider,
 ) {
     /**
      * Browses editorial Unsplash photos or searches for photos matching a term.
@@ -53,7 +58,13 @@ class UnsplashMediaProviderController(
     @ResponseStatus(HttpStatus.CREATED)
     @Operation(summary = "Import an Unsplash photo into the active workspace media library")
     suspend fun import(@PathVariable externalId: String): MediaAssetResponse {
-        val workspaceId = resourceContextProvider.requireWorkspaceContext().workspaceId!!
+        val decision = workspaceAuthorizationDecider.decideDetailed(REQUIRED_PERMISSION)
+        if (decision.decision == AuthorizationDecision.DENY) {
+            throw AuthorizationDeniedException.forDecision(decision, REQUIRED_PERMISSION)
+        }
+
+        val resourceContext = resourceContextProvider.requireWorkspaceContext()
+        val workspaceId = requireNotNull(resourceContext.workspaceId)
         return mediator.send(
             ImportUnsplashPhotoCommand(
                 workspaceId = workspaceId,
@@ -64,6 +75,7 @@ class UnsplashMediaProviderController(
 
     private companion object {
         const val MAX_QUERY_LENGTH = 200
+        private val REQUIRED_PERMISSION = PermissionKey.of("workspace", "media", "create")
     }
 }
 

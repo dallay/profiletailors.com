@@ -327,10 +327,10 @@ test.describe(`Composer media attachments (mocked) ${TAGS}`, () => {
     await expect(composePage.unsplashResult('remote-work')).toBeVisible()
 
     await composePage.searchUnsplash('no-results')
-    await expect(page.getByTestId('provider-panel-empty')).toBeVisible()
+    await expect(composePage.unsplashEmptyState).toBeVisible()
 
     await composePage.searchUnsplash('provider-error')
-    await expect(page.getByTestId('provider-panel-search-error')).toBeVisible()
+    await expect(composePage.unsplashErrorState).toBeVisible()
   })
 
   // -------------------------------------------------------------------------
@@ -345,16 +345,20 @@ test.describe(`Composer media attachments (mocked) ${TAGS}`, () => {
     await composePage.openMediaPicker()
     await composePage.unsplashTab.click()
     await composePage.searchUnsplash('retry')
-    await composePage.unsplashImportButton('import-fails').click()
 
-    await expect(composePage.pickerShell).toBeVisible()
-    await expect(page.getByTestId('provider-panel-search-error')).toBeVisible()
-    await expect(composePage.unsplashImportButton('import-fails')).toBeEnabled()
+    await test.step('Trigger import failure and verify error state', async () => {
+      await composePage.unsplashImportButton('import-fails').click()
+      await expect(composePage.pickerShell).toBeVisible()
+      await expect(page.getByTestId('provider-panel-search-error')).toBeVisible()
+      await expect(composePage.unsplashImportButton('import-fails')).toBeEnabled()
+    })
 
-    mockState.unsplashImportFailures.delete('import-fails')
-    await composePage.unsplashImportButton('import-fails').click()
-    await expect(composePage.unsplashImportButton('import-fails')).toBeDisabled()
-    expect(mockState.unsplashImportCount).toBe(2)
+    await test.step('Retry import and verify success', async () => {
+      mockState.unsplashImportFailures.delete('import-fails')
+      await composePage.unsplashImportButton('import-fails').click()
+      await expect(composePage.unsplashImportButton('import-fails')).toBeDisabled()
+      expect(mockState.unsplashImportCount).toBe(2)
+    })
   })
 
   // -------------------------------------------------------------------------
@@ -377,34 +381,17 @@ test.describe(`Composer media attachments (mocked) ${TAGS}`, () => {
     await expect(composePage.attachmentPreview).toBeVisible()
 
     await composePage.clickScheduleNow()
-    await expect
-      .poll(() =>
-        page.evaluate(() => {
-          const app = (
-            document.querySelector('#app') as HTMLElement & {
-              __vue_app__?: {
-                config: {
-                  globalProperties: {
-                    $pinia?: {
-                      state: {
-                        value: {
-                          publishing?: {
-                            publications?: Array<{ content: string; assetIds?: string[] }>
-                          }
-                        }
-                      }
-                    }
-                  }
-                }
-              }
-            }
-          ).__vue_app__
-          return app?.config.globalProperties.$pinia?.state.value.publishing?.publications?.find(
-            (publication) => publication.content === 'Post with an Unsplash image',
-          )?.assetIds
-        }),
-      )
-      .toEqual(['unsplash-remote-work'])
+    const publicationResponse = await page.waitForResponse(
+      (response) =>
+        response.request().method() === 'POST' &&
+        new URL(response.url()).pathname === '/api/publishing/publications',
+      { timeout: 20_000 },
+    )
+    expect(publicationResponse.ok()).toBe(true)
+    expect(publicationResponse.request().postDataJSON()).toMatchObject({
+      bodyText: 'Post with an Unsplash image',
+      assetIds: ['unsplash-remote-work'],
+    })
     expect(mockState.unsplashImportCount).toBe(1)
   })
 

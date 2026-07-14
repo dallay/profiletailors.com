@@ -39,88 +39,101 @@ test.describe('Unsplash real provider smoke @real-unsplash @media @composer', ()
     })
 
     try {
-      await scheduler.goto()
-      await scheduler.clickNewPost()
-      await composePage.expectVisible()
-      await composePage.fillText(runId)
-      await composePage.openMediaPicker()
-
-      const examplesResponsePromise = page.waitForResponse(
-        (response) =>
-          response.request().method() === 'GET' &&
-          new URL(response.url()).pathname === '/api/media/providers/unsplash/photos' &&
-          !new URL(response.url()).searchParams.has('query'),
-        { timeout: 20_000 },
-      )
-      await composePage.unsplashTab.click()
-      const examplesResponse = await examplesResponsePromise.catch((error: unknown) => {
-        throw new Error(
-          `Initial Unsplash response was not observed. Requests: ${unsplashRequests.join(', ')}. Responses: ${unsplashResponses.join(', ')}. Cause: ${String(error)}`,
-        )
+      await test.step('Open composer and media picker', async () => {
+        await scheduler.goto()
+        await scheduler.clickNewPost()
+        await composePage.expectVisible()
+        await composePage.fillText(runId)
+        await composePage.openMediaPicker()
       })
-      expect(examplesResponse.ok()).toBe(true)
-      const examples = (await examplesResponse.json()) as UnsplashSearchResponse
-      expect(examples.photos.length).toBeGreaterThan(0)
-      await expect(composePage.unsplashResults).toBeVisible()
 
-      const searchResponsePromise = page.waitForResponse((response) => {
-        const url = new URL(response.url())
-        return (
-          response.request().method() === 'GET' &&
-          url.pathname === '/api/media/providers/unsplash/photos' &&
-          url.searchParams.get('query') === 'remote work'
+      let selectedPhotoId: string | undefined
+      await test.step('Browse editorial examples', async () => {
+        const examplesResponsePromise = page.waitForResponse(
+          (response) =>
+            response.request().method() === 'GET' &&
+            new URL(response.url()).pathname === '/api/media/providers/unsplash/photos' &&
+            !new URL(response.url()).searchParams.has('query'),
+          { timeout: 20_000 },
         )
+        await composePage.unsplashTab.click()
+        const examplesResponse = await examplesResponsePromise.catch((error: unknown) => {
+          throw new Error(
+            `Initial Unsplash response was not observed. Requests: ${unsplashRequests.join(', ')}. Responses: ${unsplashResponses.join(', ')}. Cause: ${String(error)}`,
+          )
+        })
+        expect(examplesResponse.ok()).toBe(true)
+        const examples = (await examplesResponse.json()) as UnsplashSearchResponse
+        expect(examples.photos.length).toBeGreaterThan(0)
+        await expect(composePage.unsplashResults).toBeVisible()
       })
-      await composePage.searchUnsplash('remote work')
-      const searchResponse = await searchResponsePromise
-      expect(searchResponse.ok()).toBe(true)
-      const searchResult = (await searchResponse.json()) as UnsplashSearchResponse
-      expect(searchResult.photos.length).toBeGreaterThan(0)
-      const selectedPhotoId = searchResult.photos[0]?.externalId
-      expect(selectedPhotoId).toBeTruthy()
-      if (!selectedPhotoId) throw new Error('Unsplash returned no selectable photo')
 
-      const importResponsePromise = page.waitForResponse(
-        (response) =>
-          response.request().method() === 'POST' &&
-          new URL(response.url()).pathname ===
-            `/api/media/providers/unsplash/photos/${selectedPhotoId}/import`,
-      )
-      await composePage.unsplashImportButton(selectedPhotoId).click()
-      const importResponse = await importResponsePromise
-      if (!importResponse.ok()) {
-        throw new Error(
-          `Unsplash import failed with ${importResponse.status()}: ${await importResponse.text()}`,
+      await test.step('Search for "remote work"', async () => {
+        const searchResponsePromise = page.waitForResponse((response) => {
+          const url = new URL(response.url())
+          return (
+            response.request().method() === 'GET' &&
+            url.pathname === '/api/media/providers/unsplash/photos' &&
+            url.searchParams.get('query') === 'remote work'
+          )
+        })
+        await composePage.searchUnsplash('remote work')
+        const searchResponse = await searchResponsePromise
+        expect(searchResponse.ok()).toBe(true)
+        const searchResult = (await searchResponse.json()) as UnsplashSearchResponse
+        expect(searchResult.photos.length).toBeGreaterThan(0)
+        selectedPhotoId = searchResult.photos[0]?.externalId
+        expect(selectedPhotoId).toBeTruthy()
+        if (!selectedPhotoId) throw new Error('Unsplash returned no selectable photo')
+      })
+
+      await test.step('Import selected Unsplash photo', async () => {
+        const importResponsePromise = page.waitForResponse(
+          (response) =>
+            response.request().method() === 'POST' &&
+            new URL(response.url()).pathname ===
+              `/api/media/providers/unsplash/photos/${selectedPhotoId}/import`,
         )
-      }
-      importedAssetId = ((await importResponse.json()) as UnsplashImportResponse).assetId
-      expect(importedAssetId).toBeTruthy()
-
-      await composePage.libraryTab.click()
-      await expect(composePage.libraryAssetCard(importedAssetId)).toBeVisible()
-      await composePage.pickerApply.click()
-      await expect(composePage.attachmentPreview).toBeVisible()
-
-      await composePage.switchToPickDate()
-      const tomorrow = new Date()
-      tomorrow.setDate(tomorrow.getDate() + 1)
-      await composePage.openDatePicker()
-      await composePage.pickDate(tomorrow.getDate())
-
-      const publicationResponsePromise = page.waitForResponse(
-        (response) =>
-          response.request().method() === 'POST' &&
-          new URL(response.url()).pathname === '/api/publishing/publications',
-      )
-      await composePage.clickSchedulePost()
-      const publicationResponse = await publicationResponsePromise
-      expect(publicationResponse.ok()).toBe(true)
-      expect(publicationResponse.request().postDataJSON()).toMatchObject({
-        bodyText: runId,
-        assetIds: [importedAssetId],
+        await composePage.unsplashImportButton(selectedPhotoId).click()
+        const importResponse = await importResponsePromise
+        if (!importResponse.ok()) {
+          throw new Error(
+            `Unsplash import failed with ${importResponse.status()}: ${await importResponse.text()}`,
+          )
+        }
+        importedAssetId = ((await importResponse.json()) as UnsplashImportResponse).assetId
+        expect(importedAssetId).toBeTruthy()
       })
-      publicationId = ((await publicationResponse.json()) as PublicationResponse).publicationId
-      expect(publicationId).toBeTruthy()
+
+      await test.step('Apply selection and attach to post', async () => {
+        await composePage.libraryTab.click()
+        await expect(composePage.libraryAssetCard(importedAssetId)).toBeVisible()
+        await composePage.pickerApply.click()
+        await expect(composePage.attachmentPreview).toBeVisible()
+      })
+
+      await test.step('Schedule post with attached Unsplash asset', async () => {
+        await composePage.switchToPickDate()
+        const tomorrow = new Date()
+        tomorrow.setDate(tomorrow.getDate() + 1)
+        await composePage.openDatePicker()
+        await composePage.pickDate(tomorrow.getDate())
+
+        const publicationResponsePromise = page.waitForResponse(
+          (response) =>
+            response.request().method() === 'POST' &&
+            new URL(response.url()).pathname === '/api/publishing/publications',
+        )
+        await composePage.clickSchedulePost()
+        const publicationResponse = await publicationResponsePromise
+        expect(publicationResponse.ok()).toBe(true)
+        expect(publicationResponse.request().postDataJSON()).toMatchObject({
+          bodyText: runId,
+          assetIds: [importedAssetId],
+        })
+        publicationId = ((await publicationResponse.json()) as PublicationResponse).publicationId
+        expect(publicationId).toBeTruthy()
+      })
     } finally {
       if (publicationId) {
         await page.request.delete(`/api/publishing/publications/${publicationId}`, {

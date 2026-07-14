@@ -47,6 +47,8 @@ class UnsplashWebClientAdapter(private val webClient: WebClient, private val pro
             }.map(UnsplashPhotoResponse::toPhoto)
         } catch (exception: WebClientResponseException) {
             throw mapProviderError(exception, null)
+        } catch (exception: Exception) {
+            throw UnsplashProviderException("Unsplash search failed: ${exception.message}", exception)
         }
     }
 
@@ -64,6 +66,8 @@ class UnsplashWebClientAdapter(private val webClient: WebClient, private val pro
             get<UnsplashPhotoResponse>("/photos/${encodePathSegment(externalId)}").toPhoto()
         } catch (exception: WebClientResponseException) {
             throw mapProviderError(exception, externalId)
+        } catch (exception: Exception) {
+            throw UnsplashProviderException("Unsplash get photo failed: ${exception.message}", exception)
         }
     }
 
@@ -82,11 +86,20 @@ class UnsplashWebClientAdapter(private val webClient: WebClient, private val pro
             .uri(photo.importUrl)
             .retrieve()
             .bodyToFlux(org.springframework.core.io.buffer.DataBuffer::class.java)
+            .doOnDiscard(org.springframework.core.io.buffer.DataBuffer::class.java) { buffer ->
+                DataBufferUtils.release(buffer)
+            }
             .map { buffer ->
                 val bytes = ByteArray(buffer.readableByteCount())
                 buffer.read(bytes)
                 DataBufferUtils.release(buffer)
                 bytes
+            }
+            .onErrorMap(WebClientResponseException::class.java) { exception ->
+                mapProviderError(exception, photo.externalId)
+            }
+            .onErrorMap({ exception -> exception !is UnsplashProviderException }) { exception ->
+                UnsplashProviderException("Unsplash image download failed.", exception)
             }
             .asFlow()
     }
@@ -111,6 +124,8 @@ class UnsplashWebClientAdapter(private val webClient: WebClient, private val pro
                 .awaitSingle()
         } catch (exception: WebClientResponseException) {
             throw mapProviderError(exception, photo.externalId)
+        } catch (exception: Exception) {
+            throw UnsplashProviderException("Unsplash download tracking failed.", exception)
         }
     }
 
@@ -159,13 +174,14 @@ class UnsplashWebClientAdapter(private val webClient: WebClient, private val pro
      * @throws UnsplashProviderException If the URL uses an unsupported scheme or unexpected host.
      */
     private fun validateApiUri(value: String) {
-        val uri = URI.create(value)
-        val baseUri = URI.create(properties.baseUrl)
-        if (uri.scheme != "https" && uri.scheme != "http") {
-            throw UnsplashProviderException("Unsplash returned an invalid API URL.")
+        val uri = runCatching { URI.create(value) }
+            .getOrElse { throw UnsplashProviderException("Unsplash returned a malformed API URL: $value.") }
+        if (uri.scheme != "https") {
+            throw UnsplashProviderException("Unsplash returned an insecure API URL (not HTTPS): $value.")
         }
-        if (!uri.host.equals(baseUri.host, ignoreCase = true)) {
-            throw UnsplashProviderException("Unsplash returned an unexpected API host.")
+        val baseUri = runCatching { URI.create(properties.baseUrl) }.getOrNull()
+        if (baseUri != null && !uri.host.equals(baseUri.host, ignoreCase = true)) {
+            throw UnsplashProviderException("Unsplash returned an unexpected API host: ${uri.host}.")
         }
     }
 
@@ -177,9 +193,13 @@ class UnsplashWebClientAdapter(private val webClient: WebClient, private val pro
      * @throws UnsplashProviderException If the URL does not use HTTPS or its host does not match the expected host.
      */
     private fun validateProviderUri(value: String, expectedHost: String) {
-        val uri = URI.create(value)
-        if (uri.scheme != "https" || !uri.host.equals(expectedHost, ignoreCase = true)) {
-            throw UnsplashProviderException("Unsplash returned an unexpected image host.")
+        val uri = runCatching { URI.create(value) }
+            .getOrElse { throw UnsplashProviderException("Unsplash returned a malformed image URL: $value.") }
+        if (uri.scheme != "https") {
+            throw UnsplashProviderException("Unsplash returned an insecure image URL (not HTTPS): $value.")
+        }
+        if (!uri.host.equals(expectedHost, ignoreCase = true)) {
+            throw UnsplashProviderException("Unsplash returned an unexpected image host: ${uri.host}.")
         }
     }
 

@@ -58,7 +58,7 @@ class CommonBddTestConfiguration {
 
         override suspend fun releaseConcurrentUploadSlot(workspaceId: String) = Unit
 
-        override suspend fun tryIncrementHourlyCreationCount(workspaceId: String, maxPerHour: Int): Boolean = true
+        override suspend fun tryIncrementHourlyCreationCount(workspaceId: String, maxPerHour: Int): MediaRateLimitRepository.RateLimitIncrementResult = MediaRateLimitRepository.RateLimitIncrementResult(1, true)
     }
 
     @Bean
