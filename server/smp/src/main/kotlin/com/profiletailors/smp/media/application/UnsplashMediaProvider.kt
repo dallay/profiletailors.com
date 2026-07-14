@@ -19,34 +19,34 @@ data class UnsplashPhoto(
 /** Port implemented by the Unsplash HTTP adapter. */
 interface UnsplashPhotoProvider {
     /**
- * Lists editorial photos when [query] is blank and searches for matching photos otherwise.
- *
- * @param query The optional search query.
- * @return The matching or editorial photos.
- */
+     * Lists editorial photos when [query] is blank and searches for matching photos otherwise.
+     *
+     * @param query The optional search query.
+     * @return The matching or editorial photos.
+     */
     suspend fun search(query: String?): List<UnsplashPhoto>
 
     /**
- * Resolves the current canonical provider data for a photo.
- *
- * @param externalId The provider identifier of the photo.
- * @return The canonical photo data.
- */
+     * Resolves the current canonical provider data for a photo.
+     *
+     * @param externalId The provider identifier of the photo.
+     * @return The canonical photo data.
+     */
     suspend fun get(externalId: String): UnsplashPhoto
 
     /**
- * Streams the selected photo's bytes from the provider CDN.
- *
- * @param photo The photo to download.
- * @return A stream of the photo's byte data.
- */
+     * Streams the selected photo's bytes from the provider CDN.
+     *
+     * @param photo The photo to download.
+     * @return A stream of the photo's byte data.
+     */
     fun download(photo: UnsplashPhoto): Flow<ByteArray>
 
     /**
- * Records the provider-required download event for a selected photo.
- *
- * @param photo The photo whose download event should be recorded.
- */
+     * Records the provider-required download event for a selected photo.
+     *
+     * @param photo The photo whose download event should be recorded.
+     */
     suspend fun trackDownload(photo: UnsplashPhoto)
 }
 

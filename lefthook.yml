@@ -57,6 +57,10 @@ pre-push:
   source: .lefthookrc.yml
 
   commands:
+    # Spotless: auto-format Kotlin with ktlint before push
+    backend-spotless:
+      run: './gradlew spotlessApply --no-daemon && git add -u'
+
     # Gitleaks: scan the commit range being pushed using refs provided by pre-push stdin
     gitleaks-range:
       run: 'while read local_ref local_sha remote_ref remote_sha; do if [ -z "$local_sha" ] || [ "$local_sha" = "0000000000000000000000000000000000000000" ]; then continue; fi; if [ "$remote_sha" = "0000000000000000000000000000000000000000" ]; then log_opts="$local_sha --not --remotes=origin"; else log_opts="$remote_sha..$local_sha"; fi; gitleaks git --redact --exit-code 1 --config .gitleaks.toml --log-opts="$log_opts"; done'

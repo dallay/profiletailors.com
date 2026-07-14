@@ -130,13 +130,13 @@ class UnsplashWebClientAdapter(private val webClient: WebClient, private val pro
     }
 
     /**
-         * Performs an authenticated GET request and deserializes the response body.
-         *
-         * @param path The request path.
-         * @param configure Additional URI configuration.
-         * @return The deserialized response body.
-         */
-        private suspend inline fun <reified T : Any> get(
+     * Performs an authenticated GET request and deserializes the response body.
+     *
+     * @param path The request path.
+     * @param configure Additional URI configuration.
+     * @return The deserialized response body.
+     */
+    private suspend inline fun <reified T : Any> get(
         path: String,
         crossinline configure: org.springframework.web.util.UriBuilder.() -> Unit = {},
     ): T = webClient.get()
@@ -208,7 +208,8 @@ class UnsplashWebClientAdapter(private val webClient: WebClient, private val pro
      *
      * @param exception The HTTP error returned by Unsplash.
      * @param externalId The photo identifier associated with the request, if available.
-     * @return A not-found exception for missing photos, a rate-limit exception for HTTP 429, or a general provider exception otherwise.
+     * @return A not-found exception for missing photos, a rate-limit exception for HTTP 429,
+     *     or a general provider exception otherwise.
      */
     private fun mapProviderError(
         exception: WebClientResponseException,
@@ -222,12 +223,12 @@ class UnsplashWebClientAdapter(private val webClient: WebClient, private val pro
     }
 
     /**
-         * Encodes a value for use as a URL path segment.
-         *
-         * @param value The path segment value to encode.
-         * @return The UTF-8 encoded path segment.
-         */
-        private fun encodePathSegment(value: String): String =
+     * Encodes a value for use as a URL path segment.
+     *
+     * @param value The path segment value to encode.
+     * @return The UTF-8 encoded path segment.
+     */
+    private fun encodePathSegment(value: String): String =
         java.net.URLEncoder.encode(value, Charsets.UTF_8).replace("+", "%20")
 
     private companion object {
@@ -265,11 +266,11 @@ private data class UnsplashPhotoResponse(
 }
 
 /**
-     * Adds attribution query parameters to the URL.
-     *
-     * @return The URL with source and medium attribution parameters.
-     */
-    private fun String.withAttributionParameters(): String = UriComponentsBuilder.fromUriString(this)
+ * Adds attribution query parameters to the URL.
+ *
+ * @return The URL with source and medium attribution parameters.
+ */
+private fun String.withAttributionParameters(): String = UriComponentsBuilder.fromUriString(this)
     .queryParam("utm_source", "profile_tailors")
     .queryParam("utm_medium", "referral")
     .build()

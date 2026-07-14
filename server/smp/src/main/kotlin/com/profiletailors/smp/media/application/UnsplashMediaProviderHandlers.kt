@@ -24,12 +24,12 @@ import java.time.format.DateTimeFormatter
 class SearchUnsplashPhotosHandler(private val provider: UnsplashPhotoProvider) :
     QueryHandler<SearchUnsplashPhotosQuery, List<UnsplashPhoto>> {
     /**
-         * Searches Unsplash photos using the normalized query text.
-         *
-         * @param query The search query whose text is trimmed before searching.
-         * @return The matching Unsplash photos.
-         */
-        override suspend fun handle(query: SearchUnsplashPhotosQuery): List<UnsplashPhoto> =
+     * Searches Unsplash photos using the normalized query text.
+     *
+     * @param query The search query whose text is trimmed before searching.
+     * @return The matching Unsplash photos.
+     */
+    override suspend fun handle(query: SearchUnsplashPhotosQuery): List<UnsplashPhoto> =
         provider.search(query.query?.trim()?.takeIf(String::isNotEmpty))
 }
 
