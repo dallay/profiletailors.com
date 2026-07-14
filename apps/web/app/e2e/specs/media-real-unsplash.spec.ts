@@ -88,13 +88,15 @@ test.describe('Unsplash real provider smoke @real-unsplash @media @composer', ()
       })
 
       await test.step('Import selected Unsplash photo', async () => {
+        const photoId = selectedPhotoId
+        if (!photoId) throw new Error('No photo selected for import')
         const importResponsePromise = page.waitForResponse(
           (response) =>
             response.request().method() === 'POST' &&
             new URL(response.url()).pathname ===
-              `/api/media/providers/unsplash/photos/${selectedPhotoId}/import`,
+              `/api/media/providers/unsplash/photos/${photoId}/import`,
         )
-        await composePage.unsplashImportButton(selectedPhotoId).click()
+        await composePage.unsplashImportButton(photoId).click()
         const importResponse = await importResponsePromise
         if (!importResponse.ok()) {
           throw new Error(

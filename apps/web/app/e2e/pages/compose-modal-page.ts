@@ -177,7 +177,7 @@ export class ComposeModalPage {
    * Falls back to testid when alt text is not reliably exposed.
    */
   unsplashResultImage(externalId: string): Locator {
-    return this.unsplashResult(externalId).locator('img')
+    return this.unsplashResult(externalId).getByRole('img')
   }
 
   unsplashImportButton(externalId: string): Locator {

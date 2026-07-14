@@ -4,6 +4,8 @@ import com.profiletailors.common.domain.Service
 import com.profiletailors.common.domain.bus.command.CommandWithResultHandler
 import com.profiletailors.common.domain.bus.query.QueryHandler
 import com.profiletailors.common.domain.context.PrincipalContextProvider
+import com.profiletailors.common.domain.context.ResourceContextProvider
+import com.profiletailors.common.domain.context.permissiveResourceContextProvider
 import com.profiletailors.smp.identity.application.AuthFeature
 import com.profiletailors.smp.identity.application.EmailVerificationPolicy
 import com.profiletailors.smp.identity.application.NoOpPrincipalIdentityLookup
@@ -14,6 +16,9 @@ import com.profiletailors.smp.identity.application.requireEmailVerification
 import com.profiletailors.smp.media.domain.MediaAsset
 import com.profiletailors.smp.media.domain.MediaAssetStatus
 import com.profiletailors.smp.media.domain.MediaSourceType
+import com.profiletailors.smp.tenancy.application.WorkspaceMembershipAccessChecker
+import com.profiletailors.smp.tenancy.application.WorkspaceMembershipNotFoundException
+import com.profiletailors.smp.tenancy.application.requireWorkspaceContext
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.flow.flow
 import java.time.Instant
@@ -42,7 +47,9 @@ class ImportUnsplashPhotoHandler(
     private val settings: UnsplashImportSettings,
     private val assetPreviewUrlResolver: AssetPreviewUrlResolver,
     private val mediaPreviewTokenService: MediaPreviewTokenService,
+    private val workspaceMembershipAccessChecker: WorkspaceMembershipAccessChecker,
     private val principalContextProvider: PrincipalContextProvider = permissivePrincipalContextProvider(),
+    private val resourceContextProvider: ResourceContextProvider = permissiveResourceContextProvider(),
     private val principalIdentityLookup: PrincipalIdentityLookup = NoOpPrincipalIdentityLookup(),
     private val emailVerificationPolicy: EmailVerificationPolicy = permissiveEmailVerificationPolicy,
 ) : CommandWithResultHandler<ImportUnsplashPhotoCommand, MediaAssetSummary> {
@@ -54,12 +61,17 @@ class ImportUnsplashPhotoHandler(
      * @throws UnsplashPhotoTooLargeException If the downloaded photo exceeds the configured maximum file size.
      */
     override suspend fun handle(command: ImportUnsplashPhotoCommand): MediaAssetSummary {
+        val principalContext = principalContextProvider.require()
         requireEmailVerification(
-            principalContextProvider.require(),
+            principalContext,
             principalIdentityLookup,
             emailVerificationPolicy,
             AuthFeature.UPLOAD_MEDIA,
         )
+        val resourceContext = resourceContextProvider.requireWorkspaceContext()
+        if (!workspaceMembershipAccessChecker.isActiveMember(principalContext.principalId, resourceContext)) {
+            throw WorkspaceMembershipNotFoundException(principalContext.principalId, command.workspaceId)
+        }
         val currentCount = enforceCreationRateLimit(command.workspaceId)
 
         val photo = provider.get(command.externalId)
@@ -163,22 +175,12 @@ class ImportUnsplashPhotoHandler(
      * @throws RateLimitExceededException If the workspace has reached its hourly creation limit.
      * @return The current creation count after the increment.
      */
-    private suspend fun enforceCreationRateLimit(workspaceId: String): Int {
-        val currentCount = mediaRateLimitRepository.tryIncrementHourlyCreationCount(
-            workspaceId,
-            settings.maxCreationsPerHour,
+    private suspend fun enforceCreationRateLimit(workspaceId: String): Int =
+        enforceHourlyCreationRateLimit(
+            workspaceId = workspaceId,
+            mediaRateLimitRepository = mediaRateLimitRepository,
+            maxCreationsPerHour = settings.maxCreationsPerHour,
         )
-        if (!currentCount.isAllowed) {
-            throw RateLimitExceededException(
-                workspaceId = workspaceId,
-                limitType = "hourly_creations",
-                currentValue = currentCount.value,
-                limitValue = settings.maxCreationsPerHour,
-                retryAfterSeconds = HOURLY_CREATIONS_RETRY_AFTER_SECONDS,
-            )
-        }
-        return currentCount.value
-    }
 
     /**
      * Converts this media asset into an Unsplash media asset summary.
@@ -219,6 +221,5 @@ class ImportUnsplashPhotoHandler(
     private companion object {
         const val UNSPLASH_PROVIDER = "unsplash"
         const val JPEG_MEDIA_TYPE = "image/jpeg"
-        const val HOURLY_CREATIONS_RETRY_AFTER_SECONDS = 3_600
     }
 }

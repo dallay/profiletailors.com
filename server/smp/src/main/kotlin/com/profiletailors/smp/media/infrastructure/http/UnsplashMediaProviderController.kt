@@ -1,13 +1,10 @@
 package com.profiletailors.smp.media.infrastructure.http
 
 import com.profiletailors.common.domain.bus.Mediator
-import com.profiletailors.common.domain.context.PrincipalContextProvider
 import com.profiletailors.common.domain.context.ResourceContextProvider
 import com.profiletailors.smp.media.application.ImportUnsplashPhotoCommand
 import com.profiletailors.smp.media.application.SearchUnsplashPhotosQuery
 import com.profiletailors.smp.media.application.UnsplashPhoto
-import com.profiletailors.smp.tenancy.application.WorkspaceMembershipAccessChecker
-import com.profiletailors.smp.tenancy.application.WorkspaceMembershipNotFoundException
 import com.profiletailors.smp.tenancy.application.requireWorkspaceContext
 import io.swagger.v3.oas.annotations.Operation
 import io.swagger.v3.oas.annotations.tags.Tag
@@ -29,8 +26,6 @@ import org.springframework.web.bind.annotation.RestController
 internal class UnsplashMediaProviderController(
     private val mediator: Mediator,
     private val resourceContextProvider: ResourceContextProvider,
-    private val principalContextProvider: PrincipalContextProvider,
-    private val workspaceMembershipAccessChecker: WorkspaceMembershipAccessChecker,
 ) {
     /**
      * Browses editorial Unsplash photos or searches for photos matching a term.
@@ -60,11 +55,6 @@ internal class UnsplashMediaProviderController(
     suspend fun import(@PathVariable externalId: String): MediaAssetResponse {
         val resourceContext = resourceContextProvider.requireWorkspaceContext()
         val workspaceId = requireNotNull(resourceContext.workspaceId)
-        val principalContext = principalContextProvider.require()
-
-        if (!workspaceMembershipAccessChecker.isActiveMember(principalContext.principalId, resourceContext)) {
-            throw WorkspaceMembershipNotFoundException(principalContext.principalId, workspaceId)
-        }
 
         return mediator.send(
             ImportUnsplashPhotoCommand(

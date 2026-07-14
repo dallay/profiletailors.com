@@ -168,10 +168,10 @@ class UnsplashWebClientAdapter(private val webClient: WebClient, private val pro
     }
 
     /**
-     * Validates that a URL uses HTTP or HTTPS and matches the configured API host.
+     * Validates that a URL uses HTTPS and matches the configured API host.
      *
      * @param value The API URL to validate.
-     * @throws UnsplashProviderException If the URL uses an unsupported scheme or unexpected host.
+     * @throws UnsplashProviderException If the URL does not use HTTPS or has an unexpected host.
      */
     private fun validateApiUri(value: String) {
         val uri = runCatching { URI.create(value) }

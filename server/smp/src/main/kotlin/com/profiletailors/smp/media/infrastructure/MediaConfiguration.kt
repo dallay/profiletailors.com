@@ -41,12 +41,10 @@ class MediaConfiguration {
     }
 
     /**
-     * Creates the settings used to import Unsplash media.
+     * Creates the media storage port adapter.
      *
-     * @param properties Unsplash import configuration.
-     * @param mediaProperties Media creation limits.
-     * @param attachmentsStorageBinding Attachment storage configuration.
-     * @return The configured Unsplash import settings.
+     * @param storageApplicationService Storage service implementation.
+     * @return The configured media storage port.
      */
     @Bean
     fun mediaStoragePort(storageApplicationService: StorageApplicationService): MediaStoragePort =
@@ -66,6 +64,14 @@ class MediaConfiguration {
             }
         }
 
+    /**
+     * Creates the settings used to import Unsplash media.
+     *
+     * @param properties Unsplash import configuration.
+     * @param mediaProperties Media creation limits.
+     * @param attachmentsStorageBinding Attachment storage configuration.
+     * @return The configured Unsplash import settings.
+     */
     @Bean
     fun unsplashImportSettings(
         properties: UnsplashProperties,
