@@ -31,7 +31,7 @@ const mockGetAsset = vi.fn()
 const mockDeleteAsset = vi.fn()
 const mockWorkspace = { activeWorkspaceId: 'ws-test-1' as string | null }
 
-vi.mock('@/lib/media-api', () => ({
+vi.mock('@modules/media/services/media-api', () => ({
   putAsset: (...args: unknown[]) => mockPutAsset(...args),
   listAssets: (...args: unknown[]) => mockListAssets(...args),
   getAsset: (...args: unknown[]) => mockGetAsset(...args),

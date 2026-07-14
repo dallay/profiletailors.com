@@ -61,4 +61,15 @@ describe('router real guard navigation', { timeout: 15000 }, () => {
 
     expect(router.currentRoute.value.path).toBe('/')
   })
+
+  it('redirects unauthenticated user from the relocated /media route to /login', async () => {
+    mockRefreshSession.mockResolvedValue(null)
+    const { default: router } = await import('./index')
+
+    await router.push('/media')
+    await router.isReady()
+
+    expect(router.currentRoute.value.path).toBe('/login')
+    expect(router.currentRoute.value.query.redirect).toBe('/media')
+  })
 })

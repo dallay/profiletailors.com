@@ -4,7 +4,7 @@ import { Download, FileText, Image, Loader2, RefreshCw, Trash2, UploadCloud, Vid
 import { useMediaStore } from '@/stores/media'
 import { useAuthStore } from '@modules/auth/infrastructure/auth.store'
 import { resolveApiUrl } from '@modules/auth/infrastructure/auth-api'
-import type { MediaStatus } from '@/lib/media-api'
+import type { MediaStatus } from '@modules/media/services/media-api'
 import { Button } from '@/components/ui/button'
 import {
   AlertDialog,

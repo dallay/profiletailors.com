@@ -234,3 +234,22 @@ describe('scheduler route contract', { timeout: 15000 }, () => {
     })
   })
 })
+
+describe('media route contract', { timeout: 15000 }, () => {
+  it('resolves the /media route to the "media" named route requiring auth', async () => {
+    const { default: router } = await import('./index')
+
+    const resolved = router.resolve('/media')
+    expect(resolved.name).toBe('media')
+    expect(resolved.meta.requiresAuth).toBe(true)
+  })
+
+  it('loads MediaLibraryView from its relocated @modules/media path', async () => {
+    // Mirrors the route's lazy import — verifies the module the router now
+    // points at (@modules/media/presentation/views/MediaLibraryView.vue)
+    // resolves successfully after the relocation.
+    await expect(
+      import('@modules/media/presentation/views/MediaLibraryView.vue'),
+    ).resolves.toBeDefined()
+  })
+})

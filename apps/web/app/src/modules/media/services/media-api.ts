@@ -20,7 +20,7 @@ export type MediaType =
   | 'application/vnd.openxmlformats-officedocument.presentationml.presentation'
 
 /** Summary shape returned by list and upload-success responses. */
-export interface MediaAssetSummary {
+export type MediaAssetSummary = {
   assetId: string
   workspaceId: string
   sourceType: MediaSourceType
@@ -40,7 +40,7 @@ export interface MediaAssetSummary {
 }
 
 /** Paginated list response from GET /api/media/assets */
-export interface MediaAssetListResponse {
+export type MediaAssetListResponse = {
   assets: MediaAssetSummary[]
   nextCursor: string | null
 }
@@ -48,7 +48,7 @@ export interface MediaAssetListResponse {
 // ─── CAS PUT response ─────────────────────────────────────────────────────────
 
 /** Response from PUT /api/workspaces/{workspaceId}/media/assets/{assetId} */
-export interface PutAssetResponse {
+export type PutAssetResponse = {
   assetId: string
   workspaceId: string
   status: 'PENDING_UPLOAD' | 'READY'
@@ -59,7 +59,7 @@ export interface PutAssetResponse {
 }
 
 /** Response from POST /api/workspaces/{workspaceId}/media/assets/{assetId}/upload */
-export interface UploadAssetResponse {
+export type UploadAssetResponse = {
   assetId: string
   workspaceId: string
   status: 'READY'
@@ -71,14 +71,14 @@ export interface UploadAssetResponse {
 }
 
 /** Response from DELETE /api/workspaces/{workspaceId}/media/assets/{assetId} */
-export interface DeleteAssetResponse {
+export type DeleteAssetResponse = {
   deleted: boolean
   blobScheduledForGC: boolean
 }
 
 // ─── CAS Error shapes ────────────────────────────────────────────────────────
 
-export interface MediaApiError {
+export type MediaApiError = {
   errorCode: string
   message: string
   details?: Record<string, unknown>
@@ -99,12 +99,11 @@ function isMediaApiError(body: unknown): body is MediaApiError {
 // API functions
 // ---------------------------------------------------------------------------
 
-import { createApiFetch, refreshSession } from '@modules/auth/infrastructure/auth-api'
+import type { createApiFetch, ApiFetchOptions } from '@modules/auth/infrastructure/auth-api'
 import { useAuthStore } from '@modules/auth/infrastructure/auth.store'
-import { useWorkspaceStore } from '@modules/workspace/infrastructure/workspace.store'
 import { computeFileHash, sanitizeFilename } from '@/composables/useFileHash'
 
-interface MediaApiErrorShape extends Error {
+type MediaApiErrorShape = Error & {
   title: string
   detail: string
   status: number
@@ -122,52 +121,80 @@ function mediaApiError(
   return Object.assign(new Error(title), { title, detail, status, errorCode }) as MediaApiErrorShape
 }
 
+function withPinnedWorkspace(init: ApiFetchOptions, workspaceId: string): ApiFetchOptions {
+  const { workspaceScoped, ...requestInit } = init
+
+  if (!workspaceScoped) {
+    return requestInit
+  }
+
+  return {
+    ...requestInit,
+    headers: {
+      ...requestInit.headers,
+      'X-Workspace-Id': workspaceId,
+    },
+  }
+}
+
 /** Creates an authenticated fetch wrapper scoped to the media API. */
-function createMediaFetch() {
-  return createApiFetch({
-    getToken: () => useAuthStore().accessToken,
-    getWorkspaceId: () => useWorkspaceStore().activeWorkspaceId,
-    onRefresh: async () => {
-      const tokens = await refreshSession()
-      if (tokens) return tokens.accessToken
-      return null
-    },
-    onUnauthenticated: () => {
-      useAuthStore().$reset()
-    },
-  })
+function createMediaFetch(workspaceId?: string): ReturnType<typeof createApiFetch> {
+  const auth = useAuthStore()
+
+  if (!workspaceId) {
+    return auth.apiFetch
+  }
+
+  const apiFetch = (async <T>(path: string, init: ApiFetchOptions = {}) => {
+    return auth.apiFetch<T>(path, withPinnedWorkspace(init, workspaceId))
+  }) as ReturnType<typeof createApiFetch>
+
+  apiFetch.raw = (path: string, init: ApiFetchOptions = {}) => {
+    return auth.apiFetchRaw(path, withPinnedWorkspace(init, workspaceId))
+  }
+
+  return apiFetch
 }
 
 /** Default polling delay in milliseconds for 202 WAITING_FOR_BLOB responses. */
 const DEFAULT_POLL_DELAY_MS = 3_000
+
+/** Builds the request body shared by putAsset and pollUntilReady. */
+function buildPutAssetBody(file: File, fileHash: string): Record<string, unknown> {
+  return {
+    fileHash,
+    fileSizeBytes: file.size,
+    declaredMediaType: file.type || 'application/octet-stream',
+    originalFilename: sanitizeFilename(file.name),
+  }
+}
 
 /**
  * Polls the PUT endpoint until the blob is READY or the upload fails.
  * Used when the server returns 202 (another upload is in progress).
  */
 async function pollUntilReady(
-  _workspaceId: string,
+  workspaceId: string,
   assetId: string,
   file: File,
   fileHash: string,
   maxAttempts = 10,
 ): Promise<PutAssetResponse | UploadAssetResponse> {
+  const fetch = createMediaFetch(workspaceId)
   for (let attempt = 0; attempt < maxAttempts; attempt++) {
     // Respect Retry-After if server provided it; fall back to 3s default
-    const pollResp = await createMediaFetch().raw(`/api/media/assets/${assetId}`, {
+    const pollResp = await fetch.raw(`/api/media/assets/${assetId}`, {
       method: 'PUT',
       workspaceScoped: true,
-      body: JSON.stringify({
-        fileHash,
-        fileSizeBytes: file.size,
-        declaredMediaType: file.type || 'application/octet-stream',
-        originalFilename: sanitizeFilename(file.name),
-      }),
+      body: JSON.stringify(buildPutAssetBody(file, fileHash)),
     })
 
-    const body = await pollResp.json()
+    const body = (await pollResp.json().catch(() => ({}))) as unknown
 
-    if ((pollResp.status === 200 || pollResp.status === 201) && body.status === 'READY') {
+    if (
+      (pollResp.status === 200 || pollResp.status === 201) &&
+      (body as Record<string, unknown>).status === 'READY'
+    ) {
       return body as PutAssetResponse
     }
 
@@ -190,12 +217,7 @@ async function pollUntilReady(
     }
 
     if (!pollResp.ok) {
-      const err = body as MediaApiError
-      throw mediaApiError(
-        err.errorCode ?? 'PUT failed',
-        err.message ?? `Server returned ${pollResp.status}`,
-        pollResp.status,
-      )
+      throw makePutAssetError(pollResp, body)
     }
   }
 
@@ -235,18 +257,14 @@ export async function putAsset(
     throw mediaApiError('Not authenticated', 'You must be signed in to upload media.', 401)
   }
 
-  const stableId = assetId ?? crypto.randomUUID()
+  const stableId = assetId ?? globalThis.crypto.randomUUID()
   const fileHash = await computeFileHash(file)
 
-  const putResp = await createMediaFetch().raw(`/api/media/assets/${stableId}`, {
+  const fetch = createMediaFetch(workspaceId)
+  const putResp = await fetch.raw(`/api/media/assets/${stableId}`, {
     method: 'PUT',
     workspaceScoped: true,
-    body: JSON.stringify({
-      fileHash,
-      fileSizeBytes: file.size,
-      declaredMediaType: file.type || 'application/octet-stream',
-      originalFilename: sanitizeFilename(file.name),
-    }),
+    body: JSON.stringify(buildPutAssetBody(file, fileHash)),
   })
 
   // Handle 202: another upload in progress — poll
@@ -267,12 +285,14 @@ export async function putAsset(
     throw err
   }
 
+  const putBodyRaw = (await putResp.json().catch(() => ({}))) as unknown
+
   // Handle non-OK responses
   if (!putResp.ok) {
-    throw await makePutAssetError(putResp)
+    throw makePutAssetError(putResp, putBodyRaw)
   }
 
-  const putBody = (await putResp.json()) as PutAssetResponse
+  const putBody = putBodyRaw as PutAssetResponse
 
   // Dedup hit — no upload needed
   if (putResp.status === 200 || putBody.status === 'READY') {
@@ -280,15 +300,22 @@ export async function putAsset(
   }
 
   // 201: need to upload bytes
-  if (putBody.status === 'PENDING_UPLOAD' && putBody.uploadUrl) {
-    return await uploadAssetBytes(putBody.uploadUrl, file)
+  if (putBody.status === 'PENDING_UPLOAD') {
+    if (!putBody.uploadUrl) {
+      throw mediaApiError(
+        'Upload URL missing',
+        'Server requested an upload but did not provide an upload URL.',
+        putResp.status,
+        'UPLOAD_URL_MISSING',
+      )
+    }
+    return await uploadAssetBytes(putBody.uploadUrl, file, workspaceId)
   }
 
   return putBody
 }
 
-async function makePutAssetError(putResp: Response): Promise<ReturnType<typeof mediaApiError>> {
-  const body = await putResp.json().catch(() => ({}))
+function makePutAssetError(putResp: Response, body: unknown): ReturnType<typeof mediaApiError> {
   const err = body as MediaApiError & { code?: string; detail?: string }
   const errCode = err.code ?? err.errorCode
 
@@ -325,8 +352,12 @@ async function makePutAssetError(putResp: Response): Promise<ReturnType<typeof m
   )
 }
 
-async function uploadAssetBytes(uploadUrl: string, file: File): Promise<UploadAssetResponse> {
-  const uploadResp = await createMediaFetch().raw(uploadUrl, {
+async function uploadAssetBytes(
+  uploadUrl: string,
+  file: File,
+  workspaceId: string,
+): Promise<UploadAssetResponse> {
+  const uploadResp = await createMediaFetch(workspaceId).raw(uploadUrl, {
     method: 'POST',
     workspaceScoped: true,
     body: file,
@@ -372,7 +403,7 @@ async function makeUploadError(uploadResp: Response): Promise<ReturnType<typeof 
 // Legacy API (kept for backward compatibility)
 // ---------------------------------------------------------------------------
 
-export interface ReserveAssetPayload {
+export type ReserveAssetPayload = {
   mediaType: string
   originalFilename?: string
 }
@@ -448,7 +479,7 @@ export async function uploadAsset(
 // List / Get / Delete
 // ---------------------------------------------------------------------------
 
-export interface ListAssetsOptions {
+export type ListAssetsOptions = {
   /**
    * Filter by status(es). Defaults to READY only.
    * Multiple statuses may be comma-separated.

@@ -48,4 +48,22 @@ describe('module relocation guard', () => {
     ).resolves.toHaveProperty('useContentPipelineStore')
     await expect(import('@modules/dashboard/domain/dashboard.types')).resolves.toBeDefined()
   })
+
+  it('resolves media files from @modules/media paths', async () => {
+    await expect(
+      import('@modules/media/presentation/views/MediaLibraryView.vue'),
+    ).resolves.toBeDefined()
+    await expect(import('@modules/media/services/media-api')).resolves.toHaveProperty('listAssets')
+  })
+
+  it('exposes the full media-api surface as callable functions from its new @modules/media location', async () => {
+    const mediaApi = await import('@modules/media/services/media-api')
+
+    expect(typeof mediaApi.putAsset).toBe('function')
+    expect(typeof mediaApi.getAsset).toBe('function')
+    expect(typeof mediaApi.deleteAsset).toBe('function')
+    expect(typeof mediaApi.reserveAsset).toBe('function')
+    expect(typeof mediaApi.uploadAsset).toBe('function')
+    expect(typeof mediaApi.listAssets).toBe('function')
+  })
 })

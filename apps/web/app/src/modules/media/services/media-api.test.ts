@@ -1,4 +1,4 @@
-import { describe, it, expect, vi, beforeAll, beforeEach, afterAll, afterEach } from 'vitest'
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 import { setActivePinia, createPinia } from 'pinia'
 import {
   deleteAsset,
@@ -10,6 +10,9 @@ import {
   type MediaAssetSummary,
   type MediaSourceType,
 } from './media-api'
+import type { createApiFetch } from '@modules/auth/infrastructure/auth-api'
+
+type ApiFetchMock = ReturnType<typeof createApiFetch>
 
 // ---------------------------------------------------------------------------
 // Mock auth-api (createApiFetch + refreshSession)
@@ -26,10 +29,10 @@ vi.mock('@modules/auth/infrastructure/auth-api', () => ({
   createApiFetch: () => {
     // Return a function that delegates ALL calls to mockMediaApiFetch.
     // The raw property is required by the media-api code for token refresh.
-    const fn: any = async (..._args: unknown[]) => {
-      return mockMediaApiFetch(..._args)
-    }
-    fn.raw = mockMediaApiFetch
+    const fn = (async <T>(...args: Parameters<ApiFetchMock>) => {
+      return mockMediaApiFetch(...args) as Promise<T>
+    }) as ApiFetchMock
+    fn.raw = mockMediaApiFetch as ApiFetchMock['raw']
     return fn
   },
   refreshSession: vi.fn().mockResolvedValue(null),
@@ -72,23 +75,14 @@ vi.mock('@/composables/useFileHash', () => ({
 }))
 
 // Stub crypto.randomUUID so putAsset uses a deterministic asset id
-const FIXED_UUID = 'fixed-asset-uuid-1234'
+const FIXED_UUID = '11111111-1111-4111-8111-111111111111'
 
-const originalCrypto = globalThis.crypto
-beforeAll(() => {
-  Object.defineProperty(globalThis, 'crypto', {
-    value: {
-      ...originalCrypto,
-      randomUUID: () => FIXED_UUID,
-    },
-    configurable: true,
-  })
+let randomUUIDSpy: ReturnType<typeof vi.spyOn>
+beforeEach(() => {
+  randomUUIDSpy = vi.spyOn(globalThis.crypto, 'randomUUID').mockReturnValue(FIXED_UUID)
 })
-afterAll(() => {
-  Object.defineProperty(globalThis, 'crypto', {
-    value: originalCrypto,
-    configurable: true,
-  })
+afterEach(() => {
+  randomUUIDSpy.mockRestore()
 })
 
 function jsonResponse(status: number, body: unknown): Response {
@@ -342,7 +336,7 @@ describe('listAssets', () => {
 describe('reserveAsset', () => {
   beforeEach(() => {
     setActivePinia(createPinia())
-    mockMediaApiFetch.mockReset()
+    mockApiFetch.mockReset()
     mockAuthenticatedBox.current = true
   })
 
@@ -354,23 +348,21 @@ describe('reserveAsset', () => {
       status: 401,
     })
 
-    expect(mockMediaApiFetch).not.toHaveBeenCalled()
+    expect(mockApiFetch).not.toHaveBeenCalled()
   })
 
   it('calls POST /api/media/assets with body and workspaceScoped true', async () => {
-    mockMediaApiFetch.mockResolvedValueOnce(
-      jsonResponse(201, {
-        assetId: 'asset-1',
-        workspaceId: 'ws-1',
-        status: 'PENDING_UPLOAD',
-        mediaType: 'image/jpeg',
-      }),
-    )
+    mockApiFetch.mockResolvedValueOnce({
+      assetId: 'asset-1',
+      workspaceId: 'ws-1',
+      status: 'PENDING_UPLOAD',
+      mediaType: 'image/jpeg',
+    })
 
     await reserveAsset({ mediaType: 'image/jpeg', originalFilename: 'photo.jpg' })
 
-    expect(mockMediaApiFetch).toHaveBeenCalledOnce()
-    expect(mockMediaApiFetch).toHaveBeenCalledWith('/api/media/assets', {
+    expect(mockApiFetch).toHaveBeenCalledOnce()
+    expect(mockApiFetch).toHaveBeenCalledWith('/api/media/assets', {
       method: 'POST',
       body: JSON.stringify({
         sourceType: 'UPLOADED',
@@ -388,8 +380,8 @@ describe('reserveAsset', () => {
       status: 'PENDING_UPLOAD' as const,
       mediaType: 'image/png',
     }
-    // createApiFetch's apiFetch<T> parses JSON, so the mock returns the parsed payload directly.
-    mockMediaApiFetch.mockResolvedValueOnce(payload)
+    // auth.apiFetch<T> returns the parsed payload directly.
+    mockApiFetch.mockResolvedValueOnce(payload)
 
     const result = await reserveAsset({ mediaType: 'image/png' })
 
@@ -400,6 +392,8 @@ describe('reserveAsset', () => {
 describe('uploadAsset', () => {
   beforeEach(() => {
     setActivePinia(createPinia())
+    mockMediaApiFetch.mockReset()
+    mockApiFetch.mockReset()
     mockApiFetchRaw.mockReset()
     mockAuthenticatedBox.current = true
   })
@@ -469,6 +463,8 @@ describe('putAsset', () => {
   beforeEach(() => {
     setActivePinia(createPinia())
     mockMediaApiFetch.mockReset()
+    mockApiFetchRaw.mockReset()
+    mockApiFetchRaw.mockImplementation((...args) => mockMediaApiFetch(...args))
     mockAuthenticatedBox.current = true
   })
 
@@ -559,7 +555,8 @@ describe('putAsset', () => {
     const file = new File([], 'unknown.bin')
     await putAsset(file, 'ws-1')
 
-    const body = JSON.parse((mockMediaApiFetch.mock.calls[0] as any)[1].body)
+    const [, options] = mockMediaApiFetch.mock.calls[0] as [string, { body: string }]
+    const body = JSON.parse(options.body)
     expect(body.declaredMediaType).toBe('application/octet-stream')
   })
 
@@ -799,6 +796,56 @@ describe('putAsset', () => {
     })
   })
 
+  it('throws a structured error when PENDING_UPLOAD does not include an upload URL', async () => {
+    mockMediaApiFetch.mockResolvedValueOnce(
+      jsonResponse(201, {
+        assetId: FIXED_UUID,
+        workspaceId: 'ws-1',
+        status: 'PENDING_UPLOAD',
+        mediaType: 'image/jpeg',
+      }),
+    )
+
+    await expect(
+      putAsset(new File(['hello'], 'photo.jpg', { type: 'image/jpeg' }), 'ws-1'),
+    ).rejects.toMatchObject({
+      title: 'Upload URL missing',
+      detail: 'Server requested an upload but did not provide an upload URL.',
+      status: 201,
+      errorCode: 'UPLOAD_URL_MISSING',
+    })
+  })
+
+  it('uses the auth store raw fetch for PUT-first media requests', async () => {
+    mockApiFetchRaw.mockReset()
+    mockApiFetchRaw.mockResolvedValueOnce(
+      jsonResponse(200, {
+        assetId: FIXED_UUID,
+        workspaceId: 'ws-1',
+        status: 'READY',
+        mediaType: 'image/jpeg',
+        detectedMediaType: 'image/jpeg',
+        originalFilename: 'photo.jpg',
+        fileSizeBytes: 5,
+        createdAt: '2026-01-01T00:00:00.000Z',
+      }),
+    )
+
+    await putAsset(new File(['hello'], 'photo.jpg', { type: 'image/jpeg' }), 'ws-1')
+
+    expect(mockMediaApiFetch).not.toHaveBeenCalled()
+    expect(mockApiFetchRaw).toHaveBeenCalledWith(`/api/media/assets/${FIXED_UUID}`, {
+      method: 'PUT',
+      headers: { 'X-Workspace-Id': 'ws-1' },
+      body: JSON.stringify({
+        fileHash: 'a'.repeat(64),
+        fileSizeBytes: 5,
+        declaredMediaType: 'image/jpeg',
+        originalFilename: 'photo.jpg',
+      }),
+    })
+  })
+
   // -----------------------------------------------------------------------
   // pollUntilReady (via 202 from putAsset)
   // -----------------------------------------------------------------------
@@ -881,6 +928,27 @@ describe('putAsset', () => {
         title: 'STORAGE_ERROR',
         detail: 'Cannot check blob status.',
         status: 500,
+      })
+    })
+
+    it('throws status-only error when poll returns non-OK with an empty body', async () => {
+      mockMediaApiFetch
+        .mockResolvedValueOnce(jsonResponse(202, { status: 'WAITING_FOR_BLOB' }))
+        .mockResolvedValueOnce(emptyResponse(502))
+
+      let error: unknown
+      const promise = putAsset(new File(['hello'], 'photo.jpg', { type: 'image/jpeg' }), 'ws-1')
+      promise.catch((e) => {
+        error = e
+      })
+
+      await vi.advanceTimersByTimeAsync(3_100)
+      await vi.advanceTimersByTimeAsync(0)
+
+      expect(error).toMatchObject({
+        title: 'PUT failed',
+        detail: 'Server returned 502.',
+        status: 502,
       })
     })
 
