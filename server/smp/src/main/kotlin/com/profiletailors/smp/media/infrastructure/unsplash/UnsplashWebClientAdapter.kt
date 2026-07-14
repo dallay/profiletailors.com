@@ -47,7 +47,7 @@ class UnsplashWebClientAdapter(private val webClient: WebClient, private val pro
             }.map(UnsplashPhotoResponse::toPhoto)
         } catch (exception: WebClientResponseException) {
             throw mapProviderError(exception, null)
-        } catch (exception: Exception) {
+        } catch (@Suppress("TooGenericExceptionCaught") exception: Exception) {
             throw UnsplashProviderException("Unsplash search failed: ${exception.message}", exception)
         }
     }
@@ -66,7 +66,7 @@ class UnsplashWebClientAdapter(private val webClient: WebClient, private val pro
             get<UnsplashPhotoResponse>("/photos/${encodePathSegment(externalId)}").toPhoto()
         } catch (exception: WebClientResponseException) {
             throw mapProviderError(exception, externalId)
-        } catch (exception: Exception) {
+        } catch (@Suppress("TooGenericExceptionCaught") exception: Exception) {
             throw UnsplashProviderException("Unsplash get photo failed: ${exception.message}", exception)
         }
     }
@@ -124,7 +124,7 @@ class UnsplashWebClientAdapter(private val webClient: WebClient, private val pro
                 .awaitSingle()
         } catch (exception: WebClientResponseException) {
             throw mapProviderError(exception, photo.externalId)
-        } catch (exception: Exception) {
+        } catch (@Suppress("TooGenericExceptionCaught") exception: Exception) {
             throw UnsplashProviderException("Unsplash download tracking failed.", exception)
         }
     }

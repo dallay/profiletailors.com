@@ -1,11 +1,11 @@
 package com.profiletailors.smp.media.application
 
 import com.profiletailors.smp.media.domain.MediaAsset
+import io.kotest.assertions.throwables.shouldThrow
 import io.kotest.matchers.nulls.shouldNotBeNull
 import io.kotest.matchers.shouldBe
 import io.kotest.matchers.string.shouldContain
 import io.kotest.matchers.string.shouldStartWith
-import io.kotest.assertions.throwables.shouldThrow
 import io.mockk.coEvery
 import io.mockk.coVerify
 import io.mockk.coVerifyOrder
@@ -143,8 +143,11 @@ class UnsplashMediaProviderHandlersTest {
         }
         coEvery { storage.delete(any(), any(), any()) } returns Unit
         coEvery { rateLimitRepository.tryIncrementHourlyCreationCount("workspace-1", 200) } returns
-            if (rateLimitAllowed) MediaRateLimitRepository.RateLimitIncrementResult(1, true)
-            else MediaRateLimitRepository.RateLimitIncrementResult(200, false)
+            if (rateLimitAllowed) {
+                MediaRateLimitRepository.RateLimitIncrementResult(1, true)
+            } else {
+                MediaRateLimitRepository.RateLimitIncrementResult(200, false)
+            }
 
         val handler = ImportUnsplashPhotoHandler(
             provider = provider,

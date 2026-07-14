@@ -766,7 +766,10 @@ class R2dbcMediaRateLimitRepository(private val databaseClient: DatabaseClient) 
             .awaitSingleOrNull()
     }
 
-    override suspend fun tryIncrementHourlyCreationCount(workspaceId: String, maxPerHour: Int): MediaRateLimitRepository.RateLimitIncrementResult {
+    override suspend fun tryIncrementHourlyCreationCount(
+        workspaceId: String,
+        maxPerHour: Int,
+    ): MediaRateLimitRepository.RateLimitIncrementResult {
         val currentHour = OffsetDateTime.now(ZoneOffset.UTC)
             .withMinute(0)
             .withSecond(0)

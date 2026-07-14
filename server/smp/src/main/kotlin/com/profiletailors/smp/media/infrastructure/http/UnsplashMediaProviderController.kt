@@ -1,14 +1,13 @@
 package com.profiletailors.smp.media.infrastructure.http
 
 import com.profiletailors.common.domain.bus.Mediator
+import com.profiletailors.common.domain.context.PrincipalContextProvider
 import com.profiletailors.common.domain.context.ResourceContextProvider
-import com.profiletailors.smp.authorization.domain.AuthorizationDecision
-import com.profiletailors.smp.authorization.domain.AuthorizationDeniedException
-import com.profiletailors.smp.authorization.domain.PermissionKey
-import com.profiletailors.smp.authorization.domain.WorkspaceAuthorizationDecider
 import com.profiletailors.smp.media.application.ImportUnsplashPhotoCommand
 import com.profiletailors.smp.media.application.SearchUnsplashPhotosQuery
 import com.profiletailors.smp.media.application.UnsplashPhoto
+import com.profiletailors.smp.tenancy.application.WorkspaceMembershipAccessChecker
+import com.profiletailors.smp.tenancy.application.WorkspaceMembershipNotFoundException
 import com.profiletailors.smp.tenancy.application.requireWorkspaceContext
 import io.swagger.v3.oas.annotations.Operation
 import io.swagger.v3.oas.annotations.tags.Tag
@@ -27,10 +26,11 @@ import org.springframework.web.bind.annotation.RestController
 @RestController
 @RequestMapping("/api/media/providers/unsplash/photos")
 @Tag(name = "Media Providers", description = "Workspace-scoped external media provider endpoints")
-class UnsplashMediaProviderController(
+internal class UnsplashMediaProviderController(
     private val mediator: Mediator,
     private val resourceContextProvider: ResourceContextProvider,
-    private val workspaceAuthorizationDecider: WorkspaceAuthorizationDecider,
+    private val principalContextProvider: PrincipalContextProvider,
+    private val workspaceMembershipAccessChecker: WorkspaceMembershipAccessChecker,
 ) {
     /**
      * Browses editorial Unsplash photos or searches for photos matching a term.
@@ -58,13 +58,14 @@ class UnsplashMediaProviderController(
     @ResponseStatus(HttpStatus.CREATED)
     @Operation(summary = "Import an Unsplash photo into the active workspace media library")
     suspend fun import(@PathVariable externalId: String): MediaAssetResponse {
-        val decision = workspaceAuthorizationDecider.decideDetailed(REQUIRED_PERMISSION)
-        if (decision.decision == AuthorizationDecision.DENY) {
-            throw AuthorizationDeniedException.forDecision(decision, REQUIRED_PERMISSION)
-        }
-
         val resourceContext = resourceContextProvider.requireWorkspaceContext()
         val workspaceId = requireNotNull(resourceContext.workspaceId)
+        val principalContext = principalContextProvider.require()
+
+        if (!workspaceMembershipAccessChecker.isActiveMember(principalContext.principalId, resourceContext)) {
+            throw WorkspaceMembershipNotFoundException(principalContext.principalId, workspaceId)
+        }
+
         return mediator.send(
             ImportUnsplashPhotoCommand(
                 workspaceId = workspaceId,
@@ -75,7 +76,6 @@ class UnsplashMediaProviderController(
 
     private companion object {
         const val MAX_QUERY_LENGTH = 200
-        private val REQUIRED_PERMISSION = PermissionKey.of("workspace", "media", "create")
     }
 }
 

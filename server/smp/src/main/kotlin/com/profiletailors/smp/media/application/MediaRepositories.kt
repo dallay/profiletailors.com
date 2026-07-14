@@ -250,6 +250,7 @@ interface MediaRateLimitRepository {
      *
      * @return [RateLimitIncrementResult] with the post-increment count and whether the increment was allowed.
      */
+    @Suppress("FunctionNameMaxLength")
     suspend fun tryIncrementHourlyCreationCount(workspaceId: String, maxPerHour: Int): RateLimitIncrementResult
 }
 

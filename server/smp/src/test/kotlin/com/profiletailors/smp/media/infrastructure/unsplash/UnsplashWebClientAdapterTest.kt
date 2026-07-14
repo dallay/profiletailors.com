@@ -176,15 +176,15 @@ class UnsplashWebClientAdapterTest {
         return UnsplashWebClientAdapter(WebClient.builder().exchangeFunction(exchange).build(), properties)
     }
 
-    private fun adapterWithExchangeError(
-        requests: MutableList<ClientRequest>,
-    ): UnsplashWebClientAdapter {
+    private fun adapterWithExchangeError(requests: MutableList<ClientRequest>): UnsplashWebClientAdapter {
         val exchange = ExchangeFunction { request ->
             requests += request
             Mono.error(IllegalStateException("connection refused"))
         }
-        return UnsplashWebClientAdapter(WebClient.builder().exchangeFunction(exchange).build(),
-            UnsplashProperties(enabled = true, accessKey = "test-key"))
+        return UnsplashWebClientAdapter(
+            WebClient.builder().exchangeFunction(exchange).build(),
+            UnsplashProperties(enabled = true, accessKey = "test-key"),
+        )
     }
 
     private fun adapterWithDownloadError(
@@ -204,8 +204,10 @@ class UnsplashWebClientAdapterTest {
                 )
             }
         }
-        return UnsplashWebClientAdapter(WebClient.builder().exchangeFunction(exchange).build(),
-            UnsplashProperties(enabled = true, accessKey = "test-key"))
+        return UnsplashWebClientAdapter(
+            WebClient.builder().exchangeFunction(exchange).build(),
+            UnsplashProperties(enabled = true, accessKey = "test-key"),
+        )
     }
 
     private companion object {

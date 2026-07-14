@@ -45,8 +45,13 @@ export type MediaAssetListResponse = {
   nextCursor: string | null
 }
 
-export type UnsplashPhotoSummary = Pick<MediaAssetSummary, 'externalId' | 'previewUrl' | 'sourceUrl' | 'authorName' | 'authorUrl'> & {
+export type UnsplashPhotoSummary = {
+  externalId: string
   name: string
+  previewUrl: string
+  sourceUrl: string
+  authorName: string
+  authorUrl: string
 }
 
 export type UnsplashSearchResponse = { photos: UnsplashPhotoSummary[] }
