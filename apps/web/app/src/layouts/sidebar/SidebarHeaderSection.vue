@@ -1,8 +1,8 @@
 <script setup lang="ts">
 import { computed, ref } from 'vue'
 import { ChevronsUpDown, Plus } from '@lucide/vue'
-import WorkspaceAvatar from '@/components/WorkspaceAvatar.vue'
-import { usePopoverDismissal } from '@/composables/usePopoverDismissal'
+import WorkspaceAvatar from '@shared/components/WorkspaceAvatar.vue'
+import { usePopoverDismissal } from '@shared/composables/usePopoverDismissal'
 import type { WorkspaceSummary } from '@modules/auth/infrastructure/auth-api'
 
 const props = defineProps<{

@@ -3,7 +3,7 @@ import { nextTick } from 'vue'
 import { mount } from '@vue/test-utils'
 import SidebarChannelsSection, { type SidebarChannel } from './SidebarChannelsSection.vue'
 
-vi.mock('@/components/sidebar/SidebarChannelRow.vue', () => ({
+vi.mock('@layouts/sidebar/SidebarChannelRow.vue', () => ({
   default: {
     name: 'SidebarChannelRow',
     props: ['channel', 'isActive', 'queuedCount'],

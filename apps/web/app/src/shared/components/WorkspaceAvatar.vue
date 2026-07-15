@@ -2,7 +2,7 @@
 import { computed } from 'vue'
 import * as LucideIcons from '@lucide/vue'
 import type { Component } from 'vue'
-import { toPascalCase } from '@/lib/string-utils'
+import { toPascalCase } from '@shared/lib/string-utils'
 
 const props = withDefaults(
   defineProps<{

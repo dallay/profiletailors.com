@@ -5,7 +5,7 @@ import { ref } from 'vue'
 import SchedulerView from './SchedulerView.vue'
 import { usePublishingStore } from '@modules/publishing/infrastructure/publishing.store'
 import type { Publication } from '@modules/publishing/infrastructure/publishing.store'
-import type { CalendarUrlController } from '@/composables/useCalendarUrl'
+import type { CalendarUrlController } from '@modules/publishing/application/useCalendarUrl'
 
 // ---------------------------------------------------------------------------
 // Shared mock controller factory
@@ -52,7 +52,7 @@ function makeUrlController(
 // Singleton mock controller — reset in beforeEach
 let mockController = makeUrlController()
 
-vi.mock('@/composables/useCalendarUrl', () => ({
+vi.mock('@modules/publishing/application/useCalendarUrl', () => ({
   useCalendarUrl: () => mockController,
 }))
 
@@ -158,7 +158,7 @@ vi.mock('@lucide/vue', () => {
   }
 })
 
-vi.mock('@/lib/provider-styles', () => ({
+vi.mock('@shared/lib/provider-styles', () => ({
   getProviderColor: () => 'provider-color',
 }))
 

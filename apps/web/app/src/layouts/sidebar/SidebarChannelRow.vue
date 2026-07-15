@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { ref } from 'vue'
 import { proxyImageUrl } from '@modules/auth/infrastructure/auth-api'
-import { getProviderBadge } from '@/lib/provider-styles'
+import { getProviderBadge } from '@shared/lib/provider-styles'
 import type { Channel } from '@modules/publishing/infrastructure/publishing.store'
 
 interface SidebarChannel extends Channel {

@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { useI18n } from 'vue-i18n'
-import { useConnectMessage } from '@/composables/useConnectMessage'
+import { useConnectMessage } from '@layouts/useConnectMessage'
 
 export interface ConnectChannel {
   id: 'linkedin' | 'threads' | 'bluesky' | 'facebook'

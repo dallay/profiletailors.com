@@ -10,7 +10,7 @@ vi.mock('vue-router', () => ({
   useRouter: () => ({ push: vi.fn(), replace: vi.fn() }),
 }))
 
-vi.mock('@/components/WorkspaceAvatar.vue', () => ({
+vi.mock('@shared/components/WorkspaceAvatar.vue', () => ({
   default: { name: 'WorkspaceAvatar', template: '<div class="workspace-avatar" />' },
 }))
 

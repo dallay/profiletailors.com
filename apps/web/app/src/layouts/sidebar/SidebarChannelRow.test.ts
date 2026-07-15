@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest'
 import { mount } from '@vue/test-utils'
 import { proxyImageUrl } from '@modules/auth/infrastructure/auth-api'
-import { getProviderBadge } from '@/lib/provider-styles'
+import { getProviderBadge } from '@shared/lib/provider-styles'
 import SidebarChannelRow from './SidebarChannelRow.vue'
 import type { Channel } from '@modules/publishing/infrastructure/publishing.store'
 

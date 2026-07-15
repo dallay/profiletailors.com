@@ -47,8 +47,9 @@ vi.mock('vue-i18n', () => ({
   }),
 }))
 
-vi.mock('@/composables/useCalendarUrl', async (importOriginal) => {
-  const actual = await importOriginal<typeof import('@/composables/useCalendarUrl')>()
+vi.mock('@modules/publishing/application/useCalendarUrl', async (importOriginal) => {
+  const actual =
+    await importOriginal<typeof import('@modules/publishing/application/useCalendarUrl')>()
 
   return {
     ...actual,
@@ -151,11 +152,11 @@ vi.mock('@modules/publishing/infrastructure/publishing.store', () => ({
   }),
 }))
 
-vi.mock('@/lib/provider-styles', () => ({
+vi.mock('@shared/lib/provider-styles', () => ({
   getProviderBadge: () => 'LI',
 }))
 
-vi.mock('@/composables/useQueuedCounts', () => ({
+vi.mock('@modules/publishing/application/useQueuedCounts', () => ({
   useQueuedCounts: () => ({
     total: { value: 0 },
     byProvider: { value: new Map() },
@@ -180,31 +181,31 @@ vi.mock('@/components/ui/tooltip', () => ({
   TooltipProvider: { template: '<div><slot /></div>' },
 }))
 
-vi.mock('@/components/layout/AppHeader.vue', () => ({
+vi.mock('@layouts/AppHeader.vue', () => ({
   default: { template: '<div class="app-header" />' },
 }))
 
-vi.mock('@/components/UploadProgressToast.vue', () => ({
+vi.mock('@layouts/UploadProgressToast.vue', () => ({
   default: { template: '<div class="upload-progress" />' },
 }))
 
-vi.mock('@/components/sidebar/SidebarHeaderSection.vue', () => ({
+vi.mock('@layouts/sidebar/SidebarHeaderSection.vue', () => ({
   default: { template: '<div class="sidebar-header" />' },
 }))
 
-vi.mock('@/components/sidebar/SidebarNavSection.vue', () => ({
+vi.mock('@layouts/sidebar/SidebarNavSection.vue', () => ({
   default: { template: '<div class="sidebar-nav" />' },
 }))
 
-vi.mock('@/components/sidebar/SidebarConnectSection.vue', () => ({
+vi.mock('@layouts/sidebar/SidebarConnectSection.vue', () => ({
   default: { template: '<div class="sidebar-connect" />' },
 }))
 
-vi.mock('@/components/sidebar/SidebarAccountSection.vue', () => ({
+vi.mock('@layouts/sidebar/SidebarAccountSection.vue', () => ({
   default: { template: '<div class="sidebar-account" />' },
 }))
 
-vi.mock('@/components/sidebar/SidebarChannelsSection.vue', () => ({
+vi.mock('@layouts/sidebar/SidebarChannelsSection.vue', () => ({
   default: {
     props: ['channels', 'activeChannelId', 'totalQueuedCount', 'isSchedulerRoute'],
     emits: ['selectAll', 'selectChannel'],

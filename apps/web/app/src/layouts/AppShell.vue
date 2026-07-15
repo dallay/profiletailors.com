@@ -2,7 +2,7 @@
 import { computed, onBeforeUnmount, watch } from 'vue'
 import { RouterView, useRoute, useRouter } from 'vue-router'
 import { useI18n } from 'vue-i18n'
-import { extractFirstChannelId, useCalendarUrl } from '@/composables/useCalendarUrl'
+import { extractFirstChannelId, useCalendarUrl } from '@modules/publishing/application/useCalendarUrl'
 import { Images, LayoutGrid } from '@lucide/vue'
 import {
   Sidebar,
@@ -19,18 +19,18 @@ import {
 } from '@/components/ui/sidebar'
 import { TooltipProvider } from '@/components/ui/tooltip'
 import AppHeader from './AppHeader.vue'
-import { getProviderBadge } from '@/lib/provider-styles'
+import { getProviderBadge } from '@shared/lib/provider-styles'
 import { useAuthStore } from '@modules/auth/infrastructure/auth.store'
 import { useWorkspaceStore } from '@modules/workspace/infrastructure/workspace.store'
 import { usePublishingStore, type Channel } from '@modules/publishing/infrastructure/publishing.store'
-import SidebarHeaderSection from '@/components/sidebar/SidebarHeaderSection.vue'
-import SidebarNavSection, { type NavGroup } from '@/components/sidebar/SidebarNavSection.vue'
-import SidebarChannelsSection, { type SidebarChannel } from '@/components/sidebar/SidebarChannelsSection.vue'
-import SidebarConnectSection, { type ConnectChannel } from '@/components/sidebar/SidebarConnectSection.vue'
-import SidebarAccountSection from '@/components/sidebar/SidebarAccountSection.vue'
-import UploadProgressToast from '@/components/UploadProgressToast.vue'
+import SidebarHeaderSection from '@layouts/sidebar/SidebarHeaderSection.vue'
+import SidebarNavSection, { type NavGroup } from '@layouts/sidebar/SidebarNavSection.vue'
+import SidebarChannelsSection, { type SidebarChannel } from '@layouts/sidebar/SidebarChannelsSection.vue'
+import SidebarConnectSection, { type ConnectChannel } from '@layouts/sidebar/SidebarConnectSection.vue'
+import SidebarAccountSection from '@layouts/sidebar/SidebarAccountSection.vue'
+import UploadProgressToast from '@layouts/UploadProgressToast.vue'
 import { Toaster } from '@/components/ui/sonner'
-import { useQueuedCounts } from '@/composables/useQueuedCounts'
+import { useQueuedCounts } from '@modules/publishing/application/useQueuedCounts'
 
 // ---------------------------------------------------------------------------
 // Stores
