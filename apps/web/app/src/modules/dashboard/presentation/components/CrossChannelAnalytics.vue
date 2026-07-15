@@ -2,7 +2,7 @@
 import { computed } from 'vue'
 import { useI18n } from 'vue-i18n'
 import type { ChannelPerformance } from '@modules/dashboard/domain/dashboard.types'
-import { formatNumber, formatPercent } from '@/lib/formatters'
+import { formatNumber, formatPercent } from '@shared/lib/formatters'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 
 const props = defineProps<{
