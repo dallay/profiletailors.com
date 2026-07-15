@@ -1,6 +1,6 @@
 import { ref, computed } from 'vue'
 import { defineStore } from 'pinia'
-import { consumeSseStream } from '@/lib/sse'
+import { consumeSseStream } from '@shared/lib/sse'
 import { resolveApiUrl, useAuthStore } from '@modules/auth'
 
 // ---------------------------------------------------------------------------
@@ -828,13 +828,23 @@ export const usePublishingStore = defineStore('publishing', () => {
   // -----------------------------------------------------------------------
   // Actions — Existing  (modified with fallback awareness)
   /**
-   * Creates and queues a publication for the specified channels.
+   * Creates and queues a publication using the selected channels and scheduling options.
    *
-   * @param post - The publication details
-   * @param post.scheduleMode - The scheduling mode: 'NOW' executes immediately, 'SCHEDULED_AT' uses the `scheduledAt` field, 'NEXT_SLOT' uses the `nextSlotAfter` field. Defaults to 'SCHEDULED_AT'.
-   * @param post.nextSlotAfter - When `scheduleMode` is 'NEXT_SLOT', the earliest time to schedule the publication.
-   * @returns The created Publication object.
-   * @throws Error if LinkedIn channels are requested but no active LinkedIn account is available.
+   * @param post - Publication content, channels, scheduling options, priority, and optional media.
+   * @param post.scheduleMode - Scheduling mode: `NOW`, `SCHEDULED_AT`, or `NEXT_SLOT`; defaults to `SCHEDULED_AT`.
+   * @param post.scheduledAt - Requested publication time for `SCHEDULED_AT`.
+   * @param post.nextSlotAfter - Earliest acceptable time for `NEXT_SLOT`.
+   * @returns The created publication.
+   *
+   * @example
+   * ```ts
+   * await schedulePost({
+   *   content: 'Scheduled update',
+   *   channels: ['linkedin'],
+   *   scheduledAt: '2025-03-15T09:00:00Z',
+   *   priority: false,
+   * })
+   * ```
    */
 
   async function schedulePost(post: {
@@ -867,7 +877,7 @@ export const usePublishingStore = defineStore('publishing', () => {
       status: 'QUEUED',
       priority: post.priority,
       thumbnail: post.thumbnail,
-      assetIds: post.assetIds,
+      assetIds: post.assetIds ?? [],
     }
 
     const persistedPub = auth.isAuthenticated

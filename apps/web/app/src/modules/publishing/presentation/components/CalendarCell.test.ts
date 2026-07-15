@@ -11,7 +11,7 @@ vi.mock('@modules/publishing/presentation/components/ConflictBadge.vue', () => (
   default: { template: '<div data-testid="conflict-badge" />' },
 }))
 
-vi.mock('@/lib/provider-styles', () => ({
+vi.mock('@shared/lib/provider-styles', () => ({
   getProviderColor: () => 'provider-color',
 }))
 

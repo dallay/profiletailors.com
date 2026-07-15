@@ -4,6 +4,7 @@ import { createPinia, setActivePinia } from 'pinia'
 import { nextTick } from 'vue'
 import { usePublishingStore } from '@modules/publishing/infrastructure/publishing.store'
 import { useMediaStore } from '@modules/media'
+import type { MediaAssetSummary, UnsplashPhotoSummary } from '@modules/media/services/media-api'
 import { useWorkspaceStore } from '@modules/workspace/infrastructure/workspace.store'
 import CreatePostModalComponent from './CreatePostModal.vue'
 
@@ -60,7 +61,7 @@ vi.mock('vue-i18n', () => ({
   createI18n: () => ({ global: { locale: { value: 'en' } } }),
 }))
 
-vi.mock('@/i18n', () => ({
+vi.mock('@shared/i18n', () => ({
   default: { global: { locale: { value: 'en' } } },
 }))
 
@@ -77,6 +78,40 @@ vi.mock('@modules/auth/infrastructure/auth-api', () => ({
   proxyImageUrl: (url: string) => url,
   resolveApiUrl: (url: string) => url,
 }))
+
+vi.mock('@modules/media/services/media-api', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('@modules/media/services/media-api')>()
+  return {
+    ...actual,
+    searchUnsplashPhotos: vi.fn(
+      async (query?: string): Promise<UnsplashPhotoSummary[]> => [
+        {
+          externalId: `${query ?? 'editorial'}-1`,
+          name: `${query ?? 'Editorial'} photo`,
+          previewUrl: 'https://images.unsplash.com/test-photo',
+          sourceUrl: 'https://unsplash.com/photos/test-photo',
+          authorName: 'Test author',
+          authorUrl: 'https://unsplash.com/@test-author',
+        },
+      ],
+    ),
+    importUnsplashPhoto: vi.fn(
+      async (externalId: string): Promise<MediaAssetSummary> => ({
+        assetId: `unsplash-${externalId}`,
+        workspaceId: 'ws-1',
+        sourceType: 'EXTERNAL' as const,
+        mediaType: 'image/jpeg',
+        status: 'READY' as const,
+        originalFilename: `${externalId}.jpg`,
+        fileSizeBytes: 1024,
+        createdAt: '2026-06-19T12:00:00Z',
+        previewUrl: `/api/media/assets/unsplash-${externalId}/preview`,
+        sourceProvider: 'unsplash',
+        externalId,
+      }),
+    ),
+  }
+})
 
 vi.mock('@/components/ui/button', () => ({
   Button: { template: '<button class="ui-button" v-bind="$attrs"><slot /></button>' },

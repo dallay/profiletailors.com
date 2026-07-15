@@ -31,7 +31,7 @@
   "dependencies": {
     "@atlaskit/pragmatic-drag-and-drop": "^1.8.1",
     "@internationalized/date": "3.12.2",
-    "@lucide/vue": "1.23.0",
+    "@lucide/vue": "1.24.0",
     "@tanstack/vue-table": "^8.21.3",
     "@unovis/vue": "^1.6.7",
     "@vueuse/core": "^14.3.0",
@@ -54,8 +54,8 @@
   },
   "devDependencies": {
     "@bgotink/playwright-coverage": "^0.3.2",
-    "@biomejs/biome": "2.5.0",
-    "@playwright/test": "^1.60.0",
+    "@biomejs/biome": "2.5.3",
+    "@playwright/test": "^1.61.1",
     "@tailwindcss/vite": "4.3.1",
     "@tsconfig/node24": "24.0.4",
     "@types/node": "25.9.3",
@@ -69,7 +69,7 @@
     "tailwindcss": "4.3.1",
     "typescript": "~6.0.3",
     "vite": "7.3.6",
-    "vite-plugin-vue-devtools": "8.1.3",
+    "vite-plugin-vue-devtools": "8.1.5",
     "vitest": "^3.2.6",
     "vue-tsc": "3.3.5"
   },

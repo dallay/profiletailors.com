@@ -2,7 +2,7 @@ import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { mount } from '@vue/test-utils'
 import { createPinia, setActivePinia } from 'pinia'
 import { usePublishingStore } from '@modules/publishing/infrastructure/publishing.store'
-import { getProviderBadge } from '@/lib/provider-styles'
+import { getProviderBadge } from '@shared/lib/provider-styles'
 import AppComponent from './App.vue'
 
 // ---------------------------------------------------------------------------
@@ -16,7 +16,7 @@ vi.mock('vue-i18n', () => ({
   createI18n: () => ({ global: { locale: { value: 'en' } } }),
 }))
 
-vi.mock('@/i18n', () => ({
+vi.mock('@shared/i18n', () => ({
   default: { global: { locale: { value: 'en' } } },
 }))
 
@@ -65,7 +65,7 @@ vi.mock('@/components/ui/sidebar', () => ({
   SidebarTrigger: { template: '<button class="sidebar-trigger" />' },
 }))
 
-vi.mock('@/components/ThemeToggle.vue', () => ({
+vi.mock('@shared/components/ThemeToggle.vue', () => ({
   default: { template: '<div class="theme-toggle" />' },
 }))
 

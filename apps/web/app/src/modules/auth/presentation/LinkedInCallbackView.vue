@@ -3,7 +3,7 @@ import { onMounted } from 'vue'
 import { CheckCircle2, Loader2, TriangleAlert } from '@lucide/vue'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
-import { useLinkedInCallback } from '@/composables/useLinkedInCallback'
+import { useLinkedInCallback } from '@modules/auth/application/useLinkedInCallback'
 
 const { status, message, retryConnection, processCallback } = useLinkedInCallback()
 
