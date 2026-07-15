@@ -7,9 +7,7 @@ status: ✅ Completed
 
 ## Overview
 
-This document specifies the migration of the API versioning system to the new native Spring Boot 4
-system using **Media Type Versioning** via the `Accept` header with the format
-`application/vnd.api.v{version}+json`.
+This document specifies the implementation of the API versioning system using **Media Type Versioning** via the custom `Accept` header with the format `application/vnd.api.v{version}+json`. This leverages the native Spring Boot 4 / WebFlux API versioning support.
 
 ## Motivation
 
@@ -43,22 +41,55 @@ class LocalAuthController {
 
 ## Changes
 
-### 1. YAML Configuration
+### 1. Programmatic WebFlux Configuration
 
-**File:** `server/smp/src/main/resources/application.yaml`
+API Versioning is configured programmatically rather than via YAML.
 
-```yaml
-spring:
-  webflux:
-    apiversion:
-      default: "1"
-      use:
-        media-type: "application/vnd.api.v{version}+json"
+**File:** `server/smp/src/main/kotlin/com/profiletailors/smp/platform/infrastructure/http/WebFluxConfiguration.kt`
+
+```kotlin
+@Configuration
+class WebFluxConfiguration : WebFluxConfigurer {
+
+    @Bean
+    fun mediaTypeVersionResolver(): ApiVersionResolver = MediaTypeVersionResolver()
+
+    /**
+     * Configures a default API version so requests without an explicit
+     * `Accept: application/vnd.api.vN+json` header still match.
+     */
+    override fun configureApiVersioning(configurer: ApiVersionConfigurer) {
+        configurer.setDefaultVersion(DEFAULT_API_VERSION)
+    }
+
+    companion object {
+        private const val DEFAULT_API_VERSION = "1"
+    }
+
+    /**
+     * Resolver that extracts the version from the custom vendor media type
+     * in the Accept header (e.g., application/vnd.api.v1+json).
+     */
+    class MediaTypeVersionResolver : ApiVersionResolver {
+        private val versionRegex = Regex("^vnd\\.api\\.v(\\d+)\\+json$")
+
+        override fun resolveVersion(exchange: ServerWebExchange): String? {
+            val acceptHeaders = exchange.request.headers.accept
+            for (mediaType in acceptHeaders) {
+                val matchResult = versionRegex.matchEntire(mediaType.subtype)
+                if (matchResult != null) {
+                    return matchResult.groupValues[1]
+                }
+            }
+            return null
+        }
+    }
+}
 ```
 
 ### 2. Updated Controllers
 
-**7 controllers** were updated to use the new system:
+**7 controllers** are configured to use this system:
 
 - `LocalAuthController` (4 endpoints)
 - `CurrentUserProfileController` (1 endpoint)
@@ -104,7 +135,7 @@ class LocalAuthController {
 
 - Ensure the header format is exactly `application/vnd.api.v{version}+json`.
 - Verify the `version` attribute in the controller method matches the requested version.
-- Check if the default version is being used when no `Accept` header is provided.
+- Check if the default version (which defaults to `"1"`) is being used when no `Accept` header is provided.
 
 ## References
 
