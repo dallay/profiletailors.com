@@ -82,7 +82,7 @@ test.describe('Scheduler — Post Interaction', () => {
     await createPublicationInStore(page, testText, {
       title: 'Failed LinkedIn post',
       status: 'FAILED',
-      errorCode: 'LINKEDIN_VALIDATION_ERROR',
+      errorCode: 'PROVIDER_VALIDATION_FAILED',
     })
 
     await scheduler.switchToList()
@@ -92,8 +92,8 @@ test.describe('Scheduler — Post Interaction', () => {
 
     await detailModal.expectVisible()
     const dialog = page.getByRole('dialog')
-    // failureDetail maps LINKEDIN_VALIDATION_ERROR -> localized message
-    await expect(dialog).toContainText('LinkedIn validation failed')
+    // failureDetail maps PROVIDER_VALIDATION_FAILED -> localized message
+    await expect(dialog).toContainText('Validation requirements not met')
     await dialog.getByRole('button', { name: /^retry$/i }).click()
     await detailModal.expectHidden()
 
