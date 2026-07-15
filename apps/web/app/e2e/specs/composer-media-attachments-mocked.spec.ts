@@ -21,7 +21,7 @@ import { ensureChannelsLoaded } from '../fixtures/scheduler-mocks'
 
 const TAGS = '@media @composer @composer-ui-mocked'
 
-async function openComposeModal(page: import('@playwright/test').Page) {
+async function openComposeModal(page: import('@playwright/test').Page): Promise<ComposeModalPage> {
   const scheduler = new SchedulerPage(page)
   const composePage = new ComposeModalPage(page)
   await scheduler.clickNewPost()

@@ -167,8 +167,9 @@ describe('Unsplash provider API', () => {
 
     await searchUnsplashPhotos('  remote work & teams  ')
 
-    expect(mockApiFetch.mock.calls[0]?.[0]).toBe(
+    expect(mockApiFetch).toHaveBeenCalledWith(
       '/api/media/providers/unsplash/photos?query=remote+work+%26+teams',
+      { method: 'GET', workspaceScoped: true },
     )
   })
 

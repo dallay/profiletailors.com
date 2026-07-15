@@ -30,7 +30,7 @@ function mountPanel(propsOverride: Record<string, unknown> = {}) {
 }
 
 describe('MediaProviderPanel.vue', () => {
-  it('emits provider-import with the clicked result externalId and does not refetch', async () => {
+  it('emits provider-import with the clicked result externalId and does not refetch', async (): Promise<void> => {
     const wrapper = mountPanel({
       results: [makeResult({ externalId: 'ext-22', name: 'A photo' })],
     })
@@ -42,7 +42,7 @@ describe('MediaProviderPanel.vue', () => {
     expect(emissions[0]).toEqual([{ externalId: 'ext-22' }])
   })
 
-  it('does not emit a second provider-import when the result is already selectedForImport', async () => {
+  it('does not emit a second provider-import when the result is already selectedForImport', async (): Promise<void> => {
     const result = makeResult({ externalId: 'ext-22', name: 'A photo' })
     const wrapper = mountPanel({ results: [result] })
 
@@ -58,7 +58,7 @@ describe('MediaProviderPanel.vue', () => {
     expect(wrapper.emitted('provider-import')?.length).toBe(1)
   })
 
-  it('keeps an imported result disabled and renders the added state', async () => {
+  it('keeps an imported result disabled and renders the added state', async (): Promise<void> => {
     const wrapper = mountPanel({
       results: [makeResult({ imported: true })],
     })
@@ -70,7 +70,7 @@ describe('MediaProviderPanel.vue', () => {
     expect(wrapper.emitted('provider-import')).toBeUndefined()
   })
 
-  it('renders compliant photographer and Unsplash attribution links', () => {
+  it('renders compliant photographer and Unsplash attribution links', (): void => {
     const wrapper = mountPanel({
       results: [
         makeResult({
@@ -88,24 +88,24 @@ describe('MediaProviderPanel.vue', () => {
     expect(links.every((link) => link.attributes('rel') === 'noopener noreferrer')).toBe(true)
   })
 
-  it('renders empty state when no results have been fetched yet', () => {
+  it('renders empty state when no results have been fetched yet', (): void => {
     const wrapper = mountPanel()
     expect(wrapper.find('[data-testid="provider-panel-empty"]').exists()).toBe(true)
   })
 
-  it('renders loading state while the parent is searching', () => {
+  it('renders loading state while the parent is searching', (): void => {
     const wrapper = mountPanel({ isSearching: true })
     expect(wrapper.find('[data-testid="provider-panel-loading"]').exists()).toBe(true)
   })
 
-  it('renders error state when the parent surfaces a search error', () => {
+  it('renders error state when the parent surfaces a search error', (): void => {
     const wrapper = mountPanel({ searchError: 'Search failed: rate limited' })
     const errorEl = wrapper.find('[data-testid="provider-panel-search-error"]')
     expect(errorEl.exists()).toBe(true)
     expect(errorEl.text()).toContain('Search failed: rate limited')
   })
 
-  it('renders the imported-in-progress state while a result is selected for import', async () => {
+  it('renders the imported-in-progress state while a result is selected for import', async (): Promise<void> => {
     const wrapper = mountPanel({
       results: [makeResult({ selectedForImport: true })],
     })
@@ -117,7 +117,7 @@ describe('MediaProviderPanel.vue', () => {
     expect(wrapper.emitted('provider-import')).toBeUndefined()
   })
 
-  it('renders fallback preview and attribution text when provider URLs are missing', () => {
+  it('renders fallback preview and attribution text when provider URLs are missing', (): void => {
     const wrapper = mountPanel({
       results: [
         makeResult({
@@ -136,7 +136,7 @@ describe('MediaProviderPanel.vue', () => {
     expect(wrapper.text()).toContain('Unsplash')
   })
 
-  it('labels the provider search section for assistive technology', () => {
+  it('labels the provider search section for assistive technology', (): void => {
     const wrapper = mountPanel()
 
     expect(wrapper.get('[data-testid="provider-panel"]').attributes('aria-label')).toBe(
@@ -144,7 +144,7 @@ describe('MediaProviderPanel.vue', () => {
     )
   })
 
-  it('keeps results actionable when an import error is shown', () => {
+  it('keeps results actionable when an import error is shown', (): void => {
     const wrapper = mountPanel({
       results: [makeResult()],
       searchError: 'Import failed: try again',
@@ -154,7 +154,7 @@ describe('MediaProviderPanel.vue', () => {
     expect(wrapper.find('[data-testid="provider-result-ext-1"]').exists()).toBe(true)
   })
 
-  it('renders provider results sorted by name', () => {
+  it('renders provider results sorted by name', (): void => {
     const wrapper = mountPanel({
       results: [
         makeResult({ externalId: 'ext-b', name: 'Zulu photo' }),
