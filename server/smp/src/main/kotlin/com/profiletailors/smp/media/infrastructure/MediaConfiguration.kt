@@ -1,6 +1,16 @@
 package com.profiletailors.smp.media.infrastructure
 
+import com.profiletailors.common.domain.context.PrincipalContextProvider
+import com.profiletailors.smp.identity.application.EmailVerificationPolicy
+import com.profiletailors.smp.identity.application.PrincipalIdentityLookup
+import com.profiletailors.smp.media.application.AssetPreviewUrlResolver
+import com.profiletailors.smp.media.application.ImportUnsplashPhotoHandler
+import com.profiletailors.smp.media.application.MediaAssetRepository
+import com.profiletailors.smp.media.application.MediaImportService
+import com.profiletailors.smp.media.application.MediaPreviewTokenService
+import com.profiletailors.smp.media.application.MediaRateLimitRepository
 import com.profiletailors.smp.media.application.MediaStoragePort
+import com.profiletailors.smp.media.application.SearchUnsplashPhotosHandler
 import com.profiletailors.smp.media.application.UnsplashImportSettings
 import com.profiletailors.smp.media.application.UnsplashPhotoProvider
 import com.profiletailors.smp.media.infrastructure.unsplash.UnsplashProperties
@@ -81,6 +91,44 @@ class MediaConfiguration {
         storageBucket = attachmentsStorageBinding.bucketName,
         maxFileSizeBytes = properties.maxImportBytes,
         maxCreationsPerHour = mediaProperties.maxCreationsPerHour,
+    )
+
+    @Bean
+    fun searchUnsplashPhotosHandler(provider: UnsplashPhotoProvider): SearchUnsplashPhotosHandler =
+        SearchUnsplashPhotosHandler(provider)
+
+    @Bean
+    fun mediaImportService(
+        provider: UnsplashPhotoProvider,
+        mediaAssetRepository: MediaAssetRepository,
+        storagePort: MediaStoragePort,
+        settings: UnsplashImportSettings,
+        assetPreviewUrlResolver: AssetPreviewUrlResolver,
+        mediaPreviewTokenService: MediaPreviewTokenService,
+    ): MediaImportService = MediaImportService(
+        provider = provider,
+        mediaAssetRepository = mediaAssetRepository,
+        storagePort = storagePort,
+        settings = settings,
+        assetPreviewUrlResolver = assetPreviewUrlResolver,
+        mediaPreviewTokenService = mediaPreviewTokenService,
+    )
+
+    @Bean
+    fun importUnsplashPhotoHandler(
+        mediaRateLimitRepository: MediaRateLimitRepository,
+        mediaImportService: MediaImportService,
+        settings: UnsplashImportSettings,
+        principalContextProvider: PrincipalContextProvider,
+        principalIdentityLookup: PrincipalIdentityLookup,
+        emailVerificationPolicy: EmailVerificationPolicy,
+    ): ImportUnsplashPhotoHandler = ImportUnsplashPhotoHandler(
+        mediaRateLimitRepository = mediaRateLimitRepository,
+        mediaImportService = mediaImportService,
+        settings = settings,
+        principalContextProvider = principalContextProvider,
+        principalIdentityLookup = principalIdentityLookup,
+        emailVerificationPolicy = emailVerificationPolicy,
     )
 
     private companion object {

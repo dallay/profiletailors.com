@@ -2,7 +2,7 @@
 import { computed } from 'vue'
 import { useI18n } from 'vue-i18n'
 import type { KpiMetric } from '@modules/dashboard/domain/dashboard.types'
-import { formatDelta } from '@/lib/formatters'
+import { formatDelta } from '@shared/lib/formatters'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import SparklineChart from './SparklineChart.vue'
 

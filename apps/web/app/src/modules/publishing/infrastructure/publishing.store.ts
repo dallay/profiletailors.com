@@ -1,6 +1,6 @@
 import { ref, computed } from 'vue'
 import { defineStore } from 'pinia'
-import { consumeSseStream } from '@/lib/sse'
+import { consumeSseStream } from '@shared/lib/sse'
 import { resolveApiUrl, useAuthStore } from '@modules/auth'
 
 // ---------------------------------------------------------------------------

@@ -113,6 +113,21 @@ class UnsplashMediaProviderHandlersTest {
     }
 
     @Test
+    fun `summary failure preserves persisted asset and storage object`() = runTest {
+        val fixture = fixture(
+            content = flowOf(byteArrayOf(1, 2, 3)),
+            assetPreviewUrlResolver = AssetPreviewUrlResolver { _, _, _, _, _ -> error("preview failed") },
+        )
+
+        shouldThrow<IllegalStateException> {
+            fixture.handler.handle(ImportUnsplashPhotoCommand("workspace-1", "photo-1"))
+        }
+
+        coVerify(exactly = 1) { fixture.repository.create(any()) }
+        coVerify(exactly = 0) { fixture.storage.delete(any(), any(), any()) }
+    }
+
+    @Test
     fun `workspace creation rate limit rejects import before calling Unsplash`() = runTest {
         val fixture = fixture(flowOf(byteArrayOf(1, 2, 3)), rateLimitAllowed = false)
 
@@ -128,6 +143,8 @@ class UnsplashMediaProviderHandlersTest {
         content: Flow<ByteArray>,
         maxFileSizeBytes: Long = 1024,
         rateLimitAllowed: Boolean = true,
+        assetPreviewUrlResolver: AssetPreviewUrlResolver =
+            AssetPreviewUrlResolver { assetId, _, _, _, _ -> "/preview/$assetId" },
     ): Fixture {
         val provider = mockk<UnsplashPhotoProvider>()
         val repository = mockk<MediaAssetRepository>()
@@ -155,7 +172,7 @@ class UnsplashMediaProviderHandlersTest {
             mediaAssetRepository = repository,
             storagePort = storage,
             settings = settings,
-            assetPreviewUrlResolver = AssetPreviewUrlResolver { assetId, _, _, _, _ -> "/preview/$assetId" },
+            assetPreviewUrlResolver = assetPreviewUrlResolver,
             mediaPreviewTokenService = MediaPreviewTokenService("test-signing-secret", 3600),
         )
         val handler = ImportUnsplashPhotoHandler(

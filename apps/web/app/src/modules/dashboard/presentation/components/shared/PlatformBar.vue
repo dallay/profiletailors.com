@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import type { ChannelPerformance } from '@modules/dashboard/domain/dashboard.types'
-import { formatNumber, formatPercent } from '@/lib/formatters'
+import { formatNumber, formatPercent } from '@shared/lib/formatters'
 
 type Props = {
   channel: ChannelPerformance

@@ -144,14 +144,14 @@ describe('MediaProviderPanel.vue', () => {
     )
   })
 
-  it('shows the error state instead of results when provider search fails', () => {
+  it('keeps results actionable when an import error is shown', () => {
     const wrapper = mountPanel({
       results: [makeResult()],
       searchError: 'Import failed: try again',
     })
 
     expect(wrapper.find('[data-testid="provider-panel-search-error"]').exists()).toBe(true)
-    expect(wrapper.find('[data-testid="provider-result-ext-1"]').exists()).toBe(false)
+    expect(wrapper.find('[data-testid="provider-result-ext-1"]').exists()).toBe(true)
   })
 
   it('renders provider results sorted by name', () => {

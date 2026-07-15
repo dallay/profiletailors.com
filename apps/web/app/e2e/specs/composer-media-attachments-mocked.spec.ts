@@ -46,7 +46,7 @@ type AuthStoreWithHydration = {
   isAuthenticated: boolean
 }
 
-async function hydrateAuthStore(page: import('@playwright/test').Page) {
+async function hydrateAuthStore(page: import('@playwright/test').Page): Promise<void> {
   await page.route('**/api/auth/verify-email', async (route) => {
     await route.fulfill({
       status: 200,

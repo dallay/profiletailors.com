@@ -112,7 +112,7 @@ function isMediaApiError(body: unknown): body is MediaApiError {
 
 import type { createApiFetch, ApiFetchOptions } from '@modules/auth/infrastructure/auth-api'
 import { useAuthStore } from '@modules/auth/infrastructure/auth.store'
-import { computeFileHash, sanitizeFilename } from '@/composables/useFileHash'
+import { computeFileHash, sanitizeFilename } from '@modules/media/application/useFileHash'
 
 type MediaApiErrorShape = Error & {
   title: string

@@ -1,6 +1,5 @@
 package com.profiletailors.smp.media.application
 
-import com.profiletailors.common.domain.Service
 import com.profiletailors.common.domain.bus.command.CommandWithResultHandler
 import com.profiletailors.common.domain.bus.query.QueryHandler
 import com.profiletailors.common.domain.context.PrincipalContextProvider
@@ -22,7 +21,6 @@ import java.time.Instant
 import java.time.ZoneOffset
 import java.time.format.DateTimeFormatter
 
-@Service
 class SearchUnsplashPhotosHandler(private val provider: UnsplashPhotoProvider) :
     QueryHandler<SearchUnsplashPhotosQuery, List<UnsplashPhoto>> {
     /**
@@ -35,7 +33,6 @@ class SearchUnsplashPhotosHandler(private val provider: UnsplashPhotoProvider) :
         provider.search(query.query?.trim()?.takeIf(String::isNotEmpty))
 }
 
-@Service
 class MediaImportService(
     private val provider: UnsplashPhotoProvider,
     private val mediaAssetRepository: MediaAssetRepository,
@@ -67,7 +64,7 @@ class MediaImportService(
             }
         }
 
-        try {
+        val asset = try {
             storagePort.upload(
                 bucket = settings.storageBucket,
                 key = storageKey,
@@ -81,9 +78,7 @@ class MediaImportService(
                 ),
             )
             provider.trackDownload(photo)
-
-            val asset = persistPhoto(command, photo, assetId, storageKey, fileSizeBytes)
-            return asset.toUnsplashSummary(assetPreviewUrlResolver, mediaPreviewTokenService)
+            persistPhoto(command, photo, assetId, storageKey, fileSizeBytes)
         } catch (exception: CancellationException) {
             withContext(NonCancellable) { cleanupStorage(storageKey) }
             throw exception
@@ -91,6 +86,8 @@ class MediaImportService(
             withContext(NonCancellable) { cleanupStorage(storageKey) }
             throw exception
         }
+
+        return asset.toUnsplashSummary(assetPreviewUrlResolver, mediaPreviewTokenService)
     }
 
     /**
@@ -188,7 +185,6 @@ class MediaImportService(
     }
 }
 
-@Service
 class ImportUnsplashPhotoHandler(
     private val mediaRateLimitRepository: MediaRateLimitRepository,
     private val mediaImportService: MediaImportService,
