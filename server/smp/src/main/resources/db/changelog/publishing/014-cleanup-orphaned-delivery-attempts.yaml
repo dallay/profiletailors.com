@@ -1,0 +1,18 @@
+databaseChangeLog:
+  - changeSet:
+      id: publishing-014-cleanup-orphaned-delivery-attempts
+      author: opencode
+      description: >
+        Delete delivery_attempts rows whose publication_job_id no longer references
+        any row in publication_jobs.  This addresses the pre-fix state where
+        replaceForPublication deleted and re-inserted jobs without clearing the
+        orphaned attempt records.  The condition uses NOT EXISTS so valid
+        delivery_attempts (those whose job still exists) are preserved.
+      changes:
+        - delete:
+            tableName: delivery_attempts
+            where: >
+              NOT EXISTS (
+                SELECT 1 FROM publication_jobs
+                WHERE publication_jobs.id = delivery_attempts.publication_job_id
+              )

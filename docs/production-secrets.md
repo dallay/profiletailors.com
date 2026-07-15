@@ -1,6 +1,6 @@
 # Production Secrets Reference
 
-**Last Updated:** 2026-07-09  
+**Last Updated:** 2026-07-14
 **Status:** Active
 
 ## Overview
@@ -132,6 +132,19 @@ Secrets are grouped by risk level and rotation frequency:
 - **Rotation:** Regenerate in LinkedIn app settings (invalidates old secret immediately), update
   secret, restart app. Existing refresh tokens may become invalid.
 - **Access:** Infrastructure admins, deployment automation.
+
+### Unsplash Integration
+
+#### `UNSPLASH_ACCESS_KEY`
+
+- **Type:** String (Unsplash API access key)
+- **Description:** Server-side credential used to browse, search, and import Unsplash photos.
+- **Risk:** MEDIUM
+- **Generation:** Register an application in the Unsplash Developers portal and copy its access key.
+- **Rotation:** Generate or reveal the replacement key, update the secret, and restart the backend.
+- **Access:** Infrastructure admins and deployment automation only. Never expose it in frontend
+  environment variables.
+- **Enablement:** Set `SMP_MEDIAPROVIDER_UNSPLASH_ENABLED=true` only when this secret is configured.
 
 ### Credential Encryption
 

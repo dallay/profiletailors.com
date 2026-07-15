@@ -1,14 +1,14 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { createPinia, setActivePinia } from 'pinia'
-import { useAuthStore } from '@/stores/auth'
-import type { AuthTokens } from '@/lib/auth-api'
+import { useAuthStore } from '@modules/auth/infrastructure/auth.store'
+import type { AuthTokens } from '@modules/auth/infrastructure/auth-api'
 
 // ---------------------------------------------------------------------------
 // Mock auth-api
 // ---------------------------------------------------------------------------
 const mockRefreshSession = vi.fn()
 
-vi.mock('@/lib/auth-api', () => ({
+vi.mock('@modules/auth/infrastructure/auth-api', () => ({
   createApiFetch: () =>
     Object.assign(
       async function apiFetch<T>() {
@@ -232,5 +232,24 @@ describe('scheduler route contract', { timeout: 15000 }, () => {
       q: 'post',
       timezone: 'Europe/Madrid',
     })
+  })
+})
+
+describe('media route contract', { timeout: 15000 }, () => {
+  it('resolves the /media route to the "media" named route requiring auth', async () => {
+    const { default: router } = await import('./index')
+
+    const resolved = router.resolve('/media')
+    expect(resolved.name).toBe('media')
+    expect(resolved.meta.requiresAuth).toBe(true)
+  })
+
+  it('loads MediaLibraryView from its relocated @modules/media path', async () => {
+    // Mirrors the route's lazy import — verifies the module the router now
+    // points at (@modules/media/presentation/views/MediaLibraryView.vue)
+    // resolves successfully after the relocation.
+    await expect(
+      import('@modules/media/presentation/views/MediaLibraryView.vue'),
+    ).resolves.toBeDefined()
   })
 })

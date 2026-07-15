@@ -1,11 +1,11 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { createPinia, setActivePinia } from 'pinia'
-import { useAuthStore } from '@/stores/auth'
-import type { AuthTokens } from '@/lib/auth-api'
+import { useAuthStore } from '@modules/auth/infrastructure/auth.store'
+import type { AuthTokens } from '@modules/auth/infrastructure/auth-api'
 
 const mockRefreshSession = vi.fn()
 
-vi.mock('@/lib/auth-api', () => ({
+vi.mock('@modules/auth/infrastructure/auth-api', () => ({
   createApiFetch: () =>
     Object.assign(
       async function apiFetch<T>() {
@@ -60,5 +60,16 @@ describe('router real guard navigation', { timeout: 15000 }, () => {
     await router.isReady()
 
     expect(router.currentRoute.value.path).toBe('/')
+  })
+
+  it('redirects unauthenticated user from the relocated /media route to /login', async () => {
+    mockRefreshSession.mockResolvedValue(null)
+    const { default: router } = await import('./index')
+
+    await router.push('/media')
+    await router.isReady()
+
+    expect(router.currentRoute.value.path).toBe('/login')
+    expect(router.currentRoute.value.query.redirect).toBe('/media')
   })
 })
