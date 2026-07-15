@@ -2,7 +2,7 @@
 import { computed } from 'vue'
 import { useI18n } from 'vue-i18n'
 import type { TeamActivityEvent, TeamMember } from '@modules/dashboard/domain/dashboard.types'
-import { formatRelativeTime } from '@/lib/formatters'
+import { formatRelativeTime } from '@shared/lib/formatters'
 
 const props = defineProps<{
   events: TeamActivityEvent[]

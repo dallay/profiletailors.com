@@ -2,9 +2,9 @@
 import { ref, computed, watch, nextTick } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { CalendarClock, ExternalLink, Pencil, Trash2, X, AlertTriangle, CheckCircle2, Clock } from '@lucide/vue'
-import { useFocusTrap } from '@/composables/useFocusTrap'
+import { useFocusTrap } from '@shared/composables/useFocusTrap'
 import { usePublishingStore, type Publication } from '@modules/publishing/infrastructure/publishing.store'
-import { getProviderBadge } from '@/lib/provider-styles'
+import { getProviderBadge } from '@shared/lib/provider-styles'
 
 const props = withDefaults(
   defineProps<{

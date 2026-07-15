@@ -2,7 +2,7 @@
 import { computed, ref } from 'vue'
 import { useI18n } from 'vue-i18n'
 import type { AudienceGrowthPoint } from '@modules/dashboard/domain/dashboard.types'
-import { formatNumber } from '@/lib/formatters'
+import { formatNumber } from '@shared/lib/formatters'
 import ChartContainer from '@/components/ui/chart/ChartContainer.vue'
 
 type Props = {

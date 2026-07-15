@@ -4,6 +4,16 @@ import { describe, expect, it } from 'vitest'
 
 const sourceRoot = resolve(process.cwd(), 'src')
 
+const approvedCompatibilityPaths = ['components/ui', 'lib/utils.ts'] as const
+
+const phaseFiveComposableInventory = {
+  shared: ['useFocusTrap.ts', 'usePopoverDismissal.ts'],
+  layout: ['useConnectMessage.ts'],
+  auth: ['useLinkedInCallback.ts'],
+  media: ['useFileHash.ts'],
+  publishing: ['useCalendarUrl.ts', 'useQueuedCounts.ts'],
+} as const
+
 describe('module relocation guard', () => {
   it('resolves auth, workspace, and settings files from @modules paths', async () => {
     await expect(import('@modules/auth/presentation/AuthView.vue')).resolves.toBeDefined()
@@ -119,5 +129,52 @@ describe('module relocation guard', () => {
     expect(typeof mediaApi.reserveAsset).toBe('function')
     expect(typeof mediaApi.uploadAsset).toBe('function')
     expect(typeof mediaApi.listAssets).toBe('function')
+  })
+
+  it('keeps approved shadcn-vue compatibility boundaries available', async (): Promise<void> => {
+    expect(approvedCompatibilityPaths).toEqual(['components/ui', 'lib/utils.ts'])
+    expect(existsSync(`${sourceRoot}/components/ui`)).toBe(true)
+    expect(existsSync(`${sourceRoot}/lib/utils.ts`)).toBe(true)
+    await expect(import('@/lib/utils')).resolves.toHaveProperty('cn')
+  })
+
+  it('tracks Phase 5 root composables by target owner before relocation', (): void => {
+    expect(phaseFiveComposableInventory).toEqual({
+      shared: ['useFocusTrap.ts', 'usePopoverDismissal.ts'],
+      layout: ['useConnectMessage.ts'],
+      auth: ['useLinkedInCallback.ts'],
+      media: ['useFileHash.ts'],
+      publishing: ['useCalendarUrl.ts', 'useQueuedCounts.ts'],
+    })
+  })
+
+  it('keeps Phase 5 non-compat leftovers out of legacy root paths', (): void => {
+    const legacyPaths = [
+      'components/calendar.test.ts',
+      'components/.DS_Store',
+      'components/layout',
+      'components/sidebar',
+      'components/UploadProgressToast.vue',
+      'composables/useCalendarUrl.ts',
+      'composables/useConnectMessage.ts',
+      'composables/useFileHash.ts',
+      'composables/useFocusTrap.ts',
+      'composables/useLinkedInCallback.ts',
+      'composables/usePopoverDismissal.ts',
+      'composables/useQueuedCounts.ts',
+      'views/VerifyEmailView.vue',
+      'i18n/index.ts',
+      'lib/formatters.ts',
+      'lib/mockData/index.ts',
+      'lib/provider-styles.ts',
+      'lib/sse.ts',
+      'lib/string-utils.ts',
+      'lib/utils.test.ts',
+      'lib/validation/schemas.ts',
+    ]
+
+    expect(
+      legacyPaths.filter((path: string): boolean => existsSync(`${sourceRoot}/${path}`)),
+    ).toEqual([])
   })
 })

@@ -1,0 +1,17 @@
+export default {
+  title: 'Espacio de trabajo',
+  defaultName: 'Mi espacio de trabajo',
+  rename: 'Renombrar',
+  renameSuccess: 'Espacio de trabajo renombrado exitosamente.',
+  renameFailed: 'No se pudo renombrar el espacio de trabajo.',
+  updateIconFailed: 'No se pudo actualizar el icono del espacio de trabajo.',
+  removeIcon: 'Quitar icono',
+  namePlaceholder: 'Nombre del espacio de trabajo',
+  save: 'Guardar',
+  cancel: 'Cancelar',
+  editIdentity: 'Editar identidad',
+  iconModalTitle: 'Elegir icono del workspace',
+  iconModalDesc: 'Selecciona un icono que represente este espacio de trabajo.',
+  workspaceNameRequired: 'Por favor, introduce un nombre para el espacio de trabajo.',
+  workspaceNameTooLong: 'El nombre del espacio de trabajo debe tener 255 caracteres o menos.',
+}

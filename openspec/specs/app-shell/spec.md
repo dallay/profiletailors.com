@@ -4,16 +4,16 @@
 
 Defines the post-refactor top-level shell: route-gate, providers, sidebar sections, sticky
 header, main outlet, auth bootstrap watcher. Replaces the 737-line monolithic `App.vue`
-with a thin wrapper that delegates to `AppShell.vue` and to focused, typed SFCs under
-`apps/web/app/src/components/layout/` and `apps/web/app/src/components/sidebar/`, plus three
-shared composables under `apps/web/app/src/composables/`. No observable behavior change.
+with a thin wrapper that delegates to `@layouts/AppShell.vue` and to focused, typed SFCs under
+`apps/web/app/src/layouts/` and `apps/web/app/src/layouts/sidebar/`, plus shared
+composables under `@shared/composables/`. No observable behavior change.
 
 ### Locked decisions (from proposal Open Questions)
 
 1. Popovers: hand-rolled. 2. Theme control: only `ThemeToggle.vue` in the account menu —
    header pill and "Theme" row label deleted. 3. Language control: header pill only.
-4. Composables: new `apps/web/app/src/composables/` directory.
-5. Component placement: `components/layout/` (header) and `components/sidebar/`.
+ 4. Composables: under `@shared/composables/`.
+ 5. Component placement: `layouts/` (shell/header/sidebar) and `@shared/composables/`.
 6. ARIA, focus restore, skip-to-content included in this change.
 7. Tests: keep `App.test.ts` style; add per-component + per-composable tests.
 8. i18n of Threads / Bluesky / Facebook labels: deferred.
@@ -22,68 +22,59 @@ shared composables under `apps/web/app/src/composables/`. No observable behavior
 
 ### Requirement: Shell File Layout
 
-| File                              | Role                | Owns                                                                                             |
-|-----------------------------------|---------------------|--------------------------------------------------------------------------------------------------|
-| `App.vue`                         | thin wrapper        | `isAuthRoute` gate only (≤ ~10 lines)                                                            |
-| `components/layout/AppShell.vue`  | post-refactor shell | `TooltipProvider`, `SidebarProvider`, auth bootstrap watcher, composes sidebar + header + outlet |
-| `components/sidebar/*.vue`        | sidebar sections    | per-section state, popovers; emit upward; no store mutations                                     |
-| `components/layout/AppHeader.vue` | sticky header       | reads `route` + `settings`; renders trigger, title, status pill, language pill, outlet wrapper   |
-| `composables/*.ts`                | shared behaviors    | open-state + dismissal, queued-count derivation, transient message + timeout                     |
+| File | Role | Owns |
+|---|---|---|
+| `App.vue` | thin wrapper | `isAuthRoute` gate only |
+| `layouts/AppShell.vue` | authenticated shell | providers, auth bootstrap watcher, sidebar/header/outlet composition |
+| `layouts/sidebar/*.vue` | sidebar sections | section state and upward emits; no direct shell orchestration |
+| `layouts/AppHeader.vue` | sticky header | route/settings-derived title, status pill, language pill, main outlet wrapper |
+| `@shared/composables/*` | generic shared behaviors | generic focus/popover behavior only |
+| module composables | domain behaviors | publishing/auth/media-owned route, callback, queue, upload logic |
 
-`AppShell.vue` is the only file that imports `TooltipProvider` and `SidebarProvider`.
-Sidebar / header children do NOT import those providers.
+App shell placement MUST move shell-owned layout/sidebar files from `components/layout` and `components/sidebar` into `@layouts`, while preserving route, shell, provider, and outlet behavior. Generic shell-independent behavior MAY move to `@shared`; domain-owned behavior MUST stay in the owning module.
+(Previously: shell files were specified under `components/layout`, `components/sidebar`, and root `composables`.)
 
-#### Scenario: `App.vue` is reduced to a route gate
+#### Scenario: `App.vue` remains a route gate
 
-- GIVEN the refactor is complete
-- WHEN the file is opened
-- THEN `App.vue` is ≤ 10 lines
-- AND it checks `isAuthRoute` and renders `<AuthView />` or `<AppShell />`
-- AND it does not import `Sidebar*`, `TooltipProvider`, `ThemeToggle`, the lucide icons used in the
-  sidebar/header, or the publishing/workspace stores
+- GIVEN Phase 5 cleanup is complete
+- WHEN `App.vue` renders auth and non-auth routes
+- THEN it SHALL still render auth routes without the authenticated shell
+- AND non-auth routes SHALL still render the authenticated shell
 
-#### Scenario: `AppShell.vue` mounts providers at the root
+#### Scenario: Shell providers and outlet behavior are preserved
 
-- GIVEN the authenticated route is active
-- WHEN `AppShell.vue` mounts
-- THEN `TooltipProvider` and `SidebarProvider` wrap the sidebar + inset
-- AND no child component imports them directly
+- GIVEN an authenticated route is active
+- WHEN the relocated `@layouts/AppShell.vue` mounts
+- THEN `TooltipProvider` and `SidebarProvider` SHALL wrap the sidebar and inset as before
+- AND `<RouterView />` SHALL remain inside the main outlet
 
-#### Scenario: `App.test.ts` mocks remain valid
+#### Scenario: Layout imports use layout paths
 
-- GIVEN the existing mocks for `vue-i18n`, `vue-router`, `@/lib/auth-api`,
-  `@/components/ui/tooltip`, `@/components/ui/sidebar`, `ThemeToggle.vue`, and lucide icons
-- WHEN the refactor lands
-- THEN the 3 avatar assertions pass without modification
-- AND the only allowed mock addition is a stub for `AppShell.vue` (only if the new import path
-  breaks the test). The existing mocks SHALL remain.
+- GIVEN shell-owned files have moved
+- WHEN source, tests, or mocks import AppShell, AppHeader, or sidebar sections
+- THEN imports MUST use `@layouts/*` or valid colocated relative paths
+- AND they MUST NOT use moved `@/components/layout/*` or `@/components/sidebar/*` paths
 
 ---
 
 ### Requirement: AppShell Composition Contract
 
-`AppShell.vue` composes the sidebar and header in this order: `SidebarHeaderSection`,
-`SidebarNavSection`, `SidebarChannelsSection`, `SidebarConnectSection`,
-`SidebarAccountSection`, `SidebarRail`, then `AppHeader` and `<RouterView />` inside
-`SidebarInset`. The shell owns all event handlers; sections only emit upward and never
-mutate stores directly. State local to a section lives in that section.
+`@layouts/AppShell.vue` MUST compose the relocated sidebar and header in the same observable order: `SidebarHeaderSection`, `SidebarNavSection`, `SidebarChannelsSection`, `SidebarConnectSection`, `SidebarAccountSection`, `SidebarRail`, then `AppHeader` and `<main>` containing `<RouterView />` inside `SidebarInset`. The shell owns orchestration handlers; sections only emit upward and never mutate stores directly. State local to a section lives in that section.
+(Previously: the same contract applied to files under `components/layout` and `components/sidebar`.)
 
-#### Scenario: Sidebar sections are composed in order
+#### Scenario: Sidebar sections are composed in order after relocation
 
-- GIVEN `AppShell.vue` is rendered
+- GIVEN the relocated shell is rendered
 - WHEN the DOM is inspected
-- THEN `SidebarHeaderSection` is the first child of the sidebar header slot
-- AND `SidebarNavSection`, `SidebarChannelsSection`, `SidebarConnectSection`,
-  `SidebarAccountSection` appear in that order
-- AND `SidebarRail` is the last child of the sidebar
-- AND `AppHeader` and `<main>` containing `<RouterView />` are inside `SidebarInset`
+- THEN the sidebar sections SHALL appear in the same order as before
+- AND `AppHeader` plus `<main>` SHALL remain inside `SidebarInset`
 
-#### Scenario: Auth bootstrap watcher fires on token change
+#### Scenario: Auth bootstrap watcher behavior is preserved
 
 - GIVEN the user is unauthenticated at mount
 - WHEN `auth.isAuthenticated` and `auth.accessToken` become truthy
-- THEN `workspace.loadWorkspaces(accessToken)` and `publishingStore.fetchChannels()` are called
-- AND failures are caught and logged with `console.warn`, never thrown
+- THEN workspace loading and publishing channel fetch SHALL still run
+- AND failures SHALL still be caught without breaking render
 
 #### Scenario: Section state stays local
 

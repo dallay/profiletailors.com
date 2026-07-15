@@ -6,16 +6,16 @@ import {
   Trash2,
 } from '@lucide/vue'
 import { usePublishingStore, type Publication, type ActivityEntry } from '@modules/publishing/infrastructure/publishing.store'
-import { useCalendarUrl } from '@/composables/useCalendarUrl'
+import { useCalendarUrl } from '@modules/publishing/application/useCalendarUrl'
 import CreatePostModal from '@modules/publishing/presentation/components/CreatePostModal.vue'
 import PostDetailModal from '@modules/publishing/presentation/components/PostDetailModal.vue'
 import CalendarHeader from '@modules/publishing/presentation/components/CalendarHeader.vue'
 import CalendarCell from '@modules/publishing/presentation/components/CalendarCell.vue'
 import ConflictBadge from '@modules/publishing/presentation/components/ConflictBadge.vue'
-import SocialProviderIcon from '@/components/SocialProviderIcon.vue'
+import SocialProviderIcon from '@shared/components/SocialProviderIcon.vue'
 import { Card } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
-import { getProviderColor } from '@/lib/provider-styles'
+import { getProviderColor } from '@shared/lib/provider-styles'
 import { toast } from 'vue-sonner'
 
 const publishingStore = usePublishingStore()

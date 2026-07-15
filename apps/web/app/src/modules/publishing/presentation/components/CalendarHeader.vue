@@ -14,9 +14,9 @@ import {
   Radio,
 } from '@lucide/vue'
 import { usePublishingStore } from '@modules/publishing/infrastructure/publishing.store'
-import type { SchedulerStatus, SchedulerSurface } from '@/composables/useCalendarUrl'
+import type { SchedulerStatus, SchedulerSurface } from '@modules/publishing/application/useCalendarUrl'
 import { Button } from '@/components/ui/button'
-import SocialProviderIcon from '@/components/SocialProviderIcon.vue'
+import SocialProviderIcon from '@shared/components/SocialProviderIcon.vue'
 
 const publishingStore = usePublishingStore()
 

@@ -1,4 +1,4 @@
-import { authCredentialsSchema, workspaceNameSchema } from '@/lib/validation/schemas'
+import { authCredentialsSchema, workspaceNameSchema } from '@shared/lib/validation/schemas'
 
 // ---------------------------------------------------------------------------
 // Types

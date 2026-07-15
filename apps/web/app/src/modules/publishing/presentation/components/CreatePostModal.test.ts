@@ -60,7 +60,7 @@ vi.mock('vue-i18n', () => ({
   createI18n: () => ({ global: { locale: { value: 'en' } } }),
 }))
 
-vi.mock('@/i18n', () => ({
+vi.mock('@shared/i18n', () => ({
   default: { global: { locale: { value: 'en' } } },
 }))
 

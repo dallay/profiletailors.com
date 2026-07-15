@@ -63,7 +63,7 @@ vi.mock('@lucide/vue', () => {
   }
 })
 
-vi.mock('@/lib/provider-styles', () => ({
+vi.mock('@shared/lib/provider-styles', () => ({
   getProviderColor: () => 'blue',
   getProviderBadge: () => 'LI',
 }))

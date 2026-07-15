@@ -2,7 +2,7 @@
 import { computed } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { Info } from '@lucide/vue'
-import SocialProviderIcon from '@/components/SocialProviderIcon.vue'
+import SocialProviderIcon from '@shared/components/SocialProviderIcon.vue'
 import LinkedInPostPreview from './LinkedInPostPreview.vue'
 import type { LinkedInPreviewModel, PreviewProvider } from './post-preview.types'
 

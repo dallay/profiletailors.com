@@ -2,7 +2,7 @@
 import { ref, computed } from 'vue'
 import { useI18n } from 'vue-i18n'
 import type { TopPost, Platform } from '@modules/dashboard/domain/dashboard.types'
-import { formatNumber, formatPercent, formatRelativeTime } from '@/lib/formatters'
+import { formatNumber, formatPercent, formatRelativeTime } from '@shared/lib/formatters'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 

@@ -1,6 +1,6 @@
 import { ref, watch } from 'vue'
 import { defineStore } from 'pinia'
-import i18n from '@/i18n'
+import i18n from '@shared/i18n'
 
 /** Versioned storage key — bump to invalidate older persisted state. */
 const STORAGE_KEY = 'pt_settings_v1'

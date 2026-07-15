@@ -5,7 +5,7 @@ import { createPinia } from 'pinia'
 
 import App from './App.vue'
 import router from './router'
-import i18n from './i18n'
+import i18n from '@shared/i18n'
 import { useAuthStore } from '@modules/auth/infrastructure/auth.store'
 import { useSettingsStore } from '@modules/settings/infrastructure/settings.store'
 

@@ -1,0 +1,17 @@
+export default {
+  overviewBadge: 'Settings overview',
+  subtitle: 'Manage connected channels, workspace identity, and interface preferences.',
+  preferencesEyebrow: 'System defaults',
+  interfacePreferences: 'Interface Preferences',
+  workspaceIdentityTitle: 'Workspace identity',
+  channelStatusTitle: 'Channel status',
+  themeLabel: 'Theme',
+  themeDesc: 'Choose the workspace appearance.',
+  themeDark: 'Dark',
+  themeLight: 'Light',
+  languageLabel: 'Language',
+  languageDesc: 'Set the default system language.',
+  languageEnglish: 'English',
+  languageSpanish: 'Spanish',
+  quickPreferences: 'Quick preferences',
+}
