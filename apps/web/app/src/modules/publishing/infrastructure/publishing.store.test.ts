@@ -878,11 +878,13 @@ describe('publishing store', () => {
         channels: ['linkedin'],
         scheduledAt: '2026-06-20T14:00:00Z',
         priority: false,
+        assetIds: ['offline-asset'],
       })
 
       expect(apiFetch).not.toHaveBeenCalled()
       expect(store.publications[0]?.content).toBe('Offline post')
       expect(result.content).toBe('Offline post')
+      expect(result.assetIds).toEqual(['offline-asset'])
     })
   })
 
