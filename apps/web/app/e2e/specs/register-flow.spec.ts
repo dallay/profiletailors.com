@@ -917,9 +917,10 @@ test.describe('Security', { tag: '@integration' }, () => {
   })
 
   test('9.2 Refresh token cookie is scoped to /api/auth when present', async ({ page }) => {
+    // WebKit is officially excluded from the Dashboard E2E matrix due to engine-level cookie handling bugs with intercepted responses.
     test.skip(
       test.info().project.name.includes('webkit'),
-      'WebKit cookie behavior differs for intercepted responses',
+      'WebKit is dropped from Dashboard E2E tests due to known Playwright cookie handling limitations with routeFromHAR responses.',
     )
 
     const auth = new LoginPage(page)
