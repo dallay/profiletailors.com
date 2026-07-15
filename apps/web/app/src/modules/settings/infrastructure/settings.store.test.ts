@@ -2,7 +2,7 @@ import { describe, it, expect, beforeEach, vi } from 'vitest'
 import { setActivePinia, createPinia } from 'pinia'
 
 // Mock vue-i18n to avoid pulling in the full i18n setup just for these tests.
-vi.mock('@/i18n', () => {
+vi.mock('@shared/i18n', () => {
   return {
     default: {
       global: {

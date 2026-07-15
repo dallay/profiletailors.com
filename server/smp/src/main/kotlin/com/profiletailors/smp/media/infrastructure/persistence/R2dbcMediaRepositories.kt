@@ -766,7 +766,10 @@ class R2dbcMediaRateLimitRepository(private val databaseClient: DatabaseClient) 
             .awaitSingleOrNull()
     }
 
-    override suspend fun tryIncrementHourlyCreationCount(workspaceId: String, maxPerHour: Int): Boolean {
+    override suspend fun tryIncrementHourlyCreationCount(
+        workspaceId: String,
+        maxPerHour: Int,
+    ): MediaRateLimitRepository.RateLimitIncrementResult {
         val currentHour = OffsetDateTime.now(ZoneOffset.UTC)
             .withMinute(0)
             .withSecond(0)
@@ -790,7 +793,7 @@ class R2dbcMediaRateLimitRepository(private val databaseClient: DatabaseClient) 
             .then()
             .awaitSingleOrNull()
 
-        val result = databaseClient.sql(
+        val row = databaseClient.sql(
             """
             UPDATE media_rate_limits
             SET hourly_creation_count = hourly_creation_count + 1,
@@ -798,16 +801,23 @@ class R2dbcMediaRateLimitRepository(private val databaseClient: DatabaseClient) 
             WHERE workspace_id = :workspaceId
               AND hour_bucket = :currentHour
               AND hourly_creation_count < :maxPerHour
+            RETURNING hourly_creation_count
             """.trimIndent(),
         )
             .bind("workspaceId", workspaceId)
             .bind("currentHour", currentHour)
             .bind("maxPerHour", maxPerHour)
             .fetch()
-            .rowsUpdated()
-            .awaitSingle()
+            .first()
+            .awaitSingleOrNull()
 
-        return result > 0
+        return if (row != null) {
+            // Increment succeeded; RETURNING yielded the new count atomically.
+            val count = (row["hourly_creation_count"] as? Number)?.toInt() ?: 1
+            MediaRateLimitRepository.RateLimitIncrementResult(count, true)
+        } else {
+            MediaRateLimitRepository.RateLimitIncrementResult(maxPerHour, false)
+        }
     }
 }
 

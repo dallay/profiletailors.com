@@ -29,7 +29,7 @@ const router = createRouter({
     {
       path: '/verify-email',
       name: 'verify-email',
-      component: () => import('../views/VerifyEmailView.vue'),
+      component: () => import('@modules/auth/presentation/VerifyEmailView.vue'),
     },
     {
       path: '/',
@@ -48,25 +48,25 @@ const router = createRouter({
     {
       path: '/scheduler/calendar/week',
       name: 'scheduler-calendar-week',
-      component: () => import('../views/SchedulerView.vue'),
+      component: () => import('@modules/publishing/views/SchedulerView.vue'),
       meta: { requiresAuth: true },
     },
     {
       path: '/scheduler/calendar/month',
       name: 'scheduler-calendar-month',
-      component: () => import('../views/SchedulerView.vue'),
+      component: () => import('@modules/publishing/views/SchedulerView.vue'),
       meta: { requiresAuth: true },
     },
     {
       path: '/scheduler/calendar/day',
       name: 'scheduler-calendar-day',
-      component: () => import('../views/SchedulerView.vue'),
+      component: () => import('@modules/publishing/views/SchedulerView.vue'),
       meta: { requiresAuth: true },
     },
     {
       path: '/scheduler/list',
       name: 'scheduler-list',
-      component: () => import('../views/SchedulerView.vue'),
+      component: () => import('@modules/publishing/views/SchedulerView.vue'),
       meta: { requiresAuth: true },
     },
     {
@@ -78,7 +78,7 @@ const router = createRouter({
     {
       path: '/media',
       name: 'media',
-      component: () => import('../views/MediaLibraryView.vue'),
+      component: () => import('@modules/media/presentation/views/MediaLibraryView.vue'),
       meta: { requiresAuth: true },
     },
     {

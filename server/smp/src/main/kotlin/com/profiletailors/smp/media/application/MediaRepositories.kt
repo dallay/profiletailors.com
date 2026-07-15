@@ -240,9 +240,33 @@ interface MediaRateLimitRepository {
     suspend fun releaseConcurrentUploadSlot(workspaceId: String)
 
     /**
+     * Result of [tryIncrementHourlyCreationCount]: carries the post-increment count
+     * so callers can report the actual value in exceptions.
+     */
+    data class RateLimitIncrementResult(val value: Int, val isAllowed: Boolean)
+
+    /**
      * Try to increment the hourly creation counter for a workspace.
      *
-     * @return true if the increment succeeded, false if the limit is exceeded.
+     * @return [RateLimitIncrementResult] with the post-increment count and whether the increment was allowed.
      */
-    suspend fun tryIncrementHourlyCreationCount(workspaceId: String, maxPerHour: Int): Boolean
+    @Suppress("FunctionNameMaxLength")
+    suspend fun tryIncrementHourlyCreationCount(workspaceId: String, maxPerHour: Int): RateLimitIncrementResult
+}
+
+/**
+ * Port for media-related storage operations.
+ * Defined in the application layer so that [ImportUnsplashPhotoHandler] depends only
+ * on this interface, not on the concrete [com.profiletailors.storage.application.StorageApplicationService].
+ */
+interface MediaStoragePort {
+    suspend fun upload(
+        bucket: String,
+        key: String,
+        content: Flow<ByteArray>,
+        uploaderId: String,
+        metadata: Map<String, String>,
+    )
+
+    suspend fun delete(bucket: String, key: String, deleterId: String)
 }

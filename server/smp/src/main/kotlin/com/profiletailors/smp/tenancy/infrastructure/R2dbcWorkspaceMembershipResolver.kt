@@ -6,6 +6,7 @@ import com.profiletailors.common.domain.context.ResourceContext
 import com.profiletailors.common.domain.context.ResourceContextType
 import com.profiletailors.common.domain.workspace.WorkspaceMembershipStatus
 import com.profiletailors.smp.authorization.domain.WorkspaceMembershipResolver
+import com.profiletailors.smp.tenancy.application.WorkspaceMembershipAccessChecker
 import com.profiletailors.smp.tenancy.application.WorkspaceMembershipLookup
 import com.profiletailors.smp.tenancy.domain.WorkspaceMembership
 import kotlinx.coroutines.reactor.awaitSingleOrNull
@@ -15,7 +16,8 @@ import org.springframework.stereotype.Repository
 @Repository
 class R2dbcWorkspaceMembershipResolver(private val databaseClient: DatabaseClient) :
     WorkspaceMembershipResolver,
-    WorkspaceMembershipLookup {
+    WorkspaceMembershipLookup,
+    WorkspaceMembershipAccessChecker {
     override suspend fun resolve(
         principalContext: PrincipalContext,
         resourceContext: ResourceContext,
@@ -49,4 +51,7 @@ class R2dbcWorkspaceMembershipResolver(private val databaseClient: DatabaseClien
             .one()
             .awaitSingleOrNull()
     }
+
+    override suspend fun isActiveMember(principalId: String, resourceContext: ResourceContext): Boolean =
+        resolve(principalId, resourceContext)?.isActive() == true
 }
