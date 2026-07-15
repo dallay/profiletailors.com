@@ -139,21 +139,15 @@ class PublishingWorkerTransactionPostgresIntegrationTest {
         assertDeliveryAttemptWithOutcome("pub-validate-job-rollback", "FAILED")
     }
 
-    // ===== blockPublication tests =====
-
     @Test
-    fun `blockPublication rolls back when complete job fails after markBlocked`() = runTest {
-        val claim = seedPublicationAndJob("pub-block-rollback")
-        val executor = executorWithDisabledAccountAndFailingJobRepository()
+    fun `disabled account fails publication and job terminally`() = runTest {
+        val claim = seedPublicationAndJob("pub-disabled-account")
+        val executor = executorWithDisabledAccount()
 
-        assertThrows(InjectedJobFailure::class.java) {
-            kotlinx.coroutines.runBlocking {
-                executor.executeClaim(claim)
-            }
-        }
+        executor.executeClaim(claim)
 
-        // Rollback should keep publication QUEUED, not BLOCKED
-        assertPublication("pub-block-rollback", PublicationStatus.QUEUED)
+        assertPublication("pub-disabled-account", PublicationStatus.FAILED)
+        assertJobFailed("pub-disabled-account")
     }
 
     // ===== handlePublishFailure tests =====
@@ -330,13 +324,9 @@ class PublishingWorkerTransactionPostgresIntegrationTest {
         )
     }
 
-    private fun executorWithDisabledAccountAndFailingJobRepository(): PublishingJobExecutor {
-        val decoratedRepo = FailingJobRepository(jobRepository, failComplete = true)
-        return createExecutor(
-            jobRepository = decoratedRepo,
-            socialAccount = testAccount().copy(status = SocialConnectionStatus.DISABLED),
-        )
-    }
+    private fun executorWithDisabledAccount(): PublishingJobExecutor = createExecutor(
+        socialAccount = testAccount().copy(status = SocialConnectionStatus.DISABLED),
+    )
 
     private fun createExecutor(
         publicationRepository: PublicationRepository = this.publicationRepository,
@@ -472,6 +462,15 @@ class PublishingWorkerTransactionPostgresIntegrationTest {
             .one()
             .awaitSingleOrNull()
         assertEquals("PENDING", row?.get("status"), "Job should remain PENDING after rollback")
+    }
+
+    private suspend fun assertJobFailed(publicationId: String) {
+        val row = databaseClient.sql("SELECT status FROM publication_jobs WHERE publication_id = :pub_id")
+            .bind("pub_id", publicationId)
+            .fetch()
+            .one()
+            .awaitSingleOrNull()
+        assertEquals("FAILED", row?.get("status"), "Job should be FAILED")
     }
 
     private suspend fun cleanupTestData() {

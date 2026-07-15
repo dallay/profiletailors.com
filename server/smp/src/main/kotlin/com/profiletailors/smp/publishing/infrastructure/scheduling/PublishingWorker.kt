@@ -1,7 +1,9 @@
 package com.profiletailors.smp.publishing.infrastructure.scheduling
 
 import com.profiletailors.common.domain.persistence.AtomicTransactionRunner
+import com.profiletailors.smp.media.application.AssetNotReadyException
 import com.profiletailors.smp.media.application.MediaAssetResolver
+import com.profiletailors.smp.media.application.MediaServiceUnavailableException
 import com.profiletailors.smp.publishing.domain.DeliveryAttempt
 import com.profiletailors.smp.publishing.domain.DeliveryAttemptOutcome
 import com.profiletailors.smp.publishing.domain.DeliveryAttemptRepository
@@ -17,6 +19,7 @@ import com.profiletailors.smp.publishing.domain.PublicationJobClaim
 import com.profiletailors.smp.publishing.domain.PublicationJobRepository
 import com.profiletailors.smp.publishing.domain.PublicationLifecyclePolicy
 import com.profiletailors.smp.publishing.domain.PublicationRepository
+import com.profiletailors.smp.publishing.domain.PublicationValidationException
 import com.profiletailors.smp.publishing.domain.ReconnectRequiredException
 import com.profiletailors.smp.publishing.domain.SocialAccountRepository
 import com.profiletailors.smp.publishing.domain.SocialConnectionStatus
@@ -56,21 +59,6 @@ class PublishingJobExecutor(
             publication.socialAccountId,
         ) ?: error("Social account '${publication.socialAccountId}' not found.")
 
-        val assets = mediaAssetResolver.resolveReadyAssets(
-            publication.workspaceId,
-            publication.assetIds,
-        ).map { resolvedAsset ->
-            com.profiletailors.smp.publishing.domain.PublicationAsset(
-                id = resolvedAsset.assetId,
-                workspaceId = resolvedAsset.workspaceId,
-                sourceType = com.profiletailors.smp.publishing.domain.AssetSourceType.UPLOADED,
-                mediaType = resolvedAsset.mediaType,
-                storageKey = resolvedAsset.storageKey,
-                status = com.profiletailors.smp.publishing.domain.PublicationAssetStatus.READY,
-                createdByPrincipalId = "media-context",
-            )
-        }
-
         // Preflight gate: check account status before calling LinkedIn
         val blocked = preflightCheck(claim, socialAccount, publication, now)
         if (blocked) {
@@ -78,14 +66,65 @@ class PublishingJobExecutor(
         }
 
         try {
+            val assets = resolveAssets(publication)
             validateAndPublish(claim, publication, socialAccount, assets, now)
         } catch (exception: ReconnectRequiredException) {
             handleReconnectRequired(claim, publication, socialAccount, exception, now)
+        } catch (exception: PublishingFailureException) {
+            handlePublishFailure(claim, publication, exception.failure, now)
+        } catch (exception: AssetNotReadyException) {
+            handlePublishFailure(
+                claim,
+                publication,
+                PublishingFailure.mediaNotFound(exception::class.simpleName),
+                now,
+            )
+        } catch (exception: MediaServiceUnavailableException) {
+            handlePublishFailure(
+                claim,
+                publication,
+                PublishingFailure.mediaUnavailable(exception::class.simpleName),
+                now,
+            )
+        } catch (exception: PublicationValidationException) {
+            handlePublishFailure(
+                claim,
+                publication,
+                PublishingFailure.validationFailed(exception::class.simpleName),
+                now,
+            )
         } catch (exception: RetryablePublishingException) {
-            handlePublishFailure(claim, publication, exception, now)
+            handlePublishFailure(
+                claim,
+                publication,
+                PublishingFailure.providerUnavailable(exception::class.simpleName),
+                now,
+            )
         } catch (@Suppress("TooGenericExceptionCaught") exception: Exception) {
-            handlePublishFailure(claim, publication, exception, now)
+            handlePublishFailure(
+                claim,
+                publication,
+                PublishingFailure.publishingFailed(exception::class.simpleName),
+                now,
+            )
         }
+    }
+
+    private suspend fun resolveAssets(
+        publication: com.profiletailors.smp.publishing.domain.PublicationDraft,
+    ): List<com.profiletailors.smp.publishing.domain.PublicationAsset> = mediaAssetResolver.resolveReadyAssets(
+        publication.workspaceId,
+        publication.assetIds,
+    ).map { resolvedAsset ->
+        com.profiletailors.smp.publishing.domain.PublicationAsset(
+            id = resolvedAsset.assetId,
+            workspaceId = resolvedAsset.workspaceId,
+            sourceType = com.profiletailors.smp.publishing.domain.AssetSourceType.UPLOADED,
+            mediaType = resolvedAsset.mediaType,
+            storageKey = resolvedAsset.storageKey,
+            status = com.profiletailors.smp.publishing.domain.PublicationAssetStatus.READY,
+            createdByPrincipalId = "media-context",
+        )
     }
 
     /**
@@ -105,12 +144,12 @@ class PublishingJobExecutor(
                 publication.id,
                 socialAccount.id,
             )
-            blockPublication(
+            failPublicationTerminal(
                 claim,
                 publication,
                 socialAccount.workspaceId,
                 now,
-                "Account is DISABLED",
+                PublishingFailureCategory.ACCOUNT_UNAVAILABLE.code,
                 socialAccount.provider,
             )
             true
@@ -127,7 +166,7 @@ class PublishingJobExecutor(
                 publication,
                 socialAccount.workspaceId,
                 now,
-                "Account requires reconnect",
+                PublishingFailureCategory.ACCOUNT_RECONNECT_REQUIRED.code,
                 socialAccount.provider,
             )
             true
@@ -144,7 +183,7 @@ class PublishingJobExecutor(
                 publication,
                 socialAccount.workspaceId,
                 now,
-                "Account is DELETED",
+                PublishingFailureCategory.ACCOUNT_UNAVAILABLE.code,
                 socialAccount.provider,
             )
             true
@@ -156,12 +195,12 @@ class PublishingJobExecutor(
                 publication.id,
                 socialAccount.id,
             )
-            blockPublication(
+            failPublicationTerminal(
                 claim,
                 publication,
                 socialAccount.workspaceId,
                 now,
-                "Account is PENDING activation",
+                PublishingFailureCategory.ACCOUNT_UNAVAILABLE.code,
                 socialAccount.provider,
             )
             true
@@ -187,7 +226,7 @@ class PublishingJobExecutor(
                 publication,
                 socialAccount.workspaceId,
                 now,
-                "Account status: ${socialAccount.status}",
+                PublishingFailureCategory.ACCOUNT_RECONNECT_REQUIRED.code,
                 socialAccount.provider,
             )
             true
@@ -231,7 +270,7 @@ class PublishingJobExecutor(
         provider: com.profiletailors.smp.publishing.domain.SocialProvider? = null,
     ) {
         transactionRunner.runAtomically {
-            publicationRepository.markFailed(publication.id, now, "TERMINAL_ACCOUNT_STATUS", reason)
+            publicationRepository.markFailed(publication.id, now, reason, null)
             publicationJobRepository.fail(claim.jobId, now)
 
             recordNotificationEvent(
@@ -262,7 +301,11 @@ class PublishingJobExecutor(
             exception.message,
         )
         transactionRunner.runAtomically {
-            publicationRepository.markBlocked(publication.id, now, exception.message)
+            publicationRepository.markBlocked(
+                publication.id,
+                now,
+                PublishingFailureCategory.ACCOUNT_RECONNECT_REQUIRED.code,
+            )
             publicationJobRepository.complete(claim.jobId, now)
 
             recordNotificationEvent(
@@ -271,7 +314,7 @@ class PublishingJobExecutor(
                     socialAccountId = socialAccount.id,
                     publicationId = publication.id,
                     category = NotificationCategory.RECONNECT_REQUIRED,
-                    message = exception.message ?: "Reconnect required",
+                    message = PublishingFailureCategory.ACCOUNT_RECONNECT_REQUIRED.code,
                     suggestedAction = "Re-authenticate the LinkedIn account.",
                     occurredAt = now,
                     provider = socialAccount.provider,
@@ -350,13 +393,19 @@ class PublishingJobExecutor(
         }
     }
 
+    private fun sanitizeDiagnostic(diagnostic: String?): String? {
+        if (diagnostic.isNullOrBlank()) return null
+        val allowed = Regex("^(status=\\d{3}|[A-Za-z][A-Za-z0-9_.]*(Exception|Error))$")
+        return diagnostic.trim().takeIf { allowed.matches(it) }
+    }
+
     private suspend fun handlePublishFailure(
         claim: PublicationJobClaim,
         publication: com.profiletailors.smp.publishing.domain.PublicationDraft,
-        exception: Exception,
+        failure: PublishingFailure,
         now: Instant,
     ) {
-        val retryable = exception is RetryablePublishingException
+        val categoryCode = failure.category.code
         transactionRunner.runAtomically {
             deliveryAttemptRepository.record(
                 DeliveryAttempt(
@@ -365,13 +414,13 @@ class PublishingJobExecutor(
                     publicationJobId = claim.jobId,
                     attemptNumber = claim.attemptNumber,
                     outcome = DeliveryAttemptOutcome.FAILED,
-                    retryable = retryable,
-                    providerMessage = exception.message,
-                    providerErrorCode = exception::class.simpleName,
+                    retryable = failure.retryable,
+                    providerMessage = sanitizeDiagnostic(failure.diagnostic),
+                    providerErrorCode = categoryCode,
                     attemptedAt = now,
                 ),
             )
-            if (retryPolicy.shouldRetry(claim.attemptNumber, retryable)) {
+            if (retryPolicy.shouldRetry(claim.attemptNumber, failure.retryable)) {
                 publicationJobRepository.rescheduleRetry(
                     claim.jobId,
                     retryPolicy.nextRetryAt(now),
@@ -381,8 +430,8 @@ class PublishingJobExecutor(
                 publicationRepository.markFailed(
                     publication.id,
                     now,
-                    exception::class.simpleName,
-                    exception.message,
+                    categoryCode,
+                    null,
                 )
                 publicationJobRepository.fail(claim.jobId, now)
                 recordNotificationEvent(
@@ -391,7 +440,7 @@ class PublishingJobExecutor(
                         socialAccountId = publication.socialAccountId,
                         publicationId = publication.id,
                         category = NotificationCategory.PUBLICATION_FAILED,
-                        message = "Publication failed: ${exception.message}",
+                        message = categoryCode,
                         occurredAt = now,
                         provider = publication.provider,
                     ),
@@ -400,6 +449,65 @@ class PublishingJobExecutor(
         }
     }
 }
+
+enum class PublishingFailureCategory(val code: String, val retryable: Boolean, val blocked: Boolean = false) {
+    MEDIA_NOT_FOUND("MEDIA_NOT_FOUND", false),
+    MEDIA_UNAVAILABLE("MEDIA_UNAVAILABLE", true),
+    PROVIDER_VALIDATION_FAILED("PROVIDER_VALIDATION_FAILED", false),
+    PROVIDER_RATE_LIMITED("PROVIDER_RATE_LIMITED", true),
+    PROVIDER_UNAVAILABLE("PROVIDER_UNAVAILABLE", true),
+    ACCOUNT_RECONNECT_REQUIRED("ACCOUNT_RECONNECT_REQUIRED", false, blocked = true),
+    ACCOUNT_UNAVAILABLE("ACCOUNT_UNAVAILABLE", false),
+    PUBLISHING_FAILED("PUBLISHING_FAILED", false),
+}
+
+data class PublishingFailure(val category: PublishingFailureCategory, val diagnostic: String? = null) {
+    val retryable: Boolean = category.retryable
+
+    companion object {
+        fun mediaNotFound(diagnostic: String? = null) = PublishingFailure(
+            PublishingFailureCategory.MEDIA_NOT_FOUND,
+            diagnostic,
+        )
+
+        fun mediaUnavailable(diagnostic: String? = null) = PublishingFailure(
+            PublishingFailureCategory.MEDIA_UNAVAILABLE,
+            diagnostic,
+        )
+
+        fun validationFailed(diagnostic: String? = null) = PublishingFailure(
+            PublishingFailureCategory.PROVIDER_VALIDATION_FAILED,
+            diagnostic,
+        )
+
+        fun providerRateLimited(diagnostic: String? = null) = PublishingFailure(
+            PublishingFailureCategory.PROVIDER_RATE_LIMITED,
+            diagnostic,
+        )
+
+        fun providerUnavailable(diagnostic: String? = null) = PublishingFailure(
+            PublishingFailureCategory.PROVIDER_UNAVAILABLE,
+            diagnostic,
+        )
+
+        fun accountReconnectRequired(diagnostic: String? = null) = PublishingFailure(
+            PublishingFailureCategory.ACCOUNT_RECONNECT_REQUIRED,
+            diagnostic,
+        )
+
+        fun accountUnavailable(diagnostic: String? = null) = PublishingFailure(
+            PublishingFailureCategory.ACCOUNT_UNAVAILABLE,
+            diagnostic,
+        )
+
+        fun publishingFailed(diagnostic: String? = null) = PublishingFailure(
+            PublishingFailureCategory.PUBLISHING_FAILED,
+            diagnostic,
+        )
+    }
+}
+
+class PublishingFailureException(val failure: PublishingFailure) : RuntimeException(failure.category.code)
 
 class RetryablePublishingException(message: String) : RuntimeException(message)
 

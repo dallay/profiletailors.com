@@ -1,0 +1,14 @@
+change: dallay-484-friendly-publishing-errors
+current_phase: archive
+completed:
+  - explore
+  - propose
+  - spec
+  - design
+  - tasks
+  - apply
+  - verify
+  - archive
+next: none
+archived_at: 2026-07-15
+updated: 2026-07-15

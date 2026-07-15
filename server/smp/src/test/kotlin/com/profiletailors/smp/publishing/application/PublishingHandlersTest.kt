@@ -61,6 +61,8 @@ import com.profiletailors.smp.publishing.domain.SocialConnectionProvider
 import com.profiletailors.smp.publishing.domain.SocialConnectionRepository
 import com.profiletailors.smp.publishing.domain.SocialConnectionStatus
 import com.profiletailors.smp.publishing.domain.SocialProvider
+import io.kotest.matchers.shouldBe
+import io.kotest.matchers.string.shouldNotContain
 import kotlinx.coroutines.test.runTest
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertFalse
@@ -1286,13 +1288,17 @@ class PublishingHandlersTest {
     }
 
     @Test
-    fun `calendar exposes publication failure diagnostics`() = runTest {
+    fun `calendar exposes only opaque failure codes without technical messages`() = runTest {
         val publicationRepository = InMemoryPublicationRepository(
             seedMany = listOf(
                 calendarPublication("pub-blocked", "account-1", "2026-06-15T10:00:00Z", PublicationStatus.BLOCKED)
-                    .copy(blockedReason = "LinkedIn account requires reconnect"),
+                    .copy(blockedReason = "ACCOUNT_RECONNECT_REQUIRED"),
                 calendarPublication("pub-failed", "account-1", "2026-06-15T11:00:00Z", PublicationStatus.FAILED)
-                    .copy(lastErrorCode = "LINKEDIN_VALIDATION_ERROR"),
+                    .copy(
+                        lastErrorCode = "PROVIDER_VALIDATION_FAILED",
+                        lastErrorMessage = "com.linkedin.Client token=secret " +
+                            "https://api.linkedin.com/rest/posts bucket/key",
+                    ),
             ),
         )
         val handler = GetCalendarPublicationsHandler(
@@ -1309,8 +1315,14 @@ class PublishingHandlersTest {
             ),
         )
 
-        assertEquals("LinkedIn account requires reconnect", result.publications[0].blockedReason)
-        assertEquals("LINKEDIN_VALIDATION_ERROR", result.publications[1].errorCode)
+        result.publications[0].blockedReason shouldBe "ACCOUNT_RECONNECT_REQUIRED"
+        result.publications[1].errorCode shouldBe "PROVIDER_VALIDATION_FAILED"
+        val serializedBoundaryText = result.publications.joinToString(" ") { publication ->
+            listOfNotNull(publication.blockedReason, publication.errorCode).joinToString(" ")
+        }
+        listOf("com.linkedin.Client", "token=secret", "https://api.linkedin.com", "bucket/key").forEach { unsafe ->
+            serializedBoundaryText.shouldNotContain(unsafe)
+        }
     }
 
     @Test

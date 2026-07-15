@@ -37,7 +37,11 @@ vi.mock('@modules/publishing/infrastructure/publishing.store', () => ({
 }))
 
 vi.mock('vue-i18n', () => ({
-  useI18n: () => ({ t: (key: string) => key, locale: { value: 'en' } }),
+  useI18n: () => ({
+    t: (key: string, values?: Record<string, string>) =>
+      values ? `${key} ${Object.values(values).join(' ')}` : key,
+    locale: { value: 'en' },
+  }),
 }))
 
 vi.mock('@modules/auth/infrastructure/auth-api', () => ({
@@ -192,56 +196,89 @@ describe('PostDetailModal', () => {
   })
 
   describe('failure diagnostics', () => {
-    it('renders blocked reason for blocked publications', async () => {
+    const canonicalCases = [
+      ['MEDIA_NOT_FOUND', 'mediaNotFound'],
+      ['MEDIA_UNAVAILABLE', 'mediaUnavailable'],
+      ['ACCOUNT_RECONNECT_REQUIRED', 'accountReconnectRequired'],
+      ['ACCOUNT_UNAVAILABLE', 'accountUnavailable'],
+      ['PROVIDER_VALIDATION_FAILED', 'providerValidationFailed'],
+      ['PROVIDER_UNAVAILABLE', 'providerUnavailable'],
+      ['PROVIDER_RATE_LIMITED', 'providerRateLimited'],
+      ['PUBLISHING_FAILED', 'publishingFailed'],
+    ] as const
+
+    it.each(
+      canonicalCases,
+    )('renders localized copy for canonical failed code %s', async (code, key) => {
+      storeOverrides.isPublicationEditable = () => false
+      const wrapper = mountModal(makePublication({ status: 'FAILED', errorCode: code }))
+      await flushPromises()
+
+      expect(wrapper.text()).toContain(`postDetail.failure.${key}.label`)
+      expect(wrapper.text()).toContain(`postDetail.failure.${key}.explanation`)
+      expect(wrapper.text()).toContain(`postDetail.failure.${key}.action`)
+      expect(wrapper.text()).toContain('postDetail.retry')
+      expect(wrapper.text()).not.toContain(code)
+    })
+
+    it.each([
+      undefined,
+      'UNKNOWN_ERROR_CODE',
+      'StorageObjectNotFoundException',
+    ])('uses safe fallback for missing, unknown, or historical failed code %s', async (errorCode) => {
+      storeOverrides.isPublicationEditable = () => false
+      const wrapper = mountModal(makePublication({ status: 'FAILED', errorCode }))
+      await flushPromises()
+
+      expect(wrapper.text()).toContain('postDetail.failure.unknown.label')
+      expect(wrapper.text()).toContain('postDetail.failure.unknown.explanation')
+      expect(wrapper.text()).toContain('postDetail.failure.unknown.action')
+      if (errorCode) expect(wrapper.text()).not.toContain(errorCode)
+    })
+
+    it('renders canonical reconnect guidance for blocked publications', async () => {
       const wrapper = mountModal(
-        makePublication({
-          status: 'BLOCKED',
-          blockedReason: 'Reconnect LinkedIn to retry publishing.',
-        }),
+        makePublication({ status: 'BLOCKED', blockedReason: 'ACCOUNT_RECONNECT_REQUIRED' }),
       )
       await flushPromises()
 
-      expect(wrapper.text()).toContain('Reconnect LinkedIn to retry publishing.')
+      expect(wrapper.text()).toContain('postDetail.failure.accountReconnectRequired.label')
+      expect(wrapper.text()).toContain('postDetail.failure.accountReconnectRequired.explanation')
+      expect(wrapper.text()).toContain('postDetail.failure.accountReconnectRequired.action')
+      expect(wrapper.text()).not.toContain('ACCOUNT_RECONNECT_REQUIRED')
     })
 
-    it('renders failed error code and exposes retry action for failed publications', async () => {
-      storeOverrides.isPublicationEditable = () => false
-      const pub = makePublication({
-        status: 'FAILED',
-        errorCode: 'LINKEDIN_VALIDATION_ERROR',
-      })
-      const wrapper = mountModal(pub)
+    it.each([
+      undefined,
+      'ReconnectRequiredException: token expired',
+      'com.example.StorageObjectNotFoundException',
+    ])('uses safe blocked fallback for untrusted blocked reason %s', async (blockedReason) => {
+      const wrapper = mountModal(makePublication({ status: 'BLOCKED', blockedReason }))
       await flushPromises()
 
-      // failureDetail maps LINKEDIN_VALIDATION_ERROR -> 'postDetail.errorMessages.linkedinValidation'
-      expect(wrapper.text()).toContain('postDetail.errorMessages.linkedinValidation')
-      expect(wrapper.text()).toContain('postDetail.retry')
+      expect(wrapper.text()).toContain('postDetail.failure.unknown.label')
+      expect(wrapper.text()).toContain('postDetail.failure.unknown.explanation')
+      expect(wrapper.text()).toContain('postDetail.failure.unknown.action')
+      if (blockedReason) expect(wrapper.text()).not.toContain(blockedReason)
     })
 
-    it('renders raw errorCode when code is not in the localized lookup map', async () => {
-      storeOverrides.isPublicationEditable = () => false
-      const pub = makePublication({
-        status: 'FAILED',
-        errorCode: 'UNKNOWN_ERROR_CODE',
-      })
-      const wrapper = mountModal(pub)
+    it('never renders sensitive raw failure diagnostics', async () => {
+      const sensitive =
+        'com.example.StorageObjectNotFoundException at stack trace https://api.test/path token=secret workspace-123 bucket/key Request failed'
+      const wrapper = mountModal(makePublication({ status: 'FAILED', errorCode: sensitive }))
       await flushPromises()
 
-      // failureDetail falls back to raw code when no mapping exists
-      expect(wrapper.text()).toContain('UNKNOWN_ERROR_CODE')
-    })
-
-    it('returns empty string for FAILED status when errorCode is absent', async () => {
-      storeOverrides.isPublicationEditable = () => false
-      const pub = makePublication({
-        status: 'FAILED',
-        errorCode: undefined,
-      })
-      const wrapper = mountModal(pub)
-      await flushPromises()
-
-      // failureDetail returns '' when no errorCode is present; the diagnostic block is hidden
-      expect(wrapper.text()).not.toContain('postDetail.errorCode')
+      for (const fragment of [
+        'StorageObjectNotFoundException',
+        'https://api.test',
+        'token=secret',
+        'workspace-123',
+        'bucket/key',
+        'Request failed',
+      ]) {
+        expect(wrapper.text()).not.toContain(fragment)
+      }
+      expect(wrapper.text()).toContain('postDetail.failure.unknown.label')
     })
 
     it('calls retryPublication and emits retried when failed retry succeeds', async () => {
@@ -261,9 +298,20 @@ describe('PostDetailModal', () => {
       expect(wrapper.emitted('close')).toHaveLength(1)
     })
 
-    it('clears retry error when the modal reopens', async () => {
+    it.each([
+      [{ status: 401 }, 'unauthorized'],
+      [{ status: 403 }, 'unauthorized'],
+      [{ status: 400 }, 'validation'],
+      [{ status: 500 }, 'temporarilyUnavailable'],
+      [{ errorCode: 'UNEXPECTED_PROVIDER_VALUE', status: 418 }, 'unknown'],
+    ] as const)('maps retry action error %o to %s safe copy', async (errorFields, expectedReason) => {
       storeOverrides.isPublicationEditable = () => false
-      mockRetry.mockRejectedValueOnce(new Error('Retry failed'))
+      mockRetry.mockRejectedValueOnce(
+        Object.assign(new Error('Request failed: token leaked'), {
+          ...errorFields,
+          detail: 'raw backend detail',
+        }),
+      )
       const wrapper = mountModal(makePublication({ status: 'FAILED' }))
 
       const retryButton = wrapper
@@ -272,14 +320,40 @@ describe('PostDetailModal', () => {
       expect(retryButton).toBeDefined()
       await retryButton!.trigger('click')
       await flushPromises()
-      expect(wrapper.text()).toContain('Retry failed')
+
+      expect(wrapper.text()).toContain(`postDetail.actionErrors.reasons.${expectedReason}`)
+      expect(wrapper.text()).toContain('postDetail.actionErrors.operations.retry')
+      expect(wrapper.text()).not.toContain('Request failed')
+      expect(wrapper.text()).not.toContain('raw backend detail')
+    })
+
+    it('maps retry network action errors to safe localized copy and clears it when the modal reopens', async () => {
+      storeOverrides.isPublicationEditable = () => false
+      mockRetry.mockRejectedValueOnce(
+        Object.assign(new Error('Request failed: token leaked'), {
+          status: undefined,
+          detail: 'raw backend detail',
+        }),
+      )
+      const wrapper = mountModal(makePublication({ status: 'FAILED' }))
+
+      const retryButton = wrapper
+        .findAll('button')
+        .find((button) => button.text().includes('postDetail.retry'))
+      expect(retryButton).toBeDefined()
+      await retryButton!.trigger('click')
+      await flushPromises()
+      expect(wrapper.text()).toContain('postDetail.actionErrors.reasons.temporarilyUnavailable')
+      expect(wrapper.text()).toContain('postDetail.actionErrors.operations.retry')
+      expect(wrapper.text()).not.toContain('Request failed')
+      expect(wrapper.text()).not.toContain('raw backend detail')
 
       await wrapper.setProps({ isOpen: false })
       await nextTick()
       await wrapper.setProps({ isOpen: true })
       await flushPromises()
 
-      expect(wrapper.text()).not.toContain('Retry failed')
+      expect(wrapper.text()).not.toContain('postDetail.actionErrors.reasons.temporarilyUnavailable')
     })
   })
 
@@ -300,8 +374,11 @@ describe('PostDetailModal', () => {
       expect(wrapper.emitted('close')).toHaveLength(1)
     })
 
-    it('displays an error message when delete fails', async () => {
-      storeOverrides.deleteError = new Error('Network error')
+    it('maps delete action errors to safe localized copy', async () => {
+      storeOverrides.deleteError = Object.assign(
+        new Error('com.example.DeleteException raw detail'),
+        { status: 404 },
+      )
       const wrapper = mountModal(makePublication())
 
       const deleteBtn = wrapper
@@ -310,7 +387,10 @@ describe('PostDetailModal', () => {
       await deleteBtn!.trigger('click')
       await flushPromises()
 
-      expect(wrapper.text()).toContain('Network error')
+      expect(wrapper.text()).toContain('postDetail.actionErrors.reasons.notFound')
+      expect(wrapper.text()).toContain('postDetail.actionErrors.operations.delete')
+      expect(wrapper.text()).not.toContain('com.example.DeleteException')
+      expect(wrapper.text()).not.toContain('raw detail')
     })
 
     it('hides destructive actions for non-deletable statuses', () => {
@@ -349,8 +429,8 @@ describe('PostDetailModal', () => {
       expect(mockDelete).toHaveBeenCalledTimes(1)
     })
 
-    it('shows delete error and does not close modal on failure', async () => {
-      storeOverrides.deleteError = new Error('Delete failed')
+    it('shows safe delete error and does not close modal on failure', async () => {
+      storeOverrides.deleteError = Object.assign(new Error('Delete failed'), { status: 409 })
       const wrapper = mountModal(makePublication())
 
       const deleteButton = wrapper
@@ -359,7 +439,8 @@ describe('PostDetailModal', () => {
       await deleteButton!.trigger('click')
       await flushPromises()
 
-      expect(wrapper.text()).toContain('Delete failed')
+      expect(wrapper.text()).toContain('postDetail.actionErrors.reasons.stateConflict')
+      expect(wrapper.text()).not.toContain('Delete failed')
       // Modal should still be open (close not emitted on failure)
       expect(wrapper.emitted('close')).toBeUndefined()
     })
@@ -466,8 +547,11 @@ describe('PostDetailModal', () => {
       expect(wrapper.emitted('close')).toHaveLength(1)
     })
 
-    it('displays error when reschedule fails', async () => {
-      storeOverrides.rescheduleError = new Error('Reschedule failed')
+    it('maps reschedule action errors to safe localized copy', async () => {
+      storeOverrides.rescheduleError = Object.assign(
+        new Error('Reschedule failed with /bucket/object'),
+        { status: 422 },
+      )
       storeOverrides.isPublicationEditable = () => false
       const wrapper = mountModal(
         makePublication({ status: 'PROCESSING', scheduledAt: '2027-07-01T10:00:00Z' }),
@@ -485,7 +569,31 @@ describe('PostDetailModal', () => {
 
       await flushPromises()
       await nextTick()
-      expect(wrapper.text()).toContain('Reschedule failed')
+      expect(wrapper.text()).toContain('postDetail.actionErrors.reasons.validation')
+      expect(wrapper.text()).toContain('postDetail.actionErrors.operations.reschedule')
+      expect(wrapper.text()).not.toContain('Reschedule failed')
+      expect(wrapper.text()).not.toContain('/bucket/object')
+    })
+
+    it('uses localized copy for invalid reschedule dates', async () => {
+      storeOverrides.isPublicationEditable = () => false
+      const wrapper = mountModal(
+        makePublication({ status: 'PROCESSING', scheduledAt: '2027-07-01T10:00:00Z' }),
+      )
+
+      const rescheduleBtn = wrapper
+        .findAll('button')
+        .find((b) => b.text().includes('postDetail.reschedule'))
+      await rescheduleBtn!.trigger('click')
+      await wrapper.find('input#reschedule-datetime').setValue('2020-01-01T10:00')
+
+      const confirmBtn = wrapper
+        .findAll('button')
+        .find((b) => b.text().includes('postDetail.rescheduleConfirm'))
+      await confirmBtn!.trigger('click')
+
+      expect(wrapper.text()).toContain('postDetail.rescheduleInvalidDate')
+      expect(wrapper.text()).not.toContain('Please select a valid future date and time.')
     })
 
     it('cancelReschedule hides the reschedule form', async () => {
