@@ -104,7 +104,6 @@ vi.mock('@modules/media/services/media-api', async (importOriginal) => {
         status: 'READY' as const,
         originalFilename: `${externalId}.jpg`,
         fileSizeBytes: 1024,
-        fileHash: null,
         createdAt: '2026-06-19T12:00:00Z',
         previewUrl: `/api/media/assets/unsplash-${externalId}/preview`,
         sourceProvider: 'unsplash',
