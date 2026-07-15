@@ -1,14 +1,12 @@
 # Profile Tailors — Architecture Documentation
 
-This directory contains the architecture documentation for Profile Tailors, a social media
-management platform.
+This directory contains the architecture documentation for Profile Tailors, a social media management platform.
 
 ---
 
 ## 📐 C4 Architecture Models
 
-The C4 model provides a hierarchical set of architecture diagrams for visualizing software
-architecture at different levels of abstraction.
+The C4 model provides a hierarchical set of architecture diagrams for visualizing software architecture at different levels of abstraction.
 
 ### Quick Navigation
 
@@ -70,10 +68,8 @@ architecture at different levels of abstraction.
 ### 2. Domain-Driven Design (DDD)
 
 - **Bounded Contexts**: Identity, Authorization, Tenancy, Credentials, Governance, Platform
-- **Shared Kernel**: Multiple module layers — see [full dependency graph](shared/dependencies.md)
-  for all `api` and `implementation` relationships
-- **Foundation**: [`shared:common`](../../shared/common/) — framework-agnostic domain primitives,
-  zero Spring dependencies
+- **Shared Kernel**: Multiple module layers — see [full dependency graph](shared/dependencies.md) for all `api` and `implementation` relationships
+- **Foundation**: [`shared:common`](../../shared/common/) — framework-agnostic domain primitives, zero Spring dependencies
 - **Aggregates**: Clear boundaries and consistency rules
 - **Domain Events**: For cross-context communication
 
@@ -154,15 +150,14 @@ architecture at different levels of abstraction.
 ### Project Documentation
 
 - **[README.md](../../README.md)** — Project overview and setup
-- **[DESIGN.md](../../DESIGN.md)** — Design system and UI guidelines
+- **[DESIGN.md](../../.agents/DESIGN.md)** — Design system and UI guidelines
 - **[CONTRIBUTING.md](../../CONTRIBUTING.md)** — Contribution guidelines
-- **[AGENTS.md](../../AGENTS.md)** — AI agent instructions
+- **[AGENTS.md](../../.agents/AGENTS.md)** — AI agent instructions
 
 ### Specifications
 
 - **[openspec/](../../openspec/)** — SDD artifacts (specs, designs, tasks)
-- **[Media Library CAS Dedup](./media-library-cas-dedup.md)** — Content-Addressed Storage
-  deduplication for workspace-scoped media assets
+- **[Media Library CAS Dedup](./media-library-cas-dedup.md)** — Content-Addressed Storage deduplication for workspace-scoped media assets
 
 ### Security
 

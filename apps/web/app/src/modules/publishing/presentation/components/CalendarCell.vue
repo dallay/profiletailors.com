@@ -2,9 +2,9 @@
 import { computed } from 'vue'
 import { Plus } from '@lucide/vue'
 import ConflictBadge from '@modules/publishing/presentation/components/ConflictBadge.vue'
-import SocialProviderIcon from '@/components/SocialProviderIcon.vue'
+import SocialProviderIcon from '@shared/components/SocialProviderIcon.vue'
 import type { Publication, ActivityEntry } from '@modules/publishing/infrastructure/publishing.store'
-import { getProviderColor } from '@/lib/provider-styles'
+import { getProviderColor } from '@shared/lib/provider-styles'
 
 const props = withDefaults(
   defineProps<{

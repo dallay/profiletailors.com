@@ -67,7 +67,7 @@ vi.mock('@modules/workspace/infrastructure/workspace.store', () => ({
 // NOTE: plain async functions (not vi.fn()) so vi.clearAllMocks in other describe
 // blocks does NOT clear the implementation. vitest 3.2.6 clearAllMocks calls
 // mockClear on each tracked spy, which resets implementation too.
-vi.mock('@/composables/useFileHash', () => ({
+vi.mock('@modules/media/application/useFileHash', () => ({
   computeFileHash: async () => 'a'.repeat(64),
   sanitizeFilename: vi.fn((name: string) =>
     name.replace(/[/\\]/g, '_').replace(/\.\./g, '_').replace(/\0/g, '').slice(0, 255),
