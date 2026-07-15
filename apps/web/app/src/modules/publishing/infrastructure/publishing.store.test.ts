@@ -999,6 +999,58 @@ describe('publishing store', () => {
       })
     })
 
+    it('preserves failed and blocked diagnostics as opaque values without creating visible copy', async () => {
+      const store = usePublishingStore()
+      const auth = useAuthStore()
+      Object.defineProperty(auth, 'isAuthenticated', { value: true, configurable: true })
+      vi.spyOn(auth, 'apiFetch').mockResolvedValue({
+        publications: [
+          {
+            id: 'api-pub-blocked-raw',
+            workspaceId: 'ws_1',
+            socialAccountId: 'acc-li-1',
+            provider: 'linkedin',
+            status: 'BLOCKED',
+            scheduleMode: 'SCHEDULED_AT',
+            priority: false,
+            title: 'Blocked raw',
+            bodyText: 'Publishing paused.',
+            assetIds: [],
+            scheduledFor: '2026-06-10T12:00:00Z',
+            hasConflict: false,
+            conflictingPublicationIds: [],
+            blockedReason: 'com.example.ReconnectRequiredException token=secret',
+          },
+          {
+            id: 'api-pub-failed-raw',
+            workspaceId: 'ws_1',
+            socialAccountId: 'acc-li-1',
+            provider: 'linkedin',
+            status: 'FAILED',
+            scheduleMode: 'SCHEDULED_AT',
+            priority: false,
+            title: 'Failed raw',
+            bodyText: 'Provider rejected the payload.',
+            assetIds: [],
+            scheduledFor: '2026-06-10T13:00:00Z',
+            hasConflict: false,
+            conflictingPublicationIds: [],
+            errorCode: 'StorageObjectNotFoundException',
+          },
+        ],
+        conflicts: [],
+        activity: [],
+      })
+
+      await store.fetchCalendar('2026-06-01T00:00:00Z', '2026-07-01T00:00:00Z')
+
+      expect(store.publications[0]?.blockedReason).toBe(
+        'com.example.ReconnectRequiredException token=secret',
+      )
+      expect(store.publications[1]?.errorCode).toBe('StorageObjectNotFoundException')
+      expect(JSON.stringify(store.publications)).not.toContain('postDetail.failure')
+    })
+
     it('retries a failed publication through the retry endpoint and updates local state', async () => {
       const store = usePublishingStore()
       const auth = useAuthStore()

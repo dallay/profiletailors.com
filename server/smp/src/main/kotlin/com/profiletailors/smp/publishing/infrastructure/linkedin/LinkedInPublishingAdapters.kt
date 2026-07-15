@@ -20,6 +20,8 @@ import com.profiletailors.smp.publishing.domain.SocialAccountKind
 import com.profiletailors.smp.publishing.domain.SocialConnectionProvider
 import com.profiletailors.smp.publishing.domain.SocialProvider
 import com.profiletailors.smp.publishing.domain.SocialPublisher
+import com.profiletailors.smp.publishing.infrastructure.scheduling.PublishingFailure
+import com.profiletailors.smp.publishing.infrastructure.scheduling.PublishingFailureException
 import com.profiletailors.smp.publishing.infrastructure.scheduling.RetryablePublishingException
 import com.profiletailors.storage.domain.AttachmentsStorageBinding
 import com.profiletailors.storage.domain.Storage
@@ -32,6 +34,7 @@ import org.springframework.boot.context.properties.ConfigurationProperties
 import org.springframework.boot.context.properties.EnableConfigurationProperties
 import org.springframework.context.annotation.Bean
 import org.springframework.context.annotation.Configuration
+import java.net.HttpURLConnection
 import java.net.URI
 import java.net.URLEncoder
 import java.net.http.HttpClient
@@ -245,6 +248,7 @@ class RealLinkedInPublisher(
      * @throws RetryablePublishingException if the request is rate-limited (429) or receives a server error (500-599).
      * @throws IllegalStateException if the request fails with any other HTTP status code.
      */
+    @Suppress("ThrowsCount")
     override suspend fun publish(command: ProviderPublishCommand): ProviderPublishResult {
         val requestBody = buildPostBody(command)
         val accessToken = credentialResolver.resolve(command.socialAccount)
@@ -257,6 +261,7 @@ class RealLinkedInPublisher(
                 .POST(HttpRequest.BodyPublishers.ofString(objectMapper.writeValueAsString(requestBody)))
                 .build(),
         )
+        val diagnostic = "status=${response.statusCode}"
         return when (response.statusCode) {
             in HTTP_SUCCESS_RANGE -> ProviderPublishResult(
                 externalPublicationId = response.headers
@@ -265,17 +270,23 @@ class RealLinkedInPublisher(
                 providerMessage = response.body,
             )
 
-            HTTP_TOO_MANY_REQUESTS, in HTTP_SERVER_ERROR_RANGE -> {
-                val message = "LinkedIn post publish retryable failure: " +
-                    "${response.statusCode} ${response.body}"
-                throw RetryablePublishingException(message)
-            }
+            HttpURLConnection.HTTP_UNAUTHORIZED,
+            HttpURLConnection.HTTP_FORBIDDEN,
+            -> throw PublishingFailureException(
+                PublishingFailure.accountReconnectRequired(diagnostic),
+            )
 
-            else -> {
-                val message = "LinkedIn post publish failed: " +
-                    "${response.statusCode} ${response.body}"
-                throw IllegalStateException(message)
-            }
+            HTTP_TOO_MANY_REQUESTS -> throw PublishingFailureException(
+                PublishingFailure.providerRateLimited(diagnostic),
+            )
+
+            in HTTP_SERVER_ERROR_RANGE -> throw PublishingFailureException(
+                PublishingFailure.providerUnavailable(diagnostic),
+            )
+
+            else -> throw PublishingFailureException(
+                PublishingFailure.validationFailed(diagnostic),
+            )
         }
     }
 
@@ -445,9 +456,7 @@ class RealLinkedInPublisher(
             attachmentsBinding.bucketName,
             e,
         )
-        throw RetryablePublishingException(
-            "Storage download failed for asset ${asset.id} (key=$storageKey): ${e.message}",
-        )
+        throw PublishingFailureException(PublishingFailure.mediaUnavailable(e::class.simpleName))
     }
 
     private fun extractFirstUrl(text: String): String? = Regex("https?://\\S+").find(text)?.value

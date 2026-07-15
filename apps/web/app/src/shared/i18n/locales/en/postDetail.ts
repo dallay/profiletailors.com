@@ -17,18 +17,75 @@ export default {
   rescheduleConfirm: 'Confirm',
   rescheduleCancel: 'Cancel',
   rescheduleSuccess: 'Rescheduled successfully',
+  rescheduleInvalidDate: 'Choose a future date and time before rescheduling.',
   delete: 'Delete',
   edit: 'Edit',
   close: 'Close',
   viewPost: 'View Post',
   viewPostUnavailable: 'View Post URL is not available yet.',
-  errorMessages: {
-    linkedinValidation: 'LinkedIn validation failed. Check your post content and try again.',
-    mediaAssetTooLarge: 'The attached media exceeds the maximum allowed size.',
-    emailVerificationRequired:
-      'Email verification is required to publish. Please verify your email address.',
-    rateLimitExceeded: 'Rate limit reached. Please wait before trying again.',
-    unauthorized: 'Unauthorized. Please log in and try again.',
+  failure: {
+    title: 'Publishing issue',
+    mediaNotFound: {
+      label: 'Media could not be found',
+      explanation: 'One or more attached files are no longer available.',
+      action: 'Reattach or replace the media, then publish again.',
+    },
+    mediaUnavailable: {
+      label: 'Media is temporarily unavailable',
+      explanation: 'We could not access the attached media right now.',
+      action: 'Retry later, or replace the asset if this keeps happening.',
+    },
+    providerValidationFailed: {
+      label: 'The channel rejected this post',
+      explanation: 'The post does not meet one of the channel publishing requirements.',
+      action: 'Edit the content or media, then try publishing again.',
+    },
+    providerRateLimited: {
+      label: 'The channel is limiting requests',
+      explanation: 'The publishing service asked us to slow down temporarily.',
+      action: 'Retry later or reschedule the post.',
+    },
+    providerUnavailable: {
+      label: 'The channel is temporarily unavailable',
+      explanation: 'The publishing service could not be reached right now.',
+      action: 'Retry later or reschedule the post.',
+    },
+    accountReconnectRequired: {
+      label: 'Reconnect the account',
+      explanation: 'Publishing is paused until the selected social account is reconnected.',
+      action: 'Reconnect the account, then retry the post.',
+    },
+    accountUnavailable: {
+      label: 'The selected account cannot publish',
+      explanation: 'This account is not currently available for publishing.',
+      action: 'Restore the account or choose another available account.',
+    },
+    publishingFailed: {
+      label: 'Publishing failed',
+      explanation: 'Something went wrong while publishing this post.',
+      action: 'Retry once. If it still fails, contact support.',
+    },
+    unknown: {
+      label: 'Publishing needs attention',
+      explanation: 'We could not publish this post safely.',
+      action: 'Review the post and try again. Contact support if it keeps failing.',
+    },
+  },
+  actionErrors: {
+    message: '{reason} {operation}',
+    reasons: {
+      unauthorized: 'Your session or account access needs attention.',
+      notFound: 'This post is no longer available.',
+      stateConflict: 'This post changed before the action finished.',
+      validation: 'The requested change is not valid for this post.',
+      temporarilyUnavailable: 'Publishing is temporarily unavailable.',
+      unknown: 'We could not complete the action safely.',
+    },
+    operations: {
+      retry: 'Please retry after checking the post details.',
+      delete: 'Refresh the calendar and try deleting again.',
+      reschedule: 'Review the schedule and try again.',
+    },
   },
   status: {
     draft: 'Draft',

@@ -4,6 +4,7 @@ import { useI18n } from 'vue-i18n'
 import { CalendarClock, ExternalLink, Pencil, Trash2, X, AlertTriangle, CheckCircle2, Clock } from '@lucide/vue'
 import { useFocusTrap } from '@shared/composables/useFocusTrap'
 import { usePublishingStore, type Publication } from '@modules/publishing/infrastructure/publishing.store'
+import { usePublishingErrors } from '@modules/publishing/presentation/composables/usePublishingErrors'
 import { getProviderBadge } from '@shared/lib/provider-styles'
 
 const props = withDefaults(
@@ -24,15 +25,7 @@ const emit = defineEmits<{
 
 const { t, locale: i18nLocale } = useI18n()
 const publishingStore = usePublishingStore()
-
-/** Maps backend error codes to user-facing message keys. Expand as new codes are introduced. */
-const PUBLICATION_ERROR_MESSAGES: Record<string, string> = {
-  LINKEDIN_VALIDATION_ERROR: 'postDetail.errorMessages.linkedinValidation',
-  MEDIA_ASSET_TOO_LARGE: 'postDetail.errorMessages.mediaAssetTooLarge',
-  EMAIL_VERIFICATION_REQUIRED: 'postDetail.errorMessages.emailVerificationRequired',
-  RATE_LIMIT_EXCEEDED: 'postDetail.errorMessages.rateLimitExceeded',
-  UNAUTHORIZED: 'postDetail.errorMessages.unauthorized',
-}
+const { failureCopy, actionErrorMessage } = usePublishingErrors(() => props.publication)
 
 const isReadOnly = computed(() => props.publication?.status === 'PUBLISHED')
 const canEditPublication = computed(() =>
@@ -134,20 +127,6 @@ const rescheduleError = ref('')
 const isRetrying = ref(false)
 const retryError = ref('')
 
-const failureDetail = computed(() => {
-  if (!props.publication) return ''
-  if (props.publication.status === 'BLOCKED') {
-    return props.publication.blockedReason ?? ''
-  }
-  if (props.publication.status === 'FAILED') {
-    const code = props.publication.errorCode
-    if (!code) return ''
-    const msgKey = PUBLICATION_ERROR_MESSAGES[code]
-    return msgKey ? t(msgKey) : code
-  }
-  return ''
-})
-
 const modalContainer = ref<HTMLElement | null>(null)
 const { activate: activateFocusTrap, deactivate: deactivateFocusTrap } = useFocusTrap(modalContainer, closeModal)
 
@@ -182,7 +161,7 @@ async function deletePublication() {
     emit('deleted', props.publication.id)
     closeModal()
   } catch (err) {
-    deleteError.value = err instanceof Error ? err.message : 'Failed to delete post'
+    deleteError.value = actionErrorMessage(err, 'delete')
     console.error('Failed to delete publication', err)
   } finally {
     isDeleting.value = false
@@ -209,7 +188,7 @@ async function retryPublication() {
     emit('retried', props.publication.id)
     closeModal()
   } catch (err) {
-    retryError.value = err instanceof Error ? err.message : t('postDetail.retryFailed')
+    retryError.value = actionErrorMessage(err, 'retry')
   } finally {
     isRetrying.value = false
   }
@@ -220,7 +199,7 @@ async function confirmReschedule() {
   rescheduleError.value = ''
   const newDate = new Date(newScheduledAt.value)
   if (Number.isNaN(newDate.getTime()) || newDate <= new Date()) {
-    rescheduleError.value = 'Please select a valid future date and time.'
+    rescheduleError.value = t('postDetail.rescheduleInvalidDate')
     return
   }
   try {
@@ -230,7 +209,7 @@ async function confirmReschedule() {
     showReschedule.value = false
     closeModal()
   } catch (err) {
-    rescheduleError.value = err instanceof Error ? err.message : 'Failed to reschedule'
+    rescheduleError.value = actionErrorMessage(err, 'reschedule')
   }
 }
 
@@ -328,12 +307,18 @@ function cancelReschedule() {
             </div>
           </div>
 
-          <div v-if="failureDetail" class="space-y-1 rounded-2xl border border-border-visible bg-bg-primary/40 px-4 py-3">
+          <div v-if="failureCopy" class="space-y-2 rounded-2xl border border-border-visible bg-bg-primary/40 px-4 py-3">
             <span class="font-mono text-[9px] font-bold tracking-widest text-text-secondary uppercase">
-              {{ publication.status === 'BLOCKED' ? t('postDetail.blockedReason') : t('postDetail.errorCode') }}
+              {{ t('postDetail.failure.title') }}
             </span>
-            <p class="text-xs text-text-body break-words">
-              {{ failureDetail }}
+            <p class="text-xs font-semibold text-text-display">
+              {{ t(failureCopy.label) }}
+            </p>
+            <p class="text-xs text-text-body">
+              {{ t(failureCopy.explanation) }}
+            </p>
+            <p class="text-xs text-text-secondary">
+              {{ t(failureCopy.action) }}
             </p>
           </div>
 
@@ -447,7 +432,6 @@ function cancelReschedule() {
             >
               {{ t('postDetail.close') }}
             </button>
-            <!-- biome-ignore lint/a11y/useValidAnchor: viewPostUrl is conditionally bound, always present when this renders -->
             <a
               v-if="viewPostUrl"
               :href="viewPostUrl"
