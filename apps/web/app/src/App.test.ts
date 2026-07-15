@@ -1,8 +1,8 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { mount } from '@vue/test-utils'
 import { createPinia, setActivePinia } from 'pinia'
-import { usePublishingStore } from '@/stores/publishing'
-import { getProviderBadge } from '@/lib/provider-styles'
+import { usePublishingStore } from '@modules/publishing/infrastructure/publishing.store'
+import { getProviderBadge } from '@shared/lib/provider-styles'
 import AppComponent from './App.vue'
 
 // ---------------------------------------------------------------------------
@@ -16,7 +16,7 @@ vi.mock('vue-i18n', () => ({
   createI18n: () => ({ global: { locale: { value: 'en' } } }),
 }))
 
-vi.mock('@/i18n', () => ({
+vi.mock('@shared/i18n', () => ({
   default: { global: { locale: { value: 'en' } } },
 }))
 
@@ -27,7 +27,7 @@ vi.mock('vue-router', () => ({
   useRouter: () => ({ push: vi.fn(), replace: vi.fn() }),
 }))
 
-vi.mock('@/lib/auth-api', () => ({
+vi.mock('@modules/auth/infrastructure/auth-api', () => ({
   createApiFetch: () =>
     async function apiFetch<T>() {
       return {} as T
@@ -65,7 +65,7 @@ vi.mock('@/components/ui/sidebar', () => ({
   SidebarTrigger: { template: '<button class="sidebar-trigger" />' },
 }))
 
-vi.mock('@/components/ThemeToggle.vue', () => ({
+vi.mock('@shared/components/ThemeToggle.vue', () => ({
   default: { template: '<div class="theme-toggle" />' },
 }))
 

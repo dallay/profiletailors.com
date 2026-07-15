@@ -28,17 +28,10 @@ All controllers now have complete Swagger/OpenAPI documentation and use `version
 
 - Custom `MediaTypeVersionResolver` to parse `application/vnd.api.v{version}+json`
 - Extracts version from Accept header using regex
-- Default version: `"1"`
+- Default version: `"1"` via `configureApiVersioning(configurer: ApiVersionConfigurer)` override
 - Spring Boot 4 native API versioning integration
 
-**Updated:** `server/smp/src/main/resources/application.yaml`
-
-```yaml
-spring:
-  webflux:
-    apiversion:
-      default: "1"
-```
+API versioning is implemented programmatically in `WebFluxConfiguration.kt` and there is **no** active versioning config inside `application.yaml`.
 
 #### ✅ Documentation
 
@@ -172,48 +165,25 @@ Spring Boot 4's built-in resolvers don't support vendor media type patterns like
 
 ### Backend
 
--
-
-`server/smp/src/main/kotlin/com/profiletailors/smp/identity/infrastructure/http/LocalAuthController.kt`
--
-`server/smp/src/main/kotlin/com/profiletailors/smp/identity/infrastructure/http/CurrentUserProfileController.kt`
--
-`server/smp/src/main/kotlin/com/profiletailors/smp/tenancy/infrastructure/http/WorkspaceOwnershipController.kt`
--
-`server/smp/src/main/kotlin/com/profiletailors/smp/tenancy/infrastructure/http/WorkspaceMembershipController.kt`
--
-`server/smp/src/main/kotlin/com/profiletailors/smp/governance/infrastructure/http/AuditEventController.kt`
--
-`server/smp/src/main/kotlin/com/profiletailors/smp/authorization/infrastructure/http/WorkspaceAccessSummaryController.kt`
--
-`server/smp/src/main/kotlin/com/profiletailors/smp/authorization/infrastructure/http/ResourcePreviewController.kt`
--
-`server/smp/src/main/kotlin/com/profiletailors/smp/platform/infrastructure/http/WebFluxConfiguration.kt` ←
-**NEW**
-
-- `server/smp/src/main/resources/application.yaml`
+- `server/smp/src/main/kotlin/com/profiletailors/smp/identity/infrastructure/http/LocalAuthController.kt`
+- `server/smp/src/main/kotlin/com/profiletailors/smp/identity/infrastructure/http/CurrentUserProfileController.kt`
+- `server/smp/src/main/kotlin/com/profiletailors/smp/tenancy/infrastructure/http/WorkspaceOwnershipController.kt`
+- `server/smp/src/main/kotlin/com/profiletailors/smp/tenancy/infrastructure/http/WorkspaceMembershipController.kt`
+- `server/smp/src/main/kotlin/com/profiletailors/smp/governance/infrastructure/http/AuditEventController.kt`
+- `server/smp/src/main/kotlin/com/profiletailors/smp/authorization/infrastructure/http/WorkspaceAccessSummaryController.kt`
+- `server/smp/src/main/kotlin/com/profiletailors/smp/authorization/infrastructure/http/ResourcePreviewController.kt`
+- `server/smp/src/main/kotlin/com/profiletailors/smp/platform/infrastructure/http/WebFluxConfiguration.kt` ← **NEW**
 
 ### Tests
 
--
-
-`server/smp/src/test/kotlin/com/profiletailors/smp/integration/LocalAuthEndpointIntegrationTest.kt`
--
-`server/smp/src/test/kotlin/com/profiletailors/smp/integration/WorkspaceAccessSummaryEndpointIntegrationTest.kt`
--
-`server/smp/src/test/kotlin/com/profiletailors/smp/integration/ResourcePreviewEndpointIntegrationTest.kt`
--
-`server/smp/src/test/kotlin/com/profiletailors/smp/integration/WorkspaceAccessSummaryEndpointPostgresIntegrationTest.kt`
--
-`server/smp/src/test/kotlin/com/profiletailors/smp/integration/ResourcePreviewEndpointPostgresIntegrationTest.kt`
-
+- `server/smp/src/test/kotlin/com/profiletailors/smp/integration/LocalAuthEndpointIntegrationTest.kt`
+- `server/smp/src/test/kotlin/com/profiletailors/smp/integration/WorkspaceAccessSummaryEndpointIntegrationTest.kt`
+- `server/smp/src/test/kotlin/com/profiletailors/smp/integration/ResourcePreviewEndpointIntegrationTest.kt`
+- `server/smp/src/test/kotlin/com/profiletailors/smp/integration/WorkspaceAccessSummaryEndpointPostgresIntegrationTest.kt`
+- `server/smp/src/test/kotlin/com/profiletailors/smp/integration/ResourcePreviewEndpointPostgresIntegrationTest.kt`
 - `server/smp/src/test/kotlin/com/profiletailors/smp/integration/support/IntegrationTestBase.kt`
--
-
-`server/smp/src/test/kotlin/com/profiletailors/smp/integration/support/WorkspaceAccessSummaryEndpointTestBase.kt`
--
-`server/smp/src/test/kotlin/com/profiletailors/smp/integration/support/ResourcePreviewEndpointTestBase.kt`
-
+- `server/smp/src/test/kotlin/com/profiletailors/smp/integration/support/WorkspaceAccessSummaryEndpointTestBase.kt`
+- `server/smp/src/test/kotlin/com/profiletailors/smp/integration/support/ResourcePreviewEndpointTestBase.kt`
 - `server/smp/src/test/kotlin/com/profiletailors/smp/SmpApplicationTests.kt`
 - `server/smp/src/test/kotlin/com/profiletailors/smp/PlatformBootstrapContextTest.kt`
 - `server/smp/src/test/resources/application-test.yaml` ← **NEW**

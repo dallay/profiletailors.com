@@ -1160,7 +1160,11 @@ private class InMemoryRateLimitRepository(private val allowCreates: Boolean = tr
     override suspend fun releaseConcurrentUploadSlot(workspaceId: String) {
         releaseCount++
     }
-    override suspend fun tryIncrementHourlyCreationCount(workspaceId: String, maxPerHour: Int) = allowCreates
+    override suspend fun tryIncrementHourlyCreationCount(workspaceId: String, maxPerHour: Int) = if (allowCreates) {
+        MediaRateLimitRepository.RateLimitIncrementResult(1, true)
+    } else {
+        MediaRateLimitRepository.RateLimitIncrementResult(maxPerHour, false)
+    }
 }
 
 private class FakeStorage : Storage {
