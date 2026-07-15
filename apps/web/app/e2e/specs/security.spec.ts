@@ -55,11 +55,10 @@ test.describe('Security', { tag: '@integration' }, () => {
   })
 
   test('11.2 Refresh token is HttpOnly cookie', async ({ page }) => {
-    // WebKit: context.routeFromHAR does not set cookies from Set-Cookie
-    // headers on intercepted responses (known Playwright limitation)
+    // WebKit is officially excluded from the Dashboard E2E matrix due to engine-level cookie handling bugs with intercepted responses.
     test.skip(
-      test.info().project.name === 'webkit',
-      'WebKit: cookies are not set from routeFromHAR responses',
+      test.info().project.name === 'webkit' || test.info().project.name.includes('webkit'),
+      'WebKit: cookies are not set from routeFromHAR responses (WebKit is officially excluded from the Dashboard E2E matrix).',
     )
 
     const loginPage = new LoginPage(page)

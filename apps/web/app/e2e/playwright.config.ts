@@ -73,6 +73,12 @@ export default defineConfig({
     timeout: 30_000,
   },
 
+  // WebKit is excluded from the Dashboard SPA E2E test matrix.
+  // Rationale: WebKit/Safari driver fails to set or persist cookies from intercepted responses
+  // (e.g., via context.routeFromHAR or page.route) due to a known Playwright/WebKit engine limitation.
+  // Since the Dashboard SPA relies heavily on HttpOnly cookies for session/refresh token handling,
+  // and E2E tests run in a backend-free (HAR-replayed) environment, these tests cannot run on WebKit.
+  // Additionally, CI only executes Chromium-based targets for Dashboard E2E tests.
   projects: [
     {
       name: 'chromium',
@@ -83,16 +89,8 @@ export default defineConfig({
       use: { ...devices['Desktop Firefox'] },
     },
     {
-      name: 'webkit',
-      use: { ...devices['Desktop Safari'] },
-    },
-    {
       name: 'Mobile Chrome',
       use: { ...devices['Pixel 5'] },
-    },
-    {
-      name: 'Mobile Safari',
-      use: { ...devices['iPhone 12'] },
     },
   ],
 })
