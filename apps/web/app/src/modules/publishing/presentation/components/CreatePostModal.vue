@@ -17,7 +17,6 @@ import {
 } from '@lucide/vue'
 import { useAuthStore } from '@modules/auth/infrastructure/auth.store'
 import { usePublishingStore, type Publication } from '@modules/publishing/infrastructure/publishing.store'
-import { useWorkspaceStore } from '@modules/workspace/infrastructure/workspace.store'
 import { useMediaStore } from '@modules/media'
 import { proxyImageUrl, resolveApiUrl } from '@modules/auth/infrastructure/auth-api'
 import PostPreviewPanel from '@modules/publishing/presentation/components/composer/PostPreviewPanel.vue'

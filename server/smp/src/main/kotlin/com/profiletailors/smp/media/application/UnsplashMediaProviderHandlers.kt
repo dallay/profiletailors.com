@@ -4,8 +4,6 @@ import com.profiletailors.common.domain.Service
 import com.profiletailors.common.domain.bus.command.CommandWithResultHandler
 import com.profiletailors.common.domain.bus.query.QueryHandler
 import com.profiletailors.common.domain.context.PrincipalContextProvider
-import com.profiletailors.common.domain.context.ResourceContextProvider
-import com.profiletailors.common.domain.context.permissiveResourceContextProvider
 import com.profiletailors.smp.identity.application.AuthFeature
 import com.profiletailors.smp.identity.application.EmailVerificationPolicy
 import com.profiletailors.smp.identity.application.NoOpPrincipalIdentityLookup
@@ -16,9 +14,6 @@ import com.profiletailors.smp.identity.application.requireEmailVerification
 import com.profiletailors.smp.media.domain.MediaAsset
 import com.profiletailors.smp.media.domain.MediaAssetStatus
 import com.profiletailors.smp.media.domain.MediaSourceType
-import com.profiletailors.smp.tenancy.application.WorkspaceMembershipAccessChecker
-import com.profiletailors.smp.tenancy.application.WorkspaceMembershipNotFoundException
-import com.profiletailors.smp.tenancy.application.requireWorkspaceContext
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.NonCancellable
 import kotlinx.coroutines.flow.flow
@@ -49,9 +44,7 @@ class ImportUnsplashPhotoHandler(
     private val settings: UnsplashImportSettings,
     private val assetPreviewUrlResolver: AssetPreviewUrlResolver,
     private val mediaPreviewTokenService: MediaPreviewTokenService,
-    private val workspaceMembershipAccessChecker: WorkspaceMembershipAccessChecker,
     private val principalContextProvider: PrincipalContextProvider = permissivePrincipalContextProvider(),
-    private val resourceContextProvider: ResourceContextProvider = permissiveResourceContextProvider(),
     private val principalIdentityLookup: PrincipalIdentityLookup = NoOpPrincipalIdentityLookup(),
     private val emailVerificationPolicy: EmailVerificationPolicy = permissiveEmailVerificationPolicy,
 ) : CommandWithResultHandler<ImportUnsplashPhotoCommand, MediaAssetSummary> {
@@ -71,10 +64,6 @@ class ImportUnsplashPhotoHandler(
             emailVerificationPolicy,
             AuthFeature.UPLOAD_MEDIA,
         )
-        val resourceContext = resourceContextProvider.requireWorkspaceContext()
-        if (!workspaceMembershipAccessChecker.isActiveMember(principalContext.principalId, resourceContext)) {
-            throw WorkspaceMembershipNotFoundException(principalContext.principalId, command.workspaceId)
-        }
         val currentCount = enforceCreationRateLimit(command.workspaceId)
 
         val photo = provider.get(command.externalId)

@@ -394,7 +394,7 @@ test.describe(`Composer media attachments (mocked) ${TAGS}`, () => {
 
     await composePage.clickScheduleNow()
     await composePage.expectHidden({ timeout: 5000 })
-    
+
     expect(mockState.unsplashImportCount).toBe(1)
     expect(mockState.publicationPostCount).toBe(1)
   })
