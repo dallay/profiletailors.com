@@ -93,7 +93,7 @@ test.describe('Scheduler — Post Interaction', () => {
     await detailModal.expectVisible()
     const dialog = page.getByRole('dialog')
     // failureDetail maps PROVIDER_VALIDATION_FAILED -> localized message
-    await expect(dialog).toContainText('Validation requirements not met')
+    await expect(dialog).toContainText('The channel rejected this post')
     await dialog.getByRole('button', { name: /^retry$/i }).click()
     await detailModal.expectHidden()
 
