@@ -33,8 +33,8 @@ names such as `StorageObjectNotFoundException` and generic transport errors like
 All new backend `FAILED` and `BLOCKED` outcomes MUST persist one of these
 categories. Unknown exceptions map to `PUBLISHING_FAILED`.
 
-| Category | Retryable | State | Root Cause |
-|----------|-----------|-------|------------|
+| Category | Auto-Retryable | State | Root Cause |
+|----------|----------------|-------|------------|
 | `MEDIA_NOT_FOUND` | No | `FAILED` | Asset metadata or binary no longer exists |
 | `MEDIA_UNAVAILABLE` | Yes | `FAILED` | Temporary media/storage access failure |
 | `PROVIDER_VALIDATION_FAILED` | No | `FAILED` | Provider or capability rejected the content |
@@ -43,6 +43,18 @@ categories. Unknown exceptions map to `PUBLISHING_FAILED`.
 | `ACCOUNT_RECONNECT_REQUIRED` | N/A | `BLOCKED` | Expired, revoked credentials or insufficient scopes |
 | `ACCOUNT_UNAVAILABLE` | No | `FAILED` | Disabled or deleted terminal account |
 | `PUBLISHING_FAILED` | No | `FAILED` | Unexpected exception (catch-all) |
+
+The **Auto-Retryable** column governs whether the publishing worker
+automatically reschedules another delivery attempt. It does NOT govern
+user-initiated manual retries. Any `FAILED` publication — including
+non-auto-retryable categories like `PROVIDER_VALIDATION_FAILED` — remains
+eligible for manual retry or rescheduling by an authorized workspace member
+(see [Delivery Attempts spec, line 478-479](../openspec/specs/publishing/spec.md)).
+When a user manually retries a failed publication, the system resets the
+delivery attempt counter and transitions the publication back to `QUEUED`,
+regardless of the original failure category. Blocked publications
+(`ACCOUNT_RECONNECT_REQUIRED`) require reconnection before a manual retry
+can proceed.
 
 ### Classification Rules
 
@@ -53,8 +65,8 @@ type assigns the canonical category. Unknown exceptions always map to
 
 ### Default Provider Mappings
 
-| Condition | Category | Retryable |
-|-----------|----------|-----------|
+| Condition | Category | Auto-Retryable |
+|-----------|----------|----------------|
 | Missing asset metadata or binary | `MEDIA_NOT_FOUND` | No |
 | Temporary media/storage access failure | `MEDIA_UNAVAILABLE` | Yes |
 | Provider/capability content rejection | `PROVIDER_VALIDATION_FAILED` | No |
@@ -125,7 +137,9 @@ Sanitization removes before persistence:
 
 ## Retry Semantics
 
-Retryable failures (`MEDIA_UNAVAILABLE`, `PROVIDER_RATE_LIMITED`,
+### Automatic Worker Retries
+
+Auto-retryable failures (`MEDIA_UNAVAILABLE`, `PROVIDER_RATE_LIMITED`,
 `PROVIDER_UNAVAILABLE`) retain the same category across all delivery attempts
 and terminal persistence after retry exhaustion.
 
@@ -138,6 +152,16 @@ When the budget is exhausted, the publication transitions to `FAILED` with the
 same category it carried throughout retries. Unauthorized or blocked failures
 (`ACCOUNT_RECONNECT_REQUIRED`) do not consume retry budget — the publication
 transitions to `BLOCKED` immediately.
+
+### Manual User Retries
+
+Any `FAILED` publication remains eligible for manual retry or rescheduling by an
+authorized workspace member, regardless of the original failure category. This
+includes non-auto-retryable categories such as `PROVIDER_VALIDATION_FAILED`,
+`MEDIA_NOT_FOUND`, `ACCOUNT_UNAVAILABLE`, and `PUBLISHING_FAILED`. A manual retry
+resets the delivery attempt counter and transitions the publication back to
+`QUEUED`. Blocked publications (`ACCOUNT_RECONNECT_REQUIRED`) require the user
+to reconnect the social account before a manual retry can proceed.
 
 ## Historical Compatibility
 

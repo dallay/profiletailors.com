@@ -18,7 +18,9 @@ This document was created as part of MVP launch readiness to document the CI
 and local verification steps required before declaring the product
 release-ready.
 
-## CI Verification
+## Usage
+
+### CI Verification
 
 ### Full CI Pipeline
 
@@ -84,7 +86,7 @@ Lefthook hooks run automatically on commit and push:
 If hooks are disabled, CI catches the equivalent checks. No risk in skipping
 hooks locally.
 
-## Local Release Verification
+### Local Release Verification
 
 ### Prerequisites
 
@@ -145,7 +147,7 @@ Verify the dashboard loads at `https://pt-app.localhost` (requires
 [Portless](portless-setup.md)) and the backend responds at
 `http://localhost:7638`.
 
-## Manual Smoke Test
+### Manual Smoke Test
 
 The manual smoke test validates the core publishing journey end-to-end with a
 clean test account. This verifies the primary product loop works without
@@ -169,18 +171,18 @@ mocked dependencies.
 | 1 | Register a new account or log in | Dashboard loads |
 | 2 | Verify email if not verified | Email status shows verified |
 | 3 | Navigate to Scheduler | Scheduler view loads with empty state or existing posts |
-| 4 | Click "Connect LinkedIn profile" | LinkedIn OAuth redirect initiates |
+| 4 | Click the empty-state CTA to connect a LinkedIn profile | LinkedIn OAuth redirect initiates |
 | 5 | Complete LinkedIn OAuth | Channel appears in sidebar with LinkedIn badge |
-| 6 | Click "Create Post" | Composer opens |
+| 6 | Click the create-post action | Composer opens |
 | 7 | Write post content (short, ~100 chars) | LinkedIn preview shows content |
-| 8 | Write long content (>3000 chars) | Preview shows "See more" truncation |
+| 8 | Write long content (>3000 chars) | Preview shows truncation indicator |
 | 9 | Attach an image (JPEG, <10MB) | Image preview appears |
-| 10 | Select "Schedule for later" and pick a time | Date/time picker saves value |
+| 10 | Select schedule mode and pick a future time | Date/time picker saves value |
 | 11 | Save the scheduled post | Calendar shows the post on the selected date |
 | 12 | Open the scheduled post from the calendar | Post detail modal shows content, media, schedule |
-| 13 | Click "Publish Now" | Status transitions to PROCESSING then PUBLISHED |
+| 13 | Trigger immediate publish from the detail modal | Status transitions to PROCESSING then PUBLISHED |
 | 14 | Verify on LinkedIn | Post appears on the connected LinkedIn profile |
-| 15 | Create another post and publish immediately | Post appears on LinkedIn within seconds |
+| 15 | Create another post and publish immediately | Post appears on LinkedIn within the next worker poll cycle (default 30s). Set `SMP_PUBLISHING_WORKER_POLL_INTERVAL=PT5S` in `.env` for faster smoke-test feedback. |
 | 16 | Create a post with an unsupported media type (PDF) | Validation error rejects the file |
 | 17 | Disconnect LinkedIn, then attempt to publish | Publication transitions to BLOCKED with reconnect CTA |
 | 18 | Reconnect LinkedIn | Connection restores, blocked publication can be retried |
@@ -189,12 +191,12 @@ mocked dependencies.
 
 | Step | Action | Expected Result |
 |------|--------|------------------|
-| 1 | Publish with rate-limited provider (simulate 429) | Failure modal shows localized "provider busy" message with retry action |
-| 2 | Publish with expired LinkedIn token | Failure modal shows "reconnect your account" with reconnect CTA |
-| 3 | Publish with deleted media | Failure modal shows "media not found" with re-upload guidance |
+| 1 | Publish with rate-limited provider (simulate 429) | Failure modal shows the localized `PROVIDER_RATE_LIMITED` category message with retry action |
+| 2 | Publish with expired LinkedIn token | Failure modal shows the localized `ACCOUNT_RECONNECT_REQUIRED` category message with reconnect CTA |
+| 3 | Publish with deleted media | Failure modal shows the localized `MEDIA_NOT_FOUND` category message with re-upload guidance |
 | 4 | Retry a failed publication | Retry action triggers new delivery attempt |
 | 5 | Delete a failed publication | Publication removed from calendar |
-| 6 | Open a historical failed publication (pre-DALLAY-484) | Safe generic failure message shown, no raw exception names |
+| 6 | Open a historical failed publication (pre-DALLAY-484) | Safe generic localized fallback message shown, no raw exception names |
 
 ### Acceptance Criteria
 
@@ -252,4 +254,4 @@ local HTTPS URLs, not ports.
 - [Test Tags and Environment](testing/test-tags-and-env.md) — test
   configuration
 - [Portless Setup](portless-setup.md) — named local URLs
-- [AGENTS.md](../AGENTS.md) — full command reference
+- [AGENTS.md](../.agents/AGENTS.md) — full command reference
