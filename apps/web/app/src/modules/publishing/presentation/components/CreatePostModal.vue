@@ -2,22 +2,12 @@
 import { ref, computed, watch, onMounted, onUnmounted, nextTick } from 'vue'
 import { useI18n } from 'vue-i18n'
 import type { DateValue } from 'reka-ui'
-import { useFocusTrap } from '@/composables/useFocusTrap'
+import { useFocusTrap } from '@shared/composables/useFocusTrap'
 import { useComposerMediaPicker } from '@modules/publishing/application/useComposerMediaPicker'
 import { CalendarDate, getLocalTimeZone, today } from '@internationalized/date'
-import {
-  Calendar as CalendarIcon,
-  Check,
-  ChevronDown,
-  Hash,
-  Image as ImageIcon,
-  Smile,
-  Sparkles,
-  X,
-} from '@lucide/vue'
+import { Check, ChevronDown, Hash, Smile, Sparkles, X } from '@lucide/vue'
 import { useAuthStore } from '@modules/auth/infrastructure/auth.store'
 import { usePublishingStore, type Publication } from '@modules/publishing/infrastructure/publishing.store'
-import { useWorkspaceStore } from '@modules/workspace/infrastructure/workspace.store'
 import { useMediaStore } from '@modules/media'
 import { proxyImageUrl, resolveApiUrl } from '@modules/auth/infrastructure/auth-api'
 import PostPreviewPanel from '@modules/publishing/presentation/components/composer/PostPreviewPanel.vue'
@@ -89,7 +79,6 @@ const { t } = useI18n()
 const auth = useAuthStore()
 const publishingStore = usePublishingStore()
 const mediaStore = useMediaStore()
-const workspaceStore = useWorkspaceStore()
 
 
 const postText = ref('')
@@ -102,7 +91,6 @@ const picker = useComposerMediaPicker({
   editingPublication: () => props.editingPublication ?? null,
   provider: () => props.provider ?? null,
   initialChannelId: () => selectedChannelId.value,
-  workspaceId: () => workspaceStore.activeWorkspaceId ?? 'ws-local',
   onAttachmentsChanged: () => {
     assetsTouched.value = true
   },

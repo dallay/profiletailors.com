@@ -45,6 +45,17 @@ export type MediaAssetListResponse = {
   nextCursor: string | null
 }
 
+export type UnsplashPhotoSummary = {
+  externalId: string
+  name: string
+  previewUrl: string
+  sourceUrl: string
+  authorName: string
+  authorUrl: string
+}
+
+export type UnsplashSearchResponse = { photos: UnsplashPhotoSummary[] }
+
 // ─── CAS PUT response ─────────────────────────────────────────────────────────
 
 /** Response from PUT /api/workspaces/{workspaceId}/media/assets/{assetId} */
@@ -101,7 +112,7 @@ function isMediaApiError(body: unknown): body is MediaApiError {
 
 import type { createApiFetch, ApiFetchOptions } from '@modules/auth/infrastructure/auth-api'
 import { useAuthStore } from '@modules/auth/infrastructure/auth.store'
-import { computeFileHash, sanitizeFilename } from '@/composables/useFileHash'
+import { computeFileHash, sanitizeFilename } from '@modules/media/application/useFileHash'
 
 type MediaApiErrorShape = Error & {
   title: string
@@ -490,6 +501,12 @@ export type ListAssetsOptions = {
   cursor?: string | null
 }
 
+/**
+ * Lists media assets for the current workspace.
+ *
+ * @param opts - Optional status, page size, and pagination cursor filters.
+ * @returns A paginated list of media assets, or an empty result when unauthenticated.
+ */
 export async function listAssets(opts: ListAssetsOptions = {}): Promise<MediaAssetListResponse> {
   const auth = useAuthStore()
 
@@ -515,6 +532,13 @@ export async function listAssets(opts: ListAssetsOptions = {}): Promise<MediaAss
   })
 }
 
+/**
+ * Retrieves metadata for a media asset.
+ *
+ * @param assetId - The ID of the asset to retrieve
+ * @returns The media asset metadata
+ * @throws If the user is not authenticated
+ */
 export async function getAsset(assetId: string): Promise<MediaAssetSummary> {
   const auth = useAuthStore()
 
@@ -526,6 +550,47 @@ export async function getAsset(assetId: string): Promise<MediaAssetSummary> {
     method: 'GET',
     workspaceScoped: true,
   })
+}
+
+/**
+ * Browses Unsplash editorial photos or searches by an optional query.
+ *
+ * @param query - Optional search term; blank values browse editorial photos.
+ * @returns The matching Unsplash photo summaries.
+ */
+export async function searchUnsplashPhotos(query?: string): Promise<UnsplashPhotoSummary[]> {
+  const auth = useAuthStore()
+
+  const params = new URLSearchParams()
+  const normalizedQuery = query?.trim()
+  if (normalizedQuery) params.set('query', normalizedQuery)
+  const suffix = params.size > 0 ? `?${params.toString()}` : ''
+  const response = await auth.apiFetch<UnsplashSearchResponse>(
+    `/api/media/providers/unsplash/photos${suffix}`,
+    {
+      method: 'GET',
+      workspaceScoped: true,
+    },
+  )
+  return response.photos
+}
+
+/**
+ * Imports an Unsplash photo as a persisted media asset.
+ *
+ * @param externalId - The provider identifier of the photo to import
+ * @returns The persisted media asset summary
+ */
+export async function importUnsplashPhoto(externalId: string): Promise<MediaAssetSummary> {
+  const auth = useAuthStore()
+
+  return auth.apiFetch<MediaAssetSummary>(
+    `/api/media/providers/unsplash/photos/${encodeURIComponent(externalId)}/import`,
+    {
+      method: 'POST',
+      workspaceScoped: true,
+    },
+  )
 }
 
 /**

@@ -84,7 +84,6 @@ class CreateUploadedAssetHandler(
 
     companion object {
         private val ISO_FORMATTER = DateTimeFormatter.ISO_INSTANT
-        private const val HOURLY_CREATIONS_RETRY_AFTER_SECONDS = 3_600
         private val WORD_EXTENSIONS = setOf("doc", "docx")
         private val POWERPOINT_EXTENSIONS = setOf("ppt", "pptx")
     }
@@ -135,19 +134,11 @@ class CreateUploadedAssetHandler(
     }
 
     private suspend fun enforceCreationRateLimit(workspaceId: String) {
-        val rateLimitOk = mediaRateLimitRepository.tryIncrementHourlyCreationCount(
-            workspaceId,
-            uploadSettings.maxCreationsPerHour,
+        enforceHourlyCreationRateLimit(
+            workspaceId = workspaceId,
+            mediaRateLimitRepository = mediaRateLimitRepository,
+            maxCreationsPerHour = uploadSettings.maxCreationsPerHour,
         )
-        if (!rateLimitOk) {
-            throw RateLimitExceededException(
-                workspaceId = workspaceId,
-                limitType = "hourly_creations",
-                currentValue = uploadSettings.maxCreationsPerHour,
-                limitValue = uploadSettings.maxCreationsPerHour,
-                retryAfterSeconds = HOURLY_CREATIONS_RETRY_AFTER_SECONDS,
-            )
-        }
     }
 
     private fun validateCreateCommand(command: CreateUploadedAssetCommand) {
@@ -704,7 +695,6 @@ class PutAssetHandler(
 
     companion object {
         private val ISO_FORMATTER = DateTimeFormatter.ISO_INSTANT
-        private const val HOURLY_CREATIONS_RETRY_AFTER_SECONDS = 3_600
         private val WORD_EXTENSIONS = setOf("doc", "docx")
         private val POWERPOINT_EXTENSIONS = setOf("ppt", "pptx")
     }
@@ -988,19 +978,11 @@ class PutAssetHandler(
     }
 
     private suspend fun enforceCreationRateLimit(workspaceId: String) {
-        val rateLimitOk = mediaRateLimitRepository.tryIncrementHourlyCreationCount(
-            workspaceId,
-            uploadSettings.maxCreationsPerHour,
+        enforceHourlyCreationRateLimit(
+            workspaceId = workspaceId,
+            mediaRateLimitRepository = mediaRateLimitRepository,
+            maxCreationsPerHour = uploadSettings.maxCreationsPerHour,
         )
-        if (!rateLimitOk) {
-            throw RateLimitExceededException(
-                workspaceId = workspaceId,
-                limitType = "hourly_creations",
-                currentValue = uploadSettings.maxCreationsPerHour,
-                limitValue = uploadSettings.maxCreationsPerHour,
-                retryAfterSeconds = HOURLY_CREATIONS_RETRY_AFTER_SECONDS,
-            )
-        }
     }
 }
 
@@ -1110,7 +1092,7 @@ class CasUploadAssetHandler(
                     detectedMediaType = detectedMediaType,
                     actualBytes = actualBytes,
                 )
-            } ?: throw BlobOrAssetMissingException(assetId)
+            }
         } catch (e: BlobOrAssetMissingException) {
             // The transactional block returned null because the blob was missing,
             // the asset was missing, or a required metadata field on the blob was null.
@@ -1187,7 +1169,7 @@ class CasUploadAssetHandler(
                     workspaceId = workspaceId,
                     status = MediaAssetStatus.READY.name,
                     mediaType = updatedAsset.detectedMediaType ?: command.declaredMediaType,
-                    detectedMediaType = blob.detectedMediaType ?: command.declaredMediaType,
+                    detectedMediaType = blob.detectedMediaType,
                     deduped = true,
                     fileSizeBytes = blob.fileSizeBytes ?: 0L,
                     createdAt = ISO_FORMATTER.format(updatedAsset.createdAt.atOffset(ZoneOffset.UTC)),
@@ -1535,6 +1517,36 @@ class DeleteAssetHandler(
 
         return DeleteAssetResult(deleted = true, blobScheduledForGC = false)
     }
+}
+
+/**
+ * Enforces the hourly media creation rate limit for a workspace.
+ *
+ * @param workspaceId The workspace whose creation limit is checked.
+ * @param mediaRateLimitRepository The repository used to track creation counts.
+ * @param maxCreationsPerHour The maximum number of creations allowed per hour.
+ * @throws RateLimitExceededException If the workspace has reached its hourly creation limit.
+ * @return The current creation count after the increment.
+ */
+internal suspend fun enforceHourlyCreationRateLimit(
+    workspaceId: String,
+    mediaRateLimitRepository: MediaRateLimitRepository,
+    maxCreationsPerHour: Int,
+): Int {
+    val currentCount = mediaRateLimitRepository.tryIncrementHourlyCreationCount(
+        workspaceId,
+        maxCreationsPerHour,
+    )
+    if (!currentCount.isAllowed) {
+        throw RateLimitExceededException(
+            workspaceId = workspaceId,
+            limitType = "hourly_creations",
+            currentValue = currentCount.value,
+            limitValue = maxCreationsPerHour,
+            retryAfterSeconds = 3_600,
+        )
+    }
+    return currentCount.value
 }
 
 class UploadHashMismatchException(val expected: String, val actual: String) :

@@ -3,8 +3,8 @@
  *
  * Replaces the previous `media-composer.spec.ts` with a 23-scenario suite
  * tagged `@composer-ui-mocked` that covers every browser-observable plan
- * item. 5 provider-deferred items (18, 20, 21, 22, 23) plus additional
- * items that depend on the inline-attachment layout from
+ * item. Provider scenarios exercise the same HTTP boundary as production;
+ * additional items that depend on the inline-attachment layout from
  * `feat/adapta-media-layout` (dropzone, upload overlay, +N overflow) are
  * explicitly skipped with rationale recorded in `verify-report.md`.
  *
@@ -16,16 +16,65 @@ import { test, expect } from '../fixtures/media-mocked-test'
 import { mediaFiles } from '../fixtures/media-files'
 import { ComposeModalPage } from '../pages/compose-modal-page'
 import { SchedulerPage } from '../pages/scheduler-page'
+import { applySeededChannelsToStore } from '../fixtures/media-mocks'
 import { ensureChannelsLoaded } from '../fixtures/scheduler-mocks'
 
 const TAGS = '@media @composer @composer-ui-mocked'
 
-async function openComposeModal(page: import('@playwright/test').Page) {
+async function openComposeModal(page: import('@playwright/test').Page): Promise<ComposeModalPage> {
   const scheduler = new SchedulerPage(page)
   const composePage = new ComposeModalPage(page)
   await scheduler.clickNewPost()
   await composePage.expectVisible()
   return composePage
+}
+
+type VueAppElement = Element & {
+  __vue_app__?: {
+    config?: {
+      globalProperties?: {
+        $pinia?: {
+          _s?: Map<string, unknown>
+        }
+      }
+    }
+  }
+}
+
+type AuthStoreWithHydration = {
+  verifyEmail: (token: string) => Promise<unknown>
+  isAuthenticated: boolean
+}
+
+async function hydrateAuthStore(page: import('@playwright/test').Page): Promise<void> {
+  await page.route('**/api/auth/verify-email', async (route) => {
+    await route.fulfill({
+      status: 200,
+      contentType: 'application/vnd.api.v1+json',
+      body: JSON.stringify({
+        accessToken: 'e2e-test-token',
+        tokenType: 'Bearer',
+        expiresIn: 3600,
+        principalId: 'test-user',
+        email: 'dev@profiletailors.com',
+        username: 'dev',
+        emailStatus: 'VERIFIED',
+        workspaceId: 'workspace-001',
+      }),
+    })
+  })
+  await page.evaluate(async () => {
+    const app = (document.querySelector('#app') as VueAppElement | null)?.__vue_app__
+    const pinia = app?.config?.globalProperties?.$pinia
+    const authStore = pinia?._s?.get('auth') as AuthStoreWithHydration | undefined
+    if (!authStore) {
+      throw new Error('Auth store not available')
+    }
+    await authStore.verifyEmail('e2e-auth-hydration')
+    if (!authStore.isAuthenticated) {
+      throw new Error('Auth store hydration failed')
+    }
+  })
 }
 
 test.describe(`Composer media attachments (mocked) ${TAGS}`, () => {
@@ -217,16 +266,18 @@ test.describe(`Composer media attachments (mocked) ${TAGS}`, () => {
 
   // -------------------------------------------------------------------------
   // ML-COMPOSER-014: provider enabled — provider panel visible
-  // SKIPPED — Product does not yet have UI to switch between Library and
-  // Unsplash tabs within the picker. The panel renders when provider='unsplash'
-  // and isUnsplashProviderEnabled=true, but there's no way to activate it
-  // from the current picker UI. Tracked as product gap.
   // -------------------------------------------------------------------------
-  test('ML-COMPOSER-014 provider enabled: provider panel is visible', async () => {
-    test.skip(
-      true,
-      'ML-COMPOSER-014: Picker tab-switching UI pending — panel renders when provider="unsplash" but no UI to activate that mode. Backend integration ready, UI tab selector needed. Tracked in verify-report.md.',
-    )
+  test('ML-COMPOSER-014 provider enabled: opening Unsplash loads editorial examples', async ({
+    page,
+    mockState,
+  }) => {
+    const composePage = await openComposeModal(page)
+    await composePage.openMediaPicker()
+    await composePage.unsplashTab.click()
+
+    await expect(composePage.unsplashResult('editorial-workspace')).toBeVisible()
+    await expect(composePage.unsplashResult('editorial-workspace').getByRole('img')).toBeVisible()
+    expect(mockState.unsplashSearches).toEqual([''])
   })
 
   // -------------------------------------------------------------------------
@@ -269,10 +320,12 @@ test.describe(`Composer media attachments (mocked) ${TAGS}`, () => {
   })
 
   // -------------------------------------------------------------------------
-  // ML-COMPOSER-018 — DEFERRED: Unsplash tab visible when enabled (real env)
+  // ML-COMPOSER-018: Unsplash tab visible when enabled
   // -------------------------------------------------------------------------
-  test('ML-COMPOSER-018 deferred: provider real env absent', async () => {
-    test.skip(true, 'ML-COMPOSER-018: provider-enabled env absent; tracked in verify-report.md')
+  test('ML-COMPOSER-018 provider tab is available from the picker', async ({ page }) => {
+    const composePage = await openComposeModal(page)
+    await composePage.openMediaPicker()
+    await expect(composePage.unsplashTab).toBeVisible()
   })
 
   // -------------------------------------------------------------------------
@@ -294,31 +347,105 @@ test.describe(`Composer media attachments (mocked) ${TAGS}`, () => {
   })
 
   // -------------------------------------------------------------------------
-  // ML-COMPOSER-020 — DEFERRED: source switch preserves staged selection
+  // ML-COMPOSER-020: source switch preserves staged selection
   // -------------------------------------------------------------------------
-  test('ML-COMPOSER-020 deferred: source switch preserves selection', async () => {
-    test.skip(true, 'ML-COMPOSER-020: provider-enabled env absent; tracked in verify-report.md')
+  test('ML-COMPOSER-020 source switch preserves imported selection', async ({ page }) => {
+    const composePage = await openComposeModal(page)
+    await composePage.openMediaPicker()
+    await composePage.unsplashTab.click()
+    await composePage.unsplashImportButton('editorial-workspace').click()
+    await expect(composePage.unsplashImportButton('editorial-workspace')).toBeDisabled()
+
+    await composePage.libraryTab.click()
+    await expect(composePage.pickerApply).toBeEnabled()
+    await composePage.unsplashTab.click()
+    await expect(composePage.unsplashImportButton('editorial-workspace')).toBeDisabled()
   })
 
   // -------------------------------------------------------------------------
-  // ML-COMPOSER-021 — DEFERRED: Unsplash search renders in picker
+  // ML-COMPOSER-021: Unsplash search renders in picker
   // -------------------------------------------------------------------------
-  test('ML-COMPOSER-021 deferred: Unsplash search renders in picker', async () => {
-    test.skip(true, 'ML-COMPOSER-021: provider-enabled env absent; tracked in verify-report.md')
+  test('ML-COMPOSER-021 Unsplash search renders results, empty state, and errors', async ({
+    page,
+  }) => {
+    const composePage = await openComposeModal(page)
+    await composePage.openMediaPicker()
+    await composePage.unsplashTab.click()
+
+    await composePage.searchUnsplash('remote work')
+    await expect(composePage.unsplashResult('remote-work')).toBeVisible()
+
+    await composePage.searchUnsplash('no-results')
+    await expect(composePage.unsplashEmptyState).toBeVisible()
+
+    await composePage.searchUnsplash('provider-error')
+    await expect(composePage.unsplashErrorState).toBeVisible()
   })
 
   // -------------------------------------------------------------------------
-  // ML-COMPOSER-022 — DEFERRED: Unsplash import keeps modal open
+  // ML-COMPOSER-022: Unsplash import keeps modal open and retries
   // -------------------------------------------------------------------------
-  test('ML-COMPOSER-022 deferred: Unsplash import keeps modal open', async () => {
-    test.skip(true, 'ML-COMPOSER-022: provider-enabled env absent; tracked in verify-report.md')
+  test('ML-COMPOSER-022 failed Unsplash import keeps modal open and can be retried', async ({
+    page,
+    mockState,
+  }) => {
+    mockState.unsplashImportFailures.add('import-fails')
+    const composePage = await openComposeModal(page)
+    await composePage.openMediaPicker()
+    await composePage.unsplashTab.click()
+    await composePage.searchUnsplash('retry')
+
+    await test.step('Trigger import failure and verify error state', async () => {
+      await composePage.unsplashImportButton('import-fails').click()
+      await expect(composePage.pickerShell).toBeVisible()
+      await expect(page.getByTestId('provider-panel-search-error')).toBeVisible()
+      await expect(composePage.unsplashImportButton('import-fails')).toBeEnabled()
+    })
+
+    await test.step('Retry import and verify success', async () => {
+      mockState.unsplashImportFailures.delete('import-fails')
+      await composePage.unsplashImportButton('import-fails').click()
+      await expect(composePage.unsplashImportButton('import-fails')).toBeDisabled()
+      expect(mockState.unsplashImportCount).toBe(2)
+    })
   })
 
   // -------------------------------------------------------------------------
-  // ML-COMPOSER-023 — DEFERRED: imported asset becomes composer attachment
+  // ML-COMPOSER-023: happy path reaches publication payload
   // -------------------------------------------------------------------------
-  test('ML-COMPOSER-023 deferred: imported asset becomes composer attachment', async () => {
-    test.skip(true, 'ML-COMPOSER-023: provider-enabled env absent; tracked in verify-report.md')
+  test('ML-COMPOSER-023 search, import, select, and create post with Unsplash asset', async ({
+    page,
+    mockState,
+  }) => {
+    await hydrateAuthStore(page)
+    await applySeededChannelsToStore(page, 10)
+    const composePage = await openComposeModal(page)
+    await composePage.fillText('Post with an Unsplash image')
+    await composePage.openMediaPicker()
+    await composePage.unsplashTab.click()
+    await composePage.searchUnsplash('remote work')
+    await composePage.unsplashImportButton('remote-work').click()
+
+    await expect(composePage.pickerShell).toBeVisible()
+    await composePage.libraryTab.click()
+    await composePage.pickerApply.click()
+    await expect(composePage.attachmentPreview).toBeVisible()
+
+    const publicationResponse = page.waitForResponse(
+      (response) =>
+        response.request().method() === 'POST' &&
+        new URL(response.url()).pathname === '/api/publishing/publications',
+      { timeout: 20_000 },
+    )
+    await composePage.clickScheduleNow()
+    const response = await publicationResponse
+    expect(response.ok()).toBe(true)
+    expect(response.request().postDataJSON()).toMatchObject({
+      bodyText: 'Post with an Unsplash image',
+      assetIds: ['unsplash-remote-work'],
+    })
+    expect(mockState.unsplashImportCount).toBe(1)
+    expect(mockState.publicationPostCount).toBe(1)
   })
 
   // -------------------------------------------------------------------------
