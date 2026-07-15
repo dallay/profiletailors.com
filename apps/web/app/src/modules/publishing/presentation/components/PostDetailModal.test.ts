@@ -203,34 +203,34 @@ describe('PostDetailModal', () => {
       ['PUBLISHING_FAILED', 'publishingFailed'],
     ] as const
 
-    it.each(canonicalCases)(
-      'renders localized copy for canonical failed code %s',
-      async (code, key) => {
-        storeOverrides.isPublicationEditable = () => false
-        const wrapper = mountModal(makePublication({ status: 'FAILED', errorCode: code }))
-        await flushPromises()
+    it.each(
+      canonicalCases,
+    )('renders localized copy for canonical failed code %s', async (code, key) => {
+      storeOverrides.isPublicationEditable = () => false
+      const wrapper = mountModal(makePublication({ status: 'FAILED', errorCode: code }))
+      await flushPromises()
 
-        expect(wrapper.text()).toContain(`postDetail.failure.${key}.label`)
-        expect(wrapper.text()).toContain(`postDetail.failure.${key}.explanation`)
-        expect(wrapper.text()).toContain(`postDetail.failure.${key}.action`)
-        expect(wrapper.text()).toContain('postDetail.retry')
-        expect(wrapper.text()).not.toContain(code)
-      },
-    )
+      expect(wrapper.text()).toContain(`postDetail.failure.${key}.label`)
+      expect(wrapper.text()).toContain(`postDetail.failure.${key}.explanation`)
+      expect(wrapper.text()).toContain(`postDetail.failure.${key}.action`)
+      expect(wrapper.text()).toContain('postDetail.retry')
+      expect(wrapper.text()).not.toContain(code)
+    })
 
-    it.each([undefined, 'UNKNOWN_ERROR_CODE', 'StorageObjectNotFoundException'])(
-      'uses safe fallback for missing, unknown, or historical failed code %s',
-      async (errorCode) => {
-        storeOverrides.isPublicationEditable = () => false
-        const wrapper = mountModal(makePublication({ status: 'FAILED', errorCode }))
-        await flushPromises()
+    it.each([
+      undefined,
+      'UNKNOWN_ERROR_CODE',
+      'StorageObjectNotFoundException',
+    ])('uses safe fallback for missing, unknown, or historical failed code %s', async (errorCode) => {
+      storeOverrides.isPublicationEditable = () => false
+      const wrapper = mountModal(makePublication({ status: 'FAILED', errorCode }))
+      await flushPromises()
 
-        expect(wrapper.text()).toContain('postDetail.failure.unknown.label')
-        expect(wrapper.text()).toContain('postDetail.failure.unknown.explanation')
-        expect(wrapper.text()).toContain('postDetail.failure.unknown.action')
-        if (errorCode) expect(wrapper.text()).not.toContain(errorCode)
-      },
-    )
+      expect(wrapper.text()).toContain('postDetail.failure.unknown.label')
+      expect(wrapper.text()).toContain('postDetail.failure.unknown.explanation')
+      expect(wrapper.text()).toContain('postDetail.failure.unknown.action')
+      if (errorCode) expect(wrapper.text()).not.toContain(errorCode)
+    })
 
     it('renders canonical reconnect guidance for blocked publications', async () => {
       const wrapper = mountModal(
@@ -300,31 +300,28 @@ describe('PostDetailModal', () => {
       [{ status: 400 }, 'validation'],
       [{ status: 500 }, 'temporarilyUnavailable'],
       [{ errorCode: 'UNEXPECTED_PROVIDER_VALUE', status: 418 }, 'unknown'],
-    ] as const)(
-      'maps retry action error %o to %s safe copy',
-      async (errorFields, expectedReason) => {
-        storeOverrides.isPublicationEditable = () => false
-        mockRetry.mockRejectedValueOnce(
-          Object.assign(new Error('Request failed: token leaked'), {
-            ...errorFields,
-            detail: 'raw backend detail',
-          }),
-        )
-        const wrapper = mountModal(makePublication({ status: 'FAILED' }))
+    ] as const)('maps retry action error %o to %s safe copy', async (errorFields, expectedReason) => {
+      storeOverrides.isPublicationEditable = () => false
+      mockRetry.mockRejectedValueOnce(
+        Object.assign(new Error('Request failed: token leaked'), {
+          ...errorFields,
+          detail: 'raw backend detail',
+        }),
+      )
+      const wrapper = mountModal(makePublication({ status: 'FAILED' }))
 
-        const retryButton = wrapper
-          .findAll('button')
-          .find((button) => button.text().includes('postDetail.retry'))
-        expect(retryButton).toBeDefined()
-        await retryButton!.trigger('click')
-        await flushPromises()
+      const retryButton = wrapper
+        .findAll('button')
+        .find((button) => button.text().includes('postDetail.retry'))
+      expect(retryButton).toBeDefined()
+      await retryButton!.trigger('click')
+      await flushPromises()
 
-        expect(wrapper.text()).toContain(`postDetail.actionErrors.reasons.${expectedReason}`)
-        expect(wrapper.text()).toContain('postDetail.actionErrors.operations.retry')
-        expect(wrapper.text()).not.toContain('Request failed')
-        expect(wrapper.text()).not.toContain('raw backend detail')
-      },
-    )
+      expect(wrapper.text()).toContain(`postDetail.actionErrors.reasons.${expectedReason}`)
+      expect(wrapper.text()).toContain('postDetail.actionErrors.operations.retry')
+      expect(wrapper.text()).not.toContain('Request failed')
+      expect(wrapper.text()).not.toContain('raw backend detail')
+    })
 
     it('maps retry network action errors to safe localized copy and clears it when the modal reopens', async () => {
       storeOverrides.isPublicationEditable = () => false
