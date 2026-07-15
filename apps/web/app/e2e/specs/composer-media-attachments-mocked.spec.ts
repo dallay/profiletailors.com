@@ -29,16 +29,48 @@ async function openComposeModal(page: import('@playwright/test').Page) {
   return composePage
 }
 
+type VueAppElement = Element & {
+  __vue_app__?: {
+    config?: {
+      globalProperties?: {
+        $pinia?: {
+          _s?: Map<string, unknown>
+        }
+      }
+    }
+  }
+}
+
+type AuthStoreWithHydration = {
+  verifyEmail: (token: string) => Promise<unknown>
+  isAuthenticated: boolean
+}
+
 async function hydrateAuthStore(page: import('@playwright/test').Page) {
+  await page.route('**/api/auth/verify-email', async (route) => {
+    await route.fulfill({
+      status: 200,
+      contentType: 'application/vnd.api.v1+json',
+      body: JSON.stringify({
+        accessToken: 'e2e-test-token',
+        tokenType: 'Bearer',
+        expiresIn: 3600,
+        principalId: 'test-user',
+        email: 'dev@profiletailors.com',
+        username: 'dev',
+        emailStatus: 'VERIFIED',
+        workspaceId: 'workspace-001',
+      }),
+    })
+  })
   await page.evaluate(async () => {
-    // biome-ignore lint/suspicious/noExplicitAny: E2E test needs Vue app internals to hydrate Pinia.
-    const app = (document.querySelector('#app') as any)?.__vue_app__
+    const app = (document.querySelector('#app') as VueAppElement | null)?.__vue_app__
     const pinia = app?.config?.globalProperties?.$pinia
-    const authStore = pinia?._s?.get('auth')
+    const authStore = pinia?._s?.get('auth') as AuthStoreWithHydration | undefined
     if (!authStore) {
       throw new Error('Auth store not available')
     }
-    await authStore.hydrateSession()
+    await authStore.verifyEmail('e2e-auth-hydration')
     if (!authStore.isAuthenticated) {
       throw new Error('Auth store hydration failed')
     }

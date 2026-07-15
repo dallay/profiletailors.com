@@ -803,6 +803,59 @@ describe('useComposerMediaPicker', () => {
       expect(picker.providerResults.value).toEqual([])
       expect(picker.providerSearchError.value).toBe('Rate limited')
     })
+
+    it('ignores stale provider search results from earlier requests', async () => {
+      let resolveFirst: (
+        photos: Awaited<
+          ReturnType<NonNullable<Parameters<typeof useComposerMediaPicker>[0]['searchUnsplash']>>
+        >,
+      ) => void
+      const searchUnsplash = vi
+        .fn()
+        .mockImplementationOnce(
+          () =>
+            new Promise((resolve) => {
+              resolveFirst = resolve
+            }),
+        )
+        .mockResolvedValueOnce([
+          {
+            externalId: 'newer-result',
+            name: 'Newer result',
+            previewUrl: 'https://images.unsplash.com/newer-result',
+            sourceUrl: 'https://unsplash.com/photos/newer-result',
+            authorName: 'Author',
+            authorUrl: 'https://unsplash.com/@author',
+          },
+        ])
+      const picker = useComposerMediaPicker({
+        mediaStore: createFakeMediaStore(),
+        publishingStore: createFakePublishingStore(),
+        editingPublication: ref(null),
+        provider: ref('unsplash'),
+        initialChannelId: ref(null),
+        searchUnsplash,
+      })
+
+      const firstSearch = picker.handleProviderSearch({ query: 'old' })
+      await picker.handleProviderSearch({ query: 'new' })
+      resolveFirst!([
+        {
+          externalId: 'older-result',
+          name: 'Older result',
+          previewUrl: 'https://images.unsplash.com/older-result',
+          sourceUrl: 'https://unsplash.com/photos/older-result',
+          authorName: 'Author',
+          authorUrl: 'https://unsplash.com/@author',
+        },
+      ])
+      await firstSearch
+
+      expect(picker.providerResults.value.map((result) => result.externalId)).toEqual([
+        'newer-result',
+      ])
+      expect(picker.providerSearching.value).toBe(false)
+    })
   })
 
   describe('handleProviderImport', () => {

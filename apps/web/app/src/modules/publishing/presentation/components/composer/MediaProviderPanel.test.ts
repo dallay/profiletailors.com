@@ -105,14 +105,53 @@ describe('MediaProviderPanel.vue', () => {
     expect(errorEl.text()).toContain('Search failed: rate limited')
   })
 
-  it('keeps results actionable when an import error is shown', () => {
+  it('renders the imported-in-progress state while a result is selected for import', async () => {
+    const wrapper = mountPanel({
+      results: [makeResult({ selectedForImport: true })],
+    })
+
+    const button = wrapper.get<HTMLButtonElement>('[data-testid="provider-panel-import"]')
+    expect(button.element.disabled).toBe(true)
+    expect(button.text()).toContain('composer.picker.importingAction')
+    await button.trigger('click')
+    expect(wrapper.emitted('provider-import')).toBeUndefined()
+  })
+
+  it('renders fallback preview and attribution text when provider URLs are missing', () => {
+    const wrapper = mountPanel({
+      results: [
+        makeResult({
+          previewUrl: null,
+          authorName: 'Plain Author',
+          authorUrl: null,
+          sourceUrl: null,
+        }),
+      ],
+    })
+
+    expect(wrapper.text()).toContain('composer.picker.noPreview')
+    expect(wrapper.find('img').exists()).toBe(false)
+    expect(wrapper.findAll('a')).toEqual([])
+    expect(wrapper.text()).toContain('Plain Author')
+    expect(wrapper.text()).toContain('Unsplash')
+  })
+
+  it('labels the provider search section for assistive technology', () => {
+    const wrapper = mountPanel()
+
+    expect(wrapper.get('[data-testid="provider-panel"]').attributes('aria-label')).toBe(
+      'composer.picker.providerSearchLabel',
+    )
+  })
+
+  it('shows the error state instead of results when provider search fails', () => {
     const wrapper = mountPanel({
       results: [makeResult()],
       searchError: 'Import failed: try again',
     })
 
     expect(wrapper.find('[data-testid="provider-panel-search-error"]').exists()).toBe(true)
-    expect(wrapper.find('[data-testid="provider-result-ext-1"]').exists()).toBe(true)
+    expect(wrapper.find('[data-testid="provider-result-ext-1"]').exists()).toBe(false)
   })
 
   it('renders provider results sorted by name', () => {

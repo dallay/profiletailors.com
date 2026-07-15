@@ -69,7 +69,7 @@ function importResult(result: ProviderSearchResultViewModel) {
     </p>
 
     <div
-      v-if="isSearching"
+      v-else-if="isSearching"
       class="rounded-2xl border border-dashed border-border-subtle px-4 py-6 text-sm text-text-secondary"
       data-testid="provider-panel-loading"
       role="status"

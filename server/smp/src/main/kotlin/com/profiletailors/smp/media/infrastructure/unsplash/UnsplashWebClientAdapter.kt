@@ -95,10 +95,13 @@ class UnsplashWebClientAdapter(private val webClient: WebClient, private val pro
                 DataBufferUtils.release(buffer)
             }
             .map { buffer ->
-                val bytes = ByteArray(buffer.readableByteCount())
-                buffer.read(bytes)
-                DataBufferUtils.release(buffer)
-                bytes
+                try {
+                    val bytes = ByteArray(buffer.readableByteCount())
+                    buffer.read(bytes)
+                    bytes
+                } finally {
+                    DataBufferUtils.release(buffer)
+                }
             }
             .onErrorMap(WebClientResponseException::class.java) { exception ->
                 mapProviderError(exception, photo.externalId)

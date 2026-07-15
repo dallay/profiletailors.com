@@ -36,36 +36,22 @@ class SearchUnsplashPhotosHandler(private val provider: UnsplashPhotoProvider) :
 }
 
 @Service
-class ImportUnsplashPhotoHandler(
+class MediaImportService(
     private val provider: UnsplashPhotoProvider,
     private val mediaAssetRepository: MediaAssetRepository,
-    private val mediaRateLimitRepository: MediaRateLimitRepository,
     private val storagePort: MediaStoragePort,
     private val settings: UnsplashImportSettings,
     private val assetPreviewUrlResolver: AssetPreviewUrlResolver,
     private val mediaPreviewTokenService: MediaPreviewTokenService,
-    private val principalContextProvider: PrincipalContextProvider = permissivePrincipalContextProvider(),
-    private val principalIdentityLookup: PrincipalIdentityLookup = NoOpPrincipalIdentityLookup(),
-    private val emailVerificationPolicy: EmailVerificationPolicy = permissiveEmailVerificationPolicy,
-) : CommandWithResultHandler<ImportUnsplashPhotoCommand, MediaAssetSummary> {
+) {
     /**
      * Imports an Unsplash photo as a media asset for the specified workspace.
      *
-     * @param command The command containing the workspace and Unsplash photo identifier.
+     * @param command The import command containing the workspace and Unsplash photo identifier.
      * @return A summary of the imported media asset.
      * @throws UnsplashPhotoTooLargeException If the downloaded photo exceeds the configured maximum file size.
      */
-    @Suppress("ThrowsCount")
-    override suspend fun handle(command: ImportUnsplashPhotoCommand): MediaAssetSummary {
-        val principalContext = principalContextProvider.require()
-        requireEmailVerification(
-            principalContext,
-            principalIdentityLookup,
-            emailVerificationPolicy,
-            AuthFeature.UPLOAD_MEDIA,
-        )
-        val currentCount = enforceCreationRateLimit(command.workspaceId)
-
+    suspend fun importUnsplashPhoto(command: ImportUnsplashPhotoCommand): MediaAssetSummary {
         val photo = provider.get(command.externalId)
         val assetId = MediaAsset.generateAssetId()
         val storageKey = MediaAsset.generateStorageKey(command.workspaceId, assetId)
@@ -161,19 +147,6 @@ class ImportUnsplashPhotoHandler(
     }
 
     /**
-     * Enforces the hourly media creation limit for a workspace.
-     *
-     * @param workspaceId The workspace whose creation limit is checked.
-     * @throws RateLimitExceededException If the workspace has reached its hourly creation limit.
-     * @return The current creation count after the increment.
-     */
-    private suspend fun enforceCreationRateLimit(workspaceId: String): Int = enforceHourlyCreationRateLimit(
-        workspaceId = workspaceId,
-        mediaRateLimitRepository = mediaRateLimitRepository,
-        maxCreationsPerHour = settings.maxCreationsPerHour,
-    )
-
-    /**
      * Converts this media asset into an Unsplash media asset summary.
      *
      * @param previewUrlResolver Resolves the asset preview URL.
@@ -213,4 +186,45 @@ class ImportUnsplashPhotoHandler(
         const val UNSPLASH_PROVIDER = "unsplash"
         const val JPEG_MEDIA_TYPE = "image/jpeg"
     }
+}
+
+@Service
+class ImportUnsplashPhotoHandler(
+    private val mediaRateLimitRepository: MediaRateLimitRepository,
+    private val mediaImportService: MediaImportService,
+    private val settings: UnsplashImportSettings,
+    private val principalContextProvider: PrincipalContextProvider = permissivePrincipalContextProvider(),
+    private val principalIdentityLookup: PrincipalIdentityLookup = NoOpPrincipalIdentityLookup(),
+    private val emailVerificationPolicy: EmailVerificationPolicy = permissiveEmailVerificationPolicy,
+) : CommandWithResultHandler<ImportUnsplashPhotoCommand, MediaAssetSummary> {
+    /**
+     * Authorizes and rate-limits Unsplash import requests before delegating the media import.
+     *
+     * @param command The command containing the workspace and Unsplash photo identifier.
+     * @return A summary of the imported media asset.
+     */
+    override suspend fun handle(command: ImportUnsplashPhotoCommand): MediaAssetSummary {
+        val principalContext = principalContextProvider.require()
+        requireEmailVerification(
+            principalContext,
+            principalIdentityLookup,
+            emailVerificationPolicy,
+            AuthFeature.UPLOAD_MEDIA,
+        )
+        enforceCreationRateLimit(command.workspaceId)
+        return mediaImportService.importUnsplashPhoto(command)
+    }
+
+    /**
+     * Enforces the hourly media creation limit for a workspace.
+     *
+     * @param workspaceId The workspace whose creation limit is checked.
+     * @throws RateLimitExceededException If the workspace has reached the hourly creation limit.
+     * @return The current creation count after the increment.
+     */
+    private suspend fun enforceCreationRateLimit(workspaceId: String): Int = enforceHourlyCreationRateLimit(
+        workspaceId = workspaceId,
+        mediaRateLimitRepository = mediaRateLimitRepository,
+        maxCreationsPerHour = settings.maxCreationsPerHour,
+    )
 }

@@ -38,7 +38,7 @@ class UnsplashMediaProviderHandlersTest {
         val result = handler.handle(SearchUnsplashPhotosQuery("   "))
 
         result shouldBe listOf(photo)
-        coEvery { provider.search(null) } returns listOf(photo)
+        coVerify { provider.search(null) }
     }
 
     @Test
@@ -78,7 +78,7 @@ class UnsplashMediaProviderHandlersTest {
         result.fileSizeBytes shouldBe 4L
         result.authorUrl shouldBe "https://unsplash.com/@test-author"
         result.previewUrl.shouldNotBeNull()
-        result.previewUrl!! shouldStartWith "/preview/"
+        result.previewUrl shouldStartWith "/preview/"
         coVerifyOrder {
             fixture.storage.upload(any(), any(), any(), any(), any())
             fixture.provider.trackDownload(photo)
@@ -149,14 +149,19 @@ class UnsplashMediaProviderHandlersTest {
                 MediaRateLimitRepository.RateLimitIncrementResult(200, false)
             }
 
-        val handler = ImportUnsplashPhotoHandler(
+        val settings = UnsplashImportSettings("attachments", maxFileSizeBytes, 200)
+        val mediaImportService = MediaImportService(
             provider = provider,
             mediaAssetRepository = repository,
-            mediaRateLimitRepository = rateLimitRepository,
             storagePort = storage,
-            settings = UnsplashImportSettings("attachments", maxFileSizeBytes, 200),
+            settings = settings,
             assetPreviewUrlResolver = AssetPreviewUrlResolver { assetId, _, _, _, _ -> "/preview/$assetId" },
             mediaPreviewTokenService = MediaPreviewTokenService("test-signing-secret", 3600),
+        )
+        val handler = ImportUnsplashPhotoHandler(
+            mediaRateLimitRepository = rateLimitRepository,
+            mediaImportService = mediaImportService,
+            settings = settings,
         )
         return Fixture(handler, provider, repository, storage)
     }

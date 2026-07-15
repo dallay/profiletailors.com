@@ -952,11 +952,38 @@ export async function registerComposerControls(
  * Apply seeded channels directly to the Pinia publishing store.
  * Used by composer tests that need channels loaded before the modal opens.
  */
+type VueAppElement = Element & {
+  __vue_app__?: {
+    config?: {
+      globalProperties?: {
+        $pinia?: {
+          _s?: Map<string, unknown>
+        }
+      }
+    }
+  }
+}
+
+type SeededPublishingChannel = {
+  id: string
+  accountId: string
+  name: string
+  provider: 'linkedin'
+  avatar: string
+  handle: string
+  status: 'ACTIVE'
+  maxAttachments: number
+}
+
+type PublishingStoreWithChannels = {
+  channels: SeededPublishingChannel[]
+}
+
 export async function applySeededChannelsToStore(
   page: import('@playwright/test').Page,
   maxAttachments: number | null = null,
 ): Promise<void> {
-  const channel = {
+  const channel: SeededPublishingChannel = {
     id: 'sa-linkedin-001',
     accountId: 'sa-linkedin-001',
     name: 'Dev User',
@@ -967,10 +994,9 @@ export async function applySeededChannelsToStore(
     maxAttachments: maxAttachments ?? 10,
   }
   await page.evaluate((ch) => {
-    // biome-ignore lint/suspicious/noExplicitAny: Vue internals access
-    const app = (document.querySelector('#app') as any)?.__vue_app__
+    const app = (document.querySelector('#app') as VueAppElement | null)?.__vue_app__
     const pinia = app?.config?.globalProperties?.$pinia
-    const publishingStore = pinia?._s?.get('publishing')
+    const publishingStore = pinia?._s?.get('publishing') as PublishingStoreWithChannels | undefined
     if (!publishingStore) {
       throw new Error('Publishing store not available')
     }

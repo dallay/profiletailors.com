@@ -57,9 +57,9 @@ pre-push:
   source: .lefthookrc.yml
 
   commands:
-    # Spotless: auto-format Kotlin with ktlint before push
+    # Spotless: verify Kotlin formatting before push
     backend-spotless:
-      run: './gradlew spotlessApply --no-daemon && git add -u'
+      run: './gradlew spotlessCheck --no-daemon'
 
     # Gitleaks: scan the commit range being pushed using refs provided by pre-push stdin
     gitleaks-range:
