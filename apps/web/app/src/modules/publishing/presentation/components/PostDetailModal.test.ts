@@ -37,7 +37,11 @@ vi.mock('@modules/publishing/infrastructure/publishing.store', () => ({
 }))
 
 vi.mock('vue-i18n', () => ({
-  useI18n: () => ({ t: (key: string) => key, locale: { value: 'en' } }),
+  useI18n: () => ({
+    t: (key: string, values?: Record<string, string>) =>
+      values ? `${key} ${Object.values(values).join(' ')}` : key,
+    locale: { value: 'en' },
+  }),
 }))
 
 vi.mock('@modules/auth/infrastructure/auth-api', () => ({

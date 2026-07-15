@@ -1,6 +1,8 @@
 # Proposal: Friendly Publishing Errors
 
-## Intent
+## Overview
+
+### Intent
 
 Stop exposing internal publishing failure details to users and replace them with localized, actionable failure guidance for DALLAY-466 MVP readiness.
 
@@ -10,9 +12,11 @@ Users seeing failed posts should understand:
 - what recovery action to take,
 without seeing exception class names, raw backend codes, or generic `Request failed` text.
 
-## Scope
+## Changes
 
-### In Scope
+### Scope
+
+#### In Scope
 - Friendly failed-publication copy in the post detail dialog: problem, reason, and recovery action.
 - Frontend allowlist mapping plus localized fallback for unknown `errorCode` values.
 - Friendly mapping for retry/delete/reschedule action failures shown from the modal.
@@ -23,21 +27,21 @@ without seeing exception class names, raw backend codes, or generic `Request fai
 - Regression tests written first for frontend and backend behavior.
 - Compatibility for historical rows storing exception class names.
 
-### Out of Scope
+#### Out of Scope
 - Full database cleanup/migration for old failed rows.
 - New notification/email delivery flows. Sanitizing existing notification-event payloads remains in scope.
 - Provider-specific support dashboards or analytics.
 - Changing retry budgets or queue execution semantics.
 
-## Capabilities
+### Capabilities
 
-### New Capabilities
+#### New Capabilities
 None
 
-### Modified Capabilities
+#### Modified Capabilities
 - `publishing`: Failed publication diagnostics must use stable product failure categories and user-safe recovery copy.
 
-## Approach
+### Approach
 
 Use the hybrid approach from exploration.
 
@@ -47,7 +51,7 @@ Backend must map typed async failure signals to the canonical product taxonomy b
 
 Tests follow TDD: first update/add failing frontend regression tests proving unknown codes and action failures do not leak internals; then backend tests proving worker persistence uses stable codes while diagnostics remain available.
 
-## Affected Areas
+### Affected Areas
 
 | Area | Impact | Description |
 |------|--------|-------------|
@@ -60,27 +64,9 @@ Tests follow TDD: first update/add failing frontend regression tests proving unk
 | existing publishing notification-event creation | Modified | Store safe category/copy instead of exception messages |
 | frontend/backend tests | Modified | Regression coverage first |
 
-## Risks
+## Usage
 
-| Risk | Likelihood | Mitigation |
-|------|------------|------------|
-| Historical exception codes remain in DB | High | Frontend fallback treats all unknown codes as safe generic failures |
-| Over-broad taxonomy hides useful support detail | Medium | Keep redacted exception type, provider status, and correlation data in attempts/logs |
-| Frontend/backend code lists drift | Medium | Use the canonical table in the design and add exhaustive contract tests |
-| `BLOCKED` continues exposing technical reasons | High | Treat blocked reasons as untrusted codes and apply the same allowlist/fallback boundary |
-| Pre-dispatch media failures bypass worker failure handling | High | Move media resolution inside the guarded execution boundary and test it explicitly |
-
-## Rollback Plan
-
-Deploy and retain the frontend safety boundary before enabling backend taxonomy writes. If backend changes must be rolled back, roll them back first and keep the safe frontend fallback deployed because rows written with new codes remain in the database. The frontend guardrail may be rolled back only after no incompatible rows can be served or a compatible data migration has completed.
-
-## Dependencies
-
-- Existing publishing calendar/detail APIs.
-- Existing i18n parity tests.
-- DALLAY-466 MVP release readiness timeline.
-
-## Success Criteria
+### Success Criteria
 
 - [ ] No failed-publication UI renders exception class names, raw unknown codes, or `Request failed`.
 - [ ] No blocked-publication UI renders raw `blockedReason` or reconnect exception messages.
@@ -90,3 +76,27 @@ Deploy and retain the frontend safety boundary before enabling backend taxonomy 
 - [ ] Technical diagnostics remain available only as sanitized logs or delivery-attempt data.
 - [ ] Existing notification events and publication rows never persist raw exception/provider messages.
 - [ ] Frontend and backend regression tests are written before implementation and pass.
+
+## Troubleshooting
+
+### Risks
+
+| Risk | Likelihood | Mitigation |
+|------|------------|------------|
+| Historical exception codes remain in DB | High | Frontend fallback treats all unknown codes as safe generic failures |
+| Over-broad taxonomy hides useful support detail | Medium | Keep redacted exception type, provider status, and correlation data in attempts/logs |
+| Frontend/backend code lists drift | Medium | Use the canonical table in the design and add exhaustive contract tests |
+| `BLOCKED` continues exposing technical reasons | High | Treat blocked reasons as untrusted codes and apply the same allowlist/fallback boundary |
+| Pre-dispatch media failures bypass worker failure handling | High | Move media resolution inside the guarded execution boundary and test it explicitly |
+
+### Rollback Plan
+
+Deploy and retain the frontend safety boundary before enabling backend taxonomy writes. If backend changes must be rolled back, roll them back first and keep the safe frontend fallback deployed because rows written with new codes remain in the database. The frontend guardrail may be rolled back only after no incompatible rows can be served or a compatible data migration has completed.
+
+## References
+
+### Dependencies
+
+- Existing publishing calendar/detail APIs.
+- Existing i18n parity tests.
+- DALLAY-466 MVP release readiness timeline.

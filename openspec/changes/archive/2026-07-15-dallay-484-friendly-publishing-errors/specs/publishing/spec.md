@@ -1,8 +1,14 @@
 # Delta for Publishing
 
-## ADDED Requirements
+## Overview
 
-### Requirement: Safe Friendly Publishing Failure Presentation
+This delta defines safe, localized, and actionable publishing failure behavior across backend persistence and frontend presentation.
+
+## Changes
+
+### ADDED Requirements
+
+#### Requirement: Safe Friendly Publishing Failure Presentation
 
 Failed publication UI MUST show user-friendly problem labels, explanations, and recovery actions from an allowlisted product taxonomy. The UI MUST NOT render exception names, stack traces, package/class names, raw provider/storage responses, URLs, tokens, tenant/workspace/internal IDs, bucket/object paths, HTTP/client debug strings, or raw unknown codes/messages.
 
@@ -62,7 +68,7 @@ Failed publication UI MUST show user-friendly problem labels, explanations, and 
 - THEN the UI MUST map that value through the same safe allowlist/fallback boundary
 - AND it MUST NOT render the raw blocked reason
 
-### Requirement: Localized Failure Copy and Actions
+#### Requirement: Localized Failure Copy and Actions
 
 All user-facing publishing failure messages, labels, explanations, and recovery actions MUST be internationalized in English and Spanish. Visible strings for failed-publication diagnostics and modal action failures MUST NOT be hardcoded in components, stores, or tests except as locale fixtures/assertions.
 
@@ -89,7 +95,7 @@ All user-facing publishing failure messages, labels, explanations, and recovery 
 - AND it MUST combine the reason with operation-specific recovery guidance
 - AND an unrecognized structured value MUST use the localized unknown fallback
 
-### Requirement: Unknown and Historical Failure Compatibility
+#### Requirement: Unknown and Historical Failure Compatibility
 
 Unknown, unmapped, missing, or historical failed and blocked reason codes MUST resolve to safe localized generic or category messages. The system MUST NOT pass raw codes or messages through to visible UI. New backend `FAILED` and `BLOCKED` outcomes MUST persist a category from the canonical taxonomy: `MEDIA_NOT_FOUND`, `MEDIA_UNAVAILABLE`, `PROVIDER_VALIDATION_FAILED`, `PROVIDER_RATE_LIMITED`, `PROVIDER_UNAVAILABLE`, `ACCOUNT_RECONNECT_REQUIRED`, `ACCOUNT_UNAVAILABLE`, or `PUBLISHING_FAILED`.
 
@@ -121,7 +127,7 @@ Unknown, unmapped, missing, or historical failed and blocked reason codes MUST r
 - THEN the persisted blocked reason MUST be `ACCOUNT_RECONNECT_REQUIRED`
 - AND the raw reconnect exception message MUST NOT be persisted as the blocked reason
 
-### Requirement: Typed Failure Classification and Retry Semantics
+#### Requirement: Typed Failure Classification and Retry Semantics
 
 Async publishing failures MUST carry a typed canonical category and explicit retryability from the boundary that understands the failure. Classification MUST NOT inspect or parse exception messages, provider response bodies, or exception simple names. Unknown exceptions MUST map to `PUBLISHING_FAILED`.
 
@@ -150,7 +156,7 @@ Retryable failures MUST retain the same category across delivery attempts and te
 - THEN the publication MUST use `PUBLISHING_FAILED`
 - AND no category decision MAY depend on exception name or message text
 
-### Requirement: Guarded Pre-Dispatch and Provider Execution
+#### Requirement: Guarded Pre-Dispatch and Provider Execution
 
 Media metadata resolution, capability validation, credential resolution, asset download/upload, and provider dispatch MUST execute inside the worker failure boundary. A failure at any of these stages MUST record a failed delivery attempt and follow the typed retry, blocked, or terminal transition contract. No claimed job MAY remain without an explicit reschedule, blocked completion, successful completion, or terminal failure solely because a pre-dispatch dependency threw.
 
@@ -170,7 +176,7 @@ Media metadata resolution, capability validation, credential resolution, asset d
 - AND it MUST mark the publication and job failed atomically
 - AND it MUST NOT call the provider
 
-### Requirement: Server-Side Diagnostic Redaction
+#### Requirement: Server-Side Diagnostic Redaction
 
 Publication state and existing notification events MUST contain only canonical categories and safe non-technical copy. New async worker failures MUST leave publication `lastErrorMessage` null or safe and MUST NOT copy `Throwable.message`, provider bodies, or storage paths into publications or notification events.
 
@@ -190,7 +196,7 @@ Delivery attempts and logs MAY retain sanitized server-side diagnostics such as 
 - THEN the client-visible result MUST expose only the opaque category required for safe mapping
 - AND it MUST NOT expose publication or attempt diagnostic messages
 
-### Requirement: Safe Deployment Compatibility
+#### Requirement: Safe Deployment Compatibility
 
 The frontend unknown/missing/historical fallback MUST be deployed before the backend begins persisting canonical categories. A backend rollback MUST occur before any rollback of the frontend guardrail. The frontend guardrail MUST remain deployed while rows containing canonical or historical untrusted values can still be served.
 
@@ -200,3 +206,16 @@ The frontend unknown/missing/historical fallback MUST be deployed before the bac
 - WHEN backend taxonomy writers are rolled back
 - THEN the frontend safe fallback MUST remain active
 - AND those persisted values MUST NOT become raw visible content
+
+## Usage
+
+Use the requirements and scenarios above as the acceptance contract for backend persistence, API boundaries, localized UI behavior, and regression tests.
+
+## Troubleshooting
+
+Unknown or historical failure values must use the generic localized fallback. Raw provider diagnostics, exception text, URLs, and credentials must never be exposed to clients.
+
+## References
+
+- [Design](../../design.md)
+- [Proposal](../../proposal.md)

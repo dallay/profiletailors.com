@@ -31,10 +31,10 @@ import com.profiletailors.smp.publishing.domain.SocialAccountRepository
 import com.profiletailors.smp.publishing.domain.SocialConnectionStatus
 import com.profiletailors.smp.publishing.domain.SocialProvider
 import com.profiletailors.smp.publishing.domain.SocialPublisher
+import io.kotest.assertions.withClue
+import io.kotest.matchers.nulls.shouldNotBeNull
 import io.kotest.matchers.shouldBe
 import kotlinx.coroutines.test.runTest
-import org.junit.jupiter.api.Assertions.assertEquals
-import org.junit.jupiter.api.Assertions.assertNotNull
 import org.junit.jupiter.api.Test
 import java.time.Clock
 import java.time.Duration
@@ -59,11 +59,13 @@ class PublishingWorkerTest {
             PublishingFailureCategory.PUBLISHING_FAILED to Pair(false, false),
         )
 
-        assertEquals(expected.keys.map { it.code }.toSet(), PublishingFailureCategory.entries.map { it.code }.toSet())
+        PublishingFailureCategory.entries.map { it.code }.toSet() shouldBe expected.keys.map { it.code }.toSet()
         expected.forEach { (category, defaults) ->
-            assertEquals(defaults.first, category.retryable, category.code)
-            assertEquals(defaults.second, category.blocked, category.code)
-            assertEquals(category.retryable, PublishingFailure(category).retryable, category.code)
+            withClue(category.code) {
+                category.retryable shouldBe defaults.first
+                category.blocked shouldBe defaults.second
+                PublishingFailure(category).retryable shouldBe category.retryable
+            }
         }
     }
 
@@ -97,10 +99,10 @@ class PublishingWorkerTest {
 
         val claim = worker.pollOnce()
 
-        assertNotNull(claim)
-        assertEquals("pub-1", publicationRepository.publishedPublicationId)
-        assertEquals("job-1", jobRepository.completedJobId)
-        assertEquals(DeliveryAttemptOutcome.SUCCEEDED, attemptRepository.lastAttempt?.outcome)
+        claim.shouldNotBeNull()
+        publicationRepository.publishedPublicationId shouldBe "pub-1"
+        jobRepository.completedJobId shouldBe "job-1"
+        attemptRepository.lastAttempt?.outcome shouldBe DeliveryAttemptOutcome.SUCCEEDED
     }
 
     @Test
@@ -133,9 +135,9 @@ class PublishingWorkerTest {
 
         worker.pollOnce()
 
-        assertEquals("job-1", jobRepository.retriedJobId)
-        assertEquals(Instant.parse("2026-05-26T12:05:00Z"), jobRepository.retryAt)
-        assertEquals(DeliveryAttemptOutcome.FAILED, attemptRepository.lastAttempt?.outcome)
+        jobRepository.retriedJobId shouldBe "job-1"
+        jobRepository.retryAt shouldBe Instant.parse("2026-05-26T12:05:00Z")
+        attemptRepository.lastAttempt?.outcome shouldBe DeliveryAttemptOutcome.FAILED
     }
 
     @Test
@@ -168,8 +170,8 @@ class PublishingWorkerTest {
 
         worker.pollOnce()
 
-        assertEquals("pub-1", publicationRepository.failedPublicationId)
-        assertEquals("job-1", jobRepository.failedJobId)
+        publicationRepository.failedPublicationId shouldBe "pub-1"
+        jobRepository.failedJobId shouldBe "job-1"
     }
 
     @Test
@@ -202,8 +204,8 @@ class PublishingWorkerTest {
 
         worker.pollOnce()
 
-        assertEquals("PROVIDER_RATE_LIMITED", attemptRepository.lastAttempt?.providerErrorCode)
-        assertEquals("PROVIDER_RATE_LIMITED", publicationRepository.failedReasonCode)
+        attemptRepository.lastAttempt?.providerErrorCode shouldBe "PROVIDER_RATE_LIMITED"
+        publicationRepository.failedReasonCode shouldBe "PROVIDER_RATE_LIMITED"
         publicationRepository.failedReasonMessage shouldBe null
     }
 
@@ -237,10 +239,10 @@ class PublishingWorkerTest {
 
         worker.pollOnce()
 
-        assertEquals("PUBLISHING_FAILED", attemptRepository.lastAttempt?.providerErrorCode)
-        assertEquals("PUBLISHING_FAILED", publicationRepository.failedReasonCode)
+        attemptRepository.lastAttempt?.providerErrorCode shouldBe "PUBLISHING_FAILED"
+        publicationRepository.failedReasonCode shouldBe "PUBLISHING_FAILED"
         publicationRepository.failedReasonMessage shouldBe null
-        assertEquals("job-1", jobRepository.failedJobId)
+        jobRepository.failedJobId shouldBe "job-1"
     }
 
     @Test
@@ -272,9 +274,9 @@ class PublishingWorkerTest {
 
         worker.pollOnce()
 
-        assertEquals("ACCOUNT_RECONNECT_REQUIRED", publicationRepository.blockedReason)
-        assertEquals("pub-1", publicationRepository.blockedPublicationId)
-        assertEquals("job-1", jobRepository.completedJobId)
+        publicationRepository.blockedReason shouldBe "ACCOUNT_RECONNECT_REQUIRED"
+        publicationRepository.blockedPublicationId shouldBe "pub-1"
+        jobRepository.completedJobId shouldBe "job-1"
     }
 
     @Test
@@ -311,11 +313,11 @@ class PublishingWorkerTest {
 
         worker.pollOnce()
 
-        assertEquals(false, publisher.called)
-        assertEquals(DeliveryAttemptOutcome.FAILED, attemptRepository.lastAttempt?.outcome)
-        assertEquals("MEDIA_NOT_FOUND", attemptRepository.lastAttempt?.providerErrorCode)
-        assertEquals("MEDIA_NOT_FOUND", publicationRepository.failedReasonCode)
-        assertEquals("job-1", jobRepository.failedJobId)
+        publisher.called shouldBe false
+        attemptRepository.lastAttempt?.outcome shouldBe DeliveryAttemptOutcome.FAILED
+        attemptRepository.lastAttempt?.providerErrorCode shouldBe "MEDIA_NOT_FOUND"
+        publicationRepository.failedReasonCode shouldBe "MEDIA_NOT_FOUND"
+        jobRepository.failedJobId shouldBe "job-1"
     }
 
     @Test
@@ -356,11 +358,11 @@ class PublishingWorkerTest {
 
             worker.pollOnce()
 
-            assertEquals(false, publisher.called)
-            assertEquals(DeliveryAttemptOutcome.FAILED, attemptRepository.lastAttempt?.outcome)
-            assertEquals("MEDIA_UNAVAILABLE", attemptRepository.lastAttempt?.providerErrorCode)
-            assertEquals("MediaServiceUnavailableException", attemptRepository.lastAttempt?.providerMessage)
-            assertEquals("job-1", jobRepository.retriedJobId)
+            publisher.called shouldBe false
+            attemptRepository.lastAttempt?.outcome shouldBe DeliveryAttemptOutcome.FAILED
+            attemptRepository.lastAttempt?.providerErrorCode shouldBe "MEDIA_UNAVAILABLE"
+            attemptRepository.lastAttempt?.providerMessage shouldBe "MediaServiceUnavailableException"
+            jobRepository.retriedJobId shouldBe "job-1"
         }
 
     @Test
@@ -400,11 +402,11 @@ class PublishingWorkerTest {
 
         worker.pollOnce()
 
-        assertEquals(false, publisher.called)
-        assertEquals("MEDIA_NOT_FOUND", attemptRepository.lastAttempt?.providerErrorCode)
-        assertEquals("AssetNotReadyException", attemptRepository.lastAttempt?.providerMessage)
-        assertEquals("MEDIA_NOT_FOUND", publicationRepository.failedReasonCode)
-        assertEquals("job-1", jobRepository.failedJobId)
+        publisher.called shouldBe false
+        attemptRepository.lastAttempt?.providerErrorCode shouldBe "MEDIA_NOT_FOUND"
+        attemptRepository.lastAttempt?.providerMessage shouldBe "AssetNotReadyException"
+        publicationRepository.failedReasonCode shouldBe "MEDIA_NOT_FOUND"
+        jobRepository.failedJobId shouldBe "job-1"
     }
 
     @Test
@@ -444,11 +446,11 @@ class PublishingWorkerTest {
 
         worker.pollOnce()
 
-        assertEquals("PROVIDER_UNAVAILABLE", attemptRepository.lastAttempt?.providerErrorCode)
+        attemptRepository.lastAttempt?.providerErrorCode shouldBe "PROVIDER_UNAVAILABLE"
         attemptRepository.lastAttempt?.providerMessage shouldBe null
-        assertEquals("PROVIDER_UNAVAILABLE", publicationRepository.failedReasonCode)
+        publicationRepository.failedReasonCode shouldBe "PROVIDER_UNAVAILABLE"
         publicationRepository.failedReasonMessage shouldBe null
-        assertEquals("PROVIDER_UNAVAILABLE", notificationRepository.lastEvent?.message)
+        notificationRepository.lastEvent?.message shouldBe "PROVIDER_UNAVAILABLE"
         val persistedText = listOfNotNull(
             attemptRepository.lastAttempt?.providerMessage,
             publicationRepository.failedReasonCode,
@@ -466,7 +468,7 @@ class PublishingWorkerTest {
             "550e8400-e29b-41d4-a716-446655440000",
             "bucket/assets/workspace-1/raw.png",
         ).forEach { unsafeValue ->
-            assertEquals(false, persistedText.contains(unsafeValue), unsafeValue)
+            withClue(unsafeValue) { persistedText.contains(unsafeValue) shouldBe false }
         }
     }
 
@@ -541,10 +543,10 @@ class PublishingWorkerTest {
 
         worker.scanBlockedForRecovery()
 
-        assertEquals(PublicationStatus.QUEUED, publicationRepository.updatedDraft?.status)
-        assertEquals(1, publicationRepository.updatedDraft?.retryCount)
-        assertEquals(Instant.parse("2026-05-26T12:01:00Z"), publicationRepository.updatedDraft?.scheduledFor)
-        assertEquals("pub-1", jobRepository.replacedJob?.publicationId)
+        publicationRepository.updatedDraft?.status shouldBe PublicationStatus.QUEUED
+        publicationRepository.updatedDraft?.retryCount shouldBe 1
+        publicationRepository.updatedDraft?.scheduledFor shouldBe Instant.parse("2026-05-26T12:01:00Z")
+        jobRepository.replacedJob?.publicationId shouldBe "pub-1"
     }
 
     private fun successPublication() = PublicationDraft(
@@ -787,10 +789,10 @@ class PublishingWorkerTest {
 
         worker.pollOnce()
 
-        assertEquals(false, publisher.called)
-        assertEquals("pub-1", publicationRepository.failedPublicationId)
-        assertEquals("ACCOUNT_UNAVAILABLE", publicationRepository.failedReasonCode)
-        assertEquals("job-1", jobRepository.failedJobId)
+        publisher.called shouldBe false
+        publicationRepository.failedPublicationId shouldBe "pub-1"
+        publicationRepository.failedReasonCode shouldBe "ACCOUNT_UNAVAILABLE"
+        jobRepository.failedJobId shouldBe "job-1"
     }
 
     @Test
@@ -825,9 +827,9 @@ class PublishingWorkerTest {
 
         worker.pollOnce()
 
-        assertEquals(false, publisher.called)
-        assertEquals("pub-1", publicationRepository.blockedPublicationId)
-        assertEquals("job-1", jobRepository.completedJobId)
+        publisher.called shouldBe false
+        publicationRepository.blockedPublicationId shouldBe "pub-1"
+        jobRepository.completedJobId shouldBe "job-1"
     }
 
     @Test
@@ -862,10 +864,10 @@ class PublishingWorkerTest {
 
         worker.pollOnce()
 
-        assertEquals(false, publisher.called)
-        assertEquals("pub-1", publicationRepository.failedPublicationId)
-        assertEquals("ACCOUNT_UNAVAILABLE", publicationRepository.failedReasonCode)
-        assertEquals("job-1", jobRepository.failedJobId)
+        publisher.called shouldBe false
+        publicationRepository.failedPublicationId shouldBe "pub-1"
+        publicationRepository.failedReasonCode shouldBe "ACCOUNT_UNAVAILABLE"
+        jobRepository.failedJobId shouldBe "job-1"
     }
 
     @Test
@@ -901,9 +903,9 @@ class PublishingWorkerTest {
         worker.pollOnce()
 
         // Publisher was never called
-        assertEquals(false, publisher.called)
+        publisher.called shouldBe false
         // Publication was failed terminally (not blocked — DELETED is terminal)
-        assertEquals("pub-1", publicationRepository.failedPublicationId)
-        assertEquals("job-1", jobRepository.failedJobId)
+        publicationRepository.failedPublicationId shouldBe "pub-1"
+        jobRepository.failedJobId shouldBe "job-1"
     }
 }

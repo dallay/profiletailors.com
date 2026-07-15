@@ -1,10 +1,14 @@
 # Design: Friendly Publishing Errors
 
-## Technical Approach
+## Overview
+
+### Technical Approach
 
 Use a defense-in-depth contract: backend persists stable publishing failure categories for new async `FAILED` and `BLOCKED` outcomes, while the Vue modal remains the final UI safety boundary. The UI will render only localized copy selected from an allowlist; raw backend `errorCode`, `blockedReason`, `ProblemDetail.detail`, exception messages, and exception class names are diagnostics, never visible content.
 
-## Architecture Decisions
+## Changes
+
+### Architecture Decisions
 
 | Decision | Choice | Alternatives considered | Rationale |
 |---|---|---|---|
@@ -15,7 +19,7 @@ Use a defense-in-depth contract: backend persists stable publishing failure cate
 | Diagnostics boundary | Publications and notification events store only stable categories/safe copy; delivery attempts and logs retain sanitized diagnostics | Preserve raw messages on publication state or notifications | Support needs debugging data, but provider bodies, credentials, storage paths, and exception messages must not become user-facing or broadly persisted content. |
 | i18n placement | Add post-modularization keys under `apps/web/app/src/shared/i18n/locales/{en,es}/postDetail.ts` | Hardcode modal copy | Existing locale modules and parity tests already enforce EN/ES coverage. |
 
-## Data Flow
+### Data Flow
 
 ```text
 Worker exception/provider failure
@@ -34,7 +38,7 @@ Calendar API → publishing.store.ts stores failure/block reason as opaque data
 
 Media metadata resolution, capability validation, credential resolution, asset upload/download, and provider dispatch MUST all execute inside this guarded failure boundary. A failure before provider dispatch still records an attempt and follows the same retry/terminal rules.
 
-## Canonical Failure Taxonomy
+### Canonical Failure Taxonomy
 
 | Code | Meaning | Default retryability | Final state | Recovery guidance |
 |---|---|---:|---|---|
@@ -51,7 +55,7 @@ These names are authoritative. `ACCOUNT_AUTH_EXPIRED`, `SERVICE_TEMPORARILY_UNAV
 
 Retryability is part of the typed failure signal. A retryable failure retains the same canonical category across every attempt and when retries are exhausted. Unknown exceptions map to `PUBLISHING_FAILED`; their messages MUST NOT influence category selection.
 
-## Diagnostic Sanitization Contract
+### Diagnostic Sanitization Contract
 
 - Publication `lastErrorCode` and new blocked-reason values contain only canonical codes; `lastErrorMessage` MUST be null or safe non-technical copy for new worker failures.
 - Existing notification events receive a canonical category and safe message/action; they MUST NOT receive `exception.message` or provider response bodies.
@@ -59,7 +63,7 @@ Retryability is part of the typed failure signal. A retryable failure retains th
 - Delivery attempts and logs MUST NOT persist access/refresh tokens, authorization headers or URLs, provider response bodies, stack traces, tenant/workspace identifiers embedded in messages, or raw bucket/object paths.
 - Sanitization MUST happen before persistence. UI filtering is an additional boundary, not the diagnostic redaction mechanism.
 
-## File Changes
+### File Changes
 
 | File | Action | Description |
 |---|---|---|
@@ -75,7 +79,7 @@ Retryability is part of the typed failure signal. A retryable failure retains th
 | calendar HTTP/store contract tests | Modify | Assert only opaque safe codes cross the backend/frontend boundary. |
 | `apps/web/app/src/modules/publishing/presentation/components/PostDetailModal.test.ts` | Modify | Assert no raw failed/blocked/action value leaks and EN/ES copy renders. |
 
-## Interfaces / Contracts
+### Interfaces / Contracts
 
 Backend `CalendarPublicationResult.errorCode` remains nullable string but its produced values become the closed product taxonomy above for new `FAILED` results. The existing blocked-reason field also becomes an opaque canonical-code carrier for new `BLOCKED` results. Frontend treats both as untrusted input.
 
@@ -87,7 +91,9 @@ Unknown values, including old `StorageObjectNotFoundException` and `RetryablePub
 
 Synchronous retry/delete/reschedule failures use a separate safe allowlist derived only from structured `ApiError.errorCode` or HTTP status: HTTP 401/403 → `unauthorized`, 404 → `notFound`, 409 → `stateConflict`, 400/422 → `validation`, 429/network/5xx → `temporarilyUnavailable`, and everything else → `unknown`. An explicitly allowlisted backend error code MAY refine the matching status category but MUST NOT introduce backend text. The modal combines the safe reason with the operation-specific localized action. It MUST NOT derive visible copy from `Error.message` or `ProblemDetail.detail`.
 
-## Testing Strategy
+## Usage
+
+### Testing Strategy
 
 | Layer | What to Test | Approach |
 |---|---|---|
@@ -97,10 +103,17 @@ Synchronous retry/delete/reschedule failures use a separate safe allowlist deriv
 | HTTP/store contract | Calendar results expose only canonical/opaque codes and never publication diagnostic messages | Add focused backend serialization and frontend store mapping tests. |
 | E2E | Not required for this MVP fix | Component, worker, and HTTP/store contract coverage protects every boundary changed here. |
 
-## Migration / Rollout
+### Migration / Rollout
 
 No database migration is required. Historical rows with exception class names or raw blocked reasons remain compatible because frontend fallback treats every unrecognized value as generic localized copy. Deploy the frontend safety boundary first, then enable backend canonical writes. On rollback, revert backend writers first and retain the frontend fallback while any historical or new non-legacy value can still be served.
 
-## Open Questions
+## Troubleshooting
+
+### Open Questions
 
 None. The canonical taxonomy, blocked-state representation, typed failure contract, sanitization rules, and deployment order are normative decisions in this design.
+
+## References
+
+- [Proposal](proposal.md)
+- [Publishing specification](specs/publishing/spec.md)
